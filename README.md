@@ -45,6 +45,12 @@ Below is a list of the defined `ACTION` commands that are supported on the XChai
 | [`SWAP`](./actions/SWAP.md)           | This action allows for swapping tokens across XChain platform supported blockchains.          |
 | [`SWEEP`](./actions/SWEEP.md)         | This action transfers all `TICK` balances and/or ownerships to an `DESTINATION` address.      |
 
+
+## Token Information Standard (TIS)
+
+The [`Token Information Standard (TIS)`](./Token_Information_Standard.md) defines standardized formats to associate information like images, audio, video, and files with a token.
+
+
 ## Database Naming Structure
 
 The [`Database Naming Structure`](./Database_Naming_Structure.md) defines the standardized database naming structure used within the XChain platform.
