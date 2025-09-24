@@ -6,17 +6,17 @@ This repository is where the documentation the XChain Platform resides
 
 Below is a list of the various components of the XChain platform and the function of each:
 
-| Component                                          | Description                                                                                    | 
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [`xchain-node`](../xchain-node/)     				 | Federated node which allows users to install, configure, and run XChain platform nodes         |
-| [`xchain-encoder`](../xchain-encoder/)             | Encodes XChain `ACTION` commands into blockchain transactions                                  |
-| [`xchain-decoder`](../xchain-decoder/)             | Decodes blockchain transactions into XChain `ACTION` commands and populates a decoder database |
-| [`xchain-indexer`](../xchain-indexer/)     		 | Indexes XChain `ACTION` commands from decoder database to determine status of each transaction |
-| [`xchain-explorer`](../xchain-explorer/)    		 | Blockchain Explorer and APIs that provide access to the XChain platform data                   |
-| [`xchain-hub`](../xchain-hub/)     				 | Oracle for COIN pricing information and cross-chain actions which are synced out to nodes      |
-| [`xchain-utxo-tracker`](../xchain-utxo-tracker/)   | Tracks blockchain Unspent Transaction Outputs (UTXOs) and provides APIs to retrieve UTXO data  |
-| [`xchain-regtest-miner`](../xchain-regtest-miner/) | Miner that handles processing transactions into blocks for regtest networks as needed          |
-| [`xchain-e2e-test`](../xchain-e2e-test/)     		 | Testing suite for XChain platform components to ensure data integrity                          |
+| Component                                                                          | Description                                                                                    | 
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [`xchain-node`](https://github.com/XChain-platform/xchain-node/)     				 | Federated node which allows users to install, configure, and run XChain platform nodes         |
+| [`xchain-encoder`](https://github.com/XChain-platform/xchain-encoder/)             | Encodes XChain `ACTION` commands into blockchain transactions                                  |
+| [`xchain-decoder`](https://github.com/XChain-platform/xchain-decoder/)             | Decodes blockchain transactions into XChain `ACTION` commands and populates a decoder database |
+| [`xchain-indexer`](https://github.com/XChain-platform/xchain-indexer/)     		 | Indexes XChain `ACTION` commands from decoder database to determine status of each transaction |
+| [`xchain-explorer`](https://github.com/XChain-platform/xchain-explorer/)    		 | Blockchain Explorer and APIs that provide access to the XChain platform data                   |
+| [`xchain-hub`](https://github.com/XChain-platform//xchain-hub/)     				 | Oracle for COIN pricing information and cross-chain actions which are synced out to nodes      |
+| [`xchain-utxo-tracker`](https://github.com/XChain-platform/xchain-utxo-tracker/)   | Tracks blockchain Unspent Transaction Outputs (UTXOs) and provides APIs to retrieve UTXO data  |
+| [`xchain-regtest-miner`](https://github.com/XChain-platform/xchain-regtest-miner/) | Miner that handles processing transactions into blocks for regtest networks as needed          |
+| [`xchain-e2e-test`](https://github.com/XChain-platform/xchain-e2e-test/)     		 | Testing suite for XChain platform components to ensure data integrity                          |
 
 
 ## XChain `ACTION` commands
