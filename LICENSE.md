@@ -13,7 +13,7 @@ A copy of the Apache License is available at:
 
 Any distribution, modification, or use of this software must retain the following notice in the source code and any associated documentation:
 
-> “Based on XChain Platform by Dankest, LLC – https://dankest.llc”
+> Based on XChain Platform by Dankest, LLC – https://dankest.llc
 
 This attribution must be displayed prominently and must not be removed or altered.
 
