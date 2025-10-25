@@ -1,4 +1,4 @@
----
+# XChain Platform Action Specification
 
 **Copyright © 2025 Dankest, LLC**
 
@@ -8,11 +8,9 @@ Licensed under the **Dankest Community License**
 (based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).  
 
 You may not use, modify, or distribute this material except in compliance with the License.  
-A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)
+A full copy of the License
 
----
-
-# XChain Platform Action Specification - BROADCAST
+# XChain Platform Action - BROADCAST
 This action broadcasts a message, and can also be used to create oracles and betting feeds.
 
 ## PARAMS

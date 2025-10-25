@@ -1,4 +1,4 @@
----
+# XChain Platform Specification
 
 **Copyright © 2025 Dankest, LLC**
 
@@ -10,9 +10,7 @@ Licensed under the **Dankest Community License**
 You may not use, modify, or distribute this material except in compliance with the License.  
 A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)
 
----
-
-# XChain Platform Specification - Database Naming Structure
+# XChain Platform - Database Naming Structure
 
 The XChain Platform follows the following database naming structure :
 

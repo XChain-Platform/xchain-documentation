@@ -1,4 +1,4 @@
----
+# XChain Platform Specification
 
 **Copyright © 2025 Dankest, LLC**
 
@@ -10,9 +10,7 @@ Licensed under the **Dankest Community License**
 You may not use, modify, or distribute this material except in compliance with the License.  
 A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)
 
----
-
-# XChain Platform Specification - Token Information Standard (TIS)
+# XChain Platform - Token Information Standard (TIS)
 
 The Token Information Standard (TIS) defines standardized formats to associate information like images, audio, video, and files with a token.
 

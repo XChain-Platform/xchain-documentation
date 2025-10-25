@@ -1,4 +1,4 @@
----
+# XChain Platform Action Specification
 
 **Copyright © 2025 Dankest, LLC**
 
@@ -8,11 +8,9 @@ Licensed under the **Dankest Community License**
 (based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).  
 
 You may not use, modify, or distribute this material except in compliance with the License.  
-A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)
+A full copy of the License
 
----
-
-# XChain Platform Action Specification - LINK
+# XChain Platform Action - LINK
 This action links actions using `ACTION_INDEX`, including linking actions across blockchains.
 
 ## PARAMS
