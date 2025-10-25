@@ -12,7 +12,7 @@ Portions of this software are based on and distributed under the **Dankest Commu
 
 Any redistribution or modification of this software must include the following attribution:
 
-> “Based on XChain Platform by Dankest, LLC – https://dankest.llc”
+> Based on XChain Platform by Dankest, LLC – https://dankest.llc
 
 This attribution must remain visible in source code headers, documentation, and user interfaces where applicable.
 
