@@ -23,3 +23,18 @@ Below is a list of the defined `ACTION` commands that are supported on the XChai
 | [`SLEEP`](./SLEEP.md)         | This action pauses actions on `TICK` until `RESUME_BLOCK` is reached.                         |
 | [`SWAP`](./SWAP.md)           | This action allows for swapping tokens across XChain platform supported blockchains.          |
 | [`SWEEP`](./SWEEP.md)         | This action transfers all `TICK` balances and/or ownerships to an `DESTINATION` address.      |
+
+
+---
+
+**Copyright © 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC – https://dankest.llc**  
+
+Licensed under the **Dankest Community License**  
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).  
+
+You may not use, modify, or distribute this material except in compliance with the License.  
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)
+
+---
