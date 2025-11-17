@@ -24,7 +24,7 @@ This action creates a dispenser (vending machine) to dispense `TICK` when trigge
 | `GET_COIN`               | String | `COIN` name (BTC, LTC, DOGE, etc)                                          |
 | `GET_TICK`               | String | Ticker name or Ticker ID                                                   |
 | `GET_AMOUNT`             | String | Quantity of `GET_COIN` or `GET_TICK` required to `DISPENSE`                |
-| `ADDRESS`                | String | Address for dispenser to operate on (default=`SOURCE`)                     |
+| `GET_ADDRESS`            | String | Address for dispenser to operate on (default=`SOURCE`)                     |
 | `FIAT_CODE`              | String | Code for `FIAT` currency your dispenser is priced in (USD, JPY, GPB, etc.) |
 | `FIAT_AMOUNT`            | String | Amount of `FIAT` currency required to trigger a `DISPENSE`                 |
 | `EXPIRATION`             | String | Timestamp of when dispenser should close, in Unix time                     |
@@ -36,9 +36,9 @@ This action creates a dispenser (vending machine) to dispense `TICK` when trigge
 ## Formats
 
 ### Version `0` - Create Dispenser
-- `VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_ESCROW|GET_COIN|GET_TICK|GET_AMOUNT|ADDRESS|FIAT_CODE|FIAT_AMOUNT|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
+- `VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_ESCROW|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|FIAT_CODE|FIAT_AMOUNT|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
-### Version `1` - Close Dispenser
+### Version `1` - Cancel Dispenser
 - `VERSION|DISPENSER_ACTION_INDEX|MEMO`
 
 ### Version `2` - Edit Dispenser
@@ -52,8 +52,8 @@ This example creates a dispenser, escrows 10 JDOG `tokens` in it, and dispense 1
 ```
 
 ```
-DISPENSER|1|1234|Closing JDOG Dispenser
-This example closes the dispenser in example 1 with `ACTION_INDEX` 1234
+DISPENSER|1|1234|Canceling JDOG Dispenser
+This example cancels the dispenser in example 1 with `ACTION_INDEX` 1234
 ```
 
 ```
@@ -67,8 +67,8 @@ This example updates the allow and block lists for dispenser with `ACTION_INDEX`
 ```
 
 ## Rules
-- Dispensers can be closed by the dispenser `ADDRESS` or `SOURCE` address which first opened the dispenser
-- If a dispenser is closed by the dispenser `ADDRESS`, tokens escrowed in the dispenser are returned to `ADDRESS`
+- Dispensers can be closed by the dispenser `GET_ADDRESS` or `SOURCE` address which first opened the dispenser
+- If a dispenser is closed by the dispenser `GET_ADDRESS`, tokens escrowed in the dispenser are returned to `GET_ADDRESS`
 - If a dispenser is closed by the dispenser `SOURCE`, tokens escrowed in the dispenser are returned to `SOURCE`
 
 ## Notes
@@ -87,3 +87,5 @@ This example updates the allow and block lists for dispenser with `ACTION_INDEX`
 - `FIAT_AMOUNT` format is `X.XX`
 - `EXPIRATION` begins the process of closing a dispenser after a set block delay
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
+- Dispensers are closed and any escrowed funds returned after a set amount of time (1 hour)
+
