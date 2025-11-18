@@ -73,6 +73,9 @@ This example updates the allow and block lists for dispenser with `ACTION_INDEX`
 
 ## Notes
 - Can create a dispenser on any valid address (no new/empty address limitation like CP)
+- Dispensers are closed and any escrowed funds returned after a set amount of time (1 hour)
+- Dispenser `LIST` edits are delayed a set amount of time (1 hour)
+- Dispensers are limited to a set maximum number of dispenses (1,000)
 - `FIAT_CODE` accepts the following values:
   - `USD` = US Dollar
   - `CAD` = Canadian Dollar
@@ -87,5 +90,3 @@ This example updates the allow and block lists for dispenser with `ACTION_INDEX`
 - `FIAT_AMOUNT` format is `X.XX`
 - `EXPIRATION` begins the process of closing a dispenser after a set block delay
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
-- Dispensers are closed and any escrowed funds returned after a set amount of time (1 hour)
-
