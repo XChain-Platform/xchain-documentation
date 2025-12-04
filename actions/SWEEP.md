@@ -14,27 +14,28 @@ A full copy of the License
 This action transfers all `TICK` balances and/or ownerships to an `DESTINATION` address.
 
 ## PARAMS
-| Name          | Type   | Description              			                                 |
+| Name          | Type   | Description                                                       |
 | ------------- | ------ | ----------------------------------------------------------------- |
 | `VERSION`     | String | Format Version                                                    |
 | `DESTINATION` | String | address where `token` shall be swept                              |
-| `BALANCES` 	 | String | Indicates if address `TICK` balances should be swept (default=1)  |
+| `BALANCES`    | String | Indicates if address `TICK` balances should be swept (default=1)  |
 | `OWNERSHIPS`  | String | Indicates if address `TICK` ownership should be swept (default=1) |
-| `MEMO` 		 | String | Optional memo to include                                          |
+| `ESCROWS`     | String | Indicates if escrowed tokens should be swept (default=0)          |
+| `MEMO`        | String | Optional memo to include                                          |
 
 ## Formats
 
 ### Version `0`
-- `VERSION|DESTINATION|BALANCES|OWNERSHIPS|MEMO`
+- `VERSION|DESTINATION|BALANCES|OWNERSHIPS|ESCROWS|MEMO`
 
 ## Examples
 ```
-SWEEP|0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|1|1
-This example sweeps both `TICK` balances and ownerships from the `SOURCE` address to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
+SWEEP|0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|1|1|1
+This example sweeps `TICK` balances, ownerships, and escrowed tokens from the `SOURCE` address to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
 ```
 
 ```
-SWEEP|0|1BoogrfDADPLQpq8LMASmWQUVYDp4t2hF9|0|1
+SWEEP|0|1BoogrfDADPLQpq8LMASmWQUVYDp4t2hF9|0|1|0
 This example sweeps only `TICK` ownerships from the `SOURCE` address to 1BoogrfDADPLQpq8LMASmWQUVYDp4t2hF9
 ```
 
