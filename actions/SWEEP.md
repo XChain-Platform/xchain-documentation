@@ -45,3 +45,4 @@ This example sweeps only `TICK` ownerships from the `SOURCE` address to 1BoogrfD
    - semicolon `;` (used as command separator)
 
 ## Notes
+- When sweeping `ESCROWS`, tokens escrowed in dispensers will be credited to the `DESTINATION` address after a set amount of time.
