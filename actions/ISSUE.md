@@ -30,7 +30,6 @@ This action creates or updates a `TICK`.
 | `LOCK_MINT`        | String | Lock `TICK` against `MINT` command                                                         |
 | `LOCK_MINT_SUPPLY` | String | Lock `TICK` against issuing additional supply via `MINT_SUPPLY`                            |
 | `LOCK_DESCRIPTION` | String | Lock `TICK` against `DESCRIPTION` changes                                                  |
-| `LOCK_RUG`         | String | Lock `TICK` against `RUG` command                                                          |
 | `LOCK_SLEEP`       | String | Lock `TICK` against `SLEEP` command                                                        |
 | `LOCK_CALLBACK`    | String | Lock `TICK` against `CALLBACK` command                                                     |
 | `CALLBACK_BLOCK`   | String | Enable `CALLBACK` command after `CALLBACK_BLOCK`                                           |
@@ -55,7 +54,7 @@ This action creates or updates a `TICK`.
 - `VERSION|TICK|MAX_MINT|MINT_SUPPLY|TRANSFER_SUPPLY|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|MEMO`
 
 ### Version `3` - Edit `LOCK` `PARAMS`
-- `VERSION|TICK|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_RUG|LOCK_SLEEP|LOCK_CALLBACK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`
+- `VERSION|TICK|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`
 
 ### Version `4` - Edit `CALLBACK` `PARAMS`
 - `VERSION|TICK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|MEMO`
@@ -128,7 +127,6 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
 - `ISSUE` `TICK` with `LOCK_MAX_SUPPLY` set to `1` to permanently lock `MAX_SUPPLY`
 - `ISSUE` `TICK` with `LOCK_MAX_MINT` set to `1` to permanently lock `MAX_MINT`
 - `ISSUE` `TICK` with `LOCK_MINT` set to `1` to permanently prevent use of the `MINT` command
-- `ISSUE` `TICK` with `LOCK_RUG` set to `1` to permanently prevent use of the `RUG` command
 - `ISSUE` `TICK` with `LOCK_SLEEP` set to `1` to permanently prevent use of the `SLEEP` command
 - `ISSUE` `TICK` with `LOCK_CALLBACK` set to `1` to permanently prevent use of the `CALLBACK` command
 - `DESCRIPTION` can contain a URL to a an icon to use for this token (48x48 standard size)
