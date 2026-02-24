@@ -14,12 +14,13 @@ A full copy of the License is available at: [https://dankest.llc/license](https:
 This action configures address specific options.
 
 ## PARAMS
-| Name             | Type   | Description                             |
-| ---------------- | ------ | ----------------------------------------|
-| `VERSION`        | String | Format Version                          |
-| `FEE_PREFERENCE` | String | Set preference for how `FEE` is used    |
-| `REQUIRE_MEMO`   | String | Require a `MEMO` on any received `SEND` |
-| `MEMO`           | String | An optional memo to include             |
+| Name                   | Type   | Description                               |
+| ---------------------- | ------ | ------------------------------------------|
+| `VERSION`              | String | Format Version                            |
+| `FEE_PREFERENCE`       | String | Set preference for how `FEE` is used      |
+| `REQUIRE_MEMO`         | String | Require a `MEMO` on any received `SEND`   |
+| `DISPENSER_PREFERENCE` | String | Set preference for how dispensrs are used |
+| `MEMO`                 | String | An optional memo to include               |
 
 ## Formats
 
@@ -46,6 +47,10 @@ This example sets the address to require a `MEMO` on any received `SEND`
 - `1` = `FEE` is destroyed, lowering supply
 - `2` = `FEE` to donated to protocol development (default)
 - `3` = `FEE` to donated to community development
+
+## `DISPENSER_PREFERENCE` Options
+- `1` = Only Owner can open dispenser (default)
+- `2` = Anyone can open dispenser
 
 ## Rules
 

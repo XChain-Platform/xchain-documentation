@@ -90,3 +90,4 @@ This example updates the allow and block lists for dispenser with `ACTION_INDEX`
 - `FIAT_AMOUNT` format is `X.XX`
 - `EXPIRATION` begins the process of closing a dispenser after a set block delay
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
+- Any address can be configured to allow any user to open a dispenser on it via the `DISPENSER_PREFERENCE` param in the `ADDRESS` action.
