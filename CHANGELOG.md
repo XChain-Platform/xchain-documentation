@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-04-01
+
+### Added
+
+- **Indexer Documentation** — 7 documentation files under `indexer/`:
+  - `README.md` — Overview, features, installation, quick start, documentation index, scripts, dependencies
+  - `ARCHITECTURE.md` — Data pipeline, internal components, action handlers, block processing pipeline
+  - `CONFIGURATION.md` — Environment variables, coin-specific config, indexer constants
+  - `ACTIONS.md` — All 20 ACTION types with categories, format versions, protocol versioning, linked to action specs
+  - `DATABASE.md` — Full schema reference with 60+ tables across core, ledger, action, state, index, and mapping categories
+  - `LEDGER.md` — Double-entry ledger system, balance calculation, sanity checks, gas token fees
+  - `OPERATIONS.md` — Running, Docker, API endpoints, resilience, troubleshooting
+
 ## 2026-03-31
 
 ### Added
