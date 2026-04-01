@@ -1,17 +1,21 @@
 # XChain Platform
 
-A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and Litecoin. Create, transfer, trade, and manage tokens using 19 ACTION commands embedded directly in standard blockchain transactions — no sidechains, no bridges, no separate consensus mechanism.
+A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and Litecoin. Create, transfer, trade, and manage tokens using 19 ACTION commands embedded directly in standard blockchain transactions — no sidechains, no bridges, no separate consensus mechanism. The platform can be extended to run on any Bitcoin-compatible blockchain, including private blockchains for enterprise deployments.
 
-## What You Can Do
+**New here?** Start with [What is XChain?](./getting-started/WHAT_IS_XCHAIN.md) or jump straight to the [Developer Quickstart](./getting-started/QUICKSTART_DEVELOPER.md).
 
-- **Create tokens** — Issue tokens with configurable supply, decimals, minting rules, allow/block lists, lockable parameters, and transfer restrictions
-- **Transfer tokens** — Single sends, multi-sends to many addresses, airdrops to lists, dividends to all holders, and full-balance sweeps
-- **Trade on a DEX** — On-chain order books with automatic matching, and token vending machines (dispensers) that sell tokens on demand
-- **Swap across chains** — Atomic token swaps between Bitcoin, Litecoin, Dogecoin, and any future supported chains
-- **Store data on-chain** — Upload files, send encrypted messages (ECDH or AES), and publish broadcast oracles
-- **Control token behavior** — Pause trading with SLEEP, recall tokens with CALLBACK, restrict access with allow/block lists, and set minting windows
+## Documentation
 
-See the [Platform Overview](./PLATFORM.md) for the full architecture, protocol details, component deep-dives, and more on what you can build.
+| Section | Description | Audience |
+|---|---|---|
+| [**Getting Started**](./getting-started/) | Platform intro, quickstarts, glossary | Everyone |
+| [**Core Concepts**](./concepts/) | Metalayer, tokens, ACTIONs, encoding, cross-chain, gas, security | Everyone |
+| [**Architecture**](./architecture/) | Data pipeline, component map, database design | Developers |
+| [**Components**](./components/) | Detailed docs for each of the 10 microservices | Developers |
+| [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate | Developers |
+| [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ — no code required | Non-technical |
+| [**Protocol Spec**](./protocol/) | 19 ACTION definitions, Token Information Standard, schemas | Protocol devs |
+| [**Operations**](./operations/) | Deployment, Docker, monitoring, upgrades, troubleshooting | Operators |
 
 ## Components
 
@@ -28,20 +32,7 @@ See the [Platform Overview](./PLATFORM.md) for the full architecture, protocol d
 | [**xchain-regtest-miner**](https://github.com/XChain-platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
 
-## Documentation
-
-| Section | Description | Audience |
-|---|---|---|
-| [**Getting Started**](./getting-started/) | Platform intro, quickstarts, glossary | Everyone |
-| [**Core Concepts**](./concepts/) | Metalayer, tokens, ACTIONs, encoding, cross-chain, gas, security | Everyone |
-| [**Architecture**](./architecture/) | Data pipeline, component map, database design | Developers |
-| [**Components**](./components/) | Detailed docs for each of the 10 microservices | Developers |
-| [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate | Developers |
-| [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ — no code required | Non-technical |
-| [**Protocol Spec**](./protocol/) | 19 ACTION definitions, Token Information Standard, schemas | Protocol devs |
-| [**Operations**](./operations/) | Deployment, Docker, monitoring, upgrades, troubleshooting | Operators |
-
-### Reference
+## Reference
 
 | Document | Description |
 |---|---|
