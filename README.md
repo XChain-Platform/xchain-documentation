@@ -1,70 +1,61 @@
-# XChain Platform - Documentation
+# XChain Platform
 
-This repository is where the documentation the XChain Platform resides
+A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and Litecoin. Create, transfer, trade, and manage tokens using 19 ACTION commands embedded directly in standard blockchain transactions — no sidechains, no bridges, no separate consensus mechanism.
 
-## XChain Components
+## What You Can Do
 
-Below is a list of the various components of the XChain platform and the function of each:
+- **Create tokens** — Issue tokens with configurable supply, decimals, minting rules, allow/block lists, lockable parameters, and transfer restrictions
+- **Transfer tokens** — Single sends, multi-sends to many addresses, airdrops to lists, dividends to all holders, and full-balance sweeps
+- **Trade on a DEX** — On-chain order books with automatic matching, and token vending machines (dispensers) that sell tokens on demand
+- **Swap across chains** — Atomic token swaps between Bitcoin, Litecoin, Dogecoin, and any future supported chains
+- **Store data on-chain** — Upload files, send encrypted messages (ECDH or AES), and publish broadcast oracles
+- **Control token behavior** — Pause trading with SLEEP, recall tokens with CALLBACK, restrict access with allow/block lists, and set minting windows
 
-| Component                                                                          | Description                                                                                    | 
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [`xchain-node`](https://github.com/XChain-platform/xchain-node/)                   | Federated node which allows users to install, configure, and run XChain platform nodes         |
-| [`xchain-encoder`](https://github.com/XChain-platform/xchain-encoder/)             | Encodes XChain `ACTION` commands into blockchain transactions                                  |
-| [`xchain-decoder`](https://github.com/XChain-platform/xchain-decoder/)             | Decodes blockchain transactions into XChain `ACTION` commands and populates a decoder database |
-| [`xchain-indexer`](https://github.com/XChain-platform/xchain-indexer/)             | Indexes XChain `ACTION` commands from decoder database to determine status of each transaction |
-| [`xchain-explorer`](https://github.com/XChain-platform/xchain-explorer/)           | Blockchain Explorer and APIs that provide access to the XChain platform data                   |
-| [`xchain-hub`](https://github.com/XChain-platform//xchain-hub/)                    | Oracle for COIN pricing information and cross-chain actions which are synced out to nodes      |
-| [`xchain-utxo-tracker`](https://github.com/XChain-platform/xchain-utxo-tracker/)   | Tracks blockchain Unspent Transaction Outputs (UTXOs) and provides APIs to retrieve UTXO data  |
-| [`xchain-regtest-miner`](https://github.com/XChain-platform/xchain-regtest-miner/) | Miner that handles processing transactions into blocks for regtest networks as needed          |
-| [`xchain-e2e-test`](https://github.com/XChain-platform/xchain-e2e-test/)           | Testing suite for XChain platform components to ensure data integrity                          |
+See the [Platform Overview](./PLATFORM.md) for the full architecture, protocol details, component deep-dives, and more on what you can build.
 
+## Components
 
-## XChain `ACTION` commands
+| Component | Role |
+|---|---|
+| [**xchain-node**](https://github.com/XChain-platform/xchain-node/) | CLI tool that installs, configures, and manages all services as Docker containers |
+| [**xchain-encoder**](https://github.com/XChain-platform/xchain-encoder/) | Embeds ACTION data into unsigned PSBTs, auto-selects encoding format |
+| [**xchain-decoder**](https://github.com/XChain-platform/xchain-decoder/) | Polls coin nodes for blocks, extracts and decodes XChain transactions into MariaDB |
+| [**xchain-indexer**](https://github.com/XChain-platform/xchain-indexer/) | Validates ACTIONs, maintains token state with a double-entry ledger, runs a DEX matching engine |
+| [**xchain-explorer**](https://github.com/XChain-platform/xchain-explorer/) | 50+ REST/JSON-RPC endpoints and a web-based block explorer |
+| [**xchain-hub**](https://github.com/XChain-platform/xchain-hub/) | Configuration oracle, pricing data, and cross-chain swap coordination |
+| [**xchain-utxo-tracker**](https://github.com/XChain-platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |
+| [**xchain-sdk**](https://github.com/XChain-platform/xchain-sdk/) | Developer SDK — 19 action methods, 40 explorer queries, batch builder, PSBT generation |
+| [**xchain-regtest-miner**](https://github.com/XChain-platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
+| [**xchain-e2e-test**](https://github.com/XChain-platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
 
-Below is a list of the defined `ACTION` commands that are supported on the XChain platform and the function of each:
+## Documentation
 
-| ACTION                                | Description                                                                                   | 
-| ------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [`ADDRESS`](./actions/ADDRESS.md)     | This action configures address specific options.                                              |
-| [`AIRDROP`](./actions/AIRDROP.md)     | This action airdrops `TICK` supply to one or more lists.                                      |
-| [`BATCH`](./actions/BATCH.md)         | This action batch executes multiple `ACTION` commands in a single transaction.                |
-| [`BROADCAST`](./actions/BROADCAST.md) | This action broadcasts a message, and can also be used to create oracles and betting feeds.   |
-| [`CALLBACK`](./actions/CALLBACK.md)   | This action performs a callback on a `TICK`.                                                  |
-| [`DESTROY`](./actions/DESTROY.md)     | This action destroys `TICK` supply.                                                           |
-| [`DISPENSER`](./actions/DISPENSER.md) | This action creates a dispenser (vending machine) to dispense `TICK` when triggered.          |
-| [`DIVIDEND`](./actions/DIVIDEND.md)   | This action pays a dividend to holders of `TICK`.                                             |
-| [`FILE`](./actions/FILE.md)           | This action uploads a file including file metadata.                                           |
-| [`ISSUE`](./actions/ISSUE.md)         | This action creates or updates a `TICK`.                                                      |
-| [`LINK`](./actions/LINK.md)           | This action links actions using `ACTION_INDEX`, including linking actions across blockchains. |
-| [`LIST`](./actions/LIST.md)           | This action creates a list of items for use in actions.                                       |
-| [`MESSAGE`](./actions/MESSAGE.md)     | This action allows for the sending of plaintext and encrypted messages between addresses.     |
-| [`MINT`](./actions/MINT.md)           | This action mints `TICK` supply.                                                              |
-| [`ORDER`](./actions/ORDER.md)         | This action creates a order to sell an item on the Decentralized Exchange (DEX).              |
-| [`SEND`](./actions/SEND.md)           | This action sends one or more `TICK` to an `ADDRESS`.                                         |
-| [`SLEEP`](./actions/SLEEP.md)         | This action pauses actions on `TICK` until `RESUME_BLOCK` is reached.                         |
-| [`SWAP`](./actions/SWAP.md)           | This action allows for swapping tokens across XChain platform supported blockchains.          |
-| [`SWEEP`](./actions/SWEEP.md)         | This action transfers all `TICK` balances and/or ownerships to an `DESTINATION` address.      |
+| Section | Description | Audience |
+|---|---|---|
+| [**Getting Started**](./getting-started/) | Platform intro, quickstarts, glossary | Everyone |
+| [**Core Concepts**](./concepts/) | Metalayer, tokens, ACTIONs, encoding, cross-chain, gas, security | Everyone |
+| [**Architecture**](./architecture/) | Data pipeline, component map, database design | Developers |
+| [**Components**](./components/) | Detailed docs for each of the 10 microservices | Developers |
+| [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate | Developers |
+| [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ — no code required | Non-technical |
+| [**Protocol Spec**](./protocol/) | 19 ACTION definitions, Token Information Standard, schemas | Protocol devs |
+| [**Operations**](./operations/) | Deployment, Docker, monitoring, upgrades, troubleshooting | Operators |
 
+### Reference
 
-## Token Information Standard (TIS)
-
-The [`Token Information Standard (TIS)`](./Token_Information_Standard.md) defines standardized formats to associate information like images, audio, video, and files with a token.
-
-
-## Database Naming Structure
-
-The [`Database Naming Structure`](./Database_Naming_Structure.md) defines the standardized database naming structure used within the XChain platform.
+| Document | Description |
+|---|---|
+| [**Platform Overview**](./PLATFORM.md) | Comprehensive architecture, protocol details, component deep-dives, and what you can build |
+| [**Supported Blockchains**](./BLOCKCHAINS.md) | Currently supported chains, adding new blockchains, regtest and private deployments |
 
 ---
 
-**Copyright © 2025 Dankest, LLC**
+**Copyright &copy; 2025 Dankest, LLC**
 
-**Based on XChain Platform by Dankest, LLC – https://dankest.llc**  
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
 
-Licensed under the **Dankest Community License**  
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).  
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
 
-You may not use, modify, or distribute this material except in compliance with the License.  
+You may not use, modify, or distribute this material except in compliance with the License.
 A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)
-
----

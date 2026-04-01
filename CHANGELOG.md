@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-04-01 (v2.0.0)
+
+### Changed
+
+- **Documentation Restructuring** — Complete reorganization of documentation into a unified, audience-aware structure:
+  - Moved `actions/` → `protocol/actions/`
+  - Moved `indexer/` → `components/indexer/`
+  - Moved `sdk/` → `components/sdk/`
+  - Moved `Token_Information_Standard.md` and `Database_Naming_Structure.md` → `protocol/`
+  - Moved `json/` → `protocol/json/`
+  - Updated all internal cross-references to reflect new paths
+
+### Added
+
+- **Getting Started** — 4 documents: platform introduction (`WHAT_IS_XCHAIN.md`), developer quickstart, node operator quickstart, glossary of 49 terms
+- **Core Concepts** — 8 documents: metalayer, ACTIONs, tokens, ledger, encoding, cross-chain, gas, security model
+- **Architecture** — 3 documents: end-to-end data pipeline, component map with ASCII diagrams, database design
+- **Developer Guide** — 8 tutorials: build your first token, dispensers, explorer queries, cross-chain swaps, advanced token features, batch operations, regtest development, integration patterns
+- **User Guide** — 5 documents: token creation, trading, cross-chain, use cases, FAQ — all non-technical
+- **Operations** — 7 documents: deployment, Docker, configuration, monitoring, reorg handling, upgrading, troubleshooting
+- **Component Documentation** — Detailed docs for decoder, encoder (+ format selection guide), explorer, hub (+ decentralization roadmap), UTXO tracker, node, e2e-test, regtest-miner
+- **Index READMEs** — Navigation pages for all 8 new documentation sections
+
 ## 2026-04-01
 
 ### Added

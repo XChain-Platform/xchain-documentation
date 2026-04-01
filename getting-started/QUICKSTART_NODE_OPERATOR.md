@@ -1,0 +1,193 @@
+# Node Operator Quickstart
+
+This guide walks you through installing and running the full XChain platform stack on your own machine.
+
+## Prerequisites
+
+- **Docker** (Engine 20.10+) and **Docker Compose** — all XChain services run as Docker containers
+- **Node.js** 18 or later — required to run the `xchain-node` CLI
+- **Disk space** — blockchain data is large; plan for at least 600 GB for Bitcoin mainnet, or use testnet/regtest for development
+- **Internet access** — the installer downloads service images and blockchain binaries from GitHub
+
+---
+
+## Step 1: Clone and Install xchain-node
+
+`xchain-node` is the CLI orchestrator that manages every other service.
+
+```bash
+git clone https://github.com/XChain-platform/xchain-node.git
+cd xchain-node
+npm install
+```
+
+Optionally, install the CLI globally so you can run `xchain-node` from anywhere:
+
+```bash
+npm link
+```
+
+---
+
+## Step 2: Run the Installer
+
+The installer sets up Docker containers for all XChain services. Specify the chain and network you want to run:
+
+```bash
+# Install everything for Bitcoin mainnet
+node src/index.js install master all bitcoin mainnet
+
+# Or for Dogecoin testnet
+node src/index.js install master all dogecoin testnet
+
+# Or for a local regtest environment (recommended for first-time setup)
+node src/index.js install master all bitcoin regtest
+```
+
+The installer:
+- Verifies Docker is accessible and creates runtime directories
+- Installs `xchain-hub` first (the shared coordination layer)
+- Clones each service repo from GitHub into `modules/`
+- Builds Docker images and starts containers
+- Downloads and verifies the crypto node binary (Bitcoin/Litecoin/Dogecoin daemon) using SHA-256 hashes
+- Configures inter-service networking on isolated Docker networks
+
+Installation time varies: regtest finishes in minutes; mainnet requires downloading blockchain data, which can take hours or days depending on your connection and hardware.
+
+---
+
+## Step 3: Start the Services
+
+```bash
+# Start all services for Bitcoin mainnet
+node src/index.js start all bitcoin mainnet
+
+# Start a specific service
+node src/index.js start xchain-explorer
+
+# Start all chains and networks at once
+node src/index.js start all all all
+```
+
+---
+
+## Step 4: Check Status
+
+```bash
+# List all running containers
+node src/index.js ps
+
+# Interactive terminal UI — shows all services with live status
+node src/index.js -i
+```
+
+The interactive TUI (`-i` flag) gives you a multi-pane view of all installed containers, their status, and log tails. Use it to quickly see which services are running and spot any that have crashed.
+
+---
+
+## Step 5: Access the Explorer
+
+Once services are running, the XChain explorer web UI is available at:
+
+```
+http://localhost:18080
+```
+
+The JSON-RPC API is at:
+
+```
+http://localhost:18080/api
+```
+
+The REST API is at:
+
+```
+http://localhost:18080/rest
+```
+
+---
+
+## Multi-Chain Setup
+
+A single `xchain-node` installation can run Bitcoin, Litecoin, and Dogecoin simultaneously. The `xchain-hub` and `xchain-explorer` are shared services — one instance serves all chains. Each coin gets its own set of coin-specific services (decoder, indexer, encoder, UTXO tracker).
+
+```bash
+# Add Litecoin mainnet to an existing installation
+node src/index.js install master all litecoin mainnet
+node src/index.js start all litecoin mainnet
+
+# Add Dogecoin mainnet
+node src/index.js install master all dogecoin mainnet
+node src/index.js start all dogecoin mainnet
+```
+
+---
+
+## Regtest Mode (Recommended for Development)
+
+Regtest is a local blockchain mode where:
+- Blocks are mined on demand (no waiting for confirmations)
+- Coins have no real value
+- You can reset the chain at any time
+- The `xchain-regtest-miner` service automatically mines blocks as transactions arrive
+
+```bash
+# Install regtest stack
+node src/index.js install master all bitcoin regtest
+node src/index.js start all bitcoin regtest
+```
+
+In regtest, the `xchain-e2e-test` service runs the full end-to-end test suite against your local stack — useful for verifying everything is working correctly.
+
+---
+
+## Common Management Commands
+
+```bash
+# Stop services
+node src/index.js stop all bitcoin mainnet
+
+# Restart a specific service
+node src/index.js restart xchain-indexer bitcoin mainnet
+
+# View logs
+node src/index.js logs xchain-decoder bitcoin mainnet
+
+# Tail logs live
+node src/index.js tail xchain-indexer bitcoin mainnet
+
+# Multi-pane log monitor
+node src/index.js monitor all bitcoin mainnet
+
+# Open a shell inside a container
+node src/index.js shell xchain-indexer bitcoin mainnet
+
+# Update a service to latest
+node src/index.js update xchain-indexer bitcoin mainnet
+```
+
+---
+
+## Bootstrap Snapshots
+
+For mainnet deployments, downloading and parsing the full blockchain from genesis can take a very long time. The installer supports bootstrap snapshots — pre-built database dumps that let you start from a recent block:
+
+```bash
+# Restore from bootstrap snapshot (faster initial sync)
+node src/index.js bootstrap restore xchain-indexer bitcoin mainnet
+```
+
+To skip bootstrap and force a full parse from genesis:
+
+```bash
+node src/index.js install master all bitcoin mainnet --no-bootstrap
+```
+
+---
+
+## Next Steps
+
+- [Deployment Guide](../operations/DEPLOYMENT.md) — production configuration, security, reverse proxies
+- [Docker Reference](../operations/DOCKER.md) — container naming, networking, volume management
+- [Regtest Development](../developer-guide/REGTEST_DEVELOPMENT.md) — full local development setup
+- [Configuration Reference](../operations/CONFIGURATION.md) — all environment variables and config parameters

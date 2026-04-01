@@ -1,0 +1,249 @@
+# Deployment
+
+This guide covers deploying the XChain Platform from scratch, from a single-chain regtest setup to a full multi-chain mainnet installation.
+
+---
+
+## Prerequisites
+
+### Software
+
+- **Docker** — Engine 20.10 or later. Docker must be accessible to the current user (add user to `docker` group or run as root).
+- **Node.js** — v18 or later (required to run xchain-node CLI).
+- **Git** — to clone xchain-node.
+
+Verify Docker is working before proceeding:
+
+```bash
+docker info
+```
+
+### Disk Space
+
+Blockchain data can be substantial. Budget accordingly before starting a mainnet sync:
+
+| Chain | Approx. blockchain size (mainnet, as of 2025) |
+|---|---|
+| Bitcoin (BTC) | ~650 GB |
+| Litecoin (LTC) | ~100 GB |
+| Dogecoin (DOGE) | ~100 GB |
+
+Add headroom for the indexer and decoder databases. A full BTC + LTC + DOGE mainnet deployment should have at least 1.5 TB of free disk space. For regtest, a few gigabytes is sufficient.
+
+### Network Ports
+
+Each service exposes a JSON-RPC port. Make sure these are not blocked by firewall rules on the host if external access is needed. Default ports differ per coin and network. See [Configuration](./CONFIGURATION.md) for a full port listing.
+
+---
+
+## Installing xchain-node
+
+xchain-node is the CLI tool that installs, starts, stops, and monitors all other services as Docker containers.
+
+```bash
+git clone https://github.com/XChain-Platform/xchain-node
+cd xchain-node
+npm install
+```
+
+Optionally install the `xchain-node` symlink globally:
+
+```bash
+# Follow the steps in INSTALL.md inside the xchain-node directory
+```
+
+After installation, verify the CLI is working:
+
+```bash
+node src/index.js --help
+# or if installed globally:
+xchain-node --help
+```
+
+---
+
+## Running the Installer
+
+The `install` command clones the target service from GitHub, builds its Docker image, and registers it with the hub. The `all` keyword installs every service for a given chain and network in the correct dependency order.
+
+```bash
+xchain-node install main all bitcoin mainnet
+```
+
+Arguments: `install <branch> <service> [chain] [network]`
+
+- `branch` — Git branch to install from (e.g., `main`).
+- `service` — `all`, or a specific service name such as `xchain-decoder`.
+- `chain` — `bitcoin`, `litecoin`, `dogecoin`, or `all`.
+- `network` — `mainnet`, `testnet`, or `regtest`.
+
+The installer automatically ensures `xchain-hub` is installed first, since other services depend on it for configuration.
+
+---
+
+## Starting Services
+
+Start all services for a chain:
+
+```bash
+xchain-node start all bitcoin mainnet
+```
+
+Start a single service:
+
+```bash
+xchain-node start xchain-decoder bitcoin mainnet
+```
+
+Check running container status:
+
+```bash
+xchain-node ps
+```
+
+---
+
+## Deployment Configurations
+
+### Full Multi-Chain Mainnet (BTC + LTC + DOGE)
+
+A full mainnet deployment runs one coin node, decoder, indexer, encoder, and UTXO tracker per chain, plus one shared hub, explorer, and MariaDB instance.
+
+Install each chain in sequence:
+
+```bash
+xchain-node install main all bitcoin mainnet
+xchain-node install main all litecoin mainnet
+xchain-node install main all dogecoin mainnet
+```
+
+Minimum recommended resources for the full three-chain stack:
+
+| Resource | Recommendation |
+|---|---|
+| CPU | 8+ cores |
+| RAM | 32 GB |
+| Disk | 2 TB+ NVMe SSD |
+| Network | 100 Mbps sustained (during initial sync) |
+
+### Single-Chain Deployment
+
+If only one chain is needed, install only that chain:
+
+```bash
+xchain-node install main all litecoin mainnet
+```
+
+This reduces resource requirements proportionally. A single-chain LTC or DOGE deployment can run comfortably on a 4-core, 8 GB RAM machine with 250 GB of disk.
+
+### Regtest Deployment (Development / Testing)
+
+Regtest uses local blockchain simulation with no real network sync. This is the fastest way to bring up a fully working stack for development or testing.
+
+```bash
+xchain-node install main all bitcoin regtest
+xchain-node start all bitcoin regtest
+```
+
+Regtest also installs `xchain-regtest-miner`, which automatically mines blocks when transactions appear in the mempool.
+
+To skip bootstrap archive downloads and force a full parse from block 0:
+
+```bash
+xchain-node --no-bootstrap install main all bitcoin regtest
+```
+
+### Private Deployment (Regtest as Production)
+
+Some operators run a private XChain instance on a permissioned regtest network. The setup is identical to a standard regtest deployment. Control block production via the regtest-miner or by calling `generatetoaddress` directly on the coin node.
+
+---
+
+## Initial Sync
+
+After starting a mainnet coin node for the first time, it must download and verify the entire blockchain. This can take anywhere from several hours (LTC, DOGE) to multiple days (BTC) depending on disk I/O speed and network bandwidth.
+
+The decoder waits for the coin node to report `verificationprogress >= 0.99` before it begins processing blocks. You can monitor coin node sync progress by checking the decoder logs:
+
+```bash
+xchain-node logs xchain-decoder bitcoin mainnet
+```
+
+The decoder will log when it begins processing blocks after the coin node finishes syncing.
+
+### Bootstrap Archives (Optional)
+
+xchain-node can restore a pre-built LevelDB snapshot for the UTXO tracker to avoid rescanning the entire blockchain. This is controlled by the `bootstrap` command:
+
+```bash
+xchain-node bootstrap restore xchain-utxo-tracker bitcoin mainnet
+```
+
+Use `--no-bootstrap` on install to skip this entirely and do a full parse.
+
+---
+
+## Verifying the Pipeline
+
+Once all services are running, verify data is flowing through the pipeline:
+
+**1. Coin node is synced:**
+Check decoder logs for active block processing (block numbers should be incrementing).
+
+**2. Decoder is writing to its database:**
+```bash
+xchain-node exec xchain-decoder bitcoin mainnet \
+  "mysql -u root XChain_BTC_Mainnet_Decoder -e 'SELECT MAX(block_index) FROM blocks;'"
+```
+
+**3. Indexer is processing decoder output:**
+The indexer block height should be close to (or equal to) the decoder block height. Check indexer logs:
+```bash
+xchain-node logs xchain-indexer bitcoin mainnet
+```
+
+**4. Explorer is serving data:**
+Hit the explorer's HTTP endpoint. By default the explorer runs on port 18080:
+```bash
+curl http://localhost:18080/btc/api/ping
+```
+
+---
+
+## Log Locations
+
+Logs are written to Docker container stdout/stderr. Access them via xchain-node:
+
+```bash
+xchain-node logs xchain-decoder bitcoin mainnet      # full logs
+xchain-node tail xchain-decoder bitcoin mainnet      # follow (tail -f)
+xchain-node monitor                                  # multi-pane live monitor (all services)
+xchain-node tailmonitor                              # tail + monitor combined
+```
+
+Direct Docker access:
+```bash
+docker logs xchain-node-bitcoin-mainnet-xchain-decoder
+docker logs -f xchain-node-bitcoin-mainnet-xchain-decoder
+```
+
+---
+
+## Stopping and Restarting Services
+
+Stop all services for a chain:
+```bash
+xchain-node stop all bitcoin mainnet
+```
+
+Stop a single service:
+```bash
+xchain-node stop xchain-indexer bitcoin mainnet
+```
+
+Restart a service:
+```bash
+xchain-node restart xchain-decoder bitcoin mainnet
+```
+
+Restarting a service does not affect its database. The decoder and indexer resume from where they left off.

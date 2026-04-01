@@ -88,7 +88,7 @@ Configure address-level preferences for fee routing and memo requirements.
 await sdk.address({ feePreference: 2, requireMemo: 1 })
 ```
 
-See also: [`../actions/ADDRESS.md`](../actions/ADDRESS.md)
+See also: [`../actions/ADDRESS.md`](../../protocol/actions/ADDRESS.md)
 
 ---
 
@@ -116,7 +116,7 @@ Distribute tokens to all addresses on a list.
 await sdk.airdrop({ tick: 'MYTOKEN', amount: '10', listActionIndex: 42 })
 ```
 
-See also: [`../actions/AIRDROP.md`](../actions/AIRDROP.md)
+See also: [`../actions/AIRDROP.md`](../../protocol/actions/AIRDROP.md)
 
 ---
 
@@ -147,7 +147,7 @@ await sdk.batch({
 })
 ```
 
-See also: [`../actions/BATCH.md`](../actions/BATCH.md)
+See also: [`../actions/BATCH.md`](../../protocol/actions/BATCH.md)
 
 ---
 
@@ -184,7 +184,7 @@ await sdk.broadcast({ message: 'PRICE_BTC_USD', value: 65000, fee: 0.01 })
 await sdk.broadcast({ broadcastActionIndex: 120, value: 67000 })
 ```
 
-See also: [`../actions/BROADCAST.md`](../actions/BROADCAST.md)
+See also: [`../actions/BROADCAST.md`](../../protocol/actions/BROADCAST.md)
 
 ---
 
@@ -207,7 +207,7 @@ Trigger a callback on an issued token, redeeming holder balances at the terms de
 await sdk.callback({ tick: 'MYTOKEN', memo: 'Calling back all holders' })
 ```
 
-See also: [`../actions/CALLBACK.md`](../actions/CALLBACK.md)
+See also: [`../actions/CALLBACK.md`](../../protocol/actions/CALLBACK.md)
 
 ---
 
@@ -233,7 +233,7 @@ Permanently burn tokens, removing them from supply.
 await sdk.destroy({ tick: 'MYTOKEN', amount: '500', memo: 'Deflationary burn' })
 ```
 
-See also: [`../actions/DESTROY.md`](../actions/DESTROY.md)
+See also: [`../actions/DESTROY.md`](../../protocol/actions/DESTROY.md)
 
 ---
 
@@ -300,7 +300,7 @@ await sdk.dispenser({
 await sdk.dispenser({ dispenserActionIndex: 77 })
 ```
 
-See also: [`../actions/DISPENSER.md`](../actions/DISPENSER.md)
+See also: [`../actions/DISPENSER.md`](../../protocol/actions/DISPENSER.md)
 
 ---
 
@@ -325,7 +325,7 @@ Pay a dividend of one token proportionally to all holders of another token.
 await sdk.dividend({ tick: 'MYTOKEN', dividendTick: 'REWARD', amount: '1000' })
 ```
 
-See also: [`../actions/DIVIDEND.md`](../actions/DIVIDEND.md)
+See also: [`../actions/DIVIDEND.md`](../../protocol/actions/DIVIDEND.md)
 
 ---
 
@@ -354,7 +354,7 @@ Attach a file to the chain. File data is supplied via the encoder (not in the ac
 await sdk.file({ name: 'logo.png', type: 'image/png', title: 'Project Logo' }, { rawData: fileBuffer })
 ```
 
-See also: [`../actions/FILE.md`](../actions/FILE.md)
+See also: [`../actions/FILE.md`](../../protocol/actions/FILE.md)
 
 ---
 
@@ -472,7 +472,7 @@ await sdk.issue({ tick: 'MYTOKEN', description: 'Updated description' })
 await sdk.issue({ tick: 'MYTOKEN', lockMaxSupply: 1 })
 ```
 
-See also: [`../actions/ISSUE.md`](../actions/ISSUE.md)
+See also: [`../actions/ISSUE.md`](../../protocol/actions/ISSUE.md)
 
 ---
 
@@ -498,7 +498,7 @@ Link two on-chain actions across chains, establishing an association between the
 await sdk.link({ coin1: 'BTC', coin1ActionIndex: 500, coin2: 'LTC', coin2ActionIndex: 200 })
 ```
 
-See also: [`../actions/LINK.md`](../actions/LINK.md)
+See also: [`../actions/LINK.md`](../../protocol/actions/LINK.md)
 
 ---
 
@@ -534,7 +534,7 @@ await sdk.list({ type: 2, item: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
 await sdk.list({ edit: 1, listActionIndex: 55, item: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
 ```
 
-See also: [`../actions/LIST.md`](../actions/LIST.md)
+See also: [`../actions/LIST.md`](../../protocol/actions/LIST.md)
 
 ---
 
@@ -578,7 +578,7 @@ await sdk.message({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', p
 await sdk.message({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', encryptionMethod: 1, encryptionKey: '<pubkey>' })
 ```
 
-See also: [`../actions/MESSAGE.md`](../actions/MESSAGE.md)
+See also: [`../actions/MESSAGE.md`](../../protocol/actions/MESSAGE.md)
 
 ---
 
@@ -603,7 +603,7 @@ Mint new tokens from an existing ISSUE's mintable supply.
 await sdk.mint({ tick: 'MYTOKEN', amount: '100', destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
 ```
 
-See also: [`../actions/MINT.md`](../actions/MINT.md)
+See also: [`../actions/MINT.md`](../../protocol/actions/MINT.md)
 
 ---
 
@@ -665,7 +665,7 @@ await sdk.order({
 await sdk.order({ orderActionIndex: 99 })
 ```
 
-See also: [`../actions/ORDER.md`](../actions/ORDER.md)
+See also: [`../actions/ORDER.md`](../../protocol/actions/ORDER.md)
 
 ---
 
@@ -696,7 +696,7 @@ await sdk.send({ tick: 'MYTOKEN', amount: '100', destination: 'bc1qxy2kgdygjrsqt
 await sdk.send({ tick: 'MYTOKEN', amount: '100', destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', memo: 'Payment for invoice 42' })
 ```
 
-See also: [`../actions/SEND.md`](../actions/SEND.md)
+See also: [`../actions/SEND.md`](../../protocol/actions/SEND.md)
 
 ---
 
@@ -725,7 +725,7 @@ await sdk.sleep({ resumeBlock: 900000 })
 await sdk.sleep({ resumeBlock: 900000, tick: 'MYTOKEN' })
 ```
 
-See also: [`../actions/SLEEP.md`](../actions/SLEEP.md)
+See also: [`../actions/SLEEP.md`](../../protocol/actions/SLEEP.md)
 
 ---
 
@@ -786,7 +786,7 @@ await sdk.swap({
 await sdk.swap({ swapActionIndex: 103 })
 ```
 
-See also: [`../actions/SWAP.md`](../actions/SWAP.md)
+See also: [`../actions/SWAP.md`](../../protocol/actions/SWAP.md)
 
 ---
 
@@ -816,7 +816,7 @@ await sdk.sweep({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
 await sdk.sweep({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', balances: 1, ownerships: 1, escrows: 0 })
 ```
 
-See also: [`../actions/SWEEP.md`](../actions/SWEEP.md)
+See also: [`../actions/SWEEP.md`](../../protocol/actions/SWEEP.md)
 
 ---
 
