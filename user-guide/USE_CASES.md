@@ -150,4 +150,20 @@ XChain actions involved: ORDER, DISPENSER.
 
 ---
 
+## Coming Soon: Smart Contracts
+
+The XChain Platform is developing a smart contract layer that will let developers deploy programmable logic directly on-chain. Contracts are written in JavaScript and can conditionally trigger any of the platform's 19 ACTION commands — but they cannot bypass the platform's existing validation and security rules.
+
+This opens up use cases that are not possible with individual actions alone:
+
+- **Automatic token vesting** — tokens released on a schedule without manual intervention
+- **Automated market makers** — liquidity pools with continuous pricing, going beyond fixed-price orders and dispensers
+- **Multi-condition escrow** — funds released only when multiple conditions are met (oracle confirmation, time elapsed, multi-party approval)
+- **On-chain governance** — token-weighted voting on proposals with automatic execution of results
+- **Cross-chain automation** — contracts that coordinate actions across Bitcoin, Litecoin, and Dogecoin
+
+For more details, see [Smart Contracts](../concepts/SMART_CONTRACTS.md).
+
+---
+
 *See also: [Creating Tokens](./CREATING_TOKENS.md) | [Trading](./TRADING.md) | [Cross-Chain](./CROSS_CHAIN.md) | [FAQ](./FAQ.md)*

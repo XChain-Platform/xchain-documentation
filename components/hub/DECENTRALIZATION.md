@@ -20,43 +20,62 @@ The hub operator controls configuration for all services. In a self-hosted deplo
 
 A single LevelDB-backed process has limited horizontal scaling options. Under high coordination load (many concurrent cross-chain swaps), the hub becomes a bottleneck.
 
-## Decentralization Approaches
+## Planned Architecture
 
-### Configuration: on-chain BROADCAST actions
+The hub will evolve from a single service into a **validator network** with staking-based incentives and Byzantine fault tolerance. Validators stake XCHAIN tokens (on the BTC chain) and participate in consensus to provide decentralized price feeds and cross-chain coordination.
 
-Platform configuration could be published as BROADCAST actions on-chain. Each service would read its configuration directly from the chain, removing the hub as a configuration intermediary. Configuration changes would be made by broadcasting a new action, making them auditable and tamper-evident.
+### Two-Tier Validator System
 
-Trade-off: on-chain config updates are slower (require block confirmation) and more expensive (transaction fees). For parameters that change rarely — database hostnames, port numbers — this is acceptable. For parameters that change frequently, a different mechanism is needed.
+The validator network is organized into two independent tiers, each with its own stake requirement:
 
-### Pricing: oracle feeds
+**Tier 1 — Price Oracles**
 
-Fiat price data currently flows through the hub. This could be replaced by a network of price oracle nodes that each independently source and publish pricing data. Consumers would aggregate across multiple oracles and apply a median or weighted average, removing the single-source dependency.
+Validators independently fetch cryptocurrency prices from multiple external sources (minimum 3 APIs each), submit them to the network, and reach consensus using a weighted trimmed median algorithm. This replaces the hub's centralized pricing with a manipulation-resistant oracle feed. Stake-weighted consensus ensures that moving the price requires controlling a majority of staked value, not just a single source.
 
-Existing decentralized oracle networks (e.g. Chainlink, on supported chains) could serve as external price sources, with an adapter layer translating their data into the XChain format.
+Price rounds are anchored to block heights rather than wall clocks, eliminating clock synchronization issues. The round interval (initially 10 minutes) is governance-adjustable.
 
-### Service discovery: DNS or on-chain records
+**Tier 2 — Cross-Chain Validators**
 
-Rather than polling the hub for hostnames and ports, services could resolve each other via DNS SRV records or on-chain BROADCAST records. This removes the hub from the critical path for service startup.
+A higher-stake tier (5x the oracle stake) responsible for attesting to cross-chain swap actions. Rather than running full decoder and indexer stacks for every chain, Tier 2 validators use a new **xchain-indexer-sync** service to replicate indexer databases, keeping them lightweight.
 
-DNS-based discovery is operationally straightforward in Docker and Kubernetes environments where service names are already DNS-resolvable. On-chain records provide stronger trust guarantees but with higher latency.
+Cross-chain validators declare which chains they support (minimum 2) at registration time. Consensus is calculated per chain-pair — only validators supporting both chains in a swap participate in attestation, using a PBFT-derived consensus requiring 2/3+ agreement.
 
-### Cross-chain coordination: trustless mechanisms
+### Staking and Governance
 
-Cross-chain swap coordination is the hardest problem. The current hub-mediated approach requires trusting the hub operator to match swaps fairly and completely.
+All staking operations (STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS) are standard XChain actions on the BTC chain. Validators can participate in one or both tiers.
 
-Trustless alternatives under consideration:
+Key properties of the staking system:
 
-- **Hash-time-locked contracts (HTLCs)** — each party locks funds with a hash lock; the secret reveal on one chain unlocks funds on the other. Does not require a coordinator, but requires both parties to be online during the swap window.
-- **On-chain swap records** — swap intents are published as BROADCAST actions on each chain. A stateless coordinator watches both chains and calls the relevant indexers when a matching pair is found. The coordinator is untrusted — it cannot forge a match because the on-chain records are authoritative.
-- **Relay network** — a decentralized network of relay nodes each independently watches all supported chains for swap intents and races to submit matches. Correct behavior is incentivized by a relay fee.
+- **Slashing** — Validators that submit manipulated prices or false cross-chain attestations can have stake slashed via a governance vote among active validators
+- **Lock periods** — Unstaking requires a mandatory lock period (14 days for oracle, 30 days for cross-chain) to prevent front-running of slashing proposals
+- **Delegation** — Token holders who don't want to run a validator can delegate their stake to an existing validator
+- **Rewards** — Validators earn rewards from a protocol fee pool proportional to their stake and participation
+
+### Decentralizing Each Hub Role
+
+| Current Hub Role | Decentralized Replacement |
+|---|---|
+| **Configuration** | On-chain BROADCAST actions — auditable, tamper-evident, no central authority |
+| **Service discovery** | DNS-based resolution in Docker/Kubernetes, or on-chain BROADCAST records |
+| **Price data** | Tier 1 validator oracle network with weighted trimmed median consensus |
+| **Cross-chain coordination** | Tier 2 validator attestation network with PBFT consensus |
+
+### Implementation Phases
+
+The decentralization is planned across five phases:
+
+1. **MariaDB migration** — Migrate hub storage from LevelDB to MariaDB to align with the rest of the platform
+2. **Gossip + consensus for config** — Validators gossip configuration changes and reach consensus
+3. **Decentralized price oracle** — Deploy Tier 1 staking and the oracle price round system
+4. **Cross-chain coordination** — Deploy xchain-indexer-sync, Tier 2 staking, and PBFT cross-chain attestation
+5. **Open validator set** — Remove permissioned bootstrap validators, fully open participation
 
 ## Status
 
-Hub decentralization is planned. The on-chain BROADCAST configuration approach and DNS-based service discovery are the nearest-term candidates. Cross-chain trustless coordination requires deeper protocol changes and is being designed separately.
-
-Current roadmap items tracking this work are maintained in the platform's issue tracker. Check the [platform roadmap](../../PLATFORM.md) for the latest status.
+Hub decentralization is in the design phase. The full strategic architecture plan, including detailed algorithms, economic models, slashing conditions, and implementation specifics, is maintained internally. The on-chain BROADCAST configuration approach and the Tier 1 oracle network are the nearest-term candidates for implementation.
 
 ## Related
 
 - [Hub](README.md) — current hub architecture and API reference
 - [Cross-Chain Concepts](../../concepts/CROSS_CHAIN.md) — how cross-chain swaps work at the protocol level
+- [Gas Token](../../concepts/GAS.md) — the XCHAIN token used for staking and fees

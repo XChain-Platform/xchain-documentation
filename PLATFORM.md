@@ -649,6 +649,10 @@ The **BATCH** action allows combining multiple operations in a single transactio
 - Combine administrative operations (update description + transfer ownership)
 - Protocol constraints prevent abuse: no nested batches, no file uploads, limits on mint and issue operations per batch
 
+### Smart Contracts (Planned)
+
+A programmable contract layer is planned that will allow developers to deploy JavaScript logic on-chain. Contracts run inside a bounded-execution VM within the indexer and can only affect ledger state by emitting the platform's existing ACTION commands — providing the flexibility of a general-purpose language with the safety of a fixed, audited action set. This enables use cases like token vesting schedules, automated market makers, multi-condition escrow, and on-chain governance that are impossible with individual ACTION transactions today. See [Smart Contracts](./concepts/SMART_CONTRACTS.md) for details.
+
 ## Tech Stack
 
 | Technology | Used By | Purpose |
