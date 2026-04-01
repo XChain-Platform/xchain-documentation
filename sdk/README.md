@@ -1,4 +1,4 @@
-# XChain SDK
+# XChain Platform SDK
 
 ## What is xchain-sdk
 

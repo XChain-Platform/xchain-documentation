@@ -1,6 +1,6 @@
 # Examples
 
-End-to-end usage examples for common XChain SDK workflows.
+End-to-end usage examples for common XChain Platform SDK workflows.
 
 ## Table of Contents
 

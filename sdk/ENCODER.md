@@ -1,4 +1,4 @@
-# XChain SDK — Encoder Reference
+# XChain Platform SDK — Encoder Reference
 
 ## Overview
 

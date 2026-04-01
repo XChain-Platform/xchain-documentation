@@ -1,4 +1,4 @@
-# XChain SDK — Configuration Reference
+# XChain Platform SDK — Configuration Reference
 
 ## Constructor Options
 

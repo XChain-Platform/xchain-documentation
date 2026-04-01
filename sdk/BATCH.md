@@ -1,4 +1,4 @@
-# XChain SDK — Batch Builder
+# XChain Platform SDK — Batch Builder
 
 The BatchBuilder is a fluent API for composing multiple XChain actions into a single BATCH transaction. It validates each sub-action individually, enforces the BATCH protocol constraints, and produces a ready-to-encode result.
 

@@ -1,4 +1,4 @@
-# XChain SDK — Explorer Reference
+# XChain Platform SDK — Explorer Reference
 
 ## Overview
 

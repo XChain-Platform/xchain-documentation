@@ -1,6 +1,6 @@
-# XChain SDK — Error Reference
+# XChain Platform SDK — Error Reference
 
-This document covers all error classes thrown by the XChain SDK, their codes, and how to handle them in application code.
+This document covers all error classes thrown by the XChain Platform SDK, their codes, and how to handle them in application code.
 
 ---
 

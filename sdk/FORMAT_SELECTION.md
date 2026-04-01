@@ -1,4 +1,4 @@
-# XChain SDK — Format Selection
+# XChain Platform SDK — Format Selection
 
 Many XChain actions support multiple format versions. Rather than requiring developers to specify a version number, the SDK automatically picks the optimal version based on which fields are actually provided.
 
