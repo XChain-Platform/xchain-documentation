@@ -2,162 +2,27 @@
 
 ## What is xchain-explorer
 
-xchain-explorer is the query and presentation layer of the XChain Platform. It runs as a long-lived Node.js/Express process that reads from the Indexer database and exposes over 50 endpoints through three interfaces: a REST API, a JSON-RPC 2.0 API, and a Bootstrap-based web block explorer. It does not write to any database.
+xchain-explorer is the query and presentation layer of the XChain Platform. It reads from the Indexer database and exposes over 60 REST API endpoints, a JSON-RPC 2.0 interface, and a Bootstrap-based web block explorer — all from a single long-lived Node.js/Express process. The explorer never writes to any database.
 
-The explorer is the primary integration point for wallets, exchanges, block explorers, and other applications that need to query XChain state.
+The explorer is the primary integration point for wallets, exchanges, dApps, and any application that needs to query XChain state. Developers interact with the platform through the explorer's REST API (directly or via the xchain-sdk), making this the most externally-facing component of the stack.
 
 ## Features
 
-- **Three interfaces** — REST, JSON-RPC 2.0, and a web UI served from the same process
-- **50+ endpoints** — covering tokens, balances, transactions, market data, DEX state, addresses, blocks, files, and messages
+- **Three interfaces** — REST API, JSON-RPC 2.0, and a web block explorer served from the same process
+- **60+ REST endpoints** — tokens, balances, transactions, market data, DEX state, addresses, blocks, files, messages, and more
+- **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 networks)
 - **Read-only** — the explorer never writes to the Indexer database
-- **Config discovery from hub** — fetches configuration from xchain-hub on startup and refreshes every 60 seconds
-- **SSL/TLS support** — production deployments serve HTTPS with configurable certificates
+- **Config discovery** — fetches configuration from xchain-hub on startup and refreshes every 60 seconds
+- **SSL/TLS support** — serves both HTTP and HTTPS with configurable certificates
+- **Rate limiting** — configurable request rate limiting (default 500 requests per minute)
 - **CORS configuration** — allowed origins configurable per deployment
-- **Market data relay** — price feed endpoint for aggregating and forwarding fiat price data
-- **Raw parameterized SQL** — approximately 5,500 lines of query logic with no ORM layer
-- **Highcharts integration** — market data charts in the web UI
-
-## Interfaces
-
-### REST API
-
-Standard HTTP endpoints using GET (queries) and POST (parameterized lookups). All responses are JSON. Endpoint paths follow the pattern `/api/v1/{category}/{method}`.
-
-### JSON-RPC 2.0
-
-The same functionality is available via POST to a single endpoint using the JSON-RPC 2.0 envelope format. This is the preferred interface for programmatic access — it supports batching and provides consistent error codes.
-
-### Web UI
-
-A Bootstrap-based web block explorer served from the same Express process. Pages cover:
-
-- Token listing and individual token detail pages
-- Address pages showing balances and transaction history
-- Block detail pages
-- Order book and trade history for DEX pairs
-- Dispenser listings
-- File content viewer
-- Real-time charts using Highcharts
-
-## Endpoint Categories
-
-### Tokens
-
-Query token metadata, supply, ownership, and listing state.
-
-- Get token information by ticker
-- List all tokens with filtering and pagination
-- Search tokens by name, owner, or status
-- Get token supply breakdown (issued, minted, destroyed)
-
-### Balances
-
-Query address holdings.
-
-- Get all balances for an address
-- Get a specific address's balance for a given token
-- List all holders of a token with amounts
-- Get locked (escrowed) balance for DEX orders or dispensers
-
-### Transactions
-
-Query decoded and indexed transaction data.
-
-- Get transaction details by txid
-- Get action details by action index
-- List transactions for an address
-- List transactions by block height
-
-### Market
-
-Price and trade data for the on-chain DEX.
-
-- Current price for a trading pair
-- 24-hour volume
-- Order book depth
-- Recent trade history
-- OHLCV candlestick data
-
-### DEX
-
-Active DEX state.
-
-- List open orders by pair or address
-- Get dispenser details by txid or address
-- List active dispensers for a token
-- Swap listings and status
-
-### Addresses
-
-Address metadata and history.
-
-- Address information (first seen, transaction count)
-- Stored address preferences (ADDRESS action)
-- Full transaction history with pagination
-
-### Actions
-
-Look up individual protocol actions.
-
-- Action by index number
-- Actions by type (e.g. all SEND actions)
-- Actions by ticker
-- Actions by source or destination address
-- Actions by block height
-
-### Blocks
-
-Block-level data.
-
-- Block information (height, hash, timestamp, tx count)
-- All actions within a block
-
-### Files
-
-On-chain FILE action data.
-
-- File lookup by action index or address
-- File content retrieval (raw bytes or base64)
-- File metadata (size, mime type, name)
-
-### Messages
-
-On-chain MESSAGE action data.
-
-- Message lookup by action index
-- Conversation history between two addresses
-- Messages to or from an address
-
-## Configuration
-
-The explorer reads configuration from a local `config.json` or from xchain-hub via `getAllConfig()`. Hub-sourced config refreshes every 60 seconds, so connection string changes propagate without a restart.
-
-| Parameter | Description |
-|---|---|
-| `coin` | Chain identifier — `BTC`, `LTC`, or `DOGE` |
-| `network` | Network — `mainnet`, `testnet`, or `regtest` |
-| `dbHost` | Indexer MariaDB hostname |
-| `dbPort` | Indexer MariaDB port |
-| `dbUser` | Indexer MariaDB username |
-| `dbPass` | Indexer MariaDB password |
-| `hubUrl` | URL of xchain-hub for config discovery |
-| `port` | Explorer API and web UI port |
-| `sslCert` | Path to TLS certificate (production) |
-| `sslKey` | Path to TLS private key (production) |
-| `corsOrigins` | Allowed CORS origins (comma-separated) |
-
-## Database
-
-The explorer reads from the Indexer MariaDB database named:
-
-```
-XChain_{CHAIN}_{NETWORK}_Indexer
-```
-
-Examples: `XChain_BTC_Mainnet_Indexer`, `XChain_DOGE_Regtest_Indexer`
-
-All queries use raw parameterized SQL via the `mariadb` npm package. No ORM. Query logic is concentrated in approximately 5,500 lines across the service's query modules.
+- **SSRF-protected relay** — proxy endpoint for external resources with private IP blocking
+- **Security headers** — Helmet middleware with Content Security Policy
+- **Raw parameterized SQL** — approximately 5,800 lines of query logic with no ORM, preventing SQL injection
+- **DataTables integration** — server-side pagination endpoints compatible with jQuery DataTables
+- **Highcharts integration** — candlestick, market depth, and line charts in the web UI
+- **Icon service** — serves token icons with automatic fallback to a default image
+- **BigNumber precision** — all price and amount calculations use arbitrary-precision arithmetic via mathjs
 
 ## Installation
 
@@ -167,11 +32,111 @@ Clone the repository and install dependencies from within the `xchain-explorer` 
 git clone https://github.com/XChain-platform/xchain-explorer.git
 cd xchain-explorer
 npm install
+```
+
+## Quick Start
+
+Create a `.env` file with the required environment variables (see [Configuration](CONFIGURATION.md) for full details):
+
+```env
+HUB_API_HOST=localhost
+HUB_PORT=1984
+EXPLORER_API_PORT_HTTP=8080
+EXPLORER_API_PORT_HTTPS=8443
+```
+
+Or configure a local `src/config.json` with database connection details (see [Configuration](CONFIGURATION.md)).
+
+Start the explorer:
+
+```bash
 npm run api
 ```
+
+On startup, the explorer:
+1. Loads environment variables and SSL certificates
+2. Starts the Express server with security middleware (Helmet, CORS, rate limiting)
+3. Registers the JSON-RPC router
+4. Fetches configuration from xchain-hub (or falls back to local config.json)
+5. Connects to the Indexer database(s)
+6. Begins serving API requests and the web UI
+
+### Querying the API
+
+```bash
+# Get token information
+curl http://localhost:8080/BTC/api/token/MYTOKEN
+
+# Get balances for an address
+curl http://localhost:8080/BTC/api/balances/bc1qexampleaddress
+
+# Get recent sends for an address
+curl "http://localhost:8080/BTC/api/sends/bc1qexampleaddress/address?page=1&limit=25"
+
+# Get DEX order book
+curl http://localhost:8080/BTC/api/market/TOKENА/TOKENB/orderbook
+
+# Get platform status
+curl http://localhost:8080/BTC/api/status
+```
+
+## Documentation Index
+
+| Document | Description |
+|---|---|
+| [Architecture](ARCHITECTURE.md) | Data pipeline position, internal components, request processing pipeline, source files |
+| [Configuration](CONFIGURATION.md) | Environment variables, config.json, hub discovery, SSL/TLS, CORS, rate limiting, coin config |
+| [API Reference](API.md) | Complete REST API — all 60+ endpoints with paths, parameters, response formats, and examples |
+| [Operations](OPERATIONS.md) | Running, Docker, SSL setup, security features, relay endpoint, troubleshooting |
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run api` | Start the explorer (HTTP + HTTPS servers) |
+| `npm test` | Run unit tests |
+| `npm run test:integration` | Integration tests (requires MariaDB with seed data) |
+| `npm run test:e2e` | End-to-end tests |
+| `npm run test:boundary` | Boundary condition tests |
+| `npm run test:smoke` | Smoke tests |
+| `npm run test:security` | Security tests (SQL injection, SSRF, XSS prevention) |
+| `npm run test:perf` | Performance tests |
+| `npm run test:chaos` | Chaos engineering tests |
+| `npm run test:mutation` | Mutation tests (StrykerJS) |
+| `npm run test:regression` | Regression test suite (P0 + P1 + P2 tiers) |
+| `npm run test:regression:p0` | Critical-path regression only (<1s) |
+
+## Dependencies
+
+### Runtime
+
+| Package | Purpose |
+|---|---|
+| `express` | HTTP server for REST API, web UI, and JSON-RPC |
+| `express-json-rpc-router` | JSON-RPC 2.0 request routing |
+| `express-rate-limit` | Request rate limiting middleware |
+| `helmet` | HTTP security headers and Content Security Policy |
+| `cors` | Cross-Origin Resource Sharing |
+| `dotenv` | Environment variable loading from `.env` files |
+| `mariadb` | MariaDB client with connection pooling |
+| `mathjs` | Arbitrary-precision arithmetic for token amounts and prices |
+| `axios` | HTTP client for hub connectivity and relay proxy |
+
+### Development
+
+| Package | Purpose |
+|---|---|
+| `mocha` | Test framework |
+| `chai` | Assertion library |
+| `sinon` | Mocking, stubbing, and spying |
+| `supertest` | HTTP assertion testing |
+| `nock` | HTTP request mocking |
+| `@stryker-mutator/core` | Mutation testing framework |
 
 ## Related
 
 - [Indexer](../indexer/) — the service that produces the database the explorer reads
-- [Hub](../hub/) — config oracle the explorer polls for connection details
 - [Indexer Database Schema](../indexer/DATABASE.md) — full schema reference for the underlying tables
+- [Hub](../hub/) — config oracle the explorer polls for connection details
+- [SDK](../sdk/) — developer SDK that wraps the explorer API with typed methods
+- [SDK Explorer Reference](../sdk/EXPLORER.md) — SDK client documentation for these same endpoints
