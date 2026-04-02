@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # XChain Platform Indexer — Operations
 
 ## Prerequisites
@@ -114,3 +117,15 @@ A sanity check failure means token supply does not match the sum of credits minu
 
 **"Database connection error"**
 The indexer retries database connections automatically. If the error persists, verify the database server is running and the connection credentials are correct. The circuit breaker will pause connection attempts for 30 seconds after 10 consecutive failures.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

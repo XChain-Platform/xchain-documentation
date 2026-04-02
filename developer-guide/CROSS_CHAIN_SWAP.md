@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Cross-Chain Swap
 
 The SWAP action lets you trade a token on one chain for a token on a different chain — for example, `RAREPEPE` on Bitcoin for `LTCTOKEN` on Litecoin — without a centralized exchange. The xchain-hub coordinates matching across chains.
@@ -198,3 +201,15 @@ If both tokens are on the same chain, an ORDER is simpler and does not require h
 - [QUERY_THE_EXPLORER.md](QUERY_THE_EXPLORER.md) — discover and monitor open swaps
 - [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) — building a DEX frontend
 - [ADVANCED_TOKEN_FEATURES.md](ADVANCED_TOKEN_FEATURES.md) — allow/block lists for swaps
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

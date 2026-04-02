@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Batch Operations
 
 BATCH lets you execute multiple XChain actions in a single blockchain transaction. All commands share one transaction fee and confirm in the same block. If any command in the batch fails validation, the entire batch is rejected.
@@ -192,3 +195,15 @@ P2SH and P2WSH require a second transaction to spend the script and reveal the d
 - [ADVANCED_TOKEN_FEATURES.md](ADVANCED_TOKEN_FEATURES.md) — SLEEP patterns that rely on BATCH
 - [BUILD_YOUR_FIRST_TOKEN.md](BUILD_YOUR_FIRST_TOKEN.md) — foundation for batch operations
 - [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) — airdrop and multi-send patterns
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -1,14 +1,5 @@
-# XChain Platform Action Specification
-
-**Copyright © 2025 Dankest, LLC**
-
-**Based on XChain Platform by Dankest, LLC – https://dankest.llc**  
-
-Licensed under the **Dankest Community License**  
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).  
-
-You may not use, modify, or distribute this material except in compliance with the License.  
-A full copy of the License
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - BROADCAST
 This action broadcasts a message, and can also be used to create oracles and betting feeds.
@@ -66,3 +57,15 @@ This example broadcasts the results of the superbowl feed in the previous exampl
 - Price oracles can be created by broadcasting TICK-FIAT as `MESSAGE`, price as `VALUE`, and a `FEED_FEE` and `TIMESTAMP`
 - Betting feed can be created by broadcasting the feed JSON file url as `MESSAGE`, a `FEED_FEE` and `TIMESTAMP` using `FORMAT` 2
 - Betting feed can be resolved by broadcasting the feed `BROADCAST_ACTION_INDEX`, the winning value as `VALUE`, and `TIMESTAMP` using `FORMAT` 3
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

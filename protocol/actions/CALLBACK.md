@@ -1,14 +1,5 @@
-# XChain Platform Action Specification
-
-**Copyright © 2025 Dankest, LLC**
-
-**Based on XChain Platform by Dankest, LLC – https://dankest.llc**  
-
-Licensed under the **Dankest Community License**  
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).  
-
-You may not use, modify, or distribute this material except in compliance with the License.  
-A full copy of the License
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - CALLBACK
 This action performs a callback on a `TICK`. 
@@ -41,3 +32,15 @@ This example calls back the JDOG token to the token owner address
 - `UNIT` - A specific unit of measure (1 or 1.0)
 - `CALLBACKS` respect `CALLBACK_TICK` `ALLOW_LIST` and `BLOCK_LIST` and will only distribute `CALLBACK_TICK` to authorized holders
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

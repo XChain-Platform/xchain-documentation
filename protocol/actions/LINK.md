@@ -1,14 +1,5 @@
-# XChain Platform Action Specification
-
-**Copyright © 2025 Dankest, LLC**
-
-**Based on XChain Platform by Dankest, LLC – https://dankest.llc**  
-
-Licensed under the **Dankest Community License**  
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).  
-
-You may not use, modify, or distribute this material except in compliance with the License.  
-A full copy of the License
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - LINK
 This action links actions using `ACTION_INDEX`, including linking actions across blockchains.
@@ -46,3 +37,15 @@ This example links a BTC `FILE` upload with `ACTION_INDEX` 1234 with a DOGE `ISS
 
 ## Notes
 - To link a `FILE` with a `TICK`, the `COIN2_ACTION_INDEX` must be a valid `ISSUE` action, and the `LINK` must be done by the current `TICK` owner.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

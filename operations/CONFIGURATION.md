@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Configuration
 
 This document describes how configuration works across XChain services, what parameters are available, and how to set them.
@@ -190,3 +193,15 @@ Coin nodes listen on different RPC ports per network. Standard defaults:
 | Bitcoin | 8332 | 18332 | 18443 |
 | Litecoin | 9332 | 19332 | 19443 |
 | Dogecoin | 22555 | 44555 | 18443 |
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

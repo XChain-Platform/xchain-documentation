@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Creating Tokens on XChain
 
 Anyone can create a digital token on Bitcoin, Litecoin, or Dogecoin using XChain — no programming skills required. This guide explains what tokens are, how to configure them, and what choices you make when bringing a new token into existence.
@@ -139,3 +142,15 @@ Your token lives on the blockchain permanently. Even if every XChain node went o
 ---
 
 *See also: [Trading](./TRADING.md) | [Use Cases](./USE_CASES.md) | [FAQ](./FAQ.md)*
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

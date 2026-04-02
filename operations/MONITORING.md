@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Monitoring
 
 This document describes how to monitor a running XChain Platform node, what metrics to watch, and how to identify problems before they become outages.
@@ -168,3 +171,15 @@ docker system df
 ```
 
 The decoder and indexer MariaDB databases also grow over time as new transactions are indexed. Typical growth rate depends on on-chain activity for the given coin.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

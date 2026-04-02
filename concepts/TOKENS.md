@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Tokens
 
 Tokens are the primary asset type on the XChain Platform. Any address on any supported chain can create a token, define its rules, and transfer it to others — all using standard blockchain transactions.
@@ -121,3 +124,15 @@ See [Gas](./GAS.md) for details on the XCHAIN token and its special status.
 ---
 
 *See also: [Ledger](./LEDGER.md) | [Gas](./GAS.md) | [ISSUE spec](../protocol/actions/ISSUE.md) | [Token Information Standard](../protocol/Token_Information_Standard.md)*
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

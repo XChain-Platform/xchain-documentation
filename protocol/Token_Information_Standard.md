@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # XChain Platform Specification
 
 **Copyright © 2025 Dankest, LLC**
@@ -108,3 +111,15 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>Note</b></td><td>The ord format works with inscribed JSON files and inscribed images (png, jpeg and gif only)</td></tr>
 <tr><td><b>Example</b></td><td>ORD:1d36aa544a20be86dca452e3abe464d33dd8567392dee8e333f72519e97af679<br/>or<br/>ORD:HTaqVEogvobcpFLjq+Rk0z3YVnOS3ujjM/clGel69nk=</td></tr>
 </table>
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

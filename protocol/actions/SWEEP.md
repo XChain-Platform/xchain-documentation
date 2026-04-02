@@ -1,14 +1,5 @@
-# XChain Platform Action Specification
-
-**Copyright © 2025 Dankest, LLC**
-
-**Based on XChain Platform by Dankest, LLC – https://dankest.llc**  
-
-Licensed under the **Dankest Community License**  
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).  
-
-You may not use, modify, or distribute this material except in compliance with the License.  
-A full copy of the License
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - SWEEP
 This action transfers all `TICK` balances and/or ownerships to an `DESTINATION` address.
@@ -46,3 +37,15 @@ This example sweeps only `TICK` ownerships from the `SOURCE` address to 1BoogrfD
 
 ## Notes
 - When sweeping `ESCROWS`, tokens escrowed in dispensers will be credited to the `DESTINATION` address after a set amount of time.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Regtest Development
 
 Regtest is a fully local, self-contained blockchain environment where you control block production. It is the fastest and safest way to develop and test XChain applications — no real funds at risk, blocks mine on demand, and you can reset everything and start over any time.
@@ -223,3 +226,15 @@ This drops all MariaDB data, LevelDB data, and the regtest blockchain, giving yo
 - [BUILD_YOUR_FIRST_TOKEN.md](BUILD_YOUR_FIRST_TOKEN.md) — your first token against this environment
 - [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) — structuring test harnesses and production apps
 - [QUERY_THE_EXPLORER.md](QUERY_THE_EXPLORER.md) — verifying state during development
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

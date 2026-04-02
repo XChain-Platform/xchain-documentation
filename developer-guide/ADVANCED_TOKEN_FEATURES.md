@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Advanced Token Features
 
 This guide covers the full range of controls available when issuing and managing tokens: access lists, mint windows, lockable parameters, callbacks, sleep, sub-tokens, and ownership transfer.
@@ -328,3 +331,15 @@ Escrowed tokens from dispensers are released to the destination address after a 
 - [BATCH_OPERATIONS.md](BATCH_OPERATIONS.md) — combine advanced operations atomically
 - [BUILD_A_DISPENSER.md](BUILD_A_DISPENSER.md) — sell tokens with access control
 - [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) — building on top of these features
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

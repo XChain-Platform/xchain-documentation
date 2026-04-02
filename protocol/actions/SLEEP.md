@@ -1,14 +1,5 @@
-# XChain Platform Action Specification
-
-**Copyright © 2025 Dankest, LLC**
-
-**Based on XChain Platform by Dankest, LLC – https://dankest.llc**  
-
-Licensed under the **Dankest Community License**  
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).  
-
-You may not use, modify, or distribute this material except in compliance with the License.  
-A full copy of the License
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - SLEEP
 This action pauses actions on an `ADDRESS` or a `TICK` until `RESUME_BLOCK` is reached.
@@ -67,3 +58,15 @@ This example uses BATCH action to resume actions, perform some actions on JDOG t
 - `ISSUE` `TICK` with `LOCK_SLEEP` set to `1` to permanently prevent use of the `SLEEP` command
 - Can use `BATCH` commands to stop `SLEEP`, execute `ACTION` commands, and then resume `SLEEP`, when used on a `TICK`
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

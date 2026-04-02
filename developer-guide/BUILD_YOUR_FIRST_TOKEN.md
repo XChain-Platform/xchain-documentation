@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Build Your First Token
 
 This tutorial walks you through creating a token on XChain from scratch, using a local regtest environment. By the end you will have issued a token, minted supply, sent tokens to another address, and verified the result through the explorer.
@@ -313,3 +316,15 @@ Each action you broadcast went through this pipeline:
 - [BUILD_A_DISPENSER.md](BUILD_A_DISPENSER.md) — sell tokens automatically
 - [ADVANCED_TOKEN_FEATURES.md](ADVANCED_TOKEN_FEATURES.md) — allow lists, mint windows, callbacks
 - [BATCH_OPERATIONS.md](BATCH_OPERATIONS.md) — combine multiple actions in one transaction
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

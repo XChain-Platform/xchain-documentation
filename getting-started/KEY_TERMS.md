@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Key Terms
 
 A reference glossary of XChain terminology, organized by category.
@@ -175,3 +178,15 @@ A reference glossary of XChain terminology, organized by category.
 **multisig** — Multi-signature. A Bitcoin transaction type that XChain can use to embed ACTION data by encoding it in the public keys of a multisig output.
 
 **UTXO** — Unspent Transaction Output. The fundamental unit of value on Bitcoin-family chains. Each UTXO represents a discrete amount of coin that can be spent as the input to a new transaction.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

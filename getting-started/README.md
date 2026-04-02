@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Getting Started
 
 This section is the entry point for everyone new to XChain — whether you want to understand the protocol, build an application, or run your own node. Start here to find the right path based on your goal.
@@ -18,3 +21,15 @@ This section is the entry point for everyone new to XChain — whether you want 
 **"I want to run an XChain node"** → [Node Operator Quickstart](./QUICKSTART_NODE_OPERATOR.md)
 
 **"I want to understand the protocol deeply"** → [Core Concepts](../concepts/) → [Architecture](../architecture/) → [Protocol Spec](../protocol/)
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

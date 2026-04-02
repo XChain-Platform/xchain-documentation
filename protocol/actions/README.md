@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # XChain Platform — ACTION Command Specifications
 
 This directory contains the official protocol specifications for all ACTION commands supported by the XChain Platform. These specifications are the authoritative reference for how each action is structured, what parameters it accepts, and what format versions are available.

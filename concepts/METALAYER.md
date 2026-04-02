@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # The XChain Metalayer
 
 XChain is a **metalayer protocol** — a system that reads and writes structured data on existing blockchains without changing how those blockchains work. The underlying coin nodes (Bitcoin, Litecoin, Dogecoin) are completely standard, unmodified, and unaware that XChain exists. XChain reads their data and applies its own rules on top.
@@ -89,3 +92,15 @@ The coin node requires no patches, plugins, or configuration changes. A fully sy
 ---
 
 *Next: [Actions](./ACTIONS.md) — how the 19 ACTION commands drive every state change on the platform.*
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Core Concepts
 
 This section explains the fundamental ideas behind the XChain Protocol. Each document is self-contained and scales from high-level overviews to technical depth — start with what you need and follow the cross-references.
@@ -13,3 +16,15 @@ This section explains the fundamental ideas behind the XChain Protocol. Each doc
 | [Gas](./GAS.md) | The XCHAIN fee token — what it is, how it works, and why it exists |
 | [Security Model](./SECURITY_MODEL.md) | Threat model, trust assumptions, and protocol-level security guarantees |
 | [Smart Contracts](./SMART_CONTRACTS.md) | Planned programmable contract layer — bounded-execution JavaScript VM that orchestrates existing ACTIONs |
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

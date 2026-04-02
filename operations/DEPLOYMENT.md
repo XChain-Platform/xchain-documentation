@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Deployment
 
 This guide covers deploying the XChain Platform from scratch, from a single-chain regtest setup to a full multi-chain mainnet installation.
@@ -247,3 +250,15 @@ xchain-node restart xchain-decoder bitcoin mainnet
 ```
 
 Restarting a service does not affect its database. The decoder and indexer resume from where they left off.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

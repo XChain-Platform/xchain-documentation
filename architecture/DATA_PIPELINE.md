@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Data Pipeline
 
 This document traces the end-to-end data flow from a user constructing a transaction to that transaction being queryable through the explorer. The pipeline is intentionally simple: blockchain data flows in one direction through a series of stateless or append-only services, with polling rather than an event bus at each seam.
@@ -208,3 +211,15 @@ The indexer's output is fully determined by its input (the Decoder DB) and its c
 - **Auditability**: a disputed balance or token state can be traced back through ledger entries to the exact action and block that caused it.
 
 The Decoder DB itself is rebuilt from the blockchain: destroy the Decoder DB, run the decoder from block 0, and it re-derives the same rows from on-chain data. Together, the two-stage pipeline means the full indexer state is reproducible from the raw blockchain alone.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Node Operator Quickstart
 
 This guide walks you through installing and running the full XChain platform stack on your own machine.
@@ -191,3 +194,15 @@ node src/index.js install master all bitcoin mainnet --no-bootstrap
 - [Docker Reference](../operations/DOCKER.md) — container naming, networking, volume management
 - [Regtest Development](../developer-guide/REGTEST_DEVELOPMENT.md) — full local development setup
 - [Configuration Reference](../operations/CONFIGURATION.md) — all environment variables and config parameters
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Developer Guide
 
 This section is for application developers building on top of the XChain Platform. Guides are task-oriented and assume familiarity with JavaScript and basic blockchain concepts. Start with the tutorial that matches what you want to build.
@@ -12,3 +15,15 @@ This section is for application developers building on top of the XChain Platfor
 | [Batch Operations](./BATCH_OPERATIONS.md) | Combine multiple ACTION commands into a single transaction with BATCH |
 | [Regtest Development](./REGTEST_DEVELOPMENT.md) | Run a local regtest stack for rapid development and testing |
 | [Integration Patterns](./INTEGRATION_PATTERNS.md) | Recommended patterns for integrating XChain into wallets and applications |
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

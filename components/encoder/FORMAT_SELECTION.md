@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Encoder Format Selection
 
 XChain supports four encoding formats for embedding ACTION payloads in blockchain transactions. The encoder selects the most efficient format automatically based on payload size. This document explains each format's characteristics, limits, and trade-offs. It is informational — you do not need to specify a format when calling the encoder.
@@ -89,3 +92,15 @@ The encoder measures the obfuscated payload length and selects the appropriate f
 
 - [Encoder](README.md) — encoding service overview and API reference
 - [Data Pipeline](../../architecture/DATA_PIPELINE.md) — how encoded transactions move through the platform
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

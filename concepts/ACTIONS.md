@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Actions
 
 Every state change on the XChain Platform is the result of an **ACTION** — a structured command embedded in a blockchain transaction. There are no other ways to change token state. If it isn't an ACTION recorded on-chain, it didn't happen.
@@ -124,3 +127,15 @@ Activation block heights control when new versions become valid. This allows coo
 ---
 
 *See also: [Tokens](./TOKENS.md) | [Encoding](./ENCODING.md) | [Full ACTION Specs](../protocol/actions/)*
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

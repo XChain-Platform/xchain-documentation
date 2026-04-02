@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # XChain Platform — Supported Blockchains
 
 The XChain Platform is designed to run on any number of blockchains. Adding support for a new blockchain requires only a coin-specific configuration file defining fee schedules, special addresses, and network parameters — the protocol specification, indexer logic, action handlers, and all tooling remain unchanged. The architecture scales horizontally: each blockchain runs its own independent pipeline (decoder, indexer, explorer, UTXO tracker) with its own databases, while a shared hub coordinates cross-chain operations.

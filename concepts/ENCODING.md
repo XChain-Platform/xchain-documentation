@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Transaction Encoding
 
 XChain embeds ACTION data in standard blockchain transactions. Two layers are involved: **obfuscation** (making the data harder to scan for) and **embedding** (choosing how to store the data in the transaction). Together they let an ACTION of virtually any size ride in a coin transaction that standard nodes handle without modification.
@@ -83,3 +86,15 @@ The separation between encoding and signing is a deliberate security boundary. T
 ---
 
 *See also: [Actions](./ACTIONS.md) | [Security Model](./SECURITY_MODEL.md) | [Format Selection Guide](../components/encoder/FORMAT_SELECTION.md)*
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

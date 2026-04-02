@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # XChain Platform Explorer — Architecture
 
 ## Position in the Data Pipeline
@@ -200,3 +203,15 @@ The explorer uses coin prefixes to route requests to the correct database:
 | Dogecoin regtest | `RDOGE` | `XChain_DOGE_Regtest_Indexer` |
 
 A single explorer instance can serve multiple coins and networks simultaneously, routing each request to the appropriate database based on the coin prefix in the URL path.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

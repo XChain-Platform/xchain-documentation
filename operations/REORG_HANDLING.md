@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Reorg Handling
 
 A blockchain reorganization (reorg) occurs when the network switches from one chain tip to a longer competing chain. This is a normal part of how Bitcoin-family blockchains achieve consensus. The XChain Platform detects reorgs automatically and recovers without operator intervention.
@@ -111,3 +114,15 @@ Monitor for:
 - **Frequent reorgs on the same chain** — If the decoder is logging reorg events more than once or twice per day on mainnet, investigate the coin node's peer connectivity. A poorly-connected node may oscillate between chain tips.
 - **Reorg recovery taking longer than expected** — For a 1–3 block reorg, recovery should complete in under a minute. Longer recovery times on deep reorgs are normal. If recovery appears stalled, check for database errors in the indexer logs.
 - **Sanity check failures after a reorg** — This indicates a bug in the rollback or re-indexing logic. See [Troubleshooting](./TROUBLESHOOTING.md).
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

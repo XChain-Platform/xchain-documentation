@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # XChain Platform
 
 A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and Litecoin. Create, transfer, trade, and manage tokens using 19 ACTION commands embedded directly in standard blockchain transactions — no sidechains, no bridges, no separate consensus mechanism. The platform can be extended to run on any Bitcoin-compatible blockchain, including private blockchains for enterprise deployments.

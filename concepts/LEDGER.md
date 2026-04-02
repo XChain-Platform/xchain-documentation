@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # The Double-Entry Ledger
 
 Every token movement on the XChain Platform is recorded in a double-entry accounting ledger. No balance is ever simply set — it is always derived from a history of credits, debits, and escrows. This design makes token state auditable, rollback-friendly, and self-verifying.
@@ -69,3 +72,15 @@ For schema definitions, table layouts, and query patterns used in the indexer's 
 ---
 
 *See also: [Tokens](./TOKENS.md) | [Security Model](./SECURITY_MODEL.md)*
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

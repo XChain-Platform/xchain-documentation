@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # XChain Platform Indexer — Database Schema
 
 The indexer uses two separate MariaDB databases.
@@ -111,3 +114,15 @@ During a blockchain reorganization, the `Rollback` class deletes data from two s
 **Block tables** (keyed by `block_index`): `blocks`, `transactions`
 
 **Data tables** (keyed by `action_index`): All other tables listed above. The rollback deletes records where `action_index >= firstActionIndex` (the first action at or after the reorg block), then recalculates balances and token state from the remaining ledger data.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

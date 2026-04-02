@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Database Design
 
 XChain uses two database technologies — MariaDB for relational data and LevelDB for key-value data — with a strict separation between raw decoded data and validated indexer state.
@@ -158,3 +161,15 @@ On chain reorganization, the indexer rolls back across all 40+ affected tables i
 
 - Full Indexer DB schema and table definitions: [`../components/indexer/DATABASE.md`](../components/indexer/DATABASE.md)
 - Database naming specification: [`../protocol/Database_Naming_Structure.md`](../protocol/Database_Naming_Structure.md)
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

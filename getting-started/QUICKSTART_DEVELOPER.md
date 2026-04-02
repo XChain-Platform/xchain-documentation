@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Developer Quickstart
 
 This guide walks you through creating your first XChain token using the SDK. You'll go from zero to an issued token on-chain in about 5 minutes.
@@ -266,3 +269,15 @@ Every XChain ACTION has a corresponding SDK method: `sdk.issue()`, `sdk.mint()`,
 - [ACTION Reference](../protocol/ACTIONS.md) — detailed spec for all 19 actions and their fields
 - [Regtest Development](../developer-guide/REGTEST_DEVELOPMENT.md) — run a full local stack for free
 - [Explorer API](../components/explorer/) — all 50+ REST and JSON-RPC endpoints
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

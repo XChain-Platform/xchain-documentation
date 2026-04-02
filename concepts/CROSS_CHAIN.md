@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Cross-Chain Functionality
 
 XChain runs independently on each supported blockchain. Bitcoin, Litecoin, and Dogecoin each have their own full pipeline — their own decoder, indexer, and state database. Tokens on Bitcoin are not the same assets as tokens on Litecoin, even if they share a ticker. The chains are parallel, independent ledgers.
@@ -60,3 +63,15 @@ Adding a new Bitcoin-compatible chain to XChain requires only a configuration fi
 ---
 
 *See also: [Actions](./ACTIONS.md) | [Security Model](./SECURITY_MODEL.md) | [SWAP spec](../protocol/actions/SWAP.md) | [LINK spec](../protocol/actions/LINK.md)*
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

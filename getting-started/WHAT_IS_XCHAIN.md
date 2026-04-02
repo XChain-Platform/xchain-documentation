@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # What is XChain?
 
 ## The Short Version
@@ -141,3 +144,15 @@ If you want to start building, go to the [Developer Quickstart](./QUICKSTART_DEV
 If you want to run the full platform yourself, see the [Node Operator Quickstart](./QUICKSTART_NODE_OPERATOR.md).
 
 If you need to look up specific terms, the [Key Terms](./KEY_TERMS.md) glossary covers the full XChain vocabulary.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Query the Explorer
 
 The explorer exposes the full indexed state of the XChain platform via a REST API. This tutorial covers reading that state via the SDK and via direct HTTP calls.
@@ -309,3 +312,15 @@ See [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) for more production-ready
 - [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) — using explorer queries in real applications
 - [BUILD_A_DISPENSER.md](BUILD_A_DISPENSER.md) — monitor dispenser state
 - [CROSS_CHAIN_SWAP.md](CROSS_CHAIN_SWAP.md) — query swaps across chains
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

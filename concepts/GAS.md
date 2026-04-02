@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # Gas and Fees
 
 XChain uses its own fee token — **XCHAIN** — to pay for operations that write to the protocol's state. This gas mechanism funds infrastructure, prevents spam, and provides an economic layer independent of coin transaction fees.
@@ -57,3 +60,15 @@ XCHAIN can be acquired the same way as any other XChain token — through transf
 ---
 
 *See also: [Tokens](./TOKENS.md) | [Ledger](./LEDGER.md) | [Security Model](./SECURITY_MODEL.md)*
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # XChain Platform SDK — Batch Builder
 
 The BatchBuilder is a fluent API for composing multiple XChain actions into a single BATCH transaction. It validates each sub-action individually, enforces the BATCH protocol constraints, and produces a ready-to-encode result.
@@ -241,3 +244,15 @@ When `.build()` is called, the following steps happen in sequence:
 4. The joined string is passed as the `command` param to `sdk.createAction({ action: 'BATCH', params: { command }, encoder: encoderOpts })`, which serializes the outer BATCH action: `BATCH|0|SEND|0|...;SEND|0|...`
 
 The BATCH action itself uses format version 0 (`VERSION|COMMAND`) — there is only one BATCH format.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # XChain Platform Regtest Miner
 
 ## What is xchain-regtest-miner
@@ -61,3 +64,15 @@ npm run api
 
 - [Regtest Development Guide](../../developer-guide/REGTEST_DEVELOPMENT.md) — full guide to setting up a local regtest environment
 - [E2E Tests](../e2e-test/) — the test suite that depends on the regtest miner
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

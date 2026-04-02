@@ -1,14 +1,5 @@
-# XChain Platform Action Specification
-
-**Copyright © 2025 Dankest, LLC**
-
-**Based on XChain Platform by Dankest, LLC – https://dankest.llc**  
-
-Licensed under the **Dankest Community License**  
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).  
-
-You may not use, modify, or distribute this material except in compliance with the License.  
-A full copy of the License
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - ISSUE
 This action creates or updates a `TICK`.
@@ -139,3 +130,15 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
 - `MINT_START_BLOCK` and `MINT_STOP_BLOCK` can be used to determine period(s) when `MINT` transactions are allowed
 - `MIN_TOKEN_SUPPLY` value is 0.000000000000000001
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` fields (^1234 = `TICK_ID` 1234)
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)

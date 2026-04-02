@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
 # XChain Use Cases
 
 XChain is a general-purpose token protocol. It does not prescribe what tokens are for — that is up to you. This guide explores the kinds of things people and organizations are building with it today, along with the kinds of things that become possible once you have programmable tokens living permanently on Bitcoin, Litecoin, or Dogecoin.
@@ -167,3 +170,15 @@ For more details, see [Smart Contracts](../concepts/SMART_CONTRACTS.md).
 ---
 
 *See also: [Creating Tokens](./CREATING_TOKENS.md) | [Trading](./TRADING.md) | [Cross-Chain](./CROSS_CHAIN.md) | [FAQ](./FAQ.md)*
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)
