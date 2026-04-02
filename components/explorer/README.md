@@ -27,6 +27,15 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 - **Icon service** — serves token icons with automatic fallback to a default image
 - **BigNumber precision** — all price and amount calculations use arbitrary-precision arithmetic via mathjs
 
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Architecture](ARCHITECTURE.md) | Data pipeline position, internal components, request processing pipeline, source files |
+| [Configuration](CONFIGURATION.md) | Environment variables, config.json, hub discovery, SSL/TLS, CORS, rate limiting, coin config |
+| [API Reference](API.md) | Complete REST API — all 60+ endpoints with paths, parameters, response formats, and examples |
+| [Operations](OPERATIONS.md) | Running, Docker, SSL setup, security features, relay endpoint, troubleshooting |
+
 ## Installation
 
 Clone the repository and install dependencies from within the `xchain-explorer` directory:
@@ -82,15 +91,6 @@ curl http://localhost:8080/BTC/api/market/TOKENА/TOKENB/orderbook
 # Get platform status
 curl http://localhost:8080/BTC/api/status
 ```
-
-## Documentation Index
-
-| Document | Description |
-|---|---|
-| [Architecture](ARCHITECTURE.md) | Data pipeline position, internal components, request processing pipeline, source files |
-| [Configuration](CONFIGURATION.md) | Environment variables, config.json, hub discovery, SSL/TLS, CORS, rate limiting, coin config |
-| [API Reference](API.md) | Complete REST API — all 60+ endpoints with paths, parameters, response formats, and examples |
-| [Operations](OPERATIONS.md) | Running, Docker, SSL setup, security features, relay endpoint, troubleshooting |
 
 ## Scripts
 

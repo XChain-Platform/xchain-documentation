@@ -24,6 +24,17 @@ Every XChain ACTION — SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, and 13 more �
 - **Watchdog timeout** — configurable per-block processing timeout detects deadlocks
 - **958 tests** — unit, integration, e2e, fuzz, chaos, mutation, boundary, smoke, performance, regression
 
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Architecture](ARCHITECTURE.md) | Data pipeline, internal components, action handlers, block processing pipeline |
+| [Configuration](CONFIGURATION.md) | Environment variables, coin-specific config, indexer constants |
+| [Actions](ACTIONS.md) | All 20 ACTION types, categories, format versions, protocol versioning |
+| [Database](DATABASE.md) | Full schema reference — core, ledger, action, state, index, and mapping tables |
+| [Ledger](LEDGER.md) | Double-entry ledger, balance calculation, sanity checks, gas token fees |
+| [Operations](OPERATIONS.md) | Running, Docker, API endpoints, resilience, troubleshooting |
+
 ## Installation
 
 Clone the repository and install dependencies from within the `xchain-indexer` directory:
@@ -68,17 +79,6 @@ On startup, the indexer:
 3. Creates the Indexer database if it doesn't exist
 4. Creates all required tables if they don't exist
 5. Begins the block polling loop
-
-## Documentation Index
-
-| Document | Description |
-|---|---|
-| [Architecture](ARCHITECTURE.md) | Data pipeline, internal components, action handlers, block processing pipeline |
-| [Configuration](CONFIGURATION.md) | Environment variables, coin-specific config, indexer constants |
-| [Actions](ACTIONS.md) | All 20 ACTION types, categories, format versions, protocol versioning |
-| [Database](DATABASE.md) | Full schema reference — core, ledger, action, state, index, and mapping tables |
-| [Ledger](LEDGER.md) | Double-entry ledger, balance calculation, sanity checks, gas token fees |
-| [Operations](OPERATIONS.md) | Running, Docker, API endpoints, resilience, troubleshooting |
 
 ## Scripts
 

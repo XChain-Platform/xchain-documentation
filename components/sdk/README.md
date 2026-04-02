@@ -24,6 +24,19 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - TypeScript type definitions included (`index.d.ts`)
 - Supports Bitcoin, Dogecoin, and Litecoin on mainnet, testnet, and regtest
 
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Configuration](CONFIGURATION.md) | Constructor options, environment variables, hub discovery, retry and pooling config |
+| [Actions](ACTIONS.md) | All supported ACTION types, parameters, and version formats |
+| [Explorer](EXPLORER.md) | Explorer API client methods: balances, tokens, transactions, markets |
+| [Encoder](ENCODER.md) | Encoding actions into PSBTs, encoding formats, P2SH two-phase flow |
+| [Batch Builder](BATCH.md) | Fluent API for constructing multi-action BATCH transactions |
+| [Format Selection](FORMAT_SELECTION.md) | Choosing between OP_RETURN, P2SH, P2WSH, and multisign encoding |
+| [Errors](ERRORS.md) | Error types, codes, and handling patterns |
+| [Examples](EXAMPLES.md) | Complete worked examples for common use cases |
+
 ## Installation
 
 Clone the repository and install dependencies from within the `xchain-sdk` directory:
@@ -162,19 +175,6 @@ Load the bundle in a `<script>` tag; the SDK is exposed as the global `XChainSDK
     const sdk = new XChainSDK({ network: 'bitcoin-mainnet', explorerUrl: 'localhost' });
 </script>
 ```
-
-## Documentation Index
-
-| Document | Description |
-|---|---|
-| [Configuration](CONFIGURATION.md) | Constructor options, environment variables, hub discovery, retry and pooling config |
-| [Actions](ACTIONS.md) | All supported ACTION types, parameters, and version formats |
-| [Explorer](EXPLORER.md) | Explorer API client methods: balances, tokens, transactions, markets |
-| [Encoder](ENCODER.md) | Encoding actions into PSBTs, encoding formats, P2SH two-phase flow |
-| [Batch Builder](BATCH.md) | Fluent API for constructing multi-action BATCH transactions |
-| [Format Selection](FORMAT_SELECTION.md) | Choosing between OP_RETURN, P2SH, P2WSH, and multisign encoding |
-| [Errors](ERRORS.md) | Error types, codes, and handling patterns |
-| [Examples](EXAMPLES.md) | Complete worked examples for common use cases |
 
 ## Scripts
 
