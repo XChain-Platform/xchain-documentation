@@ -11,6 +11,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**Getting Started**](./getting-started/) | Platform intro, quickstarts, glossary | Everyone |
 | [**Core Concepts**](./concepts/) | Metalayer, tokens, ACTIONs, encoding, cross-chain, gas, security | Everyone |
 | [**Architecture**](./architecture/) | Data pipeline, component map, database design | Developers |
+| [**Supported Blockchains**](./BLOCKCHAINS.md) | Supported chains, adding new blockchains, private deployments | Developers / Operators |
 | [**Components**](./components/) | Detailed docs for each of the 10 microservices | Developers |
 | [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate | Developers |
 | [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ — no code required | Non-technical |
@@ -25,19 +26,12 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**xchain-encoder**](https://github.com/XChain-platform/xchain-encoder/) | Embeds ACTION data into unsigned PSBTs, auto-selects encoding format |
 | [**xchain-decoder**](https://github.com/XChain-platform/xchain-decoder/) | Polls coin nodes for blocks, extracts and decodes XChain transactions into MariaDB |
 | [**xchain-indexer**](https://github.com/XChain-platform/xchain-indexer/) | Validates ACTIONs, maintains token state with a double-entry ledger, runs a DEX matching engine |
-| [**xchain-explorer**](https://github.com/XChain-platform/xchain-explorer/) | 50+ REST/JSON-RPC endpoints and a web-based block explorer |
+| [**xchain-explorer**](https://github.com/XChain-platform/xchain-explorer/) | 60+ REST/JSON-RPC endpoints and a web-based block explorer |
 | [**xchain-hub**](https://github.com/XChain-platform/xchain-hub/) | Configuration oracle, pricing data, and cross-chain swap coordination |
 | [**xchain-utxo-tracker**](https://github.com/XChain-platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |
 | [**xchain-sdk**](https://github.com/XChain-platform/xchain-sdk/) | Developer SDK — 19 action methods, 40 explorer queries, batch builder, PSBT generation |
 | [**xchain-regtest-miner**](https://github.com/XChain-platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
-
-## Reference
-
-| Document | Description |
-|---|---|
-| [**Platform Overview**](./PLATFORM.md) | Comprehensive architecture, protocol details, component deep-dives, and what you can build |
-| [**Supported Blockchains**](./BLOCKCHAINS.md) | Currently supported chains, adding new blockchains, regtest and private deployments |
 
 ---
 
