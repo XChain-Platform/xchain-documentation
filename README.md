@@ -36,6 +36,17 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**xchain-regtest-miner**](https://github.com/XChain-platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
 
+## Legal
+
+This project is licensed under the **Dankest Community License** (based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+| Document | Description |
+|---|---|
+| [**LICENSE**](./LICENSE.md) | Full license text |
+| [**NOTICE**](./NOTICE.md) | Required attribution, license summary, and third-party notices |
+
+Any redistribution or modification must include the attribution notice specified in [NOTICE.md](./NOTICE.md). Commercial use requires prior written consent from Dankest, LLC — see [LICENSE.md](./LICENSE.md) for details.
+
 ---
 
 **Copyright &copy; 2025 Dankest, LLC**
@@ -46,4 +57,5 @@ Licensed under the **Dankest Community License**
 (based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
 
 You may not use, modify, or distribute this material except in compliance with the License.
-A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)
+See [LICENSE](./LICENSE.md) and [NOTICE](./NOTICE.md) for full terms.
+A full copy of the License is also available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -45,4 +45,10 @@ In the event of any conflict between the Apache License and these Additional Ter
 
 ---
 
+## 6. Notice File
+
+A [NOTICE](./NOTICE.md) file is included with this software and must be retained in any redistribution. It contains the required attribution, a license summary, and third-party component notices.
+
+---
+
 ### END OF LICENSE
