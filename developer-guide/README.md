@@ -15,6 +15,7 @@ This section is for application developers building on top of the XChain Platfor
 | [Batch Operations](./BATCH_OPERATIONS.md) | Combine multiple ACTION commands into a single transaction with BATCH |
 | [Regtest Development](./REGTEST_DEVELOPMENT.md) | Run a local regtest stack for rapid development and testing |
 | [Integration Patterns](./INTEGRATION_PATTERNS.md) | Recommended patterns for integrating XChain into wallets and applications |
+| [Testing](./TESTING.md) | Testing philosophy, 11 test types, platform coverage, and contributing tests |
 
 ---
 

@@ -16,7 +16,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**Architecture**](./architecture/) | Data pipeline, component map, database design | Developers |
 | [**Supported Blockchains**](./BLOCKCHAINS.md) | Supported chains, adding new blockchains, private deployments | Developers / Operators |
 | [**Components**](./components/) | Detailed docs for each of the 10 microservices | Developers |
-| [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate | Developers |
+| [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate, testing | Developers |
 | [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ — no code required | Non-technical |
 | [**Protocol Spec**](./protocol/) | 19 ACTION definitions, Token Information Standard, schemas | Protocol devs |
 | [**Operations**](./operations/) | Deployment, Docker, monitoring, upgrades, troubleshooting | Operators |
