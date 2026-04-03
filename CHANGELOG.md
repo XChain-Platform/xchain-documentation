@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Previously Added
 
+- Comprehensive encoder documentation rewrite: expanded features (13 items), full `create_tx` API reference with parameters/response/error codes, complete configuration table (13 env vars), browser bundle build instructions
 - Encoder testing documentation: test scripts, regression suite breakdown, and test helper reference in components/encoder/README.md
 - Encoder added to platform test coverage tables in developer-guide/TESTING.md (~769 tests across 10 disciplines)
 - Updated platform total from ~2,790 to ~3,750 tests

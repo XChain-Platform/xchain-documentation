@@ -12,12 +12,18 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 ## Features
 
 - **Stateless** — no database, no persistent connections; every call is independent
-- **Four encoding formats** — OP_RETURN, P2SH, P2WSH, and multisig; auto-selected by payload size
-- **AES-128-CTR obfuscation** — derives key and IV from the first input's txid
-- **UTXO selection** — selects inputs, calculates fees, constructs change outputs
-- **Fee estimation** — calculates byte-accurate transaction size per format before selecting inputs
-- **Browser bundle** — webpack build available for client-side PSBT generation without a server
-- **JSON-RPC API** — standard HTTP interface for all encoding operations
+- **Four encoding formats** — OP_RETURN (76B), P2SH (476B), P2WSH (3,571B), and multisig (~61B/key); auto-selected by payload size
+- **Two-transaction orchestration** — automatic tx1 (fund) → tx2 (spend/reveal) pattern for P2SH and P2WSH with OP_RETURN marker
+- **AES-128-CTR obfuscation** — derives key and IV from the first input's txid; `XCHN` magic prefix on all payloads
+- **UTXO selection** — largest-first selection, duplicate removal, optional unconfirmed filtering, automatic change output
+- **Fee estimation** — byte-accurate transaction size estimation per format via `TxSizeEstimator`; dust floor enforcement
+- **Fee rate cap** — configurable maximum fee rate prevents runaway estimates (e.g., regtest feedback loops)
+- **Input validation** — centralized parameter validation with typed errors (TypeError/RangeError) for all 15 `createTransaction` parameters
+- **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 network configs with chain-specific dust thresholds)
+- **Replace-By-Fee** — optional RBF signaling via UTXO sequence number
+- **Custom outputs** — arbitrary address/value outputs for COINPay native coin payments and other use cases
+- **JSON-RPC API** — Express server with Helmet security headers, optional API key authentication, configurable rate limiting, and CORS
+- **Browser bundle** — Browserify build for client-side PSBT generation without routing private keys through a server
 
 ## Encoding Process
 
@@ -81,21 +87,74 @@ Fee rates use the coin node's `estimatesmartfee` recommendation by default. The 
 
 ## API
 
-The encoder exposes a JSON-RPC API. Key methods:
+The encoder exposes a JSON-RPC API via Express with `express-json-rpc-router`.
+
+### Methods
 
 | Method | Description |
 |---|---|
-| `encode` | Encode an ACTION string into a PSBT given UTXOs and a public key |
-| `estimateFee` | Estimate the fee for a given ACTION string and format |
-| `getFormats` | List available encoding formats and their size limits |
+| `create_tx` | Encode an ACTION string into a PSBT given UTXOs and a public key |
+| `ping` | Health check — returns `{ status: "success" }` |
+
+### `create_tx` Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `data` | `string` | Yes | ACTION string to encode (e.g., `SEND\|0\|JDOG\|100\|addr`) |
+| `pubkey` | `string` | Yes | Sender's public address |
+| `utxos` | `Array<UTXO>` | No | UTXOs to spend; if omitted, fetched from UTXO Tracker |
+| `customOutputs` | `Array<{address, value}>` | No | Additional outputs (e.g., COINPay payments) |
+| `rawData` | `string` | No | Additional data ignored by decoder |
+| `fee` | `number` | No | Fixed fee in satoshis (auto-calculated if omitted) |
+| `feePerKb` | `number` | No | Fee rate in BTC/kB (bypasses node's `estimatesmartfee`) |
+| `rbf` | `boolean` | No | Enable Replace-By-Fee signaling |
+| `encoding` | `string` | No | Force encoding type: `OP_RETURN`, `P2SH`, `P2WSH`, or `MULTISIGN` |
+| `change` | `string` | No | Change address |
+| `p2shHash` | `string` | No | Previous tx ID for P2SH/P2WSH tx2 (paired with `p2shHex`) |
+| `p2shHex` | `string` | No | Previous tx hex for P2SH/P2WSH tx2 (paired with `p2shHash`) |
+| `compressedPubKey` | `string` | No | Compressed public key for MULTISIGN encoding |
+| `unconfirmed` | `boolean` | No | Allow unconfirmed UTXOs (default: `true`) |
+| `dust` | `number` | No | Override dust amount for outputs |
+
+### UTXO Structure
+
+```json
+{
+  "txid": "64-char hex string",
+  "vout": 0,
+  "value": 100000,
+  "scriptPubKey": "hex"
+}
+```
+
+### Response
+
+```json
+{
+  "psbt": "hex-encoded PSBT (BIP 174)",
+  "encoding": "OP_RETURN | P2SH | P2WSH | MULTISIGN"
+}
+```
+
+### Error Codes
+
+| Code | Meaning |
+|---|---|
+| `-32602` | Invalid params — validation error (TypeError or RangeError from `validator.js`) |
+| `-32603` | Internal error — encoder failure (e.g., insufficient UTXOs, unsupported network) |
+| `-32001` | Unauthorized — missing or incorrect `x-api-key` header |
+| `-32029` | Rate limited — too many requests |
 
 ## Browser Bundle
 
-A webpack build is available for client-side use. This allows web applications to construct PSBTs in the browser without routing the private key through a server. The bundle exposes the same encoding logic and returns a base64 PSBT ready for signing with any compatible wallet library.
+A Browserify build is available for client-side use. This allows web applications to construct PSBTs in the browser without routing the private key through a server. The bundle exposes `window.XChainEncoder` with the same encoding logic.
+
+```bash
+npm run build       # Production (minified) → dist/xchain_encoder.min.js
+npm run build:dev   # Development (unminified) → dist/xchain_encoder.min.js
+```
 
 ## Installation
-
-Clone the repository and install dependencies from within the `xchain-encoder` directory:
 
 ```bash
 git clone https://github.com/XChain-platform/xchain-encoder.git
@@ -106,12 +165,21 @@ npm run api
 
 ## Configuration
 
-The encoder requires minimal configuration:
-
-| Parameter | Description |
-|---|---|
-| `port` | JSON-RPC API port |
-| `feeRate` | Optional override fee rate (sat/vbyte) |
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `NETWORK` | Yes | — | Coin and network (`bitcoin-mainnet`, `dogecoin-testnet`, `litecoin-regtest`, etc.) |
+| `NODE_URL` | Yes | — | Coin node RPC host |
+| `NODE_PORT` | Yes | — | Coin node RPC port |
+| `NODE_USER` | Yes | — | RPC username |
+| `NODE_PASSWORD` | Yes | — | RPC password |
+| `ENCODER_API_PORT` | No | `3000` | JSON-RPC API port |
+| `DUST_AMOUNT` | No | Network default | Minimum output value in satoshis |
+| `UTXO_TRACKER_URL` | No | — | xchain-utxo-tracker service host |
+| `UTXO_TRACKER_API_PORT` | No | — | xchain-utxo-tracker service port |
+| `MAX_FEE_RATE_KB` | No | Uncapped | Maximum fee rate in sat/kB |
+| `API_KEY` | No | Disabled | API key for `x-api-key` header authentication |
+| `RATE_LIMIT_RPM` | No | `60` | Maximum requests per minute per IP |
+| `CORS_ORIGIN` | No | Disabled | CORS origin (`*` to allow all) |
 
 ## Testing
 
