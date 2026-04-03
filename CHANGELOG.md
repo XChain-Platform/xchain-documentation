@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-03
+
+### Changed
+- `README.md` — added xchain-vm to components table, updated intro to mention smart contracts/VM/staking, updated ACTION count from 19 to 28, updated component count to 12, updated indexer description to include smart contract execution, updated SDK description with current method/query counts
+
 ## [0.2.0] - 2026-04-03
 
 ### Changed
