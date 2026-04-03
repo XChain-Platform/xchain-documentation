@@ -229,6 +229,50 @@ Returns the aggregated order book (bids and asks) for a market pair.
 
 ---
 
+### Contract / VM
+
+#### `getContract(contractActionIndex)`
+Get contract metadata by its deploy ACTION_INDEX.
+
+- **Endpoint:** `GET /{COIN}/api/contract/{contractActionIndex}`
+
+#### `getContracts(query?, type?, opts?)`
+Get a list of contracts, optionally filtered by owner address.
+
+- **Endpoint:** `GET /{COIN}/api/contracts` or `GET /{COIN}/api/contracts/{query}/{type}`
+
+#### `getContractState(contractActionIndex, key?)`
+Get contract state entries (all keys or a specific key).
+
+- **Endpoint:** `GET /{COIN}/api/contract/{contractActionIndex}/state` or `GET /{COIN}/api/contract/{contractActionIndex}/state/{key}`
+
+#### `getContractBalance(contractActionIndex, tick?)`
+Get contract token balances (all ticks or a specific tick).
+
+- **Endpoint:** `GET /{COIN}/api/contract/{contractActionIndex}/balance` or `GET /{COIN}/api/contract/{contractActionIndex}/balance/{tick}`
+
+#### `getExecution(executionActionIndex)`
+Get a single execution result by its ACTION_INDEX.
+
+- **Endpoint:** `GET /{COIN}/api/execution/{executionActionIndex}`
+
+#### `getExecutions(contractActionIndex?, opts?)`
+Get execution history for a contract.
+
+- **Endpoint:** `GET /{COIN}/api/executions` or `GET /{COIN}/api/executions/{contractActionIndex}`
+
+#### `getDeposits(query, type, opts?)`
+Get deposit records filtered by query and type.
+
+- **Endpoint:** `GET /{COIN}/api/deposits/{query}/{type}`
+
+#### `getWithdrawals(query, type, opts?)`
+Get withdrawal records filtered by query and type.
+
+- **Endpoint:** `GET /{COIN}/api/withdrawals/{query}/{type}`
+
+---
+
 ### Utility
 
 #### `getStatus()`

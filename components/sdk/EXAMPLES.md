@@ -36,6 +36,12 @@ End-to-end usage examples for common XChain Platform SDK workflows.
 - [Error Handling](#error-handling)
 - [Hub Discovery](#hub-discovery)
 - [Request Logging](#request-logging)
+- [Deploy a Smart Contract](#deploy-a-smart-contract)
+- [Execute a Contract Method](#execute-a-contract-method)
+- [Deposit Tokens into a Contract](#deposit-tokens-into-a-contract)
+- [Withdraw Tokens from a Contract](#withdraw-tokens-from-a-contract)
+- [Using the Contract Client](#using-the-contract-client)
+- [Contract Authoring Utilities](#contract-authoring-utilities)
 
 ---
 
@@ -553,6 +559,147 @@ const sdk = new XChainSDK({
         }
     }
 });
+```
+
+---
+
+## Deploy a Smart Contract
+
+```js
+// Read contract source code
+const contractSource = `
+module.exports = {
+    greet: function(xchain) {
+        let name = xchain.getInputParam(0) || 'world';
+        return 'Hello, ' + name + '!';
+    }
+};
+`;
+
+// Validate the contract source before deploying
+let check = sdk.contracts.validate(contractSource);
+if (!check.valid) {
+    console.error('Contract validation failed:', check.error);
+} else {
+    // Deploy (auto hex-encodes the source code)
+    let result = await sdk.deploy({
+        code: contractSource,
+        gasLimit: 200000
+    }, { pubkey: 'yourPubkey', encoding: 'P2WSH' });
+
+    console.log(result.actionString);  // DEPLOY|0|<hex>|200000
+    console.log(result.psbt);          // PSBT for signing
+}
+```
+
+---
+
+## Execute a Contract Method
+
+```js
+// Call a method on a deployed contract
+let result = await sdk.execute({
+    contractActionIndex: 12345,
+    method: 'greet',
+    params: ['Alice']
+}, { pubkey: 'yourPubkey' });
+
+console.log(result.actionString);  // EXECUTE|0|12345|greet|Alice
+
+// After the transaction confirms, check execution results via explorer
+let exec = await sdk.getExecution(actionIndex);
+if (exec.success) {
+    console.log('Return value:', exec.returnValue);
+} else {
+    console.log('Execution failed:', exec.error);
+}
+```
+
+---
+
+## Deposit Tokens into a Contract
+
+```js
+// Fund a contract with tokens
+let result = await sdk.deposit({
+    contractActionIndex: 12345,
+    tick: 'MYTOKEN',
+    quantity: '1000'
+}, { pubkey: 'yourPubkey' });
+
+console.log(result.actionString);  // DEPOSIT|0|12345|MYTOKEN|1000
+```
+
+---
+
+## Withdraw Tokens from a Contract
+
+```js
+// Withdraw tokens (must be contract owner)
+let result = await sdk.withdraw({
+    contractActionIndex: 12345,
+    tick: 'MYTOKEN',
+    quantity: '500'
+}, { pubkey: 'yourPubkey' });
+
+console.log(result.actionString);  // WITHDRAW|0|12345|MYTOKEN|500
+```
+
+---
+
+## Using the Contract Client
+
+```js
+// Create a bound client for repeated interactions with a contract
+const amm = sdk.contract(12345);
+
+// Execute a method
+await amm.call('swap', ['TOKENA', '100'], { pubkey: 'yourPubkey' });
+
+// Deposit tokens
+await amm.deposit('TOKENA', '500', { pubkey: 'yourPubkey' });
+
+// Withdraw tokens
+await amm.withdraw('TOKENA', '250', { pubkey: 'yourPubkey' });
+
+// Query contract data from the explorer
+let info = await amm.getInfo();           // contract metadata
+let state = await amm.getState();          // all state key-value pairs
+let state_key = await amm.getState('reserveA');  // specific state key
+let balance = await amm.getBalance('TOKENA');     // contract token balance
+let history = await amm.getExecutions();   // execution history
+```
+
+---
+
+## Contract Authoring Utilities
+
+```js
+// Hex encode/decode
+let hex = sdk.contracts.encode('module.exports = {}');
+let source = sdk.contracts.decode(hex);
+
+// Check code size
+let sizeCheck = sdk.contracts.checkCodeSize(contractSource);
+console.log(sizeCheck.bytes + ' / ' + sizeCheck.limit + ' bytes');
+console.log('Within limit:', sizeCheck.withinLimit);
+
+// Syntax validation (requires acorn)
+let validation = sdk.contracts.validate(contractSource);
+if (!validation.valid) {
+    console.log('Error:', validation.error);
+}
+if (validation.warnings) {
+    for (let w of validation.warnings) console.log('Warning:', w);
+}
+
+// Float usage detection
+let floatWarnings = sdk.contracts.checkFloatUsage(contractSource);
+for (let w of floatWarnings) console.log(w);
+
+// Gas limit suggestion (heuristic)
+let gas = sdk.contracts.suggestGasLimit(contractSource);
+console.log('Suggested gas:', gas.suggested, '(' + gas.rationale + ')');
 ```
 
 ---

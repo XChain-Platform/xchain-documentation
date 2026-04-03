@@ -3,7 +3,7 @@
 
 # XChain Platform SDK — ACTION Reference
 
-Complete reference for all 19 ACTION types supported by the XChain Platform SDK.
+Complete reference for all 23 ACTION types supported by the XChain Platform SDK.
 
 ---
 
@@ -214,6 +214,80 @@ See also: [`../actions/CALLBACK.md`](../../protocol/actions/CALLBACK.md)
 
 ---
 
+### DEPLOY
+
+Deploy a smart contract to the XChain VM. The contract source code is hex-encoded into the `CODE_ENCODING` field. The SDK can accept raw source via the `code` param and will hex-encode it automatically.
+
+**Format Versions:** v0
+
+**Format v0:** `DEPLOY|VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS...`
+
+**Params:**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| code | string | Yes* | Raw JavaScript source code (auto hex-encoded by the SDK) |
+| codeEncoding | string | Yes* | Pre-encoded hex of contract source (alternative to `code`) |
+| gasLimit | integer | Yes | Maximum gas units for deployment (positive integer) |
+| constructorParams | string[] | No | Arguments passed to the contract constructor |
+
+\* Provide either `code` (recommended) or `codeEncoding`, not both.
+
+**Notes:**
+- Contract source must be valid JavaScript and under 64KB.
+- The SDK validates hex encoding, code size, and gas limit before serialization.
+- DEPLOY payloads typically exceed the 76-byte OP_RETURN limit — use P2SH or P2WSH encoding.
+- DEPLOY actions **cannot** appear inside a BATCH.
+- Constructor params are variable-length: each element becomes a separate pipe-delimited field in the action string.
+
+```js
+// Deploy a contract from raw source code
+await sdk.deploy({ code: 'module.exports = { greet: function() { return "hello"; } }', gasLimit: 200000 })
+
+// Deploy with constructor parameters
+await sdk.deploy({
+    code: contractSource,
+    gasLimit: 500000,
+    constructorParams: ['MYTOKEN', '1000']
+}, { pubkey: 'yourPubkey', encoding: 'P2WSH' })
+
+// Pre-validate before deploying
+let check = sdk.contracts.validate(contractSource);
+if (!check.valid) console.log(check.error);
+```
+
+See also: [`../actions/DEPLOY.md`](../../protocol/actions/DEPLOY.md)
+
+---
+
+### DEPOSIT
+
+Transfer tokens from the broadcaster's address into a deployed contract's custody.
+
+**Format Versions:** v0
+
+**Format v0:** `DEPOSIT|VERSION|CONTRACT_ACTION_INDEX|TICK|QUANTITY`
+
+**Params:**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| contractActionIndex | integer | Yes | ACTION_INDEX of the deployed contract |
+| tick | string | Yes | Token ticker or ticker ID (`^N`) |
+| quantity | string | Yes | Amount to deposit (positive number) |
+
+```js
+await sdk.deposit({ contractActionIndex: 12345, tick: 'MYTOKEN', quantity: '1000' })
+
+// Using a ContractClient
+const amm = sdk.contract(12345);
+await amm.deposit('MYTOKEN', '1000', { pubkey: 'yourPubkey' });
+```
+
+See also: [`../actions/DEPOSIT.md`](../../protocol/actions/DEPOSIT.md)
+
+---
+
 ### DESTROY
 
 Permanently burn tokens, removing them from supply.
@@ -329,6 +403,47 @@ await sdk.dividend({ tick: 'MYTOKEN', dividendTick: 'REWARD', amount: '1000' })
 ```
 
 See also: [`../actions/DIVIDEND.md`](../../protocol/actions/DIVIDEND.md)
+
+---
+
+### EXECUTE
+
+Call a method on a deployed XChain VM smart contract.
+
+**Format Versions:** v0
+
+**Format v0:** `EXECUTE|VERSION|CONTRACT_ACTION_INDEX|METHOD|PARAMS...`
+
+**Params:**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| contractActionIndex | integer | Yes | ACTION_INDEX of the deployed contract |
+| method | string | Yes | Method name to invoke on the contract |
+| params | string[] | No | Method arguments (each becomes a pipe-delimited segment) |
+
+**Notes:**
+- `params` is a variable-length array — the SDK serializes each element as a separate pipe-delimited field after METHOD.
+- A successful `sdk.execute()` means the transaction was constructed, **not** that the contract execution succeeded. Execution happens later when the indexer processes the confirmed transaction. Query results via the explorer.
+- Parameter values must not contain `|` or `;` (field and command separators).
+
+```js
+// Call a method with no arguments
+await sdk.execute({ contractActionIndex: 12345, method: 'increment' })
+
+// Call a method with arguments
+await sdk.execute({ contractActionIndex: 12345, method: 'transfer', params: ['bc1q...', '100'] })
+
+// Using a ContractClient
+const amm = sdk.contract(12345);
+await amm.call('swap', ['TOKENA', '100'], { pubkey: 'yourPubkey' });
+
+// Check execution results
+let exec = await sdk.getExecution(actionIndex);
+if (!exec.success) console.log(exec.error);
+```
+
+See also: [`../actions/EXECUTE.md`](../../protocol/actions/EXECUTE.md)
 
 ---
 
@@ -855,6 +970,38 @@ See also: [`../actions/SWEEP.md`](../../protocol/actions/SWEEP.md)
 
 ---
 
+### WITHDRAW
+
+Withdraw tokens from a deployed contract's custody back to the contract owner.
+
+**Format Versions:** v0
+
+**Format v0:** `WITHDRAW|VERSION|CONTRACT_ACTION_INDEX|TICK|QUANTITY`
+
+**Params:**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| contractActionIndex | integer | Yes | ACTION_INDEX of the deployed contract |
+| tick | string | Yes | Token ticker or ticker ID (`^N`) |
+| quantity | string | Yes | Amount to withdraw (positive number) |
+
+**Notes:**
+- Only the contract owner (the address that broadcast the DEPLOY) can withdraw.
+- Withdrawals work even if the contract is disabled.
+
+```js
+await sdk.withdraw({ contractActionIndex: 12345, tick: 'MYTOKEN', quantity: '500' })
+
+// Using a ContractClient
+const amm = sdk.contract(12345);
+await amm.withdraw('MYTOKEN', '500', { pubkey: 'yourPubkey' });
+```
+
+See also: [`../actions/WITHDRAW.md`](../../protocol/actions/WITHDRAW.md)
+
+---
+
 ## Validation Rules
 
 The SDK enforces these rules before serializing any action. Violations throw an `SDKValidationError`.
@@ -940,12 +1087,21 @@ Must be **`1`** (ADD) or **`2`** (REMOVE).
 
 ### ACTION_INDEX fields
 
-All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`, `ORDER_ACTION_INDEX`, `SWAP_ACTION_INDEX`, `LIST_ACTION_INDEX`, `COIN1_ACTION_INDEX`, `COIN2_ACTION_INDEX`) must be numeric.
+All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`, `ORDER_ACTION_INDEX`, `SWAP_ACTION_INDEX`, `LIST_ACTION_INDEX`, `COIN1_ACTION_INDEX`, `COIN2_ACTION_INDEX`, `CONTRACT_ACTION_INDEX`) must be numeric.
+
+### VM action fields
+
+- **`CODE_ENCODING`** must be a valid hex string; decoded size must not exceed 64KB.
+- **`GAS_LIMIT`** must be a positive integer.
+- **`QUANTITY`** (DEPOSIT/WITHDRAW) must be a positive number.
+- **`METHOD`** must be a non-empty string that does not contain `|` or `;`.
+- **`PARAMS`** / **`CONSTRUCTOR_PARAMS`** are variable-length arrays. Each element must not contain `|` or `;`.
 
 ### BATCH constraints
 
 - BATCH cannot contain nested BATCH actions.
 - BATCH cannot contain FILE actions.
+- BATCH cannot contain DEPLOY actions.
 - At most **one MINT** per BATCH.
 - At most **one ISSUE** per BATCH.
 

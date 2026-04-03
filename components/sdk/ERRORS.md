@@ -19,7 +19,8 @@ Error
         ├── SDKEncoderError
         ├── SDKExplorerError
         ├── SDKHubError
-        └── SDKConfigError
+        ├── SDKConfigError
+        └── SDKContractError
 ```
 
 Every error instance carries four properties:
@@ -43,6 +44,7 @@ Every error instance carries four properties:
 | `SDKExplorerError` | Explorer HTTP or network errors |
 | `SDKHubError` | Hub unreachable |
 | `SDKConfigError` | Missing required configuration (encoder URL, explorer URL, etc.) |
+| `SDKContractError` | Contract-specific errors: code too large, invalid hex, bad contract index, etc. |
 
 ---
 
@@ -119,6 +121,21 @@ Thrown at call time when a required service URL has not been configured.
 | `ENCODER_NOT_CONFIGURED` | An encoder operation was attempted but no encoder URL is set |
 | `HUB_NOT_CONFIGURED` | A hub operation was attempted but no hub URL is set |
 
+### SDKContractError
+
+Thrown for contract-specific issues during DEPLOY, EXECUTE, DEPOSIT, or WITHDRAW operations.
+
+| Code | Details properties | Description |
+|------|--------------------|-------------|
+| `CODE_TOO_LARGE` | `bytes`, `limit` | Contract source exceeds the 64KB size limit |
+| `CODE_SYNTAX_ERROR` | — | acorn parse failure during pre-validation |
+| `CODE_ENCODING_FAILED` | — | Hex encoding or decoding failure |
+| `INVALID_CONTRACT_INDEX` | — | CONTRACT_ACTION_INDEX is not a positive integer |
+| `INVALID_METHOD_NAME` | — | METHOD is empty or contains forbidden characters |
+| `INVALID_PARAM_VALUE` | `field`, `index`, `value` | A parameter contains pipe or semicolon characters |
+| `CONTRACT_NOT_FOUND` | — | Explorer lookup returned no contract for the given index |
+| `CONTRACT_DISABLED` | — | Contract is disabled (for execute/deposit operations) |
+
 ---
 
 ## Catching Errors
@@ -130,7 +147,8 @@ const {
     SDKValidationError,
     SDKFormatError,
     SDKEncoderError,
-    SDKConfigError
+    SDKConfigError,
+    SDKContractError
 } = require('@xchain/sdk/src/errors');
 
 try {
@@ -173,6 +191,10 @@ try {
     } else if (err instanceof SDKConfigError) {
         // Service URL not configured
         console.error('Configuration error:', err.code);
+
+    } else if (err instanceof SDKContractError) {
+        // Contract-specific error (code too large, bad hex, etc.)
+        console.error('Contract error:', err.code, err.message);
 
     } else {
         // Unexpected error — rethrow

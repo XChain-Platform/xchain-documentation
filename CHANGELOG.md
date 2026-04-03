@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- SDK smart contract documentation: `components/sdk/CONTRACTS.md` — deploy, execute, deposit, withdraw, ContractClient, authoring utilities, explorer methods, transaction vs execution distinction
+- VM action entries in `components/sdk/ACTIONS.md`: DEPLOY, EXECUTE, DEPOSIT, WITHDRAW with full parameter tables, notes, code examples, and validation rules
+- VM contract examples in `components/sdk/EXAMPLES.md`: deploy, execute, deposit, withdraw, ContractClient usage, authoring utilities
+- `SDKContractError` class in `components/sdk/ERRORS.md` with 8 error codes
+- 8 contract explorer methods in `components/sdk/EXPLORER.md`: getContract, getContracts, getContractState, getContractBalance, getExecution, getExecutions, getDeposits, getWithdrawals
+- EXECUTE, DEPOSIT, WITHDRAW convenience methods in `components/sdk/BATCH.md`
+
+### Changed
+
+- `components/sdk/README.md` — updated from 19 to 23 actions, added contract features to feature list, added CONTRACTS.md to docs table
+- `components/sdk/ACTIONS.md` — updated from 19 to 23 actions, added VM field validation rules, added DEPLOY to BATCH constraints
+- `components/sdk/BATCH.md` — updated from 17 to 20 convenience methods, added DEPLOY exclusion constraint
+- `components/sdk/ERRORS.md` — added SDKContractError to hierarchy, error class table, and catch example
+
+### Added (previous)
+
 - "What Makes This Different" section in `concepts/SMART_CONTRACTS.md` — explains the architectural separation of smart contract logic from protocol logic, comparison with Ethereum's monolithic model, and six concrete benefits (security, audit surface, protocol evolution, simpler development, composability, atomic rollback)
 - Smart contract development guide: `developer-guide/SMART_CONTRACT_DEVELOPMENT.md` — writing contracts, ES2020 syntax, state patterns (manual index, reverse lookup, JSON), emitting actions, deployment, gas costs, debugging, limitations, vesting example
 - VM component documentation: `components/vm/README.md` — architecture, module interface, internal components, AST gas metering, sandbox security, compilation cache, indexer integration

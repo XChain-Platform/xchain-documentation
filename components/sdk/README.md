@@ -9,7 +9,10 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 
 ## Features
 
-- Generate all 19 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH)
+- Generate all 23 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW)
+- Smart contract support: deploy contracts, execute methods, deposit/withdraw tokens via the xchain-vm integration
+- Contract authoring utilities: syntax validation, float detection, hex encoding, gas estimation
+- Bound ContractClient for repeated interactions with a specific deployed contract
 - Encode actions into unsigned PSBTs via the xchain-encoder service
 - Support for all encoding formats: OP_RETURN, P2SH, P2WSH, multisign
 - Fluent BatchBuilder for constructing multi-action BATCH transactions
@@ -34,6 +37,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 | [Encoder](ENCODER.md) | Encoding actions into PSBTs, encoding formats, P2SH two-phase flow |
 | [Batch Builder](BATCH.md) | Fluent API for constructing multi-action BATCH transactions |
 | [Format Selection](FORMAT_SELECTION.md) | Choosing between OP_RETURN, P2SH, P2WSH, and multisign encoding |
+| [Contracts](CONTRACTS.md) | VM smart contract integration: deploy, execute, deposit, withdraw, ContractClient |
 | [Errors](ERRORS.md) | Error types, codes, and handling patterns |
 | [Examples](EXAMPLES.md) | Complete worked examples for common use cases |
 

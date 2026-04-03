@@ -58,7 +58,7 @@ builder.add('MINT', { tick: 'BTC.TOKEN', amount: 1000 });
 
 ### Convenience Methods
 
-The following convenience methods are shorthand for `.add(action, params)`. All return the builder for chaining. There are 17 convenience methods — `.batch()` and `.file()` are intentionally omitted because BATCH and FILE actions are not permitted inside a BATCH (see Constraints below).
+The following convenience methods are shorthand for `.add(action, params)`. All return the builder for chaining. There are 20 convenience methods — `.batch()`, `.file()`, and `.deploy()` are intentionally omitted because BATCH, FILE, and DEPLOY actions are not permitted inside a BATCH (see Constraints below).
 
 | Method | Equivalent |
 |--------|-----------|
@@ -79,6 +79,9 @@ The following convenience methods are shorthand for `.add(action, params)`. All 
 | `.list(params)` | `.add('LIST', params)` |
 | `.link(params)` | `.add('LINK', params)` |
 | `.address(params)` | `.add('ADDRESS', params)` |
+| `.execute(params)` | `.add('EXECUTE', params)` |
+| `.deposit(params)` | `.add('DEPOSIT', params)` |
+| `.withdraw(params)` | `.add('WITHDRAW', params)` |
 
 ---
 
@@ -144,6 +147,7 @@ The BATCH protocol enforces the following rules. Violations throw `SDKValidation
 | At least one action required | `BATCH_EMPTY` | Calling `.build()` on an empty builder |
 | No nested BATCH actions | `BATCH_CONSTRAINT` | BATCH inside BATCH is not allowed by the protocol |
 | No FILE actions | `BATCH_CONSTRAINT` | FILE requires its own dedicated transaction |
+| No DEPLOY actions | `BATCH_CONSTRAINT` | DEPLOY payloads are too large for BATCH |
 | At most 1 MINT action | `BATCH_CONSTRAINT` | `details.count` contains the actual count |
 | At most 1 ISSUE action | `BATCH_CONSTRAINT` | `details.count` contains the actual count |
 
