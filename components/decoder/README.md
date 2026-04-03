@@ -15,93 +15,23 @@ The decoder's job is extraction only — it does not interpret action semantics.
 - **AES-128-CTR deobfuscation** — derives key and IV from the first input's txid (first 16 hex chars = key, next 16 = IV)
 - **Magic prefix verification** — confirms `XCHN` (4 bytes) after deobfuscation before accepting a transaction
 - **Four encoding formats** — detects and reassembles OP_RETURN, P2SH, P2WSH, and multisig payloads
-- **Chain-specific parsing** — Litecoin strips the HogEx flag; Dogecoin strips AuxPoW headers before passing blocks to bitcoinjs-lib
+- **Chain-specific parsing** — Litecoin strips the HogEx/MWEB flag; Dogecoin strips AuxPoW headers before passing blocks to bitcoinjs-lib
 - **Block reorganization detection** — identifies chain tip changes and records the reorg block so the indexer can roll back
-- **Mempool tracking** — maintains an index of unconfirmed transactions for real-time dispenser protocol support
-- **Normalized storage** — addresses, transaction hashes, and block data stored with integer IDs for join efficiency
+- **DISPENSER protocol** — parses DISPENSER actions and tracks active dispensers with expiration for real-time payment detection
+- **Mempool tracking** — maintains an index of unconfirmed transactions, updated every 60 seconds when synced
+- **Normalized storage** — addresses and transaction hashes stored in index tables with integer IDs for join efficiency
+- **ACTION name validation** — 19-name whitelist (SEND, ISSUE, MINT, ORDER, DISPENSER, etc.) enforced before database writes
+- **Graceful shutdown** — SIGTERM/SIGINT handlers complete in-flight work before exiting
+- **500+ tests** — unit, integration, e2e, boundary, security, fuzz, chaos, regression, benchmarks, and mutation testing
 
-## How It Works
+## Documentation
 
-### Polling loop
-
-The decoder runs a continuous polling loop against the coin node's JSON-RPC interface. Each iteration calls `getblockcount` to check for a new tip, fetches the block hash with `getblockhash`, retrieves the full block with `getblock` (verbosity 2), and processes each transaction in order.
-
-### Transaction parsing
-
-Each transaction is parsed with bitcoinjs-lib. Before parsing:
-
-- **Litecoin** — the HogEx witness flag is stripped from the raw transaction bytes, as Litecoin uses a non-standard variant that bitcoinjs-lib does not natively support
-- **Dogecoin** — AuxPoW headers are stripped from block data, because merge-mined blocks embed auxiliary proof-of-work data that precedes the standard block header
-
-After parsing, the decoder scans each transaction's outputs looking for XChain payloads.
-
-### Deobfuscation
-
-XChain data is obfuscated using AES-128-CTR before embedding in the transaction. The decoder reverses this:
-
-1. Takes the txid of the first input of the spending transaction
-2. Uses the first 16 hex characters as the 8-byte AES key
-3. Uses the next 16 hex characters as the 8-byte IV
-4. Decrypts the payload
-5. Checks for the `XCHN` magic prefix — transactions without this prefix are skipped
-
-### Multi-output reassembly
-
-For P2SH and P2WSH encodings, the ACTION payload is split across a two-transaction pattern: a funding transaction that locks funds to a script hash, and a spending transaction that reveals the full script in the scriptSig or witness. The decoder identifies the spend transaction, extracts and concatenates the script chunks, then deobfuscates the assembled payload.
-
-For multisig encodings, data is embedded across multiple public key positions in a single transaction's outputs.
-
-### Writing to the database
-
-After successful deobfuscation and prefix verification, the decoder writes a row to the Decoder DB containing:
-
-- The raw ACTION string (pipe-delimited, e.g. `SEND|1|TOKEN|100|destination`)
-- Source address (derived from the first input)
-- Destination address (from relevant outputs)
-- Transaction hash (normalized to an integer ID)
-- Block height, block hash, block timestamp
-- Transaction index within the block
-
-### Reorg detection
-
-Before writing each new block, the decoder checks that the previous block's hash in the Decoder DB matches what the coin node reports. A mismatch indicates a chain reorganization. The decoder records the reorg block height so the indexer can roll back its state to that point, then re-indexes from there.
-
-### Mempool tracking
-
-In parallel with block polling, the decoder tracks unconfirmed transactions using `getrawmempool` and `getrawtransaction`. This is required for the dispenser protocol, which must detect incoming payments in real time before they confirm. Mempool rows are marked unconfirmed and promoted to confirmed status when their block is processed.
-
-## Database
-
-The decoder writes to a MariaDB database named following the convention:
-
-```
-XChain_{CHAIN}_{NETWORK}_Decoder
-```
-
-Examples: `XChain_BTC_Mainnet_Decoder`, `XChain_LTC_Regtest_Decoder`
-
-The decoder writes to this database; the indexer reads from it. The decoder does not read from the indexer database.
-
-## Configuration
-
-The decoder reads from a local `config.json` or environment variables:
-
-| Parameter | Description |
+| Document | Description |
 |---|---|
-| `coin` | Chain identifier — `BTC`, `LTC`, or `DOGE` |
-| `network` | Network — `mainnet`, `testnet`, or `regtest` |
-| `rpcHost` | Coin node JSON-RPC hostname |
-| `rpcPort` | Coin node JSON-RPC port |
-| `rpcUser` | Coin node RPC username |
-| `rpcPass` | Coin node RPC password |
-| `dbHost` | MariaDB hostname |
-| `dbPort` | MariaDB port |
-| `dbUser` | MariaDB username |
-| `dbPass` | MariaDB password |
-
-## API
-
-The decoder exposes a JSON-RPC API for internal service queries. Endpoints allow callers to check current sync status (block height, chain tip) and query mempool state. The API is consumed primarily by the indexer and by monitoring tooling.
+| [Architecture](ARCHITECTURE.md) | Data pipeline, internal components, polling loop, transaction parsing, deobfuscation |
+| [Configuration](CONFIGURATION.md) | Environment variables, internal constants, network-specific settings |
+| [Database](DATABASE.md) | Full schema reference — 8 tables covering blocks, transactions, dispensers, indexes, and events |
+| [Operations](OPERATIONS.md) | Running, Docker, API endpoints, reorg handling, mempool, troubleshooting |
 
 ## Installation
 
@@ -111,8 +41,85 @@ Clone the repository and install dependencies from within the `xchain-decoder` d
 git clone https://github.com/XChain-platform/xchain-decoder.git
 cd xchain-decoder
 npm install
+```
+
+## Quick Start
+
+Create a `.env` file with the required environment variables (see [Configuration](CONFIGURATION.md) for full details):
+
+```env
+NETWORK=bitcoin-mainnet
+NODE_URL=127.0.0.1
+NODE_PORT=8332
+NODE_USER=rpc
+NODE_PASSWORD=rpc
+DECODER_DB_HOST=127.0.0.1
+DECODER_DB_PORT=3306
+DECODER_DB_NAME=XChain_BTC_Mainnet_Decoder
+DECODER_DB_USER=root
+DECODER_DB_PASS=
+DECODER_API_PORT=3000
+```
+
+Start the decoder:
+
+```bash
 npm run api
 ```
+
+On startup, the decoder:
+1. Loads environment variables from `.env`
+2. Starts the Express JSON-RPC API server
+3. Creates the Decoder database and tables if they don't exist
+4. Waits for the coin node to reach 99% sync progress
+5. Begins the block polling loop
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run api` | Start the decoder and API server |
+| `npm run test:smoke` | Smoke tests (52 tests, no external services) |
+| `npm run test:unit` | Unit tests (221 tests, no external services) |
+| `npm run test:security` | Security tests (75 tests, no external services) |
+| `npm run test:integration` | Integration tests (requires bitcoind regtest + MariaDB) |
+| `npm run test:e2e` | End-to-end tests (requires full stack) |
+| `npm run test:fuzz` | Fuzz tests (5 harnesses, 1000 iterations each) |
+| `npm run test:fuzz:quick` | Quick fuzz (100 iterations) |
+| `npm run test:chaos` | Chaos engineering tests (50 tests) |
+| `npm run test:regression` | Regression tests P0+P1 (57 tests, fast) |
+| `npm run test:regression:critical` | Regression tests P0 only (47 tests, <1s) |
+| `npm run test:regression:full` | Full regression suite (76 tests) |
+| `npm run test:bench` | Performance benchmarks (7 scenarios) |
+| `npm run test:mutation` | Mutation testing (Stryker Mutator) |
+
+## Dependencies
+
+### Runtime
+
+| Package | Purpose |
+|---|---|
+| `bitcoinjs-lib` | Transaction and block parsing |
+| `tiny-secp256k1` | Elliptic curve operations (taproot support) |
+| `bip32`, `bip39`, `bs58check`, `ecpair` | Key derivation and address encoding |
+| `axios` | HTTP client for JSON-RPC calls to coin node |
+| `express` | HTTP server for the JSON-RPC API |
+| `express-json-rpc-router` | JSON-RPC 2.0 request routing |
+| `helmet` | HTTP security headers |
+| `cors` | Cross-Origin Resource Sharing |
+| `express-rate-limit` | API rate limiting (100 req/min) |
+| `mariadb` | MariaDB client with connection pooling |
+| `dotenv` | Environment variable loading from `.env` files |
+| `binary-search` | Efficient sorted-list operations for mempool diff |
+
+### Development
+
+| Package | Purpose |
+|---|---|
+| `mocha` | Test framework |
+| `sinon` | Mocking, stubbing, and spying for tests |
+| `@stryker-mutator/core` | Mutation testing framework |
+| `@stryker-mutator/mocha-runner` | Mocha integration for Stryker |
 
 ## Related
 
