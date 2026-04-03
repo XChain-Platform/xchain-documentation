@@ -60,8 +60,8 @@ The Virtual Machine is implemented as the standalone `xchain-vm` module — a li
 │  │ isolated-vm  │  │ AST-based   │  │ Gateway (xchain.*) │  │
 │  │ V8 Isolate   │  │ Gas Meter   │  │ State, Emit, Math, │  │
 │  │ (one per     │  │ acorn parse │  │ Oracle, CrossChain │  │
-│  │  EXECUTE)    │  │ → inject    │  │ via ivm.Reference  │  │
-│  │              │  │ __gas() →   │  │ sync callbacks     │  │
+│  │  EXECUTE)    │  │ → inject    │  │ via JSON bridge    │  │
+│  │              │  │ __gas() →   │  │ protocol           │  │
 │  │ Sandbox:     │  │ astring     │  │                    │  │
 │  │ no Date,     │  │ regenerate  │  │ 16 emittable       │  │
 │  │ no random,   │  │             │  │ action types       │  │

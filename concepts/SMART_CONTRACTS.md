@@ -190,7 +190,7 @@ All math inputs and outputs are **strings**. This ensures deterministic precisio
 The VM guarantees identical results on every indexer node replaying the same block. This is achieved by:
 
 - **Sandboxed V8 isolates** — contracts run in `isolated-vm` with a separate heap. No access to the host process, filesystem, or network.
-- **Non-deterministic APIs stripped** — `Date`, `Math.random`, `setTimeout`, `setInterval`, `process`, `require`, `eval`, `Function`, `fetch`, `WeakRef`, `FinalizationRegistry`, `Proxy` are all removed. A deterministic `Math` subset (floor, ceil, round, abs, min, max, sqrt) is preserved.
+- **Non-deterministic APIs stripped** — `Date`, `Math.random`, `setTimeout`, `setInterval`, `process`, `require`, `eval`, `Function`, `fetch`, `WeakRef`, `FinalizationRegistry`, `Proxy`, `SharedArrayBuffer`, `Atomics`, `queueMicrotask` are all removed. A deterministic `Math` subset (floor, ceil, round, abs, min, max, sqrt, pow, sign, trunc, log, log2, log10, plus constants PI and E) is preserved and frozen.
 - **AST-based gas metering** — contract source is parsed with acorn, `__gas()` calls are injected at control flow points, and the source is regenerated. Gas charges are based on code structure, not wall-clock time.
 - **String-only math** — all token amounts pass through `xchain.math.*` which wraps `mathjs` bignumber with string I/O. No floating-point at the gateway boundary.
 - **Synchronous execution** — all isolated-vm APIs are synchronous. No event loop interleaving during contract execution.

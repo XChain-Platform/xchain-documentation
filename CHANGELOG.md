@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `components/vm/ARCHITECTURE.md` — execution pipeline, internal components table, JSON bridge protocol (prefix encoding, argument serialization, typed error encoding, ExternalCopy limitations), AST-based gas metering (3 phases), sandbox security (stripped/preserved/replaced globals, Function preservation), compilation cache, contract wrapper
+- `components/vm/CONFIGURATION.md` — constructor parameters, gas schedule (7 operations), resource limits (7 configurable + 5 hardcoded), bounded execution summary table
+- `components/vm/OPERATIONS.md` — prerequisites, installation, indexer integration lifecycle and data flow, error classification (5 types), atomicity guarantees, syntax validation, troubleshooting (7 scenarios)
+
+### Changed
+
+- `components/vm/README.md` — refactored from monolithic doc to lean overview matching indexer/decoder pattern; moved architecture, sandbox, gas metering, compilation cache, and integration details to dedicated ARCHITECTURE/CONFIGURATION/OPERATIONS files; added Documentation table, Features list, Scripts table, Dependencies tables, expanded Related links
+- `concepts/SMART_CONTRACTS.md` — fixed Math subset in Deterministic Execution section to match actual sandbox (11 functions + 2 constants); added SharedArrayBuffer, Atomics, queueMicrotask to stripped APIs list; noted Math object is frozen
+- `components/indexer/ARCHITECTURE.md` — updated VM ASCII diagram to show "JSON bridge protocol" instead of "ivm.Reference sync callbacks"
+
+### Added
+
 - SDK smart contract documentation: `components/sdk/CONTRACTS.md` — deploy, execute, deposit, withdraw, ContractClient, authoring utilities, explorer methods, transaction vs execution distinction
 - VM action entries in `components/sdk/ACTIONS.md`: DEPLOY, EXECUTE, DEPOSIT, WITHDRAW with full parameter tables, notes, code examples, and validation rules
 - VM contract examples in `components/sdk/EXAMPLES.md`: deploy, execute, deposit, withdraw, ContractClient usage, authoring utilities
