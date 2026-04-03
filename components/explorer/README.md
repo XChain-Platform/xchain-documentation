@@ -20,6 +20,7 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 - **Rate limiting** — configurable request rate limiting (default 500 requests per minute)
 - **CORS configuration** — allowed origins configurable per deployment
 - **SSRF-protected relay** — proxy endpoint for external resources with private IP blocking
+- **WebSocket API** — real-time event streaming via `/{COIN}/api/websocket` with channel subscriptions, action-type filtering, lifecycle events (ORDER_MATCH, COINPAY_REQUIRED, etc.), catch-up on reconnect, and snapshot-on-subscribe
 - **Security headers** — Helmet middleware with Content Security Policy
 - **Raw parameterized SQL** — approximately 5,800 lines of query logic with no ORM, preventing SQL injection
 - **DataTables integration** — server-side pagination endpoints compatible with jQuery DataTables
@@ -34,6 +35,7 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 | [Architecture](ARCHITECTURE.md) | Data pipeline position, internal components, request processing pipeline, source files |
 | [Configuration](CONFIGURATION.md) | Environment variables, config.json, hub discovery, SSL/TLS, CORS, rate limiting, coin config |
 | [API Reference](API.md) | Complete REST API — all 60+ endpoints with paths, parameters, response formats, and examples |
+| [WebSocket API](WEBSOCKET.md) | Real-time event streaming — connection, channels, subscriptions, filters, lifecycle events, catch-up |
 | [Operations](OPERATIONS.md) | Running, Docker, SSL setup, security features, relay endpoint, troubleshooting |
 
 ## Installation

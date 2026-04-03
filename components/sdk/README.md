@@ -21,6 +21,8 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - Connection pooling via configurable HTTP keep-alive agent
 - Hub-based service discovery: auto-resolve explorer and encoder endpoints from xchain-hub
 - Live config polling: re-resolve endpoints when hub config changes
+- Real-time event streaming via WebSocket: subscribe to blocks, addresses, tokens, markets, dispensers with type/status filters, catch-up on reconnect, snapshot-on-subscribe
+- Convenience methods for common real-time patterns: `onBlock()`, `onAddress()`, `onCoinpayRequired()`, `onOrderMatch()`, `onToken()`, `onMarket()`, `onDispenser()`
 - Request/response/error/retry lifecycle hooks for logging and instrumentation
 - JSON-RPC microservice mode (server)
 - Browser bundle (minified and development builds)
@@ -38,6 +40,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 | [Batch Builder](BATCH.md) | Fluent API for constructing multi-action BATCH transactions |
 | [Format Selection](FORMAT_SELECTION.md) | Choosing between OP_RETURN, P2SH, P2WSH, and multisign encoding |
 | [Contracts](CONTRACTS.md) | VM smart contract integration: deploy, execute, deposit, withdraw, ContractClient |
+| [WebSocket](WEBSOCKET.md) | Real-time event client: connection, convenience methods, filters, reconnection, hooks |
 | [Errors](ERRORS.md) | Error types, codes, and handling patterns |
 | [Examples](EXAMPLES.md) | Complete worked examples for common use cases |
 

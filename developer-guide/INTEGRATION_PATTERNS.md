@@ -394,6 +394,80 @@ poller.start(10000);
 
 ---
 
+## Pattern 7: Real-Time State Tracking with WebSocket
+
+Instead of polling the explorer REST API, use the WebSocket API for instant event-driven updates.
+
+### When to Use WebSocket vs Polling
+
+| Use Case | Approach |
+|---|---|
+| Dashboard showing live block count | **WebSocket** — `onBlock()` |
+| Trading bot reacting to order matches | **WebSocket** — `onCoinpayRequired()` |
+| One-time balance lookup | **REST** — `getBalances()` |
+| Periodic report generation | **REST** — poll on a schedule |
+| Real-time portfolio tracker | **WebSocket** — `onAddress()` with snapshot |
+
+### Example: Event-Driven COINPay Bot
+
+```js
+const { XChainSDK } = require('xchain-sdk');
+
+const sdk = new XChainSDK({
+    network: 'bitcoin-mainnet',
+    explorerUrl: 'explorer.xchain.io'
+});
+
+await sdk.connectWs();
+
+// React instantly to COINPay obligations
+sdk.onCoinpayRequired('1BotAddress...', async (event) => {
+    const { payee_address, coin_amount, expiration } = event.data;
+
+    // Check deadline
+    const deadline = new Date(expiration * 1000);
+    if (deadline < new Date()) {
+        console.log('Obligation already expired, skipping');
+        return;
+    }
+
+    // Construct and broadcast COINPAY
+    const tx = await sdk.coinpay({
+        order_match_action_index: event.data.order_match_action_index
+    }, { pubkey: process.env.PUBKEY });
+
+    console.log('COINPay sent:', tx.psbt);
+});
+```
+
+### Example: Live Dashboard
+
+```js
+await sdk.connectWs();
+
+// Network overview
+sdk.onBlock((event) => {
+    updateBlockHeight(event.data.block_index);
+    updateActionCount(event.data.action_count);
+});
+
+// Watch specific token
+sdk.onToken('PEPE', (event) => {
+    updateTokenSupply(event.data.supply);
+    updateHolderCount(event.data.holders);
+});
+
+// Watch market
+sdk.onMarket('PEPE', 'BTC', (event) => {
+    updatePrice(event.data.last_price);
+    updateVolume(event.data.volume_24h);
+});
+```
+
+See the [SDK WebSocket documentation](../components/sdk/WEBSOCKET.md) for the full API reference.
+
+---
+
 ## Next Steps
 
 - [REGTEST_DEVELOPMENT.md](REGTEST_DEVELOPMENT.md) — build and test locally

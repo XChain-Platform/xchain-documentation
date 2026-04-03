@@ -563,6 +563,82 @@ const sdk = new XChainSDK({
 
 ---
 
+## Real-Time: Listen for New Blocks
+
+```js
+await sdk.connectWs();
+
+const unsub = sdk.onBlock((event) => {
+    console.log('Block', event.data.block_index, '—', event.data.action_count, 'actions');
+});
+
+// Later: stop listening
+unsub();
+```
+
+---
+
+## Real-Time: Watch an Address
+
+```js
+await sdk.connectWs();
+
+sdk.onAddress('1abc...', (event) => {
+    if (event.type === 'ADDRESS_UPDATE') {
+        console.log('Balances:', event.data.balances);
+    } else {
+        console.log(event.type, ':', event.data.action_index);
+    }
+}, { snapshot: true });
+```
+
+---
+
+## Real-Time: COINPay Auto-Responder
+
+```js
+await sdk.connectWs();
+
+sdk.onCoinpayRequired('1BotAddr...', async (event) => {
+    const { payee_address, coin_amount, expiration } = event.data;
+    console.log('COINPay needed:', coin_amount, 'BTC to', payee_address);
+    console.log('Deadline:', new Date(expiration * 1000));
+
+    // Construct and broadcast a COINPAY transaction
+    const result = await sdk.coinpay({
+        order_match_action_index: event.data.order_match_action_index
+    }, { pubkey: 'your-pubkey' });
+    console.log('COINPay broadcast:', result.psbt);
+});
+```
+
+---
+
+## Real-Time: Multi-Address Portfolio Tracker
+
+```js
+await sdk.connectWs();
+
+const addresses = ['1wallet-a...', '1wallet-b...', '1wallet-c...'];
+
+// Subscribe to all addresses in one batch
+sdk.ws.subscribe(['address'], {
+    addresses: addresses,
+    types: ['SEND', 'AIRDROP', 'DIVIDEND'],
+    snapshot: true
+});
+
+sdk.ws.on('ADDRESS_UPDATE', (msg) => {
+    console.log(msg.data.address, '→', msg.data.balances);
+});
+
+sdk.ws.on('SNAPSHOT', (msg) => {
+    console.log('Initial state for', msg.data.address, ':', msg.data.balances);
+});
+```
+
+---
+
 ## Deploy a Smart Contract
 
 ```js

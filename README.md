@@ -30,10 +30,10 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**xchain-decoder**](https://github.com/XChain-platform/xchain-decoder/) | Polls coin nodes for blocks, extracts and decodes XChain transactions into MariaDB |
 | [**xchain-indexer**](https://github.com/XChain-platform/xchain-indexer/) | Validates ACTIONs, maintains token state with a double-entry ledger, runs a DEX matching engine |
 | [**xchain-indexer-sync**](https://github.com/XChain-platform/xchain-indexer-sync/) | Replicates indexer databases to validators and consumers via REST snapshots and WebSocket streaming |
-| [**xchain-explorer**](https://github.com/XChain-platform/xchain-explorer/) | 60+ REST/JSON-RPC endpoints and a web-based block explorer |
+| [**xchain-explorer**](https://github.com/XChain-platform/xchain-explorer/) | 60+ REST/JSON-RPC endpoints, WebSocket real-time event streaming, and a web-based block explorer |
 | [**xchain-hub**](https://github.com/XChain-platform/xchain-hub/) | Configuration oracle, pricing data, and cross-chain swap coordination |
 | [**xchain-utxo-tracker**](https://github.com/XChain-platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |
-| [**xchain-sdk**](https://github.com/XChain-platform/xchain-sdk/) | Developer SDK — 19 action methods, 40 explorer queries, batch builder, PSBT generation |
+| [**xchain-sdk**](https://github.com/XChain-platform/xchain-sdk/) | Developer SDK — 19 action methods, 40 explorer queries, real-time WebSocket events, batch builder, PSBT generation |
 | [**xchain-regtest-miner**](https://github.com/XChain-platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
 

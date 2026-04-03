@@ -24,6 +24,20 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `EXPLORER_API_PORT_HTTPS` | No | — | HTTPS server port |
 | `DEBUG` | No | — | Enable debug output when set to any truthy value |
 
+### WebSocket
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `WS_ENABLED` | No | `true` | Enable/disable WebSocket server |
+| `WS_POLL_INTERVAL` | No | `5000` | Change detection poll interval in milliseconds |
+| `WS_PING_INTERVAL` | No | `30000` | Server-to-client ping interval in milliseconds |
+| `WS_IDLE_TIMEOUT` | No | `300000` | Idle timeout for zero-subscription clients (ms) |
+| `WS_MAX_CONNECTIONS_PER_IP` | No | `5` | Max concurrent WebSocket connections per IP |
+| `WS_MAX_SUBSCRIPTIONS` | No | `25` | Max subscriptions per WebSocket connection |
+| `WS_MAX_BACKPRESSURE` | No | `65536` | Max buffered bytes before skipping messages for a slow client |
+
+See [WEBSOCKET.md](WEBSOCKET.md) for the full WebSocket API reference.
+
 ### Hub Connection
 
 | Variable | Required | Default | Description |

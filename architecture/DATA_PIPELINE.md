@@ -117,6 +117,18 @@ A query like `GET /token/MYTOKEN` triggers a SQL read against the Indexer DB and
 
 The explorer syncs configuration from xchain-hub every 60 seconds — fee schedules, supported chains, fiat prices.
 
+### Step 7b — WebSocket Pushes Real-Time Events
+
+The explorer's WebSocket server polls the Indexer DB every 5 seconds for new blocks and actions (the same DB the REST API reads from). When changes are detected, it pushes events to subscribed clients:
+
+- **NEW_BLOCK** / **NEW_ACTION** — raw block and action events
+- **Lifecycle events** — ORDER_MATCH, COINPAY_REQUIRED, SWAP_MATCH, DISPENSE, etc.
+- **Entity updates** — ADDRESS_UPDATE, TOKEN_UPDATE, MARKET_UPDATE, DISPENSER_UPDATE
+
+Clients subscribe to channels with filters (action types, statuses, token tickers) so they only receive relevant events. On reconnect, clients can request catch-up of missed events via `since_action_index`.
+
+See the [Explorer WebSocket API Reference](../components/explorer/WEBSOCKET.md) and [SDK WebSocket Client](../components/sdk/WEBSOCKET.md) for details.
+
 ---
 
 ## Pipeline ASCII Diagram

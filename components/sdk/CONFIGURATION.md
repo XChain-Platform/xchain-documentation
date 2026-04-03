@@ -25,6 +25,8 @@ const sdk = new XChainSDK(options);
 | `retry` | RetryConfig or `false` | See [Retry Configuration](#retry-configuration) | Retry policy for transient errors. Pass `false` to disable retries entirely. |
 | `hooks` | SDKHooks object | `{}` | Lifecycle callbacks for requests, responses, errors, and retries. See [Request Hooks](#request-hooks). |
 | `pool` | PoolConfig object | See [Connection Pooling](#connection-pooling) | HTTP keep-alive agent settings for the explorer and encoder clients. |
+| `websocketUrl` | string | `WEBSOCKET_URL` env var, falls back to `explorerUrl` | Hostname of the xchain-explorer WebSocket server. |
+| `websocketPort` | number | `WEBSOCKET_PORT` env var, falls back to `explorerPort` | Port of the xchain-explorer WebSocket server. |
 
 ### RetryConfig fields
 
@@ -43,6 +45,10 @@ const sdk = new XChainSDK(options);
 | `onResponse` | function | Called after every successful HTTP response. Signature: `(response) => void`. |
 | `onError` | function | Called when a request fails (after all retries are exhausted). Signature: `(error) => void`. |
 | `onRetry` | function | Called before each retry attempt. Signature: `(attempt, delay, error) => void`. |
+| `onWsConnect` | function | Called when WebSocket connection is established. Signature: `({ url }) => void`. |
+| `onWsDisconnect` | function | Called when WebSocket connection is closed. Signature: `({ code }) => void`. |
+| `onWsMessage` | function | Called for every WebSocket message received. Signature: `(msg) => void`. |
+| `onWsReconnect` | function | Called before each WebSocket reconnect attempt. Signature: `({ attempt, delay }) => void`. |
 
 ### PoolConfig fields
 

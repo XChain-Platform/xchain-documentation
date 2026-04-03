@@ -161,6 +161,32 @@ Two pagination modes are supported:
 - `offset` — Current cursor position (action_index or block_index)
 - `length` — Records per page
 
+## WebSocket Server
+
+The explorer provides a real-time event streaming API via WebSockets. Four modules in `src/ws/` handle the lifecycle:
+
+```
+src/ws/
+├── WebSocketServer.js    # Connection handling, upgrade, WELCOME, message routing
+├── ChannelManager.js     # Subscription tracking with filters (types, statuses, ticks, etc.)
+├── ChangeDetector.js     # Polls DB for new blocks/actions, emits lifecycle events
+└── Broadcaster.js        # Routes events to subscribed clients through filter pipeline
+```
+
+**Data flow:**
+
+```
+ChangeDetector polls MAX(block_index) / MAX(action_index)
+  → diff detected → fetch new rows
+  → emit block / action / lifecycle_event / entity_update
+  → Broadcaster evaluates per-client filters (types → statuses → ticks)
+  → apply fields projection → send to matching clients
+```
+
+The WebSocket server attaches to the same HTTP/HTTPS servers as Express via the `upgrade` event — no additional port. Clients connect to `/{COIN}/api/websocket`.
+
+See [WEBSOCKET.md](WEBSOCKET.md) for the full API reference.
+
 ## Database Layer
 
 The `Database` class (`src/db.js`, ~5,800 lines) is the largest component. Key patterns:

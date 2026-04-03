@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-04-03
+
 ### Added
+- Explorer WebSocket API reference (`components/explorer/WEBSOCKET.md`): connection, channels, subscriptions, filters, all event types, error codes, catch-up guide, configuration
+- SDK WebSocket client reference (`components/sdk/WEBSOCKET.md`): convenience methods, low-level API, reconnection, hooks, code examples
+- Pattern 7: Real-Time State Tracking with WebSocket in `developer-guide/INTEGRATION_PATTERNS.md`
+- Step 7b: WebSocket push layer in `architecture/DATA_PIPELINE.md`
+- 4 real-time WebSocket examples in `components/sdk/EXAMPLES.md`
+
+### Changed
+- Explorer README, ARCHITECTURE, CONFIGURATION updated with WebSocket sections and env var table
+- SDK README, CONFIGURATION updated with WebSocket features, constructor options, and hooks
+- Root README updated with WebSocket in explorer and SDK component descriptions
+
+### Added (pre-release)
 
 - `components/indexer-sync/README.md` — overview, features, installation, quick start, scripts, dependencies for the new xchain-indexer-sync service
 - `components/indexer-sync/ARCHITECTURE.md` — data pipeline position, dual-mode design, internal components, hub discovery flow, server poll loop, client sync algorithm, hash chain integrity, reorg handling
