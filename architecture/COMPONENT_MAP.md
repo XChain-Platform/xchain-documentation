@@ -3,7 +3,7 @@
 
 # Component Map
 
-This document describes all 10 XChain Platform services, their roles, inputs, outputs, and connections. Services are grouped by function. For detailed documentation on any individual service, see the corresponding subdirectory under [`../components/`](../components/).
+This document describes all 11 XChain Platform services, their roles, inputs, outputs, and connections. Services are grouped by function. For detailed documentation on any individual service, see the corresponding subdirectory under [`../components/`](../components/).
 
 ---
 
@@ -13,6 +13,7 @@ This document describes all 10 XChain Platform services, their roles, inputs, ou
 |---|---|
 | Core Pipeline | decoder, indexer, explorer |
 | Transaction Creation | encoder, utxo-tracker, sdk |
+| Data Replication | indexer-sync |
 | Infrastructure | hub, node, regtest-miner, e2e-test |
 
 ---
@@ -91,6 +92,33 @@ Key technical details:
 - Runs as one instance per chain/network combination.
 
 See [`../components/explorer/`](../components/explorer/) for full documentation.
+
+---
+
+## Data Replication
+
+### xchain-indexer-sync
+
+| | |
+|---|---|
+| **Purpose** | Replicates indexer databases to validators and consumers for lightweight chain verification |
+| **Inputs** | Indexer MariaDB (SQL polling per chain/network), xchain-hub (JSON-RPC config discovery) |
+| **Outputs** | REST API (snapshots, status, transparency log), WebSocket (real-time block and reorg streaming) |
+| **Storage** | MariaDB (same 77-table schema as indexer — one replica DB per chain/network) |
+| **Communication** | Inbound REST + WebSocket from validators/consumers; outbound JSON-RPC to hub; outbound SQL reads from indexer DBs |
+
+Key technical details:
+
+- Runs as a single instance serving all chains/networks on the node — discovers installed indexers by calling the hub's `getallconfigs` method.
+- Operates in two modes: **server mode** (polls indexer databases and serves data) and **client mode** (replicates from remote sync servers).
+- Polls each indexer database for new blocks every 3 seconds (configurable). Builds a complete block payload from all affected tables and broadcasts to WebSocket subscribers.
+- Full snapshots are streamed as gzip-compressed JSON for bootstrapping new validators.
+- Incremental snapshots provide deltas since a given block height for catch-up after downtime.
+- Data integrity is verified using the indexer's existing per-block chained SHA256 hashes (ledger, actions, contracts). No additional Merkle tree implementation needed.
+- Clients can sync from 2+ independent sources and cross-verify block hashes to detect tampered data.
+- Reorg detection mirrors the indexer's pattern: detects rollbacks in the source database and broadcasts reorg events. Clients roll back their local replicas using the same table lists as the indexer's `Rollback.js`.
+
+See [`../components/indexer-sync/`](../components/indexer-sync/) for full documentation.
 
 ---
 

@@ -164,16 +164,18 @@ The explorer syncs configuration from xchain-hub every 60 seconds — fee schedu
                       |           |       |  Indexer             |
                       +-----------+       +----------------------+
                                                     |
-                                                    |  direct SQL reads
-                                                    v
-                                          +-----------+
-                                          |  xchain-  |
-                                          |  explorer |
-                                          +-----------+
-                                                |
-                                    REST / JSON-RPC / Web UI
-                                                |
-                                            Clients
+                                        +-----------+-----------+
+                                        |                       |
+                                        |  direct SQL reads     |  SQL polling (every 3s)
+                                        v                       v
+                              +-----------+           +------------------+
+                              |  xchain-  |           |  xchain-indexer- |
+                              |  explorer |           |  sync            |
+                              +-----------+           +------------------+
+                                    |                       |
+                        REST / JSON-RPC / Web UI    REST / WebSocket API
+                                    |                       |
+                                Clients             Validator replicas
 ```
 
 ---

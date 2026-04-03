@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `components/indexer-sync/README.md` — overview, features, installation, quick start, scripts, dependencies for the new xchain-indexer-sync service
+- `components/indexer-sync/ARCHITECTURE.md` — data pipeline position, dual-mode design, internal components, hub discovery flow, server poll loop, client sync algorithm, hash chain integrity, reorg handling
+- `components/indexer-sync/CONFIGURATION.md` — environment variables (common, server, client), hub discovery, database naming, connection pool config, circuit breaker
+- `components/indexer-sync/OPERATIONS.md` — running, Docker, REST API reference (5 endpoints), WebSocket API reference, resilience, troubleshooting (7 scenarios)
+
+### Changed
+
+- `components/README.md` — added indexer-sync to component table, updated count to 12
+- `README.md` — added xchain-indexer-sync to Components table, updated microservice count to 11
+- `architecture/COMPONENT_MAP.md` — added Data Replication service group with xchain-indexer-sync section, updated count to 11
+- `architecture/DATA_PIPELINE.md` — updated ASCII pipeline diagram to show indexer-sync as a branch off the Indexer DB feeding validator replicas
+
+### Added
+
 - `components/vm/ARCHITECTURE.md` — execution pipeline, internal components table, JSON bridge protocol (prefix encoding, argument serialization, typed error encoding, ExternalCopy limitations), AST-based gas metering (3 phases), sandbox security (stripped/preserved/replaced globals, Function preservation), compilation cache, contract wrapper
 - `components/vm/CONFIGURATION.md` — constructor parameters, gas schedule (7 operations), resource limits (7 configurable + 5 hardcoded), bounded execution summary table
 - `components/vm/OPERATIONS.md` — prerequisites, installation, indexer integration lifecycle and data flow, error classification (5 types), atomicity guarantees, syntax validation, troubleshooting (7 scenarios)

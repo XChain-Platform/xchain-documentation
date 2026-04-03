@@ -3,13 +3,14 @@
 
 # Components
 
-This section contains documentation for each of the 11 XChain Platform microservices. Each subdirectory covers the component's role, configuration, API surface, and internal design. Intended for developers and operators who need to understand or work with a specific service.
+This section contains documentation for each of the 12 XChain Platform microservices. Each subdirectory covers the component's role, configuration, API surface, and internal design. Intended for developers and operators who need to understand or work with a specific service.
 
 | Component | Role |
 |---|---|
 | [encoder](./encoder/) | Encodes XChain ACTION data into PSBT-based blockchain transactions |
 | [decoder](./decoder/) | Polls coin nodes, extracts XChain transactions, and writes raw data to MariaDB |
 | [indexer](./indexer/) | Reads decoder output, processes ACTION logic, and writes final state to MariaDB |
+| [indexer-sync](./indexer-sync/) | Replicates indexer databases to validators via REST snapshots and WebSocket streaming |
 | [vm](./vm/) | Deterministic smart contract execution engine — sandboxed V8 isolates with AST-based gas metering |
 | [explorer](./explorer/) | Serves REST and JSON-RPC APIs plus a web UI over the indexer database |
 | [hub](./hub/) | Config oracle and cross-chain action coordinator backed by LevelDB |

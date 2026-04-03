@@ -15,7 +15,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**Core Concepts**](./concepts/) | Metalayer, tokens, ACTIONs, encoding, cross-chain, gas, security | Everyone |
 | [**Architecture**](./architecture/) | Data pipeline, component map, database design | Developers |
 | [**Supported Blockchains**](./BLOCKCHAINS.md) | Supported chains, adding new blockchains, private deployments | Developers / Operators |
-| [**Components**](./components/) | Detailed docs for each of the 10 microservices | Developers |
+| [**Components**](./components/) | Detailed docs for each of the 11 microservices | Developers |
 | [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate, testing | Developers |
 | [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ — no code required | Non-technical |
 | [**Protocol Spec**](./protocol/) | 19 ACTION definitions, Token Information Standard, schemas | Protocol devs |
@@ -29,6 +29,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**xchain-encoder**](https://github.com/XChain-platform/xchain-encoder/) | Embeds ACTION data into unsigned PSBTs, auto-selects encoding format |
 | [**xchain-decoder**](https://github.com/XChain-platform/xchain-decoder/) | Polls coin nodes for blocks, extracts and decodes XChain transactions into MariaDB |
 | [**xchain-indexer**](https://github.com/XChain-platform/xchain-indexer/) | Validates ACTIONs, maintains token state with a double-entry ledger, runs a DEX matching engine |
+| [**xchain-indexer-sync**](https://github.com/XChain-platform/xchain-indexer-sync/) | Replicates indexer databases to validators and consumers via REST snapshots and WebSocket streaming |
 | [**xchain-explorer**](https://github.com/XChain-platform/xchain-explorer/) | 60+ REST/JSON-RPC endpoints and a web-based block explorer |
 | [**xchain-hub**](https://github.com/XChain-platform/xchain-hub/) | Configuration oracle, pricing data, and cross-chain swap coordination |
 | [**xchain-utxo-tracker**](https://github.com/XChain-platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |
