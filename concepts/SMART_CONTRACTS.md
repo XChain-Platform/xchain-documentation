@@ -210,6 +210,7 @@ Every contract execution is bounded by hard limits:
 | Wall-clock timeout | 30 seconds (safety net only) |
 | Emitted actions | 50 per execution |
 | State keys | 10,000 per contract |
+| State key size | 1 KB per key |
 | State value size | 64 KB per value |
 | Code size | 64 KB per contract |
 | Log entries | 100 per execution (1 KB each) |

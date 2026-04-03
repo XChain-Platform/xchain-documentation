@@ -17,7 +17,7 @@ A pure function library. Takes contract code + state + inputs + block context. R
 - **JSON bridge protocol** — host-side gateway functions communicate with the isolate via JSON-serialized arguments and type-prefixed return values
 - **16 emittable action types** — SEND, DESTROY, ISSUE, MINT, ORDER, DISPENSER, DIVIDEND, AIRDROP, CALLBACK, FILE, LIST, COINPAY, SWEEP, LINK, BROADCAST, MESSAGE
 - **Deterministic math** — `xchain.math.*` wraps mathjs bignumber with string I/O, no floating-point at the gateway boundary
-- **Contract state management** — key-value store with dirty tracking, key count limits, and value size limits
+- **Contract state management** — key-value store with dirty tracking, key count, key size, and value size limits
 - **Deploy-time validation** — V8 syntax check, acorn metering pass, reserved identifier detection, float warnings
 - **Per-block compilation cache** — V8 cached compilation data reused for hot contracts within a block
 
@@ -52,7 +52,9 @@ const vm = new XChainVM({
         maxEmissions:      50,
         maxStateKeys:      10000,
         maxStateValueSize: 65536,
-        maxCodeSize:       65536
+        maxCodeSize:       65536,
+        maxStateKeySize:   1024,
+        maxBlockCacheSize: 1000
     }
 });
 

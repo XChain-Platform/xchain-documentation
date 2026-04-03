@@ -17,7 +17,9 @@ const vm = new XChainVM({
         maxEmissions:      50,
         maxStateKeys:      10000,
         maxStateValueSize: 65536,
-        maxCodeSize:       65536
+        maxCodeSize:       65536,
+        maxStateKeySize:   1024,
+        maxBlockCacheSize: 1000
     }
 });
 ```
@@ -56,7 +58,9 @@ Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`r
 | Emissions | `maxEmissions` | 50 | Maximum platform actions a contract can emit per execution |
 | State keys | `maxStateKeys` | 10,000 | Maximum key-value pairs a contract can store |
 | State value size | `maxStateValueSize` | 65,536 bytes | Maximum size of a single state value (JSON-serialized) |
-| Code size | `maxCodeSize` | 65,536 bytes | Maximum contract source code size at deployment |
+| State key size | `maxStateKeySize` | 1,024 bytes | Maximum size of a single state key (UTF-8 encoded) |
+| Code size | `maxCodeSize` | 65,536 bytes | Maximum contract source code size (enforced at both deploy and execute) |
+| Block cache size | `maxBlockCacheSize` | 1,000 entries | Maximum compiled script entries cached per block |
 
 ### Additional Internal Limits
 
@@ -65,7 +69,7 @@ These limits are hardcoded in the VM and not configurable:
 | Limit | Value | Location |
 |---|---|---|
 | Log entries per execution | 100 | `collector.js` |
-| Log entry size | 1,024 bytes (truncated with `...(truncated)` marker) | `collector.js` |
+| Log entry size | 1,024 bytes UTF-8 (truncated with `...(truncated)` marker) | `collector.js` |
 | Return value size | 65,536 bytes (truncated) | `index.js` |
 | Throwaway isolate memory | 8 MB | `isolate.js`, `syntax.js` |
 | Binary expression metering depth | 10 | `metering.js` |
@@ -79,8 +83,10 @@ These limits are hardcoded in the VM and not configurable:
 | Wall-clock time | 30 seconds | `script.runSync()` timeout parameter |
 | Emitted actions | 50 per execution | `EmissionCollector` throws on overflow |
 | State keys | 10,000 per contract | `StateManager.set()` throws on overflow |
+| State key size | 1 KB per key | `StateManager.set()` / `delete()` throws on overflow |
 | State value size | 64 KB per value | `StateManager.set()` throws on overflow |
-| Code size | 64 KB per contract | Validated at deploy time |
+| Code size | 64 KB per contract | Validated at deploy time and enforced at execution |
+| Block cache | 1,000 entries per block | Excess entries skip cache (non-fatal) |
 | Log entries | 100 per execution | `EmissionCollector.addLog()` silently drops |
 
 Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs — it should never trigger under normal operation.

@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `components/vm/CONFIGURATION.md` — added `maxStateKeySize` (1,024 bytes) and `maxBlockCacheSize` (1,000 entries) to constructor example, resource limits table, and bounded execution summary; updated code size enforcement note; updated log entry size to note UTF-8 byte-awareness
+- `components/vm/ARCHITECTURE.md` — updated bridge protocol to reflect universal `\x01`+JSON encoding for all returns; added error classification hardening paragraph; updated gas.js, state.js, collector.js component descriptions; added cache bound note
+- `components/vm/README.md` — added `maxStateKeySize` and `maxBlockCacheSize` to constructor example; updated state management feature description
+- `concepts/SMART_CONTRACTS.md` — added state key size (1 KB per key) to bounded execution table
 - `components/README.md` — added indexer-sync to component table, updated count to 12
 - `README.md` — added xchain-indexer-sync to Components table, updated microservice count to 11
 - `architecture/COMPONENT_MAP.md` — added Data Replication service group with xchain-indexer-sync section, updated count to 11

@@ -36,12 +36,12 @@ Contract Source Code
 | `isolate.js` | V8 isolate creation (`createIsolate`), throwaway isolate for syntax validation (`createThrowawayIsolate`), compilation (`compileScript`), cached data extraction, safe disposal |
 | `sandbox.js` | Strips non-deterministic globals (Date, Math.random, setTimeout, etc.), replaces Math with frozen deterministic subset, preserves `Function` reference for contract wrapper |
 | `metering.js` | AST-based gas injection — parses source with acorn, injects `__gas()` at control flow points, regenerates with astring. Also provides `hasGasIdentifier()` for deploy-time validation |
-| `gas.js` | GasTracker class — accumulates gas charges per operation, enforces ceiling, throws GasExhaustedError on overflow |
+| `gas.js` | GasTracker class — validates gas schedule (non-negative integers), accumulates gas charges per operation, enforces ceiling, throws GasExhaustedError on overflow |
 | `gateway.js` | Builds the `xchain` gateway object — context accessors, state CRUD, ledger queries, oracle, cross-chain, emit API, math, control flow, logging |
 | `gateway-emit.js` | Emit API builder — 16 action types (SEND through MESSAGE), parameter validation, gas charging |
 | `math.js` | Deterministic math wrapping mathjs bignumber — all inputs/outputs are strings, wrapped in `safeMath` for ContractRevertError on failures |
-| `state.js` | StateManager — reads from initial snapshot, tracks writes/deletes in dirty map, enforces key count and value size limits, provides `getChanges()` for result collection |
-| `collector.js` | EmissionCollector — queues emitted actions (with emission cap), collects debug logs (100 entries, 1 KB each, with truncation) |
+| `state.js` | StateManager — reads from initial snapshot, tracks writes/deletes in dirty map, enforces key count, key size, and value size limits, provides `getChanges()` for result collection |
+| `collector.js` | EmissionCollector — queues emitted actions (with emission cap), collects debug logs (100 entries, 1 KB UTF-8 each, with byte-aware truncation) |
 | `validator.js` | ActionValidator — pre-validates emitted actions against the 16 allowed action types and checks params shape |
 | `syntax.js` | Deploy-time validation — V8 syntax check (throwaway isolate), acorn metering pass (ES2020 ceiling), reserved `__gas` identifier detection, float literal warnings |
 | `errors.js` | ContractRevertError (thrown by `revert()`/`require()`) and GasExhaustedError (thrown when gas ceiling exceeded) |
@@ -61,15 +61,14 @@ Each host-side gateway function is wrapped in a `bridge()` helper and injected i
 3. `ref.applySync(undefined, ['["key"]'])` sends the JSON string to the host
 4. The host-side `bridge()` function parses the arguments: `JSON.parse('["key"]')` → `['key']`
 5. The host calls the actual gateway function: `stateManager.get('key')`
-6. The return value is checked — if it's an object/array, it's JSON-encoded with a `\x01` prefix: `'\x01{"count":"5"}'`
+6. The return value is JSON-encoded with a `\x01` prefix: `'\x01{"count":"5"}'` (all non-null/undefined returns use this encoding to prevent user data containing control characters from being misinterpreted as protocol markers)
 7. The isolate-side `wrap()` detects the `\x01` prefix and `JSON.parse`s the result
 
 **Return value encoding:**
 
 | Prefix | Meaning | Example |
 |---|---|---|
-| (none) | Primitive value — passed through directly | `'hello'`, `42`, `true`, `null` |
-| `\x01` | JSON-encoded object/array from gateway method | `'\x01["a","b"]'` |
+| `\x01` | JSON-encoded return value from gateway method (any type) | `'\x01"hello"'`, `'\x01["a","b"]'`, `'\x0142'` |
 | `\x02` | JSON-encoded contract return value (from CONTRACT_WRAPPER) | `'\x02{"count":"5"}'` |
 | `\x03` | Typed error encoding | `'\x03REVERT:not enough tokens'` |
 
@@ -81,6 +80,8 @@ When a gateway method throws a typed error, the `bridge()` wrapper catches it an
 |---|---|
 | `ContractRevertError` | `\x03REVERT:<reason>` |
 | `GasExhaustedError` | `\x03GAS:<used>:<ceiling>` |
+
+**Error classification hardening:** To prevent contracts from spoofing error types by throwing `new Error('\x03GAS:...')` directly, `_classifyError` verifies the `\x03` prefix against authoritative state: `\x03GAS` is only trusted when `gasTracker.used > gasTracker.ceiling`, and `\x03REVERT` is only trusted when the gateway's `revert()` or `require()` function was actually called (tracked via an execution context flag). Unverified `\x03`-prefixed errors fall through to generic error classification.
 
 ### Why Not ExternalCopy?
 
@@ -144,6 +145,8 @@ The VM maintains a per-block compilation cache to avoid redundant V8 compilation
 **Cache key:** `contractIndex:codeHash` where `codeHash` is the SHA-256 of the original (pre-metering) source code.
 
 **Cache value:** V8 cached compilation data extracted via `script.createCachedData()`. On cache hit, this data is passed to `compileScriptSync()` to skip full compilation.
+
+**Cache bound:** The cache is limited to `maxBlockCacheSize` entries (default 1,000) per block. When the limit is reached, new unique contracts skip the cache but still execute normally. This prevents memory exhaustion from blocks with thousands of unique contracts.
 
 This eliminates redundant compilation for hot contracts (e.g., a popular AMM called 50 times in one block).
 
