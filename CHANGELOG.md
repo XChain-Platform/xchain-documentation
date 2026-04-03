@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-03
+
+### Changed
+- `components/vm/README.md` — updated scripts table with 14 commands covering unit/E2E/fuzz/chaos/regression/mutation/bench, added dev dependencies (fast-check, Stryker), total test count: 974
+- `components/vm/OPERATIONS.md` — expanded running tests section with all test commands and 974 total count, added fail-loud regression note
+- `developer-guide/TESTING.md` — added xchain-vm as 5th component (974 tests), updated platform total from 3,750+ to 4,700+, added VM column to test type breakdown table, updated fast-check and StrykerJS tool entries to include VM, added VM test scripts link
+
 ## [0.3.0] - 2026-04-03
 
 ### Changed

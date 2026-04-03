@@ -108,7 +108,7 @@ Regression tests are a curated subset of tests across all disciplines, organized
 
 ## Platform Test Coverage
 
-The XChain Platform maintains over **3,750 tests** across its four primary components, with the dedicated `xchain-e2e-test` service providing full-stack integration testing across all services.
+The XChain Platform maintains over **4,700 tests** across its five primary components, with the dedicated `xchain-e2e-test` service providing full-stack integration testing across all services.
 
 ### By Component
 
@@ -117,25 +117,26 @@ The XChain Platform maintains over **3,750 tests** across its four primary compo
 | [xchain-indexer](../components/indexer/) | ~958 | Unit, Integration, E2E, Fuzz, Chaos, Mutation, Smoke, Performance, Boundary, Regression |
 | [xchain-explorer](../components/explorer/) | ~1,285 | Unit, Integration, E2E, Boundary, Security, Chaos, Mutation, Smoke, Performance, Regression |
 | [xchain-encoder](../components/encoder/) | ~769 | Unit, Integration, E2E, Boundary, Chaos, Mutation, Smoke, Performance, Regression |
+| [xchain-vm](../components/vm/) | 974 | Unit, E2E, Security, Boundary, Fuzz, Chaos, Mutation, Smoke, Regression |
 | [xchain-sdk](../components/sdk/) | 551 | Unit, Boundary, Fuzz, Chaos, Round-trip, Smoke |
 | [xchain-e2e-test](../components/e2e-test/) | — | Full-stack E2E across all services on regtest |
 
 ### By Test Type
 
-| Test Type | Indexer | Explorer | Encoder | SDK |
-|---|---|---|---|---|
-| Unit | ~530 | ~583 | 114 | ~391 |
-| Integration | ~929 | ~83 | 108 | — |
-| E2E | 43 | 49 | ~80 | — |
-| Smoke | ~10 | ~40 | ~10 | 11 |
-| Boundary | ~100 | ~211 | ~120 | 36 |
-| Fuzz | ~50 | — | — | 56 |
-| Security | ~60 | ~104 | — | — |
-| Performance | 5 suites | 15 | 3 suites | — |
-| Chaos | ~30 | ~56 | 61 | 28 |
-| Mutation | ~30 | StrykerJS | StrykerJS | — |
-| Regression | ~18 | 144 | 196 | — |
-| Round-trip | — | — | — | 29 |
+| Test Type | Indexer | Explorer | Encoder | VM | SDK |
+|---|---|---|---|---|---|
+| Unit | ~530 | ~583 | 114 | 580 | ~391 |
+| Integration | ~929 | ~83 | 108 | — | — |
+| E2E | 43 | 49 | ~80 | 64 | — |
+| Smoke | ~10 | ~40 | ~10 | 10 | 11 |
+| Boundary | ~100 | ~211 | ~120 | 106 | 36 |
+| Fuzz | ~50 | — | — | 86 | 56 |
+| Security | ~60 | ~104 | — | 72 | — |
+| Performance | 5 suites | 15 | 3 suites | 5 scenarios | — |
+| Chaos | ~30 | ~56 | 61 | 92 | 28 |
+| Mutation | ~30 | StrykerJS | StrykerJS | StrykerJS + custom | — |
+| Regression | ~18 | 144 | 196 | 152 | — |
+| Round-trip | — | — | — | — | 29 |
 
 ### Testing Infrastructure
 
@@ -148,8 +149,8 @@ All XChain Platform tests use the following infrastructure:
 | **Chai** | Assertion library (explorer, SDK) |
 | **Supertest** | HTTP endpoint testing (explorer) |
 | **Nock** | HTTP request mocking (SDK, explorer) |
-| **fast-check** | Property-based / fuzz testing (indexer) |
-| **StrykerJS** | Mutation testing framework (explorer, encoder) |
+| **fast-check** | Property-based / fuzz testing (indexer, VM) |
+| **StrykerJS** | Mutation testing framework (explorer, encoder, VM) |
 | **Toxiproxy** | Network fault injection for chaos tests (explorer) |
 | **Docker Compose** | Test environment orchestration (integration, chaos, E2E) |
 
@@ -160,6 +161,7 @@ Each component provides granular npm scripts for running specific test types. Se
 - [Indexer test scripts](../components/indexer/README.md)
 - [Explorer test scripts](../components/explorer/README.md)
 - [Encoder test scripts](../components/encoder/README.md)
+- [VM test scripts](../components/vm/README.md)
 - [SDK test scripts](../components/sdk/README.md)
 
 Common patterns across all components:
