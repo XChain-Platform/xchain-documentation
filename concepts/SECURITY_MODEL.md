@@ -21,6 +21,8 @@ XChain's security properties come from several sources: the underlying blockchai
 
 **Escrow accounting**: Tokens locked in orders, dispensers, or swap offers are tracked in escrow entries, not as floating balances. The available balance formula accounts for escrows explicitly. Double-spending an escrowed balance is not possible.
 
+**COINPay security model**: When trading tokens for native coin (BTC/LTC/DOGE), the COINPAY action is an explicit ACTION — the payment is identified by referencing the ORDER_MATCH's ACTION_INDEX, not by scanning bare outputs. This eliminates ambiguity. Payment spoofing is not a concern: anyone can pay on behalf of the buyer (the tokens always go to the buyer's GET_ADDRESS). Late payment risk exists: if a COINPAY confirms after the obligation expires, the native coin reaches the seller but no tokens are released — the buyer loses their coin. This is an inherent risk of native UTXO-chain payments and is mitigated by prominent expiration warnings in the SDK and explorer. Reorg handling follows the standard pattern: COINPAY records are rolled back and re-indexed with all other tables.
+
 **Permission enforcement**: Allow lists, block lists, SLEEP periods, mint restrictions, and callback conditions are all checked before execution. An ACTION that fails any check is recorded as failed but does not modify state.
 
 **Replay protection**: Every valid ACTION is assigned a sequential `ACTION_INDEX`. Subsequent actions that reference prior actions by index can only reference actions that exist at a lower index — forward references are invalid. An ACTION cannot be replayed: it exists at exactly one position in the blockchain and is processed exactly once.

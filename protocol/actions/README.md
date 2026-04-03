@@ -53,6 +53,7 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | ACTION | Description |
 |---|---|
 | [`ORDER`](./ORDER.md) | Places a buy/sell order on the decentralized exchange |
+| [`COINPAY`](./COINPAY.md) | Fulfills a native coin payment obligation from an ORDER_MATCH |
 | [`DISPENSER`](./DISPENSER.md) | Creates a vending machine that dispenses tokens when triggered by a send |
 | [`SWAP`](./SWAP.md) | Creates a cross-chain token swap offer between supported blockchains |
 

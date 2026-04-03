@@ -672,6 +672,38 @@ See also: [`../actions/ORDER.md`](../../protocol/actions/ORDER.md)
 
 ---
 
+### COINPAY
+
+Fulfill a native coin payment obligation from an ORDER_MATCH.
+
+**Format v0:** `COINPAY|VERSION|ORDER_MATCH_ACTION_INDEX`
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| orderMatchActionIndex | integer | Yes | ACTION_INDEX of the ORDER_MATCH being paid |
+
+#### Encoder Options
+
+COINPAY transactions require a `customOutputs` array in the encoder options to include the native coin payment output:
+
+```javascript
+await sdk.coinpay({
+    orderMatchActionIndex: 12345
+}, {
+    pubkey: '1BuyerAddress...',
+    change: '1BuyerChange...',
+    customOutputs: [{ address: '1SellerAddress...', value: 5000000 }]  // 0.05 BTC in satoshis
+})
+```
+
+The `customOutputs` array contains objects with `address` (the seller's GET_ADDRESS) and `value` (the native coin amount in satoshis). The encoder adds these as additional outputs alongside the OP_RETURN data.
+
+See also: [`../actions/COINPAY.md`](../../protocol/actions/COINPAY.md)
+
+---
+
 ### SEND
 
 Transfer tokens to one or more destination addresses.

@@ -37,6 +37,8 @@ No operation touches a balance without a ledger entry. Examples:
 
 **ORDER (sell side)** — the seller gets a debit and a corresponding escrow entry. The tokens are locked in escrow until the order is filled or cancelled. When filled, the buyer gets a credit and the seller's escrow is released. When cancelled, the escrow is released back to the seller as a credit.
 
+**ORDER with native coin (two-phase settlement)** — when one side of a trade is native coin (BTC/LTC/DOGE), the indexer cannot settle both sides instantly. Token escrow occurs normally for the token-selling side, but no escrow occurs for the native coin side (the indexer can't hold native coin). On ORDER_MATCH, a COINPay obligation is created instead of instant credits. Tokens remain escrowed until the coin-offering party sends a COINPAY transaction, which triggers the escrow release and credit to the buyer. If the COINPAY obligation expires unfulfilled, the escrowed tokens are released back to the seller.
+
 **MINT** — a new credit entry is created for the minting address. No corresponding debit — this is how new supply enters circulation.
 
 **DESTROY** — a debit is created for the burning address. No corresponding credit. This is how supply is permanently removed.

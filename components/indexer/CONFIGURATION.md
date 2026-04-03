@@ -66,6 +66,13 @@ These values are defined in `src/config.js` and apply to all chains:
 | `MIN_TOKEN_SUPPLY` | `0.000000000000000001` | Minimum token supply (10^-18) |
 | `MAX_TOKEN_SUPPLY` | `1000000000000000000000` | Maximum token supply (10^21) |
 
+### COINPay
+
+| Parameter | Value | Description |
+|---|---|---|
+| `COIN_DECIMALS` | `8` | Native coin decimal places (BTC/LTC/DOGE all use 8) |
+| `COINPAY_EXPIRATION` | `7200` | COINPay obligation expiration in seconds (2 hours) |
+
 ### Field Limits
 
 | Parameter | Value | Description |

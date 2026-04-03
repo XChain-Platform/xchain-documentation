@@ -68,7 +68,8 @@ Invalid ACTIONs are recorded as failed — they are not silently ignored. This m
 
 | ACTION | What it does |
 |---|---|
-| `ORDER` | Place a buy or sell order on the platform's order book. Orders are matched by the indexer automatically; no taker action required. |
+| `ORDER` | Place a buy or sell order on the platform's order book. Orders are matched by the indexer automatically. Supports native coin pairs (BTC/LTC/DOGE) via the COINPay settlement model. |
+| `COINPAY` | Fulfills a native coin payment obligation created by an ORDER_MATCH. The transaction includes both the action data and a native coin output paying the seller. |
 | `DISPENSER` | Create a vending machine that sells tokens at a fixed rate in exchange for coin payments. Remains active until depleted or cancelled. |
 | `SWAP` | Initiate or fulfill a cross-chain atomic token swap, coordinated by the hub. |
 

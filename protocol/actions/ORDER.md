@@ -41,6 +41,18 @@ This example creates an order to sell 1 RAREPEPE for 10,000,000.00000000 PEPECAS
 ```
 
 ```
+ORDER|0|BTC|PEPECOIN|1000|BTC||0.05000000||||Selling PEPECOIN for BTC
+This example creates a native coin pair order: sell 1000 PEPECOIN tokens for 0.05 BTC.
+GET_TICK is empty (native coin). Matched orders create a COINPay obligation instead of instant settlement.
+```
+
+```
+ORDER|0|BTC||0.05000000|BTC|PEPECOIN|1000||||Buying PEPECOIN with BTC
+This example offers 0.05 BTC to buy 1000 PEPECOIN tokens.
+GIVE_TICK is empty (offering native coin). No token escrow occurs for the native coin side.
+```
+
+```
 ORDER|1|1234|Closing order, no buyers, much disappoint
 This example cancels the existing ORDER with `ACTION_INDEX` 1234 and includes a memo
 ```
@@ -51,6 +63,17 @@ This example updates an existing `ORDER` with `ACTION_INDEX` 1234 and adds an `A
 ```
 
 ## Rules
+
+### Native Coin Pairs
+- An empty/null `GIVE_TICK` or `GET_TICK` indicates native coin (BTC/LTC/DOGE) on that side
+- Both `GIVE_TICK` and `GET_TICK` cannot be empty simultaneously (coin-for-coin is a regular blockchain transaction)
+- When `GIVE_TICK` is empty (offering native coin): no balance check, no escrow — the obligation to pay is created at match time and fulfilled via [`COINPAY`](./COINPAY.md)
+- When `GET_TICK` is empty (requesting native coin): the `GIVE_TICK` tokens are escrowed normally
+- Native coin amounts are validated using `COIN_DECIMALS` (8 decimal places for BTC/LTC/DOGE)
+- Expiration fees are charged regardless of whether the order involves native coin
+- When matched, native coin pairs create a `pending_coinpay` ORDER_MATCH instead of instant settlement
+- Cancelling an order with pending COINPay obligations sets status to `cancelling` instead of `cancelled`; obligations must resolve before the order is finalized
+- Order expiration with pending COINPay obligations sets status to `expiring`; same deferred finalization
 
 ## Notes
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)

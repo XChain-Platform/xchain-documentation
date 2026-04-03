@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- COINPAY action specification: protocol/actions/COINPAY.md
+- Native coin pair documentation in ORDER action spec (examples, rules)
+- COINPAY and COINPAY_EXPIRE in indexer ACTIONS reference
+- COIN_DECIMALS and COINPAY_EXPIRATION in indexer CONFIGURATION
+- COINPAY action with customOutputs in SDK ACTIONS
+- COINPay API endpoints in explorer API reference (coinpays, coinpay_expires, coinpay_obligations)
+- COINPay tables in DATABASE_DESIGN architecture doc
+- Two-phase settlement model in LEDGER concepts
+- COINPay security model in SECURITY_MODEL (late payment, spoofing, reorg)
+- Native Coin Pairs section in user-guide TRADING
+- COINPAY in DEX action listings (concepts/ACTIONS, protocol/actions/README)
+- COINPay obligations in DATA_PIPELINE expiration processing
+
 ### Changed
 
 - Move "Documentation Index" section to immediately after "Features" and rename to "Documentation" in explorer, indexer, and SDK component READMEs

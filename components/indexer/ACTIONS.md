@@ -16,7 +16,7 @@ An action is only processed if:
 2. The current block time is >= the action's activation timestamp for the active network
 3. The current block height is >= the action's activation block for the active network
 
-All 20 actions are currently registered at version `1.0.0` with activation at block 0 / time 0 (active from genesis). Future protocol upgrades can introduce new actions or changes at specific block heights by registering them with non-zero activation values.
+All 22 actions are currently registered at version `1.0.0` with activation at block 0 / time 0 (active from genesis). Future protocol upgrades can introduce new actions or changes at specific block heights by registering them with non-zero activation values.
 
 ## Token Lifecycle Actions
 
@@ -41,9 +41,11 @@ All 20 actions are currently registered at version `1.0.0` with activation at bl
 
 | Action | Purpose | Key Validations |
 |---|---|---|
-| [**ORDER**](../../protocol/actions/ORDER.md) | Place a buy/sell order on the decentralized exchange | Valid give/get tokens, sufficient balance, valid amounts, fee payment |
-| **ORDER_MATCH** | Automatic: matches compatible orders | Price compatibility, available balances, escrow handling |
-| **ORDER_EXPIRE** | Automatic: expires orders past their expiration time | Block time check, escrow release |
+| [**ORDER**](../../protocol/actions/ORDER.md) | Place a buy/sell order on the decentralized exchange | Valid give/get tokens, sufficient balance, valid amounts, fee payment. Supports native coin pairs (empty TICK = native coin) |
+| **ORDER_MATCH** | Automatic: matches compatible orders | Price compatibility, available balances, escrow handling. Native coin matches create COINPay obligations |
+| **ORDER_EXPIRE** | Automatic: expires orders past their expiration time | Block time check, escrow release. Two-phase if pending COINPay obligations |
+| [**COINPAY**](../../protocol/actions/COINPAY.md) | Fulfills a native coin payment obligation from an ORDER_MATCH | Obligation exists, not expired, payment output matches payee address and amount |
+| **COINPAY_EXPIRE** | Automatic: expires unfulfilled COINPay obligations | Block time >= obligation expiration, releases escrowed tokens, cancels coin-offering order |
 | [**DISPENSER**](../../protocol/actions/DISPENSER.md) | Create a token vending machine triggered by sends | Valid token, sufficient balance, valid give/get amounts |
 | **DISPENSE** | Automatic: triggered when a send matches a dispenser | Dispenser active, sufficient remaining supply |
 | **DISPENSER_CLOSE** | Automatic: closes a dispenser | Close delay timer, escrow release |

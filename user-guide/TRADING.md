@@ -102,6 +102,38 @@ Check the current fee schedule through the XChain Explorer or your wallet softwa
 
 ---
 
+## Native Coin Pairs
+
+In addition to trading tokens against other tokens, the XChain DEX supports trading tokens directly for native blockchain coins — BTC, LTC, or DOGE. This means you can sell your tokens for actual Bitcoin (or Litecoin or Dogecoin), or offer native coin to buy tokens.
+
+### How It Works
+
+Native coin trades use a **two-phase settlement model** because the indexer can control tokens (ledger entries) but cannot move native coins (that requires a separate transaction):
+
+1. **Order creation**: The seller places an order offering tokens for native coin (e.g., "Sell 1000 PEPECOIN for 0.05 BTC"). The tokens are escrowed. The buyer places a matching order offering native coin.
+2. **Match**: When orders match, the indexer creates a **COINPay obligation** instead of settling instantly. The seller's tokens stay escrowed. The buyer has 2 hours to pay.
+3. **Payment**: The buyer sends a **COINPAY** transaction — a single blockchain transaction that includes both the COINPAY action data and a native coin output paying the seller.
+4. **Settlement**: The indexer validates the payment and releases the escrowed tokens to the buyer.
+
+### What If the Buyer Doesn't Pay?
+
+If the buyer doesn't send a COINPAY within the 2-hour window, the obligation expires automatically. The seller's tokens are released back to their order (available for other buyers), and the buyer's order is cancelled. The buyer must resubmit a new order to try again.
+
+### Important: Late Payment Risk
+
+If a COINPAY transaction is broadcast but confirms **after** the obligation has expired, the native coin reaches the seller but no tokens are released. The buyer loses their coin. To avoid this, always use appropriate miner fees for timely confirmation and avoid sending COINPAY close to the expiration deadline.
+
+### How It Differs from Dispensers
+
+| | Native Coin Orders | Dispensers |
+|---|---|---|
+| Settlement | Two-phase (match → COINPay → settlement) | Automatic (send coin → receive tokens) |
+| Time limit | 2-hour COINPay window after match | None — always active |
+| Price discovery | Order book matching | Fixed price |
+| Flexibility | Partial fills, limit orders | Fixed rate, fixed quantity |
+
+---
+
 ## Summary: Order Book vs. Dispenser
 
 | | Order Book | Dispenser |

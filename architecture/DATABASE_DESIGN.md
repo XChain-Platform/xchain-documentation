@@ -111,7 +111,7 @@ The Indexer DB has 60+ tables organized into five categories:
 
 Every token movement creates both a credit and a debit entry. The invariant `token_supply == SUM(all credits) - SUM(all debits)` is checked after issuance actions.
 
-**Action-specific tables** — one or more tables per ACTION type, storing the parameters and state for each action kind. For actions that can be edited, cancelled, or expired, additional status tables track state transitions. Examples include tables for orders, dispensers, dividends, airdrops, broadcasts, files, links, lists, callbacks, swaps, and sweeps.
+**Action-specific tables** — one or more tables per ACTION type, storing the parameters and state for each action kind. For actions that can be edited, cancelled, or expired, additional status tables track state transitions. Examples include tables for orders, dispensers, dividends, airdrops, broadcasts, files, links, lists, callbacks, swaps, and sweeps. The COINPay subsystem adds four additional tables: `coinpay_obligations` (pending native coin payment obligations created by ORDER_MATCH), `coinpays` (fulfilled payments), `coinpay_expires` (expired obligations), and `coinpay_statuses` (obligation status history). The `order_matches` table also includes a `settlement_type` column (`instant` or `coinpay`) to distinguish native coin pair matches.
 
 **Index tables** — normalized string lookups to avoid repeating variable-length strings (tickers, addresses, hashes) across every row. Numeric foreign keys reference these tables from the core and ledger tables.
 

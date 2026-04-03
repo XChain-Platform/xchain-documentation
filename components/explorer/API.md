@@ -584,6 +584,43 @@ GET /{COIN}/api/order_expires/{query}/{type}
 
 ---
 
+### COINPay
+
+Native coin payment actions that fulfill ORDER_MATCH obligations.
+
+```
+GET /{COIN}/api/coinpays/{query}/{type}
+```
+
+| Type | Description |
+|---|---|
+| `block` | COINPay actions in a specific block |
+| `address` | COINPay actions involving an address |
+
+**Response includes:** obligation action_index, coin amount, txid, vout, status, block, timestamp.
+
+```
+GET /{COIN}/api/coinpay_expires/{query}/{type}
+```
+
+| Type | Description |
+|---|---|
+| `block` | COINPay expirations in a specific block |
+| `address` | COINPay expirations for an address |
+
+```
+GET /{COIN}/api/coinpay_obligations/{query}/{type}
+```
+
+| Type | Description |
+|---|---|
+| `block` | COINPay obligations created in a specific block |
+| `address` | COINPay obligations where this address is the payer or payee |
+
+**Response includes:** payer address, payee address, coin, coin amount, expiration timestamp, status (pending_coinpay/fulfilled/expired).
+
+---
+
 ### Dispensers
 
 Vending-machine style token dispensers.
@@ -1278,6 +1315,9 @@ Content-Type: application/json
 | `GET /{COIN}/api/order_cancels/...` | `block`, `address` |
 | `GET /{COIN}/api/order_edits/...` | `block`, `address` |
 | `GET /{COIN}/api/order_expires/...` | `block`, `address` |
+| `GET /{COIN}/api/coinpays/...` | `block`, `address` |
+| `GET /{COIN}/api/coinpay_expires/...` | `block`, `address` |
+| `GET /{COIN}/api/coinpay_obligations/...` | `block`, `address` |
 | `GET /{COIN}/api/dispensers/...` | `block`, `address`, `source`, `destination`, `token` |
 | `GET /{COIN}/api/dispenses/...` | `block`, `address`, `source`, `destination`, `token` |
 | `GET /{COIN}/api/dispenser_cancels/...` | `block`, `address` |

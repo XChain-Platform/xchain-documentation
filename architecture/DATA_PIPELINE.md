@@ -97,7 +97,7 @@ The indexer polls the Decoder DB every 5 seconds. When it finds a new decoded ac
 
 5. **Handles validation failures** gracefully: an action that fails validation is written to the actions table with status `invalid`, and no ledger entries are created. The block still commits.
 
-6. **Processes expirations** after each block: open orders, active dispensers, and other time-bounded objects are checked against the current block height and expired if necessary.
+6. **Processes expirations** after each block: open orders, active dispensers, COINPay obligations, and other time-bounded objects are checked against the current block height and expired if necessary.
 
 7. **Detects reorgs** by monitoring the Decoder DB for block hash changes. On reorg, the indexer rolls back across 40+ tables in a single transaction.
 
