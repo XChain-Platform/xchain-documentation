@@ -117,7 +117,7 @@ Native coin trades use a **two-phase settlement model** because the indexer can 
 
 ### What If the Buyer Doesn't Pay?
 
-If the buyer doesn't send a COINPAY within the 2-hour window, the obligation expires automatically. The seller's tokens are released back to their order (available for other buyers), and the buyer's order is cancelled. The buyer must resubmit a new order to try again.
+If the buyer doesn't send a COINPAY within the 2-hour window, the obligation expires automatically. The seller's tokens are released back to their order (available for other buyers). The buyer's order remains open and can match with other sellers.
 
 ### Important: Late Payment Risk
 
