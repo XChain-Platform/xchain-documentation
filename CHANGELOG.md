@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Block hashes concept document: ledger, actions, and contract hash types with source tables, calculation process, chaining, and verification use cases
+- Block hashes entry in concepts README index
 - Hub staking action specs: STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS
 - VM action specs: DEPLOY, EXECUTE, DEPOSIT, WITHDRAW
 - Hub Staking and Virtual Machine categories in action index README
