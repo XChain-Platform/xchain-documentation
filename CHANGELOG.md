@@ -14,19 +14,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VM listed in `components/README.md` (10 → 11 components)
 - VM Gas section in `concepts/GAS.md` — per-operation gas costs (computation, state read/write, emission), deployment gas, execution gas
 - Contract derived addresses section in `concepts/LEDGER.md` — how `C:<CHAIN>:<action_index>` addresses participate in the double-entry ledger
+- Hub Staking and Virtual Machine action categories in `concepts/ACTIONS.md` (19 → 28 actions)
+- Smart Contract Development link in `developer-guide/README.md`
 
 ### Changed
 
 - `concepts/SMART_CONTRACTS.md` — rewrote from "planned" to full implementation reference: gateway API (context, state, emit, math, oracle, cross-chain), deterministic execution, bounded execution, error handling, API versioning, contract format, derived addresses
+- `concepts/ACTIONS.md` — updated from 19 to 28 ACTIONs, added Hub Staking and Virtual Machine sections
+- `protocol/README.md` — updated action count from 19 to 28
 - `protocol/actions/DEPLOY.md` — added syntax validation (V8 + acorn + `__gas` check), derived address creation, constructor execution, `api_version`, float warnings
 - `protocol/actions/EXECUTE.md` — added VM execution details, savepoint atomicity, emission routing, 50-action cap, derived address as source
 - `protocol/actions/DEPOSIT.md` — updated to derived address model (credits contract's derived address in standard ledger)
 - `protocol/actions/WITHDRAW.md` — updated to derived address model (debits derived address, solvency via standard balances)
+- `components/indexer/README.md` — updated test count from 958 to 978
+- `components/indexer/ACTIONS.md` — updated VM action descriptions with actual implementation details (syntax validation, derived addresses, savepoints, metered gas)
+- `components/indexer/ARCHITECTURE.md` — rewrote VM Runtime Module section for actual xchain-vm architecture (AST metering, gateway via ivm.Reference, compilation cache), updated source file table, removed DEPLOY→ISSUE alias, removed `contract_balances` from rollback
+- `components/indexer/LEDGER.md` — replaced `contract_balances` materialized view section with derived address model
 - `components/indexer/DATABASE.md` — updated VM tables with actual schema (contracts with `api_version`, contract_state append-only, contract_emissions execution→action links, removed `contract_balances`)
 
 ### Removed
 
-- `contract_balances` table reference from indexer DATABASE.md (contracts use standard `balances` table via derived addresses)
+- `contract_balances` references from indexer DATABASE.md, LEDGER.md, and ARCHITECTURE.md (contracts use standard `balances` table via derived addresses)
+- `DEPLOY→ISSUE` alias from ARCHITECTURE.md (DEPLOY is now its own action, not an alias)
 
 ### Previously Added
 

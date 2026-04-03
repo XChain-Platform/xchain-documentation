@@ -50,34 +50,51 @@ The indexer sits between the decoder and the explorer. It reads raw decoded tran
 
 ## VM Runtime Module
 
-The Virtual Machine is implemented as an isolated-vm sandbox with deterministic gas metering:
+The Virtual Machine is implemented as the standalone `xchain-vm` module — a library that the indexer loads at startup. Contract code runs in sandboxed V8 isolates (via `isolated-vm`) with AST-based gas metering (via `acorn`). The VM has no awareness of the database; it takes inputs and returns outputs.
 
 ```
-┌───────────────────────────────────────────────────────┐
-│                  VM Runtime (src/vm/)                 │
-│                                                       │
-│  ┌────────────────┐   ┌──────────────────────────┐   │
-│  │  isolated-vm   │   │     Gas Meter            │   │
-│  │  Sandbox       │   │  Deducts gas_cost units  │   │
-│  │  (one isolate  │   │  per opcode; throws on   │   │
-│  │  per EXECUTE)  │   │  gas exhaustion before   │   │
-│  └────────┬───────┘   │  any state is committed  │   │
-│           │           └──────────────────────────┘   │
-│  ┌────────▼───────────────────────────────────────┐  │
-│  │  contract_state writer (append-only)           │  │
-│  │  Each state transition → new row in DB         │  │
-│  │  Full state reconstructed by replaying rows    │  │
-│  └────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                     xchain-vm module                         │
+│                                                              │
+│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐  │
+│  │ isolated-vm  │  │ AST-based   │  │ Gateway (xchain.*) │  │
+│  │ V8 Isolate   │  │ Gas Meter   │  │ State, Emit, Math, │  │
+│  │ (one per     │  │ acorn parse │  │ Oracle, CrossChain │  │
+│  │  EXECUTE)    │  │ → inject    │  │ via ivm.Reference  │  │
+│  │              │  │ __gas() →   │  │ sync callbacks     │  │
+│  │ Sandbox:     │  │ astring     │  │                    │  │
+│  │ no Date,     │  │ regenerate  │  │ 16 emittable       │  │
+│  │ no random,   │  │             │  │ action types       │  │
+│  │ no network   │  │ Charges per │  │                    │  │
+│  └──────┬───────┘  │ control     │  └────────┬───────────┘  │
+│         │          │ flow point  │           │              │
+│         │          └─────────────┘           │              │
+│  ┌──────▼───────────────────────────────────▼────────────┐  │
+│  │  Result: stateChanges, stateDeletes, emittedActions,  │  │
+│  │          gasUsed, returnValue, logs                    │  │
+│  └───────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
 ```
+
+The indexer's `execute.js` handler bridges the VM and the database:
+1. Loads contract code and state from the DB
+2. Calls `vm.execute()` — receives results
+3. Writes state changes via `createContractState()` (append-only)
+4. Routes emitted actions through existing handlers (e.g., `actionSend.parse()`)
+5. Uses savepoints for atomicity — if any emission fails, all state changes roll back
 
 ### Append-Only contract_state Pattern
 
-Contract state is never updated in place. Every execution that modifies state appends a new row to `contract_state` with the contract_id, block_index, sequence number, and the state delta. This means:
+Contract state is never updated in place. Every execution that modifies state appends a new row to `contract_state` with the `contract_index`, `state_key`, `state_value`, `block_index`, and `action_index`. This means:
 
 - Rollback is a simple `DELETE WHERE block_index >= reorgBlock` — no undo log or inverse operations required
-- The full current state for a contract is reconstructed by replaying all rows for that contract_id in order
+- The current state for a contract is found via `SELECT ... WHERE contract_index=? GROUP BY state_key` with `MAX(id)` per key
+- Keys with `state_value IS NULL` (latest row) are deleted — they don't appear in the current state
 - Historical state at any block height is recoverable by replaying rows up to that block
+
+### Per-Block Compilation Cache
+
+The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`endBlock()`). For contracts called multiple times in the same block, the first execution compiles the code and stores the cached data; subsequent executions skip compilation. The cache is cleared after each block.
 
 ## Source Files
 
@@ -95,7 +112,7 @@ Contract state is never updated in place. Every execution that modifies state ap
 | `src/mapper.js` | `Mapper` | Creates action_index ↔ address/tick cross-reference mappings |
 | `src/rollback.js` | `Rollback` | Handles blockchain reorganizations: deletes affected records, recalculates balances |
 | `src/protocol_changes.js` | `ProtocolChanges` | Defines supported actions and their activation rules (version, block, timestamp) |
-| `src/vm/` | `VMRuntime` | isolated-vm sandbox, gas metering, contract_state writer; used by DEPLOY and EXECUTE handlers |
+| `xchain-vm` (external) | `XChainVM` | Standalone module: V8 isolate sandbox, AST-based gas metering, gateway API; loaded by `actions.js`, called by DEPLOY and EXECUTE handlers |
 
 ## Action Handlers (`src/actions/*.js`)
 
@@ -121,7 +138,6 @@ Action aliases provide backward compatibility and shorthand:
 
 | Alias | Resolves To |
 |---|---|
-| `DEPLOY` | `ISSUE` |
 | `TRANSFER` | `SEND` |
 | `ADDR` | `ADDRESS` |
 | `DROP` | `AIRDROP` |
@@ -142,8 +158,7 @@ The indexer reads the last reorg block from the Decoder database. If a reorganiz
 - Deletes all records from block tables where `block_index >= reorgBlock`
 - Deletes all VM rows where `block_index >= reorgBlock`: `contract_state`, `contract_executions`, `contract_emissions`, `deposits`, `withdrawals`, `contracts`
 - Deletes all staking rows where `block_index >= reorgBlock`: `stakes`, `unstakes`, `delegations`, `validator_rewards`, `reward_claims`
-- Recalculates balances for all affected addresses
-- Recalculates `contract_balances` from the remaining `deposits` and `withdrawals`
+- Recalculates balances for all affected addresses (including contract derived addresses)
 - Recalculates token state for all affected tickers
 - Updates DEX market information
 - Runs a sanity check to verify consistency

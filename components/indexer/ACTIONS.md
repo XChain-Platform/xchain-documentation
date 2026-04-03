@@ -94,10 +94,10 @@ Virtual Machine actions are available on **all chains** (BTC, LTC, DOGE). DEPLOY
 
 | Action | Purpose | Key Validations | Gas Fee |
 |---|---|---|---|
-| **DEPLOY** | Deploy a smart contract from bytecode | Valid bytecode, sufficient balance for gas, sender owns deployment | Yes — unified gas schedule |
-| **EXECUTE** | Call a method on a deployed contract | Contract exists and is active, sufficient balance for gas | Yes — unified gas schedule |
-| **DEPOSIT** | Transfer tokens into a contract's balance | Contract exists, sender has sufficient balance | No |
-| **WITHDRAW** | Withdraw tokens from a contract to sender | Contract exists, contract balance sufficient, sender authorized | No |
+| [**DEPLOY**](../../protocol/actions/DEPLOY.md) | Deploy a JavaScript smart contract to the VM | Syntax validation (V8 + acorn ES2020 + `__gas` check), code size ≤ 64KB, sufficient XCHAIN for gas. Creates derived address `C:<CHAIN>:<action_index>`. Optionally runs constructor. | Yes — `VM_DEPLOY_BASE + (bytes * VM_DEPLOY_PER_BYTE)` + constructor gas |
+| [**EXECUTE**](../../protocol/actions/EXECUTE.md) | Call a method on a deployed contract in a sandboxed V8 isolate | Contract exists and is active, method exists, sufficient XCHAIN for gas. VM runs contract code, processes state changes and up to 50 emitted actions atomically via savepoint. | Yes — actual metered gas consumed |
+| [**DEPOSIT**](../../protocol/actions/DEPOSIT.md) | Transfer tokens to a contract's derived address | Contract exists and is active, sender has sufficient balance. Credits `C:<CHAIN>:<action_index>` in standard ledger. | No |
+| [**WITHDRAW**](../../protocol/actions/WITHDRAW.md) | Withdraw tokens from a contract's derived address to owner | Contract exists, sender is contract owner, derived address has sufficient balance | No |
 
 ## SEND Format Versions
 

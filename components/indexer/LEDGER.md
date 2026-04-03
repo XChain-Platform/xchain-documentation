@@ -54,18 +54,15 @@ token_supply = SUM(credits) - SUM(debits)
 
 If this check fails, it indicates a bug in the indexer logic. The sanity check runs within the block's database transaction, so a failure rolls back the entire block.
 
-## Contract Balances
+## Contract Derived Addresses
 
-`contract_balances` is a materialized view of each contract's token holdings. It follows the same derivation pattern as the `balances` table:
+Contracts hold tokens via **derived addresses** in the format `C:<CHAIN>:<action_index>` (e.g., `C:BTC:500`). These addresses are stored in `index_addresses` and tracked in the standard `balances` table — there is no separate `contract_balances` table.
 
-```
-contract_balance = SUM(deposits for contract+token) - SUM(withdrawals for contract+token)
-```
+- **DEPOSIT**: Debits the sender's address balance and credits the contract's derived address. Both entries appear in the standard `credits`/`debits` tables.
+- **WITHDRAW**: Debits the contract's derived address and credits the owner. Standard ledger entries.
+- **Emitted actions** (from EXECUTE): The contract's derived address is used as SOURCE. A contract emitting `emit.send()` creates standard credits/debits — the existing send handler sees the derived address as any other address.
 
-- **DEPOSIT**: Debits the sender's address balance and credits the contract's balance. Recorded in the `deposits` table.
-- **WITHDRAW**: Debits the contract's balance and credits the recipient (sender) address balance. Recorded in the `withdrawals` table.
-
-`contract_balances` is never updated in place during normal processing — it is recomputed by the rollback handler from the remaining `deposits` and `withdrawals` rows after any records at or after the reorg block are deleted.
+This means contract token movements are covered by the standard sanity check (`token_supply == SUM(credits) - SUM(debits)`) and appear in the ledger hash. Rollback works identically to regular address balances — delete credits/debits at or after the reorg block, then recalculate.
 
 ## Gas Token (XCHAIN)
 

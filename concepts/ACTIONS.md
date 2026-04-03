@@ -33,7 +33,7 @@ The raw string is obfuscated before being embedded in a transaction. See [Encodi
 
 ## How ACTIONs Flow Through the Platform
 
-1. **Construction**: An application builds the ACTION string. The [xchain-sdk](../components/sdk/) provides methods for each of the 19 actions and handles parameter formatting.
+1. **Construction**: An application builds the ACTION string. The [xchain-sdk](../components/sdk/) provides methods for each action and handles parameter formatting.
 2. **Encoding**: The encoder embeds the obfuscated ACTION into a standard blockchain transaction and returns an unsigned PSBT.
 3. **Signing and Broadcast**: The caller signs the PSBT with their wallet and broadcasts it to the coin network.
 4. **Decoding**: The decoder polls the coin node block-by-block. For each transaction, it attempts to extract and deobfuscate an XChain payload. If the `XCHN` magic prefix is present, the decoded ACTION string is written to the Decoder database.
@@ -43,7 +43,9 @@ The raw string is obfuscated before being embedded in a transaction. See [Encodi
 
 Invalid ACTIONs are recorded as failed — they are not silently ignored. This makes the blockchain record auditable: every ACTION attempt, valid or not, is traceable.
 
-## The 19 ACTIONs
+## The 28 ACTIONs
+
+The platform supports 28 ACTION types across seven categories. The original 19 actions (Token Lifecycle, Transfers, DEX, Data, Utility) are available from genesis. Hub Staking and Virtual Machine actions activate at later block heights.
 
 ### Token Lifecycle
 
@@ -89,6 +91,25 @@ Invalid ACTIONs are recorded as failed — they are not silently ignored. This m
 | `BATCH` | Combine multiple ACTIONs into a single transaction. All or none execute — if any ACTION in the batch is invalid, the entire batch fails. |
 | `LINK` | Create a cross-reference to another ACTION by its `ACTION_INDEX`. Used for associating related operations across transactions or chains. |
 | `LIST` | Define a named list of addresses or tickers. Referenced by ISSUE (for allow/block lists) and AIRDROP (for recipient lists). |
+
+### Hub Staking (BTC only)
+
+| ACTION | What it does |
+|---|---|
+| `STAKE` | Lock XCHAIN tokens as stake with the hub. |
+| `UNSTAKE` | Release staked XCHAIN tokens back to the sender. |
+| `DELEGATE` | Delegate stake to a validator by public key. |
+| `REVOKE_DELEGATION` | Remove a delegation from a validator. |
+| `CLAIM_REWARDS` | Collect accumulated staking rewards. |
+
+### Virtual Machine (all chains)
+
+| ACTION | What it does |
+|---|---|
+| `DEPLOY` | Deploy a JavaScript smart contract. The code is validated, a derived address (`C:<CHAIN>:<action_index>`) is created, and an optional constructor runs. |
+| `EXECUTE` | Call a method on a deployed contract. The contract runs in a sandboxed V8 isolate and can emit platform ACTIONs (SEND, MINT, etc.) that are processed through the normal handlers. |
+| `DEPOSIT` | Transfer tokens from the sender to a contract's derived address. Credits the contract in the standard ledger. |
+| `WITHDRAW` | Return tokens from a contract's derived address to the contract owner. Owner-only. |
 
 Full parameter specifications for each ACTION are in [`../protocol/actions/`](../protocol/actions/).
 

@@ -25,7 +25,7 @@ Every XChain ACTION — SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, and 22 more �
 - **Action mapping** — creates address↔ticker↔action_index cross-references for fast lookups
 - **Circuit-breaker DB connections** — automatic failure detection and recovery for database connectivity
 - **Watchdog timeout** — configurable per-block processing timeout detects deadlocks
-- **958 tests** — unit, integration, e2e, fuzz, chaos, mutation, boundary, smoke, performance, regression
+- **978 tests** — unit, integration, e2e, fuzz, chaos, mutation, boundary, smoke, performance, regression
 
 ## Documentation
 
