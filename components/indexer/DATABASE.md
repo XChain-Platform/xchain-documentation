@@ -33,7 +33,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `debits` | Token debits (outgoing amounts) |
 | `escrows` | Token escrows (held amounts for DEX orders, swaps) |
 | `balances` | Computed address balances per token (derived from credits - debits) |
-| `fees` | Gas fee records (XCHAIN token charges) |
+| `fees` | Gas fee records (XCHAIN token charges). Post-activation rows include unified gas columns: `gas_cost`, `gas_price`, `xchain_amount`, `payment_mode`, `fee_preference`, `fee_version`. |
 
 ### Action-Specific Tables
 
@@ -96,9 +96,32 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `index_fiats` | Normalized fiat currency strings |
 | `index_memos` | Normalized memo strings |
 | `index_mime_types` | Normalized MIME type strings |
+| `index_pubkeys` | Normalized public key strings → integer IDs (used by staking delegations) |
 | `index_statuses` | Normalized status strings |
 | `index_tickers` | Normalized ticker strings → integer IDs |
 | `index_transactions` | Normalized transaction hash strings |
+
+### Hub Staking Tables
+
+| Table | Purpose |
+|---|---|
+| `stakes` | Active and historical STAKE records — amount, status, block_index |
+| `unstakes` | UNSTAKE records — links back to the originating stake |
+| `delegations` | Active and historical DELEGATE records — validator pubkey (via `index_pubkeys`), delegated amount, status |
+| `validator_rewards` | Per-validator accumulated reward totals, updated each block |
+| `reward_claims` | CLAIM_REWARDS records — amount claimed, block_index |
+
+### Virtual Machine Tables
+
+| Table | Purpose |
+|---|---|
+| `contracts` | Deployed contract records — contract_id, bytecode hash, owner, status, block_index |
+| `contract_state` | Append-only contract state log — each row is one state transition keyed by contract_id + block_index + sequence. Never updated in place; full state is reconstructed by replaying all rows for a contract. |
+| `contract_executions` | EXECUTE call records — contract_id, method, calldata, gas_used, result, block_index |
+| `contract_emissions` | Events emitted by contract executions — contract_id, topic, data, block_index |
+| `contract_balances` | Materialized per-contract token balance view (see [Ledger](LEDGER.md)). Recalculated from `deposits` and `withdrawals` on rollback. |
+| `deposits` | DEPOSIT records — contract_id, sender, token, amount, block_index |
+| `withdrawals` | WITHDRAWAL records — contract_id, recipient, token, amount, block_index |
 
 ### Mapping Tables (Cross-References)
 
@@ -113,7 +136,7 @@ During a blockchain reorganization, the `Rollback` class deletes data from two s
 
 **Block tables** (keyed by `block_index`): `blocks`, `transactions`
 
-**Data tables** (keyed by `action_index`): All other tables listed above. The rollback deletes records where `action_index >= firstActionIndex` (the first action at or after the reorg block), then recalculates balances and token state from the remaining ledger data.
+**Data tables** (keyed by `action_index`): All other tables listed above, including staking tables (`stakes`, `unstakes`, `delegations`, `validator_rewards`, `reward_claims`) and VM tables (`contracts`, `contract_state`, `contract_executions`, `contract_emissions`, `deposits`, `withdrawals`). The rollback deletes records where `action_index >= firstActionIndex` (the first action at or after the reorg block), then recalculates balances, token state, and `contract_balances` from the remaining ledger data.
 
 ---
 

@@ -35,7 +35,7 @@ The indexer sits between the decoder and the explorer. It reads raw decoded tran
 │              │              │                           │
 │  ┌───────────▼──┐  ┌───────▼────────┐  ┌──────────────┐│
 │  │   Actions    │  │   Database     │  │  Rollback    ││
-│  │  20 handlers │  │  2 pool conns  │  │  Atomic undo ││
+│  │  28 handlers │  │  2 pool conns  │  │  Atomic undo ││
 │  │  + aliases   │  │  (decoder+idx) │  │  by block    ││
 │  └──────┬───────┘  └───────┬────────┘  └──────────────┘│
 │         │                  │                           │
@@ -48,13 +48,44 @@ The indexer sits between the decoder and the explorer. It reads raw decoded tran
 └─────────────────────────────────────────────────────────┘
 ```
 
+## VM Runtime Module
+
+The Virtual Machine is implemented as an isolated-vm sandbox with deterministic gas metering:
+
+```
+┌───────────────────────────────────────────────────────┐
+│                  VM Runtime (src/vm/)                 │
+│                                                       │
+│  ┌────────────────┐   ┌──────────────────────────┐   │
+│  │  isolated-vm   │   │     Gas Meter            │   │
+│  │  Sandbox       │   │  Deducts gas_cost units  │   │
+│  │  (one isolate  │   │  per opcode; throws on   │   │
+│  │  per EXECUTE)  │   │  gas exhaustion before   │   │
+│  └────────┬───────┘   │  any state is committed  │   │
+│           │           └──────────────────────────┘   │
+│  ┌────────▼───────────────────────────────────────┐  │
+│  │  contract_state writer (append-only)           │  │
+│  │  Each state transition → new row in DB         │  │
+│  │  Full state reconstructed by replaying rows    │  │
+│  └────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────┘
+```
+
+### Append-Only contract_state Pattern
+
+Contract state is never updated in place. Every execution that modifies state appends a new row to `contract_state` with the contract_id, block_index, sequence number, and the state delta. This means:
+
+- Rollback is a simple `DELETE WHERE block_index >= reorgBlock` — no undo log or inverse operations required
+- The full current state for a contract is reconstructed by replaying all rows for that contract_id in order
+- Historical state at any block height is recoverable by replaying rows up to that block
+
 ## Source Files
 
 | File | Class | Role |
 |---|---|---|
 | `src/api.js` | — | Entry point: Express server + JSON-RPC, env var validation, indexer startup |
 | `src/XChainIndexer.js` | `XChainIndexer` | Main orchestrator: block polling loop, reorg detection, block processing pipeline |
-| `src/actions.js` | `Actions` | Loads all 20+ action handler classes, routes transactions to the correct handler |
+| `src/actions.js` | `Actions` | Loads all 28+ action handler classes, routes transactions to the correct handler |
 | `src/db.js` | `Database` | MariaDB connection pool management, all SQL queries, table creation, sanity checks |
 | `src/config.js` | — | Merges environment variables with coin-specific config into a single config object |
 | `src/configs/BTC.js` | — | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |
@@ -64,6 +95,7 @@ The indexer sits between the decoder and the explorer. It reads raw decoded tran
 | `src/mapper.js` | `Mapper` | Creates action_index ↔ address/tick cross-reference mappings |
 | `src/rollback.js` | `Rollback` | Handles blockchain reorganizations: deletes affected records, recalculates balances |
 | `src/protocol_changes.js` | `ProtocolChanges` | Defines supported actions and their activation rules (version, block, timestamp) |
+| `src/vm/` | `VMRuntime` | isolated-vm sandbox, gas metering, contract_state writer; used by DEPLOY and EXECUTE handlers |
 
 ## Action Handlers (`src/actions/*.js`)
 
@@ -108,7 +140,10 @@ The indexer reads the last reorg block from the Decoder database. If a reorganiz
 - Collects all affected addresses, tickers, and market pairs
 - Deletes all records from data tables where `action_index >= firstActionIndex`
 - Deletes all records from block tables where `block_index >= reorgBlock`
+- Deletes all VM rows where `block_index >= reorgBlock`: `contract_state`, `contract_executions`, `contract_emissions`, `deposits`, `withdrawals`, `contracts`
+- Deletes all staking rows where `block_index >= reorgBlock`: `stakes`, `unstakes`, `delegations`, `validator_rewards`, `reward_claims`
 - Recalculates balances for all affected addresses
+- Recalculates `contract_balances` from the remaining `deposits` and `withdrawals`
 - Recalculates token state for all affected tickers
 - Updates DEX market information
 - Runs a sanity check to verify consistency

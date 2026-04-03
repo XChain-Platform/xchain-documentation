@@ -54,12 +54,27 @@ token_supply = SUM(credits) - SUM(debits)
 
 If this check fails, it indicates a bug in the indexer logic. The sanity check runs within the block's database transaction, so a failure rolls back the entire block.
 
+## Contract Balances
+
+`contract_balances` is a materialized view of each contract's token holdings. It follows the same derivation pattern as the `balances` table:
+
+```
+contract_balance = SUM(deposits for contract+token) - SUM(withdrawals for contract+token)
+```
+
+- **DEPOSIT**: Debits the sender's address balance and credits the contract's balance. Recorded in the `deposits` table.
+- **WITHDRAW**: Debits the contract's balance and credits the recipient (sender) address balance. Recorded in the `withdrawals` table.
+
+`contract_balances` is never updated in place during normal processing — it is recomputed by the rollback handler from the remaining `deposits` and `withdrawals` rows after any records at or after the reorg block are deleted.
+
 ## Gas Token (XCHAIN)
 
 `XCHAIN` is the platform's gas token. It is used to pay fees for:
 
-- **Token issuance**: Creating a new token costs `ISSUANCE_FEE_TOKEN` XCHAIN; creating a sub-token costs `ISSUANCE_FEE_SUBTOKEN` XCHAIN
-- **DEX listings**: Orders, swaps, and dispensers with expiration periods beyond `EXPIRATION_FEE_FREE_DAYS` are charged `EXPIRATION_FEE_PER_DAY` XCHAIN per additional day
+- **Token issuance**: Creating a new token costs `ISSUANCE_FEE_TOKEN` XCHAIN; creating a sub-token costs `ISSUANCE_FEE_SUBTOKEN` XCHAIN (pre-activation blocks)
+- **DEX listings**: Orders, swaps, and dispensers with expiration periods beyond `EXPIRATION_FEE_FREE_DAYS` are charged `EXPIRATION_FEE_PER_DAY` XCHAIN per additional day (pre-activation blocks)
+- **VM actions**: DEPLOY and EXECUTE charge gas via the unified gas schedule — `gas_cost × gas_price` XCHAIN per operation (post-activation blocks)
+- **Staking actions**: STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, and CLAIM_REWARDS are metered under the same unified gas schedule (post-activation blocks)
 
 The GAS address (defined per-chain, per-network in `src/configs/<COIN>.js`) is the only address authorized to issue the `XCHAIN` token. It is exempt from the reserved ticker restriction that prevents other addresses from using protocol-reserved names.
 

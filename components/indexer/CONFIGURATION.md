@@ -47,6 +47,19 @@ Each supported blockchain has a configuration file at `src/configs/<COIN>.js` (B
 | `ADDRESS.DONATE1` | Protocol development donation address | `1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8` |
 | `ADDRESS.DONATE2` | Community development donation address | `1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8` |
 
+## Unified Gas Fee Schedule
+
+After the activation block, fees for VM and staking actions are calculated using a gas-based schedule rather than the legacy flat fee constants. The following parameters are defined in each coin config file (`src/configs/<COIN>.js`) and are only applied to blocks at or after the activation height:
+
+| Parameter | Description | Example (BTC) |
+|---|---|---|
+| `GAS_PRICE` | Base XCHAIN cost per unit of gas | `0.00000001` |
+| `GAS_SCHEDULE` | Object mapping action types to their gas cost in gas units | `{ DEPLOY: 100000, EXECUTE: 10000, STAKE: 5000, ... }` |
+| `UNIFIED_EXPIRATION_FEE_FREE_DAYS` | Free listing duration under the unified schedule (replaces `EXPIRATION_FEE_FREE_DAYS` post-activation) | `365` |
+| `FEE_PAYMENT_MODE` | How fees are denominated and collected (`'XCHAIN'` or `'GAS_UNITS'`) | `'XCHAIN'` |
+
+The legacy flat fee constants (`ISSUANCE_FEE_TOKEN`, `ISSUANCE_FEE_SUBTOKEN`, `EXPIRATION_FEE_PER_DAY`, `EXPIRATION_FEE_FREE_DAYS`) remain in the coin config files and continue to apply for blocks **before** the activation height.
+
 ## Indexer Constants
 
 These values are defined in `src/config.js` and apply to all chains:

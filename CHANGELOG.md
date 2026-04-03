@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Hub staking action specs: STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS
+- VM action specs: DEPLOY, EXECUTE, DEPOSIT, WITHDRAW
+- Hub Staking and Virtual Machine categories in action index README
+- Staking and VM actions in indexer ACTIONS reference
+- All new table schemas in indexer DATABASE reference (index_pubkeys, staking tables, VM tables, updated fees)
+- Unified gas fee schedule documentation in indexer CONFIGURATION
+- Contract balances materialized view pattern in indexer LEDGER
+- VM runtime module and append-only contract_state in indexer ARCHITECTURE
+- Updated protocol quick-reference (claude/PROTOCOL.md) with new actions and staking/VM/fee sections
+
 - COINPAY action specification: protocol/actions/COINPAY.md
 - Native coin pair documentation in ORDER action spec (examples, rules)
 - COINPAY and COINPAY_EXPIRE in indexer ACTIONS reference

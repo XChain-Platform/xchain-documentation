@@ -65,6 +65,25 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | [`MESSAGE`](./MESSAGE.md) | Sends plaintext or encrypted messages between addresses |
 | [`FILE`](./FILE.md) | Uploads a file with metadata (name, MIME type, title) |
 
+### Hub Staking (BTC chain only)
+
+| ACTION | Description |
+|---|---|
+| [`STAKE`](./STAKE.md) | Stakes XCHAIN tokens for hub validation (oracle or cross-chain tier) |
+| [`UNSTAKE`](./UNSTAKE.md) | Begins the unstaking cooldown period |
+| [`DELEGATE`](./DELEGATE.md) | Rotates the signing key for a staked validator |
+| [`REVOKE_DELEGATION`](./REVOKE_DELEGATION.md) | Revokes a previously delegated signing key |
+| [`CLAIM_REWARDS`](./CLAIM_REWARDS.md) | Withdraws accrued validator rewards |
+
+### Virtual Machine (VM)
+
+| ACTION | Description |
+|---|---|
+| [`DEPLOY`](./DEPLOY.md) | Deploys a smart contract to the XChain VM |
+| [`EXECUTE`](./EXECUTE.md) | Executes a method on a deployed smart contract |
+| [`DEPOSIT`](./DEPOSIT.md) | Transfers tokens from a user to a contract's custody |
+| [`WITHDRAW`](./WITHDRAW.md) | Withdraws tokens from a contract's custody back to the owner |
+
 ### Utility
 
 | ACTION | Description |

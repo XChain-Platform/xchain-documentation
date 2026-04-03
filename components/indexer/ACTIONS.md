@@ -16,7 +16,7 @@ An action is only processed if:
 2. The current block time is >= the action's activation timestamp for the active network
 3. The current block height is >= the action's activation block for the active network
 
-All 22 actions are currently registered at version `1.0.0` with activation at block 0 / time 0 (active from genesis). Future protocol upgrades can introduce new actions or changes at specific block heights by registering them with non-zero activation values.
+The original 22 actions are registered at version `1.0.0` with activation at block 0 / time 0 (active from genesis). The 9 new user-broadcast actions (Hub Staking and Virtual Machine) are registered at a later version with non-zero activation blocks and timestamps. Future protocol upgrades can introduce new actions or changes at specific block heights by registering them with non-zero activation values.
 
 ## Token Lifecycle Actions
 
@@ -75,6 +75,29 @@ All 22 actions are currently registered at version `1.0.0` with activation at bl
 | [**BATCH**](../../protocol/actions/BATCH.md) | Execute multiple actions in a single transaction | Each sub-action validated independently |
 | [**LINK**](../../protocol/actions/LINK.md) | Link two action_indexes (e.g., FILE to ISSUE) | Both action_indexes exist, valid link type |
 | [**LIST**](../../protocol/actions/LIST.md) | Create or update a list of addresses/items | Valid list format |
+
+## Hub Staking Actions
+
+Hub Staking actions are **BTC-only**. They allow addresses to stake XCHAIN tokens with the hub, delegate stake to validators, and claim accumulated rewards.
+
+| Action | Purpose | Key Validations |
+|---|---|---|
+| **STAKE** | Lock XCHAIN tokens as stake with the hub | Token exists, sufficient balance, positive amount |
+| **UNSTAKE** | Release staked XCHAIN tokens back to sender | Active stake exists, sufficient staked balance |
+| **DELEGATE** | Delegate stake to a validator by public key | Active stake exists, valid validator pubkey, positive amount |
+| **REVOKE_DELEGATION** | Remove a delegation from a validator | Active delegation exists, sender owns the delegation |
+| **CLAIM_REWARDS** | Collect accumulated staking rewards | Active stake or delegation exists, rewards available |
+
+## Virtual Machine Actions
+
+Virtual Machine actions are available on **all chains** (BTC, LTC, DOGE). DEPLOY and EXECUTE charge gas via the unified gas schedule. DEPOSIT and WITHDRAW move tokens into and out of contracts and have **no gas fee**.
+
+| Action | Purpose | Key Validations | Gas Fee |
+|---|---|---|---|
+| **DEPLOY** | Deploy a smart contract from bytecode | Valid bytecode, sufficient balance for gas, sender owns deployment | Yes — unified gas schedule |
+| **EXECUTE** | Call a method on a deployed contract | Contract exists and is active, sufficient balance for gas | Yes — unified gas schedule |
+| **DEPOSIT** | Transfer tokens into a contract's balance | Contract exists, sender has sufficient balance | No |
+| **WITHDRAW** | Withdraw tokens from a contract to sender | Contract exists, contract balance sufficient, sender authorized | No |
 
 ## SEND Format Versions
 
