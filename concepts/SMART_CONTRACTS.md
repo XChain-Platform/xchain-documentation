@@ -9,6 +9,28 @@ The XChain Platform smart contract layer allows developers to deploy programmabl
 
 This design provides the expressiveness of a general-purpose programming language with the security guarantees of a fixed, battle-tested action set.
 
+## What Makes This Different
+
+Most blockchain platforms treat their virtual machine as the protocol itself. On Ethereum, for example, the EVM is the execution layer — smart contracts directly read and write storage slots, transfer balances, and create new contracts, all within a single monolithic state machine. The contract code *is* the protocol logic. This means every contract must correctly implement every safety check, and a bug in any contract can drain funds, corrupt state, or create tokens from thin air.
+
+XChain takes a fundamentally different approach by **separating the smart contract layer from the protocol layer**. The protocol — the complete set of ACTION handlers (SEND, MINT, ISSUE, ORDER, DISPENSER, etc.) — exists as a fixed, validated rule engine inside the indexer. Smart contracts sit above this layer and can only interact with the ledger by emitting those same platform ACTIONs. A contract cannot credit a balance, move a token, or modify the order book directly. It must ask the protocol to do it, and the protocol applies the same validation rules it applies to any user-broadcast transaction.
+
+In other words, XChain contracts are **orchestration logic**, not **state-mutation logic**.
+
+### Benefits of This Separation
+
+**Security through constraint.** A contract bug cannot bypass protocol rules. If the protocol says you cannot SEND more tokens than you hold, no contract can circumvent that — the emitted SEND will simply fail validation. The attack surface of a contract is limited to the logic within its own code; it cannot exploit the underlying ledger.
+
+**Smaller audit surface.** Every state change on the platform flows through a known, finite set of ACTION handlers regardless of whether it was triggered by a user transaction or a contract. Auditing the protocol means auditing those handlers once. Contracts don't introduce new state-mutation paths — they compose existing ones.
+
+**Protocol evolution without contract breakage.** Because contracts emit high-level ACTIONs rather than low-level state operations, the protocol team can optimize, patch, or extend action handlers without breaking deployed contracts. A performance improvement to the SEND handler benefits every contract that emits SENDs, automatically.
+
+**Simpler contract development.** Contract authors don't need to implement token transfer logic, order matching, or balance accounting. They call `xchain.emit.send()` or `xchain.emit.order()` and the platform handles the rest. This dramatically reduces the surface area for developer error compared to platforms where contracts must manually manage storage slots and balance mappings.
+
+**Deterministic composability.** Because contracts speak the same ACTION language as manual transactions, the output of a contract execution is indistinguishable from a sequence of user-broadcast actions. Explorers, indexers, and downstream tools don't need special handling for "contract-originated" vs. "user-originated" state changes — they're the same thing.
+
+**Atomic rollback without partial state corruption.** If any emitted ACTION fails validation, the entire execution is rolled back — including state changes and all other emitted actions. Because the protocol validates actions as a batch after the VM returns (snapshot semantics), there is no risk of a contract observing partially-applied state mid-execution.
+
 ## How It Works
 
 Contracts are written in JavaScript (ES2020) and deployed to the blockchain via the `DEPLOY` action. Once deployed, anyone can invoke a contract with an `EXECUTE` action, passing a method name and parameters. The contract runs inside a sandboxed V8 isolate within the indexer, reads platform state (balances, token info, block height), applies its logic, and emits zero or more platform ACTIONs in response. Those emitted actions are validated and executed through the same handlers as if a user had broadcast them directly.
