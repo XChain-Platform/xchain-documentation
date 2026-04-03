@@ -53,13 +53,41 @@ Fee payments are full ledger entries. When an ISSUE ACTION charges an issuance f
 
 All three entries share the same ACTION_INDEX and are committed atomically. If fee validation fails (insufficient XCHAIN balance), the ACTION that triggered the fee is also rejected.
 
+## VM Gas (Smart Contracts)
+
+Smart contract execution introduces a fine-grained gas metering system. When an EXECUTE action runs a contract method, every operation inside the VM is individually metered:
+
+| Operation | Gas Cost | Description |
+|---|---|---|
+| `VM_COMPUTATION` | 1 | Per control flow point (loop iteration, function call, branch) |
+| `VM_STATE_READ` | 100 | `state.get()`, `state.has()`, `getBalance()`, `getTokenInfo()` |
+| `VM_STATE_WRITE` | 200 | `state.set()` |
+| `VM_STATE_DELETE` | 100 | `state.delete()` |
+| `VM_ORACLE_READ` | 100 | `oracle.getPrice()`, `oracle.getPriceAtRound()` |
+| `VM_CROSSCHAIN_READ` | 100 | `crossChain.getAttestation()`, `crossChain.isSettled()` |
+| `VM_EMISSION` | 500 | Each emitted action (`emit.send()`, `emit.mint()`, etc.) |
+
+The gas ceiling is **1,000,000** per execution. Gas metering is deterministic — based on code structure (AST injection), not wall-clock time.
+
+### Deployment Gas
+
+Deploying a contract charges: `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`. If the contract has a constructor, the constructor's metered gas is added to the deployment gas. The caller pays the total even if the constructor fails.
+
+### Execution Gas
+
+Executing a contract charges the actual gas consumed during the VM execution (minimum `VM_EXECUTE_BASE`). Failed executions (reverts, out of gas) still charge gas up to the failure point — this prevents free probing.
+
+### Gas Fee Conversion
+
+Gas is converted to XCHAIN fees via the gas price: `fee = gas_used * GAS_PRICE`. The gas price is a protocol parameter configured per chain.
+
 ## Acquiring XCHAIN
 
 XCHAIN can be acquired the same way as any other XChain token — through transfers, dispensers, or the order book. The GAS address distributes initial XCHAIN supply, and the secondary market determines availability and price.
 
 ---
 
-*See also: [Tokens](./TOKENS.md) | [Ledger](./LEDGER.md) | [Security Model](./SECURITY_MODEL.md)*
+*See also: [Tokens](./TOKENS.md) | [Ledger](./LEDGER.md) | [Security Model](./SECURITY_MODEL.md) | [Smart Contracts](./SMART_CONTRACTS.md)*
 
 ---
 

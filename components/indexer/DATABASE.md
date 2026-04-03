@@ -115,13 +115,14 @@ The indexer creates and manages all tables in this database. SQL schema files li
 
 | Table | Purpose |
 |---|---|
-| `contracts` | Deployed contract records — contract_id, bytecode hash, owner, status, block_index |
-| `contract_state` | Append-only contract state log — each row is one state transition keyed by contract_id + block_index + sequence. Never updated in place; full state is reconstructed by replaying all rows for a contract. |
-| `contract_executions` | EXECUTE call records — contract_id, method, calldata, gas_used, result, block_index |
-| `contract_emissions` | Events emitted by contract executions — contract_id, topic, data, block_index |
-| `contract_balances` | Materialized per-contract token balance view (see [Ledger](LEDGER.md)). Recalculated from `deposits` and `withdrawals` on rollback. |
-| `deposits` | DEPOSIT records — contract_id, sender, token, amount, block_index |
-| `withdrawals` | WITHDRAWAL records — contract_id, recipient, token, amount, block_index |
+| `contracts` | Deployed contract records — `action_index` (PK), `source_id` (owner), `code` (MEDIUMTEXT, decoded JS), `code_hash` (SHA-256), `api_version` (default 1), `status_id`, `block_index` |
+| `contract_state` | Append-only key-value state — each row is one state write keyed by `contract_index` + `state_key`. Latest value per key found via `MAX(id)` subquery. `state_value` of NULL means deleted. Index: `(contract_index, state_key, id DESC)`. Rollback: `DELETE WHERE block_index >= ?` |
+| `contract_executions` | EXECUTE/constructor call records — `action_index` (PK), `contract_index`, `caller_id`, `method_name`, `input_params`, `gas_used`, `gas_limit`, `status_id`, `error_message`, `emitted_count`, `block_index` |
+| `contract_emissions` | Actions emitted by contract executions — `execution_index` (FK to contract_executions), `emitted_action` (e.g., 'SEND'), `action_index` (the emitted action's own index in the `actions` table), `position` (order within execution) |
+| `deposits` | DEPOSIT records — `contract_index`, `source_id`, `tick_id`, `amount`, `status_id`, `block_index`, `action_index` (PK) |
+| `withdrawals` | WITHDRAWAL records — `contract_index`, `source_id`, `tick_id`, `amount`, `status_id`, `block_index`, `action_index` (PK) |
+
+**Note:** Contract token balances are tracked via the standard `balances` table using the contract's derived address (`C:<CHAIN>:<action_index>` in `index_addresses`). There is no separate `contract_balances` table. DEPOSIT creates credits/debits between the depositor and the derived address; WITHDRAW does the reverse.
 
 ### Mapping Tables (Cross-References)
 

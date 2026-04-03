@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Smart contract development guide: `developer-guide/SMART_CONTRACT_DEVELOPMENT.md` — writing contracts, ES2020 syntax, state patterns (manual index, reverse lookup, JSON), emitting actions, deployment, gas costs, debugging, limitations, vesting example
+- VM component documentation: `components/vm/README.md` — architecture, module interface, internal components, AST gas metering, sandbox security, compilation cache, indexer integration
+- VM listed in `components/README.md` (10 → 11 components)
+- VM Gas section in `concepts/GAS.md` — per-operation gas costs (computation, state read/write, emission), deployment gas, execution gas
+- Contract derived addresses section in `concepts/LEDGER.md` — how `C:<CHAIN>:<action_index>` addresses participate in the double-entry ledger
+
+### Changed
+
+- `concepts/SMART_CONTRACTS.md` — rewrote from "planned" to full implementation reference: gateway API (context, state, emit, math, oracle, cross-chain), deterministic execution, bounded execution, error handling, API versioning, contract format, derived addresses
+- `protocol/actions/DEPLOY.md` — added syntax validation (V8 + acorn + `__gas` check), derived address creation, constructor execution, `api_version`, float warnings
+- `protocol/actions/EXECUTE.md` — added VM execution details, savepoint atomicity, emission routing, 50-action cap, derived address as source
+- `protocol/actions/DEPOSIT.md` — updated to derived address model (credits contract's derived address in standard ledger)
+- `protocol/actions/WITHDRAW.md` — updated to derived address model (debits derived address, solvency via standard balances)
+- `components/indexer/DATABASE.md` — updated VM tables with actual schema (contracts with `api_version`, contract_state append-only, contract_emissions execution→action links, removed `contract_balances`)
+
+### Removed
+
+- `contract_balances` table reference from indexer DATABASE.md (contracts use standard `balances` table via derived addresses)
+
+### Previously Added
+
 - Encoder testing documentation: test scripts, regression suite breakdown, and test helper reference in components/encoder/README.md
 - Encoder added to platform test coverage tables in developer-guide/TESTING.md (~769 tests across 10 disciplines)
 - Updated platform total from ~2,790 to ~3,750 tests

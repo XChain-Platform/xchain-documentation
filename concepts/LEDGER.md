@@ -67,13 +67,25 @@ This check runs automatically and continuously. It is not a periodic audit — i
 
 **DEX integrity**: Escrows make order book accounting transparent. At any time, the sum of all active escrows plus all available balances equals the total supply. Nothing is hidden in a matching engine buffer.
 
+## Contract Derived Addresses
+
+Smart contracts participate in the ledger through **derived addresses** in the format `C:<CHAIN>:<action_index>` (e.g., `C:BTC:500`). These addresses are created in `index_addresses` when a contract is deployed and function identically to regular addresses in the ledger:
+
+- **DEPOSIT** creates a debit on the depositor and a credit on the derived address
+- **WITHDRAW** creates a debit on the derived address and a credit on the owner
+- **Emitted actions** (from EXECUTE) use the derived address as SOURCE — a contract emitting `emit.send()` creates a debit on the derived address and a credit on the recipient, the same as any SEND
+- The standard `balances` table tracks contract token holdings via the derived address. There is no separate custody table.
+- Contract token movements appear in the **ledger hash** (via standard credits/debits), while contract-specific state and executions appear in the **contract hash**
+
+This means contracts are first-class participants in the double-entry ledger. The sanity check (`token_supply == SUM(credits) - SUM(debits)`) covers contract movements automatically.
+
 ## Detailed Implementation
 
 For schema definitions, table layouts, and query patterns used in the indexer's ledger implementation, see [`../components/indexer/LEDGER.md`](../components/indexer/LEDGER.md).
 
 ---
 
-*See also: [Tokens](./TOKENS.md) | [Security Model](./SECURITY_MODEL.md)*
+*See also: [Tokens](./TOKENS.md) | [Security Model](./SECURITY_MODEL.md) | [Smart Contracts](./SMART_CONTRACTS.md)*
 
 ---
 
