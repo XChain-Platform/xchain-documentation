@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Encoder testing documentation: test scripts, regression suite breakdown, and test helper reference in components/encoder/README.md
+- Encoder added to platform test coverage tables in developer-guide/TESTING.md (~769 tests across 10 disciplines)
+- Updated platform total from ~2,790 to ~3,750 tests
+- StrykerJS noted as used by encoder in testing infrastructure table
 - Block hashes concept document: ledger, actions, and contract hash types with source tables, calculation process, chaining, and verification use cases
 - Block hashes entry in concepts README index
 - Hub staking action specs: STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS

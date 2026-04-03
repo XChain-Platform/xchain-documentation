@@ -113,11 +113,55 @@ The encoder requires minimal configuration:
 | `port` | JSON-RPC API port |
 | `feeRate` | Optional override fee rate (sat/vbyte) |
 
+## Testing
+
+The encoder maintains a comprehensive test suite spanning 10 testing disciplines with approximately 769 tests total. All tests except the root-level regtest integration suite run offline with mocked connectors — no live coin node required.
+
+### Test Scripts
+
+```bash
+npm run smoke-test        # Operational health checks (~10 tests, <1s)
+npm run test:unit         # Isolated method tests (114 tests)
+npm run test:integration  # Multi-component pipeline tests (108 tests)
+npm run test:boundary     # Edge-case and limit tests (~120 tests)
+npm run test:chaos        # Failure injection tests (61 tests)
+npm run test:regression   # Curated critical-path regression suite (196 tests)
+npm run mutate            # Full mutation testing via StrykerJS
+npm run mutate:quick      # Incremental mutation check (XChainEncoder.js only)
+npm run bench             # Performance benchmarks
+npm run bench:full        # Extended benchmarks with JSON output
+npm test                  # Regtest integration tests (requires local bitcoind)
+```
+
+### Regression Test Suite
+
+The regression suite (`test/regression/`) provides a curated safety net covering all critical encoder paths. It runs entirely offline in under 100ms and is designed to catch regressions after any code change.
+
+| File | Tests | Coverage Area |
+|---|---|---|
+| `reg-01-encoding-types` | 16 | All 4 encoding types (OP_RETURN, P2SH, P2WSH, MULTISIGN) |
+| `reg-02-obfuscation` | 13 | AES-128-CTR round-trip, key derivation, TXID sensitivity |
+| `reg-03-fee-utxo` | 17 | UTXO selection, fee calculation, dust floor, change output |
+| `reg-04-validator` | 56 | All input validation functions (validator.js) |
+| `reg-05-multi-chain` | 20 | Bitcoin, Litecoin, Dogecoin configs and dust thresholds |
+| `reg-06-p2sh-p2wsh-sequence` | 14 | Two-transaction tx1→tx2 chaining integrity |
+| `reg-07-action-pipeline` | 14 | Key ACTION types through full encode/decode pipeline |
+| `reg-08-api-contract` | 12 | JSON-RPC parameter flow and PSBT serialization |
+
+### Test Helpers
+
+Shared test utilities in `test/integration/helpers/`:
+
+- **utxoFactory.js** — Encoder, UTXO, and address fixture factories with deterministic TXIDs
+- **actionFactory.js** — ACTION payload builders for all supported action types
+- **deobfuscate.js** — Payload extraction and AES-128-CTR decryption utilities
+
 ## Related
 
 - [Format Selection](FORMAT_SELECTION.md) — decision guide for choosing an encoding format
 - [UTXO Tracker](../utxo-tracker/) — the service that supplies UTXOs to the encoder
 - [Data Pipeline](../../architecture/DATA_PIPELINE.md) — full platform ingestion flow
+- [Testing](../../developer-guide/TESTING.md) — platform-wide testing philosophy and coverage
 
 ---
 
