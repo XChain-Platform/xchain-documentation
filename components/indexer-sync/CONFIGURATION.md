@@ -16,6 +16,9 @@ These variables are required regardless of whether the service runs in server or
 | `HUB_API_HOST` | Yes | — | Hostname of the local xchain-hub instance |
 | `HUB_PORT` | Yes | `10000` | Port of the local xchain-hub instance |
 | `CORS_ORIGIN` | No | `*` | Allowed CORS origin |
+| `SYNC_API_KEY` | No | — | API key for Bearer token authentication on REST and WebSocket endpoints. Disabled when not set. |
+| `HUB_PROTOCOL` | No | `http` | Protocol for hub connection: `http` or `https` |
+| `TRUST_PROXY` | No | `false` | Trust `x-forwarded-for` header for IP-based rate limiting (enable only behind a reverse proxy) |
 
 ### Server Mode
 
@@ -40,6 +43,10 @@ In client mode, the service connects to remote sync servers and replicates their
 | `REPLICA_DB_PORT` | No | `3306` | MariaDB port |
 | `REPLICA_DB_USER` | Yes | — | MariaDB username for replica databases |
 | `REPLICA_DB_PASS` | Yes | — | MariaDB password |
+| `MAX_ROLLBACK_DEPTH` | No | `100` | Maximum rollback depth (in blocks) accepted from a single source |
+| `HASH_CONFIRM_STRICT` | No | `false` | When `true`, reject blocks if cross-source verification times out (instead of applying from primary) |
+| `WS_MAX_PAYLOAD` | No | `1048576` | Maximum incoming WebSocket message size in bytes (1 MB) |
+| `SNAPSHOT_MAX_CONTENT` | No | `536870912` | Maximum HTTP response size for snapshot downloads in bytes (512 MB) |
 
 ## Hub Discovery
 

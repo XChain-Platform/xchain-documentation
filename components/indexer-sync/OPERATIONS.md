@@ -90,6 +90,16 @@ docker network connect xchain-node-litecoin-mainnet <container_id>
 |---|---|---|
 | `3006` | `3006` | REST API + WebSocket (shared port) |
 
+## Authentication
+
+When the `SYNC_API_KEY` environment variable is set, all REST and WebSocket endpoints require a Bearer token in the `Authorization` header:
+
+```
+Authorization: Bearer <your-api-key>
+```
+
+Requests without a valid token receive a `401 Unauthorized` response. When `SYNC_API_KEY` is not set, authentication is disabled and all endpoints are open.
+
 ## REST API Reference
 
 ### `GET /status`
@@ -151,6 +161,30 @@ GET /status/bitcoin/mainnet
 ```
 
 Returns `404` if the chain/network is not supported.
+
+### `GET /schema/:chain/:network`
+
+Returns all table DDL statements (CREATE TABLE) for a specific chain/network. Used by clients to initialize replica database schema before downloading a snapshot.
+
+**Request:**
+```
+GET /schema/bitcoin/mainnet
+```
+
+**Response:**
+```json
+{
+  "chain": "bitcoin",
+  "network": "mainnet",
+  "tables": [
+    { "name": "blocks", "ddl": "CREATE TABLE `blocks` (...)" },
+    { "name": "transactions", "ddl": "CREATE TABLE `transactions` (...)" },
+    ...
+  ]
+}
+```
+
+Returns `404` if the chain/network is not supported. DDL statements are validated to reject anything other than `CREATE TABLE` (no triggers, procedures, views, or destructive statements).
 
 ### `GET /snapshot/:chain/:network`
 

@@ -116,6 +116,8 @@ SERVER MODE                              CLIENT MODE
 | `api.js` | — | Entry point: Express app, REST routes, WebSocket upgrade, starts SyncService |
 | `config.js` | `getConfig()` | Reads environment variables and returns a config object |
 | `db.js` | `Database` | MariaDB connection pool with circuit breaker; one instance per chain/network |
+| `middleware.js` | `authMiddleware` | API key authentication middleware for REST and WebSocket endpoints |
+| `validation.js` | — | Input validation: SQL identifiers, DDL whitelisting, WebSocket event schemas |
 | `utility.js` | `Utility` | `sleep()`, `getDataHash()` (SHA256), `isNull()`, timer helpers |
 | `HubClient.js` | `HubClient` | JSON-RPC client for xchain-hub; `getallconfigs()` and `getIndexerConfigs()` |
 | `SyncService.js` | `SyncService` | Orchestrator: hub discovery, DB pool creation, server/client mode branching |

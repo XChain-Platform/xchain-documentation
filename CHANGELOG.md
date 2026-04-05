@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-05
+
+### Changed
+- `components/indexer-sync/README.md` — added Input validation and 725 tests to Features, expanded Scripts from 3 to 18 entries, updated Development dependencies with all current packages, added Related Documentation section
+- `components/indexer-sync/CONFIGURATION.md` — added missing security environment variables: SYNC_API_KEY, HUB_PROTOCOL, TRUST_PROXY (Common), MAX_ROLLBACK_DEPTH, HASH_CONFIRM_STRICT, WS_MAX_PAYLOAD, SNAPSHOT_MAX_CONTENT (Client)
+- `components/indexer-sync/ARCHITECTURE.md` — added middleware.js and validation.js to Source Files table
+- `components/indexer-sync/OPERATIONS.md` — added Authentication section documenting Bearer token auth, added GET /schema/:chain/:network endpoint documentation
+
 ## [0.4.0] - 2026-04-03
 
 ### Changed

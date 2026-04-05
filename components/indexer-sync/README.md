@@ -28,6 +28,8 @@ Data integrity is guaranteed by the indexer's existing per-block chained SHA256 
 - **Reorg propagation** — detects chain reorganizations and broadcasts rollback events to subscribers
 - **Automatic catch-up** — clients detect block gaps on reconnect and self-heal via incremental snapshots
 - **Circuit-breaker DB connections** — automatic failure detection and recovery
+- **Input validation** — SQL identifier sanitization, DDL whitelisting, WebSocket event schema validation
+- **725 tests** — unit, integration, e2e, fuzz, chaos, mutation, boundary, security, performance, smoke
 
 ## Documentation
 
@@ -80,7 +82,21 @@ On startup, the service:
 |---|---|
 | `npm run api` | Start the sync service |
 | `npm test` | Run unit tests |
+| `npm run test:smoke` | Smoke tests (server + client startup, config loading) |
 | `npm run test:integration` | Integration tests (requires MariaDB + running indexer) |
+| `npm run test:e2e` | End-to-end tests (full server/client lifecycle) |
+| `npm run test:security` | Security tests (validation, injection, auth) |
+| `npm run test:fuzz` | Fuzz tests (property-based via fast-check) |
+| `npm run test:fuzz:tier1` | Tier 1 fuzz (client applier, hash verifier) |
+| `npm run test:fuzz:tier2` | Tier 2 fuzz (rollback, server poller, hub client) |
+| `npm run test:fuzz:tier3` | Tier 3 fuzz (config parsing) |
+| `npm run test:fuzz:quick` | Quick fuzz (100 iterations) |
+| `npm run test:chaos` | Chaos engineering tests (DB failures, network partitions) |
+| `npm run test:perf` | Performance tests (throughput, snapshots, scaling) |
+| `npm run test:perf:quick` | Quick perf (50 blocks) |
+| `npm run test:mutate` | Mutation tests (Stryker) |
+| `npm run test:mutate:quick` | Quick mutation tests |
+| `npm run test:mutate:check` | Incremental mutation tests |
 
 ## Dependencies
 
@@ -102,7 +118,19 @@ On startup, the service:
 | Package | Purpose |
 |---|---|
 | `mocha` | Test framework |
+| `chai` | Assertion library |
 | `sinon` | Test mocking and stubbing |
+| `fast-check` | Property-based (fuzz) testing |
+| `proxyquire` | Module mocking for dependency injection |
+| `@stryker-mutator/core` | Mutation testing framework |
+| `@stryker-mutator/mocha-runner` | Stryker Mocha integration |
+
+## Related Documentation
+
+- [Data Pipeline](../../architecture/DATA_PIPELINE.md) — full platform data flow
+- [xchain-indexer](../indexer/README.md) — upstream service that produces the data this service replicates
+- [xchain-hub](../hub/README.md) — config oracle that provides chain discovery
+- [xchain-explorer](../explorer/README.md) — alternative consumer of the same indexer data
 
 ---
 
