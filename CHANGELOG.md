@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-05
+
+### Changed
+- `components/utxo-tracker/README.md` — rewrote from minimal overview to full component documentation matching indexer/decoder pattern: added Features (16 items), Documentation table, Installation, Quick Start with startup sequence, Scripts (20 commands), Dependencies (Runtime + Development), Related links
+- `components/utxo-tracker/ARCHITECTURE.md` — new file: data pipeline position, internal component diagram, source file table, full LevelDB key schema (11 prefix types with byte layouts), key design principles, block processing loop, two-pass transaction processing, concurrent prefetch, batch writes, reorg handling, mempool tracking, balance calculation, bootstrap
+- `components/utxo-tracker/CONFIGURATION.md` — new file: environment variables (6 required + 1 optional), supported network values (9 variants), internal constants (polling, block processing, storage, RPC), database paths
+- `components/utxo-tracker/OPERATIONS.md` — new file: prerequisites, running, Docker, graceful shutdown, REST API (4 endpoints with response examples), JSON-RPC API (10 methods), resilience (node connection, sync waiting, RPC retries, atomic batches, reorg recovery, mempool errors), troubleshooting (8 scenarios)
+
 ## [0.5.0] - 2026-04-05
 
 ### Changed

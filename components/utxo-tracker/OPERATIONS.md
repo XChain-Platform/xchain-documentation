@@ -1,0 +1,212 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
+# XChain Platform UTXO Tracker — Operations
+
+## Prerequisites
+
+- Node.js >= 18
+- A running coin node (bitcoind, litecoind, or dogecoind) with JSON-RPC enabled
+- Disk space for LevelDB data directory (size depends on chain — Bitcoin mainnet requires the most)
+
+## Running the Tracker
+
+```bash
+npm run api
+# or directly:
+node --max-old-space-size=4096 ./src/api.js
+```
+
+The `--max-old-space-size=4096` flag allocates 4 GB of heap memory, which is required for processing large blocks (e.g., BRC-20 inscription blocks on Bitcoin mainnet).
+
+On startup, the tracker:
+1. Loads environment variables from `.env`
+2. Creates the `XChainUtxoTracker` instance with the configured network and RPC credentials
+3. Opens (or creates) the LevelDB database at `/data/xchain-utxo-tracker`
+4. Starts the Express REST + JSON-RPC API server on `UTXO_TRACKER_API_PORT`
+5. Reads the last checkpoint (`LAST_BLOCK_HEIGHT`, `LAST_BLOCK_HASH`)
+6. Waits for the coin node to reach 99% sync progress
+7. Begins the block polling loop
+
+## Docker
+
+The tracker is designed to run inside Docker. The Dockerfile creates the `/data/` directory for LevelDB storage. Mount a persistent volume at `/data/` to retain the database across container restarts.
+
+The `/bootstrap/` directory should also be mounted if using backup/restore functionality.
+
+## Stopping
+
+The tracker supports graceful shutdown via `stopParsing()`, which sets the `keepParsing` flag to `false` and waits up to 10 seconds for the current processing iteration to complete. In Docker, send SIGTERM to trigger a clean shutdown.
+
+## API
+
+The tracker exposes both REST and JSON-RPC interfaces.
+
+### REST Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/utxos/:address` | Returns an array of UTXOs for the given address |
+| `GET` | `/oldesttx/:address` | Returns the oldest transaction for the given address |
+| `GET` | `/balance/:address` | Returns the confirmed balance as a number (in coin units, not satoshis) |
+| `GET` | `/info/:address` | Returns comprehensive balance info (confirmed, pending, received, UTXO counts) |
+
+#### GET /utxos/:address
+
+Returns all unspent outputs for an address, including both confirmed and mempool UTXOs.
+
+**Response:**
+```json
+[
+  {
+    "txid": "850c6...3a8bcb1",
+    "vout": 0,
+    "value": "100000000",
+    "height": 119,
+    "confirmations": 13,
+    "amount": 1,
+    "scriptPubKey": "76a914...7988ac"
+  }
+]
+```
+
+#### GET /balance/:address
+
+Returns the confirmed balance in coin units (e.g., BTC, not satoshis).
+
+**Response:**
+```
+12.345678
+```
+
+#### GET /info/:address
+
+Returns full balance breakdown with confirmed, pending, and received amounts.
+
+**Response:**
+```json
+{
+  "address": "1EXAMPLE..ABC",
+  "type": "p2pkh",
+  "balances": {
+    "confirmed": "1.00000000",
+    "pending": "0.00000000",
+    "received": "1.00000000"
+  },
+  "utxos": {
+    "confirmed": 1,
+    "pending": 0
+  }
+}
+```
+
+### JSON-RPC Methods
+
+All JSON-RPC requests are sent as POST to `/` with standard JSON-RPC 2.0 format.
+
+**Request format:**
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "method_name",
+  "params": { },
+  "id": 1
+}
+```
+
+| Method | Parameters | Description |
+|---|---|---|
+| `ping` | None | Health check — returns `{"status": "success"}` |
+| `get_utxos` | `{"address": "string"}` | Returns UTXOs for an address |
+| `get_oldest_tx` | `{"address": "string"}` | Returns the oldest transaction for an address |
+| `get_balance` | `{"address": "string"}` | Returns the confirmed balance |
+| `get_info` | `{"address": "string"}` | Returns full balance info (confirmed, pending, received, UTXO counts) |
+| `get_input_from_key_pattern` | `{"pattern": "string"}` | Raw LevelDB key prefix scan (pattern must be at least 32 characters) |
+| `getbootstrap` | `{"filename": "string"}` | Starts a background task to create a compressed LevelDB backup |
+| `getbootstrapstatus` | `{"taskid": "string"}` | Returns progress of a backup task |
+| `restorebootstrap` | `{"filename": "string"}` | Starts a background task to restore a compressed LevelDB backup |
+| `getbootstraprestorestatus` | `{"taskid": "string"}` | Returns progress of a restore task |
+
+## Resilience and Recovery
+
+### Node Connection Recovery
+
+The tracker retries coin node connections indefinitely with a 3-second backoff between attempts. This allows the tracker to start before the coin node is fully available (common in Docker orchestration).
+
+### Node Sync Waiting
+
+If the coin node's `verificationprogress` is below 0.99, the tracker logs a warning and sleeps for 3 seconds before rechecking. It will not begin indexing until the node is sufficiently synced. The `nodeSyncedProblem` flag tracks this state.
+
+### RPC Retry Behavior
+
+| Operation | Retries | Backoff |
+|---|---|---|
+| `getRawTransaction` | 10 | 500ms between attempts |
+| `getBlockHeader` | 10 | 3 seconds between attempts |
+| Node connection | Infinite | 3 seconds between attempts |
+
+### Atomic Batch Processing
+
+LevelDB writes are accumulated in a batch transaction (in-memory Map) and committed atomically via `db.batch()`. If the process crashes mid-batch, the uncommitted writes are lost — the tracker resumes from the last saved checkpoint. The batch boundary (every 100 blocks or at tip) is the maximum data loss window.
+
+### Reorg Recovery
+
+When a blockchain reorganization is detected:
+1. The tracker walks back from its tip until it finds a block hash matching the coin node
+2. Each rolled-back block's outputs are restored from K/M archive records
+3. Normal forward indexing resumes from the fork point
+4. Reorgs deeper than `UNDO_BLOCKS` (10) require a full re-index
+
+### Mempool Error Handling
+
+Mempool fetch failures are logged and skipped — the tracker retries on the next 60-second interval. The `mempoolBusy` flag prevents concurrent mempool updates. Missing transactions in a batch are silently skipped.
+
+## Troubleshooting
+
+### Tracker won't start
+
+**Node not reachable**
+Verify the coin node is running and the `NODE_URL`, `NODE_PORT`, `NODE_USER`, and `NODE_PASSWORD` environment variables are correct. The tracker retries indefinitely but will not begin indexing until the connection succeeds.
+
+**Node not synced**
+The tracker waits for the coin node's `verificationprogress` to reach 0.99 before starting. Check `bitcoin-cli getblockchaininfo` to see the current progress.
+
+**LevelDB lock error**
+LevelDB only allows one process to open a database at a time. If the tracker crashes without releasing the lock, the lock file may remain. Stop any other process using the database, or delete the `LOCK` file in `/data/xchain-utxo-tracker/` (only if no other process is running).
+
+### Tracker stalls or stops processing
+
+**Block processing slow**
+Large blocks (e.g., BRC-20 inscription blocks) can contain tens of thousands of transactions. The tracker may appear stalled but is processing normally. Check the console output for progress updates. If the process runs out of memory, increase `--max-old-space-size`.
+
+**Reorg deeper than 10 blocks**
+The tracker throws an error and stops if a reorg exceeds `UNDO_BLOCKS` (10). This is rare on mainnet but can occur on testnet/regtest. The solution is to delete the LevelDB database and re-index from scratch.
+
+### Data inconsistency
+
+**Balance doesn't match expected value**
+Verify the coin node is fully synced and the tracker has caught up to the chain tip. Check `LAST_BLOCK_HEIGHT` in the tracker logs against the node's current height.
+
+**Mempool UTXOs not appearing**
+Mempool updates run every 60 seconds. A freshly broadcast transaction may take up to a minute to appear. Check the tracker logs for mempool update messages.
+
+### Bootstrap issues
+
+**Backup stuck at 0%**
+The backup uses `tar`, `pv`, and `pigz` — all three must be installed in the container or host system. Check that these utilities are available in `PATH`.
+
+**Restore fails**
+Verify the backup archive is not corrupted and the `/bootstrap/` directory contains the expected file. The tracker must be stopped during a restore — restoring while the tracker is indexing will corrupt the database.
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
+A full copy of the License is also available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -5,88 +5,38 @@
 
 ## What is xchain-utxo-tracker
 
-xchain-utxo-tracker is the UTXO indexing service of the XChain Platform. It runs as a long-lived Node.js process that continuously polls a coin node (bitcoind, litecoind, or dogecoind), parses every block, and maintains a real-time index of all unspent transaction outputs (UTXOs) in a LevelDB database. The encoder queries this service to find spendable inputs when constructing transactions.
+xchain-utxo-tracker is the UTXO indexing service of the XChain Platform. It runs as a long-lived Node.js process that continuously polls a coin node (bitcoind, litecoind, or dogecoind) via JSON-RPC, decodes every block, and maintains a real-time index of all unspent transaction outputs (UTXOs) in a LevelDB database. The encoder queries this service to find spendable inputs when constructing transactions.
+
+The tracker uses a compact binary key schema with 11 prefix types to store block metadata, transaction mappings, outputs, inputs, and reorg-recovery archives. All keys and values are raw binary Buffers (not hex strings), reducing database size by approximately 50% compared to string-based encoding. Transaction IDs are truncated to 8 bytes in index keys, further reducing the storage footprint.
+
+In addition to confirmed block data, the tracker maintains a separate in-memory database for unconfirmed mempool transactions, updated every 60 seconds. This allows the encoder to distinguish between confirmed and pending UTXOs when selecting inputs.
 
 ## Features
 
-- **Full UTXO index** — every unspent output indexed by scriptPubKey hash for fast address lookups
-- **Real-time mempool tracking** — unconfirmed transactions tracked in a separate in-memory database
-- **Reorg handling** — maintains a 10-block undo history and rolls back correctly on chain reorganization
-- **Bootstrap support** — can restore from compressed tar archives for fast initial sync without re-scanning the full chain
-- **Batch writes** — LevelDB writes are batched in groups of 100 blocks for throughput efficiency
-- **JSON-RPC API** — endpoints for UTXO queries, balance queries, and address lookups
+- **Full UTXO index** — every unspent output indexed by SHA-256 scriptPubKey hash for fast address lookups
+- **Compact binary encoding** — all LevelDB keys and values stored as raw binary Buffers with 11 prefix types, reducing DB size ~50%
+- **Truncated txid keys** — transaction IDs stored as 8-byte truncations in index keys for further space savings
+- **Active-UTXO-only storage** — only unspent outputs kept in the live index; spent outputs archived temporarily for reorg recovery
+- **Real-time mempool tracking** — unconfirmed transactions tracked in a separate in-memory LevelDB, updated every 60 seconds
+- **BigInt precision** — all balance calculations use BigInt arithmetic with `satoshiToDecimalString()` conversion, eliminating floating-point errors
+- **Reorg handling** — maintains a 10-block undo history (K/M archive records) and rolls back correctly on chain reorganization
+- **Concurrent block prefetch** — pre-fetches up to 10 blocks concurrently via JSON-RPC batch requests with HTTP keep-alive
+- **Batch writes** — LevelDB writes batched in groups of 100 blocks for throughput efficiency with atomic commit
+- **Two-pass transaction processing** — outputs inserted before inputs within each block, correctly handling intra-block spends
+- **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
+- **AuxPoW block parsing** — Dogecoin and Litecoin HogEx block header stripping for correct decoding
+- **Bootstrap support** — compressed tar archive backup and restore for fast initial sync without re-scanning the full chain
+- **REST + JSON-RPC API** — dual interface for UTXO queries, balance lookups, address info, and bootstrap operations
+- **Rolling ETA** — 1000-block rolling window with day/hour/minute display for sync progress estimation
+- **618 tests** — unit, integration, e2e, smoke, fuzz, chaos, performance, and mutation testing
 
-## How It Works
+## Documentation
 
-### Block polling
-
-The tracker runs a polling loop that calls `getblockcount` to check for a new tip, fetches new blocks with `getblock` (verbosity 2), and processes each transaction in order. Blocks are written to LevelDB in batches of 100 to minimize write amplification.
-
-### LevelDB key schema
-
-All data is stored in a single LevelDB instance using prefix-based keys:
-
-| Prefix | Type | Description |
-|---|---|---|
-| `B` | Block | Block metadata: height, hash, timestamp |
-| `T` | Transaction | Transaction metadata indexed by txid |
-| `I` | Input | Spent input records (used for undo/reorg) |
-| `O` | Output | Unspent output records indexed by txid + vout |
-| `H` | Hint | scriptPubKey hash → outpoint index for address lookups |
-| `J` | Hint (secondary) | Secondary hint index for additional lookup patterns |
-
-The `H`/`J` hint keys map a scriptPubKey hash to the set of outpoints (txid + vout) that pay to that script. This allows the tracker to answer "what UTXOs does address X have" without scanning all outputs.
-
-### Reorg handling
-
-The tracker stores the last 10 blocks' input records (`I` prefix keys) as an undo log. On detecting a reorg (the coin node reports a different block hash for a height the tracker has already indexed), the tracker rolls back each affected block by:
-
-1. Re-spending the inputs that were consumed in the rolled-back block (restoring the `O` entries)
-2. Removing the outputs created in the rolled-back block
-3. Deleting the spent input records for the rolled-back block
-4. Decrementing the tip height
-
-After rolling back to the fork point, normal forward indexing resumes.
-
-### Mempool tracking
-
-In parallel with block polling, the tracker calls `getrawmempool` and `getrawtransaction` to track unconfirmed transactions. Mempool UTXOs are held in a separate in-memory database and are not written to LevelDB. When a transaction confirms (its block is processed), the mempool entry is removed and the confirmed UTXO is written to LevelDB.
-
-This allows the encoder to check whether a UTXO is currently unconfirmed before selecting it as an input, reducing the risk of constructing transactions that conflict with pending mempool transactions.
-
-### Bootstrap
-
-For new deployments, syncing from block 0 can take a long time. The tracker supports restoring from a compressed tar archive of the LevelDB data directory. Operators can distribute a snapshot archive; the tracker verifies the snapshot tip and resumes normal polling from that height.
-
-## API
-
-The tracker exposes a JSON-RPC API. Key methods:
-
-| Method | Description |
+| Document | Description |
 |---|---|
-| `getUTXOs` | Return all UTXOs for an address |
-| `getBalance` | Return total confirmed balance for an address |
-| `getUnconfirmedBalance` | Return total unconfirmed balance for an address |
-| `getUTXO` | Return a specific UTXO by txid and vout |
-| `getBlockHeight` | Return the current indexed block height |
-| `getMempool` | Return the current in-memory mempool state |
-
-## Storage
-
-All indexed data is stored in a LevelDB directory. LevelDB is an embedded key-value store — there is no separate database process. The LevelDB path is configurable and should be on a fast local disk.
-
-## Configuration
-
-| Parameter | Description |
-|---|---|
-| `coin` | Chain identifier — `BTC`, `LTC`, or `DOGE` |
-| `network` | Network — `mainnet`, `testnet`, or `regtest` |
-| `rpcHost` | Coin node JSON-RPC hostname |
-| `rpcPort` | Coin node JSON-RPC port |
-| `rpcUser` | Coin node RPC username |
-| `rpcPass` | Coin node RPC password |
-| `dbPath` | Path to the LevelDB data directory |
-| `port` | JSON-RPC API port |
+| [Architecture](ARCHITECTURE.md) | Data pipeline position, internal components, LevelDB key schema, block processing loop, reorg handling, mempool tracking |
+| [Configuration](CONFIGURATION.md) | Environment variables, internal constants, database paths |
+| [Operations](OPERATIONS.md) | Running, Docker, REST and JSON-RPC API reference, resilience, troubleshooting |
 
 ## Installation
 
@@ -96,12 +46,98 @@ Clone the repository and install dependencies from within the `xchain-utxo-track
 git clone https://github.com/XChain-platform/xchain-utxo-tracker.git
 cd xchain-utxo-tracker
 npm install
+```
+
+## Quick Start
+
+Create a `.env` file with the required environment variables (see [Configuration](CONFIGURATION.md) for full details):
+
+```env
+NETWORK=bitcoin-mainnet
+NODE_URL=127.0.0.1
+NODE_PORT=8332
+NODE_USER=rpc
+NODE_PASSWORD=rpc
+UTXO_TRACKER_API_PORT=3000
+```
+
+Start the tracker:
+
+```bash
 npm run api
 ```
+
+On startup, the tracker:
+1. Loads environment variables from `.env`
+2. Starts the Express REST + JSON-RPC API server
+3. Opens (or creates) the LevelDB database at `/data/xchain-utxo-tracker`
+4. Waits for the coin node to reach 99% sync progress
+5. Reads the last checkpoint (`LAST_BLOCK_HEIGHT`, `LAST_BLOCK_HASH`) and resumes
+6. Begins the block polling loop with concurrent prefetch
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run api` | Start the tracker and API server |
+| `npm test` | Unit tests (~247 tests) |
+| `npm run test:smoke` | Smoke tests (11 tests) |
+| `npm run test:integration` | Integration tests (~131 tests, requires LevelDB) |
+| `npm run test:e2e` | End-to-end tests (33 tests) |
+| `npm run test:fuzz` | Fuzz tests (12 campaigns, 1000 iterations each) |
+| `npm run test:fuzz:quick` | Quick fuzz (100 iterations) |
+| `npm run test:fuzz:deep` | Deep fuzz (10,000 iterations) |
+| `npm run test:perf` | Performance tests (36 tests) |
+| `npm run test:perf:quick` | Quick performance (small scale) |
+| `npm run test:perf:deep` | Deep performance (large scale, 4 GB heap) |
+| `npm run test:chaos` | Chaos engineering tests (41 tests) |
+| `npm run test:all` | All unit + integration + e2e tests |
+| `npm run mutate` | Mutation testing (Stryker Mutator) |
+| `npm run mutate:quick` | Quick mutation testing |
+| `npm run mutate:p1` | P1 priority mutation testing |
+| `npm run mutate:p2` | P2 priority mutation testing |
+| `npm run mutate:p3` | P3 priority mutation testing |
+| `npm run mutate:incremental` | Incremental mutation testing |
+| `npm run mutate:custom` | Custom Buffer/encoding mutations |
+
+## Dependencies
+
+### Runtime
+
+| Package | Purpose |
+|---|---|
+| `levelup` | LevelDB abstraction layer |
+| `leveldown` | LevelDB backend for persistent storage |
+| `memdown` | In-memory LevelDB backend for mempool database |
+| `encoding-down` | Encoding wrapper for LevelDB |
+| `bitcoinjs-lib` | Block and transaction parsing, address-to-scriptPubKey conversion |
+| `tiny-secp256k1` | Elliptic curve operations |
+| `bip32`, `bip39`, `bs58check`, `ecpair` | Key derivation and address encoding |
+| `axios` | HTTP client for JSON-RPC calls to coin node |
+| `express` | HTTP server for REST and JSON-RPC API |
+| `express-json-rpc-router` | JSON-RPC 2.0 request routing |
+| `helmet` | HTTP security headers |
+| `cors` | Cross-Origin Resource Sharing |
+| `binary-search` | Efficient sorted-list operations for mempool diff |
+| `dotenv` | Environment variable loading from `.env` files |
+
+### Development
+
+| Package | Purpose |
+|---|---|
+| `mocha` | Test framework |
+| `chai` | Assertion library |
+| `sinon` | Mocking, stubbing, and spying for tests |
+| `supertest` | HTTP endpoint testing |
+| `fast-check` | Property-based (fuzz) testing |
+| `autocannon` | HTTP load testing |
+| `@stryker-mutator/core` | Mutation testing framework |
+| `@stryker-mutator/mocha-runner` | Mocha integration for Stryker |
 
 ## Related
 
 - [Encoder](../encoder/) — the primary consumer of UTXO tracker queries
+- [Decoder](../decoder/) — also polls coin nodes, but extracts XChain ACTION data rather than UTXOs
 - [Data Pipeline](../../architecture/DATA_PIPELINE.md) — how the UTXO tracker fits into the full platform flow
 
 ---
