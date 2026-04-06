@@ -31,7 +31,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**xchain-indexer**](https://github.com/XChain-platform/xchain-indexer/) | Validates ACTIONs, maintains token state with a double-entry ledger, runs a DEX matching engine, executes smart contracts |
 | [**xchain-indexer-sync**](https://github.com/XChain-platform/xchain-indexer-sync/) | Replicates indexer databases to validators and consumers via REST snapshots and WebSocket streaming |
 | [**xchain-explorer**](https://github.com/XChain-platform/xchain-explorer/) | 60+ REST/JSON-RPC endpoints, WebSocket real-time event streaming, and a web-based block explorer |
-| [**xchain-hub**](https://github.com/XChain-platform/xchain-hub/) | Configuration oracle, pricing data, and cross-chain swap coordination |
+| [**xchain-hub**](https://github.com/XChain-platform/xchain-hub/) | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, P2P gossip, governance |
 | [**xchain-utxo-tracker**](https://github.com/XChain-platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |
 | [**xchain-vm**](https://github.com/XChain-platform/xchain-vm/) | Sandboxed JavaScript virtual machine for on-chain smart contracts with gas metering, deterministic execution, and reorg-safe state |
 | [**xchain-sdk**](https://github.com/XChain-platform/xchain-sdk/) | Developer SDK — 28 action methods, 48 explorer queries, smart contract support, real-time WebSocket events, batch builder, PSBT generation |

@@ -47,7 +47,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **explorer** — The `xchain-explorer` service. Provides a web UI, 50+ REST endpoints, and JSON-RPC API for querying indexed XChain data (tokens, balances, orders, dispensers, etc.).
 
-**hub** — The `xchain-hub` service. A configuration oracle and cross-chain coordinator. Stores service endpoints and parameters in LevelDB. Other services fetch their configuration from the hub on startup.
+**hub** — The `xchain-hub` service. A decentralized config oracle, price oracle, and cross-chain coordinator backed by MariaDB. Validators form a P2P gossip network with PBFT consensus. Other services fetch their configuration from the hub on startup.
 
 **indexer** — The `xchain-indexer` service. Reads the decoder database, validates each ACTION according to protocol rules, and writes the resulting state (balances, orders, dispensers, etc.) to the indexer MariaDB database. Maintains 60+ tables.
 
@@ -155,7 +155,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **indexer database** — A MariaDB database populated by the indexer service. Contains validated, processed XChain state: token records, balances, orders, dispensers, etc. Named `XChain_{CHAIN}_{NETWORK}_Indexer` (e.g., `XChain_BTC_Mainnet_Indexer`).
 
-**LevelDB** — A key-value store used by xchain-hub and xchain-utxo-tracker for fast local storage. Does not require a separate database server.
+**LevelDB** — A key-value store used by xchain-utxo-tracker for fast local storage. Does not require a separate database server.
 
 **Token Information Standard (TIS)** — A JSON schema defined by XChain for associating rich metadata (images, descriptions, links) with tokens. Token projects publish a TIS-compliant JSON file at a well-known URL that the explorer can discover and display.
 

@@ -36,15 +36,21 @@ Throughout this process, no tokens leave their native chain. Bitcoin tokens stay
 
 ## The Hub's Role
 
-The xchain-hub serves two functions in cross-chain operations:
+The xchain-hub serves several functions in cross-chain operations:
 
-**Configuration oracle**: The hub distributes fee schedules, special addresses (GAS, BURN, DONATE), and protocol parameters to all services. This is its primary role in day-to-day operation.
+**Configuration oracle**: The hub distributes fee schedules, special addresses (GAS, BURN, DONATE), and protocol parameters to all services via PBFT consensus.
 
-**Swap coordinator**: For SWAP actions, the hub maintains the registry of open offers and coordinates the matching and settlement signals between indexers on different chains.
+**Price oracle**: Validators fetch cryptocurrency prices from external APIs, aggregate via trimmed median, and finalize via PBFT consensus. Fee quotes convert gas costs to native coin amounts using these prices.
+
+**Cross-chain attestation**: For cross-chain actions, validators reach PBFT consensus to attest that a source-chain action exists and has sufficient confirmations (BTC: 3, LTC: 3, DOGE: 6). Only validators supporting both chains in a pair participate in attestation quorum.
+
+**Swap coordinator**: For SWAP actions, the hub tracks the lifecycle from initiation through attestation to settlement, coordinating the matching between indexers on different chains.
+
+**Governance**: Validators can propose and vote on parameter changes through off-chain PBFT voting (7-day period, 2/3+ approval).
 
 The hub does not have custody of any tokens at any point. If the hub is unavailable, existing settled state is unaffected — it is only new swap coordination that requires hub availability.
 
-For current and planned decentralization of hub functions, see the architecture documents under [`../architecture/`](../architecture/).
+For details on the hub's decentralized validator architecture, see the [`../components/hub/`](../components/hub/) documentation.
 
 ## LINK: Cross-Chain Action References
 

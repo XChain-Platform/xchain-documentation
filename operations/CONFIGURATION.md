@@ -21,15 +21,7 @@ For most deployments managed by xchain-node, environment variables are the prima
 
 ## Hub-Based Configuration
 
-The explorer and SDK can fetch all their configuration from xchain-hub using the `getAllConfig()` JSON-RPC method. The hub stores config in LevelDB using the key format:
-
-```
-P:{coin}-{network}-{module}:{paramName}
-```
-
-Examples:
-- `P:bitcoin-mainnet-decoder:host`
-- `P:litecoin-mainnet-indexer:db_host`
+The explorer, SDK, and indexer-sync can fetch all their configuration from xchain-hub using the `getallconfigs` JSON-RPC method. The hub stores config in MariaDB using a `configs` table with `(coin, network, module, param_name)` as the unique key.
 
 Valid parameter names: `host`, `port`, `service_port`, `db_host`, `db_port`, `name`, `user`, `pass`.
 
@@ -38,8 +30,10 @@ To update a config value in the hub:
 # Via JSON-RPC call to the hub
 curl -X POST http://localhost:10000 \
   -H "Content-Type: application/json" \
-  -d '{"method":"updateconfig","params":{"coin":"bitcoin","network":"mainnet","module":"decoder","paramName":"host","paramValue":"xchain-node-bitcoin-mainnet-xchain-decoder"}}'
+  -d '{"jsonrpc":"2.0","method":"updateconfig","params":{"config":{"BTC":{"mainnet":{"xchain-decoder":{"host":"xchain-node-bitcoin-mainnet-xchain-decoder"}}}}},"id":1}'
 ```
+
+In validator mode, config writes go through PBFT consensus before being applied. In standalone mode, they write directly to the database.
 
 The explorer polls the hub every 60 seconds and applies config changes without a restart.
 
@@ -149,9 +143,18 @@ CORS origins and other advanced settings may be configured through the hub or a 
 | Variable | Description | Default |
 |---|---|---|
 | `HUB_HOST` | Host to bind the Express server | `0.0.0.0` |
-| `HUB_PORT` | JSON-RPC API port | `10000` |
+| `HUB_PORT` | JSON-RPC API port | Required |
+| `HUB_DB_HOST` | MariaDB host | Required |
+| `HUB_DB_PORT` | MariaDB port | Required |
+| `HUB_DB_NAME` | MariaDB database name (e.g., `XChain_Hub`) | Required |
+| `HUB_DB_USER` | MariaDB username | Required |
+| `HUB_DB_PASS` | MariaDB password | Required |
+| `P2P_VALIDATOR_ADDR` | Validator address (activates validator mode) | Not set |
+| `P2P_PORT` | WebSocket P2P port | `10001` |
+| `SEED_NODES` | Comma-separated peer addresses | Not set |
+| `SIGNING_PRIVKEY_HEX` | Ed25519 private key (64 hex chars) | Not set |
 
-The hub's LevelDB database is stored at `/data/xchain-hub` inside the container. Mount a Docker volume at `/data/` to persist data across container restarts.
+The hub uses MariaDB for all data storage (13 tables). The database and tables are auto-created on startup. In validator mode (when `P2P_VALIDATOR_ADDR` is set), the hub activates PBFT consensus, price oracle, cross-chain attestation, governance, and reward/slash tracking. See the [hub Configuration reference](../components/hub/CONFIGURATION.md) for the full list of 30+ environment variables.
 
 ### UTXO Tracker
 

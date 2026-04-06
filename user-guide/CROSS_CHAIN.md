@@ -45,7 +45,7 @@ At no point does a company, server, or third party hold your tokens. Your assets
 
 The XChain Hub coordinates cross-chain swaps — it acts as the communication layer that lets the Bitcoin and Litecoin sides of a trade find each other and confirm completion. Importantly, the hub never holds your tokens. It is a coordination service, not a custody service.
 
-The hub is also on a path toward full decentralization, meaning that even this coordination layer will eventually operate without any central point of control.
+The hub is a decentralized validator network — coordination is performed by PBFT consensus across multiple validators rather than a central server. There is no single point of control or single point of failure.
 
 ---
 

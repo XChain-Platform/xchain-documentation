@@ -3,7 +3,7 @@
 
 # Database Design
 
-XChain uses two database technologies — MariaDB for relational data and LevelDB for key-value data — with a strict separation between raw decoded data and validated indexer state.
+XChain uses two database technologies — MariaDB for relational data (decoder, indexer, hub) and LevelDB for key-value data (UTXO tracker) — with a strict separation between raw decoded data and validated indexer state.
 
 ## The Dual-Database Model
 
@@ -121,7 +121,7 @@ Every token movement creates both a credit and a debit entry. The invariant `tok
 
 ## LevelDB: Key-Value Storage
 
-LevelDB is used for services that need fast key-value access without relational joins.
+LevelDB is used by the UTXO tracker for fast key-value access without relational joins.
 
 ### xchain-utxo-tracker
 
@@ -139,13 +139,9 @@ Writes are batched in groups of 100 blocks. Ten blocks of undo data are retained
 
 ### xchain-hub
 
-Stores service configuration and cross-chain coordination state. Key schema:
+The hub uses MariaDB (not LevelDB) with 13 tables storing configuration, validator state, oracle data, cross-chain attestations, governance proposals, and more. The database name is configurable (default: `XChain_Hub`). Config parameters are stored in the `configs` table with a `(coin, network, module, param_name)` unique key.
 
-```
-P:{coin}-{network}-{module}:{paramName}
-```
-
-Example: `P:BTC-Mainnet-indexer:gasFee` stores the current gas fee for the Bitcoin mainnet indexer module.
+See [`../components/hub/CONFIGURATION.md`](../components/hub/CONFIGURATION.md) for the full schema reference.
 
 ---
 

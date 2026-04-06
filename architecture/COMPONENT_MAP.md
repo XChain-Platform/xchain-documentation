@@ -203,18 +203,23 @@ These services manage deployment, configuration, and testing.
 
 | | |
 |---|---|
-| **Purpose** | Config oracle, service registry, fiat pricing relay, cross-chain SWAP coordinator |
-| **Inputs** | JSON-RPC CRUD calls from all other services; external fiat price feeds |
-| **Outputs** | Config values, service endpoints, fiat prices, SWAP coordination data |
-| **Storage** | LevelDB (`P:{coin}-{network}-{module}:{paramName}` key schema) |
-| **Communication** | Inbound JSON-RPC from all services; outbound HTTP for fiat pricing |
+| **Purpose** | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, governance |
+| **Inputs** | JSON-RPC calls from all services; external price APIs (CoinGecko, CoinMarketCap); P2P gossip from other validators |
+| **Outputs** | Config values, service endpoints, oracle prices, fee quotes, cross-chain attestations, governance decisions |
+| **Storage** | MariaDB (13 tables: configs, validators, consensus, oracle, attestations, swaps, reorgs, governance, rewards, slashing) |
+| **Communication** | Inbound JSON-RPC from all services; outbound HTTP for price fetching; WebSocket P2P gossip between validators |
 
 Key technical details:
 
-- Single instance serves all chains and networks simultaneously.
-- Stores per-module configuration as key-value pairs: fee rates, gas token address, supported encoding formats, network parameters.
-- Acts as the service discovery registry — services register their endpoints on startup and look up peers.
-- Coordinates cross-chain SWAP actions by holding SWAP state across two chains.
+- Operates in two modes: standalone (simple config oracle) and validator mode (full PBFT consensus, P2P gossip, oracle, cross-chain attestation, governance).
+- Supports multi-instance deployment — multiple hub instances against shared MariaDB, with consumer fallback via `HUB_VALIDATORS`.
+- Config writes go through PBFT consensus in validator mode (PRE_PREPARE → PREPARE → COMMIT with 2f+1 quorum).
+- Decentralized price oracle: validators fetch from CoinGecko/CoinMarketCap, aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
+- Cross-chain attestation engine with per-chain-pair validator subsets and confirmation thresholds (BTC: 3, LTC: 3, DOGE: 6).
+- SWAP lifecycle tracking: initiated → attested → executed → settled.
+- Off-chain governance: 7-day voting period, 2/3+ approval, 50% quorum, parameter change bounds enforcement.
+- Reward tracking and slash detection for oracle participants.
+- Ed25519 validator identity for P2P message signing.
 - Explorer and SDK poll the hub every 60 seconds to refresh their config caches.
 
 See [`../components/hub/`](../components/hub/) for full documentation.
@@ -289,8 +294,8 @@ See [`../components/e2e-test/`](../components/e2e-test/) for full documentation.
 
 ```
                          +------------------+
-                         |   xchain-hub     |  (LevelDB)
-                         |  config + disco  |
+                         |   xchain-hub     |  (MariaDB)
+                         | config + oracle  |
                          +------------------+
                            ^    ^    ^    ^
                     config |    |    |    | config
@@ -354,7 +359,7 @@ A full mainnet deployment across all three supported chains requires:
 | xchain-explorer | 3 | One per coin |
 | xchain-utxo-tracker | 3 | One per coin |
 | xchain-encoder | 3 | One per coin (or shared if stateless routing used) |
-| xchain-hub | 1 | Shared across all chains |
+| xchain-hub | 1+ | Shared across all chains; supports multi-instance for HA |
 | xchain-node | 1 | Manages all containers |
 
 Adding a new chain means adding one more set of pipeline instances (coin node + decoder + indexer + explorer + utxo-tracker + encoder) and registering them with the hub.

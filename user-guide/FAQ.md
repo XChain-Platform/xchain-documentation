@@ -21,7 +21,7 @@ XChain currently supports Bitcoin, Litecoin, and Dogecoin, including their respe
 
 ### Is XChain decentralized?
 
-Token operations on XChain are fully decentralized — they are recorded on the underlying blockchain and processed by the rules of the protocol, with no company or individual able to alter the results. Anyone can run their own XChain node and independently verify every token balance and transaction. The XChain Hub (which coordinates some multi-chain features) is on a path toward decentralization as the platform matures.
+Token operations on XChain are fully decentralized — they are recorded on the underlying blockchain and processed by the rules of the protocol, with no company or individual able to alter the results. Anyone can run their own XChain node and independently verify every token balance and transaction. The XChain Hub is a decentralized validator network operating via PBFT consensus, providing configuration, pricing, and cross-chain coordination without a central point of control.
 
 ### Do I need to run my own node to use XChain?
 

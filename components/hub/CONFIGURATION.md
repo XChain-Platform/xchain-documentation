@@ -1,0 +1,191 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
+# XChain Platform Hub — Configuration
+
+## Environment Variables
+
+### Core (Required)
+
+These variables are required regardless of operating mode.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `HUB_HOST` | No | `0.0.0.0` | Host to bind the API server |
+| `HUB_PORT` | Yes | — | Port for the JSON-RPC API |
+| `HUB_DB_HOST` | Yes | — | MariaDB host |
+| `HUB_DB_PORT` | Yes | — | MariaDB port |
+| `HUB_DB_NAME` | Yes | — | MariaDB database name (e.g., `XChain_Hub`) |
+| `HUB_DB_USER` | Yes | — | MariaDB username |
+| `HUB_DB_PASS` | Yes | — | MariaDB password |
+
+### P2P Gossip Layer
+
+Validator mode is activated when `P2P_VALIDATOR_ADDR` is set. All P2P-dependent subsystems (consensus, oracle, cross-chain, reorg, governance) are no-ops without it.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `P2P_VALIDATOR_ADDR` | No | — | This validator's public address. Setting this activates validator mode. |
+| `P2P_PORT` | No | `10001` | WebSocket P2P listen port |
+| `P2P_HOST` | No | `0.0.0.0` | P2P bind address |
+| `SEED_NODES` | No | — | Comma-separated list of peer addresses (e.g., `peer1.example.com:10001,peer2.example.com:10001`) |
+| `SIGNING_PRIVKEY_HEX` | No | — | 64-hex-char Ed25519 private key seed for message signing |
+| `REQUIRE_SIGNATURES` | No | `false` | When `true`, reject unsigned P2P messages |
+| `P2P_HEARTBEAT_INTERVAL` | No | `15000` | Milliseconds between heartbeat broadcasts |
+| `P2P_RECONNECT_BASE` | No | `2000` | Base delay for reconnect backoff (ms) |
+| `P2P_RECONNECT_MAX` | No | `60000` | Maximum delay for reconnect backoff (ms) |
+| `P2P_MSG_DEDUP_TTL` | No | `60000` | Message deduplication cache TTL (ms) |
+| `P2P_MAX_PAYLOAD` | No | `1048576` | Maximum WebSocket message size in bytes (1 MB) |
+
+### PBFT Consensus
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PBFT_TIMEOUT` | No | `30000` | Consensus round timeout in milliseconds. Triggers view change on expiry. |
+
+### Oracle
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `ORACLE_ROUND_INTERVAL` | No | `600000` | Milliseconds between oracle rounds (default: 10 minutes) |
+| `ORACLE_SUBMISSION_WINDOW` | No | `180000` | Milliseconds to collect validator price submissions (default: 3 minutes) |
+| `ORACLE_FINALIZATION_TIMEOUT` | No | `120000` | Timeout for oracle PBFT finalization round (default: 2 minutes) |
+| `COINGECKO_API_KEY` | No | — | CoinGecko API key (optional, improves rate limits) |
+| `COINMARKETCAP_API_KEY` | No | — | CoinMarketCap API key (enables second price source) |
+| `PRICE_FETCH_TIMEOUT` | No | `10000` | HTTP timeout for external price API calls (ms) |
+
+### Rewards and Slashing
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `ORACLE_REWARD_PER_ROUND` | No | `"10.00000000"` | XCHAIN distributed per finalized oracle round |
+| `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation threshold (5%) for slash detection |
+| `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Consecutive missed rounds before non-participation slash |
+
+### Cross-Chain
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `ATTESTATION_TIMEOUT` | No | `60000` | Cross-chain attestation consensus timeout (ms) |
+
+### Reorg
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `REORG_TIMEOUT` | No | `60000` | Reorg consensus timeout (ms) |
+
+### Governance
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `GOV_VOTING_PERIOD` | No | `604800000` | Governance voting period in milliseconds (default: 7 days) |
+
+## Database Schema
+
+The hub uses 13 MariaDB tables, auto-created on startup from `src/sql/`:
+
+### Config Storage
+
+| Table | Purpose |
+|---|---|
+| `configs` | Service config parameters: `(coin, network, module, param_name, param_value)` |
+
+Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
+
+### Validator Management
+
+| Table | Purpose |
+|---|---|
+| `validators` | Active validators: `(signing_pubkey, addr, status, chains, tier)` |
+| `consensus_state` | PBFT sequence number persistence |
+| `p2p_peers` | Known P2P peers and last-seen timestamps |
+
+### Oracle
+
+| Table | Purpose |
+|---|---|
+| `oracle_submissions` | Raw per-validator price submissions per round: `(round_number, coin_pair, signing_pubkey, price)` |
+| `price_snapshots` | Finalized/skipped/disputed price snapshots: `(round_number, coin_pair, price, status, consensus_proof)` |
+
+### Cross-Chain
+
+| Table | Purpose |
+|---|---|
+| `attestations` | Cross-chain attestation records: `(attestation_id, source_chain, source_action_index, dest_chain, status, consensus_proof)` — status: pending, attested, rejected, expired |
+| `swap_records` | SWAP lifecycle tracking: `(source_chain, source_action_index, dest_chain, dest_action_index, status)` |
+| `reorg_attestations` | Confirmed blockchain reorg events: `(chain, reorg_height, timestamp, consensus_proof)` |
+
+### Governance
+
+| Table | Purpose |
+|---|---|
+| `governance_proposals` | Parameter change proposals: `(parameter, current_value, proposed_value, rationale, proposer, status)` |
+| `governance_votes` | Validator votes: `(proposal_id, signing_pubkey, vote, signature)` |
+
+### Rewards and Slashing
+
+| Table | Purpose |
+|---|---|
+| `validator_rewards` | Per-round oracle rewards: `(round_number, validator_pubkey, amount, claimed)` — claimed is 0/1 |
+| `slash_proposals` | Detected validator offenses: `(signing_pubkey, offense_type, evidence, round_number)` |
+
+## Config Table Detail
+
+| Column | Type | Description |
+|---|---|---|
+| `coin` | VARCHAR(16) | Coin identifier (BTC, LTC, DOGE) |
+| `network` | VARCHAR(16) | Network (mainnet, testnet, regtest) |
+| `module` | VARCHAR(64) | Service name (xchain-decoder, xchain-indexer, etc.) |
+| `param_name` | VARCHAR(32) | Parameter name (host, port, db_host, db_port, name, user, pass, service_port) |
+| `param_value` | TEXT | Parameter value |
+| `updated_at` | TIMESTAMP | Last update timestamp |
+
+Config is served as a nested object: `{ coin: { network: { module: { param: value } } } }`.
+
+## Connection Pool
+
+| Parameter | Value | Description |
+|---|---|---|
+| `connectionLimit` | `10` | Maximum simultaneous connections |
+| `connectTimeout` | `10000` | Connection timeout (ms) |
+| `idleTimeout` | `60000` | Idle connection timeout (ms) |
+
+## Circuit Breaker
+
+| Parameter | Value | Description |
+|---|---|---|
+| Threshold | `10` | Consecutive failures before opening the circuit |
+| Cooldown | `30000` | Milliseconds before attempting a half-open retry |
+| Max retries | `30` | Maximum retry attempts with backoff |
+| Backoff range | 500ms–15s | Delay range with jitter |
+
+When the circuit opens, all database queries fail fast until the cooldown period expires. Retries use exponential backoff with jitter to prevent thundering herd.
+
+## Validator Identity
+
+Ed25519 keys are used for P2P message signing and verification:
+
+- **Private key**: 32-byte seed from `SIGNING_PRIVKEY_HEX` (64 hex chars), wrapped in PKCS8 DER for Node.js crypto.
+- **Public key**: extracted as raw 32-byte SPKI, stored as 64 hex chars.
+- **Signing**: canonical payload is JSON with sorted fields (`id`, `type`, `sender`, `timestamp`, `data`).
+- **Generation**: `ValidatorIdentity.generate()` produces a random keypair.
+
+```javascript
+const { ValidatorIdentity } = require('./src/ValidatorIdentity');
+const { privkey, pubkey } = ValidatorIdentity.generate();
+// privkey: 64-char hex string for SIGNING_PRIVKEY_HEX
+// pubkey:  64-char hex string for registervalidator
+```
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
+A full copy of the License is also available at: [https://dankest.llc/license](https://dankest.llc/license)

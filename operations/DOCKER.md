@@ -97,9 +97,10 @@ docker volume ls | grep xchain
 
 ### LevelDB Data
 
-The UTXO tracker and hub use LevelDB stored in Docker volumes:
+The UTXO tracker uses LevelDB stored in a Docker volume:
 - UTXO tracker: `/data/xchain-utxo-tracker/` inside the container
-- Hub: `/data/xchain-hub` inside the container
+
+The hub uses MariaDB (the shared MariaDB container) for all its data — it does not use LevelDB or Docker volumes for data storage.
 
 ### MariaDB Data
 
@@ -220,12 +221,10 @@ Use the built-in bootstrap mechanism to create compressed snapshots:
 xchain-node bootstrap create xchain-utxo-tracker bitcoin mainnet
 ```
 
-For the hub, stop the hub container and copy the volume data directly:
+For the hub, back up the `XChain_Hub` MariaDB database:
 ```bash
-xchain-node stop xchain-hub
-docker run --rm -v xchain-node-xchain-hub_data:/data \
-  -v $(pwd):/backup busybox tar czf /backup/hub-backup.tar.gz /data
-xchain-node start xchain-hub
+docker exec xchain-node-database mysqldump -u root XChain_Hub \
+  > hub-backup-$(date +%Y%m%d).sql
 ```
 
 ### Blockchain Data

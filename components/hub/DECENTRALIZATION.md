@@ -3,86 +3,111 @@
 
 # Hub Decentralization
 
-## Current State
+## Overview
 
-xchain-hub is a centralized service. All other services in the platform depend on it for configuration discovery, pricing data, and cross-chain swap coordination. A single hub instance holds the authoritative key-value store for the entire deployment.
+xchain-hub has evolved from a centralized config oracle into a fully decentralized validator network across six implementation phases. All phases are complete as of v2.0.0.
 
-This design is operationally convenient — configuration changes propagate to all services without restarts, and cross-chain coordination has a single integration point. However, it introduces a single point of trust and a single point of failure.
-
-## Why Decentralize
+## Motivation
 
 ### Single point of failure
 
-If the hub process crashes or its database becomes unavailable, the entire platform degrades. Services that cannot reach the hub fall back to stale local config or fail their startup checks. Cross-chain swaps stall until the hub recovers.
+A centralized hub means the entire platform degrades when the hub process crashes or its database becomes unavailable. Services that cannot reach the hub fall back to stale local config or fail their startup checks. Cross-chain swaps stall until the hub recovers.
 
 ### Single point of trust
 
-The hub operator controls configuration for all services. In a self-hosted deployment this is acceptable, but it creates a trust assumption that is difficult to remove as the platform grows. A malicious or misconfigured hub could redirect services to wrong endpoints or manipulate pricing data.
+A centralized hub operator controls configuration for all services. In a self-hosted deployment this is acceptable, but it creates a trust assumption that is difficult to remove as the platform grows. A malicious or misconfigured hub could redirect services to wrong endpoints or manipulate pricing data.
 
 ### Scalability ceiling
 
 A single-instance hub has limited horizontal scaling options. Under high coordination load (many concurrent cross-chain swaps), the hub becomes a bottleneck.
 
-## Planned Architecture
-
-The hub will evolve from a single service into a **validator network** with staking-based incentives and Byzantine fault tolerance. Validators stake XCHAIN tokens (on the BTC chain) and participate in consensus to provide decentralized price feeds and cross-chain coordination.
-
-### Two-Tier Validator System
+## Two-Tier Validator System
 
 The validator network is organized into two independent tiers, each with its own stake requirement:
 
-**Tier 1 — Price Oracles**
+### Tier 1 — Price Oracles
 
-Validators independently fetch cryptocurrency prices from multiple external sources (minimum 3 APIs each), submit them to the network, and reach consensus using a weighted trimmed median algorithm. This replaces the hub's centralized pricing with a manipulation-resistant oracle feed. Stake-weighted consensus ensures that moving the price requires controlling a majority of staked value, not just a single source.
+Validators independently fetch cryptocurrency prices from multiple external sources (CoinGecko, CoinMarketCap), submit them to the network, and reach consensus using a trimmed median algorithm (discard top/bottom 15%). This replaces centralized pricing with a manipulation-resistant oracle feed.
 
-Price rounds are anchored to block heights rather than wall clocks, eliminating clock synchronization issues. The round interval (initially 10 minutes) is governance-adjustable.
+Price rounds run on a configurable interval (default 10 minutes). Each round goes through: fetch → submit → collect → aggregate → PBFT finalize.
 
-**Tier 2 — Cross-Chain Validators**
+### Tier 2 — Cross-Chain Validators
 
-A higher-stake tier (5x the oracle stake) responsible for attesting to cross-chain swap actions. Rather than running full decoder and indexer stacks for every chain, Tier 2 validators use a new **xchain-indexer-sync** service to replicate indexer databases, keeping them lightweight.
+A higher-stake tier (5x the oracle stake) responsible for attesting to cross-chain swap actions. Rather than running full decoder and indexer stacks for every chain, Tier 2 validators use **xchain-indexer-sync** to replicate indexer databases, keeping them lightweight.
 
-Cross-chain validators declare which chains they support (minimum 2) at registration time. Consensus is calculated per chain-pair — only validators supporting both chains in a swap participate in attestation, using a PBFT-derived consensus requiring 2/3+ agreement.
+Cross-chain validators declare which chains they support at registration time. Consensus is calculated per chain-pair — only validators supporting both chains in a swap participate in attestation, using a PBFT-derived consensus requiring 2/3+ agreement.
 
-### Staking and Governance
+## Staking and Governance
 
-All staking operations (STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS) are standard XChain actions on the BTC chain. Validators can participate in one or both tiers.
+All staking operations (STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS) are standard XChain actions on the BTC chain, processed by the indexer.
 
-Key properties of the staking system:
-
-- **Slashing** — Validators that submit manipulated prices or false cross-chain attestations can have stake slashed via a governance vote among active validators
-- **Lock periods** — Unstaking requires a mandatory lock period (14 days for oracle, 30 days for cross-chain) to prevent front-running of slashing proposals
-- **Delegation** — Token holders who don't want to run a validator can delegate their stake to an existing validator
-- **Rewards** — Validators earn rewards from a protocol fee pool proportional to their stake and participation
-
-### Decentralizing Each Hub Role
-
-| Current Hub Role | Decentralized Replacement |
+| Property | Value |
 |---|---|
-| **Configuration** | On-chain BROADCAST actions — auditable, tamper-evident, no central authority |
-| **Service discovery** | DNS-based resolution in Docker/Kubernetes, or on-chain BROADCAST records |
-| **Price data** | Tier 1 validator oracle network with weighted trimmed median consensus |
-| **Cross-chain coordination** | Tier 2 validator attestation network with PBFT consensus |
+| Slashing | Validators submitting manipulated prices or false attestations can have stake slashed via governance vote |
+| Lock periods | 14 days for oracle tier, 30 days for cross-chain tier |
+| Delegation | Token holders can delegate stake to existing validators |
+| Rewards | Proportional to stake and participation, from protocol fee pool |
 
-### Implementation Phases
+## Decentralized Roles
 
-The decentralization is planned across six phases:
+| Hub Role | Decentralized Mechanism |
+|---|---|
+| **Configuration** | PBFT consensus for config writes across validator set |
+| **Service discovery** | Hub config store, polled by all platform services |
+| **Price data** | Tier 1 validator oracle with trimmed median consensus |
+| **Cross-chain coordination** | Tier 2 validator attestation with per-chain-pair PBFT |
+| **Governance** | Off-chain PBFT voting with 7-day period, 2/3+ approval |
 
-| Phase | Name | Status |
-|---|---|---|
-| 0 | **MariaDB migration** — Replace LevelDB with MariaDB | **Complete** |
-| 1 | **Multi-instance hub** — Run multiple hub instances against shared MariaDB for reliability; consumer fallback via `HUB_VALIDATORS` | **Complete** |
-| 2 | **Gossip + PBFT consensus** — P2P gossip layer (WebSocket), PBFT consensus for config writes, Ed25519 validator identity, leader rotation, view change | **Complete** |
-| 3 | **Decentralized price oracle** — External price fetching, trimmed median aggregation, oracle PBFT consensus, price snapshots, reward tracking, slash detection, fee quotes | **Complete** |
-| 4 | **Cross-chain coordination** — Attestation engine, reorg propagation, SWAP lifecycle tracking, per-chain-pair validator filtering | **Complete** |
-| 5 | **Open validator set + governance** — Off-chain PBFT voting for parameter changes, version signaling in heartbeats | **Complete** |
+## Implementation Phases
 
-## Status
+| Phase | Name | Version | Status |
+|---|---|---|---|
+| 0 | **MariaDB migration** — Replace LevelDB with MariaDB | v1.0.0 | Complete |
+| 1 | **Multi-instance hub** — Run multiple instances against shared MariaDB; consumer fallback via `HUB_VALIDATORS` | v1.0.0 | Complete |
+| 2 | **Gossip + PBFT consensus** — P2P gossip layer (WebSocket), PBFT consensus for config writes, Ed25519 validator identity, leader rotation, view change | v1.1.0–v1.3.0 | Complete |
+| 3 | **Decentralized price oracle** — External price fetching, trimmed median aggregation, oracle PBFT consensus, price snapshots, reward tracking, slash detection, fee quotes | v1.4.0–v1.6.0 | Complete |
+| 4 | **Cross-chain coordination** — Attestation engine, reorg propagation, SWAP lifecycle tracking, per-chain-pair validator filtering | v1.7.0–v1.9.0 | Complete |
+| 5 | **Open validator set + governance** — Off-chain PBFT voting for parameter changes, version signaling in heartbeats | v2.0.0 | Complete |
 
-**All six decentralization phases are complete (v2.0.0).** The hub is now a fully decentralized validator network with P2P gossip, PBFT consensus, Ed25519 identity, a decentralized price oracle, cross-chain attestation with reorg propagation, SWAP lifecycle tracking, and off-chain governance.
+## Architecture Summary
+
+```
+                    +-------------------+
+                    |   External APIs   |
+                    | (CoinGecko, CMC)  |
+                    +--------+----------+
+                             |
+              +--------------v--------------+
+              |        Validator A           |
+              |  PriceFetcher -> OracleRound |
+              |  PeerManager <-> Consensus   |
+              |  CrossChainEngine            |
+              |  ReorgHandler                |
+              |  Governance                  |
+              |  RewardTracker               |
+              |  SlashDetector               |
+              +----+----+----+--------------+
+                   |    |    |
+          gossip   |    |    |   gossip
+                   |    |    |
+              +----v----v----v--------------+
+              |        Validator B           |
+              |        (same stack)          |
+              +----+----+----+--------------+
+                   |    |    |
+                   |    |    |
+              +----v----v----v--------------+
+              |        Validator C           |
+              |        (same stack)          |
+              +-----------------------------+
+```
+
+Each validator runs the full hub stack. Communication happens via WebSocket-based P2P gossip with Ed25519-signed messages. All consensus decisions require 2f+1 agreement.
 
 ## Related
 
-- [Hub](README.md) — current hub architecture and API reference
+- [Hub](README.md) — hub architecture and API reference
+- [Architecture](ARCHITECTURE.md) — internal subsystem design
 - [Cross-Chain Concepts](../../concepts/CROSS_CHAIN.md) — how cross-chain swaps work at the protocol level
 - [Gas Token](../../concepts/GAS.md) — the XCHAIN token used for staking and fees
 

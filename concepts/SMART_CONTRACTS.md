@@ -172,14 +172,14 @@ All math inputs and outputs are **strings**. This ensures deterministic precisio
 | `xchain.isLogFull()` | Check if log cap reached |
 | `xchain.getLogCount()` | Current log count |
 
-### Oracle (100 gas each, stub until Track B)
+### Oracle (100 gas each, pending VM integration)
 | Method | Returns |
 |---|---|
 | `xchain.oracle.getPrice(coinPair)` | Price data or null |
 | `xchain.oracle.getPriceAtRound(coinPair, round)` | Historical price or null |
 | `xchain.oracle.getSnapshotAge()` | Blocks since last snapshot (number) |
 
-### Cross-Chain (100 gas each, stub until Phase 4)
+### Cross-Chain (100 gas each, pending VM integration)
 | Method | Returns |
 |---|---|
 | `xchain.crossChain.getAttestation(chain, actionIndex)` | Attestation data or null |

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-06
+
+### Added
+- `components/hub/ARCHITECTURE.md` — new file: subsystem design, source files, P2P gossip, PBFT consensus, oracle pipeline, cross-chain engine, governance, rewards/slashing
+- `components/hub/CONFIGURATION.md` — new file: all 30+ environment variables, 13 database tables with schemas, connection pool, circuit breaker, validator identity
+- `components/hub/API.md` — new file: full JSON-RPC method reference for all 23 methods with request/response examples
+
+### Changed
+- `components/hub/README.md` — rewritten for hub v2.0.0: dual operating modes (standalone/validator), full feature list, documentation table, quick start for both modes, service discovery, multi-instance deployment, dependencies
+- `components/hub/DECENTRALIZATION.md` — updated: all six phases marked complete with version numbers, removed "planned" language, added architecture summary
+- `README.md` — updated hub description to reflect decentralized validator network
+- `components/README.md` — hub: "backed by LevelDB" → MariaDB with full feature description
+- `architecture/COMPONENT_MAP.md` — hub: LevelDB → MariaDB, added full v2.0.0 capabilities, updated connection diagram, multi-instance in deployment table
+- `architecture/DATABASE_DESIGN.md` — hub: replaced LevelDB key schema with MariaDB 13-table description
+- `concepts/SECURITY_MODEL.md` — hub: "currently centralized" → "hub validator network (PBFT consensus)" in prose and trust model table
+- `concepts/CROSS_CHAIN.md` — hub: expanded from two roles to five (config, price oracle, attestation, swap coordinator, governance), removed "planned decentralization" language
+- `concepts/README.md` — smart contracts: "Planned" → "Programmable contract layer"
+- `concepts/SMART_CONTRACTS.md` — VM oracle/cross-chain stubs: "stub until Track B/Phase 4" → "pending VM integration"
+- `getting-started/KEY_TERMS.md` — hub: "stores in LevelDB" → "backed by MariaDB, PBFT consensus"; LevelDB entry: removed hub reference
+- `operations/CONFIGURATION.md` — hub: replaced LevelDB key format with MariaDB config, added 11 key env vars, linked to full hub configuration reference
+- `operations/DOCKER.md` — hub: removed from LevelDB volumes section, replaced LevelDB backup with mysqldump
+- `operations/UPGRADING.md` — hub: replaced LevelDB backup with mysqldump, fixed startup order (database → hub)
+- `user-guide/CROSS_CHAIN.md` — hub: "on a path toward decentralization" → "is a decentralized validator network"
+- `user-guide/FAQ.md` — hub: "on a path toward decentralization" → "decentralized validator network operating via PBFT consensus"
+
 ## [0.8.0] - 2026-04-06
 
 ### Added

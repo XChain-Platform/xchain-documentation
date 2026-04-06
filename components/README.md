@@ -13,7 +13,7 @@ This section contains documentation for each of the 12 XChain Platform microserv
 | [indexer-sync](./indexer-sync/) | Replicates indexer databases to validators via REST snapshots and WebSocket streaming |
 | [vm](./vm/) | Deterministic smart contract execution engine — sandboxed V8 isolates with AST-based gas metering |
 | [explorer](./explorer/) | Serves REST and JSON-RPC APIs plus a web UI over the indexer database |
-| [hub](./hub/) | Config oracle and cross-chain action coordinator backed by LevelDB |
+| [hub](./hub/) | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, governance — backed by MariaDB |
 | [utxo-tracker](./utxo-tracker/) | Indexes UTXOs from coin nodes and serves address and balance queries |
 | [sdk](./sdk/) | Developer SDK for constructing and submitting XChain actions |
 | [node](./node/) | CLI tool for installing and managing all platform services as Docker containers |

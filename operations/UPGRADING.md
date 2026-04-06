@@ -127,7 +127,7 @@ Breaking changes are flagged in release notes. When a breaking change affects mu
 1. Stop all affected services.
 2. Apply any required database migrations.
 3. Upgrade all affected services.
-4. Start them in dependency order: hub → database → decoder → indexer → explorer.
+4. Start them in dependency order: database → hub → decoder → indexer → explorer.
 
 ---
 
@@ -147,18 +147,18 @@ docker exec xchain-node-database mysqldump -u root \
   > xchain-full-backup-$(date +%Y%m%d).sql
 ```
 
-### LevelDB (UTXO Tracker, Hub)
+### LevelDB (UTXO Tracker)
 
 ```bash
 xchain-node bootstrap create xchain-utxo-tracker bitcoin mainnet
 ```
 
-For the hub, stop it, copy the volume, then restart:
+### Hub (MariaDB)
+
+The hub stores all data in MariaDB. Back up with `mysqldump`:
 ```bash
-xchain-node stop xchain-hub
-docker run --rm -v xchain-node-xchain-hub_data:/data \
-  -v $(pwd):/backup busybox tar czf /backup/hub-$(date +%Y%m%d).tar.gz /data
-xchain-node start xchain-hub
+docker exec xchain-node-database mysqldump -u root XChain_Hub \
+  > hub-backup-$(date +%Y%m%d).sql
 ```
 
 ---
