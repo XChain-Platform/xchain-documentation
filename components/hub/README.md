@@ -5,89 +5,84 @@
 
 ## What is xchain-hub
 
-xchain-hub is the configuration oracle and cross-chain coordinator of the XChain Platform. It runs as a long-lived Node.js/Express process backed by a single LevelDB instance and serves a JSON-RPC API that all other services poll for shared configuration, endpoint discovery, pricing data, and cross-chain action coordination.
+xchain-hub is the configuration oracle and cross-chain coordinator of the XChain Platform. It runs as a long-lived Node.js/Express process backed by MariaDB and serves a JSON-RPC API that all other services poll for shared configuration, endpoint discovery, pricing data, and cross-chain action coordination.
 
-One hub instance serves the entire deployment — all chains (BTC, LTC, DOGE) and all networks share the same process and storage.
+One hub instance serves the entire deployment — all chains (BTC, LTC, DOGE) and all networks share the same process and database.
 
 ## Features
 
-- **Config store** — JSON-RPC CRUD API for key-value configuration parameters used by all services
+- **Config store** — JSON-RPC API for service configuration parameters used by all platform services
 - **Service discovery** — other services poll the hub to find hostnames, ports, and connection details for their dependencies
-- **Fiat pricing** — current cryptocurrency price data for BTC, LTC, and DOGE in supported fiat currencies
-- **Cross-chain coordination** — SWAP matching across different blockchains; hub tracks pending cross-chain actions and notifies the relevant indexers
-- **Single instance** — one LevelDB database serves all chains and networks simultaneously
-- **LevelDB storage** — no SQL dependencies; all data lives in a single embedded key-value store
+- **MariaDB storage** — relational config storage with upsert semantics, connection pooling, and circuit breaker
+- **Fiat pricing** (planned) — current cryptocurrency price data for BTC, LTC, and DOGE via decentralized oracle
+- **Cross-chain coordination** (planned) — SWAP matching across different blockchains via PBFT-attested validator consensus
 
-## Key Schema
+## Database Schema
 
-Configuration parameters are stored using a structured key format:
+Configuration parameters are stored in the `configs` table in a MariaDB database (`XChain_Hub`):
 
-```
-P:{coin}-{network}-{module}:{paramName}
-```
+| Column | Type | Description |
+|---|---|---|
+| `coin` | VARCHAR(16) | Coin identifier (BTC, LTC, DOGE) |
+| `network` | VARCHAR(16) | Network (mainnet, testnet, regtest) |
+| `module` | VARCHAR(64) | Service name (xchain-decoder, xchain-indexer, etc.) |
+| `param_name` | VARCHAR(32) | Parameter name (host, port, db_host, etc.) |
+| `param_value` | TEXT | Parameter value |
+| `updated_at` | TIMESTAMP | Last update timestamp |
 
-Examples:
-
-| Key | Description |
-|---|---|
-| `P:BTC-mainnet-decoder:rpcHost` | RPC host for the BTC mainnet decoder |
-| `P:LTC-regtest-explorer:port` | Port for the LTC regtest explorer |
-| `P:DOGE-testnet-indexer:dbHost` | Database host for the DOGE testnet indexer |
-
-This structure allows `getAllConfig()` to return all parameters for a given coin-network-module triplet in a single call, which is the most common access pattern.
+The table has a unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 
 ## API
 
-The hub exposes a JSON-RPC API. Core methods:
+The hub exposes a JSON-RPC API over HTTP. Current methods:
 
 | Method | Description |
 |---|---|
-| `getAllConfig` | Return all parameters for a given coin, network, and module |
-| `getParam` | Return a single parameter value by key |
-| `setParam` | Set a parameter value |
-| `deleteParam` | Delete a parameter |
-| `getPrice` | Return current fiat price for a coin |
-| `setPrice` | Update fiat price data (called by price feed integrations) |
-| `getSwapQueue` | Return pending cross-chain SWAP actions |
-| `submitSwap` | Submit a cross-chain SWAP for coordination |
+| `ping` | Health check — returns `{status: "success"}` |
+| `getallconfigs` | Return all config parameters as a nested object: `{coin: {network: {module: {param: value}}}}` |
+| `updateconfig` | Upsert config parameters from a nested JSON object |
+
+Planned methods (decentralization phases):
+
+| Method | Description |
+|---|---|
+| `getPrice` | Return current price for a coin pair from the decentralized oracle |
+| `getFeeQuote` | Calculate native coin fee amount for a given action |
+| `getPriceSnapshots` | Return finalized price snapshots for a range of oracle rounds |
 
 ## Service Discovery Pattern
 
-Services that support hub-based config discovery call `getAllConfig()` at startup and periodically (typically every 60 seconds) to pick up configuration changes without a restart. This allows operators to update connection strings, ports, or credentials through the hub rather than redeploying each service individually.
+Services that support hub-based config discovery call `getallconfigs` at startup and periodically (typically every 60 seconds) to pick up configuration changes without a restart. This allows operators to update connection strings, ports, or credentials through the hub rather than redeploying each service individually.
 
-Services that do not support hub discovery (or in single-chain deployments) can fall back to a local `config.json` file.
-
-## Cross-Chain Coordination
-
-The SWAP action allows tokens on different blockchains to be exchanged trustlessly. Because the blockchains are independent, an intermediary is needed to match swap intents across chains and signal each chain's indexer when a matching pair is found. The hub fulfills this role in the current architecture.
-
-See [Decentralization](DECENTRALIZATION.md) for the planned evolution of this coordination mechanism.
-
-## Storage
-
-All data is stored in a single LevelDB directory. LevelDB is an embedded key-value store — there is no separate database process. The LevelDB path is configurable.
+**Consumers:** xchain-explorer, xchain-node, xchain-e2e-test, xchain-indexer-sync.
 
 ## Configuration
 
-| Parameter | Description |
-|---|---|
-| `port` | JSON-RPC API port |
-| `dbPath` | Path to the LevelDB data directory |
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `HUB_HOST` | No | `0.0.0.0` | Host to bind the API server |
+| `HUB_PORT` | Yes | — | Port for the JSON-RPC API |
+| `HUB_DB_HOST` | Yes | — | MariaDB host |
+| `HUB_DB_PORT` | Yes | — | MariaDB port |
+| `HUB_DB_NAME` | Yes | — | MariaDB database name (e.g., `XChain_Hub`) |
+| `HUB_DB_USER` | Yes | — | MariaDB username |
+| `HUB_DB_PASS` | Yes | — | MariaDB password |
 
 ## Installation
-
-Clone the repository and install dependencies from within the `xchain-hub` directory:
 
 ```bash
 git clone https://github.com/XChain-platform/xchain-hub.git
 cd xchain-hub
 npm install
+# Create .env with the variables above
 npm run api
 ```
 
+The hub automatically creates the database and tables on first startup.
+
 ## Related
 
-- [Decentralization](DECENTRALIZATION.md) — planned evolution of the hub toward a decentralized model
+- [Decentralization](DECENTRALIZATION.md) — planned evolution of the hub toward a decentralized validator network
 - [Cross-Chain Concepts](../../concepts/CROSS_CHAIN.md) — how cross-chain swaps work at the protocol level
 - [Configuration Guide](../../operations/CONFIGURATION.md) — how to configure and manage hub parameters
 

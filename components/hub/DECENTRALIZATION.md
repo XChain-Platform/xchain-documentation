@@ -13,7 +13,7 @@ This design is operationally convenient — configuration changes propagate to a
 
 ### Single point of failure
 
-If the hub process crashes or its LevelDB store becomes corrupted, the entire platform degrades. Services that cannot reach the hub fall back to stale local config or fail their startup checks. Cross-chain swaps stall until the hub recovers.
+If the hub process crashes or its database becomes unavailable, the entire platform degrades. Services that cannot reach the hub fall back to stale local config or fail their startup checks. Cross-chain swaps stall until the hub recovers.
 
 ### Single point of trust
 
@@ -21,7 +21,7 @@ The hub operator controls configuration for all services. In a self-hosted deplo
 
 ### Scalability ceiling
 
-A single LevelDB-backed process has limited horizontal scaling options. Under high coordination load (many concurrent cross-chain swaps), the hub becomes a bottleneck.
+A single-instance hub has limited horizontal scaling options. Under high coordination load (many concurrent cross-chain swaps), the hub becomes a bottleneck.
 
 ## Planned Architecture
 
@@ -65,17 +65,22 @@ Key properties of the staking system:
 
 ### Implementation Phases
 
-The decentralization is planned across five phases:
+The decentralization is planned across six phases:
 
-1. **MariaDB migration** — Migrate hub storage from LevelDB to MariaDB to align with the rest of the platform
-2. **Gossip + consensus for config** — Validators gossip configuration changes and reach consensus
-3. **Decentralized price oracle** — Deploy Tier 1 staking and the oracle price round system
-4. **Cross-chain coordination** — Deploy xchain-indexer-sync, Tier 2 staking, and PBFT cross-chain attestation
-5. **Open validator set** — Remove permissioned bootstrap validators, fully open participation
+| Phase | Name | Status |
+|---|---|---|
+| 0 | **MariaDB migration** — Replace LevelDB with MariaDB | **Complete** |
+| 1 | **Multi-instance hub** — Run multiple hub instances against shared MariaDB for reliability | Planned |
+| 2 | **Gossip + PBFT consensus for config** — P2P gossip layer, PBFT consensus for config writes | Planned |
+| 3 | **Decentralized price oracle** — Tier 1 staking, price round system, slashing | Planned |
+| 4 | **Cross-chain coordination** — xchain-indexer-sync, Tier 2 staking, PBFT attestation | Planned |
+| 5 | **Open validator set + governance** — Permissionless participation, on-chain governance | Planned |
 
 ## Status
 
-Hub decentralization is in the design phase. The full strategic architecture plan, including detailed algorithms, economic models, slashing conditions, and implementation specifics, is maintained internally. The on-chain BROADCAST configuration approach and the Tier 1 oracle network are the nearest-term candidates for implementation.
+**Phase 0 (MariaDB migration) is complete.** The hub now stores all configuration in MariaDB (`XChain_Hub` database, `configs` table) with connection pooling, circuit breaker, and auto-table-creation. The JSON-RPC API is unchanged — consumers see no difference.
+
+Phase 1 (multi-instance) is next. The full strategic architecture plan, including detailed algorithms, economic models, slashing conditions, and implementation specifics, is available in `claude/reports/XCHAIN_HUB_BUILD_PLAN.md`.
 
 ## Related
 
