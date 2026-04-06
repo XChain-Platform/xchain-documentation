@@ -1,0 +1,146 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
+# XChain Node — Configuration
+
+## Config File System
+
+xchain-node uses a two-layer configuration system to generate environment variables for each managed service:
+
+1. **Hardcoded defaults** — defined in `ConfigService.js` for each module type (40+ variables per coin-specific service)
+2. **Config file overrides** — read from `config/{coin}-{network}` files in `KEY=VALUE` format
+
+Config files are plain text with one variable per line. Values containing `=` (such as base64 tokens or passwords) are handled correctly — only the first `=` on each line is treated as the separator. Blank lines and lines without `=` are skipped.
+
+Example `config/bitcoin-mainnet`:
+
+```
+NODE_EXPOSED_PORT=8333
+DUST_AMOUNT=546
+ENCODER_API_PORT=4003
+```
+
+When a config file is missing, xchain-node falls back to hardcoded defaults with a console warning.
+
+## Environment Variables
+
+### Coin-Specific Services
+
+For each coin-specific service (encoder, decoder, utxo-tracker, indexer), xchain-node generates the following environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `NETWORK` | `{network}` | Network identifier (`mainnet`, `testnet`, `regtest`) |
+| `NODE_URL` | `node` | Coin node Docker hostname |
+| `NODE_PORT` | 8332 / 18332 / 18444 | Coin node RPC port (varies by network) |
+| `NODE_USER` | `rpc` | Coin node RPC username |
+| `NODE_PASSWORD` | `rpc` | Coin node RPC password |
+| `UTXO_TRACKER_URL` | `xchain-node-{coin}-{network}-xchain-utxo-tracker` | UTXO tracker Docker hostname |
+| `UTXO_TRACKER_API_PORT` | `3001` | UTXO tracker API port |
+| `UTXO_TRACKER_PORT` | `3001` | UTXO tracker internal port |
+| `DECODER_DB_NAME` | `XChain_{TICKER}_{Network}_Decoder` | Decoder database name |
+| `DECODER_DB_HOST` | `mariadb` | MariaDB Docker hostname |
+| `DECODER_DB_PORT` | `3306` | MariaDB port |
+| `DECODER_DB_USER` | `xchain_decoder_{coin}_{network}` | Decoder DB username |
+| `DECODER_DB_PASS` | `xchain-password` | Decoder DB password |
+| `DECODER_URL` | `xchain-node-{coin}-{network}-xchain-decoder` | Decoder Docker hostname |
+| `DECODER_API_PORT` | `3002` | Decoder API port |
+| `ENCODER_URL` | `xchain-node-{coin}-{network}-xchain-encoder` | Encoder Docker hostname |
+| `ENCODER_API_PORT` | `3003` | Encoder API port |
+| `INDEXER_HOST` | `xchain-node-{coin}-{network}-xchain-indexer` | Indexer Docker hostname |
+| `INDEXER_API_PORT` | `3004` | Indexer API port |
+| `INDEXER_COIN` | `BTC` / `DOGE` / `LTC` | Coin ticker symbol |
+| `INDEXER_NETWORK` | `{network}` | Network name |
+| `INDEXER_DB_HOST` | `mariadb` | Indexer DB host |
+| `INDEXER_DB_PORT` | `3306` | Indexer DB port |
+| `INDEXER_DB_NAME` | `XChain_{TICKER}_{Network}_Indexer` | Indexer database name |
+| `INDEXER_DB_USER` | `xchain_indexer_{coin}_{network}` | Indexer DB username |
+| `INDEXER_DB_PASS` | `xchain-password` | Indexer DB password |
+| `HUB_HOST` | `127.0.0.1` | Hub external host |
+| `HUB_API_HOST` | `xchain-node-xchain-hub` | Hub Docker hostname |
+| `HUB_PORT` | `10000` | Hub API port |
+
+Regtest-only variables (added only when `network === 'regtest'`):
+
+| Variable | Default | Description |
+|---|---|---|
+| `REGTEST_MINER_URL` | `xchain-node-{coin}-regtest-xchain-regtest-miner` | Regtest miner Docker hostname |
+| `REGTEST_MINER_API_PORT` | `3005` | Regtest miner API port |
+
+### Shared Services
+
+For shared services (hub, explorer, indexer-sync), a separate set of variables is generated without coin/network-specific values:
+
+| Variable | Default | Description |
+|---|---|---|
+| `HUB_HOST` | `127.0.0.1` | Hub external host |
+| `HUB_API_HOST` | `xchain-node-xchain-hub` | Hub Docker hostname |
+| `HUB_PORT` | `10000` | Hub API port |
+| `EXPLORER_HOST` | `127.0.0.1` | Explorer external host |
+| `EXPLORER_API_HOST` | `xchain-node-xchain-explorer` | Explorer Docker hostname |
+| `EXPLORER_PORT_HTTP` | `18080` | Explorer HTTP port (external) |
+| `EXPLORER_API_PORT_HTTP` | `8080` | Explorer API HTTP port (internal) |
+| `EXPLORER_PORT_HTTPS` | `18081` | Explorer HTTPS port (external) |
+| `EXPLORER_API_PORT_HTTPS` | `8081` | Explorer API HTTPS port (internal) |
+| `SYNC_MODE` | `server` | Indexer-sync mode |
+| `SYNC_API_PORT` | `3006` | Indexer-sync API port |
+
+## Naming Conventions
+
+| Entity | Pattern | Example |
+|---|---|---|
+| Docker image | `xchain-node-{coin}-{network}-{service}` | `xchain-node-bitcoin-mainnet-xchain-encoder` |
+| Docker network | `xchain-node-{coin}-{network}` | `xchain-node-bitcoin-mainnet` |
+| Database name | `XChain_{TICKER}_{Network}_{Service}` | `XChain_BTC_Mainnet_Decoder` |
+| Database user | `xchain_{service}_{coin}_{network}` | `xchain_decoder_bitcoin_mainnet` |
+| LevelDB key | `MC{module};{coin};{network}` | `MCxchain-encoder;bitcoin;mainnet` |
+| Shared image | `xchain-node-{service}` | `xchain-node-database` |
+| Base network | `xchain-node` | `xchain-node` |
+
+## Internal Constants
+
+| Constant | Value | Location | Description |
+|---|---|---|---|
+| `NODE_PREFIX` | `xchain-node` | constants.js | Prefix for all Docker container and network names |
+| `SEP` | `-` | constants.js | Separator for Docker naming (`xchain-node-bitcoin-mainnet`) |
+| `DB_SEP` | `_` | constants.js | Separator for database naming (`xchain_decoder_bitcoin_mainnet`) |
+| `DB_NAME` | `xchain_node` | constants.js | LevelDB database directory name |
+
+### NODE_PREFIX Validation
+
+The `NODE_PREFIX` can be overridden via the `NODE_PREFIX` environment variable. It is validated against `/^[a-z0-9][a-z0-9._-]*$/` on load — shell metacharacters, spaces, uppercase letters, and dollar signs are rejected with a clear error.
+
+### Port Validation
+
+All port values are validated via `validatePort()` before reaching Docker command construction:
+
+- Accepts integers 1–65535
+- Accepts digit-only strings ("8332") that parse to valid integers
+- Rejects floats, NaN, Infinity, negative numbers, zero, strings with non-digit characters
+
+### Branch Name Validation
+
+Branch names are validated against `/^[a-zA-Z0-9._\-\/]+$/` in `resolveArgs()`:
+
+- Accepts: `master`, `develop`, `feature/my-branch_v1.0`
+- Rejects: `master;rm -rf /`, `` master`whoami` ``, `$(whoami)`
+
+### Container ID Validation
+
+Container IDs returned by `docker run` are validated against `/^[a-f0-9]{64}$/`:
+
+- Must be exactly 64 lowercase hex characters
+- Rejects IDs with injection payloads, wrong lengths, or non-hex characters
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
+A full copy of the License is also available at: [https://dankest.llc/license](https://dankest.llc/license)

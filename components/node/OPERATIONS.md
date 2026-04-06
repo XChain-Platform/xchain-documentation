@@ -1,0 +1,226 @@
+<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- Copyright © 2025 Dankest, LLC -->
+
+# XChain Node — Operations
+
+## Prerequisites
+
+- **Node.js** >= 18
+- **Docker** installed and running (`docker --version` and `docker ps` must both succeed)
+- **npm** for dependency installation
+
+## Running xchain-node
+
+xchain-node is a CLI tool, not a long-running service. Install it globally via `npm link` and invoke commands as needed:
+
+```bash
+npm link
+xchain_node <command> [service] [chain] [network] [options]
+```
+
+Arguments are order-independent — `xchain_node start bitcoin mainnet xchain-encoder` and `xchain_node start xchain-encoder mainnet bitcoin` are equivalent.
+
+## Commands
+
+### Service Management
+
+| Command | Syntax | Description |
+|---|---|---|
+| `install` | `install <branch> <service> [chain] [network]` | Clone service repo, build Docker image, create and start container |
+| `uninstall` | `uninstall <service> [chain] [network]` | Stop, kill, and remove container; delete LevelDB entry and module directory |
+| `update` | `update <service> [chain] [network] [branch]` | Stop container, pull new code, rebuild image, start with same configuration |
+| `start` | `start <service> [chain] [network]` | Start stopped container(s) by looking up container IDs from LevelDB |
+| `stop` | `stop <service> [chain] [network]` | Stop running container(s) |
+| `restart` | `restart <service> [chain] [network]` | Restart container(s) |
+| `reset` | `reset <service> <chain> <network>` | Stop containers, clear data (volumes or databases), restart |
+| `ps` | `ps` | Display status table of all installed services with versions and ports |
+
+### Logging & Monitoring
+
+| Command | Syntax | Description |
+|---|---|---|
+| `tail` | `tail [service] [chain] [network]` | Follow log output (like `docker logs -f`) with 10-line buffer |
+| `logs` | `logs [service] [chain] [network]` | Display full log history |
+| `monitor` | `monitor [service] [chain] [network]` | Split-screen Blessed TUI showing logs from up to 6 containers |
+| `tailmonitor` | `tailmonitor [service] [chain] [network]` | Monitor with follow mode |
+
+### Container Operations
+
+| Command | Syntax | Description |
+|---|---|---|
+| `exec` | `exec <service> <chain> <network> <command>` | Execute a command inside a running container |
+| `shell` | `shell <service> <chain> <network>` | Open an interactive shell in a container |
+
+### Advanced Operations
+
+| Command | Syntax | Description |
+|---|---|---|
+| `bootstrap` | `bootstrap <create\|restore> <service> <chain> <network>` | Create or restore gzipped bootstrap snapshots with SHA-256 verification |
+| `e2etest` | `e2etest <chain> [testName]` | Run the xchain-e2e-test suite on a regtest network; supports `--grep` filtering |
+| `rollback` | `rollback <block_index> <service> <chain> <network>` | Rollback to a specific block (placeholder — not yet implemented) |
+
+## Global Options
+
+| Option | Description |
+|---|---|
+| `-v, --verbose` | Print pre-check progress and additional debug output |
+| `-i, --interactive` | Enable interactive TUI mode |
+| `--no-bootstrap` | Skip bootstrap file downloads during installation |
+| `--no-explorer` | Skip explorer installation |
+| `-V, --version` | Display xchain-node version |
+
+## Parameters
+
+| Parameter | Valid Values |
+|---|---|
+| `service` | `node`, `xchain-encoder`, `xchain-decoder`, `xchain-utxo-tracker`, `xchain-indexer`, `xchain-hub`, `xchain-explorer`, `database`, `all` |
+| `chain` | `bitcoin`, `litecoin`, `dogecoin`, `all` |
+| `network` | `mainnet`, `testnet`, `regtest`, `all` |
+
+When `all` is used, the command expands to every valid combination. Regtest-only services (`xchain-regtest-miner`, `xchain-e2e-test`) are automatically excluded from mainnet and testnet expansions.
+
+## Installation Workflow
+
+When `xchain_node install master all bitcoin regtest` is executed:
+
+1. **Pre-flight checks** — Docker verification, directory creation, LevelDB open, version fetch
+2. **Docker network creation** — creates `xchain-node-bitcoin-regtest` network
+3. **Database provisioning** — pulls MariaDB image, creates shared database container
+4. **Module installation** (for each service in dependency order):
+   - Clone the service repository from GitHub at the specified branch
+   - Build a Docker image tagged with the naming convention
+   - Create and start a container with generated environment variables
+   - Store the container ID in LevelDB
+5. **Database setup** — create databases and users for decoder and indexer
+6. **Hub/Explorer configuration** — update hub and explorer with service endpoint information
+
+## Docker
+
+xchain-node manages Docker directly via `execFile` calls — it does not use Docker Compose. All Docker commands use array-based arguments (no shell interpolation).
+
+Key Docker operations:
+
+- **Network creation** — `docker network create xchain-node-{coin}-{network}`
+- **Image building** — `docker build -t {image-name} {module-dir}`
+- **Container creation** — `docker run -d --hostname {image-name} --network {network} -e KEY=VALUE ... {image-name}`
+- **Container lifecycle** — `docker start/stop/restart/kill/rm {container-id}`
+- **Command execution** — `docker exec -i {container-id} {command...}`
+- **Log streaming** — `docker logs -f --tail 10 {container-id}` via `spawn`
+
+## Stopping
+
+Use `xchain_node stop` to stop containers. LevelDB entries are preserved — containers can be restarted later with `xchain_node start`.
+
+Use `xchain_node uninstall` to fully remove containers, images, and LevelDB entries.
+
+## Multi-Pane Monitoring
+
+The `monitor` command opens a full-terminal Blessed TUI:
+
+- Displays live log output from up to 6 containers simultaneously
+- Each container gets its own scrollable pane
+- Press **Q**, **Esc**, or **Ctrl+C** to exit
+
+## Bootstrap Operations
+
+### Creating a Bootstrap
+
+```bash
+xchain_node bootstrap create xchain-utxo-tracker bitcoin mainnet
+```
+
+Creates a gzipped tar archive of the service's data volume plus a SHA-256 hash file.
+
+### Restoring a Bootstrap
+
+```bash
+xchain_node bootstrap restore xchain-utxo-tracker bitcoin mainnet
+```
+
+Verifies the SHA-256 hash before extraction. Aborts cleanly on hash mismatch.
+
+## Troubleshooting
+
+### Docker not found
+
+```
+Error: docker --version failed
+```
+
+Install Docker and ensure it is running. Verify with `docker --version` and `docker ps`.
+
+### Port already in use
+
+A container fails to start because the host port is already bound. Check for conflicting containers or processes:
+
+```bash
+docker ps -a | grep {port}
+lsof -i :{port}
+```
+
+Update the port in the config file (`config/{coin}-{network}`) and reinstall the affected service.
+
+### LevelDB locked
+
+```
+Error: IO error: lock /path/to/xchain_node/LOCK
+```
+
+Another xchain-node process is running, or a previous process crashed without releasing the lock. If no other process is running, remove the lock file manually:
+
+```bash
+rm data/xchain_node/LOCK
+```
+
+### Container ID not found in LevelDB
+
+```
+Error: Key not found in database [MCxchain-encoder;bitcoin;mainnet]
+```
+
+The service was never installed, or its LevelDB entry was removed. Re-install the service:
+
+```bash
+xchain_node install master xchain-encoder bitcoin mainnet
+```
+
+### Branch not found
+
+```
+Error: Invalid branch name: ...
+```
+
+Branch names are validated against `/^[a-zA-Z0-9._\-\/]+$/`. Shell metacharacters, spaces, and special characters are rejected. Use a valid branch name.
+
+### Git clone failure
+
+If `git clone` fails (network error, branch not found), xchain-node falls back to the `master` branch. If `master` also fails, the installation aborts with an error.
+
+### Database container not running
+
+If the MariaDB container is not running when installing a service that needs a database, xchain-node will fail during the database setup step. Start the database first:
+
+```bash
+xchain_node start database
+```
+
+### Hub unreachable after installation
+
+The hub configuration update retries up to 10 times with 3-second delays. If the hub container is slow to start, this is normal. If it persists, check the hub container logs:
+
+```bash
+xchain_node logs xchain-hub
+```
+
+---
+
+**Copyright &copy; 2025 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **Dankest Community License**
+(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+
+You may not use, modify, or distribute this material except in compliance with the License.
+See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
+A full copy of the License is also available at: [https://dankest.llc/license](https://dankest.llc/license)

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-06
+
+### Added
+- `components/node/ARCHITECTURE.md` — new file: data pipeline position, internal component diagram, source files table (21 files), precheck workflow, LevelDB key schema, runtime directory structure, Docker network topology
+- `components/node/CONFIGURATION.md` — new file: two-layer config file system, generated environment variables (coin-specific and shared service tables), naming conventions, internal constants, validation rules (NODE_PREFIX, port, branch name, container ID)
+- `components/node/OPERATIONS.md` — new file: full CLI commands reference (17 commands in 4 categories), global options, parameter values, installation workflow, Docker usage, multi-pane monitoring, bootstrap operations, troubleshooting (8 scenarios)
+- `components/regtest-miner/ARCHITECTURE.md` — new file: data pipeline position, internal component diagram, source files table (3 files), mining loop flowchart, wallet lifecycle decision tree, fillMempool process
+- `components/regtest-miner/CONFIGURATION.md` — new file: required environment variables (6 vars with validation rules), internal constants (9 constants), timer behavior, exponential backoff formula
+- `components/regtest-miner/OPERATIONS.md` — new file: prerequisites, startup sequence, Docker, graceful shutdown, JSON-RPC API (6 endpoints with request/response examples), resilience features, troubleshooting (5 scenarios)
+
+### Changed
+- `components/node/README.md` — refactored into multi-file format: moved architecture, configuration, and operations content to dedicated files; added Documentation table linking to ARCHITECTURE.md, CONFIGURATION.md, OPERATIONS.md
+- `components/regtest-miner/README.md` — refactored into multi-file format: moved architecture, configuration, and operations content to dedicated files; added Documentation table linking to ARCHITECTURE.md, CONFIGURATION.md, OPERATIONS.md
+
 ## [0.7.0] - 2026-04-06
 
 ### Changed
