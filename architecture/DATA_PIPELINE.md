@@ -25,7 +25,7 @@ The SDK formats this into a pipe-delimited ACTION string:
 ISSUE|0|MYTOKEN|1000000|8|...
 ```
 
-Before encoding, the SDK queries xchain-hub to retrieve current network configuration (fee rates, gas requirements, supported formats) and queries xchain-utxo-tracker to retrieve spendable UTXOs for the sender's address. These two reads give the SDK everything it needs to build a valid encoding request.
+Before encoding, the SDK queries xchain-hub to retrieve current network configuration (fee rates, gas requirements, supported formats) and queries xchain-utxo-tracker to retrieve spendable UTXOs for the sender's address. For fee-bearing actions, the SDK also calls the hub's `getfeequote` method to calculate the native coin fee amount via the decentralized oracle (gas → XCHAIN → USD → native coin). These reads give the SDK everything it needs to build a valid encoding request, including the protocol fee output.
 
 ---
 
@@ -115,7 +115,7 @@ The explorer reads directly from the Indexer DB. It exposes:
 
 A query like `GET /token/MYTOKEN` triggers a SQL read against the Indexer DB and returns the token record created in Step 6. Because the explorer reads directly from MariaDB (no caching layer), it reflects the state of the last committed indexer block.
 
-The explorer syncs configuration from xchain-hub every 60 seconds — fee schedules, supported chains, fiat prices.
+The explorer syncs configuration from xchain-hub every 60 seconds — fee schedules, supported chains, and oracle price data. The hub is a decentralized validator network providing PBFT-consensus config, price oracle (trimmed median aggregation), cross-chain attestation, and governance. Consumers connect to multiple hub endpoints via `HUB_VALIDATORS` for high availability.
 
 ### Step 7b — WebSocket Pushes Real-Time Events
 
@@ -139,8 +139,10 @@ See the [Explorer WebSocket API Reference](../components/explorer/WEBSOCKET.md) 
         |  ACTION string
         v
   +-----------+       +---------------+
-  |  xchain   |------>|  xchain-hub   |  (config: fees, params)
-  |    sdk    |       +---------------+
+  |  xchain   |------>|  xchain-hub   |  (config, oracle prices, fee quotes)
+  |    sdk    |       | (validator    |
+  |           |       |  network)     |
+  |           |       +---------------+
   |           |------>+------------------+
   |           |       | xchain-utxo-     |  (UTXOs for sender)
   +-----------+       | tracker  LevelDB |

@@ -3,91 +3,129 @@
 
 # Gas and Fees
 
-XChain uses its own fee token — **XCHAIN** — to pay for operations that write to the protocol's state. This gas mechanism funds infrastructure, prevents spam, and provides an economic layer independent of coin transaction fees.
+XChain uses a unified gas-based fee system. All protocol fees are expressed in **gas units**, converted to XCHAIN via a single GAS_PRICE parameter, and paid in either native coin (BTC/LTC/DOGE) via oracle price conversion or XCHAIN balance deduction (BTC only).
+
+## Fee Conversion Paths
+
+**Native coin payment (all chains):**
+```
+gas cost → GAS_PRICE → XCHAIN amount → XCHAIN/USD oracle → USD → USD/coin oracle → native coin
+```
+
+**XCHAIN balance payment (BTC only):**
+```
+gas cost → GAS_PRICE → XCHAIN amount → debit from user's XCHAIN balance
+```
+
+On BTC, the indexer uses implicit detection: if the transaction includes a native coin output to the fee destination address, it's validated as native coin payment against the oracle. If there is no fee output, the indexer debits XCHAIN from the user's balance. On LTC/DOGE, native coin payment is the only option — a missing fee output means the action is rejected.
+
+## GAS_PRICE
+
+| Parameter | Value | Notes |
+|---|---|---|
+| **GAS_PRICE** | 0.00001 XCHAIN/gas | Governance-adjustable. Single lever to scale all fees. |
+
+**Anchor:** ISSUE = 100,000 gas = 1.0 XCHAIN at initial GAS_PRICE.
+
+## Complete Fee Schedule
+
+### Platform Action Fees
+
+| Action | Gas Cost | XCHAIN (initial) | Notes |
+|---|---|---|---|
+| **ISSUE** | 100,000 | 1.0 | Same on all chains |
+| **Sub-token ISSUE** | 50,000 | 0.5 | Half of ISSUE |
+| **ORDER/DISPENSER/SWAP expiration** | 550/day | ~0.0055/day | 90-day free period |
+| **AIRDROP** | 100/recipient | 0.001/recipient | 1,000 recipients = 1 XCHAIN |
+| **DIVIDEND** | 100/recipient | 0.001/recipient | Same as AIRDROP |
+
+### VM Fees
+
+| Operation | Gas Cost | XCHAIN (initial) | Notes |
+|---|---|---|---|
+| **EXECUTE base fee** | 1,000 | 0.01 | Minimum to invoke any contract |
+| **DEPLOY base fee** | 100,000 | 1.0 | Permanent state — on par with ISSUE |
+| **DEPLOY per byte** | 10 | — | 10KB = 100,000 extra gas; 64KB max |
+| **State read** | 100 | 0.001 | Single indexed DB lookup |
+| **State write** | 200 | 0.002 | 2x read |
+| **State delete** | 100 | 0.001 | Same as read |
+| **Oracle read** | 100 | 0.001 | Same as state read |
+| **Action emission** | 500 | 0.005 | Anti-spam for emitted actions |
+| **Computation** | 1/instruction | — | Metered by isolated-vm |
+
+### Hard Caps (Primary Spam Deterrent)
+
+- Max 50 emitted actions per execution
+- Max 10,000 state keys per contract
+- Max 64KB state value per key
+- 100ms CPU time limit per execution
+- 8MB memory limit per isolate
+- Max 64KB contract code size
+
+### Expiration Free Period
+
+The first 90 days of any ORDER/DISPENSER/SWAP are free. Fees only apply to days beyond 90:
+- 90-day order (default): **0 gas** (free)
+- 180-day order: 49,500 gas (0.495 XCHAIN)
+- 365-day order: 151,250 gas (~1.51 XCHAIN)
+
+### Example Costs (at GAS_PRICE = 0.00001, XCHAIN = $1)
+
+| Scenario | Gas | XCHAIN | USD |
+|---|---|---|---|
+| ISSUE a token | 100,000 | 1.0 | $1.00 |
+| 90-day ORDER (default) | 0 | 0 | $0 |
+| 1-year ORDER | 151,250 | ~1.51 | $1.51 |
+| AIRDROP to 1,000 recipients | 100,000 | 1.0 | $1.00 |
+| Simple contract call | ~2,600 | 0.026 | $0.026 |
+| Deploy 10KB contract | 200,000 | 2.0 | $2.00 |
+
+## Fee Collection and Distribution
+
+Native coin fees are collected at **fee destination addresses** on each chain. The ADDRESS action's `FEE_PREFERENCE` field routes collected fees:
+
+| Bucket | Purpose |
+|---|---|
+| Protocol Development | Fund ongoing platform development |
+| Community Development | Community grants, ecosystem growth |
+| **XCHAIN Buyback Program** | Buy XCHAIN on the DEX (ORDER + COINPAY) to replenish validator reward pool |
+| Destroy (burn) | Deflationary |
+
+The buyback program creates constant buy-side pressure for XCHAIN on the DEX, funding validator rewards sustainably.
 
 ## The XCHAIN Token
 
-`XCHAIN` is a standard XChain token in every technical sense — it lives in the same ledger, transfers the same way, and appears in the same explorer. What makes it special is its designation as the platform fee token and the restrictions around who can issue it.
+XCHAIN is a standard XChain token issued via ISSUE on the **BTC chain only**. It does not exist natively on LTC or DOGE. The XCHAIN ticker is reserved on all chains to prevent unauthorized issuance.
 
-XCHAIN is **separate per chain**. The XCHAIN token on Bitcoin is a completely different asset from XCHAIN on Litecoin or Dogecoin. Holding BTC XCHAIN gives you no LTC XCHAIN, and vice versa. Fee payments on each chain require that chain's XCHAIN token.
+XCHAIN's value is driven by:
+- **Staking demand** — validators must stake XCHAIN (1,000 for oracle, 5,000 for cross-chain)
+- **Buyback program** — native coin fees are used to buy XCHAIN on the DEX
 
-## Who Can Issue XCHAIN
+## Oracle Price Validation
 
-The `XCHAIN` ticker is a reserved ticker — no ordinary address can issue a token with that name. Only the designated **GAS address** for each chain and network can issue it. This address is configured per-chain (defined in the indexer's config for each coin and network) and is exempt from the reserved ticker restriction specifically to allow XCHAIN issuance.
+When a user pays a fee in native coin, the indexer validates the payment against the decentralized oracle:
 
-This means XCHAIN supply is controlled by the platform deployer, not by any arbitrary address.
+1. Calculate expected native coin amount: `gas × GAS_PRICE → XCHAIN → USD → native coin`
+2. Check the transaction output to the fee destination address
+3. Validate the paid amount is within the tolerance band (95%-110%)
+4. Record the fee with the oracle round reference
 
-## Fee Schedule
+The tolerance band accounts for price movement between transaction creation and confirmation.
 
-Fees are charged in XCHAIN for operations that create or modify persistent state. The specific amounts are configurable per chain and network, but the general categories are:
+## Governance
 
-- **Issuance fee**: Charged to create a new top-level token.
-- **Sub-token fee**: A reduced fee for tokens issued under a parent token namespace.
-- **DEX listing fees**: Charged for placing orders or opening dispensers.
-- **Expiration fees**: Charged per-day for time-limited operations.
+All fee parameters are governance-adjustable via the hub's PBFT voting mechanism:
 
-Operations that are read-only, or that operate on data already paid for, do not charge fees. Simple token transfers (SEND) between addresses do not require XCHAIN beyond the normal coin miner fee for the underlying blockchain transaction.
-
-## Special Addresses
-
-Each chain and network has four designated addresses with special roles:
-
-| Address | Role |
+| Parameter | Adjustment |
 |---|---|
-| `GAS` | Issues the XCHAIN token; receives a portion of fee payments |
-| `BURN` | Permanent destruction sink — tokens sent here cannot be recovered |
-| `DONATE1` | Optional fee recipient 1 (infrastructure / development) |
-| `DONATE2` | Optional fee recipient 2 (infrastructure / development) |
-
-When a fee is collected, it is split and distributed to these addresses according to the fee schedule configuration. The split ratios and amounts are protocol parameters, adjustable per chain.
-
-Sending tokens to the `BURN` address is the standard mechanism for intentional permanent destruction — it works for any token, not just XCHAIN.
-
-## How Fees Are Recorded
-
-Fee payments are full ledger entries. When an ISSUE ACTION charges an issuance fee, the indexer:
-
-1. Validates that the issuer has sufficient available XCHAIN balance
-2. Creates a debit entry on the issuer's XCHAIN balance
-3. Creates credit entries on the GAS, DONATE1, and DONATE2 balances according to the distribution schedule
-
-All three entries share the same ACTION_INDEX and are committed atomically. If fee validation fails (insufficient XCHAIN balance), the ACTION that triggered the fee is also rejected.
-
-## VM Gas (Smart Contracts)
-
-Smart contract execution introduces a fine-grained gas metering system. When an EXECUTE action runs a contract method, every operation inside the VM is individually metered:
-
-| Operation | Gas Cost | Description |
-|---|---|---|
-| `VM_COMPUTATION` | 1 | Per control flow point (loop iteration, function call, branch) |
-| `VM_STATE_READ` | 100 | `state.get()`, `state.has()`, `getBalance()`, `getTokenInfo()` |
-| `VM_STATE_WRITE` | 200 | `state.set()` |
-| `VM_STATE_DELETE` | 100 | `state.delete()` |
-| `VM_ORACLE_READ` | 100 | `oracle.getPrice()`, `oracle.getPriceAtRound()` |
-| `VM_CROSSCHAIN_READ` | 100 | `crossChain.getAttestation()`, `crossChain.isSettled()` |
-| `VM_EMISSION` | 500 | Each emitted action (`emit.send()`, `emit.mint()`, etc.) |
-
-The gas ceiling is **1,000,000** per execution. Gas metering is deterministic — based on code structure (AST injection), not wall-clock time.
-
-### Deployment Gas
-
-Deploying a contract charges: `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`. If the contract has a constructor, the constructor's metered gas is added to the deployment gas. The caller pays the total even if the constructor fails.
-
-### Execution Gas
-
-Executing a contract charges the actual gas consumed during the VM execution (minimum `VM_EXECUTE_BASE`). Failed executions (reverts, out of gas) still charge gas up to the failure point — this prevents free probing.
-
-### Gas Fee Conversion
-
-Gas is converted to XCHAIN fees via the gas price: `fee = gas_used * GAS_PRICE`. The gas price is a protocol parameter configured per chain.
-
-## Acquiring XCHAIN
-
-XCHAIN can be acquired the same way as any other XChain token — through transfers, dispensers, or the order book. The GAS address distributes initial XCHAIN supply, and the secondary market determines availability and price.
+| **GAS_PRICE** | Scales all fees proportionally |
+| **Individual gas costs** | Fine-tune specific action costs |
+| **Tolerance band** | Adjust fee validation window |
+| **Free period** | Adjust expiration fee free days |
 
 ---
 
-*See also: [Tokens](./TOKENS.md) | [Ledger](./LEDGER.md) | [Security Model](./SECURITY_MODEL.md) | [Smart Contracts](./SMART_CONTRACTS.md)*
+*See also: [Tokens](./TOKENS.md) | [Ledger](./LEDGER.md) | [Smart Contracts](./SMART_CONTRACTS.md) | [Cross-Chain](./CROSS_CHAIN.md)*
 
 ---
 
