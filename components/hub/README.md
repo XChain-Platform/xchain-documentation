@@ -80,6 +80,20 @@ npm run api
 
 The hub automatically creates the database and tables on first startup.
 
+## Multi-Instance Deployment
+
+Multiple hub instances can run against the same MariaDB database for high availability. No consensus is required — all instances read from and write to the same database.
+
+Consumer services specify multiple hub endpoints via the `HUB_VALIDATORS` environment variable:
+
+```env
+HUB_VALIDATORS=hub1.local:10000,hub2.local:10000,hub3.local:10000
+```
+
+Consumers try each endpoint in order and fall back to the next if one is unreachable. If `HUB_VALIDATORS` is not set, consumers fall back to the legacy `HUB_API_HOST:HUB_PORT` variables.
+
+Services that support `HUB_VALIDATORS`: xchain-explorer, xchain-indexer-sync, xchain-node, xchain-e2e-test, xchain-sdk.
+
 ## Related
 
 - [Decentralization](DECENTRALIZATION.md) — planned evolution of the hub toward a decentralized validator network

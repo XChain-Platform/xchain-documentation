@@ -70,7 +70,7 @@ The decentralization is planned across six phases:
 | Phase | Name | Status |
 |---|---|---|
 | 0 | **MariaDB migration** — Replace LevelDB with MariaDB | **Complete** |
-| 1 | **Multi-instance hub** — Run multiple hub instances against shared MariaDB for reliability | Planned |
+| 1 | **Multi-instance hub** — Run multiple hub instances against shared MariaDB for reliability; consumer fallback via `HUB_VALIDATORS` | **Complete** |
 | 2 | **Gossip + PBFT consensus for config** — P2P gossip layer, PBFT consensus for config writes | Planned |
 | 3 | **Decentralized price oracle** — Tier 1 staking, price round system, slashing | Planned |
 | 4 | **Cross-chain coordination** — xchain-indexer-sync, Tier 2 staking, PBFT attestation | Planned |
