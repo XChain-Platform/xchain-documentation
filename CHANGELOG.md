@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-06
+
+### Changed
+- `components/node/README.md` — rewrote from high-level overview to full component documentation matching regtest-miner/decoder pattern: added accurate CLI commands (17 commands with syntax), configuration system (two-layer config, 40+ env vars, naming conventions, internal constants), architecture diagram with source file table (21 files), runtime directory structure, Features (17 items), Scripts (14 npm commands), Dependencies (Runtime + Development), Quick Start, Related links; corrected container naming pattern, removed non-existent commands, removed inaccurate TUI resource monitoring claims
+
 ## [0.6.0] - 2026-04-05
 
 ### Changed
