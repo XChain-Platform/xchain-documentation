@@ -71,16 +71,14 @@ The decentralization is planned across six phases:
 |---|---|---|
 | 0 | **MariaDB migration** — Replace LevelDB with MariaDB | **Complete** |
 | 1 | **Multi-instance hub** — Run multiple hub instances against shared MariaDB for reliability; consumer fallback via `HUB_VALIDATORS` | **Complete** |
-| 2 | **Gossip + PBFT consensus for config** — P2P gossip layer, PBFT consensus for config writes | Planned |
-| 3 | **Decentralized price oracle** — Tier 1 staking, price round system, slashing | Planned |
-| 4 | **Cross-chain coordination** — xchain-indexer-sync, Tier 2 staking, PBFT attestation | Planned |
-| 5 | **Open validator set + governance** — Permissionless participation, on-chain governance | Planned |
+| 2 | **Gossip + PBFT consensus** — P2P gossip layer (WebSocket), PBFT consensus for config writes, Ed25519 validator identity, leader rotation, view change | **Complete** |
+| 3 | **Decentralized price oracle** — External price fetching, trimmed median aggregation, oracle PBFT consensus, price snapshots, reward tracking, slash detection, fee quotes | **Complete** |
+| 4 | **Cross-chain coordination** — Attestation engine, reorg propagation, SWAP lifecycle tracking, per-chain-pair validator filtering | **Complete** |
+| 5 | **Open validator set + governance** — Off-chain PBFT voting for parameter changes, version signaling in heartbeats | **Complete** |
 
 ## Status
 
-**Phase 0 (MariaDB migration) is complete.** The hub now stores all configuration in MariaDB (`XChain_Hub` database, `configs` table) with connection pooling, circuit breaker, and auto-table-creation. The JSON-RPC API is unchanged — consumers see no difference.
-
-Phase 1 (multi-instance) is next. The full strategic architecture plan, including detailed algorithms, economic models, slashing conditions, and implementation specifics, is available in `claude/reports/XCHAIN_HUB_BUILD_PLAN.md`.
+**All six decentralization phases are complete (v2.0.0).** The hub is now a fully decentralized validator network with P2P gossip, PBFT consensus, Ed25519 identity, a decentralized price oracle, cross-chain attestation with reorg propagation, SWAP lifecycle tracking, and off-chain governance.
 
 ## Related
 
