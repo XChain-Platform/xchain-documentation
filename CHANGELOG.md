@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-04-07
+
+### Added
+- `components/sdk/WALLET.md` — new reference doc for wallet and auth modules: key management, address derivation and validation, challenge-response wallet verification, custom message signing, PSBT signing, transaction broadcasting, UTXO queries, supported networks matrix, full workflow examples
+
+### Changed
+- `components/sdk/EXAMPLES.md` — added 10 new wallet/auth examples: Generate a Key Pair, Import a WIF Key, Derive Addresses, Validate an Address, Challenge-Response Wallet Verification, Custom Message Signing, Sign and Broadcast a Transaction, Token-Gated Content Access, Fetch UTXOs
+- `components/sdk/README.md` — added 7 wallet/auth features to Features list, added WALLET.md to Documentation table, added 4 new crypto dependencies to Runtime dependencies table
+- `components/sdk/ERRORS.md` — added SDKWalletError (14 error codes) and SDKAuthError (5 error codes) to hierarchy, class table, error codes reference, and catching errors example
+
+## [0.9.3] - 2026-04-07
+
+### Changed
+- `developer-guide/INTEGRATION_PATTERNS.md` — expanded Pattern 3 (Token-Gated Access) from a basic balance check into a comprehensive guide: wallet ownership proof via challenge-response signing, session management with configurable re-check intervals, real-time balance invalidation via WebSocket, smart contract-based on-chain gating with example contract, end-to-end music platform example, security considerations
+- `user-guide/USE_CASES.md` — expanded "Access Control and Token-Gated Systems" section with concrete content-gating examples (music, books, video, software, physical access, communities), wallet ownership proof mention, TRANSFER_LOCK guidance, and cross-reference to Integration Patterns
+- `developer-guide/QUERY_THE_EXPLORER.md` — added cross-reference from token-gated check snippet to the full Integration Patterns guide, fixed typo in comment
+
 ## [0.9.2] - 2026-04-06
 
 ### Added

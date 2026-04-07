@@ -20,7 +20,9 @@ Error
         ├── SDKExplorerError
         ├── SDKHubError
         ├── SDKConfigError
-        └── SDKContractError
+        ├── SDKContractError
+        ├── SDKWalletError
+        └── SDKAuthError
 ```
 
 Every error instance carries four properties:
@@ -45,6 +47,8 @@ Every error instance carries four properties:
 | `SDKHubError` | Hub unreachable |
 | `SDKConfigError` | Missing required configuration (encoder URL, explorer URL, etc.) |
 | `SDKContractError` | Contract-specific errors: code too large, invalid hex, bad contract index, etc. |
+| `SDKWalletError` | Key management, address derivation, PSBT signing, broadcasting, UTXO queries |
+| `SDKAuthError` | Challenge generation, message signing, signature verification errors |
 
 ---
 
@@ -91,6 +95,8 @@ Thrown when communication with the xchain-encoder service fails.
 | `MISSING_PUBKEY` | `createTx` was called without providing the sender's public key |
 | `MISSING_P2SH_HASH` | `spendP2sh` was called without the P2SH script hash |
 | `MISSING_P2SH_HEX` | `spendP2sh` was called without the redeem script hex |
+| `MISSING_TX_HEX` | `broadcastTx` was called without providing the signed transaction hex |
+| `MISSING_ADDRESS` | `getUTXOs` was called without providing an address |
 
 ### SDKExplorerError
 
@@ -136,6 +142,39 @@ Thrown for contract-specific issues during DEPLOY, EXECUTE, DEPOSIT, or WITHDRAW
 | `CONTRACT_NOT_FOUND` | — | Explorer lookup returned no contract for the given index |
 | `CONTRACT_DISABLED` | — | Contract is disabled (for execute/deposit operations) |
 
+### SDKWalletError
+
+Thrown by wallet operations: key management, address derivation, PSBT signing, transaction broadcasting, and UTXO queries.
+
+| Code | Description |
+|------|-------------|
+| `NETWORK_NOT_CONFIGURED` | A wallet operation requiring network parameters was called without a network configured |
+| `INVALID_WIF` | WIF string is malformed or cannot be decoded |
+| `NETWORK_MISMATCH` | The WIF key's network byte does not match the SDK's configured network |
+| `INVALID_PUBLIC_KEY` | Public key buffer is malformed or has an invalid length |
+| `INVALID_ADDRESS_TYPE` | Unknown address type requested (not `p2pkh`, `p2wpkh`, or `p2sh-p2wpkh`) |
+| `SEGWIT_NOT_SUPPORTED` | A SegWit address type was requested on a Dogecoin network |
+| `INVALID_PSBT` | The hex string could not be parsed as a valid PSBT |
+| `SIGN_FAILED` | PSBT signing failed (wrong key for inputs, etc.) |
+| `FINALIZE_FAILED` | PSBT finalization failed after signing |
+| `INVALID_TX_HEX` | Missing or empty transaction hex for broadcasting |
+| `ENCODER_REQUIRED` | `broadcastTx` or `getUTXOs` was called on `wallet` directly without an encoder client |
+| `BROADCAST_FAILED` | The encoder returned an error when broadcasting the transaction |
+| `INVALID_ADDRESS` | Address is missing or invalid for a UTXO query |
+| `UTXO_FETCH_FAILED` | The encoder returned an error when fetching UTXOs |
+
+### SDKAuthError
+
+Thrown by authentication operations: challenge generation, message signing, and signature verification setup errors. Note: `verifyOwnership` and `verifyMessage` return `{ valid: false }` instead of throwing.
+
+| Code | Description |
+|------|-------------|
+| `NETWORK_NOT_CONFIGURED` | A signing or verification operation was called without a network configured |
+| `INVALID_ADDRESS` | Address is missing or not a string for challenge generation |
+| `INVALID_MESSAGE` | Message is missing or not a string for signing |
+| `INVALID_WIF` | WIF string is malformed or cannot be decoded |
+| `SIGN_FAILED` | Message signing failed unexpectedly |
+
 ---
 
 ## Catching Errors
@@ -148,7 +187,9 @@ const {
     SDKFormatError,
     SDKEncoderError,
     SDKConfigError,
-    SDKContractError
+    SDKContractError,
+    SDKWalletError,
+    SDKAuthError
 } = require('@xchain/sdk/src/errors');
 
 try {
@@ -195,6 +236,14 @@ try {
     } else if (err instanceof SDKContractError) {
         // Contract-specific error (code too large, bad hex, etc.)
         console.error('Contract error:', err.code, err.message);
+
+    } else if (err instanceof SDKWalletError) {
+        // Wallet operation failed (key import, PSBT signing, broadcast, etc.)
+        console.error('Wallet error:', err.code, err.message);
+
+    } else if (err instanceof SDKAuthError) {
+        // Auth operation failed (challenge generation, message signing)
+        console.error('Auth error:', err.code, err.message);
 
     } else {
         // Unexpected error — rethrow

@@ -42,6 +42,15 @@ End-to-end usage examples for common XChain Platform SDK workflows.
 - [Withdraw Tokens from a Contract](#withdraw-tokens-from-a-contract)
 - [Using the Contract Client](#using-the-contract-client)
 - [Contract Authoring Utilities](#contract-authoring-utilities)
+- [Generate a Key Pair](#generate-a-key-pair)
+- [Import a WIF Key](#import-a-wif-key)
+- [Derive Addresses](#derive-addresses)
+- [Validate an Address](#validate-an-address)
+- [Challenge-Response Wallet Verification](#challenge-response-wallet-verification)
+- [Custom Message Signing](#custom-message-signing)
+- [Sign and Broadcast a Transaction](#sign-and-broadcast-a-transaction)
+- [Token-Gated Content Access](#token-gated-content-access)
+- [Fetch UTXOs](#fetch-utxos)
 
 ---
 
@@ -776,6 +785,284 @@ for (let w of floatWarnings) console.log(w);
 // Gas limit suggestion (heuristic)
 let gas = sdk.contracts.suggestGasLimit(contractSource);
 console.log('Suggested gas:', gas.suggested, '(' + gas.rationale + ')');
+```
+
+---
+
+## Generate a Key Pair
+
+```js
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
+
+const kp = sdk.generateKeyPair();
+console.log('WIF:', kp.wif);
+console.log('Public key:', kp.publicKeyHex);
+console.log('Compressed:', kp.compressed); // true
+
+// Uncompressed key pair
+const kpUncompressed = sdk.generateKeyPair({ compressed: false });
+console.log('Uncompressed public key length:', kpUncompressed.publicKey.length); // 65
+```
+
+---
+
+## Import a WIF Key
+
+```js
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
+
+const kp = sdk.importWIF('L1aW4aubDFB7yfras...'); // your WIF key
+console.log('Public key:', kp.publicKeyHex);
+console.log('Address:', sdk.deriveAddress(kp.publicKey));
+```
+
+---
+
+## Derive Addresses
+
+```js
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
+const kp = sdk.generateKeyPair();
+
+// Legacy (P2PKH)
+const legacy = sdk.deriveAddress(kp.publicKey);
+console.log('P2PKH:', legacy); // 1...
+
+// Native SegWit (bech32)
+const segwit = sdk.deriveAddress(kp.publicKey, { type: 'p2wpkh' });
+console.log('P2WPKH:', segwit); // bc1q...
+
+// Wrapped SegWit (P2SH-P2WPKH)
+const wrapped = sdk.deriveAddress(kp.publicKey, { type: 'p2sh-p2wpkh' });
+console.log('P2SH-P2WPKH:', wrapped); // 3...
+
+// Works with hex string too
+const sameAddress = sdk.deriveAddress(kp.publicKeyHex);
+console.log(legacy === sameAddress); // true
+```
+
+---
+
+## Validate an Address
+
+```js
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
+
+// Check against configured network
+let result = sdk.validateAddress('bc1qexample...');
+console.log(result.valid);   // true
+console.log(result.type);    // 'p2wpkh'
+console.log(result.network); // 'bitcoin-mainnet'
+
+// Check against a specific network
+result = sdk.validateAddress('ltc1q...', 'litecoin-mainnet');
+console.log(result.valid);   // true
+
+// Invalid address — returns { valid: false }, never throws
+result = sdk.validateAddress('not-an-address');
+console.log(result.valid);   // false
+console.log(result.error);   // 'Address does not match any supported network.'
+
+// No network configured — checks all 9 networks
+const noNetSdk = new XChainSDK();
+result = noNetSdk.validateAddress('bc1qexample...');
+console.log(result.network); // 'bitcoin-mainnet' (auto-detected)
+```
+
+---
+
+## Challenge-Response Wallet Verification
+
+Full server + client flow for proving a user owns a wallet address.
+
+```js
+const XChainSDK = require('xchain-sdk');
+
+// --- Server side ---
+
+const serverSdk = new XChainSDK({ network: 'bitcoin-mainnet' });
+
+// Step 1: Generate a challenge for the user to sign
+const challenge = serverSdk.generateChallenge('bc1quseraddress...', {
+    appId: 'MyMusicApp'
+});
+// Store challenge.nonce in your session/database
+// Send challenge.challenge to the client
+
+console.log(challenge.challenge);
+// "XChain wallet verification\nApp: MyMusicApp\nAddress: bc1quseraddress...\nNonce: a1b2c3...\nTimestamp: 2026-04-07T..."
+
+console.log(challenge.expiresAt);
+// "2026-04-07T17:50:00.000Z" (5 minutes from now)
+
+
+// --- Client side (wallet app) ---
+
+const clientSdk = new XChainSDK({ network: 'bitcoin-mainnet' });
+
+// Step 2: User signs the challenge with their wallet
+const signed = clientSdk.signMessage(challenge.challenge, userWIF);
+// Send signed.signature back to the server
+
+
+// --- Server side ---
+
+// Step 3: Verify the signature
+const result = serverSdk.verifyOwnership(
+    'bc1quseraddress...',
+    challenge.challenge,
+    signed.signature
+);
+
+if (result.valid) {
+    console.log('Wallet ownership verified for', result.address);
+    // Grant access, issue session token, etc.
+} else {
+    console.log('Verification failed:', result.error);
+}
+```
+
+---
+
+## Custom Message Signing
+
+Sites can generate their own messages instead of using the SDK's default format. This lets the server verify using any tool — the SDK, `bitcoinjs-message`, or the coin node's `verifymessage` RPC.
+
+```js
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
+
+// Site generates its own message (no SDK needed for this part)
+const myMessage = `Welcome to MyCoolSite!\nPlease sign to verify wallet ownership.\nNonce: ${crypto.randomUUID()}`;
+
+// Pass it through generateChallenge for consistent metadata tracking
+const challenge = sdk.generateChallenge('bc1quseraddr...', { message: myMessage });
+// challenge.challenge === myMessage (unchanged)
+// challenge.nonce, challenge.timestamp still returned for bookkeeping
+
+// Client signs it
+const signed = sdk.signMessage(myMessage, wif);
+
+// Server verifies — using SDK
+const result = sdk.verifyOwnership('bc1quseraddr...', myMessage, signed.signature);
+
+// OR verify without the SDK at all:
+const bitcoinMessage = require('bitcoinjs-message');
+const valid = bitcoinMessage.verify(myMessage, 'bc1quseraddr...', signed.signature);
+```
+
+---
+
+## Sign and Broadcast a Transaction
+
+Complete workflow: create an action, encode it as a PSBT, sign it, and broadcast.
+
+```js
+const sdk = new XChainSDK({
+    network: 'bitcoin-mainnet',
+    encoderUrl: 'encoder.example.com',
+    encoderPort: 3000
+});
+
+const kp = sdk.importWIF(process.env.WALLET_WIF);
+const address = sdk.deriveAddress(kp.publicKey, { type: 'p2wpkh' });
+
+// 1. Create and encode the action
+const action = await sdk.send(
+    { tick: 'MYTOKEN', amount: '50', destination: 'bc1qrecipient...' },
+    { pubkey: kp.publicKeyHex }
+);
+
+console.log('Action:', action.actionString);
+console.log('Unsigned PSBT:', action.psbt);
+
+// 2. Sign the PSBT
+const signed = sdk.signPsbt(action.psbt, kp.wif);
+console.log('Transaction ID:', signed.txid);
+
+// 3. Broadcast
+const broadcast = await sdk.broadcastTx(signed.txHex);
+console.log('Broadcast confirmed:', broadcast.txid);
+```
+
+---
+
+## Token-Gated Content Access
+
+Check if a user holds a token before granting access. Combines wallet verification with balance checks.
+
+```js
+const express = require('express');
+const { XChainSDK } = require('xchain-sdk');
+const { bignumber, largerEq } = require('mathjs');
+
+const app = express();
+app.use(express.json());
+
+const sdk = new XChainSDK({
+    network: 'bitcoin-mainnet',
+    explorerUrl: 'explorer.example.com'
+});
+
+// Step 1: Issue a challenge
+app.post('/auth/challenge', (req, res) => {
+    const { address } = req.body;
+    const challenge = sdk.generateChallenge(address, { appId: 'StreamApp' });
+    // Store challenge.nonce → address mapping (Redis, DB, etc.)
+    res.json({ message: challenge.challenge, nonce: challenge.nonce });
+});
+
+// Step 2: Verify signature + check token balance
+app.post('/auth/verify', async (req, res) => {
+    const { address, signature, nonce } = req.body;
+
+    // Look up the stored challenge by nonce (your storage layer)
+    const storedChallenge = await getStoredChallenge(nonce);
+    if (!storedChallenge) return res.status(400).json({ error: 'Invalid or expired challenge' });
+
+    // Verify wallet ownership
+    const result = sdk.verifyOwnership(address, storedChallenge, signature);
+    if (!result.valid) return res.status(401).json({ error: result.error });
+
+    // Check token balance
+    const balances = await sdk.getBalances(address);
+    const entry = balances.find(b => b.tick === 'ALBUMTOKEN');
+    if (!entry || !largerEq(bignumber(entry.amount), bignumber('1'))) {
+        return res.status(403).json({ error: 'Must hold at least 1 ALBUMTOKEN' });
+    }
+
+    // Issue session token (your session layer)
+    const sessionToken = createSession(address);
+    res.json({ sessionToken });
+});
+
+// Step 3: Protected route
+app.get('/stream/:trackId', requireSession, (req, res) => {
+    res.json({ streamUrl: getSignedUrl(req.params.trackId) });
+});
+```
+
+---
+
+## Fetch UTXOs
+
+```js
+const sdk = new XChainSDK({
+    network: 'bitcoin-mainnet',
+    encoderUrl: 'encoder.example.com'
+});
+
+const utxos = await sdk.getUTXOs('bc1qmyaddress...');
+console.log(`Found ${utxos.length} UTXOs`);
+
+for (const utxo of utxos) {
+    console.log(`  ${utxo.txid}:${utxo.vout} — ${utxo.value} sats`);
+}
+
+// Use UTXOs when creating a transaction
+const action = await sdk.send(
+    { tick: 'MYTOKEN', amount: '10', destination: 'bc1qrecipient...' },
+    { pubkey: publicKeyHex, utxos: utxos }
+);
 ```
 
 ---

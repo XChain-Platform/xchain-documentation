@@ -79,9 +79,22 @@ XChain actions involved: ISSUE, LIST (for eligible voters), SEND (vote casting),
 
 ### Access Control and Token-Gated Systems
 
-Build a system where access to a service, platform, or physical location requires holding a specific token. Anyone can verify on-chain whether an address holds the required token. You control who can hold the token via allow lists, and you can revoke access by recalling the token using CALLBACK. The rules are enforced by the blockchain, not by your server configuration.
+Build a system where access to a service, platform, or physical location requires holding a specific token. The user proves they own the token by signing a challenge message with their wallet — this cryptographically verifies they control the private key for the address holding the token. Once ownership is proven, your application checks their on-chain balance and grants or denies access.
+
+**Examples of what you can gate:**
+
+- **Music and audio** — listeners hold an artist's token to stream an album or access exclusive tracks
+- **Written content** — readers hold a publisher's token to read e-books, articles, or research papers
+- **Video and courses** — viewers hold a token to watch a film, access a course library, or join live streams
+- **Software features** — a SaaS product checks for a token before unlocking premium tiers
+- **Physical access** — a venue scanner verifies token ownership via QR code + signature at the door
+- **Community spaces** — a Discord bot or forum checks token holdings before granting channel access
+
+You control who can hold the token via allow lists, and you can revoke access across all holders at once by recalling the token using CALLBACK. For tokens that should never be resold or transferred (pure access credentials), set TRANSFER_LOCK at issuance. The rules are enforced by the blockchain, not by your server configuration.
 
 XChain actions involved: ISSUE, LIST, SEND, CALLBACK.
+
+For implementation details — including wallet ownership verification, session management, and code examples — see [Token-Gated Access](../developer-guide/INTEGRATION_PATTERNS.md#pattern-3-token-gated-access) in the Integration Patterns guide.
 
 ---
 

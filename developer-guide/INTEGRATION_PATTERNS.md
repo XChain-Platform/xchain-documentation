@@ -146,42 +146,355 @@ watcher.start(10000);
 
 ## Pattern 3: Token-Gated Access
 
-Check whether a user holds a minimum token balance before granting access to a feature or resource.
+Gate access to content, features, or services based on whether a user holds a specific token. This pattern covers balance checks, wallet ownership proof, session management, real-time invalidation, and on-chain gating via smart contracts.
+
+> **SDK v1.5.0+:** The XChain SDK now has built-in wallet verification methods (`sdk.generateChallenge()`, `sdk.signMessage()`, `sdk.verifyOwnership()`) that handle challenge generation, message signing, and signature verification. See the [Wallet & Auth Reference](../components/sdk/WALLET.md) for the full API and the [SDK Examples](../components/sdk/EXAMPLES.md#challenge-response-wallet-verification) for end-to-end code. The patterns below show both the raw `bitcoinjs-message` approach and the SDK approach.
+
+### Step 1: Balance Check
+
+The simplest form — query the explorer to see if an address holds enough of a token:
 
 ```js
 const { bignumber, largerEq } = require('mathjs');
 
-async function checkAccess(address, requiredTick, minimumAmount) {
+async function checkBalance(address, requiredTick, minimumAmount) {
   const balances = await sdk.explorer.getBalances({ address });
   const entry = balances.find(b => b.tick === requiredTick);
   if (!entry) return false;
   return largerEq(bignumber(entry.amount), bignumber(minimumAmount));
 }
+```
 
-// Express middleware
-function requireTokenBalance(tick, minimum) {
+A balance check alone is **not sufficient for production use**. Anyone can claim to own an address by submitting it as a query parameter. You need to verify that the user actually controls the private key for that address.
+
+### Step 2: Wallet Ownership Proof (Challenge-Response)
+
+To prove a user controls an address, issue a random challenge string and require them to sign it with their wallet. The server verifies the signature against the claimed address.
+
+```js
+const crypto = require('crypto');
+const bitcoinMessage = require('bitcoinjs-message');
+
+// Store pending challenges (use Redis or a database in production)
+const challenges = new Map();
+
+// Issue a challenge
+app.post('/auth/challenge', (req, res) => {
+  const { address } = req.body;
+  if (!address) return res.status(400).json({ error: 'address required' });
+
+  const nonce = crypto.randomBytes(32).toString('hex');
+  const timestamp = Date.now();
+  const message = `XChain token-gate login\nAddress: ${address}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
+
+  challenges.set(nonce, { address, message, timestamp });
+
+  // Expire challenges after 5 minutes
+  setTimeout(() => challenges.delete(nonce), 5 * 60 * 1000);
+
+  res.json({ message, nonce });
+});
+
+// Verify the signed challenge
+app.post('/auth/verify', async (req, res) => {
+  const { nonce, signature } = req.body;
+
+  const challenge = challenges.get(nonce);
+  if (!challenge) return res.status(400).json({ error: 'Invalid or expired challenge' });
+
+  // Prevent replay
+  challenges.delete(nonce);
+
+  // Check that the challenge hasn't expired (5-minute window)
+  if (Date.now() - challenge.timestamp > 5 * 60 * 1000) {
+    return res.status(400).json({ error: 'Challenge expired' });
+  }
+
+  // Verify signature matches the claimed address
+  try {
+    const valid = bitcoinMessage.verify(challenge.message, challenge.address, signature);
+    if (!valid) return res.status(401).json({ error: 'Invalid signature' });
+  } catch {
+    return res.status(401).json({ error: 'Signature verification failed' });
+  }
+
+  // Signature valid — now check the token balance
+  const hasToken = await checkBalance(challenge.address, 'MYTOKEN', '1');
+  if (!hasToken) {
+    return res.status(403).json({ error: 'Address does not hold required token' });
+  }
+
+  // Issue a session token (see Step 3)
+  const sessionToken = createSession(challenge.address);
+  res.json({ sessionToken, address: challenge.address });
+});
+```
+
+**Client-side flow:** The user's wallet (browser extension, mobile app, or CLI) signs the challenge message using the standard Bitcoin `signmessage` operation. Most Bitcoin, Litecoin, and Dogecoin wallets support this natively. The signature is sent back to the server for verification.
+
+**Library choice by chain:**
+
+| Chain | Verification library | Notes |
+|---|---|---|
+| Bitcoin | `bitcoinjs-message` | Supports legacy, segwit (P2SH-P2WPKH), and native segwit |
+| Litecoin | `bitcoinjs-message` with Litecoin network params | Same format, different address prefix |
+| Dogecoin | `bitcoinjs-message` with Dogecoin network params | Same format, different address prefix |
+
+### Step 3: Session Management and Caching
+
+Re-checking the balance on every request is expensive and slow. Once ownership is proven, issue a short-lived session and re-verify the balance periodically.
+
+```js
+const sessions = new Map();
+
+function createSession(address) {
+  const token = crypto.randomBytes(32).toString('hex');
+  sessions.set(token, {
+    address,
+    verifiedAt: Date.now(),
+    lastBalanceCheck: Date.now(),
+  });
+  return token;
+}
+
+// Middleware: validate session and re-check balance on a schedule
+function requireToken(tick, minimum, { recheckIntervalMs = 60000 } = {}) {
   return async (req, res, next) => {
-    const { address } = req.query;
-    if (!address) return res.status(400).json({ error: 'address required' });
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'No session token' });
 
-    const hasAccess = await checkAccess(address, tick, minimum);
-    if (!hasAccess) {
-      return res.status(403).json({
-        error: `Must hold at least ${minimum} ${tick}`,
-      });
+    const session = sessions.get(token);
+    if (!session) return res.status(401).json({ error: 'Invalid session' });
+
+    // Re-check balance if the cached check is stale
+    const now = Date.now();
+    if (now - session.lastBalanceCheck > recheckIntervalMs) {
+      const stillHolds = await checkBalance(session.address, tick, minimum);
+      if (!stillHolds) {
+        sessions.delete(token);
+        return res.status(403).json({ error: 'Token balance no longer sufficient' });
+      }
+      session.lastBalanceCheck = now;
     }
+
+    req.gateAddress = session.address;
     next();
   };
 }
 
-// Apply to a route
-app.get('/premium-content',
-  requireTokenBalance('MYTOKEN', '100'),
-  (req, res) => res.json({ content: '...' })
+// Protected routes
+app.get('/content/song/:id',
+  requireToken('ALBUMTOKEN', '1'),
+  (req, res) => {
+    // Serve the song — req.gateAddress is the verified holder
+    res.json({ streamUrl: generateSignedUrl(req.params.id, req.gateAddress) });
+  }
+);
+
+app.get('/content/book/:id',
+  requireToken('BOOKTOKEN', '1', { recheckIntervalMs: 300000 }), // 5-min cache for books
+  (req, res) => {
+    res.json({ chapters: getBookContent(req.params.id) });
+  }
 );
 ```
 
-Importantly: balance checks are advisory. A user could transfer tokens away after the check. For strong guarantees, require the user to sign a challenge message with the address holding the tokens.
+**Tuning `recheckIntervalMs`:** shorter intervals give stronger guarantees that the user still holds the token, but increase explorer API load. For most content-gating scenarios, 60 seconds is a reasonable default. For high-value access (financial data, live events), consider 10–15 seconds. For static content (e-books, documentation), 5 minutes is fine.
+
+### Step 4: Real-Time Balance Invalidation via WebSocket
+
+Instead of polling on a timer, use the SDK's WebSocket API to get instant notifications when a user's balance changes. This lets you revoke access within seconds of a token transfer.
+
+```js
+await sdk.connectWs();
+
+// Track all active sessions
+function watchSession(sessionToken, address, tick, minimum) {
+  const unsub = sdk.onAddress(address, async (event) => {
+    if (event.type === 'ADDRESS_UPDATE') {
+      const stillHolds = await checkBalance(address, tick, minimum);
+      if (!stillHolds) {
+        sessions.delete(sessionToken);
+        unsub(); // stop watching
+        // Optionally: push a notification to the client via their WebSocket
+      }
+    }
+  });
+
+  // Store unsub so we can clean up when the session expires
+  const session = sessions.get(sessionToken);
+  if (session) session.unsub = unsub;
+}
+```
+
+### Step 5: Smart Contract-Based Gating (On-Chain)
+
+For use cases where the gating logic itself must be trustless and on-chain — not controlled by a server — deploy a smart contract that checks balances before releasing content hashes or toggling access flags.
+
+```js
+// Contract: on-chain token gate
+// Deployed via the DEPLOY action
+module.exports = {
+  initialize: function(xchain) {
+    xchain.state.set('owner', xchain.getSourceAddress());
+    // requiredTick and minimumAmount are set via configure()
+  },
+
+  // Owner sets the gating rules
+  configure: function(xchain) {
+    var caller = xchain.getSourceAddress();
+    if (caller !== xchain.state.get('owner')) {
+      throw new Error('Only the owner can configure');
+    }
+    xchain.state.set('requiredTick', xchain.getInputParam(0));
+    xchain.state.set('minimumAmount', xchain.getInputParam(1));
+  },
+
+  // Owner registers content (stores a hash or identifier)
+  registerContent: function(xchain) {
+    var caller = xchain.getSourceAddress();
+    if (caller !== xchain.state.get('owner')) {
+      throw new Error('Only the owner can register content');
+    }
+    var contentId = xchain.getInputParam(0);
+    var contentHash = xchain.getInputParam(1);
+    xchain.state.set('content:' + contentId, contentHash);
+  },
+
+  // Anyone can call — contract checks their balance on-chain
+  accessContent: function(xchain) {
+    var caller = xchain.getSourceAddress();
+    var requiredTick = xchain.state.get('requiredTick');
+    var minimumAmount = xchain.state.get('minimumAmount');
+
+    var balance = xchain.getBalance(caller, requiredTick);
+    if (!balance || xchain.math.smaller(balance, minimumAmount)) {
+      throw new Error('Insufficient token balance for access');
+    }
+
+    var contentId = xchain.getInputParam(0);
+    var contentHash = xchain.state.get('content:' + contentId);
+    if (!contentHash) {
+      throw new Error('Content not found');
+    }
+
+    // Emit a message back to the caller with the content hash
+    // The caller's off-chain app reads this from the indexer
+    xchain.emit.message({
+      destination: caller,
+      memo: 'access:' + contentId + ':' + contentHash,
+    });
+  }
+};
+```
+
+**When to use on-chain vs off-chain gating:**
+
+| Scenario | Approach |
+|---|---|
+| Web app serving media (music, video, e-books) | **Off-chain** — server checks balance, serves content |
+| Proving access rights to a third party trustlessly | **On-chain** — contract verifies balance, emits proof |
+| Physical access (event entry, venue) | **Off-chain** — QR code + challenge-response at the door |
+| DAO/governance feature unlock | **On-chain** — contract checks balance before executing logic |
+| Content where the creator doesn't run a server | **On-chain** — contract holds content hashes, verifies holders |
+
+### End-to-End Example: Token-Gated Music Platform
+
+Putting it all together — a music platform where listeners must hold an artist's token to stream songs:
+
+```js
+const express = require('express');
+const crypto = require('crypto');
+const bitcoinMessage = require('bitcoinjs-message');
+const { bignumber, largerEq } = require('mathjs');
+const XChainSDK = require('xchain-sdk');
+
+const app = express();
+app.use(express.json());
+
+const sdk = new XChainSDK({ hubUrl: process.env.XCHAIN_HUB_URL });
+const sessions = new Map();
+const challenges = new Map();
+
+// --- Auth endpoints ---
+
+app.post('/auth/challenge', (req, res) => {
+  const { address } = req.body;
+  const nonce = crypto.randomBytes(32).toString('hex');
+  const message = `Stream access\nAddress: ${address}\nNonce: ${nonce}\nTime: ${Date.now()}`;
+  challenges.set(nonce, { address, message, timestamp: Date.now() });
+  setTimeout(() => challenges.delete(nonce), 5 * 60 * 1000);
+  res.json({ message, nonce });
+});
+
+app.post('/auth/verify', async (req, res) => {
+  const { nonce, signature } = req.body;
+  const challenge = challenges.get(nonce);
+  if (!challenge) return res.status(400).json({ error: 'Invalid or expired challenge' });
+  challenges.delete(nonce);
+
+  try {
+    if (!bitcoinMessage.verify(challenge.message, challenge.address, signature)) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+  } catch {
+    return res.status(401).json({ error: 'Verification failed' });
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  sessions.set(token, { address: challenge.address, lastCheck: Date.now() });
+  res.json({ sessionToken: token });
+});
+
+// --- Gated content ---
+
+async function checkBalance(address, tick, minimum) {
+  const balances = await sdk.explorer.getBalances({ address });
+  const entry = balances.find(b => b.tick === tick);
+  if (!entry) return false;
+  return largerEq(bignumber(entry.amount), bignumber(minimum));
+}
+
+// Each album maps to a token tick
+const ALBUM_TOKENS = {
+  'album-001': { tick: 'ROCKALBUM', minimum: '1' },
+  'album-002': { tick: 'JAZZALBUM', minimum: '1' },
+};
+
+app.get('/stream/:albumId/:trackNum', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const session = sessions.get(token);
+  if (!session) return res.status(401).json({ error: 'Login required' });
+
+  const album = ALBUM_TOKENS[req.params.albumId];
+  if (!album) return res.status(404).json({ error: 'Album not found' });
+
+  // Re-check balance every 60 seconds
+  if (Date.now() - session.lastCheck > 60000) {
+    const holds = await checkBalance(session.address, album.tick, album.minimum);
+    if (!holds) {
+      sessions.delete(token);
+      return res.status(403).json({ error: `Must hold ${album.tick} to stream` });
+    }
+    session.lastCheck = Date.now();
+  }
+
+  // Serve a time-limited signed URL to the audio file
+  const signedUrl = generateSignedStreamUrl(req.params.albumId, req.params.trackNum);
+  res.json({ streamUrl: signedUrl, expiresIn: 3600 });
+});
+
+app.listen(3000);
+```
+
+### Security Considerations
+
+- **Always verify wallet ownership.** A balance check without signature verification is trivially bypassed — anyone can look up a whale's address and claim it.
+- **Use short-lived signed URLs for content delivery.** Don't serve raw file paths. Generate URLs that expire (e.g., via S3 presigned URLs or a CDN token) so that a shared link stops working.
+- **Re-check balances periodically.** A user might transfer their tokens away after logging in. The `recheckIntervalMs` parameter controls this tradeoff.
+- **Consider transfer-lock tokens.** If your use case requires that holders cannot sell or transfer the token (e.g., membership credentials), set `TRANSFER_LOCK` on the token at issuance. This eliminates the "transfer tokens away after the check" problem entirely.
+- **Rate-limit the challenge endpoint.** Without rate limiting, an attacker can generate unlimited challenge strings.
+- **Use HTTPS.** Signatures and session tokens must travel over encrypted connections.
 
 ---
 

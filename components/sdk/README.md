@@ -26,6 +26,13 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - Request/response/error/retry lifecycle hooks for logging and instrumentation
 - JSON-RPC microservice mode (server)
 - Browser bundle (minified and development builds)
+- Wallet key management: generate key pairs, import WIF keys, derive P2PKH/P2WPKH/P2SH-P2WPKH addresses
+- Address validation against all supported networks (Bitcoin, Litecoin, Dogecoin)
+- PSBT signing: sign unsigned PSBTs from the encoder with a WIF private key, finalize, and extract raw transaction hex
+- Transaction broadcasting: broadcast signed transactions to the coin node via the encoder
+- UTXO queries: fetch address UTXOs via the encoder (proxied from xchain-utxo-tracker)
+- Challenge-response wallet ownership verification: generate challenges, sign messages, verify signatures
+- Custom message signing: `signMessage` and `verifyMessage` work with any arbitrary string — no SDK lock-in on the verification side
 - TypeScript type definitions included (`index.d.ts`)
 - Supports Bitcoin, Dogecoin, and Litecoin on mainnet, testnet, and regtest
 
@@ -41,6 +48,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 | [Format Selection](FORMAT_SELECTION.md) | Choosing between OP_RETURN, P2SH, P2WSH, and multisign encoding |
 | [Contracts](CONTRACTS.md) | VM smart contract integration: deploy, execute, deposit, withdraw, ContractClient |
 | [WebSocket](WEBSOCKET.md) | Real-time event client: connection, convenience methods, filters, reconnection, hooks |
+| [Wallet & Auth](WALLET.md) | Key management, address validation, PSBT signing, message signing, challenge-response verification |
 | [Errors](ERRORS.md) | Error types, codes, and handling patterns |
 | [Examples](EXAMPLES.md) | Complete worked examples for common use cases |
 
@@ -199,6 +207,10 @@ Load the bundle in a `<script>` tag; the SDK is exposed as the global `XChainSDK
 | Package | Purpose |
 |---|---|
 | `axios` | HTTP client for Explorer, Encoder, and Hub requests |
+| `bitcoinjs-lib` | Bitcoin transaction parsing, PSBT signing, address derivation and validation |
+| `bitcoinjs-message` | Bitcoin message signing and verification (challenge-response auth) |
+| `ecpair` | EC key pair creation and WIF import/export |
+| `@bitcoinerlab/secp256k1` | Pure-JS secp256k1 elliptic curve operations (no WASM) |
 | `express` | HTTP server for JSON-RPC microservice mode |
 | `express-json-rpc-router` | JSON-RPC 2.0 routing for the API server |
 | `helmet` | HTTP security headers for the API server |

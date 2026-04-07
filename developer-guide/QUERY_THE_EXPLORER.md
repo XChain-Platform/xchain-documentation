@@ -268,7 +268,7 @@ async function hasAccess(address, requiredTick, minimumAmount) {
   const entry = balances.find(b => b.tick === requiredTick);
   if (!entry) return false;
 
-  // Use string comparison is insufficient for large numbers with decimals.
+  // String comparison is insufficient for large numbers with decimals.
   // Use a big-number library.
   const { bignumber, largerEq } = require('mathjs');
   return largerEq(bignumber(entry.amount), bignumber(minimumAmount));
@@ -277,6 +277,8 @@ async function hasAccess(address, requiredTick, minimumAmount) {
 const canAccess = await hasAccess('bc1q...', 'MYTOKEN', '1');
 console.log('Access granted:', canAccess);
 ```
+
+This is the building block for token-gated systems. For production use, you also need wallet ownership proof (challenge-response signing), session management, and content delivery patterns. See [Pattern 3: Token-Gated Access](INTEGRATION_PATTERNS.md#pattern-3-token-gated-access) in the Integration Patterns guide for the complete implementation.
 
 ---
 
