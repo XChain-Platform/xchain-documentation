@@ -32,6 +32,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 - **Multi-instance** — multiple hub instances against shared MariaDB with consumer fallback via `HUB_VALIDATORS`
 - **MariaDB storage** — 13 relational tables with connection pooling, circuit breaker, and exponential backoff
 - **Single-node fallback** — all consensus-dependent operations fall back to direct execution when no peers are connected
+- **1,222 tests** — unit, integration, e2e, fuzz, chaos, boundary, smoke, regression, performance
 - **Docker-ready** — Dockerfile for containerized deployment via xchain-node
 
 ## Documentation
@@ -41,6 +42,8 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 | [Architecture](ARCHITECTURE.md) | Subsystem design, source files, P2P gossip, PBFT consensus, oracle pipeline, cross-chain engine |
 | [Configuration](CONFIGURATION.md) | Environment variables, standalone vs validator mode, database schema, connection pool |
 | [API](API.md) | JSON-RPC method reference: config, validators, oracle, attestations, swaps, reorgs, governance |
+| [Database](DATABASE.md) | Full schema reference — 13 tables for config, validators, oracle, attestations, governance |
+| [Operations](OPERATIONS.md) | Running, Docker, resilience, troubleshooting |
 | [Decentralization](DECENTRALIZATION.md) | Evolution from centralized oracle to decentralized validator network (all phases complete) |
 
 ## Installation
@@ -124,6 +127,19 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 | Command | Description |
 |---|---|
 | `npm run api` | Start the hub API server |
+| `npm test` | Run unit tests (~366 tests) |
+| `npm run test:integration` | Integration tests (~72 tests, requires MariaDB) |
+| `npm run test:e2e` | End-to-end tests (~64 tests, requires full stack) |
+| `npm run test:fuzz` | Fuzz tests (property-based via fast-check) |
+| `npm run test:chaos` | Chaos engineering tests |
+| `npm run test:smoke` | Smoke tests (quick sanity check) |
+| `npm run test:regression` | Regression tests (tagged across all suites) |
+| `npm run test:regression:p0` | P0-priority regression tests |
+| `npm run test:regression:p0p1` | P0+P1 regression tests |
+| `npm run test:perf` | All performance tests |
+| `npm run test:mutate` | Mutation tests (Stryker) |
+| `npm run test:mutate:pilot` | Pilot mutation tests (phase 1) |
+| `npm run test:all` | Complete test suite |
 
 ## Dependencies
 
@@ -138,7 +154,21 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 | `cors` | Cross-origin resource sharing |
 | `mariadb` | MariaDB connection pool for config, validator, oracle, and governance data |
 | `ws` | WebSocket server/client for P2P gossip layer |
+| `express-rate-limit` | API rate limiting |
 | `dotenv` | `.env` file loading for environment-based configuration |
+
+### Development
+
+| Package | Purpose |
+|---|---|
+| `mocha` | Test framework |
+| `chai` | Assertion library |
+| `sinon` | Mocking, stubbing, and spying for tests |
+| `fast-check` | Property-based (fuzz) testing |
+| `nock` | HTTP request mocking for tests |
+| `proxyquire` | Module dependency injection for tests |
+| `@stryker-mutator/core` | Mutation testing framework |
+| `@stryker-mutator/mocha-runner` | Stryker Mocha integration |
 
 ## Related Documentation
 

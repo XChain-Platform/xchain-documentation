@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-04-06
+
+### Added
+- `components/hub/DATABASE.md` — full schema reference for all 13 MariaDB tables organized by category (config, validator, oracle, cross-chain, governance, incentive) with column definitions, types, and keys
+- `components/hub/OPERATIONS.md` — prerequisites, startup sequence, operating modes, Docker, multi-instance deployment, API overview, resilience/recovery patterns, troubleshooting guide
+
+### Changed
+- `components/hub/README.md` — added test count to features, expanded scripts table with all test commands, added development dependencies section, added links to new DATABASE.md and OPERATIONS.md
+
 ## [0.9.1] - 2026-04-06
 
 ### Added
