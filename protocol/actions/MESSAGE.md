@@ -9,10 +9,34 @@ This action allows for the sending of plaintext and encrypted messages between a
 | ------------------- | ------ | ------------------------------------------ |
 | `VERSION`           | String | Broadcast Format Version                   |
 | `DESTINATION`       | String | Address of the message or key recipient    |
-| `ENCRYPTION_METHOD` | String | Encryption Method (1=ECDH, 2=AES)          |
-| `ENCRYPTION_KEY`    | String | public key to be used to exchange messages |
-| `ENCRYPTED_MESSAGE` | String | Message encryted with shared key           |
+| `ENCRYPTION_METHOD` | String | Encryption Method (1=ECIES, 2=ECDH, 3=AES) |
+| `ENCRYPTION_KEY`    | String | Public key to be used to exchange messages |
+| `ENCRYPTED_MESSAGE` | String | Message encrypted with shared key          |
 | `PLAINTEXT_MESSAGE` | String | Plaintext message (visible to all!)        |
+
+## Encryption Methods
+
+### Method `1` - ECIES (Default) — Address Communication
+Elliptic Curve Integrated Encryption Scheme. Encrypts a message directly to the recipient's public key. The sender generates an ephemeral keypair per message, derives a shared secret via ECDH with the recipient's public key, and encrypts the message with AES-256-GCM. The ephemeral public key is included in the ciphertext so the recipient can decrypt using their private key.
+
+- No key exchange required (no format `0`/`1` handshake needed)
+- Works across multiple devices — any device with the recipient's private key can decrypt
+- Recommended for general address-to-address messaging
+
+### Method `2` - ECDH — Session Communication
+Elliptic Curve Diffie-Hellman key exchange. Both parties exchange public keys (via format `0` and `1` messages) and derive a shared secret. All subsequent messages in the session are encrypted with that shared secret.
+
+- Requires a key exchange handshake before sending messages
+- Session is device-bound — the shared secret only exists on the devices that performed the exchange
+- Provides forward secrecy when using ephemeral keys
+- Best for long-running conversations where both parties are on the same device
+
+### Method `3` - AES — Shared Secret Communication
+Advanced Encryption Standard with a pre-shared key. Both parties must already know the same secret key, exchanged out-of-band (not on-chain).
+
+- No on-chain key exchange — the shared key must be established externally
+- Useful for password-protected messages or group messaging
+- Simpler encryption model but requires secure key distribution
 
 ## Formats
 
@@ -30,32 +54,38 @@ This action allows for the sending of plaintext and encrypted messages between a
 
 ## Examples
 ```
-MESSAGE|0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|1|PUBLIC_KEY_GOES_HERE
-This example requests to securely exchange messages with address 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
+MESSAGE|2|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|ECIES_ENCRYPTED_CIPHERTEXT_HERE
+This example sends an ECIES encrypted message to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev (method 1, no prior key exchange needed)
 ```
 
 ```
-MESSAGE|1|1Donatet2LrNpuWByAnH8gc9Wh9zSzZuLC|1|PUBLIC_KEY_GOES_HERE
-This example responds to the above request to securely exchange messages with address 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
+MESSAGE|0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|2|PUBLIC_KEY_GOES_HERE
+This example requests an ECDH key exchange with address 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev (method 2)
+```
+
+```
+MESSAGE|1|1Donatet2LrNpuWByAnH8gc9Wh9zSzZuLC|2|PUBLIC_KEY_GOES_HERE
+This example responds to the above ECDH key exchange request
 ```
 
 ```
 MESSAGE|2|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|ENCRYPTED_MESSAGE_GOES_HERE
-This example send an encrypted message to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
+This example sends an encrypted message to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
 ```
 
 ```
 MESSAGE|3|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|Hello
-This example send a plaintext message to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
+This example sends a plaintext message to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
 ```
 
 ## Rules
-- `ENCRYPTION_METHOD`, `ENCRYPTED_MESSAGE`, and `PLAINTEXT_MESSAGE` are limited to 1,048,576 Characters (1MB)
+- `ENCRYPTION_KEY`, `ENCRYPTED_MESSAGE`, and `PLAINTEXT_MESSAGE` are limited to 1,048,576 Characters (1MB)
 
 ## Notes
 - `MSG` `ACTION` can be used for shorter reference to `MESSAGE` `ACTION`
-- Format `0` is to be used when first initializing a request
-- Format `1` is to be used when responding to an initializing request 
+- Format `0` is to be used when first initializing an ECDH key exchange request (method `2`)
+- Format `1` is to be used when responding to an ECDH key exchange request (method `2`)
+- Format `0` and `1` are not needed for ECIES (method `1`) — the recipient's public key is resolved from on-chain transaction history
 - `PLAINTEXT_MESSAGE` and `ENCRYPTED_MESSAGE` characters **NOT** allowed are :
    - pipe `|` (used as field separator)
    - semicolon `;` (used as command separator)

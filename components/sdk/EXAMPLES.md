@@ -26,6 +26,12 @@ End-to-end usage examples for common XChain Platform SDK workflows.
 - [Sweep All Balances](#sweep-all-balances)
 - [Broadcast a Message](#broadcast-a-message)
 - [Send a Plaintext Message](#send-a-plaintext-message)
+- [Send an Encrypted Message (ECIES)](#send-an-encrypted-message-ecies)
+- [Read and Decrypt Messages](#read-and-decrypt-messages)
+- [ECIES Encrypt/Decrypt Without Sending](#ecies-encryptdecrypt-without-sending)
+- [ECDH Session Messaging](#ecdh-session-messaging)
+- [AES Pre-Shared Key Messaging](#aes-pre-shared-key-messaging)
+- [Public Key Lookup](#public-key-lookup)
 - [Sleep / Pause an Address](#sleep--pause-an-address)
 - [Create and Edit a List](#create-and-edit-a-list)
 - [Pay Dividends](#pay-dividends)
@@ -353,12 +359,174 @@ const result = await sdk.broadcast({
 ## Send a Plaintext Message
 
 ```js
+// Low-level: generate the action string only
 const result = await sdk.message({
     destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
     plaintextMessage: 'Hello, this is a direct message'
 });
 
 console.log(result.version); // 3 (plaintext format)
+
+// High-level: create, sign, and broadcast in one call
+const sent = await sdk.sendMessage({
+    wif: senderWIF,
+    destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+    message: 'This is a public message visible to everyone!',
+    method: null,  // null = plaintext
+    encoder: { pubkey: senderPubkeyHex }
+});
+console.log('Sent:', sent.txid);
+```
+
+---
+
+## Send an Encrypted Message (ECIES)
+
+ECIES is the default encryption method. It encrypts directly to the recipient's public key — no prior key exchange needed, and messages can be decrypted on any device that holds the recipient's private key.
+
+```js
+const result = await sdk.sendMessage({
+    wif: senderWIF,
+    destination: 'bc1qrecipient...',
+    message: 'Hello, this is a private ECIES message!',
+    // method: 1 is the default, no need to specify
+    encoder: { pubkey: senderPubkeyHex }
+});
+
+console.log('Sent encrypted message:', result.txid);
+console.log('Action string:', result.actionString);
+```
+
+---
+
+## Read and Decrypt Messages
+
+Fetch messages for an address. Pass your WIF to auto-decrypt ECIES messages addressed to you.
+
+```js
+const messages = await sdk.getMessagesForAddress('bc1qmyaddress...', {
+    wif: myWIF,           // Needed to decrypt ECIES messages
+    type: 'received',     // 'sent', 'received', or 'all'
+    limit: 10
+});
+
+for (const msg of messages) {
+    console.log(`From: ${msg.from}`);
+    console.log(`  Text: ${msg.text}`);
+    console.log(`  Encrypted: ${msg.encrypted}`);
+    console.log(`  Method: ${msg.method}`);
+    console.log(`  Block: ${msg.block}`);
+}
+```
+
+---
+
+## ECIES Encrypt/Decrypt Without Sending
+
+Use the low-level ECIES methods directly for encryption without creating an on-chain transaction.
+
+```js
+// Look up recipient's public key
+const recipientPubkey = await sdk.getPublicKey('bc1qrecipient...');
+
+// Encrypt
+const encrypted = sdk.messaging.eciesEncrypt('Secret message content', recipientPubkey);
+console.log('Ciphertext:', encrypted.ciphertext);
+
+// Decrypt (recipient side)
+const decrypted = sdk.messaging.eciesDecrypt(encrypted.ciphertext, recipientWIF);
+console.log('Decrypted:', decrypted.plaintext);
+```
+
+---
+
+## ECDH Session Messaging
+
+ECDH requires both parties to exchange public keys via format 0/1 messages before sending encrypted messages.
+
+```js
+// Step 1: Sender generates their session key
+const senderSession = sdk.messaging.generateSessionKey(senderWIF);
+
+// Step 2: Send format 0 key exchange request (on-chain)
+const keyExchange = await sdk.message({
+    destination: 'bc1qrecipient...',
+    encryptionMethod: 2,
+    encryptionKey: senderSession.publicKey
+}, { pubkey: senderPubkeyHex });
+// Sign and broadcast keyExchange.psbt...
+
+// Step 3: Recipient responds with format 1 containing their pubkey
+const recipientSession = sdk.messaging.generateSessionKey(recipientWIF);
+const keyResponse = await sdk.message({
+    destination: senderAddress,
+    encryptionMethod: 2,
+    encryptionKey: recipientSession.publicKey
+}, { pubkey: recipientPubkeyHex });
+// Sign and broadcast keyResponse.psbt...
+
+// Step 4: Both sides derive the same shared secret
+const senderSecret = sdk.messaging.deriveSharedSecret(senderWIF, recipientSession.publicKey);
+const recipientSecret = sdk.messaging.deriveSharedSecret(recipientWIF, senderSession.publicKey);
+console.log('Secrets match:', senderSecret.sharedSecret === recipientSecret.sharedSecret);
+
+// Step 5: Encrypt/decrypt with the shared secret
+const encrypted = sdk.messaging.sessionEncrypt('ECDH session message', senderSecret.sharedSecret);
+const decrypted = sdk.messaging.sessionDecrypt(encrypted.ciphertext, recipientSecret.sharedSecret);
+console.log('Decrypted:', decrypted.plaintext);
+
+// Or use the high-level send with a pre-derived shared secret
+const result = await sdk.sendMessage({
+    wif: senderWIF,
+    destination: 'bc1qrecipient...',
+    message: 'Encrypted with ECDH session key',
+    method: 2,
+    sharedSecret: senderSecret.sharedSecret,
+    encoder: { pubkey: senderPubkeyHex }
+});
+```
+
+---
+
+## AES Pre-Shared Key Messaging
+
+AES uses a pre-shared key that both parties know, exchanged out-of-band.
+
+```js
+const sharedKey = 'my-secret-passphrase-shared-between-parties';
+
+// Send an AES-encrypted message
+const result = await sdk.sendMessage({
+    wif: senderWIF,
+    destination: 'bc1qrecipient...',
+    message: 'This message is encrypted with a shared passphrase',
+    method: 3,
+    sharedKey: sharedKey,
+    encoder: { pubkey: senderPubkeyHex }
+});
+
+console.log('Sent AES message:', result.txid);
+
+// Decrypt manually (getMessagesForAddress can't auto-decrypt AES)
+const encrypted = sdk.messaging.aesEncrypt('Test AES message', sharedKey);
+const decrypted = sdk.messaging.aesDecrypt(encrypted.ciphertext, sharedKey);
+console.log('AES roundtrip:', decrypted.plaintext);
+```
+
+---
+
+## Public Key Lookup
+
+Look up the public key for any address that has sent at least one XChain transaction.
+
+```js
+const pubkey = await sdk.getPublicKey('bc1qsomeaddress...');
+if (pubkey) {
+    console.log('Public key:', pubkey);  // '02a1b2c3...'
+} else {
+    console.log('No public key found');
+    console.log('(Address may not have sent any XChain transactions yet)');
+}
 ```
 
 ---

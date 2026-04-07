@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-04-07
+
+### Added
+- `protocol/actions/MESSAGE.md` — new Encryption Methods section with descriptions for ECIES, ECDH, and AES
+- `components/sdk/MESSAGING.md` — new reference doc for messaging module: ECIES/ECDH/AES encryption, public key lookup, high-level send/receive, error codes
+- `developer-guide/MESSAGING.md` — new developer guide for encrypted messaging with end-to-end examples
+
+### Changed
+- `protocol/actions/MESSAGE.md` — reordered encryption methods to 1=ECIES (default), 2=ECDH, 3=AES; updated examples and notes
+- `components/sdk/EXAMPLES.md` — added 7 messaging examples: ECIES send, read/decrypt, low-level encrypt/decrypt, ECDH session, AES pre-shared key, public key lookup
+- `components/sdk/README.md` — added 3 messaging features to Features list, added MESSAGING.md to Documentation table
+
 ## [0.9.4] - 2026-04-07
 
 ### Added

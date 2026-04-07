@@ -33,6 +33,9 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - UTXO queries: fetch address UTXOs via the encoder (proxied from xchain-utxo-tracker)
 - Challenge-response wallet ownership verification: generate challenges, sign messages, verify signatures
 - Custom message signing: `signMessage` and `verifyMessage` work with any arbitrary string — no SDK lock-in on the verification side
+- Encrypted messaging: ECIES (default, multi-device), ECDH (session-based), and AES (pre-shared key) encryption for MESSAGE actions
+- Public key resolution: automatic lookup of recipient public keys from on-chain transaction data
+- High-level messaging API: `sendMessage()` handles pubkey lookup, encryption, PSBT signing, and broadcasting in one call
 - TypeScript type definitions included (`index.d.ts`)
 - Supports Bitcoin, Dogecoin, and Litecoin on mainnet, testnet, and regtest
 
@@ -49,6 +52,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 | [Contracts](CONTRACTS.md) | VM smart contract integration: deploy, execute, deposit, withdraw, ContractClient |
 | [WebSocket](WEBSOCKET.md) | Real-time event client: connection, convenience methods, filters, reconnection, hooks |
 | [Wallet & Auth](WALLET.md) | Key management, address validation, PSBT signing, message signing, challenge-response verification |
+| [Messaging](MESSAGING.md) | ECIES/ECDH/AES encryption, public key lookup, high-level send/receive for MESSAGE actions |
 | [Errors](ERRORS.md) | Error types, codes, and handling patterns |
 | [Examples](EXAMPLES.md) | Complete worked examples for common use cases |
 
