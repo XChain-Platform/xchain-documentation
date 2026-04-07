@@ -101,9 +101,9 @@ Distribute tokens to all addresses on a list.
 
 **Format Versions:** v0 (single tick, one list), v1 (single tick, one list, multiple destinations per entry), v2 (multiple ticks, separate lists), v3 (multiple ticks with per-entry memos)
 
-**Format v0:** `AIRDROP|VERSION|TICK|AMOUNT|LIST_ACTION_INDEX|MEMO`
-**Format v1:** `AIRDROP|VERSION|LIST_ACTION_INDEX|TICK|AMOUNT|TICK|AMOUNT|MEMO`
-**Format v2:** `AIRDROP|VERSION|TICK|AMOUNT|LIST_ACTION_INDEX|TICK|AMOUNT|LIST_ACTION_INDEX|MEMO`
+**Format v0:** `AIRDROP|VERSION|TICK|AMOUNT|LIST_ACTION_INDEX|MEMO`  
+**Format v1:** `AIRDROP|VERSION|LIST_ACTION_INDEX|TICK|AMOUNT|TICK|AMOUNT|MEMO`  
+**Format v2:** `AIRDROP|VERSION|TICK|AMOUNT|LIST_ACTION_INDEX|TICK|AMOUNT|LIST_ACTION_INDEX|MEMO`  
 **Format v3:** `AIRDROP|VERSION|TICK|AMOUNT|LIST_ACTION_INDEX|MEMO|TICK|AMOUNT|LIST_ACTION_INDEX|MEMO`
 
 **Params:**
@@ -160,9 +160,9 @@ Publish a data value or fee schedule on-chain, or settle a previously registered
 
 **Format Versions:** v0 (message + value), v1 (message + value + fee + memo), v2 (message + fee + memo), v3 (settle a prior broadcast)
 
-**Format v0:** `BROADCAST|VERSION|MESSAGE|VALUE`
-**Format v1:** `BROADCAST|VERSION|MESSAGE|VALUE|FEE|MEMO`
-**Format v2:** `BROADCAST|VERSION|MESSAGE|FEE|MEMO`
+**Format v0:** `BROADCAST|VERSION|MESSAGE|VALUE`  
+**Format v1:** `BROADCAST|VERSION|MESSAGE|VALUE|FEE|MEMO`  
+**Format v2:** `BROADCAST|VERSION|MESSAGE|FEE|MEMO`  
 **Format v3:** `BROADCAST|VERSION|BROADCAST_ACTION_INDEX|VALUE|MEMO`
 
 **Params:**
@@ -294,8 +294,8 @@ Permanently burn tokens, removing them from supply.
 
 **Format Versions:** v0 (single tick), v1 (two ticks, same memo), v2 (two ticks, separate memos)
 
-**Format v0:** `DESTROY|VERSION|TICK|AMOUNT|MEMO`
-**Format v1:** `DESTROY|VERSION|TICK|AMOUNT|TICK|AMOUNT|MEMO`
+**Format v0:** `DESTROY|VERSION|TICK|AMOUNT|MEMO`  
+**Format v1:** `DESTROY|VERSION|TICK|AMOUNT|TICK|AMOUNT|MEMO`  
 **Format v2:** `DESTROY|VERSION|TICK|AMOUNT|MEMO|TICK|AMOUNT|MEMO`
 
 **Params:**
@@ -320,8 +320,8 @@ Create a vending machine that automatically exchanges one token for another.
 
 **Format Versions:** v0 (create), v1 (cancel), v2 (edit)
 
-**Format v0 (create):** `DISPENSER|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_ESCROW|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|FIAT_CODE|FIAT_AMOUNT|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
-**Format v1 (cancel):** `DISPENSER|VERSION|DISPENSER_ACTION_INDEX|MEMO`
+**Format v0 (create):** `DISPENSER|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_ESCROW|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|FIAT_CODE|FIAT_AMOUNT|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`  
+**Format v1 (cancel):** `DISPENSER|VERSION|DISPENSER_ACTION_INDEX|MEMO`  
 **Format v2 (edit):** `DISPENSER|VERSION|DISPENSER_ACTION_INDEX|GIVE_ESCROW|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
 **Params — create (v0):**
@@ -482,11 +482,11 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 
 **Format Versions:** v0 (full create), v1 (description update), v2 (mint params update), v3 (lock update), v4 (callback update), v5 (list update)
 
-**Format v0 (create):** `ISSUE|VERSION|TICK|MAX_SUPPLY|MAX_MINT|DECIMALS|DESCRIPTION|MINT_SUPPLY|TRANSFER|TRANSFER_SUPPLY|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|ALLOW_LIST|BLOCK_LIST|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`
-**Format v1 (description):** `ISSUE|VERSION|TICK|DESCRIPTION|MEMO`
-**Format v2 (mint params):** `ISSUE|VERSION|TICK|MAX_MINT|MINT_SUPPLY|TRANSFER_SUPPLY|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|MEMO`
-**Format v3 (locks):** `ISSUE|VERSION|TICK|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`
-**Format v4 (callback):** `ISSUE|VERSION|TICK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|MEMO`
+**Format v0 (create):** `ISSUE|VERSION|TICK|MAX_SUPPLY|MAX_MINT|DECIMALS|DESCRIPTION|MINT_SUPPLY|TRANSFER|TRANSFER_SUPPLY|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|ALLOW_LIST|BLOCK_LIST|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`  
+**Format v1 (description):** `ISSUE|VERSION|TICK|DESCRIPTION|MEMO`  
+**Format v2 (mint params):** `ISSUE|VERSION|TICK|MAX_MINT|MINT_SUPPLY|TRANSFER_SUPPLY|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|MEMO`  
+**Format v3 (locks):** `ISSUE|VERSION|TICK|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`  
+**Format v4 (callback):** `ISSUE|VERSION|TICK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|MEMO`  
 **Format v5 (lists):** `ISSUE|VERSION|TICK|ALLOW_LIST|BLOCK_LIST|MEMO`
 
 **Params — full create (v0):**
@@ -626,7 +626,7 @@ Create or edit an allow/block list of ticks or addresses.
 
 **Format Versions:** v0 (create), v1 (edit — add/remove items)
 
-**Format v0 (create):** `LIST|VERSION|TYPE|ITEM`
+**Format v0 (create):** `LIST|VERSION|TYPE|ITEM`  
 **Format v1 (edit):** `LIST|VERSION|EDIT|LIST_ACTION_INDEX|ITEM`
 
 **Params — create (v0):**
@@ -662,8 +662,8 @@ Send an encrypted or plaintext message to a destination address.
 
 **Format Versions:** v0 (key exchange setup), v1 (key exchange — same as v0), v2 (encrypted message body), v3 (plaintext message)
 
-**Format v0/v1 (key exchange):** `MESSAGE|VERSION|DESTINATION|ENCRYPTION_METHOD|ENCRYPTION_KEY`
-**Format v2 (encrypted body):** `MESSAGE|VERSION|DESTINATION|ENCRYPTED_MESSAGE`
+**Format v0/v1 (key exchange):** `MESSAGE|VERSION|DESTINATION|ENCRYPTION_METHOD|ENCRYPTION_KEY`  
+**Format v2 (encrypted body):** `MESSAGE|VERSION|DESTINATION|ENCRYPTED_MESSAGE`  
 **Format v3 (plaintext):** `MESSAGE|VERSION|DESTINATION|PLAINTEXT_MESSAGE`
 
 **Params — key exchange (v0/v1):**
@@ -731,8 +731,8 @@ Create a peer-to-peer token exchange order.
 
 **Format Versions:** v0 (create), v1 (cancel), v2 (edit)
 
-**Format v0 (create):** `ORDER|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
-**Format v1 (cancel):** `ORDER|VERSION|ORDER_ACTION_INDEX|MEMO`
+**Format v0 (create):** `ORDER|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`  
+**Format v1 (cancel):** `ORDER|VERSION|ORDER_ACTION_INDEX|MEMO`  
 **Format v2 (edit):** `ORDER|VERSION|ORDER_ACTION_INDEX|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
 **Params — create (v0):**
@@ -825,9 +825,9 @@ Transfer tokens to one or more destination addresses.
 
 **Format Versions:** v0 (single send), v1 (one tick, multiple destinations), v2 (multiple ticks, one memo), v3 (multiple ticks, per-send memos)
 
-**Format v0:** `SEND|VERSION|TICK|AMOUNT|DESTINATION|MEMO`
-**Format v1:** `SEND|VERSION|TICK|AMOUNT|DESTINATION|AMOUNT|DESTINATION|MEMO`
-**Format v2:** `SEND|VERSION|TICK|AMOUNT|DESTINATION|TICK|AMOUNT|DESTINATION|MEMO`
+**Format v0:** `SEND|VERSION|TICK|AMOUNT|DESTINATION|MEMO`  
+**Format v1:** `SEND|VERSION|TICK|AMOUNT|DESTINATION|AMOUNT|DESTINATION|MEMO`  
+**Format v2:** `SEND|VERSION|TICK|AMOUNT|DESTINATION|TICK|AMOUNT|DESTINATION|MEMO`  
 **Format v3:** `SEND|VERSION|TICK|AMOUNT|DESTINATION|MEMO|TICK|AMOUNT|DESTINATION|MEMO`
 
 **Params:**
@@ -856,7 +856,7 @@ Pause all activity on an address (or a specific token on an address) until a giv
 
 **Format Versions:** v0 (address-wide sleep), v1 (tick-specific sleep)
 
-**Format v0:** `SLEEP|VERSION|RESUME_BLOCK|MEMO`
+**Format v0:** `SLEEP|VERSION|RESUME_BLOCK|MEMO`  
 **Format v1:** `SLEEP|VERSION|RESUME_BLOCK|TICK|MEMO`
 
 **Params:**
@@ -885,8 +885,8 @@ Fulfill an open ORDER by providing the requested side of the exchange.
 
 **Format Versions:** v0 (create swap / accept an order), v1 (cancel), v2 (edit)
 
-**Format v0:** `SWAP|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
-**Format v1:** `SWAP|VERSION|SWAP_ACTION_INDEX|MEMO`
+**Format v0:** `SWAP|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`  
+**Format v1:** `SWAP|VERSION|SWAP_ACTION_INDEX|MEMO`  
 **Format v2:** `SWAP|VERSION|SWAP_ACTION_INDEX|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
 **Params — create (v0):**

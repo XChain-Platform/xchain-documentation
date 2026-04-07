@@ -193,9 +193,9 @@ This document covers common problems, their symptoms, and how to diagnose and re
 docker logs xchain-node-bitcoin-mainnet-xchain-decoder
 ```
 
-**Common causes:**
-- **Port conflict:** Another process is using the same port. Use `netstat -tlnp | grep <port>` to identify the conflict.
-- **Volume permission issues:** The container process cannot write to its data volume. Check volume ownership.
+**Common causes:**  
+- **Port conflict:** Another process is using the same port. Use `netstat -tlnp | grep <port>` to identify the conflict.  
+- **Volume permission issues:** The container process cannot write to its data volume. Check volume ownership.  
 - **Missing environment variables:** Required variables not set. Check startup logs for `undefined` or missing config values.
 
 ### Container Crashes (OOM)

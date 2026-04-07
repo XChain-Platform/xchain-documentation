@@ -131,9 +131,9 @@ The indexer monitors the decoder's `blocks` table and independently handles reor
 
 Mempool tracking activates when the decoder is synced (within 3 blocks of the tip):
 
-- **Poll interval:** every 60 seconds
-- **Batch size:** 1000 transactions per RPC batch
-- **Comparison method:** binary search against sorted txid lists
+- **Poll interval:** every 60 seconds  
+- **Batch size:** 1000 transactions per RPC batch  
+- **Comparison method:** binary search against sorted txid lists  
 - **Cleanup:** stale mempool entries (no longer in node's mempool) are deleted each cycle
 
 Mempool tracking pauses if the decoder falls more than 3 blocks behind the tip, and resumes automatically when caught up.

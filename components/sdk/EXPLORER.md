@@ -71,7 +71,7 @@ let sends = await sdk.explorer.getSends('bc1q...', 'address', {
 #### `getBalances(address, opts?)`
 Returns all token balances held by an address.
 
-- **Endpoint:** `GET /{COIN}/api/balances/{address}`
+- **Endpoint:** `GET /{COIN}/api/balances/{address}`  
 - **`opts`:** pagination supported
 
 #### `getAddress(address)`
@@ -82,28 +82,28 @@ Returns address summary information (total activity, first/last seen, etc.).
 #### `getHolders(tick, opts?)`
 Returns a ranked list of holders for the given token ticker.
 
-- **Endpoint:** `GET /{COIN}/api/holders/{tick}`
+- **Endpoint:** `GET /{COIN}/api/holders/{tick}`  
 - **`opts`:** pagination supported
 
 #### `getCredits(query, type, opts?)`
 Returns credit records (incoming transfers, mints, airdrops, etc.) filtered by the given query and type.
 
-- **Endpoint:** `GET /{COIN}/api/credits/{query}/{type}`
-- **`type` values:** `block`, `address`
+- **Endpoint:** `GET /{COIN}/api/credits/{query}/{type}`  
+- **`type` values:** `block`, `address`  
 - **`opts`:** pagination supported
 
 #### `getDebits(query, type, opts?)`
 Returns debit records (outgoing transfers, destroys, fees, etc.).
 
-- **Endpoint:** `GET /{COIN}/api/debits/{query}/{type}`
-- **`type` values:** `block`, `address`
+- **Endpoint:** `GET /{COIN}/api/debits/{query}/{type}`  
+- **`type` values:** `block`, `address`  
 - **`opts`:** pagination supported
 
 #### `getEscrows(query, type, opts?)`
 Returns escrow records (tokens locked in dispensers or orders).
 
-- **Endpoint:** `GET /{COIN}/api/escrows/{query}/{type}`
-- **`type` values:** `block`, `address`
+- **Endpoint:** `GET /{COIN}/api/escrows/{query}/{type}`  
+- **`type` values:** `block`, `address`  
 - **`opts`:** pagination supported
 
 ---
@@ -118,15 +118,15 @@ Returns full token information for the given ticker: supply, divisibility, owner
 #### `getTokens(query, type, opts?)`
 Returns a list of tokens filtered by block, issuing address, parent token, or subtoken relationship.
 
-- **Endpoint:** `GET /{COIN}/api/tokens/{query}/{type}`
-- **`type` values:** `block`, `address`, `token`, `subtoken`
+- **Endpoint:** `GET /{COIN}/api/tokens/{query}/{type}`  
+- **`type` values:** `block`, `address`, `token`, `subtoken`  
 - **`opts`:** pagination supported
 
 #### `getIssues(query, type, opts?)`
 Returns ISSUE action records (token creation and additional issuance events).
 
-- **Endpoint:** `GET /{COIN}/api/issues/{query}/{type}`
-- **`type` values:** `block`, `address`, `token`
+- **Endpoint:** `GET /{COIN}/api/issues/{query}/{type}`  
+- **`type` values:** `block`, `address`, `token`  
 - **`opts`:** pagination supported
 
 ---
@@ -136,7 +136,7 @@ Returns ISSUE action records (token creation and additional issuance events).
 #### `getTransaction(query, type)`
 Returns a decoded XChain transaction.
 
-- **Endpoint:** `GET /{COIN}/api/transaction/{query}/{type}`
+- **Endpoint:** `GET /{COIN}/api/transaction/{query}/{type}`  
 - **`type` values:** `tx_hash`, `tx_index`
 
 #### `getAction(actionIndex)`
@@ -152,8 +152,8 @@ Returns block-level summary and the list of XChain actions in that block.
 #### `getHistory(query, type, opts?)`
 Returns a unified history of all XChain activity matching the query.
 
-- **Endpoint:** `GET /{COIN}/api/history/{query}/{type}`
-- **`type` values:** `block`, `address`, `token`, `recent`
+- **Endpoint:** `GET /{COIN}/api/history/{query}/{type}`  
+- **`type` values:** `block`, `address`, `token`, `recent`  
 - **`opts`:** pagination supported
 
 ---
@@ -200,7 +200,7 @@ Each returns records of the corresponding ACTION type. Pagination is supported v
 #### `getMarkets(tick?)`
 Returns all active markets, or all markets for a specific token if `tick` is provided.
 
-- **Endpoint (all markets):** `GET /{COIN}/api/markets`
+- **Endpoint (all markets):** `GET /{COIN}/api/markets`  
 - **Endpoint (by token):** `GET /{COIN}/api/markets/{tick}`
 
 #### `getMarket(tick1, tick2)`
@@ -211,15 +211,15 @@ Returns summary information for the trading pair `tick1`/`tick2`.
 #### `getMarketHistory(tick1, tick2, address?, opts?)`
 Returns trade history for a market pair. Optionally filter to a single address.
 
-- **Endpoint (all):** `GET /{COIN}/api/market/{tick1}/{tick2}/history`
-- **Endpoint (by address):** `GET /{COIN}/api/market/{tick1}/{tick2}/history/{address}`
+- **Endpoint (all):** `GET /{COIN}/api/market/{tick1}/{tick2}/history`  
+- **Endpoint (by address):** `GET /{COIN}/api/market/{tick1}/{tick2}/history/{address}`  
 - **`opts`:** pagination supported
 
 #### `getMarketOrders(tick1, tick2, address?, opts?)`
 Returns open orders for a market pair. Optionally filter to a single address.
 
-- **Endpoint (all):** `GET /{COIN}/api/market/{tick1}/{tick2}/orders`
-- **Endpoint (by address):** `GET /{COIN}/api/market/{tick1}/{tick2}/orders/{address}`
+- **Endpoint (all):** `GET /{COIN}/api/market/{tick1}/{tick2}/orders`  
+- **Endpoint (by address):** `GET /{COIN}/api/market/{tick1}/{tick2}/orders/{address}`  
 - **`opts`:** pagination supported
 
 #### `getOrderbook(tick1, tick2)`
@@ -283,7 +283,7 @@ Returns explorer health and sync status.
 #### `search(query, type)`
 Performs a cross-entity search. Note: this method uses the `/explorer/search/` path, not `/api/`.
 
-- **Endpoint:** `GET /{COIN}/explorer/search/{query}/{type}`
+- **Endpoint:** `GET /{COIN}/explorer/search/{query}/{type}`  
 - **`type` values:** `address`, `broadcast`, `token`, `transaction`
 
 ```js

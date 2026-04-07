@@ -158,8 +158,8 @@ The CONTRACT_WRAPPER script runs the contract code inside the isolate and routes
 2. Uses the preserved `__Function` reference to compile the metered contract code as a function body with `module`, `exports`, and `xchain` parameters
 3. Executes the compiled function
 4. Routes based on export type:
-   - **Function export:** calls the function directly with `xchain` (method param is ignored)
-   - **Object export:** looks up the named method on the object, throws `'unknown method'` if not found
+   - **Function export:** calls the function directly with `xchain` (method param is ignored)  
+   - **Object export:** looks up the named method on the object, throws `'unknown method'` if not found  
    - **Other:** throws `'contract must export a function or object'`
 5. JSON-serializes the return value with a `\x02` prefix before crossing the isolate boundary
 

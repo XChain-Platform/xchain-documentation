@@ -77,8 +77,8 @@ Validation only runs when `encoding` is explicitly set in the encoder options.
 
 If `encoding` is `OP_RETURN` and the ACTION string exceeds 76 bytes, the SDK throws immediately:
 
-- **Error code:** `ENCODING_DATA_TOO_LARGE`
-- **Message:** includes the actual byte count, the 76-byte limit, and a suggested alternative (`P2SH` or `P2WSH`)
+- **Error code:** `ENCODING_DATA_TOO_LARGE`  
+- **Message:** includes the actual byte count, the 76-byte limit, and a suggested alternative (`P2SH` or `P2WSH`)  
 - **`err.details`:** `{ encoding, dataBytes, maxBytes, suggestion }`
 
 ```js
@@ -93,7 +93,7 @@ sdk.send({ params: { ... }, encoder: { pubkey: '...', encoding: 'OP_RETURN' } })
 
 If `encoding` is `MULTISIGN` and `compressedPubKey` is absent, the SDK throws immediately:
 
-- **Error code:** `MISSING_COMPRESSED_PUBKEY`
+- **Error code:** `MISSING_COMPRESSED_PUBKEY`  
 - **Message:** `'MULTISIGN encoding requires compressedPubKey in encoder options.'`
 
 ### P2SH / P2WSH
