@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-04-06
+
+### Added
+- `components/e2e-test/ARCHITECTURE.md` — connector classes, bootstrap sequence, transaction flow, UTXO cache, polling architecture, wallet management, file organization
+- `components/e2e-test/CONFIGURATION.md` — all environment variables, hub discovery fallback, internal constants, Docker setup, coin/network combinations
+- `components/e2e-test/OPERATIONS.md` — running tests, CI pipeline, regression tiers, Docker execution, troubleshooting tables
+
+### Changed
+- `components/e2e-test/README.md` — expanded from minimal stub to full component documentation: features, architecture diagram, test structure tables, configuration overview, test counts
+- `developer-guide/TESTING.md` — added E2E Suite column to test type matrix, updated total test count to 5,600+, added e2e-test to component scripts list
+
 ## [0.9.0] - 2026-04-06
 
 ### Added

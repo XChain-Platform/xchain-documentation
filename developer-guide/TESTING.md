@@ -108,7 +108,7 @@ Regression tests are a curated subset of tests across all disciplines, organized
 
 ## Platform Test Coverage
 
-The XChain Platform maintains over **4,700 tests** across its five primary components, with the dedicated `xchain-e2e-test` service providing full-stack integration testing across all services.
+The XChain Platform maintains over **5,600 tests** across its six primary components, with the dedicated `xchain-e2e-test` service providing both full-stack integration testing across all services and comprehensive self-validation of its own test infrastructure.
 
 ### By Component
 
@@ -119,24 +119,25 @@ The XChain Platform maintains over **4,700 tests** across its five primary compo
 | [xchain-encoder](../components/encoder/) | ~769 | Unit, Integration, E2E, Boundary, Chaos, Mutation, Smoke, Performance, Regression |
 | [xchain-vm](../components/vm/) | 974 | Unit, E2E, Security, Boundary, Fuzz, Chaos, Mutation, Smoke, Regression |
 | [xchain-sdk](../components/sdk/) | 551 | Unit, Boundary, Fuzz, Chaos, Round-trip, Smoke |
-| [xchain-e2e-test](../components/e2e-test/) | — | Full-stack E2E across all services on regtest |
+| [xchain-e2e-test](../components/e2e-test/) | ~953 | Unit, Integration, E2E, Smoke, Boundary, Fuzz, Chaos, Regression, Mutation, Performance |
 
 ### By Test Type
 
-| Test Type | Indexer | Explorer | Encoder | VM | SDK |
-|---|---|---|---|---|---|
-| Unit | ~530 | ~583 | 114 | 580 | ~391 |
-| Integration | ~929 | ~83 | 108 | — | — |
-| E2E | 43 | 49 | ~80 | 64 | — |
-| Smoke | ~10 | ~40 | ~10 | 10 | 11 |
-| Boundary | ~100 | ~211 | ~120 | 106 | 36 |
-| Fuzz | ~50 | — | — | 86 | 56 |
-| Security | ~60 | ~104 | — | 72 | — |
-| Performance | 5 suites | 15 | 3 suites | 5 scenarios | — |
-| Chaos | ~30 | ~56 | 61 | 92 | 28 |
-| Mutation | ~30 | StrykerJS | StrykerJS | StrykerJS + custom | — |
-| Regression | ~18 | 144 | 196 | 152 | — |
-| Round-trip | — | — | — | — | 29 |
+| Test Type | Indexer | Explorer | Encoder | VM | SDK | E2E Suite |
+|---|---|---|---|---|---|---|
+| Unit | ~530 | ~583 | 114 | 580 | ~391 | ~360 |
+| Integration | ~929 | ~83 | 108 | — | — | ~72 |
+| E2E | 43 | 49 | ~80 | 64 | — | ~37 |
+| Smoke | ~10 | ~40 | ~10 | 10 | 11 | ~16 |
+| Boundary | ~100 | ~211 | ~120 | 106 | 36 | ~144 |
+| Fuzz | ~50 | — | — | 86 | 56 | ~53 |
+| Security | ~60 | ~104 | — | 72 | — | — |
+| Performance | 5 suites | 15 | 3 suites | 5 scenarios | — | 3 modes |
+| Chaos | ~30 | ~56 | 61 | 92 | 28 | ~77 |
+| Mutation | ~30 | StrykerJS | StrykerJS | StrykerJS + custom | — | StrykerJS |
+| Regression | ~18 | 144 | 196 | 152 | — | ~114 |
+| Round-trip | — | — | — | — | 29 | — |
+| Actions | — | — | — | — | — | ~80 |
 
 ### Testing Infrastructure
 
@@ -163,6 +164,7 @@ Each component provides granular npm scripts for running specific test types. Se
 - [Encoder test scripts](../components/encoder/README.md)
 - [VM test scripts](../components/vm/README.md)
 - [SDK test scripts](../components/sdk/README.md)
+- [E2E Test Suite scripts](../components/e2e-test/README.md)
 
 Common patterns across all components:
 
