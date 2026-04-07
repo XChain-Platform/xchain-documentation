@@ -9,14 +9,23 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 
 ## Features
 
-- Generate all 23 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW)
+- Generate all 29 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS)
+- **Transaction Lifecycle Manager** (`submitAction`): full encode → sign → broadcast → wait pipeline in a single call, with automatic P2SH two-phase handling and progress callbacks
+- **Wallet Sessions** (`sdk.session(wif)`): bound wallet object that bundles address/key/UTXO state with action convenience methods — "I am this address, do things"
+- **Fee Estimation** (`estimateFees`): dry-run fee calculation via encoder, returns fee in satoshis plus reusable PSBT
+- **UTXO-aware transaction chaining**: in-memory UTXO cache with speculative change outputs prevents double-spend on rapid sequential transactions
+- **Workflow Recipes**: multi-step helpers — `issueAndDistribute`, `issueAndMint`, `stakeAndDelegate`, `deployAndFund`, `createDispenser`, `createOrder`, `cancelOrder`, `distributeDividend`
+- **Cross-Chain Helper**: coordinate actions across BTC, LTC, DOGE SDK instances — `createSwap`, `link`, `parallel`, `waitForAll`, `getAllBalances`
+- **Event-driven confirmation** (`waitForAction`): WebSocket + polling hybrid that resolves when the indexer processes a transaction
+- **Interactive REPL** (`npm run repl`): live session with pre-configured SDK, custom `.actions`, `.status`, `.fields` commands
+- **Staking actions** (BTC-only): STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS for validator participation
 - Smart contract support: deploy contracts, execute methods, deposit/withdraw tokens via the xchain-vm integration
 - Contract authoring utilities: syntax validation, float detection, hex encoding, gas estimation
 - Bound ContractClient for repeated interactions with a specific deployed contract
 - Encode actions into unsigned PSBTs via the xchain-encoder service
 - Support for all encoding formats: OP_RETURN, P2SH, P2WSH, multisign
 - Fluent BatchBuilder for constructing multi-action BATCH transactions
-- Full Explorer API client: balances, tokens, transactions, history, markets, orderbook
+- Full Explorer API client: balances, tokens, transactions, history, markets, orderbook, contracts
 - Automatic retry with exponential backoff and jitter (respects Retry-After headers)
 - Connection pooling via configurable HTTP keep-alive agent
 - Hub-based service discovery: auto-resolve explorer and encoder endpoints from xchain-hub
@@ -44,11 +53,15 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 | Document | Description |
 |---|---|
 | [Configuration](CONFIGURATION.md) | Constructor options, environment variables, hub discovery, retry and pooling config |
-| [Actions](ACTIONS.md) | All supported ACTION types, parameters, and version formats |
+| [Actions](ACTIONS.md) | All 29 supported ACTION types, parameters, and version formats |
+| [Transaction Lifecycle](LIFECYCLE.md) | `submitAction`, fee estimation, UTXO chaining, P2SH two-phase handling |
+| [Wallet Sessions](SESSIONS.md) | Bound wallet sessions, convenience methods, UTXO cache |
+| [Workflows](WORKFLOWS.md) | High-level recipes: issueAndDistribute, deployAndFund, stakeAndDelegate |
+| [Cross-Chain](CROSSCHAIN.md) | Multi-chain coordination: parallel actions, swaps, links |
 | [Explorer](EXPLORER.md) | Explorer API client methods: balances, tokens, transactions, markets |
 | [Encoder](ENCODER.md) | Encoding actions into PSBTs, encoding formats, P2SH two-phase flow |
 | [Batch Builder](BATCH.md) | Fluent API for constructing multi-action BATCH transactions |
-| [Format Selection](FORMAT_SELECTION.md) | Choosing between OP_RETURN, P2SH, P2WSH, and multisign encoding |
+| [Format Selection](FORMAT_SELECTION.md) | How the SDK picks the optimal format version |
 | [Contracts](CONTRACTS.md) | VM smart contract integration: deploy, execute, deposit, withdraw, ContractClient |
 | [WebSocket](WEBSOCKET.md) | Real-time event client: connection, convenience methods, filters, reconnection, hooks |
 | [Wallet & Auth](WALLET.md) | Key management, address validation, PSBT signing, message signing, challenge-response verification |
@@ -201,6 +214,7 @@ Load the bundle in a `<script>` tag; the SDK is exposed as the global `XChainSDK
 |---|---|
 | `npm run api` | Start the SDK as a JSON-RPC microservice |
 | `npm test` | Run the Mocha test suite |
+| `npm run repl` | Start interactive REPL with a pre-configured SDK instance |
 | `npm run build` | Build a production minified browser bundle to `dist/xchain_sdk.min.js` |
 | `npm run build:dev` | Build a development (unminified) browser bundle to `dist/xchain_sdk.js` |
 

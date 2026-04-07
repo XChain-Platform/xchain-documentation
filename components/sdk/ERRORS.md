@@ -22,7 +22,9 @@ Error
         ├── SDKConfigError
         ├── SDKContractError
         ├── SDKWalletError
-        └── SDKAuthError
+        ├── SDKAuthError
+        ├── SDKMessagingError
+        └── SDKActionError
 ```
 
 Every error instance carries four properties:
@@ -244,6 +246,20 @@ try {
     } else if (err instanceof SDKAuthError) {
         // Auth operation failed (challenge generation, message signing)
         console.error('Auth error:', err.code, err.message);
+
+    } else if (err instanceof SDKMessagingError) {
+        // Messaging operation failed (encryption, decryption, pubkey lookup)
+        console.error('Messaging error:', err.code, err.message);
+
+    } else if (err instanceof SDKActionError) {
+        // Transaction lifecycle failure (confirmation timeout, action rejected by indexer)
+        console.error('Action error:', err.code, err.message);
+        if (err.code === 'CONFIRMATION_TIMEOUT') {
+            console.error('Transaction was broadcast but not indexed within timeout');
+        }
+        if (err.code === 'ACTION_REJECTED') {
+            console.error('Action was indexed but marked invalid:', err.details.reason);
+        }
 
     } else {
         // Unexpected error — rethrow

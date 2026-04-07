@@ -3,7 +3,7 @@
 
 # XChain Platform SDK — ACTION Reference
 
-Complete reference for all 23 ACTION types supported by the XChain Platform SDK.
+Complete reference for all 29 ACTION types supported by the XChain Platform SDK.
 
 ---
 
@@ -1096,6 +1096,111 @@ All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`,
 - **`QUANTITY`** (DEPOSIT/WITHDRAW) must be a positive number.
 - **`METHOD`** must be a non-empty string that does not contain `|` or `;`.
 - **`PARAMS`** / **`CONSTRUCTOR_PARAMS`** are variable-length arrays. Each element must not contain `|` or `;`.
+
+---
+
+## STAKE
+
+Stake XCHAIN tokens for hub validation (BTC chain only).
+
+```js
+await sdk.stake({ tier: 2, chains: 'BTC,LTC', signingPubkey: 'aabb...' }); // 64 hex chars
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `tier` | Yes | Validation tier: `1` (oracle) or `2` (cross-chain) |
+| `signingPubkey` | Yes | Ed25519 public key (64 hex characters) |
+| `chains` | Tier 2 only | Comma-separated chain identifiers (e.g., `'BTC,LTC'`). Must be empty for tier 1. |
+
+### Formats
+
+| Version | Format |
+|---|---|
+| 0 | `VERSION\|TIER\|CHAINS\|SIGNING_PUBKEY` |
+
+### Cross-field validation
+
+- Tier 1: `CHAINS` must be empty
+- Tier 2: `CHAINS` is required and must contain valid coin identifiers (BTC, LTC, DOGE)
+
+---
+
+## UNSTAKE
+
+Begin unstaking cooldown for a previously staked position (BTC chain only).
+
+```js
+await sdk.unstake({ tier: 1 });
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `tier` | Yes | Tier to unstake from: `1` or `2` |
+
+### Formats
+
+| Version | Format |
+|---|---|
+| 0 | `VERSION\|TIER` |
+
+---
+
+## DELEGATE
+
+Rotate the signing key for a staked validator (BTC chain only).
+
+```js
+await sdk.delegate({ newSigningPubkey: 'ccdd...' }); // 64 hex chars
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `newSigningPubkey` | Yes | New Ed25519 public key (64 hex characters) |
+
+### Formats
+
+| Version | Format |
+|---|---|
+| 0 | `VERSION\|NEW_SIGNING_PUBKEY` |
+
+---
+
+## REVOKE_DELEGATION
+
+Revoke a previously delegated signing key (BTC chain only).
+
+```js
+await sdk.revokeDelegation({ signingPubkey: 'aabb...' }); // 64 hex chars
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `signingPubkey` | Yes | Ed25519 public key to revoke (64 hex characters) |
+
+### Formats
+
+| Version | Format |
+|---|---|
+| 0 | `VERSION\|SIGNING_PUBKEY` |
+
+---
+
+## CLAIM_REWARDS
+
+Claim all accrued validator rewards (BTC chain only). No additional parameters required.
+
+```js
+await sdk.claimRewards({});
+```
+
+### Formats
+
+| Version | Format |
+|---|---|
+| 0 | `VERSION` |
+
+---
 
 ### BATCH constraints
 

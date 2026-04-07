@@ -57,6 +57,13 @@ End-to-end usage examples for common XChain Platform SDK workflows.
 - [Sign and Broadcast a Transaction](#sign-and-broadcast-a-transaction)
 - [Token-Gated Content Access](#token-gated-content-access)
 - [Fetch UTXOs](#fetch-utxos)
+- [Submit Action (Full Lifecycle)](#submit-action-full-lifecycle)
+- [Wallet Session](#wallet-session)
+- [Fee Estimation](#fee-estimation)
+- [Issue and Distribute Workflow](#issue-and-distribute-workflow)
+- [Stake and Delegate](#stake-and-delegate)
+- [Cross-Chain Parallel Actions](#cross-chain-parallel-actions)
+- [Interactive REPL](#interactive-repl)
 
 ---
 
@@ -1238,6 +1245,193 @@ const action = await sdk.send(
     { tick: 'MYTOKEN', amount: '10', destination: 'bc1qrecipient...' },
     { pubkey: publicKeyHex, utxos: utxos }
 );
+```
+
+---
+
+## Submit Action (Full Lifecycle)
+
+Submit an action through the complete pipeline — create, encode, sign, broadcast, and wait for the indexer — in one call:
+
+```js
+const sdk = new XChainSDK({
+    network: 'bitcoin-mainnet',
+    explorerUrl: 'explorer.example.com',
+    encoderUrl: 'encoder.example.com'
+});
+
+const result = await sdk.submitAction(
+    { action: 'SEND', params: { tick: 'MYTOKEN', amount: '100', destination: 'bc1qrecipient...' } },
+    { pubkey: '02abc123...' },
+    {
+        wif: 'your-wif-key',
+        onProgress: (step, data) => console.log(`Step: ${step}`)
+    }
+);
+
+console.log(result.txid);         // transaction hash
+console.log(result.encoding);     // 'OP_RETURN', 'P2SH', etc.
+console.log(result.indexed);      // action data from the indexer
+console.log(result.spentInputs);  // UTXOs consumed by this transaction
+```
+
+## Wallet Session
+
+Create a session bound to a single key and send multiple transactions:
+
+```js
+const session = sdk.session('your-wif-key');
+
+console.log(`Address: ${session.address}`);
+console.log(`Public key: ${session.pubkey}`);
+
+// Send multiple transactions back-to-back (UTXO chaining prevents double-spend)
+await session.send({ tick: 'TOKEN', amount: '10', destination: 'bc1qaddr1...' });
+await session.send({ tick: 'TOKEN', amount: '20', destination: 'bc1qaddr2...' });
+await session.send({ tick: 'TOKEN', amount: '30', destination: 'bc1qaddr3...' });
+
+// Query balances scoped to the session address
+const balances = await session.getBalances();
+console.log(balances);
+```
+
+## Fee Estimation
+
+Estimate fees before committing to a transaction:
+
+```js
+const estimate = await sdk.estimateFees(
+    { action: 'SEND', params: { tick: 'TOKEN', amount: '100', destination: 'bc1q...' } },
+    { pubkey: '02abc123...' }
+);
+
+console.log(`Fee: ${estimate.fee} satoshis`);
+console.log(`Encoding: ${estimate.encoding}`);
+console.log(`Input total: ${estimate.inputTotal}`);
+console.log(`Output total: ${estimate.outputTotal}`);
+
+// The returned PSBT can be signed directly to skip re-encoding
+if (estimate.fee < 5000) {
+    const signed = sdk.signPsbt(estimate.psbt, wif);
+    await sdk.broadcastTx(signed.txHex);
+}
+```
+
+## Issue and Distribute Workflow
+
+Issue a token and send it to multiple recipients in one call:
+
+```js
+const result = await sdk.issueAndDistribute(
+    'your-wif-key',
+    { tick: 'NEWTOKEN', maxSupply: '1000000', decimals: 8 },
+    [
+        { destination: 'bc1qaddr1...', amount: '500000' },
+        { destination: 'bc1qaddr2...', amount: '300000' },
+        { destination: 'bc1qaddr3...', amount: '200000' }
+    ]
+);
+
+console.log(`Token issued: ${result.issue.txid}`);
+for (const send of result.sends) {
+    console.log(`Sent: ${send.txid}`);
+}
+```
+
+## Stake and Delegate
+
+Stake XCHAIN tokens and delegate a signing key (BTC chain only):
+
+```js
+const result = await sdk.stakeAndDelegate(
+    'your-wif-key',
+    {
+        tier: 2,
+        chains: 'BTC,LTC',
+        signingPubkey: 'aabbccdd...'  // 64 hex characters (Ed25519 public key)
+    },
+    {
+        newSigningPubkey: 'eeff0011...'  // optional — omit to skip delegation
+    }
+);
+
+console.log(`Staked: ${result.stake.txid}`);
+console.log(`Delegated: ${result.delegate.txid}`);
+
+// Later: claim rewards
+const session = sdk.session('your-wif-key');
+await session.claimRewards({});
+
+// Later: unstake
+await session.unstake({ tier: 2 });
+```
+
+## Cross-Chain Parallel Actions
+
+Execute actions on multiple chains simultaneously:
+
+```js
+const { XChainSDK, CrossChainHelper } = require('xchain-sdk');
+
+const btcSdk = new XChainSDK({ network: 'bitcoin-mainnet', explorerUrl: '...', encoderUrl: '...' });
+const ltcSdk = new XChainSDK({ network: 'litecoin-mainnet', explorerUrl: '...', encoderUrl: '...' });
+
+const bridge = new CrossChainHelper({ BTC: btcSdk, LTC: ltcSdk });
+
+// Send tokens on both chains at the same time
+const results = await bridge.parallel([
+    {
+        chain: 'BTC',
+        wif: btcWIF,
+        actionData: { action: 'SEND', params: { tick: 'BTCTOKEN', amount: '50', destination: btcAddr } }
+    },
+    {
+        chain: 'LTC',
+        wif: ltcWIF,
+        actionData: { action: 'SEND', params: { tick: 'LTCTOKEN', amount: '100', destination: ltcAddr } }
+    }
+]);
+
+console.log(`BTC tx: ${results[0].txid}`);
+console.log(`LTC tx: ${results[1].txid}`);
+
+// Get balances across all chains
+const allBalances = await bridge.getAllBalances('bc1qmyaddress...');
+```
+
+## Interactive REPL
+
+Start an interactive session for exploration and prototyping:
+
+```bash
+npm run repl
+```
+
+```
+  XChain SDK REPL
+  Network: bitcoin-regtest
+
+  Available in scope:
+    sdk            - XChainSDK instance
+    session(wif)   - Create a WalletSession
+    keygen()       - Generate a new keypair
+
+  Commands:
+    .actions       - List all action types
+    .status        - Show SDK configuration
+    .fields ACTION - Show fields for an action
+
+xchain> const keys = keygen()
+xchain> keys.wif
+'cNjFk...'
+xchain> const s = session(keys.wif)
+xchain> s.address
+'mwCwTc...'
+xchain> .fields SEND
+  v0: VERSION|TICK|AMOUNT|DESTINATION|MEMO
+  v1: VERSION|TICK|AMOUNT|DESTINATION|AMOUNT|DESTINATION|MEMO
+  v2: VERSION|TICK|AMOUNT|DESTINATION|TICK|AMOUNT|DESTINATION|MEMO
+  v3: VERSION|TICK|AMOUNT|DESTINATION|MEMO|TICK|AMOUNT|DESTINATION|MEMO
 ```
 
 ---
