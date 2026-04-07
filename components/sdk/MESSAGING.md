@@ -149,6 +149,7 @@ Send a message with automatic pubkey resolution, encryption, action creation, PS
 const result = await sdk.sendMessage({
     wif: senderWIF,
     destination: recipientAddress,
+    coin: 'BTC',                      // BTC, LTC, or DOGE — destination address network
     message: 'Hello!',
     method: 1,                        // 1=ECIES (default), 2=ECDH, 3=AES, null=plaintext
     sharedSecret: '...',              // Required for method 2
@@ -222,6 +223,7 @@ The messaging module throws `SDKMessagingError` with the following codes:
 | `INVALID_WIF` | Invalid or network-mismatched WIF |
 | `INVALID_CIPHERTEXT` | Ciphertext too short or malformed |
 | `INVALID_KEY` | Missing encryption key |
+| `INVALID_COIN` | Missing or invalid COIN value (must be BTC, LTC, or DOGE) |
 | `INVALID_DESTINATION` | Missing destination address |
 | `INVALID_METHOD` | Unknown encryption method |
 | `PUBKEY_NOT_FOUND` | No public key found for recipient (ECIES send) |

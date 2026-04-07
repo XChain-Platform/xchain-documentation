@@ -39,6 +39,7 @@ ECIES is the default and recommended encryption method. It encrypts directly to 
 let result = await sdk.sendMessage({
     wif: senderWIF,
     destination: '1RecipientAddress...',
+    coin: 'BTC',
     message: 'Hello, this is a private message!',
     encoder: { pubkey: senderPubkeyHex }
 });
@@ -61,6 +62,7 @@ Plaintext messages are visible to everyone on-chain. Pass `method: null` to skip
 let result = await sdk.sendMessage({
     wif: senderWIF,
     destination: '1RecipientAddress...',
+    coin: 'BTC',
     message: 'This is a public message visible to everyone!',
     method: null,
     encoder: { pubkey: senderPubkeyHex }
@@ -127,6 +129,7 @@ let senderSession = sdk.messaging.generateSessionKey(senderWIF);
 // Step 2: Send format 0 key exchange request (on-chain)
 let keyExchange = await sdk.message({
     destination: '1RecipientAddress...',
+    coin: 'BTC',
     encryptionMethod: 2,
     encryptionKey: senderSession.publicKey
 }, { pubkey: senderPubkeyHex });
@@ -136,6 +139,7 @@ let keyExchange = await sdk.message({
 let recipientSession = sdk.messaging.generateSessionKey(recipientWIF);
 let keyResponse = await sdk.message({
     destination: senderAddress,
+    coin: 'BTC',
     encryptionMethod: 2,
     encryptionKey: recipientSession.publicKey
 }, { pubkey: recipientPubkeyHex });
@@ -162,6 +166,7 @@ let sharedKey = 'my-secret-passphrase-shared-between-parties';
 let result = await sdk.sendMessage({
     wif: senderWIF,
     destination: '1RecipientAddress...',
+    coin: 'BTC',
     message: 'Encrypted with a shared passphrase',
     method: 3,
     sharedKey: sharedKey,

@@ -362,6 +362,7 @@ const result = await sdk.broadcast({
 // Low-level: generate the action string only
 const result = await sdk.message({
     destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+    coin: 'BTC',
     plaintextMessage: 'Hello, this is a direct message'
 });
 
@@ -371,6 +372,7 @@ console.log(result.version); // 3 (plaintext format)
 const sent = await sdk.sendMessage({
     wif: senderWIF,
     destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+    coin: 'BTC',
     message: 'This is a public message visible to everyone!',
     method: null,  // null = plaintext
     encoder: { pubkey: senderPubkeyHex }
@@ -388,6 +390,7 @@ ECIES is the default encryption method. It encrypts directly to the recipient's 
 const result = await sdk.sendMessage({
     wif: senderWIF,
     destination: 'bc1qrecipient...',
+    coin: 'BTC',
     message: 'Hello, this is a private ECIES message!',
     // method: 1 is the default, no need to specify
     encoder: { pubkey: senderPubkeyHex }
@@ -451,6 +454,7 @@ const senderSession = sdk.messaging.generateSessionKey(senderWIF);
 // Step 2: Send format 0 key exchange request (on-chain)
 const keyExchange = await sdk.message({
     destination: 'bc1qrecipient...',
+    coin: 'BTC',
     encryptionMethod: 2,
     encryptionKey: senderSession.publicKey
 }, { pubkey: senderPubkeyHex });
@@ -460,6 +464,7 @@ const keyExchange = await sdk.message({
 const recipientSession = sdk.messaging.generateSessionKey(recipientWIF);
 const keyResponse = await sdk.message({
     destination: senderAddress,
+    coin: 'BTC',
     encryptionMethod: 2,
     encryptionKey: recipientSession.publicKey
 }, { pubkey: recipientPubkeyHex });
@@ -479,6 +484,7 @@ console.log('Decrypted:', decrypted.plaintext);
 const result = await sdk.sendMessage({
     wif: senderWIF,
     destination: 'bc1qrecipient...',
+    coin: 'BTC',
     message: 'Encrypted with ECDH session key',
     method: 2,
     sharedSecret: senderSecret.sharedSecret,
@@ -499,6 +505,7 @@ const sharedKey = 'my-secret-passphrase-shared-between-parties';
 const result = await sdk.sendMessage({
     wif: senderWIF,
     destination: 'bc1qrecipient...',
+    coin: 'BTC',
     message: 'This message is encrypted with a shared passphrase',
     method: 3,
     sharedKey: sharedKey,

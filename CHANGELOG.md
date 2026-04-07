@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.6] - 2026-04-07
+
+### Changed
+- `protocol/actions/MESSAGE.md` — added `COIN` field (BTC, LTC, DOGE) to all MESSAGE formats for cross-chain messaging support
+- All SDK messaging documentation and examples updated with required `coin` parameter
+- `components/sdk/MESSAGING.md` — added `INVALID_COIN` error code
+
 ## [0.9.5] - 2026-04-07
 
 ### Added
