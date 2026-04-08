@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.7] - 2026-04-07
+
+### Added
+- `protocol/actions/DISPENSER.md` — FIAT Dispensers section: reverse price matching algorithm, overpayment/tips handling, dispenser close window behavior, and FIAT dispenser example
+- `protocol/actions/PRICE.md` — expanded FIAT Dispenser Grace Period with floor-based matching algorithm details
+
 ## [0.9.6] - 2026-04-07
 
 ### Changed
