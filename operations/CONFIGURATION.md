@@ -154,7 +154,7 @@ CORS origins and other advanced settings may be configured through the hub or a 
 | `SEED_NODES` | Comma-separated peer addresses | Not set |
 | `SIGNING_PRIVKEY_HEX` | Ed25519 private key (64 hex chars) | Not set |
 
-The hub uses MariaDB for all data storage (13 tables). The database and tables are auto-created on startup. In validator mode (when `P2P_VALIDATOR_ADDR` is set), the hub activates PBFT consensus, price oracle, cross-chain attestation, governance, and reward/slash tracking. See the [hub Configuration reference](../components/hub/CONFIGURATION.md) for the full list of 30+ environment variables.
+The hub uses MariaDB for all data storage. The database and tables are auto-created on startup. In standalone mode the hub provides a config oracle, the `PriceAggregator` (for receiving on-chain PRICE actions from indexers), and the `HubDbBroadcaster` (for replicating cross-chain price data to connected indexers). In validator mode (when `P2P_VALIDATOR_ADDR` is set), the hub also activates PBFT consensus, the price oracle round system, the Tier 3 oracle publisher, cross-chain attestation, governance, and reward/slash tracking. See the [hub Configuration reference](../components/hub/CONFIGURATION.md) for the full list of environment variables.
 
 ### UTXO Tracker
 

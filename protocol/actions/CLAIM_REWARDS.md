@@ -22,15 +22,32 @@ Claim all accrued validator rewards for the broadcasting address
 
 ## Rules
 - BTC chain only
-- Broadcasting address must have an active stake
+- Broadcasting address must have an active stake (gated by the 6-block activation delay)
 - Broadcasting address must have unclaimed rewards greater than 0
 - Rewards are credited to the broadcasting address upon indexing
+
+## Reward Sources
+
+Rewards accumulate from multiple validator activities, all stored in the indexer's `validator_rewards` table:
+
+| Reward Type | Earned By | Trigger |
+|---|---|---|
+| `oracle_round` | Tier 1 (oracle validator) | Participation in PBFT consensus on a finalized price round |
+| `oracle_round` | Tier 3 (oracle publisher) | Successful PRICE v0 broadcast to chain (1 XCHAIN per published round) |
+| `cross_chain_attestation` | Tier 2 (cross-chain validator) | Successful cross-chain action attestation |
+
+## Reward Population Path
+
+The hub's `RewardTracker` distributes rewards after each finalized oracle round (or successful cross-chain attestation), then pushes the reward records to the BTC indexer via the `pushvalidatorrewards` JSON-RPC endpoint. The indexer's `createValidatorReward` resolves the validator's signing pubkey to the staking source address and writes to the local `validator_rewards` table.
+
+`CLAIM_REWARDS` queries the indexer's `validator_rewards` table directly — no hub round-trip during transaction processing.
 
 ## Notes
 - Rewards accrue continuously while the address holds an active stake
 - All pending rewards are claimed in a single action; partial claims are not supported
 - Rewards may be claimed at any time while a stake is active
 - Rewards can also be claimed after initiating `UNSTAKE` during the cooldown period
+- Tier 1 + Tier 3 overlap is allowed — the same address can earn rewards from both PBFT consensus and PRICE v0 publishing in a single round
 
 ---
 

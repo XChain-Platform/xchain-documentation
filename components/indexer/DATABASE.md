@@ -105,11 +105,21 @@ The indexer creates and manages all tables in this database. SQL schema files li
 
 | Table | Purpose |
 |---|---|
-| `stakes` | Active and historical STAKE records — amount, status, block_index |
-| `unstakes` | UNSTAKE records — links back to the originating stake |
-| `delegations` | Active and historical DELEGATE records — validator pubkey (via `index_pubkeys`), delegated amount, status |
-| `validator_rewards` | Per-validator accumulated reward totals, updated each block |
-| `reward_claims` | CLAIM_REWARDS records — amount claimed, block_index |
+| `stakes` | Active and historical STAKE records — `tier` (1=oracle, 2=cross-chain, 3=oracle publisher), `chains`, `signing_pubkey_id`, `doge_address` (Tier 3 only), `amount`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE), `status_id` |
+| `unstakes` | UNSTAKE records — `tier`, `cooldown_end_block` (`block_index + 1000` for token return), links back to the originating stake |
+| `delegations` | Active and historical DELEGATE records — `signing_pubkey_id`, `activation_block`, `deactivation_block` (set on REVOKE_DELEGATION), `status_id` |
+| `validator_rewards` | Per-validator accumulated rewards — `source_id`, `signing_pubkey_id`, `reward_type` (`oracle_round` or `cross_chain_attestation`), `round_reference`, `amount`, `block_index`. Populated by the hub's `RewardTracker` via the `pushvalidatorrewards` JSON-RPC endpoint. |
+| `reward_claims` | CLAIM_REWARDS records — `source_id`, `amount`, `status_id`, `block_index` |
+
+All staking tables enforce a **6-block activation/deactivation delay** via `activation_block` and `deactivation_block` columns. Active-stake queries filter by `activation_block <= current_block AND (deactivation_block IS NULL OR deactivation_block > current_block)` to prevent short-range BTC reorgs from affecting the active validator set.
+
+### PRICE Action Table
+
+| Table | Purpose |
+|---|---|
+| `prices` | Raw on-chain PRICE action log (one row per processed PRICE tx). v0 fields: `round_number`, `round_timestamp`, `pair_count`, `pairs_json`, `sig_count`, `sigs_json`. v1 fields: `coin_id`, `tick_id`, `fiat_id`, `value`, `fee`, `memo_id`. Shared: `version`, `source_id`, `validation_status` (PBFT signature check result), `status_id` |
+
+After processing, the indexer pushes validated PRICE actions to `xchain-hub` which deduplicates and writes to the cross-chain `price_snapshots` / `oracle_prices` tables in the hub DB. The `prices` table itself is the per-chain action log; for cross-chain queries, the indexer reads from its **local hub DB** (synced from the hub).
 
 ### Virtual Machine Tables
 
@@ -137,7 +147,7 @@ During a blockchain reorganization, the `Rollback` class deletes data from two s
 
 **Block tables** (keyed by `block_index`): `blocks`, `transactions`
 
-**Data tables** (keyed by `action_index`): All other tables listed above, including staking tables (`stakes`, `unstakes`, `delegations`, `validator_rewards`, `reward_claims`) and VM tables (`contracts`, `contract_state`, `contract_executions`, `contract_emissions`, `deposits`, `withdrawals`). The rollback deletes records where `action_index >= firstActionIndex` (the first action at or after the reorg block), then recalculates balances, token state, and `contract_balances` from the remaining ledger data.
+**Data tables** (keyed by `action_index`): All other tables listed above, including staking tables (`stakes`, `unstakes`, `delegations`, `validator_rewards`, `reward_claims`), the `prices` action log, and VM tables (`contracts`, `contract_state`, `contract_executions`, `contract_emissions`, `deposits`, `withdrawals`). The rollback deletes records where `action_index >= firstActionIndex` (the first action at or after the reorg block), then recalculates balances, token state, and `contract_balances` from the remaining ledger data.
 
 ---
 

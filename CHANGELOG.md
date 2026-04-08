@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.8] - 2026-04-08
+
+### Added
+- `protocol/actions/PRICE.md` — full rewrite to match implementation: 12 fiat currencies (36 pairs per round), DOGE_ADDRESS in Tier 3 STAKE format, 24-hour user oracle lock window, publishable on any chain (not DOGE-only), hub-aggregated price_snapshots with source_chain column, three-database model architecture, signature aggregation flow
+- `protocol/actions/STAKE.md` — Tier 3 (oracle publisher, 500 XCHAIN), DOGE_ADDRESS field with format validation, 6-block activation delay
+- `protocol/actions/UNSTAKE.md` — Tier 3 support, two distinct delays (6-block validator removal vs 1000-block token return)
+- `protocol/actions/DELEGATE.md` — 6-block activation delay for key rotation
+- `protocol/actions/REVOKE_DELEGATION.md` — 6-block deactivation delay with key overlap window
+- `protocol/actions/DISPENSER.md` — ORACLE_ADDRESS field for user TOKEN/FIAT oracle pricing, EUR/KRW added to FIAT_CODE list (12 currencies total), dual reverse-matching algorithms (validator and user oracle paths), front-running protection notes
+- `protocol/actions/CLAIM_REWARDS.md` — reward sources table, hub→indexer reward push path via `pushvalidatorrewards`
+- `protocol/actions/README.md` — new "Oracles" section listing PRICE
+- `architecture/DATABASE_DESIGN.md` — three-database model (Decoder DB, Indexer DB, local Hub DB) with separation principle and cross-node determinism guarantee
+- `components/hub/ARCHITECTURE.md` — PriceAggregator, OraclePublisher, EncoderClient, HubDbBroadcaster source files; Tier 3 publishing pipeline diagram; multi-validator signature aggregation in PBFT prepare/commit; hub DB sync channel REST + WebSocket flow
+- `components/hub/DATABASE.md` — `oracle_prices` table schema; `price_snapshots` updated with `source_chain` and `source_action_index` columns
+- `components/hub/API.md` — new write methods (`pushchaintip`, `pushpriceround`, `pushoracleprice`); new REST endpoints (`/hub-db/snapshot/price_snapshots`, `/hub-db/snapshot/oracle_prices`); WebSocket channel `/hub-db/subscribe`
+- `components/hub/OPERATIONS.md` — startup sequence updated with PriceAggregator, HubDbBroadcaster, OraclePublisher
+- `components/indexer/ARCHITECTURE.md` — three DB connections, HubClient, HubDbSync, Ed25519 verification module; indexer↔hub push endpoint reference
+- `components/indexer/ACTIONS.md` — new "Oracles" section for PRICE v0/v1; Tier 3 staking notes; activation delay reference
+- `components/indexer/DATABASE.md` — `prices` action table schema; `stakes` updated with `doge_address`, `activation_block`, `deactivation_block`; `delegations` updated with activation/deactivation columns; `validator_rewards` populated via hub push
+- `architecture/COMPONENT_MAP.md` — indexer entry updated for three-database model and hub push endpoints; hub entry updated for hub DB sync channel
+- `operations/CONFIGURATION.md` — hub component descriptions updated for PriceAggregator, HubDbBroadcaster, OraclePublisher
+
 ## [0.9.7] - 2026-04-07
 
 ### Added

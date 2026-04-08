@@ -65,11 +65,17 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | [`MESSAGE`](./MESSAGE.md) | Sends plaintext or encrypted messages between addresses |
 | [`FILE`](./FILE.md) | Uploads a file with metadata (name, MIME type, title) |
 
+### Oracles
+
+| ACTION | Description |
+|---|---|
+| [`PRICE`](./PRICE.md) | Publishes oracle price data on-chain (v0: validator COIN/FIAT snapshots, v1: user TOKEN/FIAT oracles) |
+
 ### Hub Staking (BTC chain only)
 
 | ACTION | Description |
 |---|---|
-| [`STAKE`](./STAKE.md) | Stakes XCHAIN tokens for hub validation (oracle or cross-chain tier) |
+| [`STAKE`](./STAKE.md) | Stakes XCHAIN tokens for hub validation (oracle, cross-chain, or oracle publisher tier) |
 | [`UNSTAKE`](./UNSTAKE.md) | Begins the unstaking cooldown period |
 | [`DELEGATE`](./DELEGATE.md) | Rotates the signing key for a staked validator |
 | [`REVOKE_DELEGATION`](./REVOKE_DELEGATION.md) | Revokes a previously delegated signing key |

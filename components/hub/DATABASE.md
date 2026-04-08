@@ -3,7 +3,7 @@
 
 # XChain Platform Hub — Database Schema
 
-The hub uses a single MariaDB database (e.g., `XChain_Hub`) for all state. The database and all 13 tables are auto-created on first startup. SQL schema files live in `src/sql/*.sql` and are loaded by `db.js`.
+The hub uses a single MariaDB database (e.g., `XChain_Hub`) for all state. The database and all tables are auto-created on first startup. SQL schema files live in `src/sql/*.sql` and are loaded by `db.js`.
 
 ## Config Tables
 
@@ -78,7 +78,8 @@ Tracks known peers in the gossip network for reconnection and discovery.
 | Table | Purpose |
 |---|---|
 | `oracle_submissions` | Per-validator price submissions per round |
-| `price_snapshots` | Finalized oracle prices after consensus |
+| `price_snapshots` | Finalized oracle prices after PBFT consensus (cross-chain unified view) |
+| `oracle_prices` | User TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window |
 
 ### `oracle_submissions`
 
@@ -98,25 +99,50 @@ Raw price submissions from validators during each oracle round.
 
 ### `price_snapshots`
 
-Finalized price data after PBFT consensus. The authoritative price record used for fee quotes and external consumers.
+Finalized price data after PBFT consensus. Cross-chain unified view — populated by either the hub's local PBFT consensus (when running in validator mode) or by `PriceAggregator.receiveValidatedRound()` when an indexer pushes a validated PRICE v0 from any chain. Deduplicated by `round_number` (first valid submission wins).
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | `BIGINT AUTO_INCREMENT` | Primary key |
-| `round_number` | `BIGINT NOT NULL` | Oracle round number |
-| `coin_pair` | `VARCHAR(20) NOT NULL` | Price pair |
+| `round_number` | `BIGINT NOT NULL` | Oracle round number (= BTC block height) |
+| `coin_pair` | `VARCHAR(20) NOT NULL` | Price pair (3 coins × 12 fiats = 36 supported) |
 | `price` | `VARCHAR(40)` | Finalized price (8 decimal precision) |
-| `reference_block` | `BIGINT NOT NULL` | Reference block height (default: 0) |
+| `reference_block` | `BIGINT NOT NULL` | BTC chain tip when round was triggered (no longer hardcoded to 0) |
 | `reference_chain` | `VARCHAR(10) NOT NULL` | Reference chain (default: BTC) |
 | `block_timestamp` | `BIGINT NOT NULL` | Block timestamp of reference (default: 0) |
 | `validator_count` | `INT NOT NULL` | Number of validators in consensus |
 | `consensus_round` | `INT` | Consensus round number (default: 1) |
-| `consensus_proof` | `TEXT NOT NULL` | Serialized consensus proof |
+| `consensus_proof` | `TEXT NOT NULL` | Serialized consensus proof — JSON array of `{pubkey, sig}` for PRICE v0 |
 | `status` | `ENUM('finalized','skipped','disputed')` | Round outcome |
+| `source_chain` | `VARCHAR(10) NOT NULL` | Chain that carried the PRICE v0 tx (audit/diagnostics, default: DOGE) |
+| `source_action_index` | `BIGINT` | Action index of the PRICE v0 tx on source_chain (NULL for hub-finalized) |
 | `created_at` | `TIMESTAMP` | Record creation time |
 
-**Unique key:** `(round_number, coin_pair)`  
-**Keys:** `(coin_pair, reference_block)`, `(coin_pair, block_timestamp)`, `(status)`
+**Unique key:** `(round_number, coin_pair)`
+**Keys:** `(coin_pair, reference_block)`, `(coin_pair, block_timestamp)`, `(status)`, `(source_chain)`
+
+### `oracle_prices`
+
+User TOKEN/FIAT oracle prices published via PRICE v1. Cross-chain aggregated by `PriceAggregator.receiveOraclePrice()` from all chains' indexers. Enforces 24-hour price lock window via `effective_at` column.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `BIGINT AUTO_INCREMENT` | Primary key |
+| `source_address` | `VARCHAR(100) NOT NULL` | Oracle operator's address (PRICE v1 SOURCE) |
+| `source_chain` | `VARCHAR(10) NOT NULL` | Chain on which the PRICE v1 tx was published |
+| `coin` | `VARCHAR(10) NOT NULL` | Token's chain (BTC/LTC/DOGE) |
+| `tick` | `VARCHAR(50) NOT NULL` | Token name (e.g. PEPECASH) |
+| `fiat` | `VARCHAR(10) NOT NULL` | Fiat currency code (USD, JPY, EUR, etc.) |
+| `value` | `VARCHAR(250) NOT NULL` | Price as decimal string |
+| `fee` | `VARCHAR(250)` | Oracle usage fee as decimal (e.g. `0.01` = 1%) |
+| `memo` | `VARCHAR(250)` | Optional description |
+| `block_time` | `BIGINT UNSIGNED NOT NULL` | block_time of the publishing tx |
+| `effective_at` | `BIGINT UNSIGNED NOT NULL` | When this price takes effect (`block_time` for first broadcast, `block_time + 86400` for updates) |
+| `action_index` | `BIGINT UNSIGNED NOT NULL` | action_index of the PRICE v1 tx on source_chain |
+| `created_at` | `TIMESTAMP` | Record creation time |
+
+**Unique key:** `(source_chain, action_index)` (dedup)
+**Keys:** `(source_address, coin, tick, fiat)`, `(coin, tick, fiat, effective_at)`, `(source_chain)`
 
 ## Cross-Chain Tables
 

@@ -11,11 +11,20 @@ Coin Node (bitcoind / litecoind / dogecoind)
 xchain-decoder  →  Decoder DB (MariaDB)
     ↓  SQL reads
 xchain-indexer  →  Indexer DB (MariaDB)
+    ↑                              ↓  push chain tip + PRICE actions
+    │ reads cross-chain data       └─→  xchain-hub
+    │
+    Hub DB (local copy, read-only)
+    synced from xchain-hub via WebSocket
     ↓  SQL reads
 xchain-explorer  →  REST / JSON-RPC / Web UI
 ```
 
-The indexer sits between the decoder and the explorer. It reads raw decoded transaction data from the Decoder database (read-only access), processes each transaction through the appropriate ACTION handler, and writes the resulting state to the Indexer database. The explorer then reads from the Indexer database to serve API queries and render the web interface.
+The indexer sits between the decoder and the explorer. It reads raw decoded transaction data from the Decoder database (read-only), processes each transaction through the appropriate ACTION handler, and writes the resulting state to the Indexer database. The explorer then reads from the Indexer database to serve API queries.
+
+The indexer also maintains a third connection to a local Hub DB containing cross-chain infrastructure data (`price_snapshots`, `oracle_prices`, `validator_rewards`) synced from `xchain-hub`. This lets validateNativeCoinFee, FIAT dispenser settlement, and the VM's oracle gateway read price data without a hub round-trip during block processing.
+
+After processing each block, the indexer pushes its chain tip to xchain-hub (so the hub can anchor oracle rounds to BTC block heights) and pushes any validated PRICE actions to the hub's `PriceAggregator` for cross-chain deduplication and aggregation.
 
 ## Internal Components
 
@@ -35,8 +44,9 @@ The indexer sits between the decoder and the explorer. It reads raw decoded tran
 │              │              │                           │
 │  ┌───────────▼──┐  ┌───────▼────────┐  ┌──────────────┐│
 │  │   Actions    │  │   Database     │  │  Rollback    ││
-│  │  28 handlers │  │  2 pool conns  │  │  Atomic undo ││
-│  │  + aliases   │  │  (decoder+idx) │  │  by block    ││
+│  │  29 handlers │  │  3 pool conns  │  │  Atomic undo ││
+│  │  + aliases   │  │  (decoder/idx/ │  │  by block    ││
+│  │  inc. PRICE  │  │   hub)         │  │              ││
 │  └──────┬───────┘  └───────┬────────┘  └──────────────┘│
 │         │                  │                           │
 │  ┌──────▼───────┐  ┌───────▼────────┐  ┌──────────────┐│
@@ -45,8 +55,46 @@ The indexer sits between the decoder and the explorer. It reads raw decoded tran
 │  │  Expirations │  │  ↔ addr/tick   │  │  Activation  ││
 │  │  Ledger ops  │  │  mappings      │  │  by version  ││
 │  └──────────────┘  └────────────────┘  └──────────────┘│
+│                                                         │
+│  ┌──────────────┐  ┌────────────────┐  ┌──────────────┐│
+│  │  HubClient   │  │   HubDbSync    │  │   Ed25519    ││
+│  │  Pushes chain│  │  Bootstraps +  │  │  Verify sigs ││
+│  │  tip + PRICE │  │  WebSocket     │  │  on PRICE v0 ││
+│  │  to xchain-  │  │  syncs hub DB  │  │  via Node    ││
+│  │  hub         │  │  tables        │  │  crypto      ││
+│  └──────────────┘  └────────────────┘  └──────────────┘│
 └─────────────────────────────────────────────────────────┘
 ```
+
+### Three-Database Model
+
+| Database | Connection | Purpose |
+|---|---|---|
+| Decoder DB | Read | Raw blockchain data, decoded txs (from coin node via JSON-RPC) |
+| Indexer DB | Read/Write | Chain-specific indexed state — actions, balances, tokens, the local `prices` action log |
+| Hub DB | Read | Local copy of cross-chain infrastructure tables (`price_snapshots`, `oracle_prices`, `validator_rewards`) synced from `xchain-hub` |
+
+The indexer's `db.indexer` reference exposes the parent indexer to dependent code so utility functions like `validateNativeCoinFee()` and `reversePriceMatch()` can automatically prefer the hub DB connection (`db.indexer.hubDb`) when querying cross-chain price data.
+
+### Indexer → Hub Push Endpoints
+
+After block processing completes, the indexer pushes data to the hub via `HubClient` (a small dependency-free JSON-RPC client using Node's built-in `http`/`https` modules):
+
+| Method | Sent After | Purpose |
+|---|---|---|
+| `pushchaintip` | Each successful block commit | Lets the hub anchor oracle rounds to the BTC chain tip |
+| `pushpriceround` | A valid PRICE v0 action is processed | Hub dedupes by `round_number` and writes to `price_snapshots` |
+| `pushoracleprice` | A valid PRICE v1 action is processed | Hub applies 24h lock window and writes to `oracle_prices` |
+
+All push calls are best-effort — failures are logged but never block indexing.
+
+### Hub → Indexer Push Endpoint
+
+The indexer's API also exposes a write endpoint that the hub calls:
+
+| Method | Sent By | Purpose |
+|---|---|---|
+| `pushvalidatorrewards` | hub `RewardTracker` | Replicates `validator_rewards` rows from hub to indexer for `CLAIM_REWARDS` |
 
 ## VM Runtime Module
 

@@ -5,9 +5,9 @@
 This action revokes a previously delegated signing key.
 
 ## PARAMS
-| Name              | Type   | Description                          |
-| ----------------- | ------ | ------------------------------------ |
-| `VERSION`         | String | Format Version                       |
+| Name              | Type   | Description                                |
+| ----------------- | ------ | ------------------------------------------ |
+| `VERSION`         | String | Format Version                             |
 | `SIGNING_PUBKEY`  | String | Ed25519 public key to revoke, 64 hex chars |
 
 ## Formats
@@ -23,14 +23,21 @@ Revoke the specified signing key from the broadcasting address's stake
 
 ## Rules
 - BTC chain only
-- Broadcasting address must have an active delegation for the specified `SIGNING_PUBKEY`
-- Once revoked, the key is immediately invalidated and cannot be used for signing
-- Revoking the active signing key without a replacement leaves the stake without a valid signer
+- Broadcasting address must have an active delegation for the specified `SIGNING_PUBKEY` (gated by the 6-block activation delay)
+
+## Deactivation Delay
+- Revocation does **not** take effect immediately — the key remains active for **6 BTC blocks** after REVOKE_DELEGATION confirms
+- Tracked via the `deactivation_block` column on the `delegations` table (set to `block_index + 6`)
+- This prevents short-range BTC reorgs from leaving a stake without a valid signer
+- After the delay elapses, the key is fully invalidated and can no longer be used for signing
 
 ## Notes
-- Use `REVOKE_DELEGATION` to invalidate a compromised or retired signing key
-- After revocation, use `DELEGATE` to assign a new signing key if the stake is to remain active
+- The 6-block delay means that for emergency key compromise scenarios, the operator must:
+  1. Broadcast `DELEGATE` with a new key (takes 6 blocks to activate)
+  2. Broadcast `REVOKE_DELEGATION` for the old key (takes 6 blocks to deactivate)
+  3. During the overlap window, both keys are valid — the new key takes effect ~6 blocks before the old key is fully revoked
 - A stake with no valid signing key will not participate in validator duties until a new key is delegated
+- The 6-block window matches all other validator state changes (STAKE, UNSTAKE, DELEGATE) for consistency
 
 ---
 

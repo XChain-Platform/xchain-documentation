@@ -78,15 +78,28 @@ The original 22 actions are registered at version `1.0.0` with activation at blo
 
 ## Hub Staking Actions
 
-Hub Staking actions are **BTC-only**. They allow addresses to stake XCHAIN tokens with the hub, delegate stake to validators, and claim accumulated rewards.
+Hub Staking actions are **BTC-only**. They allow addresses to stake XCHAIN tokens with the hub, delegate stake to validators, and claim accumulated rewards. All staking actions are subject to a **6-block activation/deactivation delay** for BTC reorg safety — see the action specifications for details.
 
 | Action | Purpose | Key Validations |
 |---|---|---|
-| **STAKE** | Lock XCHAIN tokens as stake with the hub | Token exists, sufficient balance, positive amount |
-| **UNSTAKE** | Release staked XCHAIN tokens back to sender | Active stake exists, sufficient staked balance |
-| **DELEGATE** | Delegate stake to a validator by public key | Active stake exists, valid validator pubkey, positive amount |
-| **REVOKE_DELEGATION** | Remove a delegation from a validator | Active delegation exists, sender owns the delegation |
-| **CLAIM_REWARDS** | Collect accumulated staking rewards | Active stake or delegation exists, rewards available |
+| **STAKE** | Lock XCHAIN tokens as stake with the hub at tier 1, 2, or 3 | Tier valid (1/2/3), CHAINS rules per tier, DOGE_ADDRESS required for Tier 3, signing pubkey unique, sufficient balance |
+| **UNSTAKE** | Release staked XCHAIN tokens back to sender | Active stake exists at the specified tier (gated by activation delay) |
+| **DELEGATE** | Rotate the signing key for a staked validator | Active stake exists, new pubkey valid and unused. Takes effect after 6 blocks. |
+| **REVOKE_DELEGATION** | Remove a delegated signing key | Active delegation exists. Takes effect after 6 blocks. |
+| **CLAIM_REWARDS** | Collect accumulated staking rewards | Active stake exists, unclaimed rewards > 0. Rewards are pushed from `xchain-hub` via `pushvalidatorrewards`. |
+
+### Tier 3 (Oracle Publisher)
+
+Tier 3 is a publisher role for broadcasting finalized PRICE v0 transactions to the DOGE chain (or another supported chain). Validators stake 500 XCHAIN and provide a `DOGE_ADDRESS` for transaction broadcasting. Tier 3 can overlap with Tier 1 — the same address can hold both.
+
+## Oracle Actions
+
+| Action | Purpose | Key Validations |
+|---|---|---|
+| [**PRICE**](../../protocol/actions/PRICE.md) v0 | Validator COIN/FIAT price snapshot (PBFT-signed) | All pubkeys are active Tier 1 validators, Ed25519 signatures verify against canonical payload, `SIG_COUNT >= 2*floor((tier1_count-1)/3)+1` |
+| [**PRICE**](../../protocol/actions/PRICE.md) v1 | User TOKEN/FIAT oracle price | Valid COIN/TICK/FIAT/VALUE format. No staking requirement — any address may publish. 24-hour lock window for subsequent updates per `(SOURCE, COIN, TICK, FIAT)` combination. |
+
+After validation, the indexer writes to its local `prices` table and pushes to `xchain-hub` for cross-chain aggregation into `price_snapshots` (v0) or `oracle_prices` (v1).
 
 ## Virtual Machine Actions
 

@@ -20,16 +20,19 @@ node ./src/api.js
 On startup, the hub:
 1. Loads environment variables from `.env`
 2. Creates the MariaDB database if it doesn't exist
-3. Creates all 13 tables if they don't exist
-4. Starts the Express JSON-RPC API server
-5. If `P2P_VALIDATOR_ADDR` is set, activates the full validator stack:
+3. Creates all tables if they don't exist
+4. Starts the `PriceAggregator` (always available — receives PRICE actions pushed by indexers)
+5. Starts the `HubDbBroadcaster` and wires it to PriceAggregator's `row:inserted` events
+6. Starts the Express JSON-RPC API server with HTTP + WebSocket upgrade handler
+7. If `P2P_VALIDATOR_ADDR` is set, activates the full validator stack:
    - P2P gossip layer (WebSocket mesh)
    - PBFT consensus engine
-   - Oracle round system (price fetching + aggregation)
+   - Oracle round system (price fetching + aggregation, signs canonical PRICE v0 payload)
+   - `OraclePublisher` (Tier 3 publisher: leader rotation, persistent JSONL queue, DOGE broadcast)
    - Cross-chain attestation engine
    - Reorg handler
    - Governance engine
-   - Reward tracker and slash detector
+   - Reward tracker (pushes rewards to BTC indexer) and slash detector
 
 ## Operating Modes
 

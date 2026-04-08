@@ -115,7 +115,26 @@ The explorer reads directly from the Indexer DB. It exposes:
 
 A query like `GET /token/MYTOKEN` triggers a SQL read against the Indexer DB and returns the token record created in Step 6. Because the explorer reads directly from MariaDB (no caching layer), it reflects the state of the last committed indexer block.
 
-The explorer syncs configuration from xchain-hub every 60 seconds — fee schedules, supported chains, and oracle price data. The hub is a decentralized validator network providing PBFT-consensus config, price oracle (trimmed median aggregation), cross-chain attestation, and governance. Consumers connect to multiple hub endpoints via `HUB_VALIDATORS` for high availability.
+The explorer syncs configuration from xchain-hub every 60 seconds — fee schedules, supported chains, and oracle price data. The hub is a decentralized validator network providing PBFT-consensus config, price oracle (trimmed median aggregation across 36 COIN/FIAT pairs), Tier 3 oracle publishing to anchor PRICE v0 transactions on-chain, cross-chain attestation, and governance. Consumers connect to multiple hub endpoints via `HUB_VALIDATORS` for high availability.
+
+### PRICE Oracle Data Flow
+
+In addition to the validation pipeline above, oracle price data flows separately:
+
+```
+Tier 1 validators fetch from CoinGecko/CMC
+  → PBFT consensus on prices (signs canonical PRICE v0 payload)
+    → Tier 3 publisher writes PRICE v0 to a chain (DOGE recommended)
+      → That chain's decoder + indexer process the action
+        → Indexer validates PBFT signatures, writes to local prices table
+          → Indexer pushes validated round to xchain-hub
+            → Hub deduplicates by round_number, writes to price_snapshots
+              → Hub broadcasts new row to all indexers' local hub DB copies
+                → Indexers query their local hub DB for fee validation,
+                  FIAT dispenser settlement, and VM oracle queries
+```
+
+User TOKEN/FIAT oracles (PRICE v1) follow a similar flow but skip the PBFT signature requirement — any address can publish, and the hub enforces a 24-hour lock window on subsequent updates to prevent dispenser front-running.
 
 ### Step 7b — WebSocket Pushes Real-Time Events
 

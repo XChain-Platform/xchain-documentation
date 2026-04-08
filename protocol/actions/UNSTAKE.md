@@ -5,10 +5,10 @@
 This action begins the unstaking cooldown period for a staked validator.
 
 ## PARAMS
-| Name      | Type    | Description             |
-| --------- | ------- | ----------------------- |
-| `VERSION` | String  | Format Version          |
-| `TIER`    | Integer | Tier to unstake from    |
+| Name      | Type    | Description                                              |
+| --------- | ------- | -------------------------------------------------------- |
+| `VERSION` | String  | Format Version                                           |
+| `TIER`    | Integer | Tier to unstake from (1=oracle, 2=cross-chain, 3=publisher) |
 
 ## Formats
 
@@ -26,15 +26,34 @@ UNSTAKE|0|2
 Begin unstaking from cross-chain tier (Tier 2)
 ```
 
+```
+UNSTAKE|0|3
+Begin unstaking from oracle publisher tier (Tier 3)
+```
+
 ## Rules
 - BTC chain only
+- `TIER` must be `1`, `2`, or `3`
 - Broadcasting address must have an active stake at the specified `TIER`
+- The active stake lookup is gated by the activation delay — only fully-active stakes (where `activation_block <= current_block`) can be unstaked
 - Begins the cooldown period; staked tokens are not immediately returned
 - Only one active unstake cooldown is permitted per tier per address at a time
 
+## Activation Delay (Removal from Validator Set)
+- Validator removal does **not** take effect immediately — the validator continues to participate for **6 BTC blocks** after the UNSTAKE confirms
+- Tracked via the `deactivation_block` column on the parent stake row (set to `block_index + 6`)
+- Active-stake queries filter by `(deactivation_block IS NULL OR deactivation_block > current_block)`
+- This prevents short-range BTC reorgs from affecting the active validator set
+
+## Cooldown Period (Token Return)
+- Separate from the activation delay — tracked via the `cooldown_end_block` column on the `unstakes` table
+- Default cooldown: **1000 blocks** (configurable via `STAKING.COOLDOWN_BLOCKS`)
+- After cooldown elapses, the staked XCHAIN tokens are returned to the broadcasting address
+
 ## Notes
-- After the cooldown period expires, staked tokens are returned to the broadcasting address
-- During the cooldown period the validator is removed from the active validator set
+- Two distinct delays apply on UNSTAKE:
+  1. **6 blocks** — validator removal from the active set (BTC reorg safety)
+  2. **1000 blocks** — XCHAIN token return (security cooldown)
 - Use `STAKE` to re-stake after the cooldown period completes
 - Use `CLAIM_REWARDS` to collect any accrued rewards before or after unstaking
 

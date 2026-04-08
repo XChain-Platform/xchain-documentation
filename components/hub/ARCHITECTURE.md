@@ -86,6 +86,9 @@ Subsystems communicate via Node.js EventEmitter events rather than direct method
 ```
 OracleConsensus  --round:finalized-->  RewardTracker
                  --round:finalized-->  SlashDetector
+                 --round:finalized-->  OraclePublisher (queues for DOGE broadcast)
+
+PriceAggregator  --row:inserted-->     HubDbBroadcaster (forwards to WebSocket subscribers)
 
 CrossChainEngine --attestation:finalized-->  SwapTracker
 
@@ -111,9 +114,13 @@ Governance       --proposal:passed-->  (parameter application)
 | `SwapTracker.js` | `SwapTracker` | Cross-chain SWAP lifecycle tracking: initiated → attested → executed → settled |
 | `ReorgHandler.js` | `ReorgHandler` | Blockchain reorg detection, PBFT consensus, and hub state rollback |
 | `Governance.js` | `Governance` | Off-chain PBFT voting for parameter changes |
-| `RewardTracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants |
+| `RewardTracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants; pushes rewards to BTC indexer for `CLAIM_REWARDS` |
 | `SlashDetector.js` | `SlashDetector` | Validator misbehavior detection: price deviation, non-participation |
-| `sql/*.sql` | — | 13 MariaDB table schemas |
+| `PriceAggregator.js` | `PriceAggregator` | Receives validated PRICE v0/v1 actions from indexers, deduplicates by `round_number` (v0) or `(source, action_index)` (v1), writes to `price_snapshots`/`oracle_prices`. EventEmitter — emits `row:inserted` for hub DB sync. |
+| `OraclePublisher.js` | `OraclePublisher` | Tier 3 publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
+| `EncoderClient.js` | `EncoderClient` | Minimal JSON-RPC client for talking to xchain-encoder (`get_utxos`, `create_tx`, `broadcast_tx`) — used by `OraclePublisher` |
+| `HubDbBroadcaster.js` | `HubDbBroadcaster` | WebSocket subscriber registry; broadcasts `row:inserted` events from `PriceAggregator` to all connected indexers' `HubDbSync` clients |
+| `sql/*.sql` | — | MariaDB table schemas (configs, validators, price_snapshots, oracle_prices, validator_rewards, governance, etc.) |
 
 ## P2P Gossip Layer
 
@@ -195,42 +202,110 @@ If the leader fails to drive consensus within `PBFT_TIMEOUT` (default 30s):
 ```
 Every ORACLE_ROUND_INTERVAL (default 10 min):
 
-1. FETCH        PriceFetcher queries CoinGecko + CoinMarketCap
-                  -> BTC/USD, LTC/USD, DOGE/USD
+1. CHAIN TIP    OracleRound reads BTC chain tip from configs table
+                  -> currentBtcBlockHeight, currentBtcBlockTime
+
+2. FETCH        PriceFetcher queries CoinGecko + CoinMarketCap
+                  -> 3 coins x 12 fiats = 36 pairs per source
                   -> compute local median across sources
 
-2. SUBMIT       Broadcast ORACLE_PRICE_SUBMIT via gossip
+3. SUBMIT       Broadcast ORACLE_PRICE_SUBMIT via gossip
                   -> stored in oracle_submissions table
 
-3. COLLECT      Wait ORACLE_SUBMISSION_WINDOW (default 3 min)
+4. COLLECT      Wait ORACLE_SUBMISSION_WINDOW (default 3 min)
                   -> accumulate other validators' submissions
 
-4. AGGREGATE    Round leader computes trimmed median:
+5. AGGREGATE    Round leader computes trimmed median:
                   -> sort submissions, discard top/bottom 15%
                   -> median of remaining values
 
-5. PROPOSE      Leader broadcasts ORACLE_PROPOSE
+6. SIGN         Each validator signs the canonical PRICE v0 payload
+                  -> JSON.stringify({round, timestamp, sortedPairs})
+                  -> Ed25519 via ValidatorIdentity
 
-6. PREPARE      Validators verify and send ORACLE_PREPARE
+7. PROPOSE      Leader broadcasts ORACLE_PROPOSE (with sig)
+
+8. PREPARE      Validators verify and send ORACLE_PREPARE (with their sig)
+                  -> sigs stored on pending.signatures Map
                   -> collect 2f+1 prepares
 
-7. COMMIT       Leader broadcasts ORACLE_COMMIT
+9. COMMIT       Leader broadcasts ORACLE_COMMIT (with sig)
                   -> collect 2f+1 commits
 
-8. FINALIZE     Store in price_snapshots (status='finalized')
-                  -> emit round:finalized event
-                  -> RewardTracker distributes XCHAIN
+10. FINALIZE    Store in price_snapshots (status='finalized')
+                  -> reference_block = btcBlockHeight (not 0)
+                  -> emit round:finalized event with collected sigs
+                  -> RewardTracker distributes XCHAIN (pushes to BTC indexer)
                   -> SlashDetector checks for misbehavior
+                  -> OraclePublisher queues for DOGE broadcast (if leader)
+```
+
+### Tier 3 Publishing Pipeline
+
+After consensus finalizes a round, the OraclePublisher takes over:
+
+```
+1. ROTATION     Leader = round % active_tier3_count
+                Tier 3 validators sorted by signing_pubkey (deterministic)
+
+2. ENQUEUE      If local node is the leader, append to JSONL queue (fsync)
+
+3. BROADCAST    EncoderClient.getUtxos(DOGE_ADDRESS)
+                -> EncoderClient.createTx(payload, P2SH encoding)
+                -> walletSignFn(psbtHex) [operator-provided signer]
+                -> EncoderClient.broadcastTx(signedHex)
+
+4. CONFIRM      Remove from queue on successful broadcast
+
+5. FAILOVER     If leader misses by 1 BTC block, next Tier 3 in rotation
+                takes over and batches all missed rounds in a single tx
 ```
 
 ### Price Sources
 
-| Source | Coins | Requires API Key |
+| Source | Coverage | Requires API Key |
 |---|---|---|
-| CoinGecko | BTC/USD, LTC/USD, DOGE/USD | Optional (rate limits apply) |
-| CoinMarketCap | BTC/USD, LTC/USD, DOGE/USD | Yes (`COINMARKETCAP_API_KEY`) |
+| CoinGecko | 3 coins x 12 fiats (single API call via `vs_currencies`) | Optional (rate limits apply) |
+| CoinMarketCap | 3 coins x 12 fiats (single API call via `convert`) | Yes (`COINMARKETCAP_API_KEY`) |
+
+Supported fiat currencies: USD, CAD, AUD, MXN, GBP, JPY, CNY, CHF, BRL, INR, EUR, KRW.
 
 The local price is the median across available sources. If only one source is available, its price is used directly.
+
+## Hub DB Sync Channel
+
+For geographically distributed deployments, the hub broadcasts row inserts to indexers' local hub DB copies via a WebSocket channel separate from the per-chain indexer-sync.
+
+```
+Hub                                    Indexer (HubDbSync client)
++--------------------+                 +--------------------+
+| PriceAggregator    |                 | XChainIndexer      |
+|  receiveValidated  |                 |  - hubDb (local)   |
+|  Round/OraclePrice |                 |  - HubDbSync       |
+|       |            |                 |       ^            |
+|       v            |                 |       |            |
+|  emit row:inserted |                 |       |            |
+|       |            |                 |  Apply row to      |
+|       v            |                 |  local hub DB      |
+| HubDbBroadcaster   |  ws send -->    |  via INSERT IGNORE |
+|  WebSocket subs    |  --------->     +--------------------+
++--------------------+
+```
+
+### REST Bootstrap Endpoints
+
+| Endpoint | Returns |
+|---|---|
+| `GET /hub-db/snapshot/price_snapshots?since_id=N&limit=10000` | Rows from `price_snapshots` table after `since_id` |
+| `GET /hub-db/snapshot/oracle_prices?since_id=N&limit=10000` | Rows from `oracle_prices` table after `since_id` |
+
+### WebSocket Channel
+
+| Path | Auth | Messages |
+|---|---|---|
+| `/hub-db/subscribe` | `Authorization: Bearer <HUB_API_KEY>` | `{type: 'row:inserted', table, row}` per inserted row |
+
+Indexers bootstrap by fetching the REST snapshots (paginated by `since_id`) then subscribe to the WebSocket for live updates. Failed sends apply backpressure handling — connections exceeding `WS_BACKPRESSURE_LIMIT` buffered messages are dropped.
 
 ### Trimmed Median
 

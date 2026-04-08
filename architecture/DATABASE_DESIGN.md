@@ -3,11 +3,11 @@
 
 # Database Design
 
-XChain uses two database technologies — MariaDB for relational data (decoder, indexer, hub) and LevelDB for key-value data (UTXO tracker) — with a strict separation between raw decoded data and validated indexer state.
+XChain uses two database technologies — MariaDB for relational data (decoder, indexer, hub) and LevelDB for key-value data (UTXO tracker) — with a strict separation between raw decoded data, validated chain-specific state, and cross-chain infrastructure data.
 
-## The Dual-Database Model
+## The Three-Database Model
 
-The core pipeline uses two MariaDB databases per chain/network: a Decoder DB and an Indexer DB. They serve different purposes and are owned by different services.
+Each indexer maintains **three** database connections per chain/network: a Decoder DB (input), an Indexer DB (its own state), and a local Hub DB (synced from xchain-hub). These serve different purposes and are owned by different services.
 
 ```
 Blockchain
@@ -22,16 +22,32 @@ Decoder MariaDB  (XChain_{CHAIN}_{NETWORK}_Decoder)
     |
     | polls every 5s
     v
-xchain-indexer
-    |
-    | writes validated state
-    v
-Indexer MariaDB  (XChain_{CHAIN}_{NETWORK}_Indexer)
-    |
-    | direct SQL reads
-    v
-xchain-explorer  →  REST / JSON-RPC / Web UI
+xchain-indexer  ←──┐
+    |              │
+    | writes       │ reads cross-chain infrastructure
+    v              │ (price_snapshots, oracle_prices, etc.)
+Indexer MariaDB    │
+(XChain_{CHAIN}_   │
+ {NETWORK}_        │
+ Indexer)          │
+    |              │
+    | direct SQL   │
+    v              │
+xchain-explorer    │
+                   │
+                   │
+            Hub MariaDB (local copy, synced from xchain-hub via WebSocket)
+                   ^
+                   |
+                   | broadcasts new rows on /hub-db/subscribe
+                   |
+              xchain-hub  ←──── PRICE actions pushed by indexers from all chains
 ```
+
+**Separation principle:** The indexer DB contains only state derived from processing that chain's blocks. Cross-chain data synced from the hub lives in its own database. This means:
+- Wiping and re-indexing a chain does not affect hub data
+- Re-syncing hub data does not affect indexed chain state
+- Clear ownership boundary — indexer writes to indexer DB, hub sync writes to hub DB, indexer reads from both
 
 ### Decoder DB
 
@@ -45,15 +61,30 @@ The Decoder DB does **not** interpret or validate ACTION content. It is a faithf
 
 ### Indexer DB
 
-The Indexer DB is the indexer's output and the explorer's input. It stores the validated, processed state of all XChain actions: token records, ledger entries, order books, balances, and more.
+The Indexer DB is the indexer's output and the explorer's input. It stores the validated, processed state of all XChain actions: token records, ledger entries, order books, balances, the local `prices` action log, and more.
 
 The Indexer DB contains business logic outcomes — tokens that passed validation, balances after debits and credits, orders that matched. Because it is derived deterministically from the Decoder DB, it can also be rebuilt from scratch.
 
+### Hub DB (local copy)
+
+The Hub DB is a local, read-only copy of cross-chain infrastructure tables synced from `xchain-hub` via WebSocket. It contains:
+
+- `price_snapshots` — deduplicated cross-chain validator COIN/FIAT prices (PRICE v0)
+- `oracle_prices` — cross-chain user TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window
+- Validator infrastructure: `stakes`, `delegations`, `validator_rewards` (synced from BTC indexer state)
+
+The indexer queries this database for cross-chain data during block processing — no hub round-trip required. The hub aggregates data from all chains' indexers and pushes new rows to all connected nodes' local hub DB copies.
+
+Two connectivity modes:
+- **Direct connection**: For single-host or trusted-network deployments, the indexer's hub DB connection points directly at the hub's MariaDB instance
+- **WebSocket sync**: For geographic distribution, the indexer runs `HubDbSync` which bootstraps via REST snapshot and subscribes to `/hub-db/subscribe` for live row updates (opt-in via `HUB_DB_SYNC_ENABLED=true`)
+
 The separation serves several purposes:
 
-- **Separation of concerns**: the decoder focuses on extraction; the indexer focuses on validation. Bugs in one do not compromise the other.
-- **Rebuildability**: either database can be rebuilt independently. Rebuild the Decoder DB from the blockchain; rebuild the Indexer DB from the Decoder DB.
+- **Separation of concerns**: the decoder focuses on extraction; the indexer focuses on validation; the hub manages cross-chain aggregation. Bugs in one do not compromise the others.
+- **Rebuildability**: each database can be rebuilt independently. Rebuild the Decoder DB from the blockchain; rebuild the Indexer DB from the Decoder DB; rebuild the local Hub DB from the hub's REST snapshot.
 - **Auditability**: the raw decoded ACTION string in the Decoder DB can always be compared against the indexer's interpretation of it, making disputes traceable.
+- **Cross-node determinism**: validator price data is anchored on-chain via PRICE v0 actions (with PBFT signatures) and aggregated by the hub. Two independent nodes reading the same blockchains arrive at identical state.
 
 ---
 
@@ -139,7 +170,7 @@ Writes are batched in groups of 100 blocks. Ten blocks of undo data are retained
 
 ### xchain-hub
 
-The hub uses MariaDB (not LevelDB) with 13 tables storing configuration, validator state, oracle data, cross-chain attestations, governance proposals, and more. The database name is configurable (default: `XChain_Hub`). Config parameters are stored in the `configs` table with a `(coin, network, module, param_name)` unique key.
+The hub uses MariaDB (not LevelDB) with tables storing configuration, validator state, oracle data, cross-chain attestations, governance proposals, and more. The database name is configurable (default: `XChain_Hub`). Config parameters are stored in the `configs` table with a `(coin, network, module, param_name)` unique key. Cross-chain price data is aggregated into `price_snapshots` (validator PRICE v0) and `oracle_prices` (user PRICE v1) — these are also broadcast to connected indexers via the `/hub-db/subscribe` WebSocket channel.
 
 See [`../components/hub/CONFIGURATION.md`](../components/hub/CONFIGURATION.md) for the full schema reference.
 

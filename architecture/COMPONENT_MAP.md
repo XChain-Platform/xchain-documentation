@@ -49,14 +49,14 @@ See [`../components/decoder/`](../components/decoder/) for full documentation.
 | | |
 |---|---|
 | **Purpose** | Reads decoded ACTIONs from the Decoder DB, validates them, executes business logic, writes final state |
-| **Inputs** | Decoder MariaDB (SQL polling every 5 seconds) |
-| **Outputs** | Indexer MariaDB (`XChain_{CHAIN}_{NETWORK}_Indexer`) |
-| **Storage** | MariaDB (60+ tables: core, ledger, action-specific, index, mapping) |
-| **Communication** | Outbound SQL reads from Decoder DB; no inbound API |
+| **Inputs** | Decoder MariaDB (SQL polling every 5 seconds); local Hub DB (cross-chain price data); inbound JSON-RPC `pushvalidatorrewards` from xchain-hub |
+| **Outputs** | Indexer MariaDB (`XChain_{CHAIN}_{NETWORK}_Indexer`); outbound JSON-RPC pushes to xchain-hub (`pushchaintip`, `pushpriceround`, `pushoracleprice`) |
+| **Storage** | Three database connections: Decoder DB (read), Indexer DB (read/write, 60+ tables), local Hub DB (read, synced from xchain-hub) |
+| **Communication** | Outbound SQL reads from Decoder DB and local Hub DB; outbound HTTP/WebSocket to xchain-hub; inbound JSON-RPC API for hub pushes |
 
 Key technical details:
 
-- Routes each ACTION string to one of 20 dedicated handler classes (`IssueAction`, `SendAction`, `OrderAction`, etc.).
+- Routes each ACTION string to one of ~30 dedicated handler classes (`IssueAction`, `SendAction`, `OrderAction`, `PriceAction`, etc.).
 - Validates all fields before execution. Invalid actions are recorded with status `invalid` and produce no ledger effects.
 - Maintains a double-entry ledger: every token movement is a credit to one address and a debit from another. Balance = SUM(credits) - SUM(debits). A sanity check asserts `token_supply == net ledger total` after each issuance.
 - Holds XCHAIN gas in escrow for time-bounded operations (orders, dispensers). Releases escrow on expiration or cancellation.
@@ -206,8 +206,8 @@ These services manage deployment, configuration, and testing.
 | **Purpose** | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, governance |
 | **Inputs** | JSON-RPC calls from all services; external price APIs (CoinGecko, CoinMarketCap); P2P gossip from other validators |
 | **Outputs** | Config values, service endpoints, oracle prices, fee quotes, cross-chain attestations, governance decisions |
-| **Storage** | MariaDB (13 tables: configs, validators, consensus, oracle, attestations, swaps, reorgs, governance, rewards, slashing) |
-| **Communication** | Inbound JSON-RPC from all services; outbound HTTP for price fetching; WebSocket P2P gossip between validators |
+| **Storage** | MariaDB (configs, validators, consensus, price_snapshots, oracle_prices, oracle_submissions, attestations, swaps, reorgs, governance, validator_rewards, slashing) |
+| **Communication** | Inbound JSON-RPC from all services (incl. PRICE pushes from indexers); outbound HTTP for price fetching; WebSocket P2P gossip between validators; outbound WebSocket `/hub-db/subscribe` to indexers for hub DB sync |
 
 Key technical details:
 

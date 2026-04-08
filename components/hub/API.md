@@ -242,6 +242,126 @@ Returns the latest finalized price for a specific coin pair.
 {"coin_pair":"BTC/USD","price":"67500.00","round_number":42,"status":"finalized"}
 ```
 
+### `pushchaintip` (write — requires API key)
+
+Pushes a chain tip update from an indexer. The hub uses this to anchor oracle rounds to the BTC chain tip (replacing the hardcoded `reference_block=0` bug).
+
+**Request:**
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"pushchaintip",
+  "params":{"coin":"BTC","block_height":850010,"block_time":1712500000},
+  "id":1
+}
+```
+
+**Response:**
+```json
+{"status":"success"}
+```
+
+Stored in the `configs` table as `(coin, mainnet, chain_tips, block_height|block_time)`. Read by `OracleRound._executeRound()` at the start of each PBFT round.
+
+### `pushpriceround` (write — requires API key)
+
+Pushes a validated PRICE v0 round from an indexer for cross-chain aggregation. The hub deduplicates by `round_number` (first valid submission wins) and writes to `price_snapshots`.
+
+**Request:**
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"pushpriceround",
+  "params":{
+    "source_chain":"DOGE",
+    "round":850010,
+    "timestamp":1712500000,
+    "pairs":[{"pair":"BTC/USD","price":"100000.12345678"},{"pair":"BTC/EUR","price":"92000.00000000"}],
+    "sigs":[{"pubkey":"aabb...","sig":"ccdd..."}],
+    "action_index":12345,
+    "block_index":850010
+  },
+  "id":1
+}
+```
+
+**Response:**
+```json
+{"accepted":true}
+```
+
+Or `{"accepted":false,"reason":"duplicate"}` if the round already exists. The indexer must validate PBFT signatures locally **before** pushing — the hub trusts indexer validation.
+
+### `pushoracleprice` (write — requires API key)
+
+Pushes a validated PRICE v1 user oracle price from an indexer. The hub applies the 24-hour lock window and writes to `oracle_prices`.
+
+**Request:**
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"pushoracleprice",
+  "params":{
+    "source_chain":"DOGE",
+    "source_address":"D1xx...",
+    "coin":"BTC",
+    "tick":"PEPECASH",
+    "fiat":"JPY",
+    "value":"7.50000000",
+    "fee":"0.01",
+    "memo":"hourly update",
+    "block_time":1712500000,
+    "action_index":12345
+  },
+  "id":1
+}
+```
+
+**Response:**
+```json
+{"accepted":true}
+```
+
+The hub looks up any prior price for `(source_address, coin, tick, fiat)`. First broadcast: `effective_at = block_time` (immediate). Subsequent updates: `effective_at = block_time + 86400` (24-hour delay).
+
+## Hub DB Sync (REST + WebSocket)
+
+The hub exposes a separate channel for replicating cross-chain infrastructure tables (`price_snapshots`, `oracle_prices`) to indexers' local hub DB copies. Used in geographically distributed deployments where indexers run on different hosts from the hub.
+
+### `GET /hub-db/snapshot/price_snapshots`
+
+Returns rows from the `price_snapshots` table after `since_id` (paginated for incremental bootstrap).
+
+**Query parameters:**
+- `since_id` (optional, default 0) — return rows where `id > since_id`
+- `limit` (optional, default 10000, max 10000)
+
+**Response:**
+```json
+{
+  "table": "price_snapshots",
+  "rows": [
+    {"id":1,"round_number":850010,"coin_pair":"BTC/USD","price":"100000.12345678","reference_block":850010,"reference_chain":"BTC","block_timestamp":1712500000,"validator_count":5,"consensus_round":1,"consensus_proof":"[...]","status":"finalized","source_chain":"DOGE","source_action_index":12345,"created_at":"2026-04-06T12:00:00.000Z"}
+  ],
+  "count": 1
+}
+```
+
+### `GET /hub-db/snapshot/oracle_prices`
+
+Returns rows from the `oracle_prices` table after `since_id`. Same format as above.
+
+### `GET /hub-db/subscribe` (WebSocket upgrade — requires `Authorization: Bearer <HUB_API_KEY>`)
+
+WebSocket channel that pushes `row:inserted` events whenever the hub inserts new `price_snapshots` or `oracle_prices` rows. Each subscriber receives a JSON message per insertion:
+
+**Message format:**
+```json
+{"type":"row:inserted","table":"price_snapshots","row":{...}}
+```
+
+Indexers use the bootstrap REST snapshots followed by this WebSocket subscription to maintain a complete local copy of the hub's cross-chain price tables. Backpressure handling drops connections that exceed `WS_BACKPRESSURE_LIMIT` buffered messages.
+
 ## Fee Quotes
 
 ### `getfeequote`

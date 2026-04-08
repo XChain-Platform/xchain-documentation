@@ -42,7 +42,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 | [Architecture](ARCHITECTURE.md) | Subsystem design, source files, P2P gossip, PBFT consensus, oracle pipeline, cross-chain engine |
 | [Configuration](CONFIGURATION.md) | Environment variables, standalone vs validator mode, database schema, connection pool |
 | [API](API.md) | JSON-RPC method reference: config, validators, oracle, attestations, swaps, reorgs, governance |
-| [Database](DATABASE.md) | Full schema reference — 13 tables for config, validators, oracle, attestations, governance |
+| [Database](DATABASE.md) | Full schema reference — config, validators, oracle (price_snapshots, oracle_prices), attestations, governance |
 | [Operations](OPERATIONS.md) | Running, Docker, resilience, troubleshooting |
 | [Decentralization](DECENTRALIZATION.md) | Evolution from centralized oracle to decentralized validator network (all phases complete) |
 
