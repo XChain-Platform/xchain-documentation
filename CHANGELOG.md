@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.9] - 2026-04-24
+
+### Added
+- `protocol/actions/ADDRESS.md` — `DISPENSER_PREFERENCE` field added to format `0` (controls who may open a dispenser on the address: `1`=owner only (default), `2`=anyone). Examples updated for the new field position; note added that leaving the field blank in a subsequent `ADDRESS` action preserves the previous non-blank value rather than clearing it.
+- `protocol/actions/DISPENSER.md` — explicit rules for who may open a dispenser on a non-`SOURCE` address: either the target sets `DISPENSER_PREFERENCE=2`, or the target is a fresh address (no on-chain activity as of `BLOCK_INDEX − 1`). `GET_ADDRESS == SOURCE` is always allowed.
+- `protocol/actions/DISPENSER.md` — escrow-routing rules for `SWEEP`-driven close (escrow → `SWEEP` `DESTINATION`) and `EXPIRATION` close with no canceller (escrow → `SOURCE`).
+- `protocol/actions/DISPENSER.md` — fresh-address dispenser example illustrating the `1FreshAddr…` pattern from a main wallet `SOURCE`.
+
+### Changed
+- `protocol/actions/DISPENSER.md` — removed the standalone "no new/empty address limitation" note; superseded by the explicit rules above.
+
 ## [0.9.8] - 2026-04-08
 
 ### Added

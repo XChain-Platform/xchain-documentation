@@ -28,22 +28,27 @@ This action configures address specific options.
 ## Formats
 
 ### Version `0`
-- `VERSION|FEE_PREFERENCE|REQUIRE_MEMO|MEMO`
+- `VERSION|FEE_PREFERENCE|REQUIRE_MEMO|DISPENSER_PREFERENCE|MEMO`
 
 ## Examples
 ```
-ADDRESS|0|1|0
+ADDRESS|0|1||0
 This example sets the address to DESTROY fees
 ```
 
 ```
-ADDRESS|0|2|0
+ADDRESS|0|2||0
 This example sets the address to DONATE fees
 ```
 
 ```
-ADDRESS|0|0|1
+ADDRESS|0||1|
 This example sets the address to require a `MEMO` on any received `SEND`
+```
+
+```
+ADDRESS|0|||2|
+This example allows anyone to open a dispenser on this address
 ```
 
 ## `FEE_PREFERENCE` Options
@@ -52,13 +57,14 @@ This example sets the address to require a `MEMO` on any received `SEND`
 - `3` = `FEE` to donated to community development
 
 ## `DISPENSER_PREFERENCE` Options
-- `1` = Only Owner can open dispenser (default)
-- `2` = Anyone can open dispenser
+- `1` = Only owner can open dispenser on this address (default)
+- `2` = Anyone can open dispenser on this address
 
 ## Rules
 
 ## Notes
 - `ADDR` `ACTION` can be used for shorter reference to `ADDRESS` `ACTION`
+- Leaving `DISPENSER_PREFERENCE` blank in a subsequent `ADDRESS` action does not clear an existing preference — it preserves the most recent non-blank value
 
 ---
 

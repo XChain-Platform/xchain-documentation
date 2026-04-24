@@ -68,17 +68,27 @@ DISPENSER|0|BTC|PEPECASH|100|100|BTC||0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|JPY||
 FIAT dispenser using a user-run TOKEN/FIAT oracle (PRICE v1): the oracle at `1OracleSourceAddrXXX...` publishes PEPECASH/JPY prices. FIAT_AMOUNT is empty because the oracle provides the price. The system combines the user oracle PEPECASH/JPY with the validator BTC/JPY snapshot to compute the BTC equivalent.
 ```
 
+```
+DISPENSER|0|BTC|JDOG|1|10|BTC||0.01|1FreshAddrZZZZZZZZZZZZZZZZZZZZZZZZ|||||||Opening a dispenser on a brand-new address from my main wallet
+Fresh-address pattern: SOURCE is the user's main wallet, GET_ADDRESS is a newly-generated address with no prior on-chain activity. Allowed by the fresh-address exception, so DISPENSER_PREFERENCE on `1FreshAddr...` does not need to be pre-configured. SOURCE retains cancel authority; on cancel, escrow returns to SOURCE.
+```
+
 ## Rules
+- A dispenser may be created on an address other than `SOURCE` only if either:
+  (a) the target address has set `DISPENSER_PREFERENCE=2` via an `ADDRESS` action, or
+  (b) the target address has never appeared on chain as of `BLOCK_INDEX − 1` (fresh-address exception)
+- When `GET_ADDRESS == SOURCE` the dispenser is always allowed (owner self-opening); preference and freshness are not consulted
 - Dispensers can be closed by the dispenser `GET_ADDRESS` or `SOURCE` address which first opened the dispenser
 - If a dispenser is closed by the dispenser `GET_ADDRESS`, tokens escrowed in the dispenser are returned to `GET_ADDRESS`
 - If a dispenser is closed by the dispenser `SOURCE`, tokens escrowed in the dispenser are returned to `SOURCE`
+- If a dispenser is closed via `SWEEP`, tokens escrowed in the dispenser are returned to the `SWEEP` `DESTINATION`
+- If a dispenser closes due to `EXPIRATION` (no canceller), tokens escrowed in the dispenser are returned to `SOURCE`
 - `FIAT_CODE` and `FIAT_AMOUNT` must both be provided together (or both empty), unless `ORACLE_ADDRESS` is set
 - `ORACLE_ADDRESS` requires `FIAT_CODE` to be set (the oracle prices the token in that fiat currency)
 - `ORACLE_ADDRESS` makes `FIAT_AMOUNT` optional/ignored — the oracle provides the price
 - `ORACLE_ADDRESS` must be a valid crypto address
 
 ## Notes
-- Can create a dispenser on any valid address (no new/empty address limitation)
 - Dispensers are closed and any escrowed funds returned after a set amount of time (1 hour)
 - Dispenser `LIST` edits are delayed a set amount of time (1 hour)
 - Dispensers are limited to a set maximum number of dispenses (1,000)
@@ -98,7 +108,6 @@ FIAT dispenser using a user-run TOKEN/FIAT oracle (PRICE v1): the oracle at `1Or
 - `FIAT_AMOUNT` format is `X.XX`
 - `EXPIRATION` begins the process of closing a dispenser after a set block delay
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
-- Any address can be configured to allow any user to open a dispenser on it via the `DISPENSER_PREFERENCE` param in the `ADDRESS` action.
 
 ## FIAT Dispensers
 
