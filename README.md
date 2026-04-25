@@ -15,7 +15,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**Core Concepts**](./concepts/) | Metalayer, tokens, ACTIONs, encoding, cross-chain, gas, security | Everyone |
 | [**Architecture**](./architecture/) | Data pipeline, component map, database design | Developers |
 | [**Supported Blockchains**](./BLOCKCHAINS.md) | Supported chains, adding new blockchains, private deployments | Developers / Operators |
-| [**Components**](./components/) | Detailed docs for each of the 12 microservices | Developers |
+| [**Components**](./components/) | Detailed docs for each of the 13 components | Developers |
 | [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate, testing | Developers |
 | [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ — no code required | Non-technical |
 | [**Protocol Spec**](./protocol/) | 28 ACTION definitions, Token Information Standard, schemas | Protocol devs |
@@ -35,6 +35,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**xchain-utxo-tracker**](https://github.com/XChain-platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |
 | [**xchain-vm**](https://github.com/XChain-platform/xchain-vm/) | Sandboxed JavaScript virtual machine for on-chain smart contracts with gas metering, deterministic execution, and reorg-safe state |
 | [**xchain-sdk**](https://github.com/XChain-platform/xchain-sdk/) | Developer SDK — 28 action methods, 48 explorer queries, smart contract support, real-time WebSocket events, batch builder, PSBT generation |
+| [**xchain-wallet**](https://github.com/XChain-platform/xchain-wallet/) | Reference self-custodial multi-chain wallet — browser, Chrome extension, and Electron desktop from a single codebase; software + Trezor + Ledger + remote + multisig signers; full DEX, messaging, contracts, staking, and `window.xchain` dApp bridge |
 | [**xchain-regtest-miner**](https://github.com/XChain-platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
 

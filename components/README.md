@@ -3,7 +3,7 @@
 
 # Components
 
-This section contains documentation for each of the 12 XChain Platform microservices. Each subdirectory covers the component's role, configuration, API surface, and internal design. Intended for developers and operators who need to understand or work with a specific service.
+This section contains documentation for each of the 13 XChain Platform components. Each subdirectory covers the component's role, configuration, API surface, and internal design. Intended for developers and operators who need to understand or work with a specific service.
 
 | Component | Role |
 |---|---|
@@ -16,6 +16,7 @@ This section contains documentation for each of the 12 XChain Platform microserv
 | [hub](./hub/) | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, governance — backed by MariaDB |
 | [utxo-tracker](./utxo-tracker/) | Indexes UTXOs from coin nodes and serves address and balance queries |
 | [sdk](./sdk/) | Developer SDK for constructing and submitting XChain actions |
+| [wallet](./wallet/) | Reference self-custodial multi-chain wallet — browser, Chrome extension, and Electron desktop |
 | [node](./node/) | CLI tool for installing and managing all platform services as Docker containers |
 | [e2e-test](./e2e-test/) | End-to-end Mocha test suite that exercises the full platform stack |
 | [regtest-miner](./regtest-miner/) | Auto-mines mempool transactions for regtest development environments |

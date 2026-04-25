@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-25
+
+### Added
+
+- `components/wallet/` — full component documentation set for `xchain-wallet`, mirroring the depth of the SDK and Explorer doc sets:
+  - `README.md` — overview, full feature list, doc index, installation, quick start, four usage modes (web / extension / desktop / dApp integration), repository layout, scripts, dependencies
+  - `ARCHITECTURE.md` — three-shell-one-core model, package boundaries, vault & state model, schema migrations, signer interface, build pipelines
+  - `KEYS_SIGNING.md` — Argon2id KDF parameters, vault encryption, BIP39 + Counterwallet mnemonic handling, BIP32 HD derivation, the five signers (Software / Trezor / Ledger / Remote / Multisig) in detail, backup / recovery / dry-run-restore, label-sync
+  - `SECURITY.md` — protected assets, in-scope and out-of-scope threats, sign-screen safety rails, audit posture, disclosure policy
+  - `UX.md` — full route map for all 64 shared routes, onboarding, lock/unlock, Home, Send, Receive, History, sign screens, multisig session view, contacts, QR scanner, command palette, settings
+  - `FEATURES.md` — capability-by-capability walk: token issuance, distribution surfaces, DEX, encrypted messaging, smart contracts, BTC staking + delegation, multisig, cross-chain flows, dApp bridge, air-gapped PSBT signing, onboarding & recovery, lock / unlock / auto-lock, i18n + a11y, reproducible builds, URI scheme handling, connected sites, notifications, developer mode
+  - `BRIDGE.md` — full `window.xchain` API reference (`connect`, `getAccounts`, `getBalances`, `getSupportedChains`, `signMessage`, `signPsbt`, `signAction`, `sendAction`, `signIn`), events, permissions, error model, test dApp, security model
+  - `URI_SCHEMES.md` — BIP21, chunked PSBT-QR transport, multisig PSBT envelope, animated QR cadence, detect-and-route classifier
+  - `MULTISIG.md` — schema, create flow, classical n-of-m + MuSig2 state machines, cosigner transport, hardware-signer status, address browsing
+  - `SHELL_EXTENSION.md` — Chrome MV3 manifest + audit, service worker, content script, injected provider, approval window, storage, privacy policy + CWS submission
+  - `SHELL_DESKTOP.md` — Electron main / renderer split, OS keychain, hardware transports, auto-updater, packaging
+  - `SHELL_WEB.md` — Vite SPA, mobile responsiveness, camera + WebHID, extension-detect banner, CSP, session lifetime
+  - `BUILD_RELEASE.md` — synchronized versioning, extension version-derivation rule, per-shell build, signing, distribution channels, CWS submission, release artifacts, pre-launch readiness gates
+  - `REPRODUCIBLE_BUILDS.md` — Level-2 reproducibility scope, scaffolding audit, run-twice verification protocol, comparison against maintainer release, common drift sources, roadmap
+  - `TESTING.md` — 92-smoke breakdown, audit gates, Playwright E2E, bridge E2E, hardware-signer E2E, multisig coverage, repro-build verification, what's not covered
+  - `CONFIGURATION.md` — per-chain endpoints, settings store schema, signer registration, connected sites, build-time variables, developer mode, locale, branding, ADS, schema migrations
+
+### Changed
+
+- `README.md` — added `xchain-wallet` row to the platform Components table; updated the Documentation row's component count from 12 to 13.
+- `components/README.md` — added wallet entry to the components index; updated the lead sentence's component count from 12 to 13.
+
 ## [0.9.9] - 2026-04-24
 
 ### Added
