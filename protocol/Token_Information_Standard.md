@@ -112,6 +112,14 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>Example</b></td><td>ORD:1d36aa544a20be86dca452e3abe464d33dd8567392dee8e333f72519e97af679<br/>or<br/>ORD:HTaqVEogvobcpFLjq+Rk0z3YVnOS3ujjM/clGel69nk=</td></tr>
 </table>
 
+## Arweave Format
+<table>
+<tr><td><b>Format</b></td><td>ar:HASH</td></tr>
+<tr><td><b>HASH</b></td><td>Arweave transaction hash that points to a JSON file</td></tr>
+<tr><td><b>Note</b></td><td>The ar format only works with JSON files. The hash is resolved via the public Arweave gateway at https://arweave.net/HASH</td></tr>
+<tr><td><b>Example</b></td><td>AR:jGxVm7yghVDfv39tJds8kRFFrIsGTsg3h-JgXHx_inw</td></tr>
+</table>
+
 ---
 
 **Copyright &copy; 2025 Dankest, LLC**
