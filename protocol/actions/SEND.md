@@ -57,6 +57,7 @@ This example sends 5 BRRR tokens to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev and 1 TES
 - `MEMO` characters **NOT** allowed are :
    - pipe `|` (used as field separator)
    - semicolon `;` (used as command separator)
+- **Token-gated transfer rule.** If `TICK` has at least one active gated [`FILE`](./FILE.md) (a `FILE` with a non-empty `GATE_TICKER = TICK` that has not been superseded), the `SEND` is only valid when it appears in the **same transaction** as a [`MESSAGE` v2](./MESSAGE.md) (ECIES) addressed to the `DESTINATION`. Typically the sending wallet composes this as `BATCH(SEND, MESSAGE)`. If the sibling `MESSAGE` is missing, the `SEND` is rejected; sibling actions (if any) survive. The indexer enforces the structural presence of the MESSAGE; the wallet enforces the cryptographic correctness of the key payload at unlock time. See [Token-Gated Content](../TOKEN_GATED_CONTENT.md).
 
 ## Notes
 - `TRANSFER` action can be used for compatability with BRC20/SRC20 `TRANSFER`

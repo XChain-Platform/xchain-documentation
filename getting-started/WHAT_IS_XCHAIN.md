@@ -55,6 +55,10 @@ The SWAP action enables atomic cross-chain exchanges — trading a token on Bitc
 
 XChain can embed arbitrary data on the blockchain. The MESSAGE action stores a short message permanently on-chain. The BROADCAST action supports richer use cases: oracle data feeds, prediction market outcomes, price broadcasts. The FILE action stores larger data payloads. The LINK action creates associations between addresses and external resources.
 
+### Publish Cryptographically Secure, Token-Gated Files
+
+The FILE action also supports **token-gated cryptographic publishing**. A creator can publish a single file or a multi-file pack on-chain, encrypted such that only holders of a specific token can decrypt it. When the token is transferred (or sold on the DEX), the symmetric key is automatically re-encrypted to the new holder in the same transaction — they unlock entirely client-side, with no on-chain unlock action and no third-party key server. The encrypted bytes live permanently on the blockchain alongside everything else; the gating is enforced cryptographically, not by trusting a host. See [Token-Gated Content](../protocol/TOKEN_GATED_CONTENT.md).
+
 ### Advanced Control
 
 - **SLEEP** temporarily suspends an action (like a dispenser or order) from a certain block height until another.

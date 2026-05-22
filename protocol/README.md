@@ -9,6 +9,7 @@ This section is the canonical reference for the XChain Protocol — ACTION comma
 |---|---|
 | [ACTION Specifications](./actions/) | Authoritative format specs for all 28 ACTION commands |
 | [Token Information Standard](./Token_Information_Standard.md) | Standard for token metadata fields and discovery |
+| [Token-Gated Content](./TOKEN_GATED_CONTENT.md) | End-to-end design for cryptographically secure token-gated file publishing (single files and packs) |
 | [Database Naming Structure](./Database_Naming_Structure.md) | Naming conventions for all platform databases |
 | [JSON Schemas](./json/) | Machine-readable schemas for ACTION payloads and API responses |
 

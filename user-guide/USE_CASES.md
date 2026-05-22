@@ -27,6 +27,21 @@ Attach a piece of digital art or media to a token using on-chain file storage an
 
 XChain actions involved: ISSUE, FILE (to store the content), LINK (to associate it with the token).
 
+### Token-Gated Encrypted Content and Packs
+
+Beyond public on-chain files, XChain supports **cryptographically secure token-gated publishing**. Encrypt a file (or a whole pack of files) and publish the ciphertext on-chain via the FILE action. Only holders of the gating token can decrypt — the symmetric key is delivered to each holder via an ECIES MESSAGE that travels alongside the token in every transfer. Anyone can see that the ciphertext exists; only holders can read it.
+
+**What this enables:**
+
+- **Sealed drops.** A creator can guarantee that no one — not the indexer operators, not block explorers, not even early holders' nodes — has read the content until a holder unlocks. Useful for time-locked reveals, surprise releases, and "first-access" mechanics.
+- **Packs.** Multiple files encrypted with the same key form a pack that unlocks atomically. An album of FLAC stems plus liner notes plus high-res cover art can all be published as one pack; owning the token unlocks every file at once.
+- **Permanent, server-free distribution.** No download server, no key escrow, no DRM service. The creator publishes once and walks away; the blockchain stores the ciphertext, and the protocol handles key delivery automatically on every transfer.
+- **DEX-native paid downloads.** Sell the token via DISPENSER or ORDER. Whoever buys it receives the decryption key in the same transaction.
+
+Unlock is purely client-side — holders decrypt with their address private key, no on-chain transaction required. Trust model: this is a first-access lock, not DRM (a holder who decrypts has the bytes forever), and loss of the address key means loss of access.
+
+XChain actions involved: ISSUE, FILE (with gating fields: GATE_TICKER, ENCRYPTION_METHOD, KEY_HASH), MESSAGE (v2 ECIES for the key handoff), SEND + MESSAGE in a BATCH for transfers. See [Token-Gated Content](../protocol/TOKEN_GATED_CONTENT.md).
+
 ---
 
 ## Financial Instruments

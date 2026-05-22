@@ -40,7 +40,22 @@ The Token Information Standard (TIS) defines standardized formats to associate i
 | audio       | Array  | One or more audio files related to the token
 | video       | Array  | One or more video files related to the token
 | files       | Array  | One or more files related to the token
+| packs       | Object | Display metadata for [token-gated content packs](./TOKEN_GATED_CONTENT.md). Map of pack id → `{ name, description }`.
 | dns         | Array  | One or more DNS records related to the token.
+
+### File Entry Fields
+
+Entries inside the `files`, `audio`, `video`, and `images` arrays can carry the following fields:
+
+| Field       | Type    | Description
+| :---        | :---    | :---
+| data        | String  | URL to the file (off-chain). Used for non-gated content.
+| data_ref    | String  | Reference to an on-chain [`FILE`](./actions/FILE.md) action by `ACTION_INDEX`, formatted as `action:<index>`. When both `data` and `data_ref` are present, clients prefer `data_ref`.
+| name        | String  | Filename
+| type        | String  | MIME type
+| title       | String  | Display title
+| locked      | Boolean | `true` if the file is encrypted and gated. Clients use this to render locked/unlocked states without first fetching the FILE action.
+| pack_id     | String  | (Optional) Pack identifier grouping files that share an unlock key. References the top-level `packs` map for display name and description. Does not need to be present for unlocking to work — the protocol groups by `KEY_HASH` directly.
 
 
 # Supported Token Description Formats

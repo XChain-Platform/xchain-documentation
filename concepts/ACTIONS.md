@@ -80,8 +80,8 @@ The platform supports 28 ACTION types across seven categories. The original 19 a
 | ACTION | What it does |
 |---|---|
 | `BROADCAST` | Post arbitrary on-chain data. Used for oracle feeds, announcements, or any message that should be permanently recorded and publicly readable. |
-| `MESSAGE` | Send a message to a specific address. Can be plaintext or encrypted using ECDH key exchange + AES. |
-| `FILE` | Upload file data on-chain with associated metadata (filename, content-type, size). |
+| `MESSAGE` | Send a message to a specific address. Can be plaintext, ECDH-session, AES-shared-key, or ECIES (encrypted to the recipient's address pubkey). ECIES carries the key handoff for token-gated content. |
+| `FILE` | Upload file data on-chain with associated metadata (filename, content-type, size). As of v1, supports **token-gated cryptographic publishing** — encrypt files (or multi-file packs) on-chain so only token holders can decrypt. See [Token-Gated Content](../protocol/TOKEN_GATED_CONTENT.md). |
 
 ### Utility
 
@@ -139,6 +139,8 @@ BATCH is particularly useful for:
 - Atomic multi-step operations (issue + mint in one block)
 - Reducing transaction costs by combining multiple operations
 - Ensuring related actions either all succeed or all fail
+- Publishing [token-gated files](../protocol/TOKEN_GATED_CONTENT.md): `BATCH(FILE, MESSAGE-to-self)` to publish ciphertext and commit the recoverable key atomically
+- Transferring tokens that gate content: `BATCH(SEND, MESSAGE)` to deliver the key to the new holder in the same transaction as the transfer
 
 ## Protocol Versioning
 
