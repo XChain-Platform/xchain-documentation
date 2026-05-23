@@ -1,19 +1,7 @@
 <!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
 <!-- Copyright © 2026 Dankest, LLC -->
 
-# XChain Platform Specification
-
-**Copyright © 2026 Dankest, LLC**
-
-**Based on XChain Platform by Dankest, LLC – https://dankest.llc**
-
-Licensed under the **Dankest Community License**
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
-
-You may not use, modify, or distribute this material except in compliance with the License.
-A full copy of the License is available at: [https://dankest.llc/license](https://dankest.llc/license)
-
-# XChain Platform - URI Scheme
+# XChain Platform URI Scheme
 
 The XChain URI Scheme defines a compact, QR-friendly text format for representing user-initiated actions on the XChain Platform. A wallet, explorer, dApp, or any other XChain-aware tool can produce a URI; any XChain-aware tool that scans or pastes that URI can route the user to the right screen with the right fields pre-filled.
 
