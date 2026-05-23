@@ -35,7 +35,7 @@ The token issuer composes one or more on-chain transactions that publish the enc
 2. Issuer encrypts the file plaintext with AES-256-GCM under `K`. Output ciphertext is `[12-byte nonce][ct][16-byte GCM tag]`.
 3. Issuer constructs `BATCH(FILE, MESSAGE-to-self)`:
    - `FILE|0|NAME|TYPE|TITLE|MEMO|GATE_TICKER|1|KEY_HASH` (where `1` = AES-256-GCM in the `ENCRYPTION_METHOD` field) with the ciphertext as the action's `rawData` (transported via P2WSH per [Transaction Encoding](../concepts/ENCODING.md)).
-   - `MESSAGE|2|COIN|<issuer-address>|<ECIES ciphertext>` whose decrypted plaintext is the JSON payload below — encrypted to the issuer's own address so the issuer can recover `K` later for redistribution.
+   - `MESSAGE|2|COIN|<issuer-address>|<ECIES ciphertext>` whose decrypted plaintext is the binary payload below — encrypted to the issuer's own address so the issuer can recover `K` later for redistribution.
 4. The single transaction is signed and broadcast. There is no window in which the encrypted file exists on-chain without the key being recorded.
 
 ### Pack of files (shared key)
@@ -45,9 +45,9 @@ A pack is just two or more gated `FILE` actions sharing the same `KEY_HASH` and 
 1. Issuer generates one `K` and `KEY_HASH`.
 2. Issuer encrypts each file plaintext under `K`. Each file gets a fresh 12-byte nonce, but they all share `K`.
 3. Issuer publishes a `FILE|1|...` action per file (one `rawData` per transaction; small files can be combined in a single `BATCH`).
-4. After (or alongside) the last file, issuer publishes a self-`MESSAGE` containing one entry in `keys` for the shared `KEY_HASH`.
+4. After (or alongside) the last file, issuer publishes a self-`MESSAGE` whose binary payload contains the single shared `K`.
 
-Because the handoff payload is keyed by `KEY_HASH`, one entry in the JSON unlocks every file in the pack regardless of how many there are.
+Because every file in the pack shares the same `K`, one 32-byte entry in the handoff unlocks every file in the pack regardless of how many there are.
 
 ---
 
@@ -71,10 +71,10 @@ Unlocking is entirely client-side and offline-capable once the wallet has fetche
 
 1. Wallet fetches the ciphertext from any indexer's `/api/file/<ACTION_INDEX>/raw` REST endpoint.
 2. Wallet queries `/api/messages/<address>/destination` for MESSAGEs addressed to the holder's address.
-3. For each MESSAGE, wallet attempts ECIES decryption with the address's private key. Skips on failure.
-4. On success, wallet parses the plaintext as the `xchain.gated_keys.v1` JSON payload and looks up the key for the target file's `KEY_HASH`.
-5. Wallet verifies `sha256(key) == KEY_HASH` (defends against malicious senders shipping wrong keys).
-6. Wallet AES-256-GCM-decrypts the ciphertext with the key. Result is the plaintext file bytes.
+3. For each MESSAGE, wallet attempts ECIES decryption (binary mode) with the address's private key. Skips on failure.
+4. On success, wallet parses the plaintext as the binary handoff payload (see below): validates the leading version byte, slices the body into 32-byte candidate keys.
+5. For each candidate `K`, wallet computes `sha256(K)` and matches against the target file's `KEY_HASH`. Mismatches are skipped (defends against malicious senders shipping wrong keys).
+6. Wallet AES-256-GCM-decrypts the ciphertext with the matched key. Result is the plaintext file bytes.
 
 No on-chain action is required to unlock. The holder can decrypt and re-decrypt as often as they like.
 
@@ -82,20 +82,27 @@ No on-chain action is required to unlock. The holder can decrypt and re-decrypt 
 
 ## Key handoff payload format
 
-The plaintext inside every ECIES key-handoff MESSAGE is JSON:
+The plaintext inside every ECIES key-handoff MESSAGE is a compact binary blob:
 
-```json
-{
-  "type": "xchain.gated_keys.v1",
-  "keys": {
-    "<KEY_HASH hex>": "<base64-encoded K>"
-  }
-}
+```
++--------+----------+----------+-----+
+|  0x01  | K1 (32B) | K2 (32B) | ... |
++--------+----------+----------+-----+
+  ^         ^
+  |         +-- raw 32-byte AES-256-GCM key(s), one per distinct gated key
+  +-- handoff version byte (currently 0x01)
 ```
 
-- The map is keyed by `KEY_HASH`, **not** by `FILE` action index. This makes packs first-class: a pack with N files shares one `KEY_HASH` and therefore one entry in the JSON.
-- A handoff for a token with multiple distinct gated files (or multiple packs) contains one entry per distinct `KEY_HASH`.
-- The payload is wrapped in standard ECIES (`MESSAGE` v2, method 1), so the on-chain `ENCRYPTED_MESSAGE` field is opaque to anyone without the recipient's private key.
+- **Wire size:** `1 + 32 × N` bytes for N keys. A single-key handoff is 33 bytes — the common case for any token with one gated `FILE` or one pack.
+- **No `KEY_HASH` is sent on the wire.** The recipient hashes each 32-byte candidate (`sha256(K)`) and matches against the `KEY_HASH` of whichever gated `FILE` it cares to unlock. This is the same hash check the wallet already performs as a tamper defense, doubled as the identification step.
+- **Pack support is implicit.** A pack with N files shares one `K`, which means one 32-byte entry in the handoff unlocks every file in the pack.
+- **Multi-key handoffs** (a token with multiple distinct gated `KEY_HASH`es, e.g. two unrelated packs under one ticker) carry one 32-byte entry per distinct `K`. The recipient hashes each and matches independently.
+- **Version byte** is `0x01`. Reserved for future format evolution — readers must reject unknown version bytes rather than guessing the layout.
+- **Transport.** The plaintext bytes are passed to ECIES (`MESSAGE` v2, method 1) **in binary mode** — no UTF-8 conversion. The on-chain `ENCRYPTED_MESSAGE` field is the ECIES ciphertext (ephemeral pubkey ‖ IV ‖ GCM tag ‖ encrypted bytes), opaque to anyone without the recipient's private key.
+
+### Why binary (and not JSON)
+
+A JSON wrapper with `KEY_HASH`-keyed base64 entries costs ~154 plaintext bytes for the single-key case — most of which is JSON structural overhead, hex encoding of `KEY_HASH`, and base64 padding of `K`. The binary form drops to 33 plaintext bytes (~78% reduction), which propagates through ECIES (+~61 bytes envelope) and base64 transport into the on-chain `ENCRYPTED_MESSAGE` field, shrinking the per-handoff overhead of every gated `SEND` and every issuer self-handoff.
 
 ---
 
