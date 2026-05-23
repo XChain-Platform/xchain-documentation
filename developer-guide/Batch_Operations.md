@@ -192,9 +192,9 @@ P2SH and P2WSH require a second transaction to spend the script and reveal the d
 
 ## Next Steps
 
-- [ADVANCED_TOKEN_FEATURES.md](ADVANCED_TOKEN_FEATURES.md) — SLEEP patterns that rely on BATCH
-- [BUILD_YOUR_FIRST_TOKEN.md](BUILD_YOUR_FIRST_TOKEN.md) — foundation for batch operations
-- [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) — airdrop and multi-send patterns
+- [Advanced_Token_Features.md](Advanced_Token_Features.md) — SLEEP patterns that rely on BATCH
+- [Build_Your_First_Token.md](Build_Your_First_Token.md) — foundation for batch operations
+- [Integration_Patterns.md](Integration_Patterns.md) — airdrop and multi-send patterns
 
 ---
 

@@ -146,7 +146,7 @@ If a COINPAY transaction is broadcast but confirms **after** the obligation has 
 
 ---
 
-*See also: [Cross-Chain Trading](./CROSS_CHAIN.md) | [Creating Tokens](./CREATING_TOKENS.md) | [FAQ](./FAQ.md)*
+*See also: [Cross-Chain Trading](./CROSS_CHAIN.md) | [Creating Tokens](./Creating_Tokens.md) | [FAQ](./FAQ.md)*
 
 ---
 

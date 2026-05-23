@@ -127,7 +127,7 @@ On startup, the service:
 
 ## Related Documentation
 
-- [Data Pipeline](../../architecture/DATA_PIPELINE.md) — full platform data flow
+- [Data Pipeline](../../architecture/Data_Pipeline.md) — full platform data flow
 - [xchain-indexer](../indexer/README.md) — upstream service that produces the data this service replicates
 - [xchain-hub](../hub/README.md) — config oracle that provides chain discovery
 - [xchain-explorer](../explorer/README.md) — alternative consumer of the same indexer data

@@ -192,7 +192,7 @@ node src/index.js install master all bitcoin mainnet --no-bootstrap
 
 - [Deployment Guide](../operations/DEPLOYMENT.md) — production configuration, security, reverse proxies
 - [Docker Reference](../operations/DOCKER.md) — container naming, networking, volume management
-- [Regtest Development](../developer-guide/REGTEST_DEVELOPMENT.md) — full local development setup
+- [Regtest Development](../developer-guide/Regtest_Development.md) — full local development setup
 - [Configuration Reference](../operations/CONFIGURATION.md) — all environment variables and config parameters
 
 ---

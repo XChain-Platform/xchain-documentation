@@ -91,7 +91,7 @@ The encoder measures the obfuscated payload length and selects the appropriate f
 ## Related
 
 - [Encoder](README.md) — encoding service overview and API reference
-- [Data Pipeline](../../architecture/DATA_PIPELINE.md) — how encoded transactions move through the platform
+- [Data Pipeline](../../architecture/Data_Pipeline.md) — how encoded transactions move through the platform
 
 ---
 

@@ -134,7 +134,7 @@ Orchestrates classical n-of-m sessions and MuSig2 round protocol on top of an un
 
 - **Classical n-of-m** — produces a partial PSBT; coordinator collects partials from cosigners and finalizes via `xchain-sdk` `wallet.signMultisigPsbt` (SDK 1.13.0+)
 - **MuSig2** — three-round protocol (commit → reveal → sign) implemented per cosigner; intermediate state persisted to `multisigSigningSessions`
-- **Transport** — paste-inbox or PSBT-QR (BIP21 envelope or chunked PSBT-QR). See [URI Schemes](URI_SCHEMES.md)
+- **Transport** — paste-inbox or PSBT-QR (BIP21 envelope or chunked PSBT-QR). See [URI Schemes](URI_Schemes.md)
 
 ## Backup, recovery, and dry-run restore
 

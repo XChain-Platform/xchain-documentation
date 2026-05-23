@@ -257,7 +257,7 @@ module.exports = {
 
 ## Related
 
-- [Smart Contracts Concept](../concepts/SMART_CONTRACTS.md) — architecture and gateway API reference
+- [Smart Contracts Concept](../concepts/Smart_Contracts.md) — architecture and gateway API reference
 - [Gas and Fees](../concepts/GAS.md) — gas economics
 - [DEPLOY Action](../protocol/actions/DEPLOY.md) — deployment protocol spec
 - [EXECUTE Action](../protocol/actions/EXECUTE.md) — execution protocol spec

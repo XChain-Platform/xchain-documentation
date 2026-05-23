@@ -126,7 +126,7 @@ xchain_node monitor all bitcoin regtest
 
 - [Deployment Guide](../../operations/DEPLOYMENT.md) — step-by-step production deployment walkthrough
 - [Docker Guide](../../operations/DOCKER.md) — Docker configuration details and volume management
-- [Data Pipeline](../../architecture/DATA_PIPELINE.md) — how services connect in the full platform flow
+- [Data Pipeline](../../architecture/Data_Pipeline.md) — how services connect in the full platform flow
 - [Encoder](../encoder/) — constructs XChain transactions (depends on xchain-node for deployment)
 - [Decoder](../decoder/) — decodes mined blocks (depends on xchain-node for deployment)
 - [Regtest Miner](../regtest-miner/) — auto-mines blocks in regtest (managed by xchain-node)

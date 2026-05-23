@@ -29,7 +29,7 @@ This example mints 100 XCHAIN tokens and issues the JDOG token
 
 ## Notes
 - `COMMANDS` are separated by a semi-colon `;`
-- A `FILE` may be batched with other actions — most commonly a `MESSAGE` v2 (ECIES) carrying the file's symmetric key, so that publishing a [token-gated file](../TOKEN_GATED_CONTENT.md) and committing the key happen atomically in one transaction.
+- A `FILE` may be batched with other actions — most commonly a `MESSAGE` v2 (ECIES) carrying the file's symmetric key, so that publishing a [token-gated file](../Token_Gated_Content.md) and committing the key happen atomically in one transaction.
 - `BATCH(SEND, MESSAGE)` is the canonical composition for transferring a token that has [active gated content](./SEND.md) — the `MESSAGE` is required and re-encrypts the content keys to the recipient.
 
 ---

@@ -57,7 +57,7 @@ XChain can embed arbitrary data on the blockchain. The MESSAGE action stores a s
 
 ### Publish Cryptographically Secure, Token-Gated Files
 
-The FILE action also supports **token-gated cryptographic publishing**. A creator can publish a single file or a multi-file pack on-chain, encrypted such that only holders of a specific token can decrypt it. When the token is transferred (or sold on the DEX), the symmetric key is automatically re-encrypted to the new holder in the same transaction — they unlock entirely client-side, with no on-chain unlock action and no third-party key server. The encrypted bytes live permanently on the blockchain alongside everything else; the gating is enforced cryptographically, not by trusting a host. See [Token-Gated Content](../protocol/TOKEN_GATED_CONTENT.md).
+The FILE action also supports **token-gated cryptographic publishing**. A creator can publish a single file or a multi-file pack on-chain, encrypted such that only holders of a specific token can decrypt it. When the token is transferred (or sold on the DEX), the symmetric key is automatically re-encrypted to the new holder in the same transaction — they unlock entirely client-side, with no on-chain unlock action and no third-party key server. The encrypted bytes live permanently on the blockchain alongside everything else; the gating is enforced cryptographically, not by trusting a host. See [Token-Gated Content](../protocol/Token_Gated_Content.md).
 
 ### Advanced Control
 
@@ -166,11 +166,11 @@ If you want to create a token and have it live on Bitcoin — permanently, secur
 
 If you want to understand the protocol more deeply, start with the [Core Concepts](../concepts/) section, which covers the ACTION format, encoding types, the indexer's validation rules, and the platform data pipeline.
 
-If you want to start building, go to the [Developer Quickstart](./QUICKSTART_DEVELOPER.md) — you can create your first token in about 5 minutes.
+If you want to start building, go to the [Developer Quickstart](./Quickstart_Developer.md) — you can create your first token in about 5 minutes.
 
-If you want to run the full platform yourself, see the [Node Operator Quickstart](./QUICKSTART_NODE_OPERATOR.md).
+If you want to run the full platform yourself, see the [Node Operator Quickstart](./Quickstart_Node_Operator.md).
 
-If you need to look up specific terms, the [Key Terms](./KEY_TERMS.md) glossary covers the full XChain vocabulary.
+If you need to look up specific terms, the [Key Terms](./Key_Terms.md) glossary covers the full XChain vocabulary.
 
 ---
 

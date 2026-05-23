@@ -101,7 +101,7 @@ Your tokens are recorded in blockchain transactions that exist permanently on Bi
 
 ---
 
-*See also: [Creating Tokens](./CREATING_TOKENS.md) | [Trading](./TRADING.md) | [Cross-Chain](./CROSS_CHAIN.md) | [Use Cases](./USE_CASES.md)*
+*See also: [Creating Tokens](./Creating_Tokens.md) | [Trading](./TRADING.md) | [Cross-Chain](./CROSS_CHAIN.md) | [Use Cases](./Use_Cases.md)*
 
 ---
 

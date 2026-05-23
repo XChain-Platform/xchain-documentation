@@ -33,7 +33,7 @@ Every encode call follows the same sequence regardless of format:
 2. **Obfuscate** — the prefixed payload is encrypted with AES-128-CTR using the first input's txid:
    - Key: first 16 hex characters of the txid (8 bytes)
    - IV: next 16 hex characters of the txid (8 bytes)
-3. **Select format** — the encoder picks the most efficient encoding format based on the obfuscated payload length (see [Format Selection](FORMAT_SELECTION.md))
+3. **Select format** — the encoder picks the most efficient encoding format based on the obfuscated payload length (see [Format Selection](Format_Selection.md))
 4. **Build transaction** — inputs are selected from the provided UTXOs, outputs are constructed per the chosen format, fees are calculated, and a change output is added if needed
 5. **Return PSBT** — the unsigned PSBT is returned to the caller in base64 format
 
@@ -77,7 +77,7 @@ Multisig encoding is an alternative for payloads that exceed OP_RETURN's 76-byte
 
 ## Format Auto-Selection
 
-The encoder selects the most efficient format automatically based on obfuscated payload length. See [Format Selection](FORMAT_SELECTION.md) for the full decision logic and size limits.
+The encoder selects the most efficient format automatically based on obfuscated payload length. See [Format Selection](Format_Selection.md) for the full decision logic and size limits.
 
 ## UTXO Management
 
@@ -226,9 +226,9 @@ Shared test utilities in `test/integration/helpers/`:
 
 ## Related
 
-- [Format Selection](FORMAT_SELECTION.md) — decision guide for choosing an encoding format
+- [Format Selection](Format_Selection.md) — decision guide for choosing an encoding format
 - [UTXO Tracker](../utxo-tracker/) — the service that supplies UTXOs to the encoder
-- [Data Pipeline](../../architecture/DATA_PIPELINE.md) — full platform ingestion flow
+- [Data Pipeline](../../architecture/Data_Pipeline.md) — full platform ingestion flow
 - [Testing](../../developer-guide/TESTING.md) — platform-wide testing philosophy and coverage
 
 ---

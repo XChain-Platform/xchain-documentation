@@ -109,7 +109,7 @@ The coordinator collects partials (or round payloads) from cosigners over one of
 - **QR scan** — `QrScanner.jsx` reads animated frames from a cosigner's screen; `core/src/uri/multisigPsbtEnvelope.js` decodes the envelope. Used for offline cosigners.
 - **Animated QR display** — when *this* device is the cosigner producing a partial, `AnimatedQrFrames.jsx` displays the chunked envelope for the next cosigner to scan. 3 fps default, manual stepping under `prefers-reduced-motion`.
 
-All three transports use the same envelope format — see [URI Schemes — Multisig PSBT envelope](URI_SCHEMES.md#multisig-psbt-envelope).
+All three transports use the same envelope format — see [URI Schemes — Multisig PSBT envelope](URI_Schemes.md#multisig-psbt-envelope).
 
 ## Hardware signer status
 

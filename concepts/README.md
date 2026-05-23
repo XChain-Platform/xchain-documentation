@@ -14,9 +14,9 @@ This section explains the fundamental ideas behind the XChain Protocol. Each doc
 | [Encoding](./ENCODING.md) | How ACTION data is embedded in blockchain transactions via AES-128-CTR obfuscation |
 | [Cross-Chain](./CROSS_CHAIN.md) | How XChain coordinates token swaps across Bitcoin, Litecoin, and Dogecoin |
 | [Gas](./GAS.md) | The XCHAIN fee token — what it is, how it works, and why it exists |
-| [Security Model](./SECURITY_MODEL.md) | Threat model, trust assumptions, and protocol-level security guarantees |
-| [Smart Contracts](./SMART_CONTRACTS.md) | Programmable contract layer — sandboxed JavaScript VM with gas metering that orchestrates existing ACTIONs |
-| [Block Hashes](./BLOCK_HASHES.md) | Per-block cryptographic hashes (ledger, actions, contracts) for state verification and integrity checking |
+| [Security Model](./Security_Model.md) | Threat model, trust assumptions, and protocol-level security guarantees |
+| [Smart Contracts](./Smart_Contracts.md) | Programmable contract layer — sandboxed JavaScript VM with gas metering that orchestrates existing ACTIONs |
+| [Block Hashes](./Block_Hashes.md) | Per-block cryptographic hashes (ledger, actions, contracts) for state verification and integrity checking |
 
 ---
 

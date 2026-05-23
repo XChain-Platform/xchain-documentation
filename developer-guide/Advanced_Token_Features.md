@@ -5,7 +5,7 @@
 
 This guide covers the full range of controls available when issuing and managing tokens: access lists, mint windows, lockable parameters, callbacks, sleep, sub-tokens, and ownership transfer.
 
-For basic token creation, see [BUILD_YOUR_FIRST_TOKEN.md](BUILD_YOUR_FIRST_TOKEN.md).
+For basic token creation, see [Build_Your_First_Token.md](Build_Your_First_Token.md).
 
 ---
 
@@ -328,9 +328,9 @@ Escrowed tokens from dispensers are released to the destination address after a 
 
 ## Next Steps
 
-- [BATCH_OPERATIONS.md](BATCH_OPERATIONS.md) — combine advanced operations atomically
-- [BUILD_A_DISPENSER.md](BUILD_A_DISPENSER.md) — sell tokens with access control
-- [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) — building on top of these features
+- [Batch_Operations.md](Batch_Operations.md) — combine advanced operations atomically
+- [Build_A_Dispenser.md](Build_A_Dispenser.md) — sell tokens with access control
+- [Integration_Patterns.md](Integration_Patterns.md) — building on top of these features
 
 ---
 

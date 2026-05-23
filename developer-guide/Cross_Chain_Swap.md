@@ -5,7 +5,7 @@
 
 The SWAP action lets you trade a token on one chain for a token on a different chain — for example, `RAREPEPE` on Bitcoin for `LTCTOKEN` on Litecoin — without a centralized exchange. The xchain-hub coordinates matching across chains.
 
-> **Important:** SWAP works only between XChain tokens. It does not support native coins (BTC, LTC, DOGE) directly. To sell a token for native coin, use a [DISPENSER](BUILD_A_DISPENSER.md) instead.
+> **Important:** SWAP works only between XChain tokens. It does not support native coins (BTC, LTC, DOGE) directly. To sell a token for native coin, use a [DISPENSER](Build_A_Dispenser.md) instead.
 
 ---
 
@@ -192,15 +192,15 @@ const editAction = aliceSdk.swap({
 
 ## Same-Chain Swap
 
-If both tokens are on the same chain, an ORDER is simpler and does not require hub coordination. See [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) for DEX patterns.
+If both tokens are on the same chain, an ORDER is simpler and does not require hub coordination. See [Integration_Patterns.md](Integration_Patterns.md) for DEX patterns.
 
 ---
 
 ## Next Steps
 
-- [QUERY_THE_EXPLORER.md](QUERY_THE_EXPLORER.md) — discover and monitor open swaps
-- [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) — building a DEX frontend
-- [ADVANCED_TOKEN_FEATURES.md](ADVANCED_TOKEN_FEATURES.md) — allow/block lists for swaps
+- [Query_The_Explorer.md](Query_The_Explorer.md) — discover and monitor open swaps
+- [Integration_Patterns.md](Integration_Patterns.md) — building a DEX frontend
+- [Advanced_Token_Features.md](Advanced_Token_Features.md) — allow/block lists for swaps
 
 ---
 

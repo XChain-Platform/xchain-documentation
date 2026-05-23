@@ -160,7 +160,7 @@ Future work (§21.2 from the spec) adds a byte-level cross-check that re-decodes
 | Desktop installers | electron-builder | `packages/desktop/dist/` — `.dmg` / `.exe` / `.AppImage` |
 | Desktop pre-signing (reproducible) | `electron-builder --dir` | `packages/desktop/dist/linux-unpacked/` + `RELEASE_HASHES.txt` |
 
-See [Build & Release](BUILD_RELEASE.md) for per-shell signing, packaging, and distribution detail, and [Reproducible Builds](REPRODUCIBLE_BUILDS.md) for the Level-2 verification protocol.
+See [Build & Release](Build_Release.md) for per-shell signing, packaging, and distribution detail, and [Reproducible Builds](Reproducible_Builds.md) for the Level-2 verification protocol.
 
 ---
 

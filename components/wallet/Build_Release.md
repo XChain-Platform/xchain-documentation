@@ -65,7 +65,7 @@ All builds run with the workspace's `pnpm install --frozen-lockfile` to lock dep
 | Desktop Windows | Authenticode cert via `electron-builder`; signed `.exe` |
 | Desktop Linux | xz-compressed `.AppImage`; no built-in OS-level code signing — users verify via published SHA-256 |
 
-Signing identities live with the publisher (Dankest, LLC). Independent verifiers reproduce the **pre-signing** Linux artifact and verify it matches the maintainer's published `RELEASE_HASHES.txt` — see [Reproducible Builds](REPRODUCIBLE_BUILDS.md).
+Signing identities live with the publisher (Dankest, LLC). Independent verifiers reproduce the **pre-signing** Linux artifact and verify it matches the maintainer's published `RELEASE_HASHES.txt` — see [Reproducible Builds](Reproducible_Builds.md).
 
 ## Distribution
 

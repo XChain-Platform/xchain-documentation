@@ -135,7 +135,7 @@ Blocks with no XChain activity still produce hashes. The source data is empty, b
 
 ---
 
-*See also: [The Double-Entry Ledger](./LEDGER.md) | [Security Model](./SECURITY_MODEL.md)*
+*See also: [The Double-Entry Ledger](./LEDGER.md) | [Security Model](./Security_Model.md)*
 
 ---
 

@@ -125,7 +125,7 @@ All fee parameters are governance-adjustable via the hub's PBFT voting mechanism
 
 ---
 
-*See also: [Tokens](./TOKENS.md) | [Ledger](./LEDGER.md) | [Smart Contracts](./SMART_CONTRACTS.md) | [Cross-Chain](./CROSS_CHAIN.md)*
+*See also: [Tokens](./TOKENS.md) | [Ledger](./LEDGER.md) | [Smart Contracts](./Smart_Contracts.md) | [Cross-Chain](./CROSS_CHAIN.md)*
 
 ---
 

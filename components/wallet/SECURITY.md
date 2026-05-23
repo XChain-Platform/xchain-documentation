@@ -3,7 +3,7 @@
 
 # Security & Threat Model
 
-This document names what the wallet defends against, what it deliberately doesn't, and which mitigations ship today. It tracks the in-repo `docs/THREAT_MODEL.md` and the §12 + §14 sections of the wallet specification.
+This document names what the wallet defends against, what it deliberately doesn't, and which mitigations ship today. It tracks the in-repo `docs/Threat_Model.md` and the §12 + §14 sections of the wallet specification.
 
 ## Protected assets
 
@@ -50,9 +50,9 @@ This document names what the wallet defends against, what it deliberately doesn'
 
 ## Out of scope
 
-- **Zero-day browser sandbox escapes.** If the browser is compromised, so is the wallet. Users with extreme threat models should use air-gapped PSBT-QR flows (see [URI Schemes](URI_SCHEMES.md)) or hardware wallets.
+- **Zero-day browser sandbox escapes.** If the browser is compromised, so is the wallet. Users with extreme threat models should use air-gapped PSBT-QR flows (see [URI Schemes](URI_Schemes.md)) or hardware wallets.
 - **Vendor firmware bugs.** Hardware-signer firmware (Trezor, Ledger) is out-of-scope for the wallet's audit; the wallet trusts the vendor's signed firmware.
-- **Supply-chain attacks on vendored deps.** Mitigated by `pnpm audit --prod --audit-level=high` in CI + the per-dep review in `docs/DEPENDENCIES.md`. Reproducible builds (Level-2, see [Reproducible Builds](REPRODUCIBLE_BUILDS.md)) narrow the blast radius — a verifier can prove the published artifact came from public source.
+- **Supply-chain attacks on vendored deps.** Mitigated by `pnpm audit --prod --audit-level=high` in CI + the per-dep review in `docs/DEPENDENCIES.md`. Reproducible builds (Level-2, see [Reproducible Builds](Reproducible_Builds.md)) narrow the blast radius — a verifier can prove the published artifact came from public source.
 - **Physical access to an unlocked device.** No wallet can defend against this. Mitigations: foreground auto-lock (configurable in Settings) and manual lock action.
 - **Raw-password attacks.** Outside the wallet's design — Argon2id raises the cost, the user's password choice does the rest.
 - **Blockchain consensus.** The wallet trusts the platform's encoding / decoding / indexer logic and the underlying coin nodes' chain selection. The platform's correctness is audited separately.

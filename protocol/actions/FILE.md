@@ -2,7 +2,7 @@
 <!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - FILE
-This action uploads a file including file metadata. The action also supports **token-gated cryptographically secure files** — encrypted on-chain such that only holders of a specific token can decrypt them. Gating is enabled by populating the optional `GATE_TICKER`, `ENCRYPTION_METHOD`, and `KEY_HASH` fields. See [Token-Gated Content](../TOKEN_GATED_CONTENT.md) for the end-to-end design.
+This action uploads a file including file metadata. The action also supports **token-gated cryptographically secure files** — encrypted on-chain such that only holders of a specific token can decrypt them. Gating is enabled by populating the optional `GATE_TICKER`, `ENCRYPTION_METHOD`, and `KEY_HASH` fields. See [Token-Gated Content](../Token_Gated_Content.md) for the end-to-end design.
 
 ## PARAMS
 | Name                | Type   | Description                                                              |
@@ -46,7 +46,7 @@ This example uploads an encrypted ZIP gated by the PEPECREATURE token. `ENCRYPTI
 - When `GATE_TICKER` is non-empty, `rawData` is the ciphertext: `[12-byte nonce][ciphertext][16-byte GCM authentication tag]`.
 
 ## Pack semantics
-Two or more gated `FILE` actions with the same `GATE_TICKER` **and** the same `KEY_HASH` form a **pack** — they share a symmetric key and unlock together. Pack membership is implicit in the shared `KEY_HASH`; the protocol does not need a separate "pack" concept. See [Token-Gated Content](../TOKEN_GATED_CONTENT.md) for details and use cases.
+Two or more gated `FILE` actions with the same `GATE_TICKER` **and** the same `KEY_HASH` form a **pack** — they share a symmetric key and unlock together. Pack membership is implicit in the shared `KEY_HASH`; the protocol does not need a separate "pack" concept. See [Token-Gated Content](../Token_Gated_Content.md) for details and use cases.
 
 ## Notes
 - Raw file data is uploaded by specifying it as `rawData` to the XChain encoder.
@@ -58,7 +58,7 @@ Two or more gated `FILE` actions with the same `GATE_TICKER` **and** the same `K
   - `image/jpeg` = JPEG File
   - `image/png` = PNG File
   - `image/gif` = GIF File
-- A `FILE` may appear inside a `BATCH`, typically paired with a `MESSAGE` v2 (ECIES) so that an issuer publishing a gated file commits the recoverable key in the same transaction as the encrypted file. See [`BATCH`](./BATCH.md) and [Token-Gated Content](../TOKEN_GATED_CONTENT.md).
+- A `FILE` may appear inside a `BATCH`, typically paired with a `MESSAGE` v2 (ECIES) so that an issuer publishing a gated file commits the recoverable key in the same transaction as the encrypted file. See [`BATCH`](./BATCH.md) and [Token-Gated Content](../Token_Gated_Content.md).
 
 ---
 

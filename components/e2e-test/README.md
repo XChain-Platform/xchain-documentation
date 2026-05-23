@@ -173,7 +173,7 @@ npm run test:chaos
 
 ## Related
 
-- [Regtest Development Guide](../../developer-guide/REGTEST_DEVELOPMENT.md) — setting up a local regtest environment
+- [Regtest Development Guide](../../developer-guide/Regtest_Development.md) — setting up a local regtest environment
 - [Regtest Miner](../regtest-miner/) — the auto-mining service the E2E suite depends on
 - [Encoder](../encoder/) — constructs XChain transactions tested by this suite
 - [Indexer](../indexer/) — processes transactions and maintains token state verified by this suite

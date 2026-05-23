@@ -85,7 +85,7 @@ For schema definitions, table layouts, and query patterns used in the indexer's 
 
 ---
 
-*See also: [Tokens](./TOKENS.md) | [Security Model](./SECURITY_MODEL.md) | [Smart Contracts](./SMART_CONTRACTS.md)*
+*See also: [Tokens](./TOKENS.md) | [Security Model](./Security_Model.md) | [Smart Contracts](./Smart_Contracts.md)*
 
 ---
 

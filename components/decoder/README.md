@@ -123,7 +123,7 @@ On startup, the decoder:
 
 ## Related
 
-- [Data Pipeline](../../architecture/DATA_PIPELINE.md) — how the decoder fits into the full ingestion flow
+- [Data Pipeline](../../architecture/Data_Pipeline.md) — how the decoder fits into the full ingestion flow
 - [Indexer](../indexer/) — the service that consumes decoder output and processes action logic
 - [Encoder](../encoder/) — how XChain payloads are constructed for embedding
 

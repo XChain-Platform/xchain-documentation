@@ -133,13 +133,13 @@ A reference glossary of XChain terminology, organized by category.
 
 **FILE** — An ACTION that stores a larger data payload on-chain, referenced by hash. Supports token-gated cryptographic publishing via three optional fields appended to format 0 — see **gated FILE** below.
 
-**gated FILE** — A `FILE` action whose `GATE_TICKER` field is non-empty. The raw file data is ciphertext (AES-256-GCM); only holders of `GATE_TICKER` receive the symmetric key (via ECIES `MESSAGE`) and can decrypt. Published only by the token's issuer. See [Token-Gated Content](../protocol/TOKEN_GATED_CONTENT.md).
+**gated FILE** — A `FILE` action whose `GATE_TICKER` field is non-empty. The raw file data is ciphertext (AES-256-GCM); only holders of `GATE_TICKER` receive the symmetric key (via ECIES `MESSAGE`) and can decrypt. Published only by the token's issuer. See [Token-Gated Content](../protocol/Token_Gated_Content.md).
 
 **KEY_HASH** — The hex `sha256` of a gated file's symmetric key. Stored on the `FILE` action so holders can verify the key they receive in a `MESSAGE` handoff matches the file they're decrypting. Also serves as the implicit pack identifier — two or more gated FILEs sharing the same `KEY_HASH` are pack members and unlock together.
 
 **Key Handoff** — The act of delivering a gated file's symmetric key to a token holder via an ECIES-encrypted `MESSAGE`. Sent by the issuer at publish time (to themselves, for recoverability) and by the current holder to every new holder as part of every transfer (`BATCH(SEND, MESSAGE)`).
 
-**MESSAGE** — An ACTION that stores a short arbitrary message permanently on the blockchain. Supports plaintext, ECDH session, AES pre-shared, and ECIES (encrypted to a recipient address's pubkey). ECIES MESSAGEs carry [token-gated content](../protocol/TOKEN_GATED_CONTENT.md) key handoffs.
+**MESSAGE** — An ACTION that stores a short arbitrary message permanently on the blockchain. Supports plaintext, ECDH session, AES pre-shared, and ECIES (encrypted to a recipient address's pubkey). ECIES MESSAGEs carry [token-gated content](../protocol/Token_Gated_Content.md) key handoffs.
 
 **Pack** — A group of token-gated files sharing the same `KEY_HASH` and `GATE_TICKER`. Pack membership is implicit in the shared key hash; the protocol does not have a separate "pack" ACTION or table. Holders unlock the entire pack atomically with one key. Optionally surfaced in TIS via `pack_id` on file entries and a top-level `packs` display map.
 

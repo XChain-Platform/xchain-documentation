@@ -126,8 +126,8 @@ const result = await vm.execute({
 
 ## Related
 
-- [Smart Contracts Concept](../../concepts/SMART_CONTRACTS.md) — gateway API reference, contract format, deterministic execution model
-- [Contract Development Guide](../../developer-guide/SMART_CONTRACT_DEVELOPMENT.md) — writing, deploying, and debugging contracts
+- [Smart Contracts Concept](../../concepts/Smart_Contracts.md) — gateway API reference, contract format, deterministic execution model
+- [Contract Development Guide](../../developer-guide/Smart_Contract_Development.md) — writing, deploying, and debugging contracts
 - [Gas and Fees](../../concepts/GAS.md) — gas economics, fee schedule, XCHAIN token
 - [Indexer Architecture](../indexer/ARCHITECTURE.md) — how the indexer integrates the VM
 - [DEPLOY Action](../../protocol/actions/DEPLOY.md) — deploying a contract

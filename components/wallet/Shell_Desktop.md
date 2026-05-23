@@ -114,7 +114,7 @@ Signature verification is the security-critical part. The audit-readiness packet
 | Windows | `.exe` installer (Authenticode-signed) |
 | Linux | `.AppImage` (xz-compressed, deterministic) |
 
-The pre-signing artifact (Linux only at v1.0.0) is **Level-2 reproducible** — see [Reproducible Builds](REPRODUCIBLE_BUILDS.md). Independent verifiers can rebuild from source and produce the same `linux-unpacked/` content the maintainer signs.
+The pre-signing artifact (Linux only at v1.0.0) is **Level-2 reproducible** — see [Reproducible Builds](Reproducible_Builds.md). Independent verifiers can rebuild from source and produce the same `linux-unpacked/` content the maintainer signs.
 
 ## Configuration knobs
 
@@ -124,7 +124,7 @@ The pre-signing artifact (Linux only at v1.0.0) is **Level-2 reproducible** — 
 | `Dockerfile` | Reproducible-build container — digest-pinned base, NODE_VERSION pinned, locale + TZ pinned |
 | `scripts/build.sh` | Build script — asserts SOURCE_DATE_EPOCH, uses `--frozen-lockfile`, emits `RELEASE_HASHES.txt` |
 | `scripts/reproduce.sh` | Verification script — derives SOURCE_DATE_EPOCH from `git log`, builds from a fresh worktree |
-| `REPRODUCIBLE_BUILDS.md` | The desktop-package-level companion to the platform-wide protocol |
+| `Reproducible_Builds.md` | The desktop-package-level companion to the platform-wide protocol |
 
 ## Run locally
 

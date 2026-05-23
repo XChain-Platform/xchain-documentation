@@ -53,7 +53,7 @@ The audit catches regressions automatically on every commit. The verification ca
 - References `SOURCE_DATE_EPOCH`
 - Pins AppImage compression to xz
 
-### `REPRODUCIBLE_BUILDS.md` (in the desktop package)
+### `Reproducible_Builds.md` (in the desktop package)
 
 - Mentions Level-2 + RELEASE_HASHES — proof the docs match the implementation
 

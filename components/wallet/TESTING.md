@@ -48,11 +48,11 @@ What this audit does **not** cover (queued for the external a11y audit): color c
 
 ### Extension manifest audit (`extension-manifest-audit.js`)
 
-11 rules covering MV3 compliance + version-derivation + privacy-friendly permissions. See [Build & Release — Extension version derivation](BUILD_RELEASE.md#extension-version-derivation) and [Shell — Extension — Manifest](SHELL_EXTENSION.md#manifest).
+11 rules covering MV3 compliance + version-derivation + privacy-friendly permissions. See [Build & Release — Extension version derivation](Build_Release.md#extension-version-derivation) and [Shell — Extension — Manifest](Shell_Extension.md#manifest).
 
 ### Repro-build audit (`repro-build-audit.js`)
 
-18 rules covering Dockerfile / build.sh / reproduce.sh / electron-builder.config.cjs / REPRODUCIBLE_BUILDS.md. See [Reproducible Builds — Scaffolding audit](REPRODUCIBLE_BUILDS.md#scaffolding-audit).
+18 rules covering Dockerfile / build.sh / reproduce.sh / electron-builder.config.cjs / Reproducible_Builds.md. See [Reproducible Builds — Scaffolding audit](Reproducible_Builds.md#scaffolding-audit).
 
 ### Release gates smoke
 
@@ -118,7 +118,7 @@ The coverage runs end-to-end against software signers; hardware-signer multisig 
 
 ## Repro-build verification
 
-The byte-for-byte verification is **manual** and run on a clean dev machine. See [Reproducible Builds — Run-twice verification protocol](REPRODUCIBLE_BUILDS.md#run-twice-verification-protocol). It's not part of the per-commit smoke suite because it requires a clean Docker host that the development environment doesn't always have. The scaffolding audit catches regressions in the inputs to reproducibility automatically; the full verification runs at release-tag time on at least two independent dev machines.
+The byte-for-byte verification is **manual** and run on a clean dev machine. See [Reproducible Builds — Run-twice verification protocol](Reproducible_Builds.md#run-twice-verification-protocol). It's not part of the per-commit smoke suite because it requires a clean Docker host that the development environment doesn't always have. The scaffolding audit catches regressions in the inputs to reproducibility automatically; the full verification runs at release-tag time on at least two independent dev machines.
 
 ## What the smokes do not cover
 

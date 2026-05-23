@@ -141,7 +141,7 @@ Your token lives on the blockchain permanently. Even if every XChain node went o
 
 ---
 
-*See also: [Trading](./TRADING.md) | [Use Cases](./USE_CASES.md) | [FAQ](./FAQ.md)*
+*See also: [Trading](./TRADING.md) | [Use Cases](./Use_Cases.md) | [FAQ](./FAQ.md)*
 
 ---
 

@@ -223,9 +223,9 @@ This drops all MariaDB data, LevelDB data, and the regtest blockchain, giving yo
 
 ## Next Steps
 
-- [BUILD_YOUR_FIRST_TOKEN.md](BUILD_YOUR_FIRST_TOKEN.md) — your first token against this environment
-- [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) — structuring test harnesses and production apps
-- [QUERY_THE_EXPLORER.md](QUERY_THE_EXPLORER.md) — verifying state during development
+- [Build_Your_First_Token.md](Build_Your_First_Token.md) — your first token against this environment
+- [Integration_Patterns.md](Integration_Patterns.md) — structuring test harnesses and production apps
+- [Query_The_Explorer.md](Query_The_Explorer.md) — verifying state during development
 
 ---
 

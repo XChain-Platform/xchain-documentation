@@ -5,7 +5,7 @@
 
 This tutorial walks you through creating a token on XChain from scratch, using a local regtest environment. By the end you will have issued a token, minted supply, sent tokens to another address, and verified the result through the explorer.
 
-For environment setup, see [REGTEST_DEVELOPMENT.md](REGTEST_DEVELOPMENT.md).
+For environment setup, see [Regtest_Development.md](Regtest_Development.md).
 
 ---
 
@@ -313,9 +313,9 @@ Each action you broadcast went through this pipeline:
 
 ## Next Steps
 
-- [BUILD_A_DISPENSER.md](BUILD_A_DISPENSER.md) — sell tokens automatically
-- [ADVANCED_TOKEN_FEATURES.md](ADVANCED_TOKEN_FEATURES.md) — allow lists, mint windows, callbacks
-- [BATCH_OPERATIONS.md](BATCH_OPERATIONS.md) — combine multiple actions in one transaction
+- [Build_A_Dispenser.md](Build_A_Dispenser.md) — sell tokens automatically
+- [Advanced_Token_Features.md](Advanced_Token_Features.md) — allow lists, mint windows, callbacks
+- [Batch_Operations.md](Batch_Operations.md) — combine multiple actions in one transaction
 
 ---
 

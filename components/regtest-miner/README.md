@@ -119,9 +119,9 @@ On startup, the miner:
 
 ## Related
 
-- [Regtest Development Guide](../../developer-guide/REGTEST_DEVELOPMENT.md) — full guide to setting up a local regtest environment
+- [Regtest Development Guide](../../developer-guide/Regtest_Development.md) — full guide to setting up a local regtest environment
 - [E2E Tests](../e2e-test/) — the test suite that depends on the regtest miner for block production
-- [Data Pipeline](../../architecture/DATA_PIPELINE.md) — how the regtest miner fits into the full platform flow
+- [Data Pipeline](../../architecture/Data_Pipeline.md) — how the regtest miner fits into the full platform flow
 - [Encoder](../encoder/) — constructs XChain transactions that the miner includes in blocks
 - [Decoder](../decoder/) — decodes mined blocks to extract XChain ACTION data
 

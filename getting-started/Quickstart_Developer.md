@@ -8,7 +8,7 @@ This guide walks you through creating your first XChain token using the SDK. You
 ## Prerequisites
 
 - **Node.js** 18 or later
-- A running XChain platform (either local via [regtest](../developer-guide/REGTEST_DEVELOPMENT.md) or a public node)
+- A running XChain platform (either local via [regtest](../developer-guide/Regtest_Development.md) or a public node)
 - A Bitcoin/Litecoin/Dogecoin wallet with a funded address (for mainnet/testnet), or use regtest for free development
 
 ---
@@ -247,7 +247,7 @@ try {
 
 Regtest is a local blockchain mode where blocks are mined on demand, coins have no real value, and you can test the full stack without spending anything. It's the fastest way to iterate.
 
-See [Regtest Development](../developer-guide/REGTEST_DEVELOPMENT.md) for setup instructions.
+See [Regtest Development](../developer-guide/Regtest_Development.md) for setup instructions.
 
 ### The SDK Has Three Modes
 
@@ -267,7 +267,7 @@ Every XChain ACTION has a corresponding SDK method: `sdk.issue()`, `sdk.mint()`,
 
 - [Full SDK Documentation](../components/sdk/) — all methods, configuration options, error types, and examples
 - [ACTION Reference](../protocol/ACTIONS.md) — detailed spec for all 19 actions and their fields
-- [Regtest Development](../developer-guide/REGTEST_DEVELOPMENT.md) — run a full local stack for free
+- [Regtest Development](../developer-guide/Regtest_Development.md) — run a full local stack for free
 - [Explorer API](../components/explorer/) — all 50+ REST and JSON-RPC endpoints
 
 ---

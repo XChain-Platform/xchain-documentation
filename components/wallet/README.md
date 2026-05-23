@@ -37,18 +37,18 @@ The wallet implements every XChain feature exposed by the platform: all 29 ACTIO
 | Document | Description |
 |---|---|
 | [Architecture](ARCHITECTURE.md) | Repo layout, package boundaries, state flow, three-shell model, core/web/extension/desktop seams |
-| [Keys & Signing](KEYS_SIGNING.md) | BIP39 + passphrase, HD derivation, vault encryption, signer interface, software / Trezor / Ledger / Remote / Multisig |
+| [Keys & Signing](Keys_Signing.md) | BIP39 + passphrase, HD derivation, vault encryption, signer interface, software / Trezor / Ledger / Remote / Multisig |
 | [Security & Threat Model](SECURITY.md) | Protected assets, in-scope and out-of-scope threats, sign-screen safety rails, audit posture |
 | [UX Surfaces](UX.md) | Onboarding, lock/unlock, balances, history, send/receive, sign screens, contacts, QR scanner, command palette, settings |
 | [Features](FEATURES.md) | Token issuance, DEX, messaging, dispensers, contracts, staking, multisig, cross-chain — surface-by-surface |
 | [Bridge](BRIDGE.md) | `window.xchain` dApp bridge: connect, signMessage, signPsbt, signAction, signIn, events, error codes |
-| [URI Schemes](URI_SCHEMES.md) | BIP21 + chain URIs + multisig PSBT envelope + chunked PSBT-QR transport |
+| [URI Schemes](URI_Schemes.md) | BIP21 + chain URIs + multisig PSBT envelope + chunked PSBT-QR transport |
 | [Multisig](MULTISIG.md) | Classical n-of-m + MuSig2: create flow, paste inbox, session state machine, PSBT-QR cosigner round-trips |
-| [Shell — Extension](SHELL_EXTENSION.md) | Chrome MV3 architecture, manifest, service worker, content script, injected provider, approval popup |
-| [Shell — Desktop](SHELL_DESKTOP.md) | Electron main / renderer split, OS keychain, WebHID hardware transports, electron-builder packaging, auto-updater |
-| [Shell — Web](SHELL_WEB.md) | Vite SPA, mobile responsiveness, extension-detect banner, session-only key handling |
-| [Build & Release](BUILD_RELEASE.md) | Synchronized versioning, Chrome Web Store submission, electron-builder, signing, release-hashes |
-| [Reproducible Builds](REPRODUCIBLE_BUILDS.md) | Level-2 reproducibility: scope, scaffolding audit, run-twice verification, drift sources |
+| [Shell — Extension](Shell_Extension.md) | Chrome MV3 architecture, manifest, service worker, content script, injected provider, approval popup |
+| [Shell — Desktop](Shell_Desktop.md) | Electron main / renderer split, OS keychain, WebHID hardware transports, electron-builder packaging, auto-updater |
+| [Shell — Web](Shell_Web.md) | Vite SPA, mobile responsiveness, extension-detect banner, session-only key handling |
+| [Build & Release](Build_Release.md) | Synchronized versioning, Chrome Web Store submission, electron-builder, signing, release-hashes |
+| [Reproducible Builds](Reproducible_Builds.md) | Level-2 reproducibility: scope, scaffolding audit, run-twice verification, drift sources |
 | [Testing](TESTING.md) | Smoke gates, Playwright E2E, a11y audit, repro-build audit, manifest audit, bridge-e2e, hw-sign-e2e |
 | [Configuration](CONFIGURATION.md) | Per-chain endpoints, custom RPC, signer registration, settings store, developer mode |
 
@@ -88,7 +88,7 @@ pnpm --filter @xchain-wallet/extension build
 pnpm --filter @xchain-wallet/desktop start
 ```
 
-Builds the renderer and launches Electron locally. For packaged releases, see [Build & Release](BUILD_RELEASE.md).
+Builds the renderer and launches Electron locally. For packaged releases, see [Build & Release](Build_Release.md).
 
 ## Usage Modes
 
@@ -111,7 +111,7 @@ The desktop shell uses Electron with a hard main / renderer split (§9.3.2):
 - **Main process** owns the Vault, the SDK instance, and all signers. Keys never cross the IPC boundary into the renderer.
 - **Renderer process** runs the same React app from `@xchain-wallet/core` and talks to main via a preload-exposed `window.xchainWalletBridge.sendMessage(message)`.
 
-Builds target Windows, macOS, and Linux via electron-builder. The pre-signing Linux artifact is Level-2 reproducible — see [Reproducible Builds](REPRODUCIBLE_BUILDS.md).
+Builds target Windows, macOS, and Linux via electron-builder. The pre-signing Linux artifact is Level-2 reproducible — see [Reproducible Builds](Reproducible_Builds.md).
 
 ### dApp integration
 

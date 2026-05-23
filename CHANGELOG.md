@@ -14,18 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `components/wallet/` — full component documentation set for `xchain-wallet`, mirroring the depth of the SDK and Explorer doc sets:
   - `README.md` — overview, full feature list, doc index, installation, quick start, four usage modes (web / extension / desktop / dApp integration), repository layout, scripts, dependencies
   - `ARCHITECTURE.md` — three-shell-one-core model, package boundaries, vault & state model, schema migrations, signer interface, build pipelines
-  - `KEYS_SIGNING.md` — Argon2id KDF parameters, vault encryption, BIP39 + Counterwallet mnemonic handling, BIP32 HD derivation, the five signers (Software / Trezor / Ledger / Remote / Multisig) in detail, backup / recovery / dry-run-restore, label-sync
+  - `Keys_Signing.md` — Argon2id KDF parameters, vault encryption, BIP39 + Counterwallet mnemonic handling, BIP32 HD derivation, the five signers (Software / Trezor / Ledger / Remote / Multisig) in detail, backup / recovery / dry-run-restore, label-sync
   - `SECURITY.md` — protected assets, in-scope and out-of-scope threats, sign-screen safety rails, audit posture, disclosure policy
   - `UX.md` — full route map for all 64 shared routes, onboarding, lock/unlock, Home, Send, Receive, History, sign screens, multisig session view, contacts, QR scanner, command palette, settings
   - `FEATURES.md` — capability-by-capability walk: token issuance, distribution surfaces, DEX, encrypted messaging, smart contracts, BTC staking + delegation, multisig, cross-chain flows, dApp bridge, air-gapped PSBT signing, onboarding & recovery, lock / unlock / auto-lock, i18n + a11y, reproducible builds, URI scheme handling, connected sites, notifications, developer mode
   - `BRIDGE.md` — full `window.xchain` API reference (`connect`, `getAccounts`, `getBalances`, `getSupportedChains`, `signMessage`, `signPsbt`, `signAction`, `sendAction`, `signIn`), events, permissions, error model, test dApp, security model
-  - `URI_SCHEMES.md` — BIP21, chunked PSBT-QR transport, multisig PSBT envelope, animated QR cadence, detect-and-route classifier
+  - `URI_Schemes.md` — BIP21, chunked PSBT-QR transport, multisig PSBT envelope, animated QR cadence, detect-and-route classifier
   - `MULTISIG.md` — schema, create flow, classical n-of-m + MuSig2 state machines, cosigner transport, hardware-signer status, address browsing
-  - `SHELL_EXTENSION.md` — Chrome MV3 manifest + audit, service worker, content script, injected provider, approval window, storage, privacy policy + CWS submission
-  - `SHELL_DESKTOP.md` — Electron main / renderer split, OS keychain, hardware transports, auto-updater, packaging
-  - `SHELL_WEB.md` — Vite SPA, mobile responsiveness, camera + WebHID, extension-detect banner, CSP, session lifetime
-  - `BUILD_RELEASE.md` — synchronized versioning, extension version-derivation rule, per-shell build, signing, distribution channels, CWS submission, release artifacts, pre-launch readiness gates
-  - `REPRODUCIBLE_BUILDS.md` — Level-2 reproducibility scope, scaffolding audit, run-twice verification protocol, comparison against maintainer release, common drift sources, roadmap
+  - `Shell_Extension.md` — Chrome MV3 manifest + audit, service worker, content script, injected provider, approval window, storage, privacy policy + CWS submission
+  - `Shell_Desktop.md` — Electron main / renderer split, OS keychain, hardware transports, auto-updater, packaging
+  - `Shell_Web.md` — Vite SPA, mobile responsiveness, camera + WebHID, extension-detect banner, CSP, session lifetime
+  - `Build_Release.md` — synchronized versioning, extension version-derivation rule, per-shell build, signing, distribution channels, CWS submission, release artifacts, pre-launch readiness gates
+  - `Reproducible_Builds.md` — Level-2 reproducibility scope, scaffolding audit, run-twice verification protocol, comparison against maintainer release, common drift sources, roadmap
   - `TESTING.md` — 92-smoke breakdown, audit gates, Playwright E2E, bridge E2E, hardware-signer E2E, multisig coverage, repro-build verification, what's not covered
   - `CONFIGURATION.md` — per-chain endpoints, settings store schema, signer registration, connected sites, build-time variables, developer mode, locale, branding, ADS, schema migrations
 
@@ -56,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `protocol/actions/DISPENSER.md` — ORACLE_ADDRESS field for user TOKEN/FIAT oracle pricing, EUR/KRW added to FIAT_CODE list (12 currencies total), dual reverse-matching algorithms (validator and user oracle paths), front-running protection notes
 - `protocol/actions/CLAIM_REWARDS.md` — reward sources table, hub→indexer reward push path via `pushvalidatorrewards`
 - `protocol/actions/README.md` — new "Oracles" section listing PRICE
-- `architecture/DATABASE_DESIGN.md` — three-database model (Decoder DB, Indexer DB, local Hub DB) with separation principle and cross-node determinism guarantee
+- `architecture/Database_Design.md` — three-database model (Decoder DB, Indexer DB, local Hub DB) with separation principle and cross-node determinism guarantee
 - `components/hub/ARCHITECTURE.md` — PriceAggregator, OraclePublisher, EncoderClient, HubDbBroadcaster source files; Tier 3 publishing pipeline diagram; multi-validator signature aggregation in PBFT prepare/commit; hub DB sync channel REST + WebSocket flow
 - `components/hub/DATABASE.md` — `oracle_prices` table schema; `price_snapshots` updated with `source_chain` and `source_action_index` columns
 - `components/hub/API.md` — new write methods (`pushchaintip`, `pushpriceround`, `pushoracleprice`); new REST endpoints (`/hub-db/snapshot/price_snapshots`, `/hub-db/snapshot/oracle_prices`); WebSocket channel `/hub-db/subscribe`
@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `components/indexer/ARCHITECTURE.md` — three DB connections, HubClient, HubDbSync, Ed25519 verification module; indexer↔hub push endpoint reference
 - `components/indexer/ACTIONS.md` — new "Oracles" section for PRICE v0/v1; Tier 3 staking notes; activation delay reference
 - `components/indexer/DATABASE.md` — `prices` action table schema; `stakes` updated with `doge_address`, `activation_block`, `deactivation_block`; `delegations` updated with activation/deactivation columns; `validator_rewards` populated via hub push
-- `architecture/COMPONENT_MAP.md` — indexer entry updated for three-database model and hub push endpoints; hub entry updated for hub DB sync channel
+- `architecture/Component_Map.md` — indexer entry updated for three-database model and hub push endpoints; hub entry updated for hub DB sync channel
 - `operations/CONFIGURATION.md` — hub component descriptions updated for PriceAggregator, HubDbBroadcaster, OraclePublisher
 
 ## [0.9.7] - 2026-04-07
@@ -105,9 +105,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.3] - 2026-04-07
 
 ### Changed
-- `developer-guide/INTEGRATION_PATTERNS.md` — expanded Pattern 3 (Token-Gated Access) from a basic balance check into a comprehensive guide: wallet ownership proof via challenge-response signing, session management with configurable re-check intervals, real-time balance invalidation via WebSocket, smart contract-based on-chain gating with example contract, end-to-end music platform example, security considerations
-- `user-guide/USE_CASES.md` — expanded "Access Control and Token-Gated Systems" section with concrete content-gating examples (music, books, video, software, physical access, communities), wallet ownership proof mention, TRANSFER_LOCK guidance, and cross-reference to Integration Patterns
-- `developer-guide/QUERY_THE_EXPLORER.md` — added cross-reference from token-gated check snippet to the full Integration Patterns guide, fixed typo in comment
+- `developer-guide/Integration_Patterns.md` — expanded Pattern 3 (Token-Gated Access) from a basic balance check into a comprehensive guide: wallet ownership proof via challenge-response signing, session management with configurable re-check intervals, real-time balance invalidation via WebSocket, smart contract-based on-chain gating with example contract, end-to-end music platform example, security considerations
+- `user-guide/Use_Cases.md` — expanded "Access Control and Token-Gated Systems" section with concrete content-gating examples (music, books, video, software, physical access, communities), wallet ownership proof mention, TRANSFER_LOCK guidance, and cross-reference to Integration Patterns
+- `developer-guide/Query_The_Explorer.md` — added cross-reference from token-gated check snippet to the full Integration Patterns guide, fixed typo in comment
 
 ## [0.9.2] - 2026-04-06
 
@@ -141,13 +141,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `components/hub/DECENTRALIZATION.md` — updated: all six phases marked complete with version numbers, removed "planned" language, added architecture summary
 - `README.md` — updated hub description to reflect decentralized validator network
 - `components/README.md` — hub: "backed by LevelDB" → MariaDB with full feature description
-- `architecture/COMPONENT_MAP.md` — hub: LevelDB → MariaDB, added full v2.0.0 capabilities, updated connection diagram, multi-instance in deployment table
-- `architecture/DATABASE_DESIGN.md` — hub: replaced LevelDB key schema with MariaDB 13-table description
-- `concepts/SECURITY_MODEL.md` — hub: "currently centralized" → "hub validator network (PBFT consensus)" in prose and trust model table
+- `architecture/Component_Map.md` — hub: LevelDB → MariaDB, added full v2.0.0 capabilities, updated connection diagram, multi-instance in deployment table
+- `architecture/Database_Design.md` — hub: replaced LevelDB key schema with MariaDB 13-table description
+- `concepts/Security_Model.md` — hub: "currently centralized" → "hub validator network (PBFT consensus)" in prose and trust model table
 - `concepts/CROSS_CHAIN.md` — hub: expanded from two roles to five (config, price oracle, attestation, swap coordinator, governance), removed "planned decentralization" language
 - `concepts/README.md` — smart contracts: "Planned" → "Programmable contract layer"
-- `concepts/SMART_CONTRACTS.md` — VM oracle/cross-chain stubs: "stub until Track B/Phase 4" → "pending VM integration"
-- `getting-started/KEY_TERMS.md` — hub: "stores in LevelDB" → "backed by MariaDB, PBFT consensus"; LevelDB entry: removed hub reference
+- `concepts/Smart_Contracts.md` — VM oracle/cross-chain stubs: "stub until Track B/Phase 4" → "pending VM integration"
+- `getting-started/Key_Terms.md` — hub: "stores in LevelDB" → "backed by MariaDB, PBFT consensus"; LevelDB entry: removed hub reference
 - `operations/CONFIGURATION.md` — hub: replaced LevelDB key format with MariaDB config, added 11 key env vars, linked to full hub configuration reference
 - `operations/DOCKER.md` — hub: removed from LevelDB volumes section, replaced LevelDB backup with mysqldump
 - `operations/UPGRADING.md` — hub: replaced LevelDB backup with mysqldump, fixed startup order (database → hub)
@@ -204,15 +204,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-04-03
 
 ### Changed
-- `getting-started/WHAT_IS_XCHAIN.md` — updated for VM and staking: added "Run Smart Contracts" section (DEPLOY, EXECUTE, DEPOSIT, WITHDRAW), "Stake and Validate" section (STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS), updated ACTION count from 19 to 28, updated ACTION table, updated developer/researcher descriptions
+- `getting-started/What_Is_XChain.md` — updated for VM and staking: added "Run Smart Contracts" section (DEPLOY, EXECUTE, DEPOSIT, WITHDRAW), "Stake and Validate" section (STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS), updated ACTION count from 19 to 28, updated ACTION table, updated developer/researcher descriptions
 
 ## [0.1.0] - 2026-04-03
 
 ### Added
 - Explorer WebSocket API reference (`components/explorer/WEBSOCKET.md`): connection, channels, subscriptions, filters, all event types, error codes, catch-up guide, configuration
 - SDK WebSocket client reference (`components/sdk/WEBSOCKET.md`): convenience methods, low-level API, reconnection, hooks, code examples
-- Pattern 7: Real-Time State Tracking with WebSocket in `developer-guide/INTEGRATION_PATTERNS.md`
-- Step 7b: WebSocket push layer in `architecture/DATA_PIPELINE.md`
+- Pattern 7: Real-Time State Tracking with WebSocket in `developer-guide/Integration_Patterns.md`
+- Step 7b: WebSocket push layer in `architecture/Data_Pipeline.md`
 - 4 real-time WebSocket examples in `components/sdk/EXAMPLES.md`
 
 ### Changed
@@ -232,11 +232,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `components/vm/CONFIGURATION.md` — added `maxStateKeySize` (1,024 bytes) and `maxBlockCacheSize` (1,000 entries) to constructor example, resource limits table, and bounded execution summary; updated code size enforcement note; updated log entry size to note UTF-8 byte-awareness
 - `components/vm/ARCHITECTURE.md` — updated bridge protocol to reflect universal `\x01`+JSON encoding for all returns; added error classification hardening paragraph; updated gas.js, state.js, collector.js component descriptions; added cache bound note
 - `components/vm/README.md` — added `maxStateKeySize` and `maxBlockCacheSize` to constructor example; updated state management feature description
-- `concepts/SMART_CONTRACTS.md` — added state key size (1 KB per key) to bounded execution table
+- `concepts/Smart_Contracts.md` — added state key size (1 KB per key) to bounded execution table
 - `components/README.md` — added indexer-sync to component table, updated count to 12
 - `README.md` — added xchain-indexer-sync to Components table, updated microservice count to 11
-- `architecture/COMPONENT_MAP.md` — added Data Replication service group with xchain-indexer-sync section, updated count to 11
-- `architecture/DATA_PIPELINE.md` — updated ASCII pipeline diagram to show indexer-sync as a branch off the Indexer DB feeding validator replicas
+- `architecture/Component_Map.md` — added Data Replication service group with xchain-indexer-sync section, updated count to 11
+- `architecture/Data_Pipeline.md` — updated ASCII pipeline diagram to show indexer-sync as a branch off the Indexer DB feeding validator replicas
 
 ### Added
 
@@ -247,7 +247,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `components/vm/README.md` — refactored from monolithic doc to lean overview matching indexer/decoder pattern; moved architecture, sandbox, gas metering, compilation cache, and integration details to dedicated ARCHITECTURE/CONFIGURATION/OPERATIONS files; added Documentation table, Features list, Scripts table, Dependencies tables, expanded Related links
-- `concepts/SMART_CONTRACTS.md` — fixed Math subset in Deterministic Execution section to match actual sandbox (11 functions + 2 constants); added SharedArrayBuffer, Atomics, queueMicrotask to stripped APIs list; noted Math object is frozen
+- `concepts/Smart_Contracts.md` — fixed Math subset in Deterministic Execution section to match actual sandbox (11 functions + 2 constants); added SharedArrayBuffer, Atomics, queueMicrotask to stripped APIs list; noted Math object is frozen
 - `components/indexer/ARCHITECTURE.md` — updated VM ASCII diagram to show "JSON bridge protocol" instead of "ivm.Reference sync callbacks"
 
 ### Added
@@ -268,8 +268,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added (previous)
 
-- "What Makes This Different" section in `concepts/SMART_CONTRACTS.md` — explains the architectural separation of smart contract logic from protocol logic, comparison with Ethereum's monolithic model, and six concrete benefits (security, audit surface, protocol evolution, simpler development, composability, atomic rollback)
-- Smart contract development guide: `developer-guide/SMART_CONTRACT_DEVELOPMENT.md` — writing contracts, ES2020 syntax, state patterns (manual index, reverse lookup, JSON), emitting actions, deployment, gas costs, debugging, limitations, vesting example
+- "What Makes This Different" section in `concepts/Smart_Contracts.md` — explains the architectural separation of smart contract logic from protocol logic, comparison with Ethereum's monolithic model, and six concrete benefits (security, audit surface, protocol evolution, simpler development, composability, atomic rollback)
+- Smart contract development guide: `developer-guide/Smart_Contract_Development.md` — writing contracts, ES2020 syntax, state patterns (manual index, reverse lookup, JSON), emitting actions, deployment, gas costs, debugging, limitations, vesting example
 - VM component documentation: `components/vm/README.md` — architecture, module interface, internal components, AST gas metering, sandbox security, compilation cache, indexer integration
 - VM listed in `components/README.md` (10 → 11 components)
 - VM Gas section in `concepts/GAS.md` — per-operation gas costs (computation, state read/write, emission), deployment gas, execution gas
@@ -279,7 +279,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `concepts/SMART_CONTRACTS.md` — rewrote from "planned" to full implementation reference: gateway API (context, state, emit, math, oracle, cross-chain), deterministic execution, bounded execution, error handling, API versioning, contract format, derived addresses
+- `concepts/Smart_Contracts.md` — rewrote from "planned" to full implementation reference: gateway API (context, state, emit, math, oracle, cross-chain), deterministic execution, bounded execution, error handling, API versioning, contract format, derived addresses
 - `concepts/ACTIONS.md` — updated from 19 to 28 ACTIONs, added Hub Staking and Virtual Machine sections
 - `protocol/README.md` — updated action count from 19 to 28
 - `protocol/actions/DEPLOY.md` — added syntax validation (V8 + acorn + `__gas` check), derived address creation, constructor execution, `api_version`, float warnings
@@ -347,7 +347,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Getting Started** — 4 documents: platform introduction (`WHAT_IS_XCHAIN.md`), developer quickstart, node operator quickstart, glossary of 49 terms
+- **Getting Started** — 4 documents: platform introduction (`What_Is_XChain.md`), developer quickstart, node operator quickstart, glossary of 49 terms
 - **Core Concepts** — 8 documents: metalayer, ACTIONs, tokens, ledger, encoding, cross-chain, gas, security model
 - **Architecture** — 3 documents: end-to-end data pipeline, component map with ASCII diagrams, database design
 - **Developer Guide** — 8 tutorials: build your first token, dispensers, explorer queries, cross-chain swaps, advanced token features, batch operations, regtest development, integration patterns
@@ -382,4 +382,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ERRORS.md` — All 7 error classes, 26 error codes, troubleshooting
   - `EXAMPLES.md` — 29 end-to-end code examples
   - `BATCH.md` — BatchBuilder fluent API, constraints, examples
-  - `FORMAT_SELECTION.md` — Format version selection algorithm, version quick-reference
+  - `Format_Selection.md` — Format version selection algorithm, version quick-reference

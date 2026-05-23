@@ -98,7 +98,7 @@ The page can never read or modify the stamped origin because it never sees the p
 
 `src/inject/xchainProvider.js` runs in the page world. It exposes `window.xchain` and proxies calls back through the content-script relay. The provider is a thin shim — every method ends in a `postMessage` to the content script, and every callback resolves on a matching response.
 
-The injected script is built deterministically: same source → same bytes. Reproducible-build verification (see [Reproducible Builds](REPRODUCIBLE_BUILDS.md)) covers it as part of the pre-signing artifact.
+The injected script is built deterministically: same source → same bytes. Reproducible-build verification (see [Reproducible Builds](Reproducible_Builds.md)) covers it as part of the pre-signing artifact.
 
 ## Approval window
 

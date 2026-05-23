@@ -783,9 +783,9 @@ See the [SDK WebSocket documentation](../components/sdk/WEBSOCKET.md) for the fu
 
 ## Next Steps
 
-- [REGTEST_DEVELOPMENT.md](REGTEST_DEVELOPMENT.md) — build and test locally
-- [QUERY_THE_EXPLORER.md](QUERY_THE_EXPLORER.md) — full explorer API reference
-- [BATCH_OPERATIONS.md](BATCH_OPERATIONS.md) — multi-action efficiency patterns
+- [Regtest_Development.md](Regtest_Development.md) — build and test locally
+- [Query_The_Explorer.md](Query_The_Explorer.md) — full explorer API reference
+- [Batch_Operations.md](Batch_Operations.md) — multi-action efficiency patterns
 
 ---
 

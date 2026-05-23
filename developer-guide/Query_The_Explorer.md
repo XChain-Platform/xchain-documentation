@@ -278,7 +278,7 @@ const canAccess = await hasAccess('bc1q...', 'MYTOKEN', '1');
 console.log('Access granted:', canAccess);
 ```
 
-This is the building block for token-gated systems. For production use, you also need wallet ownership proof (challenge-response signing), session management, and content delivery patterns. See [Pattern 3: Token-Gated Access](INTEGRATION_PATTERNS.md#pattern-3-token-gated-access) in the Integration Patterns guide for the complete implementation.
+This is the building block for token-gated systems. For production use, you also need wallet ownership proof (challenge-response signing), session management, and content delivery patterns. See [Pattern 3: Token-Gated Access](Integration_Patterns.md#pattern-3-token-gated-access) in the Integration Patterns guide for the complete implementation.
 
 ---
 
@@ -305,15 +305,15 @@ async function waitForIncomingTransfer(address, tick, afterBlock) {
 }
 ```
 
-See [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) for more production-ready polling and event-detection patterns.
+See [Integration_Patterns.md](Integration_Patterns.md) for more production-ready polling and event-detection patterns.
 
 ---
 
 ## Next Steps
 
-- [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) — using explorer queries in real applications
-- [BUILD_A_DISPENSER.md](BUILD_A_DISPENSER.md) — monitor dispenser state
-- [CROSS_CHAIN_SWAP.md](CROSS_CHAIN_SWAP.md) — query swaps across chains
+- [Integration_Patterns.md](Integration_Patterns.md) — using explorer queries in real applications
+- [Build_A_Dispenser.md](Build_A_Dispenser.md) — monitor dispenser state
+- [Cross_Chain_Swap.md](Cross_Chain_Swap.md) — query swaps across chains
 
 ---
 

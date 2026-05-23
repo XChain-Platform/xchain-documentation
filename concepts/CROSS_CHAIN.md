@@ -68,7 +68,7 @@ Adding a new Bitcoin-compatible chain to XChain requires only a configuration fi
 
 ---
 
-*See also: [Actions](./ACTIONS.md) | [Security Model](./SECURITY_MODEL.md) | [SWAP spec](../protocol/actions/SWAP.md) | [LINK spec](../protocol/actions/LINK.md)*
+*See also: [Actions](./ACTIONS.md) | [Security Model](./Security_Model.md) | [SWAP spec](../protocol/actions/SWAP.md) | [LINK spec](../protocol/actions/LINK.md)*
 
 ---
 

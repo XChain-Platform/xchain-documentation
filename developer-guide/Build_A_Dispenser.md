@@ -5,13 +5,13 @@
 
 A dispenser is a token vending machine. You escrow tokens into it, set a price in another token (or in coin), and anyone who sends the required amount to the dispenser address automatically receives the dispensed tokens. No counterparty needed.
 
-This tutorial assumes you already have a token. If not, complete [BUILD_YOUR_FIRST_TOKEN.md](BUILD_YOUR_FIRST_TOKEN.md) first.
+This tutorial assumes you already have a token. If not, complete [Build_Your_First_Token.md](Build_Your_First_Token.md) first.
 
 ---
 
 ## Prerequisites
 
-- SDK connected to regtest (see [REGTEST_DEVELOPMENT.md](REGTEST_DEVELOPMENT.md))
+- SDK connected to regtest (see [Regtest_Development.md](Regtest_Development.md))
 - `MYTOKEN` exists and you hold at least `100` units
 - You hold UTXO(s) to cover the transaction fee
 
@@ -219,7 +219,7 @@ const tokenForTokenDispenser = sdk.dispenser({
 **Private dispenser (allow list only):**
 
 ```js
-// First create the allow list (see ADVANCED_TOKEN_FEATURES.md)
+// First create the allow list (see Advanced_Token_Features.md)
 const privateDispenser = sdk.dispenser({
   giveCoin: 'BTC',
   giveTick: 'MYTOKEN',
@@ -237,9 +237,9 @@ const privateDispenser = sdk.dispenser({
 
 ## Next Steps
 
-- [ADVANCED_TOKEN_FEATURES.md](ADVANCED_TOKEN_FEATURES.md) — allow/block lists, mint windows
-- [QUERY_THE_EXPLORER.md](QUERY_THE_EXPLORER.md) — monitor dispenser state via API
-- [BATCH_OPERATIONS.md](BATCH_OPERATIONS.md) — issue and create a dispenser in one transaction
+- [Advanced_Token_Features.md](Advanced_Token_Features.md) — allow/block lists, mint windows
+- [Query_The_Explorer.md](Query_The_Explorer.md) — monitor dispenser state via API
+- [Batch_Operations.md](Batch_Operations.md) — issue and create a dispenser in one transaction
 
 ---
 

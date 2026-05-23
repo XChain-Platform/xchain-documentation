@@ -3,9 +3,9 @@
 
 # XChain Platform
 
-A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and Litecoin. Create, transfer, trade, and manage tokens, run smart contracts, and stake for validation using 28 ACTION commands embedded directly in standard blockchain transactions — no sidechains, no bridges, no separate consensus mechanism. The platform includes a built-in DEX, a sandboxed JavaScript virtual machine for on-chain smart contracts, cross-chain swap support, and **cryptographically secure token-gated file publishing** — encrypt single files or multi-file packs on-chain so only holders of a specific token can decrypt them (see [Token-Gated Content](./protocol/TOKEN_GATED_CONTENT.md)). The platform can be extended to run on any Bitcoin-compatible blockchain, including private blockchains for enterprise deployments.
+A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and Litecoin. Create, transfer, trade, and manage tokens, run smart contracts, and stake for validation using 28 ACTION commands embedded directly in standard blockchain transactions — no sidechains, no bridges, no separate consensus mechanism. The platform includes a built-in DEX, a sandboxed JavaScript virtual machine for on-chain smart contracts, cross-chain swap support, and **cryptographically secure token-gated file publishing** — encrypt single files or multi-file packs on-chain so only holders of a specific token can decrypt them (see [Token-Gated Content](./protocol/Token_Gated_Content.md)). The platform can be extended to run on any Bitcoin-compatible blockchain, including private blockchains for enterprise deployments.
 
-**New here?** Start with [What is XChain?](./getting-started/WHAT_IS_XCHAIN.md) or jump straight to the [Developer Quickstart](./getting-started/QUICKSTART_DEVELOPER.md).
+**New here?** Start with [What is XChain?](./getting-started/What_Is_XChain.md) or jump straight to the [Developer Quickstart](./getting-started/Quickstart_Developer.md).
 
 ## Documentation
 

@@ -138,7 +138,7 @@ On startup, the tracker:
 
 - [Encoder](../encoder/) — the primary consumer of UTXO tracker queries
 - [Decoder](../decoder/) — also polls coin nodes, but extracts XChain ACTION data rather than UTXOs
-- [Data Pipeline](../../architecture/DATA_PIPELINE.md) — how the UTXO tracker fits into the full platform flow
+- [Data Pipeline](../../architecture/Data_Pipeline.md) — how the UTXO tracker fits into the full platform flow
 
 ---
 

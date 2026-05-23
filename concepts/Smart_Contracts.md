@@ -252,7 +252,7 @@ Deployed contracts are **immutable** in API version 1. There is no mechanism to 
 - [Ledger](LEDGER.md) — the double-entry system that contracts interact with
 - [DEPLOY Action](../protocol/actions/DEPLOY.md) — deploying a contract
 - [EXECUTE Action](../protocol/actions/EXECUTE.md) — calling a contract method
-- [Contract Development Guide](../developer-guide/SMART_CONTRACT_DEVELOPMENT.md) — writing and deploying contracts
+- [Contract Development Guide](../developer-guide/Smart_Contract_Development.md) — writing and deploying contracts
 
 ---
 

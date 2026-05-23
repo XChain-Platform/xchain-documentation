@@ -61,7 +61,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 | [Explorer](EXPLORER.md) | Explorer API client methods: balances, tokens, transactions, markets |
 | [Encoder](ENCODER.md) | Encoding actions into PSBTs, encoding formats, P2SH two-phase flow |
 | [Batch Builder](BATCH.md) | Fluent API for constructing multi-action BATCH transactions |
-| [Format Selection](FORMAT_SELECTION.md) | How the SDK picks the optimal format version |
+| [Format Selection](Format_Selection.md) | How the SDK picks the optimal format version |
 | [Contracts](CONTRACTS.md) | VM smart contract integration: deploy, execute, deposit, withdraw, ContractClient |
 | [WebSocket](WEBSOCKET.md) | Real-time event client: connection, convenience methods, filters, reconnection, hooks |
 | [Wallet & Auth](WALLET.md) | Key management, address validation, PSBT signing, message signing, challenge-response verification |

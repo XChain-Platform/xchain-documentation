@@ -75,7 +75,7 @@ You can combine both: use the order book to trade on a single chain, and use SWA
 
 ---
 
-*See also: [Trading](./TRADING.md) | [Use Cases](./USE_CASES.md) | [FAQ](./FAQ.md)*
+*See also: [Trading](./TRADING.md) | [Use Cases](./Use_Cases.md) | [FAQ](./FAQ.md)*
 
 ---
 

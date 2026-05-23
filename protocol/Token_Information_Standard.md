@@ -40,7 +40,7 @@ The Token Information Standard (TIS) defines standardized formats to associate i
 | audio       | Array  | One or more audio files related to the token
 | video       | Array  | One or more video files related to the token
 | files       | Array  | One or more files related to the token
-| packs       | Object | Display metadata for [token-gated content packs](./TOKEN_GATED_CONTENT.md). Map of pack id → `{ name, description }`.
+| packs       | Object | Display metadata for [token-gated content packs](./Token_Gated_Content.md). Map of pack id → `{ name, description }`.
 | dns         | Array  | One or more DNS records related to the token.
 
 ### File Entry Fields

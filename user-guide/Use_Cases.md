@@ -40,7 +40,7 @@ Beyond public on-chain files, XChain supports **cryptographically secure token-g
 
 Unlock is purely client-side — holders decrypt with their address private key, no on-chain transaction required. Trust model: this is a first-access lock, not DRM (a holder who decrypts has the bytes forever), and loss of the address key means loss of access.
 
-XChain actions involved: ISSUE, FILE (with gating fields: GATE_TICKER, ENCRYPTION_METHOD, KEY_HASH), MESSAGE (v2 ECIES for the key handoff), SEND + MESSAGE in a BATCH for transfers. See [Token-Gated Content](../protocol/TOKEN_GATED_CONTENT.md).
+XChain actions involved: ISSUE, FILE (with gating fields: GATE_TICKER, ENCRYPTION_METHOD, KEY_HASH), MESSAGE (v2 ECIES for the key handoff), SEND + MESSAGE in a BATCH for transfers. See [Token-Gated Content](../protocol/Token_Gated_Content.md).
 
 ---
 
@@ -109,7 +109,7 @@ You control who can hold the token via allow lists, and you can revoke access ac
 
 XChain actions involved: ISSUE, LIST, SEND, CALLBACK.
 
-For implementation details — including wallet ownership verification, session management, and code examples — see [Token-Gated Access](../developer-guide/INTEGRATION_PATTERNS.md#pattern-3-token-gated-access) in the Integration Patterns guide.
+For implementation details — including wallet ownership verification, session management, and code examples — see [Token-Gated Access](../developer-guide/Integration_Patterns.md#pattern-3-token-gated-access) in the Integration Patterns guide.
 
 ---
 
@@ -193,11 +193,11 @@ This opens up use cases that are not possible with individual actions alone:
 - **On-chain governance** — token-weighted voting on proposals with automatic execution of results
 - **Cross-chain automation** — contracts that coordinate actions across Bitcoin, Litecoin, and Dogecoin
 
-For more details, see [Smart Contracts](../concepts/SMART_CONTRACTS.md).
+For more details, see [Smart Contracts](../concepts/Smart_Contracts.md).
 
 ---
 
-*See also: [Creating Tokens](./CREATING_TOKENS.md) | [Trading](./TRADING.md) | [Cross-Chain](./CROSS_CHAIN.md) | [FAQ](./FAQ.md)*
+*See also: [Creating Tokens](./Creating_Tokens.md) | [Trading](./TRADING.md) | [Cross-Chain](./CROSS_CHAIN.md) | [FAQ](./FAQ.md)*
 
 ---
 

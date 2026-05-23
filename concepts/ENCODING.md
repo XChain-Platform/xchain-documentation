@@ -67,7 +67,7 @@ The encoder automatically selects the optimal format based on the payload size:
 
 The caller does not need to specify a format. The encoder calculates the encoded payload size and picks the smallest format that fits. In practice, most common ACTIONs (SEND, MINT, ORDER, DISPENSER) fit in OP_RETURN. Larger ACTIONs (FILE, long BATCH, rich BROADCAST) use P2SH or P2WSH.
 
-A format selection guide with size calculation details is available at [`../components/encoder/FORMAT_SELECTION.md`](../components/encoder/FORMAT_SELECTION.md).
+A format selection guide with size calculation details is available at [`../components/encoder/Format_Selection.md`](../components/encoder/Format_Selection.md).
 
 ## The PSBT Workflow
 
@@ -85,7 +85,7 @@ The separation between encoding and signing is a deliberate security boundary. T
 
 ---
 
-*See also: [Actions](./ACTIONS.md) | [Security Model](./SECURITY_MODEL.md) | [Format Selection Guide](../components/encoder/FORMAT_SELECTION.md)*
+*See also: [Actions](./ACTIONS.md) | [Security Model](./Security_Model.md) | [Format Selection Guide](../components/encoder/Format_Selection.md)*
 
 ---
 
