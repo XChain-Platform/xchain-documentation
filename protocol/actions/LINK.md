@@ -34,9 +34,13 @@ This example links a BTC `FILE` upload with `ACTION_INDEX` 1234 with a DOGE `ISS
 - `COIN1` and `COIN2` values must be a valid coin network (BTC, LTC, DOGE, etc)
 - `COIN1_ACTION_INDEX` must point to a valid `ACTION_INDEX` on the `COIN1` network
 - `COIN2_ACTION_INDEX` must point to a valid `ACTION_INDEX` on the `COIN2` network
+- When `COIN2_ACTION_INDEX` resolves to a local `ISSUE` (i.e. linking against a `TICK`):
+    - `SOURCE` must be the current owner of that `TICK`
+    - The `TICK`'s ownership must not be currently escrowed (`ORDER` / `SWAP` / `DISPENSER` with `GIVE_OWNERSHIP=1` is open against this `TICK`) — see [Token Ownership Sales](./ORDER.md#token-ownership-sales)
+    - Cross-chain `ISSUE` targets cannot be validated locally; the owner / escrow checks are skipped when `COIN2` is not the local network
 
 ## Notes
-- To link a `FILE` with a `TICK`, the `COIN2_ACTION_INDEX` must be a valid `ISSUE` action, and the `LINK` must be done by the current `TICK` owner.
+- `LINK`'s primary use case is attaching a `FILE` to a `TICK` (logo, terms, documentation), but it is a generic action-to-action pointer and supports other pairings (cross-chain attestation, etc.)
 
 ---
 
