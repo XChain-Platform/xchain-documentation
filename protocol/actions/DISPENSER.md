@@ -22,13 +22,14 @@ This action creates a dispenser (vending machine) to dispense `TICK` when trigge
 | `EXPIRATION`             | String | Timestamp of when dispenser should close, in Unix time                     |
 | `ALLOW_LIST`             | String | `ACTION_INDEX` of a `LIST` of addresses allowed to trigger dispenser       |
 | `BLOCK_LIST`             | String | `ACTION_INDEX` of a `LIST` of addresses NOT allowed to trigger a dispenser |
+| `GIVE_OWNERSHIP`         | String | When `1`, dispense ownership of `GIVE_TICK` instead of a balance amount (single-shot; default `0`) |
 | `MEMO`                   | String | An optional memo to include                                                |
 | `DISPENSER_ACTION_INDEX` | String | `ACTION_INDEX` of existing `DISPENSER`                                     |
 
 ## Formats
 
 ### Version `0` - Create Dispenser
-- `VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_ESCROW|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|FIAT_CODE|FIAT_AMOUNT|ORACLE_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
+- `VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_OWNERSHIP|GIVE_ESCROW|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|FIAT_CODE|FIAT_AMOUNT|ORACLE_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
 ### Version `1` - Cancel Dispenser
 - `VERSION|DISPENSER_ACTION_INDEX|MEMO`
@@ -73,6 +74,21 @@ DISPENSER|0|BTC|JDOG|1|10|BTC||0.01|1FreshAddrZZZZZZZZZZZZZZZZZZZZZZZZ|||||||Ope
 Fresh-address pattern: SOURCE is the user's main wallet, GET_ADDRESS is a newly-generated address with no prior on-chain activity. Allowed by the fresh-address exception, so DISPENSER_PREFERENCE on `1FreshAddr...` does not need to be pre-configured. SOURCE retains cancel authority; on cancel, escrow returns to SOURCE.
 ```
 
+```
+DISPENSER|0|BTC|JDOG||1||BTC||0.50000000|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|||||||First buyer of 0.5 BTC gets JDOG ownership
+Ownership dispenser: `GIVE_OWNERSHIP=1` with empty `GIVE_AMOUNT`/`GIVE_ESCROW` escrows the JDOG ownership record. The first valid 0.5 BTC payment transfers ownership to the payer; the dispenser auto-closes after the single dispense.
+```
+
+```
+DISPENSER|0|BTC|JDOG||1||BTC||0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|USD|500.00||||Selling JDOG ownership for $500 USD
+FIAT-priced ownership dispenser using the validator BTC/USD oracle. Payer sends BTC equivalent to $500 USD at current snapshot price; ownership transfers and the dispenser closes.
+```
+
+```
+DISPENSER|0|BTC|JDOG||1||BTC|PEPECASH|10000000.00000000|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|||||||Selling JDOG ownership for 10M PEPECASH via dispenser
+Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH receives JDOG ownership.
+```
+
 ## Rules
 - A dispenser may be created on an address other than `SOURCE` only if either:
   (a) the target address has set `DISPENSER_PREFERENCE=2` via an `ADDRESS` action, or
@@ -81,12 +97,30 @@ Fresh-address pattern: SOURCE is the user's main wallet, GET_ADDRESS is a newly-
 - Dispensers can be closed by the dispenser `GET_ADDRESS` or `SOURCE` address which first opened the dispenser
 - If a dispenser is closed by the dispenser `GET_ADDRESS`, tokens escrowed in the dispenser are returned to `GET_ADDRESS`
 - If a dispenser is closed by the dispenser `SOURCE`, tokens escrowed in the dispenser are returned to `SOURCE`
-- If a dispenser is closed via `SWEEP`, tokens escrowed in the dispenser are returned to the `SWEEP` `DESTINATION`
+- If a dispenser is closed via `SWEEP` (`DISPENSERS=1`), remaining escrowed tokens — or the escrowed ownership record, if `GIVE_OWNERSHIP=1` — are credited to the SWEEP `DESTINATION` (see [`SWEEP`](./SWEEP.md))
 - If a dispenser closes due to `EXPIRATION` (no canceller), tokens escrowed in the dispenser are returned to `SOURCE`
 - `FIAT_CODE` and `FIAT_AMOUNT` must both be provided together (or both empty), unless `ORACLE_ADDRESS` is set
 - `ORACLE_ADDRESS` requires `FIAT_CODE` to be set (the oracle prices the token in that fiat currency)
 - `ORACLE_ADDRESS` makes `FIAT_AMOUNT` optional/ignored — the oracle provides the price
 - `ORACLE_ADDRESS` must be a valid crypto address
+
+### Token Ownership Dispensers
+- `GIVE_OWNERSHIP=1` requires SOURCE to be the current owner of `GIVE_TICK`; `GIVE_AMOUNT` and `GIVE_ESCROW` must be empty; the ownership record moves into a protocol-held escrow state
+- Ownership dispensers are **single-shot**: max dispenses = `1`; the dispenser auto-closes after the first successful dispense
+- FIAT pricing (validator oracle and user oracle) and reverse-price-matching (24-hour window) apply unchanged
+- Existing `GET_ADDRESS` rules (`DISPENSER_PREFERENCE` / fresh-address / self-open) apply unchanged
+- While ownership is escrowed, the following actions targeting the escrowed `TICK` are rejected:
+  - `ISSUE` Versions 1–5 (description/mint/lock/callback/list edits)
+  - `CALLBACK`, `SLEEP`
+  - `LINK` using this `TICK`'s `ISSUE` as `COIN2_ACTION_INDEX`
+  - `FILE` with `GATE_TICKER` = this `TICK`
+  - New child `ISSUE` using this `TICK` as a parent (period-separated name)
+  - Additional `ORDER`/`SWAP`/`DISPENSER` ownership offers for this `TICK` from the original owner
+- Holder-side actions are unaffected: `SEND`, `MINT` (if mint window open), `DIVIDEND` payouts, `DEPOSIT`/`WITHDRAW`, `DESTROY` of held balance
+- Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold
+- On successful dispense: ownership transfers atomically to the payer's address
+- On cancel (Version 1) / `EXPIRATION`: ownership returns to the SOURCE that opened the dispenser
+- On `SWEEP`-closure: ownership is delivered to the SWEEP `DESTINATION`
 
 ## Notes
 - Dispensers are closed and any escrowed funds returned after a set amount of time (1 hour)

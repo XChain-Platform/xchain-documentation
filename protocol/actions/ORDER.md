@@ -18,6 +18,8 @@ This action creates a order to sell an item on the Decentralized Exchange (DEX).
 | `EXPIRATION`         | String | Timestamp of when order should expire, in Unix time                |
 | `ALLOW_LIST`         | String | `ACTION_INDEX` of a `LIST` of addresses allowed to match order     |
 | `BLOCK_LIST`         | String | `ACTION_INDEX` of a `LIST` of addresses NOT allowed to match order |
+| `GIVE_OWNERSHIP`     | String | When `1`, escrow ownership of `GIVE_TICK` instead of a balance amount (default `0`) |
+| `GET_OWNERSHIP`      | String | When `1`, require the matcher to currently own `GET_TICK` and transfer that ownership (default `0`) |
 | `MEMO`               | String | An optional memo to include                                        |
 | `ORDER_ACTION_INDEX` | String | `ACTION_INDEX` of existing `ORDER`                                 |
 
@@ -25,7 +27,7 @@ This action creates a order to sell an item on the Decentralized Exchange (DEX).
 ## Formats
 
 ### Version `0` - Create Order
-- `VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
+- `VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_OWNERSHIP|GET_COIN|GET_TICK|GET_AMOUNT|GET_OWNERSHIP|GET_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
 ### Version `1` - Cancel Order
 - `VERSION|ORDER_ACTION_INDEX|MEMO`
@@ -62,6 +64,26 @@ ORDER|2|1234|4321|||Updating order to only sell to club member addresses
 This example updates an existing `ORDER` with `ACTION_INDEX` 1234 and adds an `ACTION_INDEX` to `ALLOW_LIST` 4321 and includes a memo
 ```
 
+```
+ORDER|0|BTC|JDOG||1|BTC||0.50000000||||||Selling JDOG ownership for 0.5 BTC
+This example sells ownership of the JDOG tick for 0.5 BTC. `GIVE_OWNERSHIP=1` with empty `GIVE_AMOUNT` escrows the ownership record. Native coin on the GET side creates a COINPay obligation on match; ownership is delivered when COINPay settles.
+```
+
+```
+ORDER|0|BTC|JDOG||1|BTC|PEPECASH|10000000.00000000||||||Selling JDOG ownership for 10M PEPECASH
+This example sells ownership of JDOG for 10,000,000 PEPECASH balance — settled atomically on match.
+```
+
+```
+ORDER|0|BTC|PEPECASH|100000||BTC|JDOG||1|||||Bidding 100K PEPECASH for JDOG ownership
+This example offers 100,000 PEPECASH for ownership of the JDOG tick. The matcher must currently own JDOG; on match, JDOG ownership transfers to this order's SOURCE.
+```
+
+```
+ORDER|0|BTC|JDOG||1|BTC|PEPECOIN||1|||||Swapping JDOG ownership for PEPECOIN ownership
+This example trades ownership of JDOG for ownership of PEPECOIN. Both sides escrow ownership; on match, ownerships swap atomically.
+```
+
 ## Rules
 
 ### Native Coin Pairs
@@ -74,6 +96,26 @@ This example updates an existing `ORDER` with `ACTION_INDEX` 1234 and adds an `A
 - When matched, native coin pairs create a `pending_coinpay` ORDER_MATCH instead of instant settlement
 - Cancelling an order with pending COINPay obligations sets status to `cancelling` instead of `cancelled`; obligations must resolve before the order is finalized
 - Order expiration with pending COINPay obligations sets status to `expiring`; same deferred finalization
+
+### Token Ownership Sales
+- `GIVE_OWNERSHIP=1` requires SOURCE to be the current owner of `GIVE_TICK`; `GIVE_AMOUNT` must be empty; the ownership record moves into a protocol-held escrow state
+- `GET_OWNERSHIP=1` requires the matcher's SOURCE to be the current owner of `GET_TICK`; `GET_AMOUNT` must be empty
+- Ownership orders are **single-fill only** — ownership is indivisible; the entire order matches against one counterparty or none (no partial fills on the balance side either)
+- While ownership is escrowed, the following actions targeting the escrowed `TICK` are rejected:
+  - `ISSUE` Versions 1–5 (description/mint/lock/callback/list edits)
+  - `CALLBACK`, `SLEEP`
+  - `LINK` using this `TICK`'s `ISSUE` as `COIN2_ACTION_INDEX`
+  - `FILE` with `GATE_TICKER` = this `TICK`
+  - New child `ISSUE` using this `TICK` as a parent (period-separated name)
+  - Additional `ORDER`/`SWAP`/`DISPENSER` ownership offers for this `TICK` from the original owner
+- Holder-side actions are unaffected: `SEND`, `MINT` (if mint window open), `DIVIDEND` payouts, `DEPOSIT`/`WITHDRAW`, `DESTROY` of held balance
+- Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold — sell each child separately if needed
+- On match: ownership transfers atomically to the counterparty's SOURCE
+- On cancel (Version 1) or `EXPIRATION`: ownership returns to the original SOURCE
+- When matched against a native-coin counterparty: ownership remains in escrow as a `pending_coinpay` obligation and is delivered to the buyer once `COINPAY` settles; if the obligation expires or is cancelled, ownership returns to the original SOURCE
+
+### Sweep Closure
+- When `SWEEP` is broadcast from this order's SOURCE with `ORDERS=1`, the order is cancelled and the escrowed `GIVE_TICK` balance (or `GIVE_OWNERSHIP` ownership record) is credited to the SWEEP `DESTINATION` rather than returned to SOURCE (see [`SWEEP`](./SWEEP.md))
 
 ## Notes
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
