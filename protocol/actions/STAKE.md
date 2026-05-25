@@ -2,75 +2,76 @@
 <!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - STAKE
-This action stakes XCHAIN tokens for hub validation.
+This action stakes XCHAIN tokens for hub validation. The protocol uses a capability model — validators get *every* capability whose `min_stake` their stake amount meets. There are no tiers.
+
+For the full design see `claude/reports/specs/2026-05-24_capability-staking-model.md`.
 
 ## PARAMS
 | Name              | Type    | Description                                                       |
 | ----------------- | ------- | ----------------------------------------------------------------- |
-| `VERSION`         | String  | Format Version                                                    |
-| `TIER`            | Integer | Validation tier: 1=oracle, 2=cross-chain, 3=oracle publisher      |
-| `CHAINS`          | String  | Comma-separated chains e.g. 'BTC,DOGE' (Tier 2 only — empty for Tier 1/3) |
+| `VERSION`         | String  | Format Version (1 = new stake, 2 = top-up)                        |
+| `AMOUNT`          | String  | XCHAIN to stake (decimal string, 8 decimals)                      |
 | `SIGNING_PUBKEY`  | String  | Ed25519 public key, 64 hex chars                                  |
-| `DOGE_ADDRESS`    | String  | DOGE broadcast address (Tier 3 only — empty for Tier 1/2)         |
 
 ## Formats
 
-### Version `0`
-- `VERSION|TIER|CHAINS|SIGNING_PUBKEY|DOGE_ADDRESS`
+### Version `1` — Create a new stake
+- `VERSION|AMOUNT|SIGNING_PUBKEY`
+
+### Version `2` — Top up an existing stake
+- `VERSION|AMOUNT|SIGNING_PUBKEY`
+- The `SIGNING_PUBKEY` must reference an existing active stake owned by `SOURCE`.
+- The new amount is *added* to the existing stake total.
 
 ## Examples
 ```
-STAKE|0|1||abc123...def|
-Tier 1 (oracle validator) — CHAINS and DOGE_ADDRESS are empty
+STAKE|1|1000.00000000|abc123...def
+New stake of 1000 XCHAIN bound to pubkey abc123...def
 ```
 
 ```
-STAKE|0|2|BTC,DOGE|abc123...def|
-Tier 2 (cross-chain validator) covering BTC and DOGE — DOGE_ADDRESS empty
-```
-
-```
-STAKE|0|3||abc123...def|DJTBSwHi5LqgrXChDkBnDQ4QPSBXTbqXBu
-Tier 3 (oracle publisher) — CHAINS empty, DOGE_ADDRESS required
+STAKE|2|500.00000000|abc123...def
+Top up the existing stake on pubkey abc123...def by 500 XCHAIN
+(new total = previous amount + 500)
 ```
 
 ## Rules
-- BTC chain only
-- `TIER` must be `1` (oracle), `2` (cross-chain), or `3` (oracle publisher)
-- `CHAINS` rules:
-  - Required for Tier 2; must list valid chain identifiers (BTC, LTC, DOGE)
-  - Must be empty for Tier 1 and Tier 3
-- `DOGE_ADDRESS` rules:
-  - Required for Tier 3; must be a valid DOGE address (D-prefix, 34 chars base58)
-  - Must be empty for Tier 1 and Tier 2
-- `SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key
-- `SIGNING_PUBKEY` must be unique across all active stakes
-- Broadcasting address must hold sufficient XCHAIN tokens for the selected tier
-- Source address may not already have an active stake at this tier
+- BTC chain only.
+- `AMOUNT` must be a positive decimal string with up to 8 decimal places.
+- `SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key.
+- For `VERSION=1` (new): `SIGNING_PUBKEY` must NOT already have an active stake.
+- For `VERSION=2` (top-up): `SIGNING_PUBKEY` MUST have an active stake AND that stake's original source must match the broadcasting address.
+- Broadcasting address must hold at least `AMOUNT` XCHAIN.
 
-## Tier Stake Amounts
-| Tier | Role                       | Stake Amount  |
-| ---- | -------------------------- | ------------- |
-| 1    | Oracle validator (PBFT)    | 1,000 XCHAIN  |
-| 2    | Cross-chain validator      | 5,000 XCHAIN  |
-| 3    | Oracle publisher (DOGE broadcast) | 500 XCHAIN |
+## Capabilities and Minimum Stakes
+A stake auto-qualifies for any capability whose `min_stake` the total stake meets. Defaults:
+
+| Capability        | Role                                | Default Min Stake |
+| ----------------- | ----------------------------------- | ----------------- |
+| `price`           | PBFT signer on PRICE v0 snapshots   | 1,000 XCHAIN      |
+| `cross_chain`     | Cross-chain attestation             | 5,000 XCHAIN      |
+| `oracle_publish`  | Publish price rounds to DOGE chain  | 500 XCHAIN        |
+| `attestation`     | Off-chain data fetch + attest       | 1,000 XCHAIN      |
+
+A 5,000 XCHAIN stake therefore qualifies for all four capabilities. A 500 XCHAIN stake qualifies only for `oracle_publish`. Minimums are governance-tunable.
+
+A capability becomes *active* on a hub when ALL of: (a) stake qualifies, (b) per-capability `selfTest()` passes, (c) operator has not added it to `disabled_capabilities`. Sub-features (chains for `cross_chain`, fiats for `price`, providers for `attestation`) live in operator hub config — not on-chain.
 
 ## Activation Delay
-- Stakes do not become active until **6 BTC blocks** after confirmation
-- This prevents short-range BTC reorgs (≤5 blocks) from affecting the active validator set
-- Applies to all tiers and all validator state changes (STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION)
-- Tracked via the `activation_block` column on the `stakes` table (set to `block_index + 6`)
-- Active-stake queries filter by `activation_block <= current_block`
+- Stakes do not become active until **6 BTC blocks** after confirmation.
+- Prevents short-range BTC reorgs (≤5 blocks) from affecting the active validator set.
+- Applies to STAKE v1, STAKE v2 (top-up), UNSTAKE, DELEGATE, REVOKE_DELEGATION.
+- Tracked via the `activation_block` column on the `stakes` table (set to `block_index + 6`).
+- Active-stake queries filter by `activation_block <= current_block`.
+
+## Storage Model
+Each STAKE action (v1 *or* v2) inserts a new row into the `stakes` table. The active stake amount for a pubkey is `SUM(amount)` across all valid rows for that pubkey within the activation window. This append-only ledger preserves rollback correctness — block-level rewinds simply delete rows past the rewind point.
 
 ## Notes
-- Staking locks XCHAIN tokens in exchange for validator eligibility and rewards
-- Tier 1 (oracle) validators participate in PBFT consensus on COIN/FIAT prices and sign the canonical PRICE v0 payload
-- Tier 2 (cross-chain) validators coordinate cross-chain actions across the listed chains
-- Tier 3 (oracle publisher) validators broadcast finalized PRICE v0 transactions to a chain (DOGE recommended), serving as the immutable on-chain anchor for validator price data
-- Tier 1 and Tier 3 may overlap — the same address can hold both, since PBFT signatures are the cryptographic lock and publishing is just a courier role
-- Use `UNSTAKE` to begin the cooldown period and recover staked tokens
-- Use `DELEGATE` to rotate the signing key without unstaking
-- See the `PRICE` action documentation for details on how Tier 1 and Tier 3 validators interact
+- Use `UNSTAKE` to begin the cooldown period and recover staked tokens for a pubkey.
+- Use `DELEGATE` to rotate the signing key without un-staking.
+- Slashing burns from the unified stake pool. If a slash drops total stake below another capability's `min_stake`, that capability is collaterally lost at the next snapshot.
+- See `PRICE` action documentation for the `price` capability's role in PBFT consensus.
 
 ---
 
