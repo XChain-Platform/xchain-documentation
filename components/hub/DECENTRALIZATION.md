@@ -33,7 +33,7 @@ Price rounds run on a configurable interval (default 10 minutes). Each round goe
 
 ### Tier 2 — Cross-Chain Validators
 
-A higher-stake tier (5x the oracle stake) responsible for attesting to cross-chain swap actions. Rather than running full decoder and indexer stacks for every chain, Tier 2 validators use **xchain-indexer-sync** to replicate indexer databases, keeping them lightweight.
+A higher-stake tier (5x the oracle stake) responsible for attesting to cross-chain swap actions. Rather than running full decoder and indexer stacks for every chain, Tier 2 validators use **xchain-sync** to replicate indexer databases, keeping them lightweight.
 
 Cross-chain validators declare which chains they support at registration time. Consensus is calculated per chain-pair — only validators supporting both chains in a swap participate in attestation, using a PBFT-derived consensus requiring 2/3+ agreement.
 

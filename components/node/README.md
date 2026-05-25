@@ -39,7 +39,7 @@ Unlike other XChain services that run as long-lived processes, xchain-node is a 
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-node.git
+git clone https://github.com/XChain-Platform/xchain-node.git
 cd xchain-node
 npm install
 npm link   # makes xchain_node available as a global CLI command

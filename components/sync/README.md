@@ -3,9 +3,9 @@
 
 # XChain Platform Indexer Sync
 
-## What is xchain-indexer-sync
+## What is xchain-sync
 
-xchain-indexer-sync is the database replication layer of the XChain Platform. It enables lightweight validators and other consumers to obtain and stay current with indexer database state without running their own decoder+indexer stacks. The service runs as a single long-lived Node.js process with an embedded Express REST API and a WebSocket server, both served on the same port.
+xchain-sync is the database replication layer of the XChain Platform. It enables lightweight validators and other consumers to obtain and stay current with indexer database state without running their own decoder+indexer stacks. The service runs as a single long-lived Node.js process with an embedded Express REST API and a WebSocket server, both served on the same port.
 
 The service operates in two modes. In **server mode**, it runs alongside authoritative indexers on an xchain-node, polls each indexer database for new blocks, and serves the data to remote clients via REST snapshots and real-time WebSocket streaming. In **client mode**, it connects to one or more remote sync servers, downloads a full database snapshot for initial bootstrap, then subscribes to a WebSocket stream for ongoing block-by-block replication into a local MariaDB instance.
 
@@ -44,8 +44,8 @@ Data integrity is guaranteed by the indexer's existing per-block chained SHA256 
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-indexer-sync.git
-cd xchain-indexer-sync
+git clone https://github.com/XChain-Platform/xchain-sync.git
+cd xchain-sync
 npm install
 ```
 

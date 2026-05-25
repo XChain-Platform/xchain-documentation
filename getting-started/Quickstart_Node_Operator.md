@@ -19,7 +19,7 @@ This guide walks you through installing and running the full XChain platform sta
 `xchain-node` is the CLI orchestrator that manages every other service.
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-node.git
+git clone https://github.com/XChain-Platform/xchain-node.git
 cd xchain-node
 npm install
 ```

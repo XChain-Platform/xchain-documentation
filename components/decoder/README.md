@@ -38,7 +38,7 @@ The decoder's job is extraction only — it does not interpret action semantics.
 Clone the repository and install dependencies from within the `xchain-decoder` directory:
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-decoder.git
+git clone https://github.com/XChain-Platform/xchain-decoder.git
 cd xchain-decoder
 npm install
 ```

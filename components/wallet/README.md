@@ -57,12 +57,12 @@ The wallet implements every XChain feature exposed by the platform: all 29 ACTIO
 The wallet is a pnpm workspace. Clone the repo and install workspace dependencies:
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-wallet.git
+git clone https://github.com/XChain-Platform/xchain-wallet.git
 cd xchain-wallet
 pnpm install
 ```
 
-The repository depends on a sibling `xchain-sdk` checkout — both `packages/web/package.json` and `packages/extension/package.json` link `xchain-sdk` from `../../../xchain-sdk`. Clone [xchain-sdk](https://github.com/XChain-platform/xchain-sdk) next to `xchain-wallet` before installing.
+The repository depends on a sibling `xchain-sdk` checkout — both `packages/web/package.json` and `packages/extension/package.json` link `xchain-sdk` from `../../../xchain-sdk`. Clone [xchain-sdk](https://github.com/XChain-Platform/xchain-sdk) next to `xchain-wallet` before installing.
 
 ## Quick Start
 

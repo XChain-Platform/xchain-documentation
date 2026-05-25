@@ -65,7 +65,7 @@ The byte-for-byte verification has to happen on a clean dev machine. The procedu
 
 ```bash
 # 1. Clean clone of the repo at a specific tag
-git clone --depth 1 --branch v1.0.0 https://github.com/XChain-platform/xchain-wallet.git
+git clone --depth 1 --branch v1.0.0 https://github.com/XChain-Platform/xchain-wallet.git
 cd xchain-wallet
 
 # 2. Run the reproduce script in a Docker container
@@ -77,7 +77,7 @@ cp packages/desktop/dist/RELEASE_HASHES.txt /tmp/run-1-hashes.txt
 # 4. Wipe the working tree and run again
 cd ..
 rm -rf xchain-wallet
-git clone --depth 1 --branch v1.0.0 https://github.com/XChain-platform/xchain-wallet.git
+git clone --depth 1 --branch v1.0.0 https://github.com/XChain-Platform/xchain-wallet.git
 cd xchain-wallet
 pnpm --filter @xchain-wallet/desktop reproduce
 

@@ -43,7 +43,7 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 Clone the repository and install dependencies from within the `xchain-explorer` directory:
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-explorer.git
+git clone https://github.com/XChain-Platform/xchain-explorer.git
 cd xchain-explorer
 npm install
 ```

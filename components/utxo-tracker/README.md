@@ -43,7 +43,7 @@ In addition to confirmed block data, the tracker maintains a separate in-memory 
 Clone the repository and install dependencies from within the `xchain-utxo-tracker` directory:
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-utxo-tracker.git
+git clone https://github.com/XChain-Platform/xchain-utxo-tracker.git
 cd xchain-utxo-tracker
 npm install
 ```

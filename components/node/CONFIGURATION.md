@@ -69,7 +69,7 @@ Regtest-only variables (added only when `network === 'regtest'`):
 
 ### Shared Services
 
-For shared services (hub, explorer, indexer-sync), a separate set of variables is generated without coin/network-specific values:
+For shared services (hub, explorer, sync), a separate set of variables is generated without coin/network-specific values:
 
 | Variable | Default | Description |
 |---|---|---|

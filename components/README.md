@@ -10,7 +10,7 @@ This section contains documentation for each of the 13 XChain Platform component
 | [encoder](./encoder/) | Encodes XChain ACTION data into PSBT-based blockchain transactions |
 | [decoder](./decoder/) | Polls coin nodes, extracts XChain transactions, and writes raw data to MariaDB |
 | [indexer](./indexer/) | Reads decoder output, processes ACTION logic, and writes final state to MariaDB |
-| [indexer-sync](./indexer-sync/) | Replicates indexer databases to validators via REST snapshots and WebSocket streaming |
+| [sync](./sync/) | Replicates indexer databases to validators via REST snapshots and WebSocket streaming |
 | [vm](./vm/) | Deterministic smart contract execution engine — sandboxed V8 isolates with AST-based gas metering |
 | [explorer](./explorer/) | Serves REST and JSON-RPC APIs plus a web UI over the indexer database |
 | [hub](./hub/) | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, governance — backed by MariaDB |

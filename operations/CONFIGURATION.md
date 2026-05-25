@@ -21,7 +21,7 @@ For most deployments managed by xchain-node, environment variables are the prima
 
 ## Hub-Based Configuration
 
-The explorer, SDK, and indexer-sync can fetch all their configuration from xchain-hub using the `getallconfigs` JSON-RPC method. The hub stores config in MariaDB using a `configs` table with `(coin, network, module, param_name)` as the unique key.
+The explorer, SDK, and sync can fetch all their configuration from xchain-hub using the `getallconfigs` JSON-RPC method. The hub stores config in MariaDB using a `configs` table with `(coin, network, module, param_name)` as the unique key.
 
 Valid parameter names: `host`, `port`, `service_port`, `db_host`, `db_port`, `name`, `user`, `pass`.
 

@@ -38,7 +38,7 @@ This service is testing infrastructure. It must not be run against mainnet or te
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-regtest-miner.git
+git clone https://github.com/XChain-Platform/xchain-regtest-miner.git
 cd xchain-regtest-miner
 npm install
 ```

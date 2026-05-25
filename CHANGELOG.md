@@ -184,10 +184,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.0] - 2026-04-05
 
 ### Changed
-- `components/indexer-sync/README.md` — added Input validation and 725 tests to Features, expanded Scripts from 3 to 18 entries, updated Development dependencies with all current packages, added Related Documentation section
-- `components/indexer-sync/CONFIGURATION.md` — added missing security environment variables: SYNC_API_KEY, HUB_PROTOCOL, TRUST_PROXY (Common), MAX_ROLLBACK_DEPTH, HASH_CONFIRM_STRICT, WS_MAX_PAYLOAD, SNAPSHOT_MAX_CONTENT (Client)
-- `components/indexer-sync/ARCHITECTURE.md` — added middleware.js and validation.js to Source Files table
-- `components/indexer-sync/OPERATIONS.md` — added Authentication section documenting Bearer token auth, added GET /schema/:chain/:network endpoint documentation
+- `components/sync/README.md` — added Input validation and 725 tests to Features, expanded Scripts from 3 to 18 entries, updated Development dependencies with all current packages, added Related Documentation section
+- `components/sync/CONFIGURATION.md` — added missing security environment variables: SYNC_API_KEY, HUB_PROTOCOL, TRUST_PROXY (Common), MAX_ROLLBACK_DEPTH, HASH_CONFIRM_STRICT, WS_MAX_PAYLOAD, SNAPSHOT_MAX_CONTENT (Client)
+- `components/sync/ARCHITECTURE.md` — added middleware.js and validation.js to Source Files table
+- `components/sync/OPERATIONS.md` — added Authentication section documenting Bearer token auth, added GET /schema/:chain/:network endpoint documentation
 
 ## [0.4.0] - 2026-04-03
 
@@ -222,10 +222,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added (pre-release)
 
-- `components/indexer-sync/README.md` — overview, features, installation, quick start, scripts, dependencies for the new xchain-indexer-sync service
-- `components/indexer-sync/ARCHITECTURE.md` — data pipeline position, dual-mode design, internal components, hub discovery flow, server poll loop, client sync algorithm, hash chain integrity, reorg handling
-- `components/indexer-sync/CONFIGURATION.md` — environment variables (common, server, client), hub discovery, database naming, connection pool config, circuit breaker
-- `components/indexer-sync/OPERATIONS.md` — running, Docker, REST API reference (5 endpoints), WebSocket API reference, resilience, troubleshooting (7 scenarios)
+- `components/sync/README.md` — overview, features, installation, quick start, scripts, dependencies for the new xchain-sync service
+- `components/sync/ARCHITECTURE.md` — data pipeline position, dual-mode design, internal components, hub discovery flow, server poll loop, client sync algorithm, hash chain integrity, reorg handling
+- `components/sync/CONFIGURATION.md` — environment variables (common, server, client), hub discovery, database naming, connection pool config, circuit breaker
+- `components/sync/OPERATIONS.md` — running, Docker, REST API reference (5 endpoints), WebSocket API reference, resilience, troubleshooting (7 scenarios)
 
 ### Changed
 
@@ -233,10 +233,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `components/vm/ARCHITECTURE.md` — updated bridge protocol to reflect universal `\x01`+JSON encoding for all returns; added error classification hardening paragraph; updated gas.js, state.js, collector.js component descriptions; added cache bound note
 - `components/vm/README.md` — added `maxStateKeySize` and `maxBlockCacheSize` to constructor example; updated state management feature description
 - `concepts/Smart_Contracts.md` — added state key size (1 KB per key) to bounded execution table
-- `components/README.md` — added indexer-sync to component table, updated count to 12
-- `README.md` — added xchain-indexer-sync to Components table, updated microservice count to 11
-- `architecture/Component_Map.md` — added Data Replication service group with xchain-indexer-sync section, updated count to 11
-- `architecture/Data_Pipeline.md` — updated ASCII pipeline diagram to show indexer-sync as a branch off the Indexer DB feeding validator replicas
+- `components/README.md` — added sync to component table, updated count to 12
+- `README.md` — added xchain-sync to Components table, updated microservice count to 11
+- `architecture/Component_Map.md` — added Data Replication service group with xchain-sync section, updated count to 11
+- `architecture/Data_Pipeline.md` — updated ASCII pipeline diagram to show sync as a branch off the Indexer DB feeding validator replicas
 
 ### Added
 

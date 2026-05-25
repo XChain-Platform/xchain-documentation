@@ -15,13 +15,13 @@ xchain-decoder  ->  Decoder DB (MariaDB)
 xchain-indexer  ->  Indexer DB (MariaDB)
     |                    |
     v                    v
-xchain-explorer     xchain-indexer-sync  ->  REST / WebSocket API
+xchain-explorer     xchain-sync  ->  REST / WebSocket API
                          |
                          v
                     Validator replicas (MariaDB)
 ```
 
-The indexer-sync sits alongside the indexer in the data pipeline. It reads from the same Indexer database that the explorer reads from, but instead of serving end-user queries, it replicates the data to remote consumers — primarily lightweight validators that need chain data for cross-chain attestation without running the full decoder+indexer stack.
+The sync sits alongside the indexer in the data pipeline. It reads from the same Indexer database that the explorer reads from, but instead of serving end-user queries, it replicates the data to remote consumers — primarily lightweight validators that need chain data for cross-chain attestation without running the full decoder+indexer stack.
 
 ## Dual-Mode Architecture
 
@@ -31,7 +31,7 @@ SERVER MODE                              CLIENT MODE
  alongside authoritative indexers)        or any consumer)
 
 +---------------------------+            +---------------------------+
-|     xchain-indexer-sync   |            |     xchain-indexer-sync   |
+|     xchain-sync   |            |     xchain-sync   |
 |                           |            |                           |
 |  +---------------------+ |            |  +---------------------+ |
 |  |    SyncService       | |            |  |    SyncService       | |

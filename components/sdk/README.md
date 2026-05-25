@@ -74,7 +74,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 Clone the repository and install dependencies from within the `xchain-sdk` directory:
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-sdk.git
+git clone https://github.com/XChain-Platform/xchain-sdk.git
 cd xchain-sdk
 npm install
 ```

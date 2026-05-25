@@ -43,7 +43,7 @@ Every XChain ACTION â€” SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, and 22 more â
 Clone the repository and install dependencies from within the `xchain-indexer` directory:
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-indexer.git
+git clone https://github.com/XChain-Platform/xchain-indexer.git
 cd xchain-indexer
 npm install
 ```

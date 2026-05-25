@@ -13,7 +13,7 @@ This document describes all 11 XChain Platform services, their roles, inputs, ou
 |---|---|
 | Core Pipeline | decoder, indexer, explorer |
 | Transaction Creation | encoder, utxo-tracker, sdk |
-| Data Replication | indexer-sync |
+| Data Replication | sync |
 | Infrastructure | hub, node, regtest-miner, e2e-test |
 
 ---
@@ -97,7 +97,7 @@ See [`../components/explorer/`](../components/explorer/) for full documentation.
 
 ## Data Replication
 
-### xchain-indexer-sync
+### xchain-sync
 
 | | |
 |---|---|
@@ -118,7 +118,7 @@ Key technical details:
 - Clients can sync from 2+ independent sources and cross-verify block hashes to detect tampered data.
 - Reorg detection mirrors the indexer's pattern: detects rollbacks in the source database and broadcasts reorg events. Clients roll back their local replicas using the same table lists as the indexer's `Rollback.js`.
 
-See [`../components/indexer-sync/`](../components/indexer-sync/) for full documentation.
+See [`../components/sync/`](../components/sync/) for full documentation.
 
 ---
 

@@ -51,7 +51,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-hub.git
+git clone https://github.com/XChain-Platform/xchain-hub.git
 cd xchain-hub
 npm install
 ```
@@ -108,7 +108,7 @@ Validator mode activates the full P2P gossip layer, PBFT consensus, price oracle
 
 Services that support hub-based config discovery call `getallconfigs` at startup and periodically (typically every 60 seconds) to pick up configuration changes without a restart. This allows operators to update connection strings, ports, or credentials through the hub rather than redeploying each service individually.
 
-**Consumers:** xchain-explorer, xchain-node, xchain-e2e-test, xchain-indexer-sync, xchain-sdk.
+**Consumers:** xchain-explorer, xchain-node, xchain-e2e-test, xchain-sync, xchain-sdk.
 
 ## Multi-Instance Deployment
 
@@ -175,7 +175,7 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 - [Decentralization](DECENTRALIZATION.md) — evolution of the hub toward a decentralized validator network
 - [Cross-Chain Concepts](../../concepts/CROSS_CHAIN.md) — how cross-chain swaps work at the protocol level
 - [Configuration Guide](../../operations/CONFIGURATION.md) — how to configure and manage hub parameters
-- [xchain-indexer-sync](../indexer-sync/README.md) — database replication service used by Tier 2 validators
+- [xchain-sync](../sync/README.md) — database replication service used by Tier 2 validators
 
 ---
 

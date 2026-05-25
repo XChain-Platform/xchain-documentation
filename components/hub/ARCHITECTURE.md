@@ -15,7 +15,7 @@ xchain-decoder  ->  Decoder DB (MariaDB)
 xchain-indexer  ->  Indexer DB (MariaDB)
     |                    |
     v                    v
-xchain-explorer     xchain-indexer-sync  ->  Validator replicas
+xchain-explorer     xchain-sync  ->  Validator replicas
                          ^
                          |
                     xchain-hub  <-->  P2P Validator Network
@@ -274,7 +274,7 @@ The local price is the median across available sources. If only one source is av
 
 ## Hub DB Sync Channel
 
-For geographically distributed deployments, the hub broadcasts row inserts to indexers' local hub DB copies via a WebSocket channel separate from the per-chain indexer-sync.
+For geographically distributed deployments, the hub broadcasts row inserts to indexers' local hub DB copies via a WebSocket channel separate from the per-chain sync.
 
 ```
 Hub                                    Indexer (HubDbSync client)

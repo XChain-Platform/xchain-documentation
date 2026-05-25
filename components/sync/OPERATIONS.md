@@ -57,16 +57,16 @@ On first start with an empty database, the client downloads a full snapshot. Sub
 ### Installation via xchain-node
 
 ```bash
-xchain-node install <branch> xchain-indexer-sync
+xchain-node install <branch> xchain-sync
 ```
 
-This creates a single container (`xchain-node-xchain-indexer-sync`) that is connected to all Docker networks for all installed chains, allowing it to reach the MariaDB instance and the hub.
+This creates a single container (`xchain-node-xchain-sync`) that is connected to all Docker networks for all installed chains, allowing it to reach the MariaDB instance and the hub.
 
 ### Manual Docker Build
 
 ```bash
-cd xchain-indexer-sync
-docker build . -t xchain-indexer-sync
+cd xchain-sync
+docker build . -t xchain-sync
 docker run -d \
   -e SYNC_MODE=server \
   -e SYNC_API_PORT=3006 \
@@ -74,7 +74,7 @@ docker run -d \
   -e HUB_PORT=10000 \
   -p 3006:3006 \
   --network xchain-node-bitcoin-mainnet \
-  xchain-indexer-sync
+  xchain-sync
 ```
 
 For multi-chain support, the container must be connected to each chain's Docker network:

@@ -157,7 +157,7 @@ npm run build:dev   # Development (unminified) → dist/xchain_encoder.min.js
 ## Installation
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-encoder.git
+git clone https://github.com/XChain-Platform/xchain-encoder.git
 cd xchain-encoder
 npm install
 npm run api
