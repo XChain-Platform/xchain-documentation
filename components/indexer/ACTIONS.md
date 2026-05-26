@@ -97,7 +97,7 @@ The publisher role for broadcasting finalized PRICE v0 transactions to a chain (
 | Action | Purpose | Key Validations |
 |---|---|---|
 | [**PRICE**](../../protocol/actions/PRICE.md) v0 | Validator COIN/FIAT price snapshot (PBFT-signed) | All pubkeys qualify for the `price` capability at the PRICE tx's `block_index`; Ed25519 signatures verify against canonical payload; `SIG_COUNT >= 2*floor((price_capable_count-1)/3)+1` |
-| [**PRICE**](../../protocol/actions/PRICE.md) v1 | User TOKEN/FIAT oracle price | Valid COIN/TICK/FIAT/VALUE format. Requires the source address to hold a pubkey qualifying for the `oracle_publish` capability. 24-hour lock window for subsequent updates per `(SOURCE, COIN, TICK, FIAT)` combination. |
+| [**PRICE**](../../protocol/actions/PRICE.md) v1 | User TOKEN/FIAT oracle price | Valid COIN/TICK/FIAT/VALUE format. **Permissionless** — any address may publish, no staking requirement. 24-hour lock window for subsequent updates per `(SOURCE, COIN, TICK, FIAT)` combination. |
 
 After validation, the indexer writes to its local `prices` table and pushes to `xchain-hub` for cross-chain aggregation into `price_snapshots` (v0) or `oracle_prices` (v1).
 

@@ -1101,52 +1101,55 @@ All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`,
 
 ## STAKE
 
-> **⚠️ Migration drift (2026-05):** The protocol spec in [protocol/actions/STAKE.md](../../protocol/actions/STAKE.md) describes the *capability* model (`VERSION|AMOUNT|SIGNING_PUBKEY` with four auto-qualified capabilities) which the indexer and wallet already implement. The SDK code below (`src/formats.js` and `src/validator.js`) still emits the **legacy Tier 1/2 format** and has not yet been migrated. Callers that need the capability format should not use `sdk.stake()` today — go through the wallet or build the action string by hand against `STAKE.md`. SDK migration is a known follow-up.
-
-Stake XCHAIN tokens for hub validation (BTC chain only) — legacy SDK behavior:
+Stake XCHAIN tokens against a signing pubkey for hub validation (BTC chain only). The per-pubkey aggregate active stake auto-qualifies the pubkey for each of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) per governance-configurable `min_stake[capability]`. See [protocol/actions/STAKE.md](../../protocol/actions/STAKE.md).
 
 ```js
-await sdk.stake({ tier: 2, chains: 'BTC,LTC', signingPubkey: 'aabb...' }); // 64 hex chars
+// New stake against a fresh pubkey
+await sdk.stake({ version: 1, amount: '1000', signingPubkey: 'aabb...' }); // 64 hex chars
+
+// Top up the existing stake on the same pubkey
+await sdk.stake({ version: 2, amount: '500',  signingPubkey: 'aabb...' });
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `tier` | Yes | Validation tier: `1` (oracle) or `2` (cross-chain) |
+| `version` | Yes | `1` for a new stake against a fresh pubkey, `2` for a top-up of an existing pubkey owned by `SOURCE`. Both versions use the same wire format; only the semantic check on the indexer differs. |
+| `amount` | Yes | XCHAIN amount to add to this stake row (decimal string, ≤ 8 fractional digits, > 0) |
 | `signingPubkey` | Yes | Ed25519 public key (64 hex characters) |
-| `chains` | Tier 2 only | Comma-separated chain identifiers (e.g., `'BTC,LTC'`). Must be empty for tier 1. |
 
 ### Formats
 
 | Version | Format |
 |---|---|
-| 0 | `VERSION\|TIER\|CHAINS\|SIGNING_PUBKEY` (SDK — pre-capability-migration) |
+| 1 | `VERSION\|AMOUNT\|SIGNING_PUBKEY` (new stake) |
+| 2 | `VERSION\|AMOUNT\|SIGNING_PUBKEY` (top-up) |
 
-### Cross-field validation
+### Cross-field validation (enforced by the indexer)
 
-- Tier 1: `CHAINS` must be empty
-- Tier 2: `CHAINS` is required and must contain valid coin identifiers (BTC, LTC, DOGE)
+- `version=1`: `signingPubkey` must NOT already have any active stake.
+- `version=2`: `signingPubkey` MUST have an existing active stake whose original source is the broadcasting address.
+
+The SDK's auto format-selector cannot choose between v1 and v2 on its own (identical field shapes), so callers must pass `version` explicitly.
 
 ---
 
 ## UNSTAKE
 
-> See the STAKE migration note above — UNSTAKE has the same drift. Protocol spec uses pubkey-based UNSTAKE; SDK still uses tier-based.
-
-Begin unstaking cooldown for a previously staked position (BTC chain only) — legacy SDK behavior:
+Begin unstaking cooldown for a previously staked pubkey (BTC chain only). Returns the full aggregate stake for the pubkey (v1 original + any v2 top-ups).
 
 ```js
-await sdk.unstake({ tier: 1 });
+await sdk.unstake({ signingPubkey: 'aabb...' });
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `tier` | Yes | Tier to unstake from: `1` or `2` |
+| `signingPubkey` | Yes | Ed25519 pubkey of the stake to release (64 hex characters); must be owned by `SOURCE` |
 
 ### Formats
 
 | Version | Format |
 |---|---|
-| 0 | `VERSION\|TIER` |
+| 0 | `VERSION\|SIGNING_PUBKEY` |
 
 ---
 

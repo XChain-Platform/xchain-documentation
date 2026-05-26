@@ -2,9 +2,7 @@
 <!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - PRICE
-This action publishes oracle price data on-chain. Version 0 anchors PBFT-consensus COIN/FIAT price snapshots produced by validators qualifying for the `price` capability, broadcast on-chain by a validator qualifying for the `oracle_publish` capability. Version 1 lets any address with the `oracle_publish` capability operate a user-run TOKEN/FIAT price oracle. (Both capabilities are auto-qualified by aggregate stake amount per the new capability staking model — see [STAKE](STAKE.md).)
-
-> **Doc-drift note (2026-05):** Several sections below — particularly *Leader Rotation & Failover*, *Tier 3 Staking*, and the legacy `STAKE|0|3|...` format example — still reference the legacy Tier 1/Tier 2/Tier 3 model that the capability rewrite supersedes. The behaviors they describe (round leader rotation among publishers, publisher persistent queue, DOGE balance monitoring) are still correct; only the staking gate has changed. Replace "Tier 1 validator" with "validator qualifying for `price`" and "Tier 3 publisher" with "validator qualifying for `oracle_publish`" mentally until those sections are rewritten. The current STAKE format is documented in [STAKE.md](STAKE.md).
+This action publishes oracle price data on-chain. Version 0 anchors PBFT-consensus COIN/FIAT price snapshots produced by validators qualifying for the `price` capability and broadcast on-chain by a validator qualifying for the `oracle_publish` capability (both capabilities are auto-qualified by aggregate stake amount per the capability model — see [STAKE](STAKE.md)). Version 1 is permissionless: any address may operate a user-run TOKEN/FIAT price oracle, no stake required.
 
 ## PARAMS
 
@@ -73,7 +71,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 
 #### Chain & Publisher
 - Publishable on **any chain** (BTC, LTC, DOGE) — DOGE is recommended for lowest tx fees but the protocol does not require it
-- `SOURCE` must have an active Tier 3 stake (`stakes` table, `tier=3`, `status=valid`)
+- `SOURCE` must own an active stake against a pubkey that qualifies for the `oracle_publish` capability at the publishing BLOCK_INDEX (i.e. the pubkey's aggregate active stake ≥ `min_stake[oracle_publish]`, governance-configurable)
 
 #### Round Identity
 - `ROUND` corresponds to the BTC block height that triggered the oracle round
@@ -81,9 +79,9 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Each round may only be published once — duplicate `ROUND` values are deduplicated by the hub (first valid submission wins)
 
 #### Leader Rotation & Failover
-- Active Tier 3 validators are sorted by `signing_pubkey` (deterministic ordering — every node agrees)
-- Leader for round N: `N % active_tier3_count` (index into sorted list)
-- If round N is not published by the time BTC block N+1 arrives, the next Tier 3 validator in rotation becomes eligible to publish
+- Pubkeys qualifying for `oracle_publish` at round N are sorted by `signing_pubkey` (deterministic ordering — every node agrees)
+- Leader for round N: `N % oracle_publish_capable_count` (index into sorted list)
+- If round N is not published by the time BTC block N+1 arrives, the next `oracle_publish`-capable validator in rotation becomes eligible to publish
 - Failover cascades: if that validator also misses, the next one is eligible at BTC block N+2, and so on
 - The first valid PRICE tx on-chain for a given round wins (and earns the reward)
 
@@ -98,7 +96,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Each `PUBKEY` must correspond to a pubkey qualifying for `price` at the BLOCK_INDEX of the PRICE tx (`SUM(amount)` across active stake rows ≥ `min_stake[price]`, governance-configurable; rows are active where `activation_block ≤ block_index < COALESCE(deactivation_block, +∞)`)
 - Each `SIGNATURE` must be a valid Ed25519 signature over the canonical PRICE v0 payload by the corresponding `PUBKEY`
 - Canonical payload format: `JSON.stringify({round, timestamp, pairs})` where `pairs` is sorted ascending by `pair` field
-- `SIG_COUNT` must meet PBFT quorum: `>= 2 * floor((tier1_count - 1) / 3) + 1`
+- `SIG_COUNT` must meet PBFT quorum: `>= 2 * floor((price_capable_count - 1) / 3) + 1`, where `price_capable_count` is the number of pubkeys qualifying for `price` at the PRICE tx's BLOCK_INDEX
 - Duplicate pubkeys in the signature list count only once
 - Rounds that fail signature validation are marked `invalid` and not pushed to the hub
 
@@ -110,7 +108,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 #### Activation Delay
 - A validator's STAKE, UNSTAKE, DELEGATE, or REVOKE_DELEGATION action does not take effect until **6 BTC blocks (~1 hour)** after confirmation
 - Eliminates BTC reorg edge cases for reorgs of ≤5 blocks
-- Applies to all tiers (1, 2, 3) and all validator state changes
+- Applies to every capability and every validator state change (see `activation_block` / `deactivation_block` on the `stakes` table)
 
 #### Supported COIN/FIAT Pairs
 - Validators publish all supported COIN × FIAT combinations per round
@@ -121,19 +119,19 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Validators fetch all 12 fiat prices per coin in a single API call (CoinGecko `vs_currencies` parameter, CMC `convert` parameter)
 
 #### Publisher Persistent Queue
-- Tier 3 publishers must durably store finalized rounds to a local persistent queue (JSONL with fsync) before acknowledging receipt to the hub
+- `oracle_publish`-capable validators must durably store finalized rounds to a local persistent queue (JSONL with fsync) before acknowledging receipt to the hub
 - On restart, the publisher replays any unconfirmed rounds from the queue
-- Rounds are removed from the queue only after DOGE chain confirmation
+- Rounds are removed from the queue only after publishing-chain confirmation
 - If the queue is unwritable, the publisher refuses new rounds (fail loud, not silent)
 
-#### DOGE Balance Monitoring
-- Publishers check their own DOGE wallet balance before each publish attempt
-- **WARN** logged when balance falls below configurable threshold (default: 10 DOGE) with estimated rounds remaining at current fee rate
-- **ERROR** logged when a publish tx fails due to insufficient DOGE balance
-- No protocol-level enforcement — if a publisher runs out of DOGE, failover kicks in naturally and the next Tier 3 in rotation takes over
+#### Publishing-Chain Balance Monitoring
+- Publishers check their own wallet balance on the publishing chain (typically DOGE) before each publish attempt
+- **WARN** logged when balance falls below configurable threshold (default: 10 native units) with estimated rounds remaining at current fee rate
+- **ERROR** logged when a publish tx fails due to insufficient balance
+- No protocol-level enforcement — if a publisher runs out of funds, failover kicks in naturally and the next `oracle_publish`-capable validator in rotation takes over
 
 #### Rewards
-- Tier 3 publisher earns 1 XCHAIN per successful PRICE v0 publish
+- An `oracle_publish`-capable validator earns 1 XCHAIN per successful PRICE v0 publish (recorded in `validator_rewards` as `reward_type='oracle_round'` / `oracle_publish`)
 - When batch-publishing missed rounds on failover, the publisher earns rewards for all rounds in the batch
 - Rewards are claimed via the `CLAIM_REWARDS` action on BTC
 
@@ -174,26 +172,28 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - `0.01` = 1%, `0.05` = 5%, etc.
 - Dispensers/betting systems that reference this oracle pay the fee to the oracle `SOURCE` address
 
-## Tier 3 Staking
+## Staking gate for `oracle_publish`
 
-| Property         | Value                    |
-| ---------------- | ------------------------ |
-| Tier             | 3                        |
-| Role             | Oracle publisher         |
-| Stake amount     | 500 XCHAIN               |
-| Chain            | BTC only (same as `price`) |
-| Overlap          | Allowed — same address may hold `price` + `oracle_publish` |
-| Cooldown         | Same as other tiers (configurable, default 1000 blocks) |
-| Activation delay | 6 BTC blocks (~1 hour)   |
+PRICE v0 publishers are auto-qualified by the capability model — no special "Tier 3 STAKE" exists. A pubkey gets the `oracle_publish` capability iff its aggregate active stake ≥ `min_stake[oracle_publish]` (governance-configurable). Same model applies to the `price` capability used by signers; a single pubkey can hold both capabilities simultaneously.
 
-STAKE format for Tier 3:
+| Property         | Value                                                  |
+| ---------------- | ------------------------------------------------------ |
+| Capability       | `oracle_publish`                                       |
+| Role             | Broadcasts finalized PRICE v0 rounds on-chain          |
+| Stake gate       | `SUM(amount)` across the pubkey's active stake rows ≥ `min_stake[oracle_publish]` (governance default; see hub `ProviderRegistry` / capability config) |
+| Chain            | STAKE happens on BTC; PRICE v0 can be published on any chain (DOGE recommended for fees) |
+| Overlap          | Allowed — same pubkey may hold both `price` and `oracle_publish` (and earn both rewards in the same round) |
+| Cooldown         | Configurable, default 1000 blocks                      |
+| Activation delay | 6 BTC blocks (~1 hour)                                 |
+
+To become an `oracle_publish` publisher, stake against a pubkey using the standard STAKE action:
 ```
-STAKE|0|3||<SIGNING_PUBKEY>|<DOGE_ADDRESS>
+STAKE|1|<AMOUNT>|<SIGNING_PUBKEY>      # new stake
+STAKE|2|<AMOUNT>|<SIGNING_PUBKEY>      # top-up of existing pubkey
 ```
-- `CHAINS` field is empty for `oracle_publish` (same as `price`) — publishers always publish to DOGE (or another supported chain)
-- `DOGE_ADDRESS` is the address the publisher will use to broadcast PRICE v0 transactions
-- `DOGE_ADDRESS` is recorded on-chain so every node knows each publisher's sending address
-- Balance is **not** validated at stake time (cross-chain dependency); balance is checked at publish time by the publisher service itself
+See [STAKE.md](STAKE.md) for the full action spec.
+
+**Publishing-chain wallet** (e.g. the DOGE wallet for broadcasting PRICE v0 to DOGE) is operator-side configuration on the hub — it is **not** recorded on-chain. Each `oracle_publish`-capable validator chooses its own publishing-chain address; the protocol simply verifies that the broadcasting `SOURCE` address owns a stake against a pubkey with the capability at the publishing BLOCK_INDEX.
 
 ## Architecture
 
@@ -202,7 +202,7 @@ STAKE|0|3||<SIGNING_PUBKEY>|<DOGE_ADDRESS>
 `price`-capable validators fetch prices from CoinGecko/CMC
   → PBFT consensus (2/3+ agree on prices per BTC block)
     → Each validator signs the canonical PRICE v0 payload during prepare/commit
-      → Tier 3 publisher writes PRICE v0 (with collected sigs) to a chain (DOGE recommended)
+      → An `oracle_publish`-capable validator writes PRICE v0 (with collected sigs) to a chain (DOGE recommended)
         → That chain's decoder picks up the action
           → That chain's indexer validates PBFT signatures and writes to local prices table
             → Indexer pushes validated round to hub
