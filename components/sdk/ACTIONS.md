@@ -1101,75 +1101,120 @@ All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`,
 
 ## STAKE
 
-Stake XCHAIN tokens against a signing pubkey for hub validation (BTC chain only). The per-pubkey aggregate active stake auto-qualifies the pubkey for each of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) per governance-configurable `min_stake[capability]`. See [protocol/actions/STAKE.md](../../protocol/actions/STAKE.md).
+Stake tokens for validator participation (BTC chain only). Two flavors:
+
+- **v1 / v2 — capability staking.** XCHAIN-only. Per-pubkey aggregate active stake auto-qualifies the pubkey for each of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) per governance-configurable `min_stake[capability]`.
+- **v3 — contract-targeted staking.** Any token. Targets a specific stakeable contract deployed via [DEPLOY](../../protocol/actions/DEPLOY.md) v1.
+
+See [protocol/actions/STAKE.md](../../protocol/actions/STAKE.md).
 
 ```js
-// New stake against a fresh pubkey
-await sdk.stake({ version: 1, amount: '1000', signingPubkey: 'aabb...' }); // 64 hex chars
+// New capability stake against a fresh pubkey
+await sdk.stake({ version: 1, amount: '1000', signingPubkey: 'aabb...' });
 
-// Top up the existing stake on the same pubkey
+// Top up the existing capability stake on the same pubkey
 await sdk.stake({ version: 2, amount: '500',  signingPubkey: 'aabb...' });
+
+// Contract-targeted stake (any token); convenience wrapper forces version: 3
+await sdk.session(wif).stakeToContract({
+    amount: '250',
+    signingPubkey: 'aabb...',
+    targetContractIndex: 500,
+    tick: 'MYTOKEN'
+});
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `version` | Yes | `1` for a new stake against a fresh pubkey, `2` for a top-up of an existing pubkey owned by `SOURCE`. Both versions use the same wire format; only the semantic check on the indexer differs. |
-| `amount` | Yes | XCHAIN amount to add to this stake row (decimal string, ≤ 8 fractional digits, > 0) |
+| `version` | Yes | `1` for a new capability stake, `2` for a capability top-up, `3` for contract-targeted. v1/v2 share a wire format; callers must pass `version` explicitly because the auto-selector can't disambiguate. |
+| `amount` | Yes | Token amount to add to this stake row (decimal string, ≤ 8 fractional digits, > 0). XCHAIN for v1/v2; any token for v3. |
 | `signingPubkey` | Yes | Ed25519 public key (64 hex characters) |
+| `targetContractIndex` | v3 only | `action_index` of the stakeable contract |
+| `tick` | v3 only | Ticker of the token being staked |
 
 ### Formats
 
 | Version | Format |
 |---|---|
-| 1 | `VERSION\|AMOUNT\|SIGNING_PUBKEY` (new stake) |
-| 2 | `VERSION\|AMOUNT\|SIGNING_PUBKEY` (top-up) |
+| 1 | `VERSION\|AMOUNT\|SIGNING_PUBKEY` (new capability stake) |
+| 2 | `VERSION\|AMOUNT\|SIGNING_PUBKEY` (capability top-up) |
+| 3 | `VERSION\|AMOUNT\|SIGNING_PUBKEY\|TARGET_CONTRACT_INDEX\|TICK` (contract-targeted) |
 
 ### Cross-field validation (enforced by the indexer)
 
-- `version=1`: `signingPubkey` must NOT already have any active stake.
-- `version=2`: `signingPubkey` MUST have an existing active stake whose original source is the broadcasting address.
-
-The SDK's auto format-selector cannot choose between v1 and v2 on its own (identical field shapes), so callers must pass `version` explicitly.
+- `version=1`: `signingPubkey` must NOT already have an active capability stake.
+- `version=2`: `signingPubkey` MUST have an existing active capability stake whose original source is the broadcasting address.
+- `version=3`: target contract must be stakeable (deployed via DEPLOY v1 with `COOLDOWN_BLOCKS`+`SLASH_DESTINATION`); new-vs-topup is auto-detected by `(target, pubkey, tick, source)`.
 
 ---
 
 ## UNSTAKE
 
-Begin unstaking cooldown for a previously staked pubkey (BTC chain only). Returns the full aggregate stake for the pubkey (v1 original + any v2 top-ups).
+Begin unstaking cooldown for a previously staked pubkey (BTC chain only). Two flavors:
+
+- **v0 — capability unstake.** Returns the full aggregate capability stake for the pubkey (v1 original + any v2 top-ups).
+- **v1 — contract-targeted unstake.** Releases the single `(targetContractIndex, signingPubkey, tick)` stake row.
 
 ```js
+// Capability unstake
 await sdk.unstake({ signingPubkey: 'aabb...' });
+
+// Contract-targeted unstake (convenience wrapper forces version: 1)
+await sdk.session(wif).unstakeFromContract({
+    signingPubkey: 'aabb...',
+    targetContractIndex: 500,
+    tick: 'MYTOKEN'
+});
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `signingPubkey` | Yes | Ed25519 pubkey of the stake to release (64 hex characters); must be owned by `SOURCE` |
+| `version` | v1 only | `1` for contract-targeted; omit (defaults to 0) for capability unstake |
+| `signingPubkey` | Yes | Ed25519 pubkey of the stake to release |
+| `targetContractIndex` | v1 only | `action_index` of the stakeable contract |
+| `tick` | v1 only | Ticker of the stake row to release |
 
 ### Formats
 
 | Version | Format |
 |---|---|
-| 0 | `VERSION\|SIGNING_PUBKEY` |
+| 0 | `VERSION\|SIGNING_PUBKEY` (capability) |
+| 1 | `VERSION\|SIGNING_PUBKEY\|TARGET_CONTRACT_INDEX\|TICK` (contract-targeted) |
 
 ---
 
 ## DELEGATE
 
-Rotate the signing key for a staked validator (BTC chain only).
+Rotate the signing key for a staked validator (BTC chain only). Two flavors:
+
+- **v0 — capability delegation.** Rotates the signing key for the broadcaster's capability stake.
+- **v1 — contract-targeted delegation.** Rotates the signing key for a single `(targetContractIndex, tick)` stake row.
 
 ```js
-await sdk.delegate({ newSigningPubkey: 'ccdd...' }); // 64 hex chars
+// Capability delegation
+await sdk.delegate({ newSigningPubkey: 'ccdd...' });
+
+// Contract-targeted delegation (convenience wrapper forces version: 1)
+await sdk.session(wif).delegateForContract({
+    newSigningPubkey: 'ccdd...',
+    targetContractIndex: 500,
+    tick: 'MYTOKEN'
+});
 ```
 
 | Field | Required | Description |
 |---|---|---|
+| `version` | v1 only | `1` for contract-targeted; omit (defaults to 0) for capability delegation |
 | `newSigningPubkey` | Yes | New Ed25519 public key (64 hex characters) |
+| `targetContractIndex` | v1 only | `action_index` of the stakeable contract |
+| `tick` | v1 only | Ticker of the stake row whose key is being rotated |
 
 ### Formats
 
 | Version | Format |
 |---|---|
-| 0 | `VERSION\|NEW_SIGNING_PUBKEY` |
+| 0 | `VERSION\|NEW_SIGNING_PUBKEY` (capability) |
+| 1 | `VERSION\|NEW_SIGNING_PUBKEY\|TARGET_CONTRACT_INDEX\|TICK` (contract-targeted) |
 
 ---
 

@@ -2,33 +2,53 @@
 <!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - UNSTAKE
-This action begins the unstaking cooldown for an active stake identified by its signing pubkey. UNSTAKE is full-pubkey (returns *all* stake rows for that pubkey — original plus any top-ups). No tier dimension exists in the capability model.
+This action begins the unstaking cooldown for an active stake identified by its signing pubkey. Two flavors:
+
+- **v0 — capability unstake.** Full-pubkey: returns *all* capability stake rows for that pubkey (original plus any v2 top-ups).
+- **v1 — contract-targeted unstake.** Returns the single `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` stake row owned by the broadcaster. Use this for stakes created via [STAKE](STAKE.md) v3.
 
 For the full design see `claude/reports/specs/2026-05-24_capability-staking-model.md`.
 
 ## PARAMS
-| Name              | Type    | Description                                |
-| ----------------- | ------- | ------------------------------------------ |
-| `VERSION`         | String  | Format Version                             |
-| `SIGNING_PUBKEY`  | String  | Ed25519 public key of the stake to unstake |
+| Name                     | Type    | Description                                |
+| ------------------------ | ------- | ------------------------------------------ |
+| `VERSION`                | String  | Format Version (0 = capability, 1 = contract-targeted) |
+| `SIGNING_PUBKEY`         | String  | Ed25519 public key of the stake to unstake |
+| `TARGET_CONTRACT_INDEX`  | Integer | v1 only — `action_index` of the stakeable contract |
+| `TICK`                   | String  | v1 only — token ticker of the stake row to release |
 
 ## Formats
 
-### Version `0`
+### Version `0` — Capability unstake
 - `VERSION|SIGNING_PUBKEY`
+
+### Version `1` — Contract-targeted unstake
+- `VERSION|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK`
 
 ## Examples
 ```
 UNSTAKE|0|abc123...def
-Begin unstaking the stake bound to pubkey abc123...def
+Begin unstaking the capability stake bound to pubkey abc123...def
+(returns all rows for that pubkey, v1 + any v2 top-ups)
+```
+
+```
+UNSTAKE|1|abc123...def|500|MYTOKEN
+Begin unstaking the (contract=500, tick=MYTOKEN) stake row for pubkey abc123...def
 ```
 
 ## Rules
-- BTC chain only.
+- BTC chain only (all versions).
 - `SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key.
-- An active stake must exist for `SIGNING_PUBKEY`, and the broadcasting address must be that stake's original source.
 - The active stake lookup is gated by the activation delay — only fully-active stakes can be unstaked.
 - Begins the cooldown period; staked tokens are not immediately returned.
+
+### v0 (capability)
+- A capability stake must exist for `SIGNING_PUBKEY`, and the broadcasting address must be that stake's original source.
+
+### v1 (contract-targeted)
+- A contract-targeted stake row must exist for `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)`, owned by the broadcasting address.
+- Cooldown for v1 is determined by the target contract's `COOLDOWN_BLOCKS` setting (set at DEPLOY time), not the global `STAKING.COOLDOWN_BLOCKS`.
 
 ## Deactivation Delay (Removal from Validator Set)
 - Validator removal does **not** take effect immediately — the validator continues to participate for **6 BTC blocks** after the UNSTAKE confirms.

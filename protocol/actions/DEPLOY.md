@@ -2,30 +2,51 @@
 <!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - DEPLOY
-This action deploys a smart contract to the XChain VM.
+This action deploys a smart contract to the XChain VM. Two formats:
+
+- **v0 — standard deployment.** Non-stakeable.
+- **v1 — stakeable-contract deployment.** Adds `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` metadata so the contract can accept [STAKE](STAKE.md) v3 actions targeting it.
 
 ## PARAMS
-| Name                  | Type    | Description                                        |
-| --------------------- | ------- | -------------------------------------------------- |
-| `VERSION`             | String  | Format Version                                     |
-| `CODE_ENCODING`       | String  | Hex-encoded UTF-8 contract source code             |
-| `GAS_LIMIT`           | Integer | Maximum gas units allowed for deployment           |
-| `CONSTRUCTOR_PARAMS`  | String  | Optional pipe-delimited constructor parameters     |
+| Name                  | Type    | Description                                                                |
+| --------------------- | ------- | -------------------------------------------------------------------------- |
+| `VERSION`             | String  | Format Version (0 = standard, 1 = stakeable)                               |
+| `CODE_ENCODING`       | String  | Hex-encoded UTF-8 contract source code                                     |
+| `GAS_LIMIT`           | Integer | Maximum gas units allowed for deployment                                   |
+| `CONSTRUCTOR_PARAMS`  | String  | Optional constructor parameters (pipe-delimited in v0; single field in v1) |
+| `COOLDOWN_BLOCKS`     | Integer | v1 only — unstaking cooldown for STAKE v3 against this contract (1..100000) |
+| `SLASH_DESTINATION`   | String  | v1 only — address that receives slashed stake. Pass `BURN` to send to the chain's configured burn address. Optional — defaults to BURN if `COOLDOWN_BLOCKS` is set without a destination. |
 
 ## Formats
 
-### Version `0`
+### Version `0` — Standard (non-stakeable)
 - `VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS`
+
+### Version `1` — Stakeable contract
+- `VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION`
+- Both staking fields are optional in the wire format. A v1 DEPLOY with empty `COOLDOWN_BLOCKS` is treated the same as a v0 deploy (the contract is *not* stakeable). `SLASH_DESTINATION` without `COOLDOWN_BLOCKS` is rejected as `invalid: SLASH_DESTINATION (requires COOLDOWN_BLOCKS)`.
 
 ## Examples
 ```
 DEPLOY|0|<hex_code>|200000|arg1|arg2
-Deploy a contract with hex-encoded source code, a gas limit of 200000, and constructor arguments
+Deploy a non-stakeable contract with constructor arguments
 ```
 
 ```
 DEPLOY|0|<hex_code>|100000|
-Deploy a contract with no constructor parameters
+Deploy a non-stakeable contract with no constructor parameters
+```
+
+```
+DEPLOY|1|<hex_code>|200000||1000|BURN
+Deploy a stakeable contract: 1000-block cooldown on STAKE v3 unstakes,
+slashed tokens go to the chain's burn address
+```
+
+```
+DEPLOY|1|<hex_code>|200000||100|bc1q...recipient
+Deploy a stakeable contract: 100-block cooldown, slashed tokens routed
+to a specific recipient address (not BURN)
 ```
 
 ## Rules
@@ -45,6 +66,13 @@ Deploy a contract with no constructor parameters
   - If the constructor fails (reverts, out of gas, etc.), the entire deployment is rolled back — the contract is not stored
   - The caller pays the combined gas even on constructor failure
 - A **derived address** is created for the contract in the format `C:<CHAIN>:<ACTION_INDEX>` (e.g., `C:BTC:500`). This address participates in the standard balance system for token custody via DEPOSIT/WITHDRAW.
+
+### Stakeable contracts (v1 staking fields)
+- `COOLDOWN_BLOCKS` must be an integer in `[1, 100000]`. Sets the unstaking cooldown for STAKE v3 actions against this contract (overrides the global `STAKING.COOLDOWN_BLOCKS` for v3 unstakes on this contract).
+- `SLASH_DESTINATION` accepts either an address (must be valid on the deploying chain) or the literal sentinel `BURN`. The sentinel resolves to the chain's configured burn address.
+- If `COOLDOWN_BLOCKS` is set but `SLASH_DESTINATION` is empty, the indexer defaults `SLASH_DESTINATION` to the chain's burn address.
+- A contract deployed with both staking fields can receive STAKE v3 actions targeting it; without them, STAKE v3 rejects with `invalid: TARGET_CONTRACT_INDEX (contract is not stakeable)`.
+- Stakeable-contract metadata is **immutable** after deployment — there is no mechanism to update `COOLDOWN_BLOCKS` or `SLASH_DESTINATION` later.
 
 ## Notes
 - The deployed contract is assigned an action index derived from the transaction that contains this action

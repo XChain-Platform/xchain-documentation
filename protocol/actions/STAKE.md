@@ -2,46 +2,71 @@
 <!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - STAKE
-This action stakes XCHAIN tokens for hub validation. The protocol uses a capability model — validators get *every* capability whose `min_stake` their stake amount meets. There are no tiers.
+This action stakes tokens for validator participation. Two flavors:
+
+- **v1 / v2 — capability staking.** XCHAIN-only. The protocol uses a capability model — validators get *every* capability whose `min_stake` their stake amount meets. No tiers.
+- **v3 — contract-targeted staking.** Any token, targets a specific smart contract that was deployed with `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` metadata (see [DEPLOY](DEPLOY.md) v1+). Multi-token. Auto-detects new vs. top-up based on whether `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` already has an active row owned by `SOURCE`.
 
 For the full design see `claude/reports/specs/2026-05-24_capability-staking-model.md`.
 
 ## PARAMS
-| Name              | Type    | Description                                                       |
-| ----------------- | ------- | ----------------------------------------------------------------- |
-| `VERSION`         | String  | Format Version (1 = new stake, 2 = top-up)                        |
-| `AMOUNT`          | String  | XCHAIN to stake (decimal string, 8 decimals)                      |
-| `SIGNING_PUBKEY`  | String  | Ed25519 public key, 64 hex chars                                  |
+| Name                     | Type    | Description                                                       |
+| ------------------------ | ------- | ----------------------------------------------------------------- |
+| `VERSION`                | String  | Format Version (1 = new capability stake, 2 = top-up, 3 = contract-targeted) |
+| `AMOUNT`                 | String  | Token to stake (decimal string, 8 decimals)                       |
+| `SIGNING_PUBKEY`         | String  | Ed25519 public key, 64 hex chars                                  |
+| `TARGET_CONTRACT_INDEX`  | Integer | v3 only — `action_index` of the stakeable contract                |
+| `TICK`                   | String  | v3 only — token ticker being staked (any token, not just XCHAIN)  |
 
 ## Formats
 
-### Version `1` — Create a new stake
+### Version `1` — Create a new capability stake
 - `VERSION|AMOUNT|SIGNING_PUBKEY`
 
-### Version `2` — Top up an existing stake
+### Version `2` — Top up an existing capability stake
 - `VERSION|AMOUNT|SIGNING_PUBKEY`
 - The `SIGNING_PUBKEY` must reference an existing active stake owned by `SOURCE`.
 - The new amount is *added* to the existing stake total.
 
+### Version `3` — Contract-targeted stake
+- `VERSION|AMOUNT|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK`
+- The target contract must have been deployed with `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` (see [DEPLOY](DEPLOY.md) v1+); non-stakeable contracts reject as `invalid: TARGET_CONTRACT_INDEX (contract is not stakeable)`.
+- New-vs-topup is auto-detected by `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK, SOURCE)` — no separate `VERSION` for top-up. If an active row exists owned by `SOURCE`, this STAKE adds to it; otherwise it creates a new row.
+- Any token (`TICK`) is acceptable — XCHAIN is not required.
+
 ## Examples
 ```
 STAKE|1|1000.00000000|abc123...def
-New stake of 1000 XCHAIN bound to pubkey abc123...def
+New capability stake of 1000 XCHAIN bound to pubkey abc123...def
 ```
 
 ```
 STAKE|2|500.00000000|abc123...def
-Top up the existing stake on pubkey abc123...def by 500 XCHAIN
+Top up the existing capability stake on pubkey abc123...def by 500 XCHAIN
 (new total = previous amount + 500)
 ```
 
+```
+STAKE|3|250.00000000|abc123...def|500|MYTOKEN
+Stake 250 MYTOKEN against contract at action_index 500, signing as abc123...def
+(adds to existing row if one is already active, else creates a new row)
+```
+
 ## Rules
-- BTC chain only.
+- BTC chain only (all versions).
 - `AMOUNT` must be a positive decimal string with up to 8 decimal places.
 - `SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key.
-- For `VERSION=1` (new): `SIGNING_PUBKEY` must NOT already have an active stake.
-- For `VERSION=2` (top-up): `SIGNING_PUBKEY` MUST have an active stake AND that stake's original source must match the broadcasting address.
+
+### v1 / v2 (capability)
+- For `VERSION=1` (new): `SIGNING_PUBKEY` must NOT already have an active capability stake.
+- For `VERSION=2` (top-up): `SIGNING_PUBKEY` MUST have an active capability stake AND that stake's original source must match the broadcasting address.
+- `AMOUNT` is implicitly XCHAIN.
 - Broadcasting address must hold at least `AMOUNT` XCHAIN.
+
+### v3 (contract-targeted)
+- `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract (deployed with `COOLDOWN_BLOCKS` + `SLASH_DESTINATION`).
+- `TICK` must be a known token; broadcasting address must hold at least `AMOUNT` of `TICK`.
+- A pubkey can have separate v3 stakes per `(contract, tick)` pair — they do not collide with v1/v2 capability stakes or with each other.
 
 ## Capabilities and Minimum Stakes
 A stake auto-qualifies for any capability whose `min_stake` the total stake meets. Defaults:

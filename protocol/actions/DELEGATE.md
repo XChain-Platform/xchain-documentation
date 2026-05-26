@@ -2,30 +2,50 @@
 <!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - DELEGATE
-This action rotates the signing key for a staked validator.
+This action rotates the signing key for a staked validator. Two flavors:
+
+- **v0 — capability delegation.** Rotates the signing key for the broadcaster's active capability stake.
+- **v1 — contract-targeted delegation.** Rotates the signing key for a single `(TARGET_CONTRACT_INDEX, TICK)` stake row owned by the broadcaster. Use this for stakes created via [STAKE](STAKE.md) v3.
 
 ## PARAMS
-| Name                  | Type   | Description                          |
-| --------------------- | ------ | ------------------------------------ |
-| `VERSION`             | String | Format Version                       |
-| `NEW_SIGNING_PUBKEY`  | String | New Ed25519 public key, 64 hex chars |
+| Name                     | Type    | Description                          |
+| ------------------------ | ------- | ------------------------------------ |
+| `VERSION`                | String  | Format Version (0 = capability, 1 = contract-targeted) |
+| `NEW_SIGNING_PUBKEY`     | String  | New Ed25519 public key, 64 hex chars |
+| `TARGET_CONTRACT_INDEX`  | Integer | v1 only — `action_index` of the stakeable contract     |
+| `TICK`                   | String  | v1 only — token ticker of the stake row to rotate      |
 
 ## Formats
 
-### Version `0`
+### Version `0` — Capability delegation
 - `VERSION|NEW_SIGNING_PUBKEY`
+
+### Version `1` — Contract-targeted delegation
+- `VERSION|NEW_SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK`
 
 ## Examples
 ```
 DELEGATE|0|abc123...def
-Rotate to a new signing key without unstaking
+Rotate the signing key for the broadcaster's capability stake
+```
+
+```
+DELEGATE|1|abc123...def|500|MYTOKEN
+Rotate the signing key for the broadcaster's (contract=500, tick=MYTOKEN) stake row
 ```
 
 ## Rules
 - BTC chain only
-- Broadcasting address must have an active stake (gated by the 6-block activation delay)
 - `NEW_SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key
 - `NEW_SIGNING_PUBKEY` must not already be in use by any active stake or delegation
+
+### v0 (capability)
+- Broadcasting address must have an active capability stake (gated by the 6-block activation delay)
+
+### v1 (contract-targeted)
+- Broadcasting address must own an active `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` stake row created via STAKE v3
+- `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract
+- `TICK` must match the existing stake row's token
 
 ## Activation Delay
 - The new delegated key does **not** take effect immediately — it becomes active after **6 BTC blocks** to prevent BTC reorg edge cases
@@ -37,7 +57,7 @@ Rotate to a new signing key without unstaking
 - Use `DELEGATE` to rotate signing keys for security hygiene without disrupting validator status
 - The 6-block delay means validators should plan key rotations in advance — they cannot rotate keys during an emergency without a brief window of unavailability
 - Use `REVOKE_DELEGATION` to remove a delegated key without replacing it
-- Does not affect staked token amounts or tier assignments
+- Does not affect staked token amounts or capability qualifications
 
 ---
 

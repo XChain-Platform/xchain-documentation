@@ -82,9 +82,9 @@ Hub Staking actions are **BTC-only**. They allow addresses to stake XCHAIN token
 
 | Action | Purpose | Key Validations |
 |---|---|---|
-| **STAKE** | Lock XCHAIN tokens against a signing pubkey (VERSION 1 = new, VERSION 2 = top-up of existing pubkey) | VERSION valid (1/2), AMOUNT positive, SIGNING_PUBKEY is 64-char hex Ed25519. Aggregate per-pubkey active stake auto-qualifies the pubkey for each of four capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) based on governance `min_stake[capability]`. |
-| **UNSTAKE** | Release staked XCHAIN tokens against a signing pubkey | Pubkey has active stake; sets `deactivation_block` on all of the pubkey's active stake rows. |
-| **DELEGATE** | Rotate the signing key for a staked validator | Active stake exists, new pubkey valid and unused. Takes effect after 6 blocks. |
+| **STAKE** | Lock tokens against a signing pubkey. v1 = new capability stake (XCHAIN), v2 = top-up of existing capability stake (XCHAIN), v3 = contract-targeted stake (any token, targets a stakeable contract — see DEPLOY v1) | VERSION valid (1/2/3), AMOUNT positive, SIGNING_PUBKEY is 64-char hex Ed25519. v1/v2: aggregate per-pubkey active stake auto-qualifies the pubkey for each of four capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) based on governance `min_stake[capability]`. v3: target contract must be stakeable; row keyed by `(target, pubkey, tick, source)`. |
+| **UNSTAKE** | Release staked tokens. v0 = full-pubkey capability unstake. v1 = release a single contract-targeted row keyed by `(target, pubkey, tick)`. | Pubkey has active stake of matching type; sets `deactivation_block`. v1 cooldown is per-contract (set at DEPLOY v1 time); v0 uses the global `STAKING.COOLDOWN_BLOCKS`. |
+| **DELEGATE** | Rotate the signing key for a stake. v0 = capability delegation. v1 = contract-targeted delegation keyed by `(target, tick)`. | Active stake of matching type exists, new pubkey valid and unused. Takes effect after 6 blocks. |
 | **REVOKE_DELEGATION** | Remove a delegated signing key | Active delegation exists. Takes effect after 6 blocks. |
 | **CLAIM_REWARDS** | Collect accumulated rewards | Address has unclaimed rewards > 0. Rewards are pushed from `xchain-hub` via `pushvalidatorrewards` against the validator's stake source address. |
 
@@ -107,7 +107,7 @@ Virtual Machine actions are available on **all chains** (BTC, LTC, DOGE). DEPLOY
 
 | Action | Purpose | Key Validations | Gas Fee |
 |---|---|---|---|
-| [**DEPLOY**](../../protocol/actions/DEPLOY.md) | Deploy a JavaScript smart contract to the VM | Syntax validation (V8 + acorn ES2020 + `__gas` check), code size ≤ 64KB, sufficient XCHAIN for gas. Creates derived address `C:<CHAIN>:<action_index>`. Optionally runs constructor. | Yes — `VM_DEPLOY_BASE + (bytes * VM_DEPLOY_PER_BYTE)` + constructor gas |
+| [**DEPLOY**](../../protocol/actions/DEPLOY.md) | Deploy a JavaScript smart contract to the VM. v0 = standard. v1 = stakeable (adds `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` so the contract can accept STAKE v3 actions). | Syntax validation (V8 + acorn ES2020 + `__gas` check), code size ≤ 64KB, sufficient XCHAIN for gas. Creates derived address `C:<CHAIN>:<action_index>`. Optionally runs constructor. v1 staking fields immutable after deploy; `SLASH_DESTINATION` without `COOLDOWN_BLOCKS` is rejected; `BURN` sentinel resolves to chain burn address. | Yes — `VM_DEPLOY_BASE + (bytes * VM_DEPLOY_PER_BYTE)` + constructor gas |
 | [**EXECUTE**](../../protocol/actions/EXECUTE.md) | Call a method on a deployed contract in a sandboxed V8 isolate | Contract exists and is active, method exists, sufficient XCHAIN for gas. VM runs contract code, processes state changes and up to 50 emitted actions atomically via savepoint. | Yes — actual metered gas consumed |
 | [**DEPOSIT**](../../protocol/actions/DEPOSIT.md) | Transfer tokens to a contract's derived address | Contract exists and is active, sender has sufficient balance. Credits `C:<CHAIN>:<action_index>` in standard ledger. | No |
 | [**WITHDRAW**](../../protocol/actions/WITHDRAW.md) | Withdraw tokens from a contract's derived address to owner | Contract exists, sender is contract owner, derived address has sufficient balance | No |
