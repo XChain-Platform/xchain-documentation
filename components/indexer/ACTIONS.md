@@ -82,22 +82,22 @@ Hub Staking actions are **BTC-only**. They allow addresses to stake XCHAIN token
 
 | Action | Purpose | Key Validations |
 |---|---|---|
-| **STAKE** | Lock XCHAIN tokens as stake with the hub at tier 1, 2, or 3 | Tier valid (1/2/3), CHAINS rules per tier, DOGE_ADDRESS required for Tier 3, signing pubkey unique, sufficient balance |
-| **UNSTAKE** | Release staked XCHAIN tokens back to sender | Active stake exists at the specified tier (gated by activation delay) |
+| **STAKE** | Lock XCHAIN tokens against a signing pubkey (VERSION 1 = new, VERSION 2 = top-up of existing pubkey) | VERSION valid (1/2), AMOUNT positive, SIGNING_PUBKEY is 64-char hex Ed25519. Aggregate per-pubkey active stake auto-qualifies the pubkey for each of four capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) based on governance `min_stake[capability]`. |
+| **UNSTAKE** | Release staked XCHAIN tokens against a signing pubkey | Pubkey has active stake; sets `deactivation_block` on all of the pubkey's active stake rows. |
 | **DELEGATE** | Rotate the signing key for a staked validator | Active stake exists, new pubkey valid and unused. Takes effect after 6 blocks. |
 | **REVOKE_DELEGATION** | Remove a delegated signing key | Active delegation exists. Takes effect after 6 blocks. |
-| **CLAIM_REWARDS** | Collect accumulated staking rewards | Active stake exists, unclaimed rewards > 0. Rewards are pushed from `xchain-hub` via `pushvalidatorrewards`. |
+| **CLAIM_REWARDS** | Collect accumulated rewards | Address has unclaimed rewards > 0. Rewards are pushed from `xchain-hub` via `pushvalidatorrewards` against the validator's stake source address. |
 
-### Tier 3 (Oracle Publisher)
+### `oracle_publish` capability (formerly "Tier 3")
 
-Tier 3 is a publisher role for broadcasting finalized PRICE v0 transactions to the DOGE chain (or another supported chain). Validators stake 500 XCHAIN and provide a `DOGE_ADDRESS` for transaction broadcasting. Tier 3 can overlap with Tier 1 — the same address can hold both.
+The publisher role for broadcasting finalized PRICE v0 transactions to a chain (DOGE recommended for low fees). Auto-qualifies when a pubkey's aggregate active stake ≥ `min_stake[oracle_publish]`. A pubkey may hold the `oracle_publish` and `price` capabilities simultaneously (and earn both rewards in the same round).
 
 ## Oracle Actions
 
 | Action | Purpose | Key Validations |
 |---|---|---|
-| [**PRICE**](../../protocol/actions/PRICE.md) v0 | Validator COIN/FIAT price snapshot (PBFT-signed) | All pubkeys are active Tier 1 validators, Ed25519 signatures verify against canonical payload, `SIG_COUNT >= 2*floor((tier1_count-1)/3)+1` |
-| [**PRICE**](../../protocol/actions/PRICE.md) v1 | User TOKEN/FIAT oracle price | Valid COIN/TICK/FIAT/VALUE format. No staking requirement — any address may publish. 24-hour lock window for subsequent updates per `(SOURCE, COIN, TICK, FIAT)` combination. |
+| [**PRICE**](../../protocol/actions/PRICE.md) v0 | Validator COIN/FIAT price snapshot (PBFT-signed) | All pubkeys qualify for the `price` capability at the PRICE tx's `block_index`; Ed25519 signatures verify against canonical payload; `SIG_COUNT >= 2*floor((price_capable_count-1)/3)+1` |
+| [**PRICE**](../../protocol/actions/PRICE.md) v1 | User TOKEN/FIAT oracle price | Valid COIN/TICK/FIAT/VALUE format. Requires the source address to hold a pubkey qualifying for the `oracle_publish` capability. 24-hour lock window for subsequent updates per `(SOURCE, COIN, TICK, FIAT)` combination. |
 
 After validation, the indexer writes to its local `prices` table and pushes to `xchain-hub` for cross-chain aggregation into `price_snapshots` (v0) or `oracle_prices` (v1).
 

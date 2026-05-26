@@ -175,7 +175,7 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 - [Decentralization](DECENTRALIZATION.md) — evolution of the hub toward a decentralized validator network
 - [Cross-Chain Concepts](../../concepts/CROSS_CHAIN.md) — how cross-chain swaps work at the protocol level
 - [Configuration Guide](../../operations/CONFIGURATION.md) — how to configure and manage hub parameters
-- [xchain-sync](../sync/README.md) — database replication service used by Tier 2 validators
+- [xchain-sync](../sync/README.md) — database replication service used by validators
 
 ---
 

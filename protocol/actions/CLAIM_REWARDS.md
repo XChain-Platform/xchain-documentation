@@ -32,9 +32,10 @@ Rewards accumulate from multiple validator activities, all stored in the indexer
 
 | Reward Type | Earned By | Trigger |
 |---|---|---|
-| `oracle_round` | Tier 1 (oracle validator) | Participation in PBFT consensus on a finalized price round |
-| `oracle_round` | Tier 3 (oracle publisher) | Successful PRICE v0 broadcast to chain (1 XCHAIN per published round) |
-| `cross_chain_attestation` | Tier 2 (cross-chain validator) | Successful cross-chain action attestation |
+| `oracle_round` | Validator with `price` capability | Participation in PBFT consensus on a finalized price round |
+| `oracle_round` | Validator with `oracle_publish` capability | Successful PRICE v0 broadcast to chain (1 XCHAIN per published round) |
+| `cross_chain_attestation` | Validator with `cross_chain` capability | Successful cross-chain action attestation |
+| `attestation_response` | Validator with `attestation` capability | PBFT-finalized ATTESTATION_RESPONSE for an external attestation request |
 
 ## Reward Population Path
 
@@ -47,7 +48,7 @@ The hub's `RewardTracker` distributes rewards after each finalized oracle round 
 - All pending rewards are claimed in a single action; partial claims are not supported
 - Rewards may be claimed at any time while a stake is active
 - Rewards can also be claimed after initiating `UNSTAKE` during the cooldown period
-- Tier 1 + Tier 3 overlap is allowed — the same address can earn rewards from both PBFT consensus and PRICE v0 publishing in a single round
+- A single pubkey can earn from multiple capabilities in the same round — e.g. a validator with both `price` and `oracle_publish` capabilities can earn the per-round consensus reward AND the per-publish broadcast reward in the same round
 
 ---
 

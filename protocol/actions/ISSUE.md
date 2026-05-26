@@ -4,6 +4,8 @@
 # XChain Platform Action - ISSUE
 This action creates or updates a `TICK`.
 
+> **Wallet issuer flow.** The [xchain-wallet](https://github.com/XChain-platform/xchain-wallet) ships a *Manage Token* surface (per-token admin page reachable from *My Tokens*) that wraps the issuer actions — `ISSUE`, `MINT`, `DESTROY`, `DIVIDEND`, `AIRDROP`, `BROADCAST`, supply/description locks, ownership transfer, dispenser creation — in a guided UI with owner-gate and confirm-prelude steps. The protocol-level fields below are the canonical source; the wallet is one of several clients that can build these transactions.
+
 ## PARAMS
 | Name               | Type   | Description                                                                                |
 | ------------------ | ------ | ------------------------------------------------------------------------------------------ |

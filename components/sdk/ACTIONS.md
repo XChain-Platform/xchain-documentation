@@ -1101,7 +1101,9 @@ All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`,
 
 ## STAKE
 
-Stake XCHAIN tokens for hub validation (BTC chain only).
+> **⚠️ Migration drift (2026-05):** The protocol spec in [protocol/actions/STAKE.md](../../protocol/actions/STAKE.md) describes the *capability* model (`VERSION|AMOUNT|SIGNING_PUBKEY` with four auto-qualified capabilities) which the indexer and wallet already implement. The SDK code below (`src/formats.js` and `src/validator.js`) still emits the **legacy Tier 1/2 format** and has not yet been migrated. Callers that need the capability format should not use `sdk.stake()` today — go through the wallet or build the action string by hand against `STAKE.md`. SDK migration is a known follow-up.
+
+Stake XCHAIN tokens for hub validation (BTC chain only) — legacy SDK behavior:
 
 ```js
 await sdk.stake({ tier: 2, chains: 'BTC,LTC', signingPubkey: 'aabb...' }); // 64 hex chars
@@ -1117,7 +1119,7 @@ await sdk.stake({ tier: 2, chains: 'BTC,LTC', signingPubkey: 'aabb...' }); // 64
 
 | Version | Format |
 |---|---|
-| 0 | `VERSION\|TIER\|CHAINS\|SIGNING_PUBKEY` |
+| 0 | `VERSION\|TIER\|CHAINS\|SIGNING_PUBKEY` (SDK — pre-capability-migration) |
 
 ### Cross-field validation
 
@@ -1128,7 +1130,9 @@ await sdk.stake({ tier: 2, chains: 'BTC,LTC', signingPubkey: 'aabb...' }); // 64
 
 ## UNSTAKE
 
-Begin unstaking cooldown for a previously staked position (BTC chain only).
+> See the STAKE migration note above — UNSTAKE has the same drift. Protocol spec uses pubkey-based UNSTAKE; SDK still uses tier-based.
+
+Begin unstaking cooldown for a previously staked position (BTC chain only) — legacy SDK behavior:
 
 ```js
 await sdk.unstake({ tier: 1 });

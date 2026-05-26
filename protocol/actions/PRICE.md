@@ -2,7 +2,9 @@
 <!-- Copyright © 2025 Dankest, LLC -->
 
 # XChain Platform Action - PRICE
-This action publishes oracle price data on-chain. Version 0 anchors PBFT-consensus COIN/FIAT price snapshots from Tier 1 validators (broadcast by a Tier 3 publisher). Version 1 lets any address operate a user-run TOKEN/FIAT price oracle.
+This action publishes oracle price data on-chain. Version 0 anchors PBFT-consensus COIN/FIAT price snapshots produced by validators qualifying for the `price` capability, broadcast on-chain by a validator qualifying for the `oracle_publish` capability. Version 1 lets any address with the `oracle_publish` capability operate a user-run TOKEN/FIAT price oracle. (Both capabilities are auto-qualified by aggregate stake amount per the new capability staking model — see [STAKE](STAKE.md).)
+
+> **Doc-drift note (2026-05):** Several sections below — particularly *Leader Rotation & Failover*, *Tier 3 Staking*, and the legacy `STAKE|0|3|...` format example — still reference the legacy Tier 1/Tier 2/Tier 3 model that the capability rewrite supersedes. The behaviors they describe (round leader rotation among publishers, publisher persistent queue, DOGE balance monitoring) are still correct; only the staking gate has changed. Replace "Tier 1 validator" with "validator qualifying for `price`" and "Tier 3 publisher" with "validator qualifying for `oracle_publish`" mentally until those sections are rewritten. The current STAKE format is documented in [STAKE.md](STAKE.md).
 
 ## PARAMS
 
@@ -15,7 +17,7 @@ This action publishes oracle price data on-chain. Version 0 anchors PBFT-consens
 | `PAIR_COUNT`      | Integer | Number of COIN/FIAT price pairs in this payload                    |
 | `PAIR_ID`         | String  | COIN/FIAT pair identifier, e.g. `BTC/USD` (repeated per pair)      |
 | `PAIR_PRICE`      | String  | Price as decimal string, 8 decimal places (repeated per pair)      |
-| `SIG_COUNT`       | Integer | Number of Tier 1 validator signatures                              |
+| `SIG_COUNT`       | Integer | Number of `price`-capable validator signatures                              |
 | `PUBKEY`          | String  | 64-char hex Ed25519 signing pubkey (repeated per signature)        |
 | `SIGNATURE`       | String  | 128-char hex Ed25519 signature over round data (repeated per sig)  |
 
@@ -47,7 +49,7 @@ VERSION|COIN|TICK|FIAT|VALUE|FEE|MEMO
 ## Examples
 ```
 PRICE|0|850010|1712500000|3|BTC/USD|100000.12345678|LTC/USD|85.50000000|DOGE/USD|0.15000000|3|aabb...01|ccdd...sig1|aabb...02|ccdd...sig2|aabb...03|ccdd...sig3
-Tier 3 publisher anchors PBFT-consensus price snapshot for BTC block 850010 with 3 COIN/FIAT pairs and 3 Tier 1 validator signatures
+An `oracle_publish`-capable validator anchors PBFT-consensus price snapshot for BTC block 850010 with 3 COIN/FIAT pairs and 3 `price`-capable validator signatures
 ```
 
 ```
@@ -93,7 +95,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - The failover publisher earns rewards for ALL rounds in the batch
 
 #### Signature Validation
-- Each `PUBKEY` must correspond to an active Tier 1 stake (`stakes` table, `tier=1`, `status=valid`) at the BLOCK_INDEX of the PRICE tx
+- Each `PUBKEY` must correspond to a pubkey qualifying for `price` at the BLOCK_INDEX of the PRICE tx (`SUM(amount)` across active stake rows ≥ `min_stake[price]`, governance-configurable; rows are active where `activation_block ≤ block_index < COALESCE(deactivation_block, +∞)`)
 - Each `SIGNATURE` must be a valid Ed25519 signature over the canonical PRICE v0 payload by the corresponding `PUBKEY`
 - Canonical payload format: `JSON.stringify({round, timestamp, pairs})` where `pairs` is sorted ascending by `pair` field
 - `SIG_COUNT` must meet PBFT quorum: `>= 2 * floor((tier1_count - 1) / 3) + 1`
@@ -179,8 +181,8 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 | Tier             | 3                        |
 | Role             | Oracle publisher         |
 | Stake amount     | 500 XCHAIN               |
-| Chain            | BTC only (same as Tier 1/2) |
-| Overlap          | Allowed — same address may hold Tier 1 + Tier 3 |
+| Chain            | BTC only (same as `price`) |
+| Overlap          | Allowed — same address may hold `price` + `oracle_publish` |
 | Cooldown         | Same as other tiers (configurable, default 1000 blocks) |
 | Activation delay | 6 BTC blocks (~1 hour)   |
 
@@ -188,7 +190,7 @@ STAKE format for Tier 3:
 ```
 STAKE|0|3||<SIGNING_PUBKEY>|<DOGE_ADDRESS>
 ```
-- `CHAINS` field is empty for Tier 3 (same as Tier 1) — publishers always publish to DOGE (or another supported chain)
+- `CHAINS` field is empty for `oracle_publish` (same as `price`) — publishers always publish to DOGE (or another supported chain)
 - `DOGE_ADDRESS` is the address the publisher will use to broadcast PRICE v0 transactions
 - `DOGE_ADDRESS` is recorded on-chain so every node knows each publisher's sending address
 - Balance is **not** validated at stake time (cross-chain dependency); balance is checked at publish time by the publisher service itself
@@ -197,7 +199,7 @@ STAKE|0|3||<SIGNING_PUBKEY>|<DOGE_ADDRESS>
 
 ### Data Flow — Validator Prices (v0)
 ```
-Tier 1 validators fetch prices from CoinGecko/CMC
+`price`-capable validators fetch prices from CoinGecko/CMC
   → PBFT consensus (2/3+ agree on prices per BTC block)
     → Each validator signs the canonical PRICE v0 payload during prepare/commit
       → Tier 3 publisher writes PRICE v0 (with collected sigs) to a chain (DOGE recommended)

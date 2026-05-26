@@ -82,8 +82,8 @@ Smart contracts on XChain are deterministic and reorg-safe: if the blockchain re
 
 XChain supports **staking** for hub validation. Validators stake XCHAIN tokens to participate in the oracle and cross-chain coordination layer:
 
-- **STAKE** locks XCHAIN tokens in a staking position (Tier 1 for oracle validation, Tier 2 for cross-chain coordination)
-- **UNSTAKE** withdraws staked tokens after the unbonding period
+- **STAKE** locks XCHAIN tokens against a signing pubkey. Aggregate active stake per pubkey auto-qualifies it for each of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) per governance-configurable `min_stake[capability]`. Same action covers new stakes (VERSION 1) and top-ups of an existing pubkey (VERSION 2).
+- **UNSTAKE** marks a pubkey's stake for withdrawal after the unbonding period
 - **DELEGATE** assigns staking power to another validator
 - **REVOKE_DELEGATION** removes a delegation
 - **CLAIM_REWARDS** collects earned staking rewards
