@@ -91,7 +91,7 @@ await sdk.cancelOrder(wif, result.indexed.action_index);
 
 ## stakeAndDelegate
 
-Stake XCHAIN tokens and delegate a signing key in one flow (BTC-only):
+Stake XCHAIN tokens and delegate a signing key in one flow (capability staking; BTC-only):
 
 ```js
 const result = await sdk.stakeAndDelegate(

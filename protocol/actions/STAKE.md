@@ -53,17 +53,18 @@ Stake 250 MYTOKEN against contract at action_index 500, signing as abc123...def
 ```
 
 ## Rules
-- BTC chain only (all versions).
 - `AMOUNT` must be a positive decimal string with up to 8 decimal places.
 - `SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key.
 
 ### v1 / v2 (capability)
+- **BTC chain only.** Capability staking secures the platform validator set.
 - For `VERSION=1` (new): `SIGNING_PUBKEY` must NOT already have an active capability stake.
 - For `VERSION=2` (top-up): `SIGNING_PUBKEY` MUST have an active capability stake AND that stake's original source must match the broadcasting address.
 - `AMOUNT` is implicitly XCHAIN.
 - Broadcasting address must hold at least `AMOUNT` XCHAIN.
 
 ### v3 (contract-targeted)
+- **Works on any chain** (BTC, LTC, DOGE) — contract staking is a developer primitive; each contract defines its own staking semantics.
 - `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract (deployed with `COOLDOWN_BLOCKS` + `SLASH_DESTINATION`).
 - `TICK` must be a known token; broadcasting address must hold at least `AMOUNT` of `TICK`.
 - A pubkey can have separate v3 stakes per `(contract, tick)` pair — they do not collide with v1/v2 capability stakes or with each other.

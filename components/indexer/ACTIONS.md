@@ -76,9 +76,9 @@ The original 22 actions are registered at version `1.0.0` with activation at blo
 | [**LINK**](../../protocol/actions/LINK.md) | Link two action_indexes (e.g., FILE to ISSUE) | Both action_indexes exist, valid link type |
 | [**LIST**](../../protocol/actions/LIST.md) | Create or update a list of addresses/items | Valid list format |
 
-## Hub Staking Actions
+## Staking Actions
 
-Hub Staking actions are **BTC-only**. They allow addresses to stake XCHAIN tokens with the hub, delegate stake to validators, and claim accumulated rewards. All staking actions are subject to a **6-block activation/deactivation delay** for BTC reorg safety — see the action specifications for details.
+Two staking systems share the same four action names. **Capability staking** (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT) is **BTC-only** — it secures the platform validator set. **Contract-targeted staking** (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) **works on any chain** (BTC, LTC, DOGE) — it's a developer primitive used by stakeable smart contracts. All staking actions are subject to a **6-block activation/deactivation delay** (measured in blocks of the broadcasting chain) for reorg safety — see the action specifications for details.
 
 | Action | Purpose | Key Validations |
 |---|---|---|

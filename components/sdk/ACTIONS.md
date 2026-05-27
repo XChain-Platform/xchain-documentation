@@ -1101,10 +1101,10 @@ All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`,
 
 ## STAKE
 
-Stake tokens for validator participation (BTC chain only). Two flavors:
+Stake tokens. Two flavors with different chain reach:
 
-- **v1 / v2 — capability staking.** XCHAIN-only. Per-pubkey aggregate active stake auto-qualifies the pubkey for each of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) per governance-configurable `min_stake[capability]`.
-- **v3 — contract-targeted staking.** Any token. Targets a specific stakeable contract deployed via [DEPLOY](../../protocol/actions/DEPLOY.md) v1.
+- **v1 / v2 — capability staking.** BTC-only. XCHAIN-only. Per-pubkey aggregate active stake auto-qualifies the pubkey for each of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) per governance-configurable `min_stake[capability]`.
+- **v3 — contract-targeted staking.** Works on any chain (BTC, LTC, DOGE). Any token. Targets a specific stakeable contract deployed via [DEPLOY](../../protocol/actions/DEPLOY.md) v1.
 
 See [protocol/actions/STAKE.md](../../protocol/actions/STAKE.md).
 
@@ -1150,10 +1150,10 @@ await sdk.session(wif).stakeToContract({
 
 ## UNSTAKE
 
-Begin unstaking cooldown for a previously staked pubkey (BTC chain only). Two flavors:
+Begin unstaking cooldown for a previously staked pubkey. Two flavors with different chain reach:
 
-- **v0 — capability unstake.** Returns the full aggregate capability stake for the pubkey (v1 original + any v2 top-ups).
-- **v1 — contract-targeted unstake.** Releases the single `(targetContractIndex, signingPubkey, tick)` stake row.
+- **v0 — capability unstake.** BTC-only. Returns the full aggregate capability stake for the pubkey (v1 original + any v2 top-ups).
+- **v1 — contract-targeted unstake.** Works on any chain (BTC, LTC, DOGE). Releases the single `(targetContractIndex, signingPubkey, tick)` stake row.
 
 ```js
 // Capability unstake
@@ -1185,10 +1185,12 @@ await sdk.session(wif).unstakeFromContract({
 
 ## DELEGATE
 
-Rotate the signing key for a staked validator (BTC chain only). Two flavors:
+Rotate or revoke the signing key for a staked validator. Four versions with different chain reach:
 
-- **v0 — capability delegation.** Rotates the signing key for the broadcaster's capability stake.
-- **v1 — contract-targeted delegation.** Rotates the signing key for a single `(targetContractIndex, tick)` stake row.
+- **v0 — capability delegation.** BTC-only. Rotates the signing key for the broadcaster's capability stake.
+- **v1 — contract-targeted delegation.** Works on any chain (BTC, LTC, DOGE). Rotates the signing key for a single `(targetContractIndex, tick)` stake row.
+- **v2 — capability revoke.** BTC-only.
+- **v3 — contract revoke.** Works on any chain.
 
 ```js
 // Capability delegation

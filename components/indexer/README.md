@@ -18,7 +18,7 @@ Every XChain ACTION — SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, and 22 more �
 - **Double-entry ledger** — all token movements recorded as credits, debits, and escrows
 - **Sanity checking** — after every block, verifies token supplies match the sum of credits minus debits
 - **DEX engine** — ORDER matching, SWAP matching, DISPENSER triggering with automatic expiration
-- **Hub Staking** — STAKE, UNSTAKE, DELEGATE (rotate + revoke), COLLECT (BTC only)
+- **Staking** — capability staking (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT) is BTC-only; contract-targeted staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) works on any chain
 - **Virtual Machine** — DEPLOY, EXECUTE, DEPOSIT, WITHDRAW with isolated-vm sandbox and gas metering
 - **Unified Gas Fee Schedule** — gas-based fee system for VM and staking actions, replaces per-action flat fees post-activation
 - **Protocol versioning** — actions activate at specific block heights or timestamps per network

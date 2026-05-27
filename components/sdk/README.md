@@ -18,7 +18,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - **Cross-Chain Helper**: coordinate actions across BTC, LTC, DOGE SDK instances — `createSwap`, `link`, `parallel`, `waitForAll`, `getAllBalances`
 - **Event-driven confirmation** (`waitForAction`): WebSocket + polling hybrid that resolves when the indexer processes a transaction
 - **Interactive REPL** (`npm run repl`): live session with pre-configured SDK, custom `.actions`, `.status`, `.fields` commands
-- **Staking actions** (BTC-only): STAKE, UNSTAKE, DELEGATE, COLLECT for validator participation (DELEGATE covers both rotate and revoke)
+- **Staking actions**: capability staking (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT) is BTC-only for the platform validator set; contract staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) works on any chain as a developer primitive
 - Smart contract support: deploy contracts, execute methods, deposit/withdraw tokens via the xchain-vm integration
 - Contract authoring utilities: syntax validation, float detection, hex encoding, gas estimation
 - Bound ContractClient for repeated interactions with a specific deployed contract

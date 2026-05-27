@@ -38,15 +38,16 @@ Begin unstaking the (contract=500, tick=MYTOKEN) stake row for pubkey abc123...d
 ```
 
 ## Rules
-- BTC chain only (all versions).
 - `SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key.
 - The active stake lookup is gated by the activation delay — only fully-active stakes can be unstaked.
 - Begins the cooldown period; staked tokens are not immediately returned.
 
 ### v0 (capability)
+- **BTC chain only.**
 - A capability stake must exist for `SIGNING_PUBKEY`, and the broadcasting address must be that stake's original source.
 
 ### v1 (contract-targeted)
+- **Works on any chain** (BTC, LTC, DOGE).
 - A contract-targeted stake row must exist for `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)`, owned by the broadcasting address.
 - Cooldown for v1 is determined by the target contract's `COOLDOWN_BLOCKS` setting (set at DEPLOY time), not the global `STAKING.COOLDOWN_BLOCKS`.
 

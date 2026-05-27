@@ -1340,7 +1340,7 @@ for (const send of result.sends) {
 
 ## Stake and Delegate
 
-Stake XCHAIN tokens and delegate a signing key (BTC chain only):
+Stake XCHAIN tokens and delegate a signing key (capability staking; BTC chain only):
 
 ```js
 const result = await sdk.stakeAndDelegate(

@@ -54,34 +54,37 @@ Revoke the specified signing key from the broadcaster's (contract=500, tick=MYTO
 ```
 
 ## Rules
-- BTC chain only.
 - `NEW_SIGNING_PUBKEY` / `SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key.
 
 ### v0 (capability rotate)
+- **BTC chain only.**
 - Broadcasting address must have an active capability stake (gated by the 6-block activation delay).
 - `NEW_SIGNING_PUBKEY` must not already be in use by any active stake or delegation.
 
 ### v1 (contract rotate)
+- **Works on any chain** (BTC, LTC, DOGE).
 - Broadcasting address must own an active `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` stake row created via STAKE v3.
 - `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract.
 - `TICK` must match the existing stake row's token.
 - `NEW_SIGNING_PUBKEY` must not already be in use by any active stake or delegation scoped to the same contract.
 
 ### v2 (capability revoke)
+- **BTC chain only.**
 - Broadcasting address must have an active delegation for the specified `SIGNING_PUBKEY` (gated by the 6-block activation delay).
 
 ### v3 (contract revoke)
+- **Works on any chain** (BTC, LTC, DOGE).
 - Broadcasting address must own an active contract-targeted delegation matching `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)`.
 - `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract.
 - `TICK` must match the existing delegation's token.
 
 ## Activation / Deactivation Delay
-All four versions are gated by a **6-BTC-block** delay before taking effect, tracked via the `activation_block` / `deactivation_block` columns on the `delegations` (v0/v2) or `contract_delegations` (v1/v3) tables.
+All four versions are gated by a **6-block** delay (measured in blocks of the chain on which the action was broadcast) before taking effect, tracked via the `activation_block` / `deactivation_block` columns on the `delegations` (v0/v2) or `contract_delegations` (v1/v3) tables.
 
-- **v0 / v1 (rotate)**: the new delegated key does **not** take effect immediately — it becomes active after 6 BTC blocks. During the delay, signatures from the new key are rejected and the old key remains in effect.
-- **v2 / v3 (revoke)**: revocation does **not** take effect immediately — the key remains active for 6 BTC blocks after the action confirms.
+- **v0 / v1 (rotate)**: the new delegated key does **not** take effect immediately — it becomes active after 6 blocks. During the delay, signatures from the new key are rejected and the old key remains in effect.
+- **v2 / v3 (revoke)**: revocation does **not** take effect immediately — the key remains active for 6 blocks after the action confirms.
 
-This prevents short-range BTC reorgs from leaving a stake without a valid signer.
+This prevents short-range chain reorgs from leaving a stake without a valid signer.
 
 ## Notes
 - Use v0/v1 to rotate signing keys for security hygiene without disrupting validator status.

@@ -111,7 +111,6 @@ A pubkey staked in one system does NOT count toward the other. They are tracked 
 
 - **Per-contract slash rate limits.** Contracts self-regulate via their own reward/bond logic.
 - **Partial-slash schedules.** `slash` is atomic; contracts implement graduated penalties by calling `slash` multiple times.
-- **Multi-chain contract staking.** BTC-only for now, matching the capability staking gate.
 - **Pagination for `getStakers`.** Capped at 1000 entries; expand to offset/limit in a future version if needed.
 
 ## Worked example
