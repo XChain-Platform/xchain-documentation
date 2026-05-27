@@ -67,7 +67,7 @@ Begin unstaking the (contract=500, tick=MYTOKEN) stake row for pubkey abc123...d
   2. **1000 blocks** — XCHAIN token return (security cooldown).
 - The unstake amount is the SUM of all active stake rows for the pubkey (original stake + any top-ups via STAKE v2).
 - Use `STAKE` (v1) to re-stake after the cooldown period completes.
-- Use `CLAIM_REWARDS` to collect any accrued rewards before or after unstaking.
+- Use `COLLECT` to gather any accrued rewards before or after unstaking.
 
 ---
 

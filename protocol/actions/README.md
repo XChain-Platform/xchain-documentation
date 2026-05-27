@@ -70,16 +70,16 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | ACTION | Description |
 |---|---|
 | [`PRICE`](./PRICE.md) | Publishes oracle price data on-chain (v0: validator COIN/FIAT snapshots, v1: user TOKEN/FIAT oracles) |
+| [`ATTEST`](./ATTEST.md) | External-data attestation lifecycle: v0=request (VM-emitted), v1=response (validator-broadcast), v2=expire (system-synthesized) |
 
 ### Hub Staking (BTC chain only)
 
 | ACTION | Description |
 |---|---|
-| [`STAKE`](./STAKE.md) | Stakes XCHAIN tokens for hub validation (oracle, cross-chain, or oracle publisher tier) |
-| [`UNSTAKE`](./UNSTAKE.md) | Begins the unstaking cooldown period |
-| [`DELEGATE`](./DELEGATE.md) | Rotates the signing key for a staked validator |
-| [`REVOKE_DELEGATION`](./REVOKE_DELEGATION.md) | Revokes a previously delegated signing key |
-| [`CLAIM_REWARDS`](./CLAIM_REWARDS.md) | Withdraws accrued validator rewards |
+| [`STAKE`](./STAKE.md) | Stakes tokens for validator participation (v1=new capability stake, v2=top-up, v3=contract-targeted) |
+| [`UNSTAKE`](./UNSTAKE.md) | Begins the unstaking cooldown period (v0=capability, v1=contract-targeted) |
+| [`DELEGATE`](./DELEGATE.md) | Manages the signing key for a stake (v0/v1 rotate, v2/v3 revoke; capability or contract-targeted) |
+| [`COLLECT`](./COLLECT.md) | Collects accrued validator rewards |
 
 ### Virtual Machine (VM)
 

@@ -114,7 +114,7 @@ Governance       --proposal:passed-->  (parameter application)
 | `SwapTracker.js` | `SwapTracker` | Cross-chain SWAP lifecycle tracking: initiated → attested → executed → settled |
 | `ReorgHandler.js` | `ReorgHandler` | Blockchain reorg detection, PBFT consensus, and hub state rollback |
 | `Governance.js` | `Governance` | Off-chain PBFT voting for parameter changes |
-| `RewardTracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants; pushes rewards to BTC indexer for `CLAIM_REWARDS` |
+| `RewardTracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants; pushes rewards to BTC indexer for `COLLECT` |
 | `SlashDetector.js` | `SlashDetector` | Validator misbehavior detection: price deviation, non-participation |
 | `PriceAggregator.js` | `PriceAggregator` | Receives validated PRICE v0/v1 actions from indexers, deduplicates by `round_number` (v0) or `(source, action_index)` (v1), writes to `price_snapshots`/`oracle_prices`. EventEmitter — emits `row:inserted` for hub DB sync. |
 | `OraclePublisher.js` | `OraclePublisher` | Tier 3 publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
@@ -408,7 +408,7 @@ Validators declare which chains they support via the `chains` column. Only valid
 
 ### Rewards
 
-On each finalized oracle round, `ORACLE_REWARD_PER_ROUND` (default "10.00000000") XCHAIN is distributed equally among validators who submitted a price in that round. Rewards are recorded in the `validator_rewards` table with `claimed=0` and are claimable via a `CLAIM_REWARDS` action on the BTC chain (handled by the indexer, not the hub).
+On each finalized oracle round, `ORACLE_REWARD_PER_ROUND` (default "10.00000000") XCHAIN is distributed equally among validators who submitted a price in that round. Rewards are recorded in the `validator_rewards` table with `claimed=0` and are collectable via a `COLLECT` action on the BTC chain (handled by the indexer, not the hub).
 
 ### Slash Detection
 

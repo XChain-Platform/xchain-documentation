@@ -48,7 +48,7 @@ After a `price` round PBFT-finalizes, a validator with `oracle_publish` broadcas
 
 ### `attestation` — External Attestation Framework
 
-Validators with `attestation` serve `ATTESTATION_REQUEST` actions emitted by VM contracts via `xchain.attestation.request(...)`. Responsible-set selection is deterministic via `SHA256(request_id || pubkey)` ordering; the top `redundancy` validators fetch from the named provider (`http_get` or `llm`) and reach PBFT consensus on the response. Two consensus strategies are supported: `byte_equality` (all responses must be identical, used by `http_get`) and `judge_model` (an LLM judges semantic equivalence, used by `llm`). The signed bundle is submitted on-chain as `ATTESTATION_RESPONSE`, which fires the requesting contract's callback EXECUTE.
+Validators with `attestation` serve `ATTEST` v0 (request) actions emitted by VM contracts via `xchain.attestation.request(...)`. Responsible-set selection is deterministic via `SHA256(request_id || pubkey)` ordering; the top `redundancy` validators fetch from the named provider (`http_get` or `llm`) and reach PBFT consensus on the response. Two consensus strategies are supported: `byte_equality` (all responses must be identical, used by `http_get`) and `judge_model` (an LLM judges semantic equivalence, used by `llm`). The signed bundle is submitted on-chain as `ATTEST` v1 (response), which fires the requesting contract's callback EXECUTE.
 
 ### Block-boundary snapshots
 
@@ -56,7 +56,7 @@ Every PBFT engine (config, oracle, attestation, cross-chain) locks its quorum at
 
 ## Staking and Governance
 
-All staking operations (STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS) are standard XChain actions on the BTC chain, processed by the indexer. STAKE comes in two semantic versions (`VERSION=1` new stake, `VERSION=2` top-up of an existing pubkey); both wire to `VERSION|AMOUNT|SIGNING_PUBKEY`. Active stake for a pubkey is `SUM(amount)` across rows where `activation_block ≤ now < COALESCE(deactivation_block, +∞)`.
+All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain actions on the BTC chain, processed by the indexer. STAKE comes in two semantic versions (`VERSION=1` new stake, `VERSION=2` top-up of an existing pubkey); both wire to `VERSION|AMOUNT|SIGNING_PUBKEY`. Active stake for a pubkey is `SUM(amount)` across rows where `activation_block ≤ now < COALESCE(deactivation_block, +∞)`.
 
 | Property | Value |
 |---|---|
@@ -75,7 +75,7 @@ All staking operations (STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWAR
 | **Service discovery** | Hub config store, polled by all platform services |
 | **Price data** | `price`-capable validators with trimmed median consensus; published on-chain by `oracle_publish`-capable validators |
 | **Cross-chain coordination** | `cross_chain`-capable validator attestation with per-chain-pair PBFT |
-| **External attestation** | `attestation`-capable validators fetch from registered providers (`http_get`, `llm`) and PBFT-finalize; result submitted on-chain as `ATTESTATION_RESPONSE` |
+| **External attestation** | `attestation`-capable validators fetch from registered providers (`http_get`, `llm`) and PBFT-finalize; result submitted on-chain as `ATTEST` v1 (response) |
 | **Governance** | Off-chain PBFT voting with 7-day period, 2/3+ approval |
 
 ## Implementation Phases

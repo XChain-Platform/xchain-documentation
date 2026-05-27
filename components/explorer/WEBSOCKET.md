@@ -568,7 +568,7 @@ Response to client `ping`.
 | Tokens | `ISSUE`, `MINT`, `DESTROY` |
 | Other | `BROADCAST`, `CALLBACK`, `FILE`, `MESSAGE`, `LIST`, `LINK`, `SLEEP` |
 | VM | `DEPLOY`, `EXECUTE`, `DEPOSIT`, `WITHDRAW` |
-| Staking | `STAKE`, `UNSTAKE`, `DELEGATE`, `REVOKE_DELEGATION`, `CLAIM_REWARDS` |
+| Staking | `STAKE`, `UNSTAKE`, `DELEGATE`, `COLLECT` |
 
 ---
 

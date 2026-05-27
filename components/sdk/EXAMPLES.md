@@ -1358,9 +1358,9 @@ const result = await sdk.stakeAndDelegate(
 console.log(`Staked: ${result.stake.txid}`);
 console.log(`Delegated: ${result.delegate.txid}`);
 
-// Later: claim rewards
+// Later: collect rewards
 const session = sdk.session('your-wif-key');
-await session.claimRewards({});
+await session.collect({});
 
 // Later: unstake
 await session.unstake({ tier: 2 });

@@ -85,8 +85,9 @@ XChain supports **staking** for hub validation. Validators stake XCHAIN tokens t
 - **STAKE** locks XCHAIN tokens against a signing pubkey. Aggregate active stake per pubkey auto-qualifies it for each of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) per governance-configurable `min_stake[capability]`. Same action covers new stakes (VERSION 1) and top-ups of an existing pubkey (VERSION 2).
 - **UNSTAKE** marks a pubkey's stake for withdrawal after the unbonding period
 - **DELEGATE** assigns staking power to another validator
-- **REVOKE_DELEGATION** removes a delegation
-- **CLAIM_REWARDS** collects earned staking rewards
+- **COLLECT** gathers earned staking rewards
+
+(DELEGATE versions 2 and 3 also remove a delegation without replacing it.)
 
 ---
 
@@ -124,7 +125,7 @@ Every operation on XChain is expressed as one of 28 ACTION commands. Think of th
 | Transfers | SEND, SWEEP, AIRDROP, DIVIDEND |
 | Trading | ORDER, DISPENSER, SWAP |
 | Smart contracts | DEPLOY, EXECUTE, DEPOSIT, WITHDRAW |
-| Staking | STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS |
+| Staking | STAKE, UNSTAKE, DELEGATE, COLLECT |
 | Data and communication | BROADCAST, MESSAGE, FILE |
 | Configuration | ADDRESS, BATCH, LINK, LIST |
 

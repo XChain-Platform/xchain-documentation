@@ -59,7 +59,7 @@ All 29 action types are available as convenience methods:
 | Distribution | `dividend`, `airdrop`, `sweep` |
 | Communication | `broadcast`, `message`, `file` |
 | Utility | `list`, `link`, `callback`, `sleep`, `address` |
-| Staking (BTC) | `stake`, `unstake`, `delegate`, `revokeDelegation`, `claimRewards` |
+| Staking (BTC) | `stake`, `unstake`, `delegate`, `collect` |
 | Smart contracts | `deploy`, `execute`, `deposit`, `withdraw` |
 
 ### Generic Submit

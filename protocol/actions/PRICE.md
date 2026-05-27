@@ -106,7 +106,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Indexers use the most recent valid price when no snapshot exists for a given round
 
 #### Activation Delay
-- A validator's STAKE, UNSTAKE, DELEGATE, or REVOKE_DELEGATION action does not take effect until **6 BTC blocks (~1 hour)** after confirmation
+- A validator's STAKE, UNSTAKE, or DELEGATE (any version, including revoke) action does not take effect until **6 BTC blocks (~1 hour)** after confirmation
 - Eliminates BTC reorg edge cases for reorgs of ≤5 blocks
 - Applies to every capability and every validator state change (see `activation_block` / `deactivation_block` on the `stakes` table)
 
@@ -133,7 +133,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 #### Rewards
 - An `oracle_publish`-capable validator earns 1 XCHAIN per successful PRICE v0 publish (recorded in `validator_rewards` as `reward_type='oracle_round'` / `oracle_publish`)
 - When batch-publishing missed rounds on failover, the publisher earns rewards for all rounds in the batch
-- Rewards are claimed via the `CLAIM_REWARDS` action on BTC
+- Rewards are gathered via the `COLLECT` action on BTC
 
 ### Version 1 — User Oracle TOKEN/FIAT Price
 

@@ -99,8 +99,7 @@ The platform supports 28 ACTION types across seven categories. The original 19 a
 | `STAKE` | Lock XCHAIN tokens as stake with the hub. |
 | `UNSTAKE` | Release staked XCHAIN tokens back to the sender. |
 | `DELEGATE` | Delegate stake to a validator by public key. |
-| `REVOKE_DELEGATION` | Remove a delegation from a validator. |
-| `CLAIM_REWARDS` | Collect accumulated staking rewards. |
+| `COLLECT` | Collect accumulated staking rewards. |
 
 ### Virtual Machine (all chains)
 

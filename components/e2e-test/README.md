@@ -110,7 +110,7 @@ Action test files are organized by type in `test/actions/`:
 - Multi-action: BATCH
 - Control: SWEEP, SLEEP
 - Smart contracts: DEPLOY, EXECUTE, DEPOSIT, WITHDRAW
-- Staking: STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS
+- Staking: STAKE, UNSTAKE, DELEGATE, COLLECT
 
 ### Infrastructure Tests (No Live Services Required)
 

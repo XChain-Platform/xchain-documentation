@@ -44,9 +44,9 @@ This document walks every primary route the wallet exposes. All routes live in `
 | Cross-chain templates | `CrossChainTemplates.jsx` | Parallel composer presets (e.g. issue+seed dispenser on two chains atomically) |
 | Parallel composer | `ParallelComposer.jsx` | Custom multi-chain action sequence |
 | Stake | `StakeForm.jsx` | BTC STAKE form |
-| Staking action | `StakingActionForm.jsx` | UNSTAKE / CLAIM_REWARDS form |
+| Staking action | `StakingActionForm.jsx` | UNSTAKE / COLLECT form |
 | Staking dashboard | `StakingDashboard.jsx` | Current stake + rewards + epoch view |
-| Delegation | `DelegationActionForm.jsx` | DELEGATE / REVOKE_DELEGATION form |
+| Delegation | `DelegationActionForm.jsx` | DELEGATE (rotate + revoke) form |
 | Operator dashboard | `OperatorDashboard.jsx` | Validator / operator view of delegations + uptime |
 | Deploy contract | `DeployContractForm.jsx` | DEPLOY form with source review + gas estimate |
 | Execute contract | `ExecuteContractForm.jsx` | EXECUTE method invocation |

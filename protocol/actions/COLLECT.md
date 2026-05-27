@@ -1,8 +1,8 @@
 <!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
 <!-- Copyright © 2025 Dankest, LLC -->
 
-# XChain Platform Action - CLAIM_REWARDS
-This action withdraws all accrued validator rewards to the broadcasting address.
+# XChain Platform Action - COLLECT
+This action collects all accrued validator rewards to the broadcasting address.
 
 ## PARAMS
 | Name      | Type   | Description    |
@@ -16,8 +16,8 @@ This action withdraws all accrued validator rewards to the broadcasting address.
 
 ## Examples
 ```
-CLAIM_REWARDS|0
-Claim all accrued validator rewards for the broadcasting address
+COLLECT|0
+Collect all accrued validator rewards for the broadcasting address
 ```
 
 ## Rules
@@ -35,19 +35,19 @@ Rewards accumulate from multiple validator activities, all stored in the indexer
 | `oracle_round` | Validator with `price` capability | Participation in PBFT consensus on a finalized price round |
 | `oracle_round` | Validator with `oracle_publish` capability | Successful PRICE v0 broadcast to chain (1 XCHAIN per published round) |
 | `cross_chain_attestation` | Validator with `cross_chain` capability | Successful cross-chain action attestation |
-| `attestation_response` | Validator with `attestation` capability | PBFT-finalized ATTESTATION_RESPONSE for an external attestation request |
+| `attestation_response` | Validator with `attestation` capability | PBFT-finalized ATTEST v1 response for an external attestation request |
 
 ## Reward Population Path
 
 The hub's `RewardTracker` distributes rewards after each finalized oracle round (or successful cross-chain attestation), then pushes the reward records to the BTC indexer via the `pushvalidatorrewards` JSON-RPC endpoint. The indexer's `createValidatorReward` resolves the validator's signing pubkey to the staking source address and writes to the local `validator_rewards` table.
 
-`CLAIM_REWARDS` queries the indexer's `validator_rewards` table directly — no hub round-trip during transaction processing.
+`COLLECT` queries the indexer's `validator_rewards` table directly — no hub round-trip during transaction processing.
 
 ## Notes
 - Rewards accrue continuously while the address holds an active stake
-- All pending rewards are claimed in a single action; partial claims are not supported
-- Rewards may be claimed at any time while a stake is active
-- Rewards can also be claimed after initiating `UNSTAKE` during the cooldown period
+- All pending rewards are collected in a single action; partial collection is not supported
+- Rewards may be collected at any time while a stake is active
+- Rewards can also be collected after initiating `UNSTAKE` during the cooldown period
 - A single pubkey can earn from multiple capabilities in the same round — e.g. a validator with both `price` and `oracle_publish` capabilities can earn the per-round consensus reward AND the per-publish broadcast reward in the same round
 
 ---

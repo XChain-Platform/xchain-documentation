@@ -1202,48 +1202,41 @@ await sdk.session(wif).delegateForContract({
 });
 ```
 
-| Field | Required | Description |
-|---|---|---|
-| `version` | v1 only | `1` for contract-targeted; omit (defaults to 0) for capability delegation |
-| `newSigningPubkey` | Yes | New Ed25519 public key (64 hex characters) |
-| `targetContractIndex` | v1 only | `action_index` of the stakeable contract |
-| `tick` | v1 only | Ticker of the stake row whose key is being rotated |
-
-### Formats
-
-| Version | Format |
-|---|---|
-| 0 | `VERSION\|NEW_SIGNING_PUBKEY` (capability) |
-| 1 | `VERSION\|NEW_SIGNING_PUBKEY\|TARGET_CONTRACT_INDEX\|TICK` (contract-targeted) |
-
----
-
-## REVOKE_DELEGATION
-
-Revoke a previously delegated signing key (BTC chain only).
+DELEGATE also covers **revoke** (removing a previously delegated key without replacing it) via v2/v3:
 
 ```js
-await sdk.revokeDelegation({ signingPubkey: 'aabb...' }); // 64 hex chars
+// Capability revoke
+await sdk.delegate({ version: 2, signingPubkey: 'aabb...' });
+
+// Contract-targeted revoke
+await sdk.delegate({ version: 3, signingPubkey: 'aabb...', targetContractIndex: 500, tick: 'MYTOKEN' });
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `signingPubkey` | Yes | Ed25519 public key to revoke (64 hex characters) |
+| `version` | Optional | `0` capability rotate (default), `1` contract rotate, `2` capability revoke, `3` contract revoke |
+| `newSigningPubkey` | v0/v1 | New Ed25519 public key (64 hex characters) |
+| `signingPubkey` | v2/v3 | Existing Ed25519 public key to revoke (64 hex characters) |
+| `targetContractIndex` | v1/v3 | `action_index` of the stakeable contract |
+| `tick` | v1/v3 | Ticker of the stake row whose key is being managed |
 
 ### Formats
 
 | Version | Format |
 |---|---|
-| 0 | `VERSION\|SIGNING_PUBKEY` |
+| 0 | `VERSION\|NEW_SIGNING_PUBKEY` (capability rotate) |
+| 1 | `VERSION\|NEW_SIGNING_PUBKEY\|TARGET_CONTRACT_INDEX\|TICK` (contract rotate) |
+| 2 | `VERSION\|SIGNING_PUBKEY` (capability revoke) |
+| 3 | `VERSION\|SIGNING_PUBKEY\|TARGET_CONTRACT_INDEX\|TICK` (contract revoke) |
 
 ---
 
-## CLAIM_REWARDS
+## COLLECT
 
-Claim all accrued validator rewards (BTC chain only). No additional parameters required.
+Collect all accrued validator rewards (BTC chain only). No additional parameters required.
 
 ```js
-await sdk.claimRewards({});
+await sdk.collect({});
 ```
 
 ### Formats

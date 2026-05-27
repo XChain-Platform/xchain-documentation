@@ -12,14 +12,14 @@ The wallet implements every XChain feature exposed by the platform: all 29 ACTIO
 ## Features
 
 - **Three shells, one codebase** — `@xchain-wallet/web` (Vite SPA, mobile-responsive), `@xchain-wallet/extension` (Chrome MV3 popup + full-screen + service worker), `@xchain-wallet/desktop` (Electron, main-process signing isolation); all share `@xchain-wallet/core` for routes, components, flows, and signers
-- **All 29 XChain ACTIONs** — SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, AIRDROP, MESSAGE, LIST, LINK, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS, CALLBACK, SLEEP, FILE
+- **All 27 XChain ACTIONs** — SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, AIRDROP, MESSAGE, LIST, LINK, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, COLLECT, CALLBACK, SLEEP, FILE
 - **Self-custodial key management** — BIP39 mnemonic + optional 25th-word passphrase, BIP32 HD derivation per chain, AES-256-GCM vault encrypted with an Argon2id-derived master key (calibrated per device), Counterwallet legacy mnemonic import
 - **Pluggable signer interface** — `SoftwareSigner` (in-vault keys), `TrezorSigner` (Trezor Connect), `LedgerSigner` (WebHID), `RemoteSigner` (cross-shell pairing), `MultisigSigner` (classical n-of-m + MuSig2)
 - **Token issuance suite** — issue / mint / destroy / distribute / dividend / dispenser / broadcast / airdrop / sweep, with parsed-recipient previews and dry-run review
 - **DEX surface** — markets list, market view with lightweight-charts price chart, place-order panel, orderbook, recent trades, open orders, trade history
 - **Encrypted messaging inbox** — ECIES (default, multi-device), ECDH (session), AES (pre-shared); compose flow handles pubkey lookup + encryption + sign + broadcast in one step
 - **Smart contracts** — deploy from source, execute methods, deposit and withdraw, contracts-list / contract-detail explorer views, gas estimation, ContractClient bindings
-- **BTC staking + delegation** — stake / unstake / delegate / revoke-delegation / claim-rewards; staking dashboard, delegation form, operator dashboard
+- **BTC staking + delegation** — stake / unstake / delegate (rotate or revoke) / collect rewards; staking dashboard, delegation form, operator dashboard
 - **Cross-chain flows** — cross-chain swap form, cross-chain templates, parallel composer for atomic multi-chain submission, per-chain SDK registry
 - **Multisig coordinator** — create n-of-m configs, paste-inbox for partial PSBTs, AnimatedQrFrames PSBT-QR transport, session state machine, MuSig2 round labels, per-address multi-config support, camera scanner
 - **dApp bridge (`window.xchain`)** — typed bridge spec at `@xchain-wallet/bridge-spec`: connect, getAccounts, getBalances, signMessage, signPsbt, signAction, sendAction, signIn (Sign-In with XChain), event subscriptions; per-origin permission grants enforced in the extension service worker and desktop main process

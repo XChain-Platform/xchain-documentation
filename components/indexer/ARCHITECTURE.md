@@ -94,7 +94,7 @@ The indexer's API also exposes a write endpoint that the hub calls:
 
 | Method | Sent By | Purpose |
 |---|---|---|
-| `pushvalidatorrewards` | hub `RewardTracker` | Replicates `validator_rewards` rows from hub to indexer for `CLAIM_REWARDS` |
+| `pushvalidatorrewards` | hub `RewardTracker` | Replicates `validator_rewards` rows from hub to indexer for `COLLECT` |
 
 ## VM Runtime Module
 

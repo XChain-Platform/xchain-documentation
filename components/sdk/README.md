@@ -9,7 +9,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 
 ## Features
 
-- Generate all 29 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS)
+- Generate all 27 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, COLLECT)
 - **Transaction Lifecycle Manager** (`submitAction`): full encode → sign → broadcast → wait pipeline in a single call, with automatic P2SH two-phase handling and progress callbacks
 - **Wallet Sessions** (`sdk.session(wif)`): bound wallet object that bundles address/key/UTXO state with action convenience methods — "I am this address, do things"
 - **Fee Estimation** (`estimateFees`): dry-run fee calculation via encoder, returns fee in satoshis plus reusable PSBT
@@ -18,7 +18,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - **Cross-Chain Helper**: coordinate actions across BTC, LTC, DOGE SDK instances — `createSwap`, `link`, `parallel`, `waitForAll`, `getAllBalances`
 - **Event-driven confirmation** (`waitForAction`): WebSocket + polling hybrid that resolves when the indexer processes a transaction
 - **Interactive REPL** (`npm run repl`): live session with pre-configured SDK, custom `.actions`, `.status`, `.fields` commands
-- **Staking actions** (BTC-only): STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS for validator participation
+- **Staking actions** (BTC-only): STAKE, UNSTAKE, DELEGATE, COLLECT for validator participation (DELEGATE covers both rotate and revoke)
 - Smart contract support: deploy contracts, execute methods, deposit/withdraw tokens via the xchain-vm integration
 - Contract authoring utilities: syntax validation, float detection, hex encoding, gas estimation
 - Bound ContractClient for repeated interactions with a specific deployed contract

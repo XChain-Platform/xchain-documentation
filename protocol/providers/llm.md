@@ -5,7 +5,7 @@
 
 The `llm` provider lets a contract delegate a prompt to a governance-approved large language model. It's a thin specialization of the External Attestation Framework: payloads are JSON envelopes, consensus uses a judge-model strategy, and the chosen model is recorded in the on-chain response's `META` field.
 
-For the framework itself see `actions/ATTESTATION_REQUEST.md` + `actions/ATTESTATION_RESPONSE.md`.
+For the framework itself see `actions/ATTEST.md` (covers v0=request, v1=response, v2=expire).
 
 ## Request
 

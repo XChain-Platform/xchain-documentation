@@ -85,7 +85,7 @@ A capability becomes *active* on a hub when ALL of: (a) stake qualifies, (b) per
 ## Activation Delay
 - Stakes do not become active until **6 BTC blocks** after confirmation.
 - Prevents short-range BTC reorgs (≤5 blocks) from affecting the active validator set.
-- Applies to STAKE v1, STAKE v2 (top-up), UNSTAKE, DELEGATE, REVOKE_DELEGATION.
+- Applies to STAKE v1, STAKE v2 (top-up), UNSTAKE, DELEGATE (all versions).
 - Tracked via the `activation_block` column on the `stakes` table (set to `block_index + 6`).
 - Active-stake queries filter by `activation_block <= current_block`.
 

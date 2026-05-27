@@ -11,14 +11,14 @@ Every XChain ACTION — SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, and 22 more �
 
 ## Features
 
-- **28 ACTION types** — ADDRESS, AIRDROP, BATCH, BROADCAST, CALLBACK, CLAIM_REWARDS, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER, DISPENSE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, REVOKE_DELEGATION, SEND, SLEEP, STAKE, SWAP, SWEEP, UNSTAKE, WITHDRAW
+- **26 ACTION types** — ADDRESS, AIRDROP, ATTEST, BATCH, BROADCAST, CALLBACK, COLLECT, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER, DISPENSE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, SEND, SLEEP, STAKE, SWAP, SWEEP, UNSTAKE, WITHDRAW
 - **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
 - **Atomic block processing** — every block is wrapped in a database transaction; failures roll back cleanly
 - **Block reorganization handling** — detects reorgs from the Decoder DB, rolls back affected data, and re-indexes
 - **Double-entry ledger** — all token movements recorded as credits, debits, and escrows
 - **Sanity checking** — after every block, verifies token supplies match the sum of credits minus debits
 - **DEX engine** — ORDER matching, SWAP matching, DISPENSER triggering with automatic expiration
-- **Hub Staking** — STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS (BTC only)
+- **Hub Staking** — STAKE, UNSTAKE, DELEGATE (rotate + revoke), COLLECT (BTC only)
 - **Virtual Machine** — DEPLOY, EXECUTE, DEPOSIT, WITHDRAW with isolated-vm sandbox and gas metering
 - **Unified Gas Fee Schedule** — gas-based fee system for VM and staking actions, replaces per-action flat fees post-activation
 - **Protocol versioning** — actions activate at specific block heights or timestamps per network
