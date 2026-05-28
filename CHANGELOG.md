@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Five platform initiatives
+
+**1. AI-callable smart contracts (Attestation Framework + LLM provider).** Smart contracts can now ask the outside world a question and get a verified answer back on-chain. A contract calls `xchain.attestation.request(...)`, and the validator network independently fetches the answer from a registered provider, compares results across validators, and writes the agreed-upon response back to the chain — which then re-enters the contract through a callback method. Two providers ship in the initial release: `http_get` (any HTTPS endpoint, exact byte-equality consensus) and `llm` (large-language-model prompt, judge-model semantic consensus across Claude Sonnet 4.6 and Claude Opus 4.7). This is the platform's bridge between blockchain logic and the real world — usable for AI-judged contests, sentiment-gated airdrops, content moderation oracles, price feeds, dispute resolution, and any other real-world data trigger a contract needs.
+
+- `protocol/actions/ATTEST.md` — request (v0), response (v1), and system-synthesized expire (v2) phases
+- `protocol/providers/llm.md` — full LLM provider spec including approved models, judge-model consensus, transport options, cost
+- `user-guide/Use_Cases.md` — new **AI-Powered Smart Contracts** section
+- `developer-guide/Smart_Contract_Development.md` — new sections for the `xchain.attestation.*` VM gateway namespace with worked examples
+
+**2. Contract-targeted staking — multi-chain.** Any token on any chain (Bitcoin, Litecoin, Dogecoin) can now be staked against any smart contract. The contract author declares the staking rules at deploy time — how long the cooldown is, and where slashed tokens go — and the contract's own code decides what staking unlocks and when to slash. This is a general-purpose developer primitive: build prediction markets, security bonds, validator-style services, conditional escrow, or any logic where users back a contract with locked tokens. Coexists with the existing capability-based staking (XCHAIN-only, hub-facing); the two systems share no state.
+
+- `protocol/Contract_Staking.md` — full spec (STAKE v3, UNSTAKE v1, DELEGATE v1, DEPLOY v1 metadata, `xchain.contract.*` VM API)
+- `user-guide/Use_Cases.md` — new **Native Multi-Chain Staking** section
+- `developer-guide/Smart_Contract_Development.md` — new section for the `xchain.contract.*` VM gateway namespace
+
+**3. Capability-based validator staking.** Replaces the previous tier model. Validators stake XCHAIN and automatically qualify for any of four independent capabilities — `price`, `cross_chain`, `oracle_publish`, `attestation` — based on the amount staked against each. Each capability has its own governance-configurable minimum stake. Validators participate in consensus per capability at block-boundary snapshots.
+
+- `protocol/actions/STAKE.md`, `UNSTAKE.md`, `DELEGATE.md`, `COLLECT.md` — rewritten for the capability model
+- `getting-started/What_Is_XChain.md` — staking summary updated
+
+**4. Token-gated encrypted publishing.** A token issuer can now publish a file — or a multi-file pack — on the blockchain, encrypted such that only holders of the gating token can decrypt it. The decryption key is automatically re-encrypted to each new holder during every transfer, end-to-end on-chain, with no third-party server or key escrow. Sell the token via dispenser or order, and the buyer receives the decryption key in the same transaction. Useful for sealed album drops, paid downloads, gated research, holder-only resources, and any "first-access" mechanic.
+
+- `protocol/Token_Gated_Content.md` — full spec including the binary key-handoff payload format
+- `protocol/actions/FILE.md` — gating fields (`GATE_TICKER`, `ENCRYPTION_METHOD`, `KEY_HASH`)
+- `protocol/actions/MESSAGE.md` — v2 ECIES binary mode for key handoff
+- `user-guide/Use_Cases.md` — **Token-Gated Encrypted Content and Packs** section expanded
+- `developer-guide/Advanced_Token_Features.md` — new walkthrough
+
+**5. Token-ownership trading.** The issuer role of a token can now be bought and sold on the DEX. New `GIVE_OWNERSHIP` and `GET_OWNERSHIP` flags on `ORDER`, `SWAP`, and `DISPENSER` let a seller advertise the ownership of an entire token issuance, and a buyer purchase it atomically — no off-chain trust required. `SWEEP` was restructured into three independent flags (`BALANCES`, `OWNERSHIPS`, `ESCROWS`) so a holder can sweep just one category at a time.
+
+- `protocol/actions/ORDER.md`, `SWAP.md`, `DISPENSER.md` — ownership-trading flags
+- `protocol/actions/SWEEP.md` — three-flag restructure
+- `user-guide/Use_Cases.md` — new **Token Ownership Trading** section
+- `developer-guide/Advanced_Token_Features.md` — new walkthrough
+
+### Added — Documentation surface
+
+- `protocol/actions/COLLECT.md` — renamed from `CLAIM_REWARDS.md`, consolidated with capability-staking rewards
+- `protocol/actions/DEPLOY.md` — `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` fields documented for v1
+- `user-guide/FAQ.md` — entries on AI-callable contracts, contract staking vs capability staking, selling encrypted content, and selling issuer rights
+- `getting-started/What_Is_XChain.md` — top-level pitch now calls out AI-callable contracts as a platform differentiator
+- `components/sync/` — directory renamed from `components/indexer-sync/`; documentation updated for decoder DB replication scope expansion
+
+### Changed
+
+- `xchain-indexer-sync` repository renamed to `xchain-sync` throughout the documentation. The service now replicates the decoder database in addition to the indexer database. All REST and WebSocket endpoints gained a `/:dbType/` path segment — breaking for any external client.
+
 ## [0.10.0] - 2026-04-25
 
 ### Added

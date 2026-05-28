@@ -33,7 +33,7 @@ Every XChain ACTION — SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, and 22 more �
 |---|---|
 | [Architecture](ARCHITECTURE.md) | Data pipeline, internal components, action handlers, block processing pipeline |
 | [Configuration](CONFIGURATION.md) | Environment variables, coin-specific config, indexer constants |
-| [Actions](ACTIONS.md) | All 28 ACTION types, categories, format versions, protocol versioning |
+| [Actions](ACTIONS.md) | All 30 ACTION types, categories, format versions, protocol versioning |
 | [Database](DATABASE.md) | Full schema reference — core, ledger, action, state, index, and mapping tables |
 | [Ledger](LEDGER.md) | Double-entry ledger, balance calculation, sanity checks, gas token fees |
 | [Operations](OPERATIONS.md) | Running, Docker, API endpoints, resilience, troubleshooting |

@@ -37,6 +37,7 @@ Beyond public on-chain files, XChain supports **cryptographically secure token-g
 - **Packs.** Multiple files encrypted with the same key form a pack that unlocks atomically. An album of FLAC stems plus liner notes plus high-res cover art can all be published as one pack; owning the token unlocks every file at once.
 - **Permanent, server-free distribution.** No download server, no key escrow, no DRM service. The creator publishes once and walks away; the blockchain stores the ciphertext, and the protocol handles key delivery automatically on every transfer.
 - **DEX-native paid downloads.** Sell the token via DISPENSER or ORDER. Whoever buys it receives the decryption key in the same transaction.
+- **Sell the whole pack, not just access.** Pair this with [Token Ownership Trading](#token-ownership-trading) below to sell the *entire issuance* of a gated pack to a single buyer — useful for selling a finished album to a label, transferring a research archive to a successor, or auctioning a complete sealed bundle.
 
 Unlock is purely client-side — holders decrypt with their address private key, no on-chain transaction required. Trust model: this is a first-access lock, not DRM (a holder who decrypts has the bytes forever), and loss of the address key means loss of access.
 
@@ -155,13 +156,28 @@ Trade tokens between Bitcoin, Litecoin, and Dogecoin using the SWAP action. This
 
 XChain actions involved: SWAP.
 
+### Token Ownership Trading
+
+A token has two separate things attached to it: the *balances* (who holds how much) and the *ownership* (who can update the token's settings, mint new supply, change the description, etc.). Until recently, only balances could be traded. Now you can sell ownership of an entire token on the DEX — atomically, with no off-chain trust.
+
+**What this enables:**
+
+- **Selling a finished project.** A creator who built a token, distributed it to holders, and now wants to step away can sell the issuer role outright. The buyer takes over future updates, the seller cashes out.
+- **Selling a gated content archive.** Combined with [token-gated publishing](#token-gated-encrypted-content-and-packs), the issuer can sell the entire archive — keys, future republish rights, and everything — to a buyer in a single trade.
+- **Brand or sub-token portfolios.** Sell a parent token together with the right to issue its sub-tokens, transferring an entire token namespace as one asset.
+- **Auctioning a launched token.** Set up a dispenser that hands out the ownership role at a fixed price. The first buyer to send the asking amount becomes the new issuer.
+
+Ownership transfer is atomic with the trade — there is no moment where the seller has the payment but the buyer doesn't yet have ownership.
+
+XChain actions involved: ORDER, SWAP, or DISPENSER (each with the `GIVE_OWNERSHIP` / `GET_OWNERSHIP` flag).
+
 ---
 
 ## Private Deployments
 
 ### Internal Company Networks
 
-Organizations can run XChain on a private regtest network — a fully featured, fully isolated instance of the platform. All 19 actions work identically to the public network. The organization controls the block production, the gas issuance, and the entire environment.
+Organizations can run XChain on a private regtest network — a fully featured, fully isolated instance of the platform. All 30 actions work identically to the public network. The organization controls the block production, the gas issuance, and the entire environment.
 
 This is useful for internal asset management (tracking equipment, licenses, or internal credits), piloting blockchain applications before going to mainnet, and training teams on the platform without real-money risk.
 
@@ -181,19 +197,66 @@ XChain actions involved: ORDER, DISPENSER.
 
 ---
 
-## Coming Soon: Smart Contracts
+## Smart Contracts and Programmable Logic
 
-The XChain Platform is developing a smart contract layer that will let developers deploy programmable logic directly on-chain. Contracts are written in JavaScript and can conditionally trigger any of the platform's 19 ACTION commands — but they cannot bypass the platform's existing validation and security rules.
+XChain has a built-in smart contract layer that runs on top of Bitcoin, Litecoin, and Dogecoin. Contracts are written in JavaScript, deployed permanently on the blockchain, and executed by the same nodes that process token transactions. There is no separate contract chain, no separate validator network, and no separate token to buy — your existing wallet, your existing balances, and your existing XCHAIN gas fees are all you need.
 
-This opens up use cases that are not possible with individual actions alone:
+### Programmable Tokens
 
-- **Automatic token vesting** — tokens released on a schedule without manual intervention
-- **Automated market makers** — liquidity pools with continuous pricing, going beyond fixed-price orders and dispensers
-- **Multi-condition escrow** — funds released only when multiple conditions are met (oracle confirmation, time elapsed, multi-party approval)
-- **On-chain governance** — token-weighted voting on proposals with automatic execution of results
-- **Cross-chain automation** — contracts that coordinate actions across Bitcoin, Litecoin, and Dogecoin
+A smart contract on XChain can do anything the protocol's 30 actions can do — issue tokens, transfer balances, place orders, set up dispensers, send messages — but on a schedule or under conditions that you define in code.
 
-For more details, see [Smart Contracts](../concepts/Smart_Contracts.md).
+- **Automatic token vesting** — tokens released to recipients on a schedule, without anyone needing to push a button on the date.
+- **Automated market makers** — liquidity pools that price tokens continuously based on supply and demand, going beyond the fixed-price model of orders and dispensers.
+- **Multi-condition escrow** — funds released only when several conditions are all met (time elapsed, multiple parties have approved, an outside event has occurred).
+- **On-chain governance** — token-weighted voting where the result of the vote is executed by the contract itself, with no human in the middle.
+- **Cross-chain automation** — contracts that coordinate actions across Bitcoin, Litecoin, and Dogecoin simultaneously.
+
+XChain actions involved: DEPLOY (to publish a contract), EXECUTE (to call a method on it), DEPOSIT and WITHDRAW (to move tokens in and out of the contract's custody).
+
+### AI-Powered Smart Contracts
+
+A smart contract on XChain can ask a question of the outside world — including a large language model — and get a verified answer back, written to the blockchain by the validator network. The contract then continues running with the answer in hand. This is one of the most distinctive features of the platform: smart contracts can reason about the real world, not just the data already on the chain.
+
+Here's how it works in plain terms. A contract calls a built-in function with a question — "what is the price of gold right now?", or "is this Twitter post in violation of community guidelines?", or simply "summarize this article in one sentence". The platform's validator network independently looks up the answer (each validator does it separately, so no single party controls the result), compares everyone's answers, and writes the agreed-upon answer back to the blockchain. The contract then receives the answer through a callback and decides what to do with it.
+
+Two providers ship in the initial release:
+
+- **Web data.** The contract supplies an HTTPS URL; validators each fetch it and the network agrees only if the responses match exactly. Good for any deterministic web endpoint — price APIs, government data feeds, sports results, public records.
+- **Large language model.** The contract supplies a prompt; validators each ask an approved AI model (Claude Sonnet 4.6 or Claude Opus 4.7 at launch) and a separate judge model decides whether their answers are semantically equivalent. Good for tasks where exact byte-equality is impossible but human-equivalent agreement is enough.
+
+**What this enables:**
+
+- **AI-judged contests and competitions.** A contest contract receives entries, asks an AI to score or rank them, and distributes prizes automatically based on the AI's verdict.
+- **Content moderation oracles.** A platform contract asks an AI whether content is in policy before paying out a creator royalty.
+- **Real-world data triggers.** An insurance contract pays out automatically when an HTTP-accessible weather API reports a storm above a threshold. A prediction market settles when an official source confirms the event.
+- **Sentiment-driven flows.** A treasury contract adjusts its allocation strategy based on AI analysis of news headlines or social posts.
+- **Translation, summarization, classification.** Any contract that needs the kind of judgment a person would make — but at machine speed, on every transaction.
+- **Dispute resolution.** A contract submits both sides' arguments to an AI judge and acts on the verdict.
+
+The answers are recorded on-chain forever, alongside the validators' cryptographic signatures, so the result can be audited and replayed by anyone running their own XChain node.
+
+XChain actions involved: DEPLOY + EXECUTE on the contract side, ATTEST behind the scenes (the platform handles this automatically — contract authors call `xchain.attestation.request(...)` from inside the contract).
+
+### Native Multi-Chain Staking
+
+XChain has a built-in mechanism that lets any token, on any chain, be staked against a smart contract. Stakers lock up tokens; the contract's code decides what that lockup unlocks (access, voting weight, a share of fees, etc.); and if the contract decides someone misbehaved, it can take some or all of the staked tokens away from them — sending the slashed tokens to a destination the contract author chose at deploy time, including the chain's burn address. This works on Bitcoin, Litecoin, and Dogecoin — every chain XChain supports.
+
+This is a general-purpose primitive. It is not just for validating the network; the network has its own separate staking system for that. *Anyone* deploying a contract can declare it stakeable, and that contract can then build whatever logic on top makes sense for the application.
+
+**What this enables:**
+
+- **Prediction markets and oracles.** Participants stake tokens to back their claims; the contract slashes wrong ones and pays out correct ones from the slashed pool.
+- **Security bonds for services.** A service operator stakes tokens as a deposit; users get paid out of that bond if the service misbehaves or goes offline.
+- **Validator-like services on top of XChain.** A contract can run its own internal validator set — for, say, a sidechain bridge, a relay service, or a federated oracle — backed by stake on any chain.
+- **Reputation games.** Communities stake tokens against their own predictions, votes, or moderation decisions, with reputation calibrated by what gets slashed and what gets rewarded.
+- **Conditional escrow with teeth.** Two parties stake tokens against a deal; an arbitrator (or an [AI judge](#ai-powered-smart-contracts)) decides if the deal was kept and slashes accordingly.
+- **DAO membership locks.** Members stake tokens to participate in a DAO; the DAO's contract slashes them for spam or rule-breaking, with the rules defined entirely in code.
+
+At deploy time, the contract author decides two things: how long a staker must wait after asking to withdraw (the cooldown period) and where slashed tokens are sent. Both are locked permanently when the contract is published — neither the author nor anyone else can change them later. Stakers can therefore audit the rules before locking anything up.
+
+XChain actions involved: DEPLOY (with staking metadata), STAKE, UNSTAKE, DELEGATE, EXECUTE (to invoke whatever logic the contract has built around its stakes).
+
+For more details on the contract layer, see [Smart Contracts](../concepts/Smart_Contracts.md).
 
 ---
 

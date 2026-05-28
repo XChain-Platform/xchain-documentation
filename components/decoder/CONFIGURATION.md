@@ -122,12 +122,15 @@ The decoder begins parsing from a preconfigured block height per network to skip
 
 ## Valid ACTION Names
 
-The decoder accepts only these 19 ACTION names after deobfuscation. Transactions with unrecognized action names are logged and skipped:
+The decoder accepts only these 30 ACTION names after deobfuscation. Transactions with unrecognized action names are logged and skipped:
 
 ```
-ADDRESS, AIRDROP, BATCH, BROADCAST, CALLBACK, DESTROY,
-DISPENSER, DIVIDEND, FILE, ISSUE, LINK, LIST, MESSAGE,
-MINT, ORDER, SEND, SLEEP, SWAP, SWEEP
+ADDRESS, AIRDROP, ATTEST,
+BATCH, BROADCAST, CALLBACK, COINPAY, COLLECT,
+DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER,
+DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT,
+ORDER, PRICE, SEND, SLEEP, STAKE, SWAP,
+SWEEP, UNSTAKE, WITHDRAW
 ```
 
 ---

@@ -199,13 +199,165 @@ The gas ceiling is **1,000,000** per execution. Deployment gas is calculated as 
 - Use `xchain.revert('descriptive message')` for clear error reporting
 - The explorer shows full execution details: gas used, state changes, emitted actions, error messages
 
+## Asking the Outside World — `xchain.attestation.*`
+
+A contract can ask a question to a registered external provider and have the validator network deliver the answer back on-chain. The contract method that issued the request returns immediately; the answer arrives later as a callback into a method you name. The platform handles provider lookup, validator coordination, signature aggregation, and the on-chain write of the response — your contract just sends a question and writes a callback.
+
+### Request
+
+```javascript
+xchain.attestation.request(
+    providerId,        // 'http_get' or 'llm' (governance-controlled list)
+    payload,           // string — provider-specific (URL for http_get, JSON envelope for llm)
+    callbackMethod,    // method on this contract to invoke when the answer arrives
+    callbackParams,    // array of strings — your own context, echoed back
+    options            // { redundancy: 1|3|5, deadlineBlocks: number }
+);
+```
+
+- **`redundancy`** is the number of independent validators that must agree before the response is written to chain. `1` is the cheapest path (one validator's answer is final); `3` or `5` triggers a consensus round across multiple validators.
+- **`deadlineBlocks`** is how many blocks the request waits before it expires. If no agreed-upon answer arrives in time, the callback is still invoked — with `status='expired'` and an empty response — so your contract can react to silence.
+
+`xchain.attestation.request` costs `VM_EMISSION` (500) gas plus the request's gas escrow.
+
+### Callback
+
+Define a method that consumes the result. It receives the request id, the provider id, the status, the response payload, and any params you supplied at request time — in that order — through the standard `xchain.getInputParam(i)` accessor:
+
+```javascript
+module.exports = {
+    askLlm: function(xchain) {
+        xchain.attestation.request(
+            'llm',
+            JSON.stringify({ prompt: 'Reply with only the number 1 if true, 0 if false: "the sky is blue"', max_tokens: 8 }),
+            'handleVerdict',
+            [xchain.getSourceAddress()],   // your context — echoed back to handleVerdict
+            { redundancy: 1, deadlineBlocks: 20 }
+        );
+    },
+
+    handleVerdict: function(xchain) {
+        var requestId       = xchain.getInputParam(0);
+        var providerId      = xchain.getInputParam(1);
+        var status          = xchain.getInputParam(2);   // 'ok' | 'timeout' | 'no_quorum' | 'provider_error' | 'expired'
+        var responsePayload = xchain.getInputParam(3);
+        var caller          = xchain.getInputParam(4);   // your context
+
+        if (status !== 'ok') {
+            xchain.log('attestation failed: ' + status);
+            return;
+        }
+
+        // responsePayload is whatever the provider returned — for llm, the model's reply text.
+        xchain.state.set('last_verdict_' + caller, responsePayload);
+    }
+};
+```
+
+Inside the callback, `xchain.getSourceAddress()` returns the contract's own derived address — the platform invokes the callback as if the contract were calling itself. The callback runs in its own savepoint: if the callback throws or runs out of gas, the response is still recorded on-chain (so the request doesn't get retried) but the contract's state changes are rolled back.
+
+### Providers
+
+Two providers ship in the initial release. Governance can add more over time.
+
+| Provider | What it does | Payload | Consensus |
+|---|---|---|---|
+| `http_get` | Fetches an HTTPS URL and returns the response body | URL string | Exact byte-equality across validators |
+| `llm` | Sends a prompt to an approved language model | JSON `{prompt, max_tokens?, temperature?, system?}` | Judge-model semantic equivalence |
+
+For `llm` payload fields, approved models, and provider-specific limits, see [`protocol/providers/llm.md`](../protocol/providers/llm.md). For the full protocol-level lifecycle, see [`protocol/actions/ATTEST.md`](../protocol/actions/ATTEST.md).
+
+### Patterns
+
+- **Single-shot AI verdict.** `redundancy: 1` + tight `max_tokens`. Cheapest path; fine for non-critical use.
+- **Auditable AI verdict.** `redundancy: 3` or `5`. Multiple validators independently fetch and a judge model decides whether they agree. Use when the contract's decision needs to be verifiable by anyone replaying the chain.
+- **Real-world data trigger.** `http_get` against an HTTPS endpoint that returns deterministic content (price API, official data feed, JSON record). Pair with `redundancy: 3` to require exact agreement across validators.
+- **Deadline as fallback.** Always handle `status='expired'` — the validator network may be unavailable, the provider may be offline, or the response may simply have arrived too late. Treat absence of an answer as a real outcome.
+
+## Contract-Targeted Staking — `xchain.contract.*`
+
+A contract can declare itself stakeable at deploy time. Once deployed, anyone can lock any token against the contract; the contract's own code decides what staking unlocks, and the contract can slash any of its stakers' locked tokens at any time. Slashed tokens are routed to a destination locked in at deploy time (a specific address or the chain's burn address).
+
+### Declaring a contract stakeable
+
+Add two trailing fields to your `DEPLOY` action:
+
+```
+DEPLOY|1|<hex code>|<gas_limit>|<constructor_params>|<cooldown_blocks>|<slash_destination>
+```
+
+| Field | Notes |
+|---|---|
+| `COOLDOWN_BLOCKS` | How long a staker waits after calling UNSTAKE before their tokens are returned. Bounded `[1, 100000]`. Omit to make the contract **not stakeable**. |
+| `SLASH_DESTINATION` | Address that receives slashed tokens, or the keyword `BURN`. If `COOLDOWN_BLOCKS` is set but `SLASH_DESTINATION` is omitted, defaults to `BURN`. |
+
+Both fields are **locked permanently** at deploy time. Neither you nor anyone else can change them later. Design carefully — stakers will inspect these before locking up.
+
+### Reading stake state from inside the contract
+
+```javascript
+// How much has a specific staker locked, in a given token?
+var amount = xchain.contract.getStake(signingPubkey, 'XCHAIN');
+
+// What is the total staked across everyone for a given token?
+var total = xchain.contract.getTotalStaked('XCHAIN');
+
+// Who are the top stakers? Returns up to 1000 entries sorted descending.
+var stakers = xchain.contract.getStakers('XCHAIN');
+// → [{ pubkey: '...', amount: '500' }, { pubkey: '...', amount: '300' }, ...]
+```
+
+All three reads cost `VM_STATE_READ` (100) gas. The 1000-entry cap on `getStakers` is fixed — if your contract may have more stakers than that, design accordingly (don't rely on iterating all of them in a single call).
+
+Stakes within the 6-block activation window are not yet visible to these reads.
+
+### Slashing
+
+```javascript
+xchain.contract.slash(signingPubkey, 'XCHAIN', '50');
+```
+
+- The slash can only target stakers of **this** contract — authorization is implicit; you cannot accidentally slash someone else's contract's stakers.
+- Slashed tokens go to the destination you set at deploy time.
+- The slash reaches a staker's currently-active stake first; if there is still a remainder, it pulls from the cooldown-locked balance the staker has already begun withdrawing. (Stakers cannot escape an imminent slash by initiating an unstake.)
+- Over-slash is silently capped at the staker's available balance — no error is thrown when you ask for more than they have.
+- Atomic with the calling EXECUTE: if the calling method reverts, the slash rolls back too.
+
+Slash costs `VM_EMISSION` (500) gas.
+
+### Worked example: simple bonded service
+
+```javascript
+// Deploy with: COOLDOWN_BLOCKS=50, SLASH_DESTINATION=BURN
+module.exports = {
+    // Anyone can check: does this pubkey hold at least 100 XCHAIN against this contract?
+    isQualified: function(xchain) {
+        var pubkey = xchain.getInputParam(0);
+        return xchain.math.gte(xchain.contract.getStake(pubkey, 'XCHAIN'), '100') ? '1' : '0';
+    },
+
+    // Owner-only — slash a misbehaving staker.
+    punish: function(xchain) {
+        xchain.require(
+            xchain.getSourceAddress() === xchain.state.get('owner'),
+            'only owner can punish'
+        );
+        var pubkey = xchain.getInputParam(0);
+        var amount = xchain.getInputParam(1);
+        xchain.contract.slash(pubkey, 'XCHAIN', amount);
+    }
+};
+```
+
+For the full protocol-level spec — wire format, isolation between contract and capability staking, cooldown sweep behavior, the `slash_events` table — see [`protocol/Contract_Staking.md`](../protocol/Contract_Staking.md).
+
 ## Limitations
 
 - **No cross-contract calls** — `emit.execute()` is not available in API version 1. Contracts cannot invoke other contracts.
 - **No `state.keys()`** — contracts must manage their own key indexing for collections
 - **Immutable code** — deployed contracts cannot be updated. Use the proxy pattern for upgradeability.
-- **No network access** — contracts cannot make HTTP calls, read files, or access external data (use oracles)
-- **Synchronous only** — no `async`/`await` execution; Promises never resolve in the sandbox
+- **No direct network access** — contracts cannot make HTTP calls or read files themselves. Use `xchain.attestation.request` to delegate the fetch to the validator network.
+- **Synchronous only** — no `async`/`await` execution; Promises never resolve in the sandbox. Attestation results arrive in a separate callback EXECUTE, not as a return value.
 
 ## Example: Token Vesting Contract
 
@@ -261,6 +413,9 @@ module.exports = {
 - [Gas and Fees](../concepts/GAS.md) — gas economics
 - [DEPLOY Action](../protocol/actions/DEPLOY.md) — deployment protocol spec
 - [EXECUTE Action](../protocol/actions/EXECUTE.md) — execution protocol spec
+- [ATTEST Action](../protocol/actions/ATTEST.md) — request/response lifecycle for `xchain.attestation.*`
+- [LLM Provider](../protocol/providers/llm.md) — prompt envelope, approved models, judge-model consensus
+- [Contract-Targeted Staking](../protocol/Contract_Staking.md) — wire spec for `xchain.contract.*`
 
 ---
 

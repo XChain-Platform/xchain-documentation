@@ -43,9 +43,9 @@ The raw string is obfuscated before being embedded in a transaction. See [Encodi
 
 Invalid ACTIONs are recorded as failed — they are not silently ignored. This makes the blockchain record auditable: every ACTION attempt, valid or not, is traceable.
 
-## The 28 ACTIONs
+## The 30 ACTIONs
 
-The platform supports 28 ACTION types across seven categories. The original 19 actions (Token Lifecycle, Transfers, DEX, Data, Utility) are available from genesis. Hub Staking and Virtual Machine actions activate at later block heights.
+The platform supports 30 ACTION types across eight categories. The original 19 actions (Token Lifecycle, Transfers, DEX, Data, Utility) are available from genesis. Hub Staking, Virtual Machine, and Oracles actions activate at later block heights.
 
 ### Token Lifecycle
 
@@ -92,21 +92,28 @@ The platform supports 28 ACTION types across seven categories. The original 19 a
 | `LINK` | Create a cross-reference to another ACTION by its `ACTION_INDEX`. Used for associating related operations across transactions or chains. |
 | `LIST` | Define a named list of addresses or tickers. Referenced by ISSUE (for allow/block lists) and AIRDROP (for recipient lists). |
 
-### Hub Staking (BTC only)
+### Oracles
 
 | ACTION | What it does |
 |---|---|
-| `STAKE` | Lock XCHAIN tokens as stake with the hub. |
-| `UNSTAKE` | Release staked XCHAIN tokens back to the sender. |
-| `DELEGATE` | Delegate stake to a validator by public key. |
-| `COLLECT` | Collect accumulated staking rewards. |
+| `PRICE` | Publish oracle price data on-chain. v0 carries validator-aggregated COIN/FIAT snapshots; v1 carries user-defined TOKEN/FIAT oracles. Used by FIAT dispensers and any application that needs verifiable price feeds. |
+| `ATTEST` | External-data attestation lifecycle. v0 is emitted by a smart contract calling `xchain.attestation.request(...)`; v1 is broadcast by the validator network after consensus on the answer; v2 is system-synthesized when a request expires unanswered. This is how contracts ask the outside world (HTTPS fetches, AI prompts) and receive verified answers back on-chain. |
+
+### Hub Staking (capability staking is BTC-only; contract-targeted staking runs on all chains)
+
+| ACTION | What it does |
+|---|---|
+| `STAKE` | Lock tokens against a signing pubkey. v1 (new) and v2 (top-up) stake XCHAIN against built-in capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) on BTC. v3 stakes any token against a specific contract on any chain. |
+| `UNSTAKE` | Initiate the cooldown to release staked tokens. v0 unstakes from a capability; v1 unstakes from a specific contract. |
+| `DELEGATE` | Manage the signing key for a stake. v0 and v1 rotate; v2 and v3 revoke. v0/v2 act on capability stakes; v1/v3 act on contract stakes. |
+| `COLLECT` | Collect accumulated validator rewards. |
 
 ### Virtual Machine (all chains)
 
 | ACTION | What it does |
 |---|---|
-| `DEPLOY` | Deploy a JavaScript smart contract. The code is validated, a derived address (`C:<CHAIN>:<action_index>`) is created, and an optional constructor runs. |
-| `EXECUTE` | Call a method on a deployed contract. The contract runs in a sandboxed V8 isolate and can emit platform ACTIONs (SEND, MINT, etc.) that are processed through the normal handlers. |
+| `DEPLOY` | Deploy a JavaScript smart contract. The code is validated, a derived address (`C:<CHAIN>:<action_index>`) is created, and an optional constructor runs. v1 adds optional `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` fields that declare the contract as stakeable. |
+| `EXECUTE` | Call a method on a deployed contract. The contract runs in a sandboxed V8 isolate and can emit platform ACTIONs (SEND, MINT, ATTEST, etc.) that are processed through the normal handlers. |
 | `DEPOSIT` | Transfer tokens from the sender to a contract's derived address. Credits the contract in the standard ledger. |
 | `WITHDRAW` | Return tokens from a contract's derived address to the contract owner. Owner-only. |
 

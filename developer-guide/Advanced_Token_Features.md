@@ -291,9 +291,11 @@ Sub-token rules are governed by the parent token's owner. The period character `
 
 ## Ownership Transfer
 
-### Transfer Ownership Only
+A token has two separable things attached to it: the **balances** (who holds how many tokens) and the **ownership** (who can update the token's settings — minting windows, allow lists, lockable parameters, etc.). The two can be moved independently.
 
-Use ISSUE v0 with the `transfer` field to move ownership to another address. The new owner can then make future ISSUE updates.
+### Gift-Transfer Ownership
+
+Use ISSUE v0 with the `transfer` field to move ownership to another address for free. The new owner can then make future ISSUE updates.
 
 ```js
 const transferOwnershipAction = sdk.issue({
@@ -302,27 +304,238 @@ const transferOwnershipAction = sdk.issue({
 });
 ```
 
-### Sweep All Balances and Ownerships
+### Sell Ownership on the DEX
 
-SWEEP moves everything from your address — all token balances, token ownerships, and optionally escrowed amounts — to a destination address in one transaction:
+To *sell* ownership instead of gifting it, place an ORDER, SWAP, or DISPENSER with the `giveOwnership` flag set. The trade transfers the issuer role atomically with the payment — no off-chain trust is required.
+
+**ORDER — list the ownership for sale at a fixed price:**
+
+```js
+const orderAction = sdk.order({
+  giveCoin:      'BTC',
+  giveTick:      'MYTOKEN',
+  giveOwnership: '1',          // selling ownership, not balances
+  // giveAmount must be empty when giveOwnership=1
+  getCoin:       'BTC',
+  getAmount:     '50000000',   // 0.5 BTC payment
+  expiration:    '1000',
+});
+```
+
+A buyer fills the order with the matching `getOwnership: '1'` side, and the ownership role transfers atomically with the payment.
+
+**SWAP — match two known parties for an ownership trade:**
+
+```js
+const swapAction = sdk.swap({
+  giveCoin:      'BTC',
+  giveTick:      'MYTOKEN',
+  giveOwnership: '1',
+  getCoin:       'BTC',
+  getTick:       'PAYTOKEN',
+  getAmount:     '100',
+  getAddress:    'bc1qbuyeraddress...',
+});
+```
+
+**DISPENSER — first buyer to pay the asking price takes ownership:**
+
+```js
+const dispenserAction = sdk.dispenser({
+  giveCoin:      'BTC',
+  giveTick:      'MYTOKEN',
+  giveOwnership: '1',          // single-shot ownership dispenser
+  getCoin:       'BTC',
+  getAmount:     '50000000',
+  // giveAmount and giveEscrow must be empty for ownership dispensers
+});
+```
+
+Ownership dispensers are single-shot: once the ownership has been claimed, the dispenser closes automatically (there is only one issuer role per token).
+
+### Sweep — Move Balances, Ownerships, or Escrows in Bulk
+
+SWEEP moves everything from your address to a destination in one transaction. The three categories are independent flags — you can sweep balances only, ownerships only, escrows only, or any combination.
 
 ```js
 const sweepAction = sdk.sweep({
   destination: 'bc1qnewaddress...',
-  balances: '1',    // transfer all token balances
-  ownerships: '1',  // transfer all token ownerships
-  escrows: '1',     // transfer escrowed tokens (e.g., dispenser escrows) after delay
+  balances:   '1',   // transfer all token balances
+  ownerships: '1',   // transfer all token ownerships
+  escrows:    '1',   // transfer escrowed tokens (e.g., dispenser escrows) after delay
+});
+```
+
+Escrowed tokens from dispensers are released to the destination address after a set delay following SWEEP.
+
+---
+
+## Token-Gated Encrypted Files
+
+Publish a file — or a whole pack of files — directly to the blockchain, encrypted such that only holders of a specific token can decrypt it. The decryption key is automatically re-encrypted to each new holder on every transfer, so a buyer of the token receives the unlock as part of the same transaction. No download server, no key escrow service, no off-chain infrastructure.
+
+This composes three primitives: the FILE action (carries the encrypted bytes plus three new gating fields), the MESSAGE v2 action in ECIES mode (carries the encrypted key handoff), and the BATCH action (composes the two atomically). The SDK exposes a `gatedFile` helper for the encryption side.
+
+### Publishing a Single Encrypted File
+
+The issuer publishes the encrypted file and a self-MESSAGE that records the key (encrypted to the issuer's own address, so the issuer can retrieve it later to deliver to buyers on transfer).
+
+```js
+const XChainSDK = require('xchain-sdk');
+const fs = require('fs');
+const sdk = new XChainSDK({ hubUrl: 'http://localhost:35500' });
+
+// 1. Encrypt the file plaintext under a fresh symmetric key
+const plaintext = fs.readFileSync('./album.flac');
+const { ciphertext, key, keyHash } = sdk.gatedFile.encryptFileBytes(plaintext);
+
+// 2. Build the gated FILE action with the ciphertext as rawData
+const fileAction = sdk.file({
+  name:             'album.flac',
+  type:             'audio/flac',
+  title:            'Sealed Album',
+  memo:             '',
+  gateTicker:       'ALBUMTOKEN',   // only holders of ALBUMTOKEN can decrypt
+  encryptionMethod: 1,              // 1 = AES-256-GCM
+  keyHash:          keyHash,        // hex sha256(key)
+  rawData:          ciphertext,
 });
 
+// 3. Self-MESSAGE: encrypt the key to your own address so you can recover it later.
+//    Encode the key as the binary handoff payload before ECIES-encrypting it.
+const handoffPayload = sdk.gatedFile.serializeKeyPayload([key]);
+
+const selfMessageAction = sdk.message({
+  coin:             'BTC',
+  destination:      'bc1qyourissueraddress...',
+  encryptionMethod: 1,                 // 1 = ECIES (MESSAGE v2)
+  binary:           true,              // use binary mode — required for handoff payload
+  plaintext:        handoffPayload,
+});
+
+// 4. Bundle the two into one BATCH and broadcast atomically.
+const batchAction = sdk.batch().file(fileAction).message(selfMessageAction).build();
 const psbt = await sdk.encoder.createPSBT({
-  action: sweepAction,
+  action:    batchAction,
   publicKey: 'YOUR_PUBLIC_KEY_HEX',
-  utxos: yourUtxos,
+  utxos:     yourUtxos,
 });
 await signAndBroadcast(psbt.psbt);
 ```
 
-Escrowed tokens from dispensers are released to the destination address after a set delay following SWEEP.
+After confirmation, the file ciphertext lives on-chain forever, and the issuer can retrieve the symmetric key any time by decrypting their own self-MESSAGE.
+
+### Publishing a Pack (Multiple Files, One Key)
+
+A pack is two or more gated FILE actions that share the same `keyHash`. Owning the token decrypts every file in the pack with one key.
+
+```js
+const stems    = fs.readFileSync('./stems.zip');
+const liner    = fs.readFileSync('./liner-notes.pdf');
+const cover    = fs.readFileSync('./cover.png');
+
+// One key, three ciphertexts
+const { ciphertexts, key, keyHash } = sdk.gatedFile.encryptPack([stems, liner, cover]);
+
+// Publish each file under the shared keyHash — order independent
+const fileActions = ciphertexts.map((ct, i) => sdk.file({
+  name:             ['stems.zip', 'liner-notes.pdf', 'cover.png'][i],
+  type:             ['application/zip', 'application/pdf', 'image/png'][i],
+  title:            'Sealed Pack',
+  memo:             '',
+  gateTicker:       'ALBUMTOKEN',
+  encryptionMethod: 1,
+  keyHash:          keyHash,        // same hash for every file in the pack
+  rawData:          ct,
+}));
+
+// Self-MESSAGE records the single shared key
+const handoffPayload = sdk.gatedFile.serializeKeyPayload([key]);
+const selfMessage = sdk.message({
+  coin:             'BTC',
+  destination:      'bc1qyourissueraddress...',
+  encryptionMethod: 1,
+  binary:           true,
+  plaintext:        handoffPayload,
+});
+
+// Broadcast each FILE in its own transaction; the self-MESSAGE can ride with the last one.
+// (Files are too large to fit many in one BATCH; broadcast one at a time.)
+```
+
+### Transferring a Gated Token
+
+The protocol enforces a rule on SENDs of tokens with active gated content: every SEND must be paired with a MESSAGE v2 to the recipient carrying the key handoff. The wallet builds the BATCH; the indexer rejects the SEND if the matching MESSAGE is missing.
+
+```js
+const handoffPayload = sdk.gatedFile.serializeKeyPayload([key]);  // sender must already have key
+
+const transferBatch = sdk.batch()
+  .send({ coin: 'BTC', destination: 'bc1qbuyeraddress...', tick: 'ALBUMTOKEN', amount: '1' })
+  .message({
+    coin:             'BTC',
+    destination:      'bc1qbuyeraddress...',
+    encryptionMethod: 1,
+    binary:           true,
+    plaintext:        handoffPayload,
+  })
+  .build();
+```
+
+The wallet must already hold the unlocked key — a wallet that has never decrypted the content has nothing to re-encrypt to the new holder. Wallets should block compose at the UI level for tokens they haven't unlocked yet, rather than producing an indexer-rejected transaction.
+
+### Holder-Side Unlock
+
+Unlocking is entirely client-side. No on-chain transaction is required.
+
+```js
+const messages = await sdk.explorer.getMessagesByDestination('bc1qmyaddress...');
+const keyBytes = [];
+for (const msg of messages) {
+  try {
+    const plaintext = sdk.messaging.decryptEcies(msg.encryptedMessage, myPrivateKey, { binary: true });
+    keyBytes.push(...sdk.gatedFile.parseKeyPayload(plaintext));   // returns array of 32-byte keys
+  } catch { /* not for me; skip */ }
+}
+
+// For each gated FILE the holder cares about, find the matching key by hashing each candidate.
+const file = await sdk.explorer.getAction(fileActionIndex);
+for (const k of keyBytes) {
+  if (sdk.gatedFile.verifyKey(k, file.keyHash)) {
+    const ciphertext = await sdk.explorer.getFileRaw(fileActionIndex);
+    const plaintext  = sdk.gatedFile.decryptFileBytes(ciphertext, k);
+    // ... use the decrypted bytes
+    break;
+  }
+}
+```
+
+### Selling a Gated Token
+
+The most common gated-content flow is also the most powerful one: list the gating token on a dispenser or in an order. The buyer sends payment; the platform's transfer rule guarantees they receive the decryption key in the same transaction.
+
+```js
+// Sell ALBUMTOKEN for 0.01 BTC; first buyer gets the album
+const dispenserAction = sdk.dispenser({
+  giveCoin:    'BTC',
+  giveTick:    'ALBUMTOKEN',
+  giveAmount:  '1',
+  giveEscrow:  '100',          // max 100 sales from this dispenser
+  getCoin:     'BTC',
+  getAmount:   '1000000',      // 0.01 BTC
+});
+```
+
+If you want to sell the **entire content archive** (keys, future republish rights, everything), pair this with [Sell Ownership on the DEX](#sell-ownership-on-the-dex) above.
+
+### Notes and Constraints
+
+- **Issuer-only publishing.** A gated FILE must be broadcast from the same address that issued the gating token. Third parties cannot gate arbitrary content to popular tickers as spam.
+- **First-access lock, not DRM.** A holder who decrypts has the bytes forever and can rehost them. The chain reflects who *currently* holds the token, not who has ever read the content.
+- **No key rotation.** If a key leaks, the only recourse is to republish under a new key. Old ciphertexts remain on-chain but become useless.
+- **Loss of address = loss of access.** Same custody model as the token itself.
+
+For the protocol-level spec (wire format, handoff payload layout, indexer validation rules), see [`protocol/Token_Gated_Content.md`](../protocol/Token_Gated_Content.md).
 
 ---
 

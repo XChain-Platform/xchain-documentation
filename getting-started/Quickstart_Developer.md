@@ -257,16 +257,16 @@ See [Regtest Development](../developer-guide/Regtest_Development.md) for setup i
 | JSON-RPC microservice | `npm run api` in xchain-sdk | Any language via HTTP |
 | Browser bundle | `dist/xchain_sdk.min.js` | Client-side web apps |
 
-### All 19 Actions Have Convenience Methods
+### All 30 Actions Have Convenience Methods
 
-Every XChain ACTION has a corresponding SDK method: `sdk.issue()`, `sdk.mint()`, `sdk.send()`, `sdk.sweep()`, `sdk.airdrop()`, `sdk.dividend()`, `sdk.order()`, `sdk.dispenser()`, `sdk.swap()`, `sdk.broadcast()`, `sdk.message()`, `sdk.file()`, `sdk.address()`, `sdk.link()`, `sdk.list()`, `sdk.sleep()`, `sdk.callback()`, `sdk.destroy()`. `sdk.transfer()` is an alias for `sdk.send()`.
+Every XChain ACTION has a corresponding SDK method: `sdk.issue()`, `sdk.mint()`, `sdk.send()`, `sdk.sweep()`, `sdk.airdrop()`, `sdk.dividend()`, `sdk.order()`, `sdk.coinpay()`, `sdk.dispenser()`, `sdk.swap()`, `sdk.broadcast()`, `sdk.message()`, `sdk.file()`, `sdk.address()`, `sdk.link()`, `sdk.list()`, `sdk.sleep()`, `sdk.callback()`, `sdk.destroy()`, `sdk.stake()`, `sdk.unstake()`, `sdk.delegate()`, `sdk.collect()`, `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()`. `sdk.transfer()` is an alias for `sdk.send()`. PRICE and ATTEST are emitted automatically by the hub and the VM respectively, not user-broadcast.
 
 ---
 
 ## Next Steps
 
 - [Full SDK Documentation](../components/sdk/) — all methods, configuration options, error types, and examples
-- [ACTION Reference](../protocol/ACTIONS.md) — detailed spec for all 19 actions and their fields
+- [ACTION Reference](../protocol/ACTIONS.md) — detailed spec for all 30 actions and their fields
 - [Regtest Development](../developer-guide/Regtest_Development.md) — run a full local stack for free
 - [Explorer API](../components/explorer/) — all 50+ REST and JSON-RPC endpoints
 
