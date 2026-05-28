@@ -39,12 +39,13 @@ The gas schedule defines the cost of each metered operation. These values are se
 | Operation | Key | Cost | Description |
 |---|---|---|---|
 | Computation | `VM_COMPUTATION` | 1 | Charged at each `__gas()` injection point (loop iterations, branches, function calls) |
-| State read | `VM_STATE_READ` | 100 | `state.get()`, `state.has()`, `getBalance()`, `getTokenInfo()` |
+| State read | `VM_STATE_READ` | 100 | `state.get()`, `state.has()`, `getBalance()`, `getTokenInfo()`, `attestation.getResponse()`, `contract.getStake()`, `contract.getTotalStaked()`, `contract.getStakers()` |
 | State write | `VM_STATE_WRITE` | 200 | `state.set()` |
 | State delete | `VM_STATE_DELETE` | 100 | `state.delete()` |
 | Oracle read | `VM_ORACLE_READ` | 100 | `oracle.getPrice()`, `oracle.getPriceAtRound()` |
 | Cross-chain read | `VM_CROSSCHAIN_READ` | 100 | `crossChain.getAttestation()`, `crossChain.isSettled()` |
-| Action emission | `VM_EMISSION` | 500 | Each `emit.*()` call (SEND, MINT, ORDER, etc.) |
+| Action emission | `VM_EMISSION` | 500 | Each `emit.*()` call (SEND, MINT, ORDER, etc.); also charged on `attestation.request()` and `contract.slash()` |
+| Attestation request | `VM_ATTEST_REQUEST` | 5000 | Additional fee on top of `VM_EMISSION` for `attestation.request()` — reflects the validator-network work that backs the eventual response |
 
 Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`revert`, `require`), and logging (`log`, `isLogFull`, `getLogCount`) are gas-free. `oracle.getSnapshotAge()` is also gas-free.
 

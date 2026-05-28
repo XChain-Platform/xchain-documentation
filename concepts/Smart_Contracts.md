@@ -51,6 +51,11 @@ All succeed atomically, or all roll back
 
 Contracts also maintain persistent key-value state across executions, enabling them to track conditions, accumulate data, and implement multi-step workflows.
 
+Two of the gateway namespaces extend this synchronous picture in important ways:
+
+- **`xchain.attestation.*`** — lets a contract ask a question of the outside world (HTTPS, AI) and receive the answer back as a separate, validator-signed EXECUTE later. Asynchronous; see [Asking the Outside World](#asking-the-outside-world--the-attestation-framework).
+- **`xchain.contract.*`** — lets a contract that declared itself stakeable read its own stakers and slash them. Synchronous; see [Stakeable Contracts](#stakeable-contracts).
+
 ## Contract Derived Addresses
 
 Every deployed contract receives a **derived address** in the format `C:<CHAIN>:<action_index>` (e.g., `C:BTC:500`). This address participates in the standard balance system — contracts hold tokens at their derived address just like any other address in the ledger. There is no separate custody table.
@@ -172,18 +177,32 @@ All math inputs and outputs are **strings**. This ensures deterministic precisio
 | `xchain.isLogFull()` | Check if log cap reached |
 | `xchain.getLogCount()` | Current log count |
 
-### Oracle (100 gas each, pending VM integration)
+### Oracle (100 gas each)
 | Method | Returns |
 |---|---|
 | `xchain.oracle.getPrice(coinPair)` | Price data or null |
 | `xchain.oracle.getPriceAtRound(coinPair, round)` | Historical price or null |
 | `xchain.oracle.getSnapshotAge()` | Blocks since last snapshot (number) |
 
-### Cross-Chain (100 gas each, pending VM integration)
+### Cross-Chain (100 gas each)
 | Method | Returns |
 |---|---|
 | `xchain.crossChain.getAttestation(chain, actionIndex)` | Attestation data or null |
 | `xchain.crossChain.isSettled(chain, actionIndex)` | Boolean |
+
+### External Attestation — asking the outside world (see [framework section below](#asking-the-outside-world--the-attestation-framework))
+| Method | Gas | Description |
+|---|---|---|
+| `xchain.attestation.request(providerId, payload, callback, params, opts)` | 500 + provider escrow | Emit an ATTEST v0 request. Returns a deterministic 64-hex `requestId`. The response arrives later as a separate EXECUTE invoking `callback`. |
+| `xchain.attestation.getResponse(requestId)` | 100 | Read a previously-stored response by request id. Returns `null` until the request is fulfilled. |
+
+### Contract-Targeted Staking — readable + slashable from inside the staked-against contract (see [stakeable contracts section below](#stakeable-contracts))
+| Method | Gas | Description |
+|---|---|---|
+| `xchain.contract.getStake(pubkey, token)` | 100 | Sum of active stake for `(pubkey, token)` targeting this contract. Returns `'0'` if none. |
+| `xchain.contract.getTotalStaked(token)` | 100 | Total active stake of `token` across all stakers of this contract. |
+| `xchain.contract.getStakers(token)` | 100 | Top stakers of `token` on this contract — `[{pubkey, amount}, ...]`, sorted descending, capped at 1000. |
+| `xchain.contract.slash(pubkey, token, amount)` | 500 | Slash `amount` of `token` from one staker on this contract. Routed to the deploy-time `SLASH_DESTINATION`. Authorization is implicit. |
 
 ## Deterministic Execution
 
@@ -217,6 +236,172 @@ Every contract execution is bounded by hard limits:
 
 Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs — it should never trigger under normal operation.
 
+## Asking the Outside World — The Attestation Framework
+
+Most smart contract platforms can only see data already on-chain. XChain contracts can ask the outside world a question — an HTTPS endpoint, an AI prompt, anything a governance-approved provider knows how to answer — and receive a verified answer back on-chain.
+
+This is built on two ideas. First, the contract doesn't talk to the outside world directly — the **validator network** does it on the contract's behalf. Second, no single validator's answer is trusted by itself; multiple validators fetch the answer independently and the network agrees on the result before it's written to the chain. The result is that the answer is reproducible — anyone replaying the chain arrives at the same outcome — even though the underlying fetch isn't.
+
+### The Request → Callback Model
+
+A smart contract can't pause and wait for an answer (the VM is synchronous, gas-bounded, and runs in a single block). So attestation uses an **asynchronous request-and-callback** pattern:
+
+```
+Block N:  Contract method calls xchain.attestation.request(...)
+              → Emits ATTEST v0 (request) — contract method returns immediately
+
+Block N+1..N+deadline:  Validators with the 'attestation' capability
+                        each fetch the answer independently via the provider
+                        → They gossip proposals and agree on the canonical response
+                        → Leader broadcasts ATTEST v1 (response) with everyone's signatures
+
+Some block N+k:  Indexer accepts the ATTEST v1
+                 → Synthesizes a fresh EXECUTE calling the contract's callback method
+                 → Callback receives: (requestId, providerId, status, response, ...originalParams)
+
+If no v1 by the deadline:  Indexer synthesizes ATTEST v2 (expire)
+                            → Callback fires anyway with status='expired'
+```
+
+The contract's first method (the one that called `request`) returns synchronously; its work in that block is done. The callback method runs in a separate EXECUTE later, when the answer is available. The callback runs as if the contract were calling itself — `xchain.getSourceAddress()` returns the contract's own derived address.
+
+The platform always invokes the callback exactly once per request — on success, on provider error, or on expiry. A contract never has to poll, never has to clean up stale requests, and never gets a "no answer" silently.
+
+### Providers
+
+The set of providers is governance-controlled. Two ship in the initial release:
+
+| Provider | What it does | Payload | Validator consensus |
+|---|---|---|---|
+| `http_get` | Fetches an HTTPS URL and returns the response body | URL string | Exact byte-equality across validators |
+| `llm` | Sends a prompt to an approved language model | JSON envelope: `{prompt, max_tokens?, system?}` | Judge-model decides whether validators' answers mean the same thing |
+
+The contract sends a string payload; the provider tells the validators how to interpret it. From the contract's point of view, the difference between providers is just the payload format and the consensus strategy. New providers can be added by governance without changing the contract API.
+
+### Validator Consensus, in Plain Terms
+
+The `redundancy` option in `xchain.attestation.request(..., { redundancy: N })` controls how many independent validators must agree before the response is written to chain. Three values are allowed:
+
+- **`redundancy: 1`** — the cheapest path. One validator's answer becomes the final answer. No agreement round, no PBFT, no judge. Right for non-critical queries where speed and cost matter more than independent verification.
+- **`redundancy: 3` or `5`** — multiple validators fetch independently. They exchange proposals and agree on a canonical answer. For `http_get`, "agree" means exact byte equality. For `llm`, a separate judge model decides whether the candidates are semantically equivalent. If quorum can't be reached the request expires on its deadline.
+
+Higher redundancy doesn't change the API the contract sees — the callback signature is identical regardless. It just changes the trust model of the answer and the fee the request escrows.
+
+### Worked Example: AI-Judged Yes/No
+
+```javascript
+module.exports = {
+    askIsTrue: function(xchain) {
+        var statement = xchain.getInputParam(0);   // e.g. "the sky is blue"
+
+        xchain.attestation.request(
+            'llm',
+            JSON.stringify({
+                prompt: 'Reply with only "1" if the following statement is true, "0" otherwise. Statement: ' + statement,
+                max_tokens: 4
+            }),
+            'handleVerdict',
+            [xchain.getSourceAddress(), statement],   // echoed back to handleVerdict
+            { redundancy: 3, deadlineBlocks: 20 }
+        );
+    },
+
+    handleVerdict: function(xchain) {
+        var requestId      = xchain.getInputParam(0);
+        var providerId     = xchain.getInputParam(1);
+        var status         = xchain.getInputParam(2);   // 'ok' | 'expired' | 'no_quorum' | 'provider_error' | 'timeout'
+        var response       = xchain.getInputParam(3);
+        var originalCaller = xchain.getInputParam(4);
+        var statement      = xchain.getInputParam(5);
+
+        if (status !== 'ok') {
+            xchain.log('verdict unavailable: ' + status);
+            return;
+        }
+
+        var verdict = response.trim() === '1' ? 'true' : 'false';
+        xchain.state.set('verdict_' + originalCaller, verdict);
+        xchain.log(statement + ' → ' + verdict);
+    }
+};
+```
+
+The `askIsTrue` method emits ATTEST v0 and returns. A handful of blocks later, the validator network agrees on the model's answer (or fails to agree, in which case the request expires), and the indexer synthesizes a fresh EXECUTE invoking `handleVerdict`. The contract's verdict is then recorded in state.
+
+### Cost Model
+
+Each request escrows the provider's `per_call_base_fee_xchain` at emission time (LLM: 0.50 XCHAIN; http_get: 0.01 XCHAIN — governance can change these). On `ok`, the escrow is paid out to the responding validators. On expiry, the escrow currently sits — refund/redistribution is a future economic phase.
+
+Provider-level limits the contract should know about:
+- **`max_request_bytes`** — payload size cap (LLM and http_get: 8192). Enforced both by the VM (8192 platform cap) and the indexer (per-provider cap).
+- **`allowed_redundancy`** — which `[1, 3, 5]` values the provider supports.
+- **`deadline_window_blocks`** — how far in the future the deadline can be (per-provider cap; VM accepts [1, 100]).
+
+### Limitations and Notes
+
+- **Asynchronous only.** A contract cannot block on a result; it must continue and react in the callback.
+- **One callback per request, eventually.** Either the response, or expiry. Never both, never silent.
+- **Body size on response.** `RESPONSE_PAYLOAD` is UTF-8 inline in ATTEST v1 — large binary bodies are out of scope.
+- **`getResponse(requestId)` is read-only.** It returns the previously-stored response after the callback has already fired, useful for contracts that want to revisit a past answer from a different method.
+
+For the wire-level lifecycle see [`protocol/actions/ATTEST.md`](../protocol/actions/ATTEST.md); for provider-specific payloads see [`protocol/providers/`](../protocol/providers/).
+
+## Stakeable Contracts
+
+A contract can declare itself **stakeable** at deploy time. Anyone can then lock any token, on any chain, against the contract. The contract's own code decides what staking unlocks — access, voting weight, a share of rewards, qualification for something — and the contract can slash any of its stakers' locked tokens at any time. This is a general-purpose primitive for backing on-chain commitments with value.
+
+This is layered above the existing capability-based validator staking (which is for hub validators only, XCHAIN-only, and uses different action versions). The two systems share no state — a pubkey staked in one does not count toward the other.
+
+### Declaring a Contract Stakeable
+
+Two fields, both optional, both locked permanently at deploy time:
+
+| Field | Notes |
+|---|---|
+| `COOLDOWN_BLOCKS` | How long a staker waits between calling UNSTAKE and getting their tokens back. Bounded `[1, 100000]`. Omit to make the contract non-stakeable. |
+| `SLASH_DESTINATION` | Where slashed tokens go — a specific address, or the keyword `BURN`. Defaults to `BURN` if cooldown is set without a destination. |
+
+Both fields are immutable from deployment forward. Neither the contract author nor anyone else can change them. Stakers can audit both before locking anything up — they know the cooldown, they know the slash destination, they know what the contract's code does.
+
+### Reading Stake State from Inside
+
+```javascript
+// What has this specific pubkey staked, in XCHAIN, against THIS contract?
+var amount = xchain.contract.getStake(pubkey, 'XCHAIN');
+
+// What is the total stake of XCHAIN across everyone, on THIS contract?
+var total = xchain.contract.getTotalStaked('XCHAIN');
+
+// Who are the top stakers of XCHAIN here?
+var stakers = xchain.contract.getStakers('XCHAIN');
+// → [{ pubkey: '...64hex...', amount: '500' }, ...]
+```
+
+`getStakers` is capped at the top 1000 entries — a contract should design its rules so it doesn't need to iterate every staker. Pre-activation stakes (within the 6-block activation window after STAKE) are not yet visible.
+
+### Slashing
+
+```javascript
+xchain.contract.slash(pubkey, 'XCHAIN', '50');
+```
+
+- The slash can only target stakers of **this** contract. The accessor is scoped to the executing contract; cross-contract slashing isn't possible.
+- Slashed tokens go to the destination locked at deploy time.
+- The slash reaches active stakes first; if there's a remainder, it pulls from any cooldown-queued balance the staker has already begun withdrawing. (Stakers can't escape an imminent slash by unstaking.)
+- Over-slash is silently capped at the staker's available balance — no error if you ask for more than they have.
+- Atomic with the calling EXECUTE: if the method reverts after the slash, the slash rolls back too.
+
+### What This Enables
+
+- **Prediction markets** — participants stake tokens to back their claims; the contract slashes wrong ones and pays out correct ones from the slashed pool.
+- **Security bonds** — a service operator stakes tokens as a deposit; users get paid from that bond if the service misbehaves.
+- **Validator-style services on top of XChain** — a contract can run its own internal validator set (for a sidechain bridge, a relay, a federated oracle) backed by stake on any chain.
+- **Reputation games** — communities stake against their own predictions or moderation decisions; reputation is calibrated by what gets slashed.
+- **Conditional escrow with teeth** — two parties stake against a deal; an arbitrator (or [an AI judge](#asking-the-outside-world--the-attestation-framework)) decides if the deal was kept and slashes accordingly.
+- **DAO membership locks** — members stake to participate; the DAO's contract slashes for spam or rule-breaking.
+
+For the wire format, isolation rules, cooldown sweep behavior, and the on-chain `slash_events` table, see [`protocol/Contract_Staking.md`](../protocol/Contract_Staking.md).
+
 ## Error Handling
 
 | Error Type | Result | State Changes |
@@ -238,6 +423,7 @@ Deployed contracts are **immutable** in API version 1. There is no mechanism to 
 
 ## What Contracts Enable
 
+**Programmable token logic:**
 - **Conditional logic** — "Execute this SEND only if the caller holds at least 1000 of token X"
 - **Token vesting** — Automatically release tokens on a schedule based on block height
 - **Automated market makers** — Continuous-pricing liquidity pools using constant-product formulas
@@ -245,13 +431,30 @@ Deployed contracts are **immutable** in API version 1. There is no mechanism to 
 - **Governance (DAOs)** — Token-weighted voting with on-chain proposal and execution
 - **Cross-chain orchestration** — Combined with the hub, contracts can coordinate actions across chains
 
+**Reaching the outside world** (via [the Attestation Framework](#asking-the-outside-world--the-attestation-framework)):
+- **AI-judged contests, ranking, and moderation** — submit prompts to an approved language model and act on the verdict
+- **Real-world data triggers** — insurance, parametric payouts, and prediction-market settlement driven by an HTTPS feed
+- **News-sensitive treasuries** — adjust holdings based on AI summaries of headlines or social signals
+- **Translation, classification, summarization** — any task that needs a model's judgment at machine speed
+- **Dispute resolution** — submit both sides' claims to an AI judge and act on the verdict
+
+**Bonded commitments and stake-backed services** (via [Stakeable Contracts](#stakeable-contracts)):
+- **Prediction markets** — participants stake their predictions; wrong ones get slashed and redistributed
+- **Security bonds** — service operators stake a deposit that pays users out on misbehavior
+- **Validator-style services on top of XChain** — contracts run their own internal validator sets, backed by stake on any chain
+- **Reputation games** — communities stake against their own decisions; reputation is calibrated by what gets slashed
+- **DAO membership locks** — members stake to participate; bad-faith behavior is slashed by code
+
 ## Related
 
 - [Gas and Fees](GAS.md) — gas economics for VM execution
 - [ACTIONs](ACTIONS.md) — the platform actions that contracts orchestrate
 - [Ledger](LEDGER.md) — the double-entry system that contracts interact with
-- [DEPLOY Action](../protocol/actions/DEPLOY.md) — deploying a contract
+- [DEPLOY Action](../protocol/actions/DEPLOY.md) — deploying a contract (including stakeable-contract metadata)
 - [EXECUTE Action](../protocol/actions/EXECUTE.md) — calling a contract method
+- [ATTEST Action](../protocol/actions/ATTEST.md) — the request/response/expire lifecycle behind `xchain.attestation.*`
+- [LLM Provider](../protocol/providers/llm.md) — prompt envelope, approved models, judge-model consensus
+- [Contract-Targeted Staking](../protocol/Contract_Staking.md) — wire spec for `xchain.contract.*`
 - [Contract Development Guide](../developer-guide/Smart_Contract_Development.md) — writing and deploying contracts
 
 ---

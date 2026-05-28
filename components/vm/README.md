@@ -16,6 +16,8 @@ A pure function library. Takes contract code + state + inputs + block context. R
 - **AST-based gas metering** — `acorn` parses the source, injects `__gas()` at control flow points, `astring` regenerates — fully deterministic, not wall-clock
 - **JSON bridge protocol** — host-side gateway functions communicate with the isolate via JSON-serialized arguments and type-prefixed return values
 - **16 emittable action types** — SEND, DESTROY, ISSUE, MINT, ORDER, DISPENSER, DIVIDEND, AIRDROP, CALLBACK, FILE, LIST, COINPAY, SWEEP, LINK, BROADCAST, MESSAGE
+- **External attestation gateway** — `xchain.attestation.request(...)` and `getResponse(...)`. Contracts ask an HTTPS endpoint or an approved LLM, and the validator network writes a signed answer back on-chain that re-enters the contract through a callback. See [Smart Contracts — Attestation Framework](../../concepts/Smart_Contracts.md#asking-the-outside-world--the-attestation-framework).
+- **Contract-targeted staking gateway** — `xchain.contract.getStake`, `getTotalStaked`, `getStakers`, `slash`. Any contract can declare itself stakeable at deploy time and slash its own stakers per its own rules. See [Smart Contracts — Stakeable Contracts](../../concepts/Smart_Contracts.md#stakeable-contracts).
 - **Deterministic math** — `xchain.math.*` wraps mathjs bignumber with string I/O, no floating-point at the gateway boundary
 - **Contract state management** — key-value store with dirty tracking, key count, key size, and value size limits
 - **Deploy-time validation** — V8 syntax check, acorn metering pass, reserved identifier detection, float warnings
@@ -59,17 +61,21 @@ const vm = new XChainVM({
 });
 
 const result = await vm.execute({
-    code:             contractCode,
-    state:            contractState,
-    method:           methodName,
-    params:           ['arg1', 'arg2'],
-    caller:           sourceAddress,
-    contractAddress:  'C:BTC:500',
-    blockContext:     { height: 100, timestamp: 1700000000, hash: 'blockhash' },
-    balances:         addressBalances,
-    tokenInfo:        tokenInfoMap,
-    oracleData:       oracleAccessor,
-    crossChainData:   crossChainAccessor
+    code:               contractCode,
+    state:              contractState,
+    method:             methodName,
+    params:             ['arg1', 'arg2'],
+    caller:             sourceAddress,
+    contractAddress:    'C:BTC:500',
+    contractIndex:      500,                   // backs request-id derivation + slash auth
+    txHash:             'txhash...',           // backs request-id derivation
+    blockContext:       { height: 100, timestamp: 1700000000, hash: 'blockhash' },
+    balances:           addressBalances,
+    tokenInfo:          tokenInfoMap,
+    oracleData:         oracleAccessor,
+    crossChainData:     crossChainAccessor,
+    attestationData:    attestationAccessor,    // backs xchain.attestation.getResponse
+    contractStakeData:  contractStakeAccessor   // backs xchain.contract.* — scoped to THIS contract
 });
 
 // result = {
@@ -126,12 +132,15 @@ const result = await vm.execute({
 
 ## Related
 
-- [Smart Contracts Concept](../../concepts/Smart_Contracts.md) — gateway API reference, contract format, deterministic execution model
+- [Smart Contracts Concept](../../concepts/Smart_Contracts.md) — gateway API reference, contract format, deterministic execution model, attestation framework, stakeable contracts
 - [Contract Development Guide](../../developer-guide/Smart_Contract_Development.md) — writing, deploying, and debugging contracts
 - [Gas and Fees](../../concepts/GAS.md) — gas economics, fee schedule, XCHAIN token
 - [Indexer Architecture](../indexer/ARCHITECTURE.md) — how the indexer integrates the VM
-- [DEPLOY Action](../../protocol/actions/DEPLOY.md) — deploying a contract
+- [DEPLOY Action](../../protocol/actions/DEPLOY.md) — deploying a contract (including stakeable-contract metadata)
 - [EXECUTE Action](../../protocol/actions/EXECUTE.md) — calling a contract method
+- [ATTEST Action](../../protocol/actions/ATTEST.md) — request/response/expire lifecycle behind `xchain.attestation.*`
+- [LLM Provider](../../protocol/providers/llm.md) — prompt envelope, approved models, judge-model consensus
+- [Contract-Targeted Staking](../../protocol/Contract_Staking.md) — wire spec for `xchain.contract.*`
 
 ---
 

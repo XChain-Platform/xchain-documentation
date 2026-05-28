@@ -37,7 +37,7 @@ Contract Source Code
 | `sandbox.js` | Strips non-deterministic globals (Date, Math.random, setTimeout, etc.), replaces Math with frozen deterministic subset, preserves `Function` reference for contract wrapper |
 | `metering.js` | AST-based gas injection — parses source with acorn, injects `__gas()` at control flow points, regenerates with astring. Also provides `hasGasIdentifier()` for deploy-time validation |
 | `gas.js` | GasTracker class — validates gas schedule (non-negative integers), accumulates gas charges per operation, enforces ceiling, throws GasExhaustedError on overflow |
-| `gateway.js` | Builds the `xchain` gateway object — context accessors, state CRUD, ledger queries, oracle, cross-chain, emit API, math, control flow, logging |
+| `gateway.js` | Builds the `xchain` gateway object — context accessors, state CRUD, ledger queries, oracle, cross-chain, **external attestation (`xchain.attestation.*`)**, **contract-targeted staking (`xchain.contract.*`)**, emit API, math, control flow, logging |
 | `gateway-emit.js` | Emit API builder — 16 action types (SEND through MESSAGE), parameter validation, gas charging |
 | `math.js` | Deterministic math wrapping mathjs bignumber — all inputs/outputs are strings, wrapped in `safeMath` for ContractRevertError on failures |
 | `state.js` | StateManager — reads from initial snapshot, tracks writes/deletes in dirty map, enforces key count, key size, and value size limits, provides `getChanges()` for result collection |

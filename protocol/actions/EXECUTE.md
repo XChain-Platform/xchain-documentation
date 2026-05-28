@@ -49,12 +49,24 @@ Execute the 'increment' method on contract 12345 with no parameters
 
 ## Notes
 - `CONTRACT_ACTION_INDEX` refers to the action index recorded when the contract was deployed via `DEPLOY`
-- The VM executes inside a sandboxed V8 isolate — no access to the host process, filesystem, or network
+- The VM executes inside a sandboxed V8 isolate — no access to the host process, filesystem, or network. Contracts that need outside-world data emit `ATTEST v0` requests via `xchain.attestation.request(...)`; the validator network delivers the answer asynchronously through a system-synthesized EXECUTE — see below.
 - Execution is deterministic — all indexer nodes produce identical results for the same block
 - Each emitted action gets its own action_index and is processed through the same handler as user-submitted actions
 - Emitted actions are recorded in the `contract_emissions` table, linking them to the parent execution
 - Use `DEPOSIT` to fund a contract with tokens before calling methods that emit token transfers
-- Gas schedule constants (`VM_EXECUTE_BASE`, `VM_COMPUTATION`, `VM_STATE_READ`, `VM_STATE_WRITE`, `VM_EMISSION`, etc.) are defined in the gas schedule configuration
+- Gas schedule constants (`VM_EXECUTE_BASE`, `VM_COMPUTATION`, `VM_STATE_READ`, `VM_STATE_WRITE`, `VM_EMISSION`, `VM_ATTEST_REQUEST`, etc.) are defined in the gas schedule configuration
+
+## System-Synthesized EXECUTE (attestation callbacks)
+When an `ATTEST v1` response (or `ATTEST v2` expiry) is accepted on-chain, the indexer synthesizes a fresh `EXECUTE` invoking the original `xchain.attestation.request(..., callbackMethod, callbackParams, ...)`. This is the same EXECUTE action used by users — same handler, same gas accounting, same emission semantics — with two differences:
+
+- **No external `SOURCE`.** The synthesized EXECUTE's `SOURCE` is set to the contract's own derived address. Inside the callback, `xchain.getSourceAddress() === xchain.getContractAddress()`.
+- **Pre-built parameter list.** The first four params are always `[request_id, provider_id, status, response_payload]`; the original `callbackParams` from the v0 request follow.
+
+Status values (`xchain.getInputParam(2)`): `ok` (response payload valid), `timeout`, `no_quorum`, `provider_error`, or `expired` (deadline reached with no v1).
+
+Callback execution is wrapped in its own savepoint — if the callback method throws, runs out of gas, or otherwise fails, the response row in `attestation_responses` is still durably recorded (so the validator network isn't asked to redo the work), and the contract's own state changes from the callback roll back. The v0 → v1 → callback chain is atomic for the v1 record but graceful-degrade for the callback's side effects.
+
+See [`ATTEST.md`](./ATTEST.md) for the wire-level lifecycle.
 
 ---
 
