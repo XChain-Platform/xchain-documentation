@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `components/indexer/CONFIGURATION.md` — corrected the `FEE_PAYMENT_MODE` entry. It previously listed non-existent values (`'XCHAIN'` / `'GAS_UNITS'`) and implied the key drove fee behaviour. Clarified that the key is currently informational only and that fee payment mode is detected implicitly at runtime by `detectFeePaymentMode()` in the indexer's `src/utility.js` (from the transaction's fee output and coin name), with a note documenting the actual per-chain behaviour (`'native'` on LTC/DOGE, `'xchain'`-fallback on BTC).
+
 ### Added — Five platform initiatives
 
 **1. AI-callable smart contracts (Attestation Framework + LLM provider).** Smart contracts can now ask the outside world a question and get a verified answer back on-chain. A contract calls `xchain.attestation.request(...)`, and the validator network independently fetches the answer from a registered provider, compares results across validators, and writes the agreed-upon response back to the chain — which then re-enters the contract through a callback method. Two providers ship in the initial release: `http_get` (any HTTPS endpoint, exact byte-equality consensus) and `llm` (large-language-model prompt, judge-model semantic consensus across Claude Sonnet 4.6 and Claude Opus 4.7). This is the platform's bridge between blockchain logic and the real world — usable for AI-judged contests, sentiment-gated airdrops, content moderation oracles, price feeds, dispute resolution, and any other real-world data trigger a contract needs.
