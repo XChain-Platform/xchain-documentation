@@ -14,6 +14,7 @@ This section covers everything needed to deploy, configure, monitor, and maintai
 | [Reorg Handling](./Reorg_Handling.md) | How the platform detects and recovers from blockchain reorganizations |
 | [Upgrading](./UPGRADING.md) | Safe upgrade procedures for each service |
 | [Troubleshooting](./TROUBLESHOOTING.md) | Common problems and how to diagnose and fix them |
+| [Privacy & Telemetry](./TELEMETRY.md) | What anonymous usage data xchain-node sends, and how to turn it off |
 
 ---
 
