@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- `components/encoder/Format_Selection.md` — corrected the documented P2WSH payload capacity from ~9,956 bytes to 8,192 bytes (table, section heading, and decision flowchart). 8,192 bytes is the effective protocol ceiling enforced by the decoder on decoded ACTION data, not the raw P2WSH script-level capacity, and it applies to every encoding format. The flowchart's `> P2WSH` branch previously implied larger payloads fell through to Multisig; it now reflects that payloads above the ceiling are rejected.
 - `components/indexer/CONFIGURATION.md` — corrected the `FEE_PAYMENT_MODE` entry. It previously listed non-existent values (`'XCHAIN'` / `'GAS_UNITS'`) and implied the key drove fee behaviour. Clarified that the key is currently informational only and that fee payment mode is detected implicitly at runtime by `detectFeePaymentMode()` in the indexer's `src/utility.js` (from the transaction's fee output and coin name), with a note documenting the actual per-chain behaviour (`'native'` on LTC/DOGE, `'xchain'`-fallback on BTC).
 
 ### Added — Five platform initiatives

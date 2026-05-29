@@ -12,7 +12,7 @@ XChain supports four encoding formats for embedding ACTION payloads in blockchai
 | OP_RETURN | 76 bytes | 1 | Lowest | Most actions |
 | Multisig | ~61 bytes/key | 1 | Low–Medium | Single-tx medium payloads |
 | P2SH | 476 bytes | 2 | Medium | Medium payloads |
-| P2WSH | 9,956 bytes | 2 | Medium–High | Large payloads |
+| P2WSH | 8,192 bytes | 2 | Medium–High | Large payloads |
 
 ## Format Details
 
@@ -39,7 +39,7 @@ Both transactions must be broadcast in order. The decoder reads the spend transa
 
 P2SH is suitable for larger ISSUE operations, BATCH commands that combine multiple actions, or any action with additional fields that push past the OP_RETURN limit.
 
-### P2WSH — up to 9,956 bytes
+### P2WSH — up to 8,192 bytes
 
 Functionally identical to P2SH but uses SegWit. The payload is embedded in a witness script locked to a P2WSH output. The same two-transaction pattern applies:
 
@@ -47,6 +47,8 @@ Functionally identical to P2SH but uses SegWit. The payload is embedded in a wit
 - **Spend tx** — reveals the witness script
 
 SegWit's witness discount makes P2WSH more fee-efficient than P2SH for large payloads. Use this for FILE actions, large BROADCAST messages, or any payload over 476 bytes.
+
+The 8,192-byte figure is the effective protocol ceiling: it is the maximum decoded ACTION data length the decoder will accept, not the raw P2WSH script-level capacity (which is higher, ~9,956 bytes). Payloads above 8,192 bytes are rejected at encode time and would be dropped by the decoder if broadcast, so this ceiling applies to every format — it is not specific to P2WSH.
 
 ## Decision Flowchart
 
@@ -65,14 +67,16 @@ Obfuscated payload length?
          |
     > 476 bytes
          |
-    <= 9,956 bytes
+    <= 8,192 bytes
          |
     P2WSH  (two tx, SegWit-discounted)
          |
-    > 9,956 bytes
+    > 8,192 bytes
          |
-    Multisig  (split across key slots)
+    Rejected  (exceeds the 8,192-byte protocol ceiling enforced by the decoder)
 ```
+
+Multisig is a single-transaction format chosen for medium payloads slightly larger than OP_RETURN, not an overflow path for payloads above the P2WSH range. The 8,192-byte decoder ceiling applies to every format, so no format can carry a payload above it.
 
 ## Practical Guidelines
 
