@@ -97,6 +97,32 @@ For shared services (hub, explorer, sync), a separate set of variables is genera
 | Shared image | `xchain-node-{service}` | `xchain-node-database` |
 | Base network | `xchain-node` | `xchain-node` |
 
+## Host Environment Variables (path overrides)
+
+These env vars override where xchain-node stores its filesystem state on the host. Set them in the shell, systemd unit, or host-provisioning playbook **before** invoking `xchain-node install` or any other command. All five fall back to their in-repo defaults if unset, so existing installs are unaffected.
+
+| Variable | Default | What goes here |
+|---|---|---|
+| `XCHAIN_NODE_DATA_DIR` | `<repo>/data` | Per-coin/network/module persistent state. Includes bootstrap output `.tar.gz` archives for utxo-tracker / decoder / indexer. **Tens to hundreds of GB at scale** — point at a large volume. |
+| `XCHAIN_NODE_TMP_DIR` | `<repo>/tmp` | Bootstrap inner work archives (`data.tar.gz`, `data.sha256`) and module-update clones. **Tens of GB during bootstrap operations** — point at the same large volume as `XCHAIN_NODE_DATA_DIR`. |
+| `XCHAIN_NODE_MODULES_DIR` | `<repo>/modules` | Git clones of every sibling xchain-* repo. 1–3 GB total. |
+| `XCHAIN_NODE_CRYPTO_NODES_DIR` | `<repo>/crypto_nodes` | Downloaded Bitcoin/Doge/Litecoin tarballs + extracted binaries. 100–500 MB per coin. |
+| `XCHAIN_NODE_CONFIG_DIR` | `<repo>/config` | Generated per-service `.env` files. Small. |
+| `XCHAIN_NODE_BLOCKS_DIR` | (unset → inside data volume) | Optional host path for the coin node's `blocks/` directory. If set, mounted as `/blocks` into the docker container so chain data can live on a separate disk from the rest of the node state. |
+
+### Recommended setup for OVH RISE-3 chain-node boxes
+
+On the RISE-3 archetype (small `/` partition, large `/misc` SATA mirror), set these before installing:
+
+```bash
+export XCHAIN_NODE_DATA_DIR=/misc/xchain-node-data
+export XCHAIN_NODE_TMP_DIR=/misc/xchain-node-tmp
+export XCHAIN_NODE_MODULES_DIR=/misc/xchain-node-modules
+export XCHAIN_NODE_CRYPTO_NODES_DIR=/misc/xchain-node-crypto_nodes
+```
+
+Without these overrides the small `/` partition fills the moment a bootstrap is created (inner work archive + outer archive together can exceed 70 GB for BTC mainnet).
+
 ## Internal Constants
 
 | Constant | Value | Location | Description |
