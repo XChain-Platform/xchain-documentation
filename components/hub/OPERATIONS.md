@@ -45,7 +45,43 @@ Without `P2P_VALIDATOR_ADDR`, the hub runs as a simple config oracle. Config rea
 With `P2P_VALIDATOR_ADDR` set, the hub joins the P2P validator network. All config writes go through PBFT consensus, price data is aggregated from multiple validators, and cross-chain actions are attested by a quorum. This mode requires:
 - `SIGNING_PRIVKEY_HEX` — Ed25519 private key for signing messages
 - `SEED_NODES` — comma-separated list of peer addresses to bootstrap the mesh
+- `ORACLE_EPOCH_START` — oracle round-numbering anchor (Unix ms), **identical across the federation**
+- `HUB_CAPABILITY_CONFIG` — path to the capability config JSON: `MIN_STAKE` thresholds + per-capability self-test config blocks (see CONFIGURATION.md)
 - At least one price API key (`COINGECKO_API_KEY` or `COINMARKETCAP_API_KEY`)
+
+#### Recommended: set up a validator with xchain-node
+
+`xchain-node` automates the validator setup so you don't hand-assemble env vars or keys:
+
+```bash
+# 1. Generate a signing key + starter capability config (offline, no stack needed)
+xchain-node validator init \
+  --seed-nodes seed1.example:10001,seed2.example:10001 \
+  --p2p-addr <your-public-host>:10001 \
+  --oracle-epoch-start <shared-federation-unix-ms> \
+  --capabilities price,cross_chain,oracle_publish,attestation
+
+# It prints your PUBKEY. Stake XCHAIN to that pubkey (STAKE v1) to meet each
+# capability's MIN_STAKE threshold.
+
+# 2. Edit the generated config/validator/capabilities.json — set real
+#    cross_chain RPC endpoints and oracle_publish DOGE address/wallet.
+
+# 3. Install/start the hub — it now boots in validator mode with your key +
+#    capability config mounted automatically.
+xchain-node install master xchain-hub
+
+# Check what you configured at any time:
+xchain-node validator status
+```
+
+A validator only *qualifies* for a capability once its on-chain stake to the
+pubkey meets that capability's `MIN_STAKE`, **and** the local self-test for that
+capability passes (which needs the config block in `capabilities.json`). A
+qualified-but-not-ready validator is still counted in quorum `N`, so a
+misconfigured node that skips rounds will accrue non-participation slashing —
+keep `capabilities.json` correct, or list capabilities you don't serve under
+`DISABLED_CAPABILITIES`.
 
 ## Docker
 
@@ -131,13 +167,20 @@ The P2P layer deduplicates messages using a TTL cache (default: 60 seconds). Thi
 
 - Verify all required environment variables are set (`HUB_PORT`, `HUB_DB_HOST`, `HUB_DB_PORT`, `HUB_DB_NAME`, `HUB_DB_USER`, `HUB_DB_PASS`)
 - Confirm MariaDB is reachable at the configured host and port
-- Check that the database user has CREATE DATABASE and CREATE TABLE privileges
+- Check that the database user has CREATE DATABASE and CREATE TABLE privileges. On first run the hub creates its own database; if the user lacks that privilege the hub now **exits immediately** with a `Fatal DB error … cannot create the database` message (rather than retrying forever). Either grant the privilege or pre-create the database and grant `ALL` on it.
 
 ### Validator mode not activating
 
 - Ensure `P2P_VALIDATOR_ADDR` is set — this is the single switch that activates validator mode
 - Verify `SIGNING_PRIVKEY_HEX` is a valid 64-character hex string (Ed25519 seed)
 - Check that `SEED_NODES` contains reachable peer addresses
+- Set `ORACLE_EPOCH_START` (Unix ms) — the hub refuses to start validator mode without it
+
+### Validator qualifies but never participates (and gets slashed)
+
+- This means the capability **self-test** is failing. Provide `HUB_CAPABILITY_CONFIG` with the per-capability config blocks (`price.sources`, `cross_chain.chains[*].rpc`, `oracle_publish.doge_address`/`doge_wallet`). Startup logs each failing self-test with the reason.
+- Confirm `CAPABILITIES.<cap>.MIN_STAKE` is set for every capability you intend to serve — without a configured threshold the hub treats the capability as **not qualified** (fail-closed; it no longer defaults to a 0 threshold).
+- For capabilities you deliberately don't serve, add them to `DISABLED_CAPABILITIES` so the federation doesn't expect participation.
 
 ### Oracle rounds not producing prices
 

@@ -36,6 +36,40 @@ Validator mode is activated when `P2P_VALIDATOR_ADDR` is set. All P2P-dependent 
 | `P2P_RECONNECT_MAX` | No | `60000` | Maximum delay for reconnect backoff (ms) |
 | `P2P_MSG_DEDUP_TTL` | No | `60000` | Message deduplication cache TTL (ms) |
 | `P2P_MAX_PAYLOAD` | No | `1048576` | Maximum WebSocket message size in bytes (1 MB) |
+| `HUB_CAPABILITY_CONFIG` | No | — | Path to the capability config JSON (see below). Required for capability qualification + self-tests. |
+
+### Capability Configuration
+
+Capability staking decides which of the four capabilities (`price`, `cross_chain`,
+`oracle_publish`, `attestation`) a validator is qualified and ready to serve. The
+hub loads this from the JSON file at `HUB_CAPABILITY_CONFIG`, applies it on startup,
+and **hot-reloads** on file change. It supplies two things:
+
+- `CAPABILITIES.<cap>.MIN_STAKE` — the stake threshold a pubkey must meet (queried
+  from the indexer) to qualify. **If a capability has no configured `MIN_STAKE`, the
+  hub treats it as not qualified (fail-closed)** — it does not default to `0`.
+- Per-capability self-test config blocks — checked locally so the hub only
+  participates when it can actually serve:
+  - `price`: `{ "sources": [...], "fiats": [...] }`
+  - `cross_chain`: `{ "chains": { "BTC": { "rpc": "..." }, ... } }`
+  - `oracle_publish`: `{ "doge_address": "...", "doge_wallet": "..." }`
+  - `attestation`: `{ "providers": { "<id>": false } }` (omit a key to enable it)
+- `DISABLED_CAPABILITIES`: array of capabilities to opt out of even when qualified.
+
+```json
+{
+  "CAPABILITIES": {
+    "price":          { "MIN_STAKE": "1000.00000000" },
+    "oracle_publish": { "MIN_STAKE": "500.00000000" }
+  },
+  "DISABLED_CAPABILITIES": ["cross_chain", "attestation"],
+  "price": { "sources": ["coingecko"], "fiats": ["USD"] },
+  "oracle_publish": { "doge_address": "D...", "doge_wallet": "/data/.dogecoin/wallet.dat" }
+}
+```
+
+`xchain-node validator init` generates a starter file and `xchain-node install`
+mounts it into the hub container automatically. See OPERATIONS.md → Validator Mode.
 
 ### PBFT Consensus
 
