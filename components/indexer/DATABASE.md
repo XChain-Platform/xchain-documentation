@@ -106,12 +106,22 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | Table | Purpose |
 |---|---|
 | `stakes` | Active and historical capability-staking STAKE records (`version` 1=new / 2=top-up) — `signing_pubkey_id`, `amount`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE), `status_id`, `source_id`. Capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) are derived from a pubkey's aggregate active `amount` against the governance-configured minimums — there is no `tier` column. |
-| `unstakes` | Capability UNSTAKE records — `signing_pubkey_id`, `amount`, `cooldown_end_block` (`block_index + 1000` for token return), `status_id`; links back to the originating stake by pubkey |
+| `unstakes` | Capability UNSTAKE v0 records — `signing_pubkey_id`, `amount`, `cooldown_end_block`, `status_id`; links back to the originating stake by pubkey. The cooldown end is `block_index + STAKING.COOLDOWN_BLOCKS` — the cooldown length is governance-configurable via the `STAKING.COOLDOWN_BLOCKS` parameter (default 1000 blocks), not a hardcoded constant. Contract-targeted UNSTAKE v1 records do **not** appear here; they are written to `contract_unstakes` with a per-contract cooldown (see below). |
 | `delegations` | Active and historical DELEGATE records — `signing_pubkey_id`, `activation_block`, `deactivation_block` (set on DELEGATE v2 revoke), `status_id` |
 | `validator_rewards` | Per-validator accumulated rewards — `source_id`, `signing_pubkey_id`, `reward_type` (`oracle_round` or `cross_chain_attestation`), `round_reference`, `amount`, `block_index`. Populated by the hub's `RewardTracker` via the `pushvalidatorrewards` JSON-RPC endpoint. |
 | `reward_claims` | COLLECT records — `source_id`, `amount`, `status_id`, `block_index` |
 
 All staking tables enforce a **6-block activation/deactivation delay** via `activation_block` and `deactivation_block` columns. Active-stake queries filter by `activation_block <= current_block AND (deactivation_block IS NULL OR deactivation_block > current_block)` to prevent short-range BTC reorgs from affecting the active validator set.
+
+### Contract-Staking Tables
+
+Contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1) is a developer primitive: any registered token can be staked against a smart contract, on any chain. These tables are entirely separate from the capability-staking tables above — they share no state, key off the target contract rather than a built-in capability, and use a per-contract cooldown instead of the global `STAKING.COOLDOWN_BLOCKS`. See `protocol/Contract_Staking.md` for the full spec.
+
+| Table | Purpose |
+|---|---|
+| `contract_stakes` | STAKE v3 records — `action_index` (PK), `source_id`, `version`, `signing_pubkey_id`, `target_contract_index` (FK to `contracts.action_index`), `tick_id`, `amount`, `status_id`, `block_index`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE v1). Active stake for a `(target_contract_index, signing_pubkey_id, tick_id)` triple is the SUM of active rows. |
+| `contract_unstakes` | UNSTAKE v1 records — `action_index` (PK), `source_id`, `signing_pubkey_id`, `target_contract_index`, `tick_id`, `cooldown_end_block` (`block_index + contracts.cooldown_blocks` — the per-contract cooldown declared at deploy, **not** the global capability cooldown), `amount`, `status_id`, `block_index`. The block-end sweep credits the remaining (post-slash) amount back to the staker at `cooldown_end_block`. |
+| `contract_delegations` | DELEGATE v1 records (signing-pubkey rotation on a contract-targeted stake) — `action_index` (PK), `source_id`, `signing_pubkey_id` (the new pubkey), `target_contract_index`, `tick_id`, `status_id`, `block_index`, `activation_block`, `deactivation_block` (set on revoke). |
 
 ### PRICE Action Table
 
