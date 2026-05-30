@@ -3,7 +3,7 @@
 
 # Component Map
 
-This document describes all 11 XChain Platform services, their roles, inputs, outputs, and connections. Services are grouped by function. For detailed documentation on any individual service, see the corresponding subdirectory under [`../components/`](../components/).
+This document describes all 14 XChain Platform services, their roles, inputs, outputs, and connections. Services are grouped by function. For detailed documentation on any individual service, see the corresponding subdirectory under [`../components/`](../components/).
 
 ---
 
@@ -14,7 +14,7 @@ This document describes all 11 XChain Platform services, their roles, inputs, ou
 | Core Pipeline | decoder, indexer, explorer |
 | Transaction Creation | encoder, utxo-tracker, sdk |
 | Data Replication | sync |
-| Infrastructure | hub, node, regtest-miner, e2e-test |
+| Infrastructure | hub, node, regtest-miner, e2e-test, dashboard |
 
 ---
 
@@ -287,6 +287,31 @@ Key technical details:
 - Requires xchain-regtest-miner to be running to advance blocks.
 
 See [`../components/e2e-test/`](../components/e2e-test/) for full documentation.
+
+---
+
+### xchain-dashboard
+
+| | |
+|---|---|
+| **Purpose** | Generic Express dashboard host — provides auth, users, audit, styleguide, and plugin loading |
+| **Inputs** | Operator web browser; `XCHAIN_DASHBOARD_PLUGINS` env var (colon-free, comma-separated absolute paths to plugin manifests) |
+| **Outputs** | Web UI (login, user management, audit log, styleguide, plugin-contributed pages); `GET /health` JSON |
+| **Storage** | MariaDB (users, sessions, user_audit tables); `data/config.json` (DB credentials, written by setup wizard) |
+| **Communication** | Inbound HTTP from browsers; outbound SQL to MariaDB; no direct connection to other platform services |
+
+Key technical details:
+
+- Standalone-runnable with no plugins loaded — serves login, user management, audit log, styleguide, welcome page, and `/health` on port 7800.
+- Discovers plugins via `XCHAIN_DASHBOARD_PLUGINS=/abs/path/to/plugin[,/abs/path/to/plugin2]`. Each path is `require()`d and must resolve to a manifest object with required fields `name`, `mountPath`, `router`, `sidebar`, and `settings`.
+- Plugin routers are mounted at their declared `mountPath`; sidebar entries are merged into the global chrome automatically.
+- A bundled `monitor` plugin is always loaded regardless of the env var.
+- Auth is opt-in: `AUTH_REQUIRED=true` enables session-based login (MariaDB-backed sessions, bcrypt passwords). Without it, all requests run as a synthetic admin.
+- First-run setup wizard at `/setup` collects MariaDB credentials and writes `data/config.json`.
+- Roles: `admin`, `operator`, `viewer`. Routes opt in to gating via `requireAuth` / `requireRole`.
+- Session secret persisted in `data/session-secret` so logins survive restarts; override with `SESSION_SECRET` env var.
+
+See [`../components/dashboard/`](../components/dashboard/) for full documentation.
 
 ---
 

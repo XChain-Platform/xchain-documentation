@@ -117,7 +117,7 @@ Governance       --proposal:passed-->  (parameter application)
 | `RewardTracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants; pushes rewards to BTC indexer for `COLLECT` |
 | `SlashDetector.js` | `SlashDetector` | Validator misbehavior detection: price deviation, non-participation |
 | `PriceAggregator.js` | `PriceAggregator` | Receives validated PRICE v0/v1 actions from indexers, deduplicates by `round_number` (v0) or `(source, action_index)` (v1), writes to `price_snapshots`/`oracle_prices`. EventEmitter — emits `row:inserted` for hub DB sync. |
-| `OraclePublisher.js` | `OraclePublisher` | Tier 3 publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
+| `OraclePublisher.js` | `OraclePublisher` | `oracle_publish` capability publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
 | `EncoderClient.js` | `EncoderClient` | Minimal JSON-RPC client for talking to xchain-encoder (`get_utxos`, `create_tx`, `broadcast_tx`) — used by `OraclePublisher` |
 | `HubDbBroadcaster.js` | `HubDbBroadcaster` | WebSocket subscriber registry; broadcasts `row:inserted` events from `PriceAggregator` to all connected indexers' `HubDbSync` clients |
 | `sql/*.sql` | — | MariaDB table schemas (configs, validators, price_snapshots, oracle_prices, validator_rewards, governance, etc.) |
@@ -240,13 +240,13 @@ Every ORACLE_ROUND_INTERVAL (default 10 min):
                   -> OraclePublisher queues for DOGE broadcast (if leader)
 ```
 
-### Tier 3 Publishing Pipeline
+### oracle_publish Capability Publishing Pipeline
 
 After consensus finalizes a round, the OraclePublisher takes over:
 
 ```
-1. ROTATION     Leader = round % active_tier3_count
-                Tier 3 validators sorted by signing_pubkey (deterministic)
+1. ROTATION     Leader = SHA256(round_number || pubkey) ordering
+                oracle_publish validators sorted deterministically
 
 2. ENQUEUE      If local node is the leader, append to JSONL queue (fsync)
 
@@ -257,7 +257,7 @@ After consensus finalizes a round, the OraclePublisher takes over:
 
 4. CONFIRM      Remove from queue on successful broadcast
 
-5. FAILOVER     If leader misses by 1 BTC block, next Tier 3 in rotation
+5. FAILOVER     If leader misses by 1 BTC block, next oracle_publish validator in rotation
                 takes over and batches all missed rounds in a single tx
 ```
 

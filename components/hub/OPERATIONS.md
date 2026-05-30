@@ -28,7 +28,7 @@ On startup, the hub:
    - P2P gossip layer (WebSocket mesh)
    - PBFT consensus engine
    - Oracle round system (price fetching + aggregation, signs canonical PRICE v0 payload)
-   - `OraclePublisher` (Tier 3 publisher: leader rotation, persistent JSONL queue, DOGE broadcast)
+   - `OraclePublisher` (`oracle_publish` capability publisher: leader rotation, persistent JSONL queue, DOGE broadcast)
    - Cross-chain attestation engine
    - Reorg handler
    - Governance engine

@@ -178,9 +178,9 @@ SELECT * FROM actions ORDER BY action_index DESC LIMIT 20;
 If the indexer has data but the explorer doesn't, the explorer may have a query bug. Hit the endpoint directly:
 
 ```bash
-curl http://localhost:35300/api/token/MYTOKEN
-curl "http://localhost:35300/api/balances?address=YOUR_ADDRESS"
-curl "http://localhost:35300/api/actions?tick=MYTOKEN"
+curl http://localhost:35300/BTC/api/token/MYTOKEN
+curl http://localhost:35300/BTC/api/balances/YOUR_ADDRESS
+curl http://localhost:35300/BTC/api/history/MYTOKEN/token
 ```
 
 ### Service Logs
