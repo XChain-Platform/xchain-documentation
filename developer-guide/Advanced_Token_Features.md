@@ -37,7 +37,7 @@ const listPsbt = await sdk.encoder.createPSBT({
 const listTxid = await signAndBroadcast(listPsbt.psbt);
 await mineBlock();
 
-const listActions = await sdk.explorer.getActions({ txid: listTxid });
+const listActions = await sdk.explorer.getTransaction(listTxid, 'tx_hash');
 const allowListIndex = listActions[0].action_index;
 ```
 
@@ -69,7 +69,7 @@ const newListAction = sdk.list({
 const newListPsbt = await sdk.encoder.createPSBT({ action: newListAction, ... });
 const newListTxid = await signAndBroadcast(newListPsbt.psbt);
 await mineBlock();
-const newListActions = await sdk.explorer.getActions({ txid: newListTxid });
+const newListActions = await sdk.explorer.getTransaction(newListTxid, 'tx_hash');
 const newListIndex = newListActions[0].action_index;
 
 // Update the token to point to the new list

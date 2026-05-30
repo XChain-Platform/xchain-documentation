@@ -152,10 +152,10 @@ Because batches are all-or-nothing, validate your inputs before broadcasting:
 async function safeBroadcast(action) {
   // Pre-flight: check token exists and you have enough balance
   try {
-    const token = await sdk.explorer.getToken({ tick: 'MYTOKEN' });
+    const token = await sdk.explorer.getToken('MYTOKEN');
     if (!token) throw new Error('Token does not exist');
 
-    const balances = await sdk.explorer.getBalances({ address: 'YOUR_ADDRESS' });
+    const balances = await sdk.explorer.getBalances('YOUR_ADDRESS');
     const myBalance = balances.find(b => b.tick === 'MYTOKEN');
     if (!myBalance || Number(myBalance.amount) < 100) {
       throw new Error('Insufficient balance for batch');

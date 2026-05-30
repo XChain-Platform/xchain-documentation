@@ -40,7 +40,7 @@ async function issueTokenForUser(req, res) {
 
   // Validate tick is available
   try {
-    await sdk.explorer.getToken({ tick });
+    await sdk.explorer.getToken(tick);
     return res.status(400).json({ error: 'Ticker already taken' });
   } catch {
     // Token doesn't exist yet — good
@@ -71,7 +71,7 @@ async function waitForTokenConfirmation(tick, maxWaitMs = 120000) {
   const deadline = Date.now() + maxWaitMs;
   while (Date.now() < deadline) {
     try {
-      const token = await sdk.explorer.getToken({ tick });
+      const token = await sdk.explorer.getToken(tick);
       return token;
     } catch {
       await new Promise(r => setTimeout(r, 5000));
@@ -108,8 +108,7 @@ class PaymentWatcher {
   }
 
   async poll() {
-    const history = await this.sdk.explorer.getHistory({
-      address: this.address,
+    const history = await this.sdk.explorer.getHistory(this.address, 'address', {
       page: 1,
       limit: 50,
     });
@@ -158,7 +157,7 @@ The simplest form — query the explorer to see if an address holds enough of a 
 const { bignumber, largerEq } = require('mathjs');
 
 async function checkBalance(address, requiredTick, minimumAmount) {
-  const balances = await sdk.explorer.getBalances({ address });
+  const balances = await sdk.explorer.getBalances(address);
   const entry = balances.find(b => b.tick === requiredTick);
   if (!entry) return false;
   return largerEq(bignumber(entry.amount), bignumber(minimumAmount));
@@ -449,7 +448,7 @@ app.post('/auth/verify', async (req, res) => {
 // --- Gated content ---
 
 async function checkBalance(address, tick, minimum) {
-  const balances = await sdk.explorer.getBalances({ address });
+  const balances = await sdk.explorer.getBalances(address);
   const entry = balances.find(b => b.tick === tick);
   if (!entry) return false;
   return largerEq(bignumber(entry.amount), bignumber(minimum));
@@ -505,7 +504,7 @@ Display the order book and allow users to place and cancel orders.
 ```js
 // Fetch all open orders for a trading pair
 async function getOrderBook(giveTick, getTick) {
-  const allOrders = await sdk.explorer.getOrders({ tick: giveTick, limit: 100 });
+  const allOrders = await sdk.explorer.getOrders(giveTick, 'token', { limit: 100 });
   const open = allOrders.filter(o => o.status === 'open');
 
   const buys = open.filter(o => o.give_tick === getTick && o.get_tick === giveTick);
@@ -566,7 +565,7 @@ async function executeAirdrop(recipients, tick, amountPerAddress, publicKey, utx
   await waitForConfirmation(listTxid);
 
   // Step 2: Get the list's ACTION_INDEX
-  const listActions = await sdk.explorer.getActions({ txid: listTxid });
+  const listActions = await sdk.explorer.getTransaction(listTxid, 'tx_hash');
   const listActionIndex = listActions[0].action_index;
 
   // Step 3: Execute the AIRDROP
@@ -604,7 +603,7 @@ async function buildPortfolio(addresses) {
 
   await Promise.all(
     addresses.map(async address => {
-      const balances = await sdk.explorer.getBalances({ address, limit: 100 });
+      const balances = await sdk.explorer.getBalances(address, { limit: 100 });
       for (const { tick, amount } of balances) {
         portfolio[tick] = portfolio[tick] || { total: '0', holders: [] };
         portfolio[tick].holders.push({ address, amount });
@@ -651,7 +650,7 @@ async function withRetry(fn, retries = 3, delayMs = 2000) {
 }
 
 // Wrap any explorer call
-const token = await withRetry(() => sdk.explorer.getToken({ tick: 'MYTOKEN' }));
+const token = await withRetry(() => sdk.explorer.getToken('MYTOKEN'));
 ```
 
 Distinguish between network errors (retry) and protocol errors (don't retry):
@@ -659,7 +658,7 @@ Distinguish between network errors (retry) and protocol errors (don't retry):
 ```js
 async function safeGetToken(tick) {
   try {
-    return await sdk.explorer.getToken({ tick });
+    return await sdk.explorer.getToken(tick);
   } catch (err) {
     if (err.status === 404) return null;  // token does not exist
     throw err;                             // network/server error — let it propagate

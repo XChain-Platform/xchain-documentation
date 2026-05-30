@@ -16,10 +16,10 @@ const XChainSDK = require('xchain-sdk');
 const sdk = new XChainSDK({ hubUrl: 'http://localhost:35500' });
 
 // SDK style
-const token = await sdk.explorer.getToken({ tick: 'MYTOKEN' });
+const token = await sdk.explorer.getToken('MYTOKEN');
 
 // Equivalent direct HTTP
-const response = await fetch('http://localhost:35300/api/token/MYTOKEN');
+const response = await fetch('http://localhost:35300/BTC/api/token/MYTOKEN');
 const token2 = await response.json();
 ```
 
@@ -29,10 +29,10 @@ const token2 = await response.json();
 
 ```js
 // SDK
-const token = await sdk.explorer.getToken({ tick: 'MYTOKEN' });
+const token = await sdk.explorer.getToken('MYTOKEN');
 
 // curl
-// curl http://localhost:35300/api/token/MYTOKEN
+// curl http://localhost:35300/BTC/api/token/MYTOKEN
 
 console.log(token);
 // {
@@ -56,14 +56,13 @@ console.log(token);
 
 ```js
 // SDK
-const balances = await sdk.explorer.getBalances({ address: 'bc1q...' });
+const balances = await sdk.explorer.getBalances('bc1q...');
 
 // curl
-// curl "http://localhost:35300/api/balances?address=bc1q..."
+// curl http://localhost:35300/BTC/api/balances/bc1q.../
 
 // With pagination
-const page2 = await sdk.explorer.getBalances({
-  address: 'bc1q...',
+const page2 = await sdk.explorer.getBalances('bc1q...', {
   page: 2,
   limit: 25,
 });
@@ -75,14 +74,13 @@ const page2 = await sdk.explorer.getBalances({
 
 ```js
 // All actions involving an address
-const history = await sdk.explorer.getHistory({
-  address: 'bc1q...',
+const history = await sdk.explorer.getHistory('bc1q...', 'address', {
   page: 1,
   limit: 50,
 });
 
 // curl
-// curl "http://localhost:35300/api/history?address=bc1q...&page=1&limit=50"
+// curl "http://localhost:35300/BTC/api/history/bc1q.../address?page=1&limit=50"
 
 // Each entry includes action type, amounts, counterparty, block height, txid
 history.forEach(entry => {
@@ -96,14 +94,13 @@ history.forEach(entry => {
 
 ```js
 // All addresses holding a token, sorted by balance descending
-const holders = await sdk.explorer.getHolders({
-  tick: 'MYTOKEN',
+const holders = await sdk.explorer.getHolders('MYTOKEN', {
   page: 1,
   limit: 100,
 });
 
 // curl
-// curl "http://localhost:35300/api/holders?tick=MYTOKEN"
+// curl http://localhost:35300/BTC/api/holders/MYTOKEN
 
 holders.forEach(h => {
   console.log(`${h.address}: ${h.amount}`);
@@ -116,14 +113,13 @@ holders.forEach(h => {
 
 ```js
 // Every action (ISSUE, MINT, SEND, etc.) that references a token
-const actions = await sdk.explorer.getActions({
-  tick: 'MYTOKEN',
+const actions = await sdk.explorer.getHistory('MYTOKEN', 'token', {
   page: 1,
   limit: 50,
 });
 
 // curl
-// curl "http://localhost:35300/api/actions?tick=MYTOKEN"
+// curl http://localhost:35300/BTC/api/history/MYTOKEN/token
 
 // Filter by action type on the client side
 const mints = actions.filter(a => a.action === 'MINT');
@@ -136,10 +132,10 @@ const sends = actions.filter(a => a.action === 'SEND');
 
 ```js
 // Order book and recent trades for a trading pair
-const markets = await sdk.explorer.getMarkets({ tick: 'MYTOKEN' });
+const markets = await sdk.explorer.getMarkets('MYTOKEN');
 
 // curl
-// curl "http://localhost:35300/api/markets?tick=MYTOKEN"
+// curl http://localhost:35300/BTC/api/markets/MYTOKEN
 
 console.log(markets);
 // {
@@ -157,14 +153,13 @@ console.log(markets);
 
 ```js
 // All dispensers for a token
-const dispensers = await sdk.explorer.getDispensers({
-  tick: 'MYTOKEN',
+const dispensers = await sdk.explorer.getDispensers('MYTOKEN', 'token', {
   page: 1,
   limit: 25,
 });
 
 // curl
-// curl "http://localhost:35300/api/dispensers?tick=MYTOKEN"
+// curl http://localhost:35300/BTC/api/dispensers/MYTOKEN/token
 
 // Open dispensers only
 const openDispensers = dispensers.filter(d => d.status === 'open');
@@ -183,14 +178,13 @@ openDispensers.forEach(d => {
 
 ```js
 // All open orders for a token
-const orders = await sdk.explorer.getOrders({
-  tick: 'MYTOKEN',
+const orders = await sdk.explorer.getOrders('MYTOKEN', 'token', {
   page: 1,
   limit: 50,
 });
 
 // curl
-// curl "http://localhost:35300/api/orders?tick=MYTOKEN"
+// curl http://localhost:35300/BTC/api/orders/MYTOKEN/token
 
 orders.forEach(o => {
   console.log(
@@ -213,7 +207,7 @@ async function fetchAllHolders(tick) {
   const all = [];
 
   while (true) {
-    const results = await sdk.explorer.getHolders({ tick, page, limit });
+    const results = await sdk.explorer.getHolders(tick, { page, limit });
     all.push(...results.data);
 
     if (all.length >= results.total || results.data.length < limit) break;
@@ -235,9 +229,9 @@ Look up a specific transaction to get the action it contained:
 
 ```js
 // curl
-// curl "http://localhost:35300/api/actions?txid=abc123..."
+// curl http://localhost:35300/BTC/api/transaction/abc123.../tx_hash
 
-const actions = await sdk.explorer.getActions({ txid: 'abc123...' });
+const actions = await sdk.explorer.getTransaction('abc123...', 'tx_hash');
 console.log('Actions in tx:', actions);
 ```
 
@@ -247,10 +241,9 @@ console.log('Actions in tx:', actions);
 
 ```js
 // All actions in a specific block
-// curl "http://localhost:35300/api/actions?block_index=800000"
+// curl "http://localhost:35300/BTC/api/history/800000/block"
 
-const blockActions = await sdk.explorer.getActions({
-  blockIndex: 800000,
+const blockActions = await sdk.explorer.getHistory(800000, 'block', {
   page: 1,
   limit: 50,
 });
@@ -264,7 +257,7 @@ A common use case is checking whether an address holds a minimum balance before 
 
 ```js
 async function hasAccess(address, requiredTick, minimumAmount) {
-  const balances = await sdk.explorer.getBalances({ address });
+  const balances = await sdk.explorer.getBalances(address);
   const entry = balances.find(b => b.tick === requiredTick);
   if (!entry) return false;
 
@@ -289,7 +282,7 @@ The explorer has no webhook support. Poll with a short interval to detect incomi
 ```js
 async function waitForIncomingTransfer(address, tick, afterBlock) {
   const poll = async () => {
-    const history = await sdk.explorer.getHistory({ address, page: 1, limit: 10 });
+    const history = await sdk.explorer.getHistory(address, 'address', { page: 1, limit: 10 });
     return history.find(
       h => h.action === 'SEND' && h.destination === address &&
            h.tick === tick && h.block_index > afterBlock

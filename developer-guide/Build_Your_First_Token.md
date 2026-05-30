@@ -93,7 +93,7 @@ await fetch('http://localhost:38332', {
 
 // Look up the ACTION_INDEX of the confirmed LIST
 // The ACTION_INDEX is assigned by the indexer after confirmation
-const listActions = await sdk.explorer.getActions({ txid: listTxid });
+const listActions = await sdk.explorer.getTransaction(listTxid, 'tx_hash');
 const listActionIndex = listActions[0].action_index;
 console.log('LIST action_index:', listActionIndex);
 ```
@@ -182,7 +182,7 @@ Once the block is mined, the decoder picks up the transaction and the indexer pr
 async function waitForToken(tick, retries = 20) {
   for (let i = 0; i < retries; i++) {
     try {
-      const token = await sdk.explorer.getToken({ tick });
+      const token = await sdk.explorer.getToken(tick);
       return token;
     } catch (err) {
       await new Promise(r => setTimeout(r, 1000));
@@ -227,7 +227,7 @@ const mintTxid = await signAndBroadcast(mintPsbt.psbt);
 await mineBlock();
 
 // Verify updated supply
-const updatedToken = await sdk.explorer.getToken({ tick: 'MYTOKEN' });
+const updatedToken = await sdk.explorer.getToken('MYTOKEN');
 console.log('New supply:', updatedToken.supply); // '15000'
 ```
 
@@ -274,26 +274,23 @@ const multiSend = sdk.send({
 
 ```js
 // Check your own balance
-const myBalances = await sdk.explorer.getBalances({ address: 'YOUR_ADDRESS' });
+const myBalances = await sdk.explorer.getBalances('YOUR_ADDRESS');
 console.log('My balances:', myBalances);
 // [{ tick: 'MYTOKEN', amount: '14900', ... }, ...]
 
 // Check recipient balance
-const recipientBalances = await sdk.explorer.getBalances({
-  address: 'bc1qrecipientaddress...',
-});
+const recipientBalances = await sdk.explorer.getBalances('bc1qrecipientaddress...');
 console.log('Recipient balance:', recipientBalances);
 
 // Full transaction history for your address
-const history = await sdk.explorer.getHistory({
-  address: 'YOUR_ADDRESS',
+const history = await sdk.explorer.getHistory('YOUR_ADDRESS', 'address', {
   page: 1,
   limit: 25,
 });
 console.log('History:', history);
 
 // All token holders
-const holders = await sdk.explorer.getHolders({ tick: 'MYTOKEN' });
+const holders = await sdk.explorer.getHolders('MYTOKEN');
 console.log('Holders:', holders);
 ```
 

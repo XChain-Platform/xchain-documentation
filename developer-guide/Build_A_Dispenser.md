@@ -73,13 +73,12 @@ When this transaction confirms, the indexer escrows 100 MYTOKEN from your balanc
 You need the `ACTION_INDEX` to reference this dispenser for future edits or cancellations.
 
 ```js
-const actions = await sdk.explorer.getActions({ txid });
+const actions = await sdk.explorer.getTransaction(txid, 'tx_hash');
 const dispenserActionIndex = actions[0].action_index;
 console.log('Dispenser action_index:', dispenserActionIndex);
 
 // Or look up all dispensers for a token
-const dispensers = await sdk.explorer.getDispensers({
-  tick: 'MYTOKEN',
+const dispensers = await sdk.explorer.getDispensers('MYTOKEN', 'token', {
   page: 1,
   limit: 10,
 });
@@ -129,14 +128,12 @@ When the indexer detects the inbound payment to `GET_ADDRESS`, it automatically 
 
 ```js
 // Check buyer's balance
-const buyerBalances = await sdk.explorer.getBalances({
-  address: 'BUYER_ADDRESS',
-});
+const buyerBalances = await sdk.explorer.getBalances('BUYER_ADDRESS');
 console.log('Buyer received:', buyerBalances);
 // [{ tick: 'MYTOKEN', amount: '10', ... }]
 
 // Check dispenser status
-const dispensers = await sdk.explorer.getDispensers({ tick: 'MYTOKEN' });
+const dispensers = await sdk.explorer.getDispensers('MYTOKEN', 'token');
 const dispenser = dispensers.find(d => d.action_index === dispenserActionIndex);
 console.log('Dispenses so far:', dispenser.dispenses); // 1
 console.log('Remaining escrow:', dispenser.give_escrow); // 90
@@ -191,7 +188,7 @@ await signAndBroadcast(cancelPsbt.psbt);
 await mineBlock();
 
 // Verify it closed and escrow returned
-const myBalances = await sdk.explorer.getBalances({ address: 'YOUR_ADDRESS' });
+const myBalances = await sdk.explorer.getBalances('YOUR_ADDRESS');
 console.log('Balance after cancel:', myBalances);
 ```
 

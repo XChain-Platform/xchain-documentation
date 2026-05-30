@@ -123,12 +123,12 @@ After confirmation (or instantly in regtest), query the explorer:
 
 ```js
 // Get token details
-const token = await sdk.explorer.getToken({ tick: 'MYTOKEN' });
+const token = await sdk.explorer.getToken('MYTOKEN');
 console.log(token);
 // => { tick: 'MYTOKEN', maxSupply: '1000000', decimals: 8, ... }
 
 // Get balances for an address
-const balances = await sdk.explorer.getBalances({ address: 'your-address' });
+const balances = await sdk.explorer.getBalances('your-address');
 console.log(balances);
 // => [{ tick: 'MYTOKEN', amount: '0', ... }, ...]
 ```
@@ -201,20 +201,20 @@ The SDK provides 40+ explorer query methods:
 
 ```js
 // Token information
-await sdk.explorer.getToken({ tick: 'MYTOKEN' });
+await sdk.explorer.getToken('MYTOKEN');
 await sdk.explorer.getTokens({ limit: 20, page: 1 });
 
 // Balances
-await sdk.explorer.getBalances({ address: 'your-address' });
+await sdk.explorer.getBalances('your-address');
 await sdk.explorer.getBalance({ address: 'your-address', tick: 'MYTOKEN' });
 
 // Transaction history
-await sdk.explorer.getSends({ tick: 'MYTOKEN', limit: 10 });
-await sdk.explorer.getActions({ address: 'your-address' });
+await sdk.explorer.getSends('MYTOKEN', 'token', { limit: 10 });
+await sdk.explorer.getHistory('your-address', 'address');
 
 // DEX
-await sdk.explorer.getOrders({ tick: 'MYTOKEN' });
-await sdk.explorer.getDispensers({ tick: 'MYTOKEN' });
+await sdk.explorer.getOrders('MYTOKEN', 'token');
+await sdk.explorer.getDispensers('MYTOKEN', 'token');
 ```
 
 ---
