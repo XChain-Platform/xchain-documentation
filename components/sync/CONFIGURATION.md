@@ -22,7 +22,7 @@ These variables are required regardless of whether the service runs in server or
 
 ### Server Mode
 
-In server mode, **no database environment variables are needed**. The service discovers all indexer database connections by calling the hub's `getallconfigs` method. The hub returns the `db_host`, `db_port`, `name` (database name), `user`, and `pass` for every installed indexer.
+In server mode, **no database environment variables are needed**. The service discovers all indexer and decoder database connections by calling the hub's `getallconfigs` method. The hub returns the `db_host`, `db_port`, `name` (database name), `user`, and `pass` for every installed indexer and decoder.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
@@ -78,7 +78,7 @@ The service calls the local xchain-hub's `getallconfigs` JSON-RPC method at star
 }
 ```
 
-The service iterates this response and, for each coin/network that has an `xchain-indexer` entry, extracts:
+The service iterates this response and, for each coin/network that has an `xchain-indexer` or `xchain-decoder` entry, extracts the following fields and creates a separate `Database` instance with the corresponding `dbType` (`indexer` or `decoder`):
 
 | Hub Field | Used For |
 |---|---|
@@ -98,21 +98,24 @@ The sync service uses the same database naming convention as the rest of the pla
 XChain_{TICKER}_{Network}_{Component}
 ```
 
-| Chain | Ticker | Example Database Name |
-|---|---|---|
-| Bitcoin mainnet | BTC | `XChain_BTC_Mainnet_Indexer` |
-| Bitcoin testnet | BTC | `XChain_BTC_Testnet_Indexer` |
-| Litecoin mainnet | LTC | `XChain_LTC_Mainnet_Indexer` |
-| Dogecoin mainnet | DOGE | `XChain_DOGE_Mainnet_Indexer` |
-| Dogecoin regtest | DOGE | `XChain_DOGE_Regtest_Indexer` |
+| Chain | Ticker | dbType | Example Database Name |
+|---|---|---|---|
+| Bitcoin mainnet | BTC | indexer | `XChain_BTC_Mainnet_Indexer` |
+| Bitcoin mainnet | BTC | decoder | `XChain_BTC_Mainnet_Decoder` |
+| Bitcoin testnet | BTC | indexer | `XChain_BTC_Testnet_Indexer` |
+| Litecoin mainnet | LTC | indexer | `XChain_LTC_Mainnet_Indexer` |
+| Dogecoin mainnet | DOGE | indexer | `XChain_DOGE_Mainnet_Indexer` |
+| Dogecoin regtest | DOGE | decoder | `XChain_DOGE_Regtest_Decoder` |
 
-In **server mode**, the service reads from the authoritative indexer databases — the same ones the indexer writes to and the explorer reads from.
+In **server mode**, the service reads from the authoritative indexer and decoder databases — the same ones the indexer/decoder write to.
 
-In **client mode**, the service creates replica databases with the same names and schema. The replicas contain an exact copy of the indexer data, allowing local queries with the same table structure and column names.
+In **client mode**, the service creates replica databases with the same names and schema. Indexer replicas contain an exact copy of the indexer data; decoder replicas contain 8 of the 9 decoder tables (`mempool_transactions` excluded).
 
 ## Database Schema
 
-The replica databases use the same 77-table schema as the authoritative indexer. The SQL table definitions are shipped with the sync service in `src/sql/` (copied from `xchain-indexer/src/sql/`). Tables include:
+### Indexer replicas
+
+Indexer replica databases use the same full schema as the authoritative indexer. The SQL table definitions are shipped with the sync service in `src/sql/`. Tables include:
 
 - **Core**: `blocks`, `transactions`, `actions`
 - **Index/Dedup**: `index_addresses`, `index_tickers`, `index_transactions`, `index_actions`, `index_statuses`, `index_coins`, `index_fiats`, `index_memos`, `index_mime_types`, `index_pubkeys`
@@ -125,9 +128,18 @@ The replica databases use the same 77-table schema as the authoritative indexer.
 - **Mapping**: `mappings_actions`, `mappings_files`
 - **Other**: `addresses`, `markets`, `events`, `list_edits`, `list_items`, `list_items_invalid`
 
-One additional table is used by the sync service itself:
+One additional table is used by the sync service itself for indexer replicas only:
 
-- **`sync_meta`**: transparency log — `(block_index, block_time, ledger_hash, actions_hash, contract_hash, logged_at)`
+- **`sync_meta`**: transparency log — `(block_index, block_time, ledger_hash, actions_hash, contract_hash, logged_at)` — **indexer only**, not created for decoder replicas
+
+### Decoder replicas
+
+Decoder replica databases use a smaller schema derived from the decoder DB. Of the 9 tables in the decoder DB, xchain-sync replicates 8 (`mempool_transactions` is excluded as it is non-deterministic across nodes):
+
+- `blocks`, `transactions`, `transaction_outputs`, `dispensers`
+- `index_addresses`, `index_transactions`, `pubkeys`, `events`
+
+The transparency log table (`sync_meta`) is not created for decoder replicas.
 
 ## Connection Pool Configuration
 

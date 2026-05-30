@@ -5,17 +5,19 @@
 
 ## What is xchain-sync
 
-xchain-sync is the database replication layer of the XChain Platform. It enables lightweight validators and other consumers to obtain and stay current with indexer database state without running their own decoder+indexer stacks. The service runs as a single long-lived Node.js process with an embedded Express REST API and a WebSocket server, both served on the same port.
+xchain-sync is the database replication layer of the XChain Platform. It enables lightweight validators and other consumers to obtain and stay current with both the indexer database and the decoder database without running their own decoder+indexer stacks. The service runs as a single long-lived Node.js process with an embedded Express REST API and a WebSocket server, both served on the same port.
 
-The service operates in two modes. In **server mode**, it runs alongside authoritative indexers on an xchain-node, polls each indexer database for new blocks, and serves the data to remote clients via REST snapshots and real-time WebSocket streaming. In **client mode**, it connects to one or more remote sync servers, downloads a full database snapshot for initial bootstrap, then subscribes to a WebSocket stream for ongoing block-by-block replication into a local MariaDB instance.
+All REST and WebSocket endpoints include a `/:dbType/` path segment. The `dbType` parameter is either `indexer` (full table set, with transparency log) or `decoder` (8 of the 9 decoder DB tables; `mempool_transactions` is excluded because it is non-deterministic across nodes, and the transparency log is not applicable to decoder data).
 
-On startup, the service calls the local xchain-hub's `getallconfigs` JSON-RPC method to discover all installed chains and their indexer database connections. This means a single instance automatically serves all chains/networks installed on the node — if Bitcoin mainnet, Bitcoin testnet, and Dogecoin mainnet are all running, the sync service discovers and serves all three from one process. It re-polls the hub every 5 minutes to detect newly installed chains without a restart.
+The service operates in two modes. In **server mode**, it runs alongside authoritative indexers and decoders on an xchain-node, polls each database for new blocks, and serves the data to remote clients via REST snapshots and real-time WebSocket streaming. In **client mode**, it connects to one or more remote sync servers, downloads a full database snapshot for initial bootstrap, then subscribes to a WebSocket stream for ongoing block-by-block replication into a local MariaDB instance.
 
-Data integrity is guaranteed by the indexer's existing per-block chained SHA256 hashes (ledger, actions, contracts). Each block's hash includes the previous block's hash, forming a hash chain. Clients verify this chain on every received block and can optionally cross-verify hashes from multiple independent sync sources to detect tampered data.
+On startup, the service calls the local xchain-hub's `getallconfigs` JSON-RPC method to discover all installed chains and their indexer and decoder database connections. This means a single instance automatically serves all chains/networks installed on the node — if Bitcoin mainnet, Bitcoin testnet, and Dogecoin mainnet are all running, the sync service discovers and serves all three from one process, for both database types. It re-polls the hub every 5 minutes to detect newly installed chains without a restart.
+
+Data integrity for the indexer is guaranteed by per-block chained SHA256 hashes (ledger, actions, contracts) that the indexer already computes. For the decoder, a single `block_hash` is used in place of the three indexer hashes. Each hash includes the previous block's hash, forming a hash chain. Clients verify this chain on every received block and can optionally cross-verify hashes from multiple independent sync sources to detect tampered data.
 
 ## Features
 
-- **Dual mode** — server mode serves data from authoritative indexer databases; client mode replicates data into local MariaDB instances
+- **Dual mode** — server mode serves data from authoritative indexer and decoder databases; client mode replicates data into local MariaDB instances
 - **Multi-chain single instance** — discovers all installed chains/networks via the hub and serves them from one process on one port
 - **Hub auto-discovery** — calls xchain-hub `getallconfigs` at startup; re-polls every 5 minutes to detect newly installed chains
 - **Full snapshot export** — compressed, streamed JSON database dumps for bootstrapping new validators
@@ -71,9 +73,9 @@ npm run api
 
 On startup, the service:
 1. Validates required environment variables
-2. Calls the hub's `getallconfigs` to discover installed chains and indexer database connections
-3. Opens a MariaDB connection pool per chain/network
-4. In server mode: starts polling each indexer database for new blocks and serves REST + WebSocket APIs
+2. Calls the hub's `getallconfigs` to discover installed chains and their indexer and decoder database connections
+3. Opens a MariaDB connection pool per chain/network/dbType
+4. In server mode: starts polling each indexer and decoder database for new blocks and serves REST + WebSocket APIs
 5. In client mode: bootstraps from remote snapshot, then subscribes to real-time updates via WebSocket
 
 ## Scripts

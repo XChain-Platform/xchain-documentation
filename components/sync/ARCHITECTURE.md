@@ -10,18 +10,19 @@ Coin Node (bitcoind / litecoind / dogecoind)
     |  JSON-RPC polling
     v
 xchain-decoder  ->  Decoder DB (MariaDB)
-    |  SQL reads
-    v
+    |  SQL reads          |
+    v                     | (dbType=decoder)
 xchain-indexer  ->  Indexer DB (MariaDB)
     |                    |
-    v                    v
+    v                    | (dbType=indexer)
 xchain-explorer     xchain-sync  ->  REST / WebSocket API
                          |
                          v
                     Validator replicas (MariaDB)
+                    (indexer replica + decoder replica)
 ```
 
-The sync sits alongside the indexer in the data pipeline. It reads from the same Indexer database that the explorer reads from, but instead of serving end-user queries, it replicates the data to remote consumers — primarily lightweight validators that need chain data for cross-chain attestation without running the full decoder+indexer stack.
+The sync service reads from both the decoder database and the indexer database. It serves each under a separate `/:dbType/` path namespace — `indexer` for the full indexer table set (with transparency log) and `decoder` for the 8 replicated decoder tables (blocks, transactions, transaction_outputs, dispensers, index_addresses, index_transactions, pubkeys, events). Instead of serving end-user queries like the explorer, xchain-sync replicates data to remote consumers — primarily lightweight validators that need chain data for cross-chain attestation without running the full decoder+indexer stack.
 
 ## Dual-Mode Architecture
 
@@ -55,8 +56,8 @@ SERVER MODE                              CLIENT MODE
 |  +----------------------+ |            |  +----------------------+ |
 |             |             |            |             |             |
 |  +----------v-----------+ |            |  +----------v-----------+ |
-|  | Indexer DBs (read)   | |            |  | Replica DBs (write)  | |
-|  | (via hub discovery)  | |            |  | (same schema)        | |
+|  | Indexer + Decoder    | |            |  | Replica DBs (write)  | |
+|  | DBs (read, per dbType| |            |  | (per dbType schema)  | |
 |  +----------------------+ |            |  +----------------------+ |
 +---------------------------+            +---------------------------+
 ```
@@ -119,7 +120,7 @@ SERVER MODE                              CLIENT MODE
 | `middleware.js` | `authMiddleware` | API key authentication middleware for REST and WebSocket endpoints |
 | `validation.js` | — | Input validation: SQL identifiers, DDL whitelisting, WebSocket event schemas |
 | `utility.js` | `Utility` | `sleep()`, `getDataHash()` (SHA256), `isNull()`, timer helpers |
-| `HubClient.js` | `HubClient` | JSON-RPC client for xchain-hub; `getallconfigs()` and `getIndexerConfigs()` |
+| `HubClient.js` | `HubClient` | JSON-RPC client for xchain-hub; `getallconfigs()` to discover indexer and decoder DB connections |
 | `SyncService.js` | `SyncService` | Orchestrator: hub discovery, DB pool creation, server/client mode branching |
 | `ServerPoller.js` | `ServerPoller` | Polls one indexer DB for new blocks; builds block payloads; emits events |
 | `BlockBroadcaster.js` | `BlockBroadcaster` | Manages WebSocket subscriptions per chain/network; broadcasts block/reorg events |
@@ -138,9 +139,9 @@ SERVER MODE                              CLIENT MODE
 2. HubClient.getallconfigs()  -->  POST http://HUB_API_HOST:HUB_PORT
       |                              { jsonrpc: "2.0", method: "getallconfigs", id: 1 }
       |
-3. Parse response: for each coin/network with an "xchain-indexer" entry:
-      |   - Extract: db_host, db_port, name (DB name), user, pass
-      |   - Build: { coin: "bitcoin", network: "mainnet",
+3. Parse response: for each coin/network with an "xchain-indexer" or "xchain-decoder" entry:
+      |   - Extract: db_host, db_port, name (DB name), user, pass, dbType
+      |   - Build: { coin: "bitcoin", network: "mainnet", dbType: "indexer",
       |              db_host: "mariadb", db_port: 3306,
       |              db_name: "XChain_BTC_Mainnet_Indexer", ... }
       |
@@ -157,11 +158,11 @@ SERVER MODE                              CLIENT MODE
 
 ## Server Poll Loop
 
-For each chain/network, a `ServerPoller` instance runs independently:
+For each chain/network/dbType combination, a `ServerPoller` instance runs independently:
 
 ```
 1. POLL        SELECT MAX(block_index) FROM blocks
-                 on the indexer DB
+                 on the indexer or decoder DB (per dbType)
                  |
 2. NEW BLOCK?  If block_index > lastPolledBlock:
                  |
@@ -195,16 +196,16 @@ Check local replica: SELECT MAX(block_index) FROM blocks
   |
   +-- Empty? ---------> Download full snapshot from sources[0]
   |                      Apply via ClientApplier.applyFullSnapshot()
-  |                      Verify hashes against sources[1] /status endpoint
+  |                      Verify hashes against sources[1] /status/:dbType endpoint
   |
   +-- Has blocks? ----> Download incremental snapshot since lastBlock
-  |                      from sources[0] /snapshot/:chain/:network/since/:blockHeight
+  |                      from sources[0] /snapshot/:dbType/:chain/:network/since/:blockHeight
   |                      Apply via ClientApplier.applyIncrementalSnapshot()
   |                      Verify hashes against sources[1]
   |
   v
 Open WebSocket connections to ALL configured SYNC_SOURCES
-  for WS /subscribe/:chain/:network
+  for WS /subscribe/:dbType/:chain/:network
   |
   v
 MAIN LOOP: process incoming events
@@ -229,6 +230,8 @@ MAIN LOOP: process incoming events
 
 ## Hash Chain Integrity
 
+### Indexer (`dbType=indexer`)
+
 The indexer already computes three chained SHA256 hashes per block, stored in the `blocks` table:
 
 | Hash | Covers | Column |
@@ -237,13 +240,13 @@ The indexer already computes three chained SHA256 hashes per block, stored in th
 | **Actions hash** | action records for the block | `actions_hash_id` |
 | **Contract hash** | contracts + state + executions + emissions + deposits + withdrawals | `contract_hash_id` |
 
-Each hash includes `block_index` and `previous_hash` (from the prior block's corresponding hash), forming a hash chain. This means:
+Each hash includes `block_index` and `previous_hash` (from the prior block's corresponding hash), forming a hash chain. Two independent indexers processing the same blockchain data produce identical hashes, so cross-source comparison is a simple equality check on `(ledger_hash, actions_hash, contract_hash)`.
 
-1. **Any modification to any block's data changes the hash** — and all subsequent blocks' hashes cascade.
-2. **Two independent indexers processing the same blockchain data produce identical hashes** — because the hash inputs are deterministic.
-3. **Cross-source comparison is a simple equality check** — compare `(ledger_hash, actions_hash, contract_hash)` at the same block height from two sources.
+### Decoder (`dbType=decoder`)
 
-The sync service does not compute new hashes. It reads the hashes the indexer already computed and includes them in every block payload and snapshot response. Clients store these hashes locally and verify chain continuity on each received block.
+The decoder stores a single `block_hash` per block derived from `index_transactions`. Decoder data is fully deterministic from the coin node itself — there are no synthetic chain-of-state hashes. Each block payload and snapshot response carries the `block_hash` field in place of the three indexer hashes.
+
+The sync service does not compute new hashes. It reads the hashes already present in the source database and includes them in every block payload and snapshot response. Clients store these hashes locally and verify chain continuity on each received block.
 
 ## Reorg Handling
 
