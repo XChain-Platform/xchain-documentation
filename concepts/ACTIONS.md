@@ -45,7 +45,7 @@ Invalid ACTIONs are recorded as failed — they are not silently ignored. This m
 
 ## The 30 ACTIONs
 
-The platform supports 30 ACTION types across eight categories. The original 19 actions (Token Lifecycle, Transfers, DEX, Data, Utility) are available from genesis. Hub Staking, Virtual Machine, and Oracles actions activate at later block heights.
+The platform supports 30 ACTION types across eight categories. The original 20 actions (Token Lifecycle, Transfers, DEX, Data, Utility) are available from genesis. Hub Staking, Virtual Machine, and Oracles actions activate at later block heights.
 
 ### Token Lifecycle
 

@@ -37,7 +37,7 @@ let result = await sdk.deploy({
 }, { pubkey: 'yourPubkey', encoding: 'P2WSH' });
 ```
 
-DEPLOY payloads are almost always larger than 76 bytes, so OP_RETURN encoding will be rejected. Use P2SH or P2WSH.
+DEPLOY payloads are almost always larger than 76 bytes of user data (the OP_RETURN limit; 80 bytes total per output), so OP_RETURN encoding will be rejected. Use P2SH or P2WSH.
 
 See [ACTIONS.md — DEPLOY](ACTIONS.md#deploy) for full parameter reference.
 

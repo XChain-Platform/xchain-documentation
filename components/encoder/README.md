@@ -12,7 +12,7 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 ## Features
 
 - **Stateless** — no database, no persistent connections; every call is independent
-- **Four encoding formats** — OP_RETURN (76B), P2SH (476B), P2WSH (3,571B), and multisig (~61B/key); auto-selected by payload size
+- **Four encoding formats** — OP_RETURN (80B total, 76B user data), P2SH (476B), P2WSH (3,571B), and multisig (~61B/key); auto-selected by payload size
 - **Two-transaction orchestration** — automatic tx1 (fund) → tx2 (spend/reveal) pattern for P2SH and P2WSH with OP_RETURN marker
 - **AES-128-CTR obfuscation** — derives key and IV from the first input's txid; `XCHN` magic prefix on all payloads
 - **UTXO selection** — largest-first selection, duplicate removal, optional unconfirmed filtering, automatic change output
@@ -41,7 +41,7 @@ Every encode call follows the same sequence regardless of format:
 
 ### OP_RETURN
 
-Maximum payload: **76 bytes**
+Maximum payload: **76 bytes of user data** (80 bytes total per output, including the 4-byte XCHN prefix)
 
 The obfuscated payload is embedded in an `OP_RETURN` output. This is a single transaction — the encoder constructs it, the caller signs and broadcasts once. OP_RETURN outputs are provably unspendable and are the cheapest encoding method. Best for most SEND, ISSUE, and MINT actions.
 
@@ -73,7 +73,7 @@ Payload capacity: **approximately 61 bytes per key**
 
 The payload is split across the public key positions of a bare multisig output (`OP_m ... OP_n OP_CHECKMULTISIG`). This is a single-transaction format. The decoder reads the fake public keys from the output to extract the payload.
 
-Multisig encoding is an alternative for payloads that exceed OP_RETURN's 76-byte limit but where the caller prefers a single-transaction flow. The encoder handles splitting and padding automatically.
+Multisig encoding is an alternative for payloads that exceed OP_RETURN's 76-byte user-data limit but where the caller prefers a single-transaction flow. The encoder handles splitting and padding automatically.
 
 ## Format Auto-Selection
 

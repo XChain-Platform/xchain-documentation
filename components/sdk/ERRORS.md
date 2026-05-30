@@ -71,7 +71,7 @@ Thrown during action validation before any network call is made.
 | `FORBIDDEN_CHARACTER` | — | A text field contains a `|` or `;` character, which would corrupt the pipe-delimited format |
 | `BATCH_CONSTRAINT` | `count` (for MINT/ISSUE violations) | A BATCH protocol rule was violated (nested BATCH, FILE action, more than 1 MINT, more than 1 ISSUE) |
 | `BATCH_EMPTY` | — | A batch was built with no actions queued |
-| `ENCODING_DATA_TOO_LARGE` | `suggestion` | The serialized action string exceeds 76 bytes and cannot fit in an OP_RETURN output |
+| `ENCODING_DATA_TOO_LARGE` | `suggestion` | The serialized action string exceeds 76 bytes (the OP_RETURN user-data limit; 80 bytes total per output including the 4-byte XCHN prefix) |
 | `MISSING_COMPRESSED_PUBKEY` | — | A MULTISIGN encoding was requested without providing a `compressedPubKey` |
 
 ### SDKFormatError

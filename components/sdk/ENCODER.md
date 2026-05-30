@@ -49,7 +49,7 @@ The encoder supports four encoding strategies. Each trades off cost, data capaci
 
 | Type | Max data per chunk | Notes |
 |---|---|---|
-| `OP_RETURN` | 76 bytes | Cheapest single-transaction encoding. The 4-byte `XCHN` magic prefix consumes 4 bytes, leaving 76 bytes for ACTION data. Auto-selected for small payloads. |
+| `OP_RETURN` | 80 bytes total (76 bytes user data) | Cheapest single-transaction encoding. Each output is 80 bytes: 4-byte `XCHN` magic prefix + 76 bytes for ACTION data. Auto-selected for small payloads. |
 | `P2SH` | 476 bytes | Two-phase transaction. Data is committed in a P2SH script (520 bytes minus 44 bytes of script overhead). Suitable for medium-sized payloads. |
 | `P2WSH` | 9,956 bytes | SegWit two-phase transaction. Supports very large payloads (10,000 bytes minus 44 bytes overhead). Best for FILE actions or large BATCH sequences. |
 | `MULTISIGN` | ~61 bytes | Data spread across fake public keys in a multisig output. Requires `compressedPubKey`. Rarely used directly. |
@@ -60,7 +60,7 @@ The encoder supports four encoding strategies. Each trades off cost, data capaci
 
 When `encoding` is omitted the encoder chooses based on the byte length of the ACTION string:
 
-- ACTION data fits in 76 bytes → `OP_RETURN`
+- ACTION data fits in 76 bytes (user-data limit; 80 bytes total per output) → `OP_RETURN`
 - ACTION data is larger → `P2SH` (or `P2WSH` for very large payloads)
 
 Relying on auto-selection is recommended for most use cases. Explicitly setting `encoding` is useful when you need deterministic output size or are working with the FILE action.
@@ -75,14 +75,14 @@ Validation only runs when `encoding` is explicitly set in the encoder options.
 
 ### OP_RETURN size check
 
-If `encoding` is `OP_RETURN` and the ACTION string exceeds 76 bytes, the SDK throws immediately:
+If `encoding` is `OP_RETURN` and the ACTION string exceeds 76 bytes (the user-data limit; 80 bytes total per output including the 4-byte XCHN prefix), the SDK throws immediately:
 
 - **Error code:** `ENCODING_DATA_TOO_LARGE`  
-- **Message:** includes the actual byte count, the 76-byte limit, and a suggested alternative (`P2SH` or `P2WSH`)  
+- **Message:** includes the actual byte count, the 76-byte user-data limit, and a suggested alternative (`P2SH` or `P2WSH`)  
 - **`err.details`:** `{ encoding, dataBytes, maxBytes, suggestion }`
 
 ```js
-// This throws before any network call if the SEND action string is > 76 bytes
+// This throws before any network call if the SEND action string is > 76 bytes (user-data limit)
 sdk.send({ params: { ... }, encoder: { pubkey: '...', encoding: 'OP_RETURN' } });
 // SDKValidationError: ENCODING_DATA_TOO_LARGE
 //   ACTION string is 89 bytes but OP_RETURN supports max 76 bytes of data
@@ -224,7 +224,7 @@ Encoder methods throw `SDKEncoderError` on failure. Pre-flight validation failur
 
 | Code | Cause |
 |---|---|
-| `ENCODING_DATA_TOO_LARGE` | `encoding: 'OP_RETURN'` set but ACTION string exceeds 76 bytes. |
+| `ENCODING_DATA_TOO_LARGE` | `encoding: 'OP_RETURN'` set but ACTION string exceeds 76 bytes (the user-data limit; 80 bytes total per output). |
 | `MISSING_COMPRESSED_PUBKEY` | `encoding: 'MULTISIGN'` set but `compressedPubKey` is absent. |
 
 ```js

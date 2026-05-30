@@ -28,7 +28,7 @@ The obfuscated payload needs to be stored somewhere in the transaction that a st
 
 ### OP_RETURN
 
-**Capacity**: up to 76 bytes of data  
+**Capacity**: up to 80 bytes per output (76 bytes of user data; the remaining 4 bytes are the XCHN magic prefix)  
 **Transactions**: 1 (single broadcast)  
 **Mechanism**: Data is stored in an `OP_RETURN` output — a standard Bitcoin output type explicitly designed for arbitrary data. The output is unspendable by design, so it adds no UTXO bloat to the UTXO set. Miners include it normally.
 
@@ -60,7 +60,7 @@ The encoder automatically selects the optimal format based on the payload size:
 
 | Payload size | Selected format |
 |---|---|
-| ≤ 76 bytes | OP_RETURN |
+| ≤ 76 bytes user data (≤ 80 bytes total) | OP_RETURN |
 | 77 – 476 bytes | P2SH |
 | 477 – 9,956 bytes | P2WSH |
 | Structured multi-key | Multisig (manual selection) |

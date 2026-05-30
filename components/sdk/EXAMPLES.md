@@ -671,7 +671,7 @@ const result = await sdk.send(
 );
 console.log(result.encoding); // 'P2SH'
 
-// OP_RETURN — will throw if action string > 76 bytes
+// OP_RETURN — will throw if action string > 76 bytes (user-data limit; 80 bytes total per output)
 try {
     await sdk.issue(
         { tick: 'TOKEN', maxSupply: '21000000', maxMint: '1000', decimals: 8, description: 'A long description...' },

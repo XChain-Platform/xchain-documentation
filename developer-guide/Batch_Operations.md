@@ -178,7 +178,7 @@ async function safeBroadcast(action) {
 
 ## Transaction Size Considerations
 
-Each action in a batch adds bytes to the embedded payload. OP_RETURN is limited to 76 bytes, so larger batches are automatically encoded as P2SH or P2WSH (two-transaction pattern). The encoder handles this transparently — check `psbt.format` in the response to see which encoding was used.
+Each action in a batch adds bytes to the embedded payload. OP_RETURN is limited to 80 bytes per output (76 bytes of user data plus the 4-byte XCHN prefix), so larger batches are automatically encoded as P2SH or P2WSH (two-transaction pattern). The encoder handles this transparently — check `psbt.format` in the response to see which encoding was used.
 
 ```js
 const psbt = await sdk.encoder.createPSBT({ action: batchAction, ... });

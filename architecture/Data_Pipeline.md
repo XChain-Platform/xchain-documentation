@@ -34,7 +34,7 @@ Before encoding, the SDK queries xchain-hub to retrieve current network configur
 The SDK calls the encoder's JSON-RPC API, passing the ACTION string, the sender's UTXOs, and their public key. The encoder:
 
 1. **Selects a format** based on payload length:
-   - `OP_RETURN` — up to 76 bytes, single transaction
+   - `OP_RETURN` — up to 80 bytes per output (76 bytes user data + 4-byte XCHN prefix), single transaction
    - `multisig` — up to ~61 bytes per key, single transaction
    - `P2SH` — up to 476 bytes, two-transaction pattern
    - `P2WSH` — up to 9,956 bytes, two-transaction pattern

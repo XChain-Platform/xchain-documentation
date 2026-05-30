@@ -133,7 +133,7 @@ ACTION data is embedded in blockchain transactions as AES-128-CTR obfuscated pay
 - **IV**: Next 16 hex characters of the first input's txid
 - **Magic prefix**: `XCHN` (4 bytes) after deobfuscation
 
-Supported encoding types: `OP_RETURN` (up to 76 bytes), `P2SH`, `P2WSH`, `multisign`. Larger payloads use P2SH or P2WSH with a two-transaction pattern (fund then spend to reveal data).
+Supported encoding types: `OP_RETURN` (up to 80 bytes total per output, 76 bytes user data + 4-byte XCHN prefix), `P2SH`, `P2WSH`, `multisign`. Larger payloads use P2SH or P2WSH with a two-transaction pattern (fund then spend to reveal data).
 
 ## Related Documentation
 

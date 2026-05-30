@@ -9,18 +9,18 @@ XChain supports four encoding formats for embedding ACTION payloads in blockchai
 
 | Format | Max Payload | Transactions | Relative Cost | Best For |
 |---|---|---|---|---|
-| OP_RETURN | 76 bytes | 1 | Lowest | Most actions |
+| OP_RETURN | 76 bytes user data (80 bytes total) | 1 | Lowest | Most actions |
 | Multisig | ~61 bytes/key | 1 | Low–Medium | Single-tx medium payloads |
 | P2SH | 476 bytes | 2 | Medium | Medium payloads |
 | P2WSH | 8,192 bytes | 2 | Medium–High | Large payloads |
 
 ## Format Details
 
-### OP_RETURN — up to 76 bytes
+### OP_RETURN — 80 bytes total (76 bytes user data + 4-byte XCHN prefix)
 
 The obfuscated payload is stored in an `OP_RETURN` output. OP_RETURN outputs are provably unspendable, so they do not grow the UTXO set. This is the cheapest format because it minimizes byte count and carries no future spending cost.
 
-Most common XChain actions fit within 76 bytes: SEND (single recipient), MINT, simple ISSUE, ADDRESS update, MESSAGE, and most DISPENSER and ORDER operations.
+Most common XChain actions fit within 76 bytes of user data: SEND (single recipient), MINT, simple ISSUE, ADDRESS update, MESSAGE, and most DISPENSER and ORDER operations.
 
 ### Multisig — approximately 61 bytes per public key slot
 
@@ -55,11 +55,11 @@ The 8,192-byte figure is the effective protocol ceiling: it is the maximum decod
 ```
 Obfuscated payload length?
          |
-    <= 76 bytes
+    <= 76 bytes  (user data; 80 bytes total per output including 4-byte XCHN prefix)
          |
     OP_RETURN  (single tx, cheapest)
          |
-    > 76 bytes
+    > 76 bytes  (user data)
          |
     <= 476 bytes
          |
@@ -80,7 +80,7 @@ Multisig is a single-transaction format chosen for medium payloads slightly larg
 
 ## Practical Guidelines
 
-**Use OP_RETURN** for the vast majority of actions. SEND, MINT, simple ISSUE, ORDER, DISPENSER, and most others fit comfortably within 76 bytes.
+**Use OP_RETURN** for the vast majority of actions. SEND, MINT, simple ISSUE, ORDER, DISPENSER, and most others fit comfortably within 76 bytes of user data (80 bytes total per output).
 
 **Use P2SH** when constructing BATCH commands combining several actions, or ISSUE actions with long token names, descriptions, or callback URLs.
 

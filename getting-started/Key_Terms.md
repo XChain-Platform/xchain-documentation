@@ -17,7 +17,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **BATCH** — An ACTION that bundles multiple sub-actions into a single blockchain transaction, joined with semicolons. Reduces on-chain fees by combining operations.
 
-**encoding type** — The method used to embed ACTION data in a transaction. Options are `OP_RETURN` (up to 76 bytes), `P2SH`, `P2WSH`, and `multisig`. Larger payloads require P2SH or P2WSH, which use a two-transaction pattern.
+**encoding type** — The method used to embed ACTION data in a transaction. Options are `OP_RETURN` (up to 80 bytes per output, 76 bytes user data + 4-byte XCHN prefix), `P2SH`, `P2WSH`, and `multisig`. Larger payloads require P2SH or P2WSH, which use a two-transaction pattern.
 
 **magic prefix** — The 4-byte string `XCHN` that appears at the start of every decoded XChain payload, used to identify XChain transactions.
 
@@ -179,9 +179,9 @@ A reference glossary of XChain terminology, organized by category.
 
 **regtest** — A local blockchain mode where the operator controls block production. Blocks are mined on demand, coins have no value, and the chain can be reset at will. The recommended environment for XChain development.
 
-**OP_RETURN** — A Bitcoin script opcode that marks a transaction output as provably unspendable. XChain uses it to embed ACTION data of up to 76 bytes directly in a transaction output without creating a spendable UTXO.
+**OP_RETURN** — A Bitcoin script opcode that marks a transaction output as provably unspendable. XChain uses it to embed ACTION data in a transaction output (up to 80 bytes per output: 76 bytes of user data plus a 4-byte XCHN prefix) without creating a spendable UTXO.
 
-**P2SH** — Pay-to-Script-Hash. A Bitcoin transaction type that XChain uses for larger ACTION payloads (over 76 bytes) that don't fit in OP_RETURN. Uses a two-transaction pattern: a funding transaction, then a spend that reveals the data.
+**P2SH** — Pay-to-Script-Hash. A Bitcoin transaction type that XChain uses for larger ACTION payloads (over 76 bytes of user data) that don't fit in OP_RETURN. Uses a two-transaction pattern: a funding transaction, then a spend that reveals the data.
 
 **P2WSH** — Pay-to-Witness-Script-Hash. The SegWit equivalent of P2SH. Used by XChain for large payloads on chains that support SegWit.
 
