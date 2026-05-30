@@ -48,7 +48,7 @@ Functionally identical to P2SH but uses SegWit. The payload is embedded in a wit
 
 SegWit's witness discount makes P2WSH more fee-efficient than P2SH for large payloads. Use this for FILE actions, large BROADCAST messages, or any payload over 476 bytes.
 
-The 8,192-byte figure is the effective protocol ceiling: it is the maximum decoded ACTION data length the decoder will accept, not the raw P2WSH script-level capacity (which is higher, ~9,956 bytes). Payloads above 8,192 bytes are rejected at encode time and would be dropped by the decoder if broadcast, so this ceiling applies to every format — it is not specific to P2WSH.
+The 8,192-byte figure is the effective protocol ceiling: it is the maximum **compiled** ACTION payload size the decoder will accept — the on-chain script push measured before decompile strips the OP_PUSHDATA prefix, not the decoded ACTION string (which is 1–3 bytes shorter) and not the raw P2WSH script-level capacity (which is higher, ~9,956 bytes). Payloads above 8,192 bytes are rejected at encode time and would be dropped by the decoder if broadcast, so this ceiling applies to every format — it is not specific to P2WSH.
 
 ## Decision Flowchart
 

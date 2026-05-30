@@ -81,7 +81,7 @@ These values are defined in source code and not configurable via environment var
 
 | Constant | Value | Location | Description |
 |---|---|---|---|
-| `MAX_ACTION_DATA_LENGTH` | `8192` | XChainDecoder.js | Maximum ACTION payload size in bytes |
+| `MAX_ACTION_DATA_LENGTH` | `8192` | XChainDecoder.js | Maximum **compiled** on-chain ACTION payload size in bytes (the script push measured before decompile strips the OP_PUSHDATA prefix; the decoded ACTION string is 1–3 bytes shorter). A tx is skipped when its compiled push exceeds 8192 bytes. |
 | `SATOSHIS_DECIMALS` | `8` | db.js | Decimal places for satoshi-to-coin conversion |
 | `DB_TRANSACTION_BLOCKS_QUANTITY` | `1` | XChainDecoder.js | Blocks per database transaction |
 
