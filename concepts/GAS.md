@@ -58,9 +58,21 @@ On BTC, the indexer uses implicit detection: if the transaction includes a nativ
 - Max 50 emitted actions per execution
 - Max 10,000 state keys per contract
 - Max 64KB state value per key
-- 100ms CPU time limit per execution
+- 30-second wall-clock safety-net timeout per execution (see [Execution Termination](#execution-termination) — the gas ceiling is the primary limit and halts normal contracts in well under 1 second)
 - 8MB memory limit per isolate
 - Max 64KB contract code size
+
+### Execution Termination
+
+Contract execution is bounded by two independent mechanisms operating at different tiers:
+
+1. **Gas exhaustion (primary).** Every instruction and every host operation (state reads/writes, oracle reads, action emissions) consumes gas, metered by isolated-vm. When a contract's gas budget is depleted, execution halts immediately. This is the enforced limit that governs the common case: a normally-behaving contract terminates here, typically in well under 1 second of wall-clock time. Gas is the spam and resource-abuse deterrent — see the Hard Caps and fee schedule above.
+
+2. **Wall-clock timeout (secondary safety net).** A 30-second wall-clock limit backstops gas metering. It only fires when the gas ceiling fails to terminate execution in real time — for example, a contract engineered to maximize wall-clock time per unit of gas (calling host operations that are cheap in gas terms but slow in wall-clock terms). Under normal operation this limit is never reached; it exists solely to guarantee an execution cannot run unbounded if gas accounting is somehow outpaced.
+
+The 30-second value is deliberately generous so that legitimate contracts are never killed prematurely on slower hardware (e.g. regtest machines), leaving the gas ceiling to enforce the practical limit.
+
+**Pathological case:** because the safety net is set to 30 seconds, a contract specially crafted to burn wall-clock time cheaply relative to gas can hold a single indexer worker process busy for up to 30 seconds per `EXECUTE`. The gas ceiling makes this expensive to attempt at scale, but operators should be aware that the wall-clock backstop — not 100ms — is the true upper bound on a single execution's duration.
 
 ### Expiration Free Period
 
