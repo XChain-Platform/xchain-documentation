@@ -1346,8 +1346,8 @@ Stake XCHAIN tokens and delegate a signing key (capability staking; BTC chain on
 const result = await sdk.stakeAndDelegate(
     'your-wif-key',
     {
-        tier: 2,
-        chains: 'BTC,LTC',
+        version: 1,                   // 1 = new stake, 2 = top up an existing pubkey
+        amount: '1000',               // XCHAIN staked — capabilities are auto-qualified from the aggregate amount
         signingPubkey: 'aabbccdd...'  // 64 hex characters (Ed25519 public key)
     },
     {
@@ -1363,7 +1363,7 @@ const session = sdk.session('your-wif-key');
 await session.collect({});
 
 // Later: unstake
-await session.unstake({ tier: 2 });
+await session.unstake({ signingPubkey: 'aabbccdd...' });  // releases the pubkey's full aggregate stake
 ```
 
 ## Cross-Chain Parallel Actions

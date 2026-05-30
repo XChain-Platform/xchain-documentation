@@ -96,7 +96,7 @@ Stake XCHAIN tokens and delegate a signing key in one flow (capability staking; 
 ```js
 const result = await sdk.stakeAndDelegate(
     wif,
-    { tier: 2, chains: 'BTC,LTC', signingPubkey: 'aabb...' },  // 64 hex chars
+    { version: 1, amount: '1000', signingPubkey: 'aabb...' },  // capabilities auto-qualified from amount; pubkey is 64 hex chars
     { newSigningPubkey: 'ccdd...' }  // optional — omit to skip delegation
 );
 

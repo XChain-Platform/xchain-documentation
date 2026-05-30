@@ -120,6 +120,8 @@ Bootstrap-register a validator. The signing public key must be a 64-character he
 
 Bulk sync the validator set from external staking data (e.g., from the indexer). Replaces the current set and reloads all subsystem validator sets.
 
+Each validator object carries `signing_pubkey`, `addr`, `status`, and an optional comma-separated `chains` list (used for cross-chain quorum filtering; omit or leave empty to support all chains). Validator **capabilities** (`price`, `cross_chain`, `oracle_publish`, `attestation`) are **not** part of this object — a pubkey auto-qualifies for each capability whose governance-configured minimum stake its aggregate active stake meets. There is no `tier` field.
+
 **Request:**
 ```json
 {
@@ -127,8 +129,8 @@ Bulk sync the validator set from external staking data (e.g., from the indexer).
   "method":"syncvalidators",
   "params":{
     "validators":[
-      {"signing_pubkey":"a1b2c3...","addr":"validator1.example.com","status":"active","chains":"BTC,LTC","tier":1},
-      {"signing_pubkey":"d4e5f6...","addr":"validator2.example.com","status":"active","chains":"BTC,LTC,DOGE","tier":2}
+      {"signing_pubkey":"a1b2c3...","addr":"validator1.example.com","status":"active","chains":"BTC,LTC"},
+      {"signing_pubkey":"d4e5f6...","addr":"validator2.example.com","status":"active","chains":"BTC,LTC,DOGE"}
     ]
   },
   "id":1
@@ -152,8 +154,8 @@ List all active validators.
 **Response:**
 ```json
 [
-  {"signing_pubkey":"a1b2c3...","addr":"validator1.example.com","status":"active","chains":"BTC,LTC","tier":1},
-  {"signing_pubkey":"d4e5f6...","addr":"validator2.example.com","status":"active","chains":"BTC,LTC,DOGE","tier":2}
+  {"signing_pubkey":"a1b2c3...","addr":"validator1.example.com","status":"active","chains":"BTC,LTC"},
+  {"signing_pubkey":"d4e5f6...","addr":"validator2.example.com","status":"active","chains":"BTC,LTC,DOGE"}
 ]
 ```
 

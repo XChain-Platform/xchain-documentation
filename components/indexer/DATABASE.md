@@ -105,8 +105,8 @@ The indexer creates and manages all tables in this database. SQL schema files li
 
 | Table | Purpose |
 |---|---|
-| `stakes` | Active and historical STAKE records — `tier` (1=oracle, 2=cross-chain, 3=oracle publisher), `chains`, `signing_pubkey_id`, `doge_address` (Tier 3 only), `amount`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE), `status_id` |
-| `unstakes` | UNSTAKE records — `tier`, `cooldown_end_block` (`block_index + 1000` for token return), links back to the originating stake |
+| `stakes` | Active and historical capability-staking STAKE records (`version` 1=new / 2=top-up) — `signing_pubkey_id`, `amount`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE), `status_id`, `source_id`. Capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) are derived from a pubkey's aggregate active `amount` against the governance-configured minimums — there is no `tier` column. |
+| `unstakes` | Capability UNSTAKE records — `signing_pubkey_id`, `amount`, `cooldown_end_block` (`block_index + 1000` for token return), `status_id`; links back to the originating stake by pubkey |
 | `delegations` | Active and historical DELEGATE records — `signing_pubkey_id`, `activation_block`, `deactivation_block` (set on DELEGATE v2 revoke), `status_id` |
 | `validator_rewards` | Per-validator accumulated rewards — `source_id`, `signing_pubkey_id`, `reward_type` (`oracle_round` or `cross_chain_attestation`), `round_reference`, `amount`, `block_index`. Populated by the hub's `RewardTracker` via the `pushvalidatorrewards` JSON-RPC endpoint. |
 | `reward_claims` | COLLECT records — `source_id`, `amount`, `status_id`, `block_index` |

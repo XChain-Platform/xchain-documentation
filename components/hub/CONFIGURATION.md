@@ -96,7 +96,7 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 
 | Table | Purpose |
 |---|---|
-| `validators` | Active validators: `(signing_pubkey, addr, status, chains, tier)` |
+| `validators` | Active validators: `(signing_pubkey, addr, status, chains)` — capabilities are derived from each pubkey's aggregate stake, not stored here (the `tier` column was dropped in the capability-staking refactor) |
 | `consensus_state` | PBFT sequence number persistence |
 | `p2p_peers` | Known P2P peers and last-seen timestamps |
 
