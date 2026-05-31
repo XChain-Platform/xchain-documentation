@@ -282,20 +282,90 @@ HTTP 400
 
 ### `GET /transparency/:dbType/:chain/:network/proof/:block_index`
 
-Returns a Merkle inclusion proof for a specific block. **Indexer only** — returns `400` when `:dbType` is `decoder`.
+Returns a Merkle inclusion proof for a specific block within a committed epoch. **Indexer only** — returns `400` when `:dbType` is `decoder`. Only available in server mode — returns `403` in client mode.
+
+**URL parameters:**
+
+| Parameter | Description |
+|---|---|
+| `:dbType` | Must be `indexer` — decoder DB has no transparency log |
+| `:chain` | Coin name (`bitcoin`, `dogecoin`, `litecoin`) |
+| `:network` | Network name (`mainnet`, `testnet`, `regtest`) |
+| `:block_index` | Integer block index to generate a proof for |
 
 **Request:**
 ```
 GET /transparency/indexer/bitcoin/mainnet/proof/893000
 ```
 
+**Response (200):**
+```json
+{
+  "blockIndex": 893000,
+  "epoch": 8930,
+  "leaf": "sha256-hex-of-concatenated-block-hashes...",
+  "merkleRoot": "sha256-hex-merkle-tree-root...",
+  "proof": [
+    { "hash": "sha256-hex-sibling...", "position": "left" },
+    { "hash": "sha256-hex-sibling...", "position": "right" }
+  ],
+  "verified": true
+}
+```
+
+`proof` is an array of `{ hash, position }` steps that reconstruct the Merkle root from the leaf. `position` is `"left"` or `"right"` indicating the sibling's side. `verified` confirms that the included proof reconstructs `merkleRoot`.
+
+**Error responses:**
+
+```
+HTTP 403  { "error": "Transparency log only available in server mode" }
+HTTP 400  { "error": "Transparency log is indexer-only" }
+HTTP 404  { "error": "Chain/network not found" }
+```
+
+A block that exists in `sync_meta` but whose epoch has not yet been committed returns `200` with `{ "error": "epoch not yet committed" }` — epochs are committed when the last block in the epoch (a multiple of the epoch size, default 100) is recorded.
+
 ### `GET /transparency/:dbType/:chain/:network/root/latest`
 
-Returns the latest committed Merkle root. **Indexer only** — returns `400` when `:dbType` is `decoder`.
+Returns the latest committed Merkle root. When no epoch has been committed yet (the log is empty or no epoch boundary has been crossed), returns `null` values rather than an error. **Indexer only** — returns `400` when `:dbType` is `decoder`. Only available in server mode — returns `403` in client mode.
+
+**URL parameters:**
+
+| Parameter | Description |
+|---|---|
+| `:dbType` | Must be `indexer` — decoder DB has no transparency log |
+| `:chain` | Coin name (`bitcoin`, `dogecoin`, `litecoin`) |
+| `:network` | Network name (`mainnet`, `testnet`, `regtest`) |
 
 **Request:**
 ```
 GET /transparency/indexer/bitcoin/mainnet/root/latest
+```
+
+**Response (200, when at least one epoch is committed):**
+```json
+{
+  "id": 8930,
+  "epoch": 8930,
+  "start_block": 892901,
+  "end_block": 893000,
+  "merkle_root": "sha256-hex-merkle-tree-root...",
+  "leaf_count": 100,
+  "created_at": "2026-04-03T12:00:00.000Z"
+}
+```
+
+**Response (200, when the log is empty or no epoch has been committed):**
+```json
+{ "epoch": null, "merkle_root": null }
+```
+
+**Error responses:**
+
+```
+HTTP 403  { "error": "Transparency log only available in server mode" }
+HTTP 400  { "error": "Transparency log is indexer-only" }
+HTTP 404  { "error": "Chain/network not found" }
 ```
 
 ## WebSocket API Reference
