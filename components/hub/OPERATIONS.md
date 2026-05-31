@@ -128,7 +128,7 @@ Write methods (`updateconfig`, `registervalidator`, `syncvalidators`, `requestat
 
 ### Rate Limiting
 
-The API is rate-limited to 100 requests per minute per IP (configurable via `HUB_API_RATE_LIMIT`). Exceeding the limit returns HTTP 429.
+The API is rate-limited to 100 requests per minute per IP (configurable via `HUB_RATE_LIMIT_RPM`). Exceeding the limit returns HTTP 429.
 
 ## Resilience and Recovery
 

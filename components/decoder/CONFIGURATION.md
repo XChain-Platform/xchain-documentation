@@ -28,6 +28,7 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | Variable | Description | Default |
 |---|---|---|
 | `AUX_POW` | Enable AuxPoW header stripping (Dogecoin) | _(unset)_ |
+| `DECODER_RATE_LIMIT_RPM` | API requests per minute per IP | `100` |
 
 The `AUX_POW` variable should be set to any truthy value when running against Dogecoin nodes. It enables the `getBlockWithoutAuxPow()` code path that strips merge-mining headers before parsing.
 
