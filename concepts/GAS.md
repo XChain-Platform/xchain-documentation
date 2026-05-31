@@ -50,7 +50,9 @@ On BTC, the indexer uses implicit detection: if the transaction includes a nativ
 | **State write** | 200 | 0.002 | 2x read |
 | **State delete** | 100 | 0.001 | Same as read |
 | **Oracle read** | 100 | 0.001 | Same as state read |
+| **Cross-chain read** | 100 | 0.001 | Cross-chain state read (same cost as local state read) |
 | **Action emission** | 500 | 0.005 | Anti-spam for emitted actions |
+| **Attestation request** | 5,000 | 0.05 | Covers off-chain data request overhead (`attestation.request`) |
 | **Computation** | 1/instruction | — | Metered by isolated-vm |
 
 ### Hard Caps (Primary Spam Deterrent)

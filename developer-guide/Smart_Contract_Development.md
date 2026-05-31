@@ -218,7 +218,7 @@ xchain.attestation.request(
 - **`redundancy`** is the number of independent validators that must agree before the response is written to chain. `1` is the cheapest path (one validator's answer is final); `3` or `5` triggers a consensus round across multiple validators.
 - **`deadlineBlocks`** is how many blocks the request waits before it expires. If no agreed-upon answer arrives in time, the callback is still invoked — with `status='expired'` and an empty response — so your contract can react to silence.
 
-`xchain.attestation.request` costs `VM_EMISSION` (500) gas plus the request's gas escrow.
+`xchain.attestation.request` costs `VM_EMISSION` (500 gas, standard action-emission overhead) plus `VM_ATTEST_REQUEST` (5,000 gas, the attestation request charge) — **5,500 gas total** per call, on top of the request's gas escrow.
 
 ### Callback
 
