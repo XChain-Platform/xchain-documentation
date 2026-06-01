@@ -45,6 +45,19 @@ See [WEBSOCKET.md](WEBSOCKET.md) for the full WebSocket API reference.
 | `HUB_API_HOST` | No | — | xchain-hub hostname for config discovery |
 | `HUB_PORT` | No | — | xchain-hub port |
 
+### Indexer API (native-coin fee pre-flight)
+
+The public `/{COIN}/api/feequote` and `/{COIN}/api/feeschedule` endpoints proxy to the colocated
+xchain-indexer JSON-RPC API (which is not internet-facing) so the authoritative fee + oracle-price
+logic stays single-sourced. Configure the per-coin indexer API URL to enable them; when unset, those
+two endpoints return `503` (clients then fall back to paying the protocol fee in XCHAIN).
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `INDEXER_API_URL_<COIN>_<NETWORK>` | No | — | Indexer JSON-RPC URL for a specific coin+network (e.g. `INDEXER_API_URL_BTC_REGTEST=http://localhost:3001`) |
+| `INDEXER_API_URL` | No | — | Generic fallback indexer JSON-RPC URL used when no coin/network-specific var is set |
+| `INDEXER_API_TIMEOUT_MS` | No | `5000` | Per-request timeout for the indexer proxy calls |
+
 ### SSL/TLS
 
 | Variable | Required | Default | Description |

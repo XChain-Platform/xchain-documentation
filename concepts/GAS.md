@@ -146,6 +146,46 @@ native-coin fee output on the commit (first) transaction. The commit always conf
 (the reveal spends it), so the fee is fully received before the action is processed; the decoder
 attributes the commit's fee output to the reveal action.
 
+### Client pre-validation (sizing the fee + refusing doomed transactions)
+
+Because a native-coin fee is forfeited if the action fails, clients should never broadcast one
+they can't price. The indexer exposes a read-only pre-flight that computes the fee against current
+chain state + current oracle prices **without persisting anything**, surfaced publicly through the
+explorer (the indexer itself is not internet-facing):
+
+- **`GET /{COIN}/api/feequote`** — query params `action`, `params` (pipe-delimited wire params,
+  without the ACTION name), `source`, and optional `feeOutputSats`. Returns:
+
+  ```json
+  {
+    "supported": true, "valid": true, "error": null,
+    "xchainFee": "1.00000000",
+    "requiredFeeNative": "0.00002000", "requiredFeeSats": 2000,
+    "minAcceptable": "0.00001900", "maxAcceptable": "0.00002200",
+    "feeDestination": "<address>", "oracleRound": 42,
+    "toleranceMin": "0.95000000", "toleranceMax": "1.10000000"
+  }
+  ```
+
+  `supported: false` means the indexer can't price this action's fee yet (the client should pay in
+  XCHAIN instead). `valid: false` means the oracle price is missing/stale, or a supplied
+  `feeOutputSats` is below the acceptance floor. A client sizes its `FEE_DESTINATION` output to
+  `requiredFeeSats`.
+
+- **`GET /{COIN}/api/feeschedule`** — the gas schedule, GAS_PRICE, tolerance band, fee destination,
+  and the latest XCHAIN/USD + COIN/USD oracle prices (with a freshness flag) for display / rough
+  estimates.
+
+The `xchain-sdk` wraps this: `sdk.quoteNativeFee(actionData, { source })` returns the quote, and
+`sdk.estimateFees(actionData, { payFeeInNativeCoin: true, ... })` calls the quote, sizes the
+`FEE_DESTINATION` output via the encoder's `customOutputs`, and **throws** rather than build a
+transaction that can't be priced. The `xchain-wallet` enforces the same gate at its broadcast
+chokepoint and warns the user that a native-coin fee is forfeited if the transaction is rejected.
+
+> Phase-1 scope: the pre-flight prices fees for ISSUE (new token) and ORDER / SWAP / DISPENSER
+> *create*. Other actions return `supported: false` (pay in XCHAIN); deeper coverage via a full
+> action dry-run is planned.
+
 ## Governance
 
 All fee parameters are governance-adjustable via the hub's PBFT voting mechanism:
