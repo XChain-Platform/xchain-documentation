@@ -19,6 +19,8 @@ gas cost → GAS_PRICE → XCHAIN amount → debit from user's XCHAIN balance
 
 On BTC, the indexer uses implicit detection: if the transaction includes a native coin output to the fee destination address, it's validated as native coin payment against the oracle. If there is no fee output, the indexer debits XCHAIN from the user's balance. On LTC/DOGE, native coin payment is the only option — a missing fee output means the action is rejected.
 
+The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` config value. It can be set at runtime with the `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` environment variable (e.g. `XCHAIN_FEE_DESTINATION_DOGE_MAINNET`). While it remains the unset placeholder, native-coin fee detection is disabled and the indexer falls back to XCHAIN-balance deduction on BTC (and rejects fee-bearing actions on LTC/DOGE).
+
 ## GAS_PRICE
 
 | Parameter | Value | Notes |
@@ -126,6 +128,21 @@ When a user pays a fee in native coin, the indexer validates the payment against
 4. Record the fee with the oracle round reference
 
 The tolerance band accounts for price movement between transaction creation and confirmation.
+
+### Native-coin fees are non-refundable
+
+A native-coin fee is a real on-chain output paying the fee destination, settled in the same transaction
+as the action. If the action then fails validation (e.g. the ticker is already taken, the parameters are
+invalid, or the fee is underpaid), the indexer marks the action invalid but **cannot refund the
+native coin** — it is already final on-chain and is forfeited to the fee destination. This differs from
+XCHAIN-balance fees, which are only debited when the action succeeds. Clients (wallet/SDK) should
+pre-validate an action and confirm the fee amount against the current oracle price **before** broadcasting
+with a native-coin fee, so users never pay for an action that will fail.
+
+For a large action that the encoder splits across a P2SH commit + reveal transaction pair, place the
+native-coin fee output on the commit (first) transaction. The commit always confirms before the reveal
+(the reveal spends it), so the fee is fully received before the action is processed; the decoder
+attributes the commit's fee output to the reveal action.
 
 ## Governance
 

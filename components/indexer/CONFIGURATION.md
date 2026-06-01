@@ -46,7 +46,7 @@ Each supported blockchain has a configuration file at `src/configs/<COIN>.js` (B
 | `ADDRESS.GAS` | Gas token issuer address (per network) | `1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8` |
 | `ADDRESS.DONATE1` | Protocol development donation address | `1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8` |
 | `ADDRESS.DONATE2` | Community development donation address | `1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8` |
-| `ADDRESS.FEE_DESTINATION` | Native-coin fee collection address (per network) | _(set pre-launch)_ |
+| `ADDRESS.FEE_DESTINATION` | Native-coin fee collection address (per network). Overridable at runtime via the `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` env var (e.g. `XCHAIN_FEE_DESTINATION_BTC_REGTEST`); falls back to the placeholder when unset, which disables native-coin fee payment. | _(set pre-launch)_ |
 | `ADDRESS.REWARD` | Validator reward pool — pre-funded, manually topped up, drained by `COLLECT` (**BTC only**; XCHAIN/COLLECT do not exist on LTC/DOGE, where the slot is unused) | _(set pre-launch)_ |
 
 ## Unified Gas Fee Schedule
