@@ -115,7 +115,7 @@ xcode-select --install
 
 **Symptoms:** Contract returns `out_of_gas` with relatively simple logic.
 
-**Cause:** Gas is charged at every control flow point, function call, and loop iteration. Deeply nested loops or many function calls accumulate gas quickly.
+**Cause:** Gas is charged at every control flow point, function call, and loop iteration. Deeply nested loops or many function calls accumulate gas quickly. Note that indexed `for` loops are charged **twice per iteration** — once for the loop body and once for the update expression (`i++`) — so a `for` loop costs double what an equivalent `while` loop costs. Deeply nested `for` loops are the most common cause of unexpected exhaustion.
 
 **Fix:** Optimize contract logic — reduce loop iterations, minimize function call depth, batch state reads.
 

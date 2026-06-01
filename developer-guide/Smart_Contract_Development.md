@@ -190,6 +190,8 @@ A non-blocking **float warning** is also generated if decimal number literals ar
 | Cross-chain read | 100 |
 | Action emission | 500 |
 
+> **Indexed `for` loops cost 2 gas per iteration, not 1.** The gas meter injects a control-flow charge at the top of the loop body *and* a second charge into the update expression (`for (…; i++)` is metered as `for (…; (__gas(1), i++))`). So a `for` loop running N iterations costs `2 × N` computation gas. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost 1 gas per iteration. Budget indexed `for` loops accordingly.
+
 The gas ceiling is **1,000,000** per execution. Deployment gas is calculated as `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`, plus constructor gas if a constructor runs.
 
 ## Debugging

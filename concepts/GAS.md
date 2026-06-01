@@ -55,7 +55,9 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` config 
 | **Cross-chain read** | 100 | 0.001 | Cross-chain state read (same cost as local state read) |
 | **Action emission** | 500 | 0.005 | Anti-spam for emitted actions |
 | **Attestation request** | 5,000 | 0.05 | Covers off-chain data request overhead (`attestation.request`) |
-| **Computation** | 1/instruction | — | Metered by isolated-vm |
+| **Computation** | 1/instruction | — | Metered by isolated-vm; one charge per control-flow point |
+
+> **Indexed `for` loops are charged twice per iteration.** The gas meter injects a control-flow charge at the top of the loop body and a second charge into the update expression, so a `for` loop of N iterations costs `2 × N` computation gas. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost 1 per iteration. Account for the doubled cost when budgeting a gas ceiling for contracts that use indexed `for` loops.
 
 ### Hard Caps (Primary Spam Deterrent)
 

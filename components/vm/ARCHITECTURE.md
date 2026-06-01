@@ -96,7 +96,7 @@ The VM uses deterministic, structure-based gas metering rather than wall-clock t
 The AST is walked with `acorn-walk` and `__gas(1)` calls are injected at:
 
 - **Function entry** — declarations, expressions, and arrow functions (after directive prologue)
-- **Loop iterations** — `for`, `while`, `do-while`, `for-in`, `for-of` (top of body + update expression)
+- **Loop iterations** — `for`, `while`, `do-while`, `for-in`, `for-of` (top of body). Indexed `for` loops additionally inject a charge into the update expression (`for (…; i++)` → `for (…; (__gas(1), i++))`), so each `for` iteration costs **2 × `VM_COMPUTATION`** (body + update) while `while`/`do-while`/`for-in`/`for-of` cost 1×
 - **Branches** — `if`/`else` blocks, `switch` cases (non-empty), ternary operators (wraps test)
 - **Exception handling** — `try`, `catch`, `finally` blocks
 - Single-statement bodies are wrapped in `BlockStatement` to safely prepend the gas call

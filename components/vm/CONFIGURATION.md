@@ -38,7 +38,7 @@ The gas schedule defines the cost of each metered operation. These values are se
 
 | Operation | Key | Cost | Description |
 |---|---|---|---|
-| Computation | `VM_COMPUTATION` | 1 | Charged at each `__gas()` injection point (loop iterations, branches, function calls) |
+| Computation | `VM_COMPUTATION` | 1 | Charged at each `__gas()` injection point (loop iterations, branches, function calls). Indexed `for` loops are charged **twice per iteration** — see note below |
 | State read | `VM_STATE_READ` | 100 | `state.get()`, `state.has()`, `getBalance()`, `getTokenInfo()`, `attestation.getResponse()`, `contract.getStake()`, `contract.getTotalStaked()`, `contract.getStakers()` |
 | State write | `VM_STATE_WRITE` | 200 | `state.set()` |
 | State delete | `VM_STATE_DELETE` | 100 | `state.delete()` |
@@ -48,6 +48,8 @@ The gas schedule defines the cost of each metered operation. These values are se
 | Attestation request | `VM_ATTEST_REQUEST` | 5000 | Additional fee on top of `VM_EMISSION` for `attestation.request()` — reflects the validator-network work that backs the eventual response |
 
 Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`revert`, `require`), and logging (`log`, `isLogFull`, `getLogCount`) are gas-free. `oracle.getSnapshotAge()` is also gas-free.
+
+> **Indexed `for` loops cost 2 × `VM_COMPUTATION` per iteration.** The metering transform injects a charge at the top of the loop body *and* a second charge into the update expression — `for (…; i++)` is rewritten as `for (…; (__gas(1), i++))` — so each iteration is metered twice. A `for` loop of N iterations therefore costs `2 × N × VM_COMPUTATION`. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost `1 × VM_COMPUTATION` per iteration. Budget gas ceilings for indexed `for` loops accordingly.
 
 ## Resource Limits
 
