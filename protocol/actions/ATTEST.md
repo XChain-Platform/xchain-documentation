@@ -95,13 +95,14 @@ Where `sha256(response_payload)` is the lowercase hex digest of the UTF-8 respon
 2. Validators staked for `attestation` capability detect the request via the hub's `AttestationRound` polling.
 3. Top-`REDUNDANCY` validators (deterministic leader sort by `SHA-256(request_id ‖ pubkey)`) fetch via the provider and gossip ATTEST_PROPOSE.
 4. Leader publishes ATTEST v1 on-chain with `REDUNDANCY` Ed25519 signatures.
-5. Indexer flips request to `fulfilled` (or `errored` for non-`ok` STATUS) and injects a system EXECUTE invoking the callback.
-6. If `DEADLINE_BLOCK` passes without a v1, the indexer's per-block expiry pipeline synthesizes ATTEST v2 (flips status to `expired`, fires the callback with `status='expired'`).
+5. On a terminal v1 the indexer flips the request to `fulfilled` (`STATUS=ok`) or `errored` (a genuinely terminal failure such as `expired`) and injects a system EXECUTE invoking the callback. A *retryable* v1 (`STATUS` of `no_quorum`, `timeout`, or `provider_error`) is recorded but leaves `request_status='pending'`, so the responsible set can attempt another round before the deadline; no callback fires yet.
+6. If `DEADLINE_BLOCK` passes while still `pending` (no terminal v1, or only retryable rounds), the indexer's per-block expiry pipeline synthesizes ATTEST v2 (flips status to `expired`, fires the callback with `status='expired'`).
 
 ## Effects on v1 with valid signatures
-- Persists into `attestation_responses` with the agreed body + sigs.
-- Flips matching `attestation_requests` row to `fulfilled` (if `STATUS=ok`) or `errored` (other statuses).
-- Synthesizes an EXECUTE injecting the callback with:
+- Persists into `attestation_responses` with the agreed body + sigs (always — including retryable rounds, for audit).
+- Terminal statuses flip the matching `attestation_requests` row: `fulfilled` (`STATUS=ok`) or `errored` (a terminal failure such as `expired`).
+- Retryable statuses (`no_quorum`, `timeout`, `provider_error`) leave `request_status='pending'` untouched so a later round can still reach quorum before the deadline (or the v2 expiry path takes over). No status flip and no callback for these.
+- On a terminal status only, synthesizes an EXECUTE injecting the callback with:
   - `[request_id, provider_id, status, response_payload, ...original_callback_params]`
   - `SOURCE = contract_address` so `xchain.getSourceAddress() === xchain.getContractAddress()` inside the callback.
 - Callback wrapped in a savepoint — failure does NOT roll back the response row.
