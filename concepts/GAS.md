@@ -96,24 +96,25 @@ The first 90 days of any ORDER/DISPENSER/SWAP are free. Fees only apply to days 
 
 ## Fee Collection and Distribution
 
-Native coin fees are collected at **fee destination addresses** on each chain. The ADDRESS action's `FEE_PREFERENCE` field routes collected fees:
+Fees can be paid two ways. **Native-coin fees** (BTC/LTC/DOGE) are collected at the per-chain **fee destination address**. **XCHAIN-balance fees** are routed by the ADDRESS action's `FEE_PREFERENCE` field:
 
-| Bucket | Purpose |
-|---|---|
-| Protocol Development | Fund ongoing platform development |
-| Community Development | Community grants, ecosystem growth |
-| **XCHAIN Buyback Program** | Buy XCHAIN on the DEX (ORDER + COINPAY) to replenish validator reward pool |
-| Destroy (burn) | Deflationary |
-
-The buyback program creates constant buy-side pressure for XCHAIN on the DEX, funding validator rewards sustainably.
+| Bucket | `FEE_PREFERENCE` | Purpose |
+|---|---|---|
+| Destroy (burn) | `1` | Permanently removes XCHAIN from supply (deflationary) |
+| Protocol Development | `2` (default) | Funds ongoing platform development |
+| Community Development | `3` | Community grants, ecosystem growth |
 
 ## The XCHAIN Token
 
 XCHAIN is a standard XChain token issued via ISSUE on the **BTC chain only**. It does not exist natively on LTC or DOGE. The XCHAIN ticker is reserved on all chains to prevent unauthorized issuance.
 
+**Fixed supply.** The entire XCHAIN supply is minted once at genesis and the token is then locked (`LOCK_MINT` + `LOCK_MAX_SUPPLY`), so no further XCHAIN can ever be created — by anyone, including the issuing address. Supply only ever decreases, via the burn bucket above.
+
+**Validator rewards** are paid from a dedicated, pre-funded **reward pool address** — never by minting. The pool is seeded at genesis and topped up manually over time. When the pool cannot cover a pending reward, the `COLLECT` is rejected and the reward stays claimable until the pool is replenished (see [COLLECT](../protocol/actions/COLLECT.md)).
+
 XCHAIN's value is driven by:
 - **Staking demand** — validators must stake XCHAIN (1,000 for oracle, 5,000 for cross-chain)
-- **Buyback program** — native coin fees are used to buy XCHAIN on the DEX
+- **Fixed, capped supply** — no inflation; rewards are paid from a finite pool, and the burn bucket is deflationary
 
 ## Oracle Price Validation
 

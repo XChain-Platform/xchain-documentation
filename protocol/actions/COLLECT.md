@@ -24,7 +24,8 @@ Collect all accrued validator rewards for the broadcasting address
 - BTC chain only
 - Broadcasting address must have an active stake (gated by the 6-block activation delay)
 - Broadcasting address must have unclaimed rewards greater than 0
-- Rewards are credited to the broadcasting address upon indexing
+- Rewards are paid by **debiting the reward pool address** and crediting the broadcasting address — XCHAIN is never minted by `COLLECT`
+- The reward pool must hold enough XCHAIN to cover the full claim, or the `COLLECT` is rejected (see Reward Funding)
 
 ## Reward Sources
 
@@ -42,6 +43,14 @@ Rewards accumulate from multiple validator activities, all stored in the indexer
 The hub's `RewardTracker` distributes rewards after each finalized oracle round (or successful cross-chain attestation), then pushes the reward records to the BTC indexer via the `pushvalidatorrewards` JSON-RPC endpoint. The indexer's `createValidatorReward` resolves the validator's signing pubkey to the staking source address and writes to the local `validator_rewards` table.
 
 `COLLECT` queries the indexer's `validator_rewards` table directly — no hub round-trip during transaction processing.
+
+## Reward Funding
+
+XCHAIN is a fixed-supply token (minted once at genesis, then locked — see [GAS](../../concepts/GAS.md)). Rewards are therefore **not minted**; they are paid out of a dedicated **reward pool address** (`config['ADDRESS']['REWARD']`, BTC only). A valid `COLLECT` debits the pool for the reward amount and credits the broadcasting address, leaving total XCHAIN supply unchanged.
+
+The pool is seeded at genesis and **topped up manually** (an ordinary XCHAIN `SEND` to the pool address) by the operator. Because the balance check reads the pool at the action's block/action index, every validator computes the same accept/reject outcome.
+
+If the pool cannot cover the full pending reward, the `COLLECT` is rejected with `invalid: insufficient reward pool`. The claim is recorded as invalid, so the reward **remains unclaimed and fully collectible later** — the validator simply re-broadcasts `COLLECT` once the pool has been replenished. No rewards are lost or partially paid.
 
 ## Notes
 - Rewards accrue continuously while the address holds an active stake

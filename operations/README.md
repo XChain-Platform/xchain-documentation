@@ -8,6 +8,7 @@ This section covers everything needed to deploy, configure, monitor, and maintai
 | Document | Description |
 |---|---|
 | [Deployment](./DEPLOYMENT.md) | How to deploy the full platform stack from scratch |
+| [XCHAIN Genesis](./XCHAIN_GENESIS.md) | One-time fixed-supply XCHAIN issuance and validator reward-pool funding |
 | [Docker](./DOCKER.md) | Docker Compose configuration and container management |
 | [Configuration](./CONFIGURATION.md) | All configuration options across each service |
 | [Monitoring](./MONITORING.md) | Health checks, metrics, and alerting for a running node |
