@@ -50,11 +50,11 @@ individual services:
 If your machine is offline or the endpoint is unreachable, the ping is simply skipped. It
 never blocks, slows, or fails the command you ran.
 
-## First-run notice
+## Stored preference
 
-The first time telemetry would be sent, `xchain-node` prints a short notice describing
-what is collected and how to opt out, then remembers that it has shown it. Your preference
-and the anonymous install id are stored in `~/.xchain-node/telemetry.json`.
+Your opt-out preference and the anonymous install id are stored in
+`~/.xchain-node/telemetry.json`. Telemetry is enabled by default; this page documents
+exactly what is collected and how to turn it off.
 
 ## How to turn it off
 
