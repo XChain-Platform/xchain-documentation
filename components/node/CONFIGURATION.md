@@ -110,6 +110,19 @@ These env vars override where xchain-node stores its filesystem state on the hos
 | `XCHAIN_NODE_CONFIG_DIR` | `<repo>/config` | Generated per-service `.env` files. Small. |
 | `XCHAIN_NODE_BLOCKS_DIR` | (unset → inside data volume) | Optional host path for the coin node's `blocks/` directory. If set, mounted as `/blocks` into the docker container so chain data can live on a separate disk from the rest of the node state. |
 
+> **⚠️ Testnet / regtest write to a network-prefixed subdirectory.** Dogecoind and litecoind place block data under a per-network subdirectory of the datadir on every network except mainnet:
+>
+> | Coin / network | Blocks land in |
+> |---|---|
+> | DOGE / LTC mainnet | `blocks/` |
+> | DOGE testnet | `testnet3/blocks/` |
+> | LTC testnet | `testnet4/blocks/` |
+> | DOGE / LTC regtest | `regtest/blocks/` |
+>
+> This matters if you ever try to free up disk by hand-mounting *only* the bare `blocks/` path — e.g. `-v /misc/dogecoin/testnet/blocks:/root/.dogecoin/blocks`. On testnet/regtest the daemon writes to `testnet3/blocks/` (etc.), which that bind does **not** cover, so the mount silently catches nothing and blocks keep accumulating on the default disk. No error is raised.
+>
+> `XCHAIN_NODE_BLOCKS_DIR` avoids this trap entirely: xchain-node starts the daemon with `-blocksdir=/blocks`, which the daemon honours on every network, so all per-network subdirectories land inside the mounted path (`/blocks/testnet3/blocks/`, `/blocks/regtest/blocks/`, …). A single host bind therefore covers mainnet, testnet, and regtest uniformly. See [Disk Management](../../operations/DISK_MANAGEMENT.md) for the full disk-offload guide.
+
 ### Recommended setup for OVH RISE-3 chain-node boxes
 
 On the RISE-3 archetype (small `/` partition, large `/misc` SATA mirror), set these before installing:

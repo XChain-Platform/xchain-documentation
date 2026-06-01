@@ -12,6 +12,7 @@ This section covers everything needed to deploy, configure, monitor, and maintai
 | [Docker](./DOCKER.md) | Docker Compose configuration and container management |
 | [Configuration](./CONFIGURATION.md) | All configuration options across each service |
 | [Monitoring](./MONITORING.md) | Health checks, metrics, and alerting for a running node |
+| [Disk Management](./DISK_MANAGEMENT.md) | Moving a chain's block data or datadir to a larger disk safely |
 | [Reorg Handling](./Reorg_Handling.md) | How the platform detects and recovers from blockchain reorganizations |
 | [Upgrading](./UPGRADING.md) | Safe upgrade procedures for each service |
 | [Troubleshooting](./TROUBLESHOOTING.md) | Common problems and how to diagnose and fix them |
