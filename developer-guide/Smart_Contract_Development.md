@@ -212,7 +212,7 @@ xchain.attestation.request(
     providerId,        // 'http_get' or 'llm' (governance-controlled list)
     payload,           // string — provider-specific (URL for http_get, JSON envelope for llm)
     callbackMethod,    // method on this contract to invoke when the answer arrives
-    callbackParams,    // array of strings — your own context, echoed back
+    callbackParams,    // array — your own context, echoed back (each element is delivered to the callback as a string; see "A note on callback param types" below)
     options            // { redundancy: 1|3|5, deadlineBlocks: number }
 );
 ```
@@ -233,7 +233,7 @@ module.exports = {
             'llm',
             JSON.stringify({ prompt: 'Reply with only the number 1 if true, 0 if false: "the sky is blue"', max_tokens: 8 }),
             'handleVerdict',
-            [xchain.getSourceAddress()],   // your context — echoed back to handleVerdict
+            [xchain.getSourceAddress(), 42],   // your context — echoed back to handleVerdict (42 is a numeric round id)
             { redundancy: 1, deadlineBlocks: 20 }
         );
     },
@@ -243,7 +243,8 @@ module.exports = {
         var providerId      = xchain.getInputParam(1);
         var status          = xchain.getInputParam(2);   // 'ok' | 'timeout' | 'no_quorum' | 'provider_error' | 'expired'
         var responsePayload = xchain.getInputParam(3);
-        var caller          = xchain.getInputParam(4);   // your context
+        var caller          = xchain.getInputParam(4);   // your context (a string)
+        var roundId         = parseInt(xchain.getInputParam(5), 10);   // re-parse: the 42 you passed arrives as the string '42'
 
         if (status !== 'ok') {
             xchain.log('attestation failed: ' + status);
@@ -251,10 +252,12 @@ module.exports = {
         }
 
         // responsePayload is whatever the provider returned — for llm, the model's reply text.
-        xchain.state.set('last_verdict_' + caller, responsePayload);
+        xchain.state.set('last_verdict_' + caller + '_' + roundId, responsePayload);
     }
 };
 ```
+
+> **A note on callback param types.** The `callbackParams` you supply are echoed back through the VM parameter bus, which is string-typed — so **every element is delivered to the callback as a string**, regardless of the type you passed. A request that supplies `[42, true, null]` reaches the callback as `['42', 'true', 'null']`. This has always been the case; it is a property of the string-based wire format, not a recent change. Re-parse numeric or boolean context inside the callback with `parseInt`, `parseFloat`, or `JSON.parse` as the example above does for `roundId`.
 
 Inside the callback, `xchain.getSourceAddress()` returns the contract's own derived address — the platform invokes the callback as if the contract were calling itself. The callback runs in its own savepoint: if the callback throws or runs out of gas, the response is still recorded on-chain (so the request doesn't get retried) but the contract's state changes are rolled back.
 

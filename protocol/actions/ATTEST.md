@@ -19,7 +19,7 @@ For the full design see `claude/reports/specs/2026-05-24_external-attestation-fr
 | `PROVIDER_ID`          | String  | 0, 1     | Governance-registered provider (`http_get`, `llm`, …)                    |
 | `REQUEST_PAYLOAD`      | String  | 0        | Provider-specific payload (URL for `http_get`, JSON envelope for `llm`)  |
 | `CALLBACK_METHOD`      | String  | 0        | Contract method to invoke on response (≤64 chars)                        |
-| `CALLBACK_PARAMS_JSON` | String  | 0        | JSON array of developer-supplied params, echoed back to callback         |
+| `CALLBACK_PARAMS_JSON` | String  | 0        | JSON array of developer-supplied params, echoed back to callback (each element string-coerced at injection — see §Effects) |
 | `REDUNDANCY`           | Integer | 0        | Required validator signatures (1, 3, or 5)                               |
 | `DEADLINE_BLOCKS`      | Integer | 0        | Blocks until the request auto-expires (provider's `deadline_window_blocks` cap) |
 | `RESPONSE_PAYLOAD`     | String  | 1        | Inline response body (UTF-8). Binary bodies not supported in v0.         |
@@ -104,6 +104,7 @@ Where `sha256(response_payload)` is the lowercase hex digest of the UTF-8 respon
 - Retryable statuses (`no_quorum`, `timeout`, `provider_error`) leave `request_status='pending'` untouched so a later round can still reach quorum before the deadline (or the v2 expiry path takes over). No status flip and no callback for these.
 - On a terminal status only, synthesizes an EXECUTE injecting the callback with:
   - `[request_id, provider_id, status, response_payload, ...original_callback_params]`
+  - Every `original_callback_params` element is coerced to a string before injection (the VM parameter bus is string-typed), so a request that supplied `[42, true, null]` reaches the callback as `['42', 'true', 'null']`. Contracts must re-parse numeric or boolean context with `parseInt`, `parseFloat`, or `JSON.parse` as needed.
   - `SOURCE = contract_address` so `xchain.getSourceAddress() === xchain.getContractAddress()` inside the callback.
 - Callback wrapped in a savepoint — failure does NOT roll back the response row.
 
@@ -112,6 +113,7 @@ Where `sha256(response_payload)` is the lowercase hex digest of the UTF-8 respon
 - Flips matching `attestation_requests.request_status` from `pending` to `expired`.
 - Synthesizes an EXECUTE injecting the contract's callback with:
   - `[request_id, provider_id, 'expired', '', ...original_callback_params]`
+  - As on the v1 path, every `original_callback_params` element is coerced to a string before injection — re-parse typed context inside the callback.
   - `SOURCE = contract_address` (matches the v1 callback convention).
 - Callback wrapped in a savepoint — failure does not roll back the status flip.
 
