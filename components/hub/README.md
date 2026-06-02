@@ -22,7 +22,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 - **Decentralized price oracle** — validators fetch prices from CoinGecko and CoinMarketCap, aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT consensus
 - **Oracle rounds** — configurable round interval (default 10 minutes) with submission window (default 3 minutes)
 - **Fee quotes** — calculates native coin fee amounts by converting gas units → XCHAIN → native coin via oracle prices
-- **Cross-chain attestation** — PBFT-based consensus for cross-chain action verification with per-chain confirmation thresholds (BTC: 3, LTC: 3, DOGE: 6)
+- **Cross-chain attestation** — PBFT-based consensus for cross-chain action verification with per-chain confirmation thresholds (BTC: 6, LTC: 12, DOGE: 60; configurable via `XCHAIN_CONFIRMATIONS_<COIN>`)
 - **Per-chain-pair validators** — only validators supporting both chains participate in cross-chain attestation quorum
 - **SWAP lifecycle tracking** — tracks cross-chain swaps through initiated → attested → executed → settled states
 - **Reorg propagation** — cross-chain reorg detection with PBFT consensus, hub state rollback, and downstream notification

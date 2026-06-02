@@ -215,7 +215,7 @@ Key technical details:
 - Supports multi-instance deployment — multiple hub instances against shared MariaDB, with consumer fallback via `HUB_VALIDATORS`.
 - Config writes go through PBFT consensus in validator mode (PRE_PREPARE → PREPARE → COMMIT with 2f+1 quorum).
 - Decentralized price oracle: validators fetch from CoinGecko/CoinMarketCap, aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
-- Cross-chain attestation engine with per-chain-pair validator subsets and confirmation thresholds (BTC: 3, LTC: 3, DOGE: 6).
+- Cross-chain attestation engine with per-chain-pair validator subsets and confirmation thresholds (BTC: 6, LTC: 12, DOGE: 60; env-tunable via `XCHAIN_CONFIRMATIONS_<COIN>`).
 - SWAP lifecycle tracking: initiated → attested → executed → settled.
 - Off-chain governance: 7-day voting period, 2/3+ approval, 50% quorum, parameter change bounds enforcement.
 - Reward tracking and slash detection for oracle participants.

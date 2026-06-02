@@ -17,6 +17,7 @@ This section explains the fundamental ideas behind the XChain Protocol. Each doc
 | [Security Model](./Security_Model.md) | Threat model, trust assumptions, and protocol-level security guarantees |
 | [Smart Contracts](./Smart_Contracts.md) | Programmable contract layer — sandboxed JavaScript VM with gas metering that orchestrates existing ACTIONs |
 | [Block Hashes](./Block_Hashes.md) | Per-block cryptographic hashes (ledger, actions, contracts) for state verification and integrity checking |
+| [Scope and Non-Goals](./Scope_And_Non_Goals.md) | What XChain deliberately is and is not — design boundaries, current limitations, and when to choose it |
 
 ---
 

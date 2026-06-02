@@ -42,7 +42,7 @@ The xchain-hub serves several functions in cross-chain operations:
 
 **Price oracle**: Validators fetch cryptocurrency prices from external APIs, aggregate via trimmed median, and finalize via PBFT consensus. Fee quotes convert gas costs to native coin amounts using these prices.
 
-**Cross-chain attestation**: For cross-chain actions, validators reach PBFT consensus to attest that a source-chain action exists and has sufficient confirmations (BTC: 3, LTC: 3, DOGE: 6). Only validators supporting both chains in a pair participate in attestation quorum.
+**Cross-chain attestation**: For cross-chain actions, validators reach PBFT consensus to attest that a source-chain action exists and has sufficient confirmations (BTC: 6, LTC: 12, DOGE: 60 — higher on the lower-hashpower chains to approach BTC-comparable settlement assurance; per-chain, configurable via `XCHAIN_CONFIRMATIONS_<COIN>`). Only validators supporting both chains in a pair participate in attestation quorum.
 
 **Swap coordinator**: For SWAP actions, the hub tracks the lifecycle from initiation through attestation to settlement, coordinating the matching between indexers on different chains.
 
