@@ -717,6 +717,19 @@ Get a specific proposal with all associated votes.
 }
 ```
 
+## Telemetry (REST)
+
+Anonymous node-operator usage telemetry is served as plain **REST routes** (not JSON-RPC)
+on the same hub HTTP port. See **[TELEMETRY_API.md](./TELEMETRY_API.md)** for full request
+bodies, query parameters, response shapes, and field-by-field reference. Operator-facing
+data policy lives in [operations/TELEMETRY.md](../../operations/TELEMETRY.md).
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `POST` | `/telemetry` | none | Ingest one anonymous usage ping (fire-and-forget). |
+| `GET` | `/telemetry/summary` | none | Aggregate-only census (distribution counts; `?days=1..365`, default 30). |
+| `GET` | `/telemetry/operators` | `x-api-key: <TELEMETRY_ADMIN_KEY>` | Per-install operator detail (`?days=1..365`, default 30). |
+
 ---
 
 **Copyright &copy; 2025 Dankest, LLC**

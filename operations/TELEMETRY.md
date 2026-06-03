@@ -88,10 +88,23 @@ If you operate your own hub and want it to receive (or refuse) telemetry:
 - `TELEMETRY_IP_SALT` — a secret salt for the one-way IP hash. Set it (to a stable, secret
   value) to record the anonymous network hash; if left unset, the hash column is simply left
   empty and only country/region are recorded. The raw IP is never stored either way.
+- `TELEMETRY_ADMIN_KEY` — a secret key that gates the per-operator detail endpoint
+  (`GET /telemetry/operators`). Leave it unset and that endpoint is fail-closed (returns
+  `401`); set it to a secret value and pass the same value in the `x-api-key` header to view
+  per-install detail on your own dashboard. The public aggregate census
+  (`GET /telemetry/summary`) needs no key.
 
 The country/region lookup uses an offline geolocation database bundled with the hub
 (via the `geoip-lite` package, based on MaxMind GeoLite2 data) — there is no per-ping call
 to any third party.
+
+## Hub-side REST API
+
+The hub exposes three REST endpoints that collect and report this telemetry:
+`POST /telemetry` (ingest), `GET /telemetry/summary` (anonymous aggregate census), and
+`GET /telemetry/operators` (admin-only per-install detail, gated by `TELEMETRY_ADMIN_KEY`).
+Full request/response shapes, query parameters, and field references are documented in
+[components/hub/TELEMETRY_API.md](../components/hub/TELEMETRY_API.md).
 
 ---
 
