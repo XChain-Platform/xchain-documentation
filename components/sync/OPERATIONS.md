@@ -102,6 +102,36 @@ Requests without a valid token receive a `401 Unauthorized` response. When `SYNC
 
 ## REST API Reference
 
+### `GET /health`
+
+Lightweight liveness check with per-database circuit-breaker visibility. `GET /status` reports per-chain block heights and lag but not whether a database connection has tripped its circuit breaker open; when that happens the replicator stops applying blocks while the process stays up, so a bare liveness probe still looks fine. This endpoint surfaces the per-database circuit state so monitoring can tell a healthy replicator apart from one stalled on a database outage. Returns HTTP **503** (with the same body) when any database circuit is open.
+
+**Request:**
+```
+GET /health
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "mode": "source",
+  "databases": [
+    { "chain": "bitcoin", "network": "mainnet", "dbType": "indexer", "circuit": "closed" },
+    { "chain": "bitcoin", "network": "mainnet", "dbType": "decoder", "circuit": "closed" }
+  ],
+  "last_updated": "2026-04-03T12:00:00.000Z"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `status` | `string` | `"healthy"` when no database circuit is open; `"degraded"` otherwise (also sets HTTP 503). |
+| `mode` | `string` | Configured `SYNC_MODE` (e.g. `"source"`, `"follower"`). |
+| `databases` | `array` | One entry per discovered chain/network/dbType, each `{ chain, network, dbType, circuit }`. |
+| `databases[].circuit` | `string\|null` | DB circuit-breaker state (`"closed"`, `"open"`, `"half-open"`), or `null` if unavailable. Any `"open"` value forces `status` to `"degraded"`. |
+| `last_updated` | `string` | ISO-8601 timestamp the response was generated. |
+
 ### `GET /status`
 
 Returns sync status for all discovered chains/networks, nested by coin → network → dbType.
@@ -175,6 +205,67 @@ GET /status/indexer/bitcoin/mainnet
 ```
 
 Returns `400` if `:dbType` is not `indexer` or `decoder`. Returns `404` if the chain/network/dbType combination is not supported.
+
+### `POST /validator-heartbeat/:dbType/:chain/:network`
+
+REST fallback to the WebSocket `heartbeat` message, for replicating clients that cannot hold a persistent WebSocket connection. A named validator POSTs its applied height so operators can observe its replication lag without an active subscription. **Server mode only.** Rate-limited per IP. `:dbType` must be `indexer` or `decoder`.
+
+**Request:**
+```
+POST /validator-heartbeat/indexer/bitcoin/mainnet
+Content-Type: application/json
+
+{
+  "validator_id": "my-validator-01",
+  "applied_height": 893000,
+  "applied_block_time": 1743690000
+}
+```
+
+- `validator_id` — non-empty string, max 256 chars (stable identifier for the validator).
+- `applied_height` — non-negative integer; the highest block height fully applied to the replica.
+- `applied_block_time` — optional number (Unix time of the applied block); may be omitted or `null`.
+
+If a `SYNC_API_KEY` is configured, send it as `Authorization: Bearer <key>`.
+
+**Response:**
+```json
+{ "ok": true }
+```
+
+Returns `400` if `:dbType` is invalid or any field fails validation, `403` if not in server mode, `404` if the chain/network/dbType combination is not supported, and `503` if the broadcaster is not yet initialized.
+
+Entries are evicted automatically once their `last_seen` exceeds `VALIDATOR_HEARTBEAT_TTL`, so a validator must keep POSTing (or keep its WebSocket heartbeats flowing) to stay visible.
+
+### `GET /validator-status` and `GET /validator-status/:dbType/:chain/:network`
+
+Returns the per-validator heartbeat state recorded via `POST /validator-heartbeat`, including each validator's applied height and computed block lag. **Server mode only.** The no-argument form returns all chains nested by coin → network → dbType; the parameterized form returns a single combination.
+
+**Request:**
+```
+GET /validator-status
+GET /validator-status/indexer/bitcoin/mainnet
+```
+
+**Response (parameterized form):**
+```json
+{
+  "chain": "bitcoin",
+  "network": "mainnet",
+  "dbType": "indexer",
+  "validators": {
+    "my-validator-01": {
+      "applied_height": 893000,
+      "applied_block_time": 1743690000,
+      "last_seen": "2026-04-03T12:00:00.000Z",
+      "lag_blocks": 0
+    }
+  },
+  "last_updated": "2026-04-03T12:00:00.000Z"
+}
+```
+
+`lag_blocks` is `source block_height − applied_height` (clamped at 0), or `null` when the source height or the validator's applied height is unknown. A validator that has never sent a heartbeat does not appear in `validators` at all. Returns `400` if `:dbType` is invalid, `403` if not in server mode, `404` if the chain/network/dbType combination is not supported, and `503` if the broadcaster is not yet initialized.
 
 ### `GET /schema/:dbType/:chain/:network`
 
@@ -489,6 +580,20 @@ Tables with no rows for the block are omitted from `data` to minimize message si
 ```
 
 Authenticated connections (validators) may receive priority handling.
+
+**Heartbeat** (optional, sent by replicating clients to report applied-block progress):
+```json
+{
+  "type": "heartbeat",
+  "appliedBlock": 893000
+}
+```
+
+A replicating client (validator or ecosystem replicator) sends this message to tell the server how far it has applied blocks to its own replica DB. `appliedBlock` is the highest block height the client has fully applied; it must be a number. The server records the value against that connection and uses it to compute per-subscriber lag (`lag = lastSentBlock − appliedBlock`), surfaced through the `GET /status` response and the validator-status endpoints.
+
+The message is **best-effort and optional** at the protocol level: the channel is otherwise server→client push-only, and the server **silently ignores** malformed JSON or any message whose `type` is not `heartbeat` (or whose `appliedBlock` is not a number) — no acknowledgement or protocol-level error is returned. A client that never sends heartbeats stays connected and keeps receiving blocks, but its `appliedBlock`/`lag` will report as `null` (never reported), so it can appear stale or unmonitored in the status output even though the connection is healthy. Clients that want their replication progress visible to operators **must** send heartbeats (or use the `POST /validator-heartbeat` REST fallback below).
+
+The reference client (`ClientSync`) sends a heartbeat whenever at least 10 blocks have been applied since its last report, and otherwise arms a 5-second timer so a slow trickle of blocks is still reported without a per-block send.
 
 ### Backpressure
 

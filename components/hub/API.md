@@ -27,6 +27,38 @@ Health check.
 {"status":"success"}
 ```
 
+### `health`
+
+Detailed health check. Unlike `ping` (which only confirms the HTTP server is up and the DB pool answers a probe query), `health` also reports the DB circuit-breaker state and — on oracle-running (P2P-enabled) hubs — oracle round freshness, so an operator can distinguish a healthy hub from one that is up but stalled on a tripped database connection or a stale price feed. Returns HTTP **503** (with the same body) when `status` is `"degraded"`.
+
+**Request:**
+```json
+{"jsonrpc":"2.0","method":"health","id":1}
+```
+
+**Response:**
+```json
+{
+  "status":"healthy",
+  "db":true,
+  "dbCircuit":"closed",
+  "oracle_last_finalized_age_s":120,
+  "oracle_stale":false,
+  "oracle_staleness_threshold_s":1200
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `status` | `string` | `"healthy"` when the DB answers, the circuit is not open, and the oracle is not stale; `"degraded"` otherwise (also sets HTTP 503). |
+| `db` | `boolean` | Whether a `SELECT 1` probe against the DB pool succeeded within 2s. |
+| `dbCircuit` | `string\|null` | DB circuit-breaker state (`"closed"`, `"open"`, `"half-open"`), or `null` if no DB handle is configured. A value of `"open"` forces `status` to `"degraded"`. |
+| `oracle_last_finalized_age_s` | `number\|null` | Seconds since the most recently finalized oracle round (`price_snapshots` with `status = 'finalized'`). `null` on config-only hubs (no oracle), when the DB probe failed, or when no round has ever finalized (fresh node). |
+| `oracle_stale` | `boolean` | `true` when `oracle_last_finalized_age_s` exceeds `oracle_staleness_threshold_s`. Forces `status` to `"degraded"`. Always `false` on config-only hubs and fresh nodes. |
+| `oracle_staleness_threshold_s` | `number\|null` | Staleness threshold in seconds. Defaults to twice the `ORACLE_ROUND_INTERVAL`; override with the `ORACLE_STALENESS_THRESHOLD_S` environment variable. `null` on config-only hubs or when the DB probe failed. |
+
+> **Note:** the three `oracle_*` fields are only populated on hubs running the oracle (P2P-enabled). A config-only hub mints no rounds and reports them as `null`/`false`.
+
 ### `getallconfigs`
 
 Returns all service configs wrapped in an envelope: `{ configs, seq, watermark }`.

@@ -58,6 +58,50 @@ Health check endpoint.
 }
 ```
 
+### `health`
+
+Detailed health status. Unlike `ping` (which only confirms the HTTP server is up), `health` reports sync progress plus the circuit-breaker state of **both** database connections, so an operator can tell a healthy, syncing indexer apart from one silently stalled at an open circuit after a database outage.
+
+**Request:**
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "health",
+    "id": 1
+}
+```
+
+**Response:**
+```json
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "status": "healthy",
+        "running": true,
+        "synced": true,
+        "lastIndexedBlock": 893000,
+        "decoderBlock": 893000,
+        "lag": 0,
+        "decoderDbCircuit": "closed",
+        "indexerDbCircuit": "closed",
+        "error": null
+    },
+    "id": 1
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `status` | `string` | `"healthy"` when the indexer is running and neither DB circuit is open; `"unhealthy"` otherwise. |
+| `running` | `boolean` | Whether the indexer process is alive. |
+| `synced` | `boolean` | Whether the indexer has caught up to the decoder. |
+| `lastIndexedBlock` | `number\|null` | Latest block index written to the indexer DB; `null` if the indexer DB is unreachable. |
+| `decoderBlock` | `number\|null` | Decoder's current tip as last observed by the indexer. |
+| `lag` | `number\|null` | `decoderBlock − lastIndexedBlock`; `null` when either value is unavailable. |
+| `decoderDbCircuit` | `string\|null` | Decoder DB circuit-breaker state (`"closed"`, `"open"`, `"half-open"`), or `null` if no handle is configured. |
+| `indexerDbCircuit` | `string\|null` | Indexer DB circuit-breaker state, same value set as above. |
+| `error` | `string\|null` | Last fatal indexer error message, or `null`. |
+
 The `reparse` and `rollback` methods are defined in the codebase but currently commented out (reserved for future use).
 
 ## Resilience and Recovery
