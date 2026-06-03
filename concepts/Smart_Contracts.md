@@ -161,6 +161,11 @@ Every contract receives an `xchain` object providing access to platform data and
 | `xchain.math.min/max(a, b)` | Minimum / maximum |
 | `xchain.math.abs(a)` | Absolute value |
 | `xchain.math.isZero(a)` | Check if zero (boolean) |
+| `xchain.math.sqrt(a)` | Square root |
+| `xchain.math.pow(a, b)` | Exponentiation (a raised to b) |
+| `xchain.math.log(a)` | Natural logarithm (base e) |
+| `xchain.math.log2(a)` | Base-2 logarithm |
+| `xchain.math.log10(a)` | Base-10 logarithm |
 
 All math inputs and outputs are **strings**. This ensures deterministic precision using bignumber arithmetic. Native JavaScript arithmetic operators (`+`, `-`, `*`, `/`) use floating-point and may produce non-deterministic results across V8 versions.
 
@@ -209,7 +214,7 @@ All math inputs and outputs are **strings**. This ensures deterministic precisio
 The VM guarantees identical results on every indexer node replaying the same block. This is achieved by:
 
 - **Sandboxed V8 isolates** — contracts run in `isolated-vm` with a separate heap. No access to the host process, filesystem, or network.
-- **Non-deterministic APIs stripped** — `Date`, `Math.random`, `setTimeout`, `setInterval`, `process`, `require`, `eval`, `Function`, `fetch`, `WeakRef`, `FinalizationRegistry`, `Proxy`, `SharedArrayBuffer`, `Atomics`, `queueMicrotask` are all removed. A deterministic `Math` subset (floor, ceil, round, abs, min, max, sqrt, pow, sign, trunc, log, log2, log10, plus constants PI and E) is preserved and frozen.
+- **Non-deterministic APIs stripped** — `Date`, `Math.random`, `setTimeout`, `setInterval`, `process`, `require`, `eval`, `Function`, `fetch`, `WeakRef`, `FinalizationRegistry`, `Proxy`, `SharedArrayBuffer`, `Atomics`, `queueMicrotask` are all removed. A deterministic `Math` subset (floor, ceil, round, abs, min, max, sign, trunc, plus constants PI and E) is preserved and frozen. The transcendentals (`sqrt`, `pow`, `log`, `log2`, `log10`) are **also stripped** from the native `Math` — IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures. Contracts access deterministic bignumber equivalents via `xchain.math.sqrt/pow/log/log2/log10` instead; the native `Math.*` forms are rejected at deploy time.
 - **AST-based gas metering** — contract source is parsed with acorn, `__gas()` calls are injected at control flow points, and the source is regenerated. Gas charges are based on code structure, not wall-clock time.
 - **String-only math** — all token amounts pass through `xchain.math.*` which wraps `mathjs` bignumber with string I/O. No floating-point at the gateway boundary.
 - **Synchronous execution** — all isolated-vm APIs are synchronous. No event loop interleaving during contract execution.
