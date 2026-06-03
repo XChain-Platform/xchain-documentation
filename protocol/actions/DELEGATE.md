@@ -79,7 +79,7 @@ Revoke the specified signing key from the broadcaster's (contract=500, tick=MYTO
 - `TICK` must match the existing delegation's token.
 
 ## Activation / Deactivation Delay
-All four versions are gated by a **6-block** delay (measured in blocks of the chain on which the action was broadcast) before taking effect, tracked via the `activation_block` / `deactivation_block` columns on the `delegations` (v0/v2) or `contract_delegations` (v1/v3) tables.
+All four versions are gated by an activation delay (measured in blocks of the chain on which the action was broadcast) before taking effect, tracked via the `activation_block` / `deactivation_block` columns on the `delegations` (v0/v2) or `contract_delegations` (v1/v3) tables. The delay is calibrated per chain for ~60 minutes of reorg protection — **6 blocks on BTC** (~10 min/block), **24 on LTC** (~2.5 min/block), **60 on DOGE** (~1 min/block); a flat block count would otherwise give DOGE only ~6 minutes. Capability-staking delegations (v0/v2) are BTC-only and use the 6-block BTC value; contract delegations (v1/v3) apply the per-chain value. The worked examples below use BTC's 6 blocks.
 
 - **v0 / v1 (rotate)**: the new delegated key does **not** take effect immediately — it becomes active after 6 blocks. During the delay, signatures from the new key are rejected and the old key remains in effect.
 - **v2 / v3 (revoke)**: revocation does **not** take effect immediately — the key remains active for 6 blocks after the action confirms.

@@ -63,6 +63,8 @@ All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain a
 | Slashing | Stake can be slashed for: price deviation >5%, repeated deviations (3+ in 24h), non-participation (30+ missed rounds), attestation divergence on `byte_equality` providers. Adjudicated via governance vote. |
 | Activation delay | 6 BTC blocks (~1 hour) — protects against ≤5-block reorgs |
 | Deactivation delay | 6 BTC blocks on UNSTAKE (same reorg safety) |
+
+> **Note:** Capability staking above is BTC-only, so the activation/deactivation delays are stated in BTC blocks (~1 hour). Contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1/v3) runs on every chain and calibrates this delay per chain for equivalent ~60-min reorg protection — **6 blocks on BTC, 24 on LTC, 60 on DOGE** — since a flat 6 blocks would give DOGE only ~6 minutes. See `protocol/Contract_Staking.md`.
 | Cooldown | 1000 BTC blocks before staked XCHAIN returns to source (configurable via `STAKING.COOLDOWN_BLOCKS`) |
 | Delegation | Token holders can delegate stake to existing validators |
 | Rewards | Proportional to stake and participation per capability. A pubkey holding both `price` and `oracle_publish` earns both per-round (consensus + broadcast). |

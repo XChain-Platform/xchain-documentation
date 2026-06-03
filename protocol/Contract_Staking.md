@@ -31,7 +31,7 @@ DEPLOY|1|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTIN
 
 Top-up vs. new is auto-detected: if `(target_contract_index, signing_pubkey, tick)` already has an active row, the action is treated as a top-up (must be owned by the same `SOURCE`). Otherwise it creates a new row.
 
-Activation delay is 6 blocks (same as capability staking).
+Activation delay is calibrated per chain for roughly **60 minutes of reorg protection** — **6 blocks on BTC** (~10 min/block), **24 blocks on LTC** (~2.5 min/block), and **60 blocks on DOGE** (~1 min/block). Because contract staking runs on every chain, a single block count would give materially different wall-clock protection (6 blocks ≈ 6 minutes on DOGE), so each chain sets its own `STAKING.ACTIVATION_DELAY_BLOCKS` default; operators may override it per deployment. (Capability staking is BTC-only and uses the same 6-block BTC value.)
 
 ### UNSTAKE v1
 

@@ -89,6 +89,7 @@ A capability becomes *active* on a hub when ALL of: (a) stake qualifies, (b) per
 - Applies to STAKE v1, STAKE v2 (top-up), UNSTAKE, DELEGATE (all versions).
 - Tracked via the `activation_block` column on the `stakes` table (set to `block_index + 6`).
 - Active-stake queries filter by `activation_block <= current_block`.
+- The 6-block figure above is the **BTC** value (capability staking is BTC-only). Contract-targeted **STAKE v3** runs on every chain and uses a per-chain calibrated delay for equivalent ~60-min reorg protection — **6 blocks on BTC, 24 on LTC, 60 on DOGE** — set via each chain's `STAKING.ACTIVATION_DELAY_BLOCKS` default.
 
 ## Storage Model
 Each STAKE action (v1 *or* v2) inserts a new row into the `stakes` table. The active stake amount for a pubkey is `SUM(amount)` across all valid rows for that pubkey within the activation window. This append-only ledger preserves rollback correctness — block-level rewinds simply delete rows past the rewind point.

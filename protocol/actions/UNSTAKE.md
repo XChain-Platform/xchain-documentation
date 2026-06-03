@@ -66,6 +66,7 @@ Begin unstaking the (contract=500, tick=MYTOKEN) stake row for pubkey abc123...d
 - Two distinct delays apply on UNSTAKE:
   1. **6 blocks** — validator removal from the active set (BTC reorg safety).
   2. **1000 blocks** — XCHAIN token return (security cooldown).
+- The 6-block deactivation delay applies to **capability** unstaking, which is BTC-only. Contract-targeted **UNSTAKE v1** runs on every chain and uses that chain's calibrated activation delay (**6 blocks on BTC, 24 on LTC, 60 on DOGE**) for equivalent ~60-min reorg protection.
 - The unstake amount is the SUM of all active stake rows for the pubkey (original stake + any top-ups via STAKE v2).
 - Use `STAKE` (v1) to re-stake after the cooldown period completes.
 - Use `COLLECT` to gather any accrued rewards before or after unstaking.
