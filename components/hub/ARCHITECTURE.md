@@ -145,8 +145,8 @@ Validator A                         Validator B
 
 ### Message Flow
 
-1. Subsystem calls `peerManager.broadcast(envelope)`.
-2. PeerManager assigns a unique ID, signs with Ed25519 (if identity configured), and adds to `seenIds` dedup cache.
+1. Subsystem calls `peerManager.broadcast(type, data)` (or `sendToPeer(addr, type, data)` for a directed message).
+2. PeerManager wraps `data` in an envelope, assigns a unique ID, signs with Ed25519 (if identity configured), and adds to `seenIds` dedup cache.
 3. Message sent to all connected peers.
 4. Receiving PeerManager checks `seenIds` — drops duplicates.
 5. Verifies Ed25519 signature against registered validator pubkeys (if `REQUIRE_SIGNATURES=true`).
@@ -160,6 +160,70 @@ Validator A                         Validator B
 - Heartbeat broadcasts every 15 seconds (includes hub software version for upgrade coordination).
 - WS ping/pong every 30 seconds to detect dead connections.
 - Peer records persisted to `p2p_peers` table.
+
+### Envelope Wire Format
+
+Every message on the gossip layer — regardless of which subsystem produced it — is a single JSON object with the same envelope shape. The subsystem-specific payload lives entirely inside `data`; everything else is transport metadata.
+
+```json
+{
+  "type":      "CAPABILITY_ACTIVATED",
+  "id":        "v1:<sender-addr>:1743690000000:550e8400-e29b-41d4-a716-446655440000",
+  "sender":    "<originating-validator-addr>",
+  "timestamp": 1743690000000,
+  "data":      { },
+  "sig":       "<128-hex-char Ed25519 signature>"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `string` | Message type (see table below). Required; messages without a string `type` are dropped. |
+| `id` | `string` | Globally unique message ID, format `v1:<sender-addr>:<unix-ms>:<uuid>`. Used for flood-fill deduplication. Required. |
+| `sender` | `string` | Address of the **original** publisher (does not change as the message is relayed). Required. |
+| `timestamp` | `number` | Unix epoch milliseconds when the envelope was built. Required (must be a number). |
+| `data` | `object` | Subsystem-specific payload. Defaults to `{}` when omitted by the sender. |
+| `sig` | `string` | Optional Ed25519 signature, hex-encoded. Present when the sender has a configured validator identity. |
+
+**Signature canonicalization.** The signature covers a deterministic JSON serialization of exactly five fields, in this fixed key order — **`id`, `type`, `sender`, `timestamp`, `data`** — with `sig` itself excluded:
+
+```js
+JSON.stringify({ id, type, sender, timestamp, data })
+```
+
+A verifier must reconstruct this exact string to check the signature. The signing key is the sender's Ed25519 validator key; the verifier looks up `sender` in the validator registry to obtain the 64-hex-char public key. When `REQUIRE_SIGNATURES=true`, unsigned messages and messages from unknown senders are rejected; otherwise they are accepted (bootstrap mode).
+
+**Inbound processing order** (in `_handleInbound`): JSON parse → reject non-object/array values → validate `type`/`id`/`sender`/`timestamp` → self-connection guard (drop messages whose `sender` is this node) → dedup against `seenIds` → per-peer rate limit → signature verification → emit `message` (and type-specific events) → relay to all peers except the source connection and the original `sender`.
+
+### Message Types
+
+All types below ride the envelope above; only the `data` payload differs. Every node emits a generic `message` event for any valid inbound envelope; some types additionally emit a typed event.
+
+**Liveness:**
+
+| Type | `data` shape | Purpose |
+|---|---|---|
+| `HEARTBEAT` | `{ "version": "<hub-version>" }` | Broadcast every `P2P_HEARTBEAT_INTERVAL` (default 15s). Carries the hub software version for upgrade coordination; emits a `heartbeat` event with `(sender, timestamp)`. |
+
+**Capability gossip** (advertises which staking-backed capabilities a validator is running; emits a `capability` event). The receiver additionally requires that `data.pubkey` match the `sender`'s registered validator pubkey — a validator cannot advertise capabilities on behalf of another pubkey.
+
+| Type | `data` shape | Purpose |
+|---|---|---|
+| `CAPABILITY_ACTIVATED` | `{ "pubkey": "<hex>", "capability": "<name>", "block_at": <block-index> }` | Sender advertises that it has activated `capability` (e.g. `price`, `cross_chain`, `oracle_publish`, `attestation`). The receiver verifies the stake-backed qualification against the indexer stake snapshot at `block_at` before trusting it; if the snapshot is unavailable it falls back to accepting for liveness. |
+| `CAPABILITY_DEACTIVATED` | `{ "pubkey": "<hex>", "capability": "<name>", "block_at": <block-index>, "reason": "<string, optional>" }` | Sender reports that `capability` is no longer active (failed self-test or lost qualification). `reason` carries the self-test failure message when present. |
+| `CAPABILITY_SELF_TEST` | `{ "pubkey": "<hex>", "capability": "<name>", "ok": <bool>, "reason": "<string, optional>" }` | Carries a capability self-test result (`ok` true/false, with optional `reason` on failure). Recognized and applied on receipt to the local capability registry. |
+
+**Consensus and coordination** (carried over the same gossip layer; payloads are defined by their respective engines):
+
+| Type | Producer | Purpose |
+|---|---|---|
+| `PBFT_PRE_PREPARE` / `PBFT_PREPARE` / `PBFT_COMMIT` | `Consensus` | Three-phase PBFT for config writes. |
+| `PBFT_VIEW_CHANGE` / `PBFT_NEW_VIEW` | `Consensus` | Leader view-change protocol. |
+| `ORACLE_PRICE_SUBMIT` | `OracleRound` | Per-round price submission for oracle aggregation. |
+| `ATTEST_PROPOSE` / `ATTEST_PREPARE` / `ATTEST_COMMIT` | `AttestationConsensus` | PBFT-style consensus over external attestation responses. |
+| `XCHAIN_ATTEST_PROPOSE` / `XCHAIN_ATTEST_PREPARE` / `XCHAIN_ATTEST_COMMIT` | `CrossChainEngine` | Consensus over cross-chain action confirmations. |
+
+Unrecognized types are still deduplicated, signature-checked, and relayed (so the gossip mesh forwards message types a given node may not handle), but produce no local side effect beyond the generic `message` event.
 
 ## PBFT Consensus
 
