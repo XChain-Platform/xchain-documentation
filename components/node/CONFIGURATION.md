@@ -47,7 +47,7 @@ For each coin-specific service (encoder, decoder, utxo-tracker, indexer), xchain
 | `DECODER_API_PORT` | `3002` | Decoder API port |
 | `ENCODER_URL` | `xchain-node-{coin}-{network}-xchain-encoder` | Encoder Docker hostname |
 | `ENCODER_API_PORT` | `3003` | Encoder API port |
-| `INDEXER_HOST` | `xchain-node-{coin}-{network}-xchain-indexer` | Indexer Docker hostname |
+| `INDEXER_URL` | `xchain-node-{coin}-{network}-xchain-indexer` | Indexer Docker hostname |
 | `INDEXER_API_PORT` | `3004` | Indexer API port |
 | `INDEXER_COIN` | `BTC` / `DOGE` / `LTC` | Coin ticker symbol |
 | `INDEXER_NETWORK` | `{network}` | Network name |

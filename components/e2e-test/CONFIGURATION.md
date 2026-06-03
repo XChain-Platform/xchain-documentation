@@ -42,7 +42,7 @@ The test suite reads configuration from a `.env` file (loaded via `dotenv`) or f
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `INDEXER_HOST` | Hub fallback | — | Indexer service hostname |
+| `INDEXER_URL` | Hub fallback | — | Indexer service hostname |
 | `INDEXER_API_PORT` | Hub fallback | — | Indexer API port |
 | `INDEXER_DB_NAME` | Hub fallback | — | Indexer MariaDB database name |
 | `INDEXER_DB_USER` | Hub fallback | — | Indexer MariaDB username |
