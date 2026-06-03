@@ -94,6 +94,8 @@ The encoder exposes a JSON-RPC API via Express with `express-json-rpc-router`.
 | Method | Description |
 |---|---|
 | `create_tx` | Encode an ACTION string into a PSBT given UTXOs and a public key |
+| `broadcast_tx` | Submit a signed raw transaction hex to the coin node for broadcast |
+| `get_utxos` | Fetch the UTXO set for a given address from xchain-utxo-tracker |
 | `ping` | Health check — returns `{ status: "success" }` |
 
 ### `create_tx` Parameters
@@ -134,6 +136,39 @@ The encoder exposes a JSON-RPC API via Express with `express-json-rpc-router`.
   "psbt": "hex-encoded PSBT (BIP 174)",
   "encoding": "OP_RETURN | P2SH | P2WSH | MULTISIGN"
 }
+```
+
+### `broadcast_tx` Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `tx_hex` | `string` | Yes | Signed raw transaction hex to broadcast |
+
+### `broadcast_tx` Response
+
+```json
+{ "txid": "64-char hex string" }
+```
+
+### `get_utxos` Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `address` | `string` | Yes | Address whose UTXOs to retrieve |
+
+### `get_utxos` Response
+
+Returns an array of UTXO objects matching the UTXO Structure documented in the `create_tx` section:
+
+```json
+[
+  {
+    "txid": "64-char hex string",
+    "vout": 0,
+    "value": 100000,
+    "scriptPubKey": "hex"
+  }
+]
 ```
 
 ### Error Codes
