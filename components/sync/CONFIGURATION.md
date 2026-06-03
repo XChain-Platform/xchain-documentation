@@ -50,35 +50,41 @@ In client mode, the service connects to remote sync servers and replicates their
 
 ## Hub Discovery
 
-The service calls the local xchain-hub's `getallconfigs` JSON-RPC method at startup and every 5 minutes thereafter. The hub returns a nested configuration object:
+The service calls the local xchain-hub's `getallconfigs` JSON-RPC method at startup and every 5 minutes thereafter. The hub returns an envelope `{ configs, seq, watermark }`, where `configs` holds the nested configuration tree:
 
 ```json
 {
-  "bitcoin": {
-    "mainnet": {
-      "xchain-indexer": {
-        "host": "xchain-node-bitcoin-mainnet-xchain-indexer",
-        "port": "3004",
-        "db_host": "mariadb",
-        "db_port": "3306",
-        "name": "XChain_BTC_Mainnet_Indexer",
-        "user": "xchain_indexer_bitcoin_mainnet",
-        "pass": "xchain-password"
+  "configs": {
+    "bitcoin": {
+      "mainnet": {
+        "xchain-indexer": {
+          "host": "xchain-node-bitcoin-mainnet-xchain-indexer",
+          "port": "3004",
+          "db_host": "mariadb",
+          "db_port": "3306",
+          "name": "XChain_BTC_Mainnet_Indexer",
+          "user": "xchain_indexer_bitcoin_mainnet",
+          "pass": "xchain-password"
+        }
+      },
+      "testnet": {
+        "xchain-indexer": { ... }
       }
     },
-    "testnet": {
-      "xchain-indexer": { ... }
+    "dogecoin": {
+      "mainnet": {
+        "xchain-indexer": { ... }
+      }
     }
   },
-  "dogecoin": {
-    "mainnet": {
-      "xchain-indexer": { ... }
-    }
-  }
+  "seq": 42,
+  "watermark": 1717400000
 }
 ```
 
-The service iterates this response and, for each coin/network that has an `xchain-indexer` or `xchain-decoder` entry, extracts the following fields and creates a separate `Database` instance with the corresponding `dbType` (`indexer` or `decoder`):
+The nested config tree lives under `result.configs` (not at the top level). `seq` is the last committed consensus sequence number; `watermark` is an epoch-seconds high-water mark of the configs table. A consumer may retain `watermark` and pass it back as the `since_updated_at` request param on its next `getallconfigs` call to receive only the rows that changed since the previous poll (delta polling); omitting it returns the full tree.
+
+The service iterates `result.configs` and, for each coin/network that has an `xchain-indexer` or `xchain-decoder` entry, extracts the following fields and creates a separate `Database` instance with the corresponding `dbType` (`indexer` or `decoder`):
 
 | Hub Field | Used For |
 |---|---|

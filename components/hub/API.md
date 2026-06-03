@@ -29,36 +29,55 @@ Health check.
 
 ### `getallconfigs`
 
-Returns all service configs as a nested object: `{ coin: { network: { module: { param: value } } } }`.
+Returns all service configs wrapped in an envelope: `{ configs, seq, watermark }`.
+
+- `configs` — the nested config tree: `{ coin: { network: { module: { param: value } } } }`.
+- `seq` — the last committed consensus sequence number (0 on a fresh node with no committed config changes yet).
+- `watermark` — the high-water mark of the configs table as an **epoch-seconds** integer (the newest `updated_at` across all rows, or 0 when the table is empty). See *Delta polling* below.
 
 **Request:**
 ```json
-{"jsonrpc":"2.0","method":"getallconfigs","id":1}
+{
+  "jsonrpc":"2.0",
+  "method":"getallconfigs",
+  "params":{"since_updated_at":0},
+  "id":1
+}
 ```
+
+`since_updated_at` is optional (defaults to 0). See *Delta polling* below.
 
 **Response:**
 ```json
 {
-  "bitcoin": {
-    "mainnet": {
-      "xchain-decoder": {
-        "host": "192.168.1.10",
-        "port": "8332",
-        "db_host": "mariadb",
-        "db_port": "3306",
-        "name": "XChain_BTC_Mainnet_Decoder",
-        "user": "xchain_decoder",
-        "pass": "password"
+  "configs": {
+    "bitcoin": {
+      "mainnet": {
+        "xchain-decoder": {
+          "host": "192.168.1.10",
+          "port": "8332",
+          "db_host": "mariadb",
+          "db_port": "3306",
+          "name": "XChain_BTC_Mainnet_Decoder",
+          "user": "xchain_decoder",
+          "pass": "password"
+        },
+        "xchain-indexer": { ... },
+        "xchain-explorer": { ... }
       },
-      "xchain-indexer": { ... },
-      "xchain-explorer": { ... }
+      "testnet": { ... }
     },
-    "testnet": { ... }
+    "litecoin": { ... },
+    "dogecoin": { ... }
   },
-  "litecoin": { ... },
-  "dogecoin": { ... }
+  "seq": 42,
+  "watermark": 1717400000
 }
 ```
+
+> **Note:** the config tree lives under `result.configs`, **not** at the top level. Read `result.configs.bitcoin.mainnet...`, not `result.bitcoin.mainnet...`.
+
+**Delta polling:** `watermark` is an epoch-seconds timestamp the consumer should retain and pass back as `since_updated_at` on its next `getallconfigs` call. When `since_updated_at > 0`, the hub returns only the config rows that changed strictly after that instant (a delta — typically empty on a quiet poll) rather than the full tree, along with the new `watermark` to carry into the following poll. Omitting `since_updated_at` (or passing 0) returns the complete config tree, so first fetches and consumers that don't track the watermark are unaffected. The configs table is upsert-only (rows are never deleted), so merging successive deltas reconstructs exactly what a full fetch would have returned.
 
 ### `updateconfig`
 
