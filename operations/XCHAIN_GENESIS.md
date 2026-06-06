@@ -1,5 +1,5 @@
-<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
-<!-- Copyright © 2025 Dankest, LLC -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XCHAIN Genesis & Reward-Pool Funding
 
@@ -101,9 +101,9 @@ stall). A balance threshold alert in `xchain-dashboard/monitor/` is recommended.
 
 ---
 
-**Copyright &copy; 2025 Dankest, LLC**
+**Copyright &copy; 2025–2026 Dankest, LLC**
 
 **Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
 
-Licensed under the **Dankest Community License**
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later)
+with a commercial license available for proprietary use.

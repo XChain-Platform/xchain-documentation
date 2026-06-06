@@ -1,5 +1,5 @@
-<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
-<!-- Copyright © 2025 Dankest, LLC -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - LINK
 This action links actions using `ACTION_INDEX`, including linking actions across blockchains.
@@ -44,13 +44,13 @@ This example links a BTC `FILE` upload with `ACTION_INDEX` 1234 with a DOGE `ISS
 
 ---
 
-**Copyright &copy; 2025 Dankest, LLC**
+**Copyright &copy; 2025–2026 Dankest, LLC**
 
 **Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
 
-Licensed under the **Dankest Community License**
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later)
+with a commercial license available for proprietary use.
 
-You may not use, modify, or distribute this material except in compliance with the License.
+You may use, modify, and distribute this material under the terms of the License.
 See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
-A full copy of the License is also available at: [https://dankest.llc/license](https://dankest.llc/license)
+See the [licensing overview](https://docs.xchain.io/legal/licensing).

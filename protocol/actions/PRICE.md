@@ -1,5 +1,5 @@
-<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
-<!-- Copyright © 2025 Dankest, LLC -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - PRICE
 This action publishes oracle price data on-chain. Version 0 anchors PBFT-consensus COIN/FIAT price snapshots produced by validators qualifying for the `price` capability and broadcast on-chain by a validator qualifying for the `oracle_publish` capability (both capabilities are auto-qualified by aggregate stake amount per the capability model — see [STAKE](STAKE.md)). Version 1 is permissionless: any address may operate a user-run TOKEN/FIAT price oracle, no stake required.
@@ -254,13 +254,13 @@ The indexer's `prices` table is the raw on-chain action log (one row per PRICE t
 
 ---
 
-**Copyright &copy; 2025 Dankest, LLC**
+**Copyright &copy; 2025–2026 Dankest, LLC**
 
 **Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
 
-Licensed under the **Dankest Community License**
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later)
+with a commercial license available for proprietary use.
 
-You may not use, modify, or distribute this material except in compliance with the License.
+You may use, modify, and distribute this material under the terms of the License.
 See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
-A full copy of the License is also available at: [https://dankest.llc/license](https://dankest.llc/license)
+See the [licensing overview](https://docs.xchain.io/legal/licensing).

@@ -1,5 +1,5 @@
-<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
-<!-- Copyright © 2025 Dankest, LLC -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - COINPAY
 
@@ -42,4 +42,4 @@ for the owed amount (or more).
 
 ---
 
-**Copyright &copy; 2025 Dankest, LLC**
+**Copyright &copy; 2025–2026 Dankest, LLC**

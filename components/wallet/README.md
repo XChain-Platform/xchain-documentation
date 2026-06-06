@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2026 Dankest, LLC -->
 
 # XChain Platform Wallet
@@ -136,7 +136,7 @@ xchain-wallet/
 ├── e2e/                         Playwright E2E suite (web shell)
 ├── docs/                        in-repo architecture + threat-model + dependency notes
 ├── CHANGELOG.md                 Keep a Changelog format; root is authoritative
-└── LICENSE.md / NOTICE.md       Dankest Community License
+└── LICENSE.md / NOTICE.md       GNU Affero General Public License v3.0 (AGPL-3.0)
 ```
 
 All packages ship at the **same version**. Every shell's About screen surfaces its own `package.json.version` so users can verify all shells came from the same codebase.
@@ -213,9 +213,9 @@ See `docs/DEPENDENCIES.md` in the wallet repo for the per-package "why we depend
 
 **Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
 
-Licensed under the **Dankest Community License**
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later)
+with a commercial license available for proprietary use.
 
-You may not use, modify, or distribute this material except in compliance with the License.
+You may use, modify, and distribute this material under the terms of the License.
 See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
-A full copy of the License is also available at: [https://dankest.llc/license](https://dankest.llc/license)
+See the [licensing overview](https://docs.xchain.io/legal/licensing).

@@ -1,5 +1,5 @@
-<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
-<!-- Copyright © 2025 Dankest, LLC -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform
 
@@ -20,6 +20,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ — no code required | Non-technical |
 | [**Protocol Spec**](./protocol/) | 30 ACTION definitions, Token Information Standard, schemas | Protocol devs |
 | [**Operations**](./operations/) | Deployment, Docker, monitoring, upgrades, troubleshooting | Operators |
+| [**Legal**](./legal/) | Licensing, commercial license, trademark, contributor agreement | Everyone |
 
 ## Components
 
@@ -42,7 +43,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 
 ## Legal
 
-This project is licensed under the **Dankest Community License** (based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** with a commercial license available for proprietary use.
 
 | Document | Description |
 |---|---|
@@ -53,13 +54,24 @@ Any redistribution or modification must include the attribution notice specified
 
 ---
 
-**Copyright &copy; 2025 Dankest, LLC**
+**Copyright &copy; 2025–2026 Dankest, LLC**
 
 **Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
 
-Licensed under the **Dankest Community License**
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later)
+with a commercial license available for proprietary use.
 
-You may not use, modify, or distribute this material except in compliance with the License.
+You may use, modify, and distribute this material under the terms of the License.
 See [LICENSE](./LICENSE.md) and [NOTICE](./NOTICE.md) for full terms.
-A full copy of the License is also available at: [https://dankest.llc/license](https://dankest.llc/license)
+See the [licensing overview](https://docs.xchain.io/legal/licensing).
+
+## License
+
+XChain Platform is **open source**, dual-licensed under:
+
+- the **[GNU Affero General Public License v3.0](./LICENSE.md)** (`AGPL-3.0-or-later`) — free for everyone, and
+- a **[commercial license](https://docs.xchain.io/legal/commercial-license)** for companies that need to keep modifications private.
+
+See the **[licensing overview](https://docs.xchain.io/legal/licensing)** for which one applies to you. "XChain" is a trademark of Dankest, LLC — see the **[Trademark Policy](https://docs.xchain.io/legal/trademark)**.
+
+Copyright © 2025–2026 Dankest, LLC.

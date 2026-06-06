@@ -1,5 +1,5 @@
-<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
-<!-- Copyright © 2025 Dankest, LLC -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - FILE
 This action uploads a file including file metadata. The action also supports **token-gated cryptographically secure files** — encrypted on-chain such that only holders of a specific token can decrypt them. Gating is enabled by populating the optional `GATE_TICKER`, `ENCRYPTION_METHOD`, and `KEY_HASH` fields. See [Token-Gated Content](../Token_Gated_Content.md) for the end-to-end design.
@@ -62,13 +62,13 @@ Two or more gated `FILE` actions with the same `GATE_TICKER` **and** the same `K
 
 ---
 
-**Copyright &copy; 2025 Dankest, LLC**
+**Copyright &copy; 2025–2026 Dankest, LLC**
 
 **Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
 
-Licensed under the **Dankest Community License**
-(based on the Apache License 2.0 with additional non-commercial and network-disclosure terms).
+Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later)
+with a commercial license available for proprietary use.
 
-You may not use, modify, or distribute this material except in compliance with the License.
+You may use, modify, and distribute this material under the terms of the License.
 See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
-A full copy of the License is also available at: [https://dankest.llc/license](https://dankest.llc/license)
+See the [licensing overview](https://docs.xchain.io/legal/licensing).

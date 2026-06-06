@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: LicenseRef-Dankest-Community -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2026 Dankest, LLC -->
 
 # Features
@@ -189,5 +189,5 @@ Developer mode is off by default. Enabling it surfaces a banner in every shell s
 
 **Copyright &copy; 2026 Dankest, LLC**
 
-Licensed under the **Dankest Community License**.
+Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later).
 See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
