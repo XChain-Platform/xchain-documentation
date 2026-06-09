@@ -402,11 +402,13 @@ This resists manipulation: an attacker would need to control >30% of validators 
 
 ### Confirmation Thresholds
 
+Higher on the lower-hashpower chains to approach Bitcoin-comparable settlement assurance. Per-chain, configurable via `XCHAIN_CONFIRMATIONS_<COIN>`.
+
 | Chain | Required Confirmations |
 |---|---|
-| Bitcoin | 3 |
-| Litecoin | 3 |
-| Dogecoin | 6 |
+| Bitcoin | 6 |
+| Litecoin | 12 |
+| Dogecoin | 60 |
 
 ### Supported Chain Pairs
 

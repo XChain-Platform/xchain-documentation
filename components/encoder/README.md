@@ -12,7 +12,7 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 ## Features
 
 - **Stateless** — no database, no persistent connections; every call is independent
-- **Four encoding formats** — OP_RETURN (80B total, 76B user data), P2SH (476B), P2WSH (3,571B), and multisig (~61B/key); auto-selected by payload size
+- **Four encoding formats** — OP_RETURN (80B total, 76B user data), P2SH (476B), P2WSH (8,192B), and multisig (~61B/key); auto-selected by payload size
 - **Two-transaction orchestration** — automatic tx1 (fund) → tx2 (spend/reveal) pattern for P2SH and P2WSH with OP_RETURN marker
 - **AES-128-CTR obfuscation** — derives key and IV from the first input's txid; `XCHN` magic prefix on all payloads
 - **UTXO selection** — largest-first selection, duplicate removal, optional unconfirmed filtering, automatic change output
@@ -58,7 +58,7 @@ The decoder reads the spend transaction's scriptSig to extract the payload.
 
 ### P2WSH
 
-Maximum payload: **9,956 bytes**
+Maximum payload: **8,192 bytes** (decoder-enforced ceiling)
 
 Functionally identical to P2SH but uses SegWit. The payload is embedded in a witness script locked to a P2WSH output. The two-transaction pattern is the same:
 

@@ -50,7 +50,7 @@ The two-transaction pattern means the ACTION is not visible until the spend tran
 
 ### P2WSH (Pay-to-Witness-Script-Hash)
 
-**Capacity**: up to 9,956 bytes of data  
+**Capacity**: up to 8,192 bytes of data (decoder-enforced ceiling)  
 **Transactions**: 2 (fund then spend)  
 **Mechanism**: Identical in concept to P2SH but uses SegWit witness data for the reveal. The larger capacity comes from the witness discount applied to SegWit data — witness bytes cost one quarter of the weight of non-witness bytes for fee purposes. This makes P2WSH the preferred format for large payloads (file uploads, long broadcast messages, dense batch operations).
 
@@ -62,7 +62,7 @@ The encoder automatically selects the optimal format based on the payload size:
 |---|---|
 | ≤ 76 bytes user data (≤ 80 bytes total) | OP_RETURN |
 | 77 – 476 bytes | P2SH |
-| 477 – 9,956 bytes | P2WSH |
+| 477 – 8,192 bytes | P2WSH |
 | Structured multi-key | Multisig (manual selection) |
 
 The caller does not need to specify a format. The encoder calculates the encoded payload size and picks the smallest format that fits. In practice, most common ACTIONs (SEND, MINT, ORDER, DISPENSER) fit in OP_RETURN. Larger ACTIONs (FILE, long BATCH, rich BROADCAST) use P2SH or P2WSH.

@@ -23,7 +23,9 @@ and settled by the **xchain-hub validator federation**:
 
 1. **Discover** — the federation polls each chain's open cross-chain offers
    (`getopencrosschainorders`).
-2. **Match** — a compatible pair is found (first-come-first-served; Phase 1: exact-match SWAP).
+2. **Match** — a compatible pair is found. A cross-chain **`SWAP`** is exact, single-fill, FCFS; a
+   cross-chain **`ORDER`** matches on a **price-time book** and may be **partially filled** across
+   several matches (see [ORDER offers & partial fills](#order-offers--partial-fills)).
 3. **Finalize + sign** — the federation reaches consensus and signs a single **match record**
    with `2f+1` `cross_chain`-capable validator signatures.
 4. **Deliver** — the signed match is written to the hub's `cross_chain_matches` table and
@@ -51,25 +53,36 @@ A finalized match is symmetric and describes both legs:
 
 | field | meaning |
 |---|---|
-| `match_id` | deterministic `sha256` of `network` + both order refs + `snapshot_block` (order-independent) |
+| `match_id` | deterministic `sha256` of `network` + both order refs (each with its `*_filled_before` offset) + `snapshot_block` (order-independent) |
 | `snapshot_block` | BTC-anchored block; selects the `cross_chain` validator set for verification |
 | `network` | `mainnet`/`testnet`/`regtest`; signed into the canonical so a match can only settle on the network it was matched on |
-| `a_chain,a_action_index,a_tick,a_amount,a_ownership,a_payout_addr` | order A (canonical-lower side); payout = A's receive address on B's chain |
+| `a_chain,a_action_index,a_kind,a_tick,a_amount,a_filled_before,a_ownership,a_payout_addr` | order A (canonical-lower side); payout = A's receive address on B's chain |
 | `b_*` | order B |
 | `effective_time` | wall-clock instant indexers apply at (the only shared clock across chains) |
 | `validator_signatures` | JSON `[{pubkey,sig}]`, `2f+1` over the canonical match |
 | `status` | `finalized` / `retracted` |
 | `batch_root` / `anchor_txid` | optional — the DOGE audit anchor (below) |
 
-**Settlement direction:** on A's chain, A's escrow releases to `b_payout_addr`; on B's chain, B's
-escrow releases to `a_payout_addr`.
+Two fields make a record a **fill** rather than a whole-offer match:
+- **`a_kind`/`b_kind`** — `swap` (exact, single-fill) or `order` (partial-fillable). Settlement
+  branches on this: a `swap` leg releases its full escrow and completes; an `order` leg releases
+  only this match's fill and completes only once nothing remains.
+- **`a_amount`/`b_amount`** are the **fill settled by *this* match** (for a `swap`, that equals the
+  full offer). **`a_filled_before`/`b_filled_before`** are each offer's cumulative committed amount
+  *before* this fill — so two sequential partial fills of the same order pair at the same
+  `snapshot_block` produce **distinct `match_id`s** and are individually signed and settled.
+
+**Settlement direction:** on A's chain, A's escrow releases `a_amount` to `b_payout_addr`; on B's
+chain, B's escrow releases `b_amount` to `a_payout_addr`.
 
 ### Canonical signing string
 Validators sign, and indexers verify, the UTF-8 bytes of:
 ```
-XMATCH|match_id|snapshot_block|a_chain|a_action_index|a_tick|a_amount|a_ownership|a_payout_addr|b_chain|b_action_index|b_tick|b_amount|b_ownership|b_payout_addr|effective_time|network
+XMATCH|match_id|snapshot_block|a_chain|a_action_index|a_tick|a_amount|a_ownership|a_payout_addr|b_chain|b_action_index|b_tick|b_amount|b_ownership|b_payout_addr|effective_time|network|a_kind|a_filled_before|b_kind|b_filled_before
 ```
-(`a_tick`/`b_tick` empty when null. `a` is the canonical-lower chain.) A signature counts only if
+(`a_tick`/`b_tick` empty when null; `a_kind`/`b_kind` default `swap` and `*_filled_before` default
+`0` for a whole-offer match. `a` is the canonical-lower chain. The four fill fields are **appended
+after `network`** so a `swap` record's leading bytes are unchanged from Phase 1.) A signature counts only if
 its pubkey is in the `cross_chain` set at `snapshot_block` **and** the Ed25519 signature verifies.
 The trailing `network` binds the match to its network: an indexer settles a match only when the
 match's `network` equals its own, and because `network` is inside the signed bytes a match
@@ -91,7 +104,30 @@ means *qualified*. Without this, off-BTC chains could not verify cross-chain mat
   caught up to the block's time, so every operator of a chain settles the same matches at the same
   block — never against a stale mirror.
 - **Idempotency / reorg:** each settled leg is recorded in `cross_chain_settlements` (action-indexed),
-  so a match settles once per chain and a reorg drops the record and re-applies cleanly.
+  so a match settles once per chain and a reorg drops the record and re-applies cleanly. Each partial
+  fill has a distinct `match_id`, hence its own settlement row — partial fills accumulate against the
+  same local order independently.
+
+## ORDER offers & partial fills
+
+A cross-chain **`ORDER`** is a resting book entry: it can be filled across several matches, each a
+fraction of the offer, with price-time priority. (A cross-chain `SWAP` remains exact, single-fill.)
+
+- **Open book.** `getopencrosschainorders` returns each chain's open cross-chain `SWAP` **and**
+  `ORDER` offers (tagged `kind`); `ORDER` offers also carry `give_remaining`/`get_remaining`.
+- **Reservation is mirror-derived.** The federation never over-fills an order's escrow: an offer's
+  **effective remaining = full give − Σ fill amounts of finalized (non-retracted) matches** that
+  reference it (computed from the mirrored `cross_chain_matches` table alone). This is deterministic
+  across nodes and restarts and is the authoritative reservation source — it does not depend on the
+  indexer-reported remaining, which lags until the indexer's settlement pass runs.
+- **Matching mirrors the local book.** Price-time priority (earlier offer = maker), the maker's
+  price-cross gate, and the bottleneck-clamped fill quantity reproduce the same arithmetic the
+  indexer uses for same-chain `ORDER` matching (`order_match.js`), so a federation-computed fill and
+  the indexer's `getOrderAmountsRemaining` stay consistent. SWAP↔ORDER cross-matching is not yet
+  supported (a swap matches only another swap; an order only another order).
+- **Settlement.** Each fill releases only `a_amount`/`b_amount` from the local order's escrow and
+  records the fill so the order's remaining drops; the order is marked `complete` only once nothing
+  remains, otherwise it stays `open` for further fills.
 
 ## DOGE audit anchor (optional)
 
