@@ -87,6 +87,10 @@ This example atomically swaps ownership of JDOG (BTC chain) for ownership of WOW
 - When `SWEEP` is broadcast from this swap's SOURCE with `SWAPS=1`, the swap is cancelled and the escrowed `GIVE_TICK` balance (or `GIVE_OWNERSHIP` ownership record) is credited to the SWEEP `DESTINATION` rather than returned to SOURCE (see [`SWEEP`](./SWEEP.md))
 
 ## Notes
+- **Cross-chain swaps** (`GET_COIN` ≠ the posting chain) escrow the GIVE side locally and are
+  matched + settled by the validator federation — not the local DEX. The signed match is delivered
+  to each chain over the hub mirror and settled from escrow with no per-trade on-chain transaction.
+  See [Cross-Chain DEX](../Cross_Chain_DEX.md).
 - `SWAP` DOES NOT work with native `COIN` (BTC, LTC, DOGE)
 - Use a `DISPENSER` if you want to sell a `TICK` for `COIN` (BTC, LTC, DOGE)
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
