@@ -11,7 +11,7 @@ Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later
 with a commercial license available for proprietary use.  
 
 You may use, modify, and distribute this material under the terms of the License.  
-See the [licensing overview](https://docs.xchain.io/legal/licensing).
+See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).
 
 # XChain Platform Action - ADDRESS
 This action configures address specific options.
@@ -77,4 +77,4 @@ with a commercial license available for proprietary use.
 
 You may use, modify, and distribute this material under the terms of the License.
 See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
-See the [licensing overview](https://docs.xchain.io/legal/licensing).
+See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).

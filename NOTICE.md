@@ -30,7 +30,7 @@ attribution, per the AGPL and the project's trademark policy:
 
 "XChain" and the XChain logo are trademarks of Dankest, LLC. The software
 license does not grant any rights to these marks. See the Trademark Policy:
-<https://docs.xchain.io/legal/trademark>
+<https://docs.xchain.io/legal/TRADEMARK.html>
 
 ## Third-Party Components
 

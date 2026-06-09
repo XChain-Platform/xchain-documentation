@@ -29,7 +29,7 @@ Critically, **none of this is Bitcoin-specific.** The metalayer technique works 
 
 ## Why us
 
-XChain is built and stewarded by co-founders **Jeremy Johnson** and **Javier Varona** of Dankest, LLC — both former maintainers of Counterparty, the canonical production metalayer protocol on Bitcoin. They kept a metalayer correct and live through real forks, real reorgs, and real user funds, and are now applying that experience to a clean, modern, multi-chain implementation.
+XChain is built and stewarded by co-founders **Jeremy Johnson** and **Javier Varona Zavatti** of Dankest, LLC — both former maintainers of Counterparty, the canonical production metalayer protocol on Bitcoin. They kept a metalayer correct and live through real forks, real reorgs, and real user funds, and are now applying that experience to a clean, modern, multi-chain implementation.
 
 ## What makes it different
 

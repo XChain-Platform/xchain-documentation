@@ -5,7 +5,7 @@
 
 ### A Chain-Agnostic Token, Exchange, and Smart-Contract Metalayer
 
-**Authors:** Jeremy Johnson & Javier Varona, Co-Founders — Dankest, LLC · **Version 1.0**
+**Authors:** Jeremy Johnson & Javier Varona Zavatti, Co-Founders — Dankest, LLC · **Version 1.0**
 
 > Some economic parameters in this paper (the gas schedule and `GAS_PRICE`) are consensus-critical and are finalized at protocol freeze ahead of launch; the values shown convey the model and current defaults. Features noted as *pending mainnet activation* are specified and implemented but not yet enabled on mainnet.
 

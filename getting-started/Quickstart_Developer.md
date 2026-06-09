@@ -266,7 +266,7 @@ Every XChain ACTION has a corresponding SDK method: `sdk.issue()`, `sdk.mint()`,
 ## Next Steps
 
 - [Full SDK Documentation](../components/sdk/) — all methods, configuration options, error types, and examples
-- [ACTION Reference](../protocol/ACTIONS.md) — detailed spec for all 30 actions and their fields
+- [ACTION Reference](../concepts/ACTIONS.md) — detailed spec for all 30 actions and their fields
 - [Regtest Development](../developer-guide/Regtest_Development.md) — run a full local stack for free
 - [Explorer API](../components/explorer/) — all 50+ REST and JSON-RPC endpoints
 
@@ -281,4 +281,4 @@ with a commercial license available for proprietary use.
 
 You may use, modify, and distribute this material under the terms of the License.
 See [LICENSE](../LICENSE.md) and [NOTICE](../NOTICE.md) for full terms.
-See the [licensing overview](https://docs.xchain.io/legal/licensing).
+See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).

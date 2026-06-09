@@ -68,7 +68,7 @@ Regtest networks are fully isolated — they have no connection to any public bl
 
 A private deployment runs the same software stack as a public deployment — the only difference is that the coin node runs in regtest mode and the network is not connected to any public peers.
 
-> **Note on licensing:** The XChain Platform is **open source** under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later) — free to use, including commercially. Because the AGPL is copyleft, if you modify XChain and operate it as a network service, you must make your modified source available to its users. Organizations that want to run a **private, modified deployment without** the AGPL's source-disclosure obligations can obtain a **commercial license** — contact [legal@dankest.llc](mailto:legal@dankest.llc) or see the [licensing overview](https://docs.xchain.io/legal/licensing).
+> **Note on licensing:** The XChain Platform is **open source** under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later) — free to use, including commercially. Because the AGPL is copyleft, if you modify XChain and operate it as a network service, you must make your modified source available to its users. Organizations that want to run a **private, modified deployment without** the AGPL's source-disclosure obligations can obtain a **commercial license** — contact [legal@dankest.llc](mailto:legal@dankest.llc) or see the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).
 
 ---
 
@@ -81,4 +81,4 @@ with a commercial license available for proprietary use.
 
 You may use, modify, and distribute this material under the terms of the License.
 See [LICENSE](./LICENSE.md) and [NOTICE](./NOTICE.md) for full terms.
-See the [licensing overview](https://docs.xchain.io/legal/licensing).
+See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).
