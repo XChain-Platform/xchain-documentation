@@ -1,1 +1,5 @@
 .DS_Store
+
+# Coverage output (c8/nyc) — generated, not source
+coverage/
+.nyc_output/
