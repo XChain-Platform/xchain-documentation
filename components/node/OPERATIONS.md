@@ -15,10 +15,10 @@ xchain-node is a CLI tool, not a long-running service. Install it globally via `
 
 ```bash
 npm link
-xchain_node <command> [service] [chain] [network] [options]
+xchain-node <command> [service] [chain] [network] [options]
 ```
 
-Arguments are order-independent — `xchain_node start bitcoin mainnet xchain-encoder` and `xchain_node start xchain-encoder mainnet bitcoin` are equivalent.
+Arguments are order-independent — `xchain-node start bitcoin mainnet xchain-encoder` and `xchain-node start xchain-encoder mainnet bitcoin` are equivalent.
 
 ## Commands
 
@@ -81,7 +81,7 @@ When `all` is used, the command expands to every valid combination. Regtest-only
 
 ## Installation Workflow
 
-When `xchain_node install master all bitcoin regtest` is executed:
+When `xchain-node install master all bitcoin regtest` is executed:
 
 1. **Pre-flight checks** — Docker verification, directory creation, LevelDB open, version fetch
 2. **Docker network creation** — creates `xchain-node-bitcoin-regtest` network
@@ -109,9 +109,9 @@ Key Docker operations:
 
 ## Stopping
 
-Use `xchain_node stop` to stop containers. LevelDB entries are preserved — containers can be restarted later with `xchain_node start`.
+Use `xchain-node stop` to stop containers. LevelDB entries are preserved — containers can be restarted later with `xchain-node start`.
 
-Use `xchain_node uninstall` to fully remove containers, images, and LevelDB entries.
+Use `xchain-node uninstall` to fully remove containers, images, and LevelDB entries.
 
 ## Multi-Pane Monitoring
 
@@ -126,7 +126,7 @@ The `monitor` command opens a full-terminal Blessed TUI:
 ### Creating a Bootstrap
 
 ```bash
-xchain_node bootstrap create xchain-utxo-tracker bitcoin mainnet
+xchain-node bootstrap create xchain-utxo-tracker bitcoin mainnet
 ```
 
 Creates a gzipped tar archive of the service's data volume plus a SHA-256 hash file.
@@ -134,7 +134,7 @@ Creates a gzipped tar archive of the service's data volume plus a SHA-256 hash f
 ### Restoring a Bootstrap
 
 ```bash
-xchain_node bootstrap restore xchain-utxo-tracker bitcoin mainnet
+xchain-node bootstrap restore xchain-utxo-tracker bitcoin mainnet
 ```
 
 Verifies the SHA-256 hash before extraction. Aborts cleanly on hash mismatch.
@@ -181,7 +181,7 @@ Error: Key not found in database [MCxchain-encoder;bitcoin;mainnet]
 The service was never installed, or its LevelDB entry was removed. Re-install the service:
 
 ```bash
-xchain_node install master xchain-encoder bitcoin mainnet
+xchain-node install master xchain-encoder bitcoin mainnet
 ```
 
 ### Branch not found
@@ -201,7 +201,7 @@ If `git clone` fails (network error, branch not found), xchain-node falls back t
 If the MariaDB container is not running when installing a service that needs a database, xchain-node will fail during the database setup step. Start the database first:
 
 ```bash
-xchain_node start database
+xchain-node start database
 ```
 
 ### Hub unreachable after installation
@@ -209,7 +209,7 @@ xchain_node start database
 The hub configuration update retries up to 10 times with 3-second delays. If the hub container is slow to start, this is normal. If it persists, check the hub container logs:
 
 ```bash
-xchain_node logs xchain-hub
+xchain-node logs xchain-hub
 ```
 
 ---

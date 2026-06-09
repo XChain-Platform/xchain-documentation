@@ -42,7 +42,7 @@ Clone the repository and install dependencies:
 git clone https://github.com/XChain-Platform/xchain-node.git
 cd xchain-node
 npm install
-npm link   # makes xchain_node available as a global CLI command
+npm link   # makes xchain-node available as a global CLI command
 ```
 
 ## Quick Start
@@ -50,27 +50,27 @@ npm link   # makes xchain_node available as a global CLI command
 Install all services for Bitcoin regtest:
 
 ```bash
-xchain_node install master all bitcoin regtest
+xchain-node install master all bitcoin regtest
 ```
 
 Check status:
 
 ```bash
-xchain_node ps
+xchain-node ps
 ```
 
 Start/stop services:
 
 ```bash
-xchain_node stop all bitcoin regtest
-xchain_node start all bitcoin regtest
+xchain-node stop all bitcoin regtest
+xchain-node start all bitcoin regtest
 ```
 
 Monitor logs:
 
 ```bash
-xchain_node tail xchain-decoder bitcoin regtest
-xchain_node monitor all bitcoin regtest
+xchain-node tail xchain-decoder bitcoin regtest
+xchain-node monitor all bitcoin regtest
 ```
 
 ## Scripts

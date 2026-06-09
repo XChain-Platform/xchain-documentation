@@ -58,7 +58,7 @@ Optionally install the `xchain-node` symlink globally:
 After installation, verify the CLI is working:
 
 ```bash
-node src/index.js --help
+xchain-node --help
 # or if installed globally:
 xchain-node --help
 ```

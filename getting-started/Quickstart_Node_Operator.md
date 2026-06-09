@@ -24,7 +24,7 @@ cd xchain-node
 npm install
 ```
 
-Optionally, install the CLI globally so you can run `xchain-node` from anywhere:
+Install the CLI globally so the `xchain-node` command is available from anywhere — every command in this guide assumes it:
 
 ```bash
 npm link
@@ -38,13 +38,13 @@ The installer sets up Docker containers for all XChain services. Specify the cha
 
 ```bash
 # Install everything for Bitcoin mainnet
-node src/index.js install master all bitcoin mainnet
+xchain-node install master all bitcoin mainnet
 
 # Or for Dogecoin testnet
-node src/index.js install master all dogecoin testnet
+xchain-node install master all dogecoin testnet
 
 # Or for a local regtest environment (recommended for first-time setup)
-node src/index.js install master all bitcoin regtest
+xchain-node install master all bitcoin regtest
 ```
 
 The installer:
@@ -63,13 +63,13 @@ Installation time varies: regtest finishes in minutes; mainnet requires download
 
 ```bash
 # Start all services for Bitcoin mainnet
-node src/index.js start all bitcoin mainnet
+xchain-node start all bitcoin mainnet
 
 # Start a specific service
-node src/index.js start xchain-explorer
+xchain-node start xchain-explorer
 
 # Start all chains and networks at once
-node src/index.js start all all all
+xchain-node start all all all
 ```
 
 ---
@@ -78,10 +78,10 @@ node src/index.js start all all all
 
 ```bash
 # List all running containers
-node src/index.js ps
+xchain-node ps
 
 # Interactive terminal UI — shows all services with live status
-node src/index.js -i
+xchain-node -i
 ```
 
 The interactive TUI (`-i` flag) gives you a multi-pane view of all installed containers, their status, and log tails. Use it to quickly see which services are running and spot any that have crashed.
@@ -116,12 +116,12 @@ A single `xchain-node` installation can run Bitcoin, Litecoin, and Dogecoin simu
 
 ```bash
 # Add Litecoin mainnet to an existing installation
-node src/index.js install master all litecoin mainnet
-node src/index.js start all litecoin mainnet
+xchain-node install master all litecoin mainnet
+xchain-node start all litecoin mainnet
 
 # Add Dogecoin mainnet
-node src/index.js install master all dogecoin mainnet
-node src/index.js start all dogecoin mainnet
+xchain-node install master all dogecoin mainnet
+xchain-node start all dogecoin mainnet
 ```
 
 ---
@@ -136,8 +136,8 @@ Regtest is a local blockchain mode where:
 
 ```bash
 # Install regtest stack
-node src/index.js install master all bitcoin regtest
-node src/index.js start all bitcoin regtest
+xchain-node install master all bitcoin regtest
+xchain-node start all bitcoin regtest
 ```
 
 In regtest, the `xchain-e2e-test` service runs the full end-to-end test suite against your local stack — useful for verifying everything is working correctly.
@@ -148,25 +148,25 @@ In regtest, the `xchain-e2e-test` service runs the full end-to-end test suite ag
 
 ```bash
 # Stop services
-node src/index.js stop all bitcoin mainnet
+xchain-node stop all bitcoin mainnet
 
 # Restart a specific service
-node src/index.js restart xchain-indexer bitcoin mainnet
+xchain-node restart xchain-indexer bitcoin mainnet
 
 # View logs
-node src/index.js logs xchain-decoder bitcoin mainnet
+xchain-node logs xchain-decoder bitcoin mainnet
 
 # Tail logs live
-node src/index.js tail xchain-indexer bitcoin mainnet
+xchain-node tail xchain-indexer bitcoin mainnet
 
 # Multi-pane log monitor
-node src/index.js monitor all bitcoin mainnet
+xchain-node monitor all bitcoin mainnet
 
 # Open a shell inside a container
-node src/index.js shell xchain-indexer bitcoin mainnet
+xchain-node shell xchain-indexer bitcoin mainnet
 
 # Update a service to latest
-node src/index.js update xchain-indexer bitcoin mainnet
+xchain-node update xchain-indexer bitcoin mainnet
 ```
 
 ---
@@ -177,13 +177,13 @@ For mainnet deployments, downloading and parsing the full blockchain from genesi
 
 ```bash
 # Restore from bootstrap snapshot (faster initial sync)
-node src/index.js bootstrap restore xchain-indexer bitcoin mainnet
+xchain-node bootstrap restore xchain-indexer bitcoin mainnet
 ```
 
 To skip bootstrap and force a full parse from genesis:
 
 ```bash
-node src/index.js install master all bitcoin mainnet --no-bootstrap
+xchain-node install master all bitcoin mainnet --no-bootstrap
 ```
 
 ---
