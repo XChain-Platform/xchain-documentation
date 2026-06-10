@@ -211,7 +211,8 @@ npm run api
 | `DUST_AMOUNT` | No | Network default | Minimum output value in satoshis |
 | `UTXO_TRACKER_URL` | No | — | xchain-utxo-tracker service host |
 | `UTXO_TRACKER_API_PORT` | No | — | xchain-utxo-tracker service port |
-| `MAX_FEE_RATE_KB` | No | Uncapped | Maximum fee rate in sat/kB |
+| `MAX_FEE_RATE_KB` | No | Uncapped | Absolute maximum fee rate in sat/kB |
+| `MAX_FEE_RATE_MULTIPLIER` | No | `100` | Caps caller-supplied fee/feePerKb at this multiple of the node's fee estimate (`0` disables) |
 | `API_KEY` | No | Disabled | API key for `x-api-key` header authentication |
 | `ENCODER_RATE_LIMIT_RPM` | No | `60` | Maximum requests per minute per IP |
 | `CORS_ORIGIN` | No | Disabled | CORS origin (`*` to allow all) |
