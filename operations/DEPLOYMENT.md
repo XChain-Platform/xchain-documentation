@@ -184,6 +184,33 @@ xchain-node bootstrap restore xchain-utxo-tracker bitcoin mainnet
 
 Use `--no-bootstrap` on install to skip this entirely and do a full parse.
 
+#### Bootstrap signatures
+
+Each published bootstrap archive can carry a detached Ed25519 signature
+(`<archive>.sig`). When the consumer machine has the publisher's public key
+pinned (`src/config/bootstrap_signing_pubkey.pem` in the xchain-node checkout,
+or a path in `XCHAIN_NODE_BOOTSTRAP_PUBKEY`), the signature is verified before
+any restore — the checksum embedded inside the archive only detects transport
+corruption, while the signature proves the archive is the one the publisher
+built.
+
+By default an unsigned bootstrap restores with a loud warning. Set
+`XCHAIN_NODE_REQUIRE_SIGNED_BOOTSTRAP=1` to refuse unsigned archives outright
+(recommended once your publisher signs all of them).
+
+Publishers: generate a keypair once —
+
+```bash
+openssl genpkey -algorithm ed25519 -out bootstrap_signing_key.pem
+openssl pkey -in bootstrap_signing_key.pem -pubout -out bootstrap_signing_pubkey.pem
+```
+
+— keep the private key on the publishing host only, set
+`XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY=/path/to/bootstrap_signing_key.pem` there so
+`bootstrap create` emits a `.sig` beside each archive, upload the `.sig` next
+to the archive, and distribute the public key to consumers (commit it as
+`src/config/bootstrap_signing_pubkey.pem`).
+
 ---
 
 ## Verifying the Pipeline
