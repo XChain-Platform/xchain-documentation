@@ -129,13 +129,27 @@ fraction of the offer, with price-time priority. (A cross-chain `SWAP` remains e
   records the fill so the order's remaining drops; the order is marked `complete` only once nothing
   remains, otherwise it stays `open` for further fills.
 
-## DOGE audit anchor (optional)
+## On-chain match archive & full-parse recovery (`ANCHOR`)
 
-The federation may periodically batch finalized `match_id`s into a Merkle root and publish **one**
-record to the DOGE chain (reusing the PRICE-oracle publisher infrastructure) as an immutable
-on-chain audit trail of the committed matches. This **does not gate settlement** (settlement is
-mirror-driven); it provides cheap, on-chain provability that the validator set committed to a given
-set of matches.
+Because settlement is mirror-driven, `cross_chain_matches` records are the one consensus-relevant
+dataset that does not natively live on any chain. The [`ANCHOR`](./actions/ANCHOR.md) action
+closes that gap: the federation periodically publishes, on **DOGE only**:
+
+- **v0 checkpoints** — quorum-signed per-chain state-hash commitments (the indexer `blocks`
+  hash triple), giving light clients a verifiable root for any chain's state; and
+- **v1/v2 match archives** — the full `cross_chain_matches` records themselves (including
+  `validator_signatures` and the `capability_snapshots` rows needed to re-verify them),
+  compressed and batched.
+
+This **does not gate settlement** (settlement remains mirror-driven and verifies `2f+1`
+signatures as above); it guarantees that a full parse of the three chains, with no surviving hub
+database, can rebuild the match set via the recovery tool (`xchain-indexer/src/recovery.js`) and
+re-derive identical state. A match retracted after being archived is re-published in a later
+batch with `status=retracted`; recovery applies latest-status-wins by `batch_seq`.
+
+The earlier hub-side raw `XDEXANCHOR` payload (Merkle-root-only, not a protocol action) is
+superseded by `ANCHOR` — the root-only design could *verify* a surviving copy of the match set
+but could not *reconstruct* one from chain data alone.
 
 ## Residual reorg risk
 
