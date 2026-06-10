@@ -72,7 +72,7 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | [`PRICE`](./PRICE.md) | Publishes oracle price data on-chain (v0: validator COIN/FIAT snapshots, v1: user TOKEN/FIAT oracles) |
 | [`ATTEST`](./ATTEST.md) | External-data attestation lifecycle: v0=request (VM-emitted), v1=response (validator-broadcast), v2=expire (system-synthesized) |
 
-### Hub Staking (BTC chain only)
+### Staking (capability staking BTC-only; contract-targeted staking any chain)
 
 | ACTION | Description |
 |---|---|

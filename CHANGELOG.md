@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `protocol/actions/README.md` — retitled the staking section header from "Hub Staking (BTC chain only)" to scope the BTC-only restriction to capability staking. Contract-targeted staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) runs on every chain per `protocol/Contract_Staking.md`, so the old blanket header contradicted both that spec and the per-action spec files, which are already correctly scoped per flavor.
+
 ## [0.11.0] - 2026-06-06
 
 ### Added
