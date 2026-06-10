@@ -152,11 +152,11 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Dispensers/betting on any chain may reference any oracle regardless of publishing chain
 
 #### Price Lock Window
-- A user oracle's **first** PRICE v1 broadcast for a given `(SOURCE, COIN, TICK, FIAT)` combination takes effect immediately (no existing dispensers to front-run)
-- All **subsequent** PRICE v1 updates for the same combination do not take effect until **86400 seconds (24 hours)** after `block_time`
-- Prevents oracle front-running attacks on dispensers: without the delay, an oracle operator could see an incoming dispenser payment and rush a price update to manipulate the exchange rate
-- 24-hour delay matches the `FIAT_DISPENSER_PRICE_WINDOW` — any payment that enters the mempool before the price update will settle at the old price before the new one activates
-- User TOKEN/FIAT oracles target illiquid markets where prices change infrequently, so the 24-hour delay is not a practical limitation
+- **Every** PRICE v1 broadcast for a `(SOURCE, COIN, TICK, FIAT)` combination — the first one included — takes effect **86400 seconds (24 hours)** after `block_time`
+- For updates, the delay prevents oracle front-running attacks on dispensers: without it, an oracle operator could see an incoming dispenser payment and rush a price update to manipulate the exchange rate
+- For first publishes, the delay is a **consensus requirement**: an immediately-effective first publish would be *retroactively* effective — its `effective_at` (the action's `block_time`) precedes the moment the price can exist in any indexer's hub-DB mirror (source-chain indexing lag plus propagation). A FIAT dispense settled in that window would settle differently on replay, forking the ledger. The uniform delay guarantees every operator holds the row long before any block can read it
+- 24-hour delay matches the `FIAT_DISPENSER_PRICE_WINDOW` — any payment that enters the mempool before a price update will settle at the old price before the new one activates
+- User TOKEN/FIAT oracles target illiquid markets where prices change infrequently, so the 24-hour delay (including the one-time onboarding delay for a new oracle) is not a practical limitation
 - Enforced by the `effective_at` column on the hub's `oracle_prices` table
 
 #### FIAT Dispenser Reverse Price Matching
@@ -216,7 +216,7 @@ User broadcasts PRICE v1 on any chain
   → Chain's decoder extracts PRICE action
     → Chain's indexer validates fields and writes to local prices table
       → Indexer pushes to hub oracle_prices table
-        → Hub applies 24-hour lock window logic (first broadcast immediate, subsequent delayed)
+        → Hub applies the uniform 24-hour lock window (every publish effective at block_time + 86400)
           → Hub broadcasts new row to all connected indexers' local hub DB copies
             → All indexers query their local hub DB for oracle data — no hub round-trip during block processing
 ```
