@@ -248,6 +248,19 @@ The decoder stores a single `block_hash` per block derived from `index_transacti
 
 The sync service does not compute new hashes. It reads the hashes already present in the source database and includes them in every block payload and snapshot response. Clients store these hashes locally and verify chain continuity on each received block.
 
+### Trust model (what actually rejects bad data)
+
+The only defense that **rejects** fabricated content is **cross-source hash divergence**: with `2+` independent `SYNC_SOURCES`, `VERIFY_HASHES=true`, and `HALT_ON_DIVERGENCE=true`, the client compares the hashes reported by different servers and halts on disagreement. This is what makes a single dishonest source detectable.
+
+The independent local **recompute** (`BlockHasher`) re-derives the hash of the rows the client actually stored and compares it to the hash the source published — but with a single source, that published hash comes from the *same* server, so a source serving internally consistent fake rows plus matching fake hashes passes. The **decoder** path has no hash-based rejection at all: completeness is a row-count *advisory* (a shortfall is logged, never rejected).
+
+Consequences for operators:
+
+- A **single-source** indexer replica's integrity rests entirely on TLS trust of that one server. Configure `2+` independent sources for Byzantine integrity.
+- A **decoder** replica trusts its source(s) for row content — treat decoder sources as trusted infrastructure.
+
+The client logs an explicit `SECURITY:` warning at startup whenever it runs single-source or as a decoder, so this trust assumption is visible in the logs rather than implicit. The defaults (`SYNC_SOURCES=''`) do **not** enforce `2+` sources — that is the operator's responsibility.
+
 ## Reorg Handling
 
 ### Server Side
