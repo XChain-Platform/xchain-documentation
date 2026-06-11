@@ -37,7 +37,7 @@ Activation delay is calibrated per chain for roughly **60 minutes of reorg prote
 
 Initiates the cooldown for a specific `(target_contract_index, signing_pubkey, tick)` triple. The cooldown duration is the contract's own `cooldown_blocks` value (NOT the global 1000-block cooldown used by capability staking).
 
-Cooldown-locked balances **remain slashable** until they're released by the block-end sweep — withdrawing your stake is not a way to escape an imminent slash.
+Cooldown-locked balances **remain slashable** until they're released by the block-end sweep — withdrawing your stake is not a way to escape an imminent slash. Even in the final block of the cooldown (`cooldown_end_block = N`), a slash executing in block `N` reaches the locked balance before the sweep releases it — see [Cooldown release → Intra-block ordering](#intra-block-ordering-consensus-critical).
 
 ### DELEGATE v1
 
@@ -93,6 +93,17 @@ When a `contract_unstakes` row's `cooldown_end_block` ≤ current block:
 Tokens are debited from the staker at STAKE time and only credited back at the block-end sweep that catches the cooldown completion. There is no intermediate "release" action — it happens automatically.
 
 The same sweep also finalizes capability `unstakes` (previously unaddressed) — contract staking and capability staking share the same cooldown finalization pass.
+
+### Intra-block ordering (consensus-critical)
+
+Within a single block `N`, **all transaction processing — including every EXECUTE and therefore every `xchain.contract.slash(...)` emission — runs BEFORE the cooldown release sweep.** The sweep is a block-END pass, never a block-start pass.
+
+The boundary case this ordering decides: a `contract_unstakes` row with `cooldown_end_block = N` that is also slashed by an EXECUTE in block `N`. Canonical order:
+
+1. The slash EXECUTE runs first and still reaches the cooldown-locked balance — the row has not been released yet and is not yet `completed`, so it remains inside the slash's reach (active stakes first, then cooldown-locked remainders).
+2. The block-end sweep then releases only the **post-slash remainder** and marks the row `completed`.
+
+An implementation that ran the release sweep at block START would credit the staker back before the slash EXECUTE, the same slash would find nothing slashable, and its ledger would diverge from the canonical one — a chain fork. **Slash-before-release within the same block is normative**, not an implementation detail.
 
 ## Isolation between capability and contract staking
 
