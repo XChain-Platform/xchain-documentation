@@ -58,7 +58,9 @@ module.exports = {
 
 ### Constructor
 
-If a contract exports an `initialize` method and the DEPLOY action includes `CONSTRUCTOR_PARAMS`, the VM calls `initialize` immediately after deployment. Constructor state changes and emissions are processed atomically with the deployment — if the constructor fails, the contract is not deployed.
+If a contract exports an `initialize` method and the DEPLOY action includes `CONSTRUCTOR_PARAMS`, the VM calls `initialize` immediately after deployment. Constructor state changes and emissions are processed atomically with the deployment — if the constructor fails (or any of its emissions does), the contract is not deployed.
+
+Constructors may emit any action a method can, including `emit.execute` — so a contract can register itself with a registry contract in the same transaction that deploys it. The constructor runs at call depth 0; remember the contract's derived address holds no tokens yet, so token-moving emissions (`emit.send`, …) from a constructor will fail the deployment unless the tokens were somehow pre-funded.
 
 ## Supported JavaScript
 
