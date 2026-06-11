@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- `components/hub/ARCHITECTURE.md`, `protocol/actions/PRICE.md`, `protocol/actions/ANCHOR.md` — the documented PBFT quorum formula now carries the simple-majority floor the implementations enforce: `max(2f+1, ceil((N+1)/2))` with `f = floor((N-1)/3)`. The previously documented bare `2f+1` degenerates to a quorum of 1 at N=3, which would let a single validator finalize alone; with the floor, N=3 requires 2 signatures and N=2 requires both.
 - `protocol/actions/README.md` — retitled the staking section header from "Hub Staking (BTC chain only)" to scope the BTC-only restriction to capability staking. Contract-targeted staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) runs on every chain per `protocol/Contract_Staking.md`, so the old blanket header contradicted both that spec and the per-action spec files, which are already correctly scoped per flavor.
 
 ## [0.11.0] - 2026-06-06

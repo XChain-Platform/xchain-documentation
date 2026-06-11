@@ -150,7 +150,8 @@ exact bytes):
   `SNAPSHOT_BLOCK` (a BTC height; non-BTC indexers resolve it from the hub-mirrored
   `capability_snapshots` table, exactly as cross-chain settlement resolves `cross_chain`).
 - Each `SIG_n` must Ed25519-verify against the canonical message.
-- Valid signatures must reach `2f+1` of the snapshot set (single-validator sets require 1).
+- Valid signatures must reach `max(2f+1, ceil((N+1)/2))` of the snapshot set — PBFT `2f+1`
+  floored at a simple majority, so N=3 requires 2 (single-validator sets require 1).
 - `CHECKPOINT_SEQ` must be ≥ any previously accepted seq for (`CHAIN`,`NETWORK`) — replays of
   older checkpoints are recorded but flagged `stale`, never `valid`. Equal-seq records are
   accepted: a v0 and its v1 share the same wrapper seq by design, and an exact replay is

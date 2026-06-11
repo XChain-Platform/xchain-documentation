@@ -259,7 +259,10 @@ If the leader fails to drive consensus within `PBFT_TIMEOUT` (default 30s):
 
 ### Quorum
 
-`2f+1` where `f = floor((N-1)/3)` — tolerates `f` Byzantine validators out of `N` total.
+`max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)` — tolerates `f` Byzantine validators
+out of `N` total. The simple-majority floor matters for small federations: bare `2f+1`
+degenerates to a quorum of 1 at N=3 (f=0), which would let a single validator finalize
+alone. With the floor, N=3 requires 2 votes and N=2 requires both.
 
 ## Oracle Pipeline
 
