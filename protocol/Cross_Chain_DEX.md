@@ -61,7 +61,7 @@ A finalized match is symmetric and describes both legs:
 | `effective_time` | wall-clock instant indexers apply at (the only shared clock across chains) |
 | `validator_signatures` | JSON `[{pubkey,sig}]`, `2f+1` over the canonical match |
 | `status` | `finalized` / `retracted` |
-| `batch_root` / `anchor_txid` | optional — the DOGE audit anchor (below) |
+| `batch_root` / `anchor_txid` | optional — DOGE anchoring metadata (`anchor_txid` back-filled by ANCHOR v1 archives; `batch_root` only on rows stamped by the retired XDEXANCHOR publisher) |
 
 Two fields make a record a **fill** rather than a whole-offer match:
 - **`a_kind`/`b_kind`** — `swap` (exact, single-fill) or `order` (partial-fillable). Settlement
@@ -149,7 +149,8 @@ batch with `status=retracted`; recovery applies latest-status-wins by `batch_seq
 
 The earlier hub-side raw `XDEXANCHOR` payload (Merkle-root-only, not a protocol action) is
 superseded by `ANCHOR` — the root-only design could *verify* a surviving copy of the match set
-but could not *reconstruct* one from chain data alone.
+but could not *reconstruct* one from chain data alone. Its publisher (`CrossChainDexAnchor`)
+was removed from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet.
 
 ## Residual reorg risk
 

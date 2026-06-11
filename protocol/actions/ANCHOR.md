@@ -21,7 +21,9 @@ reject it. BTC and LTC state is still covered: each v0/v1 names the `CHAIN` it c
 one cheap chain carries the commitments for all three.
 
 ANCHOR supersedes the hub's legacy raw `XDEXANCHOR` payload (which was not a protocol action and
-was invisible to the decoder).
+was invisible to the decoder). The `XDEXANCHOR` publisher (`CrossChainDexAnchor`) was removed
+from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it stamped
+(`batch_root`) remain readable but nothing publishes the legacy payload anymore.
 
 ## Purpose
 
@@ -182,14 +184,26 @@ exact bytes):
   record.
 
 ## Publisher
-- Published by the hub's `StateAnchorPublisher`: deterministic rank election from the
-  `oracle_publish` capability snapshot (`btcBlock % N`, failover to the next rank at the next
-  flush block — same election as the price publisher), P2SH encoding via the standard encoder
-  pipeline.
+- Published by the hub's `StateAnchorPublisher`. **Per-chain publisher election**: each pending
+  checkpoint elects its own publisher from the `oracle_publish` capability snapshot at the
+  checkpoint's `snapshot_block`, ordered by `SHA256(election key ‖ pubkey)` ascending (the
+  attestation responsible-set idiom; the key binds chain/network/seq/snapshot_block, so a
+  different validator typically wins each chain's anchor in a cycle). Rank 0 publishes from its
+  own funded DOGE wallet; each further rank unlocks after `ANCHOR_ELECTION_TOLERANCE_BLOCKS`
+  more BTC blocks elapse without a publish (deterministic failover ladder; a gossiped
+  `XANC_V0_DONE` back-fill stops peers from re-anchoring a checkpoint someone already paid
+  for). The v1/v2 archive round elects a single leader the same way, keyed per election block.
+  A single-validator federation degenerates to today's serialized single-wallet behavior.
+- Each successful publish records an `anchor_<chain>` (round = `checkpoint_seq`) or
+  `anchor_archive` (round = `batch_seq`) reward of `ANCHOR_REWARD_PER_PUBLISH` XCHAIN
+  (default 10) on the `validator_rewards` rail, collectable on BTC via `COLLECT` like
+  oracle-round rewards.
+- P2SH encoding via the standard encoder pipeline.
 - Default cadence: one v0 per chain plus pending v1/v2 archive batches per anchor interval
   (`ANCHOR_INTERVAL_MS`, default daily), or early when `ANCHOR_MATCH_BATCH_SIZE` matches are
   pending. Checkpoint *signing* happens more often (hourly, mirror-only, no chain writes); the
-  anchor commits the latest signed checkpoint at publish time.
+  anchor commits the latest signed checkpoint at publish time. Operators can also trigger an
+  immediate flush via the hub's authenticated `anchorflush` JSON-RPC method.
 
 ## Recovery procedure (full-parse)
 1. Sync DOGE through the decoder/indexer from genesis — `anchor_actions` populates from the
