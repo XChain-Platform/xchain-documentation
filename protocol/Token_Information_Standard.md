@@ -46,6 +46,35 @@ Entries inside the `files`, `audio`, `video`, and `images` arrays can carry the 
 | pack_id     | String  | (Optional) Pack identifier grouping files that share an unlock key. References the top-level `packs` map for display name and description. Does not need to be present for unlocking to work — the protocol groups by `KEY_HASH` directly.
 
 
+# NFT Usage
+
+Tokens following the [NFT Standard](./NFT_Standard.md) use TIS as their **display
+layer**: the protocol records which files a token's owner has officially attached (via
+[`FILE`](./actions/FILE.md) + [`LINK`](./actions/LINK.md)), but attaches no display
+semantics to them — the token's TIS document decides what clients render and how.
+
+Recommendations for NFT issuers:
+
+- **Declare intent** with a category entry so clients can distinguish a collectible
+  from an integer-unit currency that happens to share the same field values:
+
+```json
+"categories": [ { "type": "main", "data": "NFT" } ]
+```
+
+- **Use `data_ref` for on-chain content.** Pointing `images`/`audio`/`video`/`files`
+  entries at on-chain `FILE` actions (`"data_ref": "action:<index>"`) gives the display
+  assets the same permanence as the token itself. Off-chain `data` URLs remain valid
+  for creators who prefer them.
+- **For immutable presentation**, host the TIS JSON content-addressed (`ipfs:`/`ord:`/
+  `ar:` or URL`;HASH` forms below) and set `LOCK_DESCRIPTION=1` on the token so the
+  pointer can never change.
+
+Clients classify a token as NFT-pattern by chain state (`DECIMALS=0` +
+`LOCK_MAX_SUPPLY=1` — the canonical rule is defined in the
+[NFT Standard](./NFT_Standard.md#classification-rule-for-clients)) and treat the TIS
+category as the issuer's stated intent.
+
 # Supported Token Description Formats
 
 Below are a number of token description formats which should be recognized by XChain block explorers.

@@ -112,7 +112,7 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
 - `DECIMALS` can not be changed after `TICK` supply is issued and/or minted
 - `MAX_SUPPLY` max value is 1,000,000,000,000,000,000,000 (1 Sextillion)
 - `MAX_SUPPLY` can not be set below existing supply
-- `LOCK_MAX_SUPPLY` can not be set to `1` and permanently locked until `MIN_TOKEN_SUPPLY` supply exists.
+- `LOCK_MAX_SUPPLY` can only be set to `1` when the token's `MAX_SUPPLY` is set (`MIN_TOKEN_SUPPLY` or greater) — declared in the same `ISSUE` or already on the token record. Minted supply is NOT required: a fair-mint token may declare its `MAX_SUPPLY` and permanently lock it at issuance, before any supply exists. Setting `LOCK_MAX_SUPPLY` with no `MAX_SUPPLY` declared is invalid.
 
 ## Notes
 - `ISSUE` `TICK` with `MAX_SUPPLY` and `MINT_SUPPLY` set to any non `0` value, to mint supply until `MAX_SUPPLY` is reached (owner can mint beyond `MAX_MINT`)
@@ -132,6 +132,7 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
 - `MINT_START_BLOCK` and `MINT_STOP_BLOCK` can be used to determine period(s) when `MINT` transactions are allowed
 - `MIN_TOKEN_SUPPLY` value is 0.000000000000000001
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` fields (^1234 = `TICK_ID` 1234)
+- `ISSUE` with `DECIMALS` `0` and `LOCK_MAX_SUPPLY` `1` is the standard non-fungible token (NFT) pattern — uniques, editions, and parent/child collections are defined in the [NFT Standard](../NFT_Standard.md)
 
 ---
 

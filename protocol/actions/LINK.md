@@ -41,6 +41,7 @@ This example links a BTC `FILE` upload with `ACTION_INDEX` 1234 with a DOGE `ISS
 
 ## Notes
 - `LINK`'s primary use case is attaching a `FILE` to a `TICK` (logo, terms, documentation), but it is a generic action-to-action pointer and supports other pairings (cross-chain attestation, etc.)
+- The owner-validation rule above makes `LINK` the official content-association mechanism for NFTs — only a token's owner can attach files to it. The protocol attaches no display semantics to linked files; what renders is decided by the token's [Token Information Standard](../Token_Information_Standard.md) metadata. See the [NFT Standard](../NFT_Standard.md).
 
 ---
 
