@@ -54,8 +54,20 @@ const OP_RETURN_PUSH_OVERHEAD = 3;
 // lockstep by the same regression suite.
 const MAX_CODE_SIZE = 65536;
 
+// Cross-contract calls (emit.execute). Maximum call depth: a user-submitted
+// EXECUTE runs at depth 0; each emit.execute hop adds 1. Enforced by the VM at
+// emit time and re-validated by the indexer when it processes the emission.
+const VM_MAX_CALL_DEPTH = 4;
+
+// Minimum caller-funded gas reservation per emit.execute call. Bounds call-tree
+// fan-out: every call costs at least (VM_EMISSION + VM_MIN_CALL_GAS) out of the
+// caller's own gas budget. Enforced by the VM and the indexer in lockstep.
+const VM_MIN_CALL_GAS = 5000;
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     OP_RETURN_PUSH_OVERHEAD,
     MAX_CODE_SIZE,
+    VM_MAX_CALL_DEPTH,
+    VM_MIN_CALL_GAS,
 };

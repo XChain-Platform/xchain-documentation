@@ -68,6 +68,17 @@ Callback execution is wrapped in its own savepoint — if the callback method th
 
 See [`ATTEST.md`](./ATTEST.md) for the wire-level lifecycle.
 
+## Contract-Emitted EXECUTE (cross-contract calls)
+A contract may emit an `EXECUTE` targeting another (or the same) deployed contract via `xchain.emit.execute({contractIndex, method, params, gasLimit})`. Like all emissions this never appears on the wire — the only on-chain transaction is the original top-level EXECUTE — but it produces a real action row and a `contract_executions` record, processed through this same handler.
+
+Differences from a user-submitted EXECUTE:
+
+- **Deferred, depth-limited.** The callee runs after the calling method completes, at `call depth = caller depth + 1`. Maximum depth is `VM_MAX_CALL_DEPTH = 4` (a user EXECUTE is depth 0); the VM throws at emit time and the indexer re-validates when processing the emission. Canonical constants: [`protocol/constants.js`](../constants.js).
+- **Caller-funded gas.** The emitter is charged `VM_EMISSION + gasLimit` from its own gas budget at emit time; the callee runs with `gasLimit` as its gas ceiling (`VM_MIN_CALL_GAS = 5,000` minimum). Unused gas is refunded into the top-level fee settlement when the whole call tree succeeds. Total work in a tree therefore never exceeds the top-level gas ceiling.
+- **Strict atomicity.** A failure anywhere in the call tree (revert, out of gas, unknown contract, failed emission) rolls back the entire tree — caller state, callee state, and every emission — and forfeits all refunds. The original caller still pays for the gas consumed.
+- **Caller identity.** Inside the callee, `xchain.getSourceAddress()` is the calling contract's derived address (`C:<CHAIN>:<caller index>`), so contracts can authenticate their callers.
+- **No return value.** A callee that must respond calls back via its own `emit.execute` (the attestation-callback pattern). `gasLimit` travels in the emission metadata, not as a positional wire param.
+
 ---
 
 **Copyright &copy; 2025–2026 Dankest, LLC**

@@ -147,6 +147,7 @@ Every contract receives an `xchain` object providing access to platform data and
 | `xchain.emit.link(params)` | `coin1`, `coin1ActionIndex`, `coin2`, `coin2ActionIndex` |
 | `xchain.emit.broadcast(params)` | — |
 | `xchain.emit.message(params)` | `destination` |
+| `xchain.emit.execute(params)` | `contractIndex`, `method`, `gasLimit` (cross-contract call — deferred, caller-funded gas, max depth 4; see the [developer guide](../developer-guide/Smart_Contract_Development.md#calling-other-contracts--emitexecute)) |
 
 ### Deterministic Math
 | Method | Description |

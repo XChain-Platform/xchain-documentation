@@ -189,6 +189,7 @@ A non-blocking **float warning** is also generated if decimal number literals ar
 | Oracle read | 100 |
 | Cross-chain read | 100 |
 | Action emission | 500 |
+| Cross-contract call (`emit.execute`) | 500 + the call's `gasLimit` (unused part refunded on success) |
 
 > **Indexed `for` loops cost 2 gas per iteration, not 1.** The gas meter injects a control-flow charge at the top of the loop body *and* a second charge into the update expression (`for (…; i++)` is metered as `for (…; (__gas(1), i++))`). So a `for` loop running N iterations costs `2 × N` computation gas. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost 1 gas per iteration. Budget indexed `for` loops accordingly.
 
@@ -356,9 +357,38 @@ module.exports = {
 
 For the full protocol-level spec — wire format, isolation between contract and capability staking, cooldown sweep behavior, the `slash_events` table — see [`protocol/Contract_Staking.md`](../protocol/Contract_Staking.md).
 
+## Calling Other Contracts — `emit.execute`
+
+A contract can invoke a method on another deployed contract (or itself) by emitting an `EXECUTE`:
+
+```javascript
+xchain.emit.execute({
+    contractIndex: 1234,        // the target contract's DEPLOY action index
+    method: 'onPayment',        // method to invoke (max 64 bytes, no "|")
+    params: ['order-7', '250'], // optional string args (max 32, 1024 bytes each, no "|")
+    gasLimit: 50000             // gas you fund the callee with (min 5,000)
+});
+```
+
+### Deferred execution
+
+The call is **deferred**, not inline: the callee runs *after* your method finishes, in the order you emitted it, within the same atomic scope. Your state changes are fully applied before the callee starts, so the callee sees your updated state — and classic re-entrancy is impossible by construction. There is **no return value**; a callee that must respond calls you back via its own `emit.execute` (the same pattern as attestation callbacks).
+
+Inside the callee, `xchain.getSourceAddress()` is the **calling contract's** address (`C:<CHAIN>:<index>`), so a callee can authenticate which contract called it.
+
+### Gas
+
+`emit.execute` charges `VM_EMISSION (500) + gasLimit` to **your** gas budget at the moment you call it — you fund the callee's entire run up front, so a call tree can never use more gas than the original EXECUTE's ceiling. Whatever the callee doesn't use is refunded at fee settlement, so a generous `gasLimit` costs nothing extra **if the tree succeeds**; an under-funded callee runs out of gas and fails the whole tree. `gasLimit` must be at least 5,000 and fit within your remaining gas.
+
+### Depth and failure semantics
+
+- **Max call depth is 4** (a user's EXECUTE runs at depth 0). `emit.execute` at the limit throws — check `xchain.getCallDepth()` if your contract may itself be called by other contracts.
+- **Strict atomicity:** if *any* call in the tree fails — revert, out of gas, unknown contract, invalid emission — the entire tree rolls back, including your state changes and every other emission. The original caller still pays for the gas consumed (refunds are forfeited on failure).
+- Cycles (A→B→A) are allowed within the depth budget.
+
 ## Limitations
 
-- **No cross-contract calls** — `emit.execute()` is not available in API version 1. Contracts cannot invoke other contracts.
+- **No synchronous cross-contract calls** — `emit.execute()` is deferred and returns no value. A callee that must respond calls back via its own `emit.execute`.
 - **No `state.keys()`** — contracts must manage their own key indexing for collections
 - **Immutable code** — deployed contracts cannot be updated. Use the proxy pattern for upgradeability.
 - **No direct network access** — contracts cannot make HTTP calls or read files themselves. Use `xchain.attestation.request` to delegate the fetch to the validator network.
