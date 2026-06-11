@@ -128,6 +128,11 @@ is the collection's provenance trail. There is no consensus concept of a "comple
 collection — the parent owner may always add items; a creator who wants to declare a
 collection closed does so in the collection's TIS metadata or other public statement.
 
+For curated directories of **independently-named** tokens (community submissions that
+keep their own ticks rather than living under a parent), see the
+[Project Registry Standard](./Project_Registry.md) — an owner-attested roster built
+from `LIST` + `LINK`.
+
 **Editions vs collections:** supply N on one tick = N *identical* prints; N *distinct*
 items = N child ticks. A collection of editions (e.g. 50 items × 10 prints each) is 50
 children, each with `MAX_SUPPLY=10`.

@@ -55,6 +55,7 @@ This example creates a new list from an existing list (4321) and removes 2 addre
 - `ITEM` can be repeated many times in a `LIST` request
 - `ITEM` values should be unique
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` items (^1234 = `TICK_ID` 1234)
+- A `TICK` list `LINK`ed to a token's `ISSUE` by the token's owner is that project's official-token roster — see the [Project Registry Standard](../Project_Registry.md)
 
 ---
 
