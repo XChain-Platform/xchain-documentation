@@ -23,7 +23,8 @@ xchain.emit.crossExecute   ──►   waits CONF[X] confirmations;
                                  cross_chain_calls row     ──►   indexers verify sigs vs the
                                  (phase='dispatch'),             cross_chain capability snapshot,
                                  mirrored to every indexer       inject XEXEC at the first block
-                                                                 ≥ effective_time (hub-id order,
+                                                                 ≥ effective_time (ordered by
+                                                                 (snapshot_block, call_id),
                                                                  ≤25/block): depth-0 EXECUTE,
                                                                  gasCeiling = gas_limit,
                                                                  crossCallable allowlist
@@ -89,9 +90,11 @@ emit the call, return, and handle the outcome in the callback.
   mirror has its own sync barrier (`waitForCallSync`, with the stream-watermark
   quiet-table escape) plus snapshot-presence gating, mirroring the match
   barriers.
-- Injection order is the hub-assigned row `id` (archived into ANCHOR so
-  recovery reproduces it); the per-block cap carries overflow forward — never
-  drops.
+- Injection order is `(snapshot_block, call_id)` — quorum-agreed row content,
+  identical in every hub DB, so the order does not depend on which hub an
+  indexer mirrors (the per-hub AUTO_INCREMENT `id` is provenance only, though
+  ANCHOR still archives it); the per-block cap carries overflow forward —
+  never drops.
 - Result delivery and deadline expiry share an exactly-once interlock on the
   request's status; both are block-height-driven.
 - The injected execution's synthetic TX_HASH is chain/network-namespaced
