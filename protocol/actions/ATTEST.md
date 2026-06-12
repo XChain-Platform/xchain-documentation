@@ -23,7 +23,7 @@ For the full design see `claude/reports/specs/2026-05-24_external-attestation-fr
 | `REDUNDANCY`           | Integer | 0        | Required validator signatures (1, 3, or 5)                               |
 | `DEADLINE_BLOCKS`      | Integer | 0        | Blocks until the request auto-expires (provider's `deadline_window_blocks` cap) |
 | `FEE_TICK`             | String  | 0        | *(optional)* Tick the attestation fee is paid in. **v1 consensus accepts only the GAS tick (XCHAIN).** Required when `FEE_AMOUNT > 0`. |
-| `FEE_AMOUNT`           | String  | 0        | *(optional)* Attestation fee, ≤ 8 decimal places. `> 0` escrows the fee from `FEE_PAYER` at request time. Absent / `0` ⇒ feeless (zero behavior change). |
+| `FEE_AMOUNT`           | String  | 0        | *(optional)* Attestation fee, precision ≤ the GAS tick's own decimals (8 for the production XCHAIN genesis issuance). `> 0` escrows the fee from `FEE_PAYER` at request time. Absent / `0` ⇒ feeless (zero behavior change). |
 | `RESPONSE_PAYLOAD`     | String  | 1        | Inline response body (UTF-8). Binary bodies not supported in v0.         |
 | `STATUS`               | String  | 1        | `ok` \| `timeout` \| `no_quorum` \| `provider_error` \| `expired`        |
 | `META`                 | String  | 1        | Provider-defined metadata (HTTP status code for `http_get`; model ID for `llm`) |
@@ -87,7 +87,7 @@ Where `sha256(response_payload)` is the lowercase hex digest of the UTF-8 respon
 
 #### Fee fields (v0, optional)
 - `FEE_TICK`, when present, must equal the GAS tick (XCHAIN) — `invalid: FEE_TICK (only XCHAIN accepted)` otherwise. Arbitrary fee ticks are a post-launch rule loosening; the wire carries the tick now so no future format change is needed.
-- `FEE_AMOUNT` must parse to ≤ 8 decimal places — `invalid: FEE_AMOUNT (format)` otherwise.
+- `FEE_AMOUNT` must parse to a precision no finer than the GAS tick's own decimals — `invalid: FEE_AMOUNT (precision > N dp)` otherwise (N = `min(8, gasDecimals)`). The escrow/debit/credit ledger rows round to the tick's decimals, so a finer fee would be **charged rounded** while `attests.fee_amount` kept the unrounded string, desyncing the reward split from the escrow. The production XCHAIN genesis issuance is pinned to **8 decimals**, so in production the cap is 8 dp; on the decimals-0 regtest GAS tick the cap is 0 (integer fees only). The VM gateway (`xchain.attestation.request`) additionally rejects > 8 dp at emit time as an outer sanity bound.
 - `FEE_AMOUNT > 0` requires a non-null `FEE_TICK` — `invalid: FEE_TICK (required when FEE_AMOUNT > 0)`.
 - `FEE_PAYER` (the contract address emitting the request) must hold `≥ FEE_AMOUNT` of the GAS tick — `invalid: insufficient funds (FEE_AMOUNT)` otherwise. As with any failed emission validation, this fails the whole enclosing EXECUTE.
 - A valid `FEE_AMOUNT > 0` debits `FEE_PAYER` and writes an escrow row at the v0 `action_index`. Absent / `0` ⇒ feeless, no ledger movement.
