@@ -66,9 +66,14 @@ Recommendations for NFT issuers:
   entries at on-chain `FILE` actions (`"data_ref": "action:<index>"`) gives the display
   assets the same permanence as the token itself. Off-chain `data` URLs remain valid
   for creators who prefer them.
+- **For a fully on-chain token**, upload the TIS JSON itself as a `FILE` action and
+  set `DESCRIPTION=action:<index>` (the On-Chain Format below). With the document and
+  its `data_ref` media all on-chain, every byte a client needs to render the token is
+  recoverable from a full chain parse — no hosting, no hostnames.
 - **For immutable presentation**, host the TIS JSON content-addressed (`ipfs:`/`ord:`/
   `ar:` or URL`;HASH` forms below) and set `LOCK_DESCRIPTION=1` on the token so the
-  pointer can never change.
+  pointer can never change. (The on-chain `action:<index>` form is inherently
+  content-immutable — locking the description makes the pointer immutable too.)
 
 Clients classify a token as NFT-pattern by chain state (`DECIMALS=0` +
 `LOCK_MAX_SUPPLY=1` — the canonical rule is defined in the
@@ -99,6 +104,14 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>HASH</b></td><td>64-character sha256 hash</td></tr>
 <tr><td><b>Note</b></td><td>URL to a JSON file ending in .json</td></tr>
 <tr><td><b>Example</b></td><td>j-dog.net/json/JDOG.json;96fc96754c913f60e9d7a0be07d76ffbcdc53338295cbd69595e69cf49616c3b</td></tr>
+</table>
+
+## On-Chain Format (action index)
+<table>
+<tr><td><b>Format</b></td><td>action:INDEX</td></tr>
+<tr><td><b>INDEX</b></td><td>ACTION_INDEX of a <a href="./actions/FILE.md">FILE</a> action on the <b>same chain</b> as the token, whose raw bytes are a TIS JSON document (declared MIME type <code>application/json</code>)</td></tr>
+<tr><td><b>Note</b></td><td>The fully on-chain form: the TIS document itself lives on the chain, so the token's display metadata has the same permanence as the token. Combine with <code>data_ref</code> entries inside the document for on-chain media, and <code>LOCK_DESCRIPTION=1</code> for an immutable pointer. Same casing/format as <code>data_ref</code>, one level up. Clients resolve the bytes the same way they resolve <code>data_ref</code> (e.g. the explorer's <code>/{COIN}/api/file/{INDEX}/raw</code>).</td></tr>
+<tr><td><b>Example</b></td><td>action:12345</td></tr>
 </table>
 
 ## IMGUR Format
