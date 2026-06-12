@@ -193,8 +193,20 @@ All math inputs and outputs are **strings**. This ensures deterministic precisio
 ### Cross-Chain (100 gas each)
 | Method | Returns |
 |---|---|
-| `xchain.crossChain.getAttestation(chain, actionIndex)` | Attestation data or null |
-| `xchain.crossChain.isSettled(chain, actionIndex)` | Boolean |
+| `xchain.crossChain.getAttestation(chain, actionIndex)` | Attestation data or null (not yet wired — always null) |
+| `xchain.crossChain.isSettled(chain, actionIndex)` | Boolean — true once a cross-chain DEX settlement referencing that order/swap has been applied on **this** chain |
+| `xchain.crossChain.getCallResult(callId)` | `{ status, payload }` for a terminal cross-chain call this chain originated, or null while in flight |
+
+`isSettled` answers from this chain's own settlement records: it covers any match where this
+chain was one of the two legs (you can pass either leg's `chain` + `actionIndex`). Settlements
+between two *other* chains are not visible. A settlement becomes visible to contracts in the
+block **after** the one where it was applied; the same one-block visibility rule applies to
+`getCallResult`.
+
+### Cross-Chain Contract Calls
+| Method | Gas | Description |
+|---|---|---|
+| `xchain.emit.crossExecute({targetChain, contractIndex, method, params?, gasLimit, callbackMethod, callbackParams?, deadlineBlocks?})` | 500 + 2,000 + gasLimit + 20,000 | Asynchronously invoke a `crossCallable` method on a contract on another chain; the outcome arrives via `callbackMethod(callId, targetChain, status, payload, ...callbackParams)`. Returns the deterministic 64-hex `callId`. No refunds; hop budget 2 (`xchain.getCrossHops()`). See `protocol/Cross_Chain_Calls.md`. |
 
 ### External Attestation — asking the outside world (see [framework section below](#asking-the-outside-world--the-attestation-framework))
 | Method | Gas | Description |

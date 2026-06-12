@@ -388,6 +388,65 @@ Inside the callee, `xchain.getSourceAddress()` is the **calling contract's** add
 - **Strict atomicity:** if *any* call in the tree fails — revert, out of gas, unknown contract, invalid emission — the entire tree rolls back, including your state changes and every other emission. The original caller still pays for the gas consumed (refunds are forfeited on failure).
 - Cycles (A→B→A) are allowed within the depth budget.
 
+## Calling Contracts on Other Chains — `emit.crossExecute`
+
+A contract can invoke a method on a contract deployed on a **different chain** (BTC/LTC/DOGE). The validator federation relays the call after your chain's confirmation depth and relays the outcome back — there is no extra on-chain transaction, but the round trip takes **minutes to tens of minutes**. Design fully async: emit the call, return, and handle the outcome in the callback.
+
+```javascript
+const callId = xchain.emit.crossExecute({
+    targetChain: 'DOGE',          // BTC/LTC/DOGE, not your own chain
+    contractIndex: 4321,          // the target contract's DEPLOY action index ON THAT CHAIN
+    method: 'onArrival',          // must be in the target's crossCallable allowlist
+    params: ['order-7', '250'],   // optional string args (max 32, 1024 bytes each, no "|")
+    gasLimit: 50000,              // gas the remote run gets (5,000 – 200,000; NOT refunded)
+    callbackMethod: 'onResult',   // REQUIRED — every call ends in exactly one callback
+    callbackParams: ['ctx'],      // optional strings echoed back to you
+    deadlineBlocks: 400           // optional; your-chain blocks before a local 'expired' callback
+});
+```
+
+The outcome always arrives as a callback into your contract:
+
+```javascript
+onResult: function(xchain) {
+    let callId       = xchain.getInputParam(0);
+    let targetChain  = xchain.getInputParam(1);
+    let status       = xchain.getInputParam(2);  // ok | reverted | out_of_gas | no_contract |
+                                                 // not_callable | payload_too_large | error | expired
+    let returnValue  = xchain.getInputParam(3);  // target method's JSON return (<=1,024 bytes)
+    // ...your callbackParams follow from index 4
+}
+```
+
+`xchain.crossChain.getCallResult(callId)` returns `{ status, payload }` once the call is terminal (the block after it resolved), `null` while in flight — useful for idempotency checks.
+
+### Receiving cross-chain calls — `crossCallable`
+
+A contract is **not callable cross-chain unless it opts in** by exporting an allowlist:
+
+```javascript
+module.exports = {
+    crossCallable: ['onArrival'],          // only these methods accept cross-chain calls
+    onArrival: function(xchain) {
+        // xchain.getSourceAddress() is the CALLING contract's address on ITS chain,
+        // e.g. 'C:BTC:1234' — authenticate cross-chain callers with it.
+        // xchain.getCrossHops() > 0 here; calling back out consumes the hop budget.
+    }
+};
+```
+
+This allowlist is the security boundary: the federation's signed dispatch can only reach methods you listed. Calls to anything else fail with `not_callable`.
+
+### Gas, hops, and failure semantics
+
+- **Pre-paid, no refunds:** `crossExecute` charges `VM_EMISSION (500) + 2,000 (request) + gasLimit + 20,000 (callback ceiling)` to your budget at emit time. Unused remote gas is **not** refunded — size `gasLimit` to the work, not generously.
+- **Hop budget is 2:** your call is hop 1; the remote contract calling back (or onward) is hop 2; further cross-chain calls from that context throw. `xchain.getCrossHops()` reports the current count.
+- **Failures are delivered, not thrown:** a remote revert/out-of-gas/missing contract rolls back the remote state and your callback receives the failure status. If nothing comes back before `deadlineBlocks`, you get a deterministic `expired` callback — your contract always hears exactly one outcome.
+- **No value transfer:** params and a return payload only. Move tokens with the cross-chain DEX, not calls.
+- Not available from constructors.
+
+Protocol details: `protocol/Cross_Chain_Calls.md` and `protocol/actions/XCALL.md`.
+
 ## Limitations
 
 - **No synchronous cross-contract calls** — `emit.execute()` is deferred and returns no value. A callee that must respond calls back via its own `emit.execute`.

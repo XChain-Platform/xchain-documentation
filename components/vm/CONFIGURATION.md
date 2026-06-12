@@ -43,9 +43,11 @@ The gas schedule defines the cost of each metered operation. These values are se
 | State write | `VM_STATE_WRITE` | 200 | `state.set()` |
 | State delete | `VM_STATE_DELETE` | 100 | `state.delete()` |
 | Oracle read | `VM_ORACLE_READ` | 100 | `oracle.getPrice()`, `oracle.getPriceAtRound()` |
-| Cross-chain read | `VM_CROSSCHAIN_READ` | 100 | `crossChain.getAttestation()`, `crossChain.isSettled()` |
+| Cross-chain read | `VM_CROSSCHAIN_READ` | 100 | `crossChain.getAttestation()`, `crossChain.isSettled()`, `crossChain.getCallResult()` |
 | Action emission | `VM_EMISSION` | 500 | Each `emit.*()` call (SEND, MINT, ORDER, etc.); also charged on `attestation.request()` and `contract.slash()` |
 | Attestation request | `VM_ATTEST_REQUEST` | 5000 | Additional fee on top of `VM_EMISSION` for `attestation.request()` — reflects the validator-network work that backs the eventual response |
+| Cross-chain call request | `VM_XCALL_REQUEST` | 2000 | Additional fee on top of `VM_EMISSION` for `emit.crossExecute()` — the federation relay work. The call also pre-pays its remote `gasLimit` plus `VM_XCALL_CALLBACK`, with **no refund** of unused remote gas |
+| Cross-chain callback ceiling | `VM_XCALL_CALLBACK` | 20000 | Fixed gas ceiling the result/expiry callback runs against on the source chain, pre-paid at `emit.crossExecute()` time |
 
 Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`revert`, `require`), and logging (`log`, `isLogFull`, `getLogCount`) are gas-free. `oracle.getSnapshotAge()` is also gas-free.
 
