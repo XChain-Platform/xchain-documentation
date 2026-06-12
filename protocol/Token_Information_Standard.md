@@ -38,7 +38,7 @@ Entries inside the `files`, `audio`, `video`, and `images` arrays can carry the 
 | Field       | Type    | Description
 | :---        | :---    | :---
 | data        | String  | URL to the file (off-chain). Used for non-gated content.
-| data_ref    | String  | Reference to an on-chain [`FILE`](./actions/FILE.md) action by `ACTION_INDEX`, formatted as `action:<index>`. When both `data` and `data_ref` are present, clients prefer `data_ref`.
+| data_ref    | String  | Reference to an on-chain [`FILE`](./actions/FILE.md) action by `ACTION_INDEX`: `action:<index>` (same chain as the token) or `action:<COIN>:<index>` (sibling chain — base coin ticker `BTC`/`LTC`/`DOGE`, network tier implied by the token's network, same convention as [`LINK`](./actions/LINK.md)'s `COIN1`/`COIN2`). Lets cheap chains carry the bytes for tokens on expensive ones — e.g. a BTC token whose artwork FILE lives on DOGE. When both `data` and `data_ref` are present, clients prefer `data_ref`.
 | name        | String  | Filename
 | type        | String  | MIME type
 | title       | String  | Display title
@@ -65,7 +65,9 @@ Recommendations for NFT issuers:
 - **Use `data_ref` for on-chain content.** Pointing `images`/`audio`/`video`/`files`
   entries at on-chain `FILE` actions (`"data_ref": "action:<index>"`) gives the display
   assets the same permanence as the token itself. Off-chain `data` URLs remain valid
-  for creators who prefer them.
+  for creators who prefer them. For tokens on expensive chains, upload the bytes on a
+  cheap sibling chain and reference them cross-chain
+  (`"data_ref": "action:DOGE:<index>"`).
 - **For a fully on-chain token**, upload the TIS JSON itself as a `FILE` action and
   set `DESCRIPTION=action:<index>` (the On-Chain Format below). With the document and
   its `data_ref` media all on-chain, every byte a client needs to render the token is
@@ -108,10 +110,11 @@ Below are a number of token description formats which should be recognized by XC
 
 ## On-Chain Format (action index)
 <table>
-<tr><td><b>Format</b></td><td>action:INDEX</td></tr>
-<tr><td><b>INDEX</b></td><td>ACTION_INDEX of a <a href="./actions/FILE.md">FILE</a> action on the <b>same chain</b> as the token, whose raw bytes are a TIS JSON document (declared MIME type <code>application/json</code>)</td></tr>
-<tr><td><b>Note</b></td><td>The fully on-chain form: the TIS document itself lives on the chain, so the token's display metadata has the same permanence as the token. Combine with <code>data_ref</code> entries inside the document for on-chain media, and <code>LOCK_DESCRIPTION=1</code> for an immutable pointer. Same casing/format as <code>data_ref</code>, one level up. Clients resolve the bytes the same way they resolve <code>data_ref</code> (e.g. the explorer's <code>/{COIN}/api/file/{INDEX}/raw</code>).</td></tr>
-<tr><td><b>Example</b></td><td>action:12345</td></tr>
+<tr><td><b>Format</b></td><td>action:INDEX <i>or</i> action:COIN:INDEX</td></tr>
+<tr><td><b>INDEX</b></td><td>ACTION_INDEX of a <a href="./actions/FILE.md">FILE</a> action whose raw bytes are a TIS JSON document (declared MIME type <code>application/json</code>)</td></tr>
+<tr><td><b>COIN</b></td><td>(optional) base coin ticker (<code>BTC</code>/<code>LTC</code>/<code>DOGE</code>) when the FILE lives on a <b>sibling chain</b>; omitted = same chain as the token. The network tier (mainnet/testnet/regtest) is implied by the token's network — same convention as <a href="./actions/LINK.md">LINK</a>'s <code>COIN1</code>/<code>COIN2</code>. Lets cheap chains carry the document for tokens on expensive ones.</td></tr>
+<tr><td><b>Note</b></td><td>The fully on-chain form: the TIS document itself lives on a chain, so the token's display metadata has the same permanence as the token. Combine with <code>data_ref</code> entries inside the document for on-chain media (also same- or sibling-chain), and <code>LOCK_DESCRIPTION=1</code> for an immutable pointer. Same casing/format as <code>data_ref</code>, one level up. Clients resolve the bytes the same way they resolve <code>data_ref</code> (e.g. the explorer's <code>/{COIN}/api/file/{INDEX}/raw</code>).</td></tr>
+<tr><td><b>Example</b></td><td>action:12345 &nbsp;·&nbsp; action:DOGE:12345</td></tr>
 </table>
 
 ## IMGUR Format
