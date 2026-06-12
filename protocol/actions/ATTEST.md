@@ -22,6 +22,8 @@ For the full design see `claude/reports/specs/2026-05-24_external-attestation-fr
 | `CALLBACK_PARAMS_JSON` | String  | 0        | JSON array of developer-supplied params, echoed back to callback (each element string-coerced at injection — see §Effects) |
 | `REDUNDANCY`           | Integer | 0        | Required validator signatures (1, 3, or 5)                               |
 | `DEADLINE_BLOCKS`      | Integer | 0        | Blocks until the request auto-expires (provider's `deadline_window_blocks` cap) |
+| `FEE_TICK`             | String  | 0        | *(optional)* Tick the attestation fee is paid in. **v1 consensus accepts only the GAS tick (XCHAIN).** Required when `FEE_AMOUNT > 0`. |
+| `FEE_AMOUNT`           | String  | 0        | *(optional)* Attestation fee, ≤ 8 decimal places. `> 0` escrows the fee from `FEE_PAYER` at request time. Absent / `0` ⇒ feeless (zero behavior change). |
 | `RESPONSE_PAYLOAD`     | String  | 1        | Inline response body (UTF-8). Binary bodies not supported in v0.         |
 | `STATUS`               | String  | 1        | `ok` \| `timeout` \| `no_quorum` \| `provider_error` \| `expired`        |
 | `META`                 | String  | 1        | Provider-defined metadata (HTTP status code for `http_get`; model ID for `llm`) |
@@ -32,7 +34,8 @@ For the full design see `claude/reports/specs/2026-05-24_external-attestation-fr
 ## Formats
 
 ### Version `0` — Request (VM-emitted)
-- `ATTEST|0|REQUEST_ID|PROVIDER_ID|REQUEST_PAYLOAD|CALLBACK_METHOD|CALLBACK_PARAMS_JSON|REDUNDANCY|DEADLINE_BLOCKS`
+- `ATTEST|0|REQUEST_ID|PROVIDER_ID|REQUEST_PAYLOAD|CALLBACK_METHOD|CALLBACK_PARAMS_JSON|REDUNDANCY|DEADLINE_BLOCKS[|FEE_TICK|FEE_AMOUNT]`
+- The trailing `FEE_TICK|FEE_AMOUNT` pair is optional. A feeless request omits them entirely (the SDK serializer trims trailing empties), so feeless v0 wire strings are **byte-identical** to the pre-fee format — no migration.
 
 ### Version `1` — Response (validator-broadcast, variable-length signature list)
 - `ATTEST|1|REQUEST_ID|PROVIDER_ID|RESPONSE_PAYLOAD|STATUS|META|SIG_COUNT|PUBKEY1|SIG1|PUBKEY2|SIG2|...`
@@ -44,7 +47,12 @@ For the full design see `claude/reports/specs/2026-05-24_external-attestation-fr
 
 ```
 ATTEST|0|abc...def|http_get|https://example.com/v1/score/42|handleResponse|["ctx-42"]|1|10
-VM-emitted request for an off-chain HTTP GET, single-validator redundancy, 10-block deadline
+VM-emitted request for an off-chain HTTP GET, single-validator redundancy, 10-block deadline, feeless
+```
+
+```
+ATTEST|0|abc...def|http_get|https://example.com/v1/score/42|handleResponse|["ctx-42"]|1|10|XCHAIN|0.5
+Same request carrying a 0.5 XCHAIN attestation fee (escrowed from FEE_PAYER at request time)
 ```
 
 ```
@@ -76,6 +84,13 @@ Where `sha256(response_payload)` is the lowercase hex digest of the UTF-8 respon
 - `DEADLINE_BLOCKS` must be `> 0` and `≤` provider's `deadline_window_blocks`.
 - `CONTRACT_INDEX` (carried via `EMITTER`) must reference an existing contract.
 - `REQUEST_ID` is verified by re-deriving from `tx_hash ‖ contract_index ‖ emitter_position` (defends against compromised VM).
+
+#### Fee fields (v0, optional)
+- `FEE_TICK`, when present, must equal the GAS tick (XCHAIN) — `invalid: FEE_TICK (only XCHAIN accepted)` otherwise. Arbitrary fee ticks are a post-launch rule loosening; the wire carries the tick now so no future format change is needed.
+- `FEE_AMOUNT` must parse to ≤ 8 decimal places — `invalid: FEE_AMOUNT (format)` otherwise.
+- `FEE_AMOUNT > 0` requires a non-null `FEE_TICK` — `invalid: FEE_TICK (required when FEE_AMOUNT > 0)`.
+- `FEE_PAYER` (the contract address emitting the request) must hold `≥ FEE_AMOUNT` of the GAS tick — `invalid: insufficient funds (FEE_AMOUNT)` otherwise. As with any failed emission validation, this fails the whole enclosing EXECUTE.
+- A valid `FEE_AMOUNT > 0` debits `FEE_PAYER` and writes an escrow row at the v0 `action_index`. Absent / `0` ⇒ feeless, no ledger movement.
 
 ### Version 1 (response)
 - Indexer rejects if `REQUEST_ID` doesn't match a `pending` row from a prior v0.
@@ -117,10 +132,24 @@ Where `sha256(response_payload)` is the lowercase hex digest of the UTF-8 respon
   - `SOURCE = contract_address` (matches the v1 callback convention).
 - Callback wrapped in a savepoint — failure does not roll back the status flip.
 
+## Fee flow
+
+When a v0 request carries `FEE_AMOUNT > 0`, the fee is escrowed from `FEE_PAYER` at request time and disposed of when the request reaches a terminal state. All movements are GAS-denominated (XCHAIN). Settlement is deterministic across validators (`bcmulfloor` to GAS decimals; remainder dust stays in the REWARD pool).
+
+| Event | Fee movement |
+|---|---|
+| v0 valid, `FEE_AMOUNT > 0` | Debit `FEE_PAYER` + escrow row (at the v0 `action_index`). |
+| v1 → `fulfilled` (`STATUS=ok`) | Release escrow → credit the REWARD pool; one `validator_rewards` row per responsible-set pubkey (`reward_type='attest_fee'`, `round_reference=`request `action_index`), each `bcmulfloor(bcdiv(fee, N, 18), '1', 8)`. Floor dust stays in the pool. Empty responsible set ⇒ full fee stays in the pool. |
+| v1 → `errored` (terminal non-ok, e.g. `expired`) | Release escrow → refund `FEE_PAYER` (service not rendered). |
+| v1 retryable (`no_quorum` / `timeout` / `provider_error`) | No movement — escrow stays locked, request stays `pending`. |
+| v2 expiry (synthesized) | Release escrow → refund `FEE_PAYER`. |
+
+`validator_rewards` rows are paid out to stakers via `COLLECT` (the same path as protocol rewards — hence the XCHAIN-only constraint, since that chain has no per-row tick column). A reorg mid-fulfillment rolls back the release + reward rows generically (credits/debits/escrows by `action_index`, rewards by `block_index`) and resets `request_status` to `pending`; the earlier v0 escrow row survives.
+
 ## Notes
 - `REQUEST_ID` is the cross-version foreign key — every v1 / v2 must reference an existing v0.
 - The `attestation_requests` and `attestation_responses` table names are unchanged from the pre-consolidation design; only the wire action name collapsed.
-- Refund / escrow settlement on expiry is Phase 3 economic work (`gas_escrow` is currently stubbed at `'0'`).
+- The optional `FEE_TICK`/`FEE_AMOUNT` request fee (above) is live. The separate `gas_escrow` (callback-gas) field remains stubbed at `'0'` — real callback-gas escrow is Phase 3 economic work, independent of the request fee.
 
 ---
 
