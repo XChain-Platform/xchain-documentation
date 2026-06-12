@@ -64,6 +64,26 @@ Ask your agent things like:
 
 The `R*` coins (`RBTC`, `RLTC`, `RDOGE`) default to localhost services. The standard SDK environment variables (`EXPLORER_URL`, `EXPLORER_PORT`, `HUB_API_HOST`, …) override any endpoint — see [SDK configuration](../components/sdk/CONFIGURATION.md).
 
-## Writes are deliberately absent
+## Writes are off by default — and policy-gated when on
 
-This server cannot sign, submit, or spend anything — there is no key material anywhere in it. Transaction composition and submission tools are planned as a separate, policy-gated layer (spending limits, action allowlists) so an agent can only ever act inside bounds its operator set. Until then: agents read, humans write.
+Out of the box this server cannot sign, submit, or spend anything: there is no key material in it, and `submit_action` is not even listed. (`compose_action` is always available — it returns an *unsigned* transaction for external signing.)
+
+To let an agent transact, the **operator** — never the conversation — configures a wallet:
+
+```bash
+export XCHAIN_MCP_WIF='<agent key>'           # both must be set,
+export XCHAIN_MCP_POLICY=/path/to/policy.json # or the server stays read-only
+```
+
+```json
+{
+  "allowedActions": ["SEND", "EXECUTE"],
+  "maxPerAction":  { "SEND": { "MYTOKEN": "100", "*": "10" } },
+  "maxPerWindow":  { "hours": 24, "perTick": { "MYTOKEN": "500" }, "maxActions": 50 },
+  "allowedDestinations": ["DTqQ...storefront"]
+}
+```
+
+That unlocks `submit_action` (compose → policy check → sign → broadcast → wait for the indexer) and `get_agent_wallet` (address, balances, remaining window budget). Every submission is enforced by an [agent session](Agent_Wallets.md): out-of-policy requests are refused **before signing** with a `POLICY_*` code, and results carry the window usage so the agent can track its own budget. Agents should treat policy refusals as final answers, not errors to retry.
+
+Notes: `confirmAbove` is rejected in the MCP policy file — there is no human in this loop, use hard caps. Fund the agent's address like a spending account, not a vault.
