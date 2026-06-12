@@ -66,4 +66,4 @@ Two practices close most of that gap:
 
 ## For MCP users
 
-The `xchain-mcp` server's read tools never touch keys. When its transaction tools ship, they will require an agent session — there is deliberately no unpoliced write path for agents.
+The `xchain-mcp` server's read tools never touch keys. Its write tool (`submit_action`) stays off until the operator configures a key and policy, and when on it routes every submission through an agent session — there is deliberately no unpoliced write path for agents. See the [MCP Quickstart](MCP_Quickstart.md).

@@ -17,6 +17,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**Supported Blockchains**](./BLOCKCHAINS.md) | Supported chains, adding new blockchains, private deployments | Developers / Operators |
 | [**Components**](./components/) | Detailed docs for each of the 14 components | Developers |
 | [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate, testing | Developers |
+| [**AI & Agents**](./ai-agents/) | Building AI agents: reading, transacting via MCP, bounded agent wallets, charging agents for data | Developers |
 | [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ — no code required | Non-technical |
 | [**Protocol Spec**](./protocol/) | 30 ACTION definitions, Token Information Standard, schemas | Protocol devs |
 | [**Operations**](./operations/) | Deployment, Docker, monitoring, upgrades, troubleshooting | Operators |
