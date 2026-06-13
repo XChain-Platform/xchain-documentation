@@ -35,7 +35,7 @@ Cross-chain swaps on XChain follow a straightforward flow:
 
 2. **Someone accepts.** A counterparty on the other chain sees your offer and agrees to the terms. They record their acceptance on their blockchain.
 
-3. **Both sides complete — or neither does.** The protocol coordinates the completion. If both parties fulfill their side within the agreed timeframe, both receive what they traded for. If either side fails to complete, both sides get their tokens back automatically.
+3. **Both sides complete — or neither does.** The hub records a match signed by a supermajority of validators; each chain's indexer independently checks those signatures before releasing the escrowed tokens to the counterparty. If the match does not go through, both sides get their tokens back automatically.
 
 At no point does a company, server, or third party hold your tokens. Your assets remain under protocol-level escrow on your own blockchain until the swap finalizes.
 
@@ -67,11 +67,20 @@ As XChain adds support for more Bitcoin-compatible blockchains, the number of av
 
 ---
 
+## Cross-Chain Orders
+
+SWAP is not the only way to trade across chains. XChain also supports cross-chain **limit orders** — an order book where your offer can be matched and filled partially over time, rather than all at once.
+
+- **SWAP** — an exact, one-shot trade: you offer a fixed quantity and it either fills completely or not at all.
+- **ORDER** — a price book entry: you set a rate, and the protocol fills it against counterparties in pieces as they appear, until your full amount is traded.
+
+Use SWAP when you want a precise exchange with a single counterparty. Use a cross-chain ORDER when you want your offer to fill gradually at your target price.
+
 ## When to Use a Swap vs. the Order Book
 
 The DEX order book is best when you are trading two tokens that both exist on the same blockchain. Swaps are for when the tokens you want to exchange live on different blockchains.
 
-You can combine both: use the order book to trade on a single chain, and use SWAP when you need to move value across chains.
+You can combine both: use the order book to trade on a single chain, and use SWAP or cross-chain ORDER when you need to move value across chains.
 
 ---
 

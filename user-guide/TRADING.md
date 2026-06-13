@@ -35,7 +35,7 @@ Matching happens as orders are processed by the indexer. You do not need to be o
 
 ### Order Expiration
 
-Orders do not stay open forever. When you place an order, you set an expiration. After that time (measured in blocks), any unfilled portion of your order is automatically cancelled and your escrowed tokens are returned. This prevents stale orders from clogging the exchange.
+Orders do not stay open forever. When you place an order, you set an expiration. After that time (set as a date/time), any unfilled portion of your order is automatically cancelled and your escrowed tokens are returned. This prevents stale orders from clogging the exchange.
 
 ### Cancelling an Order
 

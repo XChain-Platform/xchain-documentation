@@ -156,6 +156,14 @@ The session automatically fills in `pubkey` and `change` from the session creden
 
 ---
 
+## Agent Sessions
+
+`sdk.agentSession(wif, policy)` is the policy-bounded variant of `sdk.session()` designed for automated agents. It wraps the same key in a declarative spending policy — action allowlist, per-action and per-window amount caps, destination allowlist, and a human-in-the-loop confirmation hook — checked at every `submit()` call. Fail-closed: no `allowedActions` list means nothing is allowed; a corrupt usage-state file blocks all submits rather than silently resetting the window.
+
+See [Agent Wallets](../../ai-agents/Agent_Wallets.md) for the full reference.
+
+---
+
 **Copyright &copy; 2025–2026 Dankest, LLC**
 
 **Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**

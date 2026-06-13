@@ -99,7 +99,7 @@ curl "http://localhost:8080/BTC/api/sends/bc1q.../address?page=2&limit=25&sortor
 
 ### Get Status
 
-Returns configuration info about all supported and available coins.
+Returns configuration and sync health information for all supported and available coins.
 
 ```
 GET /{COIN}/api/status
@@ -112,16 +112,39 @@ GET /{COIN}/api/status
 {
     "data": {
         "supported": ["BTC", "TBTC", "RBTC", "LTC", ...],
-        "available": ["BTC", "RBTC"]
+        "available": ["BTC", "RBTC"],
+        "hub_config_fetched_at": "2026-06-13T12:00:00.000Z",
+        "hub_config_age_seconds": 42,
+        "last_block": { "BTC": 893000 },
+        "last_block_time": { "BTC": 1718280000 },
+        "decoder_tip": { "BTC": 893000 },
+        "decoder_lag_blocks": { "BTC": 0 },
+        "chain_tip": { "BTC": 893000 },
+        "chain_lag_blocks": { "BTC": 0 },
+        "decoder_health": { "BTC": "healthy" }
     }
 }
 ```
+
+| Field | Description |
+|---|---|
+| `supported` | Coin codes defined in the explorer's config |
+| `available` | Coin codes whose database is reachable |
+| `hub_config_fetched_at` | ISO-8601 timestamp of the last successful hub config fetch; `null` if hub has never responded |
+| `hub_config_age_seconds` | Seconds since last hub config fetch; `null` if no fetch has occurred |
+| `last_block` | Per-coin latest block index written to the indexer DB |
+| `last_block_time` | Per-coin unix timestamp of that block |
+| `decoder_tip` | Per-coin highest block the decoder has processed; `null` if the decoder DB is unreachable |
+| `decoder_lag_blocks` | `decoder_tip − last_block` (how far the indexer trails the decoder); `null` when either value is unavailable |
+| `chain_tip` | Per-coin chain tip as reported by the decoder's own health endpoint (what the coin node sees) |
+| `chain_lag_blocks` | `chain_tip − decoder_tip` (how far the decoder trails the chain) |
+| `decoder_health` | Per-coin decoder health string: `"healthy"`, `"unhealthy"` (decoder up but reporting problems), `"unreachable"` (decoder not responding), or `"unconfigured"` (no `DECODER_API_URL` set for this coin) |
 
 ---
 
 ### Get Network
 
-Returns aggregate network statistics: total counts of each action type and overall network info.
+Returns aggregate network statistics, coin identity/pricing, fee guidance, and finality settings.
 
 ```
 GET /{COIN}/api/network
@@ -133,14 +156,42 @@ GET /{COIN}/api/network
 ```json
 {
     "data": {
-        "total_sends": 1234,
-        "total_issues": 567,
-        "total_orders": 89,
-        "total_dispensers": 45,
-        ...
+        "totals": {
+            "total_sends": 1234,
+            "total_issues": 567,
+            "total_orders": 89,
+            "total_dispensers": 45
+        },
+        "network": {
+            "block": 893000,
+            "block_time": 1718280000,
+            "unconfirmed": 3,
+            "fee": { "low": 1, "medium": 2, "high": 5 }
+        },
+        "coin": {
+            "name": "Bitcoin",
+            "symbol": "BTC",
+            "price": { "btc": "1.00000000", "usd": "68420.00" }
+        },
+        "xchain": {
+            "name": "XChain",
+            "symbol": "XCHAIN",
+            "price": { "btc": "0.00000000", "usd": "0.00" }
+        },
+        "finality": { "BTC": 6, "LTC": 12, "DOGE": 60 }
     }
 }
 ```
+
+| Field | Description |
+|---|---|
+| `totals` | Per-action-type record counts for this coin |
+| `network.block` | Latest indexed block height |
+| `network.block_time` | Unix timestamp of the latest indexed block |
+| `network.unconfirmed` | Count of rows in the decoder's `mempool_transactions` table |
+| `network.fee` | Suggested sat/vByte fee tiers (low/medium/high) from the encoder; falls back to `{1,2,3}` |
+| `coin.price.usd` | Live USD price from the xchain-hub oracle (mainnet coins only; `"0.00"` for testnet/regtest or when no oracle price is available) |
+| `finality` | Recommended confirmation depths before treating a receipt as final; mirrors hub cross-chain thresholds; can be overridden via `XCHAIN_CONFIRMATIONS_<COIN>` env vars |
 
 ---
 
@@ -991,7 +1042,7 @@ GET /{COIN}/api/fees/{query}/{type}
 
 ### Mempool
 
-Pending unconfirmed transaction data.
+Pending unconfirmed transaction data. Rows come from the decoder's `mempool_transactions` table and are **pre-validation**: the decoder writes whatever it parses from a mempool transaction; the indexer may still reject it at confirmation time.
 
 ```
 GET /{COIN}/api/mempool/{query}/{type}
@@ -999,10 +1050,10 @@ GET /{COIN}/api/mempool/{query}/{type}
 
 | Type | Description |
 |---|---|
-| `address` | Mempool transactions for an address |
-| `token` | Mempool transactions for a token |
+| `address` | Mempool transactions where the source address or any decoded segment matches the query |
+| `token` | Mempool transactions where any decoded segment matches the token ticker (case-insensitive) |
 
-> **Note:** This endpoint is reserved for future implementation.
+**Response fields:** `tx_hash`, `source`, `action` (decoded action name), `data` (full pipe-delimited action string). No `destination` field — destinations are embedded in the `data` string.
 
 ---
 
@@ -1148,6 +1199,98 @@ GET /{COIN}/api/market/{tick1}/{tick2}/orderbook
 ```bash
 curl http://localhost:8080/BTC/api/market/TOKENA/TOKENB/orderbook
 ```
+
+---
+
+## Checkpoint Verification Endpoints
+
+The explorer exposes quorum-signed state checkpoints for light-client verification. Checkpoint data is read from the hub-mirrored `state_checkpoints` table.
+
+### List Checkpoints
+
+```
+GET /{COIN}/api/checkpoints[?limit=N]
+```
+
+Returns the latest quorum-signed state checkpoints for the coin's chain. Default limit is 10.
+
+**Response:**
+```json
+{
+    "checkpoints": [ ... ],
+    "count": 5
+}
+```
+
+---
+
+### Verify Checkpoint
+
+```
+GET /{COIN}/api/checkpoint/{blockIndex}/verify
+```
+
+Re-verifies the checkpoint at `blockIndex` server-side and returns everything a client needs to verify it independently.
+
+**Response fields:**
+
+| Field | Description |
+|---|---|
+| `checkpoint` | Raw checkpoint row (block_index, block_hash, ledger_hash, actions_hash, …) |
+| `canonical` | Canonical signing payload (pipe-delimited string over checkpoint fields) |
+| `validators` | Array of validator pubkeys that signed this checkpoint |
+| `quorum` | Required signature count for 2f+1 consensus |
+| `valid_sigs` | Count of signatures that verified successfully |
+| `verified` | `true` when `valid_sigs >= quorum` |
+
+Returns HTTP 404 with `{ "error": "No checkpoint at this height", "code": "CHECKPOINT_NOT_FOUND" }` when no checkpoint exists at the requested height.
+
+---
+
+## Additional REST Endpoints
+
+The following endpoints are registered and active. Detailed documentation is in the linked spec files.
+
+### Native-Coin Fee (Explorer Proxy)
+
+```
+GET /{COIN}/api/feequote?action=ISSUE&params=0|NEWTICK&source=...&feeOutputSats=...
+GET /{COIN}/api/feeschedule
+```
+
+Proxied to the colocated indexer's `feequote` / `feeschedule` JSON-RPC. Returns `503` when no `INDEXER_API_URL` is configured. See [CONFIGURATION.md](CONFIGURATION.md) for `INDEXER_API_URL_<COIN>_<NETWORK>`.
+
+---
+
+### Price and Price Snapshots
+
+```
+GET /{COIN}/api/price/{query}/{type}
+GET /{COIN}/api/price_snapshots/{query}/{type}
+```
+
+Live and historical PRICE v0 oracle snapshots (PBFT-signed). `type` values: `pair`, `round`, `status`.
+
+---
+
+### Cross-Chain Matches and Settlements
+
+```
+GET /{COIN}/api/cross_chain_matches/{query}/{type}
+GET /{COIN}/api/cross_chain_settlements/{query}/{type}
+```
+
+Cross-chain DEX match and settlement records. `type` values for matches: `match`, `block`, `status`; for settlements: `match`, `block`.
+
+---
+
+### Machine-Readable Spec
+
+```
+GET /openapi.json
+```
+
+OpenAPI 3.1 specification for all explorer REST endpoints. Regenerated by `docs/openapi.build.js`; kept in sync with the route tables by `test/unit/openapi-coverage.test.js`.
 
 ---
 

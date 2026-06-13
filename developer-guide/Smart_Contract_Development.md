@@ -172,11 +172,13 @@ The indexer validates the code syntax before charging gas. If syntax is invalid,
 
 ### Deploy-Time Validation
 
-The VM performs three checks before deployment:
+The VM performs five checks before deployment:
 
 1. **V8 syntax check** — the code must parse as valid JavaScript
 2. **Acorn metering pass** — the code must be parseable by acorn (ES2020 maximum)
 3. **Reserved identifier check** — the code must not use `__gas` (reserved for gas metering)
+4. **Banned transcendental `Math.*`** — `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` are rejected. IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures, which would cause hash divergence between indexers. Use the deterministic equivalents in `xchain.math.*` instead.
+5. **Banned DoS literals** — `BigInt` literals (e.g. `10n`) and `RegExp` literals (e.g. `/foo/`) are rejected. Both expose unmetered native computation — a `BigInt` arithmetic loop or a catastrophic regex can exhaust the block watchdog and halt the chain. The `BigInt` global and `RegExp` constructor are also stripped at runtime; use `xchain.math.*` for big-number work.
 
 A non-blocking **float warning** is also generated if decimal number literals are detected in the code. This warning appears in the execution record but does not prevent deployment.
 

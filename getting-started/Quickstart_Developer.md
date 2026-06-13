@@ -7,7 +7,7 @@ This guide walks you through creating your first XChain token using the SDK. You
 
 ## Prerequisites
 
-- **Node.js** 18 or later
+- **Node.js** 22 (22.x LTS) — Node 18 fails on the `mariadb` ESM package (`ERR_REQUIRE_ESM`); Node 24 cannot build `isolated-vm`. Node 22 is required.
 - A running XChain platform (either local via [regtest](../developer-guide/Regtest_Development.md) or a public node)
 - A Bitcoin/Litecoin/Dogecoin wallet with a funded address (for mainnet/testnet), or use regtest for free development
 

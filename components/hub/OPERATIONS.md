@@ -33,6 +33,8 @@ On startup, the hub:
    - Reorg handler
    - Governance engine
    - Reward tracker (pushes rewards to BTC indexer) and slash detector
+   - `StateCheckpointEngine` (quorum-signs per-chain ledger/actions/contract hash checkpoints; streams to hub DB subscribers)
+   - `StateAnchorPublisher` (per-chain publisher election; commits checkpoints + match archive on-chain via DOGE ANCHOR action on `ANCHOR_INTERVAL_MS` cadence)
 
 ## Operating Modes
 
@@ -124,11 +126,84 @@ curl -X POST http://localhost:10000 \
 
 ### Authentication
 
-Write methods (`updateconfig`, `registervalidator`, `syncvalidators`, `requestattestation`, `initiateswap`, `reportreorg`, `propose`, `vote`) require an `X-API-Key` header if `HUB_API_KEY` is set. If no API key is configured, all methods are open.
+Write methods (`updateconfig`, `registervalidator`, `rotatevalidator`, `deregistervalidator`, `syncvalidators`, `requestattestation`, `initiateswap`, `reportreorg`, `propose`, `vote`) require an `X-API-Key` header if `HUB_API_KEY` is set. If no API key is configured, all methods are open.
 
 ### Rate Limiting
 
 The API is rate-limited to 100 requests per minute per IP (configurable via `HUB_RATE_LIMIT_RPM`). Exceeding the limit returns HTTP 429.
+
+## Validator Key Rotation
+
+A validator's **transport identity** is the Ed25519 key in `SIGNING_PRIVKEY_HEX` — the key it signs P2P consensus envelopes with. Rotating it (routine hygiene, or after a suspected compromise) means changing that key *without* peers dropping the validator with `P2P: Invalid signature`.
+
+Two layers authorize a signing key, and a peer admits an envelope whose signer is in **either**:
+
+| Layer | Source | Scope | Follows on-chain rotation? |
+|---|---|---|---|
+| **On-chain effective set** | `getactivevalidators` at the BTC tip, polled every `P2P_SIGNER_SET_REFRESH_MS` (default 30 s) | Federation-wide, authoritative | **Yes — automatically** |
+| **Validator registry** | The hub's local `validators` table (`registervalidator` / `rotatevalidator` / `deregistervalidator`) | This hub only — a bootstrap *floor* | No — edited by hand/RPC |
+
+Because the effective set is the union of both, a hub that follows an on-chain validator set picks up a rotation on its own: once the new key is active on-chain, every peer admits it within one refresh interval. The poll **never fails open** — on an upstream error the last-known-good set is retained and the registry remains the floor, so a transient indexer outage can never silently widen who may sign.
+
+> A hub with **no** on-chain validator set (a single-validator prod hub, or a federation still bootstrapping before any stake exists) has an empty effective set, so the registry is the *only* authorization layer. There, rotation is the manual-tools path below.
+
+### Routine rotation (a federation following the on-chain set)
+
+The on-chain rotate is a [`DELEGATE` v0](../../protocol/actions/DELEGATE.md) (capability rotate, BTC-only). It is **additive** — it adds the new key alongside the old one, so there is no signing gap.
+
+1. **Generate the new key** offline (`xchain-node validator init` prints a fresh pubkey, or generate an Ed25519 keypair however you manage keys). Keep the seed offline until step 3.
+2. **Broadcast `DELEGATE` v0** from the validator's staking address with `NEW_SIGNING_PUBKEY = <new pubkey>`. The new key becomes active after the **6-block BTC activation delay** (~1 hour) — signatures from it are rejected until then.
+3. **After the delay, swap the local key:** update the validator's signing material (`SIGNING_PRIVKEY_HEX`, plus the `signing.key` file if your deployment uses one) to the new seed and **restart the hub**. No hub-registry edit is needed — within ≤ `P2P_SIGNER_SET_REFRESH_MS` of the new key going active on-chain, all peers admit it.
+4. **(Optional) retire the old key.** `DELEGATE` v0 leaves the old key valid; broadcast a [`DELEGATE` v2](../../protocol/actions/DELEGATE.md) (capability revoke) for it once the new key is confirmed working. The revoke also takes 6 blocks, so the keys overlap — the new key is live well before the old one is removed.
+
+### Emergency rotation (compromised key)
+
+Run the routine sequence but broadcast the **v2 revoke immediately after** the v0 rotate rather than waiting:
+
+1. `DELEGATE` v0 with the new key (active in 6 blocks).
+2. `DELEGATE` v2 revoking the compromised key (deactivates 6 blocks after it confirms).
+3. Swap local key material + restart as soon as the new key is active.
+
+During the overlap window both keys are valid; the new key takes effect ~6 blocks before the compromised one is fully revoked, so the validator never loses its slot. (Revoking a compromised *original stake* key is the v2 stake-key revoke — see the [`DELEGATE`](../../protocol/actions/DELEGATE.md) notes.)
+
+### Manual registry tools (fallback / pre-chain bootstrap)
+
+When the hub is **not** following an on-chain set (single-validator deployment, or pre-stake bootstrap), edit the registry floor directly over JSON-RPC. Both methods reload and propagate the new set to every running consensus engine immediately — no restart, no raw SQL:
+
+```bash
+# Rotate the signing key for the validator at an addr
+curl -X POST http://localhost:10000 -H "Content-Type: application/json" \
+  -H "X-API-Key: $HUB_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"rotatevalidator","params":{"addr":"validator1.example.com","new_signing_pubkey":"<new 64-hex pubkey>"},"id":1}'
+
+# Remove a validator (by addr, or pass signing_pubkey instead)
+curl -X POST http://localhost:10000 -H "Content-Type: application/json" \
+  -H "X-API-Key: $HUB_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"deregistervalidator","params":{"addr":"validator1.example.com"},"id":1}'
+```
+
+`registervalidator`/`rotatevalidator` are **addr-keyed**: each addr has exactly one active pubkey, and registering or rotating to a new key for an existing addr retires the old row first (no duplicate-active-row ambiguity). After editing the registry, still swap the local `SIGNING_PRIVKEY_HEX` + restart the affected validator.
+
+### Verifying a rotation
+
+- `getvalidators` reflects the new pubkey at the rotated addr (and the old key is gone).
+- On every peer, the federation count holds steady — e.g. an oracle round shows `submitters=N` with no drop — and **no** `P2P: Invalid signature` log lines for the rotated node.
+- If the transport signer set ever can't refresh past `P2P_SIGNER_SET_MAX_AGE_MS` (default 10 min), the hub logs `transport signer set STALE … retaining last-known-good`. That is the no-fail-open guard, not a rotation failure — investigate the BTC tip / `getactivevalidators` path.
+
+## ANCHOR Operations
+
+### Forcing an immediate ANCHOR publish
+
+By default the ANCHOR publisher runs on `ANCHOR_INTERVAL_MS` (default 24 h). To trigger an out-of-interval flush — for example after a wallet refill or to verify a new deployment — use `anchorflush`:
+
+```bash
+curl -X POST http://localhost:10000 \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $HUB_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"anchorflush","id":1}'
+```
+
+The response reports how many anchor rounds were flushed and whether this hub was the elected publisher. A hub that is not the current election leader skips the publish and returns `{"elected":false}`.
 
 ## Resilience and Recovery
 
@@ -201,6 +276,14 @@ The P2P layer deduplicates messages using a TTL cache (default: 60 seconds). Thi
 - Voting period defaults to 7 days (`GOV_VOTING_PERIOD`)
 - Parameter changes are bounded: normal params ±50% increase / -33% decrease; slashing params ±25% increase / -20% decrease
 - Rejected parameters have a 14-day cooldown before re-proposal
+
+### ANCHOR publisher not publishing / DOGE wallet low
+
+The ANCHOR publisher logs `StateAnchorPublisher: DOGE balance low` and skips publishing when the wallet balance falls below a minimum threshold. This is the same wallet used by `OraclePublisher` for PRICE v0 broadcasts — both consume DOGE for transaction fees.
+
+- Check the DOGE wallet balance at the address configured in `capabilities.json` under `oracle_publish.doge_address`.
+- Refill the wallet to resume publishing. Once funded, either wait for the next `ANCHOR_INTERVAL_MS` cycle or force an immediate flush with `anchorflush` (see above).
+- Each ANCHOR transaction costs approximately 1–2 DOGE depending on archive size. At the default 24-hour cadence, a ~7-day runway requires around 10–15 DOGE.
 
 ### Consumers not discovering hub
 

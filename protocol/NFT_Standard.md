@@ -95,9 +95,11 @@ and satisfies the [classification rule](#classification-rule-for-clients) from i
 first block. The only rejected case is locking with no `MAX_SUPPLY` declared, which
 would permanently brick the tick at a cap of nothing.
 
-Wallets and the SDK should provide a guided "create NFT" flow that sets `DECIMALS=0`
-and `LOCK_MAX_SUPPLY=1` together. The protocol does not infer intent: an issuer who
-omits `LOCK_MAX_SUPPLY` has issued an ordinary token whose supply can later grow, and
+The SDK provides `sdk.nft.unique()`, `sdk.nft.edition()`, and `sdk.nft.collectionItem()`
+builders that set `DECIMALS=0` and `LOCK_MAX_SUPPLY=1` correctly, and `sdk.issueNft()`,
+`sdk.issueNftEdition()`, and `sdk.issueNftCollectionItem()` workflow helpers that encode
+and submit the resulting action in one call. The protocol does not infer intent: an issuer
+who omits `LOCK_MAX_SUPPLY` has issued an ordinary token whose supply can later grow, and
 no client should classify it as an NFT.
 
 ---

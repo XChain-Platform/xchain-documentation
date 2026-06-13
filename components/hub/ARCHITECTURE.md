@@ -88,7 +88,12 @@ OracleConsensus  --round:finalized-->  RewardTracker
                  --round:finalized-->  SlashDetector
                  --round:finalized-->  OraclePublisher (queues for DOGE broadcast)
 
-PriceAggregator  --row:inserted-->     HubDbBroadcaster (forwards to WebSocket subscribers)
+PriceAggregator        --row:inserted-->  HubDbBroadcaster (forwards to WebSocket subscribers)
+StateCheckpointEngine  --row:inserted-->  HubDbBroadcaster
+CrossChainDexEngine    --row:inserted-->  HubDbBroadcaster
+CrossChainCallEngine   --row:inserted-->  HubDbBroadcaster
+
+StateCheckpointEngine  --checkpoint:finalized-->  StateAnchorPublisher (queues for DOGE ANCHOR broadcast)
 
 CrossChainEngine --attestation:finalized-->  SwapTracker
 
@@ -119,8 +124,10 @@ Governance       --proposal:passed-->  (parameter application)
 | `PriceAggregator.js` | `PriceAggregator` | Receives validated PRICE v0/v1 actions from indexers, deduplicates by `round_number` (v0) or `(source, action_index)` (v1), writes to `price_snapshots`/`oracle_prices`. EventEmitter — emits `row:inserted` for hub DB sync. |
 | `OraclePublisher.js` | `OraclePublisher` | `oracle_publish` capability publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
 | `EncoderClient.js` | `EncoderClient` | Minimal JSON-RPC client for talking to xchain-encoder (`get_utxos`, `create_tx`, `broadcast_tx`) — used by `OraclePublisher` |
-| `HubDbBroadcaster.js` | `HubDbBroadcaster` | WebSocket subscriber registry; broadcasts `row:inserted` events from `PriceAggregator` to all connected indexers' `HubDbSync` clients |
-| `sql/*.sql` | — | MariaDB table schemas (configs, validators, price_snapshots, oracle_prices, validator_rewards, governance, etc.) |
+| `HubDbBroadcaster.js` | `HubDbBroadcaster` | WebSocket subscriber registry; broadcasts `row:inserted` events from `PriceAggregator`, `StateCheckpointEngine`, `CrossChainDexEngine`, and `CrossChainCallEngine` to all connected indexers' `HubDbSync` clients |
+| `StateCheckpointEngine.js` | `StateCheckpointEngine` | Quorum-signed per-chain ledger/actions/contract hash checkpoints: cadence-leader reads each chain's block-hash triple, collects XCHK_SIGN from peers, finalizes at 2f+1 signatures, writes to `state_checkpoints`, streams via `HubDbBroadcaster`, emits `checkpoint:finalized` |
+| `StateAnchorPublisher.js` | `StateAnchorPublisher` | Per-chain publisher-election anchor: listens for `checkpoint:finalized`, batches `cross_chain_matches` archive, and commits checkpoints + archive on-chain via the DOGE ANCHOR action on `ANCHOR_INTERVAL_MS` cadence |
+| `sql/*.sql` | — | MariaDB table schemas (configs, validators, price_snapshots, oracle_prices, state_checkpoints, capability_snapshots, cross_chain_matches, cross_chain_calls, validator_rewards, governance, telemetry_pings, etc.) |
 
 ## P2P Gossip Layer
 

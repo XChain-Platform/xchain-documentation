@@ -113,6 +113,8 @@ Every contract receives an `xchain` object providing access to platform data and
 | `xchain.getInputParams()` | All method parameters (array of strings) |
 | `xchain.getInputParam(i)` | Parameter at index i, or null (string) |
 | `xchain.getInputParamCount()` | Number of parameters (number) |
+| `xchain.getCallDepth()` | Current call-tree depth (number; 0 for a top-level EXECUTE) |
+| `xchain.getCrossHops()` | Number of cross-chain hops consumed so far in this call tree (number) |
 
 ### Ledger Queries (100 gas each)
 | Method | Returns |
@@ -298,7 +300,7 @@ The contract sends a string payload; the provider tells the validators how to in
 
 ### Validator Consensus, in Plain Terms
 
-The `redundancy` option in `xchain.attestation.request(..., { redundancy: N })` controls how many independent validators must agree before the response is written to chain. Three values are allowed:
+The `redundancy` option in `xchain.attestation.request(..., { redundancy: N, deadlineBlocks: N, feeTick: 'XCHAIN', feeAmount: '0.5' })` controls how many independent validators must agree before the response is written to chain. `feeTick` and `feeAmount` are optional; setting `feeAmount > 0` escrows the fee from the calling contract and splits it among responsible validators on fulfillment (refunded on expiry or error). Three `redundancy` values are allowed:
 
 - **`redundancy: 1`** — the cheapest path. One validator's answer becomes the final answer. No agreement round, no PBFT, no judge. Right for non-critical queries where speed and cost matter more than independent verification.
 - **`redundancy: 3` or `5`** — multiple validators fetch independently. They exchange proposals and agree on a canonical answer. For `http_get`, "agree" means exact byte equality. For `llm`, a separate judge model decides whether the candidates are semantically equivalent. If quorum can't be reached the request expires on its deadline.
@@ -348,7 +350,11 @@ The `askIsTrue` method emits ATTEST v0 and returns. A handful of blocks later, t
 
 ### Cost Model
 
-Each request escrows the provider's `per_call_base_fee_xchain` at emission time (LLM: 0.50 XCHAIN; http_get: 0.01 XCHAIN — governance can change these). On `ok`, the escrow is paid out to the responding validators. On expiry, the escrow currently sits — refund/redistribution is a future economic phase.
+Each request may carry two distinct escrows:
+
+**(a) GAS_ESCROW / `per_call_base_fee_xchain`** — the provider's governance-configured base fee (LLM: 0.50 XCHAIN; http_get: 0.01 XCHAIN). Both providers currently default this to `'0'`, so this escrow is not yet collected in production. On `ok` it would be paid out to the responding validators; on expiry the redistribution mechanism is future economic work.
+
+**(b) Optional paid-attestation fee (`feeTick` / `feeAmount`)** — an explicit fee a contract includes in the request (E1 feature, active now). Passing `feeAmount > 0` escrows that amount from the calling contract (`FEE_PAYER`) at request time. On `ok` the fee is split among the responsible validators. On expiry or provider error — service not rendered — the fee is **refunded in full to the caller**.
 
 Provider-level limits the contract should know about:
 - **`max_request_bytes`** — payload size cap (LLM and http_get: 8192). Enforced both by the VM (8192 platform cap) and the indexer (per-provider cap).
@@ -359,7 +365,7 @@ Provider-level limits the contract should know about:
 
 - **Asynchronous only.** A contract cannot block on a result; it must continue and react in the callback.
 - **One callback per request, eventually.** Either the response, or expiry. Never both, never silent.
-- **Body size on response.** `RESPONSE_PAYLOAD` is UTF-8 inline in ATTEST v1 — large binary bodies are out of scope.
+- **Body encoding on response.** `RESPONSE_PAYLOAD` travels **base64-encoded** on the wire in ATTEST v1. The indexer decodes it to UTF-8 for storage and delivers it to the callback as a UTF-8 string. Binary content round-trips correctly as long as it is valid UTF-8 after decoding; arbitrary binary is not a supported use case.
 - **`getResponse(requestId)` is read-only.** It returns the previously-stored response after the callback has already fired, useful for contracts that want to revisit a past answer from a different method.
 
 For the wire-level lifecycle see [`protocol/actions/ATTEST.md`](../protocol/actions/ATTEST.md); for provider-specific payloads see [`protocol/providers/`](../protocol/providers/).

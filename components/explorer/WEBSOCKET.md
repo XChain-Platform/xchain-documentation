@@ -57,7 +57,7 @@ Sent automatically on connection. Provides server info, current state, limits, a
       "max_message_size": 1024,
       "max_connections_per_ip": 5
     },
-    "channels": ["blocks", "actions", "mempool", "network", "address", "token", "market", "dispenser"],
+    "channels": ["blocks", "actions", "mempool", "network", "attestation", "address", "token", "market", "dispenser"],
     "types": ["ORDER", "ORDER_MATCH", "ORDER_EXPIRE", "COINPAY", "..."],
     "features": ["snapshot", "once", "fields", "statuses", "ticks", "batch", "catch_up"]
   }
@@ -424,6 +424,79 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
 }
 ```
 
+### Mempool Events
+
+Channel: `mempool`
+
+Emitted when the decoder detects a new unconfirmed XChain transaction in the mempool, or when one drops out (confirmed or evicted).
+
+#### MEMPOOL_ACTION
+
+```json
+{
+  "type": "MEMPOOL_ACTION",
+  "data": {
+    "tx_hash": "abc123...",
+    "source": "1abc...",
+    "action": "SEND",
+    "data": "SEND|0|PEPE|100.00000000|1def...|"
+  }
+}
+```
+
+Also broadcast on the `address` channel for the transaction's source address.
+
+#### MEMPOOL_REMOVED
+
+```json
+{
+  "type": "MEMPOOL_REMOVED",
+  "data": {
+    "tx_hash": "abc123...",
+    "source": "1abc...",
+    "action": "SEND"
+  }
+}
+```
+
+Emitted when the mempool row is promoted to a confirmed transaction or evicted.
+
+---
+
+### Attestation Events
+
+Channel: `attestation`
+
+Emitted when an ATTEST action lands in a confirmed block.
+
+#### ATTESTATION_REQUEST
+
+Emitted for ATTEST v0 (request) rows.
+
+```json
+{
+  "type": "ATTESTATION_REQUEST",
+  "action": "ATTEST",
+  "channel": "attestation",
+  "data": { ... }
+}
+```
+
+#### ATTESTATION_RESPONSE
+
+Emitted for ATTEST v1 (response) and ATTEST v2 (system expiry) rows.
+
+```json
+{
+  "type": "ATTESTATION_RESPONSE",
+  "action": "ATTEST",
+  "channel": "attestation",
+  "data": { ... }
+}
+```
+
+---
+
 ### System Events
 
 #### SUBSCRIBED
@@ -569,6 +642,7 @@ Response to client `ping`.
 | Other | `BROADCAST`, `CALLBACK`, `FILE`, `MESSAGE`, `LIST`, `LINK`, `SLEEP` |
 | VM | `DEPLOY`, `EXECUTE`, `DEPOSIT`, `WITHDRAW` |
 | Staking | `STAKE`, `UNSTAKE`, `DELEGATE`, `COLLECT` |
+| Attestation | `ATTEST` |
 
 ---
 

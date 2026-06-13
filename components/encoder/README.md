@@ -19,7 +19,7 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 - **Fee estimation** — byte-accurate transaction size estimation per format via `TxSizeEstimator`; dust floor enforcement
 - **Fee rate cap** — configurable maximum fee rate prevents runaway estimates (e.g., regtest feedback loops)
 - **Input validation** — centralized parameter validation with typed errors (TypeError/RangeError) for all 15 `createTransaction` parameters
-- **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 network configs with chain-specific dust thresholds)
+- **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 network configs with chain-specific dust thresholds; Litecoin uses 5,460 litoshis on all three networks — 10× Bitcoin's 546 satoshis)
 - **Replace-By-Fee** — optional RBF signaling via UTXO sequence number
 - **Custom outputs** — arbitrary address/value outputs for COINPay native coin payments and other use cases
 - **JSON-RPC API** — Express server with Helmet security headers, optional API key authentication, configurable rate limiting, and CORS
@@ -96,7 +96,10 @@ The encoder exposes a JSON-RPC API via Express with `express-json-rpc-router`.
 | `create_tx` | Encode an ACTION string into a PSBT given UTXOs and a public key |
 | `broadcast_tx` | Submit a signed raw transaction hex to the coin node for broadcast |
 | `get_utxos` | Fetch the UTXO set for a given address from xchain-utxo-tracker |
+| `estimate_fee` | Return low / medium / high fee-rate tiers in base-units/vByte, sourced from the node's `estimatesmartfee` (targets: 6 / 3 / 1 blocks) |
 | `ping` | Health check — returns `{ status: "success" }` |
+
+A machine-readable OpenRPC 1.3.2 spec for all JSON-RPC methods is available at `GET /openrpc.json`.
 
 ### `create_tx` Parameters
 

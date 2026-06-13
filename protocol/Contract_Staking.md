@@ -10,13 +10,14 @@ Contract-targeted staking uses new versions of three existing actions; capabilit
 |---|---|---|
 | STAKE | v1 (new) / v2 (top-up) | **v3** |
 | UNSTAKE | v0 | **v1** |
-| DELEGATE | v0 | **v1** |
+| DELEGATE (rotate) | v0 | **v1** |
+| DELEGATE (revoke) | v2 | **v3** |
 | DEPLOY | v0 | **v1** (adds optional staking metadata) |
 
 ```
 STAKE|3|AMOUNT|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK
 UNSTAKE|1|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK
-DELEGATE|1|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK
+DELEGATE|1|NEW_SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK
 DEPLOY|1|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION
 ```
 
@@ -114,7 +115,7 @@ An implementation that ran the release sweep at block START would credit the sta
 | Qualification | Amount thresholds per built-in capability | Contract code decides what stake unlocks |
 | Cooldown | Global 1000 blocks | Per-contract (declared at deploy, [1, 100000]) |
 | Slash destination | Governance-level | Locked at contract deploy time |
-| Wire version | STAKE v1/v2, UNSTAKE v0, DELEGATE v0 | STAKE v3, UNSTAKE v1, DELEGATE v1 |
+| Wire version | STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT | STAKE v3, UNSTAKE v1, DELEGATE v1/v3 |
 
 A pubkey staked in one system does NOT count toward the other. They are tracked entirely separately.
 

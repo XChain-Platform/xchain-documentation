@@ -24,7 +24,7 @@ For the full design see `claude/reports/specs/2026-05-24_external-attestation-fr
 | `DEADLINE_BLOCKS`      | Integer | 0        | Blocks until the request auto-expires (provider's `deadline_window_blocks` cap) |
 | `FEE_TICK`             | String  | 0        | *(optional)* Tick the attestation fee is paid in. **v1 consensus accepts only the GAS tick (XCHAIN).** Required when `FEE_AMOUNT > 0`. |
 | `FEE_AMOUNT`           | String  | 0        | *(optional)* Attestation fee, precision ≤ the GAS tick's own decimals (8 for the production XCHAIN genesis issuance). `> 0` escrows the fee from `FEE_PAYER` at request time. Absent / `0` ⇒ feeless (zero behavior change). |
-| `RESPONSE_PAYLOAD`     | String  | 1        | Inline response body (UTF-8). Binary bodies not supported in v0.         |
+| `RESPONSE_PAYLOAD`     | String  | 1        | Response body (base64-encoded on the wire; decoded to UTF-8 for storage and callback delivery). Absent in v0. |
 | `STATUS`               | String  | 1        | `ok` \| `timeout` \| `no_quorum` \| `provider_error` \| `expired`        |
 | `META`                 | String  | 1        | Provider-defined metadata (HTTP status code for `http_get`; model ID for `llm`) |
 | `SIG_COUNT`            | Integer | 1        | Number of (pubkey, sig) pairs that follow                                |
@@ -72,7 +72,7 @@ Each `SIG_n` covers the canonical bytes:
 request_id || provider_id || sha256(response_payload) || status || meta
 ```
 
-Where `sha256(response_payload)` is the lowercase hex digest of the UTF-8 response bytes.
+Where `sha256(response_payload)` is the lowercase hex digest of the **raw response bytes** (after base64-decoding the wire field).
 
 ## Rules
 

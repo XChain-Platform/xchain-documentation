@@ -90,6 +90,8 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | [`EXECUTE`](./EXECUTE.md) | Executes a method on a deployed smart contract |
 | [`DEPOSIT`](./DEPOSIT.md) | Transfers tokens from a user to a contract's custody |
 | [`WITHDRAW`](./WITHDRAW.md) | Withdraws tokens from a contract's custody back to the owner |
+| [`XCALL`](./XCALL.md) | Cross-chain contract call request — v0 = VM-emitted request (`xchain.emit.crossExecute`), v2 = system-synthesized deadline expiry |
+| `XEXEC` | System-injected target-side execution of an XCALL dispatch row; internal only, no user-broadcast form — see [XCALL.md](./XCALL.md) |
 
 ### Utility
 

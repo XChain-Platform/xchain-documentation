@@ -58,6 +58,8 @@ Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`r
 | Parameter | Key | Default | Description |
 |---|---|---|---|
 | Gas ceiling | `gasCeiling` | 1,000,000 | Maximum gas per execution. Primary execution bound. |
+| Max call depth | `maxCallDepth` (`VM_MAX_CALL_DEPTH`) | 4 | Maximum call depth for `emit.execute` trees. A user-submitted EXECUTE is depth 0; each `emit.execute` hop adds 1. |
+| Min call gas | `minCallGas` (`VM_MIN_CALL_GAS`) | 5,000 | Minimum `gasLimit` per `emit.execute` call. Bounds call-tree fan-out: every call costs at least `VM_EMISSION + VM_MIN_CALL_GAS` out of the caller's budget. |
 | CPU timeout | `maxCpuTimeMs` | 30,000 ms | Wall-clock timeout (safety net only — should never trigger under normal operation) |
 | Memory | `maxMemory` | 8 MB | V8 isolate heap size limit. Exceeding triggers `out_of_memory` error. |
 | Emissions | `maxEmissions` | 50 | Maximum platform actions a contract can emit per execution |

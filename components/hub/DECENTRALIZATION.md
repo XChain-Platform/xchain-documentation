@@ -5,7 +5,7 @@
 
 ## Overview
 
-xchain-hub has evolved from a centralized config oracle into a fully decentralized validator network across seven implementation phases. Phases 0–5 shipped v1.0.0 → v2.0.0; Phase 6 (capability model + external attestation framework, 2026-05) is the current state.
+xchain-hub has evolved from a centralized config oracle into a fully decentralized validator network across eight implementation phases. Phases 0–5 shipped v1.0.0 → v2.0.0; Phase 6 (capability model + external attestation framework, 2026-05) and Phase 7 (federation key rotation + quorum hardening, 2026-06) are both complete.
 
 ## Motivation
 
@@ -40,7 +40,7 @@ Validators with the `price` capability independently fetch cryptocurrency prices
 
 ### `cross_chain` — Cross-Chain Validators
 
-Validators with the `cross_chain` capability attest to cross-chain swap actions. Rather than running full decoder and indexer stacks for every chain, they use **xchain-sync** to replicate indexer + decoder databases, keeping them lightweight. Consensus is calculated per chain-pair — only validators supporting both chains in a swap participate in attestation, using a PBFT-derived consensus requiring 2f+1 agreement.
+Validators with the `cross_chain` capability attest to cross-chain swap actions. Rather than running full decoder and indexer stacks for every chain, they use **xchain-sync** to replicate indexer + decoder databases, keeping them lightweight. Consensus is calculated per chain-pair — only validators supporting both chains in a swap participate in attestation, using a PBFT-derived consensus requiring `max(2f+1, ceil((N+1)/2))` agreement (simple-majority floor; see Quorum below).
 
 ### `oracle_publish` — PRICE v0 Broadcasters
 
@@ -80,6 +80,10 @@ All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain a
 | **External attestation** | `attestation`-capable validators fetch from registered providers (`http_get`, `llm`) and PBFT-finalize; result submitted on-chain as `ATTEST` v1 (response) |
 | **Governance** | Off-chain PBFT voting with 7-day period, 2/3+ approval |
 
+### Transport auth follows on-chain key rotation
+
+A validator's P2P signing key is authorized by the **union** of the hub's local validator registry and the on-chain effective signer set (polled from `getactivevalidators` at the BTC tip every 30 s, never fail-open). So when a validator rotates its signing key on-chain via [`DELEGATE`](../../protocol/actions/DELEGATE.md), every peer's transport auth follows automatically within one poll interval — no hand-edited registry on each hub. The operator procedure is in [Operations → Validator Key Rotation](OPERATIONS.md#validator-key-rotation).
+
 ## Implementation Phases
 
 | Phase | Name | Version | Status |
@@ -91,6 +95,7 @@ All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain a
 | 4 | **Cross-chain coordination** — Attestation engine, reorg propagation, SWAP lifecycle tracking, per-chain-pair validator filtering | v1.7.0–v1.9.0 | Complete |
 | 5 | **Open validator set + governance** — Off-chain PBFT voting for parameter changes, version signaling in heartbeats | v2.0.0 | Complete |
 | 6 | **Capability model + external attestation framework** — Replace Tier 1/2 with four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) auto-qualified by stake amount; block-boundary federation snapshots; external attestation framework (`http_get` byte_equality + `llm` judge_model providers); STAKE rewritten as `VERSION|AMOUNT|SIGNING_PUBKEY` with v1=new / v2=top-up; UNSTAKE rewritten as pubkey-based | 2026-05 | Complete |
+| 7 | **Federation key rotation + quorum hardening** — addr-keyed `rotatevalidator`/`deregistervalidator` RPC; stake-key revocation via `DELEGATE` v2; Option A union-membership transport auth (on-chain effective signer set + local registry, never fail-open); anchor reward archive (`anchor_<chain>` reward_type) + hub-local oracle/attest_fee reward separation; simple-majority quorum floor (`max(2f+1, ceil((N+1)/2))`) across all consensus engines | 2026-06 | Complete |
 
 ## Architecture Summary
 
@@ -125,7 +130,11 @@ All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain a
               +-----------------------------+
 ```
 
-Each validator runs the full hub stack. Communication happens via WebSocket-based P2P gossip with Ed25519-signed messages. All consensus decisions require 2f+1 agreement.
+Each validator runs the full hub stack. Communication happens via WebSocket-based P2P gossip with Ed25519-signed messages. All consensus decisions require `max(2f+1, ceil((N+1)/2))` agreement — the simple-majority floor prevents a single validator from finalizing alone at small federation sizes (N=3 requires 2 votes; N=2 requires both).
+
+### Quorum
+
+`max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)` — tolerates `f` Byzantine validators out of `N` total. The simple-majority floor matters for small federations: bare `2f+1` degenerates to a quorum of 1 at N=3 (f=0), which would let a single validator finalize alone. With the floor, N=3 requires 2 votes and N=2 requires both.
 
 ## Related
 

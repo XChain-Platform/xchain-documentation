@@ -115,6 +115,11 @@ Returns full token information for the given ticker: supply, divisibility, owner
 
 - **Endpoint:** `GET /{COIN}/api/token/{tick}`
 
+#### `getProject(tick)`
+Returns the current official-token roster of a project tick — the owner-attested LIST that carries the green-banner designation (see [Project Registry](../../protocol/Project_Registry.md)). Returns HTTP 400 (throws `SDKExplorerError` with code `EXPLORER_HTTP_400`) when the tick has no owner-attested roster.
+
+- **Endpoint:** `GET /{COIN}/api/project/{tick}`
+
 #### `getTokens(query, type, opts?)`
 Returns a list of tokens filtered by block, issuing address, parent token, or subtoken relationship.
 
@@ -279,6 +284,56 @@ Get withdrawal records filtered by query and type.
 Returns explorer health and sync status.
 
 - **Endpoint:** `GET /{COIN}/api/status`
+
+#### `getMempool(query, type, opts?)`
+Returns unconfirmed mempool actions matching the query. These are pre-validation decoder rows; a sweeper promotes them to confirmed or revokes them.
+
+- **Endpoint:** `GET /{COIN}/api/mempool/{query}/{type}`
+- **`type` values:** `address`, `token`
+- **`opts`:** pagination supported
+
+#### `getFeeQuote({ action, params, source?, feeOutputSats? })`
+Native-coin fee pre-flight for a single action, proxied through the indexer's read-only `feequote` endpoint. Use this to size a `FEE_DESTINATION` output before broadcasting when paying the protocol fee in BTC/LTC/DOGE.
+
+- **Endpoint:** `GET /{COIN}/api/feequote?action=...&params=...`
+- **`action`:** the ACTION name (e.g. `'SEND'`)
+- **`params`:** the wire param array or a pre-joined pipe string (without the action name)
+- **`source`:** optional sending address (for per-source fee rules)
+- **`feeOutputSats`:** optional candidate fee-output size in satoshis
+- **Returns:** `{ supported, valid, error?, requiredFeeNative, requiredFeeSats, feeDestination, expectedNative, minAcceptable, maxAcceptable, oracleRound, ... }`
+
+Refuse to broadcast when `supported === false` or `valid === false`; a failed native-fee action forfeits the fee on-chain.
+
+Higher-level callers should use `sdk.estimateFees(actionData, { payFeeInNativeCoin: true })` or `sdk.quoteNativeFee(actionData)` rather than calling this directly.
+
+#### `getFeeSchedule()`
+Returns the native-coin fee schedule and current oracle prices. Useful for display or rough estimates.
+
+- **Endpoint:** `GET /{COIN}/api/feeschedule`
+
+#### `getPriceSnapshots(query?, type?, opts?)`
+Returns oracle price-snapshot rounds for the price oracle.
+
+- **Endpoint (all):** `GET /{COIN}/api/price_snapshots`
+- **Endpoint (filtered):** `GET /{COIN}/api/price_snapshots/{query}/{type}`
+- **`type` values:** `pair`, `round`, `status`
+- **`opts`:** pagination supported
+
+#### `fileRawUrl(actionIndex, coin?)`
+Returns the absolute URL of a FILE action's raw bytes on the configured explorer. This is a pure string builder — no network call is made. It is the resolution target for TIS `data_ref` entries and on-chain TIS documents where `DESCRIPTION = action:<index>` or `action:<COIN>:<index>`.
+
+```js
+// Same-chain FILE reference
+const url = sdk.explorer.fileRawUrl(12345);
+// → 'http://explorer.example.com:8080/BTC/api/file/12345/raw'
+
+// Cross-chain FILE reference — imageCoin is the base ticker; network tier is implied
+const url = sdk.explorer.fileRawUrl(12345, 'DOGE');
+// → 'http://explorer.example.com:8080/DOGE/api/file/12345/raw'
+//   (on a mainnet client; RDOGE on a regtest client, etc.)
+```
+
+Pass `coin` (base ticker such as `BTC`, `LTC`, `DOGE`) for a sibling-chain reference. The method derives the full prefixed coin (e.g. `RDOGE` on a regtest client) so you do not need to account for the network tier.
 
 #### `search(query, type)`
 Performs a cross-entity search. Note: this method uses the `/explorer/search/` path, not `/api/`.

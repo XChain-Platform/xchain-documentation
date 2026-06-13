@@ -94,7 +94,7 @@ console.log('Open swaps:', swaps);
 
 ## Step 3: Bob Matches the Swap (Chain B — Litecoin)
 
-Bob creates a matching SWAP on Litecoin, referencing Alice's offer by its `ACTION_INDEX`.
+Bob creates a matching SWAP on Litecoin with the mirrored token pair. The hub federation matches it to Alice's open offer automatically.
 
 ```js
 // Bob matches Alice's swap

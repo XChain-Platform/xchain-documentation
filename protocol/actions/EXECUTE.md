@@ -43,7 +43,7 @@ Execute the 'increment' method on contract 12345 with no parameters
 - All state changes and emitted actions are processed atomically via a database savepoint:
   - If any emitted action fails validation, ALL state changes and ALL earlier emissions are rolled back
   - The caller's gas is still charged (outside the savepoint)
-- Contracts can emit up to 50 platform actions per execution
+- Contracts can emit up to 50 platform actions per EXECUTE invocation — each cross-contract callee gets its own independent 50-emission budget
 - The contract's derived address (`C:<CHAIN>:<CONTRACT_ACTION_INDEX>`) is used as the source for all emitted actions — the contract can only spend tokens deposited to its derived address
 - `PARAMS` beyond `METHOD` are pipe-delimited and passed to the contract as an array of strings
 
@@ -68,8 +68,10 @@ Callback execution is wrapped in its own savepoint — if the callback method th
 
 See [`ATTEST.md`](./ATTEST.md) for the wire-level lifecycle.
 
-## Contract-Emitted EXECUTE (cross-contract calls)
+## Contract-Emitted EXECUTE (cross-contract calls and DEPLOY constructors)
 A contract may emit an `EXECUTE` targeting another (or the same) deployed contract via `xchain.emit.execute({contractIndex, method, params, gasLimit})`. Like all emissions this never appears on the wire — the only on-chain transaction is the original top-level EXECUTE — but it produces a real action row and a `contract_executions` record, processed through this same handler.
+
+`DEPLOY` constructors route through the same `processEmission` pipeline with identical callee `gasLimit`/refund semantics. The only restriction specific to constructors is that **XCALL emissions are disallowed** from a constructor — any `emit.crossExecute(...)` inside a constructor throws at emit time.
 
 Differences from a user-submitted EXECUTE:
 

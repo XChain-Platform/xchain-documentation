@@ -102,6 +102,82 @@ Detailed health status. Unlike `ping` (which only confirms the HTTP server is up
 | `indexerDbCircuit` | `string\|null` | Indexer DB circuit-breaker state, same value set as above. |
 | `error` | `string\|null` | Last fatal indexer error message, or `null`. |
 
+### `feequote`
+
+Native-coin fee pre-flight for a single action. Called internally by the explorer's `/{COIN}/api/feequote` proxy; also usable directly by the SDK or wallet.
+
+**Request:**
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "feequote",
+    "params": {
+        "action": "ISSUE",
+        "params": "0|NEWTICK",
+        "source": "bc1q...",
+        "feeOutputSats": 0
+    },
+    "id": 1
+}
+```
+
+**Response:** `{ fee_sats, fee_usd, fee_xchain, mode }` plus validation fields. Returns an error string when the action is unknown or parameters are invalid.
+
+---
+
+### `feeschedule`
+
+Full native-coin fee schedule plus current oracle prices. Called internally by the explorer's `/{COIN}/api/feeschedule` proxy.
+
+**Request:**
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "feeschedule",
+    "id": 1
+}
+```
+
+**Response:** Fee schedule map (action → `{ base_sats, per_byte_sats }`) and current coin/XCHAIN oracle prices used for USD-pegged fee calculation.
+
+---
+
+### `getactionconfirmations`
+
+Confirmation count for a single action — used by the hub's `CrossChainEngine` to gate cross-chain match progression.
+
+**Request:**
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "getactionconfirmations",
+    "params": { "action_index": 42 },
+    "id": 1
+}
+```
+
+**Response:**
+```json
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "coin": "BTC",
+        "network": "mainnet",
+        "action_index": 42,
+        "exists": true,
+        "action": "SEND",
+        "block_index": 800000,
+        "latest_block_index": 800006,
+        "confirmations": 7
+    },
+    "id": 1
+}
+```
+
+When `exists` is `false`, `confirmations` is `0` and `action`/`block_index` are absent.
+
+---
+
 The `reparse` and `rollback` methods are defined in the codebase but currently commented out (reserved for future use).
 
 ## Resilience and Recovery

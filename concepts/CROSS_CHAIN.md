@@ -26,7 +26,7 @@ The `SWAP` ACTION enables trustless exchange of tokens across chains. The mechan
 
 2. **Hub coordination**: The hub records the open offer and makes it discoverable to potential counterparties. It does not hold any tokens — it only holds metadata about the pending swap.
 
-3. **Counterparty match**: A user on chain B who wants to accept the offer sends a corresponding `SWAP` ACTION on chain B, referencing the original offer (by its `ACTION_INDEX` on chain A). Their tokens are locked in escrow by the indexer on chain B.
+3. **Counterparty match**: A user on chain B who wants to accept the offer sends a corresponding `SWAP` ACTION on chain B with the mirrored token pair and amounts. The hub federation matches the two offers automatically. Their tokens are locked in escrow by the indexer on chain B.
 
 4. **Settlement**: The hub signals both indexers that a match exists. Each indexer releases the escrowed tokens to the counterparty address. The swap completes atomically — both sides settle, or neither does.
 
@@ -44,13 +44,21 @@ The xchain-hub serves several functions in cross-chain operations:
 
 **Cross-chain attestation**: For cross-chain actions, validators reach PBFT consensus to attest that a source-chain action exists and has sufficient confirmations (BTC: 6, LTC: 12, DOGE: 60 — higher on the lower-hashpower chains to approach BTC-comparable settlement assurance; per-chain, configurable via `XCHAIN_CONFIRMATIONS_<COIN>`). Only validators supporting both chains in a pair participate in attestation quorum.
 
-**Swap coordinator**: For SWAP actions, the hub tracks the lifecycle from initiation through attestation to settlement, coordinating the matching between indexers on different chains.
+**Cross-chain DEX coordinator**: For SWAP and ORDER actions, the hub's `CrossChainDexEngine` discovers open cross-chain offers, reaches PBFT consensus among `cross_chain`-capable validators, and writes a quorum-signed match record to `cross_chain_matches`. This record is streamed to every indexer via the hub-DB mirror (the same channel as price snapshots). Each indexer independently verifies the validator signatures and then releases its leg's escrowed tokens via an internal `CROSS_SETTLE` action. No per-trade on-chain transaction is written; the attestation engine handles oracle and external-data requests, not DEX settlement.
 
 **Governance**: Validators can propose and vote on parameter changes through off-chain PBFT voting (7-day period, 2/3+ approval).
 
 The hub does not have custody of any tokens at any point. If the hub is unavailable, existing settled state is unaffected — it is only new swap coordination that requires hub availability.
 
 For details on the hub's decentralized validator architecture, see the [`../components/hub/`](../components/hub/) documentation.
+
+## Cross-Chain Contract Calls
+
+Smart contracts can call methods on contracts deployed on a different chain using `xchain.emit.crossExecute`. The calling contract specifies the target chain, the target contract, a method name, parameters, and a mandatory callback method. The validator federation relays the call — after confirming the source-chain request — to the target chain, where it is injected as an execution. The outcome (success, revert, expiry, or error) is relayed back and delivered to the callback method on the source chain.
+
+No per-call on-chain transaction is required, and no value is transferred between chains. Every call is bounded by a deadline: if no result arrives before the deadline block, the callback fires with status `expired`. Contracts that need to respond must implement the `crossCallable` export.
+
+For the full trust model, relay architecture, and lifecycle details, see [`../protocol/Cross_Chain_Calls.md`](../protocol/Cross_Chain_Calls.md).
 
 ## LINK: Cross-Chain Action References
 
@@ -68,7 +76,7 @@ Adding a new Bitcoin-compatible chain to XChain requires only a configuration fi
 
 ---
 
-*See also: [Actions](./ACTIONS.md) | [Security Model](./Security_Model.md) | [SWAP spec](../protocol/actions/SWAP.md) | [LINK spec](../protocol/actions/LINK.md)*
+*See also: [Actions](./ACTIONS.md) | [Security Model](./Security_Model.md) | [SWAP spec](../protocol/actions/SWAP.md) | [LINK spec](../protocol/actions/LINK.md) | [Cross-Chain Contract Calls](../protocol/Cross_Chain_Calls.md)*
 
 ---
 

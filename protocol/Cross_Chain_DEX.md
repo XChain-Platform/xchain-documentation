@@ -124,7 +124,7 @@ fraction of the offer, with price-time priority. (A cross-chain `SWAP` remains e
   price-cross gate, and the bottleneck-clamped fill quantity reproduce the same arithmetic the
   indexer uses for same-chain `ORDER` matching (`order_match.js`), so a federation-computed fill and
   the indexer's `getOrderAmountsRemaining` stay consistent. SWAP↔ORDER cross-matching is not yet
-  supported (a swap matches only another swap; an order only another order).
+  supported (a swap matches only another swap; an order only another order — a pending SWAP will not match an open ORDER of complementary terms; deferred to a future phase).
 - **Settlement.** Each fill releases only `a_amount`/`b_amount` from the local order's escrow and
   records the fill so the order's remaining drops; the order is marked `complete` only once nothing
   remains, otherwise it stays `open` for further fills.

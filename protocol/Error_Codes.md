@@ -59,8 +59,8 @@ JSON-RPC 2.0 error objects:
 ## Where the specs live
 
 - Explorer OpenAPI: `https://explorer.xchain.io/openapi.json`
-- Encoder OpenRPC: `https://encoder.xchain.io/{COIN}/openrpc.json`
-- Hub OpenRPC: `https://hub.xchain.io/{COIN}/openrpc.json`
+- Encoder OpenRPC: `https://encoder.xchain.io/openrpc.json`
+- Hub OpenRPC: `https://hub.xchain.io/openrpc.json`
 - SDK API OpenRPC: served at `/openrpc.json` by `npm run api` (self-hosted)
 
 The SDK library (as opposed to its API server) throws typed error classes instead — see [components/sdk/ERRORS.md](../components/sdk/ERRORS.md).

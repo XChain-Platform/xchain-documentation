@@ -51,7 +51,7 @@ The encoder supports four encoding strategies. Each trades off cost, data capaci
 |---|---|---|
 | `OP_RETURN` | 80 bytes total (76 bytes user data) | Cheapest single-transaction encoding. Each output is 80 bytes: 4-byte `XCHN` magic prefix + 76 bytes for ACTION data. Auto-selected for small payloads. |
 | `P2SH` | 476 bytes | Two-phase transaction. Data is committed in a P2SH script (520 bytes minus 44 bytes of script overhead). Suitable for medium-sized payloads. |
-| `P2WSH` | 9,956 bytes | SegWit two-phase transaction. Supports very large payloads (10,000 bytes minus 44 bytes overhead). Best for FILE actions or large BATCH sequences. |
+| `P2WSH` | 8,192 bytes (compiled ceiling; raw payload limit 8,189 bytes) | SegWit two-phase transaction. The compiled on-chain ACTION push must not exceed 8,192 bytes (`MAX_COMPILED_ACTION_DATA_LENGTH` in `xchain-encoder/src/validator.js`); the corresponding raw single-push payload ceiling is 8,189 bytes (8,192 − 3 bytes of OP_PUSHDATA2 prefix). Best for FILE actions or large BATCH sequences. |
 | `MULTISIGN` | ~61 bytes | Data spread across fake public keys in a multisig output. Requires `compressedPubKey`. Rarely used directly. |
 
 ---
@@ -142,6 +142,38 @@ let result = await sdk.encodeTx({
 ```
 
 `encodeTx` requires at minimum `data` and `pubkey`. All other encoder options are optional.
+
+---
+
+## Fee Estimation
+
+`sdk.estimateFees(actionData, encoderOpts?)` builds the action string, calls the encoder's estimate path (which runs `createTx` and then parses the resulting PSBT to compute real input/output totals), and returns the fee without signing or broadcasting. The returned PSBT can be signed and broadcast directly to avoid a second encode call.
+
+```js
+const estimate = await sdk.estimateFees(
+    { action: 'SEND', params: { tick: 'MYTOKEN', amount: '100', destination: 'bc1q...' } },
+    { pubkey: '02abc...', change: 'bc1qmyaddress', encoding: 'OP_RETURN' }
+);
+
+console.log(estimate.fee);          // total miner fee in satoshis
+console.log(estimate.inputTotal);   // sum of input values in satoshis
+console.log(estimate.outputTotal);  // sum of output values in satoshis
+console.log(estimate.encoding);     // encoding type actually used
+console.log(estimate.psbt);         // unsigned PSBT hex — sign and broadcast directly
+console.log(estimate.actionString); // the serialized action string
+```
+
+**Native-coin protocol fee (opt-in):** pass `encoderOpts.payFeeInNativeCoin: true` to include the protocol fee in BTC/LTC/DOGE. The SDK calls `sdk.quoteNativeFee()` first and refuses to build a transaction for any action that cannot be priced (unsupported action, stale oracle). The quote is attached as `estimate.nativeFeeQuote`.
+
+```js
+const estimate = await sdk.estimateFees(
+    { action: 'SEND', params: { tick: 'MYTOKEN', amount: '100', destination: 'bc1q...' } },
+    { pubkey: '02abc...', change: 'bc1qmyaddress', payFeeInNativeCoin: true }
+);
+console.log(estimate.nativeFeeQuote.requiredFeeSats);
+```
+
+The underlying encoder RPC is the `estimate_fee` endpoint (internally `encoder.estimateFee()`). It is also available on wallet sessions: `session.estimateFees(actionData)` fills in `pubkey` and `change` automatically.
 
 ---
 

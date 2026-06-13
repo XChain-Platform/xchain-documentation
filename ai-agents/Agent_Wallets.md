@@ -37,6 +37,10 @@ const agent = sdk.agentSession(wif, {
 
     // See every denial (alerting, logs).
     onPolicyViolation: (v) => console.error('agent blocked:', v.code, v.message),
+
+    // Override the default usage-state path (~/.xchain/agent-usage-<address>.json).
+    // The file persists window usage across restarts so a crash-loop cannot reset caps.
+    stateFile: '/var/lib/myapp/agent-usage.json',
 });
 
 await agent.send({ tick: 'MYTOKEN', amount: '5', destination: 'DTqQ...storefront' });
@@ -46,7 +50,19 @@ Every successful action's result carries `result.policy` — what was checked an
 
 ## What happens on a violation
 
-The action is refused **before anything is signed or broadcast**, with a typed `SDKPolicyError` whose `code` says exactly why (`POLICY_ACTION_DENIED`, `POLICY_DESTINATION_DENIED`, `POLICY_AMOUNT_EXCEEDED`, `POLICY_WINDOW_AMOUNT_EXCEEDED`, `POLICY_WINDOW_COUNT_EXCEEDED`, `POLICY_CONFIRMATION_DENIED`). Agents should treat these as final answers, not errors to retry.
+The action is refused **before anything is signed or broadcast**, with a typed `SDKPolicyError` whose `code` says exactly why:
+
+| Code | Meaning |
+|------|---------|
+| `POLICY_ACTION_DENIED` | Action type not in `allowedActions` |
+| `POLICY_DESTINATION_DENIED` | Destination not in `allowedDestinations` |
+| `POLICY_AMOUNT_EXCEEDED` | Single-action amount exceeds the per-action cap |
+| `POLICY_WINDOW_AMOUNT_EXCEEDED` | Rolling-window token total would breach the cap |
+| `POLICY_WINDOW_COUNT_EXCEEDED` | Rolling window already holds `maxActions` actions |
+| `POLICY_CONFIRMATION_DENIED` | Amount was above `confirmAbove` threshold and the handler returned false |
+| `POLICY_STATE_CORRUPT` | Usage-state file is unreadable or structurally invalid — indicates a corrupt state file, not a policy denial. Do not retry; inspect and remove or repair the file deliberately to recover. |
+
+Agents should treat all `SDKPolicyError` codes as final answers, not errors to retry.
 
 ## Designed to fail closed
 

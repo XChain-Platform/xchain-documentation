@@ -24,7 +24,11 @@ Error
         ├── SDKWalletError
         ├── SDKAuthError
         ├── SDKMessagingError
-        └── SDKActionError
+        ├── SDKActionError
+        ├── SDKMuSigError
+        ├── SDKGatedFileError
+        ├── SDKPolicyError
+        └── SDKX402Error
 ```
 
 Every error instance carries four properties:
@@ -51,6 +55,10 @@ Every error instance carries four properties:
 | `SDKContractError` | Contract-specific errors: code too large, invalid hex, bad contract index, etc. |
 | `SDKWalletError` | Key management, address derivation, PSBT signing, broadcasting, UTXO queries |
 | `SDKAuthError` | Challenge generation, message signing, signature verification errors |
+| `SDKMuSigError` | MuSig2 aggregation and signing errors |
+| `SDKGatedFileError` | Token-gated file encryption/decryption errors |
+| `SDKPolicyError` | Agent session policy violations — action denied, cap exceeded, corrupt state |
+| `SDKX402Error` | HTTP 402 payment flow errors — bad invoice, payment not found, etc. |
 
 ---
 
@@ -176,6 +184,41 @@ Thrown by authentication operations: challenge generation, message signing, and 
 | `INVALID_MESSAGE` | Message is missing or not a string for signing |
 | `INVALID_WIF` | WIF string is malformed or cannot be decoded |
 | `SIGN_FAILED` | Message signing failed unexpectedly |
+
+### SDKPolicyError
+
+Thrown by `AgentSession.submit()` when a declarative spending policy check fails, or during construction when the policy object is invalid. See [Agent Wallets](../../ai-agents/Agent_Wallets.md).
+
+| Code | Description |
+|------|-------------|
+| `POLICY_INVALID` | Policy object is malformed at construction time (missing `allowedActions`, bad window hours, missing confirmation handler) |
+| `POLICY_ACTION_DENIED` | The action type is not in `allowedActions` |
+| `POLICY_DESTINATION_DENIED` | A destination address is not in `allowedDestinations` |
+| `POLICY_AMOUNT_EXCEEDED` | A single-action amount exceeds the per-action cap (`maxPerAction`) |
+| `POLICY_WINDOW_AMOUNT_EXCEEDED` | Adding this amount would breach the rolling-window token cap (`maxPerWindow.perTick`) |
+| `POLICY_WINDOW_COUNT_EXCEEDED` | The rolling window already holds `maxPerWindow.maxActions` actions |
+| `POLICY_CONFIRMATION_DENIED` | Amount was above the `confirmAbove` threshold and the confirmation handler returned false |
+| `POLICY_STATE_CORRUPT` | The usage-state file is unreadable or structurally invalid — blocks all submits; indicates a corrupt state file, not a policy denial and should not be retried. Remove or repair the file deliberately to recover. |
+
+### SDKX402Error
+
+Thrown by the `X402Gateway` and `X402Client` during HTTP 402 payment flows. See `src/x402.js`.
+
+| Code | Description |
+|------|-------------|
+| `X402_NO_PROOF` | The `X-Payment` header is absent |
+| `X402_WRONG_COIN` | Proof coin does not match the gateway's configured coin |
+| `X402_BAD_INVOICE` | The invoice nonce in the proof is malformed (not a 32-hex-char string) |
+| `X402_UNKNOWN_INVOICE` | No stored invoice matches the nonce |
+| `X402_INVOICE_ALREADY_USED` | Invoice has already been claimed (replay attempt) |
+| `X402_INVOICE_EXPIRED` | Invoice TTL has elapsed including the expiry grace window |
+| `X402_PAYMENT_NOT_FOUND` | No matching on-chain SEND (or mempool row for 0-conf) was found for the proof |
+| `X402_INSUFFICIENT_HOLDING` | Dispenser-scheme: payer does not hold the required minimum balance of `holdTick` |
+| `X402_DEPOSIT_EXHAUSTED` | Deposit-scheme: payer's deposited balance is insufficient for one more call |
+| `X402_STATE_CORRUPT` | An invoice file or deposit ledger file is unreadable |
+| `X402_NO_USABLE_SCHEME` | Client-side: the gateway's challenge contains no `xchain-send` offer |
+| `X402_PRICE_TOO_HIGH` | Client-side: the gateway's offered amount exceeds the client's `maxAmount` |
+| `X402_PAYMENT_NOT_ACCEPTED` | Client-side: payment was broadcast but the gateway did not accept it after all retries |
 
 ---
 

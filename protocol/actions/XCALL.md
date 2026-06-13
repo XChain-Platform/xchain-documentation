@@ -93,7 +93,7 @@ Variable-length fields enter as sha256 so the canonical stays fixed-arity and
   chain/network-namespaced TX_HASH, `crossCallable` allowlist enforced, own
   savepoint. A failed run rolls its state back and the failure IS the relayed
   result. Idempotent + reorg-safe via `cross_chain_call_executions`.
-- **Injection order/cap:** effective dispatch rows apply in hub-`id` order,
+- **Injection order/cap:** effective dispatch rows apply in `(snapshot_block, call_id)` order (quorum-agreed row content, hub-mirror-independent),
   `XCALL_MAX_CALLS_PER_BLOCK (25)` per block, overflow carries forward.
 
 ## Result statuses
@@ -125,7 +125,7 @@ Unused target-side gas is NOT refunded. The callback runs against the fixed
 ## Recoverability
 
 The v0 request is an emitted action row — reproducible from a pure chain parse.
-Both relay phases are included in the ANCHOR v1 archive (with their hub `id`,
-the injection-order key) and rebuilt + signature-verified by
+Both relay phases are included in the ANCHOR v1 archive (with their hub `id`
+(provenance only; injection order is `(snapshot_block, call_id)`)) and rebuilt + signature-verified by
 `xchain-indexer/src/recovery.js`, so a from-genesis reindex re-derives the
 identical injected executions and callbacks.

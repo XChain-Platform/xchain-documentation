@@ -85,7 +85,7 @@ Two staking systems share the same four action names. **Capability staking** (ST
 | **STAKE** | Lock tokens against a signing pubkey. v1 = new capability stake (XCHAIN), v2 = top-up of existing capability stake (XCHAIN), v3 = contract-targeted stake (any token, targets a stakeable contract — see DEPLOY v1) | VERSION valid (1/2/3), AMOUNT positive, SIGNING_PUBKEY is 64-char hex Ed25519. v1/v2: aggregate per-pubkey active stake auto-qualifies the pubkey for each of four capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) based on governance `min_stake[capability]`. v3: target contract must be stakeable; row keyed by `(target, pubkey, tick, source)`. |
 | **UNSTAKE** | Release staked tokens. v0 = full-pubkey capability unstake. v1 = release a single contract-targeted row keyed by `(target, pubkey, tick)`. | Pubkey has active stake of matching type; sets `deactivation_block`. v1 cooldown is per-contract (set at DEPLOY v1 time); v0 uses the global `STAKING.COOLDOWN_BLOCKS`. |
 | **DELEGATE** | Manage the signing key for a stake. v0 = capability rotate, v1 = contract rotate, v2 = capability revoke, v3 = contract revoke. | Active stake/delegation of matching type exists. For rotates, new pubkey valid and unused. Takes effect after 6 blocks. |
-| **COLLECT** | Collect accumulated rewards | Address has unclaimed rewards > 0. Rewards are pushed from `xchain-hub` via `pushvalidatorrewards` against the validator's stake source address. |
+| **COLLECT** | Collect accumulated rewards | Address has unclaimed rewards > 0. `oracle_round` and `attest_fee` rewards are derived by the indexer during block processing; `anchor_<chain>` and `anchor_archive` rewards are pushed from `xchain-hub` via `pushvalidatorrewards`. |
 
 ### `oracle_publish` capability (formerly "Tier 3")
 
@@ -110,6 +110,14 @@ Virtual Machine actions are available on **all chains** (BTC, LTC, DOGE). DEPLOY
 | [**EXECUTE**](../../protocol/actions/EXECUTE.md) | Call a method on a deployed contract in a sandboxed V8 isolate | Contract exists and is active, method exists, sufficient XCHAIN for gas. VM runs contract code, processes state changes and up to 50 emitted actions atomically via savepoint. | Yes — actual metered gas consumed |
 | [**DEPOSIT**](../../protocol/actions/DEPOSIT.md) | Transfer tokens to a contract's derived address | Contract exists and is active, sender has sufficient balance. Credits `C:<CHAIN>:<action_index>` in standard ledger. | No |
 | [**WITHDRAW**](../../protocol/actions/WITHDRAW.md) | Withdraw tokens from a contract's derived address to owner | Contract exists, sender is contract owner, derived address has sufficient balance | No |
+
+## State & Recovery Actions
+
+| Action | Purpose | Key Validations |
+|---|---|---|
+| [**ANCHOR**](../../protocol/actions/ANCHOR.md) | Commit quorum-signed state checkpoints and a compressed archive of cross-chain match rows on-chain. DOGE-only, validator-broadcast action. | Valid only on the DOGE chain (all networks). No protocol fee. On parse, the indexer writes to `anchor_actions` and records checkpoint hashes. The archived data makes all platform state recoverable from a full chain re-parse. See `src/actions/anchor.js` and `protocol/actions/ANCHOR.md`. |
+
+---
 
 ## SEND Format Versions
 

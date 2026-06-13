@@ -96,6 +96,24 @@ mounts it into the hub container automatically. See OPERATIONS.md → Validator 
 | `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation threshold (5%) for slash detection |
 | `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Consecutive missed rounds before non-participation slash |
 
+### ANCHOR Publishing
+
+Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match archive on-chain via the DOGE ANCHOR action) and `RewardTracker` (anchor-publish reward amount).
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `ANCHOR_INTERVAL_MS` | No | `86400000` | Milliseconds between ANCHOR publish cycles (default: 24 hours) |
+| `ANCHOR_MATCH_BATCH_SIZE` | No | `200` | Maximum `cross_chain_matches` rows to include per ANCHOR archive chunk |
+| `ANCHOR_CHUNK_RETRY_MS` | No | `2500` | Delay before retrying a failed archive chunk upload (ms) |
+| `ANCHOR_ELECTION_TOLERANCE_BLOCKS` | No | `36` | BTC blocks a non-leader hub waits before the next eligible rank may take over |
+| `ANCHOR_REWARD_PER_PUBLISH` | No | `"10.00000000"` | XCHAIN distributed to the elected ANCHOR publisher per successful publish cycle |
+
+### Operator Signer
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `HUB_SIGNER_MODULE` | No | — | Path to a CommonJS module exporting `walletSign(psbtHex) → Promise<txHex>`. Used by `OraclePublisher` and `AttestationPublisher` to sign DOGE transactions; `StateAnchorPublisher` borrows the same hooks via `_resolveSigner()`. Optional — without it the publishers stay idle. Set-but-unloadable throws at startup (fail loudly). Falls back to `setWalletSignHook` / `setBroadcastHook` if the module is not provided. |
+
 ### Cross-Chain
 
 | Variable | Required | Default | Description |
@@ -116,7 +134,7 @@ mounts it into the hub container automatically. See OPERATIONS.md → Validator 
 
 ## Database Schema
 
-The hub uses 13 MariaDB tables, auto-created on startup from `src/sql/`:
+The hub uses 20 MariaDB tables, auto-created on startup from `src/sql/`:
 
 ### Config Storage
 
@@ -140,6 +158,7 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 |---|---|
 | `oracle_submissions` | Raw per-validator price submissions per round: `(round_number, coin_pair, signing_pubkey, price)` |
 | `price_snapshots` | Finalized/skipped/disputed price snapshots: `(round_number, coin_pair, price, status, consensus_proof)` |
+| `oracle_prices` | User-published PRICE v1 oracle prices: `(source_address, coin, tick, fiat, value, effective_at)` with 24-hour delay on updates |
 
 ### Cross-Chain
 
@@ -148,6 +167,15 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 | `attestations` | Cross-chain attestation records: `(attestation_id, source_chain, source_action_index, dest_chain, status, consensus_proof)` — status: pending, attested, rejected, expired |
 | `swap_records` | SWAP lifecycle tracking: `(source_chain, source_action_index, dest_chain, dest_action_index, status)` |
 | `reorg_attestations` | Confirmed blockchain reorg events: `(chain, reorg_height, timestamp, consensus_proof)` |
+| `cross_chain_matches` | Cross-chain DEX match records mirrored across the federation and to indexers via hub DB sync |
+| `cross_chain_calls` | Cross-chain contract call relay rows (XCALL dispatch + result) mirrored to indexers via hub DB sync |
+
+### State Checkpoints and Capability Snapshots
+
+| Table | Purpose |
+|---|---|
+| `state_checkpoints` | Quorum-signed per-chain ledger/actions/contract hash checkpoints produced by `StateCheckpointEngine`; streamed to indexers via hub DB sync and committed on-chain via ANCHOR |
+| `capability_snapshots` | Block-boundary per-capability validator-set snapshots locked by `CapabilitySnapshot` for deterministic quorum; mirrored to indexers |
 
 ### Governance
 
@@ -160,8 +188,20 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 
 | Table | Purpose |
 |---|---|
-| `validator_rewards` | Per-round oracle rewards: `(round_number, validator_pubkey, amount, claimed)` — claimed is 0/1 |
+| `validator_rewards` | Per-round validator rewards: `(validator_pubkey, round_number, reward_type, amount, block_index, batch_seq, claimed)` — `reward_type` distinguishes `oracle_round`, `attest_fee`, `anchor_<chain>` etc.; `batch_seq` links anchor-publish batch rows; `block_index` pins the earn block |
 | `slash_proposals` | Detected validator offenses: `(signing_pubkey, offense_type, evidence, round_number)` |
+
+### Telemetry
+
+| Table | Purpose |
+|---|---|
+| `telemetry_pings` | Anonymous node-operator usage pings: `(install_id, hub_version, services, os_info, country, region, ip_hash)` — raw IP is never stored |
+
+### Capability Registry
+
+| Table | Purpose |
+|---|---|
+| `validator_capabilities` | Per-pubkey capability activation/deactivation records written by `CapabilityRegistry` |
 
 ## Config Table Detail
 

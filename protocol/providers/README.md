@@ -9,6 +9,8 @@ The provider determines two things: how the request payload is interpreted, and 
 
 The set of providers is **governance-controlled**; new providers can be added without changing the contract API.
 
+Each provider also carries a **`min_fee_xchain`** setting — a governance-configurable floor on the optional paid-attestation fee (`feeTick`/`feeAmount` in the request). Requests whose on-chain `FEE_AMOUNT` falls below the provider's floor are skipped by validators: the request expires on its deadline and the fee is refunded to the caller rather than being served.
+
 ## Available providers
 
 | Provider | Purpose | Payload | Consensus |

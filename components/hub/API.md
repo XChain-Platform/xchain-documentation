@@ -167,6 +167,49 @@ Bootstrap-register a validator. The signing public key must be a 64-character he
 {"status":"success"}
 ```
 
+### `rotatevalidator` (write — requires API key)
+
+Rotate the signing key of the validator at `addr` to a new pubkey. Retires the addr's current active key, activates the new one, and reloads + propagates the set to every running consensus engine at runtime (no restart). Rejects an addr that has no current active validator — use `registervalidator` for a fresh addr. This edits the hub's local validator **registry** (the authorization floor); on a hub that follows an on-chain validator set, on-chain key rotation via `DELEGATE` is followed automatically and this call is not required. See [Validator Key Rotation](OPERATIONS.md#validator-key-rotation).
+
+**Request:**
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"rotatevalidator",
+  "params":{
+    "addr":"validator1.example.com",
+    "new_signing_pubkey":"f1e2d3c4b5a6f1e2d3c4b5a6f1e2d3c4b5a6f1e2d3c4b5a6f1e2d3c4b5a6f1e2"
+  },
+  "id":1
+}
+```
+
+**Response:**
+```json
+{"status":"success"}
+```
+
+### `deregistervalidator` (write — requires API key)
+
+Remove a validator from the registry by `signing_pubkey` **or** `addr` (marks the matching active row(s) `status='removed'`), then reloads + propagates the set to every consensus engine. The first-class replacement for hand-editing the `validators` table. As with `rotatevalidator`, this affects the local registry floor only.
+
+**Request:**
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"deregistervalidator",
+  "params":{"addr":"validator1.example.com"},
+  "id":1
+}
+```
+
+(Pass `signing_pubkey` instead of `addr` to deregister by key.)
+
+**Response:**
+```json
+{"status":"success"}
+```
+
 ### `syncvalidators`
 
 Bulk sync the validator set from external staking data (e.g., from the indexer). Replaces the current set and reloads all subsystem validator sets.
@@ -233,6 +276,27 @@ Detailed status for a specific validator: info, unclaimed rewards, recent reward
   "slash_proposals": [...]
 }
 ```
+
+### `getstakesourcebypubkey` (indexer endpoint)
+
+> **Note:** this method lives on `xchain-indexer`, not the hub. It is documented here because the hub calls it internally — the archive builder and follower hubs use it to resolve the staking-source address that owned or delegated a signing pubkey at a specific block, so rewards can be attributed to the correct on-chain address.
+
+**Request** (to indexer):
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"getstakesourcebypubkey",
+  "params":{"pubkey":"a1b2c3...","block_index":850010},
+  "id":1
+}
+```
+
+**Response:**
+```json
+{"source":"1BTC...address"}
+```
+
+The lookup is block-scoped (checks stakes, then DELEGATE v0 delegations in the same order as `createValidatorReward`) so every caller sees the same answer at earn-time.
 
 ## Oracle / Price Data
 
@@ -404,16 +468,52 @@ Returns rows from the `price_snapshots` table after `since_id` (paginated for in
 
 Returns rows from the `oracle_prices` table after `since_id`. Same format as above.
 
+### `GET /hub-db/snapshot/cross_chain_matches`
+
+Returns rows from the `cross_chain_matches` table after `since_id`. Same query parameters and response format as above.
+
+### `GET /hub-db/snapshot/capability_snapshots`
+
+Returns rows from the `capability_snapshots` table after `since_id`. Same query parameters and response format as above.
+
+### `GET /hub-db/snapshot/cross_chain_calls`
+
+Returns rows from the `cross_chain_calls` table after `since_id`. Same query parameters and response format as above.
+
+### `GET /hub-db/snapshot/state_checkpoints`
+
+Returns rows from the `state_checkpoints` table after `since_id`. Same query parameters and response format as above.
+
 ### `GET /hub-db/subscribe` (WebSocket upgrade — requires `Authorization: Bearer <HUB_API_KEY>`)
 
-WebSocket channel that pushes `row:inserted` events whenever the hub inserts new `price_snapshots` or `oracle_prices` rows. Each subscriber receives a JSON message per insertion:
+WebSocket channel that pushes `row:inserted` events for all six hub DB tables: `price_snapshots`, `oracle_prices`, `state_checkpoints`, `capability_snapshots`, `cross_chain_matches`, and `cross_chain_calls`. Each subscriber receives a JSON message per insertion:
 
 **Message format:**
 ```json
 {"type":"row:inserted","table":"price_snapshots","row":{...}}
 ```
 
-Indexers use the bootstrap REST snapshots followed by this WebSocket subscription to maintain a complete local copy of the hub's cross-chain price tables. Backpressure handling drops connections that exceed `WS_BACKPRESSURE_LIMIT` buffered messages.
+Indexers bootstrap by fetching the REST snapshots for each table (paginated by `since_id`), then subscribe to this WebSocket for live updates across all six tables. Backpressure handling drops connections that exceed `WS_BACKPRESSURE_LIMIT` buffered messages.
+
+### `getcapabilitythresholds`
+
+Returns the per-capability minimum-stake thresholds live from the `CapabilityRegistry`. No parameters. Lets clients (e.g. the wallet stake form) display which capabilities a stake amount qualifies for without hard-coding the values.
+
+**Request:**
+```json
+{"jsonrpc":"2.0","method":"getcapabilitythresholds","id":1}
+```
+
+**Response:**
+```json
+{"thresholds":[{"capability":"price","min_stake":"1000.00000000","disabled":false},{"capability":"oracle_publish","min_stake":"500.00000000","disabled":false}]}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `capability` | `string` | Capability name (`price`, `cross_chain`, `oracle_publish`, `attestation`) |
+| `min_stake` | `string` | Governance-configured minimum aggregate XCHAIN stake required to qualify |
+| `disabled` | `boolean` | `true` when the operator has disabled this capability via `DISABLED_CAPABILITIES` |
 
 ## Fee Quotes
 
@@ -748,6 +848,62 @@ Get a specific proposal with all associated votes.
   ]
 }
 ```
+
+## ANCHOR Publishing
+
+### `anchorflush` (write — requires API key)
+
+Trigger an immediate out-of-interval ANCHOR publish attempt on the `StateAnchorPublisher`, bypassing the normal `ANCHOR_INTERVAL_MS` timer. The publisher still enforces its per-chain election: a hub that is not the elected publisher for a pending anchor skips it and the response indicates so. Useful for operator-forced flushes after federation events or wallet refills.
+
+**Request:**
+```json
+{"jsonrpc":"2.0","method":"anchorflush","id":1}
+```
+
+**Response:**
+```json
+{"flushed":3,"skipped":0,"elected":true}
+```
+
+Returns `{"error":"anchor publisher not active"}` when `StateAnchorPublisher` is not running (standalone mode or `P2P_VALIDATOR_ADDR` not set).
+
+## Rewards
+
+### `pushvalidatorrewards` (write — requires API key, indexer endpoint)
+
+> **Note:** this method is implemented on `xchain-indexer`, not the hub. The hub's `RewardTracker` calls it to persist anchor-publish reward rows into the indexer's `validator_rewards` table.
+
+Accepted `reward_type` values must match `^anchor_[A-Za-z_]+$` (e.g. `anchor_BTC`, `anchor_DOGE`). The indexer **rejects** `oracle_round` and `attest_fee` because those are derived deterministically during block processing — accepting a push for them would open a replay-divergence window.
+
+**Request** (from hub → indexer):
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"pushvalidatorrewards",
+  "params":{
+    "round":850010,
+    "reward_type":"anchor_DOGE",
+    "block_index":850010,
+    "rewards":[{"pubkey":"a1b2c3...","amount":"10.00000000"}]
+  },
+  "id":1
+}
+```
+
+**Response:**
+```json
+{"status":"success","written":1,"skipped":0}
+```
+
+## OpenRPC Spec
+
+The hub serves a machine-readable **OpenRPC 1.3.2** specification at:
+
+```
+GET /openrpc.json
+```
+
+No authentication required. The spec is generated by `docs/openrpc.build.js` and kept in lockstep with `jsonRpcController` by `test/unit/openrpc-coverage.test.js`.
 
 ## Telemetry (REST)
 

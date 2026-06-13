@@ -15,6 +15,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - **Fee Estimation** (`estimateFees`): dry-run fee calculation via encoder, returns fee in satoshis plus reusable PSBT
 - **UTXO-aware transaction chaining**: in-memory UTXO cache with speculative change outputs prevents double-spend on rapid sequential transactions
 - **Workflow Recipes**: multi-step helpers — `issueAndDistribute`, `issueAndMint`, `stakeAndDelegate`, `deployAndFund`, `createDispenser`, `createOrder`, `cancelOrder`, `distributeDividend`
+- **Policy-bounded Agent Sessions** (`sdk.agentSession(wif, policy)`): wrap a WIF key in a declarative spending policy — action allowlist, per-action and per-window amount caps, destination allowlist, confirmation hook — enforced at the submit chokepoint; fail-closed; window usage persisted across restarts; `SDKX402Error` and `SDKPolicyError` thrown on violations
 - **Cross-Chain Helper**: coordinate actions across BTC, LTC, DOGE SDK instances — `createSwap`, `link`, `parallel`, `waitForAll`, `getAllBalances`
 - **Event-driven confirmation** (`waitForAction`): WebSocket + polling hybrid that resolves when the indexer processes a transaction
 - **Interactive REPL** (`npm run repl`): live session with pre-configured SDK, custom `.actions`, `.status`, `.fields` commands
@@ -68,6 +69,10 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 | [Messaging](MESSAGING.md) | ECIES/ECDH/AES encryption, public key lookup, high-level send/receive for MESSAGE actions |
 | [Errors](ERRORS.md) | Error types, codes, and handling patterns |
 | [Examples](EXAMPLES.md) | Complete worked examples for common use cases |
+| [NFT & Registry](NFT_AND_REGISTRY.md) | `sdk.nft.*` and `sdk.project.*` builder namespaces for NFTs, collections, TIS documents, and project rosters |
+| [Agent Wallets](../../ai-agents/Agent_Wallets.md) | Policy-bounded agent sessions: allowlists, caps, confirmation hooks |
+| [Charging Agents](../../ai-agents/Charging_Agents.md) | HTTP 402 payment flows — X402Gateway, X402Client, scheme reference |
+| [MCP Quickstart](../../ai-agents/MCP_Quickstart.md) | Running the xchain-mcp server for LLM tool use |
 
 ## Installation
 

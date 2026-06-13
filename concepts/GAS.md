@@ -26,6 +26,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` config 
 | Parameter | Value | Notes |
 |---|---|---|
 | **GAS_PRICE** | 0.00001 XCHAIN/gas | Governance-adjustable. Single lever to scale all fees. |
+| **FEE_PAYMENT_MODE** | `xchain` or `native` (per chain) | Informational per-chain config. `xchain` = accepts both XCHAIN-balance and native-coin payment (BTC). `native` = native-coin payment only (LTC, DOGE). Readable by wallets and the SDK via `GET /{COIN}/api/feeschedule`. |
 
 **Anchor:** ISSUE = 100,000 gas = 1.0 XCHAIN at initial GAS_PRICE.
 

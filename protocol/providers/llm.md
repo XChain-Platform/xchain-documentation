@@ -21,6 +21,20 @@ xchain.attestation.request(
 );
 ```
 
+To include a paid-attestation fee (E1), pass `feeTick` and `feeAmount` in the options object:
+
+```js
+xchain.attestation.request(
+    'llm',
+    JSON.stringify({ prompt: 'What is the capital of France?', max_tokens: 16 }),
+    'handleResponse',
+    [],
+    { redundancy: 3, deadlineBlocks: 20, feeTick: 'XCHAIN', feeAmount: '0.5' }
+);
+```
+
+`feeAmount > 0` escrows the fee from the calling contract at request time. On fulfillment the fee is split among the responsible validators; on expiry or provider error it is refunded in full to the caller.
+
 The `REQUEST_PAYLOAD` is a JSON-encoded **prompt envelope**:
 
 | Field              | Type             | Notes                                                                                  |
@@ -95,6 +109,7 @@ No other state needed. The hub bills per token directly through the Anthropic AP
 | -------------------------- | -------------- | ------------------------------------------------------------------------------ |
 | `per_call_base_fee_xchain` | `0.50`         | Higher than `http_get` (`0.01`) — each call has a real upstream cost.          |
 | `min_stake_xchain`         | `25000`        | Higher than `http_get` (`10000`) — reflects larger trust + ongoing API spend.  |
+| `min_fee_xchain`           | `0`            | Governance-configurable hub-local floor on the optional paid-attestation fee. Requests whose on-chain `FEE_AMOUNT` is below this value are skipped by validators and the request expires, refunding the caller. |
 
 Validators on `claude_spawn` amortize their subscription across requests they serve; validators on `anthropic_api` pay-as-they-go and rely on the base fee + escrow reimbursement to make the call profitable.
 

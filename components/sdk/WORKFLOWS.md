@@ -148,6 +148,141 @@ console.log(result.txid);
 
 ---
 
+## issueNft
+
+Issue a unique 1-of-1 NFT fully minted to the issuer. Builds ISSUE params via `sdk.nft.unique()`:
+
+```js
+const result = await sdk.issueNft(wif, {
+    tick:        'MYART',
+    description: 'action:12345',  // optional TIS data_ref or URL
+    transfer:    null,             // optional — transfer issuer ownership after issue
+    memo:        null
+});
+
+console.log(result.txid);
+```
+
+---
+
+## issueNftEdition
+
+Issue an edition of N identical, indivisible prints. Builds ISSUE params via `sdk.nft.edition()`. Pass `mint` to open a public fair-mint window instead of pre-minting the full supply to the issuer:
+
+```js
+// Pre-minted edition: all prints go to the issuer immediately
+const result = await sdk.issueNftEdition(wif, {
+    tick:   'PRINTS',
+    supply: '100',
+    memo:   'Limited edition'
+});
+
+// Fair-mint edition: public MINT window (no prints pre-minted)
+const result = await sdk.issueNftEdition(wif, {
+    tick:   'PRINTS',
+    supply: '100',
+    mint: {
+        maxMint:    '1',    // max prints per mint call
+        perAddress: '2',    // optional: max per address
+        startBlock: 850000, // optional
+        stopBlock:  860000  // optional
+    }
+});
+
+console.log(result.txid);
+```
+
+---
+
+## issueCollectionItem
+
+Issue a distinct 1-of-1 item in a collection — a child TICK `parent.name`. The issuer must currently own the parent (enforced by the indexer). Builds params via `sdk.nft.collectionItem()`:
+
+```js
+const result = await sdk.issueCollectionItem(wif, {
+    parent:      'MYCOLLECTION',
+    name:        'item001',      // child segment only — must not contain '.'
+    description: 'action:12345',
+    memo:        null
+});
+
+console.log(result.txid);
+```
+
+---
+
+## attachContent
+
+Attach content to a token: upload a FILE, then LINK it to the token's ISSUE. Optionally author an on-chain TIS document pointing at the uploaded artwork. Requires `waitForIndexer: true` so each leg's ACTION_INDEX is resolvable before the next:
+
+```js
+const result = await sdk.attachContent(
+    wif,
+    {
+        coin:             'BTC',
+        issueActionIndex: 12345,      // ACTION_INDEX of the token's ISSUE
+        file: {
+            name:    'artwork.png',
+            type:    'image/png',
+            title:   'My Artwork',
+            rawData: '<binary string>'
+        },
+        memo: null,
+        // optional: also author an on-chain TIS document
+        tis: {
+            tick:        'MYART',
+            name:        'My Art Token',
+            description: 'A 1-of-1 digital collectible'
+        }
+    },
+    { waitForIndexer: true }    // required
+);
+
+console.log(result.file.txid);    // FILE upload
+console.log(result.link.txid);    // LINK attaching artwork to token
+console.log(result.tisFile.txid); // TIS JSON FILE (only present when tis: was passed)
+console.log(result.describe.txid);// ISSUE v1 pointing DESCRIPTION at TIS (same condition)
+```
+
+---
+
+## setRoster
+
+Publish (or replace) a project's official-token roster: submit a TICK-type LIST, then LINK it to the project's ISSUE. The LINK must come from the project tick's current owner. Requires `waitForIndexer: true`:
+
+```js
+// New roster
+const result = await sdk.setRoster(
+    wif,
+    {
+        coin:             'BTC',
+        issueActionIndex: 99,        // ACTION_INDEX of the project tick's ISSUE
+        ticks:            ['TOKENA', 'TOKENB', 'TOKENC'],
+        memo:             null
+    },
+    { waitForIndexer: true }
+);
+
+// Edit an existing roster (add or remove — not both in one action)
+const result = await sdk.setRoster(
+    wif,
+    {
+        coin:             'BTC',
+        issueActionIndex: 99,
+        edit: {
+            listActionIndex: 200,    // ACTION_INDEX of the existing roster LIST
+            add:             ['TOKEND']   // use remove: ['TOKENA'] to remove instead
+        }
+    },
+    { waitForIndexer: true }
+);
+
+console.log(result.list.txid);  // LIST (roster)
+console.log(result.link.txid);  // LINK (roster attestation)
+```
+
+---
+
 ## Custom Workflows
 
 All recipes use `WalletSession` internally. You can compose your own multi-step workflows:

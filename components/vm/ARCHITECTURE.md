@@ -38,11 +38,11 @@ Contract Source Code
 | `metering.js` | AST-based gas injection — parses source with acorn, injects `__gas()` at control flow points, regenerates with astring. Also provides `hasGasIdentifier()` for deploy-time validation |
 | `gas.js` | GasTracker class — validates gas schedule (non-negative integers), accumulates gas charges per operation, enforces ceiling, throws GasExhaustedError on overflow |
 | `gateway.js` | Builds the `xchain` gateway object — context accessors, state CRUD, ledger queries, oracle, cross-chain, **external attestation (`xchain.attestation.*`)**, **contract-targeted staking (`xchain.contract.*`)**, emit API, math, control flow, logging |
-| `gateway-emit.js` | Emit API builder — 16 action types (SEND through MESSAGE), parameter validation, gas charging |
+| `gateway-emit.js` | Emit API builder — 18 action types (SEND through MESSAGE, plus `execute` for cross-contract calls and `crossExecute` for cross-chain calls), parameter validation, gas charging |
 | `math.js` | Deterministic math wrapping mathjs bignumber — all inputs/outputs are strings, wrapped in `safeMath` for ContractRevertError on failures |
 | `state.js` | StateManager — reads from initial snapshot, tracks writes/deletes in dirty map, enforces key count, key size, and value size limits, provides `getChanges()` for result collection |
 | `collector.js` | EmissionCollector — queues emitted actions (with emission cap), collects debug logs (100 entries, 1 KB UTF-8 each, with byte-aware truncation) |
-| `validator.js` | ActionValidator — pre-validates emitted actions against the 16 allowed action types and checks params shape |
+| `validator.js` | ActionValidator — pre-validates emitted actions against the 20 allowed action types (`SEND`, `DESTROY`, `ISSUE`, `MINT`, `ORDER`, `DISPENSER`, `DIVIDEND`, `AIRDROP`, `CALLBACK`, `FILE`, `LIST`, `COINPAY`, `SWEEP`, `LINK`, `BROADCAST`, `MESSAGE`, `ATTEST`, `SLASH`, `EXECUTE`, `XCALL`) and checks params shape |
 | `syntax.js` | Deploy-time validation — V8 syntax check (throwaway isolate), acorn metering pass (ES2020 ceiling), reserved `__gas` identifier detection, float literal warnings |
 | `errors.js` | ContractRevertError (thrown by `revert()`/`require()`) and GasExhaustedError (thrown when gas ceiling exceeded) |
 
@@ -129,7 +129,9 @@ The V8 isolate provides hardware-level isolation (separate heap, no shared objec
 - `Array`, `Object`, `String`, `Number`, `Boolean`, `BigInt`, `JSON`, `Map`, `Set`, `Symbol`, `Error`, `RegExp`, `parseInt`, `parseFloat`
 
 **Replaced:**
-- `Math` — replaced with a frozen deterministic subset: `floor`, `ceil`, `round`, `abs`, `min`, `max`, `sqrt`, `pow`, `sign`, `trunc`, `log`, `log2`, `log10`, plus constants `PI` and `E`. The object is frozen with `Object.freeze()` to prevent mutation.
+- `Math` — replaced with a frozen deterministic subset: `floor`, `ceil`, `round`, `abs`, `min`, `max`, `sign`, `trunc`, plus constants `PI` and `E`. The object is frozen with `Object.freeze()` to prevent mutation.
+
+  The transcendentals `sqrt`, `pow`, `log`, `log2`, and `log10` are **intentionally absent**: IEEE 754 only mandates correctly-rounded results for `sqrt` — not for `pow`, `log`, `log2`, or `log10` — so host `libm` can differ by 1 ULP across CPU architectures, producing divergent state hashes across a heterogeneous validator fleet. These five functions are also **banned at deploy time** (`xchain-vm/src/syntax.js` `findBannedMathCalls`): contracts that attempt to use them are rejected before they can be stored. Contracts that need high-precision transcendentals must use `xchain.math.*` (mathjs bignumber — pure software arithmetic, identical on every platform).
 
 ### Function Constructor Preservation
 
