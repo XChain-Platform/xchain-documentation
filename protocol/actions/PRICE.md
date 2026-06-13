@@ -83,14 +83,14 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Leader for round N: `N % oracle_publish_capable_count` (index into sorted list)
 - If round N is not published by the time BTC block N+1 arrives, the next `oracle_publish`-capable validator in rotation becomes eligible to publish
 - Failover cascades: if that validator also misses, the next one is eligible at BTC block N+2, and so on
-- The first valid PRICE tx on-chain for a given round wins (and earns the reward)
+- The first valid PRICE tx on-chain for a given round wins (and defines the round's reward split — see Round Rewards)
 
 #### Batch Publishing
 - A single PRICE v0 transaction may contain multiple rounds (for failover catch-up)
 - When a failover publisher takes over, they batch all missed rounds into one or more transactions
 - No artificial cap on rounds per batch — bounded only by P2SH encoding limits (~65KB max)
 - If the batch exceeds a single P2SH transaction, multiple PRICE transactions are sent
-- The failover publisher earns rewards for ALL rounds in the batch
+- Each round in the batch derives its own reward split from its own signer list (publishing itself earns no extra reward — see Round Rewards)
 
 #### Signature Validation
 - Each `PUBKEY` must correspond to a pubkey qualifying for `price` at the BLOCK_INDEX of the PRICE tx (`SUM(amount)` across active stake rows ≥ `min_stake[price]`, governance-configurable; rows are active where `activation_block ≤ block_index < COALESCE(deactivation_block, +∞)`)
@@ -99,6 +99,13 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - `SIG_COUNT` must meet PBFT quorum: `>= max(2 * floor((price_capable_count - 1) / 3) + 1, ceil((price_capable_count + 1) / 2))`, where `price_capable_count` is the number of pubkeys qualifying for `price` at the PRICE tx's BLOCK_INDEX. The simple-majority floor prevents the bare `2f+1` form from degenerating to a quorum of 1 at N=3
 - Duplicate pubkeys in the signature list count only once
 - Rounds that fail signature validation are marked `invalid` and not pushed to the hub
+- A pubkey qualifies either as a stake key or as a delegated key — see the effective signer set in [DELEGATE](DELEGATE.md)
+
+#### Round Rewards (derived on-chain)
+- A **valid** PRICE v0 is the round's signed participation record: the indexer splits the configured per-round reward (`STAKING.ORACLE_REWARD_PER_ROUND`, default 10 XCHAIN) equally across the action's **verified, capability-qualified, deduplicated signer set**, floored to 8 decimals
+- Rewards are written to `validator_rewards` (`reward_type = oracle_round`, `round_reference = ROUND`) during block processing — a deterministic function of the chain, so any reindex or full-parse recovery reproduces them exactly
+- A round that finalizes off-chain but never lands a valid PRICE action earns **nothing**; a duplicate PRICE for an already-rewarded round re-derives the same rows (idempotent)
+- Signers credited are exactly the on-chain signature list that passed validation — PBFT participants whose signatures were not included in the published action are not rewarded
 
 #### Skipped Rounds
 - If PBFT fails to reach consensus for a BTC block, no PRICE v0 is published for that round

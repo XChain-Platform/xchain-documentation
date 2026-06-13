@@ -58,8 +58,9 @@ Stake 250 MYTOKEN against contract at action_index 500, signing as abc123...def
 
 ### v1 / v2 (capability)
 - **BTC chain only.** Capability staking secures the platform validator set.
-- For `VERSION=1` (new): `SIGNING_PUBKEY` must NOT already have an active capability stake.
+- For `VERSION=1` (new): `SIGNING_PUBKEY` must NOT already have an active capability stake, **and must not be held by an active (or pending-activation) [DELEGATE](DELEGATE.md) delegation** — a key can never be both a stake key and a delegated key.
 - For `VERSION=2` (top-up): `SIGNING_PUBKEY` MUST have an active capability stake AND that stake's original source must match the broadcasting address.
+- A `VERSION=2` re-stake of a key previously revoked via DELEGATE v2 makes the key a valid signer again, backed by the stake rows from the re-stake onward (rows that predate the revocation stay suppressed).
 - `AMOUNT` is implicitly XCHAIN.
 - Broadcasting address must hold at least `AMOUNT` XCHAIN.
 

@@ -118,6 +118,8 @@ exact bytes):
   "network": "mainnet",
   "batch_seq": 42,
   "matches": [ { ...full cross_chain_matches row... } ],
+  "calls": [ { ...cross_chain_calls relay row... } ],
+  "rewards": [ { "validator_pubkey": "...", "source": "1Stake...", "round_number": 17, "reward_type": "anchor_BTC", "amount": "10.00000000", "block_index": 900120 } ],
   "capability_snapshots": [ { "snapshot_block": 900120, "capability": "cross_chain", "signing_pubkey": "...", "amount": "..." } ]
 }
 ```
@@ -135,9 +137,23 @@ exact bytes):
   self-contained during recovery. Recovery additionally cross-checks archived pubkeys against
   on-chain BTC stakes (a fabricated snapshot row cannot survive — staking is on-chain), so the
   chain remains the root of trust.
+- `rewards[]` carries the **anchor-publish reward rows** (`reward_type` `anchor_<chain>` /
+  `anchor_archive` only) that have not yet ridden an archive. These are the one
+  `validator_rewards` rail a chain parse cannot re-derive (`oracle_round` and `attest_fee`
+  rows are derived deterministically from PRICE/ATTEST actions and are **never archived** —
+  recovery rejects an archive that claims them). Reward rows carry no per-row signatures;
+  every co-signing hub instead **re-derives** each field before signing: the pubkey must be in
+  its own `oracle_publish` resolution at `block_index`, the amount must equal its configured
+  publish reward, and `source` must match its own block-scoped indexer resolution of the
+  earn-time staking address (pinned into the archive because recovery restores rewards into an
+  EMPTY BTC DB, and a later re-stake of the pubkey must not move the credit). `block_index` is
+  the quorum-agreed `SNAPSHOT_BLOCK` of the rewarded checkpoint, so every hub records
+  identical row bytes.
 - All amounts are decimal strings (full precision, as stored).
 - A match **retracted after it was archived** is re-published in a later batch with
   `status:"retracted"`. Recovery applies latest-status-wins ordered by `batch_seq`.
+- `calls` and `rewards` are additive keys — archives published before each existed simply
+  omit them, and recovery treats a missing key as an empty list.
 
 ## Rules
 
@@ -208,12 +224,23 @@ exact bytes):
 ## Recovery procedure (full-parse)
 1. Sync DOGE through the decoder/indexer from genesis — `anchor_actions` populates from the
    chain alone.
-2. Run `xchain-indexer/src/recovery.js`: reassembles chunked batches by `MATCH_BATCH_SEQ`,
-   gunzips, verifies `BATCH_CRC32`, verifies each archived match's `validator_signatures`
-   against the archived `capability_snapshots`, and rebuilds `cross_chain_matches` +
-   `capability_snapshots` (latest-status-wins per `match_id`).
-3. Reindex BTC/LTC/DOGE from genesis against the recovered tables — cross-chain settlements
+2. Run `xchain-indexer/src/recovery.js` **with `BTC_INDEXER_DB_NAME` set**: reassembles
+   chunked batches by `MATCH_BATCH_SEQ`, gunzips, verifies `BATCH_CRC32`, verifies each
+   archived match's/call's `validator_signatures` against the archived
+   `capability_snapshots`, rebuilds `cross_chain_matches` + `cross_chain_calls` +
+   `capability_snapshots` (latest-status-wins), and restores archived `rewards[]` rows into
+   the **BTC indexer DB's `validator_rewards`** (seeding the id maps is safe pre-reindex —
+   they are append-only get-or-create).
+3. Reindex BTC/LTC/DOGE from genesis against the recovered tables — cross-chain settlements,
+   XCALL injections, `oracle_round`/`attest_fee` rewards, and historical COLLECT claims all
    re-derive identically; final `blocks` hash triples must match the anchored checkpoints.
+
+**Ordering is load-bearing:** the reward restore (step 2) MUST complete before the BTC reindex
+(step 3) — COLLECT validation reads `validator_rewards` synchronously at parse time, so a
+reindex that reaches a historical COLLECT before its anchor rewards are restored replays it
+`invalid: no unclaimed rewards` and the recovered ledger diverges. (`--verify-stakes` is for a
+post-reindex verification pass — against the empty pre-reindex BTC DB it would fail every
+batch.)
 
 ## Notes
 - `SNAPSHOT_BLOCK` is distinct from `BLOCK_INDEX`: `BLOCK_INDEX` is the checkpointed height on

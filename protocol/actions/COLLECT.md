@@ -33,16 +33,23 @@ Rewards accumulate from multiple validator activities, all stored in the indexer
 
 | Reward Type | Earned By | Trigger |
 |---|---|---|
-| `oracle_round` | Validator with `price` capability | Participation in PBFT consensus on a finalized price round |
-| `oracle_round` | Validator with `oracle_publish` capability | Successful PRICE v0 broadcast to chain (1 XCHAIN per published round) |
-| `cross_chain_attestation` | Validator with `cross_chain` capability | Successful cross-chain action attestation |
-| `attestation_response` | Validator with `attestation` capability | PBFT-finalized ATTEST v1 response for an external attestation request |
+| `oracle_round` | Validator with `price` capability | Signature included in the on-chain PRICE v0 action of a finalized price round |
+| `attest_fee` | Validator with `attestation` capability | Share of the request fee for a fulfilled ATTEST request |
+| `anchor_<chain>` | Validator with `oracle_publish` capability | Publishing a per-chain ANCHOR v0 checkpoint |
+| `anchor_archive` | Validator with `oracle_publish` capability | Publishing an ANCHOR v1 archive batch |
 
 ## Reward Population Path
 
-The hub's `RewardTracker` distributes rewards after each finalized oracle round (or successful cross-chain attestation), then pushes the reward records to the BTC indexer via the `pushvalidatorrewards` JSON-RPC endpoint. The indexer's `createValidatorReward` resolves the validator's signing pubkey to the staking source address and writes to the local `validator_rewards` table.
+Reward rows reach the indexer's `validator_rewards` table on two rails:
+
+- **Derived (replayable):** `oracle_round` and `attest_fee` are computed by the indexer itself during block processing, as deterministic functions of on-chain actions — `oracle_round` splits the configured per-round reward equally across the **verified, capability-qualified signer set of the PRICE v0 action** (so a round that finalizes but never lands a PRICE earns nothing), and `attest_fee` splits a fulfilled request's fee across its responsible set. A reindex reproduces these rows exactly.
+- **Pushed (archived):** `anchor_<chain>` / `anchor_archive` are recorded by the hub federation when an anchor publishes and pushed via the `pushvalidatorrewards` JSON-RPC endpoint (which rejects any non-anchor type). Because a chain parse cannot re-derive them, they ride the ANCHOR v1 archive and are restored by full-parse recovery — see [ANCHOR](ANCHOR.md).
 
 `COLLECT` queries the indexer's `validator_rewards` table directly — no hub round-trip during transaction processing.
+
+## Replayability
+
+`COLLECT` validation sums unclaimed rewards **earned at or before the COLLECT's own block** (`validator_rewards.block_index <= BLOCK_INDEX`). The scope is a no-op live (rows never carry a future block), but it makes every historical claim replay identically on a reindex or ANCHOR full-parse recovery — bulk-restored reward rows can never become visible to an earlier COLLECT than they were when it confirmed.
 
 ## Reward Funding
 
