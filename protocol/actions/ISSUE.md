@@ -33,12 +33,14 @@ This action creates or updates a `TICK`.
 | `MINT_ADDRESS_MAX` | String | Maximum amount of supply any address can mint via `MINT` transactions                      |
 | `MINT_START_BLOCK` | String | `BLOCK_INDEX` when `MINT` transactions are allowed (begin mint)                            |
 | `MINT_STOP_BLOCK`  | String | `BLOCK_INDEX` when `MINT` transactions are NOT allowed (end mint)                          |
+| `CONTROLLER`       | String | `ACTION_INDEX` of a deployed contract whose `guard` method must approve guarded native actions on this token (see [Controller-Bound Tokens](../Controller_Bound_Tokens.md)) |
+| `LOCK_CONTROLLER`  | String | Lock `CONTROLLER` permanently (the binding can never be changed or cleared)                |
 | `MEMO`             | String | An optional memo to include                                                                |
 
 ## Formats
 
 ### Version `0`
-- `VERSION|TICK|MAX_SUPPLY|MAX_MINT|DECIMALS|DESCRIPTION|MINT_SUPPLY|TRANSFER|TRANSFER_SUPPLY|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|ALLOW_LIST|BLOCK_LIST|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`
+- `VERSION|TICK|MAX_SUPPLY|MAX_MINT|DECIMALS|DESCRIPTION|MINT_SUPPLY|TRANSFER|TRANSFER_SUPPLY|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|ALLOW_LIST|BLOCK_LIST|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|LOCK_MINT|LOCK_MINT_SUPPLY|CONTROLLER|LOCK_CONTROLLER|MEMO`
 
 ### Version `1` - Edit `DESCRIPTION`
 - `VERSION|TICK|DESCRIPTION|MEMO`
@@ -47,13 +49,16 @@ This action creates or updates a `TICK`.
 - `VERSION|TICK|MAX_MINT|MINT_SUPPLY|TRANSFER_SUPPLY|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|MEMO`
 
 ### Version `3` - Edit `LOCK` `PARAMS`
-- `VERSION|TICK|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`
+- `VERSION|TICK|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|LOCK_MINT|LOCK_MINT_SUPPLY|LOCK_CONTROLLER|MEMO`
 
 ### Version `4` - Edit `CALLBACK` `PARAMS`
 - `VERSION|TICK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|MEMO`
 
 ### Version `5` - Edit `LIST` `PARAMS`
 - `VERSION|TICK|ALLOW_LIST|BLOCK_LIST|MEMO`
+
+### Version `6` - Edit `CONTROLLER` `PARAMS`
+- `VERSION|TICK|CONTROLLER|LOCK_CONTROLLER|MEMO`
 
 ## Examples
 ```
@@ -128,6 +133,7 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
 - `CALLBACK_BLOCK`, `CALLBACK_TICK`, and `CALLBACK_AMOUNT` can be edited via `ISSUE` action if `TICK` supply is NOT distributed
 - `DEPLOY` `ACTION` can be used for backwards-compatability with BRC20/SRC20 `DEPLOY`
 - By default any `ADDRESS` can interact with a `TICK`, use `ALLOW_LIST` and `BLOCK_LIST` to change this behavior
+- `CONTROLLER` binds the `TICK` to a deployed contract (its `ACTION_INDEX`) on the same chain. Once set, the indexer runs that contract's `guard` method before guarded native actions on the token settle — enabling enforced royalties, transfer policies, and other programmable rules. The contract must exist and be active when bound; a missing/throwing `guard` is fail-closed (denies the action). Set `LOCK_CONTROLLER` to `1` to make the binding permanent so holders can trust the rules cannot change. Full semantics: [Controller-Bound Tokens](../Controller_Bound_Tokens.md)
 - `MINT_ADDRESS_MAX` can be used to limit the maximum `TICK` `AMOUNT` that a single address can `MINT`
 - `MINT_START_BLOCK` and `MINT_STOP_BLOCK` can be used to determine period(s) when `MINT` transactions are allowed
 - `MIN_TOKEN_SUPPLY` value is 0.000000000000000001
