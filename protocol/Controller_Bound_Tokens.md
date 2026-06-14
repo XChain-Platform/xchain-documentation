@@ -4,8 +4,8 @@ A token (`TICK`) may bind itself to a deployed VM contract — its **controller*
 Once bound, the indexer invokes the controller's `guard` method **before** a
 guarded native action on that token settles, inside the same atomic scope. The
 guard is a fully programmable contract method: it may read/write its own
-contract state and emit token actions (e.g. split a royalty out of sale
-proceeds), and it may `revert` to **deny** the action.
+contract state, emit token actions, and return a royalty/fee split of the sale
+proceeds (`payoutLegs`); it may `revert` to **deny** the action.
 
 Because the indexer is the only settlement path on XChain, a controller makes a
 token's rules **unavoidable** — the enforced-royalty property that
@@ -19,19 +19,24 @@ exactly as before (one NULL check, zero overhead). Binding is via the
 
 ## Binding (ISSUE)
 
+A token binds (or unbinds) a controller for one **action class** at a time via `ISSUE`
+**version 6**: `VERSION|TICK|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO`.
+
 | Field | Meaning |
 |---|---|
-| `CONTROLLER` | `ACTION_INDEX` of a deployed, active contract on the same chain. NULL/absent = uncontrolled. |
-| `LOCK_CONTROLLER` | `1` makes the binding permanent — `CONTROLLER` can never be changed or cleared (holders can trust the rules are fixed). Follows the existing `LOCK_*` semantics: can only be set, never unset. |
+| `CONTROLLER` | `ACTION_INDEX` of a deployed, active contract on the same chain (its `contracts.action_index`; derived address `C:<CHAIN>:<CONTROLLER>`). |
+| `ACTION_CLASS` | Which class of action this binding gates: `transfer` (SEND), `trade` (ORDER / SWAP / DISPENSER create), `burn` (DESTROY) — plus the reserved stubs `mint`, `stake`. |
+| `COOLDOWN_BLOCKS` | Drop-cooldown committed at bind time: the friction (in blocks) before a later `UNBIND` of this class takes effect. |
+| `UNBIND` | `1` drops the live binding for `ACTION_CLASS` (gated by its cooldown); `0` binds. |
 
-- Only the token owner can set or change `CONTROLLER` (standard `ISSUE` owner gate).
+- Only the token owner can bind/unbind (standard `ISSUE` owner gate).
 - At bind time the indexer verifies `CONTROLLER` resolves to an existing contract
   in `valid` (active) state — mirroring the contract check in `EXECUTE`.
-- `CONTROLLER` is a same-chain contract: it is identified by a local
-  `contracts.action_index`, and its derived address is `C:<CHAIN>:<CONTROLLER>`.
-- Edit a binding via `ISSUE` version `0` (full) or version `6`
-  (`VERSION|TICK|CONTROLLER|LOCK_CONTROLLER|MEMO`). `LOCK_CONTROLLER` may also be
-  set via the version `3` lock-params edit.
+- Bindings are **append-only** events in `token_controllers`. The effective controller
+  for a `(token, class)` is the latest event at/below the current block: a `bind` gates,
+  an `unbind` gates only until its cooldown elapses. There is no `LOCK_CONTROLLER` flag —
+  the drop-cooldown is the only friction on changing a binding.
+- A token with no binding for a class behaves exactly as before (one NULL check, zero overhead).
 
 ## The guard ABI
 
@@ -40,7 +45,7 @@ it with positional, all-string input params (read via `xchain.getInputParam(i)`)
 
 | i | Param | Notes |
 |---|---|---|
-| 0 | `action_type` | `SEND`, `ORDER_CREATE`, `ORDER_MATCH`, `SWAP_CREATE`, `SWAP_MATCH`, `DISPENSER_CREATE`, `DISPENSE` |
+| 0 | `action_type` | the guard invocation point: `SEND` (transfer), `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` (trade), `DESTROY` (burn). No guard runs at match/dispense — see [Proceeds split](#proceeds-split-royalty--fee-payout_legs). |
 | 1 | `from` | the address giving up / sending the token (`''` if n/a) |
 | 2 | `to` | the address receiving the token (`''` if n/a) |
 | 3 | `tick` | the controlled token |
@@ -52,6 +57,8 @@ Decision semantics:
 
 - **Return normally ⇒ ALLOW.** The guard's state changes and emitted actions are
   committed atomically with the native action.
+- **A `trade`-class create guard may return `{ payoutLegs: [{ to, bps }, …] }`** to set a
+  basis-point split of the sale's proceeds — see [Proceeds split](#proceeds-split-royalty--fee-payout_legs).
 - **`revert(reason)` / out-of-gas / runtime error / missing `guard` method ⇒ DENY**
   (fail-closed). The native action is marked `invalid: controller (<reason>)` and
   everything the guard did is rolled back.
@@ -96,70 +103,56 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
 
 ## Worked example — enforced NFT royalty
 
-1. Creator deploys a royalty controller exporting `guard` and a small bookkeeping
-   API, then issues an NFT with `CONTROLLER = <that contract>` and
-   `LOCK_CONTROLLER = 1`.
-2. A buyer fills the seller's `ORDER` for the NFT at 100 XCHAIN.
-3. Before settling, the indexer runs `guard('ORDER_MATCH', seller, buyer, NFT,
-   '1', '100', 'XCHAIN')`. The guard computes a 10% cut and arranges for 10
-   XCHAIN to reach the creator and 90 to reach the seller (proceeds routing —
-   see below), or reverts if the trade does not satisfy its policy.
-4. A plain `SEND` of the NFT (a gift, a wallet move) calls
-   `guard('SEND', from, to, NFT, '1', '', '')` — the guard can allow free
-   transfers while only taxing sales.
+1. Creator deploys a controller whose `guard` returns a royalty split, issues the NFT,
+   and binds the `trade` class to it: `ISSUE` v6 `NFT | <contract> | trade | <cooldown> | 0 |`.
+2. The seller lists it — `ORDER` give NFT, get 1000 XCHAIN. At create the indexer runs
+   `guard('ORDER_CREATE', seller, '', NFT, '1', '1000', 'XCHAIN')`; the guard returns
+   `{ payoutLegs: [{ to: creator, bps: 500 }] }` (5%). The indexer validates the legs and
+   stores them on the order's `payout_legs`. (The guard could instead `revert` to refuse the listing.)
+3. A buyer fills the order. At match the indexer applies the stored split to the seller's
+   1000 XCHAIN proceeds: **50 → creator, 950 → seller**, conserved exactly. No guard runs at match.
+4. A plain `SEND` of the NFT (a gift, a wallet move) is in the `transfer` class — untouched
+   unless the token also binds a `transfer` controller, which could gate or deny moves while
+   sales stay separately controlled.
 
 ## Implementation status
 
 | Piece | Status |
 |---|---|
-| `CONTROLLER` / `LOCK_CONTROLLER` binding (ISSUE, schema, db) | **Implemented** |
+| Per-class binding via ISSUE v6 (append-only `token_controllers`, cooldown/unbind) | **Implemented** |
 | VM guard mode (`isGuard`: ATTEST/XCALL disabled) | **Implemented** |
 | Guard engine (`Execute.runControllerGuard`) — VM call, atomic state/emissions, depth cap, gas | **Implemented** |
-| `SEND` guarded (veto + programmable side-effects + gas) | **Implemented** |
-| `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` veto (listing gate, + gas) | **Implemented** |
-| `ORDER_MATCH` / `SWAP_MATCH` / `DISPENSE` veto + royalty **proceeds routing** | **Pending** — see below |
+| `SEND` guarded (transfer class: veto + programmable side-effects + gas) | **Implemented** |
+| `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` guard (listing gate + `payoutLegs`, + gas) | **Implemented** |
+| Sale-path proceeds split — `payout_legs` stored at create, `applyProceedsSplit` at match | **Implemented** |
 
-### Pending: sale-path guard at match (veto + royalty proceeds routing)
+## Proceeds split (royalty / fee `payout_legs`)
 
-The create-side gate above approves *listing* a controlled token. The match side
-(actual fill) still needs the guard, in two escalating forms:
+A `trade`-class guard sets an optional **basis-point split of the sale proceeds** by
+returning `{ payoutLegs: [ { to: <address>, bps: <int> }, … ] }` from its `guard` at
+**create** time. The split is declarative data carried on the order/swap row — **no guard
+runs at match** — which keeps the system-triggered fill path deterministic and gas-free.
 
-1. **Veto at match** (lower risk). Consult `guard(...,'<ACTION>_MATCH', ...)` as an
-   extra skip-gate alongside the existing allow/block-list check
-   (`order_match.js` ~L200, `swap_match.js` ~L67, `dispense.js` ~L153) — *before*
-   any settlement mutation (remaining-amount updates, `createActionIndex`,
-   `transferTokenOwnership`). Deny ⇒ `continue` (skip the match), exactly like a
-   blocked match, so no partial state. Lets the controller enforce transfer
-   policy and run programmable bookkeeping at fill time.
+1. **At create** (`ORDER_CREATE` / `SWAP_CREATE`): the indexer validates each leg (`to` a
+   valid address, `bps` a non-negative integer, total `bps` ≤ `CONTROLLER_MAX_TAKE_BPS`,
+   default `10000`) and stores the legs as JSON on `orders.payout_legs` /
+   `swaps.payout_legs`. A malformed or over-cap set **denies** the listing (fail-closed).
+   No `payoutLegs` ⇒ NULL (an ordinary order).
+2. **At match**: `Utility.applyProceedsSplit(tick, proceeds, seller, legs, decimals, cap)`
+   splits each filled order's proceeds — **seller-remainder first, then each leg** —
+   crediting `floor(proceeds × bps / 10000)` (at token precision) to each `to` and the
+   exact remainder to the seller. The split **conserves the proceeds exactly** (no dust
+   created or lost), so DEX settlement math is unchanged; an order with no legs yields a
+   single full credit to the seller, so the call is unconditional.
 
-2. **Royalty proceeds routing** (the enforced cut). The royalty must come out of
-   the **proceeds**. Intended design: credit the proceeds to the controller's
-   derived address instead of the seller, run the guard (now funded), let it
-   `emit.send` the split (cut → creator, remainder → seller), and apply a
-   post-guard **conservation check** rejecting the match if the controller's net
-   proceeds-tick balance increased (a buggy guard that failed to forward) —
-   preventing stranded funds.
-
-**Open design questions to resolve before building (must be done + tested on
-Node 22 / test-host — these are consensus-critical money paths):**
-- **Gas attribution at match.** A match is system-triggered (no single submitting
-  SOURCE). Decide who funds the match-guard gas (matcher? both? a per-match
-  protocol allowance?) or run the match guard fee-less (bounded by gas ceiling +
-  the finite open-order set). The create-side already charges the lister.
-- **Proceeds routing reshapes `order_match` batching.** Today credits/escrows are
-  accumulated and applied once (`processTransactionLedgerChanges`, L338). Routing
-  requires committing the proceeds credit to the controller *before* the guard
-  runs (the guard's `emit.send` checks the DB ledger), interleaving a VM run with
-  ledger writes mid-match — needs care to stay atomic/deterministic.
-- **Native-coin (COINPay) proceeds.** When proceeds are native coin (off-ledger,
-  settled later via COINPay), there is no on-ledger amount to route — royalty
-  there is out of scope for v1 (veto only); document the limitation.
-- **Ownership sales.** `GIVE_OWNERSHIP` fills transfer via `transferTokenOwnership`
-  — decide whether/how a cut applies.
+**Scope.** The split applies to **on-ledger** proceeds (the `GET_TICK` the seller
+receives). Native-coin (COINPay) proceeds are off-ledger and out of scope for the split —
+a `trade` guard can still `revert` to forbid such a listing. `GIVE_OWNERSHIP` sales
+transfer ownership rather than a balance, so no proceeds split applies to that leg.
 
 ## Touched components
 
-`xchain-indexer` (binding, schema + migration, guard engine, SEND wiring),
-`xchain-vm` (guard-restricted emission mode). `xchain-encoder` and
-`xchain-decoder` need no changes — the encoder is a generic payload builder and
-the decoder stores the wire string verbatim.
+`xchain-indexer` (ISSUE v6 binding + `token_controllers`, guard engine, create-side
+`payout_legs` + match-side `applyProceedsSplit`, SEND/transfer wiring), `xchain-vm`
+(guard-restricted emission mode). `xchain-encoder` and `xchain-decoder` need no changes —
+the encoder is a generic payload builder and the decoder stores the wire string verbatim.
