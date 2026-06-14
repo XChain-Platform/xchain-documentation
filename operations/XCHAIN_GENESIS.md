@@ -97,7 +97,7 @@ The reward pool is finite between top-ups. Its drain rate is governed by the hub
 (`ORACLE_REWARD_PER_ROUND` and the per-capability reward types in
 `xchain-indexer/src/api.js:pushvalidatorrewards`). **Watch the reward-pool balance** and top up
 before it depletes; otherwise validators see `COLLECT` rejections (they retry later, but rewards
-stall). A balance threshold alert in `xchain-dashboard/monitor/` is recommended.
+stall). A balance threshold alert/monitor is recommended.
 
 ---
 
