@@ -283,7 +283,8 @@ The ANCHOR publisher logs `StateAnchorPublisher: DOGE balance low` and skips pub
 
 - Check the DOGE wallet balance at the address configured in `capabilities.json` under `oracle_publish.doge_address`.
 - Refill the wallet to resume publishing. Once funded, either wait for the next `ANCHOR_INTERVAL_MS` cycle or force an immediate flush with `anchorflush` (see above).
-- Each ANCHOR transaction costs approximately 1–2 DOGE depending on archive size. At the default 24-hour cadence, a ~7-day runway requires around 10–15 DOGE.
+- **Cost / runway.** Each anchor *round* broadcasts one transaction per chain (BTC + LTC + DOGE checkpoints, all on the DOGE chain) at ~0.4 DOGE/tx ≈ ~1.2 DOGE/round, plus the archive transaction(s) when there is cross-chain activity. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`) that is ~1.2 DOGE/day. To cut spend, raise `ANCHOR_CHECKPOINT_EVERY_N` (see CONFIGURATION.md → ANCHOR Publishing): `=2` anchors every other checkpoint → ~0.6 DOGE/day. Size a comfortable refill at roughly `daily_cost × desired_days` (e.g. ~60 DOGE ≈ 100 days at `EVERY_N=2`).
+- **Restarts are free** as of the cadence-latch fix — a hub restart restores the checkpoint cadence latch from the last persisted checkpoint and no longer fires an extra (DOGE-spending) off-schedule anchor. Look for `StateCheckpointEngine: cadence latch restored at snapshot block N` in startup logs to confirm.
 
 ### Consumers not discovering hub
 
