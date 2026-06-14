@@ -10,8 +10,9 @@ This action deploys a smart contract to the XChain VM. Two formats:
 ## PARAMS
 | Name                  | Type    | Description                                                                |
 | --------------------- | ------- | -------------------------------------------------------------------------- |
-| `VERSION`             | String  | Format Version (0 = standard, 1 = stakeable)                               |
-| `CODE_ENCODING`       | String  | Base64-encoded UTF-8 contract source code (base64's alphabet has no `\|`, so it is safe in the pipe-delimited action string; 1.33× the source vs hex's 2×) |
+| `VERSION`             | String  | Format Version (0 = standard, 1 = stakeable, 2 = chunked, 3 = chunked + stakeable) |
+| `CODE_ENCODING`       | String  | v0/v1 only — Base64-encoded UTF-8 contract source code (base64's alphabet has no `\|`, so it is safe in the pipe-delimited action string; 1.33× the source vs hex's 2×) |
+| `CODE_HASH`           | String  | v2/v3 only — sha256 hex of the assembled UTF-8 source. The code itself is carried by separate [`DEPLOYCHUNK`](./DEPLOYCHUNK.md) actions and reassembled by the indexer; `CODE_HASH` is both the chunk-group id and the integrity check. |
 | `GAS_LIMIT`           | Integer | Maximum gas units allowed for deployment                                   |
 | `CONSTRUCTOR_PARAMS`  | String  | Optional constructor parameters (pipe-delimited in v0; single field in v1) |
 | `COOLDOWN_BLOCKS`     | Integer | v1 only — unstaking cooldown for STAKE v3 against this contract (1..100000) |
@@ -25,6 +26,14 @@ This action deploys a smart contract to the XChain VM. Two formats:
 ### Version `1` — Stakeable contract
 - `VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION`
 - Both staking fields are optional in the wire format. A v1 DEPLOY with empty `COOLDOWN_BLOCKS` is treated the same as a v0 deploy (the contract is *not* stakeable). `SLASH_DESTINATION` without `COOLDOWN_BLOCKS` is rejected as `invalid: SLASH_DESTINATION (requires COOLDOWN_BLOCKS)`.
+
+### Version `2` — Chunked (non-stakeable)
+- `VERSION|CODE_HASH|GAS_LIMIT|CONSTRUCTOR_PARAMS`
+- For contracts whose base64 source exceeds the single-action size cap (`MAX_ACTION_DATA_LENGTH`). The source is uploaded first as one or more [`DEPLOYCHUNK`](./DEPLOYCHUNK.md) actions; this DEPLOY then assembles them by `CODE_HASH`. Mirrors v0 in every other respect (rest `CONSTRUCTOR_PARAMS`, non-stakeable).
+
+### Version `3` — Chunked + stakeable
+- `VERSION|CODE_HASH|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION`
+- Chunked assembly (like v2) plus the v1 staking fields, with the identical pairing rules.
 
 ## Examples
 ```
@@ -80,9 +89,16 @@ to a specific recipient address (not BURN)
 - A contract deployed with both staking fields can receive STAKE v3 actions targeting it; without them, STAKE v3 rejects with `invalid: TARGET_CONTRACT_INDEX (contract is not stakeable)`.
 - Stakeable-contract metadata is **immutable** after deployment — there is no mechanism to update `COOLDOWN_BLOCKS` or `SLASH_DESTINATION` later.
 
+### Chunked assembly (v2/v3)
+- A chunked DEPLOY assembles its code from the deploying address's prior [`DEPLOYCHUNK`](./DEPLOYCHUNK.md) actions that share the same `CODE_HASH` **and** were recorded at a *lower* action index than the DEPLOY. Chunks are matched to their submitter (`source_id`), so a third party cannot hijack another deployer's chunk group.
+- The indexer concatenates the chunks' `CODE_PART` fields in `CHUNK_INDEX` order, base64-decodes the result, and rejects unless `sha256(code) === CODE_HASH`. A missing position, a non-contiguous set, a short group, a bad chunk count, or a digest mismatch each rejects the DEPLOY (`invalid: CODE_HASH (...)`); the assembled `code` then flows through the exact same size / syntax / manifest / constructor path as an inline deploy.
+- **Gas:** each `DEPLOYCHUNK` pays the per-byte component (`VM_DEPLOY_PER_BYTE`) for the bytes it puts on-chain, so the assembling DEPLOY v2/v3 charges `VM_DEPLOY_BASE` + constructor gas only — the net cost ≈ a single-shot inline deploy of the same source.
+- **Reorg/recovery:** because a DEPLOY only ever consumes chunks at a lower action index, any reorg that removes a chunk also removes the dependent DEPLOY (and its contract) via the standard action-index rollback — no bespoke logic. The code is fully on-chain in the `DEPLOYCHUNK` actions, so a from-scratch chain re-parse reconstructs the contract with **no ANCHOR change**.
+- The SDK (`sdk.deployContract`) auto-selects: it deploys inline (v0/v1) when `base64(code)` fits one action, else uploads the slices and assembles via v2/v3.
+
 ## Notes
 - The deployed contract is assigned an action index derived from the transaction that contains this action
-- `CODE_ENCODING` is base64-encoded UTF-8 — decode with `Buffer.from(b64, 'base64').toString('utf8')`
+- `CODE_ENCODING` (v0/v1) is base64-encoded UTF-8 — decode with `Buffer.from(b64, 'base64').toString('utf8')`
 - The `contracts` table stores the decoded plain-text JavaScript, not the base64 encoding
 - The `api_version` field (default 1) determines which gateway API version the contract targets
 - Use `EXECUTE` to call methods on a deployed contract
