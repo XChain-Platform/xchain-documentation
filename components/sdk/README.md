@@ -21,7 +21,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - **Interactive REPL** (`npm run repl`): live session with pre-configured SDK, custom `.actions`, `.status`, `.fields` commands
 - **Staking actions**: capability staking (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT) is BTC-only for the platform validator set; contract staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) works on any chain as a developer primitive
 - Smart contract support: deploy contracts, execute methods, deposit/withdraw tokens via the xchain-vm integration
-- Contract authoring utilities: syntax validation, float detection, hex encoding, gas estimation
+- Contract authoring utilities: syntax validation, float detection, base64 encoding, gas estimation
 - Bound ContractClient for repeated interactions with a specific deployed contract
 - Encode actions into unsigned PSBTs via the xchain-encoder service
 - Support for all encoding formats: OP_RETURN, P2SH, P2WSH, multisign

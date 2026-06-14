@@ -165,8 +165,8 @@ If any emitted action fails validation (e.g., insufficient balance), ALL state c
 ## Deploying a Contract
 
 1. Write your contract as a JavaScript file
-2. Hex-encode the UTF-8 source: `Buffer.from(source, 'utf8').toString('hex')`
-3. Broadcast a DEPLOY action: `DEPLOY|0|<hex_code>|<gas_limit>|<constructor_params>`
+2. Base64-encode the UTF-8 source: `Buffer.from(source, 'utf8').toString('base64')`
+3. Broadcast a DEPLOY action: `DEPLOY|0|<base64_code>|<gas_limit>|<constructor_params>`
 
 The indexer validates the code syntax before charging gas. If syntax is invalid, the deployment is rejected without cost.
 

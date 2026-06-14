@@ -11,7 +11,7 @@ This action deploys a smart contract to the XChain VM. Two formats:
 | Name                  | Type    | Description                                                                |
 | --------------------- | ------- | -------------------------------------------------------------------------- |
 | `VERSION`             | String  | Format Version (0 = standard, 1 = stakeable)                               |
-| `CODE_ENCODING`       | String  | Hex-encoded UTF-8 contract source code                                     |
+| `CODE_ENCODING`       | String  | Base64-encoded UTF-8 contract source code (base64's alphabet has no `\|`, so it is safe in the pipe-delimited action string; 1.33× the source vs hex's 2×) |
 | `GAS_LIMIT`           | Integer | Maximum gas units allowed for deployment                                   |
 | `CONSTRUCTOR_PARAMS`  | String  | Optional constructor parameters (pipe-delimited in v0; single field in v1) |
 | `COOLDOWN_BLOCKS`     | Integer | v1 only — unstaking cooldown for STAKE v3 against this contract (1..100000) |
@@ -28,30 +28,30 @@ This action deploys a smart contract to the XChain VM. Two formats:
 
 ## Examples
 ```
-DEPLOY|0|<hex_code>|200000|arg1|arg2
+DEPLOY|0|<base64_code>|200000|arg1|arg2
 Deploy a non-stakeable contract with constructor arguments
 ```
 
 ```
-DEPLOY|0|<hex_code>|100000|
+DEPLOY|0|<base64_code>|100000|
 Deploy a non-stakeable contract with no constructor parameters
 ```
 
 ```
-DEPLOY|1|<hex_code>|200000||1000|BURN
+DEPLOY|1|<base64_code>|200000||1000|BURN
 Deploy a stakeable contract: 1000-block cooldown on STAKE v3 unstakes,
 slashed tokens go to the chain's burn address
 ```
 
 ```
-DEPLOY|1|<hex_code>|200000||100|bc1q...recipient
+DEPLOY|1|<base64_code>|200000||100|bc1q...recipient
 Deploy a stakeable contract: 100-block cooldown, slashed tokens routed
 to a specific recipient address (not BURN)
 ```
 
 ## Rules
 - Available on all chains
-- `CODE_ENCODING` must be valid hex-encoded UTF-8 JavaScript source code and must not exceed 64KB (65536 bytes decoded)
+- `CODE_ENCODING` must be valid base64-encoded UTF-8 JavaScript source code and must not exceed 64KB (65536 bytes decoded)
 - `GAS_LIMIT` must be a positive integer
 - The VM validates syntax before charging gas:
   1. V8 compilation check — rejects JavaScript syntax errors
@@ -82,8 +82,8 @@ to a specific recipient address (not BURN)
 
 ## Notes
 - The deployed contract is assigned an action index derived from the transaction that contains this action
-- `CODE_ENCODING` is hex-encoded UTF-8 — decode with `Buffer.from(hex, 'hex').toString('utf8')`
-- The `contracts` table stores the decoded plain-text JavaScript, not the hex encoding
+- `CODE_ENCODING` is base64-encoded UTF-8 — decode with `Buffer.from(b64, 'base64').toString('utf8')`
+- The `contracts` table stores the decoded plain-text JavaScript, not the base64 encoding
 - The `api_version` field (default 1) determines which gateway API version the contract targets
 - Use `EXECUTE` to call methods on a deployed contract
 - Use `DEPOSIT` and `WITHDRAW` to transfer token balances into and out of the contract's derived address

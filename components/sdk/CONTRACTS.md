@@ -27,11 +27,11 @@ The SDK provides three layers of contract support:
 
 ### DEPLOY
 
-Deploy a new smart contract. The SDK accepts raw JavaScript source via the `code` parameter and hex-encodes it automatically.
+Deploy a new smart contract. The SDK accepts raw JavaScript source via the `code` parameter and base64-encodes it automatically.
 
 ```js
 let result = await sdk.deploy({
-    code: contractSource,      // raw JS — SDK hex-encodes it
+    code: contractSource,      // raw JS — SDK base64-encodes it
     gasLimit: 200000,
     constructorParams: ['arg1', 'arg2']
 }, { pubkey: 'yourPubkey', encoding: 'P2WSH' });
@@ -124,19 +124,19 @@ The `sdk.contracts` namespace provides tools for contract authors. These are pur
 
 ### `sdk.contracts.encode(sourceCode)`
 
-Hex-encode UTF-8 contract source for DEPLOY payloads.
+Base64-encode UTF-8 contract source for DEPLOY payloads.
 
 ```js
-let hex = sdk.contracts.encode('module.exports = {}');
-// '6d6f64756c652e6578706f727473203d207b7d'
+let b64 = sdk.contracts.encode('module.exports = {}');
+// 'bW9kdWxlLmV4cG9ydHMgPSB7fQ=='
 ```
 
-### `sdk.contracts.decode(hexString)`
+### `sdk.contracts.decode(b64String)`
 
-Decode hex back to UTF-8 source for inspection.
+Decode base64 back to UTF-8 source for inspection.
 
 ```js
-let source = sdk.contracts.decode(hex);
+let source = sdk.contracts.decode(b64);
 // 'module.exports = {}'
 ```
 

@@ -216,7 +216,7 @@ See also: [`../actions/CALLBACK.md`](../../protocol/actions/CALLBACK.md)
 
 ### DEPLOY
 
-Deploy a smart contract to the XChain VM. The contract source code is hex-encoded into the `CODE_ENCODING` field. The SDK can accept raw source via the `code` param and will hex-encode it automatically.
+Deploy a smart contract to the XChain VM. The contract source code is base64-encoded into the `CODE_ENCODING` field (base64's alphabet has no `|`, so it is safe in the pipe-delimited action string, at 1.33× the source vs hex's 2×). The SDK can accept raw source via the `code` param and will base64-encode it automatically.
 
 **Format Versions:** v0
 
@@ -226,8 +226,8 @@ Deploy a smart contract to the XChain VM. The contract source code is hex-encode
 
 | Param | Type | Required | Description |
 |---|---|---|---|
-| code | string | Yes* | Raw JavaScript source code (auto hex-encoded by the SDK) |
-| codeEncoding | string | Yes* | Pre-encoded hex of contract source (alternative to `code`) |
+| code | string | Yes* | Raw JavaScript source code (auto base64-encoded by the SDK) |
+| codeEncoding | string | Yes* | Pre-encoded base64 of contract source (alternative to `code`) |
 | gasLimit | integer | Yes | Maximum gas units for deployment (positive integer) |
 | constructorParams | string[] | No | Arguments passed to the contract constructor |
 
@@ -235,7 +235,7 @@ Deploy a smart contract to the XChain VM. The contract source code is hex-encode
 
 **Notes:**
 - Contract source must be valid JavaScript and under 64KB.
-- The SDK validates hex encoding, code size, and gas limit before serialization.
+- The SDK validates base64 encoding, code size, and gas limit before serialization.
 - DEPLOY payloads typically exceed the 76-byte OP_RETURN limit — use P2SH or P2WSH encoding.
 - DEPLOY actions **cannot** appear inside a BATCH.
 - Constructor params are variable-length: each element becomes a separate pipe-delimited field in the action string.
@@ -1091,7 +1091,7 @@ All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`,
 
 ### VM action fields
 
-- **`CODE_ENCODING`** must be a valid hex string; decoded size must not exceed 64KB.
+- **`CODE_ENCODING`** must be a valid base64 string; decoded size must not exceed 64KB.
 - **`GAS_LIMIT`** must be a positive integer.
 - **`QUANTITY`** (DEPOSIT/WITHDRAW) must be a positive number.
 - **`METHOD`** must be a non-empty string that does not contain `|` or `;`.

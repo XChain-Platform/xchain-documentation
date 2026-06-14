@@ -848,13 +848,13 @@ let check = sdk.contracts.validate(contractSource);
 if (!check.valid) {
     console.error('Contract validation failed:', check.error);
 } else {
-    // Deploy (auto hex-encodes the source code)
+    // Deploy (auto base64-encodes the source code)
     let result = await sdk.deploy({
         code: contractSource,
         gasLimit: 200000
     }, { pubkey: 'yourPubkey', encoding: 'P2WSH' });
 
-    console.log(result.actionString);  // DEPLOY|0|<hex>|200000
+    console.log(result.actionString);  // DEPLOY|0|<base64>|200000
     console.log(result.psbt);          // PSBT for signing
 }
 ```
@@ -942,9 +942,9 @@ let history = await amm.getExecutions();   // execution history
 ## Contract Authoring Utilities
 
 ```js
-// Hex encode/decode
-let hex = sdk.contracts.encode('module.exports = {}');
-let source = sdk.contracts.decode(hex);
+// Base64 encode/decode
+let b64 = sdk.contracts.encode('module.exports = {}');
+let source = sdk.contracts.decode(b64);
 
 // Check code size
 let sizeCheck = sdk.contracts.checkCodeSize(contractSource);

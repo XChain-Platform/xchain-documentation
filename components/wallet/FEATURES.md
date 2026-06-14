@@ -60,7 +60,7 @@ xchain-vm runs JavaScript contracts in sandboxed V8 isolates with deterministic 
 - **Execute** — `ExecuteContractForm.jsx`. Pick a deployed contract, choose a method, fill arguments, see gas estimate, sign EXECUTE.
 - **Funds** — `ContractFundsForm.jsx`. DEPOSIT a token into a contract's escrow; WITHDRAW back out.
 - **Browse** — `ContractsList.jsx` per chain; `ContractDetail.jsx` shows bytecode + state + recent calls.
-- **Author utilities** — syntax validation, float detection (contracts must use integer arithmetic), hex encoding, gas estimation. All exposed by the SDK; the wallet wraps them behind the form UI.
+- **Author utilities** — syntax validation, float detection (contracts must use integer arithmetic), base64 encoding, gas estimation. All exposed by the SDK; the wallet wraps them behind the form UI.
 - **ContractClient** — for repeated interactions with a specific contract, the SDK exposes a bound client. The wallet uses it under the hood; advanced users can mint one in the dApp bridge.
 
 ## BTC staking + delegation

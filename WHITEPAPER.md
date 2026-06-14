@@ -270,7 +270,7 @@ The protocol defines **30 ACTIONs** across eight categories. All are available o
 
 ### 6.4 Smart contracts
 
-- **DEPLOY** — Deploy a JavaScript contract (hex-encoded, ≤64 KB). v0 standard; v1 adds `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` to make the contract stakeable. Three-phase syntax validation before any gas is charged; the constructor runs immediately if constructor params are present; code and staking metadata are immutable after deploy. The contract receives a derived address `C:<CHAIN>:<action_index>`.
+- **DEPLOY** — Deploy a JavaScript contract (base64-encoded, ≤64 KB). v0 standard; v1 adds `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` to make the contract stakeable. Three-phase syntax validation before any gas is charged; the constructor runs immediately if constructor params are present; code and staking metadata are immutable after deploy. The contract receives a derived address `C:<CHAIN>:<action_index>`.
 - **EXECUTE** — Call a method on a deployed contract. Gas is actual consumption × gas price. All state changes and emitted actions are atomic via a database savepoint. Attestation callbacks (§8) are synthesized as system EXECUTEs.
 - **DEPOSIT / WITHDRAW** — Move tokens into a contract's derived address / back out to the contract owner. No gas fee; only the owner may withdraw (even from a disabled contract).
 

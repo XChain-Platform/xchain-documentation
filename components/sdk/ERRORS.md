@@ -145,7 +145,7 @@ Thrown for contract-specific issues during DEPLOY, EXECUTE, DEPOSIT, or WITHDRAW
 |------|--------------------|-------------|
 | `CODE_TOO_LARGE` | `bytes`, `limit` | Contract source exceeds the 64KB size limit |
 | `CODE_SYNTAX_ERROR` | — | acorn parse failure during pre-validation |
-| `CODE_ENCODING_FAILED` | — | Hex encoding or decoding failure |
+| `CODE_ENCODING_FAILED` | — | Base64 encoding or decoding failure |
 | `INVALID_CONTRACT_INDEX` | — | CONTRACT_ACTION_INDEX is not a positive integer |
 | `INVALID_METHOD_NAME` | — | METHOD is empty or contains forbidden characters |
 | `INVALID_PARAM_VALUE` | `field`, `index`, `value` | A parameter contains pipe or semicolon characters |

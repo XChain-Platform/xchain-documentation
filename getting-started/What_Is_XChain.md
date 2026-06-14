@@ -71,7 +71,7 @@ The FILE action also supports **token-gated cryptographic publishing**. A creato
 
 XChain includes a built-in **virtual machine** that brings smart contract capabilities to Bitcoin, Litecoin, and Dogecoin — without sidechains or separate networks.
 
-- **DEPLOY** uploads a smart contract to the blockchain. Contracts are written in JavaScript, hex-encoded, and stored permanently on-chain. Once deployed, a contract has its own address-like identity (referenced by its action_index) and can hold token balances.
+- **DEPLOY** uploads a smart contract to the blockchain. Contracts are written in JavaScript, base64-encoded, and stored permanently on-chain. Once deployed, a contract has its own address-like identity (referenced by its action_index) and can hold token balances.
 - **EXECUTE** calls a method on a deployed contract. The contract runs in a sandboxed V8 isolate with gas metering — every computation costs gas, preventing infinite loops and resource abuse. Contract state is stored on-chain and is fully deterministic: every node that processes the same transactions arrives at the same result.
 - **DEPOSIT** transfers tokens from a user's balance into a contract's custody. This is how contracts receive funds to work with — escrow, liquidity pools, staking, or any other mechanism the contract implements.
 - **WITHDRAW** transfers tokens from a contract's custody back to a user. The contract's code decides when and how withdrawals are allowed.
