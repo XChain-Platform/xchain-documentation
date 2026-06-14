@@ -230,18 +230,24 @@ All existing rails apply to NFT-pattern tokens with no special cases:
 
 ## Royalties
 
-**The protocol has no royalty mechanism, by design.** No royalty fields exist on any
-ACTION, and DEX settlement takes no fee on behalf of creators. Royalties are policy,
-not mechanism: a protocol-level royalty is either unenforceable (peer-to-peer `SEND`
-and `SWAP` route around any settlement hook) or an unacceptable complication of
-consensus settlement math.
+**There are no royalty *fields* on any ACTION, and DEX settlement takes no fee on its
+own.** Royalties aren't baked into the wire format or the settlement math — they are a
+policy a token **opts into**, enforced by a programmable contract rather than a fixed
+protocol rule.
 
-Creators and marketplaces that want enforced royalties implement them **as smart
-contracts**: a [VM](./actions/DEPLOY.md) marketplace contract that takes custody of
-tokens via [`DEPOSIT`](./actions/DEPOSIT.md)/[`WITHDRAW`](./actions/WITHDRAW.md) can
-enforce any fee split in contract logic. Because the contract holds the token, its
-rules cannot be routed around — and the scheme is opt-in per collection rather than
-imposed platform-wide.
+The first-class way to enforce them is **[Controller-Bound Tokens](./Controller_Bound_Tokens.md)**:
+a token binds a controller contract (via `ISSUE` v6) whose `guard` the indexer runs when
+the token is listed for sale. The guard returns a basis-point split (`payoutLegs`) that
+the indexer records on the order and applies to the seller's proceeds at each DEX match —
+the creator's cut plus the seller's remainder, conserved exactly. Because the indexer is
+the only settlement path and the same controller can also gate plain `SEND`s, the rule
+**cannot be routed around** — yet it needs no custody: the token stays natively held and
+natively tradeable. The binding is opt-in per token, not imposed platform-wide.
+
+Creators who prefer a custody model can instead implement royalties in an ordinary
+**marketplace contract** that takes custody via [`DEPOSIT`](./actions/DEPOSIT.md)/[`WITHDRAW`](./actions/WITHDRAW.md)
+and enforces any fee split in contract logic — opt-in per collection, at the cost of the
+contract holding the token.
 
 ---
 
