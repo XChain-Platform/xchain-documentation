@@ -96,80 +96,17 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
 
 ## Worked example — enforced NFT royalty
 
-A complete, runnable royalty controller lives at
-[`xchain-vm/test/e2e/contracts/royalty_controller.js`](../../xchain-vm/test/e2e/contracts/royalty_controller.js).
-It taxes **sales only** — a fixed basis-points cut out of the proceeds, creator
-gets the cut, seller gets the rest — and lets gifts, wallet moves, and listings
-through free. The full `guard` method:
-
-```javascript
-// guard(action_type, from, to, tick, amount, price, proceeds_tick)
-guard: function(xchain) {
-    var actionType   = xchain.getInputParam(0);
-    var from         = xchain.getInputParam(1); // seller
-    var price        = xchain.getInputParam(5); // proceeds amount ('' if not a sale)
-    var proceedsTick = xchain.getInputParam(6); // proceeds tick ('' if not a sale)
-
-    // Tax sales only; SEND + the create-side listing gates pass free.
-    var isSale = actionType === 'ORDER_MATCH'
-              || actionType === 'SWAP_MATCH'
-              || actionType === 'DISPENSE';
-    if (!isSale) return;                                   // ALLOW, untaxed
-
-    // Native-coin (COINPay) proceeds carry no on-ledger amount to route.
-    if (!proceedsTick || !price || xchain.math.lte(price, '0')) return;
-
-    // Proceeds were credited to this controller; forward 100% back out.
-    var self = xchain.getContractAddress();
-    xchain.require(
-        xchain.math.gte(xchain.getBalance(self, proceedsTick) || '0', price),
-        'proceeds not routed');
-
-    var bps = xchain.state.get('bps') || '0';
-
-    // cut = floor(price * bps / 10000), exact via mod-remainder so that
-    // cut + toSeller == price and the host conservation check passes.
-    var scaled   = xchain.math.multiply(price, bps);
-    var dust     = xchain.math.mod(scaled, '10000');
-    var cut      = xchain.math.divide(xchain.math.subtract(scaled, dust), '10000');
-    var toSeller = xchain.math.subtract(price, cut);
-
-    if (xchain.math.gt(cut, '0'))
-        xchain.emit.send({ destination: xchain.state.get('creator'),
-                           tick: proceedsTick, quantity: cut });
-    if (xchain.math.gt(toSeller, '0'))
-        xchain.emit.send({ destination: from,
-                           tick: proceedsTick, quantity: toSeller });
-    // return => ALLOW
-}
-```
-
-Lifecycle:
-
-1. Creator **deploys** the contract, then **`EXECUTE`s** `initialize(creator, bps)`
-   once (e.g. `bps = '1000'` for 10%). It stores `creator`, `bps`, and a
-   `paidTotal` bookkeeping counter; a `getStats` view reads them back.
-2. Creator **issues** the NFT with `CONTROLLER = <that contract's action_index>`
-   and `LOCK_CONTROLLER = 1`, so holders can trust the royalty is permanent.
-3. A buyer fills the seller's `ORDER` for the NFT at 100 XCHAIN. Before settling,
-   the indexer credits the 100 XCHAIN proceeds to the controller's derived
-   address and runs `guard('ORDER_MATCH', seller, buyer, NFT, '1', '100',
-   'XCHAIN')`. The guard floors a 10% cut (`floor(100*1000/10000) = 10`),
-   `emit.send`s 10 to the creator and 90 to the seller, and returns. The
-   post-guard conservation check sees the controller's net XCHAIN balance back at
-   its starting value and lets the match settle.
+1. Creator deploys a royalty controller exporting `guard` and a small bookkeeping
+   API, then issues an NFT with `CONTROLLER = <that contract>` and
+   `LOCK_CONTROLLER = 1`.
+2. A buyer fills the seller's `ORDER` for the NFT at 100 XCHAIN.
+3. Before settling, the indexer runs `guard('ORDER_MATCH', seller, buyer, NFT,
+   '1', '100', 'XCHAIN')`. The guard computes a 10% cut and arranges for 10
+   XCHAIN to reach the creator and 90 to reach the seller (proceeds routing —
+   see below), or reverts if the trade does not satisfy its policy.
 4. A plain `SEND` of the NFT (a gift, a wallet move) calls
-   `guard('SEND', from, to, NFT, '1', '', '')`; `isSale` is false so the guard
-   returns immediately — free transfer, no cut.
-
-**Why mod-remainder, not plain division?** `divide(price, '10')` on a price like
-`1` would yield a clean `0.1`, but a price like `1/3`-shaped value can produce a
-non-terminating decimal that mathjs rounds — making `cut + toSeller ≠ price` and
-tripping the conservation check (the controller would strand or over-forward
-dust). Computing `cut` as `(scaled − (scaled mod 10000)) / 10000` keeps the
-dividend an exact multiple of 10000, so the division terminates and the split is
-penny-exact. The flip side is that sub-unit trades floor to a zero cut — a
-deliberate, deterministic rounding-down in the creator's disfavour.
+   `guard('SEND', from, to, NFT, '1', '', '')` — the guard can allow free
+   transfers while only taxing sales.
 
 ## Implementation status
 
