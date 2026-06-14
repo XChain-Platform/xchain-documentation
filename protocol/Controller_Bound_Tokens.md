@@ -101,6 +101,43 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
   (`controller_guard_<actionIndex>_<controller>_<seq>`); any emission failure
   rolls the whole guard back and denies — the same atomicity model as `EXECUTE`.
 
+## Permissions manifest
+
+A contract may **declare its own blast-radius bound** at deploy time by exporting a
+manifest alongside its methods:
+
+```js
+module.exports = {
+    permissions: ['SEND', 'ISSUE'],   // the ONLY action types this contract may emit
+    maxTakeBps: 250,                  // a tighter royalty cap than the global default
+    guard: function () { /* … */ }
+};
+```
+
+Both fields are optional. The indexer reads them **deterministically at deploy** by
+instantiating the contract's module top-level (no method runs), so the manifest is
+captured even for a contract that exports no constructor. The values are **immutable**
+(contract code is immutable) and persisted to the `contract_permissions` table; all
+enforcement reads that persisted row.
+
+- **`permissions` — emission allowlist.** Every action a contract emits, from **any**
+  path (its constructor, an `EXECUTE`, or a `guard`), must be a member of this array,
+  or the emission is rejected fail-closed (the host action is denied / reverted). This
+  is the contract-wide analogue of the cross-chain `crossCallable` allowlist.
+  - Absent ⇒ **unrestricted** (the backward-compatible default — most contracts).
+  - `[]` ⇒ the contract may emit **nothing**.
+  - This is in addition to the standing guard rule that no guard may emit
+    `ATTEST` / `XCALL` / `SLASH`.
+- **`maxTakeBps` — tighter royalty cap.** An integer in `[0, 10000]`. The effective
+  proceeds-split cap for this contract's `trade` guard becomes
+  `min(CONTROLLER_MAX_TAKE_BPS, maxTakeBps)` — a contract can voluntarily cap its own
+  take below the global ceiling but can never exceed it. Absent ⇒ the global cap applies.
+
+A **malformed manifest** — `permissions` not an array of action-type strings, or
+`maxTakeBps` not an integer in range — **rejects the `DEPLOY`** (`invalid:
+CONTRACT_MANIFEST (…)`) rather than silently degrading to unrestricted. The decision is
+deterministic and hashes into the contract's status, so every validator agrees.
+
 ## Account (address) controllers
 
 Controllers also bind to **accounts**, not just tokens — the same guard framework with the
@@ -149,6 +186,7 @@ them travel with the *account*.
 | `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` guard (listing gate + `payoutLegs`, + gas) | **Implemented** |
 | Sale-path proceeds split — `payout_legs` stored at create, `applyProceedsSplit` at match | **Implemented** |
 | Account (address) controllers — ADDRESS v1 bind, recipient-side `SEND` gate (`address_controllers`) | **Implemented** |
+| Permissions manifest — deploy-time `permissions` allowlist (all emission paths) + per-contract `maxTakeBps` (`contract_permissions`) | **Implemented** |
 
 ## Proceeds split (royalty / fee `payout_legs`)
 
@@ -158,8 +196,10 @@ returning `{ payoutLegs: [ { to: <address>, bps: <int> }, … ] }` from its `gua
 runs at match** — which keeps the system-triggered fill path deterministic and gas-free.
 
 1. **At create** (`ORDER_CREATE` / `SWAP_CREATE`): the indexer validates each leg (`to` a
-   valid address, `bps` a non-negative integer, total `bps` ≤ `CONTROLLER_MAX_TAKE_BPS`,
-   default `10000`) and stores the legs as JSON on `orders.payout_legs` /
+   valid address, `bps` a non-negative integer, total `bps` ≤ the effective cap
+   `min(CONTROLLER_MAX_TAKE_BPS, contract maxTakeBps)` — global default `10000`, optionally
+   tightened by the contract's [permissions manifest](#permissions-manifest)) and stores the
+   legs as JSON on `orders.payout_legs` /
    `swaps.payout_legs`. A malformed or over-cap set **denies** the listing (fail-closed).
    No `payoutLegs` ⇒ NULL (an ordinary order).
 2. **At match**: `Utility.applyProceedsSplit(tick, proceeds, seller, legs, decimals, cap)`
@@ -177,6 +217,8 @@ transfer ownership rather than a balance, so no proceeds split applies to that l
 ## Touched components
 
 `xchain-indexer` (ISSUE v6 + `token_controllers`, ADDRESS v1 + `address_controllers`, guard
-engine, create-side `payout_legs` + match-side `applyProceedsSplit`, SEND/transfer wiring), `xchain-vm`
-(guard-restricted emission mode). `xchain-encoder` and `xchain-decoder` need no changes —
-the encoder is a generic payload builder and the decoder stores the wire string verbatim.
+engine, create-side `payout_legs` + match-side `applyProceedsSplit`, SEND/transfer wiring,
+deploy-time manifest capture + `contract_permissions` + `processEmission` allowlist enforcement),
+`xchain-vm` (guard-restricted emission mode, `readManifest` deploy-time introspection).
+`xchain-encoder` and `xchain-decoder` need no changes — the encoder is a generic payload builder
+and the decoder stores the wire string verbatim.

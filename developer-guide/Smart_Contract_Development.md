@@ -449,6 +449,23 @@ This allowlist is the security boundary: the federation's signed dispatch can on
 
 Protocol details: `protocol/Cross_Chain_Calls.md` and `protocol/actions/XCALL.md`.
 
+## Declaring a permissions manifest
+
+A contract can **bound what it is allowed to do** by exporting a manifest. The indexer reads it once at deploy time and enforces it for the life of the contract — a useful trust signal for anyone depositing into or binding a token to your contract.
+
+```javascript
+module.exports = {
+    permissions: ['SEND', 'ISSUE'],   // this contract will ONLY ever emit these action types
+    maxTakeBps: 250,                  // and never take more than 2.5% as a controller royalty
+    // ... your methods (initialize, guard, etc.)
+};
+```
+
+- **`permissions`** is an allowlist of the action types your contract may emit — from its constructor, an `EXECUTE`, or a controller `guard`. Emit anything outside it and that action is denied (fail-closed). Omit it to stay unrestricted; set `[]` to promise the contract emits nothing. (This is the contract-wide companion to `crossCallable`, which gates *incoming* cross-chain calls.)
+- **`maxTakeBps`** caps the royalty/fee a `guard` of yours can take from a sale to `min(global cap, maxTakeBps)`. Omit it to use the global cap.
+
+Declare only what you actually use — an honest, tight manifest is what reviewers and wallets surface to users. A malformed manifest (wrong types / out of range) **rejects the deploy**, and the manifest is immutable afterward. See `protocol/actions/DEPLOY.md` and `protocol/Controller_Bound_Tokens.md`.
+
 ## Limitations
 
 - **No synchronous cross-contract calls** — `emit.execute()` is deferred and returns no value. A callee that must respond calls back via its own `emit.execute`.

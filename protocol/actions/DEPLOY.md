@@ -67,6 +67,12 @@ to a specific recipient address (not BURN)
   - The caller pays the combined gas even on constructor failure
 - A **derived address** is created for the contract in the format `C:<CHAIN>:<ACTION_INDEX>` (e.g., `C:BTC:500`). This address participates in the standard balance system for token custody via DEPOSIT/WITHDRAW.
 
+### Permissions manifest (optional)
+- A contract may export a **permissions manifest** alongside its methods to declare its own bound; the indexer reads it deterministically at deploy time (by instantiating the module top-level — no method runs, so it works even without a constructor) and persists it to the `contract_permissions` table. Both fields are optional:
+  - `permissions` — an array of action-type strings (e.g. `['SEND','ISSUE']`). The contract may emit **only** these action types, on **every** path (constructor, `EXECUTE`, or controller `guard`); any other emission is rejected fail-closed. Absent ⇒ unrestricted (the default); `[]` ⇒ the contract may emit nothing.
+  - `maxTakeBps` — an integer in `[0, 10000]` that **tightens** this contract's controller royalty cap to `min(CONTROLLER_MAX_TAKE_BPS, maxTakeBps)`. Absent ⇒ the global cap applies. See [Controller-Bound Tokens](../Controller_Bound_Tokens.md#permissions-manifest).
+- A **malformed manifest** (`permissions` not an array of strings, or `maxTakeBps` not an integer in range) rejects the deployment with `invalid: CONTRACT_MANIFEST (<reason>)`. The manifest is **immutable** after deployment (the code is immutable).
+
 ### Stakeable contracts (v1 staking fields)
 - `COOLDOWN_BLOCKS` must be an integer in `[1, 100000]`. Sets the unstaking cooldown for STAKE v3 actions against this contract (overrides the global `STAKING.COOLDOWN_BLOCKS` for v3 unstakes on this contract).
 - `SLASH_DESTINATION` accepts either an address (must be valid on the deploying chain) or the literal sentinel `BURN`. The sentinel resolves to the chain's configured burn address.
