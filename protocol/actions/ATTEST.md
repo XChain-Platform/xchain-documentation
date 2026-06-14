@@ -15,7 +15,7 @@ For the full design see `claude/reports/specs/2026-05-24_external-attestation-fr
 | Name                   | Type    | Versions | Description                                                              |
 | ---------------------- | ------- | -------- | ------------------------------------------------------------------------ |
 | `VERSION`              | Integer | all      | Format version (0=request, 1=response, 2=expire)                         |
-| `REQUEST_ID`           | String  | all      | 64-hex SHA-256 over `tx_hash ‖ contract_index ‖ emitter_position`        |
+| `REQUEST_ID`           | String  | all      | 64-hex SHA-256 over `tx_hash ‖ action_index ‖ contract_index ‖ emitter_position`        |
 | `PROVIDER_ID`          | String  | 0, 1     | Governance-registered provider (`http_get`, `llm`, …)                    |
 | `REQUEST_PAYLOAD`      | String  | 0        | Provider-specific payload (URL for `http_get`, JSON envelope for `llm`)  |
 | `CALLBACK_METHOD`      | String  | 0        | Contract method to invoke on response (≤64 chars)                        |
@@ -83,7 +83,7 @@ Where `sha256(response_payload)` is the lowercase hex digest of the **raw respon
 - `REQUEST_PAYLOAD` size must be ≤ provider's `max_request_bytes`.
 - `DEADLINE_BLOCKS` must be `> 0` and `≤` provider's `deadline_window_blocks`.
 - `CONTRACT_INDEX` (carried via `EMITTER`) must reference an existing contract.
-- `REQUEST_ID` is verified by re-deriving from `tx_hash ‖ contract_index ‖ emitter_position` (defends against compromised VM).
+- `REQUEST_ID` is verified by re-deriving from `tx_hash ‖ action_index ‖ contract_index ‖ emitter_position` (defends against compromised VM).
 
 #### Fee fields (v0, optional)
 - `FEE_TICK`, when present, must equal the GAS tick (XCHAIN) — `invalid: FEE_TICK (only XCHAIN accepted)` otherwise. Arbitrary fee ticks are a post-launch rule loosening; the wire carries the tick now so no future format change is needed.

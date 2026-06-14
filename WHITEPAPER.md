@@ -359,7 +359,7 @@ Most contract platforms can only reason about on-chain data. XChain contracts ca
 
 ### 8.2 Wire lifecycle
 
-- **v0 (request, VM-emitted only):** `request_id` is the SHA-256 of `tx_hash ‖ contract_index ‖ emitter_position` (the indexer re-derives it to defend against a compromised VM). Carries provider id, payload, callback method/params, redundancy, and deadline. A user-broadcast v0 is rejected.
+- **v0 (request, VM-emitted only):** `request_id` is the SHA-256 of `tx_hash ‖ action_index ‖ contract_index ‖ emitter_position` (the indexer re-derives it to defend against a compromised VM). Carries provider id, payload, callback method/params, redundancy, and deadline. A user-broadcast v0 is rejected.
 - **v1 (response, validator-broadcast):** carries the response payload, a status (`ok`/`timeout`/`no_quorum`/`provider_error`/`expired`), provider metadata, and `(pubkey, signature)` pairs. The canonical signing message is `request_id ‖ provider_id ‖ sha256(response_payload) ‖ status ‖ meta`. Signers are checked against the `attestation` capability snapshot **at the request's block**, so every node computes the same eligible set. The valid signature count must meet the requested redundancy. Terminal statuses fire the callback; retryable statuses leave the request pending.
 - **v2 (expiry, system-synthesized):** the per-block expiry pipeline flips any past-deadline pending request to expired and fires the callback with an expired status.
 
