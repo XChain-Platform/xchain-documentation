@@ -101,6 +101,29 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
   (`controller_guard_<actionIndex>_<controller>_<seq>`); any emission failure
   rolls the whole guard back and denies — the same atomicity model as `EXECUTE`.
 
+## Account (address) controllers
+
+Controllers also bind to **accounts**, not just tokens — the same guard framework with the
+address as the subject. An account self-gates one action class via the
+[`ADDRESS`](actions/ADDRESS.md) action, **version 1**:
+`VERSION|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO`.
+
+- The binding is **self-signed** (`SOURCE` is the account gating itself) and lives in the
+  append-only `address_controllers` table with the same per-class, cooldown/unbind, fail-closed
+  semantics as token bindings.
+- The guard runs with the same [ABI](#the-guard-abi), gas rules, and determinism guarantees;
+  the subject is the account and `tick` is the token in motion.
+
+**What it gates today:** the recipient side of a direct `SEND`. After the token's own
+`transfer` guard, the **destination's** `transfer` address-controller runs and may `revert` to
+refuse an unsolicited incoming transfer (spam / compliance). `SOURCE` pays the guard gas, and
+the two reservations (token guard + address guard) are cumulative so `GAS` can't be driven
+negative. DEX and dispenser deliveries are *solicited pulls*, not direct sends, so they are
+never gated this way.
+
+Where a token controller makes the rules travel with the *asset*, an address controller makes
+them travel with the *account*.
+
 ## Worked example — enforced NFT royalty
 
 1. Creator deploys a controller whose `guard` returns a royalty split, issues the NFT,
@@ -125,6 +148,7 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
 | `SEND` guarded (transfer class: veto + programmable side-effects + gas) | **Implemented** |
 | `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` guard (listing gate + `payoutLegs`, + gas) | **Implemented** |
 | Sale-path proceeds split — `payout_legs` stored at create, `applyProceedsSplit` at match | **Implemented** |
+| Account (address) controllers — ADDRESS v1 bind, recipient-side `SEND` gate (`address_controllers`) | **Implemented** |
 
 ## Proceeds split (royalty / fee `payout_legs`)
 
@@ -152,7 +176,7 @@ transfer ownership rather than a balance, so no proceeds split applies to that l
 
 ## Touched components
 
-`xchain-indexer` (ISSUE v6 binding + `token_controllers`, guard engine, create-side
-`payout_legs` + match-side `applyProceedsSplit`, SEND/transfer wiring), `xchain-vm`
+`xchain-indexer` (ISSUE v6 + `token_controllers`, ADDRESS v1 + `address_controllers`, guard
+engine, create-side `payout_legs` + match-side `applyProceedsSplit`, SEND/transfer wiring), `xchain-vm`
 (guard-restricted emission mode). `xchain-encoder` and `xchain-decoder` need no changes —
 the encoder is a generic payload builder and the decoder stores the wire string verbatim.
