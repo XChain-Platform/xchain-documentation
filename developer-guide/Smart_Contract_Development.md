@@ -11,6 +11,28 @@ This guide covers writing, deploying, and interacting with smart contracts on th
 - Access to an encoder service (to broadcast transactions)
 - Familiarity with JavaScript (ES2020)
 
+## Start from a template
+
+You don't have to start from a blank file. The `xchain-contracts` library ships audited, deploy-ready templates (escrow, vesting, crowdsale, AMM) and reusable patterns (access control, pausable, safe-transfer, input validation, state machines). The flow is **scaffold → customize → lint → deploy**.
+
+From the command line:
+
+```bash
+npx xchain-contracts list                          # see available templates + patterns
+npx xchain-contracts scaffold escrow my-escrow.js  # write a template to customize
+npx xchain-contracts lint my-escrow.js             # exact deploy-time validation (Node 22)
+```
+
+Or programmatically from the SDK (browser-safe, no Node-22 requirement):
+
+```javascript
+const source = sdk.scaffold('escrow');        // the template source, ready to edit
+const names  = sdk.listTemplates();           // { templates: [...], patterns: [...] }
+const result = sdk.validateContract(source);  // advisory lint before you spend a tx
+```
+
+The templates are worked examples of the custody model below; the patterns are top-level helper functions you paste into your own contract. See [`xchain-contracts`](https://github.com/XChain-Platform/xchain-contracts) for the full library and the per-template walkthroughs.
+
 ## Writing a Contract
 
 Contracts are plain JavaScript files that export either a function or an object with named methods. Every method receives the `xchain` gateway object as its sole argument.
