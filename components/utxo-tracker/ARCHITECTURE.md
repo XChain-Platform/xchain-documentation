@@ -185,7 +185,7 @@ The `mempoolBusy` flag prevents concurrent mempool updates.
 For new deployments, syncing from block 0 can take a long time. The tracker supports:
 
 - **Backup** (`getbootstrap`): Creates a compressed tar+gzip archive of the LevelDB data directory using `tar`, `pv` (for progress), and `pigz` (parallel gzip). Original size stored in the gzip comment for progress reporting.
-- **Restore** (`restorebootstrap`): Decompresses an archive back into the data directory. The tracker verifies the snapshot tip and resumes normal polling from that height.
+- **Restore** (`restorebootstrap`): Decompresses an archive back into the data directory, then resumes normal polling from the restored height. Tip continuity is checked lazily by the reorg path on the next block, not eagerly at restore time.
 
 Both operations run as background tasks tracked by UUID, with progress queryable via `getbootstrapstatus` / `getbootstraprestorestatus`.
 

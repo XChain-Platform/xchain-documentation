@@ -546,7 +546,6 @@ Per-IP connection limit: `WS_MAX_PER_IP` (default: 3).
     "blocks": [ ... ],
     "transactions": [ ... ],
     "transaction_outputs": [ ... ],
-    "dispensers": [ ... ],
     "index_addresses": [ ... ],
     "index_transactions": [ ... ],
     "pubkeys": [ ... ],
@@ -628,7 +627,7 @@ The decoder DB contains 9 tables. xchain-sync replicates 8 of them:
 | `blocks` | Yes | Block-scoped |
 | `transactions` | Yes | Block-scoped |
 | `transaction_outputs` | Yes | TX-scoped |
-| `dispensers` | Yes | TX-scoped |
+| `dispensers` | Yes (snapshot only) | Excluded from the per-block stream — the decoder prunes expired dispensers each block with a count-reducing DELETE that streaming inserts can't represent, so it converges via the full snapshot instead |
 | `index_addresses` | Yes | Append-only index |
 | `index_transactions` | Yes | Append-only index |
 | `pubkeys` | Yes | Append-only index |

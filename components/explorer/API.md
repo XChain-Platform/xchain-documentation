@@ -1265,11 +1265,11 @@ Proxied to the colocated indexer's `feequote` / `feeschedule` JSON-RPC. Returns 
 ### Price and Price Snapshots
 
 ```
-GET /{COIN}/api/price/{query}/{type}
+GET /{COIN}/api/prices/{query}/{type}
 GET /{COIN}/api/price_snapshots/{query}/{type}
 ```
 
-Live and historical PRICE v0 oracle snapshots (PBFT-signed). `type` values: `pair`, `round`, `status`.
+USD-denominated prices and the raw PRICE v0 oracle snapshots (PBFT-signed) behind them. `prices` `type` values: `block`, `address`, `source`, `token`. `price_snapshots` `type` values: `pair`, `round`, `status`.
 
 ---
 

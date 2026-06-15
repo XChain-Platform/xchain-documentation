@@ -35,7 +35,7 @@ Every encode call follows the same sequence regardless of format:
    - IV: next 16 hex characters of the txid (8 bytes)
 3. **Select format** — the encoder picks the most efficient encoding format based on the obfuscated payload length (see [Format Selection](Format_Selection.md))
 4. **Build transaction** — inputs are selected from the provided UTXOs, outputs are constructed per the chosen format, fees are calculated, and a change output is added if needed
-5. **Return PSBT** — the unsigned PSBT is returned to the caller in base64 format
+5. **Return PSBT** — the unsigned PSBT is returned to the caller in hex format
 
 ## Encoding Formats
 

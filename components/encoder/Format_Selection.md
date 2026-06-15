@@ -90,7 +90,7 @@ Multisig is a single-transaction format chosen for medium payloads slightly larg
 
 ## Automatic Selection
 
-The encoder measures the obfuscated payload length and selects the appropriate format without any input from the caller. Pass the ACTION string and UTXOs; the encoder handles the rest. If you need to inspect which format was chosen, the encode response includes a `format` field.
+The encoder measures the obfuscated payload length and selects the appropriate format without any input from the caller. Pass the ACTION string and UTXOs; the encoder handles the rest. If you need to inspect which format was chosen, the encode response includes an `encoding` field.
 
 ## Related
 

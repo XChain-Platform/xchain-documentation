@@ -106,11 +106,25 @@ checkAllEnvironmentalVariables()
 The suite provides a Dockerfile for containerized execution:
 
 ```dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
+# Node 22 exactly (bookworm, not alpine): node:latest = Node 24+ can't build
+# isolated-vm, and alpine's musl breaks native addon builds.
+FROM node:22-bookworm
+
+RUN mkdir /XChainE2ETest/
+# xchain-hub and xchain-sdk are staged into the build context by xchain-node's
+# install path (LIBRARY_BUNDLES); both must precede the package.json COPY so
+# `npm ci` can resolve their file: deps inside the image.
+COPY ./xchain-hub /XChainE2ETest/xchain-hub
+COPY ./xchain-sdk /XChainE2ETest/xchain-sdk
+COPY ./package.json /XChainE2ETest/package.json
+COPY ./package-lock.json /XChainE2ETest/package-lock.json
+WORKDIR /XChainE2ETest
+RUN npm ci
+
+COPY ./src /XChainE2ETest/src
+COPY ./test /XChainE2ETest/test
+
+# .env is NOT copied in — pass credentials via `docker run --env-file` at runtime.
 CMD ["npm", "test"]
 ```
 

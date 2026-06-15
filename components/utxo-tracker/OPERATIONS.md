@@ -47,7 +47,7 @@ The tracker exposes both REST and JSON-RPC interfaces.
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/utxos/:address` | Returns an array of UTXOs for the given address |
-| `GET` | `/oldesttx/:address` | Returns the oldest transaction for the given address |
+| `GET` | `/firstseen/:address` | Returns the oldest (first-seen) transaction for the given address |
 | `GET` | `/balance/:address` | Returns the confirmed balance as a number (in coin units, not satoshis) |
 | `GET` | `/info/:address` | Returns comprehensive balance info (confirmed, pending, received, UTXO counts) |
 
@@ -118,7 +118,7 @@ All JSON-RPC requests are sent as POST to `/` with standard JSON-RPC 2.0 format.
 |---|---|---|
 | `ping` | None | Health check — returns `{"status": "success"}` |
 | `get_utxos` | `{"address": "string"}` | Returns UTXOs for an address |
-| `get_oldest_tx` | `{"address": "string"}` | Returns the oldest transaction for an address |
+| `get_first_seen` | `{"address": "string"}` | Returns the oldest (first-seen) transaction for an address |
 | `get_balance` | `{"address": "string"}` | Returns the confirmed balance |
 | `get_info` | `{"address": "string"}` | Returns full balance info (confirmed, pending, received, UTXO counts) |
 | `get_input_from_key_pattern` | `{"pattern": "string"}` | Raw LevelDB key prefix scan (pattern must be at least 32 characters) |
