@@ -11,7 +11,7 @@ This action deploys a smart contract to the XChain VM. Two formats:
 | Name                  | Type    | Description                                                                |
 | --------------------- | ------- | -------------------------------------------------------------------------- |
 | `VERSION`             | String  | Format Version (0 = standard, 1 = stakeable, 2 = chunked, 3 = chunked + stakeable) |
-| `CODE_ENCODING`       | String  | v0/v1 only — Base64-encoded UTF-8 contract source code (base64's alphabet has no `\|`, so it is safe in the pipe-delimited action string; 1.33× the source vs hex's 2×) |
+| `CODE_ENCODING`       | String  | v0/v1 only — UTF-8 contract source code, **base64-encoded at/after the `DEPLOY_BASE64_CODE` activation, hex-encoded before it** (see [Encoding activation](#encoding-activation)). base64's alphabet has no `\|`, so it is safe in the pipe-delimited action string; 1.33× the source vs hex's 2× |
 | `CODE_HASH`           | String  | v2/v3 only — sha256 hex of the assembled UTF-8 source. The code itself is carried by separate [`DEPLOYCHUNK`](./DEPLOYCHUNK.md) actions and reassembled by the indexer; `CODE_HASH` is both the chunk-group id and the integrity check. |
 | `GAS_LIMIT`           | Integer | Maximum gas units allowed for deployment                                   |
 | `CONSTRUCTOR_PARAMS`  | String  | Optional constructor parameters (pipe-delimited in v0; single field in v1) |
@@ -96,9 +96,20 @@ to a specific recipient address (not BURN)
 - **Reorg/recovery:** because a DEPLOY only ever consumes chunks at a lower action index, any reorg that removes a chunk also removes the dependent DEPLOY (and its contract) via the standard action-index rollback — no bespoke logic. The code is fully on-chain in the `DEPLOYCHUNK` actions, so a from-scratch chain re-parse reconstructs the contract with **no ANCHOR change**.
 - The SDK (`sdk.deployContract`) auto-selects: it deploys inline (v0/v1) when `base64(code)` fits one action, else uploads the slices and assembles via v2/v3.
 
+## Encoding activation
+
+The inline `CODE_ENCODING` field (v0/v1) was originally **hex-encoded** and later changed to **base64** (1.33× the source vs hex's 2×, lifting the single-action contract-size ceiling). To keep the change consensus-safe, the format is gated behind the `DEPLOY_BASE64_CODE` protocol activation rather than flipped unconditionally:
+
+- **Before the activation** the indexer decodes `CODE_ENCODING` as **hex** (`Buffer.from(field, 'hex')`).
+- **At/after the activation** it decodes as **base64** (`Buffer.from(field, 'base64')`, round-tripped to reject non-canonical input).
+
+This makes every historical inline DEPLOY decode identically across node versions and on a from-genesis re-parse, so its `code_hash` — and therefore the per-block contract hash and the federation checkpoint preimage — is stable.
+
+The activation is keyed on **block time** (a single coordinated flag-day), not block height, because DEPLOY runs on BTC, LTC and DOGE, whose heights diverge by millions of blocks; one timestamp names the same cutover on all three chains. testnet/regtest activate at genesis (base64-native). The mainnet flag-day must be aligned with the SDK's base64 rollout — the SDK emits the matching encoding for the target block so an inline DEPLOY is always decoded on the side of the gate it was encoded for. Chunked (v2/v3) `DEPLOYCHUNK` slices are base64 from genesis and are unaffected.
+
 ## Notes
 - The deployed contract is assigned an action index derived from the transaction that contains this action
-- `CODE_ENCODING` (v0/v1) is base64-encoded UTF-8 — decode with `Buffer.from(b64, 'base64').toString('utf8')`
+- `CODE_ENCODING` (v0/v1) is base64-encoded UTF-8 at/after the `DEPLOY_BASE64_CODE` activation (hex before it) — decode the active format with `Buffer.from(field, 'base64'|'hex').toString('utf8')`
 - The `contracts` table stores the decoded plain-text JavaScript, not the base64 encoding
 - The `api_version` field (default 1) determines which gateway API version the contract targets
 - Use `EXECUTE` to call methods on a deployed contract
