@@ -130,7 +130,7 @@ Indexer replica databases use the same full schema as the authoritative indexer.
 - **Lifecycle**: `order_matches`, `order_expires`, `order_edits`, `order_cancels`, `order_statuses`, `swap_matches`, `swap_expires`, `swap_edits`, `swap_cancels`, `swap_statuses`, `dispenser_closes`, `dispenser_expires`, `dispenser_edits`, `dispenser_cancels`, `dispenser_statuses`, `dispenses`
 - **COINPay**: `coinpays`, `coinpay_obligations`, `coinpay_expires`, `coinpay_statuses`
 - **Staking**: `stakes`, `unstakes`, `delegations`, `validator_rewards`, `reward_claims`
-- **VM**: `contracts`, `contract_state`, `contract_executions`, `contract_emissions`, `contract_balances`, `deposits`, `withdrawals`
+- **VM**: `contracts`, `contract_state`, `contract_executions`, `contract_emissions`, `deposits`, `withdrawals`
 - **Mapping**: `mappings_actions`, `mappings_files`
 - **Other**: `addresses`, `markets`, `events`, `list_edits`, `list_items`, `list_items_invalid`
 

@@ -50,7 +50,7 @@ Captures all smart contract activity in the block.
 
 **Note on contract_state:** Only the **final value** of each key written in the block is included in the hash. If a contract writes to the same key multiple times in one block, only the last write matters. This makes the hash independent of whether historical state rows have been pruned.
 
-**Not included:** `contract_balances` is excluded because it is a derived table (rebuilt from deposits and withdrawals). Including derived data would risk hash divergence if recalculation timing differs between indexers.
+**Not included:** Derived aggregates are not hashed. Contract custody lives in the standard `balances` table (keyed by the contract's derived address `C:<CHAIN>:<action_index>`) and is recomputed from `deposits`/`withdrawals` — which **are** hashed above. Hashing the derived balances directly would risk divergence if recalculation timing differs between indexers.
 
 ## How Hashes Are Calculated
 
