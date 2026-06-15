@@ -97,23 +97,50 @@ const XCALL_MAX_RETURN_BYTES = 1024;
 // forward to the next block in hub-id order — never dropped.
 const XCALL_MAX_CALLS_PER_BLOCK = 25;
 
-// ── Chunked DEPLOY (DEPLOYCHUNK + DEPLOY v2/v3) ─────────────────────────────
+// ── Chunked DEPLOY (DEPLOY v4 carriers + DEPLOY v2/v3 assemble) ─────────────
 // A contract whose base64(code) exceeds the single-tx budget is split across
-// ordered DEPLOYCHUNK actions and reassembled by a DEPLOY v2/v3 keyed on the
-// CODE_HASH. Enforced by the indexer (deploy_chunk + deploy assembly) and the
-// SDK (chunkHelper splitter) in lockstep.
+// ordered DEPLOY v4 carrier actions and reassembled by a DEPLOY v2/v3 keyed on
+// the CODE_HASH. Enforced by the indexer (deploy_chunk + deploy assembly) and
+// the SDK (chunkHelper splitter) in lockstep.
 
 // Maximum number of chunks one DEPLOY may assemble. base64(MAX_CODE_SIZE) is
 // ~87.4 KB; at the conservative per-chunk part budget below that is ~12 chunks,
 // so 16 leaves headroom while bounding assembler work + chunk-table DoS.
 const MAX_DEPLOY_CHUNKS = 16;
 
-// Maximum bytes of base64 code carried by a single DEPLOYCHUNK's CODE_PART.
-// Sized so the compiled DEPLOYCHUNK action (action prefix + 64-char CODE_HASH +
+// Maximum bytes of base64 code carried by a single DEPLOY v4 carrier's CODE_PART.
+// Sized so the compiled v4 carrier action (action prefix + 64-char CODE_HASH +
 // indices + the part) stays comfortably under MAX_ACTION_DATA_LENGTH including
 // the OP_PUSHDATA2 prefix. The SDK splits at this size; the indexer rejects a
 // larger part (belt-and-suspenders — the decoder already drops oversize pushes).
 const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
+
+// ── Stake-weighted quorum (STAKE_WEIGHTED_QUORUM / WI-1) ────────────────────
+// Consensus-critical activation: at/above this BTC-anchored snapshot_block the
+// federation quorum becomes stake-WEIGHTED (signers' summed source stake must
+// exceed 2/3 of total active snapshot stake) instead of count-based (2f+1 of the
+// pubkey COUNT). Spec: claude/reports/2026-06-14_cross-chain-quorum-security-spec.md.
+//
+// Keyed on the BTC `snapshot_block` carried by every settlement/checkpoint
+// canonical — NOT each chain's local processing height — so the hub and the BTC,
+// LTC and DOGE indexers all flip on the SAME anchor. A per-chain local-height
+// gate would fork: one snapshot_block lands at different local heights per chain.
+// The `network` is also taken from the row, so the gate is env-independent.
+//
+// Enforced IDENTICALLY by the hub (every PBFT tally engine) and the indexer
+// (every settlement-signature gate + recovery). Both keep a local copy of this
+// map; the cross-service regression suite asserts they equal these values, so
+// the activation height can never silently diverge (a divergence forks the chain).
+//
+// mainnet is a PLACEHOLDER far-future height = DISABLED on mainnet until a
+// coordinated flag-day height is chosen (mainnet keeps the current count rule
+// until then — safe, no fork). testnet/regtest activate at genesis so the e2e /
+// regtest stack exercises stake-weighting from block 0.
+const STAKE_WEIGHTED_QUORUM_ACTIVATION = {
+    mainnet: 999999999,   // PLACEHOLDER — set the real BTC flag-day height before mainnet enable
+    testnet: 0,
+    regtest: 0,
+};
 
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
@@ -130,4 +157,5 @@ module.exports = {
     XCALL_MAX_DEADLINE_BLOCKS,
     XCALL_MAX_RETURN_BYTES,
     XCALL_MAX_CALLS_PER_BLOCK,
+    STAKE_WEIGHTED_QUORUM_ACTIVATION,
 };
