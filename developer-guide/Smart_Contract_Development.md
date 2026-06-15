@@ -196,6 +196,11 @@ if (!result.valid) console.error(result.errors);
 
 `sdk.validateContract` runs every check above **except** the V8 syntax check (step 1) — that one needs the VM's isolated runtime, so it only runs at deploy time or via the CLI. That's why the result is marked `authoritative: false`: a `valid: true` here means the contract clears the acorn-coverable rules, but the on-chain deploy (or the CLI below) has the final word on raw V8 syntax.
 
+Beyond the deploy-time rules above, the linter adds **logic-level** checks. None of them change what the chain accepts at deploy — they're author-facing signal to catch footguns early:
+
+- **`crossCallable` integrity** — a *non-array* `crossCallable` makes **every** cross-chain call to your contract fail at runtime (`XCALL_NOT_CALLABLE`). This is reported as a linter **error**: it fails `xchain-lint` and, by default, `sdk.deploy` (`{ lint: 'block' }`) — even though the chain itself would still accept the contract. A `crossCallable` entry that names no exported method is a **warning** (likely a typo; that method stays uncallable cross-chain).
+- **Warnings** (advisory, never block): structurally unbounded loops, bulk allocations, a `state.get(...)` result dereferenced without a null guard, and methods that read call inputs without any `require()` validation.
+
 `sdk.deploy(params, encoder, { lint })` runs this automatically. The default `lint: 'block'` **throws before building the transaction** if the contract has errors — so a guaranteed-to-fail deploy never reaches the chain. Pass `lint: 'warn'` to log and proceed, or `lint: 'off'` to skip. Chunked deploys (`sdk.deployContract`) lint the fully-assembled source once, before chunking.
 
 **CLI (authoritative — exact deploy parity, requires Node 22):**
