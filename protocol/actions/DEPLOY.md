@@ -2,21 +2,27 @@
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - DEPLOY
-This action deploys a smart contract to the XChain VM. Two formats:
+This action deploys a smart contract to the XChain VM. Five formats:
 
-- **v0 — standard deployment.** Non-stakeable.
-- **v1 — stakeable-contract deployment.** Adds `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` metadata so the contract can accept [STAKE](STAKE.md) v3 actions targeting it.
+- **v0 — standard deployment.** Inline code, non-stakeable.
+- **v1 — stakeable-contract deployment.** Inline code; adds `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` metadata so the contract can accept [STAKE](STAKE.md) v3 actions targeting it.
+- **v2 — chunked deployment.** Non-stakeable; the code is assembled from prior v4 carrier actions keyed on `CODE_HASH` instead of carried inline.
+- **v3 — chunked + stakeable.** v2 assembly plus the v1 staking fields.
+- **v4 — chunk carrier.** Carries one ordered base64 slice of a contract's source for a chunked (v2/v3) deployment. Runs no contract code.
 
 ## PARAMS
 | Name                  | Type    | Description                                                                |
 | --------------------- | ------- | -------------------------------------------------------------------------- |
-| `VERSION`             | String  | Format Version (0 = standard, 1 = stakeable, 2 = chunked, 3 = chunked + stakeable) |
+| `VERSION`             | String  | Format Version (0 = standard, 1 = stakeable, 2 = chunked, 3 = chunked + stakeable, 4 = chunk carrier) |
 | `CODE_ENCODING`       | String  | v0/v1 only — UTF-8 contract source code, **base64-encoded at/after the `DEPLOY_BASE64_CODE` activation, hex-encoded before it** (see [Encoding activation](#encoding-activation)). base64's alphabet has no `\|`, so it is safe in the pipe-delimited action string; 1.33× the source vs hex's 2× |
-| `CODE_HASH`           | String  | v2/v3 only — sha256 hex of the assembled UTF-8 source. The code itself is carried by separate [`DEPLOYCHUNK`](./DEPLOYCHUNK.md) actions and reassembled by the indexer; `CODE_HASH` is both the chunk-group id and the integrity check. |
-| `GAS_LIMIT`           | Integer | Maximum gas units allowed for deployment                                   |
-| `CONSTRUCTOR_PARAMS`  | String  | Optional constructor parameters (pipe-delimited in v0; single field in v1) |
-| `COOLDOWN_BLOCKS`     | Integer | v1 only — unstaking cooldown for STAKE v3 against this contract (1..100000) |
-| `SLASH_DESTINATION`   | String  | v1 only — address that receives slashed stake. Pass `BURN` to send to the chain's configured burn address. Optional — defaults to BURN if `COOLDOWN_BLOCKS` is set without a destination. |
+| `CODE_HASH`           | String  | v2/v3/v4 — sha256 hex of the assembled UTF-8 source. The code itself is carried by separate v4 carrier actions and reassembled by the indexer; `CODE_HASH` is both the chunk-group id and the integrity check. |
+| `GAS_LIMIT`           | Integer | v0–v3 — maximum gas units allowed for deployment (not used by v4)          |
+| `CONSTRUCTOR_PARAMS`  | String  | v0–v3 — optional constructor parameters (pipe-delimited in v0/v2; single field in v1/v3) |
+| `COOLDOWN_BLOCKS`     | Integer | v1/v3 only — unstaking cooldown for STAKE v3 against this contract (1..100000) |
+| `SLASH_DESTINATION`   | String  | v1/v3 only — address that receives slashed stake. Pass `BURN` to send to the chain's configured burn address. Optional — defaults to BURN if `COOLDOWN_BLOCKS` is set without a destination. |
+| `CHUNK_INDEX`         | Integer | v4 only — 0-based position of this slice within the group                  |
+| `TOTAL_CHUNKS`        | Integer | v4 only — declared number of slices in the group (`1..MAX_DEPLOY_CHUNKS`)  |
+| `CODE_PART`           | String  | v4 only — one base64 slice of `base64(code)`. Plain concatenation of all parts in `CHUNK_INDEX` order restores `base64(code)` exactly, so slices need not be 4-char aligned. |
 
 ## Formats
 
@@ -29,11 +35,15 @@ This action deploys a smart contract to the XChain VM. Two formats:
 
 ### Version `2` — Chunked (non-stakeable)
 - `VERSION|CODE_HASH|GAS_LIMIT|CONSTRUCTOR_PARAMS`
-- For contracts whose base64 source exceeds the single-action size cap (`MAX_ACTION_DATA_LENGTH`). The source is uploaded first as one or more [`DEPLOYCHUNK`](./DEPLOYCHUNK.md) actions; this DEPLOY then assembles them by `CODE_HASH`. Mirrors v0 in every other respect (rest `CONSTRUCTOR_PARAMS`, non-stakeable).
+- For contracts whose base64 source exceeds the single-action size cap (`MAX_ACTION_DATA_LENGTH`). The source is uploaded first as one or more **v4 carrier** actions; this DEPLOY then assembles them by `CODE_HASH`. Mirrors v0 in every other respect (rest `CONSTRUCTOR_PARAMS`, non-stakeable).
 
 ### Version `3` — Chunked + stakeable
 - `VERSION|CODE_HASH|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION`
 - Chunked assembly (like v2) plus the v1 staking fields, with the identical pairing rules.
+
+### Version `4` — Chunk carrier
+- `VERSION|CODE_HASH|CHUNK_INDEX|TOTAL_CHUNKS|CODE_PART`
+- Carries one ordered base64 slice of a contract's source so a contract too large for a single action can be uploaded across several transactions and then assembled by a chunked DEPLOY (v2/v3). A v4 carrier **runs no contract code** — it only validates and stores its slice (and pays the per-byte gas for the bytes it puts on-chain). Slices are grouped by `CODE_HASH` (the sha256 of the fully assembled UTF-8 source), which is both the group id and the integrity check. See [Chunk carrier rules](#chunk-carrier-rules-v4).
 
 ## Examples
 ```
@@ -56,6 +66,16 @@ slashed tokens go to the chain's burn address
 DEPLOY|1|<base64_code>|200000||100|bc1q...recipient
 Deploy a stakeable contract: 100-block cooldown, slashed tokens routed
 to a specific recipient address (not BURN)
+```
+
+```
+DEPLOY|4|4651d57c...b6021765|0|3|<base64_slice_0>
+First of three v4 carrier slices for the contract whose assembled source hashes to 4651d5…
+```
+
+```
+DEPLOY|4|4651d57c...b6021765|2|3|<base64_slice_2>
+Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by CODE_HASH
 ```
 
 ## Rules
@@ -89,12 +109,21 @@ to a specific recipient address (not BURN)
 - A contract deployed with both staking fields can receive STAKE v3 actions targeting it; without them, STAKE v3 rejects with `invalid: TARGET_CONTRACT_INDEX (contract is not stakeable)`.
 - Stakeable-contract metadata is **immutable** after deployment — there is no mechanism to update `COOLDOWN_BLOCKS` or `SLASH_DESTINATION` later.
 
+### Chunk carrier rules (v4)
+- Available on all chains.
+- `CODE_HASH` must be a 64-char lowercase sha256 hex string.
+- `CHUNK_INDEX` and `TOTAL_CHUNKS` must be non-negative integers with `CHUNK_INDEX < TOTAL_CHUNKS`, and `TOTAL_CHUNKS` in `[1, MAX_DEPLOY_CHUNKS]`.
+- `CODE_PART` must be a non-empty base64-alphabet string (`A–Za–z0–9+/=`) no larger than `MAX_DEPLOYCHUNK_PART_BYTES`. It is a *slice* of `base64(code)` and is **not** individually decoded — the assembling DEPLOY concatenates every slice then decodes and sha256-verifies the whole, so a corrupt or misordered slice surfaces as `invalid: CODE_HASH (assembly mismatch)` on the assembling DEPLOY, not on the carrier.
+- **Gas:** a valid v4 carrier is charged `len(CODE_PART) × VM_DEPLOY_PER_BYTE` (valued at `GAS_PRICE`), payable in XCHAIN or — when a `FEE_DESTINATION` output is present — the native coin, exactly like a deploy. An invalid carrier is recorded with its rejection status and charged nothing.
+- Every carrier (valid or invalid) is recorded so the explorer can surface its status; a chunked DEPLOY assembles only the **valid** carriers, and if a deployer broadcasts the same `(source, CODE_HASH, CHUNK_INDEX)` more than once the lowest action index deterministically wins.
+
 ### Chunked assembly (v2/v3)
-- A chunked DEPLOY assembles its code from the deploying address's prior [`DEPLOYCHUNK`](./DEPLOYCHUNK.md) actions that share the same `CODE_HASH` **and** were recorded at a *lower* action index than the DEPLOY. Chunks are matched to their submitter (`source_id`), so a third party cannot hijack another deployer's chunk group.
-- The indexer concatenates the chunks' `CODE_PART` fields in `CHUNK_INDEX` order, base64-decodes the result, and rejects unless `sha256(code) === CODE_HASH`. A missing position, a non-contiguous set, a short group, a bad chunk count, or a digest mismatch each rejects the DEPLOY (`invalid: CODE_HASH (...)`); the assembled `code` then flows through the exact same size / syntax / manifest / constructor path as an inline deploy.
-- **Gas:** each `DEPLOYCHUNK` pays the per-byte component (`VM_DEPLOY_PER_BYTE`) for the bytes it puts on-chain, so the assembling DEPLOY v2/v3 charges `VM_DEPLOY_BASE` + constructor gas only — the net cost ≈ a single-shot inline deploy of the same source.
-- **Reorg/recovery:** because a DEPLOY only ever consumes chunks at a lower action index, any reorg that removes a chunk also removes the dependent DEPLOY (and its contract) via the standard action-index rollback — no bespoke logic. The code is fully on-chain in the `DEPLOYCHUNK` actions, so a from-scratch chain re-parse reconstructs the contract with **no ANCHOR change**.
-- The SDK (`sdk.deployContract`) auto-selects: it deploys inline (v0/v1) when `base64(code)` fits one action, else uploads the slices and assembles via v2/v3.
+- A chunked DEPLOY assembles its code from the deploying address's prior **v4 carrier** actions that share the same `CODE_HASH` **and** were recorded at a *lower* action index than the DEPLOY. Carriers are matched to their submitter (`source_id`), so a third party cannot hijack another deployer's chunk group.
+- The indexer concatenates the carriers' `CODE_PART` fields in `CHUNK_INDEX` order, base64-decodes the result, and rejects unless `sha256(code) === CODE_HASH`. A missing position, a non-contiguous set, a short group, a bad chunk count, or a digest mismatch each rejects the DEPLOY (`invalid: CODE_HASH (...)`); the assembled `code` then flows through the exact same size / syntax / manifest / constructor path as an inline deploy.
+- **Gas:** each v4 carrier pays the per-byte component (`VM_DEPLOY_PER_BYTE`) for the bytes it puts on-chain, so the assembling DEPLOY v2/v3 charges `VM_DEPLOY_BASE` + constructor gas only — the net cost ≈ a single-shot inline deploy of the same source.
+- **Reorg/recovery:** because a DEPLOY only ever consumes carriers at a lower action index, any reorg that removes a carrier also removes the dependent DEPLOY (and its contract) via the standard action-index rollback — no bespoke logic. The code is fully on-chain in the v4 carrier actions, so a from-scratch chain re-parse reconstructs the contract with **no ANCHOR change**.
+- Submit the carriers **before** the assembling DEPLOY: a DEPLOY v2/v3 only consumes carriers recorded at a lower action index than itself.
+- The SDK (`sdk.deployContract`) auto-selects: it deploys inline (v0/v1) when `base64(code)` fits one action, else uploads the slices as v4 carriers (awaiting indexer confirmation of each) and assembles via v2/v3.
 
 ## Encoding activation
 
@@ -105,7 +134,7 @@ The inline `CODE_ENCODING` field (v0/v1) was originally **hex-encoded** and late
 
 This makes every historical inline DEPLOY decode identically across node versions and on a from-genesis re-parse, so its `code_hash` — and therefore the per-block contract hash and the federation checkpoint preimage — is stable.
 
-The activation is keyed on **block time** (a single coordinated flag-day), not block height, because DEPLOY runs on BTC, LTC and DOGE, whose heights diverge by millions of blocks; one timestamp names the same cutover on all three chains. testnet/regtest activate at genesis (base64-native). The mainnet flag-day must be aligned with the SDK's base64 rollout — the SDK emits the matching encoding for the target block so an inline DEPLOY is always decoded on the side of the gate it was encoded for. Chunked (v2/v3) `DEPLOYCHUNK` slices are base64 from genesis and are unaffected.
+The activation is keyed on **block time** (a single coordinated flag-day), not block height, because DEPLOY runs on BTC, LTC and DOGE, whose heights diverge by millions of blocks; one timestamp names the same cutover on all three chains. testnet/regtest activate at genesis (base64-native). The mainnet flag-day must be aligned with the SDK's base64 rollout — the SDK emits the matching encoding for the target block so an inline DEPLOY is always decoded on the side of the gate it was encoded for. v4 carrier slices (assembled by chunked v2/v3) are base64 from genesis and are unaffected.
 
 ## Notes
 - The deployed contract is assigned an action index derived from the transaction that contains this action

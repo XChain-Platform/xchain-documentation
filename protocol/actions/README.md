@@ -86,8 +86,7 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 
 | ACTION | Description |
 |---|---|
-| [`DEPLOY`](./DEPLOY.md) | Deploys a smart contract to the XChain VM (v2/v3 assemble from chunks) |
-| [`DEPLOYCHUNK`](./DEPLOYCHUNK.md) | Carries one base64 code slice for a chunked (large-contract) deploy |
+| [`DEPLOY`](./DEPLOY.md) | Deploys a smart contract to the XChain VM (v0/v1 inline; v2/v3 assemble from v4 carriers; v4 carries one base64 code slice for a large-contract deploy) |
 | [`EXECUTE`](./EXECUTE.md) | Executes a method on a deployed smart contract |
 | [`DEPOSIT`](./DEPOSIT.md) | Transfers tokens from a user to a contract's custody |
 | [`WITHDRAW`](./WITHDRAW.md) | Withdraws tokens from a contract's custody back to the owner |
