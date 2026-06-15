@@ -74,11 +74,13 @@ a new trust layer. Speed is the price of that security.
 
 XChain contracts are **orchestration logic, not arbitrary state machines**. A contract cannot
 mutate the ledger directly — it emits the same validated ACTIONs a user would (see
-[Smart Contracts](./Smart_Contracts.md)). By design, contracts also cannot call or deploy other
-contracts, and cannot observe the effects of their own emissions within a single execution
-(snapshot semantics). This makes the audit surface small and every state change uniform, but it
-means XChain is **not** a platform for synchronous, deeply-composed contract-to-contract DeFi in
-the EVM sense.
+[Smart Contracts](./Smart_Contracts.md)). A contract **can** invoke another contract — on the same
+chain via [`emit.execute`](./actions/EXECUTE.md), or on another chain via
+[`XCALL`](./actions/XCALL.md) — but only by emitting a new action that is processed on its own:
+there is no synchronous return value, contracts cannot deploy other contracts, and a contract
+cannot observe the effects of its own emissions within a single execution (snapshot semantics).
+This makes the audit surface small and every state change uniform, but it means XChain is **not** a
+platform for synchronous, deeply-composed contract-to-contract DeFi in the EVM sense.
 
 *Why:* constraining contracts to a fixed, audited action set means a contract bug can never
 bypass protocol rules or corrupt the ledger.
@@ -120,11 +122,17 @@ settlement. The platform's default guidance reflects this: roughly **BTC 6 / LTC
 confirmations (the cross-chain settlement gate is per-chain and tunable via
 `XCHAIN_CONFIRMATIONS_<COIN>`; the utxo-tracker's reorg recovery window scales with it).
 
-### Fungible-first token model
+### NFTs are a composition, not a separate primitive
 
-The token model is fungible (ticker + supply + decimals). A one-of-a-kind asset can be
-approximated with a supply of 1 and zero decimals, but there is no first-class non-fungible
-(collection / per-item metadata / royalty) primitive today.
+The token model is fungible at the primitive level (ticker + supply + decimals), and there is no
+separate NFT ACTION or token type. NFTs are instead a **first-class documented standard** — see the
+[NFT Standard](../protocol/NFT_Standard.md) — composed from existing primitives: a supply-1,
+zero-decimal `ISSUE` is a consensus-guaranteed one-of-a-kind; parent/child `TICK` names form
+owner-proven collections; [`FILE`](../protocol/actions/FILE.md) / [`LINK`](../protocol/actions/LINK.md)
+attach owner-signed on-chain content; and per-item display follows the
+[Token Information Standard](../protocol/Token_Information_Standard.md). This keeps the consensus
+rules uniform while giving creators 1-of-1s, editions, and collections that trade on the native DEX
+rails — no separate token type and no marketplace contract required.
 
 ### Rich metadata lives off-chain
 
@@ -142,7 +150,7 @@ availability depends on where it is hosted; it is not part of the verifiable on-
 | A transparent, auditable, fully-replayable asset ledger | Sub-second / real-time settlement |
 | A native DEX and trustless cross-chain swaps among BTC/LTC/DOGE | Deep synchronous DeFi composability (EVM-style) |
 | Contracts that react to real-world data or AI judgments | Interop with Ethereum/Solana assets and liquidity |
-| Self-hostable, permissionless, independently verifiable infrastructure | A first-class NFT/collection standard (today) |
+| Self-hostable, permissionless, independently verifiable infrastructure | Account-model (EVM / Solidity) smart contracts |
 
 The shortest summary: **XChain is a transparent, multi-chain token layer secured by the base
 blockchain — not a privacy system, not a real-time layer-2, and not an EVM-style world

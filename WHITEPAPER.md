@@ -47,10 +47,10 @@ XChain is a token-and-settlement layer. Its exclusions are deliberate design cho
 
 - **No confidentiality.** All state is public. The obfuscation applied to payloads (§4.2) is not encryption — its key derives from public transaction data. Public, replayable state is what makes independent verification possible.
 - **Block-speed, not real-time.** Confirmation, order matching, and cross-chain settlement proceed at the cadence of blocks. There are no payment channels or rollups; the protocol is unsuited to point-of-sale or high-frequency trading.
-- **Not an EVM-style world computer.** Contracts orchestrate validated ACTIONs; they cannot mutate the ledger directly, cannot call or deploy other contracts, and cannot observe their own emissions mid-execution (§7).
+- **Not an EVM-style world computer.** Contracts orchestrate validated ACTIONs and cannot mutate the ledger directly. A contract *can* invoke another contract — asynchronously, by emitting an `EXECUTE` (including cross-chain via `XCALL`) — but there is no synchronous call-and-return, contracts cannot deploy other contracts, and a contract cannot observe its own emissions mid-execution (§7).
 - **UTXO chains.** XChain runs on Bitcoin-compatible (UTXO) chains. Interoperation with account-model ecosystems (Ethereum, Solana) is a longer-term research direction (§16), not a current capability; there are no wrapped external assets.
 
-Honest current boundaries: full trustless verification requires running a node (there is no light-client/SPV protocol yet); a token's security tracks its host chain's security (use higher confirmation thresholds on lower-hashpower chains); the token model is fungible-first (no first-class NFT primitive yet); and rich token metadata lives off-chain by reference (§5.3).
+Honest current boundaries: full trustless verification requires running a node (there is no light-client/SPV protocol yet); a token's security tracks its host chain's security (use higher confirmation thresholds on lower-hashpower chains); the token model is fungible at the primitive level, with NFTs supported as a first-class standard composed from those primitives (1-of-1s, editions, collections, on-chain attachments) rather than a separate token type; and rich token metadata lives off-chain by reference (§5.3).
 
 ---
 
