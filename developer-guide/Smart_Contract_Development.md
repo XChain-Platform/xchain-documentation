@@ -182,6 +182,32 @@ The VM performs five checks before deployment:
 
 A non-blocking **float warning** is also generated if decimal number literals are detected in the code. This warning appears in the execution record but does not prevent deployment.
 
+### Validate Before You Deploy
+
+You don't have to spend a transaction to find out whether your contract passes these checks. The same rules run as a pre-flight linter in the SDK and on the command line, so you catch problems at write time and in CI instead of on-chain.
+
+**SDK (advisory, runs anywhere — browser or any Node):**
+
+```js
+const result = sdk.validateContract(source);   // source = raw JS, pre-base64
+// → { valid, errors: [{ rule, message, line }], warnings: [...], authoritative: false }
+if (!result.valid) console.error(result.errors);
+```
+
+`sdk.validateContract` runs every check above **except** the V8 syntax check (step 1) — that one needs the VM's isolated runtime, so it only runs at deploy time or via the CLI. That's why the result is marked `authoritative: false`: a `valid: true` here means the contract clears the acorn-coverable rules, but the on-chain deploy (or the CLI below) has the final word on raw V8 syntax.
+
+`sdk.deploy(params, encoder, { lint })` runs this automatically. The default `lint: 'block'` **throws before building the transaction** if the contract has errors — so a guaranteed-to-fail deploy never reaches the chain. Pass `lint: 'warn'` to log and proceed, or `lint: 'off'` to skip. Chunked deploys (`sdk.deployContract`) lint the fully-assembled source once, before chunking.
+
+**CLI (authoritative — exact deploy parity, requires Node 22):**
+
+```bash
+node xchain-vm/bin/lint.js path/to/contract.js   # or: npx xchain-lint contract.js
+  --json                                          # machine-readable report
+# exit 0 = clean · 1 = errors · warnings print to stderr (exit 0)
+```
+
+The CLI runs the **full** validator including the V8 syntax check, so a clean result is exact deploy parity. Use it as a local pre-commit / CI gate for contract source.
+
 ## Gas Costs
 
 | Operation | Gas |
