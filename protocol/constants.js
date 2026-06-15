@@ -142,6 +142,22 @@ const STAKE_WEIGHTED_QUORUM_ACTIVATION = {
     regtest: 0,
 };
 
+// EQUIV_HEADER_ACTIVATION (WI-2 bump 2) — the BTC-anchored flag-day at/above which every
+// consensus canonical is prefixed with a uniform signed header
+// `EQUIV|<ENGINE_TAG>|<ROUND_ID>|<VIEW>||<CONTENT>`. This is consensus-breaking (it changes the
+// signed preimage of every settlement/checkpoint/price/attestation signature + the config-change
+// PBFT canonical), so it is gated, kept byte-identical to the local copies in
+// xchain-hub/src/equivocation_header.js + xchain-indexer/src/equivocation_header.js by the
+// cross-service regression suite, and must deploy hub + ALL indexers atomically. Its sole
+// consumer is the SLASH v0 equivocation-slashing action, which is only constructible from
+// post-flag-day (header-carrying) messages. Same placeholder/genesis convention as
+// STAKE_WEIGHTED_QUORUM_ACTIVATION (disabled on mainnet until a flag-day is chosen).
+const EQUIV_HEADER_ACTIVATION = {
+    mainnet: 999999999,   // PLACEHOLDER — set the real BTC flag-day height before mainnet enable
+    testnet: 0,
+    regtest: 0,
+};
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     OP_RETURN_PUSH_OVERHEAD,
@@ -158,4 +174,5 @@ module.exports = {
     XCALL_MAX_RETURN_BYTES,
     XCALL_MAX_CALLS_PER_BLOCK,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
+    EQUIV_HEADER_ACTIVATION,
 };
