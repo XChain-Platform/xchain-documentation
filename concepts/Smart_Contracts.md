@@ -213,7 +213,7 @@ block **after** the one where it was applied; the same one-block visibility rule
 ### External Attestation — asking the outside world (see [framework section below](#asking-the-outside-world--the-attestation-framework))
 | Method | Gas | Description |
 |---|---|---|
-| `xchain.attestation.request(providerId, payload, callback, params, opts)` | 500 + provider escrow | Emit an ATTEST v0 request. Returns a deterministic 64-hex `requestId`. The response arrives later as a separate EXECUTE invoking `callback`. |
+| `xchain.attestation.request(providerId, payload, callback, params, opts)` | 5,000 + provider escrow | Emit an ATTEST v0 request. Returns a deterministic 64-hex `requestId`. The response arrives later as a separate EXECUTE invoking `callback`. |
 | `xchain.attestation.getResponse(requestId)` | 100 | Read a previously-stored response by request id. Returns `null` until the request is fulfilled. |
 
 ### Contract-Targeted Staking — readable + slashable from inside the staked-against contract (see [stakeable contracts section below](#stakeable-contracts))

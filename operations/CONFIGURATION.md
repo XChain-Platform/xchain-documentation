@@ -83,17 +83,19 @@ Databases are named following the convention `XChain_{CHAIN}_{NETWORK}_{COMPONEN
 
 ### Service Ports
 
-| Service | Default port variable | Default value |
+| Service | Default port variable | Default value (internal/container) |
 |---|---|---|
 | xchain-hub | `HUB_PORT` | `10000` |
-| xchain-explorer (HTTP) | `EXPLORER_API_PORT_HTTP` | `18080` |
-| xchain-explorer (HTTPS) | `EXPLORER_API_PORT_HTTPS` | `18081` |
-| xchain-decoder | `DECODER_API_PORT` | `3000` |
-| xchain-indexer | `INDEXER_API_PORT` | `3000` |
-| xchain-encoder | `ENCODER_API_PORT` | `3000` |
-| xchain-utxo-tracker | `UTXO_TRACKER_API_PORT` | `3000` |
+| xchain-explorer (HTTP) | `EXPLORER_API_PORT_HTTP` | `8080` |
+| xchain-explorer (HTTPS) | `EXPLORER_API_PORT_HTTPS` | `8081` |
+| xchain-utxo-tracker | `UTXO_TRACKER_API_PORT` | `3001` |
+| xchain-decoder | `DECODER_API_PORT` | `3002` |
+| xchain-encoder | `ENCODER_API_PORT` | `3003` |
+| xchain-indexer | `INDEXER_API_PORT` | `3004` |
+| xchain-regtest-miner | `REGTEST_MINER_API_PORT` | `3005` |
+| xchain-sync | `SYNC_API_PORT` | `3006` |
 
-Since each service runs in its own container with its own network namespace, multiple services can use port 3000 internally without conflict.
+Each service runs in its own container with its own network namespace. The explorer is additionally published on the host via `EXPLORER_PORT_HTTP` / `EXPLORER_PORT_HTTPS` (defaults `18080` / `18081`).
 
 ---
 
@@ -196,6 +198,8 @@ Coin nodes listen on different RPC ports per network. Standard defaults:
 | Bitcoin | 8332 | 18332 | 18443 |
 | Litecoin | 9332 | 19332 | 19443 |
 | Dogecoin | 22555 | 44555 | 18443 |
+
+These are the coin daemons' standard upstream defaults. xchain-node's own `NODE_PORT` default is set per **network** (not per coin): `8332` mainnet, `18332` testnet, `18444` regtest — applied uniformly across BTC/LTC/DOGE unless you override `NODE_PORT`.
 
 ---
 

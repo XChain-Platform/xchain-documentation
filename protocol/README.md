@@ -7,7 +7,7 @@ This section is the canonical reference for the XChain Protocol — ACTION comma
 
 | Resource | Description |
 |---|---|
-| [ACTION Specifications](./actions/) | Authoritative format specs for all 30 ACTION commands |
+| [ACTION Specifications](./actions/) | Authoritative format specs for all 32 ACTION commands |
 | [Token Information Standard](./Token_Information_Standard.md) | Standard for token metadata fields and discovery |
 | [Token-Gated Content](./Token_Gated_Content.md) | End-to-end design for cryptographically secure token-gated file publishing (single files and packs) |
 | [NFT Standard](./NFT_Standard.md) | Non-fungible tokens as a composition of existing primitives — uniques, editions, collections, content attachment, display |

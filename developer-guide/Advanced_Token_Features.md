@@ -489,11 +489,11 @@ The wallet must already hold the unlocked key — a wallet that has never decryp
 Unlocking is entirely client-side. No on-chain transaction is required.
 
 ```js
-const messages = await sdk.explorer.getMessagesByDestination('bc1qmyaddress...');
+const messages = await sdk.explorer.getMessages('bc1qmyaddress...', 'destination');
 const keyBytes = [];
 for (const msg of messages) {
   try {
-    const plaintext = sdk.messaging.decryptEcies(msg.encryptedMessage, myPrivateKey, { binary: true });
+    const plaintext = sdk.messaging.eciesDecryptBytes(msg.encrypted_message, myPrivateKey);
     keyBytes.push(...sdk.gatedFile.parseKeyPayload(plaintext));   // returns array of 32-byte keys
   } catch { /* not for me; skip */ }
 }
@@ -502,7 +502,7 @@ for (const msg of messages) {
 const file = await sdk.explorer.getAction(fileActionIndex);
 for (const k of keyBytes) {
   if (sdk.gatedFile.verifyKey(k, file.keyHash)) {
-    const ciphertext = await sdk.explorer.getFileRaw(fileActionIndex);
+    const ciphertext = await sdk.explorer.getGatedFileRaw(fileActionIndex);
     const plaintext  = sdk.gatedFile.decryptFileBytes(ciphertext, k);
     // ... use the decrypted bytes
     break;
