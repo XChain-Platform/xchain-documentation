@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `protocol/actions/XCALL.md` — the `CALL_ID` preimage definition drops `emitter_action_index`; it is now `sha256(network:source_chain:tx_hash:contract_index:emitter_position:target_chain)`. `action_index` is intentionally excluded because it depends on the indexer's synthetic-action injection timing rather than on chain content, so binding it in would make `call_id` non-deterministic across nodes; `(tx_hash, contract_index, emitter_position)` already identify an emission uniquely.
 - `getting-started/Quickstart_Developer.md`, `getting-started/Quickstart_Node_Operator.md` — corrected the Node.js requirement from "18 or later" to Node 22 (22.x LTS); Node 18 fails on the ESM-only `mariadb` package and Node 24 cannot build `isolated-vm`, so 22 is required, not a floor.
 - `protocol/Contract_Staking.md` — documented `DELEGATE v2` (capability revoke) and `DELEGATE v3` (contract-targeted revoke) in the wire-format and isolation tables, and relabelled the rotate example's field to `NEW_SIGNING_PUBKEY` to match `DELEGATE.md` and the handler.
 - `protocol/NFT_Standard.md` — updated the "wallets and the SDK should provide a guided create-NFT flow" recommendation to reflect the shipped `sdk.nft.*` builders and `sdk.issueNft*` workflows.

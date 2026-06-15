@@ -28,7 +28,7 @@ XCALL|0|CALL_ID|TARGET_CHAIN|TARGET_CONTRACT_INDEX|METHOD|PARAMS_JSON|GAS_LIMIT|
 
 | Field | Rules |
 |---|---|
-| `CALL_ID` | 64-hex; MUST equal `sha256(network:source_chain:tx_hash:emitter_action_index:contract_index:emitter_position:target_chain)` — re-derived and verified by the indexer. Network + chains are bound in (unlike the ATTEST request_id) because BTC-family chains share tx-hash space. |
+| `CALL_ID` | 64-hex; MUST equal `sha256(network:source_chain:tx_hash:contract_index:emitter_position:target_chain)` — re-derived and verified by the indexer. Network + chains are bound in (unlike the ATTEST request_id) because BTC-family chains share tx-hash space. The emitting EXECUTE's `action_index` is intentionally NOT bound in: `(tx_hash, contract_index, emitter_position)` already identify the emission uniquely, and `action_index` depends on synthetic-action injection timing rather than chain content, so binding it would make `call_id` non-deterministic across nodes. |
 | `TARGET_CHAIN` | `BTC`/`LTC`/`DOGE`, ≠ the emitting chain |
 | `TARGET_CONTRACT_INDEX` | Target contract's DEPLOY action_index on the target chain (existence is checked there, not here) |
 | `METHOD` | ≤ 64 bytes, no `\|`; must be in the target contract's exported `crossCallable` allowlist |
