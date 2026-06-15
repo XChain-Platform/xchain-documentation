@@ -49,6 +49,7 @@ Advanced Encryption Standard with a pre-shared key. Both parties must already kn
 
 ### Version `2` - Encrypted Message
 - `VERSION|COIN|DESTINATION|ENCRYPTED_MESSAGE`
+- Version `2` does **not** carry an `ENCRYPTION_METHOD` field on the wire. Absence of this field in a version `2` message **MUST** be interpreted as `ENCRYPTION_METHOD = 1` (ECIES). Encoders **MUST NOT** include the field in version `2` messages (doing so makes the message unencodable, as no format version has a slot for both `ENCRYPTED_MESSAGE` and `ENCRYPTION_METHOD`). For ECDH (method `2`) and AES (method `3`), the session/key is established out-of-band (via the format `0`/`1` handshake or off-chain) and decryption is driven by the application, which already knows the method.
 
 ### Version `3` - Plaintext Message
 - `VERSION|COIN|DESTINATION|PLAINTEXT_MESSAGE`
