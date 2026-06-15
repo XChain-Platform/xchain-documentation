@@ -501,7 +501,7 @@ for (const msg of messages) {
 // For each gated FILE the holder cares about, find the matching key by hashing each candidate.
 const file = await sdk.explorer.getAction(fileActionIndex);
 for (const k of keyBytes) {
-  if (sdk.gatedFile.verifyKey(k, file.keyHash)) {
+  if (sdk.gatedFile.verifyKey(k, file.key_hash)) {
     const ciphertext = await sdk.explorer.getGatedFileRaw(fileActionIndex);
     const plaintext  = sdk.gatedFile.decryptFileBytes(ciphertext, k);
     // ... use the decrypted bytes
