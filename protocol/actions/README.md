@@ -1,13 +1,13 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform — ACTION Command Specifications
+# XChain Platform: ACTION Command Specifications
 
 This directory contains the official protocol specifications for all ACTION commands supported by the XChain Platform. These specifications are the authoritative reference for how each action is structured, what parameters it accepts, and what format versions are available.
 
 ## What are ACTIONs?
 
-ACTIONs are the fundamental operations of the XChain Protocol. Every state change on the platform — creating a token, transferring balances, placing a DEX order, uploading a file — is expressed as an ACTION embedded in a blockchain transaction.
+ACTIONs are the fundamental operations of the XChain Protocol. Every state change on the platform: creating a token, transferring balances, placing a DEX order, uploading a file, is expressed as an ACTION embedded in a blockchain transaction.
 
 ACTION data is encoded as a pipe-delimited string:
 
@@ -21,9 +21,9 @@ Multiple actions can be combined in a single transaction using the `BATCH` actio
 
 XChain ACTIONs are supported on:
 
-- **Bitcoin** (BTC) — mainnet, testnet, regtest
-- **Litecoin** (LTC) — mainnet, testnet, regtest
-- **Dogecoin** (DOGE) — mainnet, testnet, regtest
+- **Bitcoin** (BTC): mainnet, testnet, regtest
+- **Litecoin** (LTC): mainnet, testnet, regtest
+- **Dogecoin** (DOGE): mainnet, testnet, regtest
 
 The same ACTION specifications apply across all chains. Chain-specific behavior (fee amounts, special addresses) is handled by the indexer's per-chain configuration.
 
@@ -90,8 +90,8 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | [`EXECUTE`](./EXECUTE.md) | Executes a method on a deployed smart contract |
 | [`DEPOSIT`](./DEPOSIT.md) | Transfers tokens from a user to a contract's custody |
 | [`WITHDRAW`](./WITHDRAW.md) | Withdraws tokens from a contract's custody back to the owner |
-| [`XCALL`](./XCALL.md) | Cross-chain contract call request — v0 = VM-emitted request (`xchain.emit.crossExecute`), v2 = system-synthesized deadline expiry |
-| `XEXEC` | System-injected target-side execution of an XCALL dispatch row; internal only, no user-broadcast form — see [XCALL.md](./XCALL.md) |
+| [`XCALL`](./XCALL.md) | Cross-chain contract call request: v0 = VM-emitted request (`xchain.emit.crossExecute`), v2 = system-synthesized deadline expiry |
+| `XEXEC` | System-injected target-side execution of an XCALL dispatch row; internal only, no user-broadcast form: see [XCALL.md](./XCALL.md) |
 
 ### Utility
 
@@ -106,9 +106,9 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 
 Each ACTION specification follows a consistent structure:
 
-- **PARAMS** — Table of all parameters with name, type, and description
-- **Formats** — Versioned pipe-delimited patterns showing parameter order for each format version
-- **Examples** — Concrete examples with explanations
+- **PARAMS**: Table of all parameters with name, type, and description
+- **Formats**: Versioned pipe-delimited patterns showing parameter order for each format version
+- **Examples**: Concrete examples with explanations
 
 ## Key Concepts
 
@@ -122,7 +122,7 @@ A `TICK` is a token ticker name (1-250 characters). Tickers are case-sensitive a
 
 ### ACTION_INDEX
 
-The `ACTION_INDEX` is a sequential integer assigned to every processed action. It serves as the primary cross-reference mechanism — actions like `LINK`, `DISPENSER`, and `LIST` reference other actions by their `ACTION_INDEX`.
+The `ACTION_INDEX` is a sequential integer assigned to every processed action. It serves as the primary cross-reference mechanism, actions like `LINK`, `DISPENSER`, and `LIST` reference other actions by their `ACTION_INDEX`.
 
 ### MEMO
 

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# E2E Test Suite — Architecture
+# E2E Test Suite: Architecture
 
 ## Source Files
 
@@ -80,10 +80,10 @@ indexerDatabase.waitForIssue({ source, tick, txHash, status: 'valid' })
 
 When the encoder returns `encoding: "P2SH"`, `transactionHelper` automatically handles the two-transaction flow:
 
-1. **First PSBT** — creates the P2SH output (fund transaction)
+1. **First PSBT**: creates the P2SH output (fund transaction)
 2. Sign with standard `finalizeAllInputs()`
 3. Broadcast first transaction
-4. **Second PSBT** — calls `encoderConnector.createTx()` again with `p2shHash` and `p2shHex` from the first transaction
+4. **Second PSBT**: calls `encoderConnector.createTx()` again with `p2shHash` and `p2shHex` from the first transaction
 5. Sign with `xchainP2shFinalizer` (custom finalizer applying witness/redeem scripts)
 6. Broadcast second transaction
 7. Wait for both transactions to confirm
@@ -132,7 +132,7 @@ When direct environment variables are not set, the bootstrap sequence discovers 
 2. Instantiate `XChainHubConnector` with the endpoint array
 3. Call `getAllConfig()` → returns `config[coin][network][service][param]`
 4. Extract host/port for each service from the hub config
-5. Override all URLs to `"localhost"` (Docker Compose convention — services are accessed via Docker network, not hub-reported hostnames)
+5. Override all URLs to `"localhost"` (Docker Compose convention, services are accessed via Docker network, not hub-reported hostnames)
 
 The `XChainHubConnector._call()` method implements multi-endpoint failover: it tries each URL in order, moving to the next on connection failure.
 

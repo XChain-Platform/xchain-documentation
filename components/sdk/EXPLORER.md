@@ -1,13 +1,13 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Explorer Reference
+# XChain Platform SDK: Explorer Reference
 
 ## Overview
 
 The SDK's explorer client wraps the xchain-explorer REST API, providing typed methods for every query endpoint. All methods return parsed JSON and raise typed `SDKExplorerError` exceptions on failure.
 
-The explorer client is instantiated automatically when `network` is provided in the SDK options. The correct coin prefix for all URL paths is derived from the `network` string — you never construct paths manually.
+The explorer client is instantiated automatically when `network` is provided in the SDK options. The correct coin prefix for all URL paths is derived from the `network` string, you never construct paths manually.
 
 ```js
 const sdk = new XChainSDK({
@@ -116,7 +116,7 @@ Returns full token information for the given ticker: supply, divisibility, owner
 - **Endpoint:** `GET /{COIN}/api/token/{tick}`
 
 #### `getProject(tick)`
-Returns the current official-token roster of a project tick — the owner-attested LIST that carries the green-banner designation (see [Project Registry](../../protocol/Project_Registry.md)). Returns HTTP 400 (throws `SDKExplorerError` with code `EXPLORER_HTTP_400`) when the tick has no owner-attested roster.
+Returns the current official-token roster of a project tick; the owner-attested LIST that carries the green-banner designation (see [Project Registry](../../protocol/Project_Registry.md)). Returns HTTP 400 (throws `SDKExplorerError` with code `EXPLORER_HTTP_400`) when the tick has no owner-attested roster.
 
 - **Endpoint:** `GET /{COIN}/api/project/{tick}`
 
@@ -196,7 +196,7 @@ Each returns records of the corresponding ACTION type. Pagination is supported v
 | `getSwaps(query, type, opts?)` | `/swaps/` | SWAP action records |
 | `getSweeps(query, type, opts?)` | `/sweeps/` | SWEEP action records |
 
-**Common `type` values for action queries:** `block`, `address`, `token` (not every action supports every type — refer to the xchain-explorer API for per-action valid types).
+**Common `type` values for action queries:** `block`, `address`, `token` (not every action supports every type, refer to the xchain-explorer API for per-action valid types).
 
 ---
 
@@ -320,7 +320,7 @@ Returns oracle price-snapshot rounds for the price oracle.
 - **`opts`:** pagination supported
 
 #### `fileRawUrl(actionIndex, coin?)`
-Returns the absolute URL of a FILE action's raw bytes on the configured explorer. This is a pure string builder — no network call is made. It is the resolution target for TIS `data_ref` entries and on-chain TIS documents where `DESCRIPTION = action:<index>` or `action:<COIN>:<index>`.
+Returns the absolute URL of a FILE action's raw bytes on the configured explorer. This is a pure string builder. No network call is made. It is the resolution target for TIS `data_ref` entries and on-chain TIS documents where `DESCRIPTION = action:<index>` or `action:<COIN>:<index>`.
 
 ```js
 // Same-chain FILE reference

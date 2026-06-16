@@ -86,7 +86,7 @@ All expected containers should show as `Up`. A container in `Restarting` or `Exi
 **Symptom:** Decoder block height is significantly lower than the coin node's reported height.
 
 **Likely causes:**
-- Coin node is still syncing (expected on first run — the decoder deliberately waits for `verificationprogress >= 0.99`).
+- Coin node is still syncing (expected on first run; the decoder deliberately waits for `verificationprogress >= 0.99`).
 - Decoder is stuck processing a complex block or encountering a parse error.
 - Coin node is overloaded and responding slowly to RPC requests.
 
@@ -102,7 +102,7 @@ All expected containers should show as `Up`. A container in `Restarting` or `Exi
 - Database connection issues.
 - A sanity check failure caused the indexer to halt.
 
-**Action:** Check indexer logs for watchdog messages (`WATCHDOG TIMEOUT`) or sanity check failures (`SANITY CHECK FAILED`). A watchdog timeout is not necessarily a bug — it can occur on very full blocks. A sanity check failure is always a critical issue (see below).
+**Action:** Check indexer logs for watchdog messages (`WATCHDOG TIMEOUT`) or sanity check failures (`SANITY CHECK FAILED`). A watchdog timeout is not necessarily a bug; it can occur on very full blocks. A sanity check failure is always a critical issue (see below).
 
 ### Sanity Check Failure
 
@@ -116,7 +116,7 @@ All expected containers should show as `Up`. A container in `Restarting` or `Exi
 
 **Symptom:** Services logging MariaDB connection errors or refusing to start.
 
-**Action:** Verify the MariaDB container is running (`docker ps`), credentials are correct, and the service can resolve the database container hostname. The MariaDB connection layer includes retry logic with a circuit breaker — repeated failures will cause the service to back off.
+**Action:** Verify the MariaDB container is running (`docker ps`), credentials are correct, and the service can resolve the database container hostname. The MariaDB connection layer includes retry logic with a circuit breaker, repeated failures will cause the service to back off.
 
 ### Watchdog Timeout
 
@@ -134,7 +134,7 @@ Patterns worth grepping for in logs:
 
 | Pattern | Service | Meaning |
 |---|---|---|
-| `SANITY CHECK FAILED` | Indexer | Critical — processing halted |
+| `SANITY CHECK FAILED` | Indexer | Critical: processing halted |
 | `WATCHDOG TIMEOUT` | Indexer | Block processing exceeded 5-minute limit |
 | `reorg` (case-insensitive) | Decoder, Indexer, UTXO Tracker | Chain reorganization detected |
 | `connection refused` | Any | Target service or database is down |

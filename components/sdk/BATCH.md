@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Batch Builder
+# XChain Platform SDK: Batch Builder
 
 The BatchBuilder is a fluent API for composing multiple XChain actions into a single BATCH transaction. It validates each sub-action individually, enforces the BATCH protocol constraints, and produces a ready-to-encode result.
 
@@ -58,7 +58,7 @@ builder.add('MINT', { tick: 'BTC.TOKEN', amount: 1000 });
 
 ### Convenience Methods
 
-The following convenience methods are shorthand for `.add(action, params)`. All return the builder for chaining. There are 20 convenience methods — `.batch()`, `.file()`, and `.deploy()` are intentionally omitted because BATCH, FILE, and DEPLOY actions are not permitted inside a BATCH (see Constraints below).
+The following convenience methods are shorthand for `.add(action, params)`. All return the builder for chaining. There are 20 convenience methods; `.batch()`, `.file()`, and `.deploy()` are intentionally omitted because BATCH, FILE, and DEPLOY actions are not permitted inside a BATCH (see Constraints below).
 
 | Method | Equivalent |
 |--------|-----------|
@@ -182,7 +182,7 @@ let result = await sdk.batch()
     .build();
 ```
 
-### Error Handling — Constraint Violation
+### Error Handling: Constraint Violation
 
 ```js
 const { SDKValidationError } = require('@xchain/sdk/src/errors');
@@ -247,7 +247,7 @@ When `.build()` is called, the following steps happen in sequence:
 3. All `actionString` values are joined with `;`: `SEND|0|BTC.TOKEN|100|addr1...;SEND|0|BTC.TOKEN|50|addr2...`
 4. The joined string is passed as the `command` param to `sdk.createAction({ action: 'BATCH', params: { command }, encoder: encoderOpts })`, which serializes the outer BATCH action: `BATCH|0|SEND|0|...;SEND|0|...`
 
-The BATCH action itself uses format version 0 (`VERSION|COMMAND`) — there is only one BATCH format.
+The BATCH action itself uses format version 0 (`VERSION|COMMAND`), there is only one BATCH format.
 
 ---
 

@@ -17,7 +17,7 @@ gas cost → GAS_PRICE → XCHAIN amount → XCHAIN/USD oracle → USD → USD/c
 gas cost → GAS_PRICE → XCHAIN amount → debit from user's XCHAIN balance
 ```
 
-On BTC, the indexer uses implicit detection: if the transaction includes a native coin output to the fee destination address, it's validated as native coin payment against the oracle. If there is no fee output, the indexer debits XCHAIN from the user's balance. On LTC/DOGE, native coin payment is the only option — a missing fee output means the action is rejected.
+On BTC, the indexer uses implicit detection: if the transaction includes a native coin output to the fee destination address, it's validated as native coin payment against the oracle. If there is no fee output, the indexer debits XCHAIN from the user's balance. On LTC/DOGE, native coin payment is the only option; a missing fee output means the action is rejected.
 
 The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` config value. It can be set at runtime with the `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` environment variable (e.g. `XCHAIN_FEE_DESTINATION_DOGE_MAINNET`). While it remains the unset placeholder, native-coin fee detection is disabled and the indexer falls back to XCHAIN-balance deduction on BTC (and rejects fee-bearing actions on LTC/DOGE).
 
@@ -47,8 +47,8 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` config 
 | Operation | Gas Cost | XCHAIN (initial) | Notes |
 |---|---|---|---|
 | **EXECUTE base fee** | 1,000 | 0.01 | Minimum to invoke any contract |
-| **DEPLOY base fee** | 100,000 | 1.0 | Permanent state — on par with ISSUE |
-| **DEPLOY per byte** | 10 | — | 10KB = 100,000 extra gas; 64KB max |
+| **DEPLOY base fee** | 100,000 | 1.0 | Permanent state: on par with ISSUE |
+| **DEPLOY per byte** | 10 | None | 10KB = 100,000 extra gas; 64KB max |
 | **State read** | 100 | 0.001 | Single indexed DB lookup |
 | **State write** | 200 | 0.002 | 2x read |
 | **State delete** | 100 | 0.001 | Same as read |
@@ -56,7 +56,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` config 
 | **Cross-chain read** | 100 | 0.001 | Cross-chain state read (same cost as local state read) |
 | **Action emission** | 500 | 0.005 | Anti-spam for emitted actions |
 | **Attestation request** | 5,000 | 0.05 | Covers off-chain data request overhead (`attestation.request`) |
-| **Computation** | 1/instruction | — | Metered by isolated-vm; one charge per control-flow point |
+| **Computation** | 1/instruction | None | Metered by isolated-vm; one charge per control-flow point |
 
 > **Indexed `for` loops are charged twice per iteration.** The gas meter injects a control-flow charge at the top of the loop body and a second charge into the update expression, so a `for` loop of N iterations costs `2 × N` computation gas. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost 1 per iteration. Account for the doubled cost when budgeting a gas ceiling for contracts that use indexed `for` loops.
 
@@ -65,7 +65,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` config 
 - Max 50 emitted actions per execution
 - Max 10,000 state keys per contract
 - Max 64KB state value per key
-- 30-second wall-clock safety-net timeout per execution (see [Execution Termination](#execution-termination) — the gas ceiling is the primary limit and halts normal contracts in well under 1 second)
+- 30-second wall-clock safety-net timeout per execution (see [Execution Termination](#execution-termination); the gas ceiling is the primary limit and halts normal contracts in well under 1 second)
 - 8MB memory limit per isolate
 - Max 64KB contract code size
 
@@ -73,13 +73,13 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` config 
 
 Contract execution is bounded by two independent mechanisms operating at different tiers:
 
-1. **Gas exhaustion (primary).** Every instruction and every host operation (state reads/writes, oracle reads, action emissions) consumes gas, metered by isolated-vm. When a contract's gas budget is depleted, execution halts immediately. This is the enforced limit that governs the common case: a normally-behaving contract terminates here, typically in well under 1 second of wall-clock time. Gas is the spam and resource-abuse deterrent — see the Hard Caps and fee schedule above.
+1. **Gas exhaustion (primary).** Every instruction and every host operation (state reads/writes, oracle reads, action emissions) consumes gas, metered by isolated-vm. When a contract's gas budget is depleted, execution halts immediately. This is the enforced limit that governs the common case: a normally-behaving contract terminates here, typically in well under 1 second of wall-clock time. Gas is the spam and resource-abuse deterrent, see the Hard Caps and fee schedule above.
 
-2. **Wall-clock timeout (secondary safety net).** A 30-second wall-clock limit backstops gas metering. It only fires when the gas ceiling fails to terminate execution in real time — for example, a contract engineered to maximize wall-clock time per unit of gas (calling host operations that are cheap in gas terms but slow in wall-clock terms). Under normal operation this limit is never reached; it exists solely to guarantee an execution cannot run unbounded if gas accounting is somehow outpaced.
+2. **Wall-clock timeout (secondary safety net).** A 30-second wall-clock limit backstops gas metering. It only fires when the gas ceiling fails to terminate execution in real time, for example, a contract engineered to maximize wall-clock time per unit of gas (calling host operations that are cheap in gas terms but slow in wall-clock terms). Under normal operation this limit is never reached; it exists solely to guarantee an execution cannot run unbounded if gas accounting is somehow outpaced.
 
 The 30-second value is deliberately generous so that legitimate contracts are never killed prematurely on slower hardware (e.g. regtest machines), leaving the gas ceiling to enforce the practical limit.
 
-**Pathological case:** because the safety net is set to 30 seconds, a contract specially crafted to burn wall-clock time cheaply relative to gas can hold a single indexer worker process busy for up to 30 seconds per `EXECUTE`. The gas ceiling makes this expensive to attempt at scale, but operators should be aware that the wall-clock backstop — not 100ms — is the true upper bound on a single execution's duration.
+**Pathological case:** because the safety net is set to 30 seconds, a contract specially crafted to burn wall-clock time cheaply relative to gas can hold a single indexer worker process busy for up to 30 seconds per `EXECUTE`. The gas ceiling makes this expensive to attempt at scale, but operators should be aware that the wall-clock backstop (not 100ms) is the true upper bound on a single execution's duration.
 
 ### Expiration Free Period
 
@@ -113,13 +113,13 @@ Fees can be paid two ways. **Native-coin fees** (BTC/LTC/DOGE) are collected at 
 
 XCHAIN is a standard XChain token issued via ISSUE on the **BTC chain only**. It does not exist natively on LTC or DOGE. The XCHAIN ticker is reserved on all chains to prevent unauthorized issuance.
 
-**Fixed supply.** The entire XCHAIN supply is minted once at genesis and the token is then locked (`LOCK_MINT` + `LOCK_MAX_SUPPLY`), so no further XCHAIN can ever be created — by anyone, including the issuing address. Supply only ever decreases, via the burn bucket above.
+**Fixed supply.** The entire XCHAIN supply is minted once at genesis and the token is then locked (`LOCK_MINT` + `LOCK_MAX_SUPPLY`), so no further XCHAIN can ever be created, by anyone, including the issuing address. Supply only ever decreases, via the burn bucket above.
 
-**Validator rewards** are paid from a dedicated, pre-funded **reward pool address** — never by minting. The pool is seeded at genesis and topped up manually over time. When the pool cannot cover a pending reward, the `COLLECT` is rejected and the reward stays claimable until the pool is replenished (see [COLLECT](../protocol/actions/COLLECT.md)).
+**Validator rewards** are paid from a dedicated, pre-funded **reward pool address**. Never by minting. The pool is seeded at genesis and topped up manually over time. When the pool cannot cover a pending reward, the `COLLECT` is rejected and the reward stays claimable until the pool is replenished (see [COLLECT](../protocol/actions/COLLECT.md)).
 
 XCHAIN's value is driven by:
-- **Staking demand** — validators must stake XCHAIN (1,000 for oracle, 5,000 for cross-chain)
-- **Fixed, capped supply** — no inflation; rewards are paid from a finite pool, and the burn bucket is deflationary
+- **Staking demand**: validators must stake XCHAIN (1,000 for oracle, 5,000 for cross-chain)
+- **Fixed, capped supply**: no inflation; rewards are paid from a finite pool, and the burn bucket is deflationary
 
 ## Oracle Price Validation
 
@@ -137,7 +137,7 @@ The tolerance band accounts for price movement between transaction creation and 
 A native-coin fee is a real on-chain output paying the fee destination, settled in the same transaction
 as the action. If the action then fails validation (e.g. the ticker is already taken, the parameters are
 invalid, or the fee is underpaid), the indexer marks the action invalid but **cannot refund the
-native coin** — it is already final on-chain and is forfeited to the fee destination. This differs from
+native coin**; it is already final on-chain and is forfeited to the fee destination. This differs from
 XCHAIN-balance fees, which are only debited when the action succeeds. Clients (wallet/SDK) should
 pre-validate an action and confirm the fee amount against the current oracle price **before** broadcasting
 with a native-coin fee, so users never pay for an action that will fail.
@@ -154,7 +154,7 @@ they can't price. The indexer exposes a read-only pre-flight that computes the f
 chain state + current oracle prices **without persisting anything**, surfaced publicly through the
 explorer (the indexer itself is not internet-facing):
 
-- **`GET /{COIN}/api/feequote`** — query params `action`, `params` (pipe-delimited wire params,
+- **`GET /{COIN}/api/feequote`**: query params `action`, `params` (pipe-delimited wire params,
   without the ACTION name), `source`, and optional `feeOutputSats`. Returns:
 
   ```json
@@ -173,7 +173,7 @@ explorer (the indexer itself is not internet-facing):
   `feeOutputSats` is below the acceptance floor. A client sizes its `FEE_DESTINATION` output to
   `requiredFeeSats`.
 
-- **`GET /{COIN}/api/feeschedule`** — the gas schedule, GAS_PRICE, tolerance band, fee destination,
+- **`GET /{COIN}/api/feeschedule`**: the gas schedule, GAS_PRICE, tolerance band, fee destination,
   and the latest XCHAIN/USD + COIN/USD oracle prices (with a freshness flag) for display / rough
   estimates.
 

@@ -1,11 +1,11 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Node — Architecture
+# XChain Node: Architecture
 
 ## Position in the Data Pipeline
 
-xchain-node sits above all other XChain services. It does not participate in the data pipeline at runtime — instead, it provisions and manages the containers that form the pipeline:
+xchain-node sits above all other XChain services. It does not participate in the data pipeline at runtime, instead, it provisions and manages the containers that form the pipeline:
 
 ```
                               ┌──────────────────────┐
@@ -71,7 +71,7 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 
 | File | Purpose |
 |---|---|
-| `src/index.js` | Entry point — loads dotenv, calls `parseCommand()` |
+| `src/index.js` | Entry point: loads dotenv, calls `parseCommand()` |
 | `src/cli.js` | Commander.js CLI definitions (21 commands, global options, preAction hook) |
 | `src/precheck.js` | Pre-command validation (Docker, directories, LevelDB, versions, networks) |
 | `src/state.js` | Singleton state (LevelDB instance, cached modules, verbose flag) |

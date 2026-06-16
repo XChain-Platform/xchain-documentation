@@ -21,12 +21,12 @@ This tutorial assumes you already have a token. If not, complete [Build_Your_Fir
 
 A dispenser has two sides:
 
-- **Give side** (`GIVE_COIN`, `GIVE_TICK`, `GIVE_AMOUNT`, `GIVE_ESCROW`) — the token you are selling. You escrow `GIVE_ESCROW` units up front. Each trigger dispenses `GIVE_AMOUNT`.
-- **Get side** (`GET_COIN`, `GET_TICK`, `GET_AMOUNT`, `GET_ADDRESS`) — what buyers must send to trigger the dispenser, and where they send it.
+- **Give side** (`GIVE_COIN`, `GIVE_TICK`, `GIVE_AMOUNT`, `GIVE_ESCROW`); the token you are selling. You escrow `GIVE_ESCROW` units up front. Each trigger dispenses `GIVE_AMOUNT`.
+- **Get side** (`GET_COIN`, `GET_TICK`, `GET_AMOUNT`, `GET_ADDRESS`), what buyers must send to trigger the dispenser, and where they send it.
 
 Additional controls:
-- `EXPIRATION` — Unix timestamp when the dispenser closes automatically
-- `ALLOW_LIST` / `BLOCK_LIST` — restrict which addresses can trigger it
+- `EXPIRATION`: Unix timestamp when the dispenser closes automatically
+- `ALLOW_LIST` / `BLOCK_LIST`, restrict which addresses can trigger it
 - Maximum 1,000 dispenses per dispenser
 
 ---
@@ -64,7 +64,7 @@ await mineBlock();
 console.log('Dispenser created, txid:', txid);
 ```
 
-When this transaction confirms, the indexer escrows 100 MYTOKEN from your balance into the dispenser. The tokens are no longer in your regular balance — they are held by the dispenser until dispensed or returned.
+When this transaction confirms, the indexer escrows 100 MYTOKEN from your balance into the dispenser. The tokens are no longer in your regular balance; they are held by the dispenser until dispensed or returned.
 
 ---
 
@@ -100,7 +100,7 @@ console.log('Open dispensers:', dispensers);
 
 ## Step 4: Trigger the Dispenser
 
-Anyone can trigger the dispenser by sending exactly `getAmount` of `getTick` (in this case 0.001 BTC) to `getAddress`. This is a plain coin transfer — no XChain action needed from the buyer.
+Anyone can trigger the dispenser by sending exactly `getAmount` of `getTick` (in this case 0.001 BTC) to `getAddress`. This is a plain coin transfer. No XChain action needed from the buyer.
 
 In regtest, you can simulate this using the regtest miner's `send_funds`:
 
@@ -234,9 +234,9 @@ const privateDispenser = sdk.dispenser({
 
 ## Next Steps
 
-- [Advanced_Token_Features.md](Advanced_Token_Features.md) — allow/block lists, mint windows
-- [Query_The_Explorer.md](Query_The_Explorer.md) — monitor dispenser state via API
-- [Batch_Operations.md](Batch_Operations.md) — issue and create a dispenser in one transaction
+- [Advanced_Token_Features.md](Advanced_Token_Features.md): allow/block lists, mint windows
+- [Query_The_Explorer.md](Query_The_Explorer.md): monitor dispenser state via API
+- [Batch_Operations.md](Batch_Operations.md): issue and create a dispenser in one transaction
 
 ---
 

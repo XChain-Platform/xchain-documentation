@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Transaction Lifecycle
+# XChain Platform SDK: Transaction Lifecycle
 
-The SDK provides a Transaction Lifecycle Manager that handles the complete flow of submitting an XChain action to the blockchain — from creation through to indexer confirmation — in a single call.
+The SDK provides a Transaction Lifecycle Manager that handles the complete flow of submitting an XChain action to the blockchain (from creation through to indexer confirmation) in a single call.
 
 ---
 
@@ -54,7 +54,7 @@ console.log(result.indexed);     // action data from the indexer
 | `timeout` | `number` | `120000` | Milliseconds to wait for indexer confirmation |
 | `pollInterval` | `number` | `2000` | Milliseconds between explorer poll attempts |
 | `requireValid` | `boolean` | `true` | Reject if the indexed action has status `'invalid'` |
-| `onProgress` | `function` | — | Callback for lifecycle step notifications |
+| `onProgress` | `function` | None | Callback for lifecycle step notifications |
 
 ### Return Value
 
@@ -142,16 +142,16 @@ console.log(action.action_index);
 const action = await sdk.waitForActionIndex(12345);
 ```
 
-Uses WebSocket events when the WebSocket client is connected, with polling fallback. Both strategies run simultaneously — whichever resolves first wins.
+Uses WebSocket events when the WebSocket client is connected, with polling fallback. Both strategies run simultaneously, whichever resolves first wins.
 
 ---
 
 ## Related Documentation
 
-- [Wallet Sessions](SESSIONS.md) — bound wallet sessions that use `submitAction` internally
-- [Workflows](WORKFLOWS.md) — multi-step recipes built on the lifecycle manager
-- [Encoder](ENCODER.md) — encoding types, options, P2SH two-phase details
-- [Errors](ERRORS.md) — `SDKActionError` for lifecycle failures
+- [Wallet Sessions](SESSIONS.md): bound wallet sessions that use `submitAction` internally
+- [Workflows](WORKFLOWS.md): multi-step recipes built on the lifecycle manager
+- [Encoder](ENCODER.md): encoding types, options, P2SH two-phase details
+- [Errors](ERRORS.md): `SDKActionError` for lifecycle failures
 
 ---
 

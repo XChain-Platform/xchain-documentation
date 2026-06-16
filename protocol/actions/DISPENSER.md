@@ -97,11 +97,11 @@ Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH
 - Dispensers can be closed by the dispenser `GET_ADDRESS` or `SOURCE` address which first opened the dispenser
 - If a dispenser is closed by the dispenser `GET_ADDRESS`, tokens escrowed in the dispenser are returned to `GET_ADDRESS`
 - If a dispenser is closed by the dispenser `SOURCE`, tokens escrowed in the dispenser are returned to `SOURCE`
-- If a dispenser is closed via `SWEEP` (`DISPENSERS=1`), remaining escrowed tokens — or the escrowed ownership record, if `GIVE_OWNERSHIP=1` — are credited to the SWEEP `DESTINATION` (see [`SWEEP`](./SWEEP.md))
+- If a dispenser is closed via `SWEEP` (`DISPENSERS=1`), remaining escrowed tokens (or the escrowed ownership record, if `GIVE_OWNERSHIP=1`) are credited to the SWEEP `DESTINATION` (see [`SWEEP`](./SWEEP.md))
 - If a dispenser closes due to `EXPIRATION` (no canceller), tokens escrowed in the dispenser are returned to `SOURCE`
 - `FIAT_CODE` and `FIAT_AMOUNT` must both be provided together (or both empty), unless `ORACLE_ADDRESS` is set
 - `ORACLE_ADDRESS` requires `FIAT_CODE` to be set (the oracle prices the token in that fiat currency)
-- `ORACLE_ADDRESS` makes `FIAT_AMOUNT` optional/ignored — the oracle provides the price
+- `ORACLE_ADDRESS` makes `FIAT_AMOUNT` optional/ignored; the oracle provides the price
 - `ORACLE_ADDRESS` must be a valid crypto address
 
 ### Token Ownership Dispensers
@@ -145,7 +145,7 @@ Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH
 
 ## FIAT Dispensers
 
-FIAT dispensers allow token sellers to price their tokens in a traditional currency (e.g., USD, JPY) while accepting payment in the native coin (BTC, LTC, DOGE). This enables non-XChain users to trigger a dispense by sending a simple bare coin payment — no XChain transaction required.
+FIAT dispensers allow token sellers to price their tokens in a traditional currency (e.g., USD, JPY) while accepting payment in the native coin (BTC, LTC, DOGE). This enables non-XChain users to trigger a dispense by sending a simple bare coin payment. No XChain transaction required.
 
 There are two pricing modes:
 
@@ -172,7 +172,7 @@ coin_price    = btc_jpy        (from validator PRICE v0)
 units         = floor((COIN_AMOUNT × coin_price) / oracle_price)
 ```
 
-**Why both oracles?** The user oracle prices the *token*, the validator oracle prices the *coin* — both are needed when the buyer is paying in a coin different from the oracle's quote currency. Both must use the same FIAT currency as the bridge.
+**Why both oracles?** The user oracle prices the *token*, the validator oracle prices the *coin*, both are needed when the buyer is paying in a coin different from the oracle's quote currency. Both must use the same FIAT currency as the bridge.
 
 ### Reverse Price Matching
 Because blockchain payments can take time to confirm, oracle prices may change between when the buyer sends the payment and when it lands in a block. The system handles this by searching historical oracle price snapshots within a **24-hour window** (86400 seconds) before the payment's `block_time`.
@@ -182,8 +182,8 @@ Because blockchain payments can take time to confirm, oracle prices may change b
 2. For each snapshot (newest to oldest):
    - Calculate `btc_per_token = FIAT_AMOUNT / snapshot.price`
    - Calculate `units = floor(COIN_AMOUNT / btc_per_token)`
-   - If `units >= 1`: **match found** — dispense `units × GIVE_AMOUNT` tokens
-3. The first (most recent) matching snapshot is used — the buyer most likely used the latest price they saw
+   - If `units >= 1`: **match found**, dispense `units × GIVE_AMOUNT` tokens
+3. The first (most recent) matching snapshot is used; the buyer most likely used the latest price they saw
 4. If no snapshot produces at least 1 unit, the dispense is invalid
 
 **Algorithm (user oracle path):**
@@ -198,14 +198,14 @@ Because blockchain payments can take time to confirm, oracle prices may change b
 If a buyer sends slightly more coin than the exact calculated amount, the system floors the unit count and absorbs the excess as overpayment. The extra amount does not trigger additional dispenses. For example, if the exact cost for 5 units is 0.000005 BTC and the buyer sends 0.0000055 BTC, the system dispenses 5 units.
 
 ### Oracle Front-Running Protection
-User oracles (PRICE v1) have a built-in anti-front-running mechanism: the **first** price for a `(ORACLE_ADDRESS, COIN, TICK, FIAT)` combination takes effect immediately, but **all subsequent updates** are delayed by 24 hours. This means an oracle operator cannot see an incoming dispenser payment and rush a price update to manipulate the exchange rate — pending payments settle at the old price before the new one activates.
+User oracles (PRICE v1) have a built-in anti-front-running mechanism: the **first** price for a `(ORACLE_ADDRESS, COIN, TICK, FIAT)` combination takes effect immediately, but **all subsequent updates** are delayed by 24 hours. This means an oracle operator cannot see an incoming dispenser payment and rush a price update to manipulate the exchange rate, pending payments settle at the old price before the new one activates.
 
 ### Recommendations
 - Buyers should send with a high transaction fee to ensure confirmation within the 24-hour price window
 - If a payment is stuck in the mempool for longer than 24 hours, no matching price snapshot will be found and the dispense will be invalid
 
 ### Dispenser Close Window
-Dispensers have a 1-hour close delay (`DISPENSER_CLOSE_DELAY`). When a dispenser is cancelled or runs out of tokens, it enters a "cancelling" state for 1 hour before fully closing. FIAT dispense payments that confirm during this window are still processed normally — the dispenser honors pending dispenses until the close window elapses.
+Dispensers have a 1-hour close delay (`DISPENSER_CLOSE_DELAY`). When a dispenser is cancelled or runs out of tokens, it enters a "cancelling" state for 1 hour before fully closing. FIAT dispense payments that confirm during this window are still processed normally; the dispenser honors pending dispenses until the close window elapses.
 
 ---
 

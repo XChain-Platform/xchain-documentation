@@ -87,7 +87,7 @@ This document covers common problems, their symptoms, and how to diagnose and re
 **Immediate actions:**
 1. Record the block number where the failure occurred (it will be in the log message).
 2. File a bug report with the block number, chain, network, and the full log output around the failure.
-3. Do not attempt to continue processing — doing so risks propagating corrupt state.
+3. Do not attempt to continue processing, doing so risks propagating corrupt state.
 
 **Temporary workaround (use with caution):** If you must continue processing while a fix is being developed, you may need to re-index from a known-good block. This involves stopping the indexer, clearing the Indexer DB, and letting it rebuild from the decoder DB. Contact the XChain development team before attempting this.
 
@@ -119,7 +119,7 @@ This document covers common problems, their symptoms, and how to diagnose and re
 **Symptom:** API responses return empty arrays or zero record counts even though the chain has data.
 
 **Diagnosis:**
-1. Check that the indexer is synced. The explorer reads from the Indexer DB — if the indexer is behind, the explorer will reflect that.
+1. Check that the indexer is synced. The explorer reads from the Indexer DB, if the indexer is behind, the explorer will reflect that.
 2. Verify the explorer is connected to the correct Indexer DB.
 3. Check explorer logs for database connection errors.
 
@@ -146,7 +146,7 @@ This document covers common problems, their symptoms, and how to diagnose and re
 
 **Symptom:** Browser requests to the explorer API fail with CORS policy errors.
 
-**Fix:** Configure allowed origins in the explorer's config (via hub or `config.json`). The explorer uses `helmet` and `cors` middleware — ensure the requesting origin is in the allowed list.
+**Fix:** Configure allowed origins in the explorer's config (via hub or `config.json`). The explorer uses `helmet` and `cors` middleware, ensure the requesting origin is in the allowed list.
 
 ---
 
@@ -161,7 +161,7 @@ This document covers common problems, their symptoms, and how to diagnose and re
 2. Check the container name and port match what the service expects.
 3. Verify the service's `DB_HOST` env var resolves to the MariaDB container on the Docker network.
 
-**Fix:** Start the MariaDB container if it is stopped. Verify Docker network membership — the service container and the database container must be on the same Docker network.
+**Fix:** Start the MariaDB container if it is stopped. Verify Docker network membership; the service container and the database container must be on the same Docker network.
 
 ### Connection Pool Exhaustion
 
@@ -214,7 +214,7 @@ docker network inspect xchain-node-bitcoin-mainnet
 ```
 Verify both containers are listed as connected to the expected network.
 
-**Fix:** If a container is not on the expected network, re-create it via `xchain-node restart`. If the Docker network itself is missing, run `xchain-node install` again — it will recreate the network.
+**Fix:** If a container is not on the expected network, re-create it via `xchain-node restart`. If the Docker network itself is missing, run `xchain-node install` again; it will recreate the network.
 
 ---
 
@@ -236,7 +236,7 @@ Verify both containers are listed as connected to the expected network.
 3. Remove unused Docker images: `docker image prune`.
 4. If blockchain data is the culprit, extend the volume or mount additional storage.
 
-**Prevention:** Set up disk usage alerts before reaching 80% capacity. Blockchain data growth is predictable — plan ahead.
+**Prevention:** Set up disk usage alerts before reaching 80% capacity. Blockchain data growth is predictable, plan ahead.
 
 ### Resetting and Re-Indexing from Scratch
 
@@ -255,7 +255,7 @@ If a database becomes severely corrupted or you need a clean start:
 
 3. Start the services. The decoder and indexer will recreate their tables automatically from `src/sql/*.sql` and re-process all blocks from the decoder DB.
 
-4. If the decoder DB also needs to be reset, drop the decoder database as well. The decoder will re-scan the entire blockchain from the coin node — a full re-sync.
+4. If the decoder DB also needs to be reset, drop the decoder database as well. The decoder will re-scan the entire blockchain from the coin node; a full re-sync.
 
 For the UTXO tracker, delete its LevelDB volume and restart:
 ```bash

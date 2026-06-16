@@ -29,7 +29,7 @@ The standard upgrade process is:
 3. **Pull and build the new image** via `xchain-node update`.
 4. **Apply any database migrations** (if the release notes specify them).
 5. **Start the service.**
-6. **Verify operation** — check logs and confirm block processing resumes.
+6. **Verify operation**: check logs and confirm block processing resumes.
 
 ### Example: Upgrading the Indexer
 
@@ -73,10 +73,10 @@ Some services can be upgraded independently with minimal disruption:
 | xchain-decoder | With care | Brief gap in mempool tracking during restart |
 | xchain-indexer | With care | Resumes from last processed block automatically |
 | xchain-utxo-tracker | With care | Resumes from last parsed block |
-| MariaDB (database) | No — coordinate | All services that use the DB will lose connections |
-| Coin node | No — coordinate | Decoder and UTXO tracker will disconnect |
+| MariaDB (database) | No: coordinate | All services that use the DB will lose connections |
+| Coin node | No: coordinate | Decoder and UTXO tracker will disconnect |
 
-For the decoder and indexer, a brief restart causes no data loss — they resume from where they left off in the database on startup.
+For the decoder and indexer, a brief restart causes no data loss; they resume from where they left off in the database on startup.
 
 ---
 
@@ -114,13 +114,13 @@ When a new protocol version is deployed:
 - At the activation block, new ACTION types or field formats become valid.
 - Old ACTION versions continue to be accepted if they were valid before activation.
 
-No manual intervention is needed for protocol version changes — upgrading the indexer image is sufficient. The activation block/height is enforced automatically.
+No manual intervention is needed for protocol version changes, upgrading the indexer image is sufficient. The activation block/height is enforced automatically.
 
 ---
 
 ## Breaking Changes
 
-A breaking change requires coordinated upgrades — for example, if the indexer DB schema changes in a way that is incompatible with the current explorer or decoder.
+A breaking change requires coordinated upgrades, for example, if the indexer DB schema changes in a way that is incompatible with the current explorer or decoder.
 
 Breaking changes are flagged in release notes. When a breaking change affects multiple services:
 

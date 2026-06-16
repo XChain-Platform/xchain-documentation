@@ -3,15 +3,15 @@
 
 # Protocol Specification
 
-This section is the canonical reference for the XChain Protocol — ACTION command formats, token metadata standards, database naming conventions, and machine-readable JSON schemas. Intended for protocol developers, indexer implementors, and anyone building tools that must interoperate with the platform at the data level.
+This section is the canonical reference for the XChain Protocol; ACTION command formats, token metadata standards, database naming conventions, and machine-readable JSON schemas. Intended for protocol developers, indexer implementors, and anyone building tools that must interoperate with the platform at the data level.
 
 | Resource | Description |
 |---|---|
 | [ACTION Specifications](./actions/) | Authoritative format specs for all 34 ACTION commands |
 | [Token Information Standard](./Token_Information_Standard.md) | Standard for token metadata fields and discovery |
 | [Token-Gated Content](./Token_Gated_Content.md) | End-to-end design for cryptographically secure token-gated file publishing (single files and packs) |
-| [NFT Standard](./NFT_Standard.md) | Non-fungible tokens as a composition of existing primitives — uniques, editions, collections, content attachment, display |
-| [Project Registry Standard](./Project_Registry.md) | Chain-native curated directories — a project tick attests its official tokens via an owner-validated LIST + LINK roster |
+| [NFT Standard](./NFT_Standard.md) | Non-fungible tokens as a composition of existing primitives: uniques, editions, collections, content attachment, display |
+| [Project Registry Standard](./Project_Registry.md) | Chain-native curated directories; a project tick attests its official tokens via an owner-validated LIST + LINK roster |
 | [Contract-Targeted Staking](./Contract_Staking.md) | Design and VM API for staking any token against a smart contract with contract-decided slashing |
 | [XChain URI Scheme](./XChain_URI_Scheme.md) | Cross-chain payment and action URI format for QR codes, deep links, and clipboard payloads |
 | [Database Naming Structure](./Database_Naming_Structure.md) | Naming conventions for all platform databases |

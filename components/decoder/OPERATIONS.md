@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Decoder — Operations
+# XChain Platform Decoder: Operations
 
 ## Prerequisites
 
@@ -113,7 +113,7 @@ Detailed health status including decoder state.
 
 ### `getlatestblock`
 
-Returns the decoder's latest parsed block alongside the coin-node's tip — useful for monitoring decoder-to-node lag in a single call.
+Returns the decoder's latest parsed block alongside the coin-node's tip, useful for monitoring decoder-to-node lag in a single call.
 
 **Request:**
 ```json
@@ -146,10 +146,10 @@ Returns the decoder's latest parsed block alongside the coin-node's tip — usef
 ### Security
 
 The API includes:
-- **Helmet** — sets secure HTTP headers
-- **CORS** — enabled for cross-origin requests
-- **Rate limiting** — 100 requests per minute per IP
-- **Body size limit** — 100kb maximum request body
+- **Helmet**: sets secure HTTP headers
+- **CORS**: enabled for cross-origin requests
+- **Rate limiting**: 100 requests per minute per IP
+- **Body size limit**: 100kb maximum request body
 
 ## Reorg Handling
 
@@ -202,11 +202,11 @@ Mempool tracking pauses if the decoder falls more than 3 blocks behind the tip, 
 
 - Check coin node connectivity (the decoder logs RPC timeout warnings)
 - Verify MariaDB is accessible and the connection pool isn't exhausted
-- Check for reorg loops — if the chain is continuously reorganizing, the decoder may repeatedly delete and re-parse the same block
+- Check for reorg loops, if the chain is continuously reorganizing, the decoder may repeatedly delete and re-parse the same block
 
 ### Database name rejected
 
-- Database names must match `/^[A-Za-z0-9_]+$/` — no spaces, backticks, or special characters
+- Database names must match `/^[A-Za-z0-9_]+$/`. No spaces, backticks, or special characters
 - Follow the naming convention: `XChain_{CHAIN}_{NETWORK}_Decoder`
 
 ### Mempool not updating

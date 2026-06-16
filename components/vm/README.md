@@ -3,7 +3,7 @@
 
 # XChain VM Component
 
-The `xchain-vm` module is a standalone JavaScript library that executes smart contracts in deterministic, sandboxed V8 isolates. It is the runtime engine for the XChain smart contract layer — everything else (the DEPLOY/EXECUTE action handlers, database tables, gas fee logic) lives in the indexer.
+The `xchain-vm` module is a standalone JavaScript library that executes smart contracts in deterministic, sandboxed V8 isolates. It is the runtime engine for the XChain smart contract layer, everything else (the DEPLOY/EXECUTE action handlers, database tables, gas fee logic) lives in the indexer.
 
 ## What is xchain-vm
 
@@ -11,17 +11,17 @@ A pure function library. Takes contract code + state + inputs + block context. R
 
 ## Features
 
-- **Deterministic execution** — identical results on every indexer node replaying the same block
-- **V8 sandbox isolation** — contracts run in `isolated-vm` with a separate heap, no access to host process, filesystem, or network
-- **AST-based gas metering** — `acorn` parses the source, injects `__gas()` at control flow points, `astring` regenerates — fully deterministic, not wall-clock
-- **JSON bridge protocol** — host-side gateway functions communicate with the isolate via JSON-serialized arguments and type-prefixed return values
-- **18 emittable action types** — SEND, DESTROY, ISSUE, MINT, ORDER, DISPENSER, DIVIDEND, AIRDROP, CALLBACK, FILE, LIST, COINPAY, SWEEP, LINK, BROADCAST, MESSAGE, plus `emit.execute` (cross-contract call) and `emit.crossExecute` (cross-chain call via XCALL)
-- **External attestation gateway** — `xchain.attestation.request(...)` and `getResponse(...)`. Contracts ask an HTTPS endpoint or an approved LLM, and the validator network writes a signed answer back on-chain that re-enters the contract through a callback. See [Smart Contracts — Attestation Framework](../../concepts/Smart_Contracts.md#asking-the-outside-world--the-attestation-framework).
-- **Contract-targeted staking gateway** — `xchain.contract.getStake`, `getTotalStaked`, `getStakers`, `slash`. Any contract can declare itself stakeable at deploy time and slash its own stakers per its own rules. See [Smart Contracts — Stakeable Contracts](../../concepts/Smart_Contracts.md#stakeable-contracts).
-- **Deterministic math** — `xchain.math.*` wraps mathjs bignumber with string I/O, no floating-point at the gateway boundary
-- **Contract state management** — key-value store with dirty tracking, key count, key size, and value size limits
-- **Deploy-time validation** — V8 syntax check, acorn metering pass, reserved identifier detection, float warnings
-- **Per-block compilation cache** — V8 cached compilation data reused for hot contracts within a block
+- **Deterministic execution**: identical results on every indexer node replaying the same block
+- **V8 sandbox isolation**: contracts run in `isolated-vm` with a separate heap, no access to host process, filesystem, or network
+- **AST-based gas metering**: `acorn` parses the source, injects `__gas()` at control flow points, `astring` regenerates, fully deterministic, not wall-clock
+- **JSON bridge protocol**: host-side gateway functions communicate with the isolate via JSON-serialized arguments and type-prefixed return values
+- **18 emittable action types**: SEND, DESTROY, ISSUE, MINT, ORDER, DISPENSER, DIVIDEND, AIRDROP, CALLBACK, FILE, LIST, COINPAY, SWEEP, LINK, BROADCAST, MESSAGE, plus `emit.execute` (cross-contract call) and `emit.crossExecute` (cross-chain call via XCALL)
+- **External attestation gateway**: `xchain.attestation.request(...)` and `getResponse(...)`. Contracts ask an HTTPS endpoint or an approved LLM, and the validator network writes a signed answer back on-chain that re-enters the contract through a callback. See [Smart Contracts; Attestation Framework](../../concepts/Smart_Contracts.md#asking-the-outside-world--the-attestation-framework).
+- **Contract-targeted staking gateway**: `xchain.contract.getStake`, `getTotalStaked`, `getStakers`, `slash`. Any contract can declare itself stakeable at deploy time and slash its own stakers per its own rules. See [Smart Contracts; Stakeable Contracts](../../concepts/Smart_Contracts.md#stakeable-contracts).
+- **Deterministic math**: `xchain.math.*` wraps mathjs bignumber with string I/O, no floating-point at the gateway boundary
+- **Contract state management**: key-value store with dirty tracking, key count, key size, and value size limits
+- **Deploy-time validation**: V8 syntax check, acorn metering pass, reserved identifier detection, float warnings
+- **Per-block compilation cache**: V8 cached compilation data reused for hot contracts within a block
 
 ## Documentation
 
@@ -100,9 +100,9 @@ const result = await vm.execute({
 | `npm run smoke` | Smoke tests (10 tests, < 5s) |
 | `npm run test:fuzz` | Fuzz / property-based tests (86 tests) |
 | `npm run test:chaos` | Chaos engineering tests (92 tests) |
-| `npm run test:regression:smoke` | P0 regression — VM boot, sandbox, execution (11 tests, < 50ms) |
-| `npm run test:regression:core` | P0+P1 regression — + security, atomicity, determinism (45 tests, < 200ms) |
-| `npm run test:regression:full` | P0-P3 regression — full functional + integration (152 tests, < 1s) |
+| `npm run test:regression:smoke` | P0 regression; VM boot, sandbox, execution (11 tests, < 50ms) |
+| `npm run test:regression:core` | P0+P1 regression: + security, atomicity, determinism (45 tests, < 200ms) |
+| `npm run test:regression:full` | P0-P3 regression: full functional + integration (152 tests, < 1s) |
 | `npm run test:regression:nightly` | Regression + E2E + fuzz + chaos phase 1 |
 | `npm run test:regression:release` | All tests + mutation testing |
 | `npm run mutation` | Mutation testing (Stryker, full suite) |
@@ -132,15 +132,15 @@ const result = await vm.execute({
 
 ## Related
 
-- [Smart Contracts Concept](../../concepts/Smart_Contracts.md) — gateway API reference, contract format, deterministic execution model, attestation framework, stakeable contracts
-- [Contract Development Guide](../../developer-guide/Smart_Contract_Development.md) — writing, deploying, and debugging contracts
-- [Gas and Fees](../../concepts/GAS.md) — gas economics, fee schedule, XCHAIN token
-- [Indexer Architecture](../indexer/ARCHITECTURE.md) — how the indexer integrates the VM
-- [DEPLOY Action](../../protocol/actions/DEPLOY.md) — deploying a contract (including stakeable-contract metadata)
-- [EXECUTE Action](../../protocol/actions/EXECUTE.md) — calling a contract method
-- [ATTEST Action](../../protocol/actions/ATTEST.md) — request/response/expire lifecycle behind `xchain.attestation.*`
-- [LLM Provider](../../protocol/providers/llm.md) — prompt envelope, approved models, judge-model consensus
-- [Contract-Targeted Staking](../../protocol/Contract_Staking.md) — wire spec for `xchain.contract.*`
+- [Smart Contracts Concept](../../concepts/Smart_Contracts.md): gateway API reference, contract format, deterministic execution model, attestation framework, stakeable contracts
+- [Contract Development Guide](../../developer-guide/Smart_Contract_Development.md): writing, deploying, and debugging contracts
+- [Gas and Fees](../../concepts/GAS.md): gas economics, fee schedule, XCHAIN token
+- [Indexer Architecture](../indexer/ARCHITECTURE.md): how the indexer integrates the VM
+- [DEPLOY Action](../../protocol/actions/DEPLOY.md): deploying a contract (including stakeable-contract metadata)
+- [EXECUTE Action](../../protocol/actions/EXECUTE.md): calling a contract method
+- [ATTEST Action](../../protocol/actions/ATTEST.md): request/response/expire lifecycle behind `xchain.attestation.*`
+- [LLM Provider](../../protocol/providers/llm.md): prompt envelope, approved models, judge-model consensus
+- [Contract-Targeted Staking](../../protocol/Contract_Staking.md): wire spec for `xchain.contract.*`
 
 ---
 

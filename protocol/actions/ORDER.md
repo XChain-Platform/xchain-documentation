@@ -89,7 +89,7 @@ This example trades ownership of JDOG for ownership of PEPECOIN. Both sides escr
 ### Native Coin Pairs
 - An empty/null `GIVE_TICK` or `GET_TICK` indicates native coin (BTC/LTC/DOGE) on that side
 - Both `GIVE_TICK` and `GET_TICK` cannot be empty simultaneously (coin-for-coin is a regular blockchain transaction)
-- When `GIVE_TICK` is empty (offering native coin): no balance check, no escrow — the obligation to pay is created at match time and fulfilled via [`COINPAY`](./COINPAY.md)
+- When `GIVE_TICK` is empty (offering native coin): no balance check, no escrow; the obligation to pay is created at match time and fulfilled via [`COINPAY`](./COINPAY.md)
 - When `GET_TICK` is empty (requesting native coin): the `GIVE_TICK` tokens are escrowed normally
 - Native coin amounts are validated using `COIN_DECIMALS` (8 decimal places for BTC/LTC/DOGE)
 - Expiration fees are charged regardless of whether the order involves native coin
@@ -100,7 +100,7 @@ This example trades ownership of JDOG for ownership of PEPECOIN. Both sides escr
 ### Token Ownership Sales
 - `GIVE_OWNERSHIP=1` requires SOURCE to be the current owner of `GIVE_TICK`; `GIVE_AMOUNT` must be empty; the ownership record moves into a protocol-held escrow state
 - `GET_OWNERSHIP=1` requires the matcher's SOURCE to be the current owner of `GET_TICK`; `GET_AMOUNT` must be empty
-- Ownership orders are **single-fill only** — ownership is indivisible; the entire order matches against one counterparty or none (no partial fills on the balance side either)
+- Ownership orders are **single-fill only**, ownership is indivisible; the entire order matches against one counterparty or none (no partial fills on the balance side either)
 - While ownership is escrowed, the following actions targeting the escrowed `TICK` are rejected:
   - `ISSUE` Versions 1–5 (description/mint/lock/callback/list edits)
   - `CALLBACK`, `SLEEP`
@@ -109,7 +109,7 @@ This example trades ownership of JDOG for ownership of PEPECOIN. Both sides escr
   - New child `ISSUE` using this `TICK` as a parent (period-separated name)
   - Additional `ORDER`/`SWAP`/`DISPENSER` ownership offers for this `TICK` from the original owner
 - Holder-side actions are unaffected: `SEND`, `MINT` (if mint window open), `DIVIDEND` payouts, `DEPOSIT`/`WITHDRAW`, `DESTROY` of held balance
-- Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold — sell each child separately if needed
+- Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold, sell each child separately if needed
 - On match: ownership transfers atomically to the counterparty's SOURCE
 - On cancel (Version 1) or `EXPIRATION`: ownership returns to the original SOURCE
 - When matched against a native-coin counterparty: ownership remains in escrow as a `pending_coinpay` obligation and is delivered to the buyer once `COINPAY` settles; if the obligation expires or is cancelled, ownership returns to the original SOURCE
@@ -120,7 +120,7 @@ This example trades ownership of JDOG for ownership of PEPECOIN. Both sides escr
 ## Notes
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
 - **Cross-chain orders** (`GET_COIN` ≠ the posting chain) escrow the GIVE side locally and are
-  matched + settled by the validator federation — not the local DEX. The match is delivered to
+  matched + settled by the validator federation. Not the local DEX. The match is delivered to
   each chain and settled from escrow with no per-trade on-chain transaction. See
   [Cross-Chain DEX](../Cross_Chain_DEX.md).
 

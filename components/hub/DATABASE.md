@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Hub — Database Schema
+# XChain Platform Hub: Database Schema
 
 The hub uses a single MariaDB database (e.g., `XChain_Hub`) for all state. The database and all tables are auto-created on first startup. SQL schema files live in `src/sql/*.sql` and are loaded by `db.js`.
 
@@ -99,7 +99,7 @@ Raw price submissions from validators during each oracle round.
 
 ### `price_snapshots`
 
-Finalized price data after PBFT consensus. Cross-chain unified view — populated by either the hub's local PBFT consensus (when running in validator mode) or by `PriceAggregator.receiveValidatedRound()` when an indexer pushes a validated PRICE v0 from any chain. Deduplicated by `round_number` (first valid submission wins).
+Finalized price data after PBFT consensus. Cross-chain unified view, populated by either the hub's local PBFT consensus (when running in validator mode) or by `PriceAggregator.receiveValidatedRound()` when an indexer pushes a validated PRICE v0 from any chain. Deduplicated by `round_number` (first valid submission wins).
 
 | Column | Type | Description |
 |---|---|---|
@@ -112,7 +112,7 @@ Finalized price data after PBFT consensus. Cross-chain unified view — populate
 | `block_timestamp` | `BIGINT NOT NULL` | Block timestamp of reference (default: 0) |
 | `validator_count` | `INT NOT NULL` | Number of validators in consensus |
 | `consensus_round` | `INT` | Consensus round number (default: 1) |
-| `consensus_proof` | `TEXT NOT NULL` | Serialized consensus proof — JSON array of `{pubkey, sig}` for PRICE v0 |
+| `consensus_proof` | `TEXT NOT NULL` | Serialized consensus proof; JSON array of `{pubkey, sig}` for PRICE v0 |
 | `status` | `ENUM('finalized','skipped','disputed')` | Round outcome |
 | `source_chain` | `VARCHAR(10) NOT NULL` | Chain that carried the PRICE v0 tx (audit/diagnostics, default: DOGE) |
 | `source_action_index` | `BIGINT` | Action index of the PRICE v0 tx on source_chain (NULL for hub-finalized) |
@@ -251,7 +251,7 @@ Individual validator votes cast on governance proposals.
 | `signature` | `TEXT NOT NULL` | Ed25519 signature of the vote |
 | `created_at` | `TIMESTAMP` | When the vote was cast |
 
-**Unique key:** `(proposal_id, voter_pubkey)` — one vote per validator per proposal
+**Unique key:** `(proposal_id, voter_pubkey)`; one vote per validator per proposal
 
 ## Incentive Tables
 
@@ -278,7 +278,7 @@ Tracks XCHAIN rewards earned by validators for participating in oracle rounds. R
 
 ### `slash_proposals`
 
-Records detected validator misbehavior for governance review. The hub detects violations but does not execute slashing directly — actual slashing occurs via the indexer's staking contract.
+Records detected validator misbehavior for governance review. The hub detects violations but does not execute slashing directly, actual slashing occurs via the indexer's staking contract.
 
 | Column | Type | Description |
 |---|---|---|

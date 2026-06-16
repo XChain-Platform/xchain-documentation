@@ -45,25 +45,24 @@ many calls.
 ## Trust model
 
 The 2f+1 `cross_chain` capability quorum is the authority that tells chain Y
-"this call happened on X" — Y cannot read X's chain. This is the same trust
+"this call happened on X"; Y cannot read X's chain. This is the same trust
 that releases cross-chain DEX escrow, but with a larger potential blast radius
 (invoking contract methods vs releasing escrowed funds). It is bounded by:
 
-1. **`crossCallable` opt-in** — a contract must export a `crossCallable`
+1. **`crossCallable` opt-in**; a contract must export a `crossCallable`
    array naming the methods reachable cross-chain. A forged dispatch can only
    reach methods the target consciously exposed.
-2. **Params-only v1** — no token value rides the call.
-3. **Local signature verification everywhere** — no indexer ever acts on a
+2. **Params-only v1**. No token value rides the call.
+3. **Local signature verification everywhere**. No indexer ever acts on a
    mirror row without verifying its 2f+1 Ed25519 signatures against the
    mirrored, BTC-anchored capability snapshot. Mirror equivocation degrades to
    censorship, which the deadline bounds.
-4. **Independent peer re-verification** — a hub follower only co-signs a
+4. **Independent peer re-verification**; a hub follower only co-signs a
    dispatch/result after re-fetching it from its OWN indexer for that chain;
    a Byzantine leader cannot collect a quorum for a call no chain made.
 
 **Liveness vs safety:** a dead or censoring federation can only delay or expire
-calls (the `expired` callback is derived from block height alone, hub-free) —
-it cannot forge them.
+calls (the `expired` callback is derived from block height alone, hub-free); it cannot forge them.
 
 ## Finality and irreversibility
 
@@ -72,7 +71,7 @@ The federation relays a request only after it is buried `CONF[source]` deep
 result only after the injected execution is `CONF[target]` deep. **A
 target-chain execution cannot be retracted from the source chain.** A source
 reorg deeper than the confirmation gate after the target executed is outside
-the security model — the same posture cross-chain DEX settlement takes on a
+the security model; the same posture cross-chain DEX settlement takes on a
 confirmed give-side. (Defense-in-depth retraction exists for the sub-depth
 window: relay rows are marked retracted and broadcast as mirror deletions, and
 indexers that have not yet injected skip them.)
@@ -80,7 +79,7 @@ indexers that have not yet injected skip them.)
 ## Latency
 
 Inherent, not incidental: `CONF[X] + hub round + mirror grace + Y block +
-execution + CONF[Y] + hub round + mirror grace + X block` — minutes to tens of
+execution + CONF[Y] + hub round + mirror grace + X block`, minutes to tens of
 minutes depending on the chain pair. Contracts must be designed fully async:
 emit the call, return, and handle the outcome in the callback.
 
@@ -90,11 +89,11 @@ emit the call, return, and handle the outcome in the callback.
   mirror has its own sync barrier (`waitForCallSync`, with the stream-watermark
   quiet-table escape) plus snapshot-presence gating, mirroring the match
   barriers.
-- Injection order is `(snapshot_block, call_id)` — quorum-agreed row content,
+- Injection order is `(snapshot_block, call_id)`, quorum-agreed row content,
   identical in every hub DB, so the order does not depend on which hub an
   indexer mirrors (the per-hub AUTO_INCREMENT `id` is provenance only, though
-  ANCHOR still archives it); the per-block cap carries overflow forward —
-  never drops.
+  ANCHOR still archives it); the per-block cap carries overflow forward;
+never drops.
 - Result delivery and deadline expiry share an exactly-once interlock on the
   request's status; both are block-height-driven.
 - The injected execution's synthetic TX_HASH is chain/network-namespaced

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Indexer — Database Schema
+# XChain Platform Indexer: Database Schema
 
 The indexer uses two separate MariaDB databases.
 
@@ -105,24 +105,24 @@ The indexer creates and manages all tables in this database. SQL schema files li
 
 | Table | Purpose |
 |---|---|
-| `stakes` | Active and historical capability-staking STAKE records (`version` 1=new / 2=top-up) — `signing_pubkey_id`, `amount`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE), `status_id`, `source_id`. Capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) are derived from a pubkey's aggregate active `amount` against the governance-configured minimums — there is no `tier` column. |
-| `unstakes` | Capability UNSTAKE v0 records — `signing_pubkey_id`, `amount`, `cooldown_end_block`, `status_id`; links back to the originating stake by pubkey. The cooldown end is `block_index + STAKING.COOLDOWN_BLOCKS` — the cooldown length is governance-configurable via the `STAKING.COOLDOWN_BLOCKS` parameter (default 1000 blocks), not a hardcoded constant. Contract-targeted UNSTAKE v1 records do **not** appear here; they are written to `contract_unstakes` with a per-contract cooldown (see below). |
-| `delegations` | Active and historical DELEGATE records — `signing_pubkey_id`, `activation_block`, `deactivation_block` (set on DELEGATE v2 revoke), `status_id` |
-| `validator_rewards` | Per-validator accumulated rewards — `source_id`, `signing_pubkey_id`, `reward_type` (`oracle_round`, `attest_fee`, `anchor_<chain>` e.g. `anchor_BTC`, or `anchor_archive`), `round_reference`, `amount`, `block_index`. `oracle_round` and `attest_fee` rows are derived by the indexer during block processing; `anchor_<chain>` and `anchor_archive` rows are pushed from the hub via `pushvalidatorrewards`. |
-| `stake_key_revocations` | Records DELEGATE v2 revocations of the original stake signing key — `source_id`, `signing_pubkey_id`, `deactivation_block`, `action_index`, `block_index`, `status_id`. A later STAKE v2 (higher `action_index`) by the same `(source, pubkey)` clears the revocation. Queried via `createStakeKeyRevocation` / `getStakeKeyRevocation` in `db.js`. |
-| `reward_claims` | COLLECT records — `source_id`, `amount`, `status_id`, `block_index` |
+| `stakes` | Active and historical capability-staking STAKE records (`version` 1=new / 2=top-up): `signing_pubkey_id`, `amount`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE), `status_id`, `source_id`. Capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) are derived from a pubkey's aggregate active `amount` against the governance-configured minimums: there is no `tier` column. |
+| `unstakes` | Capability UNSTAKE v0 records: `signing_pubkey_id`, `amount`, `cooldown_end_block`, `status_id`; links back to the originating stake by pubkey. The cooldown end is `block_index + STAKING.COOLDOWN_BLOCKS`; the cooldown length is governance-configurable via the `STAKING.COOLDOWN_BLOCKS` parameter (default 1000 blocks), not a hardcoded constant. Contract-targeted UNSTAKE v1 records do **not** appear here; they are written to `contract_unstakes` with a per-contract cooldown (see below). |
+| `delegations` | Active and historical DELEGATE records: `signing_pubkey_id`, `activation_block`, `deactivation_block` (set on DELEGATE v2 revoke), `status_id` |
+| `validator_rewards` | Per-validator accumulated rewards: `source_id`, `signing_pubkey_id`, `reward_type` (`oracle_round`, `attest_fee`, `anchor_<chain>` e.g. `anchor_BTC`, or `anchor_archive`), `round_reference`, `amount`, `block_index`. `oracle_round` and `attest_fee` rows are derived by the indexer during block processing; `anchor_<chain>` and `anchor_archive` rows are pushed from the hub via `pushvalidatorrewards`. |
+| `stake_key_revocations` | Records DELEGATE v2 revocations of the original stake signing key: `source_id`, `signing_pubkey_id`, `deactivation_block`, `action_index`, `block_index`, `status_id`. A later STAKE v2 (higher `action_index`) by the same `(source, pubkey)` clears the revocation. Queried via `createStakeKeyRevocation` / `getStakeKeyRevocation` in `db.js`. |
+| `reward_claims` | COLLECT records: `source_id`, `amount`, `status_id`, `block_index` |
 
 All staking tables enforce a **6-block activation/deactivation delay** via `activation_block` and `deactivation_block` columns. Active-stake queries filter by `activation_block <= current_block AND (deactivation_block IS NULL OR deactivation_block > current_block)` to prevent short-range BTC reorgs from affecting the active validator set.
 
 ### Contract-Staking Tables
 
-Contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1) is a developer primitive: any registered token can be staked against a smart contract, on any chain. These tables are entirely separate from the capability-staking tables above — they share no state, key off the target contract rather than a built-in capability, and use a per-contract cooldown instead of the global `STAKING.COOLDOWN_BLOCKS`. See `protocol/Contract_Staking.md` for the full spec.
+Contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1) is a developer primitive: any registered token can be staked against a smart contract, on any chain. These tables are entirely separate from the capability-staking tables above; they share no state, key off the target contract rather than a built-in capability, and use a per-contract cooldown instead of the global `STAKING.COOLDOWN_BLOCKS`. See `protocol/Contract_Staking.md` for the full spec.
 
 | Table | Purpose |
 |---|---|
-| `contract_stakes` | STAKE v3 records — `action_index` (PK), `source_id`, `version`, `signing_pubkey_id`, `target_contract_index` (FK to `contracts.action_index`), `tick_id`, `amount`, `status_id`, `block_index`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE v1). Active stake for a `(target_contract_index, signing_pubkey_id, tick_id)` triple is the SUM of active rows. |
-| `contract_unstakes` | UNSTAKE v1 records — `action_index` (PK), `source_id`, `signing_pubkey_id`, `target_contract_index`, `tick_id`, `cooldown_end_block` (`block_index + contracts.cooldown_blocks` — the per-contract cooldown declared at deploy, **not** the global capability cooldown), `amount`, `status_id`, `block_index`. The block-end sweep credits the remaining (post-slash) amount back to the staker at `cooldown_end_block`. |
-| `contract_delegations` | DELEGATE v1 records (signing-pubkey rotation on a contract-targeted stake) — `action_index` (PK), `source_id`, `signing_pubkey_id` (the new pubkey), `target_contract_index`, `tick_id`, `status_id`, `block_index`, `activation_block`, `deactivation_block` (set on revoke). |
+| `contract_stakes` | STAKE v3 records: `action_index` (PK), `source_id`, `version`, `signing_pubkey_id`, `target_contract_index` (FK to `contracts.action_index`), `tick_id`, `amount`, `status_id`, `block_index`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE v1). Active stake for a `(target_contract_index, signing_pubkey_id, tick_id)` triple is the SUM of active rows. |
+| `contract_unstakes` | UNSTAKE v1 records (`action_index` (PK), `source_id`, `signing_pubkey_id`, `target_contract_index`, `tick_id`, `cooldown_end_block` (`block_index + contracts.cooldown_blocks`) the per-contract cooldown declared at deploy, **not** the global capability cooldown), `amount`, `status_id`, `block_index`. The block-end sweep credits the remaining (post-slash) amount back to the staker at `cooldown_end_block`. |
+| `contract_delegations` | DELEGATE v1 records (signing-pubkey rotation on a contract-targeted stake): `action_index` (PK), `source_id`, `signing_pubkey_id` (the new pubkey), `target_contract_index`, `tick_id`, `status_id`, `block_index`, `activation_block`, `deactivation_block` (set on revoke). |
 
 ### PRICE Action Table
 
@@ -136,12 +136,12 @@ After processing, the indexer pushes validated PRICE actions to `xchain-hub` whi
 
 | Table | Purpose |
 |---|---|
-| `contracts` | Deployed contract records — `action_index` (PK), `source_id` (owner), `code` (MEDIUMTEXT, decoded JS), `code_hash` (SHA-256), `api_version` (default 1), `status_id`, `block_index` |
-| `contract_state` | Append-only key-value state — each row is one state write keyed by `contract_index` + `state_key`. Latest value per key found via `MAX(id)` subquery. `state_value` of NULL means deleted. Index: `(contract_index, state_key, id DESC)`. Rollback: `DELETE WHERE block_index >= ?` |
-| `contract_executions` | EXECUTE/constructor call records — `action_index` (PK), `contract_index`, `caller_id`, `method_name`, `input_params`, `gas_used`, `gas_limit`, `status_id`, `error_message`, `emitted_count`, `block_index` |
-| `contract_emissions` | Actions emitted by contract executions — `execution_index` (FK to contract_executions), `emitted_action` (e.g., 'SEND'), `action_index` (the emitted action's own index in the `actions` table), `position` (order within execution) |
-| `deposits` | DEPOSIT records — `contract_index`, `source_id`, `tick_id`, `amount`, `status_id`, `block_index`, `action_index` (PK) |
-| `withdrawals` | WITHDRAWAL records — `contract_index`, `source_id`, `tick_id`, `amount`, `status_id`, `block_index`, `action_index` (PK) |
+| `contracts` | Deployed contract records: `action_index` (PK), `source_id` (owner), `code` (MEDIUMTEXT, decoded JS), `code_hash` (SHA-256), `api_version` (default 1), `status_id`, `block_index` |
+| `contract_state` | Append-only key-value state; each row is one state write keyed by `contract_index` + `state_key`. Latest value per key found via `MAX(id)` subquery. `state_value` of NULL means deleted. Index: `(contract_index, state_key, id DESC)`. Rollback: `DELETE WHERE block_index >= ?` |
+| `contract_executions` | EXECUTE/constructor call records: `action_index` (PK), `contract_index`, `caller_id`, `method_name`, `input_params`, `gas_used`, `gas_limit`, `status_id`, `error_message`, `emitted_count`, `block_index` |
+| `contract_emissions` | Actions emitted by contract executions: `execution_index` (FK to contract_executions), `emitted_action` (e.g., 'SEND'), `action_index` (the emitted action's own index in the `actions` table), `position` (order within execution) |
+| `deposits` | DEPOSIT records: `contract_index`, `source_id`, `tick_id`, `amount`, `status_id`, `block_index`, `action_index` (PK) |
+| `withdrawals` | WITHDRAWAL records: `contract_index`, `source_id`, `tick_id`, `amount`, `status_id`, `block_index`, `action_index` (PK) |
 
 **Note:** Contract token balances are tracked via the standard `balances` table using the contract's derived address (`C:<CHAIN>:<action_index>` in `index_addresses`). There is no separate `contract_balances` table. DEPOSIT creates credits/debits between the depositor and the derived address; WITHDRAW does the reverse.
 

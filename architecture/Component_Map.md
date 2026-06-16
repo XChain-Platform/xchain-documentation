@@ -3,7 +3,7 @@
 
 # Component Map
 
-This document describes all 14 XChain Platform services, their roles, inputs, outputs, and connections. Services are grouped by function. For detailed documentation on any individual service, see the corresponding subdirectory under [`../components/`](../components/).
+This document describes all 13 XChain Platform services, their roles, inputs, outputs, and connections. Services are grouped by function. For detailed documentation on any individual service, see the corresponding subdirectory under [`../components/`](../components/).
 
 ---
 
@@ -14,7 +14,7 @@ This document describes all 14 XChain Platform services, their roles, inputs, ou
 | Core Pipeline | decoder, indexer, explorer |
 | Transaction Creation | encoder, utxo-tracker, sdk |
 | Data Replication | sync |
-| Infrastructure | hub, node, regtest-miner, e2e-test, dashboard |
+| Infrastructure | hub, node, regtest-miner, e2e-test |
 
 ---
 
@@ -104,12 +104,12 @@ See [`../components/explorer/`](../components/explorer/) for full documentation.
 | **Purpose** | Replicates indexer databases to validators and consumers for lightweight chain verification |
 | **Inputs** | Indexer MariaDB (SQL polling per chain/network), xchain-hub (JSON-RPC config discovery) |
 | **Outputs** | REST API (snapshots, status, transparency log), WebSocket (real-time block and reorg streaming) |
-| **Storage** | MariaDB (same 77-table schema as indexer — one replica DB per chain/network) |
+| **Storage** | MariaDB (same 77-table schema as indexer; one replica DB per chain/network) |
 | **Communication** | Inbound REST + WebSocket from validators/consumers; outbound JSON-RPC to hub; outbound SQL reads from indexer DBs |
 
 Key technical details:
 
-- Runs as a single instance serving all chains/networks on the node — discovers installed indexers by calling the hub's `getallconfigs` method.
+- Runs as a single instance serving all chains/networks on the node, discovers installed indexers by calling the hub's `getallconfigs` method.
 - Operates in two modes: **server mode** (polls indexer databases and serves data) and **client mode** (replicates from remote sync servers).
 - Polls each indexer database for new blocks every 3 seconds (configurable). Builds a complete block payload from all affected tables and broadcasts to WebSocket subscribers.
 - Full snapshots are streamed as gzip-compressed JSON for bootstrapping new validators.
@@ -140,7 +140,7 @@ Key technical details:
 
 - Selects encoding format based on payload size: `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx), `multisig` (~61 bytes/key, 1 tx), `P2SH` (≤476 bytes, 2 tx), `P2WSH` (≤9,956 bytes, 2 tx).
 - P2SH and P2WSH use a two-transaction pattern: fund tx commits funds to a script; reveal tx spends it, embedding the data in the unlocking script.
-- Obfuscates payloads with AES-128-CTR. Key and IV are derived from the first input's txid — deterministic and reversible by any party with the txid.
+- Obfuscates payloads with AES-128-CTR. Key and IV are derived from the first input's txid, deterministic and reversible by any party with the txid.
 - Available as a Node.js JSON-RPC service and as a browser bundle via webpack.
 - The encoder itself has no per-chain specialization; coin node interaction happens at the caller level.
 
@@ -212,7 +212,7 @@ These services manage deployment, configuration, and testing.
 Key technical details:
 
 - Operates in two modes: standalone (simple config oracle) and validator mode (full PBFT consensus, P2P gossip, oracle, cross-chain attestation, governance).
-- Supports multi-instance deployment — multiple hub instances against shared MariaDB, with consumer fallback via `HUB_VALIDATORS`.
+- Supports multi-instance deployment, multiple hub instances against shared MariaDB, with consumer fallback via `HUB_VALIDATORS`.
 - Config writes go through PBFT consensus in validator mode (PRE_PREPARE → PREPARE → COMMIT with 2f+1 quorum).
 - Decentralized price oracle: validators fetch from CoinGecko/CoinMarketCap, aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
 - Cross-chain attestation engine with per-chain-pair validator subsets and confirmation thresholds (BTC: 6, LTC: 12, DOGE: 60; env-tunable via `XCHAIN_CONFIRMATIONS_<COIN>`).
@@ -282,7 +282,7 @@ See [`../components/regtest-miner/`](../components/regtest-miner/) for full docu
 Key technical details:
 
 - Uses BIP39/BIP32 wallet generation to create deterministic test addresses.
-- Tests run in order and share blockchain and indexer state — each test builds on the output of prior tests.
+- Tests run in order and share blockchain and indexer state; each test builds on the output of prior tests.
 - Discovers service endpoints from xchain-hub.
 - Requires xchain-regtest-miner to be running to advance blocks.
 

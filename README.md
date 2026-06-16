@@ -3,7 +3,7 @@
 
 # XChain Platform
 
-A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and Litecoin. Create, transfer, trade, and manage tokens, run smart contracts that can call out to AI models and the web, and stake for validation using 30 ACTION commands embedded directly in standard blockchain transactions — no sidechains, no bridges, no separate consensus mechanism. The platform includes a built-in DEX, a sandboxed JavaScript virtual machine for on-chain smart contracts, cross-chain swap support, and **cryptographically secure token-gated file publishing** — encrypt single files or multi-file packs on-chain so only holders of a specific token can decrypt them (see [Token-Gated Content](./protocol/Token_Gated_Content.md)). The platform can be extended to run on any Bitcoin-compatible blockchain, including private blockchains for enterprise deployments.
+A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and Litecoin. Create, transfer, trade, and manage tokens, run smart contracts that can call out to AI models and the web, and stake for validation using 30 ACTION commands embedded directly in standard blockchain transactions. No sidechains, no bridges, no separate consensus mechanism. The platform includes a built-in DEX, a sandboxed JavaScript virtual machine for on-chain smart contracts, cross-chain swap support, and **cryptographically secure token-gated file publishing**: encrypt single files or multi-file packs on-chain so only holders of a specific token can decrypt them (see [Token-Gated Content](./protocol/Token_Gated_Content.md)). The platform can be extended to run on any Bitcoin-compatible blockchain, including private blockchains for enterprise deployments.
 
 **New here?** Start with [What is XChain?](./getting-started/What_Is_XChain.md) or jump straight to the [Developer Quickstart](./getting-started/Quickstart_Developer.md).
 
@@ -18,7 +18,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**Components**](./components/) | Detailed docs for each of the 13 components | Developers |
 | [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate, testing | Developers |
 | [**AI & Agents**](./ai-agents/) | Building AI agents: reading, transacting via MCP, bounded agent wallets, charging agents for data | Developers |
-| [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ — no code required | Non-technical |
+| [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ. No code required | Non-technical |
 | [**Protocol Spec**](./protocol/) | 30 ACTION definitions, Token Information Standard, schemas | Protocol devs |
 | [**Operations**](./operations/) | Deployment, Docker, monitoring, upgrades, troubleshooting | Operators |
 | [**Legal**](./legal/) | Licensing, commercial license, trademark, contributor agreement | Everyone |
@@ -36,8 +36,8 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**xchain-hub**](https://github.com/XChain-Platform/xchain-hub/) | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, P2P gossip, governance |
 | [**xchain-utxo-tracker**](https://github.com/XChain-Platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |
 | [**xchain-vm**](https://github.com/XChain-Platform/xchain-vm/) | Sandboxed JavaScript virtual machine for on-chain smart contracts with gas metering, deterministic execution, and reorg-safe state |
-| [**xchain-sdk**](https://github.com/XChain-Platform/xchain-sdk/) | Developer SDK — 30 action methods, 48 explorer queries, smart contract support, real-time WebSocket events, batch builder, PSBT generation |
-| [**xchain-wallet**](https://github.com/XChain-Platform/xchain-wallet/) | Reference self-custodial multi-chain wallet — browser, Chrome extension, and Electron desktop from a single codebase; software + Trezor + Ledger + remote + multisig signers; full DEX, messaging, contracts, staking, and `window.xchain` dApp bridge |
+| [**xchain-sdk**](https://github.com/XChain-Platform/xchain-sdk/) | Developer SDK: 30 action methods, 48 explorer queries, smart contract support, real-time WebSocket events, batch builder, PSBT generation |
+| [**xchain-wallet**](https://github.com/XChain-Platform/xchain-wallet/) | Reference self-custodial multi-chain wallet: browser, Chrome extension, and Electron desktop from a single codebase; software + Trezor + Ledger + remote + multisig signers; full DEX, messaging, contracts, staking, and `window.xchain` dApp bridge |
 | [**xchain-regtest-miner**](https://github.com/XChain-Platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-Platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
 ## Legal
@@ -49,7 +49,7 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 | [**LICENSE**](./LICENSE.md) | Full license text |
 | [**NOTICE**](./NOTICE.md) | Required attribution, license summary, and third-party notices |
 
-Any redistribution or modification must include the attribution notice specified in [NOTICE.md](./NOTICE.md). Commercial use requires prior written consent from Dankest, LLC — see [LICENSE.md](./LICENSE.md) for details.
+Any redistribution or modification must include the attribution notice specified in [NOTICE.md](./NOTICE.md). Commercial use requires prior written consent from Dankest, LLC (see [LICENSE.md](./LICENSE.md) for details.
 
 ---
 
@@ -68,9 +68,9 @@ See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).
 
 XChain Platform is **open source**, dual-licensed under:
 
-- the **[GNU Affero General Public License v3.0](./LICENSE.md)** (`AGPL-3.0-or-later`) — free for everyone, and
+- the **[GNU Affero General Public License v3.0](./LICENSE.md)** (`AGPL-3.0-or-later`), free for everyone, and
 - a **[commercial license](https://docs.xchain.io/legal/COMMERCIAL-LICENSE.html)** for companies that need to keep modifications private.
 
-See the **[licensing overview](https://docs.xchain.io/legal/LICENSING.html)** for which one applies to you. "XChain" is a trademark of Dankest, LLC — see the **[Trademark Policy](https://docs.xchain.io/legal/TRADEMARK.html)**.
+See the **[licensing overview](https://docs.xchain.io/legal/LICENSING.html)** for which one applies to you. "XChain" is a trademark of Dankest, LLC. See the **[Trademark Policy](https://docs.xchain.io/legal/TRADEMARK.html)**.
 
 Copyright © 2025–2026 Dankest, LLC.

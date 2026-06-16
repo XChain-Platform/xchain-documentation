@@ -1,12 +1,12 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — NFT & Registry Builders
+# XChain Platform SDK: NFT & Registry Builders
 
 This document covers two pure-builder namespaces exposed on the SDK instance:
 
-- `sdk.nft.*` — param builders for the NFT pattern (ISSUE with DECIMALS=0 and LOCK_MAX_SUPPLY=1), collection child ticks, content attachment (LINK params), TIS documents, and the canonical NFT classifier.
-- `sdk.project.*` — param builders for official-token project rosters (TICK-type LIST + owner-validated LINK).
+- `sdk.nft.*`: param builders for the NFT pattern (ISSUE with DECIMALS=0 and LOCK_MAX_SUPPLY=1), collection child ticks, content attachment (LINK params), TIS documents, and the canonical NFT classifier.
+- `sdk.project.*`: param builders for official-token project rosters (TICK-type LIST + owner-validated LINK).
 
 Neither namespace makes network calls. Submit-flow recipes that wire these builders into live actions live on `sdk.workflows` (see [Workflows](WORKFLOWS.md)).
 
@@ -174,7 +174,7 @@ const params = sdk.project.rosterParams({
 
 ### `sdk.project.rosterEditParams(params)` → LIST params
 
-Build LIST v1 params that derive a new roster from an existing one. Pass `add` OR `remove` — not both (two edits require two LIST actions).
+Build LIST v1 params that derive a new roster from an existing one. Pass `add` OR `remove`. Not both (two edits require two LIST actions).
 
 ```js
 // Add a tick
@@ -189,7 +189,7 @@ const params = sdk.project.rosterEditParams({
 
 ### `sdk.project.attestRosterParams(params)` → LINK params
 
-Build LINK params that attest a roster to a project (the owner-validated green-banner binding). Both sides must be on the project's own chain — cross-chain LINK rows carry no authority (the indexer skips owner validation when COIN2 is remote).
+Build LINK params that attest a roster to a project (the owner-validated green-banner binding). Both sides must be on the project's own chain; cross-chain LINK rows carry no authority (the indexer skips owner validation when COIN2 is remote).
 
 ```js
 const params = sdk.project.attestRosterParams({

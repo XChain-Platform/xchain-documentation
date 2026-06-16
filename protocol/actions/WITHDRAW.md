@@ -42,7 +42,7 @@ Withdraw 250 of the token with TICK_ID 99 from contract 12345
 - Use `DEPOSIT` to add tokens to a contract's derived address
 - Use `^` (caret) as a prefix when passing `TICK_ID` for the `TICK` field (e.g. `^1234` = `TICK_ID` 1234)
 - Contracts may also return tokens to users via emitted SEND actions triggered by `EXECUTE`; `WITHDRAW` is specifically for owner-initiated withdrawals
-- WITHDRAW does not require the contract to be active — owners can recover tokens from disabled contracts
+- WITHDRAW does not require the contract to be active, owners can recover tokens from disabled contracts
 
 ---
 

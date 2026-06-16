@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Node — Operations
+# XChain Node: Operations
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ npm link
 xchain-node <command> [service] [chain] [network] [options]
 ```
 
-Arguments are order-independent — `xchain-node start bitcoin mainnet xchain-encoder` and `xchain-node start xchain-encoder mainnet bitcoin` are equivalent.
+Arguments are order-independent: `xchain-node start bitcoin mainnet xchain-encoder` and `xchain-node start xchain-encoder mainnet bitcoin` are equivalent.
 
 ## Commands
 
@@ -58,7 +58,7 @@ Arguments are order-independent — `xchain-node start bitcoin mainnet xchain-en
 |---|---|---|
 | `bootstrap` | `bootstrap <create\|restore> <service> <chain> <network>` | Create or restore gzipped bootstrap snapshots with SHA-256 verification |
 | `e2etest` | `e2etest <chain> [testName]` | Run the xchain-e2e-test suite on a regtest network; supports `--grep` filtering |
-| `rollback` | `rollback <block_index> <service> <chain> <network>` | Rollback to a specific block (placeholder — not yet implemented) |
+| `rollback` | `rollback <block_index> <service> <chain> <network>` | Rollback to a specific block (placeholder. Not yet implemented) |
 | `validator` | `validator` | Validator-mode setup for xchain-hub (key generation + config) |
 | `init` | `init` | Generate a validator signing key + config so the hub runs in validator mode |
 | `status` | `status` | Show this node's validator configuration (pubkey, peers, capabilities) |
@@ -87,33 +87,33 @@ When `all` is used, the command expands to every valid combination. Regtest-only
 
 When `xchain-node install master all bitcoin regtest` is executed:
 
-1. **Pre-flight checks** — Docker verification, directory creation, LevelDB open, version fetch
-2. **Docker network creation** — creates `xchain-node-bitcoin-regtest` network
-3. **Database provisioning** — pulls MariaDB image, creates shared database container
+1. **Pre-flight checks**: Docker verification, directory creation, LevelDB open, version fetch
+2. **Docker network creation**: creates `xchain-node-bitcoin-regtest` network
+3. **Database provisioning**: pulls MariaDB image, creates shared database container
 4. **Module installation** (for each service in dependency order):
    - Clone the service repository from GitHub at the specified branch
    - Build a Docker image tagged with the naming convention
    - Create and start a container with generated environment variables
    - Store the container ID in LevelDB
-5. **Database setup** — create databases and users for decoder and indexer
-6. **Hub/Explorer configuration** — update hub and explorer with service endpoint information
+5. **Database setup**: create databases and users for decoder and indexer
+6. **Hub/Explorer configuration**: update hub and explorer with service endpoint information
 
 ## Docker
 
-xchain-node manages Docker directly via `execFile` calls — it does not use Docker Compose. All Docker commands use array-based arguments (no shell interpolation).
+xchain-node manages Docker directly via `execFile` calls; it does not use Docker Compose. All Docker commands use array-based arguments (no shell interpolation).
 
 Key Docker operations:
 
-- **Network creation** — `docker network create xchain-node-{coin}-{network}`
-- **Image building** — `docker build -t {image-name} {module-dir}`
-- **Container creation** — `docker run -d --hostname {image-name} --network {network} -e KEY=VALUE ... {image-name}`
-- **Container lifecycle** — `docker start/stop/restart/kill/rm {container-id}`
-- **Command execution** — `docker exec -i {container-id} {command...}`
-- **Log streaming** — `docker logs -f --tail 10 {container-id}` via `spawn`
+- **Network creation**: `docker network create xchain-node-{coin}-{network}`
+- **Image building**: `docker build -t {image-name} {module-dir}`
+- **Container creation**: `docker run -d --hostname {image-name} --network {network} -e KEY=VALUE ... {image-name}`
+- **Container lifecycle**: `docker start/stop/restart/kill/rm {container-id}`
+- **Command execution**: `docker exec -i {container-id} {command...}`
+- **Log streaming**: `docker logs -f --tail 10 {container-id}` via `spawn`
 
 ## Stopping
 
-Use `xchain-node stop` to stop containers. LevelDB entries are preserved — containers can be restarted later with `xchain-node start`.
+Use `xchain-node stop` to stop containers. LevelDB entries are preserved, containers can be restarted later with `xchain-node start`.
 
 Use `xchain-node uninstall` to fully remove containers, images, and LevelDB entries.
 

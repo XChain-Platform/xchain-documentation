@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Explorer — API Reference
+# XChain Platform Explorer: API Reference
 
 ## Overview
 
@@ -14,10 +14,10 @@ GET /{COIN}/api/{method}/{query}/{type}
 ```
 
 Where:
-- **`{COIN}`** — Coin prefix identifying the chain and network (e.g., `BTC`, `TBTC`, `RDOGE`)
-- **`{method}`** — The data category (e.g., `sends`, `balances`, `token`)
-- **`{query}`** — The search value (address, block index, token ticker, tx hash, action index)
-- **`{type}`** — The filter type that determines how `{query}` is interpreted (e.g., `address`, `block`, `token`)
+- **`{COIN}`**: Coin prefix identifying the chain and network (e.g., `BTC`, `TBTC`, `RDOGE`)
+- **`{method}`**: The data category (e.g., `sends`, `balances`, `token`)
+- **`{query}`**: The search value (address, block index, token ticker, tx hash, action index)
+- **`{type}`**: The filter type that determines how `{query}` is interpreted (e.g., `address`, `block`, `token`)
 
 ### Coin Prefixes
 
@@ -1053,7 +1053,7 @@ GET /{COIN}/api/mempool/{query}/{type}
 | `address` | Mempool transactions where the source address or any decoded segment matches the query |
 | `token` | Mempool transactions where any decoded segment matches the token ticker (case-insensitive) |
 
-**Response fields:** `tx_hash`, `source`, `action` (decoded action name), `data` (full pipe-delimited action string). No `destination` field — destinations are embedded in the `data` string.
+**Response fields:** `tx_hash`, `source`, `action` (decoded action name), `data` (full pipe-delimited action string). No `destination` field, destinations are embedded in the `data` string.
 
 ---
 
@@ -1411,7 +1411,7 @@ Content-Type: application/json
 
 | Method | Description |
 |---|---|
-| `ping` | Health check — returns a pong response |
+| `ping` | Health check: returns a pong response |
 
 > **Note:** The JSON-RPC interface currently exposes only the `ping` method. The REST API is the primary interface for data queries.
 

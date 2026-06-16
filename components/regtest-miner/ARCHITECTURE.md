@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Regtest Miner — Architecture
+# XChain Regtest Miner: Architecture
 
 ## Position in the Data Pipeline
 
@@ -118,10 +118,10 @@ The loop skips mempool polling when `keepMining` is `false`, allowing external c
 
 On startup, `prepareWallet` follows a 4-branch decision tree:
 
-1. **Wallet already loaded** — `getWalletInfo` succeeds → get a new address, check balance
-2. **Wallet exists but not loaded** — `getWalletInfo` fails, `loadWallet` succeeds → get a new address
-3. **No wallet** — both fail → `createWallet`, get a new address
-4. **Balance check** — if balance is zero and chain height ≤ 100, mine 101 blocks for coinbase maturity; if height > 100, mine 1 block
+1. **Wallet already loaded**: `getWalletInfo` succeeds → get a new address, check balance
+2. **Wallet exists but not loaded**: `getWalletInfo` fails, `loadWallet` succeeds → get a new address
+3. **No wallet**, both fail → `createWallet`, get a new address
+4. **Balance check**: if balance is zero and chain height ≤ 100, mine 101 blocks for coinbase maturity; if height > 100, mine 1 block
 
 ## fillMempool Stress Testing
 

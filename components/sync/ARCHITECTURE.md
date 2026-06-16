@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Indexer Sync — Architecture
+# XChain Platform Indexer Sync: Architecture
 
 ## Position in the Data Pipeline
 
@@ -22,7 +22,7 @@ xchain-explorer     xchain-sync  ->  REST / WebSocket API
                     (indexer replica + decoder replica)
 ```
 
-The sync service reads from both the decoder database and the indexer database. It serves each under a separate `/:dbType/` path namespace — `indexer` for the full indexer table set (with transparency log) and `decoder` for the 8 replicated decoder tables (blocks, transactions, transaction_outputs, dispensers, index_addresses, index_transactions, pubkeys, events). Instead of serving end-user queries like the explorer, xchain-sync replicates data to remote consumers — primarily lightweight validators that need chain data for cross-chain attestation without running the full decoder+indexer stack.
+The sync service reads from both the decoder database and the indexer database. It serves each under a separate `/:dbType/` path namespace: `indexer` for the full indexer table set (with transparency log) and `decoder` for the 8 replicated decoder tables (blocks, transactions, transaction_outputs, dispensers, index_addresses, index_transactions, pubkeys, events). Instead of serving end-user queries like the explorer, xchain-sync replicates data to remote consumers, primarily lightweight validators that need chain data for cross-chain attestation without running the full decoder+indexer stack.
 
 ## Dual-Mode Architecture
 
@@ -114,11 +114,11 @@ SERVER MODE                              CLIENT MODE
 
 | File | Class/Module | Role |
 |---|---|---|
-| `api.js` | — | Entry point: Express app, REST routes, WebSocket upgrade, starts SyncService |
+| `api.js` | None | Entry point: Express app, REST routes, WebSocket upgrade, starts SyncService |
 | `config.js` | `getConfig()` | Reads environment variables and returns a config object |
 | `db.js` | `Database` | MariaDB connection pool with circuit breaker; one instance per chain/network |
 | `middleware.js` | `authMiddleware` | API key authentication middleware for REST and WebSocket endpoints |
-| `validation.js` | — | Input validation: SQL identifiers, DDL whitelisting, WebSocket event schemas |
+| `validation.js` | None | Input validation: SQL identifiers, DDL whitelisting, WebSocket event schemas |
 | `utility.js` | `Utility` | `sleep()`, `getDataHash()` (SHA256), `isNull()`, timer helpers |
 | `HubClient.js` | `HubClient` | JSON-RPC client for xchain-hub; `getallconfigs()` to discover indexer and decoder DB connections |
 | `SyncService.js` | `SyncService` | Orchestrator: hub discovery, DB pool creation, server/client mode branching |
@@ -244,7 +244,7 @@ Each hash includes `block_index` and `previous_hash` (from the prior block's cor
 
 ### Decoder (`dbType=decoder`)
 
-The decoder stores a single `block_hash` per block derived from `index_transactions`. Decoder data is fully deterministic from the coin node itself — there are no synthetic chain-of-state hashes. Each block payload and snapshot response carries the `block_hash` field in place of the three indexer hashes.
+The decoder stores a single `block_hash` per block derived from `index_transactions`. Decoder data is fully deterministic from the coin node itself, there are no synthetic chain-of-state hashes. Each block payload and snapshot response carries the `block_hash` field in place of the three indexer hashes.
 
 The sync service does not compute new hashes. It reads the hashes already present in the source database and includes them in every block payload and snapshot response. Clients store these hashes locally and verify chain continuity on each received block.
 
@@ -252,14 +252,14 @@ The sync service does not compute new hashes. It reads the hashes already presen
 
 The only defense that **rejects** fabricated content is **cross-source hash divergence**: with `2+` independent `SYNC_SOURCES`, `VERIFY_HASHES=true`, and `HALT_ON_DIVERGENCE=true`, the client compares the hashes reported by different servers and halts on disagreement. This is what makes a single dishonest source detectable.
 
-The independent local **recompute** (`BlockHasher`) re-derives the hash of the rows the client actually stored and compares it to the hash the source published — but with a single source, that published hash comes from the *same* server, so a source serving internally consistent fake rows plus matching fake hashes passes. The **decoder** path has no hash-based rejection at all: completeness is a row-count *advisory* (a shortfall is logged, never rejected).
+The independent local **recompute** (`BlockHasher`) re-derives the hash of the rows the client actually stored and compares it to the hash the source published; but with a single source, that published hash comes from the *same* server, so a source serving internally consistent fake rows plus matching fake hashes passes. The **decoder** path has no hash-based rejection at all: completeness is a row-count *advisory* (a shortfall is logged, never rejected).
 
 Consequences for operators:
 
 - A **single-source** indexer replica's integrity rests entirely on TLS trust of that one server. Configure `2+` independent sources for Byzantine integrity.
-- A **decoder** replica trusts its source(s) for row content — treat decoder sources as trusted infrastructure.
+- A **decoder** replica trusts its source(s) for row content, treat decoder sources as trusted infrastructure.
 
-The client logs an explicit `SECURITY:` warning at startup whenever it runs single-source or as a decoder, so this trust assumption is visible in the logs rather than implicit. The defaults (`SYNC_SOURCES=''`) do **not** enforce `2+` sources — that is the operator's responsibility.
+The client logs an explicit `SECURITY:` warning at startup whenever it runs single-source or as a decoder, so this trust assumption is visible in the logs rather than implicit. The defaults (`SYNC_SOURCES=''`) do **not** enforce `2+` sources; that is the operator's responsibility.
 
 ## Reorg Handling
 

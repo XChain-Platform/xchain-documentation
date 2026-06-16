@@ -2,7 +2,7 @@
 
 Copyright &copy; 2025 Dankest, LLC
 
-# XChain SDK — WebSocket Client
+# XChain SDK: WebSocket Client
 
 The SDK includes a built-in WebSocket client for real-time event streaming from the xchain-explorer. It wraps the explorer's [WebSocket API](../explorer/WEBSOCKET.md) with a developer-friendly interface including convenience methods, automatic reconnection with catch-up, and lifecycle hooks.
 
@@ -31,7 +31,7 @@ unsub();
 
 ## Configuration
 
-The WebSocket client is auto-created when `explorerUrl` or `websocketUrl` is configured. No separate initialization needed — it shares the explorer's host and port by default.
+The WebSocket client is auto-created when `explorerUrl` or `websocketUrl` is configured. No separate initialization needed; it shares the explorer's host and port by default.
 
 ### Constructor Options
 
@@ -298,7 +298,7 @@ Server-side errors (e.g., `SUBSCRIPTION_LIMIT`, `RATE_LIMITED`) are returned as 
 
 ## Related
 
-- [Explorer WebSocket API Reference](../explorer/WEBSOCKET.md) — full protocol spec
-- [Explorer REST API Reference](../explorer/API.md) — query endpoints
-- [SDK Configuration](CONFIGURATION.md) — all constructor options
-- [SDK Examples](EXAMPLES.md) — complete code examples
+- [Explorer WebSocket API Reference](../explorer/WEBSOCKET.md): full protocol spec
+- [Explorer REST API Reference](../explorer/API.md): query endpoints
+- [SDK Configuration](CONFIGURATION.md): all constructor options
+- [SDK Examples](EXAMPLES.md): complete code examples

@@ -7,22 +7,22 @@
 
 xchain-decoder is the transaction extraction service of the XChain Platform. It runs as a long-lived Node.js process that continuously polls a coin node (bitcoind, litecoind, or dogecoind) via JSON-RPC, parses every block, identifies XChain-encoded transactions, deobfuscates the embedded ACTION payloads, and writes the raw decoded data to a MariaDB Decoder database. The indexer then reads this database to process protocol logic.
 
-The decoder's job is extraction only — it does not interpret action semantics. It transforms raw blockchain data into clean, normalized rows that the indexer can process efficiently.
+The decoder's job is extraction only; it does not interpret action semantics. It transforms raw blockchain data into clean, normalized rows that the indexer can process efficiently.
 
 ## Features
 
-- **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
-- **AES-128-CTR deobfuscation** — derives key and IV from the first input's txid (first 16 hex chars = key, next 16 = IV)
-- **Magic prefix verification** — confirms `XCHN` (4 bytes) after deobfuscation before accepting a transaction
-- **Four encoding formats** — detects and reassembles OP_RETURN, P2SH, P2WSH, and multisig payloads
-- **Chain-specific parsing** — Litecoin strips the HogEx/MWEB flag; Dogecoin strips AuxPoW headers before passing blocks to bitcoinjs-lib
-- **Block reorganization detection** — identifies chain tip changes and records the reorg block so the indexer can roll back
-- **DISPENSER protocol** — parses DISPENSER actions and tracks active dispensers with expiration for real-time payment detection
-- **Mempool tracking** — maintains an index of unconfirmed transactions, updated every 60 seconds when synced
-- **Normalized storage** — addresses and transaction hashes stored in index tables with integer IDs for join efficiency
-- **ACTION name validation** — 33-name whitelist (SEND, ISSUE, MINT, ORDER, ANCHOR, NODEPROOF, SLASH, etc.) enforced before database writes
-- **Graceful shutdown** — SIGTERM/SIGINT handlers complete in-flight work before exiting
-- **500+ tests** — unit, integration, e2e, boundary, security, fuzz, chaos, regression, benchmarks, and mutation testing
+- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
+- **AES-128-CTR deobfuscation**: derives key and IV from the first input's txid (first 16 hex chars = key, next 16 = IV)
+- **Magic prefix verification**: confirms `XCHN` (4 bytes) after deobfuscation before accepting a transaction
+- **Four encoding formats**: detects and reassembles OP_RETURN, P2SH, P2WSH, and multisig payloads
+- **Chain-specific parsing**: Litecoin strips the HogEx/MWEB flag; Dogecoin strips AuxPoW headers before passing blocks to bitcoinjs-lib
+- **Block reorganization detection**: identifies chain tip changes and records the reorg block so the indexer can roll back
+- **DISPENSER protocol**: parses DISPENSER actions and tracks active dispensers with expiration for real-time payment detection
+- **Mempool tracking**: maintains an index of unconfirmed transactions, updated every 60 seconds when synced
+- **Normalized storage**: addresses and transaction hashes stored in index tables with integer IDs for join efficiency
+- **ACTION name validation**: 33-name whitelist (SEND, ISSUE, MINT, ORDER, ANCHOR, NODEPROOF, SLASH, etc.) enforced before database writes
+- **Graceful shutdown**: SIGTERM/SIGINT handlers complete in-flight work before exiting
+- **500+ tests**: unit, integration, e2e, boundary, security, fuzz, chaos, regression, benchmarks, and mutation testing
 
 ## Documentation
 
@@ -30,7 +30,7 @@ The decoder's job is extraction only — it does not interpret action semantics.
 |---|---|
 | [Architecture](ARCHITECTURE.md) | Data pipeline, internal components, polling loop, transaction parsing, deobfuscation |
 | [Configuration](CONFIGURATION.md) | Environment variables, internal constants, network-specific settings |
-| [Database](DATABASE.md) | Full schema reference — 8 tables covering blocks, transactions, dispensers, indexes, and events |
+| [Database](DATABASE.md) | Full schema reference: 8 tables covering blocks, transactions, dispensers, indexes, and events |
 | [Operations](OPERATIONS.md) | Running, Docker, API endpoints, reorg handling, mempool, troubleshooting |
 
 ## Installation
@@ -123,9 +123,9 @@ On startup, the decoder:
 
 ## Related
 
-- [Data Pipeline](../../architecture/Data_Pipeline.md) — how the decoder fits into the full ingestion flow
-- [Indexer](../indexer/) — the service that consumes decoder output and processes action logic
-- [Encoder](../encoder/) — how XChain payloads are constructed for embedding
+- [Data Pipeline](../../architecture/Data_Pipeline.md): how the decoder fits into the full ingestion flow
+- [Indexer](../indexer/); the service that consumes decoder output and processes action logic
+- [Encoder](../encoder/): how XChain payloads are constructed for embedding
 
 ---
 

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Explorer — Architecture
+# XChain Platform Explorer: Architecture
 
 ## Position in the Data Pipeline
 
@@ -55,16 +55,16 @@ The explorer sits at the end of the data pipeline. It reads indexed state from t
 
 | File | Class / Module | Role |
 |---|---|---|
-| `src/api.js` | — | Entry point: Express server, SSL, Helmet, CORS, rate limiting, JSON-RPC router |
+| `src/api.js` | None | Entry point: Express server, SSL, Helmet, CORS, rate limiting, JSON-RPC router |
 | `src/XChainExplorer.js` | `XChainExplorer` | Main orchestrator: URL routing (130+ routes), request processing, response formatting, icon/relay handlers |
 | `src/db.js` | `Database` | All SQL queries (~5,800 lines), connection pool management, pagination, caching |
-| `src/config.js` | — | Configuration loading from hub or local config.json, 60-second auto-sync, coin/network discovery |
+| `src/config.js` | None | Configuration loading from hub or local config.json, 60-second auto-sync, coin/network discovery |
 | `src/utility.js` | `Utility` | BigNumber math, timer functions, sanitization (escapeLike, sanitizeInt), type checking |
 | `src/XChainHubConnector.js` | `XChainHubConnector` | JSON-RPC client for xchain-hub (ping, getAllConfig) |
-| `src/configs/BTC.js` | — | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |
-| `src/configs/LTC.js` | — | Litecoin-specific configuration |
-| `src/configs/DOGE.js` | — | Dogecoin-specific configuration |
-| `src/config.json` | — | Local database connection configuration (fallback when hub is unavailable) |
+| `src/configs/BTC.js` | None | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |
+| `src/configs/LTC.js` | None | Litecoin-specific configuration |
+| `src/configs/DOGE.js` | None | Dogecoin-specific configuration |
+| `src/config.json` | None | Local database connection configuration (fallback when hub is unavailable) |
 
 ### Static Content (`src/content/`)
 
@@ -104,18 +104,18 @@ The `XChainExplorer.setupUrls()` method defines three categories of routes:
 | **Explorer** | `/{COIN}/explorer/{method}/{query}/{type}` | DataTables JSON |
 
 Special routes handled separately:
-- `/icon/*` — Token icon files with fallback
-- `/relay?url=` — CORS proxy for external resources
+- `/icon/*`: Token icon files with fallback
+- `/relay?url=`: CORS proxy for external resources
 
 ### 3. Request Processing (`processRequest`)
 
-1. **Load config** — Fetch current configuration (hub-sourced or local)
-2. **Parse URL** — Extract coin prefix, route type (html/api/explorer), method, query, and type from the path
-3. **Validate coin** — Check coin is in `COIN_SUPPORTED`; if not, return 503. Check coin is in `COIN_AVAILABLE`; if not, redirect to coin-unavailable page
-4. **Match route** — Find the matching URL pattern in the route table
-5. **Build config object** — Populate method, search query, type, pagination parameters, and offset data
-6. **Execute query** — Call the corresponding database method (e.g., `db.getSends(config)`)
-7. **Format response** — Apply `getPagingDataResults()` to format data for the response type
+1. **Load config**: Fetch current configuration (hub-sourced or local)
+2. **Parse URL**: Extract coin prefix, route type (html/api/explorer), method, query, and type from the path
+3. **Validate coin**: Check coin is in `COIN_SUPPORTED`; if not, return 503. Check coin is in `COIN_AVAILABLE`; if not, redirect to coin-unavailable page
+4. **Match route**: Find the matching URL pattern in the route table
+5. **Build config object**: Populate method, search query, type, pagination parameters, and offset data
+6. **Execute query**: Call the corresponding database method (e.g., `db.getSends(config)`)
+7. **Format response**: Apply `getPagingDataResults()` to format data for the response type
 
 ### 4. Response Formatting
 
@@ -150,16 +150,16 @@ Explorer data uses pipe-delimited strings for compact transmission to the fronte
 Two pagination modes are supported:
 
 **API pagination** (SQL OFFSET/LIMIT):
-- `page` — Page number (1-based)
-- `limit` — Results per page (capped per method; default max 100, getBalances/getHolders max 500)
-- `sortorder` — `ASC` or `DESC`
-- `start` — Row offset (alternative to page)
-- `length` — Row count (alternative to limit)
+- `page`: Page number (1-based)
+- `limit`: Results per page (capped per method; default max 100, getBalances/getHolders max 500)
+- `sortorder`: `ASC` or `DESC`
+- `start`: Row offset (alternative to page)
+- `length`: Row count (alternative to limit)
 
 **Explorer pagination** (cursor-based):
-- `action` — Paging direction: `first`, `last`, `next`, `prev`
-- `offset` — Current cursor position (action_index or block_index)
-- `length` — Records per page
+- `action`: Paging direction: `first`, `last`, `next`, `prev`
+- `offset`: Current cursor position (action_index or block_index)
+- `length`: Records per page
 
 ## WebSocket Server
 
@@ -183,7 +183,7 @@ ChangeDetector polls MAX(block_index) / MAX(action_index)
   → apply fields projection → send to matching clients
 ```
 
-The WebSocket server attaches to the same HTTP/HTTPS servers as Express via the `upgrade` event — no additional port. Clients connect to `/{COIN}/api/websocket`.
+The WebSocket server attaches to the same HTTP/HTTPS servers as Express via the `upgrade` event. No additional port. Clients connect to `/{COIN}/api/websocket`.
 
 See [WEBSOCKET.md](WEBSOCKET.md) for the full API reference.
 
@@ -195,16 +195,16 @@ The `Database` class (`src/db.js`, ~5,800 lines) is the largest component. Key p
 
 All data methods follow a consistent pattern:
 
-1. **Method dispatch** — `getData(config)` calls `getQuery(config)` which dispatches to the appropriate `get*` method
-2. **WHERE clause** — `getQueryWhereSql(config)` builds parameterized WHERE conditions based on method and search type
-3. **Offset handling** — `getQueryOffsetSql(config)` adds cursor-based pagination for Explorer queries
-4. **Execution** — Queries execute against the connection pool and return `[data, args, count]`
+1. **Method dispatch**: `getData(config)` calls `getQuery(config)` which dispatches to the appropriate `get*` method
+2. **WHERE clause**: `getQueryWhereSql(config)` builds parameterized WHERE conditions based on method and search type
+3. **Offset handling**: `getQueryOffsetSql(config)` adds cursor-based pagination for Explorer queries
+4. **Execution**: Queries execute against the connection pool and return `[data, args, count]`
 
 ### Caching
 
-- **Address ID cache** — LRU cache for `index_addresses` lookups (avoids repeated joins)
-- **Tick ID cache** — LRU cache for `index_tickers` lookups
-- **Action data cache** — LRU cache for immutable action records (action data never changes once written)
+- **Address ID cache**: LRU cache for `index_addresses` lookups (avoids repeated joins)
+- **Tick ID cache**: LRU cache for `index_tickers` lookups
+- **Action data cache**: LRU cache for immutable action records (action data never changes once written)
 
 ### Connection Management
 

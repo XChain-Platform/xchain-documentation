@@ -3,7 +3,7 @@
 
 # Block Hashes
 
-Every block processed by the XChain indexer produces three cryptographic hashes that summarize all state changes in that block. These hashes form an append-only chain — each block's hash includes the previous block's hash — making it possible to verify that two indexers agree on the complete history of platform state with a single comparison.
+Every block processed by the XChain indexer produces three cryptographic hashes that summarize all state changes in that block. These hashes form an append-only chain (each block's hash includes the previous block's hash) making it possible to verify that two indexers agree on the complete history of platform state with a single comparison.
 
 ## The Three Hash Types
 
@@ -19,7 +19,7 @@ Captures all token movements in the block.
 | `debits` | action_index, address_id, tick_id, amount | Tokens removed from an address (sends, burns, fee payments) |
 | `escrows` | action_index, address_id, tick_id, amount | Tokens locked in pending operations (orders, dispensers, swaps) |
 
-The ledger hash verifies that every token movement — every credit, debit, and escrow — is identical between two indexers. If two indexers produce the same ledger hash for a block, their token balances are guaranteed to be identical at that point.
+The ledger hash verifies that every token movement (every credit, debit, and escrow) is identical between two indexers. If two indexers produce the same ledger hash for a block, their token balances are guaranteed to be identical at that point.
 
 ### Actions Hash
 
@@ -50,16 +50,16 @@ Captures all smart contract activity in the block.
 
 **Note on contract_state:** Only the **final value** of each key written in the block is included in the hash. If a contract writes to the same key multiple times in one block, only the last write matters. This makes the hash independent of whether historical state rows have been pruned.
 
-**Not included:** Derived aggregates are not hashed. Contract custody lives in the standard `balances` table (keyed by the contract's derived address `C:<CHAIN>:<action_index>`) and is recomputed from `deposits`/`withdrawals` — which **are** hashed above. Hashing the derived balances directly would risk divergence if recalculation timing differs between indexers.
+**Not included:** Derived aggregates are not hashed. Contract custody lives in the standard `balances` table (keyed by the contract's derived address `C:<CHAIN>:<action_index>`) and is recomputed from `deposits`/`withdrawals`, which **are** hashed above. Hashing the derived balances directly would risk divergence if recalculation timing differs between indexers.
 
 ## How Hashes Are Calculated
 
 Each hash follows the same process:
 
-1. **Collect data** — query the source tables for all rows created in the current block, ordered deterministically by `action_index` (ascending)
-2. **Include block context** — add the block number and the previous block's hash of the same type
-3. **Serialize** — convert the data to a JSON string (with BigInt values converted to strings for consistency)
-4. **Hash** — SHA-256 the JSON string to produce a 64-character hex digest
+1. **Collect data**: query the source tables for all rows created in the current block, ordered deterministically by `action_index` (ascending)
+2. **Include block context**: add the block number and the previous block's hash of the same type
+3. **Serialize**: convert the data to a JSON string (with BigInt values converted to strings for consistency)
+4. **Hash**: SHA-256 the JSON string to produce a 64-character hex digest
 
 ```
 data = {
@@ -113,8 +113,8 @@ If any differ → divergence occurred at or before this block.
 
 If hashes differ at block N, binary search for the first diverging block:
 
-1. Check block N/2 — if hashes match, divergence is between N/2 and N
-2. Check block 3N/4 — repeat until the first diverging block is found
+1. Check block N/2, if hashes match, divergence is between N/2 and N
+2. Check block 3N/4, repeat until the first diverging block is found
 3. Examine the differing hash type's source data at that block to identify the specific discrepancy
 
 ### Validator State Verification
@@ -127,7 +127,7 @@ After a blockchain reorganization and re-index, block hashes automatically updat
 
 ### Lightweight Auditing
 
-External observers can verify platform integrity without replaying the full blockchain. By obtaining block hashes from multiple independent indexers and confirming they match, an observer gains confidence that the platform state is consistent — without needing to run their own indexer.
+External observers can verify platform integrity without replaying the full blockchain. By obtaining block hashes from multiple independent indexers and confirming they match, an observer gains confidence that the platform state is consistent, without needing to run their own indexer.
 
 ## Empty Blocks
 

@@ -15,9 +15,9 @@ Every Bitcoin-family blockchain occasionally produces competing chains of blocks
 
 | Environment | Frequency |
 |---|---|
-| Bitcoin mainnet | Very rare — typically < 1 per year for 1-block reorgs |
-| Litecoin / Dogecoin mainnet | Occasional — a few per year |
-| Regtest | Frequent — happens whenever `invalidateblock` is called or competing miners are active |
+| Bitcoin mainnet | Very rare: typically < 1 per year for 1-block reorgs |
+| Litecoin / Dogecoin mainnet | Occasional; a few per year |
+| Regtest | Frequent: happens whenever `invalidateblock` is called or competing miners are active |
 
 ---
 
@@ -63,7 +63,7 @@ The decoder rolls back its `blocks`, `transactions`, `mempool_transactions`, and
 
 ### UTXO Tracker Rollback
 
-The UTXO tracker keeps the last 10 blocks in its undo log. Blocks are removed from LevelDB in reverse order until the local tip matches the coin node. A reorg deeper than 10 blocks would require a full re-sync from scratch — this is extremely rare on any mainnet chain.
+The UTXO tracker keeps the last 10 blocks in its undo log. Blocks are removed from LevelDB in reverse order until the local tip matches the coin node. A reorg deeper than 10 blocks would require a full re-sync from scratch; this is extremely rare on any mainnet chain.
 
 ---
 
@@ -82,7 +82,7 @@ Users should not take action based on data from blocks within the last few confi
 
 ## Deep Reorgs
 
-A deep reorg (more than a few blocks) is extremely rare on mainnet but can occur on testnet or regtest. The XChain decoder and indexer handle deep reorgs using the same mechanism as shallow ones — there is no hard limit on rollback depth for the MariaDB-backed services.
+A deep reorg (more than a few blocks) is extremely rare on mainnet but can occur on testnet or regtest. The XChain decoder and indexer handle deep reorgs using the same mechanism as shallow ones, there is no hard limit on rollback depth for the MariaDB-backed services.
 
 The UTXO tracker's 10-block undo history is the only component with a depth limit. A reorg deeper than 10 blocks requires stopping the UTXO tracker, deleting its LevelDB data, and re-syncing from scratch or from a bootstrap archive.
 
@@ -111,9 +111,9 @@ xchain-node tail xchain-indexer bitcoin mainnet
 Under normal circumstances: **nothing**. The reorg handling is fully automatic.
 
 Monitor for:
-- **Frequent reorgs on the same chain** — If the decoder is logging reorg events more than once or twice per day on mainnet, investigate the coin node's peer connectivity. A poorly-connected node may oscillate between chain tips.
-- **Reorg recovery taking longer than expected** — For a 1–3 block reorg, recovery should complete in under a minute. Longer recovery times on deep reorgs are normal. If recovery appears stalled, check for database errors in the indexer logs.
-- **Sanity check failures after a reorg** — This indicates a bug in the rollback or re-indexing logic. See [Troubleshooting](./TROUBLESHOOTING.md).
+- **Frequent reorgs on the same chain**: If the decoder is logging reorg events more than once or twice per day on mainnet, investigate the coin node's peer connectivity. A poorly-connected node may oscillate between chain tips.
+- **Reorg recovery taking longer than expected**: For a 1–3 block reorg, recovery should complete in under a minute. Longer recovery times on deep reorgs are normal. If recovery appears stalled, check for database errors in the indexer logs.
+- **Sanity check failures after a reorg**: This indicates a bug in the rollback or re-indexing logic. See [Troubleshooting](./TROUBLESHOOTING.md).
 
 ---
 

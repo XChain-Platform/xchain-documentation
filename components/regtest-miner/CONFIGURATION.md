@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Regtest Miner — Configuration
+# XChain Regtest Miner: Configuration
 
 ## Environment Variables
 
@@ -44,8 +44,8 @@ All configuration is via environment variables (loaded from `.env` by dotenv). T
 
 The dual-timer system uses two independent timers that run simultaneously:
 
-- **Max timer** (`DEFAULT_MAX_TIME_TO_MINE_TXS`) — starts when the first unconfirmed transaction is detected. If it expires, mining triggers regardless of the extension timer.
-- **Extension timer** (`DEFAULT_ADDED_TIME_TO_MINE_TXS`) — resets each time a new transaction appears in the mempool. If it expires (no new transactions for 5 seconds), mining triggers.
+- **Max timer** (`DEFAULT_MAX_TIME_TO_MINE_TXS`), starts when the first unconfirmed transaction is detected. If it expires, mining triggers regardless of the extension timer.
+- **Extension timer** (`DEFAULT_ADDED_TIME_TO_MINE_TXS`), resets each time a new transaction appears in the mempool. If it expires (no new transactions for 5 seconds), mining triggers.
 
 Both timers can be reconfigured at runtime via the `set_mining_time` JSON-RPC method. Values must be between `MIN_MINING_TIME` and `MAX_MINING_TIME`. The `set_default_mining_time` method restores the defaults.
 

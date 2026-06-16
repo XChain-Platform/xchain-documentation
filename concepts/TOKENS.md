@@ -3,11 +3,11 @@
 
 # Tokens
 
-Tokens are the primary asset type on the XChain Platform. Any address on any supported chain can create a token, define its rules, and transfer it to others — all using standard blockchain transactions.
+Tokens are the primary asset type on the XChain Platform. Any address on any supported chain can create a token, define its rules, and transfer it to others, all using standard blockchain transactions.
 
 ## Creating a Token with ISSUE
 
-A token is brought into existence by an `ISSUE` ACTION. The issuing address becomes the token's owner and can update most parameters later — unless they have been locked.
+A token is brought into existence by an `ISSUE` ACTION. The issuing address becomes the token's owner and can update most parameters later, unlessthey have been locked.
 
 Key parameters set at issuance:
 
@@ -38,7 +38,7 @@ This allows an issuer to, for example, open a mint window by setting `MINT_START
 
 ## Locking Parameters
 
-Any parameter can be **locked** — once locked, it cannot be changed by any subsequent `ISSUE`, even from the token owner. Locks are permanent and irreversible.
+Any parameter can be **locked**, once locked, it cannot be changed by any subsequent `ISSUE`, even from the token owner. Locks are permanent and irreversible.
 
 Locks are applied by including a lock flag in the `ISSUE` ACTION. Separate locks exist for:
 
@@ -87,7 +87,7 @@ The `SLEEP` ACTION pauses all transfers and trading of a token until a specified
 - Order book and dispenser operations with the token fail
 - The issuer can still issue or update token parameters
 
-SLEEP is useful for scheduled maintenance, governance votes, or any scenario requiring a temporary freeze. It is time-bounded — trading resumes automatically at the specified resume block.
+SLEEP is useful for scheduled maintenance, governance votes, or any scenario requiring a temporary freeze. It is time-bounded, trading resumes automatically at the specified resume block.
 
 ## Transfer Validation
 
@@ -104,7 +104,7 @@ All checks must pass for a transfer to execute. Partial execution is not possibl
 
 ## Token Metadata: Token Information Standard
 
-Token metadata — images, descriptions, links, audio, video — is stored off-chain and referenced by a URI in the token's description field. The [Token Information Standard](../protocol/Token_Information_Standard.md) defines the expected JSON schema for that metadata document, including fields for name, description, image, and various media types.
+Token metadata (images, descriptions, links, audio, video) is stored off-chain and referenced by a URI in the token's description field. The [Token Information Standard](../protocol/Token_Information_Standard.md) defines the expected JSON schema for that metadata document, including fields for name, description, image, and various media types.
 
 This keeps on-chain data minimal while enabling rich off-chain presentation in explorers and wallets.
 

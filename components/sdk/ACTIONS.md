@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — ACTION Reference
+# XChain Platform SDK: ACTION Reference
 
 Complete reference for all 29 ACTION types supported by the XChain Platform SDK.
 
@@ -236,7 +236,7 @@ Deploy a smart contract to the XChain VM. The contract source code is base64-enc
 **Notes:**
 - Contract source must be valid JavaScript and under 64KB.
 - The SDK validates base64 encoding, code size, and gas limit before serialization.
-- DEPLOY payloads typically exceed the 76-byte OP_RETURN limit — use P2SH or P2WSH encoding.
+- DEPLOY payloads typically exceed the 76-byte OP_RETURN limit, use P2SH or P2WSH encoding.
 - DEPLOY actions **cannot** appear inside a BATCH.
 - Constructor params are variable-length: each element becomes a separate pipe-delimited field in the action string.
 
@@ -324,7 +324,7 @@ Create a vending machine that automatically exchanges one token for another.
 **Format v1 (cancel):** `DISPENSER|VERSION|DISPENSER_ACTION_INDEX|MEMO`  
 **Format v2 (edit):** `DISPENSER|VERSION|DISPENSER_ACTION_INDEX|GIVE_ESCROW|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
-**Params — create (v0):**
+**Params (create (v0):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -343,14 +343,14 @@ Create a vending machine that automatically exchanges one token for another.
 | blockList | integer | No | ACTION_INDEX of a LIST to ban buyers |
 | memo | string | No | Optional note |
 
-**Params — cancel (v1):**
+**Params (cancel (v1):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
 | dispenserActionIndex | integer | Yes | ACTION_INDEX of the dispenser to cancel |
 | memo | string | No | Optional note |
 
-**Params — edit (v2):**
+**Params (edit (v2):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -423,7 +423,7 @@ Call a method on a deployed XChain VM smart contract.
 | params | string[] | No | Method arguments (each becomes a pipe-delimited segment) |
 
 **Notes:**
-- `params` is a variable-length array — the SDK serializes each element as a separate pipe-delimited field after METHOD.
+- `params` is a variable-length array, the SDK serializes each element as a separate pipe-delimited field after METHOD.
 - A successful `sdk.execute()` means the transaction was constructed, **not** that the contract execution succeeded. Execution happens later when the indexer processes the confirmed transaction. Query results via the explorer.
 - Parameter values must not contain `|` or `;` (field and command separators).
 
@@ -489,7 +489,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 **Format v4 (callback):** `ISSUE|VERSION|TICK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|MEMO`  
 **Format v5 (lists):** `ISSUE|VERSION|TICK|ALLOW_LIST|BLOCK_LIST|MEMO`
 
-**Params — full create (v0):**
+**Params (full create (v0):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -518,7 +518,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 | lockMintSupply | integer | No | Lock mint supply from future changes (`0` or `1`) |
 | memo | string | No | Optional note |
 
-**Params — description update (v1):**
+**Params (description update (v1):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -526,7 +526,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 | description | string | No | New description |
 | memo | string | No | Optional note |
 
-**Params — mint params update (v2):**
+**Params (mint params update (v2):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -539,7 +539,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 | mintStopBlock | integer | No | New mint close block |
 | memo | string | No | Optional note |
 
-**Params — lock update (v3):**
+**Params (lock update (v3):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -553,7 +553,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 | lockMintSupply | integer | No | `0` or `1` |
 | memo | string | No | Optional note |
 
-**Params — callback update (v4):**
+**Params (callback update (v4):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -563,7 +563,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 | callbackAmount | string | No | New callback payout amount |
 | memo | string | No | Optional note |
 
-**Params — list update (v5):**
+**Params (list update (v5):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -624,19 +624,19 @@ See also: [`../actions/LINK.md`](../../protocol/actions/LINK.md)
 
 Create or edit an allow/block list of ticks or addresses.
 
-**Format Versions:** v0 (create), v1 (edit — add/remove items)
+**Format Versions:** v0 (create), v1 (edit, add/remove items)
 
 **Format v0 (create):** `LIST|VERSION|TYPE|ITEM`  
 **Format v1 (edit):** `LIST|VERSION|EDIT|LIST_ACTION_INDEX|ITEM`
 
-**Params — create (v0):**
+**Params (create (v0):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
 | type | integer | Yes | List type: `1` = TICK list, `2` = ADDRESS list |
 | item | string | Yes | Initial item to add |
 
-**Params — edit (v1):**
+**Params (edit (v1):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -660,13 +660,13 @@ See also: [`../actions/LIST.md`](../../protocol/actions/LIST.md)
 
 Send an encrypted or plaintext message to a destination address.
 
-**Format Versions:** v0 (key exchange setup), v1 (key exchange — same as v0), v2 (encrypted message body), v3 (plaintext message)
+**Format Versions:** v0 (key exchange setup), v1 (key exchange: same as v0), v2 (encrypted message body), v3 (plaintext message)
 
 **Format v0/v1 (key exchange):** `MESSAGE|VERSION|DESTINATION|ENCRYPTION_METHOD|ENCRYPTION_KEY`  
 **Format v2 (encrypted body):** `MESSAGE|VERSION|DESTINATION|ENCRYPTED_MESSAGE`  
 **Format v3 (plaintext):** `MESSAGE|VERSION|DESTINATION|PLAINTEXT_MESSAGE`
 
-**Params — key exchange (v0/v1):**
+**Params (key exchange (v0/v1):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -674,14 +674,14 @@ Send an encrypted or plaintext message to a destination address.
 | encryptionMethod | integer | Yes | `1` = ECDH, `2` = AES |
 | encryptionKey | string | Yes | Public key or shared key material (max 1 MB) |
 
-**Params — encrypted message (v2):**
+**Params (encrypted message (v2):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
 | destination | string | Yes | Recipient address |
 | encryptedMessage | string | Yes | Encrypted message payload (max 1 MB) |
 
-**Params — plaintext (v3):**
+**Params (plaintext (v3):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -735,7 +735,7 @@ Create a peer-to-peer token exchange order.
 **Format v1 (cancel):** `ORDER|VERSION|ORDER_ACTION_INDEX|MEMO`  
 **Format v2 (edit):** `ORDER|VERSION|ORDER_ACTION_INDEX|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
-**Params — create (v0):**
+**Params (create (v0):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -751,14 +751,14 @@ Create a peer-to-peer token exchange order.
 | blockList | integer | No | ACTION_INDEX of a LIST to ban takers |
 | memo | string | No | Optional note |
 
-**Params — cancel (v1):**
+**Params (cancel (v1):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
 | orderActionIndex | integer | Yes | ACTION_INDEX of the order to cancel |
 | memo | string | No | Optional note |
 
-**Params — edit (v2):**
+**Params (edit (v2):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -889,7 +889,7 @@ Fulfill an open ORDER by providing the requested side of the exchange.
 **Format v1:** `SWAP|VERSION|SWAP_ACTION_INDEX|MEMO`  
 **Format v2:** `SWAP|VERSION|SWAP_ACTION_INDEX|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
-**Params — create (v0):**
+**Params (create (v0):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -905,14 +905,14 @@ Fulfill an open ORDER by providing the requested side of the exchange.
 | blockList | integer | No | ACTION_INDEX of a LIST to ban counterparties |
 | memo | string | No | Optional note |
 
-**Params — cancel (v1):**
+**Params (cancel (v1):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
 | swapActionIndex | integer | Yes | ACTION_INDEX of the swap to cancel |
 | memo | string | No | Optional note |
 
-**Params — edit (v2):**
+**Params (edit (v2):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -1059,7 +1059,7 @@ Must be one of: `USD`, `CAD`, `AUD`, `MXN`, `GBP`, `JPY`, `CNY`, `CHF`, `BRL`, `
 
 ### FIAT_AMOUNT
 
-- Must match the pattern `X.XX` — a numeric value with exactly two decimal places (e.g. `65.00`, `1234.99`).
+- Must match the pattern `X.XX`; a numeric value with exactly two decimal places (e.g. `65.00`, `1234.99`).
 
 ### Coin fields (`GIVE_COIN`, `GET_COIN`, `COIN1`, `COIN2`)
 
@@ -1103,8 +1103,8 @@ All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`,
 
 Stake tokens. Two flavors with different chain reach:
 
-- **v1 / v2 — capability staking.** BTC-only. XCHAIN-only. Per-pubkey aggregate active stake auto-qualifies the pubkey for each of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) per governance-configurable `min_stake[capability]`.
-- **v3 — contract-targeted staking.** Works on any chain (BTC, LTC, DOGE). Any token. Targets a specific stakeable contract deployed via [DEPLOY](../../protocol/actions/DEPLOY.md) v1.
+- **v1 / v2, capability staking.** BTC-only. XCHAIN-only. Per-pubkey aggregate active stake auto-qualifies the pubkey for each of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) per governance-configurable `min_stake[capability]`.
+- **v3:** contract-targeted staking.** Works on any chain (BTC, LTC, DOGE). Any token. Targets a specific stakeable contract deployed via [DEPLOY](../../protocol/actions/DEPLOY.md) v1.
 
 See [protocol/actions/STAKE.md](../../protocol/actions/STAKE.md).
 
@@ -1152,8 +1152,8 @@ await sdk.session(wif).stakeToContract({
 
 Begin unstaking cooldown for a previously staked pubkey. Two flavors with different chain reach:
 
-- **v0 — capability unstake.** BTC-only. Returns the full aggregate capability stake for the pubkey (v1 original + any v2 top-ups).
-- **v1 — contract-targeted unstake.** Works on any chain (BTC, LTC, DOGE). Releases the single `(targetContractIndex, signingPubkey, tick)` stake row.
+- **v0:** capability unstake.** BTC-only. Returns the full aggregate capability stake for the pubkey (v1 original + any v2 top-ups).
+- **v1:** contract-targeted unstake.** Works on any chain (BTC, LTC, DOGE). Releases the single `(targetContractIndex, signingPubkey, tick)` stake row.
 
 ```js
 // Capability unstake
@@ -1187,10 +1187,10 @@ await sdk.session(wif).unstakeFromContract({
 
 Rotate or revoke the signing key for a staked validator. Four versions with different chain reach:
 
-- **v0 — capability delegation.** BTC-only. Rotates the signing key for the broadcaster's capability stake.
-- **v1 — contract-targeted delegation.** Works on any chain (BTC, LTC, DOGE). Rotates the signing key for a single `(targetContractIndex, tick)` stake row.
-- **v2 — capability revoke.** BTC-only.
-- **v3 — contract revoke.** Works on any chain.
+- **v0:** capability delegation.** BTC-only. Rotates the signing key for the broadcaster's capability stake.
+- **v1:** contract-targeted delegation.** Works on any chain (BTC, LTC, DOGE). Rotates the signing key for a single `(targetContractIndex, tick)` stake row.
+- **v2:** capability revoke.** BTC-only.
+- **v3:** contract revoke.** Works on any chain.
 
 ```js
 // Capability delegation

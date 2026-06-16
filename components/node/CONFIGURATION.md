@@ -1,16 +1,16 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Node — Configuration
+# XChain Node: Configuration
 
 ## Config File System
 
 xchain-node uses a two-layer configuration system to generate environment variables for each managed service:
 
-1. **Hardcoded defaults** — defined in `ConfigService.js` for each module type (40+ variables per coin-specific service)
-2. **Config file overrides** — read from `config/{coin}-{network}` files in `KEY=VALUE` format
+1. **Hardcoded defaults**: defined in `ConfigService.js` for each module type (40+ variables per coin-specific service)
+2. **Config file overrides**: read from `config/{coin}-{network}` files in `KEY=VALUE` format
 
-Config files are plain text with one variable per line. Values containing `=` (such as base64 tokens or passwords) are handled correctly — only the first `=` on each line is treated as the separator. Blank lines and lines without `=` are skipped.
+Config files are plain text with one variable per line. Values containing `=` (such as base64 tokens or passwords) are handled correctly; only the first `=` on each line is treated as the separator. Blank lines and lines without `=` are skipped.
 
 Example `config/bitcoin-mainnet`:
 
@@ -103,8 +103,8 @@ These env vars override where xchain-node stores its filesystem state on the hos
 
 | Variable | Default | What goes here |
 |---|---|---|
-| `XCHAIN_NODE_DATA_DIR` | `<repo>/data` | Per-coin/network/module persistent state. Includes bootstrap output `.tar.gz` archives for utxo-tracker / decoder / indexer. **Tens to hundreds of GB at scale** — point at a large volume. |
-| `XCHAIN_NODE_TMP_DIR` | `<repo>/tmp` | Bootstrap inner work archives (`data.tar.gz`, `data.sha256`) and module-update clones. **Tens of GB during bootstrap operations** — point at the same large volume as `XCHAIN_NODE_DATA_DIR`. |
+| `XCHAIN_NODE_DATA_DIR` | `<repo>/data` | Per-coin/network/module persistent state. Includes bootstrap output `.tar.gz` archives for utxo-tracker / decoder / indexer. **Tens to hundreds of GB at scale**: point at a large volume. |
+| `XCHAIN_NODE_TMP_DIR` | `<repo>/tmp` | Bootstrap inner work archives (`data.tar.gz`, `data.sha256`) and module-update clones. **Tens of GB during bootstrap operations**: point at the same large volume as `XCHAIN_NODE_DATA_DIR`. |
 | `XCHAIN_NODE_MODULES_DIR` | `<repo>/modules` | Git clones of every sibling xchain-* repo. 1–3 GB total. |
 | `XCHAIN_NODE_CRYPTO_NODES_DIR` | `<repo>/crypto_nodes` | Downloaded Bitcoin/Doge/Litecoin tarballs + extracted binaries. 100–500 MB per coin. |
 | `XCHAIN_NODE_CONFIG_DIR` | `<repo>/config` | Generated per-service `.env` files. Small. |
@@ -119,7 +119,7 @@ These env vars override where xchain-node stores its filesystem state on the hos
 > | LTC testnet | `testnet4/blocks/` |
 > | DOGE / LTC regtest | `regtest/blocks/` |
 >
-> This matters if you ever try to free up disk by hand-mounting *only* the bare `blocks/` path — e.g. `-v /misc/dogecoin/testnet/blocks:/root/.dogecoin/blocks`. On testnet/regtest the daemon writes to `testnet3/blocks/` (etc.), which that bind does **not** cover, so the mount silently catches nothing and blocks keep accumulating on the default disk. No error is raised.
+> This matters if you ever try to free up disk by hand-mounting *only* the bare `blocks/` path, e.g. `-v /misc/dogecoin/testnet/blocks:/root/.dogecoin/blocks`. On testnet/regtest the daemon writes to `testnet3/blocks/` (etc.), which that bind does **not** cover, so the mount silently catches nothing and blocks keep accumulating on the default disk. No error is raised.
 >
 > `XCHAIN_NODE_BLOCKS_DIR` avoids this trap entirely: xchain-node starts the daemon with `-blocksdir=/blocks`, which the daemon honours on every network, so all per-network subdirectories land inside the mounted path (`/blocks/testnet3/blocks/`, `/blocks/regtest/blocks/`, …). A single host bind therefore covers mainnet, testnet, and regtest uniformly. See [Disk Management](../../operations/DISK_MANAGEMENT.md) for the full disk-offload guide.
 
@@ -147,7 +147,7 @@ Without these overrides the small `/` partition fills the moment a bootstrap is 
 
 ### NODE_PREFIX Validation
 
-The `NODE_PREFIX` can be overridden via the `NODE_PREFIX` environment variable. It is validated against `/^[a-z0-9][a-z0-9._-]*$/` on load — shell metacharacters, spaces, uppercase letters, and dollar signs are rejected with a clear error.
+The `NODE_PREFIX` can be overridden via the `NODE_PREFIX` environment variable. It is validated against `/^[a-z0-9][a-z0-9._-]*$/` on load: shell metacharacters, spaces, uppercase letters, and dollar signs are rejected with a clear error.
 
 ### Port Validation
 

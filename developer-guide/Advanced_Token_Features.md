@@ -291,7 +291,7 @@ Sub-token rules are governed by the parent token's owner. The period character `
 
 ## Ownership Transfer
 
-A token has two separable things attached to it: the **balances** (who holds how many tokens) and the **ownership** (who can update the token's settings — minting windows, allow lists, lockable parameters, etc.). The two can be moved independently.
+A token has two separable things attached to it: the **balances** (who holds how many tokens) and the **ownership** (who can update the token's settings: minting windows, allow lists, lockable parameters, etc.). The two can be moved independently.
 
 ### Gift-Transfer Ownership
 
@@ -306,9 +306,9 @@ const transferOwnershipAction = sdk.issue({
 
 ### Sell Ownership on the DEX
 
-To *sell* ownership instead of gifting it, place an ORDER, SWAP, or DISPENSER with the `giveOwnership` flag set. The trade transfers the issuer role atomically with the payment — no off-chain trust is required.
+To *sell* ownership instead of gifting it, place an ORDER, SWAP, or DISPENSER with the `giveOwnership` flag set. The trade transfers the issuer role atomically with the payment. No off-chain trust is required.
 
-**ORDER — list the ownership for sale at a fixed price:**
+**ORDER, list the ownership for sale at a fixed price:**
 
 ```js
 const orderAction = sdk.order({
@@ -324,7 +324,7 @@ const orderAction = sdk.order({
 
 A buyer fills the order with the matching `getOwnership: '1'` side, and the ownership role transfers atomically with the payment.
 
-**SWAP — match two known parties for an ownership trade:**
+**SWAP, match two known parties for an ownership trade:**
 
 ```js
 const swapAction = sdk.swap({
@@ -338,7 +338,7 @@ const swapAction = sdk.swap({
 });
 ```
 
-**DISPENSER — first buyer to pay the asking price takes ownership:**
+**DISPENSER, first buyer to pay the asking price takes ownership:**
 
 ```js
 const dispenserAction = sdk.dispenser({
@@ -353,9 +353,9 @@ const dispenserAction = sdk.dispenser({
 
 Ownership dispensers are single-shot: once the ownership has been claimed, the dispenser closes automatically (there is only one issuer role per token).
 
-### Sweep — Move Balances, Ownerships, or Escrows in Bulk
+### Sweep: Move Balances, Ownerships, or Escrows in Bulk
 
-SWEEP moves everything from your address to a destination in one transaction. The three categories are independent flags — you can sweep balances only, ownerships only, escrows only, or any combination.
+SWEEP moves everything from your address to a destination in one transaction. The three categories are independent flags: you can sweep balances only, ownerships only, escrows only, or any combination.
 
 ```js
 const sweepAction = sdk.sweep({
@@ -372,7 +372,7 @@ Escrowed tokens from dispensers are released to the destination address after a 
 
 ## Token-Gated Encrypted Files
 
-Publish a file — or a whole pack of files — directly to the blockchain, encrypted such that only holders of a specific token can decrypt it. The decryption key is automatically re-encrypted to each new holder on every transfer, so a buyer of the token receives the unlock as part of the same transaction. No download server, no key escrow service, no off-chain infrastructure.
+Publish a file (or a whole pack of files) directly to the blockchain, encrypted such that only holders of a specific token can decrypt it. The decryption key is automatically re-encrypted to each new holder on every transfer, so a buyer of the token receives the unlock as part of the same transaction. No download server, no key escrow service, no off-chain infrastructure.
 
 This composes three primitives: the FILE action (carries the encrypted bytes plus three new gating fields), the MESSAGE v2 action in ECIES mode (carries the encrypted key handoff), and the BATCH action (composes the two atomically). The SDK exposes a `gatedFile` helper for the encryption side.
 
@@ -482,7 +482,7 @@ const transferBatch = sdk.batch()
   .build();
 ```
 
-The wallet must already hold the unlocked key — a wallet that has never decrypted the content has nothing to re-encrypt to the new holder. Wallets should block compose at the UI level for tokens they haven't unlocked yet, rather than producing an indexer-rejected transaction.
+The wallet must already hold the unlocked key; a wallet that has never decrypted the content has nothing to re-encrypt to the new holder. Wallets should block compose at the UI level for tokens they haven't unlocked yet, rather than producing an indexer-rejected transaction.
 
 ### Holder-Side Unlock
 
@@ -541,9 +541,9 @@ For the protocol-level spec (wire format, handoff payload layout, indexer valida
 
 ## Next Steps
 
-- [Batch_Operations.md](Batch_Operations.md) — combine advanced operations atomically
-- [Build_A_Dispenser.md](Build_A_Dispenser.md) — sell tokens with access control
-- [Integration_Patterns.md](Integration_Patterns.md) — building on top of these features
+- [Batch_Operations.md](Batch_Operations.md): combine advanced operations atomically
+- [Build_A_Dispenser.md](Build_A_Dispenser.md): sell tokens with access control
+- [Integration_Patterns.md](Integration_Patterns.md): building on top of these features
 
 ---
 

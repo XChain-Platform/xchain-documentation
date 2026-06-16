@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Hub — Operations
+# XChain Platform Hub: Operations
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ On startup, the hub:
 1. Loads environment variables from `.env`
 2. Creates the MariaDB database if it doesn't exist
 3. Creates all tables if they don't exist
-4. Starts the `PriceAggregator` (always available — receives PRICE actions pushed by indexers)
+4. Starts the `PriceAggregator` (always available, receives PRICE actions pushed by indexers)
 5. Starts the `HubDbBroadcaster` and wires it to PriceAggregator's `row:inserted` events
 6. Starts the Express JSON-RPC API server with HTTP + WebSocket upgrade handler
 7. If `P2P_VALIDATOR_ADDR` is set, activates the full validator stack:
@@ -45,10 +45,10 @@ Without `P2P_VALIDATOR_ADDR`, the hub runs as a simple config oracle. Config rea
 ### Validator Mode
 
 With `P2P_VALIDATOR_ADDR` set, the hub joins the P2P validator network. All config writes go through PBFT consensus, price data is aggregated from multiple validators, and cross-chain actions are attested by a quorum. This mode requires:
-- `SIGNING_PRIVKEY_HEX` — Ed25519 private key for signing messages
-- `SEED_NODES` — comma-separated list of peer addresses to bootstrap the mesh
-- `ORACLE_EPOCH_START` — oracle round-numbering anchor (Unix ms), **identical across the federation**
-- `HUB_CAPABILITY_CONFIG` — path to the capability config JSON: `MIN_STAKE` thresholds + per-capability self-test config blocks (see CONFIGURATION.md)
+- `SIGNING_PRIVKEY_HEX`: Ed25519 private key for signing messages
+- `SEED_NODES`: comma-separated list of peer addresses to bootstrap the mesh
+- `ORACLE_EPOCH_START`: oracle round-numbering anchor (Unix ms), **identical across the federation**
+- `HUB_CAPABILITY_CONFIG`: path to the capability config JSON: `MIN_STAKE` thresholds + per-capability self-test config blocks (see CONFIGURATION.md)
 - At least one price API key (`COINGECKO_API_KEY` or `COINMARKETCAP_API_KEY`)
 
 #### Recommended: set up a validator with xchain-node
@@ -81,8 +81,7 @@ A validator only *qualifies* for a capability once its on-chain stake to the
 pubkey meets that capability's `MIN_STAKE`, **and** the local self-test for that
 capability passes (which needs the config block in `capabilities.json`). A
 qualified-but-not-ready validator is still counted in quorum `N`, so a
-misconfigured node that skips rounds will accrue non-participation slashing —
-keep `capabilities.json` correct, or list capabilities you don't serve under
+misconfigured node that skips rounds will accrue non-participation slashing; keep `capabilities.json` correct, or list capabilities you don't serve under
 `DISABLED_CAPABILITIES`.
 
 ## Docker
@@ -134,27 +133,27 @@ The API is rate-limited to 100 requests per minute per IP (configurable via `HUB
 
 ## Validator Key Rotation
 
-A validator's **transport identity** is the Ed25519 key in `SIGNING_PRIVKEY_HEX` — the key it signs P2P consensus envelopes with. Rotating it (routine hygiene, or after a suspected compromise) means changing that key *without* peers dropping the validator with `P2P: Invalid signature`.
+A validator's **transport identity** is the Ed25519 key in `SIGNING_PRIVKEY_HEX`; the key it signs P2P consensus envelopes with. Rotating it (routine hygiene, or after a suspected compromise) means changing that key *without* peers dropping the validator with `P2P: Invalid signature`.
 
 Two layers authorize a signing key, and a peer admits an envelope whose signer is in **either**:
 
 | Layer | Source | Scope | Follows on-chain rotation? |
 |---|---|---|---|
-| **On-chain effective set** | `getactivevalidators` at the BTC tip, polled every `P2P_SIGNER_SET_REFRESH_MS` (default 30 s) | Federation-wide, authoritative | **Yes — automatically** |
-| **Validator registry** | The hub's local `validators` table (`registervalidator` / `rotatevalidator` / `deregistervalidator`) | This hub only — a bootstrap *floor* | No — edited by hand/RPC |
+| **On-chain effective set** | `getactivevalidators` at the BTC tip, polled every `P2P_SIGNER_SET_REFRESH_MS` (default 30 s) | Federation-wide, authoritative | **Yes: automatically** |
+| **Validator registry** | The hub's local `validators` table (`registervalidator` / `rotatevalidator` / `deregistervalidator`) | This hub only (a bootstrap *floor* | No) edited by hand/RPC |
 
-Because the effective set is the union of both, a hub that follows an on-chain validator set picks up a rotation on its own: once the new key is active on-chain, every peer admits it within one refresh interval. The poll **never fails open** — on an upstream error the last-known-good set is retained and the registry remains the floor, so a transient indexer outage can never silently widen who may sign.
+Because the effective set is the union of both, a hub that follows an on-chain validator set picks up a rotation on its own: once the new key is active on-chain, every peer admits it within one refresh interval. The poll **never fails open**, on an upstream error the last-known-good set is retained and the registry remains the floor, so a transient indexer outage can never silently widen who may sign.
 
 > A hub with **no** on-chain validator set (a single-validator prod hub, or a federation still bootstrapping before any stake exists) has an empty effective set, so the registry is the *only* authorization layer. There, rotation is the manual-tools path below.
 
 ### Routine rotation (a federation following the on-chain set)
 
-The on-chain rotate is a [`DELEGATE` v0](../../protocol/actions/DELEGATE.md) (capability rotate, BTC-only). It is **additive** — it adds the new key alongside the old one, so there is no signing gap.
+The on-chain rotate is a [`DELEGATE` v0](../../protocol/actions/DELEGATE.md) (capability rotate, BTC-only). It is **additive**; it adds the new key alongside the old one, so there is no signing gap.
 
 1. **Generate the new key** offline (`xchain-node validator init` prints a fresh pubkey, or generate an Ed25519 keypair however you manage keys). Keep the seed offline until step 3.
-2. **Broadcast `DELEGATE` v0** from the validator's staking address with `NEW_SIGNING_PUBKEY = <new pubkey>`. The new key becomes active after the **6-block BTC activation delay** (~1 hour) — signatures from it are rejected until then.
-3. **After the delay, swap the local key:** update the validator's signing material (`SIGNING_PRIVKEY_HEX`, plus the `signing.key` file if your deployment uses one) to the new seed and **restart the hub**. No hub-registry edit is needed — within ≤ `P2P_SIGNER_SET_REFRESH_MS` of the new key going active on-chain, all peers admit it.
-4. **(Optional) retire the old key.** `DELEGATE` v0 leaves the old key valid; broadcast a [`DELEGATE` v2](../../protocol/actions/DELEGATE.md) (capability revoke) for it once the new key is confirmed working. The revoke also takes 6 blocks, so the keys overlap — the new key is live well before the old one is removed.
+2. **Broadcast `DELEGATE` v0** from the validator's staking address with `NEW_SIGNING_PUBKEY = <new pubkey>`. The new key becomes active after the **6-block BTC activation delay** (~1 hour), signatures from it are rejected until then.
+3. **After the delay, swap the local key:** update the validator's signing material (`SIGNING_PRIVKEY_HEX`, plus the `signing.key` file if your deployment uses one) to the new seed and **restart the hub**. No hub-registry edit is needed, within ≤ `P2P_SIGNER_SET_REFRESH_MS` of the new key going active on-chain, all peers admit it.
+4. **(Optional) retire the old key.** `DELEGATE` v0 leaves the old key valid; broadcast a [`DELEGATE` v2](../../protocol/actions/DELEGATE.md) (capability revoke) for it once the new key is confirmed working. The revoke also takes 6 blocks, so the keys overlap; the new key is live well before the old one is removed.
 
 ### Emergency rotation (compromised key)
 
@@ -164,11 +163,11 @@ Run the routine sequence but broadcast the **v2 revoke immediately after** the v
 2. `DELEGATE` v2 revoking the compromised key (deactivates 6 blocks after it confirms).
 3. Swap local key material + restart as soon as the new key is active.
 
-During the overlap window both keys are valid; the new key takes effect ~6 blocks before the compromised one is fully revoked, so the validator never loses its slot. (Revoking a compromised *original stake* key is the v2 stake-key revoke — see the [`DELEGATE`](../../protocol/actions/DELEGATE.md) notes.)
+During the overlap window both keys are valid; the new key takes effect ~6 blocks before the compromised one is fully revoked, so the validator never loses its slot. (Revoking a compromised *original stake* key is the v2 stake-key revoke, see the [`DELEGATE`](../../protocol/actions/DELEGATE.md) notes.)
 
 ### Manual registry tools (fallback / pre-chain bootstrap)
 
-When the hub is **not** following an on-chain set (single-validator deployment, or pre-stake bootstrap), edit the registry floor directly over JSON-RPC. Both methods reload and propagate the new set to every running consensus engine immediately — no restart, no raw SQL:
+When the hub is **not** following an on-chain set (single-validator deployment, or pre-stake bootstrap), edit the registry floor directly over JSON-RPC. Both methods reload and propagate the new set to every running consensus engine immediately. No restart, no raw SQL:
 
 ```bash
 # Rotate the signing key for the validator at an addr
@@ -187,14 +186,14 @@ curl -X POST http://localhost:10000 -H "Content-Type: application/json" \
 ### Verifying a rotation
 
 - `getvalidators` reflects the new pubkey at the rotated addr (and the old key is gone).
-- On every peer, the federation count holds steady — e.g. an oracle round shows `submitters=N` with no drop — and **no** `P2P: Invalid signature` log lines for the rotated node.
-- If the transport signer set ever can't refresh past `P2P_SIGNER_SET_MAX_AGE_MS` (default 10 min), the hub logs `transport signer set STALE … retaining last-known-good`. That is the no-fail-open guard, not a rotation failure — investigate the BTC tip / `getactivevalidators` path.
+- On every peer, the federation count holds steady (e.g. an oracle round shows `submitters=N` with no drop) and **no** `P2P: Invalid signature` log lines for the rotated node.
+- If the transport signer set ever can't refresh past `P2P_SIGNER_SET_MAX_AGE_MS` (default 10 min), the hub logs `transport signer set STALE … retaining last-known-good`. That is the no-fail-open guard, not a rotation failure, investigate the BTC tip / `getactivevalidators` path.
 
 ## ANCHOR Operations
 
 ### Forcing an immediate ANCHOR publish
 
-By default the ANCHOR publisher runs on `ANCHOR_INTERVAL_MS` (default 24 h). To trigger an out-of-interval flush — for example after a wallet refill or to verify a new deployment — use `anchorflush`:
+By default the ANCHOR publisher runs on `ANCHOR_INTERVAL_MS` (default 24 h). To trigger an out-of-interval flush (for example after a wallet refill or to verify a new deployment) use `anchorflush`:
 
 ```bash
 curl -X POST http://localhost:10000 \
@@ -246,23 +245,23 @@ The P2P layer deduplicates messages using a TTL cache (default: 60 seconds). Thi
 
 ### Validator mode not activating
 
-- Ensure `P2P_VALIDATOR_ADDR` is set — this is the single switch that activates validator mode
+- Ensure `P2P_VALIDATOR_ADDR` is set; this is the single switch that activates validator mode
 - Verify `SIGNING_PRIVKEY_HEX` is a valid 64-character hex string (Ed25519 seed)
 - Check that `SEED_NODES` contains reachable peer addresses
-- Set `ORACLE_EPOCH_START` (Unix ms) — the hub refuses to start validator mode without it
+- Set `ORACLE_EPOCH_START` (Unix ms); the hub refuses to start validator mode without it
 
 ### Validator qualifies but never participates (and gets slashed)
 
 - This means the capability **self-test** is failing. Provide `HUB_CAPABILITY_CONFIG` with the per-capability config blocks (`price.sources`, `cross_chain.chains[*].rpc`, `oracle_publish.doge_address`/`doge_wallet`). Startup logs each failing self-test with the reason.
-- Confirm `CAPABILITIES.<cap>.MIN_STAKE` is set for every capability you intend to serve — without a configured threshold the hub treats the capability as **not qualified** (fail-closed; it no longer defaults to a 0 threshold).
+- Confirm `CAPABILITIES.<cap>.MIN_STAKE` is set for every capability you intend to serve, without a configured threshold the hub treats the capability as **not qualified** (fail-closed; it no longer defaults to a 0 threshold).
 - For capabilities you deliberately don't serve, add them to `DISABLED_CAPABILITIES` so the federation doesn't expect participation.
 
 ### Oracle rounds not producing prices
 
 - Verify at least one price API key is configured (`COINGECKO_API_KEY` or `COINMARKETCAP_API_KEY`)
-- Check `ORACLE_MIN_SUBMISSIONS` — if set higher than the number of connected validators, rounds will not finalize
+- Check `ORACLE_MIN_SUBMISSIONS`, if set higher than the number of connected validators, rounds will not finalize
 - Verify peers are connected via `getvalidators` API call
-- Check `PRICE_FETCH_TIMEOUT` — external API calls timeout after 10 seconds by default
+- Check `PRICE_FETCH_TIMEOUT`, external API calls timeout after 10 seconds by default
 
 ### Cross-chain attestations stuck at pending
 
@@ -279,12 +278,12 @@ The P2P layer deduplicates messages using a TTL cache (default: 60 seconds). Thi
 
 ### ANCHOR publisher not publishing / DOGE wallet low
 
-The ANCHOR publisher logs `StateAnchorPublisher: DOGE balance low` and skips publishing when the wallet balance falls below a minimum threshold. This is the same wallet used by `OraclePublisher` for PRICE v0 broadcasts — both consume DOGE for transaction fees.
+The ANCHOR publisher logs `StateAnchorPublisher: DOGE balance low` and skips publishing when the wallet balance falls below a minimum threshold. This is the same wallet used by `OraclePublisher` for PRICE v0 broadcasts, both consume DOGE for transaction fees.
 
 - Check the DOGE wallet balance at the address configured in `capabilities.json` under `oracle_publish.doge_address`.
 - Refill the wallet to resume publishing. Once funded, either wait for the next `ANCHOR_INTERVAL_MS` cycle or force an immediate flush with `anchorflush` (see above).
 - **Cost / runway.** Each anchor *round* broadcasts one transaction per chain (BTC + LTC + DOGE checkpoints, all on the DOGE chain) at ~0.4 DOGE/tx ≈ ~1.2 DOGE/round, plus the archive transaction(s) when there is cross-chain activity. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`) that is ~1.2 DOGE/day. To cut spend, raise `ANCHOR_CHECKPOINT_EVERY_N` (see CONFIGURATION.md → ANCHOR Publishing): `=2` anchors every other checkpoint → ~0.6 DOGE/day. Size a comfortable refill at roughly `daily_cost × desired_days` (e.g. ~60 DOGE ≈ 100 days at `EVERY_N=2`).
-- **Restarts are free** as of the cadence-latch fix — a hub restart restores the checkpoint cadence latch from the last persisted checkpoint and no longer fires an extra (DOGE-spending) off-schedule anchor. Look for `StateCheckpointEngine: cadence latch restored at snapshot block N` in startup logs to confirm.
+- **Restarts are free** as of the cadence-latch fix; a hub restart restores the checkpoint cadence latch from the last persisted checkpoint and no longer fires an extra (DOGE-spending) off-schedule anchor. Look for `StateCheckpointEngine: cadence latch restored at snapshot block N` in startup logs to confirm.
 
 ### Consumers not discovering hub
 

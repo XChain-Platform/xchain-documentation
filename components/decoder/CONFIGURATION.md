@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Decoder — Configuration Reference
+# XChain Platform Decoder: Configuration Reference
 
 ## Environment Variables
 
@@ -62,7 +62,7 @@ XChain_{CHAIN}_{NETWORK}_Decoder
 | Litecoin testnet | `XChain_LTC_Testnet_Decoder` |
 | Dogecoin regtest | `XChain_DOGE_Regtest_Decoder` |
 
-Database names are validated on startup — only alphanumeric characters and underscores are allowed. Names containing SQL injection characters, spaces, backticks, or unicode are rejected.
+Database names are validated on startup; only alphanumeric characters and underscores are allowed. Names containing SQL injection characters, spaces, backticks, or unicode are rejected.
 
 ## Internal Constants
 

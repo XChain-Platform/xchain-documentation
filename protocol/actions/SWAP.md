@@ -68,7 +68,7 @@ This example atomically swaps ownership of JDOG (BTC chain) for ownership of WOW
 ### Token Ownership Sales
 - `GIVE_OWNERSHIP=1` requires SOURCE to be the current owner of `GIVE_TICK`; `GIVE_AMOUNT` must be empty; the ownership record moves into a protocol-held escrow state
 - `GET_OWNERSHIP=1` requires the matcher's SOURCE to be the current owner of `GET_TICK`; `GET_AMOUNT` must be empty
-- Ownership swaps are **single-fill only** — ownership is indivisible
+- Ownership swaps are **single-fill only**, ownership is indivisible
 - Native coin remains unsupported (consistent with existing SWAP behavior); use `ORDER` for ownership-for-coin sales
 - Cross-chain ownership transfers honor the existing `GET_ADDRESS` requirement on `GET_COIN`
 - While ownership is escrowed, the following actions targeting the escrowed `TICK` are rejected:
@@ -88,7 +88,7 @@ This example atomically swaps ownership of JDOG (BTC chain) for ownership of WOW
 
 ## Notes
 - **Cross-chain swaps** (`GET_COIN` ≠ the posting chain) escrow the GIVE side locally and are
-  matched + settled by the validator federation — not the local DEX. The signed match is delivered
+  matched + settled by the validator federation. Not the local DEX. The signed match is delivered
   to each chain over the hub mirror and settled from escrow with no per-trade on-chain transaction.
   See [Cross-Chain DEX](../Cross_Chain_DEX.md).
 - `SWAP` DOES NOT work with native `COIN` (BTC, LTC, DOGE)

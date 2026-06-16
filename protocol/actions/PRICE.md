@@ -2,11 +2,11 @@
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - PRICE
-This action publishes oracle price data on-chain. Version 0 anchors PBFT-consensus COIN/FIAT price snapshots produced by validators qualifying for the `price` capability and broadcast on-chain by a validator qualifying for the `oracle_publish` capability (both capabilities are auto-qualified by aggregate stake amount per the capability model — see [STAKE](STAKE.md)). Version 1 is permissionless: any address may operate a user-run TOKEN/FIAT price oracle, no stake required.
+This action publishes oracle price data on-chain. Version 0 anchors PBFT-consensus COIN/FIAT price snapshots produced by validators qualifying for the `price` capability and broadcast on-chain by a validator qualifying for the `oracle_publish` capability (both capabilities are auto-qualified by aggregate stake amount per the capability model (see [STAKE](STAKE.md)). Version 1 is permissionless: any address may operate a user-run TOKEN/FIAT price oracle, no stake required.
 
 ## PARAMS
 
-### Version 0 — Validator COIN/FIAT Price Snapshot
+### Version 0: Validator COIN/FIAT Price Snapshot
 | Name              | Type    | Description                                                        |
 | ----------------- | ------- | ------------------------------------------------------------------ |
 | `VERSION`         | String  | Format version (`0`)                                               |
@@ -19,7 +19,7 @@ This action publishes oracle price data on-chain. Version 0 anchors PBFT-consens
 | `PUBKEY`          | String  | 64-char hex Ed25519 signing pubkey (repeated per signature)        |
 | `SIG`             | String  | 128-char hex Ed25519 signature over round data (repeated per sig)  |
 
-### Version 1 — User Oracle TOKEN/FIAT Price
+### Version 1: User Oracle TOKEN/FIAT Price
 | Name              | Type    | Description                                                        |
 | ----------------- | ------- | ------------------------------------------------------------------ |
 | `VERSION`         | String  | Format version (`1`)                                               |
@@ -32,14 +32,14 @@ This action publishes oracle price data on-chain. Version 0 anchors PBFT-consens
 
 ## Formats
 
-### Version `0` — Validator COIN/FIAT Price Snapshot
+### Version `0`: Validator COIN/FIAT Price Snapshot
 ```
 VERSION|ROUND|TIMESTAMP|PAIR_COUNT|PAIR_ID|PAIR_PRICE|...|SIG_COUNT|PUBKEY|SIG|...
 ```
 Pair data (`PAIR_ID|PAIR_PRICE`) repeats `PAIR_COUNT` times.
 Signature data (`PUBKEY|SIG`) repeats `SIG_COUNT` times.
 
-### Version `1` — User Oracle TOKEN/FIAT Price
+### Version `1`: User Oracle TOKEN/FIAT Price
 ```
 VERSION|COIN|TICK|FIAT|VALUE|FEE|MEMO
 ```
@@ -67,30 +67,30 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 
 ## Rules
 
-### Version 0 — Validator COIN/FIAT Price Snapshot
+### Version 0: Validator COIN/FIAT Price Snapshot
 
 #### Chain & Publisher
-- Publishable on **any chain** (BTC, LTC, DOGE) — DOGE is recommended for lowest tx fees but the protocol does not require it
+- Publishable on **any chain** (BTC, LTC, DOGE); DOGE is recommended for lowest tx fees but the protocol does not require it
 - `SOURCE` must own an active stake against a pubkey that qualifies for the `oracle_publish` capability at the publishing BLOCK_INDEX (i.e. the pubkey's aggregate active stake ≥ `min_stake[oracle_publish]`, governance-configurable)
 
 #### Round Identity
 - `ROUND` corresponds to the BTC block height that triggered the oracle round
 - One round per BTC block (BTC blocks average ~10 minutes but can vary from 1 to 60+ minutes)
-- Each round may only be published once — duplicate `ROUND` values are deduplicated by the hub (first valid submission wins)
+- Each round may only be published once, duplicate `ROUND` values are deduplicated by the hub (first valid submission wins)
 
 #### Leader Rotation & Failover
-- Pubkeys qualifying for `oracle_publish` at round N are sorted by `signing_pubkey` (deterministic ordering — every node agrees)
+- Pubkeys qualifying for `oracle_publish` at round N are sorted by `signing_pubkey` (deterministic ordering; every node agrees)
 - Leader for round N: `N % oracle_publish_capable_count` (index into sorted list)
 - If round N is not published by the time BTC block N+1 arrives, the next `oracle_publish`-capable validator in rotation becomes eligible to publish
 - Failover cascades: if that validator also misses, the next one is eligible at BTC block N+2, and so on
-- The first valid PRICE tx on-chain for a given round wins (and defines the round's reward split — see Round Rewards)
+- The first valid PRICE tx on-chain for a given round wins (and defines the round's reward split. see Round Rewards)
 
 #### Batch Publishing
 - A single PRICE v0 transaction may contain multiple rounds (for failover catch-up)
 - When a failover publisher takes over, they batch all missed rounds into one or more transactions
-- No artificial cap on rounds per batch — bounded only by P2SH encoding limits (~65KB max)
+- No artificial cap on rounds per batch, bounded only by P2SH encoding limits (~65KB max)
 - If the batch exceeds a single P2SH transaction, multiple PRICE transactions are sent
-- Each round in the batch derives its own reward split from its own signer list (publishing itself earns no extra reward — see Round Rewards)
+- Each round in the batch derives its own reward split from its own signer list (publishing itself earns no extra reward. see Round Rewards)
 
 #### Signature Validation
 - Each `PUBKEY` must correspond to a pubkey qualifying for `price` at the BLOCK_INDEX of the PRICE tx (`SUM(amount)` across active stake rows ≥ `min_stake[price]`, governance-configurable; rows are active where `activation_block ≤ block_index < COALESCE(deactivation_block, +∞)`)
@@ -99,17 +99,17 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - `SIG_COUNT` must meet PBFT quorum: `>= max(2 * floor((price_capable_count - 1) / 3) + 1, ceil((price_capable_count + 1) / 2))`, where `price_capable_count` is the number of pubkeys qualifying for `price` at the PRICE tx's BLOCK_INDEX. The simple-majority floor prevents the bare `2f+1` form from degenerating to a quorum of 1 at N=3
 - Duplicate pubkeys in the signature list count only once
 - Rounds that fail signature validation are marked `invalid` and not pushed to the hub
-- A pubkey qualifies either as a stake key or as a delegated key — see the effective signer set in [DELEGATE](DELEGATE.md)
+- A pubkey qualifies either as a stake key or as a delegated key, see the effective signer set in [DELEGATE](DELEGATE.md)
 
 #### Round Rewards (derived on-chain)
 - A **valid** PRICE v0 is the round's signed participation record: the indexer splits the configured per-round reward (`STAKING.ORACLE_REWARD_PER_ROUND`, default 10 XCHAIN) equally across the action's **verified, capability-qualified, deduplicated signer set**, floored to 8 decimals
-- Rewards are written to `validator_rewards` (`reward_type = oracle_round`, `round_reference = ROUND`) during block processing — a deterministic function of the chain, so any reindex or full-parse recovery reproduces them exactly
+- Rewards are written to `validator_rewards` (`reward_type = oracle_round`, `round_reference = ROUND`) during block processing; a deterministic function of the chain, so any reindex or full-parse recovery reproduces them exactly
 - A round that finalizes off-chain but never lands a valid PRICE action earns **nothing**; a duplicate PRICE for an already-rewarded round re-derives the same rows (idempotent)
-- Signers credited are exactly the on-chain signature list that passed validation — PBFT participants whose signatures were not included in the published action are not rewarded
+- Signers credited are exactly the on-chain signature list that passed validation; PBFT participants whose signatures were not included in the published action are not rewarded
 
 #### Skipped Rounds
 - If PBFT fails to reach consensus for a BTC block, no PRICE v0 is published for that round
-- The gap in round numbers is a silent skip — no explicit skip marker is published
+- The gap in round numbers is a silent skip. No explicit skip marker is published
 - Indexers use the most recent valid price when no snapshot exists for a given round
 
 #### Activation Delay
@@ -122,7 +122,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Initial COIN set: `BTC`, `LTC`, `DOGE` (3 coins)
 - Initial FIAT set: `USD`, `CAD`, `AUD`, `MXN`, `GBP`, `JPY`, `CNY`, `CHF`, `BRL`, `INR`, `EUR`, `KRW` (12 currencies)
 - Initial pair count: **3 coins × 12 fiats = 36 pairs per round**
-- Adding new coins or fiat currencies does not require a protocol change — `PAIR_COUNT` is dynamic
+- Adding new coins or fiat currencies does not require a protocol change: `PAIR_COUNT` is dynamic
 - Validators fetch all 12 fiat prices per coin in a single API call (CoinGecko `vs_currencies` parameter, CMC `convert` parameter)
 
 #### Publisher Persistent Queue
@@ -135,21 +135,21 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Publishers check their own wallet balance on the publishing chain (typically DOGE) before each publish attempt
 - **WARN** logged when balance falls below configurable threshold (default: 10 native units) with estimated rounds remaining at current fee rate
 - **ERROR** logged when a publish tx fails due to insufficient balance
-- No protocol-level enforcement — if a publisher runs out of funds, failover kicks in naturally and the next `oracle_publish`-capable validator in rotation takes over
+- No protocol-level enforcement, if a publisher runs out of funds, failover kicks in naturally and the next `oracle_publish`-capable validator in rotation takes over
 
 #### Rewards
 - An `oracle_publish`-capable validator earns 1 XCHAIN per successful PRICE v0 publish (recorded in `validator_rewards` as `reward_type='oracle_round'` / `oracle_publish`)
 - When batch-publishing missed rounds on failover, the publisher earns rewards for all rounds in the batch
 - Rewards are gathered via the `COLLECT` action on BTC
 
-### Version 1 — User Oracle TOKEN/FIAT Price
+### Version 1: User Oracle TOKEN/FIAT Price
 
 #### Chain
 - Publishable on any supported chain (BTC, LTC, DOGE)
 - DOGE recommended for low-cost frequent updates
 
 #### Publisher
-- Any address may publish PRICE v1 — no staking requirement
+- Any address may publish PRICE v1. No staking requirement
 - The `SOURCE` address becomes the oracle identity
 - Dispensers and betting systems reference the oracle by `SOURCE` address
 
@@ -159,10 +159,10 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Dispensers/betting on any chain may reference any oracle regardless of publishing chain
 
 #### Price Lock Window
-- **Every** PRICE v1 broadcast for a `(SOURCE, COIN, TICK, FIAT)` combination — the first one included — takes effect **86400 seconds (24 hours)** after `block_time`
+- **Every** PRICE v1 broadcast for a `(SOURCE, COIN, TICK, FIAT)` combination (the first one included) takes effect **86400 seconds (24 hours)** after `block_time`
 - For updates, the delay prevents oracle front-running attacks on dispensers: without it, an oracle operator could see an incoming dispenser payment and rush a price update to manipulate the exchange rate
-- For first publishes, the delay is a **consensus requirement**: an immediately-effective first publish would be *retroactively* effective — its `effective_at` (the action's `block_time`) precedes the moment the price can exist in any indexer's hub-DB mirror (source-chain indexing lag plus propagation). A FIAT dispense settled in that window would settle differently on replay, forking the ledger. The uniform delay guarantees every operator holds the row long before any block can read it
-- 24-hour delay matches the `FIAT_DISPENSER_PRICE_WINDOW` — any payment that enters the mempool before a price update will settle at the old price before the new one activates
+- For first publishes, the delay is a **consensus requirement**: an immediately-effective first publish would be *retroactively* effective, its `effective_at` (the action's `block_time`) precedes the moment the price can exist in any indexer's hub-DB mirror (source-chain indexing lag plus propagation). A FIAT dispense settled in that window would settle differently on replay, forking the ledger. The uniform delay guarantees every operator holds the row long before any block can read it
+- 24-hour delay matches the `FIAT_DISPENSER_PRICE_WINDOW`; any payment that enters the mempool before a price update will settle at the old price before the new one activates
 - User TOKEN/FIAT oracles target illiquid markets where prices change infrequently, so the 24-hour delay (including the one-time onboarding delay for a new oracle) is not a practical limitation
 - Enforced by the `effective_at` column on the hub's `oracle_prices` table
 
@@ -181,7 +181,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 
 ## Staking gate for `oracle_publish`
 
-PRICE v0 publishers are auto-qualified by the capability model — no special "Tier 3 STAKE" exists. A pubkey gets the `oracle_publish` capability iff its aggregate active stake ≥ `min_stake[oracle_publish]` (governance-configurable). Same model applies to the `price` capability used by signers; a single pubkey can hold both capabilities simultaneously.
+PRICE v0 publishers are auto-qualified by the capability model. No special "Tier 3 STAKE" exists. A pubkey gets the `oracle_publish` capability iff its aggregate active stake ≥ `min_stake[oracle_publish]` (governance-configurable). Same model applies to the `price` capability used by signers; a single pubkey can hold both capabilities simultaneously.
 
 | Property         | Value                                                  |
 | ---------------- | ------------------------------------------------------ |
@@ -189,7 +189,7 @@ PRICE v0 publishers are auto-qualified by the capability model — no special "T
 | Role             | Broadcasts finalized PRICE v0 rounds on-chain          |
 | Stake gate       | `SUM(amount)` across the pubkey's active stake rows ≥ `min_stake[oracle_publish]` (governance default; see hub `ProviderRegistry` / capability config) |
 | Chain            | STAKE happens on BTC; PRICE v0 can be published on any chain (DOGE recommended for fees) |
-| Overlap          | Allowed — same pubkey may hold both `price` and `oracle_publish` (and earn both rewards in the same round) |
+| Overlap          | Allowed: same pubkey may hold both `price` and `oracle_publish` (and earn both rewards in the same round) |
 | Cooldown         | Configurable, default 1000 blocks                      |
 | Activation delay | 6 BTC blocks (~1 hour)                                 |
 
@@ -200,11 +200,11 @@ STAKE|2|<AMOUNT>|<SIGNING_PUBKEY>      # top-up of existing pubkey
 ```
 See [STAKE.md](STAKE.md) for the full action spec.
 
-**Publishing-chain wallet** (e.g. the DOGE wallet for broadcasting PRICE v0 to DOGE) is operator-side configuration on the hub — it is **not** recorded on-chain. Each `oracle_publish`-capable validator chooses its own publishing-chain address; the protocol simply verifies that the broadcasting `SOURCE` address owns a stake against a pubkey with the capability at the publishing BLOCK_INDEX.
+**Publishing-chain wallet** (e.g. the DOGE wallet for broadcasting PRICE v0 to DOGE) is operator-side configuration on the hub; it is **not** recorded on-chain. Each `oracle_publish`-capable validator chooses its own publishing-chain address; the protocol simply verifies that the broadcasting `SOURCE` address owns a stake against a pubkey with the capability at the publishing BLOCK_INDEX.
 
 ## Architecture
 
-### Data Flow — Validator Prices (v0)
+### Data Flow: Validator Prices (v0)
 ```
 `price`-capable validators fetch prices from CoinGecko/CMC
   → PBFT consensus (2/3+ agree on prices per BTC block)
@@ -217,7 +217,7 @@ See [STAKE.md](STAKE.md) for the full action spec.
                 → Hub broadcasts new row to all connected indexers' local hub DB copies
 ```
 
-### Data Flow — User Oracle Prices (v1)
+### Data Flow: User Oracle Prices (v1)
 ```
 User broadcasts PRICE v1 on any chain
   → Chain's decoder extracts PRICE action
@@ -234,30 +234,30 @@ Each indexer maintains three database connections:
 | Database | Connection | Owner | Contains |
 |----------|-----------|-------|----------|
 | Decoder DB | Read | Decoder | Raw blockchain data, decoded txs |
-| Indexer DB | Read/Write | Indexer | Chain-specific indexed state — actions, balances, tokens, plus the local `prices` action log |
-| Hub DB (local) | Read | Hub (synced via WebSocket) | Cross-chain infrastructure — `price_snapshots`, `oracle_prices`, `validator_rewards`, etc. |
+| Indexer DB | Read/Write | Indexer | Chain-specific indexed state: actions, balances, tokens, plus the local `prices` action log |
+| Hub DB (local) | Read | Hub (synced via WebSocket) | Cross-chain infrastructure: `price_snapshots`, `oracle_prices`, `validator_rewards`, etc. |
 
 The indexer's `prices` table is the raw on-chain action log (one row per PRICE tx). The hub's `price_snapshots` and `oracle_prices` tables are the deduplicated, cross-chain aggregated views that indexers actually query for price lookups.
 
 ### DOGE Chain Role
 - DOGE is the recommended publishing chain for PRICE v0 due to lowest tx fees
-- However the protocol allows publishing on any supported chain — `source_chain` is recorded in the hub's `price_snapshots` for audit
-- Indexers do not need to run a DOGE node — they get prices from their local hub DB copy
+- However the protocol allows publishing on any supported chain: `source_chain` is recorded in the hub's `price_snapshots` for audit
+- Indexers do not need to run a DOGE node; they get prices from their local hub DB copy
 - A new node syncing from genesis can reconstruct full oracle history from any chain that carried PRICE v0 transactions
 
 ### Determinism Guarantee
 - Two independent nodes reading the same blockchains and running the same validator set arrive at identical price state
 - Validator prices are anchored on-chain with full PBFT cryptographic proof (publishable on any chain)
 - User oracle prices are on-chain on their publishing chain
-- Hub aggregates `price_snapshots` and `oracle_prices` from all chains — single source of truth
-- Indexers query their local hub DB copy — no hub round-trip during block processing
+- Hub aggregates `price_snapshots` and `oracle_prices` from all chains, single source of truth
+- Indexers query their local hub DB copy. No hub round-trip during block processing
 - No off-chain data is required to reconstruct the complete oracle history
 
 ## Notes
 - This action replaces the oracle functionality previously available via `BROADCAST` version 1
 - Validator price snapshots include all 12 supported FIAT currencies per coin, enabling cross-currency dispenser pricing without double-conversion
 - The reverse price matching mechanism for FIAT dispensers is documented in the `DISPENSER` action specification
-- `PRICE` can coexist with `BROADCAST` — existing BROADCAST oracles continue to function
+- `PRICE` can coexist with `BROADCAST`, existing BROADCAST oracles continue to function
 
 ---
 

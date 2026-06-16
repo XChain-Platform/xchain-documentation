@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Error Reference
+# XChain Platform SDK: Error Reference
 
 This document covers all error classes thrown by the XChain Platform SDK, their codes, and how to handle them in application code.
 
@@ -38,7 +38,7 @@ Every error instance carries four properties:
 | `name`    | string | Class name (e.g. `"SDKValidationError"`) |
 | `code`    | string | Machine-readable error code (see below) |
 | `message` | string | Human-readable description |
-| `details` | object | Extra context (field name, rejected value, etc.) — may be empty `{}` |
+| `details` | object | Extra context (field name, rejected value, etc.): may be empty `{}` |
 
 ---
 
@@ -57,8 +57,8 @@ Every error instance carries four properties:
 | `SDKAuthError` | Challenge generation, message signing, signature verification errors |
 | `SDKMuSigError` | MuSig2 aggregation and signing errors |
 | `SDKGatedFileError` | Token-gated file encryption/decryption errors |
-| `SDKPolicyError` | Agent session policy violations — action denied, cap exceeded, corrupt state |
-| `SDKX402Error` | HTTP 402 payment flow errors — bad invoice, payment not found, etc. |
+| `SDKPolicyError` | Agent session policy violations: action denied, cap exceeded, corrupt state |
+| `SDKX402Error` | HTTP 402 payment flow errors: bad invoice, payment not found, etc. |
 
 ---
 
@@ -70,17 +70,17 @@ Thrown during action validation before any network call is made.
 
 | Code | Details properties | Description |
 |------|--------------------|-------------|
-| `MISSING_ACTION` | — | No `action` field was provided in the request |
-| `UNKNOWN_ACTION` | — | The action name is not a recognized XChain ACTION type |
+| `MISSING_ACTION` | None | No `action` field was provided in the request |
+| `UNKNOWN_ACTION` | None | The action name is not a recognized XChain ACTION type |
 | `MISSING_REQUIRED_FIELD` | `field` | A field required for this action was not provided |
 | `INVALID_FIELD_VALUE` | `field`, `value`, `constraint` | A field value is out of range or the wrong type |
-| `INVALID_TICK_NAME` | — | TICK name violates naming rules (length, characters, reserved names) |
-| `INVALID_TICK_ID` | — | A `^ID` reference is not a valid numeric index |
-| `FORBIDDEN_CHARACTER` | — | A text field contains a `|` or `;` character, which would corrupt the pipe-delimited format |
+| `INVALID_TICK_NAME` | None | TICK name violates naming rules (length, characters, reserved names) |
+| `INVALID_TICK_ID` | None | A `^ID` reference is not a valid numeric index |
+| `FORBIDDEN_CHARACTER` | None | A text field contains a `|` or `;` character, which would corrupt the pipe-delimited format |
 | `BATCH_CONSTRAINT` | `count` (for MINT/ISSUE violations) | A BATCH protocol rule was violated (nested BATCH, FILE action, more than 1 MINT, more than 1 ISSUE) |
-| `BATCH_EMPTY` | — | A batch was built with no actions queued |
+| `BATCH_EMPTY` | None | A batch was built with no actions queued |
 | `ENCODING_DATA_TOO_LARGE` | `suggestion` | The serialized action string exceeds 76 bytes (the OP_RETURN user-data limit; 80 bytes total per output including the 4-byte XCHN prefix) |
-| `MISSING_COMPRESSED_PUBKEY` | — | A MULTISIGN encoding was requested without providing a `compressedPubKey` |
+| `MISSING_COMPRESSED_PUBKEY` | None | A MULTISIGN encoding was requested without providing a `compressedPubKey` |
 
 ### SDKFormatError
 
@@ -144,13 +144,13 @@ Thrown for contract-specific issues during DEPLOY, EXECUTE, DEPOSIT, or WITHDRAW
 | Code | Details properties | Description |
 |------|--------------------|-------------|
 | `CODE_TOO_LARGE` | `bytes`, `limit` | Contract source exceeds the 64KB size limit |
-| `CODE_SYNTAX_ERROR` | — | acorn parse failure during pre-validation |
-| `CODE_ENCODING_FAILED` | — | Base64 encoding or decoding failure |
-| `INVALID_CONTRACT_INDEX` | — | CONTRACT_ACTION_INDEX is not a positive integer |
-| `INVALID_METHOD_NAME` | — | METHOD is empty or contains forbidden characters |
+| `CODE_SYNTAX_ERROR` | None | acorn parse failure during pre-validation |
+| `CODE_ENCODING_FAILED` | None | Base64 encoding or decoding failure |
+| `INVALID_CONTRACT_INDEX` | None | CONTRACT_ACTION_INDEX is not a positive integer |
+| `INVALID_METHOD_NAME` | None | METHOD is empty or contains forbidden characters |
 | `INVALID_PARAM_VALUE` | `field`, `index`, `value` | A parameter contains pipe or semicolon characters |
-| `CONTRACT_NOT_FOUND` | — | Explorer lookup returned no contract for the given index |
-| `CONTRACT_DISABLED` | — | Contract is disabled (for execute/deposit operations) |
+| `CONTRACT_NOT_FOUND` | None | Explorer lookup returned no contract for the given index |
+| `CONTRACT_DISABLED` | None | Contract is disabled (for execute/deposit operations) |
 
 ### SDKWalletError
 
@@ -198,7 +198,7 @@ Thrown by `AgentSession.submit()` when a declarative spending policy check fails
 | `POLICY_WINDOW_AMOUNT_EXCEEDED` | Adding this amount would breach the rolling-window token cap (`maxPerWindow.perTick`) |
 | `POLICY_WINDOW_COUNT_EXCEEDED` | The rolling window already holds `maxPerWindow.maxActions` actions |
 | `POLICY_CONFIRMATION_DENIED` | Amount was above the `confirmAbove` threshold and the confirmation handler returned false |
-| `POLICY_STATE_CORRUPT` | The usage-state file is unreadable or structurally invalid — blocks all submits; indicates a corrupt state file, not a policy denial and should not be retried. Remove or repair the file deliberately to recover. |
+| `POLICY_STATE_CORRUPT` | The usage-state file is unreadable or structurally invalid: blocks all submits; indicates a corrupt state file, not a policy denial and should not be retried. Remove or repair the file deliberately to recover. |
 
 ### SDKX402Error
 

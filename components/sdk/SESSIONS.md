@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Wallet Sessions
+# XChain Platform SDK: Wallet Sessions
 
 A Wallet Session binds a WIF private key to an SDK instance, creating a stateful object that tracks the session's address, public key, and UTXOs. This provides a natural "I am this address, do things" mental model.
 
@@ -150,15 +150,15 @@ The session automatically fills in `pubkey` and `change` from the session creden
 
 ## Related Documentation
 
-- [Transaction Lifecycle](LIFECYCLE.md) — `submitAction` details, fee estimation, progress callbacks
-- [Workflows](WORKFLOWS.md) — multi-step recipes that use sessions internally
-- [Wallet & Auth](WALLET.md) — key management, address derivation, PSBT signing
+- [Transaction Lifecycle](LIFECYCLE.md): `submitAction` details, fee estimation, progress callbacks
+- [Workflows](WORKFLOWS.md): multi-step recipes that use sessions internally
+- [Wallet & Auth](WALLET.md): key management, address derivation, PSBT signing
 
 ---
 
 ## Agent Sessions
 
-`sdk.agentSession(wif, policy)` is the policy-bounded variant of `sdk.session()` designed for automated agents. It wraps the same key in a declarative spending policy — action allowlist, per-action and per-window amount caps, destination allowlist, and a human-in-the-loop confirmation hook — checked at every `submit()` call. Fail-closed: no `allowedActions` list means nothing is allowed; a corrupt usage-state file blocks all submits rather than silently resetting the window.
+`sdk.agentSession(wif, policy)` is the policy-bounded variant of `sdk.session()` designed for automated agents. It wraps the same key in a declarative spending policy, action allowlist, per-action and per-window amount caps, destination allowlist, and a human-in-the-loop confirmation hook, checked at every `submit()` call. Fail-closed: no `allowedActions` list means nothing is allowed; a corrupt usage-state file blocks all submits rather than silently resetting the window.
 
 See [Agent Wallets](../../ai-agents/Agent_Wallets.md) for the full reference.
 

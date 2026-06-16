@@ -3,7 +3,7 @@
 
 # Regtest Development
 
-Regtest is a fully local, self-contained blockchain environment where you control block production. It is the fastest and safest way to develop and test XChain applications — no real funds at risk, blocks mine on demand, and you can reset everything and start over any time.
+Regtest is a fully local, self-contained blockchain environment where you control block production. It is the fastest and safest way to develop and test XChain applications. No real funds at risk, blocks mine on demand, and you can reset everything and start over any time.
 
 ---
 
@@ -11,9 +11,9 @@ Regtest is a fully local, self-contained blockchain environment where you contro
 
 - A local Bitcoin (or Litecoin/Dogecoin) node in regtest mode with instant block production
 - Full XChain stack: decoder, indexer, explorer, encoder, hub, UTXO tracker
-- `xchain-regtest-miner` — auto-mines mempool transactions and exposes a funding API
+- `xchain-regtest-miner`: auto-mines mempool transactions and exposes a funding API
 - Pre-seeded accounts and a GAS address that holds XCHAIN tokens
-- Zero confirmation latency — blocks appear in seconds, not minutes
+- Zero confirmation latency, blocks appear in seconds, not minutes
 
 ---
 
@@ -40,8 +40,8 @@ After `install`, all the following services are running locally:
 | Service | Default Port | Role |
 |---|---|---|
 | Bitcoin node (regtest) | 18443 | Coin node |
-| xchain-decoder | — | Polls node, writes to Decoder DB |
-| xchain-indexer | — | Processes actions, writes to Indexer DB |
+| xchain-decoder | None | Polls node, writes to Decoder DB |
+| xchain-indexer | None | Processes actions, writes to Indexer DB |
 | xchain-explorer | 35300 | REST API + web UI |
 | xchain-encoder | 35400 | PSBT builder |
 | xchain-hub | 35500 | Config oracle |
@@ -114,7 +114,7 @@ await signAndBroadcastFromGas(psbt.psbt);
 await mineBlock();
 ```
 
-Alternatively, the GAS address can issue XCHAIN to your test address immediately during setup in your test harness — see the e2e test suite for examples.
+Alternatively, the GAS address can issue XCHAIN to your test address immediately during setup in your test harness, see the e2e test suite for examples.
 
 ---
 
@@ -223,9 +223,9 @@ This drops all MariaDB data, LevelDB data, and the regtest blockchain, giving yo
 
 ## Next Steps
 
-- [Build_Your_First_Token.md](Build_Your_First_Token.md) — your first token against this environment
-- [Integration_Patterns.md](Integration_Patterns.md) — structuring test harnesses and production apps
-- [Query_The_Explorer.md](Query_The_Explorer.md) — verifying state during development
+- [Build_Your_First_Token.md](Build_Your_First_Token.md): your first token against this environment
+- [Integration_Patterns.md](Integration_Patterns.md): structuring test harnesses and production apps
+- [Query_The_Explorer.md](Query_The_Explorer.md): verifying state during development
 
 ---
 

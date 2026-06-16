@@ -304,9 +304,9 @@ See [Integration_Patterns.md](Integration_Patterns.md) for more production-ready
 
 ## Next Steps
 
-- [Integration_Patterns.md](Integration_Patterns.md) — using explorer queries in real applications
-- [Build_A_Dispenser.md](Build_A_Dispenser.md) — monitor dispenser state
-- [Cross_Chain_Swap.md](Cross_Chain_Swap.md) — query swaps across chains
+- [Integration_Patterns.md](Integration_Patterns.md): using explorer queries in real applications
+- [Build_A_Dispenser.md](Build_A_Dispenser.md): monitor dispenser state
+- [Cross_Chain_Swap.md](Cross_Chain_Swap.md): query swaps across chains
 
 ---
 

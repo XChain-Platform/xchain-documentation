@@ -11,27 +11,27 @@ All REST and WebSocket endpoints include a `/:dbType/` path segment. The `dbType
 
 The service operates in two modes. In **server mode**, it runs alongside authoritative indexers and decoders on an xchain-node, polls each database for new blocks, and serves the data to remote clients via REST snapshots and real-time WebSocket streaming. In **client mode**, it connects to one or more remote sync servers, downloads a full database snapshot for initial bootstrap, then subscribes to a WebSocket stream for ongoing block-by-block replication into a local MariaDB instance.
 
-On startup, the service calls the local xchain-hub's `getallconfigs` JSON-RPC method to discover all installed chains and their indexer and decoder database connections. This means a single instance automatically serves all chains/networks installed on the node — if Bitcoin mainnet, Bitcoin testnet, and Dogecoin mainnet are all running, the sync service discovers and serves all three from one process, for both database types. It re-polls the hub every 5 minutes to detect newly installed chains without a restart.
+On startup, the service calls the local xchain-hub's `getallconfigs` JSON-RPC method to discover all installed chains and their indexer and decoder database connections. This means a single instance automatically serves all chains/networks installed on the node, if Bitcoin mainnet, Bitcoin testnet, and Dogecoin mainnet are all running, the sync service discovers and serves all three from one process, for both database types. It re-polls the hub every 5 minutes to detect newly installed chains without a restart.
 
 Data integrity for the indexer is guaranteed by per-block chained SHA256 hashes (ledger, actions, contracts) that the indexer already computes. For the decoder, a single `block_hash` is used in place of the three indexer hashes. Each hash includes the previous block's hash, forming a hash chain. Clients verify this chain on every received block and can optionally cross-verify hashes from multiple independent sync sources to detect tampered data.
 
 ## Features
 
-- **Dual mode** — server mode serves data from authoritative indexer and decoder databases; client mode replicates data into local MariaDB instances
-- **Multi-chain single instance** — discovers all installed chains/networks via the hub and serves them from one process on one port
-- **Hub auto-discovery** — calls xchain-hub `getallconfigs` at startup; re-polls every 5 minutes to detect newly installed chains
-- **Full snapshot export** — compressed, streamed JSON database dumps for bootstrapping new validators
-- **Incremental snapshots** — delta exports since any block height for catch-up after downtime
-- **Real-time WebSocket streaming** — per-chain/network subscriptions for new blocks and reorg events
-- **Hash chain verification** — leverages the indexer's existing per-block chained SHA256 hashes for data integrity
-- **Cross-source comparison** — clients can sync from 2+ independent servers and compare block hashes
-- **Transparency log** — append-only per-block hash record for public auditability
-- **Rate limiting** — configurable per-IP limits on snapshot downloads and WebSocket connections
-- **Reorg propagation** — detects chain reorganizations and broadcasts rollback events to subscribers
-- **Automatic catch-up** — clients detect block gaps on reconnect and self-heal via incremental snapshots
-- **Circuit-breaker DB connections** — automatic failure detection and recovery
-- **Input validation** — SQL identifier sanitization, DDL whitelisting, WebSocket event schema validation
-- **725 tests** — unit, integration, e2e, fuzz, chaos, mutation, boundary, security, performance, smoke
+- **Dual mode**: server mode serves data from authoritative indexer and decoder databases; client mode replicates data into local MariaDB instances
+- **Multi-chain single instance**: discovers all installed chains/networks via the hub and serves them from one process on one port
+- **Hub auto-discovery**: calls xchain-hub `getallconfigs` at startup; re-polls every 5 minutes to detect newly installed chains
+- **Full snapshot export**: compressed, streamed JSON database dumps for bootstrapping new validators
+- **Incremental snapshots**: delta exports since any block height for catch-up after downtime
+- **Real-time WebSocket streaming**: per-chain/network subscriptions for new blocks and reorg events
+- **Hash chain verification**: leverages the indexer's existing per-block chained SHA256 hashes for data integrity
+- **Cross-source comparison**: clients can sync from 2+ independent servers and compare block hashes
+- **Transparency log**: append-only per-block hash record for public auditability
+- **Rate limiting**: configurable per-IP limits on snapshot downloads and WebSocket connections
+- **Reorg propagation**: detects chain reorganizations and broadcasts rollback events to subscribers
+- **Automatic catch-up**: clients detect block gaps on reconnect and self-heal via incremental snapshots
+- **Circuit-breaker DB connections**: automatic failure detection and recovery
+- **Input validation**: SQL identifier sanitization, DDL whitelisting, WebSocket event schema validation
+- **725 tests**: unit, integration, e2e, fuzz, chaos, mutation, boundary, security, performance, smoke
 
 ## Documentation
 
@@ -63,7 +63,7 @@ HUB_API_HOST=localhost
 HUB_PORT=10000
 ```
 
-In server mode, database credentials are discovered automatically from the hub — no database environment variables are needed.
+In server mode, database credentials are discovered automatically from the hub. No database environment variables are needed.
 
 Start the service:
 
@@ -129,10 +129,10 @@ On startup, the service:
 
 ## Related Documentation
 
-- [Data Pipeline](../../architecture/Data_Pipeline.md) — full platform data flow
-- [xchain-indexer](../indexer/README.md) — upstream service that produces the data this service replicates
-- [xchain-hub](../hub/README.md) — config oracle that provides chain discovery
-- [xchain-explorer](../explorer/README.md) — alternative consumer of the same indexer data
+- [Data Pipeline](../../architecture/Data_Pipeline.md): full platform data flow
+- [xchain-indexer](../indexer/README.md): upstream service that produces the data this service replicates
+- [xchain-hub](../hub/README.md): config oracle that provides chain discovery
+- [xchain-explorer](../explorer/README.md): alternative consumer of the same indexer data
 
 ---
 

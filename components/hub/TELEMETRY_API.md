@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Hub — Telemetry REST API
+# XChain Platform Hub: Telemetry REST API
 
 Unlike the JSON-RPC methods in [API.md](./API.md), the hub's telemetry endpoints are
 plain **REST routes** served on the same hub HTTP port (`HUB_PORT`, e.g. `10000` locally;
@@ -32,7 +32,7 @@ hub has telemetry disabled, `POST /telemetry` returns `{"status":"disabled"}` an
 ## `POST /telemetry`
 
 Accepts a single usage ping from a node operator. Fire-and-forget: the endpoint **always
-responds `{"status":"success"}`** once telemetry is enabled — even on an internal error —
+responds `{"status":"success"}`** once telemetry is enabled, even on an internal error;
 so a misbehaving collector can never block or fail the caller's command. The node's own
 IP is read only from the connection (the body must not carry it) and is never stored.
 
@@ -44,7 +44,7 @@ clamped to the byte lengths shown; over-length values are truncated, not rejecte
 | Field | Type | Max len | Description |
 |---|---|---|---|
 | `install_id` | string | 36 | **Required.** Anonymous per-install UUID. Used only to dedupe installs. Missing/empty → `400`. |
-| `event` | string | — | One of `install`, `update`, `start`, `heartbeat`. Any other value is coerced to `heartbeat`. |
+| `event` | string | None | One of `install`, `update`, `start`, `heartbeat`. Any other value is coerced to `heartbeat`. |
 | `node_version` | string | 32 | The `xchain-node` version. |
 | `os_platform` | string | 32 | OS platform (e.g. `linux`, `darwin`). |
 | `os_release` | string | 64 | OS release string. |
@@ -60,7 +60,7 @@ Each `modules[]` entry:
 | `coin` | string | 16 | Coin the service runs against (e.g. `bitcoin`); empty for chain-agnostic services. |
 | `network` | string | 24 | Network (e.g. `mainnet`); empty for chain-agnostic services. |
 | `version` | string | 32 | Service version. |
-| `running` | boolean | — | Whether the service is currently running. |
+| `running` | boolean | None | Whether the service is currently running. |
 
 **Request:**
 ```bash
@@ -87,8 +87,8 @@ curl -X POST http://localhost:10000/telemetry \
 ```
 
 **Other responses:**
-- `400` — `{"error":"install_id is required"}` when `install_id` is missing/empty.
-- `200` — `{"status":"disabled"}` when the hub has `TELEMETRY_ENABLED=false`.
+- `400`: `{"error":"install_id is required"}` when `install_id` is missing/empty.
+- `200`: `{"status":"disabled"}` when the hub has `TELEMETRY_ENABLED=false`.
 
 ---
 
@@ -97,7 +97,7 @@ curl -X POST http://localhost:10000/telemetry \
 Anonymous, aggregate-only census of node operators. Returns **distribution counts only**
 (by version / OS / country / arch / Docker / running module / chain) derived from the
 **latest ping per install** within the window. Never returns `install_id`, `ip_hash`,
-`region`, or any per-install row — only group tallies. Read-only and safe to expose
+`region`, or any per-install row; only group tallies. Read-only and safe to expose
 publicly (e.g. to an operator dashboard or explorer).
 
 **Auth:** none.
@@ -147,9 +147,9 @@ curl "http://localhost:10000/telemetry/summary?days=30"
 | `byCountry` | array | `{key, count}` tally by derived country code (`unknown` when absent). |
 | `byArch` | array | `{key, count}` tally by `arch`. |
 | `byDocker` | array | `{key, count}` tally by `docker_version`. |
-| `modules` | array | `{key, count}` — installs running each module (counted once per install). |
-| `chains` | array | `{key, count}` — installs running ≥1 module on each `coin/network` (counted once per install). |
-| `chainModules` | array | `{coin, network, module, count}` — installs running each `(module, coin, network)` combination. |
+| `modules` | array | `{key, count}`: installs running each module (counted once per install). |
+| `chains` | array | `{key, count}`: installs running ≥1 module on each `coin/network` (counted once per install). |
+| `chainModules` | array | `{coin, network, module, count}`: installs running each `(module, coin, network)` combination. |
 
 A null/empty value in any tallied dimension is reported under the key `unknown`.
 
@@ -166,7 +166,7 @@ never public consumption.
 
 **Auth:** required. Send the hub's `TELEMETRY_ADMIN_KEY` value in the `x-api-key` header.
 If `TELEMETRY_ADMIN_KEY` is unset on the hub, or the header does not match, the route
-returns `401`. (Set `TELEMETRY_ADMIN_KEY` on the hub to enable this endpoint — see
+returns `401`. (Set `TELEMETRY_ADMIN_KEY` on the hub to enable this endpoint, see
 [operations/TELEMETRY.md](../../operations/TELEMETRY.md).)
 
 **Query parameters:**
@@ -227,8 +227,8 @@ curl "http://localhost:10000/telemetry/operators?days=30" \
 | `modules` | array | Sorted unique running module names. |
 
 **Other responses:**
-- `401` — `{"error":"Unauthorized"}` when the admin key is unset or the header does not match.
-- `200` — `{"enabled":false}` when the hub has `TELEMETRY_ENABLED=false`.
+- `401`: `{"error":"Unauthorized"}` when the admin key is unset or the header does not match.
+- `200`: `{"enabled":false}` when the hub has `TELEMETRY_ENABLED=false`.
 
 ---
 

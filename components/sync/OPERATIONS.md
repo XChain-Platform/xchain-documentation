@@ -1,14 +1,14 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Indexer Sync — Operations
+# XChain Platform Indexer Sync: Operations
 
 ## Prerequisites
 
 - **Node.js** >= 22
 - **MariaDB** (accessible from the service)
-- **xchain-hub** — must be running and reachable at `HUB_API_HOST:HUB_PORT`
-- **xchain-indexer** / **xchain-decoder** — at least one indexer or decoder must be installed and running (server mode only)
+- **xchain-hub**: must be running and reachable at `HUB_API_HOST:HUB_PORT`
+- **xchain-indexer** / **xchain-decoder**, at least one indexer or decoder must be installed and running (server mode only)
 
 ## Running the Service
 
@@ -27,7 +27,7 @@ export HUB_PORT=10000
 npm run api
 ```
 
-The service discovers all installed chains/networks from the hub automatically. No database credentials are needed in the environment — they come from the hub config.
+The service discovers all installed chains/networks from the hub automatically. No database credentials are needed in the environment; they come from the hub config.
 
 ### Client Mode
 
@@ -222,9 +222,9 @@ Content-Type: application/json
 }
 ```
 
-- `validator_id` — non-empty string, max 256 chars (stable identifier for the validator).
-- `applied_height` — non-negative integer; the highest block height fully applied to the replica.
-- `applied_block_time` — optional number (Unix time of the applied block); may be omitted or `null`.
+- `validator_id`: non-empty string, max 256 chars (stable identifier for the validator).
+- `applied_height`: non-negative integer; the highest block height fully applied to the replica.
+- `applied_block_time`: optional number (Unix time of the applied block); may be omitted or `null`.
 
 If a `SYNC_API_KEY` is configured, send it as `Authorization: Bearer <key>`.
 
@@ -266,6 +266,70 @@ GET /validator-status/indexer/bitcoin/mainnet
 ```
 
 `lag_blocks` is `source block_height − applied_height` (clamped at 0), or `null` when the source height or the validator's applied height is unknown. A validator that has never sent a heartbeat does not appear in `validators` at all. Returns `400` if `:dbType` is invalid, `403` if not in server mode, `404` if the chain/network/dbType combination is not supported, and `503` if the broadcaster is not yet initialized.
+
+### `GET /catalog`
+
+Returns an inventory of all databases this server offers to sync. Each entry includes the database name, current block height, table count, and on-disk byte breakdown. Response is cached for 30 seconds server-side. Authentication follows the standard `SYNC_API_KEY` Bearer rule.
+
+**Request:**
+```
+GET /catalog
+```
+
+**Response:**
+```json
+{
+  "generated_at": "2026-04-03T12:00:00.000Z",
+  "databases": [
+    {
+      "coin": "bitcoin",
+      "network": "mainnet",
+      "dbType": "indexer",
+      "db_name": "XChain_BTC_Indexer",
+      "block_height": 893000,
+      "table_count": 42,
+      "data_bytes": 104857600,
+      "index_bytes": 20971520,
+      "total_bytes": 125829120
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `generated_at` | `string` | ISO-8601 timestamp when the response was generated. |
+| `databases` | `array` | One entry per discovered coin/network/dbType. |
+| `databases[].db_name` | `string\|null` | MariaDB database name, or `null` if unavailable. |
+| `databases[].block_height` | `number\|null` | Last indexed block height, or `null` if unknown. |
+| `databases[].table_count` | `number` | Number of tables in the database (from `information_schema`). |
+| `databases[].data_bytes` | `number` | On-disk data size in bytes. |
+| `databases[].index_bytes` | `number` | On-disk index size in bytes. |
+| `databases[].total_bytes` | `number` | `data_bytes + index_bytes`. |
+
+### `POST /halt/clear/:dbType/:chain/:network`
+
+**Operator-only. Requires `Authorization: Bearer <SYNC_API_KEY>`. Fails closed when `SYNC_API_KEY` is not configured; the route always returns `401` without a key, even locally.** Client mode only, returns `403` in server mode.
+
+Clears a consensus-divergence halt on the named client and allows replication to resume. A halted client has detected a hash mismatch between sync sources and has stopped applying blocks to avoid writing contested data. This endpoint requires explicit operator acknowledgement after investigation. After clearing, restart the sync service to perform a clean catch-up of any blocks missed during the halt.
+
+**Request:**
+```
+POST /halt/clear/indexer/bitcoin/mainnet
+Authorization: Bearer <SYNC_API_KEY>
+```
+
+**Response (halt was active and cleared):**
+```json
+{ "ok": true, "cleared": true, "was": { ... }, "note": "Restart the sync service for a clean catch-up." }
+```
+
+**Response (client was not halted):**
+```json
+{ "ok": true, "halted": false, "message": "Client was not halted" }
+```
+
+Returns `400` if `:dbType` is invalid, `401` if the Bearer key is missing or wrong, `403` if in server mode, `404` if the chain/network/dbType client is not found.
 
 ### `GET /schema/:dbType/:chain/:network`
 
@@ -336,7 +400,7 @@ The response body format is the same as the full snapshot, but scoped to the del
 
 ### `GET /transparency/:dbType/:chain/:network/roots`
 
-Returns the transparency log — a paginated list of per-block hashes. **Indexer only** — returns `400` when `:dbType` is `decoder` (decoder data has no synthetic chain-of-state hashes).
+Returns the transparency log (a paginated list of per-block hashes. **Indexer only**) returns `400` when `:dbType` is `decoder` (decoder data has no synthetic chain-of-state hashes).
 
 **Request:**
 ```
@@ -373,13 +437,13 @@ HTTP 400
 
 ### `GET /transparency/:dbType/:chain/:network/proof/:block_index`
 
-Returns a Merkle inclusion proof for a specific block within a committed epoch. **Indexer only** — returns `400` when `:dbType` is `decoder`. Only available in server mode — returns `403` in client mode.
+Returns a Merkle inclusion proof for a specific block within a committed epoch. **Indexer only**, returns `400` when `:dbType` is `decoder`. Only available in server mode, returns `403` in client mode.
 
 **URL parameters:**
 
 | Parameter | Description |
 |---|---|
-| `:dbType` | Must be `indexer` — decoder DB has no transparency log |
+| `:dbType` | Must be `indexer`: decoder DB has no transparency log |
 | `:chain` | Coin name (`bitcoin`, `dogecoin`, `litecoin`) |
 | `:network` | Network name (`mainnet`, `testnet`, `regtest`) |
 | `:block_index` | Integer block index to generate a proof for |
@@ -414,17 +478,17 @@ HTTP 400  { "error": "Transparency log is indexer-only" }
 HTTP 404  { "error": "Chain/network not found" }
 ```
 
-A block that exists in `sync_meta` but whose epoch has not yet been committed returns `200` with `{ "error": "epoch not yet committed" }` — epochs are committed when the last block in the epoch (a multiple of the epoch size, default 100) is recorded.
+A block that exists in `sync_meta` but whose epoch has not yet been committed returns `200` with `{ "error": "epoch not yet committed" }`, epochs are committed when the last block in the epoch (a multiple of the epoch size, default 100) is recorded.
 
 ### `GET /transparency/:dbType/:chain/:network/root/latest`
 
-Returns the latest committed Merkle root. When no epoch has been committed yet (the log is empty or no epoch boundary has been crossed), returns `null` values rather than an error. **Indexer only** — returns `400` when `:dbType` is `decoder`. Only available in server mode — returns `403` in client mode.
+Returns the latest committed Merkle root. When no epoch has been committed yet (the log is empty or no epoch boundary has been crossed), returns `null` values rather than an error. **Indexer only**, returns `400` when `:dbType` is `decoder`. Only available in server mode, returns `403` in client mode.
 
 **URL parameters:**
 
 | Parameter | Description |
 |---|---|
-| `:dbType` | Must be `indexer` — decoder DB has no transparency log |
+| `:dbType` | Must be `indexer`: decoder DB has no transparency log |
 | `:chain` | Coin name (`bitcoin`, `dogecoin`, `litecoin`) |
 | `:network` | Network name (`mainnet`, `testnet`, `regtest`) |
 
@@ -471,8 +535,8 @@ ws://sync.example.com:3006/subscribe/decoder/bitcoin/mainnet
 ```
 
 An optional `?sync_mode=` query parameter controls which tables are sent for `dbType=indexer`:
-- `sync_mode=full` (default) — all tables for the chain
-- `sync_mode=infra-only` — only cross-chain infrastructure tables (`stakes`, `delegations`, `validator_rewards`, `prices`, `reward_claims`, `index_pubkeys`, `index_addresses`, `index_actions`, `index_statuses`, `index_fiats`)
+- `sync_mode=full` (default), all tables for the chain
+- `sync_mode=infra-only`: only cross-chain infrastructure tables (`stakes`, `delegations`, `validator_rewards`, `prices`, `reward_claims`, `index_pubkeys`, `index_addresses`, `index_actions`, `index_statuses`, `index_fiats`)
 
 Per-IP connection limit: `WS_MAX_PER_IP` (default: 3).
 
@@ -590,7 +654,7 @@ Authenticated connections (validators) may receive priority handling.
 
 A replicating client (validator or ecosystem replicator) sends this message to tell the server how far it has applied blocks to its own replica DB. `appliedBlock` is the highest block height the client has fully applied; it must be a number. The server records the value against that connection and uses it to compute per-subscriber lag (`lag = lastSentBlock − appliedBlock`), surfaced through the `GET /status` response and the validator-status endpoints.
 
-The message is **best-effort and optional** at the protocol level: the channel is otherwise server→client push-only, and the server **silently ignores** malformed JSON or any message whose `type` is not `heartbeat` (or whose `appliedBlock` is not a number) — no acknowledgement or protocol-level error is returned. A client that never sends heartbeats stays connected and keeps receiving blocks, but its `appliedBlock`/`lag` will report as `null` (never reported), so it can appear stale or unmonitored in the status output even though the connection is healthy. Clients that want their replication progress visible to operators **must** send heartbeats (or use the `POST /validator-heartbeat` REST fallback below).
+The message is **best-effort and optional** at the protocol level: the channel is otherwise server→client push-only, and the server **silently ignores** malformed JSON or any message whose `type` is not `heartbeat` (or whose `appliedBlock` is not a number). No acknowledgement or protocol-level error is returned. A client that never sends heartbeats stays connected and keeps receiving blocks, but its `appliedBlock`/`lag` will report as `null` (never reported), so it can appear stale or unmonitored in the status output even though the connection is healthy. Clients that want their replication progress visible to operators **must** send heartbeats (or use the `POST /validator-heartbeat` REST fallback below).
 
 The reference client (`ClientSync`) sends a heartbeat whenever at least 10 blocks have been applied since its last report, and otherwise arms a 5-second timer so a slow trickle of blocks is still reported without a per-block send.
 
@@ -616,7 +680,7 @@ Decoder responses carry a single `block_hash` in place of the three indexer hash
 | Block WebSocket event | `ledger_hash`, `actions_hash`, `contract_hash` | `block_hash` |
 | Incremental snapshot headers | `X-Ledger-Hash`, `X-Actions-Hash`, `X-Contract-Hash` | `X-Block-Hash` |
 
-Decoder data is fully deterministic from the coin node — there are no synthetic chain-of-state hashes — so the transparency log does not apply.
+Decoder data is fully deterministic from the coin node (there are no synthetic chain-of-state hashes) so the transparency log does not apply.
 
 ### Tables replicated
 
@@ -627,14 +691,14 @@ The decoder DB contains 9 tables. xchain-sync replicates 8 of them:
 | `blocks` | Yes | Block-scoped |
 | `transactions` | Yes | Block-scoped |
 | `transaction_outputs` | Yes | TX-scoped |
-| `dispensers` | Yes (snapshot only) | Excluded from the per-block stream — the decoder prunes expired dispensers each block with a count-reducing DELETE that streaming inserts can't represent, so it converges via the full snapshot instead |
+| `dispensers` | Yes (snapshot only) | Excluded from the per-block stream; the decoder prunes expired dispensers each block with a count-reducing DELETE that streaming inserts can't represent, so it converges via the full snapshot instead |
 | `index_addresses` | Yes | Append-only index |
 | `index_transactions` | Yes | Append-only index |
 | `pubkeys` | Yes | Append-only index |
 | `events` | Yes | Operational/logging |
-| `mempool_transactions` | **No** | Excluded — non-deterministic across nodes |
+| `mempool_transactions` | **No** | Excluded: non-deterministic across nodes |
 
-Additionally, the transparency log table (`sync_meta`) is **not** created for decoder replicas — it is indexer-only.
+Additionally, the transparency log table (`sync_meta`) is **not** created for decoder replicas; it is indexer-only.
 
 ### Transparency endpoints return 400 for decoder
 

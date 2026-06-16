@@ -1,12 +1,12 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# Disk Management — Moving Chain Data to a Larger Disk
+# Disk Management: Moving Chain Data to a Larger Disk
 
 Block data is by far the largest thing a chain node stores, and it grows without
 bound. On a box with a small system partition and a larger secondary disk, the
 chain datadir eventually fills `/` and the node stops making progress. This page
-covers how to move a chain's block data — or its whole datadir — onto a bigger
+covers how to move a chain's block data (or its whole datadir) onto a bigger
 disk on a running xchain-node deployment.
 
 There are **two safe patterns** and **one anti-pattern that fails silently**.
@@ -50,7 +50,7 @@ path:
 ```
 
 A single host bind therefore covers mainnet, testnet, and regtest uniformly,
-with no per-network path to get wrong. This is the canonical answer — prefer it
+with no per-network path to get wrong. This is the canonical answer, prefer it
 for any new install or whenever you can set the env var.
 
 See [`XCHAIN_NODE_BLOCKS_DIR`](../components/node/CONFIGURATION.md) in the node
@@ -58,8 +58,8 @@ configuration reference for the full list of host path-override env vars.
 
 ## Option B: symlink the whole datadir
 
-When you cannot set the env var — for example on an existing deployment you do
-not want to reinstall — symlink the entire per-network datadir to the larger
+When you cannot set the env var, for example on an existing deployment you do
+not want to reinstall, symlink the entire per-network datadir to the larger
 disk:
 
 ```bash
@@ -70,8 +70,8 @@ ln -s /misc/xchain-node-data/dogecoin/testnet ~/xchain-node/data/node/dogecoin/t
 ```
 
 Because the symlink redirects the **entire** per-network datadir, it
-transparently covers every subdirectory the daemon writes — including
-`testnet3/blocks/`, `chainstate/`, and the rest — without you having to name any
+transparently covers every subdirectory the daemon writes, including
+`testnet3/blocks/`, `chainstate/`, and the rest, without you having to name any
 network subdirectory by hand. This is the pattern that resolved a real disk-full
 incident in the field.
 
@@ -88,7 +88,7 @@ docker run ... -v /misc/dogecoin/testnet/blocks:/root/.dogecoin/blocks ...
 On **mainnet** this works, because mainnet blocks really do live in the bare
 `blocks/`. On **testnet and regtest it catches nothing**: the daemon writes to
 `testnet3/blocks/` (or `testnet4/blocks/`, or `regtest/blocks/`), which the bind
-above does not cover. There is **no error** — the daemon starts normally, the
+above does not cover. There is **no error**; the daemon starts normally, the
 mount appears successful, and blocks quietly keep piling up on the default disk
 until it fills again.
 
@@ -102,7 +102,7 @@ Network-subdir reference (the values the bare-blocks bind gets wrong):
 | LTC regtest | `regtest/blocks/` |
 
 If you must bind only the blocks directory rather than use Option A, bind the
-**network-subdir** path (`.../testnet3/blocks`, etc.) — never the bare
+**network-subdir** path (`.../testnet3/blocks`, etc.). Never the bare
 `blocks/`. But Option A (`XCHAIN_NODE_BLOCKS_DIR`) is strongly preferred: it is
 network-agnostic and removes the chance of getting the `testnet3` / `testnet4`
 magic number wrong.

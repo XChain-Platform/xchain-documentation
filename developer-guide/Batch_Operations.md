@@ -86,7 +86,7 @@ const action = sdk.batch()
 
 ## Common Pattern: Admin Update Under Sleep
 
-Wake a token, update it, then re-pause it — all atomic:
+Wake a token, update it, then re-pause it, all atomic:
 
 ```js
 const action = sdk.batch()
@@ -178,7 +178,7 @@ async function safeBroadcast(action) {
 
 ## Transaction Size Considerations
 
-Each action in a batch adds bytes to the embedded payload. OP_RETURN is limited to 80 bytes per output (76 bytes of user data plus the 4-byte XCHN prefix), so larger batches are automatically encoded as P2SH or P2WSH (two-transaction pattern). The encoder handles this transparently — check `psbt.format` in the response to see which encoding was used.
+Each action in a batch adds bytes to the embedded payload. OP_RETURN is limited to 80 bytes per output (76 bytes of user data plus the 4-byte XCHN prefix), so larger batches are automatically encoded as P2SH or P2WSH (two-transaction pattern). The encoder handles this transparently, check `psbt.format` in the response to see which encoding was used.
 
 ```js
 const psbt = await sdk.encoder.createPSBT({ action: batchAction, ... });
@@ -192,9 +192,9 @@ P2SH and P2WSH require a second transaction to spend the script and reveal the d
 
 ## Next Steps
 
-- [Advanced_Token_Features.md](Advanced_Token_Features.md) — SLEEP patterns that rely on BATCH
-- [Build_Your_First_Token.md](Build_Your_First_Token.md) — foundation for batch operations
-- [Integration_Patterns.md](Integration_Patterns.md) — airdrop and multi-send patterns
+- [Advanced_Token_Features.md](Advanced_Token_Features.md): SLEEP patterns that rely on BATCH
+- [Build_Your_First_Token.md](Build_Your_First_Token.md): foundation for batch operations
+- [Integration_Patterns.md](Integration_Patterns.md): airdrop and multi-send patterns
 
 ---
 

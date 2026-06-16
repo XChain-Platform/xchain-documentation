@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2026 Dankest, LLC -->
 
-# Shell — Chrome Extension
+# Shell: Chrome Extension
 
 `@xchain-wallet/extension` is the Chrome MV3 extension shell. It targets Chrome, Edge, Brave, and other Chromium browsers; Firefox is on the post-GA roadmap.
 
@@ -52,7 +52,7 @@ Background processes:
 
 Deliberate choices:
 
-- **No `host_permissions`.** The wallet doesn't need to read or modify page state — only inject the provider script. `web_accessible_resources` carries the injection without granting host access.
+- **No `host_permissions`.** The wallet doesn't need to read or modify page state; only inject the provider script. `web_accessible_resources` carries the injection without granting host access.
 - **`storage` only.** No `tabs`, no `activeTab`, no `webRequest`, no `notifications` (browser-notifications use the SDK WebSocket layer instead). Smaller permission set = smaller audit surface = less scary CWS listing.
 - **Versioning split.** Chrome's `version` is integer-tuple-only and rejects semver prerelease tags like `1.0.0-rc.6`. The wallet derives a Chrome-valid tuple from the wallet semver via `packages/core/scripts/derive-extension-version.js`: stable `M.m.p` → `M.m.p`; prerelease `M.m.p-rc.N` → `0.M.m.N`. The leading `0` keeps prereleases strictly below stable tuples in Chrome's upgrade ordering. `version_name` carries the human-readable semver.
 
@@ -92,11 +92,11 @@ Every privileged op enters the service worker as a typed message, routes through
 4. Forwards the stamped message to the service worker via `chrome.runtime.sendMessage`
 5. Forwards the service worker's response back to the page via `window.postMessage`
 
-The page can never read or modify the stamped origin because it never sees the post-stamp message — only the service worker does.
+The page can never read or modify the stamped origin because it never sees the post-stamp message; only the service worker does.
 
 ## Injected provider
 
-`src/inject/xchainProvider.js` runs in the page world. It exposes `window.xchain` and proxies calls back through the content-script relay. The provider is a thin shim — every method ends in a `postMessage` to the content script, and every callback resolves on a matching response.
+`src/inject/xchainProvider.js` runs in the page world. It exposes `window.xchain` and proxies calls back through the content-script relay. The provider is a thin shim; every method ends in a `postMessage` to the content script, and every callback resolves on a matching response.
 
 The injected script is built deterministically: same source → same bytes. Reproducible-build verification (see [Reproducible Builds](Reproducible_Builds.md)) covers it as part of the pre-signing artifact.
 
@@ -114,7 +114,7 @@ The injected script is built deterministically: same source → same bytes. Repr
 | `signIn` | Origin requesting Sign-In with XChain |
 | `internalSign` | Wallet itself initiating a sign (Send, Issue, etc.) |
 
-Each approval surface is built from the same review pattern as the wallet's internal sign screens: form values + decoded summary + raw PSBT bytes, with an explicit user-confirm. See [Security & Threat Model — Sign-screen safety rails](SECURITY.md#sign-screen-safety-rails).
+Each approval surface is built from the same review pattern as the wallet's internal sign screens: form values + decoded summary + raw PSBT bytes, with an explicit user-confirm. See [Security & Threat Model; Sign-screen safety rails](SECURITY.md#sign-screen-safety-rails).
 
 The approval window runs in the extension's origin (not the page's), so the page cannot inject script into it or read its state.
 
@@ -150,7 +150,7 @@ The CWS submission playbook lives in the platform repo (gitignored) at `claude/r
 3. Run the test-dapp (`pnpm --filter @xchain-wallet/test-dapp dev`)
 4. Click each bridge method in the test-dapp and verify the approval popup behavior
 
-The runbook is the manual companion to the headless `bridge-e2e.smoke.js` suite — together they cover the bridge end to end.
+The runbook is the manual companion to the headless `bridge-e2e.smoke.js` suite, together they cover the bridge end to end.
 
 ---
 

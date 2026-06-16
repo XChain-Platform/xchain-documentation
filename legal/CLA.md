@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform — Contributor License Agreement (CLA)
+# XChain Platform: Contributor License Agreement (CLA)
 
 > **Why this exists.** XChain Platform is dual-licensed: free under the [AGPL-3.0](../LICENSE.md), and available under a separate [commercial license](./COMMERCIAL-LICENSE.md) for companies that need to keep modifications private. For Dankest, LLC to offer that commercial license, it must hold sufficient rights over **all** contributed code. This CLA grants those rights. **Every contributor must agree to it before their contribution can be merged.** Without it, contributed code could only ever be AGPL, which would break the dual-license model.
 
@@ -16,7 +16,7 @@ By submitting a Contribution to Dankest, LLC ("Project Owner") for inclusion in 
 ### 1. Definitions
 
 - **"You" / "Your"** means the individual or legal entity making a Contribution.
-- **"Contribution"** means any original work of authorship — including code, documentation, or other material — that You intentionally submit to the Project (via pull request, patch, or otherwise) for inclusion.
+- **"Contribution"** means any original work of authorship (including code, documentation, or other material) that You intentionally submit to the Project (via pull request, patch, or otherwise) for inclusion.
 
 ### 2. Copyright License Grant
 

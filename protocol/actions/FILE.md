@@ -2,7 +2,7 @@
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - FILE
-This action uploads a file including file metadata. The action also supports **token-gated cryptographically secure files** — encrypted on-chain such that only holders of a specific token can decrypt them. Gating is enabled by populating the optional `GATE_TICKER`, `ENCRYPTION_METHOD`, and `KEY_HASH` fields. See [Token-Gated Content](../Token_Gated_Content.md) for the end-to-end design.
+This action uploads a file including file metadata. The action also supports **token-gated cryptographically secure files**, encrypted on-chain such that only holders of a specific token can decrypt them. Gating is enabled by populating the optional `GATE_TICKER`, `ENCRYPTION_METHOD`, and `KEY_HASH` fields. See [Token-Gated Content](../Token_Gated_Content.md) for the end-to-end design.
 
 ## PARAMS
 | Name                | Type   | Description                                                              |
@@ -36,17 +36,17 @@ This example uploads a JPEG file with the `TITLE` of XChain Logo and a `MEMO`.
 
 ```
 FILE|0|stems.zip|application/zip|PEPECREATURE Stems|Audio stems for holders|PEPECREATURE|1|abc123...
-This example uploads an encrypted ZIP gated by the PEPECREATURE token. `ENCRYPTION_METHOD` `1` = AES-256-GCM. The raw file data is the ciphertext (format `[12-byte nonce][ct][16-byte tag]`); the `KEY_HASH` lets holders verify they received the correct key.
+This example uploads an encrypted ZIP gated by the PEPECREATURE token. `ENCRYPTION_METHOD` `1` = AES-256-GCM. The raw file data is the ciphertext (format `[12-byte nonce][16-byte GCM authentication tag][ciphertext]`); the `KEY_HASH` lets holders verify they received the correct key.
 ```
 
 ## Rules
 - When `GATE_TICKER` is non-empty, the SOURCE address must be the **issuer** of the gated token (i.e. the OWNER of the most recent valid `ISSUE` for `GATE_TICKER`). Otherwise the FILE is invalid. Prevents third parties from gating spam content to popular tickers.
 - When `GATE_TICKER` is non-empty, `ENCRYPTION_METHOD` must be `1` (AES-256-GCM). Other values reserved for future algorithms.
 - When `GATE_TICKER` is non-empty, `KEY_HASH` must be a 64-character lowercase hex string (32 bytes / 256 bits).
-- When `GATE_TICKER` is non-empty, `rawData` is the ciphertext: `[12-byte nonce][ciphertext][16-byte GCM authentication tag]`.
+- When `GATE_TICKER` is non-empty, `rawData` is the ciphertext: `[12-byte nonce][16-byte GCM authentication tag][ciphertext]`.
 
 ## Pack semantics
-Two or more gated `FILE` actions with the same `GATE_TICKER` **and** the same `KEY_HASH` form a **pack** — they share a symmetric key and unlock together. Pack membership is implicit in the shared `KEY_HASH`; the protocol does not need a separate "pack" concept. See [Token-Gated Content](../Token_Gated_Content.md) for details and use cases.
+Two or more gated `FILE` actions with the same `GATE_TICKER` **and** the same `KEY_HASH` form a **pack**; they share a symmetric key and unlock together. Pack membership is implicit in the shared `KEY_HASH`; the protocol does not need a separate "pack" concept. See [Token-Gated Content](../Token_Gated_Content.md) for details and use cases.
 
 ## Notes
 - Raw file data is uploaded by specifying it as `rawData` to the XChain encoder.
@@ -59,7 +59,7 @@ Two or more gated `FILE` actions with the same `GATE_TICKER` **and** the same `K
   - `image/png` = PNG File
   - `image/gif` = GIF File
 - A `FILE` may appear inside a `BATCH`, typically paired with a `MESSAGE` v2 (ECIES) so that an issuer publishing a gated file commits the recoverable key in the same transaction as the encrypted file. See [`BATCH`](./BATCH.md) and [Token-Gated Content](../Token_Gated_Content.md).
-- To officially associate an uploaded `FILE` with a `TICK` (e.g. NFT artwork or related content), the token's owner broadcasts a [`LINK`](./LINK.md) between the `FILE` and the token's `ISSUE` — see the [NFT Standard](../NFT_Standard.md).
+- To officially associate an uploaded `FILE` with a `TICK` (e.g. NFT artwork or related content), the token's owner broadcasts a [`LINK`](./LINK.md) between the `FILE` and the token's `ISSUE`, see the [NFT Standard](../NFT_Standard.md).
 
 ---
 

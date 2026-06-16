@@ -1,14 +1,14 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Explorer — Operations
+# XChain Platform Explorer: Operations
 
 ## Prerequisites
 
 - **Node.js** ≥ 22
 - **MariaDB** server with an existing Indexer database (populated by xchain-indexer)
-- **xchain-hub** (optional) — for centralized config discovery
-- **SSL certificates** (optional) — for HTTPS
+- **xchain-hub** (optional), for centralized config discovery
+- **SSL certificates** (optional), for HTTPS
 
 ## Running
 
@@ -92,11 +92,11 @@ Rate limiting is applied via `express-rate-limit` middleware before any route ha
 
 The explorer uses Helmet to set security headers on all responses:
 
-- **Content Security Policy (CSP)** — restricts script sources, style sources, and other resource loading
-- **X-Content-Type-Options: nosniff** — prevents MIME type sniffing
-- **X-Frame-Options** — clickjacking protection
-- **Strict-Transport-Security** — enforces HTTPS when available
-- **X-XSS-Protection** — legacy XSS filter
+- **Content Security Policy (CSP)**: restricts script sources, style sources, and other resource loading
+- **X-Content-Type-Options: nosniff**: prevents MIME type sniffing
+- **X-Frame-Options**: clickjacking protection
+- **Strict-Transport-Security**: enforces HTTPS when available
+- **X-XSS-Protection**: legacy XSS filter
 
 ### CORS
 
@@ -110,17 +110,17 @@ All database queries use parameterized SQL with `?` placeholders. User input is 
 
 The `/relay` endpoint proxies external resources for the web UI but includes comprehensive SSRF protections:
 
-- **Protocol validation** — only `http:` and `https:` protocols allowed
-- **Private IP blocking** — blocks requests to:
+- **Protocol validation**: only `http:` and `https:` protocols allowed
+- **Private IP blocking**: blocks requests to:
   - `127.0.0.0/8` (loopback)
   - `10.0.0.0/8` (private)
   - `172.16.0.0/12` (private)
   - `192.168.0.0/16` (private)
   - `169.254.0.0/16` (link-local / cloud metadata)
   - `0.0.0.0` (unspecified)
-- **Content limits** — 5MB maximum response size
-- **Timeout** — 5-second request timeout
-- **Content types** — only serves JSON and PNG responses
+- **Content limits**: 5MB maximum response size
+- **Timeout**: 5-second request timeout
+- **Content types**: only serves JSON and PNG responses
 
 ### Directory Traversal Protection
 
@@ -149,21 +149,21 @@ GET /relay?url={encoded_url}
 This is used by the frontend to load external JSON data and images that would otherwise be blocked by browser CORS policies. The relay includes all SSRF protections described above.
 
 **Supported content types:**
-- JSON files — proxied as `application/json`
-- PNG images — proxied as `image/png`
+- JSON files, proxied as `application/json`
+- PNG images, proxied as `image/png`
 
 ## Web UI
 
 The explorer serves a Bootstrap-based web block explorer from the same process as the API. The web UI provides:
 
-- **Home page** — platform overview and recent activity
-- **Token pages** — token listing, search, and individual token detail
-- **Address pages** — address balances, transaction history, and all associated actions
-- **Block pages** — block listing and individual block detail with all actions
-- **Market pages** — DEX trading pairs, order books, trade history, and Highcharts price charts
-- **Action pages** — individual action detail with full ledger breakdown
-- **Transaction pages** — decoded transaction detail with all contained actions
-- **Search** — cross-entity search by address, token, transaction hash, or broadcast
+- **Home page**: platform overview and recent activity
+- **Token pages**: token listing, search, and individual token detail
+- **Address pages**: address balances, transaction history, and all associated actions
+- **Block pages**: block listing and individual block detail with all actions
+- **Market pages**: DEX trading pairs, order books, trade history, and Highcharts price charts
+- **Action pages**: individual action detail with full ledger breakdown
+- **Transaction pages**: decoded transaction detail with all contained actions
+- **Search**: cross-entity search by address, token, transaction hash, or broadcast
 
 The web UI uses jQuery DataTables for paginated data tables, communicating with the Explorer (DataTables) endpoints. Charts use Highcharts for candlestick, market depth, and line visualizations.
 
@@ -264,7 +264,7 @@ The coin is configured (supported) but the database is not reachable. Check:
 
 - Check MariaDB slow query log for specific bottlenecks
 - Verify the Indexer database has all expected indexes (these are created by xchain-indexer)
-- Consider the result limit — some endpoints default to returning up to 100 or 500 records
+- Consider the result limit, some endpoints default to returning up to 100 or 500 records
 
 ### Rate limiting issues
 
@@ -273,7 +273,7 @@ If legitimate traffic is being rate limited (429 responses), the default limit i
 ### SSL certificate errors
 
 - Verify all three certificate files exist in the SSL directory: `cert.pem`, `private.pem`, `ca.pem`
-- Check file permissions — the Node.js process needs read access
+- Check file permissions, the Node.js process needs read access
 - Verify the certificate chain is complete and valid
 - For development, generate self-signed certificates:
 
@@ -287,7 +287,7 @@ cp cert.pem ca.pem
 - Verify MariaDB is running: `systemctl status mariadb`
 - Test connectivity: `mysql -h {host} -P {port} -u {user} -p {database}`
 - Check that the database name follows the convention: `XChain_{CHAIN}_{NETWORK}_Indexer`
-- The explorer uses connection pooling — transient connection failures should recover automatically
+- The explorer uses connection pooling, transient connection failures should recover automatically
 
 ---
 

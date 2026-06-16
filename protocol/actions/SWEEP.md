@@ -47,11 +47,11 @@ All-in cleanup with a memo.
 - `MEMO` characters **NOT** allowed are:
    - pipe `|` (used as field separator)
    - semicolon `;` (used as command separator)
-- `BALANCES=1` and `OWNERSHIPS=1` only touch ticks where `SOURCE` currently holds the balance / is the current owner. Escrowed balances and escrowed ownerships are reachable only via the corresponding `ORDERS` / `SWAPS` / `DISPENSERS` flag — closing the offer is the only way to release the escrow.
+- `BALANCES=1` and `OWNERSHIPS=1` only touch ticks where `SOURCE` currently holds the balance / is the current owner. Escrowed balances and escrowed ownerships are reachable only via the corresponding `ORDERS` / `SWAPS` / `DISPENSERS` flag, closing the offer is the only way to release the escrow.
 - `ORDERS=1`: every open `ORDER` from `SOURCE` on the current chain is cancelled. The escrowed `GIVE_TICK` balance is credited to `DESTINATION`. If the order escrowed ownership (`GIVE_OWNERSHIP=1`), the ownership record is delivered to `DESTINATION`. Orders with pending `COINPAY` obligations follow the existing deferred-finalization rules in [`ORDER`](./ORDER.md).
 - `SWAPS=1`: same as `ORDERS=1`, applied to open `SWAP`s. Escrowed balance or ownership routes to `DESTINATION`.
 - `DISPENSERS=1`: every open `DISPENSER` from `SOURCE` is closed via the standard dispenser-close window (1 hour). Remaining escrowed balance or escrowed ownership is credited to `DESTINATION` (see [`DISPENSER`](./DISPENSER.md)).
-- Escrow routing via `ORDERS` / `SWAPS` / `DISPENSERS` is independent of the `OWNERSHIPS` flag — escrowed ownership is in protocol custody, not in `SOURCE`'s ownership records, so `OWNERSHIPS=1` alone cannot reach it.
+- Escrow routing via `ORDERS` / `SWAPS` / `DISPENSERS` is independent of the `OWNERSHIPS` flag, escrowed ownership is in protocol custody, not in `SOURCE`'s ownership records, so `OWNERSHIPS=1` alone cannot reach it.
 
 ## Notes
 - `DISPENSERS=1` closure is delayed by the standard dispenser-close window (1 hour). Escrow routing to `DESTINATION` happens at close time, not at sweep time.

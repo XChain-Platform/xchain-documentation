@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Wallet & Auth Reference
+# XChain Platform SDK: Wallet & Auth Reference
 
 This document covers the SDK's wallet and authentication modules: key management, address validation, message signing, challenge-response wallet verification, PSBT signing, transaction broadcasting, and UTXO queries.
 
@@ -11,8 +11,8 @@ This document covers the SDK's wallet and authentication modules: key management
 
 The SDK provides two modules for wallet integration:
 
-- **`sdk.wallet`** (`WalletUtils`) — Key management, address derivation and validation, PSBT signing, transaction broadcasting, and UTXO queries.
-- **`sdk.auth`** (`AuthUtils`) — Challenge-response wallet ownership verification and message signing.
+- **`sdk.wallet`** (`WalletUtils`): Key management, address derivation and validation, PSBT signing, transaction broadcasting, and UTXO queries.
+- **`sdk.auth`** (`AuthUtils`): Challenge-response wallet ownership verification and message signing.
 
 Both modules are available on the SDK instance and as top-level convenience methods:
 
@@ -171,7 +171,7 @@ const result = sdk.verifyOwnership('bc1quseraddress...', challenge.challenge, si
 // result.error   — null on success, error message on failure
 ```
 
-`verifyOwnership` never throws — it returns `{ valid: false, error: '...' }` on failure. This makes it safe to use in request handlers without try/catch:
+`verifyOwnership` never throws; it returns `{ valid: false, error: '...' }` on failure. This makes it safe to use in request handlers without try/catch:
 
 ```js
 app.post('/auth/verify', (req, res) => {
@@ -274,7 +274,7 @@ The wallet and auth modules throw two error classes:
 
 See [Errors](ERRORS.md) for the complete list of error codes.
 
-Exception: `verifyOwnership` and `verifyMessage` **do not throw** — they return `{ valid: false, error: '...' }` on failure. This is intentional so that verification can be used in request handlers without try/catch boilerplate.
+Exception: `verifyOwnership` and `verifyMessage` **do not throw**; they return `{ valid: false, error: '...' }` on failure. This is intentional so that verification can be used in request handlers without try/catch boilerplate.
 
 ---
 

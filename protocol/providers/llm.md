@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Attestation Provider — `llm`
+# XChain Attestation Provider: `llm`
 
 The `llm` provider lets a contract delegate a prompt to a governance-approved large language model. It's a thin specialization of the External Attestation Framework: payloads are JSON envelopes, consensus uses a judge-model strategy, and the chosen model is recorded in the on-chain response's `META` field.
 
@@ -93,7 +93,7 @@ One-time, on each validator:
 CLAUDE_CONFIG_DIR=~/.claude-xchain-hub claude login
 ```
 
-Then start the hub with `HUB_CLAUDE_CONFIG_DIR=~/.claude-xchain-hub` in the environment. The CLI's `.credentials.json` carries a refresh token that the spawned CLI auto-renews on every call — no rotation needed unless the operator logs out.
+Then start the hub with `HUB_CLAUDE_CONFIG_DIR=~/.claude-xchain-hub` in the environment. The CLI's `.credentials.json` carries a refresh token that the spawned CLI auto-renews on every call. No rotation needed unless the operator logs out.
 
 ### Operator setup (`anthropic_api`)
 
@@ -107,8 +107,8 @@ No other state needed. The hub bills per token directly through the Anthropic AP
 
 | Component                  | Default        | Notes                                                                          |
 | -------------------------- | -------------- | ------------------------------------------------------------------------------ |
-| `per_call_base_fee_xchain` | `0.50`         | Higher than `http_get` (`0.01`) — each call has a real upstream cost.          |
-| `min_stake_xchain`         | `25000`        | Higher than `http_get` (`10000`) — reflects larger trust + ongoing API spend.  |
+| `per_call_base_fee_xchain` | `0.50`         | Higher than `http_get` (`0.01`); each call has a real upstream cost.          |
+| `min_stake_xchain`         | `25000`        | Higher than `http_get` (`10000`): reflects larger trust + ongoing API spend.  |
 | `min_fee_xchain`           | `0`            | Governance-configurable hub-local floor on the optional paid-attestation fee. Requests whose on-chain `FEE_AMOUNT` is below this value are skipped by validators and the request expires, refunding the caller. |
 
 Validators on `claude_spawn` amortize their subscription across requests they serve; validators on `anthropic_api` pay-as-they-go and rely on the base fee + escrow reimbursement to make the call profitable.
@@ -118,7 +118,7 @@ Validators on `claude_spawn` amortize their subscription across requests they se
 - **Constrain the prompt.** Ask for short, deterministic answers (e.g. "Reply with only a number") to maximize semantic-equivalence rates for `redundancy>=3`.
 - **Use `redundancy=1`** when the contract is comfortable with a single attestation (cheap path, no PBFT round). Use `redundancy>=3` when the contract needs cross-validator agreement.
 - **Set a tight `max_tokens`.** Smaller responses converge faster and cost less.
-- **Don't rely on freshness** — model knowledge cutoffs apply; for live data, use `http_get` against a known endpoint instead.
+- **Don't rely on freshness**: model knowledge cutoffs apply; for live data, use `http_get` against a known endpoint instead.
 
 ## References
 

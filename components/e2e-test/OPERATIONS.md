@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# E2E Test Suite — Operations
+# E2E Test Suite: Operations
 
 ## Running Tests
 
@@ -110,9 +110,9 @@ PR opened / commit pushed
 
 | Tier | Tag | Tests | Run When | Max Duration |
 |---|---|---|---|---|
-| P0 — Critical | `[regression:p0]` | 74 | Every commit | < 500ms |
-| P1 — High | `[regression:p1]` | 20 | Merge to main | < 500ms |
-| P2 — Medium | `[regression:p2]` | 20 | Nightly / pre-release | < 500ms |
+| P0; Critical | `[regression:p0]` | 74 | Every commit | < 500ms |
+| P1; High | `[regression:p1]` | 20 | Merge to main | < 500ms |
+| P2; Medium | `[regression:p2]` | 20 | Nightly / pre-release | < 500ms |
 
 Regression tests use Mocha's `--grep` flag with `[regression:pN]` tags in test descriptions.
 

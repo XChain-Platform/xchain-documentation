@@ -7,7 +7,7 @@ This guide walks you through creating your first XChain token using the SDK. You
 
 ## Prerequisites
 
-- **Node.js** 22 (22.x LTS) — Node 18 fails on the `mariadb` ESM package (`ERR_REQUIRE_ESM`); Node 24 cannot build `isolated-vm`. Node 22 is required.
+- **Node.js** 22 (22.x LTS); Node 18 fails on the `mariadb` ESM package (`ERR_REQUIRE_ESM`); Node 24 cannot build `isolated-vm`. Node 22 is required.
 - A running XChain platform (either local via [regtest](../developer-guide/Regtest_Development.md) or a public node)
 - A Bitcoin/Litecoin/Dogecoin wallet with a funded address (for mainnet/testnet), or use regtest for free development
 
@@ -49,7 +49,7 @@ const sdk = new XChainSDK({
 
 ## Step 3: Create Your First Token
 
-Use `sdk.issue()` to define a new token. This builds the ACTION string — it doesn't broadcast anything yet.
+Use `sdk.issue()` to define a new token. This builds the ACTION string; it doesn't broadcast anything yet.
 
 ```js
 const result = await sdk.issue({
@@ -265,10 +265,10 @@ Every XChain ACTION has a corresponding SDK method: `sdk.issue()`, `sdk.mint()`,
 
 ## Next Steps
 
-- [Full SDK Documentation](../components/sdk/) — all methods, configuration options, error types, and examples
-- [ACTION Reference](../concepts/ACTIONS.md) — detailed spec for all 30 actions and their fields
-- [Regtest Development](../developer-guide/Regtest_Development.md) — run a full local stack for free
-- [Explorer API](../components/explorer/) — all 50+ REST and JSON-RPC endpoints
+- [Full SDK Documentation](../components/sdk/): all methods, configuration options, error types, and examples
+- [ACTION Reference](../concepts/ACTIONS.md): detailed spec for all 30 actions and their fields
+- [Regtest Development](../developer-guide/Regtest_Development.md): run a full local stack for free
+- [Explorer API](../components/explorer/): all 50+ REST and JSON-RPC endpoints
 
 ---
 

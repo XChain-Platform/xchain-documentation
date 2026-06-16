@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Smart Contract Integration
+# XChain Platform SDK: Smart Contract Integration
 
 This document covers the SDK's integration with the XChain VM smart contract system: deploying contracts, executing methods, managing contract token balances, querying contract data, and using the contract authoring utilities.
 
@@ -15,9 +15,9 @@ The SDK provides three layers of contract support:
 
 | Layer | What it provides |
 |-------|-----------------|
-| **Action primitives** | `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()` — same pattern as all other SDK actions |
-| **Contract client** | `sdk.contract(actionIndex)` — bound client for repeated interactions with a specific contract |
-| **Authoring utilities** | `sdk.contracts.validate()`, `sdk.contracts.encode()`, etc. — tools for contract authors |
+| **Action primitives** | `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()`: same pattern as all other SDK actions |
+| **Contract client** | `sdk.contract(actionIndex)`: bound client for repeated interactions with a specific contract |
+| **Authoring utilities** | `sdk.contracts.validate()`, `sdk.contracts.encode()`, etc.: tools for contract authors |
 
 **Important:** The SDK constructs transactions; it does **not** execute contracts. Contract execution happens later, when the indexer processes the confirmed blockchain transaction. A successful `sdk.execute()` call means the transaction was built and encoded, not that the contract logic succeeded.
 
@@ -39,7 +39,7 @@ let result = await sdk.deploy({
 
 DEPLOY payloads are almost always larger than 76 bytes of user data (the OP_RETURN limit; 80 bytes total per output), so OP_RETURN encoding will be rejected. Use P2SH or P2WSH.
 
-See [ACTIONS.md — DEPLOY](ACTIONS.md#deploy) for full parameter reference.
+See [ACTIONS.md; DEPLOY](ACTIONS.md#deploy) for full parameter reference.
 
 ### EXECUTE
 
@@ -53,9 +53,9 @@ let result = await sdk.execute({
 }, { pubkey: 'yourPubkey' });
 ```
 
-The `params` array is variable-length — each element becomes a separate pipe-delimited field in the action string. Short EXECUTE calls (few params, short method name) can fit in OP_RETURN.
+The `params` array is variable-length; each element becomes a separate pipe-delimited field in the action string. Short EXECUTE calls (few params, short method name) can fit in OP_RETURN.
 
-See [ACTIONS.md — EXECUTE](ACTIONS.md#execute) for full parameter reference.
+See [ACTIONS.md; EXECUTE](ACTIONS.md#execute) for full parameter reference.
 
 ### DEPOSIT
 
@@ -100,10 +100,10 @@ The client exposes:
 | `amm.call(method, params?, encoder?)` | EXECUTE | Call a contract method |
 | `amm.deposit(tick, quantity, encoder?)` | DEPOSIT | Fund the contract |
 | `amm.withdraw(tick, quantity, encoder?)` | WITHDRAW | Withdraw from the contract |
-| `amm.getInfo()` | — | Query contract metadata from the explorer |
-| `amm.getState(key?)` | — | Query contract state (all keys or one key) |
-| `amm.getExecutions(opts?)` | — | Query execution history |
-| `amm.getBalance(tick?)` | — | Query contract token balances |
+| `amm.getInfo()` | None | Query contract metadata from the explorer |
+| `amm.getState(key?)` | None | Query contract state (all keys or one key) |
+| `amm.getExecutions(opts?)` | None | Query execution history |
+| `amm.getBalance(tick?)` | None | Query contract token balances |
 
 ```js
 // Execute a swap
@@ -120,7 +120,7 @@ let reserveA = await amm.getState('reserveA');
 
 ## Contract Authoring Utilities
 
-The `sdk.contracts` namespace provides tools for contract authors. These are pure functions — they do not require `isolated-vm` or any native modules.
+The `sdk.contracts` namespace provides tools for contract authors. These are pure functions; they do not require `isolated-vm` or any native modules.
 
 ### `sdk.contracts.encode(sourceCode)`
 
@@ -155,13 +155,13 @@ let result = sdk.contracts.validate(sourceCode);
 // { valid: false, error: 'Syntax error: Unexpected token (2:5)' }
 ```
 
-**Note:** This is a best-effort check. Passing `validate()` does not guarantee deployment success — the authoritative validation happens in the indexer's VM.
+**Note:** This is a best-effort check. Passing `validate()` does not guarantee deployment success; the authoritative validation happens in the indexer's VM.
 
 **Requires:** `acorn` and `acorn-walk` packages. If not installed, `validate()` returns an error message explaining the missing dependency.
 
 ### `sdk.contracts.checkFloatUsage(sourceCode)`
 
-Detect float literals in contract source. Contracts should use `xchain.math` for all arithmetic — native floating-point breaks determinism.
+Detect float literals in contract source. Contracts should use `xchain.math` for all arithmetic, native floating-point breaks determinism.
 
 ```js
 let warnings = sdk.contracts.checkFloatUsage('var price = 1.5;');
@@ -186,7 +186,7 @@ let result = sdk.contracts.suggestGasLimit(sourceCode);
 // { suggested: 120000, rationale: '850 bytes, 3 functions, 1 loops, 2 emit calls, 4 state ops' }
 ```
 
-This is a rough estimate — actual gas consumption depends on runtime execution paths.
+This is a rough estimate, actual gas consumption depends on runtime execution paths.
 
 ---
 

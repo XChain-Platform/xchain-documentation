@@ -20,7 +20,7 @@ This document names what the wallet defends against, what it deliberately doesn'
 
 ### Browser-execution threats
 
-- **XSS against the dApp bridge.** Mitigated by content-script isolation (extension) and CSP on the web app. `origin` is stamped by the content script — never read from page content. Handled by `packages/extension/src/content/contentScript.js` and the bridge handler's `requireSite` check.
+- **XSS against the dApp bridge.** Mitigated by content-script isolation (extension) and CSP on the web app. `origin` is stamped by the content script. Never read from page content. Handled by `packages/extension/src/content/contentScript.js` and the bridge handler's `requireSite` check.
 - **Malicious same-origin scripts in the web app.** The web shell's key isolation is fundamentally weaker than the extension's. Mitigations: short session lifetime (in-memory only; refresh = re-locked), no master key in `sessionStorage`, no third-party `<script>` tags on `wallet.xchain.io`, optional extension-detect banner that recommends the extension when installed.
 - **Compromised extension page chrome.** The popup and approval window run in the extension's origin, isolated from page content. Password never leaves the approval window.
 
@@ -28,12 +28,12 @@ This document names what the wallet defends against, what it deliberately doesn'
 
 - **Offline attacker with the encrypted blob.** Wallet is password-locked with Argon2id (calibrated to ≥ 750 ms per derivation on the device, floor 64 MiB × 3 iterations × 1 parallelism). Without the password, the blob is AES-256-GCM-protected.
 - **Tampering with the ciphertext.** AES-GCM tag mismatch surfaces as an unlock failure. An attacker who modifies the blob cannot produce a valid plaintext that opens.
-- **Key recovery from `chrome.storage.session`.** Session key is the derived master key (32 bytes), not the password. On browser close, the session namespace is cleared by Chrome. Attackers with runtime access to the session have already won — the line isn't held there.
+- **Key recovery from `chrome.storage.session`.** Session key is the derived master key (32 bytes), not the password. On browser close, the session namespace is cleared by Chrome. Attackers with runtime access to the session have already won; the line isn't held there.
 
 ### Network threats
 
 - **MITM against SDK endpoints.** Every shell endpoint is HTTPS-by-default. Per-chain URLs live in the `ChainDescriptor` and are user-settable only via explicit Settings action.
-- **Malicious Hub / Explorer.** Balances, UTXOs, and address-history reads are informational; a lying server can mis-report balances but cannot sign transactions. Signing paths never trust the server for destination / amount — both come from the user-authored Send form.
+- **Malicious Hub / Explorer.** Balances, UTXOs, and address-history reads are informational; a lying server can mis-report balances but cannot sign transactions. Signing paths never trust the server for destination / amount, both come from the user-authored Send form.
 - **Malicious Encoder.** Returns a PSBT the wallet signs. Mitigation: the Send form renders a plain-English decoder summary (§30) BEFORE sign; the user sees `to`, `amount`, `asset` as they typed them, even if the encoder fabricates output bytes. Known gap: byte-level cross-check of encoder PSBT vs user intent is the next iteration of the safety rail.
 
 ### dApp-bridge threats
@@ -45,27 +45,27 @@ This document names what the wallet defends against, what it deliberately doesn'
 ### User-error threats
 
 - **Forgotten password.** Irrecoverable without the recovery phrase. Onboarding copy states this explicitly. No "forgot password" link by design.
-- **Lost recovery phrase.** Irrecoverable. The Create flow requires the user to acknowledge they've saved the phrase before persisting the vault — closing the tab at the mnemonic stage leaves no persisted wallet behind.
+- **Lost recovery phrase.** Irrecoverable. The Create flow requires the user to acknowledge they've saved the phrase before persisting the vault, closing the tab at the mnemonic stage leaves no persisted wallet behind.
 - **Phishing domain.** The extension-detect banner on the web app encourages users with the extension installed to use it (browser URL bar = trust anchor). Store-listing copy emphasizes the canonical domain.
 
 ## Out of scope
 
 - **Zero-day browser sandbox escapes.** If the browser is compromised, so is the wallet. Users with extreme threat models should use air-gapped PSBT-QR flows (see [URI Schemes](URI_Schemes.md)) or hardware wallets.
 - **Vendor firmware bugs.** Hardware-signer firmware (Trezor, Ledger) is out-of-scope for the wallet's audit; the wallet trusts the vendor's signed firmware.
-- **Supply-chain attacks on vendored deps.** Mitigated by `pnpm audit --prod --audit-level=high` in CI + the per-dep review in `docs/DEPENDENCIES.md`. Reproducible builds (Level-2, see [Reproducible Builds](Reproducible_Builds.md)) narrow the blast radius — a verifier can prove the published artifact came from public source.
+- **Supply-chain attacks on vendored deps.** Mitigated by `pnpm audit --prod --audit-level=high` in CI + the per-dep review in `docs/DEPENDENCIES.md`. Reproducible builds (Level-2, see [Reproducible Builds](Reproducible_Builds.md)) narrow the blast radius; a verifier can prove the published artifact came from public source.
 - **Physical access to an unlocked device.** No wallet can defend against this. Mitigations: foreground auto-lock (configurable in Settings) and manual lock action.
-- **Raw-password attacks.** Outside the wallet's design — Argon2id raises the cost, the user's password choice does the rest.
+- **Raw-password attacks.** Outside the wallet's design; Argon2id raises the cost, the user's password choice does the rest.
 - **Blockchain consensus.** The wallet trusts the platform's encoding / decoding / indexer logic and the underlying coin nodes' chain selection. The platform's correctness is audited separately.
 
 ## Sign-screen safety rails
 
-Every signing surface — Send, Issue, Mint, Order, Dispenser, Dividend, Airdrop, Sweep, Stake, Delegate, Deploy, Execute, Deposit, Withdraw, Coinpay, Swap, Cross-chain, Multisig — is built on top of the same review pattern:
+Every signing surface; Send, Issue, Mint, Order, Dispenser, Dividend, Airdrop, Sweep, Stake, Delegate, Deploy, Execute, Deposit, Withdraw, Coinpay, Swap, Cross-chain, Multisig, is built on top of the same review pattern:
 
 1. The user fills a form. The form's plain-English values are the canonical user intent.
 2. The action descriptor encodes the intent into an XChain ACTION string.
 3. `xchain-sdk` calls the encoder service to produce an unsigned PSBT.
 4. The wallet *re-decodes* the action string with `core/src/decoder/actionDecoder.js` and renders the human-readable summary alongside the PSBT.
-5. The user reviews the form values **and** the decoded summary — both must match — and confirms.
+5. The user reviews the form values **and** the decoded summary (both must match) and confirms.
 6. The signer signs the PSBT.
 
 This means: even if the encoder is malicious and fabricates PSBT bytes, the user sees `to`, `amount`, `asset`, etc., reflected back from their own form input. The safety rail is *user-visible*: a mismatch is something a careful user can catch by eye.
@@ -81,10 +81,10 @@ The wallet is pre-v1.0 GA at `1.0.0-rc.6`. Two external audits are queued before
 
 Static gates run on every commit and protect against regressions in both surfaces between audits:
 
-- `packages/core/scripts/a11y-audit.js` — five-rule mechanical scan over every shared route + UI primitive
-- `packages/core/scripts/extension-manifest-audit.js` — 11-rule MV3 manifest audit
-- `packages/core/scripts/repro-build-audit.js` — 18-rule reproducible-build scaffolding audit
-- `packages/core/test/release-gates.smoke.js` — release readiness check
+- `packages/core/scripts/a11y-audit.js`: five-rule mechanical scan over every shared route + UI primitive
+- `packages/core/scripts/extension-manifest-audit.js`: 11-rule MV3 manifest audit
+- `packages/core/scripts/repro-build-audit.js`: 18-rule reproducible-build scaffolding audit
+- `packages/core/test/release-gates.smoke.js`: release readiness check
 
 ## Disclosure
 

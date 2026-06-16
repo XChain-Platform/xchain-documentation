@@ -7,7 +7,7 @@ This document describes how the wallet is organized at the package level, how th
 
 ## Three shells, one core
 
-The wallet is a pnpm workspace with three product surfaces — a browser web app, a Chrome MV3 extension, and an Electron desktop app — and a shared `@xchain-wallet/core` that contains everything *except* the host-specific glue.
+The wallet is a pnpm workspace with three product surfaces (a browser web app, a Chrome MV3 extension, and an Electron desktop app) and a shared `@xchain-wallet/core` that contains everything *except* the host-specific glue.
 
 ```
 @xchain-wallet/core
@@ -69,14 +69,14 @@ Every route renders the same React tree across shells; only the host bridge diff
 @xchain-wallet/e2e            Playwright suite (web shell)
 ```
 
-`xchain-sdk` is the only data + signing dependency. The wallet never talks directly to the encoder, explorer, hub, or coin nodes — every blockchain-facing call routes through the SDK. This single boundary means the SDK can swap out endpoints, add chains, or change protocols and the wallet inherits the change without modification.
+`xchain-sdk` is the only data + signing dependency. The wallet never talks directly to the encoder, explorer, hub, or coin nodes; every blockchain-facing call routes through the SDK. This single boundary means the SDK can swap out endpoints, add chains, or change protocols and the wallet inherits the change without modification.
 
 ## Three-shell-to-core seams
 
 Each shell registers *two* host functions with core:
 
-1. **SDK factory** — `core/src/sdk/SDKRegistry` calls a host-supplied factory to mint per-chain SDK instances. Web/desktop instantiate `xchain-sdk` directly; the extension instantiates the SDK in the service worker and routes calls from popup / approval / full-screen via `MessageHost`.
-2. **Storage backend** — `core/src/storage/backend.js` selects between IndexedDB (web), `chrome.storage.local` (extension), and a file-backed adapter (desktop main process). Vault encryption / decryption is identical across all three.
+1. **SDK factory**: `core/src/sdk/SDKRegistry` calls a host-supplied factory to mint per-chain SDK instances. Web/desktop instantiate `xchain-sdk` directly; the extension instantiates the SDK in the service worker and routes calls from popup / approval / full-screen via `MessageHost`.
+2. **Storage backend**: `core/src/storage/backend.js` selects between IndexedDB (web), `chrome.storage.local` (extension), and a file-backed adapter (desktop main process). Vault encryption / decryption is identical across all three.
 
 The hot path for a signed action across shells is identical:
 
@@ -130,23 +130,23 @@ Schemas declare a `version` and a forward migration. `core/src/schemas/migration
 - `getPublicKey(path, chain)`
 - `signMessage(address, message)`
 - `signPsbt(psbt, inputs)`
-- `signMultisigPsbt(psbt, inputs, config)` — classical n-of-m
-- `participateInMuSig2(session, round)` — MuSig2 collaborative session
-- `displayName()` / `id()` / `firmwareVersion()` — identity and gating
+- `signMultisigPsbt(psbt, inputs, config)`: classical n-of-m
+- `participateInMuSig2(session, round)`: MuSig2 collaborative session
+- `displayName()` / `id()` / `firmwareVersion()`, identity and gating
 
 Five concrete implementations:
 
-- **`SoftwareSigner`** — derives keys from the unlocked vault, signs in the host process
-- **`TrezorSigner`** — Trezor Connect, all current models; `trezorFormat.js` adapts XChain PSBTs to Trezor's expected schema
-- **`LedgerSigner`** — `@ledgerhq/hw-app-btc` over WebHID; `ledgerFormat.js` adapts XChain PSBTs
-- **`RemoteSigner`** — pairs across shells (e.g., desktop signs a PSBT scanned from the web shell's QR); `signerPortProtocol.js` defines the message envelope
-- **`MultisigSigner`** — orchestrates classical n-of-m sessions and MuSig2 round protocol; built on top of `signMultisigPsbt` exposed by `xchain-sdk@1.13.0+`
+- **`SoftwareSigner`**: derives keys from the unlocked vault, signs in the host process
+- **`TrezorSigner`**: Trezor Connect, all current models; `trezorFormat.js` adapts XChain PSBTs to Trezor's expected schema
+- **`LedgerSigner`**: `@ledgerhq/hw-app-btc` over WebHID; `ledgerFormat.js` adapts XChain PSBTs
+- **`RemoteSigner`**: pairs across shells (e.g., desktop signs a PSBT scanned from the web shell's QR); `signerPortProtocol.js` defines the message envelope
+- **`MultisigSigner`**: orchestrates classical n-of-m sessions and MuSig2 round protocol; built on top of `signMultisigPsbt` exposed by `xchain-sdk@1.13.0+`
 
 Hardware signers expose vendor-specific deferral errors when a feature isn't yet supported in firmware (e.g., MuSig2 nonce wiring on Trezor / Ledger), with a documented path to fall back to the software signer.
 
 ## Action decoder + sign-screen safety rails
 
-`core/src/decoder/actionDecoder.js` reverses every supported action string into a plain-English summary that's rendered alongside the encoder's PSBT on the sign screen. Even if a malicious encoder fabricates output bytes, the user sees `to`, `amount`, and `asset` reflected back from their own form input — not from the encoder's response.
+`core/src/decoder/actionDecoder.js` reverses every supported action string into a plain-English summary that's rendered alongside the encoder's PSBT on the sign screen. Even if a malicious encoder fabricates output bytes, the user sees `to`, `amount`, and `asset` reflected back from their own form input. Not from the encoder's response.
 
 Future work (§21.2 from the spec) adds a byte-level cross-check that re-decodes the encoder's PSBT and compares it to the user's form intent. That's the next iteration of the safety rail.
 
@@ -154,10 +154,10 @@ Future work (§21.2 from the spec) adds a byte-level cross-check that re-decodes
 
 | Shell | Bundler | Output |
 |---|---|---|
-| Web | Vite (with `vite-plugin-node-polyfills` and optional `@vitejs/plugin-basic-ssl`) | `packages/web/dist/` — static SPA |
-| Extension | Vite (multi-entry: popup, approval, background service worker, content script, injected provider) | `packages/extension/dist/` — unpacked Chrome extension |
-| Desktop renderer | Vite | `packages/desktop/build/` — bundled into the Electron asar |
-| Desktop installers | electron-builder | `packages/desktop/dist/` — `.dmg` / `.exe` / `.AppImage` |
+| Web | Vite (with `vite-plugin-node-polyfills` and optional `@vitejs/plugin-basic-ssl`) | `packages/web/dist/`: static SPA |
+| Extension | Vite (multi-entry: popup, approval, background service worker, content script, injected provider) | `packages/extension/dist/`: unpacked Chrome extension |
+| Desktop renderer | Vite | `packages/desktop/build/`: bundled into the Electron asar |
+| Desktop installers | electron-builder | `packages/desktop/dist/`: `.dmg` / `.exe` / `.AppImage` |
 | Desktop pre-signing (reproducible) | `electron-builder --dir` | `packages/desktop/dist/linux-unpacked/` + `RELEASE_HASHES.txt` |
 
 See [Build & Release](Build_Release.md) for per-shell signing, packaging, and distribution detail, and [Reproducible Builds](Reproducible_Builds.md) for the Level-2 verification protocol.

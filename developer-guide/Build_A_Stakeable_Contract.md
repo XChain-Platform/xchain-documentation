@@ -3,9 +3,9 @@
 
 # Build a Stakeable Contract
 
-A stakeable contract is a smart contract that anyone can lock tokens against. The contract's own code decides what locking up tokens unlocks for the staker — access, voting weight, a yield, a seat in some game — and the contract can slash any staker's locked tokens at any time according to rules you (the contract author) defined. The protocol handles bookkeeping, cooldown periods, and routing slashed tokens to a destination you set at deploy time.
+A stakeable contract is a smart contract that anyone can lock tokens against. The contract's own code decides what locking up tokens unlocks for the staker (access, voting weight, a yield, a seat in some game) and the contract can slash any staker's locked tokens at any time according to rules you (the contract author) defined. The protocol handles bookkeeping, cooldown periods, and routing slashed tokens to a destination you set at deploy time.
 
-Contract staking is a **general-purpose developer primitive**. It is separate from the network's own validator staking — the two systems share no state. Any contract on **Bitcoin, Litecoin, or Dogecoin** can be stakeable.
+Contract staking is a **general-purpose developer primitive**. It is separate from the network's own validator staking; the two systems share no state. Any contract on **Bitcoin, Litecoin, or Dogecoin** can be stakeable.
 
 This tutorial walks through deploying a stakeable contract, locking tokens against it, reading and slashing stakes from inside the contract, and unstaking. It assumes you have already worked through [Build_Your_First_Token.md](Build_Your_First_Token.md) and ideally also [Smart_Contract_Development.md](Smart_Contract_Development.md).
 
@@ -14,7 +14,7 @@ This tutorial walks through deploying a stakeable contract, locking tokens again
 ## Prerequisites
 
 - SDK connected to a regtest or testnet stack (see [Regtest_Development.md](Regtest_Development.md))
-- A token you control with enough supply for stakers to lock up — `MYTOKEN` in the examples below. If you don't have one yet, issue one now.
+- A token you control with enough supply for stakers to lock up: `MYTOKEN` in the examples below. If you don't have one yet, issue one now.
 - Two funded addresses: the **contract author** (who will deploy) and at least one **staker** (who will lock tokens against the contract).
 - Enough native coin on the deploying chain to cover transaction fees.
 
@@ -24,9 +24,9 @@ This tutorial walks through deploying a stakeable contract, locking tokens again
 
 Before writing code, pin down four things:
 
-1. **What does staking unlock?** Access to a method? A seat in a game? Eligibility to claim a reward? Voting weight? The protocol doesn't enforce any of this — your contract's code does.
-2. **What gets slashed, and by whom?** Slashing is unilateral — only your contract can slash its own stakers. Decide what behaviors trigger a slash and how much.
-3. **What is the cooldown period?** When a staker calls `UNSTAKE`, their tokens are not returned immediately. You set the cooldown in **blocks** (any value from 1 to 100,000) at deploy time. This is **permanent** — it cannot be changed later.
+1. **What does staking unlock?** Access to a method? A seat in a game? Eligibility to claim a reward? Voting weight? The protocol doesn't enforce any of this, your contract's code does.
+2. **What gets slashed, and by whom?** Slashing is unilateral; only your contract can slash its own stakers. Decide what behaviors trigger a slash and how much.
+3. **What is the cooldown period?** When a staker calls `UNSTAKE`, their tokens are not returned immediately. You set the cooldown in **blocks** (any value from 1 to 100,000) at deploy time. This is **permanent**; it cannot be changed later.
 4. **Where do slashed tokens go?** Either a specific on-chain address (a treasury, a community pool, a reward sink) or the literal sentinel `BURN`, which routes to the chain's configured burn address. Also **permanent** at deploy time.
 
 Stakers will read both of those settings before they decide to lock anything up. Design them to be defensible.
@@ -87,7 +87,7 @@ module.exports = {
 A few things to notice:
 
 - The contract reads stakes with `xchain.contract.getStake(pubkey, tick)`. The `pubkey` is the Ed25519 signing key the staker used (passed in via `STAKE v3`). Stakers are identified by pubkey, not by address.
-- `xchain.contract.slash(pubkey, tick, amount)` is the *only* way tokens leave a staker's balance other than them calling `UNSTAKE`. It can only target stakers of **this** contract — you cannot slash someone else's contract's stakers.
+- `xchain.contract.slash(pubkey, tick, amount)` is the *only* way tokens leave a staker's balance other than them calling `UNSTAKE`. It can only target stakers of **this** contract, you cannot slash someone else's contract's stakers.
 - `getStakers` returns the top 1000 stakers by amount. If you expect more than 1000, don't design rules that require iterating all of them in one call.
 
 For the full `xchain.contract.*` reference, see [Smart_Contract_Development.md](Smart_Contract_Development.md#contract-staking).
@@ -96,7 +96,7 @@ For the full `xchain.contract.*` reference, see [Smart_Contract_Development.md](
 
 ## Step 3: Deploy the Contract as Stakeable
 
-Use the SDK's `deployStakeableContract` workflow. This is `DEPLOY v1` under the hood — `VERSION: '1'`, with `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` set.
+Use the SDK's `deployStakeableContract` workflow. This is `DEPLOY v1` under the hood: `VERSION: '1'`, with `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` set.
 
 ```js
 const XChainSDK = require('xchain-sdk');
@@ -130,7 +130,7 @@ After the DEPLOY v1 confirms, the contract is live and stakeable. Anyone on the 
 |---|---|---|
 | `COOLDOWN_BLOCKS` | `[1, 100000]` | No |
 | `SLASH_DESTINATION` | Valid address on the deploying chain, or `BURN` | No |
-| Contract code | n/a — already immutable for all contracts | No |
+| Contract code | n/a: already immutable for all contracts | No |
 
 If you set `SLASH_DESTINATION` to an address that is later compromised or lost, those slashed tokens still go there. Choose carefully.
 
@@ -156,7 +156,7 @@ const stakeResult = await stakerSession.stakeToContract({
 
 This locks 250 MYTOKEN out of the staker's balance and writes a row in the `contract_stakes` table. Once the action is confirmed (and the 6-block activation delay has elapsed), `xchain.contract.getStake(pubkey, 'MYTOKEN')` inside the contract will return `'250'` for that staker.
 
-**Stake-and-execute pattern:** if the contract grants access on stake, a staker often wants to immediately call a contract method. Use `BATCH v0` to bundle `STAKE v3 + EXECUTE v0` into one broadcast — the EXECUTE will see the new stake once the BATCH is indexed.
+**Stake-and-execute pattern:** if the contract grants access on stake, a staker often wants to immediately call a contract method. Use `BATCH v0` to bundle `STAKE v3 + EXECUTE v0` into one broadcast, the EXECUTE will see the new stake once the BATCH is indexed.
 
 ```js
 await stakerSession.batch([
@@ -165,7 +165,7 @@ await stakerSession.batch([
 ]);
 ```
 
-(Note: the activation delay still applies — the stake isn't visible inside the contract until 6 blocks after the BATCH confirms. The EXECUTE will see `getStake(...) === '0'` if it runs in the same block as the STAKE.)
+(Note: the activation delay still applies; the stake isn't visible inside the contract until 6 blocks after the BATCH confirms. The EXECUTE will see `getStake(...) === '0'` if it runs in the same block as the STAKE.)
 
 ---
 
@@ -189,16 +189,16 @@ await adminSession.execute({
 
 A few things to know about slashing:
 
-- **Authorization is implicit and per-contract.** A contract can only slash its own stakers — you cannot accidentally drain someone else's contract's stakers.
-- **Slash reaches active stake first, then cooldown-locked stake.** A staker cannot dodge a slash by initiating an unstake — the protocol pulls from the cooldown queue if the active stake isn't enough.
+- **Authorization is implicit and per-contract.** A contract can only slash its own stakers, you cannot accidentally drain someone else's contract's stakers.
+- **Slash reaches active stake first, then cooldown-locked stake.** A staker cannot dodge a slash by initiating an unstake; the protocol pulls from the cooldown queue if the active stake isn't enough.
 - **Over-slash is silently capped.** If you ask to slash 100 but the staker only has 30 locked, it slashes 30 and continues without throwing.
-- **The destination is permanent.** Slashed tokens go to whatever `SLASH_DESTINATION` you set at deploy time — `BURN` (the chain's burn address), or a regular address.
+- **The destination is permanent.** Slashed tokens go to whatever `SLASH_DESTINATION` you set at deploy time: `BURN` (the chain's burn address), or a regular address.
 
 ---
 
 ## Step 6: Unstake
 
-When a staker wants their tokens back, they call `UNSTAKE v1`. This **begins** the cooldown — the tokens are not returned immediately.
+When a staker wants their tokens back, they call `UNSTAKE v1`. This **begins** the cooldown; the tokens are not returned immediately.
 
 ```js
 await stakerSession.unstakeFromContract({
@@ -213,7 +213,7 @@ After this confirms:
 1. After **6 blocks**, the stake becomes invisible to the contract (`xchain.contract.getStake(...) === '0'`). The staker is effectively no longer participating.
 2. After **`COOLDOWN_BLOCKS` more blocks** (so block + 6 + COOLDOWN_BLOCKS in total), the locked tokens are credited back to the staker's address.
 
-During the cooldown window, the contract can still slash the staker — the cooldown-locked balance is reachable by `xchain.contract.slash`.
+During the cooldown window, the contract can still slash the staker; the cooldown-locked balance is reachable by `xchain.contract.slash`.
 
 ---
 
@@ -250,11 +250,11 @@ Until the staker delegates a new key, the stake row has no valid signer.
 
 **Reputation-weighted DAO membership.** Deploy a stakeable contract where each method gates on `getStake(caller, 'MYTOKEN') >= threshold`. Members lose voting power when slashed for bad-faith votes.
 
-**Security bond for a service operator.** A service deploys the contract and stakes their own bond against it. Users get paid out of the bond if the service misbehaves — the slashStaker method routes slashed tokens to the affected user's address (via a per-incident `SLASH_DESTINATION` baked into a fresh contract deploy per incident, or via a payout contract method that consumes contract-held funds after a slash).
+**Security bond for a service operator.** A service deploys the contract and stakes their own bond against it. Users get paid out of the bond if the service misbehaves; the slashStaker method routes slashed tokens to the affected user's address (via a per-incident `SLASH_DESTINATION` baked into a fresh contract deploy per incident, or via a payout contract method that consumes contract-held funds after a slash).
 
 **Prediction market.** Participants stake against a side of a question. When the outcome resolves, the contract slashes everyone who staked the wrong side and pays out winners from the slashed pool plus the contract's own balance.
 
-**Validator-style services on top of XChain.** A contract runs its own internal validator set — for a sidechain bridge, a relay, a federated oracle — gated by stake. The contract itself decides who can sign on its behalf based on stake weight.
+**Validator-style services on top of XChain.** A contract runs its own internal validator set (for a sidechain bridge, a relay, a federated oracle) gated by stake. The contract itself decides who can sign on its behalf based on stake weight.
 
 For more examples, see [user-guide/Use_Cases.md#native-multi-chain-staking](../user-guide/Use_Cases.md#native-multi-chain-staking).
 
@@ -272,10 +272,10 @@ For more examples, see [user-guide/Use_Cases.md#native-multi-chain-staking](../u
 
 ## Next Steps
 
-- [Smart_Contract_Development.md](Smart_Contract_Development.md) — full reference for the `xchain.contract.*` accessor and the rest of the VM API.
-- [user-guide/Use_Cases.md#native-multi-chain-staking](../user-guide/Use_Cases.md#native-multi-chain-staking) — more concrete contract-staking applications.
-- [protocol/Contract_Staking.md](../protocol/Contract_Staking.md) — the protocol-level specification.
-- [Batch_Operations.md](Batch_Operations.md) — bundle STAKE v3 with EXECUTE (or other actions) into a single broadcast.
+- [Smart_Contract_Development.md](Smart_Contract_Development.md): full reference for the `xchain.contract.*` accessor and the rest of the VM API.
+- [user-guide/Use_Cases.md#native-multi-chain-staking](../user-guide/Use_Cases.md#native-multi-chain-staking): more concrete contract-staking applications.
+- [protocol/Contract_Staking.md](../protocol/Contract_Staking.md); the protocol-level specification.
+- [Batch_Operations.md](Batch_Operations.md): bundle STAKE v3 with EXECUTE (or other actions) into a single broadcast.
 
 ---
 

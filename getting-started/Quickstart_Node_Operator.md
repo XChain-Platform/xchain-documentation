@@ -7,10 +7,10 @@ This guide walks you through installing and running the full XChain platform sta
 
 ## Prerequisites
 
-- **Docker** (Engine 20.10+) and **Docker Compose** — all XChain services run as Docker containers
-- **Node.js** 22 (22.x LTS) — required to run the `xchain-node` CLI. Node 18 fails on the `mariadb` ESM package (`ERR_REQUIRE_ESM`); Node 24 cannot build `isolated-vm`. Node 22 is required.
-- **Disk space** — blockchain data is large; plan for at least 600 GB for Bitcoin mainnet, or use testnet/regtest for development
-- **Internet access** — the installer downloads service images and blockchain binaries from GitHub
+- **Docker** (Engine 20.10+) and **Docker Compose**, all XChain services run as Docker containers
+- **Node.js** 22 (22.x LTS), required to run the `xchain-node` CLI. Node 18 fails on the `mariadb` ESM package (`ERR_REQUIRE_ESM`); Node 24 cannot build `isolated-vm`. Node 22 is required.
+- **Disk space**: blockchain data is large; plan for at least 600 GB for Bitcoin mainnet, or use testnet/regtest for development
+- **Internet access**: the installer downloads service images and blockchain binaries from GitHub
 
 ---
 
@@ -24,7 +24,7 @@ cd xchain-node
 npm install
 ```
 
-Install the CLI globally so the `xchain-node` command is available from anywhere — every command in this guide assumes it:
+Install the CLI globally so the `xchain-node` command is available from anywhere; every command in this guide assumes it:
 
 ```bash
 npm link
@@ -112,7 +112,7 @@ http://localhost:18080/rest
 
 ## Multi-Chain Setup
 
-A single `xchain-node` installation can run Bitcoin, Litecoin, and Dogecoin simultaneously. The `xchain-hub` and `xchain-explorer` are shared services — one instance serves all chains. Each coin gets its own set of coin-specific services (decoder, indexer, encoder, UTXO tracker).
+A single `xchain-node` installation can run Bitcoin, Litecoin, and Dogecoin simultaneously. The `xchain-hub` and `xchain-explorer` are shared services; one instance serves all chains. Each coin gets its own set of coin-specific services (decoder, indexer, encoder, UTXO tracker).
 
 ```bash
 # Add Litecoin mainnet to an existing installation
@@ -140,7 +140,7 @@ xchain-node install master all bitcoin regtest
 xchain-node start all bitcoin regtest
 ```
 
-In regtest, the `xchain-e2e-test` service runs the full end-to-end test suite against your local stack — useful for verifying everything is working correctly.
+In regtest, the `xchain-e2e-test` service runs the full end-to-end test suite against your local stack, useful for verifying everything is working correctly.
 
 ---
 
@@ -173,7 +173,7 @@ xchain-node update xchain-indexer bitcoin mainnet
 
 ## Bootstrap Snapshots
 
-For mainnet deployments, downloading and parsing the full blockchain from genesis can take a very long time. The installer supports bootstrap snapshots — pre-built database dumps that let you start from a recent block:
+For mainnet deployments, downloading and parsing the full blockchain from genesis can take a very long time. The installer supports bootstrap snapshots, pre-built database dumps that let you start from a recent block:
 
 ```bash
 # Restore from bootstrap snapshot (faster initial sync)
@@ -190,10 +190,10 @@ xchain-node install master all bitcoin mainnet --no-bootstrap
 
 ## Next Steps
 
-- [Deployment Guide](../operations/DEPLOYMENT.md) — production configuration, security, reverse proxies
-- [Docker Reference](../operations/DOCKER.md) — container naming, networking, volume management
-- [Regtest Development](../developer-guide/Regtest_Development.md) — full local development setup
-- [Configuration Reference](../operations/CONFIGURATION.md) — all environment variables and config parameters
+- [Deployment Guide](../operations/DEPLOYMENT.md): production configuration, security, reverse proxies
+- [Docker Reference](../operations/DOCKER.md): container naming, networking, volume management
+- [Regtest Development](../developer-guide/Regtest_Development.md): full local development setup
+- [Configuration Reference](../operations/CONFIGURATION.md): all environment variables and config parameters
 
 ---
 

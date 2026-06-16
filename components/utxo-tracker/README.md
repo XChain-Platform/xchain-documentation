@@ -13,22 +13,22 @@ In addition to confirmed block data, the tracker maintains a separate in-memory 
 
 ## Features
 
-- **Full UTXO index** — every unspent output indexed by SHA-256 scriptPubKey hash for fast address lookups
-- **Compact binary encoding** — all LevelDB keys and values stored as raw binary Buffers with 11 prefix types, reducing DB size ~50%
-- **Truncated txid keys** — transaction IDs stored as 8-byte truncations in index keys for further space savings
-- **Active-UTXO-only storage** — only unspent outputs kept in the live index; spent outputs archived temporarily for reorg recovery
-- **Real-time mempool tracking** — unconfirmed transactions tracked in a separate in-memory LevelDB, updated every 60 seconds
-- **BigInt precision** — all balance calculations use BigInt arithmetic with `satoshiToDecimalString()` conversion, eliminating floating-point errors
-- **Reorg handling** — maintains a per-chain undo history (BTC: 12 blocks, LTC: 48 blocks, DOGE: 120 blocks — overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`) using K/M archive records and rolls back correctly on chain reorganization
-- **Concurrent block prefetch** — pre-fetches up to 10 blocks concurrently via JSON-RPC batch requests with HTTP keep-alive
-- **Batch writes** — LevelDB writes batched in groups of 200 blocks for throughput efficiency with atomic commit
-- **Two-pass transaction processing** — outputs inserted before inputs within each block, correctly handling intra-block spends
-- **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
-- **AuxPoW block parsing** — Dogecoin and Litecoin HogEx block header stripping for correct decoding
-- **Bootstrap support** — compressed tar archive backup and restore for fast initial sync without re-scanning the full chain
-- **REST + JSON-RPC API** — dual interface for UTXO queries, balance lookups, address info, and bootstrap operations
-- **Rolling ETA** — 1000-block rolling window with day/hour/minute display for sync progress estimation
-- **618 tests** — unit, integration, e2e, smoke, fuzz, chaos, performance, and mutation testing
+- **Full UTXO index**: every unspent output indexed by SHA-256 scriptPubKey hash for fast address lookups
+- **Compact binary encoding**: all LevelDB keys and values stored as raw binary Buffers with 11 prefix types, reducing DB size ~50%
+- **Truncated txid keys**: transaction IDs stored as 8-byte truncations in index keys for further space savings
+- **Active-UTXO-only storage**: only unspent outputs kept in the live index; spent outputs archived temporarily for reorg recovery
+- **Real-time mempool tracking**: unconfirmed transactions tracked in a separate in-memory LevelDB, updated every 60 seconds
+- **BigInt precision**: all balance calculations use BigInt arithmetic with `satoshiToDecimalString()` conversion, eliminating floating-point errors
+- **Reorg handling**: maintains a per-chain undo history (BTC: 12 blocks, LTC: 48 blocks, DOGE: 120 blocks, overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`) using K/M archive records and rolls back correctly on chain reorganization
+- **Concurrent block prefetch**: pre-fetches up to 10 blocks concurrently via JSON-RPC batch requests with HTTP keep-alive
+- **Batch writes**: LevelDB writes batched in groups of 200 blocks for throughput efficiency with atomic commit
+- **Two-pass transaction processing**: outputs inserted before inputs within each block, correctly handling intra-block spends
+- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
+- **AuxPoW block parsing**: Dogecoin and Litecoin HogEx block header stripping for correct decoding
+- **Bootstrap support**: compressed tar archive backup and restore for fast initial sync without re-scanning the full chain
+- **REST + JSON-RPC API**: dual interface for UTXO queries, balance lookups, address info, and bootstrap operations
+- **Rolling ETA**: 1000-block rolling window with day/hour/minute display for sync progress estimation
+- **618 tests**: unit, integration, e2e, smoke, fuzz, chaos, performance, and mutation testing
 
 ## Documentation
 
@@ -134,9 +134,9 @@ On startup, the tracker:
 
 ## Related
 
-- [Encoder](../encoder/) — the primary consumer of UTXO tracker queries
-- [Decoder](../decoder/) — also polls coin nodes, but extracts XChain ACTION data rather than UTXOs
-- [Data Pipeline](../../architecture/Data_Pipeline.md) — how the UTXO tracker fits into the full platform flow
+- [Encoder](../encoder/); the primary consumer of UTXO tracker queries
+- [Decoder](../decoder/): also polls coin nodes, but extracts XChain ACTION data rather than UTXOs
+- [Data Pipeline](../../architecture/Data_Pipeline.md): how the UTXO tracker fits into the full platform flow
 
 ---
 

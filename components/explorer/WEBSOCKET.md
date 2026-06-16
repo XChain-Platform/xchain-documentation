@@ -4,7 +4,7 @@ Copyright &copy; 2025 Dankest, LLC
 
 # XChain Explorer WebSocket API Reference
 
-The xchain-explorer provides a WebSocket API for real-time streaming of blockchain events. Clients connect to a coin-scoped endpoint and subscribe to channels with optional filters. The server pushes events as they are indexed — no polling required.
+The xchain-explorer provides a WebSocket API for real-time streaming of blockchain events. Clients connect to a coin-scoped endpoint and subscribe to channels with optional filters. The server pushes events as they are indexed. No polling required.
 
 ## Connection
 
@@ -70,7 +70,7 @@ Use `latest_block_index` and `latest_action_index` to seed your local state for 
 
 ## Client-to-Server Messages
 
-All client messages are JSON with an `action` field. An optional `id` field enables request-response correlation — the server echoes it back in the corresponding response.
+All client messages are JSON with an `action` field. An optional `id` field enables request-response correlation; the server echoes it back in the corresponding response.
 
 ### subscribe
 
@@ -653,7 +653,7 @@ Response to client `ping`.
 | Server ping interval | 30 seconds (WebSocket-level, automatic) |
 | Missed pong | Connection terminated immediately |
 | Client with zero subscriptions | Disconnected after 5 minutes of inactivity |
-| Client with active subscriptions | No timeout — stays alive indefinitely |
+| Client with active subscriptions | No timeout: stays alive indefinitely |
 | Recommended client ping | Every 25 seconds (application-level `{"action":"ping"}`) |
 
 ---

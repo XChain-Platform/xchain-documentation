@@ -12,7 +12,7 @@ XChain Wallet aims for **Level-2 reproducibility of the pre-signing artifact** p
 
 ## What's not reproducible
 
-- **Signed artifacts (`.dmg`, signed `.app`, signed `.exe`, notarized builds).** Code signatures embed a certificate-specific signature plus, for macOS, Apple's notarization ticket. These outputs are inherently maintainer-specific. The pre-signing artifact hashes let verifiers prove the *content* going into signing matches what was built from source — the signature is a separate, by-design maintainer-only operation.
+- **Signed artifacts (`.dmg`, signed `.app`, signed `.exe`, notarized builds).** Code signatures embed a certificate-specific signature plus, for macOS, Apple's notarization ticket. These outputs are inherently maintainer-specific. The pre-signing artifact hashes let verifiers prove the *content* going into signing matches what was built from source; the signature is a separate, by-design maintainer-only operation.
 - **macOS and Windows builds.** The reproducible-build container targets Linux only. Cross-compiling macOS (requires `lipo` + Apple's signing toolchain) and Windows (requires a Windows runner for Authenticode signing) bit-for-bit is a significantly larger undertaking. macOS and Windows releases publish pre-signing SHAs produced on a Mac runner / Windows runner the maintainer operates; a later phase may add VM-based reproduction.
 - **The web SPA and the extension** ship from a different pipeline. Reproducibility there is the next item on the roadmap; the desktop pre-signing artifact is the first beachhead.
 
@@ -20,8 +20,8 @@ XChain Wallet aims for **Level-2 reproducibility of the pre-signing artifact** p
 
 Reproducibility breaks down into two enforceable halves:
 
-1. **Scaffolding audit** — every ingredient required for reproducibility is present in the repo. CI fails if a digest pin is dropped, the lockfile is un-frozen, or a non-deterministic step sneaks into the build config.
-2. **Run-twice verification** — the actual byte-for-byte property: rebuild from source twice on a clean dev machine and verify the two `RELEASE_HASHES.txt` match.
+1. **Scaffolding audit**: every ingredient required for reproducibility is present in the repo. CI fails if a digest pin is dropped, the lockfile is un-frozen, or a non-deterministic step sneaks into the build config.
+2. **Run-twice verification**; the actual byte-for-byte property: rebuild from source twice on a clean dev machine and verify the two `RELEASE_HASHES.txt` match.
 
 The audit catches regressions automatically on every commit. The verification catches subtler drift (build-tool version bumps that quietly lose determinism) but requires a clean Docker host. Splitting the work makes both halves enforceable.
 
@@ -55,7 +55,7 @@ The audit catches regressions automatically on every commit. The verification ca
 
 ### `Reproducible_Builds.md` (in the desktop package)
 
-- Mentions Level-2 + RELEASE_HASHES — proof the docs match the implementation
+- Mentions Level-2 + RELEASE_HASHES, proof the docs match the implementation
 
 `packages/core/test/repro-build-audit.smoke.js` imports `runReproBuildAudit()` and asserts every rule returns `ok: true`. CI fails on any regression. Future PRs that drop a digest pin / un-freeze the lockfile / introduce non-determinism in the build config fail this smoke before they merge.
 
@@ -100,19 +100,19 @@ Maintainer publishes:
 
 Independent verifier runs the protocol above against the same git tag, then diffs their `RELEASE_HASHES.txt` against the maintainer's. A clean diff means the verifier has independently confirmed the maintainer's bundle came from the published source.
 
-The verifier doesn't need the maintainer's signing identity — they're verifying the **input to signing**, not the signature itself. This is the core security property: a maintainer who quietly slipped malicious code into a release would have to ship a bundle whose SHA-256 doesn't match what a verifier would produce from public source, and verifiers would notice.
+The verifier doesn't need the maintainer's signing identity, they're verifying the **input to signing**, not the signature itself. This is the core security property: a maintainer who quietly slipped malicious code into a release would have to ship a bundle whose SHA-256 doesn't match what a verifier would produce from public source, and verifiers would notice.
 
 ## Common drift sources
 
 - **Lockfile drift.** Always run with `--frozen-lockfile`. The audit asserts this in `scripts/build.sh`.
 - **Build-tool version drift.** The Docker base image is digest-pinned; NODE_VERSION is pinned in the image. Tooling outside the container (host's pnpm, host's Node) does not affect the build.
 - **Locale / timezone.** Some toolchains embed locale-dependent strings into output. Both are pinned in the Dockerfile.
-- **Timestamp drift.** `SOURCE_DATE_EPOCH` is sourced from `git log -1 --pretty=%ct` — same input across runs.
+- **Timestamp drift.** `SOURCE_DATE_EPOCH` is sourced from `git log -1 --pretty=%ct`, same input across runs.
 - **PnP / hoist drift.** pnpm's hoist mode can produce different `node_modules/` layouts; the lockfile + frozen install + container isolation rule this out.
 - **electron-builder asar drift.** `asar: true` produces a deterministic archive; the audit asserts the config flag is set.
 - **AppImage compression drift.** Pinned to xz with deterministic flags.
 
-If a reproducer fails, the most-common cause is a dep drifting *outside* the repo — a published npm version retroactively republished, a base image's tag pointing to a different digest. The pinned digest + frozen lockfile rule out both.
+If a reproducer fails, the most-common cause is a dep drifting *outside* the repo; a published npm version retroactively republished, a base image's tag pointing to a different digest. The pinned digest + frozen lockfile rule out both.
 
 ## Roadmap
 

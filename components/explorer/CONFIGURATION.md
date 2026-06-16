@@ -1,16 +1,16 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Explorer — Configuration
+# XChain Platform Explorer: Configuration
 
 ## Configuration Sources
 
 The explorer resolves configuration from multiple sources in priority order:
 
-1. **Environment variables** — loaded from `.env` via dotenv
-2. **xchain-hub** — fetched via JSON-RPC on startup and refreshed every 60 seconds
-3. **Local config.json** — fallback file at `src/config.json`
-4. **NODE_CONFIG** — JSON string environment variable (alternative to config.json file)
+1. **Environment variables**: loaded from `.env` via dotenv
+2. **xchain-hub**: fetched via JSON-RPC on startup and refreshed every 60 seconds
+3. **Local config.json**: fallback file at `src/config.json`
+4. **NODE_CONFIG**: JSON string environment variable (alternative to config.json file)
 
 Hub-sourced configuration takes precedence for database connection details, allowing centralized management across all explorer instances. Environment variables control server-level settings (ports, SSL, debug mode).
 
@@ -20,9 +20,9 @@ Hub-sourced configuration takes precedence for database connection details, allo
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `EXPLORER_API_PORT_HTTP` | No | — | HTTP server port |
-| `EXPLORER_API_PORT_HTTPS` | No | — | HTTPS server port |
-| `DEBUG` | No | — | Enable debug output when set to any truthy value |
+| `EXPLORER_API_PORT_HTTP` | No | None | HTTP server port |
+| `EXPLORER_API_PORT_HTTPS` | No | None | HTTPS server port |
+| `DEBUG` | No | None | Enable debug output when set to any truthy value |
 
 ### WebSocket
 
@@ -42,9 +42,9 @@ See [WEBSOCKET.md](WEBSOCKET.md) for the full WebSocket API reference.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `HUB_API_HOST` | No | — | xchain-hub hostname for config discovery |
-| `HUB_PORT` | No | — | xchain-hub port |
-| `NO_HUB` | No | — | Set to `1` (or `true`/`yes`) to enable standalone mode: the hub is not contacted and all coin/network + database config is read from `src/config.json` (or `NODE_CONFIG`). Use on single-server deployments where the hub publishes docker-internal DB hosts that are not reachable from the explorer process. |
+| `HUB_API_HOST` | No | None | xchain-hub hostname for config discovery |
+| `HUB_PORT` | No | None | xchain-hub port |
+| `NO_HUB` | No | None | Set to `1` (or `true`/`yes`) to enable standalone mode: the hub is not contacted and all coin/network + database config is read from `src/config.json` (or `NODE_CONFIG`). Use on single-server deployments where the hub publishes docker-internal DB hosts that are not reachable from the explorer process. |
 
 ### Decoder Health (for `/api/status` chain lag fields)
 
@@ -52,8 +52,8 @@ The explorer polls each coin's decoder health endpoint to populate `chain_tip`, 
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `DECODER_API_URL_<COIN>_<NETWORK>` | No | — | Decoder JSON-RPC URL for a specific coin+network (e.g. `DECODER_API_URL_BTC_MAINNET=http://localhost:4001`). `COIN` and `NETWORK` are uppercase. |
-| `DECODER_API_URL` | No | — | Generic fallback used when no coin/network-specific variable is set |
+| `DECODER_API_URL_<COIN>_<NETWORK>` | No | None | Decoder JSON-RPC URL for a specific coin+network (e.g. `DECODER_API_URL_BTC_MAINNET=http://localhost:4001`). `COIN` and `NETWORK` are uppercase. |
+| `DECODER_API_URL` | No | None | Generic fallback used when no coin/network-specific variable is set |
 
 When no decoder URL is configured for a coin, `decoder_health` is `"unconfigured"` and `chain_tip`/`chain_lag_blocks` are `null` for that coin.
 
@@ -66,8 +66,8 @@ two endpoints return `503` (clients then fall back to paying the protocol fee in
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `INDEXER_API_URL_<COIN>_<NETWORK>` | No | — | Indexer JSON-RPC URL for a specific coin+network (e.g. `INDEXER_API_URL_BTC_REGTEST=http://localhost:3001`) |
-| `INDEXER_API_URL` | No | — | Generic fallback indexer JSON-RPC URL used when no coin/network-specific var is set |
+| `INDEXER_API_URL_<COIN>_<NETWORK>` | No | None | Indexer JSON-RPC URL for a specific coin+network (e.g. `INDEXER_API_URL_BTC_REGTEST=http://localhost:3001`) |
+| `INDEXER_API_URL` | No | None | Generic fallback indexer JSON-RPC URL used when no coin/network-specific var is set |
 | `INDEXER_API_TIMEOUT_MS` | No | `5000` | Per-request timeout for the indexer proxy calls |
 
 ### SSL/TLS
@@ -77,9 +77,9 @@ two endpoints return `503` (clients then fall back to paying the protocol fee in
 | `SSL_DIR` | No | `src/ssl/` | Directory containing SSL certificate files |
 
 SSL certificates are loaded from:
-- `{SSL_DIR}/cert.pem` — TLS certificate
-- `{SSL_DIR}/private.pem` — TLS private key
-- `{SSL_DIR}/ca.pem` — Certificate authority chain
+- `{SSL_DIR}/cert.pem`: TLS certificate
+- `{SSL_DIR}/private.pem`: TLS private key
+- `{SSL_DIR}/ca.pem`: Certificate authority chain
 
 If SSL files are not found, only the HTTP server starts.
 

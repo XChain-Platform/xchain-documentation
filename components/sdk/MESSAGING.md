@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Messaging Reference
+# XChain Platform SDK: Messaging Reference
 
 This document covers the SDK's messaging module: ECIES, ECDH, and AES encryption for MESSAGE actions, public key lookup, and high-level send/receive with automatic encryption and decryption.
 
@@ -11,7 +11,7 @@ This document covers the SDK's messaging module: ECIES, ECDH, and AES encryption
 
 The SDK provides a messaging module for encrypted and plaintext communication between addresses:
 
-- **`sdk.messaging`** (`MessagingUtils`) — ECIES/ECDH/AES encryption, public key resolution, high-level send and receive.
+- **`sdk.messaging`** (`MessagingUtils`); ECIES/ECDH/AES encryption, public key resolution, high-level send and receive.
 
 Available on the SDK instance and as top-level convenience methods:
 
@@ -44,7 +44,7 @@ sdk.getMessagesForAddress(address, opts);
 
 ---
 
-## ECIES (Method 1) — Address Communication
+## ECIES (Method 1): Address Communication
 
 ECIES encrypts directly to the recipient's public key. No prior key exchange is needed. Any device with the recipient's private key can decrypt.
 
@@ -56,8 +56,8 @@ const result = sdk.messaging.eciesEncrypt(plaintext, recipientPubkey);
 ```
 
 Parameters:
-- `plaintext` (string) — Message to encrypt
-- `recipientPubkey` (string|Buffer) — Recipient's compressed public key (33 bytes hex)
+- `plaintext` (string); Message to encrypt
+- `recipientPubkey` (string|Buffer); Recipient's compressed public key (33 bytes hex)
 
 The ciphertext contains: `ephemeralPubkey(33) + iv(12) + authTag(16) + encryptedData`
 
@@ -69,12 +69,12 @@ const result = sdk.messaging.eciesDecrypt(ciphertext, wif);
 ```
 
 Parameters:
-- `ciphertext` (string|Buffer) — Hex-encoded ciphertext from `eciesEncrypt`
-- `wif` (string) — Recipient's WIF private key
+- `ciphertext` (string|Buffer); Hex-encoded ciphertext from `eciesEncrypt`
+- `wif` (string); Recipient's WIF private key
 
 ---
 
-## ECDH (Method 2) — Session Communication
+## ECDH (Method 2): Session Communication
 
 ECDH requires a key exchange handshake. Both parties exchange public keys via format 0/1 MESSAGE actions, then derive a shared secret.
 
@@ -106,7 +106,7 @@ const decrypted = sdk.messaging.sessionDecrypt(ciphertext, sharedSecret);
 
 ---
 
-## AES (Method 3) — Shared Secret Communication
+## AES (Method 3): Shared Secret Communication
 
 AES uses a pre-shared key. If the key is not exactly 32 bytes, it is hashed with SHA-256 to derive the encryption key.
 
@@ -121,7 +121,7 @@ const decrypted = sdk.messaging.aesDecrypt(ciphertext, sharedKey);
 ```
 
 Parameters:
-- `sharedKey` (string|Buffer) — Pre-shared key (hex string, Buffer, or passphrase)
+- `sharedKey` (string|Buffer); Pre-shared key (hex string, Buffer, or passphrase)
 
 ---
 

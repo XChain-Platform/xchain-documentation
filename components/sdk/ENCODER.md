@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Encoder Reference
+# XChain Platform SDK: Encoder Reference
 
 ## Overview
 
@@ -9,8 +9,8 @@ The SDK's encoder client wraps the xchain-encoder JSON-RPC service. Its primary 
 
 There are two ways to use the encoder:
 
-1. **Via action helper methods** — pass an `encoder` object alongside `params` when calling `sdk.send()`, `sdk.issue()`, etc. The SDK builds the ACTION string and calls the encoder in one step.
-2. **Via `sdk.encodeTx(params)` directly** — supply your own `data` string and encoder options for full control.
+1. **Via action helper methods**: pass an `encoder` object alongside `params` when calling `sdk.send()`, `sdk.issue()`, etc. The SDK builds the ACTION string and calls the encoder in one step.
+2. **Via `sdk.encodeTx(params)` directly**: supply your own `data` string and encoder options for full control.
 
 ```js
 const sdk = new XChainSDK({
@@ -181,9 +181,9 @@ The underlying encoder RPC is the `estimate_fee` endpoint (internally `encoder.e
 
 `P2SH` and `P2WSH` encoding use a two-transaction pattern:
 
-1. **Phase 1 — Fund:** `createTx` builds a transaction that sends coin to a P2SH/P2WSH output that encodes the ACTION data in its redeem script. Broadcast this transaction and wait for it to be included in a block (or at minimum propagated to the mempool).
+1. **Phase 1; Fund:** `createTx` builds a transaction that sends coin to a P2SH/P2WSH output that encodes the ACTION data in its redeem script. Broadcast this transaction and wait for it to be included in a block (or at minimum propagated to the mempool).
 
-2. **Phase 2 — Spend:** `spendP2sh` builds a second transaction that spends the P2SH/P2WSH output, revealing the redeem script (and therefore the ACTION data) to the network. The decoder reads the data from this spend transaction.
+2. **Phase 2; Spend:** `spendP2sh` builds a second transaction that spends the P2SH/P2WSH output, revealing the redeem script (and therefore the ACTION data) to the network. The decoder reads the data from this spend transaction.
 
 ```js
 // Phase 1: create the funding transaction

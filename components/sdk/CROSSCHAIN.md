@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Cross-Chain Helpers
+# XChain Platform SDK: Cross-Chain Helpers
 
 The `CrossChainHelper` class coordinates actions across multiple SDK instances connected to different blockchains (Bitcoin, Litecoin, Dogecoin).
 
@@ -132,18 +132,18 @@ Note: the address must be valid on each chain's network.
 
 ## Error Handling
 
-- `SDKConfigError('CHAIN_NOT_CONFIGURED')` — thrown when referencing a chain not in the `sdkMap`
-- `SDKConfigError('INVALID_SDK_MAP')` — thrown if fewer than 2 SDK instances are provided
+- `SDKConfigError('CHAIN_NOT_CONFIGURED')`: thrown when referencing a chain not in the `sdkMap`
+- `SDKConfigError('INVALID_SDK_MAP')`: thrown if fewer than 2 SDK instances are provided
 - Individual action errors from each chain propagate through `parallel()` and other methods
 
 ---
 
 ## Related Documentation
 
-- [Transaction Lifecycle](LIFECYCLE.md) — `submitAction` used by each chain's session
-- [Wallet Sessions](SESSIONS.md) — sessions created internally for each action
-- [Workflows](WORKFLOWS.md) — single-chain multi-step recipes
-- [Actions](ACTIONS.md) — SWAP and LINK action parameters
+- [Transaction Lifecycle](LIFECYCLE.md): `submitAction` used by each chain's session
+- [Wallet Sessions](SESSIONS.md): sessions created internally for each action
+- [Workflows](WORKFLOWS.md): single-chain multi-step recipes
+- [Actions](ACTIONS.md): SWAP and LINK action parameters
 
 ---
 

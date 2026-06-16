@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Indexer — Configuration Reference
+# XChain Platform Indexer: Configuration Reference
 
 ## Environment Variables
 
@@ -47,7 +47,7 @@ Each supported blockchain has a configuration file at `src/configs/<COIN>.js` (B
 | `ADDRESS.DONATE1` | Protocol development donation address | `1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8` |
 | `ADDRESS.DONATE2` | Community development donation address | `1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8` |
 | `ADDRESS.FEE_DESTINATION` | Native-coin fee collection address (per network). Overridable at runtime via the `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` env var (e.g. `XCHAIN_FEE_DESTINATION_BTC_REGTEST`); falls back to the placeholder when unset, which disables native-coin fee payment. | _(set pre-launch)_ |
-| `ADDRESS.REWARD` | Validator reward pool — pre-funded, manually topped up, drained by `COLLECT` (**BTC only**; XCHAIN/COLLECT do not exist on LTC/DOGE, where the slot is unused) | _(set pre-launch)_ |
+| `ADDRESS.REWARD` | Validator reward pool: pre-funded, manually topped up, drained by `COLLECT` (**BTC only**; XCHAIN/COLLECT do not exist on LTC/DOGE, where the slot is unused) | _(set pre-launch)_ |
 
 ## Unified Gas Fee Schedule
 
@@ -58,7 +58,7 @@ After the activation block, fees for VM and staking actions are calculated using
 | `GAS_PRICE` | Base XCHAIN cost per unit of gas | `0.00000001` |
 | `GAS_SCHEDULE` | Object mapping action types to their gas cost in gas units | `{ DEPLOY: 100000, EXECUTE: 10000, STAKE: 5000, ... }` |
 | `UNIFIED_EXPIRATION_FEE_FREE_DAYS` | Free listing duration under the unified schedule (replaces `EXPIRATION_FEE_FREE_DAYS` post-activation) | `365` |
-| `FEE_PAYMENT_MODE` | Reserved key indicating intended fee denomination per chain (`'xchain'` on BTC, `'native'` on LTC/DOGE). **Not currently read at runtime** — see note below. | `'xchain'` (BTC) |
+| `FEE_PAYMENT_MODE` | Reserved key indicating intended fee denomination per chain (`'xchain'` on BTC, `'native'` on LTC/DOGE). **Not currently read at runtime**: see note below. | `'xchain'` (BTC) |
 
 > **Note on `FEE_PAYMENT_MODE`:** This key is currently informational only and is **not** read by the fee-processing code. Fee payment mode is detected implicitly at runtime by `detectFeePaymentMode()` in `src/utility.js`, which derives the mode from the transaction itself: if a native-coin fee output to the configured fee destination is present it returns `'native'`; if absent it returns `'xchain'` on BTC (XCHAIN balance deduction is allowed as a fallback) and `'rejected'` on LTC/DOGE (native coin is the only accepted fee on those chains). The `FEE_PAYMENT_MODE` config value is reserved for a future change that makes this detection explicit/config-driven; until then its value must mirror the implicit per-chain behavior to avoid surprising a later refactor.
 

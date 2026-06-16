@@ -3,7 +3,7 @@
 
 # User Guide
 
-This section is for people who want to use XChain — creating tokens, trading, and exploring what the platform makes possible. No coding required. These guides focus on what you can do, not how the technology works under the hood.
+This section is for people who want to use XChain: creating tokens, trading, and exploring what the platform makes possible. No coding required. These guides focus on what you can do, not how the technology works under the hood.
 
 | Document | Description |
 |---|---|

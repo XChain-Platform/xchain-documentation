@@ -1,18 +1,18 @@
-# XCALL — Cross-Chain Contract Call
+# XCALL: Cross-Chain Contract Call
 
 `XCALL` is the source-chain side of a cross-chain contract call: a smart
 contract on chain X asynchronously invokes a method on a contract deployed on
 chain Y, and later receives the outcome via a callback. The relay between the
 chains is performed by the validator federation with **zero per-call on-chain
-transactions** — see [Cross_Chain_Calls.md](../Cross_Chain_Calls.md) for the
+transactions** (see [Cross_Chain_Calls.md](../Cross_Chain_Calls.md) for the
 full architecture, trust model, and latency characteristics.
 
 ## Versions
 
 | Version | Phase | Origin |
 |---|---|---|
-| v0 | Request | VM emission only (`xchain.emit.crossExecute(...)`) — never decoded from the wire |
-| v2 | Expire | System-synthesized when `deadline_block` passes — never user-broadcast |
+| v0 | Request | VM emission only (`xchain.emit.crossExecute(...)`). Never decoded from the wire |
+| v2 | Expire | System-synthesized when `deadline_block` passes. Never user-broadcast |
 
 There is no on-chain v1: the result returns as a quorum-signed hub-mirror row
 (`cross_chain_calls`, phase `result`), and the callback is a system-injected
@@ -20,7 +20,7 @@ EXECUTE (the ATTEST-callback pattern).
 
 ## Formats
 
-### v0 — Request (VM-emitted action row)
+### v0: Request (VM-emitted action row)
 
 ```
 XCALL|0|CALL_ID|TARGET_CHAIN|TARGET_CONTRACT_INDEX|METHOD|PARAMS_JSON|GAS_LIMIT|CALLBACK_METHOD|CALLBACK_PARAMS_JSON|DEADLINE_BLOCKS|CROSS_HOPS
@@ -28,18 +28,18 @@ XCALL|0|CALL_ID|TARGET_CHAIN|TARGET_CONTRACT_INDEX|METHOD|PARAMS_JSON|GAS_LIMIT|
 
 | Field | Rules |
 |---|---|
-| `CALL_ID` | 64-hex; MUST equal `sha256(network:source_chain:tx_hash:contract_index:emitter_position:target_chain)` — re-derived and verified by the indexer. Network + chains are bound in (unlike the ATTEST request_id) because BTC-family chains share tx-hash space. The emitting EXECUTE's `action_index` is intentionally NOT bound in: `(tx_hash, contract_index, emitter_position)` already identify the emission uniquely, and `action_index` depends on synthetic-action injection timing rather than chain content, so binding it would make `call_id` non-deterministic across nodes. |
+| `CALL_ID` | 64-hex; MUST equal `sha256(network:source_chain:tx_hash:contract_index:emitter_position:target_chain)`: re-derived and verified by the indexer. Network + chains are bound in (unlike the ATTEST request_id) because BTC-family chains share tx-hash space. The emitting EXECUTE's `action_index` is intentionally NOT bound in: `(tx_hash, contract_index, emitter_position)` already identify the emission uniquely, and `action_index` depends on synthetic-action injection timing rather than chain content, so binding it would make `call_id` non-deterministic across nodes. |
 | `TARGET_CHAIN` | `BTC`/`LTC`/`DOGE`, ≠ the emitting chain |
 | `TARGET_CONTRACT_INDEX` | Target contract's DEPLOY action_index on the target chain (existence is checked there, not here) |
 | `METHOD` | ≤ 64 bytes, no `\|`; must be in the target contract's exported `crossCallable` allowlist |
 | `PARAMS_JSON` | JSON array of ≤ 32 strings, each ≤ 1024 bytes, no `\|` |
-| `GAS_LIMIT` | Integer in `[XCALL_MIN_GAS (5,000), XCALL_MAX_GAS (200,000)]` — the target-side execution ceiling, pre-paid by the caller |
-| `CALLBACK_METHOD` | ≤ 64 bytes; REQUIRED — every call ends in exactly one callback |
+| `GAS_LIMIT` | Integer in `[XCALL_MIN_GAS (5,000), XCALL_MAX_GAS (200,000)]`; the target-side execution ceiling, pre-paid by the caller |
+| `CALLBACK_METHOD` | ≤ 64 bytes; REQUIRED: every call ends in exactly one callback |
 | `CALLBACK_PARAMS_JSON` | JSON array of strings, ≤ 1024 bytes total; echoed back to the callback |
 | `DEADLINE_BLOCKS` | Integer in `[10, 4000]` source-chain blocks |
-| `CROSS_HOPS` | HOST-derived (context + 1), capped at `XCALL_MAX_HOPS (2)` — never trusted from the VM |
+| `CROSS_HOPS` | HOST-derived (context + 1), capped at `XCALL_MAX_HOPS (2)`. Never trusted from the VM |
 
-### v2 — Expire (system-synthesized)
+### v2: Expire (system-synthesized)
 
 ```
 XCALL|2|CALL_ID
@@ -124,7 +124,7 @@ Unused target-side gas is NOT refunded. The callback runs against the fixed
 
 ## Recoverability
 
-The v0 request is an emitted action row — reproducible from a pure chain parse.
+The v0 request is an emitted action row, reproducible from a pure chain parse.
 Both relay phases are included in the ANCHOR v1 archive (with their hub `id`
 (provenance only; injection order is `(snapshot_block, call_id)`)) and rebuilt + signature-verified by
 `xchain-indexer/src/recovery.js`, so a from-genesis reindex re-derives the

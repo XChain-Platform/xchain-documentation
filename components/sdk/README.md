@@ -5,18 +5,18 @@
 
 ## What is xchain-sdk
 
-xchain-sdk is the developer-facing Software Development Kit for the XChain Platform. It lets you generate XChain ACTION commands (SEND, ISSUE, MINT, ORDER, and more), encode them into unsigned Bitcoin, Dogecoin, or Litecoin transactions (as PSBTs), and query live blockchain data — balances, token information, transaction history, market orders — from the XChain Explorer API. The SDK runs both as a Node.js library you import directly into your own code and as a standalone JSON-RPC microservice.
+xchain-sdk is the developer-facing Software Development Kit for the XChain Platform. It lets you generate XChain ACTION commands (SEND, ISSUE, MINT, ORDER, and more), encode them into unsigned Bitcoin, Dogecoin, or Litecoin transactions (as PSBTs), and query live blockchain data (balances, token information, transaction history, market orders) from the XChain Explorer API. The SDK runs both as a Node.js library you import directly into your own code and as a standalone JSON-RPC microservice.
 
 ## Features
 
 - Generate all 27 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, COLLECT)
 - **Transaction Lifecycle Manager** (`submitAction`): full encode → sign → broadcast → wait pipeline in a single call, with automatic P2SH two-phase handling and progress callbacks
-- **Wallet Sessions** (`sdk.session(wif)`): bound wallet object that bundles address/key/UTXO state with action convenience methods — "I am this address, do things"
+- **Wallet Sessions** (`sdk.session(wif)`): bound wallet object that bundles address/key/UTXO state with action convenience methods: "I am this address, do things"
 - **Fee Estimation** (`estimateFees`): dry-run fee calculation via encoder, returns fee in satoshis plus reusable PSBT
 - **UTXO-aware transaction chaining**: in-memory UTXO cache with speculative change outputs prevents double-spend on rapid sequential transactions
-- **Workflow Recipes**: multi-step helpers — `issueAndDistribute`, `issueAndMint`, `stakeAndDelegate`, `deployAndFund`, `createDispenser`, `createOrder`, `cancelOrder`, `distributeDividend`
-- **Policy-bounded Agent Sessions** (`sdk.agentSession(wif, policy)`): wrap a WIF key in a declarative spending policy — action allowlist, per-action and per-window amount caps, destination allowlist, confirmation hook — enforced at the submit chokepoint; fail-closed; window usage persisted across restarts; `SDKX402Error` and `SDKPolicyError` thrown on violations
-- **Cross-Chain Helper**: coordinate actions across BTC, LTC, DOGE SDK instances — `createSwap`, `link`, `parallel`, `waitForAll`, `getAllBalances`
+- **Workflow Recipes**: multi-step helpers: `issueAndDistribute`, `issueAndMint`, `stakeAndDelegate`, `deployAndFund`, `createDispenser`, `createOrder`, `cancelOrder`, `distributeDividend`
+- **Policy-bounded Agent Sessions** (`sdk.agentSession(wif, policy)`): wrap a WIF key in a declarative spending policy, action allowlist, per-action and per-window amount caps, destination allowlist, confirmation hook, enforced at the submit chokepoint; fail-closed; window usage persisted across restarts; `SDKX402Error` and `SDKPolicyError` thrown on violations
+- **Cross-Chain Helper**: coordinate actions across BTC, LTC, DOGE SDK instances: `createSwap`, `link`, `parallel`, `waitForAll`, `getAllBalances`
 - **Event-driven confirmation** (`waitForAction`): WebSocket + polling hybrid that resolves when the indexer processes a transaction
 - **Interactive REPL** (`npm run repl`): live session with pre-configured SDK, custom `.actions`, `.status`, `.fields` commands
 - **Staking actions**: capability staking (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT) is BTC-only for the platform validator set; contract staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) works on any chain as a developer primitive
@@ -42,7 +42,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - Transaction broadcasting: broadcast signed transactions to the coin node via the encoder
 - UTXO queries: fetch address UTXOs via the encoder (proxied from xchain-utxo-tracker)
 - Challenge-response wallet ownership verification: generate challenges, sign messages, verify signatures
-- Custom message signing: `signMessage` and `verifyMessage` work with any arbitrary string — no SDK lock-in on the verification side
+- Custom message signing: `signMessage` and `verifyMessage` work with any arbitrary string. No SDK lock-in on the verification side.
 - Encrypted messaging: ECIES (default, multi-device), ECDH (session-based), and AES (pre-shared key) encryption for MESSAGE actions
 - Public key resolution: automatic lookup of recipient public keys from on-chain transaction data
 - High-level messaging API: `sendMessage()` handles pubkey lookup, encryption, PSBT signing, and broadcasting in one call
@@ -71,7 +71,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 | [Examples](EXAMPLES.md) | Complete worked examples for common use cases |
 | [NFT & Registry](NFT_AND_REGISTRY.md) | `sdk.nft.*` and `sdk.project.*` builder namespaces for NFTs, collections, TIS documents, and project rosters |
 | [Agent Wallets](../../ai-agents/Agent_Wallets.md) | Policy-bounded agent sessions: allowlists, caps, confirmation hooks |
-| [Charging Agents](../../ai-agents/Charging_Agents.md) | HTTP 402 payment flows — X402Gateway, X402Client, scheme reference |
+| [Charging Agents](../../ai-agents/Charging_Agents.md) | HTTP 402 payment flows; X402Gateway, X402Client, scheme reference |
 | [MCP Quickstart](../../ai-agents/MCP_Quickstart.md) | Running the xchain-mcp server for LLM tool use |
 
 ## Installation
@@ -86,7 +86,7 @@ npm install
 
 ## Quick Start
 
-### Library mode — generate an action and query balances
+### Library mode: generate an action and query balances
 
 ```javascript
 const XChainSDK = require('./index.js');
@@ -111,7 +111,7 @@ const balances = await sdk.getBalances('bc1qmyaddress');
 console.log(balances);
 ```
 
-### Library mode — generate a PSBT via the encoder
+### Library mode: generate a PSBT via the encoder
 
 ```javascript
 const XChainSDK = require('./index.js');
@@ -150,7 +150,7 @@ console.log(result.psbt);          // base64-encoded unsigned PSBT
 console.log(result.encoding);      // encoding format used
 ```
 
-### Library mode — hub discovery
+### Library mode: hub discovery
 
 When using xchain-hub for service discovery, call `init()` after construction. The SDK fetches endpoint config from the hub and automatically re-resolves clients if config changes.
 

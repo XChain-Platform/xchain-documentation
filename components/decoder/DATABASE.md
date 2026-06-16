@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Decoder — Database Schema
+# XChain Platform Decoder: Database Schema
 
 The decoder writes to a single MariaDB database. The indexer reads from this database (read-only from the indexer's perspective).
 
@@ -85,7 +85,7 @@ Tracks active (unexpired) dispensers. A dispenser is created when the decoder en
 |---|---|---|
 | `tx_index` | `INTEGER UNSIGNED` | Transaction that created the dispenser |
 | `address_id` | `INTEGER UNSIGNED` | FK → `index_addresses.id` (dispenser owner) |
-| `expiration` | `BIGINT UNSIGNED` | Expiration as a raw Unix timestamp in seconds. Stored as an integer — **not** via `FROM_UNIXTIME()` — because `FROM_UNIXTIME()` caps at 2147483647 (Y2038) and returns `NULL` above that value, which would silently drop dispensers with far-future expirations. The raw `BIGINT UNSIGNED` column supports values up to 4294967295 (year 2106), matching the protocol's accepted range. |
+| `expiration` | `BIGINT UNSIGNED` | Expiration as a raw Unix timestamp in seconds. Stored as an integer (**not** via `FROM_UNIXTIME()`) because `FROM_UNIXTIME()` caps at 2147483647 (Y2038) and returns `NULL` above that value, which would silently drop dispensers with far-future expirations. The raw `BIGINT UNSIGNED` column supports values up to 4294967295 (year 2106), matching the protocol's accepted range. |
 
 **Primary Key:** `(tx_index, address_id)`
 

@@ -65,20 +65,20 @@ This document walks every primary route the wallet exposes. All routes live in `
 
 The first-run experience is one of:
 
-- **Create new** — generate a fresh 24-word BIP39 mnemonic; user is required to acknowledge the phrase has been saved before the vault persists. Closing the tab at this stage leaves no persisted state.
-- **Import existing** — paste a 12 / 15 / 18 / 21 / 24-word BIP39 mnemonic, with word-count + dictionary validation; or import a single WIF private key.
-- **Restore from backup file** — re-wrap an exported vault under a fresh device password.
-- **Counterwallet migration** — accept the legacy 12-word format, then optionally migrate to BIP39 from Settings later.
+- **Create new**: generate a fresh 24-word BIP39 mnemonic; user is required to acknowledge the phrase has been saved before the vault persists. Closing the tab at this stage leaves no persisted state.
+- **Import existing**: paste a 12 / 15 / 18 / 21 / 24-word BIP39 mnemonic, with word-count + dictionary validation; or import a single WIF private key.
+- **Restore from backup file**: re-wrap an exported vault under a fresh device password.
+- **Counterwallet migration**: accept the legacy 12-word format, then optionally migrate to BIP39 from Settings later.
 
 Optional 25th-word passphrase is offered on both Create and Import. The passphrase materially changes derived addresses; the wallet shows a pre-derivation preview to let the user confirm they've entered the correct passphrase.
 
 ## Lock / unlock / auto-lock
 
-- **Manual lock** — accessible from the global menu and via keyboard shortcut. Zeroes the in-memory master key + session key.
-- **Unlock** — password entry; on success, master key is derived (Argon2id) and the vault decrypts.
-- **Foreground auto-lock** — configurable timeout in Settings. Default: 5 minutes idle. Lock fires on tab/window blur for the popup; on idle-detection for the desktop and full-screen views.
-- **Browser-close lock** — extension session-key namespace clears automatically. Web shell drops in-memory keys when the tab unloads.
-- **OS keychain auto-unlock** — desktop only, opt-in. Stores the session master key in the OS keychain (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux). Disabled by default; enabled via Settings → Security.
+- **Manual lock**: accessible from the global menu and via keyboard shortcut. Zeroes the in-memory master key + session key.
+- **Unlock**: password entry; on success, master key is derived (Argon2id) and the vault decrypts.
+- **Foreground auto-lock**: configurable timeout in Settings. Default: 5 minutes idle. Lock fires on tab/window blur for the popup; on idle-detection for the desktop and full-screen views.
+- **Browser-close lock**: extension session-key namespace clears automatically. Web shell drops in-memory keys when the tab unloads.
+- **OS keychain auto-unlock**: desktop only, opt-in. Stores the session master key in the OS keychain (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux). Disabled by default; enabled via Settings → Security.
 
 ## Home
 
@@ -94,15 +94,15 @@ The same Home renders in the popup (compact), the full-screen / desktop (expande
 
 ## Send
 
-The Send route is the canonical example of the sign-screen safety rail (see [Security & Threat Model — Sign-screen safety rails](SECURITY.md#sign-screen-safety-rails)):
+The Send route is the canonical example of the sign-screen safety rail (see [Security & Threat Model; Sign-screen safety rails](SECURITY.md#sign-screen-safety-rails)):
 
-1. **Form** — destination, amount, asset (native or token), optional memo, optional fee tier
-2. **Review** — plain-English summary rendered alongside the encoded action string and the encoder's PSBT
-3. **Sign** — signer-specific confirmation (in-vault password re-entry for software, device confirm for Trezor / Ledger)
-4. **Broadcast** — wallet broadcasts via SDK; status surface streams encoder accept → mempool → confirmed → indexed
-5. **Done** — txid + indexed action, with a link to History
+1. **Form**: destination, amount, asset (native or token), optional memo, optional fee tier
+2. **Review**: plain-English summary rendered alongside the encoded action string and the encoder's PSBT
+3. **Sign**: signer-specific confirmation (in-vault password re-entry for software, device confirm for Trezor / Ledger)
+4. **Broadcast**: wallet broadcasts via SDK; status surface streams encoder accept → mempool → confirmed → indexed
+5. **Done**: txid + indexed action, with a link to History
 
-Identical structure for every action form — only the form fields and review template differ.
+Identical structure for every action form; only the form fields and review template differ.
 
 ## Receive
 
@@ -116,11 +116,11 @@ Identical structure for every action form — only the form fields and review te
 
 Per-address history view. Each row renders the decoded action plus its on-chain status:
 
-- Type — SEND / ISSUE / MINT / ORDER / DISPENSER / DIVIDEND / etc.
-- Counterparty — destination or source address (with contact-list lookup)
+- Type; SEND / ISSUE / MINT / ORDER / DISPENSER / DIVIDEND / etc.
+- Counterparty, destination or source address (with contact-list lookup)
 - Amount + asset
 - Fee
-- Status — pending / mempool / confirmed / indexed / failed
+- Status, pending / mempool / confirmed / indexed / failed
 - Block height + timestamp once indexed
 
 History reads from `xchain-explorer` via the SDK. The wallet never re-derives state from raw blockchain data.
@@ -135,17 +135,17 @@ Every action's sign screen renders three parallel views:
 | Decoded action summary | Re-decoded by the wallet from the action string | Canonical (deterministic decode) |
 | Encoder PSBT | Returned from the encoder | Untrusted (encoder is a remote service) |
 
-A discrepancy between the form pane and the decoded pane never happens unless the action descriptor or the decoder is buggy — both are tested by the same smoke suite. A discrepancy between either of those and the PSBT pane is what the user is being asked to catch by eye, and what the next-iteration byte-level cross-check will catch automatically.
+A discrepancy between the form pane and the decoded pane never happens unless the action descriptor or the decoder is buggy, both are tested by the same smoke suite. A discrepancy between either of those and the PSBT pane is what the user is being asked to catch by eye, and what the next-iteration byte-level cross-check will catch automatically.
 
 ## Multisig session view
 
 `MultisigSigningSession.jsx` renders an active n-of-m or MuSig2 session:
 
-- **Round label** — explicit "Round 1 of 3 — commit", "Round 2 of 3 — reveal", "Round 3 of 3 — sign" so the user knows where they are in the protocol
-- **Paste inbox** — accepts cosigner partial PSBTs by paste or QR scan
-- **Cosigner list** — green check / pending dot per cosigner
-- **Camera scanner** — `QrScanner.jsx` reads chunked PSBT-QR via `core/src/uri/psbtQr.js`
-- **Animated frames** — `AnimatedQrFrames.jsx` paints multi-frame QRs at 3 fps for the next cosigner; honors `prefers-reduced-motion: reduce` with manual prev / next stepping
+- **Round label** (explicit "Round 1 of 3) commit", "Round 2 of 3 (reveal", "Round 3 of 3) sign" so the user knows where they are in the protocol
+- **Paste inbox**: accepts cosigner partial PSBTs by paste or QR scan
+- **Cosigner list**: green check / pending dot per cosigner
+- **Camera scanner**: `QrScanner.jsx` reads chunked PSBT-QR via `core/src/uri/psbtQr.js`
+- **Animated frames**: `AnimatedQrFrames.jsx` paints multi-frame QRs at 3 fps for the next cosigner; honors `prefers-reduced-motion: reduce` with manual prev / next stepping
 
 See [Multisig](MULTISIG.md) for the full session state machine.
 
@@ -163,28 +163,28 @@ See [Multisig](MULTISIG.md) for the full session state machine.
 - Multisig signing session (scan a cosigner's PSBT-QR frame stream)
 - Pair signer (scan a remote-signer pair code)
 
-The scanner runs through `getUserMedia`. The Chrome extension surfaces the runtime camera prompt only when the user explicitly clicks "Scan" — no implicit camera grant.
+The scanner runs through `getUserMedia`. The Chrome extension surfaces the runtime camera prompt only when the user explicitly clicks "Scan". No implicit camera grant.
 
 ## Command palette + keyboard shortcuts
 
 Power users get:
 
-- **Command palette** — Cmd/Ctrl + K opens an indexed launcher over every action route, settings panel, and help topic
-- **Keyboard shortcuts** — Cmd/Ctrl + L (lock), Cmd/Ctrl + N (new send), Cmd/Ctrl + R (refresh balances), Esc (back / close), Tab/Shift+Tab focus order on every form
+- **Command palette**: Cmd/Ctrl + K opens an indexed launcher over every action route, settings panel, and help topic
+- **Keyboard shortcuts**: Cmd/Ctrl + L (lock), Cmd/Ctrl + N (new send), Cmd/Ctrl + R (refresh balances), Esc (back / close), Tab/Shift+Tab focus order on every form
 
 ## Settings
 
 Settings are organized under sections:
 
-- **Security** — auto-lock timeout, OS-keychain auto-unlock (desktop), view private key, change password, export backup
-- **Chains** — per-chain endpoint URLs (encoder / explorer / hub), default fee strategy, address-type preference
-- **Accounts** — manage HD accounts under each wallet
-- **Signers** — registered hardware + remote signers, pair-new, remove, firmware version
-- **Connected sites** — per-origin dApp grants with revoke
-- **Multisig** — registered n-of-m configs
-- **Display** — locale (i18n), theme, reduced-motion override
-- **Developer** — developer-mode toggle, network override, custom RPC, diagnostic dump
-- **About** — `package.json.version`, build hash, license, third-party notices
+- **Security**: auto-lock timeout, OS-keychain auto-unlock (desktop), view private key, change password, export backup
+- **Chains**: per-chain endpoint URLs (encoder / explorer / hub), default fee strategy, address-type preference
+- **Accounts**: manage HD accounts under each wallet
+- **Signers**: registered hardware + remote signers, pair-new, remove, firmware version
+- **Connected sites**: per-origin dApp grants with revoke
+- **Multisig**: registered n-of-m configs
+- **Display**: locale (i18n), theme, reduced-motion override
+- **Developer**: developer-mode toggle, network override, custom RPC, diagnostic dump
+- **About**: `package.json.version`, build hash, license, third-party notices
 
 ## Automatic donation system (ADS)
 

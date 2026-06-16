@@ -5,28 +5,28 @@
 
 ## What is xchain-explorer
 
-xchain-explorer is the query and presentation layer of the XChain Platform. It reads from the Indexer database and exposes over 60 REST API endpoints, a JSON-RPC 2.0 interface, and a Bootstrap-based web block explorer — all from a single long-lived Node.js/Express process. The explorer never writes to any database.
+xchain-explorer is the query and presentation layer of the XChain Platform. It reads from the Indexer database and exposes over 60 REST API endpoints, a JSON-RPC 2.0 interface, and a Bootstrap-based web block explorer, all from a single long-lived Node.js/Express process. The explorer never writes to any database.
 
 The explorer is the primary integration point for wallets, exchanges, dApps, and any application that needs to query XChain state. Developers interact with the platform through the explorer's REST API (directly or via the xchain-sdk), making this the most externally-facing component of the stack.
 
 ## Features
 
-- **Three interfaces** — REST API, JSON-RPC 2.0, and a web block explorer served from the same process
-- **60+ REST endpoints** — tokens, balances, transactions, market data, DEX state, addresses, blocks, files, messages, and more
-- **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 networks)
-- **Read-only** — the explorer never writes to the Indexer database
-- **Config discovery** — fetches configuration from xchain-hub on startup and refreshes every 60 seconds
-- **SSL/TLS support** — serves both HTTP and HTTPS with configurable certificates
-- **Rate limiting** — configurable request rate limiting (default 500 requests per minute)
-- **CORS configuration** — allowed origins configurable per deployment
-- **SSRF-protected relay** — proxy endpoint for external resources with private IP blocking
-- **WebSocket API** — real-time event streaming via `/{COIN}/api/websocket` with channel subscriptions, action-type filtering, lifecycle events (ORDER_MATCH, COINPAY_REQUIRED, etc.), catch-up on reconnect, and snapshot-on-subscribe
-- **Security headers** — Helmet middleware with Content Security Policy
-- **Raw parameterized SQL** — approximately 5,800 lines of query logic with no ORM, preventing SQL injection
-- **DataTables integration** — server-side pagination endpoints compatible with jQuery DataTables
-- **Highcharts integration** — candlestick, market depth, and line charts in the web UI
-- **Icon service** — serves token icons with automatic fallback to a default image
-- **BigNumber precision** — all price and amount calculations use arbitrary-precision arithmetic via mathjs
+- **Three interfaces**: REST API, JSON-RPC 2.0, and a web block explorer served from the same process
+- **60+ REST endpoints**: tokens, balances, transactions, market data, DEX state, addresses, blocks, files, messages, and more
+- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 networks)
+- **Read-only**: the explorer never writes to the Indexer database
+- **Config discovery**: fetches configuration from xchain-hub on startup and refreshes every 60 seconds
+- **SSL/TLS support**: serves both HTTP and HTTPS with configurable certificates
+- **Rate limiting**: configurable request rate limiting (default 500 requests per minute)
+- **CORS configuration**: allowed origins configurable per deployment
+- **SSRF-protected relay**: proxy endpoint for external resources with private IP blocking
+- **WebSocket API**: real-time event streaming via `/{COIN}/api/websocket` with channel subscriptions, action-type filtering, lifecycle events (ORDER_MATCH, COINPAY_REQUIRED, etc.), catch-up on reconnect, and snapshot-on-subscribe
+- **Security headers**: Helmet middleware with Content Security Policy
+- **Raw parameterized SQL**: approximately 5,800 lines of query logic with no ORM, preventing SQL injection
+- **DataTables integration**: server-side pagination endpoints compatible with jQuery DataTables
+- **Highcharts integration**: candlestick, market depth, and line charts in the web UI
+- **Icon service**: serves token icons with automatic fallback to a default image
+- **BigNumber precision**: all price and amount calculations use arbitrary-precision arithmetic via mathjs
 
 ## Documentation
 
@@ -34,8 +34,8 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 |---|---|
 | [Architecture](ARCHITECTURE.md) | Data pipeline position, internal components, request processing pipeline, source files |
 | [Configuration](CONFIGURATION.md) | Environment variables, config.json, hub discovery, SSL/TLS, CORS, rate limiting, coin config |
-| [API Reference](API.md) | Complete REST API — all 60+ endpoints with paths, parameters, response formats, and examples |
-| [WebSocket API](WEBSOCKET.md) | Real-time event streaming — connection, channels, subscriptions, filters, lifecycle events, catch-up |
+| [API Reference](API.md) | Complete REST API: all 60+ endpoints with paths, parameters, response formats, and examples |
+| [WebSocket API](WEBSOCKET.md) | Real-time event streaming: connection, channels, subscriptions, filters, lifecycle events, catch-up |
 | [Operations](OPERATIONS.md) | Running, Docker, SSL setup, security features, relay endpoint, troubleshooting |
 
 ## Installation
@@ -140,11 +140,11 @@ curl http://localhost:8080/BTC/api/status
 
 ## Related
 
-- [Indexer](../indexer/) — the service that produces the database the explorer reads
-- [Indexer Database Schema](../indexer/DATABASE.md) — full schema reference for the underlying tables
-- [Hub](../hub/) — config oracle the explorer polls for connection details
-- [SDK](../sdk/) — developer SDK that wraps the explorer API with typed methods
-- [SDK Explorer Reference](../sdk/EXPLORER.md) — SDK client documentation for these same endpoints
+- [Indexer](../indexer/); the service that produces the database the explorer reads
+- [Indexer Database Schema](../indexer/DATABASE.md): full schema reference for the underlying tables
+- [Hub](../hub/): config oracle the explorer polls for connection details
+- [SDK](../sdk/): developer SDK that wraps the explorer API with typed methods
+- [SDK Explorer Reference](../sdk/EXPLORER.md): SDK client documentation for these same endpoints
 
 ---
 

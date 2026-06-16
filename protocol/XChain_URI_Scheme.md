@@ -5,13 +5,13 @@
 
 The XChain URI Scheme defines a compact, QR-friendly text format for representing user-initiated actions on the XChain Platform. A wallet, explorer, dApp, or any other XChain-aware tool can produce a URI; any XChain-aware tool that scans or pastes that URI can route the user to the right screen with the right fields pre-filled.
 
-The scheme is the XChain equivalent of [BIP21](https://github.com/bitcoin/bips/blob/master/bip-0021.mediawiki) — a payment-and-action URI you can put in a QR code, a link, or a clipboard. Unlike BIP21, the XChain scheme is cross-chain (Bitcoin / Litecoin / Dogecoin from a single namespace), names a specific action (not just a payment), and is open to future actions beyond send and receive.
+The scheme is the XChain equivalent of [BIP21](https://github.com/bitcoin/bips/blob/master/bip-0021.mediawiki); a payment-and-action URI you can put in a QR code, a link, or a clipboard. Unlike BIP21, the XChain scheme is cross-chain (Bitcoin / Litecoin / Dogecoin from a single namespace), names a specific action (not just a payment), and is open to future actions beyond send and receive.
 
 # JSON Specifications
 
 ## v1.0.0
 
-There is no JSON schema for this URI format — URI parameters are flat key=value pairs and are documented per action in the tables below. A machine-readable parameter manifest may be published under [`./json/`](./json/) in a future revision once the action surface stabilizes.
+There is no JSON schema for this URI format; URI parameters are flat key=value pairs and are documented per action in the tables below. A machine-readable parameter manifest may be published under [`./json/`](./json/) in a future revision once the action surface stabilizes.
 
 # URI Format
 
@@ -60,9 +60,9 @@ The action segment identifies the user intent. The scheme is open-ended: any ver
 | Action | Intent | Consumer behavior |
 | :--- | :--- | :--- |
 | `send` | Pay an address (or token amount) | Open the payer's Send screen, pre-fill chain / token / amount / destination |
-| `receive` | Request a payment to an address | Open the payee's Receive screen for the named chain (rarely used in QRs — see note below) |
+| `receive` | Request a payment to an address | Open the payee's Receive screen for the named chain (rarely used in QRs: see note below) |
 
-When a wallet generates a QR to **request payment** (i.e. someone wants to be paid), it encodes `action=send`: the scanner is the party that will send the funds, and `send` represents what they're about to do. `action=receive` is reserved for use cases where the URI is asking the consumer to open their own Receive screen — for example, a kiosk QR that says "tap to display your receive address."
+When a wallet generates a QR to **request payment** (i.e. someone wants to be paid), it encodes `action=send`: the scanner is the party that will send the funds, and `send` represents what they're about to do. `action=receive` is reserved for use cases where the URI is asking the consumer to open their own Receive screen, for example, a kiosk QR that says "tap to display your receive address."
 
 ## Extensibility
 
@@ -80,7 +80,7 @@ Verbs SHOULD be short, lowercase, hyphen-separated, and describe the user-visibl
 | :--- | :--- | :--- |
 | `send` | Stable | [Per-Action Reference → send](#send) |
 | `receive` | Stable | [Per-Action Reference → receive](#receive) |
-| _(reserved for future actions)_ | — | — |
+| _(reserved for future actions)_ | None | None |
 
 # Parameter Conventions
 
@@ -88,14 +88,14 @@ URI parameters are flat `key=value` pairs joined by `&`, percent-encoded per RFC
 
 | Prefix | Meaning |
 | :--- | :--- |
-| `req-<name>` | The consumer MUST honor `<name>` or reject the URI. Borrowed from BIP21 — a required parameter the consumer doesn't recognize is a hard fail, not a silent skip. |
+| `req-<name>` | The consumer MUST honor `<name>` or reject the URI. Borrowed from BIP21; a required parameter the consumer doesn't recognize is a hard fail, not a silent skip. |
 | _(no prefix)_ | Optional. Consumer may ignore parameters it doesn't understand. |
 
 Boolean parameters use the literal strings `true` or `false`.
 
 Amounts are decimal strings in the asset's display unit (e.g. `0.001` for one mBTC, not `100000` for 100,000 satoshis). The wallet handles the conversion to wire units.
 
-Memos cannot contain `|` or `;` — those characters are reserved by the protocol layer downstream. URI generators MUST strip or reject memos containing them. The wallet rejects pasted / scanned URIs whose memo violates this rule.
+Memos cannot contain `|` or `;`; those characters are reserved by the protocol layer downstream. URI generators MUST strip or reject memos containing them. The wallet rejects pasted / scanned URIs whose memo violates this rule.
 
 # Per-Action Reference
 
@@ -116,7 +116,7 @@ Open the payer's Send screen for the named chain. The payer will sign and broadc
 
 | URI | Meaning |
 | :--- | :--- |
-| `xchain:BTC/send?to=bc1qexampleaddress` | Open Send on Bitcoin mainnet to `bc1q…`. No amount or token specified — the payer fills them in. |
+| `xchain:BTC/send?to=bc1qexampleaddress` | Open Send on Bitcoin mainnet to `bc1q…`. No amount or token specified; the payer fills them in. |
 | `xchain:BTC/send?to=bc1qexampleaddress&amount=0.001` | Same, with 0.001 BTC pre-filled. |
 | `xchain:TBTC/send?to=tb1qexampleaddress&amount=1&tick=PEPECREATURE` | Open Send on Bitcoin testnet to `tb1q…`, pre-filled with 1 PEPECREATURE. |
 | `xchain:DOGE/send?to=DDoGeexampleaddress&amount=420&memo=Thanks!` | Open Send on Dogecoin mainnet, 420 DOGE, with a memo. |
@@ -144,7 +144,7 @@ Open the consumer's Receive screen for the named chain. The consumer's wallet wi
 
 Plain BIP21 URIs (`bitcoin:`, `litecoin:`, `dogecoin:`) remain fully supported as a parallel format. External wallets that only speak BIP21 can still pay an XChain address by scanning a bare-address BIP21 QR. The wallet generates a BIP21 URI by default when no XChain-specific customization (token, action, etc.) is set, maximizing interoperability with non-XChain wallets.
 
-The wallet's BIP21 parser recognizes the XChain extension parameters `tick` and `chain` and surfaces them on the Send screen if present — so a `bitcoin:bc1q…?tick=PEPECREATURE` URI works too, with the caveat that external wallets ignore the extension.
+The wallet's BIP21 parser recognizes the XChain extension parameters `tick` and `chain` and surfaces them on the Send screen if present, so a `bitcoin:bc1q…?tick=PEPECREATURE` URI works too, with the caveat that external wallets ignore the extension.
 
 | URI form | Recommended for |
 | :--- | :--- |

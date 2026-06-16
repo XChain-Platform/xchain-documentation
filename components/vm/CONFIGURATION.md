@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain VM — Configuration Reference
+# XChain VM: Configuration Reference
 
 ## Constructor Parameters
 
@@ -38,20 +38,20 @@ The gas schedule defines the cost of each metered operation. These values are se
 
 | Operation | Key | Cost | Description |
 |---|---|---|---|
-| Computation | `VM_COMPUTATION` | 1 | Charged at each `__gas()` injection point (loop iterations, branches, function calls). Indexed `for` loops are charged **twice per iteration** — see note below |
+| Computation | `VM_COMPUTATION` | 1 | Charged at each `__gas()` injection point (loop iterations, branches, function calls). Indexed `for` loops are charged **twice per iteration**: see note below |
 | State read | `VM_STATE_READ` | 100 | `state.get()`, `state.has()`, `getBalance()`, `getTokenInfo()`, `attestation.getResponse()`, `contract.getStake()`, `contract.getTotalStaked()`, `contract.getStakers()` |
 | State write | `VM_STATE_WRITE` | 200 | `state.set()` |
 | State delete | `VM_STATE_DELETE` | 100 | `state.delete()` |
 | Oracle read | `VM_ORACLE_READ` | 100 | `oracle.getPrice()`, `oracle.getPriceAtRound()` |
 | Cross-chain read | `VM_CROSSCHAIN_READ` | 100 | `crossChain.getAttestation()`, `crossChain.isSettled()`, `crossChain.getCallResult()` |
 | Action emission | `VM_EMISSION` | 500 | Each `emit.*()` call (SEND, MINT, ORDER, etc.); also charged on `attestation.request()` and `contract.slash()` |
-| Attestation request | `VM_ATTEST_REQUEST` | 5000 | Additional fee on top of `VM_EMISSION` for `attestation.request()` — reflects the validator-network work that backs the eventual response |
-| Cross-chain call request | `VM_XCALL_REQUEST` | 2000 | Additional fee on top of `VM_EMISSION` for `emit.crossExecute()` — the federation relay work. The call also pre-pays its remote `gasLimit` plus `VM_XCALL_CALLBACK`, with **no refund** of unused remote gas |
+| Attestation request | `VM_ATTEST_REQUEST` | 5000 | Additional fee on top of `VM_EMISSION` for `attestation.request()`: reflects the validator-network work that backs the eventual response |
+| Cross-chain call request | `VM_XCALL_REQUEST` | 2000 | Additional fee on top of `VM_EMISSION` for `emit.crossExecute()`; the federation relay work. The call also pre-pays its remote `gasLimit` plus `VM_XCALL_CALLBACK`, with **no refund** of unused remote gas |
 | Cross-chain callback ceiling | `VM_XCALL_CALLBACK` | 20000 | Fixed gas ceiling the result/expiry callback runs against on the source chain, pre-paid at `emit.crossExecute()` time |
 
 Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`revert`, `require`), and logging (`log`, `isLogFull`, `getLogCount`) are gas-free. `oracle.getSnapshotAge()` is also gas-free.
 
-> **Indexed `for` loops cost 2 × `VM_COMPUTATION` per iteration.** The metering transform injects a charge at the top of the loop body *and* a second charge into the update expression — `for (…; i++)` is rewritten as `for (…; (__gas(1), i++))` — so each iteration is metered twice. A `for` loop of N iterations therefore costs `2 × N × VM_COMPUTATION`. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost `1 × VM_COMPUTATION` per iteration. Budget gas ceilings for indexed `for` loops accordingly.
+> **Indexed `for` loops cost 2 × `VM_COMPUTATION` per iteration.** The metering transform injects a charge at the top of the loop body *and* a second charge into the update expression (`for (…; i++)` is rewritten as `for (…; (__gas(1), i++))`) so each iteration is metered twice. A `for` loop of N iterations therefore costs `2 × N × VM_COMPUTATION`. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost `1 × VM_COMPUTATION` per iteration. Budget gas ceilings for indexed `for` loops accordingly.
 
 ## Resource Limits
 
@@ -60,7 +60,7 @@ Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`r
 | Gas ceiling | `gasCeiling` | 1,000,000 | Maximum gas per execution. Primary execution bound. |
 | Max call depth | `maxCallDepth` (`VM_MAX_CALL_DEPTH`) | 4 | Maximum call depth for `emit.execute` trees. A user-submitted EXECUTE is depth 0; each `emit.execute` hop adds 1. |
 | Min call gas | `minCallGas` (`VM_MIN_CALL_GAS`) | 5,000 | Minimum `gasLimit` per `emit.execute` call. Bounds call-tree fan-out: every call costs at least `VM_EMISSION + VM_MIN_CALL_GAS` out of the caller's budget. |
-| CPU timeout | `maxCpuTimeMs` | 30,000 ms | Wall-clock timeout (safety net only — should never trigger under normal operation) |
+| CPU timeout | `maxCpuTimeMs` | 30,000 ms | Wall-clock timeout (safety net only: should never trigger under normal operation) |
 | Memory | `maxMemory` | 8 MB | V8 isolate heap size limit. Exceeding triggers `out_of_memory` error. |
 | Emissions | `maxEmissions` | 50 | Maximum platform actions a contract can emit per execution |
 | State keys | `maxStateKeys` | 10,000 | Maximum key-value pairs a contract can store |
@@ -96,7 +96,7 @@ These limits are hardcoded in the VM and not configurable:
 | Block cache | 1,000 entries per block | Excess entries skip cache (non-fatal) |
 | Log entries | 100 per execution | `EmissionCollector.addLog()` silently drops |
 
-Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs — it should never trigger under normal operation.
+Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs; it should never trigger under normal operation.
 
 ---
 

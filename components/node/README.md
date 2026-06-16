@@ -5,26 +5,26 @@
 
 ## What is xchain-node
 
-xchain-node is the CLI management and orchestration tool for the XChain Platform. It installs, configures, and manages all XChain services — and the underlying coin nodes (bitcoind, litecoind, dogecoind) — as Docker containers. Operators interact with the platform primarily through xchain-node rather than managing individual containers directly.
+xchain-node is the CLI management and orchestration tool for the XChain Platform. It installs, configures, and manages all XChain services (and the underlying coin nodes (bitcoind, litecoind, dogecoind)) as Docker containers. Operators interact with the platform primarily through xchain-node rather than managing individual containers directly.
 
 Unlike other XChain services that run as long-lived processes, xchain-node is a command-line tool invoked on demand. It stores installation state in LevelDB and generates per-service Docker environment variables from a two-layer configuration system (hardcoded defaults + config file overrides).
 
 ## Features
 
-- **Multi-chain orchestration** — a single installation manages Bitcoin, Litecoin, and Dogecoin simultaneously across mainnet, testnet, and regtest networks; each chain/network gets its own set of containers and Docker network
-- **Order-independent argument parsing** — CLI arguments can be provided in any order; xchain-node auto-classifies each as service, coin, network, or branch name
-- **Docker container lifecycle** — install, start, stop, restart, update, uninstall, and reset services with single commands
-- **Configuration generation** — two-layer system merges hardcoded defaults with per-coin/network config file overrides; generates 40+ environment variables per service including ports, database credentials, and service URLs
-- **Crypto node management** — downloads and builds Bitcoin Core, Litecoin, and Dogecoin binaries from official sources with SHA-256 hash verification
-- **Database orchestration** — provisions a shared MariaDB container, creates per-service databases and users, and manages subnet-based access permissions
-- **Bootstrap snapshots** — create and restore gzipped snapshots of UTXO tracker LevelDB, decoder, and indexer databases with SHA-256 integrity verification
-- **Multi-pane log monitoring** — Blessed-based terminal UI displays live log output from up to 6 containers simultaneously in a split-screen layout
-- **Pre-flight checks** — verifies Docker is installed and running, creates required directories, opens LevelDB, fetches remote version manifests, and creates Docker networks before any operation
-- **State persistence** — LevelDB maps each installed module to its 64-character Docker container ID using composite keys (`MC{module};{coin};{network}`)
-- **Hub and explorer auto-management** — automatically installs, updates, and configures the shared xchain-hub and xchain-explorer services as part of any installation
-- **execFile security** — all child process calls use `execFile` with array arguments instead of `exec` with shell strings, eliminating shell injection as a vulnerability class
-- **Input validation** — branch name, port, and container ID validation with strict regex enforcement
-- **1,148 tests** — unit, integration, e2e, smoke, fuzz, chaos, mutation, performance, and regression testing
+- **Multi-chain orchestration**: a single installation manages Bitcoin, Litecoin, and Dogecoin simultaneously across mainnet, testnet, and regtest networks; each chain/network gets its own set of containers and Docker network
+- **Order-independent argument parsing**: CLI arguments can be provided in any order; xchain-node auto-classifies each as service, coin, network, or branch name
+- **Docker container lifecycle**: install, start, stop, restart, update, uninstall, and reset services with single commands
+- **Configuration generation**: two-layer system merges hardcoded defaults with per-coin/network config file overrides; generates 40+ environment variables per service including ports, database credentials, and service URLs
+- **Crypto node management**: downloads and builds Bitcoin Core, Litecoin, and Dogecoin binaries from official sources with SHA-256 hash verification
+- **Database orchestration**: provisions a shared MariaDB container, creates per-service databases and users, and manages subnet-based access permissions
+- **Bootstrap snapshots**: create and restore gzipped snapshots of UTXO tracker LevelDB, decoder, and indexer databases with SHA-256 integrity verification
+- **Multi-pane log monitoring**: Blessed-based terminal UI displays live log output from up to 6 containers simultaneously in a split-screen layout
+- **Pre-flight checks**: verifies Docker is installed and running, creates required directories, opens LevelDB, fetches remote version manifests, and creates Docker networks before any operation
+- **State persistence**: LevelDB maps each installed module to its 64-character Docker container ID using composite keys (`MC{module};{coin};{network}`)
+- **Hub and explorer auto-management**: automatically installs, updates, and configures the shared xchain-hub and xchain-explorer services as part of any installation
+- **execFile security**: all child process calls use `execFile` with array arguments instead of `exec` with shell strings, eliminating shell injection as a vulnerability class
+- **Input validation**: branch name, port, and container ID validation with strict regex enforcement
+- **1,148 tests**: unit, integration, e2e, smoke, fuzz, chaos, mutation, performance, and regression testing
 
 ## Documentation
 
@@ -84,8 +84,8 @@ xchain-node monitor all bitcoin regtest
 | `npm run test:fuzz` | Fuzz tests (256 tests, 10s timeout) |
 | `npm run test:chaos` | Chaos engineering tests (140 tests, 15s timeout) |
 | `npm run test:regression` | Regression tests (60 tests, 10s timeout) |
-| `npm run test:regression:p0` | Regression P0 — critical gate (28 tests) |
-| `npm run test:regression:p0p1` | Regression P0+P1 — standard gate (52 tests) |
+| `npm run test:regression:p0` | Regression P0: critical gate (28 tests) |
+| `npm run test:regression:p0p1` | Regression P0+P1: standard gate (52 tests) |
 | `npm run test:mutation` | Mutation testing (Stryker Mutator, full) |
 | `npm run test:mutation:config` | Mutation testing (ConfigService pilot) |
 | `npm run test:all` | All tests (~1,148 tests) |
@@ -124,12 +124,12 @@ xchain-node monitor all bitcoin regtest
 
 ## Related
 
-- [Deployment Guide](../../operations/DEPLOYMENT.md) — step-by-step production deployment walkthrough
-- [Docker Guide](../../operations/DOCKER.md) — Docker configuration details and volume management
-- [Data Pipeline](../../architecture/Data_Pipeline.md) — how services connect in the full platform flow
-- [Encoder](../encoder/) — constructs XChain transactions (depends on xchain-node for deployment)
-- [Decoder](../decoder/) — decodes mined blocks (depends on xchain-node for deployment)
-- [Regtest Miner](../regtest-miner/) — auto-mines blocks in regtest (managed by xchain-node)
+- [Deployment Guide](../../operations/DEPLOYMENT.md): step-by-step production deployment walkthrough
+- [Docker Guide](../../operations/DOCKER.md): Docker configuration details and volume management
+- [Data Pipeline](../../architecture/Data_Pipeline.md): how services connect in the full platform flow
+- [Encoder](../encoder/): constructs XChain transactions (depends on xchain-node for deployment)
+- [Decoder](../decoder/): decodes mined blocks (depends on xchain-node for deployment)
+- [Regtest Miner](../regtest-miner/): auto-mines blocks in regtest (managed by xchain-node)
 
 ---
 

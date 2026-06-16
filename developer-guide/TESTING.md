@@ -5,11 +5,11 @@
 
 ## Philosophy
 
-Software that handles financial assets — token balances, DEX orders, cross-chain swaps — has no room for "it works on my machine." A single uncaught edge case in the indexer's ledger logic could silently misattribute tokens. A missed validation in the explorer's SQL could expose data it shouldn't. A race condition in the decoder's reorg handling could corrupt an entire chain's state.
+Software that handles financial assets (token balances, DEX orders, cross-chain swaps) has no room for "it works on my machine." A single uncaught edge case in the indexer's ledger logic could silently misattribute tokens. A missed validation in the explorer's SQL could expose data it shouldn't. A race condition in the decoder's reorg handling could corrupt an entire chain's state.
 
-The XChain Platform treats testing as a first-class engineering requirement, not an afterthought. Every component that processes, stores, or serves token data maintains a comprehensive test suite spanning multiple testing disciplines. We believe that thorough testing before release is not just a good idea — it is a necessity for any system that people trust with real value.
+The XChain Platform treats testing as a first-class engineering requirement, not an afterthought. Every component that processes, stores, or serves token data maintains a comprehensive test suite spanning multiple testing disciplines. We believe that thorough testing before release is not just a good idea; it is a necessity for any system that people trust with real value.
 
-Our testing strategy is built on a simple principle: **different types of bugs require different types of tests to find them.** Unit tests catch logic errors. Integration tests catch interface mismatches. Fuzz tests catch assumptions you didn't know you made. Chaos tests catch failures you assumed wouldn't happen. No single testing technique is sufficient on its own — together, they form a defense-in-depth strategy that gives us confidence in every release.
+Our testing strategy is built on a simple principle: **different types of bugs require different types of tests to find them.** Unit tests catch logic errors. Integration tests catch interface mismatches. Fuzz tests catch assumptions you didn't know you made. Chaos tests catch failures you assumed wouldn't happen. No single testing technique is sufficient on its own, together, they form a defense-in-depth strategy that gives us confidence in every release.
 
 ## Test Types
 
@@ -41,7 +41,7 @@ E2E tests exercise the full system from input to output, verifying that data flo
 
 ### Smoke Tests
 
-Smoke tests are fast, lightweight checks that verify a service is fundamentally operational — it starts, connects to its dependencies, and responds to basic requests. Smoke tests run in seconds and are designed for use in CI pipelines, deployment verification, and health monitoring.
+Smoke tests are fast, lightweight checks that verify a service is fundamentally operational; it starts, connects to its dependencies, and responds to basic requests. Smoke tests run in seconds and are designed for use in CI pipelines, deployment verification, and health monitoring.
 
 **What they catch:** Broken imports, missing dependencies, configuration errors, services that crash on startup, basic connectivity failures.
 
@@ -49,7 +49,7 @@ Smoke tests are fast, lightweight checks that verify a service is fundamentally 
 
 ### Boundary Tests
 
-Boundary tests target the exact edges of valid input ranges — maximum and minimum values, length limits, precision thresholds, and off-by-one conditions. They test the specific points where behavior should change: the last valid input, the first invalid input, and the values immediately adjacent to every limit.
+Boundary tests target the exact edges of valid input ranges: maximum and minimum values, length limits, precision thresholds, and off-by-one conditions. They test the specific points where behavior should change: the last valid input, the first invalid input, and the values immediately adjacent to every limit.
 
 **What they catch:** Off-by-one errors in length checks, integer overflow, precision loss in BigNumber arithmetic, incorrect greater-than vs greater-than-or-equal comparisons, edge cases at maximum supply or minimum amounts.
 
@@ -57,7 +57,7 @@ Boundary tests target the exact edges of valid input ranges — maximum and mini
 
 ### Fuzz Tests
 
-Fuzz tests (property-based tests) generate large volumes of random, semi-random, and adversarial inputs to find bugs that hand-written tests miss. Rather than testing specific cases, fuzz tests define invariants — properties that must always hold — and then try thousands of inputs to find violations.
+Fuzz tests (property-based tests) generate large volumes of random, semi-random, and adversarial inputs to find bugs that hand-written tests miss. Rather than testing specific cases, fuzz tests define invariants (properties that must always hold) and then try thousands of inputs to find violations.
 
 **What they catch:** Crashes on unexpected input types, unicode handling errors, prototype pollution, assumptions about input format, mathematical properties that break at extreme values.
 
@@ -81,7 +81,7 @@ Performance tests establish baseline response times and throughput, then verify 
 
 ### Chaos Engineering Tests
 
-Chaos tests intentionally inject failures into the system — database disconnections, network latency, resource exhaustion, dependency outages — and verify that the service degrades gracefully rather than crashing or corrupting data. Chaos tests use tools like Toxiproxy to simulate realistic infrastructure failures.
+Chaos tests intentionally inject failures into the system: database disconnections, network latency, resource exhaustion, dependency outages; and verify that the service degrades gracefully rather than crashing or corrupting data. Chaos tests use tools like Toxiproxy to simulate realistic infrastructure failures.
 
 **What they catch:** Ungraceful failure modes, missing error handling, connection pool behavior under failure, cascade failures, data corruption during partial outages, recovery behavior after failures resolve.
 
@@ -89,7 +89,7 @@ Chaos tests intentionally inject failures into the system — database disconnec
 
 ### Mutation Tests
 
-Mutation tests evaluate the quality of the existing test suite by making small, systematic changes (mutations) to the source code — flipping operators, changing constants, removing conditions — and checking whether the test suite detects each change. A mutation that passes all tests is a "survived mutant," indicating a gap in test coverage.
+Mutation tests evaluate the quality of the existing test suite by making small, systematic changes (mutations) to the source code (flipping operators, changing constants, removing conditions) and checking whether the test suite detects each change. A mutation that passes all tests is a "survived mutant," indicating a gap in test coverage.
 
 **What they catch:** Weak assertions that pass regardless of behavior, missing test cases for specific code paths, tests that verify structure but not semantics, coverage gaps where code is executed but not meaningfully verified.
 
@@ -102,9 +102,9 @@ Regression tests are a curated subset of tests across all disciplines, organized
 **What they catch:** Re-introduced bugs, broken critical paths after refactoring, unintended side effects of changes, regressions in core functionality.
 
 **Tier structure:**
-- **P0 (Critical path)** — Core logic and security baselines. Runs in seconds. Every commit.
-- **P1 (High priority)** — API contracts, market data, secondary features. Runs in under 2 minutes. Every PR.
-- **P2 (Medium priority)** — Cross-endpoint consistency, edge cases. Runs in under 10 minutes. Nightly.
+- **P0 (Critical path)**: Core logic and security baselines. Runs in seconds. Every commit.
+- **P1 (High priority)**: API contracts, market data, secondary features. Runs in under 2 minutes. Every PR.
+- **P2 (Medium priority)**: Cross-endpoint consistency, edge cases. Runs in under 10 minutes. Nightly.
 
 ## Platform Test Coverage
 
@@ -126,18 +126,18 @@ The XChain Platform maintains over **5,600 tests** across its six primary compon
 | Test Type | Indexer | Explorer | Encoder | VM | SDK | E2E Suite |
 |---|---|---|---|---|---|---|
 | Unit | ~530 | ~583 | 114 | 580 | ~391 | ~360 |
-| Integration | ~929 | ~83 | 108 | — | — | ~72 |
-| E2E | 43 | 49 | ~80 | 64 | — | ~37 |
+| Integration | ~929 | ~83 | 108 | None | None | ~72 |
+| E2E | 43 | 49 | ~80 | 64 | None | ~37 |
 | Smoke | ~10 | ~40 | ~10 | 10 | 11 | ~16 |
 | Boundary | ~100 | ~211 | ~120 | 106 | 36 | ~144 |
-| Fuzz | ~50 | — | — | 86 | 56 | ~53 |
-| Security | ~60 | ~104 | — | 72 | — | — |
-| Performance | 5 suites | 15 | 3 suites | 5 scenarios | — | 3 modes |
+| Fuzz | ~50 | None | None | 86 | 56 | ~53 |
+| Security | ~60 | ~104 | None | 72 | None | None |
+| Performance | 5 suites | 15 | 3 suites | 5 scenarios | None | 3 modes |
 | Chaos | ~30 | ~56 | 61 | 92 | 28 | ~77 |
-| Mutation | ~30 | StrykerJS | StrykerJS | StrykerJS + custom | — | StrykerJS |
-| Regression | ~18 | 144 | 196 | 152 | — | ~114 |
-| Round-trip | — | — | — | — | 29 | — |
-| Actions | — | — | — | — | — | ~80 |
+| Mutation | ~30 | StrykerJS | StrykerJS | StrykerJS + custom | None | StrykerJS |
+| Regression | ~18 | 144 | 196 | 152 | None | ~114 |
+| Round-trip | None | (| None |) | 29 | None |
+| Actions | None | (| None |) | None | ~80 |
 
 ### Testing Infrastructure
 
@@ -187,10 +187,10 @@ npm run test:smoke             # Basic operational health
 
 When contributing to the XChain Platform, new features and bug fixes should include appropriate tests:
 
-- **New feature** — Unit tests for the new logic, plus integration tests if it touches the database or API surface.
-- **Bug fix** — A regression test that reproduces the bug and verifies the fix. This test should fail without the fix and pass with it.
-- **Security fix** — A security test that attempts the exploit and verifies it is blocked.
-- **Performance change** — Update or add performance baselines to reflect the new expected behavior.
+- **New feature**: Unit tests for the new logic, plus integration tests if it touches the database or API surface.
+- **Bug fix**: A regression test that reproduces the bug and verifies the fix. This test should fail without the fix and pass with it.
+- **Security fix**: A security test that attempts the exploit and verifies it is blocked.
+- **Performance change**: Update or add performance baselines to reflect the new expected behavior.
 
 Tests should be deterministic, isolated, and fast. Avoid sleeps, network calls to external services, and dependencies on test execution order.
 

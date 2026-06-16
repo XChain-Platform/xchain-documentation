@@ -102,7 +102,7 @@ console.log('LIST action_index:', listActionIndex);
 
 ## Step 3: Issue the Token
 
-The ISSUE action creates a new token. Every field beyond `tick` is optional — omit what you don't need.
+The ISSUE action creates a new token. Every field beyond `tick` is optional, omit what you don't need.
 
 ```js
 const issueAction = sdk.issue({
@@ -119,11 +119,11 @@ const issueAction = sdk.issue({
 ```
 
 **Parameter notes:**
-- `maxSupply` — the hard ceiling. Once set and locked, can never increase.
-- `maxMint` — controls each MINT call's cap. If omitted, only the token owner can mint.
-- `decimals` — cannot be changed after any supply exists. Choose carefully.
-- `description` — up to 250 characters. No pipe `|` or semicolon `;` allowed. Typically a URL to an icon or JSON metadata file.
-- `mintSupply` — instantly mints tokens to your address as part of the ISSUE transaction.
+- `maxSupply`: the hard ceiling. Once set and locked, can never increase.
+- `maxMint`: controls each MINT call's cap. If omitted, only the token owner can mint.
+- `decimals`: cannot be changed after any supply exists. Choose carefully.
+- `description`: up to 250 characters. No pipe `|` or semicolon `;` allowed. Typically a URL to an icon or JSON metadata file.
+- `mintSupply`: instantly mints tokens to your address as part of the ISSUE transaction.
 
 ```js
 // Encode the ISSUE action to a PSBT
@@ -300,19 +300,19 @@ console.log('Holders:', holders);
 
 Each action you broadcast went through this pipeline:
 
-1. **Encoder** — built a Bitcoin transaction embedding `XCHN`-prefixed, AES-128-CTR obfuscated ACTION data in an `OP_RETURN` output (or P2SH/P2WSH for larger payloads).
-2. **Coin node** — accepted the transaction into its mempool; regtest-miner mined the block.
-3. **Decoder** — polled the coin node via JSON-RPC, decoded the XChain payload, and wrote raw action records to its MariaDB.
-4. **Indexer** — read the decoder DB, applied business logic (supply math, balance updates, ownership tracking), and wrote final state to the indexer MariaDB.
-5. **Explorer** — exposed the indexer DB via REST API; the SDK's `explorer.*` calls hit these endpoints.
+1. **Encoder**: built a Bitcoin transaction embedding `XCHN`-prefixed, AES-128-CTR obfuscated ACTION data in an `OP_RETURN` output (or P2SH/P2WSH for larger payloads).
+2. **Coin node**: accepted the transaction into its mempool; regtest-miner mined the block.
+3. **Decoder**: polled the coin node via JSON-RPC, decoded the XChain payload, and wrote raw action records to its MariaDB.
+4. **Indexer**: read the decoder DB, applied business logic (supply math, balance updates, ownership tracking), and wrote final state to the indexer MariaDB.
+5. **Explorer**: exposed the indexer DB via REST API; the SDK's `explorer.*` calls hit these endpoints.
 
 ---
 
 ## Next Steps
 
-- [Build_A_Dispenser.md](Build_A_Dispenser.md) — sell tokens automatically
-- [Advanced_Token_Features.md](Advanced_Token_Features.md) — allow lists, mint windows, callbacks
-- [Batch_Operations.md](Batch_Operations.md) — combine multiple actions in one transaction
+- [Build_A_Dispenser.md](Build_A_Dispenser.md): sell tokens automatically
+- [Advanced_Token_Features.md](Advanced_Token_Features.md): allow lists, mint windows, callbacks
+- [Batch_Operations.md](Batch_Operations.md): combine multiple actions in one transaction
 
 ---
 

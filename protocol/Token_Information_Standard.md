@@ -38,12 +38,12 @@ Entries inside the `files`, `audio`, `video`, and `images` arrays can carry the 
 | Field       | Type    | Description
 | :---        | :---    | :---
 | data        | String  | URL to the file (off-chain). Used for non-gated content.
-| data_ref    | String  | Reference to an on-chain [`FILE`](./actions/FILE.md) action by `ACTION_INDEX`: `action:<index>` (same chain as the token) or `action:<COIN>:<index>` (sibling chain — base coin ticker `BTC`/`LTC`/`DOGE`, network tier implied by the token's network, same convention as [`LINK`](./actions/LINK.md)'s `COIN1`/`COIN2`). Lets cheap chains carry the bytes for tokens on expensive ones — e.g. a BTC token whose artwork FILE lives on DOGE. When both `data` and `data_ref` are present, clients prefer `data_ref`.
+| data_ref    | String  | Reference to an on-chain [`FILE`](./actions/FILE.md) action by `ACTION_INDEX`: `action:<index>` (same chain as the token) or `action:<COIN>:<index>` (sibling chain: base coin ticker `BTC`/`LTC`/`DOGE`, network tier implied by the token's network, same convention as [`LINK`](./actions/LINK.md)'s `COIN1`/`COIN2`). Lets cheap chains carry the bytes for tokens on expensive ones: e.g. a BTC token whose artwork FILE lives on DOGE. When both `data` and `data_ref` are present, clients prefer `data_ref`.
 | name        | String  | Filename
 | type        | String  | MIME type
 | title       | String  | Display title
 | locked      | Boolean | `true` if the file is encrypted and gated. Clients use this to render locked/unlocked states without first fetching the FILE action.
-| pack_id     | String  | (Optional) Pack identifier grouping files that share an unlock key. References the top-level `packs` map for display name and description. Does not need to be present for unlocking to work — the protocol groups by `KEY_HASH` directly.
+| pack_id     | String  | (Optional) Pack identifier grouping files that share an unlock key. References the top-level `packs` map for display name and description. Does not need to be present for unlocking to work; the protocol groups by `KEY_HASH` directly.
 
 
 # NFT Usage
@@ -51,7 +51,7 @@ Entries inside the `files`, `audio`, `video`, and `images` arrays can carry the 
 Tokens following the [NFT Standard](./NFT_Standard.md) use TIS as their **display
 layer**: the protocol records which files a token's owner has officially attached (via
 [`FILE`](./actions/FILE.md) + [`LINK`](./actions/LINK.md)), but attaches no display
-semantics to them — the token's TIS document decides what clients render and how.
+semantics to them; the token's TIS document decides what clients render and how.
 
 Recommendations for NFT issuers:
 
@@ -71,14 +71,14 @@ Recommendations for NFT issuers:
 - **For a fully on-chain token**, upload the TIS JSON itself as a `FILE` action and
   set `DESCRIPTION=action:<index>` (the On-Chain Format below). With the document and
   its `data_ref` media all on-chain, every byte a client needs to render the token is
-  recoverable from a full chain parse — no hosting, no hostnames.
+  recoverable from a full chain parse. No hosting, no hostnames.
 - **For immutable presentation**, host the TIS JSON content-addressed (`ipfs:`/`ord:`/
   `ar:` or URL`;HASH` forms below) and set `LOCK_DESCRIPTION=1` on the token so the
   pointer can never change. (The on-chain `action:<index>` form is inherently
-  content-immutable — locking the description makes the pointer immutable too.)
+  content-immutable, locking the description makes the pointer immutable too.)
 
 Clients classify a token as NFT-pattern by chain state (`DECIMALS=0` +
-`LOCK_MAX_SUPPLY=1` — the canonical rule is defined in the
+`LOCK_MAX_SUPPLY=1`; the canonical rule is defined in the
 [NFT Standard](./NFT_Standard.md#classification-rule-for-clients)) and treat the TIS
 category as the issuer's stated intent.
 
@@ -112,7 +112,7 @@ Below are a number of token description formats which should be recognized by XC
 <table>
 <tr><td><b>Format</b></td><td>action:INDEX <i>or</i> action:COIN:INDEX</td></tr>
 <tr><td><b>INDEX</b></td><td>ACTION_INDEX of a <a href="./actions/FILE.md">FILE</a> action whose raw bytes are a TIS JSON document (declared MIME type <code>application/json</code>)</td></tr>
-<tr><td><b>COIN</b></td><td>(optional) base coin ticker (<code>BTC</code>/<code>LTC</code>/<code>DOGE</code>) when the FILE lives on a <b>sibling chain</b>; omitted = same chain as the token. The network tier (mainnet/testnet/regtest) is implied by the token's network — same convention as <a href="./actions/LINK.md">LINK</a>'s <code>COIN1</code>/<code>COIN2</code>. Lets cheap chains carry the document for tokens on expensive ones.</td></tr>
+<tr><td><b>COIN</b></td><td>(optional) base coin ticker (<code>BTC</code>/<code>LTC</code>/<code>DOGE</code>) when the FILE lives on a <b>sibling chain</b>; omitted = same chain as the token. The network tier (mainnet/testnet/regtest) is implied by the token's network, same convention as <a href="./actions/LINK.md">LINK</a>'s <code>COIN1</code>/<code>COIN2</code>. Lets cheap chains carry the document for tokens on expensive ones.</td></tr>
 <tr><td><b>Note</b></td><td>The fully on-chain form: the TIS document itself lives on a chain, so the token's display metadata has the same permanence as the token. Combine with <code>data_ref</code> entries inside the document for on-chain media (also same- or sibling-chain), and <code>LOCK_DESCRIPTION=1</code> for an immutable pointer. Same casing/format as <code>data_ref</code>, one level up. Clients resolve the bytes the same way they resolve <code>data_ref</code> (e.g. the explorer's <code>/{COIN}/api/file/{INDEX}/raw</code>).</td></tr>
 <tr><td><b>Example</b></td><td>action:12345 &nbsp;·&nbsp; action:DOGE:12345</td></tr>
 </table>

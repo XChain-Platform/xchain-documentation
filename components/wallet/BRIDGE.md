@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2026 Dankest, LLC -->
 
-# dApp Bridge — `window.xchain`
+# dApp Bridge: `window.xchain`
 
 The wallet exposes a typed `window.xchain` provider to dApps in browser tabs. Third-party developers consume the typed API through the `@xchain-wallet/bridge-spec` TypeScript package.
 
@@ -29,7 +29,7 @@ import { BRIDGE_SPEC_VERSION } from '@xchain-wallet/bridge-spec';
 // '0.1.0'
 ```
 
-Minor bumps add methods. Major bumps are breaking. The wallet keeps the bridge spec backward-compatible across minor wallet releases — a dApp pinned to bridge-spec `0.1.x` continues to work as the wallet ships `1.0.x`, `1.1.x`, …
+Minor bumps add methods. Major bumps are breaking. The wallet keeps the bridge spec backward-compatible across minor wallet releases; a dApp pinned to bridge-spec `0.1.x` continues to work as the wallet ships `1.0.x`, `1.1.x`, …
 
 ## Methods
 
@@ -45,11 +45,11 @@ console.log(result.accounts, result.addresses);
 
 ### `getSupportedChains()`
 
-Returns the chain descriptors the wallet exposes — `id`, `coin`, `displayName`, `networkKind`, `addressTypes`, `defaultAddressType`, `supportedActions`, `uriScheme`. Internal-only fields (default endpoint URLs, fee strategy, derivation templates) are not exposed.
+Returns the chain descriptors the wallet exposes: `id`, `coin`, `displayName`, `networkKind`, `addressTypes`, `defaultAddressType`, `supportedActions`, `uriScheme`. Internal-only fields (default endpoint URLs, fee strategy, derivation templates) are not exposed.
 
 ### `getAccounts()` / `getBalances(address)`
 
-Read-only. Returns the user's exposed accounts / addresses + token balances. The dApp sees an opaque `id` + display label — derivation paths, BIP44 indices, and creation timestamps are not surfaced.
+Read-only. Returns the user's exposed accounts / addresses + token balances. The dApp sees an opaque `id` + display label, derivation paths, BIP44 indices, and creation timestamps are not surfaced.
 
 ### `signMessage(params)`
 
@@ -97,10 +97,10 @@ The wallet:
 
 1. Validates the action against its registry of action descriptors (`core/src/registry/actions.js`)
 2. Calls `xchain-sdk` to encode the action into a PSBT
-3. Renders the sign screen — form values from the dApp on top, decoded action summary in the middle, encoder PSBT bytes on the bottom (hidden behind a "Show advanced" toggle by default)
+3. Renders the sign screen, form values from the dApp on top, decoded action summary in the middle, encoder PSBT bytes on the bottom (hidden behind a "Show advanced" toggle by default)
 4. Signs and returns the signed PSBT
 
-If the action is unsupported (not in the wallet's registry, or the user has no balance on the chosen chain), an `UnsupportedActionResult` is returned with a typed reason — letting the dApp fall back gracefully.
+If the action is unsupported (not in the wallet's registry, or the user has no balance on the chosen chain), an `UnsupportedActionResult` is returned with a typed reason, letting the dApp fall back gracefully.
 
 ### `sendAction(params)`
 
@@ -111,7 +111,7 @@ const result = await xchain.sendAction({ ...same params... });
 console.log(result.txid, result.indexed);
 ```
 
-### `signIn(params)` — Sign-In with XChain
+### `signIn(params)`: Sign-In with XChain
 
 Challenge-response authentication. The dApp generates a challenge and the wallet signs it; the dApp's backend verifies the signature against the user's address.
 
@@ -140,7 +140,7 @@ The wallet refuses to sign:
 - A challenge whose `domain` doesn't match the request origin
 - A challenge whose `version` is unrecognized
 
-This bakes origin and freshness into the challenge format itself — the dApp doesn't have to implement them client-side.
+This bakes origin and freshness into the challenge format itself; the dApp doesn't have to implement them client-side.
 
 ## Events
 
@@ -150,15 +150,15 @@ xchain.on('chainChanged', (chainId) => { ... });
 xchain.on('disconnect', () => { ... });
 ```
 
-Action-status streams (block / address / token / market / dispenser) live on the SDK's WebSocket layer rather than the bridge — dApps that need real-time data subscribe via the SDK directly. Keeping the bridge surface small reduces the audit surface and the per-origin permission surface.
+Action-status streams (block / address / token / market / dispenser) live on the SDK's WebSocket layer rather than the bridge, dApps that need real-time data subscribe via the SDK directly. Keeping the bridge surface small reduces the audit surface and the per-origin permission surface.
 
 ## Permissions
 
 Every privileged method (`signMessage`, `signPsbt`, `signAction`, `sendAction`, `signIn`) routes through the approval window. Per-origin grants in the vault's `connectedSites` collection encode three policies per action:
 
-- **`always`** — auto-approve subsequent calls; the wallet still re-renders the review pane and the user can cancel before sign
-- **`ask`** — surface the approval popup every time
-- **`never`** — refuse silently with an `EPermissionDenied` error
+- **`always`**: auto-approve subsequent calls; the wallet still re-renders the review pane and the user can cancel before sign
+- **`ask`**: surface the approval popup every time
+- **`never`**: refuse silently with an `EPermissionDenied` error
 
 Default for a fresh origin is `ask` for every action; the user can promote to `always` from the approval popup or from Settings → Connected Sites.
 
@@ -189,15 +189,15 @@ Always `if (result.error) handleError(result.error.code)` before reading the suc
 
 `@xchain-wallet/test-dapp` is a reference dApp that exercises every bridge method end-to-end. It ships in the wallet repo at `packages/test-dapp/`. Use it as:
 
-- A **smoke check** during wallet development — `bridge-e2e.smoke.js` exercises the bridge handlers against the test-dapp's mock provider in node
-- A **runbook** for manual QA — `packages/extension/docs/TEST_DAPP_RUNBOOK.md` walks you through a hands-on bridge round-trip with the loaded extension and a running test-dapp page
-- A **starter** for third-party integrators — copy the directory and replace its mock provider with the real `getProvider` import
+- A **smoke check** during wallet development: `bridge-e2e.smoke.js` exercises the bridge handlers against the test-dapp's mock provider in node
+- A **runbook** for manual QA: `packages/extension/docs/TEST_DAPP_RUNBOOK.md` walks you through a hands-on bridge round-trip with the loaded extension and a running test-dapp page
+- A **starter** for third-party integrators, copy the directory and replace its mock provider with the real `getProvider` import
 
 ## Security model
 
 The bridge enforces three layers between the dApp and the user's keys:
 
-1. **Origin stamping.** The content script reads `origin` from `window.location.origin` and stamps every message before forwarding to the service worker. Page scripts cannot forge a different origin — they can only post messages to the content script's relay, and the content script's stamp is what the bridge handler checks.
+1. **Origin stamping.** The content script reads `origin` from `window.location.origin` and stamps every message before forwarding to the service worker. Page scripts cannot forge a different origin; they can only post messages to the content script's relay, and the content script's stamp is what the bridge handler checks.
 2. **Service-worker boundary.** The service worker (extension) or main process (desktop) owns the vault and the signers. Every privileged op crosses the boundary, where it's matched against `connectedSites` and routed through the approval popup. The renderer / page never sees the master key, the seed, or any private key.
 3. **Per-method approval.** Even with an `always` grant, the approval popup re-renders the review pane on every privileged call. The user can revoke the grant in one click if anything looks off.
 

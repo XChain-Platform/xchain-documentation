@@ -151,7 +151,7 @@ Gate access to content, features, or services based on whether a user holds a sp
 
 ### Step 1: Balance Check
 
-The simplest form — query the explorer to see if an address holds enough of a token:
+The simplest form, query the explorer to see if an address holds enough of a token:
 
 ```js
 const { bignumber, largerEq } = require('mathjs');
@@ -328,7 +328,7 @@ function watchSession(sessionToken, address, tick, minimum) {
 
 ### Step 5: Smart Contract-Based Gating (On-Chain)
 
-For use cases where the gating logic itself must be trustless and on-chain — not controlled by a server — deploy a smart contract that checks balances before releasing content hashes or toggling access flags.
+For use cases where the gating logic itself must be trustless and on-chain (not controlled by a server) deploy a smart contract that checks balances before releasing content hashes or toggling access flags.
 
 ```js
 // Contract: on-chain token gate
@@ -391,15 +391,15 @@ module.exports = {
 
 | Scenario | Approach |
 |---|---|
-| Web app serving media (music, video, e-books) | **Off-chain** — server checks balance, serves content |
-| Proving access rights to a third party trustlessly | **On-chain** — contract verifies balance, emits proof |
-| Physical access (event entry, venue) | **Off-chain** — QR code + challenge-response at the door |
-| DAO/governance feature unlock | **On-chain** — contract checks balance before executing logic |
-| Content where the creator doesn't run a server | **On-chain** — contract holds content hashes, verifies holders |
+| Web app serving media (music, video, e-books) | **Off-chain**: server checks balance, serves content |
+| Proving access rights to a third party trustlessly | **On-chain**: contract verifies balance, emits proof |
+| Physical access (event entry, venue) | **Off-chain**; QR code + challenge-response at the door |
+| DAO/governance feature unlock | **On-chain**: contract checks balance before executing logic |
+| Content where the creator doesn't run a server | **On-chain**: contract holds content hashes, verifies holders |
 
 ### End-to-End Example: Token-Gated Music Platform
 
-Putting it all together — a music platform where listeners must hold an artist's token to stream songs:
+Putting it all together; a music platform where listeners must hold an artist's token to stream songs:
 
 ```js
 const express = require('express');
@@ -488,7 +488,7 @@ app.listen(3000);
 
 ### Security Considerations
 
-- **Always verify wallet ownership.** A balance check without signature verification is trivially bypassed — anyone can look up a whale's address and claim it.
+- **Always verify wallet ownership.** A balance check without signature verification is trivially bypassed, anyone can look up a whale's address and claim it.
 - **Use short-lived signed URLs for content delivery.** Don't serve raw file paths. Generate URLs that expire (e.g., via S3 presigned URLs or a CDN token) so that a shared link stops working.
 - **Re-check balances periodically.** A user might transfer their tokens away after logging in. The `recheckIntervalMs` parameter controls this tradeoff.
 - **Consider transfer-lock tokens.** If your use case requires that holders cannot sell or transfer the token (e.g., membership credentials), set `TRANSFER_LOCK` on the token at issuance. This eliminates the "transfer tokens away after the check" problem entirely.
@@ -714,11 +714,11 @@ Instead of polling the explorer REST API, use the WebSocket API for instant even
 
 | Use Case | Approach |
 |---|---|
-| Dashboard showing live block count | **WebSocket** — `onBlock()` |
-| Trading bot reacting to order matches | **WebSocket** — `onCoinpayRequired()` |
-| One-time balance lookup | **REST** — `getBalances()` |
-| Periodic report generation | **REST** — poll on a schedule |
-| Real-time portfolio tracker | **WebSocket** — `onAddress()` with snapshot |
+| Dashboard showing live block count | **WebSocket**: `onBlock()` |
+| Trading bot reacting to order matches | **WebSocket**: `onCoinpayRequired()` |
+| One-time balance lookup | **REST**: `getBalances()` |
+| Periodic report generation | **REST**: poll on a schedule |
+| Real-time portfolio tracker | **WebSocket**: `onAddress()` with snapshot |
 
 ### Example: Event-Driven COINPay Bot
 
@@ -782,9 +782,9 @@ See the [SDK WebSocket documentation](../components/sdk/WEBSOCKET.md) for the fu
 
 ## Next Steps
 
-- [Regtest_Development.md](Regtest_Development.md) — build and test locally
-- [Query_The_Explorer.md](Query_The_Explorer.md) — full explorer API reference
-- [Batch_Operations.md](Batch_Operations.md) — multi-action efficiency patterns
+- [Regtest_Development.md](Regtest_Development.md): build and test locally
+- [Query_The_Explorer.md](Query_The_Explorer.md): full explorer API reference
+- [Batch_Operations.md](Batch_Operations.md): multi-action efficiency patterns
 
 ---
 

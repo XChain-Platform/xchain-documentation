@@ -3,7 +3,7 @@
 
 # Database Design
 
-XChain uses two database technologies — MariaDB for relational data (decoder, indexer, hub) and LevelDB for key-value data (UTXO tracker) — with a strict separation between raw decoded data, validated chain-specific state, and cross-chain infrastructure data.
+XChain uses two database technologies; MariaDB for relational data (decoder, indexer, hub) and LevelDB for key-value data (UTXO tracker), with a strict separation between raw decoded data, validated chain-specific state, and cross-chain infrastructure data.
 
 ## The Three-Database Model
 
@@ -47,7 +47,7 @@ xchain-explorer    │
 **Separation principle:** The indexer DB contains only state derived from processing that chain's blocks. Cross-chain data synced from the hub lives in its own database. This means:
 - Wiping and re-indexing a chain does not affect hub data
 - Re-syncing hub data does not affect indexed chain state
-- Clear ownership boundary — indexer writes to indexer DB, hub sync writes to hub DB, indexer reads from both
+- Clear ownership boundary: indexer writes to indexer DB, hub sync writes to hub DB, indexer reads from both
 
 ### Decoder DB
 
@@ -63,17 +63,17 @@ The Decoder DB does **not** interpret or validate ACTION content. It is a faithf
 
 The Indexer DB is the indexer's output and the explorer's input. It stores the validated, processed state of all XChain actions: token records, ledger entries, order books, balances, the local `prices` action log, and more.
 
-The Indexer DB contains business logic outcomes — tokens that passed validation, balances after debits and credits, orders that matched. Because it is derived deterministically from the Decoder DB, it can also be rebuilt from scratch.
+The Indexer DB contains business logic outcomes, tokens that passed validation, balances after debits and credits, orders that matched. Because it is derived deterministically from the Decoder DB, it can also be rebuilt from scratch.
 
 ### Hub DB (local copy)
 
 The Hub DB is a local, read-only copy of cross-chain infrastructure tables synced from `xchain-hub` via WebSocket. It contains:
 
-- `price_snapshots` — deduplicated cross-chain validator COIN/FIAT prices (PRICE v0)
-- `oracle_prices` — cross-chain user TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window
+- `price_snapshots`: deduplicated cross-chain validator COIN/FIAT prices (PRICE v0)
+- `oracle_prices`: cross-chain user TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window
 - Validator infrastructure: `stakes`, `delegations`, `validator_rewards` (synced from BTC indexer state)
 
-The indexer queries this database for cross-chain data during block processing — no hub round-trip required. The hub aggregates data from all chains' indexers and pushes new rows to all connected nodes' local hub DB copies.
+The indexer queries this database for cross-chain data during block processing. No hub round-trip required. The hub aggregates data from all chains' indexers and pushes new rows to all connected nodes' local hub DB copies.
 
 Two connectivity modes:
 - **Direct connection**: For single-host or trusted-network deployments, the indexer's hub DB connection points directly at the hub's MariaDB instance
@@ -126,27 +126,27 @@ All SQL is written as raw parameterized queries using the `mariadb` npm package.
 
 The Indexer DB has 60+ tables organized into five categories:
 
-**Core tables** — track the blocks, transactions, and actions that have been processed:
+**Core tables**: track the blocks, transactions, and actions that have been processed:
 
-- `blocks` — one row per processed block (height, hash, timestamp, processing status)
-- `transactions` — one row per transaction containing a valid XChain action
-- `actions` — one row per decoded action (raw string, action type, validity, block height)
+- `blocks`: one row per processed block (height, hash, timestamp, processing status)
+- `transactions`: one row per transaction containing a valid XChain action
+- `actions`: one row per decoded action (raw string, action type, validity, block height)
 
-**Ledger tables** — the double-entry accounting system:
+**Ledger tables**: the double-entry accounting system:
 
-- `credits` — every inflow of tokens to an address (mint, receive, escrow release)
-- `debits` — every outflow of tokens from an address (send, fee, escrow lock)
-- `escrows` — tokens locked pending order matching, dispenser activity, or swap completion
-- `balances` — materialized view of current holdings per address per ticker (computed from credits minus debits)
-- `fees` — gas fees collected per action
+- `credits`: every inflow of tokens to an address (mint, receive, escrow release)
+- `debits`: every outflow of tokens from an address (send, fee, escrow lock)
+- `escrows`: tokens locked pending order matching, dispenser activity, or swap completion
+- `balances`: materialized view of current holdings per address per ticker (computed from credits minus debits)
+- `fees`: gas fees collected per action
 
 Every token movement creates both a credit and a debit entry. The invariant `token_supply == SUM(all credits) - SUM(all debits)` is checked after issuance actions.
 
-**Action-specific tables** — one or more tables per ACTION type, storing the parameters and state for each action kind. For actions that can be edited, cancelled, or expired, additional status tables track state transitions. Examples include tables for orders, dispensers, dividends, airdrops, broadcasts, files, links, lists, callbacks, swaps, and sweeps. The COINPay subsystem adds four additional tables: `coinpay_obligations` (pending native coin payment obligations created by ORDER_MATCH), `coinpays` (fulfilled payments), `coinpay_expires` (expired obligations), and `coinpay_statuses` (obligation status history). The `order_matches` table also includes a `settlement_type` column (`instant` or `coinpay`) to distinguish native coin pair matches.
+**Action-specific tables**: one or more tables per ACTION type, storing the parameters and state for each action kind. For actions that can be edited, cancelled, or expired, additional status tables track state transitions. Examples include tables for orders, dispensers, dividends, airdrops, broadcasts, files, links, lists, callbacks, swaps, and sweeps. The COINPay subsystem adds four additional tables: `coinpay_obligations` (pending native coin payment obligations created by ORDER_MATCH), `coinpays` (fulfilled payments), `coinpay_expires` (expired obligations), and `coinpay_statuses` (obligation status history). The `order_matches` table also includes a `settlement_type` column (`instant` or `coinpay`) to distinguish native coin pair matches.
 
-**Index tables** — normalized string lookups to avoid repeating variable-length strings (tickers, addresses, hashes) across every row. Numeric foreign keys reference these tables from the core and ledger tables.
+**Index tables**: normalized string lookups to avoid repeating variable-length strings (tickers, addresses, hashes) across every row. Numeric foreign keys reference these tables from the core and ledger tables.
 
-**Mapping tables** — join tables that associate actions with their related addresses and tickers, supporting efficient queries like "all actions involving address X" or "all actions for ticker Y."
+**Mapping tables**: join tables that associate actions with their related addresses and tickers, supporting efficient queries like "all actions involving address X" or "all actions for ticker Y."
 
 ---
 
@@ -170,7 +170,7 @@ Writes are batched in groups of 100 blocks. Ten blocks of undo data are retained
 
 ### xchain-hub
 
-The hub uses MariaDB (not LevelDB) with tables storing configuration, validator state, oracle data, cross-chain attestations, governance proposals, and more. The database name is configurable (default: `XChain_Hub`). Config parameters are stored in the `configs` table with a `(coin, network, module, param_name)` unique key. Cross-chain price data is aggregated into `price_snapshots` (validator PRICE v0) and `oracle_prices` (user PRICE v1) — these are also broadcast to connected indexers via the `/hub-db/subscribe` WebSocket channel.
+The hub uses MariaDB (not LevelDB) with tables storing configuration, validator state, oracle data, cross-chain attestations, governance proposals, and more. The database name is configurable (default: `XChain_Hub`). Config parameters are stored in the `configs` table with a `(coin, network, module, param_name)` unique key. Cross-chain price data is aggregated into `price_snapshots` (validator PRICE v0) and `oracle_prices` (user PRICE v1); these are also broadcast to connected indexers via the `/hub-db/subscribe` WebSocket channel.
 
 See [`../components/hub/CONFIGURATION.md`](../components/hub/CONFIGURATION.md) for the full schema reference.
 

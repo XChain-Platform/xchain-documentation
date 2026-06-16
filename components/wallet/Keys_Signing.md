@@ -3,7 +3,7 @@
 
 # Keys & Signing
 
-This document covers everything between the user's password and a broadcast transaction — KDF, vault encryption, mnemonic handling, HD derivation, the signer interface, and the five concrete signer implementations.
+This document covers everything between the user's password and a broadcast transaction; KDF, vault encryption, mnemonic handling, HD derivation, the signer interface, and the five concrete signer implementations.
 
 ## Master key derivation
 
@@ -38,14 +38,14 @@ The vault is a single AES-256-GCM ciphertext. On unlock the wallet:
 4. JSON-parses the plaintext into the schema-validated vault tree
 5. Runs `core/src/schemas/migrations.js` if the schema version is older than current
 
-Vault contents include the encrypted seed, derivation roots, accounts, addresses, contacts, connected-sites, multisig configs, in-flight signing sessions, queued broadcasts, registered signers, and settings. See [Architecture — Vault and state model](ARCHITECTURE.md) for the full collection list.
+Vault contents include the encrypted seed, derivation roots, accounts, addresses, contacts, connected-sites, multisig configs, in-flight signing sessions, queued broadcasts, registered signers, and settings. See [Architecture; Vault and state model](ARCHITECTURE.md) for the full collection list.
 
 ## Mnemonic handling
 
 Two mnemonic formats are supported on import:
 
-- **BIP39** — 12 or 24 words, validated against the BIP39 wordlist by `@scure/bip39`. Generation always emits 24 words. Optional 25th-word passphrase is offered on the create flow and on import.
-- **Counterwallet legacy** — 12 words from a non-standard wordlist. Implemented in-house at `core/src/crypto/counterwallet.js` + `counterwallet-wordlist.js` because the wordlist isn't published in any standardized package.
+- **BIP39**: 12 or 24 words, validated against the BIP39 wordlist by `@scure/bip39`. Generation always emits 24 words. Optional 25th-word passphrase is offered on the create flow and on import.
+- **Counterwallet legacy**: 12 words from a non-standard wordlist. Implemented in-house at `core/src/crypto/counterwallet.js` + `counterwallet-wordlist.js` because the wordlist isn't published in any standardized package.
 
 Both flows derive a BIP32 seed and store the encrypted seed in the vault. The plaintext mnemonic is shown to the user during create + view-private-key flows, both gated behind explicit confirmation, and is never persisted in plaintext.
 
@@ -94,57 +94,57 @@ Methods that aren't supported by a particular signer return a typed deferral err
 
 Derives keys from the unlocked vault and signs in the host process. The fastest path; the only signer that can do MuSig2 today.
 
-- **Key access** — derives via `@scure/bip32` from the in-memory seed; never returns raw key bytes to the renderer / page
-- **PSBT signing** — `xchain-sdk` `wallet.signPsbt` with the derived WIF
-- **Message signing** — `bitcoinjs-message` over the SDK
-- **Multisig** — `xchain-sdk` `wallet.signMultisigPsbt` for classical n-of-m; full MuSig2 round support
-- **Trade-offs** — keys live in the host process while unlocked. Mitigated by short auto-lock, in-memory-only session keys on web, and main-process isolation on desktop
+- **Key access**: derives via `@scure/bip32` from the in-memory seed; never returns raw key bytes to the renderer / page
+- **PSBT signing**: `xchain-sdk` `wallet.signPsbt` with the derived WIF
+- **Message signing**: `bitcoinjs-message` over the SDK
+- **Multisig**: `xchain-sdk` `wallet.signMultisigPsbt` for classical n-of-m; full MuSig2 round support
+- **Trade-offs**: keys live in the host process while unlocked. Mitigated by short auto-lock, in-memory-only session keys on web, and main-process isolation on desktop
 
 ### `TrezorSigner`
 
 Trezor Connect over WebUSB / WebHID. Supported on all current Trezor models.
 
-- **Pairing** — Trezor Connect popup; the wallet records the device's public key and a `displayName` in the signers store
-- **PSBT signing** — `trezorFormat.js` (`core/src/signers/trezorFormat.js`) adapts XChain PSBTs to Trezor's expected schema, with the OP_RETURN / P2SH / P2WSH / multisig encoding modes mapped to Trezor's `output_script_type` taxonomy
-- **Message signing** — Trezor's native message-sign flow
-- **Multisig** — classical n-of-m PSBT signing flow is scaffolded but vendor-API-heavy; current builds surface a deferral pointing the user at the software signer for full coverage. MuSig2 nonce wiring is firmware-gated and not yet shipped
-- **Trade-offs** — slowest signing path due to per-input device confirmation; users see + confirm every output on the device screen
+- **Pairing**: Trezor Connect popup; the wallet records the device's public key and a `displayName` in the signers store
+- **PSBT signing**: `trezorFormat.js` (`core/src/signers/trezorFormat.js`) adapts XChain PSBTs to Trezor's expected schema, with the OP_RETURN / P2SH / P2WSH / multisig encoding modes mapped to Trezor's `output_script_type` taxonomy
+- **Message signing**: Trezor's native message-sign flow
+- **Multisig**: classical n-of-m PSBT signing flow is scaffolded but vendor-API-heavy; current builds surface a deferral pointing the user at the software signer for full coverage. MuSig2 nonce wiring is firmware-gated and not yet shipped
+- **Trade-offs**: slowest signing path due to per-input device confirmation; users see + confirm every output on the device screen
 
 ### `LedgerSigner`
 
 `@ledgerhq/hw-app-btc` over `@ledgerhq/hw-transport-webhid`. Supported on all current Ledger models running the Bitcoin app (with appropriate altcoin apps for LTC and DOGE).
 
-- **Pairing** — WebHID device-picker; the wallet records the device's public key and a `displayName` in the signers store
-- **PSBT signing** — `ledgerFormat.js` adapts XChain PSBTs; Ledger's PSBT signing surface is used directly when available
-- **Message signing** — Ledger's native message-sign flow
-- **Multisig** — same status as Trezor: classical n-of-m scaffolded with vendor-deferral, MuSig2 firmware-gated
-- **Firmware gates** — `firmware-manifest.js` declares minimum firmware versions per chain + feature; `checkFirmware.js` runs on pair and on every privileged op
+- **Pairing**: WebHID device-picker; the wallet records the device's public key and a `displayName` in the signers store
+- **PSBT signing**: `ledgerFormat.js` adapts XChain PSBTs; Ledger's PSBT signing surface is used directly when available
+- **Message signing**: Ledger's native message-sign flow
+- **Multisig**: same status as Trezor: classical n-of-m scaffolded with vendor-deferral, MuSig2 firmware-gated
+- **Firmware gates**: `firmware-manifest.js` declares minimum firmware versions per chain + feature; `checkFirmware.js` runs on pair and on every privileged op
 
 ### `RemoteSigner`
 
 Pairs across shells. Use case: the user keeps the seed on the desktop app (highest isolation) and uses the web app or extension for browsing; sign requests are forwarded to the desktop app over a paired channel.
 
-- **Pairing** — out-of-band pair code from the desktop's "Pair Signer" route; remote shell stores the channel + remote pubkey
-- **Transport** — `signerPortProtocol.js` defines the request envelope (PSBT + chain + path) and response envelope (signed PSBT or deferral error)
-- **Trade-offs** — adds an authenticated round-trip to the user-confirmed device for each sign; recovery from a flaky channel falls back to the software signer
+- **Pairing**: out-of-band pair code from the desktop's "Pair Signer" route; remote shell stores the channel + remote pubkey
+- **Transport**: `signerPortProtocol.js` defines the request envelope (PSBT + chain + path) and response envelope (signed PSBT or deferral error)
+- **Trade-offs**: adds an authenticated round-trip to the user-confirmed device for each sign; recovery from a flaky channel falls back to the software signer
 
 ### `MultisigSigner`
 
 Orchestrates classical n-of-m sessions and MuSig2 round protocol on top of an underlying signer (typically `SoftwareSigner`). See [Multisig](MULTISIG.md) for the full session state machine.
 
-- **Classical n-of-m** — produces a partial PSBT; coordinator collects partials from cosigners and finalizes via `xchain-sdk` `wallet.signMultisigPsbt` (SDK 1.13.0+)
-- **MuSig2** — three-round protocol (commit → reveal → sign) implemented per cosigner; intermediate state persisted to `multisigSigningSessions`
-- **Transport** — paste-inbox or PSBT-QR (BIP21 envelope or chunked PSBT-QR). See [URI Schemes](URI_Schemes.md)
+- **Classical n-of-m**: produces a partial PSBT; coordinator collects partials from cosigners and finalizes via `xchain-sdk` `wallet.signMultisigPsbt` (SDK 1.13.0+)
+- **MuSig2**: three-round protocol (commit → reveal → sign) implemented per cosigner; intermediate state persisted to `multisigSigningSessions`
+- **Transport**: paste-inbox or PSBT-QR (BIP21 envelope or chunked PSBT-QR). See [URI Schemes](URI_Schemes.md)
 
 ## Backup, recovery, and dry-run restore
 
 The wallet ships three backup paths:
 
-- **View private key** — per-address WIF export, gated behind password re-entry; surfaced in the `ViewPrivateKey` route
-- **Backup file** — full vault export as an encrypted blob; `core/src/crypto/backup.js` re-wraps the vault with a backup-specific KDF
-- **Mnemonic + passphrase** — the canonical recovery path; recreating the wallet on any compatible client recovers identical addresses
+- **View private key**: per-address WIF export, gated behind password re-entry; surfaced in the `ViewPrivateKey` route
+- **Backup file**: full vault export as an encrypted blob; `core/src/crypto/backup.js` re-wraps the vault with a backup-specific KDF
+- **Mnemonic + passphrase**: the canonical recovery path; recreating the wallet on any compatible client recovers identical addresses
 
-The `dryRunRestore` flow (`core/src/flows/dryRunRestore.js`) lets a user verify they have the right mnemonic + passphrase combination without committing to a fresh wallet — the wallet derives the first N addresses and shows them alongside any on-chain history. If the addresses look right, the user confirms; otherwise they go back to retry the mnemonic.
+The `dryRunRestore` flow (`core/src/flows/dryRunRestore.js`) lets a user verify they have the right mnemonic + passphrase combination without committing to a fresh wallet; the wallet derives the first N addresses and shows them alongside any on-chain history. If the addresses look right, the user confirms; otherwise they go back to retry the mnemonic.
 
 `importSingleWif` and `importWif` cover the case where a user has only a single private key (e.g., recovered from a paper wallet or another wallet) and wants the XChain wallet to manage it. These flows create a single-address, no-mnemonic wallet that supports all wallet operations except HD-derived receive-address generation.
 

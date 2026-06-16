@@ -3,7 +3,7 @@
 
 # Encoder Format Selection
 
-XChain supports four encoding formats for embedding ACTION payloads in blockchain transactions. The encoder selects the most efficient format automatically based on payload size. This document explains each format's characteristics, limits, and trade-offs. It is informational — you do not need to specify a format when calling the encoder.
+XChain supports four encoding formats for embedding ACTION payloads in blockchain transactions. The encoder selects the most efficient format automatically based on payload size. This document explains each format's characteristics, limits, and trade-offs. It is informational, you do not need to specify a format when calling the encoder.
 
 ## Format Summary
 
@@ -16,39 +16,39 @@ XChain supports four encoding formats for embedding ACTION payloads in blockchai
 
 ## Format Details
 
-### OP_RETURN — 80 bytes total (76 bytes user data + 4-byte XCHN prefix)
+### OP_RETURN: 80 bytes total (76 bytes user data + 4-byte XCHN prefix)
 
 The obfuscated payload is stored in an `OP_RETURN` output. OP_RETURN outputs are provably unspendable, so they do not grow the UTXO set. This is the cheapest format because it minimizes byte count and carries no future spending cost.
 
 Most common XChain actions fit within 76 bytes of user data: SEND (single recipient), MINT, simple ISSUE, ADDRESS update, MESSAGE, and most DISPENSER and ORDER operations.
 
-### Multisig — approximately 61 bytes per public key slot
+### Multisig: approximately 61 bytes per public key slot
 
 The payload is split across fake public key positions in a bare multisig output. This is a single-transaction format, which avoids the two-step broadcast required by P2SH and P2WSH. Capacity scales with the number of key slots used, at roughly 61 bytes each.
 
 Multisig is appropriate when the payload is slightly too large for OP_RETURN and the caller needs a single-broadcast flow. It is less common than P2SH or P2WSH for large payloads because the capacity ceiling is relatively low.
 
-### P2SH — up to 476 bytes
+### P2SH: up to 476 bytes
 
 The payload is embedded in a redeem script. Two transactions are required:
 
-- **Fund tx** — locks funds to the P2SH output (hash of the redeem script)
-- **Spend tx** — spends from the P2SH output, revealing the full redeem script in the scriptSig
+- **Fund tx**: locks funds to the P2SH output (hash of the redeem script)
+- **Spend tx**: spends from the P2SH output, revealing the full redeem script in the scriptSig
 
 Both transactions must be broadcast in order. The decoder reads the spend transaction's scriptSig to extract the payload.
 
 P2SH is suitable for larger ISSUE operations, BATCH commands that combine multiple actions, or any action with additional fields that push past the OP_RETURN limit.
 
-### P2WSH — up to 8,192 bytes
+### P2WSH: up to 8,192 bytes
 
 Functionally identical to P2SH but uses SegWit. The payload is embedded in a witness script locked to a P2WSH output. The same two-transaction pattern applies:
 
-- **Fund tx** — locks funds to the P2WSH output
-- **Spend tx** — reveals the witness script
+- **Fund tx**: locks funds to the P2WSH output
+- **Spend tx**: reveals the witness script
 
 SegWit's witness discount makes P2WSH more fee-efficient than P2SH for large payloads. Use this for FILE actions, large BROADCAST messages, or any payload over 476 bytes.
 
-The 8,192-byte figure is the effective protocol ceiling: it is the maximum **compiled** ACTION payload size the decoder will accept — the on-chain script push measured before decompile strips the OP_PUSHDATA prefix, not the decoded ACTION string (which is 1–3 bytes shorter) and not the raw P2WSH script-level capacity (which is higher, ~9,956 bytes). Payloads above 8,192 bytes are rejected at encode time and would be dropped by the decoder if broadcast, so this ceiling applies to every format — it is not specific to P2WSH.
+The 8,192-byte figure is the effective protocol ceiling: it is the maximum **compiled** ACTION payload size the decoder will accept; the on-chain script push measured before decompile strips the OP_PUSHDATA prefix, not the decoded ACTION string (which is 1–3 bytes shorter) and not the raw P2WSH script-level capacity (which is higher, ~9,956 bytes). Payloads above 8,192 bytes are rejected at encode time and would be dropped by the decoder if broadcast, so this ceiling applies to every format; it is not specific to P2WSH.
 
 ## Decision Flowchart
 
@@ -86,7 +86,7 @@ Multisig is a single-transaction format chosen for medium payloads slightly larg
 
 **Use P2WSH** when embedding FILE content or BROADCAST payloads that approach or exceed the P2SH limit. The SegWit discount partially offsets the higher byte count.
 
-**Use Multisig** rarely — primarily when a single-transaction flow is required and the payload is too large for OP_RETURN.
+**Use Multisig** rarely, primarily when a single-transaction flow is required and the payload is too large for OP_RETURN.
 
 ## Automatic Selection
 
@@ -94,8 +94,8 @@ The encoder measures the obfuscated payload length and selects the appropriate f
 
 ## Related
 
-- [Encoder](README.md) — encoding service overview and API reference
-- [Data Pipeline](../../architecture/Data_Pipeline.md) — how encoded transactions move through the platform
+- [Encoder](README.md): encoding service overview and API reference
+- [Data Pipeline](../../architecture/Data_Pipeline.md): how encoded transactions move through the platform
 
 ---
 

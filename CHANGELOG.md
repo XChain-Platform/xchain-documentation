@@ -9,311 +9,311 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Three-week documentation drift sweep (2026-06-13).** A systematic audit of the prior three weeks of code across every `xchain-*` sub-repo against the docs; the Added/Changed/Fixed entries below are its output. Almost nothing was missing wholesale — the gaps were features that shipped in code after the docs were written.
-- `components/sdk/NFT_AND_REGISTRY.md` — new reference for the `sdk.nft.*` builders (`unique`, `edition`, `collectionItem`, `attachContentParams`, `tisDocument`, `isNft`, including the cross-chain `action:<COIN>:<index>` data-ref form) and the `sdk.project.*` registry builders (`rosterParams`, `rosterEditParams`, `attestRosterParams`); linked from `components/sdk/README.md`.
-- `components/sdk/WORKFLOWS.md` — documented the `issueNft`, `issueNftEdition`, `issueCollectionItem`, `attachContent`, and `setRoster` workflow helpers (the last two require `waitForIndexer: true`).
-- `components/sdk/ERRORS.md` — added the `SDKPolicyError` (`POLICY_*`) and `SDKX402Error` (`X402_*`) classes with their full code registries, used by AgentSession policy enforcement and the x402 payment flow.
-- `components/sdk/README.md`, `SESSIONS.md`, and `ai-agents/Agent_Wallets.md` — surfaced `sdk.agentSession(wif, policy)` (policy-bounded agent wallets), the x402 gateway/client, and the MCP server, none of which were reachable from the SDK reference; documented the `stateFile` policy override and the `POLICY_STATE_CORRUPT` code.
-- `components/sdk/EXPLORER.md` — added `getProject`, `fileRawUrl`, `getFeeQuote`, `getFeeSchedule`, `getPriceSnapshots`, and `getMempool`. `components/sdk/ENCODER.md` — added `estimateFees`.
-- `components/hub/API.md` — documented `getcapabilitythresholds`, `getstakesourcebypubkey`, `anchorflush`, `pushvalidatorrewards`, the four additional hub-db snapshot REST endpoints (`cross_chain_matches`, `capability_snapshots`, `cross_chain_calls`, `state_checkpoints`), the full six-table WebSocket mirror, and the machine-readable `GET /openrpc.json` spec.
-- `components/hub/ARCHITECTURE.md` — added `StateCheckpointEngine` and `StateAnchorPublisher` to the source-file map and event-wiring diagram. `components/hub/CONFIGURATION.md` — corrected the table count (13 → 20), documented the seven previously-undocumented tables, the `ANCHOR_*` knobs, and `HUB_SIGNER_MODULE`. `components/hub/OPERATIONS.md` — added the checkpoint/anchor engines to the validator startup sequence, plus `anchorflush` and DOGE-publisher-wallet troubleshooting.
-- `components/explorer/API.md` — added the checkpoint-verification endpoints (`/{COIN}/api/checkpoints`, `.../checkpoint/{block}/verify`), the `feequote`/`feeschedule`/`price`/`price_snapshots`/`cross_chain_matches`/`cross_chain_settlements` endpoints, and the `GET /openapi.json` spec; expanded the `/api/status` and `/api/network` response examples with their real fields (decoder/chain lag, decoder health, live USD price, per-chain finality). `components/explorer/CONFIGURATION.md` — added `NO_HUB` and `DECODER_API_URL[_<COIN>_<NETWORK>]`. `components/explorer/WEBSOCKET.md` — documented the mempool (`MEMPOOL_ACTION`/`MEMPOOL_REMOVED`) and attestation events.
-- `components/indexer/OPERATIONS.md` — documented the `feequote`, `feeschedule`, and `getactionconfirmations` API methods. `components/indexer/DATABASE.md` — added the `stake_key_revocations` table (DELEGATE v2). `components/indexer/ACTIONS.md` — added the `ANCHOR` action (DOGE-only, no protocol fee, writes `anchor_actions`).
+- **Three-week documentation drift sweep (2026-06-13).** A systematic audit of the prior three weeks of code across every `xchain-*` sub-repo against the docs; the Added/Changed/Fixed entries below are its output. Almost nothing was missing wholesale: the gaps were features that shipped in code after the docs were written.
+- `components/sdk/NFT_AND_REGISTRY.md`: new reference for the `sdk.nft.*` builders (`unique`, `edition`, `collectionItem`, `attachContentParams`, `tisDocument`, `isNft`, including the cross-chain `action:<COIN>:<index>` data-ref form) and the `sdk.project.*` registry builders (`rosterParams`, `rosterEditParams`, `attestRosterParams`); linked from `components/sdk/README.md`.
+- `components/sdk/WORKFLOWS.md`: documented the `issueNft`, `issueNftEdition`, `issueCollectionItem`, `attachContent`, and `setRoster` workflow helpers (the last two require `waitForIndexer: true`).
+- `components/sdk/ERRORS.md`: added the `SDKPolicyError` (`POLICY_*`) and `SDKX402Error` (`X402_*`) classes with their full code registries, used by AgentSession policy enforcement and the x402 payment flow.
+- `components/sdk/README.md`, `SESSIONS.md`, and `ai-agents/Agent_Wallets.md`: surfaced `sdk.agentSession(wif, policy)` (policy-bounded agent wallets), the x402 gateway/client, and the MCP server, none of which were reachable from the SDK reference; documented the `stateFile` policy override and the `POLICY_STATE_CORRUPT` code.
+- `components/sdk/EXPLORER.md`: added `getProject`, `fileRawUrl`, `getFeeQuote`, `getFeeSchedule`, `getPriceSnapshots`, and `getMempool`. `components/sdk/ENCODER.md`: added `estimateFees`.
+- `components/hub/API.md`: documented `getcapabilitythresholds`, `getstakesourcebypubkey`, `anchorflush`, `pushvalidatorrewards`, the four additional hub-db snapshot REST endpoints (`cross_chain_matches`, `capability_snapshots`, `cross_chain_calls`, `state_checkpoints`), the full six-table WebSocket mirror, and the machine-readable `GET /openrpc.json` spec.
+- `components/hub/ARCHITECTURE.md`: added `StateCheckpointEngine` and `StateAnchorPublisher` to the source-file map and event-wiring diagram. `components/hub/CONFIGURATION.md`: corrected the table count (13 → 20), documented the seven previously-undocumented tables, the `ANCHOR_*` knobs, and `HUB_SIGNER_MODULE`. `components/hub/OPERATIONS.md`: added the checkpoint/anchor engines to the validator startup sequence, plus `anchorflush` and DOGE-publisher-wallet troubleshooting.
+- `components/explorer/API.md`: added the checkpoint-verification endpoints (`/{COIN}/api/checkpoints`, `.../checkpoint/{block}/verify`), the `feequote`/`feeschedule`/`price`/`price_snapshots`/`cross_chain_matches`/`cross_chain_settlements` endpoints, and the `GET /openapi.json` spec; expanded the `/api/status` and `/api/network` response examples with their real fields (decoder/chain lag, decoder health, live USD price, per-chain finality). `components/explorer/CONFIGURATION.md`: added `NO_HUB` and `DECODER_API_URL[_<COIN>_<NETWORK>]`. `components/explorer/WEBSOCKET.md`: documented the mempool (`MEMPOOL_ACTION`/`MEMPOOL_REMOVED`) and attestation events.
+- `components/indexer/OPERATIONS.md`: documented the `feequote`, `feeschedule`, and `getactionconfirmations` API methods. `components/indexer/DATABASE.md`: added the `stake_key_revocations` table (DELEGATE v2). `components/indexer/ACTIONS.md`: added the `ANCHOR` action (DOGE-only, no protocol fee, writes `anchor_actions`).
 - Attestation paid-request (E1) fields: `protocol/actions/ATTEST.md`, `protocol/providers/llm.md`, `protocol/providers/README.md`, and `concepts/Smart_Contracts.md` now document the `feeTick`/`feeAmount` request options and the governance-configurable per-provider `min_fee_xchain` floor (under-paying requests expire and refund rather than being served).
-- `protocol/actions/EXECUTE.md` — documented that DEPLOY constructors route emissions through the same `processEmission` pipeline (XCALL excepted) and that the 50-emission cap is per invocation. `concepts/Smart_Contracts.md` — added `xchain.getCallDepth()`/`getCrossHops()`. `components/vm/CONFIGURATION.md` — added `VM_MAX_CALL_DEPTH` and `VM_MIN_CALL_GAS`. `developer-guide/Smart_Contract_Development.md` — added deploy-time validation checks 4 (banned transcendental `Math.*`) and 5 (banned `BigInt`/`RegExp` literals).
-- `protocol/actions/README.md` — added `XCALL` and `XEXEC` to the VM-actions table. `concepts/CROSS_CHAIN.md` — added a cross-chain-contract-calls (`emit.crossExecute`) section.
-- `concepts/GAS.md` — documented the `FEE_PAYMENT_MODE` per-chain parameter. `components/encoder/README.md` — added the `estimate_fee` method, the `GET /openrpc.json` spec, and the Litecoin 5,460-litoshi dust threshold (10× Bitcoin's 546).
+- `protocol/actions/EXECUTE.md`: documented that DEPLOY constructors route emissions through the same `processEmission` pipeline (XCALL excepted) and that the 50-emission cap is per invocation. `concepts/Smart_Contracts.md`: added `xchain.getCallDepth()`/`getCrossHops()`. `components/vm/CONFIGURATION.md`: added `VM_MAX_CALL_DEPTH` and `VM_MIN_CALL_GAS`. `developer-guide/Smart_Contract_Development.md`: added deploy-time validation checks 4 (banned transcendental `Math.*`) and 5 (banned `BigInt`/`RegExp` literals).
+- `protocol/actions/README.md`: added `XCALL` and `XEXEC` to the VM-actions table. `concepts/CROSS_CHAIN.md`: added a cross-chain-contract-calls (`emit.crossExecute`) section.
+- `concepts/GAS.md`: documented the `FEE_PAYMENT_MODE` per-chain parameter. `components/encoder/README.md`: added the `estimate_fee` method, the `GET /openrpc.json` spec, and the Litecoin 5,460-litoshi dust threshold (10× Bitcoin's 546).
 
 ### Changed
 
-- `protocol/actions/DEPLOY.md` — documented that inline (v0/v1) `CODE_ENCODING` is gated behind the `DEPLOY_BASE64_CODE` activation: hex-encoded before it (the original format), base64-encoded at/after. Added an "Encoding activation" section explaining the gate is keyed on block time (one coordinated flag-day across BTC/LTC/DOGE, whose heights diverge), why it keeps every historical inline DEPLOY's `code_hash` stable across node versions and from-genesis re-parses, and that chunked (v2/v3) slices are base64 from genesis and unaffected.
-- `protocol/actions/XCALL.md` — the `CALL_ID` preimage definition drops `emitter_action_index`; it is now `sha256(network:source_chain:tx_hash:contract_index:emitter_position:target_chain)`. `action_index` is intentionally excluded because it depends on the indexer's synthetic-action injection timing rather than on chain content, so binding it in would make `call_id` non-deterministic across nodes; `(tx_hash, contract_index, emitter_position)` already identify an emission uniquely.
-- `getting-started/Quickstart_Developer.md`, `getting-started/Quickstart_Node_Operator.md` — corrected the Node.js requirement from "18 or later" to Node 22 (22.x LTS); Node 18 fails on the ESM-only `mariadb` package and Node 24 cannot build `isolated-vm`, so 22 is required, not a floor.
-- `protocol/Contract_Staking.md` — documented `DELEGATE v2` (capability revoke) and `DELEGATE v3` (contract-targeted revoke) in the wire-format and isolation tables, and relabelled the rotate example's field to `NEW_SIGNING_PUBKEY` to match `DELEGATE.md` and the handler.
-- `protocol/NFT_Standard.md` — updated the "wallets and the SDK should provide a guided create-NFT flow" recommendation to reflect the shipped `sdk.nft.*` builders and `sdk.issueNft*` workflows.
-- `protocol/actions/MESSAGE.md` — documented that MESSAGE Version `2` carries no `ENCRYPTION_METHOD` field on the wire and that its absence **MUST** be interpreted as `ENCRYPTION_METHOD = 1` (ECIES). Encoders **MUST NOT** include the field in a v2 message — no format version has a slot for both `ENCRYPTED_MESSAGE` and `ENCRYPTION_METHOD`, so doing so makes the message unencodable. For ECDH (method `2`) and AES (method `3`), the session/key is established out-of-band (the format `0`/`1` handshake or off-chain) and decryption is driven by the application, which already knows the method.
+- `protocol/actions/DEPLOY.md`: documented that inline (v0/v1) `CODE_ENCODING` is gated behind the `DEPLOY_BASE64_CODE` activation: hex-encoded before it (the original format), base64-encoded at/after. Added an "Encoding activation" section explaining the gate is keyed on block time (one coordinated flag-day across BTC/LTC/DOGE, whose heights diverge), why it keeps every historical inline DEPLOY's `code_hash` stable across node versions and from-genesis re-parses, and that chunked (v2/v3) slices are base64 from genesis and unaffected.
+- `protocol/actions/XCALL.md`: the `CALL_ID` preimage definition drops `emitter_action_index`; it is now `sha256(network:source_chain:tx_hash:contract_index:emitter_position:target_chain)`. `action_index` is intentionally excluded because it depends on the indexer's synthetic-action injection timing rather than on chain content, so binding it in would make `call_id` non-deterministic across nodes; `(tx_hash, contract_index, emitter_position)` already identify an emission uniquely.
+- `getting-started/Quickstart_Developer.md`, `getting-started/Quickstart_Node_Operator.md`: corrected the Node.js requirement from "18 or later" to Node 22 (22.x LTS); Node 18 fails on the ESM-only `mariadb` package and Node 24 cannot build `isolated-vm`, so 22 is required, not a floor.
+- `protocol/Contract_Staking.md`: documented `DELEGATE v2` (capability revoke) and `DELEGATE v3` (contract-targeted revoke) in the wire-format and isolation tables, and relabelled the rotate example's field to `NEW_SIGNING_PUBKEY` to match `DELEGATE.md` and the handler.
+- `protocol/NFT_Standard.md`: updated the "wallets and the SDK should provide a guided create-NFT flow" recommendation to reflect the shipped `sdk.nft.*` builders and `sdk.issueNft*` workflows.
+- `protocol/actions/MESSAGE.md`: documented that MESSAGE Version `2` carries no `ENCRYPTION_METHOD` field on the wire and that its absence **MUST** be interpreted as `ENCRYPTION_METHOD = 1` (ECIES). Encoders **MUST NOT** include the field in a v2 message; no format version has a slot for both `ENCRYPTED_MESSAGE` and `ENCRYPTION_METHOD`, so doing so makes the message unencodable. For ECDH (method `2`) and AES (method `3`), the session/key is established out-of-band (the format `0`/`1` handshake or off-chain) and decryption is driven by the application, which already knows the method.
 
 ### Fixed
-- `components/hub/ARCHITECTURE.md`, `protocol/actions/PRICE.md`, `protocol/actions/ANCHOR.md` — the documented PBFT quorum formula now carries the simple-majority floor the implementations enforce: `max(2f+1, ceil((N+1)/2))` with `f = floor((N-1)/3)`. The previously documented bare `2f+1` degenerates to a quorum of 1 at N=3, which would let a single validator finalize alone; with the floor, N=3 requires 2 signatures and N=2 requires both.
-- `protocol/actions/README.md` — retitled the staking section header from "Hub Staking (BTC chain only)" to scope the BTC-only restriction to capability staking. Contract-targeted staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) runs on every chain per `protocol/Contract_Staking.md`, so the old blanket header contradicted both that spec and the per-action spec files, which are already correctly scoped per flavor.
-- `components/vm/ARCHITECTURE.md` — the "Replaced" deterministic `Math` subset wrongly listed the transcendentals `sqrt`/`pow`/`log`/`log2`/`log10` as available. These are **banned at deploy time** (`syntax.js`) because libm results differ by up to 1 ULP across CPU architectures and would break consensus — contracts use the `xchain.math.*` bignumber equivalents instead. Also corrected the stale emit/validator action counts (`gateway-emit.js` 16 → 18, adding `execute`/`crossExecute`; `validator.js` 16 → 20, adding `EXECUTE`/`XCALL`/`ATTEST`/`SLASH`). A contract author following the old doc would write `Math.sqrt(...)` and have the deploy rejected.
-- `protocol/actions/XCALL.md` — corrected the cross-chain-call injection ordering from "hub-`id` order" to `(snapshot_block, call_id)` in both the dispatch and the ANCHOR-archive descriptions. The per-hub `id` is provenance only and is not the ordering key (the indexer orders effective dispatch rows by `snapshot_block, call_id`), so a recoverer following the old doc could replay calls in the wrong order.
-- `components/explorer/API.md` — the mempool endpoint was documented as "reserved for future implementation" but is live, serving pre-validation rows from the decoder DB with `address`/`token` filters.
-- `concepts/CROSS_CHAIN.md` — corrected two errors. SWAP create (format 0) has no field referencing the counterparty's `ACTION_INDEX` (the hub matches mirrored offers automatically by token pair/amount), and cross-chain DEX settlement is finalized by the hub's `CrossChainDexEngine` via PBFT over `cross_chain_matches` — streamed through the hub-DB mirror, with each indexer independently verifying the supermajority signatures and releasing escrow via `CROSS_SETTLE` — not by the attestation engine.
-- `components/indexer/DATABASE.md`, `ACTIONS.md`, `ARCHITECTURE.md` (and the `validator_rewards.sql` schema comment in `xchain-indexer`) — the documented `reward_type` values were stale; `cross_chain_attestation` does not exist anywhere in the code. The real types are `oracle_round`, `attest_fee`, `anchor_<chain>` (e.g. `anchor_BTC`), and `anchor_archive`. Clarified that `oracle_round`/`attest_fee` are derived deterministically by the indexer during block processing while only `anchor_<chain>`/`anchor_archive` are pushed from the hub via `pushvalidatorrewards` (which rejects the derived types).
-- `components/hub/DECENTRALIZATION.md` — extended the simple-majority quorum-floor correction above to the `cross_chain` capability section and the consensus summary, replacing bare `2f+1` with `max(2f+1, ceil((N+1)/2))`; added a Phase 7 row to the implementation-phases table (federation key rotation — addr-keyed `rotatevalidator`/`deregistervalidator`, stake-key revocation, union-membership transport auth, anchor reward separation, quorum hardening — 2026-06, complete).
-- `protocol/actions/ATTEST.md` — corrected `RESPONSE_PAYLOAD` from "inline UTF-8" to base64-encoded on the wire (decoded to UTF-8 for storage and callback delivery; binary round-trips), and the canonical signing hash from "the UTF-8 response bytes" to the raw response bytes after base64-decoding. `concepts/Smart_Contracts.md` — corrected the claim that escrowed attestation fees simply sit on expiry: the optional E1 `feeAmount` request fee **is** refunded to the caller on expiry or provider error; only the unimplemented `per_call_base_fee_xchain` gas-escrow path (currently `'0'`) is future economic work.
-- `components/sdk/ENCODER.md` — corrected the P2WSH capacity from 9,956 to 8,192 bytes (the compiled on-chain ceiling; 8,189-byte raw payload limit), matching the already-fixed `components/encoder/Format_Selection.md`. `protocol/Error_Codes.md` — corrected the encoder and hub OpenRPC URLs from `/{COIN}/openrpc.json` to root `/openrpc.json` (the encoder is a single-coin instance, not coin-scoped).
+- `components/hub/ARCHITECTURE.md`, `protocol/actions/PRICE.md`, `protocol/actions/ANCHOR.md`: the documented PBFT quorum formula now carries the simple-majority floor the implementations enforce: `max(2f+1, ceil((N+1)/2))` with `f = floor((N-1)/3)`. The previously documented bare `2f+1` degenerates to a quorum of 1 at N=3, which would let a single validator finalize alone; with the floor, N=3 requires 2 signatures and N=2 requires both.
+- `protocol/actions/README.md`: retitled the staking section header from "Hub Staking (BTC chain only)" to scope the BTC-only restriction to capability staking. Contract-targeted staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) runs on every chain per `protocol/Contract_Staking.md`, so the old blanket header contradicted both that spec and the per-action spec files, which are already correctly scoped per flavor.
+- `components/vm/ARCHITECTURE.md`: the "Replaced" deterministic `Math` subset wrongly listed the transcendentals `sqrt`/`pow`/`log`/`log2`/`log10` as available. These are **banned at deploy time** (`syntax.js`) because libm results differ by up to 1 ULP across CPU architectures and would break consensus; contracts use the `xchain.math.*` bignumber equivalents instead. Also corrected the stale emit/validator action counts (`gateway-emit.js` 16 → 18, adding `execute`/`crossExecute`; `validator.js` 16 → 20, adding `EXECUTE`/`XCALL`/`ATTEST`/`SLASH`). A contract author following the old doc would write `Math.sqrt(...)` and have the deploy rejected.
+- `protocol/actions/XCALL.md`: corrected the cross-chain-call injection ordering from "hub-`id` order" to `(snapshot_block, call_id)` in both the dispatch and the ANCHOR-archive descriptions. The per-hub `id` is provenance only and is not the ordering key (the indexer orders effective dispatch rows by `snapshot_block, call_id`), so a recoverer following the old doc could replay calls in the wrong order.
+- `components/explorer/API.md`: the mempool endpoint was documented as "reserved for future implementation" but is live, serving pre-validation rows from the decoder DB with `address`/`token` filters.
+- `concepts/CROSS_CHAIN.md`: corrected two errors. SWAP create (format 0) has no field referencing the counterparty's `ACTION_INDEX` (the hub matches mirrored offers automatically by token pair/amount), and cross-chain DEX settlement is finalized by the hub's `CrossChainDexEngine` via PBFT over `cross_chain_matches`, streamed through the hub-DB mirror, with each indexer independently verifying the supermajority signatures and releasing escrow via `CROSS_SETTLE`, not by the attestation engine.
+- `components/indexer/DATABASE.md`, `ACTIONS.md`, `ARCHITECTURE.md` (and the `validator_rewards.sql` schema comment in `xchain-indexer`): the documented `reward_type` values were stale; `cross_chain_attestation` does not exist anywhere in the code. The real types are `oracle_round`, `attest_fee`, `anchor_<chain>` (e.g. `anchor_BTC`), and `anchor_archive`. Clarified that `oracle_round`/`attest_fee` are derived deterministically by the indexer during block processing while only `anchor_<chain>`/`anchor_archive` are pushed from the hub via `pushvalidatorrewards` (which rejects the derived types).
+- `components/hub/DECENTRALIZATION.md`: extended the simple-majority quorum-floor correction above to the `cross_chain` capability section and the consensus summary, replacing bare `2f+1` with `max(2f+1, ceil((N+1)/2))`; added a Phase 7 row to the implementation-phases table (federation key rotation: addr-keyed `rotatevalidator`/`deregistervalidator`, stake-key revocation, union-membership transport auth, anchor reward separation, quorum hardening, 2026-06, complete).
+- `protocol/actions/ATTEST.md`: corrected `RESPONSE_PAYLOAD` from "inline UTF-8" to base64-encoded on the wire (decoded to UTF-8 for storage and callback delivery; binary round-trips), and the canonical signing hash from "the UTF-8 response bytes" to the raw response bytes after base64-decoding. `concepts/Smart_Contracts.md`: corrected the claim that escrowed attestation fees simply sit on expiry: the optional E1 `feeAmount` request fee **is** refunded to the caller on expiry or provider error; only the unimplemented `per_call_base_fee_xchain` gas-escrow path (currently `'0'`) is future economic work.
+- `components/sdk/ENCODER.md`: corrected the P2WSH capacity from 9,956 to 8,192 bytes (the compiled on-chain ceiling; 8,189-byte raw payload limit), matching the already-fixed `components/encoder/Format_Selection.md`. `protocol/Error_Codes.md`: corrected the encoder and hub OpenRPC URLs from `/{COIN}/openrpc.json` to root `/openrpc.json` (the encoder is a single-coin instance, not coin-scoped).
 
 ## [0.11.0] - 2026-06-06
 
 ### Added
-- `operations/DISK_MANAGEMENT.md` — new operator guide for moving a chain's block data to a larger disk on a running node. Documents the two safe patterns (`XCHAIN_NODE_BLOCKS_DIR`, which passes `-blocksdir=/blocks` to the daemon and is network-agnostic; and symlinking the whole per-network datadir) and warns against the silent-failure anti-pattern of bind-mounting only the bare `blocks/` path — on DOGE/LTC testnet and regtest the daemon writes to `testnet3/blocks/`, `testnet4/blocks/`, or `regtest/blocks/`, so a bare-`blocks/` bind catches nothing and no error is raised. `components/node/CONFIGURATION.md` — added a matching network-subdirectory warning callout to the `XCHAIN_NODE_BLOCKS_DIR` entry, cross-linked to the new guide.
-- `protocol/constants.js` — canonical, dependency-free CommonJS module declaring the protocol-level size limits that several services enforce independently: `MAX_ACTION_DATA_LENGTH` (8192 — the maximum *compiled* on-chain ACTION push in bytes, measured before the OP_PUSHDATA prefix is stripped), `OP_RETURN_PUSH_OVERHEAD` (3 — the OP_PUSHDATA2 prefix added to a 256–65535-byte push), and `MAX_CODE_SIZE` (65536 — the contract source-code limit). These values had previously been re-declared in each service with no shared reference and had drifted apart, producing silent-failure bugs where one service accepted data another rejected. This file is the single documented source of truth; the cross-service regression suite asserts every service's local copy matches it.
+- `operations/DISK_MANAGEMENT.md`: new operator guide for moving a chain's block data to a larger disk on a running node. Documents the two safe patterns (`XCHAIN_NODE_BLOCKS_DIR`, which passes `-blocksdir=/blocks` to the daemon and is network-agnostic; and symlinking the whole per-network datadir) and warns against the silent-failure anti-pattern of bind-mounting only the bare `blocks/` path; on DOGE/LTC testnet and regtest the daemon writes to `testnet3/blocks/`, `testnet4/blocks/`, or `regtest/blocks/`, so a bare-`blocks/` bind catches nothing and no error is raised. `components/node/CONFIGURATION.md`: added a matching network-subdirectory warning callout to the `XCHAIN_NODE_BLOCKS_DIR` entry, cross-linked to the new guide.
+- `protocol/constants.js`: canonical, dependency-free CommonJS module declaring the protocol-level size limits that several services enforce independently: `MAX_ACTION_DATA_LENGTH` (8192, the maximum *compiled* on-chain ACTION push in bytes, measured before the OP_PUSHDATA prefix is stripped), `OP_RETURN_PUSH_OVERHEAD` (3, the OP_PUSHDATA2 prefix added to a 256–65535-byte push), and `MAX_CODE_SIZE` (65536, the contract source-code limit). These values had previously been re-declared in each service with no shared reference and had drifted apart, producing silent-failure bugs where one service accepted data another rejected. This file is the single documented source of truth; the cross-service regression suite asserts every service's local copy matches it.
 
 ### Changed
-- `components/e2e-test/CONFIGURATION.md`, `components/node/CONFIGURATION.md` — renamed the documented indexer service-host variable `INDEXER_HOST` → `INDEXER_URL` to match the `<SERVICE>_URL` naming convention every other service uses, keeping the docs in step with the e2e-test and node renames.
-- `protocol/Contract_Staking.md`, `protocol/actions/STAKE.md`, `protocol/actions/UNSTAKE.md`, `protocol/actions/DELEGATE.md`, `components/hub/DECENTRALIZATION.md` — documented that the staking activation delay is calibrated per chain rather than a flat 6 blocks. The spec stated "Activation delay is 6 blocks" without acknowledging that contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1+v3) runs on every chain: 6 blocks is ~60 minutes of reorg protection on BTC (~10-min blocks) but only ~15 minutes on LTC (~2.5-min blocks) and ~6 minutes on DOGE (~1-min blocks). Each file now states that 6 blocks is the BTC value and that the delay is calibrated for equivalent ~60-minute protection on each chain (BTC 6 / LTC 24 / DOGE 60 blocks), set via each chain's `STAKING.ACTIVATION_DELAY_BLOCKS` default and operator-overridable. Capability staking remains BTC-only, so its delays are correctly stated in BTC blocks; the note distinguishes it from the multi-chain contract-staking actions.
-- `xchain-indexer-sync` repository renamed to `xchain-sync` throughout the documentation. The service now replicates the decoder database in addition to the indexer database. All REST and WebSocket endpoints gained a `/:dbType/` path segment — breaking for any external client.
+- `components/e2e-test/CONFIGURATION.md`, `components/node/CONFIGURATION.md`: renamed the documented indexer service-host variable `INDEXER_HOST` → `INDEXER_URL` to match the `<SERVICE>_URL` naming convention every other service uses, keeping the docs in step with the e2e-test and node renames.
+- `protocol/Contract_Staking.md`, `protocol/actions/STAKE.md`, `protocol/actions/UNSTAKE.md`, `protocol/actions/DELEGATE.md`, `components/hub/DECENTRALIZATION.md`: documented that the staking activation delay is calibrated per chain rather than a flat 6 blocks. The spec stated "Activation delay is 6 blocks" without acknowledging that contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1+v3) runs on every chain: 6 blocks is ~60 minutes of reorg protection on BTC (~10-min blocks) but only ~15 minutes on LTC (~2.5-min blocks) and ~6 minutes on DOGE (~1-min blocks). Each file now states that 6 blocks is the BTC value and that the delay is calibrated for equivalent ~60-minute protection on each chain (BTC 6 / LTC 24 / DOGE 60 blocks), set via each chain's `STAKING.ACTIVATION_DELAY_BLOCKS` default and operator-overridable. Capability staking remains BTC-only, so its delays are correctly stated in BTC blocks; the note distinguishes it from the multi-chain contract-staking actions.
+- `xchain-indexer-sync` repository renamed to `xchain-sync` throughout the documentation. The service now replicates the decoder database in addition to the indexer database. All REST and WebSocket endpoints gained a `/:dbType/` path segment: breaking for any external client.
 
 ### Fixed
-- `components/sync/OPERATIONS.md` and `components/hub/ARCHITECTURE.md` — documented the client→server and peer-to-peer message shapes that were implemented but absent from the published protocol docs. **sync:** added the WebSocket `{ "type": "heartbeat", "appliedBlock": <number> }` message a replicating client sends to report how far it has applied blocks (with its `null`-when-never-reported lag semantics and best-effort, silently-ignored-if-malformed behaviour), plus the `POST /validator-heartbeat/:dbType/:chain/:network` REST fallback and the `GET /validator-status` endpoints that surface per-validator lag. A third-party validator or ecosystem replicator following the old docs would omit heartbeats and silently appear stale/disconnected in the status output with no protocol-level error. **hub:** added an "Envelope Wire Format" and "Message Types" subsection to the P2P Gossip Layer documenting the gossip envelope schema (`type`/`id`/`sender`/`timestamp`/`data`/`sig`), the Ed25519 signature canonicalization (the fixed `id`,`type`,`sender`,`timestamp`,`data` key order with `sig` excluded), the `id` format, the inbound dedup/rate-limit/relay order, and every gossip message type — the `HEARTBEAT` liveness message, the three `CAPABILITY_ACTIVATED` / `CAPABILITY_DEACTIVATED` / `CAPABILITY_SELF_TEST` capability-gossip messages (with their `data` payloads and the sender-pubkey-match trust rule), and the PBFT / oracle / attestation / cross-chain consensus types that ride the same envelope.
-- `components/hub/API.md`, `components/indexer/OPERATIONS.md`, and `components/sync/OPERATIONS.md` — documented the `health` monitoring endpoint that each of these three services exposes but whose richer response shape the docs omitted (only the basic `ping` liveness check was described). A consumer or alerting script that discovered `health` by inspection had no declared contract for its fields, so any future rename would have silently broken monitoring. The hub's JSON-RPC `health` now documents all six fields (`status`, `db`, `dbCircuit`, plus the oracle-freshness trio `oracle_last_finalized_age_s` / `oracle_stale` / `oracle_staleness_threshold_s`, populated only on oracle-running P2P hubs and overridable via `ORACLE_STALENESS_THRESHOLD_S`), the 503-on-degraded behaviour, and per-field types/semantics. The indexer's JSON-RPC `health` now documents its sync-progress and dual-DB circuit-breaker fields (`status`, `running`, `synced`, `lastIndexedBlock`, `decoderBlock`, `lag`, `decoderDbCircuit`, `indexerDbCircuit`, `error`). The sync service's REST `GET /health` now documents its per-database circuit-breaker shape (`status`, `mode`, `databases[]`, `last_updated`) and 503-on-open-circuit behaviour. Matches the already-documented decoder `health` endpoint, which served as the formatting model.
-- `components/hub/API.md` and `components/sync/CONFIGURATION.md` — corrected the documented `getallconfigs` response shape. Both files showed the hub returning a bare nested config object (`{ coin: { network: { ... } } }`), but the method actually returns an envelope `{ configs, seq, watermark }` with the config tree nested under `configs`. A consumer following the old docs would read `result.bitcoin.mainnet` and get `undefined` (the tree is at `result.configs.bitcoin.mainnet`). Updated the response examples to the envelope shape, documented `seq` (last committed consensus sequence number) and `watermark` (epoch-seconds high-water mark of the configs table), and added the `since_updated_at` request parameter with a delta-polling note: a consumer retains `watermark` and passes it back as `since_updated_at` to receive only rows changed since the previous poll, while omitting it returns the full tree.
-- `protocol/actions/ATTEST.md` and `developer-guide/Smart_Contract_Development.md` — documented that `callbackParams` are string-coerced at callback injection. Every element of the supplied `callbackParams` array is delivered to the contract callback as a string regardless of its original type (the VM parameter bus is string-typed), so `[42, true, null]` arrives as `['42', 'true', 'null']`. The spec's §Effects sections (both the v1 response and v2 expiry callback paths) and the `CALLBACK_PARAMS_JSON` PARAMS row now state this; the developer guide's callback example passes a numeric round id and re-parses it with `parseInt`, with a dedicated note clarifying this is an inherent property of the string-based wire format, not a recent change. Previously the guide described `callbackParams` as "an array of strings" in a way that implied original types were preserved, so a contract passing numeric ids or booleans as callback context would silently receive stringified values.
-- `protocol/actions/ATTEST.md` — the response lifecycle previously described every non-`ok` `ATTEST v1` status as flipping the request to `errored`. That contradicted the retry-until-deadline intent: a retryable status (`no_quorum`, `timeout`, `provider_error`) should leave the request `pending` so the responsible set can run another round, with the deadline-expiry `ATTEST v2` path flipping it to `expired` only if no quorum is ever reached. The lifecycle step and the "Effects on v1" section now distinguish terminal statuses (`ok` → `fulfilled`, a genuinely terminal failure such as `expired` → `errored`, callback fires) from retryable statuses (recorded for audit, `request_status` left `pending`, no callback).
+- `components/sync/OPERATIONS.md` and `components/hub/ARCHITECTURE.md`: documented the client→server and peer-to-peer message shapes that were implemented but absent from the published protocol docs. **sync:** added the WebSocket `{ "type": "heartbeat", "appliedBlock": <number> }` message a replicating client sends to report how far it has applied blocks (with its `null`-when-never-reported lag semantics and best-effort, silently-ignored-if-malformed behaviour), plus the `POST /validator-heartbeat/:dbType/:chain/:network` REST fallback and the `GET /validator-status` endpoints that surface per-validator lag. A third-party validator or ecosystem replicator following the old docs would omit heartbeats and silently appear stale/disconnected in the status output with no protocol-level error. **hub:** added an "Envelope Wire Format" and "Message Types" subsection to the P2P Gossip Layer documenting the gossip envelope schema (`type`/`id`/`sender`/`timestamp`/`data`/`sig`), the Ed25519 signature canonicalization (the fixed `id`,`type`,`sender`,`timestamp`,`data` key order with `sig` excluded), the `id` format, the inbound dedup/rate-limit/relay order, and every gossip message type: the `HEARTBEAT` liveness message, the three `CAPABILITY_ACTIVATED` / `CAPABILITY_DEACTIVATED` / `CAPABILITY_SELF_TEST` capability-gossip messages (with their `data` payloads and the sender-pubkey-match trust rule), and the PBFT / oracle / attestation / cross-chain consensus types that ride the same envelope.
+- `components/hub/API.md`, `components/indexer/OPERATIONS.md`, and `components/sync/OPERATIONS.md`: documented the `health` monitoring endpoint that each of these three services exposes but whose richer response shape the docs omitted (only the basic `ping` liveness check was described). A consumer or alerting script that discovered `health` by inspection had no declared contract for its fields, so any future rename would have silently broken monitoring. The hub's JSON-RPC `health` now documents all six fields (`status`, `db`, `dbCircuit`, plus the oracle-freshness trio `oracle_last_finalized_age_s` / `oracle_stale` / `oracle_staleness_threshold_s`, populated only on oracle-running P2P hubs and overridable via `ORACLE_STALENESS_THRESHOLD_S`), the 503-on-degraded behaviour, and per-field types/semantics. The indexer's JSON-RPC `health` now documents its sync-progress and dual-DB circuit-breaker fields (`status`, `running`, `synced`, `lastIndexedBlock`, `decoderBlock`, `lag`, `decoderDbCircuit`, `indexerDbCircuit`, `error`). The sync service's REST `GET /health` now documents its per-database circuit-breaker shape (`status`, `mode`, `databases[]`, `last_updated`) and 503-on-open-circuit behaviour. Matches the already-documented decoder `health` endpoint, which served as the formatting model.
+- `components/hub/API.md` and `components/sync/CONFIGURATION.md`: corrected the documented `getallconfigs` response shape. Both files showed the hub returning a bare nested config object (`{ coin: { network: { ... } } }`), but the method actually returns an envelope `{ configs, seq, watermark }` with the config tree nested under `configs`. A consumer following the old docs would read `result.bitcoin.mainnet` and get `undefined` (the tree is at `result.configs.bitcoin.mainnet`). Updated the response examples to the envelope shape, documented `seq` (last committed consensus sequence number) and `watermark` (epoch-seconds high-water mark of the configs table), and added the `since_updated_at` request parameter with a delta-polling note: a consumer retains `watermark` and passes it back as `since_updated_at` to receive only rows changed since the previous poll, while omitting it returns the full tree.
+- `protocol/actions/ATTEST.md` and `developer-guide/Smart_Contract_Development.md`: documented that `callbackParams` are string-coerced at callback injection. Every element of the supplied `callbackParams` array is delivered to the contract callback as a string regardless of its original type (the VM parameter bus is string-typed), so `[42, true, null]` arrives as `['42', 'true', 'null']`. The spec's §Effects sections (both the v1 response and v2 expiry callback paths) and the `CALLBACK_PARAMS_JSON` PARAMS row now state this; the developer guide's callback example passes a numeric round id and re-parses it with `parseInt`, with a dedicated note clarifying this is an inherent property of the string-based wire format, not a recent change. Previously the guide described `callbackParams` as "an array of strings" in a way that implied original types were preserved, so a contract passing numeric ids or booleans as callback context would silently receive stringified values.
+- `protocol/actions/ATTEST.md`: the response lifecycle previously described every non-`ok` `ATTEST v1` status as flipping the request to `errored`. That contradicted the retry-until-deadline intent: a retryable status (`no_quorum`, `timeout`, `provider_error`) should leave the request `pending` so the responsible set can run another round, with the deadline-expiry `ATTEST v2` path flipping it to `expired` only if no quorum is ever reached. The lifecycle step and the "Effects on v1" section now distinguish terminal statuses (`ok` → `fulfilled`, a genuinely terminal failure such as `expired` → `errored`, callback fires) from retryable statuses (recorded for audit, `request_status` left `pending`, no callback).
 - VM gas docs now disclose that indexed `for` loops are charged **twice per iteration**. The gas-metering transform injects a `__gas()` computation charge at the top of the loop body *and* a second charge into the update expression (`for (…; i++)` is metered as `for (…; (__gas(1), i++))`), so a `for` loop of N iterations costs `2 × N × VM_COMPUTATION`, whereas `while` / `do-while` / `for-in` / `for-of` loops have no update expression and cost `1 × N`. The published gas tables described computation as a flat "1 per control-flow point" with no mention of the update-expression charge, so a developer budgeting a gas ceiling from the tables would compute half the true cost of an indexed `for` loop. Added explanatory notes to the gas tables in `concepts/GAS.md`, `developer-guide/Smart_Contract_Development.md`, and `components/vm/CONFIGURATION.md`; expanded the out-of-gas troubleshooting cause in `components/vm/OPERATIONS.md`; and made the 2× cost explicit in the metering-injection list in `components/vm/ARCHITECTURE.md`.
-- `developer-guide/` and `getting-started/Quickstart_Developer.md` — every `sdk.explorer.*` example used an options-object calling style (`getToken({ tick })`, `getBalances({ address })`, `getHolders({ tick, page, limit })`, `getHistory({ address, ... })`, etc.) that `ExplorerClient` does not accept. The client takes positional arguments throughout — `getToken(tick)`, `getBalances(address, opts)`, `getHolders(tick, opts)`, and `getHistory(query, type, opts)` / `getDispensers(query, type, opts)` / `getOrders(query, type, opts)` / `getSends(query, type, opts)` where the `{query}/{type}` URL segment is required — so a developer copying any snippet received a malformed request or an HTTP 400 (the missing `type` positional broke the URL pattern outright). All affected examples across `Query_The_Explorer.md`, `Build_Your_First_Token.md`, `Build_A_Dispenser.md`, `Batch_Operations.md`, `Integration_Patterns.md`, `Advanced_Token_Features.md`, and `Quickstart_Developer.md` now use the real positional signatures, with each `type` set to match the example's intent (`'address'`, `'token'`, or `'block'`) per the equivalent REST endpoint shown alongside the snippet. Calls to the non-existent `getActions(...)` helper were rewritten to the real `getHistory(query, type, opts)` and `getTransaction(query, type)` methods.
-- `components/sync/` — the sync documentation still described xchain-sync as an indexer-only replication service, predating the addition of decoder DB replication. `README.md` and `ARCHITECTURE.md` now state that the service replicates both the indexer and decoder databases, served under a `/:dbType/` path namespace (`indexer` or `decoder`). `OPERATIONS.md` — every REST and WebSocket endpoint path now carries the `/:dbType/` segment (this was a breaking path change; the old segment-less paths return 404), with new sections documenting the decoder response schema (a single `block_hash` in place of the indexer's `ledger_hash`/`actions_hash`/`contract_hash`), the 8-of-9 decoder table set (`mempool_transactions` excluded as non-deterministic), and the HTTP 400 returned by the transparency endpoints for `dbType=decoder` (decoder data has no synthetic chain-of-state hashes). `CONFIGURATION.md` — hub discovery, database naming, and replica-schema sections updated to cover decoder databases alongside indexer ones.
-- `concepts/GAS.md` and `developer-guide/Smart_Contract_Development.md` — added the two VM gas constants that were implemented in the indexer chain configs but missing from the published gas docs. The VM Fees table in `GAS.md` now lists **Cross-chain read** (100 gas, same as a local state read) and **Attestation request** (5,000 gas, off-chain data request overhead). `Smart_Contract_Development.md` previously described the cost of `xchain.attestation.request` as only `VM_EMISSION` (500 gas); it now states the full **5,500 gas** charge (`VM_EMISSION` 500 + `VM_ATTEST_REQUEST` 5,000), so contract authors no longer underestimate attestation-call cost by 5,000 gas.
-- `concepts/GAS.md` — corrected the contract execution time limit. The Hard Caps list previously stated a "100ms CPU time limit per execution", which did not match the engine: gas exhaustion is the primary (sub-second) termination mechanism, and a 30-second wall-clock timeout is a secondary safety net that only fires if gas metering fails to halt execution in real time. Added an **Execution Termination** section documenting the two-tier model, the rationale for the generous wall-clock value (avoids premature kills on slow hardware), and a note that a contract crafted to burn wall-clock time cheaply in gas terms can hold a single worker for up to 30 seconds per `EXECUTE`. Now consistent with `concepts/Smart_Contracts.md`, which already documented the 30-second safety net.
-- Removed the obsolete validator/staking `tier` field left over from the pre-capability-staking model. `components/hub/API.md` — `syncvalidators` request and `getvalidators` response validator objects no longer carry `tier`, with a new note clarifying that capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) are auto-derived from a pubkey's aggregate stake rather than supplied or returned as a field. `components/sdk/EXAMPLES.md` and `components/sdk/WORKFLOWS.md` — `stakeAndDelegate`/`unstake` recipes now pass `version`/`amount`/`signingPubkey` (the real STAKE `VERSION|AMOUNT|SIGNING_PUBKEY` format) instead of the non-existent `tier`/`chains` arguments. `components/hub/CONFIGURATION.md` and `components/indexer/DATABASE.md` — `validators`, `stakes`, and `unstakes` table descriptions updated to match the actual columns (no `tier`).
-- `components/indexer/DATABASE.md` — finished aligning the staking-table docs with the capability/contract split. The `unstakes` row had described the cooldown as a hardcoded `block_index + 1000`; it now reflects that the value is governance-configurable via the `STAKING.COOLDOWN_BLOCKS` parameter (1000 is only the default) and that contract-targeted UNSTAKE v1 records live in `contract_unstakes`, not `unstakes`. Added a **Contract-Staking Tables** subsection documenting `contract_stakes`, `contract_unstakes`, and `contract_delegations` (multi-chain STAKE v3 / UNSTAKE v1 / DELEGATE v1), with columns matching the actual indexer SQL and a note that these tables share no state with the capability-staking tables and use a per-contract cooldown.
-- `components/encoder/Format_Selection.md` — corrected the documented P2WSH payload capacity from ~9,956 bytes to 8,192 bytes (table, section heading, and decision flowchart). 8,192 bytes is the effective protocol ceiling enforced by the decoder on decoded ACTION data, not the raw P2WSH script-level capacity, and it applies to every encoding format. The flowchart's `> P2WSH` branch previously implied larger payloads fell through to Multisig; it now reflects that payloads above the ceiling are rejected.
-- `components/encoder/README.md` — documented the `broadcast_tx` and `get_utxos` JSON-RPC methods, which the encoder has always exposed but the API reference omitted (only `create_tx` and `ping` were listed). A consumer reading the docs had no declared contract for either method, so any future change to their parameters or response shape would have been a silent breaking change. Added both to the Methods table and added parameter and response subsections: `broadcast_tx` takes `tx_hex` and returns `{ txid }`; `get_utxos` takes `address` and returns an array of UTXO objects in the same shape as the `create_tx` UTXO Structure. Both propagate the already-documented `-32602` (missing required param) and `-32603` (downstream failure) error codes.
-- `components/indexer/CONFIGURATION.md` — corrected the `FEE_PAYMENT_MODE` entry. It previously listed non-existent values (`'XCHAIN'` / `'GAS_UNITS'`) and implied the key drove fee behaviour. Clarified that the key is currently informational only and that fee payment mode is detected implicitly at runtime by `detectFeePaymentMode()` in the indexer's `src/utility.js` (from the transaction's fee output and coin name), with a note documenting the actual per-chain behaviour (`'native'` on LTC/DOGE, `'xchain'`-fallback on BTC).
+- `developer-guide/` and `getting-started/Quickstart_Developer.md`: every `sdk.explorer.*` example used an options-object calling style (`getToken({ tick })`, `getBalances({ address })`, `getHolders({ tick, page, limit })`, `getHistory({ address, ... })`, etc.) that `ExplorerClient` does not accept. The client takes positional arguments throughout: `getToken(tick)`, `getBalances(address, opts)`, `getHolders(tick, opts)`, and `getHistory(query, type, opts)` / `getDispensers(query, type, opts)` / `getOrders(query, type, opts)` / `getSends(query, type, opts)` where the `{query}/{type}` URL segment is required, so a developer copying any snippet received a malformed request or an HTTP 400 (the missing `type` positional broke the URL pattern outright). All affected examples across `Query_The_Explorer.md`, `Build_Your_First_Token.md`, `Build_A_Dispenser.md`, `Batch_Operations.md`, `Integration_Patterns.md`, `Advanced_Token_Features.md`, and `Quickstart_Developer.md` now use the real positional signatures, with each `type` set to match the example's intent (`'address'`, `'token'`, or `'block'`) per the equivalent REST endpoint shown alongside the snippet. Calls to the non-existent `getActions(...)` helper were rewritten to the real `getHistory(query, type, opts)` and `getTransaction(query, type)` methods.
+- `components/sync/`: the sync documentation still described xchain-sync as an indexer-only replication service, predating the addition of decoder DB replication. `README.md` and `ARCHITECTURE.md` now state that the service replicates both the indexer and decoder databases, served under a `/:dbType/` path namespace (`indexer` or `decoder`). `OPERATIONS.md`: every REST and WebSocket endpoint path now carries the `/:dbType/` segment (this was a breaking path change; the old segment-less paths return 404), with new sections documenting the decoder response schema (a single `block_hash` in place of the indexer's `ledger_hash`/`actions_hash`/`contract_hash`), the 8-of-9 decoder table set (`mempool_transactions` excluded as non-deterministic), and the HTTP 400 returned by the transparency endpoints for `dbType=decoder` (decoder data has no synthetic chain-of-state hashes). `CONFIGURATION.md`: hub discovery, database naming, and replica-schema sections updated to cover decoder databases alongside indexer ones.
+- `concepts/GAS.md` and `developer-guide/Smart_Contract_Development.md`: added the two VM gas constants that were implemented in the indexer chain configs but missing from the published gas docs. The VM Fees table in `GAS.md` now lists **Cross-chain read** (100 gas, same as a local state read) and **Attestation request** (5,000 gas, off-chain data request overhead). `Smart_Contract_Development.md` previously described the cost of `xchain.attestation.request` as only `VM_EMISSION` (500 gas); it now states the full **5,500 gas** charge (`VM_EMISSION` 500 + `VM_ATTEST_REQUEST` 5,000), so contract authors no longer underestimate attestation-call cost by 5,000 gas.
+- `concepts/GAS.md`: corrected the contract execution time limit. The Hard Caps list previously stated a "100ms CPU time limit per execution", which did not match the engine: gas exhaustion is the primary (sub-second) termination mechanism, and a 30-second wall-clock timeout is a secondary safety net that only fires if gas metering fails to halt execution in real time. Added an **Execution Termination** section documenting the two-tier model, the rationale for the generous wall-clock value (avoids premature kills on slow hardware), and a note that a contract crafted to burn wall-clock time cheaply in gas terms can hold a single worker for up to 30 seconds per `EXECUTE`. Now consistent with `concepts/Smart_Contracts.md`, which already documented the 30-second safety net.
+- Removed the obsolete validator/staking `tier` field left over from the pre-capability-staking model. `components/hub/API.md`: `syncvalidators` request and `getvalidators` response validator objects no longer carry `tier`, with a new note clarifying that capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) are auto-derived from a pubkey's aggregate stake rather than supplied or returned as a field. `components/sdk/EXAMPLES.md` and `components/sdk/WORKFLOWS.md`: `stakeAndDelegate`/`unstake` recipes now pass `version`/`amount`/`signingPubkey` (the real STAKE `VERSION|AMOUNT|SIGNING_PUBKEY` format) instead of the non-existent `tier`/`chains` arguments. `components/hub/CONFIGURATION.md` and `components/indexer/DATABASE.md`: `validators`, `stakes`, and `unstakes` table descriptions updated to match the actual columns (no `tier`).
+- `components/indexer/DATABASE.md`: finished aligning the staking-table docs with the capability/contract split. The `unstakes` row had described the cooldown as a hardcoded `block_index + 1000`; it now reflects that the value is governance-configurable via the `STAKING.COOLDOWN_BLOCKS` parameter (1000 is only the default) and that contract-targeted UNSTAKE v1 records live in `contract_unstakes`, not `unstakes`. Added a **Contract-Staking Tables** subsection documenting `contract_stakes`, `contract_unstakes`, and `contract_delegations` (multi-chain STAKE v3 / UNSTAKE v1 / DELEGATE v1), with columns matching the actual indexer SQL and a note that these tables share no state with the capability-staking tables and use a per-contract cooldown.
+- `components/encoder/Format_Selection.md`: corrected the documented P2WSH payload capacity from ~9,956 bytes to 8,192 bytes (table, section heading, and decision flowchart). 8,192 bytes is the effective protocol ceiling enforced by the decoder on decoded ACTION data, not the raw P2WSH script-level capacity, and it applies to every encoding format. The flowchart's `> P2WSH` branch previously implied larger payloads fell through to Multisig; it now reflects that payloads above the ceiling are rejected.
+- `components/encoder/README.md`: documented the `broadcast_tx` and `get_utxos` JSON-RPC methods, which the encoder has always exposed but the API reference omitted (only `create_tx` and `ping` were listed). A consumer reading the docs had no declared contract for either method, so any future change to their parameters or response shape would have been a silent breaking change. Added both to the Methods table and added parameter and response subsections: `broadcast_tx` takes `tx_hex` and returns `{ txid }`; `get_utxos` takes `address` and returns an array of UTXO objects in the same shape as the `create_tx` UTXO Structure. Both propagate the already-documented `-32602` (missing required param) and `-32603` (downstream failure) error codes.
+- `components/indexer/CONFIGURATION.md`: corrected the `FEE_PAYMENT_MODE` entry. It previously listed non-existent values (`'XCHAIN'` / `'GAS_UNITS'`) and implied the key drove fee behaviour. Clarified that the key is currently informational only and that fee payment mode is detected implicitly at runtime by `detectFeePaymentMode()` in the indexer's `src/utility.js` (from the transaction's fee output and coin name), with a note documenting the actual per-chain behaviour (`'native'` on LTC/DOGE, `'xchain'`-fallback on BTC).
 
-### Added — Five platform initiatives
+### Added: Five platform initiatives
 
-**1. AI-callable smart contracts (Attestation Framework + LLM provider).** Smart contracts can now ask the outside world a question and get a verified answer back on-chain. A contract calls `xchain.attestation.request(...)`, and the validator network independently fetches the answer from a registered provider, compares results across validators, and writes the agreed-upon response back to the chain — which then re-enters the contract through a callback method. Two providers ship in the initial release: `http_get` (any HTTPS endpoint, exact byte-equality consensus) and `llm` (large-language-model prompt, judge-model semantic consensus across Claude Sonnet 4.6 and Claude Opus 4.7). This is the platform's bridge between blockchain logic and the real world — usable for AI-judged contests, sentiment-gated airdrops, content moderation oracles, price feeds, dispute resolution, and any other real-world data trigger a contract needs.
+**1. AI-callable smart contracts (Attestation Framework + LLM provider).** Smart contracts can now ask the outside world a question and get a verified answer back on-chain. A contract calls `xchain.attestation.request(...)`, and the validator network independently fetches the answer from a registered provider, compares results across validators, and writes the agreed-upon response back to the chain, which then re-enters the contract through a callback method. Two providers ship in the initial release: `http_get` (any HTTPS endpoint, exact byte-equality consensus) and `llm` (large-language-model prompt, judge-model semantic consensus across Claude Sonnet 4.6 and Claude Opus 4.7). This is the platform's bridge between blockchain logic and the real world, usable for AI-judged contests, sentiment-gated airdrops, content moderation oracles, price feeds, dispute resolution, and any other real-world data trigger a contract needs.
 
-- `protocol/actions/ATTEST.md` — request (v0), response (v1), and system-synthesized expire (v2) phases
-- `protocol/providers/llm.md` — full LLM provider spec including approved models, judge-model consensus, transport options, cost
-- `user-guide/Use_Cases.md` — new **AI-Powered Smart Contracts** section
-- `developer-guide/Smart_Contract_Development.md` — new sections for the `xchain.attestation.*` VM gateway namespace with worked examples
+- `protocol/actions/ATTEST.md`: request (v0), response (v1), and system-synthesized expire (v2) phases
+- `protocol/providers/llm.md`: full LLM provider spec including approved models, judge-model consensus, transport options, cost
+- `user-guide/Use_Cases.md`: new **AI-Powered Smart Contracts** section
+- `developer-guide/Smart_Contract_Development.md`: new sections for the `xchain.attestation.*` VM gateway namespace with worked examples
 
-**2. Contract-targeted staking — multi-chain.** Any token on any chain (Bitcoin, Litecoin, Dogecoin) can now be staked against any smart contract. The contract author declares the staking rules at deploy time — how long the cooldown is, and where slashed tokens go — and the contract's own code decides what staking unlocks and when to slash. This is a general-purpose developer primitive: build prediction markets, security bonds, validator-style services, conditional escrow, or any logic where users back a contract with locked tokens. Coexists with the existing capability-based staking (XCHAIN-only, hub-facing); the two systems share no state.
+**2. Contract-targeted staking: multi-chain.** Any token on any chain (Bitcoin, Litecoin, Dogecoin) can now be staked against any smart contract. The contract author declares the staking rules at deploy time (how long the cooldown is, and where slashed tokens go) and the contract's own code decides what staking unlocks and when to slash. This is a general-purpose developer primitive: build prediction markets, security bonds, validator-style services, conditional escrow, or any logic where users back a contract with locked tokens. Coexists with the existing capability-based staking (XCHAIN-only, hub-facing); the two systems share no state.
 
-- `protocol/Contract_Staking.md` — full spec (STAKE v3, UNSTAKE v1, DELEGATE v1, DEPLOY v1 metadata, `xchain.contract.*` VM API)
-- `user-guide/Use_Cases.md` — new **Native Multi-Chain Staking** section
-- `developer-guide/Smart_Contract_Development.md` — new section for the `xchain.contract.*` VM gateway namespace
+- `protocol/Contract_Staking.md`: full spec (STAKE v3, UNSTAKE v1, DELEGATE v1, DEPLOY v1 metadata, `xchain.contract.*` VM API)
+- `user-guide/Use_Cases.md`: new **Native Multi-Chain Staking** section
+- `developer-guide/Smart_Contract_Development.md`: new section for the `xchain.contract.*` VM gateway namespace
 
-**3. Capability-based validator staking.** Replaces the previous tier model. Validators stake XCHAIN and automatically qualify for any of four independent capabilities — `price`, `cross_chain`, `oracle_publish`, `attestation` — based on the amount staked against each. Each capability has its own governance-configurable minimum stake. Validators participate in consensus per capability at block-boundary snapshots.
+**3. Capability-based validator staking.** Replaces the previous tier model. Validators stake XCHAIN and automatically qualify for any of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) based on the amount staked against each. Each capability has its own governance-configurable minimum stake. Validators participate in consensus per capability at block-boundary snapshots.
 
-- `protocol/actions/STAKE.md`, `UNSTAKE.md`, `DELEGATE.md`, `COLLECT.md` — rewritten for the capability model
-- `getting-started/What_Is_XChain.md` — staking summary updated
+- `protocol/actions/STAKE.md`, `UNSTAKE.md`, `DELEGATE.md`, `COLLECT.md`: rewritten for the capability model
+- `getting-started/What_Is_XChain.md`: staking summary updated
 
-**4. Token-gated encrypted publishing.** A token issuer can now publish a file — or a multi-file pack — on the blockchain, encrypted such that only holders of the gating token can decrypt it. The decryption key is automatically re-encrypted to each new holder during every transfer, end-to-end on-chain, with no third-party server or key escrow. Sell the token via dispenser or order, and the buyer receives the decryption key in the same transaction. Useful for sealed album drops, paid downloads, gated research, holder-only resources, and any "first-access" mechanic.
+**4. Token-gated encrypted publishing.** A token issuer can now publish a file (or a multi-file pack) on the blockchain, encrypted such that only holders of the gating token can decrypt it. The decryption key is automatically re-encrypted to each new holder during every transfer, end-to-end on-chain, with no third-party server or key escrow. Sell the token via dispenser or order, and the buyer receives the decryption key in the same transaction. Useful for sealed album drops, paid downloads, gated research, holder-only resources, and any "first-access" mechanic.
 
-- `protocol/Token_Gated_Content.md` — full spec including the binary key-handoff payload format
-- `protocol/actions/FILE.md` — gating fields (`GATE_TICKER`, `ENCRYPTION_METHOD`, `KEY_HASH`)
-- `protocol/actions/MESSAGE.md` — v2 ECIES binary mode for key handoff
-- `user-guide/Use_Cases.md` — **Token-Gated Encrypted Content and Packs** section expanded
-- `developer-guide/Advanced_Token_Features.md` — new walkthrough
+- `protocol/Token_Gated_Content.md`: full spec including the binary key-handoff payload format
+- `protocol/actions/FILE.md`: gating fields (`GATE_TICKER`, `ENCRYPTION_METHOD`, `KEY_HASH`)
+- `protocol/actions/MESSAGE.md`: v2 ECIES binary mode for key handoff
+- `user-guide/Use_Cases.md`: **Token-Gated Encrypted Content and Packs** section expanded
+- `developer-guide/Advanced_Token_Features.md`: new walkthrough
 
-**5. Token-ownership trading.** The issuer role of a token can now be bought and sold on the DEX. New `GIVE_OWNERSHIP` and `GET_OWNERSHIP` flags on `ORDER`, `SWAP`, and `DISPENSER` let a seller advertise the ownership of an entire token issuance, and a buyer purchase it atomically — no off-chain trust required. `SWEEP` was restructured into three independent flags (`BALANCES`, `OWNERSHIPS`, `ESCROWS`) so a holder can sweep just one category at a time.
+**5. Token-ownership trading.** The issuer role of a token can now be bought and sold on the DEX. New `GIVE_OWNERSHIP` and `GET_OWNERSHIP` flags on `ORDER`, `SWAP`, and `DISPENSER` let a seller advertise the ownership of an entire token issuance, and a buyer purchase it atomically. No off-chain trust required. `SWEEP` was restructured into three independent flags (`BALANCES`, `OWNERSHIPS`, `ESCROWS`) so a holder can sweep just one category at a time.
 
-- `protocol/actions/ORDER.md`, `SWAP.md`, `DISPENSER.md` — ownership-trading flags
-- `protocol/actions/SWEEP.md` — three-flag restructure
-- `user-guide/Use_Cases.md` — new **Token Ownership Trading** section
-- `developer-guide/Advanced_Token_Features.md` — new walkthrough
+- `protocol/actions/ORDER.md`, `SWAP.md`, `DISPENSER.md`: ownership-trading flags
+- `protocol/actions/SWEEP.md`: three-flag restructure
+- `user-guide/Use_Cases.md`: new **Token Ownership Trading** section
+- `developer-guide/Advanced_Token_Features.md`: new walkthrough
 
-### Added — Documentation surface
+### Added: Documentation surface
 
-- `protocol/actions/COLLECT.md` — renamed from `CLAIM_REWARDS.md`, consolidated with capability-staking rewards
-- `protocol/actions/DEPLOY.md` — `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` fields documented for v1
-- `user-guide/FAQ.md` — entries on AI-callable contracts, contract staking vs capability staking, selling encrypted content, and selling issuer rights
-- `getting-started/What_Is_XChain.md` — top-level pitch now calls out AI-callable contracts as a platform differentiator
-- `components/sync/` — directory renamed from `components/indexer-sync/`; documentation updated for decoder DB replication scope expansion
+- `protocol/actions/COLLECT.md`: renamed from `CLAIM_REWARDS.md`, consolidated with capability-staking rewards
+- `protocol/actions/DEPLOY.md`: `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` fields documented for v1
+- `user-guide/FAQ.md`: entries on AI-callable contracts, contract staking vs capability staking, selling encrypted content, and selling issuer rights
+- `getting-started/What_Is_XChain.md`: top-level pitch now calls out AI-callable contracts as a platform differentiator
+- `components/sync/`: directory renamed from `components/indexer-sync/`; documentation updated for decoder DB replication scope expansion
 
 ## [0.10.0] - 2026-04-25
 
 ### Added
 
-- `components/wallet/` — full component documentation set for `xchain-wallet`, mirroring the depth of the SDK and Explorer doc sets:
-  - `README.md` — overview, full feature list, doc index, installation, quick start, four usage modes (web / extension / desktop / dApp integration), repository layout, scripts, dependencies
-  - `ARCHITECTURE.md` — three-shell-one-core model, package boundaries, vault & state model, schema migrations, signer interface, build pipelines
-  - `Keys_Signing.md` — Argon2id KDF parameters, vault encryption, BIP39 + Counterwallet mnemonic handling, BIP32 HD derivation, the five signers (Software / Trezor / Ledger / Remote / Multisig) in detail, backup / recovery / dry-run-restore, label-sync
-  - `SECURITY.md` — protected assets, in-scope and out-of-scope threats, sign-screen safety rails, audit posture, disclosure policy
-  - `UX.md` — full route map for all 64 shared routes, onboarding, lock/unlock, Home, Send, Receive, History, sign screens, multisig session view, contacts, QR scanner, command palette, settings
-  - `FEATURES.md` — capability-by-capability walk: token issuance, distribution surfaces, DEX, encrypted messaging, smart contracts, BTC staking + delegation, multisig, cross-chain flows, dApp bridge, air-gapped PSBT signing, onboarding & recovery, lock / unlock / auto-lock, i18n + a11y, reproducible builds, URI scheme handling, connected sites, notifications, developer mode
-  - `BRIDGE.md` — full `window.xchain` API reference (`connect`, `getAccounts`, `getBalances`, `getSupportedChains`, `signMessage`, `signPsbt`, `signAction`, `sendAction`, `signIn`), events, permissions, error model, test dApp, security model
-  - `URI_Schemes.md` — BIP21, chunked PSBT-QR transport, multisig PSBT envelope, animated QR cadence, detect-and-route classifier
-  - `MULTISIG.md` — schema, create flow, classical n-of-m + MuSig2 state machines, cosigner transport, hardware-signer status, address browsing
-  - `Shell_Extension.md` — Chrome MV3 manifest + audit, service worker, content script, injected provider, approval window, storage, privacy policy + CWS submission
-  - `Shell_Desktop.md` — Electron main / renderer split, OS keychain, hardware transports, auto-updater, packaging
-  - `Shell_Web.md` — Vite SPA, mobile responsiveness, camera + WebHID, extension-detect banner, CSP, session lifetime
-  - `Build_Release.md` — synchronized versioning, extension version-derivation rule, per-shell build, signing, distribution channels, CWS submission, release artifacts, pre-launch readiness gates
-  - `Reproducible_Builds.md` — Level-2 reproducibility scope, scaffolding audit, run-twice verification protocol, comparison against maintainer release, common drift sources, roadmap
-  - `TESTING.md` — 92-smoke breakdown, audit gates, Playwright E2E, bridge E2E, hardware-signer E2E, multisig coverage, repro-build verification, what's not covered
-  - `CONFIGURATION.md` — per-chain endpoints, settings store schema, signer registration, connected sites, build-time variables, developer mode, locale, branding, ADS, schema migrations
+- `components/wallet/`: full component documentation set for `xchain-wallet`, mirroring the depth of the SDK and Explorer doc sets:
+  - `README.md`: overview, full feature list, doc index, installation, quick start, four usage modes (web / extension / desktop / dApp integration), repository layout, scripts, dependencies
+  - `ARCHITECTURE.md`: three-shell-one-core model, package boundaries, vault & state model, schema migrations, signer interface, build pipelines
+  - `Keys_Signing.md`: Argon2id KDF parameters, vault encryption, BIP39 + Counterwallet mnemonic handling, BIP32 HD derivation, the five signers (Software / Trezor / Ledger / Remote / Multisig) in detail, backup / recovery / dry-run-restore, label-sync
+  - `SECURITY.md`: protected assets, in-scope and out-of-scope threats, sign-screen safety rails, audit posture, disclosure policy
+  - `UX.md`: full route map for all 64 shared routes, onboarding, lock/unlock, Home, Send, Receive, History, sign screens, multisig session view, contacts, QR scanner, command palette, settings
+  - `FEATURES.md`: capability-by-capability walk: token issuance, distribution surfaces, DEX, encrypted messaging, smart contracts, BTC staking + delegation, multisig, cross-chain flows, dApp bridge, air-gapped PSBT signing, onboarding & recovery, lock / unlock / auto-lock, i18n + a11y, reproducible builds, URI scheme handling, connected sites, notifications, developer mode
+  - `BRIDGE.md`: full `window.xchain` API reference (`connect`, `getAccounts`, `getBalances`, `getSupportedChains`, `signMessage`, `signPsbt`, `signAction`, `sendAction`, `signIn`), events, permissions, error model, test dApp, security model
+  - `URI_Schemes.md`: BIP21, chunked PSBT-QR transport, multisig PSBT envelope, animated QR cadence, detect-and-route classifier
+  - `MULTISIG.md`: schema, create flow, classical n-of-m + MuSig2 state machines, cosigner transport, hardware-signer status, address browsing
+  - `Shell_Extension.md`: Chrome MV3 manifest + audit, service worker, content script, injected provider, approval window, storage, privacy policy + CWS submission
+  - `Shell_Desktop.md`: Electron main / renderer split, OS keychain, hardware transports, auto-updater, packaging
+  - `Shell_Web.md`: Vite SPA, mobile responsiveness, camera + WebHID, extension-detect banner, CSP, session lifetime
+  - `Build_Release.md`: synchronized versioning, extension version-derivation rule, per-shell build, signing, distribution channels, CWS submission, release artifacts, pre-launch readiness gates
+  - `Reproducible_Builds.md`: Level-2 reproducibility scope, scaffolding audit, run-twice verification protocol, comparison against maintainer release, common drift sources, roadmap
+  - `TESTING.md`: 92-smoke breakdown, audit gates, Playwright E2E, bridge E2E, hardware-signer E2E, multisig coverage, repro-build verification, what's not covered
+  - `CONFIGURATION.md`: per-chain endpoints, settings store schema, signer registration, connected sites, build-time variables, developer mode, locale, branding, ADS, schema migrations
 
 ### Changed
 
-- `README.md` — added `xchain-wallet` row to the platform Components table; updated the Documentation row's component count from 12 to 13.
-- `components/README.md` — added wallet entry to the components index; updated the lead sentence's component count from 12 to 13.
+- `README.md`: added `xchain-wallet` row to the platform Components table; updated the Documentation row's component count from 12 to 13.
+- `components/README.md`: added wallet entry to the components index; updated the lead sentence's component count from 12 to 13.
 
 ## [0.9.9] - 2026-04-24
 
 ### Added
-- `protocol/actions/ADDRESS.md` — `DISPENSER_PREFERENCE` field added to format `0` (controls who may open a dispenser on the address: `1`=owner only (default), `2`=anyone). Examples updated for the new field position; note added that leaving the field blank in a subsequent `ADDRESS` action preserves the previous non-blank value rather than clearing it.
-- `protocol/actions/DISPENSER.md` — explicit rules for who may open a dispenser on a non-`SOURCE` address: either the target sets `DISPENSER_PREFERENCE=2`, or the target is a fresh address (no on-chain activity as of `BLOCK_INDEX − 1`). `GET_ADDRESS == SOURCE` is always allowed.
-- `protocol/actions/DISPENSER.md` — escrow-routing rules for `SWEEP`-driven close (escrow → `SWEEP` `DESTINATION`) and `EXPIRATION` close with no canceller (escrow → `SOURCE`).
-- `protocol/actions/DISPENSER.md` — fresh-address dispenser example illustrating the `1FreshAddr…` pattern from a main wallet `SOURCE`.
+- `protocol/actions/ADDRESS.md`: `DISPENSER_PREFERENCE` field added to format `0` (controls who may open a dispenser on the address: `1`=owner only (default), `2`=anyone). Examples updated for the new field position; note added that leaving the field blank in a subsequent `ADDRESS` action preserves the previous non-blank value rather than clearing it.
+- `protocol/actions/DISPENSER.md`: explicit rules for who may open a dispenser on a non-`SOURCE` address: either the target sets `DISPENSER_PREFERENCE=2`, or the target is a fresh address (no on-chain activity as of `BLOCK_INDEX − 1`). `GET_ADDRESS == SOURCE` is always allowed.
+- `protocol/actions/DISPENSER.md`: escrow-routing rules for `SWEEP`-driven close (escrow → `SWEEP` `DESTINATION`) and `EXPIRATION` close with no canceller (escrow → `SOURCE`).
+- `protocol/actions/DISPENSER.md`: fresh-address dispenser example illustrating the `1FreshAddr…` pattern from a main wallet `SOURCE`.
 
 ### Changed
-- `protocol/actions/DISPENSER.md` — removed the standalone "no new/empty address limitation" note; superseded by the explicit rules above.
+- `protocol/actions/DISPENSER.md`: removed the standalone "no new/empty address limitation" note; superseded by the explicit rules above.
 
 ## [0.9.8] - 2026-04-08
 
 ### Added
-- `protocol/actions/PRICE.md` — full rewrite to match implementation: 12 fiat currencies (36 pairs per round), DOGE_ADDRESS in Tier 3 STAKE format, 24-hour user oracle lock window, publishable on any chain (not DOGE-only), hub-aggregated price_snapshots with source_chain column, three-database model architecture, signature aggregation flow
-- `protocol/actions/STAKE.md` — Tier 3 (oracle publisher, 500 XCHAIN), DOGE_ADDRESS field with format validation, 6-block activation delay
-- `protocol/actions/UNSTAKE.md` — Tier 3 support, two distinct delays (6-block validator removal vs 1000-block token return)
-- `protocol/actions/DELEGATE.md` — 6-block activation delay for key rotation
-- `protocol/actions/REVOKE_DELEGATION.md` — 6-block deactivation delay with key overlap window
-- `protocol/actions/DISPENSER.md` — ORACLE_ADDRESS field for user TOKEN/FIAT oracle pricing, EUR/KRW added to FIAT_CODE list (12 currencies total), dual reverse-matching algorithms (validator and user oracle paths), front-running protection notes
-- `protocol/actions/CLAIM_REWARDS.md` — reward sources table, hub→indexer reward push path via `pushvalidatorrewards`
-- `protocol/actions/README.md` — new "Oracles" section listing PRICE
-- `architecture/Database_Design.md` — three-database model (Decoder DB, Indexer DB, local Hub DB) with separation principle and cross-node determinism guarantee
-- `components/hub/ARCHITECTURE.md` — PriceAggregator, OraclePublisher, EncoderClient, HubDbBroadcaster source files; Tier 3 publishing pipeline diagram; multi-validator signature aggregation in PBFT prepare/commit; hub DB sync channel REST + WebSocket flow
-- `components/hub/DATABASE.md` — `oracle_prices` table schema; `price_snapshots` updated with `source_chain` and `source_action_index` columns
-- `components/hub/API.md` — new write methods (`pushchaintip`, `pushpriceround`, `pushoracleprice`); new REST endpoints (`/hub-db/snapshot/price_snapshots`, `/hub-db/snapshot/oracle_prices`); WebSocket channel `/hub-db/subscribe`
-- `components/hub/OPERATIONS.md` — startup sequence updated with PriceAggregator, HubDbBroadcaster, OraclePublisher
-- `components/indexer/ARCHITECTURE.md` — three DB connections, HubClient, HubDbSync, Ed25519 verification module; indexer↔hub push endpoint reference
-- `components/indexer/ACTIONS.md` — new "Oracles" section for PRICE v0/v1; Tier 3 staking notes; activation delay reference
-- `components/indexer/DATABASE.md` — `prices` action table schema; `stakes` updated with `doge_address`, `activation_block`, `deactivation_block`; `delegations` updated with activation/deactivation columns; `validator_rewards` populated via hub push
-- `architecture/Component_Map.md` — indexer entry updated for three-database model and hub push endpoints; hub entry updated for hub DB sync channel
-- `operations/CONFIGURATION.md` — hub component descriptions updated for PriceAggregator, HubDbBroadcaster, OraclePublisher
+- `protocol/actions/PRICE.md`: full rewrite to match implementation: 12 fiat currencies (36 pairs per round), DOGE_ADDRESS in Tier 3 STAKE format, 24-hour user oracle lock window, publishable on any chain (not DOGE-only), hub-aggregated price_snapshots with source_chain column, three-database model architecture, signature aggregation flow
+- `protocol/actions/STAKE.md`: Tier 3 (oracle publisher, 500 XCHAIN), DOGE_ADDRESS field with format validation, 6-block activation delay
+- `protocol/actions/UNSTAKE.md`: Tier 3 support, two distinct delays (6-block validator removal vs 1000-block token return)
+- `protocol/actions/DELEGATE.md`: 6-block activation delay for key rotation
+- `protocol/actions/REVOKE_DELEGATION.md`: 6-block deactivation delay with key overlap window
+- `protocol/actions/DISPENSER.md`: ORACLE_ADDRESS field for user TOKEN/FIAT oracle pricing, EUR/KRW added to FIAT_CODE list (12 currencies total), dual reverse-matching algorithms (validator and user oracle paths), front-running protection notes
+- `protocol/actions/CLAIM_REWARDS.md`: reward sources table, hub→indexer reward push path via `pushvalidatorrewards`
+- `protocol/actions/README.md`: new "Oracles" section listing PRICE
+- `architecture/Database_Design.md`: three-database model (Decoder DB, Indexer DB, local Hub DB) with separation principle and cross-node determinism guarantee
+- `components/hub/ARCHITECTURE.md`: PriceAggregator, OraclePublisher, EncoderClient, HubDbBroadcaster source files; Tier 3 publishing pipeline diagram; multi-validator signature aggregation in PBFT prepare/commit; hub DB sync channel REST + WebSocket flow
+- `components/hub/DATABASE.md`: `oracle_prices` table schema; `price_snapshots` updated with `source_chain` and `source_action_index` columns
+- `components/hub/API.md`: new write methods (`pushchaintip`, `pushpriceround`, `pushoracleprice`); new REST endpoints (`/hub-db/snapshot/price_snapshots`, `/hub-db/snapshot/oracle_prices`); WebSocket channel `/hub-db/subscribe`
+- `components/hub/OPERATIONS.md`: startup sequence updated with PriceAggregator, HubDbBroadcaster, OraclePublisher
+- `components/indexer/ARCHITECTURE.md`: three DB connections, HubClient, HubDbSync, Ed25519 verification module; indexer↔hub push endpoint reference
+- `components/indexer/ACTIONS.md`: new "Oracles" section for PRICE v0/v1; Tier 3 staking notes; activation delay reference
+- `components/indexer/DATABASE.md`: `prices` action table schema; `stakes` updated with `doge_address`, `activation_block`, `deactivation_block`; `delegations` updated with activation/deactivation columns; `validator_rewards` populated via hub push
+- `architecture/Component_Map.md`: indexer entry updated for three-database model and hub push endpoints; hub entry updated for hub DB sync channel
+- `operations/CONFIGURATION.md`: hub component descriptions updated for PriceAggregator, HubDbBroadcaster, OraclePublisher
 
 ## [0.9.7] - 2026-04-07
 
 ### Added
-- `protocol/actions/DISPENSER.md` — FIAT Dispensers section: reverse price matching algorithm, overpayment/tips handling, dispenser close window behavior, and FIAT dispenser example
-- `protocol/actions/PRICE.md` — expanded FIAT Dispenser Grace Period with floor-based matching algorithm details
+- `protocol/actions/DISPENSER.md`: FIAT Dispensers section: reverse price matching algorithm, overpayment/tips handling, dispenser close window behavior, and FIAT dispenser example
+- `protocol/actions/PRICE.md`: expanded FIAT Dispenser Grace Period with floor-based matching algorithm details
 
 ## [0.9.6] - 2026-04-07
 
 ### Changed
-- `protocol/actions/MESSAGE.md` — added `COIN` field (BTC, LTC, DOGE) to all MESSAGE formats for cross-chain messaging support
+- `protocol/actions/MESSAGE.md`: added `COIN` field (BTC, LTC, DOGE) to all MESSAGE formats for cross-chain messaging support
 - All SDK messaging documentation and examples updated with required `coin` parameter
-- `components/sdk/MESSAGING.md` — added `INVALID_COIN` error code
+- `components/sdk/MESSAGING.md`: added `INVALID_COIN` error code
 
 ## [0.9.5] - 2026-04-07
 
 ### Added
-- `protocol/actions/MESSAGE.md` — new Encryption Methods section with descriptions for ECIES, ECDH, and AES
-- `components/sdk/MESSAGING.md` — new reference doc for messaging module: ECIES/ECDH/AES encryption, public key lookup, high-level send/receive, error codes
-- `developer-guide/MESSAGING.md` — new developer guide for encrypted messaging with end-to-end examples
+- `protocol/actions/MESSAGE.md`: new Encryption Methods section with descriptions for ECIES, ECDH, and AES
+- `components/sdk/MESSAGING.md`: new reference doc for messaging module: ECIES/ECDH/AES encryption, public key lookup, high-level send/receive, error codes
+- `developer-guide/MESSAGING.md`: new developer guide for encrypted messaging with end-to-end examples
 
 ### Changed
-- `protocol/actions/MESSAGE.md` — reordered encryption methods to 1=ECIES (default), 2=ECDH, 3=AES; updated examples and notes
-- `components/sdk/EXAMPLES.md` — added 7 messaging examples: ECIES send, read/decrypt, low-level encrypt/decrypt, ECDH session, AES pre-shared key, public key lookup
-- `components/sdk/README.md` — added 3 messaging features to Features list, added MESSAGING.md to Documentation table
+- `protocol/actions/MESSAGE.md`: reordered encryption methods to 1=ECIES (default), 2=ECDH, 3=AES; updated examples and notes
+- `components/sdk/EXAMPLES.md`: added 7 messaging examples: ECIES send, read/decrypt, low-level encrypt/decrypt, ECDH session, AES pre-shared key, public key lookup
+- `components/sdk/README.md`: added 3 messaging features to Features list, added MESSAGING.md to Documentation table
 
 ## [0.9.4] - 2026-04-07
 
 ### Added
-- `components/sdk/WALLET.md` — new reference doc for wallet and auth modules: key management, address derivation and validation, challenge-response wallet verification, custom message signing, PSBT signing, transaction broadcasting, UTXO queries, supported networks matrix, full workflow examples
+- `components/sdk/WALLET.md`: new reference doc for wallet and auth modules: key management, address derivation and validation, challenge-response wallet verification, custom message signing, PSBT signing, transaction broadcasting, UTXO queries, supported networks matrix, full workflow examples
 
 ### Changed
-- `components/sdk/EXAMPLES.md` — added 10 new wallet/auth examples: Generate a Key Pair, Import a WIF Key, Derive Addresses, Validate an Address, Challenge-Response Wallet Verification, Custom Message Signing, Sign and Broadcast a Transaction, Token-Gated Content Access, Fetch UTXOs
-- `components/sdk/README.md` — added 7 wallet/auth features to Features list, added WALLET.md to Documentation table, added 4 new crypto dependencies to Runtime dependencies table
-- `components/sdk/ERRORS.md` — added SDKWalletError (14 error codes) and SDKAuthError (5 error codes) to hierarchy, class table, error codes reference, and catching errors example
+- `components/sdk/EXAMPLES.md`: added 10 new wallet/auth examples: Generate a Key Pair, Import a WIF Key, Derive Addresses, Validate an Address, Challenge-Response Wallet Verification, Custom Message Signing, Sign and Broadcast a Transaction, Token-Gated Content Access, Fetch UTXOs
+- `components/sdk/README.md`: added 7 wallet/auth features to Features list, added WALLET.md to Documentation table, added 4 new crypto dependencies to Runtime dependencies table
+- `components/sdk/ERRORS.md`: added SDKWalletError (14 error codes) and SDKAuthError (5 error codes) to hierarchy, class table, error codes reference, and catching errors example
 
 ## [0.9.3] - 2026-04-07
 
 ### Changed
-- `developer-guide/Integration_Patterns.md` — expanded Pattern 3 (Token-Gated Access) from a basic balance check into a comprehensive guide: wallet ownership proof via challenge-response signing, session management with configurable re-check intervals, real-time balance invalidation via WebSocket, smart contract-based on-chain gating with example contract, end-to-end music platform example, security considerations
-- `user-guide/Use_Cases.md` — expanded "Access Control and Token-Gated Systems" section with concrete content-gating examples (music, books, video, software, physical access, communities), wallet ownership proof mention, TRANSFER_LOCK guidance, and cross-reference to Integration Patterns
-- `developer-guide/Query_The_Explorer.md` — added cross-reference from token-gated check snippet to the full Integration Patterns guide, fixed typo in comment
+- `developer-guide/Integration_Patterns.md`: expanded Pattern 3 (Token-Gated Access) from a basic balance check into a comprehensive guide: wallet ownership proof via challenge-response signing, session management with configurable re-check intervals, real-time balance invalidation via WebSocket, smart contract-based on-chain gating with example contract, end-to-end music platform example, security considerations
+- `user-guide/Use_Cases.md`: expanded "Access Control and Token-Gated Systems" section with concrete content-gating examples (music, books, video, software, physical access, communities), wallet ownership proof mention, TRANSFER_LOCK guidance, and cross-reference to Integration Patterns
+- `developer-guide/Query_The_Explorer.md`: added cross-reference from token-gated check snippet to the full Integration Patterns guide, fixed typo in comment
 
 ## [0.9.2] - 2026-04-06
 
 ### Added
-- `components/hub/DATABASE.md` — full schema reference for all 13 MariaDB tables organized by category (config, validator, oracle, cross-chain, governance, incentive) with column definitions, types, and keys
-- `components/hub/OPERATIONS.md` — prerequisites, startup sequence, operating modes, Docker, multi-instance deployment, API overview, resilience/recovery patterns, troubleshooting guide
+- `components/hub/DATABASE.md`: full schema reference for all 13 MariaDB tables organized by category (config, validator, oracle, cross-chain, governance, incentive) with column definitions, types, and keys
+- `components/hub/OPERATIONS.md`: prerequisites, startup sequence, operating modes, Docker, multi-instance deployment, API overview, resilience/recovery patterns, troubleshooting guide
 
 ### Changed
-- `components/hub/README.md` — added test count to features, expanded scripts table with all test commands, added development dependencies section, added links to new DATABASE.md and OPERATIONS.md
+- `components/hub/README.md`: added test count to features, expanded scripts table with all test commands, added development dependencies section, added links to new DATABASE.md and OPERATIONS.md
 
 ## [0.9.1] - 2026-04-06
 
 ### Added
-- `components/e2e-test/ARCHITECTURE.md` — connector classes, bootstrap sequence, transaction flow, UTXO cache, polling architecture, wallet management, file organization
-- `components/e2e-test/CONFIGURATION.md` — all environment variables, hub discovery fallback, internal constants, Docker setup, coin/network combinations
-- `components/e2e-test/OPERATIONS.md` — running tests, CI pipeline, regression tiers, Docker execution, troubleshooting tables
+- `components/e2e-test/ARCHITECTURE.md`: connector classes, bootstrap sequence, transaction flow, UTXO cache, polling architecture, wallet management, file organization
+- `components/e2e-test/CONFIGURATION.md`: all environment variables, hub discovery fallback, internal constants, Docker setup, coin/network combinations
+- `components/e2e-test/OPERATIONS.md`: running tests, CI pipeline, regression tiers, Docker execution, troubleshooting tables
 
 ### Changed
-- `components/e2e-test/README.md` — expanded from minimal stub to full component documentation: features, architecture diagram, test structure tables, configuration overview, test counts
-- `developer-guide/TESTING.md` — added E2E Suite column to test type matrix, updated total test count to 5,600+, added e2e-test to component scripts list
+- `components/e2e-test/README.md`: expanded from minimal stub to full component documentation: features, architecture diagram, test structure tables, configuration overview, test counts
+- `developer-guide/TESTING.md`: added E2E Suite column to test type matrix, updated total test count to 5,600+, added e2e-test to component scripts list
 
 ## [0.9.0] - 2026-04-06
 
 ### Added
-- `components/hub/ARCHITECTURE.md` — new file: subsystem design, source files, P2P gossip, PBFT consensus, oracle pipeline, cross-chain engine, governance, rewards/slashing
-- `components/hub/CONFIGURATION.md` — new file: all 30+ environment variables, 13 database tables with schemas, connection pool, circuit breaker, validator identity
-- `components/hub/API.md` — new file: full JSON-RPC method reference for all 23 methods with request/response examples
+- `components/hub/ARCHITECTURE.md`: new file: subsystem design, source files, P2P gossip, PBFT consensus, oracle pipeline, cross-chain engine, governance, rewards/slashing
+- `components/hub/CONFIGURATION.md`: new file: all 30+ environment variables, 13 database tables with schemas, connection pool, circuit breaker, validator identity
+- `components/hub/API.md`: new file: full JSON-RPC method reference for all 23 methods with request/response examples
 
 ### Changed
-- `components/hub/README.md` — rewritten for hub v2.0.0: dual operating modes (standalone/validator), full feature list, documentation table, quick start for both modes, service discovery, multi-instance deployment, dependencies
-- `components/hub/DECENTRALIZATION.md` — updated: all six phases marked complete with version numbers, removed "planned" language, added architecture summary
-- `README.md` — updated hub description to reflect decentralized validator network
-- `components/README.md` — hub: "backed by LevelDB" → MariaDB with full feature description
-- `architecture/Component_Map.md` — hub: LevelDB → MariaDB, added full v2.0.0 capabilities, updated connection diagram, multi-instance in deployment table
-- `architecture/Database_Design.md` — hub: replaced LevelDB key schema with MariaDB 13-table description
-- `concepts/Security_Model.md` — hub: "currently centralized" → "hub validator network (PBFT consensus)" in prose and trust model table
-- `concepts/CROSS_CHAIN.md` — hub: expanded from two roles to five (config, price oracle, attestation, swap coordinator, governance), removed "planned decentralization" language
-- `concepts/README.md` — smart contracts: "Planned" → "Programmable contract layer"
-- `concepts/Smart_Contracts.md` — VM oracle/cross-chain stubs: "stub until Track B/Phase 4" → "pending VM integration"
-- `getting-started/Key_Terms.md` — hub: "stores in LevelDB" → "backed by MariaDB, PBFT consensus"; LevelDB entry: removed hub reference
-- `operations/CONFIGURATION.md` — hub: replaced LevelDB key format with MariaDB config, added 11 key env vars, linked to full hub configuration reference
-- `operations/DOCKER.md` — hub: removed from LevelDB volumes section, replaced LevelDB backup with mysqldump
-- `operations/UPGRADING.md` — hub: replaced LevelDB backup with mysqldump, fixed startup order (database → hub)
-- `user-guide/CROSS_CHAIN.md` — hub: "on a path toward decentralization" → "is a decentralized validator network"
-- `user-guide/FAQ.md` — hub: "on a path toward decentralization" → "decentralized validator network operating via PBFT consensus"
+- `components/hub/README.md`: rewritten for hub v2.0.0: dual operating modes (standalone/validator), full feature list, documentation table, quick start for both modes, service discovery, multi-instance deployment, dependencies
+- `components/hub/DECENTRALIZATION.md`: updated: all six phases marked complete with version numbers, removed "planned" language, added architecture summary
+- `README.md`: updated hub description to reflect decentralized validator network
+- `components/README.md`: hub: "backed by LevelDB" → MariaDB with full feature description
+- `architecture/Component_Map.md`: hub: LevelDB → MariaDB, added full v2.0.0 capabilities, updated connection diagram, multi-instance in deployment table
+- `architecture/Database_Design.md`: hub: replaced LevelDB key schema with MariaDB 13-table description
+- `concepts/Security_Model.md`: hub: "currently centralized" → "hub validator network (PBFT consensus)" in prose and trust model table
+- `concepts/CROSS_CHAIN.md`: hub: expanded from two roles to five (config, price oracle, attestation, swap coordinator, governance), removed "planned decentralization" language
+- `concepts/README.md`: smart contracts: "Planned" → "Programmable contract layer"
+- `concepts/Smart_Contracts.md`: VM oracle/cross-chain stubs: "stub until Track B/Phase 4" → "pending VM integration"
+- `getting-started/Key_Terms.md`: hub: "stores in LevelDB" → "backed by MariaDB, PBFT consensus"; LevelDB entry: removed hub reference
+- `operations/CONFIGURATION.md`: hub: replaced LevelDB key format with MariaDB config, added 11 key env vars, linked to full hub configuration reference
+- `operations/DOCKER.md`: hub: removed from LevelDB volumes section, replaced LevelDB backup with mysqldump
+- `operations/UPGRADING.md`: hub: replaced LevelDB backup with mysqldump, fixed startup order (database → hub)
+- `user-guide/CROSS_CHAIN.md`: hub: "on a path toward decentralization" → "is a decentralized validator network"
+- `user-guide/FAQ.md`: hub: "on a path toward decentralization" → "decentralized validator network operating via PBFT consensus"
 
 ## [0.8.0] - 2026-04-06
 
 ### Added
-- `components/node/ARCHITECTURE.md` — new file: data pipeline position, internal component diagram, source files table (21 files), precheck workflow, LevelDB key schema, runtime directory structure, Docker network topology
-- `components/node/CONFIGURATION.md` — new file: two-layer config file system, generated environment variables (coin-specific and shared service tables), naming conventions, internal constants, validation rules (NODE_PREFIX, port, branch name, container ID)
-- `components/node/OPERATIONS.md` — new file: full CLI commands reference (17 commands in 4 categories), global options, parameter values, installation workflow, Docker usage, multi-pane monitoring, bootstrap operations, troubleshooting (8 scenarios)
-- `components/regtest-miner/ARCHITECTURE.md` — new file: data pipeline position, internal component diagram, source files table (3 files), mining loop flowchart, wallet lifecycle decision tree, fillMempool process
-- `components/regtest-miner/CONFIGURATION.md` — new file: required environment variables (6 vars with validation rules), internal constants (9 constants), timer behavior, exponential backoff formula
-- `components/regtest-miner/OPERATIONS.md` — new file: prerequisites, startup sequence, Docker, graceful shutdown, JSON-RPC API (6 endpoints with request/response examples), resilience features, troubleshooting (5 scenarios)
+- `components/node/ARCHITECTURE.md`: new file: data pipeline position, internal component diagram, source files table (21 files), precheck workflow, LevelDB key schema, runtime directory structure, Docker network topology
+- `components/node/CONFIGURATION.md`: new file: two-layer config file system, generated environment variables (coin-specific and shared service tables), naming conventions, internal constants, validation rules (NODE_PREFIX, port, branch name, container ID)
+- `components/node/OPERATIONS.md`: new file: full CLI commands reference (17 commands in 4 categories), global options, parameter values, installation workflow, Docker usage, multi-pane monitoring, bootstrap operations, troubleshooting (8 scenarios)
+- `components/regtest-miner/ARCHITECTURE.md`: new file: data pipeline position, internal component diagram, source files table (3 files), mining loop flowchart, wallet lifecycle decision tree, fillMempool process
+- `components/regtest-miner/CONFIGURATION.md`: new file: required environment variables (6 vars with validation rules), internal constants (9 constants), timer behavior, exponential backoff formula
+- `components/regtest-miner/OPERATIONS.md`: new file: prerequisites, startup sequence, Docker, graceful shutdown, JSON-RPC API (6 endpoints with request/response examples), resilience features, troubleshooting (5 scenarios)
 
 ### Changed
-- `components/node/README.md` — refactored into multi-file format: moved architecture, configuration, and operations content to dedicated files; added Documentation table linking to ARCHITECTURE.md, CONFIGURATION.md, OPERATIONS.md
-- `components/regtest-miner/README.md` — refactored into multi-file format: moved architecture, configuration, and operations content to dedicated files; added Documentation table linking to ARCHITECTURE.md, CONFIGURATION.md, OPERATIONS.md
+- `components/node/README.md`: refactored into multi-file format: moved architecture, configuration, and operations content to dedicated files; added Documentation table linking to ARCHITECTURE.md, CONFIGURATION.md, OPERATIONS.md
+- `components/regtest-miner/README.md`: refactored into multi-file format: moved architecture, configuration, and operations content to dedicated files; added Documentation table linking to ARCHITECTURE.md, CONFIGURATION.md, OPERATIONS.md
 
 ## [0.7.0] - 2026-04-06
 
 ### Changed
-- `components/node/README.md` — rewrote from high-level overview to full component documentation matching regtest-miner/decoder pattern: added accurate CLI commands (17 commands with syntax), configuration system (two-layer config, 40+ env vars, naming conventions, internal constants), architecture diagram with source file table (21 files), runtime directory structure, Features (17 items), Scripts (14 npm commands), Dependencies (Runtime + Development), Quick Start, Related links; corrected container naming pattern, removed non-existent commands, removed inaccurate TUI resource monitoring claims
+- `components/node/README.md`: rewrote from high-level overview to full component documentation matching regtest-miner/decoder pattern: added accurate CLI commands (17 commands with syntax), configuration system (two-layer config, 40+ env vars, naming conventions, internal constants), architecture diagram with source file table (21 files), runtime directory structure, Features (17 items), Scripts (14 npm commands), Dependencies (Runtime + Development), Quick Start, Related links; corrected container naming pattern, removed non-existent commands, removed inaccurate TUI resource monitoring claims
 
 ## [0.6.0] - 2026-04-05
 
 ### Changed
-- `components/utxo-tracker/README.md` — rewrote from minimal overview to full component documentation matching indexer/decoder pattern: added Features (16 items), Documentation table, Installation, Quick Start with startup sequence, Scripts (20 commands), Dependencies (Runtime + Development), Related links
-- `components/utxo-tracker/ARCHITECTURE.md` — new file: data pipeline position, internal component diagram, source file table, full LevelDB key schema (11 prefix types with byte layouts), key design principles, block processing loop, two-pass transaction processing, concurrent prefetch, batch writes, reorg handling, mempool tracking, balance calculation, bootstrap
-- `components/utxo-tracker/CONFIGURATION.md` — new file: environment variables (6 required + 1 optional), supported network values (9 variants), internal constants (polling, block processing, storage, RPC), database paths
-- `components/utxo-tracker/OPERATIONS.md` — new file: prerequisites, running, Docker, graceful shutdown, REST API (4 endpoints with response examples), JSON-RPC API (10 methods), resilience (node connection, sync waiting, RPC retries, atomic batches, reorg recovery, mempool errors), troubleshooting (8 scenarios)
+- `components/utxo-tracker/README.md`: rewrote from minimal overview to full component documentation matching indexer/decoder pattern: added Features (16 items), Documentation table, Installation, Quick Start with startup sequence, Scripts (20 commands), Dependencies (Runtime + Development), Related links
+- `components/utxo-tracker/ARCHITECTURE.md`: new file: data pipeline position, internal component diagram, source file table, full LevelDB key schema (11 prefix types with byte layouts), key design principles, block processing loop, two-pass transaction processing, concurrent prefetch, batch writes, reorg handling, mempool tracking, balance calculation, bootstrap
+- `components/utxo-tracker/CONFIGURATION.md`: new file: environment variables (6 required + 1 optional), supported network values (9 variants), internal constants (polling, block processing, storage, RPC), database paths
+- `components/utxo-tracker/OPERATIONS.md`: new file: prerequisites, running, Docker, graceful shutdown, REST API (4 endpoints with response examples), JSON-RPC API (10 methods), resilience (node connection, sync waiting, RPC retries, atomic batches, reorg recovery, mempool errors), troubleshooting (8 scenarios)
 
 ## [0.5.0] - 2026-04-05
 
 ### Changed
-- `components/sync/README.md` — added Input validation and 725 tests to Features, expanded Scripts from 3 to 18 entries, updated Development dependencies with all current packages, added Related Documentation section
-- `components/sync/CONFIGURATION.md` — added missing security environment variables: SYNC_API_KEY, HUB_PROTOCOL, TRUST_PROXY (Common), MAX_ROLLBACK_DEPTH, HASH_CONFIRM_STRICT, WS_MAX_PAYLOAD, SNAPSHOT_MAX_CONTENT (Client)
-- `components/sync/ARCHITECTURE.md` — added middleware.js and validation.js to Source Files table
-- `components/sync/OPERATIONS.md` — added Authentication section documenting Bearer token auth, added GET /schema/:chain/:network endpoint documentation
+- `components/sync/README.md`: added Input validation and 725 tests to Features, expanded Scripts from 3 to 18 entries, updated Development dependencies with all current packages, added Related Documentation section
+- `components/sync/CONFIGURATION.md`: added missing security environment variables: SYNC_API_KEY, HUB_PROTOCOL, TRUST_PROXY (Common), MAX_ROLLBACK_DEPTH, HASH_CONFIRM_STRICT, WS_MAX_PAYLOAD, SNAPSHOT_MAX_CONTENT (Client)
+- `components/sync/ARCHITECTURE.md`: added middleware.js and validation.js to Source Files table
+- `components/sync/OPERATIONS.md`: added Authentication section documenting Bearer token auth, added GET /schema/:chain/:network endpoint documentation
 
 ## [0.4.0] - 2026-04-03
 
 ### Changed
-- `components/vm/README.md` — updated scripts table with 14 commands covering unit/E2E/fuzz/chaos/regression/mutation/bench, added dev dependencies (fast-check, Stryker), total test count: 974
-- `components/vm/OPERATIONS.md` — expanded running tests section with all test commands and 974 total count, added fail-loud regression note
-- `developer-guide/TESTING.md` — added xchain-vm as 5th component (974 tests), updated platform total from 3,750+ to 4,700+, added VM column to test type breakdown table, updated fast-check and StrykerJS tool entries to include VM, added VM test scripts link
+- `components/vm/README.md`: updated scripts table with 14 commands covering unit/E2E/fuzz/chaos/regression/mutation/bench, added dev dependencies (fast-check, Stryker), total test count: 974
+- `components/vm/OPERATIONS.md`: expanded running tests section with all test commands and 974 total count, added fail-loud regression note
+- `developer-guide/TESTING.md`: added xchain-vm as 5th component (974 tests), updated platform total from 3,750+ to 4,700+, added VM column to test type breakdown table, updated fast-check and StrykerJS tool entries to include VM, added VM test scripts link
 
 ## [0.3.0] - 2026-04-03
 
 ### Changed
-- `README.md` — added xchain-vm to components table, updated intro to mention smart contracts/VM/staking, updated ACTION count from 19 to 28, updated component count to 12, updated indexer description to include smart contract execution, updated SDK description with current method/query counts
+- `README.md`: added xchain-vm to components table, updated intro to mention smart contracts/VM/staking, updated ACTION count from 19 to 28, updated component count to 12, updated indexer description to include smart contract execution, updated SDK description with current method/query counts
 
 ## [0.2.0] - 2026-04-03
 
 ### Changed
-- `getting-started/What_Is_XChain.md` — updated for VM and staking: added "Run Smart Contracts" section (DEPLOY, EXECUTE, DEPOSIT, WITHDRAW), "Stake and Validate" section (STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS), updated ACTION count from 19 to 28, updated ACTION table, updated developer/researcher descriptions
+- `getting-started/What_Is_XChain.md`: updated for VM and staking: added "Run Smart Contracts" section (DEPLOY, EXECUTE, DEPOSIT, WITHDRAW), "Stake and Validate" section (STAKE, UNSTAKE, DELEGATE, REVOKE_DELEGATION, CLAIM_REWARDS), updated ACTION count from 19 to 28, updated ACTION table, updated developer/researcher descriptions
 
 ## [0.1.0] - 2026-04-03
 
@@ -331,37 +331,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added (pre-release)
 
-- `components/sync/README.md` — overview, features, installation, quick start, scripts, dependencies for the new xchain-sync service
-- `components/sync/ARCHITECTURE.md` — data pipeline position, dual-mode design, internal components, hub discovery flow, server poll loop, client sync algorithm, hash chain integrity, reorg handling
-- `components/sync/CONFIGURATION.md` — environment variables (common, server, client), hub discovery, database naming, connection pool config, circuit breaker
-- `components/sync/OPERATIONS.md` — running, Docker, REST API reference (5 endpoints), WebSocket API reference, resilience, troubleshooting (7 scenarios)
+- `components/sync/README.md`: overview, features, installation, quick start, scripts, dependencies for the new xchain-sync service
+- `components/sync/ARCHITECTURE.md`: data pipeline position, dual-mode design, internal components, hub discovery flow, server poll loop, client sync algorithm, hash chain integrity, reorg handling
+- `components/sync/CONFIGURATION.md`: environment variables (common, server, client), hub discovery, database naming, connection pool config, circuit breaker
+- `components/sync/OPERATIONS.md`: running, Docker, REST API reference (5 endpoints), WebSocket API reference, resilience, troubleshooting (7 scenarios)
 
 ### Changed
 
-- `components/vm/CONFIGURATION.md` — added `maxStateKeySize` (1,024 bytes) and `maxBlockCacheSize` (1,000 entries) to constructor example, resource limits table, and bounded execution summary; updated code size enforcement note; updated log entry size to note UTF-8 byte-awareness
-- `components/vm/ARCHITECTURE.md` — updated bridge protocol to reflect universal `\x01`+JSON encoding for all returns; added error classification hardening paragraph; updated gas.js, state.js, collector.js component descriptions; added cache bound note
-- `components/vm/README.md` — added `maxStateKeySize` and `maxBlockCacheSize` to constructor example; updated state management feature description
-- `concepts/Smart_Contracts.md` — added state key size (1 KB per key) to bounded execution table
-- `components/README.md` — added sync to component table, updated count to 12
-- `README.md` — added xchain-sync to Components table, updated microservice count to 11
-- `architecture/Component_Map.md` — added Data Replication service group with xchain-sync section, updated count to 11
-- `architecture/Data_Pipeline.md` — updated ASCII pipeline diagram to show sync as a branch off the Indexer DB feeding validator replicas
+- `components/vm/CONFIGURATION.md`: added `maxStateKeySize` (1,024 bytes) and `maxBlockCacheSize` (1,000 entries) to constructor example, resource limits table, and bounded execution summary; updated code size enforcement note; updated log entry size to note UTF-8 byte-awareness
+- `components/vm/ARCHITECTURE.md`: updated bridge protocol to reflect universal `\x01`+JSON encoding for all returns; added error classification hardening paragraph; updated gas.js, state.js, collector.js component descriptions; added cache bound note
+- `components/vm/README.md`: added `maxStateKeySize` and `maxBlockCacheSize` to constructor example; updated state management feature description
+- `concepts/Smart_Contracts.md`: added state key size (1 KB per key) to bounded execution table
+- `components/README.md`: added sync to component table, updated count to 12
+- `README.md`: added xchain-sync to Components table, updated microservice count to 11
+- `architecture/Component_Map.md`: added Data Replication service group with xchain-sync section, updated count to 11
+- `architecture/Data_Pipeline.md`: updated ASCII pipeline diagram to show sync as a branch off the Indexer DB feeding validator replicas
 
 ### Added
 
-- `components/vm/ARCHITECTURE.md` — execution pipeline, internal components table, JSON bridge protocol (prefix encoding, argument serialization, typed error encoding, ExternalCopy limitations), AST-based gas metering (3 phases), sandbox security (stripped/preserved/replaced globals, Function preservation), compilation cache, contract wrapper
-- `components/vm/CONFIGURATION.md` — constructor parameters, gas schedule (7 operations), resource limits (7 configurable + 5 hardcoded), bounded execution summary table
-- `components/vm/OPERATIONS.md` — prerequisites, installation, indexer integration lifecycle and data flow, error classification (5 types), atomicity guarantees, syntax validation, troubleshooting (7 scenarios)
+- `components/vm/ARCHITECTURE.md`: execution pipeline, internal components table, JSON bridge protocol (prefix encoding, argument serialization, typed error encoding, ExternalCopy limitations), AST-based gas metering (3 phases), sandbox security (stripped/preserved/replaced globals, Function preservation), compilation cache, contract wrapper
+- `components/vm/CONFIGURATION.md`: constructor parameters, gas schedule (7 operations), resource limits (7 configurable + 5 hardcoded), bounded execution summary table
+- `components/vm/OPERATIONS.md`: prerequisites, installation, indexer integration lifecycle and data flow, error classification (5 types), atomicity guarantees, syntax validation, troubleshooting (7 scenarios)
 
 ### Changed
 
-- `components/vm/README.md` — refactored from monolithic doc to lean overview matching indexer/decoder pattern; moved architecture, sandbox, gas metering, compilation cache, and integration details to dedicated ARCHITECTURE/CONFIGURATION/OPERATIONS files; added Documentation table, Features list, Scripts table, Dependencies tables, expanded Related links
-- `concepts/Smart_Contracts.md` — fixed Math subset in Deterministic Execution section to match actual sandbox (11 functions + 2 constants); added SharedArrayBuffer, Atomics, queueMicrotask to stripped APIs list; noted Math object is frozen
-- `components/indexer/ARCHITECTURE.md` — updated VM ASCII diagram to show "JSON bridge protocol" instead of "ivm.Reference sync callbacks"
+- `components/vm/README.md`: refactored from monolithic doc to lean overview matching indexer/decoder pattern; moved architecture, sandbox, gas metering, compilation cache, and integration details to dedicated ARCHITECTURE/CONFIGURATION/OPERATIONS files; added Documentation table, Features list, Scripts table, Dependencies tables, expanded Related links
+- `concepts/Smart_Contracts.md`: fixed Math subset in Deterministic Execution section to match actual sandbox (11 functions + 2 constants); added SharedArrayBuffer, Atomics, queueMicrotask to stripped APIs list; noted Math object is frozen
+- `components/indexer/ARCHITECTURE.md`: updated VM ASCII diagram to show "JSON bridge protocol" instead of "ivm.Reference sync callbacks"
 
 ### Added
 
-- SDK smart contract documentation: `components/sdk/CONTRACTS.md` — deploy, execute, deposit, withdraw, ContractClient, authoring utilities, explorer methods, transaction vs execution distinction
+- SDK smart contract documentation: `components/sdk/CONTRACTS.md`: deploy, execute, deposit, withdraw, ContractClient, authoring utilities, explorer methods, transaction vs execution distinction
 - VM action entries in `components/sdk/ACTIONS.md`: DEPLOY, EXECUTE, DEPOSIT, WITHDRAW with full parameter tables, notes, code examples, and validation rules
 - VM contract examples in `components/sdk/EXAMPLES.md`: deploy, execute, deposit, withdraw, ContractClient usage, authoring utilities
 - `SDKContractError` class in `components/sdk/ERRORS.md` with 8 error codes
@@ -370,36 +370,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `components/sdk/README.md` — updated from 19 to 23 actions, added contract features to feature list, added CONTRACTS.md to docs table
-- `components/sdk/ACTIONS.md` — updated from 19 to 23 actions, added VM field validation rules, added DEPLOY to BATCH constraints
-- `components/sdk/BATCH.md` — updated from 17 to 20 convenience methods, added DEPLOY exclusion constraint
-- `components/sdk/ERRORS.md` — added SDKContractError to hierarchy, error class table, and catch example
+- `components/sdk/README.md`: updated from 19 to 23 actions, added contract features to feature list, added CONTRACTS.md to docs table
+- `components/sdk/ACTIONS.md`: updated from 19 to 23 actions, added VM field validation rules, added DEPLOY to BATCH constraints
+- `components/sdk/BATCH.md`: updated from 17 to 20 convenience methods, added DEPLOY exclusion constraint
+- `components/sdk/ERRORS.md`: added SDKContractError to hierarchy, error class table, and catch example
 
 ### Added (previous)
 
-- "What Makes This Different" section in `concepts/Smart_Contracts.md` — explains the architectural separation of smart contract logic from protocol logic, comparison with Ethereum's monolithic model, and six concrete benefits (security, audit surface, protocol evolution, simpler development, composability, atomic rollback)
-- Smart contract development guide: `developer-guide/Smart_Contract_Development.md` — writing contracts, ES2020 syntax, state patterns (manual index, reverse lookup, JSON), emitting actions, deployment, gas costs, debugging, limitations, vesting example
-- VM component documentation: `components/vm/README.md` — architecture, module interface, internal components, AST gas metering, sandbox security, compilation cache, indexer integration
+- "What Makes This Different" section in `concepts/Smart_Contracts.md`: explains the architectural separation of smart contract logic from protocol logic, comparison with Ethereum's monolithic model, and six concrete benefits (security, audit surface, protocol evolution, simpler development, composability, atomic rollback)
+- Smart contract development guide: `developer-guide/Smart_Contract_Development.md`: writing contracts, ES2020 syntax, state patterns (manual index, reverse lookup, JSON), emitting actions, deployment, gas costs, debugging, limitations, vesting example
+- VM component documentation: `components/vm/README.md`: architecture, module interface, internal components, AST gas metering, sandbox security, compilation cache, indexer integration
 - VM listed in `components/README.md` (10 → 11 components)
-- VM Gas section in `concepts/GAS.md` — per-operation gas costs (computation, state read/write, emission), deployment gas, execution gas
-- Contract derived addresses section in `concepts/LEDGER.md` — how `C:<CHAIN>:<action_index>` addresses participate in the double-entry ledger
+- VM Gas section in `concepts/GAS.md`: per-operation gas costs (computation, state read/write, emission), deployment gas, execution gas
+- Contract derived addresses section in `concepts/LEDGER.md`: how `C:<CHAIN>:<action_index>` addresses participate in the double-entry ledger
 - Hub Staking and Virtual Machine action categories in `concepts/ACTIONS.md` (19 → 28 actions)
 - Smart Contract Development link in `developer-guide/README.md`
 
 ### Changed
 
-- `concepts/Smart_Contracts.md` — rewrote from "planned" to full implementation reference: gateway API (context, state, emit, math, oracle, cross-chain), deterministic execution, bounded execution, error handling, API versioning, contract format, derived addresses
-- `concepts/ACTIONS.md` — updated from 19 to 28 ACTIONs, added Hub Staking and Virtual Machine sections
-- `protocol/README.md` — updated action count from 19 to 28
-- `protocol/actions/DEPLOY.md` — added syntax validation (V8 + acorn + `__gas` check), derived address creation, constructor execution, `api_version`, float warnings
-- `protocol/actions/EXECUTE.md` — added VM execution details, savepoint atomicity, emission routing, 50-action cap, derived address as source
-- `protocol/actions/DEPOSIT.md` — updated to derived address model (credits contract's derived address in standard ledger)
-- `protocol/actions/WITHDRAW.md` — updated to derived address model (debits derived address, solvency via standard balances)
-- `components/indexer/README.md` — updated test count from 958 to 978
-- `components/indexer/ACTIONS.md` — updated VM action descriptions with actual implementation details (syntax validation, derived addresses, savepoints, metered gas)
-- `components/indexer/ARCHITECTURE.md` — rewrote VM Runtime Module section for actual xchain-vm architecture (AST metering, gateway via ivm.Reference, compilation cache), updated source file table, removed DEPLOY→ISSUE alias, removed `contract_balances` from rollback
-- `components/indexer/LEDGER.md` — replaced `contract_balances` materialized view section with derived address model
-- `components/indexer/DATABASE.md` — updated VM tables with actual schema (contracts with `api_version`, contract_state append-only, contract_emissions execution→action links, removed `contract_balances`)
+- `concepts/Smart_Contracts.md`: rewrote from "planned" to full implementation reference: gateway API (context, state, emit, math, oracle, cross-chain), deterministic execution, bounded execution, error handling, API versioning, contract format, derived addresses
+- `concepts/ACTIONS.md`: updated from 19 to 28 ACTIONs, added Hub Staking and Virtual Machine sections
+- `protocol/README.md`: updated action count from 19 to 28
+- `protocol/actions/DEPLOY.md`: added syntax validation (V8 + acorn + `__gas` check), derived address creation, constructor execution, `api_version`, float warnings
+- `protocol/actions/EXECUTE.md`: added VM execution details, savepoint atomicity, emission routing, 50-action cap, derived address as source
+- `protocol/actions/DEPOSIT.md`: updated to derived address model (credits contract's derived address in standard ledger)
+- `protocol/actions/WITHDRAW.md`: updated to derived address model (debits derived address, solvency via standard balances)
+- `components/indexer/README.md`: updated test count from 958 to 978
+- `components/indexer/ACTIONS.md`: updated VM action descriptions with actual implementation details (syntax validation, derived addresses, savepoints, metered gas)
+- `components/indexer/ARCHITECTURE.md`: rewrote VM Runtime Module section for actual xchain-vm architecture (AST metering, gateway via ivm.Reference, compilation cache), updated source file table, removed DEPLOY→ISSUE alias, removed `contract_balances` from rollback
+- `components/indexer/LEDGER.md`: replaced `contract_balances` materialized view section with derived address model
+- `components/indexer/DATABASE.md`: updated VM tables with actual schema (contracts with `api_version`, contract_state append-only, contract_emissions execution→action links, removed `contract_balances`)
 
 ### Removed
 
@@ -446,7 +446,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Documentation Restructuring** — Complete reorganization of documentation into a unified, audience-aware structure:
+- **Documentation Restructuring**: Complete reorganization of documentation into a unified, audience-aware structure:
   - Moved `actions/` → `protocol/actions/`
   - Moved `indexer/` → `components/indexer/`
   - Moved `sdk/` → `components/sdk/`
@@ -456,39 +456,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Getting Started** — 4 documents: platform introduction (`What_Is_XChain.md`), developer quickstart, node operator quickstart, glossary of 49 terms
-- **Core Concepts** — 8 documents: metalayer, ACTIONs, tokens, ledger, encoding, cross-chain, gas, security model
-- **Architecture** — 3 documents: end-to-end data pipeline, component map with ASCII diagrams, database design
-- **Developer Guide** — 8 tutorials: build your first token, dispensers, explorer queries, cross-chain swaps, advanced token features, batch operations, regtest development, integration patterns
-- **User Guide** — 5 documents: token creation, trading, cross-chain, use cases, FAQ — all non-technical
-- **Operations** — 7 documents: deployment, Docker, configuration, monitoring, reorg handling, upgrading, troubleshooting
-- **Component Documentation** — Detailed docs for decoder, encoder (+ format selection guide), explorer, hub (+ decentralization roadmap), UTXO tracker, node, e2e-test, regtest-miner
-- **Index READMEs** — Navigation pages for all 8 new documentation sections
+- **Getting Started**: 4 documents: platform introduction (`What_Is_XChain.md`), developer quickstart, node operator quickstart, glossary of 49 terms
+- **Core Concepts**: 8 documents: metalayer, ACTIONs, tokens, ledger, encoding, cross-chain, gas, security model
+- **Architecture**: 3 documents: end-to-end data pipeline, component map with ASCII diagrams, database design
+- **Developer Guide**: 8 tutorials: build your first token, dispensers, explorer queries, cross-chain swaps, advanced token features, batch operations, regtest development, integration patterns
+- **User Guide**: 5 documents: token creation, trading, cross-chain, use cases, FAQ (all non-technical)
+- **Operations**: 7 documents: deployment, Docker, configuration, monitoring, reorg handling, upgrading, troubleshooting
+- **Component Documentation**: Detailed docs for decoder, encoder (+ format selection guide), explorer, hub (+ decentralization roadmap), UTXO tracker, node, e2e-test, regtest-miner
+- **Index READMEs**: Navigation pages for all 8 new documentation sections
 
 ## 2026-04-01
 
 ### Added
 
-- **Indexer Documentation** — 7 documentation files under `indexer/`:
-  - `README.md` — Overview, features, installation, quick start, documentation index, scripts, dependencies
-  - `ARCHITECTURE.md` — Data pipeline, internal components, action handlers, block processing pipeline
-  - `CONFIGURATION.md` — Environment variables, coin-specific config, indexer constants
-  - `ACTIONS.md` — All 20 ACTION types with categories, format versions, protocol versioning, linked to action specs
-  - `DATABASE.md` — Full schema reference with 60+ tables across core, ledger, action, state, index, and mapping categories
-  - `LEDGER.md` — Double-entry ledger system, balance calculation, sanity checks, gas token fees
-  - `OPERATIONS.md` — Running, Docker, API endpoints, resilience, troubleshooting
+- **Indexer Documentation**: 7 documentation files under `indexer/`:
+  - `README.md`: Overview, features, installation, quick start, documentation index, scripts, dependencies
+  - `ARCHITECTURE.md`: Data pipeline, internal components, action handlers, block processing pipeline
+  - `CONFIGURATION.md`: Environment variables, coin-specific config, indexer constants
+  - `ACTIONS.md`: All 20 ACTION types with categories, format versions, protocol versioning, linked to action specs
+  - `DATABASE.md`: Full schema reference with 60+ tables across core, ledger, action, state, index, and mapping categories
+  - `LEDGER.md`: Double-entry ledger system, balance calculation, sanity checks, gas token fees
+  - `OPERATIONS.md`: Running, Docker, API endpoints, resilience, troubleshooting
 
 ## 2026-03-31
 
 ### Added
 
-- **SDK Developer Guide** — 9 documentation files under `sdk/`:
-  - `README.md` — Overview, installation, quick-start, usage modes
-  - `CONFIGURATION.md` — Constructor options, env vars, hub discovery, retry, pooling, hooks
-  - `ACTIONS.md` — All 19 ACTION types with params, validation rules, format versions, examples
-  - `EXPLORER.md` — All 40 explorer query methods with pagination and error handling
-  - `ENCODER.md` — PSBT generation, encoding types, pre-flight validation, P2SH two-phase
-  - `ERRORS.md` — All 7 error classes, 26 error codes, troubleshooting
-  - `EXAMPLES.md` — 29 end-to-end code examples
-  - `BATCH.md` — BatchBuilder fluent API, constraints, examples
-  - `Format_Selection.md` — Format version selection algorithm, version quick-reference
+- **SDK Developer Guide**: 9 documentation files under `sdk/`:
+  - `README.md`: Overview, installation, quick-start, usage modes
+  - `CONFIGURATION.md`: Constructor options, env vars, hub discovery, retry, pooling, hooks
+  - `ACTIONS.md`: All 19 ACTION types with params, validation rules, format versions, examples
+  - `EXPLORER.md`: All 40 explorer query methods with pagination and error handling
+  - `ENCODER.md`: PSBT generation, encoding types, pre-flight validation, P2SH two-phase
+  - `ERRORS.md`: All 7 error classes, 26 error codes, troubleshooting
+  - `EXAMPLES.md`: 29 end-to-end code examples
+  - `BATCH.md`: BatchBuilder fluent API, constraints, examples
+  - `Format_Selection.md`: Format version selection algorithm, version quick-reference

@@ -9,7 +9,7 @@ The wallet's test strategy combines headless smokes (vitest + node), browser-dri
 
 `pnpm --filter @xchain-wallet/core test` runs the full smoke suite with vitest. **92 smokes** pass at v1.0.0-rc.6; CI fails on any regression.
 
-The smokes are deliberately *static* — they exercise component imports, render trees, registry validation, schema migrations, and audit scripts without spinning up real backends. They run in seconds and gate every commit.
+The smokes are deliberately *static*; they exercise component imports, render trees, registry validation, schema migrations, and audit scripts without spinning up real backends. They run in seconds and gate every commit.
 
 | Group | Approximate count | Coverage |
 |---|---|---|
@@ -40,7 +40,7 @@ Five rules over every JSX file under `packages/core/src/shared/` + `packages/cor
 | `textarea-needs-label` | Same for `<textarea>` |
 | `div-onclick-needs-role` | Every `<div onClick>` has `role` + `tabIndex` |
 
-The audit walks JSX tags with a brace-balancing reader so `onClick={(e) => ...}` doesn't trip the parser. The button rule accepts both static text content AND any bare-identifier or string-literal expression child — `{p.label}`, `{busy ? 'Loading…' : 'Save'}`, or `Send` all count.
+The audit walks JSX tags with a brace-balancing reader so `onClick={(e) => ...}` doesn't trip the parser. The button rule accepts both static text content AND any bare-identifier or string-literal expression child: `{p.label}`, `{busy ? 'Loading…' : 'Save'}`, or `Send` all count.
 
 What this audit covers: structural a11y over 64 shared routes + 9 UI primitives, 0 violations at v1.0.0-rc.6.
 
@@ -48,11 +48,11 @@ What this audit does **not** cover (queued for the external a11y audit): color c
 
 ### Extension manifest audit (`extension-manifest-audit.js`)
 
-11 rules covering MV3 compliance + version-derivation + privacy-friendly permissions. See [Build & Release — Extension version derivation](Build_Release.md#extension-version-derivation) and [Shell — Extension — Manifest](Shell_Extension.md#manifest).
+11 rules covering MV3 compliance + version-derivation + privacy-friendly permissions. See [Build & Release; Extension version derivation](Build_Release.md#extension-version-derivation) and [Shell (Extension) Manifest](Shell_Extension.md#manifest).
 
 ### Repro-build audit (`repro-build-audit.js`)
 
-18 rules covering Dockerfile / build.sh / reproduce.sh / electron-builder.config.cjs / Reproducible_Builds.md. See [Reproducible Builds — Scaffolding audit](Reproducible_Builds.md#scaffolding-audit).
+18 rules covering Dockerfile / build.sh / reproduce.sh / electron-builder.config.cjs / Reproducible_Builds.md. See [Reproducible Builds; Scaffolding audit](Reproducible_Builds.md#scaffolding-audit).
 
 ### Release gates smoke
 
@@ -62,9 +62,9 @@ What this audit does **not** cover (queued for the external a11y audit): color c
 
 `pnpm --filter @xchain-wallet/e2e test` runs the Playwright suite against the web SPA. Three specs:
 
-- `tests/onboarding.spec.js` — create + lock + unlock round-trip; wrong-password error; import (BIP39 test vector); import word-count validation
-- `tests/send-form.spec.js` — review stage round-trip; protocol-memo char rejection; zero-amount rejection; broadcast surfaces the SDK-stub error (proves no hang)
-- `tests/a11y.spec.js` — `@axe-core/playwright` scans every rendered Phase-1 screen for WCAG 2.1 A/AA violations
+- `tests/onboarding.spec.js`: create + lock + unlock round-trip; wrong-password error; import (BIP39 test vector); import word-count validation
+- `tests/send-form.spec.js`: review stage round-trip; protocol-memo char rejection; zero-amount rejection; broadcast surfaces the SDK-stub error (proves no hang)
+- `tests/a11y.spec.js`: `@axe-core/playwright` scans every rendered Phase-1 screen for WCAG 2.1 A/AA violations
 
 The Playwright config spawns Vite's dev server at `http://localhost:5173` via `pnpm -C ../packages/web dev`. If the dev server is already running, `reuseExistingServer: !CI` picks it up so the suite doesn't fight for the port.
 
@@ -118,7 +118,7 @@ The coverage runs end-to-end against software signers; hardware-signer multisig 
 
 ## Repro-build verification
 
-The byte-for-byte verification is **manual** and run on a clean dev machine. See [Reproducible Builds — Run-twice verification protocol](Reproducible_Builds.md#run-twice-verification-protocol). It's not part of the per-commit smoke suite because it requires a clean Docker host that the development environment doesn't always have. The scaffolding audit catches regressions in the inputs to reproducibility automatically; the full verification runs at release-tag time on at least two independent dev machines.
+The byte-for-byte verification is **manual** and run on a clean dev machine. See [Reproducible Builds; Run-twice verification protocol](Reproducible_Builds.md#run-twice-verification-protocol). It's not part of the per-commit smoke suite because it requires a clean Docker host that the development environment doesn't always have. The scaffolding audit catches regressions in the inputs to reproducibility automatically; the full verification runs at release-tag time on at least two independent dev machines.
 
 ## What the smokes do not cover
 
@@ -148,7 +148,7 @@ Pre-GA, CI runs:
 
 - `pnpm install --frozen-lockfile` at the workspace root
 - `pnpm typecheck` across all packages with declared typecheck scripts
-- `pnpm --filter @xchain-wallet/core test` — the 92 smokes
+- `pnpm --filter @xchain-wallet/core test`: the 92 smokes
 - `pnpm --filter @xchain-wallet/e2e test` (in a Playwright-capable runner)
 
 CI is intentionally minimal pre-GA per the wallet's "no GitHub Actions during build phase" convention. The smoke suite + Playwright + the audit gates are the verification mechanism; the maintainer runs them locally on every commit and the smokes block tag-time. A full CI lift lands alongside v1.0.0 GA.

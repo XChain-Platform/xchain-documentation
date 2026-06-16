@@ -3,7 +3,7 @@
 
 # Cross-Chain Swap
 
-The SWAP action lets you trade a token on one chain for a token on a different chain — for example, `RAREPEPE` on Bitcoin for `LTCTOKEN` on Litecoin — without a centralized exchange. The xchain-hub coordinates matching across chains.
+The SWAP action lets you trade a token on one chain for a token on a different chain (for example, `RAREPEPE` on Bitcoin for `LTCTOKEN` on Litecoin) without a centralized exchange. The xchain-hub coordinates matching across chains.
 
 > **Important:** SWAP works only between XChain tokens. It does not support native coins (BTC, LTC, DOGE) directly. To sell a token for native coin, use a [DISPENSER](Build_A_Dispenser.md) instead.
 
@@ -20,7 +20,7 @@ The SWAP action lets you trade a token on one chain for a token on a different c
 
 ---
 
-## Step 1: Create the Swap Offer (Chain A — Bitcoin)
+## Step 1: Create the Swap Offer (Chain A: Bitcoin)
 
 Alice wants to trade 1 `RAREPEPE` (on BTC) for 1000 `LTCTOKEN` (on LTC).
 
@@ -92,7 +92,7 @@ console.log('Open swaps:', swaps);
 
 ---
 
-## Step 3: Bob Matches the Swap (Chain B — Litecoin)
+## Step 3: Bob Matches the Swap (Chain B: Litecoin)
 
 Bob creates a matching SWAP on Litecoin with the mirrored token pair. The hub federation matches it to Alice's open offer automatically.
 
@@ -182,7 +182,7 @@ const editAction = aliceSdk.swap({
 
 ## Rules and Constraints
 
-- SWAP does not move native coin — only XChain tokens.
+- SWAP does not move native coin; only XChain tokens.
 - `GET_ADDRESS` must be a valid address on `GET_COIN`'s network. If `GET_COIN` is the same network as the swap transaction, `GET_ADDRESS` can be omitted and the `SOURCE` address is used.
 - Swap expiration is a Unix timestamp, not a block height.
 - An `ALLOW_LIST` or `BLOCK_LIST` can restrict which counterparties can match your swap.
@@ -198,9 +198,9 @@ If both tokens are on the same chain, an ORDER is simpler and does not require h
 
 ## Next Steps
 
-- [Query_The_Explorer.md](Query_The_Explorer.md) — discover and monitor open swaps
-- [Integration_Patterns.md](Integration_Patterns.md) — building a DEX frontend
-- [Advanced_Token_Features.md](Advanced_Token_Features.md) — allow/block lists for swaps
+- [Query_The_Explorer.md](Query_The_Explorer.md): discover and monitor open swaps
+- [Integration_Patterns.md](Integration_Patterns.md): building a DEX frontend
+- [Advanced_Token_Features.md](Advanced_Token_Features.md): allow/block lists for swaps
 
 ---
 

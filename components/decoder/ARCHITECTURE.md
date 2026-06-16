@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Decoder — Architecture
+# XChain Platform Decoder: Architecture
 
 ## Position in the Data Pipeline
 
@@ -52,14 +52,14 @@ The decoder is the first service in the XChain data pipeline. It polls a cryptoc
 
 | File | Class | Role |
 |---|---|---|
-| `src/api.js` | — | Entry point: Express server + JSON-RPC, env var loading, signal handlers (SIGTERM/SIGINT) |
+| `src/api.js` | None | Entry point: Express server + JSON-RPC, env var loading, signal handlers (SIGTERM/SIGINT) |
 | `src/XChainDecoder.js` | `XChainDecoder` | Main orchestrator: block polling loop, transaction parsing, deobfuscation, mempool updates, reorg detection |
 | `src/BlockchainConnector.js` | `BlockchainConnector` | JSON-RPC client for coin node: getblock, getrawtransaction, getrawmempool, retry with backoff |
 | `src/db.js` | `Database` | MariaDB connection pool, table creation, block/tx/dispenser inserts, mempool management, reorg rollback |
 | `src/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parsing via bitcoinjs-lib with coin-specific fixes (Litecoin MWEB, Dogecoin AuxPoW) |
 | `src/CryptoNetworks.js` | `CryptoNetworks` | Network configuration: bitcoinjs-lib network objects and start block indexes for all 9 chain/network combinations |
-| `src/util.js` | — | Utility functions: sleep, SHA256, hex conversion, timer |
-| `src/sql/*.sql` | — | Table creation SQL for all 8 database tables |
+| `src/util.js` | None | Utility functions: sleep, SHA256, hex conversion, timer |
+| `src/sql/*.sql` | None | Table creation SQL for all 8 database tables |
 
 ## Block Polling Loop
 
@@ -112,8 +112,8 @@ The decoder runs a continuous loop with a 1-second delay between iterations:
 
 Each transaction is parsed with bitcoinjs-lib. Before parsing:
 
-- **Litecoin** — the HogEx/MWEB witness flag (0x08 or 0x09) is stripped from the raw transaction bytes, as Litecoin uses a non-standard variant that bitcoinjs-lib does not natively support
-- **Dogecoin** — AuxPoW headers are stripped from block data using `getBlockWithoutAuxPow()`, because merge-mined blocks embed auxiliary proof-of-work data that precedes the standard block header
+- **Litecoin**: the HogEx/MWEB witness flag (0x08 or 0x09) is stripped from the raw transaction bytes, as Litecoin uses a non-standard variant that bitcoinjs-lib does not natively support
+- **Dogecoin**: AuxPoW headers are stripped from block data using `getBlockWithoutAuxPow()`, because merge-mined blocks embed auxiliary proof-of-work data that precedes the standard block header
 
 After parsing, the decoder scans each transaction's outputs looking for XChain payloads in four formats:
 
@@ -132,7 +132,7 @@ XChain data is obfuscated using AES-128-CTR before embedding in the transaction.
 2. Uses the first 16 hex characters as the AES-128 key (8 bytes)
 3. Uses the next 16 hex characters as the CTR-mode IV (8 bytes)
 4. Decrypts the payload using `crypto.createDecipheriv('aes-128-ctr', key, iv)`
-5. Checks for the `XCHN` magic prefix (4 bytes) — transactions without this prefix are silently skipped
+5. Checks for the `XCHN` magic prefix (4 bytes), transactions without this prefix are silently skipped
 6. If present, strips the prefix and passes the remaining data through `bitcoin.script.decompile()` to extract the ACTION string
 
 Error handling: `ERR_OSSL_WRONG_FINAL_BLOCK_LENGTH` and `ERR_OSSL_BAD_DECRYPT` errors are silenced (return null). All other crypto errors are re-thrown.

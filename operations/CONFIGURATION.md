@@ -11,9 +11,9 @@ This document describes how configuration works across XChain services, what par
 
 Services resolve configuration in the following priority order (highest to lowest):
 
-1. **Environment variables** — Set at container startup by xchain-node. Takes precedence over everything.
-2. **`config.json`** — A static JSON file in the service directory. Used when hub discovery is not configured.
-3. **Hub discovery (`getAllConfig()`)** — The explorer and SDK fetch live config from xchain-hub on startup and refresh it every 60 seconds. Useful for dynamic configuration without container restarts.
+1. **Environment variables**: Set at container startup by xchain-node. Takes precedence over everything.
+2. **`config.json`**: A static JSON file in the service directory. Used when hub discovery is not configured.
+3. **Hub discovery (`getAllConfig()`)**: The explorer and SDK fetch live config from xchain-hub on startup and refresh it every 60 seconds. Useful for dynamic configuration without container restarts.
 
 For most deployments managed by xchain-node, environment variables are the primary mechanism. Hub-based config is primarily used by the explorer to avoid hardcoded database credentials in its config file.
 
@@ -123,7 +123,7 @@ The decoder polls for new blocks every ~5 seconds. It waits for the coin node to
 | `INDEXER_COIN` | `BTC`, `LTC`, or `DOGE` |
 | `INDEXER_NETWORK` | `mainnet`, `testnet`, or `regtest` |
 
-The indexer has a watchdog timeout (default 5 minutes). If a single block takes longer than this to process, the process exits and Docker restarts it. The watchdog is a safety net for stuck processing — not expected under normal operation.
+The indexer has a watchdog timeout (default 5 minutes). If a single block takes longer than this to process, the process exits and Docker restarts it. The watchdog is a safety net for stuck processing. Not expected under normal operation.
 
 Coin-specific configuration (gas fees, GAS address, protocol activation blocks) lives in `/XChainIndexer/src/configs/<COIN>.js` inside the container. These values are baked into the image and cannot be changed via environment variables.
 
@@ -199,7 +199,7 @@ Coin nodes listen on different RPC ports per network. Standard defaults:
 | Litecoin | 9332 | 19332 | 19443 |
 | Dogecoin | 22555 | 44555 | 18443 |
 
-These are the coin daemons' standard upstream defaults. xchain-node's own `NODE_PORT` default is set per **network** (not per coin): `8332` mainnet, `18332` testnet, `18444` regtest — applied uniformly across BTC/LTC/DOGE unless you override `NODE_PORT`.
+These are the coin daemons' standard upstream defaults. xchain-node's own `NODE_PORT` default is set per **network** (not per coin): `8332` mainnet, `18332` testnet, `18444` regtest, applied uniformly across BTC/LTC/DOGE unless you override `NODE_PORT`.
 
 ---
 

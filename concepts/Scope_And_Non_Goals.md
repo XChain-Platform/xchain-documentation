@@ -5,11 +5,11 @@
 
 XChain is deliberately a **token-and-settlement metalayer**, not a general-purpose world
 computer. Knowing what the platform is *not* trying to be is as important as knowing what it
-does — it sets correct expectations, avoids comparing XChain against systems built for entirely
+does; it sets correct expectations, avoids comparing XChain against systems built for entirely
 different goals, and helps you choose the right tool for a given problem.
 
 This page draws a clear boundary. The [non-goals](#deliberate-non-goals) are design choices,
-not missing features — each one is a trade made on purpose in exchange for the platform's core
+not missing features; each one is a trade made on purpose in exchange for the platform's core
 properties (inherited blockchain security, full determinism, no new consensus to trust). The
 [current boundaries](#current-boundaries) are honest limitations of the present design that a
 builder should plan around.
@@ -21,16 +21,16 @@ builder should plan around.
 XChain aims to be the most complete **digital-asset layer** that can run on unmodified
 Bitcoin-family blockchains:
 
-- **Tokens** with rich issuance rules — supply caps, decimals, mint windows, allow/block
+- **Tokens** with rich issuance rules: supply caps, decimals, mint windows, allow/block
   lists, permanent locks, force-recall, and pause (see [Tokens](./TOKENS.md)).
-- **A native DEX** — on-chain order book with native-coin settlement, fixed-price dispensers,
+- **A native DEX**: on-chain order book with native-coin settlement, fixed-price dispensers,
   and trustless cross-chain swaps (see [Cross-Chain](./CROSS_CHAIN.md)).
 - **A smart-contract VM** that orchestrates the protocol's validated ACTIONs, can reach the
   outside world through validator-attested HTTPS/AI calls, and can be staked against (see
   [Smart Contracts](./Smart_Contracts.md)).
-- **Data and messaging** — on-chain files, messages, oracle/price feeds, and token-gated
+- **Data and messaging**: on-chain files, messages, oracle/price feeds, and token-gated
   encrypted content.
-- **Permissionless, independent verification** — anyone can run a full node and recompute the
+- **Permissionless, independent verification**: anyone can run a full node and recompute the
   entire state from the blockchain (see [Security Model](./Security_Model.md)).
 
 Everything in scope shares one property: it can be expressed as deterministic rules applied to
@@ -45,7 +45,7 @@ require giving up one of the platform's foundational guarantees.
 
 ### Confidentiality and privacy
 
-All XChain state — balances, transfers, holders, orders, contract state — is **fully public**.
+All XChain state (balances, transfers, holders, orders, contract state) is **fully public**.
 The obfuscation applied to ACTION payloads is not encryption: its key is derived from public
 transaction data, so anyone running a node can read everything (see
 [Security Model → Obfuscation Is Not Encryption](./Security_Model.md)). XChain is not a privacy
@@ -58,13 +58,13 @@ confidentiality, do not put the sensitive value on-chain in cleartext.**
 
 ### A new blockchain, new consensus, or real-time finality
 
-XChain has no miners, validators, or consensus of its own for transaction ordering — it
+XChain has no miners, validators, or consensus of its own for transaction ordering, it
 inherits all of that from Bitcoin, Litecoin, or Dogecoin (see [Metalayer](./METALAYER.md)). A
 direct consequence: **XChain operates at block speed.** Confirmation, order matching, and
 cross-chain settlement all wait for blocks to be mined. XChain is not a low-latency or
 real-time system, has no payment channels or off-chain rollup, and is not suitable for
 point-of-sale, gaming, or high-frequency trading. The hub validator network exists only for
-configuration, price oracles, cross-chain coordination, and attestation — never for ordering or
+configuration, price oracles, cross-chain coordination, and attestation. Never for ordering or
 settlement of token state.
 
 *Why:* inheriting the host chain's proof-of-work is exactly what lets XChain avoid bridges and
@@ -73,10 +73,10 @@ a new trust layer. Speed is the price of that security.
 ### A general-purpose "world computer"
 
 XChain contracts are **orchestration logic, not arbitrary state machines**. A contract cannot
-mutate the ledger directly — it emits the same validated ACTIONs a user would (see
-[Smart Contracts](./Smart_Contracts.md)). A contract **can** invoke another contract — on the same
+mutate the ledger directly; it emits the same validated ACTIONs a user would (see
+[Smart Contracts](./Smart_Contracts.md)). A contract **can** invoke another contract, on the same
 chain via [`emit.execute`](./actions/EXECUTE.md), or on another chain via
-[`XCALL`](./actions/XCALL.md) — but only by emitting a new action that is processed on its own:
+[`XCALL`](./actions/XCALL.md); but only by emitting a new action that is processed on its own:
 there is no synchronous return value, contracts cannot deploy other contracts, and a contract
 cannot observe the effects of its own emissions within a single execution (snapshot semantics).
 This makes the audit surface small and every state change uniform, but it means XChain is **not** a
@@ -93,7 +93,7 @@ Solana, etc.), and there are no wrapped external assets or cross-ecosystem liqui
 functionality is limited to swaps and references **among the supported UTXO chains**, and is
 coordinated (not custodied) by the hub.
 
-*Why:* the metalayer technique — embedding and replaying data on an unmodified base chain —
+*Why:* the metalayer technique, embedding and replaying data on an unmodified base chain,
 only applies to chains that work like Bitcoin. Reaching other ecosystems would reintroduce the
 bridge risk XChain was designed to avoid.
 
@@ -117,7 +117,7 @@ data from a third-party API as trusted-source data unless you verify it against 
 XChain's finality on each chain is exactly the finality of that chain. Bitcoin-secured tokens
 inherit Bitcoin's settlement assurances; tokens on a smaller chain inherit that chain's smaller
 security budget, including its greater exposure to deep reorganizations. Choose confirmation
-thresholds appropriate to the chain — higher on lower-hashpower chains — for high-value
+thresholds appropriate to the chain (higher on lower-hashpower chains) for high-value
 settlement. The platform's default guidance reflects this: roughly **BTC 6 / LTC 12 / DOGE 60**
 confirmations (the cross-chain settlement gate is per-chain and tunable via
 `XCHAIN_CONFIRMATIONS_<COIN>`; the utxo-tracker's reorg recovery window scales with it).
@@ -125,14 +125,14 @@ confirmations (the cross-chain settlement gate is per-chain and tunable via
 ### NFTs are a composition, not a separate primitive
 
 The token model is fungible at the primitive level (ticker + supply + decimals), and there is no
-separate NFT ACTION or token type. NFTs are instead a **first-class documented standard** — see the
-[NFT Standard](../protocol/NFT_Standard.md) — composed from existing primitives: a supply-1,
+separate NFT ACTION or token type. NFTs are instead a **first-class documented standard**, see the
+[NFT Standard](../protocol/NFT_Standard.md), composed from existing primitives: a supply-1,
 zero-decimal `ISSUE` is a consensus-guaranteed one-of-a-kind; parent/child `TICK` names form
 owner-proven collections; [`FILE`](../protocol/actions/FILE.md) / [`LINK`](../protocol/actions/LINK.md)
 attach owner-signed on-chain content; and per-item display follows the
 [Token Information Standard](../protocol/Token_Information_Standard.md). This keeps the consensus
 rules uniform while giving creators 1-of-1s, editions, and collections that trade on the native DEX
-rails — no separate token type and no marketplace contract required.
+rails. No separate token type and no marketplace contract required.
 
 ### Rich metadata lives off-chain
 
@@ -153,7 +153,7 @@ availability depends on where it is hosted; it is not part of the verifiable on-
 | Self-hostable, permissionless, independently verifiable infrastructure | Account-model (EVM / Solidity) smart contracts |
 
 The shortest summary: **XChain is a transparent, multi-chain token layer secured by the base
-blockchain — not a privacy system, not a real-time layer-2, and not an EVM-style world
+blockchain. Not a privacy system, not a real-time layer-2, and not an EVM-style world
 computer.** Those exclusions are what make its core guarantees hold.
 
 ---

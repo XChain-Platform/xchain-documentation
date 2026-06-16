@@ -4,8 +4,8 @@
 # XChain Platform Action - STAKE
 This action stakes tokens for validator participation. Two flavors:
 
-- **v1 / v2 — capability staking.** XCHAIN-only. The protocol uses a capability model — validators get *every* capability whose `min_stake` their stake amount meets. No tiers.
-- **v3 — contract-targeted staking.** Any token, targets a specific smart contract that was deployed with `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` metadata (see [DEPLOY](DEPLOY.md) v1+). Multi-token. Auto-detects new vs. top-up based on whether `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` already has an active row owned by `SOURCE`.
+- **v1 / v2, capability staking.** XCHAIN-only. The protocol uses a capability model, validators get *every* capability whose `min_stake` their stake amount meets. No tiers.
+- **v3:** contract-targeted staking.** Any token, targets a specific smart contract that was deployed with `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` metadata (see [DEPLOY](DEPLOY.md) v1+). Multi-token. Auto-detects new vs. top-up based on whether `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` already has an active row owned by `SOURCE`.
 
 For the full design see `claude/reports/specs/2026-05-24_capability-staking-model.md`.
 
@@ -15,24 +15,24 @@ For the full design see `claude/reports/specs/2026-05-24_capability-staking-mode
 | `VERSION`                | String  | Format Version (1 = new capability stake, 2 = top-up, 3 = contract-targeted) |
 | `AMOUNT`                 | String  | Token to stake (decimal string, 8 decimals)                       |
 | `SIGNING_PUBKEY`         | String  | Ed25519 public key, 64 hex chars                                  |
-| `TARGET_CONTRACT_INDEX`  | Integer | v3 only — `action_index` of the stakeable contract                |
-| `TICK`                   | String  | v3 only — token ticker being staked (any token, not just XCHAIN)  |
+| `TARGET_CONTRACT_INDEX`  | Integer | v3 only: `action_index` of the stakeable contract                |
+| `TICK`                   | String  | v3 only: token ticker being staked (any token, not just XCHAIN)  |
 
 ## Formats
 
-### Version `1` — Create a new capability stake
+### Version `1`: Create a new capability stake
 - `VERSION|AMOUNT|SIGNING_PUBKEY`
 
-### Version `2` — Top up an existing capability stake
+### Version `2`: Top up an existing capability stake
 - `VERSION|AMOUNT|SIGNING_PUBKEY`
 - The `SIGNING_PUBKEY` must reference an existing active stake owned by `SOURCE`.
 - The new amount is *added* to the existing stake total.
 
-### Version `3` — Contract-targeted stake
+### Version `3`: Contract-targeted stake
 - `VERSION|AMOUNT|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK`
 - The target contract must have been deployed with `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` (see [DEPLOY](DEPLOY.md) v1+); non-stakeable contracts reject as `invalid: TARGET_CONTRACT_INDEX (contract is not stakeable)`.
-- New-vs-topup is auto-detected by `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK, SOURCE)` — no separate `VERSION` for top-up. If an active row exists owned by `SOURCE`, this STAKE adds to it; otherwise it creates a new row.
-- Any token (`TICK`) is acceptable — XCHAIN is not required.
+- New-vs-topup is auto-detected by `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK, SOURCE)`. No separate `VERSION` for top-up. If an active row exists owned by `SOURCE`, this STAKE adds to it; otherwise it creates a new row.
+- Any token (`TICK`) is acceptable; XCHAIN is not required.
 
 ## Examples
 ```
@@ -58,17 +58,17 @@ Stake 250 MYTOKEN against contract at action_index 500, signing as abc123...def
 
 ### v1 / v2 (capability)
 - **BTC chain only.** Capability staking secures the platform validator set.
-- For `VERSION=1` (new): `SIGNING_PUBKEY` must NOT already have an active capability stake, **and must not be held by an active (or pending-activation) [DELEGATE](DELEGATE.md) delegation** — a key can never be both a stake key and a delegated key.
+- For `VERSION=1` (new): `SIGNING_PUBKEY` must NOT already have an active capability stake, **and must not be held by an active (or pending-activation) [DELEGATE](DELEGATE.md) delegation**; a key can never be both a stake key and a delegated key.
 - For `VERSION=2` (top-up): `SIGNING_PUBKEY` MUST have an active capability stake AND that stake's original source must match the broadcasting address.
 - A `VERSION=2` re-stake of a key previously revoked via DELEGATE v2 makes the key a valid signer again, backed by the stake rows from the re-stake onward (rows that predate the revocation stay suppressed).
 - `AMOUNT` is implicitly XCHAIN.
 - Broadcasting address must hold at least `AMOUNT` XCHAIN.
 
 ### v3 (contract-targeted)
-- **Works on any chain** (BTC, LTC, DOGE) — contract staking is a developer primitive; each contract defines its own staking semantics.
+- **Works on any chain** (BTC, LTC, DOGE), contract staking is a developer primitive; each contract defines its own staking semantics.
 - `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract (deployed with `COOLDOWN_BLOCKS` + `SLASH_DESTINATION`).
 - `TICK` must be a known token; broadcasting address must hold at least `AMOUNT` of `TICK`.
-- A pubkey can have separate v3 stakes per `(contract, tick)` pair — they do not collide with v1/v2 capability stakes or with each other.
+- A pubkey can have separate v3 stakes per `(contract, tick)` pair; they do not collide with v1/v2 capability stakes or with each other.
 
 ## Capabilities and Minimum Stakes
 A stake auto-qualifies for any capability whose `min_stake` the total stake meets. Defaults:
@@ -82,7 +82,7 @@ A stake auto-qualifies for any capability whose `min_stake` the total stake meet
 
 A 5,000 XCHAIN stake therefore qualifies for all four capabilities. A 500 XCHAIN stake qualifies only for `oracle_publish`. Minimums are governance-tunable.
 
-A capability becomes *active* on a hub when ALL of: (a) stake qualifies, (b) per-capability `selfTest()` passes, (c) operator has not added it to `disabled_capabilities`. Sub-features (chains for `cross_chain`, fiats for `price`, providers for `attestation`) live in operator hub config — not on-chain.
+A capability becomes *active* on a hub when ALL of: (a) stake qualifies, (b) per-capability `selfTest()` passes, (c) operator has not added it to `disabled_capabilities`. Sub-features (chains for `cross_chain`, fiats for `price`, providers for `attestation`) live in operator hub config. Not on-chain.
 
 ## Activation Delay
 - Stakes do not become active until **6 BTC blocks** after confirmation.
@@ -90,10 +90,10 @@ A capability becomes *active* on a hub when ALL of: (a) stake qualifies, (b) per
 - Applies to STAKE v1, STAKE v2 (top-up), UNSTAKE, DELEGATE (all versions).
 - Tracked via the `activation_block` column on the `stakes` table (set to `block_index + 6`).
 - Active-stake queries filter by `activation_block <= current_block`.
-- The 6-block figure above is the **BTC** value (capability staking is BTC-only). Contract-targeted **STAKE v3** runs on every chain and uses a per-chain calibrated delay for equivalent ~60-min reorg protection — **6 blocks on BTC, 24 on LTC, 60 on DOGE** — set via each chain's `STAKING.ACTIVATION_DELAY_BLOCKS` default.
+- The 6-block figure above is the **BTC** value (capability staking is BTC-only). Contract-targeted **STAKE v3** runs on every chain and uses a per-chain calibrated delay for equivalent ~60-min reorg protection (**6 blocks on BTC, 24 on LTC, 60 on DOGE**) set via each chain's `STAKING.ACTIVATION_DELAY_BLOCKS` default.
 
 ## Storage Model
-Each STAKE action (v1 *or* v2) inserts a new row into the `stakes` table. The active stake amount for a pubkey is `SUM(amount)` across all valid rows for that pubkey within the activation window. This append-only ledger preserves rollback correctness — block-level rewinds simply delete rows past the rewind point.
+Each STAKE action (v1 *or* v2) inserts a new row into the `stakes` table. The active stake amount for a pubkey is `SUM(amount)` across all valid rows for that pubkey within the activation window. This append-only ledger preserves rollback correctness, block-level rewinds simply delete rows past the rewind point.
 
 ## Notes
 - Use `UNSTAKE` to begin the cooldown period and recover staked tokens for a pubkey.

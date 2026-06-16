@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Format Selection
+# XChain Platform SDK: Format Selection
 
 Many XChain actions support multiple format versions. Rather than requiring developers to specify a version number, the SDK automatically picks the optimal version based on which fields are actually provided.
 
@@ -24,7 +24,7 @@ The selection algorithm in `FormatSelector.select(action, fields)` runs the foll
 
 **a. Identify populated fields.** Any field whose value is `null`, `undefined`, or an empty string `""` is treated as not provided. Only non-empty fields participate in format selection. `VERSION` is always set automatically by the SDK and is never considered a user-provided field.
 
-**b. Check each version for eligibility (no data loss rule).** For every format version registered for the action, the selector checks: does every populated field have a named slot in this version's field list? If a developer provides a field that a version does not support, that version is rejected — using it would silently drop data.
+**b. Check each version for eligibility (no data loss rule).** For every format version registered for the action, the selector checks: does every populated field have a named slot in this version's field list? If a developer provides a field that a version does not support, that version is rejected, using it would silently drop data.
 
 **c. Estimate serialized length.** For each eligible version, the selector calculates the byte length of the resulting pipe-delimited action string (`ACTION|VERSION|field1|field2|...`), using actual field values where provided and empty strings for unprovided optional fields.
 
@@ -34,7 +34,7 @@ The selected version, its field list, and the estimated length are returned toge
 
 ---
 
-## ISSUE Example — the Most Versions
+## ISSUE Example: the Most Versions
 
 `ISSUE` has six format versions, each targeting a distinct update operation:
 
@@ -80,27 +80,27 @@ sdk.createAction({ action: 'ISSUE', params: {
 
 ## Version Quick Reference
 
-Actions with a single format version (ADDRESS, BATCH, CALLBACK, DIVIDEND, FILE, LINK, MINT, SLEEP v0, SWEEP) are omitted — the selector always uses version 0 for those.
+Actions with a single format version (ADDRESS, BATCH, CALLBACK, DIVIDEND, FILE, LINK, MINT, SLEEP v0, SWEEP) are omitted; the selector always uses version 0 for those.
 
 | ACTION | v0 | v1 | v2 | v3 | v4 | v5 |
 |--------|----|----|----|----|----|----|
-| SEND | Single tick, single destination | Single tick, two destinations | Two ticks, two destinations | Two ticks, two destinations + per-destination memo | — | — |
+| SEND | Single tick, single destination | Single tick, two destinations | Two ticks, two destinations | Two ticks, two destinations + per-destination memo | None | None |
 | ISSUE | Full token creation | Description update | Mint parameter update | Lock flag update | Callback parameter update | Allow/block list update |
-| ORDER | Full order (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | — | — | — |
-| SWAP | Full swap (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | — | — | — |
-| DISPENSER | Full dispenser (give/get/fiat/lists) | Cancel/close by index | Edit escrow/expiry/lists by index | — | — | — |
-| DESTROY | Single tick | Two ticks | Two ticks + per-tick memo | — | — | — |
-| AIRDROP | Single tick, list index | Two ticks, two list indexes | Single tick, two list indexes alternating | Two ticks, two list indexes, two memos | — | — |
-| BROADCAST | Message + value | Message + value + fee + memo | Message + fee + memo (no value) | Resolve prior broadcast by index | — | — |
-| MESSAGE | ECDH v0 (key exchange) | ECDH v1 (key exchange) | Encrypted message payload | Plaintext message | — | — |
-| LIST | Create list (type + item) | Edit existing list by index | — | — | — | — |
-| SLEEP | Wake at block (address-wide) | Wake at block, tick-scoped | — | — | — | — |
+| ORDER | Full order (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None |
+| SWAP | Full swap (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None |
+| DISPENSER | Full dispenser (give/get/fiat/lists) | Cancel/close by index | Edit escrow/expiry/lists by index | None | None | None |
+| DESTROY | Single tick | Two ticks | Two ticks + per-tick memo | None | None | None |
+| AIRDROP | Single tick, list index | Two ticks, two list indexes | Single tick, two list indexes alternating | Two ticks, two list indexes, two memos | None | None |
+| BROADCAST | Message + value | Message + value + fee + memo | Message + fee + memo (no value) | Resolve prior broadcast by index | None | None |
+| MESSAGE | ECDH v0 (key exchange) | ECDH v1 (key exchange) | Encrypted message payload | Plaintext message | None | None |
+| LIST | Create list (type + item) | Edit existing list by index | None | (| None |) |
+| SLEEP | Wake at block (address-wide) | Wake at block, tick-scoped | None | (| None |) |
 
 ---
 
 ## Overriding Version Selection
 
-There is no API to force a specific version number — the selector always chooses the best fit. However, you control version selection indirectly through which fields you provide:
+There is no API to force a specific version number; the selector always chooses the best fit. However, you control version selection indirectly through which fields you provide:
 
 - Providing only the fields unique to a specific version will cause that version to be selected.
 - Providing fields that span multiple versions will cause the selector to find the eligible version with the shortest output.
@@ -161,7 +161,7 @@ If none of the registered format versions can represent all the provided fields,
 }
 ```
 
-`userFieldsNotInFormat` shows exactly which of your fields caused each version to be rejected. In the example above, `unknownField` is not defined in any SEND format — removing it or correcting its name will resolve the error.
+`userFieldsNotInFormat` shows exactly which of your fields caused each version to be rejected. In the example above, `unknownField` is not defined in any SEND format, removing it or correcting its name will resolve the error.
 
 ```js
 const { SDKFormatError } = require('@xchain/sdk/src/errors');

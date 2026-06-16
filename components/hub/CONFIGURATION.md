@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Hub — Configuration
+# XChain Platform Hub: Configuration
 
 ## Environment Variables
 
@@ -12,12 +12,12 @@ These variables are required regardless of operating mode.
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `HUB_HOST` | No | `0.0.0.0` | Host to bind the API server |
-| `HUB_PORT` | Yes | — | Port for the JSON-RPC API |
-| `HUB_DB_HOST` | Yes | — | MariaDB host |
-| `HUB_DB_PORT` | Yes | — | MariaDB port |
-| `HUB_DB_NAME` | Yes | — | MariaDB database name (e.g., `XChain_Hub`) |
-| `HUB_DB_USER` | Yes | — | MariaDB username |
-| `HUB_DB_PASS` | Yes | — | MariaDB password |
+| `HUB_PORT` | Yes | None | Port for the JSON-RPC API |
+| `HUB_DB_HOST` | Yes | None | MariaDB host |
+| `HUB_DB_PORT` | Yes | None | MariaDB port |
+| `HUB_DB_NAME` | Yes | None | MariaDB database name (e.g., `XChain_Hub`) |
+| `HUB_DB_USER` | Yes | None | MariaDB username |
+| `HUB_DB_PASS` | Yes | None | MariaDB password |
 
 ### P2P Gossip Layer
 
@@ -25,18 +25,18 @@ Validator mode is activated when `P2P_VALIDATOR_ADDR` is set. All P2P-dependent 
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `P2P_VALIDATOR_ADDR` | No | — | This validator's public address. Setting this activates validator mode. |
+| `P2P_VALIDATOR_ADDR` | No | None | This validator's public address. Setting this activates validator mode. |
 | `P2P_PORT` | No | `10001` | WebSocket P2P listen port |
 | `P2P_HOST` | No | `0.0.0.0` | P2P bind address |
-| `SEED_NODES` | No | — | Comma-separated list of peer addresses (e.g., `peer1.example.com:10001,peer2.example.com:10001`) |
-| `SIGNING_PRIVKEY_HEX` | No | — | 64-hex-char Ed25519 private key seed for message signing |
+| `SEED_NODES` | No | None | Comma-separated list of peer addresses (e.g., `peer1.example.com:10001,peer2.example.com:10001`) |
+| `SIGNING_PRIVKEY_HEX` | No | None | 64-hex-char Ed25519 private key seed for message signing |
 | `REQUIRE_SIGNATURES` | No | `false` | When `true`, reject unsigned P2P messages |
 | `P2P_HEARTBEAT_INTERVAL` | No | `15000` | Milliseconds between heartbeat broadcasts |
 | `P2P_RECONNECT_BASE` | No | `2000` | Base delay for reconnect backoff (ms) |
 | `P2P_RECONNECT_MAX` | No | `60000` | Maximum delay for reconnect backoff (ms) |
 | `P2P_MSG_DEDUP_TTL` | No | `60000` | Message deduplication cache TTL (ms) |
 | `P2P_MAX_PAYLOAD` | No | `1048576` | Maximum WebSocket message size in bytes (1 MB) |
-| `HUB_CAPABILITY_CONFIG` | No | — | Path to the capability config JSON (see below). Required for capability qualification + self-tests. |
+| `HUB_CAPABILITY_CONFIG` | No | None | Path to the capability config JSON (see below). Required for capability qualification + self-tests. |
 
 ### Capability Configuration
 
@@ -45,10 +45,10 @@ Capability staking decides which of the four capabilities (`price`, `cross_chain
 hub loads this from the JSON file at `HUB_CAPABILITY_CONFIG`, applies it on startup,
 and **hot-reloads** on file change. It supplies two things:
 
-- `CAPABILITIES.<cap>.MIN_STAKE` — the stake threshold a pubkey must meet (queried
+- `CAPABILITIES.<cap>.MIN_STAKE`: the stake threshold a pubkey must meet (queried
   from the indexer) to qualify. **If a capability has no configured `MIN_STAKE`, the
-  hub treats it as not qualified (fail-closed)** — it does not default to `0`.
-- Per-capability self-test config blocks — checked locally so the hub only
+  hub treats it as not qualified (fail-closed)**; it does not default to `0`.
+- Per-capability self-test config blocks, checked locally so the hub only
   participates when it can actually serve:
   - `price`: `{ "sources": [...], "fiats": [...] }`
   - `cross_chain`: `{ "chains": { "BTC": { "rpc": "..." }, ... } }`
@@ -84,8 +84,8 @@ mounts it into the hub container automatically. See OPERATIONS.md → Validator 
 | `ORACLE_ROUND_INTERVAL` | No | `600000` | Milliseconds between oracle rounds (default: 10 minutes) |
 | `ORACLE_SUBMISSION_WINDOW` | No | `180000` | Milliseconds to collect validator price submissions (default: 3 minutes) |
 | `ORACLE_FINALIZATION_TIMEOUT` | No | `120000` | Timeout for oracle PBFT finalization round (default: 2 minutes) |
-| `COINGECKO_API_KEY` | No | — | CoinGecko API key (optional, improves rate limits) |
-| `COINMARKETCAP_API_KEY` | No | — | CoinMarketCap API key (enables second price source) |
+| `COINGECKO_API_KEY` | No | None | CoinGecko API key (optional, improves rate limits) |
+| `COINMARKETCAP_API_KEY` | No | None | CoinMarketCap API key (enables second price source) |
 | `PRICE_FETCH_TIMEOUT` | No | `10000` | HTTP timeout for external price API calls (ms) |
 
 ### Rewards and Slashing
@@ -107,7 +107,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_CHUNK_RETRY_MS` | No | `2500` | Delay before retrying a failed archive chunk upload (ms) |
 | `ANCHOR_ELECTION_TOLERANCE_BLOCKS` | No | `36` | BTC blocks a non-leader hub waits before the next eligible rank may take over |
 | `ANCHOR_REWARD_PER_PUBLISH` | No | `"10.00000000"` | XCHAIN distributed to the elected ANCHOR publisher per successful publish cycle |
-| `ANCHOR_CHECKPOINT_EVERY_N` | No | `1` | Anchor only every Nth `checkpoint_seq` on-chain (per chain). Decouples on-chain ANCHOR spend from checkpoint production cadence — skipped (off-multiple) seqs remain in the off-chain hub-DB mirror and are still verifiable via the explorer. `1` anchors every checkpoint (original behaviour). |
+| `ANCHOR_CHECKPOINT_EVERY_N` | No | `1` | Anchor only every Nth `checkpoint_seq` on-chain (per chain). Decouples on-chain ANCHOR spend from checkpoint production cadence: skipped (off-multiple) seqs remain in the off-chain hub-DB mirror and are still verifiable via the explorer. `1` anchors every checkpoint (original behaviour). |
 
 > **Cost note.** Each on-chain checkpoint anchor spends real DOGE on three transactions (BTC + LTC + DOGE checkpoints all broadcast on the DOGE chain). State recovery (`recovery.js`) only needs the **latest** anchored checkpoint per chain, so anchoring every intermediate `checkpoint_seq` is optional. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`), `ANCHOR_CHECKPOINT_EVERY_N=2` halves anchor spend (on-chain recovery point then trails the tip by up to ~2 checkpoint intervals). `checkpoint_seq` is consensus data, so the gate is deterministic across every hub.
 
@@ -115,7 +115,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `HUB_SIGNER_MODULE` | No | — | Path to a CommonJS module exporting `walletSign(psbtHex) → Promise<txHex>`. Used by `OraclePublisher` and `AttestationPublisher` to sign DOGE transactions; `StateAnchorPublisher` borrows the same hooks via `_resolveSigner()`. Optional — without it the publishers stay idle. Set-but-unloadable throws at startup (fail loudly). Falls back to `setWalletSignHook` / `setBroadcastHook` if the module is not provided. |
+| `HUB_SIGNER_MODULE` | No | None | Path to a CommonJS module exporting `walletSign(psbtHex) → Promise<txHex>`. Used by `OraclePublisher` and `AttestationPublisher` to sign DOGE transactions; `StateAnchorPublisher` borrows the same hooks via `_resolveSigner()`. Optional: without it the publishers stay idle. Set-but-unloadable throws at startup (fail loudly). Falls back to `setWalletSignHook` / `setBroadcastHook` if the module is not provided. |
 
 ### Cross-Chain
 
@@ -151,7 +151,7 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 
 | Table | Purpose |
 |---|---|
-| `validators` | Active validators: `(signing_pubkey, addr, status, chains)` — capabilities are derived from each pubkey's aggregate stake, not stored here (the `tier` column was dropped in the capability-staking refactor) |
+| `validators` | Active validators: `(signing_pubkey, addr, status, chains)`: capabilities are derived from each pubkey's aggregate stake, not stored here (the `tier` column was dropped in the capability-staking refactor) |
 | `consensus_state` | PBFT sequence number persistence |
 | `p2p_peers` | Known P2P peers and last-seen timestamps |
 
@@ -167,7 +167,7 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 
 | Table | Purpose |
 |---|---|
-| `attestations` | Cross-chain attestation records: `(attestation_id, source_chain, source_action_index, dest_chain, status, consensus_proof)` — status: pending, attested, rejected, expired |
+| `attestations` | Cross-chain attestation records: `(attestation_id, source_chain, source_action_index, dest_chain, status, consensus_proof)`: status: pending, attested, rejected, expired |
 | `swap_records` | SWAP lifecycle tracking: `(source_chain, source_action_index, dest_chain, dest_action_index, status)` |
 | `reorg_attestations` | Confirmed blockchain reorg events: `(chain, reorg_height, timestamp, consensus_proof)` |
 | `cross_chain_matches` | Cross-chain DEX match records mirrored across the federation and to indexers via hub DB sync |
@@ -191,14 +191,14 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 
 | Table | Purpose |
 |---|---|
-| `validator_rewards` | Per-round validator rewards: `(validator_pubkey, round_number, reward_type, amount, block_index, batch_seq, claimed)` — `reward_type` distinguishes `oracle_round`, `attest_fee`, `anchor_<chain>` etc.; `batch_seq` links anchor-publish batch rows; `block_index` pins the earn block |
+| `validator_rewards` | Per-round validator rewards: `(validator_pubkey, round_number, reward_type, amount, block_index, batch_seq, claimed)`: `reward_type` distinguishes `oracle_round`, `attest_fee`, `anchor_<chain>` etc.; `batch_seq` links anchor-publish batch rows; `block_index` pins the earn block |
 | `slash_proposals` | Detected validator offenses: `(signing_pubkey, offense_type, evidence, round_number)` |
 
 ### Telemetry
 
 | Table | Purpose |
 |---|---|
-| `telemetry_pings` | Anonymous node-operator usage pings: `(install_id, hub_version, services, os_info, country, region, ip_hash)` — raw IP is never stored |
+| `telemetry_pings` | Anonymous node-operator usage pings: `(install_id, hub_version, services, os_info, country, region, ip_hash)`: raw IP is never stored |
 
 ### Capability Registry
 

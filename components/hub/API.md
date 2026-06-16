@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Hub — API Reference
+# XChain Platform Hub: API Reference
 
 All methods are called via HTTP POST with JSON-RPC 2.0 format:
 
@@ -29,7 +29,7 @@ Health check.
 
 ### `health`
 
-Detailed health check. Unlike `ping` (which only confirms the HTTP server is up and the DB pool answers a probe query), `health` also reports the DB circuit-breaker state and — on oracle-running (P2P-enabled) hubs — oracle round freshness, so an operator can distinguish a healthy hub from one that is up but stalled on a tripped database connection or a stale price feed. Returns HTTP **503** (with the same body) when `status` is `"degraded"`.
+Detailed health check. Unlike `ping` (which only confirms the HTTP server is up and the DB pool answers a probe query), `health` also reports the DB circuit-breaker state and (on oracle-running (P2P-enabled) hubs) oracle round freshness, so an operator can distinguish a healthy hub from one that is up but stalled on a tripped database connection or a stale price feed. Returns HTTP **503** (with the same body) when `status` is `"degraded"`.
 
 **Request:**
 ```json
@@ -63,9 +63,9 @@ Detailed health check. Unlike `ping` (which only confirms the HTTP server is up 
 
 Returns all service configs wrapped in an envelope: `{ configs, seq, watermark }`.
 
-- `configs` — the nested config tree: `{ coin: { network: { module: { param: value } } } }`.
-- `seq` — the last committed consensus sequence number (0 on a fresh node with no committed config changes yet).
-- `watermark` — the high-water mark of the configs table as an **epoch-seconds** integer (the newest `updated_at` across all rows, or 0 when the table is empty). See *Delta polling* below.
+- `configs`: the nested config tree: `{ coin: { network: { module: { param: value } } } }`.
+- `seq`: the last committed consensus sequence number (0 on a fresh node with no committed config changes yet).
+- `watermark`: the high-water mark of the configs table as an **epoch-seconds** integer (the newest `updated_at` across all rows, or 0 when the table is empty). See *Delta polling* below.
 
 **Request:**
 ```json
@@ -109,7 +109,7 @@ Returns all service configs wrapped in an envelope: `{ configs, seq, watermark }
 
 > **Note:** the config tree lives under `result.configs`, **not** at the top level. Read `result.configs.bitcoin.mainnet...`, not `result.bitcoin.mainnet...`.
 
-**Delta polling:** `watermark` is an epoch-seconds timestamp the consumer should retain and pass back as `since_updated_at` on its next `getallconfigs` call. When `since_updated_at > 0`, the hub returns only the config rows that changed strictly after that instant (a delta — typically empty on a quiet poll) rather than the full tree, along with the new `watermark` to carry into the following poll. Omitting `since_updated_at` (or passing 0) returns the complete config tree, so first fetches and consumers that don't track the watermark are unaffected. The configs table is upsert-only (rows are never deleted), so merging successive deltas reconstructs exactly what a full fetch would have returned.
+**Delta polling:** `watermark` is an epoch-seconds timestamp the consumer should retain and pass back as `since_updated_at` on its next `getallconfigs` call. When `since_updated_at > 0`, the hub returns only the config rows that changed strictly after that instant (a delta, typically empty on a quiet poll) rather than the full tree, along with the new `watermark` to carry into the following poll. Omitting `since_updated_at` (or passing 0) returns the complete config tree, so first fetches and consumers that don't track the watermark are unaffected. The configs table is upsert-only (rows are never deleted), so merging successive deltas reconstructs exactly what a full fetch would have returned.
 
 ### `updateconfig`
 
@@ -167,9 +167,9 @@ Bootstrap-register a validator. The signing public key must be a 64-character he
 {"status":"success"}
 ```
 
-### `rotatevalidator` (write — requires API key)
+### `rotatevalidator` (write: requires API key)
 
-Rotate the signing key of the validator at `addr` to a new pubkey. Retires the addr's current active key, activates the new one, and reloads + propagates the set to every running consensus engine at runtime (no restart). Rejects an addr that has no current active validator — use `registervalidator` for a fresh addr. This edits the hub's local validator **registry** (the authorization floor); on a hub that follows an on-chain validator set, on-chain key rotation via `DELEGATE` is followed automatically and this call is not required. See [Validator Key Rotation](OPERATIONS.md#validator-key-rotation).
+Rotate the signing key of the validator at `addr` to a new pubkey. Retires the addr's current active key, activates the new one, and reloads + propagates the set to every running consensus engine at runtime (no restart). Rejects an addr that has no current active validator, use `registervalidator` for a fresh addr. This edits the hub's local validator **registry** (the authorization floor); on a hub that follows an on-chain validator set, on-chain key rotation via `DELEGATE` is followed automatically and this call is not required. See [Validator Key Rotation](OPERATIONS.md#validator-key-rotation).
 
 **Request:**
 ```json
@@ -189,7 +189,7 @@ Rotate the signing key of the validator at `addr` to a new pubkey. Retires the a
 {"status":"success"}
 ```
 
-### `deregistervalidator` (write — requires API key)
+### `deregistervalidator` (write: requires API key)
 
 Remove a validator from the registry by `signing_pubkey` **or** `addr` (marks the matching active row(s) `status='removed'`), then reloads + propagates the set to every consensus engine. The first-class replacement for hand-editing the `validators` table. As with `rotatevalidator`, this affects the local registry floor only.
 
@@ -214,7 +214,7 @@ Remove a validator from the registry by `signing_pubkey` **or** `addr` (marks th
 
 Bulk sync the validator set from external staking data (e.g., from the indexer). Replaces the current set and reloads all subsystem validator sets.
 
-Each validator object carries `signing_pubkey`, `addr`, `status`, and an optional comma-separated `chains` list (used for cross-chain quorum filtering; omit or leave empty to support all chains). Validator **capabilities** (`price`, `cross_chain`, `oracle_publish`, `attestation`) are **not** part of this object — a pubkey auto-qualifies for each capability whose governance-configured minimum stake its aggregate active stake meets. There is no `tier` field.
+Each validator object carries `signing_pubkey`, `addr`, `status`, and an optional comma-separated `chains` list (used for cross-chain quorum filtering; omit or leave empty to support all chains). Validator **capabilities** (`price`, `cross_chain`, `oracle_publish`, `attestation`) are **not** part of this object; a pubkey auto-qualifies for each capability whose governance-configured minimum stake its aggregate active stake meets. There is no `tier` field.
 
 **Request:**
 ```json
@@ -279,7 +279,7 @@ Detailed status for a specific validator: info, unclaimed rewards, recent reward
 
 ### `getstakesourcebypubkey` (indexer endpoint)
 
-> **Note:** this method lives on `xchain-indexer`, not the hub. It is documented here because the hub calls it internally — the archive builder and follower hubs use it to resolve the staking-source address that owned or delegated a signing pubkey at a specific block, so rewards can be attributed to the correct on-chain address.
+> **Note:** this method lives on `xchain-indexer`, not the hub. It is documented here because the hub calls it internally; the archive builder and follower hubs use it to resolve the staking-source address that owned or delegated a signing pubkey at a specific block, so rewards can be attributed to the correct on-chain address.
 
 **Request** (to indexer):
 ```json
@@ -359,7 +359,7 @@ Returns the latest finalized price for a specific coin pair.
 {"coin_pair":"BTC/USD","price":"67500.00","round_number":42,"status":"finalized"}
 ```
 
-### `pushchaintip` (write — requires API key)
+### `pushchaintip` (write: requires API key)
 
 Pushes a chain tip update from an indexer. The hub uses this to anchor oracle rounds to the BTC chain tip (replacing the hardcoded `reference_block=0` bug).
 
@@ -380,7 +380,7 @@ Pushes a chain tip update from an indexer. The hub uses this to anchor oracle ro
 
 Stored in the `configs` table as `(coin, mainnet, chain_tips, block_height|block_time)`. Read by `OracleRound._executeRound()` at the start of each PBFT round.
 
-### `pushpriceround` (write — requires API key)
+### `pushpriceround` (write: requires API key)
 
 Pushes a validated PRICE v0 round from an indexer for cross-chain aggregation. The hub deduplicates by `round_number` (first valid submission wins) and writes to `price_snapshots`.
 
@@ -407,9 +407,9 @@ Pushes a validated PRICE v0 round from an indexer for cross-chain aggregation. T
 {"accepted":true}
 ```
 
-Or `{"accepted":false,"reason":"duplicate"}` if the round already exists. The indexer must validate PBFT signatures locally **before** pushing — the hub trusts indexer validation.
+Or `{"accepted":false,"reason":"duplicate"}` if the round already exists. The indexer must validate PBFT signatures locally **before** pushing; the hub trusts indexer validation.
 
-### `pushoracleprice` (write — requires API key)
+### `pushoracleprice` (write: requires API key)
 
 Pushes a validated PRICE v1 user oracle price from an indexer. The hub applies the 24-hour lock window and writes to `oracle_prices`.
 
@@ -450,7 +450,7 @@ The hub exposes a separate channel for replicating cross-chain infrastructure ta
 Returns rows from the `price_snapshots` table after `since_id` (paginated for incremental bootstrap).
 
 **Query parameters:**
-- `since_id` (optional, default 0) — return rows where `id > since_id`
+- `since_id` (optional, default 0), return rows where `id > since_id`
 - `limit` (optional, default 10000, max 10000)
 
 **Response:**
@@ -460,9 +460,12 @@ Returns rows from the `price_snapshots` table after `since_id` (paginated for in
   "rows": [
     {"id":1,"round_number":850010,"coin_pair":"BTC/USD","price":"100000.12345678","reference_block":850010,"reference_chain":"BTC","block_timestamp":1712500000,"validator_count":5,"consensus_round":1,"consensus_proof":"[...]","status":"finalized","source_chain":"DOGE","source_action_index":12345,"created_at":"2026-04-06T12:00:00.000Z"}
   ],
-  "count": 1
+  "count": 1,
+  "watermark": 1712500000
 }
 ```
+
+All six snapshot endpoints return the same three-field envelope `{ table, rows, count, watermark }`. `watermark` is the Unix timestamp (seconds) at which the response was generated; indexers use it to detect a snapshot that predates a concurrent row they already saw via WebSocket.
 
 ### `GET /hub-db/snapshot/oracle_prices`
 
@@ -484,16 +487,33 @@ Returns rows from the `cross_chain_calls` table after `since_id`. Same query par
 
 Returns rows from the `state_checkpoints` table after `since_id`. Same query parameters and response format as above.
 
-### `GET /hub-db/subscribe` (WebSocket upgrade — requires `Authorization: Bearer <HUB_API_KEY>`)
+### `GET /hub-db/subscribe` (WebSocket upgrade: requires `Authorization: Bearer <HUB_API_KEY>`)
 
-WebSocket channel that pushes `row:inserted` events for all six hub DB tables: `price_snapshots`, `oracle_prices`, `state_checkpoints`, `capability_snapshots`, `cross_chain_matches`, and `cross_chain_calls`. Each subscriber receives a JSON message per insertion:
+WebSocket channel for live updates across all six hub DB tables: `price_snapshots`, `oracle_prices`, `state_checkpoints`, `capability_snapshots`, `cross_chain_matches`, and `cross_chain_calls`.
 
-**Message format:**
+Indexers bootstrap by fetching the REST snapshots for each table (paginated by `since_id`), then subscribe to this WebSocket for live updates. Backpressure handling drops connections that exceed `WS_BACKPRESSURE_LIMIT` buffered messages. Unknown `type` values should be silently ignored for forward compatibility.
+
+**Message types (server → client):**
+
+**`ready`**: sent once immediately after the subscriber connection is established. Contains the maximum row ID currently present in each table and the server-side Unix timestamp (seconds). Indexers should gate their WebSocket processing on receiving this message before trusting any `row:inserted` events.
+```json
+{"type":"ready","max_ids":{"price_snapshots":42,"oracle_prices":17,"state_checkpoints":3,"capability_snapshots":8,"cross_chain_matches":5,"cross_chain_calls":2},"watermark":1712500000}
+```
+
+**`row:inserted`**: sent for each new row inserted into any of the six tables.
 ```json
 {"type":"row:inserted","table":"price_snapshots","row":{...}}
 ```
 
-Indexers bootstrap by fetching the REST snapshots for each table (paginated by `since_id`), then subscribe to this WebSocket for live updates across all six tables. Backpressure handling drops connections that exceed `WS_BACKPRESSURE_LIMIT` buffered messages.
+**`row:deleted`**: sent when a reorg retraction removes a row. Indexers must delete or invalidate the referenced row from their local copy.
+```json
+{"type":"row:deleted","table":"cross_chain_matches","source_chain":"BTC","from_action_index":12345}
+```
+
+**`watermark`**: periodic heartbeat (interval controlled by `WS_WATERMARK_INTERVAL_MS`, default 10 s). Carries the current server Unix timestamp so subscribers can detect a stalled connection even when no rows are being inserted.
+```json
+{"type":"watermark","ts":1712500060}
+```
 
 ### `getcapabilitythresholds`
 
@@ -851,7 +871,7 @@ Get a specific proposal with all associated votes.
 
 ## ANCHOR Publishing
 
-### `anchorflush` (write — requires API key)
+### `anchorflush` (write: requires API key)
 
 Trigger an immediate out-of-interval ANCHOR publish attempt on the `StateAnchorPublisher`, bypassing the normal `ANCHOR_INTERVAL_MS` timer. The publisher still enforces its per-chain election: a hub that is not the elected publisher for a pending anchor skips it and the response indicates so. Useful for operator-forced flushes after federation events or wallet refills.
 
@@ -869,11 +889,11 @@ Returns `{"error":"anchor publisher not active"}` when `StateAnchorPublisher` is
 
 ## Rewards
 
-### `pushvalidatorrewards` (write — requires API key, indexer endpoint)
+### `pushvalidatorrewards` (write: requires API key, indexer endpoint)
 
 > **Note:** this method is implemented on `xchain-indexer`, not the hub. The hub's `RewardTracker` calls it to persist anchor-publish reward rows into the indexer's `validator_rewards` table.
 
-Accepted `reward_type` values must match `^anchor_[A-Za-z_]+$` (e.g. `anchor_BTC`, `anchor_DOGE`). The indexer **rejects** `oracle_round` and `attest_fee` because those are derived deterministically during block processing — accepting a push for them would open a replay-divergence window.
+Accepted `reward_type` values must match `^anchor_[A-Za-z_]+$` (e.g. `anchor_BTC`, `anchor_DOGE`). The indexer **rejects** `oracle_round` and `attest_fee` because those are derived deterministically during block processing, accepting a push for them would open a replay-divergence window.
 
 **Request** (from hub → indexer):
 ```json

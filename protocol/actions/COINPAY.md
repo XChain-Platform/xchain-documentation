@@ -29,13 +29,13 @@ for the owed amount (or more).
 - The `ORDER_MATCH` must not have expired (current block timestamp < obligation expiration)
 - The transaction must include a native coin output to the obligation's payee address
 - The output amount must be >= the obligation's `coin_amount`
-- Overpayment goes to the seller as a tip — the obligation is fulfilled at the owed amount
+- Overpayment goes to the seller as a tip; the obligation is fulfilled at the owed amount
 - If the obligation has expired, the COINPAY is recorded as invalid and no tokens are released
 - The buyer loses native coin if the COINPAY transaction confirms after the obligation expires (accepted risk)
-- Anyone can send a COINPAY on behalf of the buyer — the escrowed tokens always go to the buyer's `GET_ADDRESS`
+- Anyone can send a COINPAY on behalf of the buyer; the escrowed tokens always go to the buyer's `GET_ADDRESS`
 
 ## Notes
-- COINPAY is always an explicit ACTION — never a bare payment. This avoids the decoder scanning every transaction output for potential order payments.
+- COINPAY is always an explicit ACTION. Never a bare payment. This avoids the decoder scanning every transaction output for potential order payments.
 - Each transaction output is processed separately by the indexer. Only the output matching the payee address and amount triggers settlement.
 - The obligation's expiration is timestamp-based (match block timestamp + `COINPAY_EXPIRATION` config, default 7200 seconds / 2 hours).
 - On valid COINPAY: escrowed tokens are released to the buyer, ORDER_MATCH status changes to `valid`, and the obligation status changes to `fulfilled`.

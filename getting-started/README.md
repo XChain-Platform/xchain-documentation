@@ -3,7 +3,7 @@
 
 # Getting Started
 
-This section is the entry point for everyone new to XChain — whether you want to understand the protocol, build an application, or run your own node. Start here to find the right path based on your goal.
+This section is the entry point for everyone new to XChain, whether you want to understand the protocol, build an application, or run your own node. Start here to find the right path based on your goal.
 
 | Document | Description |
 |---|---|

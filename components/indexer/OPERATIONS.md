@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Indexer — Operations
+# XChain Platform Indexer: Operations
 
 ## Prerequisites
 
@@ -144,7 +144,7 @@ Full native-coin fee schedule plus current oracle prices. Called internally by t
 
 ### `getactionconfirmations`
 
-Confirmation count for a single action — used by the hub's `CrossChainEngine` to gate cross-chain match progression.
+Confirmation count for a single action, used by the hub's `CrossChainEngine` to gate cross-chain match progression.
 
 **Request:**
 ```json
@@ -196,7 +196,7 @@ On startup, the indexer retries database connections indefinitely with a 5-secon
 
 ### Atomic Block Processing
 
-Every block is processed within a single database transaction. If any error occurs during processing — validation failure, SQL error, timeout — the entire block is rolled back. The indexer then retries the block on the next polling cycle.
+Every block is processed within a single database transaction. If any error occurs during processing (validation failure, SQL error, timeout) the entire block is rolled back. The indexer then retries the block on the next polling cycle.
 
 ### Reorg Recovery
 

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# E2E Test Suite — Configuration
+# E2E Test Suite: Configuration
 
 ## Environment Variables
 
@@ -11,58 +11,58 @@ The test suite reads configuration from a `.env` file (loaded via `dotenv`) or f
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `COIN` | Yes | — | Blockchain coin: `bitcoin`, `litecoin`, or `dogecoin` |
-| `NETWORK` | Yes | — | Network mode: `regtest`, `testnet`, or `mainnet` |
+| `COIN` | Yes | None | Blockchain coin: `bitcoin`, `litecoin`, or `dogecoin` |
+| `NETWORK` | Yes | None | Network mode: `regtest`, `testnet`, or `mainnet` |
 | `ALLOW_MAINNET` | No | `false` | Must be `true` to run tests against mainnet (safety guard) |
 
 ### Coin Node
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `NODE_URL` | Hub fallback | — | Coin node RPC hostname |
-| `NODE_PORT` | Hub fallback | — | Coin node RPC port (e.g., `18444` for BTC regtest) |
-| `NODE_USER` | Hub fallback | — | RPC username |
-| `NODE_PASSWORD` | Hub fallback | — | RPC password |
+| `NODE_URL` | Hub fallback | None | Coin node RPC hostname |
+| `NODE_PORT` | Hub fallback | None | Coin node RPC port (e.g., `18444` for BTC regtest) |
+| `NODE_USER` | Hub fallback | None | RPC username |
+| `NODE_PASSWORD` | Hub fallback | None | RPC password |
 
 ### UTXO Tracker
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `UTXO_TRACKER_URL` | Hub fallback | — | UTXO tracker hostname |
-| `UTXO_TRACKER_API_PORT` | Hub fallback | — | UTXO tracker API port |
+| `UTXO_TRACKER_URL` | Hub fallback | None | UTXO tracker hostname |
+| `UTXO_TRACKER_API_PORT` | Hub fallback | None | UTXO tracker API port |
 
 ### Encoder
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `ENCODER_URL` | Hub fallback | — | Encoder service hostname |
-| `ENCODER_API_PORT` | Hub fallback | — | Encoder API port |
+| `ENCODER_URL` | Hub fallback | None | Encoder service hostname |
+| `ENCODER_API_PORT` | Hub fallback | None | Encoder API port |
 
 ### Indexer
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `INDEXER_URL` | Hub fallback | — | Indexer service hostname |
-| `INDEXER_API_PORT` | Hub fallback | — | Indexer API port |
-| `INDEXER_DB_NAME` | Hub fallback | — | Indexer MariaDB database name |
-| `INDEXER_DB_USER` | Hub fallback | — | Indexer MariaDB username |
-| `INDEXER_DB_PASS` | Hub fallback | — | Indexer MariaDB password |
+| `INDEXER_URL` | Hub fallback | None | Indexer service hostname |
+| `INDEXER_API_PORT` | Hub fallback | None | Indexer API port |
+| `INDEXER_DB_NAME` | Hub fallback | None | Indexer MariaDB database name |
+| `INDEXER_DB_USER` | Hub fallback | None | Indexer MariaDB username |
+| `INDEXER_DB_PASS` | Hub fallback | None | Indexer MariaDB password |
 
 ### Regtest Miner
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `REGTEST_MINER_URL` | Hub fallback | — | Regtest miner hostname |
-| `REGTEST_MINER_API_PORT` | Hub fallback | — | Regtest miner API port |
+| `REGTEST_MINER_URL` | Hub fallback | None | Regtest miner hostname |
+| `REGTEST_MINER_API_PORT` | Hub fallback | None | Regtest miner API port |
 
 ### Hub Discovery
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `HUB_VALIDATORS` | No | — | Comma-separated list of hub endpoints (e.g., `hub1:10000,http://hub2:10000`) |
+| `HUB_VALIDATORS` | No | None | Comma-separated list of hub endpoints (e.g., `hub1:10000,http://hub2:10000`) |
 | `HUB_URL` | No | `localhost` | Single hub hostname (used if `HUB_VALIDATORS` is not set) |
 | `HUB_PORT` | No | `10000` | Single hub port |
-| `HUB_API_HOST` | No | — | Alternative to `HUB_URL` (backward compatibility) |
+| `HUB_API_HOST` | No | None | Alternative to `HUB_URL` (backward compatibility) |
 
 ## Hub Discovery Fallback
 
@@ -150,9 +150,9 @@ docker-compose up --exit-code-from xchain-e2e-test
 | Bitcoin | regtest | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
 | Bitcoin | testnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
 | Bitcoin | mainnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
-| Litecoin | regtest | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
-| Litecoin | testnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
-| Litecoin | mainnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
+| Litecoin | regtest | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 5460 sats |
+| Litecoin | testnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 5460 sats |
+| Litecoin | mainnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 5460 sats |
 | Dogecoin | regtest | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
 | Dogecoin | testnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
 | Dogecoin | mainnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |

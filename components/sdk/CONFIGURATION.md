@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Configuration Reference
+# XChain Platform SDK: Configuration Reference
 
 ## Constructor Options
 
@@ -63,10 +63,10 @@ const sdk = new XChainSDK(options);
 
 When the same setting can be specified in multiple places, the SDK resolves it in this order (highest priority first):
 
-1. **Constructor options** — values passed directly to `new XChainSDK(options)`.
-2. **Hub-discovered endpoints** — endpoint URLs and ports fetched from xchain-hub during `init()`. Only applies to `explorerUrl`, `explorerPort`, `encoderUrl`, and `encoderPort`.
-3. **Environment variables** — values read from process environment or a `.env` file.
-4. **Built-in defaults** — hardcoded fallback values within each client class.
+1. **Constructor options**: values passed directly to `new XChainSDK(options)`.
+2. **Hub-discovered endpoints**: endpoint URLs and ports fetched from xchain-hub during `init()`. Only applies to `explorerUrl`, `explorerPort`, `encoderUrl`, and `encoderPort`.
+3. **Environment variables**: values read from process environment or a `.env` file.
+4. **Built-in defaults**: hardcoded fallback values within each client class.
 
 Constructor options always win. Hub discovery fills gaps that explicit options did not cover. Environment variables fill gaps that hub discovery did not cover. Built-in defaults are the last resort.
 
@@ -138,7 +138,7 @@ The SDK automatically retries requests that fail due to transient errors. By def
 - Network errors: `ECONNRESET`, `ECONNREFUSED`, `EPIPE`
 - Timeouts: `ECONNABORTED`
 
-**Retry-After header support:** When the server returns a `Retry-After` header (on 429 responses), the SDK parses it — supporting both integer seconds (`120`) and HTTP-date format (`Wed, 21 Oct 2015 07:28:00 GMT`) — and waits exactly that long instead of the computed backoff. The delay is still capped at `maxDelay`.
+**Retry-After header support:** When the server returns a `Retry-After` header (on 429 responses), the SDK parses it, supporting both integer seconds (`120`) and HTTP-date format (`Wed, 21 Oct 2015 07:28:00 GMT`); and waits exactly that long instead of the computed backoff. The delay is still capped at `maxDelay`.
 
 **Backoff formula:** `delay = baseDelay * backoffFactor^attempt`, capped at `maxDelay`, with ±25% jitter applied.
 
@@ -220,13 +220,13 @@ const sdk = new XChainSDK({
 
 ## Request Hooks
 
-Hooks are lifecycle callbacks that fire at key points in the request pipeline. They receive read-only context and are intended for logging, metrics, and debugging — not for modifying requests.
+Hooks are lifecycle callbacks that fire at key points in the request pipeline. They receive read-only context and are intended for logging, metrics, and debugging. Not for modifying requests.
 
 | Hook | When it fires | Signature |
 |---|---|---|
-| `onRequest` | Before every HTTP request is sent | `(config) => void` — `config` is the axios request config object |
-| `onResponse` | After every successful HTTP response | `(response) => void` — `response` is the full axios response object |
-| `onError` | After all retries fail | `(error) => void` — `error` is the final axios error |
+| `onRequest` | Before every HTTP request is sent | `(config) => void`: `config` is the axios request config object |
+| `onResponse` | After every successful HTTP response | `(response) => void`: `response` is the full axios response object |
+| `onError` | After all retries fail | `(error) => void`: `error` is the final axios error |
 | `onRetry` | Before each retry delay | `(attempt, delay, error) => void` |
 
 ### Example: logging all requests and responses

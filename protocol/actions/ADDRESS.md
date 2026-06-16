@@ -23,7 +23,7 @@ This action configures address specific options.
 | `FEE_PREFERENCE`       | String | Set preference for how `FEE` is used      |
 | `REQUIRE_MEMO`         | String | Require a `MEMO` on any received `SEND`   |
 | `DISPENSER_PREFERENCE` | String | Set preference for how dispensrs are used |
-| `CONTROLLER`           | String | (v1) `ACTION_INDEX` of a contract whose `guard` self-gates one `ACTION_CLASS` of this account. A `transfer` binding is **symmetric** — it gates SENDs both **outbound** (account is `SOURCE`) and **inbound** (account is `DESTINATION`); the guard distinguishes via `from`/`to` |
+| `CONTROLLER`           | String | (v1) `ACTION_INDEX` of a contract whose `guard` self-gates one `ACTION_CLASS` of this account. A `transfer` binding is **symmetric**; it gates SENDs both **outbound** (account is `SOURCE`) and **inbound** (account is `DESTINATION`); the guard distinguishes via `from`/`to` |
 | `ACTION_CLASS`         | String | (v1) Which class to gate: `transfer`, `trade`, `burn`, `mint`, `stake`, or the catch-all `all` (fallback for any class with no specific binding; most-specific-wins) |
 | `COOLDOWN_BLOCKS`      | String | (v1) Drop-cooldown committed at bind: blocks before a later `UNBIND` takes effect |
 | `UNBIND`               | String | (v1) `1` drops the live binding for `ACTION_CLASS`; `0` binds |
@@ -36,7 +36,7 @@ This action configures address specific options.
 
 ### Version `1` - Bind/unbind a `CONTROLLER` for one `ACTION_CLASS`
 - `VERSION|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO`
-- Self-signed — the account gates itself. Append-only, with the same cooldown/unbind
+- Self-signed; the account gates itself. Append-only, with the same cooldown/unbind
   semantics as token bindings. See [Controller-Bound Tokens](../Controller_Bound_Tokens.md#account-address-controllers).
 
 ## Examples
@@ -73,7 +73,7 @@ This example allows anyone to open a dispenser on this address
 
 ## Notes
 - `ADDR` `ACTION` can be used for shorter reference to `ADDRESS` `ACTION`
-- Leaving `DISPENSER_PREFERENCE` blank in a subsequent `ADDRESS` action does not clear an existing preference — it preserves the most recent non-blank value
+- Leaving `DISPENSER_PREFERENCE` blank in a subsequent `ADDRESS` action does not clear an existing preference; it preserves the most recent non-blank value
 
 ---
 

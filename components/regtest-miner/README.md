@@ -5,25 +5,25 @@
 
 ## What is xchain-regtest-miner
 
-xchain-regtest-miner is an auto-mining service for XChain Platform regtest development environments. In regtest mode, Bitcoin-family coin nodes (bitcoind, litecoind, dogecoind) do not mine blocks automatically — developers must mine manually via `generatetoaddress` or script the calls themselves. The regtest miner eliminates this friction by polling the mempool every second and mining blocks automatically whenever transactions are detected.
+xchain-regtest-miner is an auto-mining service for XChain Platform regtest development environments. In regtest mode, Bitcoin-family coin nodes (bitcoind, litecoind, dogecoind) do not mine blocks automatically, developers must mine manually via `generatetoaddress` or script the calls themselves. The regtest miner eliminates this friction by polling the mempool every second and mining blocks automatically whenever transactions are detected.
 
-The miner uses an adaptive dual-timer system: when the first unconfirmed transaction appears, a 30-second max timer starts; each additional transaction resets a 5-second extension timer. Mining triggers when either timer expires. This batching strategy groups related transactions — such as a P2SH fund transaction and its corresponding spend — into the same block, which is important for correct platform behavior since some XChain encoding formats require both transactions to be confirmed together.
+The miner uses an adaptive dual-timer system: when the first unconfirmed transaction appears, a 30-second max timer starts; each additional transaction resets a 5-second extension timer. Mining triggers when either timer expires. This batching strategy groups related transactions (such as a P2SH fund transaction and its corresponding spend) into the same block, which is important for correct platform behavior since some XChain encoding formats require both transactions to be confirmed together.
 
 This service is testing infrastructure. It must not be run against mainnet or testnet nodes with real funds. Every other XChain service's test environment depends on the regtest miner for reliable block production.
 
 ## Features
 
-- **Adaptive dual-timer mining** — 30-second max timer with 5-second extension on each new transaction, configurable at runtime via JSON-RPC
-- **Automatic wallet management** — creates, loads, and funds a regtest wallet on startup; mines 101 bootstrap blocks on a fresh chain for coinbase maturity
-- **JSON-RPC control API** — 6 endpoints for health checks, fund transfers, mempool stress testing, mining pause/resume, and timer configuration
-- **Mempool stress testing** — `fill_mempool` constructs and broadcasts thousands of raw Bitcoin transactions using BIP32/BIP39 key derivation and PSBT signing for load testing
-- **Exponential backoff** — automatic retry with capped exponential backoff (1s to 30s) on RPC connection failures, with counter reset on success
-- **Graceful shutdown** — SIGTERM handler allows the current mining loop iteration to complete before exiting
-- **Input validation** — rejects invalid addresses, amounts, timer values, and transaction quantities before any RPC call is made
-- **Error sanitization** — RPC credentials are never exposed in error messages or console output
-- **Concurrent call protection** — `fillMempool` mutex prevents overlapping stress test runs, with automatic `keepMining` flag restoration in a finally block
-- **Docker-ready** — Alpine Node 20 image with non-root user, healthcheck via JSON-RPC ping, and hardened security headers (Helmet, CORS)
-- **901 tests** — unit, integration, e2e, smoke, boundary, security, fuzz, chaos, performance, mutation, and regression testing
+- **Adaptive dual-timer mining**: 30-second max timer with 5-second extension on each new transaction, configurable at runtime via JSON-RPC
+- **Automatic wallet management**: creates, loads, and funds a regtest wallet on startup; mines 101 bootstrap blocks on a fresh chain for coinbase maturity
+- **JSON-RPC control API**: 6 endpoints for health checks, fund transfers, mempool stress testing, mining pause/resume, and timer configuration
+- **Mempool stress testing**: `fill_mempool` constructs and broadcasts thousands of raw Bitcoin transactions using BIP32/BIP39 key derivation and PSBT signing for load testing
+- **Exponential backoff**: automatic retry with capped exponential backoff (1s to 30s) on RPC connection failures, with counter reset on success
+- **Graceful shutdown**: SIGTERM handler allows the current mining loop iteration to complete before exiting
+- **Input validation**: rejects invalid addresses, amounts, timer values, and transaction quantities before any RPC call is made
+- **Error sanitization**: RPC credentials are never exposed in error messages or console output
+- **Concurrent call protection**: `fillMempool` mutex prevents overlapping stress test runs, with automatic `keepMining` flag restoration in a finally block
+- **Docker-ready**: Alpine Node 20 image with non-root user, healthcheck via JSON-RPC ping, and hardened security headers (Helmet, CORS)
+- **901 tests**: unit, integration, e2e, smoke, boundary, security, fuzz, chaos, performance, mutation, and regression testing
 
 ## Documentation
 
@@ -84,10 +84,10 @@ On startup, the miner:
 | `npm run test:performance` | Performance tests (block generation latency, mempool processing, fillMempool scaling) |
 | `npm run test:mutation` | Mutation testing (Stryker Mutator, full service) |
 | `npm run test:mutation:unit` | Unit-only mutation testing (fast feedback) |
-| `npm run test:regression` | Regression tests — T1 standard gate (134 tests, < 2 min) |
-| `npm run test:regression:t0` | Regression T0 — critical gate (45 tests, < 15s) |
-| `npm run test:regression:t1` | Regression T1 — standard (134 tests, < 2 min) |
-| `npm run test:regression:t2` | Regression T2 — full E2E (147 tests, < 10 min) |
+| `npm run test:regression` | Regression tests; T1 standard gate (134 tests, < 2 min) |
+| `npm run test:regression:t0` | Regression T0: critical gate (45 tests, < 15s) |
+| `npm run test:regression:t1` | Regression T1: standard (134 tests, < 2 min) |
+| `npm run test:regression:t2` | Regression T2: full E2E (147 tests, < 10 min) |
 
 ## Dependencies
 
@@ -96,7 +96,7 @@ On startup, the miner:
 | Package | Purpose |
 |---|---|
 | `axios` | HTTP client for JSON-RPC calls to coin node |
-| `bitcoinjs-lib` | Bitcoin primitives — PSBT construction, transaction parsing, address generation |
+| `bitcoinjs-lib` | Bitcoin primitives; PSBT construction, transaction parsing, address generation |
 | `bip32` | BIP32 HD wallet key derivation for fillMempool |
 | `bip39` | BIP39 mnemonic seed generation for fillMempool |
 | `ecpair` | ECDSA key pair creation and PSBT signing |
@@ -119,11 +119,11 @@ On startup, the miner:
 
 ## Related
 
-- [Regtest Development Guide](../../developer-guide/Regtest_Development.md) — full guide to setting up a local regtest environment
-- [E2E Tests](../e2e-test/) — the test suite that depends on the regtest miner for block production
-- [Data Pipeline](../../architecture/Data_Pipeline.md) — how the regtest miner fits into the full platform flow
-- [Encoder](../encoder/) — constructs XChain transactions that the miner includes in blocks
-- [Decoder](../decoder/) — decodes mined blocks to extract XChain ACTION data
+- [Regtest Development Guide](../../developer-guide/Regtest_Development.md): full guide to setting up a local regtest environment
+- [E2E Tests](../e2e-test/); the test suite that depends on the regtest miner for block production
+- [Data Pipeline](../../architecture/Data_Pipeline.md): how the regtest miner fits into the full platform flow
+- [Encoder](../encoder/): constructs XChain transactions that the miner includes in blocks
+- [Decoder](../decoder/): decodes mined blocks to extract XChain ACTION data
 
 ---
 

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Indexer — Architecture
+# XChain Platform Indexer: Architecture
 
 ## Position in the Data Pipeline
 
@@ -71,7 +71,7 @@ After processing each block, the indexer pushes its chain tip to xchain-hub (so 
 | Database | Connection | Purpose |
 |---|---|---|
 | Decoder DB | Read | Raw blockchain data, decoded txs (from coin node via JSON-RPC) |
-| Indexer DB | Read/Write | Chain-specific indexed state — actions, balances, tokens, the local `prices` action log |
+| Indexer DB | Read/Write | Chain-specific indexed state: actions, balances, tokens, the local `prices` action log |
 | Hub DB | Read | Local copy of cross-chain infrastructure tables (`price_snapshots`, `oracle_prices`, `validator_rewards`) synced from `xchain-hub` |
 
 The indexer's `db.indexer` reference exposes the parent indexer to dependent code so utility functions like `validateNativeCoinFee()` and `reversePriceMatch()` can automatically prefer the hub DB connection (`db.indexer.hubDb`) when querying cross-chain price data.
@@ -86,7 +86,7 @@ After block processing completes, the indexer pushes data to the hub via `HubCli
 | `pushpriceround` | A valid PRICE v0 action is processed | Hub dedupes by `round_number` and writes to `price_snapshots` |
 | `pushoracleprice` | A valid PRICE v1 action is processed | Hub applies 24h lock window and writes to `oracle_prices` |
 
-All push calls are best-effort — failures are logged but never block indexing.
+All push calls are best-effort, failures are logged but never block indexing.
 
 ### Hub → Indexer Push Endpoint
 
@@ -94,11 +94,11 @@ The indexer's API also exposes a write endpoint that the hub calls:
 
 | Method | Sent By | Purpose |
 |---|---|---|
-| `pushvalidatorrewards` | hub `RewardTracker` | Pushes `anchor_<chain>` and `anchor_archive` reward rows from the hub to the indexer. `oracle_round` and `attest_fee` rewards are rejected by this endpoint — they are derived deterministically by the indexer during block processing and do not need to be replicated. |
+| `pushvalidatorrewards` | hub `RewardTracker` | Pushes `anchor_<chain>` and `anchor_archive` reward rows from the hub to the indexer. `oracle_round` and `attest_fee` rewards are rejected by this endpoint; they are derived deterministically by the indexer during block processing and do not need to be replicated. |
 
 ## VM Runtime Module
 
-The Virtual Machine is implemented as the standalone `xchain-vm` module — a library that the indexer loads at startup. Contract code runs in sandboxed V8 isolates (via `isolated-vm`) with AST-based gas metering (via `acorn`). The VM has no awareness of the database; it takes inputs and returns outputs.
+The Virtual Machine is implemented as the standalone `xchain-vm` module; a library that the indexer loads at startup. Contract code runs in sandboxed V8 isolates (via `isolated-vm`) with AST-based gas metering (via `acorn`). The VM has no awareness of the database; it takes inputs and returns outputs.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -126,18 +126,18 @@ The Virtual Machine is implemented as the standalone `xchain-vm` module — a li
 
 The indexer's `execute.js` handler bridges the VM and the database:
 1. Loads contract code and state from the DB
-2. Calls `vm.execute()` — receives results
+2. Calls `vm.execute()`, receives results
 3. Writes state changes via `createContractState()` (append-only)
 4. Routes emitted actions through existing handlers (e.g., `actionSend.parse()`)
-5. Uses savepoints for atomicity — if any emission fails, all state changes roll back
+5. Uses savepoints for atomicity, if any emission fails, all state changes roll back
 
 ### Append-Only contract_state Pattern
 
 Contract state is never updated in place. Every execution that modifies state appends a new row to `contract_state` with the `contract_index`, `state_key`, `state_value`, `block_index`, and `action_index`. This means:
 
-- Rollback is a simple `DELETE WHERE block_index >= reorgBlock` — no undo log or inverse operations required
+- Rollback is a simple `DELETE WHERE block_index >= reorgBlock`. No undo log or inverse operations required
 - The current state for a contract is found via `SELECT ... WHERE contract_index=? GROUP BY state_key` with `MAX(id)` per key
-- Keys with `state_value IS NULL` (latest row) are deleted — they don't appear in the current state
+- Keys with `state_value IS NULL` (latest row) are deleted; they don't appear in the current state
 - Historical state at any block height is recoverable by replaying rows up to that block
 
 ### Per-Block Compilation Cache
@@ -148,14 +148,14 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 
 | File | Class | Role |
 |---|---|---|
-| `src/api.js` | — | Entry point: Express server + JSON-RPC, env var validation, indexer startup |
+| `src/api.js` | None | Entry point: Express server + JSON-RPC, env var validation, indexer startup |
 | `src/XChainIndexer.js` | `XChainIndexer` | Main orchestrator: block polling loop, reorg detection, block processing pipeline |
 | `src/actions.js` | `Actions` | Loads all 46 action handler classes, routes transactions to the correct handler |
 | `src/db.js` | `Database` | MariaDB connection pool management, all SQL queries, table creation, sanity checks |
-| `src/config.js` | — | Merges environment variables with coin-specific config into a single config object |
-| `src/configs/BTC.js` | — | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |
-| `src/configs/LTC.js` | — | Litecoin-specific configuration |
-| `src/configs/DOGE.js` | — | Dogecoin-specific configuration |
+| `src/config.js` | None | Merges environment variables with coin-specific config into a single config object |
+| `src/configs/BTC.js` | None | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |
+| `src/configs/LTC.js` | None | Litecoin-specific configuration |
+| `src/configs/DOGE.js` | None | Dogecoin-specific configuration |
 | `src/utility.js` | `Utility` | BigNumber math, timer functions, expiration/cancellation processing, ledger operations |
 | `src/mapper.js` | `Mapper` | Creates action_index ↔ address/tick cross-reference mappings |
 | `src/rollback.js` | `Rollback` | Handles blockchain reorganizations: deletes affected records, recalculates balances |

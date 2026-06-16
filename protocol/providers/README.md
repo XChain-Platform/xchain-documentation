@@ -5,11 +5,11 @@
 
 Attestation **providers** are the named services that the validator network can query on a smart contract's behalf through the [attestation framework](../actions/ATTEST.html). A contract emits an `ATTEST v0` request naming a provider; validators holding the `attestation` capability fetch the answer through that provider, agree on a canonical result, and write it back on-chain as an `ATTEST v1` response.
 
-The provider determines two things: how the request payload is interpreted, and how validators decide that independent answers agree (the consensus strategy). The contract-facing API is identical across providers — only the payload format and trust model differ.
+The provider determines two things: how the request payload is interpreted, and how validators decide that independent answers agree (the consensus strategy). The contract-facing API is identical across providers; only the payload format and trust model differ.
 
 The set of providers is **governance-controlled**; new providers can be added without changing the contract API.
 
-Each provider also carries a **`min_fee_xchain`** setting — a governance-configurable floor on the optional paid-attestation fee (`feeTick`/`feeAmount` in the request). Requests whose on-chain `FEE_AMOUNT` falls below the provider's floor are skipped by validators: the request expires on its deadline and the fee is refunded to the caller rather than being served.
+Each provider also carries a **`min_fee_xchain`** setting; a governance-configurable floor on the optional paid-attestation fee (`feeTick`/`feeAmount` in the request). Requests whose on-chain `FEE_AMOUNT` falls below the provider's floor are skipped by validators: the request expires on its deadline and the fee is refunded to the caller rather than being served.
 
 ## Available providers
 

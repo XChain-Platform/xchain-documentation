@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Indexer Sync — Configuration
+# XChain Platform Indexer Sync: Configuration
 
 ## Environment Variables
 
@@ -13,10 +13,10 @@ These variables are required regardless of whether the service runs in server or
 |---|---|---|---|
 | `SYNC_MODE` | Yes | `server` | Operating mode: `server` or `client` |
 | `SYNC_API_PORT` | Yes | `3006` | HTTP and WebSocket listen port |
-| `HUB_API_HOST` | Yes | — | Hostname of the local xchain-hub instance |
+| `HUB_API_HOST` | Yes | None | Hostname of the local xchain-hub instance |
 | `HUB_PORT` | Yes | `10000` | Port of the local xchain-hub instance |
 | `CORS_ORIGIN` | No | `*` | Allowed CORS origin |
-| `SYNC_API_KEY` | No | — | API key for Bearer token authentication on REST and WebSocket endpoints. Disabled when not set. |
+| `SYNC_API_KEY` | No | None | API key for Bearer token authentication on REST and WebSocket endpoints. Disabled when not set. |
 | `HUB_PROTOCOL` | No | `http` | Protocol for hub connection: `http` or `https` |
 | `TRUST_PROXY` | No | `false` | Trust `x-forwarded-for` header for IP-based rate limiting (enable only behind a reverse proxy) |
 
@@ -37,12 +37,12 @@ In client mode, the service connects to remote sync servers and replicates their
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `SYNC_SOURCES` | Yes | — | Comma-separated list of remote sync server URLs (e.g., `http://sync1.example.com:3006,http://sync2.example.com:3006`). Minimum 1 required; 2+ recommended for cross-verification. |
+| `SYNC_SOURCES` | Yes | None | Comma-separated list of remote sync server URLs (e.g., `http://sync1.example.com:3006,http://sync2.example.com:3006`). Minimum 1 required; 2+ recommended for cross-verification. |
 | `VERIFY_HASHES` | No | `true` | When `true`, cross-verifies block hashes from multiple sources before applying. Requires 2+ sources. |
-| `REPLICA_DB_HOST` | Yes | — | MariaDB hostname for local replica databases |
+| `REPLICA_DB_HOST` | Yes | None | MariaDB hostname for local replica databases |
 | `REPLICA_DB_PORT` | No | `3306` | MariaDB port |
-| `REPLICA_DB_USER` | Yes | — | MariaDB username for replica databases |
-| `REPLICA_DB_PASS` | Yes | — | MariaDB password |
+| `REPLICA_DB_USER` | Yes | None | MariaDB username for replica databases |
+| `REPLICA_DB_PASS` | Yes | None | MariaDB password |
 | `MAX_ROLLBACK_DEPTH` | No | `100` | Maximum rollback depth (in blocks) accepted from a single source |
 | `HASH_CONFIRM_STRICT` | No | `false` | When `true`, reject blocks if cross-source verification times out (instead of applying from primary) |
 | `WS_MAX_PAYLOAD` | No | `1048576` | Maximum incoming WebSocket message size in bytes (1 MB) |
@@ -113,7 +113,7 @@ XChain_{TICKER}_{Network}_{Component}
 | Dogecoin mainnet | DOGE | indexer | `XChain_DOGE_Mainnet_Indexer` |
 | Dogecoin regtest | DOGE | decoder | `XChain_DOGE_Regtest_Decoder` |
 
-In **server mode**, the service reads from the authoritative indexer and decoder databases — the same ones the indexer/decoder write to.
+In **server mode**, the service reads from the authoritative indexer and decoder databases; the same ones the indexer/decoder write to.
 
 In **client mode**, the service creates replica databases with the same names and schema. Indexer replicas contain an exact copy of the indexer data; decoder replicas contain 8 of the 9 decoder tables (`mempool_transactions` excluded).
 
@@ -136,7 +136,7 @@ Indexer replica databases use the same full schema as the authoritative indexer.
 
 One additional table is used by the sync service itself for indexer replicas only:
 
-- **`sync_meta`**: transparency log — `(block_index, block_time, ledger_hash, actions_hash, contract_hash, logged_at)` — **indexer only**, not created for decoder replicas
+- **`sync_meta`**: transparency log (`(block_index, block_time, ledger_hash, actions_hash, contract_hash, logged_at)`) **indexer only**, not created for decoder replicas
 
 ### Decoder replicas
 

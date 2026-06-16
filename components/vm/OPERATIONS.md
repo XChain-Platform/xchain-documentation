@@ -1,13 +1,13 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain VM — Operations
+# XChain VM: Operations
 
 ## Prerequisites
 
-- **Node.js** v22 exactly — `isolated-vm` requires Node 22 to build (Node 24 breaks native compilation; below Node 22 tests silently skip rather than fail, producing false greens)
+- **Node.js** v22 exactly: `isolated-vm` requires Node 22 to build (Node 24 breaks native compilation; below Node 22 tests silently skip rather than fail, producing false greens)
 - **Native build tools** for `isolated-vm` compilation: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` (Debian/Ubuntu)
-- The VM is a library dependency of `xchain-indexer` — it is not run as a standalone process
+- The VM is a library dependency of `xchain-indexer`; it is not run as a standalone process
 
 ## Installation
 
@@ -30,7 +30,7 @@ npm run test:chaos            # chaos engineering (92 tests)
 npm run mutation              # mutation testing (Stryker)
 ```
 
-The VM maintains **974 total tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke suites. Tests that require `isolated-vm` are automatically skipped in the standard suite if the native module is not available. The regression suite (`test/regression/`) uses a fail-loud check — it throws a fatal error instead of silently skipping, since regression tests must never pass vacuously.
+The VM maintains **974 total tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke suites. Tests that require `isolated-vm` are automatically skipped in the standard suite if the native module is not available. The regression suite (`test/regression/`) uses a fail-loud check; it throws a fatal error instead of silently skipping, since regression tests must never pass vacuously.
 
 ## Integration with the Indexer
 
@@ -79,10 +79,10 @@ Errors thrown inside the V8 isolate lose their JavaScript class identity when cr
 
 On any failure (revert, gas exhaustion, timeout, memory, runtime error):
 
-- **State changes** are discarded — `stateChanges` and `stateDeletes` are empty arrays
-- **Emitted actions** are discarded — `emittedActions` is an empty array
-- **Logs are preserved** — `logs` contains all `xchain.log()` output up to the failure point
-- **Gas is charged** — `gasUsed` reflects consumption up to the failure point
+- **State changes** are discarded: `stateChanges` and `stateDeletes` are empty arrays
+- **Emitted actions** are discarded: `emittedActions` is an empty array
+- **Logs are preserved**: `logs` contains all `xchain.log()` output up to the failure point
+- **Gas is charged**: `gasUsed` reflects consumption up to the failure point
 
 The indexer uses database savepoints to ensure these guarantees extend to the persistent state.
 
@@ -90,9 +90,9 @@ The indexer uses database savepoints to ensure these guarantees extend to the pe
 
 Before a contract is deployed, `vm.validateSyntax(code)` runs three checks:
 
-1. **V8 syntax check** — compiles the code in a throwaway 8 MB isolate to catch syntax errors
-2. **Acorn metering pass** — runs `meterCode()` to ensure acorn can parse the source (effective ES2020 ceiling)
-3. **Reserved identifier check** — rejects code containing the `__gas` identifier (used internally by the gas metering system)
+1. **V8 syntax check**: compiles the code in a throwaway 8 MB isolate to catch syntax errors
+2. **Acorn metering pass**: runs `meterCode()` to ensure acorn can parse the source (effective ES2020 ceiling)
+3. **Reserved identifier check**: rejects code containing the `__gas` identifier (used internally by the gas metering system)
 
 `vm.checkFloatWarnings(code)` additionally scans for non-integer number literals and returns warnings (non-blocking).
 
@@ -115,9 +115,9 @@ xcode-select --install
 
 **Symptoms:** Contract returns `out_of_gas` with relatively simple logic.
 
-**Cause:** Gas is charged at every control flow point, function call, and loop iteration. Deeply nested loops or many function calls accumulate gas quickly. Note that indexed `for` loops are charged **twice per iteration** — once for the loop body and once for the update expression (`i++`) — so a `for` loop costs double what an equivalent `while` loop costs. Deeply nested `for` loops are the most common cause of unexpected exhaustion.
+**Cause:** Gas is charged at every control flow point, function call, and loop iteration. Deeply nested loops or many function calls accumulate gas quickly. Note that indexed `for` loops are charged **twice per iteration** (once for the loop body and once for the update expression (`i++`)) so a `for` loop costs double what an equivalent `while` loop costs. Deeply nested `for` loops are the most common cause of unexpected exhaustion.
 
-**Fix:** Optimize contract logic — reduce loop iterations, minimize function call depth, batch state reads.
+**Fix:** Optimize contract logic: reduce loop iterations, minimize function call depth, batch state reads.
 
 ### Contract returns "unknown method"
 

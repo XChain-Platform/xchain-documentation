@@ -3,7 +3,7 @@
 
 # Architecture
 
-This section describes how the XChain Platform is structured as a system — the data flow from blockchain to query API, the role of each service, and the database design that ties them together. Intended for developers integrating with the platform and operators running it.
+This section describes how the XChain Platform is structured as a system; the data flow from blockchain to query API, the role of each service, and the database design that ties them together. Intended for developers integrating with the platform and operators running it.
 
 | Document | Description |
 |---|---|

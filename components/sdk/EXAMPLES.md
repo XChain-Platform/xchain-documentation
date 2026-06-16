@@ -391,7 +391,7 @@ console.log('Sent:', sent.txid);
 
 ## Send an Encrypted Message (ECIES)
 
-ECIES is the default encryption method. It encrypts directly to the recipient's public key — no prior key exchange needed, and messages can be decrypted on any device that holds the recipient's private key.
+ECIES is the default encryption method. It encrypts directly to the recipient's public key. No prior key exchange needed, and messages can be decrypted on any device that holds the recipient's private key.
 
 ```js
 const result = await sdk.sendMessage({
@@ -1108,7 +1108,7 @@ if (result.valid) {
 
 ## Custom Message Signing
 
-Sites can generate their own messages instead of using the SDK's default format. This lets the server verify using any tool — the SDK, `bitcoinjs-message`, or the coin node's `verifymessage` RPC.
+Sites can generate their own messages instead of using the SDK's default format. This lets the server verify using any tool, the SDK, `bitcoinjs-message`, or the coin node's `verifymessage` RPC.
 
 ```js
 const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
@@ -1251,7 +1251,7 @@ const action = await sdk.send(
 
 ## Submit Action (Full Lifecycle)
 
-Submit an action through the complete pipeline — create, encode, sign, broadcast, and wait for the indexer — in one call:
+Submit an action through the complete pipeline (create, encode, sign, broadcast, and wait for the indexer) in one call:
 
 ```js
 const sdk = new XChainSDK({

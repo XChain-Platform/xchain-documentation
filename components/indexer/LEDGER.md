@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Indexer — Ledger System
+# XChain Platform Indexer: Ledger System
 
 The indexer maintains a double-entry ledger for all token movements.
 
@@ -56,13 +56,13 @@ If this check fails, it indicates a bug in the indexer logic. The sanity check r
 
 ## Contract Derived Addresses
 
-Contracts hold tokens via **derived addresses** in the format `C:<CHAIN>:<action_index>` (e.g., `C:BTC:500`). These addresses are stored in `index_addresses` and tracked in the standard `balances` table — there is no separate `contract_balances` table.
+Contracts hold tokens via **derived addresses** in the format `C:<CHAIN>:<action_index>` (e.g., `C:BTC:500`). These addresses are stored in `index_addresses` and tracked in the standard `balances` table, there is no separate `contract_balances` table.
 
 - **DEPOSIT**: Debits the sender's address balance and credits the contract's derived address. Both entries appear in the standard `credits`/`debits` tables.
 - **WITHDRAW**: Debits the contract's derived address and credits the owner. Standard ledger entries.
-- **Emitted actions** (from EXECUTE): The contract's derived address is used as SOURCE. A contract emitting `emit.send()` creates standard credits/debits — the existing send handler sees the derived address as any other address.
+- **Emitted actions** (from EXECUTE): The contract's derived address is used as SOURCE. A contract emitting `emit.send()` creates standard credits/debits; the existing send handler sees the derived address as any other address.
 
-This means contract token movements are covered by the standard sanity check (`token_supply == SUM(credits) - SUM(debits)`) and appear in the ledger hash. Rollback works identically to regular address balances — delete credits/debits at or after the reorg block, then recalculate.
+This means contract token movements are covered by the standard sanity check (`token_supply == SUM(credits) - SUM(debits)`) and appear in the ledger hash. Rollback works identically to regular address balances, delete credits/debits at or after the reorg block, then recalculate.
 
 ## Gas Token (XCHAIN)
 
@@ -70,7 +70,7 @@ This means contract token movements are covered by the standard sanity check (`t
 
 - **Token issuance**: Creating a new token costs `ISSUANCE_FEE_TOKEN` XCHAIN; creating a sub-token costs `ISSUANCE_FEE_SUBTOKEN` XCHAIN (pre-activation blocks)
 - **DEX listings**: Orders, swaps, and dispensers with expiration periods beyond `EXPIRATION_FEE_FREE_DAYS` are charged `EXPIRATION_FEE_PER_DAY` XCHAIN per additional day (pre-activation blocks)
-- **VM actions**: DEPLOY and EXECUTE charge gas via the unified gas schedule — `gas_cost × gas_price` XCHAIN per operation (post-activation blocks)
+- **VM actions**: DEPLOY and EXECUTE charge gas via the unified gas schedule: `gas_cost × gas_price` XCHAIN per operation (post-activation blocks)
 - **Staking actions**: STAKE, UNSTAKE, DELEGATE (rotate + revoke), and COLLECT are metered under the same unified gas schedule (post-activation blocks)
 
 The GAS address (defined per-chain, per-network in `src/configs/<COIN>.js`) is the only address authorized to issue the `XCHAIN` token. It is exempt from the reserved ticker restriction that prevents other addresses from using protocol-reserved names.

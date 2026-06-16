@@ -11,9 +11,9 @@ This guide covers deploying the XChain Platform from scratch, from a single-chai
 
 ### Software
 
-- **Docker** — Engine 20.10 or later. Docker must be accessible to the current user (add user to `docker` group or run as root).
-- **Node.js** — v22 or later (required to run xchain-node CLI; the `mariadb` driver is ESM-only and fails to load on older Node).
-- **Git** — to clone xchain-node.
+- **Docker**: Engine 20.10 or later. Docker must be accessible to the current user (add user to `docker` group or run as root).
+- **Node.js**: v22 or later (required to run xchain-node CLI; the `mariadb` driver is ESM-only and fails to load on older Node).
+- **Git**: to clone xchain-node.
 
 Verify Docker is working before proceeding:
 
@@ -75,10 +75,10 @@ xchain-node install main all bitcoin mainnet
 
 Arguments: `install <branch> <service> [chain] [network]`
 
-- `branch` — Git branch to install from (e.g., `main`).
-- `service` — `all`, or a specific service name such as `xchain-decoder`.
-- `chain` — `bitcoin`, `litecoin`, `dogecoin`, or `all`.
-- `network` — `mainnet`, `testnet`, or `regtest`.
+- `branch`: Git branch to install from (e.g., `main`).
+- `service`: `all`, or a specific service name such as `xchain-decoder`.
+- `chain`: `bitcoin`, `litecoin`, `dogecoin`, or `all`.
+- `network`: `mainnet`, `testnet`, or `regtest`.
 
 The installer automatically ensures `xchain-hub` is installed first, since other services depend on it for configuration.
 
@@ -190,7 +190,7 @@ Each published bootstrap archive can carry a detached Ed25519 signature
 (`<archive>.sig`). When the consumer machine has the publisher's public key
 pinned (`src/config/bootstrap_signing_pubkey.pem` in the xchain-node checkout,
 or a path in `XCHAIN_NODE_BOOTSTRAP_PUBKEY`), the signature is verified before
-any restore — the checksum embedded inside the archive only detects transport
+any restore; the checksum embedded inside the archive only detects transport
 corruption, while the signature proves the archive is the one the publisher
 built.
 
@@ -198,23 +198,23 @@ Signature enforcement is **on by default** (fail-closed): a restore is refused
 when the public key or `.sig` is missing, or when the signature does not verify.
 On a fresh install's automatic restore the refusal is caught and the node syncs
 from scratch rather than restoring an unverified archive; a manual `bootstrap
-restore` aborts. To opt out — e.g. for a self-hosted source that publishes no
-signatures — set `XCHAIN_NODE_REQUIRE_SIGNED_BOOTSTRAP=0` (also accepts
+restore` aborts. To opt out, e.g. for a self-hosted source that publishes no
+signatures, set `XCHAIN_NODE_REQUIRE_SIGNED_BOOTSTRAP=0` (also accepts
 `false`/`no`).
 
-**Publishers** — generate a keypair once:
+**Publishers**: generate a keypair once:
 
 ```bash
 openssl genpkey -algorithm ed25519 -out bootstrap_signing_key.pem
 openssl pkey -in bootstrap_signing_key.pem -pubout -out bootstrap_signing_pubkey.pem
 ```
 
-Keep the private key on the publishing host(s) only (back it up offline — it is
+Keep the private key on the publishing host(s) only (back it up offline; it is
 the trust root for every consumer's restore), commit the public half as
 `src/config/bootstrap_signing_pubkey.pem`, and set
 `XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY=/path/to/bootstrap_signing_key.pem` so
 `bootstrap create` writes a `.sig` beside each archive. **Always upload the
-`.sig` together with its archive** — a missing or mismatched signature makes
+`.sig` together with its archive**; a missing or mismatched signature makes
 every consumer refuse the restore.
 
 To automate creation + signing + upload + retention, use

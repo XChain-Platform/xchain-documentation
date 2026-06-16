@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Regtest Miner — Operations
+# XChain Regtest Miner: Operations
 
 ## Prerequisites
 
@@ -33,11 +33,11 @@ When managed by xchain-node, the regtest miner runs as a Docker container:
 - **Security headers**: Helmet (CSP, X-Frame-Options, etc.)
 - **CORS**: Enabled for cross-origin access
 
-The container is only created for regtest networks — it is automatically excluded from mainnet and testnet installations.
+The container is only created for regtest networks; it is automatically excluded from mainnet and testnet installations.
 
 ## Stopping
 
-The miner handles `SIGTERM` gracefully — it allows the current mining loop iteration to complete before exiting. No data corruption occurs on shutdown.
+The miner handles `SIGTERM` gracefully; it allows the current mining loop iteration to complete before exiting. No data corruption occurs on shutdown.
 
 ## JSON-RPC API
 
@@ -209,7 +209,7 @@ If the miner is running but not mining, check:
 - Check that the wallet has sufficient balance for the requested transaction count
 - Ensure `tx_quantity` is between 1 and 50,000
 - Check coin node logs for RPC errors
-- If a previous `fillMempool` crashed, the mutex may be locked — restart the miner
+- If a previous `fillMempool` crashed, the mutex may be locked, restart the miner
 
 ### Port already in use
 

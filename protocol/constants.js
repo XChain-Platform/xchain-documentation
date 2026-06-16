@@ -90,11 +90,11 @@ const XCALL_MAX_DEADLINE_BLOCKS = 4000;
 
 // Return payload cap, bytes (pre-base64). The payload is mirrored to every
 // indexer and ANCHOR-archived on DOGE; an oversize return becomes status
-// 'payload_too_large' with an EMPTY payload (deterministic — never truncated).
+// 'payload_too_large' with an EMPTY payload (deterministic. Never truncated).
 const XCALL_MAX_RETURN_BYTES = 1024;
 
 // Deterministic per-block injection cap on each target chain. Overflow carries
-// forward to the next block in hub-id order — never dropped.
+// forward to the next block in hub-id order. Never dropped.
 const XCALL_MAX_CALLS_PER_BLOCK = 25;
 
 // ── Chunked DEPLOY (DEPLOY v4 carriers + DEPLOY v2/v3 assemble) ─────────────
@@ -112,7 +112,7 @@ const MAX_DEPLOY_CHUNKS = 16;
 // Sized so the compiled v4 carrier action (action prefix + 64-char CODE_HASH +
 // indices + the part) stays comfortably under MAX_ACTION_DATA_LENGTH including
 // the OP_PUSHDATA2 prefix. The SDK splits at this size; the indexer rejects a
-// larger part (belt-and-suspenders — the decoder already drops oversize pushes).
+// larger part (belt-and-suspenders; the decoder already drops oversize pushes).
 const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
 
 // ── Stake-weighted quorum (STAKE_WEIGHTED_QUORUM / WI-1) ────────────────────
@@ -122,7 +122,7 @@ const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
 // pubkey COUNT). Spec: claude/reports/2026-06-14_cross-chain-quorum-security-spec.md.
 //
 // Keyed on the BTC `snapshot_block` carried by every settlement/checkpoint
-// canonical — NOT each chain's local processing height — so the hub and the BTC,
+// canonical (NOT each chain's local processing height) so the hub and the BTC,
 // LTC and DOGE indexers all flip on the SAME anchor. A per-chain local-height
 // gate would fork: one snapshot_block lands at different local heights per chain.
 // The `network` is also taken from the row, so the gate is env-independent.

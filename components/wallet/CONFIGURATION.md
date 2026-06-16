@@ -89,10 +89,10 @@ There is intentionally no `.env` for the wallet. Endpoints, signer pairings, and
 
 Settings → Developer enables a few power-user surfaces:
 
-- **Network override per chain** — point Bitcoin at testnet or regtest, etc. Surfaces a banner reminding the user they're not on mainnet.
-- **Custom RPC** — same as Settings → Chains but exposes additional fields (auth headers, request timeouts).
-- **Diagnostic dump** — `core/src/flows/diagnosticDump.js` produces an anonymized state snapshot suitable for bug reports. No private keys, no mnemonics, no contact PII; just shape + version + recent error envelopes.
-- **Verbose action decoder** — `core/src/decoder/actionDecoder.js` outputs raw + decoded form rather than just the rendered summary.
+- **Network override per chain**: point Bitcoin at testnet or regtest, etc. Surfaces a banner reminding the user they're not on mainnet.
+- **Custom RPC**: same as Settings → Chains but exposes additional fields (auth headers, request timeouts).
+- **Diagnostic dump**: `core/src/flows/diagnosticDump.js` produces an anonymized state snapshot suitable for bug reports. No private keys, no mnemonics, no contact PII; just shape + version + recent error envelopes.
+- **Verbose action decoder**: `core/src/decoder/actionDecoder.js` outputs raw + decoded form rather than just the rendered summary.
 
 Developer mode is off by default. Enabling it surfaces a yellow banner in every shell so the user remembers they're not on the default network.
 
@@ -116,9 +116,9 @@ The wallet defaults to the browser / OS-reported locale, falling back to `en` if
 - Application display name + URL
 - License + NOTICE strings (surfaced in About)
 
-White-label variants of the wallet (e.g. for private XChain Platform deployments) override `branding.js` while keeping every other surface identical. This is the only place the wallet code reads brand identity — there's no hard-coded "XChain Wallet" string scattered through the routes.
+White-label variants of the wallet (e.g. for private XChain Platform deployments) override `branding.js` while keeping every other surface identical. This is the only place the wallet code reads brand identity, there's no hard-coded "XChain Wallet" string scattered through the routes.
 
-## ADS — Automatic Donation System
+## ADS: Automatic Donation System
 
 Opt-in. When enabled in Settings:
 
@@ -140,7 +140,7 @@ Schemas declare a `version`; `core/src/schemas/migrations.js` runs at vault-load
 |---|---|---|
 | `Wallet` v1 | `Wallet` v2 | `Wallet.multisig` → `Wallet.multisigs[]` (per-address multi-config) |
 
-Migrations are transparent — a v1 vault loads in v2 without user intervention. Migrated vaults remain backward-readable as long as the migration is reversible; one-way migrations (none today) would require an explicit user-confirm at unlock.
+Migrations are transparent; a v1 vault loads in v2 without user intervention. Migrated vaults remain backward-readable as long as the migration is reversible; one-way migrations (none today) would require an explicit user-confirm at unlock.
 
 ---
 

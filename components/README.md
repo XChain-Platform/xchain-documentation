@@ -11,12 +11,12 @@ This section contains documentation for each of the 13 XChain Platform component
 | [decoder](./decoder/) | Polls coin nodes, extracts XChain transactions, and writes raw data to MariaDB |
 | [indexer](./indexer/) | Reads decoder output, processes ACTION logic, and writes final state to MariaDB |
 | [sync](./sync/) | Replicates indexer databases to validators via REST snapshots and WebSocket streaming |
-| [vm](./vm/) | Deterministic smart contract execution engine — sandboxed V8 isolates with AST-based gas metering |
+| [vm](./vm/) | Deterministic smart contract execution engine: sandboxed V8 isolates with AST-based gas metering |
 | [explorer](./explorer/) | Serves REST and JSON-RPC APIs plus a web UI over the indexer database |
-| [hub](./hub/) | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, governance — backed by MariaDB |
+| [hub](./hub/) | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, governance: backed by MariaDB |
 | [utxo-tracker](./utxo-tracker/) | Indexes UTXOs from coin nodes and serves address and balance queries |
 | [sdk](./sdk/) | Developer SDK for constructing and submitting XChain actions |
-| [wallet](./wallet/) | Reference self-custodial multi-chain wallet — browser, Chrome extension, and Electron desktop |
+| [wallet](./wallet/) | Reference self-custodial multi-chain wallet: browser, Chrome extension, and Electron desktop |
 | [node](./node/) | CLI tool for installing and managing all platform services as Docker containers |
 | [e2e-test](./e2e-test/) | End-to-end Mocha test suite that exercises the full platform stack |
 | [regtest-miner](./regtest-miner/) | Auto-mines mempool transactions for regtest development environments |

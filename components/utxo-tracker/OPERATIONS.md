@@ -1,13 +1,13 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform UTXO Tracker — Operations
+# XChain Platform UTXO Tracker: Operations
 
 ## Prerequisites
 
 - Node.js >= 22
 - A running coin node (bitcoind, litecoind, or dogecoind) with JSON-RPC enabled
-- Disk space for LevelDB data directory (size depends on chain — Bitcoin mainnet requires the most)
+- Disk space for LevelDB data directory (size depends on chain; Bitcoin mainnet requires the most)
 
 ## Running the Tracker
 
@@ -116,7 +116,7 @@ All JSON-RPC requests are sent as POST to `/` with standard JSON-RPC 2.0 format.
 
 | Method | Parameters | Description |
 |---|---|---|
-| `ping` | None | Health check — returns `{"status": "success"}` |
+| `ping` | None | Health check: returns `{"status": "success"}` |
 | `get_utxos` | `{"address": "string"}` | Returns UTXOs for an address |
 | `get_first_seen` | `{"address": "string"}` | Returns the oldest (first-seen) transaction for an address |
 | `get_balance` | `{"address": "string"}` | Returns the confirmed balance |
@@ -147,7 +147,7 @@ If the coin node's `verificationprogress` is below 0.99, the tracker logs a warn
 
 ### Atomic Batch Processing
 
-LevelDB writes are accumulated in a batch transaction (in-memory Map) and committed atomically via `db.batch()`. If the process crashes mid-batch, the uncommitted writes are lost — the tracker resumes from the last saved checkpoint. The batch boundary (every 200 blocks or at tip) is the maximum data loss window.
+LevelDB writes are accumulated in a batch transaction (in-memory Map) and committed atomically via `db.batch()`. If the process crashes mid-batch, the uncommitted writes are lost; the tracker resumes from the last saved checkpoint. The batch boundary (every 200 blocks or at tip) is the maximum data loss window.
 
 ### Reorg Recovery
 
@@ -159,7 +159,7 @@ When a blockchain reorganization is detected:
 
 ### Mempool Error Handling
 
-Mempool fetch failures are logged and skipped — the tracker retries on the next 60-second interval. The `mempoolBusy` flag prevents concurrent mempool updates. Missing transactions in a batch are silently skipped.
+Mempool fetch failures are logged and skipped; the tracker retries on the next 60-second interval. The `mempoolBusy` flag prevents concurrent mempool updates. Missing transactions in a batch are silently skipped.
 
 ## Troubleshooting
 
@@ -193,10 +193,10 @@ Mempool updates run every 60 seconds. A freshly broadcast transaction may take u
 ### Bootstrap issues
 
 **Backup stuck at 0%**
-The backup uses `tar`, `pv`, and `pigz` — all three must be installed in the container or host system. Check that these utilities are available in `PATH`.
+The backup uses `tar`, `pv`, and `pigz`, all three must be installed in the container or host system. Check that these utilities are available in `PATH`.
 
 **Restore fails**
-Verify the backup archive is not corrupted and the `/bootstrap/` directory contains the expected file. The tracker must be stopped during a restore — restoring while the tracker is indexing will corrupt the database.
+Verify the backup archive is not corrupted and the `/bootstrap/` directory contains the expected file. The tracker must be stopped during a restore, restoring while the tracker is indexing will corrupt the database.
 
 ---
 

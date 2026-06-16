@@ -36,11 +36,11 @@ Deposit 500 of the token with TICK_ID 99 into contract 12345
 - `QUANTITY` must be a positive value with valid decimal format for the token
 
 ## Notes
-- Deposited tokens are credited to the contract's **derived address** (`C:<CHAIN>:<CONTRACT_ACTION_INDEX>`) in the standard ledger — a debit is created for SOURCE and a credit for the derived address
+- Deposited tokens are credited to the contract's **derived address** (`C:<CHAIN>:<CONTRACT_ACTION_INDEX>`) in the standard ledger; a debit is created for SOURCE and a credit for the derived address
 - The contract's balance is tracked in the standard `balances` table, the same as any other address. There is no separate custody table.
 - Use `WITHDRAW` to return tokens from the contract back to the contract owner
 - Use `^` (caret) as a prefix when passing `TICK_ID` for the `TICK` field (e.g. `^1234` = `TICK_ID` 1234)
-- Contracts may use deposited balances in method logic triggered via `EXECUTE` — emitted actions spend from the derived address
+- Contracts may use deposited balances in method logic triggered via `EXECUTE`, emitted actions spend from the derived address
 
 ---
 

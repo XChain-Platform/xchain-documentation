@@ -80,9 +80,9 @@ module.exports = {
 
 ### Constructor
 
-If a contract exports an `initialize` method and the DEPLOY action includes `CONSTRUCTOR_PARAMS`, the VM calls `initialize` immediately after deployment. Constructor state changes and emissions are processed atomically with the deployment — if the constructor fails (or any of its emissions does), the contract is not deployed.
+If a contract exports an `initialize` method and the DEPLOY action includes `CONSTRUCTOR_PARAMS`, the VM calls `initialize` immediately after deployment. Constructor state changes and emissions are processed atomically with the deployment; if the constructor fails (or any of its emissions does), the contract is not deployed.
 
-Constructors may emit any action a method can, including `emit.execute` — so a contract can register itself with a registry contract in the same transaction that deploys it. The constructor runs at call depth 0; remember the contract's derived address holds no tokens yet, so token-moving emissions (`emit.send`, …) from a constructor will fail the deployment unless the tokens were somehow pre-funded.
+Constructors may emit any action a method can, including `emit.execute`, so a contract can register itself with a registry contract in the same transaction that deploys it. The constructor runs at call depth 0; remember the contract's derived address holds no tokens yet, so token-moving emissions (`emit.send`, …) from a constructor will fail the deployment unless the tokens were somehow pre-funded.
 
 ## Supported JavaScript
 
@@ -92,7 +92,7 @@ Contracts support **ES2020** syntax. This includes:
 - `class` declarations and methods
 - `for...of`, `for...in`, spread operator
 - Optional chaining (`?.`) and nullish coalescing (`??`)
-- `async`/`await` syntax is parseable but contracts execute synchronously — Promises never resolve
+- `async`/`await` syntax is parseable but contracts execute synchronously; Promises never resolve
 
 **Not supported:**
 - ES2021+ features (class fields `#private`, `Object.hasOwn()`, top-level await)
@@ -115,7 +115,7 @@ All `xchain.math` operations accept and return **strings**. This ensures no prec
 
 ## State Management
 
-The state API provides `get(key)`, `set(key, value)`, `has(key)`, and `delete(key)`. There is no `keys()` or `entries()` method — this is deliberate to avoid key-ordering non-determinism.
+The state API provides `get(key)`, `set(key, value)`, `has(key)`, and `delete(key)`. There is no `keys()` or `entries()` method; this is deliberate to avoid key-ordering non-determinism.
 
 ### Pattern: Manual Index for Collections
 
@@ -196,11 +196,11 @@ The indexer validates the code syntax before charging gas. If syntax is invalid,
 
 The VM performs five checks before deployment:
 
-1. **V8 syntax check** — the code must parse as valid JavaScript
-2. **Acorn metering pass** — the code must be parseable by acorn (ES2020 maximum)
-3. **Reserved identifier check** — the code must not use `__gas` (reserved for gas metering)
-4. **Banned transcendental `Math.*`** — `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` are rejected. IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures, which would cause hash divergence between indexers. Use the deterministic equivalents in `xchain.math.*` instead.
-5. **Banned DoS literals** — `BigInt` literals (e.g. `10n`) and `RegExp` literals (e.g. `/foo/`) are rejected. Both expose unmetered native computation — a `BigInt` arithmetic loop or a catastrophic regex can exhaust the block watchdog and halt the chain. The `BigInt` global and `RegExp` constructor are also stripped at runtime; use `xchain.math.*` for big-number work.
+1. **V8 syntax check**; the code must parse as valid JavaScript
+2. **Acorn metering pass**; the code must be parseable by acorn (ES2020 maximum)
+3. **Reserved identifier check**; the code must not use `__gas` (reserved for gas metering)
+4. **Banned transcendental `Math.*`:** `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` are rejected. IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures, which would cause hash divergence between indexers. Use the deterministic equivalents in `xchain.math.*` instead.
+5. **Banned DoS literals:** `BigInt` literals (e.g. `10n`) and `RegExp` literals (e.g. `/foo/`) are rejected. Both expose unmetered native computation; a `BigInt` arithmetic loop or a catastrophic regex can exhaust the block watchdog and halt the chain. The `BigInt` global and `RegExp` constructor are also stripped at runtime; use `xchain.math.*` for big-number work.
 
 A non-blocking **float warning** is also generated if decimal number literals are detected in the code. This warning appears in the execution record but does not prevent deployment.
 
@@ -208,7 +208,7 @@ A non-blocking **float warning** is also generated if decimal number literals ar
 
 You don't have to spend a transaction to find out whether your contract passes these checks. The same rules run as a pre-flight linter in the SDK and on the command line, so you catch problems at write time and in CI instead of on-chain.
 
-**SDK (advisory, runs anywhere — browser or any Node):**
+**SDK (advisory, runs anywhere: browser or any Node):**
 
 ```js
 const result = sdk.validateContract(source);   // source = raw JS, pre-base64
@@ -216,16 +216,16 @@ const result = sdk.validateContract(source);   // source = raw JS, pre-base64
 if (!result.valid) console.error(result.errors);
 ```
 
-`sdk.validateContract` runs every check above **except** the V8 syntax check (step 1) — that one needs the VM's isolated runtime, so it only runs at deploy time or via the CLI. That's why the result is marked `authoritative: false`: a `valid: true` here means the contract clears the acorn-coverable rules, but the on-chain deploy (or the CLI below) has the final word on raw V8 syntax.
+`sdk.validateContract` runs every check above **except** the V8 syntax check (step 1); that one needs the VM's isolated runtime, so it only runs at deploy time or via the CLI. That's why the result is marked `authoritative: false`: a `valid: true` here means the contract clears the acorn-coverable rules, but the on-chain deploy (or the CLI below) has the final word on raw V8 syntax.
 
-Beyond the deploy-time rules above, the linter adds **logic-level** checks. None of them change what the chain accepts at deploy — they're author-facing signal to catch footguns early:
+Beyond the deploy-time rules above, the linter adds **logic-level** checks. None of them change what the chain accepts at deploy; they're author-facing signal to catch footguns early:
 
-- **`crossCallable` integrity** — a *non-array* `crossCallable` makes **every** cross-chain call to your contract fail at runtime (`XCALL_NOT_CALLABLE`). This is reported as a linter **error**: it fails `xchain-lint` and, by default, `sdk.deploy` (`{ lint: 'block' }`) — even though the chain itself would still accept the contract. A `crossCallable` entry that names no exported method is a **warning** (likely a typo; that method stays uncallable cross-chain).
+- **`crossCallable` integrity**: a *non-array* `crossCallable` makes **every** cross-chain call to your contract fail at runtime (`XCALL_NOT_CALLABLE`). This is reported as a linter **error**: it fails `xchain-lint` and, by default, `sdk.deploy` (`{ lint: 'block' }`), even though the chain itself accepts the contract. A `crossCallable` entry that names no exported method is a **warning** (likely a typo; that method stays uncallable cross-chain).
 - **Warnings** (advisory, never block): structurally unbounded loops, bulk allocations, a `state.get(...)` result dereferenced without a null guard, and methods that read call inputs without any `require()` validation.
 
-`sdk.deploy(params, encoder, { lint })` runs this automatically. The default `lint: 'block'` **throws before building the transaction** if the contract has errors — so a guaranteed-to-fail deploy never reaches the chain. Pass `lint: 'warn'` to log and proceed, or `lint: 'off'` to skip. Chunked deploys (`sdk.deployContract`) lint the fully-assembled source once, before chunking.
+`sdk.deploy(params, encoder, { lint })` runs this automatically. The default `lint: 'block'` **throws before building the transaction** if the contract has errors, so a guaranteed-to-fail deploy never reaches the chain. Pass `lint: 'warn'` to log and proceed, or `lint: 'off'` to skip. Chunked deploys (`sdk.deployContract`) lint the fully-assembled source once, before chunking.
 
-**CLI (authoritative — exact deploy parity, requires Node 22):**
+**CLI (authoritative: exact deploy parity, requires Node 22):**
 
 ```bash
 node xchain-vm/bin/lint.js path/to/contract.js   # or: npx xchain-lint contract.js
@@ -255,13 +255,13 @@ The gas ceiling is **1,000,000** per execution. Deployment gas is calculated as 
 ## Debugging
 
 - Use `xchain.log()` to add messages to the execution log (up to 100 entries, 1KB each)
-- Logs are preserved even when execution fails — check the execution record in the explorer
+- Logs are preserved even when execution fails; check the execution record in the explorer
 - Use `xchain.revert('descriptive message')` for clear error reporting
 - The explorer shows full execution details: gas used, state changes, emitted actions, error messages
 
-## Asking the Outside World — `xchain.attestation.*`
+## Asking the Outside World: `xchain.attestation.*`
 
-A contract can ask a question to a registered external provider and have the validator network deliver the answer back on-chain. The contract method that issued the request returns immediately; the answer arrives later as a callback into a method you name. The platform handles provider lookup, validator coordination, signature aggregation, and the on-chain write of the response — your contract just sends a question and writes a callback.
+A contract can ask a question to a registered external provider and have the validator network deliver the answer back on-chain. The contract method that issued the request returns immediately; the answer arrives later as a callback into a method you name. The platform handles provider lookup, validator coordination, signature aggregation, and the on-chain write of the response; your contract just sends a question and writes a callback.
 
 ### Request
 
@@ -276,13 +276,13 @@ xchain.attestation.request(
 ```
 
 - **`redundancy`** is the number of independent validators that must agree before the response is written to chain. `1` is the cheapest path (one validator's answer is final); `3` or `5` triggers a consensus round across multiple validators.
-- **`deadlineBlocks`** is how many blocks the request waits before it expires. If no agreed-upon answer arrives in time, the callback is still invoked — with `status='expired'` and an empty response — so your contract can react to silence.
+- **`deadlineBlocks`** is how many blocks the request waits before it expires. If no agreed-upon answer arrives in time, the callback is still invoked (with `status='expired'` and an empty response) so your contract can react to silence.
 
-`xchain.attestation.request` costs `VM_EMISSION` (500 gas, standard action-emission overhead) plus `VM_ATTEST_REQUEST` (5,000 gas, the attestation request charge) — **5,500 gas total** per call, on top of the request's gas escrow.
+`xchain.attestation.request` costs `VM_EMISSION` (500 gas, standard action-emission overhead) plus `VM_ATTEST_REQUEST` (5,000 gas, the attestation request charge): **5,500 gas total** per call, on top of the request's gas escrow.
 
 ### Callback
 
-Define a method that consumes the result. It receives the request id, the provider id, the status, the response payload, and any params you supplied at request time — in that order — through the standard `xchain.getInputParam(i)` accessor:
+Define a method that consumes the result. It receives the request id, the provider id, the status, the response payload, and any params you supplied at request time (in that order) through the standard `xchain.getInputParam(i)` accessor:
 
 ```javascript
 module.exports = {
@@ -315,9 +315,9 @@ module.exports = {
 };
 ```
 
-> **A note on callback param types.** The `callbackParams` you supply are echoed back through the VM parameter bus, which is string-typed — so **every element is delivered to the callback as a string**, regardless of the type you passed. A request that supplies `[42, true, null]` reaches the callback as `['42', 'true', 'null']`. This has always been the case; it is a property of the string-based wire format, not a recent change. Re-parse numeric or boolean context inside the callback with `parseInt`, `parseFloat`, or `JSON.parse` as the example above does for `roundId`.
+> **A note on callback param types.** The `callbackParams` you supply are echoed back through the VM parameter bus, which is string-typed, so **every element is delivered to the callback as a string**, regardless of the type you passed. A request that supplies `[42, true, null]` reaches the callback as `['42', 'true', 'null']`. This has always been the case; it is a property of the string-based wire format, not a recent change. Re-parse numeric or boolean context inside the callback with `parseInt`, `parseFloat`, or `JSON.parse` as the example above does for `roundId`.
 
-Inside the callback, `xchain.getSourceAddress()` returns the contract's own derived address — the platform invokes the callback as if the contract were calling itself. The callback runs in its own savepoint: if the callback throws or runs out of gas, the response is still recorded on-chain (so the request doesn't get retried) but the contract's state changes are rolled back.
+Inside the callback, `xchain.getSourceAddress()` returns the contract's own derived address; the platform invokes the callback as if the contract were calling itself. The callback runs in its own savepoint: if the callback throws or runs out of gas, the response is still recorded on-chain (so the request doesn't get retried) but the contract's state changes are rolled back.
 
 ### Providers
 
@@ -335,9 +335,9 @@ For `llm` payload fields, approved models, and provider-specific limits, see [`p
 - **Single-shot AI verdict.** `redundancy: 1` + tight `max_tokens`. Cheapest path; fine for non-critical use.
 - **Auditable AI verdict.** `redundancy: 3` or `5`. Multiple validators independently fetch and a judge model decides whether they agree. Use when the contract's decision needs to be verifiable by anyone replaying the chain.
 - **Real-world data trigger.** `http_get` against an HTTPS endpoint that returns deterministic content (price API, official data feed, JSON record). Pair with `redundancy: 3` to require exact agreement across validators.
-- **Deadline as fallback.** Always handle `status='expired'` — the validator network may be unavailable, the provider may be offline, or the response may simply have arrived too late. Treat absence of an answer as a real outcome.
+- **Deadline as fallback.** Always handle `status='expired'`; the validator network may be unavailable, the provider may be offline, or the response may simply have arrived too late. Treat absence of an answer as a real outcome.
 
-## Contract-Targeted Staking — `xchain.contract.*`
+## Contract-Targeted Staking: `xchain.contract.*`
 
 A contract can declare itself stakeable at deploy time. Once deployed, anyone can lock any token against the contract; the contract's own code decides what staking unlocks, and the contract can slash any of its stakers' locked tokens at any time. Slashed tokens are routed to a destination locked in at deploy time (a specific address or the chain's burn address).
 
@@ -354,7 +354,7 @@ DEPLOY|1|<hex code>|<gas_limit>|<constructor_params>|<cooldown_blocks>|<slash_de
 | `COOLDOWN_BLOCKS` | How long a staker waits after calling UNSTAKE before their tokens are returned. Bounded `[1, 100000]`. Omit to make the contract **not stakeable**. |
 | `SLASH_DESTINATION` | Address that receives slashed tokens, or the keyword `BURN`. If `COOLDOWN_BLOCKS` is set but `SLASH_DESTINATION` is omitted, defaults to `BURN`. |
 
-Both fields are **locked permanently** at deploy time. Neither you nor anyone else can change them later. Design carefully — stakers will inspect these before locking up.
+Both fields are **locked permanently** at deploy time. Neither you nor anyone else can change them later. Design carefully; stakers will inspect these before locking up.
 
 ### Reading stake state from inside the contract
 
@@ -370,7 +370,7 @@ var stakers = xchain.contract.getStakers('XCHAIN');
 // → [{ pubkey: '...', amount: '500' }, { pubkey: '...', amount: '300' }, ...]
 ```
 
-All three reads cost `VM_STATE_READ` (100) gas. The 1000-entry cap on `getStakers` is fixed — if your contract may have more stakers than that, design accordingly (don't rely on iterating all of them in a single call).
+All three reads cost `VM_STATE_READ` (100) gas. The 1000-entry cap on `getStakers` is fixed; if your contract may have more stakers than that, design accordingly (don't rely on iterating all of them in a single call).
 
 Stakes within the 6-block activation window are not yet visible to these reads.
 
@@ -380,10 +380,10 @@ Stakes within the 6-block activation window are not yet visible to these reads.
 xchain.contract.slash(signingPubkey, 'XCHAIN', '50');
 ```
 
-- The slash can only target stakers of **this** contract — authorization is implicit; you cannot accidentally slash someone else's contract's stakers.
+- The slash can only target stakers of **this** contract; authorization is implicit; you cannot accidentally slash someone else's contract's stakers.
 - Slashed tokens go to the destination you set at deploy time.
 - The slash reaches a staker's currently-active stake first; if there is still a remainder, it pulls from the cooldown-locked balance the staker has already begun withdrawing. (Stakers cannot escape an imminent slash by initiating an unstake.)
-- Over-slash is silently capped at the staker's available balance — no error is thrown when you ask for more than they have.
+- Over-slash is silently capped at the staker's available balance. No error is thrown when you ask for more than they have.
 - Atomic with the calling EXECUTE: if the calling method reverts, the slash rolls back too.
 
 Slash costs `VM_EMISSION` (500) gas.
@@ -412,9 +412,9 @@ module.exports = {
 };
 ```
 
-For the full protocol-level spec — wire format, isolation between contract and capability staking, cooldown sweep behavior, the `slash_events` table — see [`protocol/Contract_Staking.md`](../protocol/Contract_Staking.md).
+For the full protocol-level spec: wire format, isolation between contract and capability staking, cooldown sweep behavior, the `slash_events` table (see [`protocol/Contract_Staking.md`](../protocol/Contract_Staking.md).
 
-## Calling Other Contracts — `emit.execute`
+## Calling Other Contracts: `emit.execute`
 
 A contract can invoke a method on another deployed contract (or itself) by emitting an `EXECUTE`:
 
@@ -429,23 +429,23 @@ xchain.emit.execute({
 
 ### Deferred execution
 
-The call is **deferred**, not inline: the callee runs *after* your method finishes, in the order you emitted it, within the same atomic scope. Your state changes are fully applied before the callee starts, so the callee sees your updated state — and classic re-entrancy is impossible by construction. There is **no return value**; a callee that must respond calls you back via its own `emit.execute` (the same pattern as attestation callbacks).
+The call is **deferred**, not inline: the callee runs *after* your method finishes, in the order you emitted it, within the same atomic scope. Your state changes are fully applied before the callee starts, so the callee sees your updated state; classic re-entrancy is impossible by construction. There is **no return value**; a callee that must respond calls you back via its own `emit.execute` (the same pattern as attestation callbacks).
 
 Inside the callee, `xchain.getSourceAddress()` is the **calling contract's** address (`C:<CHAIN>:<index>`), so a callee can authenticate which contract called it.
 
 ### Gas
 
-`emit.execute` charges `VM_EMISSION (500) + gasLimit` to **your** gas budget at the moment you call it — you fund the callee's entire run up front, so a call tree can never use more gas than the original EXECUTE's ceiling. Whatever the callee doesn't use is refunded at fee settlement, so a generous `gasLimit` costs nothing extra **if the tree succeeds**; an under-funded callee runs out of gas and fails the whole tree. `gasLimit` must be at least 5,000 and fit within your remaining gas.
+`emit.execute` charges `VM_EMISSION (500) + gasLimit` to **your** gas budget at the moment you call it; you fund the callee's entire run up front, so a call tree can never use more gas than the original EXECUTE's ceiling. Whatever the callee doesn't use is refunded at fee settlement, so a generous `gasLimit` costs nothing extra **if the tree succeeds**; an under-funded callee runs out of gas and fails the whole tree. `gasLimit` must be at least 5,000 and fit within your remaining gas.
 
 ### Depth and failure semantics
 
-- **Max call depth is 4** (a user's EXECUTE runs at depth 0). `emit.execute` at the limit throws — check `xchain.getCallDepth()` if your contract may itself be called by other contracts.
-- **Strict atomicity:** if *any* call in the tree fails — revert, out of gas, unknown contract, invalid emission — the entire tree rolls back, including your state changes and every other emission. The original caller still pays for the gas consumed (refunds are forfeited on failure).
+- **Max call depth is 4** (a user's EXECUTE runs at depth 0). `emit.execute` at the limit; check `xchain.getCallDepth()` if your contract may itself be called by other contracts.
+- **Strict atomicity:** if *any* call in the tree fails (revert, out of gas, unknown contract, invalid emission) the entire tree rolls back, including your state changes and every other emission. The original caller still pays for the gas consumed (refunds are forfeited on failure).
 - Cycles (A→B→A) are allowed within the depth budget.
 
-## Calling Contracts on Other Chains — `emit.crossExecute`
+## Calling Contracts on Other Chains: `emit.crossExecute`
 
-A contract can invoke a method on a contract deployed on a **different chain** (BTC/LTC/DOGE). The validator federation relays the call after your chain's confirmation depth and relays the outcome back — there is no extra on-chain transaction, but the round trip takes **minutes to tens of minutes**. Design fully async: emit the call, return, and handle the outcome in the callback.
+A contract can invoke a method on a contract deployed on a **different chain** (BTC/LTC/DOGE). The validator federation relays the call after your chain's confirmation depth and relays the outcome back (there is no extra on-chain transaction), but the round trip takes **minutes to tens of minutes**. Design fully async: emit the call, return, and handle the outcome in the callback.
 
 ```javascript
 const callId = xchain.emit.crossExecute({
@@ -473,9 +473,9 @@ onResult: function(xchain) {
 }
 ```
 
-`xchain.crossChain.getCallResult(callId)` returns `{ status, payload }` once the call is terminal (the block after it resolved), `null` while in flight — useful for idempotency checks.
+`xchain.crossChain.getCallResult(callId)` returns `{ status, payload }` once the call is terminal (the block after it resolved), `null` while in flight, useful for idempotency checks.
 
-### Receiving cross-chain calls — `crossCallable`
+### Receiving cross-chain calls: `crossCallable`
 
 A contract is **not callable cross-chain unless it opts in** by exporting an allowlist:
 
@@ -494,9 +494,9 @@ This allowlist is the security boundary: the federation's signed dispatch can on
 
 ### Gas, hops, and failure semantics
 
-- **Pre-paid, no refunds:** `crossExecute` charges `VM_EMISSION (500) + 2,000 (request) + gasLimit + 20,000 (callback ceiling)` to your budget at emit time. Unused remote gas is **not** refunded — size `gasLimit` to the work, not generously.
+- **Pre-paid, no refunds:** `crossExecute` charges `VM_EMISSION (500) + 2,000 (request) + gasLimit + 20,000 (callback ceiling)` to your budget at emit time. Unused remote gas is **not** refunded; size `gasLimit` to the work, not generously.
 - **Hop budget is 2:** your call is hop 1; the remote contract calling back (or onward) is hop 2; further cross-chain calls from that context throw. `xchain.getCrossHops()` reports the current count.
-- **Failures are delivered, not thrown:** a remote revert/out-of-gas/missing contract rolls back the remote state and your callback receives the failure status. If nothing comes back before `deadlineBlocks`, you get a deterministic `expired` callback — your contract always hears exactly one outcome.
+- **Failures are delivered, not thrown:** a remote revert/out-of-gas/missing contract rolls back the remote state and your callback receives the failure status. If nothing comes back before `deadlineBlocks`, you get a deterministic `expired` callback; your contract always hears exactly one outcome.
 - **No value transfer:** params and a return payload only. Move tokens with the cross-chain DEX, not calls.
 - Not available from constructors.
 
@@ -504,7 +504,7 @@ Protocol details: `protocol/Cross_Chain_Calls.md` and `protocol/actions/XCALL.md
 
 ## Declaring a permissions manifest
 
-A contract can **bound what it is allowed to do** by exporting a manifest. The indexer reads it once at deploy time and enforces it for the life of the contract — a useful trust signal for anyone depositing into or binding a token to your contract.
+A contract can **bound what it is allowed to do** by exporting a manifest. The indexer reads it once at deploy time and enforces it for the life of the contract; a useful trust signal for anyone depositing into or binding a token to your contract.
 
 ```javascript
 module.exports = {
@@ -514,18 +514,18 @@ module.exports = {
 };
 ```
 
-- **`permissions`** is an allowlist of the action types your contract may emit — from its constructor, an `EXECUTE`, or a controller `guard`. Emit anything outside it and that action is denied (fail-closed). Omit it to stay unrestricted; set `[]` to promise the contract emits nothing. (This is the contract-wide companion to `crossCallable`, which gates *incoming* cross-chain calls.)
+- **`permissions`** is an allowlist of the action types your contract may emit: from its constructor, an `EXECUTE`, or a controller `guard`. Emit anything outside it and that action is denied (fail-closed). Omit it to stay unrestricted; set `[]` to promise the contract emits nothing. (This is the contract-wide companion to `crossCallable`, which gates *incoming* cross-chain calls.)
 - **`maxTakeBps`** caps the royalty/fee a `guard` of yours can take from a sale to `min(global cap, maxTakeBps)`. Omit it to use the global cap.
 
-Declare only what you actually use — an honest, tight manifest is what reviewers and wallets surface to users. A malformed manifest (wrong types / out of range) **rejects the deploy**, and the manifest is immutable afterward. See `protocol/actions/DEPLOY.md` and `protocol/Controller_Bound_Tokens.md`.
+Declare only what you actually use; an honest, tight manifest is what reviewers and wallets surface to users. A malformed manifest (wrong types / out of range) **rejects the deploy**, and the manifest is immutable afterward. See `protocol/actions/DEPLOY.md` and `protocol/Controller_Bound_Tokens.md`.
 
 ## Limitations
 
-- **No synchronous cross-contract calls** — `emit.execute()` is deferred and returns no value. A callee that must respond calls back via its own `emit.execute`.
-- **No `state.keys()`** — contracts must manage their own key indexing for collections
-- **Immutable code** — deployed contracts cannot be updated. Use the proxy pattern for upgradeability.
-- **No direct network access** — contracts cannot make HTTP calls or read files themselves. Use `xchain.attestation.request` to delegate the fetch to the validator network.
-- **Synchronous only** — no `async`/`await` execution; Promises never resolve in the sandbox. Attestation results arrive in a separate callback EXECUTE, not as a return value.
+- **No synchronous cross-contract calls**: `emit.execute()` is deferred and returns no value. A callee that must respond calls back via its own `emit.execute`.
+- **No `state.keys()`**: contracts must manage their own key indexing for collections
+- **Immutable code**: deployed contracts cannot be updated. Use the proxy pattern for upgradeability.
+- **No direct network access**: contracts cannot make HTTP calls or read files themselves. Use `xchain.attestation.request` to delegate the fetch to the validator network.
+- **Synchronous only**: no `async`/`await` execution; Promises never resolve in the sandbox. Attestation results arrive in a separate callback EXECUTE, not as a return value.
 
 ## Example: Token Vesting Contract
 
@@ -577,13 +577,13 @@ module.exports = {
 
 ## Related
 
-- [Smart Contracts Concept](../concepts/Smart_Contracts.md) — architecture and gateway API reference
-- [Gas and Fees](../concepts/GAS.md) — gas economics
-- [DEPLOY Action](../protocol/actions/DEPLOY.md) — deployment protocol spec
-- [EXECUTE Action](../protocol/actions/EXECUTE.md) — execution protocol spec
-- [ATTEST Action](../protocol/actions/ATTEST.md) — request/response lifecycle for `xchain.attestation.*`
-- [LLM Provider](../protocol/providers/llm.md) — prompt envelope, approved models, judge-model consensus
-- [Contract-Targeted Staking](../protocol/Contract_Staking.md) — wire spec for `xchain.contract.*`
+- [Smart Contracts Concept](../concepts/Smart_Contracts.md): architecture and gateway API reference
+- [Gas and Fees](../concepts/GAS.md): gas economics
+- [DEPLOY Action](../protocol/actions/DEPLOY.md): deployment protocol spec
+- [EXECUTE Action](../protocol/actions/EXECUTE.md): execution protocol spec
+- [ATTEST Action](../protocol/actions/ATTEST.md): request/response lifecycle for `xchain.attestation.*`
+- [LLM Provider](../protocol/providers/llm.md): prompt envelope, approved models, judge-model consensus
+- [Contract-Targeted Staking](../protocol/Contract_Staking.md): wire spec for `xchain.contract.*`
 
 ---
 

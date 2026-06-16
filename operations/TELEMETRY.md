@@ -8,39 +8,39 @@ which versions and services people are actually running. It helps us decide what
 support, what to fix, and when an old version can be retired. This page explains exactly
 what is sent, what is not, and every way to turn it off.
 
-Telemetry is **on by default**. You can turn it off at any time — see
+Telemetry is **on by default**. You can turn it off at any time, see
 [How to turn it off](#how-to-turn-it-off).
 
 ## What is sent
 
 Each ping contains:
 
-- A random **install id** — a one-time anonymous identifier (a UUID). It is not derived
+- A random **install id**; a one-time anonymous identifier (a UUID). It is not derived
   from your name, hostname, keys, or anything else about you. It only lets us tell two
   pings from the same machine apart from two different machines.
 - The **xchain-node version** you are running.
 - The **versions** of the XChain services you have installed, and **which ones are
   running** (for example: encoder, decoder, indexer, explorer).
-- Basic **operating system and Docker info** — OS name and release, CPU architecture, and
+- Basic **operating system and Docker info**; OS name and release, CPU architecture, and
   the Docker engine version.
-- A **coarse location and an anonymous network hash** — your IP address is **never stored**.
+- A **coarse location and an anonymous network hash**, your IP address is **never stored**.
   When the ping arrives, the receiving server looks at the connection's IP only long enough to
   work out a rough **country and region** and to compute a **one-way keyed hash** (so we can
   count how many distinct networks use the platform), and then discards the IP. We do **not**
   keep your IP address, your city, or your coordinates, and the hash cannot be turned back into
-  an IP. Your node never sends its IP — the server only ever sees the connection it arrives on.
+  an IP. Your node never sends its IP; the server only ever sees the connection it arrives on.
 
 ## What is NOT sent
 
-- **No IP address is stored** — and never a city, postal code, or coordinates.
-- No secrets — never any passwords, API keys, tokens, or database credentials.
+- **No IP address is stored**: and never a city, postal code, or coordinates.
+- No secrets. Never any passwords, API keys, tokens, or database credentials.
 - No wallet data, addresses, balances, or transactions.
 - No configuration file contents.
 - No file paths, environment variables, or command arguments.
 
 ## When it is sent
 
-Telemetry is shallow and infrequent — it lives only in `xchain-node`, not inside the
+Telemetry is shallow and infrequent; it lives only in `xchain-node`, not inside the
 individual services:
 
 - On **install** and **update**.
@@ -60,14 +60,14 @@ exactly what is collected and how to turn it off.
 
 Any one of these disables telemetry. They are checked in this order:
 
-1. **Per command / permanently** — pass `--no-telemetry` on any command:
+1. **Per command / permanently**: pass `--no-telemetry` on any command:
    ```bash
    xchain-node --no-telemetry install master all
    ```
    Once you opt out this way, it stays off on future runs (the choice is remembered).
-2. **Environment variable** — set `XCHAIN_NODE_NO_TELEMETRY=1` in your shell or service
+2. **Environment variable**: set `XCHAIN_NODE_NO_TELEMETRY=1` in your shell or service
    environment.
-3. **Preference file** — set `"optOut": true` in `~/.xchain-node/telemetry.json`.
+3. **Preference file**: set `"optOut": true` in `~/.xchain-node/telemetry.json`.
 
 To turn it back on, set `"optOut": false` in `~/.xchain-node/telemetry.json` (and make sure
 `XCHAIN_NODE_NO_TELEMETRY` is not set).
@@ -83,19 +83,19 @@ and then deleted.
 
 If you operate your own hub and want it to receive (or refuse) telemetry:
 
-- `TELEMETRY_ENABLED` — `true` (default) to accept pings, `false` to reject them.
-- `TELEMETRY_RETENTION_DAYS` — how many days to keep pings before pruning (default `90`).
-- `TELEMETRY_IP_SALT` — a secret salt for the one-way IP hash. Set it (to a stable, secret
+- `TELEMETRY_ENABLED`: `true` (default) to accept pings, `false` to reject them.
+- `TELEMETRY_RETENTION_DAYS`: how many days to keep pings before pruning (default `90`).
+- `TELEMETRY_IP_SALT`: a secret salt for the one-way IP hash. Set it (to a stable, secret
   value) to record the anonymous network hash; if left unset, the hash column is simply left
   empty and only country/region are recorded. The raw IP is never stored either way.
-- `TELEMETRY_ADMIN_KEY` — a secret key that gates the per-operator detail endpoint
+- `TELEMETRY_ADMIN_KEY`: a secret key that gates the per-operator detail endpoint
   (`GET /telemetry/operators`). Leave it unset and that endpoint is fail-closed (returns
   `401`); set it to a secret value and pass the same value in the `x-api-key` header to view
   per-install detail on your own dashboard. The public aggregate census
   (`GET /telemetry/summary`) needs no key.
 
 The country/region lookup uses an offline geolocation database bundled with the hub
-(via the `geoip-lite` package, based on MaxMind GeoLite2 data) — there is no per-ping call
+(via the `geoip-lite` package, based on MaxMind GeoLite2 data), there is no per-ping call
 to any third party.
 
 ## Hub-side REST API

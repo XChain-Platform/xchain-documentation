@@ -3,7 +3,7 @@
 
 # Actions
 
-Every state change on the XChain Platform is the result of an **ACTION** — a structured command embedded in a blockchain transaction. There are no other ways to change token state. If it isn't an ACTION recorded on-chain, it didn't happen.
+Every state change on the XChain Platform is the result of an **ACTION**; a structured command embedded in a blockchain transaction. There are no other ways to change token state. If it isn't an ACTION recorded on-chain, it didn't happen.
 
 ## The ACTION Format
 
@@ -13,17 +13,17 @@ An ACTION is a pipe-delimited string:
 ACTION|VERSION|PARAM1|PARAM2|...
 ```
 
-- **ACTION** — the command name, uppercase (e.g., `SEND`, `ISSUE`, `ORDER`)
-- **VERSION** — an integer that determines how the parameters are interpreted; new versions can extend or change the parameter layout without breaking existing indexers
-- **PARAM1, PARAM2, ...** — command-specific fields in the order defined by the version spec
+- **ACTION**: the command name, uppercase (e.g., `SEND`, `ISSUE`, `ORDER`)
+- **VERSION**: an integer that determines how the parameters are interpreted; new versions can extend or change the parameter layout without breaking existing indexers
+- **PARAM1, PARAM2, ...**: command-specific fields in the order defined by the version spec
 
-Example — a simple token transfer:
+Example; a simple token transfer:
 
 ```
 SEND|0|MYTOKEN|100|1ReceiverAddressHere
 ```
 
-Example — an order book listing:
+Example; an order book listing:
 
 ```
 ORDER|0|MYTOKEN|BUY|100|XCHAIN|50
@@ -37,11 +37,11 @@ The raw string is obfuscated before being embedded in a transaction. See [Encodi
 2. **Encoding**: The encoder embeds the obfuscated ACTION into a standard blockchain transaction and returns an unsigned PSBT.
 3. **Signing and Broadcast**: The caller signs the PSBT with their wallet and broadcasts it to the coin network.
 4. **Decoding**: The decoder polls the coin node block-by-block. For each transaction, it attempts to extract and deobfuscate an XChain payload. If the `XCHN` magic prefix is present, the decoded ACTION string is written to the Decoder database.
-5. **Validation**: The indexer reads from the Decoder database and validates the ACTION — checking that the sender has sufficient balance, the token exists, required permissions are met, and so on.
+5. **Validation**: The indexer reads from the Decoder database and validates the ACTION, checking that the sender has sufficient balance, the token exists, required permissions are met, and so on.
 6. **Execution**: If valid, the indexer executes the ACTION, updating all affected tables (balances, ledger entries, order books, escrows, etc.) atomically within a single database transaction.
 7. **Querying**: Clients read the resulting state through the explorer's REST or JSON-RPC API.
 
-Invalid ACTIONs are recorded as failed — they are not silently ignored. This makes the blockchain record auditable: every ACTION attempt, valid or not, is traceable.
+Invalid ACTIONs are recorded as failed; they are not silently ignored. This makes the blockchain record auditable: every ACTION attempt, valid or not, is traceable.
 
 ## The 30 ACTIONs
 
@@ -81,14 +81,14 @@ The platform supports 30 ACTION types across eight categories. The original 20 a
 |---|---|
 | `BROADCAST` | Post arbitrary on-chain data. Used for oracle feeds, announcements, or any message that should be permanently recorded and publicly readable. |
 | `MESSAGE` | Send a message to a specific address. Can be plaintext, ECDH-session, AES-shared-key, or ECIES (encrypted to the recipient's address pubkey). ECIES carries the key handoff for token-gated content. |
-| `FILE` | Upload file data on-chain with associated metadata (filename, content-type, size). As of v1, supports **token-gated cryptographic publishing** — encrypt files (or multi-file packs) on-chain so only token holders can decrypt. See [Token-Gated Content](../protocol/Token_Gated_Content.md). |
+| `FILE` | Upload file data on-chain with associated metadata (filename, content-type, size). As of v1, supports **token-gated cryptographic publishing**: encrypt files (or multi-file packs) on-chain so only token holders can decrypt. See [Token-Gated Content](../protocol/Token_Gated_Content.md). |
 
 ### Utility
 
 | ACTION | What it does |
 |---|---|
 | `ADDRESS` | Set per-address preferences, such as requiring a memo for all incoming transfers. |
-| `BATCH` | Combine multiple ACTIONs into a single transaction. All or none execute — if any ACTION in the batch is invalid, the entire batch fails. |
+| `BATCH` | Combine multiple ACTIONs into a single transaction. All or none execute: if any ACTION in the batch is invalid, the entire batch fails. |
 | `LINK` | Create a cross-reference to another ACTION by its `ACTION_INDEX`. Used for associating related operations across transactions or chains. |
 | `LIST` | Define a named list of addresses or tickers. Referenced by ISSUE (for allow/block lists) and AIRDROP (for recipient lists). |
 
@@ -121,7 +121,7 @@ Full parameter specifications for each ACTION are in [`../protocol/actions/`](..
 
 ## ACTION_INDEX: The Universal Cross-Reference
 
-Every valid ACTION that is recorded on-chain receives a sequential `ACTION_INDEX` — a monotonically increasing integer assigned by the indexer, unique per chain and network. This index is the universal identifier for any operation on the platform.
+Every valid ACTION that is recorded on-chain receives a sequential `ACTION_INDEX`; a monotonically increasing integer assigned by the indexer, unique per chain and network. This index is the universal identifier for any operation on the platform.
 
 Other ACTIONs reference prior actions by index rather than by transaction ID. For example:
 
@@ -152,7 +152,7 @@ BATCH is particularly useful for:
 
 Each ACTION has a VERSION field. When the protocol is extended, a new version of an ACTION is defined with a new parameter layout. Older indexers that do not recognize the new version treat it as invalid. New indexers process both old and new versions.
 
-Activation block heights control when new versions become valid. This allows coordinated upgrades across the network without flag days — nodes that upgrade early simply wait until the activation block before processing the new version.
+Activation block heights control when new versions become valid. This allows coordinated upgrades across the network without flag days, nodes that upgrade early simply wait until the activation block before processing the new version.
 
 ---
 

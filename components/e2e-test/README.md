@@ -5,32 +5,32 @@
 
 ## What is xchain-e2e-test
 
-xchain-e2e-test is the end-to-end Mocha test suite for the XChain Platform. It exercises the full platform stack — encoder, decoder, indexer, explorer, hub, UTXO tracker, and regtest miner — against a live regtest deployment. Tests are not mocked; they broadcast real transactions to a regtest coin node and verify that the platform processes them correctly end to end.
+xchain-e2e-test is the end-to-end Mocha test suite for the XChain Platform. It exercises the full platform stack: encoder, decoder, indexer, explorer, hub, UTXO tracker, and regtest miner, against a live regtest deployment. Tests are not mocked; they broadcast real transactions to a regtest coin node and verify that the platform processes them correctly end to end.
 
-The suite also serves as its own quality gate: a comprehensive set of unit, integration, boundary, fuzz, chaos, regression, mutation, and performance tests validate the test framework's internal infrastructure — connectors, wallet management, transaction helpers, database polling, and bootstrap orchestration — ensuring that the E2E suite itself is reliable before trusting its results for platform validation.
+The suite also serves as its own quality gate: a comprehensive set of unit, integration, boundary, fuzz, chaos, regression, mutation, and performance tests validate the test framework's internal infrastructure: connectors, wallet management, transaction helpers, database polling, and bootstrap orchestration, ensuring that the E2E suite itself is reliable before trusting its results for platform validation.
 
 ## How It Works
 
 Each action test follows the same lifecycle:
 
-1. **Create wallets** — BIP39 mnemonics and BIP32 derivation paths generate deterministic test wallets programmatically via `cryptoHelper.js`
-2. **Fund addresses** — the regtest miner's `send_funds` JSON-RPC method sends coins to the test wallet addresses
-3. **Construct and broadcast** — the encoder builds a PSBT for the desired XChain action; the test signs the PSBT locally with `bitcoinjs-lib` and broadcasts it via the coin node
-4. **Mine** — the regtest miner detects the mempool transaction and mines a block (with a configurable delay to batch related transactions like P2SH fund + spend pairs)
-5. **Poll and verify** — the test polls the indexer MariaDB via `waitFor*` methods until the ACTION record appears, then asserts the expected token state, balances, or transaction status
+1. **Create wallets**: BIP39 mnemonics and BIP32 derivation paths generate deterministic test wallets programmatically via `cryptoHelper.js`
+2. **Fund addresses**; the regtest miner's `send_funds` JSON-RPC method sends coins to the test wallet addresses
+3. **Construct and broadcast**; the encoder builds a PSBT for the desired XChain action; the test signs the PSBT locally with `bitcoinjs-lib` and broadcasts it via the coin node
+4. **Mine**; the regtest miner detects the mempool transaction and mines a block (with a configurable delay to batch related transactions like P2SH fund + spend pairs)
+5. **Poll and verify**; the test polls the indexer MariaDB via `waitFor*` methods until the ACTION record appears, then asserts the expected token state, balances, or transaction status
 
 ## Features
 
-- **27 ACTION test suites** — ISSUE (V0–V5), SEND (V0–V3), MINT, DESTROY, ORDER, DISPENSER, SWAP, DIVIDEND, AIRDROP, FILE, MESSAGE, BROADCAST, ADDRESS, LINK, LIST, CALLBACK, BATCH, SWEEP, SLEEP, COINPAY, STAKE, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW
-- **7 service connectors** — BlockchainConnector (cross-fetch, Basic Auth), XChainUtxoTrackerConnector, XChainEncoderConnector, XChainIndexerConnector, XChainHubConnector (multi-endpoint failover), RegtestMinerConnector, and Database (MariaDB connection pool)
-- **Hub auto-discovery** — falls back to xchain-hub for service endpoint resolution when direct environment variables are not set
-- **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on regtest (network configs via `CryptoNetworks.js`)
-- **P2SH two-step encoding** — `transactionHelper.js` detects when the encoder returns `encoding: "P2SH"` and automatically handles the two-transaction flow (fund + spend)
-- **UTXO verification cache** — tracks confirmed UTXOs between sequential transactions for the same address to avoid stale mempool entries
-- **30+ database polling methods** — `waitForIssue`, `waitForSend`, `waitForCredit`, `waitForDebit`, `waitForMint`, `waitForDispenser`, `waitForOrder`, etc., each with configurable timeout and performance tracking
-- **Wallet memory cleanup** — seed and private key buffers are zeroed during afterAll teardown
-- **Performance instrumentation** — nanosecond-precision bootstrap phase timing, per-poll metrics, custom Mocha reporter writing JSON to `perf-results/`
-- **Mutation testing** — Stryker Mutator with two-phase configuration (Phase 1: unit tests, Phase 2: unit + integration)
+- **27 ACTION test suites**: ISSUE (V0–V5), SEND (V0–V3), MINT, DESTROY, ORDER, DISPENSER, SWAP, DIVIDEND, AIRDROP, FILE, MESSAGE, BROADCAST, ADDRESS, LINK, LIST, CALLBACK, BATCH, SWEEP, SLEEP, COINPAY, STAKE, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW
+- **7 service connectors**: BlockchainConnector (cross-fetch, Basic Auth), XChainUtxoTrackerConnector, XChainEncoderConnector, XChainIndexerConnector, XChainHubConnector (multi-endpoint failover), RegtestMinerConnector, and Database (MariaDB connection pool)
+- **Hub auto-discovery**: falls back to xchain-hub for service endpoint resolution when direct environment variables are not set
+- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on regtest (network configs via `CryptoNetworks.js`)
+- **P2SH two-step encoding**: `transactionHelper.js` detects when the encoder returns `encoding: "P2SH"` and automatically handles the two-transaction flow (fund + spend)
+- **UTXO verification cache**: tracks confirmed UTXOs between sequential transactions for the same address to avoid stale mempool entries
+- **30+ database polling methods**: `waitForIssue`, `waitForSend`, `waitForCredit`, `waitForDebit`, `waitForMint`, `waitForDispenser`, `waitForOrder`, etc., each with configurable timeout and performance tracking
+- **Wallet memory cleanup**: seed and private key buffers are zeroed during afterAll teardown
+- **Performance instrumentation**: nanosecond-precision bootstrap phase timing, per-poll metrics, custom Mocha reporter writing JSON to `perf-results/`
+- **Mutation testing**: Stryker Mutator with two-phase configuration (Phase 1: unit tests, Phase 2: unit + integration)
 - **953+ tests** across 11 testing disciplines
 
 ## Architecture
@@ -123,7 +123,7 @@ The test framework's own infrastructure is validated by tests that run without D
 | Boundary | `test/boundary/` | ~144 | WHERE clause construction, connector URL building, polling timeouts (0, MAX_SAFE_INTEGER), connection pool exhaustion, global state edge cases |
 | Fuzz | `test/fuzz/` | ~53 | Property-based testing via fast-check: action message mutation, config parsing, connector inputs, crypto inputs, DB filter fuzzing |
 | Chaos | `test/chaos/` | ~77 | Bad PSBT handling, connector timeouts, DB disconnect mid-poll, gas bootstrap failure, teardown failure, UTXO/wallet race conditions |
-| Regression | `test/regression/` | ~114 | Tagged cross-suite subset — P0 critical (74), P1 high (20), P2 medium (20) |
+| Regression | `test/regression/` | ~114 | Tagged cross-suite subset; P0 critical (74), P1 high (20), P2 medium (20) |
 
 ### Live Infrastructure Tests
 
@@ -138,8 +138,8 @@ The test framework's own infrastructure is validated by tests that run without D
 The test suite resolves configuration in priority order:
 
 1. **Direct environment variables** (17 variables for all service endpoints)
-2. **Hub discovery** — if direct env vars are missing, queries `HUB_URL`/`HUB_PORT` for service config
-3. **Docker defaults** — database host defaults to `"mariadb"` (Docker Compose convention)
+2. **Hub discovery**: if direct env vars are missing, queries `HUB_URL`/`HUB_PORT` for service config
+3. **Docker defaults**: database host defaults to `"mariadb"` (Docker Compose convention)
 
 See [Configuration](CONFIGURATION.md) for the full environment variable reference.
 
@@ -173,11 +173,11 @@ npm run test:chaos
 
 ## Related
 
-- [Regtest Development Guide](../../developer-guide/Regtest_Development.md) — setting up a local regtest environment
-- [Regtest Miner](../regtest-miner/) — the auto-mining service the E2E suite depends on
-- [Encoder](../encoder/) — constructs XChain transactions tested by this suite
-- [Indexer](../indexer/) — processes transactions and maintains token state verified by this suite
-- [Testing Guide](../../developer-guide/TESTING.md) — platform-wide testing philosophy and coverage
+- [Regtest Development Guide](../../developer-guide/Regtest_Development.md): setting up a local regtest environment
+- [Regtest Miner](../regtest-miner/); the auto-mining service the E2E suite depends on
+- [Encoder](../encoder/): constructs XChain transactions tested by this suite
+- [Indexer](../indexer/): processes transactions and maintains token state verified by this suite
+- [Testing Guide](../../developer-guide/TESTING.md): platform-wide testing philosophy and coverage
 
 ---
 

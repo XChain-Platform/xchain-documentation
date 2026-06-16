@@ -5,37 +5,37 @@
 
 ## What is xchain-encoder
 
-xchain-encoder is the PSBT encoding service of the XChain Platform. It takes an ACTION string, a set of UTXOs, and a public key, and returns an unsigned Partially Signed Bitcoin Transaction (PSBT) ready for the caller to sign and broadcast. The encoder is fully stateless — it holds no database and no persistent state between calls.
+xchain-encoder is the PSBT encoding service of the XChain Platform. It takes an ACTION string, a set of UTXOs, and a public key, and returns an unsigned Partially Signed Bitcoin Transaction (PSBT) ready for the caller to sign and broadcast. The encoder is fully stateless; it holds no database and no persistent state between calls.
 
 The encoder's sole responsibility is to embed XChain protocol data into a transaction correctly and efficiently. The caller is responsible for signing and broadcasting.
 
 ## Features
 
-- **Stateless** — no database, no persistent connections; every call is independent
-- **Four encoding formats** — OP_RETURN (80B total, 76B user data), P2SH (476B), P2WSH (8,192B), and multisig (~61B/key); auto-selected by payload size
-- **Two-transaction orchestration** — automatic tx1 (fund) → tx2 (spend/reveal) pattern for P2SH and P2WSH with OP_RETURN marker
-- **AES-128-CTR obfuscation** — derives key and IV from the first input's txid; `XCHN` magic prefix on all payloads
-- **UTXO selection** — largest-first selection, duplicate removal, optional unconfirmed filtering, automatic change output
-- **Fee estimation** — byte-accurate transaction size estimation per format via `TxSizeEstimator`; dust floor enforcement
-- **Fee rate cap** — configurable maximum fee rate prevents runaway estimates (e.g., regtest feedback loops)
-- **Input validation** — centralized parameter validation with typed errors (TypeError/RangeError) for all 15 `createTransaction` parameters
-- **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 network configs with chain-specific dust thresholds; Litecoin uses 5,460 litoshis on all three networks — 10× Bitcoin's 546 satoshis)
-- **Replace-By-Fee** — optional RBF signaling via UTXO sequence number
-- **Custom outputs** — arbitrary address/value outputs for COINPay native coin payments and other use cases
-- **JSON-RPC API** — Express server with Helmet security headers, optional API key authentication, configurable rate limiting, and CORS
-- **Browser bundle** — Browserify build for client-side PSBT generation without routing private keys through a server
+- **Stateless**: no database, no persistent connections; every call is independent
+- **Four encoding formats**: OP_RETURN (80B total, 76B user data), P2SH (476B), P2WSH (8,192B), and multisig (~61B/key); auto-selected by payload size
+- **Two-transaction orchestration**: automatic tx1 (fund) → tx2 (spend/reveal) pattern for P2SH and P2WSH with OP_RETURN marker
+- **AES-128-CTR obfuscation**: derives key and IV from the first input's txid; `XCHN` magic prefix on all payloads
+- **UTXO selection**: largest-first selection, duplicate removal, optional unconfirmed filtering, automatic change output
+- **Fee estimation**: byte-accurate transaction size estimation per format via `TxSizeEstimator`; dust floor enforcement
+- **Fee rate cap**: configurable maximum fee rate prevents runaway estimates (e.g., regtest feedback loops)
+- **Input validation**: centralized parameter validation with typed errors (TypeError/RangeError) for all 15 `createTransaction` parameters
+- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 network configs with chain-specific dust thresholds; Litecoin uses 5,460 litoshis on all three networks, 10× Bitcoin's 546 satoshis)
+- **Replace-By-Fee**: optional RBF signaling via UTXO sequence number
+- **Custom outputs**: arbitrary address/value outputs for COINPay native coin payments and other use cases
+- **JSON-RPC API**: Express server with Helmet security headers, optional API key authentication, configurable rate limiting, and CORS
+- **Browser bundle**: Browserify build for client-side PSBT generation without routing private keys through a server
 
 ## Encoding Process
 
 Every encode call follows the same sequence regardless of format:
 
-1. **Prepend magic prefix** — `XCHN` (4 bytes) is prepended to the ACTION string
-2. **Obfuscate** — the prefixed payload is encrypted with AES-128-CTR using the first input's txid:
+1. **Prepend magic prefix**: `XCHN` (4 bytes) is prepended to the ACTION string
+2. **Obfuscate**; the prefixed payload is encrypted with AES-128-CTR using the first input's txid:
    - Key: first 16 hex characters of the txid (8 bytes)
    - IV: next 16 hex characters of the txid (8 bytes)
-3. **Select format** — the encoder picks the most efficient encoding format based on the obfuscated payload length (see [Format Selection](Format_Selection.md))
-4. **Build transaction** — inputs are selected from the provided UTXOs, outputs are constructed per the chosen format, fees are calculated, and a change output is added if needed
-5. **Return PSBT** — the unsigned PSBT is returned to the caller in hex format
+3. **Select format**; the encoder picks the most efficient encoding format based on the obfuscated payload length (see [Format Selection](Format_Selection.md))
+4. **Build transaction**: inputs are selected from the provided UTXOs, outputs are constructed per the chosen format, fees are calculated, and a change output is added if needed
+5. **Return PSBT**; the unsigned PSBT is returned to the caller in hex format
 
 ## Encoding Formats
 
@@ -43,7 +43,7 @@ Every encode call follows the same sequence regardless of format:
 
 Maximum payload: **76 bytes of user data** (80 bytes total per output, including the 4-byte XCHN prefix)
 
-The obfuscated payload is embedded in an `OP_RETURN` output. This is a single transaction — the encoder constructs it, the caller signs and broadcasts once. OP_RETURN outputs are provably unspendable and are the cheapest encoding method. Best for most SEND, ISSUE, and MINT actions.
+The obfuscated payload is embedded in an `OP_RETURN` output. This is a single transaction; the encoder constructs it, the caller signs and broadcasts once. OP_RETURN outputs are provably unspendable and are the cheapest encoding method. Best for most SEND, ISSUE, and MINT actions.
 
 ### P2SH
 
@@ -51,8 +51,8 @@ Maximum payload: **476 bytes**
 
 The payload is embedded in a redeem script, which is hashed and locked to a P2SH output in a funding transaction. A second spending transaction then reveals the full redeem script in the scriptSig, making the payload visible on-chain. Two transactions must be signed and broadcast in order:
 
-1. **Fund** — locks coin to the P2SH output containing the hashed script
-2. **Spend** — spends from the P2SH output, revealing the full script (and therefore the payload) in the scriptSig
+1. **Fund**: locks coin to the P2SH output containing the hashed script
+2. **Spend**: spends from the P2SH output, revealing the full script (and therefore the payload) in the scriptSig
 
 The decoder reads the spend transaction's scriptSig to extract the payload.
 
@@ -62,8 +62,8 @@ Maximum payload: **8,192 bytes** (decoder-enforced ceiling)
 
 Functionally identical to P2SH but uses SegWit. The payload is embedded in a witness script locked to a P2WSH output. The two-transaction pattern is the same:
 
-1. **Fund** — locks coin to the P2WSH output
-2. **Spend** — spends from the P2WSH output, revealing the witness script
+1. **Fund**: locks coin to the P2WSH output
+2. **Spend**: spends from the P2WSH output, revealing the witness script
 
 Because SegWit witness data is discounted when calculating transaction weight, P2WSH is more fee-efficient than P2SH for large payloads. Use this for FILE actions, large BROADCAST payloads, or any action requiring more than 476 bytes.
 
@@ -97,7 +97,7 @@ The encoder exposes a JSON-RPC API via Express with `express-json-rpc-router`.
 | `broadcast_tx` | Submit a signed raw transaction hex to the coin node for broadcast |
 | `get_utxos` | Fetch the UTXO set for a given address from xchain-utxo-tracker |
 | `estimate_fee` | Return low / medium / high fee-rate tiers in base-units/vByte, sourced from the node's `estimatesmartfee` (targets: 6 / 3 / 1 blocks) |
-| `ping` | Health check — returns `{ status: "success" }` |
+| `ping` | Health check: returns `{ status: "success" }` |
 
 A machine-readable OpenRPC 1.3.2 spec for all JSON-RPC methods is available at `GET /openrpc.json`.
 
@@ -178,10 +178,10 @@ Returns an array of UTXO objects matching the UTXO Structure documented in the `
 
 | Code | Meaning |
 |---|---|
-| `-32602` | Invalid params — validation error (TypeError or RangeError from `validator.js`) |
-| `-32603` | Internal error — encoder failure (e.g., insufficient UTXOs, unsupported network) |
-| `-32001` | Unauthorized — missing or incorrect `x-api-key` header |
-| `-32029` | Rate limited — too many requests |
+| `-32602` | Invalid params: validation error (TypeError or RangeError from `validator.js`) |
+| `-32603` | Internal error: encoder failure (e.g., insufficient UTXOs, unsupported network) |
+| `-32001` | Unauthorized: missing or incorrect `x-api-key` header |
+| `-32029` | Rate limited: too many requests |
 
 ## Browser Bundle
 
@@ -205,15 +205,15 @@ npm run api
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `NETWORK` | Yes | — | Coin and network (`bitcoin-mainnet`, `dogecoin-testnet`, `litecoin-regtest`, etc.) |
-| `NODE_URL` | Yes | — | Coin node RPC host |
-| `NODE_PORT` | Yes | — | Coin node RPC port |
-| `NODE_USER` | Yes | — | RPC username |
-| `NODE_PASSWORD` | Yes | — | RPC password |
+| `NETWORK` | Yes | None | Coin and network (`bitcoin-mainnet`, `dogecoin-testnet`, `litecoin-regtest`, etc.) |
+| `NODE_URL` | Yes | None | Coin node RPC host |
+| `NODE_PORT` | Yes | None | Coin node RPC port |
+| `NODE_USER` | Yes | None | RPC username |
+| `NODE_PASSWORD` | Yes | None | RPC password |
 | `ENCODER_API_PORT` | No | `3003` | JSON-RPC API port |
 | `DUST_AMOUNT` | No | Network default | Minimum output value in satoshis |
-| `UTXO_TRACKER_URL` | No | — | xchain-utxo-tracker service host |
-| `UTXO_TRACKER_API_PORT` | No | — | xchain-utxo-tracker service port |
+| `UTXO_TRACKER_URL` | No | None | xchain-utxo-tracker service host |
+| `UTXO_TRACKER_API_PORT` | No | None | xchain-utxo-tracker service port |
 | `MAX_FEE_RATE_KB` | No | Uncapped | Absolute maximum fee rate in sat/kB |
 | `MAX_FEE_RATE_MULTIPLIER` | No | `100` | Caps caller-supplied fee/feePerKb at this multiple of the node's fee estimate (`0` disables) |
 | `API_KEY` | No | Disabled | API key for `x-api-key` header authentication |
@@ -222,7 +222,7 @@ npm run api
 
 ## Testing
 
-The encoder maintains a comprehensive test suite spanning 10 testing disciplines with approximately 769 tests total. All tests except the root-level regtest integration suite run offline with mocked connectors — no live coin node required.
+The encoder maintains a comprehensive test suite spanning 10 testing disciplines with approximately 769 tests total. All tests except the root-level regtest integration suite run offline with mocked connectors. No live coin node required.
 
 ### Test Scripts
 
@@ -259,16 +259,16 @@ The regression suite (`test/regression/`) provides a curated safety net covering
 
 Shared test utilities in `test/integration/helpers/`:
 
-- **utxoFactory.js** — Encoder, UTXO, and address fixture factories with deterministic TXIDs
-- **actionFactory.js** — ACTION payload builders for all supported action types
-- **deobfuscate.js** — Payload extraction and AES-128-CTR decryption utilities
+- **utxoFactory.js**: Encoder, UTXO, and address fixture factories with deterministic TXIDs
+- **actionFactory.js**: ACTION payload builders for all supported action types
+- **deobfuscate.js**: Payload extraction and AES-128-CTR decryption utilities
 
 ## Related
 
-- [Format Selection](Format_Selection.md) — decision guide for choosing an encoding format
-- [UTXO Tracker](../utxo-tracker/) — the service that supplies UTXOs to the encoder
-- [Data Pipeline](../../architecture/Data_Pipeline.md) — full platform ingestion flow
-- [Testing](../../developer-guide/TESTING.md) — platform-wide testing philosophy and coverage
+- [Format Selection](Format_Selection.md): decision guide for choosing an encoding format
+- [UTXO Tracker](../utxo-tracker/); the service that supplies UTXOs to the encoder
+- [Data Pipeline](../../architecture/Data_Pipeline.md): full platform ingestion flow
+- [Testing](../../developer-guide/TESTING.md): platform-wide testing philosophy and coverage
 
 ---
 

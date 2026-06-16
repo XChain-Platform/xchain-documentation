@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform SDK — Workflow Recipes
+# XChain Platform SDK: Workflow Recipes
 
 Workflow recipes are high-level helpers that compose multiple actions into common multi-step operations. Each recipe creates a wallet session internally and executes the steps sequentially with UTXO chaining.
 
@@ -196,7 +196,7 @@ console.log(result.txid);
 
 ## issueCollectionItem
 
-Issue a distinct 1-of-1 item in a collection — a child TICK `parent.name`. The issuer must currently own the parent (enforced by the indexer). Builds params via `sdk.nft.collectionItem()`:
+Issue a distinct 1-of-1 item in a collection; a child TICK `parent.name`. The issuer must currently own the parent (enforced by the indexer). Builds params via `sdk.nft.collectionItem()`:
 
 ```js
 const result = await sdk.issueCollectionItem(wif, {
@@ -303,10 +303,10 @@ await session.dispenser({
 
 ## Related Documentation
 
-- [Wallet Sessions](SESSIONS.md) — the session object used by all workflows
-- [Transaction Lifecycle](LIFECYCLE.md) — `submitAction` details, fee estimation
-- [Actions](ACTIONS.md) — parameter reference for each action type
-- [Cross-Chain](CROSSCHAIN.md) — multi-chain coordination
+- [Wallet Sessions](SESSIONS.md); the session object used by all workflows
+- [Transaction Lifecycle](LIFECYCLE.md): `submitAction` details, fee estimation
+- [Actions](ACTIONS.md): parameter reference for each action type
+- [Cross-Chain](CROSSCHAIN.md): multi-chain coordination
 
 ---
 

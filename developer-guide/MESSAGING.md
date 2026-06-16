@@ -8,9 +8,9 @@ The MESSAGE action supports three encryption methods:
 
 | Method | Name | Use Case |
 |--------|------|----------|
-| 1 | ECIES (default) | Address communication — encrypt to recipient's public key, no key exchange needed, works across devices |
-| 2 | ECDH | Session communication — two-party key exchange for forward secrecy, device-bound |
-| 3 | AES | Shared secret communication — pre-shared key encryption, key exchanged out-of-band |
+| 1 | ECIES (default) | Address communication: encrypt to recipient's public key, no key exchange needed, works across devices |
+| 2 | ECDH | Session communication: two-party key exchange for forward secrecy, device-bound |
+| 3 | AES | Shared secret communication: pre-shared key encryption, key exchanged out-of-band |
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ const sdk = new XChainSDK({
 
 ## Sending an Encrypted Message (ECIES)
 
-ECIES is the default and recommended encryption method. It encrypts directly to the recipient's public key — no prior key exchange is needed, and messages can be decrypted on any device that holds the recipient's private key.
+ECIES is the default and recommended encryption method. It encrypts directly to the recipient's public key. No prior key exchange is needed, and messages can be decrypted on any device that holds the recipient's private key.
 
 ```javascript
 let result = await sdk.sendMessage({
@@ -90,14 +90,14 @@ for (let msg of messages) {
 ```
 
 Each message object contains:
-- `from` — sender address
-- `to` — recipient address
-- `text` — decrypted message text (or `null` if decryption failed or no WIF provided)
-- `encrypted` — `true` if the message was encrypted
-- `method` — encryption method used (1, 2, 3, or `null` for plaintext)
-- `txid` — transaction hash
-- `block` — block height
-- `timestamp` — block timestamp
+- `from`: sender address
+- `to`: recipient address
+- `text`: decrypted message text (or `null` if decryption failed or no WIF provided)
+- `encrypted`: `true` if the message was encrypted
+- `method`: encryption method used (1, 2, 3, or `null` for plaintext)
+- `txid`: transaction hash
+- `block`: block height
+- `timestamp`: block timestamp
 
 ## Low-Level ECIES Encrypt/Decrypt
 

@@ -5,8 +5,8 @@
 
 The wallet supports two multisig schemes:
 
-- **Classical n-of-m** — every cosigner produces a partial PSBT; coordinator finalizes by combining partials. Address is a P2SH / P2WSH multisig address. Supported on every chain.
-- **MuSig2** — three-round protocol producing a single Schnorr signature indistinguishable on-chain from a single-signer transaction. Bitcoin only (Taproot / Schnorr requirement). Software-signer-only today.
+- **Classical n-of-m**: every cosigner produces a partial PSBT; coordinator finalizes by combining partials. Address is a P2SH / P2WSH multisig address. Supported on every chain.
+- **MuSig2**: three-round protocol producing a single Schnorr signature indistinguishable on-chain from a single-signer transaction. Bitcoin only (Taproot / Schnorr requirement). Software-signer-only today.
 
 Both schemes share the same coordinator UI and the same per-address multi-config schema.
 
@@ -38,14 +38,14 @@ A single address can host more than one configuration (schema v2's per-address m
 
 `MultisigCreate.jsx` walks the user through:
 
-1. **Pick chain + address type** — classical n-of-m on any chain, or MuSig2 on BTC only
-2. **Pick threshold** — the n in n-of-m (1 ≤ n ≤ m)
-3. **Add cosigners** — three sources:
-   - **Local** — derive a fresh address under the current wallet's mnemonic
-   - **Paired** — read the pubkey from a paired hardware or remote signer
-   - **Imported** — paste a cosigner's pubkey out-of-band
-4. **Confirm address** — wallet derives the multisig address from threshold + cosigners and shows it for verification
-5. **Persist** — config is saved to the vault's `multisigs[]` collection
+1. **Pick chain + address type**: classical n-of-m on any chain, or MuSig2 on BTC only
+2. **Pick threshold**; the n in n-of-m (1 ≤ n ≤ m)
+3. **Add cosigners**; three sources:
+   - **Local**: derive a fresh address under the current wallet's mnemonic
+   - **Paired**: read the pubkey from a paired hardware or remote signer
+   - **Imported**: paste a cosigner's pubkey out-of-band
+4. **Confirm address**: wallet derives the multisig address from threshold + cosigners and shows it for verification
+5. **Persist**: config is saved to the vault's `multisigs[]` collection
 
 Address derivation uses BIP48 paths (`m / 48' / coin' / account' / script-type'`) for classical multisig and the appropriate Taproot-MuSig2 derivation for MuSig2 configurations. `DerivationPathCrossCheck.jsx` shows the path next to each cosigner so users can verify across wallets.
 
@@ -73,7 +73,7 @@ indexed (action confirmed by xchain-indexer)
 
 Round labels in `MultisigSigningSession.jsx`:
 
-- "Round 1 of 1 — Collect partials"
+- "Round 1 of 1; Collect partials"
 
 Each partial is a regular PSBT signed by one cosigner. The coordinator (any cosigner with all `n` partials) calls `xchain-sdk@1.13.0+`'s `wallet.signMultisigPsbt` to combine and finalize.
 
@@ -95,21 +95,21 @@ indexed
 
 Round labels in `MultisigSigningSession.jsx`:
 
-- "Round 1 of 3 — Commit"
-- "Round 2 of 3 — Reveal"
-- "Round 3 of 3 — Sign"
+- "Round 1 of 3; Commit"
+- "Round 2 of 3; Reveal"
+- "Round 3 of 3; Sign"
 
-The wallet persists round-state per cosigner so a session can resume after a tab close. MuSig2's nonce reuse must never happen — the wallet enforces this by tying nonces to the session id and refusing to re-emit a nonce for an already-committed session.
+The wallet persists round-state per cosigner so a session can resume after a tab close. MuSig2's nonce reuse must never happen; the wallet enforces this by tying nonces to the session id and refusing to re-emit a nonce for an already-committed session.
 
 ## Cosigner transport
 
 The coordinator collects partials (or round payloads) from cosigners over one of three transport modes:
 
-- **Paste inbox** — paste the partial as text. `MultisigSigningSession.jsx` exposes a textarea + paste handler that runs through `detectQrContent` and routes the multisig-PSBT envelope to the session.
-- **QR scan** — `QrScanner.jsx` reads animated frames from a cosigner's screen; `core/src/uri/multisigPsbtEnvelope.js` decodes the envelope. Used for offline cosigners.
-- **Animated QR display** — when *this* device is the cosigner producing a partial, `AnimatedQrFrames.jsx` displays the chunked envelope for the next cosigner to scan. 3 fps default, manual stepping under `prefers-reduced-motion`.
+- **Paste inbox**: paste the partial as text. `MultisigSigningSession.jsx` exposes a textarea + paste handler that runs through `detectQrContent` and routes the multisig-PSBT envelope to the session.
+- **QR scan**: `QrScanner.jsx` reads animated frames from a cosigner's screen; `core/src/uri/multisigPsbtEnvelope.js` decodes the envelope. Used for offline cosigners.
+- **Animated QR display**: when *this* device is the cosigner producing a partial, `AnimatedQrFrames.jsx` displays the chunked envelope for the next cosigner to scan. 3 fps default, manual stepping under `prefers-reduced-motion`.
 
-All three transports use the same envelope format — see [URI Schemes — Multisig PSBT envelope](URI_Schemes.md#multisig-psbt-envelope).
+All three transports use the same envelope format (see [URI Schemes) Multisig PSBT envelope](URI_Schemes.md#multisig-psbt-envelope).
 
 ## Hardware signer status
 
@@ -120,17 +120,17 @@ All three transports use the same envelope format — see [URI Schemes — Multi
 | Ledger | Vendor-API-heavy stub; surfaces `ESignerDeferred` with software-fallback message | Firmware-gated; not yet shipped |
 | Remote | Defers to whichever signer is on the other end of the channel | Same |
 
-The vendor deferrals are not refusals — they're a "this build doesn't speak this protocol on this device yet, fall back to the software signer". The hardware-signer multisig PSBT signing path is scaffolded for both Trezor and Ledger; finishing it is one of the queued post-GA items. MuSig2 on hardware is firmware-gated by the device vendors and lands when their firmware does.
+The vendor deferrals are not refusals, they're a "this build doesn't speak this protocol on this device yet, fall back to the software signer". The hardware-signer multisig PSBT signing path is scaffolded for both Trezor and Ledger; finishing it is one of the queued post-GA items. MuSig2 on hardware is firmware-gated by the device vendors and lands when their firmware does.
 
 ## Coordinator role
 
-Any cosigner can act as the coordinator for a session — there's no fixed coordinator. In practice:
+Any cosigner can act as the coordinator for a session, there's no fixed coordinator. In practice:
 
 - The originator (the cosigner who initiated the transaction) defaults to coordinator
 - Any cosigner with `n` partials can finalize
-- Cosigners see partials in their paste inbox once they're forwarded over the chosen transport — there's no centralized server
+- Cosigners see partials in their paste inbox once they're forwarded over the chosen transport, there's no centralized server
 
-For larger n-of-m groups, conventions emerge — typically a designated coordinator (treasurer, secretary) collects and finalizes — but the protocol doesn't require it.
+For larger n-of-m groups, conventions emerge, typically a designated coordinator (treasurer, secretary) collects and finalizes; but the protocol doesn't require it.
 
 ## Address browsing
 
@@ -138,7 +138,7 @@ For larger n-of-m groups, conventions emerge — typically a designated coordina
 
 ## Sweep flow
 
-When a multisig configuration is retired, the wallet supports a sweep flow that consolidates all funds at the multisig address to a destination chosen by the threshold of cosigners. The sweep is one final n-of-m signing session — once it lands the config can be archived from Settings → Multisig.
+When a multisig configuration is retired, the wallet supports a sweep flow that consolidates all funds at the multisig address to a destination chosen by the threshold of cosigners. The sweep is one final n-of-m signing session, once it lands the config can be archived from Settings → Multisig.
 
 ---
 

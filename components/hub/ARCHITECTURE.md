@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Hub — Architecture
+# XChain Platform Hub: Architecture
 
 ## Position in the Data Pipeline
 
@@ -106,7 +106,7 @@ Governance       --proposal:passed-->  (parameter application)
 
 | File | Class/Module | Role |
 |---|---|---|
-| `api.js` | — | Entry point: Express app, JSON-RPC routes, env var validation, starts XChainHub |
+| `api.js` | None | Entry point: Express app, JSON-RPC routes, env var validation, starts XChainHub |
 | `XChainHub.js` | `XChainHub` | Orchestrator: wires all subsystems, exposes JSON-RPC method handlers |
 | `db.js` | `Database` | MariaDB connection pool with circuit breaker and exponential backoff |
 | `PeerManager.js` | `PeerManager` | WebSocket P2P gossip layer: peer connections, message signing, heartbeats |
@@ -121,13 +121,13 @@ Governance       --proposal:passed-->  (parameter application)
 | `Governance.js` | `Governance` | Off-chain PBFT voting for parameter changes |
 | `RewardTracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants; pushes rewards to BTC indexer for `COLLECT` |
 | `SlashDetector.js` | `SlashDetector` | Validator misbehavior detection: price deviation, non-participation |
-| `PriceAggregator.js` | `PriceAggregator` | Receives validated PRICE v0/v1 actions from indexers, deduplicates by `round_number` (v0) or `(source, action_index)` (v1), writes to `price_snapshots`/`oracle_prices`. EventEmitter — emits `row:inserted` for hub DB sync. |
+| `PriceAggregator.js` | `PriceAggregator` | Receives validated PRICE v0/v1 actions from indexers, deduplicates by `round_number` (v0) or `(source, action_index)` (v1), writes to `price_snapshots`/`oracle_prices`. EventEmitter: emits `row:inserted` for hub DB sync. |
 | `OraclePublisher.js` | `OraclePublisher` | `oracle_publish` capability publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
-| `EncoderClient.js` | `EncoderClient` | Minimal JSON-RPC client for talking to xchain-encoder (`get_utxos`, `create_tx`, `broadcast_tx`) — used by `OraclePublisher` |
+| `EncoderClient.js` | `EncoderClient` | Minimal JSON-RPC client for talking to xchain-encoder (`get_utxos`, `create_tx`, `broadcast_tx`): used by `OraclePublisher` |
 | `HubDbBroadcaster.js` | `HubDbBroadcaster` | WebSocket subscriber registry; broadcasts `row:inserted` events from `PriceAggregator`, `StateCheckpointEngine`, `CrossChainDexEngine`, and `CrossChainCallEngine` to all connected indexers' `HubDbSync` clients |
 | `StateCheckpointEngine.js` | `StateCheckpointEngine` | Quorum-signed per-chain ledger/actions/contract hash checkpoints: cadence-leader reads each chain's block-hash triple, collects XCHK_SIGN from peers, finalizes at 2f+1 signatures, writes to `state_checkpoints`, streams via `HubDbBroadcaster`, emits `checkpoint:finalized` |
 | `StateAnchorPublisher.js` | `StateAnchorPublisher` | Per-chain publisher-election anchor: listens for `checkpoint:finalized`, batches `cross_chain_matches` archive, and commits checkpoints + archive on-chain via the DOGE ANCHOR action on `ANCHOR_INTERVAL_MS` cadence |
-| `sql/*.sql` | — | MariaDB table schemas (configs, validators, price_snapshots, oracle_prices, state_checkpoints, capability_snapshots, cross_chain_matches, cross_chain_calls, validator_rewards, governance, telemetry_pings, etc.) |
+| `sql/*.sql` | None | MariaDB table schemas (configs, validators, price_snapshots, oracle_prices, state_checkpoints, capability_snapshots, cross_chain_matches, cross_chain_calls, validator_rewards, governance, telemetry_pings, etc.) |
 
 ## P2P Gossip Layer
 
@@ -155,7 +155,7 @@ Validator A                         Validator B
 1. Subsystem calls `peerManager.broadcast(type, data)` (or `sendToPeer(addr, type, data)` for a directed message).
 2. PeerManager wraps `data` in an envelope, assigns a unique ID, signs with Ed25519 (if identity configured), and adds to `seenIds` dedup cache.
 3. Message sent to all connected peers.
-4. Receiving PeerManager checks `seenIds` — drops duplicates.
+4. Receiving PeerManager checks `seenIds`, drops duplicates.
 5. Verifies Ed25519 signature against registered validator pubkeys (if `REQUIRE_SIGNATURES=true`).
 6. Emits `message` event; relays to other peers (flood-fill gossip).
 
@@ -170,7 +170,7 @@ Validator A                         Validator B
 
 ### Envelope Wire Format
 
-Every message on the gossip layer — regardless of which subsystem produced it — is a single JSON object with the same envelope shape. The subsystem-specific payload lives entirely inside `data`; everything else is transport metadata.
+Every message on the gossip layer (regardless of which subsystem produced it) is a single JSON object with the same envelope shape. The subsystem-specific payload lives entirely inside `data`; everything else is transport metadata.
 
 ```json
 {
@@ -192,7 +192,7 @@ Every message on the gossip layer — regardless of which subsystem produced it 
 | `data` | `object` | Subsystem-specific payload. Defaults to `{}` when omitted by the sender. |
 | `sig` | `string` | Optional Ed25519 signature, hex-encoded. Present when the sender has a configured validator identity. |
 
-**Signature canonicalization.** The signature covers a deterministic JSON serialization of exactly five fields, in this fixed key order — **`id`, `type`, `sender`, `timestamp`, `data`** — with `sig` itself excluded:
+**Signature canonicalization.** The signature covers a deterministic JSON serialization of exactly five fields, in this fixed key order (**`id`, `type`, `sender`, `timestamp`, `data`**) with `sig` itself excluded:
 
 ```js
 JSON.stringify({ id, type, sender, timestamp, data })
@@ -212,7 +212,7 @@ All types below ride the envelope above; only the `data` payload differs. Every 
 |---|---|---|
 | `HEARTBEAT` | `{ "version": "<hub-version>" }` | Broadcast every `P2P_HEARTBEAT_INTERVAL` (default 15s). Carries the hub software version for upgrade coordination; emits a `heartbeat` event with `(sender, timestamp)`. |
 
-**Capability gossip** (advertises which staking-backed capabilities a validator is running; emits a `capability` event). The receiver additionally requires that `data.pubkey` match the `sender`'s registered validator pubkey — a validator cannot advertise capabilities on behalf of another pubkey.
+**Capability gossip** (advertises which staking-backed capabilities a validator is running; emits a `capability` event). The receiver additionally requires that `data.pubkey` match the `sender`'s registered validator pubkey; a validator cannot advertise capabilities on behalf of another pubkey.
 
 | Type | `data` shape | Purpose |
 |---|---|---|
@@ -266,7 +266,7 @@ If the leader fails to drive consensus within `PBFT_TIMEOUT` (default 30s):
 
 ### Quorum
 
-`max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)` — tolerates `f` Byzantine validators
+`max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)`, tolerates `f` Byzantine validators
 out of `N` total. The simple-majority floor matters for small federations: bare `2f+1`
 degenerates to a quorum of 1 at N=3 (f=0), which would let a single validator finalize
 alone. With the floor, N=3 requires 2 votes and N=2 requires both.
@@ -379,7 +379,7 @@ Hub                                    Indexer (HubDbSync client)
 |---|---|---|
 | `/hub-db/subscribe` | `Authorization: Bearer <HUB_API_KEY>` | `{type: 'row:inserted', table, row}` per inserted row |
 
-Indexers bootstrap by fetching the REST snapshots (paginated by `since_id`) then subscribe to the WebSocket for live updates. Failed sends apply backpressure handling — connections exceeding `WS_BACKPRESSURE_LIMIT` buffered messages are dropped.
+Indexers bootstrap by fetching the REST snapshots (paginated by `since_id`) then subscribe to the WebSocket for live updates. Failed sends apply backpressure handling, connections exceeding `WS_BACKPRESSURE_LIMIT` buffered messages are dropped.
 
 ### Trimmed Median
 

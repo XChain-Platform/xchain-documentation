@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Indexer — ACTION Reference
+# XChain Platform Indexer: ACTION Reference
 
 ## Protocol Versioning
 
@@ -78,11 +78,11 @@ The original 22 actions are registered at version `1.0.0` with activation at blo
 
 ## Staking Actions
 
-Two staking systems share the same four action names. **Capability staking** (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT) is **BTC-only** — it secures the platform validator set. **Contract-targeted staking** (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) **works on any chain** (BTC, LTC, DOGE) — it's a developer primitive used by stakeable smart contracts. All staking actions are subject to a **6-block activation/deactivation delay** (measured in blocks of the broadcasting chain) for reorg safety — see the action specifications for details.
+Two staking systems share the same four action names. **Capability staking** (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT) is **BTC-only**; it secures the platform validator set. **Contract-targeted staking** (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) **works on any chain** (BTC, LTC, DOGE), it's a developer primitive used by stakeable smart contracts. All staking actions are subject to a **6-block activation/deactivation delay** (measured in blocks of the broadcasting chain) for reorg safety, see the action specifications for details.
 
 | Action | Purpose | Key Validations |
 |---|---|---|
-| **STAKE** | Lock tokens against a signing pubkey. v1 = new capability stake (XCHAIN), v2 = top-up of existing capability stake (XCHAIN), v3 = contract-targeted stake (any token, targets a stakeable contract — see DEPLOY v1) | VERSION valid (1/2/3), AMOUNT positive, SIGNING_PUBKEY is 64-char hex Ed25519. v1/v2: aggregate per-pubkey active stake auto-qualifies the pubkey for each of four capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) based on governance `min_stake[capability]`. v3: target contract must be stakeable; row keyed by `(target, pubkey, tick, source)`. |
+| **STAKE** | Lock tokens against a signing pubkey. v1 = new capability stake (XCHAIN), v2 = top-up of existing capability stake (XCHAIN), v3 = contract-targeted stake (any token, targets a stakeable contract: see DEPLOY v1) | VERSION valid (1/2/3), AMOUNT positive, SIGNING_PUBKEY is 64-char hex Ed25519. v1/v2: aggregate per-pubkey active stake auto-qualifies the pubkey for each of four capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) based on governance `min_stake[capability]`. v3: target contract must be stakeable; row keyed by `(target, pubkey, tick, source)`. |
 | **UNSTAKE** | Release staked tokens. v0 = full-pubkey capability unstake. v1 = release a single contract-targeted row keyed by `(target, pubkey, tick)`. | Pubkey has active stake of matching type; sets `deactivation_block`. v1 cooldown is per-contract (set at DEPLOY v1 time); v0 uses the global `STAKING.COOLDOWN_BLOCKS`. |
 | **DELEGATE** | Manage the signing key for a stake. v0 = capability rotate, v1 = contract rotate, v2 = capability revoke, v3 = contract revoke. | Active stake/delegation of matching type exists. For rotates, new pubkey valid and unused. Takes effect after 6 blocks. |
 | **COLLECT** | Collect accumulated rewards | Address has unclaimed rewards > 0. `oracle_round` and `attest_fee` rewards are derived by the indexer during block processing; `anchor_<chain>` and `anchor_archive` rewards are pushed from `xchain-hub` via `pushvalidatorrewards`. |
@@ -96,7 +96,7 @@ The publisher role for broadcasting finalized PRICE v0 transactions to a chain (
 | Action | Purpose | Key Validations |
 |---|---|---|
 | [**PRICE**](../../protocol/actions/PRICE.md) v0 | Validator COIN/FIAT price snapshot (PBFT-signed) | All pubkeys qualify for the `price` capability at the PRICE tx's `block_index`; Ed25519 signatures verify against canonical payload; `SIG_COUNT >= 2*floor((price_capable_count-1)/3)+1` |
-| [**PRICE**](../../protocol/actions/PRICE.md) v1 | User TOKEN/FIAT oracle price | Valid COIN/TICK/FIAT/VALUE format. **Permissionless** — any address may publish, no staking requirement. 24-hour lock window for subsequent updates per `(SOURCE, COIN, TICK, FIAT)` combination. |
+| [**PRICE**](../../protocol/actions/PRICE.md) v1 | User TOKEN/FIAT oracle price | Valid COIN/TICK/FIAT/VALUE format. **Permissionless**; any address may publish, no staking requirement. 24-hour lock window for subsequent updates per `(SOURCE, COIN, TICK, FIAT)` combination. |
 
 After validation, the indexer writes to its local `prices` table and pushes to `xchain-hub` for cross-chain aggregation into `price_snapshots` (v0) or `oracle_prices` (v1).
 
@@ -106,8 +106,8 @@ Virtual Machine actions are available on **all chains** (BTC, LTC, DOGE). DEPLOY
 
 | Action | Purpose | Key Validations | Gas Fee |
 |---|---|---|---|
-| [**DEPLOY**](../../protocol/actions/DEPLOY.md) | Deploy a JavaScript smart contract to the VM. v0 = standard. v1 = stakeable (adds `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` so the contract can accept STAKE v3 actions). | Syntax validation (V8 + acorn ES2020 + `__gas` check), code size ≤ 64KB, sufficient XCHAIN for gas. Creates derived address `C:<CHAIN>:<action_index>`. Optionally runs constructor. v1 staking fields immutable after deploy; `SLASH_DESTINATION` without `COOLDOWN_BLOCKS` is rejected; `BURN` sentinel resolves to chain burn address. | Yes — `VM_DEPLOY_BASE + (bytes * VM_DEPLOY_PER_BYTE)` + constructor gas |
-| [**EXECUTE**](../../protocol/actions/EXECUTE.md) | Call a method on a deployed contract in a sandboxed V8 isolate | Contract exists and is active, method exists, sufficient XCHAIN for gas. VM runs contract code, processes state changes and up to 50 emitted actions atomically via savepoint. | Yes — actual metered gas consumed |
+| [**DEPLOY**](../../protocol/actions/DEPLOY.md) | Deploy a JavaScript smart contract to the VM. v0 = standard. v1 = stakeable (adds `COOLDOWN_BLOCKS` + `SLASH_DESTINATION` so the contract can accept STAKE v3 actions). | Syntax validation (V8 + acorn ES2020 + `__gas` check), code size ≤ 64KB, sufficient XCHAIN for gas. Creates derived address `C:<CHAIN>:<action_index>`. Optionally runs constructor. v1 staking fields immutable after deploy; `SLASH_DESTINATION` without `COOLDOWN_BLOCKS` is rejected; `BURN` sentinel resolves to chain burn address. | Yes: `VM_DEPLOY_BASE + (bytes * VM_DEPLOY_PER_BYTE)` + constructor gas |
+| [**EXECUTE**](../../protocol/actions/EXECUTE.md) | Call a method on a deployed contract in a sandboxed V8 isolate | Contract exists and is active, method exists, sufficient XCHAIN for gas. VM runs contract code, processes state changes and up to 50 emitted actions atomically via savepoint. | Yes: actual metered gas consumed |
 | [**DEPOSIT**](../../protocol/actions/DEPOSIT.md) | Transfer tokens to a contract's derived address | Contract exists and is active, sender has sufficient balance. Credits `C:<CHAIN>:<action_index>` in standard ledger. | No |
 | [**WITHDRAW**](../../protocol/actions/WITHDRAW.md) | Withdraw tokens from a contract's derived address to owner | Contract exists, sender is contract owner, derived address has sufficient balance | No |
 

@@ -5,7 +5,7 @@
 
 ## The Short Version
 
-XChain is a token protocol that runs on top of existing blockchains — specifically Bitcoin, Litecoin, and Dogecoin. It lets you create and manage digital assets (tokens), trade them on a built-in exchange, swap them across chains, run smart contracts that can call out to AI models and the web, publish encrypted files only your token holders can read, stake any token against any contract on any chain, store files, send messages, and much more — all without leaving the security of the underlying blockchain.
+XChain is a token protocol that runs on top of existing blockchains, specifically Bitcoin, Litecoin, and Dogecoin. It lets you create and manage digital assets (tokens), trade them on a built-in exchange, swap them across chains, run smart contracts that can call out to AI models and the web, publish encrypted files only your token holders can read, stake any token against any contract on any chain, store files, send messages, and much more, all without leaving the security of the underlying blockchain.
 
 If you've heard of other token protocols like Counterparty, Ordinals, or Colored Coins, XChain is in that tradition: it uses the existing Bitcoin (or Litecoin, or Dogecoin) network as its foundation, and adds a richer layer of functionality on top of it.
 
@@ -15,13 +15,13 @@ If you've heard of other token protocols like Counterparty, Ordinals, or Colored
 
 To understand XChain, it helps to think in layers.
 
-The base layer is a blockchain — Bitcoin, for instance. Bitcoin's job is to record transactions in a decentralized, tamper-proof ledger. It does that job extremely well. What it doesn't do natively is support tokens, decentralized exchanges, data storage, or most of the other things people want to build on a blockchain.
+The base layer is a blockchain; Bitcoin, for instance. Bitcoin's job is to record transactions in a decentralized, tamper-proof ledger. It does that job extremely well. What it doesn't do natively is support tokens, decentralized exchanges, data storage, or most of the other things people want to build on a blockchain.
 
-XChain is what's called a **metalayer** — a protocol that runs *above* the base blockchain, using it as its foundation without modifying it in any way.
+XChain is what's called a **metalayer**; a protocol that runs *above* the base blockchain, using it as its foundation without modifying it in any way.
 
-Think of it like a building's electrical wiring. The building's concrete and steel structure (the blockchain) provides the foundation. The wiring (XChain) runs through that structure to provide new capabilities — but the structure itself doesn't change. Anyone can use those new capabilities without altering the building's foundation.
+Think of it like a building's electrical wiring. The building's concrete and steel structure (the blockchain) provides the foundation. The wiring (XChain) runs through that structure to provide new capabilities; but the structure itself doesn't change. Anyone can use those new capabilities without altering the building's foundation.
 
-In practice, XChain works by embedding small pieces of data inside ordinary blockchain transactions. Those data packets are invisible to Bitcoin itself — they're just part of a normal transaction. But XChain's software layer reads those packets, interprets them as commands, and maintains its own database of token balances, orders, and state.
+In practice, XChain works by embedding small pieces of data inside ordinary blockchain transactions. Those data packets are invisible to Bitcoin itself, they're just part of a normal transaction. But XChain's software layer reads those packets, interprets them as commands, and maintains its own database of token balances, orders, and state.
 
 **Nothing about Bitcoin, Litecoin, or Dogecoin is changed.** XChain tokens exist on the actual blockchain, secured by the same proof-of-work consensus that secures every other Bitcoin transaction. There are no sidechains, no bridges, no separate validators, no new consensus mechanism to trust.
 
@@ -29,7 +29,7 @@ In practice, XChain works by embedding small pieces of data inside ordinary bloc
 
 ## What Can You Do with XChain?
 
-XChain is built around 30 commands — called **ACTIONs** — that cover the full lifecycle of a digital asset ecosystem.
+XChain is built around 30 commands (called **ACTIONs**) that cover the full lifecycle of a digital asset ecosystem.
 
 ### Create and Manage Tokens
 
@@ -43,13 +43,13 @@ Send tokens to one or more addresses in a single transaction. You can include op
 
 ### Trade on the Built-in DEX
 
-XChain has a native decentralized exchange built directly into the protocol. You can place sell orders specifying what you're offering and what you want in return, and buyers can fill those orders. You can cancel or modify outstanding orders. No central exchange, no custodian — trades settle directly on the blockchain.
+XChain has a native decentralized exchange built directly into the protocol. You can place sell orders specifying what you're offering and what you want in return, and buyers can fill those orders. You can cancel or modify outstanding orders. No central exchange, no custodian, trades settle directly on the blockchain.
 
 **Dispensers** are a simpler vending-machine model: set a price in one token, and anyone who sends that amount automatically receives the dispensed token in return. Dispensers are useful for simple token sales, faucets, or automated distribution.
 
 ### Swap Across Chains
 
-The SWAP action enables atomic cross-chain exchanges — trading a token on Bitcoin for a token on Litecoin, for example. This happens without a bridge or a trusted intermediary.
+The SWAP action enables atomic cross-chain exchanges, trading a token on Bitcoin for a token on Litecoin, for example. This happens without a bridge or a trusted intermediary.
 
 ### Store Data and Messages
 
@@ -57,30 +57,30 @@ XChain can embed arbitrary data on the blockchain. The MESSAGE action stores a s
 
 ### Publish Cryptographically Secure, Token-Gated Files
 
-The FILE action also supports **token-gated cryptographic publishing**. A creator can publish a single file or a multi-file pack on-chain, encrypted such that only holders of a specific token can decrypt it. When the token is transferred (or sold on the DEX), the symmetric key is automatically re-encrypted to the new holder in the same transaction — they unlock entirely client-side, with no on-chain unlock action and no third-party key server. The encrypted bytes live permanently on the blockchain alongside everything else; the gating is enforced cryptographically, not by trusting a host. See [Token-Gated Content](../protocol/Token_Gated_Content.md).
+The FILE action also supports **token-gated cryptographic publishing**. A creator can publish a single file or a multi-file pack on-chain, encrypted such that only holders of a specific token can decrypt it. When the token is transferred (or sold on the DEX), the symmetric key is automatically re-encrypted to the new holder in the same transaction; they unlock entirely client-side, with no on-chain unlock action and no third-party key server. The encrypted bytes live permanently on the blockchain alongside everything else; the gating is enforced cryptographically, not by trusting a host. See [Token-Gated Content](../protocol/Token_Gated_Content.md).
 
 ### Advanced Control
 
 - **SLEEP** temporarily suspends an action (like a dispenser or order) from a certain block height until another.
-- **CALLBACK** lets a token issuer reclaim tokens from holders at a defined price after a certain block — useful for structured financial instruments.
+- **CALLBACK** lets a token issuer reclaim tokens from holders at a defined price after a certain block, useful for structured financial instruments.
 - **ADDRESS** lets users configure per-address preferences, like requiring memos on incoming transfers.
 - **LIST** creates named lists of addresses or ticks that can be referenced as allow lists or block lists in other actions.
 - **BATCH** bundles multiple actions into a single blockchain transaction, saving fees.
 
 ### Run Smart Contracts
 
-XChain includes a built-in **virtual machine** that brings smart contract capabilities to Bitcoin, Litecoin, and Dogecoin — without sidechains or separate networks.
+XChain includes a built-in **virtual machine** that brings smart contract capabilities to Bitcoin, Litecoin, and Dogecoin, without sidechains or separate networks.
 
 - **DEPLOY** uploads a smart contract to the blockchain. Contracts are written in JavaScript, base64-encoded, and stored permanently on-chain. Once deployed, a contract has its own address-like identity (referenced by its action_index) and can hold token balances.
-- **EXECUTE** calls a method on a deployed contract. The contract runs in a sandboxed V8 isolate with gas metering — every computation costs gas, preventing infinite loops and resource abuse. Contract state is stored on-chain and is fully deterministic: every node that processes the same transactions arrives at the same result.
-- **DEPOSIT** transfers tokens from a user's balance into a contract's custody. This is how contracts receive funds to work with — escrow, liquidity pools, staking, or any other mechanism the contract implements.
+- **EXECUTE** calls a method on a deployed contract. The contract runs in a sandboxed V8 isolate with gas metering; every computation costs gas, preventing infinite loops and resource abuse. Contract state is stored on-chain and is fully deterministic: every node that processes the same transactions arrives at the same result.
+- **DEPOSIT** transfers tokens from a user's balance into a contract's custody. This is how contracts receive funds to work with: escrow, liquidity pools, staking, or any other mechanism the contract implements.
 - **WITHDRAW** transfers tokens from a contract's custody back to a user. The contract's code decides when and how withdrawals are allowed.
 
-Smart contracts on XChain are deterministic and reorg-safe: if the blockchain reorganizes, contract state rolls back automatically. There are no separate validators or consensus — the same indexer that processes token transfers also executes contract code.
+Smart contracts on XChain are deterministic and reorg-safe: if the blockchain reorganizes, contract state rolls back automatically. There are no separate validators or consensus; the same indexer that processes token transfers also executes contract code.
 
-**Contracts can also reach the outside world.** Through the platform's built-in attestation framework, a contract can ask a question — an HTTPS fetch, or a prompt to an approved AI model — and receive a verified answer back on-chain through a callback. Validators each fetch the answer independently, agree on a result, and write it to the blockchain. This is how XChain contracts run AI-judged contests, react to real-world data, settle prediction markets from official sources, and moderate content. See [AI-Powered Smart Contracts](../user-guide/Use_Cases.md#ai-powered-smart-contracts).
+**Contracts can also reach the outside world.** Through the platform's built-in attestation framework, a contract can ask a question (an HTTPS fetch, or a prompt to an approved AI model) and receive a verified answer back on-chain through a callback. Validators each fetch the answer independently, agree on a result, and write it to the blockchain. This is how XChain contracts run AI-judged contests, react to real-world data, settle prediction markets from official sources, and moderate content. See [AI-Powered Smart Contracts](../user-guide/Use_Cases.md#ai-powered-smart-contracts).
 
-**Contracts can be staked against.** When a contract is deployed, the author can declare it stakeable — anyone can then lock any token on any chain against the contract, and the contract's own code decides what staking unlocks and when to slash. See [Native Multi-Chain Staking](../user-guide/Use_Cases.md#native-multi-chain-staking).
+**Contracts can be staked against.** When a contract is deployed, the author can declare it stakeable, anyone can then lock any token on any chain against the contract, and the contract's own code decides what staking unlocks and when to slash. See [Native Multi-Chain Staking](../user-guide/Use_Cases.md#native-multi-chain-staking).
 
 ### Stake and Validate
 
@@ -101,31 +101,31 @@ There are a lot of blockchain protocols out there. Here's what sets XChain apart
 
 ### No Sidechains, No Bridges
 
-Many blockchain token systems work by "locking" assets on one chain and "mirroring" them on another — a process that requires bridges. Bridges are one of the most attacked surfaces in all of crypto; billions of dollars have been lost to bridge exploits.
+Many blockchain token systems work by "locking" assets on one chain and "mirroring" them on another; a process that requires bridges. Bridges are one of the most attacked surfaces in all of crypto; billions of dollars have been lost to bridge exploits.
 
 XChain doesn't use bridges. When you hold an XChain token on Bitcoin, that token record literally exists inside a Bitcoin transaction. There's nothing to bridge, nothing to lock and unlock, no separate chain to trust.
 
 ### No New Consensus
 
-A lot of layer-2 and sidechain systems require you to trust a separate set of validators. XChain has no separate validators. The security of your XChain tokens comes directly from Bitcoin's (or Litecoin's or Dogecoin's) proof-of-work consensus — the same mechanism that has secured those chains for over a decade.
+A lot of layer-2 and sidechain systems require you to trust a separate set of validators. XChain has no separate validators. The security of your XChain tokens comes directly from Bitcoin's (or Litecoin's or Dogecoin's) proof-of-work consensus; the same mechanism that has secured those chains for over a decade.
 
 ### Multi-Chain by Design
 
-XChain runs natively on Bitcoin, Litecoin, and Dogecoin simultaneously. A token on one chain is distinct from a token on another chain — they have separate ledgers. But the XChain software supports all three chains with the same protocol, the same 30 actions, and the same tooling. A single deployment of the platform can index and serve data for all three chains at once.
+XChain runs natively on Bitcoin, Litecoin, and Dogecoin simultaneously. A token on one chain is distinct from a token on another chain; they have separate ledgers. But the XChain software supports all three chains with the same protocol, the same 30 actions, and the same tooling. A single deployment of the platform can index and serve data for all three chains at once.
 
 ### AI-Callable Smart Contracts
 
-Most smart contract platforms can only reason about data already on-chain. XChain contracts can ask the outside world — including a large language model — and get a verified answer back. The platform's validator network fetches the answer independently, agrees on a result, and writes it to the blockchain so anyone replaying the chain arrives at the same outcome. This makes it practical to build contracts that respond to real-world events, that judge subjective content, that summarize or classify text, or that act on live data — without trusting any single oracle.
+Most smart contract platforms can only reason about data already on-chain. XChain contracts can ask the outside world (including a large language model) and get a verified answer back. The platform's validator network fetches the answer independently, agrees on a result, and writes it to the blockchain so anyone replaying the chain arrives at the same outcome. This makes it practical to build contracts that respond to real-world events, that judge subjective content, that summarize or classify text, or that act on live data, without trusting any single oracle.
 
 ### Open, Permissionless, Deployable
 
-The XChain platform is open source software. Anyone can run their own XChain node, index their own copy of the blockchain, and operate their own API. There's no central company or server that must be online for XChain to function. Institutions and developers can run private deployments with their own configuration — including custom gas parameters, testnet environments, and isolated regtest networks for development.
+The XChain platform is open source software. Anyone can run their own XChain node, index their own copy of the blockchain, and operate their own API. There's no central company or server that must be online for XChain to function. Institutions and developers can run private deployments with their own configuration: including custom gas parameters, testnet environments, and isolated regtest networks for development.
 
 ---
 
 ## The 30 ACTIONs: The Building Blocks
 
-Every operation on XChain is expressed as one of 30 ACTION commands. Think of them as the vocabulary of the protocol — a complete set of verbs for working with digital assets.
+Every operation on XChain is expressed as one of 30 ACTION commands. Think of them as the vocabulary of the protocol; a complete set of verbs for working with digital assets.
 
 | Category | ACTIONs |
 |---|---|
@@ -138,17 +138,17 @@ Every operation on XChain is expressed as one of 30 ACTION commands. Think of th
 | Data and communication | BROADCAST, MESSAGE, FILE |
 | Configuration | ADDRESS, BATCH, LINK, LIST |
 
-Each ACTION has a versioned format — as the protocol evolves and adds new fields, old versions remain valid so that existing software doesn't break.
+Each ACTION has a versioned format, as the protocol evolves and adds new fields, old versions remain valid so that existing software doesn't break.
 
-ACTIONs are encoded as compact pipe-delimited strings embedded inside standard blockchain transactions. The encoding is obfuscated (not encrypted — the data is fully readable by anyone running an XChain node) to avoid being accidentally filtered by blockchain infrastructure. A magic prefix (`XCHN`) identifies XChain transactions.
+ACTIONs are encoded as compact pipe-delimited strings embedded inside standard blockchain transactions. The encoding is obfuscated (not encrypted; the data is fully readable by anyone running an XChain node) to avoid being accidentally filtered by blockchain infrastructure. A magic prefix (`XCHN`) identifies XChain transactions.
 
 ---
 
 ## The Gas Token: XCHAIN
 
-Every economy needs a way to pay for operations. XChain uses a token called **XCHAIN** as its gas token — the fee currency for actions that write to the database. Creating tokens, minting supply, placing orders: these actions cost XCHAIN.
+Every economy needs a way to pay for operations. XChain uses a token called **XCHAIN** as its gas token; the fee currency for actions that write to the database. Creating tokens, minting supply, placing orders: these actions cost XCHAIN.
 
-XCHAIN is itself just a token on XChain, issued by a designated address (called the GAS address) for each chain. The GAS address is a configuration parameter — operators of private deployments can define their own GAS address and bootstrap XCHAIN supply however they choose.
+XCHAIN is itself just a token on XChain, issued by a designated address (called the GAS address) for each chain. The GAS address is a configuration parameter, operators of private deployments can define their own GAS address and bootstrap XCHAIN supply however they choose.
 
 ---
 
@@ -160,15 +160,15 @@ XChain provides a complete SDK (`xchain-sdk`) with methods for all 30 actions, 4
 
 ### Organizations Wanting Private Deployments
 
-Because the entire platform is open source and self-hostable, organizations can run their own XChain deployment on testnet or regtest — completely isolated from mainnet. This is useful for enterprise tokenization pilots, private exchanges, and internal settlement networks.
+Because the entire platform is open source and self-hostable, organizations can run their own XChain deployment on testnet or regtest, completely isolated from mainnet. This is useful for enterprise tokenization pilots, private exchanges, and internal settlement networks.
 
 ### Researchers and Protocol Enthusiasts
 
-XChain is a serious protocol with a detailed specification. If you're interested in how layer-2 protocols work, how data gets embedded in Bitcoin transactions, how a DEX and a smart contract VM can be built on top of Bitcoin without modifying the base chain, or how cross-chain swaps can happen without bridges — XChain is a working, documented implementation of all of these.
+XChain is a serious protocol with a detailed specification. If you're interested in how layer-2 protocols work, how data gets embedded in Bitcoin transactions, how a DEX and a smart contract VM can be built on top of Bitcoin without modifying the base chain, or how cross-chain swaps can happen without bridges; XChain is a working, documented implementation of all of these.
 
 ### Anyone Who Wants to Create Digital Assets
 
-If you want to create a token and have it live on Bitcoin — permanently, secured by proof-of-work, without asking permission from anyone — XChain is how you do it. Issue a token, set your parameters, pay the gas fee, broadcast the transaction. Your token exists on Bitcoin from that point on.
+If you want to create a token and have it live on Bitcoin: permanently, secured by proof-of-work, without asking permission from anyone; XChain is how you do it. Issue a token, set your parameters, pay the gas fee, broadcast the transaction. Your token exists on Bitcoin from that point on.
 
 ---
 
@@ -176,7 +176,7 @@ If you want to create a token and have it live on Bitcoin — permanently, secur
 
 If you want to understand the protocol more deeply, start with the [Core Concepts](../concepts/) section, which covers the ACTION format, encoding types, the indexer's validation rules, and the platform data pipeline.
 
-If you want to start building, go to the [Developer Quickstart](./Quickstart_Developer.md) — you can create your first token in about 5 minutes.
+If you want to start building, go to the [Developer Quickstart](./Quickstart_Developer.md), you can create your first token in about 5 minutes.
 
 If you want to run the full platform yourself, see the [Node Operator Quickstart](./Quickstart_Node_Operator.md).
 
