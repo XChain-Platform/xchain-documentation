@@ -36,7 +36,7 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 │  ┌─────────────┐    ┌────────────────────────────────────────────┐    │
 │  │   cli.js     │    │          moduleOperations.js               │    │
 │  │  Commander   │───►│  installModules / startModules /          │    │
-│  │  17 commands │    │  stopModules / restartModules /            │    │
+│  │  21 commands │    │  stopModules / restartModules /            │    │
 │  └─────────────┘    │  uninstallModules / resetModules           │    │
 │         │            └──────────────┬────────────────────────────┘    │
 │         │                           │                                 │
@@ -72,7 +72,7 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 | File | Purpose |
 |---|---|
 | `src/index.js` | Entry point — loads dotenv, calls `parseCommand()` |
-| `src/cli.js` | Commander.js CLI definitions (17 commands, global options, preAction hook) |
+| `src/cli.js` | Commander.js CLI definitions (21 commands, global options, preAction hook) |
 | `src/precheck.js` | Pre-command validation (Docker, directories, LevelDB, versions, networks) |
 | `src/state.js` | Singleton state (LevelDB instance, cached modules, verbose flag) |
 | `src/LevelUpDb.js` | LevelDB wrapper for module→container ID persistence |

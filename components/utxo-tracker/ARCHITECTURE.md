@@ -41,7 +41,7 @@ Unlike the decoder (which extracts XChain ACTION data), the UTXO tracker indexes
 │  └──────┬───────┘  └───────┬────────┘  └──────────────┘│
 │         │                  │                           │
 │  ┌──────▼───────┐  ┌───────▼────────┐  ┌──────────────┐│
-│  │  memdown     │  │  CryptoNetworks│  │  bufferutils ││
+│  │ memory-level │  │  CryptoNetworks│  │  bufferutils ││
 │  │  (mempool    │  │  (network      │  │  (binary     ││
 │  │   in-memory) │  │   params)      │  │   encoding)  ││
 │  └──────────────┘  └────────────────┘  └──────────────┘│
@@ -91,7 +91,7 @@ Two string keys are also used as checkpoints:
 
 **H key (output hint)** — Maps an outpoint (txHash8 + index) back to its scriptHash. When processing an input that spends an output, the tracker reads the H hint to find the scriptHash, then deletes the corresponding O record. Without H, the tracker would need to scan all O records to find the one being spent.
 
-**K/M keys (deleted archives)** — When a UTXO is spent, the O and H records are deleted, but copies are saved as K and M records keyed by blockHash. If a reorg rolls back that block, the K/M records are restored to O/H. After `UNDO_BLOCKS` (10) subsequent blocks, the K/M records are purged.
+**K/M keys (deleted archives)** — When a UTXO is spent, the O and H records are deleted, but copies are saved as K and M records keyed by blockHash. If a reorg rolls back that block, the K/M records are restored to O/H. After `DEFAULT_UNDO_BLOCKS` (BTC: 12, LTC: 48, DOGE: 120) subsequent blocks, the K/M records are purged.
 
 **txHash8 truncation** — Transaction hashes are truncated to 8 bytes in index keys (T, I, O, H, J, K, M). The full 32-byte hash is stored in O values for API responses. 8-byte truncation provides sufficient uniqueness for index lookups while halving key sizes.
 
@@ -115,7 +115,7 @@ while (keepParsing):
         - Pass 1: Insert all outputs (O + H records)
         - Pass 2: Process all inputs (delete spent O/H, create K/M/I/J)
      g. Record block metadata (B, T, N records)
-     h. If batch complete (100 blocks) or at chain tip:
+     h. If batch complete (200 blocks) or at chain tip:
         - Commit batch transaction atomically
         - Cleanup aged K/M records (blocks older than UNDO_BLOCKS)
         - Save checkpoint (LAST_BLOCK_HEIGHT, LAST_BLOCK_HASH)
@@ -136,7 +136,7 @@ To minimize RPC idle time, the tracker maintains a prefetch queue of up to `PREF
 
 ### Batch Writes
 
-LevelDB writes are accumulated in an in-memory transaction (Map of put/del operations) and flushed atomically via `db.batch()` every 100 blocks or when the tracker reaches the chain tip. This minimizes write amplification and ensures all-or-nothing semantics — a crash mid-batch loses at most 100 blocks of progress, which are re-indexed on restart.
+LevelDB writes are accumulated in an in-memory transaction (Map of put/del operations) and flushed atomically via `db.batch()` every 200 blocks or when the tracker reaches the chain tip (or when heap usage exceeds 2 GB). This minimizes write amplification and ensures all-or-nothing semantics — a crash mid-batch loses at most 200 blocks of progress, which are re-indexed on restart.
 
 ## Reorg Handling
 
@@ -152,7 +152,7 @@ When the tracker detects that an incoming block's `previousHash` does not match 
 4. **Reset state**: Clear the prefetch queue, update `LAST_BLOCK_HEIGHT`/`LAST_BLOCK_HASH`, reset the `lastBlocks` array.
 5. **Resume**: Normal forward indexing resumes from the fork point.
 
-The undo window is limited to `UNDO_BLOCKS` (10). Reorgs deeper than 10 blocks throw an error and require a full re-index.
+The undo window is determined per chain: BTC 12 blocks, LTC 48 blocks, DOGE 120 blocks (overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`). Reorgs exceeding the configured window throw an error and require a full re-index.
 
 ## Mempool Tracking
 
@@ -163,7 +163,7 @@ When the tracker is caught up with the chain tip, it updates the mempool every 6
    - Remove entries no longer in the node's mempool
    - Skip entries already indexed
 3. Fetch raw transaction hex for new entries in batches of 1000
-4. Parse transactions and insert outputs/inputs into the mempool database (`memdown`-backed, in-memory only)
+4. Parse transactions and insert outputs/inputs into the mempool database (`memory-level`-backed, in-memory only)
 
 Mempool data is **not** written to the persistent LevelDB. When a mempool transaction confirms (its block is processed), the confirmed UTXO is written to the main database and the mempool entry is naturally superseded.
 

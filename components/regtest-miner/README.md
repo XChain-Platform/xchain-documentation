@@ -50,7 +50,7 @@ Create a `.env` file:
 ```env
 NETWORK=regtest
 NODE_URL=localhost
-NODE_PORT=18443
+NODE_PORT=18444
 NODE_USER=rpc
 NODE_PASSWORD=rpc
 REGTEST_MINER_API_PORT=3001

@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- Node.js >= 18
+- Node.js >= 22
 - A running coin node (bitcoind, litecoind, or dogecoind) with JSON-RPC enabled
 - Disk space for LevelDB data directory (size depends on chain — Bitcoin mainnet requires the most)
 
@@ -147,7 +147,7 @@ If the coin node's `verificationprogress` is below 0.99, the tracker logs a warn
 
 ### Atomic Batch Processing
 
-LevelDB writes are accumulated in a batch transaction (in-memory Map) and committed atomically via `db.batch()`. If the process crashes mid-batch, the uncommitted writes are lost — the tracker resumes from the last saved checkpoint. The batch boundary (every 100 blocks or at tip) is the maximum data loss window.
+LevelDB writes are accumulated in a batch transaction (in-memory Map) and committed atomically via `db.batch()`. If the process crashes mid-batch, the uncommitted writes are lost — the tracker resumes from the last saved checkpoint. The batch boundary (every 200 blocks or at tip) is the maximum data loss window.
 
 ### Reorg Recovery
 
@@ -155,7 +155,7 @@ When a blockchain reorganization is detected:
 1. The tracker walks back from its tip until it finds a block hash matching the coin node
 2. Each rolled-back block's outputs are restored from K/M archive records
 3. Normal forward indexing resumes from the fork point
-4. Reorgs deeper than `UNDO_BLOCKS` (10) require a full re-index
+4. Reorgs deeper than the chain's undo window (BTC: 12, LTC: 48, DOGE: 120) require a full re-index
 
 ### Mempool Error Handling
 
@@ -179,8 +179,8 @@ LevelDB only allows one process to open a database at a time. If the tracker cra
 **Block processing slow**
 Large blocks (e.g., BRC-20 inscription blocks) can contain tens of thousands of transactions. The tracker may appear stalled but is processing normally. Check the console output for progress updates. If the process runs out of memory, increase `--max-old-space-size`.
 
-**Reorg deeper than 10 blocks**
-The tracker throws an error and stops if a reorg exceeds `UNDO_BLOCKS` (10). This is rare on mainnet but can occur on testnet/regtest. The solution is to delete the LevelDB database and re-index from scratch.
+**Reorg exceeds the undo window**
+The tracker throws an error and stops if a reorg exceeds the chain's undo window (BTC: 12 blocks, LTC: 48 blocks, DOGE: 120 blocks). This is rare on mainnet but can occur on testnet/regtest. The solution is to delete the LevelDB database and re-index from scratch.
 
 ### Data inconsistency
 

@@ -44,7 +44,7 @@ After processing each block, the indexer pushes its chain tip to xchain-hub (so 
 │              │              │                           │
 │  ┌───────────▼──┐  ┌───────▼────────┐  ┌──────────────┐│
 │  │   Actions    │  │   Database     │  │  Rollback    ││
-│  │  29 handlers │  │  3 pool conns  │  │  Atomic undo ││
+│  │  46 handlers │  │  3 pool conns  │  │  Atomic undo ││
 │  │  + aliases   │  │  (decoder/idx/ │  │  by block    ││
 │  │  inc. PRICE  │  │   hub)         │  │              ││
 │  └──────┬───────┘  └───────┬────────┘  └──────────────┘│
@@ -150,7 +150,7 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 |---|---|---|
 | `src/api.js` | — | Entry point: Express server + JSON-RPC, env var validation, indexer startup |
 | `src/XChainIndexer.js` | `XChainIndexer` | Main orchestrator: block polling loop, reorg detection, block processing pipeline |
-| `src/actions.js` | `Actions` | Loads all 30 action handler classes, routes transactions to the correct handler |
+| `src/actions.js` | `Actions` | Loads all 46 action handler classes, routes transactions to the correct handler |
 | `src/db.js` | `Database` | MariaDB connection pool management, all SQL queries, table creation, sanity checks |
 | `src/config.js` | — | Merges environment variables with coin-specific config into a single config object |
 | `src/configs/BTC.js` | — | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |

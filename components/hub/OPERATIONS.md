@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- Node.js >= 18
+- Node.js >= 22
 - MariaDB server
 - For validator mode: seed node addresses, Ed25519 private key, price API keys
 
@@ -267,7 +267,7 @@ The P2P layer deduplicates messages using a TTL cache (default: 60 seconds). Thi
 ### Cross-chain attestations stuck at pending
 
 - Verify enough validators support both chains in the chain pair (quorum requires 2f+1)
-- Check confirmation thresholds: BTC/LTC require 3 confirmations, DOGE requires 6
+- Check confirmation thresholds: BTC requires 6, LTC requires 12, DOGE requires 60 (defaults; overridable via `XCHAIN_CONFIRMATIONS_<COIN>`)
 - Ensure `PBFT_TIMEOUT` is sufficient for consensus rounds to complete
 
 ### Governance proposals not passing

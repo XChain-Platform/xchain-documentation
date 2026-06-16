@@ -17,7 +17,7 @@ This action publishes oracle price data on-chain. Version 0 anchors PBFT-consens
 | `PAIR_PRICE`      | String  | Price as decimal string, 8 decimal places (repeated per pair)      |
 | `SIG_COUNT`       | Integer | Number of `price`-capable validator signatures                              |
 | `PUBKEY`          | String  | 64-char hex Ed25519 signing pubkey (repeated per signature)        |
-| `SIGNATURE`       | String  | 128-char hex Ed25519 signature over round data (repeated per sig)  |
+| `SIG`             | String  | 128-char hex Ed25519 signature over round data (repeated per sig)  |
 
 ### Version 1 — User Oracle TOKEN/FIAT Price
 | Name              | Type    | Description                                                        |
@@ -34,10 +34,10 @@ This action publishes oracle price data on-chain. Version 0 anchors PBFT-consens
 
 ### Version `0` — Validator COIN/FIAT Price Snapshot
 ```
-VERSION|ROUND|TIMESTAMP|PAIR_COUNT|PAIR_ID|PAIR_PRICE|...|SIG_COUNT|PUBKEY|SIGNATURE|...
+VERSION|ROUND|TIMESTAMP|PAIR_COUNT|PAIR_ID|PAIR_PRICE|...|SIG_COUNT|PUBKEY|SIG|...
 ```
 Pair data (`PAIR_ID|PAIR_PRICE`) repeats `PAIR_COUNT` times.
-Signature data (`PUBKEY|SIGNATURE`) repeats `SIG_COUNT` times.
+Signature data (`PUBKEY|SIG`) repeats `SIG_COUNT` times.
 
 ### Version `1` — User Oracle TOKEN/FIAT Price
 ```

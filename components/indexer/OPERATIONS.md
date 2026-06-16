@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- Node.js >= 18
+- Node.js >= 22
 - MariaDB server (for both Decoder and Indexer databases)
 - A running xchain-decoder instance (populating the Decoder database)
 

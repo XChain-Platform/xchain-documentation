@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** >= 18
+- **Node.js** >= 22
 - **MariaDB** (accessible from the service)
 - **xchain-hub** — must be running and reachable at `HUB_API_HOST:HUB_PORT`
 - **xchain-indexer** / **xchain-decoder** — at least one indexer or decoder must be installed and running (server mode only)

@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** v18+ (V8 engine compatibility)
+- **Node.js** v22 exactly — `isolated-vm` requires Node 22 to build (Node 24 breaks native compilation; below Node 22 tests silently skip rather than fail, producing false greens)
 - **Native build tools** for `isolated-vm` compilation: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` (Debian/Ubuntu)
 - The VM is a library dependency of `xchain-indexer` — it is not run as a standalone process
 

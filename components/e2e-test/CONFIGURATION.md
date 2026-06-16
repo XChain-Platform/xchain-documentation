@@ -20,7 +20,7 @@ The test suite reads configuration from a `.env` file (loaded via `dotenv`) or f
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `NODE_URL` | Hub fallback | — | Coin node RPC hostname |
-| `NODE_PORT` | Hub fallback | — | Coin node RPC port (e.g., `18443` for BTC regtest) |
+| `NODE_PORT` | Hub fallback | — | Coin node RPC port (e.g., `18444` for BTC regtest) |
 | `NODE_USER` | Hub fallback | — | RPC username |
 | `NODE_PASSWORD` | Hub fallback | — | RPC password |
 

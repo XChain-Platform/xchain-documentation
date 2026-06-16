@@ -108,7 +108,7 @@ Each service runs in its own container with its own network namespace. The explo
 | `NETWORK` | Chain + network string | Required |
 | `NODE_URL` / `NODE_PORT` / `NODE_USER` / `NODE_PASSWORD` | Coin node connection | Required |
 | `DECODER_DB_*` | MariaDB connection | Required |
-| `DECODER_API_PORT` | JSON-RPC API port | `3000` |
+| `DECODER_API_PORT` | JSON-RPC API port | `3002` |
 | `AUX_POW` | Set truthy for Dogecoin AuxPoW | unset |
 
 The decoder polls for new blocks every ~5 seconds. It waits for the coin node to report `verificationprogress >= 0.99` before processing. Mempool is refreshed every 60 seconds once synced.

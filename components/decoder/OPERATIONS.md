@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- Node.js >= 18
+- Node.js >= 22
 - MariaDB server
 - A running coin node (bitcoind, litecoind, or dogecoind) with JSON-RPC enabled
 
@@ -91,9 +91,11 @@ Detailed health status including decoder state.
 {
     "jsonrpc": "2.0",
     "result": {
-        "status": "ok",
-        "decoderRunning": true,
+        "status": "healthy",
         "synced": true,
+        "last_processed_block": 900123,
+        "node_height": 900124,
+        "lag": 1,
         "error": null
     },
     "id": 1
@@ -102,10 +104,44 @@ Detailed health status including decoder state.
 
 | Field | Type | Description |
 |---|---|---|
-| `status` | `string` | `"ok"` when decoder is running, `"error"` otherwise |
-| `decoderRunning` | `boolean` | Whether the decoder process is alive |
+| `status` | `string` | `"healthy"` when decoder is running, `"unhealthy"` otherwise |
 | `synced` | `boolean` | Whether the decoder is within 3 blocks of the chain tip |
+| `last_processed_block` | `integer\|null` | Last block index written to the decoder DB |
+| `node_height` | `integer\|null` | Current tip reported by the coin node |
+| `lag` | `integer\|null` | Blocks behind tip (`node_height - last_processed_block`) |
 | `error` | `string\|null` | Error message if the decoder crashed |
+
+### `getlatestblock`
+
+Returns the decoder's latest parsed block alongside the coin-node's tip — useful for monitoring decoder-to-node lag in a single call.
+
+**Request:**
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "getlatestblock",
+    "id": 1
+}
+```
+
+**Response:**
+```json
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "block_index": 900123,
+        "node_block_index": 900124,
+        "is_synced": true
+    },
+    "id": 1
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `block_index` | `integer\|null` | Last block index written to the decoder DB |
+| `node_block_index` | `integer\|null` | Current tip reported by the coin node |
+| `is_synced` | `boolean` | Whether the decoder is within 3 blocks of the chain tip |
 
 ### Security
 
@@ -188,11 +224,11 @@ Mempool tracking pauses if the decoder falls more than 3 blocks behind the tip, 
 
 The `health` API endpoint provides the key monitoring signals:
 
-| Condition | `status` | `decoderRunning` | `synced` |
-|---|---|---|---|
-| Normal operation, caught up | `ok` | `true` | `true` |
-| Normal operation, catching up | `ok` | `true` | `false` |
-| Decoder crashed | `error` | `false` | `false` |
+| Condition | `status` | `synced` |
+|---|---|---|
+| Normal operation, caught up | `"healthy"` | `true` |
+| Normal operation, catching up | `"healthy"` | `false` |
+| Decoder crashed | `"unhealthy"` | `false` |
 
 Monitor the `events` table for REORG events, which indicate chain instability.
 

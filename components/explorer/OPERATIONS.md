@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** ≥ 18
+- **Node.js** ≥ 22
 - **MariaDB** server with an existing Indexer database (populated by xchain-indexer)
 - **xchain-hub** (optional) — for centralized config discovery
 - **SSL certificates** (optional) — for HTTPS
@@ -38,10 +38,10 @@ EXPLORER_API_PORT_HTTPS=8443
 The Dockerfile copies the source into `/XChainExplorer/` inside the container:
 
 ```dockerfile
-FROM node:18-alpine
+FROM node:22-bookworm
 WORKDIR /XChainExplorer
 COPY . .
-RUN npm install --production
+RUN npm ci --omit=dev
 CMD ["npm", "run", "api"]
 ```
 

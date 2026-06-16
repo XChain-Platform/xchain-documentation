@@ -210,7 +210,7 @@ npm run api
 | `NODE_PORT` | Yes | — | Coin node RPC port |
 | `NODE_USER` | Yes | — | RPC username |
 | `NODE_PASSWORD` | Yes | — | RPC password |
-| `ENCODER_API_PORT` | No | `3000` | JSON-RPC API port |
+| `ENCODER_API_PORT` | No | `3003` | JSON-RPC API port |
 | `DUST_AMOUNT` | No | Network default | Minimum output value in satoshis |
 | `UTXO_TRACKER_URL` | No | — | xchain-utxo-tracker service host |
 | `UTXO_TRACKER_API_PORT` | No | — | xchain-utxo-tracker service port |

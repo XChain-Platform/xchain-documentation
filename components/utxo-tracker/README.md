@@ -19,9 +19,9 @@ In addition to confirmed block data, the tracker maintains a separate in-memory 
 - **Active-UTXO-only storage** — only unspent outputs kept in the live index; spent outputs archived temporarily for reorg recovery
 - **Real-time mempool tracking** — unconfirmed transactions tracked in a separate in-memory LevelDB, updated every 60 seconds
 - **BigInt precision** — all balance calculations use BigInt arithmetic with `satoshiToDecimalString()` conversion, eliminating floating-point errors
-- **Reorg handling** — maintains a 10-block undo history (K/M archive records) and rolls back correctly on chain reorganization
+- **Reorg handling** — maintains a per-chain undo history (BTC: 12 blocks, LTC: 48 blocks, DOGE: 120 blocks — overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`) using K/M archive records and rolls back correctly on chain reorganization
 - **Concurrent block prefetch** — pre-fetches up to 10 blocks concurrently via JSON-RPC batch requests with HTTP keep-alive
-- **Batch writes** — LevelDB writes batched in groups of 100 blocks for throughput efficiency with atomic commit
+- **Batch writes** — LevelDB writes batched in groups of 200 blocks for throughput efficiency with atomic commit
 - **Two-pass transaction processing** — outputs inserted before inputs within each block, correctly handling intra-block spends
 - **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
 - **AuxPoW block parsing** — Dogecoin and Litecoin HogEx block header stripping for correct decoding
@@ -106,10 +106,8 @@ On startup, the tracker:
 
 | Package | Purpose |
 |---|---|
-| `levelup` | LevelDB abstraction layer |
-| `leveldown` | LevelDB backend for persistent storage |
-| `memdown` | In-memory LevelDB backend for mempool database |
-| `encoding-down` | Encoding wrapper for LevelDB |
+| `classic-level` | LevelDB backend for persistent on-disk storage |
+| `memory-level` | In-memory LevelDB backend for mempool database |
 | `bitcoinjs-lib` | Block and transaction parsing, address-to-scriptPubKey conversion |
 | `tiny-secp256k1` | Elliptic curve operations |
 | `bip32`, `bip39`, `bs58check`, `ecpair` | Key derivation and address encoding |

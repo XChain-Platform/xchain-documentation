@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** >= 18
+- **Node.js** >= 22
 - **Docker** installed and running (`docker --version` and `docker ps` must both succeed)
 - **npm** for dependency installation
 
@@ -34,6 +34,7 @@ Arguments are order-independent — `xchain-node start bitcoin mainnet xchain-en
 | `restart` | `restart <service> [chain] [network]` | Restart container(s) |
 | `reset` | `reset <service> <chain> <network>` | Stop containers, clear data (volumes or databases), restart |
 | `ps` | `ps` | Display status table of all installed services with versions and ports |
+| `sync` | `sync` | Scan Docker for xchain-node containers and register any missing in LevelDB |
 
 ### Logging & Monitoring
 
@@ -58,6 +59,9 @@ Arguments are order-independent — `xchain-node start bitcoin mainnet xchain-en
 | `bootstrap` | `bootstrap <create\|restore> <service> <chain> <network>` | Create or restore gzipped bootstrap snapshots with SHA-256 verification |
 | `e2etest` | `e2etest <chain> [testName]` | Run the xchain-e2e-test suite on a regtest network; supports `--grep` filtering |
 | `rollback` | `rollback <block_index> <service> <chain> <network>` | Rollback to a specific block (placeholder — not yet implemented) |
+| `validator` | `validator` | Validator-mode setup for xchain-hub (key generation + config) |
+| `init` | `init` | Generate a validator signing key + config so the hub runs in validator mode |
+| `status` | `status` | Show this node's validator configuration (pubkey, peers, capabilities) |
 
 ## Global Options
 

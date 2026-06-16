@@ -15,7 +15,7 @@ A pure function library. Takes contract code + state + inputs + block context. R
 - **V8 sandbox isolation** — contracts run in `isolated-vm` with a separate heap, no access to host process, filesystem, or network
 - **AST-based gas metering** — `acorn` parses the source, injects `__gas()` at control flow points, `astring` regenerates — fully deterministic, not wall-clock
 - **JSON bridge protocol** — host-side gateway functions communicate with the isolate via JSON-serialized arguments and type-prefixed return values
-- **16 emittable action types** — SEND, DESTROY, ISSUE, MINT, ORDER, DISPENSER, DIVIDEND, AIRDROP, CALLBACK, FILE, LIST, COINPAY, SWEEP, LINK, BROADCAST, MESSAGE
+- **18 emittable action types** — SEND, DESTROY, ISSUE, MINT, ORDER, DISPENSER, DIVIDEND, AIRDROP, CALLBACK, FILE, LIST, COINPAY, SWEEP, LINK, BROADCAST, MESSAGE, plus `emit.execute` (cross-contract call) and `emit.crossExecute` (cross-chain call via XCALL)
 - **External attestation gateway** — `xchain.attestation.request(...)` and `getResponse(...)`. Contracts ask an HTTPS endpoint or an approved LLM, and the validator network writes a signed answer back on-chain that re-enters the contract through a callback. See [Smart Contracts — Attestation Framework](../../concepts/Smart_Contracts.md#asking-the-outside-world--the-attestation-framework).
 - **Contract-targeted staking gateway** — `xchain.contract.getStake`, `getTotalStaked`, `getStakers`, `slash`. Any contract can declare itself stakeable at deploy time and slash its own stakers per its own rules. See [Smart Contracts — Stakeable Contracts](../../concepts/Smart_Contracts.md#stakeable-contracts).
 - **Deterministic math** — `xchain.math.*` wraps mathjs bignumber with string I/O, no floating-point at the gateway boundary

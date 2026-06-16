@@ -7,11 +7,11 @@
 
 xchain-indexer is the state-processing engine of the XChain Platform. It reads decoded blockchain transactions from the Decoder database, validates and executes each ACTION according to protocol rules, maintains authoritative token state (balances, supplies, ownership, DEX orders, dispensers) in a separate MariaDB database, and makes that indexed data available for querying by xchain-explorer. The indexer runs as a long-lived Node.js process with an embedded Express JSON-RPC API server.
 
-Every XChain ACTION — SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, and 22 more — passes through the indexer. The indexer determines whether the action is valid (checking balances, permissions, token rules, allow/block lists, sleep states), records the action with its status, updates the ledger (credits, debits, escrows), recalculates balances, and runs a sanity check after every block to guarantee consistency between token supplies and ledger totals.
+Every XChain ACTION — SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, SLASH, and 37 more — passes through the indexer. The indexer determines whether the action is valid (checking balances, permissions, token rules, allow/block lists, sleep states), records the action with its status, updates the ledger (credits, debits, escrows), recalculates balances, and runs a sanity check after every block to guarantee consistency between token supplies and ledger totals.
 
 ## Features
 
-- **26 ACTION types** — ADDRESS, AIRDROP, ATTEST, BATCH, BROADCAST, CALLBACK, COLLECT, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER, DISPENSE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, SEND, SLEEP, STAKE, SWAP, SWEEP, UNSTAKE, WITHDRAW
+- **46 ACTION types** — ADDRESS, AIRDROP, ANCHOR, ATTEST, BATCH, BROADCAST, CALLBACK, COINPAY, COINPAY_EXPIRE, COLLECT, CROSS_SETTLE, DELEGATE, DEPLOY, DEPLOY_CHUNK, DEPOSIT, DESTROY, DISPENSE, DISPENSER, DISPENSER_CLOSE, DISPENSER_EXPIRE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, NODEPROOF, ORDER, ORDER_EXPIRE, ORDER_MATCH, PRICE, SEND, SLASH, SLEEP, STAKE, SWAP, SWAP_EXPIRE, SWAP_MATCH, SWEEP, UNKNOWN, UNSTAKE, WITHDRAW, XCALL, XEXEC
 - **Multi-chain support** — Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
 - **Atomic block processing** — every block is wrapped in a database transaction; failures roll back cleanly
 - **Block reorganization handling** — detects reorgs from the Decoder DB, rolls back affected data, and re-indexes
@@ -33,7 +33,7 @@ Every XChain ACTION — SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, and 22 more �
 |---|---|
 | [Architecture](ARCHITECTURE.md) | Data pipeline, internal components, action handlers, block processing pipeline |
 | [Configuration](CONFIGURATION.md) | Environment variables, coin-specific config, indexer constants |
-| [Actions](ACTIONS.md) | All 30 ACTION types, categories, format versions, protocol versioning |
+| [Actions](ACTIONS.md) | All 46 ACTION types, categories, format versions, protocol versioning |
 | [Database](DATABASE.md) | Full schema reference — core, ledger, action, state, index, and mapping tables |
 | [Ledger](LEDGER.md) | Double-entry ledger, balance calculation, sanity checks, gas token fees |
 | [Operations](OPERATIONS.md) | Running, Docker, API endpoints, resilience, troubleshooting |
@@ -65,7 +65,7 @@ INDEXER_DB_NAME=XChain_BTC_Mainnet_Indexer
 INDEXER_DB_USER=xchain_writer
 INDEXER_DB_PASS=your_password
 
-INDEXER_API_PORT=3000
+INDEXER_API_PORT=3004
 INDEXER_COIN=BTC
 INDEXER_NETWORK=mainnet
 ```

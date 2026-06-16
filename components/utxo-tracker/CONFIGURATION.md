@@ -23,6 +23,10 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | Variable | Description | Default |
 |---|---|---|
 | `AUX_POW` | Enable AuxPoW block header stripping (required for Dogecoin and Litecoin HogEx blocks) | `undefined` (falsy) |
+| `UTXO_MAX_ADDRESS_OUTPUTS` | Hard ceiling on outputs materialized for a single-address unbounded query; above this limit `/utxos` and `get_balance` return HTTP 413 — callers must page via `?limit=&after=` | `500000` |
+| `XCHAIN_UNDO_BLOCKS_BTC` | Override the BTC reorg recovery window (blocks) | `12` |
+| `XCHAIN_UNDO_BLOCKS_LTC` | Override the LTC reorg recovery window (blocks) | `48` |
+| `XCHAIN_UNDO_BLOCKS_DOGE` | Override the DOGE reorg recovery window (blocks) | `120` |
 
 ### Supported Network Values
 
@@ -56,10 +60,10 @@ These values are defined in `src/XChainUtxoTracker.js` and are not configurable 
 
 | Constant | Value | Description |
 |---|---|---|
-| `DB_TRANSACTION_BLOCKS_QUANTITY` | `100` | Number of blocks per LevelDB batch commit |
+| `DB_TRANSACTION_BLOCKS_QUANTITY` | `200` | Number of blocks per LevelDB batch commit |
 | `PREFETCH_SIZE` | `10` | Number of blocks pre-fetched concurrently |
 | `ETA_WINDOW_BLOCKS` | `1000` | Rolling window size for sync ETA calculation |
-| `UNDO_BLOCKS` | `10` | Number of blocks to retain K/M archive records for reorg recovery |
+| `DEFAULT_UNDO_BLOCKS` | BTC: `12` / LTC: `48` / DOGE: `120` | Per-chain K/M archive retention window; override per coin via `XCHAIN_UNDO_BLOCKS_BTC`, `XCHAIN_UNDO_BLOCKS_LTC`, `XCHAIN_UNDO_BLOCKS_DOGE` |
 
 ### Storage
 
@@ -73,8 +77,8 @@ These values are defined in `src/XChainUtxoTracker.js` and are not configurable 
 
 | Path | Description |
 |---|---|
-| `/data/xchain-utxo-tracker` | Main LevelDB database (persistent, disk-backed via `leveldown`) |
-| In-memory only | Mempool database (volatile, `memdown`-backed, recreated on startup) |
+| `/data/xchain-utxo-tracker` | Main LevelDB database (persistent, disk-backed via `classic-level`) |
+| In-memory only | Mempool database (volatile, `memory-level`-backed, recreated on startup) |
 | `/bootstrap/xchain-utxo-tracker/` | Bootstrap backup archive storage |
 
 ### RPC Connection

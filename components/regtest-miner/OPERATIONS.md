@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** >= 18
+- **Node.js** >= 22
 - A running regtest coin node (bitcoind, litecoind, or dogecoind) with JSON-RPC enabled
 - The coin node must be in regtest mode with wallet support enabled
 
@@ -187,7 +187,7 @@ All 6 environment variables are required. Check your `.env` file or Docker conta
 ### Miner cannot connect to coin node
 
 ```
-Error: connect ECONNREFUSED 127.0.0.1:18443
+Error: connect ECONNREFUSED 127.0.0.1:18444
 ```
 
 The coin node is not running or not listening on the expected port. Verify:

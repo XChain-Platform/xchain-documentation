@@ -21,7 +21,7 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `DECODER_DB_NAME` | Database name (auto-created if missing) | `XChain_BTC_Mainnet_Decoder` |
 | `DECODER_DB_USER` | MariaDB username | `root` |
 | `DECODER_DB_PASS` | MariaDB password | _(empty for local dev)_ |
-| `DECODER_API_PORT` | JSON-RPC API listen port | `3000` |
+| `DECODER_API_PORT` | JSON-RPC API listen port | `3002` |
 
 ### Optional Variables
 
@@ -123,14 +123,14 @@ The decoder begins parsing from a preconfigured block height per network to skip
 
 ## Valid ACTION Names
 
-The decoder accepts only these 30 ACTION names after deobfuscation. Transactions with unrecognized action names are logged and skipped:
+The decoder accepts only these 33 ACTION names after deobfuscation. Transactions with unrecognized action names are logged and skipped:
 
 ```
-ADDRESS, AIRDROP, ATTEST,
+ADDRESS, AIRDROP, ANCHOR, ATTEST,
 BATCH, BROADCAST, CALLBACK, COINPAY, COLLECT,
 DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER,
 DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT,
-ORDER, PRICE, SEND, SLEEP, STAKE, SWAP,
+NODEPROOF, ORDER, PRICE, SEND, SLASH, SLEEP, STAKE, SWAP,
 SWEEP, UNSTAKE, WITHDRAW
 ```
 

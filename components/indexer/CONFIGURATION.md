@@ -21,7 +21,6 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `INDEXER_DB_NAME` | Indexer database name | `XChain_BTC_Mainnet_Indexer` |
 | `INDEXER_DB_USER` | Indexer database username | `xchain` |
 | `INDEXER_DB_PASS` | Indexer database password | `secretpassword` |
-| `INDEXER_API_PORT` | API server listening port | `3000` |
 | `INDEXER_COIN` | Blockchain to index | `BTC`, `LTC`, or `DOGE` |
 | `INDEXER_NETWORK` | Network to index | `mainnet`, `testnet`, or `regtest` |
 
@@ -29,6 +28,7 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 
 | Variable | Description | Default |
 |---|---|---|
+| `INDEXER_API_PORT` | API server listening port | `3004` |
 | `CORS_ORIGIN` | Allowed CORS origin for API requests | `http://localhost` |
 
 ## Coin-Specific Configuration
