@@ -25,7 +25,7 @@ A token binds (or unbinds) a controller for one **action class** at a time via `
 | Field | Meaning |
 |---|---|
 | `CONTROLLER` | `ACTION_INDEX` of a deployed, active contract on the same chain (its `contracts.action_index`; derived address `C:<CHAIN>:<CONTROLLER>`). |
-| `ACTION_CLASS` | Which class of action this binding gates: `transfer` (SEND), `trade` (ORDER / SWAP / DISPENSER create), `burn` (DESTROY) — plus the reserved stubs `mint`, `stake`. |
+| `ACTION_CLASS` | Which class of action this binding gates: `transfer` (SEND), `trade` (ORDER / SWAP / DISPENSER create), `burn` (DESTROY) — plus the reserved stubs `mint`, `stake` — or the catch-all `all` (see [Precedence & the `all` class](#precedence--the-all-class)). |
 | `COOLDOWN_BLOCKS` | Drop-cooldown committed at bind time: the friction (in blocks) before a later `UNBIND` of this class takes effect. |
 | `UNBIND` | `1` drops the live binding for `ACTION_CLASS` (gated by its cooldown); `0` binds. |
 
@@ -37,6 +37,34 @@ A token binds (or unbinds) a controller for one **action class** at a time via `
   an `unbind` gates only until its cooldown elapses. There is no `LOCK_CONTROLLER` flag —
   the drop-cooldown is the only friction on changing a binding.
 - A token with no binding for a class behaves exactly as before (one NULL check, zero overhead).
+
+### Precedence & the `all` class
+
+An action is always **routed** to exactly one of the five concrete classes (`transfer`, `trade`,
+`burn`, `mint`, `stake`) by a static map from the action name — the class is never derived from
+user-supplied data, so a future action can't accidentally fall into a controlled class.
+
+`all` is a sixth class that is **bindable but never routable**: you may bind a controller to `all`,
+but no action ever routes to it directly. Instead, `all` is the **fallback** when an action's
+specific class has no binding. Resolution is **most-specific-wins**, and **exactly one guard ever
+runs** (there is no stacking — layer multiple policies inside one controller's `guard` instead):
+
+1. Resolve the effective controller for the action's specific class (e.g. `transfer`).
+2. If there is none, fall back to the effective `all` controller.
+3. If neither gates, the action is ungated.
+
+So binding `all` gates **every** class with one binding (a "freeze / compliance-gate this token
+entirely" policy is one action, not five), and binding a specific class **on top of** `all`
+overrides the catch-all for that class only — the specific binding fully replaces `all` there.
+Binding a specific class while `all` is bound is allowed (it is the override); a second `all` bind
+while one is live is rejected, exactly like any other class.
+
+> ⚠️ **`all` means all classes, present AND future.** A token bound to `all` today will silently
+> begin gating `mint` and `stake` the moment those stub handlers wire their guards in a later
+> release. This is the intended "gate everything" behavior — bind `all` only if you want that.
+
+Cooldown/unbind semantics are identical for `all` (it is just another `action_class` value with its
+own append-only events). `all` participates in resolution only; routing is unchanged.
 
 ## The guard ABI
 

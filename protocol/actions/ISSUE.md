@@ -34,7 +34,7 @@ This action creates or updates a `TICK`.
 | `MINT_START_BLOCK` | String | `BLOCK_INDEX` when `MINT` transactions are allowed (begin mint)                            |
 | `MINT_STOP_BLOCK`  | String | `BLOCK_INDEX` when `MINT` transactions are NOT allowed (end mint)                          |
 | `CONTROLLER`       | String | `ACTION_INDEX` of a deployed contract whose `guard` gates one `ACTION_CLASS` of this token (see [Controller-Bound Tokens](../Controller_Bound_Tokens.md)) |
-| `ACTION_CLASS`     | String | Which class the binding gates: `transfer`, `trade`, `burn`, `mint`, or `stake`             |
+| `ACTION_CLASS`     | String | Which class the binding gates: `transfer`, `trade`, `burn`, `mint`, `stake`, or the catch-all `all` (fallback for any class with no specific binding; most-specific-wins) |
 | `COOLDOWN_BLOCKS`  | String | Drop-cooldown committed at bind time: blocks of friction before a later `UNBIND` takes effect |
 | `UNBIND`           | String | `1` drops the live binding for `ACTION_CLASS`; `0` binds                                    |
 | `MEMO`             | String | An optional memo to include                                                                |
