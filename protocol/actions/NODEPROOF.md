@@ -44,7 +44,7 @@ needs them — it only recomputes `challenge_id` and trusts the quorum.
 ## Wire format
 
 ```
-NODEPROOF|0|CHALLENGE_ID|EPOCH_HEIGHT|PASS_COUNT|PASS_PK_1|…|PASS_PK_n|SIG_COUNT|SIG_PK_1|SIG_1|…|SIG_PK_m|SIG_m
+NODEPROOF|0|CHALLENGE_ID|EPOCH_HEIGHT|PASS_COUNT|PASS_PK_1|…|PASS_PK_n|SIG_COUNT|PUBKEY_1|SIG_1|…|PUBKEY_m|SIG_m
 ```
 
 | Field | Meaning |
@@ -53,7 +53,7 @@ NODEPROOF|0|CHALLENGE_ID|EPOCH_HEIGHT|PASS_COUNT|PASS_PK_1|…|PASS_PK_n|SIG_COU
 | `CHALLENGE_ID` | 64-hex; MUST equal the derived id for `EPOCH_HEIGHT` |
 | `EPOCH_HEIGHT` | the challenge epoch block; MUST be a multiple of `CHALLENGE_INTERVAL_BLOCKS` |
 | `PASS_COUNT` / `PASS_PK_i` | validators that produced the correct answer (64-hex Ed25519 pubkeys) |
-| `SIG_COUNT` / `SIG_PK_i`,`SIG_i` | verifier signatures over the canonical message (64-hex pubkey, 128-hex sig) |
+| `SIG_COUNT` / `PUBKEY_i`,`SIG_i` | verifier signatures over the canonical message (64-hex pubkey, 128-hex sig) — consensus token name is `PUBKEY` (matches ANCHOR/ATTEST/PRICE) |
 
 Validator-broadcast (like `ATTEST v1`); not VM-emitted, not user-meaningful.
 Writes **no ledger rows** — rewards are derived later in `PRICE` finalization.
@@ -86,11 +86,22 @@ publisher MUST agree byte-for-byte.
    `EPOCH_HEIGHT`**, write a `full_node_verifications` row (idempotent on
    `(epoch_height, signing_pubkey)`).
 
-A validator is **verified as of block `B`** iff it has a `passed`
-`full_node_verifications` row with `block_index ∈ (B − PROOF_WINDOW_BLOCKS, B]`
-*and* still holds `full_node` capability stake at `B`. That set, deduped by
-staking **source** (one operator = one full node = one share), receives the
-full-node reward tranche.
+A validator is **verified as of block `B`** (verifier-eligible — it may vouch in
+later verdicts) iff it has a `passed` `full_node_verifications` row with
+`block_index ∈ (B − PROOF_WINDOW_BLOCKS, B]` *and* still holds `full_node`
+capability stake at `B`.
+
+**Reward eligibility is participation-rate based — a carrot, with NO slashing.**
+A staking **source** earns the full-node reward tranche at block `B` only if, over
+the trailing `REWARD_PASS_WINDOW_BLOCKS`, it answered at least `MIN_PASS_RATE_BPS`
+of the challenge epochs that *actually produced a verdict* (the denominator counts
+only epochs the federation ran, so an outage never costs anyone). The set is
+deduped by staking **source** (one operator = one full node = one share). The gate
+is integer math — `passed_epochs · 10000 ≥ MIN_PASS_RATE_BPS · total_epochs` — so
+it is forgiving of a missed check or two and reindex-deterministic. A validator
+that doesn't run a full node simply fails the challenges, earns nothing, and is
+**never penalised** — its `full_node` bond is untouched (there is no
+failed-challenge slash). See `db.getFullNodeParticipation` + `PRICE`.
 
 ### Bootstrap / degradation
 
@@ -108,9 +119,11 @@ new joiners.
 | `CAPABILITIES.full_node.MIN_STAKE` | `2000.00000000` | entrance stake to claim the capability |
 | `FULLNODE.CHALLENGE_INTERVAL_BLOCKS` | `144` | epoch cadence (~daily on BTC) |
 | `FULLNODE.CONFIRM_DEPTH` | `100` | target-block burial (reorg safety) |
-| `FULLNODE.PROOF_WINDOW_BLOCKS` | `300` | how long a passed proof keeps a node "verified" |
+| `FULLNODE.PROOF_WINDOW_BLOCKS` | `300` | how long a passed proof keeps a node "verified" (verifier-eligible — can vouch) |
 | `FULLNODE.VERDICT_ACCEPT_WINDOW_BLOCKS` | `24` | max lag from epoch to accepted verdict |
 | `FULLNODE.REWARD_SHARE` | `'0'` | fraction of the oracle-round budget routed to full nodes (raise to `'0.25'` to enable — see `PRICE`) |
+| `FULLNODE.REWARD_PASS_WINDOW_BLOCKS` | `1008` | trailing window the reward pass-rate is measured over (= 7 daily challenge epochs) |
+| `FULLNODE.MIN_PASS_RATE_BPS` | `7000` | min pass rate to earn the tranche, in basis points (`7000` = 70% → pass ≥5 of 7, miss up to 2) |
 | `FULLNODE.GENESIS_VERIFIERS` | `[]` | bootstrap verifier pubkeys (operator) |
 
 ## Reorg safety
