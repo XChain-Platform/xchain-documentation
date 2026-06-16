@@ -11,7 +11,9 @@ XChain Platform is **open source**, dual-licensed under the **GNU Affero General
 | [Commercial license](./COMMERCIAL-LICENSE.md) | The paid option for keeping modifications private |
 | [Trademark policy](./TRADEMARK.md) | How you may use the "XChain" name and logo |
 | [Contributor License Agreement](./CLA.md) | Terms for contributing code to the project |
+| [LICENSE](../LICENSE.md) | The full AGPL-3.0 license text |
+| [NOTICE](../NOTICE.md) | Attribution and third-party component notices |
 
-The binding license texts are the [AGPL-3.0 LICENSE](../LICENSE.md) and the [NOTICE](../NOTICE.md) in the repository root.
+The [LICENSE](../LICENSE.md) and [NOTICE](../NOTICE.md) in the repository root are the binding license texts.
 
 For commercial licensing or any legal inquiry: **legal@dankest.llc**.
