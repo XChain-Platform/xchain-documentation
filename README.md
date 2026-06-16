@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
-<!-- Copyright © 2025–2026 Dankest, LLC -->
+<!-- Copyright © 2025-2026 Dankest, LLC -->
 
 # XChain Platform
 
@@ -53,7 +53,7 @@ Any redistribution or modification must include the attribution notice specified
 
 ---
 
-**Copyright &copy; 2025–2026 Dankest, LLC**
+**Copyright &copy; 2025-2026 Dankest, LLC**
 
 **Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
 
@@ -73,4 +73,4 @@ XChain Platform is **open source**, dual-licensed under:
 
 See the **[licensing overview](https://docs.xchain.io/legal/LICENSING.html)** for which one applies to you. "XChain" is a trademark of Dankest, LLC. See the **[Trademark Policy](https://docs.xchain.io/legal/TRADEMARK.html)**.
 
-Copyright © 2025–2026 Dankest, LLC.
+Copyright © 2025-2026 Dankest, LLC.

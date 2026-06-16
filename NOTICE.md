@@ -1,7 +1,7 @@
 # NOTICE
 
 XChain Platform
-Copyright © 2025–2026 Dankest, LLC
+Copyright © 2025-2026 Dankest, LLC
 https://dankest.llc
 
 This product includes software developed by Dankest, LLC.
@@ -24,7 +24,7 @@ For commercial licensing, contact **legal@dankest.llc**.
 Any redistribution or modification of this software must retain the following
 attribution, per the AGPL and the project's trademark policy:
 
-> Based on XChain Platform by Dankest, LLC – https://dankest.llc
+> Based on XChain Platform by Dankest, LLC - https://dankest.llc
 
 ## Trademark
 
