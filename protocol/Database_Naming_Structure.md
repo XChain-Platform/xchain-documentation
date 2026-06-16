@@ -1,18 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Platform Specification
-
-**Copyright © 2025 Dankest, LLC**
-
-**Based on XChain Platform by Dankest, LLC – https://dankest.llc**  
-
-Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later)  
-with a commercial license available for proprietary use.  
-
-You may use, modify, and distribute this material under the terms of the License.  
-See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).
-
 # XChain Platform - Database Naming Structure
 
 The XChain Platform follows the following database naming structure :
