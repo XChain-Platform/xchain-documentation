@@ -194,22 +194,42 @@ any restore — the checksum embedded inside the archive only detects transport
 corruption, while the signature proves the archive is the one the publisher
 built.
 
-By default an unsigned bootstrap restores with a loud warning. Set
-`XCHAIN_NODE_REQUIRE_SIGNED_BOOTSTRAP=1` to refuse unsigned archives outright
-(recommended once your publisher signs all of them).
+Signature enforcement is **on by default** (fail-closed): a restore is refused
+when the public key or `.sig` is missing, or when the signature does not verify.
+On a fresh install's automatic restore the refusal is caught and the node syncs
+from scratch rather than restoring an unverified archive; a manual `bootstrap
+restore` aborts. To opt out — e.g. for a self-hosted source that publishes no
+signatures — set `XCHAIN_NODE_REQUIRE_SIGNED_BOOTSTRAP=0` (also accepts
+`false`/`no`).
 
-Publishers: generate a keypair once —
+**Publishers** — generate a keypair once:
 
 ```bash
 openssl genpkey -algorithm ed25519 -out bootstrap_signing_key.pem
 openssl pkey -in bootstrap_signing_key.pem -pubout -out bootstrap_signing_pubkey.pem
 ```
 
-— keep the private key on the publishing host only, set
-`XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY=/path/to/bootstrap_signing_key.pem` there so
-`bootstrap create` emits a `.sig` beside each archive, upload the `.sig` next
-to the archive, and distribute the public key to consumers (commit it as
-`src/config/bootstrap_signing_pubkey.pem`).
+Keep the private key on the publishing host(s) only (back it up offline — it is
+the trust root for every consumer's restore), commit the public half as
+`src/config/bootstrap_signing_pubkey.pem`, and set
+`XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY=/path/to/bootstrap_signing_key.pem` so
+`bootstrap create` writes a `.sig` beside each archive. **Always upload the
+`.sig` together with its archive** — a missing or mismatched signature makes
+every consumer refuse the restore.
+
+To automate creation + signing + upload + retention, use
+`scripts/publish-bootstraps.sh`. It wraps `bootstrap create` for every served
+combo, signs inline, transfers each archive + `.sig` to the bootstrap host, and
+prunes to the newest few. It is cron-safe (single-instance `flock`) and makes
+the downtime-bearing UTXO-tracker creates opt-in (a tracker create stops its
+container for the snapshot):
+
+```bash
+# decoder + indexer only — online dump, no downtime (good for a weekly cron):
+scripts/publish-bootstraps.sh --all
+# include the UTXO trackers — stops each tracker for the snapshot, so schedule a window:
+scripts/publish-bootstraps.sh --all --with-trackers
+```
 
 ---
 
