@@ -2,34 +2,29 @@
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - DELEGATE
-Manages the signing key bound to a staked validator. Four flavors:
-
-- **v0:** Capability delegation.** Rotates the signing key for the broadcaster's active capability stake.
-- **v1:** Contract-targeted delegation.** Rotates the signing key for a single `(TARGET_CONTRACT_INDEX, TICK)` stake row owned by the broadcaster. Use this for stakes created via [STAKE](STAKE.md) v3.
-- **v2:** Capability revoke.** Removes a previously delegated capability signing key without replacing it.
-- **v3:** Contract-targeted revoke.** Removes a previously delegated contract-targeted signing key without replacing it.
+This action manages the signing key bound to a staked validator, supporting four flavors: capability delegation (v0), contract-targeted delegation (v1), capability revoke (v2), and contract-targeted revoke (v3).
 
 ## PARAMS
-| Name                     | Type    | Versions | Description                                          |
-| ------------------------ | ------- | -------- | ---------------------------------------------------- |
-| `VERSION`                | String  | all      | Format Version (0=capability rotate, 1=contract rotate, 2=capability revoke, 3=contract revoke) |
-| `NEW_SIGNING_PUBKEY`     | String  | 0, 1     | New Ed25519 public key, 64 hex chars                 |
-| `SIGNING_PUBKEY`         | String  | 2, 3     | Existing Ed25519 public key to revoke, 64 hex chars  |
-| `TARGET_CONTRACT_INDEX`  | Integer | 1, 3     | `action_index` of the stakeable contract             |
-| `TICK`                   | String  | 1, 3     | Token ticker of the stake row to rotate or revoke    |
+| Name                    | Type    | Description                                                                                        |
+| ----------------------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `VERSION`               | String  | Format Version (0=capability rotate, 1=contract rotate, 2=capability revoke, 3=contract revoke)    |
+| `NEW_SIGNING_PUBKEY`    | String  | New Ed25519 public key, 64 hex chars (versions 0 and 1)                                            |
+| `SIGNING_PUBKEY`        | String  | Existing Ed25519 public key to revoke, 64 hex chars (versions 2 and 3)                             |
+| `TARGET_CONTRACT_INDEX` | Integer | `action_index` of the stakeable contract (versions 1 and 3)                                        |
+| `TICK`                  | String  | Token ticker of the stake row to rotate or revoke (versions 1 and 3)                               |
 
 ## Formats
 
-### Version `0`: Capability delegation
+### Version `0` - Capability Delegation
 - `VERSION|NEW_SIGNING_PUBKEY`
 
-### Version `1`: Contract-targeted delegation
+### Version `1` - Contract-Targeted Delegation
 - `VERSION|NEW_SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK`
 
-### Version `2`: Capability revoke
+### Version `2` - Capability Revoke
 - `VERSION|SIGNING_PUBKEY`
 
-### Version `3`: Contract-targeted revoke
+### Version `3` - Contract-Targeted Revoke
 - `VERSION|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK`
 
 ## Examples
@@ -57,44 +52,43 @@ Revoke the specified signing key from the broadcaster's (contract=500, tick=MYTO
 - `NEW_SIGNING_PUBKEY` / `SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key.
 
 ### v0 (capability rotate)
-- **BTC chain only.**
+- BTC chain only.
 - Broadcasting address must have an active capability stake (gated by the 6-block activation delay).
 - `NEW_SIGNING_PUBKEY` must not already be in use by any active stake or delegation.
 
 ### v1 (contract rotate)
-- **Works on any chain** (BTC, LTC, DOGE).
+- Works on any chain (BTC, LTC, DOGE).
 - Broadcasting address must own an active `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` stake row created via STAKE v3.
 - `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract.
 - `TICK` must match the existing stake row's token.
 - `NEW_SIGNING_PUBKEY` must not already be in use by any active stake or delegation scoped to the same contract.
 
 ### v2 (capability revoke)
-- **BTC chain only.**
-- Broadcasting address must have an active delegation for the specified `SIGNING_PUBKEY` (gated by the 6-block activation delay), **or** an active capability stake whose original signing key is `SIGNING_PUBKEY`, revoking the original stake key is what completes the key-compromise procedure (see Notes).
+- BTC chain only.
+- Broadcasting address must have an active delegation for the specified `SIGNING_PUBKEY` (gated by the 6-block activation delay), or an active capability stake whose original signing key is `SIGNING_PUBKEY`; revoking the original stake key is what completes the key-compromise procedure (see Notes).
 - A stake key already revoked by a previous v2 cannot be revoked again. Re-staking the same key later (STAKE v2 re-activation) clears the revocation.
 
 ### v3 (contract revoke)
-- **Works on any chain** (BTC, LTC, DOGE).
+- Works on any chain (BTC, LTC, DOGE).
 - Broadcasting address must own an active contract-targeted delegation matching `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)`.
 - `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract.
 - `TICK` must match the existing delegation's token.
 
-## Activation / Deactivation Delay
-All four versions are gated by an activation delay (measured in blocks of the chain on which the action was broadcast) before taking effect, tracked via the `activation_block` / `deactivation_block` columns on the `delegations` (v0/v2) or `contract_delegations` (v1/v3) tables. The delay is calibrated per chain for ~60 minutes of reorg protection: **6 blocks on BTC** (~10 min/block), **24 on LTC** (~2.5 min/block), **60 on DOGE** (~1 min/block); a flat block count would otherwise give DOGE only ~6 minutes. Capability-staking delegations (v0/v2) are BTC-only and use the 6-block BTC value; contract delegations (v1/v3) apply the per-chain value. The worked examples below use BTC's 6 blocks.
+## Activation and Deactivation Delay
+All four versions are gated by an activation delay (measured in blocks of the chain on which the action was broadcast) before taking effect, tracked via the `activation_block` / `deactivation_block` columns on the `delegations` (v0/v2) or `contract_delegations` (v1/v3) tables. The delay is calibrated per chain for approximately 60 minutes of reorg protection: 6 blocks on BTC (~10 min/block), 24 on LTC (~2.5 min/block), 60 on DOGE (~1 min/block); a flat block count would otherwise give DOGE only about 6 minutes. Capability-staking delegations (v0/v2) are BTC-only and use the 6-block BTC value; contract delegations (v1/v3) apply the per-chain value. The worked examples below use BTC's 6 blocks.
 
-- **v0 / v1 (rotate)**: the new delegated key does **not** take effect immediately; it becomes active after 6 blocks. During the delay, signatures from the new key are rejected.
-- **v2 / v3 (revoke)**: revocation does **not** take effect immediately; the key remains active for 6 blocks after the action confirms.
+- **v0 / v1 (rotate)**: the new delegated key does not take effect immediately; it becomes active after 6 blocks. During the delay, signatures from the new key are rejected.
+- **v2 / v3 (revoke)**: revocation does not take effect immediately; the key remains active for 6 blocks after the action confirms.
 
 This prevents short-range chain reorgs from leaving a stake without a valid signer.
 
-## Effective signer set (additive-until-revoked)
+## Effective Signer Set (Additive Until Revoked)
+Capability delegation (v0/v2) is additive: a delegation adds a signing key, it never replaces one. A staking address's effective signer set at block height `h` is:
 
-Capability delegation (v0/v2) is **additive**: a delegation adds a signing key, it never replaces one. A staking address's *effective signer set* at block height `h` is:
-
-- the original signing keys of its active stakes at `h`, **excluding** keys revoked via v2 whose revocation is in effect at `h`, **plus**
+- the original signing keys of its active stakes at `h`, excluding keys revoked via v2 whose revocation is in effect at `h`, plus
 - the keys of its active delegations at `h` (activation delay passed, not revoked).
 
-Every consensus surface resolves through this one definition: capability snapshots, PBFT quorum membership and counts, on-chain signature verification (e.g. PRICE v0), and validator reward attribution. A delegated key is backed by the delegating address's **aggregate active stake**, delegating never changes staked amounts, it only changes which keys may sign.
+Every consensus surface resolves through this one definition: capability snapshots, PBFT quorum membership and counts, on-chain signature verification (e.g. PRICE v0), and validator reward attribution. A delegated key is backed by the delegating address's aggregate active stake; delegating never changes staked amounts, it only changes which keys may sign.
 
 Collision rules keep the set unambiguous: a key can never simultaneously be a stake key and a delegated key (STAKE v1 rejects keys held by an active delegation; DELEGATE v0 rejects keys held by any active stake or delegation), and a key can only be delegated by one address at a time.
 
@@ -103,9 +97,9 @@ Collision rules keep the set unambiguous: a key can never simultaneously be a st
 - Use v2/v3 to remove a delegated key without replacing it. A stake with no valid signing key will not participate in validator duties until a new key is delegated via v0/v1.
 - The 6-block delay means that for emergency key compromise scenarios, operators must:
   1. Broadcast a rotate (v0/v1) with a new key (takes 6 blocks to activate)
-  2. Broadcast a revoke (v2/v3) for the old key (takes 6 blocks to deactivate), for a compromised **original stake key**, this is the v2 stake-key revoke
-  3. During the overlap window, both keys are valid; the new key takes effect ~6 blocks before the old key is fully revoked.
-- A v2 stake-key revocation is cleared only by re-staking the same key (STAKE v2 re-activation); there is no separate "un-revoke". Rotating *back* to a revoked original key is otherwise impossible (v0 rejects keys with stake history).
+  2. Broadcast a revoke (v2/v3) for the old key (takes 6 blocks to deactivate); for a compromised original stake key, this is the v2 stake-key revoke
+  3. During the overlap window, both keys are valid; the new key takes effect approximately 6 blocks before the old key is fully revoked.
+- A v2 stake-key revocation is cleared only by re-staking the same key (STAKE v2 re-activation); there is no separate "un-revoke". Rotating back to a revoked original key is otherwise impossible (v0 rejects keys with stake history).
 - Does not affect staked token amounts or capability qualifications.
 
 ---
