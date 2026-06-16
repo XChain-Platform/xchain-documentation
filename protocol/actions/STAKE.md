@@ -100,6 +100,7 @@ Each STAKE action (v1 *or* v2) inserts a new row into the `stakes` table. The ac
 - Use `DELEGATE` to rotate the signing key without un-staking.
 - Slashing burns from the unified stake pool. If a slash drops total stake below another capability's `min_stake`, that capability is collaterally lost at the next snapshot.
 - See `PRICE` action documentation for the `price` capability's role in PBFT consensus.
+- If the staked `TICK` binds a `stake`-class controller (or the catch-all `all`), the contract's `guard` runs before a **v3** contract-targeted stake settles and may `revert` it; `SOURCE` pays the bounded guard gas. v1/v2 (XCHAIN-only capability) stakes are never controller-gated. See [Controller-Bound Tokens](../Controller_Bound_Tokens.md).
 
 ---
 

@@ -34,6 +34,7 @@ This example mints 10,000,000,000,000 BRRR tokens and transfers them to 1JDogZS6
 ## Rules
 - `TICK` supply may be minted until `MAX_SUPPLY` is reached.
 - Transactions that attempt to mint supply beyond `MAX_SUPPLY` shall be considered invalid and ignored.
+- If the token binds a `mint`-class controller (or the catch-all `all`), the contract's `guard` runs before the mint settles and may `revert` it; `SOURCE` pays the bounded guard gas. See [Controller-Bound Tokens](../Controller_Bound_Tokens.md).
 
 ## Notes
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)

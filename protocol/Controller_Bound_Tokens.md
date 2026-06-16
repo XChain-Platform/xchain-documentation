@@ -25,7 +25,7 @@ A token binds (or unbinds) a controller for one **action class** at a time via `
 | Field | Meaning |
 |---|---|
 | `CONTROLLER` | `ACTION_INDEX` of a deployed, active contract on the same chain (its `contracts.action_index`; derived address `C:<CHAIN>:<CONTROLLER>`). |
-| `ACTION_CLASS` | Which class of action this binding gates: `transfer` (SEND), `trade` (ORDER / SWAP / DISPENSER create), `burn` (DESTROY) — plus the reserved stubs `mint`, `stake` — or the catch-all `all` (see [Precedence & the `all` class](#precedence--the-all-class)). |
+| `ACTION_CLASS` | Which class of action this binding gates: `transfer` (SEND), `trade` (ORDER / SWAP / DISPENSER create), `burn` (DESTROY), `mint` (MINT supply creation), `stake` (STAKE v3 contract-targeted staking of the token) — or the catch-all `all` (see [Precedence & the `all` class](#precedence--the-all-class)). |
 | `COOLDOWN_BLOCKS` | Drop-cooldown committed at bind time: the friction (in blocks) before a later `UNBIND` of this class takes effect. |
 | `UNBIND` | `1` drops the live binding for `ACTION_CLASS` (gated by its cooldown); `0` binds. |
 
@@ -59,9 +59,10 @@ overrides the catch-all for that class only — the specific binding fully repla
 Binding a specific class while `all` is bound is allowed (it is the override); a second `all` bind
 while one is live is rejected, exactly like any other class.
 
-> ⚠️ **`all` means all classes, present AND future.** A token bound to `all` today will silently
-> begin gating `mint` and `stake` the moment those stub handlers wire their guards in a later
-> release. This is the intended "gate everything" behavior — bind `all` only if you want that.
+> ⚠️ **`all` means all classes, present AND future.** A token bound to `all` gates **every** routed
+> class — including `mint` (supply creation) and `stake` (v3 contract-targeted staking) — and will
+> begin gating any class a future release makes routable. This is the intended "gate everything"
+> behavior — bind `all` only if you want that.
 
 Cooldown/unbind semantics are identical for `all` (it is just another `action_class` value with its
 own append-only events). `all` participates in resolution only; routing is unchanged.
@@ -179,12 +180,15 @@ address as the subject. An account self-gates one action class via the
 - The guard runs with the same [ABI](#the-guard-abi), gas rules, and determinism guarantees;
   the subject is the account and `tick` is the token in motion.
 
-**What it gates today:** the recipient side of a direct `SEND`. After the token's own
-`transfer` guard, the **destination's** `transfer` address-controller runs and may `revert` to
-refuse an unsolicited incoming transfer (spam / compliance). `SOURCE` pays the guard gas, and
-the two reservations (token guard + address guard) are cumulative so `GAS` can't be driven
-negative. DEX and dispenser deliveries are *solicited pulls*, not direct sends, so they are
-never gated this way.
+**What it gates today:** both sides of a direct `SEND`. A `transfer` address binding is
+**symmetric** — it runs whether the account is the **`SOURCE`** (an *outbound* self-gate:
+self-imposed spending controls — velocity, allowlists, compliance) or the **`DESTINATION`** (an
+*inbound* gate: refuse an unsolicited incoming transfer). The guard distinguishes direction from
+its `from`/`to` (`from === subject` ⇒ outbound). The enforcement order is: the token's own
+`transfer` guard → the source's outbound `transfer` guard → the destination's inbound `transfer`
+guard. `SOURCE` pays the guard gas, and the reservations are cumulative so `GAS` can't be driven
+negative. DEX and dispenser deliveries are *solicited pulls*, not direct sends, so they are never
+gated this way.
 
 Where a token controller makes the rules travel with the *asset*, an address controller makes
 them travel with the *account*.
@@ -213,7 +217,9 @@ them travel with the *account*.
 | `SEND` guarded (transfer class: veto + programmable side-effects + gas) | **Implemented** |
 | `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` guard (listing gate + `payoutLegs`, + gas) | **Implemented** |
 | Sale-path proceeds split — `payout_legs` stored at create, `applyProceedsSplit` at match | **Implemented** |
-| Account (address) controllers — ADDRESS v1 bind, recipient-side `SEND` gate (`address_controllers`) | **Implemented** |
+| `MINT` guarded (mint class: gate supply creation, + gas) | **Implemented** |
+| `STAKE` v3 guarded (stake class: gate contract-targeted staking by the staked token, + gas; v1/v2 GAS capability stakes ungated) | **Implemented** |
+| Account (address) controllers — ADDRESS v1 bind, **symmetric** `transfer` `SEND` gate — both source-outbound + recipient-inbound (`address_controllers`) | **Implemented** |
 | Permissions manifest — deploy-time `permissions` allowlist (all emission paths) + per-contract `maxTakeBps` (`contract_permissions`) | **Implemented** |
 
 ## Proceeds split (royalty / fee `payout_legs`)
