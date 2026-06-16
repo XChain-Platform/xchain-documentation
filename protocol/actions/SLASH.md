@@ -14,8 +14,7 @@ For the full design see `claude/reports/2026-06-14_cross-chain-quorum-security-s
 | `VERSION`         | Integer| Format version (`0`).                                                                         |
 | `CAPABILITY`      | String | The staking capability the equivocation was in: `cross_chain`, `oracle_publish`, `price`, or `attestation`. Must match the engine the `EQUIV_KEY` names. |
 | `OFFENDER_PUBKEY` | String | The equivocating validator's Ed25519 capability signing key, 64 hex chars.                    |
-| `EQUIV_KEY`       | String | `ENGINE_TAG\|ROUND_ID\|VIEW` — the header prefix both signed messages share through `<VIEW>`. `ROUND_ID` may itself contain `\|` and is never field-split. |
-| `MSG_A`           | String | base64url of the first signed canonical (an `EQUIV`-headered string).                         |
+| `MSG_A`           | String | base64url of the first signed canonical (an `EQUIV`-headered string `EQUIV\|<ENGINE_TAG\|ROUND_ID\|VIEW>\|\|<CONTENT>`).                         |
 | `SIG_A`           | String | Ed25519 signature over `MSG_A` by `OFFENDER_PUBKEY`, 128 hex chars.                           |
 | `MSG_B`           | String | base64url of the second signed canonical. Equal to `MSG_A` through the header, **different** in `<CONTENT>`. |
 | `SIG_B`           | String | Ed25519 signature over `MSG_B` by `OFFENDER_PUBKEY`, 128 hex chars.                           |
@@ -23,14 +22,16 @@ For the full design see `claude/reports/2026-06-14_cross-chain-quorum-security-s
 ## Formats
 
 ### Version `0` — Equivocation slash
-- `VERSION|CAPABILITY|OFFENDER_PUBKEY|EQUIV_KEY|MSG_A|SIG_A|MSG_B|SIG_B`
+- `VERSION|CAPABILITY|OFFENDER_PUBKEY|MSG_A|SIG_A|MSG_B|SIG_B`
 - **BTC chain only** — capability stake is BTC-only.
+- The equivocation key (`ENGINE_TAG|ROUND_ID|VIEW`) is **not** a wire field — it contains `|` and would break the pipe-delimited action, and it is fully recoverable from `MSG_A`'s header (`EQUIV|<key>||…`). The verifier derives it and requires `MSG_B` to carry the identical header prefix.
 
 ## Examples
 ```
-SLASH|0|cross_chain|abc1...ef|XDEX|m_42|3|<b64 msgA>|<sigA>|<b64 msgB>|<sigB>
-Proof that the validator abc1...ef signed two different XMATCH settlements for cross-chain
-match m_42 at view 3. Burns its entire cross_chain bond.
+SLASH|0|cross_chain|abc1...ef|<b64 msgA>|<sigA>|<b64 msgB>|<sigB>
+Proof that the validator abc1...ef signed two different XMATCH settlements for the same
+cross-chain match + view (msgA and msgB share the EQUIV header `EQUIV|XDEX|m_42|3||…` but
+differ in content). Burns its entire cross_chain bond.
 ```
 
 ## Rules
