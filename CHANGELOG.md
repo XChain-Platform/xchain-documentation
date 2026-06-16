@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-06-16
+
 ### Added
 
 - **Three-week documentation drift sweep (2026-06-13).** A systematic audit of the prior three weeks of code across every `xchain-*` sub-repo against the docs; the Added/Changed/Fixed entries below are its output. Almost nothing was missing wholesale: the gaps were features that shipped in code after the docs were written.
