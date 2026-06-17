@@ -18,6 +18,17 @@ Each provider also carries a **`min_fee_xchain`** setting; a governance-configur
 | `http_get` | Fetch an HTTPS URL and return the response body | A URL string | Exact byte-equality across validators |
 | [`llm`](./llm.html) | Send a prompt to an approved language model | JSON prompt envelope | A judge model decides semantic equivalence |
 
+### `http_get`: the endpoint must be stable
+
+`http_get` reaches agreement on the **exact response bytes and HTTP status code** returned to each validator. Because the status code is part of what validators agree on, the target endpoint must answer every validator with the same body and the same status during the request's lifetime. Endpoints that vary per request break agreement silently:
+
+- conditional caching that returns `200` to one validator and `304` to another,
+- rate limiting that returns `429` or `503` to a subset,
+- load-balanced backends whose bodies differ byte-for-byte,
+- any content that changes between fetches (timestamps, random ordering, session tokens).
+
+When validators land on different answers, no group reaches quorum. The request does not raise a retryable error; it stays pending until its deadline block and then **expires** (the contract receives a `status='expired'` response with an empty payload, and any attestation fee is refunded). Point `http_get` at a stable, deterministic URL (for example a pinned data snapshot or a versioned API path) rather than a live, cache-fronted, or rate-limited endpoint. For answers that legitimately vary across validators, use a provider whose consensus tolerates variance, such as [`llm`](./llm.html).
+
 See [`ATTEST`](../actions/ATTEST.html) for the request/response/expire wire lifecycle, and [Smart Contracts](../../concepts/Smart_Contracts.html) for the contract-side `xchain.attestation.*` API.
 
 ---
