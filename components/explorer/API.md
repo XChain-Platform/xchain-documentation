@@ -1284,6 +1284,119 @@ Cross-chain DEX match and settlement records. `type` values for matches: `match`
 
 ---
 
+### VM / Contract Endpoints
+
+```
+GET /{COIN}/api/contracts[/{query}/{type}]
+GET /{COIN}/api/contract/{TICK}
+GET /{COIN}/api/contract/{TICK}/state[/{type}]
+GET /{COIN}/api/contract/{TICK}/balance[/{type}]
+GET /{COIN}/api/executions[/{query}/{type}]
+GET /{COIN}/api/execution/{query}
+GET /{COIN}/api/deploy_chunks
+```
+
+Smart contract (DEPLOY / CALL) data. `contracts` and `executions` `type` values: `block`, `address`, `contract` (or `source` for contracts). Single-contract detail, sandbox state, and per-contract token balance via the `contract/*` routes. `deploy_chunks` lists chunked upload records for large contracts.
+
+---
+
+### Deposit and Withdrawal Endpoints
+
+```
+GET /{COIN}/api/deposits/{query}/{type}
+GET /{COIN}/api/withdrawals/{query}/{type}
+```
+
+Contract deposit and withdrawal records. `type` values: `block`, `address`, `source`, `contract`.
+
+---
+
+### Staking and Validator Endpoints
+
+```
+GET /{COIN}/api/stakes[/{query}/{type}]
+GET /{COIN}/api/validators
+GET /{COIN}/api/delegations/{query}/{type}
+GET /{COIN}/api/rewards/{query}/{type}
+GET /{COIN}/api/full_node_verifications[/{query}/{type}]
+GET /{COIN}/api/contract_stakes[/{query}/{type}]
+GET /{COIN}/api/contract_unstakes[/{query}/{type}]
+GET /{COIN}/api/contract_delegations[/{query}/{type}]
+GET /{COIN}/api/slash_events[/{query}/{type}]
+```
+
+Validator federation data. `stakes` and `delegations` `type` values: `block`, `address`, `source`. `rewards` `type` values: `address`, `source`. `full_node_verifications` `type` values: `block`, `epoch`, `pubkey`, `address`. Contract-targeted staking (`contract_stakes`, `contract_unstakes`, `contract_delegations`) and `slash_events` support types: `block`, `address`, `contract`.
+
+---
+
+### Attestation Endpoints
+
+```
+GET /{COIN}/api/attestations[/{query}/{type}]
+```
+
+ATTEST v0 requests and v1 responses from the `attests` table. `type` values: `block`, `address`, `contract`.
+
+---
+
+### Cross-Chain Call Endpoints
+
+```
+GET /{COIN}/api/xcalls[/{query}/{type}]
+GET /{COIN}/api/xcall/{callId}
+```
+
+VM-emitted cross-chain call records (XCALL). `xcalls` `type` values: `block`, `contract`, `status`. Single-call lifecycle lookup via `xcall/{callId}`.
+
+---
+
+### Controller-Bound Token Endpoints
+
+```
+GET /{COIN}/api/controllers
+```
+
+Controller bind/unbind event stream for controller-bound tokens. See `protocol/Controller_Bound_Tokens.md`.
+
+---
+
+### Project Registry
+
+```
+GET /{COIN}/api/project/{TICK}
+```
+
+Returns the current roster for a project token (tick). See `protocol/Project_Registry.md`.
+
+---
+
+### Public Key Lookup
+
+```
+GET /{COIN}/api/pubkey/{address}
+```
+
+Returns the on-chain-observed public key for `address`, or `null` if not yet seen.
+
+---
+
+### Token Search Types
+
+The `/{COIN}/api/tokens/{query}/{type}` endpoint accepts the additional type value `nft`, which restricts results to NFT-enabled tokens. All other type values (`block`, `address`, `token`, `subtoken`) are unchanged.
+
+---
+
+### Relay and Icon Routes
+
+```
+POST /relay
+GET  /icon/{path}
+```
+
+`/relay` proxies cross-chain coordination messages to the hub. `/icon/{path}` serves cached token icon images. Both are non-coin-prefixed and registered at the root level.
+
+---
+
 ### Machine-Readable Spec
 
 ```
@@ -1429,8 +1542,25 @@ Content-Type: application/json
 | `GET /{COIN}/api/block/{index}` | Block summary by height |
 | `GET /{COIN}/api/holders/{tick}` | All holders of a token |
 | `GET /{COIN}/api/token/{tick}` | Token metadata and supply |
+| `GET /{COIN}/api/contract/{tick}` | Contract metadata |
+| `GET /{COIN}/api/contract/{tick}/state` | Contract sandbox state |
+| `GET /{COIN}/api/contract/{tick}/balance` | Contract token balances |
+| `GET /{COIN}/api/execution/{query}` | Single execution record |
+| `GET /{COIN}/api/xcall/{callId}` | Single cross-chain call lifecycle |
+| `GET /{COIN}/api/project/{tick}` | Project registry roster for a token |
+| `GET /{COIN}/api/pubkey/{address}` | On-chain public key for an address |
 | `GET /{COIN}/api/status` | Platform status |
 | `GET /{COIN}/api/network` | Network statistics |
+| `GET /{COIN}/api/validators` | Validator federation list |
+| `GET /{COIN}/api/controllers` | Controller-bound token event stream |
+| `GET /{COIN}/api/deploy_chunks` | Chunked DEPLOY upload records |
+| `GET /{COIN}/api/checkpoints` | Latest quorum-signed state checkpoints |
+| `GET /{COIN}/api/checkpoint/{height}/verify` | Verify a checkpoint at a given height |
+| `GET /{COIN}/api/feequote` | Native-coin fee pre-flight quote |
+| `GET /{COIN}/api/feeschedule` | Native-coin fee schedule |
+| `GET /openapi.json` | OpenAPI 3.1 machine-readable spec |
+| `POST /relay` | Cross-chain relay (hub proxy) |
+| `GET /icon/{path}` | Token icon image |
 
 ### Market Endpoints
 
@@ -1492,6 +1622,49 @@ Content-Type: application/json
 | `GET /{COIN}/api/tokens/...` | `block`, `address`, `token`, `subtoken` |
 | `GET /{COIN}/api/transaction/...` | `tx_hash`, `tx_index` |
 | `GET /{COIN}/api/mempool/...` | `address`, `token` |
+
+### VM / Contract List Endpoints
+
+| Endpoint | Supported Types |
+|---|---|
+| `GET /{COIN}/api/contracts/...` | `block`, `address`, `source` |
+| `GET /{COIN}/api/executions/...` | `block`, `address`, `contract` |
+| `GET /{COIN}/api/deposits/...` | `block`, `address`, `source`, `contract` |
+| `GET /{COIN}/api/withdrawals/...` | `block`, `address`, `source`, `contract` |
+
+### Staking and Validator List Endpoints
+
+| Endpoint | Supported Types |
+|---|---|
+| `GET /{COIN}/api/stakes/...` | `block`, `address`, `source` |
+| `GET /{COIN}/api/delegations/...` | `block`, `address`, `source` |
+| `GET /{COIN}/api/rewards/...` | `address`, `source` |
+| `GET /{COIN}/api/full_node_verifications/...` | `block`, `epoch`, `pubkey`, `address` |
+| `GET /{COIN}/api/contract_stakes/...` | `block`, `address`, `contract` |
+| `GET /{COIN}/api/contract_unstakes/...` | `block`, `address`, `contract` |
+| `GET /{COIN}/api/contract_delegations/...` | `block`, `address`, `contract` |
+| `GET /{COIN}/api/slash_events/...` | `block`, `address`, `contract` |
+
+### Attestation and Cross-Chain Call List Endpoints
+
+| Endpoint | Supported Types |
+|---|---|
+| `GET /{COIN}/api/attestations/...` | `block`, `address`, `contract` |
+| `GET /{COIN}/api/xcalls/...` | `block`, `contract`, `status` |
+
+### Price and Oracle List Endpoints
+
+| Endpoint | Supported Types |
+|---|---|
+| `GET /{COIN}/api/prices/...` | `block`, `address`, `source`, `token` |
+| `GET /{COIN}/api/price_snapshots/...` | `pair`, `round`, `status` |
+
+### Cross-Chain DEX List Endpoints
+
+| Endpoint | Supported Types |
+|---|---|
+| `GET /{COIN}/api/cross_chain_matches/...` | `match`, `block`, `status` |
+| `GET /{COIN}/api/cross_chain_settlements/...` | `match`, `block` |
 
 ---
 
