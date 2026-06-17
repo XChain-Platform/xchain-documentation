@@ -123,7 +123,7 @@ Alternatively, the GAS address can issue XCHAIN to your test address immediately
 ```js
 const XChainSDK = require('xchain-sdk');
 
-// Hub-based discovery (recommended — hub knows all service ports)
+// Hub-based discovery (recommended: hub knows all service ports)
 const sdk = new XChainSDK({
   hubUrl: 'http://localhost:35500',
 });

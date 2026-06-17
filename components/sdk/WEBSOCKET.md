@@ -81,7 +81,7 @@ Listen for new blocks.
 
 ```javascript
 const unsub = sdk.onBlock((event) => {
-    console.log('Block', event.data.block_index, '—', event.data.action_count, 'actions');
+    console.log('Block', event.data.block_index, 'with', event.data.action_count, 'actions');
 });
 ```
 
@@ -123,7 +123,7 @@ Watch a token for supply/holder changes. Sends a snapshot on subscribe.
 
 ```javascript
 sdk.onToken('PEPE', (event) => {
-    console.log('PEPE supply:', event.data.supply, '— holders:', event.data.holders);
+    console.log('PEPE supply:', event.data.supply, 'holders:', event.data.holders);
 });
 ```
 
@@ -143,7 +143,7 @@ Watch a dispenser for triggers, status changes, and expiration. Sends a snapshot
 
 ```javascript
 sdk.onDispenser(12345, (event) => {
-    console.log(event.type, '— remaining:', event.data.give_remaining);
+    console.log(event.type, 'remaining:', event.data.give_remaining);
 });
 ```
 
@@ -224,7 +224,7 @@ Catch-up events have `catch_up: true` in the envelope. After replay, a `CATCH_UP
 
 ```javascript
 ws.on('CATCH_UP_COMPLETE', (msg) => {
-    console.log('Caught up —', msg.data.events_replayed, 'events replayed');
+    console.log('Caught up:', msg.data.events_replayed, 'events replayed');
 });
 ```
 

@@ -97,7 +97,7 @@ Stake XCHAIN tokens and delegate a signing key in one flow (capability staking; 
 const result = await sdk.stakeAndDelegate(
     wif,
     { version: 1, amount: '1000', signingPubkey: 'aabb...' },  // capabilities auto-qualified from amount; pubkey is 64 hex chars
-    { newSigningPubkey: 'ccdd...' }  // optional — omit to skip delegation
+    { newSigningPubkey: 'ccdd...' }  // optional; omit to skip delegation
 );
 
 console.log(result.stake.txid);
@@ -156,7 +156,7 @@ Issue a unique 1-of-1 NFT fully minted to the issuer. Builds ISSUE params via `s
 const result = await sdk.issueNft(wif, {
     tick:        'MYART',
     description: 'action:12345',  // optional TIS data_ref or URL
-    transfer:    null,             // optional — transfer issuer ownership after issue
+    transfer:    null,             // optional; transfer issuer ownership after issue
     memo:        null
 });
 
@@ -201,7 +201,7 @@ Issue a distinct 1-of-1 item in a collection; a child TICK `parent.name`. The is
 ```js
 const result = await sdk.issueCollectionItem(wif, {
     parent:      'MYCOLLECTION',
-    name:        'item001',      // child segment only — must not contain '.'
+    name:        'item001',      // child segment only; must not contain '.'
     description: 'action:12345',
     memo:        null
 });
@@ -263,7 +263,7 @@ const result = await sdk.setRoster(
     { waitForIndexer: true }
 );
 
-// Edit an existing roster (add or remove — not both in one action)
+// Edit an existing roster (add or remove; not both in one action)
 const result = await sdk.setRoster(
     wif,
     {

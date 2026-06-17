@@ -71,7 +71,7 @@ This example sells ownership of the JDOG tick for 0.5 BTC. `GIVE_OWNERSHIP=1` wi
 
 ```
 ORDER|0|BTC|JDOG||1|BTC|PEPECASH|10000000.00000000||||||Selling JDOG ownership for 10M PEPECASH
-This example sells ownership of JDOG for 10,000,000 PEPECASH balance — settled atomically on match.
+This example sells ownership of JDOG for 10,000,000 PEPECASH balance, settled atomically on match.
 ```
 
 ```

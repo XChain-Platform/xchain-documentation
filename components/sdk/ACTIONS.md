@@ -73,7 +73,7 @@ Configure address-level preferences for fee routing and memo requirements.
 
 **Format Versions:** v0 (preferences)
 
-**Format:** `ADDRESS|VERSION|FEE_PREFERENCE|REQUIRE_MEMO|MEMO`
+**Format:** `ADDRESS|VERSION|FEE_PREFERENCE|REQUIRE_MEMO|DISPENSER_PREFERENCE|MEMO`
 
 **Params:**
 
@@ -81,6 +81,7 @@ Configure address-level preferences for fee routing and memo requirements.
 |---|---|---|---|
 | feePreference | integer | No | Fee routing: `1` = destroy, `2` = protocol, `3` = community |
 | requireMemo | integer | No | Whether to require a memo on incoming sends (`0` or `1`) |
+| dispenserPreference | integer | No | Who may open dispensers targeting this address: `1` = owner only (default), `2` = anyone |
 | memo | string | No | Optional note |
 
 **Notes:**
@@ -320,7 +321,7 @@ Create a vending machine that automatically exchanges one token for another.
 
 **Format Versions:** v0 (create), v1 (cancel), v2 (edit)
 
-**Format v0 (create):** `DISPENSER|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_ESCROW|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|FIAT_CODE|FIAT_AMOUNT|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`  
+**Format v0 (create):** `DISPENSER|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_OWNERSHIP|GIVE_ESCROW|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|FIAT_CODE|FIAT_AMOUNT|ORACLE_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`  
 **Format v1 (cancel):** `DISPENSER|VERSION|DISPENSER_ACTION_INDEX|MEMO`  
 **Format v2 (edit):** `DISPENSER|VERSION|DISPENSER_ACTION_INDEX|GIVE_ESCROW|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
@@ -330,14 +331,16 @@ Create a vending machine that automatically exchanges one token for another.
 |---|---|---|---|
 | giveCoin | string | No | Coin being given (`BTC`, `LTC`, `DOGE`) |
 | giveTick | string | Yes | Token being given |
-| giveAmount | string | Yes | Amount given per fill |
-| giveEscrow | string | No | Amount to escrow upfront |
+| giveAmount | string | Yes | Amount given per fill (omit when `giveOwnership` is `1`) |
+| giveOwnership | integer | No | `1` = dispense the token's issuer rights instead of a balance amount (single-shot); `0` = balance amount (default) |
+| giveEscrow | string | No | Amount to escrow upfront (omit when `giveOwnership` is `1`) |
 | getCoin | string | No | Coin accepted in return (`BTC`, `LTC`, `DOGE`) |
 | getTick | string | Yes | Token accepted in return |
 | getAmount | string | Yes | Amount required per fill |
 | getAddress | string | No | Address to receive the get-side funds |
 | fiatCode | string | No | Fiat currency code for pricing (e.g. `USD`) |
-| fiatAmount | string | No | Fiat price in `X.XX` format |
+| fiatAmount | string | No | Fiat price in `X.XX` format (used when the dispenser is fiat-priced) |
+| oracleAddress | string | No | Address of a user price oracle (PRICE v1) that prices the dispensed token in `fiatCode`; when set, `fiatAmount` is ignored |
 | expiration | integer | No | Block height at which the dispenser expires |
 | allowList | integer | No | ACTION_INDEX of a LIST to restrict buyers |
 | blockList | integer | No | ACTION_INDEX of a LIST to ban buyers |
@@ -662,14 +665,15 @@ Send an encrypted or plaintext message to a destination address.
 
 **Format Versions:** v0 (key exchange setup), v1 (key exchange: same as v0), v2 (encrypted message body), v3 (plaintext message)
 
-**Format v0/v1 (key exchange):** `MESSAGE|VERSION|DESTINATION|ENCRYPTION_METHOD|ENCRYPTION_KEY`  
-**Format v2 (encrypted body):** `MESSAGE|VERSION|DESTINATION|ENCRYPTED_MESSAGE`  
-**Format v3 (plaintext):** `MESSAGE|VERSION|DESTINATION|PLAINTEXT_MESSAGE`
+**Format v0/v1 (key exchange):** `MESSAGE|VERSION|COIN|DESTINATION|ENCRYPTION_METHOD|ENCRYPTION_KEY`  
+**Format v2 (encrypted body):** `MESSAGE|VERSION|COIN|DESTINATION|ENCRYPTED_MESSAGE`  
+**Format v3 (plaintext):** `MESSAGE|VERSION|COIN|DESTINATION|PLAINTEXT_MESSAGE`
 
 **Params (key exchange (v0/v1):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
+| coin | string | Yes | Destination coin network (`BTC`, `LTC`, `DOGE`) |
 | destination | string | Yes | Recipient address |
 | encryptionMethod | integer | Yes | `1` = ECDH, `2` = AES |
 | encryptionKey | string | Yes | Public key or shared key material (max 1 MB) |
@@ -678,6 +682,7 @@ Send an encrypted or plaintext message to a destination address.
 
 | Param | Type | Required | Description |
 |---|---|---|---|
+| coin | string | Yes | Destination coin network (`BTC`, `LTC`, `DOGE`) |
 | destination | string | Yes | Recipient address |
 | encryptedMessage | string | Yes | Encrypted message payload (max 1 MB) |
 
@@ -685,6 +690,7 @@ Send an encrypted or plaintext message to a destination address.
 
 | Param | Type | Required | Description |
 |---|---|---|---|
+| coin | string | Yes | Destination coin network (`BTC`, `LTC`, `DOGE`) |
 | destination | string | Yes | Recipient address |
 | plaintextMessage | string | Yes | Plaintext message body (max 1 MB) |
 
@@ -731,7 +737,7 @@ Create a peer-to-peer token exchange order.
 
 **Format Versions:** v0 (create), v1 (cancel), v2 (edit)
 
-**Format v0 (create):** `ORDER|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`  
+**Format v0 (create):** `ORDER|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_OWNERSHIP|GET_COIN|GET_TICK|GET_AMOUNT|GET_OWNERSHIP|GET_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`  
 **Format v1 (cancel):** `ORDER|VERSION|ORDER_ACTION_INDEX|MEMO`  
 **Format v2 (edit):** `ORDER|VERSION|ORDER_ACTION_INDEX|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
@@ -741,10 +747,12 @@ Create a peer-to-peer token exchange order.
 |---|---|---|---|
 | giveCoin | string | No | Coin being offered (`BTC`, `LTC`, `DOGE`) |
 | giveTick | string | Yes | Token being offered |
-| giveAmount | string | Yes | Amount being offered |
+| giveAmount | string | Yes | Amount being offered (omit when `giveOwnership` is `1`) |
+| giveOwnership | integer | No | `1` = escrow the token's issuer rights instead of a balance amount; `0` = balance amount (default) |
 | getCoin | string | No | Coin requested in return (`BTC`, `LTC`, `DOGE`) |
 | getTick | string | Yes | Token requested in return |
-| getAmount | string | Yes | Amount requested |
+| getAmount | string | Yes | Amount requested (omit when `getOwnership` is `1`) |
+| getOwnership | integer | No | `1` = require the matcher to transfer `getTick` ownership (issuer rights) instead of a balance amount; `0` = balance amount (default) |
 | getAddress | string | No | Address to receive the get-side funds |
 | expiration | integer | No | Block height at which the order expires |
 | allowList | integer | No | ACTION_INDEX of a LIST to restrict takers |
@@ -885,7 +893,7 @@ Fulfill an open ORDER by providing the requested side of the exchange.
 
 **Format Versions:** v0 (create swap / accept an order), v1 (cancel), v2 (edit)
 
-**Format v0:** `SWAP|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GET_COIN|GET_TICK|GET_AMOUNT|GET_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`  
+**Format v0:** `SWAP|VERSION|GIVE_COIN|GIVE_TICK|GIVE_AMOUNT|GIVE_OWNERSHIP|GET_COIN|GET_TICK|GET_AMOUNT|GET_OWNERSHIP|GET_ADDRESS|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`  
 **Format v1:** `SWAP|VERSION|SWAP_ACTION_INDEX|MEMO`  
 **Format v2:** `SWAP|VERSION|SWAP_ACTION_INDEX|EXPIRATION|ALLOW_LIST|BLOCK_LIST|MEMO`
 
@@ -895,10 +903,12 @@ Fulfill an open ORDER by providing the requested side of the exchange.
 |---|---|---|---|
 | giveCoin | string | No | Coin being given (`BTC`, `LTC`, `DOGE`) |
 | giveTick | string | Yes | Token being given |
-| giveAmount | string | Yes | Amount being given |
+| giveAmount | string | Yes | Amount being given (omit when `giveOwnership` is `1`) |
+| giveOwnership | integer | No | `1` = give the token's issuer rights instead of a balance amount; `0` = balance amount (default) |
 | getCoin | string | No | Coin requested in return (`BTC`, `LTC`, `DOGE`) |
 | getTick | string | Yes | Token requested |
-| getAmount | string | Yes | Amount requested |
+| getAmount | string | Yes | Amount requested (omit when `getOwnership` is `1`) |
+| getOwnership | integer | No | `1` = require the matched ORDER to transfer `getTick` ownership (issuer rights) instead of a balance amount; `0` = balance amount (default) |
 | getAddress | string | No | Address to receive the get-side funds |
 | expiration | integer | No | Block height at which the swap offer expires |
 | allowList | integer | No | ACTION_INDEX of a LIST to restrict counterparties |
@@ -946,24 +956,26 @@ Transfer all balances, ownerships, and/or escrows from the current address to a 
 
 **Format Versions:** v0 (full sweep configuration)
 
-**Format:** `SWEEP|VERSION|DESTINATION|BALANCES|OWNERSHIPS|ESCROWS|MEMO`
+**Format:** `SWEEP|VERSION|DESTINATION|BALANCES|OWNERSHIPS|ORDERS|SWAPS|DISPENSERS|MEMO`
 
 **Params:**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
 | destination | string | Yes | Address to receive swept assets |
-| balances | integer | No | Include token balances: `1` = yes (default), `0` = no |
-| ownerships | integer | No | Include token ownerships: `1` = yes (default), `0` = no |
-| escrows | integer | No | Include escrowed amounts: `1` = yes, `0` = no (default) |
+| balances | integer | No | `1` = sweep token balances (default), `0` = skip |
+| ownerships | integer | No | `1` = sweep token ownerships/issuer rights (default), `0` = skip |
+| orders | integer | No | `1` = cancel open ORDERs and credit escrowed amounts to destination, `0` = skip (default) |
+| swaps | integer | No | `1` = cancel open SWAPs and credit escrowed amounts to destination, `0` = skip (default) |
+| dispensers | integer | No | `1` = close open DISPENSERs and credit escrowed amounts to destination, `0` = skip (default) |
 | memo | string | No | Optional note |
 
 ```js
 // Sweep everything
 await sdk.sweep({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
 
-// Sweep balances and ownerships but not escrows
-await sdk.sweep({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', balances: 1, ownerships: 1, escrows: 0 })
+// Sweep balances and ownerships but not open escrows
+await sdk.sweep({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', balances: 1, ownerships: 1, orders: 0, swaps: 0, dispensers: 0 })
 ```
 
 See also: [`../actions/SWEEP.md`](../../protocol/actions/SWEEP.md)
@@ -1049,7 +1061,7 @@ The numeric part after `^` must be a valid integer.
 
 - Must be **`0`** or **`1`**.
 
-### BALANCES / OWNERSHIPS / ESCROWS (SWEEP)
+### BALANCES / OWNERSHIPS / ORDERS / SWAPS / DISPENSERS (SWEEP)
 
 - Must be **`0`** or **`1`**.
 
@@ -1266,9 +1278,11 @@ When an `encoder` with an explicit `encoding` is passed, the SDK validates that 
 | `OP_RETURN` | 76 bytes (80 − 4-byte magic `XCHN`) |
 | `MULTISIGN` | ~61 bytes per chunk |
 | `P2SH` | 476 bytes (520 − 44-byte script overhead) |
-| `P2WSH` | 9,956 bytes (10,000 − 44-byte script overhead) |
+| `P2WSH` | 476 bytes per witness-script chunk (520 - 44-byte overhead), chunked across outputs up to the 8,192-byte compiled ceiling |
 
 If the action string exceeds the limit, an `ENCODING_DATA_TOO_LARGE` error is thrown with a suggested alternative encoding.
+
+The per-chunk figures above are the single-script-element bound. The end-to-end cap on total compiled ACTION data is 8,192 bytes (`MAX_COMPILED_ACTION_DATA_LENGTH` in the encoder's `validator.js`), which the chunked P2SH/P2WSH encodings reach by spreading data across multiple outputs.
 
 ---
 

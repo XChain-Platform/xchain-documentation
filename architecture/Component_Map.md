@@ -138,7 +138,7 @@ These services support the construction and submission of XChain transactions.
 
 Key technical details:
 
-- Selects encoding format based on payload size: `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx), `multisig` (~61 bytes/key, 1 tx), `P2SH` (≤476 bytes, 2 tx), `P2WSH` (≤9,956 bytes, 2 tx).
+- Selects encoding format based on payload size: `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx), `multisig` (~61 bytes/key, 1 tx), `P2SH` (476 bytes/chunk, 2 tx), `P2WSH` (476 bytes/chunk up to the 8,192-byte compiled-payload ceiling, 2 tx).
 - P2SH and P2WSH use a two-transaction pattern: fund tx commits funds to a script; reveal tx spends it, embedding the data in the unlocking script.
 - Obfuscates payloads with AES-128-CTR. Key and IV are derived from the first input's txid, deterministic and reversible by any party with the txid.
 - Available as a Node.js JSON-RPC service and as a browser bundle via webpack.

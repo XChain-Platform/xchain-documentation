@@ -72,7 +72,7 @@ End-to-end usage examples for common XChain Platform SDK workflows.
 ```js
 const { XChainSDK } = require('xchain-sdk');
 
-// Minimal — action string generation only (no network calls)
+// Minimal setup: action string generation only (no network calls)
 const sdk = new XChainSDK();
 
 // With explorer (for querying blockchain data)
@@ -191,7 +191,7 @@ const result = await sdk.issue({
     description: 'Updated description for my token'
 });
 
-console.log(result.version); // 1 (description update — much shorter than v0)
+console.log(result.version); // 1 (description update; much shorter than v0)
 ```
 
 ---
@@ -569,7 +569,7 @@ console.log(result2.version); // 1 (tick sleep)
 // Create a TICK list
 const create = await sdk.list({ type: 1, item: 'TOKEN_A,TOKEN_B,TOKEN_C' });
 
-// Edit an existing list — add an item
+// Edit an existing list to add an item
 const edit = await sdk.list({
     edit: 1,               // 1 = ADD
     listActionIndex: 12345,
@@ -644,7 +644,7 @@ const mints = await sdk.getMints('MYTOKEN', 'token', { limit: 100 });
 ## Validate Before Creating
 
 ```js
-// Dry-run validation — no action string generated, no errors thrown
+// Dry-run validation: no action string generated, no errors thrown
 const result = sdk.validateAction('send', {
     tick: 'MYTOKEN',
     amount: '100',
@@ -671,7 +671,7 @@ const result = await sdk.send(
 );
 console.log(result.encoding); // 'P2SH'
 
-// OP_RETURN — will throw if action string > 76 bytes (user-data limit; 80 bytes total per output)
+// OP_RETURN: will throw if action string > 76 bytes (user-data limit; 80 bytes total per output)
 try {
     await sdk.issue(
         { tick: 'TOKEN', maxSupply: '21000000', maxMint: '1000', decimals: 8, description: 'A long description...' },
@@ -715,7 +715,7 @@ const sdk = new XChainSDK({
     hubPort: 8001
 });
 
-// Fetch config from hub — resolves explorer + encoder endpoints automatically
+// Fetch config from hub; resolves explorer + encoder endpoints automatically
 await sdk.init();
 
 // Now explorer and encoder are configured
@@ -760,7 +760,7 @@ const sdk = new XChainSDK({
 await sdk.connectWs();
 
 const unsub = sdk.onBlock((event) => {
-    console.log('Block', event.data.block_index, '—', event.data.action_count, 'actions');
+    console.log('Block', event.data.block_index, 'with', event.data.action_count, 'actions');
 });
 
 // Later: stop listening
@@ -1040,12 +1040,12 @@ console.log(result.network); // 'bitcoin-mainnet'
 result = sdk.validateAddress('ltc1q...', 'litecoin-mainnet');
 console.log(result.valid);   // true
 
-// Invalid address — returns { valid: false }, never throws
+// Invalid address: returns { valid: false }, never throws
 result = sdk.validateAddress('not-an-address');
 console.log(result.valid);   // false
 console.log(result.error);   // 'Address does not match any supported network.'
 
-// No network configured — checks all 9 networks
+// No network configured; checks all 9 networks
 const noNetSdk = new XChainSDK();
 result = noNetSdk.validateAddress('bc1qexample...');
 console.log(result.network); // 'bitcoin-mainnet' (auto-detected)
@@ -1124,7 +1124,7 @@ const challenge = sdk.generateChallenge('bc1quseraddr...', { message: myMessage 
 // Client signs it
 const signed = sdk.signMessage(myMessage, wif);
 
-// Server verifies — using SDK
+// Server verifies using SDK
 const result = sdk.verifyOwnership('bc1quseraddr...', myMessage, signed.signature);
 
 // OR verify without the SDK at all:
@@ -1237,7 +1237,7 @@ const utxos = await sdk.getUTXOs('bc1qmyaddress...');
 console.log(`Found ${utxos.length} UTXOs`);
 
 for (const utxo of utxos) {
-    console.log(`  ${utxo.txid}:${utxo.vout} — ${utxo.value} sats`);
+    console.log(`  ${utxo.txid}:${utxo.vout} (${utxo.value} sats)`);
 }
 
 // Use UTXOs when creating a transaction
@@ -1347,11 +1347,11 @@ const result = await sdk.stakeAndDelegate(
     'your-wif-key',
     {
         version: 1,                   // 1 = new stake, 2 = top up an existing pubkey
-        amount: '1000',               // XCHAIN staked — capabilities are auto-qualified from the aggregate amount
+        amount: '1000',               // XCHAIN staked; capabilities are auto-qualified from the aggregate amount
         signingPubkey: 'aabbccdd...'  // 64 hex characters (Ed25519 public key)
     },
     {
-        newSigningPubkey: 'eeff0011...'  // optional — omit to skip delegation
+        newSigningPubkey: 'eeff0011...'  // optional; omit to skip delegation
     }
 );
 

@@ -173,7 +173,7 @@ let result = await sdk.sendMessage({
     encoder: { pubkey: senderPubkeyHex }
 });
 
-// Decrypt manually (getMessagesForAddress can't auto-decrypt AES — the app must supply the key)
+// Decrypt manually: getMessagesForAddress can't auto-decrypt AES, so the app must supply the key
 let encrypted = sdk.messaging.aesEncrypt('Test message', sharedKey);
 let decrypted = sdk.messaging.aesDecrypt(encrypted.ciphertext, sharedKey);
 ```

@@ -115,7 +115,7 @@ let result = await sdk.send({
     },
     encoder: {
         pubkey:   'bc1qsender...',
-        encoding: 'OP_RETURN',   // optional — auto-selected if omitted
+        encoding: 'OP_RETURN',   // optional; auto-selected if omitted
         feePerKb: 1000
     }
 });
@@ -159,7 +159,7 @@ console.log(estimate.fee);          // total miner fee in satoshis
 console.log(estimate.inputTotal);   // sum of input values in satoshis
 console.log(estimate.outputTotal);  // sum of output values in satoshis
 console.log(estimate.encoding);     // encoding type actually used
-console.log(estimate.psbt);         // unsigned PSBT hex — sign and broadcast directly
+console.log(estimate.psbt);         // unsigned PSBT hex; sign and broadcast directly
 console.log(estimate.actionString); // the serialized action string
 ```
 

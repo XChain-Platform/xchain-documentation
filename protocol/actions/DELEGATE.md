@@ -8,8 +8,7 @@ This action manages the signing key bound to a staked validator, supporting four
 | Name                    | Type    | Description                                                                                        |
 | ----------------------- | ------- | -------------------------------------------------------------------------------------------------- |
 | `VERSION`               | String  | Format Version (0=capability rotate, 1=contract rotate, 2=capability revoke, 3=contract revoke)    |
-| `NEW_SIGNING_PUBKEY`    | String  | New Ed25519 public key, 64 hex chars (versions 0 and 1)                                            |
-| `SIGNING_PUBKEY`        | String  | Existing Ed25519 public key to revoke, 64 hex chars (versions 2 and 3)                             |
+| `SIGNING_PUBKEY`        | String  | Ed25519 public key, 64 hex chars; wire field is named `NEW_SIGNING_PUBKEY` in v0/v1 (rotate) and `SIGNING_PUBKEY` in v2/v3 (revoke); the indexer stores the value under `SIGNING_PUBKEY` for all versions |
 | `TARGET_CONTRACT_INDEX` | Integer | `action_index` of the stakeable contract (versions 1 and 3)                                        |
 | `TICK`                  | String  | Token ticker of the stake row to rotate or revoke (versions 1 and 3)                               |
 
@@ -49,19 +48,19 @@ Revoke the specified signing key from the broadcaster's (contract=500, tick=MYTO
 ```
 
 ## Rules
-- `NEW_SIGNING_PUBKEY` / `SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key.
+- `SIGNING_PUBKEY` (the indexer's canonical name for this field across all versions) must be a valid 64-character hex-encoded Ed25519 public key. The wire field is labeled `NEW_SIGNING_PUBKEY` in v0/v1 and `SIGNING_PUBKEY` in v2/v3, but the indexer parses and stores the value as `SIGNING_PUBKEY` in all four cases.
 
 ### v0 (capability rotate)
 - BTC chain only.
 - Broadcasting address must have an active capability stake (gated by the 6-block activation delay).
-- `NEW_SIGNING_PUBKEY` must not already be in use by any active stake or delegation.
+- `SIGNING_PUBKEY` (wire: `NEW_SIGNING_PUBKEY`) must not already be in use by any active stake or delegation.
 
 ### v1 (contract rotate)
 - Works on any chain (BTC, LTC, DOGE).
 - Broadcasting address must own an active `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` stake row created via STAKE v3.
 - `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract.
 - `TICK` must match the existing stake row's token.
-- `NEW_SIGNING_PUBKEY` must not already be in use by any active stake or delegation scoped to the same contract.
+- `SIGNING_PUBKEY` (wire: `NEW_SIGNING_PUBKEY`) must not already be in use by any active stake or delegation scoped to the same contract.
 
 ### v2 (capability revoke)
 - BTC chain only.

@@ -64,7 +64,7 @@ When an `ATTEST v1` response (or `ATTEST v2` expiry) is accepted on-chain, the i
 
 Status values (`xchain.getInputParam(2)`): `ok` (response payload valid), `timeout`, `no_quorum`, `provider_error`, or `expired` (deadline reached with no v1).
 
-Callback execution is wrapped in its own savepoint: if the callback method throws, runs out of gas, or otherwise fails, the response row in `attestation_responses` is still durably recorded (so the validator network isn't asked to redo the work), and the contract's own state changes from the callback roll back. The v0 → v1 → callback chain is atomic for the v1 record but graceful-degrade for the callback's side effects.
+Callback execution is wrapped in its own savepoint: if the callback method throws, runs out of gas, or otherwise fails, the v1 response row in the `attests` table is still durably recorded (so the validator network isn't asked to redo the work), and the contract's own state changes from the callback roll back. The v0 → v1 → callback chain is atomic for the v1 record but graceful-degrade for the callback's side effects.
 
 See [`ATTEST.md`](./ATTEST.md) for the wire-level lifecycle.
 

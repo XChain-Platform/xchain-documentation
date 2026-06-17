@@ -43,7 +43,7 @@ async function issueTokenForUser(req, res) {
     await sdk.explorer.getToken(tick);
     return res.status(400).json({ error: 'Ticker already taken' });
   } catch {
-    // Token doesn't exist yet — good
+    // Token doesn't exist yet, which is what we want
   }
 
   const action = sdk.issue({
@@ -217,7 +217,7 @@ app.post('/auth/verify', async (req, res) => {
     return res.status(401).json({ error: 'Signature verification failed' });
   }
 
-  // Signature valid — now check the token balance
+  // Signature valid; now check the token balance
   const hasToken = await checkBalance(challenge.address, 'MYTOKEN', '1');
   if (!hasToken) {
     return res.status(403).json({ error: 'Address does not hold required token' });
@@ -285,7 +285,7 @@ function requireToken(tick, minimum, { recheckIntervalMs = 60000 } = {}) {
 app.get('/content/song/:id',
   requireToken('ALBUMTOKEN', '1'),
   (req, res) => {
-    // Serve the song — req.gateAddress is the verified holder
+    // Serve the song (req.gateAddress is the verified holder)
     res.json({ streamUrl: generateSignedUrl(req.params.id, req.gateAddress) });
   }
 );
@@ -360,7 +360,7 @@ module.exports = {
     xchain.state.set('content:' + contentId, contentHash);
   },
 
-  // Anyone can call — contract checks their balance on-chain
+  // Anyone can call; the contract checks their balance on-chain
   accessContent: function(xchain) {
     var caller = xchain.getSourceAddress();
     var requiredTick = xchain.state.get('requiredTick');
@@ -661,7 +661,7 @@ async function safeGetToken(tick) {
     return await sdk.explorer.getToken(tick);
   } catch (err) {
     if (err.status === 404) return null;  // token does not exist
-    throw err;                             // network/server error — let it propagate
+    throw err;                             // network/server error: let it propagate
   }
 }
 ```

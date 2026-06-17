@@ -104,10 +104,10 @@ Contracts support **ES2020** syntax. This includes:
 Native JavaScript arithmetic (`+`, `-`, `*`, `/`) uses IEEE 754 floating-point, which can produce subtly different results across V8 versions. This would cause contract hash divergence between indexer nodes.
 
 ```javascript
-// WRONG — non-deterministic
+// WRONG (non-deterministic)
 var total = parseFloat(a) + parseFloat(b);
 
-// CORRECT — deterministic
+// CORRECT (deterministic)
 var total = xchain.math.add(a, b);
 ```
 
@@ -268,9 +268,9 @@ A contract can ask a question to a registered external provider and have the val
 ```javascript
 xchain.attestation.request(
     providerId,        // 'http_get' or 'llm' (governance-controlled list)
-    payload,           // string — provider-specific (URL for http_get, JSON envelope for llm)
+    payload,           // string; provider-specific (URL for http_get, JSON envelope for llm)
     callbackMethod,    // method on this contract to invoke when the answer arrives
-    callbackParams,    // array — your own context, echoed back (each element is delivered to the callback as a string; see "A note on callback param types" below)
+    callbackParams,    // array: your own context, echoed back (each element is delivered to the callback as a string; see "A note on callback param types" below)
     options            // { redundancy: 1|3|5, deadlineBlocks: number }
 );
 ```
@@ -291,7 +291,7 @@ module.exports = {
             'llm',
             JSON.stringify({ prompt: 'Reply with only the number 1 if true, 0 if false: "the sky is blue"', max_tokens: 8 }),
             'handleVerdict',
-            [xchain.getSourceAddress(), 42],   // your context — echoed back to handleVerdict (42 is a numeric round id)
+            [xchain.getSourceAddress(), 42],   // your context, echoed back to handleVerdict (42 is a numeric round id)
             { redundancy: 1, deadlineBlocks: 20 }
         );
     },
@@ -309,7 +309,7 @@ module.exports = {
             return;
         }
 
-        // responsePayload is whatever the provider returned — for llm, the model's reply text.
+        // responsePayload is whatever the provider returned (for llm, the model's reply text).
         xchain.state.set('last_verdict_' + caller + '_' + roundId, responsePayload);
     }
 };
@@ -399,7 +399,7 @@ module.exports = {
         return xchain.math.gte(xchain.contract.getStake(pubkey, 'XCHAIN'), '100') ? '1' : '0';
     },
 
-    // Owner-only — slash a misbehaving staker.
+    // Owner-only: slash a misbehaving staker.
     punish: function(xchain) {
         xchain.require(
             xchain.getSourceAddress() === xchain.state.get('owner'),
@@ -454,7 +454,7 @@ const callId = xchain.emit.crossExecute({
     method: 'onArrival',          // must be in the target's crossCallable allowlist
     params: ['order-7', '250'],   // optional string args (max 32, 1024 bytes each, no "|")
     gasLimit: 50000,              // gas the remote run gets (5,000 – 200,000; NOT refunded)
-    callbackMethod: 'onResult',   // REQUIRED — every call ends in exactly one callback
+    callbackMethod: 'onResult',   // REQUIRED: every call ends in exactly one callback
     callbackParams: ['ctx'],      // optional strings echoed back to you
     deadlineBlocks: 400           // optional; your-chain blocks before a local 'expired' callback
 });
@@ -484,7 +484,7 @@ module.exports = {
     crossCallable: ['onArrival'],          // only these methods accept cross-chain calls
     onArrival: function(xchain) {
         // xchain.getSourceAddress() is the CALLING contract's address on ITS chain,
-        // e.g. 'C:BTC:1234' — authenticate cross-chain callers with it.
+        // e.g. 'C:BTC:1234'; authenticate cross-chain callers with it.
         // xchain.getCrossHops() > 0 here; calling back out consumes the hop budget.
     }
 };

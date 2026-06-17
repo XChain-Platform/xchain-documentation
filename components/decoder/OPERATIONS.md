@@ -92,10 +92,17 @@ Detailed health status including decoder state.
     "jsonrpc": "2.0",
     "result": {
         "status": "healthy",
+        "phase": "running",
         "synced": true,
         "last_processed_block": 900123,
         "node_height": 900124,
         "lag": 1,
+        "lastProcessedBlock": 900123,
+        "chainTipBlock": 900124,
+        "blockLag": 1,
+        "lag_blocks": 1,
+        "rpc_errors": 0,
+        "parse_errors": 0,
         "error": null
     },
     "id": 1
@@ -104,12 +111,19 @@ Detailed health status including decoder state.
 
 | Field | Type | Description |
 |---|---|---|
-| `status` | `string` | `"healthy"` when decoder is running, `"unhealthy"` otherwise |
+| `status` | `string` | `"healthy"` when the decoder is running and MariaDB is reachable; `"unhealthy"` otherwise |
+| `phase` | `string` | `"running"` when the DB probe succeeds; `"starting"` while the decoder is still connecting to MariaDB; `"db-unreachable"` when the probe fails |
 | `synced` | `boolean` | Whether the decoder is within 3 blocks of the chain tip |
-| `last_processed_block` | `integer\|null` | Last block index written to the decoder DB |
-| `node_height` | `integer\|null` | Current tip reported by the coin node |
-| `lag` | `integer\|null` | Blocks behind tip (`node_height - last_processed_block`) |
-| `error` | `string\|null` | Error message if the decoder crashed |
+| `last_processed_block` | `integer\|null` | Last block index written to the decoder DB (from `getSyncStatus()`) |
+| `node_height` | `integer\|null` | Current tip reported by the coin node (from `getSyncStatus()`) |
+| `lag` | `integer\|null` | Blocks behind tip from `getSyncStatus()` |
+| `lastProcessedBlock` | `integer\|null` | Alias for `last_processed_block` (convenience copy) |
+| `chainTipBlock` | `integer\|null` | Alias for `node_height` (convenience copy) |
+| `blockLag` | `integer\|null` | Alias for `lag` (convenience copy) |
+| `lag_blocks` | `integer` | Live lag computed from internal decoder state (`max(0, blockchainInfoLastBlock - lastProcessedBlockIndex)`); may differ slightly from `lag` during rapid catch-up |
+| `rpc_errors` | `integer` | Combined RPC error count from the decoder and its `BlockchainConnector` |
+| `parse_errors` | `integer` | Number of transactions quarantined due to parse failures |
+| `error` | `string\|null` | Error message if the decoder crashed, otherwise `null` |
 
 ### `getlatestblock`
 
@@ -150,6 +164,24 @@ The API includes:
 - **CORS**: enabled for cross-origin requests
 - **Rate limiting**: 100 requests per minute per IP
 - **Body size limit**: 100kb maximum request body
+
+## Schema Migrations
+
+The decoder ships with a migration system that tracks and applies schema changes to existing databases. Two migration modes exist:
+
+- **Auto migrations** (tagged `mode=auto`) are applied automatically at every startup. These are additive and idempotent (guarded with `IF NOT EXISTS`).
+- **Manual migrations** (tagged `mode=manual`) require an explicit operator run. These cover destructive or data-backfill changes that must not run unattended.
+
+To apply pending manual migrations:
+
+```bash
+node src/migrate.js
+# or: npm run migrate
+```
+
+The run holds a database-scoped advisory lock so concurrent processes cannot apply the same migration twice. Each applied migration is recorded in the `schema_migrations` table with its filename, SHA-256 checksum, mode, and timestamp. Re-running the command is safe; only pending migrations are applied.
+
+Take a backup and stop the decoder before running manual migrations, since some involve full table rebuilds.
 
 ## Reorg Handling
 

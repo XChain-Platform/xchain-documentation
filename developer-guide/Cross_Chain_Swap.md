@@ -106,7 +106,7 @@ const matchAction = bobSdk.swap({
   getTick: 'RAREPEPE',
   getAmount: '1',
   getAddress: 'bc1qbobsbtcaddress...',  // Bob's BTC address to receive RAREPEPE
-  // No expiration needed — matching is immediate
+  // No expiration needed: matching is immediate
 });
 
 const matchPsbt = await bobSdk.encoder.createPSBT({

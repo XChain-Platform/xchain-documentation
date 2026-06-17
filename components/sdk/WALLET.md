@@ -56,11 +56,11 @@ Dogecoin does not support SegWit. Requesting a `p2wpkh` or `p2sh-p2wpkh` address
 
 ```js
 const kp = sdk.generateKeyPair();
-// kp.wif          — WIF-encoded private key (string)
-// kp.privateKey   — raw private key (Buffer)
-// kp.publicKey    — compressed public key (Buffer)
-// kp.publicKeyHex — compressed public key (hex string)
-// kp.compressed   — true
+// kp.wif:          WIF-encoded private key (string)
+// kp.privateKey:   raw private key (Buffer)
+// kp.publicKey:    compressed public key (Buffer)
+// kp.publicKeyHex: compressed public key (hex string)
+// kp.compressed:   true
 ```
 
 Pass `{ compressed: false }` to generate an uncompressed key pair (65-byte public key).
@@ -81,7 +81,7 @@ Throws `NETWORK_MISMATCH` if the WIF's network byte doesn't match the SDK's conf
 Derive an address from a public key (Buffer or hex string):
 
 ```js
-// P2PKH (legacy) — default
+// P2PKH (legacy, default)
 const legacy = sdk.deriveAddress(kp.publicKey);
 
 // P2WPKH (bech32 / native segwit)
@@ -105,10 +105,10 @@ Validate any coin address against the configured network (or a specific override
 
 ```js
 const result = sdk.validateAddress('bc1qexample...');
-// result.valid   — boolean
-// result.type    — 'p2pkh', 'p2wpkh', 'p2sh', 'p2wsh', or null
-// result.network — 'bitcoin-mainnet', etc., or null
-// result.error   — error message string, or null
+// result.valid:   boolean
+// result.type:    'p2pkh', 'p2wpkh', 'p2sh', 'p2wsh', or null
+// result.network: 'bitcoin-mainnet', etc., or null
+// result.error:   error message string, or null
 
 // Check against a specific network
 const ltcResult = sdk.validateAddress('ltc1q...', 'litecoin-mainnet');
@@ -127,10 +127,10 @@ The auth module provides a three-step flow for proving wallet ownership:
 ```js
 // Default structured message (includes address, nonce, timestamp)
 const challenge = sdk.generateChallenge('bc1quseraddress...');
-// challenge.challenge — the message string to sign
-// challenge.nonce     — hex nonce (store this server-side)
-// challenge.timestamp — ISO 8601 timestamp
-// challenge.expiresAt — ISO 8601 expiry (default 5 minutes)
+// challenge.challenge: the message string to sign
+// challenge.nonce:     hex nonce (store this server-side)
+// challenge.timestamp: ISO 8601 timestamp
+// challenge.expiresAt: ISO 8601 expiry (default 5 minutes)
 
 // Custom application ID
 const challenge = sdk.generateChallenge('bc1q...', { appId: 'MyMusicApp' });
@@ -148,8 +148,8 @@ When `opts.message` is provided, the SDK uses it verbatim. The nonce and timesta
 
 ```js
 const signed = sdk.signMessage(challenge.challenge, userWIF);
-// signed.signature — base64 encoded signature
-// signed.address   — the address derived from the signing key
+// signed.signature: base64 encoded signature
+// signed.address:   the address derived from the signing key
 ```
 
 For SegWit addresses, pass the appropriate option:
@@ -166,9 +166,9 @@ sdk.signMessage(message, wif, { segwitRedeemScript: true });
 
 ```js
 const result = sdk.verifyOwnership('bc1quseraddress...', challenge.challenge, signed.signature);
-// result.valid   — boolean
-// result.address — the address that was verified
-// result.error   — null on success, error message on failure
+// result.valid:   boolean
+// result.address: the address that was verified
+// result.error:   null on success, error message on failure
 ```
 
 `verifyOwnership` never throws; it returns `{ valid: false, error: '...' }` on failure. This makes it safe to use in request handlers without try/catch:
@@ -188,8 +188,8 @@ app.post('/auth/verify', (req, res) => {
 
 ```js
 const result = sdk.verifyMessage(address, message, signature);
-// result.valid — boolean
-// result.error — null or error string
+// result.valid: boolean
+// result.error: null or error string
 ```
 
 ### SDK-Independent Verification
@@ -211,9 +211,9 @@ Sign an unsigned PSBT hex string (from the encoder) with a WIF private key:
 
 ```js
 const result = sdk.signPsbt(unsignedPsbtHex, wif);
-// result.txHex   — signed raw transaction hex (ready to broadcast)
-// result.txid    — transaction ID
-// result.psbtHex — signed PSBT hex
+// result.txHex:   signed raw transaction hex (ready to broadcast)
+// result.txid:    transaction ID
+// result.psbtHex: signed PSBT hex
 ```
 
 This method finalizes all inputs after signing and extracts the raw transaction. The `txHex` is what you pass to `broadcastTx`.
@@ -243,7 +243,7 @@ Broadcast a signed raw transaction to the coin node via the encoder:
 
 ```js
 const result = await sdk.broadcastTx(signedTxHex);
-// result.txid — the transaction ID returned by the coin node
+// result.txid: the transaction ID returned by the coin node
 ```
 
 Requires the encoder to be configured. The encoder proxies the `sendrawtransaction` call to the coin node.

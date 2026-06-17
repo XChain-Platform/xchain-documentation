@@ -52,7 +52,7 @@ ECIES encrypts directly to the recipient's public key. No prior key exchange is 
 
 ```js
 const result = sdk.messaging.eciesEncrypt(plaintext, recipientPubkey);
-// result.ciphertext — hex-encoded ciphertext
+// result.ciphertext: hex-encoded ciphertext
 ```
 
 Parameters:
@@ -65,7 +65,7 @@ The ciphertext contains: `ephemeralPubkey(33) + iv(12) + authTag(16) + encrypted
 
 ```js
 const result = sdk.messaging.eciesDecrypt(ciphertext, wif);
-// result.plaintext — decrypted message string
+// result.plaintext: decrypted message string
 ```
 
 Parameters:
@@ -82,14 +82,14 @@ ECDH requires a key exchange handshake. Both parties exchange public keys via fo
 
 ```js
 const result = sdk.messaging.generateSessionKey(wif);
-// result.publicKey — hex-encoded compressed public key for key exchange
+// result.publicKey: hex-encoded compressed public key for key exchange
 ```
 
 ### Derive Shared Secret
 
 ```js
 const result = sdk.messaging.deriveSharedSecret(wif, theirPublicKey);
-// result.sharedSecret — hex-encoded 32-byte shared secret
+// result.sharedSecret: hex-encoded 32-byte shared secret
 ```
 
 Both parties derive the same shared secret from `myPrivateKey + theirPublicKey`.
@@ -98,10 +98,10 @@ Both parties derive the same shared secret from `myPrivateKey + theirPublicKey`.
 
 ```js
 const encrypted = sdk.messaging.sessionEncrypt(plaintext, sharedSecret);
-// encrypted.ciphertext — hex-encoded ciphertext
+// encrypted.ciphertext: hex-encoded ciphertext
 
 const decrypted = sdk.messaging.sessionDecrypt(ciphertext, sharedSecret);
-// decrypted.plaintext — original message
+// decrypted.plaintext: original message
 ```
 
 ---
@@ -114,10 +114,10 @@ AES uses a pre-shared key. If the key is not exactly 32 bytes, it is hashed with
 
 ```js
 const encrypted = sdk.messaging.aesEncrypt(plaintext, sharedKey);
-// encrypted.ciphertext — hex-encoded ciphertext
+// encrypted.ciphertext: hex-encoded ciphertext
 
 const decrypted = sdk.messaging.aesDecrypt(ciphertext, sharedKey);
-// decrypted.plaintext — original message
+// decrypted.plaintext: original message
 ```
 
 Parameters:
@@ -149,15 +149,15 @@ Send a message with automatic pubkey resolution, encryption, action creation, PS
 const result = await sdk.sendMessage({
     wif: senderWIF,
     destination: recipientAddress,
-    coin: 'BTC',                      // BTC, LTC, or DOGE — destination address network
+    coin: 'BTC',                      // BTC, LTC, or DOGE (destination address network)
     message: 'Hello!',
     method: 1,                        // 1=ECIES (default), 2=ECDH, 3=AES, null=plaintext
     sharedSecret: '...',              // Required for method 2
     sharedKey: '...',                 // Required for method 3
     encoder: { pubkey: senderPubkey } // Encoder options
 });
-// result.txid         — transaction ID
-// result.actionString — the raw MESSAGE action string
+// result.txid:         transaction ID
+// result.actionString: the raw MESSAGE action string
 ```
 
 ### Method Behavior

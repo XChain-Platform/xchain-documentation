@@ -94,8 +94,8 @@ When the encoder returns `encoding: "P2SH"`, `transactionHelper` automatically h
 `transactionHelper` maintains a per-address cache of confirmed UTXOs:
 
 ```
-_verifiedUtxos        — array of confirmed UTXOs from the last transaction
-_verifiedUtxosAddress — address the cache belongs to
+_verifiedUtxos:        array of confirmed UTXOs from the last transaction
+_verifiedUtxosAddress: address the cache belongs to
 ```
 
 **Cache lifecycle:**

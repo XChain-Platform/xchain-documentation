@@ -166,7 +166,7 @@ const openDispensers = dispensers.filter(d => d.status === 'open');
 openDispensers.forEach(d => {
   console.log(
     `Dispenser ${d.action_index}: ${d.give_amount} ${d.give_tick}` +
-    ` for ${d.get_amount} ${d.get_tick || 'BTC'} — ` +
+    ` for ${d.get_amount} ${d.get_tick || 'BTC'}, ` +
     `${d.dispenses}/1000 dispenses, ${d.give_escrow} remaining`
   );
 });

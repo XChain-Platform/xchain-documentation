@@ -20,8 +20,9 @@ Hub-sourced configuration takes precedence for database connection details, allo
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `EXPLORER_API_PORT_HTTP` | No | None | HTTP server port |
-| `EXPLORER_API_PORT_HTTPS` | No | None | HTTPS server port |
+| `EXPLORER_API_PORT_HTTP` | No | `8080` | HTTP server port |
+| `EXPLORER_API_PORT_HTTPS` | No | `8081` | HTTPS server port |
+| `API_HOST` | No | `127.0.0.1` | Bind address for the API server |
 | `DEBUG` | No | None | Enable debug output when set to any truthy value |
 
 ### WebSocket
@@ -42,8 +43,11 @@ See [WEBSOCKET.md](WEBSOCKET.md) for the full WebSocket API reference.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `HUB_API_HOST` | No | None | xchain-hub hostname for config discovery |
-| `HUB_PORT` | No | None | xchain-hub port |
+| `HUB_API_HOST` | No | `localhost` | xchain-hub hostname for config discovery (single-instance; ignored when `HUB_VALIDATORS` is set) |
+| `HUB_PORT` | No | `10000` | xchain-hub port (single-instance; ignored when `HUB_VALIDATORS` is set) |
+| `HUB_VALIDATORS` | No | None | Comma-separated list of hub URLs for high-availability config discovery (e.g. `http://hub1:10000,http://hub2:10000`). When set, takes precedence over `HUB_API_HOST`/`HUB_PORT` and the explorer tries each URL in order, falling back to the next on failure. |
+| `UPDATE_CONFIG_INTERVAL` | No | `60000` | Interval in milliseconds between hub config refresh polls |
+| `CONFIG_CACHE_FILE` | No | `<appdir>/tmp/config-cache.json` | Path to the on-disk last-known-good hub config cache. The explorer writes here after each successful hub fetch and reads it on startup when the hub is unreachable, so it comes up serving the last known coin set rather than zero coins. Override to a mounted volume path to survive container recreation. |
 | `NO_HUB` | No | None | Set to `1` (or `true`/`yes`) to enable standalone mode: the hub is not contacted and all coin/network + database config is read from `src/config.json` (or `NODE_CONFIG`). Use on single-server deployments where the hub publishes docker-internal DB hosts that are not reachable from the explorer process. |
 
 ### Decoder Health (for `/api/status` chain lag fields)
@@ -184,11 +188,15 @@ The explorer uses `express-rate-limit` middleware:
 | Setting | Value |
 |---|---|
 | Window | 60 seconds |
-| Max requests per window | 500 |
+| Max requests per window | 500 (override via `EXPLORER_RATE_LIMIT_RPM`) |
 | Scope | Per IP address |
 | Response on limit | HTTP 429 Too Many Requests |
 
-Rate limiting applies to all endpoints (API, Explorer, and HTML).
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `EXPLORER_RATE_LIMIT_RPM` | No | `500` | Maximum requests per IP per 60-second window. Image requests (`.png`, `.jpg`, etc.) and `/icon/` paths are excluded from the limit. |
+
+Rate limiting applies to all non-image endpoints (API, Explorer, and HTML).
 
 ## CORS
 
@@ -204,13 +212,25 @@ The explorer uses Helmet middleware to set security headers including:
 - Strict-Transport-Security (when HTTPS is active)
 - X-XSS-Protection
 
+## Finality / Confirmation Depths
+
+The explorer uses per-chain confirmation depths to determine when a receipt is considered final. These values are surfaced in the `finality` field of the `/api/network` response and mirror the hub's cross-chain thresholds. They can be overridden per chain:
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `XCHAIN_CONFIRMATIONS_BTC` | No | `6` | Required confirmation depth for Bitcoin |
+| `XCHAIN_CONFIRMATIONS_LTC` | No | `12` | Required confirmation depth for Litecoin |
+| `XCHAIN_CONFIRMATIONS_DOGE` | No | `60` | Required confirmation depth for Dogecoin |
+
+---
+
 ## Database
 
 The explorer reads from MariaDB databases following the naming convention:
 
 ```
-XChain_{CHAIN}_{NETWORK}_Indexer    (primary — indexed state)
-XChain_{CHAIN}_{NETWORK}_Decoder    (secondary — raw transaction data)
+XChain_{CHAIN}_{NETWORK}_Indexer    (primary: indexed state)
+XChain_{CHAIN}_{NETWORK}_Decoder    (secondary: raw transaction data)
 ```
 
 Connection pooling is managed by the `mariadb` npm package. The explorer maintains separate pool connections for Indexer and Decoder databases.

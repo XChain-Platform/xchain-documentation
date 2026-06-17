@@ -97,6 +97,23 @@ For shared services (hub, explorer, sync), a separate set of variables is genera
 | Shared image | `xchain-node-{service}` | `xchain-node-database` |
 | Base network | `xchain-node` | `xchain-node` |
 
+## Operator / Runtime Environment Variables
+
+These variables are read by xchain-node itself at startup. They control runtime behaviour such as module source overrides, telemetry, bootstrap integrity, and the Docker naming prefix. Set them in the invoking shell or a systemd unit before running any xchain-node command.
+
+| Variable | Description |
+|---|---|
+| `NODE_PREFIX` | Override the Docker container/network name prefix (default: `xchain-node`). Must match `/^[a-z0-9][a-z0-9._-]*$/`; validated at load time. |
+| `XCHAIN_NODE_MODULES_URLS_OVERRIDE` | JSON map of service names to local paths or alternative git URLs, e.g. `'{"xchain-indexer":"/path/to/local"}'`. Allows installing from a local clone instead of GitHub. Unknown keys are silently ignored; parse errors fall back to defaults with a warning. |
+| `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD` | MariaDB root password for the host-native (non-Docker) database, used alongside `XCHAIN_NODE_EXTERNAL_DB=1`. Avoids an interactive password prompt in headless installs. Supply alongside `XCHAIN_NODE_EXTERNAL_DB_HOST`, `XCHAIN_NODE_EXTERNAL_DB_PORT`, and `XCHAIN_NODE_EXTERNAL_DB_ROOT_USER`. |
+| `XCHAIN_NODE_NO_TELEMETRY` | Set to `1` to disable anonymous usage telemetry. Opt-out is also available via the `--no-telemetry` CLI flag or a persisted preference in `~/.xchain-node/telemetry.json`. |
+| `XCHAIN_NODE_TELEMETRY_URL` | Override the telemetry collector endpoint (default: `https://hub.xchain.io/telemetry`). Useful for self-hosted collectors or test environments. |
+| `XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY` | Path to an Ed25519 private key PEM file used to sign bootstrap archives when running `bootstrap create`. If unset the archive is created unsigned and consumers cannot verify provenance. |
+| `XCHAIN_NODE_BOOTSTRAP_PUBKEY` | Path to the Ed25519 public key PEM file used to verify bootstrap archive signatures on restore (default: `src/config/bootstrap_signing_pubkey.pem` within the repo). Override when using a custom signing key. |
+| `XCHAIN_NODE_REQUIRE_SIGNED_BOOTSTRAP` | Set to `0`, `false`, or `no` to allow restoring bootstrap archives that have no accompanying signature (e.g. for a self-hosted bootstrap source). Default behaviour is fail-closed: unsigned or unverifiable archives are refused. |
+
+> **Note on `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD`:** this is a credential value. Pass it via your deployment environment or secrets manager; do not store it in config files checked into version control.
+
 ## Host Environment Variables (path overrides)
 
 These env vars override where xchain-node stores its filesystem state on the host. Set them in the shell, systemd unit, or host-provisioning playbook **before** invoking `xchain-node install` or any other command. All five fall back to their in-repo defaults if unset, so existing installs are unaffected.

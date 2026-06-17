@@ -15,14 +15,14 @@ This action lets a smart contract on one chain call a method on a contract deplo
 | `PARAMS_JSON`           | String  | JSON array of up to 32 strings (each ≤ 1024 bytes) passed to `METHOD`        |
 | `GAS_LIMIT`             | Integer | Target-side execution ceiling, pre-paid by the caller                       |
 | `CALLBACK_METHOD`       | String  | Method on the calling contract that receives the result (required)          |
-| `CALLBACK_PARAMS_JSON`  | String  | JSON array of strings echoed back to the callback                           |
+| `CALLBACK_PARAMS`  | String  | JSON array of strings echoed back to the callback                           |
 | `DEADLINE_BLOCKS`       | Integer | Source-chain blocks to wait before the call expires                         |
 | `CROSS_HOPS`            | Integer | Host-derived hop counter, capped at `XCALL_MAX_HOPS`                         |
 
 ## Formats
 
 ### Version `0` - Request (VM-emitted)
-- `VERSION|CALL_ID|TARGET_CHAIN|TARGET_CONTRACT_INDEX|METHOD|PARAMS_JSON|GAS_LIMIT|CALLBACK_METHOD|CALLBACK_PARAMS_JSON|DEADLINE_BLOCKS|CROSS_HOPS`
+- `VERSION|CALL_ID|TARGET_CHAIN|TARGET_CONTRACT_INDEX|METHOD|PARAMS_JSON|GAS_LIMIT|CALLBACK_METHOD|CALLBACK_PARAMS|DEADLINE_BLOCKS|CROSS_HOPS`
 
 ### Version `2` - Expire (system-synthesized)
 - `VERSION|CALL_ID`
@@ -40,7 +40,7 @@ System-synthesized when the deadline passes with no result; flips the request to
 
 ## Rules
 - `XCALL` is never broadcast by users. Version `0` is emitted only from inside a contract via `xchain.emit.crossExecute(...)`; Version `2` is synthesized independently by every indexer once the deadline passes. `XCALL` emissions are disallowed from a `DEPLOY` constructor
-- `CALL_ID` must equal `sha256(network:source_chain:tx_hash:contract_index:emitter_position:target_chain)` and is re-derived and verified by the indexer. Network and both chains are bound in because BTC-family chains share tx-hash space; the emitting action's `action_index` is intentionally not bound in, so the id stays deterministic across nodes
+- `CALL_ID` must equal `sha256(network:source_chain:tx_hash:root_action_index:contract_index:emitter_path:emitter_position:target_chain)` (colon-delimited) and is re-derived and verified by the indexer. Network and both chains are bound in because BTC-family chains share tx-hash space. The `root_action_index` (the root on-chain action) plus the `emitter_path` (the `>`-joined per-execution call path, empty for a root action) and `emitter_position` keep the id deterministic across nodes while disambiguating nested emissions; the emitting sub-action's own per-emission `action_index` is not bound in
 - `TARGET_CHAIN` must be a supported coin network other than the calling chain
 - `METHOD` is ≤ 64 bytes and must be exported in the target contract's `crossCallable` allowlist; the target contract's existence is checked on `TARGET_CHAIN`, not the calling chain
 - `PARAMS_JSON` is a JSON array of ≤ 32 strings, each ≤ 1024 bytes, with no `|`

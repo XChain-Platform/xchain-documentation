@@ -8,11 +8,11 @@ This action covers the external-data attestation lifecycle in three version-disc
 | Name                   | Type    | Description                                                                                     |
 | ---------------------- | ------- | ----------------------------------------------------------------------------------------------- |
 | `VERSION`              | Integer | Format version (0=request, 1=response, 2=expire)                                                |
-| `REQUEST_ID`           | String  | 64-hex SHA-256 over `tx_hash || action_index || contract_index || emitter_position`             |
+| `REQUEST_ID`           | String  | 64-hex SHA-256 over `tx_hash:root_action_index:emitter_path:contract_index:emitter_position` (colon-delimited) |
 | `PROVIDER_ID`          | String  | Governance-registered provider (`http_get`, `llm`, etc.); present in v0 and v1                 |
 | `REQUEST_PAYLOAD`      | String  | Provider-specific payload (URL for `http_get`, JSON envelope for `llm`); v0 only               |
 | `CALLBACK_METHOD`      | String  | Contract method to invoke on response (max 64 chars); v0 only                                  |
-| `CALLBACK_PARAMS_JSON` | String  | JSON array of developer-supplied params echoed back to the callback; v0 only                   |
+| `CALLBACK_PARAMS` | String  | JSON array of developer-supplied params echoed back to the callback; v0 only                   |
 | `REDUNDANCY`           | Integer | Required validator signatures (1, 3, or 5); v0 only                                            |
 | `DEADLINE_BLOCKS`      | Integer | Blocks until the request auto-expires (capped by provider's `deadline_window_blocks`); v0 only  |
 | `FEE_TICK`             | String  | (optional) Tick the attestation fee is paid in; only XCHAIN accepted; v0 only                  |
@@ -27,7 +27,7 @@ This action covers the external-data attestation lifecycle in three version-disc
 ## Formats
 
 ### Version `0` - Request (VM-emitted)
-- `ATTEST|0|REQUEST_ID|PROVIDER_ID|REQUEST_PAYLOAD|CALLBACK_METHOD|CALLBACK_PARAMS_JSON|REDUNDANCY|DEADLINE_BLOCKS[|FEE_TICK|FEE_AMOUNT]`
+- `ATTEST|0|REQUEST_ID|PROVIDER_ID|REQUEST_PAYLOAD|CALLBACK_METHOD|CALLBACK_PARAMS|REDUNDANCY|DEADLINE_BLOCKS[|FEE_TICK|FEE_AMOUNT]`
 
 The trailing `FEE_TICK|FEE_AMOUNT` pair is optional. A feeless request omits them entirely (the SDK serializer trims trailing empties), so feeless v0 wire strings are byte-identical to the pre-fee format with no migration needed.
 
@@ -67,7 +67,7 @@ System-synthesized expiry for request abc...def
 - `REQUEST_PAYLOAD` size must be no larger than the provider's `max_request_bytes`.
 - `DEADLINE_BLOCKS` must be greater than 0 and no larger than the provider's `deadline_window_blocks`.
 - `CONTRACT_INDEX` (carried via `EMITTER`) must reference an existing contract.
-- `REQUEST_ID` is verified by re-deriving from `tx_hash || action_index || contract_index || emitter_position` (defends against compromised VM).
+- `REQUEST_ID` is verified by re-deriving from `tx_hash:root_action_index:emitter_path:contract_index:emitter_position` (colon-delimited; defends against compromised VM).
 
 #### Fee fields (v0, optional)
 - `FEE_TICK`, when present, must equal the GAS tick (XCHAIN); any other value produces `invalid: FEE_TICK (only XCHAIN accepted)`. Arbitrary fee ticks are a post-launch rule loosening; the wire carries the tick now so no future format change is needed.
@@ -86,7 +86,7 @@ System-synthesized expiry for request abc...def
 
 ### Version 2 (expire)
 - Never user-broadcast: `VALID_ACTION_NAMES` accepts `ATTEST` for the decoder's v0/v1 paths, but v2 is rejected if it appears in a user transaction.
-- Synthesized once per stale pending request: indexer queries `SELECT * FROM attestation_requests WHERE request_status='pending' AND deadline_block < <current_block>` and synthesizes one v2 per row.
+- Synthesized once per stale pending request: indexer queries `SELECT * FROM attests WHERE version=0 AND request_status='pending' AND deadline_block < <current_block>` and synthesizes one v2 per row.
 - `REQUEST_ID` must match an existing `pending` row.
 
 ## Canonical signing message (v1)
@@ -99,7 +99,7 @@ request_id || provider_id || sha256(response_payload) || status || meta
 Where `sha256(response_payload)` is the lowercase hex digest of the raw response bytes (after base64-decoding the wire field).
 
 ## Lifecycle
-1. VM EXECUTE emits ATTEST v0; indexer stores the row in `attestation_requests` with `request_status='pending'`.
+1. VM EXECUTE emits ATTEST v0; indexer stores a v0 row in the consolidated `attests` table (`version=0`) with `request_status='pending'`.
 2. Validators staked for the `attestation` capability detect the request via the hub's `AttestationRound` polling.
 3. Top-`REDUNDANCY` validators (deterministic leader sort by `SHA-256(request_id || pubkey)`) fetch via the provider and gossip `ATTEST_PROPOSE`.
 4. Leader publishes ATTEST v1 on-chain with `REDUNDANCY` Ed25519 signatures.
@@ -107,8 +107,8 @@ Where `sha256(response_payload)` is the lowercase hex digest of the raw response
 6. If `DEADLINE_BLOCK` passes while still `pending` (no terminal v1, or only retryable rounds), the indexer's per-block expiry pipeline synthesizes ATTEST v2 (flips status to `expired`, fires the callback with `status='expired'`).
 
 ## Effects on v1 with valid signatures
-- Persists into `attestation_responses` with the agreed body and sigs (always, including retryable rounds, for audit).
-- Terminal statuses flip the matching `attestation_requests` row: `fulfilled` (`STATUS=ok`) or `errored` (a terminal failure such as `expired`).
+- Persists a v1 row into the `attests` table (`version=1`) with the agreed body and the verified federation sigs inlined as a JSON array in `validator_signatures` (always, including retryable rounds, for audit). A v0 request and its v1 response(s) are separate rows correlated by `request_id`.
+- Terminal statuses flip the matching v0 `attests` row: `fulfilled` (`STATUS=ok`) or `errored` (a terminal failure such as `expired`).
 - Retryable statuses (`no_quorum`, `timeout`, `provider_error`) leave `request_status='pending'` untouched so a later round can still reach quorum before the deadline (or the v2 expiry path takes over). No status flip and no callback for these.
 - On a terminal status only, synthesizes an EXECUTE injecting the callback with params `[request_id, provider_id, status, response_payload, ...original_callback_params]`.
 - Every `original_callback_params` element is coerced to a string before injection (the VM parameter bus is string-typed), so a request that supplied `[42, true, null]` reaches the callback as `['42', 'true', 'null']`. Contracts must re-parse numeric or boolean context with `parseInt`, `parseFloat`, or `JSON.parse` as needed.
@@ -117,7 +117,7 @@ Where `sha256(response_payload)` is the lowercase hex digest of the raw response
 
 ## Effects on v2 (expire)
 - Creates an entry in the `actions` table (gets a new `action_index` so the synthetic event is replay-deterministic and rollback-correct).
-- Flips matching `attestation_requests.request_status` from `pending` to `expired`.
+- Flips the matching v0 `attests.request_status` from `pending` to `expired` (v2 writes no row of its own).
 - Synthesizes an EXECUTE injecting the contract's callback with params `[request_id, provider_id, 'expired', '', ...original_callback_params]`.
 - As on the v1 path, every `original_callback_params` element is coerced to a string before injection; re-parse typed context inside the callback.
 - `SOURCE` is set to `contract_address` (matches the v1 callback convention).
@@ -139,7 +139,7 @@ When a v0 request carries `FEE_AMOUNT > 0`, the fee is escrowed from `FEE_PAYER`
 
 ## Notes
 - `REQUEST_ID` is the cross-version foreign key; every v1 and v2 must reference an existing v0.
-- The `attestation_requests` and `attestation_responses` table names are unchanged from the pre-consolidation design; only the wire action name collapsed.
+- Storage is consolidated into a single `attests` table: v0 (request) and v1 (response) rows are version-discriminated and correlated by `request_id`, mirroring how `messages` holds every MESSAGE variant in one table. v2 (expire) writes no row, it only flips the v0 row's `request_status`. Validator sigs live inline as a JSON array in the response row's `validator_signatures` column; per-validator accountability tallies live in `attest_validator_stats`.
 - The optional `FEE_TICK`/`FEE_AMOUNT` request fee is live. The separate `gas_escrow` (callback-gas) field remains stubbed at `'0'`; real callback-gas escrow is Phase 3 economic work, independent of the request fee.
 - See [`EXECUTE.md`](./EXECUTE.md) for the system-synthesized EXECUTE that delivers attestation callbacks and for the cross-contract call mechanics that share the same emission and savepoint patterns.
 

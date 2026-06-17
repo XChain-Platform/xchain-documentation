@@ -66,10 +66,10 @@ xchain-node validator init \
 # It prints your PUBKEY. Stake XCHAIN to that pubkey (STAKE v1) to meet each
 # capability's MIN_STAKE threshold.
 
-# 2. Edit the generated config/validator/capabilities.json — set real
+# 2. Edit the generated config/validator/capabilities.json. Set real
 #    cross_chain RPC endpoints and oracle_publish DOGE address/wallet.
 
-# 3. Install/start the hub — it now boots in validator mode with your key +
+# 3. Install/start the hub; it now boots in validator mode with your key +
 #    capability config mounted automatically.
 xchain-node install master xchain-hub
 

@@ -20,7 +20,7 @@ const agent = sdk.agentSession(wif, {
     // Nothing is allowed unless you list it.
     allowedActions: ['SEND', 'EXECUTE', 'COINPAY'],
 
-    // Where funds may go (optional — omit to allow any destination).
+    // Where funds may go (optional; omit to allow any destination).
     allowedDestinations: ['DTqQ...storefront', 'DBgH...treasury'],
 
     // The most a single action may move.

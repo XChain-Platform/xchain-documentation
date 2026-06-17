@@ -81,7 +81,7 @@ The instinct when `/` fills is to bind-mount just the `blocks/` subdirectory to
 the larger disk:
 
 ```bash
-# DO NOT DO THIS for testnet / regtest — it silently misses everything
+# DO NOT DO THIS for testnet / regtest: it silently misses everything
 docker run ... -v /misc/dogecoin/testnet/blocks:/root/.dogecoin/blocks ...
 ```
 

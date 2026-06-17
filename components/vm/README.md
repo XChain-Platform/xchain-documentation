@@ -75,7 +75,7 @@ const result = await vm.execute({
     oracleData:         oracleAccessor,
     crossChainData:     crossChainAccessor,
     attestationData:    attestationAccessor,    // backs xchain.attestation.getResponse
-    contractStakeData:  contractStakeAccessor   // backs xchain.contract.* — scoped to THIS contract
+    contractStakeData:  contractStakeAccessor   // backs xchain.contract.*; scoped to THIS contract
 });
 
 // result = {

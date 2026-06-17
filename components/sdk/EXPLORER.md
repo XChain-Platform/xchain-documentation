@@ -327,7 +327,7 @@ Returns the absolute URL of a FILE action's raw bytes on the configured explorer
 const url = sdk.explorer.fileRawUrl(12345);
 // → 'http://explorer.example.com:8080/BTC/api/file/12345/raw'
 
-// Cross-chain FILE reference — imageCoin is the base ticker; network tier is implied
+// Cross-chain FILE reference: imageCoin is the base ticker; network tier is implied
 const url = sdk.explorer.fileRawUrl(12345, 'DOGE');
 // → 'http://explorer.example.com:8080/DOGE/api/file/12345/raw'
 //   (on a mainnet client; RDOGE on a regtest client, etc.)

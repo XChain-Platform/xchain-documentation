@@ -225,9 +225,9 @@ the downtime-bearing UTXO-tracker creates opt-in (a tracker create stops its
 container for the snapshot):
 
 ```bash
-# decoder + indexer only — online dump, no downtime (good for a weekly cron):
+# decoder + indexer only: online dump, no downtime (good for a weekly cron):
 scripts/publish-bootstraps.sh --all
-# include the UTXO trackers — stops each tracker for the snapshot, so schedule a window:
+# include the UTXO trackers: stops each tracker for the snapshot, so schedule a window:
 scripts/publish-bootstraps.sh --all --with-trackers
 ```
 

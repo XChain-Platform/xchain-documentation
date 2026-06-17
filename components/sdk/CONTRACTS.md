@@ -31,7 +31,7 @@ Deploy a new smart contract. The SDK accepts raw JavaScript source via the `code
 
 ```js
 let result = await sdk.deploy({
-    code: contractSource,      // raw JS — SDK base64-encodes it
+    code: contractSource,      // raw JS (SDK base64-encodes it)
     gasLimit: 200000,
     constructorParams: ['arg1', 'arg2']
 }, { pubkey: 'yourPubkey', encoding: 'P2WSH' });
@@ -151,7 +151,7 @@ Lightweight syntax pre-validation using acorn (no V8 required). Checks for:
 ```js
 let result = sdk.contracts.validate(sourceCode);
 // { valid: true }
-// { valid: true, warnings: ['Float literal (0.5) at line 3 — use xchain.math...'] }
+// { valid: true, warnings: ['Float literal (0.5) at line 3: use xchain.math...'] }
 // { valid: false, error: 'Syntax error: Unexpected token (2:5)' }
 ```
 
@@ -165,7 +165,7 @@ Detect float literals in contract source. Contracts should use `xchain.math` for
 
 ```js
 let warnings = sdk.contracts.checkFloatUsage('var price = 1.5;');
-// ['Float literal (1.5) at line 1 — use xchain.math for deterministic arithmetic']
+// ['Float literal (1.5) at line 1: use xchain.math for deterministic arithmetic']
 ```
 
 ### `sdk.contracts.checkCodeSize(sourceCode)`

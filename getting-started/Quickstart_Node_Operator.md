@@ -80,7 +80,7 @@ xchain-node start all all all
 # List all running containers
 xchain-node ps
 
-# Interactive terminal UI — shows all services with live status
+# Interactive terminal UI: shows all services with live status
 xchain-node -i
 ```
 

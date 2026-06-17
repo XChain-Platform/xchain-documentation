@@ -18,6 +18,8 @@ These variables are required regardless of operating mode.
 | `HUB_DB_NAME` | Yes | None | MariaDB database name (e.g., `XChain_Hub`) |
 | `HUB_DB_USER` | Yes | None | MariaDB username |
 | `HUB_DB_PASS` | Yes | None | MariaDB password |
+| `HUB_DB_KEEPALIVE_INTERVAL` | No | `30000` | Interval (ms) between no-op keepalive queries sent to the MariaDB pool to prevent idle-connection drops |
+| `HUB_TRUST_PROXY` | No | `loopback, uniquelocal` | Express `trust proxy` setting. A containerized hub behind a local reverse proxy works with the default. Set to `false` to disable, a hop count (e.g. `1`), or a CIDR list for other topologies. See [Express docs](https://expressjs.com/en/guide/behind-proxies.html). |
 
 ### P2P Gossip Layer
 
@@ -30,18 +32,22 @@ Validator mode is activated when `P2P_VALIDATOR_ADDR` is set. All P2P-dependent 
 | `P2P_HOST` | No | `0.0.0.0` | P2P bind address |
 | `SEED_NODES` | No | None | Comma-separated list of peer addresses (e.g., `peer1.example.com:10001,peer2.example.com:10001`) |
 | `SIGNING_PRIVKEY_HEX` | No | None | 64-hex-char Ed25519 private key seed for message signing |
-| `REQUIRE_SIGNATURES` | No | `false` | When `true`, reject unsigned P2P messages |
+| `HUB_NETWORK` | Yes (validator mode) | None | Deployment network: `mainnet`, `testnet`, or `regtest`. Required when `P2P_VALIDATOR_ADDR` is set; `process.exit(1)` if absent or invalid. Must match the `INDEXER_NETWORK` of the chains this hub federates. Controls consensus activation gating (e.g. `STAKE_WEIGHTED_QUORUM` activation height is per-network). |
+| `REQUIRE_SIGNATURES` | No | `true` | When `true`, reject unsigned P2P messages. Defaults to `true` in validator mode; pass `false` to bootstrap a new federation before all nodes have keys. |
 | `P2P_HEARTBEAT_INTERVAL` | No | `15000` | Milliseconds between heartbeat broadcasts |
 | `P2P_RECONNECT_BASE` | No | `2000` | Base delay for reconnect backoff (ms) |
 | `P2P_RECONNECT_MAX` | No | `60000` | Maximum delay for reconnect backoff (ms) |
 | `P2P_MSG_DEDUP_TTL` | No | `60000` | Message deduplication cache TTL (ms) |
 | `P2P_MAX_PAYLOAD` | No | `1048576` | Maximum WebSocket message size in bytes (1 MB) |
+| `P2P_DEDUP_PRUNE_INTERVAL` | No | `30000` | Interval (ms) at which the seen-message deduplication cache is pruned |
+| `P2P_WS_PING_INTERVAL` | No | `30000` | Interval (ms) for WebSocket ping/pong keepalive (dead-connection detection) |
+| `P2P_MAX_CONNECTIONS_PER_IP` | No | `3` | Maximum simultaneous inbound connections from a single IP (anti-DoS). Increase for co-located federations where multiple validators share one IP. |
 | `HUB_CAPABILITY_CONFIG` | No | None | Path to the capability config JSON (see below). Required for capability qualification + self-tests. |
 
 ### Capability Configuration
 
-Capability staking decides which of the four capabilities (`price`, `cross_chain`,
-`oracle_publish`, `attestation`) a validator is qualified and ready to serve. The
+Capability staking decides which of the five capabilities (`price`, `cross_chain`,
+`oracle_publish`, `attestation`, `full_node`) a validator is qualified and ready to serve. The
 hub loads this from the JSON file at `HUB_CAPABILITY_CONFIG`, applies it on startup,
 and **hot-reloads** on file change. It supplies two things:
 
@@ -84,6 +90,9 @@ mounts it into the hub container automatically. See OPERATIONS.md → Validator 
 | `ORACLE_ROUND_INTERVAL` | No | `600000` | Milliseconds between oracle rounds (default: 10 minutes) |
 | `ORACLE_SUBMISSION_WINDOW` | No | `180000` | Milliseconds to collect validator price submissions (default: 3 minutes) |
 | `ORACLE_FINALIZATION_TIMEOUT` | No | `120000` | Timeout for oracle PBFT finalization round (default: 2 minutes) |
+| `ORACLE_MIN_SUBMISSIONS` | No | `2` | Minimum distinct-validator price submissions required before a round can be finalized. Consensus-critical: a single-hub or regtest deployment stalls every oracle round unless this is set to `1`, because the default of `2` requires a second submitter that will never arrive. |
+| `ORACLE_MAX_SUBMISSIONS_PER_ROUND` | No | `200` | Cap on the number of price submissions accepted per round. Submissions beyond this limit are discarded to bound memory and consensus payload size. |
+| `ORACLE_STALENESS_THRESHOLD_S` | No | `2 x ORACLE_ROUND_INTERVAL` | Seconds since the last finalized price snapshot before the `GET /health` endpoint reports `oracle_stale: true` (and returns HTTP 503). Defaults to twice the round interval; override for slow-start or custom round cadences. |
 | `COINGECKO_API_KEY` | No | None | CoinGecko API key (optional, improves rate limits) |
 | `COINMARKETCAP_API_KEY` | No | None | CoinMarketCap API key (enables second price source) |
 | `PRICE_FETCH_TIMEOUT` | No | `10000` | HTTP timeout for external price API calls (ms) |

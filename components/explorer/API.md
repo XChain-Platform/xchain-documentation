@@ -1386,14 +1386,29 @@ The `/{COIN}/api/tokens/{query}/{type}` endpoint accepts the additional type val
 
 ---
 
+### File Raw Endpoint
+
+```
+GET /{COIN}/api/file/{actionIndex}/raw
+```
+
+Returns the raw bytes for a FILE action.
+
+- **Gated file**: returns the AES-256-GCM ciphertext (12-byte nonce || ciphertext || 16-byte GCM tag) as `application/octet-stream`. Holders decrypt client-side after receiving the symmetric key via an ECIES MESSAGE.
+- **Non-gated file**: returns the stored bytes from the colocated decoder DB, served inline for safe media MIME types (image, audio, video, PDF, JSON). Unsafe types (HTML, SVG, XML, scripts, unknown) are forced to download as `application/octet-stream`. This is the resolution target for TIS `data_ref` entries using the `action:<index>` scheme, enabling NFT artwork to render directly in the browser.
+
+Returns HTTP 404 when the `actionIndex` is unknown or the decoder DB is unreachable. Returns HTTP 400 for a non-numeric `actionIndex`.
+
+---
+
 ### Relay and Icon Routes
 
 ```
-POST /relay
+GET  /relay?url={url}
 GET  /icon/{path}
 ```
 
-`/relay` proxies cross-chain coordination messages to the hub. `/icon/{path}` serves cached token icon images. Both are non-coin-prefixed and registered at the root level.
+`/relay` fetches a remote JSON or PNG resource on behalf of the browser (a same-origin CORS proxy for TIS metadata and token icons hosted off-chain). Pass the target URL as the `url` query parameter. Private/loopback/metadata addresses are blocked. `/icon/{path}` serves cached token icon images. Both are non-coin-prefixed and registered at the root level.
 
 ---
 
@@ -1558,8 +1573,9 @@ Content-Type: application/json
 | `GET /{COIN}/api/checkpoint/{height}/verify` | Verify a checkpoint at a given height |
 | `GET /{COIN}/api/feequote` | Native-coin fee pre-flight quote |
 | `GET /{COIN}/api/feeschedule` | Native-coin fee schedule |
+| `GET /{COIN}/api/file/{actionIndex}/raw` | Raw FILE action bytes (or gated ciphertext) |
 | `GET /openapi.json` | OpenAPI 3.1 machine-readable spec |
-| `POST /relay` | Cross-chain relay (hub proxy) |
+| `GET /relay?url={url}` | Off-chain resource proxy (JSON/PNG, SSRF-guarded) |
 | `GET /icon/{path}` | Token icon image |
 
 ### Market Endpoints

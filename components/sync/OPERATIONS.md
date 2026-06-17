@@ -432,7 +432,7 @@ Maximum `limit`: 1000.
 **Error when dbType=decoder:**
 ```json
 HTTP 400
-{ "error": "Transparency log is indexer-only — decoder DB has no synthetic chain-of-state hashes" }
+{ "error": "Transparency log is indexer-only; decoder DB has no synthetic chain-of-state hashes" }
 ```
 
 ### `GET /transparency/:dbType/:chain/:network/proof/:block_index`
@@ -712,7 +712,7 @@ GET /transparency/decoder/:chain/:network/root/latest → 400
 
 Error body:
 ```json
-{ "error": "Transparency log is indexer-only — decoder DB has no synthetic chain-of-state hashes" }
+{ "error": "Transparency log is indexer-only; decoder DB has no synthetic chain-of-state hashes" }
 ```
 
 ## Resilience and Recovery

@@ -190,7 +190,7 @@ const { SDKValidationError } = require('@xchain/sdk/src/errors');
 try {
     await sdk.batch()
         .mint({ tick: 'BTC.TOKEN', amount: 100 })
-        .mint({ tick: 'BTC.TOKEN', amount: 200 }) // second MINT — violates constraint
+        .mint({ tick: 'BTC.TOKEN', amount: 200 }) // second MINT (violates constraint)
         .build();
 
 } catch (err) {

@@ -12,7 +12,7 @@
  *
  **********************************************************************
  *
- * XChain Protocol — Canonical Size Limits
+ * XChain Protocol: Canonical Size Limits
  *
  * Single documented source of truth for the protocol-level size caps
  * that more than one service enforces independently. These values had
@@ -20,7 +20,7 @@
  * applied it to subtly different quantities), which produced a class of
  * silent-failure bugs where one service accepted data another rejected.
  *
- * Plain CommonJS, zero dependencies — require()-able from any service,
+ * Plain CommonJS, zero dependencies; require()-able from any service,
  * tool, or test. Each service keeps its own local copy of these values
  * so it stays self-contained for deployment (the services ship as
  * independent containers and do not share a node_modules tree); the
@@ -32,7 +32,7 @@
 // Maximum *compiled* on-chain ACTION push, in bytes.
 //
 // This is measured against the reassembled script push as it appears on
-// chain — i.e. the OP_PUSHDATA-prefixed buffer, BEFORE bitcoin.script.decompile
+// chain (i.e. the OP_PUSHDATA-prefixed buffer, BEFORE bitcoin.script.decompile
 // strips the push prefix. The indexing decoder is the protocol arbiter: it
 // drops any transaction whose compiled ACTION push exceeds this value, so the
 // encoder must enforce the identical compiled-size ceiling. A transaction the
@@ -134,15 +134,15 @@ const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
 //
 // mainnet is a PLACEHOLDER far-future height = DISABLED on mainnet until a
 // coordinated flag-day height is chosen (mainnet keeps the current count rule
-// until then — safe, no fork). testnet/regtest activate at genesis so the e2e /
+// until then (safe, no fork). testnet/regtest activate at genesis so the e2e /
 // regtest stack exercises stake-weighting from block 0.
 const STAKE_WEIGHTED_QUORUM_ACTIVATION = {
-    mainnet: 999999999,   // PLACEHOLDER — set the real BTC flag-day height before mainnet enable
+    mainnet: 999999999,   // PLACEHOLDER: set the real BTC flag-day height before mainnet enable
     testnet: 0,
     regtest: 0,
 };
 
-// EQUIV_HEADER_ACTIVATION (WI-2 bump 2) — the BTC-anchored flag-day at/above which every
+// EQUIV_HEADER_ACTIVATION (WI-2 bump 2): the BTC-anchored flag-day at/above which every
 // consensus canonical is prefixed with a uniform signed header
 // `EQUIV|<ENGINE_TAG>|<ROUND_ID>|<VIEW>||<CONTENT>`. This is consensus-breaking (it changes the
 // signed preimage of every settlement/checkpoint/price/attestation signature + the config-change
@@ -153,7 +153,7 @@ const STAKE_WEIGHTED_QUORUM_ACTIVATION = {
 // post-flag-day (header-carrying) messages. Same placeholder/genesis convention as
 // STAKE_WEIGHTED_QUORUM_ACTIVATION (disabled on mainnet until a flag-day is chosen).
 const EQUIV_HEADER_ACTIVATION = {
-    mainnet: 999999999,   // PLACEHOLDER — set the real BTC flag-day height before mainnet enable
+    mainnet: 999999999,   // PLACEHOLDER: set the real BTC flag-day height before mainnet enable
     testnet: 0,
     regtest: 0,
 };

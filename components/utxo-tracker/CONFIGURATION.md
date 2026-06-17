@@ -23,10 +23,26 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | Variable | Description | Default |
 |---|---|---|
 | `AUX_POW` | Enable AuxPoW block header stripping (required for Dogecoin and Litecoin HogEx blocks) | `undefined` (falsy) |
+| `UTXO_TRACKER_API_KEY` | Bearer token required on all admin JSON-RPC methods (`getbootstrap`, `getbootstrapstatus`, `restorebootstrap`, `getbootstraprestorestatus`, `get_input_from_key_pattern`). When unset these methods fail closed (HTTP 401). Read-only UTXO/balance queries are unaffected. | `""` (disabled) |
+| `UTXO_MAX_PAGE_LIMIT` | Maximum page size a caller may request via `?limit=`. Caps a single request so a caller cannot trigger an OOM by requesting one giant page. Independent of `UTXO_MAX_ADDRESS_OUTPUTS`. | `10000` |
 | `UTXO_MAX_ADDRESS_OUTPUTS` | Hard ceiling on outputs materialized for a single-address unbounded query; above this limit `/utxos` and `get_balance` return HTTP 413: callers must page via `?limit=&after=` | `500000` |
+| `CORS_ORIGIN` | Allowed CORS origin. Set to a specific origin string to enable cross-origin requests. Disabled (no CORS header) when unset. | `""` (disabled) |
 | `XCHAIN_UNDO_BLOCKS_BTC` | Override the BTC reorg recovery window (blocks) | `12` |
 | `XCHAIN_UNDO_BLOCKS_LTC` | Override the LTC reorg recovery window (blocks) | `48` |
 | `XCHAIN_UNDO_BLOCKS_DOGE` | Override the DOGE reorg recovery window (blocks) | `120` |
+
+### Bulk-Sync Variables
+
+On first startup with an empty database the tracker automatically runs a parallel bulk-sync pipeline before starting the normal incremental API. The following variables tune that pipeline. They have no effect when the database is already populated.
+
+| Variable | Description | Default |
+|---|---|---|
+| `BULK_SYNC_WORKERS` | Number of parallel worker processes for the bulk parse phase | `6` |
+| `BULK_SYNC_CHUNK_SIZE` | Number of blocks per worker chunk | `10000` |
+| `BULK_SYNC_RAM_BUDGET` | Memory budget in MB for the merge/load phase | `4096` |
+| `BULK_SYNC_TIP_SAFETY` | Number of blocks before the node tip to stop the bulk dump (avoids indexing an unstable tip) | `10` |
+| `BULK_SYNC_BATCH_SIZE` | Number of UTXO records per LevelDB write batch during load | `10000` |
+| `BULK_SYNC_WORK_DIR` | Working directory for bulk-sync intermediate files | `/data/xchain-utxo-tracker/_bulk-sync-work` |
 
 ### Supported Network Values
 

@@ -145,7 +145,7 @@ const stakerSession = sdk.session(STAKER_WIF);
 
 // Stake 250 MYTOKEN. signingPubkey is the Ed25519 key the staker will use
 // to delegate / unstake / be slashed. It is independent of the staker's
-// regular wallet address — generate one per stake.
+// regular wallet address; generate one per stake.
 const stakeResult = await stakerSession.stakeToContract({
     amount:              '250',
     signingPubkey:       STAKER_SIGNING_PUBKEY_HEX,   // 64 hex chars (Ed25519)

@@ -124,7 +124,7 @@ RUN npm ci
 COPY ./src /XChainE2ETest/src
 COPY ./test /XChainE2ETest/test
 
-# .env is NOT copied in — pass credentials via `docker run --env-file` at runtime.
+# .env is NOT copied in. Pass credentials via `docker run --env-file` at runtime.
 CMD ["npm", "test"]
 ```
 

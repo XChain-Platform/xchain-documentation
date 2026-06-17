@@ -29,6 +29,8 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 |---|---|---|
 | `AUX_POW` | Enable AuxPoW header stripping (Dogecoin) | _(unset)_ |
 | `DECODER_RATE_LIMIT_RPM` | API requests per minute per IP | `100` |
+| `FEE_DESTINATION` | Native-coin protocol fee destination address for this coin+network. When set (and not the unset placeholder `XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`), the decoder persists outputs paying this address to `transaction_outputs` so the indexer can validate native-coin fee payments. Set per deployed stack when native-coin fee collection is active. | _(unset)_ |
+| `DB_QUERY_TIMEOUT` | MariaDB query timeout in milliseconds (passed to the connection pool `queryTimeout` option) | `30000` |
 
 The `AUX_POW` variable should be set to any truthy value when running against Dogecoin nodes. It enables the `getBlockWithoutAuxPow()` code path that strips merge-mining headers before parsing.
 
@@ -73,6 +75,7 @@ These values are defined in source code and not configurable via environment var
 | Constant | Value | Location | Description |
 |---|---|---|---|
 | `CHECK_BLOCK_DELAY_MS` | `1000` | XChainDecoder.js | Delay between polling iterations (1 second) |
+| `BLOCKCHAIN_INFO_REFRESH_MS` | `30000` | XChainDecoder.js | During catch-up, the node tip (`getblockchaininfo`) is re-polled at least this often (30 seconds) so reported lag stays accurate |
 | `MEMPOOL_INTERVAL` | `60000` | XChainDecoder.js | Mempool update interval when synced (60 seconds) |
 | `MEMPOOL_BATCH_SIZE` | `1000` | XChainDecoder.js | Max transactions fetched per mempool batch |
 | `SYNCED_THRESHOLD` | `3` | XChainDecoder.js | Max blocks behind tip to be considered synced |
@@ -118,8 +121,10 @@ The decoder begins parsing from a preconfigured block height per network to skip
 | `litecoin-testnet` | 4,470,000 |
 | `litecoin-regtest` | 0 |
 | `dogecoin-mainnet` | 6,000,000 |
-| `dogecoin-testnet` | 19,900,000 |
+| `dogecoin-testnet` | 62,500,000 |
 | `dogecoin-regtest` | 0 |
+
+> **DOGE testnet note:** the DOGE testnet mines min-difficulty blocks roughly every 20 seconds, so the chain runs tens of millions of blocks ahead of the other networks. The start block was anchored near the chain tip at protocol launch (~62.5 M) to avoid indexing ~42 M pre-launch blocks (which bloated the decoder DB to ~13.8 GB). See `src/CryptoNetworks.js` for the comment.
 
 ## Valid ACTION Names
 

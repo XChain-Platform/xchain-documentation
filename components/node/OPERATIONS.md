@@ -59,9 +59,8 @@ Arguments are order-independent: `xchain-node start bitcoin mainnet xchain-encod
 | `bootstrap` | `bootstrap <create\|restore> <service> <chain> <network>` | Create or restore gzipped bootstrap snapshots with SHA-256 verification |
 | `e2etest` | `e2etest <chain> [testName]` | Run the xchain-e2e-test suite on a regtest network; supports `--grep` filtering |
 | `rollback` | `rollback <block_index> <service> <chain> <network>` | Rollback to a specific block (placeholder. Not yet implemented) |
-| `validator` | `validator` | Validator-mode setup for xchain-hub (key generation + config) |
-| `init` | `init` | Generate a validator signing key + config so the hub runs in validator mode |
-| `status` | `status` | Show this node's validator configuration (pubkey, peers, capabilities) |
+| `validator init` | `validator init [options]` | Generate a validator signing key + config so the hub runs in validator mode |
+| `validator status` | `validator status` | Show this node's validator configuration (pubkey, peers, capabilities) |
 
 ## Global Options
 
@@ -142,6 +141,49 @@ xchain-node bootstrap restore xchain-utxo-tracker bitcoin mainnet
 ```
 
 Verifies the SHA-256 hash before extraction. Aborts cleanly on hash mismatch.
+
+## Validator Setup
+
+The `validator` command has two subcommands for onboarding a node into the XChain federation. Both are offline operations: they write only to the local config directory and never contact Docker or MariaDB. This means they can be run before any stack is installed, and the Docker precheck is intentionally skipped for them.
+
+### `validator init`
+
+```bash
+xchain-node validator init [options]
+```
+
+Generates an Ed25519 signing key and writes the validator configuration files (`validator.json`, `signing_key.hex`, `capabilities.json`) under the `config/validator/` directory. These files are injected as environment variables into the hub container the next time it is installed or started, causing the hub to run in full validator mode (P2P + PBFT + oracle).
+
+Options:
+
+| Option | Description |
+|---|---|
+| `--p2p-addr <addr>` | This validator's public address in `host:port` form |
+| `--peers <list>` | Comma-separated list of peer `pubkey@host:port` entries |
+| `--capabilities <list>` | Comma-separated capability names to advertise |
+| `--force` | Overwrite an existing validator config (generates a NEW key) |
+
+Running `validator init` more than once without `--force` is a no-op: it prints the existing pubkey and exits. Use `--force` only if you need to rotate to a new key.
+
+### `validator status`
+
+```bash
+xchain-node validator status
+```
+
+Reads the persisted validator configuration and prints the public key, configured peers, and capabilities. If no validator has been initialized it prints a hint to run `validator init`.
+
+## Telemetry
+
+xchain-node collects anonymous usage telemetry by default to help track adoption and surface issues. Only the following are collected: an anonymous install ID, version numbers, which services are running, and basic OS/Docker info. The IP address is never stored: the hub derives at most a coarse region from the connection and discards it.
+
+### Opt-out options (highest precedence first)
+
+1. Pass `--no-telemetry` on any command invocation.
+2. Set `XCHAIN_NODE_NO_TELEMETRY=1` in the environment before invoking xchain-node.
+3. Once opted out via either of the above, the preference is persisted to `~/.xchain-node/telemetry.json` so subsequent runs also stay opted out without requiring the flag or env var.
+
+To self-host the collector, override `XCHAIN_NODE_TELEMETRY_URL` with your collector's endpoint.
 
 ## Troubleshooting
 

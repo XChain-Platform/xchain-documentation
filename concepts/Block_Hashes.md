@@ -87,11 +87,11 @@ Hashes are stored in the `blocks` table, which has one row per processed block:
 
 ```
 blocks
-├── block_index         — block number
-├── block_time          — block timestamp
-├── ledger_hash_id      — FK to index_transactions (ledger hash)
-├── actions_hash_id     — FK to index_transactions (actions hash)
-└── contract_hash_id    — FK to index_transactions (contract hash)
+├── block_index         (block number)
+├── block_time          (block timestamp)
+├── ledger_hash_id      (FK to index_transactions: ledger hash)
+├── actions_hash_id     (FK to index_transactions: actions hash)
+└── contract_hash_id    (FK to index_transactions: contract hash)
 ```
 
 The actual hash strings are stored in the `index_transactions` table (a normalized lookup table). The `blocks` table references them by ID.

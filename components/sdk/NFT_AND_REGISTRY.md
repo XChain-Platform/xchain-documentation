@@ -27,8 +27,8 @@ Build ISSUE params for a unique 1-of-1 NFT fully minted to the issuer.
 ```js
 const params = sdk.nft.unique({
     tick:        'MYART',         // required
-    description: 'action:12345', // optional — TIS data_ref or URL
-    transfer:    null,            // optional — transfer issuer ownership after issue
+    description: 'action:12345', // optional; TIS data_ref or URL
+    transfer:    null,            // optional; transfer issuer ownership after issue
     memo:        null             // optional
 });
 // Returns: { tick, maxSupply: '1', mintSupply: '1', decimals: '0', lockMaxSupply: '1', ... }
@@ -43,24 +43,24 @@ The SDK's key invariant: `DECIMALS=0` and `LOCK_MAX_SUPPLY=1`. Every unique toke
 Build ISSUE params for an edition of N identical, indivisible prints.
 
 ```js
-// Pre-minted edition — full supply goes to the issuer immediately
+// Pre-minted edition: full supply goes to the issuer immediately
 const params = sdk.nft.edition({
     tick:   'PRINTS',            // required
-    supply: '100',               // required — MAX_SUPPLY (edition size)
+    supply: '100',               // required; MAX_SUPPLY (edition size)
     description: null,
     transfer:    null,
     memo:        null
 });
 
-// Fair-mint edition — MINT window; zero prints self-minted at issuance
+// Fair-mint edition: MINT window; zero prints self-minted at issuance
 const params = sdk.nft.edition({
     tick:   'PRINTS',
     supply: '100',
     mint: {
         maxMint:    '1',       // MAX_MINT per mint call
-        perAddress: '2',       // optional — MINT_ADDRESS_MAX
-        startBlock: 850000,    // optional — MINT_START_BLOCK
-        stopBlock:  860000     // optional — MINT_STOP_BLOCK
+        perAddress: '2',       // optional; MINT_ADDRESS_MAX
+        startBlock: 850000,    // optional; MINT_START_BLOCK
+        stopBlock:  860000     // optional; MINT_STOP_BLOCK
     }
 });
 ```
@@ -76,7 +76,7 @@ Build ISSUE params for a distinct 1-of-1 collection item. The resulting tick is 
 ```js
 const params = sdk.nft.collectionItem({
     parent: 'MYCOLLECTION',   // required
-    name:   'item001',        // required — child segment only, must not contain '.'
+    name:   'item001',        // required; child segment only, must not contain '.'
     description: null,
     transfer:    null,
     memo:        null
@@ -111,14 +111,14 @@ Build a minimal TIS v1.0.0 document for an NFT-pattern token. The intended workf
 ```js
 const { doc, json } = sdk.nft.tisDocument({
     tick:             'MYART',              // required
-    name:             'My Art Token',       // optional — display name
-    description:      'A 1-of-1 collectible', // optional — prose description
-    imageActionIndex: 12345,                // optional — on-chain artwork FILE
-    imageCoin:        null,                 // optional — base coin ticker when artwork
+    name:             'My Art Token',       // optional; display name
+    description:      'A 1-of-1 collectible', // optional; prose description
+    imageActionIndex: 12345,                // optional; on-chain artwork FILE
+    imageCoin:        null,                 // optional; base coin ticker when artwork
                                             //   is on a sibling chain (e.g. 'DOGE')
-    imageUrl:         null,                 // optional — off-chain URL (data_ref preferred)
-    imageType:        'image/png',          // optional — artwork MIME type
-    imageName:        'artwork.png'         // optional — artwork filename
+    imageUrl:         null,                 // optional; off-chain URL (data_ref preferred)
+    imageType:        'image/png',          // optional; artwork MIME type
+    imageName:        'artwork.png'         // optional; artwork filename
 });
 ```
 
@@ -165,7 +165,7 @@ Build LIST v0 params for a new official-token roster (TYPE=TICK).
 
 ```js
 const params = sdk.project.rosterParams({
-    ticks: ['TOKENA', 'TOKENB', 'TOKENC']   // required — non-empty array of TICK names
+    ticks: ['TOKENA', 'TOKENB', 'TOKENC']   // required; non-empty array of TICK names
 });
 // Returns: { type: '1', item: ['TOKENA', 'TOKENB', 'TOKENC'] }
 ```
@@ -179,8 +179,8 @@ Build LIST v1 params that derive a new roster from an existing one. Pass `add` O
 ```js
 // Add a tick
 const params = sdk.project.rosterEditParams({
-    listActionIndex: 200,          // required — ACTION_INDEX of the existing roster LIST
-    add:             ['TOKEND']    // or remove: ['TOKENA'] — never both
+    listActionIndex: 200,          // required; ACTION_INDEX of the existing roster LIST
+    add:             ['TOKEND']    // or remove: ['TOKENA'] (never both)
 });
 // Returns: { edit: '1', listActionIndex: '200', item: ['TOKEND'] }
 ```
@@ -193,9 +193,9 @@ Build LINK params that attest a roster to a project (the owner-validated green-b
 
 ```js
 const params = sdk.project.attestRosterParams({
-    coin:             'BTC',   // required — the project's chain
-    listActionIndex:  200,     // required — ACTION_INDEX of the roster LIST
-    issueActionIndex: 99,      // required — ACTION_INDEX of the project tick's ISSUE
+    coin:             'BTC',   // required; the project's chain
+    listActionIndex:  200,     // required; ACTION_INDEX of the roster LIST
+    issueActionIndex: 99,      // required; ACTION_INDEX of the project tick's ISSUE
     memo:             null     // optional
 });
 // Returns: { coin1: 'BTC', coin1ActionIndex: '200', coin2: 'BTC', coin2ActionIndex: '99', memo }

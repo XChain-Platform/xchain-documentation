@@ -135,7 +135,7 @@ const action = sdk.batch()
 | All-or-nothing | If one action fails, the entire batch is invalid |
 
 ```js
-// This would fail — two MINTs in one batch
+// This would fail: two MINTs in one batch
 const invalid = sdk.batch()
   .mint({ tick: 'TOKEN_A', amount: '100' })
   .mint({ tick: 'TOKEN_B', amount: '200' }) // second MINT -- batch will be invalid

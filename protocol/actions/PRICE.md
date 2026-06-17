@@ -225,7 +225,7 @@ User broadcasts PRICE v1 on any chain
       → Indexer pushes to hub oracle_prices table
         → Hub applies the uniform 24-hour lock window (every publish effective at block_time + 86400)
           → Hub broadcasts new row to all connected indexers' local hub DB copies
-            → All indexers query their local hub DB for oracle data — no hub round-trip during block processing
+            → All indexers query their local hub DB for oracle data (no hub round-trip during block processing)
 ```
 
 ### Three-Database Model

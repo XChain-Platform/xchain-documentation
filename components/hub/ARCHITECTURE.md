@@ -127,6 +127,7 @@ Governance       --proposal:passed-->  (parameter application)
 | `HubDbBroadcaster.js` | `HubDbBroadcaster` | WebSocket subscriber registry; broadcasts `row:inserted` events from `PriceAggregator`, `StateCheckpointEngine`, `CrossChainDexEngine`, and `CrossChainCallEngine` to all connected indexers' `HubDbSync` clients |
 | `StateCheckpointEngine.js` | `StateCheckpointEngine` | Quorum-signed per-chain ledger/actions/contract hash checkpoints: cadence-leader reads each chain's block-hash triple, collects XCHK_SIGN from peers, finalizes at 2f+1 signatures, writes to `state_checkpoints`, streams via `HubDbBroadcaster`, emits `checkpoint:finalized` |
 | `StateAnchorPublisher.js` | `StateAnchorPublisher` | Per-chain publisher-election anchor: listens for `checkpoint:finalized`, batches `cross_chain_matches` archive, and commits checkpoints + archive on-chain via the DOGE ANCHOR action on `ANCHOR_INTERVAL_MS` cadence |
+| `FullNodeChallengeRound.js` | `FullNodeChallengeRound` | Challenge-response rounds that verify `full_node` capability claimants. The elected leader issues a block-hash challenge; each claimant broadcasts its computed answer (`XNODE_ANSWER`); the leader proposes the pass list (`XNODE_SIGN_REQ`); verifiers independently recompute and co-sign (`XNODE_SIGN`); results are finalized on-chain via `XNODE_DONE`. Pass rate feeds into the full-node reward tier. |
 | `sql/*.sql` | None | MariaDB table schemas (configs, validators, price_snapshots, oracle_prices, state_checkpoints, capability_snapshots, cross_chain_matches, cross_chain_calls, validator_rewards, governance, telemetry_pings, etc.) |
 
 ## P2P Gossip Layer
@@ -216,7 +217,7 @@ All types below ride the envelope above; only the `data` payload differs. Every 
 
 | Type | `data` shape | Purpose |
 |---|---|---|
-| `CAPABILITY_ACTIVATED` | `{ "pubkey": "<hex>", "capability": "<name>", "block_at": <block-index> }` | Sender advertises that it has activated `capability` (e.g. `price`, `cross_chain`, `oracle_publish`, `attestation`). The receiver verifies the stake-backed qualification against the indexer stake snapshot at `block_at` before trusting it; if the snapshot is unavailable it falls back to accepting for liveness. |
+| `CAPABILITY_ACTIVATED` | `{ "pubkey": "<hex>", "capability": "<name>", "block_at": <block-index> }` | Sender advertises that it has activated `capability` (one of `price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`). The receiver verifies the stake-backed qualification against the indexer stake snapshot at `block_at` before trusting it; if the snapshot is unavailable it falls back to accepting for liveness. |
 | `CAPABILITY_DEACTIVATED` | `{ "pubkey": "<hex>", "capability": "<name>", "block_at": <block-index>, "reason": "<string, optional>" }` | Sender reports that `capability` is no longer active (failed self-test or lost qualification). `reason` carries the self-test failure message when present. |
 | `CAPABILITY_SELF_TEST` | `{ "pubkey": "<hex>", "capability": "<name>", "ok": <bool>, "reason": "<string, optional>" }` | Carries a capability self-test result (`ok` true/false, with optional `reason` on failure). Recognized and applied on receipt to the local capability registry. |
 
@@ -227,8 +228,13 @@ All types below ride the envelope above; only the `data` payload differs. Every 
 | `PBFT_PRE_PREPARE` / `PBFT_PREPARE` / `PBFT_COMMIT` | `Consensus` | Three-phase PBFT for config writes. |
 | `PBFT_VIEW_CHANGE` / `PBFT_NEW_VIEW` | `Consensus` | Leader view-change protocol. |
 | `ORACLE_PRICE_SUBMIT` | `OracleRound` | Per-round price submission for oracle aggregation. |
+| `ORACLE_PROPOSE` / `ORACLE_PREPARE` / `ORACLE_COMMIT` | `OracleConsensus` | PBFT finalization of the trimmed-median price. |
 | `ATTEST_PROPOSE` / `ATTEST_PREPARE` / `ATTEST_COMMIT` | `AttestationConsensus` | PBFT-style consensus over external attestation responses. |
 | `XCHAIN_ATTEST_PROPOSE` / `XCHAIN_ATTEST_PREPARE` / `XCHAIN_ATTEST_COMMIT` | `CrossChainEngine` | Consensus over cross-chain action confirmations. |
+| `XCALL_RELAY_PROPOSE` / `XCALL_RELAY_PREPARE` / `XCALL_RELAY_COMMIT` / `XCALL_RELAY_VIEW_CHANGE` / `XCALL_RELAY_NEW_VIEW` / `XCALL_RELAY_FINAL_SYNC` | `CrossChainCallEngine` | PBFT consensus to quorum-sign cross-chain contract call relay rows (`cross_chain_calls`). Reuses the DEX consensus engine with parameterized message types. |
+| `XCHK_SIGN_REQ` / `XCHK_SIGN` / `XCHK_FINALIZED` | `StateCheckpointEngine` | Collect 2f+1 validator signatures over per-chain ledger/actions/contract hash checkpoints. |
+| `XANC_SIGN_REQ` / `XANC_SIGN` / `XANC_FINALIZED` / `XANC_V0_DONE` | `StateAnchorPublisher` | Co-sign the on-chain ANCHOR payload (checkpoints + archive). `XANC_V0_DONE` back-fills peers' `anchor_txid` to prevent duplicate anchoring. |
+| `XNODE_ANSWER` / `XNODE_SIGN_REQ` / `XNODE_SIGN` / `XNODE_DONE` | `FullNodeChallengeRound` | Full-node challenge-response protocol. Claimants broadcast their computed answer (`XNODE_ANSWER`); the elected leader proposes the pass list (`XNODE_SIGN_REQ`); eligible verifiers co-sign after recomputing independently (`XNODE_SIGN`); the leader finalizes and broadcasts results (`XNODE_DONE`). |
 
 Unrecognized types are still deduplicated, signature-checked, and relayed (so the gossip mesh forwards message types a given node may not handle), but produce no local side effect beyond the generic `message` event.
 
@@ -372,6 +378,10 @@ Hub                                    Indexer (HubDbSync client)
 |---|---|
 | `GET /hub-db/snapshot/price_snapshots?since_id=N&limit=10000` | Rows from `price_snapshots` table after `since_id` |
 | `GET /hub-db/snapshot/oracle_prices?since_id=N&limit=10000` | Rows from `oracle_prices` table after `since_id` |
+| `GET /hub-db/snapshot/cross_chain_matches?since_id=N&limit=10000` | Rows from `cross_chain_matches` after `since_id`; retracted rows excluded |
+| `GET /hub-db/snapshot/capability_snapshots?since_id=N&limit=10000` | Rows from `capability_snapshots` after `since_id` |
+| `GET /hub-db/snapshot/cross_chain_calls?since_id=N&limit=10000` | Rows from `cross_chain_calls` after `since_id`; retracted rows excluded |
+| `GET /hub-db/snapshot/state_checkpoints?since_id=N&limit=10000` | Rows from `state_checkpoints` after `since_id` |
 
 ### WebSocket Channel
 

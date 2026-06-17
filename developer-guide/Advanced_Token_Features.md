@@ -409,7 +409,7 @@ const selfMessageAction = sdk.message({
   coin:             'BTC',
   destination:      'bc1qyourissueraddress...',
   encryptionMethod: 1,                 // 1 = ECIES (MESSAGE v2)
-  binary:           true,              // use binary mode — required for handoff payload
+  binary:           true,              // use binary mode (required for handoff payload)
   plaintext:        handoffPayload,
 });
 
@@ -437,7 +437,7 @@ const cover    = fs.readFileSync('./cover.png');
 // One key, three ciphertexts
 const { ciphertexts, key, keyHash } = sdk.gatedFile.encryptPack([stems, liner, cover]);
 
-// Publish each file under the shared keyHash — order independent
+// Publish each file under the shared keyHash (order does not matter)
 const fileActions = ciphertexts.map((ct, i) => sdk.file({
   name:             ['stems.zip', 'liner-notes.pdf', 'cover.png'][i],
   type:             ['application/zip', 'application/pdf', 'image/png'][i],

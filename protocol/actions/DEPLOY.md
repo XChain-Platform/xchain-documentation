@@ -78,6 +78,7 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
 - A non-blocking float usage warning is generated if decimal number literals are detected (visible in the execution record)
 - A gas fee is charged at deployment: `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`
 - `SOURCE` address must hold sufficient XCHAIN tokens to cover the gas fee
+- `CONSTRUCTOR_PARAMS` is a rest-field in v0/v2 (the indexer joins all pipe-segments from position 3 onward with `|`, so a multi-argument constructor passes each argument as its own pipe-delimited segment). In v1/v3 it is a single fixed field (position 3 only) because `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` follow; a v1/v3 constructor that needs multiple arguments must sub-delimit them within that one field.
 - If `CONSTRUCTOR_PARAMS` is provided, the VM executes the contract's `initialize` method immediately after deployment:
   - Constructor gas is added to the deployment gas: `total_gas = deploy_gas + constructor_gas`
   - If the constructor fails (reverts, out of gas, etc.), the entire deployment is rolled back; the contract is not stored

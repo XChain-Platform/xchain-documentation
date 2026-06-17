@@ -104,7 +104,7 @@ The SDK can auto-discover explorer and encoder endpoints by querying an xchain-h
 **Stopping polling:** Call `sdk.stop()` to halt hub polling and clean up the timer. This is important in server-mode applications during graceful shutdown.
 
 ```javascript
-// Hub discovery is safe to call multiple times — each call re-fetches config
+// Hub discovery is safe to call multiple times; each call re-fetches config
 await sdk.init();
 await sdk.init(); // re-fetches and re-resolves (safe)
 ```
@@ -270,7 +270,7 @@ const sdk = new XChainSDK({
     timeout:      15000
 });
 
-// Use immediately — no init() required
+// Use immediately; no init() required
 const balances = await sdk.getBalances('bc1qmyaddress');
 ```
 
@@ -304,7 +304,7 @@ const XChainSDK = require('./index.js');
 
 const sdk = new XChainSDK({
     network:     'bitcoin-mainnet',
-    explorerUrl: 'my-explorer.example.com',  // explicit — hub cannot override this
+    explorerUrl: 'my-explorer.example.com',  // explicit; hub cannot override this
     hubUrl:      'hub.example.com'           // hub will provide encoder endpoints
 });
 

@@ -117,14 +117,16 @@ All JSON-RPC requests are sent as POST to `/` with standard JSON-RPC 2.0 format.
 | Method | Parameters | Description |
 |---|---|---|
 | `ping` | None | Health check: returns `{"status": "success"}` |
+| `get_sync_status` | None | Returns committed tracker height, node height, lag, and sync verdict. Also reports `mempool_rpc_failures` and `last_mempool_error_at` when the node's mempool RPC is degraded. |
+| `is_quiescent` | None | Returns `{"ready": true/false, ...}`. `ready` is true only when the node mempool is empty AND the tracker's committed height equals the node tip. Used as a barrier between e2e test steps to ensure a fully-settled stack. |
 | `get_utxos` | `{"address": "string"}` | Returns UTXOs for an address |
 | `get_first_seen` | `{"address": "string"}` | Returns the oldest (first-seen) transaction for an address |
 | `get_balance` | `{"address": "string"}` | Returns the confirmed balance |
 | `get_info` | `{"address": "string"}` | Returns full balance info (confirmed, pending, received, UTXO counts) |
-| `get_input_from_key_pattern` | `{"pattern": "string"}` | Raw LevelDB key prefix scan (pattern must be at least 32 characters) |
-| `getbootstrap` | `{"filename": "string"}` | Starts a background task to create a compressed LevelDB backup |
+| `get_input_from_key_pattern` | `{"pattern": "string"}` | Raw LevelDB key prefix scan (pattern must be at least 32 characters). **Admin method: requires `Authorization: Bearer <UTXO_TRACKER_API_KEY>`.** |
+| `getbootstrap` | `{"filename": "string"}` | Starts a background task to create a compressed LevelDB backup. **Admin method: requires Bearer token.** |
 | `getbootstrapstatus` | `{"taskid": "string"}` | Returns progress of a backup task |
-| `restorebootstrap` | `{"filename": "string"}` | Starts a background task to restore a compressed LevelDB backup |
+| `restorebootstrap` | `{"filename": "string"}` | Starts a background task to restore a compressed LevelDB backup. **Admin method: requires Bearer token.** |
 | `getbootstraprestorestatus` | `{"taskid": "string"}` | Returns progress of a restore task |
 
 ## Resilience and Recovery

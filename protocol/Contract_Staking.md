@@ -144,7 +144,7 @@ module.exports = {
     },
     punishMisbehavior: function() {
         let pubkey = xchain.getInputParam(0)
-        // Slash 50 XCHAIN — funds go to BURN address per the deploy-time config.
+        // Slash 50 XCHAIN; funds go to BURN address per the deploy-time config.
         xchain.contract.slash(pubkey, 'XCHAIN', '50')
     }
 }

@@ -109,7 +109,7 @@ There is no API to force a specific version number; the selector always chooses 
 ```js
 // Force ISSUE v1 by providing only the v1-specific field DESCRIPTION (plus TICK)
 sdk.createAction({ action: 'ISSUE', params: { tick: 'MY.TOKEN', description: 'New desc' }});
-// → selects v1 (TICK + DESCRIPTION + MEMO — shorter than v0)
+// → selects v1 (TICK + DESCRIPTION + MEMO; shorter than v0)
 
 // Force ISSUE v0 by including any v0-exclusive field
 sdk.createAction({ action: 'ISSUE', params: {
@@ -172,7 +172,7 @@ try {
     if (err instanceof SDKFormatError && err.code === 'NO_MATCHING_FORMAT') {
         for (let [version, info] of Object.entries(err.details.availableFormats)) {
             if (info.userFieldsNotInFormat.length > 0) {
-                console.error(`v${version} rejected — unrecognized fields:`, info.userFieldsNotInFormat);
+                console.error(`v${version} rejected (unrecognized fields):`, info.userFieldsNotInFormat);
             }
         }
     }

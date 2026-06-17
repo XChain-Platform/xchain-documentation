@@ -305,7 +305,7 @@ try {
         }
 
     } else {
-        // Unexpected error — rethrow
+        // Unexpected error; rethrow
         throw err;
     }
 }
@@ -327,7 +327,7 @@ try {
             decimals: 8
         }
     });
-    console.log('Action is valid — ready to submit');
+    console.log('Action is valid; ready to submit');
 
 } catch (err) {
     if (err instanceof SDKValidationError || err instanceof SDKFormatError) {

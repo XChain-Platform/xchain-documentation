@@ -71,7 +71,7 @@ Every deployed contract receives a **derived address** in the format `C:<CHAIN>:
 **Single-function contract:**
 ```javascript
 module.exports = function(xchain) {
-    // Contract logic — all methods share this single entry point
+    // All methods share this single entry point
     var amount = xchain.getInputParam(0);
     xchain.emit.send({ destination: xchain.getSourceAddress(), tick: 'TOKEN', quantity: amount });
 };
@@ -268,7 +268,7 @@ A smart contract can't pause and wait for an answer (the VM is synchronous, gas-
 
 ```
 Block N:  Contract method calls xchain.attestation.request(...)
-              → Emits ATTEST v0 (request) — contract method returns immediately
+              → Emits ATTEST v0 (request); contract method returns immediately
 
 Block N+1..N+deadline:  Validators with the 'attestation' capability
                         each fetch the answer independently via the provider

@@ -17,7 +17,7 @@ contract calls                   polls getpendingcrosschaincalls;
 xchain.emit.crossExecute   ──►   waits CONF[X] confirmations;
 → XCALL v0 action row            every peer re-verifies the
   (derived from the user's       request against its OWN X
-  tx — no extra on-chain tx)     indexer, then signs (2f+1)
+  tx; no extra on-chain tx)      indexer, then signs (2f+1)
                                        │
                                        ▼
                                  cross_chain_calls row     ──►   indexers verify sigs vs the

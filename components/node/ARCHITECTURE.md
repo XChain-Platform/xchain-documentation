@@ -86,10 +86,16 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 | `src/services/NodeService.js` | Crypto node download and Docker image building |
 | `src/services/HubService.js` | Hub installation, update, and JSON-RPC configuration |
 | `src/services/ExplorerService.js` | Explorer installation and configuration |
-| `src/services/BootstrapService.js` | Bootstrap snapshot create/restore with SHA-256 verification |
+| `src/services/BootstrapService.js` | Bootstrap snapshot create/restore with SHA-256 verification; creates Ed25519 signatures on `bootstrap create` when `XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY` is set, and enforces signature verification on restore (fail-closed by default) |
+| `src/services/TelemetryService.js` | Anonymous usage telemetry: collects install ID, version, running services, and OS info; sends to the hub collector; default-on with opt-out via `--no-telemetry`, `XCHAIN_NODE_NO_TELEMETRY=1`, or a persisted preference |
+| `src/services/CredentialsService.js` | Persists per-OS-user MariaDB credentials in `~/.xchain-node/credentials.json`; stores both the bundled-DB password and optional external-DB connection details |
+| `src/services/DiscoveryService.js` | Auto-discovers existing xchain-node Docker containers and re-registers them in LevelDB (`sync` command); classifies containers by naming convention to recover state after a LevelDB loss |
+| `src/services/ValidatorService.js` | Validator-mode onboarding: generates Ed25519 signing keys and writes validator config files (`validator init`); reads and displays persisted validator settings (`validator status`); injects resulting env vars into the hub container |
 | `src/operations/moduleOperations.js` | Bulk operations (install/start/stop/restart/reset/exec/logs/monitor) |
 | `src/HubConnector.js` | JSON-RPC 2.0 client for xchain-hub |
 | `src/ExplorerConnector.js` | JSON-RPC 2.0 client for xchain-explorer |
+| `src/TelemetryConnector.js` | HTTP client that posts telemetry pings to the central hub collector; URL overrideable via `XCHAIN_NODE_TELEMETRY_URL` |
+| `src/MariaDbStore.js` | MariaDB connection wrapper used for direct SQL operations during bootstrap create/restore (database dump and restore via `mariadb-dump`/`mariadb` tools inside the DB container) |
 | `src/GitHubDownloader.js` | GitHub release download with SHA-256 hash verification |
 | `src/utils/helpers.js` | Utilities (sleep, stringToCoin, decompressTarGz) |
 
