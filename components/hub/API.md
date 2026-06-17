@@ -441,6 +441,30 @@ Pushes a validated PRICE v1 user oracle price from an indexer. The hub applies t
 
 The hub looks up any prior price for `(source_address, coin, tick, fiat)`. First broadcast: `effective_at = block_time` (immediate). Subsequent updates: `effective_at = block_time + 86400` (24-hour delay).
 
+### `pushpricereorg` (write: requires API key)
+
+Retract user oracle prices after an indexer rolled back PRICE actions in a reorg. The indexer pushes its source chain plus the lowest rolled-back action index; the hub retracts the matching `oracle_prices` rows at or above that index.
+
+**Request:**
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"pushpricereorg",
+  "params":{
+    "source_chain":"DOGE",
+    "from_action_index":12345
+  },
+  "id":1
+}
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `source_chain` | string | Yes | The chain whose PRICE actions were rolled back |
+| `from_action_index` | integer | Yes | Lowest rolled-back action index; rows at or above it are retracted |
+
+**Response:** a summary of the retracted price rows, or an `{ "error": ... }` object on failure.
+
 ## Hub DB Sync (REST + WebSocket)
 
 The hub exposes a separate channel for replicating cross-chain infrastructure tables (`price_snapshots`, `oracle_prices`) to indexers' local hub DB copies. Used in geographically distributed deployments where indexers run on different hosts from the hub.
@@ -640,6 +664,32 @@ Query attestation records by status.
 ]
 ```
 
+### `getattestationstats`
+
+Attestation throughput counters for this hub's attestation rounds. Useful for monitoring participation and spotting a stalled attestation subsystem.
+
+**Request:**
+```json
+{"jsonrpc":"2.0","method":"getattestationstats","id":1}
+```
+
+**Response:**
+```json
+{
+  "seen_count":120,
+  "in_flight_count":2,
+  "proposed_count":115,
+  "failed_count":3
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `seen_count` | integer | Attestation requests observed |
+| `in_flight_count` | integer | Requests seen but whose round has not yet resolved |
+| `proposed_count` | integer | Rounds that reached a proposal |
+| `failed_count` | integer | Rounds that ended in error |
+
 ## Swap Tracking
 
 ### `initiateswap`
@@ -754,6 +804,60 @@ Query confirmed reorg attestation history.
 [
   {"chain":"bitcoin","reorg_height":893000,"timestamp":1743690000,"confirmed_at":"2026-04-06T12:00:00.000Z"}
 ]
+```
+
+### `pushxcallreorg` (write: requires API key)
+
+Retract `cross_chain_calls` relay rows after an indexer rolled back XCALL request actions in a reorg. The indexer pushes its source chain plus the lowest rolled-back action index; the hub marks the matching relay rows `retracted` (both phases) and broadcasts deletions so distributed indexers prune their mirrored copies.
+
+**Request:**
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"pushxcallreorg",
+  "params":{
+    "source_chain":"DOGE",
+    "from_action_index":12345
+  },
+  "id":1
+}
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `source_chain` | string | Yes | The chain whose XCALL request actions were rolled back |
+| `from_action_index` | integer | Yes | Lowest rolled-back action index; relay rows at or above it are retracted |
+
+**Response:**
+```json
+{"status":"ok","source_chain":"DOGE","from_action_index":12345}
+```
+
+### `pushdexreorg` (write: requires API key)
+
+Retract `cross_chain_matches` rows after an indexer rolled back DEX ORDER actions in a reorg. The hub marks every match whose retracted leg is on that source chain at or above the given index `retracted`, restores both legs' remaining capacity, and broadcasts deletions so distributed indexers prune their mirrored copies.
+
+**Request:**
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"pushdexreorg",
+  "params":{
+    "source_chain":"DOGE",
+    "from_action_index":12345
+  },
+  "id":1
+}
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `source_chain` | string | Yes | The chain whose DEX ORDER actions were rolled back |
+| `from_action_index` | integer | Yes | Lowest rolled-back action index; matches at or above it are retracted |
+
+**Response:**
+```json
+{"status":"ok","source_chain":"DOGE","from_action_index":12345}
 ```
 
 ## Governance

@@ -25,6 +25,13 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 - **JSON-RPC API**: Express server with Helmet security headers, optional API key authentication, configurable rate limiting, and CORS
 - **Browser bundle**: Browserify build for client-side PSBT generation without routing private keys through a server
 
+## Documentation
+
+| Document | Description |
+|---|---|
+| [API Reference](API.md) | Complete JSON-RPC reference: all five methods with parameters, request/response examples, and error codes |
+| [Format Selection](Format_Selection.md) | Decision guide and size limits for the four encoding formats |
+
 ## Encoding Process
 
 Every encode call follows the same sequence regardless of format:
@@ -99,89 +106,9 @@ The encoder exposes a JSON-RPC API via Express with `express-json-rpc-router`.
 | `estimate_fee` | Return low / medium / high fee-rate tiers in base-units/vByte, sourced from the node's `estimatesmartfee` (targets: 6 / 3 / 1 blocks) |
 | `ping` | Health check: returns `{ status: "success" }` |
 
-A machine-readable OpenRPC 1.3.2 spec for all JSON-RPC methods is available at `GET /openrpc.json`.
+A machine-readable OpenRPC 1.3.2 spec for all JSON-RPC methods is served at `GET /openrpc.json`.
 
-### `create_tx` Parameters
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `data` | `string` | Yes | ACTION string to encode (e.g., `SEND\|0\|JDOG\|100\|addr`) |
-| `pubkey` | `string` | Yes | Sender's public address |
-| `utxos` | `Array<UTXO>` | No | UTXOs to spend; if omitted, fetched from UTXO Tracker |
-| `customOutputs` | `Array<{address, value}>` | No | Additional outputs (e.g., COINPay payments) |
-| `rawData` | `string` | No | Additional data ignored by decoder |
-| `fee` | `number` | No | Fixed fee in satoshis (auto-calculated if omitted) |
-| `feePerKb` | `number` | No | Fee rate in BTC/kB (bypasses node's `estimatesmartfee`) |
-| `rbf` | `boolean` | No | Enable Replace-By-Fee signaling |
-| `encoding` | `string` | No | Force encoding type: `OP_RETURN`, `P2SH`, `P2WSH`, or `MULTISIGN` |
-| `change` | `string` | No | Change address |
-| `p2shHash` | `string` | No | Previous tx ID for P2SH/P2WSH tx2 (paired with `p2shHex`) |
-| `p2shHex` | `string` | No | Previous tx hex for P2SH/P2WSH tx2 (paired with `p2shHash`) |
-| `compressedPubKey` | `string` | No | Compressed public key for MULTISIGN encoding |
-| `unconfirmed` | `boolean` | No | Allow unconfirmed UTXOs (default: `true`) |
-| `dust` | `number` | No | Override dust amount for outputs |
-
-### UTXO Structure
-
-```json
-{
-  "txid": "64-char hex string",
-  "vout": 0,
-  "value": 100000,
-  "scriptPubKey": "hex"
-}
-```
-
-### Response
-
-```json
-{
-  "psbt": "hex-encoded PSBT (BIP 174)",
-  "encoding": "OP_RETURN | P2SH | P2WSH | MULTISIGN"
-}
-```
-
-### `broadcast_tx` Parameters
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `tx_hex` | `string` | Yes | Signed raw transaction hex to broadcast |
-
-### `broadcast_tx` Response
-
-```json
-{ "txid": "64-char hex string" }
-```
-
-### `get_utxos` Parameters
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `address` | `string` | Yes | Address whose UTXOs to retrieve |
-
-### `get_utxos` Response
-
-Returns an array of UTXO objects matching the UTXO Structure documented in the `create_tx` section:
-
-```json
-[
-  {
-    "txid": "64-char hex string",
-    "vout": 0,
-    "value": 100000,
-    "scriptPubKey": "hex"
-  }
-]
-```
-
-### Error Codes
-
-| Code | Meaning |
-|---|---|
-| `-32602` | Invalid params: validation error (TypeError or RangeError from `validator.js`) |
-| `-32603` | Internal error: encoder failure (e.g., insufficient UTXOs, unsupported network) |
-| `-32001` | Unauthorized: missing or incorrect `x-api-key` header |
-| `-32029` | Rate limited: too many requests |
+See the **[API Reference](API.md)** for full per-method parameters, request and response examples, the UTXO object shape, and the JSON-RPC error codes.
 
 ## Browser Bundle
 

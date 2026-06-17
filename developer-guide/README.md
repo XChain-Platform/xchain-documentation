@@ -11,6 +11,7 @@ This section is for application developers building on top of the XChain Platfor
 | [Build a Dispenser](./Build_A_Dispenser.md) | Set up a vending machine that dispenses tokens on receipt of payment |
 | [Build a Stakeable Contract](./Build_A_Stakeable_Contract.md) | Deploy a smart contract that anyone can stake tokens against on Bitcoin, Litecoin, or Dogecoin |
 | [Query the Explorer](./Query_The_Explorer.md) | Use the REST and JSON-RPC APIs to read balances, actions, and token data |
+| [API Reference](./API_Reference.md) | Complete REST and JSON-RPC reference for the Explorer, Encoder, and Hub APIs |
 | [Cross-Chain Swap](./Cross_Chain_Swap.md) | Create and complete a cross-chain token swap between supported blockchains |
 | [Advanced Token Features](./Advanced_Token_Features.md) | Locking, callbacks, dividends, airdrops, and other advanced token operations |
 | [Batch Operations](./Batch_Operations.md) | Combine multiple ACTION commands into a single transaction with BATCH |
