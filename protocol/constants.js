@@ -158,6 +158,22 @@ const EQUIV_HEADER_ACTIVATION = {
     regtest: 0,
 };
 
+// STATE_COMMITMENT_ACTIVATION (light-client SPV, spec §6.4): the flag-day at/above which
+// each indexer computes + commits the additive per-block `state_root` (balances+stakes SMT)
+// and `block_merkle_root`. ADDITIVE (the three consensus block hashes + BLOCK_HASH_VERSION are
+// untouched), so it is not consensus-breaking by itself; it only adds new committed roots that
+// the xchain-sync follower recomputes and HALTS on if they diverge. UNLIKE the two maps above,
+// this gates on the chain's OWN local block_index (each chain starts committing its own per-block
+// root at its own height); the Phase 2 checkpoint/ANCHOR extension that SIGNS these roots gates on
+// snapshot_block. Kept byte-identical to the local copies in xchain-indexer/src/
+// state_commitment_activation.js + xchain-sync/src/state_commitment_activation.js (and xchain-hub
+// at Phase 2) by the cross-service regression suite. Same placeholder/genesis convention.
+const STATE_COMMITMENT_ACTIVATION = {
+    mainnet: 999999999,   // PLACEHOLDER: set the real per-chain flag-day height before mainnet enable
+    testnet: 0,
+    regtest: 0,
+};
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     OP_RETURN_PUSH_OVERHEAD,
@@ -175,4 +191,5 @@ module.exports = {
     XCALL_MAX_CALLS_PER_BLOCK,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
     EQUIV_HEADER_ACTIVATION,
+    STATE_COMMITMENT_ACTIVATION,
 };
