@@ -34,10 +34,11 @@ This action publishes oracle price data on-chain. Version 0 anchors PBFT-consens
 
 ### Version `0`: Validator COIN/FIAT Price Snapshot
 ```
-VERSION|ROUND|TIMESTAMP|PAIR_COUNT|PAIR_ID|PAIR_PRICE|...|SIG_COUNT|PUBKEY|SIG|...
+VERSION|ROUND|TIMESTAMP|BTC_BLOCK_HEIGHT|PAIR_COUNT|PAIR_ID|PAIR_PRICE|...|SIG_COUNT|PUBKEY|SIG|...
 ```
 Pair data (`PAIR_ID|PAIR_PRICE`) repeats `PAIR_COUNT` times.
 Signature data (`PUBKEY|SIG`) repeats `SIG_COUNT` times.
+`BTC_BLOCK_HEIGHT` is the BTC chain-tip height the round was anchored to. It is part of the signed canonical payload and is the activation anchor for the EQUIV anti-equivocation header (so the hub and every indexer flip the header on the same BTC height every other engine uses).
 
 ### Version `1`: User Oracle TOKEN/FIAT Price
 ```
@@ -46,13 +47,13 @@ VERSION|COIN|TICK|FIAT|VALUE|FEE|MEMO
 
 ## Examples
 ```
-PRICE|0|850010|1712500000|3|BTC/USD|100000.12345678|LTC/USD|85.50000000|DOGE/USD|0.15000000|3|aabb...01|ccdd...sig1|aabb...02|ccdd...sig2|aabb...03|ccdd...sig3
-An `oracle_publish`-capable validator anchors PBFT-consensus price snapshot for BTC block 850010 with 3 COIN/FIAT pairs and 3 `price`-capable validator signatures
+PRICE|0|1402|1712500000|850010|3|BTC/USD|100000.12345678|LTC/USD|85.50000000|DOGE/USD|0.15000000|3|aabb...01|ccdd...sig1|aabb...02|ccdd...sig2|aabb...03|ccdd...sig3
+An `oracle_publish`-capable validator anchors PBFT-consensus price snapshot for round 1402 (BTC anchor block 850010) with 3 COIN/FIAT pairs and 3 `price`-capable validator signatures
 ```
 
 ```
-PRICE|0|850010|1712500000|6|BTC/USD|100000.12345678|BTC/EUR|92000.00000000|LTC/USD|85.50000000|LTC/EUR|78.50000000|DOGE/USD|0.15000000|DOGE/EUR|0.14000000|5|aa...01|cc...s1|aa...02|cc...s2|aa...03|cc...s3|aa...04|cc...s4|aa...05|cc...s5
-Multi-FIAT snapshot: 3 coins × 2 fiat currencies = 6 pairs, signed by 5 validators
+PRICE|0|1402|1712500000|850010|6|BTC/USD|100000.12345678|BTC/EUR|92000.00000000|LTC/USD|85.50000000|LTC/EUR|78.50000000|DOGE/USD|0.15000000|DOGE/EUR|0.14000000|5|aa...01|cc...s1|aa...02|cc...s2|aa...03|cc...s3|aa...04|cc...s4|aa...05|cc...s5
+Multi-FIAT snapshot (round 1402, BTC anchor block 850010): 3 coins × 2 fiat currencies = 6 pairs, signed by 5 validators
 ```
 
 ```
@@ -74,8 +75,8 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - `SOURCE` must own an active stake against a pubkey that qualifies for the `oracle_publish` capability at the publishing BLOCK_INDEX (i.e. the pubkey's aggregate active stake ≥ `min_stake[oracle_publish]`, governance-configurable)
 
 #### Round Identity
-- `ROUND` corresponds to the BTC block height that triggered the oracle round
-- One round per BTC block (BTC blocks average ~10 minutes but can vary from 1 to 60+ minutes)
+- `ROUND` is the oracle round number (a wall-clock-derived counter shared by every hub via a common epoch anchor)
+- `BTC_BLOCK_HEIGHT` is the BTC chain-tip height the round was anchored to when it was triggered; it is the BTC-anchored value used for the EQUIV header activation gate and as `reference_block`
 - Each round may only be published once, duplicate `ROUND` values are deduplicated by the hub (first valid submission wins)
 
 #### Leader Rotation & Failover
@@ -95,7 +96,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 #### Signature Validation
 - Each `PUBKEY` must correspond to a pubkey qualifying for `price` at the BLOCK_INDEX of the PRICE tx (`SUM(amount)` across active stake rows ≥ `min_stake[price]`, governance-configurable; rows are active where `activation_block ≤ block_index < COALESCE(deactivation_block, +∞)`)
 - Each `SIGNATURE` must be a valid Ed25519 signature over the canonical PRICE v0 payload by the corresponding `PUBKEY`
-- Canonical payload format: `JSON.stringify({round, timestamp, pairs})` where `pairs` is sorted ascending by `pair` field
+- Canonical payload format: `JSON.stringify({round, timestamp, btc_block_height, pairs})` where `pairs` is sorted ascending by `pair` field. At/above the EQUIV activation height (keyed on `btc_block_height`) the canonical is prefixed with the uniform header `EQUIV|XORACLE|<btc_block_height>|0||` before signing
 - `SIG_COUNT` must meet PBFT quorum: `>= max(2 * floor((price_capable_count - 1) / 3) + 1, ceil((price_capable_count + 1) / 2))`, where `price_capable_count` is the number of pubkeys qualifying for `price` at the PRICE tx's BLOCK_INDEX. The simple-majority floor prevents the bare `2f+1` form from degenerating to a quorum of 1 at N=3
 - Duplicate pubkeys in the signature list count only once
 - Rounds that fail signature validation are marked `invalid` and not pushed to the hub
