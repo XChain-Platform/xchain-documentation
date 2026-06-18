@@ -174,6 +174,29 @@ const STATE_COMMITMENT_ACTIVATION = {
     regtest: 0,
 };
 
+// CHECKPOINT_COMMITMENT_ACTIVATION (light-client SPV, spec §6.1/§6.3, Phase 2): the flag-day at/above
+// which the quorum-signed checkpoint canonical (and the on-chain ANCHOR) COMMIT the additive
+// `state_root` + `block_merkle_root` (with their version bytes) that STATE_COMMITMENT_ACTIVATION made
+// the indexer compute in Phase 1. Post-flag-day the checkpoint canonical string gains
+// `|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION` and a new ANCHOR v3 carries
+// the roots on DOGE; pre-flag-day both keep their old shape and the roots are absent. Consensus-relevant
+// for signature verification (the signed preimage changes), so it must deploy hub + ALL indexers + the
+// SDK/explorer verifiers atomically.
+//
+// UNLIKE STATE_COMMITMENT_ACTIVATION (which gates on each chain's OWN local block_index, since each chain
+// computes its own per-block root), this gates on the BTC-anchored `snapshot_block` carried by every
+// checkpoint canonical, exactly like STAKE_WEIGHTED_QUORUM_ACTIVATION / EQUIV_HEADER_ACTIVATION, so the
+// hub and the BTC/LTC/DOGE indexers all flip the SIGNED shape on the same anchor. The operator MUST pick
+// a snapshot_block at/after which every checkpointed chain is already past its own STATE_COMMITMENT
+// flag-day (else the engine would have no roots to sign). Kept byte-identical to the local copies in
+// xchain-{hub,indexer,sdk,explorer}/src/checkpoint_commitment_activation.js by the cross-service
+// regression suite. Same placeholder/genesis convention.
+const CHECKPOINT_COMMITMENT_ACTIVATION = {
+    mainnet: 999999999,   // PLACEHOLDER: set the real BTC flag-day height before mainnet enable
+    testnet: 0,
+    regtest: 0,
+};
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     OP_RETURN_PUSH_OVERHEAD,
@@ -192,4 +215,5 @@ module.exports = {
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
     EQUIV_HEADER_ACTIVATION,
     STATE_COMMITMENT_ACTIVATION,
+    CHECKPOINT_COMMITMENT_ACTIVATION,
 };

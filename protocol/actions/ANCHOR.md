@@ -15,6 +15,11 @@ archive, in a single action with three version-discriminated phases:
 - **v2:** Archive continuation.** Validator-broadcast. Carries overflow chunks when a v1 archive
   payload exceeds the per-action data limit. Authenticated by its parent v1 (carries no
   signatures of its own).
+- **v3:** Checkpoint + light-client roots.** Validator-broadcast. A v0 checkpoint plus the additive
+  SPV light-client roots (`STATE_ROOT` + `BLOCK_MERKLE_ROOT` and their version bytes), gated by the
+  `CHECKPOINT_COMMITMENT` flag-day. Post-flag-day the publisher emits v3 instead of v0; the
+  federation signatures cover the roots (they are part of the signed checkpoint canonical), so an
+  on-chain-anchored state root is recoverable from chain parse alone.
 
 `ANCHOR` is valid **only on the anchor chain; DOGE** (all networks). Indexers on other chains
 reject it. BTC and LTC state is still covered: each v0/v1 names the `CHAIN` it checkpoints, so
@@ -38,16 +43,20 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 ## PARAMS
 | Name                  | Type    | Versions | Description                                                            |
 | --------------------- | ------- | -------- | ---------------------------------------------------------------------- |
-| `VERSION`             | Integer | all      | Format version (0=checkpoint, 1=checkpoint+archive, 2=continuation)    |
-| `CHAIN`               | String  | 0, 1     | Chain being checkpointed: `BTC` \| `LTC` \| `DOGE`                     |
-| `NETWORK`             | String  | 0, 1     | `mainnet` \| `testnet` \| `regtest`                                    |
-| `BLOCK_INDEX`         | Integer | 0, 1     | Checkpointed block height on `CHAIN`                                   |
-| `BLOCK_HASH`          | String  | 0, 1     | 64-hex block hash of `CHAIN` at `BLOCK_INDEX`                          |
-| `LEDGER_HASH`         | String  | 0, 1     | 64-hex chained ledger hash (`blocks.ledger_hash` at `BLOCK_INDEX`)     |
-| `ACTIONS_HASH`        | String  | 0, 1     | 64-hex chained actions hash                                            |
-| `CONTRACT_HASH`       | String  | 0, 1     | 64-hex chained contract hash                                           |
-| `CHECKPOINT_SEQ`      | Integer | 0, 1     | Monotonic checkpoint counter per (`CHAIN`,`NETWORK`)                   |
-| `SNAPSHOT_BLOCK`      | Integer | 0, 1     | BTC block selecting the `oracle_publish` validator set for the sigs    |
+| `VERSION`             | Integer | all      | Format version (0=checkpoint, 1=checkpoint+archive, 2=continuation, 3=checkpoint+SPV roots) |
+| `CHAIN`               | String  | 0, 1, 3  | Chain being checkpointed: `BTC` \| `LTC` \| `DOGE`                     |
+| `NETWORK`             | String  | 0, 1, 3  | `mainnet` \| `testnet` \| `regtest`                                    |
+| `BLOCK_INDEX`         | Integer | 0, 1, 3  | Checkpointed block height on `CHAIN`                                   |
+| `BLOCK_HASH`          | String  | 0, 1, 3  | 64-hex block hash of `CHAIN` at `BLOCK_INDEX`                          |
+| `LEDGER_HASH`         | String  | 0, 1, 3  | 64-hex chained ledger hash (`blocks.ledger_hash` at `BLOCK_INDEX`)     |
+| `ACTIONS_HASH`        | String  | 0, 1, 3  | 64-hex chained actions hash                                            |
+| `CONTRACT_HASH`       | String  | 0, 1, 3  | 64-hex chained contract hash                                           |
+| `CHECKPOINT_SEQ`      | Integer | 0, 1, 3  | Monotonic checkpoint counter per (`CHAIN`,`NETWORK`)                   |
+| `SNAPSHOT_BLOCK`      | Integer | 0, 1, 3  | BTC block selecting the `oracle_publish` validator set for the sigs    |
+| `STATE_ROOT`          | String  | 3        | 64-hex SPV state root (SMT over balances+stakes) at `BLOCK_INDEX`      |
+| `STATE_ROOT_VERSION`  | Integer | 3        | Merkle scheme version the `STATE_ROOT` was computed under              |
+| `BLOCK_MERKLE_ROOT`   | String  | 3        | 64-hex SPV per-block content Merkle root at `BLOCK_INDEX`              |
+| `BLOCK_MERKLE_VERSION`| Integer | 3        | Merkle scheme version the `BLOCK_MERKLE_ROOT` was computed under       |
 | `MATCH_BATCH_SEQ`     | Integer | 1, 2     | Monotonic archive-batch counter (ties v2 chunks to their v1)           |
 | `MATCH_COUNT`         | Integer | 1        | Number of match records in this archive batch                         |
 | `BATCH_CRC32`         | String  | 1        | 8-hex CRC32 of the **uncompressed** archive JSON bytes                 |
@@ -55,9 +64,9 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 | `CHUNK_INDEX`         | Integer | 2        | 1-based continuation index (the v1 itself carries chunk 0)             |
 | `TOTAL_CHUNKS`        | Integer | 1, 2     | Total chunks in the batch (1 = unchunked, v1-only)                     |
 | `ARCHIVE_B64_CHUNK`   | String  | 2        | This continuation's slice of the base64url payload                    |
-| `SIG_COUNT`           | Integer | 0, 1     | Number of (pubkey, sig) pairs that follow                              |
-| `PUBKEY_n`            | String  | 0, 1     | 64-hex Ed25519 pubkey, in the `oracle_publish` set at `SNAPSHOT_BLOCK` |
-| `SIG_n`               | String  | 0, 1     | 128-hex Ed25519 signature over the canonical checkpoint message        |
+| `SIG_COUNT`           | Integer | 0, 1, 3  | Number of (pubkey, sig) pairs that follow                              |
+| `PUBKEY_n`            | String  | 0, 1, 3  | 64-hex Ed25519 pubkey, in the `oracle_publish` set at `SNAPSHOT_BLOCK` |
+| `SIG_n`               | String  | 0, 1, 3  | 128-hex Ed25519 signature over the canonical checkpoint message        |
 
 ## Formats
 
@@ -69,6 +78,10 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 
 ### Version `2`: Archive continuation (validator-broadcast; no signatures)
 - `ANCHOR|2|MATCH_BATCH_SEQ|CHUNK_INDEX|TOTAL_CHUNKS|ARCHIVE_B64_CHUNK`
+
+### Version `3`: Checkpoint + light-client roots (validator-broadcast)
+- `ANCHOR|3|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION|SIG_COUNT|PUBKEY1|SIG1|...`
+- The two roots + version bytes are appended after `SNAPSHOT_BLOCK` (never inserted mid-string, so old positional parsers are unaffected). Emitted in place of v0 at/above the `CHECKPOINT_COMMITMENT` flag-day.
 
 ## Examples
 
@@ -87,7 +100,7 @@ ANCHOR|2|42|1|3|AAAB7Rxe...
 Continuation chunk 1 of 3 for archive batch 42
 ```
 
-## Canonical signing message (v0 / v1)
+## Canonical signing message (v0 / v1 / v3)
 Each `SIG_n` covers the UTF-8 bytes of:
 
 ```
@@ -99,6 +112,14 @@ and for v1, with the archive structure appended:
 ```
 XCHECKPOINT|...|SNAPSHOT_BLOCK|MATCH_BATCH_SEQ|MATCH_COUNT|BATCH_CRC32|TOTAL_CHUNKS
 ```
+
+and for v3, with the SPV light-client roots appended (the byte the federation signs, so the roots are covered by the quorum, not merely transported):
+
+```
+XCHECKPOINT|...|SNAPSHOT_BLOCK|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION
+```
+
+The v3 suffix is byte-identical to the post-flag-day checkpoint canonical the hub `StateCheckpointEngine` signs and the SDK / explorer verifiers reconstruct (the publisher reuses the checkpoint row's signatures verbatim). Gated on `SNAPSHOT_BLOCK` by `CHECKPOINT_COMMITMENT_ACTIVATION`; a v3 below the flag-day is rejected.
 
 `ARCHIVE_B64` is **not** part of the signed bytes; the blob is bound to the signed structure by
 `BATCH_CRC32`, computed over the uncompressed JSON. (CRC over uncompressed bytes keeps
@@ -162,7 +183,7 @@ exact bytes):
 - No XCHAIN fee and no native-coin protocol fee (validator protocol action, same fee treatment
   as `PRICE` v0). The publisher pays only the DOGE miner fee.
 
-### Version 0 / 1
+### Version 0 / 1 / 3
 - `CHAIN` must be one of `BTC`/`LTC`/`DOGE`; `NETWORK` must equal the indexer's own network.
 - Each `PUBKEY_n` is checked against the `oracle_publish` capability snapshot at
   `SNAPSHOT_BLOCK` (a BTC height; non-BTC indexers resolve it from the hub-mirrored
@@ -174,7 +195,14 @@ exact bytes):
   older checkpoints are recorded but flagged `stale`, never `valid`. Equal-seq records are
   accepted: a v0 and its v1 share the same wrapper seq by design, and an exact replay is
   signature-bound to identical content (harmless duplicate). The same ≥ rule applies to
-  `MATCH_BATCH_SEQ` on v1.
+  `MATCH_BATCH_SEQ` on v1. The checkpoint replay watermark counts v0/v1/v3 together.
+
+### Version 3 only
+- Valid only at/above the `CHECKPOINT_COMMITMENT` flag-day (gated on `SNAPSHOT_BLOCK`); a v3
+  below it is invalid (its signed canonical would have no root suffix, so the sigs could
+  never verify). Post-flag-day the publisher emits v3 in place of v0.
+- `STATE_ROOT` and `BLOCK_MERKLE_ROOT` must be 64-hex; the two version bytes must be integers.
+  Both roots are part of the signed canonical, so a swapped root fails the signature check.
 
 ### Version 1 only
 - `MATCH_COUNT` must equal `matches.length` after decompression (when `TOTAL_CHUNKS` = 1;
