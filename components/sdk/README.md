@@ -17,6 +17,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - **Workflow Recipes**: multi-step helpers: `issueAndDistribute`, `issueAndMint`, `stakeAndDelegate`, `deployAndFund`, `createDispenser`, `createOrder`, `cancelOrder`, `distributeDividend`
 - **Policy-bounded Agent Sessions** (`sdk.agentSession(wif, policy)`): wrap a WIF key in a declarative spending policy, action allowlist, per-action and per-window amount caps, destination allowlist, confirmation hook, enforced at the submit chokepoint; fail-closed; window usage persisted across restarts; `SDKX402Error` and `SDKPolicyError` thrown on violations
 - **Cross-Chain Helper**: coordinate actions across BTC, LTC, DOGE SDK instances: `createSwap`, `link`, `parallel`, `waitForAll`, `getAllBalances`
+- **Light client (SPV)** (`sdk.light`): verify a balance or action against a quorum-signed checkpoint's committed roots without trusting the server, pinned launch trust roots, automatic validator-rotation following, DOGE-anchor cold start
 - **Event-driven confirmation** (`waitForAction`): WebSocket + polling hybrid that resolves when the indexer processes a transaction
 - **Interactive REPL** (`npm run repl`): live session with pre-configured SDK, custom `.actions`, `.status`, `.fields` commands
 - **Staking actions**: capability staking (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT) is BTC-only for the platform validator set; contract staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) works on any chain as a developer primitive
@@ -60,6 +61,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 | [Workflows](WORKFLOWS.md) | High-level recipes: issueAndDistribute, deployAndFund, stakeAndDelegate |
 | [Cross-Chain](CROSSCHAIN.md) | Multi-chain coordination: parallel actions, swaps, links |
 | [Explorer](EXPLORER.md) | Explorer API client methods: balances, tokens, transactions, markets |
+| [Light Client (SPV)](LIGHT_CLIENT.md) | `sdk.light`: verify a balance or action against a quorum-signed checkpoint, pinned trust roots, validator rotation, DOGE-anchor cold start |
 | [Encoder](ENCODER.md) | Encoding actions into PSBTs, encoding formats, P2SH two-phase flow |
 | [Batch Builder](BATCH.md) | Fluent API for constructing multi-action BATCH transactions |
 | [Format Selection](Format_Selection.md) | How the SDK picks the optimal format version |

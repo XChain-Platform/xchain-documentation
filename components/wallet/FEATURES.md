@@ -91,6 +91,15 @@ See [Multisig](MULTISIG.md) for the full state machine. The wallet supports:
 - **Parallel composer**: `ParallelComposer.jsx`. Custom multi-chain action sequence with per-chain SDK instances and atomic-or-rollback semantics where the protocol allows.
 - **Per-chain SDK registry**: `core/src/sdk/SDKRegistry.js`. The wallet keeps a registered SDK instance per chain so cross-chain flows can call into multiple chains in one user-confirmed step.
 
+## Proof verification (SPV)
+
+The wallet does not take displayed balances and history on trust from the explorer. It verifies them against a quorum-signed checkpoint using the SDK light client (`sdk.light`), so a compromised server can withhold data but cannot make a forged balance or fabricated action verify.
+
+- **Verified surfaces**: token balances (`BalanceList` / `HomeTabs` / `Home`) and history actions (`History` `EntryRow`). The native coin is not badged (it is not in the committed state tree).
+- **Badges**: `VerifiedBadge.jsx` renders `verified` / `proof-failed` / `unverified` per row. `core/src/flows/verifyBalances.js` (`verifyAddressBalance` / `verifyAddressAction`) wraps `sdk.light` and normalizes to `{ status, amount, height, reason }`; it never throws. Only a concrete proof-versus-amount contradiction is `proof-failed`, quorum / checkpoint / transport problems degrade to `unavailable`.
+- **Wiring**: `core/src/shared/hooks/useProofVerification.js` runs a bounded per-row fan-out and reduces verdicts (any contributing address failing fails the row). The `verifyProofs` setting (default on) gates it; background hosts expose `balances.verify` / `history.verify`.
+- **Trust root**: the signer set comes from the SDK's pinned launch trust root and follows validator rotation forward, not from the explorer. See the SDK [Light Client](../sdk/LIGHT_CLIENT.md) reference and [Security](SECURITY.md#proof-verification-spv).
+
 ## dApp bridge
 
 The wallet exposes `window.xchain` to dApps in browser tabs. See [Bridge](BRIDGE.md) for the full API. Provided methods:

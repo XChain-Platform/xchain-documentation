@@ -33,8 +33,17 @@ This document names what the wallet defends against, what it deliberately doesn'
 ### Network threats
 
 - **MITM against SDK endpoints.** Every shell endpoint is HTTPS-by-default. Per-chain URLs live in the `ChainDescriptor` and are user-settable only via explicit Settings action.
-- **Malicious Hub / Explorer.** Balances, UTXOs, and address-history reads are informational; a lying server can mis-report balances but cannot sign transactions. Signing paths never trust the server for destination / amount, both come from the user-authored Send form.
+- **Malicious Hub / Explorer.** A lying server can never sign transactions; signing paths take destination / amount only from the user-authored Send form. For *displayed* data, token balances and action history are no longer taken on trust: the wallet SPV-verifies them against a quorum-signed checkpoint (see [Proof verification](#proof-verification-spv)). UTXO reads remain informational.
 - **Malicious Encoder.** Returns a PSBT the wallet signs. Mitigation: the Send form renders a plain-English decoder summary (§30) BEFORE sign; the user sees `to`, `amount`, `asset` as they typed them, even if the encoder fabricates output bytes. Known gap: byte-level cross-check of encoder PSBT vs user intent is the next iteration of the safety rail.
+
+### Proof verification (SPV)
+
+The wallet is the first consumer of the platform's light client (`sdk.light`). Instead of displaying the amount the explorer returns, it fetches a compact Merkle proof and verifies it locally against a checkpoint signed by a stake-weighted quorum of the validator federation. A compromised explorer cannot make a forged balance or a fabricated action verify; it can at most withhold a proof.
+
+- **What is verified.** Token balances (Tokens rows) and history actions (`EntryRow`). The native coin is never badged, it is not in the committed state tree. Verification is on by default (`verifyProofs` setting, opt-out in Settings).
+- **Badges.** Each row shows `verified`, `proof-failed`, or `unverified` (a not-yet-checkpointed action). Verification never throws and never blocks the UI.
+- **Fail semantics.** Only a concrete proof-versus-amount contradiction badges as `proof-failed`. Quorum, checkpoint, or transport problems degrade to `unavailable`/`unverified`, the convenience path raises no false alarms.
+- **Trust root.** The signer set is not taken from the explorer. It comes from the SDK's pinned launch trust root (spec D4) and follows validator rotation forward against the committed BTC stakes root. The pinned root ships inert until launch values are filled in; see the SDK [Light Client](../sdk/LIGHT_CLIENT.md) reference for the trust model and rotation behavior.
 
 ### dApp-bridge threats
 
@@ -55,7 +64,7 @@ This document names what the wallet defends against, what it deliberately doesn'
 - **Supply-chain attacks on vendored deps.** Mitigated by `pnpm audit --prod --audit-level=high` in CI + the per-dep review in `docs/DEPENDENCIES.md`. Reproducible builds (Level-2, see [Reproducible Builds](Reproducible_Builds.md)) narrow the blast radius; a verifier can prove the published artifact came from public source.
 - **Physical access to an unlocked device.** No wallet can defend against this. Mitigations: foreground auto-lock (configurable in Settings) and manual lock action.
 - **Raw-password attacks.** Outside the wallet's design; Argon2id raises the cost, the user's password choice does the rest.
-- **Blockchain consensus.** The wallet trusts the platform's encoding / decoding / indexer logic and the underlying coin nodes' chain selection. The platform's correctness is audited separately.
+- **Blockchain consensus.** The wallet trusts the platform's encoding / decoding logic and the underlying coin nodes' chain selection. For displayed balances and actions it no longer trusts a single indexer: those are SPV-verified against checkpoints signed by a stake-weighted quorum of the federation (see [Proof verification](#proof-verification-spv)), so trust there bottoms out at the federation quorum rather than one server. The platform's correctness is audited separately.
 
 ## Sign-screen safety rails
 
