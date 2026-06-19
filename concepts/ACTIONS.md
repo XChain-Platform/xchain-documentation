@@ -43,9 +43,9 @@ The raw string is obfuscated before being embedded in a transaction. See [Encodi
 
 Invalid ACTIONs are recorded as failed; they are not silently ignored. This makes the blockchain record auditable: every ACTION attempt, valid or not, is traceable.
 
-## The 30 ACTIONs
+## The 34 ACTIONs
 
-The platform supports 30 ACTION types across eight categories. The original 20 actions (Token Lifecycle, Transfers, DEX, Data, Utility) are available from genesis. Hub Staking, Virtual Machine, and Oracles actions activate at later block heights.
+The platform supports 34 ACTION types across nine categories. The original 20 actions (Token Lifecycle, Transfers, DEX, Data, Utility) are available from genesis. Hub Staking, Virtual Machine, Oracles, and Validator/Consensus actions activate at later block heights.
 
 ### Token Lifecycle
 

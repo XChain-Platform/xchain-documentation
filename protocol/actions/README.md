@@ -82,6 +82,13 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | [`DELEGATE`](./DELEGATE.md) | Manages the signing key for a stake (v0/v1 rotate, v2/v3 revoke; capability or contract-targeted) |
 | [`COLLECT`](./COLLECT.md) | Collects accrued validator rewards |
 
+### Validator / Consensus
+
+| ACTION | Description |
+|---|---|
+| [`NODEPROOF`](./NODEPROOF.md) | Quorum-signed verdict recording which validators passed a periodic coin full-node possession challenge, proving they run real nodes rather than mirroring replicas |
+| [`SLASH`](./SLASH.md) | Permissionless equivocation proof: burns a capability validator's entire bond when they signed two conflicting values for the same consensus slot |
+
 ### Virtual Machine (VM)
 
 | ACTION | Description |
