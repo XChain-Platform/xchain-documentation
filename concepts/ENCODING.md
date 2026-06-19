@@ -11,8 +11,10 @@ Before an ACTION string is embedded in a transaction, it is processed as follows
 
 1. The `XCHN` magic prefix (4 ASCII bytes) is prepended to the ACTION string.
 2. The resulting payload is encrypted using **AES-128-CTR** with:
-   - **Key**: the first 16 hex characters of the first input's txid, decoded to 8 bytes
-   - **IV**: the next 16 hex characters (bytes 9–16 of the txid), decoded to 8 bytes
+   - **Key**: the first 16 hex characters of the first input's txid, used directly as the 16-byte key (the ASCII bytes of those hex characters, not their hex-decoded 8-byte value)
+   - **IV**: the next 16 hex characters (characters 17-32 of the txid), used the same way as the 16-byte IV
+
+   AES-128-CTR requires a 16-byte key and a 16-byte IV; the 16 hex characters supply exactly 16 ASCII bytes for each. A third-party encoder must pass these hex-character substrings verbatim (do not hex-decode them to 8 bytes), or its keystream will not match the canonical decoder and every payload it produces will fail the `XCHN` magic check.
 
 The output is a byte sequence that looks like random data to any observer who does not know the algorithm.
 
