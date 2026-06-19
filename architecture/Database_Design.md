@@ -124,7 +124,7 @@ All SQL is written as raw parameterized queries using the `mariadb` npm package.
 
 ### Indexer DB Table Categories
 
-The Indexer DB has 60+ tables organized into five categories:
+The Indexer DB has 100+ tables organized into five categories:
 
 **Core tables**: track the blocks, transactions, and actions that have been processed:
 
@@ -166,7 +166,7 @@ Stores the full UTXO set of the monitored coin node. Key schema uses single-char
 | `O` | Output records (txid:vout → value, scriptPubKey) |
 | `H` / `J` | Address hints (scriptPubKey hash → txids) |
 
-Writes are batched in groups of 100 blocks. Ten blocks of undo data are retained to support reorg rollback.
+Writes are batched in groups of 100 blocks. A per-chain undo window (BTC: 12 / LTC: 48 / DOGE: 120 blocks) is retained to support reorg rollback.
 
 ### xchain-hub
 

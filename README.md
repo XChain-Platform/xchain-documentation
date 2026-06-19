@@ -3,7 +3,7 @@
 
 # XChain Platform
 
-A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and Litecoin. Create, transfer, trade, and manage tokens, run smart contracts that can call out to AI models and the web, and stake for validation using 34 ACTION commands embedded directly in standard blockchain transactions. No sidechains, no bridges, no separate consensus mechanism. The platform includes a built-in DEX, a sandboxed JavaScript virtual machine for on-chain smart contracts, cross-chain swap support, and **cryptographically secure token-gated file publishing**: encrypt single files or multi-file packs on-chain so only holders of a specific token can decrypt them (see [Token-Gated Content](./protocol/Token_Gated_Content.md)). The platform can be extended to run on any Bitcoin-compatible blockchain, including private blockchains for enterprise deployments.
+A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and Litecoin. Create, transfer, trade, and manage tokens, run smart contracts that can call out to AI models and the web, and stake for validation using 30 user-submittable ACTION commands embedded directly in standard blockchain transactions. No sidechains, no bridges, no separate consensus mechanism. The platform includes a built-in DEX, a sandboxed JavaScript virtual machine for on-chain smart contracts, cross-chain swap support, and **cryptographically secure token-gated file publishing**: encrypt single files or multi-file packs on-chain so only holders of a specific token can decrypt them (see [Token-Gated Content](./protocol/Token_Gated_Content.md)). The platform can be extended to run on any Bitcoin-compatible blockchain, including private blockchains for enterprise deployments.
 
 **New here?** Start with [What is XChain?](./getting-started/What_Is_XChain.md) or jump straight to the [Developer Quickstart](./getting-started/Quickstart_Developer.md).
 
@@ -19,7 +19,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate, testing | Developers |
 | [**AI & Agents**](./ai-agents/) | Building AI agents: reading, transacting via MCP, bounded agent wallets, charging agents for data | Developers |
 | [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ. No code required | Non-technical |
-| [**Protocol Spec**](./protocol/) | 34 ACTION definitions, Token Information Standard, schemas | Protocol devs |
+| [**Protocol Spec**](./protocol/) | ACTION format specifications, Token Information Standard, schemas | Protocol devs |
 | [**Operations**](./operations/) | Deployment, Docker, monitoring, upgrades, troubleshooting | Operators |
 | [**Legal**](./legal/) | Licensing, commercial license, trademark, contributor agreement | Everyone |
 

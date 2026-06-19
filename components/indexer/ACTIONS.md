@@ -16,7 +16,7 @@ An action is only processed if:
 2. The current block time is >= the action's activation timestamp for the active network
 3. The current block height is >= the action's activation block for the active network
 
-The original 22 actions are registered at version `1.0.0` with activation at block 0 / time 0 (active from genesis). The 9 new user-broadcast actions (Hub Staking and Virtual Machine) are registered at a later version with non-zero activation blocks and timestamps. Future protocol upgrades can introduce new actions or changes at specific block heights by registering them with non-zero activation values.
+The original 22 actions are registered at version `1.0.0` with activation at block 0 / time 0 (active from genesis). The later actions (Hub Staking, Virtual Machine, Oracles, Attestation, and Validator categories) are registered at higher versions with non-zero activation blocks and timestamps. Future protocol upgrades can introduce new actions or changes at specific block heights by registering them with non-zero activation values.
 
 ## Token Lifecycle Actions
 

@@ -13,7 +13,7 @@ XChain's security properties come from several sources: the underlying blockchai
 
 **Sanity checks after every block**: After processing each block, the indexer verifies that total supply equals net ledger credits minus debits for every active token. A mismatch is treated as a fatal invariant violation, processing halts and the block is rolled back. No inconsistent state is ever persisted.
 
-**Reorg handling**: When the decoder detects a chain reorganization (the canonical chain tip has changed), it records the fork point and signals the indexer. The indexer rolls back all affected data across every relevant table atomically, recalculates state from the fork block, and re-indexes forward. The UTXO tracker maintains 10 blocks of undo history for the same purpose.
+**Reorg handling**: When the decoder detects a chain reorganization (the canonical chain tip has changed), it records the fork point and signals the indexer. The indexer rolls back all affected data across every relevant table atomically, recalculates state from the fork block, and re-indexes forward. The UTXO tracker maintains a per-chain undo window (BTC: 12 / LTC: 48 / DOGE: 120 blocks) for the same purpose.
 
 ## Protocol Safety
 

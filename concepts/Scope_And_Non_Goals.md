@@ -104,13 +104,20 @@ bridge risk XChain was designed to avoid.
 These are honest limitations of the present design rather than permanent philosophical
 positions. Build with them in mind.
 
-### Full trust requires running a node
+### Full verification requires a node or a verified checkpoint
 
-Trustless verification of XChain state means running the full stack (decoder + indexer) and
-replaying from genesis. Per-block hashes exist for integrity checking (see
-[Block Hashes](./Block_Hashes.md)), but there is **no light-client / SPV protocol** today: a
-lightweight wallet that does not run a node necessarily trusts the explorer it queries. Treat
-data from a third-party API as trusted-source data unless you verify it against your own node.
+Full trustless replay of XChain state means running the full stack (decoder + indexer) from
+genesis. A lighter path now exists: the SDK verifies balance and action inclusion proofs
+locally against quorum-signed checkpoints (a Sparse Merkle state root plus a per-block content
+root), served as Merkle proofs by the explorer, with cold-start trust optionally rooted in a
+DOGE-anchored checkpoint (see [Block Hashes](./Block_Hashes.md)). This is a federated trust
+model: the root of trust is the stake-weighted validator quorum, plus DOGE proof-of-work for
+the cold-start anchor, not host-chain-PoW SPV of XChain itself. The path is active on testnet
+and regtest, gated off on mainnet pending a flag-day, and exposed as an SDK and explorer
+capability not yet wired into the reference wallet; locked-balance and contract-state proofs
+are deferred to a later version. Until you run a node or verify a checkpoint, a lightweight
+wallet trusts the explorer it queries, so treat third-party API data as trusted-source unless
+you verify it against your own node.
 
 ### Minority-chain security tracks the host chain
 

@@ -49,7 +49,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **hub**: The `xchain-hub` service. A decentralized config oracle, price oracle, and cross-chain coordinator backed by MariaDB. Validators form a P2P gossip network with PBFT consensus. Other services fetch their configuration from the hub on startup.
 
-**indexer**: The `xchain-indexer` service. Reads the decoder database, validates each ACTION according to protocol rules, and writes the resulting state (balances, orders, dispensers, etc.) to the indexer MariaDB database. Maintains 60+ tables.
+**indexer**: The `xchain-indexer` service. Reads the decoder database, validates each ACTION according to protocol rules, and writes the resulting state (balances, orders, dispensers, etc.) to the indexer MariaDB database. Maintains 100+ tables.
 
 **xchain-node**: The CLI orchestrator tool. Installs, starts, stops, updates, and monitors all XChain services as Docker containers. The entry point for node operators.
 

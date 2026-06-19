@@ -51,7 +51,7 @@ See [`../components/decoder/`](../components/decoder/) for full documentation.
 | **Purpose** | Reads decoded ACTIONs from the Decoder DB, validates them, executes business logic, writes final state |
 | **Inputs** | Decoder MariaDB (SQL polling every 5 seconds); local Hub DB (cross-chain price data); inbound JSON-RPC `pushvalidatorrewards` from xchain-hub |
 | **Outputs** | Indexer MariaDB (`XChain_{CHAIN}_{NETWORK}_Indexer`); outbound JSON-RPC pushes to xchain-hub (`pushchaintip`, `pushpriceround`, `pushoracleprice`) |
-| **Storage** | Three database connections: Decoder DB (read), Indexer DB (read/write, 60+ tables), local Hub DB (read, synced from xchain-hub) |
+| **Storage** | Three database connections: Decoder DB (read), Indexer DB (read/write, 100+ tables), local Hub DB (read, synced from xchain-hub) |
 | **Communication** | Outbound SQL reads from Decoder DB and local Hub DB; outbound HTTP/WebSocket to xchain-hub; inbound JSON-RPC API for hub pushes |
 
 Key technical details:
@@ -162,7 +162,7 @@ Key technical details:
 
 - LevelDB key schema uses single-character prefixes: `B`=block, `T`=transaction, `I`=input, `O`=output, `H`/`J`=address hints.
 - Processes blocks in batches of 100, writing each batch atomically to LevelDB.
-- Maintains 10 blocks of undo history to support chain reorganization rollback.
+- Maintains a per-chain undo window (BTC: 12 / LTC: 48 / DOGE: 120 blocks, overridable via XCHAIN_UNDO_BLOCKS_<COIN>) to support chain reorganization rollback.
 - Tracks the mempool for real-time unconfirmed UTXO state.
 - Supports bootstrap from tar archives to avoid re-indexing from genesis.
 - Outputs are indexed by scriptPubKey hash, enabling efficient address lookups.

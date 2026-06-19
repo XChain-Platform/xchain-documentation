@@ -83,7 +83,7 @@ The decoder polls the coin node every few seconds via JSON-RPC (`getblockcount`,
 
 The indexer polls the Decoder DB every 5 seconds. When it finds a new decoded action it has not yet processed:
 
-1. **Routes** the ACTION string to the appropriate handler class (one of 20 action handlers: `IssueAction`, `SendAction`, `OrderAction`, etc.).
+1. **Routes** the ACTION string to the appropriate handler class (one of roughly 30 dedicated handler classes: `IssueAction`, `SendAction`, `OrderAction`, etc.).
 
 2. **Validates** all fields. For `ISSUE`, this means checking: the ticker does not already exist, the sender holds enough XCHAIN gas to pay the fee, the supply and decimals are within protocol limits, and the format string is well-formed.
 
