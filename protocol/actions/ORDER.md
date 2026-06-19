@@ -119,6 +119,7 @@ This example trades ownership of JDOG for ownership of PEPECOIN. Both sides escr
 
 ## Notes
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
+- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `GET_ADDRESS` (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md)
 - **Cross-chain orders** (`GET_COIN` ≠ the posting chain) escrow the GIVE side locally and are
   matched + settled by the validator federation. Not the local DEX. The match is delivered to
   each chain and settled from escrow with no per-trade on-chain transaction. See

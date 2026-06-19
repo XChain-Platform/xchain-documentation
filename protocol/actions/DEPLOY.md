@@ -127,6 +127,7 @@ This makes every historical inline DEPLOY decode identically across node version
 The activation is keyed on block time (a single coordinated flag-day), not block height, because DEPLOY runs on BTC, LTC and DOGE, whose heights diverge by millions of blocks; one timestamp names the same cutover on all three chains. Testnet/regtest activate at genesis (base64-native). The mainnet flag-day must be aligned with the SDK's base64 rollout: the SDK emits the matching encoding for the target block so an inline DEPLOY is always decoded on the side of the gate it was encoded for. v4 carrier slices (assembled by chunked v2/v3) are base64 from genesis and are unaffected.
 
 ## Notes
+- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `SLASH_DESTINATION` (^57 = `ADDRESS_ID` 57); `SLASH_DESTINATION` may instead be the `BURN` sentinel, which is never compacted. See [Index ID References](../Index_Id_References.md)
 - The deployed contract is assigned an action index derived from the transaction that contains this action
 - `CODE_ENCODING` (v0/v1) is base64-encoded UTF-8 at/after the `DEPLOY_BASE64_CODE` activation (hex before it); decode the active format with `Buffer.from(field, 'base64'|'hex').toString('utf8')`
 - The `contracts` table stores the decoded plain-text JavaScript, not the base64 encoding

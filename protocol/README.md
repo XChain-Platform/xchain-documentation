@@ -14,6 +14,7 @@ This section is the canonical reference for the XChain Protocol; ACTION command 
 | [Project Registry Standard](./Project_Registry.md) | Chain-native curated directories; a project tick attests its official tokens via an owner-validated LIST + LINK roster |
 | [Contract-Targeted Staking](./Contract_Staking.md) | Design and VM API for staking any token against a smart contract with contract-decided slashing |
 | [XChain URI Scheme](./XChain_URI_Scheme.md) | Cross-chain payment and action URI format for QR codes, deep links, and clipboard payloads |
+| [Index ID References](./Index_Id_References.md) | The `^<id>` compact wire form for tickers and addresses, and the deterministic reorg-safe id assignment rule |
 | [Database Naming Structure](./Database_Naming_Structure.md) | Naming conventions for all platform databases |
 | [JSON Schemas](./json/) | Machine-readable schemas for ACTION payloads and API responses |
 

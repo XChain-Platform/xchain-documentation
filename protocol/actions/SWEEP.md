@@ -54,6 +54,7 @@ All-in cleanup with a memo.
 - Escrow routing via `ORDERS` / `SWAPS` / `DISPENSERS` is independent of the `OWNERSHIPS` flag, escrowed ownership is in protocol custody, not in `SOURCE`'s ownership records, so `OWNERSHIPS=1` alone cannot reach it.
 
 ## Notes
+- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `DESTINATION` (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md)
 - `DISPENSERS=1` closure is delayed by the standard dispenser-close window (1 hour). Escrow routing to `DESTINATION` happens at close time, not at sweep time.
 - An offer's escrow is always routed by the offer-close path; `DESTINATION` becomes the new escrow recipient regardless of the `OWNERSHIPS` setting.
 

@@ -85,6 +85,7 @@ This example sends a plaintext message to LTC address LZEjckteAtWrugbsy9zU8VHEZ4
 - `ENCRYPTION_KEY`, `ENCRYPTED_MESSAGE`, and `PLAINTEXT_MESSAGE` are limited to 1,048,576 Characters (1MB)
 
 ## Notes
+- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `DESTINATION` (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md)
 - `MSG` `ACTION` can be used for shorter reference to `MESSAGE` `ACTION`
 - `COIN` identifies the destination address's network, messages can be broadcast on any chain regardless of the destination's chain (e.g. send a message to a BTC address via the DOGE network for cheaper/faster transactions)
 - `COIN` must be one of: `BTC`, `LTC`, `DOGE`

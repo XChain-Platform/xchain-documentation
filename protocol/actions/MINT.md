@@ -38,6 +38,7 @@ This example mints 10,000,000,000,000 BRRR tokens and transfers them to 1JDogZS6
 
 ## Notes
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
+- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `DESTINATION` (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md)
 
 ---
 

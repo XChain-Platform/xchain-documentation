@@ -142,6 +142,7 @@ Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH
 - `FIAT_AMOUNT` format is `X.XX`
 - `EXPIRATION` begins the process of closing a dispenser after a set block delay
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
+- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for address fields (`GET_ADDRESS`, `ORACLE_ADDRESS`) (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md)
 
 ## FIAT Dispensers
 

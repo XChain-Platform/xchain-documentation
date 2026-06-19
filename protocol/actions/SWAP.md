@@ -94,6 +94,7 @@ This example atomically swaps ownership of JDOG (BTC chain) for ownership of WOW
 - `SWAP` DOES NOT work with native `COIN` (BTC, LTC, DOGE)
 - Use a `DISPENSER` if you want to sell a `TICK` for `COIN` (BTC, LTC, DOGE)
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
+- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `GET_ADDRESS` (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md)
 - `GET_ADDRESS` can be null if the `GET_COIN` network is the same as the `SWAP` transaction network (`SOURCE` is used by default)
 
 ---

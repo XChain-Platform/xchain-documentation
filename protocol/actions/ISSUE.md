@@ -140,6 +140,7 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
 - `MINT_START_BLOCK` and `MINT_STOP_BLOCK` can be used to determine period(s) when `MINT` transactions are allowed
 - `MIN_TOKEN_SUPPLY` value is 0.000000000000000001
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` fields (^1234 = `TICK_ID` 1234)
+- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for address fields (`TRANSFER`, `TRANSFER_SUPPLY`) (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md)
 - `ISSUE` with `DECIMALS` `0` and `LOCK_MAX_SUPPLY` `1` is the standard non-fungible token (NFT) pattern: uniques, editions, and parent/child collections are defined in the [NFT Standard](../NFT_Standard.md)
 
 ---
