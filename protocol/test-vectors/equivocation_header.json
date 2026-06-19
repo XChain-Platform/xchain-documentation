@@ -1,0 +1,51 @@
+{
+  "_description": "Canonical conformance vectors for the equivocation header builder (EQUIV_HEADER / WI-2 bump 2). Each service (xchain-hub, xchain-indexer, xchain-explorer, xchain-sdk, xchain-sync) keeps a hand-maintained copy of equivocation_header.js. The signed preimage is EQUIV|<ENGINE_TAG>|<ROUND_ID>|<VIEW>||<CONTENT>; both the key and the content may themselves contain '|', so the '||' is the only key/content boundary. A divergence in these bytes forks the chain. Each repo's conformance test runs these vectors against its local copy. Single source of truth; do not fork.",
+  "engineTags": {
+    "DEX": "XDEX",
+    "XCALL": "XCALL",
+    "ATTEST": "XATTEST",
+    "ORACLE": "XORACLE",
+    "CHECKPOINT": "XCHECKPOINT",
+    "CONFIG": "XCONFIG",
+    "NODEPROOF": "XNODEPROOF"
+  },
+  "equivKey": [
+    { "name": "basic", "engineTag": "XDEX", "roundId": "r1", "view": "0", "expected": "XDEX|r1|0" },
+    {
+      "name": "a pipe-containing round id is preserved verbatim",
+      "engineTag": "XCHECKPOINT",
+      "roundId": "BTC|mainnet|800000|3",
+      "view": "2",
+      "expected": "XCHECKPOINT|BTC|mainnet|800000|3|2"
+    }
+  ],
+  "equivPrefix": [
+    { "name": "basic", "key": "XDEX|r1|0", "expected": "EQUIV|XDEX|r1|0||" }
+  ],
+  "buildEquivCanonical": [
+    {
+      "name": "basic, pipe-containing content preserved",
+      "engineTag": "XDEX",
+      "roundId": "r1",
+      "view": "0",
+      "content": "a|b|c",
+      "expected": "EQUIV|XDEX|r1|0||a|b|c"
+    },
+    {
+      "name": "pipe-heavy checkpoint round and content",
+      "engineTag": "XCHECKPOINT",
+      "roundId": "BTC|mainnet|800000|3",
+      "view": "1",
+      "content": "root|prev",
+      "expected": "EQUIV|XCHECKPOINT|BTC|mainnet|800000|3|1||root|prev"
+    },
+    {
+      "name": "empty content still carries the full header and boundary",
+      "engineTag": "XORACLE",
+      "roundId": "round-7",
+      "view": "0",
+      "content": "",
+      "expected": "EQUIV|XORACLE|round-7|0||"
+    }
+  ]
+}
