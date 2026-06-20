@@ -4,7 +4,7 @@
 # XChain Platform Action - MINT
 This action mints `TICK` supply.
 
-> **Wallet issuer flow.** The [xchain-wallet](https://github.com/XChain-platform/xchain-wallet) *Manage Token* surface (reached from *My Tokens*) wraps `MINT` in a guided UI with owner-gate and confirm-prelude steps, alongside the other issuer actions (`ISSUE`, `DESTROY`, `DIVIDEND`, `AIRDROP`, `BROADCAST`, supply/description locks, ownership transfer, dispenser creation). The protocol fields below remain canonical; the wallet is one of several clients that can build a `MINT` transaction.
+> **Wallet issuer flow.** The [xchain-wallet](https://github.com/XChain-Platform/xchain-wallet) *Manage Token* surface (reached from *My Tokens*) wraps `MINT` in a guided UI with owner-gate and confirm-prelude steps, alongside the other issuer actions (`ISSUE`, `DESTROY`, `DIVIDEND`, `AIRDROP`, `BROADCAST`, supply/description locks, ownership transfer, dispenser creation). The protocol fields below remain canonical; the wallet is one of several clients that can build a `MINT` transaction.
 
 ## PARAMS
 | Name          | Type   | Description                          |

@@ -7,13 +7,15 @@
 
 | File | Role |
 |---|---|
-| `src/BlockchainConnector.js` | JSON-RPC client for coin node (cross-fetch, Basic Auth). Methods: `getNetworkInfo`, `broadcastTx`, `waitForTx`, `getTransactionHex`, `getFeePerKilobyte` |
-| `src/XChainUtxoTrackerConnector.js` | JSON-RPC client for UTXO tracker (cross-fetch). Methods: `ping`, `getUtxosFromAddress`, `waitForUtxos` |
-| `src/XChainEncoderConnector.js` | JSON-RPC client for encoder (axios). Methods: `ping`, `createTx` (12 parameters) |
-| `src/XChainIndexerConnector.js` | JSON-RPC client for indexer (axios). Methods: `ping` |
+| `src/BlockchainConnector.js` | JSON-RPC client for coin node (axios, Basic Auth). Methods: `getNetworkInfo`, `broadcastTx`, `waitForTx`, `getTransactionHex`, `getFeePerKilobyte`, plus reorg primitives (`invalidateBlock`, `reconsiderBlock`, `generateBlock`, etc.) |
+| `src/XChainUtxoTrackerConnector.js` | JSON-RPC client for UTXO tracker (axios). Methods: `ping`, `getSyncStatus`, `getQuiescentStatus`, `quiesce`, `getUtxosFromAddress`, `waitForUtxos` |
+| `src/XChainEncoderConnector.js` | JSON-RPC client for encoder (axios). Methods: `ping`, `createTx` (13 parameters) |
+| `src/XChainDecoderConnector.js` | JSON-RPC client for decoder (axios). Methods: `ping`, `health` |
+| `src/XChainIndexerConnector.js` | JSON-RPC client for indexer (axios). Methods: `ping`, `health`, `call`, `getCapabilityValidators`, `getStakeSourceByPubkey`, `waitForIndexedBlock` |
+| `src/XChainExplorerConnector.js` | JSON-RPC client for explorer (axios). Methods: `ping` |
 | `src/XChainHubConnector.js` | Multi-endpoint failover hub client (axios). Methods: `ping`, `getAllConfig`, `_call`. Static: `parseEndpoints` |
-| `src/RegtestMinerConnector.js` | JSON-RPC client for regtest miner (axios). Methods: `ping`, `sendFunds`, `setMiningTime`, `setDefaultMiningTime` |
-| `src/db.js` | MariaDB client with connection pooling and 30+ `waitFor*`/`check*` polling methods |
+| `src/RegtestMinerConnector.js` | JSON-RPC client for regtest miner (axios). Methods: `ping`, `sendFunds`, `setMiningTime`, `setDefaultMiningTime`, `pauseMining`, `resumeMining`, `generateBlocks` |
+| `src/db.js` | MariaDB client with connection pooling and 44 `waitFor*`/`check*` polling methods |
 | `src/CryptoNetworks.js` | Static network config provider. Returns `bitcoinjs-lib` network objects for all 9 coin/network combinations |
 | `test/cryptoHelper.js` | BIP39/BIP32 wallet generation, address derivation, funded address creation |
 | `test/transactionHelper.js` | PSBT construction, signing, broadcast, P2SH two-step handling, UTXO verification cache |
@@ -23,7 +25,7 @@
 
 ## Bootstrap Sequence
 
-The `initialCheck.test.js` `beforeAll` hook executes four named phases, each instrumented via `perfCollector.phase()`:
+The `initialCheck.test.js` `beforeAll` hook executes five named phases, each instrumented via `perfCollector.phase()`:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -33,15 +35,19 @@ The `initialCheck.test.js` `beforeAll` hook executes four named phases, each ins
 │  - Set global COIN, NETWORK, COIN_CODE, NETWORK_OBJECT          │
 ├─────────────────────────────────────────────────────────────────┤
 │  Phase 2: connector-init                                        │
-│  - Instantiate 6 connectors as globals                          │
+│  - Instantiate 8 connectors as globals                          │
 │  - Create MariaDB connection pool (limit 10)                    │
 ├─────────────────────────────────────────────────────────────────┤
 │  Phase 3: service-pings                                         │
-│  - Ping all 7 services (node, tracker, encoder, indexer, DB,    │
-│    miner); throw descriptive error on failure                   │
+│  - Ping all 8 services (node, tracker, encoder, decoder,        │
+│    indexer, explorer, DB, miner); throw on failure              │
 │  - Configure mining: setMiningTime(1000, 1000)                  │
 ├─────────────────────────────────────────────────────────────────┤
-│  Phase 4: gas-token-check                                       │
+│  Phase 4: native-fee-price-seed                                 │
+│  - Seed XCHAIN/USD and {COIN}/USD prices via nativeFeeHelper    │
+│  - Ensures oracle prices are fresh before any action test runs  │
+├─────────────────────────────────────────────────────────────────┤
+│  Phase 5: gas-token-check                                       │
 │  - checkIssue({ tick: 'XCHAIN', status: 'valid' })             │
 │  - If not found: fund address, ISSUE XCHAIN token               │
 │  - If found: skip (idempotent)                                  │
@@ -152,13 +158,13 @@ The `XChainHubConnector._call()` method implements multi-endpoint failover: it t
 
 ```
 xchain-e2e-test/
-├── src/                          # Service connector classes (7 files)
+├── src/                          # Service connector classes (10 files)
 ├── test/
 │   ├── initialCheck.test.js      # Mocha root hooks (beforeAll/afterAll)
 │   ├── cryptoHelper.js           # BIP39/BIP32 wallet management
 │   ├── transactionHelper.js      # PSBT construction, signing, broadcast
-│   ├── actions/                  # 27 action test files (live, ordered)
-│   ├── helpers/                  # 23 action helper modules (message construction)
+│   ├── actions/                  # 59 action test files (live, ordered)
+│   ├── helpers/                  # 36 modules (action helpers + federation/fee/utility helpers)
 │   ├── unit/                     # 360 unit tests (stubbed, no services)
 │   ├── integration/              # 72 integration tests (stubbed I/O)
 │   │   ├── fixtures/             # mockMariadb, services, dbRows, hub

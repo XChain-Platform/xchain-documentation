@@ -57,7 +57,7 @@ The audit catches regressions automatically on every commit. The verification ca
 
 - Mentions Level-2 + RELEASE_HASHES, proof the docs match the implementation
 
-`packages/core/test/repro-build-audit.smoke.js` imports `runReproBuildAudit()` and asserts every rule returns `ok: true`. CI fails on any regression. Future PRs that drop a digest pin / un-freeze the lockfile / introduce non-determinism in the build config fail this smoke before they merge.
+`test/smoke/audits/repro-build-audit.smoke.js` imports `runReproBuildAudit()` and asserts every rule returns `ok: true`. CI fails on any regression. Future PRs that drop a digest pin / un-freeze the lockfile / introduce non-determinism in the build config fail this smoke before they merge.
 
 ## Run-twice verification protocol
 

@@ -102,7 +102,7 @@ This example trades ownership of JDOG for ownership of PEPECOIN. Both sides escr
 - `GET_OWNERSHIP=1` requires the matcher's SOURCE to be the current owner of `GET_TICK`; `GET_AMOUNT` must be empty
 - Ownership orders are **single-fill only**, ownership is indivisible; the entire order matches against one counterparty or none (no partial fills on the balance side either)
 - While ownership is escrowed, the following actions targeting the escrowed `TICK` are rejected:
-  - `ISSUE` Versions 1–5 (description/mint/lock/callback/list edits)
+  - `ISSUE` Versions 0-6 (all edits to an existing tick: description, mint params, lock params, callback params, list params, controller bind/unbind, and re-issuance by the current owner)
   - `CALLBACK`, `SLEEP`
   - `LINK` using this `TICK`'s `ISSUE` as `COIN2_ACTION_INDEX`
   - `FILE` with `GATE_TICKER` = this `TICK`

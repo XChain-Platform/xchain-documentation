@@ -29,7 +29,7 @@ Point the SDK at your local regtest hub. The hub handles config discovery for al
 const XChainSDK = require('xchain-sdk');
 
 const sdk = new XChainSDK({
-  hubUrl: 'http://localhost:35500',
+  hubUrl: 'http://localhost:10000',
 });
 ```
 
@@ -37,8 +37,8 @@ If you prefer to skip hub discovery and talk directly to each service:
 
 ```js
 const sdk = new XChainSDK({
-  encoderUrl: 'http://localhost:35400',
-  explorerUrl: 'http://localhost:35300',
+  encoderUrl: 'http://localhost:3003',
+  explorerUrl: 'http://localhost:8080',
 });
 ```
 
@@ -46,7 +46,7 @@ You will also need a funded address and its public key. Fund a test address via 
 
 ```js
 // Fund your test address with 1 BTC
-const response = await fetch('http://localhost:38332', {
+const response = await fetch('http://localhost:3005', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -85,7 +85,7 @@ const listTxid = await signAndBroadcast(listPsbt.psbt);
 console.log('LIST txid:', listTxid);
 
 // Mine the transaction in regtest
-await fetch('http://localhost:38332', {
+await fetch('http://localhost:3005', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ method: 'continue_mining', params: {} }),
@@ -164,7 +164,7 @@ console.log('ISSUE txid:', txid);
 Mine it in regtest so it confirms:
 
 ```js
-await fetch('http://localhost:38332', {
+await fetch('http://localhost:3005', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ method: 'continue_mining', params: {} }),

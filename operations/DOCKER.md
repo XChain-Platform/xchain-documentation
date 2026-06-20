@@ -62,7 +62,7 @@ xchain-node creates networks automatically during install, but this may be neede
 
 Configuration is passed to each container as environment variables. These are set by xchain-node during `install` based on:
 
-1. Hardcoded defaults in `xchain-node/src/index.js`
+1. Hardcoded defaults in `xchain-node/src/services/ConfigService.js`
 2. Per-chain overrides in `xchain-node/config/<coin>-<network>` files
 
 Key variables passed to most services:

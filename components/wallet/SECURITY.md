@@ -48,7 +48,7 @@ The wallet is the first consumer of the platform's light client (`sdk.light`). I
 ### dApp-bridge threats
 
 - **Origin spoofing.** Content script stamps `origin` from `window.location.origin` server-side; the bridge handler refuses requests without a stamped origin.
-- **Approval bypass.** Every privileged method (`signMessage`, `signPsbt`, `signAction`, `sendAction`, `signIn`) routes through the approval window with explicit user confirmation. Per-origin grants (`connectedSites`) opt the user into "always allow" or "ask each time" per action.
+- **Approval bypass.** Every privileged method (`signMessage`, `signPsbt`, `signAction`, `signIn`) routes through the approval window with explicit user confirmation. Per-origin grants (`connectedSites`) opt the user into "always allow" or "ask each time" per action.
 - **Replay across origins.** `signIn` (Sign-In with XChain) bakes the origin and a nonce into the challenge prefix. The wallet refuses to sign a challenge whose `origin` doesn't match the stamped one.
 
 ### User-error threats
@@ -83,7 +83,7 @@ The next iteration adds a byte-level cross-check that re-decodes the encoder's P
 
 ## Audit posture
 
-The wallet is pre-v1.0 GA at `1.0.0-rc.6`. Two external audits are queued before GA:
+The wallet is pre-v1.0 GA at `0.333.0`. Two external audits are queued before GA:
 
 - **Security audit.** Cryptography (xchain-sdk MuSig2 + signEcdsa + ECPair / WIF / KDF), wallet flows (unlockWallet, signers, multisig session state machine, signMultisigPsbt path), shell IPC (extension service-worker boundary, desktop main / preload / renderer split). Audit-readiness packet at `claude/reports/specs/2026-04-24_security-audit-readiness.md` in the platform repo (gitignored).
 - **Accessibility audit.** Color contrast, focus-visible, live-region timing, keyboard traps, screen-reader walkthroughs (NVDA + JAWS + VoiceOver), reduced-motion verification, touch-target sizing per WCAG 2.5.5, forced-colors / Windows high-contrast, reflow + zoom per WCAG 1.4.10. WCAG 2.2 AA target. Audit-readiness packet at `claude/reports/specs/2026-04-24_a11y-audit-readiness.md`.
@@ -93,7 +93,7 @@ Static gates run on every commit and protect against regressions in both surface
 - `packages/core/scripts/a11y-audit.js`: five-rule mechanical scan over every shared route + UI primitive
 - `packages/core/scripts/extension-manifest-audit.js`: 11-rule MV3 manifest audit
 - `packages/core/scripts/repro-build-audit.js`: 18-rule reproducible-build scaffolding audit
-- `packages/core/test/release-gates.smoke.js`: release readiness check
+- `test/smoke/audits/release-gates.smoke.js`: release readiness check
 
 ## Disclosure
 

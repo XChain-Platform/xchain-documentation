@@ -8,8 +8,8 @@ This section describes how the XChain Platform is structured as a system; the da
 | Document | Description |
 |---|---|
 | [Data Pipeline](./Data_Pipeline.md) | End-to-end data flow from coin node through decoder, indexer, and explorer |
-| [Component Map](./Component_Map.md) | All 10 services, their roles, and how they connect to each other |
-| [Database Design](./Database_Design.md) | Naming conventions, the dual-DB model (decoder + indexer), and schema overview |
+| [Component Map](./Component_Map.md) | All 11 services, their roles, and how they connect to each other |
+| [Database Design](./Database_Design.md) | Naming conventions, the three-DB model (decoder + indexer + hub), and schema overview |
 
 ---
 

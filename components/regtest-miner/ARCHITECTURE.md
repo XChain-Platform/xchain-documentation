@@ -46,7 +46,7 @@ The regtest miner is testing infrastructure that sits alongside the coin node in
 │  │  api.js     │    │ XChainRegtestMiner   │              │
 │  │  (Express)  │───►│  - prepareWallet()   │              │
 │  │  JSON-RPC   │    │  - start() loop      │              │
-│  │  6 methods  │    │  - fillMempool()     │              │
+│  │  9 methods  │    │  - fillMempool()     │              │
 │  └────────────┘    │  - setMiningTime()   │              │
 │                     └─────────┬────────────┘              │
 │                               │                           │
@@ -69,9 +69,10 @@ The regtest miner is testing infrastructure that sits alongside the coin node in
 
 | File | Lines | Purpose |
 |---|---|---|
-| `src/api.js` | ~170 | Environment validation, Express server, JSON-RPC routing, miner lifecycle |
-| `src/XChainRegtestMiner.js` | ~489 | Mining loop, wallet management, fillMempool, timer control |
-| `src/BlockchainConnector.js` | ~486 | JSON-RPC 2.0 client wrapping 15 Bitcoin Core methods with retry logic |
+| `src/api.js` | ~212 | Environment validation, Express server, JSON-RPC routing, miner lifecycle |
+| `src/XChainRegtestMiner.js` | ~589 | Mining loop, wallet management, fillMempool, timer control |
+| `src/BlockchainConnector.js` | ~489 | JSON-RPC 2.0 client wrapping 15 Bitcoin Core methods with retry logic |
+| `src/CryptoNetworks.js` | ~132 | Coin-specific bitcoinjs-lib network params (BTC/LTC/DOGE, all networks) |
 
 ## Mining Loop
 

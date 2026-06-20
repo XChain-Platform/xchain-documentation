@@ -80,7 +80,7 @@ Bitcoin-only validator participation:
 See [Multisig](MULTISIG.md) for the full state machine. The wallet supports:
 
 - **Classical n-of-m**: every cosigner produces a partial PSBT; coordinator finalizes via `xchain-sdk@1.13.0+`'s `wallet.signMultisigPsbt`. Today: software signer is the path of least resistance; hardware signers surface a deferral with a fallback.
-- **MuSig2**: three-round protocol (commit → reveal → sign) producing a single Schnorr signature indistinguishable from a single-signer transaction. Software-signer-only today; hardware-signer support is firmware-gated.
+- **MuSig2**: two-round protocol per BIP327 (round 1: collect public nonces; round 2: collect partial signatures) producing a single Schnorr signature indistinguishable from a single-signer transaction. Software-signer-only today; hardware-signer support is firmware-gated.
 - **Per-address multi-config**: schema v2 supports more than one multisig config per address, useful for rolling key rotation.
 - **Transport**: paste-inbox + camera scanner + AnimatedQrFrames for offline cosigner round-trips. See [URI Schemes](URI_Schemes.md) for the encoded envelope.
 
@@ -124,7 +124,7 @@ For users who keep keys on an offline device:
 
 ## Onboarding & recovery
 
-- **Create**: fresh BIP39 24-word mnemonic, optional 25th-word passphrase, password-derived vault encryption
+- **Create**: fresh BIP39 12-word mnemonic by default (24 words selectable), optional 25th-word passphrase, password-derived vault encryption
 - **Import**: BIP39 (12 / 15 / 18 / 21 / 24 words), Counterwallet legacy, or single WIF
 - **Migrate to BIP39**: one-way migration from Counterwallet legacy mnemonic; fresh BIP39 phrase, opt-in sweep flow to move balances
 - **Discover used addresses**: gap-limit scan that populates already-used receive addresses on import

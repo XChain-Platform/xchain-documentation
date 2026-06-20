@@ -58,46 +58,32 @@ A signing session is created when any cosigner originates a transaction from a m
 ### Classical n-of-m
 
 ```
-created (originator builds partial PSBT)
+collecting-sigs (waiting for n signatures from cosigners)
     ↓
-collecting (waiting for n−1 more partials)
-    ↓
-ready (n partials collected; coordinator can finalize)
+ready-to-finalize (n sigs collected; coordinator can finalize)
     ↓
 finalized (combined PSBT ready for broadcast)
     ↓
 broadcast (txid recorded)
-    ↓
-indexed (action confirmed by xchain-indexer)
 ```
-
-Round labels in `MultisigSigningSession.jsx`:
-
-- "Round 1 of 1; Collect partials"
 
 Each partial is a regular PSBT signed by one cosigner. The coordinator (any cosigner with all `n` partials) calls `xchain-sdk@1.13.0+`'s `wallet.signMultisigPsbt` to combine and finalize.
 
 ### MuSig2
 
+MuSig2 uses a two-round protocol per BIP327:
+
 ```
-round-1-commit (each cosigner emits a nonce commitment)
+collecting-nonces (round 1: each cosigner contributes a 66-byte publicNonce)
     ↓
-round-2-reveal (each cosigner reveals their nonce)
+collecting-sigs (round 2: aggNonce computed; each cosigner contributes a 32-byte partial sig)
     ↓
-round-3-sign (each cosigner produces a partial signature)
+ready-to-finalize (partial sigs aggregated into a single 64-byte Schnorr sig)
     ↓
-aggregated (single Schnorr signature)
+finalized
     ↓
 broadcast (txid recorded)
-    ↓
-indexed
 ```
-
-Round labels in `MultisigSigningSession.jsx`:
-
-- "Round 1 of 3; Commit"
-- "Round 2 of 3; Reveal"
-- "Round 3 of 3; Sign"
 
 The wallet persists round-state per cosigner so a session can resume after a tab close. MuSig2's nonce reuse must never happen; the wallet enforces this by tying nonces to the session id and refusing to re-emit a nonce for an already-committed session.
 

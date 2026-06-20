@@ -40,7 +40,7 @@ OP_RETURN is the preferred format for short ACTIONs (simple sends, mints, basic 
 
 ### Multisig
 
-**Capacity**: approximately 61 bytes per key, scalable across multiple keys  
+**Capacity**: 60 bytes of data per multisig output (two 32-byte key slots carry the payload), scalable across multiple outputs  
 **Transactions**: 1 (single broadcast)  
 **Mechanism**: Data is encoded into the public key positions of a standard multisig output. The "keys" are not real signing keys; they are data payloads formatted to look like public keys. The multisig output is spendable (unlike OP_RETURN), but the "keys" are not associated with any private key, making the funds effectively unrecoverable. This format is discouraged for large payloads due to UTXO set pollution.
 
@@ -65,11 +65,10 @@ The encoder automatically selects the optimal format based on the payload size:
 | Payload size | Selected format |
 |---|---|
 | ≤ 76 bytes user data (≤ 80 bytes total) | OP_RETURN |
-| 77 – 476 bytes | P2SH |
-| 477 – 8,192 bytes | P2WSH |
-| Structured multi-key | Multisig (manual selection) |
+| > 76 bytes user data | P2SH |
+| Any size (manual selection) | P2WSH or Multisig |
 
-The caller does not need to specify a format. The encoder calculates the encoded payload size and picks the smallest format that fits. In practice, most common ACTIONs (SEND, MINT, ORDER, DISPENSER) fit in OP_RETURN. Larger ACTIONs (FILE, long BATCH, rich BROADCAST) use P2SH or P2WSH.
+The auto-selection path chooses between OP_RETURN and P2SH only. P2SH splits larger payloads across multiple 476-byte chunk outputs (fund then spend pairs) up to the 8,192-byte ceiling. P2WSH is the preferred format for large payloads because witness data costs one quarter of the weight of non-witness bytes, but it must be requested explicitly; the encoder does not switch to P2WSH automatically. Multisig is always manual. In practice, most common ACTIONs (SEND, MINT, ORDER, DISPENSER) fit in OP_RETURN. Larger ACTIONs (FILE, long BATCH, rich BROADCAST) use P2SH or P2WSH.
 
 A format selection guide with size calculation details is available at [`../components/encoder/Format_Selection.md`](../components/encoder/Format_Selection.md).
 

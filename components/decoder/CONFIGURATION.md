@@ -94,8 +94,8 @@ These values are defined in source code and not configurable via environment var
 | Constant | Value | Location | Description |
 |---|---|---|---|
 | DB connection pool size | `10` | db.js | Maximum concurrent MariaDB connections |
-| `GET_CONNECTION_TIMEOUT_MS` | `30000` | db.js | Timeout for acquiring a DB connection (30 seconds) |
-| RPC timeout (axios) | `5000` | BlockchainConnector.js | HTTP timeout for all JSON-RPC calls (5 seconds) |
+| `queryTimeout` default | `30000` | db.js | MariaDB query execution timeout in milliseconds (30 seconds); overridable via `DB_QUERY_TIMEOUT` env var |
+| RPC timeout (axios) | `30000` | BlockchainConnector.js | HTTP timeout for all JSON-RPC calls (30 seconds); overridable via `NODE_RPC_TIMEOUT` env var |
 | RPC max retries | `10` | BlockchainConnector.js | Maximum retry attempts for failed RPC calls |
 | RPC retry delay | `500` | BlockchainConnector.js | Delay between retries (milliseconds) |
 | RPC 429 backoff | `5000` | BlockchainConnector.js | Delay on HTTP 429 rate limiting (5 seconds) |
@@ -114,17 +114,17 @@ The decoder begins parsing from a preconfigured block height per network to skip
 
 | Network | Start Block |
 |---|---|
-| `bitcoin-mainnet` | 900,000 |
-| `bitcoin-testnet` | 100,000 |
+| `bitcoin-mainnet` | 950,000 |
+| `bitcoin-testnet` | 138,000 |
 | `bitcoin-regtest` | 0 |
-| `litecoin-mainnet` | 3,000,000 |
-| `litecoin-testnet` | 4,470,000 |
+| `litecoin-mainnet` | 3,120,000 |
+| `litecoin-testnet` | 4,765,000 |
 | `litecoin-regtest` | 0 |
-| `dogecoin-mainnet` | 6,000,000 |
-| `dogecoin-testnet` | 62,500,000 |
+| `dogecoin-mainnet` | 6,240,000 |
+| `dogecoin-testnet` | 64,800,000 |
 | `dogecoin-regtest` | 0 |
 
-> **DOGE testnet note:** the DOGE testnet mines min-difficulty blocks roughly every 20 seconds, so the chain runs tens of millions of blocks ahead of the other networks. The start block was anchored near the chain tip at protocol launch (~62.5 M) to avoid indexing ~42 M pre-launch blocks (which bloated the decoder DB to ~13.8 GB). See `src/CryptoNetworks.js` for the comment.
+> **DOGE testnet note:** the DOGE testnet mines min-difficulty blocks roughly every 20 seconds, so the chain runs tens of millions of blocks ahead of the other networks. The start block was re-pinned near the chain tip on 2026-06-19 to avoid indexing millions of pre-launch blocks. See `src/CryptoNetworks.js` for the comment.
 
 ## Valid ACTION Names
 

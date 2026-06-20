@@ -56,7 +56,7 @@ For each coin-specific service (encoder, decoder, utxo-tracker, indexer), xchain
 | `INDEXER_DB_NAME` | `XChain_{TICKER}_{Network}_Indexer` | Indexer database name |
 | `INDEXER_DB_USER` | `xchain_indexer_{coin}_{network}` | Indexer DB username |
 | `INDEXER_DB_PASS` | `xchain-password` | Indexer DB password |
-| `HUB_HOST` | `127.0.0.1` | Hub external host |
+| `HUB_HOST` | `0.0.0.0` | Hub external host |
 | `HUB_API_HOST` | `xchain-node-xchain-hub` | Hub Docker hostname |
 | `HUB_PORT` | `10000` | Hub API port |
 
@@ -73,7 +73,7 @@ For shared services (hub, explorer, sync), a separate set of variables is genera
 
 | Variable | Default | Description |
 |---|---|---|
-| `HUB_HOST` | `127.0.0.1` | Hub external host |
+| `HUB_HOST` | `0.0.0.0` | Hub external host |
 | `HUB_API_HOST` | `xchain-node-xchain-hub` | Hub Docker hostname |
 | `HUB_PORT` | `10000` | Hub API port |
 | `EXPLORER_HOST` | `127.0.0.1` | Explorer external host |
@@ -93,7 +93,7 @@ For shared services (hub, explorer, sync), a separate set of variables is genera
 | Docker network | `xchain-node-{coin}-{network}` | `xchain-node-bitcoin-mainnet` |
 | Database name | `XChain_{TICKER}_{Network}_{Service}` | `XChain_BTC_Mainnet_Decoder` |
 | Database user | `xchain_{service}_{coin}_{network}` | `xchain_decoder_bitcoin_mainnet` |
-| LevelDB key | `MC{module};{coin};{network}` | `MCxchain-encoder;bitcoin;mainnet` |
+| Module state key | `(module, coin, network)` in MariaDB | `(xchain-encoder, bitcoin, mainnet)` |
 | Shared image | `xchain-node-{service}` | `xchain-node-database` |
 | Base network | `xchain-node` | `xchain-node` |
 
@@ -160,7 +160,7 @@ Without these overrides the small `/` partition fills the moment a bootstrap is 
 | `NODE_PREFIX` | `xchain-node` | constants.js | Prefix for all Docker container and network names |
 | `SEP` | `-` | constants.js | Separator for Docker naming (`xchain-node-bitcoin-mainnet`) |
 | `DB_SEP` | `_` | constants.js | Separator for database naming (`xchain_decoder_bitcoin_mainnet`) |
-| `DB_NAME` | `xchain_node` | constants.js | LevelDB database directory name |
+| `DB_NAME` | `xchain_node` | CredentialsService.js | MariaDB database name used to store module state |
 
 ### NODE_PREFIX Validation
 

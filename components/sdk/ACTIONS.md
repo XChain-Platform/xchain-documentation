@@ -140,7 +140,8 @@ Combine multiple action commands into a single transaction.
 
 **Notes:**
 - BATCH cannot contain nested BATCH actions.
-- BATCH cannot contain FILE actions.
+- BATCH cannot contain DEPLOY actions.
+- At most **one FILE** action per BATCH (one rawData payload per transaction).
 - At most **one MINT** action per BATCH.
 - At most **one ISSUE** action per BATCH.
 - See [BATCH.md](./BATCH.md) for the fluent builder interface (`sdk.batch()`).
@@ -219,20 +220,30 @@ See also: [`../actions/CALLBACK.md`](../../protocol/actions/CALLBACK.md)
 
 Deploy a smart contract to the XChain VM. The contract source code is base64-encoded into the `CODE_ENCODING` field (base64's alphabet has no `|`, so it is safe in the pipe-delimited action string, at 1.33× the source vs hex's 2×). The SDK can accept raw source via the `code` param and will base64-encode it automatically.
 
-**Format Versions:** v0
+**Format Versions:** v0 (standard contract), v1 (stakeable contract), v2 (chunked assemble, standard), v3 (chunked assemble, stakeable), v4 (chunk carrier)
 
-**Format v0:** `DEPLOY|VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS...`
+**Format v0:** `DEPLOY|VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS...`  
+**Format v1:** `DEPLOY|VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION`  
+**Format v2:** `DEPLOY|VERSION|CODE_HASH|GAS_LIMIT|CONSTRUCTOR_PARAMS...` (chunked assemble, standard)  
+**Format v3:** `DEPLOY|VERSION|CODE_HASH|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION` (chunked assemble, stakeable)  
+**Format v4:** `DEPLOY|VERSION|CODE_HASH|CHUNK_INDEX|TOTAL_CHUNKS|CODE_PART` (chunk carrier)
 
 **Params:**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
 | code | string | Yes* | Raw JavaScript source code (auto base64-encoded by the SDK) |
-| codeEncoding | string | Yes* | Pre-encoded base64 of contract source (alternative to `code`) |
+| codeEncoding | string | Yes* | Pre-encoded base64 of contract source (alternative to `code`). For chunked deploys (v2/v3), use `codeHash` instead. |
 | gasLimit | integer | Yes | Maximum gas units for deployment (positive integer) |
 | constructorParams | string[] | No | Arguments passed to the contract constructor |
+| cooldownBlocks | integer | v1/v3 only | Unstake cooldown in blocks (1-100000). Required for stakeable contracts. |
+| slashDestination | string | No | Address to receive slashed stake. Required with `cooldownBlocks`. |
+| codeHash | string | v2/v3/v4 | SHA-256 hex of the assembled contract source. Used for chunked deploys. |
+| chunkIndex | integer | v4 only | Zero-based index of this chunk |
+| totalChunks | integer | v4 only | Total number of chunk carriers (1-16) |
+| codePart | string | v4 only | One base64 slice of the contract source (max 7800 bytes) |
 
-\* Provide either `code` (recommended) or `codeEncoding`, not both.
+\* For inline deploys (v0/v1): provide either `code` (recommended) or `codeEncoding`, not both.
 
 **Notes:**
 - Contract source must be valid JavaScript and under 64KB.
@@ -240,6 +251,7 @@ Deploy a smart contract to the XChain VM. The contract source code is base64-enc
 - DEPLOY payloads typically exceed the 76-byte OP_RETURN limit, use P2SH or P2WSH encoding.
 - DEPLOY actions **cannot** appear inside a BATCH.
 - Constructor params are variable-length: each element becomes a separate pipe-delimited field in the action string.
+- For contracts over ~6KB, use the chunked deploy pattern: send multiple v4 carrier actions first, then a v2/v3 assemble action referencing the `codeHash`.
 
 ```js
 // Deploy a contract from raw source code
@@ -454,9 +466,9 @@ See also: [`../actions/EXECUTE.md`](../../protocol/actions/EXECUTE.md)
 
 Attach a file to the chain. File data is supplied via the encoder (not in the action string itself).
 
-**Format Versions:** v0 (metadata)
+**Format Versions:** v0 (public file), v0 with optional gating fields (token-gated file)
 
-**Format:** `FILE|VERSION|NAME|TYPE|TITLE|MEMO`
+**Format:** `FILE|VERSION|NAME|TYPE|TITLE|MEMO|GATE_TICKER|ENCRYPTION_METHOD|KEY_HASH`
 
 **Params:**
 
@@ -466,10 +478,13 @@ Attach a file to the chain. File data is supplied via the encoder (not in the ac
 | type | string | Yes | MIME type or file type identifier |
 | title | string | No | Human-readable title |
 | memo | string | No | Optional note |
+| gateTicker | string | No | Token required to unlock the file (empty = public) |
+| encryptionMethod | integer | No | Encryption algorithm for gated content: `1` = AES-256-GCM |
+| keyHash | string | No | SHA-256 hex of the encryption key (`sha256(K)`), 64 lowercase hex chars |
 
 **Notes:**
 - Raw file data is passed via the `encoder` argument, not in params.
-- FILE actions cannot appear inside a BATCH.
+- A BATCH may contain at most one FILE action.
 
 ```js
 await sdk.file({ name: 'logo.png', type: 'image/png', title: 'Project Logo' }, { rawData: fileBuffer })
@@ -675,7 +690,7 @@ Send an encrypted or plaintext message to a destination address.
 |---|---|---|---|
 | coin | string | Yes | Destination coin network (`BTC`, `LTC`, `DOGE`) |
 | destination | string | Yes | Recipient address |
-| encryptionMethod | integer | Yes | `1` = ECDH, `2` = AES |
+| encryptionMethod | integer | Yes | `1` = ECIES, `2` = ECDH, `3` = AES |
 | encryptionKey | string | Yes | Public key or shared key material (max 1 MB) |
 
 **Params (encrypted message (v2):)**
@@ -1024,7 +1039,8 @@ The SDK enforces these rules before serializing any action. Violations throw an 
 - Allowed characters: `a-z A-Z 0-9 ~ ! @ # $ % ^ & * ( ) _ + - = { } [ ] \ : < > . ?`
 - Cannot start with `^` (that prefix is reserved for ACTION_INDEX references).
 - Cannot contain `|` (field separator) or `;` (command separator).
-- Cannot contain `.` (parent/child separator) or `/` (directory separator).
+- Cannot contain `/` (directory separator).
+- `.` is the parent/child separator for sub-tokens (e.g. `PARENT.CHILD`). It is allowed, but no segment may be empty: no leading, trailing, or consecutive dots.
 
 ### TICK references (everywhere except ISSUE)
 
@@ -1083,7 +1099,7 @@ Must be a valid cryptocurrency address (validated by the SDK utility layer).
 
 ### ENCRYPTION_METHOD (MESSAGE)
 
-Must be **`1`** (ECDH) or **`2`** (AES).
+Must be **`1`** (ECIES), **`2`** (ECDH), or **`3`** (AES).
 
 ### FEE_PREFERENCE (ADDRESS)
 
@@ -1264,8 +1280,8 @@ await sdk.collect({});
 ### BATCH constraints
 
 - BATCH cannot contain nested BATCH actions.
-- BATCH cannot contain FILE actions.
 - BATCH cannot contain DEPLOY actions.
+- At most **one FILE** per BATCH (one rawData payload per transaction).
 - At most **one MINT** per BATCH.
 - At most **one ISSUE** per BATCH.
 
@@ -1276,7 +1292,7 @@ When an `encoder` with an explicit `encoding` is passed, the SDK validates that 
 | Encoding | Max data bytes |
 |---|---|
 | `OP_RETURN` | 76 bytes (80 − 4-byte magic `XCHN`) |
-| `MULTISIGN` | ~61 bytes per chunk |
+| `MULTISIGN` | 60 bytes per chunk |
 | `P2SH` | 476 bytes (520 − 44-byte script overhead) |
 | `P2WSH` | 476 bytes per witness-script chunk (520 - 44-byte overhead), chunked across outputs up to the 8,192-byte compiled ceiling |
 

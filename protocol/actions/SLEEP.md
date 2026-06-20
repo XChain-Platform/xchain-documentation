@@ -8,8 +8,8 @@ This action pauses actions on an `ADDRESS` or a `TICK` until `RESUME_BLOCK` is r
 | Name           | Type   | Description                   |
 | -------------  | ------ | ----------------------------- |
 | `VERSION`      | String | Format Version                |
-| `TICK`         | String | Ticker name or Ticker ID      |
 | `RESUME_BLOCK` | String | Block index to resume actions |
+| `TICK`         | String | Ticker name or Ticker ID (v1 only) |
 | `MEMO`         | String | An optional memo to include   |
 
 ## Formats

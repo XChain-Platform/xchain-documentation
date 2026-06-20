@@ -21,16 +21,16 @@ If `isolated-vm` fails to compile, ensure the native build prerequisites are ins
 ## Running Tests
 
 ```bash
-npm test                      # unit tests (580 tests, 30s timeout)
-npm run test:all              # unit + E2E (644 tests)
-npm run test:regression:core  # P0+P1 regression: security + smoke (45 tests, < 200ms)
-npm run test:regression:full  # P0-P3 regression: full suite (152 tests, < 1s)
-npm run test:fuzz             # property-based / fuzz tests (86 tests)
-npm run test:chaos            # chaos engineering (92 tests)
+npm test                      # unit tests (487 tests, 30s timeout)
+npm run test:all              # all suites (1,237 tests)
+npm run test:regression:core  # P0+P1 regression: security + smoke (31 tests, < 200ms)
+npm run test:regression:full  # P0-P3 regression: full suite (133 tests, < 1s)
+npm run test:fuzz             # property-based / fuzz tests (53 tests)
+npm run test:chaos            # chaos engineering (76 tests)
 npm run mutation              # mutation testing (Stryker)
 ```
 
-The VM maintains **974 total tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke suites. Tests that require `isolated-vm` are automatically skipped in the standard suite if the native module is not available. The regression suite (`test/regression/`) uses a fail-loud check; it throws a fatal error instead of silently skipping, since regression tests must never pass vacuously.
+The VM maintains **1,237 total tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke suites. Tests that require `isolated-vm` are automatically skipped in the standard suite if the native module is not available. The regression suite (`test/regression/`) uses a fail-loud check; it throws a fatal error instead of silently skipping, since regression tests must never pass vacuously.
 
 ## Integration with the Indexer
 

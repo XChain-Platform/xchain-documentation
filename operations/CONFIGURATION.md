@@ -113,7 +113,7 @@ This table is the canonical service port map. It matches what the xchain-node in
 | `DECODER_API_PORT` | JSON-RPC API port | `3002` |
 | `AUX_POW` | Set truthy for Dogecoin AuxPoW | unset |
 
-The decoder polls for new blocks every ~5 seconds. It waits for the coin node to report `verificationprogress >= 0.99` before processing. Mempool is refreshed every 60 seconds once synced.
+The decoder polls for new blocks every ~1 second. It waits for the coin node to report `verificationprogress >= 0.99` before processing. Mempool is refreshed every 60 seconds once synced.
 
 ### Indexer
 

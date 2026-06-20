@@ -55,6 +55,8 @@ Every error instance carries four properties:
 | `SDKContractError` | Contract-specific errors: code too large, invalid hex, bad contract index, etc. |
 | `SDKWalletError` | Key management, address derivation, PSBT signing, broadcasting, UTXO queries |
 | `SDKAuthError` | Challenge generation, message signing, signature verification errors |
+| `SDKMessagingError` | Message encryption, decryption, and public key lookup errors |
+| `SDKActionError` | Transaction lifecycle failures: confirmation timeout, action rejected by indexer |
 | `SDKMuSigError` | MuSig2 aggregation and signing errors |
 | `SDKGatedFileError` | Token-gated file encryption/decryption errors |
 | `SDKPolicyError` | Agent session policy violations: action denied, cap exceeded, corrupt state |
@@ -315,28 +317,24 @@ try {
 
 ## Validation Dry-Run
 
-Use `sdk.validateAction()` to check an action's fields before constructing a transaction. This runs the full validation and format-selection pipeline but does not call the encoder. It is useful for pre-flight checks in forms or CLI wizards.
+Use `sdk.validateAction()` to check an action's fields before constructing a transaction. It runs the validation pipeline but does not call the encoder and does not throw. It is useful for pre-flight checks in forms or CLI wizards.
 
 ```js
-try {
-    sdk.validateAction({
-        action: 'ISSUE',
-        params: {
-            tick: 'MY.TOKEN',
-            maxSupply: 21000000,
-            decimals: 8
-        }
-    });
-    console.log('Action is valid; ready to submit');
+const result = sdk.validateAction('ISSUE', {
+    tick: 'MY.TOKEN',
+    maxSupply: 21000000,
+    decimals: 8
+});
 
-} catch (err) {
-    if (err instanceof SDKValidationError || err instanceof SDKFormatError) {
-        console.error('Will not encode:', err.message);
-    }
+if (result.valid) {
+    console.log('Action is valid; ready to submit');
+} else {
+    console.error('Will not encode:', result.errors);
+    // result.errors is an array of { code, message, details } objects
 }
 ```
 
-`validateAction()` throws the same `SDKValidationError` and `SDKFormatError` instances that `createAction()` would throw, so the same catch logic applies.
+`validateAction(action, params)` takes the action name as the first argument and the params object as the second. It always returns `{ valid, errors }` and never throws.
 
 ---
 

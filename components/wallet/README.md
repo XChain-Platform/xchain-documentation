@@ -12,7 +12,7 @@ The wallet implements every XChain feature exposed by the platform: all 29 ACTIO
 ## Features
 
 - **Three shells, one codebase**: `@xchain-wallet/web` (Vite SPA, mobile-responsive), `@xchain-wallet/extension` (Chrome MV3 popup + full-screen + service worker), `@xchain-wallet/desktop` (Electron, main-process signing isolation); all share `@xchain-wallet/core` for routes, components, flows, and signers
-- **All 27 XChain ACTIONs**: SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, AIRDROP, MESSAGE, LIST, LINK, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, COLLECT, CALLBACK, SLEEP, FILE
+- **All 29 XChain ACTIONs**: SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, AIRDROP, MESSAGE, LIST, LINK, BROADCAST, ADDRESS, PRICE, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, COLLECT, CALLBACK, SLEEP, FILE
 - **Self-custodial key management**: BIP39 mnemonic + optional 25th-word passphrase, BIP32 HD derivation per chain, AES-256-GCM vault encrypted with an Argon2id-derived master key (calibrated per device), Counterwallet legacy mnemonic import
 - **Pluggable signer interface**: `SoftwareSigner` (in-vault keys), `TrezorSigner` (Trezor Connect), `LedgerSigner` (WebHID), `RemoteSigner` (cross-shell pairing), `MultisigSigner` (classical n-of-m + MuSig2)
 - **Token issuance suite**: issue / mint / destroy / distribute / dividend / dispenser / broadcast / airdrop / sweep, with parsed-recipient previews and dry-run review
@@ -22,7 +22,7 @@ The wallet implements every XChain feature exposed by the platform: all 29 ACTIO
 - **BTC staking + delegation**: stake / unstake / delegate (rotate or revoke) / collect rewards; staking dashboard, delegation form, operator dashboard
 - **Cross-chain flows**: cross-chain swap form, cross-chain templates, parallel composer for atomic multi-chain submission, per-chain SDK registry
 - **Multisig coordinator**: create n-of-m configs, paste-inbox for partial PSBTs, AnimatedQrFrames PSBT-QR transport, session state machine, MuSig2 round labels, per-address multi-config support, camera scanner
-- **dApp bridge (`window.xchain`)**: typed bridge spec at `@xchain-wallet/bridge-spec`: connect, getAccounts, getBalances, signMessage, signPsbt, signAction, sendAction, signIn (Sign-In with XChain), event subscriptions; per-origin permission grants enforced in the extension service worker and desktop main process
+- **dApp bridge (`window.xchain`)**: typed bridge spec at `@xchain-wallet/bridge-spec`: connect, getAccounts, getBalances, signMessage, signPsbt, signAction, signIn (Sign-In with XChain), event subscriptions; per-origin permission grants enforced in the extension service worker and desktop main process
 - **Air-gapped PSBT signing**: BIP21 / multisig PSBT envelope / chunked PSBT-QR; QR scanner + AnimatedQrFrames for offline cosigner round-trips; `prefers-reduced-motion` honored with manual frame stepping
 - **Sign-screen safety rails**: plain-English action decoder shows `to` / `amount` / `asset` as the user typed them, even if the encoder fabricates output; per-action expectation summaries; explicit user confirmation
 - **Onboarding and recovery**: create / import / Counterwallet-migrate / dry-run-restore / discover-used-addresses gap-limit scan; view-private-key + export-WIF gated behind password re-entry
@@ -122,7 +122,7 @@ Third-party dApps integrate via the `window.xchain` provider injected by the ext
 ```
 xchain-wallet/
 ├── package.json                 workspace root, single source of truth for version
-├── pnpm-workspace.yaml          packages/* + e2e
+├── pnpm-workspace.yaml          packages/* + test/e2e
 ├── tsconfig.base.json           shared TS config (JS + JSDoc throughout)
 ├── packages/
 │   ├── core/                    React components, state, flows, signers, schemas, SDK integration
@@ -130,10 +130,12 @@ xchain-wallet/
 │   ├── extension/               Chrome MV3 extension shell
 │   ├── desktop/                 Electron desktop shell
 │   ├── bridge-spec/             window.xchain TypeScript type definitions
+│   ├── signers-ledger/          Ledger hardware signer (WebHID transport)
+│   ├── signers-trezor/          Trezor hardware signer (Connect transport)
 │   └── test-dapp/               reference dApp exercising the bridge
 ├── tools/
 │   └── build-reproduce/         reproducible-build helper scripts
-├── e2e/                         Playwright E2E suite (web shell)
+├── test/e2e/                    Playwright E2E suite (web shell)
 ├── docs/                        in-repo architecture + threat-model + dependency notes
 ├── CHANGELOG.md                 Keep a Changelog format; root is authoritative
 └── LICENSE.md / NOTICE.md       GNU Affero General Public License v3.0 (AGPL-3.0)
@@ -143,7 +145,7 @@ All packages ship at the **same version**. Every shell's About screen surfaces i
 
 ## Status
 
-Pre-v1.0 release-candidate (`1.0.0-rc.6`). All four implementation phases; Phase 1 (framework), Phase 2 (issuance + hardware), Phase 3 (DEX + messaging), Phase 4 (contracts + staking + cross-chain + multisig), are closed. The autonomous portion of the §56.3 pre-launch track is also closed; three user-driven items remain before v1.0.0 GA: external security audit, external accessibility audit, and Chrome Web Store submission. Audit-readiness packets ship with the repo.
+Pre-v1.0 release-candidate (`0.333.0`). All four implementation phases; Phase 1 (framework), Phase 2 (issuance + hardware), Phase 3 (DEX + messaging), Phase 4 (contracts + staking + cross-chain + multisig), are closed. The autonomous portion of the §56.3 pre-launch track is also closed; three user-driven items remain before v1.0.0 GA: external security audit, external accessibility audit, and Chrome Web Store submission. Audit-readiness packets ship with the repo.
 
 ## Scripts
 

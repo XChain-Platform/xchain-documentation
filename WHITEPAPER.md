@@ -258,7 +258,7 @@ A mismatch is a fatal violation: the transaction rolls back and the indexer halt
 
 ## 6. The ACTION Set
 
-The protocol defines roughly thirty user-submittable ACTIONs across eight categories, plus validator-broadcast actions (PRICE v0, ATTEST v1, ANCHOR, NODEPROOF) and system-synthesized actions (order/swap matching and expiry, cross-chain settlement, XCALL relay, and so on) described where relevant. All user ACTIONs are available on every supported chain unless noted. A `^`-prefixed ticker field passes a numeric token id instead of a name.
+The protocol defines 34 named ACTIONs across eight categories. Of these, 29 are user-submittable (all except ANCHOR, ATTEST, NODEPROOF, SLASH, and XCALL); the remaining five are validator-broadcast or VM-emitted actions described where relevant, along with system-synthesized actions (order/swap matching and expiry, cross-chain settlement, XCALL relay, and so on). All user ACTIONs are available on every supported chain unless noted. A `^`-prefixed ticker field passes a numeric token id instead of a name.
 
 ### 6.1 Token lifecycle
 

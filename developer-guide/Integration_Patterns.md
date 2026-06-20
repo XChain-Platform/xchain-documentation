@@ -53,14 +53,14 @@ async function issueTokenForUser(req, res) {
     description,
   });
 
-  const psbt = await sdk.encoder.createPSBT({
-    action,
-    publicKey,
+  const psbt = await sdk.encoder.createTx({
+    data: action.actionString,
+    pubkey: publicKey,
     utxos,
   });
 
   // Return unsigned PSBT to user's wallet for signing
-  res.json({ psbt: psbt.psbt, format: psbt.format });
+  res.json({ psbt: psbt.psbt, encoding: psbt.encoding });
 }
 ```
 
@@ -531,7 +531,7 @@ async function placeSellOrder(publicKey, utxos) {
     expiration: Math.floor(Date.now() / 1000) + 86400 * 7, // 7 days
   });
 
-  const psbt = await sdk.encoder.createPSBT({ action, publicKey, utxos });
+  const psbt = await sdk.encoder.createTx({ data: action.actionString, pubkey: publicKey, utxos });
   return psbt; // return to user's wallet for signing
 }
 
@@ -542,7 +542,7 @@ async function cancelOrder(orderActionIndex, publicKey, utxos) {
     orderActionIndex,
     memo: 'Cancelled via DEX UI',
   });
-  const psbt = await sdk.encoder.createPSBT({ action, publicKey, utxos });
+  const psbt = await sdk.encoder.createTx({ data: action.actionString, pubkey: publicKey, utxos });
   return psbt;
 }
 ```
@@ -558,9 +558,9 @@ async function executeAirdrop(recipients, tick, amountPerAddress, publicKey, utx
   // Step 1: Create an address LIST
   const listAction = sdk.list({
     type: 2, // ADDRESS list
-    items: recipients,
+    item: recipients,
   });
-  const listPsbt = await sdk.encoder.createPSBT({ action: listAction, publicKey, utxos });
+  const listPsbt = await sdk.encoder.createTx({ data: listAction.actionString, pubkey: publicKey, utxos });
   const listTxid = await signAndBroadcast(listPsbt.psbt);
   await waitForConfirmation(listTxid);
 
@@ -572,11 +572,11 @@ async function executeAirdrop(recipients, tick, amountPerAddress, publicKey, utx
   const airdropAction = sdk.airdrop({
     tick,
     amount: amountPerAddress,
-    list: listActionIndex,
+    listActionIndex,
   });
-  const airdropPsbt = await sdk.encoder.createPSBT({
-    action: airdropAction,
-    publicKey,
+  const airdropPsbt = await sdk.encoder.createTx({
+    data: airdropAction.actionString,
+    pubkey: publicKey,
     utxos: refreshedUtxos, // fetch new UTXOs after list tx
   });
   const airdropTxid = await signAndBroadcast(airdropPsbt.psbt);

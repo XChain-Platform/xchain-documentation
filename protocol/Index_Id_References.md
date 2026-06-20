@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025-2026 Dankest, LLC -->
 
-# Index ID References (`^<id>` compaction)
+# Index ID References
 
 A ticker or address can be referenced on the wire either by its full value or by
 its numeric index id with a caret prefix. The id form is almost always smaller, so

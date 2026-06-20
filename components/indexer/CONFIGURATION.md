@@ -11,12 +11,12 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 
 | Variable | Description | Example |
 |---|---|---|
-| `DECODER_DB_HOST` | Decoder database hostname | `localhost` |
+| `DECODER_DB_HOST` | Decoder database hostname | `127.0.0.1` |
 | `DECODER_DB_PORT` | Decoder database port | `3306` |
 | `DECODER_DB_NAME` | Decoder database name | `XChain_BTC_Mainnet_Decoder` |
 | `DECODER_DB_USER` | Decoder database username | `xchain` |
 | `DECODER_DB_PASS` | Decoder database password | `secretpassword` |
-| `INDEXER_DB_HOST` | Indexer database hostname | `localhost` |
+| `INDEXER_DB_HOST` | Indexer database hostname | `127.0.0.1` |
 | `INDEXER_DB_PORT` | Indexer database port | `3306` |
 | `INDEXER_DB_NAME` | Indexer database name | `XChain_BTC_Mainnet_Indexer` |
 | `INDEXER_DB_USER` | Indexer database username | `xchain` |
@@ -118,7 +118,7 @@ These values are defined in `src/config.js` and apply to all chains:
 
 | Parameter | Value | Description |
 |---|---|---|
-| `MESSAGE_ENCRYPTION_METHODS` | `[1, 2]` | 1 = ECDH, 2 = AES |
+| `MESSAGE_ENCRYPTION_METHODS` | `[1, 2, 3]` | 1 = ECIES, 2 = ECDH, 3 = AES |
 | `SLEEP_IMMEDIATE_METHODS` | `[-1, 0]` | -1 = sleep indefinitely, 0 = resume immediately |
 
 ---

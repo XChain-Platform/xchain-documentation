@@ -3,12 +3,17 @@
 
 # URI Schemes & QR Transport
 
-The wallet handles four classes of encoded payload, all routed through `core/src/uri/detectQrContent.js`:
+The wallet routes scanned or pasted input through `core/src/uri/detectQrContent.js`, which classifies the string into one of the following types:
 
-- **BIP21**: payment URIs (`bitcoin:`, `dogecoin:`, `litecoin:`, `xchain:`)
-- **PSBT-QR**: chunked transport for unsigned / partially-signed PSBTs
-- **Multisig PSBT envelope**: wrapped PSBT payload for cosigner round-trips
-- **Sign-in challenge**: Sign-In with XChain (delegated to the bridge)
+- **BIP21** (`type: 'bip21'`): chain payment URIs (`bitcoin:`, `dogecoin:`, `litecoin:`)
+- **XChain URI** (`type: 'xchain-uri'`): `xchain:` URIs (action-share links, dApp deep-links, multisig invitations)
+- **XCW chunk** (`type: 'xcw-chunk'`): a single frame from a chunked PSBT-QR stream
+- **PSBT hex** (`type: 'psbt-hex'`): raw PSBT bytes in lowercase hex
+- **WIF** (`type: 'wif'`): a WIF-encoded private key
+- **BIP39 mnemonic** (`type: 'mnemonic-bip39'`): a 12/15/18/21/24-word BIP39 phrase
+- **Counterwallet mnemonic** (`type: 'mnemonic-counterwallet'`): a legacy 12-word Counterwallet phrase
+- **Address** (`type: 'address'`): a bare coin address (heuristic match)
+- **Unknown** (`type: 'unknown'`): unrecognised input
 
 ## URI registration
 
@@ -55,37 +60,45 @@ PSBTs that exceed the single-frame QR capacity are encoded as a chunked stream o
 Frame format:
 
 ```
-xchain:psbt?seq=N/M&data=<base64-chunk>
+XCW:<n>/<total>:<crc32-hex>:<base64-bytes>
 ```
 
 | Field | Purpose |
 |---|---|
-| `seq=N/M` | Frame index (1-based) and total frame count |
-| `data=...` | URL-safe base64 chunk of the PSBT bytes |
+| `<n>/<total>` | Frame index (1-based) and total frame count, repeated in every frame so out-of-order arrival still works |
+| `<crc32-hex>` | Lowercase 8-character CRC32 hex over the decoded base64 bytes; per-frame integrity check |
+| `<base64-bytes>` | Base64 chunk content. Chunk 1 prepends a 32-byte SHA256 of the full reassembled PSBT as an integrity anchor |
 
-The decoder buffers frames until all `M` are seen and reconstructs the original PSBT. Out-of-order arrival is fine; the receiver's camera doesn't have to capture frames in order, only all of them eventually.
+The collector buffers frames until all `total` are seen and verifies the SHA256 against chunk 1 before handing the PSBT to the caller. Out-of-order arrival is fine; the receiver's camera doesn't have to capture frames in order, only all of them eventually.
 
 `QrScanner.jsx` reads frames continuously and calls back with the reconstructed PSBT once the buffer fills.
 
 ## Multisig PSBT envelope
 
-`core/src/uri/multisigPsbtEnvelope.js` wraps a PSBT in a typed envelope used by the multisig signing session. The envelope identifies which session the partial belongs to and which cosigner produced it:
+`core/src/uri/multisigPsbtEnvelope.js` wraps the multisig round-trip in a typed JSON envelope carried over the XCW chunked transport (prefix `XCW-MS:`). The envelope identifies the session by a fingerprint derived from the signing round parameters and carries the cosigner's contribution:
 
-```
-xchain:multisig-psbt?session=<id>&from=<cosigner-pubkey>&data=<base64-psbt>
+```json
+{
+  "v": 1,
+  "kind": "<multisig-request-nonce | multisig-round-1-reply | ...>",
+  "fingerprint": "<32-byte hex>",
+  "sessionRef": { "scheme": "...", "threshold": N, "cosignerPubkeys": [...], ... },
+  "contribution": { ... }
+}
 ```
 
 | Field | Purpose |
 |---|---|
-| `session` | Multisig signing session id (matches a `multisigSigningSessions` record in the vault) |
-| `from` | Producing cosigner's pubkey, so the coordinator knows which slot to fill |
-| `data` | Base64 of the partial PSBT (chunked across frames if needed) |
+| `kind` | Protocol step: `multisig-request-nonce`, `multisig-round-1-reply`, `multisig-request-partial`, `multisig-round-2-reply`, `multisig-request-signature`, `multisig-classical-reply`, or `multisig-finalized` |
+| `fingerprint` | SHA256 of the canonical `sessionRef`; routes the envelope to the right local session without shipping a UUID |
+| `sessionRef` | Session invariants (scheme, threshold, cosigner pubkeys, msgHash, psbtHex); present on request and finalized envelopes |
+| `contribution` | Round-specific output from the cosigner (public nonce, partial sig, or classical DER sig); present on reply and finalized envelopes |
 
-The paste-inbox in `MultisigSigningSession.jsx` accepts both raw multisig-PSBT envelopes and chunked PSBT-QR streams. The session state machine routes the partial to the right cosigner slot and surfaces a green check.
+The paste-inbox in `MultisigSigningSession.jsx` accepts these envelopes (received as XCW QR frames or pasted as the raw JSON string). The session state machine routes each round's contribution to the right slot and surfaces a green check.
 
 ## Sign-in challenge
 
-Sign-In with XChain challenges are not URI-encoded by the wallet, they're produced and consumed by the bridge (`@xchain-wallet/bridge-spec`). The wallet's `detectQrContent` recognizes a sign-in-challenge string and routes it to the same approval popup the bridge uses, so the user can sign a Sign-In challenge presented as a QR (e.g. by a desktop app to a wallet on a phone).
+Sign-In with XChain challenges are not URI-encoded by the wallet; they're produced and consumed by the bridge (`@xchain-wallet/bridge-spec`). Sign-in challenges are not classified by `detectQrContent`; the bridge layer handles them independently.
 
 See [Bridge; Sign-In with XChain](BRIDGE.md#signinparams--sign-in-with-xchain).
 
@@ -95,14 +108,16 @@ See [Bridge; Sign-In with XChain](BRIDGE.md#signinparams--sign-in-with-xchain).
 
 ```js
 const detected = detectQrContent(input);
-switch (detected.kind) {
-    case 'bip21':            return handleBip21(detected.value);
-    case 'psbt-qr':          return handlePsbtQrFrame(detected.value);
-    case 'multisig-psbt':    return handleMultisigPartial(detected.value);
-    case 'sign-in-challenge': return handleSignInChallenge(detected.value);
-    case 'address':          return handleBareAddress(detected.value);
-    case 'mnemonic':         return handleMnemonic(detected.value);
-    default:                 return handleUnknown(detected.raw);
+switch (detected.type) {
+    case 'bip21':                   return handleBip21(detected);
+    case 'xchain-uri':              return handleXChainUri(detected);
+    case 'xcw-chunk':               return handleXcwChunk(detected);
+    case 'psbt-hex':                return handlePsbtHex(detected);
+    case 'wif':                     return handleWif(detected);
+    case 'mnemonic-bip39':          return handleMnemonic(detected);
+    case 'mnemonic-counterwallet':  return handleMnemonic(detected);
+    case 'address':                 return handleBareAddress(detected);
+    default:                        return handleUnknown(detected);
 }
 ```
 

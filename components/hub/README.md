@@ -32,7 +32,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 - **Multi-instance**: multiple hub instances against shared MariaDB with consumer fallback via `HUB_VALIDATORS`
 - **MariaDB storage**: 20 relational tables with connection pooling, circuit breaker, and exponential backoff
 - **Single-node fallback**: all consensus-dependent operations fall back to direct execution when no peers are connected
-- **1,222 tests**: unit, integration, e2e, fuzz, chaos, boundary, smoke, regression, performance
+- **2,000+ tests**: unit, integration, e2e, fuzz, chaos, boundary, smoke, regression, performance
 - **Docker-ready**: Dockerfile for containerized deployment via xchain-node
 
 ## Documentation
@@ -65,7 +65,7 @@ Create a `.env` file with the required environment variables (see [Configuration
 ```env
 HUB_HOST=0.0.0.0
 HUB_PORT=10000
-HUB_DB_HOST=localhost
+HUB_DB_HOST=127.0.0.1
 HUB_DB_PORT=3306
 HUB_DB_NAME=XChain_Hub
 HUB_DB_USER=xchain
@@ -87,7 +87,7 @@ Add P2P and oracle configuration to the `.env` file:
 ```env
 HUB_HOST=0.0.0.0
 HUB_PORT=10000
-HUB_DB_HOST=localhost
+HUB_DB_HOST=127.0.0.1
 HUB_DB_PORT=3306
 HUB_DB_NAME=XChain_Hub
 HUB_DB_USER=xchain
@@ -127,7 +127,7 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 | Command | Description |
 |---|---|
 | `npm run api` | Start the hub API server |
-| `npm test` | Run unit tests (~366 tests) |
+| `npm test` | Run unit tests (~1,840 tests) |
 | `npm run test:integration` | Integration tests (~72 tests, requires MariaDB) |
 | `npm run test:e2e` | End-to-end tests (~64 tests, requires full stack) |
 | `npm run test:fuzz` | Fuzz tests (property-based via fast-check) |

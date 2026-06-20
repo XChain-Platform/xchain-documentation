@@ -54,7 +54,7 @@ Two or more gated `FILE` actions with the same `GATE_TICKER` **and** the same `K
 - `TYPE` examples :
   - `text/plain` = Text File
   - `text/html`  = HTML File
-  - `text/csv` = Command Separated Values File
+  - `text/csv` = Comma Separated Values File
   - `image/jpeg` = JPEG File
   - `image/png` = PNG File
   - `image/gif` = GIF File

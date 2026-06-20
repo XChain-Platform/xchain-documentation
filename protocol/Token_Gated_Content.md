@@ -69,8 +69,8 @@ The sending wallet must already hold the key, i.e. the sender must have previous
 
 Unlocking is entirely client-side and offline-capable once the wallet has fetched the relevant on-chain data:
 
-1. Wallet fetches the ciphertext from any indexer's `/api/file/<ACTION_INDEX>/raw` REST endpoint.
-2. Wallet queries `/api/messages/<address>/destination` for MESSAGEs addressed to the holder's address.
+1. Wallet fetches the ciphertext from any explorer's `/{COIN}/api/file/<ACTION_INDEX>/raw` REST endpoint.
+2. Wallet queries `/{COIN}/api/messages/<address>/destination` for MESSAGEs addressed to the holder's address.
 3. For each MESSAGE, wallet attempts ECIES decryption (binary mode) with the address's private key. Skips on failure.
 4. On success, wallet parses the plaintext as the binary handoff payload (see below): validates the leading version byte, slices the body into 32-byte candidate keys.
 5. For each candidate `K`, wallet computes `sha256(K)` and matches against the target file's `KEY_HASH`. Mismatches are skipped (defends against malicious senders shipping wrong keys).

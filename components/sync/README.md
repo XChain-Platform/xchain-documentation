@@ -31,7 +31,7 @@ Data integrity for the indexer is guaranteed by per-block chained SHA256 hashes 
 - **Automatic catch-up**: clients detect block gaps on reconnect and self-heal via incremental snapshots
 - **Circuit-breaker DB connections**: automatic failure detection and recovery
 - **Input validation**: SQL identifier sanitization, DDL whitelisting, WebSocket event schema validation
-- **725 tests**: unit, integration, e2e, fuzz, chaos, mutation, boundary, security, performance, smoke
+- **1400+ tests**: unit, integration, e2e, fuzz, chaos, mutation, boundary, security, performance, smoke
 
 ## Documentation
 

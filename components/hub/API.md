@@ -24,7 +24,7 @@ Health check.
 
 **Response:**
 ```json
-{"status":"success"}
+{"status":"success","db":true}
 ```
 
 ### `health`
@@ -489,7 +489,7 @@ Returns rows from the `price_snapshots` table after `since_id` (paginated for in
 }
 ```
 
-All six snapshot endpoints return the same three-field envelope `{ table, rows, count, watermark }`. `watermark` is the Unix timestamp (seconds) at which the response was generated; indexers use it to detect a snapshot that predates a concurrent row they already saw via WebSocket.
+All six snapshot endpoints return the same four-field envelope `{ table, rows, count, watermark }`. `watermark` is the Unix timestamp (seconds) at which the response was generated; indexers use it to detect a snapshot that predates a concurrent row they already saw via WebSocket.
 
 ### `GET /hub-db/snapshot/oracle_prices`
 
@@ -580,9 +580,14 @@ Calculates the native coin fee amount for a given action. Converts gas units →
 {
   "action":"ISSUE",
   "chain":"BTC",
-  "gas_units":1000,
-  "xchain_amount":"10.00000000",
-  "native_amount":"0.00014815"
+  "gasCost":100000,
+  "gasPrice":"0.00001000",
+  "xchainAmount":"1.00000000",
+  "xchainUsd":"0.50000000",
+  "feeUsd":"0.50000000",
+  "coinUsd":"67500.00000000",
+  "nativeCoinAmount":"0.00000741",
+  "nativeCoin":"BTC"
 }
 ```
 

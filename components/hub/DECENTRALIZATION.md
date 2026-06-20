@@ -23,7 +23,7 @@ A single-instance hub has limited horizontal scaling options. Under high coordin
 
 ## Capability Model
 
-The validator network uses a **capability model** rather than fixed tiers. A validator stakes XCHAIN against an Ed25519 signing pubkey; that pubkey's aggregate active stake auto-qualifies it for each of four independent capabilities whose `min_stake` it meets:
+The validator network uses a **capability model** rather than fixed tiers. A validator stakes XCHAIN against an Ed25519 signing pubkey; that pubkey's aggregate active stake auto-qualifies it for each of five independent capabilities whose `min_stake` it meets:
 
 | Capability | Role | Default consumers |
 |---|---|---|
@@ -31,12 +31,13 @@ The validator network uses a **capability model** rather than fixed tiers. A val
 | `cross_chain` | Attest to cross-chain swap actions per chain-pair | CrossChainEngine |
 | `oracle_publish` | Broadcast finalized PRICE v0 rounds on-chain (typically DOGE for low fees) | PRICE v0 publisher, formerly "Tier 3" |
 | `attestation` | Fetch external attestation requests via registered providers (`http_get`, `llm`) and PBFT-finalize the response | AttestationRound, AttestationConsensus |
+| `full_node` | Claim the full-node reward tier by passing block-hash challenge rounds issued by `FullNodeChallengeRound` | FullNodeChallengeRound |
 
 A single pubkey can hold any combination of capabilities, there is no overlap restriction. `min_stake[capability]` is governance-configurable; defaults are set by hub config. The historical model where the cross-chain tier required 5× the oracle stake is preserved by appropriate `min_stake` defaults but the protocol does not enforce a hierarchy.
 
 ### `price`: Price Oracles
 
-Validators with the `price` capability independently fetch cryptocurrency prices from multiple external sources (CoinGecko, CoinMarketCap), submit them to the network, and reach consensus using a trimmed median algorithm (discard top/bottom 15%). This replaces centralized pricing with a manipulation-resistant oracle feed. Price rounds run on a configurable interval (default 10 minutes). Each round goes through: fetch → submit → collect → aggregate → PBFT finalize.
+Validators with the `price` capability independently fetch cryptocurrency prices from multiple external sources (CoinGecko and Kraken are both keyless and always active; CoinMarketCap is optional when an API key is configured), submit them to the network, and reach consensus using a trimmed median algorithm (discard top/bottom 15%). This replaces centralized pricing with a manipulation-resistant oracle feed. Price rounds run on a configurable interval (default 10 minutes). Each round goes through: fetch → submit → collect → aggregate → PBFT finalize.
 
 ### `cross_chain`: Cross-Chain Validators
 

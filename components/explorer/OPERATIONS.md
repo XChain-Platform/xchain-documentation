@@ -38,10 +38,14 @@ EXPLORER_API_PORT_HTTPS=8443
 The Dockerfile copies the source into `/XChainExplorer/` inside the container:
 
 ```dockerfile
-FROM node:22-bookworm
+FROM node:latest
+RUN mkdir /XChainExplorer/
+COPY ./package.json /XChainExplorer/package.json
+COPY ./package-lock.json /XChainExplorer/package-lock.json
 WORKDIR /XChainExplorer
-COPY . .
 RUN npm ci --omit=dev
+COPY ./src /XChainExplorer/src
+COPY ./docs /XChainExplorer/docs
 CMD ["npm", "run", "api"]
 ```
 
@@ -207,7 +211,7 @@ Action-specific listing pages:
 | `callbacks.html` | `/{COIN}/callbacks` | Token callback listing |
 | `sleeps.html` | `/{COIN}/sleeps` | Address/token pause listing |
 | `swaps.html` | `/{COIN}/swaps` | Cross-chain swap listing |
-| `swap_matches.html` | `/{COIN}/swap_matches` | Filled swap listing |
+| `swaps.html` | `/{COIN}/swap_matches` | Filled swap listing |
 | `sweeps.html` | `/{COIN}/sweeps` | Asset sweep listing |
 | `addresses.html` | `/{COIN}/addresses` | Address preference listing |
 | `batches.html` | `/{COIN}/batches` | Multi-action batch listing |

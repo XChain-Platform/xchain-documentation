@@ -49,7 +49,7 @@ With `P2P_VALIDATOR_ADDR` set, the hub joins the P2P validator network. All conf
 - `SEED_NODES`: comma-separated list of peer addresses to bootstrap the mesh
 - `ORACLE_EPOCH_START`: oracle round-numbering anchor (Unix ms), **identical across the federation**
 - `HUB_CAPABILITY_CONFIG`: path to the capability config JSON: `MIN_STAKE` thresholds + per-capability self-test config blocks (see CONFIGURATION.md)
-- At least one price API key (`COINGECKO_API_KEY` or `COINMARKETCAP_API_KEY`)
+- Price API keys are optional: CoinGecko and Kraken are both keyless and active by default, giving two uncorrelated upstreams without any key. `COINGECKO_API_KEY` improves CoinGecko rate limits; `COINMARKETCAP_API_KEY` enables CoinMarketCap as a third source.
 
 #### Recommended: set up a validator with xchain-node
 
@@ -258,7 +258,7 @@ The P2P layer deduplicates messages using a TTL cache (default: 60 seconds). Thi
 
 ### Oracle rounds not producing prices
 
-- Verify at least one price API key is configured (`COINGECKO_API_KEY` or `COINMARKETCAP_API_KEY`)
+- Verify CoinGecko and Kraken are reachable from the hub host (both are keyless; no API key is required for either). CoinMarketCap is optional and only active when `COINMARKETCAP_API_KEY` is set.
 - Check `ORACLE_MIN_SUBMISSIONS`, if set higher than the number of connected validators, rounds will not finalize
 - Verify peers are connected via `getvalidators` API call
 - Check `PRICE_FETCH_TIMEOUT`, external API calls timeout after 10 seconds by default

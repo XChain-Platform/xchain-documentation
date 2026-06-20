@@ -45,7 +45,7 @@ Invalid ACTIONs are recorded as failed; they are not silently ignored. This make
 
 ## The ACTION Set
 
-The platform defines 30 user-submittable ACTION types across eight categories, plus validator-broadcast actions (PRICE v0, ATTEST v1, ANCHOR, NODEPROOF) and system-synthesized actions. The genesis categories (Token Lifecycle, Transfers, DEX, Data, Utility) are available from block 0; the Staking, Virtual Machine, and Oracle actions activate at later block heights.
+The platform defines 34 ACTION types in total. Of those, 29 are user-submittable (available via the SDK) across eight categories; the remaining 5 (ANCHOR, ATTEST, NODEPROOF, SLASH, XCALL) are validator-broadcast or system-synthesized and are not SDK-invocable. The genesis categories (Token Lifecycle, Transfers, DEX, Data, Utility) are available from block 0; the Staking, Virtual Machine, and Oracle actions activate at later block heights.
 
 ### Token Lifecycle
 
@@ -97,7 +97,7 @@ The platform defines 30 user-submittable ACTION types across eight categories, p
 | ACTION | What it does |
 |---|---|
 | `PRICE` | Publish oracle price data on-chain. v0 carries validator-aggregated COIN/FIAT snapshots; v1 carries user-defined TOKEN/FIAT oracles. Used by FIAT dispensers and any application that needs verifiable price feeds. |
-| `ATTEST` | External-data attestation lifecycle. v0 is emitted by a smart contract calling `xchain.attestation.request(...)`; v1 is broadcast by the validator network after consensus on the answer; v2 is system-synthesized when a request expires unanswered. This is how contracts ask the outside world (HTTPS fetches, AI prompts) and receive verified answers back on-chain. |
+| `ATTEST` | External-data attestation lifecycle. **Not SDK-invocable.** v0 is emitted by a smart contract calling `xchain.attestation.request(...)`; v1 is broadcast by the validator network after consensus on the answer; v2 is system-synthesized when a request expires unanswered. This is how contracts ask the outside world (HTTPS fetches, AI prompts) and receive verified answers back on-chain. |
 
 ### Hub Staking (capability staking is BTC-only; contract-targeted staking runs on all chains)
 

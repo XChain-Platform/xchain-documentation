@@ -37,7 +37,7 @@ The explorer sits at the end of the data pipeline. It reads indexed state from t
 │              │              │                                │
 │  ┌───────────▼──┐  ┌───────▼────────┐  ┌───────────────────┐ │
 │  │   Database   │  │    Config      │  │  Hub Connector    │ │
-│  │ ~5,800 LOC   │  │  Local + Hub   │  │  JSON-RPC client  │ │
+│  │ ~9,400 LOC   │  │  Local + Hub   │  │  JSON-RPC client  │ │
 │  │ 50+ queries  │  │  60s auto-sync │  │  ping + getAll    │ │
 │  │ Parameterized│  │  Coin configs  │  │  axios-based      │ │
 │  └──────┬───────┘  └───────┬────────┘  └───────────────────┘ │
@@ -57,7 +57,7 @@ The explorer sits at the end of the data pipeline. It reads indexed state from t
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server, SSL, Helmet, CORS, rate limiting, JSON-RPC router |
 | `src/XChainExplorer.js` | `XChainExplorer` | Main orchestrator: URL routing (130+ routes), request processing, response formatting, icon/relay handlers |
-| `src/db.js` | `Database` | All SQL queries (~5,800 lines), connection pool management, pagination, caching |
+| `src/db.js` | `Database` | All SQL queries (~9,400 lines), connection pool management, pagination, caching |
 | `src/config.js` | None | Configuration loading from hub or local config.json, 60-second auto-sync, coin/network discovery |
 | `src/utility.js` | `Utility` | BigNumber math, timer functions, sanitization (escapeLike, sanitizeInt), type checking |
 | `src/XChainHubConnector.js` | `XChainHubConnector` | JSON-RPC client for xchain-hub (ping, getAllConfig) |
@@ -74,7 +74,7 @@ The explorer sits at the end of the data pipeline. It reads indexed state from t
 | `content/css/` | Bootstrap, Highcharts, DataTables, and custom stylesheets |
 | `content/js/` | jQuery, Bootstrap JS, Highcharts, DataTables, QR code, custom scripts |
 | `content/charts/` | Chart template files (candlestick, market-depth, line) |
-| `content/images/` | 50+ PNG/ICO images for the web UI |
+| `content/images/` | PNG/ICO images for the web UI |
 | `content/icons/` | Token icon files (served via the `/icon` endpoint) |
 | `content/json/` | JSON data files |
 | `content/fonts/` | Web fonts |
@@ -189,7 +189,7 @@ See [WEBSOCKET.md](WEBSOCKET.md) for the full API reference.
 
 ## Database Layer
 
-The `Database` class (`src/db.js`, ~5,800 lines) is the largest component. Key patterns:
+The `Database` class (`src/db.js`, ~9,400 lines) is the largest component. Key patterns:
 
 ### Query Building
 

@@ -94,21 +94,21 @@ const result = await vm.execute({
 
 | Command | Description |
 |---|---|
-| `npm test` | Unit tests (580 tests, 30s timeout) |
-| `npm run test:all` | Unit + E2E tests (644 tests) |
+| `npm test` | Unit tests (487 tests, 30s timeout) |
+| `npm run test:all` | All suites (1,237 tests) |
 | `npm run test:e2e` | E2E tests only (64 tests) |
 | `npm run smoke` | Smoke tests (10 tests, < 5s) |
-| `npm run test:fuzz` | Fuzz / property-based tests (86 tests) |
-| `npm run test:chaos` | Chaos engineering tests (92 tests) |
+| `npm run test:fuzz` | Fuzz / property-based tests (53 tests) |
+| `npm run test:chaos` | Chaos engineering tests (76 tests) |
 | `npm run test:regression:smoke` | P0 regression; VM boot, sandbox, execution (11 tests, < 50ms) |
-| `npm run test:regression:core` | P0+P1 regression: + security, atomicity, determinism (45 tests, < 200ms) |
-| `npm run test:regression:full` | P0-P3 regression: full functional + integration (152 tests, < 1s) |
+| `npm run test:regression:core` | P0+P1 regression: + security, atomicity, determinism (31 tests, < 200ms) |
+| `npm run test:regression:full` | P0-P3 regression: full functional + integration (133 tests, < 1s) |
 | `npm run test:regression:nightly` | Regression + E2E + fuzz + chaos phase 1 |
 | `npm run test:regression:release` | All tests + mutation testing |
 | `npm run mutation` | Mutation testing (Stryker, full suite) |
 | `npm run bench:quick` | Pipeline + gateway benchmarks |
 
-**Total: 974 tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke.
+**Total: 1,237 tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke.
 
 ## Dependencies
 

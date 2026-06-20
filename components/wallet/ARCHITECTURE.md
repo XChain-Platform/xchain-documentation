@@ -104,18 +104,18 @@ The wallet's persisted state is a single AES-256-GCM-encrypted blob containing:
 
 | Collection | Schema | Purpose |
 |---|---|---|
-| `wallets` | `core/src/schemas/wallet.js` | Encrypted seed, derivation roots, settings; schema v2 supports per-address multisig configs |
+| `wallets` | `core/src/schemas/wallet.js` | Encrypted seed, derivation roots, settings; schema v2 embeds a `multisigs[]` array per wallet for per-address n-of-m configs |
 | `accounts` | `core/src/schemas/account.js` | BIP44 account groupings under a wallet |
 | `addresses` | `core/src/schemas/address.js` | Derived addresses with chain + script type + label |
 | `contacts` | `core/src/schemas/contact.js` | Saved address book |
 | `connectedSites` | `core/src/schemas/connectedSite.js` | Per-origin dApp permission grants |
-| `multisigs` | `core/src/schemas/multisigConfig.js` | n-of-m configurations, schema v2 |
 | `multisigSigningSessions` | `core/src/schemas/multisigSigningSession.js` | In-flight cosigner state |
 | `pendingTxs` | `core/src/schemas/pendingTx.js` | Queued broadcasts |
 | `pendingAirdrops` | `core/src/schemas/pendingAirdrop.js` | Multi-output airdrop progress |
-| `signers` | `core/src/schemas/signer.js` | Registered hardware / remote signers |
+| `signers` | `core/src/schemas/signer.js` | Registered hardware signers (trezor and ledger) |
 | `settings` | `core/src/schemas/settings.js` | Per-chain endpoints, auto-lock, locale, theme |
-| `watchlist` | `core/src/schemas/watchlistEntry.js` | Followed addresses |
+| `watchlistEntries` | `core/src/schemas/watchlistEntry.js` | Followed addresses |
+| `priceAlerts` | `core/src/schemas/priceAlert.js` | User-configured price-alert rules |
 
 Master key derivation: password → Argon2id (calibrated per device, floor 64 MiB × 3 iterations × 1 parallelism) → 32-byte master key → AES-256-GCM-decrypts the vault blob.
 
@@ -127,20 +127,22 @@ Schemas declare a `version` and a forward migration. `core/src/schemas/migration
 
 `core/src/signers/Signer.js` declares the abstract surface every signer implements:
 
-- `getPublicKey(path, chain)`
-- `signMessage(address, message)`
-- `signPsbt(psbt, inputs)`
-- `signMultisigPsbt(psbt, inputs, config)`: classical n-of-m
-- `participateInMuSig2(session, round)`: MuSig2 collaborative session
-- `displayName()` / `id()` / `firmwareVersion()`, identity and gating
+- `getPublicKey(params)`: derive a public key at a given BIP32 path for a chain
+- `signMessage(params)`: sign an arbitrary message
+- `signPsbt(params)`: sign a PSBT for single-key inputs
+- `signMultisigPsbt(params)`: classical n-of-m full-PSBT variant; returns PSBT with partial sigs added, not finalized
+- `signMultisigClassical(params)`: classical n-of-m single-input sighash variant
+- `signMusig2Round1(params)` / `signMusig2Round2(params)`: MuSig2 two-round protocol
+- `getAddresses(params)`: derive a range of addresses
+- `getStatus()`: check signer readiness (available / locked / disconnected / wrong-app / error)
+- `id` / `displayName` / `kind` / `requiresPhysicalConfirmation`, identity and gating
 
-Five concrete implementations:
+Four concrete implementations:
 
 - **`SoftwareSigner`**: derives keys from the unlocked vault, signs in the host process
-- **`TrezorSigner`**: Trezor Connect, all current models; `trezorFormat.js` adapts XChain PSBTs to Trezor's expected schema
-- **`LedgerSigner`**: `@ledgerhq/hw-app-btc` over WebHID; `ledgerFormat.js` adapts XChain PSBTs
-- **`RemoteSigner`**: pairs across shells (e.g., desktop signs a PSBT scanned from the web shell's QR); `signerPortProtocol.js` defines the message envelope
-- **`MultisigSigner`**: orchestrates classical n-of-m sessions and MuSig2 round protocol; built on top of `signMultisigPsbt` exposed by `xchain-sdk@1.13.0+`
+- **`TrezorSigner`** (in `@xchain-wallet/signers-trezor`): Trezor Connect, all current models; `trezorFormat.js` adapts XChain PSBTs to Trezor's expected schema
+- **`LedgerSigner`** (in `@xchain-wallet/signers-ledger`): `@ledgerhq/hw-app-btc` with a shell-supplied transport (WebHID on web/extension, node-HID on desktop); `ledgerFormat.js` adapts XChain PSBTs
+- **`RemoteSigner`**: proxies signing calls over an injected transport to wherever the live hardware signer lives (e.g., service worker to popup in the extension); `signerPortProtocol.js` defines the message envelope
 
 Hardware signers expose vendor-specific deferral errors when a feature isn't yet supported in firmware (e.g., MuSig2 nonce wiring on Trezor / Ledger), with a documented path to fall back to the software signer.
 

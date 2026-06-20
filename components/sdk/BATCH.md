@@ -58,7 +58,7 @@ builder.add('MINT', { tick: 'BTC.TOKEN', amount: 1000 });
 
 ### Convenience Methods
 
-The following convenience methods are shorthand for `.add(action, params)`. All return the builder for chaining. There are 20 convenience methods; `.batch()`, `.file()`, and `.deploy()` are intentionally omitted because BATCH, FILE, and DEPLOY actions are not permitted inside a BATCH (see Constraints below).
+The following convenience methods are shorthand for `.add(action, params)`. All return the builder for chaining. There are 21 convenience methods; `.batch()` and `.deploy()` are intentionally omitted because nested BATCH and DEPLOY actions are not permitted inside a BATCH (see Constraints below). FILE is permitted (at most one per BATCH), so `.file()` is included.
 
 | Method | Equivalent |
 |--------|-----------|
@@ -82,6 +82,7 @@ The following convenience methods are shorthand for `.add(action, params)`. All 
 | `.execute(params)` | `.add('EXECUTE', params)` |
 | `.deposit(params)` | `.add('DEPOSIT', params)` |
 | `.withdraw(params)` | `.add('WITHDRAW', params)` |
+| `.file(params)` | `.add('FILE', params)` |
 
 ---
 
@@ -146,8 +147,8 @@ The BATCH protocol enforces the following rules. Violations throw `SDKValidation
 |------------|------------|-------|
 | At least one action required | `BATCH_EMPTY` | Calling `.build()` on an empty builder |
 | No nested BATCH actions | `BATCH_CONSTRAINT` | BATCH inside BATCH is not allowed by the protocol |
-| No FILE actions | `BATCH_CONSTRAINT` | FILE requires its own dedicated transaction |
 | No DEPLOY actions | `BATCH_CONSTRAINT` | DEPLOY payloads are too large for BATCH |
+| At most 1 FILE action | `BATCH_CONSTRAINT` | One rawData payload per transaction; `details.count` contains the actual count |
 | At most 1 MINT action | `BATCH_CONSTRAINT` | `details.count` contains the actual count |
 | At most 1 ISSUE action | `BATCH_CONSTRAINT` | `details.count` contains the actual count |
 
@@ -242,7 +243,7 @@ console.log(result.psbt); // base64-encoded PSBT ready to sign
 
 When `.build()` is called, the following steps happen in sequence:
 
-1. `_validate()` checks BATCH protocol constraints (empty, nested BATCH, FILE, MINT/ISSUE counts).
+1. `_validate()` checks BATCH protocol constraints (empty, nested BATCH, DEPLOY, FILE/MINT/ISSUE counts).
 2. For each queued action, `sdk.actions.createAction({ action, params })` is called. This runs the full pipeline: field validation → format selection → serialization. The result's `actionString` is collected.
 3. All `actionString` values are joined with `;`: `SEND|0|BTC.TOKEN|100|addr1...;SEND|0|BTC.TOKEN|50|addr2...`
 4. The joined string is passed as the `command` param to `sdk.createAction({ action: 'BATCH', params: { command }, encoder: encoderOpts })`, which serializes the outer BATCH action: `BATCH|0|SEND|0|...;SEND|0|...`

@@ -25,7 +25,7 @@ Every Bitcoin-family blockchain occasionally produces competing chains of blocks
 
 ### Decoder
 
-The decoder polls the coin node every ~5 seconds. After fetching the next expected block, it checks whether the block's `previousblockhash` matches the hash of the last block it recorded. If they do not match, the decoder knows a reorg has occurred.
+The decoder polls the coin node every ~1 second. After fetching the next expected block, it checks whether the block's `previousblockhash` matches the hash of the last block it recorded. If they do not match, the decoder knows a reorg has occurred.
 
 On detecting a reorg, the decoder:
 1. Records a reorg event in the `events` table of the Decoder DB (JSON payload with block number).
@@ -46,7 +46,7 @@ The UTXO tracker maintains a per-chain undo history (BTC: 12 blocks, LTC: 48 blo
 
 ### Indexer Rollback
 
-The indexer rollback is the most complex operation. It uses an atomic database transaction that touches 40+ tables:
+The indexer rollback is the most complex operation. It uses an atomic database transaction that touches 80+ tables:
 
 1. Identifies all records with `action_index` or `block_index` greater than or equal to the reorg block number.
 2. Deletes those records from every affected table in a single DB transaction.

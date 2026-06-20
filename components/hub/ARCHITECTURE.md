@@ -21,7 +21,7 @@ xchain-explorer     xchain-sync  ->  Validator replicas
                     xchain-hub  <-->  P2P Validator Network
                          |
                     - Config oracle (all services poll)
-                    - Price oracle (CoinGecko, CoinMarketCap)
+                    - Price oracle (CoinGecko, Kraken, CoinMarketCap)
                     - Cross-chain attestation
                     - SWAP lifecycle tracking
                     - Reorg propagation
@@ -114,7 +114,7 @@ Governance       --proposal:passed-->  (parameter application)
 | `ValidatorIdentity.js` | `ValidatorIdentity` | Ed25519 key management: signing, verification, key generation |
 | `OracleRound.js` | `OracleRound` | Oracle round lifecycle: timer, price fetching, submission broadcast |
 | `OracleConsensus.js` | `OracleConsensus` | PBFT consensus for price finalization: trimmed median, propose/prepare/commit |
-| `PriceFetcher.js` | `PriceFetcher` | External price API client: CoinGecko and CoinMarketCap |
+| `PriceFetcher.js` | `PriceFetcher` | External price API client: CoinGecko and Kraken (both keyless, always active) plus CoinMarketCap (optional, when `COINMARKETCAP_API_KEY` is set) |
 | `CrossChainEngine.js` | `CrossChainEngine` | PBFT attestation for cross-chain actions with per-chain-pair validators |
 | `SwapTracker.js` | `SwapTracker` | Cross-chain SWAP lifecycle tracking: initiated → attested → executed → settled |
 | `ReorgHandler.js` | `ReorgHandler` | Blockchain reorg detection, PBFT consensus, and hub state rollback |
@@ -285,7 +285,7 @@ Every ORACLE_ROUND_INTERVAL (default 10 min):
 1. CHAIN TIP    OracleRound reads BTC chain tip from configs table
                   -> currentBtcBlockHeight, currentBtcBlockTime
 
-2. FETCH        PriceFetcher queries CoinGecko + CoinMarketCap
+2. FETCH        PriceFetcher queries CoinGecko + Kraken (keyless) + CoinMarketCap (if key set)
                   -> 3 coins x 12 fiats = 36 pairs per source
                   -> compute local median across sources
 
@@ -345,12 +345,13 @@ After consensus finalizes a round, the OraclePublisher takes over:
 
 | Source | Coverage | Requires API Key |
 |---|---|---|
-| CoinGecko | 3 coins x 12 fiats (single API call via `vs_currencies`) | Optional (rate limits apply) |
+| CoinGecko | 3 coins x 12 fiats (single API call via `vs_currencies`) | Optional (rate limits apply without a key) |
+| Kraken | Subset of the 36 pairs that Kraken lists for these three coins (pairs not listed fall back to CoinGecko) | No (public ticker, always active) |
 | CoinMarketCap | 3 coins x 12 fiats (single API call via `convert`) | Yes (`COINMARKETCAP_API_KEY`) |
 
 Supported fiat currencies: USD, CAD, AUD, MXN, GBP, JPY, CNY, CHF, BRL, INR, EUR, KRW.
 
-The local price is the median across available sources. If only one source is available, its price is used directly.
+CoinGecko and Kraken are both keyless, so every hub has two uncorrelated upstreams out of the box. CoinMarketCap is added as a third source only when `COINMARKETCAP_API_KEY` is configured. The local price for each pair is the median of values from all available sources.
 
 ## Hub DB Sync Channel
 

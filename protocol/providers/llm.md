@@ -55,7 +55,7 @@ Envelope size is bounded by the registry's `max_request_bytes` (8192).
 - `claude-sonnet-4-6`
 - `claude-opus-4-7`
 
-Validators pick a model at call time via `LLM_DEFAULT_MODEL` env (must be in the allow-list) or the first entry of the allow-list. The selected model is echoed back in the response's `META` field for audit. The `judge_model` (default `claude-haiku-4-5`) is run at `temperature=0` to evaluate semantic equivalence across candidate responses.
+The fetch model is resolved from the block-anchored provider config at the request's block (the `pinnedModel` supplied by the leader), ensuring every validator uses the same model for the same request. When no pinned value is present (non-consensus callers), the first entry of the allow-list is used. There is no `LLM_DEFAULT_MODEL` env override in the consensus fetch path; that env var was removed to eliminate per-operator divergence. The selected model is echoed back in the response's `META` field for audit. The `judge_model` (default `claude-haiku-4-5`) is run at `temperature=0` to evaluate semantic equivalence across candidate responses.
 
 ## Consensus
 

@@ -44,7 +44,7 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 │  │ precheck.js  │         │  ModuleService     │                      │
 │  │ Docker check │         │  cloneGit()        │                      │
 │  │ Dir creation │         │  buildAndUp()      │                      │
-│  │ LevelDB open │         │  uninstallModule() │                      │
+│  │ MariaDB open │         │  uninstallModule() │                      │
 │  │ Version fetch│         └─────────┬─────────┘                      │
 │  └──────────────┘                   │                                 │
 │                          ┌──────────┼──────────┐                     │
@@ -61,8 +61,8 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 │                   └─────────┘ └──────────┘ └──────────┘             │
 │                                                                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
-│  │  LevelUpDb   │  │  state.js    │  │  constants   │               │
-│  │  MC key store│  │  singletons  │  │  enums/paths │               │
+│  │ MariaDbStore │  │  state.js    │  │  constants   │               │
+│  │  modules tbl │  │  singletons  │  │  enums/paths │               │
 │  └──────────────┘  └──────────────┘  └──────────────┘               │
 └───────────────────────────────────────────────────────────────────────┘
 ```
@@ -73,9 +73,9 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 |---|---|
 | `src/index.js` | Entry point: loads dotenv, calls `parseCommand()` |
 | `src/cli.js` | Commander.js CLI definitions (21 commands, global options, preAction hook) |
-| `src/precheck.js` | Pre-command validation (Docker, directories, LevelDB, versions, networks) |
-| `src/state.js` | Singleton state (LevelDB instance, cached modules, verbose flag) |
-| `src/LevelUpDb.js` | LevelDB wrapper for module→container ID persistence |
+| `src/precheck.js` | Pre-command validation (Docker, directories, MariaDB connection, versions, networks) |
+| `src/state.js` | Singleton state (MariaDB pool instance, cached modules, verbose flag) |
+| `src/MariaDbStore.js` | MariaDB-backed store for module to container ID persistence; persists mappings in the `xchain_node.modules` table |
 | `src/config/constants.js` | Enums (Coin, Network, XChainService), paths, git URLs |
 | `src/services/ConfigService.js` | Path/naming helpers, config generation, arg parsing, port validation |
 | `src/services/DockerService.js` | Docker CLI wrappers (network, build, run, start, stop, exec, logs, monitor) |
@@ -89,7 +89,7 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 | `src/services/BootstrapService.js` | Bootstrap snapshot create/restore with SHA-256 verification; creates Ed25519 signatures on `bootstrap create` when `XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY` is set, and enforces signature verification on restore (fail-closed by default) |
 | `src/services/TelemetryService.js` | Anonymous usage telemetry: collects install ID, version, running services, and OS info; sends to the hub collector; default-on with opt-out via `--no-telemetry`, `XCHAIN_NODE_NO_TELEMETRY=1`, or a persisted preference |
 | `src/services/CredentialsService.js` | Persists per-OS-user MariaDB credentials in `~/.xchain-node/credentials.json`; stores both the bundled-DB password and optional external-DB connection details |
-| `src/services/DiscoveryService.js` | Auto-discovers existing xchain-node Docker containers and re-registers them in LevelDB (`sync` command); classifies containers by naming convention to recover state after a LevelDB loss |
+| `src/services/DiscoveryService.js` | Auto-discovers existing xchain-node Docker containers and re-registers them in the MariaDB modules table (`sync` command); classifies containers by naming convention to recover state after a database loss |
 | `src/services/ValidatorService.js` | Validator-mode onboarding: generates Ed25519 signing keys and writes validator config files (`validator init`); reads and displays persisted validator settings (`validator status`); injects resulting env vars into the hub container |
 | `src/operations/moduleOperations.js` | Bulk operations (install/start/stop/restart/reset/exec/logs/monitor) |
 | `src/HubConnector.js` | JSON-RPC 2.0 client for xchain-hub |
@@ -105,25 +105,34 @@ Every command runs `preCheck()` before execution:
 
 1. Verify Docker is installed and accessible (`docker --version` + `docker ps`)
 2. Create runtime directories: `data/`, `modules/`, `tmp/`, `tmp/containers_files/`
-3. Open LevelDB database (`data/xchain_node/`)
-4. Fetch remote service versions from GitHub (for install/update commands)
-5. Query installed modules status from LevelDB + Docker inspect
-6. Create base Docker network (`xchain-node`)
-7. Install or update xchain-hub
-8. Update hub and explorer configurations with current service endpoints
+3. Create base Docker network (`xchain-node`)
+4. Start or verify the shared MariaDB container
+5. Ensure the per-OS-user `xchain_node` database credentials exist, then open a MariaDB connection
+6. Scan running Docker containers and reconcile the `xchain_node.modules` table
+7. Fetch remote service versions from GitHub (for install/update commands only)
+8. Query installed modules status
+9. Install or update xchain-hub
+10. Update hub and explorer configurations with current service endpoints (skipped for read-only commands)
 
-## LevelDB Key Schema
+## Module State Schema
 
-xchain-node uses a single LevelDB database to map installed modules to their Docker container IDs:
+xchain-node uses a MariaDB table to map installed modules to their Docker container IDs. The table lives in the `xchain_node` database and is created automatically on first run:
 
-| Key Format | Example | Value |
-|---|---|---|
-| `MC{module};{coin};{network}` | `MCxchain-encoder;bitcoin;mainnet` | 64-char hex container ID |
-| `MC{module};;` | `MCxchain-hub;;` | 64-char hex container ID (shared service) |
+```sql
+CREATE TABLE IF NOT EXISTS modules (
+    module       VARCHAR(64)  NOT NULL,
+    coin         VARCHAR(32)  NOT NULL DEFAULT '',
+    network      VARCHAR(32)  NOT NULL DEFAULT '',
+    container_id VARCHAR(128) NOT NULL,
+    created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (module, coin, network)
+)
+```
 
-- `MC` prefix stands for "Module Container"
-- Shared services (hub, explorer, database) use empty coin and network fields
+- Shared services (hub, explorer, database) use empty string for `coin` and `network`
 - `getAllModuleContainers(coin, network)` always includes shared services in filtered results
+- `MariaDbStore` is the class that wraps this table; it replaced the previous LevelDB-based store
 
 ## Runtime Directory Structure
 
@@ -139,7 +148,7 @@ xchain-node/
 │   ├── xchain-regtest-miner/
 │   └── xchain-e2e-test/
 ├── data/
-│   ├── xchain_node/            # LevelDB (module→container ID mappings)
+│   ├── xchain_node/            # (legacy path; state now stored in MariaDB xchain_node.modules)
 │   └── node/{coin}/{network}/  # Crypto node blockchain data
 ├── config/                     # Per-coin/network config overrides
 │   ├── bitcoin-mainnet

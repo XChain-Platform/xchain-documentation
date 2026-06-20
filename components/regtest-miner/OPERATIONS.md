@@ -28,7 +28,7 @@ On startup, the miner:
 
 When managed by xchain-node, the regtest miner runs as a Docker container:
 
-- **Image**: Alpine Node 20 with non-root user
+- **Image**: Alpine Node 22 with non-root user
 - **Healthcheck**: JSON-RPC `ping` call
 - **Security headers**: Helmet (CSP, X-Frame-Options, etc.)
 - **CORS**: Enabled for cross-origin access
@@ -62,8 +62,40 @@ Health check endpoint.
 ```json
 {
     "jsonrpc": "2.0",
-    "result": { "status": "success" },
+    "result": { "status": "success", "ready": true },
     "id": 1
+}
+```
+
+The `ready` field reflects wallet preparation (mine-readiness), not just that the port is listening. Callers that depend on mining should gate on `ready: true`.
+
+### `status`
+
+Return the current mining loop state for operator diagnostics and CI health checks.
+
+**Request:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "status",
+    "id": 2
+}
+```
+
+**Response:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "wallet_ready": true,
+        "mempool_size": 0,
+        "blocks_mined": 42,
+        "last_mine_at": 1718900000000,
+        "consecutive_errors": 0
+    },
+    "id": 2
 }
 ```
 
@@ -81,7 +113,7 @@ Send regtest coins to a specified address.
         "address": "bcrt1q...",
         "amount": 1.0
     },
-    "id": 2
+    "id": 3
 }
 ```
 
@@ -103,7 +135,7 @@ Broadcast multiple transactions to stress-test the mempool.
     "params": {
         "tx_quantity": 100
     },
-    "id": 3
+    "id": 4
 }
 ```
 
@@ -112,6 +144,20 @@ Broadcast multiple transactions to stress-test the mempool.
 | `tx_quantity` | number | Yes | Number of transactions to create (1–50,000) |
 
 This method pauses auto-mining during execution and restores it automatically when done. A mutex prevents concurrent calls.
+
+### `pause_mining`
+
+Pause the auto-mine loop. Any block already in flight at the time of the call completes normally. Use `continue_mining` to resume.
+
+**Request:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "pause_mining",
+    "id": 5
+}
+```
 
 ### `continue_mining`
 
@@ -123,7 +169,7 @@ Resume auto-mining after a pause.
 {
     "jsonrpc": "2.0",
     "method": "continue_mining",
-    "id": 4
+    "id": 6
 }
 ```
 
@@ -141,7 +187,7 @@ Override timer durations at runtime.
         "max_time": 60000,
         "tx_added_time": 10000
     },
-    "id": 5
+    "id": 7
 }
 ```
 
@@ -160,7 +206,38 @@ Reset timers to defaults (30,000 / 5,000 ms).
 {
     "jsonrpc": "2.0",
     "method": "set_default_mining_time",
-    "id": 6
+    "id": 8
+}
+```
+
+### `generate_blocks`
+
+Mine a specific number of empty blocks immediately, regardless of mempool state. Used by e2e tests to advance block height past time-locked states (such as `STAKE` activation delays).
+
+**Request:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "generate_blocks",
+    "params": {
+        "count": 10
+    },
+    "id": 9
+}
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `count` | number | Yes | Number of blocks to mine (must be a positive integer) |
+
+**Response:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "result": { "count": 10, "hashes": ["..."] },
+    "id": 9
 }
 ```
 

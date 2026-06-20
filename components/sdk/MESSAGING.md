@@ -59,7 +59,7 @@ Parameters:
 - `plaintext` (string); Message to encrypt
 - `recipientPubkey` (string|Buffer); Recipient's compressed public key (33 bytes hex)
 
-The ciphertext contains: `ephemeralPubkey(33) + iv(12) + authTag(16) + encryptedData`
+The ciphertext contains: `version(1) + ephemeralPubkey(33) + iv(12) + authTag(16) + encryptedData`
 
 ### Decrypt
 

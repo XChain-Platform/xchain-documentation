@@ -358,7 +358,7 @@ Returns `400` if `:dbType` is invalid. Returns `404` if the chain/network/dbType
 
 ### `GET /snapshot/:dbType/:chain/:network`
 
-Downloads a full database snapshot for bootstrap. Rate-limited to `SNAPSHOT_RATE_FULL` per hour per IP (default: 1). `:dbType` must be `indexer` or `decoder`.
+Downloads a full database snapshot for bootstrap. Rate-limited to `SNAPSHOT_RATE_FULL` per hour per IP (default: 12). `:dbType` must be `indexer` or `decoder`.
 
 **Request:**
 ```
@@ -378,7 +378,7 @@ The response body is a gzip-compressed JSON stream containing all table data in 
 
 ### `GET /snapshot/:dbType/:chain/:network/since/:blockHeight`
 
-Downloads an incremental snapshot containing all data since the specified block height. Rate-limited to `SNAPSHOT_RATE_INCR` per hour per IP (default: 10). `:dbType` must be `indexer` or `decoder`.
+Downloads an incremental snapshot containing all data since the specified block height. Rate-limited to `SNAPSHOT_RATE_INCR` per hour per IP (default: 600). `:dbType` must be `indexer` or `decoder`.
 
 **Request:**
 ```
@@ -538,7 +538,7 @@ An optional `?sync_mode=` query parameter controls which tables are sent for `db
 - `sync_mode=full` (default), all tables for the chain
 - `sync_mode=infra-only`: only cross-chain infrastructure tables (`stakes`, `delegations`, `validator_rewards`, `prices`, `reward_claims`, `index_pubkeys`, `index_addresses`, `index_actions`, `index_statuses`, `index_fiats`)
 
-Per-IP connection limit: `WS_MAX_PER_IP` (default: 3).
+Per-IP connection limit: `WS_MAX_PER_IP` (default: 100).
 
 ### Message Types (Server to Client)
 

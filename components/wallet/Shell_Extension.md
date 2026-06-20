@@ -32,11 +32,12 @@ Background processes:
 {
     "manifest_version": 3,
     "name": "XChain Wallet",
-    "version": "0.1.0.6",
-    "version_name": "1.0.0-rc.6",
-    "permissions": ["storage"],
+    "version": "0.333.0",
+    "version_name": "0.333.0",
+    "permissions": ["storage", "sidePanel", "notifications", "alarms"],
     "host_permissions": [],
     "background": { "service_worker": "background.js", "type": "module" },
+    "side_panel": { "default_path": "sidepanel.html" },
     "content_scripts": [{
         "matches": ["http://*/*", "https://*/*"],
         "js": ["content/contentScript.js"],
@@ -53,7 +54,7 @@ Background processes:
 Deliberate choices:
 
 - **No `host_permissions`.** The wallet doesn't need to read or modify page state; only inject the provider script. `web_accessible_resources` carries the injection without granting host access.
-- **`storage` only.** No `tabs`, no `activeTab`, no `webRequest`, no `notifications` (browser-notifications use the SDK WebSocket layer instead). Smaller permission set = smaller audit surface = less scary CWS listing.
+- **Minimal permissions.** No `tabs`, no `activeTab`, no `webRequest`. `notifications` and `alarms` are included for in-app price alerts and timed actions; `sidePanel` enables the browser side-panel surface. No broad host access. Smaller permission set = smaller audit surface = less scary CWS listing.
 - **Versioning split.** Chrome's `version` is integer-tuple-only and rejects semver prerelease tags like `1.0.0-rc.6`. The wallet derives a Chrome-valid tuple from the wallet semver via `packages/core/scripts/derive-extension-version.js`: stable `M.m.p` → `M.m.p`; prerelease `M.m.p-rc.N` → `0.M.m.N`. The leading `0` keeps prereleases strictly below stable tuples in Chrome's upgrade ordering. `version_name` carries the human-readable semver.
 
 The 11-rule manifest audit (`packages/core/scripts/extension-manifest-audit.js`) gates every commit:
@@ -109,8 +110,7 @@ The injected script is built deterministically: same source → same bytes. Repr
 | `connect` | Origin requesting connect |
 | `signMessage` | Origin requesting message signature |
 | `signPsbt` | Origin requesting PSBT signature |
-| `signAction` | Origin requesting XChain action signature |
-| `sendAction` | Origin requesting sign + broadcast |
+| `signAction` | Origin requesting XChain action signature (with optional broadcast) |
 | `signIn` | Origin requesting Sign-In with XChain |
 | `internalSign` | Wallet itself initiating a sign (Send, Issue, etc.) |
 

@@ -22,7 +22,7 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 - **SSRF-protected relay**: proxy endpoint for external resources with private IP blocking
 - **WebSocket API**: real-time event streaming via `/{COIN}/api/websocket` with channel subscriptions, action-type filtering, lifecycle events (ORDER_MATCH, COINPAY_REQUIRED, etc.), catch-up on reconnect, and snapshot-on-subscribe
 - **Security headers**: Helmet middleware with Content Security Policy
-- **Raw parameterized SQL**: approximately 5,800 lines of query logic with no ORM, preventing SQL injection
+- **Raw parameterized SQL**: approximately 9,400 lines of query logic with no ORM, preventing SQL injection
 - **DataTables integration**: server-side pagination endpoints compatible with jQuery DataTables
 - **Highcharts integration**: candlestick, market depth, and line charts in the web UI
 - **Icon service**: serves token icons with automatic fallback to a default image
@@ -54,7 +54,7 @@ Create a `.env` file with the required environment variables (see [Configuration
 
 ```env
 HUB_API_HOST=localhost
-HUB_PORT=1984
+HUB_PORT=10000
 EXPLORER_API_PORT_HTTP=8080
 EXPLORER_API_PORT_HTTPS=8443
 ```
@@ -105,7 +105,7 @@ curl http://localhost:8080/BTC/api/status
 | `npm run test:boundary` | Boundary condition tests |
 | `npm run test:smoke` | Smoke tests |
 | `npm run test:security` | Security tests (SQL injection, SSRF, XSS prevention) |
-| `npm run test:perf` | Performance tests |
+| `npm run test:performance` | Performance tests |
 | `npm run test:chaos` | Chaos engineering tests |
 | `npm run test:mutation` | Mutation tests (StrykerJS) |
 | `npm run test:regression` | Regression test suite (P0 + P1 + P2 tiers) |

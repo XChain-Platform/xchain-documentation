@@ -12,6 +12,7 @@ This action publishes oracle price data on-chain. Version 0 anchors PBFT-consens
 | `VERSION`         | String  | Format version (`0`)                                               |
 | `ROUND`           | Integer | Oracle round number (= BTC block height that triggered the round)  |
 | `TIMESTAMP`       | Integer | `block_time` of the BTC block that triggered the round (seconds)   |
+| `BTC_BLOCK_HEIGHT`| Integer | BTC chain-tip height the round was anchored to; part of the signed canonical payload and the EQUIV activation anchor |
 | `PAIR_COUNT`      | Integer | Number of COIN/FIAT price pairs in this payload                    |
 | `PAIR_ID`         | String  | COIN/FIAT pair identifier, e.g. `BTC/USD` (repeated per pair)      |
 | `PAIR_PRICE`      | String  | Price as decimal string, 8 decimal places (repeated per pair)      |

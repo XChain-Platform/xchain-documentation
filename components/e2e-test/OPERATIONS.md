@@ -16,6 +16,7 @@
 | xchain-encoder | Running and accepting transaction encoding requests |
 | xchain-decoder | Running and polling the coin node for new blocks |
 | xchain-indexer | Running and processing decoded transactions |
+| xchain-explorer | Running and accepting JSON-RPC connections |
 | xchain-hub | Running with valid config for all services |
 | xchain-regtest-miner | Running with fund capability |
 | MariaDB | Running with decoder and indexer databases created |
@@ -26,7 +27,7 @@
 
 ```bash
 # ─── Live Stack Tests ─────────────────────────────────────────────
-npm test                          # Full action suite (27 action types, --timeout 0)
+npm test                          # Full action suite (all action test files, --timeout 0)
 npm run test:e2e                  # E2E meta-tests (37 tests, --timeout 0)
 npm run test:smoke                # Quick bootstrap + connectivity (16 tests, 30s timeout)
 
@@ -148,10 +149,12 @@ docker-compose up --exit-code-from xchain-e2e-test
 | `Can't connect to the node` | Coin node not running or wrong `NODE_URL`/`NODE_PORT` | Start the coin node; verify `.env` |
 | `Can't connect to the XChain Utxo Tracker module` | UTXO tracker not running | Start `xchain-utxo-tracker`; verify port |
 | `Can't connect to the XChain Encoder module` | Encoder not running | Start `xchain-encoder`; verify port |
+| `Can't connect to the XChain Decoder module` | Decoder not running | Start `xchain-decoder`; verify `DECODER_URL`/`DECODER_API_PORT` |
 | `Can't connect to the XChain Indexer module` | Indexer not running | Start `xchain-indexer`; verify port |
+| `Can't connect to the XChain Explorer module` | Explorer not running | Start `xchain-explorer`; verify `EXPLORER_URL`/`EXPLORER_API_PORT` |
 | `Can't connect to the XChain Indexer Database` | MariaDB not running or wrong credentials | Start MariaDB; verify `INDEXER_DB_*` env vars |
 | `Can't connect to the XChain Regtest Miner module` | Regtest miner not running | Start `xchain-regtest-miner`; verify port |
-| `Can't connect to the XChain Hub` | Hub not running (and direct env vars not set) | Start hub or set all 17 direct env vars |
+| `Can't connect to the XChain Hub` | Hub not running (and direct env vars not set) | Start hub or set all 21 direct env vars |
 | `There was an error trying to get all the configs from the hub` | Hub returned null config for coin/network | Verify hub has config for the specified coin/network |
 | `Refusing to run tests against mainnet` | `NETWORK=mainnet` without `ALLOW_MAINNET=true` | Set `ALLOW_MAINNET=true` or use regtest/testnet |
 

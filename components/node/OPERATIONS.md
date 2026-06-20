@@ -27,14 +27,14 @@ Arguments are order-independent: `xchain-node start bitcoin mainnet xchain-encod
 | Command | Syntax | Description |
 |---|---|---|
 | `install` | `install <branch> <service> [chain] [network]` | Clone service repo, build Docker image, create and start container |
-| `uninstall` | `uninstall <service> [chain] [network]` | Stop, kill, and remove container; delete LevelDB entry and module directory |
+| `uninstall` | `uninstall <service> [chain] [network]` | Stop, kill, and remove container; delete module state entry and module directory |
 | `update` | `update <service> [chain] [network] [branch]` | Stop container, pull new code, rebuild image, start with same configuration |
-| `start` | `start <service> [chain] [network]` | Start stopped container(s) by looking up container IDs from LevelDB |
+| `start` | `start <service> [chain] [network]` | Start stopped container(s) by looking up container IDs from the module state table |
 | `stop` | `stop <service> [chain] [network]` | Stop running container(s) |
 | `restart` | `restart <service> [chain] [network]` | Restart container(s) |
 | `reset` | `reset <service> <chain> <network>` | Stop containers, clear data (volumes or databases), restart |
 | `ps` | `ps` | Display status table of all installed services with versions and ports |
-| `sync` | `sync` | Scan Docker for xchain-node containers and register any missing in LevelDB |
+| `sync` | `sync` | Scan Docker for xchain-node containers and register any missing in the module state table |
 
 ### Logging & Monitoring
 
@@ -86,14 +86,14 @@ When `all` is used, the command expands to every valid combination. Regtest-only
 
 When `xchain-node install master all bitcoin regtest` is executed:
 
-1. **Pre-flight checks**: Docker verification, directory creation, LevelDB open, version fetch
+1. **Pre-flight checks**: Docker verification, directory creation, MariaDB connection open, version fetch
 2. **Docker network creation**: creates `xchain-node-bitcoin-regtest` network
 3. **Database provisioning**: pulls MariaDB image, creates shared database container
 4. **Module installation** (for each service in dependency order):
    - Clone the service repository from GitHub at the specified branch
    - Build a Docker image tagged with the naming convention
    - Create and start a container with generated environment variables
-   - Store the container ID in LevelDB
+   - Store the container ID in the module state table
 5. **Database setup**: create databases and users for decoder and indexer
 6. **Hub/Explorer configuration**: update hub and explorer with service endpoint information
 
@@ -112,9 +112,9 @@ Key Docker operations:
 
 ## Stopping
 
-Use `xchain-node stop` to stop containers. LevelDB entries are preserved, containers can be restarted later with `xchain-node start`.
+Use `xchain-node stop` to stop containers. Module state entries are preserved, and containers can be restarted later with `xchain-node start`.
 
-Use `xchain-node uninstall` to fully remove containers, images, and LevelDB entries.
+Use `xchain-node uninstall` to fully remove containers, images, and module state entries.
 
 ## Multi-Pane Monitoring
 
@@ -159,7 +159,9 @@ Options:
 | Option | Description |
 |---|---|
 | `--p2p-addr <addr>` | This validator's public address in `host:port` form |
-| `--peers <list>` | Comma-separated list of peer `pubkey@host:port` entries |
+| `--p2p-port <port>` | P2P listen port (default 10001) |
+| `--seed-nodes <list>` | Comma-separated peer addresses in `host:port,host:port` form |
+| `--oracle-epoch-start <ms>` | Shared oracle epoch start (unix ms); must match the federation |
 | `--capabilities <list>` | Comma-separated capability names to advertise |
 | `--force` | Overwrite an existing validator config (generates a NEW key) |
 
@@ -206,27 +208,30 @@ lsof -i :{port}
 
 Update the port in the config file (`config/{coin}-{network}`) and reinstall the affected service.
 
-### LevelDB locked
+### MariaDB connection failure
 
 ```
-Error: IO error: lock /path/to/xchain_node/LOCK
+Error: Couldn't open the xchain_node MariaDB database
 ```
 
-Another xchain-node process is running, or a previous process crashed without releasing the lock. If no other process is running, remove the lock file manually:
+The shared MariaDB container is not running or the per-user credentials are stale. Start the database container and retry:
 
 ```bash
-rm data/xchain_node/LOCK
+xchain-node start database
 ```
 
-### Container ID not found in LevelDB
+If the container is running but the credentials are wrong, remove `~/.xchain-node/credentials.json` to trigger a re-provisioning on the next command.
+
+### Container not found in module state
 
 ```
-Error: Key not found in database [MCxchain-encoder;bitcoin;mainnet]
+Error: container not found
 ```
 
-The service was never installed, or its LevelDB entry was removed. Re-install the service:
+The service was never installed, or its row in the `xchain_node.modules` table was removed. Use `xchain-node sync` to reconcile the table against running Docker containers, or re-install the service:
 
 ```bash
+xchain-node sync
 xchain-node install master xchain-encoder bitcoin mainnet
 ```
 

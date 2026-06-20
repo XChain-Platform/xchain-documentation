@@ -13,11 +13,11 @@ Captures all token movements in the block.
 
 **Source tables:**
 
-| Table | Fields | What it records |
+| Table | Fields hashed (resolved strings, not raw IDs) | What it records |
 |---|---|---|
-| `credits` | action_index, address_id, tick_id, amount | Tokens added to an address (receives, mints, order fills) |
-| `debits` | action_index, address_id, tick_id, amount | Tokens removed from an address (sends, burns, fee payments) |
-| `escrows` | action_index, address_id, tick_id, amount | Tokens locked in pending operations (orders, dispensers, swaps) |
+| `credits` | action_index, address, tick, amount | Tokens added to an address (receives, mints, order fills) |
+| `debits` | action_index, address, tick, amount | Tokens removed from an address (sends, burns, fee payments) |
+| `escrows` | action_index, address, tick, amount | Tokens locked in pending operations (orders, dispensers, swaps) |
 
 The ledger hash verifies that every token movement (every credit, debit, and escrow) is identical between two indexers. If two indexers produce the same ledger hash for a block, their token balances are guaranteed to be identical at that point.
 
@@ -27,9 +27,9 @@ Captures all XChain actions decoded and processed in the block.
 
 **Source tables:**
 
-| Table | Fields | What it records |
+| Table | Fields hashed (resolved strings, not raw IDs) | What it records |
 |---|---|---|
-| `actions` | action_index, tx_index, action_id | Every ACTION processed (SEND, ISSUE, ORDER, etc.) |
+| `actions` | action_index, tx_index, action | Every ACTION processed (SEND, ISSUE, ORDER, etc.) |
 
 The actions hash verifies that both indexers processed the same set of actions in the same order. This catches differences in transaction decoding, action parsing, or protocol activation.
 
@@ -39,14 +39,14 @@ Captures all smart contract activity in the block.
 
 **Source tables:**
 
-| Table | Fields | What it records |
+| Table | Fields hashed (resolved strings, not raw IDs) | What it records |
 |---|---|---|
-| `contracts` | action_index, source_id, code_hash, status_id | New contract deployments |
+| `contracts` | action_index, source_address, code_hash, status | New contract deployments |
 | `contract_state` | contract_index, state_key, state_value | Contract state changes (final value per key only) |
-| `contract_executions` | action_index, contract_index, gas_used, status_id, emitted_count | Contract execution results |
+| `contract_executions` | action_index, contract_index, caller_address, gas_used, status, emitted_count | Contract execution results |
 | `contract_emissions` | execution_index, emitted_action, action_index, position | Actions emitted by contracts |
-| `deposits` | action_index, contract_index, source_id, tick_id, amount | Token deposits into contract custody |
-| `withdrawals` | action_index, contract_index, source_id, tick_id, amount | Token withdrawals from contract custody |
+| `deposits` | action_index, contract_index, source_address, tick, amount, status | Token deposits into contract custody |
+| `withdrawals` | action_index, contract_index, source_address, tick, amount, status | Token withdrawals from contract custody |
 
 **Note on contract_state:** Only the **final value** of each key written in the block is included in the hash. If a contract writes to the same key multiple times in one block, only the last write matters. This makes the hash independent of whether historical state rows have been pruned.
 

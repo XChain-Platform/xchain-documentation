@@ -44,7 +44,7 @@ Vault contents include the encrypted seed, derivation roots, accounts, addresses
 
 Two mnemonic formats are supported on import:
 
-- **BIP39**: 12 or 24 words, validated against the BIP39 wordlist by `@scure/bip39`. Generation always emits 24 words. Optional 25th-word passphrase is offered on the create flow and on import.
+- **BIP39**: 12, 15, 18, 21, or 24 words, validated against the BIP39 wordlist by `@scure/bip39`. Generation defaults to 12 words (128-bit entropy); a caller may request 24 words (256-bit) by passing a higher `strengthBits` value. Optional 25th-word passphrase is offered on the create flow and on import.
 - **Counterwallet legacy**: 12 words from a non-standard wordlist. Implemented in-house at `core/src/crypto/counterwallet.js` + `counterwallet-wordlist.js` because the wordlist isn't published in any standardized package.
 
 Both flows derive a BIP32 seed and store the encrypted seed in the vault. The plaintext mnemonic is shown to the user during create + view-private-key flows, both gated behind explicit confirmation, and is never persisted in plaintext.
@@ -81,8 +81,10 @@ class Signer {
     getPublicKey(path, chain)                  // for receive-address derivation
     signMessage(address, message)              // for SIGN_IN, dApp signMessage
     signPsbt(psbt, inputs)                     // single-key flows
-    signMultisigPsbt(psbt, inputs, config)     // classical n-of-m
-    participateInMuSig2(session, round)        // MuSig2 round protocol
+    signMultisigPsbt(params)                   // classical n-of-m: full-PSBT variant
+    signMultisigClassical(params)              // classical n-of-m: single-input sighash variant
+    signMusig2Round1(params)                   // MuSig2 round 1: generate public nonce
+    signMusig2Round2(params)                   // MuSig2 round 2: produce partial signature
 }
 ```
 
@@ -128,12 +130,12 @@ Pairs across shells. Use case: the user keeps the seed on the desktop app (highe
 - **Transport**: `signerPortProtocol.js` defines the request envelope (PSBT + chain + path) and response envelope (signed PSBT or deferral error)
 - **Trade-offs**: adds an authenticated round-trip to the user-confirmed device for each sign; recovery from a flaky channel falls back to the software signer
 
-### `MultisigSigner`
+### Multisig orchestration (Phase 4+)
 
-Orchestrates classical n-of-m sessions and MuSig2 round protocol on top of an underlying signer (typically `SoftwareSigner`). See [Multisig](MULTISIG.md) for the full session state machine.
+A dedicated `MultisigSigner` class is planned (§17.5) but not yet implemented. Multisig signing is currently orchestrated through flows in `core/src/flows/multisigSigning.js`, which drive `SoftwareSigner` for each cosigner contribution. See [Multisig](MULTISIG.md) for the full session state machine.
 
-- **Classical n-of-m**: produces a partial PSBT; coordinator collects partials from cosigners and finalizes via `xchain-sdk` `wallet.signMultisigPsbt` (SDK 1.13.0+)
-- **MuSig2**: three-round protocol (commit → reveal → sign) implemented per cosigner; intermediate state persisted to `multisigSigningSessions`
+- **Classical n-of-m** (P2SH / P2WSH): one round. Each cosigner calls `signMultisigClassical` or `signMultisigPsbt`; the coordinator merges partial sigs and finalizes.
+- **MuSig2** (taproot): two rounds per BIP327. Round 1 collects a public nonce per cosigner (`signMusig2Round1`); round 2 collects a 32-byte partial signature (`signMusig2Round2`). Intermediate state is persisted to `multisigSigningSessions`.
 - **Transport**: paste-inbox or PSBT-QR (BIP21 envelope or chunked PSBT-QR). See [URI Schemes](URI_Schemes.md)
 
 ## Backup, recovery, and dry-run restore

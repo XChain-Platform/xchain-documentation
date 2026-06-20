@@ -7,7 +7,7 @@
 
 xchain-node is the CLI management and orchestration tool for the XChain Platform. It installs, configures, and manages all XChain services (and the underlying coin nodes (bitcoind, litecoind, dogecoind)) as Docker containers. Operators interact with the platform primarily through xchain-node rather than managing individual containers directly.
 
-Unlike other XChain services that run as long-lived processes, xchain-node is a command-line tool invoked on demand. It stores installation state in LevelDB and generates per-service Docker environment variables from a two-layer configuration system (hardcoded defaults + config file overrides).
+Unlike other XChain services that run as long-lived processes, xchain-node is a command-line tool invoked on demand. It stores installation state in a shared MariaDB database and generates per-service Docker environment variables from a two-layer configuration system (hardcoded defaults + config file overrides).
 
 ## Features
 
@@ -17,10 +17,10 @@ Unlike other XChain services that run as long-lived processes, xchain-node is a 
 - **Configuration generation**: two-layer system merges hardcoded defaults with per-coin/network config file overrides; generates 40+ environment variables per service including ports, database credentials, and service URLs
 - **Crypto node management**: downloads and builds Bitcoin Core, Litecoin, and Dogecoin binaries from official sources with SHA-256 hash verification
 - **Database orchestration**: provisions a shared MariaDB container, creates per-service databases and users, and manages subnet-based access permissions
-- **Bootstrap snapshots**: create and restore gzipped snapshots of UTXO tracker LevelDB, decoder, and indexer databases with SHA-256 integrity verification
+- **Bootstrap snapshots**: create and restore gzipped snapshots of UTXO tracker data, decoder, and indexer databases with SHA-256 integrity verification
 - **Multi-pane log monitoring**: Blessed-based terminal UI displays live log output from up to 6 containers simultaneously in a split-screen layout
-- **Pre-flight checks**: verifies Docker is installed and running, creates required directories, opens LevelDB, fetches remote version manifests, and creates Docker networks before any operation
-- **State persistence**: LevelDB maps each installed module to its 64-character Docker container ID using composite keys (`MC{module};{coin};{network}`)
+- **Pre-flight checks**: verifies Docker is installed and running, creates required directories, opens a MariaDB connection, fetches remote version manifests, and creates Docker networks before any operation
+- **State persistence**: MariaDB maps each installed module to its Docker container ID in the `xchain_node.modules` table, keyed by `(module, coin, network)`
 - **Hub and explorer auto-management**: automatically installs, updates, and configures the shared xchain-hub and xchain-explorer services as part of any installation
 - **execFile security**: all child process calls use `execFile` with array arguments instead of `exec` with shell strings, eliminating shell injection as a vulnerability class
 - **Input validation**: branch name, port, and container ID validation with strict regex enforcement
@@ -105,9 +105,7 @@ xchain-node monitor all bitcoin regtest
 | `dotenv` | Environment variable loading from `.env` files |
 | `enquirer` | Interactive prompts (password entry, confirmations) |
 | `follow-redirects` | HTTP redirect handling for crypto node downloads |
-| `levelup` | LevelDB high-level interface |
-| `leveldown` | LevelDB native bindings |
-| `mariadb` | MariaDB/MySQL client for database provisioning |
+| `mariadb` | MariaDB client for database provisioning and module state storage |
 | `semver` | Semantic version comparison for update detection |
 
 ### Development
@@ -118,7 +116,6 @@ xchain-node monitor all bitcoin regtest
 | `chai` | Assertion library |
 | `sinon` | Mocking, stubbing, and spying |
 | `proxyquire` | Module dependency injection for testing |
-| `memdown` | In-memory LevelDB backend for tests |
 | `@stryker-mutator/core` | Mutation testing framework |
 | `@stryker-mutator/mocha-runner` | Mocha integration for Stryker |
 

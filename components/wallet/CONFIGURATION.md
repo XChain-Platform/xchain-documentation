@@ -49,7 +49,7 @@ Signers are registered via the Pair Signer flow (`PairSignerForm.jsx`) and persi
 | Field | Purpose |
 |---|---|
 | `id` | Stable identifier across sessions |
-| `kind` | `software` / `trezor` / `ledger` / `remote` / `multisig` |
+| `kind` | `trezor` / `ledger` (only hardware signers get a `SignerRecord`; the software signer is implicit per wallet) |
 | `displayName` | User-facing label |
 | `publicKey` | For derivation cross-check |
 | `firmwareVersion` | Hardware signers; gated by `firmware-manifest.js` |

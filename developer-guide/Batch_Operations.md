@@ -25,7 +25,7 @@ Use the SDK's fluent batch builder to compose actions:
 
 ```js
 const XChainSDK = require('xchain-sdk');
-const sdk = new XChainSDK({ hubUrl: 'http://localhost:35500' });
+const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 const batchAction = sdk.batch()
   .issue({ tick: 'MYTOKEN', maxSupply: '1000000', maxMint: '1000', decimals: 8 })
@@ -131,7 +131,8 @@ const action = sdk.batch()
 | Max one ISSUE per batch | Only one token can be created or updated per batch transaction |
 | Max one MINT per batch | Only one MINT action allowed |
 | No nested BATCH | BATCH cannot contain another BATCH |
-| No FILE | The FILE action is not permitted inside a BATCH |
+| Max one FILE per batch | A BATCH can include at most one FILE action (one raw data payload per transaction) |
+| No DEPLOY | The DEPLOY action is not permitted inside a BATCH |
 | All-or-nothing | If one action fails, the entire batch is invalid |
 
 ```js

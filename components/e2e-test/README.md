@@ -22,7 +22,7 @@ Each action test follows the same lifecycle:
 ## Features
 
 - **27 ACTION test suites**: ISSUE (V0–V5), SEND (V0–V3), MINT, DESTROY, ORDER, DISPENSER, SWAP, DIVIDEND, AIRDROP, FILE, MESSAGE, BROADCAST, ADDRESS, LINK, LIST, CALLBACK, BATCH, SWEEP, SLEEP, COINPAY, STAKE, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW
-- **7 service connectors**: BlockchainConnector (cross-fetch, Basic Auth), XChainUtxoTrackerConnector, XChainEncoderConnector, XChainIndexerConnector, XChainHubConnector (multi-endpoint failover), RegtestMinerConnector, and Database (MariaDB connection pool)
+- **9 service connectors**: BlockchainConnector (axios, Basic Auth), XChainUtxoTrackerConnector, XChainEncoderConnector, XChainDecoderConnector, XChainIndexerConnector, XChainExplorerConnector, XChainHubConnector (multi-endpoint failover), RegtestMinerConnector, and Database (MariaDB connection pool)
 - **Hub auto-discovery**: falls back to xchain-hub for service endpoint resolution when direct environment variables are not set
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on regtest (network configs via `CryptoNetworks.js`)
 - **P2SH two-step encoding**: `transactionHelper.js` detects when the encoder returns `encoding: "P2SH"` and automatically handles the two-transaction flow (fund + spend)
@@ -37,7 +37,7 @@ Each action test follows the same lifecycle:
 
 ### Service Connector Layer
 
-The test suite communicates with 7 platform services through dedicated connector classes:
+The test suite communicates with 9 service connectors through dedicated connector classes:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -45,14 +45,15 @@ The test suite communicates with 7 platform services through dedicated connector
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
 │  │ cryptoHelper  │  │ transaction  │  │ action helpers       │  │
-│  │ BIP39/BIP32   │  │ Helper       │  │ (27 modules)         │  │
+│  │ BIP39/BIP32   │  │ Helper       │  │ (36 modules)         │  │
 │  │ wallet mgmt   │  │ PSBT/P2SH    │  │ message construction │  │
 │  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘  │
 │         │                 │                      │               │
 │  ┌──────▼─────────────────▼──────────────────────▼───────────┐  │
 │  │              Service Connectors (src/)                     │  │
 │  │  BlockchainConnector     XChainEncoderConnector            │  │
-│  │  XChainUtxoTrackerConn   XChainIndexerConnector            │  │
+│  │  XChainUtxoTrackerConn   XChainDecoderConnector            │  │
+│  │  XChainIndexerConnector  XChainExplorerConnector           │  │
 │  │  XChainHubConnector      RegtestMinerConnector             │  │
 │  │  Database (MariaDB)                                        │  │
 │  └──────────────────────────┬────────────────────────────────┘  │
@@ -70,13 +71,14 @@ The test suite communicates with 7 platform services through dedicated connector
 
 ### Bootstrap Sequence
 
-The `initialCheck.test.js` Mocha root hook runs four phases before any test:
+The `initialCheck.test.js` Mocha root hook runs five phases before any test:
 
 | Phase | What It Does |
 |---|---|
 | **env-resolution** | Reads `.env` or queries xchain-hub for service endpoints; sets global `COIN`, `NETWORK`, `COIN_CODE`, `NETWORK_OBJECT` |
-| **connector-init** | Instantiates all 7 connectors and the MariaDB connection pool (limit 10) |
-| **service-pings** | Pings every service; throws descriptive errors if any are unreachable; configures 1-second mining intervals |
+| **connector-init** | Instantiates all 9 connectors and the MariaDB connection pool (limit 10) |
+| **service-pings** | Pings all 8 services (node, tracker, encoder, decoder, indexer, explorer, DB, miner); throws descriptive errors if any are unreachable; configures 1-second mining intervals |
+| **native-fee-price-seed** | Seeds XCHAIN/USD and {COIN}/USD prices so oracle-priced actions can run immediately |
 | **gas-token-check** | Creates the XCHAIN gas token via ISSUE if it doesn't exist in the indexer database |
 
 ### Polling Pattern
@@ -137,7 +139,7 @@ The test framework's own infrastructure is validated by tests that run without D
 
 The test suite resolves configuration in priority order:
 
-1. **Direct environment variables** (17 variables for all service endpoints)
+1. **Direct environment variables** (21 variables for all service endpoints)
 2. **Hub discovery**: if direct env vars are missing, queries `HUB_URL`/`HUB_PORT` for service config
 3. **Docker defaults**: database host defaults to `"mariadb"` (Docker Compose convention)
 

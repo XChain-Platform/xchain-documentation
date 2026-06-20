@@ -24,7 +24,7 @@ A few things to know when choosing a name:
 - **Names are unique per blockchain.** If someone already created a token called `GOLD` on Bitcoin, you cannot create another `GOLD` on Bitcoin. You could, however, create `GOLD` on Litecoin, since each chain has its own independent namespace.
 - **First come, first served.** The first valid creation wins the name. There is no registration process or approval; it is simply a race to be first.
 - **Case does not matter for lookups.** `MYTOKEN`, `mytoken`, and `MyToken` all refer to the same ticker. The name is stored as you typed it, but searches are case-insensitive.
-- **Certain characters are not allowed.** The ticker cannot contain `|`, `;`, `.`, or `/`. These are reserved for the protocol's own formatting.
+- **Certain characters are not allowed.** The ticker cannot contain `|`, `;`, or `/`. These are reserved for the protocol's own formatting. A period (`.`) is allowed and is used to create sub-tokens (see below), but it cannot appear at the start or end of a name.
 - **Some names are reserved.** The tickers `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved for the platform itself and cannot be issued by anyone except the platform's designated accounts.
 
 ---
@@ -94,11 +94,11 @@ Imagine you are launching a collectible token and you tell buyers "only 10,000 w
 
 Parameters you can lock include:
 
-- **Supply settings** (max supply, mint supply, max mint count), proves the token cannot be inflated
+- **Supply settings** (max supply, mint supply, max mint count): proves the token cannot be inflated
 - **Description**: proves the token's description cannot be swapped out
-- **Allow and block lists**: proves the access rules cannot be changed
+- **Minting**: prevents anyone from minting new supply, or from changing the mint supply amount
+- **Sleep**: prevents the token from ever being paused
 - **Callback settings**: proves the recall terms cannot be altered after the fact
-- **Owner transfer**: proves the token's ownership can never be transferred to another address
 
 Locking is a one-way door. Think carefully before locking anything. Once it is done, there is no going back. Not even for you.
 
@@ -112,7 +112,7 @@ The address that creates a token owns it. The owner can:
 - Lock parameters permanently
 - Transfer ownership to a different address
 
-Transferring ownership is done through an update to the token, changing the registered owner. If the owner transfer lock is set, ownership can never be moved, useful when you want to provably commit a token to a permanent, uncontrolled state.
+Transferring ownership is done through an update to the token, changing the registered owner.
 
 ---
 

@@ -68,8 +68,9 @@ The protocol uses a capability model: a v1/v2 stake auto-qualifies for every cap
 | `cross_chain`    | Cross-chain attestation             | 5,000 XCHAIN      |
 | `oracle_publish` | Publish price rounds to DOGE chain  | 500 XCHAIN        |
 | `attestation`    | Off-chain data fetch and attest     | 1,000 XCHAIN      |
+| `full_node`      | Verified full-node tier (entrance stake; also requires passing periodic NODEPROOF possession challenges) | 2,000 XCHAIN |
 
-A 5,000 XCHAIN stake qualifies for all four capabilities. A 500 XCHAIN stake qualifies only for `oracle_publish`. Minimums are governance-tunable.
+A 5,000 XCHAIN stake qualifies for all five capabilities. A 500 XCHAIN stake qualifies only for `oracle_publish`. Minimums are governance-tunable.
 
 A capability becomes active on a hub when all three conditions hold: (a) stake qualifies, (b) per-capability `selfTest()` passes, (c) operator has not added it to `disabled_capabilities`. Sub-features (chains for `cross_chain`, fiats for `price`, providers for `attestation`) live in operator hub config and are not on-chain.
 

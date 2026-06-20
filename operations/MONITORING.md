@@ -33,7 +33,7 @@ The most important health indicator is how far behind each service is.
 | Decoder block height vs. coin node | How far behind decoding is from the node |
 | Indexer block height vs. decoder | How far behind indexing is from decoding |
 
-Under normal operation, the decoder and indexer should lag only seconds behind the coin node (they poll every 5 seconds). A gap of more than a few minutes is worth investigating.
+Under normal operation, the decoder and indexer should lag only seconds behind the coin node (the decoder polls every ~1 second; the indexer polls every ~5 seconds). A gap of more than a few minutes is worth investigating.
 
 **Check decoder block height:**
 ```bash
@@ -46,7 +46,7 @@ docker exec xchain-node-database mysql -u root \
 ```bash
 docker exec xchain-node-database mysql -u root \
   XChain_BTC_Mainnet_Indexer \
-  -e "SELECT MAX(block_index) FROM sends LIMIT 1;"
+  -e "SELECT MAX(block_index) FROM blocks;"
 ```
 
 ### JSON-RPC Ping
@@ -55,7 +55,7 @@ Most services expose a `ping` method. A successful ping confirms the service is 
 
 ```bash
 # Decoder
-curl -s -X POST http://localhost:3000 \
+curl -s -X POST http://localhost:3002 \
   -H "Content-Type: application/json" \
   -d '{"method":"ping","params":{}}' | jq
 

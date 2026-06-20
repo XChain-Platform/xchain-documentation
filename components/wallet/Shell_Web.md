@@ -19,7 +19,7 @@ The web shell's key isolation is fundamentally weaker than the extension's, same
 Browser tab
   └── React SPA (Vite-built, served from a static origin)
        ├── @xchain-wallet/core   → routes, components, flows, signers
-       ├── @xchain-wallet/extension (transitive: messaging helpers reused for parity)
+       ├── @xchain-wallet/extension (direct dep; `createBackgroundHost` reused for parity)
        ├── xchain-sdk            → encoder, explorer, hub, WebSocket
        ├── hostBridge.js         → SDK factory + storage backend (web-specific)
        ├── sdkFactory.js         → instantiate per-chain SDK
@@ -33,7 +33,8 @@ Browser tab
 
 | Bucket | Backend |
 |---|---|
-| Vault ciphertext + KDF parameters + settings | IndexedDB |
+| Vault ciphertext + settings | IndexedDB |
+| KDF parameters (salt, memory, iterations) | `localStorage` via `WebMetaBackend` (not secret; needed to derive the master key before reading IndexedDB) |
 | Session master key | In-memory only. Never written to `sessionStorage` or IndexedDB |
 | dApp `connectedSites` | IndexedDB (vault) |
 

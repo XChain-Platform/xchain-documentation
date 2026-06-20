@@ -165,7 +165,7 @@ Returns a unified history of all XChain activity matching the query.
 
 ### ACTION-Specific Query Methods
 
-All 20 action-specific methods share the same signature:
+The 20 primary action-specific methods share the same signature:
 
 ```
 get<Action>(query, type, opts?) → GET /{COIN}/api/<action>s/{query}/{type}

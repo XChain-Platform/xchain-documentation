@@ -29,7 +29,7 @@ In practice, XChain works by embedding small pieces of data inside ordinary bloc
 
 ## What Can You Do with XChain?
 
-XChain is built around 30 commands (called **ACTIONs**) that cover the full lifecycle of a digital asset ecosystem.
+XChain is built around 34 commands (called **ACTIONs**) that cover the full lifecycle of a digital asset ecosystem.
 
 ### Create and Manage Tokens
 
@@ -111,7 +111,7 @@ A lot of layer-2 and sidechain systems require you to trust a separate set of va
 
 ### Multi-Chain by Design
 
-XChain runs natively on Bitcoin, Litecoin, and Dogecoin simultaneously. A token on one chain is distinct from a token on another chain; they have separate ledgers. But the XChain software supports all three chains with the same protocol, the same 30 actions, and the same tooling. A single deployment of the platform can index and serve data for all three chains at once.
+XChain runs natively on Bitcoin, Litecoin, and Dogecoin simultaneously. A token on one chain is distinct from a token on another chain; they have separate ledgers. But the XChain software supports all three chains with the same protocol, the same 34 actions, and the same tooling. A single deployment of the platform can index and serve data for all three chains at once.
 
 ### AI-Callable Smart Contracts
 
@@ -123,9 +123,9 @@ The XChain platform is open source software. Anyone can run their own XChain nod
 
 ---
 
-## The 30 ACTIONs: The Building Blocks
+## The 34 ACTIONs: The Building Blocks
 
-Every operation on XChain is expressed as one of 30 ACTION commands. Think of them as the vocabulary of the protocol; a complete set of verbs for working with digital assets.
+Every operation on XChain is expressed as one of 34 ACTION commands. Think of them as the vocabulary of the protocol; a complete set of verbs for working with digital assets.
 
 | Category | ACTIONs |
 |---|---|
@@ -137,6 +137,7 @@ Every operation on XChain is expressed as one of 30 ACTION commands. Think of th
 | Staking | STAKE, UNSTAKE, DELEGATE, COLLECT |
 | Data and communication | BROADCAST, MESSAGE, FILE |
 | Configuration | ADDRESS, BATCH, LINK, LIST |
+| Validator / system | ANCHOR, NODEPROOF, SLASH, XCALL |
 
 Each ACTION has a versioned format, as the protocol evolves and adds new fields, old versions remain valid so that existing software doesn't break.
 
@@ -156,7 +157,7 @@ XCHAIN is itself just a token on XChain, issued by a designated address (called 
 
 ### Developers Building Token Platforms
 
-XChain provides a complete SDK (`xchain-sdk`) with methods for all 30 actions, 48+ explorer queries, smart contract deployment and execution, a batch builder, real-time WebSocket event streaming, and PSBT generation. If you want to build a token platform, a DEX, an NFT marketplace, a DeFi protocol with smart contracts, or any application involving digital assets on Bitcoin-family chains, XChain gives you the full stack.
+XChain provides a complete SDK (`xchain-sdk`) with methods for 29 of the 34 actions (the developer-invocable set), 90+ explorer queries, smart contract deployment and execution, a batch builder, real-time WebSocket event streaming, and PSBT generation. If you want to build a token platform, a DEX, an NFT marketplace, a DeFi protocol with smart contracts, or any application involving digital assets on Bitcoin-family chains, XChain gives you the full stack.
 
 ### Organizations Wanting Private Deployments
 

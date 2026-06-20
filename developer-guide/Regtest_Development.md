@@ -96,7 +96,7 @@ To get XCHAIN into a test address, have the GAS address send some:
 
 ```js
 // The GAS address's private key is available in the regtest config
-// Check xchain-indexer/src/configs/BTC.js for the GAS_ADDRESS value
+// Check xchain-indexer/src/configs/BTC.js for the address['GAS'] value (regtest network block)
 
 const sendAction = sdk.send({
   tick: 'XCHAIN',

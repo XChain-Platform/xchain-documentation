@@ -35,7 +35,7 @@ Additional controls:
 
 ```js
 const XChainSDK = require('xchain-sdk');
-const sdk = new XChainSDK({ hubUrl: 'http://localhost:35500' });
+const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 // Sell 10 MYTOKEN per 0.001 BTC
 // Escrow 100 MYTOKEN upfront (enough for 10 dispenses)
@@ -106,7 +106,7 @@ In regtest, you can simulate this using the regtest miner's `send_funds`:
 
 ```js
 // Simulate a buyer sending 0.001 BTC to the dispenser address
-const response = await fetch('http://localhost:38332', {
+const response = await fetch('http://localhost:3005', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({

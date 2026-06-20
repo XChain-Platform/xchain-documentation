@@ -83,7 +83,7 @@ The decoder polls the coin node every few seconds via JSON-RPC (`getblockcount`,
 
 The indexer polls the Decoder DB every 5 seconds. When it finds a new decoded action it has not yet processed:
 
-1. **Routes** the ACTION string to the appropriate handler class (one of roughly 30 dedicated handler classes: `IssueAction`, `SendAction`, `OrderAction`, etc.).
+1. **Routes** the ACTION string to the appropriate handler class (one of roughly 45 dedicated handler classes: `IssueAction`, `SendAction`, `OrderAction`, etc.).
 
 2. **Validates** all fields. For `ISSUE`, this means checking: the ticker does not already exist, the sender holds enough XCHAIN gas to pay the fee, the supply and decimals are within protocol limits, and the format string is well-formed.
 
@@ -122,7 +122,7 @@ The explorer syncs configuration from xchain-hub every 60 seconds: fee schedules
 In addition to the validation pipeline above, oracle price data flows separately:
 
 ```
-Validators with `price` capability fetch from CoinGecko/CMC
+Validators with `price` capability fetch from CoinGecko/Kraken (CoinMarketCap optional)
   → PBFT consensus on prices (signs canonical PRICE v0 payload)
     → A validator with `oracle_publish` capability writes PRICE v0 to a chain
       → That chain's decoder + indexer process the action

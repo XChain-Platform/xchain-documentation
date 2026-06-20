@@ -17,7 +17,7 @@ Restrict which addresses may interact with your token by attaching an address LI
 
 ```js
 const XChainSDK = require('xchain-sdk');
-const sdk = new XChainSDK({ hubUrl: 'http://localhost:35500' });
+const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 // TYPE 2 = ADDRESS list
 const listAction = sdk.list({
@@ -353,20 +353,22 @@ const dispenserAction = sdk.dispenser({
 
 Ownership dispensers are single-shot: once the ownership has been claimed, the dispenser closes automatically (there is only one issuer role per token).
 
-### Sweep: Move Balances, Ownerships, or Escrows in Bulk
+### Sweep: Move Balances, Ownerships, or Open Positions in Bulk
 
-SWEEP moves everything from your address to a destination in one transaction. The three categories are independent flags: you can sweep balances only, ownerships only, escrows only, or any combination.
+SWEEP moves everything from your address to a destination in one transaction. The five flags are independent: you can sweep balances only, ownerships only, open orders only, open swaps only, open dispensers only, or any combination.
 
 ```js
 const sweepAction = sdk.sweep({
   destination: 'bc1qnewaddress...',
   balances:   '1',   // transfer all token balances
   ownerships: '1',   // transfer all token ownerships
-  escrows:    '1',   // transfer escrowed tokens (e.g., dispenser escrows) after delay
+  orders:     '1',   // cancel open ORDERs and credit their escrow to destination
+  swaps:      '1',   // cancel open SWAPs and credit their escrow to destination
+  dispensers: '1',   // close open DISPENSERs and credit their escrow to destination
 });
 ```
 
-Escrowed tokens from dispensers are released to the destination address after a set delay following SWEEP.
+Escrowed tokens from open orders, swaps, and dispensers are credited to the destination address as part of the SWEEP.
 
 ---
 
@@ -383,7 +385,7 @@ The issuer publishes the encrypted file and a self-MESSAGE that records the key 
 ```js
 const XChainSDK = require('xchain-sdk');
 const fs = require('fs');
-const sdk = new XChainSDK({ hubUrl: 'http://localhost:35500' });
+const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 // 1. Encrypt the file plaintext under a fresh symmetric key
 const plaintext = fs.readFileSync('./album.flac');

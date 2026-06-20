@@ -117,16 +117,19 @@ The V8 isolate provides hardware-level isolation (separate heap, no shared objec
 
 **Stripped:**
 - Timers: `Date`, `setTimeout`, `setInterval`, `setImmediate`, `clearTimeout`, `clearInterval`, `clearImmediate`
-- Async: `queueMicrotask`
+- Async: `queueMicrotask`, `Promise` (consensus-gated: stripped at/after the `VM_BANNED_ASYNC` flag-day block time; present on earlier blocks for replay fidelity)
 - Memory: `WeakRef`, `FinalizationRegistry`
-- Proxies: `Proxy`
+- Proxies: `Proxy`, `Reflect`
 - Network: `fetch`, `XMLHttpRequest`, `WebSocket`
 - Concurrency: `SharedArrayBuffer`, `Atomics`
+- Big integers: `BigInt` (super-linear native cost, unmeterable by the AST meter; use `xchain.math.*` instead; `BigInt` literals also rejected at deploy time)
+- Regex: `RegExp` (set to `undefined`; prevents catastrophic backtracking / ReDoS)
+- Locale/time: `Intl`, `Temporal`, `structuredClone`, `performance`
 - Eval/constructors: `eval`, `Function` (global reference set to `undefined`)
 - System: `console`, `process`, `require`, `importScripts`
 
 **Preserved:**
-- `Array`, `Object`, `String`, `Number`, `Boolean`, `BigInt`, `JSON`, `Map`, `Set`, `Symbol`, `Error`, `RegExp`, `parseInt`, `parseFloat`
+- `Array`, `Object`, `String`, `Number`, `Boolean`, `JSON`, `Map`, `Set`, `Symbol`, `Error`, `parseInt`, `parseFloat`
 
 **Replaced:**
 - `Math`: replaced with a frozen deterministic subset: `floor`, `ceil`, `round`, `abs`, `min`, `max`, `sign`, `trunc`, plus constants `PI` and `E`. The object is frozen with `Object.freeze()` to prevent mutation.

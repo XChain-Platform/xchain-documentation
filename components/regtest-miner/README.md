@@ -15,14 +15,14 @@ This service is testing infrastructure. It must not be run against mainnet or te
 
 - **Adaptive dual-timer mining**: 30-second max timer with 5-second extension on each new transaction, configurable at runtime via JSON-RPC
 - **Automatic wallet management**: creates, loads, and funds a regtest wallet on startup; mines 101 bootstrap blocks on a fresh chain for coinbase maturity
-- **JSON-RPC control API**: 6 endpoints for health checks, fund transfers, mempool stress testing, mining pause/resume, and timer configuration
+- **JSON-RPC control API**: 9 endpoints for health checks, status reporting, fund transfers, mempool stress testing, mining pause/resume, timer configuration, and block generation
 - **Mempool stress testing**: `fill_mempool` constructs and broadcasts thousands of raw Bitcoin transactions using BIP32/BIP39 key derivation and PSBT signing for load testing
 - **Exponential backoff**: automatic retry with capped exponential backoff (1s to 30s) on RPC connection failures, with counter reset on success
 - **Graceful shutdown**: SIGTERM handler allows the current mining loop iteration to complete before exiting
 - **Input validation**: rejects invalid addresses, amounts, timer values, and transaction quantities before any RPC call is made
 - **Error sanitization**: RPC credentials are never exposed in error messages or console output
 - **Concurrent call protection**: `fillMempool` mutex prevents overlapping stress test runs, with automatic `keepMining` flag restoration in a finally block
-- **Docker-ready**: Alpine Node 20 image with non-root user, healthcheck via JSON-RPC ping, and hardened security headers (Helmet, CORS)
+- **Docker-ready**: Alpine Node 22 image with non-root user, healthcheck via JSON-RPC ping, and hardened security headers (Helmet, CORS)
 - **901 tests**: unit, integration, e2e, smoke, boundary, security, fuzz, chaos, performance, mutation, and regression testing
 
 ## Documentation

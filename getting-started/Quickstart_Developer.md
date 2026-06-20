@@ -197,7 +197,7 @@ console.log(batchResult.actionString);
 
 ## Explorer Queries
 
-The SDK provides 40+ explorer query methods:
+The SDK provides 90+ explorer query methods:
 
 ```js
 // Token information
@@ -206,7 +206,7 @@ await sdk.explorer.getTokens({ limit: 20, page: 1 });
 
 // Balances
 await sdk.explorer.getBalances('your-address');
-await sdk.explorer.getBalance({ address: 'your-address', tick: 'MYTOKEN' });
+await sdk.explorer.getBalances('your-address', { tick: 'MYTOKEN' });
 
 // Transaction history
 await sdk.explorer.getSends('MYTOKEN', 'token', { limit: 10 });
@@ -224,14 +224,14 @@ await sdk.explorer.getDispensers('MYTOKEN', 'token');
 The SDK throws typed errors you can catch by class:
 
 ```js
-const { ValidationError, EncoderError, ExplorerError } = require('xchain-sdk');
+const { SDKValidationError, SDKEncoderError } = require('xchain-sdk');
 
 try {
   const result = await sdk.issue({ tick: 'MYTOKEN', maxSupply: '1000000' });
 } catch (err) {
-  if (err instanceof ValidationError) {
+  if (err instanceof SDKValidationError) {
     console.error('Bad input:', err.message);
-  } else if (err instanceof EncoderError) {
+  } else if (err instanceof SDKEncoderError) {
     console.error('Encoder problem:', err.message);
   } else {
     throw err;
@@ -257,18 +257,18 @@ See [Regtest Development](../developer-guide/Regtest_Development.md) for setup i
 | JSON-RPC microservice | `npm run api` in xchain-sdk | Any language via HTTP |
 | Browser bundle | `dist/xchain_sdk.min.js` | Client-side web apps |
 
-### All 30 Actions Have Convenience Methods
+### 29 of the 34 Actions Have Convenience Methods
 
-Every XChain ACTION has a corresponding SDK method: `sdk.issue()`, `sdk.mint()`, `sdk.send()`, `sdk.sweep()`, `sdk.airdrop()`, `sdk.dividend()`, `sdk.order()`, `sdk.coinpay()`, `sdk.dispenser()`, `sdk.swap()`, `sdk.broadcast()`, `sdk.message()`, `sdk.file()`, `sdk.address()`, `sdk.link()`, `sdk.list()`, `sdk.sleep()`, `sdk.callback()`, `sdk.destroy()`, `sdk.stake()`, `sdk.unstake()`, `sdk.delegate()`, `sdk.collect()`, `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()`. `sdk.transfer()` is an alias for `sdk.send()`. PRICE and ATTEST are emitted automatically by the hub and the VM respectively, not user-broadcast.
+The SDK covers the 29 developer-invocable actions with convenience methods: `sdk.issue()`, `sdk.mint()`, `sdk.send()`, `sdk.sweep()`, `sdk.airdrop()`, `sdk.dividend()`, `sdk.order()`, `sdk.coinpay()`, `sdk.dispenser()`, `sdk.swap()`, `sdk.broadcast()`, `sdk.message()`, `sdk.file()`, `sdk.address()`, `sdk.link()`, `sdk.list()`, `sdk.sleep()`, `sdk.callback()`, `sdk.destroy()`, `sdk.price()`, `sdk.stake()`, `sdk.unstake()`, `sdk.delegate()`, `sdk.collect()`, `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()`. `sdk.transfer()` is an alias for `sdk.send()`. `sdk.batch()` returns a builder for composing BATCH actions. The 5 remaining actions (ANCHOR, ATTEST, NODEPROOF, SLASH, XCALL) are validator or system-emitted and are not user-broadcast.
 
 ---
 
 ## Next Steps
 
 - [Full SDK Documentation](../components/sdk/): all methods, configuration options, error types, and examples
-- [ACTION Reference](../concepts/ACTIONS.md): detailed spec for all 30 actions and their fields
+- [ACTION Reference](../concepts/ACTIONS.md): detailed spec for all 34 actions and their fields
 - [Regtest Development](../developer-guide/Regtest_Development.md): run a full local stack for free
-- [Explorer API](../components/explorer/): all 50+ REST and JSON-RPC endpoints
+- [Explorer API](../components/explorer/): all 100+ REST and JSON-RPC endpoints
 
 ---
 

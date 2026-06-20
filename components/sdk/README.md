@@ -9,7 +9,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 
 ## Features
 
-- Generate all 27 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, COLLECT)
+- Generate all 29 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, COLLECT, PRICE)
 - **Transaction Lifecycle Manager** (`submitAction`): full encode → sign → broadcast → wait pipeline in a single call, with automatic P2SH two-phase handling and progress callbacks
 - **Wallet Sessions** (`sdk.session(wif)`): bound wallet object that bundles address/key/UTXO state with action convenience methods: "I am this address, do things"
 - **Fee Estimation** (`estimateFees`): dry-run fee calculation via encoder, returns fee in satoshis plus reusable PSBT
@@ -180,7 +180,7 @@ Run the SDK as a JSON-RPC microservice:
 npm run api
 ```
 
-The server listens on `SDK_API_PORT` (default `3100`) and exposes all SDK methods as JSON-RPC 2.0 endpoints over HTTP POST.
+The server listens on `SDK_API_PORT` (default `3005`) and exposes all SDK methods as JSON-RPC 2.0 endpoints over HTTP POST.
 
 ## Usage Modes
 

@@ -100,7 +100,7 @@ Use the SDK's `deployStakeableContract` workflow. This is `DEPLOY v1` under the 
 
 ```js
 const XChainSDK = require('xchain-sdk');
-const sdk = new XChainSDK({ hubUrl: 'http://localhost:35500' });
+const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 const contractSource = `module.exports = { /* ... the code from Step 2 ... */ };`;
 
@@ -154,7 +154,7 @@ const stakeResult = await stakerSession.stakeToContract({
 });
 ```
 
-This locks 250 MYTOKEN out of the staker's balance and writes a row in the `contract_stakes` table. Once the action is confirmed (and the 6-block activation delay has elapsed), `xchain.contract.getStake(pubkey, 'MYTOKEN')` inside the contract will return `'250'` for that staker.
+This locks 250 MYTOKEN out of the staker's balance and writes a row in the `contract_stakes` table. Once the action is confirmed (and the per-chain activation delay has elapsed: 6 blocks on BTC, 24 on LTC, 60 on DOGE), `xchain.contract.getStake(pubkey, 'MYTOKEN')` inside the contract will return `'250'` for that staker.
 
 **Stake-and-execute pattern:** if the contract grants access on stake, a staker often wants to immediately call a contract method. Use `BATCH v0` to bundle `STAKE v3 + EXECUTE v0` into one broadcast, the EXECUTE will see the new stake once the BATCH is indexed.
 
@@ -165,7 +165,7 @@ await stakerSession.batch([
 ]);
 ```
 
-(Note: the activation delay still applies; the stake isn't visible inside the contract until 6 blocks after the BATCH confirms. The EXECUTE will see `getStake(...) === '0'` if it runs in the same block as the STAKE.)
+(Note: the activation delay still applies; the stake isn't visible inside the contract until after the per-chain delay (6 blocks on BTC, 24 on LTC, 60 on DOGE) following BATCH confirmation. The EXECUTE will see `getStake(...) === '0'` if it runs in the same block as the STAKE.)
 
 ---
 
@@ -210,8 +210,8 @@ await stakerSession.unstakeFromContract({
 
 After this confirms:
 
-1. After **6 blocks**, the stake becomes invisible to the contract (`xchain.contract.getStake(...) === '0'`). The staker is effectively no longer participating.
-2. After **`COOLDOWN_BLOCKS` more blocks** (so block + 6 + COOLDOWN_BLOCKS in total), the locked tokens are credited back to the staker's address.
+1. After the per-chain activation delay (6 blocks on BTC, 24 on LTC, 60 on DOGE), the stake becomes invisible to the contract (`xchain.contract.getStake(...) === '0'`). The staker is effectively no longer participating.
+2. After **`COOLDOWN_BLOCKS` more blocks** on top of that delay, the locked tokens are credited back to the staker's address.
 
 During the cooldown window, the contract can still slash the staker; the cooldown-locked balance is reachable by `xchain.contract.slash`.
 

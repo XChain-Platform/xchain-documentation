@@ -54,12 +54,12 @@ Unlike the decoder (which extracts XChain ACTION data), the UTXO tracker indexes
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server, REST + JSON-RPC endpoints, env var loading, bootstrap/restore tasks |
 | `src/XChainUtxoTracker.js` | `XChainUtxoTracker` | Main orchestrator: block polling loop, reorg detection, two-pass transaction processing, balance queries, mempool updates |
-| `src/LevelUpDb.js` | `LevelUpStore` | LevelDB abstraction: binary key encoding/decoding, batch transactions, range scans, all 11 prefix type operations |
+| `src/LevelUpDb.js` | `LevelUpStore` | LevelDB abstraction: binary key encoding/decoding, batch transactions, range scans, all 12 prefix type operations |
 | `src/BlockchainConnector.js` | `BlockchainConnector` | HTTP JSON-RPC client for coin node: block fetching, batch requests, mempool queries, connection pooling (25 sockets) |
 | `src/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parser: standard Bitcoin blocks, AuxPoW header stripping for Dogecoin/Litecoin HogEx |
 | `src/CryptoNetworks.js` | `CryptoNetworks` | Network parameter lookup: maps network names to bitcoinjs-lib network objects for 9 network variants |
 | `src/util.js` | None | Utility functions: timing, hex/uint8 conversion, formatting |
-| `bufferutils.js` | `BufferReader`, `BufferWriter` | Binary buffer reading/writing: UInt8/16/32/64LE, VarInt, slices: used by LevelUpDb and block decoder |
+| `src/bufferutils.js` | `BufferReader`, `BufferWriter` | Binary buffer reading/writing: UInt8/16/32/64LE, VarInt, slices |
 
 ## LevelDB Key Schema
 
@@ -75,11 +75,12 @@ All data is stored in a single LevelDB instance using single-byte prefix keys. K
 | O | `0x4F` | `[scriptHash(32)][txHash8(8)][idx(4)]` | 45 B | `[value(8)][height(4)][fullTxHash(32)]` | 44 B | Unspent output index |
 | H | `0x48` | `[txHash8(8)][idx(4)]` | 13 B | `[scriptHash(32)]` | 32 B | Output → scriptHash hint |
 | J | `0x4A` | `[txHash8(8)][prevTxHash8(8)][idx(4)]` | 21 B | EMPTY | None | Input hint for reorg cleanup |
-| S | `0x53` | `[scriptHash(32)]` | 33 B | `[blockHash(32)][height(4)][txHash(32)]` | 68 B | Script's first appearance |
+| S | `0x53` | `[scriptHash(32)]` | 33 B | `[height(4)]` | 4 B | Script's first appearance (block height only) |
 | Z | `0x5A` | `[blockHash(32)][scriptHash(32)]` | 65 B | EMPTY | None | Block → script index for reorg cleanup |
 | K | `0x4B` | `[blockHash(32)][scriptHash(32)][txHash8(8)][idx(4)]` | 77 B | `[value(8)][height(4)][fullTxHash(32)]` | 44 B | Deleted output archive (reorg undo) |
 | M | `0x4D` | `[blockHash(32)][txHash8(8)][idx(4)]` | 45 B | `[scriptHash(32)]` | 32 B | Deleted hint archive (reorg undo) |
 | N | `0x4E` | `[blockHash(32)]` | 33 B | EMPTY | None | Stored block list (undo window) |
+| W | `0x57` | `[blockHash(32)][txHash8(8)][idx(4)]` | 45 B | `[scriptHash(32)]` | 32 B | Output creation-block reverse index |
 
 Two string keys are also used as checkpoints:
 - `LAST_BLOCK_HEIGHT`: hex-encoded current tip height
@@ -93,7 +94,7 @@ Two string keys are also used as checkpoints:
 
 **K/M keys (deleted archives)**: When a UTXO is spent, the O and H records are deleted, but copies are saved as K and M records keyed by blockHash. If a reorg rolls back that block, the K/M records are restored to O/H. After `DEFAULT_UNDO_BLOCKS` (BTC: 12, LTC: 48, DOGE: 120) subsequent blocks, the K/M records are purged.
 
-**txHash8 truncation**: Transaction hashes are truncated to 8 bytes in index keys (T, I, O, H, J, K, M). The full 32-byte hash is stored in O values for API responses. 8-byte truncation provides sufficient uniqueness for index lookups while halving key sizes.
+**txHash8 truncation**: Transaction hashes are truncated to 8 bytes in index keys (T, I, O, H, J, K, M, W). The full 32-byte hash is stored in O values for API responses. 8-byte truncation provides sufficient uniqueness for index lookups while halving key sizes.
 
 ## Block Processing Loop
 

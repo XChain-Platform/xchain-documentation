@@ -7,14 +7,14 @@
 
 xchain-utxo-tracker is the UTXO indexing service of the XChain Platform. It runs as a long-lived Node.js process that continuously polls a coin node (bitcoind, litecoind, or dogecoind) via JSON-RPC, decodes every block, and maintains a real-time index of all unspent transaction outputs (UTXOs) in a LevelDB database. The encoder queries this service to find spendable inputs when constructing transactions.
 
-The tracker uses a compact binary key schema with 11 prefix types to store block metadata, transaction mappings, outputs, inputs, and reorg-recovery archives. All keys and values are raw binary Buffers (not hex strings), reducing database size by approximately 50% compared to string-based encoding. Transaction IDs are truncated to 8 bytes in index keys, further reducing the storage footprint.
+The tracker uses a compact binary key schema with 12 prefix types to store block metadata, transaction mappings, outputs, inputs, and reorg-recovery archives. All keys and values are raw binary Buffers (not hex strings), reducing database size by approximately 50% compared to string-based encoding. Transaction IDs are truncated to 8 bytes in index keys, further reducing the storage footprint.
 
 In addition to confirmed block data, the tracker maintains a separate in-memory database for unconfirmed mempool transactions, updated every 60 seconds. This allows the encoder to distinguish between confirmed and pending UTXOs when selecting inputs.
 
 ## Features
 
 - **Full UTXO index**: every unspent output indexed by SHA-256 scriptPubKey hash for fast address lookups
-- **Compact binary encoding**: all LevelDB keys and values stored as raw binary Buffers with 11 prefix types, reducing DB size ~50%
+- **Compact binary encoding**: all LevelDB keys and values stored as raw binary Buffers with 12 prefix types, reducing DB size ~50%
 - **Truncated txid keys**: transaction IDs stored as 8-byte truncations in index keys for further space savings
 - **Active-UTXO-only storage**: only unspent outputs kept in the live index; spent outputs archived temporarily for reorg recovery
 - **Real-time mempool tracking**: unconfirmed transactions tracked in a separate in-memory LevelDB, updated every 60 seconds
@@ -28,7 +28,7 @@ In addition to confirmed block data, the tracker maintains a separate in-memory 
 - **Bootstrap support**: compressed tar archive backup and restore for fast initial sync without re-scanning the full chain
 - **REST + JSON-RPC API**: dual interface for UTXO queries, balance lookups, address info, and bootstrap operations
 - **Rolling ETA**: 1000-block rolling window with day/hour/minute display for sync progress estimation
-- **618 tests**: unit, integration, e2e, smoke, fuzz, chaos, performance, and mutation testing
+- **727 tests**: unit, integration, e2e, smoke, fuzz, chaos, performance, boundary, security, and regression testing
 
 ## Documentation
 
@@ -80,17 +80,17 @@ On startup, the tracker:
 | Command | Description |
 |---|---|
 | `npm run api` | Start the tracker and API server |
-| `npm test` | Unit tests (~247 tests) |
-| `npm run test:smoke` | Smoke tests (11 tests) |
-| `npm run test:integration` | Integration tests (~131 tests, requires LevelDB) |
-| `npm run test:e2e` | End-to-end tests (33 tests) |
+| `npm test` | Unit tests (~420 tests) |
+| `npm run test:smoke` | Smoke tests (9 tests) |
+| `npm run test:integration` | Integration tests (~67 tests, requires LevelDB) |
+| `npm run test:e2e` | End-to-end tests (34 tests) |
 | `npm run test:fuzz` | Fuzz tests (12 campaigns, 1000 iterations each) |
 | `npm run test:fuzz:quick` | Quick fuzz (100 iterations) |
 | `npm run test:fuzz:deep` | Deep fuzz (10,000 iterations) |
-| `npm run test:perf` | Performance tests (36 tests) |
+| `npm run test:perf` | Performance tests (20 tests) |
 | `npm run test:perf:quick` | Quick performance (small scale) |
 | `npm run test:perf:deep` | Deep performance (large scale, 4 GB heap) |
-| `npm run test:chaos` | Chaos engineering tests (41 tests) |
+| `npm run test:chaos` | Chaos engineering tests (31 tests) |
 | `npm run test:all` | All unit + integration + e2e tests |
 | `npm run mutate` | Mutation testing (Stryker Mutator) |
 | `npm run mutate:quick` | Quick mutation testing |

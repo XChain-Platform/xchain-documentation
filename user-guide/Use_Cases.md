@@ -106,7 +106,7 @@ Build a system where access to a service, platform, or physical location require
 - **Physical access**: a venue scanner verifies token ownership via QR code + signature at the door
 - **Community spaces**: a Discord bot or forum checks token holdings before granting channel access
 
-You control who can hold the token via allow lists, and you can revoke access across all holders at once by recalling the token using CALLBACK. For tokens that should never be resold or transferred (pure access credentials), set TRANSFER_LOCK at issuance. The rules are enforced by the blockchain, not by your server configuration.
+You control who can hold the token via allow lists, and you can revoke access across all holders at once by recalling the token using CALLBACK. For tokens that should never be resold or transferred (pure access credentials), use an ALLOW_LIST restricted to approved addresses so the protocol rejects transfers to unauthorized recipients. The rules are enforced by the blockchain, not by your server configuration.
 
 XChain actions involved: ISSUE, LIST, SEND, CALLBACK.
 
@@ -177,7 +177,7 @@ XChain actions involved: ORDER, SWAP, or DISPENSER (each with the `GIVE_OWNERSHI
 
 ### Internal Company Networks
 
-Organizations can run XChain on a private regtest network; a fully featured, fully isolated instance of the platform. All 30 actions work identically to the public network. The organization controls the block production, the gas issuance, and the entire environment.
+Organizations can run XChain on a private regtest network; a fully featured, fully isolated instance of the platform. All 34 actions work identically to the public network. The organization controls the block production, the gas issuance, and the entire environment.
 
 This is useful for internal asset management (tracking equipment, licenses, or internal credits), piloting blockchain applications before going to mainnet, and training teams on the platform without real-money risk.
 
@@ -203,7 +203,7 @@ XChain has a built-in smart contract layer that runs on top of Bitcoin, Litecoin
 
 ### Programmable Tokens
 
-A smart contract on XChain can do anything the protocol's 30 actions can do: issue tokens, transfer balances, place orders, set up dispensers, send messages; but on a schedule or under conditions that you define in code.
+A smart contract on XChain can do anything the protocol's 34 actions can do: issue tokens, transfer balances, place orders, set up dispensers, send messages; but on a schedule or under conditions that you define in code.
 
 - **Automatic token vesting**: tokens released to recipients on a schedule, without anyone needing to push a button on the date.
 - **Automated market makers**: liquidity pools that price tokens continuously based on supply and demand, going beyond the fixed-price model of orders and dispensers.

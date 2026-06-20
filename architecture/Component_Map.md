@@ -3,7 +3,7 @@
 
 # Component Map
 
-This document describes all 13 XChain Platform services, their roles, inputs, outputs, and connections. Services are grouped by function. For detailed documentation on any individual service, see the corresponding subdirectory under [`../components/`](../components/).
+This document describes all 11 XChain Platform services, their roles, inputs, outputs, and connections. Services are grouped by function. For detailed documentation on any individual service, see the corresponding subdirectory under [`../components/`](../components/).
 
 ---
 
@@ -56,7 +56,7 @@ See [`../components/decoder/`](../components/decoder/) for full documentation.
 
 Key technical details:
 
-- Routes each ACTION string to one of ~30 dedicated handler classes (`IssueAction`, `SendAction`, `OrderAction`, `PriceAction`, etc.).
+- Routes each ACTION string to one of ~45 dedicated handler classes (`IssueAction`, `SendAction`, `OrderAction`, `PriceAction`, etc.).
 - Validates all fields before execution. Invalid actions are recorded with status `invalid` and produce no ledger effects.
 - Maintains a double-entry ledger: every token movement is a credit to one address and a debit from another. Balance = SUM(credits) - SUM(debits). A sanity check asserts `token_supply == net ledger total` after each issuance.
 - Holds XCHAIN gas in escrow for time-bounded operations (orders, dispensers). Releases escrow on expiration or cancellation.
@@ -87,7 +87,7 @@ Key technical details:
 - JSON-RPC 2.0 interface compatible with Counterparty-style tooling.
 - Bootstrap-based web UI with Highcharts for order book and market price visualization.
 - Reads configuration from xchain-hub every 60 seconds (fee schedules, supported parameters, fiat pricing).
-- Approximately 5,500 lines of SQL query logic. All queries are parameterized; no ORM.
+- Approximately 9,400 lines of SQL query logic. All queries are parameterized; no ORM.
 - Supports SSL/TLS termination.
 - Runs as one instance per chain/network combination.
 
@@ -104,7 +104,7 @@ See [`../components/explorer/`](../components/explorer/) for full documentation.
 | **Purpose** | Replicates indexer databases to validators and consumers for lightweight chain verification |
 | **Inputs** | Indexer MariaDB (SQL polling per chain/network), xchain-hub (JSON-RPC config discovery) |
 | **Outputs** | REST API (snapshots, status, transparency log), WebSocket (real-time block and reorg streaming) |
-| **Storage** | MariaDB (same 77-table schema as indexer; one replica DB per chain/network) |
+| **Storage** | MariaDB (95 replicated indexer tables; one replica DB per chain/network) |
 | **Communication** | Inbound REST + WebSocket from validators/consumers; outbound JSON-RPC to hub; outbound SQL reads from indexer DBs |
 
 Key technical details:
@@ -161,7 +161,7 @@ See [`../components/encoder/`](../components/encoder/) for full documentation.
 Key technical details:
 
 - LevelDB key schema uses single-character prefixes: `B`=block, `T`=transaction, `I`=input, `O`=output, `H`/`J`=address hints.
-- Processes blocks in batches of 100, writing each batch atomically to LevelDB.
+- Processes blocks in batches of up to 200 (flush may trigger earlier under heap pressure), writing each batch atomically to LevelDB.
 - Maintains a per-chain undo window (BTC: 12 / LTC: 48 / DOGE: 120 blocks, overridable via XCHAIN_UNDO_BLOCKS_<COIN>) to support chain reorganization rollback.
 - Tracks the mempool for real-time unconfirmed UTXO state.
 - Supports bootstrap from tar archives to avoid re-indexing from genesis.
@@ -184,7 +184,7 @@ See [`../components/utxo-tracker/`](../components/utxo-tracker/) for full docume
 
 Key technical details:
 
-- Exposes 30 action construction methods (one per ACTION type) and 48 explorer query wrappers.
+- Exposes 29 action construction methods (one per developer-invocable ACTION type) and 98 explorer query wrappers.
 - Batch builder allows multiple actions to be combined into a single `BATCH` action string.
 - Discovers service endpoints via xchain-hub.
 - Implements retry with exponential backoff and connection pooling for all outbound calls.
@@ -204,7 +204,7 @@ These services manage deployment, configuration, and testing.
 | | |
 |---|---|
 | **Purpose** | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, governance |
-| **Inputs** | JSON-RPC calls from all services; external price APIs (CoinGecko, CoinMarketCap); P2P gossip from other validators |
+| **Inputs** | JSON-RPC calls from all services; external price APIs (CoinGecko, Kraken; CoinMarketCap optional with API key); P2P gossip from other validators |
 | **Outputs** | Config values, service endpoints, oracle prices, fee quotes, cross-chain attestations, governance decisions |
 | **Storage** | MariaDB (configs, validators, consensus, price_snapshots, oracle_prices, oracle_submissions, attestations, swaps, reorgs, governance, validator_rewards, slashing) |
 | **Communication** | Inbound JSON-RPC from all services (incl. PRICE pushes from indexers); outbound HTTP for price fetching; WebSocket P2P gossip between validators; outbound WebSocket `/hub-db/subscribe` to indexers for hub DB sync |
@@ -214,7 +214,7 @@ Key technical details:
 - Operates in two modes: standalone (simple config oracle) and validator mode (full PBFT consensus, P2P gossip, oracle, cross-chain attestation, governance).
 - Supports multi-instance deployment, multiple hub instances against shared MariaDB, with consumer fallback via `HUB_VALIDATORS`.
 - Config writes go through PBFT consensus in validator mode (PRE_PREPARE → PREPARE → COMMIT with 2f+1 quorum).
-- Decentralized price oracle: validators fetch from CoinGecko/CoinMarketCap, aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
+- Decentralized price oracle: validators fetch from CoinGecko and Kraken (CoinMarketCap optional, requires API key), aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
 - Cross-chain attestation engine with per-chain-pair validator subsets and confirmation thresholds (BTC: 6, LTC: 12, DOGE: 60; env-tunable via `XCHAIN_CONFIRMATIONS_<COIN>`).
 - SWAP lifecycle tracking: initiated → attested → executed → settled.
 - Off-chain governance: 7-day voting period, 2/3+ approval, 50% quorum, parameter change bounds enforcement.

@@ -59,7 +59,7 @@ The decoder is the first service in the XChain data pipeline. It polls a cryptoc
 | `src/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parsing via bitcoinjs-lib with coin-specific fixes (Litecoin MWEB, Dogecoin AuxPoW) |
 | `src/CryptoNetworks.js` | `CryptoNetworks` | Network configuration: bitcoinjs-lib network objects and start block indexes for all 9 chain/network combinations |
 | `src/util.js` | None | Utility functions: sleep, SHA256, hex conversion, timer |
-| `src/sql/*.sql` | None | Table creation SQL for all 8 database tables |
+| `src/sql/*.sql` | None | Table creation SQL for all 9 database tables |
 
 ## Block Polling Loop
 
@@ -129,8 +129,8 @@ After parsing, the decoder scans each transaction's outputs looking for XChain p
 XChain data is obfuscated using AES-128-CTR before embedding in the transaction. The decoder reverses this:
 
 1. Takes the reversed hex of the first input's prevout hash (the txid being spent)
-2. Uses the first 16 hex characters as the AES-128 key (8 bytes)
-3. Uses the next 16 hex characters as the CTR-mode IV (8 bytes)
+2. Uses the first 16 hex characters as the AES-128 key (16 bytes, passed as an ASCII string)
+3. Uses the next 16 hex characters as the CTR-mode IV (16 bytes, passed as an ASCII string)
 4. Decrypts the payload using `crypto.createDecipheriv('aes-128-ctr', key, iv)`
 5. Checks for the `XCHN` magic prefix (4 bytes), transactions without this prefix are silently skipped
 6. If present, strips the prefix and passes the remaining data through `bitcoin.script.decompile()` to extract the ACTION string

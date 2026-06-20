@@ -4,7 +4,7 @@
 # XChain Platform Action - ISSUE
 This action creates or updates a `TICK`.
 
-> **Wallet issuer flow.** The [xchain-wallet](https://github.com/XChain-platform/xchain-wallet) ships a *Manage Token* surface (per-token admin page reachable from *My Tokens*) that wraps the issuer actions: `ISSUE`, `MINT`, `DESTROY`, `DIVIDEND`, `AIRDROP`, `BROADCAST`, supply/description locks, ownership transfer, dispenser creation, in a guided UI with owner-gate and confirm-prelude steps. The protocol-level fields below are the canonical source; the wallet is one of several clients that can build these transactions.
+> **Wallet issuer flow.** The [xchain-wallet](https://github.com/XChain-Platform/xchain-wallet) ships a *Manage Token* surface (per-token admin page reachable from *My Tokens*) that wraps the issuer actions: `ISSUE`, `MINT`, `DESTROY`, `DIVIDEND`, `AIRDROP`, `BROADCAST`, supply/description locks, ownership transfer, dispenser creation, in a guided UI with owner-gate and confirm-prelude steps. The protocol-level fields below are the canonical source; the wallet is one of several clients that can build these transactions.
 
 ## PARAMS
 | Name               | Type   | Description                                                                                |
@@ -14,7 +14,7 @@ This action creates or updates a `TICK`.
 | `MAX_SUPPLY`       | String | Maximum token supply                                                                       |
 | `MAX_MINT`         | String | Maximum amount of supply a `MINT` transaction can issue                                    |
 | `DECIMALS`         | String | Number of decimal places token should have (max: 18, default: 0)                           |
-| `DESCRIPTION`      | String | Description of token (250 chars max)                                                       |
+| `DESCRIPTION`      | String | Description of token (249 chars max)                                                       |
 | `MINT_SUPPLY`      | String | Amount of token supply to mint in immediately (default:0)                                  |
 | `TRANSFER`         | String | Address to transfer ownership of the `TICK` to (owner can perform future actions on token) |
 | `TRANSFER_SUPPLY`  | String | Address to transfer `MINT_SUPPLY` to (mint initial supply and transfer to address)         |
@@ -107,13 +107,14 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
 - `TICK` must be 1 to 250 characters in length
 - `TICK` characters allowed are :
    - Alphanumeric characters : a-zA-Z0-9
-   - Special characters: ~!@#$%^&*()_+\-={}[\]\\:<>.?
+   - Special characters: ~!@#$%^&*()_+-={}[]:<>.?
 - `TICK` characters **NOT** allowed are :
    - pipe `|` (used as field separator)
    - semicolon `;` (used as command separator)
-   - period `.` (used as parent/child indicator)
-   - slash `/` (used as directory indciator)
+   - backslash `\` (reserved)
+   - slash `/` (used as directory indicator)
    - `^` (caret) cannot be used as first character in a `TICK` name (used as ticker id indicator)
+- Period `.` is allowed inside a `TICK` name as the parent/child separator (e.g. `JDOG.SUB1`), but a `TICK` may not begin or end with a period
 - First `ISSUE` with `valid` status will be the owner of the `TICK`
 - Additional `ISSUE` transactions after first valid `ISSUE`, will be considered invalid and ignored, unless broadcast from `TICK` owners address
 - `DECIMALS` can not be changed after `TICK` supply is issued and/or minted

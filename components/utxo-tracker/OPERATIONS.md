@@ -47,7 +47,7 @@ The tracker exposes both REST and JSON-RPC interfaces.
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/utxos/:address` | Returns an array of UTXOs for the given address |
-| `GET` | `/firstseen/:address` | Returns the oldest (first-seen) transaction for the given address |
+| `GET` | `/firstseen/:address` | Returns the block height at which the address first appeared (`{"height": N}`) |
 | `GET` | `/balance/:address` | Returns the confirmed balance as a number (in coin units, not satoshis) |
 | `GET` | `/info/:address` | Returns comprehensive balance info (confirmed, pending, received, UTXO counts) |
 
@@ -120,7 +120,7 @@ All JSON-RPC requests are sent as POST to `/` with standard JSON-RPC 2.0 format.
 | `get_sync_status` | None | Returns committed tracker height, node height, lag, and sync verdict. Also reports `mempool_rpc_failures` and `last_mempool_error_at` when the node's mempool RPC is degraded. |
 | `is_quiescent` | None | Returns `{"ready": true/false, ...}`. `ready` is true only when the node mempool is empty AND the tracker's committed height equals the node tip. Used as a barrier between e2e test steps to ensure a fully-settled stack. |
 | `get_utxos` | `{"address": "string"}` | Returns UTXOs for an address |
-| `get_first_seen` | `{"address": "string"}` | Returns the oldest (first-seen) transaction for an address |
+| `get_first_seen` | `{"address": "string"}` | Returns the block height at which the address first appeared (`{"height": N}`) |
 | `get_balance` | `{"address": "string"}` | Returns the confirmed balance |
 | `get_info` | `{"address": "string"}` | Returns full balance info (confirmed, pending, received, UTXO counts) |
 | `get_input_from_key_pattern` | `{"pattern": "string"}` | Raw LevelDB key prefix scan (pattern must be at least 32 characters). **Admin method: requires `Authorization: Bearer <UTXO_TRACKER_API_KEY>`.** |
@@ -144,7 +144,7 @@ If the coin node's `verificationprogress` is below 0.99, the tracker logs a warn
 | Operation | Retries | Backoff |
 |---|---|---|
 | `getRawTransaction` | 10 | 500ms between attempts |
-| `getBlockHeader` | 10 | 3 seconds between attempts |
+| `getBlockHeader` | 10 | ECONNABORTED only; no sleep between attempts |
 | Node connection | Infinite | 3 seconds between attempts |
 
 ### Atomic Batch Processing

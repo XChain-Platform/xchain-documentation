@@ -346,7 +346,7 @@ A contract can declare itself stakeable at deploy time. Once deployed, anyone ca
 Add two trailing fields to your `DEPLOY` action:
 
 ```
-DEPLOY|1|<hex code>|<gas_limit>|<constructor_params>|<cooldown_blocks>|<slash_destination>
+DEPLOY|1|<base64_code>|<gas_limit>|<constructor_params>|<cooldown_blocks>|<slash_destination>
 ```
 
 | Field | Notes |

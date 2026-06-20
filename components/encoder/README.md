@@ -18,7 +18,7 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 - **UTXO selection**: largest-first selection, duplicate removal, optional unconfirmed filtering, automatic change output
 - **Fee estimation**: byte-accurate transaction size estimation per format via `TxSizeEstimator`; dust floor enforcement
 - **Fee rate cap**: configurable maximum fee rate prevents runaway estimates (e.g., regtest feedback loops)
-- **Input validation**: centralized parameter validation with typed errors (TypeError/RangeError) for all 15 `createTransaction` parameters
+- **Input validation**: centralized parameter validation with typed errors (TypeError/RangeError) for all 16 `createTransaction` parameters
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 network configs with chain-specific dust thresholds; Litecoin uses 5,460 litoshis on all three networks, 10× Bitcoin's 546 satoshis)
 - **Replace-By-Fee**: optional RBF signaling via UTXO sequence number
 - **Custom outputs**: arbitrary address/value outputs for COINPay native coin payments and other use cases
@@ -29,7 +29,7 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 
 | Document | Description |
 |---|---|
-| [API Reference](API.md) | Complete JSON-RPC reference: all five methods with parameters, request/response examples, and error codes |
+| [API Reference](API.md) | Complete JSON-RPC reference: all six methods with parameters, request/response examples, and error codes |
 | [Format Selection](Format_Selection.md) | Decision guide and size limits for the four encoding formats |
 
 ## Encoding Process
@@ -37,9 +37,9 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 Every encode call follows the same sequence regardless of format:
 
 1. **Prepend magic prefix**: `XCHN` (4 bytes) is prepended to the ACTION string
-2. **Obfuscate**; the prefixed payload is encrypted with AES-128-CTR using the first input's txid:
-   - Key: first 16 hex characters of the txid (8 bytes)
-   - IV: next 16 hex characters of the txid (8 bytes)
+2. **Obfuscate** (OP_RETURN and MULTISIGN only); the prefixed payload is encrypted with AES-128-CTR using the first input's txid. P2SH and P2WSH embed the payload directly in the redeem/witness script without this step.
+   - Key: first 16 hex characters of the txid (16 bytes when treated as ASCII)
+   - IV: next 16 hex characters of the txid (16 bytes when treated as ASCII)
 3. **Select format**; the encoder picks the most efficient encoding format based on the obfuscated payload length (see [Format Selection](Format_Selection.md))
 4. **Build transaction**: inputs are selected from the provided UTXOs, outputs are constructed per the chosen format, fees are calculated, and a change output is added if needed
 5. **Return PSBT**; the unsigned PSBT is returned to the caller in hex format
@@ -105,6 +105,7 @@ The encoder exposes a JSON-RPC API via Express with `express-json-rpc-router`.
 | `get_utxos` | Fetch the UTXO set for a given address from xchain-utxo-tracker |
 | `estimate_fee` | Return low / medium / high fee-rate tiers in base-units/vByte, sourced from the node's `estimatesmartfee` (targets: 6 / 3 / 1 blocks) |
 | `ping` | Health check: returns `{ status: "success" }` |
+| `health` | Probes hard dependencies (UTXO tracker) and reports their reachability and sync state |
 
 A machine-readable OpenRPC 1.3.2 spec for all JSON-RPC methods is served at `GET /openrpc.json`.
 

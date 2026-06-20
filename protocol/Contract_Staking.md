@@ -61,7 +61,7 @@ A contract executing in the VM can read its own stake state and slash stakers vi
 
 ### `xchain.contract.getStake(pubkey, token) → string`
 
-Returns the sum of active stake amounts for `(pubkey, token)` targeting **this** contract. Returns `'0'` if not found. Pre-activation stakes (within the 6-block activation window) are not yet visible. Gas: `VM_STATE_READ` (100).
+Returns the sum of active stake amounts for `(pubkey, token)` targeting **this** contract. Returns `'0'` if not found. Pre-activation stakes (within the `ACTIVATION_DELAY_BLOCKS` window: 6 on BTC, 24 on LTC, 60 on DOGE) are not yet visible. Gas: `VM_STATE_READ` (100).
 
 ### `xchain.contract.getTotalStaked(token) → string`
 

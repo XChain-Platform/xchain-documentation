@@ -3,11 +3,11 @@
 
 # Testing
 
-The wallet's test strategy combines headless smokes (vitest + node), browser-driven E2E (Playwright), static audit gates (a11y, manifest, repro-build), and a reference test-dapp for manual bridge runbooks.
+The wallet's test strategy combines headless unit tests (vitest), headless smokes (plain Node), browser-driven E2E (Playwright), static audit gates (a11y, manifest, repro-build), and a reference test-dapp for manual bridge runbooks.
 
 ## Smoke suite
 
-`pnpm --filter @xchain-wallet/core test` runs the full smoke suite with vitest. **92 smokes** pass at v1.0.0-rc.6; CI fails on any regression.
+`pnpm test:smoke` (run from the workspace root) runs the full smoke suite via Node. **295 smokes** pass at v0.333.0; CI fails on any regression.
 
 The smokes are deliberately *static*; they exercise component imports, render trees, registry validation, schema migrations, and audit scripts without spinning up real backends. They run in seconds and gate every commit.
 
@@ -20,9 +20,9 @@ The smokes are deliberately *static*; they exercise component imports, render tr
 | Flows & decoder | ~6 | sdk-wiring, sdk-bundle, action-decoder, decoder, freewallet-migration, unlock-flow |
 | Audits | 4 | a11y-audit, repro-build-audit, extension-manifest-audit, release-gates |
 | Other | ~6 | i18n, branding, phase-scope, shared-routes, ui-surface, vitest-setup |
-| **Total** | **92** | All run on every commit |
+| **Total** | **295** | All run on every commit |
 
-The test files live under `packages/core/test/`. Each smoke is named for the surface it covers (`send-form.smoke.js`, `multisig-signing.smoke.js`, etc.); the convention makes it easy to find the right file when extending coverage.
+The test files live under `test/smoke/` (workspace root), organised into subdirectories by surface area. Each smoke is named for the surface it covers (`send-form.smoke.js`, `multisig-signing.smoke.js`, etc.); the convention makes it easy to find the right file when extending coverage.
 
 ## Audit gates
 
@@ -42,7 +42,7 @@ Five rules over every JSX file under `packages/core/src/shared/` + `packages/cor
 
 The audit walks JSX tags with a brace-balancing reader so `onClick={(e) => ...}` doesn't trip the parser. The button rule accepts both static text content AND any bare-identifier or string-literal expression child: `{p.label}`, `{busy ? 'Loading…' : 'Save'}`, or `Send` all count.
 
-What this audit covers: structural a11y over 64 shared routes + 9 UI primitives, 0 violations at v1.0.0-rc.6.
+What this audit covers: structural a11y over all JSX files under `packages/core/src/shared/` and `packages/core/src/ui/`; 0 violations at v0.333.0.
 
 What this audit does **not** cover (queued for the external a11y audit): color contrast, focus-visible styling, live-region timing, keyboard traps, screen-reader walkthroughs.
 
@@ -66,7 +66,7 @@ What this audit does **not** cover (queued for the external a11y audit): color c
 - `tests/send-form.spec.js`: review stage round-trip; protocol-memo char rejection; zero-amount rejection; broadcast surfaces the SDK-stub error (proves no hang)
 - `tests/a11y.spec.js`: `@axe-core/playwright` scans every rendered Phase-1 screen for WCAG 2.1 A/AA violations
 
-The Playwright config spawns Vite's dev server at `http://localhost:5173` via `pnpm -C ../packages/web dev`. If the dev server is already running, `reuseExistingServer: !CI` picks it up so the suite doesn't fight for the port.
+The Playwright config spawns Vite's dev server at `http://localhost:5173` via `pnpm -C ../../packages/web dev`. If the dev server is already running, `reuseExistingServer: !CI` picks it up so the suite doesn't fight for the port.
 
 ```bash
 pnpm --filter @xchain-wallet/e2e install:browsers   # one-time browser download
@@ -135,11 +135,11 @@ These gaps live with the maintainer's manual QA checklist and are exercised befo
 
 When adding a new route, primitive, signer, flow, or audit:
 
-1. Create `packages/core/test/<surface>.smoke.js`
+1. Create `test/smoke/<group>/<surface>.smoke.js`
 2. Import the surface and exercise its public API + render path
 3. Use the existing harnesses (`a11y-harness.smoke.js`, `e2e-harness.smoke.js`, `setup.js`) where they apply
-4. Add the file to the smoke list in `packages/core/test/_run-smokes.js` (the headless runner)
-5. Verify locally with `pnpm --filter @xchain-wallet/core test`
+4. The runner (`test/smoke/_run-smokes.js`) discovers all `*.smoke.js` files recursively; no manifest to update
+5. Verify locally with `pnpm test:smoke` from the workspace root
 6. The smoke count in the next CHANGELOG entry should reflect the new total
 
 ## Continuous integration
@@ -148,7 +148,7 @@ Pre-GA, CI runs:
 
 - `pnpm install --frozen-lockfile` at the workspace root
 - `pnpm typecheck` across all packages with declared typecheck scripts
-- `pnpm --filter @xchain-wallet/core test`: the 92 smokes
+- `pnpm test:smoke`: the 295 smokes
 - `pnpm --filter @xchain-wallet/e2e test` (in a Playwright-capable runner)
 
 CI is intentionally minimal pre-GA per the wallet's "no GitHub Actions during build phase" convention. The smoke suite + Playwright + the audit gates are the verification mechanism; the maintainer runs them locally on every commit and the smokes block tag-time. A full CI lift lands alongside v1.0.0 GA.

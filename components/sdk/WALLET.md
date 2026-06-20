@@ -44,7 +44,7 @@ All methods that involve private keys are synchronous (pure crypto, no network c
 | `litecoin-regtest` | Litecoin regtest | Yes | `0xef` |
 | `dogecoin-mainnet` | Dogecoin | No | `0x9e` |
 | `dogecoin-testnet` | Dogecoin testnet | No | `0xf1` |
-| `dogecoin-regtest` | Dogecoin regtest | No | `0xf1` |
+| `dogecoin-regtest` | Dogecoin regtest | No | `0xef` |
 
 Dogecoin does not support SegWit. Requesting a `p2wpkh` or `p2sh-p2wpkh` address on a Dogecoin network throws `SEGWIT_NOT_SUPPORTED`.
 

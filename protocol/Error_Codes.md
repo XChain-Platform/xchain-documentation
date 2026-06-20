@@ -34,7 +34,7 @@ Errors are JSON objects:
 | `SERVER_ERROR` | 500 | Unexpected internal failure | Yes: with backoff |
 | `UPSTREAM_ERROR` | 502 | The colocated indexer fee service failed | Yes: with backoff |
 | `COIN_NOT_AVAILABLE` | 503 | Coin supported but not configured for data requests here | No: use another instance |
-| `INDEXER_NOT_CONFIGURED` | 503 | Fee quote/schedule needs an indexer API this instance lacks | No: use another instance |
+| `INDEXER_NOT_CONFIGURED` | 501 | Fee quote/schedule needs an indexer API this instance lacks | No: use another instance |
 | `SERVICE_UNAVAILABLE` | 503 | The endpoint cannot serve this request | No |
 
 ## JSON-RPC services (encoder, hub, SDK API)

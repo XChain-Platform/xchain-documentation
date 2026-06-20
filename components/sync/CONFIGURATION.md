@@ -109,7 +109,7 @@ The service iterates `result.configs` and, for each coin/network that has an `xc
 | `user` | Database username |
 | `pass` | Database password |
 
-A separate MariaDB connection pool is created per chain/network.
+A separate MariaDB connection pool is created per chain/network/dbType.
 
 ## Database Naming
 
@@ -166,11 +166,11 @@ The transparency log table (`sync_meta`) is not created for decoder replicas.
 
 ## Connection Pool Configuration
 
-Each chain/network gets its own MariaDB connection pool with these parameters (matching the indexer's `db.js` defaults):
+Each chain/network/dbType gets its own MariaDB connection pool with these parameters (from `db.js`). The connection limit is controlled by the `DB_POOL_SIZE` environment variable (default `5`):
 
 | Parameter | Value | Description |
 |---|---|---|
-| `connectionLimit` | `10` | Maximum simultaneous connections |
+| `connectionLimit` | `5` | Maximum simultaneous connections (override via `DB_POOL_SIZE`) |
 | `connectTimeout` | `10000` | Connection timeout (ms) |
 | `acquireTimeout` | `10000` | Pool acquisition timeout (ms) |
 | `idleTimeout` | `60000` | Idle connection timeout (ms) |

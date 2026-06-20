@@ -38,6 +38,13 @@ The test suite reads configuration from a `.env` file (loaded via `dotenv`) or f
 | `ENCODER_URL` | Hub fallback | None | Encoder service hostname |
 | `ENCODER_API_PORT` | Hub fallback | None | Encoder API port |
 
+### Decoder
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DECODER_URL` | Hub fallback | None | Decoder service hostname |
+| `DECODER_API_PORT` | Hub fallback | None | Decoder API port |
+
 ### Indexer
 
 | Variable | Required | Default | Description |
@@ -47,6 +54,13 @@ The test suite reads configuration from a `.env` file (loaded via `dotenv`) or f
 | `INDEXER_DB_NAME` | Hub fallback | None | Indexer MariaDB database name |
 | `INDEXER_DB_USER` | Hub fallback | None | Indexer MariaDB username |
 | `INDEXER_DB_PASS` | Hub fallback | None | Indexer MariaDB password |
+
+### Explorer
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `EXPLORER_URL` | Yes (not hub-discoverable) | None | Explorer service hostname |
+| `EXPLORER_API_PORT` | Yes (not hub-discoverable) | None | Explorer API port |
 
 ### Regtest Miner
 
@@ -71,14 +85,15 @@ When direct environment variables are not set, the bootstrap sequence discovers 
 ```
 checkAllEnvironmentalVariables()
     │
-    ├── All 17 vars set? → Use direct config
+    ├── All 21 vars set? → Use direct config
     │
     └── Any missing? → Hub fallback:
         ├── Parse endpoints: HUB_VALIDATORS > HUB_URL+HUB_PORT > localhost:10000
         ├── new XChainHubConnector(endpoints)
         ├── hubConnector.ping()
         ├── hubConnector.getAllConfig() → config[coin][network][service][param]
-        └── Extract host/port for: node, database, utxo-tracker, encoder, indexer, regtest-miner
+        └── Extract host/port for: node, database, utxo-tracker, encoder, decoder, indexer, regtest-miner
+            Note: explorer is NOT hub-discoverable; EXPLORER_URL/EXPLORER_API_PORT must be set directly
 ```
 
 **Docker convention:** When using hub discovery, all service hostnames are overridden to `"localhost"` (Docker Compose services are accessed via port mapping, not container hostnames). Database host defaults to `"mariadb"`.
@@ -90,7 +105,7 @@ checkAllEnvironmentalVariables()
 | `GAS_TICK` | `"XCHAIN"` | `initialCheck.test.js` | Gas token ticker, auto-created if missing |
 | `connectionLimit` | `10` | `db.js` | MariaDB connection pool size |
 | `insertIdAsNumber` | `true` | `db.js` | Return insert IDs as numbers, not BigInt |
-| `timeMax` (default) | `30000` | `db.js` | Default polling timeout for all `waitFor*` methods (ms) |
+| `timeMax` (default) | `60000` | `db.js` | Default polling timeout for all `waitFor*` methods (ms) |
 | `sleep interval` | `1000` | `db.js` | Polling interval between `check*` calls (ms) |
 | `waitForTx timeout` | `10000` | `BlockchainConnector.js` | Default timeout for `waitForTx` polling (ms) |
 | `waitForUtxos timeout` | `60000` | `XChainUtxoTrackerConnector.js` | Default timeout for `waitForUtxos` polling (ms) |
@@ -153,9 +168,9 @@ docker-compose up --exit-code-from xchain-e2e-test
 | Litecoin | regtest | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 5460 sats |
 | Litecoin | testnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 5460 sats |
 | Litecoin | mainnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 5460 sats |
-| Dogecoin | regtest | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
-| Dogecoin | testnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
-| Dogecoin | mainnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 546 sats |
+| Dogecoin | regtest | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 100000 sats |
+| Dogecoin | testnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 100000 sats |
+| Dogecoin | mainnet | `m/44'/0'/0'/0/{index}` | P2PKH (legacy) | 100000 sats |
 
 ---
 

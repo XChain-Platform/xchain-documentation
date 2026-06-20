@@ -22,7 +22,7 @@ On startup, the decoder:
 2. Starts the Express JSON-RPC API server on `DECODER_API_PORT`
 3. Validates the database name (alphanumeric + underscores only)
 4. Creates the database if it doesn't exist
-5. Creates all 8 tables if they don't exist
+5. Creates all 9 tables if they don't exist
 6. Waits for the coin node to reach 99% verification progress
 7. Begins parsing from the configured start block (or last parsed block + 1)
 
@@ -210,7 +210,7 @@ Mempool tracking pauses if the decoder falls more than 3 blocks behind the tip, 
 
 ### Coin Node (JSON-RPC)
 
-- All RPC calls have a 5-second HTTP timeout
+- All RPC calls have a 30-second HTTP timeout by default (overridable via `NODE_RPC_TIMEOUT`)
 - Failed calls are retried up to 10 times with 500ms backoff
 - HTTP 429 (rate limited) triggers a longer 5-second backoff
 - Connection aborts (ECONNABORTED) are retried with timeout warnings logged
@@ -218,7 +218,7 @@ Mempool tracking pauses if the decoder falls more than 3 blocks behind the tip, 
 ### MariaDB
 
 - Connection pool of 10 concurrent connections
-- 30-second timeout for acquiring a connection from the pool
+- 30-second query execution timeout (configurable via `DB_QUERY_TIMEOUT`)
 - Transaction locking via a queue-based mutex prevents concurrent block commits and mempool updates from interleaving
 - On connection failure, errors are logged with `e.code` (not full error object, to avoid credential leakage)
 

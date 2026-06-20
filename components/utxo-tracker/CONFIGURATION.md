@@ -105,7 +105,7 @@ These values are defined in `src/XChainUtxoTracker.js` and are not configurable 
 | Max sockets | `25` | Maximum concurrent HTTP connections to coin node |
 | Timeout | `30000` | Axios request timeout in milliseconds |
 | `getRawTransaction` retries | `10` | Retry count with 500ms backoff |
-| `getBlockHeader` retries | `10` | Retry count with 3-second backoff |
+| `getBlockHeader` retries | `10` | Retry count on ECONNABORTED only (no sleep between attempts) |
 
 ---
 

@@ -40,11 +40,12 @@ const swapAction = aliceSdk.swap({
   getAddress: 'ltc1qalicesltcaddress...',  // Alice's LTC address to receive tokens
   // expiration: Math.floor(Date.now() / 1000) + 86400 * 3, // 3-day window, optional
 });
-// Returns: "SWAP|0|BTC|RAREPEPE|1|LTC|LTCTOKEN|1000|ltc1qalicesltcaddress...|..."
+// Returns an action object; swapAction.actionString holds the wire string, e.g.:
+// "SWAP|0|BTC|RAREPEPE|1||LTC|LTCTOKEN|1000||ltc1qalicesltcaddress...|..."
 
-const psbt = await aliceSdk.encoder.createPSBT({
-  action: swapAction,
-  publicKey: 'ALICE_BTC_PUBLIC_KEY',
+const psbt = await aliceSdk.encoder.createTx({
+  data: swapAction.actionString,
+  pubkey: 'ALICE_BTC_PUBLIC_KEY',
   utxos: aliceBtcUtxos,
 });
 
@@ -109,9 +110,9 @@ const matchAction = bobSdk.swap({
   // No expiration needed: matching is immediate
 });
 
-const matchPsbt = await bobSdk.encoder.createPSBT({
-  action: matchAction,
-  publicKey: 'BOB_LTC_PUBLIC_KEY',
+const matchPsbt = await bobSdk.encoder.createTx({
+  data: matchAction.actionString,
+  pubkey: 'BOB_LTC_PUBLIC_KEY',
   utxos: bobLtcUtxos,
 });
 
@@ -159,9 +160,9 @@ const cancelAction = aliceSdk.swap({
   memo: 'No takers, cancelling',
 });
 
-const cancelPsbt = await aliceSdk.encoder.createPSBT({
-  action: cancelAction,
-  publicKey: 'ALICE_BTC_PUBLIC_KEY',
+const cancelPsbt = await aliceSdk.encoder.createTx({
+  data: cancelAction.actionString,
+  pubkey: 'ALICE_BTC_PUBLIC_KEY',
   utxos: aliceBtcUtxos,
 });
 await signAndBroadcast(cancelPsbt.psbt);

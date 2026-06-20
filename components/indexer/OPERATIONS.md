@@ -178,7 +178,7 @@ When `exists` is `false`, `confirmations` is `0` and `action`/`block_index` are 
 
 ---
 
-The `reparse` and `rollback` methods are defined in the codebase but currently commented out (reserved for future use).
+Administrative methods such as `reparse` and `rollback` are not exposed via the JSON-RPC API; reorg recovery runs automatically via the internal `Rollback` class.
 
 ## Resilience and Recovery
 

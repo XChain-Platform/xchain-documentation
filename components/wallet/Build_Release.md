@@ -16,7 +16,7 @@ All packages in the repository ship at the **same version number**:
 - `packages/desktop/package.json`
 - `packages/bridge-spec/package.json`
 - `packages/test-dapp/package.json`
-- `e2e/package.json`
+- `test/e2e/package.json`
 
 Rationale: users running the web app, the extension, and the desktop app need an obvious way to confirm they're on the same build. Every shell's About screen surfaces its own `package.json.version`, so synchronized versions let users diff `1.0.0-rc.6-extension` vs `1.0.0-rc.6-web` vs `1.0.0-rc.6-desktop` and immediately know they're on the same codebase.
 

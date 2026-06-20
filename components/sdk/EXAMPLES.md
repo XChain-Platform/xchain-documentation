@@ -345,7 +345,9 @@ const result = await sdk.sweep({
     destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
     balances: 1,
     ownerships: 1,
-    escrows: 0,
+    orders: 0,
+    swaps: 0,
+    dispensers: 0,
     memo: 'Moving everything to new address'
 });
 ```

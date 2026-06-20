@@ -14,7 +14,7 @@ The XChain Platform is in pre-launch development and ships under a single primar
 
 Contact:
 
-- General and non-sensitive: open an issue at <https://github.com/XChain-platform/xchain-documentation/issues>.
+- General and non-sensitive: open an issue at <https://github.com/XChain-Platform/xchain-documentation/issues>.
 - Code of Conduct: `conduct@dankest.llc` (per `CODE_OF_CONDUCT.md`).
 - Security disclosures: GitHub Private Vulnerability Reporting, or `security@dankest.llc` (per `SECURITY.md`).
 
@@ -87,9 +87,9 @@ Smaller calls (clarifications, additions within an existing section, fixing exam
 
 | Project | Relationship |
 |---|---|
-| [`xchain-indexer`](https://github.com/XChain-platform/xchain-indexer) | Primary implementing service for protocol spec; consensus-affecting spec changes are coordinated here first |
-| [`xchain-decoder`](https://github.com/XChain-platform/xchain-decoder) | Implements the encoding formats and ACTION extraction documented in `protocol/` |
-| [`xchain-vm`](https://github.com/XChain-platform/xchain-vm) | Implements the contract execution model documented in the protocol and component docs |
+| [`xchain-indexer`](https://github.com/XChain-Platform/xchain-indexer) | Primary implementing service for protocol spec; consensus-affecting spec changes are coordinated here first |
+| [`xchain-decoder`](https://github.com/XChain-Platform/xchain-decoder) | Implements the encoding formats and ACTION extraction documented in `protocol/` |
+| [`xchain-vm`](https://github.com/XChain-Platform/xchain-vm) | Implements the contract execution model documented in the protocol and component docs |
 | All other xchain-* services | Every service cites this repo as the authoritative spec; each service's `components/` entry is maintained in sync with that service's own repo |
 
 The documentation maintainer is not automatically a maintainer of those sibling projects. Cross-project changes go through each project's own review process.

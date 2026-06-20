@@ -27,6 +27,7 @@ The database and all tables are auto-created on startup if they don't exist. Sch
 | `index_addresses` | Address string to integer ID lookup | `id` (auto-increment) |
 | `index_transactions` | Transaction/block hash to integer ID lookup | `id` (auto-increment) |
 | `events` | System events (reorgs, errors) | `id` (auto-increment) |
+| `pubkeys` | Source-address public keys captured during parsing | `address_id` |
 
 ## Core Tables
 
@@ -181,6 +182,7 @@ Notable applied migrations:
 | `2026-06-13-dispensers-expiration-bigint.sql` | manual | Changes `dispensers.expiration` from `DATETIME` to `BIGINT UNSIGNED` |
 | `2026-06-15-events-data-mediumtext.sql` | auto | Widens `events.data` from `TEXT` to `MEDIUMTEXT` |
 | `2026-06-15-mempool-raw-strings.sql` | manual | Drops and recreates `mempool_transactions` with raw `VARCHAR` columns instead of FK integer IDs |
+| `2026-06-17-pubkeys-add-monotonic-id.sql` | auto | Adds `id BIGINT UNSIGNED AUTO_INCREMENT UNIQUE` to `pubkeys` for stable replication paging |
 
 ## Data Flow
 

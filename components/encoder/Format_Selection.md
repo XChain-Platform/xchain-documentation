@@ -3,7 +3,7 @@
 
 # Encoder Format Selection
 
-XChain supports four encoding formats for embedding ACTION payloads in blockchain transactions. The encoder selects the most efficient format automatically based on payload size. This document explains each format's characteristics, limits, and trade-offs. It is informational, you do not need to specify a format when calling the encoder.
+XChain supports four encoding formats for embedding ACTION payloads in blockchain transactions. The encoder auto-selects between `OP_RETURN` (payload <= 76 bytes) and `P2SH` (larger payloads); `P2WSH` and `MULTISIGN` must be requested explicitly via the `encoding` parameter. This document explains each format's characteristics, limits, and trade-offs to help you choose when overriding the default.
 
 ## Format Summary
 
@@ -90,7 +90,7 @@ Multisig is a single-transaction format chosen for medium payloads slightly larg
 
 ## Automatic Selection
 
-The encoder measures the obfuscated payload length and selects the appropriate format without any input from the caller. Pass the ACTION string and UTXOs; the encoder handles the rest. If you need to inspect which format was chosen, the encode response includes an `encoding` field.
+The encoder's built-in auto-selection chooses between two formats: `OP_RETURN` for payloads of 76 bytes or fewer (80 bytes including the XCHN prefix), and `P2SH` for everything larger. To use `P2WSH` or `MULTISIGN`, pass the `encoding` parameter explicitly. If you need to inspect which format was actually used, the response includes an `encoding` field.
 
 ## Related
 

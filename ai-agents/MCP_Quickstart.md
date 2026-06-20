@@ -38,7 +38,7 @@ Any other MCP client: run `node mcp/cli.js` as a stdio server.
 
 ## What you get
 
-22 read-only tools. Every tool takes a `coin` parameter selecting chain + network (`BTC`, `TBTC`, `LTC`, `TLTC`, `DOGE`, `TDOGE`, and `R*` for a local regtest stack).
+23 read-only tools. Every tool takes a `coin` parameter selecting chain + network (`BTC`, `TBTC`, `LTC`, `TLTC`, `DOGE`, `TDOGE`, and `R*` for a local regtest stack).
 
 | Area | Tools |
 |---|---|
@@ -49,6 +49,7 @@ Any other MCP client: run `node mcp/cli.js` as a stdio server.
 | Trading | `get_dispensers`, `get_markets`, `get_market`, `get_orderbook` |
 | Contracts | `get_contract`, `get_contract_state`, `get_executions` |
 | Trust | `get_attestations`, `verify_checkpoint` (client-side signature check) |
+| Transactions | `compose_action` (returns an unsigned PSBT; nothing is signed or broadcast) |
 
 Plus two resources: `xchain://docs/llms.txt` and `xchain://docs/llms-full.txt`; the documentation, readable in-band.
 

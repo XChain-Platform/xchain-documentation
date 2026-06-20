@@ -94,7 +94,7 @@ mounts it into the hub container automatically. See OPERATIONS.md → Validator 
 | `ORACLE_MAX_SUBMISSIONS_PER_ROUND` | No | `200` | Cap on the number of price submissions accepted per round. Submissions beyond this limit are discarded to bound memory and consensus payload size. |
 | `ORACLE_STALENESS_THRESHOLD_S` | No | `2 x ORACLE_ROUND_INTERVAL` | Seconds since the last finalized price snapshot before the `GET /health` endpoint reports `oracle_stale: true` (and returns HTTP 503). Defaults to twice the round interval; override for slow-start or custom round cadences. |
 | `COINGECKO_API_KEY` | No | None | CoinGecko API key (optional, improves rate limits) |
-| `COINMARKETCAP_API_KEY` | No | None | CoinMarketCap API key (enables second price source) |
+| `COINMARKETCAP_API_KEY` | No | None | CoinMarketCap API key (enables a third price source; CoinGecko and Kraken are both keyless and always active) |
 | `PRICE_FETCH_TIMEOUT` | No | `10000` | HTTP timeout for external price API calls (ms) |
 
 ### Rewards and Slashing
@@ -168,7 +168,7 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 
 | Table | Purpose |
 |---|---|
-| `oracle_submissions` | Raw per-validator price submissions per round: `(round_number, coin_pair, signing_pubkey, price)` |
+| `oracle_submissions` | Raw per-validator price submissions per round: `(round_number, coin_pair, validator_pubkey, price)` |
 | `price_snapshots` | Finalized/skipped/disputed price snapshots: `(round_number, coin_pair, price, status, consensus_proof)` |
 | `oracle_prices` | User-published PRICE v1 oracle prices: `(source_address, coin, tick, fiat, value, effective_at)` with 24-hour delay on updates |
 

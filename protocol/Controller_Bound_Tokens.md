@@ -74,7 +74,7 @@ it with positional, all-string input params (read via `xchain.getInputParam(i)`)
 
 | i | Param | Notes |
 |---|---|---|
-| 0 | `action_type` | the guard invocation point: `SEND` (transfer), `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` (trade), `DESTROY` (burn). No guard runs at match/dispense: see [Proceeds split](#proceeds-split-royalty--fee-payout_legs). |
+| 0 | `action_type` | the guard invocation point: `SEND` (transfer), `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` (trade), `DESTROY` (burn), `MINT` (mint), `STAKE` (stake, v3 contract-targeted only). No guard runs at match/dispense: see [Proceeds split](#proceeds-split-royalty--fee-payout_legs). |
 | 1 | `from` | the address giving up / sending the token (`''` if n/a) |
 | 2 | `to` | the address receiving the token (`''` if n/a) |
 | 3 | `tick` | the controlled token |

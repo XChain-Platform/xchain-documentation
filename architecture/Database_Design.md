@@ -166,11 +166,11 @@ Stores the full UTXO set of the monitored coin node. Key schema uses single-char
 | `O` | Output records (txid:vout → value, scriptPubKey) |
 | `H` / `J` | Address hints (scriptPubKey hash → txids) |
 
-Writes are batched in groups of 100 blocks. A per-chain undo window (BTC: 12 / LTC: 48 / DOGE: 120 blocks) is retained to support reorg rollback.
+Writes are batched in groups of up to 200 blocks (flush may trigger earlier under heap pressure). A per-chain undo window (BTC: 12 / LTC: 48 / DOGE: 120 blocks) is retained to support reorg rollback.
 
 ### xchain-hub
 
-The hub uses MariaDB (not LevelDB) with tables storing configuration, validator state, oracle data, cross-chain attestations, governance proposals, and more. The database name is configurable (default: `XChain_Hub`). Config parameters are stored in the `configs` table with a `(coin, network, module, param_name)` unique key. Cross-chain price data is aggregated into `price_snapshots` (validator PRICE v0) and `oracle_prices` (user PRICE v1); these are also broadcast to connected indexers via the `/hub-db/subscribe` WebSocket channel.
+The hub uses MariaDB (not LevelDB) with tables storing configuration, validator state, oracle data, cross-chain attestations, governance proposals, and more. The database name is configurable (default: `xchain_hub`). Config parameters are stored in the `configs` table with a `(coin, network, module, param_name)` unique key. Cross-chain price data is aggregated into `price_snapshots` (validator PRICE v0) and `oracle_prices` (user PRICE v1); these are also broadcast to connected indexers via the `/hub-db/subscribe` WebSocket channel.
 
 See [`../components/hub/CONFIGURATION.md`](../components/hub/CONFIGURATION.md) for the full schema reference.
 
