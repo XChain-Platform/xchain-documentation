@@ -63,14 +63,3 @@ with a commercial license available for proprietary use.
 You may use, modify, and distribute this material under the terms of the License.
 See [LICENSE](./LICENSE.md) and [NOTICE](./NOTICE.md) for full terms.
 See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).
-
-## License
-
-XChain Platform is **open source**, dual-licensed under:
-
-- the **[GNU Affero General Public License v3.0](./LICENSE.md)** (`AGPL-3.0-or-later`), free for everyone, and
-- a **[commercial license](https://docs.xchain.io/legal/COMMERCIAL-LICENSE.html)** for companies that need to keep modifications private.
-
-See the **[licensing overview](https://docs.xchain.io/legal/LICENSING.html)** for which one applies to you. "XChain" is a trademark of Dankest, LLC. See the **[Trademark Policy](https://docs.xchain.io/legal/TRADEMARK.html)**.
-
-Copyright © 2025-2026 Dankest, LLC.
