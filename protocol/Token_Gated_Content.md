@@ -44,7 +44,7 @@ A pack is just two or more gated `FILE` actions sharing the same `KEY_HASH` and 
 
 1. Issuer generates one `K` and `KEY_HASH`.
 2. Issuer encrypts each file plaintext under `K`. Each file gets a fresh 12-byte nonce, but they all share `K`.
-3. Issuer publishes a `FILE|1|...` action per file (one `rawData` per transaction; small files can be combined in a single `BATCH`).
+3. Issuer publishes a `FILE|0|...` action per file (one `rawData` per transaction; small files can be combined in a single `BATCH`).
 4. After (or alongside) the last file, issuer publishes a self-`MESSAGE` whose binary payload contains the single shared `K`.
 
 Because every file in the pack shares the same `K`, one 32-byte entry in the handoff unlocks every file in the pack regardless of how many there are.
@@ -98,7 +98,7 @@ The plaintext inside every ECIES key-handoff MESSAGE is a compact binary blob:
 - **Pack support is implicit.** A pack with N files shares one `K`, which means one 32-byte entry in the handoff unlocks every file in the pack.
 - **Multi-key handoffs** (a token with multiple distinct gated `KEY_HASH`es, e.g. two unrelated packs under one ticker) carry one 32-byte entry per distinct `K`. The recipient hashes each and matches independently.
 - **Version byte** is `0x01`. Reserved for future format evolution, readers must reject unknown version bytes rather than guessing the layout.
-- **Transport.** The plaintext bytes are passed to ECIES (`MESSAGE` v2, method 1) **in binary mode**. No UTF-8 conversion. The on-chain `ENCRYPTED_MESSAGE` field is the ECIES ciphertext (ephemeral pubkey ‖ IV ‖ GCM tag ‖ encrypted bytes), opaque to anyone without the recipient's private key.
+- **Transport.** The plaintext bytes are passed to ECIES (`MESSAGE` v2, method 1) **in binary mode**. No UTF-8 conversion. The on-chain `ENCRYPTED_MESSAGE` field is the ECIES ciphertext (KDF version byte `0x01` ‖ ephemeral pubkey, 33 bytes ‖ IV, 12 bytes ‖ GCM tag, 16 bytes ‖ encrypted bytes), opaque to anyone without the recipient's private key. Byte 0 selects the key-derivation version (`0x01` = HKDF-SHA256 v1; legacy v0 is sniffed as `0x02`/`0x03`); readers must reject unknown version bytes rather than guessing the layout.
 
 ### Why binary (and not JSON)
 

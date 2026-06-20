@@ -7,7 +7,9 @@ XChain embeds ACTION data in standard blockchain transactions. Two layers are in
 
 ## Layer 1: Obfuscation
 
-Before an ACTION string is embedded in a transaction, it is processed as follows:
+Obfuscation applies to the payload carried in **OP_RETURN** and **multisig** outputs. For the script-reveal formats (**P2SH** and **P2WSH**) the ACTION data chunk is embedded raw in the redeem/witness script; only a separate marker `OP_RETURN` output (`XCHN` magic plus a `p2sh`/`p2wsh` tag) is obfuscated. See the per-format notes in Layer 2 below.
+
+Where obfuscation applies, an ACTION string is processed as follows before it is embedded:
 
 1. The `XCHN` magic prefix (4 ASCII bytes) is prepended to the ACTION string.
 2. The resulting payload is encrypted using **AES-128-CTR** with:
@@ -46,7 +48,7 @@ OP_RETURN is the preferred format for short ACTIONs (simple sends, mints, basic 
 
 **Capacity**: up to 476 bytes of data  
 **Transactions**: 2 (fund then spend)  
-**Mechanism**: The ACTION data is embedded in a redeem script. A first transaction creates an output locked to the hash of that script (the "fund" transaction). A second transaction spends that output by revealing the full script (the "spend" transaction). The decoder reads the revealed script from the spending transaction input.
+**Mechanism**: The ACTION data is embedded **raw** (no Layer-1 obfuscation) in a redeem script. A first transaction creates an output locked to the hash of that script (the "fund" transaction). A second transaction spends that output by revealing the full script (the "spend" transaction), and also carries a single obfuscated marker `OP_RETURN` output (`XCHN` magic plus a `p2sh` tag) so the decoder can recognize the transaction. The decoder reads the revealed script from the spending transaction input.
 
 The two-transaction pattern means the ACTION is not visible until the spend transaction is mined. The fund transaction just looks like a payment to a script hash.
 
@@ -54,7 +56,7 @@ The two-transaction pattern means the ACTION is not visible until the spend tran
 
 **Capacity**: up to 8,192 bytes of data (decoder-enforced ceiling)  
 **Transactions**: 2 (fund then spend)  
-**Mechanism**: Identical in concept to P2SH but uses SegWit witness data for the reveal. The larger capacity comes from the witness discount applied to SegWit data, witness bytes cost one quarter of the weight of non-witness bytes for fee purposes. This makes P2WSH the preferred format for large payloads (file uploads, long broadcast messages, dense batch operations).
+**Mechanism**: Identical in concept to P2SH but uses SegWit witness data for the reveal; the data chunk in the witness script is likewise embedded **raw**, with a single obfuscated marker `OP_RETURN` output (`XCHN` magic plus a `p2wsh` tag). The larger capacity comes from the witness discount applied to SegWit data, witness bytes cost one quarter of the weight of non-witness bytes for fee purposes. This makes P2WSH the preferred format for large payloads (file uploads, long broadcast messages, dense batch operations).
 
 ## Format Auto-Selection
 
