@@ -90,10 +90,17 @@ The hub is designed to run inside Docker. The Dockerfile copies source to `/XCha
 
 ```dockerfile
 FROM node:latest
-COPY ./src /XChainHub/src
-COPY package.json /XChainHub/
+
+RUN mkdir /XChainHub/
+COPY ./package.json /XChainHub/package.json
+COPY ./package-lock.json /XChainHub/package-lock.json
 WORKDIR /XChainHub
-RUN npm install
+RUN npm ci --omit=dev
+
+COPY ./src /XChainHub/src
+COPY ./docs /XChainHub/docs
+COPY ./.en[v] /XChainHub/.env
+
 CMD ["npm", "run", "api"]
 ```
 
@@ -125,7 +132,27 @@ curl -X POST http://localhost:10000 \
 
 ### Authentication
 
-Write methods (`updateconfig`, `registervalidator`, `rotatevalidator`, `deregistervalidator`, `syncvalidators`, `requestattestation`, `initiateswap`, `reportreorg`, `propose`, `vote`) require an `X-API-Key` header if `HUB_API_KEY` is set. If no API key is configured, all methods are open.
+The following methods require an `X-API-Key` header when `HUB_API_KEY` is set. If no API key is configured, all methods are open (a warning is logged on startup).
+
+| Method | Category |
+|---|---|
+| `updateconfig` | Config management |
+| `registervalidator` | Validator management |
+| `rotatevalidator` | Validator management |
+| `deregistervalidator` | Validator management |
+| `syncvalidators` | Validator management |
+| `propose` | Governance |
+| `vote` | Governance |
+| `requestattestation` | Cross-chain |
+| `reportreorg` | Reorg handling |
+| `initiateswap` | Swap tracking |
+| `pushchaintip` | Oracle / price data |
+| `pushpriceround` | Oracle / price data |
+| `pushoracleprice` | Oracle / price data |
+| `pushpricereorg` | Oracle / price data |
+| `pushxcallreorg` | Reorg handling |
+| `pushdexreorg` | Reorg handling |
+| `anchorflush` | ANCHOR publishing |
 
 ### Rate Limiting
 

@@ -80,22 +80,22 @@ The returned object contains:
 
 The ACTION string needs to be embedded in a blockchain transaction. The encoder service does this, and the SDK talks to it for you.
 
-First, gather your UTXOs (the SDK can fetch them from the UTXO tracker):
+First, gather your UTXOs (the encoder client can fetch them from the UTXO tracker):
 
 ```js
-const utxos = await sdk.explorer.getUtxos({ address: 'your-bitcoin-address' });
+const { utxos } = await sdk.encoder.getUTXOs('your-bitcoin-address');
 ```
 
 Then create a PSBT (Partially Signed Bitcoin Transaction):
 
 ```js
-const { psbt } = await sdk.encoder.createPSBT({
-  action:    result.actionString,
-  publicKey: 'your-compressed-public-key-hex',
-  utxos:     utxos,
+const { psbt } = await sdk.encoder.createTx({
+  data:   result.actionString,
+  pubkey: 'your-compressed-public-key-hex',
+  utxos:  utxos,
 });
 
-console.log(psbt);  // Base64-encoded PSBT ready for signing
+console.log(psbt);  // Hex-encoded PSBT ready for signing
 ```
 
 ---
@@ -146,10 +146,11 @@ const mintResult = await sdk.mint({
 });
 
 // Encode, sign, broadcast the PSBT the same way as above
-const { psbt } = await sdk.encoder.createPSBT({
-  action:    mintResult.actionString,
-  publicKey: 'your-compressed-public-key-hex',
-  utxos:     await sdk.explorer.getUtxos({ address: 'your-address' }),
+const { utxos: mintUtxos } = await sdk.encoder.getUTXOs('your-address');
+const { psbt } = await sdk.encoder.createTx({
+  data:   mintResult.actionString,
+  pubkey: 'your-compressed-public-key-hex',
+  utxos:  mintUtxos,
 });
 ```
 
@@ -170,10 +171,11 @@ const sendResult = await sdk.send({
 });
 
 // Encode, sign, broadcast as before
-const { psbt } = await sdk.encoder.createPSBT({
-  action:    sendResult.actionString,
-  publicKey: 'your-compressed-public-key-hex',
-  utxos:     await sdk.explorer.getUtxos({ address: 'your-address' }),
+const { utxos: sendUtxos } = await sdk.encoder.getUTXOs('your-address');
+const { psbt } = await sdk.encoder.createTx({
+  data:   sendResult.actionString,
+  pubkey: 'your-compressed-public-key-hex',
+  utxos:  sendUtxos,
 });
 ```
 
@@ -202,7 +204,7 @@ The SDK provides 90+ explorer query methods:
 ```js
 // Token information
 await sdk.explorer.getToken('MYTOKEN');
-await sdk.explorer.getTokens({ limit: 20, page: 1 });
+await sdk.explorer.getTokens('your-address', 'address', { limit: 20, page: 1 });
 
 // Balances
 await sdk.explorer.getBalances('your-address');

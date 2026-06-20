@@ -78,6 +78,23 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `swap_statuses` | SWAP status change history |
 | `sweeps` | SWEEP transfer records |
 | `tokens` | Authoritative token state (supply, decimals, owner, locks, description) |
+| `coinpay_obligations` | Native coin payment obligations created by an ORDER_MATCH: `payer_address_id` (coin-offering party), `payee_address_id` (token-selling party), `coin_id`, `coin_amount`, `expiration` (Unix timestamp) |
+| `coinpay_statuses` | COINPay obligation status change history (pending_coinpay / fulfilled / expired / cancelled) |
+| `coinpay_expires` | COINPAY_EXPIRE event records: each row links the expire action to the original obligation |
+| `deploy_chunks` | Individual DEPLOY v4 carrier chunks for chunked smart contract upload. Keyed by `(source_id, code_hash, chunk_index)`; DEPLOY assembler reads only valid chunks and takes the lowest `action_index` per position |
+| `anchor_actions` | Per-action ANCHOR records, one row per ANCHOR action_index. Versions: 0=checkpoint, 1=checkpoint+archive, 2=archive continuation, 3=checkpoint+SPV roots. Stores signed state hashes, `match_batch_seq`, `archive_b64` (gzip chunk), and `validator_signatures`. Enables full platform state recovery from a chain parse alone |
+| `attests` | ATTEST action records (all versions). Version 0=request (emitted by a VM contract via `xchain.attestation.request`), version 1=response (validator PBFT bundle with `validator_signatures` JSON). Correlated by `request_id`; lifecycle tracked via `request_status` on v0 rows |
+| `attest_validator_stats` | Cross-attestation accountability rollup keyed by `(validator_pubkey, provider_id)`. Tracks `fulfilled_count`, `missed_count`, `slashed_count`, and `quality_score` (0..1). Updated incrementally; recomputed from surviving records on reorg |
+| `xcalls` | XCALL action records (v0=request, v2=expire). Each v0 row tracks a cross-chain contract call: `call_id`, `target_chain`, `target_contract_index`, `method`, `request_status` (pending/completed/expired), and the callback delivery outcome |
+| `cross_chain_matches` | Hub-mirrored cross-chain DEX match rows. Populated by `hub_db_sync`; contains both legs (a/b chain, action_index, tick, amount, payout addresses) and the `validator_signatures` the hub federation signed |
+| `cross_chain_settlements` | Settlement records for cross-chain DEX matches on this chain. One row per settled match leg; used for idempotency so a match is never applied twice. Rolled back by `action_index` |
+| `cross_chain_calls` | Hub-mirrored cross-chain contract call rows (XCALL dispatch + result phases). Populated by `hub_db_sync` |
+| `cross_chain_call_executions` | Records the system-injected XEXEC action that executed a cross-chain call on this chain. One row per `call_id` (idempotency) |
+| `cross_chain_call_callbacks` | Records the system-injected callback EXECUTE delivered to the source contract after a cross-chain call result is processed. One row per `call_id` (idempotency) |
+| `full_node_verifications` | Validated full-node possession-proof records. One row per (epoch, passing validator) from a NODEPROOF v0 verdict. Presence within `PROOF_WINDOW_BLOCKS` of a block gates the full-node reward tranche |
+| `gated_files` | FILE v1 token-gated metadata: `gate_ticker`, `encryption_method`, `key_hash` (groups pack members), and `raw_data` (ciphertext bytes) |
+| `pubkeys` | Address-to-public-key mapping, populated from the decoder at index time. Keyed by `address_id` |
+| `icons` | Token icon cache: source URL, fetch/generation status, and generated PNG hash. Keyed by `token_id`; managed by the icon-fetch pipeline, not by block processing |
 
 ### State Tables
 
@@ -124,6 +141,55 @@ Contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1) is a developer p
 | `contract_unstakes` | UNSTAKE v1 records (`action_index` (PK), `source_id`, `signing_pubkey_id`, `target_contract_index`, `tick_id`, `cooldown_end_block` (`block_index + contracts.cooldown_blocks`) the per-contract cooldown declared at deploy, **not** the global capability cooldown), `amount`, `status_id`, `block_index`. The block-end sweep credits the remaining (post-slash) amount back to the staker at `cooldown_end_block`. |
 | `contract_delegations` | DELEGATE v1 records (signing-pubkey rotation on a contract-targeted stake): `action_index` (PK), `source_id`, `signing_pubkey_id` (the new pubkey), `target_contract_index`, `tick_id`, `status_id`, `block_index`, `activation_block`, `deactivation_block` (set on revoke). |
 
+### Slashing Tables
+
+Two slashing systems produce distinct table families.
+
+**Contract-targeted slashing** (triggered by a VM EXECUTE that calls `xchain.stake.slash`):
+
+| Table | Purpose |
+|---|---|
+| `slash_events` | One row per VM-emitted slash: `execution_index` (the EXECUTE), `target_contract_index`, `signing_pubkey_id`, `tick_id`, `amount` slashed, and `destination_id` (resolved BURN address or custom destination) |
+| `contract_slash_debits` | Append-only audit log of in-place `amount` reductions on `contract_stakes`/`contract_unstakes` rows. Stores `prev_amount` (pre-slash string) for byte-identical reorg restoration. Keyed by `block_index` for rollback |
+
+**Capability-stake equivocation slashing** (permissionless SLASH wire action, WI-2 bump 2):
+
+| Table | Purpose |
+|---|---|
+| `capability_slash_events` | One row per SLASH action: `signing_pubkey_id` (the equivocating validator), `capability` engine tag (e.g. XDEX/XCALL/XCHECKPOINT), `equiv_key` (the shared equivocation key), total `amount` burned, `bounty_amount` paid to the submitter, and `treasury_amount` |
+| `capability_slash_debits` | Append-only audit log of in-place `amount` reductions on `stakes`/`unstakes` rows. Stores `prev_amount` for byte-identical reorg restoration. Keyed by `block_index` for rollback |
+
+### Capability Snapshot Table
+
+| Table | Purpose |
+|---|---|
+| `capability_snapshots` | Hub-mirrored validator capability snapshot. One row per `(snapshot_block, capability, signing_pubkey)`. Populated by `hub_db_sync`; lets a non-BTC indexer verify cross-chain match signatures without local capability stakes. `amount` is the source's aggregate active stake (the voting weight under STAKE_WEIGHTED_QUORUM) |
+
+### Controller Policy Tables
+
+| Table | Purpose |
+|---|---|
+| `token_controllers` | Append-only bind/unbind event log for token-level controller policies (ISSUE action). One row per event keyed by `(tick_id, action_class, contract_index)`. Effective controller at block X is the latest event at or before X; unbind rows gate only until `cooldown_end_block` |
+| `address_controllers` | Append-only bind/unbind event log for address-level controller policies (ADDRESS action). Same append-only, read-time-cooldown model as `token_controllers` |
+| `contract_permissions` | Per-contract permission manifest declared at DEPLOY time: `permissions` (JSON array of permitted emission action types; NULL = unrestricted), `max_take_bps` (per-contract royalty cap). Immutable after deploy |
+
+### SPV Light-Client Tables
+
+| Table | Purpose |
+|---|---|
+| `state_tree_roots` | Per-block light-client commitments: `balances_root` (SMT over balance+escrow leaves), `stakes_root` (BTC-only; EMPTY_SMT_ROOT on LTC/DOGE), `state_root` (fixed top-level root), and `block_merkle_root` (per-block content root). Written atomically with each block; rolled back by `block_index` |
+| `state_tree_nodes` | Content-addressed, copy-on-write SMT internal node store. Keyed by `node_hash` (SHA-256); stores `left_hash`/`right_hash`. Append-only (INSERT IGNORE); orphaned nodes survive reorgs and are pruned later |
+| `state_checkpoints` | Hub-mirrored federation state checkpoint rows. Append-only (supersede-by-seq semantics); not deleted on reorg (hub convergence handles stale rows). Contains `ledger_hash`, `actions_hash`, `contract_hash`, `state_root`, `block_merkle_root`, and `validator_signatures` |
+
+### Infrastructure and Utility Tables
+
+| Table | Purpose |
+|---|---|
+| `pending_hub_pushes` | Durable retry queue for PRICE v0/v1 pushes to the hub. Rows are deleted on successful delivery; failures stay and are retried with backoff by `HubPushQueue`. Rolled back by `action_index` so queued pushes for orphaned actions are purged on reorg |
+| `recovery_pending_rewards` | Recovery-only staging table for archived validator reward rows. Populated by `recovery.js` before a reindex; rewards are materialized into `validator_rewards` when the source address first receives its deterministic in-block index ID. NOT replicated by `xchain-sync` |
+| `oracle_prices` | Local mirror of the hub's `oracle_prices` table (PRICE v1 user oracle rows). Populated by `hub_db_sync`. Rolled back on reorg by `(source_chain, action_index)` |
+| `price_snapshots` | Local mirror of the hub's `price_snapshots` table (PRICE v0 consensus rounds). Populated by `hub_db_sync`. Rolled back on reorg by `reference_block` |
+
 ### PRICE Action Table
 
 | Table | Purpose |
@@ -158,7 +224,16 @@ During a blockchain reorganization, the `Rollback` class deletes data from two s
 
 **Block tables** (keyed by `block_index`): `blocks`, `transactions`
 
-**Data tables** (keyed by `action_index`): All other tables listed above, including staking tables (`stakes`, `unstakes`, `delegations`, `validator_rewards`, `reward_claims`), the `prices` action log, and VM tables (`contracts`, `contract_state`, `contract_executions`, `contract_emissions`, `deposits`, `withdrawals`). The rollback deletes records where `action_index >= firstActionIndex` (the first action at or after the reorg block), then recalculates balances, token state, and markets from the remaining ledger data.
+**Data tables** (keyed by `action_index`): All other tables listed above, including staking tables (`stakes`, `unstakes`, `delegations`, `validator_rewards`, `reward_claims`, `stake_key_revocations`), contract-staking tables (`contract_stakes`, `contract_unstakes`, `contract_delegations`), slashing tables (`slash_events` and `contract_slash_debits` are block-scoped; see below), the `prices` action log, VM tables (`contracts`, `contract_state`, `contract_executions`, `contract_emissions`, `deposits`, `withdrawals`, `contract_permissions`, `deploy_chunks`), attestation tables (`attests`, `anchor_actions`), cross-chain tables (`xcalls`, `cross_chain_settlements`, `cross_chain_call_executions`, `cross_chain_call_callbacks`), and controller/policy tables (`token_controllers`, `address_controllers`, `full_node_verifications`, `gated_files`, `pending_hub_pushes`). The rollback deletes records where `action_index >= firstActionIndex` (the first action at or after the reorg block), then recalculates balances, token state, and markets from the remaining ledger data.
+
+Several tables require special handling beyond a simple bulk delete:
+
+- **`slash_events`, `contract_slash_debits`, `capability_slash_events`, `capability_slash_debits`, `state_tree_roots`**: Deleted by `block_index` (not `action_index`) because slashes and light-client roots are block-scoped.
+- **`contract_stakes`, `contract_unstakes`, `stakes`, `unstakes`, `delegations`, `contract_delegations`**: In-place `deactivation_block` stamps written by orphaned UNSTAKE/DELEGATE-revoke actions are reset before the bulk delete. Similarly, in-place `amount` reductions from orphaned SLASH executions are restored from the corresponding `*_slash_debits` rows before those rows are deleted.
+- **`attests` (v0 rows), `xcalls` (v0 rows)**: Request-status flips (`fulfilled`/`errored`/`expired` and `completed`/`expired`) written as in-place UPDATEs on surviving rows are reset to `pending` before the bulk delete, keyed on `resolved_block >= reorgBlock`.
+- **`price_snapshots`, `oracle_prices`**: Not deleted by the generic loops; deleted separately by `reference_block`/`(source_chain, action_index)` respectively.
+- **`attest_validator_stats`**: A cross-attestation aggregate with no `action_index` or `block_index` FK; recomputed from surviving response and expired-request rows via `_recomputeAttestationValidatorStats`.
+- **`state_checkpoints`, `capability_snapshots`**: Intentionally NOT deleted on reorg. Both use append-only / supersede-by-seq semantics so stale rows are harmless; hub-driven convergence closes any divergence window.
 
 ---
 

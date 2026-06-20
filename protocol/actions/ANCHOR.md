@@ -6,16 +6,16 @@
 On-chain commitment of federation-signed state, checkpoints and the cross-chain match
 archive, in a single action with four version-discriminated phases:
 
-- **v0:** Checkpoint.** Validator-broadcast. Commits one chain's quorum-signed state checkpoint
+- **v0: Checkpoint.** Validator-broadcast. Commits one chain's quorum-signed state checkpoint
   (the per-block `ledger`/`actions`/`contract` hash triple) to the anchor chain.
-- **v1:** Checkpoint + match archive.** Validator-broadcast. A v0 checkpoint plus a compressed
+- **v1: Checkpoint + match archive.** Validator-broadcast. A v0 checkpoint plus a compressed
   batch of full `cross_chain_matches` records (including their validator signatures and the
   `capability_snapshots` rows needed to re-verify them), making cross-chain match data
   recoverable from chain parse alone.
-- **v2:** Archive continuation.** Validator-broadcast. Carries overflow chunks when a v1 archive
+- **v2: Archive continuation.** Validator-broadcast. Carries overflow chunks when a v1 archive
   payload exceeds the per-action data limit. Authenticated by its parent v1 (carries no
   signatures of its own).
-- **v3:** Checkpoint + light-client roots.** Validator-broadcast. A v0 checkpoint plus the additive
+- **v3: Checkpoint + light-client roots.** Validator-broadcast. A v0 checkpoint plus the additive
   SPV light-client roots (`STATE_ROOT` + `BLOCK_MERKLE_ROOT` and their version bytes), gated by the
   `CHECKPOINT_COMMITMENT` flag-day. Post-flag-day the publisher emits v3 instead of v0; the
   federation signatures cover the roots (they are part of the signed checkpoint canonical), so an

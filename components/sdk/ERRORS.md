@@ -187,6 +187,40 @@ Thrown by authentication operations: challenge generation, message signing, and 
 | `INVALID_WIF` | WIF string is malformed or cannot be decoded |
 | `SIGN_FAILED` | Message signing failed unexpectedly |
 
+### SDKMessagingError
+
+Thrown by messaging operations: encryption, decryption, public key lookup, and message sending.
+
+| Code | Details properties | Description |
+|------|--------------------|-------------|
+| `NETWORK_NOT_CONFIGURED` | None | A messaging operation requiring network parameters was called without a network configured |
+| `INVALID_MESSAGE` | None | Plaintext is missing, not a string, empty, or an invalid type for the chosen encryption method |
+| `INVALID_PUBKEY` | `length` (when length mismatch) | Recipient public key is missing, an invalid length (not 33 or 65 bytes), or not a valid secp256k1 curve point |
+| `INVALID_CIPHERTEXT` | None | Ciphertext is missing, too short to contain ECIES overhead, or otherwise malformed |
+| `INVALID_WIF` | None | WIF private key is missing, not a string, or cannot be decoded for the configured network |
+| `DECRYPTION_FAILED` | None | AES-GCM decryption failed (wrong key, corrupted ciphertext, or bad auth tag) |
+| `INVALID_ADDRESS` | None | Address is missing or not a string when looking up a public key or fetching messages |
+| `INVALID_COIN` | None | Destination coin is missing or not a recognized chain identifier (`BTC`, `LTC`, `DOGE`) |
+| `INVALID_DESTINATION` | None | Destination address is missing or not a string |
+| `INVALID_METHOD` | `method` | Encryption method number is not one of the recognized values (1=ECIES, 2=ECDH, 3=AES, null=plaintext) |
+| `INVALID_KEY` | None | AES shared key is missing for `aesEncrypt` or `aesDecrypt` |
+| `INVALID_TYPE` | `name` | A value passed as a hex string or Buffer was neither |
+| `PUBKEY_NOT_FOUND` | `address` | ECIES send: the explorer found no public key for the destination address. The address has not yet sent any on-chain transactions |
+| `SHARED_SECRET_REQUIRED` | None | ECDH send (method=2): `sharedSecret` was not provided. Derive it with `deriveSharedSecret()` first |
+| `SHARED_KEY_REQUIRED` | None | AES send (method=3): `sharedKey` was not provided |
+| `ENCODER_REQUIRED` | None | `send()` was called without providing encoder options |
+| `EXPLORER_REQUIRED` | None | `getPublicKey()` or `getMessages()` was called without providing an explorer client |
+| `SDK_REQUIRED` | None | `send()` was called directly on `MessagingUtils` instead of via `sdk.sendMessage()` |
+
+### SDKActionError
+
+Thrown by the action waiter (`ActionWaiter`) when waiting for a broadcast transaction to be indexed.
+
+| Code | Details properties | Description |
+|------|--------------------|-------------|
+| `CONFIRMATION_TIMEOUT` | `txid`, `timeout` | The transaction was broadcast but the indexer did not confirm it within the timeout window (default 120 seconds). The transaction may still be processed; callers may retry with a longer timeout |
+| `ACTION_REJECTED` | `txid`, `action`, `reason` | The transaction was indexed but one or more of its actions were marked invalid by the indexer. `reason` contains the indexer status string (e.g. `"invalid: insufficient funds (FEE)"`). `action` is the full indexed action object |
+
 ### SDKPolicyError
 
 Thrown by `AgentSession.submit()` when a declarative spending policy check fails, or during construction when the policy object is invalid. See [Agent Wallets](../../ai-agents/Agent_Wallets.md).

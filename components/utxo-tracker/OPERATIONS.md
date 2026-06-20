@@ -21,12 +21,13 @@ The `--max-old-space-size=4096` flag allocates 4 GB of heap memory, which is req
 
 On startup, the tracker:
 1. Loads environment variables from `.env`
-2. Creates the `XChainUtxoTracker` instance with the configured network and RPC credentials
-3. Opens (or creates) the LevelDB database at `/data/xchain-utxo-tracker`
-4. Starts the Express REST + JSON-RPC API server on `UTXO_TRACKER_API_PORT`
-5. Reads the last checkpoint (`LAST_BLOCK_HEIGHT`, `LAST_BLOCK_HASH`)
-6. Waits for the coin node to reach 99% sync progress
-7. Begins the block polling loop
+2. Runs `runBulkSyncIfEmpty()`: if the LevelDB database is empty and the coin node has enough blocks, the bulk-sync pipeline runs to completion before the API server starts. This fast-path seeds the database from a parallel offline parse rather than block-by-block RPC polling. On a chain that is too short (fewer blocks than the undo window), bulk-sync is skipped and incremental sync starts from block 0 instead.
+3. Creates the `XChainUtxoTracker` instance with the configured network and RPC credentials
+4. Opens (or creates) the LevelDB database at `/data/xchain-utxo-tracker`
+5. Starts the Express REST + JSON-RPC API server on `UTXO_TRACKER_API_PORT`
+6. Reads the last checkpoint (`LAST_BLOCK_HEIGHT`, `LAST_BLOCK_HASH`)
+7. Waits for the coin node to reach 99% sync progress
+8. Begins the block polling loop
 
 ## Docker
 
@@ -69,6 +70,17 @@ Returns all unspent outputs for an address, including both confirmed and mempool
   }
 ]
 ```
+
+#### GET /firstseen/:address
+
+Returns the block height at which the address first appeared in a confirmed block.
+
+**Response:**
+```json
+{"height": 119}
+```
+
+Returns `null` when the address has never appeared in a confirmed block.
 
 #### GET /balance/:address
 

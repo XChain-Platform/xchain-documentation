@@ -68,7 +68,7 @@ The wallet is the first consumer of the platform's light client (`sdk.light`). I
 
 ## Sign-screen safety rails
 
-Every signing surface; Send, Issue, Mint, Order, Dispenser, Dividend, Airdrop, Sweep, Stake, Delegate, Deploy, Execute, Deposit, Withdraw, Coinpay, Swap, Cross-chain, Multisig, is built on top of the same review pattern:
+Every signing surface (Send, Issue, Mint, Order, Dispenser, Dividend, Airdrop, Sweep, Stake, Delegate, Deploy, Execute, Deposit, Withdraw, Coinpay, Swap, Cross-chain, Multisig, and the remaining user-submittable actions available through the Advanced Actions form: Price, File, Broadcast, Message, List, Link, Address, Batch, Collect, Callback, Sleep, Unstake) is built on top of the same review pattern:
 
 1. The user fills a form. The form's plain-English values are the canonical user intent.
 2. The action descriptor encodes the intent into an XChain ACTION string.

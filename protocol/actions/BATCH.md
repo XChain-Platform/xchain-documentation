@@ -25,10 +25,10 @@ This example mints 100 XCHAIN tokens and issues the JDOG token
 - Can only use one `MINT` action in a `BATCH` action
 - Can only use one `ISSUE` action in a `BATCH` action
 - Can not use `BATCH` as a action in a `BATCH` action
-- A `BATCH` may contain at most one `FILE` action (because a transaction carries exactly one `rawData` payload)
 
 ## Notes
 - `COMMANDS` are separated by a semi-colon `;`
+- A `BATCH` may contain at most one `FILE` action. The decoder stores one `raw_data` payload per transaction, so a second `FILE` in the same `BATCH` would fail at the `FILE` handler rather than the `BATCH` validator. This is an architectural limit of the wire format, not an explicit `actionLimits` rule in `batch.js`.
 - A `FILE` may be batched with other actions, most commonly a `MESSAGE` v2 (ECIES) carrying the file's symmetric key, so that publishing a [token-gated file](../Token_Gated_Content.md) and committing the key happen atomically in one transaction.
 - `BATCH(SEND, MESSAGE)` is the canonical composition for transferring a token that has [active gated content](./SEND.md), the `MESSAGE` is required and re-encrypts the content keys to the recipient.
 

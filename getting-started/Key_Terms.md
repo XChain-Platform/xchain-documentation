@@ -147,6 +147,22 @@ A reference glossary of XChain terminology, organized by category.
 
 ---
 
+## Validator and System Actions
+
+These five ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not exposed in the SDK.
+
+**ANCHOR**: A validator-broadcast ACTION that commits a quorum-signed state checkpoint (per-block ledger, actions, and contract hash triple) to the anchor chain (DOGE on all networks). Later versions also archive cross-chain match records and SPV light-client roots on-chain. ANCHOR is what allows light clients to verify indexer state against a threshold of validator signatures without trusting a single operator.
+
+**ATTEST**: A lifecycle ACTION with three phases. Version 0 is VM-emitted when a smart contract calls `xchain.attestation.request(...)`, requesting an external data fetch (an HTTPS URL or an AI model prompt). Version 1 is validator-broadcast and carries the quorum-verified response plus validator signatures. Version 2 is system-synthesized by the indexer when the request deadline expires without a quorum response.
+
+**NODEPROOF**: A validator-broadcast ACTION that records a quorum-signed verdict proving which validators correctly answered a periodic block-data possession challenge, confirming they operate a real coin full node rather than relying on mirrored databases. Valid on BTC only (with extension to other chains planned).
+
+**SLASH**: A permissionless ACTION that burns an equivocating validator's entire capability bond. Anyone who catches a validator signing two conflicting values for the same consensus slot can submit the two signed messages as a SLASH proof. If the proof is valid, the offender's stake is burned in place; the submitter receives a governance-configured bounty from the burned amount.
+
+**XCALL**: A VM-emitted ACTION that lets a smart contract on one chain call a method on a contract deployed on a different chain, then receive the result through a callback method. The cross-chain relay is performed by the validator federation with no extra on-chain transaction. Version 2 is system-synthesized when the call expires before a result arrives.
+
+---
+
 ## Infrastructure
 
 **GAS address**: A designated address (per chain, defined in each indexer's configuration) that is authorized to issue the XCHAIN gas token. The GAS address is exempt from the reserved ticker restriction that would otherwise block `XCHAIN` issuance.

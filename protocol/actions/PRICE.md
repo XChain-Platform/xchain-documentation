@@ -7,6 +7,8 @@ This action publishes oracle price data on-chain. Version 0 anchors PBFT-consens
 ## PARAMS
 
 ### Version 0: Validator COIN/FIAT Price Snapshot
+`PAIR_ID` and `PAIR_PRICE` repeat `PAIR_COUNT` times in the wire payload. `PUBKEY` and `SIG` repeat `SIG_COUNT` times. See the Formats section below for the exact wire layout.
+
 | Name              | Type    | Description                                                        |
 | ----------------- | ------- | ------------------------------------------------------------------ |
 | `VERSION`         | String  | Format version (`0`)                                               |

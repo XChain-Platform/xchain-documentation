@@ -21,13 +21,13 @@ This action deploys a smart contract to the XChain VM in one of five versioned f
 ## Formats
 
 ### Version `0` - Standard (non-stakeable)
-- `VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS`
+- `VERSION|CODE_ENCODING|GAS_LIMIT|...CONSTRUCTOR_PARAMS`
 
 ### Version `1` - Stakeable contract
 - `VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION`
 
 ### Version `2` - Chunked (non-stakeable)
-- `VERSION|CODE_HASH|GAS_LIMIT|CONSTRUCTOR_PARAMS`
+- `VERSION|CODE_HASH|GAS_LIMIT|...CONSTRUCTOR_PARAMS`
 
 ### Version `3` - Chunked + stakeable
 - `VERSION|CODE_HASH|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION`

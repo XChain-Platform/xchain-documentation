@@ -74,10 +74,11 @@ Returns all token balances held by an address.
 - **Endpoint:** `GET /{COIN}/api/balances/{address}`  
 - **`opts`:** pagination supported
 
-#### `getAddress(address)`
+#### `getAddress(address, opts?)`
 Returns address summary information (total activity, first/last seen, etc.).
 
 - **Endpoint:** `GET /{COIN}/api/address/{address}`
+- **`opts`:** pagination supported
 
 #### `getHolders(tick, opts?)`
 Returns a ranked list of holders for the given token ticker.
@@ -197,6 +198,247 @@ Each returns records of the corresponding ACTION type. Pagination is supported v
 | `getSweeps(query, type, opts?)` | `/sweeps/` | SWEEP action records |
 
 **Common `type` values for action queries:** `block`, `address`, `token` (not every action supports every type, refer to the xchain-explorer API for per-action valid types).
+
+#### Lifecycle event methods
+
+These methods follow the same `(query, type, opts?)` signature and return event records for terminal state transitions. `type` is `block` or `address` unless noted.
+
+| Method | Endpoint path segment | Notes |
+|---|---|---|
+| `getCoinpays(query, type, opts?)` | `/coinpays/` | COINPAY action records (on-chain order-match settlement) |
+| `getCoinpayExpires(query, type, opts?)` | `/coinpay_expires/` | Expired COINPAY records |
+| `getCoinpayObligations(query, type, opts?)` | `/coinpay_obligations/` | Unfulfilled COINPAY obligation records |
+| `getDispenserCancels(query, type, opts?)` | `/dispenser_cancels/` | DISPENSER cancellation records |
+| `getDispenserCloses(query, type, opts?)` | `/dispenser_closes/` | DISPENSER close records |
+| `getDispenserExpires(query, type, opts?)` | `/dispenser_expires/` | Expired DISPENSER records |
+| `getDispenserEdits(query, type, opts?)` | `/dispenser_edits/` | DISPENSER edit (v2) records |
+| `getOrderCancels(query, type, opts?)` | `/order_cancels/` | ORDER cancellation records |
+| `getOrderEdits(query, type, opts?)` | `/order_edits/` | ORDER edit (v2) records |
+| `getOrderExpires(query, type, opts?)` | `/order_expires/` | Expired ORDER records |
+| `getOrderMatches(query?, type?, opts?)` | `/order_matches/` | Completed auto-matched order pairs; `type` defaults to `block` |
+| `getSwapCancels(query, type, opts?)` | `/swap_cancels/` | SWAP cancellation records |
+| `getSwapEdits(query, type, opts?)` | `/swap_edits/` | SWAP edit (v2) records |
+| `getSwapExpires(query, type, opts?)` | `/swap_expires/` | Expired SWAP records |
+| `getSwapMatches(query?, type?, opts?)` | `/swap_matches/` | Completed auto-matched swap pairs; `type` defaults to `block` |
+
+#### Paginated action list
+
+#### `getActions(params?)`
+Returns a paginated list of recent XChain actions across all types. Accepts standard pagination params.
+
+- **Endpoint:** `GET /{COIN}/api/actions`
+
+---
+
+### Price
+
+#### `getPrices(query?, type?, opts?)`
+Returns PRICE action records. v0 rows are validator COIN/FIAT snapshots; v1 rows are user-submitted TOKEN/FIAT oracle prices.
+
+- **Endpoint (all):** `GET /{COIN}/api/prices`
+- **Endpoint (filtered):** `GET /{COIN}/api/prices/{query}/{type}`
+- **`type` values:** `block`, `address`, `source`, `token`
+- **`opts`:** pagination supported
+
+---
+
+### Staking & Validator
+
+#### `getStakes(query?, type?, opts?)`
+Returns STAKE action records. Omit `query` to list all stakes.
+
+- **Endpoint (all):** `GET /{COIN}/api/stakes`
+- **Endpoint (filtered):** `GET /{COIN}/api/stakes/{query}/{type}`
+- **`type` values:** `block`, `address`
+- **`opts`:** pagination supported
+
+#### `getDelegations(query, type, opts?)`
+Returns DELEGATE action records (signing key delegation).
+
+- **Endpoint:** `GET /{COIN}/api/delegations/{query}/{type}`
+- **`type` values:** `block`, `address`
+- **`opts`:** pagination supported
+
+#### `getValidators(opts?)`
+Returns the current active validator set.
+
+- **Endpoint:** `GET /{COIN}/api/validators`
+- **`opts`:** pagination supported
+
+#### `getValidatorRewards(query, type, opts?)`
+Returns validator reward records.
+
+- **Endpoint:** `GET /{COIN}/api/rewards/{query}/{type}`
+- **`type` values:** `block`, `address`
+- **`opts`:** pagination supported
+
+#### `getContractStakes(query?, type?, opts?)`
+Returns STAKE v3 records that target a specific contract (contract-targeted stakes).
+
+- **Endpoint (all):** `GET /{COIN}/api/contract_stakes`
+- **Endpoint (filtered):** `GET /{COIN}/api/contract_stakes/{query}/{type}`
+- **`type` values:** `address`, `block`, `contract`
+- **`opts`:** pagination supported
+
+#### `getContractUnstakes(query?, type?, opts?)`
+Returns UNSTAKE v1 records that target a specific contract.
+
+- **Endpoint (all):** `GET /{COIN}/api/contract_unstakes`
+- **Endpoint (filtered):** `GET /{COIN}/api/contract_unstakes/{query}/{type}`
+- **`type` values:** `address`, `block`, `contract`
+- **`opts`:** pagination supported
+
+#### `getContractDelegations(query?, type?, opts?)`
+Returns DELEGATE v1 records that target a specific contract.
+
+- **Endpoint (all):** `GET /{COIN}/api/contract_delegations`
+- **Endpoint (filtered):** `GET /{COIN}/api/contract_delegations/{query}/{type}`
+- **`type` values:** `block`, `address`, `contract`
+- **`opts`:** pagination supported
+
+---
+
+### Attestation & Consensus
+
+#### `getAttestations(query?, type?, opts?)`
+Returns attestation rows from the External Attestation Framework (ATTEST v0 requests and v1/v2 responses).
+
+- **Endpoint (all):** `GET /{COIN}/api/attestations`
+- **Endpoint (filtered):** `GET /{COIN}/api/attestations/{query}/{type}`
+- **`type` values:** `address`, `block`, `contract`
+- **`opts`:** pagination supported
+
+#### `getSlashEvents(query?, type?, opts?)`
+Returns slash events emitted by contracts via `xchain.contract.slash`.
+
+- **Endpoint (all):** `GET /{COIN}/api/slash_events`
+- **Endpoint (filtered):** `GET /{COIN}/api/slash_events/{query}/{type}`
+- **`type` values:** `address`, `block`, `contract`
+- **`opts`:** pagination supported
+
+#### `getXcalls(query?, type?, opts?)`
+Returns XCALL cross-chain call rows (VM-emitted via `xchain.emit.crossExecute`). Lists source-chain request rows.
+
+- **Endpoint (all):** `GET /{COIN}/api/xcalls`
+- **Endpoint (filtered):** `GET /{COIN}/api/xcalls/{query}/{type}`
+- **`type` values:** `block`, `contract`, `status`
+- **`opts`:** pagination supported
+
+#### `getXcall(callId)`
+Returns the full lifecycle for one cross-chain call by `call_id`: the source request, the target-chain execution outcome, and the callback delivery. Each leg is `null` until that stage completes.
+
+- **Endpoint:** `GET /{COIN}/api/xcall/{callId}`
+
+#### `getControllers(opts?)`
+Returns controller-bound token policy rows (programmable policy layer). No query parameter.
+
+- **Endpoint:** `GET /{COIN}/api/controllers`
+- **`opts`:** pagination supported
+
+#### `getDeployChunks(opts?)`
+Returns DEPLOY v4 chunk carrier records used to reassemble chunked contract deployments.
+
+- **Endpoint:** `GET /{COIN}/api/deploy_chunks`
+- **`opts`:** pagination supported
+
+#### `getFullNodeVerifications(query?, type?, opts?)`
+Returns full-node possession-proof verdicts (NODEPROOF v0).
+
+- **Endpoint (all):** `GET /{COIN}/api/full_node_verifications`
+- **Endpoint (filtered):** `GET /{COIN}/api/full_node_verifications/{query}/{type}`
+- **`type` values:** `block`, `epoch`, `pubkey`, `address`
+- **`opts`:** pagination supported
+
+#### `getCrossChainMatches(query?, type?, opts?)`
+Returns cross-chain settlement match rows.
+
+- **Endpoint (all):** `GET /{COIN}/api/cross_chain_matches`
+- **Endpoint (filtered):** `GET /{COIN}/api/cross_chain_matches/{query}/{type}`
+- **`type` values:** `match`, `block`, `status`
+- **`opts`:** pagination supported
+
+#### `getCrossChainSettlements(query?, type?, opts?)`
+Returns cross-chain settlement rows (the settle leg of a matched cross-chain order).
+
+- **Endpoint (all):** `GET /{COIN}/api/cross_chain_settlements`
+- **Endpoint (filtered):** `GET /{COIN}/api/cross_chain_settlements/{query}/{type}`
+- **`type` values:** `match`, `block`
+- **`opts`:** pagination supported
+
+#### `getAnchors(query?, type?, opts?)`
+Returns ANCHOR checkpoint-anchor rows.
+
+- **Endpoint (all):** `GET /{COIN}/api/anchors`
+- **Endpoint (filtered):** `GET /{COIN}/api/anchors/{query}/{type}`
+- **`type` values:** `block`, `chain`, `network`, `status`
+- **`opts`:** pagination supported
+
+---
+
+### SPV Checkpoints & Proofs
+
+#### `getCheckpoints(opts?)`
+Returns the latest quorum-signed state checkpoints for this chain. Use `opts.limit` to cap the result count.
+
+- **Endpoint:** `GET /{COIN}/api/checkpoints`
+
+#### `getCheckpointRange(from, to, opts?)`
+Returns the forward-following checkpoint range between block heights `from` and `to`.
+
+- **Endpoint:** `GET /{COIN}/api/checkpoints/range?from=...&to=...`
+
+#### `getCheckpointVerify(blockIndex)`
+Re-fetches the checkpoint at `blockIndex` together with its validator set for local re-verification.
+
+- **Endpoint:** `GET /{COIN}/api/checkpoint/{blockIndex}/verify`
+
+#### `getBalanceProof(address, tick, opts?)`
+Returns a Merkle inclusion proof for an address/tick balance against the stakes/ledger root. Pass `opts.height` to pin the checkpoint snapshot height.
+
+- **Endpoint:** `GET /{COIN}/api/proof/balance/{address}/{tick}`
+
+#### `getActionProof(actionIndex)`
+Returns a Merkle inclusion proof for an action by its index.
+
+- **Endpoint:** `GET /{COIN}/api/proof/action/{actionIndex}`
+
+#### `getValidatorSetProof(opts?)`
+Returns a validator-set (stakes root) proof. Pass `opts.height` to pin the snapshot height. BTC only.
+
+- **Endpoint:** `GET /{COIN}/api/proof/validator-set`
+
+#### `getContractStateProof(contractIndex, key)`
+Returns a contract-state inclusion proof for the given `(contractIndex, key)` pair.
+
+- **Endpoint:** `GET /{COIN}/api/proof/contract-state/{contractIndex}/{key}`
+
+---
+
+### Token-Gated Content
+
+#### `getContractManifest(contractActionIndex)`
+Returns the contract's declared permissions manifest from the programmable policy layer, normalized to camelCase. Returns `{ permissions: string[]|null, maxTakeBps: number|null }`. `permissions: null` means no declared allowlist (unrestricted).
+
+- **Endpoint:** `GET /{COIN}/api/contract/{contractActionIndex}` (derived from the contract record)
+
+#### `getGatedFileRaw(actionIndex, coin?)`
+Downloads the raw encrypted ciphertext bytes for a token-gated FILE action by `ACTION_INDEX`. Returns a `Buffer` ready for decryption with the symmetric key from the corresponding MESSAGE handoff. Pass `coin` (base ticker such as `BTC`, `LTC`, `DOGE`) for a cross-chain file reference.
+
+- **Endpoint:** `GET /{COIN}/api/file/{actionIndex}/raw`
+
+#### `getPublicKey(address)`
+Returns the on-chain public key registered for an address (used by the messaging layer for ECIES encryption). Returns `null` if the address has not yet sent any XChain transactions.
+
+- **Endpoint:** `GET /{COIN}/api/pubkey/{address}`
+
+---
+
+### Network
+
+#### `getNetwork(opts?)`
+Returns a network-wide summary including chain heights, indexer status, peer counts, and a `finality` map (`{ BTC, LTC, DOGE }`) with the recommended confirmation counts for each chain.
+
+- **Endpoint:** `GET /{COIN}/api/network`
 
 ---
 

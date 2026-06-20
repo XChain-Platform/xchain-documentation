@@ -68,6 +68,18 @@ curl -s -X POST http://localhost:10000 \
   -d '{"method":"ping","params":{}}'
 ```
 
+xchain-sync uses REST rather than JSON-RPC. Two endpoints are useful for liveness checks:
+
+```bash
+# Sync - lightweight liveness check (also surfaces DB circuit-breaker state)
+curl -s http://localhost:3006/health | jq
+
+# Sync - full status: block height, lag, and per-table counts for every chain
+curl -s http://localhost:3006/status | jq
+```
+
+`/health` returns HTTP 200 with `{"status":"healthy"}` when all DB connections are up, or HTTP 503 with `{"status":"degraded"}` if any circuit breaker is open or the poller is in a failing streak. `/status` returns per-chain block heights and replication lag.
+
 ### Docker Container Status
 
 ```bash

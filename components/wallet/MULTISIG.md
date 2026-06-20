@@ -67,6 +67,8 @@ finalized (combined PSBT ready for broadcast)
 broadcast (txid recorded)
 ```
 
+`cancelled` is a terminal status reachable from any non-terminal state. A coordinator or cosigner can cancel a session at any point before broadcast; cancelled sessions are archived and not retried.
+
 Each partial is a regular PSBT signed by one cosigner. The coordinator (any cosigner with all `n` partials) calls `xchain-sdk@1.13.0+`'s `wallet.signMultisigPsbt` to combine and finalize.
 
 ### MuSig2
@@ -85,6 +87,8 @@ finalized
 broadcast (txid recorded)
 ```
 
+As with classical sessions, `cancelled` is a terminal status reachable from any non-terminal state.
+
 The wallet persists round-state per cosigner so a session can resume after a tab close. MuSig2's nonce reuse must never happen; the wallet enforces this by tying nonces to the session id and refusing to re-emit a nonce for an already-committed session.
 
 ## Cosigner transport
@@ -94,6 +98,8 @@ The coordinator collects partials (or round payloads) from cosigners over one of
 - **Paste inbox**: paste the partial as text. `MultisigSigningSession.jsx` exposes a textarea + paste handler that runs through `detectQrContent` and routes the multisig-PSBT envelope to the session.
 - **QR scan**: `QrScanner.jsx` reads animated frames from a cosigner's screen; `core/src/uri/multisigPsbtEnvelope.js` decodes the envelope. Used for offline cosigners.
 - **Animated QR display**: when *this* device is the cosigner producing a partial, `AnimatedQrFrames.jsx` displays the chunked envelope for the next cosigner to scan. 3 fps default, manual stepping under `prefers-reduced-motion`.
+
+All three transports are available regardless of the extension surface used. In the Chrome extension you can open a multisig session from the popup, the full-screen view, or the side panel (registered as `sidepanel.html` in the extension manifest). The side panel is wider than the popup, which makes it convenient for paste-inbox workflows where you copy-paste between browser tabs side by side.
 
 All three transports use the same envelope format (see [URI Schemes) Multisig PSBT envelope](URI_Schemes.md#multisig-psbt-envelope).
 

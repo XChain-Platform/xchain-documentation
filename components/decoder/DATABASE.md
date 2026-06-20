@@ -178,7 +178,7 @@ Notable applied migrations:
 | File | Mode | Effect |
 |---|---|---|
 | `2026-05-28-unique-index-tables.sql` | manual | De-duplicates `index_addresses`/`index_transactions` rows, then adds UNIQUE indexes |
-| `2026-06-02-widen-ids-to-bigint.sql` | manual | Widens all `INTEGER UNSIGNED` id/key columns to `BIGINT UNSIGNED` across all eight tables |
+| `2026-06-02-widen-ids-to-bigint.sql` | manual | Widens all `INTEGER UNSIGNED` id/key columns to `BIGINT UNSIGNED` across seven tables (`index_addresses`, `index_transactions`, `pubkeys`, `blocks`, `transactions`, `dispensers`, `transaction_outputs`). `mempool_transactions` is not included; the `2026-06-15-mempool-raw-strings.sql` migration later drops and recreates that table entirely with the correct types. |
 | `2026-06-13-dispensers-expiration-bigint.sql` | manual | Changes `dispensers.expiration` from `DATETIME` to `BIGINT UNSIGNED` |
 | `2026-06-15-events-data-mediumtext.sql` | auto | Widens `events.data` from `TEXT` to `MEDIUMTEXT` |
 | `2026-06-15-mempool-raw-strings.sql` | manual | Drops and recreates `mempool_transactions` with raw `VARCHAR` columns instead of FK integer IDs |

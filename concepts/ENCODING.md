@@ -46,17 +46,19 @@ OP_RETURN is the preferred format for short ACTIONs (simple sends, mints, basic 
 
 ### P2SH (Pay-to-Script-Hash)
 
-**Capacity**: up to 476 bytes of data  
-**Transactions**: 2 (fund then spend)  
+**Capacity**: up to 476 bytes per chunk; multiple chunks are supported, giving a total capacity up to the 8,192-byte decoder ceiling (see below)  
+**Transactions**: 2 per chunk (fund then spend), so large payloads require multiple fund/spend pairs  
 **Mechanism**: The ACTION data is embedded **raw** (no Layer-1 obfuscation) in a redeem script. A first transaction creates an output locked to the hash of that script (the "fund" transaction). A second transaction spends that output by revealing the full script (the "spend" transaction), and also carries a single obfuscated marker `OP_RETURN` output (`XCHN` magic plus a `p2sh` tag) so the decoder can recognize the transaction. The decoder reads the revealed script from the spending transaction input.
 
 The two-transaction pattern means the ACTION is not visible until the spend transaction is mined. The fund transaction just looks like a payment to a script hash.
 
 ### P2WSH (Pay-to-Witness-Script-Hash)
 
-**Capacity**: up to 8,192 bytes of data (decoder-enforced ceiling)  
+**Capacity**: up to 8,192 bytes of data  
 **Transactions**: 2 (fund then spend)  
 **Mechanism**: Identical in concept to P2SH but uses SegWit witness data for the reveal; the data chunk in the witness script is likewise embedded **raw**, with a single obfuscated marker `OP_RETURN` output (`XCHN` magic plus a `p2wsh` tag). The larger capacity comes from the witness discount applied to SegWit data, witness bytes cost one quarter of the weight of non-witness bytes for fee purposes. This makes P2WSH the preferred format for large payloads (file uploads, long broadcast messages, dense batch operations).
+
+**The 8,192-byte ceiling is a decoder-wide limit, not a P2WSH-specific one.** `MAX_ACTION_DATA_LENGTH` in `xchain-decoder/src/XChainDecoder.js` applies to every embedding format: OP_RETURN, multisig, P2SH (across all its chunks), and P2WSH alike. Any decoded payload that exceeds 8,192 bytes is rejected regardless of how it was embedded.
 
 ## Format Auto-Selection
 

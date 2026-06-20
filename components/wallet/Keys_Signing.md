@@ -53,19 +53,30 @@ Migration: a Counterwallet-imported wallet can be migrated to BIP39 on demand vi
 
 ## HD derivation
 
-Each chain has a `ChainDescriptor` (registered in `core/src/sdk/SDKRegistry`) declaring its BIP44 coin type and address-type templates. `core/src/crypto/hd.js` walks the BIP32 tree from the seed:
+Each chain has a `ChainDescriptor` (registered in `core/src/sdk/SDKRegistry`) declaring its coin type and per-address-type derivation paths. `core/src/crypto/hd.js` walks the BIP32 tree from the seed. The purpose level varies by address type:
+
+| Purpose | Address type | BIP | Coins |
+|---|---|---|---|
+| `44'` | P2PKH (legacy) | BIP44 | BTC, LTC, DOGE |
+| `49'` | P2SH-P2WPKH (wrapped segwit) | BIP49 | BTC, LTC |
+| `84'` | P2WPKH (native bech32, **default for BTC and LTC**) | BIP84 | BTC, LTC |
+| `86'` | P2TR (taproot) | BIP86 | BTC only |
+
+The full path template for a given chain and address type is:
 
 ```
-seed → m / 44' / coinType' / account' / change / index
+seed → m / purpose' / coinType' / account' / change / index
 ```
+
+For example, the default Bitcoin receive address path is `m/84'/0'/0'/0/0`, and taproot uses `m/86'/0'/0'/0/0`. Dogecoin uses only `m/44'/3'/A'/C/I` (no segwit at launch). The exact templates are declared in `core/src/registry/descriptors/bitcoin.js`, `litecoin.js`, and `dogecoin.js`.
 
 Address types per chain:
 
-| Chain | BIP44 coin type | Default | Other supported |
+| Chain | Coin type | Default | Other supported |
 |---|---|---|---|
-| Bitcoin | 0 | `p2wpkh` (bech32) | `p2pkh`, `p2sh-p2wpkh`, `p2tr` |
-| Litecoin | 2 | `p2wpkh` | `p2pkh`, `p2sh-p2wpkh` |
-| Dogecoin | 3 | `p2pkh` | (Dogecoin lacks segwit on most deployments) |
+| Bitcoin | 0 | `p2wpkh` (bech32, purpose 84) | `p2pkh` (44), `p2sh-p2wpkh` (49), `p2tr` (86) |
+| Litecoin | 2 | `p2wpkh` (bech32, purpose 84) | `p2pkh` (44), `p2sh-p2wpkh` (49) |
+| Dogecoin | 3 | `p2pkh` (legacy, purpose 44) | (no segwit at launch) |
 
 The wallet runs a gap-limit scan (`core/src/flows/discoverUsedAddresses.js`) on import to populate already-used receive addresses without forcing the user to manually walk the index.
 

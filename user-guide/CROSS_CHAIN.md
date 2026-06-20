@@ -84,6 +84,29 @@ You can combine both: use the order book to trade on a single chain, and use SWA
 
 ---
 
+## Contract-to-Contract Cross-Chain Calls (XCALL)
+
+SWAP and ORDER are about trading tokens across chains. XCALL is a different mechanism for a different purpose: it lets a smart contract on one chain call a method on a contract deployed on another chain, then receive the result back through a callback.
+
+Where SWAP moves value between users, XCALL moves logic between contracts. A contract on Bitcoin can trigger an action on a Litecoin contract and act on the outcome, all within the same application flow.
+
+**How it works:**
+
+1. A contract on the source chain calls `xchain.emit.crossExecute(...)` from inside its code. This is not a transaction a user submits directly; it is emitted by the VM during an EXECUTE.
+2. The validator federation relays the call to the target chain, where the specified method runs on the target contract.
+3. The result is relayed back and delivered to the callback method on the source contract.
+4. If the call does not complete before the deadline, the source contract receives an `expired` callback automatically.
+
+**When to use XCALL instead of SWAP:**
+
+- Your contracts need to share state or coordinate logic across chains (not just exchange tokens between users).
+- You want one chain's contract to trigger another chain's contract as part of a multi-chain application.
+- You are building cross-chain automation, oracles, or governance where the outcome of a call on one chain drives behavior on another.
+
+XCALL is a system-level mechanism used by contract authors, not an action end users submit directly. The DEX (SWAP and ORDER) remains the right tool for cross-chain token trading between addresses.
+
+---
+
 *See also: [Trading](./TRADING.md) | [Use Cases](./Use_Cases.md) | [FAQ](./FAQ.md)*
 
 ---

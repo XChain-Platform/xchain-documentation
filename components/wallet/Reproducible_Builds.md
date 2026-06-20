@@ -33,8 +33,7 @@ The audit catches regressions automatically on every commit. The verification ca
 
 - Digest-pinned base image (`FROM node@sha256:...`)
 - `NODE_VERSION` pinned in the image
-- Locale pinned (`LC_ALL=C.UTF-8`)
-- Timezone pinned (`TZ=UTC`)
+- Locale and timezone pinned together (`LC_ALL=C.UTF-8`, `LANG=C.UTF-8`, `TZ=UTC`). The audit rule `dockerfile-pins-locale` checks all three in a single assertion; all three must be present.
 
 ### `scripts/build.sh`
 
@@ -45,7 +44,7 @@ The audit catches regressions automatically on every commit. The verification ca
 ### `scripts/reproduce.sh`
 
 - Derives `SOURCE_DATE_EPOCH` from `git log -1 --pretty=%ct`
-- Builds from a fresh worktree (clones into a temporary directory rather than using the maintainer's working tree)
+- Builds from a fresh worktree (`git worktree add --detach` into a `mktemp -d` directory) rather than using the maintainer's working tree. The worktree is removed on exit via a `trap`.
 
 ### `electron-builder.config.cjs`
 
@@ -61,29 +60,25 @@ The audit catches regressions automatically on every commit. The verification ca
 
 ## Run-twice verification protocol
 
-The byte-for-byte verification has to happen on a clean dev machine. The procedure:
+The byte-for-byte verification has to happen on a clean dev machine. The `reproduce.sh` script (invoked via `pnpm --filter @xchain-wallet/desktop reproduce`) uses `git worktree add --detach` rather than a fresh clone, so each run checks out the target ref into a temporary directory without touching the working tree:
 
 ```bash
-# 1. Clean clone of the repo at a specific tag
+# 1. Clone the repo at a specific tag (only needed once per verifier machine)
 git clone --depth 1 --branch v1.0.0 https://github.com/XChain-Platform/xchain-wallet.git
 cd xchain-wallet
 
-# 2. Run the reproduce script in a Docker container
-pnpm --filter @xchain-wallet/desktop reproduce
+# 2. First build: reproduce.sh checks out v1.0.0 into a temp worktree,
+#    builds in Docker, and writes RELEASE_HASHES.txt into the output dir.
+pnpm --filter @xchain-wallet/desktop reproduce v1.0.0 /tmp/repro-run-1
 
-# 3. Note the resulting RELEASE_HASHES.txt
-cp packages/desktop/dist/RELEASE_HASHES.txt /tmp/run-1-hashes.txt
+# 3. Second build: same script, fresh worktree, different output dir.
+pnpm --filter @xchain-wallet/desktop reproduce v1.0.0 /tmp/repro-run-2
 
-# 4. Wipe the working tree and run again
-cd ..
-rm -rf xchain-wallet
-git clone --depth 1 --branch v1.0.0 https://github.com/XChain-Platform/xchain-wallet.git
-cd xchain-wallet
-pnpm --filter @xchain-wallet/desktop reproduce
-
-# 5. Compare
-diff /tmp/run-1-hashes.txt packages/desktop/dist/RELEASE_HASHES.txt
+# 4. Compare
+diff /tmp/repro-run-1/RELEASE_HASHES.txt /tmp/repro-run-2/RELEASE_HASHES.txt
 ```
+
+Because `reproduce.sh` isolates each run in its own `mktemp` worktree, back-to-back runs on the same clone are equivalent to two independent clones for reproducibility purposes. If you prefer the original two-clone approach, that also works; the git-worktree approach is simply faster for local verification.
 
 A successful verification produces a zero-line `diff`. Any difference means something non-deterministic crept in; report it via `security@dankest.llc`.
 

@@ -5,6 +5,8 @@
 This action allows for swapping tokens across XChain platform supported blockchains.
 
 ## PARAMS
+Note: this table groups `GIVE_OWNERSHIP` and `GET_OWNERSHIP` with related ownership fields for readability. In the actual wire format (see Formats below), `GIVE_OWNERSHIP` appears immediately after `GIVE_AMOUNT` and `GET_OWNERSHIP` appears immediately after `GET_AMOUNT`.
+
 | Name                | Type   | Description                                                       |
 | ------------------- | ------ | ----------------------------------------------------------------- |
 | `VERSION`           | String | Format Version                                                    |

@@ -74,7 +74,7 @@ In the current UTXO-based implementation, **adding a new chain is a configuratio
 
 ### 3.1 Components
 
-XChain is a pipeline of independent services, each runnable separately and most instantiated once per chain/network combination. Relational state uses MariaDB (raw parameterized SQL, no ORM); UTXO indexing uses LevelDB.
+XChain is a pipeline of independent services, each runnable separately and most instantiated once per chain/network combination. All services are implemented in Node.js and require **Node.js 22** exactly (Node 18 fails with `ERR_REQUIRE_ESM`; Node 24 cannot build the `isolated-vm` native module the VM depends on). Relational state uses MariaDB (raw parameterized SQL, no ORM); UTXO indexing uses LevelDB.
 
 | Service | Role | Store |
 |---|---|---|

@@ -99,6 +99,14 @@ Return the current mining loop state for operator diagnostics and CI health chec
 }
 ```
 
+| Field | Type | Description |
+|---|---|---|
+| `wallet_ready` | boolean | `true` once `prepareWallet` has completed; gates on mine-readiness, not just server availability |
+| `mempool_size` | number | Number of transactions currently in the mempool as of the last polling cycle |
+| `blocks_mined` | number | Cumulative count of blocks mined by this miner instance since startup |
+| `last_mine_at` | number or null | Unix timestamp in milliseconds (`Date.now()`) of the most recent successful block mine; `null` if no block has been mined yet in this session |
+| `consecutive_errors` | number | Running count of consecutive RPC failures (either `getrawmempool` or `generatetoaddress`). Resets to 0 on the next successful RPC call. Useful for alerting: a non-zero value means the miner is retrying with exponential backoff. |
+
 ### `send_funds`
 
 Send regtest coins to a specified address.

@@ -563,7 +563,12 @@ Returns the per-capability minimum-stake thresholds live from the `CapabilityReg
 
 ### `getfeequote`
 
-Calculates the native coin fee amount for a given action. Converts gas units → XCHAIN amount → native coin amount using the latest oracle price.
+Calculates the native coin fee amount for a given action. The conversion uses two steps:
+
+1. `xchainAmount = gasCost x gasPrice` (gas units times XCHAIN per gas unit)
+2. `nativeCoinAmount = (xchainAmount x xchainUsd) / coinUsd` (convert XCHAIN value at current USD prices to the target coin)
+
+`gasPrice` defaults to `0.00001` XCHAIN per gas unit; the hub reads `GAS_PRICE` from the config store per chain and uses it when present. `xchainUsd` and `coinUsd` come from the oracle's latest finalized `XCHAIN/USD` and `<chain>/USD` price snapshots. If the `<chain>/USD` price is unavailable, the response omits `nativeCoinAmount`, `nativeCoin`, `feeUsd`, and `coinUsd` but still returns the XCHAIN-denominated fields.
 
 **Request:**
 ```json
@@ -591,7 +596,29 @@ Calculates the native coin fee amount for a given action. Converts gas units →
 }
 ```
 
-Supported action names: `ISSUE`, `ISSUE_SUBTOKEN`, `VM_EXECUTE_BASE`, `VM_DEPLOY_BASE`, `AIRDROP_PER_RECIPIENT`, and others matching the platform's gas fee schedule.
+**Gas schedule** (gas units per action):
+
+| Action | Gas Units | Notes |
+|---|---|---|
+| `ISSUE` | 100,000 | New token issuance |
+| `ISSUE_SUBTOKEN` | 50,000 | Subtoken issuance |
+| `EXPIRATION_PER_DAY` | 550 | Per calendar day of token expiration |
+| `OWNERSHIP_ESCROW` | 50,000 | Ownership escrow deposit |
+| `AIRDROP_PER_RECIPIENT` | 100 | Per recipient in an airdrop |
+| `DIVIDEND_PER_RECIPIENT` | 100 | Per recipient in a dividend distribution |
+| `VM_EXECUTE_BASE` | 1,000 | Base cost for a VM contract execution |
+| `VM_DEPLOY_BASE` | 100,000 | Base cost for a VM contract deployment |
+| `VM_DEPLOY_PER_BYTE` | 10 | Per byte of contract source code |
+| `VM_STATE_READ` | 100 | Per key read from contract state |
+| `VM_STATE_WRITE` | 200 | Per key written to contract state |
+| `VM_STATE_DELETE` | 100 | Per key deleted from contract state |
+| `VM_ORACLE_READ` | 100 | Per oracle price lookup inside a contract |
+| `VM_CROSSCHAIN_READ` | 100 | Per cross-chain data read inside a contract |
+| `VM_ATTEST_REQUEST` | 5,000 | External attestation request from a contract |
+| `VM_EMISSION` | 500 | Per emitted sub-action from a contract |
+| `VM_COMPUTATION` | 1 | Per computation unit (billed by the VM) |
+
+Pass any action name from the table as the `action` parameter. Passing an unknown name returns `{"error": "unknown action: <name>"}` rather than throwing.
 
 ## Cross-Chain Attestations
 

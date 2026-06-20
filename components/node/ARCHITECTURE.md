@@ -75,7 +75,7 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 | `src/cli.js` | Commander.js CLI definitions (21 commands, global options, preAction hook) |
 | `src/precheck.js` | Pre-command validation (Docker, directories, MariaDB connection, versions, networks) |
 | `src/state.js` | Singleton state (MariaDB pool instance, cached modules, verbose flag) |
-| `src/MariaDbStore.js` | MariaDB-backed store for module to container ID persistence; persists mappings in the `xchain_node.modules` table |
+| `src/MariaDbStore.js` | MariaDB-backed store for module to container ID persistence; persists mappings in the `xchain_node.modules` table inside the shared `xchain-node-database` container (the same container that managed services use for their decoder/indexer databases) |
 | `src/config/constants.js` | Enums (Coin, Network, XChainService), paths, git URLs |
 | `src/services/ConfigService.js` | Path/naming helpers, config generation, arg parsing, port validation |
 | `src/services/DockerService.js` | Docker CLI wrappers (network, build, run, start, stop, exec, logs, monitor) |
@@ -95,7 +95,7 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 | `src/HubConnector.js` | JSON-RPC 2.0 client for xchain-hub |
 | `src/ExplorerConnector.js` | JSON-RPC 2.0 client for xchain-explorer |
 | `src/TelemetryConnector.js` | HTTP client that posts telemetry pings to the central hub collector; URL overrideable via `XCHAIN_NODE_TELEMETRY_URL` |
-| `src/MariaDbStore.js` | MariaDB connection wrapper used for direct SQL operations during bootstrap create/restore (database dump and restore via `mariadb-dump`/`mariadb` tools inside the DB container) |
+
 | `src/GitHubDownloader.js` | GitHub release download with SHA-256 hash verification |
 | `src/utils/helpers.js` | Utilities (sleep, stringToCoin, decompressTarGz) |
 
@@ -107,7 +107,7 @@ Every command runs `preCheck()` before execution:
 2. Create runtime directories: `data/`, `modules/`, `tmp/`, `tmp/containers_files/`
 3. Create base Docker network (`xchain-node`)
 4. Start or verify the shared MariaDB container
-5. Ensure the per-OS-user `xchain_node` database credentials exist, then open a MariaDB connection
+5. Ensure the per-OS-user `xchain_node` database credentials exist (via `CredentialsService`: credentials are generated on first run and persisted in `~/.xchain-node/credentials.json` at mode 0600; on subsequent runs they are loaded from that file), then open a MariaDB connection
 6. Scan running Docker containers and reconcile the `xchain_node.modules` table
 7. Fetch remote service versions from GitHub (for install/update commands only)
 8. Query installed modules status

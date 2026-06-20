@@ -9,7 +9,7 @@ XChain supports four encoding formats for embedding ACTION payloads in blockchai
 
 | Format | Max Payload | Transactions | Relative Cost | Best For |
 |---|---|---|---|---|
-| OP_RETURN | 76 bytes user data (80 bytes total) | 1 | Lowest | Most actions |
+| OP_RETURN | 76 bytes user data (80 bytes total) on Bitcoin; larger payloads permitted on Litecoin and Dogecoin (see note) | 1 | Lowest | Most actions |
 | Multisig | ~61 bytes/key | 1 | Low–Medium | Single-tx medium payloads |
 | P2SH | 476 bytes | 2 | Medium | Medium payloads |
 | P2WSH | 8,192 bytes | 2 | Medium–High | Large payloads |
@@ -21,6 +21,8 @@ XChain supports four encoding formats for embedding ACTION payloads in blockchai
 The obfuscated payload is stored in an `OP_RETURN` output. OP_RETURN outputs are provably unspendable, so they do not grow the UTXO set. This is the cheapest format because it minimizes byte count and carries no future spending cost.
 
 Most common XChain actions fit within 76 bytes of user data: SEND (single recipient), MINT, simple ISSUE, ADDRESS update, MESSAGE, and most DISPENSER and ORDER operations.
+
+**Chain-specific note:** Bitcoin enforces a single-OP_RETURN-per-transaction rule (`singleOpReturnPolicy: true`). On Bitcoin, the encoder rejects any OP_RETURN payload above 76 bytes of user data at construction time to prevent the creation of non-standard multi-OP_RETURN transactions that would be dropped by the network. Litecoin and Dogecoin allow larger and multiple OP_RETURN outputs (`singleOpReturnPolicy: false`), so on those chains the encoder permits OP_RETURN payloads above 76 bytes when the `encoding` parameter is set explicitly to `OP_RETURN`. The auto-selection logic (which caps at 76 bytes to stay compatible across all chains) is not affected by this difference.
 
 ### Multisig: approximately 61 bytes per public key slot
 
@@ -57,15 +59,15 @@ Obfuscated payload length?
          |
     <= 76 bytes  (user data; 80 bytes total per output including 4-byte XCHN prefix)
          |
-    OP_RETURN  (single tx, cheapest)
+    OP_RETURN  (single tx, cheapest)  <-- auto-selected
          |
     > 76 bytes  (user data)
          |
     <= 476 bytes
          |
-    P2SH  (two tx, medium cost)
+    P2SH  (two tx, medium cost)  <-- auto-selected
          |
-    > 476 bytes
+    > 476 bytes (explicit encoding=P2WSH required; not auto-selected)
          |
     <= 8,192 bytes
          |
@@ -75,6 +77,8 @@ Obfuscated payload length?
          |
     Rejected  (exceeds the 8,192-byte protocol ceiling enforced by the decoder)
 ```
+
+The auto-selection path only produces `OP_RETURN` or `P2SH`. The `P2WSH` and `MULTISIGN` rows represent recommended explicit encoding choices; they are never chosen automatically. To use either, pass the `encoding` parameter explicitly in your `create_tx` call.
 
 Multisig is a single-transaction format chosen for medium payloads slightly larger than OP_RETURN, not an overflow path for payloads above the P2WSH range. The 8,192-byte decoder ceiling applies to every format, so no format can carry a payload above it.
 

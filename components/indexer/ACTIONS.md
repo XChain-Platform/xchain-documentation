@@ -58,6 +58,7 @@ The original 22 actions are registered at version `1.0.0` with activation at blo
 | [**SWAP**](../../protocol/actions/SWAP.md) | Create a cross-chain token swap offer | Valid tokens on both chains, sufficient balance, fee payment |
 | **SWAP_MATCH** | Automatic: matches compatible swap offers | Cross-chain verification, escrow handling |
 | **SWAP_EXPIRE** | Automatic: expires swaps past their expiration time | Block time check, escrow release |
+| **CROSS_SETTLE** | System-injected: settles this chain's leg of a hub-matched cross-chain trade (covers both SWAP and ORDER legs). There is no on-chain transaction; the indexer injects one per unsettled match from the hub-mirrored `cross_chain_matches` table, verifies 2f+1 `cross_chain` validator signatures, and releases the local escrow to the counterparty's payout address. Recorded in `cross_chain_settlements` for idempotency and rollback. Not registered in `protocol_changes.js` (never decoded from a transaction); dispatched from `utility.js processCrossChainSettlements` at each block. | Network scope matches this indexer's network; quorum signatures verify against the locked capability snapshot at `snapshot_block`; local offer must still be open |
 
 ## Data and Communication Actions
 

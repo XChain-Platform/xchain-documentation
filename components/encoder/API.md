@@ -103,7 +103,7 @@ Probes the encoder's hard dependencies (the UTXO tracker) and reports their stat
 |---|---|---|
 | `tracker_reachable` | boolean | `true` when the UTXO tracker answered the sync-status probe |
 | `tracker_synced` | boolean | `true` when the tracker reports itself caught up to the node tip |
-| `tracker_lag` | number \| null | Blocks the tracker is behind the node tip; `null` when unreachable or not reported |
+| `tracker_lag` | number \| null | Number of blocks the tracker's committed height is behind the coin node tip (`nodeHeight - committedHeight`); `null` when the tracker is unreachable or has not yet indexed any blocks |
 
 ### `estimate_fee`
 
@@ -211,6 +211,8 @@ Broadcast a signed raw transaction to the coin node.
 {"txid":"64-char hex string"}
 ```
 
+Returns `-32602` if `tx_hex` is missing or fails format validation (for example: not a hex string, empty, or exceeds the maximum transaction size). Returns `-32603` for node-side broadcast failures such as double-spend or dust.
+
 ### `get_utxos`
 
 List the UTXOs for an address. The encoder proxies this to [xchain-utxo-tracker](../utxo-tracker/); it is a convenience for callers that do not run their own tracker client.
@@ -237,6 +239,8 @@ List the UTXOs for an address. The encoder proxies this to [xchain-utxo-tracker]
   }
 ]
 ```
+
+Returns `-32602` if `address` is missing. Returns `-32603` if the UTXO tracker is unreachable, lagging, or returns a malformed response.
 
 ---
 

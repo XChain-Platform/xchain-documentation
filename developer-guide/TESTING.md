@@ -136,8 +136,8 @@ The XChain Platform maintains over **5,600 tests** across its six primary compon
 | Chaos | ~30 | ~56 | 61 | 92 | 28 | ~77 |
 | Mutation | ~30 | StrykerJS | StrykerJS | StrykerJS + custom | None | StrykerJS |
 | Regression | ~18 | 144 | 196 | 152 | None | ~114 |
-| Round-trip | None | (| None |) | 29 | None |
-| Actions | None | (| None |) | None | ~80 |
+| Round-trip | None | None | 29 | None | None | None |
+| Actions | None | None | None | None | ~80 | None |
 
 ### Testing Infrastructure
 

@@ -63,7 +63,7 @@ Indexer (execute.js)
 
 ## Error Classification
 
-The VM classifies execution failures into five categories:
+The VM classifies execution failures into six categories:
 
 | Error Type | Result Prefix | Cause |
 |---|---|---|
@@ -71,6 +71,7 @@ The VM classifies execution failures into five categories:
 | Gas exhaustion | `out_of_gas: used X of Y` | Gas ceiling exceeded during execution |
 | Wall-clock timeout | `timeout: wall-clock safety net triggered` | Execution exceeded `maxCpuTimeMs` (safety net only) |
 | Memory exhaustion | `out_of_memory: isolate memory limit exceeded` | V8 isolate heap exceeded `maxMemory` |
+| Stack depth exceeded | `out_of_stack: maximum call depth exceeded` | Intra-contract recursion hit the deterministic depth limit (default 512, injected by the host as `__DEPTH_LIMIT`). The metering-injected `__depth_enter`/`__depth_exit` hooks throw when this limit is reached, producing a deterministic fault instead of relying on V8's architecture-variable native stack limit. `gasUsed` is clamped to the ceiling. |
 | Runtime error | `error: <message>` | Any other JavaScript error (undefined variable, type error, etc.) |
 
 Errors thrown inside the V8 isolate lose their JavaScript class identity when crossing the isolate boundary. The VM uses a message-encoding scheme (see [ARCHITECTURE.md](ARCHITECTURE.md#json-bridge-protocol)) to preserve error type information.
@@ -88,11 +89,14 @@ The indexer uses database savepoints to ensure these guarantees extend to the pe
 
 ## Syntax Validation (Deploy-Time)
 
-Before a contract is deployed, `vm.validateSyntax(code)` runs three checks:
+Before a contract is deployed, `vm.validateSyntax(code)` runs the following checks in order. The first four are deploy-blocking consensus rules (defined in `lint-core.CONSENSUS_RULES`); all must pass or the DEPLOY action is rejected:
 
-1. **V8 syntax check**: compiles the code in a throwaway 8 MB isolate to catch syntax errors
+1. **V8 syntax check**: compiles the code in a throwaway 8 MB isolate to catch syntax errors (the only step requiring `isolated-vm`)
 2. **Acorn metering pass**: runs `meterCode()` to ensure acorn can parse the source (effective ES2020 ceiling)
-3. **Reserved identifier check**: rejects code containing the `__gas` identifier (used internally by the gas metering system)
+3. **Reserved identifier check**: rejects code containing `__gas` or the allocator metering helpers (`__concat`, `__tmpl`, `__arrspread`, `__objspread`); referencing these could bypass or forge size metering
+4. **Banned transcendental Math check**: rejects calls to `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` in both dotted (`Math.pow`) and computed-string (`Math['pow']`) forms. These five are IEEE 754 transcendentals whose results differ by up to 1 ULP across CPU architectures, producing divergent state hashes on a heterogeneous validator fleet. Use `xchain.math.*` (mathjs bignumber) instead.
+5. **Banned literal check**: rejects BigInt literals (e.g. `10n`) and RegExp literals (e.g. `/foo/`). BigInt arithmetic is unmetered native computation; catastrophic RegExp backtracking is unmetered and can burn heavy CPU for near-zero gas.
+6. **Banned async check** (consensus-gated): rejects `async` functions, `await` expressions, and `Promise` references after the `VM_BANNED_ASYNC` flag-day. The CONTRACT_WRAPPER invokes exports synchronously; an async export returns a pending Promise whose post-`await` effects depend on isolated-vm's version-dependent microtask-drain timing, which is outside the consensus-runtime pin and can diverge across validators.
 
 `vm.checkFloatWarnings(code)` additionally scans for non-integer number literals and returns warnings (non-blocking).
 

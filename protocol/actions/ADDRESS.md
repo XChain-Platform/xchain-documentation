@@ -49,6 +49,7 @@ This example allows anyone to open a dispenser on this address
 ```
 
 ## `FEE_PREFERENCE` Options
+- `0` = Use the default disposition (same effect as omitting the field; treated as donate to protocol development)
 - `1` = `FEE` is destroyed, lowering supply
 - `2` = `FEE` to donated to protocol development (default)
 - `3` = `FEE` to donated to community development
@@ -61,6 +62,7 @@ This example allows anyone to open a dispenser on this address
 
 ## Notes
 - `ADDR` `ACTION` can be used for shorter reference to `ADDRESS` `ACTION`
+- Leaving `FEE_PREFERENCE` blank in a subsequent `ADDRESS` action stores `NULL` in the database, which the indexer reads back as `0` (donate/default). Unlike `DISPENSER_PREFERENCE`, there is no null-guard; the prior preference is not preserved.
 - Leaving `DISPENSER_PREFERENCE` blank in a subsequent `ADDRESS` action does not clear an existing preference; it preserves the most recent non-blank value
 
 ---

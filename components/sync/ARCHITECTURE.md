@@ -120,12 +120,31 @@ SERVER MODE                              CLIENT MODE
 | `middleware.js` | `authMiddleware` | API key authentication middleware for REST and WebSocket endpoints |
 | `validation.js` | None | Input validation: SQL identifiers, DDL whitelisting, WebSocket event schemas |
 | `utility.js` | `Utility` | `sleep()`, `getDataHash()` (SHA256), `isNull()`, timer helpers |
+| `sqlUtil.js` | `splitSqlStatements` | Splits `.sql` files on `;`, stripping line comments to avoid false splits |
 | `HubClient.js` | `HubClient` | JSON-RPC client for xchain-hub; `getallconfigs()` to discover indexer and decoder DB connections |
 | `SyncService.js` | `SyncService` | Orchestrator: hub discovery, DB pool creation, server/client mode branching |
 | `ServerPoller.js` | `ServerPoller` | Polls one indexer DB for new blocks; builds block payloads; emits events |
 | `BlockBroadcaster.js` | `BlockBroadcaster` | Manages WebSocket subscriptions per chain/network; broadcasts block/reorg events |
 | `SnapshotBuilder.js` | `SnapshotBuilder` | Builds full and incremental JSON snapshots with gzip streaming |
 | `TransparencyLog.js` | `TransparencyLog` | Writes append-only per-block hash records to `sync_meta` table |
+| `replicatedTables.js` | `getTopology()` | Single source of truth for the block/tx/action-scoped table sets that replicate per dbType; shared by ServerPoller and the row-count completeness check |
+| `updatedRows.js` | `collectUpdatedRows` | Collects in-place mutations to surviving (earlier-block) rows for a block window; the source side of the "updated rows" replication channel |
+| `cooldownCredits.js` | `collectMaturedCooldownCredits` | Collects backdated cooldown-refund credits that the action-scoped join cannot reach; source side |
+| `wireCodec.js` | `encodeRow`, `decodeValue` | Binary-safe row serialization: tags BLOB/Buffer column values with a `__xbin__` sentinel so they survive JSON round-trip intact |
+| `BlockHasher.js` | `BlockHasher` | Independently recomputes a block's consensus hashes (ledger/actions/contract) from the replicated rows; the source of VERIFY_RECOMPUTE |
+| `stateHash.js` | `buildStateHashData` | Builds the canonical preimage for the fourth per-block replication-integrity hash (`state_hash`), covering in-place mutations and backdated credits not captured by the three consensus hashes |
+| `stateCommitment.js` | `computeFollowerRoots` | Follower twin of the indexer's SPV state-commitment engine; recomputes per-block SMT roots (balances, stakes, state) for VERIFY_STATE_COMMITMENT |
+| `merkle.js` | None | Consensus-critical SPV Merkle primitives (SHA-256 SMT, block Merkle root, state root); byte-aligned with the indexer twin |
+| `MerkleTree.js` | `MerkleTree` | Binary SHA-256 Merkle tree used by TransparencyLog for epoch proof construction |
+| `balance-helpers.js` | None | Shared SQL helpers for rebuilding the `balances` aggregate after a block apply or rollback |
+| `checkpoint.js` | None | Client-side verifier for quorum-signed state checkpoints (SPV spec §6.1/§6.3) |
+| `stake_weighted_quorum.js` | None | Canonical stake-weighted quorum predicate; vendored byte-identically from xchain-documentation |
+| `pinnedValidators.js` | None | Out-of-band pinned validator sets used by VERIFY_CHECKPOINT_QUORUM to anchor checkpoint signatures |
+| `consensus-constants.js` | None | Frozen per-chain consensus constants (e.g. `ACTIVATION_DELAY_BLOCKS`) shared across modules |
+| `schema-version.js` | None | Snapshot schema version constant used to detect incompatible snapshot formats |
+| `state_commitment_activation.js` | `isStateCommitmentActive` | Flag-day gate: returns whether the SPV state-commitment feature is active for a given block and network |
+| `checkpoint_commitment_activation.js` | None | Flag-day gate for quorum-signed checkpoint commitment (SPV spec §6.1/§6.3 Phase 2) |
+| `equivocation_header.js` | None | Consensus-critical implementation of the uniform signed equivocation header (WI-2 bump 2) |
 | `ClientSync.js` | `ClientSync` | Client-mode orchestrator: bootstrap, catch-up, live sync loop per chain/network |
 | `ClientApplier.js` | `ClientApplier` | Applies block payloads and snapshots to local replica DB via INSERT IGNORE |
 | `ClientRollback.js` | `ClientRollback` | Rollback logic mirroring indexer's Rollback.js table lists |
@@ -241,6 +260,14 @@ The indexer already computes three chained SHA256 hashes per block, stored in th
 | **Contract hash** | contracts + state + executions + emissions + deposits + withdrawals | `contract_hash_id` |
 
 Each hash includes `block_index` and `previous_hash` (from the prior block's corresponding hash), forming a hash chain. Two independent indexers processing the same blockchain data produce identical hashes, so cross-source comparison is a simple equality check on `(ledger_hash, actions_hash, contract_hash)`.
+
+### Fourth integrity hash: `state_hash` (indexer only)
+
+A fourth per-block field, `state_hash`, covers the in-place mutations and backdated cooldown-refund credits that the three consensus hashes structurally cannot reach. Those hashes scope rows by `actions.block_index = B` (new, immutable rows only). They cannot see a mutation the indexer applies to a surviving row from an earlier block, nor a refund credit that reuses an earlier action_index. A follower that silently fails to apply one of those mutations therefore diverges with no mismatch on the three hashes to flag it.
+
+`state_hash` is computed by `stateHash.js` and stored in `blocks.state_hash_id`. `ServerPoller` reads it via the `getBlockHashRow` JOIN on `state_hash_id` and attaches it as a top-level field on every indexer block payload. It is NOT written to `sync_meta`, NOT included in Merkle leaves, and NOT part of the hub-signed checkpoint; it is a replication-integrity field only.
+
+On the client side, when `VERIFY_STATE_HASH=true` (the default), `ClientSync` recomputes `state_hash` from the replica's rows at apply time and halts durably on mismatch. A `NULL` `state_hash` (block indexed before the feature shipped) is skipped, so enabling this check can never false-halt against a back-level source.
 
 ### Decoder (`dbType=decoder`)
 

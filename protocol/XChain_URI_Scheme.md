@@ -70,7 +70,7 @@ New actions are added by:
 
 1. Reserving the verb in the [Action Registry](#action-registry) table below.
 2. Specifying the action's parameter set (which params are required, optional, and what they mean) in a new subsection of [Per-Action Reference](#per-action-reference).
-3. Wallets and tools implement the new action in their dispatch table. Tools that don't recognize the action SHOULD surface a "this action isn't supported by this tool" message rather than silently treating the URI as a generic send.
+3. Wallets and tools implement the new action in their dispatch table. Tools that don't recognize the action SHOULD surface a "this action isn't supported by this tool" message rather than silently treating the URI as a generic send. Concretely: a wallet that does not recognize an action verb MUST NOT broadcast a transaction, open a send form, or take any value-transferring action. The correct response is to display the raw action name and an explanatory message, then stop. Wallets can also check the `v=` parameter: a version higher than the wallet's supported maximum is a signal to prompt the user to upgrade before proceeding.
 
 Verbs SHOULD be short, lowercase, hyphen-separated, and describe the user-visible action (not an implementation detail). Examples of well-formed future verbs: `execute`, `issue`, `dispense`, `dex-buy`, `sign-message`.
 
@@ -160,6 +160,22 @@ xchain://<chainId>/<tick>?amount=&to=&memo=&kind=receive
 ```
 
 Where `<chainId>` is the descriptor id (e.g. `bitcoin-mainnet`). Wallets MUST accept this form for backwards compatibility but SHOULD NOT generate new QRs in this format. The coin-code opaque form is preferred for new QRs because it's shorter, uses the platform-wide short identifier, and surfaces the action explicitly.
+
+The full descriptor-to-coin-code mapping (source: `xchain-sdk/src/networks.js`):
+
+| `<chainId>` descriptor | Coin code |
+| :--- | :--- |
+| `bitcoin-mainnet` | `BTC` |
+| `bitcoin-testnet` | `TBTC` |
+| `bitcoin-regtest` | `RBTC` |
+| `litecoin-mainnet` | `LTC` |
+| `litecoin-testnet` | `TLTC` |
+| `litecoin-regtest` | `RLTC` |
+| `dogecoin-mainnet` | `DOGE` |
+| `dogecoin-testnet` | `TDOGE` |
+| `dogecoin-regtest` | `RDOGE` |
+
+Wallets parsing the legacy form SHOULD translate the `<chainId>` to its coin code using this table before routing, then treat the URI as equivalent to the opaque form.
 
 # Versioning Rules
 

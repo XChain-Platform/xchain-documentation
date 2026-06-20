@@ -21,6 +21,9 @@ These variables are required regardless of whether the service runs in server or
 | `SYNC_API_KEY` | No | None | API key for Bearer token authentication on REST and WebSocket endpoints. Disabled when not set. |
 | `HUB_PROTOCOL` | No | `http` | Protocol for hub connection: `http` or `https` |
 | `TRUST_PROXY` | No | `false` | Trust `x-forwarded-for` header for IP-based rate limiting (enable only behind a reverse proxy) |
+| `MAX_HUB_WAIT_MS` | No | `300000` | Maximum milliseconds to wait for the hub to become reachable at startup before the process exits non-zero (5 minutes). The supervisor then restarts the container. |
+| `MERKLE_EPOCH_SIZE` | No | `100` | Number of blocks per Merkle epoch in the transparency log. Changing this after a log already exists will make existing epoch roots inconsistent; only set at initial deploy. |
+| `TRANSPARENCY_RATE_LIMIT` | No | `10` | Maximum transparency-proof endpoint requests per minute per IP. |
 
 ### Server Mode
 
@@ -29,6 +32,8 @@ In server mode, **no database environment variables are needed**. The service di
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `BLOCK_POLL_INTERVAL` | No | `3000` | Milliseconds between polls to each indexer database for new blocks |
+| `DB_POOL_SIZE` | No | `5` | Maximum simultaneous connections per chain/network/dbType pool. A server with 3 chains x 2 dbTypes opens 6 pools; at the default that is 30 total connections. Raise for high-throughput hosts. |
+| `DB_QUERY_TIMEOUT` | No | `30000` | Per-query timeout in milliseconds applied to every pool query. Raise only if legitimate long-running queries (e.g. full catalog scans) begin timing out. |
 | `WS_MAX_PER_IP` | No | `100` | Maximum simultaneous WebSocket connections per IP address. The high default accommodates multi-chain validators that open one connection per chain/network/dbType from the same IP. |
 | `SNAPSHOT_RATE_FULL` | No | `12` | Maximum full snapshot downloads per hour per IP per chain/network/dbType |
 | `SNAPSHOT_RATE_INCR` | No | `600` | Maximum incremental snapshot downloads per hour per IP per chain/network/dbType |
@@ -45,10 +50,16 @@ In client mode, the service connects to remote sync servers and replicates their
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `SYNC_SOURCES` | Yes | None | Comma-separated list of remote sync server URLs (e.g., `http://sync1.example.com:3006,http://sync2.example.com:3006`). Minimum 1 required; 2+ recommended for cross-verification. |
+| `SYNC_EXCLUDE` | No | `""` | Comma-separated list of `coin:network:dbType` keys (e.g., `DOGE:testnet:indexer`) to skip during chain discovery. A listed chain starts no `ClientSync` and cannot crash-loop the process. Use this to temporarily exclude a fast chain (e.g. DOGE testnet with tens of millions of blocks) that cannot complete a full-snapshot bootstrap. |
+| `SYNC_BOOTSTRAP_DEPTH_<CHAIN>_<NETWORK>` | No | unset | Per-chain opt-in for start-from-recent-height bootstrap. Set to a block count N (e.g., `SYNC_BOOTSTRAP_DEPTH_DOGE_TESTNET=50000`) to seed an empty replica from `(sourceTip - N)` via one incremental snapshot instead of a full-history one. **A truncated replica cannot answer pre-base history and its balances cover only the recent window; acceptable only for non-consensus explorer mirrors, never for a trusted validator.** |
 | `VERIFY_HASHES` | No | `true` | When `true`, cross-verifies block hashes from multiple sources before applying. Requires 2+ sources. |
 | `HALT_ON_DIVERGENCE` | No | `true` | **Security-critical. Default ON. Set to `false` only for read-only convenience mirrors whose state nothing downstream trusts.** When `true`, a confirmed cross-source hash divergence (two honest sources committed different ledger/actions/contract hashes for the same block) causes a durable halt instead of logging and silently stalling. |
 | `VERIFY_RECOMPUTE` | No | `true` | **Security-critical. Default ON. Disabling is DECLARED UNSAFE for consensus-relevant replicas.** When `true`, each block's consensus hashes (ledger/actions/contract) are independently recomputed from the replicated rows and checked against the committed hash. This is the only mechanism that verifies the catch-up join block: with it disabled, a reorg that occurs while the client is disconnected is silently stitched onto the orphaned pre-reorg tip, permanently forking the replica. |
 | `VERIFY_STATE_HASH` | No | `true` | **Security-critical. Default ON.** When `true`, the per-block state hash (covering in-place mutations and backdated refund credits not captured by the three consensus hashes) is recomputed on apply and checked. A mismatch triggers a durable halt. A NULL state hash (block from a source without the feature) is skipped, so enabling this can never false-halt against a back-level source. |
+| `VERIFY_STATE_COMMITMENT` | No | `true` | **Security-critical. Default ON.** When `true`, the per-block SPV state-commitment roots (balances, block Merkle root) are recomputed over the replica and compared to the source's committed values. A mismatch triggers a durable halt. NULL roots (blocks before the flag-day) are skipped. **Set to `false` on truncated replicas** seeded via `SYNC_BOOTSTRAP_DEPTH_*`, because their incomplete balances history would produce wrong roots. |
+| `INDEX_MAP_PARITY_CHECK` | No | `false` | **Advisory only; never halts.** When `true`, periodically checks that the replica's `index_addresses` id-to-address mapping matches the source's deterministic-subset checksum. A mismatch is logged and counted but never halted on. Off by default because computing it scans `index_addresses` (an index on `block_index` is advisable before enabling on a high-volume chain). |
+| `VERIFY_CHECKPOINT_QUORUM` | No | `false` | **Default OFF.** When `true`, anchors the replica's independently recomputed `state_root` to the federation quorum: the client fetches the source's signed checkpoint, verifies its Ed25519 signatures against the pinned validator set in `pinnedValidators.js`, and halts if the quorum fails or the checkpoint's `state_root` disagrees with the replica's own computed root. Inert without a pinned set configured for the chain/network. |
+| `CHECKPOINT_VERIFY_INTERVAL` | No | `50` | How often to probe the `/latest` checkpoint, measured in applied blocks. Only used when `VERIFY_CHECKPOINT_QUORUM=true`. |
 | `REPLICA_DB_HOST` | Yes | None | MariaDB hostname for local replica databases |
 | `REPLICA_DB_PORT` | No | `3306` | MariaDB port |
 | `REPLICA_DB_USER` | Yes | None | MariaDB username for replica databases |
@@ -175,7 +186,10 @@ Each chain/network/dbType gets its own MariaDB connection pool with these parame
 | `acquireTimeout` | `10000` | Pool acquisition timeout (ms) |
 | `idleTimeout` | `60000` | Idle connection timeout (ms) |
 | `insertIdAsNumber` | `true` | Return insert IDs as numbers (not BigInt) |
+| `bigIntAsNumber` | `true` | Return BIGINT columns as JS numbers instead of BigInt |
+| `dateStrings` | `true` | Return DATETIME columns as MariaDB-format strings rather than JS Dates, avoiding ISO re-insert failures in strict mode |
 | `minDelayValidation` | `3000` | Minimum delay between connection validation checks (ms) |
+| `queryTimeout` | `30000` | Per-query timeout in ms (override via `DB_QUERY_TIMEOUT`) |
 
 ## Circuit Breaker
 

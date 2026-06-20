@@ -71,11 +71,12 @@ let { valid, errors } = sdk.validateAction('SEND', { tick: 'MYTOKEN', amount: '1
 
 Configure address-level preferences for fee routing and memo requirements.
 
-**Format Versions:** v0 (preferences)
+**Format Versions:** v0 (preferences), v1 (controller bind/unbind)
 
-**Format:** `ADDRESS|VERSION|FEE_PREFERENCE|REQUIRE_MEMO|DISPENSER_PREFERENCE|MEMO`
+**Format v0:** `ADDRESS|VERSION|FEE_PREFERENCE|REQUIRE_MEMO|DISPENSER_PREFERENCE|MEMO`  
+**Format v1:** `ADDRESS|VERSION|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO`
 
-**Params:**
+**Params (preferences (v0):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
@@ -84,12 +85,34 @@ Configure address-level preferences for fee routing and memo requirements.
 | dispenserPreference | integer | No | Who may open dispensers targeting this address: `1` = owner only (default), `2` = anyone |
 | memo | string | No | Optional note |
 
-**Notes:**
+**Notes (v0):**
 - All fields are optional; omitting all fields is valid (no-op update).
 - `feePreference` must be `1`, `2`, or `3` if provided.
 
+**Params (controller bind/unbind (v1):)**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| controller | integer | Conditional | ACTION_INDEX of the deployed guard contract. Required when `unbind` is `0`. Ignored on unbind. |
+| actionClass | string | Yes | The action class to gate or release: `transfer`, `trade`, `burn`, `mint`, or `stake` |
+| cooldownBlocks | integer | No | Number of blocks that must pass after an unbind request before the binding is dropped (committed at bind; `0` = no cooldown) |
+| unbind | integer | Yes | `0` = bind the action class to the controller, `1` = unbind it |
+| memo | string | No | Optional note |
+
+**Notes (v1):**
+- ADDRESS v1 gates the broadcasting address itself (self-signed; no address param).
+- The indexer enforces contract existence and cooldown; the SDK validates field format only.
+- Use `sdk.controller.bindAddress()` and `sdk.controller.unbindAddress()` to build the params cleanly.
+
 ```js
+// v0: set address preferences
 await sdk.address({ feePreference: 2, requireMemo: 1 })
+
+// v1: bind the 'transfer' class to a guard contract (ACTION_INDEX 500)
+await sdk.address(sdk.controller.bindAddress({ controller: 500, actionClass: 'transfer', cooldownBlocks: 144 }))
+
+// v1: unbind the 'transfer' class
+await sdk.address(sdk.controller.unbindAddress({ actionClass: 'transfer' }))
 ```
 
 See also: [`../actions/ADDRESS.md`](../../protocol/actions/ADDRESS.md)
@@ -498,14 +521,15 @@ See also: [`../actions/FILE.md`](../../protocol/actions/FILE.md)
 
 Create or update a token. Multiple update sub-formats allow targeted edits without re-specifying the full token definition.
 
-**Format Versions:** v0 (full create), v1 (description update), v2 (mint params update), v3 (lock update), v4 (callback update), v5 (list update)
+**Format Versions:** v0 (full create), v1 (description update), v2 (mint params update), v3 (lock update), v4 (callback update), v5 (list update), v6 (controller bind/unbind)
 
 **Format v0 (create):** `ISSUE|VERSION|TICK|MAX_SUPPLY|MAX_MINT|DECIMALS|DESCRIPTION|MINT_SUPPLY|TRANSFER|TRANSFER_SUPPLY|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|ALLOW_LIST|BLOCK_LIST|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`  
 **Format v1 (description):** `ISSUE|VERSION|TICK|DESCRIPTION|MEMO`  
 **Format v2 (mint params):** `ISSUE|VERSION|TICK|MAX_MINT|MINT_SUPPLY|TRANSFER_SUPPLY|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|MEMO`  
 **Format v3 (locks):** `ISSUE|VERSION|TICK|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`  
 **Format v4 (callback):** `ISSUE|VERSION|TICK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|MEMO`  
-**Format v5 (lists):** `ISSUE|VERSION|TICK|ALLOW_LIST|BLOCK_LIST|MEMO`
+**Format v5 (lists):** `ISSUE|VERSION|TICK|ALLOW_LIST|BLOCK_LIST|MEMO`  
+**Format v6 (controller bind/unbind):** `ISSUE|VERSION|TICK|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO`
 
 **Params (full create (v0):)**
 
@@ -590,6 +614,22 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 | blockList | integer | No | New block-list ACTION_INDEX |
 | memo | string | No | Optional note |
 
+**Params (controller bind/unbind (v6):)**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| tick | string | Yes | Token whose action class is being bound or unbound |
+| controller | integer | Conditional | ACTION_INDEX of the deployed guard contract. Required when `unbind` is `0`. Ignored on unbind. |
+| actionClass | string | Yes | The action class to gate or release: `transfer`, `trade`, `burn`, `mint`, or `stake` |
+| cooldownBlocks | integer | No | Number of blocks that must pass after an unbind request before the binding is dropped (committed at bind; `0` = no cooldown) |
+| unbind | integer | Yes | `0` = bind the action class to the controller, `1` = unbind it |
+| memo | string | No | Optional note |
+
+**Notes (v6):**
+- Only the token issuer (the address that broadcast the original ISSUE v0) may submit ISSUE v6.
+- The indexer enforces contract existence and cooldown; the SDK validates field format only.
+- Use `sdk.controller.bindToken()` and `sdk.controller.unbindToken()` to build params cleanly.
+
 ```js
 // Full create
 await sdk.issue({
@@ -606,6 +646,12 @@ await sdk.issue({ tick: 'MYTOKEN', description: 'Updated description' })
 
 // Lock max supply
 await sdk.issue({ tick: 'MYTOKEN', lockMaxSupply: 1 })
+
+// Bind the 'transfer' class to a guard contract (ACTION_INDEX 500) with a 144-block cooldown
+await sdk.issue(sdk.controller.bindToken({ tick: 'MYTOKEN', controller: 500, actionClass: 'transfer', cooldownBlocks: 144 }))
+
+// Unbind the 'transfer' class
+await sdk.issue(sdk.controller.unbindToken({ tick: 'MYTOKEN', actionClass: 'transfer' }))
 ```
 
 See also: [`../actions/ISSUE.md`](../../protocol/actions/ISSUE.md)
@@ -810,6 +856,42 @@ See also: [`../actions/ORDER.md`](../../protocol/actions/ORDER.md)
 
 ---
 
+### PRICE
+
+Publish a token/fiat price feed on-chain. PRICE v1 is the permissionless, user-run oracle: any address can submit a price quote for a token denominated in a fiat currency. Dispensers with an `oracleAddress` field use these quotes to price fills dynamically.
+
+PRICE v0 is a validator-broadcast COIN/FIAT snapshot (not SDK-encodable). Only v1 is available via the SDK.
+
+**Format Versions:** v1 (user-run TOKEN/FIAT oracle)
+
+**Format v1:** `PRICE|VERSION|COIN|TICK|FIAT|VALUE|FEE|MEMO`
+
+**Params:**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| coin | string | Yes | The blockchain the token lives on (`BTC`, `LTC`, `DOGE`) |
+| tick | string | Yes | Token ticker to price |
+| fiat | string | Yes | Fiat currency code (e.g. `USD`). Must be one of the supported FIAT_CODE values. |
+| value | string/number | Yes | Token price in the given fiat currency (numeric) |
+| fee | string/number | No | Oracle operator fee percentage charged on each dispenser fill that references this oracle |
+| memo | string | No | Optional note |
+
+**Notes:**
+- No stake is required; any address may post a PRICE v1.
+- A DISPENSER that references this oracle address via its `oracleAddress` field will use the most recent PRICE v1 broadcast from that address to compute fill prices.
+- `fiat` must be one of: `USD`, `CAD`, `AUD`, `MXN`, `GBP`, `JPY`, `CNY`, `CHF`, `BRL`, `INR`.
+
+```js
+// Publish a price of 0.05 USD per MYTOKEN on Bitcoin, charging 1% oracle fee
+await sdk.price({ coin: 'BTC', tick: 'MYTOKEN', fiat: 'USD', value: 0.05, fee: 1 })
+
+// Price feed with no oracle fee
+await sdk.price({ coin: 'BTC', tick: 'MYTOKEN', fiat: 'USD', value: 0.05 })
+```
+
+---
+
 ### COINPAY
 
 Fulfill a native coin payment obligation from an ORDER_MATCH.
@@ -837,6 +919,8 @@ await sdk.coinpay({
 ```
 
 The `customOutputs` array contains objects with `address` (the seller's GET_ADDRESS) and `value` (the native coin amount in satoshis). The encoder adds these as additional outputs alongside the OP_RETURN data.
+
+**Note on validation:** `ORDER_MATCH_ACTION_INDEX` is required and must be numeric. It is validated as a required field in the COINPAY action entry and is handled separately from the generic `ACTION_INDEX fields` group listed in the Validation Rules section below, which covers the cancel/edit index fields for other actions.
 
 See also: [`../actions/COINPAY.md`](../../protocol/actions/COINPAY.md)
 
@@ -1116,6 +1200,8 @@ Must be **`1`** (ADD) or **`2`** (REMOVE).
 ### ACTION_INDEX fields
 
 All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`, `ORDER_ACTION_INDEX`, `SWAP_ACTION_INDEX`, `LIST_ACTION_INDEX`, `COIN1_ACTION_INDEX`, `COIN2_ACTION_INDEX`, `CONTRACT_ACTION_INDEX`) must be numeric.
+
+`ORDER_MATCH_ACTION_INDEX` (COINPAY) is not in this group. It is required and validated separately: COINPAY has no cancel/edit sub-operation, so `ORDER_MATCH_ACTION_INDEX` is always required rather than being an optional action-index reference.
 
 ### VM action fields
 

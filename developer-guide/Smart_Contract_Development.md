@@ -356,6 +356,8 @@ DEPLOY|1|<base64_code>|<gas_limit>|<constructor_params>|<cooldown_blocks>|<slash
 
 Both fields are **locked permanently** at deploy time. Neither you nor anyone else can change them later. Design carefully; stakers will inspect these before locking up.
 
+**Chunked deploys.** If your contract source is too large for a single DEPLOY action, use `sdk.deployContract()` (DEPLOY v3). The chunked path uses a CODE_HASH assembler and the same `COOLDOWN_BLOCKS`/`SLASH_DESTINATION` trailing fields, so large stakeable contracts work exactly like inline ones. DEPLOY v3 is the chunked-staking counterpart of inline DEPLOY v1. See `sdk.deployContract()` for the full workflow.
+
 ### Reading stake state from inside the contract
 
 ```javascript
@@ -372,7 +374,7 @@ var stakers = xchain.contract.getStakers('XCHAIN');
 
 All three reads cost `VM_STATE_READ` (100) gas. The 1000-entry cap on `getStakers` is fixed; if your contract may have more stakers than that, design accordingly (don't rely on iterating all of them in a single call).
 
-Stakes within the 6-block activation window are not yet visible to these reads.
+Stakes within the activation window are not yet visible to these reads. The window length is chain-specific: 6 blocks on BTC (roughly 60 minutes), 24 blocks on LTC (roughly 60 minutes), and 60 blocks on DOGE (roughly 60 minutes). All three are tuned for the same wall-clock reorg protection at each chain's block rate.
 
 ### Slashing
 

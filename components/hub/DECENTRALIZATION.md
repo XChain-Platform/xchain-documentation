@@ -79,6 +79,7 @@ All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain a
 | **Price data** | `price`-capable validators with trimmed median consensus; published on-chain by `oracle_publish`-capable validators |
 | **Cross-chain coordination** | `cross_chain`-capable validator attestation with per-chain-pair PBFT |
 | **External attestation** | `attestation`-capable validators fetch from registered providers (`http_get`, `llm`) and PBFT-finalize; result submitted on-chain as `ATTEST` v1 (response) |
+| **Full-node verification** | `full_node`-capable validators answer block-hash possession challenges issued by `FullNodeChallengeRound`; passing validators earn the full-node reward tranche (NODEPROOF) |
 | **Governance** | Off-chain PBFT voting with 7-day period, 2/3+ approval |
 
 ### Transport auth follows on-chain key rotation
@@ -97,6 +98,7 @@ A validator's P2P signing key is authorized by the **union** of the hub's local 
 | 5 | **Open validator set + governance**; Off-chain PBFT voting for parameter changes, version signaling in heartbeats | v2.0.0 | Complete |
 | 6 | **Capability model + external attestation framework**; Replace Tier 1/2 with four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) auto-qualified by stake amount; block-boundary federation snapshots; external attestation framework (`http_get` byte_equality + `llm` judge_model providers); STAKE rewritten as `VERSION|AMOUNT|SIGNING_PUBKEY` with v1=new / v2=top-up; UNSTAKE rewritten as pubkey-based | 2026-05 | Complete |
 | 7 | **Federation key rotation + quorum hardening**: addr-keyed `rotatevalidator`/`deregistervalidator` RPC; stake-key revocation via `DELEGATE` v2; Option A union-membership transport auth (on-chain effective signer set + local registry, never fail-open); anchor reward archive (`anchor_<chain>` reward_type) + hub-local oracle/attest_fee reward separation; simple-majority quorum floor (`max(2f+1, ceil((N+1)/2))`) across all consensus engines | 2026-06 | Complete |
+| 8 | **Full-node verified tier**: `full_node` capability and `FullNodeChallengeRound`; derived possession challenge (no broadcast of the question); answer = scriptPubKey of a seed-selected UTXO in a buried block, provably absent from a sync mirror; verdict collected as NODEPROOF; full-node reward tranche paid via indexer price.js; `failed_full_node_challenge` slash detection (later removed; tier is reward-only, no slashing) | 2026-06 (bcbe4b8) | Complete |
 
 ## Architecture Summary
 

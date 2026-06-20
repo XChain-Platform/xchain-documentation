@@ -93,6 +93,15 @@ XChain supports **staking** for hub validation. Validators stake XCHAIN tokens t
 
 (DELEGATE versions 2 and 3 also remove a delegation without replacing it.)
 
+### Validator and System Actions
+
+Four of the 34 ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not accessible through the SDK, but they appear on-chain and in the explorer, so it is worth knowing what they do.
+
+- **ANCHOR** is written by validators to commit a quorum-signed state checkpoint to the anchor chain (Dogecoin on all networks). It records the per-block ledger, action, and contract hash triple so light clients can verify indexer state against a threshold of validator signatures without trusting any single operator. Later versions of ANCHOR also archive cross-chain match records and SPV light-client roots, making the full platform state reconstructible from chain data alone.
+- **NODEPROOF** is written by validators to record a quorum-signed verdict proving which validators correctly answered a periodic block-data possession challenge. It serves as on-chain evidence that those validators operate real coin full nodes rather than relying on mirrored databases.
+- **SLASH** is submitted by anyone who catches a validator signing two conflicting values for the same consensus slot (equivocation). When the proof is valid, the offending validator's entire capability bond is burned automatically. The submitter receives a governance-configured bounty.
+- **XCALL** is emitted by the VM when a smart contract calls `emit.crossExecute(...)` to invoke a contract on a different chain. The validator federation relays the call and delivers the result back through a callback on the originating chain. A system-synthesized version is written by the indexer if the deadline passes before a result arrives.
+
 ---
 
 ## How Is XChain Different?

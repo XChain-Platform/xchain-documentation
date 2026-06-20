@@ -5,13 +5,13 @@
 
 ## What is xchain-wallet
 
-xchain-wallet is the reference self-custodial wallet for the XChain Platform. It runs as a browser web app, a Chrome MV3 extension (popup + full-screen), and a desktop application (Windows / macOS / Linux), all from a single React codebase published as a pnpm workspace. The wallet supports Bitcoin, Dogecoin, and Litecoin at launch, with additional chains added as the platform adds them. It consumes [xchain-sdk](../sdk/) as its only data and signing layer and never duplicates SDK functionality.
+xchain-wallet is the reference self-custodial wallet for the XChain Platform. It runs as a browser web app, a Chrome MV3 extension (popup + full-screen + side panel), and a desktop application (Windows / macOS / Linux), all from a single React codebase published as a pnpm workspace. The wallet supports Bitcoin, Dogecoin, and Litecoin at launch, with additional chains added as the platform adds them. It consumes [xchain-sdk](../sdk/) as its only data and signing layer and never duplicates SDK functionality.
 
 The wallet implements every XChain feature exposed by the platform: all 29 ACTION types, a built-in DEX surface, encrypted messaging (ECIES / ECDH / AES), smart contracts, BTC staking + delegation, classical n-of-m + MuSig2 multisig, cross-chain flows, dispensers, a `window.xchain` dApp bridge, and air-gapped PSBT signing via animated QR transport.
 
 ## Features
 
-- **Three shells, one codebase**: `@xchain-wallet/web` (Vite SPA, mobile-responsive), `@xchain-wallet/extension` (Chrome MV3 popup + full-screen + service worker), `@xchain-wallet/desktop` (Electron, main-process signing isolation); all share `@xchain-wallet/core` for routes, components, flows, and signers
+- **Three shells, one codebase**: `@xchain-wallet/web` (Vite SPA, mobile-responsive), `@xchain-wallet/extension` (Chrome MV3 popup + full-screen + side panel + service worker), `@xchain-wallet/desktop` (Electron, main-process signing isolation); all share `@xchain-wallet/core` for routes, components, flows, and signers
 - **All 29 XChain ACTIONs**: SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, AIRDROP, MESSAGE, LIST, LINK, BROADCAST, ADDRESS, PRICE, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, COLLECT, CALLBACK, SLEEP, FILE
 - **Self-custodial key management**: BIP39 mnemonic + optional 25th-word passphrase, BIP32 HD derivation per chain, AES-256-GCM vault encrypted with an Argon2id-derived master key (calibrated per device), Counterwallet legacy mnemonic import
 - **Pluggable signer interface**: `SoftwareSigner` (in-vault keys), `TrezorSigner` (Trezor Connect), `LedgerSigner` (WebHID), `RemoteSigner` (cross-shell pairing), `MultisigSigner` (classical n-of-m + MuSig2)
@@ -30,6 +30,7 @@ The wallet implements every XChain feature exposed by the platform: all 29 ACTIO
 - **i18n + a11y**: string registry under `core/src/i18n`; static a11y audit gate (button label / img alt / input label / textarea label / div-onclick role+tabIndex) blocks regressions in CI; WCAG 2.2 AA target for the external audit
 - **Reproducible builds**: Level-2 reproducibility of the pre-signing Linux desktop bundle: digest-pinned base image, frozen lockfile, `SOURCE_DATE_EPOCH` from `git log`, `RELEASE_HASHES.txt` SHA-256 manifest, 18-rule static repro-build audit
 - **URI scheme handling**: registered handlers for `bitcoin:`, `dogecoin:`, `litecoin:`, and `xchain:` URIs across all three shells
+- **Automatic Donation System (ADS)**: opt-out micro-donation appended to each submitted action; consent captured at onboarding; configurable per chain in Settings; invisible in normal use with no extra line on sign screens
 - **Connected sites + permissions**: per-origin grant store, revocable from Settings, surfaced in the approval popup before every privileged action
 
 ## Documentation
@@ -100,7 +101,7 @@ Web shell key isolation is fundamentally weaker than the extension's, same-origi
 
 ### Chrome MV3 extension
 
-The extension provides MetaMask-style UX: a popup launched from the toolbar, a full-screen view for power-user workflows, an isolated content script that injects `window.xchain` into pages, and a service worker that owns the vault and signers. All sensitive operations (unlock, sign, approval) run in extension-origin pages so page chrome cannot read or tamper with them.
+The extension provides MetaMask-style UX: a popup launched from the toolbar, a full-screen view for power-user workflows, a side panel (Chrome's persistent sidebar, toggleable from Settings), an isolated content script that injects `window.xchain` into pages, and a service worker that owns the vault and signers. All sensitive operations (unlock, sign, approval) run in extension-origin pages so page chrome cannot read or tamper with them.
 
 The extension's manifest version follows wallet semver via a derive rule (`packages/core/scripts/derive-extension-version.js`) and is gated by an 11-rule static audit (`extension-manifest-audit.js`) on every commit.
 

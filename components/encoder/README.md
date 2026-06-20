@@ -34,7 +34,7 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 
 ## Encoding Process
 
-Every encode call follows the same sequence regardless of format:
+Every encode call follows this sequence. Some steps are format-specific and are noted inline:
 
 1. **Prepend magic prefix**: `XCHN` (4 bytes) is prepended to the ACTION string
 2. **Obfuscate** (OP_RETURN and MULTISIGN only); the prefixed payload is encrypted with AES-128-CTR using the first input's txid. P2SH and P2WSH embed the payload directly in the redeem/witness script without this step.
@@ -175,12 +175,12 @@ The regression suite (`test/regression/`) provides a curated safety net covering
 | File | Tests | Coverage Area |
 |---|---|---|
 | `reg-01-encoding-types` | 16 | All 4 encoding types (OP_RETURN, P2SH, P2WSH, MULTISIGN) |
-| `reg-02-obfuscation` | 13 | AES-128-CTR round-trip, key derivation, TXID sensitivity |
-| `reg-03-fee-utxo` | 17 | UTXO selection, fee calculation, dust floor, change output |
-| `reg-04-validator` | 56 | All input validation functions (validator.js) |
-| `reg-05-multi-chain` | 20 | Bitcoin, Litecoin, Dogecoin configs and dust thresholds |
-| `reg-06-p2sh-p2wsh-sequence` | 14 | Two-transaction tx1→tx2 chaining integrity |
-| `reg-07-action-pipeline` | 14 | Key ACTION types through full encode/decode pipeline |
+| `reg-02-obfuscation` | 11 | AES-128-CTR round-trip, key derivation, TXID sensitivity |
+| `reg-03-fee-utxo` | 16 | UTXO selection, fee calculation, dust floor, change output |
+| `reg-04-validator` | 90 | All input validation functions (validator.js) |
+| `reg-05-multi-chain` | 12 | Bitcoin, Litecoin, Dogecoin configs and dust thresholds |
+| `reg-06-p2sh-p2wsh-sequence` | 17 | Two-transaction tx1→tx2 chaining integrity |
+| `reg-07-action-pipeline` | 13 | Key ACTION types through full encode/decode pipeline |
 | `reg-08-api-contract` | 12 | JSON-RPC parameter flow and PSBT serialization |
 
 ### Test Helpers

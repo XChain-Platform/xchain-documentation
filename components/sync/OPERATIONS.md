@@ -717,6 +717,22 @@ Error body:
 
 ## Resilience and Recovery
 
+### Excluding a Chain from Client Replication
+
+Set `SYNC_EXCLUDE=COIN:network:dbType` (comma-separated, e.g. `DOGE:testnet:indexer`) to prevent the client from starting a `ClientSync` for that chain. This is useful when a fast chain has too many blocks for a full-history snapshot to bootstrap in one pass. The process starts normally; the excluded chain is simply never synced. Remove the entry once a depth-limited bootstrap is available (see `SYNC_BOOTSTRAP_DEPTH_*`).
+
+### Depth-Limited Bootstrap (Fast Chains)
+
+`SYNC_BOOTSTRAP_DEPTH_<CHAIN>_<NETWORK>=N` (e.g. `SYNC_BOOTSTRAP_DEPTH_DOGE_TESTNET=50000`) seeds an empty replica from `(sourceTip - N)` using one incremental snapshot. This is the only practical way to bootstrap a chain with tens of millions of blocks. The resulting replica holds only recent-window history and is suitable only for non-consensus explorer mirrors. Set `VERIFY_STATE_COMMITMENT=false` on any truncated replica: the incomplete balances history would cause the SMT root recompute to diverge from the source's committed root and halt the replica immediately after bootstrap.
+
+### State-Commitment and Checkpoint Verification
+
+By default, `VERIFY_STATE_COMMITMENT=true` recomputes the per-block SPV state-commitment roots (balances and block Merkle root) from the replica and compares them to the source. If the replica was built from a truncated bootstrap, the root recompute will always diverge; disable it with `VERIFY_STATE_COMMITMENT=false` on those replicas.
+
+`VERIFY_CHECKPOINT_QUORUM=true` anchors the replica's computed `state_root` to a quorum-signed checkpoint instead of trusting the source's claim alone. This is the only mechanism that closes the single-source trust gap that `VERIFY_STATE_COMMITMENT` (which still trusts the same source for the claimed root) cannot close. It requires a pinned validator set in `src/pinnedValidators.js` and a `CHECKPOINT_VERIFY_INTERVAL` probe interval (default: every 50 applied blocks).
+
+`INDEX_MAP_PARITY_CHECK=true` enables an advisory index-address map consistency check. It never halts replication; mismatches are logged and counted only. Requires an index on `index_addresses.block_index` before enabling on a high-volume chain.
+
 ### Circuit Breaker
 
 Each chain/network database connection has an independent circuit breaker. After 10 consecutive query failures, the circuit opens and all queries for that chain fail fast for 30 seconds. Other chains continue operating normally.

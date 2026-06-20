@@ -139,6 +139,7 @@ When a v0 request carries `FEE_AMOUNT > 0`, the fee is escrowed from `FEE_PAYER`
 
 ## Notes
 - `REQUEST_ID` is the cross-version foreign key; every v1 and v2 must reference an existing v0.
+- The positional label in the indexer's internal format string for v0 is `CALLBACK_PARAMS_JSON` (so named to signal that the field carries a JSON array). The data object key used throughout the handler and the stored column name is `CALLBACK_PARAMS`. The name in this PARAMS table (`CALLBACK_PARAMS`) is the canonical user-facing name and matches the stored key; the `_JSON` suffix in the format string is an implementor hint, not a separate field.
 - Storage is consolidated into a single `attests` table: v0 (request) and v1 (response) rows are version-discriminated and correlated by `request_id`, mirroring how `messages` holds every MESSAGE variant in one table. v2 (expire) writes no row, it only flips the v0 row's `request_status`. Validator sigs live inline as a JSON array in the response row's `validator_signatures` column; per-validator accountability tallies live in `attest_validator_stats`.
 - The optional `FEE_TICK`/`FEE_AMOUNT` request fee is live. The separate `gas_escrow` (callback-gas) field remains stubbed at `'0'`; real callback-gas escrow is Phase 3 economic work, independent of the request fee.
 - See [`EXECUTE.md`](./EXECUTE.md) for the system-synthesized EXECUTE that delivers attestation callbacks and for the cross-contract call mechanics that share the same emission and savepoint patterns.

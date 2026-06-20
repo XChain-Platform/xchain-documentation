@@ -72,6 +72,12 @@ Parameters:
 - `ciphertext` (string|Buffer); Hex-encoded ciphertext from `eciesEncrypt`
 - `wif` (string); Recipient's WIF private key
 
+### Wire Format Compatibility (v0 and v1)
+
+The SDK produces v1 ECIES ciphertexts (prefixed with a `0x01` version byte, followed by the 33-byte ephemeral public key). Ciphertexts produced before the v1 upgrade (no version prefix; first byte is `0x02` or `0x03`, the standard compressed-point prefix) are v0 blobs and remain fully decryptable. `eciesDecrypt` sniffs byte 0 to select the correct key derivation function automatically: `0x01` triggers HKDF-SHA256 (v1); `0x02` or `0x03` triggers the legacy bare-SHA256 path (v0).
+
+Callers who store or relay ciphertexts do not need to distinguish formats. Both are accepted on decrypt.
+
 ---
 
 ## ECDH (Method 2): Session Communication
@@ -233,6 +239,8 @@ The messaging module throws `SDKMessagingError` with the following codes:
 | `SDK_REQUIRED` | SDK instance not provided to `send()` |
 | `SHARED_SECRET_REQUIRED` | ECDH method used without shared secret |
 | `SHARED_KEY_REQUIRED` | AES method used without shared key |
+| `INVALID_ADDRESS` | Empty or non-string address passed to `getPublicKey` or `getMessages` |
+| `INVALID_TYPE` | A key or shared-secret argument is neither a hex string nor a Buffer (internal helper `_toBuffer`) |
 | `NETWORK_NOT_CONFIGURED` | Network not set in SDK options |
 
 ---

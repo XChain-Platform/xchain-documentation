@@ -125,6 +125,69 @@ Native-coin fee pre-flight for a single action. Called internally by the explore
 
 ---
 
+### `feequotedryrun`
+
+Opt-in deep dry-run for a single action. Unlike `feequote` (which only covers create-action fee estimation), `feequotedryrun` runs the real action handler against current committed state inside a forced-rollback transaction, so it can authoritatively report `{ valid, status }` for any action type. Native-fee sizing from `feequote` is merged into the response. The transaction is always rolled back; nothing persists.
+
+**Only available on regtest nodes with `INDEXER_ENABLE_DRYRUN=true` (or `1`) set.** On any other node the method is removed at startup and calls return a JSON-RPC method-not-found error. When enabled, calls require the `x-api-key` header (same key as other gated methods) if `INDEXER_API_KEY` is configured.
+
+The source address must already be indexed; the dry-run will refuse an unknown source to avoid skewing `AUTO_INCREMENT` sequences.
+
+**Request:**
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "feequotedryrun",
+    "params": {
+        "action": "EXECUTE",
+        "params": "contract_hash|method|arg1",
+        "source": "bc1q...",
+        "feeOutputs": []
+    },
+    "id": 1
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `action` | `string` | yes | ACTION type (e.g. `DEPLOY`, `EXECUTE`, `SEND`) |
+| `params` | `string\|string[]` | yes | Pipe-delimited param string or array of param strings |
+| `source` | `string` | yes | Sending address (must already be indexed) |
+| `feeOutputs` | `array` | no | Transaction outputs used for native-fee verification |
+
+**Response:**
+```json
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "dryRun": true,
+        "blockIndex": 893000,
+        "valid": true,
+        "status": "valid",
+        "error": null,
+        "feeSupported": true,
+        "requiredFeeNative": 1000
+    },
+    "id": 1
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `dryRun` | `boolean` | Always `true` when a dry-run was attempted; `false` if the source address was not indexed. |
+| `blockIndex` | `number` | Block height used as the execution context. |
+| `valid` | `boolean` | Whether the handler accepted the action. |
+| `status` | `string\|null` | Raw `STATUS` from the action handler (e.g. `"valid"`, `"invalid"`, handler-specific strings). |
+| `error` | `string\|null` | Null on success; reason string on failure. |
+| `feeSupported` | `boolean` | Whether native-fee estimation is available for this action type. |
+| `requiredFeeNative` | `number\|null` | Required native-coin fee in satoshis; `null` when fee estimation is unsupported for this action. |
+
+Additional fields from `feequote` (e.g. `fee_sats`, `fee_usd`, `fee_xchain`) are merged into the response when fee estimation succeeds.
+
+> **Warning:** This endpoint runs the real VM inside a rollback. It holds the shared transaction lock for the duration of the handler, so concurrent block processing is paused. Keep the regtest indexer used for dry-runs isolated from a live consensus node.
+
+---
+
 ### `feeschedule`
 
 Full native-coin fee schedule plus current oracle prices. Called internally by the explorer's `/{COIN}/api/feeschedule` proxy.

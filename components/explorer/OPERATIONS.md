@@ -188,6 +188,9 @@ All HTML templates are located in `src/content/html/`. Key pages:
 | `action.html` | `/{COIN}/action/{index}` | Action detail |
 | `markets.html` | `/{COIN}/markets` | Market listing |
 | `market.html` | `/{COIN}/market/{pair}` | Market detail with charts |
+| `dispenser.html` | `/{COIN}/dispenser/{index}` | Single dispenser detail |
+| `contract.html` | `/{COIN}/contract/{index}` | Single smart contract detail |
+| `execution.html` | `/{COIN}/execution/{index}` | Single contract execution detail |
 | `search.html` | `/{COIN}/search` | Search page |
 | `api.html` | `/api` | API documentation page |
 
@@ -195,14 +198,16 @@ Action-specific listing pages:
 
 | Template | URL Pattern | Description |
 |---|---|---|
+| `actions.html` | `/{COIN}/actions` | Unified action listing across all types |
 | `sends.html` | `/{COIN}/sends` | Token transfer listing |
 | `issues.html` | `/{COIN}/issues` | Token creation and update listing |
 | `mints.html` | `/{COIN}/mints` | Token minting listing |
 | `destroys.html` | `/{COIN}/destroys` | Token burn/destroy listing |
 | `orders.html` | `/{COIN}/orders` | DEX order listing |
-| `order_matches.html` | `/{COIN}/order_matches` | Filled DEX order listing |
 | `dispensers.html` | `/{COIN}/dispensers` | Dispenser listing |
 | `dispenses.html` | `/{COIN}/dispenses` | Dispenser purchase listing |
+| *(missing)* | `/{COIN}/order_matches` | Filled DEX order listing (route defined in XChainExplorer.js; `order_matches.html` template not yet present in `src/content/html/`) |
+| `prices.html` | `/{COIN}/prices` | Oracle price feed listing |
 | `dividends.html` | `/{COIN}/dividends` | Dividend distribution listing |
 | `airdrops.html` | `/{COIN}/airdrops` | Airdrop distribution listing |
 | `broadcasts.html` | `/{COIN}/broadcasts` | On-chain broadcast listing |
@@ -213,12 +218,24 @@ Action-specific listing pages:
 | `swaps.html` | `/{COIN}/swaps` | Cross-chain swap listing |
 | `swaps.html` | `/{COIN}/swap_matches` | Filled swap listing |
 | `sweeps.html` | `/{COIN}/sweeps` | Asset sweep listing |
+| `deposits.html` | `/{COIN}/deposits` | Contract deposit listing |
+| `withdrawals.html` | `/{COIN}/withdrawals` | Contract withdrawal listing |
 | `addresses.html` | `/{COIN}/addresses` | Address preference listing |
 | `batches.html` | `/{COIN}/batches` | Multi-action batch listing |
 | `links.html` | `/{COIN}/links` | Cross-chain link listing |
 | `lists.html` | `/{COIN}/lists` | Address/tick list listing |
 | `fees.html` | `/{COIN}/fees` | Gas fee listing |
 | `history.html` | `/{COIN}/history` | Unified action history |
+| `contracts.html` | `/{COIN}/contracts` | Smart contract listing |
+| `executions.html` | `/{COIN}/executions` | Contract execution listing |
+| `deploy_chunks.html` | `/{COIN}/deploy_chunks` | Chunked contract deploy listing |
+| `contract_stakes.html` | `/{COIN}/contract_stakes` | Contract stake listing |
+| `contract_unstakes.html` | `/{COIN}/contract_unstakes` | Contract unstake listing |
+| `validators.html` | `/{COIN}/validators` | Validator listing |
+| `controllers.html` | `/{COIN}/controllers` | Controller address listing |
+| `attestations.html` | `/{COIN}/attestations` | Attestation listing |
+| `slash_events.html` | `/{COIN}/slash_events` | Validator slash event listing |
+| `xcalls.html` | `/{COIN}/xcalls` | Cross-chain call listing |
 
 Additional static pages:
 

@@ -60,6 +60,32 @@ This document walks every primary route the wallet exposes. All routes live in `
 | Advanced action | `AdvancedActionsForm.jsx` | Catch-all power-user form for any registered action descriptor |
 | Swap | `SwapForm.jsx` | SWAP action |
 | View private key | `ViewPrivateKey.jsx` | Per-address WIF export, gated behind password re-entry |
+| Alerts | `AlertsRoute.jsx` | Notification tray: lists info / warning / critical alerts with optional action button per item |
+| Attach content | `AttachContentForm.jsx` | Attach a file (with optional title) to a token as on-chain content; polls for confirmation |
+| Contract staked positions | `ContractStakedPositions.jsx` | Lists the wallet's active stakes against deployed contracts |
+| Stake on contract | `ContractStakeForm.jsx` | STAKE-to-contract form; BTC-only at launch; scoped to a specific contract by action index |
+| Bind controller | `ControllerBindForm.jsx` | CONTROLLERBIND action form; sets per-class policy rules (transfer, trade, burn, mint, stake) on a token |
+| Manage token | `ManageToken.jsx` | Owner hub for a token: metadata, holders panel, supply, and links to admin sub-forms |
+| Market activity | `MarketActivity.jsx` | Live market feed; opens on the XCHAIN token by default; tap the token header to switch markets |
+| Menu | `MenuRoute.jsx` | Full-screen pancake menu opened from the shared app header; links to all top-level sections |
+| My tokens | `MyTokens.jsx` | Tokens issued by or owned by the active account; links to issue-new flow |
+| Sign PSBT | `PsbtSignForm.jsx` | Paste-in PSBT signing surface; accepts hex or base64; routes hardware signing via signer bridge |
+| Project roster | `ProjectRosterForm.jsx` | Manage official tokens linked to a project (LINK action); polls for roster updates |
+| Receive picker | `ReceivePicker.jsx` | Token-picker wrapper scoped to receive; pre-filters to assets the wallet can receive |
+| Rename account | `RenameAccountForm.jsx` | Inline form to rename an HD account; header carries Back + Save |
+| Rename wallet | `RenameWalletForm.jsx` | Inline form to rename a wallet; header carries Back + Save |
+| Scan | `ScanRoute.jsx` | Dedicated full-screen QR scanner; classifies each frame via `detectQrContent` and routes to the matching flow; does not import WIF / mnemonic directly |
+| Sell token name | `SellOwnershipForm.jsx` | Form to list a token name for sale via the SELL action |
+| Send picker | `SendPicker.jsx` | Token-picker wrapper scoped to send; pre-filters to assets the wallet can send |
+| Settings | `Settings.jsx` | Tabbed settings host covering security, chains, accounts, signers, connected sites, multisig, display, developer, and about |
+| Select signer | `SignerSelectForm.jsx` | Inline picker for choosing or adding a signer when initiating a signing round |
+| Sign message | `SignMessageForm.jsx` | Sign an arbitrary message with a wallet address; returns a copyable signature |
+| Token detail | `TokenDetail.jsx` | Full token info view: metadata, balance, price, recent activity, holder snapshot |
+| Verify signature | `VerifySignatureForm.jsx` | Verify a message signature against an address without needing a wallet password |
+| Wallet details | `WalletDetails.jsx` | View and manage a single wallet: rename, migrate to BIP39, export backup, delete |
+| Wallet picker | `WalletPicker.jsx` | List all wallets with an Add Wallet affordance; reached from the gear / account menu |
+| Account picker | `AccountPicker.jsx` | Switch between HD accounts under a wallet; add account or rename from this view |
+| Add account | `AddAccountForm.jsx` | Derive a new HD account under the active wallet |
 
 ## Onboarding
 

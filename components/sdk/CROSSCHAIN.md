@@ -46,11 +46,17 @@ const result = await bridge.createSwap({
     getTick:    'TOKEN_B',
     getAmount:  '200',
     wif:        btcWIF,
-    expiration: 850000
-});
+    expiration: 850000,
+    getAddress: 'ltc1qrecipient...',  // optional: specific receive address on the get chain
+    allowList:  ['bc1q...'],          // optional: restrict who can fill this swap
+    blockList:  ['bc1q...'],          // optional: exclude specific addresses from filling
+    memo:       'optional note'       // optional: free-text memo
+}, submitOpts);
 
 console.log(result.swap.txid);
 ```
+
+All parameters beyond `giveCoin`/`giveTick`/`giveAmount`/`getCoin`/`getTick`/`getAmount` and `wif` are optional. `expiration` is a block height on the give chain after which the offer expires. The optional `submitOpts` object is forwarded to the underlying session (encoder options, wait timeout, etc.).
 
 ---
 

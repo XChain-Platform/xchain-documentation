@@ -55,14 +55,16 @@ Envelope size is bounded by the registry's `max_request_bytes` (8192).
 - `claude-sonnet-4-6`
 - `claude-opus-4-7`
 
-The fetch model is resolved from the block-anchored provider config at the request's block (the `pinnedModel` supplied by the leader), ensuring every validator uses the same model for the same request. When no pinned value is present (non-consensus callers), the first entry of the allow-list is used. There is no `LLM_DEFAULT_MODEL` env override in the consensus fetch path; that env var was removed to eliminate per-operator divergence. The selected model is echoed back in the response's `META` field for audit. The `judge_model` (default `claude-haiku-4-5`) is run at `temperature=0` to evaluate semantic equivalence across candidate responses.
+The fetch model is resolved from the block-anchored provider config at the request's block (the `pinnedModel` supplied by the leader), ensuring every validator uses the same model for the same request. When no pinned value is present (non-consensus callers), the first entry of the allow-list is used. There is no `LLM_DEFAULT_MODEL` env override in the consensus fetch path; that env var was removed to eliminate per-operator divergence. The selected model is echoed back in the response's `META` field for audit.
+
+The `judge_model` (default `claude-haiku-4-5`) is also block-anchored. The leader resolves `pinnedJudgeModel` from the same provider config snapshot used for the fetch model (the `judge_model` key in the governance-controlled `additional_config` at the request's block). This means a governance change to `judge_model` activated after the request's block cannot alter an in-flight round. The judge runs at `temperature=0` to evaluate semantic equivalence across candidate responses. When no pinned value is available, the provider module's compiled-in `JUDGE_MODEL` constant (`claude-haiku-4-5`) is used as a fallback.
 
 ## Consensus
 
 | Redundancy | Strategy                                                                                            |
 | ---------- | --------------------------------------------------------------------------------------------------- |
-| `1`        | No consensus. The single responsible validator's response is final after the deadline window.       |
-| `3` / `5`  | `judge_model` strategy. Validators fetch independently; the judge picks the canonical response.     |
+| `1`        | No consensus. The single responsible validator's response is final after the deadline window. The responsible validator is still selected deterministically: all validators with the `attestation` capability are sorted by SHA-256(request_id \|\| pubkey) and only the top-1 entry serves the request. |
+| `3` / `5`  | `judge_model` strategy. Validators fetch independently; the judge picks the canonical response. The top-REDUNDANCY entries by the same SHA-256 sort form the responsible set, with the lowest-hash validator acting as leader. |
 
 LLM responses won't be byte-identical even at `temperature=0` (whitespace, occasional rerouting). The judge call decides whether they're *semantically* equivalent; if so, it returns a `canonical_index` and that proposal becomes the on-chain response. If not, the round emits no-quorum and the request expires on its deadline (callback fires with `status='expired'`).
 

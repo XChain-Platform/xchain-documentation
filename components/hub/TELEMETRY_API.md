@@ -141,7 +141,7 @@ curl "http://localhost:10000/telemetry/summary?days=30"
 | `enabled` | boolean | `true` when telemetry collection is on. `false` (with no other fields) when disabled. |
 | `window_days` | integer | The effective window after clamping. |
 | `operators` | integer | Distinct installs with at least one ping in the window. |
-| `pings` | integer | Total pings in the window (activity volume, not unique installs). |
+| `pings` | integer\|null | Total pings in the window (activity volume, not unique installs). `null` when the COUNT query returns no rows. |
 | `byVersion` | array | `{key, count}` tally by `node_version`, descending by count. |
 | `byOs` | array | `{key, count}` tally by `os_platform`. |
 | `byCountry` | array | `{key, count}` tally by derived country code (`unknown` when absent). |
@@ -149,7 +149,7 @@ curl "http://localhost:10000/telemetry/summary?days=30"
 | `byDocker` | array | `{key, count}` tally by `docker_version`. |
 | `modules` | array | `{key, count}`: installs running each module (counted once per install). |
 | `chains` | array | `{key, count}`: installs running ≥1 module on each `coin/network` (counted once per install). |
-| `chainModules` | array | `{coin, network, module, count}`: installs running each `(module, coin, network)` combination. |
+| `chainModules` | array | `{coin, network, module, count}`: installs running each `(module, coin, network)` combination. Sorted by coin, then network, then module (all ascending, locale order). |
 
 A null/empty value in any tallied dimension is reported under the key `unknown`.
 

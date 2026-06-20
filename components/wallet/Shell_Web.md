@@ -103,7 +103,7 @@ Refresh-equals-relock is unusual for a web app and is a deliberate trade; the al
 |---|---|
 | `@xchain-wallet/core` smokes | Web shell shares 100% of route + component coverage with the other shells |
 | `web-onboarding.smoke.js` / `web-send.smoke.js` / `web-shell.smoke.js` | Web-shell-specific glue (hostBridge, sdkFactory, signerBridge) |
-| `@xchain-wallet/e2e` (Playwright) | End-to-end against `pnpm --filter @xchain-wallet/web dev`: onboarding, send-form review, axe-core a11y scan over every Phase-1 screen |
+| `@xchain-wallet/e2e` (Playwright) | End-to-end against `pnpm -C ../../packages/web dev`: onboarding, send-form review, axe-core a11y scan over every Phase-1 screen |
 
 The Playwright suite uses a dev-only SDK stub (`hostBridge.js` → `createDevMockSdk`) that produces pseudo-addresses so onboarding completes without a live regtest stack. Real signing + broadcast coverage moves to a sibling spec once `xchain-sdk` is bundled into the shell. dApp-bridge flows belong to the extension and are covered headlessly in `bridge-e2e.smoke.js` plus the manual test-dapp runbook.
 

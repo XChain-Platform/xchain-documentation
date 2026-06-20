@@ -98,7 +98,7 @@ This example trades ownership of JDOG for ownership of PEPECOIN. Both sides escr
 - Order expiration with pending COINPay obligations sets status to `expiring`; same deferred finalization
 
 ### Token Ownership Sales
-- `GIVE_OWNERSHIP=1` requires SOURCE to be the current owner of `GIVE_TICK`; `GIVE_AMOUNT` must be empty; the ownership record moves into a protocol-held escrow state
+- `GIVE_OWNERSHIP=1` requires SOURCE to be the current owner of `GIVE_TICK`; `GIVE_AMOUNT` must be empty; the ownership record moves into a protocol-held escrow state. [`SWAP`](./SWAP.md) and [`DISPENSER`](./DISPENSER.md) support the same `GIVE_OWNERSHIP=1` flag and place ownership into the same escrow state; all three actions share the "only one open ownership offer at a time" constraint described below.
 - `GET_OWNERSHIP=1` requires the matcher's SOURCE to be the current owner of `GET_TICK`; `GET_AMOUNT` must be empty
 - Ownership orders are **single-fill only**, ownership is indivisible; the entire order matches against one counterparty or none (no partial fills on the balance side either)
 - While ownership is escrowed, the following actions targeting the escrowed `TICK` are rejected:

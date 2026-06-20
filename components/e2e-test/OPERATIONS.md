@@ -17,7 +17,7 @@
 | xchain-decoder | Running and polling the coin node for new blocks |
 | xchain-indexer | Running and processing decoded transactions |
 | xchain-explorer | Running and accepting JSON-RPC connections |
-| xchain-hub | Running with valid config for all services |
+| xchain-hub | Optional. Required only when direct env vars are not set. If all 21 env vars are provided (see Configuration), hub is not contacted. When used, it must be running with valid config for the target coin and network. |
 | xchain-regtest-miner | Running with fund capability |
 | MariaDB | Running with decoder and indexer databases created |
 

@@ -64,6 +64,8 @@ Every route renders the same React tree across shells; only the host bridge diff
                             │  explorer + hub + ws │
                             └──────────────────────┘
 
+@xchain-wallet/signers-trezor  TrezorSigner + trezorFormat.js (packages/signers-trezor/)
+@xchain-wallet/signers-ledger  LedgerSigner + ledgerFormat.js (packages/signers-ledger/)
 @xchain-wallet/bridge-spec    typed window.xchain definitions (consumed by dApps)
 @xchain-wallet/test-dapp      reference dApp exercising the bridge
 @xchain-wallet/e2e            Playwright suite (web shell)

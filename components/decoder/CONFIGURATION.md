@@ -31,6 +31,7 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `DECODER_RATE_LIMIT_RPM` | API requests per minute per IP | `100` |
 | `FEE_DESTINATION` | Native-coin protocol fee destination address for this coin+network. When set (and not the unset placeholder `XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`), the decoder persists outputs paying this address to `transaction_outputs` so the indexer can validate native-coin fee payments. Set per deployed stack when native-coin fee collection is active. | _(unset)_ |
 | `DB_QUERY_TIMEOUT` | MariaDB query timeout in milliseconds (passed to the connection pool `queryTimeout` option) | `30000` |
+| `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for all JSON-RPC calls to the coin node (sets `axios.defaults.timeout` at startup) | `30000` |
 
 The `AUX_POW` variable should be set to any truthy value when running against Dogecoin nodes. It enables the `getBlockWithoutAuxPow()` code path that strips merge-mining headers before parsing.
 
@@ -97,7 +98,7 @@ These values are defined in source code and not configurable via environment var
 | `queryTimeout` default | `30000` | db.js | MariaDB query execution timeout in milliseconds (30 seconds); overridable via `DB_QUERY_TIMEOUT` env var |
 | RPC timeout (axios) | `30000` | BlockchainConnector.js | HTTP timeout for all JSON-RPC calls (30 seconds); overridable via `NODE_RPC_TIMEOUT` env var |
 | RPC max retries | `10` | BlockchainConnector.js | Maximum retry attempts for failed RPC calls |
-| RPC retry delay | `500` | BlockchainConnector.js | Delay between retries (milliseconds) |
+| RPC retry delay | `500` | BlockchainConnector.js | Delay between retries in `getRawTransaction` only. All other RPC methods (`getBlock`, `getBlockHash`, `getBlockchainInfo`, etc.) retry immediately with no sleep on timeout. |
 | RPC 429 backoff | `5000` | BlockchainConnector.js | Delay on HTTP 429 rate limiting (5 seconds) |
 
 ### API Security

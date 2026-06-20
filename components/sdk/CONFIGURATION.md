@@ -77,7 +77,8 @@ The SDK reads these environment variables at construction time. A `.env` file in
 | Variable | Description | Used by |
 |---|---|---|
 | `NETWORK` | Network string (e.g. `bitcoin-mainnet`). See [Network Strings](#network-strings). | Explorer client, Hub connector |
-| `SDK_API_PORT` | Port for the JSON-RPC microservice API server. Default: `3100`. | API server (`npm run api`) |
+| `SDK_API_PORT` | Port for the JSON-RPC microservice API server. Default: `3005`. | API server (`npm run api`) |
+| `SDK_API_KEY` | Bearer token required for all API server methods except `ping`. No default; the server warns and rejects all non-ping calls when unset. | API server (`npm run api`) |
 | `EXPLORER_URL` | Hostname or IP of the xchain-explorer server. | Explorer client |
 | `EXPLORER_PORT` | Port of the xchain-explorer server. | Explorer client |
 | `ENCODER_URL` | Hostname or IP of the xchain-encoder server. | Encoder client |
@@ -108,6 +109,58 @@ The SDK can auto-discover explorer and encoder endpoints by querying an xchain-h
 await sdk.init();
 await sdk.init(); // re-fetches and re-resolves (safe)
 ```
+
+## Public Endpoint Defaults
+
+When only `network` is specified (no explicit service URLs, no environment overrides, and the network is not regtest), the SDK applies public XChain Platform endpoint defaults so you can query mainnet or testnet with minimal config:
+
+| Service | Default URL |
+|---|---|
+| Hub | `https://hub.xchain.io/{COIN}` |
+| Explorer | `https://explorer.xchain.io` |
+| Encoder | `https://encoder.xchain.io/{COIN}` |
+
+`{COIN}` is the coin prefix derived from your `network` (e.g. `BTC` for `bitcoin-mainnet`, `TBTC` for `bitcoin-testnet`). These defaults use HTTPS on port 443; no port number is appended.
+
+Regtest networks always fall through to each client's own `localhost` fallback because regtest stacks are inherently local.
+
+```javascript
+// Minimal config: hub, explorer, and encoder all resolve to the public platform
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
+// Equivalent to:
+// { explorerUrl: 'https://explorer.xchain.io',
+//   hubUrl: 'https://hub.xchain.io/BTC',
+//   encoderUrl: 'https://encoder.xchain.io/BTC' }
+```
+
+## API Server Mode
+
+The SDK ships an optional JSON-RPC HTTP server that exposes all SDK methods over a network interface. This is useful for integrating the SDK into non-Node environments or for running it as a shared microservice.
+
+**Starting the server:**
+
+```bash
+SDK_API_PORT=3005 SDK_API_KEY=mysecret NETWORK=bitcoin-mainnet npm run api
+```
+
+The server listens on `SDK_API_PORT` (default `3005`). Every method except `ping` requires a `Bearer` authorization header whose value matches `SDK_API_KEY`. If `SDK_API_KEY` is not set, the server starts but rejects all non-ping calls with HTTP 401.
+
+**Example call:**
+
+```bash
+# Health check (no auth required)
+curl -X POST http://localhost:3005 \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"ping","params":{}}'
+
+# Create an action (auth required)
+curl -X POST http://localhost:3005 \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer mysecret' \
+  -d '{"jsonrpc":"2.0","id":2,"method":"create_action","params":{"action":"SEND","params":{"tick":"MYTOKEN","amount":"100","destination":"bc1q..."}}}'
+```
+
+The API server accepts the same environment variables as the SDK constructor (`NETWORK`, `EXPLORER_URL`, `ENCODER_URL`, `HUB_API_HOST`, etc.) and runs `sdk.init()` automatically when `HUB_API_HOST` is configured.
 
 ## Network Strings
 

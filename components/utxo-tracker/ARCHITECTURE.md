@@ -60,6 +60,9 @@ Unlike the decoder (which extracts XChain ACTION data), the UTXO tracker indexes
 | `src/CryptoNetworks.js` | `CryptoNetworks` | Network parameter lookup: maps network names to bitcoinjs-lib network objects for 9 network variants |
 | `src/util.js` | None | Utility functions: timing, hex/uint8 conversion, formatting |
 | `src/bufferutils.js` | `BufferReader`, `BufferWriter` | Binary buffer reading/writing: UInt8/16/32/64LE, VarInt, slices |
+| `src/db.js` | `Database` | Legacy MariaDB abstraction (connection pool, parameterized queries); not used by the main LevelDB pipeline but retained for compatibility |
+| `src/fm.js` | `FileManager` | File manager: reads and writes block/transaction/input/output flat-file exports used by offline processing workflows |
+| `src/bulk-sync/` | (multiple) | Bulk-sync pipeline: offline parallel parse and load for initial database population on an empty DB (orchestrator, parse worker, merger, writers, loader, validator, and supporting utilities) |
 
 ## LevelDB Key Schema
 
@@ -113,7 +116,7 @@ while (keepParsing):
         → If mismatch: enter reorg handling (see below)
      e. Begin LevelDB batch transaction (if first block in batch)
      f. Two-pass transaction processing:
-        - Pass 1: Insert all outputs (O + H records)
+        - Pass 1: Insert all outputs (O + H + S + W records)
         - Pass 2: Process all inputs (delete spent O/H, create K/M/I/J)
      g. Record block metadata (B, T, N records)
      h. If batch complete (200 blocks) or at chain tip:
@@ -127,7 +130,7 @@ while (keepParsing):
 
 Within each block, transactions are processed in two passes:
 
-1. **Pass 1; Outputs**: All transaction outputs are inserted first (O and H records). This ensures that when an output is created and spent within the same block, the output exists in the batch transaction before the input tries to delete it.
+1. **Pass 1; Outputs**: All transaction outputs are inserted first (O, H, S, and W records). O is the unspent output index; H is the output hint used to locate O during spend processing; S records the first block height a scriptHash is seen; W is the creation-block reverse index used to clean up phantom UTXOs on reorg. Inserting outputs first ensures that when an output is created and spent within the same block, the output exists in the batch transaction before the input tries to delete it.
 
 2. **Pass 2; Inputs**: All transaction inputs are processed. For each input, the tracker reads the H hint to find the scriptHash, deletes the O and H records, and creates K/M archive records (for reorg undo), I records (spent input), and J records (input hint for cleanup).
 

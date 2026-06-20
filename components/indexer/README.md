@@ -70,6 +70,8 @@ INDEXER_COIN=BTC
 INDEXER_NETWORK=mainnet
 ```
 
+> **Optional: Hub database variables.** If `HUB_DB_HOST` and `HUB_DB_NAME` are not set, the indexer logs a `WARNING: HUB_DB_HOST / HUB_DB_NAME not set` message at startup and reads price/oracle tables from its own local database instead. This is correct for single-host deployments. On a distributed node where the hub runs on a separate host, set these variables (along with `HUB_DB_PORT`, `HUB_DB_USER`, `HUB_DB_PASS`) to avoid using stale or absent fee/price data. See [Configuration](CONFIGURATION.md) for the full variable list.
+
 Start the indexer:
 
 ```bash
@@ -79,7 +81,7 @@ npm run api
 On startup, the indexer:
 1. Validates all required environment variables
 2. Starts the Express JSON-RPC API server
-3. Creates the Indexer database if it doesn't exist
+3. Verifies the Decoder database exists and probes its schema (tables must exist before block processing begins), then creates the Indexer database if it doesn't exist
 4. Creates all required tables if they don't exist
 5. Begins the block polling loop
 

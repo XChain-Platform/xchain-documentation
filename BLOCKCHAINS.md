@@ -31,7 +31,7 @@ The same protocol specification applies across all chains. Chain-specific differ
 - **Address formats**: Each chain uses its own address encoding (e.g., `1...` / `bc1...` for Bitcoin, `L...` / `ltc1...` for Litecoin, `D...` for Dogecoin)
 - **Transaction parsing**: Litecoin requires stripping the HogEx flag; Dogecoin requires stripping AuxPoW headers before parsing with bitcoinjs-lib
 
-Each chain and network combination runs its own independent set of services with its own databases. Tokens on Bitcoin are separate from tokens on Litecoin; they share the same protocol rules but maintain independent state. Cross-chain interaction is possible through the SWAP action coordinated by the hub.
+Each chain and network combination runs its own independent set of services with its own databases. Tokens on Bitcoin are separate from tokens on Litecoin; they share the same protocol rules but maintain independent state. Cross-chain interaction is possible through three mechanisms: the ORDER action (which supports cross-chain limit orders settled by the validator federation), the SWAP action (token-for-token cross-chain exchange, also coordinated by the hub), and XCALL (cross-chain contract calls that let a contract on one chain invoke a contract on another and receive the result as a callback).
 
 ## Adding New Blockchains
 

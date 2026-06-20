@@ -56,11 +56,20 @@ The explorer sits at the end of the data pipeline. It reads indexed state from t
 | File | Class / Module | Role |
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server, SSL, Helmet, CORS, rate limiting, JSON-RPC router |
-| `src/XChainExplorer.js` | `XChainExplorer` | Main orchestrator: URL routing (130+ routes), request processing, response formatting, icon/relay handlers |
+| `src/XChainExplorer.js` | `XChainExplorer` | Main orchestrator: URL routing (130+ routes), request processing, response formatting, icon/relay handlers, SPV proof endpoint dispatch |
 | `src/db.js` | `Database` | All SQL queries (~9,400 lines), connection pool management, pagination, caching |
 | `src/config.js` | None | Configuration loading from hub or local config.json, 60-second auto-sync, coin/network discovery |
 | `src/utility.js` | `Utility` | BigNumber math, timer functions, sanitization (escapeLike, sanitizeInt), type checking |
 | `src/XChainHubConnector.js` | `XChainHubConnector` | JSON-RPC client for xchain-hub (ping, getAllConfig) |
+| `src/XChainDecoderConnector.js` | `XChainDecoderConnector` | JSON-RPC client for xchain-decoder's health endpoint; lets `/api/status` expose per-coin chain-tip lag without polling decoder ports separately |
+| `src/XChainIndexerConnector.js` | `XChainIndexerConnector` | JSON-RPC client for xchain-indexer; proxies read-only `feequote` and `feeschedule` endpoints so fee logic stays single-sourced in the indexer |
+| `src/proofServer.js` | `ProofServer` | SPV light-client proof server (spec §8.1): builds Merkle balance/state proofs from the indexer's `state_tree_nodes` table for client-side verification against quorum-signed checkpoint roots |
+| `src/merkle.js` | None | Consensus-critical, DB-free Merkle primitives for the additive state commitment, per-block content root, and top-level state root; shared byte-identically with xchain-indexer and xchain-sdk |
+| `src/checkpoint_commitment_activation.js` | None | Flag-day gate (SPV Phase 2, spec §6.1/§6.3): determines at which BTC block the signed checkpoint canonical gains `state_root` and `block_merkle_root` fields; consensus-critical, vendored across hub/indexer/explorer |
+| `src/equivocation_header.js` | None | Consensus-critical equivocation header (`EQUIV|ENGINE|ROUND|VIEW||content`) that prefixes every PBFT canonical at/above its activation height; vendored byte-identically across all consensus-bearing services |
+| `src/stake_weighted_quorum.js` | None | Consensus-critical stake-weighted 2f+1 quorum predicate used by every settlement gate and the checkpoint verifier; vendored byte-identically across all consensus-bearing services |
+| `src/IconDownloader.js` | `IconDownloader` | In-process worker that downloads, resizes, and caches token icons from the indexer's `icons` table |
+| `src/IconResolver.js` | `IconResolver` | Pure icon URL resolution logic; mirrors the priority chain used in the web UI's `xchain.js` so server and browser select the same source |
 | `src/configs/BTC.js` | None | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |
 | `src/configs/LTC.js` | None | Litecoin-specific configuration |
 | `src/configs/DOGE.js` | None | Dogecoin-specific configuration |
@@ -160,6 +169,24 @@ Two pagination modes are supported:
 - `action`: Paging direction: `first`, `last`, `next`, `prev`
 - `offset`: Current cursor position (action_index or block_index)
 - `length`: Records per page
+
+## SPV Light-Client Proof Server
+
+The `ProofServer` class (`src/proofServer.js`) serves read-only Merkle proofs for the SPV light-client protocol (Phase 3, spec §8.1). It is instantiated by `XChainExplorer` on startup and handles four proof endpoint families:
+
+```
+GET /{COIN}/api/proof/balance/:address/:tick    - SMT balance inclusion / non-inclusion proof
+GET /{COIN}/api/proof/action/:actionIndex       - Per-block fixed-Merkle inclusion proof
+GET /{COIN}/api/proof/validator-set             - Stake-weight SMT proofs (BTC-only)
+GET /{COIN}/api/proof/contract-state/:idx/:key  - Reserved; returns 501 in state_root_version 1
+GET /{COIN}/api/checkpoints/range               - Forward-ordered checkpoint slice for light-client sync
+```
+
+All proofs are derived from the indexer DB's `state_tree_nodes` and `state_tree_roots` tables, which are NOT replicated by `xchain-sync`. The proof server checks that its local tree assembles to the same root as the signed checkpoint before returning any proof; if they disagree (server bug or divergence), it returns an error rather than a proof the client cannot verify.
+
+The cryptographic primitives used are in `src/merkle.js`, which is vendored byte-identically across `xchain-indexer`, `xchain-explorer`, and `xchain-sdk` so that a proof produced here verifies under `merkle.verifyCompressedSmtProof` (balance/validator) or `merkle.verifyFixedMerkleProof` (action) in the SDK.
+
+See [API.md](API.md) for the full request/response shapes and error codes.
 
 ## WebSocket Server
 

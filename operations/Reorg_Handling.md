@@ -59,7 +59,14 @@ After rollback and re-indexing, the indexer runs its standard sanity check to co
 
 ### Decoder Rollback
 
-The decoder rolls back its `blocks`, `transactions`, `mempool_transactions`, and related tables to the fork block. Address and transaction index tables are cleaned up to remove dangling references.
+The decoder rolls back to the fork block by calling `deleteBlockByIndex` on each orphaned block in sequence (newest first). Each call runs inside a single DB transaction and deletes from four tables in dependency order:
+
+1. `transaction_outputs` - child rows keyed by `tx_index`; deleted first to avoid dangling references when parent `transactions` rows are removed.
+2. `dispensers` - also keyed by `tx_index`; a pre-delete UPDATE first clears the `expired_block_index` mark on any dispenser that was soft-expired by the orphaned block (restoring open dispensers that existed before it).
+3. `transactions` - all transactions in the orphaned block.
+4. `blocks` - the orphaned block header row itself.
+
+The `index_addresses` table is intentionally left untouched: it is an append-only first-reference lookup whose IDs are never consensus-visible, so orphan rows from a reorg are harmless.
 
 ### UTXO Tracker Rollback
 

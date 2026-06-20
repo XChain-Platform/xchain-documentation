@@ -7,7 +7,7 @@
 
 ## Surfaces
 
-The extension exposes four user-facing surfaces, all rendering the same React core:
+The extension exposes five user-facing surfaces, all rendering the same React core:
 
 | Surface | Entry point | When |
 |---|---|---|
@@ -15,6 +15,7 @@ The extension exposes four user-facing surfaces, all rendering the same React co
 | Full-screen | `popup.html?fullscreen=1` | "Open in tab" from popup menu |
 | Approval window | `approval.html` → `src/approval/main.jsx` | Triggered by privileged dApp / wallet operation |
 | Onboarding | `popup.html?onboarding=1` | First install |
+| Side panel | `sidepanel.html` → `src/popup/main.jsx` | Browser side panel (Chrome 114+); reuses the popup React tree; viewport is wider and taller than the popup |
 
 Background processes:
 
@@ -47,6 +48,11 @@ Background processes:
     "web_accessible_resources": [{
         "resources": ["inject/xchainProvider.js"],
         "matches": ["http://*/*", "https://*/*"]
+    }],
+    "protocol_handlers": [{
+        "protocol": "web+xchain",
+        "name": "XChain Wallet",
+        "uriTemplate": "popup.html?uri=%s"
     }]
 }
 ```
@@ -55,6 +61,7 @@ Deliberate choices:
 
 - **No `host_permissions`.** The wallet doesn't need to read or modify page state; only inject the provider script. `web_accessible_resources` carries the injection without granting host access.
 - **Minimal permissions.** No `tabs`, no `activeTab`, no `webRequest`. `notifications` and `alarms` are included for in-app price alerts and timed actions; `sidePanel` enables the browser side-panel surface. No broad host access. Smaller permission set = smaller audit surface = less scary CWS listing.
+- **`protocol_handlers` (`web+xchain`).** Registers the extension as the OS-level handler for `web+xchain://` URIs. A click on a `web+xchain:` link anywhere in the browser opens the popup and passes the URI via `popup.html?uri=%s`. This is how deep-link QR codes and external app integrations route into the wallet without requiring the user to have any particular tab open.
 - **Versioning split.** Chrome's `version` is integer-tuple-only and rejects semver prerelease tags like `1.0.0-rc.6`. The wallet derives a Chrome-valid tuple from the wallet semver via `packages/core/scripts/derive-extension-version.js`: stable `M.m.p` → `M.m.p`; prerelease `M.m.p-rc.N` → `0.M.m.N`. The leading `0` keeps prereleases strictly below stable tuples in Chrome's upgrade ordering. `version_name` carries the human-readable semver.
 
 The 11-rule manifest audit (`packages/core/scripts/extension-manifest-audit.js`) gates every commit:

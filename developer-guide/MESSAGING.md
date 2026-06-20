@@ -90,7 +90,10 @@ for (let msg of messages) {
 Each message object contains:
 - `from`: sender address
 - `to`: recipient address
+- `coin`: coin network the message was sent on (e.g. `'BTC'`), or `null` if not recorded
+- `chain`: chain label when fetched via `getAllMessages` (e.g. `'bitcoin-mainnet'`), otherwise `null`
 - `text`: decrypted message text (or `null` if decryption failed or no WIF provided)
+- `bytes`: raw decrypted `Buffer` for ECIES messages when `wif` is supplied; useful for binary payloads; `null` otherwise
 - `encrypted`: `true` if the message was encrypted
 - `method`: encryption method used (1, 2, 3, or `null` for plaintext)
 - `txid`: transaction hash
@@ -148,9 +151,28 @@ let senderSecret = sdk.messaging.deriveSharedSecret(senderWIF, recipientSession.
 let recipientSecret = sdk.messaging.deriveSharedSecret(recipientWIF, senderSession.publicKey);
 // senderSecret.sharedSecret === recipientSecret.sharedSecret
 
-// Step 5: Encrypt/decrypt with the shared secret
-let encrypted = sdk.messaging.sessionEncrypt('Session message', senderSecret.sharedSecret);
-let decrypted = sdk.messaging.sessionDecrypt(encrypted.ciphertext, recipientSecret.sharedSecret);
+// Step 5: Send the ECDH-encrypted message on-chain using the shared secret
+let result = await sdk.sendMessage({
+    wif: senderWIF,
+    destination: '1RecipientAddress...',
+    coin: 'BTC',
+    message: 'Session message',
+    method: 2,
+    sharedSecret: senderSecret.sharedSecret,
+    encoder: { pubkey: senderPubkeyHex }
+});
+console.log('Sent ECDH session message, txid:', result.txid);
+
+// On the recipient side, decrypt manually (getMessagesForAddress cannot
+// auto-decrypt ECDH; supply the shared secret to sessionDecrypt):
+let messages = await sdk.getMessagesForAddress('1RecipientAddress...', { type: 'received' });
+for (let msg of messages) {
+    if (msg.encrypted && msg.method === 2) {
+        // Fetch the raw ciphertext via the explorer, then decrypt:
+        let decrypted = sdk.messaging.sessionDecrypt(msg.text /* raw hex */, recipientSecret.sharedSecret);
+        console.log('Decrypted session message:', decrypted.plaintext);
+    }
+}
 ```
 
 ## AES Pre-Shared Key Messaging (Method 3)

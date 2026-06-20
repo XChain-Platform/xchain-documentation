@@ -66,7 +66,7 @@ The protocol uses a capability model: a v1/v2 stake auto-qualifies for every cap
 | ---------------- | ----------------------------------- | ----------------- |
 | `price`          | PBFT signer on PRICE v0 snapshots   | 1,000 XCHAIN      |
 | `cross_chain`    | Cross-chain attestation             | 5,000 XCHAIN      |
-| `oracle_publish` | Publish price rounds to DOGE chain  | 500 XCHAIN        |
+| `oracle_publish` | Publish PRICE v0 rounds on-chain (DOGE recommended for low fees, but any chain is valid) | 500 XCHAIN        |
 | `attestation`    | Off-chain data fetch and attest     | 1,000 XCHAIN      |
 | `full_node`      | Verified full-node tier (entrance stake; also requires passing periodic NODEPROOF possession challenges) | 2,000 XCHAIN |
 

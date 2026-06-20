@@ -32,7 +32,7 @@ const agent = sdk.agentSession(wif, {
     // Above this, a human (or supervising process) must say yes.
     confirmAbove: {
         perTick: { '*': '50' },
-        handler: async (ctx) => await askTheOperator(ctx),   // ctx: action, tick, amount, windowUsage
+        handler: async (ctx) => await askTheOperator(ctx),   // ctx: action, tick, amount, destinations, address, windowUsage
     },
 
     // See every denial (alerting, logs).

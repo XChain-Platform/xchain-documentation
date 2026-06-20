@@ -57,7 +57,7 @@ Revoke the specified signing key from the broadcaster's (contract=500, tick=MYTO
 
 ### v1 (contract rotate)
 - Works on any chain (BTC, LTC, DOGE).
-- Broadcasting address must own an active `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` stake row created via STAKE v3.
+- Broadcasting address must own an active STAKE v3 row for `(TARGET_CONTRACT_INDEX, TICK)` (the lookup filters on contract index, broadcasting source, and tick; `SIGNING_PUBKEY` in the wire format is the new key to rotate to, not a lookup field).
 - `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract.
 - `TICK` must match the existing stake row's token.
 - `SIGNING_PUBKEY` (wire: `NEW_SIGNING_PUBKEY`) must not already be in use by any active stake or delegation scoped to the same contract.

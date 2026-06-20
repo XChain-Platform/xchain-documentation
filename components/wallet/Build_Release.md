@@ -16,7 +16,10 @@ All packages in the repository ship at the **same version number**:
 - `packages/desktop/package.json`
 - `packages/bridge-spec/package.json`
 - `packages/test-dapp/package.json`
-- `test/e2e/package.json`
+- `packages/signers-trezor/package.json`
+- `packages/signers-ledger/package.json`
+
+The `test/e2e/package.json` (`@xchain-wallet/e2e`) is **excluded** from synchronized versioning. It tracks its own Playwright suite version independently and is not bumped in the release bump procedure.
 
 Rationale: users running the web app, the extension, and the desktop app need an obvious way to confirm they're on the same build. Every shell's About screen surfaces its own `package.json.version`, so synchronized versions let users diff `1.0.0-rc.6-extension` vs `1.0.0-rc.6-web` vs `1.0.0-rc.6-desktop` and immediately know they're on the same codebase.
 

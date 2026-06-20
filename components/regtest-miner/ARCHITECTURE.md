@@ -117,12 +117,12 @@ The loop skips mempool polling when `keepMining` is `false`, allowing external c
 
 ## Wallet Lifecycle
 
-On startup, `prepareWallet` follows a 4-branch decision tree:
+On startup, `prepareWallet` uses a probe-first strategy to handle the wide range of wallet implementations across Bitcoin Core, Litecoin, and Dogecoin v1.14.x (which does not implement `createwallet` or `loadwallet`):
 
-1. **Wallet already loaded**: `getWalletInfo` succeeds → get a new address, check balance
-2. **Wallet exists but not loaded**: `getWalletInfo` fails, `loadWallet` succeeds → get a new address
-3. **No wallet**, both fail → `createWallet`, get a new address
-4. **Balance check**: if balance is zero and chain height ≤ 100, mine 101 blocks for coinbase maturity; if height > 100, mine 1 block
+1. **Probe phase**: Call `getNewAddress()` up to 10 times (1-second sleep between attempts). If any probe succeeds, the address returned by that call is used directly and no wallet load/create step is needed. This also covers legacy daemons that auto-load a default wallet.
+2. **Load fallback**: If all 10 probes fail, attempt `loadWallet('xchain_regtest_wallet')`. If this succeeds, the connector URL is pinned to the named wallet path (`/wallet/<name>/`) so subsequent wallet RPCs route correctly even when multiple wallets are loaded on the same node.
+3. **Create fallback**: If `loadWallet` also fails, call `createWallet('xchain_regtest_wallet')`. The connector URL is pinned to the named wallet path here as well. If `createWallet` fails (e.g. on Dogecoin v1.14.x), an error is thrown with a clear message.
+4. **Balance check**: After a usable address is obtained, check the wallet balance. If it is zero and chain height is 100 or below, mine 101 blocks for coinbase maturity. If height is above 100, mine 1 block. `walletReady` is set to `true` after this step completes.
 
 ## fillMempool Stress Testing
 

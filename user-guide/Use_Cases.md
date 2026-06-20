@@ -211,7 +211,7 @@ A smart contract on XChain can do anything the protocol's 34 actions can do: iss
 - **On-chain governance**: token-weighted voting where the result of the vote is executed by the contract itself, with no human in the middle.
 - **Cross-chain automation**: contracts that coordinate actions across Bitcoin, Litecoin, and Dogecoin simultaneously.
 
-XChain actions involved: DEPLOY (to publish a contract), EXECUTE (to call a method on it), DEPOSIT and WITHDRAW (to move tokens in and out of the contract's custody).
+XChain actions involved: DEPLOY (to publish a contract), EXECUTE (to call a method on it), DEPOSIT and WITHDRAW (to move tokens in and out of the contract's custody), BATCH (to group multiple actions atomically so they all succeed or all fail), and SLEEP (a contract can put its own token to sleep, pausing trading on the token for a defined window or indefinitely).
 
 ### AI-Powered Smart Contracts
 

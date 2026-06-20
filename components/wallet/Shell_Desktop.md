@@ -48,7 +48,7 @@ Keys never cross the IPC boundary into the renderer. Even if the renderer is com
 
 | Module | Role |
 |---|---|
-| `main/index.js` | Boots Electron + creates the `BrowserWindow` |
+| `main/index.js` | Boots Electron, creates the `BrowserWindow`, and injects the OS notification adapter (`electron.Notification`) that delivers §46 transaction and price-alert notifications via native desktop toasts |
 | `main/runtime.js` | Lifecycle: app-ready, before-quit, second-instance handling |
 | `main/storage.js` | File-backed Vault adapter; encrypted at rest with the same AES-256-GCM scheme as the extension |
 | `main/keychain.js` | OS keychain integration for opt-in session-master-key persistence |
@@ -58,6 +58,8 @@ Keys never cross the IPC boundary into the renderer. Even if the renderer is com
 | `main/signerBridgeListener.js` | Receives sign requests from a paired `RemoteSigner` channel |
 | `main/updater.js` | electron-updater wiring; signature-verified auto-updates |
 | `main/meta.js` | `package.json.version` exposure for the About screen |
+
+Notification delivery has no dedicated module file; the OS adapter (`electron.Notification`) is injected inline by `main/index.js` into the shared `runtime.js` lifecycle. There is no side-panel in the desktop shell; side-panels are a browser-extension API (`chrome.sidePanel`) not available in Electron.
 
 ## Preload
 

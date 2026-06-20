@@ -54,6 +54,8 @@ The test suite reads configuration from a `.env` file (loaded via `dotenv`) or f
 | `INDEXER_DB_NAME` | Hub fallback | None | Indexer MariaDB database name |
 | `INDEXER_DB_USER` | Hub fallback | None | Indexer MariaDB username |
 | `INDEXER_DB_PASS` | Hub fallback | None | Indexer MariaDB password |
+| `DATABASE_URL` | No | `mariadb` | MariaDB host for the indexer database connection. Use `127.0.0.1` in scripts (Node resolves `localhost` to IPv6; MariaDB binds IPv4). Defaults to `mariadb` for Docker Compose where that is the container hostname. |
+| `DATABASE_PORT` | No | `3306` | MariaDB port for the indexer database connection. |
 
 ### Explorer
 
@@ -105,6 +107,7 @@ checkAllEnvironmentalVariables()
 | `GAS_TICK` | `"XCHAIN"` | `initialCheck.test.js` | Gas token ticker, auto-created if missing |
 | `connectionLimit` | `10` | `db.js` | MariaDB connection pool size |
 | `insertIdAsNumber` | `true` | `db.js` | Return insert IDs as numbers, not BigInt |
+| `bigIntAsNumber` | `true` | `db.js` | Deserialize BIGINT columns (e.g., `action_index`, `tx_index`) as Number, not BigInt. Keeps consensus hash serialization consistent with the indexer and sync prod pools, which also set this flag. |
 | `timeMax` (default) | `60000` | `db.js` | Default polling timeout for all `waitFor*` methods (ms) |
 | `sleep interval` | `1000` | `db.js` | Polling interval between `check*` calls (ms) |
 | `waitForTx timeout` | `10000` | `BlockchainConnector.js` | Default timeout for `waitForTx` polling (ms) |

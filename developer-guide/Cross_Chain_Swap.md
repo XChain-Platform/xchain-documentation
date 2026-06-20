@@ -172,11 +172,19 @@ await mineBlock();
 To extend the swap window:
 
 ```js
-const editAction = aliceSdk.swap({
+const editAction = await aliceSdk.swap({
   version: 2,
   swapActionIndex: swapActionIndex,
   expiration: Math.floor(Date.now() / 1000) + 86400 * 7, // 7 more days
 });
+
+const editPsbt = await aliceSdk.encoder.createTx({
+  data: editAction.actionString,
+  pubkey: 'ALICE_BTC_PUBLIC_KEY',
+  utxos: aliceBtcUtxos,
+});
+await signAndBroadcast(editPsbt.psbt);
+await mineBlock();
 ```
 
 ---

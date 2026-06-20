@@ -29,7 +29,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `WS_ENABLED` | No | `true` | Enable/disable WebSocket server |
+| `WS_ENABLED` | No | `true` | Enable/disable WebSocket server. The WebSocket server is disabled ONLY when this variable is set to the exact string `false`. Any other value (including `0`, empty string, or unset) leaves it enabled. |
 | `WS_POLL_INTERVAL` | No | `5000` | Change detection poll interval in milliseconds |
 | `WS_PING_INTERVAL` | No | `30000` | Server-to-client ping interval in milliseconds |
 | `WS_IDLE_TIMEOUT` | No | `300000` | Idle timeout for zero-subscription clients (ms) |
@@ -194,7 +194,7 @@ The explorer uses `express-rate-limit` middleware:
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `EXPLORER_RATE_LIMIT_RPM` | No | `500` | Maximum requests per IP per 60-second window. Image requests (`.png`, `.jpg`, etc.) and `/icon/` paths are excluded from the limit. |
+| `EXPLORER_RATE_LIMIT_RPM` | No | `500` | Maximum requests per IP per 60-second window. Image requests (`.png`, `.jpg`, `.jpeg`, `.gif`, `.ico`, `.svg`, `.webp`), `/icon/` paths, and `/images` paths are excluded from the limit. |
 
 Rate limiting applies to all non-image endpoints (API, Explorer, and HTML).
 

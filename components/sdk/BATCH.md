@@ -203,6 +203,34 @@ try {
 }
 ```
 
+### Gated Content: FILE + MESSAGE in One Transaction
+
+A common pattern for publishing token-gated content is to include a FILE and a MESSAGE to self in the same BATCH. The FILE records the content and its gate ticker on-chain; the MESSAGE records the encrypted decryption key so the issuer can recover it later. Both are committed atomically.
+
+```js
+const { encryptedData, encryptedKey, keyHash } = await encryptForGate(rawFileBuffer, 'MYTOKEN');
+
+let result = await sdk.batch()
+    .file({
+        name:             'exclusive.pdf',
+        type:             'application/pdf',
+        title:            'Exclusive Drop',
+        gateTicker:       'MYTOKEN',
+        encryptionMethod: 1,       // AES-256-GCM
+        keyHash:          keyHash, // sha256(key), 64 hex chars
+        rawData:          encryptedData  // hoisted to encoder opts by build()
+    })
+    .message({
+        destination:      myAddress,       // message to self
+        encryptedMessage: encryptedKey     // encrypted key, recoverable by the issuer
+    })
+    .build({ pubkey: '03abc...', utxos: [...] });
+```
+
+The `rawData` on the FILE params is automatically extracted and hoisted to the encoder, so it is not necessary to pass it separately to `.build()`.
+
+---
+
 ### Builder Reuse with `reset()`
 
 ```js
@@ -239,14 +267,32 @@ console.log(result.psbt); // base64-encoded PSBT ready to sign
 
 ---
 
+## FILE rawData Promotion
+
+When a FILE sub-action carries `rawData` in its params (for publishing gated or public file content), `.build()` automatically strips `rawData` from the FILE params and hoists it to the BATCH-level encoder options. This is because `rawData` is an encoder-level attachment (it becomes the file payload embedded in the transaction), not part of the action string.
+
+The promotion is transparent: if you also pass `encoderOpts` to `.build()`, the extracted `rawData` is merged in only if `encoderOpts.rawData` is not already set (explicit caller value takes precedence).
+
+```js
+// rawData is extracted from FILE params and hoisted to encoder opts automatically
+let result = await sdk.batch()
+    .file({ name: 'report.pdf', type: 'application/pdf', title: 'Q1 Report' }, { rawData: pdfBuffer })
+    .build({ pubkey: '03abc...', utxos: [...] });
+// Equivalent to passing rawData at the .build() level:
+//   .build({ pubkey: '03abc...', utxos: [...], rawData: pdfBuffer })
+```
+
+---
+
 ## Under the Hood
 
 When `.build()` is called, the following steps happen in sequence:
 
 1. `_validate()` checks BATCH protocol constraints (empty, nested BATCH, DEPLOY, FILE/MINT/ISSUE counts).
-2. For each queued action, `sdk.actions.createAction({ action, params })` is called. This runs the full pipeline: field validation → format selection → serialization. The result's `actionString` is collected.
+2. For each queued action, `sdk.actions.createAction({ action, params })` is called. This runs the full pipeline: field validation → format selection → serialization. The result's `actionString` is collected. If the action is FILE and its params include `rawData`, `rawData` is extracted and saved; it is not passed through to the action string.
 3. All `actionString` values are joined with `;`: `SEND|0|BTC.TOKEN|100|addr1...;SEND|0|BTC.TOKEN|50|addr2...`
-4. The joined string is passed as the `command` param to `sdk.createAction({ action: 'BATCH', params: { command }, encoder: encoderOpts })`, which serializes the outer BATCH action: `BATCH|0|SEND|0|...;SEND|0|...`
+4. If a FILE sub-action provided `rawData`, it is merged into encoder opts.
+5. The joined string is passed as the `command` param to `sdk.createAction({ action: 'BATCH', params: { command }, encoder: encoderOpts })`, which serializes the outer BATCH action: `BATCH|0|SEND|0|...;SEND|0|...`
 
 The BATCH action itself uses format version 0 (`VERSION|COMMAND`), there is only one BATCH format.
 

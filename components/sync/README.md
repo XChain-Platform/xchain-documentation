@@ -112,6 +112,7 @@ On startup, the service:
 | `helmet` | Security headers |
 | `cors` | CORS middleware |
 | `mariadb` | MariaDB connection pools (one per chain/network) |
+| `mathjs` | Arbitrary-precision bignumber arithmetic for stake-weight quorum calculations |
 | `ws` | WebSocket server for real-time block streaming |
 | `dotenv` | Environment variable loading |
 
@@ -124,6 +125,7 @@ On startup, the service:
 | `sinon` | Test mocking and stubbing |
 | `fast-check` | Property-based (fuzz) testing |
 | `proxyquire` | Module mocking for dependency injection |
+| `c8` | Code coverage instrumentation and reporting |
 | `@stryker-mutator/core` | Mutation testing framework |
 | `@stryker-mutator/mocha-runner` | Stryker Mocha integration |
 

@@ -90,8 +90,13 @@ On startup, the tracker:
 | `npm run test:perf` | Performance tests (20 tests) |
 | `npm run test:perf:quick` | Quick performance (small scale) |
 | `npm run test:perf:deep` | Deep performance (large scale, 4 GB heap) |
+| `npm run test:boundary` | Boundary condition tests (19 tests) |
+| `npm run test:security` | Security tests (18 tests) |
+| `npm run test:regression` | Regression tests (13 tests) |
 | `npm run test:chaos` | Chaos engineering tests (31 tests) |
 | `npm run test:all` | All unit + integration + e2e tests |
+| `npm run test:unit:ondisk` | Unit tests running against on-disk ClassicLevel instead of in-memory |
+| `npm run test:integration:ondisk` | Integration tests running against on-disk ClassicLevel |
 | `npm run mutate` | Mutation testing (Stryker Mutator) |
 | `npm run mutate:quick` | Quick mutation testing |
 | `npm run mutate:p1` | P1 priority mutation testing |
@@ -99,6 +104,7 @@ On startup, the tracker:
 | `npm run mutate:p3` | P3 priority mutation testing |
 | `npm run mutate:incremental` | Incremental mutation testing |
 | `npm run mutate:custom` | Custom Buffer/encoding mutations |
+| `npm run mutate:custom:p1` | Custom mutations scoped to P1 files (LevelUpDb, XChainUtxoTracker, bufferutils) |
 
 ## Dependencies
 

@@ -39,6 +39,7 @@ for the owed amount (or more).
 - Each transaction output is processed separately by the indexer. Only the output matching the payee address and amount triggers settlement.
 - The obligation's expiration is timestamp-based (match block timestamp + `COINPAY_EXPIRATION` config, default 7200 seconds / 2 hours).
 - On valid COINPAY: escrowed tokens are released to the buyer, ORDER_MATCH status changes to `valid`, and the obligation status changes to `fulfilled`.
+- Expired obligations are cleaned up by `COINPAY_EXPIRE`, a system action fired automatically by the indexer at the block where an obligation's deadline passes. `COINPAY_EXPIRE` is not user-invocable: it releases escrowed tokens back to the seller's order, cancels the coin-offering party's order if needed, and sets the ORDER_MATCH status to `expired`. The coin offerer's order (the side that was not holding tokens) remains open and can match again.
 
 ---
 

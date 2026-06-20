@@ -39,6 +39,32 @@ let result = await sdk.deploy({
 
 DEPLOY payloads are almost always larger than 76 bytes of user data (the OP_RETURN limit; 80 bytes total per output), so OP_RETURN encoding will be rejected. Use P2SH or P2WSH.
 
+#### Chunked DEPLOY for large contracts
+
+A single DEPLOY action can carry at most 8,192 bytes of compiled action data. Contracts whose base64-encoded source exceeds that ceiling (roughly 6 KB of raw source) require the chunked deploy workflow. Use `sdk.deployContract(wif, deployParams, deposits?, opts?)` rather than `sdk.deploy()` directly: it calls `chunkHelper.planDeploy()` to decide which path to take.
+
+**Single-shot path (fits in one action):** `sdk.deployContract` falls through to a normal `sdk.deploy()` call. DEPLOY v0 (no constructor) or v1 (with constructor) are emitted inline.
+
+**Chunked path (6 KB to 64 KB raw source):** two phases are submitted on-chain:
+
+1. **Carrier phase (DEPLOY v4):** the base64 source is split into ordered slices of up to 7,800 bytes each (max 16 slices). Each slice is broadcast as a DEPLOY v4 carrier action and waited on individually so all carriers have lower action indexes than the assembling action.
+2. **Assemble phase (DEPLOY v2 or v3):** a final DEPLOY v2 (or v3 for staking contracts) carries only the `CODE_HASH` (SHA-256 of the UTF-8 source). The indexer locates the carriers by code hash, concatenates the slices in order, verifies the hash, and runs the normal deploy flow.
+
+```js
+// sdk.deployContract handles the path selection automatically.
+// Pass raw 'code' (not a pre-encoded base64 string).
+let result = await sdk.deployContract(
+    wif,
+    { code: contractSource, gasLimit: 200000, constructorParams: ['arg1'] },
+    [{ tick: 'MYTOKEN', quantity: '1000' }]   // optional initial deposits
+);
+// result.chunks  - array of carrier submitResults (empty for single-shot)
+// result.deploy  - the assemble (or single-shot) submitResult
+// result.deposits - deposit submitResults
+```
+
+Contracts larger than 64 KB (base64-encoded source requiring more than 16 slices) are rejected at the planning stage with an error before any transaction is submitted.
+
 See [ACTIONS.md; DEPLOY](ACTIONS.md#deploy) for full parameter reference.
 
 ### EXECUTE
@@ -142,22 +168,28 @@ let source = sdk.contracts.decode(b64);
 
 ### `sdk.contracts.validate(sourceCode)`
 
-Lightweight syntax pre-validation using acorn (no V8 required). Checks for:
-- JavaScript syntax errors
-- Code size limit (64KB)
-- Reserved `__gas` identifier usage
-- Float literal warnings
+Pre-flight syntax and rule validation (no V8 or `isolated-vm` required). Delegates to `contract/lint-core.js`, a byte-identical vendored copy of the indexer's lint core, so a passing result here means the contract clears the indexer's syntax gate exactly - except the V8-only compile step, which can only run at deploy time.
+
+Checks for:
+- Code size limit (64 KB)
+- JavaScript syntax errors and unsupported syntax (ES2020 maximum, via acorn)
+- Reserved identifier usage (`__gas` and allocator metering helpers)
+- Banned transcendental Math calls (`Math.sqrt`, `Math.pow`, `Math.log`, etc.)
+- Banned native-DoS literals (BigInt and RegExp literals)
+- Banned async surface (`async`, `await`, `Promise`)
+- Float literal warnings (advisory; does not block deployment)
+- Logic-level advisories: `crossCallable` integrity, unbounded loops, unchecked `state.get` dereferences, missing input validation
 
 ```js
 let result = sdk.contracts.validate(sourceCode);
 // { valid: true }
-// { valid: true, warnings: ['Float literal (0.5) at line 3: use xchain.math...'] }
-// { valid: false, error: 'Syntax error: Unexpected token (2:5)' }
+// { valid: true, warnings: ['WARNING: decimal number literal (0.5) detected at line 3...'] }
+// { valid: false, error: 'banned API: Math.sqrt at line 5; ...' }
 ```
 
-**Note:** This is a best-effort check. Passing `validate()` does not guarantee deployment success; the authoritative validation happens in the indexer's VM.
+**Note:** This covers all acorn-detectable checks but not the V8 compile step (step 1 in the indexer). A passing `validate()` result is a strong pre-flight signal, not a deployment guarantee.
 
-**Requires:** `acorn` and `acorn-walk` packages. If not installed, `validate()` returns an error message explaining the missing dependency.
+**Requires:** `acorn`, `acorn-walk`, and `astring` packages (hard dependencies; installed with the SDK).
 
 ### `sdk.contracts.checkFloatUsage(sourceCode)`
 

@@ -43,6 +43,17 @@ if (result.error) { /* user rejected, or chain unsupported */ }
 console.log(result.accounts, result.addresses);
 ```
 
+### `disconnect()`
+
+Revokes the current origin's grant. Deletes the `ConnectedSite` record from the vault and fires the `disconnect` event so the dApp's listener can clear session state without polling. Returns `{ disconnected: true }` when a grant existed and was removed, or `{ disconnected: false }` when the origin had no active grant.
+
+```ts
+const result = await xchain.disconnect();
+if (result.disconnected) {
+    // Grant cleared; update UI accordingly.
+}
+```
+
 ### `getSupportedChains()`
 
 Returns the chain descriptors the wallet exposes: `id`, `coin`, `displayName`, `networkKind`, `addressTypes`, `defaultAddressType`, `supportedActions`, `uriScheme`. Internal-only fields (default endpoint URLs, fee strategy, derivation templates) are not exposed.

@@ -74,18 +74,20 @@ console.log(result.txid);
 Place and cancel DEX orders:
 
 ```js
-// Place an order
+// Place an order (waitForIndexer: true is required to read result.indexed)
 const result = await sdk.createOrder(wif, {
     giveTick:   'TOKENA',
     giveAmount: '100',
     getTick:    'TOKENB',
     getAmount:  '200',
     expiration: 850000
-});
+}, { waitForIndexer: true });
 
 // Cancel the order (using the indexed action_index)
 await sdk.cancelOrder(wif, result.indexed.action_index);
 ```
+
+**Note:** `result.indexed` is only populated when `waitForIndexer: true` is passed in `opts`. Without it, `result.indexed` is `undefined` and reading `result.indexed.action_index` will throw at runtime.
 
 ---
 
@@ -103,6 +105,48 @@ const result = await sdk.stakeAndDelegate(
 console.log(result.stake.txid);
 console.log(result.delegate.txid);   // null if delegateParams was omitted
 ```
+
+---
+
+## deployContract
+
+Deploy a smart contract with automatic single-shot vs chunked routing, then optionally deposit initial tokens. Pass raw `code` so the planner can size it. If the base64-encoded source fits within the compiled-action cap it deploys inline (DEPLOY v0/v1); otherwise it submits each slice as a DEPLOY v4 carrier (awaiting indexer confirmation per chunk) then sends an assembling DEPLOY v2/v3 carrying the CODE_HASH. This is the recommended entry point when you do not know in advance whether your contract will fit a single action.
+
+To deploy a stakeable contract (one that accepts STAKE v3 actions), pass `cooldownBlocks` and `slashDestination`. The assembler automatically selects DEPLOY v3 when those fields are present:
+
+```js
+// Basic deploy (single-shot or chunked, auto-selected)
+const result = await sdk.deployContract(
+    wif,
+    {
+        code:              'class Counter { constructor() { this.n = 0; } inc() { this.n++; } }',
+        gasLimit:          100000,
+        constructorParams: []       // optional
+    },
+    [
+        { tick: 'TOKENA', quantity: '1000' }   // optional initial deposits
+    ]
+);
+
+console.log(result.deploy.txid);        // assembling DEPLOY (or sole DEPLOY for single-shot)
+console.log(result.chunks.length);      // 0 for single-shot; N for chunked
+console.log(result.deposits.length);    // 1
+
+// Stakeable contract (enables STAKE v3 delegation)
+const result2 = await sdk.deployContract(
+    wif,
+    {
+        code:              contractSource,
+        gasLimit:          200000,
+        cooldownBlocks:    1000,
+        slashDestination:  'BURN'
+    }
+);
+```
+
+**Returns:** `{ deploy, chunks, deposits }` where `deploy` is the final (assembling) DEPLOY submit result, `chunks` is an array of submit results for each DEPLOY v4 carrier (empty for single-shot), and `deposits` is an array of DEPOSIT submit results.
+
+**Note:** Deposits require the indexer to confirm the assembling DEPLOY first so the `action_index` is available. Pass `waitForIndexer: true` in `opts` when deposits are included.
 
 ---
 

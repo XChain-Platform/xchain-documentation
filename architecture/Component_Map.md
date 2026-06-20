@@ -3,7 +3,7 @@
 
 # Component Map
 
-This document describes all 11 XChain Platform services, their roles, inputs, outputs, and connections. Services are grouped by function. For detailed documentation on any individual service, see the corresponding subdirectory under [`../components/`](../components/).
+This document describes the 13 XChain Platform services, their roles, inputs, outputs, and connections. Services are grouped by function. For detailed documentation on any individual service, see the corresponding subdirectory under [`../components/`](../components/).
 
 ---
 
@@ -15,6 +15,8 @@ This document describes all 11 XChain Platform services, their roles, inputs, ou
 | Transaction Creation | encoder, utxo-tracker, sdk |
 | Data Replication | sync |
 | Infrastructure | hub, node, regtest-miner, e2e-test |
+| Contract Execution | vm |
+| Client | wallet |
 
 ---
 
@@ -83,7 +85,7 @@ See [`../components/indexer/`](../components/indexer/) for full documentation.
 
 Key technical details:
 
-- Over 50 REST endpoints covering tokens, balances, orders, dispensers, transactions, events, market data, and more.
+- Over 160 REST endpoint patterns across the `/api` and `/explorer` namespaces (106 `/api` routes and 56 `/explorer` routes in the dispatch table, plus additional hand-registered routes for file download, fee quote, fee schedule, checkpoints, Merkle proofs, and the OpenAPI spec), covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, and more.
 - JSON-RPC 2.0 interface compatible with Counterparty-style tooling.
 - Bootstrap-based web UI with Highcharts for order book and market price visualization.
 - Reads configuration from xchain-hub every 60 seconds (fee schedules, supported parameters, fiat pricing).
@@ -287,6 +289,55 @@ Key technical details:
 - Requires xchain-regtest-miner to be running to advance blocks.
 
 See [`../components/e2e-test/`](../components/e2e-test/) for full documentation.
+
+---
+
+## Contract Execution
+
+### xchain-vm
+
+| | |
+|---|---|
+| **Purpose** | Deterministic smart contract execution engine; runs JavaScript contracts in sandboxed V8 isolates |
+| **Inputs** | Called by xchain-indexer at EXECUTE/DEPLOY processing time; receives contract code, method name, params, and an `xchain` gateway context |
+| **Outputs** | Emitted ACTION queue; contract state mutations; gas consumed; execution log |
+| **Storage** | None (stateless library; state is written by the indexer to the Indexer MariaDB) |
+| **Communication** | In-process library only; no network interface |
+
+Key technical details:
+
+- Ships as a Node.js library (`xchain-vm`) embedded inside xchain-indexer; not deployed as a standalone service.
+- Each EXECUTE call runs the target contract in a fresh `isolated-vm` V8 isolate with a separate heap and no access to the host process, filesystem, or network.
+- Non-deterministic globals (`Date`, `Math.random`, `fetch`, `eval`, etc.) are stripped before any contract code runs; `Math` is replaced by a frozen deterministic subset.
+- Gas is metered by AST instrumentation (acorn parse + astring regenerate) rather than wall-clock time, so cost is a deterministic function of code structure.
+- A per-block compilation cache (keyed by contract index plus code hash, bounded to 1,000 entries) avoids recompiling the same contract across multiple calls in a block.
+- Requires Node.js 22 exactly; `isolated-vm` does not build on Node.js 24.
+
+See [`../components/vm/`](../components/vm/) for full documentation.
+
+---
+
+## Client
+
+### xchain-wallet
+
+| | |
+|---|---|
+| **Purpose** | Self-custodial multi-chain reference wallet; browser SPA, Chrome MV3 extension, and Electron desktop app |
+| **Inputs** | User interaction; xchain-sdk for action construction; xchain-explorer for balance and history queries; xchain-hub for config and fee data |
+| **Outputs** | Signed transactions broadcast to coin nodes via the encoder; read-only views of balances, tokens, actions, and markets |
+| **Storage** | Client-side only (browser localStorage / extension storage / Electron local store); no server-side state |
+| **Communication** | Outbound JSON-RPC and REST to xchain-encoder, xchain-explorer, and xchain-hub; no inbound API |
+
+Key technical details:
+
+- Built on xchain-sdk; all action construction goes through the SDK's 29 developer-invocable ACTION methods.
+- Supports Bitcoin, Litecoin, and Dogecoin (mainnet, testnet, regtest) from the same codebase.
+- Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), and an Electron desktop application.
+- Private keys never leave the client; signing happens locally before broadcast.
+- Targets non-technical end users; UI language is intentionally plain (e.g., "About" not "Token Spec").
+
+See [`../components/wallet/`](../components/wallet/) for full documentation.
 
 ---
 

@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Copyright © 2025-2026 Dankest, LLC -->
 
-Copyright &copy; 2025 Dankest, LLC
+Copyright &copy; 2025-2026 Dankest, LLC
 
 # XChain SDK: WebSocket Client
 

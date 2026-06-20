@@ -92,6 +92,10 @@ All `waitFor*` methods in `db.js` follow the same pattern:
 5. If not found, sleep 1 second and retry
 6. On timeout, record metrics and return `null`
 
+### Quiesce Barrier
+
+After every test, an `afterEach` hook calls `utxoTrackerConnector.quiesce()` before the next test begins. "Quiescent" means the coin node mempool is empty and the tracker's committed height matches the node height. The barrier eliminates ordering-dependent flakes where a previous test leaves mid-batch state that breaks the next test's encoder queries with phantom "no UTXOs" errors. Failures are logged but never rethrow, so a barrier timeout does not mask the actual test result. The barrier waits up to 15 seconds (polling every 250 ms); on a clean regtest stack it typically resolves in under 1 second.
+
 ### Teardown
 
 The `afterAll` hook restores default mining timing, zeroes wallet seed and private key buffers, and closes the MariaDB connection pool.

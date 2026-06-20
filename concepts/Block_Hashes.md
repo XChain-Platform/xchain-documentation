@@ -63,13 +63,17 @@ Each hash follows the same process:
 
 ```
 data = {
-    <table_data>,           // query results from source tables
-    block_index: <number>,  // current block number
-    previous_hash: <string> // same hash type from previous block (or null for block 0)
+    <table_data>,            // query results from source tables
+    block_index: <number>,   // current block number
+    previous_hash: <string>, // same hash type from previous block (or null for block 0)
+    hash_version: <number>   // BLOCK_HASH_VERSION constant (currently 1); folded in so a
+                             // future preimage scheme change produces a distinct, never-equal hash
 }
 
 hash = SHA256(JSON.stringify(data))
 ```
+
+The `hash_version` field is mandatory in every preimage. An implementor that omits it will compute a different SHA-256 digest and will never match a canonical indexer, even if all other fields are identical. The current value of `BLOCK_HASH_VERSION` is `1` (defined in `xchain-indexer/src/db.js` and mirrored in `xchain-sync/src/BlockHasher.js`).
 
 ### Hash Chaining
 
@@ -80,6 +84,33 @@ Each block's hash includes the previous block's hash of the same type. This mean
 - Which cascades forward through every subsequent block
 
 A single hash comparison at the current block height verifies the **entire history** of that hash type. If two indexers show the same ledger hash at block 900,000, their complete ledger history from block 0 to 900,000 is identical.
+
+## The State Hash (Replication Integrity)
+
+In addition to the three consensus hashes described above, the indexer computes a fourth per-block hash called `state_hash`. It is **not** a consensus hash: it is not chained into the ledger/actions/contract chain, it is not signed by the hub, and it is not stored in the `blocks` table the same way. Its sole purpose is to let `xchain-sync` followers detect silent replication failures.
+
+### Why a Fourth Hash Is Needed
+
+The three consensus hashes cover only rows whose `block_index` equals the current block (new, immutable rows). They cannot see in-place mutations to rows from earlier blocks, which the replication layer carries over a separate `updated_rows` channel. A follower that silently fails to apply one of those mutations would diverge with no hash mismatch to flag it. The `state_hash` covers exactly those mutated rows.
+
+### What It Covers
+
+The state hash preimage (built in `xchain-indexer/src/stateHash.js`, mirrored verbatim in `xchain-sync/src/stateHash.js`) includes, for each block:
+
+| Row class | Tables | Trigger |
+|---|---|---|
+| Deactivation stamps | `stakes`, `delegations`, `contract_stakes`, `contract_delegations` | `deactivation_block` written at cooldown start |
+| Slash amount cuts | `stakes`, `unstakes`, `contract_stakes`, `contract_unstakes` | Capability or contract slash debit logged at this block |
+| Request-status flips | `attests`, `xcalls` | v0 request resolved (answer or expire) |
+| Cooldown-maturity flips | `unstakes`, `contract_unstakes` | `cooldown_end_block` reached |
+| Backdated refund credits | `credits` | Cooldown-maturity GAS refund (capability) or own-tick refund (contract), credited using the unstake's original `action_index` |
+| Invalid-archive stamps | `anchor_actions` | Final v2 chunk lands at block B and the reassembled batch fails its CRC check; the v1 parent row from an earlier block is stamped in-place |
+
+The preimage also carries `block_index` and a `state_hash_version` field (currently `1`, independent of `BLOCK_HASH_VERSION`). It is **not** chained on a previous state hash; the three consensus hashes already carry chain continuity.
+
+### How It Is Used
+
+The `xchain-sync` follower recomputes the state hash after applying each block's mutations and compares it to the value the source stored. A mismatch halts the follower immediately, preventing silent divergence from propagating. This hash is not exposed through the public explorer API and is not part of the hub-signed checkpoint.
 
 ## How Hashes Are Stored
 

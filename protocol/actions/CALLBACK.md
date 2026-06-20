@@ -28,7 +28,7 @@ This example calls back the JDOG token to the token owner address
 - All `TICK` supply holders will receive `CALLBACK_AMOUNT` of `CALLBACK_TICK` per `UNIT`
 
 ## Notes
-- `CALLBACK` requires an `XCHAIN` fee based on number of database hits
+- `CALLBACK` requires a fee based on number of database hits. The fee may be paid in `XCHAIN` (deducted from the sender's balance) or in native coin via a qualified coin output in the same transaction.
 - `UNIT` - A specific unit of measure (1 or 1.0)
 - `CALLBACKS` respect `CALLBACK_TICK` `ALLOW_LIST` and `BLOCK_LIST` and will only distribute `CALLBACK_TICK` to authorized holders
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)

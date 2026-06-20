@@ -83,6 +83,8 @@ xchain-node monitor all bitcoin regtest
 | `npm run test:e2e` | End-to-end tests (57 tests, 30s timeout) |
 | `npm run test:fuzz` | Fuzz tests (256 tests, 10s timeout) |
 | `npm run test:chaos` | Chaos engineering tests (140 tests, 15s timeout) |
+| `npm run test:boundary` | Boundary tests (10s timeout) |
+| `npm run test:security` | Security tests (10s timeout) |
 | `npm run test:regression` | Regression tests (60 tests, 10s timeout) |
 | `npm run test:regression:p0` | Regression P0: critical gate (28 tests) |
 | `npm run test:regression:p0p1` | Regression P0+P1: standard gate (52 tests) |
@@ -112,6 +114,7 @@ xchain-node monitor all bitcoin regtest
 
 | Package | Purpose |
 |---|---|
+| `c8` | Code coverage (V8-native; run via `npm run coverage`) |
 | `mocha` | Test framework |
 | `chai` | Assertion library |
 | `sinon` | Mocking, stubbing, and spying |

@@ -156,10 +156,22 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 | `src/configs/BTC.js` | None | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |
 | `src/configs/LTC.js` | None | Litecoin-specific configuration |
 | `src/configs/DOGE.js` | None | Dogecoin-specific configuration |
-| `src/utility.js` | `Utility` | BigNumber math, timer functions, expiration/cancellation processing, ledger operations |
+| `src/utility.js` | `Utility` | BigNumber math, timer functions, expiration/cancellation processing, ledger operations, cross-chain settlement injection |
 | `src/mapper.js` | `Mapper` | Creates action_index ↔ address/tick cross-reference mappings |
 | `src/rollback.js` | `Rollback` | Handles blockchain reorganizations: deletes affected records, recalculates balances |
 | `src/protocol_changes.js` | `ProtocolChanges` | Defines supported actions and their activation rules (version, block, timestamp) |
+| `src/health.js` | None | Assembles the `health` JSON-RPC response payload; separate from `api.js` so it can be unit-tested without a database |
+| `src/hub_client.js` | `HubClient` | Lightweight JSON-RPC client for pushing chain tip, PRICE rounds, and price retractions to `xchain-hub`; uses Node built-in `http`/`https` |
+| `src/hub_db_sync.js` | `HubDbSync` | Bootstraps and live-syncs the local hub DB mirror (price snapshots, oracle prices, capability snapshots, cross-chain matches) via REST snapshot + WebSocket |
+| `src/hub_push_queue.js` | `HubPushQueue` | Durable retry queue for PRICE pushes to the hub; backs the `pending_hub_pushes` table |
+| `src/ed25519.js` | None | Ed25519 signature verification using Node built-in crypto; mirrors `xchain-hub/src/ValidatorIdentity.js` format |
+| `src/merkle.js` | None | Consensus-critical SPV light-client Merkle primitives: additive state SMT, per-block content root, fixed top-level state root. Vendored byte-identically into `xchain-sync` |
+| `src/stateHash.js` | None | Builds the `state_hash` preimage covering in-place mutations (deactivation stamps, slash debits, status flips, cooldown maturities) that the three standard block hashes cannot see |
+| `src/stateCommitment.js` | None | Computes per-block `state_tree_roots` (balances SMT + stakes SMT + state root + block Merkle root) and writes them to the DB |
+| `src/stake_weighted_quorum.js` | None | Consensus-critical stake-weighted quorum predicate (WI-1). Vendored byte-identically across hub, indexer, explorer, sync, and SDK |
+| `src/recovery.js` | None | CLI for rebuilding the cross-chain match mirror from on-chain ANCHOR archive data, with no surviving hub database |
+| `src/equivocation_header.js` | None | Builds EQUIV-header canonicals for the WI-2 equivocation slashing protocol (XDEX, XCALL, XCHECKPOINT engine tags) |
+| `src/migrate.js` | None | Applies incremental SQL migrations from `src/sql/migrations/` at startup |
 | `xchain-vm` (external) | `XChainVM` | Standalone module: V8 isolate sandbox, AST-based gas metering, gateway API; loaded by `actions.js`, called by DEPLOY and EXECUTE handlers |
 
 ## Action Handlers (`src/actions/*.js`)
@@ -181,6 +193,7 @@ Actions with automatic lifecycle events have companion handlers:
 | `DISPENSER` | `dispenser_close.js`, `dispenser_expire.js`, `dispense.js` |
 | `ORDER` | `order_expire.js`, `order_match.js` |
 | `SWAP` | `swap_expire.js`, `swap_match.js` |
+| `SWAP` / `ORDER` (cross-chain legs) | `cross_settle.js` (system-injected per hub-mirrored match; no on-chain transaction) |
 
 Action aliases provide backward compatibility and shorthand:
 

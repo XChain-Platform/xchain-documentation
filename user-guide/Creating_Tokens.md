@@ -94,11 +94,13 @@ Imagine you are launching a collectible token and you tell buyers "only 10,000 w
 
 Parameters you can lock include:
 
-- **Supply settings** (max supply, mint supply, max mint count): proves the token cannot be inflated
-- **Description**: proves the token's description cannot be swapped out
-- **Minting**: prevents anyone from minting new supply, or from changing the mint supply amount
-- **Sleep**: prevents the token from ever being paused
-- **Callback settings**: proves the recall terms cannot be altered after the fact
+- **LOCK_MAX_SUPPLY**: the `MAX_SUPPLY` ceiling can never be raised, proving the total cannot be inflated beyond what is set now
+- **LOCK_MINT**: no one can ever run the MINT command against this token again, so no new supply can ever be created
+- **LOCK_MINT_SUPPLY**: the per-operation mint amount (`MINT_SUPPLY`) is frozen; minting is still allowed, but the amount per mint cannot be changed
+- **LOCK_MAX_MINT**: the `MAX_MINT` count (how many times minting can happen in total) is frozen permanently
+- **LOCK_DESCRIPTION**: proves the token's description cannot be swapped out
+- **LOCK_SLEEP**: the token can never be paused by the SLEEP command; useful for tokens that must always be tradeable
+- **Callback settings** (`LOCK_CALLBACK`): proves the recall terms cannot be altered after the fact
 
 Locking is a one-way door. Think carefully before locking anything. Once it is done, there is no going back. Not even for you.
 

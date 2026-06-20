@@ -33,7 +33,9 @@ Rewards accumulate from multiple validator activities, all stored in the indexer
 
 | Reward Type | Earned By | Trigger |
 |---|---|---|
-| `oracle_round` | Validator with `price` capability | Signature included in the on-chain PRICE v0 action of a finalized price round |
+| `oracle_round` | Validator with `price` capability | Legacy label (used when `FULLNODE.REWARD_SHARE` is 0): signature included in the on-chain PRICE v0 action of a finalized price round; the full per-round budget is split equally across all qualified signers |
+| `oracle_base` | Validator with `price` capability | Active-regime label (used when `FULLNODE.REWARD_SHARE` > 0): the base tranche of the per-round budget, split equally across all qualified signers; replaces `oracle_round` once the full-node reward tier is activated |
+| `oracle_full_node` | Validator with `price` and `full_node` capabilities | Active-regime only: the full-node tranche of the per-round budget, split equally across verified full-node sources that signed the round and met the trailing `MIN_PASS_RATE_BPS` participation threshold |
 | `attest_fee` | Validator with `attestation` capability | Share of the request fee for a fulfilled ATTEST request |
 | `anchor_<chain>` | Validator with `oracle_publish` capability | Publishing a per-chain ANCHOR v0 checkpoint |
 | `anchor_archive` | Validator with `oracle_publish` capability | Publishing an ANCHOR v1 archive batch |
@@ -42,7 +44,7 @@ Rewards accumulate from multiple validator activities, all stored in the indexer
 
 Reward rows reach the indexer's `validator_rewards` table on two rails:
 
-- **Derived (replayable):** `oracle_round` and `attest_fee` are computed by the indexer itself during block processing, as deterministic functions of on-chain actions: `oracle_round` splits the configured per-round reward equally across the **verified, capability-qualified signer set of the PRICE v0 action** (so a round that finalizes but never lands a PRICE earns nothing), and `attest_fee` splits a fulfilled request's fee across its responsible set. A reindex reproduces these rows exactly.
+- **Derived (replayable):** `oracle_round` / `oracle_base` / `oracle_full_node` and `attest_fee` are computed by the indexer itself during block processing, as deterministic functions of on-chain actions. The oracle reward type used depends on whether the full-node reward tier is active (`FULLNODE.REWARD_SHARE` > 0): when inactive the full per-round budget is credited as `oracle_round`; when active it is split into an `oracle_base` tranche (all qualified signers) and an `oracle_full_node` tranche (verified full-node sources that met the participation threshold). `attest_fee` splits a fulfilled request's fee across its responsible set. A reindex reproduces these rows exactly.
 - **Pushed (archived):** `anchor_<chain>` / `anchor_archive` are recorded by the hub federation when an anchor publishes and pushed via the `pushvalidatorrewards` JSON-RPC endpoint (which rejects any non-anchor type). Because a chain parse cannot re-derive them, they ride the ANCHOR v1 archive and are restored by full-parse recovery (see [ANCHOR](ANCHOR.md).
 
 `COLLECT` queries the indexer's `validator_rewards` table directly. No hub round-trip during transaction processing.

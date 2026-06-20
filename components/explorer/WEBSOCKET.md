@@ -643,6 +643,11 @@ Response to client `ping`.
 | VM | `DEPLOY`, `EXECUTE`, `DEPOSIT`, `WITHDRAW` |
 | Staking | `STAKE`, `UNSTAKE`, `DELEGATE`, `COLLECT` |
 | Attestation | `ATTEST` |
+| Federation / oracle | `PRICE`, `ANCHOR`, `XCALL`, `NODEPROOF` |
+| Order lifecycle | `ORDER_COMPLETED`, `ORDER_EXPIRED` |
+| COINPay lifecycle | `COINPAY_REQUIRED`, `COINPAY_FULFILLED`, `COINPAY_EXPIRED` |
+| Swap lifecycle | `SWAP_COMPLETED`, `SWAP_EXPIRED` |
+| Dispenser lifecycle | `DISPENSER_CLOSED`, `DISPENSER_EXPIRED`, `DISPENSER_CANCELLED` |
 
 ---
 

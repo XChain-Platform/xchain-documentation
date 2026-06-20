@@ -85,6 +85,40 @@ Decoder mempool rows are **pre-validation**: the decoder records whatever parses
 - The reference gateway re-checks provisional grants against indexed rows and either promotes them to `confirmed` or marks them failed after a window (default 10 minutes), notifying the operator.
 - Serve only low-value or revocable resources at `minConfirmations: 0`; for anything irrevocable (e.g. handing over a decryption key), require `1+`; and on BTC consider more, per the value at stake. Reorg re-verification beyond this is out of scope for v1.
 
+## SSRF guard (http_get attestation provider)
+
+This section is relevant context for gateway operators running validators that use the `http_get` attestation provider (a separate concern from the x402 payment flow, but often deployed on the same infrastructure).
+
+The `http_get` provider fetches URLs supplied verbatim from on-chain `ATTEST v0` requests. Because any contract author can submit such a request, the validator executes the GET from inside its own network, alongside the hub database and coin-node daemons. Without filtering, the attestation fleet would act as an internal port-scanner.
+
+The provider applies a two-layer SSRF guard (`xchain-hub/src/providers/http_get.js`):
+
+1. **Literal hostname check**: IP-literal hosts in the URL are checked directly against forbidden ranges before the request is issued.
+2. **DNS-pinned connection**: For hostname URLs, the hostname is resolved once via `dns.promises.lookup`. Every returned address must be public. The actual connection is then pinned to that pre-validated address using a custom `lookup` callback, closing the TOCTOU window between the DNS check and the connect (DNS-rebinding bypass).
+
+Forbidden address ranges: loopback (`127.0.0.0/8`, `::1`), private (`10/8`, `172.16/12`, `192.168/16`), link-local and cloud-metadata (`169.254/16`), CGNAT (`100.64/10`), IETF reserved (`192.0.0.0/24`), benchmarking (`198.18/15`), and multicast/reserved (`224.0.0.0/4` and above). IPv4-mapped IPv6 (`::ffff:a.b.c.d`) is unwrapped and the embedded IPv4 is checked. An unparseable address fails closed.
+
+Only `https://` URLs are accepted; no redirects are followed. The guard can be disabled for regtest/e2e environments via `ATTESTATION_HTTP_GET_ALLOW_PRIVATE=1`; never set this in production.
+
+## Deposit scheme ledger format
+
+The `xchain-deposit` scheme tracks how much a payer has consumed against their deposited balance. Each payer gets one JSON file at `<ledgerDir>/<payer-address>.json`:
+
+```json
+{
+  "payer": "<payer address>",
+  "spent": "10",
+  "entries": [
+    { "t": 1765500000000, "amount": "1", "resource": "/api/report" }
+  ]
+}
+```
+
+- `spent`: cumulative total debited so far, as an exact decimal string. The gateway computes `deposited - spent` to determine the available balance.
+- `entries`: one record per successful debit; `t` is a Unix millisecond timestamp, `amount` equals `pricePerCall`, and `resource` is the requested URL path (or `null` if not captured).
+
+The ledger directory defaults to `<stateDir>/deposits/<COIN>/`; override via `options.deposit.ledgerDir`. Writes are atomic (write to `.tmp`, rename into place) and execute under a per-payer in-process mutex. A corrupt or unreadable ledger file throws `X402_STATE_CORRUPT` and causes the gateway to respond with HTTP 503, not to silently reset the balance. This store is **single-node**; multi-node deployments must supply an external atomic store via `options.invoiceStore`.
+
 ## Replay and state rules
 
 - Invoice nonces are single-use, claimed under mutual exclusion; the claiming `txid` is recorded.

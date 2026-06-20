@@ -94,6 +94,8 @@ The platform defines 34 ACTION types in total. Of those, 29 are user-submittable
 
 ### Oracles
 
+This section contains 2 entries: `PRICE` (user-submittable) and `ATTEST` (included for completeness; not SDK-invocable). Both appear here because they are Oracle-class actions.
+
 | ACTION | What it does |
 |---|---|
 | `PRICE` | Publish oracle price data on-chain. v0 carries validator-aggregated COIN/FIAT snapshots; v1 carries user-defined TOKEN/FIAT oracles. Used by FIAT dispensers and any application that needs verifiable price feeds. |
@@ -116,6 +118,15 @@ The platform defines 34 ACTION types in total. Of those, 29 are user-submittable
 | `EXECUTE` | Call a method on a deployed contract. The contract runs in a sandboxed V8 isolate and can emit platform ACTIONs (SEND, MINT, ATTEST, etc.) that are processed through the normal handlers. |
 | `DEPOSIT` | Transfer tokens from the sender to a contract's derived address. Credits the contract in the standard ledger. |
 | `WITHDRAW` | Return tokens from a contract's derived address to the contract owner. Owner-only. |
+
+### Validator / System Actions
+
+The following actions are not user-submittable and are not in the SDK. They are listed here so readers can find their descriptions when browsing this page. (The full set of non-SDK actions is ANCHOR, ATTEST, NODEPROOF, SLASH, XCALL; ATTEST is documented in the Oracles section above.)
+
+| ACTION | What it does |
+|---|---|
+| `SLASH` | Permissionless equivocation proof. Any party may broadcast a SLASH carrying two conflicting signed messages from the same validator for the same protocol round; the indexer verifies both signatures on-chain and burns a portion of the offender's capability stake. BTC-only (capability staking is BTC-only). v0 carries the offender's pubkey, capability label, and the two signed-canonical pairs. |
+| `XCALL` | Cross-chain contract call lifecycle. v0 is a request emitted by a VM contract via `xchain.emit.crossExecute()`; it is never user-broadcast. v2 is system-synthesized when the call deadline passes without a result, firing the requester's timeout callback. The relay itself rides the hub's quorum-signed cross_chain_calls mirror. |
 
 Full parameter specifications for each ACTION are in [`../protocol/actions/`](../protocol/actions/).
 

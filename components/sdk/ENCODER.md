@@ -40,6 +40,7 @@ These options are passed inside the `encoder` object when using action helpers, 
 | `compressedPubKey` | string | No | A compressed public key (33-byte hex). Required when `encoding` is `MULTISIGN`. |
 | `customOutputs` | array | No | Additional transaction outputs to include beyond the data output and change. |
 | `rawData` | string | No | Raw binary data appended after the ACTION string. Used by the FILE action for large payloads. |
+| `payFeeInNativeCoin` | boolean | No | Pay the XChain protocol fee in BTC/LTC/DOGE instead of in the token's gas balance. The SDK calls `sdk.quoteNativeFee()` first and refuses to build the transaction if the action cannot be priced (unsupported action or stale oracle). Valid only in `estimateFees()` and action-helper calls that go through `estimateFees`. |
 
 ---
 

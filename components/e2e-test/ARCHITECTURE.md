@@ -128,7 +128,7 @@ The `Database` class maintains a MariaDB connection pool and provides two method
 - Values are passed as parameterized query parameters (SQL injection safe)
 - `isNullOrNullString(value)` uses loose equality (`== null || == ""`) to skip null-like fields
 
-**30+ polling methods** cover: issues, sends, credits, debits, mints, broadcasts, lists, airdrops, dispensers, dispenses, address options, destroys, messages, files, sleeps, sweeps, dividends, callbacks, orders, order matches, swaps, swap matches, batches, links, coinpays, coinpay obligations, contracts, executions, deposits, withdrawals, stakes, unstakes, delegations, reward claims.
+**44 polling methods** cover: issues, sends, credits, debits, mints, broadcasts, lists, airdrops, dispensers, dispenser statuses, dispenses, address options, destroys, messages, prices, files, sleeps, sweeps, dividends, callbacks, orders, order matches, swaps, swap matches, batches, links, coinpays, coinpay obligations, contracts, executions, deposits, withdrawals, stakes, unstakes, delegations, stake-key revocations, contract-stakes, contract-unstakes, contract-delegations, slash events, attestation requests, attestation responses, reward claims.
 
 ## Hub Discovery
 

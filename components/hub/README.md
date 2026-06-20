@@ -108,7 +108,7 @@ Validator mode activates the full P2P gossip layer, PBFT consensus, price oracle
 
 Services that support hub-based config discovery call `getallconfigs` at startup and periodically (typically every 60 seconds) to pick up configuration changes without a restart. This allows operators to update connection strings, ports, or credentials through the hub rather than redeploying each service individually.
 
-**Consumers:** xchain-explorer, xchain-node, xchain-e2e-test, xchain-sync, xchain-sdk.
+**Consumers:** xchain-explorer, xchain-indexer, xchain-node, xchain-e2e-test, xchain-sync, xchain-sdk.
 
 ## Multi-Instance Deployment
 
@@ -150,9 +150,11 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 | `axios` | HTTP client for external price API calls (CoinGecko, CoinMarketCap) |
 | `express` | HTTP server for JSON-RPC API |
 | `express-json-rpc-router` | JSON-RPC 2.0 routing for the API server |
+| `geoip-lite` | Self-contained country/region lookup; derives coarse geo from connecting IPs at telemetry ingest (raw IP is never stored) |
 | `helmet` | HTTP security headers |
 | `cors` | Cross-origin resource sharing |
 | `mariadb` | MariaDB connection pool for config, validator, oracle, and governance data |
+| `mathjs` | Bignumber arithmetic (via `bcmath.js`) used across oracle consensus, DEX settlement, attestation, and quorum calculations |
 | `ws` | WebSocket server/client for P2P gossip layer |
 | `express-rate-limit` | API rate limiting |
 | `dotenv` | `.env` file loading for environment-based configuration |
@@ -161,6 +163,7 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 
 | Package | Purpose |
 |---|---|
+| `c8` | Code-coverage instrumentation; used by the `coverage` npm script |
 | `mocha` | Test framework |
 | `chai` | Assertion library |
 | `sinon` | Mocking, stubbing, and spying for tests |

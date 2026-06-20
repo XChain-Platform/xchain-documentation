@@ -406,6 +406,37 @@ curl http://localhost:8080/BTC/api/transaction/abc123.../tx_hash
 
 ---
 
+### Get Actions
+
+Returns all actions across all types, with optional filters for block, transaction, and token.
+
+```
+GET /{COIN}/api/actions[?blockIndex=N&txid=TX_HASH&tick=TOKEN]
+```
+
+**Query parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `blockIndex` | number | Filter to actions in a specific block |
+| `txid` | string | Filter to actions in a specific transaction (by hash) |
+| `tick` | string | Filter to actions involving a specific token ticker |
+
+**Pagination:** Supported
+
+**Response:** Array of action objects, each including `action_index`, `action` (type name), `action_format`, `source`, `block_index`, `timestamp`, `tx_hash`, and `tx_index`.
+
+**Example:**
+```bash
+# All actions in a block
+curl "http://localhost:8080/BTC/api/actions?blockIndex=800000"
+
+# All actions involving a token
+curl "http://localhost:8080/BTC/api/actions?tick=MYTOKEN"
+```
+
+---
+
 ### Get Action
 
 Returns comprehensive details for a single XChain action by its action index. Includes the action record, associated credits, debits, escrows, and fees.
@@ -1202,6 +1233,55 @@ curl http://localhost:8080/BTC/api/market/TOKENA/TOKENB/orderbook
 
 ---
 
+## ANCHOR Endpoints
+
+ANCHOR actions are the periodic on-chain checkpoints published to the DOGE chain by the validator federation. These endpoints read the `anchor_actions` table.
+
+### List Anchors
+
+Returns a paginated list of ANCHOR checkpoint records.
+
+```
+GET /{COIN}/api/anchors/{query}/{type}
+GET /{COIN}/api/anchors
+```
+
+**Parameters:**
+
+| Parameter | Location | Description |
+|---|---|---|
+| `query` | path | Filter value (block index, chain code, network name, or status string) |
+| `type` | path | Filter type (see below) |
+
+**Type values:**
+
+| Type | Query interpretation | Description |
+|---|---|---|
+| `block` | Block index | ANCHOR actions published in a specific block |
+| `chain` | Chain code (e.g. `BTC`) | ANCHOR actions for a specific coin chain |
+| `network` | Network name (e.g. `mainnet`) | ANCHOR actions for a specific network |
+| `status` | Status string | ANCHOR actions with a specific status |
+
+When called without `{query}/{type}`, returns recent ANCHOR actions (paginated).
+
+**Pagination:** Supported
+
+**Response fields:** `action`, `action_index`, `action_format`, `version`, `chain`, `network`, `block_index`, `block_hash`, `ledger_hash`, `actions_hash`, `contract_hash`, `checkpoint_seq`, `snapshot_block`, `state_root`, `state_root_version`, `block_merkle_root`, `block_merkle_version`, `validator_signatures`, `timestamp`, `tx_hash`, `tx_index`, `status`.
+
+**Example:**
+```bash
+# Recent ANCHOR actions
+curl "http://localhost:8080/RDOGE/api/anchors?limit=10"
+
+# ANCHOR actions for BTC chain
+curl "http://localhost:8080/RDOGE/api/anchors/BTC/chain"
+
+# ANCHOR actions for a specific block
+curl "http://localhost:8080/RDOGE/api/anchors/800000/block"
+```
+
+---
+
 ## Checkpoint Verification Endpoints
 
 The explorer exposes quorum-signed state checkpoints for light-client verification. Checkpoint data is read from the hub-mirrored `state_checkpoints` table.
@@ -1236,7 +1316,7 @@ Re-verifies the checkpoint at `blockIndex` server-side and returns everything a 
 
 | Field | Description |
 |---|---|
-| `checkpoint` | Raw checkpoint row (block_index, block_hash, ledger_hash, actions_hash, …) |
+| `checkpoint` | Raw checkpoint row (block_index, block_hash, ledger_hash, actions_hash, ...) |
 | `canonical` | Canonical signing payload (pipe-delimited string over checkpoint fields) |
 | `validators` | Array of validator pubkeys that signed this checkpoint |
 | `quorum` | Required signature count for 2f+1 consensus |
@@ -1244,6 +1324,175 @@ Re-verifies the checkpoint at `blockIndex` server-side and returns everything a 
 | `verified` | `true` when `valid_sigs >= quorum` |
 
 Returns HTTP 404 with `{ "error": "No checkpoint at this height", "code": "CHECKPOINT_NOT_FOUND" }` when no checkpoint exists at the requested height.
+
+---
+
+### Get Checkpoint Range
+
+Returns a forward-ordered slice of quorum-signed checkpoints between two block heights. Intended for light-client forward-following: a client fetching the next N checkpoints after its last known one.
+
+```
+GET /{COIN}/api/checkpoints/range?from={fromBlock}&to={toBlock}
+```
+
+**Query parameters:**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `from` | Yes | Start block height (inclusive) |
+| `to` | Yes | End block height (inclusive); must be `>= from` |
+
+**Response:**
+```json
+{
+    "checkpoints": [ { "chain": "BTC", "network": "mainnet", "block_index": 800000, ... }, ... ],
+    "count": 5
+}
+```
+
+Each checkpoint object contains the same fields as the response from `GET /{COIN}/api/checkpoints`: `chain`, `network`, `block_index`, `block_hash`, `ledger_hash`, `actions_hash`, `contract_hash`, `checkpoint_seq`, `snapshot_block`, `state_root`, `state_root_version`, `block_merkle_root`, `block_merkle_version`, and `validator_signatures` (parsed as a JSON array).
+
+The result is capped at 500 checkpoints per request. If the range spans more than 500 checkpoint heights, only the first 500 are returned.
+
+Returns HTTP 400 when `from` or `to` are missing, non-integer, or `to < from`.
+
+**Example:**
+```bash
+# Checkpoints from block 800000 to 801000
+curl "http://localhost:8080/BTC/api/checkpoints/range?from=800000&to=801000"
+```
+
+---
+
+## SPV Light-Client Proof Endpoints
+
+These endpoints build read-only Merkle proofs that a light client verifies locally against a quorum-signed checkpoint's committed `state_root` or `block_merkle_root`. The server never asks the client to trust its word; all verification happens client-side.
+
+Proof endpoints require a **full indexer DB** with the `state_tree_nodes` table (not replicated by `xchain-sync`). A thin replica returns HTTP 501 with code `NO_STATE_TREE`.
+
+### Balance Proof
+
+Returns a Sparse Merkle Tree (SMT) inclusion (or non-inclusion) proof for an address/tick balance, bound to the nearest signed checkpoint at or above the requested height.
+
+```
+GET /{COIN}/api/proof/balance/{address}/{tick}[?height=N]
+```
+
+**Parameters:**
+
+| Parameter | Location | Required | Description |
+|---|---|---|---|
+| `address` | path | Yes | Blockchain address to prove a balance for |
+| `tick` | path | Yes | Token ticker |
+| `height` | query | No | Minimum block height for the checkpoint; omit to use the latest checkpoint |
+
+**Response** (success):
+```json
+{
+    "proof": {
+        "chain": "BTC", "network": "mainnet", "height": 800000,
+        "address": "bc1q...", "tick": "MYTOKEN", "amount": "100.00000000",
+        "smt_proof": { "key": "...", "leaf_value": "...", "compressed": [...] },
+        "sub_root_path": { "index": 0, "siblings": [...] },
+        "balances_root": "...", "stakes_root": "...",
+        "state_root": "...", "state_root_version": 1
+    },
+    "checkpoint": { "block_index": 800000, "state_root": "...", "validator_signatures": [...], ... }
+}
+```
+
+A non-held balance returns `leaf_value: null` (non-inclusion proof) and `amount: "0"`.
+
+**Error codes:**
+
+| HTTP | Code | Meaning |
+|---|---|---|
+| 404 | `NO_CHECKPOINT` | No signed checkpoint at or above the requested height |
+| 409 | `CHECKPOINT_PRE_COMMITMENT` | Checkpoint predates the state-commitment activation (no committed roots) |
+| 501 | `NO_STATE_TREE` | Server does not hold the state tree; point a full indexer DB at this instance |
+| 500 | `PROOF_STATE_ROOT_MISMATCH` | Server state tree disagrees with the signed checkpoint |
+
+---
+
+### Action Inclusion Proof
+
+Returns a fixed-Merkle-tree inclusion proof for an action row within its block, bound to the checkpoint that commits that block's `block_merkle_root`.
+
+```
+GET /{COIN}/api/proof/action/{actionIndex}
+```
+
+**Parameters:**
+
+| Parameter | Location | Description |
+|---|---|---|
+| `actionIndex` | path | The action index number |
+
+**Response** (success):
+```json
+{
+    "proof": {
+        "chain": "BTC", "network": "mainnet", "height": 800000, "action_index": 42,
+        "tx_index": 5, "action": "SEND",
+        "leaf": "...",
+        "merkle_proof": { "index": 3, "siblings": [...] },
+        "block_merkle_root": "...", "block_merkle_version": 1
+    },
+    "checkpoint": { "block_index": 800000, "block_merkle_root": "...", "validator_signatures": [...], ... }
+}
+```
+
+**Error codes:**
+
+| HTTP | Code | Meaning |
+|---|---|---|
+| 404 | `ACTION_NOT_FOUND` | No action with this index on this server |
+| 409 | `ACTION_BLOCK_NOT_CHECKPOINTED` | The action's block has no signed checkpoint with a `block_merkle_root` |
+| 409 | `CHECKPOINT_PRE_COMMITMENT` | Checkpoint predates the state-commitment activation |
+| 501 | `NO_STATE_TREE` | Server does not hold the state tree |
+| 500 | `PROOF_BLOCK_MERKLE_MISMATCH` | Server block tree disagrees with the signed checkpoint |
+
+---
+
+### Validator-Set Proof
+
+Returns SMT proofs for each validator's stake weight, bound to the BTC checkpoint at the given snapshot height. BTC-only (the `stakes_root` is BTC-anchored per protocol spec).
+
+```
+GET /BTC/api/proof/validator-set?height={snapshotBlock}[&capabilities=oracle_publish,cross_chain]
+```
+
+**Query parameters:**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `height` | Yes | BTC snapshot block height (must match a BTC checkpoint's `block_index`) |
+| `capabilities` | No | Comma-separated capability names to prove; defaults to `oracle_publish,cross_chain` |
+
+**Notes:**
+- Requires `INDEXER_API_URL` to be configured (to fetch live stake weights). Returns HTTP 501 with code `INDEXER_NOT_CONFIGURED` otherwise.
+- Returns HTTP 400 with code `STAKES_BTC_ONLY` when called on a non-BTC coin prefix.
+
+**Error codes:**
+
+| HTTP | Code | Meaning |
+|---|---|---|
+| 400 | `STAKES_BTC_ONLY` | Must call on a BTC coin prefix |
+| 409 | `SNAPSHOT_NOT_YET_CHECKPOINTED` | No BTC checkpoint at this height yet |
+| 409 | `CHECKPOINT_PRE_COMMITMENT` | Checkpoint predates state-commitment activation |
+| 501 | `NO_STATE_TREE` | Server does not hold the state tree |
+| 501 | `INDEXER_NOT_CONFIGURED` | No indexer API URL configured for this coin/network |
+| 502 | `INDEXER_UNAVAILABLE` | Indexer API did not respond |
+
+---
+
+### Contract-State Proof
+
+```
+GET /{COIN}/api/proof/contract-state/{contractIndex}/{key}
+```
+
+**Status: Not yet implemented.** The contract state root is committed as EMPTY in `state_root_version` 1 (spec D1). This endpoint returns HTTP 501 with code `UNSUPPORTED_VERSION` until a future protocol version activates contract-state commitments.
 
 ---
 
@@ -1569,8 +1818,14 @@ Content-Type: application/json
 | `GET /{COIN}/api/validators` | Validator federation list |
 | `GET /{COIN}/api/controllers` | Controller-bound token event stream |
 | `GET /{COIN}/api/deploy_chunks` | Chunked DEPLOY upload records |
+| `GET /{COIN}/api/actions` | All actions (filterable by block, txid, tick) |
 | `GET /{COIN}/api/checkpoints` | Latest quorum-signed state checkpoints |
+| `GET /{COIN}/api/checkpoints/range` | Slice of checkpoints between two heights (light-client sync) |
 | `GET /{COIN}/api/checkpoint/{height}/verify` | Verify a checkpoint at a given height |
+| `GET /{COIN}/api/proof/balance/{address}/{tick}` | SMT balance inclusion/non-inclusion proof |
+| `GET /{COIN}/api/proof/action/{actionIndex}` | Block-content inclusion proof for an action |
+| `GET /BTC/api/proof/validator-set` | Stake-weighted validator-set proof (BTC-only) |
+| `GET /{COIN}/api/proof/contract-state/{idx}/{key}` | Contract-state proof (reserved; HTTP 501 in v1) |
 | `GET /{COIN}/api/feequote` | Native-coin fee pre-flight quote |
 | `GET /{COIN}/api/feeschedule` | Native-coin fee schedule |
 | `GET /{COIN}/api/file/{actionIndex}/raw` | Raw FILE action bytes (or gated ciphertext) |
@@ -1661,10 +1916,11 @@ Content-Type: application/json
 | `GET /{COIN}/api/contract_delegations/...` | `block`, `address`, `contract` |
 | `GET /{COIN}/api/slash_events/...` | `block`, `address`, `contract` |
 
-### Attestation and Cross-Chain Call List Endpoints
+### ANCHOR and Attestation and Cross-Chain Call List Endpoints
 
 | Endpoint | Supported Types |
 |---|---|
+| `GET /{COIN}/api/anchors/...` | `block`, `chain`, `network`, `status` |
 | `GET /{COIN}/api/attestations/...` | `block`, `address`, `contract` |
 | `GET /{COIN}/api/xcalls/...` | `block`, `contract`, `status` |
 

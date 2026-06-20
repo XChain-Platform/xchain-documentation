@@ -743,12 +743,15 @@ sdk.onCoinpayRequired('1BotAddress...', async (event) => {
         return;
     }
 
-    // Construct and broadcast COINPAY
+    // Build the COINPAY transaction (UTXOs auto-fetched from UTXO tracker)
     const tx = await sdk.coinpay({
         order_match_action_index: event.data.order_match_action_index
     }, { pubkey: process.env.PUBKEY });
 
-    console.log('COINPay sent:', tx.psbt);
+    // Sign and broadcast; sdk.coinpay returns the PSBT, not a final txid
+    const signed = sdk.signPsbt(tx.psbt, process.env.WIF);
+    await sdk.broadcastTx(signed.txHex);
+    console.log('COINPay sent:', signed.txid);
 });
 ```
 

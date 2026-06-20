@@ -81,12 +81,18 @@ sdk.createAction({ action: 'ISSUE', params: {
 
 ## Version Quick Reference
 
-Actions with a single format version (BATCH, CALLBACK, DIVIDEND, FILE, LINK, MINT, SWEEP) are omitted from this table; the selector always uses version 0 for those. Actions with multiple versions but not shown here (ADDRESS, DELEGATE, DEPLOY, SLEEP, STAKE, UNSTAKE) are covered in the action-specific documentation.
+Actions with a single format version (BATCH, CALLBACK, DIVIDEND, FILE, LINK, MINT, SWEEP) are omitted from this table; the selector always uses version 0 for those.
 
 | ACTION | v0 | v1 | v2 | v3 | v4 | v5 | v6 |
 |--------|----|----|----|----|----|----|-----|
 | SEND | Single tick, single destination | Single tick, two destinations | Two ticks, two destinations | Two ticks, two destinations + per-destination memo | None | None | None |
 | ISSUE | Full token creation | Description update | Mint parameter update | Lock flag update | Callback parameter update | Allow/block list update | Controller bind/unbind |
+| ADDRESS | Account preferences (fee preference, require-memo, dispenser preference) | Controller bind/unbind for the sending address | None | None | None | None | None |
+| DELEGATE | Add new signing pubkey (validator delegation) | Add signing pubkey scoped to a contract + tick | Revoke signing pubkey | Revoke signing pubkey scoped to a contract + tick | None | None | None |
+| DEPLOY | Inline code (rest constructor params) | Inline code with staking fields (cooldown, slash destination) | Chunked code by hash (rest constructor params) | Chunked code by hash with staking fields | Chunk carrier: one ordered base64 slice identified by code hash + chunk index | None | None |
+| SLEEP | Wake at block (address-wide) | Wake at block, tick-scoped | None | None | None | None | None |
+| STAKE | _(unused; no v0)_ | Stake with signing pubkey | Stake with signing pubkey (v2 wire; same fields as v1) | Contract-targeted stake: signing pubkey + target contract + tick | None | None | None |
+| UNSTAKE | Revoke signing pubkey (address-wide unstake) | Revoke signing pubkey scoped to a contract + tick | None | None | None | None | None |
 | ORDER | Full order (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None | None |
 | SWAP | Full swap (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None | None |
 | DISPENSER | Full dispenser (give/get/fiat/lists) | Cancel/close by index | Edit escrow/expiry/lists by index | None | None | None | None |
@@ -95,7 +101,10 @@ Actions with a single format version (BATCH, CALLBACK, DIVIDEND, FILE, LINK, MIN
 | BROADCAST | Message + value | Message + value + fee + memo | Message + fee + memo (no value) | Resolve prior broadcast by index | None | None | None |
 | MESSAGE | ECDH v0 (key exchange) | ECDH v1 (key exchange) | Encrypted message payload | Plaintext message | None | None | None |
 | LIST | Create list (type + item) | Edit existing list by index | None | None | None | None | None |
-| SLEEP | Wake at block (address-wide) | Wake at block, tick-scoped | None | None | None | None | None |
+
+**STAKE note:** STAKE has no v0. Versions 1 and 2 have the same field layout (`AMOUNT|SIGNING_PUBKEY`). v3 adds contract targeting. The selector picks the lowest-version that fits the provided fields, so v1 is chosen when no contract target is provided.
+
+**DEPLOY note:** v0 and v2 use a rest field (`...CONSTRUCTOR_PARAMS`) for variadic constructor arguments. v4 is a chunk carrier action, not a deploy action itself; submit as many v4 chunk carriers as needed before the final v2/v3 DEPLOY that references the assembled code by its SHA-256 hash.
 
 ---
 
