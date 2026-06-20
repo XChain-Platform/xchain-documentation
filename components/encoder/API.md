@@ -60,6 +60,7 @@ The full registry is documented at [Error Codes](../../protocol/Error_Codes.md).
 | Method | Description |
 |---|---|
 | [`ping`](#ping) | Health check; reports the running encoder version |
+| [`health`](#health) | Probes hard dependencies (UTXO tracker) and reports their reachability and sync state |
 | [`estimate_fee`](#estimate_fee) | Suggested fee tiers from the node's `estimatesmartfee` |
 | [`create_tx`](#create_tx) | Build an unsigned PSBT embedding an ACTION payload |
 | [`broadcast_tx`](#broadcast_tx) | Broadcast a signed raw transaction to the coin node |
@@ -83,6 +84,26 @@ Health check. Takes no parameters.
 |---|---|---|
 | `status` | string | `"success"` when the service is up |
 | `version` | string | Running encoder semver |
+
+### `health`
+
+Probes the encoder's hard dependencies (the UTXO tracker) and reports their state. Unlike `ping`, a `health` failure means the encoder cannot serve requests correctly. Takes no parameters.
+
+**Request:**
+```json
+{"jsonrpc":"2.0","method":"health","id":1}
+```
+
+**Response:**
+```json
+{"tracker_reachable":true,"tracker_synced":true,"tracker_lag":0}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `tracker_reachable` | boolean | `true` when the UTXO tracker answered the sync-status probe |
+| `tracker_synced` | boolean | `true` when the tracker reports itself caught up to the node tip |
+| `tracker_lag` | number \| null | Blocks the tracker is behind the node tip; `null` when unreachable or not reported |
 
 ### `estimate_fee`
 
