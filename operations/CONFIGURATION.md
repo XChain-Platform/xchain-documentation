@@ -97,6 +97,8 @@ Databases are named following the convention `XChain_{CHAIN}_{NETWORK}_{COMPONEN
 
 Each service runs in its own container with its own network namespace. The explorer is additionally published on the host via `EXPLORER_PORT_HTTP` / `EXPLORER_PORT_HTTPS` (defaults `18080` / `18081`).
 
+This table is the canonical service port map. It matches what the xchain-node installer assigns; each service's `.env.example` default and the SDK's `EXPLORER_PORT` / `ENCODER_PORT` defaults are aligned to it. The xchain-e2e-test suite intentionally uses a separate, isolated port set (to avoid collisions when several stacks share one host), so its values are expected to differ and are not config drift.
+
 ---
 
 ## Service-Specific Configuration
