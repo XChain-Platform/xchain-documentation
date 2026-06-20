@@ -7,12 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-06-20
+
 ### Changed
 
 - `components/sdk/ACTIONS.md`, `architecture/Component_Map.md`, `architecture/Data_Pipeline.md`: completed the P2WSH capacity reconciliation begun in 0.12.0. These files still showed the raw script-level `9,956` bytes; they now express the per-chunk element bound (476 bytes) and the 8,192-byte compiled-payload ceiling (`MAX_COMPILED_ACTION_DATA_LENGTH`), matching `components/encoder/Format_Selection.md`. The SDK `ACTIONS.md` wire-format strings for ADDRESS, DISPENSER, MESSAGE, ORDER, SWAP, and SWEEP were also corrected to match `xchain-sdk/src/formats.js` (missing `DISPENSER_PREFERENCE`, `GIVE_OWNERSHIP`/`GET_OWNERSHIP`, `ORACLE_ADDRESS`, `COIN`, and the three SWEEP escrow flags).
 - `protocol/actions/ATTEST.md`, `protocol/actions/XCALL.md`, `WHITEPAPER.md`: corrected the `request_id`/`CALL_ID` preimage definitions to match the implementation after the call-path refactor. The attestation `request_id` is `sha256(tx_hash:root_action_index:emitter_path:contract_index:emitter_position)` and the cross-chain `call_id` is `sha256(network:source_chain:tx_hash:root_action_index:contract_index:emitter_path:emitter_position:target_chain)`, both colon-delimited. The `root_action_index` (the root on-chain action) plus the `>`-joined `emitter_path` disambiguate nested emissions deterministically across nodes; the emitting sub-action's own per-emission `action_index` is still not bound in. The [0.12.0] entry below describes the pre-refactor `call_id` and is superseded.
-
-## [0.12.0] - 2026-06-16
 
 ### Added
 
