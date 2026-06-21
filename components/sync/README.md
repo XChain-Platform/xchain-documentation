@@ -37,6 +37,7 @@ Data integrity for the indexer is guaranteed by per-block chained SHA256 hashes 
 
 | Document | Description |
 |---|---|
+| [API Reference](API.md) | REST endpoints + WebSocket subscription protocol, auth, backpressure |
 | [Architecture](ARCHITECTURE.md) | Data pipeline position, dual-mode design, internal components, sync algorithms |
 | [Configuration](CONFIGURATION.md) | Environment variables, hub discovery, database naming, defaults |
 | [Operations](OPERATIONS.md) | Running, Docker, REST/WebSocket API reference, resilience, troubleshooting |

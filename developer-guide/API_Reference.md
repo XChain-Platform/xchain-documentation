@@ -12,6 +12,7 @@ transactions with the encoder, and discover configuration or fee quotes from the
 | **Explorer** | REST (read-only) | Query tokens, balances, actions, markets, dispensers, contracts, prices, and more | [Explorer API](../components/explorer/API.md), [WebSocket API](../components/explorer/WEBSOCKET.md) |
 | **Encoder** | JSON-RPC 2.0 | Build unsigned PSBTs that embed ACTION payloads, then broadcast the signed result | [Encoder API](../components/encoder/API.md) |
 | **Hub** | JSON-RPC 2.0 | Service discovery, fee quotes, price snapshots, validator and cross-chain coordination | [Hub API](../components/hub/API.md) |
+| **Sync** | REST + WebSocket | Replicate the indexer and decoder databases: snapshots, live block stream, validator status | [Sync API](../components/sync/API.md) |
 
 Most application developers only need the **explorer** (to read state) and the
 **encoder** (to build transactions). The high-level [xchain-sdk](../components/sdk/) wraps
