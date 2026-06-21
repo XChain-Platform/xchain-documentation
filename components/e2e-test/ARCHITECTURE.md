@@ -165,8 +165,8 @@ xchain-e2e-test/
 │   ├── transactionHelper.js      # PSBT construction, signing, broadcast
 │   ├── actions/                  # 59 action test files (live, ordered)
 │   ├── helpers/                  # 36 modules (action helpers + federation/fee/utility helpers)
-│   ├── unit/                     # 360 unit tests (stubbed, no services)
-│   ├── integration/              # 72 integration tests (stubbed I/O)
+│   ├── unit/                     # 350+ unit tests (stubbed, no services)
+│   ├── integration/              # 150+ integration tests (stubbed I/O)
 │   │   ├── fixtures/             # mockMariadb, services, dbRows, hub
 │   │   ├── setup/                # Bootstrap, teardown tests
 │   │   ├── pipeline/             # Funding flow, tx flow tests
@@ -174,12 +174,12 @@ xchain-e2e-test/
 │   │   ├── database/             # Connection pool, polling tests
 │   │   ├── errors/               # Error handling tests
 │   │   └── state/                # UTXO cache, wallet cache tests
-│   ├── e2e/                      # 37 E2E tests (live services)
-│   ├── smoke/                    # 16 smoke tests (quick checks)
-│   ├── boundary/                 # 144 boundary tests
-│   ├── chaos/                    # 77 chaos tests
-│   ├── fuzz/                     # 53 fuzz tests (fast-check)
-│   ├── regression/               # 114 regression tests (P0/P1/P2 tagged)
+│   ├── e2e/                      # 35+ E2E tests (live services)
+│   ├── smoke/                    # 15+ smoke tests (quick checks)
+│   ├── boundary/                 # 140+ boundary tests
+│   ├── chaos/                    # 75+ chaos tests
+│   ├── fuzz/                     # 50+ fuzz tests (fast-check)
+│   ├── regression/               # 120+ regression tests (P0/P1/P2 tagged)
 │   ├── perf/                     # Performance collector singleton
 │   └── reporters/                # Custom Mocha reporter
 ├── scripts/                      # Mutation report, perf gate

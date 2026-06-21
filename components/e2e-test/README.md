@@ -31,7 +31,7 @@ Each action test follows the same lifecycle:
 - **Wallet memory cleanup**: seed and private key buffers are zeroed during afterAll teardown
 - **Performance instrumentation**: nanosecond-precision bootstrap phase timing, per-poll metrics, custom Mocha reporter writing JSON to `perf-results/`
 - **Mutation testing**: Stryker Mutator with two-phase configuration (Phase 1: unit tests, Phase 2: unit + integration)
-- **953+ tests** across 11 testing disciplines
+- **1,150+ tests** across 11 testing disciplines
 
 ## Architecture
 
@@ -124,20 +124,20 @@ The test framework's own infrastructure is validated by tests that run without D
 
 | Category | Directory | Tests | What It Validates |
 |---|---|---|---|
-| Unit | `test/unit/` | ~360 | Connector methods, cryptoHelper, transactionHelper, action helper message construction, perfCollector |
-| Integration | `test/integration/` | ~72 | Bootstrap flow, pipeline wiring (fund → encode → broadcast → poll), database polling, error propagation, wallet/UTXO cache |
-| Boundary | `test/boundary/` | ~144 | WHERE clause construction, connector URL building, polling timeouts (0, MAX_SAFE_INTEGER), connection pool exhaustion, global state edge cases |
-| Fuzz | `test/fuzz/` | ~53 | Property-based testing via fast-check: action message mutation, config parsing, connector inputs, crypto inputs, DB filter fuzzing |
-| Chaos | `test/chaos/` | ~77 | Bad PSBT handling, connector timeouts, DB disconnect mid-poll, gas bootstrap failure, teardown failure, UTXO/wallet race conditions |
-| Regression | `test/regression/` | ~114 | Tagged cross-suite subset; P0 critical (74), P1 high (20), P2 medium (20) |
+| Unit | `test/unit/` | 350+ | Connector methods, cryptoHelper, transactionHelper, action helper message construction, perfCollector |
+| Integration | `test/integration/` | 150+ | Bootstrap flow, pipeline wiring (fund → encode → broadcast → poll), database polling, error propagation, wallet/UTXO cache |
+| Boundary | `test/boundary/` | 140+ | WHERE clause construction, connector URL building, polling timeouts (0, MAX_SAFE_INTEGER), connection pool exhaustion, global state edge cases |
+| Fuzz | `test/fuzz/` | 50+ | Property-based testing via fast-check: action message mutation, config parsing, connector inputs, crypto inputs, DB filter fuzzing |
+| Chaos | `test/chaos/` | 75+ | Bad PSBT handling, connector timeouts, DB disconnect mid-poll, gas bootstrap failure, teardown failure, UTXO/wallet race conditions |
+| Regression | `test/regression/` | 120+ | Tagged cross-suite subset; P0 critical (85+), P1 high (23+), P2 medium (23+) |
 
 ### Live Infrastructure Tests
 
 | Category | Directory | Tests | What It Validates |
 |---|---|---|---|
-| E2E | `test/e2e/` | ~37 | Full lifecycle against real services: bootstrap, transaction pipeline, polling under real latency, teardown |
-| Smoke | `test/smoke/` | ~16 | Quick connectivity and bootstrap sanity checks |
-| Actions | `test/actions/` | ~80 | Full action tests broadcasting real transactions to regtest |
+| E2E | `test/e2e/` | 35+ | Full lifecycle against real services: bootstrap, transaction pipeline, polling under real latency, teardown |
+| Smoke | `test/smoke/` | 15+ | Quick connectivity and bootstrap sanity checks |
+| Actions | `test/actions/` | 190+ | Full action tests broadcasting real transactions to regtest |
 
 ## Configuration
 
@@ -163,7 +163,7 @@ npm run test:integration
 npm run test:regression:p0    # Critical-path gate, < 500ms
 
 # All infrastructure tests
-npm run test:regression       # Full regression (114 tests)
+npm run test:regression       # Full regression (120+ tests)
 npm run test:boundary
 npm run test:fuzz
 npm run test:chaos

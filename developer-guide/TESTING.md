@@ -108,36 +108,36 @@ Regression tests are a curated subset of tests across all disciplines, organized
 
 ## Platform Test Coverage
 
-The XChain Platform maintains over **5,600 tests** across its six primary components, with the dedicated `xchain-e2e-test` service providing both full-stack integration testing across all services and comprehensive self-validation of its own test infrastructure.
+The XChain Platform maintains over **10,500 tests** across its six primary components, with the dedicated `xchain-e2e-test` service providing both full-stack integration testing across all services and comprehensive self-validation of its own test infrastructure.
 
 ### By Component
 
 | Component | Total Tests | Test Types |
 |---|---|---|
-| [xchain-indexer](../components/indexer/) | ~958 | Unit, Integration, E2E, Fuzz, Chaos, Mutation, Smoke, Performance, Boundary, Regression |
-| [xchain-explorer](../components/explorer/) | ~1,285 | Unit, Integration, E2E, Boundary, Security, Chaos, Mutation, Smoke, Performance, Regression |
-| [xchain-encoder](../components/encoder/) | ~769 | Unit, Integration, E2E, Boundary, Chaos, Mutation, Smoke, Performance, Regression |
-| [xchain-vm](../components/vm/) | 974 | Unit, E2E, Security, Boundary, Fuzz, Chaos, Mutation, Smoke, Regression |
-| [xchain-sdk](../components/sdk/) | 551 | Unit, Boundary, Fuzz, Chaos, Round-trip, Smoke |
-| [xchain-e2e-test](../components/e2e-test/) | ~953 | Unit, Integration, E2E, Smoke, Boundary, Fuzz, Chaos, Regression, Mutation, Performance |
+| [xchain-indexer](../components/indexer/) | 3,250+ | Unit, Integration, E2E, Fuzz, Chaos, Mutation, Smoke, Performance, Boundary, Regression |
+| [xchain-explorer](../components/explorer/) | 2,100+ | Unit, Integration, E2E, Boundary, Security, Chaos, Mutation, Smoke, Performance, Regression |
+| [xchain-encoder](../components/encoder/) | 900+ | Unit, Integration, E2E, Boundary, Chaos, Mutation, Smoke, Performance, Regression |
+| [xchain-vm](../components/vm/) | 1,250+ | Unit, E2E, Security, Boundary, Fuzz, Chaos, Mutation, Smoke, Regression |
+| [xchain-sdk](../components/sdk/) | 1,650+ | Unit, Boundary, Fuzz, Chaos, Round-trip, Smoke |
+| [xchain-e2e-test](../components/e2e-test/) | 1,350+ | Unit, Integration, E2E, Smoke, Boundary, Fuzz, Chaos, Regression, Mutation, Performance |
 
 ### By Test Type
 
 | Test Type | Indexer | Explorer | Encoder | VM | SDK | E2E Suite |
 |---|---|---|---|---|---|---|
-| Unit | ~530 | ~583 | 114 | 580 | ~391 | ~360 |
-| Integration | ~929 | ~83 | 108 | None | None | ~72 |
-| E2E | 43 | 49 | ~80 | 64 | None | ~37 |
-| Smoke | ~10 | ~40 | ~10 | 10 | 11 | ~16 |
-| Boundary | ~100 | ~211 | ~120 | 106 | 36 | ~144 |
-| Fuzz | ~50 | None | None | 86 | 56 | ~53 |
-| Security | ~60 | ~104 | None | 72 | None | None |
-| Performance | 5 suites | 15 | 3 suites | 5 scenarios | None | 3 modes |
-| Chaos | ~30 | ~56 | 61 | 92 | 28 | ~77 |
-| Mutation | ~30 | StrykerJS | StrykerJS | StrykerJS + custom | None | StrykerJS |
-| Regression | ~18 | 144 | 196 | 152 | None | ~114 |
-| Round-trip | None | None | 29 | None | None | None |
-| Actions | None | None | None | None | ~80 | None |
+| Unit | 2,700+ | 1,250+ | 250+ | 480+ | 1,350+ | 340+ |
+| Integration | 150+ | 100+ | 70+ | 150+ | 100+ | 160+ |
+| E2E | 40+ | 45+ | 120+ | 60+ | None | None |
+| Smoke | 15+ | 35+ | 40+ | 10+ | 10+ | 15+ |
+| Boundary | 90+ | 200+ | 90+ | 110+ | 35+ | 140+ |
+| Fuzz | None | None | None | 50+ | 40+ | 50+ |
+| Security | None | 100+ | 40+ | 95+ | 10+ | 10+ |
+| Performance | 10+ | 10+ | None | 5+ | None | 5+ |
+| Chaos | 40+ | 50+ | 60+ | 75+ | 25+ | 75+ |
+| Mutation | 120+ | StrykerJS | StrykerJS | StrykerJS + custom | None | StrykerJS |
+| Regression | None | 140+ | 180+ | 130+ | 10+ | 120+ |
+| Round-trip | None | None | None | None | None | None |
+| Actions | None | None | None | None | None | 190+ |
 
 ### Testing Infrastructure
 

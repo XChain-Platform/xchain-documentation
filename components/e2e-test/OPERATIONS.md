@@ -28,22 +28,22 @@
 ```bash
 # ─── Live Stack Tests ─────────────────────────────────────────────
 npm test                          # Full action suite (all action test files, --timeout 0)
-npm run test:e2e                  # E2E meta-tests (37 tests, --timeout 0)
-npm run test:smoke                # Quick bootstrap + connectivity (16 tests, 30s timeout)
+npm run test:e2e                  # E2E meta-tests (35+ tests, --timeout 0)
+npm run test:smoke                # Quick bootstrap + connectivity (15+ tests, 30s timeout)
 
 # ─── Infrastructure Tests (no services) ──────────────────────────
-npm run test:unit                 # Unit tests (360 tests)
-npm run test:integration          # Integration tests (72 tests)
-npm run test:boundary             # Boundary condition tests (144 tests)
-npm run test:fuzz                 # Property-based fuzz tests (53 tests, 60s timeout)
+npm run test:unit                 # Unit tests (350+ tests)
+npm run test:integration          # Integration tests (150+ tests)
+npm run test:boundary             # Boundary condition tests (140+ tests)
+npm run test:fuzz                 # Property-based fuzz tests (50+ tests, 60s timeout)
 npm run test:fuzz:quick           # Quick fuzz (30s timeout)
-npm run test:chaos                # Chaos engineering tests (77 tests, 10s timeout)
+npm run test:chaos                # Chaos engineering tests (75+ tests, 10s timeout)
 npm run test:chaos:quick          # P0 chaos only
 
 # ─── Regression ──────────────────────────────────────────────────
-npm run test:regression           # Full regression (114 tests, P0+P1+P2)
-npm run test:regression:p0        # Critical gate (74 tests, < 500ms)
-npm run test:regression:p0p1      # Merge gate (94 tests, < 500ms)
+npm run test:regression           # Full regression (120+ tests, P0+P1+P2)
+npm run test:regression:p0        # Critical gate (85+ tests, < 500ms)
+npm run test:regression:p0p1      # Merge gate (100+ tests, < 500ms)
 
 # ─── Performance ─────────────────────────────────────────────────
 npm run test:perf                 # Smoke tests with performance reporter
@@ -73,27 +73,27 @@ PR opened / commit pushed
          │
          ▼
   ┌──────────────────┐
-  │ Regression P0     │ ◄── gate: blocks merge (74 tests, < 500ms)
+  │ Regression P0     │ ◄── gate: blocks merge (85+ tests, < 500ms)
   │ npm run           │
   │ test:regression:p0│
   └──────┬───────────┘
          │
          ▼
   ┌──────────────────┐
-  │ Full Unit Tests   │ ◄── npm run test:unit (360 tests)
+  │ Full Unit Tests   │ ◄── npm run test:unit (350+ tests)
   └──────┬───────────┘
          │
          ▼ (on merge to main)
   ┌──────────────────┐
-  │ Regression P0+P1  │ ◄── gate: blocks release (94 tests, < 500ms)
+  │ Regression P0+P1  │ ◄── gate: blocks release (100+ tests, < 500ms)
   └──────┬───────────┘
          │
          ▼ (nightly)
   ┌──────────────────┐
-  │ Full Regression   │ ◄── 114 tests, < 500ms
-  │ + Boundary        │ ◄── 144 tests
-  │ + Fuzz            │ ◄── 53 tests
-  │ + Chaos           │ ◄── 77 tests
+  │ Full Regression   │ ◄── 120+ tests, < 500ms
+  │ + Boundary        │ ◄── 140+ tests
+  │ + Fuzz            │ ◄── 50+ tests
+  │ + Chaos           │ ◄── 75+ tests
   └──────┬───────────┘
          │
          ▼ (weekly / pre-release)
@@ -111,9 +111,9 @@ PR opened / commit pushed
 
 | Tier | Tag | Tests | Run When | Max Duration |
 |---|---|---|---|---|
-| P0; Critical | `[regression:p0]` | 74 | Every commit | < 500ms |
-| P1; High | `[regression:p1]` | 20 | Merge to main | < 500ms |
-| P2; Medium | `[regression:p2]` | 20 | Nightly / pre-release | < 500ms |
+| P0; Critical | `[regression:p0]` | 85+ | Every commit | < 500ms |
+| P1; High | `[regression:p1]` | 23+ | Merge to main | < 500ms |
+| P2; Medium | `[regression:p2]` | 23+ | Nightly / pre-release | < 500ms |
 
 Regression tests use Mocha's `--grep` flag with `[regression:pN]` tags in test descriptions.
 

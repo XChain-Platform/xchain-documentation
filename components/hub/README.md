@@ -32,7 +32,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 - **Multi-instance**: multiple hub instances against shared MariaDB with consumer fallback via `HUB_VALIDATORS`
 - **MariaDB storage**: 20 relational tables with connection pooling, circuit breaker, and exponential backoff
 - **Single-node fallback**: all consensus-dependent operations fall back to direct execution when no peers are connected
-- **2,000+ tests**: unit, integration, e2e, fuzz, chaos, boundary, smoke, regression, performance
+- **2,400+ tests**: unit, integration, e2e, fuzz, chaos, boundary, smoke, regression, performance
 - **Docker-ready**: Dockerfile for containerized deployment via xchain-node
 
 ## Documentation
@@ -127,9 +127,9 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 | Command | Description |
 |---|---|
 | `npm run api` | Start the hub API server |
-| `npm test` | Run unit tests (~1,840 tests) |
-| `npm run test:integration` | Integration tests (~72 tests, requires MariaDB) |
-| `npm run test:e2e` | End-to-end tests (~64 tests, requires full stack) |
+| `npm test` | Run unit tests (1,800+ tests) |
+| `npm run test:integration` | Integration tests (70+ tests, requires MariaDB) |
+| `npm run test:e2e` | End-to-end tests (70+ tests, requires full stack) |
 | `npm run test:fuzz` | Fuzz tests (property-based via fast-check) |
 | `npm run test:chaos` | Chaos engineering tests |
 | `npm run test:smoke` | Smoke tests (quick sanity check) |

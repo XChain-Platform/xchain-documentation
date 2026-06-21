@@ -23,7 +23,7 @@ This service is testing infrastructure. It must not be run against mainnet or te
 - **Error sanitization**: RPC credentials are never exposed in error messages or console output
 - **Concurrent call protection**: `fillMempool` mutex prevents overlapping stress test runs, with automatic `keepMining` flag restoration in a finally block
 - **Docker-ready**: Alpine Node 22 image with non-root user, healthcheck via JSON-RPC ping, and hardened security headers (Helmet, CORS)
-- **901 tests**: unit, integration, e2e, smoke, boundary, security, fuzz, chaos, performance, mutation, and regression testing
+- **800+ tests**: unit, integration, e2e, smoke, boundary, security, fuzz, chaos, performance, mutation, and regression testing
 
 ## Documentation
 
@@ -74,8 +74,8 @@ On startup, the miner:
 | Command | Description |
 |---|---|
 | `npm run api` | Start the miner and JSON-RPC API server |
-| `npm test` | All tests (~901 tests) |
-| `npm run test:smoke` | Smoke tests (12 tests, 10s timeout) |
+| `npm test` | All tests (800+ tests) |
+| `npm run test:smoke` | Smoke tests (10+ tests, 10s timeout) |
 | `npm run test:e2e` | End-to-end tests (30s timeout) |
 | `npm run test:security` | Security tests (input validation, error sanitization, env validation, API hardening, resource exhaustion) |
 | `npm run test:fuzz` | Fuzz tests (property-based via fast-check, unlimited timeout) |
@@ -84,10 +84,10 @@ On startup, the miner:
 | `npm run test:performance` | Performance tests (block generation latency, mempool processing, fillMempool scaling) |
 | `npm run test:mutation` | Mutation testing (Stryker Mutator, full service) |
 | `npm run test:mutation:unit` | Unit-only mutation testing (fast feedback) |
-| `npm run test:regression` | Regression tests; T1 standard gate (134 tests, < 2 min) |
-| `npm run test:regression:t0` | Regression T0: critical gate (45 tests, < 15s) |
-| `npm run test:regression:t1` | Regression T1: standard (134 tests, < 2 min) |
-| `npm run test:regression:t2` | Regression T2: full E2E (147 tests, < 10 min) |
+| `npm run test:regression` | Regression tests; T1 standard gate (130+ tests, < 2 min) |
+| `npm run test:regression:t0` | Regression T0: critical gate (40+ tests, < 15s) |
+| `npm run test:regression:t1` | Regression T1: standard (130+ tests, < 2 min) |
+| `npm run test:regression:t2` | Regression T2: full E2E (140+ tests, < 10 min) |
 
 ## Dependencies
 

@@ -25,7 +25,7 @@ Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, S
 - **Action mapping**: creates address↔ticker↔action_index cross-references for fast lookups
 - **Circuit-breaker DB connections**: automatic failure detection and recovery for database connectivity
 - **Watchdog timeout**: configurable per-block processing timeout detects deadlocks
-- **978 tests**: unit, integration, e2e, fuzz, chaos, mutation, boundary, smoke, performance, regression
+- **3,200+ tests**: unit, integration, e2e, fuzz, chaos, mutation, boundary, smoke, performance, regression
 
 ## Documentation
 
@@ -90,9 +90,9 @@ On startup, the indexer:
 | Command | Description |
 |---|---|
 | `npm run api` | Start the indexer and API server |
-| `npm test` | Run unit tests (~820 tests) |
-| `npm run test:integration` | Integration tests (~929 tests, requires MariaDB) |
-| `npm run test:e2e` | End-to-end tests (43 tests, requires full stack) |
+| `npm test` | Run unit tests (3,000+ tests) |
+| `npm run test:integration` | Integration tests (150+ tests, requires MariaDB) |
+| `npm run test:e2e` | End-to-end tests (40+ tests, requires full stack) |
 | `npm run test:boundary` | Boundary condition tests |
 | `npm run test:smoke` | Smoke tests (unit + connected) |
 | `npm run test:security` | Security tests |

@@ -7,7 +7,7 @@ The wallet's test strategy combines headless unit tests (vitest), headless smoke
 
 ## Smoke suite
 
-`pnpm test:smoke` (run from the workspace root) runs the full smoke suite via Node. **295 smokes** pass at v0.333.0; CI fails on any regression.
+`pnpm test:smoke` (run from the workspace root) runs the full smoke suite via Node. **250+ smokes** pass; CI fails on any regression.
 
 The smokes are deliberately *static*; they exercise component imports, render trees, registry validation, schema migrations, and audit scripts without spinning up real backends. They run in seconds and gate every commit.
 
@@ -20,7 +20,7 @@ The smokes are deliberately *static*; they exercise component imports, render tr
 | Flows & decoder | ~6 | sdk-wiring, sdk-bundle, action-decoder, decoder, freewallet-migration, unlock-flow |
 | Audits | 4 | a11y-audit, repro-build-audit, extension-manifest-audit, release-gates |
 | Other | ~6 | i18n, branding, phase-scope, shared-routes, ui-surface, vitest-setup |
-| **Total** | **295** | All run on every commit |
+| **Total** | **250+** | All run on every commit |
 
 The test files live under `test/smoke/` (workspace root), organised into subdirectories by surface area. Each smoke is named for the surface it covers (`send-form.smoke.js`, `multisig-signing.smoke.js`, etc.); the convention makes it easy to find the right file when extending coverage.
 
@@ -148,7 +148,7 @@ Pre-GA, CI runs:
 
 - `pnpm install --frozen-lockfile` at the workspace root
 - `pnpm typecheck` across all packages with declared typecheck scripts
-- `pnpm test:smoke`: the 295 smokes
+- `pnpm test:smoke`: 250+ smokes
 - `pnpm --filter @xchain-wallet/e2e test` (in a Playwright-capable runner)
 
 CI is intentionally minimal pre-GA per the wallet's "no GitHub Actions during build phase" convention. The smoke suite + Playwright + the audit gates are the verification mechanism; the maintainer runs them locally on every commit and the smokes block tag-time. A full CI lift lands alongside v1.0.0 GA.

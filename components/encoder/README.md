@@ -150,17 +150,17 @@ npm run api
 
 ## Testing
 
-The encoder maintains a comprehensive test suite spanning 10 testing disciplines with approximately 769 tests total. All tests except the root-level regtest integration suite run offline with mocked connectors. No live coin node required.
+The encoder maintains a comprehensive test suite spanning 10 testing disciplines with 800+ tests total. All tests except the root-level regtest integration suite run offline with mocked connectors. No live coin node required.
 
 ### Test Scripts
 
 ```bash
-npm run smoke-test        # Operational health checks (~10 tests, <1s)
-npm run test:unit         # Isolated method tests (114 tests)
-npm run test:integration  # Multi-component pipeline tests (108 tests)
-npm run test:boundary     # Edge-case and limit tests (~120 tests)
-npm run test:chaos        # Failure injection tests (61 tests)
-npm run test:regression   # Curated critical-path regression suite (196 tests)
+npm run smoke-test        # Operational health checks (50+ tests, <1s)
+npm run test:unit         # Isolated method tests (250+ tests)
+npm run test:integration  # Multi-component pipeline tests (100+ tests)
+npm run test:boundary     # Edge-case and limit tests (90+ tests)
+npm run test:chaos        # Failure injection tests (60+ tests)
+npm run test:regression   # Curated critical-path regression suite (190+ tests)
 npm run mutate            # Full mutation testing via StrykerJS
 npm run mutate:quick      # Incremental mutation check (XChainEncoder.js only)
 npm run bench             # Performance benchmarks
@@ -174,14 +174,14 @@ The regression suite (`test/regression/`) provides a curated safety net covering
 
 | File | Tests | Coverage Area |
 |---|---|---|
-| `reg-01-encoding-types` | 16 | All 4 encoding types (OP_RETURN, P2SH, P2WSH, MULTISIGN) |
-| `reg-02-obfuscation` | 11 | AES-128-CTR round-trip, key derivation, TXID sensitivity |
-| `reg-03-fee-utxo` | 16 | UTXO selection, fee calculation, dust floor, change output |
-| `reg-04-validator` | 90 | All input validation functions (validator.js) |
-| `reg-05-multi-chain` | 12 | Bitcoin, Litecoin, Dogecoin configs and dust thresholds |
-| `reg-06-p2sh-p2wsh-sequence` | 17 | Two-transaction tx1→tx2 chaining integrity |
-| `reg-07-action-pipeline` | 13 | Key ACTION types through full encode/decode pipeline |
-| `reg-08-api-contract` | 12 | JSON-RPC parameter flow and PSBT serialization |
+| `reg-01-encoding-types` | 15+ | All 4 encoding types (OP_RETURN, P2SH, P2WSH, MULTISIGN) |
+| `reg-02-obfuscation` | 10+ | AES-128-CTR round-trip, key derivation, TXID sensitivity |
+| `reg-03-fee-utxo` | 15+ | UTXO selection, fee calculation, dust floor, change output |
+| `reg-04-validator` | 85+ | All input validation functions (validator.js) |
+| `reg-05-multi-chain` | 20+ | Bitcoin, Litecoin, Dogecoin configs and dust thresholds |
+| `reg-06-p2sh-p2wsh-sequence` | 17+ | Two-transaction tx1->tx2 chaining integrity |
+| `reg-07-action-pipeline` | 12+ | Key ACTION types through full encode/decode pipeline |
+| `reg-08-api-contract` | 12+ | JSON-RPC parameter flow and PSBT serialization |
 
 ### Test Helpers
 
