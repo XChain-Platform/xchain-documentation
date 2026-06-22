@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `protocol/Index_Id_References.md`: specify the canonical `^<id>` form (caret plus decimal digits, no leading zero, id >= 1, referencing an existing block-stamped id); all other caret forms are rejected.
+
 ## [0.12.0] - 2026-06-20
 
 ### Added

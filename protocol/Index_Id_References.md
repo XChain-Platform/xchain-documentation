@@ -17,6 +17,25 @@ value being defined for the first time (an `ISSUE` defining `TICK`, or any field
 introduces an address the network has not seen). A new value has no id yet, so it must
 be written in full.
 
+## Canonical form
+
+A `^<id>` reference has exactly ONE valid byte-form: a caret followed by the id in plain
+decimal with **no leading zero** (ids start at 1, so `^0` is also invalid). This keeps a
+single entity from having multiple equivalent wire spellings, which would otherwise
+undermine any signature or dedupe canonicalization layered on top of the action bytes.
+
+A reference is accepted only when both hold:
+
+1. It matches `^[1-9][0-9]*` exactly (no leading zero, sign, decimal point, hex, scientific
+   notation, or whitespace).
+2. The id already exists in the deterministic, block-stamped id set.
+
+Any other caret form (`^007`, `^1.5`, `^-1`, `^0x10`, `^1e3`, `^ 1`, `^`) and any id that
+does not yet exist (a dangling or out-of-range reference) is left unresolved, so the field
+is then judged by its full-value format check and rejected. The id digits are matched as a
+string, never coerced to a fixed-width integer, so an arbitrarily large id keeps full
+precision.
+
 ## Where it applies
 
 **Ticker fields:** `TICK`, `GIVE_TICK`, `GET_TICK`, `DIVIDEND_TICK`, `CALLBACK_TICK`.
