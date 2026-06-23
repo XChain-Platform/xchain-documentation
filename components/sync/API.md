@@ -47,7 +47,15 @@ below); authenticated validators may receive priority handling.
 | GET | `/catalog` | The `(dbType, chain, network)` combinations this server serves. |
 | GET | `/snapshot/:dbType/:chain/:network` | Full database snapshot for bootstrapping a fresh replica. |
 | GET | `/snapshot/:dbType/:chain/:network/since/:blockHeight` | Incremental snapshot of everything after `:blockHeight`, used to fill a gap after a disconnect before re-subscribing. |
+| GET | `/snapshot-rows/:dbType/:chain/:network/:table?after_id=&limit=` | One id-ordered page of an append-only lookup table (e.g. `index_transactions`), so a truncated replica can sync a multi-million-row table in bounded pages instead of one full dump. `:table` is allowlisted to the pageable lookup set. **Server mode only.** |
+| GET | `/snapshot-dispensers/:dbType/:chain/:network?after_tx=&after_addr=&limit=` | One keyset page of the decoder `dispensers` table for the client's replace-table reconcile (the table has no monotonic id and rows soft-expire, so the client periodically re-dumps and swaps it in atomically). Decoder-only. **Server mode only.** |
 | GET | `/schema/:dbType/:chain/:network` | The expected table schema, so a client can self-heal a drifted replica. |
+| GET | `/checkpoint/:dbType/:chain/:network/latest` | Newest hub-mirrored, federation-signed quorum checkpoint. Indexer DB only. |
+| GET | `/checkpoint/:dbType/:chain/:network/:height` | The signed checkpoint at a given block height (highest `checkpoint_seq` for that height). Indexer DB only. |
+| GET | `/checkpoints/:dbType/:chain/:network/range?from=&to=` | The signed-checkpoint chain over a block range, oldest first, one row per block (used by a client replica to roll its pinned trust root forward). Indexer DB only. |
+| GET | `/transparency/:dbType/:chain/:network/roots` | Transparency-log root entries. Indexer DB only (a decoder request returns `400`). |
+| GET | `/transparency/:dbType/:chain/:network/proof/:block_index` | Merkle inclusion proof for the entry at `:block_index`. Indexer DB only. |
+| GET | `/transparency/:dbType/:chain/:network/root/latest` | The latest committed Merkle root. Indexer DB only. |
 | POST | `/validator-heartbeat/:dbType/:chain/:network` | REST fallback to the WebSocket `heartbeat`, for clients that cannot hold a persistent socket. The validator POSTs its applied height. **Server mode only**, rate-limited per IP. |
 | GET | `/validator-status` | Per-validator heartbeat state (applied height + computed lag) for every chain, nested coin to network to dbType. **Server mode only.** |
 | GET | `/validator-status/:dbType/:chain/:network` | The same for a single combination. |
