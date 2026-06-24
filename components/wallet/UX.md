@@ -19,7 +19,7 @@ This document walks every primary route the wallet exposes. All routes live in `
 | Send | `Send.jsx` | Single-asset send with review + sign |
 | Receive | `Receive.jsx` | Address QR + label + chain picker |
 | History | `History.jsx` | Per-address action history |
-| Address list | `AddressList.jsx` | Standalone address browser with multisig badging + filter |
+| Address list | `AddressList.jsx` | Standalone address browser with multisig badging + filter; a green "Active" pill marks each chain's active address, "Use" sets it, and "Add address" opens `AddAddressModal` (batch-generate 1-25, Coin + Type) |
 | Contacts | `ContactsList.jsx` | Saved address book with edit / remove |
 | Actions menu | `ActionsMenu.jsx` | Indexed launcher for every supported action |
 | Token wizard | `TokenWizard.jsx` | Guided issue + mint + distribute flow for new token issuers |
@@ -59,7 +59,7 @@ This document walks every primary route the wallet exposes. All routes live in `
 | Broadcast | `BroadcastForm.jsx` | BROADCAST action |
 | Advanced action | `AdvancedActionsForm.jsx` | Catch-all power-user form for any registered action descriptor |
 | Swap | `SwapForm.jsx` | SWAP action |
-| View private key | `ViewPrivateKey.jsx` | Per-address WIF export, gated behind password re-entry |
+| View private key | `ViewPrivateKey.jsx` | Per-address WIF export; gated by a warning in an unlocked session (no password re-entry), requires unlock when the wallet is locked |
 | Alerts | `AlertsRoute.jsx` | Notification tray: lists info / warning / critical alerts with optional action button per item |
 | Attach content | `AttachContentForm.jsx` | Attach a file (with optional title) to a token as on-chain content; polls for confirmation |
 | Contract staked positions | `ContractStakedPositions.jsx` | Lists the wallet's active stakes against deployed contracts |
@@ -110,7 +110,7 @@ Optional 25th-word passphrase is offered on both Create and Import. The passphra
 
 The home dashboard renders:
 
-- A per-chain balance summary (`ChainBalanceCard`) with native-coin + token totals
+- A per-chain balance summary (`ChainBalanceCard`) with native-coin + token totals, scoped to each chain's active address (not an across-all-addresses total)
 - A primary CTA row: Send / Receive / Buy / Stake (chain-conditional)
 - A secondary action grid surfacing the most-used actions (Issue / Dispenser / Order / Compose / Stake / Multisig)
 - A history strip with the last 5 actions across the wallet
@@ -122,7 +122,7 @@ The same Home renders in the popup (compact), the full-screen / desktop (expande
 
 The Send route is the canonical example of the sign-screen safety rail (see [Security & Threat Model; Sign-screen safety rails](SECURITY.md#sign-screen-safety-rails)):
 
-1. **Form**: destination, amount, asset (native or token), optional memo, optional fee tier
+1. **Form**: from-address (defaults to the chain's active address, with an advanced override picker), destination, amount, asset (native or token), optional memo, optional fee tier
 2. **Review**: plain-English summary rendered alongside the encoded action string and the encoder's PSBT
 3. **Sign**: signer-specific confirmation (in-vault password re-entry for software, device confirm for Trezor / Ledger)
 4. **Broadcast**: wallet broadcasts via SDK; status surface streams encoder accept → mempool → confirmed → indexed

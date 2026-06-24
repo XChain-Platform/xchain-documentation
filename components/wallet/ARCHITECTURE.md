@@ -123,7 +123,7 @@ Master key derivation: password → Argon2id (calibrated per device, floor 64 Mi
 
 ## Schema migrations
 
-Schemas declare a `version` and a forward migration. `core/src/schemas/migrations.js` runs on every vault load and walks legacy records up to the current version transparently. The active migration is **v1 → v2** for `Wallet.multisig` (single config) → `Wallet.multisigs[]` (per-address multi-config). Legacy v1 wallets continue to load without user intervention.
+Schemas declare a `version` and a forward migration. `core/src/schemas/migrations.js` runs on every vault load and walks legacy records up to the current version transparently. The active migration is **v1 → v2** for `Wallet.multisig` (single config) → `Wallet.multisigs[]` (per-address multi-config). The Account schema also runs its own **v1 → v2** migration that seeds `activeAddressByChainId` (the per-chain active-address override map) as an empty object. Legacy v1 wallets continue to load without user intervention.
 
 ## Signer interface
 

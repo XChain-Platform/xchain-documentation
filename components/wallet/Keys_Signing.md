@@ -153,7 +153,7 @@ A dedicated `MultisigSigner` class is planned (§17.5) but not yet implemented. 
 
 The wallet ships three backup paths:
 
-- **View private key**: per-address WIF export, gated behind password re-entry; surfaced in the `ViewPrivateKey` route
+- **View private key**: per-address WIF export; gated by a "Before you continue" warning in an unlocked session (no password re-entry when already unlocked); a locked wallet must be unlocked first; surfaced in the `ViewPrivateKey` route
 - **Backup file**: full vault export as an encrypted blob; `core/src/crypto/backup.js` re-wraps the vault with a backup-specific KDF
 - **Mnemonic + passphrase**: the canonical recovery path; recreating the wallet on any compatible client recovers identical addresses
 

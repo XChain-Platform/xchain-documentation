@@ -130,7 +130,8 @@ For users who keep keys on an offline device:
 - **Discover used addresses**: gap-limit scan that populates already-used receive addresses on import
 - **Dry-run restore**: verify a mnemonic + passphrase pair against the first N derived addresses without committing to a fresh wallet
 - **Backup file**: full vault export, re-wrapped under a backup-specific KDF
-- **View private key**: per-address WIF export, gated behind password re-entry
+- **Add address**: `AddAddressModal` batch-generates 1-25 addresses (Coin + Type picker), sequentially; hardware wallets prompt the device per address
+- **View private key**: per-address WIF export; gated by a warning in an unlocked session (no password re-entry); requires unlock when the wallet is locked
 
 ## Lock / unlock / auto-lock
 
