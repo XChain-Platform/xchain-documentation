@@ -20,10 +20,17 @@ archive, in a single action with four version-discriminated phases:
   `CHECKPOINT_COMMITMENT` flag-day. Post-flag-day the publisher emits v3 instead of v0; the
   federation signatures cover the roots (they are part of the signed checkpoint canonical), so an
   on-chain-anchored state root is recoverable from chain parse alone.
+- **v4 / v5: Checkpoint + publisher attestation.** Validator-broadcast. A v0 (v4, rootless) / v3
+  (v5, root-bearing) checkpoint plus the elected `PUBLISHER` pubkey and a second 2f+1
+  `oracle_publish` attestation (the `XANCPUB` canonical) binding which validator earns the fixed
+  anchor reward, gated by the `ANCHOR_REWARD` flag-day. The indexer re-derives the reward from
+  these bytes, retiring the previously trusted (and forgeable) `pushvalidatorrewards` push.
+  Post-flag-day the publisher emits v4/v5 in place of v0/v3; a degraded federation that cannot
+  reach the attestation quorum falls back to a legacy v0/v3 so the anchor still lands (no reward).
 
 `ANCHOR` is valid **only on the anchor chain; DOGE** (all networks). Indexers on other chains
-reject it. BTC and LTC state is still covered: each v0/v1/v3 names the `CHAIN` it checkpoints, so
-one cheap chain carries the commitments for all three.
+reject it. BTC and LTC state is still covered: each v0/v1/v3/v4/v5 names the `CHAIN` it
+checkpoints, so one cheap chain carries the commitments for all three.
 
 ANCHOR supersedes the hub's legacy raw `XDEXANCHOR` payload (which was not a protocol action and
 was invisible to the decoder). The `XDEXANCHOR` publisher (`CrossChainDexAnchor`) was removed
@@ -43,7 +50,7 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 ## PARAMS
 | Name                  | Type    | Versions | Description                                                            |
 | --------------------- | ------- | -------- | ---------------------------------------------------------------------- |
-| `VERSION`             | Integer | all      | Format version (0=checkpoint, 1=checkpoint+archive, 2=continuation, 3=checkpoint+SPV roots) |
+| `VERSION`             | Integer | all      | Format version (0=checkpoint, 1=checkpoint+archive, 2=continuation, 3=checkpoint+SPV roots, 4=v0+publisher, 5=v3+publisher) |
 | `CHAIN`               | String  | 0, 1, 3  | Chain being checkpointed: `BTC` \| `LTC` \| `DOGE`                     |
 | `NETWORK`             | String  | 0, 1, 3  | `mainnet` \| `testnet` \| `regtest`                                    |
 | `BLOCK_INDEX`         | Integer | 0, 1, 3  | Checkpointed block height on `CHAIN`                                   |
@@ -64,9 +71,13 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 | `CHUNK_INDEX`         | Integer | 2        | 1-based continuation index (the v1 itself carries chunk 0)             |
 | `TOTAL_CHUNKS`        | Integer | 1, 2     | Total chunks in the batch (1 = unchunked, v1-only)                     |
 | `ARCHIVE_B64_CHUNK`   | String  | 2        | This continuation's slice of the base64url payload                    |
-| `SIG_COUNT`           | Integer | 0, 1, 3  | Number of (pubkey, sig) pairs that follow                              |
-| `PUBKEY_n`            | String  | 0, 1, 3  | 64-hex Ed25519 pubkey, in the `oracle_publish` set at `SNAPSHOT_BLOCK` |
-| `SIG_n`               | String  | 0, 1, 3  | 128-hex Ed25519 signature over the canonical checkpoint message        |
+| `SIG_COUNT`           | Integer | 0, 1, 3, 4, 5 | Number of (pubkey, sig) pairs that follow                         |
+| `PUBKEY_n`            | String  | 0, 1, 3, 4, 5 | 64-hex Ed25519 pubkey, in the `oracle_publish` set at `SNAPSHOT_BLOCK` |
+| `SIG_n`               | String  | 0, 1, 3, 4, 5 | 128-hex Ed25519 signature over the canonical checkpoint message    |
+| `PUBLISHER`           | String  | 4, 5     | 64-hex Ed25519 pubkey of the elected publisher that earns the anchor reward |
+| `ATTEST_SIG_COUNT`    | Integer | 4, 5     | Number of (pubkey, sig) attestation pairs that follow                  |
+| `APUBKEY_n`           | String  | 4, 5     | 64-hex pubkey in the `oracle_publish` set at `SNAPSHOT_BLOCK` (attestation signer) |
+| `ASIG_n`              | String  | 4, 5     | 128-hex Ed25519 signature over the `XANCPUB` canonical                 |
 
 ## Formats
 
@@ -81,6 +92,14 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 
 ### Version `3`: Checkpoint + light-client roots (validator-broadcast)
 - `ANCHOR|3|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION|SIG_COUNT|PUBKEY1|SIG1|...`
+
+### Version `4`: Checkpoint + publisher attestation (validator-broadcast)
+- `ANCHOR|4|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|SIG_COUNT|PUBKEY1|SIG1|...|PUBLISHER|ATTEST_SIG_COUNT|APUBKEY1|ASIG1|...`
+- The rootless v0 checkpoint with the `PUBLISHER` + attestation list appended **after** the root signature list (never inserted mid-string, so old positional parsers are unaffected). Emitted in place of v0 at/above the `ANCHOR_REWARD` flag-day.
+
+### Version `5`: Checkpoint + light-client roots + publisher attestation (validator-broadcast)
+- `ANCHOR|5|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION|SIG_COUNT|PUBKEY1|SIG1|...|PUBLISHER|ATTEST_SIG_COUNT|APUBKEY1|ASIG1|...`
+- The root-bearing v3 checkpoint with the same `PUBLISHER` + attestation tail as v4. Emitted in place of v3 at/above the `ANCHOR_REWARD` flag-day (so v5 also requires the `CHECKPOINT_COMMITMENT` flag-day). Set the mainnet `ANCHOR_REWARD` flag-day `>=` `CHECKPOINT_COMMITMENT` to keep mainnet on v5-only (always root-bearing) and avoid the rootless v4.
 - The two roots + version bytes are appended after `SNAPSHOT_BLOCK` (never inserted mid-string, so old positional parsers are unaffected). Emitted in place of v0 at/above the `CHECKPOINT_COMMITMENT` flag-day.
 
 ## Examples
@@ -127,6 +146,32 @@ verification independent of the zlib version that produced the gzip stream.) Cha
 uppercase/lowercase exactly as on the wire; numerics are decimal with no leading zeros; hashes
 are lowercase hex. A signature counts only if its pubkey is in the `oracle_publish` capability
 snapshot at `SNAPSHOT_BLOCK` **and** the Ed25519 signature verifies.
+
+The v4/v5 root signatures (`SIG_n`) cover the SAME canonical as v0/v3 respectively (rootless for
+v4, root-bearing for v5); the publisher attestation below is a SEPARATE signature list.
+
+## Publisher-attestation canonical (`XANCPUB`, v4 / v5)
+Each `ASIG_n` covers the UTF-8 bytes of the reward tuple:
+
+```
+XANCPUB|anchor_<CHAIN>|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|PUBLISHER|ANCHOR_REWARD_AMOUNT
+```
+
+`ANCHOR_REWARD_AMOUNT` is the **frozen consensus constant** `10.00000000` (read from the
+`ANCHOR_REWARD_ACTIVATION` twin module, NEVER taken from the wire; changing it is itself a
+flag-day). `PUBLISHER` is lowercase hex. At/above the `EQUIV_HEADER` flag-day the bytes are wrapped
+once in the uniform equivocation header, with a distinct `XANCPUB|...` round id so this attestation
+forms its own equivocation family (a validator that signs both the checkpoint root canonical and
+this reward attestation in the same round is never falsely slashable):
+
+```
+EQUIV|XCHECKPOINT|XANCPUB|CHAIN|NETWORK|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|0||XANCPUB|anchor_<CHAIN>|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|PUBLISHER|ANCHOR_REWARD_AMOUNT
+```
+
+These bytes are byte-identical across the hub producer (`StateAnchorPublisher._attestationCanonical`),
+the indexer verifier (`actions/anchor.js` `_rewardCanonical`) and this spec; a divergence forks the
+derived reward row. An `ASIG_n` counts only if its pubkey is in the SAME `oracle_publish` snapshot at
+`SNAPSHOT_BLOCK` used for the root quorum **and** the Ed25519 signature verifies.
 
 ## Archive JSON (v1/v2 payload, after gunzip)
 
@@ -183,7 +228,7 @@ exact bytes):
 - No XCHAIN fee and no native-coin protocol fee (validator protocol action, same fee treatment
   as `PRICE` v0). The publisher pays only the DOGE miner fee.
 
-### Version 0 / 1 / 3
+### Version 0 / 1 / 3 / 4 / 5
 - `CHAIN` must be one of `BTC`/`LTC`/`DOGE`; `NETWORK` must equal the indexer's own network.
 - Each `PUBKEY_n` is checked against the `oracle_publish` capability snapshot at
   `SNAPSHOT_BLOCK` (a BTC height; non-BTC indexers resolve it from the hub-mirrored
@@ -195,7 +240,7 @@ exact bytes):
   older checkpoints are recorded but flagged `stale`, never `valid`. Equal-seq records are
   accepted: a v0 and its v1 share the same wrapper seq by design, and an exact replay is
   signature-bound to identical content (harmless duplicate). The same ≥ rule applies to
-  `MATCH_BATCH_SEQ` on v1. The checkpoint replay watermark counts v0/v1/v3 together.
+  `MATCH_BATCH_SEQ` on v1. The checkpoint replay watermark counts v0/v1/v3/v4/v5 together.
 
 ### Version 3 only
 - Valid only at/above the `CHECKPOINT_COMMITMENT` flag-day (gated on `SNAPSHOT_BLOCK`); a v3
@@ -203,6 +248,24 @@ exact bytes):
   never verify). Post-flag-day the publisher emits v3 in place of v0.
 - `STATE_ROOT` and `BLOCK_MERKLE_ROOT` must be 64-hex; the two version bytes must be integers.
   Both roots are part of the signed canonical, so a swapped root fails the signature check.
+
+### Version 4 / 5 only
+- Valid only at/above the `ANCHOR_REWARD` flag-day (gated on `SNAPSHOT_BLOCK`); a v4/v5 below it
+  is invalid. v5 additionally requires the `CHECKPOINT_COMMITMENT` flag-day (it carries roots).
+  Post-flag-day the publisher emits v4/v5 in place of v0/v3.
+- `PUBLISHER` must be 64-hex. The attestation list (`APUBKEY_n`/`ASIG_n`) is verified as a SECOND
+  quorum over the `XANCPUB` canonical against the SAME `oracle_publish` snapshot at `SNAPSHOT_BLOCK`
+  used for the root quorum, reaching the same `max(2f+1, ceil((N+1)/2))` (stake-weighted at/above
+  `STAKE_WEIGHTED_QUORUM`) threshold.
+- The anchor reward is credited (a COLLECT-spendable `validator_rewards` row keyed
+  `(CHECKPOINT_SEQ, anchor_<CHAIN>)`, amount = the frozen `ANCHOR_REWARD_AMOUNT`, never the wire)
+  **only** when the root quorum passed, the attestation quorum is met, and `PUBLISHER` is in the
+  snapshot set. A failed, short, or forged attestation **never** invalidates the anchor: the
+  checkpoint still records as `valid` and only the reward is skipped, deterministically across
+  the fleet. A failover double-publish converges to the smallest-pubkey winner (the same
+  reconcile the retired push + recovery use), so the COLLECT rail stays single-winner.
+- The trusted, unauthenticated `pushvalidatorrewards` reward push is retired for `anchor_<chain>`
+  at/above the flag-day: every indexer DERIVES the reward from these bytes instead.
 
 ### Version 1 only
 - `MATCH_COUNT` must equal `matches.length` after decompression (when `TOTAL_CHUNKS` = 1;

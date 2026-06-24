@@ -197,6 +197,28 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
     regtest: 0,
 };
 
+// ANCHOR_REWARD_ACTIVATION (anchor-reward re-derivation): the flag-day at/above which the validator
+// anchor reward stops being TRUSTED from the hub's `pushvalidatorrewards` JSON-RPC and is instead
+// DERIVED by every indexer from the on-chain ANCHOR bytes. Post-flag-day the hub emits a publisher-
+// bearing ANCHOR (v4 rootless / v5 root-bearing) carrying the elected publisher pubkey plus a 2f+1
+// `oracle_publish` attestation (XANCPUB) over the reward tuple; the indexer verifies that quorum and
+// credits the publisher with ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire).
+// Below the flag-day the old push path stands and v4/v5 anchors are rejected. Consensus-relevant (the
+// credited reward becomes a COLLECT-spendable per-block ledger row), so it must deploy hub + ALL
+// indexers atomically. Like CHECKPOINT_COMMITMENT_ACTIVATION / STAKE_WEIGHTED_QUORUM_ACTIVATION it gates
+// on the BTC-anchored `snapshot_block` carried by every ANCHOR canonical. Kept byte-identical to the
+// local copies in xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression
+// suite. Same placeholder/genesis convention.
+const ANCHOR_REWARD_ACTIVATION = {
+    mainnet: 999999999,   // PLACEHOLDER: set the real BTC flag-day height before mainnet enable
+    testnet: 0,
+    regtest: 0,
+};
+
+// ANCHOR_REWARD_AMOUNT: the frozen validator anchor-publish reward, signed into the XANCPUB attestation
+// by the hub and re-derived by the indexer (never from the wire). Changing it is itself a flag-day.
+const ANCHOR_REWARD_AMOUNT = '10.00000000';
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     OP_RETURN_PUSH_OVERHEAD,
@@ -216,4 +238,6 @@ module.exports = {
     EQUIV_HEADER_ACTIVATION,
     STATE_COMMITMENT_ACTIVATION,
     CHECKPOINT_COMMITMENT_ACTIVATION,
+    ANCHOR_REWARD_ACTIVATION,
+    ANCHOR_REWARD_AMOUNT,
 };
