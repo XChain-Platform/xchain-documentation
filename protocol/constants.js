@@ -219,6 +219,13 @@ const ANCHOR_REWARD_ACTIVATION = {
 // by the hub and re-derived by the indexer (never from the wire). Changing it is itself a flag-day.
 const ANCHOR_REWARD_AMOUNT = '10.00000000';
 
+// VALID_FIAT_CODES: the accepted FIAT_CODE allow-list for PRICE actions. The indexer's
+// config['FIATS'] keys (xchain-indexer/src/config.js) are the on-chain arbiter; this list
+// mirrors them in the indexer's insertion order. The SDK validator (VALID_FIAT_CODES) must
+// be a byte-equal allow-list so it never refuses a FIAT the protocol accepts (it previously
+// drifted, missing EUR and KRW). The cross-service parity test asserts SDK === this list.
+const VALID_FIAT_CODES = ['USD', 'CAD', 'AUD', 'MXN', 'GBP', 'JPY', 'CNY', 'CHF', 'BRL', 'INR', 'EUR', 'KRW'];
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     OP_RETURN_PUSH_OVERHEAD,
@@ -240,4 +247,5 @@ module.exports = {
     CHECKPOINT_COMMITMENT_ACTIVATION,
     ANCHOR_REWARD_ACTIVATION,
     ANCHOR_REWARD_AMOUNT,
+    VALID_FIAT_CODES,
 };
