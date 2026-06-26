@@ -39,7 +39,9 @@ Any Bitcoin-compatible blockchain can be added to the XChain Platform. The requi
 
 1. The blockchain must support a Bitcoin-compatible JSON-RPC interface (standard `getblock`, `getrawtransaction`, etc.)
 2. Transactions must be parseable by bitcoinjs-lib (with optional pre-processing for chain-specific quirks)
-3. A coin-specific configuration file must be created defining fee schedules and special addresses per network
+3. A single canonical coin file must be created defining the network parameters, special addresses, fee schedules, gas costs, and staking parameters per network
+
+All coin-specific facts live in **one file per coin** in the canonical registry (`xchain-hub/src/coins/`), which is vendored byte-identically into every service. Adding a chain is "copy a file, change the values, add a consensus pin"; the protocol specification, indexer logic, action handlers, and tooling do not change. The full step-by-step procedure is in the developer guide: [Adding a Blockchain](./developer-guide/Adding_A_Blockchain.md).
 
 If you represent a blockchain project and would like to add support for your chain to the XChain Platform, please get in contact at [https://dankest.llc](https://dankest.llc).
 

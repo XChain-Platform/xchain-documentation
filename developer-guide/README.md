@@ -18,6 +18,7 @@ This section is for application developers building on top of the XChain Platfor
 | [Regtest Development](./Regtest_Development.md) | Run a local regtest stack for rapid development and testing |
 | [Integration Patterns](./Integration_Patterns.md) | Recommended patterns for integrating XChain into wallets and applications |
 | [Smart Contract Development](./Smart_Contract_Development.md) | Writing, deploying, and interacting with smart contracts on XChain |
+| [Adding a Blockchain](./Adding_A_Blockchain.md) | Add a new chain via the single canonical per-coin config file |
 | [Testing](./TESTING.md) | Testing philosophy, 11 test types, platform coverage, and contributing tests |
 
 ---

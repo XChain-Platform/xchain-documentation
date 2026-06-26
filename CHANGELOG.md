@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `developer-guide/Adding_A_Blockchain.md`: step-by-step procedure for adding a chain via the single canonical per-coin config file in `xchain-hub/src/coins/`; linked from `developer-guide/README.md`.
+
 ### Changed
 
+- `BLOCKCHAINS.md`: "Adding New Blockchains" now describes the single canonical coin-file model and links the new developer guide.
 - `protocol/Index_Id_References.md`: specify the canonical `^<id>` form (caret plus decimal digits, no leading zero, id >= 1, referencing an existing block-stamped id); all other caret forms are rejected.
 
 ## [0.12.0] - 2026-06-20
