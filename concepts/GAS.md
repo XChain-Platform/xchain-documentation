@@ -132,6 +132,15 @@ When a user pays a fee in native coin, the indexer validates the payment against
 
 The tolerance band accounts for price movement between transaction creation and confirmation.
 
+> **Operator note (price source):** This validation reads `price_snapshots` / `oracle_prices` from
+> the configured hub DB (`HUB_DB_HOST` / `HUB_DB_NAME`), or, when those are unset, from the indexer's
+> own database. The local-DB fallback is correct only for a single-host node whose local DB holds the
+> synced hub copy. To prevent a distributed node from silently valuing fees against stale or empty
+> local price data (a consensus-divergence risk), a **mainnet** indexer fails closed at startup unless
+> either the hub DB is configured or `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` explicitly acknowledges an
+> intentional single-host setup. testnet/regtest only log a warning. See the
+> [indexer configuration reference](../components/indexer/CONFIGURATION.md#hub-db-price-source).
+
 ### Native-coin fees are non-refundable
 
 A native-coin fee is a real on-chain output paying the fee destination, settled in the same transaction

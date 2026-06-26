@@ -31,6 +31,31 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `INDEXER_API_PORT` | API server listening port | `3004` |
 | `CORS_ORIGIN` | Allowed CORS origin for API requests | `http://localhost` |
 
+## Hub DB Price Source
+
+Native-coin fee validation and FIAT settlement read the oracle tables (`price_snapshots`,
+`oracle_prices`) from the hub. There are two valid topologies:
+
+- **Distributed (production default):** the indexer runs on a different host from the hub. Set
+  `HUB_DB_HOST` / `HUB_DB_NAME` (plus `HUB_DB_PORT` / `HUB_DB_USER` / `HUB_DB_PASS`) so price reads
+  hit the hub's data, optionally mirrored locally via `HUB_DB_SYNC_ENABLED=true`.
+- **Single-host:** the indexer's own database already holds the synced hub copy, so no separate hub DB
+  connection is needed and the oracle tables are read locally.
+
+The two are indistinguishable from config alone: a node with no hub DB looks the same whether that is
+intentional (single-host) or an operator forgot `HUB_DB_HOST` / `HUB_DB_NAME` on a distributed node. In
+the latter case the indexer would silently value native-coin fees against stale or empty local price
+data, which on mainnet can diverge from the canonical fleet and fork the ledger.
+
+To make the intent explicit, a **mainnet** indexer fails closed at startup when no hub DB is configured,
+unless `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` is set to confirm an intentional single-host node. On
+testnet and regtest, single-host is the norm and there is no canonical fleet to diverge from, so the
+missing hub DB only logs a warning.
+
+| Variable | Description | Default |
+|---|---|---|
+| `INDEXER_ALLOW_LOCAL_PRICE_SOURCE` | Acknowledge an intentional single-host setup (read oracle tables from the local indexer DB). Required to boot a **mainnet** node that has no `HUB_DB_HOST` / `HUB_DB_NAME`; ignored on testnet/regtest. | unset (mainnet fails closed) |
+
 ## Coin-Specific Configuration
 
 Each supported blockchain has a configuration file at `src/configs/<COIN>.js` (BTC.js, LTC.js, DOGE.js) that defines:
