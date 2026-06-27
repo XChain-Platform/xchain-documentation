@@ -73,6 +73,12 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | [`ATTEST`](./ATTEST.md) | External-data attestation lifecycle: v0=request (VM-emitted), v1=response (validator-broadcast), v2=expire (system-synthesized) |
 | [`ANCHOR`](./ANCHOR.md) | Validator-broadcast, DOGE-only: quorum-signed state checkpoints (v0) and the cross-chain match archive (v1/v2) for full-parse recoverability |
 
+### Governance
+
+| ACTION | Description |
+|---|---|
+| [`VOTE`](./VOTE.md) | Token-weighted governance polls: v0=create poll, v1=cast ballot, v2=finalize (system-injected), v3=set/clear delegation |
+
 ### Staking (capability staking BTC-only; contract-targeted staking any chain)
 
 | ACTION | Description |
