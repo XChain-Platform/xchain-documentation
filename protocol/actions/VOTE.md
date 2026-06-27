@@ -20,6 +20,11 @@ Token-weighted governance polls in four version-discriminated phases: v0 (create
 | `DECIDE_THRESHOLD` | String  | (optional) Early-decide arm: fraction of supply an option must reach to close the poll early; v0 only |
 | `QUESTION`         | String  | (optional) Inline question text or a FILE reference; v0 only                                         |
 | `DEPOSIT`          | String  | (optional, default 0) GAS the creator escrows at creation; refunded or forfeited at finalize; v0 only |
+| `CALLBACK_CONTRACT`| Integer | (optional) Contract (its deploy `action_index`) whose method finalization calls; v0 only             |
+| `CALLBACK_METHOD`  | String  | (optional) Method on `CALLBACK_CONTRACT` to invoke at finalize; required when a callback contract is set; v0 only |
+| `CALLBACK_PARAMS`  | String  | (optional) JSON array of extra positional args appended after the poll result; v0 only              |
+| `CALLBACK_ON`      | String  | (optional, default `pass`) Fire the callback `pass` (only a finalized win) or `always`; v0 only      |
+| `GAS_ESCROW`       | String  | (optional, default 0) GAS the creator escrows to fund the callback's execution; v0 only             |
 | `POLL_REF`         | Integer | The poll's id (the `action_index` of its creating v0); v1 and v2                                     |
 | `BALLOT`           | String  | Comma-delimited `OPTION` or `OPTION:SHARE` entries; v1 only                                          |
 | `MEMO`             | String  | (optional) Bounded free text; v1 and v3                                                              |
@@ -28,9 +33,9 @@ Token-weighted governance polls in four version-discriminated phases: v0 (create
 ## Formats
 
 ### Version `0` - Create poll
-- `VOTE|0|TICK|END_BLOCK|OPTIONS|MAX_SELECTIONS|TALLY_MODE|WEIGHT_MODE|QUORUM|MIN_VOTERS|MIN_VOTE_BALANCE|DECIDE_THRESHOLD|QUESTION|DEPOSIT`
+- `VOTE|0|TICK|END_BLOCK|OPTIONS|MAX_SELECTIONS|TALLY_MODE|WEIGHT_MODE|QUORUM|MIN_VOTERS|MIN_VOTE_BALANCE|DECIDE_THRESHOLD|QUESTION|DEPOSIT|CALLBACK_CONTRACT|CALLBACK_METHOD|CALLBACK_PARAMS|CALLBACK_ON|GAS_ESCROW`
 
-Optional fields may be left empty. The poll's identity is its own `action_index`; there is no caller-supplied id, matching how every other protocol object is keyed by its source action.
+Optional fields may be left empty. The poll's identity is its own `action_index`; there is no caller-supplied id, matching how every other protocol object is keyed by its source action. The five trailing fields make the poll *binding* (see Binding polls); leave them empty for an advisory poll.
 
 ### Version `1` - Cast ballot
 - `VOTE|1|POLL_REF|BALLOT|MEMO`
@@ -56,6 +61,13 @@ who each hold at least 100 GOVTOKEN, no early-decide, no question, no deposit
 VOTE|0|GOVTOKEN|850000|ALICE,BOB,CAROL|2|split|quadratic|||50|0.5|Pick two council seats|100
 Multi-select (2) split-weight quadratic poll with a 50-token dust floor, an early-decide
 arm at 50% of supply, an inline question, and a 100 XCHAIN creation deposit
+```
+
+```
+VOTE|0|GOVTOKEN|850000|YES,NO|1|approval|balance|0.2|10|100|||0|42|releaseFunds|[1000]|pass|5000
+Binding poll: on a finalized YES/NO win, finalization calls contract 42's
+releaseFunds method with the poll result plus an extra arg 1000; 5000 XCHAIN gas
+escrow funds the callback, no creator deposit
 ```
 
 ```
@@ -99,6 +111,14 @@ Clear a standing GOVTOKEN delegation
 - `DEPOSIT` defaults to 0. When present it must be a non-negative amount and at least `POLL_DEPOSIT_MIN` (a deployment-level floor, 0 by default).
 - `DEPOSIT > 0` requires `SOURCE` to hold that amount of the GAS tick (XCHAIN), read at the create action's `(block, action)` for cross-validator determinism; insufficient balance produces `invalid: insufficient funds (DEPOSIT)`.
 - A valid `DEPOSIT > 0` debits `SOURCE` and writes an escrow row at the v0 `action_index`, released at finalization (see Deposit flow).
+
+#### Callback fields (v0, optional; make the poll binding)
+- Leaving `CALLBACK_CONTRACT` empty makes the poll advisory; the other four callback fields are then ignored.
+- `CALLBACK_CONTRACT`, when set, must reference an existing deployed contract by its deploy `action_index`.
+- `CALLBACK_METHOD` is required whenever `CALLBACK_CONTRACT` is set, and is bounded to 64 characters.
+- `CALLBACK_ON` must be `pass` or `always` (default `pass`). `pass` fires only when the poll reaches `finalized` with a winner; `always` fires on `finalized` and `failed_quorum` alike.
+- `CALLBACK_PARAMS`, when set, must parse as a JSON array; its elements are appended as extra positional arguments after the standard poll-result arguments.
+- `GAS_ESCROW` defaults to 0 and must be a non-negative amount. It and `DEPOSIT` are escrowed together (`DEPOSIT + GAS_ESCROW`), and the combined funding check requires `SOURCE` to hold the sum of the GAS tick at creation.
 
 ### Version 1 (cast ballot)
 - `POLL_REF` must reference an existing poll.
@@ -146,14 +166,32 @@ A poll closes at the earlier of two triggers:
 - **time:** `END_BLOCK` is reached.
 - **early-decide:** an option's weight crosses `DECIDE_THRESHOLD` of supply before `END_BLOCK`, subject to the same validity gates. The finalized row carries `decided_early=1` and an `effective_close_block` below `END_BLOCK`.
 
+## Binding polls
+A poll is *binding* when its v0 sets `CALLBACK_CONTRACT`: finalization then calls a contract method with the result, turning a decided poll into an on-chain effect (treasury release, parameter change, contract state update). An advisory poll just freezes its tally.
+
+- **When it fires.** At v2, after the tally is frozen and the deposit settled, the callback fires if `CALLBACK_ON` permits the outcome: `pass` only on a `finalized` win, `always` on `finalized` or `failed_quorum`. A poll that does not meet its gate under `pass` never calls the contract.
+- **How it runs.** The callback is a system-synthesized EXECUTE injected in the same block as the v2, mirroring ATTEST's callback. Its `SOURCE` is the callback contract itself (`C:<chain>:<contract_action_index>`), it is marked as an emission, and gas is bounded by `GAS_CEILING`. The injected EXECUTE's `action_index` is recorded on the poll (`callback_execute_action_index`).
+- **What the method receives.** The poll result is delivered as positional arguments the contract reads with `xchain.getInputParam`: poll id, status, winning option, total counted weight, total voters, quorum-met flag, min-voters-met flag, then any `CALLBACK_PARAMS` elements. The result is passed in rather than read via `xchain.getPollResult` because the callback runs in the poll's own finalization block, before the poll is visible to the result accessor (which only exposes polls resolved in an earlier block).
+- **Isolation.** The callback runs inside a savepoint. If it throws, only the callback is rolled back; the poll stays terminal with its frozen tally and settled deposit. A binding callback never un-decides a poll.
+- **Funding.** `GAS_ESCROW` funds the callback's execution and is escrowed alongside `DEPOSIT` at creation; both are released at finalize (see Deposit and callback flow).
+
+## Contracts as poll actors
+A deployed contract can take part in governance as itself, not just react to it, by emitting VOTE from contract code:
+
+- `xchain.emit.vote({ version: 0, tick, endBlock, options, ... })` creates a poll whose `SOURCE` is the contract.
+- `xchain.emit.vote({ version: 1, pollRef, ballot })` casts a ballot as the contract.
+- Only v0 (create) and v1 (ballot) are contract-emittable; v2 (finalize) is system-only and v3 (delegation) is not exposed to contracts. The emit choke point rejects any other version.
+- Because the contract is the `SOURCE`, every stake gate applies to the contract's own custody balance: hold-to-create for v0, hold-to-vote for v1, and any `DEPOSIT` / `GAS_ESCROW` are drawn from the contract. Fund the contract (for example via `DEPOSIT` into its custody) before it creates or votes.
+- Emitted ballots are ordinary v1 actions: last-write-wins, hold-to-count at close, and fully tallied like any holder's ballot.
+
 ## Lifecycle
-1. A holder broadcasts VOTE v0; the indexer stores the poll definition in `polls` keyed by the v0 `action_index`, escrowing any `DEPOSIT`.
+1. A holder broadcasts VOTE v0; the indexer stores the poll definition in `polls` keyed by the v0 `action_index`, escrowing any `DEPOSIT` and `GAS_ESCROW`.
 2. Holders broadcast VOTE v1 ballots while `cast_block <= END_BLOCK`; each valid ballot is stored in `votes` (one standing ballot per voter, last-write-wins). Optional VOTE v3 delegations are recorded in `vote_delegations`.
 3. The per-block sweep detects polls at their effective close (time trigger, or an early-decide crossing) and synthesizes VOTE v2.
-4. v2 computes the tally from the `votes` ledger and on-chain holdings at the close block (weight mode, delegation, and gates all applied at read time), writes one `poll_results` row per option, freezes the summary on the `polls` row, and releases any deposit.
+4. v2 computes the tally from the `votes` ledger and on-chain holdings at the close block (weight mode, delegation, and gates all applied at read time), writes one `poll_results` row per option, freezes the summary on the `polls` row, releases any deposit, and (for a binding poll whose `CALLBACK_ON` gate is met) injects the callback EXECUTE.
 
 ## Effects on v0 (create)
-- Inserts a `polls` row (idempotent on the v0 `action_index`): options, close, tally/weight modes, gates, question, and deposit fields. Finalization columns stay null until v2.
+- Inserts a `polls` row (idempotent on the v0 `action_index`): options, close, tally/weight modes, gates, question, deposit, and callback fields. Finalization columns (and `callback_execute_action_index`) stay null until v2.
 - An invalid create writes no `polls` row; the action itself is still recorded in `actions` with its status.
 
 ## Effects on v1 (ballot)
@@ -162,21 +200,22 @@ A poll closes at the earlier of two triggers:
 ## Effects on v2 (finalize)
 - Allocates a new `action_index` (the synthetic event is replay-deterministic and rollback-correct).
 - Writes one `poll_results` row per option (`total_weight`, `voter_count`) and freezes the `polls` summary (`poll_status`, `winning_option`, `total_weight`, `total_voters`, `quorum_met`, `min_voters_met`, `fail_reason`, `decided_early`, `effective_close_block`, `finalized_action_index`, `resolved_block`).
-- Releases any creation deposit (see Deposit flow).
+- Releases any creation deposit and gas escrow (see Deposit and callback flow).
+- For a binding poll whose `CALLBACK_ON` gate is met, injects the callback EXECUTE and records its `action_index` in `callback_execute_action_index`.
 
 ## Effects on v3 (delegate)
 - Appends a `vote_delegations` event row (a null delegate marks a clear). Nothing is mutated in place; resolution happens at each poll's close.
 
-## Deposit flow
-When a v0 carries `DEPOSIT > 0`, the GAS is escrowed from the creator at creation and disposed of when the poll finalizes. All movements are GAS-denominated (XCHAIN).
+## Deposit and callback flow
+When a v0 carries `DEPOSIT > 0` and/or `GAS_ESCROW > 0`, the combined GAS is escrowed from the creator at creation and disposed of when the poll finalizes. All movements are GAS-denominated (XCHAIN). The `DEPOSIT` is refunded or forfeited by outcome; the `GAS_ESCROW` always returns to the creator (it funds the callback's execution, which is gas-metered separately).
 
-| Event | Deposit movement |
-| ----- | ---------------- |
-| v0 valid, `DEPOSIT > 0` | Debit creator and write escrow row (at the v0 `action_index`). |
-| v2 to `finalized` | Release escrow and refund the creator. `polls.deposit_resolved='refunded'`. |
-| v2 to `failed_quorum` | Release escrow and credit the `DONATE1` treasury. `polls.deposit_resolved='forfeited'`. |
+| Event | Movement |
+| ----- | -------- |
+| v0 valid, `DEPOSIT + GAS_ESCROW > 0` | Debit creator and write one combined escrow row (at the v0 `action_index`). |
+| v2 to `finalized` | Release escrow; refund `DEPOSIT` and `GAS_ESCROW` to the creator. `polls.deposit_resolved='refunded'`. |
+| v2 to `failed_quorum` | Release escrow; credit `DEPOSIT` to the `DONATE1` treasury and refund `GAS_ESCROW` to the creator. `polls.deposit_resolved='forfeited'`. |
 
-`deposit_resolved` guards against a double-release if the v2 is reprocessed. A reorg that rolls back a finalization deletes the release ledger rows generically (credits/escrows by `action_index`) and re-opens the poll, which also re-nulls `deposit_resolved`, so the re-synthesized v2 re-releases correctly. The original v0 escrow row survives the reorg.
+`deposit_resolved` guards against a double-release if the v2 is reprocessed. A reorg that rolls back a finalization deletes the release ledger rows generically (credits/escrows by `action_index`) and re-opens the poll, which also re-nulls `deposit_resolved` and `callback_execute_action_index`, so the re-synthesized v2 re-releases and re-fires correctly. The original v0 escrow row survives the reorg.
 
 ## Determinism notes
 - All amount and weight math uses fixed-precision bignumber arithmetic. Quadratic weight truncates `sqrt` to 18 dp; the `time_weighted` integral treats same-block events as zero-length segments. Both choices make the tally identical across every node with no dependence on intra-block ordering.
@@ -184,8 +223,9 @@ When a v0 carries `DEPOSIT > 0`, the GAS is escrowed from the creator at creatio
 
 ## Notes
 - `POLL_REF` is the cross-version foreign key: every v1 and v2 references an existing v0 by its `action_index`.
-- Storage: `polls` (definitions plus the frozen finalization summary), `votes` (standing ballots), `poll_results` (per-option frozen tallies), `vote_delegations` (append-only delegation events).
-- `stake` weighting and binding poll outcomes (a poll that triggers a contract callback) are reserved for later phases and are not part of the current wire format beyond the fields documented here.
+- Storage: `polls` (definitions plus the frozen finalization summary and callback fields), `votes` (standing ballots), `poll_results` (per-option frozen tallies), `vote_delegations` (append-only delegation events).
+- Binding polls deliver the result to the callback by value (positional `getInputParam` args), so the callback is independent of the `getPollResult` visibility rule that hides a poll until a later block.
+- `stake` weighting is reserved for a later phase and is not part of the current wire format.
 
 ---
 
