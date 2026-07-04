@@ -40,7 +40,7 @@ Optional fields may be left empty. The poll's identity is its own `action_index`
 ### Version `1` - Cast ballot
 - `VOTE|1|POLL_REF|BALLOT|MEMO`
 
-A later valid ballot from the same voter replaces that voter's earlier one (last-write-wins). An invalid ballot is a no-op and leaves any prior valid ballot intact.
+A later valid ballot from the same voter replaces that voter's earlier one (last-write-wins). An invalid ballot is a no-op and leaves any prior valid ballot intact. Storage is append-only: each ballot is recorded as its own set of rows and the tally counts only each voter's latest set, so a chain reorganization that removes a replacing ballot automatically restores the voter's earlier one.
 
 ### Version `2` - Finalize (system-synthesized; never user-broadcast)
 - `VOTE|2|POLL_REF`
@@ -186,7 +186,7 @@ A deployed contract can take part in governance as itself, not just react to it,
 
 ## Lifecycle
 1. A holder broadcasts VOTE v0; the indexer stores the poll definition in `polls` keyed by the v0 `action_index`, escrowing any `DEPOSIT` and `GAS_ESCROW`.
-2. Holders broadcast VOTE v1 ballots while `cast_block <= END_BLOCK`; each valid ballot is stored in `votes` (one standing ballot per voter, last-write-wins). Optional VOTE v3 delegations are recorded in `vote_delegations`.
+2. Holders broadcast VOTE v1 ballots while `cast_block <= END_BLOCK`; each valid ballot is stored in `votes` as an append-only set (the voter's latest set is their standing ballot; earlier sets stay recorded for reorg safety). Optional VOTE v3 delegations are recorded in `vote_delegations`.
 3. The per-block sweep detects polls at their effective close (time trigger, or an early-decide crossing) and synthesizes VOTE v2.
 4. v2 computes the tally from the `votes` ledger and on-chain holdings at the close block (weight mode, delegation, and gates all applied at read time), writes one `poll_results` row per option, freezes the summary on the `polls` row, releases any deposit, and (for a binding poll whose `CALLBACK_ON` gate is met) injects the callback EXECUTE.
 
@@ -195,7 +195,7 @@ A deployed contract can take part in governance as itself, not just react to it,
 - An invalid create writes no `polls` row; the action itself is still recorded in `actions` with its status.
 
 ## Effects on v1 (ballot)
-- Writes or replaces the voter's standing ballot in `votes` (choice plus, in split mode, relative shares).
+- Records the voter's new standing ballot in `votes` (choice plus, in split mode, relative shares); earlier ballots stay recorded and simply stop being the latest.
 
 ## Effects on v2 (finalize)
 - Allocates a new `action_index` (the synthetic event is replay-deterministic and rollback-correct).
@@ -223,7 +223,7 @@ When a v0 carries `DEPOSIT > 0` and/or `GAS_ESCROW > 0`, the combined GAS is esc
 
 ## Notes
 - `POLL_REF` is the cross-version foreign key: every v1 and v2 references an existing v0 by its `action_index`.
-- Storage: `polls` (definitions plus the frozen finalization summary and callback fields), `votes` (standing ballots), `poll_results` (per-option frozen tallies), `vote_delegations` (append-only delegation events).
+- Storage: `polls` (definitions plus the frozen finalization summary and callback fields), `votes` (append-only ballot sets; the voter's latest set is their standing ballot), `poll_results` (per-option frozen tallies), `vote_delegations` (append-only delegation events).
 - Binding polls deliver the result to the callback by value (positional `getInputParam` args), so the callback is independent of the `getPollResult` visibility rule that hides a poll until a later block.
 - `stake` weighting is reserved for a later phase and is not part of the current wire format.
 
