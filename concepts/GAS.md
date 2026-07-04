@@ -19,7 +19,7 @@ gas cost → GAS_PRICE → XCHAIN amount → debit from user's XCHAIN balance
 
 On BTC, the indexer uses implicit detection: if the transaction includes a native coin output to the fee destination address, it's validated as native coin payment against the oracle. If there is no fee output, the indexer debits XCHAIN from the user's balance. On LTC/DOGE, native coin payment is the only option; a missing fee output means the action is rejected.
 
-The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` config value. It can be set at runtime with the `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` environment variable (e.g. `XCHAIN_FEE_DESTINATION_DOGE_MAINNET`). While it remains the unset placeholder, native-coin fee detection is disabled and the indexer falls back to XCHAIN-balance deduction on BTC (and rejects fee-bearing actions on LTC/DOGE).
+The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value from the bundled coin registry (pinned per coin and network). On testnet and regtest it can be redirected at runtime with the `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` environment variable (e.g. `XCHAIN_FEE_DESTINATION_DOGE_TESTNET`); on mainnet the override is ignored with a warning, because fee acceptance is consensus-relevant and must not depend on operator environment. If the registry value were the unset placeholder, native-coin fee detection would be disabled and the indexer would fall back to XCHAIN-balance deduction on BTC (and reject fee-bearing actions on LTC/DOGE).
 
 ## GAS_PRICE
 

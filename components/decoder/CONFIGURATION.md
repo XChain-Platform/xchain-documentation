@@ -29,7 +29,7 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 |---|---|---|
 | `AUX_POW` | Enable AuxPoW header stripping (Dogecoin) | _(unset)_ |
 | `DECODER_RATE_LIMIT_RPM` | API requests per minute per IP | `100` |
-| `FEE_DESTINATION` | Native-coin protocol fee destination address for this coin+network. When set (and not the unset placeholder `XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`), the decoder persists outputs paying this address to `transaction_outputs` so the indexer can validate native-coin fee payments. Set per deployed stack when native-coin fee collection is active. | _(unset)_ |
+| `FEE_DESTINATION` | Native-coin protocol fee destination override for this coin+network. The decoder persists outputs paying the resolved address to `transaction_outputs` so the indexer can validate native-coin fee payments. By default the address comes from the bundled coin registry (`src/coins`, pinned per coin/network), so capture is on for a stock install. This variable overrides the default on testnet/regtest only; on mainnet it is ignored with a warning, because fee acceptance is consensus and must not depend on operator environment. | _(coin registry)_ |
 | `DB_QUERY_TIMEOUT` | MariaDB query timeout in milliseconds (passed to the connection pool `queryTimeout` option) | `30000` |
 | `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for all JSON-RPC calls to the coin node (sets `axios.defaults.timeout` at startup) | `30000` |
 
