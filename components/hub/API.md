@@ -819,6 +819,8 @@ Swap statuses: `initiated`, `attested`, `executed`, `settled`, `failed`.
 
 Report a detected blockchain reorg. Triggers PBFT consensus and hub state rollback if confirmed.
 
+The reporter must include the block hash it saw at `reorg_height` before the reorg (`old_hash`) and the hash its node serves now (`new_hash`). Every hub, including the one receiving this call, checks the new hash against its own indexer before it will co-sign the rollback, so a report no honest node can confirm never reaches quorum.
+
 **Request:**
 ```json
 {
@@ -827,7 +829,9 @@ Report a detected blockchain reorg. Triggers PBFT consensus and hub state rollba
   "params":{
     "chain":"bitcoin",
     "reorg_height":893000,
-    "timestamp":1743690000
+    "timestamp":1743690000,
+    "old_hash":"<64-hex block hash observed at reorg_height before the reorg>",
+    "new_hash":"<64-hex block hash the node serves at reorg_height now>"
   },
   "id":1
 }

@@ -455,12 +455,23 @@ Validators declare which chains they support via the `chains` column. Only valid
 ## Reorg Handling
 
 ```
-1. REPORT       reportreorg(chain, reorg_height, timestamp)
+1. REPORT       reportreorg(chain, reorg_height, timestamp, old_hash, new_hash)
+                  -> old_hash/new_hash = the reporter's observed block hash at
+                     reorg_height before and after the reorg
+                  -> receiving hub verifies new_hash against its OWN indexer
+                     (getblockhashes) before broadcasting
 
-2. ALERT        Broadcast REORG_ALERT via gossip
+2. ALERT        Broadcast REORG_ALERT via gossip (carries the hash pair)
 
 3. CONSENSUS    PBFT round: XCHAIN_REORG_PREPARE / XCHAIN_REORG_COMMIT
-                  -> 2f+1 agreement
+                  -> the digest binds reorgId, chain, height, timestamp AND the
+                     hash pair, so a Byzantine leader cannot swap hashes
+                     per-follower
+                  -> each hub co-signs ONLY after its own indexer serves
+                     new_hash at reorg_height, within height bounds
+                     (<= own tip, >= tip - REORG_MAX_DEPTH) and on the
+                     federation network; otherwise it abstains
+                  -> 2f+1 agreement = 2f+1 independent observations
 
 4. ROLLBACK     Hub state cleanup:
                   -> DELETE attestations after reorg timestamp for affected chain
