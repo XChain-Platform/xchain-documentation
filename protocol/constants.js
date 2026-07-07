@@ -137,7 +137,7 @@ const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
 // until then (safe, no fork). testnet/regtest activate at genesis so the e2e /
 // regtest stack exercises stake-weighting from block 0.
 const STAKE_WEIGHTED_QUORUM_ACTIVATION = {
-    mainnet: 999999999,   // PLACEHOLDER: set the real BTC flag-day height before mainnet enable
+    mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers (+ sdk/explorer/sync copies) before this height
     testnet: 0,
     regtest: 0,
 };
@@ -153,7 +153,7 @@ const STAKE_WEIGHTED_QUORUM_ACTIVATION = {
 // post-flag-day (header-carrying) messages. Same placeholder/genesis convention as
 // STAKE_WEIGHTED_QUORUM_ACTIVATION (disabled on mainnet until a flag-day is chosen).
 const EQUIV_HEADER_ACTIVATION = {
-    mainnet: 999999999,   // PLACEHOLDER: set the real BTC flag-day height before mainnet enable
+    mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers (+ sdk/explorer/sync copies) before this height
     testnet: 0,
     regtest: 0,
 };
@@ -167,11 +167,19 @@ const EQUIV_HEADER_ACTIVATION = {
 // root at its own height); the Phase 2 checkpoint/ANCHOR extension that SIGNS these roots gates on
 // snapshot_block. Kept byte-identical to the local copies in xchain-indexer/src/
 // state_commitment_activation.js + xchain-sync/src/state_commitment_activation.js (and xchain-hub
-// at Phase 2) by the cross-service regression suite. Same placeholder/genesis convention.
+// at Phase 2) by the cross-service regression suite. ARMED MID-CHAIN 2026-07-07 with per-chain
+// '<COIN>:<network>' keys (one shared height cannot fit BTC ~957k and DOGE ~6.28M at once; bare
+// network key remains for regtest; coin-less mainnet/testnet lookups stay inert). Same heights
+// as the two state-hash gate maps, so ONE deploy-by date governs all Cohort-C flips; each height
+// precedes the Cohort-B BTC anchor (961000) as the checkpoint-commitment ordering requires.
 const STATE_COMMITMENT_ACTIVATION = {
-    mainnet: 999999999,   // PLACEHOLDER: set the real per-chain flag-day height before mainnet enable
-    testnet: 0,
-    regtest: 0,
+    'BTC:mainnet':  958500,     // ARMED 2026-07-07 at tip 957062; ~10 days of margin
+    'LTC:mainnet':  3143000,    // ARMED 2026-07-07 at tip 3138154; ~8 days
+    'DOGE:mainnet': 6291000,    // ARMED 2026-07-07 at tip 6280094; ~7.5 days
+    'BTC:testnet':  145000,     // ARMED 2026-07-07 at tip 143299
+    'LTC:testnet':  4805000,    // ARMED 2026-07-07 at tip 4797675
+    'DOGE:testnet': 67000000,   // ARMED 2026-07-07 at tip 66498605 (fast chain, wide margin)
+    regtest: 0,                 // armed from genesis: fresh regtest stacks exercise the roots end to end
 };
 
 // CHECKPOINT_COMMITMENT_ACTIVATION (light-client SPV, spec §6.1/§6.3, Phase 2): the flag-day at/above
@@ -192,7 +200,7 @@ const STATE_COMMITMENT_ACTIVATION = {
 // xchain-{hub,indexer,sdk,explorer}/src/checkpoint_commitment_activation.js by the cross-service
 // regression suite. Same placeholder/genesis convention.
 const CHECKPOINT_COMMITMENT_ACTIVATION = {
-    mainnet: 999999999,   // PLACEHOLDER: set the real BTC flag-day height before mainnet enable
+    mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers (+ sdk/explorer/sync copies) before this height
     testnet: 0,
     regtest: 0,
 };
@@ -210,7 +218,7 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 // local copies in xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression
 // suite. Same placeholder/genesis convention.
 const ANCHOR_REWARD_ACTIVATION = {
-    mainnet: 999999999,   // PLACEHOLDER: set the real BTC flag-day height before mainnet enable
+    mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers (+ sdk/explorer/sync copies) before this height
     testnet: 0,
     regtest: 0,
 };

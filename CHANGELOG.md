@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `protocol/constants.js`: armed the four remaining Cohort-B maps at BTC 961000 and `STATE_COMMITMENT_ACTIVATION` per chain (2026-07-07 state-hash heights).
+- `protocol/Upgrade_Notice_Policy.md`: adopted the upgrade-notice policy (14 days pre-launch, 60 days once any third-party validator is live).
 - `protocol/constants.js`: armed `CROSS_CHAIN_ROYALTY_ACTIVATION` mainnet at BTC anchor 961000 (~2026-08-04).
 - `protocol/constants.js`: registered `CROSS_CHAIN_ROYALTY_ACTIVATION` (XMATCH royalty-legs flag-day) as the canonical for the hub/indexer twin modules.
 - `protocol/Contract_ABI.md`: optional self-declared contract display metadata (method summaries, typed params, `view` flags), with fail-closed reader rules and a security note; cross-referenced from DEPLOY, Smart Contracts, and the protocol index.
