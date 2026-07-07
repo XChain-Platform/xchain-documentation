@@ -11,16 +11,22 @@ All configuration is via environment variables (loaded from `.env` by dotenv). T
 
 | Variable | Description |
 |---|---|
-| `NETWORK` | Must be `regtest`, `testnet`, or `mainnet` |
+| `NETWORK` | Must be `regtest` or `testnet`. `mainnet` is refused at startup: the miner's `send_funds` method spends the node wallet and is unauthenticated by default. |
 | `NODE_URL` | Coin node JSON-RPC hostname (non-localhost triggers credential warning) |
 | `NODE_PORT` | Coin node JSON-RPC port (1–65535) |
 | `NODE_USER` | RPC username |
 | `NODE_PASSWORD` | RPC password |
 | `REGTEST_MINER_API_PORT` | Miner JSON-RPC API listening port (1–65535) |
 
+### Optional
+
+| Variable | Description |
+|---|---|
+| `MINER_API_KEY` | When set, every JSON-RPC request must carry a matching `X-API-Key` header (401 otherwise). `ping` and `status` are exempt so healthchecks keep working. Unset by default (no auth), mirroring the encoder/hub opt-in pattern. |
+
 ### Validation Rules
 
-- `NETWORK` must be one of the three recognized strings
+- `NETWORK` must be `regtest` or `testnet`
 - `NODE_PORT` and `REGTEST_MINER_API_PORT` must be integers 1–65535
 - `NODE_URL` cannot be empty
 - `NODE_USER` and `NODE_PASSWORD` cannot be empty

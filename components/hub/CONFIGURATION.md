@@ -20,6 +20,7 @@ These variables are required regardless of operating mode.
 | `HUB_DB_PASS` | Yes | None | MariaDB password |
 | `HUB_DB_KEEPALIVE_INTERVAL` | No | `30000` | Interval (ms) between no-op keepalive queries sent to the MariaDB pool to prevent idle-connection drops |
 | `HUB_TRUST_PROXY` | No | `loopback, uniquelocal` | Express `trust proxy` setting. A containerized hub behind a local reverse proxy works with the default. Set to `false` to disable, a hop count (e.g. `1`), or a CIDR list for other topologies. See [Express docs](https://expressjs.com/en/guide/behind-proxies.html). |
+| `HUB_ALLOW_UNAUTHENTICATED` | No | `false` | A hub in validator mode (`P2P_VALIDATOR_ADDR` set) with no `HUB_API_KEY` refuses to boot, because its write methods would let anyone drive consensus-affecting writes. Set to `true` to explicitly acknowledge running keyless (regtest/dev only). See OPERATIONS.md → Authentication. |
 
 ### P2P Gossip Layer
 
@@ -93,6 +94,7 @@ mounts it into the hub container automatically. See OPERATIONS.md → Validator 
 | `ORACLE_MIN_SUBMISSIONS` | No | `2` | Minimum distinct-validator price submissions required before a round can be finalized. Consensus-critical: a single-hub or regtest deployment stalls every oracle round unless this is set to `1`, because the default of `2` requires a second submitter that will never arrive. |
 | `ORACLE_MAX_SUBMISSIONS_PER_ROUND` | No | `200` | Cap on the number of price submissions accepted per round. Submissions beyond this limit are discarded to bound memory and consensus payload size. |
 | `ORACLE_STALENESS_THRESHOLD_S` | No | `2 x ORACLE_ROUND_INTERVAL` | Seconds since the last finalized price snapshot before the `GET /health` endpoint reports `oracle_stale: true` (and returns HTTP 503). Defaults to twice the round interval; override for slow-start or custom round cadences. |
+| `ORACLE_EARLY_MSG_MAX_ROUNDS` | No | `256` | Cap on the number of distinct future consensus rounds the oracle buffers early messages for. Bounds memory against a peer flooding fabricated round numbers; messages for rounds beyond the cap are dropped. |
 | `COINGECKO_API_KEY` | No | None | CoinGecko API key (optional, improves rate limits) |
 | `COINMARKETCAP_API_KEY` | No | None | CoinMarketCap API key (enables a third price source; CoinGecko and Kraken are both keyless and always active) |
 | `PRICE_FETCH_TIMEOUT` | No | `10000` | HTTP timeout for external price API calls (ms) |
@@ -131,6 +133,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `ATTESTATION_TIMEOUT` | No | `60000` | Cross-chain attestation consensus timeout (ms) |
+| `CROSS_CHAIN_INDEXER_TIMEOUT` | No | `15000` | HTTP timeout (ms) for the hub's federation-read calls to indexers during cross-chain verification |
 
 ### Reorg
 

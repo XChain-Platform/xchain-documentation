@@ -75,6 +75,16 @@ Bitcoin-only validator participation:
 - **Staking dashboard**: `StakingDashboard.jsx`. Current stake, delegated stake, rewards, current epoch, next-unstake-eligible epoch.
 - **Operator dashboard**: `OperatorDashboard.jsx`. For users running a validator: total delegated stake, delegator count, uptime, pending rewards.
 
+## Governance (VOTE)
+
+Token-weighted governance polls, on every chain:
+
+- **Browse polls**: `GovernancePolls.jsx` lists polls per chain with lifecycle status (open / finalized / failed quorum); `PollDetail.jsx` shows the question, options, tallies, and the caller's ballot.
+- **Create poll**: `CreatePollForm.jsx`. Pick the weight token, end block, options, tally and weight modes, optional quorum / deposit, and the binding-poll callback fields.
+- **Vote**: cast approval or split ballots from `PollDetail`; a later ballot replaces your earlier one.
+- **Delegate**: `DelegateVoteForm.jsx` sets or clears a standing per-token delegation of voting weight.
+- **Availability guard**: `useGovernanceAddressesPresent` hides the whole feature where the wallet has no addresses on a governance-capable chain.
+
 ## Multisig
 
 See [Multisig](MULTISIG.md) for the full state machine. The wallet supports:
@@ -120,6 +130,7 @@ For users who keep keys on an offline device:
 - **Encoded transport**: chunked PSBT-QR over multiple frames (`core/src/uri/psbtQr.js`); BIP21 envelope for short payloads (`core/src/uri/bip21.js`); dedicated multisig PSBT envelope for cosigner rounds (`core/src/uri/multisigPsbtEnvelope.js`)
 - **Animated frames**: `AnimatedQrFrames.jsx` paints multi-frame QRs; default 3 fps; `prefers-reduced-motion: reduce` flips to manual prev / next
 - **Camera scanner**: `QrScanner.jsx` reads frames from the device camera; `core/src/uri/detectQrContent.js` routes BIP21 / PSBT-QR / multisig-envelope / sign-in-challenge / generic-string content to the right handler
+- **UR (Keystone / Passport) ingestion**: `core/src/uri/urPsbt.js` decodes `ur:crypto-psbt` animated-QR streams from UR-speaking hardware signers (bytewords + minimal CBOR + fountain-code reassembly), wired into the PSBT sign form's paste and camera-scan paths. See [URI Schemes](URI_Schemes.md#ur-urcrypto-psbt-ingestion).
 - **Cross-shell pairing**: `RemoteSigner` lets the offline shell sign for the online shell once the channel is established
 
 ## Onboarding & recovery

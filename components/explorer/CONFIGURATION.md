@@ -24,6 +24,9 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `EXPLORER_API_PORT_HTTPS` | No | `8081` | HTTPS server port |
 | `API_HOST` | No | `127.0.0.1` | Bind address for the API server |
 | `DEBUG` | No | None | Enable debug output when set to any truthy value |
+| `EXPLORER_FORCE_HTTPS` | No | None | Explicitly enable (`1`) or disable (`0`) the HTTPS-hardening headers (HSTS and `upgrade-insecure-requests`). By default they are active only when `NODE_ENV=production`, so plain-HTTP dev/regtest deploys are not broken. Set to `1` when running behind a TLS-terminating proxy without `NODE_ENV=production`. |
+| `EXPLORER_HOLDERS_CACHE_MS` | No | `15000` | TTL (ms) of the per-tick holders-query result cache. `getHolders` requires an unindexable full-table filesort, so results are cached briefly to bound repeated-query cost. |
+| `EXPLORER_HOLDERS_CACHE_MAX` | No | `500` | Maximum number of distinct holders-query results kept in the cache. |
 
 ### WebSocket
 
@@ -60,6 +63,7 @@ See [WEBSOCKET.md](WEBSOCKET.md) for the full WebSocket API reference.
 | `EXPLORER_HUB_CACHE_STALE_MAX_MS` | No | `600000` | How long (ms) previously-fetched rows may still be served while the hub is unreachable. Past this, the pages fail rather than serve very old data. |
 | `MIRROR_MAX_LAG_S` | No | None | For self-synced mirrors: log a warning when the mirror lags the hub by more than this many seconds. Responses always carry `mirror_lag_seconds` so clients can judge freshness themselves. |
 | `MIRROR_LAG_FAIL_CLOSED` | No | None | Set to `1` to return HTTP 503 (`MIRROR_STALE`) instead of only warning when `MIRROR_MAX_LAG_S` is exceeded. |
+| `SPV_CHECKPOINT_MAX_LAG_BLOCKS` | No | `100` | Advisory freshness threshold for the SPV proof endpoints: when the serving checkpoint trails the chain tip by more than this many blocks, responses set `stale: true` (alongside `chain_tip` and `lag`). Advisory only; nothing is refused. |
 | `ALLOW_NO_COLOCATED_HUB_DB` | No | None | Set to `1` to let the explorer start without a checkpoint schema configured for every serving coin. The checkpoint, cross-chain match, and proof endpoints then fail per request instead. |
 
 ### Decoder Health (for `/api/status` chain lag fields)

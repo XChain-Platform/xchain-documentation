@@ -108,6 +108,28 @@ console.log(result.delegate.txid);   // null if delegateParams was omitted
 
 ---
 
+## createPoll / castBallot / delegateVote
+
+Governance submit recipes: build the VOTE params (via `sdk.voting.*`) then sign and broadcast in one call. `params` is the same object the matching `sdk.voting` builder takes. Pass `opts.waitForIndexer` on `createPoll` to get back the poll's `action_index` (needed as `pollRef` for later ballots).
+
+```js
+// Create a poll and wait for its action_index
+const poll = await sdk.createPoll(wif, {
+    tick: 'GOVTOKEN', endBlock: 850000, options: ['YES', 'NO'], question: 'Adopt proposal 7?'
+}, { waitForIndexer: true });
+
+// Cast a ballot in it
+await sdk.castBallot(wif, { pollRef: poll.action_index, ballot: 0 });
+
+// Stand up (or clear) a delegation of GOVTOKEN voting weight
+await sdk.delegateVote(wif, { tick: 'GOVTOKEN', delegateTo: 'bc1q...' });
+await sdk.clearVoteDelegation(wif, { tick: 'GOVTOKEN' });
+```
+
+Poll finalization (VOTE v2) is system-synthesized at the poll's end block; there is no submit recipe for it. Read results back with `sdk.explorer.getPoll` / `getPollResults` (see [EXPLORER.md](./EXPLORER.md)).
+
+---
+
 ## deployContract
 
 Deploy a smart contract with automatic single-shot vs chunked routing, then optionally deposit initial tokens. Pass raw `code` so the planner can size it. If the base64-encoded source fits within the compiled-action cap it deploys inline (DEPLOY v0/v1); otherwise it submits each slice as a DEPLOY v4 carrier (awaiting indexer confirmation per chunk) then sends an assembling DEPLOY v2/v3 carrying the CODE_HASH. This is the recommended entry point when you do not know in advance whether your contract will fit a single action.

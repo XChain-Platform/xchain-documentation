@@ -39,7 +39,8 @@ In server mode, **no database environment variables are needed**. The service di
 | `SNAPSHOT_RATE_INCR` | No | `600` | Maximum incremental snapshot downloads per hour per IP per chain/network/dbType |
 | `WS_STATUS_INTERVAL` | No | `60000` | Milliseconds between periodic status broadcasts to WebSocket subscribers (60 seconds) |
 | `WS_PING_INTERVAL` | No | `30000` | Milliseconds between WebSocket ping frames (30 seconds) |
-| `WS_BACKPRESSURE_LIMIT` | No | `50` | Number of consecutive buffered sends before a slow subscriber is force-disconnected |
+| `WS_BACKPRESSURE_MAX_BYTES` | No | `16777216` | Buffered-send ceiling (bytes, default 16 MiB) for a slow WebSocket subscriber. A subscriber is dropped only when its buffer exceeds this AND is not draining (see below). Replaces the retired count-based `WS_BACKPRESSURE_LIMIT`, which dropped slow-but-draining replicas; the old variable is now ignored (a startup log notes this). |
+| `WS_BACKPRESSURE_STALL_MS` | No | `30000` | How long (ms) an over-limit subscriber's send buffer may fail to drain before it is force-disconnected. The stall timer resets on any drop in buffered bytes. |
 | `VALIDATOR_HEARTBEAT_TTL` | No | `60000` | Milliseconds before an unresponsive validator is marked `stale` in `/validator-status` (rather than deleted) |
 | `EXPECTED_VALIDATORS` | No | `""` | Comma-separated list of expected validator IDs/pubkeys. When set, `/validator-status` reports an `expected_total` denominator and flags roster members that have never sent a heartbeat as `absent`. Unset means no roster check. |
 
@@ -73,6 +74,11 @@ In client mode, the service connects to remote sync servers and replicates their
 | `BOOTSTRAP_RETRY_MAX_MS` | No | `60000` | Backoff ceiling in ms for bootstrap retries (60 seconds) |
 | `WS_MAX_PAYLOAD` | No | `1048576` | Maximum incoming WebSocket message size in bytes (1 MB) |
 | `SNAPSHOT_MAX_CONTENT` | No | `536870912` | Maximum HTTP response size for snapshot downloads in bytes (512 MB) |
+| `CLIENT_SOURCE_STALE_MS` | No | `180000` | How long (ms) without any WebSocket event from the source (block pushes or the periodic status heartbeat) before the replica's `/status` reports `source_height_stale: true`. |
+| `DISPENSERS_RECONCILE_EVERY` | No | `20` | Reconcile the decoder-replica `dispensers` table (which converges by snapshot, not the block stream) every Nth catch-up in steady state. |
+| `DISPENSERS_RECONCILE_MAX_INTERVAL_MS` | No | `1800000` | Upper bound (ms, default 30 minutes) on time between `dispensers` reconciles regardless of catch-up cadence. |
+| `CHECKPOINT_ANCHOR_URL` | No | None | Dedicated source URL for checkpoint fetches when `VERIFY_CHECKPOINT_QUORUM=true`; falls back to the first `SYNC_SOURCES` entry. The client rejects checkpoint sequence rollback and withholding from this source (advisory, does not halt). |
+| `CHECKPOINT_SEED_<CHAIN>_<NETWORK>` | No | None | JSON override for the pinned checkpoint-quorum validator seed set (fail-closed: malformed JSON is an error, not a fallback). Used with `VERIFY_CHECKPOINT_QUORUM` to bootstrap trust on chains without a compiled-in pinned set. |
 
 ## Hub Discovery
 

@@ -301,7 +301,7 @@ curl http://localhost:8080/BTC/api/balances/bc1qexampleaddress
 
 ### Get Address
 
-Returns summary information for an address.
+Returns summary information for an address, including native-coin balance and UTXO counts sourced from the coin's `xchain-utxo-tracker` (the explorer itself is DB-only and never talks to a node).
 
 ```
 GET /{COIN}/api/address/{address}
@@ -311,6 +311,10 @@ GET /{COIN}/api/address/{address}
 | Parameter | Location | Description |
 |---|---|---|
 | `address` | path | Blockchain address |
+
+**Response fields:** `address`, `type`, `balances` (`confirmed`/`pending`/`received`), `utxos` (`confirmed`/`pending`), `estimated_value` (`btc`/`usd`, from the hub price oracle; `null` when no price is available), `tracker_available`, `mempool_ready`.
+
+`tracker_available` is `false` when no UTXO tracker is configured for the coin or it is unreachable; the balance and UTXO fields are then `null` (the UI shows "Unavailable") rather than placeholder values.
 
 ---
 
@@ -1233,6 +1237,89 @@ curl http://localhost:8080/BTC/api/market/TOKENA/TOKENB/orderbook
 
 ---
 
+## Governance (VOTE) Endpoints
+
+VOTE actions create token-weighted polls, cast ballots, and delegate voting power. These endpoints read the indexer's `polls`, `votes`, and `poll_results` tables. The web UI exposes them at `/{COIN}/polls` and `/{COIN}/votes` under the Governance nav entry.
+
+### List Polls
+
+Returns a paginated list of polls.
+
+```
+GET /{COIN}/api/polls/{query}/{type}
+GET /{COIN}/api/polls
+```
+
+**Type values:**
+
+| Type | Query interpretation | Description |
+|---|---|---|
+| `block` | Block index | Polls created in a specific block |
+| `tick` | Token ticker | Polls weighted by a specific token |
+| `status` | Status string | Polls with a specific poll status |
+| `source` | Address | Polls created by a specific address |
+
+When called without `{query}/{type}`, returns recent polls (paginated).
+
+**Pagination:** Supported
+
+**Response fields:** `action`, `action_index`, `action_format`, `source`, `tick`, `end_block`, `options`, `max_selections`, `tally_mode`, `weight_mode`, `quorum`, `min_voters`, `question`, `poll_status`, `winning_option`, `total_weight`, `total_voters`, `quorum_met`, `min_voters_met`, `deposit_amount`, `callback_contract_index`, `callback_method`, `finalized_action_index`, `block_index`, `timestamp`, `tx_hash`, `tx_index`, `status`.
+
+---
+
+### Get Poll
+
+Returns a single poll by its creating action index.
+
+```
+GET /{COIN}/api/poll/{actionIndex}
+```
+
+---
+
+### Get Poll Results
+
+Returns the finalized per-option tallies for a poll (one row per option). Empty until the poll is finalized.
+
+```
+GET /{COIN}/api/poll/{actionIndex}/results
+```
+
+**Response fields:** `poll_index`, `option_index`, `total_weight`, `voter_count`, `finalize_action_index`, `block_index`, `status`.
+
+---
+
+### List Votes
+
+Returns a paginated list of ballots (one row per poll + voter + chosen option).
+
+```
+GET /{COIN}/api/votes/{query}/{type}
+```
+
+**Type values:**
+
+| Type | Query interpretation | Description |
+|---|---|---|
+| `address` | Address | Ballots cast by a specific voter |
+| `poll` | Poll action index | Ballots cast in a specific poll |
+| `block` | Block index | Ballots cast in a specific block |
+
+**Pagination:** Supported
+
+**Response fields:** `action`, `action_index`, `action_format`, `source`, `poll_index`, `choice`, `share`, `memo`, `block_index`, `timestamp`, `tx_hash`, `tx_index`, `status`.
+
+**Example:**
+```bash
+# Recent polls
+curl "http://localhost:8080/BTC/api/polls?limit=10"
+
+# Ballots in poll 1234
+curl "http://localhost:8080/BTC/api/votes/1234/poll"
+```
+
+---
+
 ## ANCHOR Endpoints
 
 ANCHOR actions are the periodic on-chain checkpoints published to the DOGE chain by the validator federation. These endpoints read the `anchor_actions` table.
@@ -1601,6 +1688,20 @@ Validator federation data. `stakes` and `delegations` `type` values: `block`, `a
 
 ---
 
+### Hub Federation and Governance Endpoints
+
+```
+GET /{COIN}/api/validator_capabilities[/{query}/{type}]
+GET /{COIN}/api/governance_proposals[/{query}/{type}]
+GET /{COIN}/api/governance_votes[/{query}/{type}]
+GET /{COIN}/api/capability_slash_events[/{query}/{type}]
+GET /{COIN}/api/oracle_prices[/{query}/{type}]
+```
+
+Hub-only federation state read from the co-located hub DB (tables that have no on-chain action; the validator registry itself is surfaced on-chain via `/{COIN}/api/validators`). `validator_capabilities` `type` values: `capability`, `pubkey`. `governance_proposals` `type` values: `status`, `parameter`, `proposal`. `governance_votes` `type` values: `proposal`, `voter`. `capability_slash_events` (SLASH wire actions) `type` values: `block`, `capability`, `pubkey`, `address`. `oracle_prices` (user-published PRICE v1 rows, hub-mirrored) `type` values: `token`, `address`.
+
+---
+
 ### Attestation Endpoints
 
 ```
@@ -1761,6 +1862,9 @@ All REST API action endpoints have a corresponding Explorer endpoint:
 | `/{COIN}/explorer/escrows/{query}/{type}` | `/{COIN}/api/escrows/{query}/{type}` |
 | `/{COIN}/explorer/tokens/{query}/{type}` | `/{COIN}/api/tokens/{query}/{type}` |
 | `/{COIN}/explorer/history/{query}/{type}` | `/{COIN}/api/history/{query}/{type}` |
+| `/{COIN}/explorer/polls/{query}/{type}` | `/{COIN}/api/polls/{query}/{type}` |
+| `/{COIN}/explorer/votes/{query}/{type}` | `/{COIN}/api/votes/{query}/{type}` |
+| `/{COIN}/explorer/governance_votes/{query}/{type}` | `/{COIN}/api/governance_votes/{query}/{type}` |
 
 Additional Explorer-only endpoints:
 
@@ -1835,6 +1939,8 @@ Content-Type: application/json
 | `GET /{COIN}/api/execution/{query}` | Single execution record |
 | `GET /{COIN}/api/xcall/{callId}` | Single cross-chain call lifecycle |
 | `GET /{COIN}/api/project/{tick}` | Project registry roster for a token |
+| `GET /{COIN}/api/poll/{actionIndex}` | Poll details by creating action index |
+| `GET /{COIN}/api/poll/{actionIndex}/results` | Finalized per-option poll tallies |
 | `GET /{COIN}/api/pubkey/{address}` | On-chain public key for an address |
 | `GET /{COIN}/api/status` | Platform status |
 | `GET /{COIN}/api/network` | Network statistics |
@@ -1960,6 +2066,18 @@ Content-Type: application/json
 |---|---|
 | `GET /{COIN}/api/cross_chain_matches/...` | `match`, `block`, `status` |
 | `GET /{COIN}/api/cross_chain_settlements/...` | `match`, `block` |
+
+### Governance List Endpoints
+
+| Endpoint | Supported Types |
+|---|---|
+| `GET /{COIN}/api/polls/...` | `block`, `tick`, `status`, `source` |
+| `GET /{COIN}/api/votes/...` | `address`, `poll`, `block` |
+| `GET /{COIN}/api/validator_capabilities/...` | `capability`, `pubkey` |
+| `GET /{COIN}/api/governance_proposals/...` | `status`, `parameter`, `proposal` |
+| `GET /{COIN}/api/governance_votes/...` | `proposal`, `voter` |
+| `GET /{COIN}/api/capability_slash_events/...` | `block`, `capability`, `pubkey`, `address` |
+| `GET /{COIN}/api/oracle_prices/...` | `token`, `address` |
 
 ---
 

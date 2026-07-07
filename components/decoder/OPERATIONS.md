@@ -120,10 +120,15 @@ Detailed health status including decoder state.
 | `lastProcessedBlock` | `integer\|null` | Alias for `last_processed_block` (convenience copy) |
 | `chainTipBlock` | `integer\|null` | Alias for `node_height` (convenience copy) |
 | `blockLag` | `integer\|null` | Alias for `lag` (convenience copy) |
-| `lag_blocks` | `integer` | Live lag computed from internal decoder state (`max(0, blockchainInfoLastBlock - lastProcessedBlockIndex)`); may differ slightly from `lag` during rapid catch-up |
+| `lag_blocks` | `integer\|null` | Live lag computed from internal decoder state; `null` when either height is still unknown (before the first `getBlockchainInfo`, or nothing processed yet) rather than a misleading `0`. May differ slightly from `lag` during rapid catch-up |
+| `node_height_stale` | `boolean` | Present and `true` when the last successful node-tip poll is more than two refresh intervals old (node outage): `node_height` is then frozen, so a zero `lag` does not mean caught-up |
 | `rpc_errors` | `integer` | Combined RPC error count from the decoder and its `BlockchainConnector` |
 | `parse_errors` | `integer` | Number of transactions quarantined due to parse failures |
 | `error` | `string\|null` | Error message if the decoder crashed, otherwise `null` |
+
+### `GET /status` (REST)
+
+Returns HTTP 200 with `{status: "healthy", db, running}` when the decoder is running and MariaDB is reachable, or HTTP 503 otherwise. Distinct from the JSON-RPC `health` method so load balancers and uptime monitors can rely on the HTTP status code directly (a plain GET against the JSON-RPC root always answers 200). Point Docker HEALTHCHECKs and load balancers here.
 
 ### `getlatestblock`
 

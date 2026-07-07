@@ -63,6 +63,8 @@ Detailed health check. Unlike `ping` (which only confirms the HTTP server is up 
 
 Returns all service configs wrapped in an envelope: `{ configs, seq, watermark }`.
 
+**Sensitive read: requires the `X-API-Key` header when `HUB_API_KEY` is set.** The config tree carries every service's connection parameters including database credentials, so it is mesh-internal, keyed like a write. Public clients discovering endpoints should use `GET /api/v1/chain-registry` instead.
+
 - `configs`: the nested config tree: `{ coin: { network: { module: { param: value } } } }`.
 - `seq`: the last committed consensus sequence number (0 on a fresh node with no committed config changes yet).
 - `watermark`: the high-water mark of the configs table as an **epoch-seconds** integer (the newest `updated_at` across all rows, or 0 when the table is empty). See *Delta polling* below.
@@ -464,6 +466,25 @@ Retract user oracle prices after an indexer rolled back PRICE actions in a reorg
 | `from_action_index` | integer | Yes | Lowest rolled-back action index; rows at or above it are retracted |
 
 **Response:** a summary of the retracted price rows, or an `{ "error": ... }` object on failure.
+
+## Chain Registry (REST)
+
+### `GET /api/v1/chain-registry`
+
+Public bootstrap endpoint for wallets and SDK clients: the chain descriptors (display metadata, address types, derivation paths, fee strategy, and default explorer/encoder/hub endpoint URLs) for every supported coin and network. No authentication; served with `Cache-Control: public, max-age=300`. The payload is a snapshot of the wallet's bundled descriptors, kept in sync by `xchain-wallet/bin/sync-chain-registry.mjs`.
+
+**Response:**
+```json
+{
+  "schema_version": 1,
+  "generatedAt": "2026-07-07T02:20:12.803Z",
+  "descriptors": [ { "id": "bitcoin-mainnet", "coin": "bitcoin", "displayName": "Bitcoin", "...": "..." } ],
+  "signer_pubkey": "hex (present when the hub runs with a signing identity)",
+  "signature": "hex Ed25519 over 'XCHAIN_CHAIN_REGISTRY_V1|<generatedAt>|<sha256hex(JSON.stringify(descriptors))>'"
+}
+```
+
+`signer_pubkey`/`signature` are omitted on hubs without a signing identity (standalone mode). Clients that pin a federation pubkey can verify the signature before merging descriptors.
 
 ## Hub DB Sync (REST + WebSocket)
 
@@ -1073,6 +1094,31 @@ Trigger an immediate out-of-interval ANCHOR publish attempt on the `StateAnchorP
 ```
 
 Returns `{"error":"anchor publisher not active"}` when `StateAnchorPublisher` is not running (standalone mode or `P2P_VALIDATOR_ADDR` not set).
+
+### `getanchorstatus`
+
+ANCHOR publisher status (read, no auth): cumulative anchor counts plus the last-observed DOGE publisher-wallet balance and low-balance threshold, for runway monitoring. Always returns HTTP 200 (unlike `health`, which flips to 503 when degraded), so a poller can read the balance independent of overall hub health. Returns `{"active":false}` when no publisher is running.
+
+**Request:**
+```json
+{"jsonrpc":"2.0","method":"getanchorstatus","id":1}
+```
+
+**Response:**
+```json
+{
+  "active": true,
+  "enabled": true,
+  "anchorsPublished": 42,
+  "archiveChunkLosses": 0,
+  "dogeAddress": "D...",
+  "dogeBalance": 18.4,
+  "dogeBalanceAt": 1782000000000,
+  "lowBalanceThreshold": 10
+}
+```
+
+`dogeBalance`/`dogeBalanceAt` are `null` until the first publish cycle reads the wallet (or when no DOGE pipeline is configured).
 
 ## Rewards
 

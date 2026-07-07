@@ -3,18 +3,22 @@
 
 # XCHAIN Genesis & Reward-Pool Funding
 
-This runbook describes the **one-time** creation of the XCHAIN gas token as a fixed,
-hard-capped, never-again-mintable supply, and how to seed and maintain the validator
-**reward pool**. XCHAIN exists on the **BTC chain only**.
+This runbook describes how the XCHAIN gas token comes into existence at the **genesis ledger
+bootstrap**, how the operator later opens public minting, and how to seed and maintain the
+validator **reward pool**. XCHAIN exists on the **BTC chain only**.
 
-> **Irreversible.** The lock flags below can never be undone (`db.js` retains any lock once
-> set). Mint the full supply and verify on testnet/regtest before doing this on mainnet.
+> **This is live.** BTC mainnet genesis activated at block 950,000 with the XCHAIN token
+> injected as genesis token #1. The sections below describe the shipped mechanics; the
+> operator-facing steps that remain are the launch open-mint and reward-pool management.
 
 ## Monetary model (why)
 
-- **Fixed supply.** The entire XCHAIN supply is minted once, at genesis, then locked. No further
-  XCHAIN can ever be created. Not even by the issuing address. Supply only decreases (via the
-  fee **burn** bucket).
+- **Hard-capped supply.** XCHAIN has a permanent `MAX_SUPPLY` of 100,000,000 (8 decimals),
+  fixed at genesis. There is **no pre-mint**: supply starts at zero and is created only through
+  public `MINT`s during the launch window, up to the cap.
+- **Fair-mint distribution.** Once the mint window opens, anyone can `MINT` their share; there
+  is no operator allocation minted upfront. `ISSUE` of XCHAIN stays GAS-only and BTC-only, so
+  only the operator can author the token's caps and window, but minting itself is public.
 - **Rewards are paid, not minted.** Validator rewards are paid by **debiting a pre-funded reward
   pool address** (`config['ADDRESS']['REWARD']`) and crediting the validator. See
   [COLLECT](../protocol/actions/COLLECT.md) and [GAS](../concepts/GAS.md).
@@ -22,54 +26,48 @@ hard-capped, never-again-mintable supply, and how to seed and maintain the valid
   `SEND`s. If it runs dry, `COLLECT` returns `invalid: insufficient reward pool` and validators
   retry after a top-up. No rewards are lost.
 
-## Prerequisites
+## How genesis creates the token
 
-1. **GAS address private key.** The genesis `ISSUE` must be broadcast from
-   `config['ADDRESS']['GAS']`; the indexer only allows the GAS address to issue the XCHAIN tick
-   (`xchain-indexer/src/actions/issue.js`). Guard this key like a treasury key.
-2. **REWARD pool address** generated and set in `config['ADDRESS']['REWARD']` (BTC, all networks).
-3. **Decide three numbers** ahead of time:
-   - `MAX_SUPPLY`: the total, permanent XCHAIN supply.
-   - the **reward-pool allocation**, how much of that supply seeds validator rewards.
-   - the **market/treasury allocation**; the remainder.
+The token is **not** created by an operator-broadcast transaction. When an indexer parses the
+pinned genesis block, `src/genesis.js` injects a synthetic GAS-signed `ISSUE` as the first
+genesis action:
 
-## Step 1: Genesis ISSUE (locked, fixed supply)
-
-Broadcast a single `ISSUE` **from the GAS address** with the full supply minted and the mint/cap
-locks set. Version `0` wire layout:
-
-```
-ISSUE|0|XCHAIN|<MAX_SUPPLY>|0|<DECIMALS>|<DESCRIPTION>|<MAX_SUPPLY>|<TRANSFER>|<DIST_ADDRESS>|1|0|0|0|0|||||||||1|0|
-```
-
-Field-by-field (only the genesis-relevant fields shown):
-
-| Field | Value | Why |
+| Parameter | Value | Why |
 |---|---|---|
 | `TICK` | `XCHAIN` | The reserved gas tick |
-| `MAX_SUPPLY` | total supply | Permanent cap |
-| `MINT_SUPPLY` | **= `MAX_SUPPLY`** | Mint the entire supply now (nothing left to mint later) |
-| `DECIMALS` | e.g. `8` | Fixed at issuance; cannot change after supply exists |
-| `TRANSFER` | owner address (optional) | Who owns the XCHAIN token record afterward |
-| `TRANSFER_SUPPLY` | distribution address | Where the minted supply lands |
-| `LOCK_MAX_SUPPLY` | `1` | Cap can never be raised |
-| `LOCK_MINT` | `1` | The `MINT` command is permanently disabled |
+| `MAX_SUPPLY` | `100000000` | Permanent cap |
+| `DECIMALS` | `8` | Editable until the first mint (locked once `SUPPLY > 0`) |
+| `MINT_SUPPLY` | empty | **No pre-mint**; supply starts at 0 |
+| owner | GAS address | Only GAS can re-`ISSUE` (tune caps / open the window) |
+| `MINT_START_BLOCK` | `999999999` | Far-future sentinel: the token exists but is un-mintable until the operator lowers this |
 
-`MAX_MINT` is `0`/irrelevant because `LOCK_MINT=1` disables minting entirely. `LOCK_MINT_SUPPLY=1`
-is optional belt-and-suspenders (blocks topping up supply via a future `ISSUE`).
+The same genesis pass replays the Counterparty (BTC) and Dogeparty (DOGE) **asset-name
+ownership** snapshots onto the XChain ledger: name reservations only, no balances. Genesis is
+pinned per network in the coin registry (`src/coins/BTC.js` / `DOGE.js`): BTC mainnet block
+950,000, DOGE mainnet block 6,240,000, each with a `ledgerHash` (bundled CSV manifest) and
+`dumpHash` (bundled state dump) that every indexer verifies. The dumps ship inside the Docker
+image. LTC and **all testnets/regtest launch clean** (genesis disabled); regtest can opt in via
+the `XCHAIN_GENESIS_BLOCK` / `XCHAIN_GENESIS_LEDGER_HASH` / `XCHAIN_GENESIS_DUMP_HASH` env
+overrides.
 
-After this confirms and indexes, XCHAIN is immutable: any later `MINT` fails `invalid: LOCK_MINT`,
-and any `ISSUE` raising `MAX_SUPPLY` fails `invalid: MAX_SUPPLY (locked)`.
+## Step 1: Open the mint (launch)
 
-## Step 2: Distribute supply & seed the reward pool
+Minting is governed entirely by the token's own genesis parameters. To open the launch window,
+broadcast a GAS-signed `ISSUE` for `XCHAIN` that lowers `MINT_START_BLOCK` to the launch height,
+optionally setting `MAX_MINT` (per-tx cap) and `MINT_ADDRESS_MAX` (per-address cap). Because
+decimals stay editable while supply is zero, this launch `ISSUE` can still tune parameters.
 
-The genesis `ISSUE` placed the entire supply at the distribution address. From there, allocate it
-with ordinary `SEND`s:
+Until then, any `MINT` fails `invalid: MINT_START_BLOCK`. After the window opens, `MINT`s are
+public and bounded by `MAX_SUPPLY` (`invalid: mint exceeds MAX_SUPPLY` past the cap) and the
+per-tx / per-address caps if set.
 
-1. **Seed the reward pool:** `SEND` the reward-pool allocation of XCHAIN to
-   `config['ADDRESS']['REWARD']`.
-2. **Market / treasury:** distribute the remainder per your launch plan (exchange/market-making,
-   treasury, etc.).
+> **Guard the GAS key like a treasury key.** It cannot mint anyone's XCHAIN, but it authors the
+> mint window and caps.
+
+## Step 2: Seed the reward pool
+
+`SEND` the reward-pool allocation of XCHAIN (acquired through the public mint like anyone else,
+or from protocol fee income) to `config['ADDRESS']['REWARD']`.
 
 The reward-pool address is keyed (operator-controlled), but its key is **not** needed for normal
 operation: `COLLECT` drains it purely through protocol ledger accounting. The key only matters if
@@ -82,12 +80,15 @@ special action type; a plain `SEND`. The next `COLLECT` immediately sees the hig
 
 ## Verification
 
-1. **Locks set**: query the indexer `tokens` table for `tick='XCHAIN'`: expect
-   `lock_mint=1`, `lock_max_supply=1`, and `supply = max_supply`.
-2. **No further minting**: attempt a `MINT` of XCHAIN → `invalid: LOCK_MINT`; attempt an `ISSUE`
-   raising `MAX_SUPPLY` → `invalid: MAX_SUPPLY (locked)`.
-3. **Pool funded**; the reward-pool address balance equals the seed allocation.
-4. **Reward lifecycle** (regtest e2e): stake → accrue a reward → `COLLECT` (pool drops by the
+1. **Token exists with the right shape**: query the indexer `tokens` table for `tick='XCHAIN'`:
+   expect `max_supply = 100000000`, `decimals = 8`, owner = the GAS address, and (pre-launch)
+   `supply = 0` with the sentinel `MINT_START_BLOCK`.
+2. **Mint gate holds**: before the window opens, a `MINT` of XCHAIN fails
+   `invalid: MINT_START_BLOCK`; an `ISSUE` of XCHAIN from any non-GAS address fails.
+3. **Genesis pin verified**: indexer startup logs confirm the genesis `ledgerHash`/`dumpHash`
+   match the pinned values; a mismatch is a fatal error, not a warning.
+4. **Pool funded**: the reward-pool address balance equals the seed allocation.
+5. **Reward lifecycle** (regtest e2e): stake → accrue a reward → `COLLECT` (pool drops by the
    reward, validator rises by the same, total supply unchanged) → drain pool → `COLLECT`
    (`invalid: insufficient reward pool`) → top up → `COLLECT` (succeeds).
 

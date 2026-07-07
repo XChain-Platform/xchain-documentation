@@ -63,7 +63,7 @@ Key technical details:
 - Maintains a double-entry ledger: every token movement is a credit to one address and a debit from another. Balance = SUM(credits) - SUM(debits). A sanity check asserts `token_supply == net ledger total` after each issuance.
 - Holds XCHAIN gas in escrow for time-bounded operations (orders, dispensers). Releases escrow on expiration or cancellation.
 - DEX matching engine handles `ORDER` and `SWAP` actions, matching bids and asks within each block.
-- Processes expirations after each block: open orders and active dispensers past their block height are closed automatically.
+- Processes expirations after each block: open orders and active dispensers past their block height are closed automatically. Token-weighted governance polls (`VOTE`) are finalized the same way, by a deterministic sweep at each poll's end block.
 - All writes for a block are wrapped in a single MariaDB transaction. Either the full block commits or it rolls back entirely.
 - On reorg, rolls back across 40+ tables in a single transaction, then re-processes from the reorg block.
 - Watchdog timer (5-minute default) restarts the indexer if it hangs during block processing.
@@ -85,7 +85,7 @@ See [`../components/indexer/`](../components/indexer/) for full documentation.
 
 Key technical details:
 
-- Over 160 REST endpoint patterns across the `/api` and `/explorer` namespaces (106 `/api` routes and 56 `/explorer` routes in the dispatch table, plus additional hand-registered routes for file download, fee quote, fee schedule, checkpoints, Merkle proofs, and the OpenAPI spec), covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, and more.
+- Over 160 REST endpoint patterns across the `/api` and `/explorer` namespaces (106 `/api` routes and 56 `/explorer` routes in the dispatch table, plus additional hand-registered routes for file download, fee quote, fee schedule, checkpoints, Merkle proofs, and the OpenAPI spec), covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, governance polls and ballots, and more.
 - JSON-RPC 2.0 interface compatible with Counterparty-style tooling.
 - Bootstrap-based web UI with Highcharts for order book and market price visualization.
 - Reads configuration from xchain-hub every 60 seconds (fee schedules, supported parameters, fiat pricing).

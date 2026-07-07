@@ -3,7 +3,7 @@
 
 # XChain Platform SDK: ACTION Reference
 
-Complete reference for all 29 ACTION types supported by the XChain Platform SDK.
+Complete reference for all 30 ACTION types supported by the XChain Platform SDK.
 
 ---
 
@@ -1110,6 +1110,48 @@ await amm.withdraw('MYTOKEN', '500', { pubkey: 'yourPubkey' });
 ```
 
 See also: [`../actions/WITHDRAW.md`](../../protocol/actions/WITHDRAW.md)
+
+---
+
+### VOTE
+
+Token-weighted governance: create a poll, cast a ballot, or set a standing delegation. `sdk.vote(params)` is the raw wrapper; the version is taken from `params.version` (0 create, 1 ballot, 3 delegate). Build the params with the `sdk.voting.*` helpers or hand-roll them. Version 2 (finalize) is system-synthesized at the poll's end block and never user-broadcast.
+
+**Format Versions:** v0 (create poll), v1 (cast ballot), v3 (set/clear delegation)
+
+**Format v0:** `VOTE|0|TICK|END_BLOCK|OPTIONS|MAX_SELECTIONS|TALLY_MODE|WEIGHT_MODE|QUORUM|MIN_VOTERS|MIN_VOTE_BALANCE|DECIDE_THRESHOLD|QUESTION|DEPOSIT|CALLBACK_CONTRACT|CALLBACK_METHOD|CALLBACK_PARAMS|CALLBACK_ON|GAS_ESCROW`  
+**Format v1:** `VOTE|1|POLL_REF|BALLOT|MEMO`  
+**Format v3:** `VOTE|3|TICK|DELEGATE_TO|MEMO`
+
+**Param builders (`sdk.voting.*`):**
+
+| Builder | Produces | Key params |
+|---|---|---|
+| `createPollParams({...})` | v0 | `tick`, `endBlock`, `options` (array or comma string, min 2), `maxSelections` (default 1), `tallyMode` (`approval`/`split`, default `approval`), `weightMode` (`balance`/`flat`/`quadratic`/`time_weighted`, default `balance`), optional `quorum`, `minVoters`, `minVoteBalance`, `decideThreshold`, `question`, `deposit`, and the binding-poll callback fields (`callbackContract`, `callbackMethod`, `callbackParams`, `callbackOn`, `gasEscrow`) |
+| `castBallotParams({...})` | v1 | `pollRef` (the poll's action_index), `ballot`, optional `memo`. `ballot` accepts a single option (`0`), an approval array (`[0, 2]`), a split as entry objects (`[{option: 0, share: 60}, ...]`) or an option-to-share map (`{0: 60, 2: 40}`) |
+| `delegateParams({...})` | v3 | `tick`, `delegateTo`, optional `memo` |
+| `clearDelegationParams({...})` | v3 | `tick`, optional `memo` (clears the standing delegation via a blank `DELEGATE_TO`) |
+
+`sdk.voting` also exposes `WEIGHT_MODES`, `TALLY_MODES`, and `CALLBACK_ON` so UIs can populate dropdowns without hardcoding.
+
+**Notes:**
+- `quadratic` weighting requires `minVoteBalance > 0` (the builder enforces this): without a per-voter floor a holder could split across addresses to inflate quadratic weight.
+- Setting `callbackContract` makes the poll binding (`callbackMethod` then required): finalization fires a synthesized EXECUTE with the poll result.
+- A later valid ballot from the same voter replaces the earlier one (last-write-wins); storage is append-only, so a reorg that removes the replacement restores the prior ballot.
+
+```js
+// Create an advisory poll
+await sdk.vote(sdk.voting.createPollParams({
+    tick: 'GOVTOKEN', endBlock: 850000, options: ['YES', 'NO'], question: 'Adopt proposal 7?'
+}))
+
+// Cast a split ballot
+await sdk.vote(sdk.voting.castBallotParams({ pollRef: 307, ballot: { 0: 60, 2: 40 } }))
+```
+
+For signed and broadcast round trips use the workflow recipes `sdk.createPoll` / `sdk.castBallot` / `sdk.delegateVote` / `sdk.clearVoteDelegation` (see [WORKFLOWS.md](./WORKFLOWS.md)), or `session.vote(params)` on a wallet session.
+
+See also: [`../actions/VOTE.md`](../../protocol/actions/VOTE.md)
 
 ---
 

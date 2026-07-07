@@ -88,6 +88,25 @@ const state = createXcwCollector();
 
 `createXcwCollector` returns a mutable state object. `addChunkToCollector(state, frame)` parses and CRC-validates the frame, extracts the SHA256 anchor from chunk 1, and accumulates payload slices. When the last chunk arrives it reassembles the full PSBT and verifies the SHA256. Duplicate scans (the animated QR loops) are silently ignored. `state.error` is set (and `state.complete` stays false) on any CRC mismatch, hash mismatch, or frame count conflict.
 
+## UR (ur:crypto-psbt) ingestion
+
+Air-gapped hardware signers in the Keystone / Passport family speak the Uniform Resources (UR) animated-QR format rather than the wallet's own XCW framing. `core/src/uri/urPsbt.js` is a clean-room decoder for `ur:crypto-psbt` frames: bytewords decoding, minimal CBOR unwrapping, and Luby-transform fountain-code reassembly (Xoshiro256-seeded part selection), validated against bc-ur gold vectors including all-mixed fountain streams.
+
+Because UR uses a fountain code, the receiver does not need every frame; it accumulates parts until the payload reconstructs, so a looping animated QR can be scanned starting anywhere.
+
+```js
+import { parseUrFrame, UrPsbtDecoder, decodeUrPsbt } from 'core/src/uri/urPsbt.js';
+
+const decoder = new UrPsbtDecoder();
+// feed each scanned `ur:crypto-psbt/...` frame string:
+//   decoder.receive(frame)  -> true when the frame contributed
+//   decoder.complete        -> flips true when the PSBT reassembles
+//   decoder.psbt / .psbtHex -> the decoded bytes (throws while incomplete)
+// or decode a captured frame array in one shot: decodeUrPsbt(frames)
+```
+
+Both the PSBT sign form's paste inbox and the camera scanner accept UR frames alongside XCW frames; decode failures raise a typed `UrError`. This is ingestion-only: the wallet displays outgoing PSBTs in its own XCW framing.
+
 ## Multisig PSBT envelope
 
 `core/src/uri/multisigPsbtEnvelope.js` wraps the multisig round-trip in a typed JSON envelope carried over the XCW chunked transport (prefix `XCW-MS:`). The envelope identifies the session by a fingerprint derived from the signing round parameters and carries the cosigner's contribution:

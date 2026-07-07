@@ -85,6 +85,11 @@ For shared services (hub, explorer, sync), a separate set of variables is genera
 | `SYNC_MODE` | `server` | Indexer-sync mode |
 | `SYNC_API_PORT` | `3006` | Indexer-sync API port |
 
+Two generated defaults worth knowing about:
+
+- `EXPLORER_PORT_HTTP` / `EXPLORER_PORT_HTTPS` (and legacy `EXPLORER_PORT`) are honored from the host environment, so an operator can move the explorer's published ports without editing generated config.
+- On **regtest**, fresh indexer installs default `INDEXER_ALLOW_UNAUTHENTICATED=true` when no `INDEXER_API_KEY` is configured: the indexer otherwise fails closed and every gated method 401s, which no local single-operator regtest stack can pass. A config-file value or host `INDEXER_API_KEY` still wins; mainnet and testnet stay fail-closed.
+
 ## Naming Conventions
 
 | Entity | Pattern | Example |
@@ -115,6 +120,11 @@ These variables are read by xchain-node itself at startup. They control runtime 
 | `XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY` | Path to an Ed25519 private key PEM file used to sign bootstrap archives when running `bootstrap create`. If unset the archive is created unsigned and consumers cannot verify provenance. |
 | `XCHAIN_NODE_BOOTSTRAP_PUBKEY` | Path to the Ed25519 public key PEM file used to verify bootstrap archive signatures on restore (default: `src/config/bootstrap_signing_pubkey.pem` within the repo). Override when using a custom signing key. |
 | `XCHAIN_NODE_REQUIRE_SIGNED_BOOTSTRAP` | Set to `0`, `false`, or `no` to allow restoring bootstrap archives that have no accompanying signature (e.g. for a self-hosted bootstrap source). Default behaviour is fail-closed: unsigned or unverifiable archives are refused. |
+| `XCHAIN_NODE_HUB_SIGNER_DIR` | Host directory holding an operator signer module for the hub's on-chain DOGE publishers (ANCHOR / oracle / attestation). Mounted read-only at `/XChainHub/operator-signer` and wired to the hub via `HUB_SIGNER_MODULE` (`<dir>/signer.js`; see `xchain-hub` `examples/doge-signer.example.js` for the module contract). |
+| `XCHAIN_NODE_DB_BUFFER_POOL_SIZE` | Passes `--innodb-buffer-pool-size` to the shared MariaDB container (e.g. `16G`). Leave unset on laptops / single-chain nodes. |
+| `XCHAIN_NODE_DB_MAX_CONNECTIONS` | Passes `--max-connections` to the shared MariaDB container. Unlike the other tuning flags, this one has an xchain-node default of `1000` when unset: the image default of 151 saturates on a shared multi-chain container and surfaces as misleading "Can't connect to MariaDB" errors. |
+| `XCHAIN_NODE_DB_FLUSH_LOG_AT_TRX_COMMIT` | Passes `--innodb-flush-log-at-trx-commit` to the shared MariaDB container (e.g. `2` for faster, less durable flushing). |
+| `ALLOW_NO_COLOCATED_HUB_DB` | Forwarded into the explorer's env: set to `1` to let a regtest/dev explorer start without a hub-mirror (checkpoint) schema configured for every serving coin. |
 
 > **Note on `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD`:** this is a credential value. Pass it via your deployment environment or secrets manager; do not store it in config files checked into version control.
 

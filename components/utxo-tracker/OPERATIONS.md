@@ -51,6 +51,7 @@ The tracker exposes both REST and JSON-RPC interfaces.
 | `GET` | `/firstseen/:address` | Returns the block height at which the address first appeared (`{"height": N}`) |
 | `GET` | `/balance/:address` | Returns the confirmed balance as a number (in coin units, not satoshis) |
 | `GET` | `/info/:address` | Returns comprehensive balance info (confirmed, pending, received, UTXO counts) |
+| `GET` | `/status` | Lightweight health probe for Docker HEALTHCHECK and uptime monitors: `{status, db, committed_height}`, HTTP 503 when the LevelDB store is unreachable. Point health checks here; a plain GET against the JSON-RPC root always answers 200 (method-not-found body) even when the DB is down. |
 
 #### GET /utxos/:address
 
@@ -129,7 +130,7 @@ All JSON-RPC requests are sent as POST to `/` with standard JSON-RPC 2.0 format.
 | Method | Parameters | Description |
 |---|---|---|
 | `ping` | None | Health check: returns `{"status": "success"}` |
-| `get_sync_status` | None | Returns committed tracker height, node height, lag, and sync verdict. Also reports `mempool_rpc_failures` and `last_mempool_error_at` when the node's mempool RPC is degraded. |
+| `get_sync_status` | None | Returns committed tracker height, node height, lag, and sync verdict. Also reports `mempool_rpc_failures` and `last_mempool_error_at` when the node's mempool RPC is degraded, plus `reorg_count` and `last_reorg_depth` (cumulative reorgs handled since startup and the depth of the most recent one). |
 | `is_quiescent` | None | Returns `{"ready": true/false, ...}`. `ready` is true only when the node mempool is empty AND the tracker's committed height equals the node tip. Used as a barrier between e2e test steps to ensure a fully-settled stack. |
 | `get_utxos` | `{"address": "string"}` | Returns UTXOs for an address |
 | `get_first_seen` | `{"address": "string"}` | Returns the block height at which the address first appeared (`{"height": N}`) |
@@ -200,6 +201,9 @@ The tracker throws an error and stops if a reorg exceeds the chain's undo window
 
 **Balance doesn't match expected value**
 Verify the coin node is fully synced and the tracker has caught up to the chain tip. Check `LAST_BLOCK_HEIGHT` in the tracker logs against the node's current height.
+
+**"UTXO record is missing a fullTxHash" error**
+The LevelDB predates the O-record `fullTxHash` field. Balance and UTXO methods fail loudly on such records instead of silently returning balances whose spend paths would all error. The fix is a full re-index: delete the LevelDB data directory (or restore a current bootstrap) and let the tracker rebuild.
 
 **Mempool UTXOs not appearing**
 Mempool updates run every 60 seconds. A freshly broadcast transaction may take up to a minute to appear. Check the tracker logs for mempool update messages.

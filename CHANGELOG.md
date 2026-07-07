@@ -11,11 +11,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Explorer CONFIGURATION/API pages document the self-synced checkpoint mirror (`self_sync`, `HUB_API_URL`, staleness behavior, `/hub-mirror/status`); hub API page documents `getvotes`, `getvalidatorcapabilities`, and the new `getproposals` filters.
 - `developer-guide/Adding_A_Blockchain.md`: step-by-step procedure for adding a chain via the single canonical per-coin config file in `xchain-hub/src/coins/`; linked from `developer-guide/README.md`.
+- `components/explorer/API.md`: documented the VOTE governance read surface (`polls`/`poll`/`poll results`/`votes` endpoints, DataTables twins, quick-reference rows) and the hub federation/governance reads (`validator_capabilities`, `governance_proposals`, `governance_votes`, `capability_slash_events`, `oracle_prices`).
+- `components/sdk/ACTIONS.md`: added the VOTE action (v0/v1/v3 wire formats, `sdk.voting.*` param builders) and bumped the SDK action count to 30 (also in `README.md`).
+- `components/sdk/WORKFLOWS.md`: documented the `createPoll` / `castBallot` / `delegateVote` / `clearVoteDelegation` governance submit recipes.
+- `components/sdk/EXPLORER.md`: added a Governance section covering `getPolls`/`getPoll`/`getPollResults`/`getVotes` and the hub-governance readers `getValidatorCapabilities`/`getGovernanceProposals`/`getGovernanceVotes`.
+- `components/wallet/FEATURES.md`: added the Governance (VOTE) UI section (`GovernancePolls`, `PollDetail`, `CreatePollForm`, `DelegateVoteForm`) and the UR hardware-signer ingestion bullet.
+- `components/wallet/URI_Schemes.md`: documented the `ur:crypto-psbt` (Keystone/Passport) animated-QR decoder (`UrPsbtDecoder`, fountain-code reassembly).
+- `components/hub/API.md`: documented `getanchorstatus` (publisher runway monitoring); `components/hub/CONFIGURATION.md`: added `HUB_ALLOW_UNAUTHENTICATED`, `ORACLE_EARLY_MSG_MAX_ROUNDS`, and `CROSS_CHAIN_INDEXER_TIMEOUT`.
+- `components/sync/CONFIGURATION.md`: documented `WS_BACKPRESSURE_MAX_BYTES`/`WS_BACKPRESSURE_STALL_MS` (replacing the retired `WS_BACKPRESSURE_LIMIT`), `CLIENT_SOURCE_STALE_MS`, `DISPENSERS_RECONCILE_EVERY`/`DISPENSERS_RECONCILE_MAX_INTERVAL_MS`, `CHECKPOINT_ANCHOR_URL`, and `CHECKPOINT_SEED_<CHAIN>_<NETWORK>`.
+- `components/explorer/CONFIGURATION.md`: added `EXPLORER_FORCE_HTTPS`, `EXPLORER_HOLDERS_CACHE_MS`/`EXPLORER_HOLDERS_CACHE_MAX`, and `SPV_CHECKPOINT_MAX_LAG_BLOCKS`.
+- `components/regtest-miner/OPERATIONS.md`: documented `invalidate_block`/`reconsider_block` reorg helpers, the opt-in `MINER_API_KEY` auth gate (`ping`/`status` exempt), the `mining_paused` status field, and the pinned `settxfee` wallet fee rate; `CONFIGURATION.md`: mainnet is refused at startup.
+- `components/utxo-tracker/OPERATIONS.md`: documented `GET /status`, the `reorg_count`/`last_reorg_depth` sync-status fields, and the fullTxHash re-index error.
+- `components/decoder/OPERATIONS.md`: documented `GET /status` and the `node_height_stale` health field; `CONFIGURATION.md`: `DECODER_API_PORT` is now validated at startup.
+- `components/node/CONFIGURATION.md`: added `XCHAIN_NODE_HUB_SIGNER_DIR`, the `XCHAIN_NODE_DB_*` MariaDB tuning vars (max-connections defaults to 1000), `ALLOW_NO_COLOCATED_HUB_DB` forwarding, explorer port-override notes, and the regtest `INDEXER_ALLOW_UNAUTHENTICATED` default.
 
 ### Changed
 
 - `BLOCKCHAINS.md`: "Adding New Blockchains" now describes the single canonical coin-file model and links the new developer guide.
 - `protocol/Index_Id_References.md`: specify the canonical `^<id>` form (caret plus decimal digits, no leading zero, id >= 1, referencing an existing block-stamped id); all other caret forms are rejected.
+- `operations/XCHAIN_GENESIS.md`: rewritten to match the shipped genesis (token injected at the pinned genesis block with zero pre-mint and a `MINT_START_BLOCK` sentinel, public fair mint at launch, per-network genesis pins and hash verification) instead of the old mint-everything-and-lock runbook.
+- `protocol/README.md`: index now links the ACTION manifest, Controller-Bound Tokens, Cross-Chain Calls, Cross-Chain DEX, x402 Payments, attestation providers, and Error Codes.
+- `components/hub/OPERATIONS.md`: validator-mode hubs without `HUB_API_KEY` now refuse to boot unless `HUB_ALLOW_UNAUTHENTICATED=true`.
+- `components/explorer/API.md`: `getAddress` response fields documented, including `tracker_available` and `mempool_ready`.
+- `architecture/Component_Map.md`: indexer/explorer key details now mention VOTE poll finalization and the governance read pages.
+
+### Fixed
+
+- `components/decoder/OPERATIONS.md`: `lag_blocks` is `null` when either height is unknown, not `0`.
 
 ## [0.12.0] - 2026-06-20
 

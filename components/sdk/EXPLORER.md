@@ -298,6 +298,62 @@ Returns DELEGATE v1 records that target a specific contract.
 
 ---
 
+### Governance
+
+Two distinct governance surfaces live here. `getPolls`/`getPoll`/`getPollResults`/`getVotes` read the on-chain token-weighted VOTE polls; `getValidatorCapabilities`/`getGovernanceProposals`/`getGovernanceVotes` read the hub federation's parameter-change governance (hub-only tables with no on-chain action).
+
+#### `getPolls(query?, type?, opts?)`
+Returns token-weighted governance polls (VOTE v0). `tick` is the electorate/weight token; `status` is the poll lifecycle (`open`/`finalized`/`failed_quorum`); `source` is the poll creator.
+
+- **Endpoint (all):** `GET /{COIN}/api/polls`
+- **Endpoint (filtered):** `GET /{COIN}/api/polls/{query}/{type}`
+- **`type` values:** `block`, `tick`, `status`, `source`
+- **`opts`:** pagination supported
+
+#### `getPoll(pollIndex, opts?)`
+Returns a single poll by its id (the creating action_index): the full poll definition plus finalization summary, with `options`/`callback_params` JSON-parsed.
+
+- **Endpoint:** `GET /{COIN}/api/poll/{pollIndex}`
+
+#### `getPollResults(pollIndex, opts?)`
+Returns the frozen per-option tally for one poll (written by the system VOTE v2 finalize). Empty until the poll is finalized; ordered by option index.
+
+- **Endpoint:** `GET /{COIN}/api/poll/{pollIndex}/results`
+
+#### `getVotes(query?, type?, opts?)`
+Returns VOTE ballots (v1), one row per poll + voter + chosen option. The voter is the ballot's source address.
+
+- **Endpoint (all):** `GET /{COIN}/api/votes`
+- **Endpoint (filtered):** `GET /{COIN}/api/votes/{query}/{type}`
+- **`type` values:** `address`, `poll`, `block`
+- **`opts`:** pagination supported
+
+#### `getValidatorCapabilities(query?, type?, opts?)`
+Returns per-pubkey capability activation records from the hub federation.
+
+- **Endpoint (all):** `GET /{COIN}/api/validator_capabilities`
+- **Endpoint (filtered):** `GET /{COIN}/api/validator_capabilities/{query}/{type}`
+- **`type` values:** `capability`, `pubkey`
+- **`opts`:** pagination supported
+
+#### `getGovernanceProposals(query?, type?, opts?)`
+Returns hub parameter-change proposals.
+
+- **Endpoint (all):** `GET /{COIN}/api/governance_proposals`
+- **Endpoint (filtered):** `GET /{COIN}/api/governance_proposals/{query}/{type}`
+- **`type` values:** `status`, `parameter`, `proposal`
+- **`opts`:** pagination supported
+
+#### `getGovernanceVotes(query?, type?, opts?)`
+Returns validator votes on hub parameter-change proposals.
+
+- **Endpoint (all):** `GET /{COIN}/api/governance_votes`
+- **Endpoint (filtered):** `GET /{COIN}/api/governance_votes/{query}/{type}`
+- **`type` values:** `proposal`, `voter`
+- **`opts`:** pagination supported
+
+---
+
 ### Attestation & Consensus
 
 #### `getAttestations(query?, type?, opts?)`

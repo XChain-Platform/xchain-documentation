@@ -132,7 +132,11 @@ curl -X POST http://localhost:10000 \
 
 ### Authentication
 
-The following methods require an `X-API-Key` header when `HUB_API_KEY` is set. If no API key is configured, all methods are open (a warning is logged on startup).
+The API has three tiers when `HUB_API_KEY` is set. If no API key is configured, a standalone hub runs with all methods open (a warning is logged on startup), but a hub in **validator mode** (`P2P_VALIDATOR_ADDR` set) **refuses to boot**: unauthenticated write methods would let anyone drive consensus-affecting writes. Set `HUB_API_KEY`, or set `HUB_ALLOW_UNAUTHENTICATED=true` to explicitly run keyless (regtest/dev only).
+
+1. **Public reads** (no key): informational methods such as `getprice`, `getproposals`, `getvalidators`, `getvotes`, `getvalidatorcapabilities`, plus `GET /api/v1/chain-registry` and `GET /telemetry/summary`. Protected only by the per-IP rate limit.
+2. **Sensitive reads** (key required): `getallconfigs`, because its response carries every service's connection parameters including database credentials. The `/hub-db/snapshot/*` and `/hub-db/subscribe` mirror feed is keyed the same way. Emergency opt-out for a staged rollout: `HUB_SENSITIVE_READ_AUTH=0` reopens the sensitive reads while leaving writes keyed.
+3. **Writes** (key required): the methods below.
 
 | Method | Category |
 |---|---|
@@ -156,7 +160,32 @@ The following methods require an `X-API-Key` header when `HUB_API_KEY` is set. I
 
 ### Rate Limiting
 
-The API is rate-limited to 100 requests per minute per IP (configurable via `HUB_RATE_LIMIT_RPM`). Exceeding the limit returns HTTP 429.
+The API is rate-limited to 100 requests per minute per IP (configurable via `HUB_RATE_LIMIT_RPM`). Exceeding the limit returns HTTP 429. Behind a reverse proxy, the limiter keys on `X-Forwarded-For` (Express `trust proxy` defaults to loopback; override with `HUB_TRUST_PROXY`).
+
+### Public Deployment Behind a Reverse Proxy
+
+With `HUB_API_KEY` set, the three auth tiers above carry the whole access policy, so the reverse proxy can expose the API publicly without an IP allowlist: unauthenticated callers get the public reads and nothing else. Reference Apache vhost shape (443; landing page in DocumentRoot, API proxied):
+
+```apache
+ProxyPreserveHost On
+ProxyRequests Off
+RewriteEngine On
+
+# WebSocket (hub-db live sync) -> hub backend (keyed app-side)
+RewriteCond %{HTTP:Upgrade} =websocket [NC]
+RewriteRule /(.*) ws://127.0.0.1:10000/$1 [P,L]
+
+# API -> backend: every POST (JSON-RPC; writes + sensitive reads keyed
+# app-side), the GET API routes, and the public chain registry. Everything
+# else (GET /, static assets) falls through to the landing page.
+RewriteCond %{REQUEST_METHOD} =POST [OR]
+RewriteCond %{REQUEST_URI} ^/(hub-db|telemetry|api/v1/chain-registry)(/|$) [NC]
+RewriteRule ^/?(.*) http://127.0.0.1:10000/$1 [P,L]
+
+ProxyPassReverse / http://127.0.0.1:10000/
+```
+
+Do not expose the hub's raw port publicly without `HUB_API_KEY` set: with no key configured, every method (including writes and `getallconfigs`) is open.
 
 ## Validator Key Rotation
 

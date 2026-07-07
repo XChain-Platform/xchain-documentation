@@ -21,7 +21,7 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `DECODER_DB_NAME` | Database name (auto-created if missing) | `XChain_BTC_Mainnet_Decoder` |
 | `DECODER_DB_USER` | MariaDB username | `root` |
 | `DECODER_DB_PASS` | MariaDB password | _(empty for local dev)_ |
-| `DECODER_API_PORT` | JSON-RPC API listen port | `3002` |
+| `DECODER_API_PORT` | JSON-RPC API listen port. Validated at startup: the process exits immediately when missing or not a valid port (1 to 65535), rather than binding to a random port while appearing healthy. | `3002` |
 
 ### Optional Variables
 

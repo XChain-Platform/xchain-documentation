@@ -43,6 +43,12 @@ The miner handles `SIGTERM` gracefully; it allows the current mining loop iterat
 
 The miner exposes a JSON-RPC 2.0 API via Express for test orchestration. All methods are called via HTTP POST.
 
+### Authentication
+
+By default the API is open (no auth), matching the encoder/hub opt-in pattern. Setting the `MINER_API_KEY` environment variable requires a matching `X-API-Key` header on every request; a missing or wrong key returns HTTP 401. The read-only health methods `ping` and `status` always bypass the key gate, so Docker healthchecks and uptime monitors keep working on keyed deployments.
+
+Note that the miner refuses to start when `NETWORK` is `mainnet` (only `regtest` and `testnet` are accepted): `send_funds` would otherwise expose a default-unauthenticated way to spend the node wallet.
+
 ### `ping`
 
 Health check endpoint.
@@ -93,7 +99,8 @@ Return the current mining loop state for operator diagnostics and CI health chec
         "mempool_size": 0,
         "blocks_mined": 42,
         "last_mine_at": 1718900000000,
-        "consecutive_errors": 0
+        "consecutive_errors": 0,
+        "mining_paused": false
     },
     "id": 2
 }
@@ -102,6 +109,7 @@ Return the current mining loop state for operator diagnostics and CI health chec
 | Field | Type | Description |
 |---|---|---|
 | `wallet_ready` | boolean | `true` once `prepareWallet` has completed; gates on mine-readiness, not just server availability |
+| `mining_paused` | boolean | `true` while the auto-mine loop is paused (`pause_mining`, or a `fill_mempool`/`invalidate_block` that never resumed). If mining seems stalled, check this first. |
 | `mempool_size` | number | Number of transactions currently in the mempool as of the last polling cycle |
 | `blocks_mined` | number | Cumulative count of blocks mined by this miner instance since startup |
 | `last_mine_at` | number or null | Unix timestamp in milliseconds (`Date.now()`) of the most recent successful block mine; `null` if no block has been mined yet in this session |
@@ -249,11 +257,45 @@ Mine a specific number of empty blocks immediately, regardless of mempool state.
 }
 ```
 
+### `invalidate_block`
+
+Mark a block as invalid so the node rolls back to the fork point. Auto-mining is paused; call `continue_mining` when the reorg is complete. Together with `reconsider_block`, this enables deterministic reorg tests without dropping to raw node RPC.
+
+**Request:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "invalidate_block",
+    "params": { "block_hash": "..." },
+    "id": 10
+}
+```
+
+### `reconsider_block`
+
+Remove a block from the invalid set so the node can re-evaluate chain selection. Call after mining the competing branch, before `continue_mining`.
+
+**Request:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "reconsider_block",
+    "params": { "block_hash": "..." },
+    "id": 11
+}
+```
+
 ## Resilience
 
 ### Exponential Backoff
 
 When the coin node is unreachable (ECONNREFUSED, timeout, DNS failure), the miner retries with capped exponential backoff from 1 second to 30 seconds. The attempt counter resets on the first successful call.
+
+### Pinned Wallet Fee Rate
+
+On a matured regtest chain, the node's `estimatesmartfee` can inflate to absurd rates, pushing funding-send fees above `-maxtxfee` and failing `send_funds`/`fill_mempool` with RPC error -6 (easily misread as UTXO exhaustion). `prepareWallet` therefore pins a fixed wallet fee rate via `settxfee` (best-effort; a daemon that rejects `settxfee` falls back to the estimate path, and startup logs say which happened).
 
 ### Error Sanitization
 
