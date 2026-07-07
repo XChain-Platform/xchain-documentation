@@ -80,6 +80,7 @@ Verbs SHOULD be short, lowercase, hyphen-separated, and describe the user-visibl
 | :--- | :--- | :--- |
 | `send` | Stable | [Per-Action Reference → send](#send) |
 | `receive` | Stable | [Per-Action Reference → receive](#receive) |
+| `execute` | Stable | [Per-Action Reference → execute](#execute) |
 | _(reserved for future actions)_ | None | None |
 
 # Parameter Conventions
@@ -137,6 +138,24 @@ Open the consumer's Receive screen for the named chain. The consumer's wallet wi
 | :--- | :--- |
 | `xchain:BTC/receive` | Open Receive on Bitcoin mainnet. |
 | `xchain:TBTC/receive?tick=PEPECREATURE&amount=1` | Open Receive on Bitcoin testnet, pre-filled to request 1 PEPECREATURE. |
+
+## execute
+
+Open the wallet's contract EXECUTE form for the named chain with the call target pre-filled. The wallet signs and broadcasts the resulting `EXECUTE` action; the URI's job is only to pre-fill the form (the explorer's "Write Contract" card is the primary producer). The wallet re-reads the contract's declared [ABI](Contract_ABI.md), when present, to render named parameter inputs.
+
+| Param | Required | Description |
+| :--- | :--- | :--- |
+| `contract` | Yes | The deployed contract's `action_index` (the `EXECUTE` action's `CONTRACT_ACTION_INDEX`). A URI without it is unroutable and treated as unrecognized. |
+| `method` | No | Method name to invoke. Pre-fills the form; the user can change it before signing. |
+| `params` | No | Positional arguments as a single pipe-delimited string, percent-encoded (`a\|b` → `a%7Cb`). Elements must not themselves contain `\|` or `;` (the same rule as `EXECUTE`'s `PARAMS` wire field). Parameter names/types, when the contract declares them, are display metadata only; see [Contract ABI](Contract_ABI.md). |
+| `gas` | No | Gas-limit override for the call; the wallet's default applies if omitted. |
+
+### Examples
+
+| URI | Meaning |
+| :--- | :--- |
+| `xchain:TBTC/execute?contract=500&method=fund` | Open the EXECUTE form on Bitcoin testnet targeting contract 500, method `fund` pre-selected. |
+| `xchain:RBTC/execute?contract=362&method=release&params=alice%7C42&gas=75000` | Regtest contract 362, `release("alice","42")` pre-filled with a 75000 gas limit. |
 
 # Compatibility
 

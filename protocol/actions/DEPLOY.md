@@ -99,6 +99,9 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
   - `maxTakeBps`: an integer in `[0, 10000]` that tightens this contract's controller royalty cap to `min(CONTROLLER_MAX_TAKE_BPS, maxTakeBps)`. Absent means the global cap applies. See [Controller-Bound Tokens](../Controller_Bound_Tokens.md#permissions-manifest).
 - A malformed manifest (`permissions` not an array of strings, or `maxTakeBps` not an integer in range) rejects the deployment with `invalid: CONTRACT_MANIFEST (<reason>)`. The manifest is immutable after deployment (the code is immutable).
 
+### ABI (optional)
+- A contract may also export a static `abi` object describing its methods (names, typed params, one-line summaries, read-only flags) for wallets and explorers. Unlike the permissions manifest, the `abi` is **never read or validated at deploy time**: it is advisory display metadata parsed off-chain from the source, participates in no consensus rule, and a malformed `abi` neither rejects nor affects the deployment. See [Contract ABI](../Contract_ABI.md).
+
 ### Chunk carrier rules (v4)
 - Available on all chains
 - `CODE_HASH` must be a 64-char lowercase sha256 hex string

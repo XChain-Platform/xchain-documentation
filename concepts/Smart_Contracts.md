@@ -98,6 +98,8 @@ module.exports = {
 
 When `EXECUTE` is called with `method: 'increment'`, the VM loads the contract, finds the named method on the exported object, and calls it with the `xchain` gateway as the sole argument.
 
+A contract may additionally export a static `abi` object next to its methods, describing them (one-line summaries, named/typed parameters, read-only flags) for wallets and explorers. It is display metadata only, never read by the VM or the indexer; see [Contract ABI](../protocol/Contract_ABI.md).
+
 ## The xchain Gateway
 
 Every contract receives an `xchain` object providing access to platform data and operations:

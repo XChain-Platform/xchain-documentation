@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `protocol/Contract_ABI.md`: optional self-declared contract display metadata (method summaries, typed params, `view` flags), with fail-closed reader rules and a security note; cross-referenced from DEPLOY, Smart Contracts, and the protocol index.
+- `protocol/XChain_URI_Scheme.md`: new `execute` action (contract/method/params/gas) for wallet deep links from the explorer's Write Contract card.
 - Explorer CONFIGURATION/API pages document the self-synced checkpoint mirror (`self_sync`, `HUB_API_URL`, staleness behavior, `/hub-mirror/status`); hub API page documents `getvotes`, `getvalidatorcapabilities`, and the new `getproposals` filters.
 - `developer-guide/Adding_A_Blockchain.md`: step-by-step procedure for adding a chain via the single canonical per-coin config file in `xchain-hub/src/coins/`; linked from `developer-guide/README.md`.
 - `components/explorer/API.md`: documented the VOTE governance read surface (`polls`/`poll`/`poll results`/`votes` endpoints, DataTables twins, quick-reference rows) and the hub federation/governance reads (`validator_capabilities`, `governance_proposals`, `governance_votes`, `capability_slash_events`, `oracle_prices`).

@@ -14,6 +14,7 @@ This section is the canonical reference for the XChain Protocol; ACTION command 
 | [NFT Standard](./NFT_Standard.md) | Non-fungible tokens as a composition of existing primitives: uniques, editions, collections, content attachment, display |
 | [Project Registry Standard](./Project_Registry.md) | Chain-native curated directories; a project tick attests its official tokens via an owner-validated LIST + LINK roster |
 | [Controller-Bound Tokens](./Controller_Bound_Tokens.md) | Programmable policy layer: a contract gates native actions on a bound token or address, with royalty enforcement |
+| [Contract ABI](./Contract_ABI.md) | Optional self-declared display metadata (method summaries, typed params, read-only flags) contracts export for wallets and explorers |
 | [Contract-Targeted Staking](./Contract_Staking.md) | Design and VM API for staking any token against a smart contract with contract-decided slashing |
 | [Cross-Chain Contract Calls](./Cross_Chain_Calls.md) | XCALL: a contract on one chain calls a contract on another, verified by federation capability signatures |
 | [Cross-Chain DEX](./Cross_Chain_DEX.md) | Network-scoped mirror settlement: trading a token on one chain against a token on another |
