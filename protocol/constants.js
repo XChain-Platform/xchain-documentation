@@ -219,6 +219,26 @@ const ANCHOR_REWARD_ACTIVATION = {
 // by the hub and re-derived by the indexer (never from the wire). Changing it is itself a flag-day.
 const ANCHOR_REWARD_AMOUNT = '10.00000000';
 
+// CROSS_CHAIN_ROYALTY_ACTIVATION (cross-chain royalty match-canonical): the flag-day at/above which
+// the validator-signed XMATCH canonical carries the matched orders' royalty payout legs
+// (a_payout_legs / b_payout_legs), so a colluding hub cannot strip a royalty from a cross-chain
+// match; below it the canonical stays byte-identical to the legacy format, so pre-existing
+// signatures keep verifying. Consensus-relevant (the signed preimage changes), so it must deploy
+// hub + ALL indexers atomically. Like CHECKPOINT_COMMITMENT_ACTIVATION / ANCHOR_REWARD_ACTIVATION
+// it gates on the BTC-anchored `snapshot_block` carried by every XMATCH canonical. The CREATE-side
+// acceptance rule (deny a royalty-bearing cross-chain listing while enforcement is impossible) is
+// gated separately by the CROSS_CHAIN_ROYALTY entry in the indexer's protocol_changes.js; the
+// operator MUST flip this canonical gate first or together with it, NEVER create-side first
+// (create-side ON with canonical OFF would put the legs in unsigned mirror fields, the exact
+// tamper hole the legs-in-canonical design closes). Kept byte-identical to the local copies in
+// xchain-{hub,indexer}/src/cross_chain_royalty_activation.js by the cross-service regression
+// suite. Same placeholder/genesis convention.
+const CROSS_CHAIN_ROYALTY_ACTIVATION = {
+    mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers before this height
+    testnet: 0,
+    regtest: 0,
+};
+
 // VALID_FIAT_CODES: the accepted FIAT_CODE allow-list for PRICE actions. The indexer's
 // config['FIATS'] keys (xchain-indexer/src/config.js) are the on-chain arbiter; this list
 // mirrors them in the indexer's insertion order. The SDK validator (VALID_FIAT_CODES) must
@@ -247,5 +267,6 @@ module.exports = {
     CHECKPOINT_COMMITMENT_ACTIVATION,
     ANCHOR_REWARD_ACTIVATION,
     ANCHOR_REWARD_AMOUNT,
+    CROSS_CHAIN_ROYALTY_ACTIVATION,
     VALID_FIAT_CODES,
 };

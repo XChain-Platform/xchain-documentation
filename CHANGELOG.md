@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
+- `protocol/constants.js`: armed `CROSS_CHAIN_ROYALTY_ACTIVATION` mainnet at BTC anchor 961000 (~2026-08-04).
+- `protocol/constants.js`: registered `CROSS_CHAIN_ROYALTY_ACTIVATION` (XMATCH royalty-legs flag-day) as the canonical for the hub/indexer twin modules.
 - `protocol/Contract_ABI.md`: optional self-declared contract display metadata (method summaries, typed params, `view` flags), with fail-closed reader rules and a security note; cross-referenced from DEPLOY, Smart Contracts, and the protocol index.
 - `protocol/XChain_URI_Scheme.md`: new `execute` action (contract/method/params/gas) for wallet deep links from the explorer's Write Contract card.
 - Explorer CONFIGURATION/API pages document the self-synced checkpoint mirror (`self_sync`, `HUB_API_URL`, staleness behavior, `/hub-mirror/status`); hub API page documents `getvotes`, `getvalidatorcapabilities`, and the new `getproposals` filters.
