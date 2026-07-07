@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Explorer CONFIGURATION/API pages document the self-synced checkpoint mirror (`self_sync`, `HUB_API_URL`, staleness behavior, `/hub-mirror/status`); hub API page documents `getvotes`, `getvalidatorcapabilities`, and the new `getproposals` filters.
 - `developer-guide/Adding_A_Blockchain.md`: step-by-step procedure for adding a chain via the single canonical per-coin config file in `xchain-hub/src/coins/`; linked from `developer-guide/README.md`.
 
 ### Changed

@@ -1286,6 +1286,29 @@ curl "http://localhost:8080/RDOGE/api/anchors/800000/block"
 
 The explorer exposes quorum-signed state checkpoints for light-client verification. Checkpoint data is read from the hub-mirrored `state_checkpoints` table.
 
+On nodes that maintain their own checkpoint mirror (self-sync mode, see the Configuration page), these endpoints return HTTP 503 with code `MIRROR_NOT_BOOTSTRAPPED` until the mirror's first snapshot download completes, and afterwards include two extra response fields: `mirror_bootstrapped` (always `true` once serving) and `mirror_lag_seconds` (how far the mirror trails the hub's feed). Operators can additionally opt into HTTP 503 `MIRROR_STALE` on excessive lag. Nodes reading an externally-maintained hub schema return neither the extra fields nor the 503s.
+
+### Hub-Mirror Status
+
+```
+GET /{COIN}/api/hub-mirror/status
+```
+
+Reports the self-synced mirror's state for this coin, or `{ "enabled": false }` when the coin is served from an externally-maintained schema.
+
+**Response:**
+```json
+{
+    "enabled": true,
+    "target": { "host": "localhost", "name": "XChain_Hub_Mirror" },
+    "bootstrapDrained": true,
+    "streamWatermark": 1751804000,
+    "mirrorLagSeconds": 4
+}
+```
+
+---
+
 ### List Checkpoints
 
 ```

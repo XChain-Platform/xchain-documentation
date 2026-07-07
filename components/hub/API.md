@@ -944,14 +944,14 @@ Vote values: `approve`, `reject`.
 
 ### `getproposals`
 
-List governance proposals, optionally filtered by status.
+List governance proposals, optionally filtered by status and/or parameter name. `limit` caps the result count (default 50, maximum 500).
 
 **Request:**
 ```json
 {
   "jsonrpc":"2.0",
   "method":"getproposals",
-  "params":{"status":"voting"},
+  "params":{"status":"voting","parameter":"ORACLE_ROUND_INTERVAL","limit":50},
   "id":1
 }
 ```
@@ -1003,6 +1003,57 @@ Get a specific proposal with all associated votes.
     {"signing_pubkey":"d4e5f6...","vote":"reject"}
   ]
 }
+```
+
+### `getvotes`
+
+List individual governance votes by proposal and/or voter. Complements `getproposal` (which bundles one proposal's votes) with a list-by-voter view across proposals. `limit` defaults to 50, maximum 500.
+
+**Request:**
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"getvotes",
+  "params":{"voter_pubkey":"a1b2c3...","limit":50},
+  "id":1
+}
+```
+
+**Response:**
+```json
+[
+  {"id":12,"proposal_id":"prop-1","voter_pubkey":"a1b2c3...","vote":"approve","created_at":"2026-04-06T12:00:00.000Z"}
+]
+```
+
+### `getvalidatorcapabilities`
+
+List per-validator capability qualification rows, optionally filtered by `signing_pubkey` and/or `capability`. Companion to `getcapabilitythresholds`: thresholds say what a capability requires, this says who currently holds it and why a validator might not be active (`qualified`, `self_test_ok`, and `enabled` are independent flags). `limit` defaults to 200, maximum 500.
+
+**Request:**
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"getvalidatorcapabilities",
+  "params":{"capability":"price"},
+  "id":1
+}
+```
+
+**Response:**
+```json
+[
+  {
+    "id":3,
+    "signing_pubkey":"a1b2c3...",
+    "capability":"price",
+    "qualified":1,
+    "self_test_ok":1,
+    "enabled":1,
+    "qualified_at_block":901234,
+    "updated_at":"2026-04-06T12:00:00.000Z"
+  }
+]
 ```
 
 ## ANCHOR Publishing

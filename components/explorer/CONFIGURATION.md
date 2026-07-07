@@ -50,6 +50,18 @@ See [WEBSOCKET.md](WEBSOCKET.md) for the full WebSocket API reference.
 | `CONFIG_CACHE_FILE` | No | `<appdir>/tmp/config-cache.json` | Path to the on-disk last-known-good hub config cache. The explorer writes here after each successful hub fetch and reads it on startup when the hub is unreachable, so it comes up serving the last known coin set rather than zero coins. Override to a mounted volume path to survive container recreation. |
 | `NO_HUB` | No | None | Set to `1` (or `true`/`yes`) to enable standalone mode: the hub is not contacted and all coin/network + database config is read from `src/config.json` (or `NODE_CONFIG`). Use on single-server deployments where the hub publishes docker-internal DB hosts that are not reachable from the explorer process. |
 
+### Hub Mirror and Operational Reads
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `HUB_API_URL` | No | None | Hub base URL(s), comma-separated. Used by two features: the self-synced checkpoint mirror (`database.checkpoint.self_sync`) and the JSON-RPC reads that back the validator-capabilities and governance pages. Works in `NO_HUB` mode too, so a standalone node can still point these reads at a hub. |
+| `HUB_API_KEY` | No | None | API key for the hub's `/hub-db` mirror feed, when the hub operator has configured one. |
+| `EXPLORER_HUB_CACHE_MS` | No | `15000` | How long (ms) validator-capabilities and governance rows fetched from the hub are cached before re-fetching. |
+| `EXPLORER_HUB_CACHE_STALE_MAX_MS` | No | `600000` | How long (ms) previously-fetched rows may still be served while the hub is unreachable. Past this, the pages fail rather than serve very old data. |
+| `MIRROR_MAX_LAG_S` | No | None | For self-synced mirrors: log a warning when the mirror lags the hub by more than this many seconds. Responses always carry `mirror_lag_seconds` so clients can judge freshness themselves. |
+| `MIRROR_LAG_FAIL_CLOSED` | No | None | Set to `1` to return HTTP 503 (`MIRROR_STALE`) instead of only warning when `MIRROR_MAX_LAG_S` is exceeded. |
+| `ALLOW_NO_COLOCATED_HUB_DB` | No | None | Set to `1` to let the explorer start without a checkpoint schema configured for every serving coin. The checkpoint, cross-chain match, and proof endpoints then fail per request instead. |
+
 ### Decoder Health (for `/api/status` chain lag fields)
 
 The explorer polls each coin's decoder health endpoint to populate `chain_tip`, `chain_lag_blocks`, and `decoder_health` in `/api/status`. Configure the URL of each decoder's JSON-RPC API:
@@ -115,6 +127,30 @@ The `src/config.json` file provides database connection details when xchain-hub 
 Each coin/network entry specifies both the Indexer database (primary data source) and the Decoder database (for raw transaction lookups).
 
 An example template is provided at `src/config.json.example`.
+
+## Checkpoint Schema (Hub-Mirror Tables)
+
+A few tables the explorer serves (state checkpoints, capability snapshots, cross-chain matches) are produced by the hub federation rather than the indexer, and xchain-sync never replicates them. Every serving coin/network therefore needs a `checkpoint` block in its database config, naming a schema on the same server and credentials as the indexer database:
+
+```json
+"checkpoint": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "xchain_reader",
+    "pass": "your_password",
+    "name": "XChain_Hub_Mirror",
+    "self_sync": true
+}
+```
+
+There are two ways to provision that schema:
+
+- **Self-synced (recommended):** set `"self_sync": true` and configure `HUB_API_URL`. The explorer creates the schema and its tables itself, downloads a snapshot from the hub, and then follows the hub's live feed. No hub database needs to exist on the explorer's server.
+- **Externally maintained:** omit `self_sync` and point `name` at a real hub database on the same server (single-server deployments where the hub already runs locally).
+
+Without a checkpoint block for a serving coin, the explorer refuses to start (see `ALLOW_NO_COLOCATED_HUB_DB`).
+
+In self-sync mode the affected endpoints return HTTP 503 with code `MIRROR_NOT_BOOTSTRAPPED` until the first snapshot download completes, and afterwards include `mirror_bootstrapped` and `mirror_lag_seconds` fields so clients can judge freshness. `GET /{COIN}/api/hub-mirror/status` reports the mirror's state. One detail to know: the `batch_root` and `anchor_txid` audit fields on cross-chain matches are filled in by the hub after anchor publication and may show as null on a self-synced mirror; all trade-relevant fields arrive immediately.
 
 ## Hub Discovery
 
