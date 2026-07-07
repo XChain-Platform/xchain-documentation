@@ -154,7 +154,7 @@ There are two ways to provision that schema:
 
 Without a checkpoint block for a serving coin, the explorer refuses to start (see `ALLOW_NO_COLOCATED_HUB_DB`).
 
-In self-sync mode the affected endpoints return HTTP 503 with code `MIRROR_NOT_BOOTSTRAPPED` until the first snapshot download completes, and afterwards include `mirror_bootstrapped` and `mirror_lag_seconds` fields so clients can judge freshness. `GET /{COIN}/api/hub-mirror/status` reports the mirror's state. One detail to know: the `batch_root` and `anchor_txid` audit fields on cross-chain matches are filled in by the hub after anchor publication and may show as null on a self-synced mirror; all trade-relevant fields arrive immediately.
+In self-sync mode the affected endpoints return HTTP 503 with code `MIRROR_NOT_BOOTSTRAPPED` until the first snapshot download completes, and afterwards include `mirror_bootstrapped` and `mirror_lag_seconds` fields so clients can judge freshness. `GET /{COIN}/api/hub-mirror/status` reports the mirror's state. One detail to know: the `anchor_txid` audit field on cross-chain matches is filled in by the hub after anchor publication; the hub re-broadcasts the stamped row on the mirror feed, so a self-synced mirror picks it up shortly after the anchor lands (a mirror that was offline at that moment catches up on its next bootstrap). The legacy `batch_root` field only exists on rows stamped by a retired publisher and arrives with the snapshot. All trade-relevant fields arrive immediately.
 
 ## Hub Discovery
 
