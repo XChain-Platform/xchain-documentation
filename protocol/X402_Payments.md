@@ -127,7 +127,7 @@ The ledger directory defaults to `<stateDir>/deposits/<COIN>/`; override via `op
 
 ## Endpoints used
 
-- Mempool (0-conf): `GET /{COIN}/api/mempool/{payTo}/address`, rows carry the raw decoded action string in `data`; the verifier parses it.
+- Mempool (0-conf): `GET /{COIN}/api/mempool/{payer}/address` (keyed on the payer, i.e. the on-chain source). Rows carry the raw decoded action string in `data`, which may compact the destination and tick to their `^<id>` index form (the decoder does not expand ids). The verifier keys the query on the payer because a compacted destination is not a literal segment of the action string, so a `payTo`-keyed query would miss it; it then resolves `payTo`/`tick` to their ids to match either the literal or the `^<id>` form. payTo is still enforced per matched output.
 - Confirmed: `GET /{COIN}/api/sends/{payTo}/destination`, rows carry `source`, `tick`, `amount`, `memo`, `status`.
 - Dispenser scheme: `GET /{COIN}/api/balances/{payer}`.
 
