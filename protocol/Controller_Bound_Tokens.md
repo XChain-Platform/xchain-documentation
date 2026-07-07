@@ -220,6 +220,7 @@ them travel with the *account*.
 | `STAKE` v3 guarded (stake class: gate contract-targeted staking by the staked token, + gas; v1/v2 GAS capability stakes ungated) | **Implemented** |
 | Account (address) controllers (ADDRESS v1 bind, **symmetric** `transfer` `SEND` gate) both source-outbound + recipient-inbound (`address_controllers`) | **Implemented** |
 | Permissions manifest: deploy-time `permissions` allowlist (all emission paths) + per-contract `maxTakeBps` (`contract_permissions`) | **Implemented** |
+| Cross-chain royalty: create-side deny below the `CROSS_CHAIN_ROYALTY` flag-day; legs signed into the match canonical + applied (re-encoded) at `cross_settle` above it | **Implemented** (flag-day pending) |
 
 ## Proceeds split (royalty / fee `payout_legs`)
 
@@ -246,6 +247,50 @@ runs at match**, which keeps the system-triggered fill path deterministic and ga
 receives). Native-coin (COINPay) proceeds are off-ledger and out of scope for the split;
 a `trade` guard can still `revert` to forbid such a listing. `GIVE_OWNERSHIP` sales
 transfer ownership rather than a balance, so no proceeds split applies to that leg.
+
+### Cross-chain sales (`CROSS_CHAIN_ROYALTY`)
+
+A cross-chain listing (`GET_COIN` ≠ the token's chain) settles its proceeds on the
+**counterparty chain**, which never runs the guard. What happens to a royalty-bearing
+cross-chain listing is decided by the `CROSS_CHAIN_ROYALTY` flag-day, layered on
+`CONTROLLER_GUARD` (no legs exist before that):
+
+| `CONTROLLER_GUARD` | `CROSS_CHAIN_ROYALTY` | Cross-chain listing whose guard returns legs |
+|---|---|---|
+| off | (n/a) | no legs produced (unchanged) |
+| on | **off** | **denied at create** (`royalty not enforceable cross-chain`, fail-closed) |
+| on | **on** | accepted; legs travel in the validator-signed match and are applied at settlement |
+
+When the flag is on:
+
+1. **At create**, every leg `to` must re-encode to `GET_COIN`
+   (`Utility.canReencodeAddress`); any non-portable leg (a contract address, or a segwit
+   address when `GET_COIN` has no bech32, e.g. DOGE) denies the listing. This makes the
+   settlement-time re-encode total: a trade that delivered can never hit an unpayable leg.
+2. **In the match**, the hub copies each order's stored legs onto the
+   `cross_chain_matches` row (`a_payout_legs` / `b_payout_legs`) and the legs are part of
+   the **validator-signed XMATCH canonical** (2f+1 `cross_chain` signatures), so a
+   colluding hub cannot strip a royalty: a stripped or rewritten legs field breaks the
+   signatures and the match never settles.
+3. **At settlement** (`cross_settle`), the proceeds chain applies the *counterparty's*
+   legs to the escrow it releases, re-encoding each leg address to its own encoding
+   before crediting (`applyProceedsSplit`, same remainder-first conservation as
+   same-chain).
+
+**Leg-address encoding convention (for guard authors).** Leg `to` addresses are
+expressed in the **controlled token's own chain encoding** (the chain the guard runs
+on). P2PKH/P2SH addresses share their `hash160` across BTC/LTC/DOGE and segwit
+addresses share their witness program across BTC/LTC, so the protocol re-encodes the
+address to the proceeds chain deterministically at settlement
+(`Utility.crossChainReencodeAddress`): the same key controls the funds on both chains.
+Regtest note: BTC/LTC/DOGE regtest share base58 prefixes, so re-encoding is a no-op
+there; address-level tests must use mainnet parameters.
+
+The canonical format flip is keyed on the BTC-anchored `snapshot_block`
+(`cross_chain_royalty_activation.js`, a hub/indexer twin module), while the create-side
+acceptance rule is keyed on the local block (`protocol_changes.js`); operators must
+coordinate the two dates (canonical first or together, never create-side first). Both
+mainnet values are placeholders pending the coordinated fleet flag-day.
 
 ## Touched components
 

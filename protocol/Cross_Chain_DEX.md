@@ -58,6 +58,7 @@ A finalized match is symmetric and describes both legs:
 | `network` | `mainnet`/`testnet`/`regtest`; signed into the canonical so a match can only settle on the network it was matched on |
 | `a_chain,a_action_index,a_kind,a_tick,a_amount,a_filled_before,a_ownership,a_payout_addr` | order A (canonical-lower side); payout = A's receive address on B's chain |
 | `b_*` | order B |
+| `a_payout_legs`/`b_payout_legs` | each order's controller-guard royalty split (JSON `[{to,bps}]` in that order's OWN chain encoding; NULL = none). Applied to the released proceeds at settlement, re-encoded to the local chain; signed into the canonical at/above the `CROSS_CHAIN_ROYALTY` flag-day (see `Controller_Bound_Tokens.md` §Cross-chain sales) |
 | `effective_time` | wall-clock instant indexers apply at (the only shared clock across chains) |
 | `validator_signatures` | JSON `[{pubkey,sig}]`, `2f+1` over the canonical match |
 | `status` | `finalized` / `retracted` |
@@ -82,7 +83,12 @@ XMATCH|match_id|snapshot_block|a_chain|a_action_index|a_tick|a_amount|a_ownershi
 ```
 (`a_tick`/`b_tick` empty when null; `a_kind`/`b_kind` default `swap` and `*_filled_before` default
 `0` for a whole-offer match. `a` is the canonical-lower chain. The four fill fields are **appended
-after `network`** so a `swap` record's leading bytes are unchanged from Phase 1.) A signature counts only if
+after `network`** so a `swap` record's leading bytes are unchanged from Phase 1. At/above the
+`CROSS_CHAIN_ROYALTY` flag-day, keyed on the BTC-anchored `snapshot_block` via
+`cross_chain_royalty_activation.js`, two further fields `|a_payout_legs|b_payout_legs` are appended,
+empty when a side has none: putting the royalty legs inside the signed bytes is what stops a
+colluding hub from stripping a royalty at settlement. Below the flag-day the canonical is
+byte-identical to the pre-royalty format.) A signature counts only if
 its pubkey is in the `cross_chain` set at `snapshot_block` **and** the Ed25519 signature verifies.
 The trailing `network` binds the match to its network: an indexer settles a match only when the
 match's `network` equals its own, and because `network` is inside the signed bytes a match
