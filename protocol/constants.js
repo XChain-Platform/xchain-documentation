@@ -254,6 +254,14 @@ const CROSS_CHAIN_ROYALTY_ACTIVATION = {
 // drifted, missing EUR and KRW). The cross-service parity test asserts SDK === this list.
 const VALID_FIAT_CODES = ['USD', 'CAD', 'AUD', 'MXN', 'GBP', 'JPY', 'CNY', 'CHF', 'BRL', 'INR', 'EUR', 'KRW'];
 
+// GAS_TICK: the protocol gas token's TICK. The indexer's config['GAS']
+// (xchain-indexer/src/config.js) is the on-chain arbiter: it names the token
+// debited for capability STAKE, VOTE deposits/escrows, contract gas billing,
+// and every other gas-denominated flow. The SDK co-signer policy engine keys
+// capability-STAKE spending caps to this tick (STAKE v1/v2 carry no TICK
+// field). The cross-service parity test asserts indexer === SDK === this value.
+const GAS_TICK = 'XCHAIN';
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     OP_RETURN_PUSH_OVERHEAD,
@@ -277,4 +285,5 @@ module.exports = {
     ANCHOR_REWARD_AMOUNT,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     VALID_FIAT_CODES,
+    GAS_TICK,
 };

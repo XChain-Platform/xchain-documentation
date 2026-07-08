@@ -60,6 +60,8 @@ The action is refused **before anything is signed or broadcast**, with a typed `
 | `POLICY_WINDOW_AMOUNT_EXCEEDED` | Rolling-window token total would breach the cap |
 | `POLICY_WINDOW_COUNT_EXCEEDED` | Rolling window already holds `maxActions` actions |
 | `POLICY_CONFIRMATION_DENIED` | Amount was above `confirmAbove` threshold and the handler returned false |
+| `POLICY_UNBOUNDED_ACTION` | The action moves an amount the policy cannot measure from the action alone (SWEEP drains whole balances; AIRDROP/DIVIDEND multiply by an off-chain recipient set) while an amount cap is set. Remove the cap or disallow the action. |
+| `POLICY_UNRESOLVED_TICK` | The action references a token by its `^<id>` wire form and the policy has tick-scoped limits it cannot bind to an id. Declare the token in `tickIds` (see the co-signer section) or submit with `compactTickers` disabled. |
 | `POLICY_STATE_CORRUPT` | Usage-state file is unreadable or structurally invalid: indicates a corrupt state file, not a policy denial. Do not retry; inspect and remove or repair the file deliberately to recover. |
 
 Agents should treat all `SDKPolicyError` codes as final answers, not errors to retry.
@@ -78,7 +80,32 @@ This is a guardrail around the **agent**, not around the **key**. It protects yo
 Two practices close most of that gap:
 
 1. **Fund the agent's address like a spending account, not a vault.** The window cap only has to be wrong by one top-up.
-2. For hard enforcement, the roadmap includes a **MuSig2 co-signer**: the agent holds one key, a policy daemon holds another, and the network sees a single aggregate signature that simply cannot be produced outside policy. The SDK already ships MuSig2 (BIP-327); the co-signer service interface is specified and planned.
+2. For hard enforcement, use the **MuSig2 co-signer** (next section): the agent holds one key, a policy daemon holds another, and the network sees a single aggregate signature that simply cannot be produced outside policy.
+
+## Hard enforcement: the MuSig2 co-signer
+
+The agent session is a guardrail inside the SDK; whoever holds the raw key can go around it. The co-signer removes that path. The agent's address becomes a MuSig2 (BIP-327) aggregate of two keys: the agent holds one, a policy daemon you run holds the other. Neither key can spend alone. Before adding its half of any signature, the daemon decodes the action **from the PSBT itself** (not from anything the agent claims), evaluates the same policy rules described above against its own persisted spending window, and checks the transaction outputs against value drains. The chain sees one ordinary Taproot signature, so there is no script an attacker can satisfy some other way.
+
+```js
+// Daemon side, in its own process (ideally its own host):
+const { CoSigner } = require('xchain-sdk').coSigner;
+const { createCoSignerApp } = require('xchain-sdk/src/cosigner/server.js');
+
+// Agent side: same session API, hard-enforced.
+const session = sdk.musig2AgentSession(agentWif, policy, { transport });
+```
+
+Policy denials surface to the agent as the same `SDKPolicyError` codes listed above; the difference is that the daemon's refusal is a missing signature, not a raised error the agent could patch out.
+
+One wrinkle to know about: the SDK normally shrinks on-chain payloads by writing an indexed token's tick as its numeric id (`^123` instead of `MYTOKEN`), and the daemon judges the transaction exactly as it will appear on chain. If your policy has tick-scoped limits, tell the daemon which ids those tokens have (`tickIds: { MYTOKEN: 123 }` in the policy); an id the policy cannot resolve is refused (`POLICY_UNRESOLVED_TICK`) rather than allowed to slip past a named cap.
+
+### The 2-of-3 recovery account, and where that key must live
+
+A 2-of-2 address has an obvious failure mode: lose either key (or the daemon's host) and the funds are stuck forever. `deriveMuSig2P2TR2of3` adds a third **recovery key** so any two of the three can move funds. Normal operation still runs agent + daemon through policy; `buildRecoverySpend` is the operator escape hatch for when one party is lost.
+
+That escape hatch is deliberate, and it comes with one hard operational rule:
+
+**Never store the recovery key where the agent or the daemon runs.** A recovery-path spend involves no policy check at all; that is its purpose. If the recovery key sits on the same machine as the agent key, a compromised agent holds two of the three keys and can drain the account while the policy daemon watches. Keep the recovery key cold (hardware wallet, paper, or an offline machine), and treat any use of it as an incident to investigate, not a routine workflow.
 
 ## For MCP users
 

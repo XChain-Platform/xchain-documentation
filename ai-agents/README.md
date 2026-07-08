@@ -36,6 +36,6 @@ XChain smart contracts can call AI models. Not the other way to say it: a contra
 - **Charge agents for data and APIs.** An HTTP 402-style flow lets an agent pay for a data feed, API, or file in your token, inside the request itself. No accounts, no keys. See [Charging Agents for Data and APIs](Charging_Agents.md).
 - **Contracts that pay for AI.** A smart contract requesting an LLM or web attestation can attach a fee; the validator federation that fulfills the request earns it. See the [LLM attestation provider](../protocol/providers/llm.md) and [ATTEST](../protocol/actions/ATTEST.md).
 
-## Coming next
+## Hard, network-enforced spending limits
 
-Hard, network-enforced spending limits via a **MuSig2 co-signer**: the agent holds one key, a policy daemon holds another, and the chain sees a single aggregate signature that cannot be produced outside policy. The SDK already ships MuSig2 (BIP-327); the co-signer service is specified and planned. Watch this section.
+For limits an agent cannot bypass even with its own key, the SDK ships a **MuSig2 co-signer**: the agent holds one key, a policy daemon you run holds the other, and the chain only accepts a single aggregate signature that cannot be produced outside policy. The daemon decodes each transaction itself before adding its half, so a lying agent gains nothing. See [Giving an AI Agent a Wallet, Safely](Agent_Wallets.md) for setup and the operational rules.
