@@ -1,0 +1,114 @@
+# Protocol Activation (Flag Days)
+
+**Status:** mechanism in production; the first coordinated multi-cohort activation was armed 2026-07-07.
+
+A consensus change cannot simply ship and take effect the moment a node updates: nodes update at
+different times, and any node that evaluates a block under different rules than its peers computes a
+different ledger and forks. XChain solves this the same way Bitcoin soft-forks do, with a **flag
+day**: the new rule ships inert in a release, carries a fixed activation point (a block time or a
+block height, per network), and every node switches to the new rule at exactly that point regardless
+of when it installed the release.
+
+This document describes the activation mechanism, the three activation cohorts, where the values
+live, and what happens to a node that misses an upgrade. For the minimum lead time between shipping
+an activation value and the moment it fires, see [Upgrade Notice Policy](./Upgrade_Notice_Policy.md).
+
+## The gate
+
+Every gated rule is registered once with an activation threshold per network. In the indexer this is
+`protocol_changes.js`:
+
+```
+addChange(name, version, mainnet_time, testnet_time, regtest_time, mainnet_block, testnet_block, regtest_block)
+```
+
+At each block the indexer asks `isEnabled(name, block_index)`, which returns true only when **all** of
+these hold for the node's own network:
+
+1. **Version has caught up.** The running software version is at or past the `version` the change was
+   introduced in (semantic compare). A node running older code treats the rule as not-yet-active even
+   past the activation point, which is what lets a release ship the rule inert ahead of the flag day.
+2. **The block is at or past the time threshold.** The block's timestamp is `>=` the network's
+   `*_time` value (0 means "no time gate").
+3. **The block is at or past the height threshold.** The block's index is `>=` the network's `*_block`
+   value (0 means "no height gate").
+
+A gate is keyed on **time** or **height**, not both: set the one you want and leave the other 0. The
+choice matters (below). The check is per network, so mainnet, testnet, and regtest each carry their
+own threshold and cross independently.
+
+### Time-keyed vs height-keyed
+
+- **Height-keyed** gates pin activation to a specific block on one chain. Use this when the change is
+  anchored to a single chain's timeline, e.g. a Bitcoin-anchored validator rule pinned to a BTC
+  height.
+- **Time-keyed** gates pin activation to a wall-clock instant. Use this when one coordinated cutover
+  must land on **multiple chains at once**. Bitcoin, Litecoin, and Dogecoin heights diverge by
+  millions of blocks, so no single shared height names one moment across all three; a single Unix
+  timestamp does. The contract-era gates (which run on all three chains) are time-keyed for exactly
+  this reason.
+
+## Where the values live
+
+The canonical source of every activation value is
+[`constants.js`](constants.js) in this repository. Each consuming service carries a **byte-identical
+twin** of the maps it needs, and a cross-repo conformance gate fails CI if a twin drifts:
+
+| Service | Carries |
+|---|---|
+| `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
+| `xchain-vm` | the two contract-era VM gate constants (async ban, binary-alloc metering) |
+| `xchain-hub` | the four validator-era gate modules (checkpoint, equivocation header, stake-weighted quorum, anchor reward) |
+| `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
+
+Because the values are byte-identical everywhere, a heterogeneous fleet and any from-genesis replay
+evaluate every historical block the same way.
+
+## The three cohorts
+
+Activation values are grouped into cohorts by what kind of point they key on. Grouping lets one
+coordinated fleet rollout retire a whole batch at once.
+
+| Cohort | Keyed on | Rules | Straggler behavior |
+|---|---|---|---|
+| **A (contract era)** | one shared **time** (all three chains) | base64 DEPLOY encoding, VM async ban, VM binary-alloc metering, controller guards, VM balance/token-info surface, issuance-fee exemption, unstake-cooldown completion, cross-chain royalty create-side | **forks** |
+| **B (validator era)** | one **BTC height** | checkpoint commitment, equivocation header, stake-weighted quorum, anchor reward, cross-chain royalty canonical | **forks** |
+| **C (state commitment)** | per-chain **local height** | light-client state commitment (state root + block-merkle root) and its state-hash classes (e.g. token-supply, poll-finalize) | **halts, recoverable** |
+
+Testnet and regtest run every cohort **genesis-active** (threshold 0), so the test networks always
+exercise the post-activation behavior; only mainnet carries a future threshold.
+
+## Straggler behavior
+
+What happens to a node that crosses a flag day still running pre-activation code depends on whether
+the gated change is **forking** or **additive**:
+
+- **Cohort A and B rules are forking.** They change action validity, ledger hashes, or the signature
+  preimage a validator signs. A node that misses the upgrade computes a different ledger or produces
+  signatures its peers reject, and it **forks**. Recovery requires upgrading and resyncing from a
+  converged snapshot. This is why these cohorts carry the full upgrade-notice window.
+- **Cohort C is additive.** The state commitment adds a new per-block state root; it does not change
+  the ledger, actions, or contract hashes. A replica that reaches the activation height still running
+  pre-activation code cannot fold the new state and **halts** on a state-hash divergence rather than
+  silently diverging. Recovery is clean: upgrade to the armed code, clear the halt (or resync), and it
+  folds state and catches up. The halt-not-fork property was verified end-to-end in the 2026-07-07
+  transition drill.
+
+The distinction is the safety net: an additive change fails loud and recoverable, so a Cohort-C
+straggler is an operational blip, not a consensus split.
+
+## Deferring and reverting
+
+- An armed value may be **deferred** (moved later) at any time before it is crossed, by shipping a new
+  release. Nothing has taken effect yet, so this is free.
+- Once a value is **crossed**, it is live consensus. Reverting it is itself a consensus change and
+  requires a new flag day under the same [notice policy](./Upgrade_Notice_Policy.md).
+
+## Related documentation
+
+- [Upgrade Notice Policy](./Upgrade_Notice_Policy.md): minimum lead time before an armed value fires.
+- [Controller-Bound Tokens](./Controller_Bound_Tokens.md): the programmable-policy and cross-chain
+  royalty rules gated by cohorts A and B.
+- [SDK Light Client](../components/sdk/LIGHT_CLIENT.md): the SPV verifier that consumes the Cohort-C
+  state commitment.
+- [`constants.js`](constants.js): the canonical activation values.

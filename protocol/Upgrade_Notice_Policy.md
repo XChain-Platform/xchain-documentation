@@ -4,7 +4,8 @@
 
 Every consensus activation value (the flag-day maps in [`constants.js`](constants.js) and the
 `protocol_changes.js` timestamp gates) ships in a tagged release before it fires. This policy
-sets the minimum lead time between that release and the earliest activation moment it arms.
+sets the minimum lead time between that release and the earliest activation moment it arms. For how
+the gates themselves work and what the cohorts are, see [Protocol Activation](./Protocol_Activation.md).
 
 ## Minimum lead time
 
