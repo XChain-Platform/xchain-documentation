@@ -52,9 +52,10 @@ const psbt = await aliceSdk.encoder.createTx({
 const txid = await signAndBroadcast(psbt.psbt);
 await mineBlock(); // mine on Bitcoin regtest
 
-// Get the ACTION_INDEX for Bob to reference
+// Get the ACTION_INDEX for Bob to reference. getActions() returns { total, data },
+// so the matching rows are under .data, not the response itself.
 const swapActions = await aliceSdk.explorer.getActions({ txid });
-const swapActionIndex = swapActions[0].action_index;
+const swapActionIndex = swapActions.data[0].action_index;
 console.log('Swap ACTION_INDEX:', swapActionIndex);
 ```
 
@@ -75,7 +76,7 @@ const openSwaps = await aliceSdk.explorer.getActions({
   tick: 'RAREPEPE',
   // filter by action type on client
 });
-const swaps = openSwaps.filter(a => a.action === 'SWAP' && a.status === 'open');
+const swaps = openSwaps.data.filter(a => a.action === 'SWAP' && a.status === 'open');
 console.log('Open swaps:', swaps);
 // [{
 //   action_index: 1234,
@@ -134,16 +135,13 @@ The hub detects that both sides of the swap are in their respective confirmed bl
 Both escrows are released and the swap closes automatically. No further action is required from either party.
 
 ```js
-// Verify Alice received LTCTOKEN on LTC
-const aliceLtcBalances = await bobSdk.explorer.getBalances({
-  address: 'ltc1qalicesltcaddress...',
-});
+// Verify Alice received LTCTOKEN on LTC. getBalances() takes the address as a
+// positional argument, not an options object.
+const aliceLtcBalances = await bobSdk.explorer.getBalances('ltc1qalicesltcaddress...');
 console.log('Alice LTC balances:', aliceLtcBalances);
 
 // Verify Bob received RAREPEPE on BTC
-const bobBtcBalances = await aliceSdk.explorer.getBalances({
-  address: 'bc1qbobsbtcaddress...',
-});
+const bobBtcBalances = await aliceSdk.explorer.getBalances('bc1qbobsbtcaddress...');
 console.log('Bob BTC balances:', bobBtcBalances);
 ```
 

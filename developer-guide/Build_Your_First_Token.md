@@ -11,7 +11,7 @@ For environment setup, see [Regtest_Development.md](Regtest_Development.md).
 
 ## Prerequisites
 
-- Local regtest stack running (`node xchain-node install --regtest`)
+- Local regtest stack running (`xchain-node install master all bitcoin regtest`)
 - Node.js installed
 - `xchain-sdk` installed in your project
 

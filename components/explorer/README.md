@@ -5,14 +5,14 @@
 
 ## What is xchain-explorer
 
-xchain-explorer is the query and presentation layer of the XChain Platform. It reads from the Indexer database and exposes over 60 REST API endpoints, a JSON-RPC 2.0 interface, and a Bootstrap-based web block explorer, all from a single long-lived Node.js/Express process. The explorer never writes to any database.
+xchain-explorer is the query and presentation layer of the XChain Platform. It reads from the Indexer database and exposes over 200 REST API endpoints, a JSON-RPC 2.0 interface, and a Bootstrap-based web block explorer, all from a single long-lived Node.js/Express process. The explorer never writes to any database.
 
 The explorer is the primary integration point for wallets, exchanges, dApps, and any application that needs to query XChain state. Developers interact with the platform through the explorer's REST API (directly or via the xchain-sdk), making this the most externally-facing component of the stack.
 
 ## Features
 
 - **Three interfaces**: REST API, JSON-RPC 2.0, and a web block explorer served from the same process
-- **60+ REST endpoints**: tokens, balances, transactions, market data, DEX state, addresses, blocks, files, messages, and more
+- **200+ REST endpoints**: tokens, balances, transactions, market data, DEX state, addresses, blocks, files, messages, and more
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 networks)
 - **Read-only**: the explorer never writes to the Indexer database
 - **Config discovery**: fetches configuration from xchain-hub on startup and refreshes every 60 seconds
@@ -34,7 +34,7 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 |---|---|
 | [Architecture](ARCHITECTURE.md) | Data pipeline position, internal components, request processing pipeline, source files |
 | [Configuration](CONFIGURATION.md) | Environment variables, config.json, hub discovery, SSL/TLS, CORS, rate limiting, coin config |
-| [API Reference](API.md) | Complete REST API: all 60+ endpoints with paths, parameters, response formats, and examples |
+| [API Reference](API.md) | Complete REST API: all 200+ endpoints with paths, parameters, response formats, and examples |
 | [WebSocket API](WEBSOCKET.md) | Real-time event streaming: connection, channels, subscriptions, filters, lifecycle events, catch-up |
 | [Operations](OPERATIONS.md) | Running, Docker, SSL setup, security features, relay endpoint, troubleshooting |
 

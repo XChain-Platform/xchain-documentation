@@ -31,7 +31,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **PSBT**: Partially Signed Bitcoin Transaction. The standard format for unsigned or partially signed transactions on Bitcoin-family chains. XChain's encoder produces PSBTs that the caller signs with their wallet and broadcasts.
 
-**TICK**: A token ticker symbol, up to 250 characters. Cannot contain `|`, `;`, `.`, or `/`. Cannot begin with `^`. Used to identify tokens throughout the protocol. When referencing a token by its numeric ID instead of its ticker, prefix with `^` (e.g., `^1234`).
+**TICK**: A token ticker symbol, up to 250 characters. Cannot contain `|`, `;`, or `/`, and cannot begin with `^`. A period (`.`) is allowed and is reserved as the parent/child sub-token separator (e.g. `MYTOKEN.SILVER`), but a TICK cannot begin or end with one. Used to identify tokens throughout the protocol. When referencing a token by its numeric ID instead of its ticker, prefix with `^` (e.g., `^1234`).
 
 **TICK_ID**: The numeric ACTION_INDEX of the ISSUE action that created a token. An alternative way to reference a token that is stable even if the ticker is changed.
 
@@ -55,7 +55,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **xchain-regtest-miner**: A service that automatically mines pending mempool transactions in regtest environments, producing instant block confirmations for development and testing.
 
-**xchain-sdk**: The developer SDK for the XChain platform. Provides methods for 29 of the 34 actions (the developer-invocable set), 90+ explorer query methods, a batch builder, PSBT generation, and typed error classes.
+**xchain-sdk**: The developer SDK for the XChain platform. Provides methods for 30 of the 34 actions (the developer-invocable set), 90+ explorer query methods, a batch builder, PSBT generation, and typed error classes.
 
 **xchain-utxo-tracker**: A service that indexes all UTXOs from the coin node into LevelDB. Used by the encoder to look up available UTXOs for a given address.
 
@@ -160,6 +160,12 @@ These five ACTIONs are written by the validator federation or synthesized by the
 **SLASH**: A permissionless ACTION that burns an equivocating validator's entire capability bond. Anyone who catches a validator signing two conflicting values for the same consensus slot can submit the two signed messages as a SLASH proof. If the proof is valid, the offender's stake is burned in place; the submitter receives a governance-configured bounty from the burned amount.
 
 **XCALL**: A VM-emitted ACTION that lets a smart contract on one chain call a method on a contract deployed on a different chain, then receive the result through a callback method. The cross-chain relay is performed by the validator federation with no extra on-chain transaction. Version 2 is system-synthesized when the call expires before a result arrives.
+
+---
+
+## Governance
+
+**VOTE**: A user-submittable, on-chain ACTION that casts a token-weighted ballot on a governance poll. Distinct from the hub validator network's own off-chain PBFT voting (used to approve configuration changes); VOTE is how token holders themselves vote on-chain.
 
 ---
 

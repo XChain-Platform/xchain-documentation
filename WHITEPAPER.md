@@ -7,6 +7,9 @@
 
 **Authors:** Jeremy Johnson & Javier Varona Zavatti, Co-Founders, Dankest, LLC · **Version 1.1**
 
+**Date:** 2026-07-08  
+**Status:** Reconciled against the implementation at HEAD; every whitepaper-reconciliation gap-map correction verified applied.  
+
 > Some economic parameters in this paper (the gas schedule and `GAS_PRICE`) are consensus-critical and are finalized at protocol freeze ahead of launch; the values shown convey the model and current defaults. Features marked *(pre-launch)* are specified and implemented but not yet activated on mainnet, where they switch on at a coordinated flag-day height. Genesis distribution figures are finalized at genesis and announced separately.
 
 ---

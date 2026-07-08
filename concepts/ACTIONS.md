@@ -45,7 +45,7 @@ Invalid ACTIONs are recorded as failed; they are not silently ignored. This make
 
 ## The ACTION Set
 
-The platform defines 34 ACTION types in total. Of those, 29 are user-submittable (available via the SDK) across eight categories; the remaining 5 (ANCHOR, ATTEST, NODEPROOF, SLASH, XCALL) are validator-broadcast or system-synthesized and are not SDK-invocable. The genesis categories (Token Lifecycle, Transfers, DEX, Data, Utility) are available from block 0; the Staking, Virtual Machine, and Oracle actions activate at later block heights.
+The platform defines 34 ACTION types in total. Of those, 30 are user-submittable (available via the SDK) across nine categories; the remaining 4 (ANCHOR, ATTEST, NODEPROOF, SLASH) are validator-broadcast or system-synthesized and are not SDK-invocable. XCALL is a related but separate case: it is mirror-injected into the destination chain's index rather than decoded from a wire transaction, so it is not counted among the 34 wire-decoded ACTION types, though it is documented below alongside the validator/system actions since it is also not user-submittable. The genesis categories (Token Lifecycle, Transfers, DEX, Data, Utility) are available from block 0; the Staking, Virtual Machine, Oracle, and Governance actions activate at later block heights.
 
 ### Token Lifecycle
 
@@ -119,9 +119,15 @@ This section contains 2 entries: `PRICE` (user-submittable) and `ATTEST` (includ
 | `DEPOSIT` | Transfer tokens from the sender to a contract's derived address. Credits the contract in the standard ledger. |
 | `WITHDRAW` | Return tokens from a contract's derived address to the contract owner. Owner-only. |
 
+### Governance
+
+| ACTION | What it does |
+|---|---|
+| `VOTE` | Cast a token-weighted ballot on a governance poll. User-submittable and on-chain, distinct from the hub validator network's own off-chain PBFT process for approving configuration changes (see [Security Model](./Security_Model.md)). |
+
 ### Validator / System Actions
 
-The following actions are not user-submittable and are not in the SDK. They are listed here so readers can find their descriptions when browsing this page. (The full set of non-SDK actions is ANCHOR, ATTEST, NODEPROOF, SLASH, XCALL; ATTEST is documented in the Oracles section above.)
+The following actions are not user-submittable and are not in the SDK. They are listed here so readers can find their descriptions when browsing this page. (The full set of non-user-submittable, wire-decoded actions is ANCHOR, ATTEST, NODEPROOF, and SLASH; ATTEST is documented in the Oracles section above. XCALL is also not user-submittable, but unlike the other four it is mirror-injected rather than wire-decoded, so it falls outside the 34-ACTION wire-decoded count.)
 
 | ACTION | What it does |
 |---|---|

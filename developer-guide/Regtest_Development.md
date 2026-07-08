@@ -23,16 +23,16 @@ Regtest is a fully local, self-contained blockchain environment where you contro
 
 ```bash
 # Install the regtest stack (downloads images, creates containers, starts everything)
-node xchain-node install --regtest
+xchain-node install master all bitcoin regtest
 
 # Start all services
-node xchain-node start --regtest
+xchain-node start all bitcoin regtest
 
 # Stop all services
-node xchain-node stop --regtest
+xchain-node stop all bitcoin regtest
 
 # Check service status
-node xchain-node status
+xchain-node ps
 ```
 
 After `install`, all the following services are running locally:
@@ -207,14 +207,14 @@ To wipe all state and start from a clean chain:
 
 ```bash
 # Stop all services
-node xchain-node stop --regtest
+xchain-node stop all bitcoin regtest
 
 # Remove containers and volumes
-node xchain-node uninstall --regtest
+xchain-node uninstall all bitcoin regtest
 
 # Reinstall fresh
-node xchain-node install --regtest
-node xchain-node start --regtest
+xchain-node install master all bitcoin regtest
+xchain-node start all bitcoin regtest
 ```
 
 This drops all MariaDB data, LevelDB data, and the regtest blockchain, giving you a clean slate.

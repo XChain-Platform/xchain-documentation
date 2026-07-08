@@ -98,9 +98,11 @@ XChain supports **staking** for hub validation. Validators stake XCHAIN tokens t
 Four of the 34 ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not accessible through the SDK, but they appear on-chain and in the explorer, so it is worth knowing what they do.
 
 - **ANCHOR** is written by validators to commit a quorum-signed state checkpoint to the anchor chain (Dogecoin on all networks). It records the per-block ledger, action, and contract hash triple so light clients can verify indexer state against a threshold of validator signatures without trusting any single operator. Later versions of ANCHOR also archive cross-chain match records and SPV light-client roots, making the full platform state reconstructible from chain data alone.
+- **ATTEST** is written by validators when they answer a smart contract's request for outside-world data (an HTTP call, an LLM query, etc.). Validators fetch the answer independently, reach quorum, and broadcast the signed response back on-chain; a system-synthesized expiry version is written by the indexer if the deadline passes before quorum is reached.
 - **NODEPROOF** is written by validators to record a quorum-signed verdict proving which validators correctly answered a periodic block-data possession challenge. It serves as on-chain evidence that those validators operate real coin full nodes rather than relying on mirrored databases.
 - **SLASH** is submitted by anyone who catches a validator signing two conflicting values for the same consensus slot (equivocation). When the proof is valid, the offending validator's entire capability bond is burned automatically. The submitter receives a governance-configured bounty.
-- **XCALL** is emitted by the VM when a smart contract calls `emit.crossExecute(...)` to invoke a contract on a different chain. The validator federation relays the call and delivers the result back through a callback on the originating chain. A system-synthesized version is written by the indexer if the deadline passes before a result arrives.
+
+XCALL, the platform's cross-chain contract call, works differently: it's emitted by the VM when a smart contract calls `emit.crossExecute(...)` to invoke a contract on a different chain, then mirror-injected into the destination chain's index by the validator federation rather than decoded from a wire transaction, so it isn't counted among the 34 wire-decoded ACTIONs above. The validator federation relays the call and delivers the result back through a callback on the originating chain; a system-synthesized version is written by the indexer if the deadline passes before a result arrives.
 
 ---
 
@@ -146,7 +148,8 @@ Every operation on XChain is expressed as one of 34 ACTION commands. Think of th
 | Staking | STAKE, UNSTAKE, DELEGATE, COLLECT |
 | Data and communication | BROADCAST, MESSAGE, FILE |
 | Configuration | ADDRESS, BATCH, LINK, LIST |
-| Validator / system | ANCHOR, NODEPROOF, SLASH, XCALL |
+| Governance | VOTE |
+| Validator / system | ANCHOR, NODEPROOF, SLASH |
 
 Each ACTION has a versioned format, as the protocol evolves and adds new fields, old versions remain valid so that existing software doesn't break.
 
@@ -166,7 +169,7 @@ XCHAIN is itself just a token on XChain, issued by a designated address (called 
 
 ### Developers Building Token Platforms
 
-XChain provides a complete SDK (`xchain-sdk`) with methods for 29 of the 34 actions (the developer-invocable set), 90+ explorer queries, smart contract deployment and execution, a batch builder, real-time WebSocket event streaming, and PSBT generation. If you want to build a token platform, a DEX, an NFT marketplace, a DeFi protocol with smart contracts, or any application involving digital assets on Bitcoin-family chains, XChain gives you the full stack.
+XChain provides a complete SDK (`xchain-sdk`) with methods for 30 of the 34 actions (the developer-invocable set), 90+ explorer queries, smart contract deployment and execution, a batch builder, live WebSocket event streaming, and PSBT generation. If you want to build a token platform, a DEX, an NFT marketplace, a DeFi protocol with smart contracts, or any application involving digital assets on Bitcoin-family chains, XChain gives you the full stack.
 
 ### Organizations Wanting Private Deployments
 

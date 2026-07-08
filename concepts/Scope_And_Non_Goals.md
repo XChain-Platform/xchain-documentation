@@ -75,8 +75,8 @@ a new trust layer. Speed is the price of that security.
 XChain contracts are **orchestration logic, not arbitrary state machines**. A contract cannot
 mutate the ledger directly; it emits the same validated ACTIONs a user would (see
 [Smart Contracts](./Smart_Contracts.md)). A contract **can** invoke another contract, on the same
-chain via [`emit.execute`](./actions/EXECUTE.md), or on another chain via
-[`XCALL`](./actions/XCALL.md); but only by emitting a new action that is processed on its own:
+chain via [`emit.execute`](../protocol/actions/EXECUTE.md), or on another chain via
+[`XCALL`](../protocol/actions/XCALL.md); but only by emitting a new action that is processed on its own:
 there is no synchronous return value, contracts cannot deploy other contracts, and a contract
 cannot observe the effects of its own emissions within a single execution (snapshot semantics).
 This makes the audit surface small and every state change uniform, but it means XChain is **not** a

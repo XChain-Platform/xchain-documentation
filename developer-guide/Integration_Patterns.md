@@ -683,10 +683,11 @@ class BlockPoller {
   async start(intervalMs = 15000) {
     while (true) {
       try {
-        // Check the latest block via any action query
+        // Check the latest block via any action query. getActions() returns
+        // { total, data }, so the rows are under .data.
         const recent = await this.sdk.explorer.getActions({ page: 1, limit: 1 });
-        if (recent.length && recent[0].block_index > this.lastBlock) {
-          this.lastBlock = recent[0].block_index;
+        if (recent.data.length && recent.data[0].block_index > this.lastBlock) {
+          this.lastBlock = recent.data[0].block_index;
           await this.onNewBlock(this.lastBlock);
         }
       } catch (err) {

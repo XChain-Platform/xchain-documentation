@@ -33,7 +33,7 @@ XChain's security properties come from several sources: the underlying blockchai
 
 **Decentralized**: Anyone can run an XChain node (decoder + indexer + explorer) and independently compute the full state of the protocol. No permission is required. No central authority controls which tokens exist, who holds what, or whether a transfer is valid; those are all determined by the blockchain data and the protocol rules.
 
-**Hub validator network**: The xchain-hub operates as a decentralized validator network. Validators form a P2P gossip mesh with PBFT consensus, Ed25519 identity, and Byzantine fault tolerance. Configuration writes, price oracle data, cross-chain attestations, and governance decisions all require 2f+1 validator agreement. Users who run their own full stack (all services including their own hub validator) participate directly in the validator network and do not depend on any single hub instance. See [`../components/hub/`](../components/hub/) for full architecture details.
+**Hub validator network**: The xchain-hub operates as a decentralized validator network. Validators form a P2P gossip mesh with PBFT consensus, Ed25519 identity, and Byzantine fault tolerance. Configuration writes, price oracle data, cross-chain attestations, and governance decisions all require a `max(2f+1, ceil((N+1)/2))` validator agreement (the majority term keeps a small federation from collapsing to a single signer). Users who run their own full stack (all services including their own hub validator) participate directly in the validator network and do not depend on any single hub instance. See [`../components/hub/`](../components/hub/) for full architecture details.
 
 ## Network Security
 
@@ -65,7 +65,7 @@ The purpose is to prevent naive keyword scanning of the blockchain for XChain da
 | Token state correctness | Deterministic protocol rules + sanity checks |
 | Balance integrity | Double-entry ledger + block-level verification |
 | Independent verification | Anyone can run a full node |
-| Configuration trustworthiness | Hub validator network (PBFT consensus, 2f+1 agreement) |
+| Configuration trustworthiness | Hub validator network (PBFT consensus, `max(2f+1, ceil((N+1)/2))` agreement) |
 | Cross-chain swap coordination | Hub validator network (PBFT consensus, cross-chain attestation) |
 | Network transport security | TLS + Helmet + CORS |
 | SQL safety | Parameterized queries + table whitelisting |

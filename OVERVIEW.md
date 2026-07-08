@@ -11,7 +11,7 @@ A short, plain-language introduction to the platform. For the full protocol spec
 
 ## In one paragraph
 
-XChain is a token platform that turns the world's most secure blockchains into programmable, multi-chain asset networks: without bridges, sidechains, or a new chain to trust. It embeds a complete protocol (tokens, a built-in exchange, cross-chain swaps, smart contracts, cross-chain contract calls, and on-chain data) directly inside ordinary blockchain transactions, so every asset inherits the host chain's proof-of-work security wholesale. It is chain-agnostic by design, live in production today on Bitcoin, Litecoin, and Dogecoin, and built to extend across many blockchains. The product exists, runs, and has settled cross-chain trades end-to-end.
+XChain is a token platform that turns the world's most secure blockchains into programmable, multi-chain token networks: without bridges, sidechains, or a new chain to trust. It embeds a complete protocol (tokens, a built-in exchange, cross-chain swaps, smart contracts, cross-chain contract calls, and on-chain data) directly inside ordinary blockchain transactions, so every token inherits the host chain's proof-of-work security wholesale. It is chain-agnostic by design, live in production today on Bitcoin, Litecoin, and Dogecoin, and built to extend across many blockchains. The product exists, runs, and has settled cross-chain trades end-to-end.
 
 ## The problem
 
@@ -23,7 +23,7 @@ The largest, most liquid, most secure chains (Bitcoin and its relatives) were ne
 
 XChain is a **metalayer**: a protocol that runs above an unmodified base blockchain, using ordinary transactions to carry its data. Software running the protocol reads those transactions and derives its own state (balances, order books, contract storage) by a fixed, deterministic set of rules anyone can independently replay and verify.
 
-The result is a full digital-asset stack expressed as **34 standard ACTIONs**: issue and manage tokens (including non-fungible and limited-edition tokens), transfer and airdrop, trade on a native on-chain exchange, swap tokens trustlessly across chains, deploy smart contracts and call them across chains, publish encrypted token-gated content, run staking, and store data, all secured by the base chain, with no bridge anywhere in the system.
+The result is a full digital-token stack expressed as **34 standard ACTIONs**: issue and manage tokens (including non-fungible and limited-edition tokens), transfer and airdrop, trade on a native on-chain exchange, swap tokens trustlessly across chains, deploy smart contracts and call them across chains, publish encrypted token-gated content, run staking, and store data, all secured by the base chain, with no bridge anywhere in the system.
 
 Critically, **none of this is Bitcoin-specific.** The metalayer technique works on any suitable chain. Bitcoin, Litecoin, and Dogecoin are the first three; adding another UTXO chain is a configuration change, not a rebuild. XChain is designed to grow into a platform spanning a large number of blockchains over time.
 
@@ -39,7 +39,7 @@ Three things are genuinely hard to replicate:
 
 **AI- and web-callable contracts.** XChain contracts can ask the outside world a question (an HTTPS fetch, or a prompt to an approved AI model) and get a *verified* answer back on-chain. A validator network fetches the answer independently, agrees on the result, and writes it so the outcome is reproducible by anyone replaying the chain. This makes a long-promised class of applications finally practical: AI-judged contests and moderation, parametric insurance, prediction markets settled from real sources, data-reactive treasuries.
 
-**Bridgeless multi-chain.** Because XChain never wraps or locks assets, there's no bridge to attack. Cross-chain swaps are coordinated (never custodied) by a stake-weighted Byzantine-fault-tolerant validator network; tokens stay on their home chains and only ownership changes, and the same rail carries cross-chain contract calls. Cross-chain settlement already works in production.
+**Bridgeless multi-chain.** Because XChain never wraps or locks tokens, there's no bridge to attack. Cross-chain swaps are coordinated (never custodied) by a stake-weighted Byzantine-fault-tolerant validator network; tokens stay on their home chains and only ownership changes, and the same rail carries cross-chain contract calls. Cross-chain settlement already works in production.
 
 Reinforcing these: token-gated encrypted content that unlocks client-side with no key server, a staking primitive that lets any token back any contract on any chain, a fully transparent ledger anyone can replay from genesis, and a light-client path that lets an app verify a balance against quorum-signed checkpoints without trusting any single server.
 
@@ -51,7 +51,7 @@ The gas token, **XCHAIN**, is conservative by design:
 - **No inflation**: validator rewards are paid from a pre-funded pool, never minted.
 - **Demand** comes from fee payment and staking lockup against that fixed cap.
 
-The genesis distribution is planned to honor the communities that pioneered Bitcoin-native tokens; a snapshot reserving asset-name ownership for prior holders, plus a community airdrop. A fair launch: no ICO, no inflationary mint, no insider faucet.
+The genesis distribution is planned to honor the communities that pioneered Bitcoin-native tokens; a snapshot reserving tick-name ownership for prior holders, plus a community airdrop. A fair launch: no ICO, no inflationary mint, no insider faucet.
 
 XChain is open source (AGPL-3.0) with a commercial license available for proprietary use.
 
@@ -59,8 +59,8 @@ XChain is open source (AGPL-3.0) with a commercial license available for proprie
 
 - **Live in production** on Bitcoin, Litecoin, and Dogecoin, with public explorer, encoder, and hub services behind TLS.
 - **Cross-chain settlement proven end-to-end** between live chains.
-- **Around 14 components** spanning the full stack: node manager, encoder, decoder, indexer, explorer, hub, UTXO tracker, VM, replication, SDK, multi-platform wallet, regtest tooling, end-to-end tests, and a complete protocol specification.
-- **A full developer SDK** (the full operation set, contract deploy/execute, cross-chain calls, light-client proof verification, real-time streaming, transaction building) with the wallet as a reference client.
+- **13 components** spanning the full stack: node manager, encoder, decoder, indexer, explorer, hub, UTXO tracker, VM, replication, SDK, multi-platform wallet, regtest tooling, and end-to-end tests, plus a complete protocol specification.
+- **A full developer SDK** (the full operation set, contract deploy/execute, cross-chain calls, light-client proof verification, live streaming, transaction building) with the wallet as a reference client.
 - **Open-sourced** across all public repositories.
 
 ## Where it's going

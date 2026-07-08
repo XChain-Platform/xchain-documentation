@@ -85,7 +85,7 @@ See [`../components/indexer/`](../components/indexer/) for full documentation.
 
 Key technical details:
 
-- Over 160 REST endpoint patterns across the `/api` and `/explorer` namespaces (106 `/api` routes and 56 `/explorer` routes in the dispatch table, plus additional hand-registered routes for file download, fee quote, fee schedule, checkpoints, Merkle proofs, and the OpenAPI spec), covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, governance polls and ballots, and more.
+- Over 200 REST endpoint patterns across the `/api` and `/explorer` namespaces (129 `/api` routes and 68 `/explorer` routes in the dispatch table, plus additional hand-registered routes for file download, fee quote, fee schedule, checkpoints, Merkle proofs, hub-mirror status, and the OpenAPI spec), covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, governance polls and ballots, and more.
 - JSON-RPC 2.0 interface compatible with Counterparty-style tooling.
 - Bootstrap-based web UI with Highcharts for order book and market price visualization.
 - Reads configuration from xchain-hub every 60 seconds (fee schedules, supported parameters, fiat pricing).
@@ -215,7 +215,7 @@ Key technical details:
 
 - Operates in two modes: standalone (simple config oracle) and validator mode (full PBFT consensus, P2P gossip, oracle, cross-chain attestation, governance).
 - Supports multi-instance deployment, multiple hub instances against shared MariaDB, with consumer fallback via `HUB_VALIDATORS`.
-- Config writes go through PBFT consensus in validator mode (PRE_PREPARE → PREPARE → COMMIT with 2f+1 quorum).
+- Config writes go through PBFT consensus in validator mode (PRE_PREPARE → PREPARE → COMMIT with a `max(2f+1, ceil((N+1)/2))` quorum).
 - Decentralized price oracle: validators fetch from CoinGecko and Kraken (CoinMarketCap optional, requires API key), aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
 - Cross-chain attestation engine with per-chain-pair validator subsets and confirmation thresholds (BTC: 6, LTC: 12, DOGE: 60; env-tunable via `XCHAIN_CONFIRMATIONS_<COIN>`).
 - SWAP lifecycle tracking: initiated → attested → executed → settled.
