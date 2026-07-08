@@ -1,5 +1,5 @@
 {
-  "_description": "Canonical conformance vectors for the stake-weighted quorum predicate (STAKE_WEIGHTED_QUORUM / WI-1). Each service (xchain-hub, xchain-indexer, xchain-explorer, xchain-sdk, xchain-sync) keeps a hand-maintained copy of stake_weighted_quorum.js in a different bignum dialect (bcmath / injected util / mathjs). A divergence in predicate logic forks the chain. Each repo's conformance test runs these vectors against its local copy so any behavioral drift is machine-detectable. This file is the single source of truth; do not fork it. Predicate: a source-deduped quorum holds iff 3 * sum(distinct signing-source weight) > 2 * S, where S = sum of weight over distinct sources; pubkeys are matched case-insensitively; a blank or missing source fails closed.",
+  "_description": "Canonical conformance vectors for the stake-weighted quorum predicate (STAKE_WEIGHTED_QUORUM / WI-1). Each service (xchain-hub, xchain-indexer, xchain-explorer, xchain-sdk, xchain-sync) vendors a BYTE-IDENTICAL copy of protocol/reference-impl/stake_weighted_quorum.js; each repo's ConsensusPrimitiveConformance test runs these vectors against its local copy AND asserts byte-identity to the canonical source, so any drift is machine-detectable. A divergence in predicate logic forks the chain. This file is the single source of truth; do not fork it. Predicate: a source-deduped quorum holds iff 3 * sum(distinct signing-source weight) > 2 * S, where S = sum of weight over distinct sources; pubkeys are matched case-insensitively. Fail-closed rules: a blank or missing source fails closed; a NEGATIVE weight anywhere in the snapshot fails closed (totalStake throws); a non-positive total stake S is never quorate.",
   "meetsStakeThreshold": [
     {
       "name": "single source meets the threshold (3S > 2S)",
@@ -113,6 +113,40 @@
       ],
       "signers": ["K1", "K2", "K3"],
       "expected": true
+    },
+    {
+      "name": "negative weight fails closed: a corrupt row cannot buy quorum for an otherwise-passing signer",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "10" },
+        { "pubkey": "K2", "source": "s2", "weight": "-100" }
+      ],
+      "signers": ["K1"],
+      "expected": false
+    },
+    {
+      "name": "negative weight fails closed: an EMPTY signer set must not finalize against negative S (0 > 2*S regression)",
+      "validators": [{ "pubkey": "K1", "source": "s1", "weight": "-5" }],
+      "signers": [],
+      "expected": false
+    },
+    {
+      "name": "negative weight fails closed even when the remaining positive stake alone would pass",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "100" },
+        { "pubkey": "K2", "source": "s2", "weight": "-1" },
+        { "pubkey": "K3", "source": "s3", "weight": "10" }
+      ],
+      "signers": ["K1", "K3"],
+      "expected": false
+    },
+    {
+      "name": "all-zero weights: S is not positive, nothing is quorate even with every source signing",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "0" },
+        { "pubkey": "K2", "source": "s2", "weight": "0" }
+      ],
+      "signers": ["K1", "K2"],
+      "expected": false
     }
   ],
   "totalStake": [
@@ -128,6 +162,14 @@
     {
       "name": "a blank source throws (a collapsed bucket is meaningless)",
       "validators": [{ "pubkey": "K1", "source": "", "weight": "10" }],
+      "throws": true
+    },
+    {
+      "name": "a negative weight throws (S over a corrupt snapshot is meaningless)",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "10" },
+        { "pubkey": "K2", "source": "s2", "weight": "-1" }
+      ],
       "throws": true
     }
   ]
