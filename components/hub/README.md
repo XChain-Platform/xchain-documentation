@@ -15,7 +15,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 
 - **Config store**: JSON-RPC API for service configuration parameters used by all platform services
 - **Service discovery**: other services poll the hub to find hostnames, ports, and connection details for their dependencies
-- **PBFT consensus**: config writes go through a PRE_PREPARE → PREPARE → COMMIT consensus round requiring 2f+1 agreement
+- **PBFT consensus**: config writes go through a PRE_PREPARE → PREPARE → COMMIT consensus round requiring a `max(2f+1, ceil((N+1)/2))` quorum (the majority floor keeps a small federation from collapsing to a single signer)
 - **P2P gossip**: WebSocket-based peer mesh with heartbeat, exponential backoff reconnection, and message deduplication
 - **Ed25519 validator identity**: cryptographic message signing and verification using Node.js built-in crypto
 - **Leader rotation**: deterministic per-sequence leader from sorted validator set with view change on timeout

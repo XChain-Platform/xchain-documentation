@@ -131,6 +131,8 @@ The following actions are not user-submittable and are not in the SDK. They are 
 
 | ACTION | What it does |
 |---|---|
+| `ANCHOR` | Validator-broadcast on-chain commitment of federation-signed state. A single version-discriminated action: v0 anchors one chain's quorum-signed per-block state-hash triple (`ledger`/`actions`/`contract`) to the anchor chain; v1 adds a compressed batch of the full `cross_chain_matches` archive with their validator signatures. This is how the platform checkpoints state and the cross-chain match history immutably on-chain. |
+| `NODEPROOF` | On-chain, quorum-signed verdict recording which validators answered a periodic possession challenge, proving they run a real coin full node rather than mirroring the decoder/indexer databases via `xchain-sync`. Feeds the full-node verified reward tier. |
 | `SLASH` | Permissionless equivocation proof. Any party may broadcast a SLASH carrying two conflicting signed messages from the same validator for the same protocol round; the indexer verifies both signatures on-chain and burns a portion of the offender's capability stake. BTC-only (capability staking is BTC-only). v0 carries the offender's pubkey, capability label, and the two signed-canonical pairs. |
 | `XCALL` | Cross-chain contract call lifecycle. v0 is a request emitted by a VM contract via `xchain.emit.crossExecute()`; it is never user-broadcast. v2 is system-synthesized when the call deadline passes without a result, firing the requester's timeout callback. The relay itself rides the hub's quorum-signed cross_chain_calls mirror. |
 
