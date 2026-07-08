@@ -169,6 +169,7 @@ explorer (the indexer itself is not internet-facing):
   ```json
   {
     "supported": true, "valid": true, "error": null,
+    "status": "valid", "validated": true,
     "xchainFee": "1.00000000",
     "requiredFeeNative": "0.00002000", "requiredFeeSats": 2000,
     "minAcceptable": "0.00001900", "maxAcceptable": "0.00002200",
@@ -177,10 +178,16 @@ explorer (the indexer itself is not internet-facing):
   }
   ```
 
-  `supported: false` means the indexer can't price this action's fee yet (the client should pay in
-  XCHAIN instead). `valid: false` means the oracle price is missing/stale, or a supplied
-  `feeOutputSats` is below the acceptance floor. A client sizes its `FEE_DESTINATION` output to
-  `requiredFeeSats`.
+  The quote runs the REAL action handler inside a forced-rollback dry-run, so `valid` is the
+  handler's own verdict against current chain state and the fee is the handler's own number.
+  `supported: false` means the action is not quotable here (native fees not enabled on the chain,
+  or a VM/compound action: `DEPLOY`/`EXECUTE`/`XEXEC`/`BATCH`; pay in XCHAIN instead).
+  `valid: false` carries the handler's reason verbatim in `error`/`status`: an oracle price that
+  is missing/stale, a supplied `feeOutputSats` below the acceptance floor, or the action itself
+  being one the chain would reject (insufficient balance, taken ticker, expired order, ...), which
+  would forfeit the native fee if broadcast. A rare `busy: true` + `retryable: true` response
+  means the quote queue is momentarily full; retry. A client sizes its `FEE_DESTINATION` output
+  to `requiredFeeSats`.
 
 - **`GET /{COIN}/api/feeschedule`**: the gas schedule, GAS_PRICE, tolerance band, fee destination,
   and the latest XCHAIN/USD + COIN/USD oracle prices (with a freshness flag) for display / rough
@@ -192,9 +199,10 @@ The `xchain-sdk` wraps this: `sdk.quoteNativeFee(actionData, { source })` return
 transaction that can't be priced. The `xchain-wallet` enforces the same gate at its broadcast
 chokepoint and warns the user that a native-coin fee is forfeited if the transaction is rejected.
 
-> Phase-1 scope: the pre-flight prices fees for ISSUE (new token) and ORDER / SWAP / DISPENSER
-> *create*. Other actions return `supported: false` (pay in XCHAIN); deeper coverage via a full
-> action dry-run is planned.
+> Phase-2 scope (live): the pre-flight covers every action except the VM/compound set
+> (`DEPLOY`/`EXECUTE`/`XEXEC`/`BATCH`, which return `supported: false`; pay in XCHAIN). SEND,
+> edits, AIRDROP, DIVIDEND and the rest are quoted by the real handler, including failure
+> reasons a fee estimator could never see (insufficient balance, taken ticker, ...).
 
 ## Governance
 
