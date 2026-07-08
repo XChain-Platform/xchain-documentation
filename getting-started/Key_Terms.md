@@ -45,7 +45,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **encoder**: The `xchain-encoder` service. Takes an ACTION string and wallet parameters (public key, UTXOs) and produces a PSBT ready for signing and broadcast.
 
-**explorer**: The `xchain-explorer` service. Provides a web UI, 100+ REST endpoints, and JSON-RPC API for querying indexed XChain data (tokens, balances, orders, dispensers, etc.).
+**explorer**: The `xchain-explorer` service. Provides a web UI, 200+ REST endpoints, and JSON-RPC API for querying indexed XChain data (tokens, balances, orders, dispensers, etc.).
 
 **hub**: The `xchain-hub` service. A decentralized config oracle, price oracle, and cross-chain coordinator backed by MariaDB. Validators form a P2P gossip network with PBFT consensus. Other services fetch their configuration from the hub on startup.
 
@@ -55,7 +55,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **xchain-regtest-miner**: A service that automatically mines pending mempool transactions in regtest environments, producing instant block confirmations for development and testing.
 
-**xchain-sdk**: The developer SDK for the XChain platform. Provides methods for 30 of the 34 actions (the developer-invocable set), 90+ explorer query methods, a batch builder, PSBT generation, and typed error classes.
+**xchain-sdk**: The developer SDK for the XChain platform. Provides methods for 30 of the 34 actions (the developer-invocable set), 100+ explorer query methods, a batch builder, PSBT generation, and typed error classes.
 
 **xchain-utxo-tracker**: A service that indexes all UTXOs from the coin node into LevelDB. Used by the encoder to look up available UTXOs for a given address.
 

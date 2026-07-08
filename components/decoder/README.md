@@ -20,7 +20,7 @@ The decoder's job is extraction only; it does not interpret action semantics. It
 - **DISPENSER protocol**: parses DISPENSER actions and tracks active dispensers with expiration for real-time payment detection
 - **Mempool tracking**: maintains an index of unconfirmed transactions, updated every 60 seconds when synced
 - **Normalized storage**: addresses and transaction hashes stored in index tables with integer IDs for join efficiency
-- **ACTION name validation**: 33-name whitelist (SEND, ISSUE, MINT, ORDER, ANCHOR, NODEPROOF, SLASH, etc.) enforced before database writes
+- **ACTION name validation**: 34-name whitelist (SEND, ISSUE, MINT, ORDER, ANCHOR, NODEPROOF, SLASH, VOTE, etc.) enforced before database writes
 - **Graceful shutdown**: SIGTERM/SIGINT handlers complete in-flight work before exiting
 - **750+ tests**: unit, integration, e2e, boundary, security, fuzz, chaos, regression, benchmarks, and mutation testing
 

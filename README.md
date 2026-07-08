@@ -32,11 +32,11 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**xchain-decoder**](https://github.com/XChain-Platform/xchain-decoder/) | Polls coin nodes for blocks, extracts and decodes XChain transactions into MariaDB |
 | [**xchain-indexer**](https://github.com/XChain-Platform/xchain-indexer/) | Validates ACTIONs, maintains token state with a double-entry ledger, runs a DEX matching engine, executes smart contracts |
 | [**xchain-sync**](https://github.com/XChain-Platform/xchain-sync/) | Replicates indexer databases to validators and consumers via REST snapshots and WebSocket streaming |
-| [**xchain-explorer**](https://github.com/XChain-Platform/xchain-explorer/) | 60+ REST/JSON-RPC endpoints, WebSocket real-time event streaming, and a web-based block explorer |
+| [**xchain-explorer**](https://github.com/XChain-Platform/xchain-explorer/) | 200+ REST/JSON-RPC endpoints, WebSocket live event streaming, and a web-based block explorer |
 | [**xchain-hub**](https://github.com/XChain-Platform/xchain-hub/) | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, P2P gossip, governance |
 | [**xchain-utxo-tracker**](https://github.com/XChain-Platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |
 | [**xchain-vm**](https://github.com/XChain-Platform/xchain-vm/) | Sandboxed JavaScript virtual machine for on-chain smart contracts with gas metering, deterministic execution, and reorg-safe state |
-| [**xchain-sdk**](https://github.com/XChain-Platform/xchain-sdk/) | Developer SDK: 29 action methods, 99 explorer methods, smart contract support, real-time WebSocket events, batch builder, PSBT generation |
+| [**xchain-sdk**](https://github.com/XChain-Platform/xchain-sdk/) | Developer SDK: builders for 30 of the 34 actions, 100+ explorer query methods, smart contract support, live WebSocket events, batch builder, PSBT generation |
 | [**xchain-wallet**](https://github.com/XChain-Platform/xchain-wallet/) | Reference self-custodial multi-chain wallet: browser, Chrome extension, and Electron desktop from a single codebase; software + Trezor + Ledger + remote + multisig signers; full DEX, messaging, contracts, staking, and `window.xchain` dApp bridge |
 | [**xchain-regtest-miner**](https://github.com/XChain-Platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-Platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
