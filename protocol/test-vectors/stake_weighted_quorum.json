@@ -147,6 +147,13 @@
       ],
       "signers": ["K1", "K2"],
       "expected": false
+    },
+    {
+      "name": "a TRUNCATED snapshot fails closed even when the un-truncated set would be quorate (stake-eviction / silent-drift guard)",
+      "validators": [{ "pubkey": "K1", "source": "s1", "weight": "10" }],
+      "signers": ["K1"],
+      "truncated": true,
+      "expected": false
     }
   ],
   "totalStake": [
@@ -170,6 +177,12 @@
         { "pubkey": "K1", "source": "s1", "weight": "10" },
         { "pubkey": "K2", "source": "s2", "weight": "-1" }
       ],
+      "throws": true
+    },
+    {
+      "name": "a TRUNCATED snapshot throws (dropped sources make the sum meaningless)",
+      "validators": [{ "pubkey": "K1", "source": "s1", "weight": "10" }],
+      "truncated": true,
       "throws": true
     }
   ]
