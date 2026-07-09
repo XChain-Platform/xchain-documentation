@@ -1676,7 +1676,9 @@ Contract deposit and withdrawal records. `type` values: `block`, `address`, `sou
 GET /{COIN}/api/stakes[/{query}/{type}]
 GET /{COIN}/api/validators
 GET /{COIN}/api/delegations/{query}/{type}
+GET /{COIN}/api/delegation_revocations[/{query}/{type}]
 GET /{COIN}/api/rewards/{query}/{type}
+GET /{COIN}/api/collects[/{query}/{type}]
 GET /{COIN}/api/full_node_verifications[/{query}/{type}]
 GET /{COIN}/api/contract_stakes[/{query}/{type}]
 GET /{COIN}/api/contract_unstakes[/{query}/{type}]
@@ -1684,7 +1686,7 @@ GET /{COIN}/api/contract_delegations[/{query}/{type}]
 GET /{COIN}/api/slash_events[/{query}/{type}]
 ```
 
-Validator federation data. `stakes` and `delegations` `type` values: `block`, `address`, `source`. `rewards` `type` values: `address`, `source`. `full_node_verifications` `type` values: `block`, `epoch`, `pubkey`, `address`. Contract-targeted staking (`contract_stakes`, `contract_unstakes`, `contract_delegations`) and `slash_events` support types: `block`, `address`, `contract`.
+Validator federation data. `stakes` and `delegations` `type` values: `block`, `address`, `source`. `rewards` `type` values: `address`, `source`. `delegation_revocations` (DELEGATE v2/v3 signing-key revocations) and `collects` (COLLECT validator reward claims) `type` values: `block`, `address`, `source`. `full_node_verifications` `type` values: `block`, `epoch`, `pubkey`, `address`. Contract-targeted staking (`contract_stakes`, `contract_unstakes`, `contract_delegations`) and `slash_events` support types: `block`, `address`, `contract`.
 
 ---
 
@@ -2038,7 +2040,9 @@ Content-Type: application/json
 |---|---|
 | `GET /{COIN}/api/stakes/...` | `block`, `address`, `source` |
 | `GET /{COIN}/api/delegations/...` | `block`, `address`, `source` |
+| `GET /{COIN}/api/delegation_revocations/...` | `block`, `address`, `source` |
 | `GET /{COIN}/api/rewards/...` | `address`, `source` |
+| `GET /{COIN}/api/collects/...` | `block`, `address`, `source` |
 | `GET /{COIN}/api/full_node_verifications/...` | `block`, `epoch`, `pubkey`, `address` |
 | `GET /{COIN}/api/contract_stakes/...` | `block`, `address`, `contract` |
 | `GET /{COIN}/api/contract_unstakes/...` | `block`, `address`, `contract` |

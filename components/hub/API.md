@@ -1152,6 +1152,56 @@ Accepted `reward_type` values must match `^anchor_[A-Za-z_]+$` (e.g. `anchor_BTC
 {"status":"success","written":1,"skipped":0}
 ```
 
+## Monitoring Stats
+
+Read-only, no-auth counters for the cross-chain call and state-checkpoint subsystems, mirroring [`getattestationstats`](#getattestationstats). Each returns `{"error": "..."}` (still HTTP 200) when its engine is not active on this hub, so a poller can tell "no data" from "subsystem off".
+
+### `getcrosschaincallstats`
+
+Cross-chain call relay backlog depth and lifetime failure counters. Useful for spotting a stalled XCALL relay (a growing backlog) or repeated result-fetch errors.
+
+**Request:**
+```json
+{"jsonrpc":"2.0","method":"getcrosschaincallstats","id":1}
+```
+
+**Response:**
+```json
+{
+  "pending_relay_count":3,
+  "pending_by_chain":{"DOGE":2,"LTC":1},
+  "result_attempt_failures":0
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `pending_relay_count` | integer | Finalized dispatches with no non-retracted result row yet, awaiting relay (total across chains) |
+| `pending_by_chain` | object | The same backlog broken down by `target_chain` |
+| `result_attempt_failures` | integer | Process-lifetime count of result-fetch attempts that errored |
+
+### `getcheckpointstats`
+
+State-checkpoint health: the last finalized block per chain and a process-lifetime count of rounds that timed out below quorum.
+
+**Request:**
+```json
+{"jsonrpc":"2.0","method":"getcheckpointstats","id":1}
+```
+
+**Response:**
+```json
+{
+  "last_finalized_by_chain":{"BTC":{"block_index":957239,"checkpoint_seq":142}},
+  "round_timeouts":0
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `last_finalized_by_chain` | object | Per-chain latest finalized checkpoint: `{block_index, checkpoint_seq}` |
+| `round_timeouts` | integer | Process-lifetime count of checkpoint rounds that timed out without reaching quorum |
+
 ## OpenRPC Spec
 
 The hub serves a machine-readable **OpenRPC 1.3.2** specification at:
