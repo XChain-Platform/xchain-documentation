@@ -42,11 +42,11 @@ After `install`, all the following services are running locally:
 | Bitcoin node (regtest) | 18443 | Coin node |
 | xchain-decoder | None | Polls node, writes to Decoder DB |
 | xchain-indexer | None | Processes actions, writes to Indexer DB |
-| xchain-explorer | 35300 | REST API + web UI |
-| xchain-encoder | 35400 | PSBT builder |
-| xchain-hub | 35500 | Config oracle |
-| xchain-utxo-tracker | 35200 | UTXO/balance queries |
-| xchain-regtest-miner | 38332 | Auto-miner + funding API |
+| xchain-explorer | 8080 | REST API + web UI |
+| xchain-encoder | 3003 | PSBT builder |
+| xchain-hub | 10000 | Config oracle |
+| xchain-utxo-tracker | 3001 | UTXO/balance queries |
+| xchain-regtest-miner | 3005 | Auto-miner + funding API |
 
 ---
 
@@ -57,7 +57,7 @@ The regtest miner exposes a simple JSON-RPC for funding addresses:
 ```js
 // Fund an address with 1 BTC
 async function fundAddress(address, amount = 1.0) {
-  const res = await fetch('http://localhost:38332', {
+  const res = await fetch('http://localhost:3005', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -76,7 +76,7 @@ Then mine the funding transaction into a block:
 
 ```js
 async function mineBlock() {
-  await fetch('http://localhost:38332', {
+  await fetch('http://localhost:3005', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ method: 'continue_mining', params: {} }),
@@ -125,13 +125,13 @@ const XChainSDK = require('xchain-sdk');
 
 // Hub-based discovery (recommended: hub knows all service ports)
 const sdk = new XChainSDK({
-  hubUrl: 'http://localhost:35500',
+  hubUrl: 'http://localhost:10000',
 });
 
 // Or hardcode each service
 const sdk = new XChainSDK({
-  encoderUrl: 'http://localhost:35400',
-  explorerUrl: 'http://localhost:35300',
+  encoderUrl: 'http://localhost:3003',
+  explorerUrl: 'http://localhost:8080',
 });
 ```
 
@@ -178,9 +178,9 @@ SELECT * FROM actions ORDER BY action_index DESC LIMIT 20;
 If the indexer has data but the explorer doesn't, the explorer may have a query bug. Hit the endpoint directly:
 
 ```bash
-curl http://localhost:35300/BTC/api/token/MYTOKEN
-curl http://localhost:35300/BTC/api/balances/YOUR_ADDRESS
-curl http://localhost:35300/BTC/api/history/MYTOKEN/token
+curl http://localhost:8080/BTC/api/token/MYTOKEN
+curl http://localhost:8080/BTC/api/balances/YOUR_ADDRESS
+curl http://localhost:8080/BTC/api/history/MYTOKEN/token
 ```
 
 ### Service Logs

@@ -41,13 +41,19 @@ Here is a small example: a contract that grants a method (`getSecret`) to anyone
 
 ```js
 module.exports = {
-    init: function(adminPubkey) {
+    // The constructor MUST be named `initialize`, not `init`; the VM's
+    // constructor dispatch looks for that exact method name. Like every
+    // other method it is invoked as `initialize(xchain)`, so constructor
+    // arguments come from xchain.getInputParam(n), not from a function
+    // parameter, the same convention as every other method below.
+    initialize: function(xchain) {
+        var adminPubkey = xchain.getInputParam(0);
         // Store the admin's pubkey in state. Set once at construction.
         xchain.state.set('admin', adminPubkey);
     },
 
     // Anyone who staked >= 100 MYTOKEN can call this and get the secret.
-    getSecret: function() {
+    getSecret: function(xchain) {
         var caller = xchain.getInputParam(0);  // pubkey passed by caller
         var staked = xchain.contract.getStake(caller, 'MYTOKEN');
         if (xchain.math.gte(staked, '100')) {
@@ -57,18 +63,18 @@ module.exports = {
     },
 
     // How many MYTOKEN are locked across all stakers?
-    totalLocked: function() {
+    totalLocked: function(xchain) {
         return xchain.contract.getTotalStaked('MYTOKEN');
     },
 
     // Top 1000 stakers, sorted descending. Useful for leaderboards.
-    leaderboard: function() {
+    leaderboard: function(xchain) {
         return xchain.contract.getStakers('MYTOKEN');
     },
 
     // Only the admin can call this. Slashes one staker by a specific amount.
     // Slashed tokens go to whatever SLASH_DESTINATION was set at deploy time.
-    slashStaker: function() {
+    slashStaker: function(xchain) {
         var caller   = xchain.getInputParam(0);  // who is calling
         var pubkey   = xchain.getInputParam(1);  // who to slash
         var amount   = xchain.getInputParam(2);  // how much
@@ -109,7 +115,7 @@ const result = await sdk.workflows.deployStakeableContract(
     {
         code: contractSource,
         gasLimit: 500000,
-        constructorParams: [ADMIN_PUBKEY_HEX],   // passed to init(...)
+        constructorParams: [ADMIN_PUBKEY_HEX],   // passed to initialize(...), read via xchain.getInputParam(0)
         COOLDOWN_BLOCKS: 100,                    // 100 blocks before unstaked tokens are returned
         SLASH_DESTINATION: 'BURN'                // slashed tokens go to the burn address
         // SLASH_DESTINATION can also be a regular address:

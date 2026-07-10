@@ -24,8 +24,8 @@ const XChainSDK = require('xchain-sdk');
 
 const sdk = new XChainSDK({
     network:     'bitcoin-regtest',
-    explorerUrl: 'http://localhost:35300',
-    encoderUrl:  'http://localhost:35400',
+    explorerUrl: 'http://localhost:8080',
+    encoderUrl:  'http://localhost:3003',
 });
 ```
 

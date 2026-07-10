@@ -127,15 +127,18 @@ const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
 // gate would fork: one snapshot_block lands at different local heights per chain.
 // The `network` is also taken from the row, so the gate is env-independent.
 //
-// Enforced IDENTICALLY by the hub (every PBFT tally engine) and the indexer
-// (every settlement-signature gate + recovery). Both keep a local copy of this
-// map; the cross-service regression suite asserts they equal these values, so
-// the activation height can never silently diverge (a divergence forks the chain).
+// Enforced IDENTICALLY by the hub (every PBFT tally engine), the indexer
+// (every settlement-signature gate + recovery), and the sdk/explorer/sync
+// verifiers. All five keep a local copy of this map; the cross-service
+// regression suite asserts they equal these values, so the activation height
+// can never silently diverge (a divergence forks the chain).
 //
-// mainnet is a PLACEHOLDER far-future height = DISABLED on mainnet until a
-// coordinated flag-day height is chosen (mainnet keeps the current count rule
-// until then (safe, no fork). testnet/regtest activate at genesis so the e2e /
-// regtest stack exercises stake-weighting from block 0.
+// mainnet is ARMED (2026-07-07) to a concrete near-term height: 961000, the
+// BTC-anchored flag-day at which mainnet flips from the count-based quorum
+// rule to stake-weighted. BTC anchor ~2026-08-04; hub + ALL indexers (+
+// sdk/explorer/sync copies) MUST deploy before this height. testnet/regtest
+// activate at genesis so the e2e / regtest stack exercises stake-weighting
+// from block 0.
 const STAKE_WEIGHTED_QUORUM_ACTIVATION = {
     mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers (+ sdk/explorer/sync copies) before this height
     testnet: 0,
@@ -147,11 +150,12 @@ const STAKE_WEIGHTED_QUORUM_ACTIVATION = {
 // `EQUIV|<ENGINE_TAG>|<ROUND_ID>|<VIEW>||<CONTENT>`. This is consensus-breaking (it changes the
 // signed preimage of every settlement/checkpoint/price/attestation signature + the config-change
 // PBFT canonical), so it is gated, kept byte-identical to the local copies in
-// xchain-hub/src/equivocation_header.js + xchain-indexer/src/equivocation_header.js by the
+// xchain-{hub,indexer,sdk,explorer,sync}/src/equivocation_header.js by the
 // cross-service regression suite, and must deploy hub + ALL indexers atomically. Its sole
 // consumer is the SLASH v0 equivocation-slashing action, which is only constructible from
-// post-flag-day (header-carrying) messages. Same placeholder/genesis convention as
-// STAKE_WEIGHTED_QUORUM_ACTIVATION (disabled on mainnet until a flag-day is chosen).
+// post-flag-day (header-carrying) messages. Same ARMED height and deploy-by convention as
+// STAKE_WEIGHTED_QUORUM_ACTIVATION: mainnet is armed to 961000 (2026-07-07; BTC anchor
+// ~2026-08-04), not a disabled placeholder.
 const EQUIV_HEADER_ACTIVATION = {
     mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers (+ sdk/explorer/sync copies) before this height
     testnet: 0,
@@ -197,8 +201,10 @@ const STATE_COMMITMENT_ACTIVATION = {
 // hub and the BTC/LTC/DOGE indexers all flip the SIGNED shape on the same anchor. The operator MUST pick
 // a snapshot_block at/after which every checkpointed chain is already past its own STATE_COMMITMENT
 // flag-day (else the engine would have no roots to sign). Kept byte-identical to the local copies in
-// xchain-{hub,indexer,sdk,explorer}/src/checkpoint_commitment_activation.js by the cross-service
-// regression suite. Same placeholder/genesis convention.
+// xchain-{hub,indexer,sdk,explorer,sync}/src/checkpoint_commitment_activation.js (sync consumes it at
+// checkpoint.js to decide whether to expect the roots) by the cross-service regression suite. Same
+// ARMED height and deploy-by convention as the maps above: mainnet is armed to 961000
+// (2026-07-07; BTC anchor ~2026-08-04), not a disabled placeholder.
 const CHECKPOINT_COMMITMENT_ACTIVATION = {
     mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers (+ sdk/explorer/sync copies) before this height
     testnet: 0,
@@ -216,7 +222,8 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 // indexers atomically. Like CHECKPOINT_COMMITMENT_ACTIVATION / STAKE_WEIGHTED_QUORUM_ACTIVATION it gates
 // on the BTC-anchored `snapshot_block` carried by every ANCHOR canonical. Kept byte-identical to the
 // local copies in xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression
-// suite. Same placeholder/genesis convention.
+// suite. Same ARMED height and deploy-by convention as the maps above: mainnet is armed to 961000
+// (2026-07-07; BTC anchor ~2026-08-04), not a disabled placeholder.
 const ANCHOR_REWARD_ACTIVATION = {
     mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers (+ sdk/explorer/sync copies) before this height
     testnet: 0,
@@ -240,7 +247,8 @@ const ANCHOR_REWARD_AMOUNT = '10.00000000';
 // (create-side ON with canonical OFF would put the legs in unsigned mirror fields, the exact
 // tamper hole the legs-in-canonical design closes). Kept byte-identical to the local copies in
 // xchain-{hub,indexer}/src/cross_chain_royalty_activation.js by the cross-service regression
-// suite. Same placeholder/genesis convention.
+// suite. Same ARMED height and deploy-by convention as the maps above: mainnet is armed to
+// 961000 (2026-07-07; BTC anchor ~2026-08-04), not a disabled placeholder.
 const CROSS_CHAIN_ROYALTY_ACTIVATION = {
     mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers before this height
     testnet: 0,

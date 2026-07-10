@@ -28,7 +28,7 @@ Alice wants to trade 1 `RAREPEPE` (on BTC) for 1000 `LTCTOKEN` (on LTC).
 const XChainSDK = require('xchain-sdk');
 
 // Alice's SDK, pointed at the Bitcoin regtest stack
-const aliceSdk = new XChainSDK({ hubUrl: 'http://localhost:35500' });
+const aliceSdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 const swapAction = aliceSdk.swap({
   giveCoin: 'BTC',
@@ -69,7 +69,7 @@ Bob's application queries the hub or explorer for open swaps that match his inte
 
 ```js
 // Bob's SDK, pointed at the Litecoin stack
-const bobSdk = new XChainSDK({ hubUrl: 'http://localhost:35500' });
+const bobSdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 // Query open swaps wanting LTCTOKEN
 const openSwaps = await aliceSdk.explorer.getActions({

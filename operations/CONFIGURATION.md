@@ -169,7 +169,7 @@ The hub uses MariaDB for all data storage. The database and tables are auto-crea
 | `UTXO_TRACKER_API_PORT` | API port |
 | `AUX_POW` | Set truthy for Dogecoin |
 
-The tracker processes blocks in batches of 100. LevelDB data is stored at `/data/xchain-utxo-tracker/`. Bootstrap archives are stored at `/bootstrap/xchain-utxo-tracker/`.
+The tracker processes blocks in batches of up to 200 (`DB_TRANSACTION_BLOCKS_QUANTITY`; flush may trigger earlier under heap pressure). LevelDB data is stored at `/data/xchain-utxo-tracker/`. Bootstrap archives are stored at `/bootstrap/xchain-utxo-tracker/`.
 
 ### Encoder
 

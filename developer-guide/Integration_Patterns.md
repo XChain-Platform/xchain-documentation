@@ -15,7 +15,7 @@ In production, use hub-based config discovery so services can be relocated witho
 const XChainSDK = require('xchain-sdk');
 
 const sdk = new XChainSDK({
-  hubUrl: process.env.XCHAIN_HUB_URL || 'http://localhost:35500',
+  hubUrl: process.env.XCHAIN_HUB_URL || 'http://localhost:10000',
 });
 ```
 

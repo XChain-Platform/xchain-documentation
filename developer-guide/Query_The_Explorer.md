@@ -13,13 +13,13 @@ The SDK's `explorer` object is a thin wrapper around the REST API. Both approach
 
 ```js
 const XChainSDK = require('xchain-sdk');
-const sdk = new XChainSDK({ hubUrl: 'http://localhost:35500' });
+const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 // SDK style
 const token = await sdk.explorer.getToken('MYTOKEN');
 
 // Equivalent direct HTTP
-const response = await fetch('http://localhost:35300/BTC/api/token/MYTOKEN');
+const response = await fetch('http://localhost:8080/BTC/api/token/MYTOKEN');
 const token2 = await response.json();
 ```
 
@@ -32,7 +32,7 @@ const token2 = await response.json();
 const token = await sdk.explorer.getToken('MYTOKEN');
 
 // curl
-// curl http://localhost:35300/BTC/api/token/MYTOKEN
+// curl http://localhost:8080/BTC/api/token/MYTOKEN
 
 console.log(token);
 // {
@@ -59,7 +59,7 @@ console.log(token);
 const balances = await sdk.explorer.getBalances('bc1q...');
 
 // curl
-// curl http://localhost:35300/BTC/api/balances/bc1q.../
+// curl http://localhost:8080/BTC/api/balances/bc1q.../
 
 // With pagination
 const page2 = await sdk.explorer.getBalances('bc1q...', {
@@ -80,7 +80,7 @@ const history = await sdk.explorer.getHistory('bc1q...', 'address', {
 });
 
 // curl
-// curl "http://localhost:35300/BTC/api/history/bc1q.../address?page=1&limit=50"
+// curl "http://localhost:8080/BTC/api/history/bc1q.../address?page=1&limit=50"
 
 // Each entry includes action type, amounts, counterparty, block height, txid
 history.forEach(entry => {
@@ -100,7 +100,7 @@ const holders = await sdk.explorer.getHolders('MYTOKEN', {
 });
 
 // curl
-// curl http://localhost:35300/BTC/api/holders/MYTOKEN
+// curl http://localhost:8080/BTC/api/holders/MYTOKEN
 
 holders.forEach(h => {
   console.log(`${h.address}: ${h.amount}`);
@@ -119,7 +119,7 @@ const actions = await sdk.explorer.getHistory('MYTOKEN', 'token', {
 });
 
 // curl
-// curl http://localhost:35300/BTC/api/history/MYTOKEN/token
+// curl http://localhost:8080/BTC/api/history/MYTOKEN/token
 
 // Filter by action type on the client side
 const mints = actions.filter(a => a.action === 'MINT');
@@ -135,7 +135,7 @@ const sends = actions.filter(a => a.action === 'SEND');
 const markets = await sdk.explorer.getMarkets('MYTOKEN');
 
 // curl
-// curl http://localhost:35300/BTC/api/markets/MYTOKEN
+// curl http://localhost:8080/BTC/api/markets/MYTOKEN
 
 console.log(markets);
 // {
@@ -159,7 +159,7 @@ const dispensers = await sdk.explorer.getDispensers('MYTOKEN', 'token', {
 });
 
 // curl
-// curl http://localhost:35300/BTC/api/dispensers/MYTOKEN/token
+// curl http://localhost:8080/BTC/api/dispensers/MYTOKEN/token
 
 // Open dispensers only
 const openDispensers = dispensers.filter(d => d.status === 'open');
@@ -184,7 +184,7 @@ const orders = await sdk.explorer.getOrders('MYTOKEN', 'token', {
 });
 
 // curl
-// curl http://localhost:35300/BTC/api/orders/MYTOKEN/token
+// curl http://localhost:8080/BTC/api/orders/MYTOKEN/token
 
 orders.forEach(o => {
   console.log(
@@ -229,7 +229,7 @@ Look up a specific transaction to get the action it contained:
 
 ```js
 // curl
-// curl http://localhost:35300/BTC/api/transaction/abc123.../tx_hash
+// curl http://localhost:8080/BTC/api/transaction/abc123.../tx_hash
 
 const actions = await sdk.explorer.getTransaction('abc123...', 'tx_hash');
 console.log('Actions in tx:', actions);
@@ -241,7 +241,7 @@ console.log('Actions in tx:', actions);
 
 ```js
 // All actions in a specific block
-// curl "http://localhost:35300/BTC/api/history/800000/block"
+// curl "http://localhost:8080/BTC/api/history/800000/block"
 
 const blockActions = await sdk.explorer.getHistory(800000, 'block', {
   page: 1,

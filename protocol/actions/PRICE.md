@@ -142,8 +142,9 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - No protocol-level enforcement, if a publisher runs out of funds, failover kicks in naturally and the next `oracle_publish`-capable validator in rotation takes over
 
 #### Rewards
-- An `oracle_publish`-capable validator earns 1 XCHAIN per successful PRICE v0 publish (recorded in `validator_rewards` as `reward_type='oracle_round'` / `oracle_publish`)
-- When batch-publishing missed rounds on failover, the publisher earns rewards for all rounds in the batch
+- PRICE v0 rewards pay the round's SIGNERS, not the publisher: the indexer derives them from the on-chain signer set of each finalized PRICE v0 action, splitting the per-round budget (`STAKING.ORACLE_REWARD_PER_ROUND`) equally across the qualified `price`-capable signers (recorded in `validator_rewards` as `reward_type='oracle_round'` in the legacy regime, or `oracle_base` / `oracle_full_node` once the full-node reward tier is active: see [COLLECT](COLLECT.md))
+- There is no per-publish PRICE reward for the `oracle_publish` publisher; publisher rewards are the ANCHOR checkpoint rewards (`anchor_<chain>` / `anchor_archive`, see [COLLECT](COLLECT.md))
+- When batch-publishing missed rounds on failover, each published round derives its own signer split
 - Rewards are gathered via the `COLLECT` action on BTC
 
 ### Version 1: User Oracle TOKEN/FIAT Price

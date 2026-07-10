@@ -5,7 +5,7 @@
 
 ### What XChain is, why it matters, and where it's going
 
-A short, plain-language introduction to the platform. For the full protocol specification, see the [XChain Platform White Paper](./WHITEPAPER.html).
+A short, plain-language introduction to the platform. For the full protocol specification, see the [XChain Platform White Paper](./WHITEPAPER.md).
 
 ---
 
@@ -69,7 +69,7 @@ Near term: protocol freeze, public site and API documentation, the public releas
 
 ---
 
-*For the complete technical specification, read the [XChain Platform White Paper](./WHITEPAPER.html).*
+*For the complete technical specification, read the [XChain Platform White Paper](./WHITEPAPER.md).*
 
 ---
 

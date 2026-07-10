@@ -16,7 +16,7 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `NODE_PORT` | Coin node JSON-RPC port | `8332` |
 | `NODE_USER` | Coin node RPC username | `rpc` |
 | `NODE_PASSWORD` | Coin node RPC password | `rpc` |
-| `UTXO_TRACKER_API_PORT` | API server listening port | `3000` |
+| `UTXO_TRACKER_API_PORT` | API server listening port | `3001` |
 
 ### Optional Variables
 

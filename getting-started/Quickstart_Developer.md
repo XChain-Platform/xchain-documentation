@@ -29,7 +29,7 @@ The SDK connects to an XChain hub to discover all running services automatically
 const XChainSDK = require('xchain-sdk');
 
 const sdk = new XChainSDK({
-  hubUrl: 'http://localhost:35500',  // xchain-hub address
+  hubUrl: 'http://localhost:10000',  // xchain-hub address
 });
 
 // Initialize: fetches service endpoints from the hub
@@ -40,8 +40,8 @@ If you're not using a hub, you can provide service URLs directly:
 
 ```js
 const sdk = new XChainSDK({
-  explorerUrl: 'http://localhost:18080',
-  encoderUrl:  'http://localhost:8100',
+  explorerUrl: 'http://localhost:8080',
+  encoderUrl:  'http://localhost:3003',
 });
 ```
 

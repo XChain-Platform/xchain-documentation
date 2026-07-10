@@ -57,8 +57,8 @@ twin** of the maps it needs, and a cross-repo conformance gate fails CI if a twi
 | Service | Carries |
 |---|---|
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
-| `xchain-vm` | the two contract-era VM gate constants (async ban, binary-alloc metering) |
-| `xchain-hub` | the four validator-era gate modules (checkpoint, equivocation header, stake-weighted quorum, anchor reward) |
+| `xchain-vm` | the six contract-era VM gate constants (async ban, binary-alloc metering, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) |
+| `xchain-hub` | the five validator-era gate modules (checkpoint, equivocation header, stake-weighted quorum, anchor reward, cross-chain royalty canonical) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
 
 Because the values are byte-identical everywhere, a heterogeneous fleet and any from-genesis replay
@@ -71,7 +71,7 @@ coordinated fleet rollout retire a whole batch at once.
 
 | Cohort | Keyed on | Rules | Straggler behavior |
 |---|---|---|---|
-| **A (contract era)** | one shared **time** (all three chains) | base64 DEPLOY encoding, VM async ban, VM binary-alloc metering, controller guards, VM balance/token-info surface, issuance-fee exemption, unstake-cooldown completion, cross-chain royalty create-side | **forks** |
+| **A (contract era)** | one shared **time** (all three chains) | base64 DEPLOY encoding, VM async ban, VM binary-alloc metering, VM state-key NUL-reject, VM state-key type normalization, VM metering eval-order fix, VM call-spread metering, controller guards, VM balance/token-info surface, issuance-fee exemption, unstake-cooldown completion, cross-chain royalty create-side | **forks** |
 | **B (validator era)** | one **BTC height** | checkpoint commitment, equivocation header, stake-weighted quorum, anchor reward, cross-chain royalty canonical | **forks** |
 | **C (state commitment)** | per-chain **local height** | light-client state commitment (state root + block-merkle root) and its state-hash classes (e.g. token-supply, poll-finalize) | **halts, recoverable** |
 
