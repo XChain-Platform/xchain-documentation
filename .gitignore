@@ -1,4 +1,5 @@
 .DS_Store
+node_modules/
 
 # Coverage output (c8/nyc): generated, not source
 coverage/
