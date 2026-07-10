@@ -359,7 +359,7 @@ Each request may carry two distinct escrows:
 **(b) Optional paid-attestation fee (`feeTick` / `feeAmount`)**: an explicit fee a contract includes in the request (E1 feature, active now). Passing `feeAmount > 0` escrows that amount from the calling contract (`FEE_PAYER`) at request time. On `ok` the fee is split among the responsible validators. On expiry or provider error (service not rendered) the fee is **refunded in full to the caller**.
 
 Provider-level limits the contract should know about:
-- **`max_request_bytes`**: payload size cap (LLM and http_get: 8192). Enforced both by the VM (8192 platform cap) and the indexer (per-provider cap).
+- **`max_request_bytes`**: payload size cap (LLM: 8192, http_get: 2048). The VM enforces only a platform-wide 8192 ceiling; the indexer enforces the true per-provider cap, so an http_get payload between 2049 and 8192 bytes passes the VM but is rejected by the indexer and expires.
 - **`allowed_redundancy`**: which `[1, 3, 5]` values the provider supports.
 - **`deadline_window_blocks`**: how far in the future the deadline can be (per-provider cap; VM accepts [1, 100]).
 

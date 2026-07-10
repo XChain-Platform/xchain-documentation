@@ -17,7 +17,7 @@ Example `config/bitcoin-mainnet`:
 ```
 NODE_EXPOSED_PORT=8333
 DUST_AMOUNT=546
-ENCODER_API_PORT=4003
+ENCODER_API_PORT=3003
 ```
 
 When a config file is missing, xchain-node falls back to hardcoded defaults with a console warning.
