@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `protocol/providers/llm.md`: default Claude CLI config dir updated to the renamed `~/.claude-xchain` (was `~/.claude-xchain-hub`).
 - `BLOCKCHAINS.md`: "Adding New Blockchains" now describes the single canonical coin-file model and links the new developer guide.
 - `protocol/Index_Id_References.md`: specify the canonical `^<id>` form (caret plus decimal digits, no leading zero, id >= 1, referencing an existing block-stamped id); all other caret forms are rejected.
 - `operations/XCHAIN_GENESIS.md`: rewritten to match the shipped genesis (token injected at the pinned genesis block with zero pre-mint and a `MINT_START_BLOCK` sentinel, public fair mint at launch, per-network genesis pins and hash verification) instead of the old mint-everything-and-lock runbook.

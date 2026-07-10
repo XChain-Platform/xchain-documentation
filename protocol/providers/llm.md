@@ -83,7 +83,7 @@ Resolution order (first match wins):
 3. `HUB_CLAUDE_CODE_OAUTH_TOKEN`
 4. `CLAUDE_CODE_OAUTH_TOKEN`
 5. `ANTHROPIC_API_KEY`
-6. Default `~/.claude-xchain-hub` if pre-populated.
+6. Default `~/.claude-xchain` if pre-populated.
 
 A mixed-transport quorum still converges because `judge_model` evaluates semantic equivalence, not byte equality.
 
@@ -92,10 +92,10 @@ A mixed-transport quorum still converges because `judge_model` evaluates semanti
 One-time, on each validator:
 
 ```bash
-CLAUDE_CONFIG_DIR=~/.claude-xchain-hub claude login
+CLAUDE_CONFIG_DIR=~/.claude-xchain claude login
 ```
 
-Then start the hub with `HUB_CLAUDE_CONFIG_DIR=~/.claude-xchain-hub` in the environment. The CLI's `.credentials.json` carries a refresh token that the spawned CLI auto-renews on every call. No rotation needed unless the operator logs out.
+Then start the hub with `HUB_CLAUDE_CONFIG_DIR=~/.claude-xchain` in the environment. The CLI's `.credentials.json` carries a refresh token that the spawned CLI auto-renews on every call. No rotation needed unless the operator logs out.
 
 ### Operator setup (`anthropic_api`)
 
