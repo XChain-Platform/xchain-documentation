@@ -11,8 +11,8 @@ XChain supports four encoding formats for embedding ACTION payloads in blockchai
 |---|---|---|---|---|
 | OP_RETURN | 76 bytes user data (80 bytes total) on Bitcoin; larger payloads permitted on Litecoin and Dogecoin (see note) | 1 | Lowest | Most actions |
 | Multisig | ~61 bytes/key | 1 | Low–Medium | Single-tx medium payloads |
-| P2SH | 476 bytes | 2 | Medium | Medium payloads |
-| P2WSH | 8,192 bytes | 2 | Medium–High | Large payloads |
+| P2SH | 8,192 bytes (476-byte chunks) | 2 | Medium | Medium–large payloads |
+| P2WSH | 8,192 bytes (476-byte chunks) | 2 | Medium–High | Large payloads (SegWit-discounted) |
 
 ## Format Details
 
@@ -30,16 +30,16 @@ The payload is split across fake public key positions in a bare multisig output.
 
 Multisig is appropriate when the payload is slightly too large for OP_RETURN and the caller needs a single-broadcast flow. It is less common than P2SH or P2WSH for large payloads because the capacity ceiling is relatively low.
 
-### P2SH: up to 476 bytes
+### P2SH: up to 8,192 bytes (476-byte chunks)
 
-The payload is embedded in a redeem script. Two transactions are required:
+The payload is embedded in one or more redeem scripts. Payloads larger than a single 476-byte chunk are split across multiple P2SH outputs (fund-then-spend pairs), up to the shared 8,192-byte compiled-ACTION ceiling. Two transactions are required:
 
-- **Fund tx**: locks funds to the P2SH output (hash of the redeem script)
-- **Spend tx**: spends from the P2SH output, revealing the full redeem script in the scriptSig
+- **Fund tx**: locks funds to the P2SH output(s) (hash of each redeem script)
+- **Spend tx**: spends from the P2SH output(s), revealing each full redeem script in the scriptSig
 
-Both transactions must be broadcast in order. The decoder reads the spend transaction's scriptSig to extract the payload.
+Both transactions must be broadcast in order. The decoder reads the spend transaction's scriptSig(s) to reassemble the payload. See [Encoding](../../concepts/ENCODING.md) for the canonical chunking model.
 
-P2SH is suitable for larger ISSUE operations, BATCH commands that combine multiple actions, or any action with additional fields that push past the OP_RETURN limit.
+P2SH is the auto-selected format for any payload above the 76-byte OP_RETURN limit: larger ISSUE operations, BATCH commands that combine multiple actions, or any action with additional fields.
 
 ### P2WSH: up to 8,192 bytes
 
@@ -48,7 +48,7 @@ Functionally identical to P2SH but uses SegWit. The payload is embedded in a wit
 - **Fund tx**: locks funds to the P2WSH output
 - **Spend tx**: reveals the witness script
 
-SegWit's witness discount makes P2WSH more fee-efficient than P2SH for large payloads. Use this for FILE actions, large BROADCAST messages, or any payload over 476 bytes.
+SegWit's witness discount makes P2WSH more fee-efficient than P2SH for large payloads. P2SH and P2WSH share the same 476-byte chunking and 8,192-byte ceiling; choose P2WSH (explicitly) for FILE actions, large BROADCAST messages, or any large payload where the SegWit fee discount matters. P2WSH is never auto-selected.
 
 The 8,192-byte figure is the effective protocol ceiling: it is the maximum **compiled** ACTION payload size the decoder will accept; the on-chain script push measured before decompile strips the OP_PUSHDATA prefix, not the decoded ACTION string (which is 1–3 bytes shorter) and not the raw P2WSH script-level capacity (which is higher, ~9,956 bytes). Payloads above 8,192 bytes are rejected at encode time and would be dropped by the decoder if broadcast, so this ceiling applies to every format; it is not specific to P2WSH.
 
@@ -61,17 +61,12 @@ Obfuscated payload length?
          |
     OP_RETURN  (single tx, cheapest)  <-- auto-selected
          |
-    > 76 bytes  (user data)
+    > 76 bytes  (user data), <= 8,192 bytes
          |
-    <= 476 bytes
+    P2SH  (two tx, medium cost; 476-byte chunks)  <-- auto-selected
          |
-    P2SH  (two tx, medium cost)  <-- auto-selected
-         |
-    > 476 bytes (explicit encoding=P2WSH required; not auto-selected)
-         |
-    <= 8,192 bytes
-         |
-    P2WSH  (two tx, SegWit-discounted)
+         |  (P2WSH, same 476-byte chunking + 8,192 ceiling, is SegWit-discounted
+         |   but must be requested explicitly via encoding=P2WSH; never auto-selected)
          |
     > 8,192 bytes
          |
@@ -88,7 +83,7 @@ Multisig is a single-transaction format chosen for medium payloads slightly larg
 
 **Use P2SH** when constructing BATCH commands combining several actions, or ISSUE actions with long token names, descriptions, or callback URLs.
 
-**Use P2WSH** when embedding FILE content or BROADCAST payloads that approach or exceed the P2SH limit. The SegWit discount partially offsets the higher byte count.
+**Use P2WSH** (explicitly) when embedding large FILE content or BROADCAST payloads where the SegWit fee discount matters; it shares P2SH's 476-byte chunking and 8,192-byte ceiling but is not auto-selected.
 
 **Use Multisig** rarely, primarily when a single-transaction flow is required and the payload is too large for OP_RETURN.
 

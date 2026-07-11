@@ -290,7 +290,10 @@ The canonical format flip is keyed on the BTC-anchored `snapshot_block`
 (`cross_chain_royalty_activation.js`, a hub/indexer twin module), while the create-side
 acceptance rule is keyed on the local block (`protocol_changes.js`); operators must
 coordinate the two dates (canonical first or together, never create-side first). Both
-mainnet values are placeholders pending the coordinated fleet flag-day.
+mainnet values are now armed: the canonical flip is set to `snapshot_block` height
+`961000` (BTC anchor ~2026-08-04; hub and every indexer must deploy before that
+height), and the create-side acceptance gate is set to block time `1798761600`
+(2027-01-01 00:00 UTC).
 
 ## Touched components
 

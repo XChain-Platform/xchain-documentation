@@ -270,6 +270,25 @@ const VALID_FIAT_CODES = ['USD', 'CAD', 'AUD', 'MXN', 'GBP', 'JPY', 'CNY', 'CHF'
 // field). The cross-service parity test asserts indexer === SDK === this value.
 const GAS_TICK = 'XCHAIN';
 
+// ── Oracle federation (xchain-hub) ───────────────────────────────────────────
+// Canonical source: xchain-hub/src/constants.js. Mirrored here byte-identical,
+// same as XCALL_MAX_HOPS above, so a hub-side edit or a consumer re-declaring
+// either literal has a cross-repo tripwire.
+
+// Coarse global sanity ceiling on an ingested price_snapshots value (pre-scale,
+// covers pairs like BTC/KRW up to ~$7M BTC with headroom); rejects
+// parse-overflow / misplaced-decimal garbage. Per-pair outliers are caught by
+// the co-sign deviation gate and multi-submitter aggregation, not here.
+const PRICE_MAX = 10_000_000_000;
+
+// Co-sign deviation band for the oracle PREPARE content-validation gate: a
+// follower refuses to co-sign a proposed price that deviates more than this
+// fraction from its own local aggregate for the pair. MUST be
+// federation-uniform: if hubs used different bands, identical aggregates
+// could yield different accept/withhold decisions (a liveness divergence on
+// the ±band boundary). 0.05 = 5%.
+const ORACLE_DEVIATION_THRESHOLD = 0.05;
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     OP_RETURN_PUSH_OVERHEAD,
@@ -294,4 +313,6 @@ module.exports = {
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
+    PRICE_MAX,
+    ORACLE_DEVIATION_THRESHOLD,
 };
