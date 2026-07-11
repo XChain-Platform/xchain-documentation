@@ -186,7 +186,7 @@ See [`../components/utxo-tracker/`](../components/utxo-tracker/) for full docume
 
 Key technical details:
 
-- Exposes 29 action construction methods (one per developer-invocable ACTION type) and 98 explorer query wrappers.
+- Exposes 30 action construction methods (one per developer-invocable ACTION type) and 98 explorer query wrappers.
 - Batch builder allows multiple actions to be combined into a single `BATCH` action string.
 - Discovers service endpoints via xchain-hub.
 - Implements retry with exponential backoff and connection pooling for all outbound calls.

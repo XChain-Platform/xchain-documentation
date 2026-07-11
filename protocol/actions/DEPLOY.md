@@ -68,7 +68,7 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
 
 ## Rules
 - Available on all chains
-- `CODE_ENCODING` must be valid base64-encoded UTF-8 JavaScript source code and must not exceed 64KB (65536 bytes decoded)
+- `CODE_ENCODING` must be valid UTF-8 JavaScript source code (base64-encoded at/after the `DEPLOY_BASE64_CODE` activation, hex-encoded before it; see Encoding activation below) and must not exceed 64KB (65536 bytes decoded)
 - `GAS_LIMIT` must be a positive integer
 - The VM validates syntax before charging gas:
   1. V8 compilation check, rejects JavaScript syntax errors

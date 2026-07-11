@@ -50,7 +50,7 @@ await session.order({
 
 ### Available Action Methods
 
-All 29 action types are available as convenience methods:
+All 30 action types are available as convenience methods:
 
 | Category | Methods |
 |---|---|

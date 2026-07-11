@@ -50,9 +50,15 @@ own threshold and cross independently.
 
 ## Where the values live
 
-The canonical source of every activation value is
-[`constants.js`](constants.js) in this repository. Each consuming service carries a **byte-identical
-twin** of the maps it needs, and a cross-repo conformance gate fails CI if a twin drifts:
+[`constants.js`](constants.js) in this repository is the canonical source for the cohort gates
+(contract era, validator era, state commitment) below. Each consuming service carries a
+**byte-identical twin** of the maps it needs, and a cross-repo conformance gate fails CI if a twin
+drifts.
+
+Three later consensus gates are armed but **not yet folded into `constants.js`**: they currently live
+only as service-carried modules (see [Additional armed gates](#additional-armed-gates-service-carried)
+below). Until they are consolidated here, `constants.js` is not the complete inventory, and those
+three are byte-guarded between their indexer and sync twins rather than against this file.
 
 | Service | Carries |
 |---|---|
@@ -77,6 +83,22 @@ coordinated fleet rollout retire a whole batch at once.
 
 Testnet and regtest run every cohort **genesis-active** (threshold 0), so the test networks always
 exercise the post-activation behavior; only mainnet carries a future threshold.
+
+## Additional armed gates (service-carried)
+
+These three consensus gates are **armed** on mainnet but are not yet mirrored into
+[`constants.js`](constants.js); each currently lives only in the service module named below (its
+indexer and sync copies are byte-identical, and that pair is the drift guard). They are listed here so
+the flag-day inventory stays complete pending consolidation into the canonical file.
+
+| Gate | Keyed on | Mainnet height | Straggler | Lives in |
+|---|---|---|---|---|
+| **SWQ source cap** (`SWQ_SOURCE_CAP_ACTIVATION`, caps `STAKE_WEIGHT_MAX_SOURCES=1000`, `STAKE_WEIGHT_MAX_KEYS_PER_SOURCE=64`) | BTC height | `BTC:mainnet` 960000 (after state commitment 958500, before stake-weighted quorum 961000; LTC/DOGE inert) | forks | `xchain-indexer` / `xchain-sync` `src/swq_source_cap_activation.js` |
+| **Slash burns pending stake** (`SLASH_BURNS_PENDING_STAKE`) | BTC height | 961000 (Cohort-B anchor) | forks | `xchain-indexer/src/protocol_changes.js` |
+| **State-key collation** (`STATE_KEY_COLLATION_ACTIVATION`) | per-chain local height | `BTC:mainnet` 962500, `LTC:mainnet` 3160000, `DOGE:mainnet` 6335000 (armed 2026-07-10, ~10 days past Cohort-B) | halts, recoverable | `xchain-indexer` / `xchain-sync` `src/state_key_collation_activation.js` |
+
+The SWQ source cap and slash-burns gates are BTC-height forking rules that belong with **Cohort B**;
+state-key collation is a per-chain additive gate that behaves like **Cohort C** (halts, recoverable).
 
 ## Straggler behavior
 
