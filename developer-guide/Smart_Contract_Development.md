@@ -198,7 +198,7 @@ The VM performs six checks before deployment:
 
 1. **V8 syntax check**; the code must parse as valid JavaScript
 2. **Acorn metering pass**; the code must be parseable by acorn (ES2020 maximum)
-3. **Reserved identifier check**; the code must not use `__gas` (reserved for gas metering)
+3. **Reserved identifier check**; the code must not use `__gas` (reserved for gas metering), the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); all are harness-injected and a contract may not define or reference them
 4. **Banned transcendental `Math.*`:** `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` are rejected. IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures, which would cause hash divergence between indexers. Use the deterministic equivalents in `xchain.math.*` instead.
 5. **Banned DoS literals:** `BigInt` literals (e.g. `10n`) and `RegExp` literals (e.g. `/foo/`) are rejected. Both expose unmetered native computation; a `BigInt` arithmetic loop or a catastrophic regex can exhaust the block watchdog and halt the chain. The `BigInt` global and `RegExp` constructor are also stripped at runtime; use `xchain.math.*` for big-number work.
 6. **Banned async check** (consensus-gated): `async` functions, `await` expressions, and `Promise` references are rejected. Enforced today by the `xchain-lint` CLI, the SDK, and testnet/regtest; on mainnet at/after the `VM_BANNED_ASYNC` flag-day (2026-10-01).

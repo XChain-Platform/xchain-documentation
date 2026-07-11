@@ -315,7 +315,8 @@ exact bytes):
 ## Recovery procedure (full-parse)
 1. Sync DOGE through the decoder/indexer from genesis: `anchor_actions` populates from the
    chain alone.
-2. Run `xchain-indexer/src/recovery.js` **with `BTC_INDEXER_DB_NAME` set**: reassembles
+2. Run `xchain-indexer/src/recovery.js --skip-stake-verification --i-understand-unverified`:
+   reassembles
    chunked batches by `MATCH_BATCH_SEQ`, gunzips, verifies `BATCH_CRC32`, verifies each
    archived match's/call's `validator_signatures` against the archived
    `capability_snapshots`, rebuilds `cross_chain_matches` + `cross_chain_calls` +
@@ -329,9 +330,12 @@ exact bytes):
 **Ordering is load-bearing:** the reward restore (step 2) MUST complete before the BTC reindex
 (step 3); COLLECT validation reads `validator_rewards` synchronously at parse time, so a
 reindex that reaches a historical COLLECT before its anchor rewards are restored replays it
-`invalid: no unclaimed rewards` and the recovered ledger diverges. (`--verify-stakes` is for a
-post-reindex verification pass, against the empty pre-reindex BTC DB it would fail every
-batch.)
+`invalid: no unclaimed rewards` and the recovered ledger diverges. The stake cross-check is ON by
+default and requires `BTC_INDEXER_DB_NAME`; against the empty pre-reindex BTC DB it would fail
+every batch, so the writing reward-restore pass explicitly opts out with
+`--skip-stake-verification --i-understand-unverified` (a bare `--skip-stake-verification` is forced
+to a dry run). AFTER the BTC reindex, run a verifying pass with `--dry-run` (stake cross-check
+default-on) to confirm every archived validator set is backed by real on-chain stake.
 
 ## Notes
 - `SNAPSHOT_BLOCK` is distinct from `BLOCK_INDEX`: `BLOCK_INDEX` is the checkpointed height on

@@ -235,7 +235,7 @@ await stakerSession.delegateForContract({
 });
 ```
 
-After the 6-block activation delay, the old pubkey is retired and the new pubkey owns the stake row. Useful for key hygiene without exiting the stake.
+After the per-chain activation delay (6 blocks on BTC, 24 on LTC, 60 on DOGE), the old pubkey is retired and the new pubkey owns the stake row. Useful for key hygiene without exiting the stake.
 
 To revoke a delegated key without replacing it, use `DELEGATE v3`:
 

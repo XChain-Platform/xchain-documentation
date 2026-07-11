@@ -19,7 +19,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 - **P2P gossip**: WebSocket-based peer mesh with heartbeat, exponential backoff reconnection, and message deduplication
 - **Ed25519 validator identity**: cryptographic message signing and verification using Node.js built-in crypto
 - **Leader rotation**: deterministic per-sequence leader from sorted validator set with view change on timeout
-- **Decentralized price oracle**: validators fetch prices from CoinGecko and CoinMarketCap, aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT consensus
+- **Decentralized price oracle**: validators fetch prices from CoinGecko and Kraken (both keyless and always active; CoinMarketCap is an optional third source, enabled only when `COINMARKETCAP_API_KEY` is set), aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT consensus
 - **Oracle rounds**: configurable round interval (default 10 minutes) with submission window (default 3 minutes)
 - **Fee quotes**: calculates native coin fee amounts by converting gas units → XCHAIN → native coin via oracle prices
 - **Cross-chain attestation**: PBFT-based consensus for cross-chain action verification with per-chain confirmation thresholds (BTC: 6, LTC: 12, DOGE: 60; configurable via `XCHAIN_CONFIRMATIONS_<COIN>`)
@@ -147,7 +147,7 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 
 | Package | Purpose |
 |---|---|
-| `axios` | HTTP client for external price API calls (CoinGecko, CoinMarketCap) |
+| `axios` | HTTP client for external price API calls (CoinGecko, Kraken; CoinMarketCap optional) |
 | `express` | HTTP server for JSON-RPC API |
 | `express-json-rpc-router` | JSON-RPC 2.0 routing for the API server |
 | `geoip-lite` | Self-contained country/region lookup; derives coarse geo from connecting IPs at telemetry ingest (raw IP is never stored) |

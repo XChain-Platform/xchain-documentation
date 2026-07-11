@@ -173,7 +173,7 @@ Pre-flight syntax and rule validation (no V8 or `isolated-vm` required). Delegat
 Checks for:
 - Code size limit (64 KB)
 - JavaScript syntax errors and unsupported syntax (ES2020 maximum, via acorn)
-- Reserved identifier usage (`__gas` and allocator metering helpers)
+- Reserved identifier usage (`__gas`, the allocator metering helpers, and the call-depth metering helpers `__depth_enter`/`__depth_exit`)
 - Banned transcendental Math calls (`Math.sqrt`, `Math.pow`, `Math.log`, etc.)
 - Banned native-DoS literals (BigInt and RegExp literals)
 - Banned async surface (`async`, `await`, `Promise`)

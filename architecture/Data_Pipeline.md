@@ -113,7 +113,7 @@ The explorer reads directly from the Indexer DB. It exposes:
 - **JSON-RPC 2.0**: for programmatic access following the same interface used by Counterparty-compatible tools
 - **Bootstrap web UI**: browser interface with Highcharts for market data visualization
 
-A query like `GET /token/MYTOKEN` triggers a SQL read against the Indexer DB and returns the token record created in Step 6. Because the explorer reads directly from MariaDB (no caching layer), it reflects the state of the last committed indexer block.
+A query like `GET /token/MYTOKEN` triggers a SQL read against the Indexer DB and returns the token record created in Step 6. Because the explorer reads directly from MariaDB with no external cache tier, it generally reflects the state of the last committed indexer block. It does keep in-process LRU caches (address IDs, ticker IDs, and immutable action records) that key on immutable data and so never serve stale state, plus a short-TTL result cache for `getHolders` (`EXPLORER_HOLDERS_CACHE_MS`, default 15s) whose output can lag the last committed block by up to that TTL.
 
 The explorer syncs configuration from xchain-hub every 60 seconds: fee schedules, supported chains, and oracle price data. The hub is a decentralized validator network providing PBFT-consensus config, price oracle (trimmed median aggregation across 36 COIN/FIAT pairs), on-chain PRICE v0 publishing via the `oracle_publish` capability, cross-chain attestation, external attestation framework (`http_get`/`llm` providers), and governance. Consumers connect to multiple hub endpoints via `HUB_VALIDATORS` for high availability.
 

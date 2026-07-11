@@ -670,7 +670,7 @@ async function safeGetToken(tick) {
 
 ## Polling for State Changes
 
-The explorer is polled, not pushed. Build a lightweight event loop:
+The explorer also exposes a real-time WebSocket push API (see the explorer WebSocket reference); where you prefer simple polling, build a lightweight event loop:
 
 ```js
 class BlockPoller {

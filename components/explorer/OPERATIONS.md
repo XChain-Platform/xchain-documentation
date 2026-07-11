@@ -30,7 +30,7 @@ The explorer starts both HTTP and HTTPS servers (if SSL certificates are availab
 
 ```env
 EXPLORER_API_PORT_HTTP=8080
-EXPLORER_API_PORT_HTTPS=8443
+EXPLORER_API_PORT_HTTPS=8081
 ```
 
 ### Docker
@@ -54,11 +54,11 @@ Environment variables can be passed at runtime:
 ```bash
 docker run -d \
     -p 8080:8080 \
-    -p 8443:8443 \
+    -p 8081:8081 \
     -e HUB_API_HOST=hub.example.com \
     -e HUB_PORT=1984 \
     -e EXPLORER_API_PORT_HTTP=8080 \
-    -e EXPLORER_API_PORT_HTTPS=8443 \
+    -e EXPLORER_API_PORT_HTTPS=8081 \
     xchain-explorer
 ```
 

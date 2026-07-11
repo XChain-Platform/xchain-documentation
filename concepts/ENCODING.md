@@ -58,7 +58,7 @@ The two-transaction pattern means the ACTION is not visible until the spend tran
 **Transactions**: 2 (fund then spend)  
 **Mechanism**: Identical in concept to P2SH but uses SegWit witness data for the reveal; the data chunk in the witness script is likewise embedded **raw**, with a single obfuscated marker `OP_RETURN` output (`XCHN` magic plus a `p2wsh` tag). The larger capacity comes from the witness discount applied to SegWit data, witness bytes cost one quarter of the weight of non-witness bytes for fee purposes. This makes P2WSH the preferred format for large payloads (file uploads, long broadcast messages, dense batch operations).
 
-**The 8,192-byte ceiling is a decoder-wide limit, not a P2WSH-specific one.** `MAX_ACTION_DATA_LENGTH` in `xchain-decoder/src/XChainDecoder.js` applies to every embedding format: OP_RETURN, multisig, P2SH (across all its chunks), and P2WSH alike. Any decoded payload that exceeds 8,192 bytes is rejected regardless of how it was embedded.
+**The 8,192-byte ceiling is a decoder-wide limit, not a P2WSH-specific one.** `MAX_ACTION_DATA_LENGTH` in `xchain-decoder/src/XChainDecoder.js` applies to every embedding format: OP_RETURN, multisig, P2SH (across all its chunks), and P2WSH alike. The cap is measured on the **compiled** on-chain push (the OP_PUSHDATA-prefixed buffer as it appears on chain, before `bitcoin.script.decompile` strips the push prefix), not on the decoded payload: the decoded ACTION string is 1-3 bytes shorter than the compiled push it came from. A decoded payload as small as ~8,190 bytes can still compile to more than 8,192 bytes and be silently dropped; encoders must budget for the push-prefix overhead, not just the decoded byte count.
 
 ## Format Auto-Selection
 

@@ -56,7 +56,7 @@ Create a `.env` file with the required environment variables (see [Configuration
 HUB_API_HOST=localhost
 HUB_PORT=10000
 EXPLORER_API_PORT_HTTP=8080
-EXPLORER_API_PORT_HTTPS=8443
+EXPLORER_API_PORT_HTTPS=8081
 ```
 
 Or configure a local `src/config.json` with database connection details (see [Configuration](CONFIGURATION.md)).

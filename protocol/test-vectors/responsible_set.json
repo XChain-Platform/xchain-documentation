@@ -1,0 +1,90 @@
+{
+  "_description": "Canonical conformance vectors for the attestation responsible-set selection rule (_computeResponsibleSet). This rule is implemented independently in xchain-hub (AttestationRound._computeResponsibleSet) and xchain-indexer (actions/attest._computeResponsibleSet); the two MUST produce identical ordered output for the same inputs or attestation quorum evaluation forks (the hub signs with set S_hub, the indexer filters verified signatures against S_idx, and any divergence silently expires every affected request). Unlike the stake_weighted_quorum primitive this rule is not a single vendored file, so there is no byte-identity guard; each repo's conformance test instead runs these behaviour vectors against its own copy. Rule: for each validator compute SHA256(request_id || lowercased-pubkey), sort ascending by the hex hash string; when weighted, dedupe by staking source keeping the lowest-hash key per source and always keeping null-source keys; then take the first max(1, redundancy) pubkeys. This file is the single source of truth; do not fork it. Any change to either implementation must update these vectors and stay green in both repos.",
+  "computeResponsibleSet": [
+    {
+      "name": "unweighted hash-order, redundancy 3",
+      "validators": [
+        { "pubkey": "K1", "source": "s1" },
+        { "pubkey": "K2", "source": "s2" },
+        { "pubkey": "K3", "source": "s3" },
+        { "pubkey": "K4", "source": "s4" },
+        { "pubkey": "K5", "source": "s5" }
+      ],
+      "requestId": "req-alpha-0001",
+      "redundancy": 3,
+      "weighted": false,
+      "expected": ["k3", "k5", "k4"]
+    },
+    {
+      "name": "weighted source dedupe drops duplicate source",
+      "validators": [
+        { "pubkey": "KA", "source": "sX" },
+        { "pubkey": "KB", "source": "sX" },
+        { "pubkey": "KC", "source": "sY" },
+        { "pubkey": "KD", "source": "sZ" }
+      ],
+      "requestId": "req-beta-0002",
+      "redundancy": 3,
+      "weighted": true,
+      "expected": ["kd", "kb", "kc"]
+    },
+    {
+      "name": "weighted keeps null-source keys",
+      "validators": [
+        { "pubkey": "KA", "source": null },
+        { "pubkey": "KB", "source": "sX" },
+        { "pubkey": "KC", "source": "sX" },
+        { "pubkey": "KD", "source": null }
+      ],
+      "requestId": "req-gamma-0003",
+      "redundancy": 4,
+      "weighted": true,
+      "expected": ["kd", "ka", "kb"]
+    },
+    {
+      "name": "redundancy larger than set returns all",
+      "validators": [
+        { "pubkey": "P1", "source": "s1" },
+        { "pubkey": "P2", "source": "s2" }
+      ],
+      "requestId": "req-delta-0004",
+      "redundancy": 9,
+      "weighted": false,
+      "expected": ["p2", "p1"]
+    },
+    {
+      "name": "redundancy 0 clamps to 1",
+      "validators": [
+        { "pubkey": "Q1", "source": "s1" },
+        { "pubkey": "Q2", "source": "s2" }
+      ],
+      "requestId": "req-epsilon-0005",
+      "redundancy": 0,
+      "weighted": false,
+      "expected": ["q2"]
+    },
+    {
+      "name": "mixed-case pubkeys normalise to lowercase",
+      "validators": [
+        { "pubkey": "AbCdEf", "source": "s1" },
+        { "pubkey": "ZZZ", "source": "s2" }
+      ],
+      "requestId": "req-zeta-0006",
+      "redundancy": 2,
+      "weighted": false,
+      "expected": ["abcdef", "zzz"]
+    },
+    {
+      "name": "weighted with redundancy 1 selects lowest-hash leader after dedupe",
+      "validators": [
+        { "pubkey": "W1", "source": "sA" },
+        { "pubkey": "W2", "source": "sB" },
+        { "pubkey": "W3", "source": "sA" }
+      ],
+      "requestId": "req-eta-0007",
+      "redundancy": 1,
+      "weighted": true,
+      "expected": ["w3"]
+    }
+  ]
+}

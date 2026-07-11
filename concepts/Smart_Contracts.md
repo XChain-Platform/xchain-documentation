@@ -403,7 +403,7 @@ var stakers = xchain.contract.getStakers('XCHAIN');
 // → [{ pubkey: '...64hex...', amount: '500' }, ...]
 ```
 
-`getStakers` is capped at the top 1000 entries; a contract should design its rules so it doesn't need to iterate every staker. Pre-activation stakes (within the 6-block activation window after STAKE) are not yet visible.
+`getStakers` is capped at the top 1000 entries; a contract should design its rules so it doesn't need to iterate every staker. Pre-activation stakes (within the per-chain activation window after STAKE: 6 blocks on BTC, 24 on LTC, 60 on DOGE) are not yet visible.
 
 ### Slashing
 

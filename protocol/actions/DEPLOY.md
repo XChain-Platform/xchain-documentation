@@ -73,7 +73,7 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
 - The VM validates syntax before charging gas:
   1. V8 compilation check, rejects JavaScript syntax errors
   2. Acorn metering pass, rejects syntax beyond ES2020 (the supported syntax set)
-  3. Reserved identifier check, rejects code containing `__gas` (reserved for gas metering)
+  3. Reserved identifier check, rejects code containing `__gas` (reserved for gas metering), the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); all are harness-injected and a contract may not define or reference them
 - If syntax validation fails, the deployment is rejected with `invalid: CODE_ENCODING (<reason>)` and no gas is charged
 - A non-blocking float usage warning is generated if decimal number literals are detected (visible in the execution record)
 - A gas fee is charged at deployment: `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`

@@ -62,7 +62,9 @@ The encoder supports four encoding strategies. Each trades off cost, data capaci
 When `encoding` is omitted the encoder chooses based on the byte length of the ACTION string:
 
 - ACTION data fits in 76 bytes (user-data limit; 80 bytes total per output) → `OP_RETURN`
-- ACTION data is larger → `P2SH` (or `P2WSH` for very large payloads)
+- ACTION data is larger → `P2SH`
+
+`MULTISIGN` and `P2WSH` are never auto-selected; request them explicitly via the `encoding` parameter.
 
 Relying on auto-selection is recommended for most use cases. Explicitly setting `encoding` is useful when you need deterministic output size or are working with the FILE action.
 
