@@ -23,7 +23,7 @@ Think of it like a building's electrical wiring. The building's concrete and ste
 
 In practice, XChain works by embedding small pieces of data inside ordinary blockchain transactions. Those data packets are invisible to Bitcoin itself, they're just part of a normal transaction. But XChain's software layer reads those packets, interprets them as commands, and maintains its own database of token balances, orders, and state.
 
-**Nothing about Bitcoin, Litecoin, or Dogecoin is changed.** XChain tokens exist on the actual blockchain, secured by the same proof-of-work consensus that secures every other Bitcoin transaction. There are no sidechains, no bridges, no separate validators, no new consensus mechanism to trust.
+**Nothing about Bitcoin, Litecoin, or Dogecoin is changed.** XChain tokens exist on the actual blockchain, secured by the same proof-of-work consensus that secures every other Bitcoin transaction. There are no sidechains and no bridges: your token balances need no separate validators and no new consensus mechanism to trust. (A staked validator federation does provide the optional cross-chain, oracle, and attestation services described later; those services never sit between you and your base-layer token records.)
 
 ---
 
@@ -118,7 +118,7 @@ XChain doesn't use bridges. When you hold an XChain token on Bitcoin, that token
 
 ### No New Consensus
 
-A lot of layer-2 and sidechain systems require you to trust a separate set of validators. XChain has no separate validators. The security of your XChain tokens comes directly from Bitcoin's (or Litecoin's or Dogecoin's) proof-of-work consensus; the same mechanism that has secured those chains for over a decade.
+A lot of layer-2 and sidechain systems require you to trust a separate set of validators to hold your balance. XChain does not: no separate validators secure your token balances. The security of your XChain tokens comes directly from Bitcoin's (or Litecoin's or Dogecoin's) proof-of-work consensus; the same mechanism that has secured those chains for over a decade. A staked validator federation exists only to provide the optional cross-chain, oracle, attestation, and anchoring services (see the Validator and System Actions section above); it quorum-signs those service records but never custodies or gates your base-layer token balances.
 
 ### Multi-Chain by Design
 

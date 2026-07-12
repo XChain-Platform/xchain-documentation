@@ -118,6 +118,17 @@ Virtual Machine actions are available on **all chains** (BTC, LTC, DOGE). DEPLOY
 |---|---|---|
 | [**ANCHOR**](../../protocol/actions/ANCHOR.md) | Commit quorum-signed state checkpoints and a compressed archive of cross-chain match rows on-chain. DOGE-only, validator-broadcast action. | Valid only on the DOGE chain (all networks). No protocol fee. On parse, the indexer writes to `anchor_actions` and records checkpoint hashes. The archived data makes all platform state recoverable from a full chain re-parse. See `src/actions/anchor.js` and `protocol/actions/ANCHOR.md`. |
 
+## Attestation & Validator Actions
+
+These are the Attestation and Validator categories named under Protocol Versioning above. Each links to its full protocol spec for the version-discriminated params and validation rules.
+
+| Action | Purpose | Key Validations |
+|---|---|---|
+| [**ATTEST**](../../protocol/actions/ATTEST.md) | External-data attestation lifecycle in three version-discriminated phases: v0 (VM-emitted request), v1 (validator-broadcast response), v2 (system-synthesized expiry). | Governance-registered `PROVIDER_ID`; v1 responses are quorum-signed by the attestation-capable validator set; deterministic `REQUEST_ID` derivation. See `protocol/actions/ATTEST.md`. |
+| [**NODEPROOF**](../../protocol/actions/NODEPROOF.md) | Records an on-chain, quorum-signed verdict of which validators answered a periodic possession challenge, proving they run a real coin full node rather than mirroring DBs via `xchain-sync`. | `EPOCH_HEIGHT` a multiple of `CHALLENGE_INTERVAL_BLOCKS`; passing pubkeys quorum-signed; challenge derived from the epoch. See `protocol/actions/NODEPROOF.md`. |
+| [**SLASH**](../../protocol/actions/SLASH.md) | Permissionless equivocation proof that burns a capability validator's entire bond when they signed two conflicting values for the same consensus slot. | `CAPABILITY` matches the engine the `EQUIV_KEY` names (derived, not trusted); both signatures verify against `OFFENDER_PUBKEY`; writes a `capability_slash_events` audit row with the bounty/treasury split. See `protocol/actions/SLASH.md`. |
+| [**VOTE**](../../protocol/actions/VOTE.md) | Token-weighted governance polls in four version-discriminated phases: v0 (create), v1 (ballot), v2 (system finalization), v3 (delegate). | Weight measured from on-chain holdings of `TICK` at the poll's effective close (never read from payload), so finalization needs no validator consensus round; `QUORUM` / `MIN_VOTERS` thresholds gate a winner. See `protocol/actions/VOTE.md`. |
+
 ---
 
 ## SEND Format Versions
