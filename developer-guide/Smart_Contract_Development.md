@@ -445,7 +445,7 @@ Inside the callee, `xchain.getSourceAddress()` is the **calling contract's** add
 
 ### Depth and failure semantics
 
-- **Max call depth is 4** (a user's EXECUTE runs at depth 0). `emit.execute` at the limit; check `xchain.getCallDepth()` if your contract may itself be called by other contracts.
+- **Max call depth is 4** (a user's EXECUTE runs at depth 0). `emit.execute` throws at the limit; check `xchain.getCallDepth()` if your contract may itself be called by other contracts.
 - **Strict atomicity:** if *any* call in the tree fails (revert, out of gas, unknown contract, invalid emission) the entire tree rolls back, including your state changes and every other emission. The original caller still pays for the gas consumed (refunds are forfeited on failure).
 - Cycles (A→B→A) are allowed within the depth budget.
 

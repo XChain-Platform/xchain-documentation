@@ -55,10 +55,10 @@ own threshold and cross independently.
 **byte-identical twin** of the maps it needs, and a cross-repo conformance gate fails CI if a twin
 drifts.
 
-Three later consensus gates are armed but **not yet folded into `constants.js`**: they currently live
+Four later consensus gates are armed but **not yet folded into `constants.js`**: they currently live
 only as service-carried modules (see [Additional armed gates](#additional-armed-gates-service-carried)
 below). Until they are consolidated here, `constants.js` is not the complete inventory, and those
-three are byte-guarded between their indexer and sync twins rather than against this file.
+four are byte-guarded between their indexer and sync twins rather than against this file.
 
 | Service | Carries |
 |---|---|

@@ -259,9 +259,9 @@ See [Regtest Development](../developer-guide/Regtest_Development.md) for setup i
 | JSON-RPC microservice | `npm run api` in xchain-sdk | Any language via HTTP |
 | Browser bundle | `dist/xchain_sdk.min.js` | Client-side web apps |
 
-### 29 of the 34 Actions Have Convenience Methods
+### 30 of the 34 Actions Have Convenience Methods
 
-The SDK covers the 29 developer-invocable actions with convenience methods: `sdk.issue()`, `sdk.mint()`, `sdk.send()`, `sdk.sweep()`, `sdk.airdrop()`, `sdk.dividend()`, `sdk.order()`, `sdk.coinpay()`, `sdk.dispenser()`, `sdk.swap()`, `sdk.broadcast()`, `sdk.message()`, `sdk.file()`, `sdk.address()`, `sdk.link()`, `sdk.list()`, `sdk.sleep()`, `sdk.callback()`, `sdk.destroy()`, `sdk.price()`, `sdk.stake()`, `sdk.unstake()`, `sdk.delegate()`, `sdk.collect()`, `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()`. `sdk.transfer()` is an alias for `sdk.send()`. `sdk.batch()` returns a builder for composing BATCH actions. The 5 remaining actions (ANCHOR, ATTEST, NODEPROOF, SLASH, XCALL) are validator or system-emitted and are not user-broadcast.
+The SDK covers the 30 developer-invocable actions with convenience methods: `sdk.issue()`, `sdk.mint()`, `sdk.send()`, `sdk.sweep()`, `sdk.airdrop()`, `sdk.dividend()`, `sdk.order()`, `sdk.coinpay()`, `sdk.dispenser()`, `sdk.swap()`, `sdk.broadcast()`, `sdk.message()`, `sdk.file()`, `sdk.address()`, `sdk.link()`, `sdk.list()`, `sdk.sleep()`, `sdk.callback()`, `sdk.destroy()`, `sdk.price()`, `sdk.stake()`, `sdk.unstake()`, `sdk.delegate()`, `sdk.collect()`, `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()`, `sdk.vote()`. `sdk.transfer()` is an alias for `sdk.send()`. `sdk.batch()` returns a builder for composing BATCH actions. The 4 remaining actions (ANCHOR, ATTEST, NODEPROOF, SLASH) are validator or system-emitted and are not user-broadcast; see [concepts/ACTIONS.md](../concepts/ACTIONS.md) for the full taxonomy.
 
 ---
 

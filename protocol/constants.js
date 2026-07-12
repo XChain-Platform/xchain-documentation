@@ -94,7 +94,7 @@ const XCALL_MAX_DEADLINE_BLOCKS = 4000;
 const XCALL_MAX_RETURN_BYTES = 1024;
 
 // Deterministic per-block injection cap on each target chain. Overflow carries
-// forward to the next block in hub-id order. Never dropped.
+// forward to the next block in (snapshot_block, call_id) order. Never dropped.
 const XCALL_MAX_CALLS_PER_BLOCK = 25;
 
 // ── Chunked DEPLOY (DEPLOY v4 carriers + DEPLOY v2/v3 assemble) ─────────────
