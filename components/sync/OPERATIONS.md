@@ -660,7 +660,9 @@ The reference client (`ClientSync`) sends a heartbeat whenever at least 10 block
 
 ### Backpressure
 
-If a subscriber falls behind and accumulates more than 50 buffered messages, the server drops the connection. The client should reconnect and use the incremental snapshot endpoint to catch up on missed blocks before re-subscribing.
+Backpressure is measured in bytes on the subscriber's send buffer, not in messages. The server drops a subscriber on either of two independent signals: its buffer exceeds `WS_BACKPRESSURE_MAX_BYTES` (default 16 MiB), or its buffer is over zero and has made no downward progress for `WS_BACKPRESSURE_STALL_MS` (default 30s). The stall timer resets on any drop in buffered bytes, so a slow-but-draining replica stays connected instead of being force-dropped into a re-bootstrap loop. The client should reconnect and use the incremental snapshot endpoint to catch up on missed blocks before re-subscribing.
+
+The retired count-based `WS_BACKPRESSURE_LIMIT` is ignored; the hub's separate `/hub-db/subscribe` broadcaster still uses it and is documented in `components/hub/API.md`.
 
 ### Ping/Pong
 
@@ -776,9 +778,9 @@ The hub returned no entries with `xchain-indexer` modules. This means no indexer
 
 The database connection for this chain has failed 10+ times consecutively. Check that MariaDB is running and the credentials from the hub config are correct. The circuit will attempt a half-open retry after 30 seconds.
 
-### "WebSocket connection dropped: backpressure limit exceeded"
+### "Backpressure: buffer ceiling exceeded (N bytes)" / "Backpressure: send buffer not draining for Nms"
 
-The client is not processing blocks fast enough to keep up with the server. This can happen during initial sync if the client's MariaDB is slow. The client should reconnect and use an incremental snapshot to catch up.
+The client is not processing blocks fast enough to keep up with the server. This can happen during initial sync if the client's MariaDB is slow. The first form means the send buffer blew past `WS_BACKPRESSURE_MAX_BYTES`; the second means it stopped draining for `WS_BACKPRESSURE_STALL_MS`. The client should reconnect and use an incremental snapshot to catch up. If healthy replicas are being dropped, raise the byte ceiling or the stall window rather than reverting to a message count.
 
 ### "Hash chain discontinuity at block N"
 

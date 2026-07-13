@@ -101,8 +101,11 @@ limit: `WS_MAX_PER_IP` (default 100).
 
 ### Backpressure and reconnection
 
-If a subscriber accumulates more than 50 buffered messages, the server drops the
-connection. The client should reconnect (the reference client waits 5 seconds),
+Backpressure is byte-based, not message-count based. The server drops a subscriber
+when its send buffer exceeds `WS_BACKPRESSURE_MAX_BYTES` (default 16 MiB), or when
+the buffer is non-empty and has not drained at all for `WS_BACKPRESSURE_STALL_MS`
+(default 30s); any downward progress resets the stall timer, so a slow-but-draining
+replica is not dropped. The client should reconnect (the reference client waits 5 seconds),
 compare its last applied height against the initial `status` message, fetch an
 incremental snapshot via `/snapshot/.../since/:blockHeight` to fill any gap, and
 then resume the subscription.
