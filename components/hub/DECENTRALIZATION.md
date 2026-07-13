@@ -5,7 +5,7 @@
 
 ## Overview
 
-xchain-hub has evolved from a centralized config oracle into a fully decentralized validator network across eight implementation phases. Phases 0–5 shipped v1.0.0 → v2.0.0; Phase 6 (capability model + external attestation framework, 2026-05) and Phase 7 (federation key rotation + quorum hardening, 2026-06) are both complete.
+xchain-hub has evolved from a centralized config oracle into a fully decentralized validator network across nine implementation phases. Phases 0–5 shipped v1.0.0 → v2.0.0; Phase 6 (capability model + external attestation framework, 2026-05), Phase 7 (federation key rotation + quorum hardening, 2026-06), and Phase 8 (full-node verified tier: `full_node` capability, `FullNodeChallengeRound`, NODEPROOF verdicts, 2026-06) are all complete.
 
 ## Motivation
 
