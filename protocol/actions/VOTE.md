@@ -25,6 +25,7 @@ Token-weighted governance polls in four version-discriminated phases: v0 (create
 | `CALLBACK_PARAMS`  | String  | (optional) JSON array of extra positional args appended after the poll result; v0 only              |
 | `CALLBACK_ON`      | String  | (optional, default `pass`) Fire the callback `pass` (only a finalized win) or `always`; v0 only      |
 | `GAS_ESCROW`       | String  | (optional, default 0) GAS the creator escrows to fund the callback's execution; v0 only             |
+| `CALLBACK_DELAY_BLOCKS` | Integer | (optional, default 0) Timelock: blocks between finalization and the callback firing; honored from the `VOTE_CALLBACK_TIMELOCK` flag-day; v0 only |
 | `POLL_REF`         | Integer | The poll's id (the `action_index` of its creating v0); v1 and v2                                     |
 | `BALLOT`           | String  | Comma-delimited `OPTION` or `OPTION:SHARE` entries; v1 only                                          |
 | `MEMO`             | String  | (optional) Bounded free text; v1 and v3                                                              |
@@ -33,9 +34,9 @@ Token-weighted governance polls in four version-discriminated phases: v0 (create
 ## Formats
 
 ### Version `0` - Create poll
-- `VOTE|0|TICK|END_BLOCK|OPTIONS|MAX_SELECTIONS|TALLY_MODE|WEIGHT_MODE|QUORUM|MIN_VOTERS|MIN_VOTE_BALANCE|DECIDE_THRESHOLD|QUESTION|DEPOSIT|CALLBACK_CONTRACT|CALLBACK_METHOD|CALLBACK_PARAMS|CALLBACK_ON|GAS_ESCROW`
+- `VOTE|0|TICK|END_BLOCK|OPTIONS|MAX_SELECTIONS|TALLY_MODE|WEIGHT_MODE|QUORUM|MIN_VOTERS|MIN_VOTE_BALANCE|DECIDE_THRESHOLD|QUESTION|DEPOSIT|CALLBACK_CONTRACT|CALLBACK_METHOD|CALLBACK_PARAMS|CALLBACK_ON|GAS_ESCROW|CALLBACK_DELAY_BLOCKS`
 
-Optional fields may be left empty. The poll's identity is its own `action_index`; there is no caller-supplied id, matching how every other protocol object is keyed by its source action. The five trailing fields make the poll *binding* (see Binding polls); leave them empty for an advisory poll.
+Optional fields may be left empty. The poll's identity is its own `action_index`; there is no caller-supplied id, matching how every other protocol object is keyed by its source action. The six trailing fields make the poll *binding* (see Binding polls); leave them empty for an advisory poll.
 
 ### Version `1` - Cast ballot
 - `VOTE|1|POLL_REF|BALLOT|MEMO`
@@ -116,9 +117,11 @@ Clear a standing GOVTOKEN delegation
 - Leaving `CALLBACK_CONTRACT` empty makes the poll advisory; the other four callback fields are then ignored.
 - `CALLBACK_CONTRACT`, when set, must reference an existing deployed contract by its deploy `action_index`.
 - `CALLBACK_METHOD` is required whenever `CALLBACK_CONTRACT` is set, and is bounded to 64 characters.
+- At/after the `VOTE_BINDING_MINIMUMS` flag-day a binding poll must also set `QUORUM` and `MIN_VOTERS >= 1`; a v0 that omits either is invalid. Advisory polls are unaffected. The magnitudes remain the creator's policy call, but a callback that can move contract-held value can no longer finalize with no turnout floor at all (see Parameterizing binding polls).
 - `CALLBACK_ON` must be `pass` or `always` (default `pass`). `pass` fires only when the poll reaches `finalized` with a winner; `always` fires on `finalized` and `failed_quorum` alike.
 - `CALLBACK_PARAMS`, when set, must parse as a JSON array; its elements are appended as extra positional arguments after the standard poll-result arguments.
 - `GAS_ESCROW` defaults to 0 and must be a non-negative amount. It and `DEPOSIT` are escrowed together (`DEPOSIT + GAS_ESCROW`), and the combined funding check requires `SOURCE` to hold the sum of the GAS tick at creation.
+- `CALLBACK_DELAY_BLOCKS` (from the `VOTE_CALLBACK_TIMELOCK` flag-day) must be a non-negative integer when set. A value above 0 timelocks the callback: finalization freezes the tally and settles the deposit as always, but the callback EXECUTE fires `CALLBACK_DELAY_BLOCKS` blocks later (see Binding polls). Before the flag-day the field is ignored, matching nodes that predate it.
 
 ### Version 1 (cast ballot)
 - `POLL_REF` must reference an existing poll.
@@ -170,10 +173,20 @@ A poll closes at the earlier of two triggers:
 A poll is *binding* when its v0 sets `CALLBACK_CONTRACT`: finalization then calls a contract method with the result, turning a decided poll into an on-chain effect (treasury release, parameter change, contract state update). An advisory poll just freezes its tally.
 
 - **When it fires.** At v2, after the tally is frozen and the deposit settled, the callback fires if `CALLBACK_ON` permits the outcome: `pass` only on a `finalized` win, `always` on `finalized` or `failed_quorum`. A poll that does not meet its gate under `pass` never calls the contract.
+- **Timelock.** A poll created with `CALLBACK_DELAY_BLOCKS > 0` defers the firing: the v2 stamps a due block (`finalize block + delay`) and the per-block sweep injects the callback EXECUTE there, reconstructing the frozen result from the terminal poll row. Everything else about finalization (tally freeze, deposit settlement, escrow release) still happens at the v2. The delay is the holders' and guardians' reaction window between a hostile pass and value moving; a callback contract can use it to honor a veto armed in the interim.
 - **How it runs.** The callback is a system-synthesized EXECUTE injected in the same block as the v2, mirroring ATTEST's callback. Its `SOURCE` is the callback contract itself (`C:<chain>:<contract_action_index>`), it is marked as an emission, and gas is bounded by `GAS_CEILING`. The injected EXECUTE's `action_index` is recorded on the poll (`callback_execute_action_index`).
 - **What the method receives.** The poll result is delivered as positional arguments the contract reads with `xchain.getInputParam`: poll id, status, winning option, total counted weight, total voters, quorum-met flag, min-voters-met flag, then any `CALLBACK_PARAMS` elements. The result is passed in rather than read via `xchain.getPollResult` because the callback runs in the poll's own finalization block, before the poll is visible to the result accessor (which only exposes polls resolved in an earlier block).
 - **Isolation.** The callback runs inside a savepoint. If it throws, only the callback is rolled back; the poll stays terminal with its frozen tally and settled deposit. A binding callback never un-decides a poll.
 - **Funding.** `GAS_ESCROW` funds the callback's execution and is escrowed alongside `DEPOSIT` at creation; both are released at finalize (see Deposit and callback flow).
+
+### Parameterizing binding polls
+The 2026-07 BonkDAO drain is the canonical failure: an attacker bought ~1% of supply for $4.4M, proposed a $20M treasury transfer, and passed it with 7 voters out of 18,000+ holders because quorum was reachable for far less than the value at stake. Nothing was exploited; the governance executed exactly as parameterized. When a poll's callback can move value:
+
+- **Cost of capture must exceed value at stake.** Set `QUORUM` so that acquiring decisive weight costs more than the callback can move, and keep it true through the voting window.
+- Protocol floor: from the `VOTE_BINDING_MINIMUMS` flag-day, `QUORUM` and `MIN_VOTERS >= 1` are mandatory on binding polls. Treat them as the floor, not the target.
+- Prefer `WEIGHT_MODE=time_weighted` for treasury votes (windowed holdings defeat buy-then-vote), or `quadratic` with a meaningful `MIN_VOTE_BALANCE` to blunt single-whale capture.
+- Set `CALLBACK_DELAY_BLOCKS` (from the `VOTE_CALLBACK_TIMELOCK` flag-day) so the callback fires N blocks after finalization instead of in the same block, giving holders a reaction window. Pair it with a guardian veto in the callback contract for defense in depth: the delay creates the window, the contract decides what a veto means.
+- Without the protocol timelock, prefer a timelocked executor: have the callback arm a pending action that a second step executes after N blocks, with a guardian veto, rather than moving value in the finalization block itself.
 
 ## Contracts as poll actors
 A deployed contract can take part in governance as itself, not just react to it, by emitting VOTE from contract code:
