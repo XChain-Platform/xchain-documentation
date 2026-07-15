@@ -129,7 +129,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `stake_key_revocations` | Records DELEGATE v2 revocations of the original stake signing key: `source_id`, `signing_pubkey_id`, `deactivation_block`, `action_index`, `block_index`, `status_id`. A later STAKE v2 (higher `action_index`) by the same `(source, pubkey)` clears the revocation. Queried via `createStakeKeyRevocation` / `getStakeKeyRevocation` in `db.js`. |
 | `reward_claims` | COLLECT records: `source_id`, `amount`, `status_id`, `block_index` |
 
-All staking tables enforce a **6-block activation/deactivation delay** via `activation_block` and `deactivation_block` columns. Active-stake queries filter by `activation_block <= current_block AND (deactivation_block IS NULL OR deactivation_block > current_block)` to prevent short-range BTC reorgs from affecting the active validator set.
+Staking tables enforce an activation/deactivation delay via `activation_block` and `deactivation_block` columns. Capability staking (`stakes`) is BTC-only and uses a fixed **6-block** delay. Contract-targeted staking (`contract_stakes`) runs on every chain and uses the per-chain `STAKING.ACTIVATION_DELAY_BLOCKS` default, calibrated for equivalent ~60-min reorg protection (**6 blocks on BTC, 24 on LTC, 60 on DOGE**); see `protocol/Contract_Staking.md`. Active-stake queries filter by `activation_block <= current_block AND (deactivation_block IS NULL OR deactivation_block > current_block)` to prevent short-range reorgs from affecting the active validator set.
 
 ### Contract-Staking Tables
 
@@ -137,7 +137,7 @@ Contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1) is a developer p
 
 | Table | Purpose |
 |---|---|
-| `contract_stakes` | STAKE v3 records: `action_index` (PK), `source_id`, `version`, `signing_pubkey_id`, `target_contract_index` (FK to `contracts.action_index`), `tick_id`, `amount`, `status_id`, `block_index`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE v1). Active stake for a `(target_contract_index, signing_pubkey_id, tick_id)` triple is the SUM of active rows. |
+| `contract_stakes` | STAKE v3 records: `action_index` (PK), `source_id`, `version`, `signing_pubkey_id`, `target_contract_index` (FK to `contracts.action_index`), `tick_id`, `amount`, `status_id`, `block_index`, `activation_block` (`block_index + ACTIVATION_DELAY_BLOCKS`, per-chain: 6 BTC / 24 LTC / 60 DOGE), `deactivation_block` (set on UNSTAKE v1). Active stake for a `(target_contract_index, signing_pubkey_id, tick_id)` triple is the SUM of active rows. |
 | `contract_unstakes` | UNSTAKE v1 records (`action_index` (PK), `source_id`, `signing_pubkey_id`, `target_contract_index`, `tick_id`, `cooldown_end_block` (`block_index + contracts.cooldown_blocks`) the per-contract cooldown declared at deploy, **not** the global capability cooldown), `amount`, `status_id`, `block_index`. The block-end sweep credits the remaining (post-slash) amount back to the staker at `cooldown_end_block`. |
 | `contract_delegations` | DELEGATE v1 records (signing-pubkey rotation on a contract-targeted stake): `action_index` (PK), `source_id`, `signing_pubkey_id` (the new pubkey), `target_contract_index`, `tick_id`, `status_id`, `block_index`, `activation_block`, `deactivation_block` (set on revoke). |
 

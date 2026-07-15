@@ -111,7 +111,7 @@ The Virtual Machine is implemented as the standalone `xchain-vm` module; a libra
 │  │  EXECUTE)    │  │ → inject    │  │ via JSON bridge    │  │
 │  │              │  │ __gas() →   │  │ protocol           │  │
 │  │ Sandbox:     │  │ astring     │  │                    │  │
-│  │ no Date,     │  │ regenerate  │  │ 18 emittable       │  │
+│  │ no Date,     │  │ regenerate  │  │ 19 emittable       │  │
 │  │ no random,   │  │             │  │ action types       │  │
 │  │ no network   │  │ Charges per │  │                    │  │
 │  └──────┬───────┘  │ control     │  └────────┬───────────┘  │

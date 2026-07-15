@@ -152,6 +152,7 @@ Every contract receives an `xchain` object providing access to platform data and
 | `xchain.emit.broadcast(params)` | None |
 | `xchain.emit.message(params)` | `destination` |
 | `xchain.emit.execute(params)` | `contractIndex`, `method`, `gasLimit` (cross-contract call: deferred, caller-funded gas, max depth 4; see the [developer guide](../developer-guide/Smart_Contract_Development.md#calling-other-contracts--emitexecute)) |
+| `xchain.emit.vote(params)` | `version` (0 = create poll, 1 = cast ballot); v0 also requires `tick`, `endBlock`, `options`, v1 also requires `pollRef`, `ballot` (contract acts as its own poll actor and is the poll's `SOURCE`; see [VOTE](../protocol/actions/VOTE.md#contracts-as-poll-actors)) |
 
 ### Deterministic Math
 | Method | Description |
