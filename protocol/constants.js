@@ -234,6 +234,26 @@ const ANCHOR_REWARD_ACTIVATION = {
 // by the hub and re-derived by the indexer (never from the wire). Changing it is itself a flag-day.
 const ANCHOR_REWARD_AMOUNT = '10.00000000';
 
+// ARCHIVE_REWARD_ACTIVATION (archive-reward re-derivation, ): the flag-day at/above which the
+// anchor_archive reward stops riding the key-authenticated `pushvalidatorrewards` rail and is instead
+// DERIVED by every indexer from the on-chain ANCHOR v6 bytes (the v1 archive anchor plus the same
+// PUBLISHER + 2f+1 XANCPUB attestation tail as v4/v5, attested over an 'anchor_archive' canonical
+// keyed on MATCH_BATCH_SEQ). This retires the last insider-with-key reward-forge surface the
+// per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the legacy v1 + push path stands
+// and v6 anchors are rejected. Consensus-relevant, same deploy rules and snapshot_block gating as
+// ANCHOR_REWARD_ACTIVATION; kept byte-identical to the local copies in
+// xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
+const ARCHIVE_REWARD_ACTIVATION = {
+    mainnet: 983000,      // PLACEHOLDER ~2027-01-01 ( flag-day set; arm with the real height before deploy)
+    testnet: 0,
+    regtest: 0,
+};
+
+// ARCHIVE_REWARD_AMOUNT: the frozen archive-publish reward, signed into the archive XANCPUB
+// attestation by the hub and re-derived by the indexer (never from the wire). Kept equal to the
+// hub's historical default (ANCHOR_REWARD_PER_PUBLISH). Changing it is itself a flag-day.
+const ARCHIVE_REWARD_AMOUNT = '10.00000000';
+
 // CROSS_CHAIN_ROYALTY_ACTIVATION (cross-chain royalty match-canonical): the flag-day at/above which
 // the validator-signed XMATCH canonical carries the matched orders' royalty payout legs
 // (a_payout_legs / b_payout_legs), so a colluding hub cannot strip a royalty from a cross-chain
@@ -310,6 +330,8 @@ module.exports = {
     CHECKPOINT_COMMITMENT_ACTIVATION,
     ANCHOR_REWARD_ACTIVATION,
     ANCHOR_REWARD_AMOUNT,
+    ARCHIVE_REWARD_ACTIVATION,
+    ARCHIVE_REWARD_AMOUNT,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
