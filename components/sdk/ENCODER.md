@@ -16,7 +16,7 @@ There are two ways to use the encoder:
 const sdk = new XChainSDK({
     network:    'bitcoin-mainnet',
     encoderUrl: 'localhost',
-    encoderPort: 3000
+    encoderPort: 3003
 });
 ```
 

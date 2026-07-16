@@ -87,7 +87,7 @@ const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
     explorerUrl: 'explorer.xchain.io',
     encoderUrl: 'encoder.xchain.io',
-    encoderPort: 3000
+    encoderPort: 3003
 });
 ```
 
@@ -714,7 +714,7 @@ try {
 const sdk = new XChainSDK({
     network: 'bitcoin-regtest',
     hubUrl: 'hub.xchain.io',
-    hubPort: 8001
+    hubPort: 10000
 });
 
 // Fetch config from hub; resolves explorer + encoder endpoints automatically
@@ -1144,7 +1144,7 @@ Complete workflow: create an action, encode it as a PSBT, sign it, and broadcast
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
     encoderUrl: 'encoder.example.com',
-    encoderPort: 3000
+    encoderPort: 3003
 });
 
 const kp = sdk.importWIF(process.env.WALLET_WIF);

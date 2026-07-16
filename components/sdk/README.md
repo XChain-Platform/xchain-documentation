@@ -123,7 +123,7 @@ const sdk = new XChainSDK({
     explorerUrl:  'explorer.example.com',
     explorerPort: 8080,
     encoderUrl:   'encoder.example.com',
-    encoderPort:  3000
+    encoderPort:  3003
 });
 
 // Build a SEND action and encode it into a PSBT in one call
@@ -162,7 +162,7 @@ const XChainSDK = require('./index.js');
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
     hubUrl:  'hub.example.com',
-    hubPort: 8001
+    hubPort: 10000
 });
 
 // init() fetches config from hub and starts polling for updates

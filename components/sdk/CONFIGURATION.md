@@ -17,9 +17,9 @@ const sdk = new XChainSDK(options);
 | `explorerUrl` | string | `EXPLORER_URL` env var or `'localhost'` | Hostname or IP of the xchain-explorer API server. |
 | `explorerPort` | number | `EXPLORER_PORT` env var or `8080` | Port of the xchain-explorer API server. |
 | `encoderUrl` | string | `ENCODER_URL` env var or `'localhost'` | Hostname or IP of the xchain-encoder JSON-RPC server. |
-| `encoderPort` | number | `ENCODER_PORT` env var or `3000` | Port of the xchain-encoder JSON-RPC server. |
+| `encoderPort` | number | `ENCODER_PORT` env var or `3003` | Port of the xchain-encoder JSON-RPC server. |
 | `hubUrl` | string | `HUB_API_HOST` env var or `'localhost'` | Hostname or IP of the xchain-hub config oracle. Required for hub discovery. |
-| `hubPort` | number | `HUB_PORT` env var or `8001` | Port of the xchain-hub config oracle. |
+| `hubPort` | number | `HUB_PORT` env var or `10000` | Port of the xchain-hub config oracle. |
 | `hubPollInterval` | number | `60000` | How often (ms) to re-fetch config from hub after `init()`. |
 | `timeout` | number | `30000` | Request timeout in milliseconds applied to all HTTP requests. |
 | `retry` | RetryConfig or `false` | See [Retry Configuration](#retry-configuration) | Retry policy for transient errors. Pass `false` to disable retries entirely. |
@@ -319,7 +319,7 @@ const sdk = new XChainSDK({
     explorerUrl:  'explorer.example.com',
     explorerPort: 8080,
     encoderUrl:   'encoder.example.com',
-    encoderPort:  3000,
+    encoderPort:  3003,
     timeout:      15000
 });
 
@@ -337,7 +337,7 @@ const XChainSDK = require('./index.js');
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
     hubUrl:  'hub.example.com',
-    hubPort: 8001
+    hubPort: 10000
 });
 
 await sdk.init(); // fetches endpoints from hub, starts polling
@@ -423,7 +423,7 @@ NETWORK=bitcoin-mainnet
 EXPLORER_URL=explorer.example.com
 EXPLORER_PORT=8080
 ENCODER_URL=encoder.example.com
-ENCODER_PORT=3000
+ENCODER_PORT=3003
 ```
 
 ```javascript
