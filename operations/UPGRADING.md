@@ -61,6 +61,22 @@ This updates all services for the given chain and network in sequence.
 
 ---
 
+## Upgrade Ordering (hub-before-indexer)
+
+When a release touches more than one service, update in this order. The ordering is a hard constraint, not a preference: indexers consume config and consensus rules published by the hub, so an indexer built against a newer hub surface must never run against an older hub.
+
+1. **xchain-hub** first. Verify its `/health` endpoint and logs before proceeding.
+2. **xchain-sync**, then **xchain-decoder** (if changed).
+3. **xchain-indexer**: canary one chain first. Update a single indexer, confirm it resumes and its block height keeps pace with the decoder for at least 10 blocks, then roll the remaining indexers one at a time.
+4. **xchain-explorer** and **xchain-encoder** (stateless tier).
+5. **xchain-utxo-tracker** (if changed).
+
+After the last service, run a post-deploy smoke pass: `xchain-node ps` shows the expected versions everywhere, decoder and indexer heights converge, and the explorer answers `api/ping` (see [Verifying the Pipeline](./DEPLOYMENT.md#verifying-the-pipeline)). An upgrade is not complete until the smoke pass is clean.
+
+To see which version each service is running, use `xchain-node ps`; it resolves the version inside each container.
+
+---
+
 ## Rolling Upgrades
 
 Some services can be upgraded independently with minimal disruption:

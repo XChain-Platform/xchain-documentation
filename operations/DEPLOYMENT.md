@@ -300,6 +300,12 @@ Restarting a service does not affect its database. The decoder and indexer resum
 
 ---
 
+## Upgrading a Deployed Fleet
+
+Once deployed, upgrades follow a strict hub-before-indexer ordering with a single-chain canary and a post-deploy smoke pass. See [Upgrading: Upgrade Ordering](./UPGRADING.md#upgrade-ordering-hub-before-indexer) before updating any multi-service release.
+
+---
+
 **Copyright &copy; 2025–2026 Dankest, LLC**
 
 **Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
