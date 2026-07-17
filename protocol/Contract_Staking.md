@@ -27,7 +27,7 @@ DEPLOY|1|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTIN
 |---|---|---|
 | AMOUNT | decimal string | Positive. Decimal places must not exceed the token's `decimals` value. |
 | SIGNING_PUBKEY | 64-hex | Ed25519 pubkey. A given pubkey may be used independently for capability staking AND contract staking, but cannot collide across multiple contracts. |
-| TARGET_CONTRACT_INDEX | unsigned int | The `action_index` of a contract deployed via `DEPLOY v1` with `COOLDOWN_BLOCKS` set. Must be in `valid` status. |
+| TARGET_CONTRACT_INDEX | unsigned int | The `action_index` of a stakeable contract, deployed via either `DEPLOY v1` (inline) or `DEPLOY v3` (chunked) with `COOLDOWN_BLOCKS` set. Must be in `valid` status. |
 | TICK | string | Any registered token. Must exist in `tokens` at the action's block. |
 
 Top-up vs. new is auto-detected: if `(target_contract_index, signing_pubkey, tick)` already has an active row, the action is treated as a top-up (must be owned by the same `SOURCE`). Otherwise it creates a new row.

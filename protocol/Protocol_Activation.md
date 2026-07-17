@@ -81,8 +81,13 @@ coordinated fleet rollout retire a whole batch at once.
 | **B (validator era)** | one **BTC height** | checkpoint commitment, equivocation header, stake-weighted quorum, anchor reward, cross-chain royalty canonical | **forks** |
 | **C (state commitment)** | per-chain **local height** | light-client state commitment (state root + block-merkle root) and its state-hash classes (e.g. token-supply, poll-finalize) | **halts, recoverable** |
 
-Testnet and regtest run every cohort **genesis-active** (threshold 0), so the test networks always
-exercise the post-activation behavior; only mainnet carries a future threshold.
+Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
+post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
+(Cohort B) gates genesis-active as well, with one exception: **Cohort C (state commitment) is armed at
+future _per-chain_ heights on testnet, not from genesis** (`STATE_COMMITMENT_ACTIVATION`:
+`BTC:testnet 145000`, `LTC:testnet 4805000`, `DOGE:testnet 67000000`), because it gates on each chain's
+own local block height rather than a BTC-anchored flag-day. Mainnet carries a future threshold for
+every cohort.
 
 ## Additional armed gates (service-carried)
 
@@ -104,6 +109,14 @@ The DISPENSE cancelling-dispenser match gate is a block-time forking rule keyed 
 contract-era timestamp (`1790812800`), so it belongs with **Cohort A**; it is registered as a
 standalone twin-style module rather than a `protocol_changes.addChange` entry to keep it self-contained
 next to the query it gates.
+
+Within **Cohort A**, the **cross-chain royalty create-side** gate is the one rule that does not share
+the single 2026-10-01 contract-era timestamp (`1790812800`): it is deliberately armed one quarter later,
+at `1798761600` (2027-01-01), so the deny window between the two dates is the safe interim while the
+fleet upgrades to legs-in-canonical. Its match-canonical partner is a Cohort-B gate (`CROSS_CHAIN_ROYALTY_ACTIVATION`,
+armed months earlier at BTC anchor 961000), preserving the canonical-first ordering. So Cohort A is
+"one shared time" in its keying *mechanism* (wall-clock time, synchronized across all three chains), but
+the royalty create-side carries a later time *value* than the rest of the cohort.
 
 ## Straggler behavior
 

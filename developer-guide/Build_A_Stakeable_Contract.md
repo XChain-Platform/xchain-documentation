@@ -216,8 +216,10 @@ await stakerSession.unstakeFromContract({
 
 After this confirms:
 
-1. After the per-chain activation delay (6 blocks on BTC, 24 on LTC, 60 on DOGE), the stake becomes invisible to the contract (`xchain.contract.getStake(...) === '0'`). The staker is effectively no longer participating.
-2. After **`COOLDOWN_BLOCKS` more blocks** on top of that delay, the locked tokens are credited back to the staker's address.
+Both timers start at the UNSTAKE block and run in parallel (they do **not** run sequentially):
+
+1. After the per-chain activation delay (6 blocks on BTC, 24 on LTC, 60 on DOGE) counted from the UNSTAKE block, the stake becomes invisible to the contract (`xchain.contract.getStake(...) === '0'`). The staker is effectively no longer participating.
+2. After **`COOLDOWN_BLOCKS`** counted from the same UNSTAKE block, the locked tokens are credited back to the staker's address. The funds release at `UNSTAKE block + COOLDOWN_BLOCKS` (`cooldown_end_block`), which overlaps the activation delay rather than following it, so it is not added on top of that delay.
 
 During the cooldown window, the contract can still slash the staker; the cooldown-locked balance is reachable by `xchain.contract.slash`.
 

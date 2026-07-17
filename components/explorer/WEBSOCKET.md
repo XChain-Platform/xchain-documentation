@@ -198,7 +198,6 @@ Channel: `actions`
     "tx_hash": "abc123...",
     "block_index": 890123,
     "source": "1abc...",
-    "destination": "1def...",
     "status": "valid"
   }
 }
@@ -452,9 +451,7 @@ Also broadcast on the `address` channel for the transaction's source address.
 {
   "type": "MEMPOOL_REMOVED",
   "data": {
-    "tx_hash": "abc123...",
-    "source": "1abc...",
-    "action": "SEND"
+    "tx_hash": "abc123..."
   }
 }
 ```
