@@ -101,6 +101,46 @@ Decision semantics:
 guarded action; `xchain.getContractAddress()` is the controller's own derived
 address (which sources any actions the guard emits).
 
+## Bulk distributions (AIRDROP / SWEEP / DIVIDEND)
+
+Bulk moves of a controlled token route through the `transfer` class exactly like `SEND`,
+but the guard gates the **aggregate outbound move, sender-side only**: one guard run per
+controlled tick with `from = SOURCE`, `to = ''`, and `amount` = the total leaving the
+sender. The guard is **never invoked per-recipient**. This is a deliberate protocol
+decision (2026-07-16), not a gap:
+
+- **Deterministic, bounded VM work.** A drop can have thousands of recipients; one guard
+  run per tick keeps guard gas independent of recipient count and keeps the ceiling
+  reservation meaningful.
+- **DoS-proof.** Per-recipient gating would let any single recipient's guard (or a
+  crafted recipient list) deny or grief an entire distribution, and would multiply VM
+  cost by the recipient count.
+- **No consensus change needed.** Receiving a bulk drop is never guard-gated; there is
+  nothing a recipient must sign or execute.
+
+**Receive-side policy belongs in transfer restrictions, not the bulk guard.** If a token
+or account needs to control who may *hold* or *receive* it, express that as a `transfer`
+restriction that the recipient's balance is subject to on its next outbound move:
+
+- **Token-level:** the token's `transfer` guard gates every subsequent `SEND` / listing
+  of the token, so an unwanted airdropped balance is inert; it cannot move or trade
+  without passing the guard. An allowlist/compliance guard therefore does not need
+  per-recipient drop gating; unapproved holders simply can't do anything with the drop.
+- **Account-level:** an inbound `ADDRESS` `transfer` binding (see
+  [Account controllers](#account-address-controllers)) lets an account refuse direct
+  unsolicited `SEND`s. Bulk drops, like DEX and dispenser deliveries, are not gated
+  inbound; the account's recourse is the same transfer-restriction model.
+
+**Guidance for controller (guard template) authors:** treat `AIRDROP` / `DIVIDEND` /
+`SWEEP` invocations as sender-side aggregate checks (`from` is the distributor, `to` is
+empty, `amount` is the total). Do not attempt per-recipient allowlisting inside the bulk
+guard; there is no per-recipient invocation to hook. If your policy requires
+per-recipient control, either deny the aggregate (forcing individual guarded `SEND`s) or
+enforce holder eligibility in the `transfer` guard on subsequent moves.
+
+Note: `SWEEP` *balance* moves are gated as above; `SWEEP` **ownership** transfers are not
+yet gated by any class (tracked as a separate follow-up capability).
+
 ## Gas
 
 Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
