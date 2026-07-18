@@ -199,9 +199,9 @@ Coin nodes listen on different RPC ports per network. Standard defaults:
 |---|---|---|---|
 | Bitcoin | 8332 | 18332 | 18443 |
 | Litecoin | 9332 | 19332 | 19443 |
-| Dogecoin | 22555 | 44555 | 18443 |
+| Dogecoin | 22555 | 44555 | 18332 |
 
-These are the coin daemons' standard upstream defaults. xchain-node's own `NODE_PORT` default is set per **network** (not per coin): `8332` mainnet, `18332` testnet, `18444` regtest, applied uniformly across BTC/LTC/DOGE unless you override `NODE_PORT`.
+These are the coin daemons' standard upstream defaults (Dogecoin Core reuses `18332` for regtest RPC, a quirk inherited from its Bitcoin lineage). xchain-node's own `NODE_PORT` default is set per **network** (not per coin): `8332` mainnet, `18332` testnet, `18444` regtest, applied uniformly across BTC/LTC/DOGE unless you override `NODE_PORT`.
 
 ---
 
