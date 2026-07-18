@@ -11,7 +11,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **ACTION**: A command embedded in a blockchain transaction that instructs the XChain indexer to perform an operation, such as issuing a token, sending a balance, or placing an order. All XChain operations are expressed as one of 34 named ACTIONs.
 
-**ACTION_INDEX**: A unique sequential integer assigned to every valid XChain ACTION transaction, in the order it was confirmed on-chain. Many actions reference prior actions by their ACTION_INDEX (e.g., an ORDER references the action that created the asset being sold).
+**ACTION_INDEX**: A unique sequential integer assigned to every valid XChain ACTION transaction, in the order it was confirmed on-chain. Many actions reference prior actions by their ACTION_INDEX (e.g., an ORDER references the action that created the token being sold).
 
 **actionString**: The serialized pipe-delimited representation of an ACTION before it is encoded into a transaction. Format: `ACTION|VERSION|FIELD1|FIELD2|...`
 
@@ -105,7 +105,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **escrow**: Tokens locked by the protocol to back an open order or dispenser. Escrowed tokens are unavailable to the holder until the order or dispenser is cancelled or filled.
 
-**ORDER**: An ACTION that places a sell order on the built-in DEX. Specifies the asset being sold, the price, and the quantity. Buyers fill orders by sending payment.
+**ORDER**: An ACTION that places a sell order on the built-in DEX. Specifies the token being sold, the price, and the quantity. Buyers fill orders by sending payment.
 
 **SWAP** (An ACTION that enables atomic cross-chain token exchanges) trading a token on one blockchain for a token on another, without a bridge or custodian.
 
@@ -170,6 +170,8 @@ These five ACTIONs are written by the validator federation or synthesized by the
 ---
 
 ## Infrastructure
+
+**coin**: The native currency of an underlying blockchain: BTC on Bitcoin, LTC on Litecoin, DOGE on Dogecoin. Coins pay miner fees and can pay XChain protocol fees; they are distinct from tokens, which are created and tracked by the XChain protocol itself.
 
 **GAS address**: A designated address (per chain, defined in each indexer's configuration) that is authorized to issue the XCHAIN gas token. The GAS address is exempt from the reserved ticker restriction that would otherwise block `XCHAIN` issuance.
 
