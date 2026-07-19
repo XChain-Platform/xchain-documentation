@@ -225,6 +225,14 @@ if (pubkey) {
 
 ---
 
+## Next Steps
+
+- [Advanced_Token_Features.md](Advanced_Token_Features.md): gated file delivery using a self-MESSAGE key handoff
+- [Query_The_Explorer.md](Query_The_Explorer.md): read messages and other action data via the REST and JSON-RPC APIs
+- [Integration_Patterns.md](Integration_Patterns.md): using messaging in production wallets and applications
+
+---
+
 **Copyright &copy; 2025–2026 Dankest, LLC**
 
 **Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
