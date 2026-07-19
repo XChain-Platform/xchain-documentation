@@ -127,7 +127,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Initial FIAT set: `USD`, `CAD`, `AUD`, `MXN`, `GBP`, `JPY`, `CNY`, `CHF`, `BRL`, `INR`, `EUR`, `KRW` (12 currencies)
 - Initial pair count: **3 coins × 12 fiats = 36 pairs per round**
 - Adding new coins or fiat currencies does not require a protocol change: `PAIR_COUNT` is dynamic
-- Validators fetch all 12 fiat prices per coin in a single API call (CoinGecko `vs_currencies` parameter, CMC `convert` parameter)
+- Validators fetch prices from CoinGecko and Kraken (both keyless and always active); CoinMarketCap is an optional third source, enabled only when `COINMARKETCAP_API_KEY` is set. CoinGecko and CoinMarketCap each fetch all 12 fiat prices per coin in a single API call (`vs_currencies` and `convert` parameters, respectively)
 
 #### Publisher Persistent Queue
 - `oracle_publish`-capable validators must durably store finalized rounds to a local persistent queue (JSONL with fsync) before acknowledging receipt to the hub
@@ -211,7 +211,7 @@ See [STAKE.md](STAKE.md) for the full action spec.
 
 ### Data Flow: Validator Prices (v0)
 ```
-`price`-capable validators fetch prices from CoinGecko/CMC
+`price`-capable validators fetch prices from CoinGecko and Kraken (keyless, always active), plus CoinMarketCap if a key is configured
   → PBFT consensus (2/3+ agree on prices per BTC block)
     → Each validator signs the canonical PRICE v0 payload during prepare/commit
       → An `oracle_publish`-capable validator writes PRICE v0 (with collected sigs) to a chain (DOGE recommended)

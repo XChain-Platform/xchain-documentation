@@ -1259,7 +1259,7 @@ All `*_ACTION_INDEX` fields (`BROADCAST_ACTION_INDEX`, `DISPENSER_ACTION_INDEX`,
 
 Stake tokens. Two flavors with different chain reach:
 
-- **v1 / v2, capability staking.** BTC-only. XCHAIN-only. Per-pubkey aggregate active stake auto-qualifies the pubkey for each of four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) per governance-configurable `min_stake[capability]`.
+- **v1 / v2, capability staking.** BTC-only. XCHAIN-only. Per-pubkey aggregate active stake auto-qualifies the pubkey for each of five independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`) per governance-configurable `min_stake[capability]`.
 - **v3:** contract-targeted staking.** Works on any chain (BTC, LTC, DOGE). Any token. Targets a specific stakeable contract deployed via [DEPLOY](../../protocol/actions/DEPLOY.md) v1.
 
 See [protocol/actions/STAKE.md](../../protocol/actions/STAKE.md).

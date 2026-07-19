@@ -105,7 +105,7 @@ This section contains 2 entries: `PRICE` (user-submittable) and `ATTEST` (includ
 
 | ACTION | What it does |
 |---|---|
-| `STAKE` | Lock tokens against a signing pubkey. v1 (new) and v2 (top-up) stake XCHAIN against built-in capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) on BTC. v3 stakes any token against a specific contract on any chain. |
+| `STAKE` | Lock tokens against a signing pubkey. v1 (new) and v2 (top-up) stake XCHAIN against built-in capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`) on BTC. v3 stakes any token against a specific contract on any chain. |
 | `UNSTAKE` | Initiate the cooldown to release staked tokens. v0 unstakes from a capability; v1 unstakes from a specific contract. |
 | `DELEGATE` | Manage the signing key for a stake. v0 and v1 rotate; v2 and v3 revoke. v0/v2 act on capability stakes; v1/v3 act on contract stakes. |
 | `COLLECT` | Collect accumulated validator rewards. |

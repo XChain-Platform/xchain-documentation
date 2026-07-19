@@ -50,10 +50,13 @@ own threshold and cross independently.
 
 ## Where the values live
 
-[`constants.js`](constants.js) in this repository is the canonical source for the cohort gates
-(contract era, validator era, state commitment) below. Each consuming service carries a
+[`constants.js`](constants.js) in this repository is the canonical source for the **validator-era
+(Cohort B)** and **state-commitment (Cohort C)** gates below. Each consuming service carries a
 **byte-identical twin** of the maps it needs, and a cross-repo conformance gate fails CI if a twin
-drifts.
+drifts. Cohort A (contract-era) values are not carried in `constants.js` at all: they are
+service-carried in `xchain-indexer/protocol_changes.js` and the `xchain-vm` gate constants (see the
+table below), byte-guarded against each other rather than against this file, pending a future
+consolidation.
 
 Four later consensus gates are armed but **not yet folded into `constants.js`**: they currently live
 only as service-carried modules (see [Additional armed gates](#additional-armed-gates-service-carried)
@@ -64,7 +67,7 @@ four are byte-guarded between their indexer and sync twins rather than against t
 |---|---|
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
 | `xchain-vm` | the six contract-era VM gate constants (async ban, binary-alloc metering, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) |
-| `xchain-hub` | the five validator-era gate modules (checkpoint, equivocation header, stake-weighted quorum, anchor reward, cross-chain royalty canonical) |
+| `xchain-hub` | the six validator-era gate modules (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
 
 Because the values are byte-identical everywhere, a heterogeneous fleet and any from-genesis replay
@@ -78,8 +81,13 @@ coordinated fleet rollout retire a whole batch at once.
 | Cohort | Keyed on | Rules | Straggler behavior |
 |---|---|---|---|
 | **A (contract era)** | one shared **time** (all three chains) | base64 DEPLOY encoding, VM async ban, VM binary-alloc metering, VM state-key NUL-reject, VM state-key type normalization, VM metering eval-order fix, VM call-spread metering, controller guards, VM balance/token-info surface, issuance-fee exemption, unstake-cooldown completion, cross-chain royalty create-side | **forks** |
-| **B (validator era)** | one **BTC height** | checkpoint commitment, equivocation header, stake-weighted quorum, anchor reward, cross-chain royalty canonical | **forks** |
+| **B (validator era)** | a **BTC height** (not always the same height across every Cohort B rule; see below) | checkpoint commitment, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical | **forks** |
 | **C (state commitment)** | per-chain **local height** | light-client state commitment (state root + block-merkle root) and its state-hash classes (e.g. token-supply, poll-finalize) | **halts, recoverable** |
+
+Five of the six Cohort B rules share the same mainnet BTC height (961000). The archive reward
+(`ARCHIVE_REWARD_ACTIVATION`) is armed separately at mainnet height 969500, so "one BTC height" is
+shorthand for "a BTC height per rule, mostly coinciding" rather than a single shared value across the
+whole cohort.
 
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed

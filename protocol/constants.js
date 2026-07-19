@@ -254,6 +254,18 @@ const ARCHIVE_REWARD_ACTIVATION = {
 // hub's historical default (ANCHOR_REWARD_PER_PUBLISH). Changing it is itself a flag-day.
 const ARCHIVE_REWARD_AMOUNT = '10.00000000';
 
+// RETRACTION_SIGNING_ACTIVATION (quorum-class retraction co-signing): the BTC-anchored
+// snapshot_block era at/above which a mirror REFUSES an unsigned quorum-class retraction
+// broadcast. Vendored byte-equal into xchain-{indexer,hub,explorer}/src/
+// retraction_signing_activation.js; a one-sided edit lets the hub sign under one era rule
+// while a mirror enforces another, forking the fleet at the boundary. Canonical map of
+// record for those copies (armed 2026-07-16, ).
+const RETRACTION_SIGNING_ACTIVATION = {
+    mainnet: 969500,      // ARMED 2026-07-16 : BTC snapshot_block ~2026-10-01 (ratified anchor; derived from tip 957062 on 07-07 at ~144 blocks/day); deploy every consumer before this era
+    testnet: 0,
+    regtest: 0,
+};
+
 // CROSS_CHAIN_ROYALTY_ACTIVATION (cross-chain royalty match-canonical): the flag-day at/above which
 // the validator-signed XMATCH canonical carries the matched orders' royalty payout legs
 // (a_payout_legs / b_payout_legs), so a colluding hub cannot strip a royalty from a cross-chain
@@ -332,6 +344,7 @@ module.exports = {
     ANCHOR_REWARD_AMOUNT,
     ARCHIVE_REWARD_ACTIVATION,
     ARCHIVE_REWARD_AMOUNT,
+    RETRACTION_SIGNING_ACTIVATION,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,

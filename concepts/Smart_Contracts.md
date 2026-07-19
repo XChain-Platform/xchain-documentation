@@ -442,7 +442,7 @@ On any failure, all state changes and emitted actions are discarded. The caller 
 
 ## API Versioning
 
-Contracts declare their target API version via the `api_version` field in the DEPLOY action. Version 1 is the initial gateway as documented here. Future versions may add new methods, change gas costs, or modify behavior. Old contracts continue running against the API version they were deployed with.
+Each deployed contract is stamped with an `api_version` on its contract record, assigned by the indexer at deploy time (currently frozen at 1); it is not a field a deployer sets in the DEPLOY action itself. Version 1 is the initial gateway as documented here. Future versions may add new methods, change gas costs, or modify behavior. Old contracts continue running against the API version they were deployed with.
 
 ## Contract Immutability
 

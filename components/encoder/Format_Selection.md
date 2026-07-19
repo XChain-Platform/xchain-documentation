@@ -9,8 +9,8 @@ XChain supports four encoding formats for embedding ACTION payloads in blockchai
 
 | Format | Max Payload | Transactions | Relative Cost | Best For |
 |---|---|---|---|---|
-| OP_RETURN | 76 bytes user data (80 bytes total) on Bitcoin; larger payloads permitted on Litecoin and Dogecoin (see note) | 1 | Lowest | Most actions |
-| Multisig | ~61 bytes/key | 1 | Low–Medium | Single-tx medium payloads |
+| OP_RETURN | 76 bytes user data (80 bytes total) | 1 | Lowest | Most actions |
+| Multisig | ~60 bytes/output | 1 | Low–Medium | Single-tx medium payloads |
 | P2SH | 8,192 bytes (476-byte chunks) | 2 | Medium | Medium–large payloads |
 | P2WSH | 8,192 bytes (476-byte chunks) | 2 | Medium–High | Large payloads (SegWit-discounted) |
 
@@ -22,11 +22,11 @@ The obfuscated payload is stored in an `OP_RETURN` output. OP_RETURN outputs are
 
 Most common XChain actions fit within 76 bytes of user data: SEND (single recipient), MINT, simple ISSUE, ADDRESS update, MESSAGE, and most DISPENSER and ORDER operations.
 
-**Chain-specific note:** Bitcoin enforces a single-OP_RETURN-per-transaction rule (`singleOpReturnPolicy: true`). On Bitcoin, the encoder rejects any OP_RETURN payload above 76 bytes of user data at construction time to prevent the creation of non-standard multi-OP_RETURN transactions that would be dropped by the network. Litecoin and Dogecoin allow larger and multiple OP_RETURN outputs (`singleOpReturnPolicy: false`), so on those chains the encoder permits OP_RETURN payloads above 76 bytes when the `encoding` parameter is set explicitly to `OP_RETURN`. The auto-selection logic (which caps at 76 bytes to stay compatible across all chains) is not affected by this difference.
+**Unconditional across chains:** All supported chains (Bitcoin, Litecoin, Dogecoin) enforce a single-OP_RETURN-per-transaction rule (`singleOpReturnPolicy: true`). The encoder rejects any OP_RETURN payload above 76 bytes of user data at construction time, on every chain, to prevent the creation of non-standard multi-OP_RETURN transactions that would be dropped by the network. There is no chain-dependent exception; the 76-byte limit is a hard ceiling regardless of which chain the transaction targets.
 
-### Multisig: approximately 61 bytes per public key slot
+### Multisig: approximately 60 bytes per output, two fixed key slots
 
-The payload is split across fake public key positions in a bare multisig output. This is a single-transaction format, which avoids the two-step broadcast required by P2SH and P2WSH. Capacity scales with the number of key slots used, at roughly 61 bytes each.
+The payload is split across two fixed data-carrying public key positions in a 1-of-3 bare multisig output (the third slot is the real signer's key). This is a single-transaction format, which avoids the two-step broadcast required by P2SH and P2WSH. Capacity does not scale with additional key slots; each output carries a fixed ~60 bytes, so larger payloads require additional outputs.
 
 Multisig is appropriate when the payload is slightly too large for OP_RETURN and the caller needs a single-broadcast flow. It is less common than P2SH or P2WSH for large payloads because the capacity ceiling is relatively low.
 

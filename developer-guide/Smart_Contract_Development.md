@@ -234,10 +234,10 @@ Beyond the deploy-time rules above, the linter adds **logic-level** checks. None
 ```bash
 node xchain-vm/bin/lint.js path/to/contract.js   # or: npx xchain-lint contract.js
   --json                                          # machine-readable report
-# exit 0 = clean · 1 = errors · warnings print to stderr (exit 0)
+# exit 0 = clean · 1 = errors · 2 = usage / no readable input files · warnings print to stderr (exit 0)
 ```
 
-The CLI runs the **full** validator including the V8 syntax check, so a clean result is exact deploy parity. Use it as a local pre-commit / CI gate for contract source.
+The CLI runs the **full** validator including the V8 syntax check, plus a CLI-side `code-size` rule that rejects source over the 64KiB deploy cap before it even reaches the syntax gate, so a clean result is exact deploy parity. Note that `sdk.validateContract` (the `lint-core`-only check used by `sdk.deploy`'s default `lint: 'block'` path) does not carry this code-size rule, so it alone is not exact deploy parity; the CLI is. Use the CLI as a local pre-commit / CI gate for contract source.
 
 ## Gas Costs
 

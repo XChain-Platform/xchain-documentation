@@ -105,7 +105,8 @@ A validator's P2P signing key is authorized by the **union** of the hub's local 
 ```
                     +-------------------+
                     |   External APIs   |
-                    | (CoinGecko, CMC)  |
+                    | (CoinGecko,       |
+                    |  Kraken, CMC)     |
                     +--------+----------+
                              |
               +--------------v--------------+

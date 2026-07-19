@@ -49,8 +49,8 @@ Sent automatically on connection. Provides server info, current state, limits, a
   "data": {
     "version": "1.11.0",
     "server_time": 1743638400000,
-    "latest_block_index": 890122,
-    "latest_action_index": 45677,
+    "latest_block_index": "890122",
+    "latest_action_index": "45677",
     "limits": {
       "max_subscriptions": 25,
       "max_message_rate": 10,
@@ -117,7 +117,7 @@ All client messages are JSON with an `action` field. An optional `id` field enab
 | `address` | `"address": "1abc..."` | `"addresses": ["1abc...", "1def..."]` |
 | `token` | `"tick": "PEPE"` | (use `ticks` array) |
 | `market` | `"tick1": "PEPE", "tick2": "BTC"` | `"pairs": [["PEPE","BTC"], ["XCHAIN","BTC"]]` |
-| `dispenser` | `"action_index": 12345` | `"action_indexes": [12345, 12346]` |
+| `dispenser` | `"action_index": "12345"` | `"action_indexes": [12345, 12346]` |
 
 ### unsubscribe
 
@@ -162,9 +162,24 @@ All events share a common envelope:
   "chain": "BTC",
   "network": "mainnet",
   "timestamp": 1743638400000,
+  "schema_version": 2,
   "data": { }
 }
 ```
+
+**`schema_version`** stamps every outbound frame (currently `2`). Gate your
+parsing on it: the server bumps it whenever any event's `data` shape is
+renamed, retyped, or restructured in a way an existing consumer could
+mis-parse (additive optional fields do not bump it). The official SDK warns
+when the server reports a newer schema than it was built against.
+
+**Wire types under schema v2:** BigInt-backed fields (`action_index`,
+`block_index`, `block_time`, `latest_block_index`, `latest_action_index`,
+and other chain-index/amount fields) serialize as **decimal strings**, not
+JSON numbers, matching the REST API. Compare them as strings or parse with
+`BigInt(...)`; a numeric `===` against them will silently fail. `timestamp`
+and rate-limit metadata remain JSON numbers. The payload examples below show
+the real v2 wire types.
 
 ### Global Events
 
@@ -176,9 +191,9 @@ Channel: `blocks`
 {
   "type": "NEW_BLOCK",
   "data": {
-    "block_index": 890123,
+    "block_index": "890123",
     "block_hash": "00000000...",
-    "block_time": 1743638400,
+    "block_time": "1743638400",
     "tx_count": 2341,
     "action_count": 7
   }
@@ -193,10 +208,10 @@ Channel: `actions`
 {
   "type": "NEW_ACTION",
   "data": {
-    "action_index": 45678,
+    "action_index": "45678",
     "action": "SEND",
     "tx_hash": "abc123...",
-    "block_index": 890123,
+    "block_index": "890123",
     "source": "1abc...",
     "status": "valid"
   }
@@ -281,7 +296,7 @@ Channel: `dispenser`
 {
   "type": "DISPENSER_UPDATE",
   "data": {
-    "action_index": 12345,
+    "action_index": "12345",
     "source": "1abc...",
     "status": "open",
     "give_remaining": "49000.00000000",
@@ -300,7 +315,7 @@ These fire on both the `actions` channel and the `address` channel for involved 
 {
   "type": "ORDER_MATCH",
   "data": {
-    "action_index": 45700,
+    "action_index": "45700",
     "settlement_type": "coinpay",
     "status": "pending_coinpay",
     "source": "1abc...",
@@ -333,7 +348,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
 {
   "type": "COINPAY_FULFILLED",
   "data": {
-    "action_index": 45720,
+    "action_index": "45720",
     "tx_hash": "abc123...",
     "source": "1BotAddr...",
     "status": "valid"
@@ -347,7 +362,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
 {
   "type": "COINPAY_EXPIRED",
   "data": {
-    "action_index": 45730,
+    "action_index": "45730",
     "source": "1BotAddr...",
     "status": "valid"
   }
@@ -360,7 +375,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
 {
   "type": "ORDER_EXPIRED",
   "data": {
-    "action_index": 45740,
+    "action_index": "45740",
     "source": "1abc...",
     "status": "valid"
   }
@@ -375,7 +390,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
 {
   "type": "SWAP_MATCH",
   "data": {
-    "action_index": 45850,
+    "action_index": "45850",
     "source": "1abc...",
     "status": "valid"
   }
@@ -388,7 +403,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
 {
   "type": "SWAP_EXPIRED",
   "data": {
-    "action_index": 45860,
+    "action_index": "45860",
     "source": "1abc...",
     "status": "valid"
   }
@@ -403,7 +418,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
 {
   "type": "DISPENSE",
   "data": {
-    "action_index": 45800,
+    "action_index": "45800",
     "source": "1BuyerAddr...",
     "status": "valid"
   }
@@ -416,7 +431,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
 {
   "type": "DISPENSER_CLOSED",
   "data": {
-    "action_index": 45900,
+    "action_index": "45900",
     "source": "1OwnerAddr...",
     "status": "valid"
   }
@@ -562,7 +577,7 @@ Sent after all catch-up events have been replayed.
   "type": "CATCH_UP_COMPLETE",
   "data": {
     "events_replayed": 5,
-    "latest_action_index": 45690,
+    "latest_action_index": "45690",
     "truncated": false
   }
 }

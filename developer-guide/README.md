@@ -13,6 +13,7 @@ This section is for application developers building on top of the XChain Platfor
 | [Query the Explorer](./Query_The_Explorer.md) | Use the REST and JSON-RPC APIs to read balances, actions, and token data |
 | [API Reference](./API_Reference.md) | Complete REST and JSON-RPC reference for the Explorer, Encoder, and Hub APIs |
 | [Cross-Chain Swap](./Cross_Chain_Swap.md) | Create and complete a cross-chain token swap between supported blockchains |
+| [Messaging](./MESSAGING.md) | Send and receive encrypted or plaintext messages between addresses with the SDK |
 | [Advanced Token Features](./Advanced_Token_Features.md) | Locking, callbacks, dividends, airdrops, and other advanced token operations |
 | [Batch Operations](./Batch_Operations.md) | Combine multiple ACTION commands into a single transaction with BATCH |
 | [Regtest Development](./Regtest_Development.md) | Run a local regtest stack for rapid development and testing |

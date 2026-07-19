@@ -52,7 +52,7 @@ The encoder supports four encoding strategies. Each trades off cost, data capaci
 |---|---|---|
 | `OP_RETURN` | 80 bytes total (76 bytes user data) | Cheapest single-transaction encoding. Each output is 80 bytes: 4-byte `XCHN` magic prefix + 76 bytes for ACTION data. Auto-selected for small payloads. |
 | `P2SH` | 476 bytes | Two-phase transaction. Data is committed in a P2SH script (520 bytes minus 44 bytes of script overhead). Suitable for medium-sized payloads. |
-| `P2WSH` | 8,192 bytes (compiled ceiling; raw payload limit 8,189 bytes) | SegWit two-phase transaction. The compiled on-chain ACTION push must not exceed 8,192 bytes (`MAX_COMPILED_ACTION_DATA_LENGTH` in `xchain-encoder/src/validator.js`); the corresponding raw single-push payload ceiling is 8,189 bytes (8,192 − 3 bytes of OP_PUSHDATA2 prefix). Best for FILE actions or large BATCH sequences. |
+| `P2WSH` | 476 bytes | SegWit two-phase transaction. Same 476-byte chunking as `P2SH`; payloads larger than one chunk are split across multiple P2WSH outputs (fund-then-spend pairs), up to the shared 8,192-byte compiled-ACTION ceiling (`MAX_COMPILED_ACTION_DATA_LENGTH` in `xchain-encoder/src/validator.js`, decoder-wide, not P2WSH-specific). Best for FILE actions or large BATCH sequences. |
 | `MULTISIGN` | 60 bytes per chunk | Data spread across fake public keys in a multisig output. Requires `compressedPubKey`. Rarely used directly. |
 
 ---

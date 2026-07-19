@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Copyright © 2025–2026 Dankest, LLC -->
+
 # Messaging Guide
 
 This guide covers sending and receiving encrypted and plaintext messages between addresses using the XChain SDK's messaging module.
@@ -219,3 +222,16 @@ if (pubkey) {
 | Multi-device support | Yes | No (device-bound) | Yes (if key is shared) |
 | Forward secrecy | Per-message (ephemeral keys) | Per-session | No |
 | Best for | General messaging | Long-running sessions | Password-protected messages |
+
+---
+
+**Copyright &copy; 2025–2026 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later)
+with a commercial license available for proprietary use.
+
+You may use, modify, and distribute this material under the terms of the License.
+See [LICENSE](../LICENSE.md) and [NOTICE](../NOTICE.md) for full terms.
+See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).

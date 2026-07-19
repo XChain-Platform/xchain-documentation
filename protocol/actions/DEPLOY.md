@@ -134,7 +134,7 @@ The activation is keyed on block time (a single coordinated flag-day), not block
 - The deployed contract is assigned an action index derived from the transaction that contains this action
 - `CODE_ENCODING` (v0/v1) is base64-encoded UTF-8 at/after the `DEPLOY_BASE64_CODE` activation (hex before it); decode the active format with `Buffer.from(field, 'base64'|'hex').toString('utf8')`
 - The `contracts` table stores the decoded plain-text JavaScript, not the base64 encoding
-- The `api_version` field (default 1) determines which gateway API version the contract targets
+- The `contracts` table's `api_version` field (currently frozen at 1) records which gateway API version the contract targets; it is assigned by the indexer at deploy time, not a field a deployer sets in the DEPLOY action wire format
 - Use `EXECUTE` to call methods on a deployed contract
 - Use `DEPOSIT` and `WITHDRAW` to transfer token balances into and out of the contract's derived address
 - Deployed contracts are immutable: there is no mechanism to update code after deployment

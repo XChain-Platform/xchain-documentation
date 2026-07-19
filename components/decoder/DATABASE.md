@@ -83,7 +83,7 @@ Holds unconfirmed XChain transactions. Rows are created when a transaction enter
 
 ### dispensers
 
-Tracks open and soft-expired dispensers. A dispenser is created when the decoder encounters a `DISPENSER|0|...` action with valid fields. Rather than deleting a dispenser row on expiry, the decoder sets `expired_block_index` to the current block height (soft-expire), which allows a subsequent reorg to restore the dispenser by clearing that mark. Rows are hard-deleted once they are reorg-safe-deep (`DISPENSER_EXPIRE_SAFE_DEPTH = 100` blocks), bounding table growth.
+Tracks open and soft-expired dispensers. A dispenser is created when the decoder encounters a `DISPENSER|0|...` action with valid fields. Rather than deleting a dispenser row on expiry, the decoder sets `expired_block_index` to the current block height (soft-expire), which allows a subsequent reorg to restore the dispenser by clearing that mark. Rows are hard-deleted once they are reorg-safe-deep, per the exported `DISPENSER_EXPIRE_SAFE_DEPTH` constant in `xchain-decoder/src/XChainDecoder.js` (currently 126 blocks: 120-block DOGE undo window + 6-block margin), bounding table growth.
 
 | Column | Type | Description |
 |---|---|---|
