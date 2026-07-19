@@ -38,7 +38,7 @@ Note: this table groups `GIVE_OWNERSHIP` and `GET_OWNERSHIP` with related owners
 
 ## Examples
 ```
-SWAP|0|BTC|RAREPEPE|1||BTC|PEPECASH|10000000.00000000||1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev||||Swapping my RAREPEPE for 10M PEPECASH
+SWAP|0|BTC|RAREPEPE|1||BTC|PEPECASH|10000000.00000000||1ExampleAddressXXXXXXXXXXXXXXXXXXX||||Swapping my RAREPEPE for 10M PEPECASH
 This example creates a swap 1 RAREPEPE for 10,000,000.00000000 PEPECASH and includes a memo
 ```
 

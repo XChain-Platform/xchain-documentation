@@ -37,8 +37,8 @@ BATCH|0|
 SLEEP|1|0|JDOG|Unsleeping actions on JDOG token;
 ISSUE|1|JDOG|We are working to resolve the problem;
 ISSUE|2|JDOG||1000;
-SEND|0|JDOG|1000|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|Funding contract address;
-MINT|0|JDOG||1000|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev;
+SEND|0|JDOG|1000|1ExampleAddressXXXXXXXXXXXXXXXXXXX|Funding contract address;
+MINT|0|JDOG||1000|1ExampleAddressXXXXXXXXXXXXXXXXXXX;
 SLEEP|1|-1|JDOG|Sleeping JDOG token again
 
 This example uses BATCH action to resume actions, perform some actions on JDOG token, then sleep actions again

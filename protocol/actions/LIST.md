@@ -30,17 +30,17 @@ This example creates a list of 3 tickers
 ```
 
 ```
-LIST|0|2|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|1FWDonkMbC6hL64JiysuggHnUAw2CKWszs|1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8
+LIST|0|2|1ExampleAddressXXXXXXXXXXXXXXXXXXX|1FWDonkMbC6hL64JiysuggHnUAw2CKWszs|1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8
 This example creates a list of 3 addresses
 ```
 
 ```
-LIST|1|1|1234|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|1FWDonkMbC6hL64JiysuggHnUAw2CKWszs
+LIST|1|1|1234|1ExampleAddressXXXXXXXXXXXXXXXXXXX|1FWDonkMbC6hL64JiysuggHnUAw2CKWszs
 This example creates a new list from an existing list (1234) and adds 2 addresses to the new list
 ```
 
 ```
-LIST|1|2|4321|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|1FWDonkMbC6hL64JiysuggHnUAw2CKWszs
+LIST|1|2|4321|1ExampleAddressXXXXXXXXXXXXXXXXXXX|1FWDonkMbC6hL64JiysuggHnUAw2CKWszs
 This example creates a new list from an existing list (4321) and removes 2 addresses from the new list
 ```
 

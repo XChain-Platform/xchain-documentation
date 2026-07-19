@@ -23,7 +23,7 @@ This action transfers `TICK` balances, ownerships, and/or open-offer escrows fro
 
 ## Examples
 ```
-SWEEP|0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|1|1|1|1|1
+SWEEP|0|1ExampleAddressXXXXXXXXXXXXXXXXXXX|1|1|1|1|1
 Full cleanup: sweeps balances + ownerships AND closes every open ORDER, SWAP, and DISPENSER from SOURCE. All escrowed balances and any escrowed ownerships route to DESTINATION.
 ```
 

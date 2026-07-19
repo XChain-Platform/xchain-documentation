@@ -97,7 +97,7 @@ Below are a number of token description formats which should be recognized by XC
 <table>
 <tr><td><b>Format</b></td><td>https://domain.com/info.json</td></tr>
 <tr><td><b>Note</b></td><td>URL to a JSON file ending in .json</td></tr>
-<tr><td><b>Example</b></td><td>j-dog.net/json/JDOG.json </td></tr>
+<tr><td><b>Example</b></td><td>example.com/json/JDOG.json </td></tr>
 </table>
 
 ## JSON Format with Hash
@@ -105,7 +105,7 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>Format</b></td><td>https://domain.com/info.json;HASH</td></tr>
 <tr><td><b>HASH</b></td><td>64-character sha256 hash</td></tr>
 <tr><td><b>Note</b></td><td>URL to a JSON file ending in .json</td></tr>
-<tr><td><b>Example</b></td><td>j-dog.net/json/JDOG.json;96fc96754c913f60e9d7a0be07d76ffbcdc53338295cbd69595e69cf49616c3b</td></tr>
+<tr><td><b>Example</b></td><td>example.com/json/JDOG.json;96fc96754c913f60e9d7a0be07d76ffbcdc53338295cbd69595e69cf49616c3b</td></tr>
 </table>
 
 ## On-Chain Format (action index)

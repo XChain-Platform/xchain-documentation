@@ -40,8 +40,8 @@ This action creates a dispenser (vending machine) to dispense `TICK` when trigge
 
 ## Examples
 ```
-DISPENSER|0|BTC|JDOG|1|10|BTC||0.01|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|||||||Creating JDOG dispensers at 0.01 BTC each
-This example creates a dispenser, escrows 10 JDOG tokens in it, and dispenses 1 JDOG token when 0.01 BTC is sent to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev (no FIAT pricing, no oracle)
+DISPENSER|0|BTC|JDOG|1|10|BTC||0.01|1ExampleAddressXXXXXXXXXXXXXXXXXXX|||||||Creating JDOG dispensers at 0.01 BTC each
+This example creates a dispenser, escrows 10 JDOG tokens in it, and dispenses 1 JDOG token when 0.01 BTC is sent to 1ExampleAddressXXXXXXXXXXXXXXXXXXX (no FIAT pricing, no oracle)
 ```
 
 ```
@@ -60,12 +60,12 @@ This example updates the allow and block lists for dispenser with `ACTION_INDEX`
 ```
 
 ```
-DISPENSER|0|BTC|PEPECASH|100|100|BTC||0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|USD|0.05||0|||Selling PEPECASH for $0.05 USD each
+DISPENSER|0|BTC|PEPECASH|100|100|BTC||0|1ExampleAddressXXXXXXXXXXXXXXXXXXX|USD|0.05||0|||Selling PEPECASH for $0.05 USD each
 FIAT dispenser using validator price oracle (PRICE v0): escrows 100 PEPECASH and dispenses 100 at a time when a buyer sends BTC equivalent to $0.05 USD per token. GET_AMOUNT is set to 0 because the effective BTC price is determined dynamically via validator BTC/USD snapshots. ORACLE_ADDRESS is empty.
 ```
 
 ```
-DISPENSER|0|BTC|PEPECASH|100|100|BTC||0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|JPY||1OracleSourceAddrXXXXXXXXXXXXXXXXX|0|||Using user oracle for JPY pricing
+DISPENSER|0|BTC|PEPECASH|100|100|BTC||0|1ExampleAddressXXXXXXXXXXXXXXXXXXX|JPY||1OracleSourceAddrXXXXXXXXXXXXXXXXX|0|||Using user oracle for JPY pricing
 FIAT dispenser using a user-run TOKEN/FIAT oracle (PRICE v1): the oracle at `1OracleSourceAddrXXX...` publishes PEPECASH/JPY prices. FIAT_AMOUNT is empty because the oracle provides the price. The system combines the user oracle PEPECASH/JPY with the validator BTC/JPY snapshot to compute the BTC equivalent.
 ```
 
@@ -75,17 +75,17 @@ Fresh-address pattern: SOURCE is the user's main wallet, GET_ADDRESS is a newly-
 ```
 
 ```
-DISPENSER|0|BTC|JDOG||1||BTC||0.50000000|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|||||||First buyer of 0.5 BTC gets JDOG ownership
+DISPENSER|0|BTC|JDOG||1||BTC||0.50000000|1ExampleAddressXXXXXXXXXXXXXXXXXXX|||||||First buyer of 0.5 BTC gets JDOG ownership
 Ownership dispenser: `GIVE_OWNERSHIP=1` with empty `GIVE_AMOUNT`/`GIVE_ESCROW` escrows the JDOG ownership record. The first valid 0.5 BTC payment transfers ownership to the payer; the dispenser auto-closes after the single dispense.
 ```
 
 ```
-DISPENSER|0|BTC|JDOG||1||BTC||0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|USD|500.00||||Selling JDOG ownership for $500 USD
+DISPENSER|0|BTC|JDOG||1||BTC||0|1ExampleAddressXXXXXXXXXXXXXXXXXXX|USD|500.00||||Selling JDOG ownership for $500 USD
 FIAT-priced ownership dispenser using the validator BTC/USD oracle. Payer sends BTC equivalent to $500 USD at current snapshot price; ownership transfers and the dispenser closes.
 ```
 
 ```
-DISPENSER|0|BTC|JDOG||1||BTC|PEPECASH|10000000.00000000|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|||||||Selling JDOG ownership for 10M PEPECASH via dispenser
+DISPENSER|0|BTC|JDOG||1||BTC|PEPECASH|10000000.00000000|1ExampleAddressXXXXXXXXXXXXXXXXXXX|||||||Selling JDOG ownership for 10M PEPECASH via dispenser
 Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH receives JDOG ownership.
 ```
 

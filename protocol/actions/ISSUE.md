@@ -74,13 +74,13 @@ This example issues a JDOG token with MAX_SUPPLY set to 1, Mints 1 token via MIN
 ```
 
 ```
-ISSUE|0|JDOG|0|0|0|http://j-dog.net/images/JDOG_icon.png
+ISSUE|0|JDOG|0|0|0|http://example.com/images/JDOG_icon.png
 This example issues a JDOG token with a DESCRIPTION which points to an icon
 ```
 
 ```
-ISSUE|0|JDOG|0|0|0|http://j-dog.net/images/JDOG_icon.png|0|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
-This example issues a JDOG token with a DESCRIPTION which points to an icon, and transfers token ownership to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
+ISSUE|0|JDOG|0|0|0|http://example.com/images/JDOG_icon.png|0|1ExampleAddressXXXXXXXXXXXXXXXXXXX
+This example issues a JDOG token with a DESCRIPTION which points to an icon, and transfers token ownership to 1ExampleAddressXXXXXXXXXXXXXXXXXXX
 ```
 
 ```
@@ -94,13 +94,13 @@ This example issues a JDOG token with a max supply of 1000, and a DESCRIPTION of
 ```
 
 ```
-ISSUE|0|BRRR|10000000000000000000|10000000000000|0|https://j-dog.net/json/JDOG.json|100
+ISSUE|0|BRRR|10000000000000000000|10000000000000|0|https://example.com/json/JDOG.json|100
 This example issues a BRRR token with a max supply of 1 Quandrillion supply and a maximum mint of 1 Trillion BRRR per mint, associates a JSON file with the token, and immediately mints 100 BRRR to the broadcasting address.
 ```
 
 ```
-ISSUE|0|TEST|100|1|0||1|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
-This example issues a TEST token with a max supply of 100, and a maximum mint of 1 TEST per mint. This also mints 1 TEST token, and transfers ownership AND initial token supply to 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
+ISSUE|0|TEST|100|1|0||1|1ExampleAddressXXXXXXXXXXXXXXXXXXX|1ExampleAddressXXXXXXXXXXXXXXXXXXX
+This example issues a TEST token with a max supply of 100, and a maximum mint of 1 TEST per mint. This also mints 1 TEST token, and transfers ownership AND initial token supply to 1ExampleAddressXXXXXXXXXXXXXXXXXXX
 ```
 
 ## Rules

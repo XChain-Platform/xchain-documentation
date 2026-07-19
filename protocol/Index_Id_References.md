@@ -10,7 +10,7 @@ it shrinks transactions and lowers fees.
 | Reference | Full form | Compact form |
 |---|---|---|
 | Ticker | `JDOG` | `^1234` (the `index_tickers` id) |
-| Address | `1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev` | `^57` (the `index_addresses` id) |
+| Address | `1ExampleAddressXXXXXXXXXXXXXXXXXXX` | `^57` (the `index_addresses` id) |
 
 The caret form is accepted anywhere the full value is accepted, EXCEPT a brand-new
 value being defined for the first time (an `ISSUE` defining `TICK`, or any field that

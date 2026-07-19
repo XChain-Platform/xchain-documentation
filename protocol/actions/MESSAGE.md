@@ -56,14 +56,14 @@ Advanced Encryption Standard with a pre-shared key. Both parties must already kn
 
 ## Examples
 ```
-MESSAGE|2|BTC|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|ECIES_ENCRYPTED_CIPHERTEXT_HERE
-This example sends an ECIES encrypted message to BTC address 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev
+MESSAGE|2|BTC|1ExampleAddressXXXXXXXXXXXXXXXXXXX|ECIES_ENCRYPTED_CIPHERTEXT_HERE
+This example sends an ECIES encrypted message to BTC address 1ExampleAddressXXXXXXXXXXXXXXXXXXX
 This can be broadcast on any chain (BTC, DOGE, or LTC)
 ```
 
 ```
-MESSAGE|0|BTC|1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev|2|PUBLIC_KEY_GOES_HERE
-This example requests an ECDH key exchange with BTC address 1JDogZS6tQcSxwfxhv6XKKjcyicYA4Feev (method 2)
+MESSAGE|0|BTC|1ExampleAddressXXXXXXXXXXXXXXXXXXX|2|PUBLIC_KEY_GOES_HERE
+This example requests an ECDH key exchange with BTC address 1ExampleAddressXXXXXXXXXXXXXXXXXXX (method 2)
 ```
 
 ```

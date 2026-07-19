@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `developer-guide/AI_Assisted_Authoring.md`: AI-assisted authoring on-ramp (describe a contract in English or paste Solidity, then gate-validate the model's reply with `xchain-foundry`); indexed in the developer-guide README and cross-linked from Solidity to XChain.
 - `protocol/Protocol_Activation.md`: new flag-day mechanism reference (the per-network version+time/height gate, the three activation cohorts A/B/C, and forking vs halt-recoverable straggler behavior); indexed in the protocol README and cross-linked from the Upgrade Notice Policy.
 - `protocol/constants.js`: armed the four remaining Cohort-B maps at BTC 961000 and `STATE_COMMITMENT_ACTIVATION` per chain (2026-07-07 state-hash heights).
 - `protocol/Upgrade_Notice_Policy.md`: adopted the upgrade-notice policy (14 days pre-launch, 60 days once any third-party validator is live).
