@@ -195,7 +195,7 @@ xchain-node start xchain-indexer bitcoin mainnet
 If the upgrade included a database migration, restore from the backup taken before upgrading:
 ```bash
 xchain-node stop xchain-indexer bitcoin mainnet
-docker exec -i xchain-node-database mysql -u root < indexer-backup-20250401.sql
+docker exec -i xchain-node-database mysql -u root XChain_BTC_Mainnet_Indexer < indexer-backup-20250401.sql
 xchain-node install v1.2.3 xchain-indexer bitcoin mainnet
 xchain-node start xchain-indexer bitcoin mainnet
 ```

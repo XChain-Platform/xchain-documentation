@@ -199,7 +199,7 @@ console.log(batchResult.actionString);
 
 ## Explorer Queries
 
-The SDK provides 90+ explorer query methods:
+The SDK provides 100+ explorer query methods:
 
 ```js
 // Token information

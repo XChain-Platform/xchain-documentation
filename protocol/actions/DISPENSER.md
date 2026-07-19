@@ -110,7 +110,7 @@ Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH
 - FIAT pricing (validator oracle and user oracle) and reverse-price-matching (24-hour window) apply unchanged
 - Existing `GET_ADDRESS` rules (`DISPENSER_PREFERENCE` / fresh-address / self-open) apply unchanged
 - While ownership is escrowed, the following actions targeting the escrowed `TICK` are rejected:
-  - `ISSUE` Versions 1–5 (description/mint/lock/callback/list edits)
+  - `ISSUE` Versions 0-6 (all edits to an existing tick: description, mint params, lock params, callback params, list params, controller bind/unbind, and re-issuance by the current owner)
   - `CALLBACK`, `SLEEP`
   - `LINK` using this `TICK`'s `ISSUE` as `COIN2_ACTION_INDEX`
   - `FILE` with `GATE_TICKER` = this `TICK`

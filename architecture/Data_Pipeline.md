@@ -109,7 +109,7 @@ The indexer is deterministic: given the same Decoder DB contents, it will always
 
 The explorer reads directly from the Indexer DB. It exposes:
 
-- **REST endpoints**: over 50 routes covering tokens, balances, orders, transactions, dispensers, and more
+- **REST endpoints**: over 200 routes covering tokens, balances, orders, transactions, dispensers, and more
 - **JSON-RPC 2.0**: for programmatic access following the same interface used by Counterparty-compatible tools
 - **Bootstrap web UI**: browser interface with Highcharts for market data visualization
 

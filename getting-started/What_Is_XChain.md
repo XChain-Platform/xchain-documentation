@@ -169,7 +169,7 @@ XCHAIN is itself just a token on XChain, issued by a designated address (called 
 
 ### Developers Building Token Platforms
 
-XChain provides a complete SDK (`xchain-sdk`) with methods for 30 of the 34 actions (the developer-invocable set), 90+ explorer queries, smart contract deployment and execution, a batch builder, live WebSocket event streaming, and PSBT generation. If you want to build a token platform, a DEX, an NFT marketplace, a DeFi protocol with smart contracts, or any application involving digital assets on Bitcoin-family chains, XChain gives you the full stack.
+XChain provides a complete SDK (`xchain-sdk`) with methods for 30 of the 34 actions (the developer-invocable set), 100+ explorer queries, smart contract deployment and execution, a batch builder, live WebSocket event streaming, and PSBT generation. If you want to build a token platform, a DEX, an NFT marketplace, a DeFi protocol with smart contracts, or any application involving digital assets on Bitcoin-family chains, XChain gives you the full stack.
 
 ### Organizations Wanting Private Deployments
 

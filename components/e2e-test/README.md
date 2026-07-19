@@ -21,7 +21,7 @@ Each action test follows the same lifecycle:
 
 ## Features
 
-- **27 ACTION test suites**: ISSUE (V0–V5), SEND (V0–V3), MINT, DESTROY, ORDER, DISPENSER, SWAP, DIVIDEND, AIRDROP, FILE, MESSAGE, BROADCAST, ADDRESS, LINK, LIST, CALLBACK, BATCH, SWEEP, SLEEP, COINPAY, STAKE, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW
+- **27 ACTION test suites**: ISSUE (V0–V5), SEND (V0–V3), MINT, DESTROY, ORDER, DISPENSER, SWAP, DIVIDEND, AIRDROP, FILE, MESSAGE, BROADCAST, ADDRESS, LINK, LIST, CALLBACK, BATCH, SWEEP, SLEEP, COINPAY, STAKE, UNSTAKE, DELEGATE, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW
 - **9 service connectors**: BlockchainConnector (axios, Basic Auth), XChainUtxoTrackerConnector, XChainEncoderConnector, XChainDecoderConnector, XChainIndexerConnector, XChainExplorerConnector, XChainHubConnector (multi-endpoint failover), RegtestMinerConnector, and Database (MariaDB connection pool)
 - **Hub auto-discovery**: falls back to xchain-hub for service endpoint resolution when direct environment variables are not set
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on regtest (network configs via `CryptoNetworks.js`)
