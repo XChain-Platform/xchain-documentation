@@ -58,6 +58,8 @@ This example allows anyone to open a dispenser on this address
 - `1` = Only owner can open dispenser on this address (default)
 - `2` = Anyone can open dispenser on this address
 
+Regardless of preference, a fresh address (never seen on chain) can have a dispenser opened on it by anyone, and the address's established origin (the `SOURCE` of a prior valid dispenser create on it) can always open additional dispensers; see the origin-standing rule in [`DISPENSER`](./DISPENSER.md).
+
 ## Rules
 
 ## Notes

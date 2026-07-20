@@ -90,10 +90,12 @@ Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH
 ```
 
 ## Rules
-- A dispenser may be created on an address other than `SOURCE` only if either:
+- A dispenser may be created on an address other than `SOURCE` only if one of:
   (a) the target address has set `DISPENSER_PREFERENCE=2` via an `ADDRESS` action, or
-  (b) the target address has never appeared on chain as of `BLOCK_INDEX − 1` (fresh-address exception)
-- When `GET_ADDRESS == SOURCE` the dispenser is always allowed (owner self-opening); preference and freshness are not consulted
+  (b) the target address has never appeared on chain as of `BLOCK_INDEX − 1` (fresh-address exception), or
+  (c) `SOURCE` is the target address's established origin: the `SOURCE` of a prior valid `DISPENSER` create on that address (origin standing)
+- Origin standing is permanent: it survives the earlier dispenser closing, being canceled, or expiring, and cannot be revoked by the target address. It lets one main address keep opening dispensers on a sub-address it claimed while fresh (it already holds refill/close authority via the Version 1/2 owner rule below). Invalid create attempts confer no standing
+- When `GET_ADDRESS == SOURCE` the dispenser is always allowed (owner self-opening); preference, freshness, and standing are not consulted
 - Dispensers can be closed by the dispenser `GET_ADDRESS` or `SOURCE` address which first opened the dispenser
 - If a dispenser is closed by the dispenser `GET_ADDRESS`, tokens escrowed in the dispenser are returned to `GET_ADDRESS`
 - If a dispenser is closed by the dispenser `SOURCE`, tokens escrowed in the dispenser are returned to `SOURCE`
