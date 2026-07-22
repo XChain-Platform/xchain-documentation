@@ -59,7 +59,7 @@ Sent automatically on connection. Provides server info, current state, limits, a
     },
     "channels": ["blocks", "actions", "mempool", "network", "attestation", "address", "token", "market", "dispenser"],
     "types": ["ORDER", "ORDER_MATCH", "ORDER_EXPIRE", "COINPAY", "..."],
-    "features": ["snapshot", "once", "fields", "statuses", "ticks", "batch", "catch_up"]
+    "features": ["snapshot", "once", "fields", "ticks", "batch", "catch_up"]
   }
 }
 ```
@@ -81,7 +81,6 @@ All client messages are JSON with an `action` field. An optional `id` field enab
   "channels": ["blocks", "actions"],
   "params": {
     "types": ["SEND", "ORDER_MATCH"],
-    "statuses": ["pending_coinpay"],
     "ticks": ["PEPE", "XCHAIN"],
     "fields": ["action_index", "source", "amount"],
     "snapshot": true,
@@ -103,7 +102,7 @@ All client messages are JSON with an `action` field. An optional `id` field enab
 | Param | Type | Description |
 |---|---|---|
 | `types` | string[] | Only receive events matching these action types. Omit for all. |
-| `statuses` | string[] | Only receive events matching these statuses. Omit for all. |
+| `statuses` | string[] | **Not supported. Do not use.** Accepted by the server for backward compatibility but never honored on any channel: no feed populates a per-event status (`getActionsSince` selects `NULL as status`), so the filter can never reject anything. It is absent from WELCOME `features` and from SUBSCRIBED `active_filters`. See . |
 | `ticks` | string[] | Only receive events involving these token tickers (global `actions` channel). |
 | `fields` | string[] | Only include these keys in the `data` payload. Envelope fields always included. |
 | `snapshot` | boolean | Send current entity state immediately on subscribe. |
@@ -524,7 +523,6 @@ Sent on every successful subscribe. Echoes the `id` if provided.
     "address": "1abc...",
     "active_filters": {
       "types": ["ORDER_MATCH", "COINPAY_REQUIRED"],
-      "statuses": null,
       "ticks": null,
       "fields": null,
       "once": false
@@ -545,8 +543,8 @@ Response to `list_subscriptions`.
     "count": 2,
     "limit": 25,
     "subscriptions": [
-      { "channel": "blocks", "filters": { "types": null, "statuses": null, "once": false } },
-      { "channel": "address", "address": "1abc...", "filters": { "types": ["ORDER_MATCH"], "statuses": null, "once": false } }
+      { "channel": "blocks", "filters": { "types": null, "once": false } },
+      { "channel": "address", "address": "1abc...", "filters": { "types": ["ORDER_MATCH"], "once": false } }
     ]
   }
 }

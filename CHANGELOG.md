@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `components/decoder/OPERATIONS.md`: `lag_blocks` is `null` when either height is unknown, not `0`.
+- Explorer WEBSOCKET.md no longer advertises the `statuses` filter: it is out of WELCOME `features` and both SUBSCRIBED `active_filters` examples, matching what the server actually emits, and the parameter row now records that it is not supported ().
 
 ## [0.12.0] - 2026-06-20
 
