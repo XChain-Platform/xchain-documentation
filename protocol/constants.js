@@ -254,6 +254,28 @@ const ARCHIVE_REWARD_ACTIVATION = {
 // hub's historical default (ANCHOR_REWARD_PER_PUBLISH). Changing it is itself a flag-day.
 const ARCHIVE_REWARD_AMOUNT = '10.00000000';
 
+// ANCHOR_REWARD_DERIVE_ACTIVATION (, Option C derive-on-BTC-side): the flag-day at/above
+// which anchor + archive reward derivation RELOCATES from the DOGE indexer to the BTC indexer.
+// ANCHOR is DOGE-only, but capability staking (hence the resolvable stake source the reward write
+// needs) is BTC-only, so the DOGE-side derivation gated by ANCHOR_REWARD_ACTIVATION /
+// ARCHIVE_REWARD_ACTIVATION silently DROPS every publisher reward. At/above this gate the DOGE
+// indexer skips the reward write, the hub INSERTs one append-only `anchor_reward_attestations`
+// row per attested reward tuple after the XANCPUB quorum resolves (mirrored via hub_db_sync), and
+// the BTC indexer derives the reward from the mirrored row (re-verifying the XANCPUB sigs against
+// its own local oracle_publish/stake set at snapshot_block) into validator_rewards at
+// block_index = snapshot_block. Consensus-relevant (COLLECT-spendable), same snapshot_block gating
+// and atomic-deploy rules as ANCHOR_REWARD_ACTIVATION. It CANNOT ride the 961000/969500 boundaries
+// (already live on testnet/regtest, so no coordinated flip window; and one gate must cover both
+// the v4/v5 and v6 families). Kept byte-identical to the local copies in
+// xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
+// INERT on mainnet/testnet (null = never active) until the operator ratifies a coordinated BTC
+// snapshot_block; regtest active from genesis.
+const ANCHOR_REWARD_DERIVE_ACTIVATION = {
+    mainnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming
+    testnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming
+    regtest: 0,
+};
+
 // RETRACTION_SIGNING_ACTIVATION (quorum-class retraction co-signing): the BTC-anchored
 // snapshot_block era at/above which a mirror REFUSES an unsigned quorum-class retraction
 // broadcast. Vendored byte-equal into xchain-{indexer,hub,explorer}/src/
@@ -283,6 +305,25 @@ const RETRACTION_SIGNING_ACTIVATION = {
 // 961000 (2026-07-07; BTC anchor ~2026-08-04), not a disabled placeholder.
 const CROSS_CHAIN_ROYALTY_ACTIVATION = {
     mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers before this height
+    testnet: 0,
+    regtest: 0,
+};
+
+// ATTEST_ADMISSION_ACTIVATION (Pkg 7 / 87441a53 admission rejection): the flag-day at/above
+// which the indexer REJECTS an ATTEST v0 request whose responsible set at the request's own
+// block is smaller than its REDUNDANCY. Such a request is unservable by construction: the hub
+// refuses to start an unfinalizable round (AttestationConsensus.propose skips when
+// responsible.length < redundancy, since the indexer requires >= redundancy valid signatures),
+// so pre-gate the request would sit pending until deadline expiry. At/above the gate it is
+// rejected at admission instead (immediate fee refund path: 'rejected' never escrows). This
+// changes on-chain acceptance, so replay below the height must stay bit-identical: below it
+// the legacy accept-then-expire behavior is preserved verbatim. Keyed on the request's own
+// block_index + network like STAKE_WEIGHTED_QUORUM_ACTIVATION (the shrink this closes comes
+// from that gate's source-dedupe), and armed to the SAME anchor so both rules flip together.
+// Kept value-identical to the local copy in xchain-indexer/src/attest_admission_activation.js
+// by the activation-constants parity suite.
+const ATTEST_ADMISSION_ACTIVATION = {
+    mainnet: 961000,      // ARMED: BTC anchor ~2026-08-04 (same anchor as STAKE_WEIGHTED_QUORUM); deploy ALL indexers before this height
     testnet: 0,
     regtest: 0,
 };
@@ -344,8 +385,10 @@ module.exports = {
     ANCHOR_REWARD_AMOUNT,
     ARCHIVE_REWARD_ACTIVATION,
     ARCHIVE_REWARD_AMOUNT,
+    ANCHOR_REWARD_DERIVE_ACTIVATION,
     RETRACTION_SIGNING_ACTIVATION,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
+    ATTEST_ADMISSION_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
     PRICE_MAX,

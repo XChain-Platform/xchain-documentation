@@ -68,6 +68,7 @@ System-synthesized expiry for request abc...def
 - `DEADLINE_BLOCKS` must be greater than 0 and no larger than the provider's `deadline_window_blocks`.
 - `CONTRACT_INDEX` (carried via `EMITTER`) must reference an existing contract.
 - `REQUEST_ID` is verified by re-deriving from `tx_hash:root_action_index:emitter_path:contract_index:emitter_position` (colon-delimited; defends against compromised VM).
+- Admission flag-day (`ATTEST_ADMISSION_ACTIVATION` in `protocol/constants.js`; mainnet 961000, testnet/regtest genesis): at/above the height, a request whose responsible set at its own block is smaller than `REDUNDANCY` (e.g. after the stake-weighted-quorum source-dedupe) is rejected at admission, since the v1 path can never collect `REDUNDANCY` signatures from a smaller set. Below the height the request is accepted and expires at `DEADLINE_BLOCK` unchanged (replay bit-identical).
 
 #### Fee fields (v0, optional)
 - `FEE_TICK`, when present, must equal the GAS tick (XCHAIN); any other value produces `invalid: FEE_TICK (only XCHAIN accepted)`. Arbitrary fee ticks are a post-launch rule loosening; the wire carries the tick now so no future format change is needed.
