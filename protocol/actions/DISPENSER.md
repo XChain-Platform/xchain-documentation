@@ -127,7 +127,8 @@ Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH
 ## Notes
 - Dispensers are closed and any escrowed funds returned after a set amount of time (1 hour)
 - Dispenser `LIST` edits are delayed a set amount of time (1 hour)
-- Dispensers are limited to a set maximum number of dispenses (1,000)
+- Dispensers are limited to a maximum number of dispenses per fill (1,000, enforced). The dispense that reaches the limit still executes; the dispenser then auto-closes and any remaining escrow is refunded to the `SOURCE` owner
+- A refill (a Version 2 `DISPENSER_EDIT` that tops up `GIVE_ESCROW`) resets the dispense count to 0, so each fill allows another 1,000 dispenses. Refills are limited to 5 (the 6th is rejected), giving a lifetime ceiling of 6 fills x 1,000 dispenses
 - `FIAT_CODE` accepts the following 12 currencies:
   - `USD` = US Dollar
   - `CAD` = Canadian Dollar
