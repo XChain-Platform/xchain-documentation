@@ -74,6 +74,11 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
   1. V8 compilation check, rejects JavaScript syntax errors
   2. Acorn metering pass, rejects syntax beyond ES2020 (the supported syntax set)
   3. Reserved identifier check, rejects code containing `__gas` (reserved for gas metering), the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); all are harness-injected and a contract may not define or reference them
+  4. Banned `Math.*` check, rejects `Math.sqrt`/`Math.pow`/`Math.log`/`Math.log2`/`Math.log10` (widening under `VM_LINT_HARDENING` to the complement of the deterministic SafeMath whitelist, plus the `**`/`**=` exponentiation operator)
+  5. Banned literal check, rejects `BigInt` and `RegExp` literals
+  6. Banned async check (consensus-gated), rejects `async`/`await`/`Promise` references after the `VM_BANNED_ASYNC` flag-day
+  7. Banned generator check (consensus-gated), rejects `function*`, generator methods, and `yield`; live from genesis on testnet/regtest
+  8. Banned WebAssembly check (consensus-gated), rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest
 - If syntax validation fails, the deployment is rejected with `invalid: CODE_ENCODING (<reason>)` and no gas is charged
 - A non-blocking float usage warning is generated if decimal number literals are detected (visible in the execution record)
 - A gas fee is charged at deployment: `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`

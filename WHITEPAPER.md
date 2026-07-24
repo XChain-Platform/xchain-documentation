@@ -531,11 +531,11 @@ The full schedule is in Appendix A and is **FREEZE-PENDING**: the gas costs and 
 
 ### 13.2 The XCHAIN monetary model
 
-XCHAIN is the gas token, issued once on the BTC chain at genesis and then **permanently locked** (`LOCK_MINT` plus `LOCK_MAX_SUPPLY`). No further XCHAIN can ever be created, by anyone, including the issuer. Supply only ever *decreases*, through the burn bucket. Validator rewards are **paid from a pre-funded reward pool, never minted**; if the pool is exhausted, reward claims are rejected and stay claimable until it is topped up. XCHAIN's demand drivers are therefore fee payment and staking lockup against a fixed, deflationary cap.
+XCHAIN is the gas token, injected on the BTC chain at genesis with a permanent `MAX_SUPPLY` cap and **no pre-mint**: supply starts at zero and is created only through public `MINT`s during the launch window, up to the cap. Once the mint window closes, no further XCHAIN can ever be created, by anyone, including the issuer, and supply only ever *decreases* afterward through the burn bucket. Validator rewards are **paid from a pre-funded reward pool, never minted**; if the pool is exhausted, reward claims are rejected and stay claimable until it is topped up. XCHAIN's demand drivers are therefore fee payment and staking lockup against a fixed, deflationary cap.
 
 ### 13.3 Genesis and fair launch
 
-XChain launches without an inflationary mint or an insider faucet: the gas token's supply is fixed at genesis and can only shrink. The genesis distribution is designed to honor the existing communities that pioneered Bitcoin-native tokens. It comprises a snapshot that reserves asset-*name* ownership for prior holders, a community airdrop, a pre-funded validator reward pool (from which rewards are paid, never minted), and a treasury and market allocation. The specific figures, the total supply and the size of each allocation, together with the snapshot height, are finalized at genesis and announced separately ahead of launch.
+XChain launches without an inflationary mint or an insider faucet: the gas token's supply is capped at genesis but starts at zero, with no pre-mint and no operator allocation. The genesis distribution is designed to honor the existing communities that pioneered Bitcoin-native tokens. It comprises a snapshot that reserves asset-*name* ownership for prior holders and a pre-funded validator reward pool (from which rewards are paid, never minted); there is no community airdrop and no treasury or market allocation. Once the operator opens the mint window, anyone can `MINT` their share on a first-come basis up to the fixed cap.
 
 ---
 
@@ -547,7 +547,7 @@ The three chained hashes cover the append-only rows of each block, and the addit
 
 **Light-client verification.** Full replication, above, requires holding the entire state. A lighter path is now implemented. At each checkpointed height the indexer commits two additional roots alongside the three chained hashes: a Sparse Merkle Tree *state root* over current balances and the validator stake set, and a hardened (domain-separated) per-block *content root* over the block's ledger and action rows. The hub folds both roots into the quorum-signed checkpoint, the DOGE-only ANCHOR carries them on-chain, and the sync follower recomputes them and halts on any divergence, so they are consensus-conformant like the existing hashes. The explorer then serves Merkle inclusion and non-inclusion proofs for a balance, an action, or the validator set, and the SDK's light-client module verifies them locally: it re-checks the checkpoint's signatures against the staked `oracle_publish` set, then binds the proof to the checkpoint's committed root, trusting nothing the server asserts. A client can establish its first trusted checkpoint from one buried under DOGE proof-of-work (the on-chain ANCHOR, at a chosen confirmation depth) and then follow the federation forward, proving the staked signer set at each step from the committed stake root. The result is balance-level and action-level light-client verification without replaying history or holding full state.
 
-Current limits: the path is active on testnet and regtest but gated off on mainnet pending a flag-day; it is exposed as an SDK and explorer capability and is not yet wired into the reference wallet; and locked-balance (escrow) and contract-state proofs are deferred to a later version (§16). The earlier transparency-log Merkle epochs remain a separate, audit-only artifact (their roots are not signed or anchored) and are not part of this verification path.
+Current limits: the path is active on testnet and regtest but gated off on mainnet pending a flag-day; the reference wallet is already its first consumer, verifying token balances and action history locally against the quorum-signed checkpoint; and locked-balance (escrow) and contract-state proofs are deferred to a later version (§16). The earlier transparency-log Merkle epochs remain a separate, audit-only artifact (their roots are not signed or anchored) and are not part of this verification path.
 
 ---
 
@@ -561,7 +561,7 @@ XChain can publish files on-chain that only holders of a given token can decrypt
 
 The near-term path to launch is the protocol freeze (locking the wire format, the gas schedule, and the consensus flag-day activations), a legal pass on the commercial license and contributor agreement, public-facing site and API documentation, and the public repository flip.
 
-Beyond launch, the platform's chain-agnostic design makes **breadth across the UTXO family** the natural growth vector: each new chain is additive and config-driven, sharing the same protocol and tooling. The later economic phases of the attestation framework are planned protocol extensions. The light-client/SPV path described in §14 is implemented and active on testnet and regtest as an SDK and explorer capability (balance and action proofs against quorum-signed, DOGE-anchored checkpoints); the remaining work is mainnet flag-day activation, integration into the reference wallet, and extending proofs to locked balances and contract state. Support for **account-model chains** (Ethereum and similar) is a longer-term research direction: the pure data-layer of the protocol is bounded and additive, while reaching account-model ecosystems without reintroducing bridge risk is the harder, open part of the problem. The platform is designed so that supporting a large number of blockchains over time is an extension of its core technique, not a departure from it.
+Beyond launch, the platform's chain-agnostic design makes **breadth across the UTXO family** the natural growth vector: each new chain is additive and config-driven, sharing the same protocol and tooling. The later economic phases of the attestation framework are planned protocol extensions. The light-client/SPV path described in §14 is implemented and active on testnet and regtest, with the reference wallet already wired in as its first consumer (balance and action proofs against quorum-signed, DOGE-anchored checkpoints); the remaining work is mainnet flag-day activation and extending proofs to locked balances and contract state. Support for **account-model chains** (Ethereum and similar) is a longer-term research direction: the pure data-layer of the protocol is bounded and additive, while reaching account-model ecosystems without reintroducing bridge risk is the harder, open part of the problem. The platform is designed so that supporting a large number of blockchains over time is an extension of its core technique, not a departure from it.
 
 ---
 
@@ -609,7 +609,7 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 | Governance | 7-day vote, 50% quorum, two-thirds approval, 14-day re-proposal cooldown |
 | utxo-tracker reorg undo window | BTC 12 / LTC 48 / DOGE 120 blocks (default, env-overridable) |
 | Capability stake activation / cooldown | ~6 BTC blocks / 1,000 blocks (governance-set) |
-| XCHAIN supply | fixed at genesis, locked, BTC-chain only |
+| XCHAIN supply | capped at genesis, zero pre-mint, public fair mint, BTC-chain only |
 
 ---
 

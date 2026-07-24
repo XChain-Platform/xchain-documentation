@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- review corpus corrections: zero-premint genesis, GAS supply, SPV wallet status, WS statuses filter, explorer port, open-source claim, ANCHOR v0-v6, VM lint-rule inventories, recursion depth, slashable engines, manifest re-vendor with encoder as sixth copy.
+
 ### Added
 - `protocol/actions/DISPENSER.md`, `protocol/actions/ADDRESS.md`: documented the origin-standing create rule (`DISPENSER_ORIGIN_STANDING`): the source of a prior valid dispenser create on an address may open additional dispensers on it.
 - `developer-guide/AI_Assisted_Authoring.md`: AI-assisted authoring on-ramp (describe a contract in English or paste Solidity, then gate-validate the model's reply with `xchain-foundry`); indexed in the developer-guide README and cross-linked from Solidity to XChain.

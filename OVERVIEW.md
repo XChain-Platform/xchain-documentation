@@ -47,11 +47,11 @@ Reinforcing these: token-gated encrypted content that unlocks client-side with n
 
 The gas token, **XCHAIN**, is conservative by design:
 
-- **Fixed, hard-capped supply**: minted once at genesis, then permanently locked. No further XCHAIN can ever be created, by anyone. Supply only *decreases*, through a deflationary fee burn.
+- **Fixed, hard-capped supply, zero pre-mint**: the cap is set at genesis but supply starts at zero and is created only through public mints during the launch window. Once the window closes, no further XCHAIN can ever be created, by anyone, and supply only *decreases* afterward through a deflationary fee burn.
 - **No inflation**: validator rewards are paid from a pre-funded pool, never minted.
 - **Demand** comes from fee payment and staking lockup against that fixed cap.
 
-The genesis distribution is planned to honor the communities that pioneered Bitcoin-native tokens; a snapshot reserving tick-name ownership for prior holders, plus a community airdrop. A fair launch: no ICO, no inflationary mint, no insider faucet.
+The genesis distribution honors the communities that pioneered Bitcoin-native tokens: a snapshot reserving tick-name ownership for prior holders, plus a pre-funded validator reward pool. A fair launch: no ICO, no pre-mint, no insider faucet; anyone can mint their share once the operator opens the window, first-come up to the cap.
 
 XChain is open source (AGPL-3.0) with a commercial license available for proprietary use.
 
@@ -61,11 +61,11 @@ XChain is open source (AGPL-3.0) with a commercial license available for proprie
 - **Cross-chain settlement proven end-to-end** between live chains.
 - **13 components** spanning the full stack: node manager, encoder, decoder, indexer, explorer, hub, UTXO tracker, VM, replication, SDK, multi-platform wallet, regtest tooling, and end-to-end tests, plus a complete protocol specification.
 - **A full developer SDK** (the full operation set, contract deploy/execute, cross-chain calls, light-client proof verification, live streaming, transaction building) with the wallet as a reference client.
-- **Open-sourced** across all public repositories.
+- **AGPL-3.0 licensed**, with a commercial license available for proprietary use; the source repositories flip public at launch.
 
 ## Where it's going
 
-Near term: protocol freeze, public site and API documentation, the public release of the source repositories, and the coordinated mainnet activation of the staking and light-client features. Beyond: wallet-integrated light-client verification, breadth across the UTXO family (each new chain is additive), deeper economic phases for the attestation framework, and (longer term) research toward account-model chains without reintroducing bridge risk.
+Near term: protocol freeze, public site and API documentation, the public release of the source repositories, and the coordinated mainnet activation of the staking and light-client features (the wallet is already wired in as the light client's first consumer on testnet and regtest). Beyond: breadth across the UTXO family (each new chain is additive), deeper economic phases for the attestation framework, and (longer term) research toward account-model chains without reintroducing bridge risk.
 
 ---
 

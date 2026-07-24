@@ -102,7 +102,7 @@ sdk.onAction((event) => {
 }, { types: ['ORDER', 'ORDER_MATCH', 'ORDER_EXPIRE'] });
 ```
 
-**Options:** `{ types?: string[], statuses?: string[], ticks?: string[] }`
+**Options:** `{ types?: string[], statuses?: string[], ticks?: string[] }` (**`statuses` is not supported**: accepted for backward compatibility but never honored by the server, so it silently matches every event; do not rely on it)
 
 ### sdk.onAddress(address, callback, opts?)
 
@@ -116,7 +116,7 @@ const unsub = sdk.onAddress('1abc...', (event) => {
 
 Events delivered: `NEW_ACTION`, `ADDRESS_UPDATE`, `ORDER_MATCH`, `COINPAY_REQUIRED`, `COINPAY_FULFILLED`, `COINPAY_EXPIRED`, `SWAP_MATCH`, `DISPENSE`
 
-**Options:** `{ types?: string[], statuses?: string[], snapshot?: boolean }`
+**Options:** `{ types?: string[], statuses?: string[], snapshot?: boolean }` (**`statuses` is not supported**: never honored by the server; do not rely on it)
 
 ### sdk.onToken(tick, callback)
 
@@ -165,7 +165,7 @@ sdk.onCoinpayRequired('1BotAddr...', (event) => {
 
 ### sdk.onOrderMatch(address, callback, opts?)
 
-Shortcut for watching an address for `ORDER_MATCH` events. Filter by status to only receive coinpay settlements.
+Shortcut for watching an address for `ORDER_MATCH` events. To react only to coinpay-required matches, check `event.data.status` inside the callback: `statuses` filtering is **not supported** by the server.
 
 ```javascript
 // All order matches
@@ -173,10 +173,11 @@ sdk.onOrderMatch('1abc...', (event) => {
     console.log('Order matched:', event.data.action_index);
 });
 
-// Only coinpay-required matches
+// Only coinpay-required matches (filter client-side; the server does not honor a statuses option)
 sdk.onOrderMatch('1abc...', (event) => {
+    if (event.data.status !== 'pending_coinpay') return;
     console.log('Needs COINPay:', event.data.action_index);
-}, { statuses: ['pending_coinpay'] });
+});
 ```
 
 ### sdk.onNetworkStats(callback)
@@ -196,11 +197,10 @@ For advanced use cases, access the WebSocket client directly via `sdk.ws`.
 ```javascript
 const ws = sdk.ws;
 
-// Subscribe with full control
+// Subscribe with full control (statuses is not a supported filter; the server ignores it)
 await ws.subscribe(['address'], {
     address: '1abc...',
     types: ['ORDER_MATCH', 'COINPAY_REQUIRED'],
-    statuses: ['pending_coinpay'],
     snapshot: true,
     since_action_index: 45000
 });

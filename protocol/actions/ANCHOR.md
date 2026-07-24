@@ -4,7 +4,7 @@
 # XChain Platform Action - ANCHOR
 
 On-chain commitment of federation-signed state, checkpoints and the cross-chain match
-archive, in a single action with four version-discriminated phases:
+archive, in a single action with seven version-discriminated phases:
 
 - **v0: Checkpoint.** Validator-broadcast. Commits one chain's quorum-signed state checkpoint
   (the per-block `ledger`/`actions`/`contract` hash triple) to the anchor chain.

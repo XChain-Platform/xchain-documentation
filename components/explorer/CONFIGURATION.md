@@ -86,7 +86,7 @@ two endpoints return `503` (clients then fall back to paying the protocol fee in
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `INDEXER_API_URL_<COIN>_<NETWORK>` | No | None | Indexer JSON-RPC URL for a specific coin+network (e.g. `INDEXER_API_URL_BTC_REGTEST=http://localhost:3001`) |
+| `INDEXER_API_URL_<COIN>_<NETWORK>` | No | None | Indexer JSON-RPC URL for a specific coin+network (e.g. `INDEXER_API_URL_BTC_REGTEST=http://localhost:3004`) |
 | `INDEXER_API_URL` | No | None | Generic fallback indexer JSON-RPC URL used when no coin/network-specific var is set |
 | `INDEXER_API_TIMEOUT_MS` | No | `5000` | Per-request timeout for the indexer proxy calls |
 

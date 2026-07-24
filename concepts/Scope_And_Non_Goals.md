@@ -113,9 +113,9 @@ root), served as Merkle proofs by the explorer, with cold-start trust optionally
 DOGE-anchored checkpoint (see [Block Hashes](./Block_Hashes.md)). This is a federated trust
 model: the root of trust is the stake-weighted validator quorum, plus DOGE proof-of-work for
 the cold-start anchor, not host-chain-PoW SPV of XChain itself. The path is active on testnet
-and regtest, gated off on mainnet pending a flag-day, and exposed as an SDK and explorer
-capability not yet wired into the reference wallet; locked-balance and contract-state proofs
-are deferred to a later version. Until you run a node or verify a checkpoint, a lightweight
+and regtest, gated off on mainnet pending a flag-day; the reference wallet is already wired in
+as its first consumer, verifying balances and action history against the checkpoint locally;
+locked-balance and contract-state proofs are deferred to a later version. Until you run a node or verify a checkpoint, a lightweight
 wallet trusts the explorer it queries, so treat third-party API data as trusted-source unless
 you verify it against your own node.
 

@@ -197,14 +197,18 @@ The indexer validates the code syntax before charging gas. If syntax is invalid,
 
 ### Deploy-Time Validation
 
-The VM performs six checks before deployment:
+The VM performs the following checks before deployment:
 
 1. **V8 syntax check**; the code must parse as valid JavaScript
 2. **Acorn metering pass**; the code must be parseable by acorn (ES2020 maximum)
-3. **Reserved identifier check**; the code must not use `__gas` (reserved for gas metering), the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); all are harness-injected and a contract may not define or reference them
-4. **Banned transcendental `Math.*`:** `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` are rejected. IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures, which would cause hash divergence between indexers. Use the deterministic equivalents in `xchain.math.*` instead.
+3. **Reserved identifier check**; the code must not use `__gas` (reserved for gas metering), the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); all are harness-injected and a contract may not define or reference them. Under the `VM_LINT_HARDENING` flag-day (below), this also covers the `CONTRACT_WRAPPER`'s injected control bindings: `__contractCode`, `__methodName`, `__isCrossCall`, `__readManifest`.
+4. **Banned `Math.*`:** `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` are rejected outright (IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures, which would cause hash divergence between indexers). Under `VM_LINT_HARDENING` the ban widens to the **complement** of the deterministic SafeMath whitelist (`floor`, `ceil`, `round`, `abs`, `min`, `max`, `sign`, `trunc`, `PI`, `E`), so `Math.random`, `Math.atan2`, and any other Math member outside that list are rejected too, along with the `**`/`**=` exponentiation operator. Use the deterministic equivalents in `xchain.math.*` instead.
 5. **Banned DoS literals:** `BigInt` literals (e.g. `10n`) and `RegExp` literals (e.g. `/foo/`) are rejected. Both expose unmetered native computation; a `BigInt` arithmetic loop or a catastrophic regex can exhaust the block watchdog and halt the chain. The `BigInt` global and `RegExp` constructor are also stripped at runtime; use `xchain.math.*` for big-number work.
-6. **Banned async check** (consensus-gated): `async` functions, `await` expressions, and `Promise` references are rejected. Enforced today by the `xchain-lint` CLI, the SDK, and testnet/regtest; on mainnet at/after the `VM_BANNED_ASYNC` flag-day (2026-10-01).
+6. **Banned async check** (consensus-gated): `async` functions, `await` expressions, and `Promise` references are rejected. Under `VM_LINT_HARDENING` this also rejects dynamic `import(...)` (it evaluates to a Promise). Enforced today by the `xchain-lint` CLI, the SDK, and testnet/regtest; on mainnet at/after the `VM_BANNED_ASYNC` flag-day (2026-10-01).
+7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): `function*`, generator methods, and any `yield` are rejected.
+8. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): any reference to the global `WebAssembly` is rejected.
+
+Checks 7-8 are live today on testnet/regtest (the Pkg 3 sandbox gate is unconditionally active on those networks) even though their mainnet activation is a separate flag-day; a regtest deploy that trips either one is rejected now. The `VM_LINT_HARDENING` widenings under checks 3, 4, and 6 activate at the same instant as `VM_BANNED_ASYNC` and are default-on for the SDK and CLI already.
 
 A non-blocking **float warning** is also generated if decimal number literals are detected in the code. This warning appears in the execution record but does not prevent deployment.
 
@@ -237,7 +241,7 @@ node xchain-vm/bin/lint.js path/to/contract.js   # or: npx xchain-lint contract.
 # exit 0 = clean · 1 = errors · 2 = usage / no readable input files · warnings print to stderr (exit 0)
 ```
 
-The CLI runs the **full** validator including the V8 syntax check, plus a CLI-side `code-size` rule that rejects source over the 64KiB deploy cap before it even reaches the syntax gate, so a clean result is exact deploy parity. Note that `sdk.validateContract` (the `lint-core`-only check used by `sdk.deploy`'s default `lint: 'block'` path) does not carry this code-size rule, so it alone is not exact deploy parity; the CLI is. Use the CLI as a local pre-commit / CI gate for contract source.
+The CLI runs the **full** validator including the V8 syntax check, so a clean result is exact deploy parity. The `code-size` rule that rejects source over the 64KiB deploy cap before it even reaches the syntax gate lives in shared `lint-core`, not the CLI alone, so `sdk.validateContract` carries it too; the only check the SDK pre-flight cannot run is the V8 syntax step, which needs the VM's isolated runtime. Use the CLI as a local pre-commit / CI gate for contract source.
 
 ## Gas Costs
 

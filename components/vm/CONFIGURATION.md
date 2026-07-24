@@ -78,6 +78,7 @@ These limits are hardcoded in the VM and not configurable:
 | Log entries per execution | 100 | `collector.js` |
 | Log entry size | 1,024 bytes UTF-8 (truncated with `...(truncated)` marker) | `collector.js` |
 | Return value size | 65,536 bytes (truncated) | `index.js` |
+| Recursion depth (`__DEPTH_LIMIT`) | 512, or 256 once the Package 3 sandbox gate is active (unconditional on testnet/regtest; per-coin heights on mainnet) | `index.js` |
 | Throwaway isolate memory | 8 MB | `isolate.js`, `syntax.js` |
 | Binary expression metering depth | 10 | `metering.js` |
 
