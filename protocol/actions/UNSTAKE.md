@@ -11,14 +11,15 @@ This action begins the unstaking cooldown for an active stake identified by its 
 | `SIGNING_PUBKEY`        | String  | Ed25519 public key of the stake to unstake                              |
 | `TARGET_CONTRACT_INDEX` | Integer | v1 only: `action_index` of the stakeable contract                      |
 | `TICK`                  | String  | v1 only: token ticker of the stake row to release                      |
+| `AMOUNT`                | String  | Optional trailing partial-unstake amount; absent = full sweep           |
 
 ## Formats
 
 ### Version `0` - Capability Unstake
-- `VERSION|SIGNING_PUBKEY`
+- `VERSION|SIGNING_PUBKEY[|AMOUNT]`
 
 ### Version `1` - Contract-Targeted Unstake
-- `VERSION|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK`
+- `VERSION|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK[|AMOUNT]`
 
 ## Examples
 ```
@@ -27,9 +28,29 @@ Begin unstaking the capability stake bound to pubkey abc123...def (returns all r
 ```
 
 ```
+UNSTAKE|0|abc123...def|250
+Begin unstaking 250 XCHAIN of the capability stake bound to pubkey abc123...def; the residual stays staked and keeps counting toward capability thresholds
+```
+
+```
 UNSTAKE|1|abc123...def|500|MYTOKEN
 Begin unstaking the (contract=500, tick=MYTOKEN) stake row for pubkey abc123...def
 ```
+
+```
+UNSTAKE|1|abc123...def|500|MYTOKEN|40
+Begin unstaking 40 MYTOKEN of the (contract=500, tick=MYTOKEN) stake for pubkey abc123...def; the residual stays staked
+```
+
+## Partial Unstake (optional AMOUNT)
+The trailing `AMOUNT` is activated by the `PARTIAL_UNSTAKE_COLLECT` protocol change (mainnet: the coordinated 2026-10-01 contract-era flag-day; testnet/regtest: genesis). Semantics:
+
+- **Absent**: full sweep, byte-identical to the historical behavior
+- **Present (at/after the flag-day)**: only `AMOUNT` enters cooldown; the residual is re-staked seamlessly (it activates at the exact block the swept rows deactivate, so stake weight is continuous with no double-count and no gap)
+- **Present (below the flag-day)**: ignored (full sweep), matching what a pre-upgrade node parses
+- An `AMOUNT` equal to the full staked balance is treated exactly as absent
+- An `AMOUNT` of zero, malformed, finer than the token's decimals (8 for XCHAIN), or greater than the active staked balance is rejected; over-asks are never clamped
+- During the deactivation-delay handoff window a second UNSTAKE on the same pubkey (or `(target, pubkey, tick)`) rejects, exactly like the existing re-unstake guard; the residual becomes unstakeable once it activates
 
 ## Rules
 - `SIGNING_PUBKEY` must be a valid 64-character hex-encoded Ed25519 public key

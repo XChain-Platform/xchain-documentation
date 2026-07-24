@@ -8,17 +8,33 @@ This action collects all accrued validator rewards to the broadcasting address.
 | Name      | Type   | Description    |
 | --------- | ------ | -------------- |
 | `VERSION` | String | Format Version |
+| `AMOUNT`  | String | Optional trailing partial-claim amount; absent = claim the full unclaimed total |
 
 ## Formats
 
 ### Version `0`
-- `VERSION`
+- `VERSION[|AMOUNT]`
 
 ## Examples
 ```
 COLLECT|0
 Collect all accrued validator rewards for the broadcasting address
 ```
+
+```
+COLLECT|0|25
+Collect 25 XCHAIN of the accrued rewards; the remainder stays pending and collectible later
+```
+
+## Partial Claim (optional AMOUNT)
+The trailing `AMOUNT` is activated by the `PARTIAL_UNSTAKE_COLLECT` protocol change (mainnet: the coordinated 2026-10-01 contract-era flag-day; testnet/regtest: genesis). Semantics:
+
+- **Absent**: claim the full unclaimed total, byte-identical to the historical behavior
+- **Present (at/after the flag-day)**: claim only `AMOUNT`; the remainder stays pending
+- **Present (below the flag-day)**: ignored (full claim), matching what a pre-upgrade node parses
+- An `AMOUNT` equal to the full unclaimed total is treated exactly as absent
+- An `AMOUNT` of zero, malformed, finer than 8 decimals, or greater than the unclaimed total is rejected; over-asks are never clamped
+- The reward-pool coverage check applies to the claimed amount, so a partial claim can succeed while the pool cannot yet cover the full pending total
 
 ## Rules
 - BTC chain only
@@ -63,7 +79,7 @@ If the pool cannot cover the full pending reward, the `COLLECT` is rejected with
 
 ## Notes
 - Rewards accrue continuously while the address holds an active stake
-- All pending rewards are collected in a single action; partial collection is not supported
+- By default all pending rewards are collected in a single action; a partial claim is available via the optional trailing `AMOUNT` (see Partial Claim above)
 - Rewards may be collected at any time while a stake is active
 - Rewards can also be collected after initiating `UNSTAKE` during the cooldown period
 - A single pubkey can earn from multiple capabilities in the same round, e.g. a validator with both `price` and `oracle_publish` capabilities can earn the per-round consensus reward AND the per-publish broadcast reward in the same round
