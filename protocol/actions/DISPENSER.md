@@ -206,7 +206,21 @@ User oracles (PRICE v1) have a built-in anti-front-running mechanism: **every** 
 
 The delay applies to first publishes as well, and that part is a **consensus requirement** rather than an anti-manipulation one: an immediately-effective first publish would be *retroactively* effective, because its `effective_at` (the action's `block_time`) precedes the moment the row can exist in any indexer's hub-DB mirror. A FIAT dispense settled in that window would settle differently on replay and fork the ledger. See [`PRICE`](./PRICE.md) for the full rule.
 
-> **Setting up a user-oracle dispenser:** publish the PRICE v1 quote at least 24 hours before you expect the dispenser to serve buyers. Until the quote is effective, dispenses against it are recorded `invalid: no matching oracle price`.
+> **Setting up a user-oracle dispenser:** point at an oracle whose price is **already effective**. A PRICE v1 quote becomes effective 24 hours after publication, and a `DISPENSER` naming an oracle with no effective price is rejected outright (`invalid: ORACLE_ADDRESS (no effective oracle price)`). Oracle operators are normally a separate, ongoing service, so this only bites when you are standing up your own oracle for your own dispenser: publish first, wait out the window, then create.
+
+### Oracle Usage Fee
+An oracle operator can charge a usage fee by publishing a non-zero `FEE` (see [`PRICE`](./PRICE.md)). The charge lands **once, up front, on the address opening or refilling the dispenser**, never on buyers per dispense, and is paid as a real native-coin output inside the `DISPENSER` transaction:
+
+```
+oracle_fee = FEE x (oracle_price x GIVE_ESCROW) / validator_coin_price
+```
+
+`FEE` percent of what the whole escrow is projected to earn. A `DISPENSER` naming an `ORACLE_ADDRESS` is **invalid** without that output, or with one below the amount, so size it from the quote endpoint:
+
+`GET /{COIN}/api/oraclefeequote?oracleAddress=..&giveTick=..&fiatCode=USD&giveEscrow=..`
+→ `{ requiredFeeNative, requiredFeeSats, belowDust }` (SDK: `explorer.getOracleFeeQuote()`)
+
+No output is required when the oracle's `FEE` is `0` (the common case) or when the computed fee is below the chain's dust threshold. A v2 refill is charged on the escrow it adds, not on the whole balance, and a Mode A dispenser (`FIAT_AMOUNT` without `ORACLE_ADDRESS`) is never charged: it reads validator snapshots, and validators are compensated through the protocol fee.
 
 ### Recommendations
 - Buyers should send with a high transaction fee to ensure confirmation within the 24-hour price window

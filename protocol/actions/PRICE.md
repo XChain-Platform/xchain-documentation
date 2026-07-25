@@ -182,7 +182,21 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 #### FEE Field
 - Decimal value representing the oracle usage fee percentage
 - `0.01` = 1%, `0.05` = 5%, etc.
-- Dispensers that reference this oracle pay the fee to the oracle `SOURCE` address
+- Dispensers that reference this oracle pay the fee to the oracle `SOURCE` address. The charge lands **once, up front, on the address opening (or refilling) the dispenser** - not on buyers per dispense - and is paid as a real native-coin output in the `DISPENSER` transaction itself:
+
+```
+oracle_fee = FEE x (oracle_price x GIVE_ESCROW) / validator_coin_price
+```
+
+  which is `FEE` percent of the coin the whole escrow is projected to earn. A `DISPENSER` naming an `ORACLE_ADDRESS` is **invalid** without that output, or with one below the amount, so compose it with the quote endpoint rather than by hand:
+
+  `GET /{COIN}/api/oraclefeequote?oracleAddress=..&giveTick=..&fiatCode=USD&giveEscrow=..`
+  → `{ requiredFeeNative, requiredFeeSats, belowDust }` (SDK: `explorer.getOracleFeeQuote()`)
+
+  The indexer computes that quote from the same code path it validates against, so an output sized from it is accepted. No output is required when `FEE` is `0` (the common case) or when the computed fee falls below the chain's dust threshold. A refill is charged on the escrow it adds, not on the whole balance.
+
+  The referenced oracle must already have an **effective** price, which means published at least 24 hours earlier (see the effective-time rule above). A dispenser pointing at an oracle with no effective price is rejected.
+
 - [`BET`](./BET.md) markets do **not** use `PRICE` oracles. A betting market's oracle is the address that created the market, and its `FEE` is a percent of that market's own pot
 
 ## Staking gate for `oracle_publish`
