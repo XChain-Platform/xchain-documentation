@@ -20,25 +20,38 @@
  * rejection from the indexer. The class is silent (the docs render fine) and it
  * hands readers malformed transactions, so it is worth a mechanical gate.
  *
- * WHY THIS IS SCOPED TO DISPENSER RATHER THAN SWEEPING protocol/actions/*.md:
- * a first cut asserted "every example carries the field count its format
+ * TWO TIERS, because one rule does not fit every action .
+ *
+ * A first cut asserted "every example carries the field count its format
  * declares" across all 36 action docs and failed 17 of them, none of it this
- * defect. Two properties of the wire format make a bare count comparison
- * meaningless in general:
+ * defect. Working out why produced the arity rules below.
  *
- *   - trailing fields are omittable. ISSUE v0 declares 25 fields and its
- *     examples correctly show 2 to 10; a short example is normal, not drift.
- *   - several actions are variadic. BATCH v0 declares `VERSION|ACTIONS` and its
- *     example spells out 7 fields because ACTIONS is itself a delimited list,
- *     so examples legitimately exceed the declared count too.
+ *   - Trailing fields are omittable. ISSUE v0 declares 25 and its examples
+ *     correctly show 2 to 10, so a SHORT example is normal, not drift. That
+ *     kills an exact-count rule in general.
+ *   - Some formats end in a REST field, marked with an ellipsis in either
+ *     position: `PARAMS...` (EXECUTE) or `...CONSTRUCTOR_PARAMS` (DEPLOY v0/v2).
+ *     Those legitimately exceed their declared count. DEPLOY is precise about
+ *     it: v0/v2 take CONSTRUCTOR_PARAMS as a rest field while v1/v3 do not,
+ *     because COOLDOWN_BLOCKS + SLASH_DESTINATION trail the constructor args,
+ *     and the doc marks exactly v0/v2 (matching deploy.js).
+ *   - BATCH is not pipe-counted at all: `VERSION|COMMAND;COMMAND` embeds whole
+ *     actions whose own params use `|`, so the delimiter is nested.
  *
- * So "count != declared" is not a defect signal, and a lint built on it would
- * have to be silenced across most of the tree, which is worse than no lint.
- * What actually caught the DISPENSER bug is stricter and local: every v0
- * example in THAT doc spells the format out to the end (they all carry their
- * trailing empties), so for this doc, and only while that stays true, an exact
- * count is a real contract. Generalizing needs per-action arity knowledge and
- * is tracked separately rather than guessed at here.
+ * So the general tier enforces the one invariant that does hold: a
+ * non-rest-field format is an UPPER BOUND. An example may omit trailing fields
+ * but may never carry more than the format declares. That catches a field added
+ * to an example without being added to the format, or a format that lost one.
+ *
+ * The DISPENSER tier is stricter because that doc supports it: every v0 example
+ * there spells the format out to its end, trailing empties included, so an exact
+ * count is a real contract and mid-format insertions like the GIVE_OWNERSHIP
+ * drift are caught. The upper-bound tier alone would NOT have caught that bug,
+ * since a short example passes it.
+ *
+ * The sweep also found the one genuine notation gap it was looking for: LIST
+ * v0/v1 take a repeatable ITEM (list.js loops params[idx] for idx > 1 and > 2)
+ * but declared no rest marker, so LIST.md now writes `ITEM...`.
  *
  ********************************************************************/
 
@@ -69,6 +82,63 @@ function examples(version) {
         .map((text, i) => ({ line: i + 1, text }))
         .filter(e => re.test(e.text));
 }
+
+// ---------------------------------------------------------------------------
+// Tier 1 (all actions): a non-rest format is an upper bound on example fields.
+// ---------------------------------------------------------------------------
+
+const ACTIONS_DIR = path.resolve(__dirname, '../protocol/actions');
+
+// A format ends in a rest field when it carries an ellipsis in either supported
+// position. Both notations are in use; normalising them is cosmetic and tracked
+// separately, so accept both rather than forcing one here.
+const hasRestField = fmt => /\.\.\./.test(fmt);
+
+function formatsFor(src) {
+    const out = new Map();
+    let current = null;
+    for (const line of src.split('\n')) {
+        const header = line.match(/^###\s+Version\s+`(\d+)`/);
+        if (header) { current = header[1]; continue; }
+        const fmt = line.match(/^-\s+`(VERSION\|[^`]+)`\s*$/);
+        if (fmt && current !== null && !out.has(current)) out.set(current, fmt[1]);
+    }
+    return out;
+}
+
+describe('action examples never exceed their declared format ', () => {
+    const files = fs.readdirSync(ACTIONS_DIR).filter(f => f.endsWith('.md')).sort();
+    assert.ok(files.length > 0, 'no action docs found');
+
+    for (const file of files) {
+        const action = path.basename(file, '.md');
+        const src = fs.readFileSync(path.join(ACTIONS_DIR, file), 'utf8');
+        const formats = formatsFor(src);
+        const re = new RegExp('^' + action + '\\|(\\d+)\\|');
+
+        test(file, () => {
+            const problems = [];
+            src.split('\n').forEach((line, i) => {
+                const m = line.match(re);
+                if (!m) return;
+                const fmt = formats.get(m[1]);
+                if (!fmt) return;                       // no declared format for this version
+                if (hasRestField(fmt)) return;          // rest field: unbounded by design
+                if (/;/.test(fmt)) return;              // nested delimiter (BATCH)
+                const declared = fmt.split('|').length;
+                const count = line.split('|').length - 1;
+                if (count > declared) {
+                    problems.push(`  line ${i + 1}: v${m[1]} example has ${count} fields, ` +
+                                  `format declares ${declared} and has no rest field\n    ${line}`);
+                }
+            });
+            assert.equal(problems.length, 0,
+                `${file}: an example carries more fields than its format allows. Either the ` +
+                `format gained a field the doc did not, or the tail is a rest field and the ` +
+                `format should say so (\`FIELD...\`):\n` + problems.join('\n'));
+        });
+    }
+});
 
 describe('DISPENSER v0 examples match the declared format ', () => {
 

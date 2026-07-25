@@ -17,10 +17,10 @@ This action creates a list of items for use in actions.
 ## Formats
 
 ### Version `0` 
-- `VERSION|TYPE|ITEM`
+- `VERSION|TYPE|ITEM...`
 
 ### Version `1` 
-- `VERSION|EDIT|LIST_ACTION_INDEX|ITEM`
+- `VERSION|EDIT|LIST_ACTION_INDEX|ITEM...`
 
 
 ## Examples
