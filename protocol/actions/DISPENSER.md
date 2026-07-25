@@ -145,7 +145,7 @@ Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH
 - `FIAT_AMOUNT` format is `X.XX`
 - `EXPIRATION` begins the process of closing a dispenser after a set block delay
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
-- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for address fields (`GET_ADDRESS`, `ORACLE_ADDRESS`) (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md)
+- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for address fields (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md). **`GET_ADDRESS` and `ORACLE_ADDRESS` are the exceptions: write both in full.** The decoder keys dispense detection on `GET_ADDRESS` and oracle-fee recognition on `ORACLE_ADDRESS`, and it cannot resolve an id reference, so a compacted value produces a dispenser that never dispenses or a create rejected as unpaid
 
 ## FIAT Dispensers
 
@@ -221,6 +221,10 @@ oracle_fee = FEE x (oracle_price x GIVE_ESCROW) / validator_coin_price
 → `{ requiredFeeNative, requiredFeeSats, belowDust }` (SDK: `explorer.getOracleFeeQuote()`)
 
 No output is required when the oracle's `FEE` is `0` (the common case) or when the computed fee is below the chain's dust threshold. A v2 refill is charged on the escrow it adds, not on the whole balance, and a Mode A dispenser (`FIAT_AMOUNT` without `ORACLE_ADDRESS`) is never charged: it reads validator snapshots, and validators are compensated through the protocol fee.
+
+**Write `ORACLE_ADDRESS` in full, never as a `^<id>` reference.** The fee output is recognized by reading `ORACLE_ADDRESS` straight out of this transaction's payload, and a compacted id cannot be resolved at that point, so a create using one is rejected as unpaid however much was actually sent. The official SDK emits this field in full for that reason (the same rule `GET_ADDRESS` already follows).
+
+On **mainnet** the fee output is recognized from `2026-10-01 00:00:00 UTC` onward; a Mode B create against a fee-charging oracle before that instant is rejected whether or not it pays. Testnet and regtest recognize it from genesis.
 
 ### Recommendations
 - Buyers should send with a high transaction fee to ensure confirmation within the 24-hour price window

@@ -197,6 +197,8 @@ oracle_fee = FEE x (oracle_price x GIVE_ESCROW) / validator_coin_price
 
   The referenced oracle must already have an **effective** price, which means published at least 24 hours earlier (see the effective-time rule above). A dispenser pointing at an oracle with no effective price is rejected.
 
+  The paying `DISPENSER` must name the oracle by its **full address**, not a `^<id>` reference: the fee output is recognized by reading `ORACLE_ADDRESS` out of that transaction's payload, and an id reference cannot be resolved there. On **mainnet** the output is recognized from `2026-10-01 00:00:00 UTC` onward, so a fee-charging oracle earns nothing from dispensers created before that instant (their creates are rejected); testnet and regtest recognize it from genesis.
+
 - [`BET`](./BET.md) markets do **not** use `PRICE` oracles. A betting market's oracle is the address that created the market, and its `FEE` is a percent of that market's own pot
 
 ## Staking gate for `oracle_publish`
