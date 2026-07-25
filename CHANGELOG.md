@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- `protocol/actions/DISPENSER.md`: five v0 examples were one field short and shifted every field after `GIVE_OWNERSHIP`, including both FIAT examples.
 - review corpus corrections: zero-premint genesis, GAS supply, SPV wallet status, WS statuses filter, explorer port, open-source claim, ANCHOR v0-v6, VM lint-rule inventories, recursion depth, slashable engines, manifest re-vendor with encoder as sixth copy.
 
 ### Added
+- `test/action-example-fields.test.js`: lint pinning the DISPENSER v0 examples to the declared 17-field format.
 - `protocol/actions/DISPENSER.md`, `protocol/actions/ADDRESS.md`: documented the origin-standing create rule (`DISPENSER_ORIGIN_STANDING`): the source of a prior valid dispenser create on an address may open additional dispensers on it.
 - `developer-guide/AI_Assisted_Authoring.md`: AI-assisted authoring on-ramp (describe a contract in English or paste Solidity, then gate-validate the model's reply with `xchain-foundry`); indexed in the developer-guide README and cross-linked from Solidity to XChain.
 - `protocol/Protocol_Activation.md`: new flag-day mechanism reference (the per-network version+time/height gate, the three activation cohorts A/B/C, and forking vs halt-recoverable straggler behavior); indexed in the protocol README and cross-linked from the Upgrade Notice Policy.
