@@ -188,6 +188,25 @@ describe('DISPENSER v0 examples match the declared format ', () => {
         assert.match(bFields[12], /^1OracleSourceAddr/, 'ORACLE_ADDRESS');
     });
 
+    test('does not claim a first oracle price is effective immediately', () => {
+        // DISPENSER.md and PRICE.md contradicted each other and the code:
+        // DISPENSER.md said the first price for a feed took effect immediately
+        // and only updates were delayed, while PriceAggregator.js applies a flat
+        // +86400 to EVERY publish (verified live: three rows, first publishes
+        // included, all delay_seconds = 86400). PRICE.md already documented the
+        // uniform rule and the consensus reason for it. Someone following the old
+        // DISPENSER.md text would stand up an oracle-priced dispenser and watch
+        // every dispense fail for a day with no explanation.
+        const section = src.split('### Oracle Front-Running Protection')[1] || '';
+        assert.ok(section, 'the front-running section must still exist');
+        assert.ok(!/first[\s\S]{0,80}takes effect immediately/i.test(section),
+            'DISPENSER.md must not claim the first oracle price is effective immediately');
+        assert.match(section, /includ\w*\s+the\s+first/i,
+            'the section must state that the delay includes the first publish');
+        assert.match(section, /86400|24 hours/,
+            'the section must state the delay length');
+    });
+
     test('the v0 examples place GIVE_OWNERSHIP consistently with their prose', () => {
         // An ownership dispenser carries empty GIVE_AMOUNT/GIVE_ESCROW and
         // GIVE_OWNERSHIP=1; a balance dispenser is the inverse. Catches an

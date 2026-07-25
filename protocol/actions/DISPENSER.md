@@ -202,7 +202,11 @@ Because blockchain payments can take time to confirm, oracle prices may change b
 If a buyer sends slightly more coin than the exact calculated amount, the system floors the unit count and absorbs the excess as overpayment. The extra amount does not trigger additional dispenses. For example, if the exact cost for 5 units is 0.000005 BTC and the buyer sends 0.0000055 BTC, the system dispenses 5 units.
 
 ### Oracle Front-Running Protection
-User oracles (PRICE v1) have a built-in anti-front-running mechanism: the **first** price for a `(ORACLE_ADDRESS, COIN, TICK, FIAT)` combination takes effect immediately, but **all subsequent updates** are delayed by 24 hours. This means an oracle operator cannot see an incoming dispenser payment and rush a price update to manipulate the exchange rate, pending payments settle at the old price before the new one activates.
+User oracles (PRICE v1) have a built-in anti-front-running mechanism: **every** price for a `(ORACLE_ADDRESS, COIN, TICK, FIAT)` combination, **including the first**, takes effect 86400 seconds (24 hours) after its `block_time`. An oracle operator therefore cannot see an incoming dispenser payment and rush a price update to manipulate the exchange rate; pending payments settle at the price already in effect.
+
+The delay applies to first publishes as well, and that part is a **consensus requirement** rather than an anti-manipulation one: an immediately-effective first publish would be *retroactively* effective, because its `effective_at` (the action's `block_time`) precedes the moment the row can exist in any indexer's hub-DB mirror. A FIAT dispense settled in that window would settle differently on replay and fork the ledger. See [`PRICE`](./PRICE.md) for the full rule.
+
+> **Setting up a user-oracle dispenser:** publish the PRICE v1 quote at least 24 hours before you expect the dispenser to serve buyers. Until the quote is effective, dispenses against it are recorded `invalid: no matching oracle price`.
 
 ### Recommendations
 - Buyers should send with a high transaction fee to ensure confirmation within the 24-hour price window
