@@ -52,6 +52,7 @@ All-in cleanup with a memo.
 - `SWAPS=1`: same as `ORDERS=1`, applied to open `SWAP`s. Escrowed balance or ownership routes to `DESTINATION`.
 - `DISPENSERS=1`: every open `DISPENSER` from `SOURCE` is closed via the standard dispenser-close window (1 hour). Remaining escrowed balance or escrowed ownership is credited to `DESTINATION` (see [`DISPENSER`](./DISPENSER.md)).
 - Escrow routing via `ORDERS` / `SWAPS` / `DISPENSERS` is independent of the `OWNERSHIPS` flag, escrowed ownership is in protocol custody, not in `SOURCE`'s ownership records, so `OWNERSHIPS=1` alone cannot reach it.
+- **`SWEEP` does not touch [`BET`](./BET.md) escrows.** There is no flag for them. Stakes escrowed in a betting market always settle back to the address that placed the bet, and a swept oracle key still has to resolve (or cancel) its own markets. Sweep before betting, or expect bet payouts and refunds to land on the old address.
 
 ## Notes
 - Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `DESTINATION` (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md)

@@ -261,7 +261,7 @@ A mismatch is a fatal violation: the transaction rolls back and the indexer halt
 
 ## 6. The ACTION Set
 
-The protocol defines 34 named ACTIONs across eight categories. Of these, 29 are user-submittable (all except ANCHOR, ATTEST, NODEPROOF, SLASH, and XCALL); the remaining five are validator-broadcast or VM-emitted actions described where relevant, along with system-synthesized actions (order/swap matching and expiry, cross-chain settlement, XCALL relay, and so on). All user ACTIONs are available on every supported chain unless noted. A `^`-prefixed ticker field passes a numeric token id instead of a name.
+The protocol defines 35 named ACTIONs across nine categories. Of these, 30 are user-submittable (all except ANCHOR, ATTEST, NODEPROOF, SLASH, and XCALL); the remaining five are validator-broadcast or VM-emitted actions described where relevant, along with system-synthesized actions (order/swap matching and expiry, betting market close and expiry, cross-chain settlement, XCALL relay, and so on). All user ACTIONs are available on every supported chain unless noted. A `^`-prefixed ticker field passes a numeric token id instead of a name.
 
 ### 6.1 Token lifecycle
 
@@ -309,7 +309,7 @@ The protocol defines 34 named ACTIONs across eight categories. Of these, 29 are 
 
 ### 6.7 Data and communication
 
-- **BROADCAST** carries general on-chain text and legacy oracle/betting feeds (v0-v3).
+- **BROADCAST** carries general on-chain text and oracle/data feeds (v0-v3). It plays no part in betting; see **BET** (§6.9).
 - **MESSAGE** carries encrypted or plaintext messaging. v0/v1 ECDH handshake; v2 encrypted payload; v3 plaintext. Three methods: ECIES (ephemeral key per message, no handshake, used for token-gated key delivery), ECDH (session), and pre-shared AES. The destination coin is independent of the broadcast chain (a message to a BTC address can be sent cheaply on DOGE).
 - **FILE** stores file metadata and optionally an encrypted payload on-chain. Supports AES-256-GCM token-gating; files sharing a gate ticker and key hash form an implicit pack (§15).
 
@@ -319,6 +319,10 @@ The protocol defines 34 named ACTIONs across eight categories. Of these, 29 are 
 - **BATCH** executes multiple actions atomically in one transaction (at most one ISSUE, one MINT, one FILE; no nesting). The structural basis for token-gated transfers and atomic pause/operate/unpause.
 - **LINK** is a persistent cross-reference between two actions by index, optionally across chains (for example attaching a logo FILE to a token).
 - **LIST** creates (v0) or derives (v1) an immutable list of tickers or addresses, referenced by index as allow/block lists and airdrop targets.
+
+### 6.9 Betting
+
+- **BET** is a self-contained parimutuel betting market: v0 creates a market (outcomes, wager token, oracle fee, deadline, refund window, optional allow/block gating, and an on-chain base64-JSON market definition), v2 places a wager, v3 resolves it to an outcome, and v1 cancels it with full refunds. Wagers in any token are escrowed at parse; on resolution the winning outcome's backers split the pot pro-rata after the oracle's percentage fee, and a winning outcome nobody backed refunds every stake with no fee. Markets are immutable from creation, close on a stored deadline latch rather than a recomputed clock check, and refund automatically if the oracle never resolves. The market creator is the oracle and is trusted only for outcome honesty; escrow and payout arithmetic are consensus-enforced.
 
 ---
 

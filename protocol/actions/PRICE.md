@@ -156,12 +156,12 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 #### Publisher
 - Any address may publish PRICE v1. No staking requirement
 - The `SOURCE` address becomes the oracle identity
-- Dispensers and betting systems reference the oracle by `SOURCE` address
+- Dispensers reference the oracle by `SOURCE` address
 
 #### COIN Field
 - Identifies which chain's token the price is for
 - A DOGE transaction can publish a price for a BTC token (cross-chain oracle)
-- Dispensers/betting on any chain may reference any oracle regardless of publishing chain
+- Dispensers on any chain may reference any oracle regardless of publishing chain
 
 #### Price Lock Window
 - **Every** PRICE v1 broadcast for a `(SOURCE, COIN, TICK, FIAT)` combination (the first one included) takes effect **86400 seconds (24 hours)** after `block_time`
@@ -182,7 +182,8 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 #### FEE Field
 - Decimal value representing the oracle usage fee percentage
 - `0.01` = 1%, `0.05` = 5%, etc.
-- Dispensers/betting systems that reference this oracle pay the fee to the oracle `SOURCE` address
+- Dispensers that reference this oracle pay the fee to the oracle `SOURCE` address
+- [`BET`](./BET.md) markets do **not** use `PRICE` oracles. A betting market's oracle is the address that created the market, and its `FEE` is a percent of that market's own pot
 
 ## Staking gate for `oracle_publish`
 

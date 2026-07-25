@@ -1155,6 +1155,68 @@ See also: [`../actions/VOTE.md`](../../protocol/actions/VOTE.md)
 
 ---
 
+### BET
+
+Parimutuel betting markets: create a market, place a bet, resolve it, or cancel it. `sdk.bet(params)` is the raw wrapper; the version is taken from `params.version` (0 create, 1 cancel, 2 place, 3 resolve). Build the params with the `sdk.betting.*` helpers, which pin the version explicitly: a resolve and a place-bet differ only by the presence of `AMOUNT`, so auto-selection is too sharp an edge to rely on here.
+
+**Format Versions:** v0 (create market), v1 (cancel market), v2 (place bet), v3 (resolve market)
+
+**Format v0:** `BET|0|LABEL|OUTCOMES|TICK|FEE|DEADLINE|REFUND_WINDOW|MIN_AMOUNT|ALLOW_LIST|BLOCK_LIST|DETAILS|MEMO`  
+**Format v1:** `BET|1|FEED_ACTION_INDEX|MEMO`  
+**Format v2:** `BET|2|FEED_ACTION_INDEX|OUTCOME|AMOUNT|MEMO`  
+**Format v3:** `BET|3|FEED_ACTION_INDEX|OUTCOME|MEMO`
+
+**Param builders (`sdk.betting.*`):**
+
+| Builder | Produces | Key params |
+|---|---|---|
+| `createMarketParams({...})` | v0 | `label`, `outcomes` (array or comma string, 2-16 entries), `tick` (required; betting is token-only), optional `fee` (percent of the pot, `1.00` = 1%, max 10), `deadline` (Unix time, required), `refundWindow` (seconds, 3600-31536000, default 1209600), `minAmount`, `allowList`, `blockList` (LIST action indexes, must differ), `details` (object or base64 string), `memo`, `now` (injectable clock for deadline pre-flight) |
+| `placeBetParams({...})` | v2 | `feedActionIndex`, `outcome` (zero-based index, or a label when `outcomes` is passed), `amount`, optional `outcomes` (enables label lookup and range checking), `memo` |
+| `resolveMarketParams({...})` | v3 | `feedActionIndex`, `outcome`, optional `outcomes`, `memo` |
+| `cancelMarketParams({...})` | v1 | `feedActionIndex`, optional `memo` |
+
+**Market definition helpers:**
+
+| Helper | Purpose |
+|---|---|
+| `buildBetDetails(definition, { outcomes })` | Validates a market definition against `DETAILS_SCHEMA`, cross-checks its `outcomes` against the market's `OUTCOMES` (filling them in when absent), and returns strict base64 |
+| `parseBetDetails(details)` | Decodes a `DETAILS` field from the chain under the consensus shape rules (strict canonical base64, size cap, JSON object, depth cap). Use this on any market you did not author |
+| `projectPayout({ pools, outcome, stake, feePct, decimals })` | Display-only projected payout, computed in mathjs bignumber in settlement's exact order and floor direction. Returns fixed-decimal strings |
+| `outcomeCaseCollisions(outcomes)` | Advisory: outcome labels differing only by case. Legal on-chain, almost always a mistake |
+| `DETAILS_SCHEMA` / `LIMITS` | The market-definition schema and the protocol limits, as data, for generating forms |
+
+**Notes:**
+- `FEE` is a **percent of the pot**, not a fraction: `1.00` is one percent and `0.01` is one hundredth of a percent.
+- `OUTCOME` is a **zero-based index** into `OUTCOMES`, never a label, on the wire. Pass `outcomes` to a builder to use labels safely; a numeric value is always read as an index, because labels that look like numbers are legal.
+- Compose `DETAILS` through `createMarketParams` rather than encoding it yourself: a market whose `DETAILS.outcomes` disagrees with its `OUTCOMES` is rejected on-chain.
+- `DETAILS` is capped at 4096 **decoded** bytes. It rides the wire base64-encoded and shares one 8192-byte ACTION ceiling with every other field, so a create at the cap encodes as a multi-chunk `P2SH`/`P2WSH` payload (the SDK selects this automatically).
+- Markets are immutable from creation; there is no edit format. The pre-bet fix path is cancel and recreate.
+- The market's creator may not bet on its own market, and bets are final once placed.
+
+```js
+// Open a market, composing OUTCOMES and DETAILS together
+await sdk.bet(sdk.betting.createMarketParams({
+    label: 'Superbowl LX winner',
+    outcomes: ['Chiefs', '49ers'],
+    tick: 'PEPECASH',
+    fee: '1.00',
+    deadline: 1770000000,
+    details: { title: 'Who wins Superbowl LX?', category: 'sports' }
+}))
+
+// Bet 25 on an outcome by label, then resolve it
+await sdk.bet(sdk.betting.placeBetParams({
+    feedActionIndex: 1234, outcome: 'Chiefs', outcomes: ['Chiefs', '49ers'], amount: '25.00000000'
+}))
+await sdk.bet(sdk.betting.resolveMarketParams({ feedActionIndex: 1234, outcome: 0 }))
+```
+
+For signed and broadcast round trips use the workflow recipes `sdk.workflows.openMarket` / `placeBet` / `resolveMarket` / `cancelMarket` (see [WORKFLOWS.md](./WORKFLOWS.md)), or `session.bet(params)` on a wallet session. Read markets back with `sdk.explorer.getBetFeeds` / `getBetFeed` / `getBets` / `getOracleStats`, and follow one live with `sdk.ws.subscribeBetFeed(index)`.
+
+See also: [`../actions/BET.md`](../../protocol/actions/BET.md)
+
+---
+
 ## Validation Rules
 
 The SDK enforces these rules before serializing any action. Violations throw an `SDKValidationError`.

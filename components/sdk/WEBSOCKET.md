@@ -215,6 +215,13 @@ console.log(list.data.subscriptions);
 
 // Unsubscribe
 ws.unsubscribe(['address'], { address: '1abc...' });
+
+// Follow one betting market: bets placed, the deadline latch, resolution,
+// cancellation, expiry. A parimutuel payout is only ever a projection until the
+// market resolves, so a market page needs the pools to stay current.
+await ws.subscribeBetFeed(1234);
+ws.on('BET_PLACED', (msg) => { /* recompute projected payouts */ });
+ws.unsubscribeBetFeed(1234);
 ```
 
 ## Reconnection and Catch-Up

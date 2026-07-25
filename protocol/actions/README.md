@@ -61,7 +61,7 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 
 | ACTION | Description |
 |---|---|
-| [`BROADCAST`](./BROADCAST.md) | Broadcasts a message; can also create oracles and betting feeds |
+| [`BROADCAST`](./BROADCAST.md) | Broadcasts a message; can also create oracles and data feeds |
 | [`MESSAGE`](./MESSAGE.md) | Sends plaintext or encrypted messages between addresses |
 | [`FILE`](./FILE.md) | Uploads a file with metadata (name, MIME type, title) |
 
@@ -72,6 +72,12 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | [`PRICE`](./PRICE.md) | Publishes oracle price data on-chain (v0: validator COIN/FIAT snapshots, v1: user TOKEN/FIAT oracles) |
 | [`ATTEST`](./ATTEST.md) | External-data attestation lifecycle: v0=request (VM-emitted), v1=response (validator-broadcast), v2=expire (system-synthesized) |
 | [`ANCHOR`](./ANCHOR.md) | Validator-broadcast, DOGE-only: quorum-signed state checkpoints (v0/v3, v3 adding SPV light-client roots), the cross-chain match archive (v1/v2), publisher-attested anchors (v4/v5), and v6 (the archive-leg counterpart to v1, with publisher attestation appended) for full-parse recoverability |
+
+### Betting
+
+| ACTION | Description |
+|---|---|
+| [`BET`](./BET.md) | Parimutuel betting markets end to end: v0=create market, v1=cancel, v2=place bet, v3=resolve |
 
 ### Governance
 

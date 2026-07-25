@@ -130,6 +130,35 @@ Poll finalization (VOTE v2) is system-synthesized at the poll's end block; there
 
 ---
 
+## openMarket / placeBet / resolveMarket / cancelMarket
+
+Betting submit recipes: build the BET params (via `sdk.betting.*`) then sign and broadcast in one call. `params` is the same object the matching `sdk.betting` builder takes. `openMarket` returns `{ result, feedRef }`, where `feedRef` is the market's action index, the `feedActionIndex` every later bet, resolve, and cancel references.
+
+```js
+// Open a market and get its reference
+const market = await sdk.workflows.openMarket(wif, {
+    label: 'Superbowl LX winner',
+    outcomes: ['Chiefs', '49ers'],
+    tick: 'PEPECASH',
+    fee: '1.00',
+    deadline: 1770000000,
+    details: { title: 'Who wins Superbowl LX?', category: 'sports' }
+}, { waitForIndexer: true });
+
+// Someone bets on it (not the market's creator: that is rejected on-chain)
+await sdk.workflows.placeBet(bettorWif, {
+    feedActionIndex: market.feedRef, outcome: 'Chiefs', outcomes: ['Chiefs', '49ers'], amount: '25.00000000'
+});
+
+// The oracle resolves it after the deadline, or cancels it and refunds everyone
+await sdk.workflows.resolveMarket(wif, { feedActionIndex: market.feedRef, outcome: 0 });
+await sdk.workflows.cancelMarket(wif, { feedActionIndex: market.feedRef, memo: 'Event postponed' });
+```
+
+Market closing (at the deadline) and expiry (when an oracle never resolves) are performed by the protocol at the end of a block; there is no submit recipe for either. Read markets back with `sdk.explorer.getBetFeed` / `getBets` (see [EXPLORER.md](./EXPLORER.md)) and follow one live with `sdk.ws.subscribeBetFeed(index)`.
+
+---
+
 ## deployContract
 
 Deploy a smart contract with automatic single-shot vs chunked routing, then optionally deposit initial tokens. Pass raw `code` so the planner can size it. If the base64-encoded source fits within the compiled-action cap it deploys inline (DEPLOY v0/v1); otherwise it submits each slice as a DEPLOY v4 carrier (awaiting indexer confirmation per chunk) then sends an assembling DEPLOY v2/v3 carrying the CODE_HASH. This is the recommended entry point when you do not know in advance whether your contract will fit a single action.

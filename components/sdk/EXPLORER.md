@@ -179,6 +179,10 @@ Each returns records of the corresponding ACTION type. Pagination is supported v
 | `getAddresses(query, type, opts?)` | `/addresses/` | ADDRESS action records |
 | `getAirdrops(query, type, opts?)` | `/airdrops/` | AIRDROP action records |
 | `getBatches(query, type, opts?)` | `/batches/` | BATCH action records |
+| `getBetFeeds(query, type, opts?)` | `/bet_feeds/` | BET markets (`type`: `block`, `address`, `source`, `token`, `status`) |
+| `getBetFeed(index, opts?)` | `/bet_feed/` | One market by `FEED_ACTION_INDEX`: feed row, per-outcome pools, counts, status timeline |
+| `getBets(query, type, opts?)` | `/bets/` | Bet records (`type`: `block`, `address`, `feed`, `token`, `status`) |
+| `getOracleStats(address, opts?)` | `/oracle/` | An oracle's track record, fees earned, and active markets. Per-address and resettable, so an empty record means unknown, not safe |
 | `getBroadcasts(query, type, opts?)` | `/broadcasts/` | BROADCAST action records |
 | `getCallbacks(query, type, opts?)` | `/callbacks/` | CALLBACK action records |
 | `getDestroys(query, type, opts?)` | `/destroys/` | DESTROY action records |

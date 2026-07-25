@@ -66,7 +66,7 @@ The original 22 actions are registered at version `1.0.0` with activation at blo
 
 | Action | Purpose | Key Validations |
 |---|---|---|
-| [**BROADCAST**](../../protocol/actions/BROADCAST.md) | Publish a message or create an oracle/betting feed | Valid message length, valid value format |
+| [**BROADCAST**](../../protocol/actions/BROADCAST.md) | Publish a message or create an oracle/data feed | Valid message length, valid value format |
 | [**MESSAGE**](../../protocol/actions/MESSAGE.md) | Send plaintext or encrypted messages between addresses | Valid encryption method, message length limits |
 | [**FILE**](../../protocol/actions/FILE.md) | Upload a file with metadata | Valid file name, MIME type, title lengths |
 

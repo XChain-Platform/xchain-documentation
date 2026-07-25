@@ -2,7 +2,9 @@
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - BROADCAST
-This action broadcasts a message, and can also be used to create oracles and betting feeds.
+This action broadcasts a message, and can also be used to create oracles and data feeds.
+
+> **Betting does not use `BROADCAST`.** Betting markets are created, wagered on, and resolved with the self-contained [`BET`](./BET.md) action. The feed formats below are general-purpose data feeds and carry no betting, escrow, or settlement behaviour.
 
 ## PARAMS
 | Name                     | Type   | Description                                                |
@@ -22,10 +24,10 @@ This action broadcasts a message, and can also be used to create oracles and bet
 ### Version `1` - Broadcast Oracle
 - `VERSION|MESSAGE|VALUE|FEE|MEMO`
 
-### Version `2` - Broadcast Feed
+### Version `2` - Broadcast Data Feed
 - `VERSION|MESSAGE|FEE|MEMO`
 
-### Version `3` - Broadcast Feed Results
+### Version `3` - Broadcast Data Feed Update
 - `VERSION|BROADCAST_ACTION_INDEX|VALUE|MEMO`
 
 ## Examples
@@ -40,13 +42,13 @@ This example creates an oracle for BTC-USD price, gives the current price, indic
 ```
 
 ```
-BROADCAST|2|https://oracle-betting-site.com/superbowl-2025.json|1|Bet on the 2025 Superbowl!
-This example creates feed for betting on the superbowl results, charges a 1% oracle usage fee, and includes a memo
+BROADCAST|2|BTC-USD hourly close|1|Published every hour on the hour
+This example creates a named data feed, charges a 1% oracle usage fee, and includes a memo
 ```
 
 ```
-BROADCAST|3|1234|2|Superbowl Results on Tue Aug 19 2025 01:55:00 UTC
-This example broadcasts the results of the superbowl feed in the previous example with an `ACTION_INDEX` of 1234, and includes a memo
+BROADCAST|3|1234|84860|BTC-USD close on Tue Aug 19 2025 01:55:00 UTC
+This example publishes a new value on the feed created in the previous example with an `ACTION_INDEX` of 1234, and includes a memo
 ```
 
 
@@ -55,8 +57,8 @@ This example broadcasts the results of the superbowl feed in the previous exampl
 ## Notes
 - `CAST` `ACTION` can be used for shorter reference to `BROADCAST` `ACTION`
 - Price oracles can be created by broadcasting TICK-FIAT as `MESSAGE`, price as `VALUE`, and a `FEED_FEE` and `TIMESTAMP`
-- Betting feed can be created by broadcasting the feed JSON file url as `MESSAGE`, a `FEED_FEE` and `TIMESTAMP` using `FORMAT` 2
-- Betting feed can be resolved by broadcasting the feed `BROADCAST_ACTION_INDEX`, the winning value as `VALUE`, and `TIMESTAMP` using `FORMAT` 3
+- Data feeds are created with `FORMAT` 2 (name the feed in `MESSAGE`, set an optional usage `FEE`) and updated with `FORMAT` 3 (reference the feed by `BROADCAST_ACTION_INDEX` and publish the new `VALUE`)
+- Feeds carry data only. Nothing settles against them and nothing is escrowed on them; betting markets are [`BET`](./BET.md)
 
 ---
 
