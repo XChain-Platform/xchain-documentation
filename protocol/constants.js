@@ -353,6 +353,51 @@ const ORACLE_FEE_OUTPUT_ACTIVATION = {
     regtest: 0,
 };
 
+// ── PRICE v0 pair-name format  ───────────────────────────────────────
+//
+// A PRICE v0 round names each pair as TICKER/FIAT. The ticker side has always been
+// bounded to 5 characters, which cannot express the 6-character gas ticker XCHAIN,
+// so the XCHAIN/USD pair the native-coin fee path requires is unrepresentable on
+// the wire. Widening the bound to 6 is a CONSENSUS WIRE-FORMAT CHANGE: below the
+// activation a round carrying XCHAIN/USD is rejected by every node, at/above it
+// every node accepts it, and a one-sided deploy forks.
+//
+// Only the TICKER side widens. The fiat side stays at 5 because no FIAT_CODE
+// exceeds 3 characters (VALID_FIAT_CODES below) and a wider bound there would only
+// admit garbage this site does not otherwise validate.
+//
+// There is deliberately no per-entry-drop behaviour to gate. The pair set is inside
+// the signed payload (buildPriceV0Payload reconstructs the signable bytes FROM the
+// parsed pairs), so dropping one entry changes the payload and fails every
+// signature: a signed round is atomic and MUST be accepted or rejected whole. The
+// gate therefore changes exactly one thing, which pairs are well-formed.
+//
+// TIME-keyed, not height-keyed. A PRICE v0 action is parsed by the indexer of
+// whichever chain carried it, and BTC/LTC/DOGE heights diverge, so no single height
+// names one cutover. Same rationale as FIX_OUTPUT_FANOUT in
+// xchain-indexer/src/protocol_changes.js.
+//
+// DEPLOY ORDER IS PART OF THIS GATE. Widen every hub and every indexer FIRST, while
+// nothing proposes the pair; only then may a leader include XCHAIN/USD in a round.
+// Reversed, the hub co-sign gate and ingest reject the whole round, stalling ALL 36
+// pairs federation-wide and failing fee validation on every chain 1800s later.
+const PRICE_PAIR_TICKER_MAX_LEGACY = 5;
+const PRICE_PAIR_TICKER_MAX_WIDE   = 6;
+
+// UNARMED on mainnet. 9999999999 is a far-future sentinel (year 2286), NOT a
+// scheduled flag-day:  D6 (the pre-launch instant this gate arms at) is an
+// open operator decision. The usual contract-era stamp 1790812800 (2026-10-01) is
+// NOT usable here because it falls AFTER the early-September launch target, which
+// would leave LTC/DOGE native-coin fees unpayable straight through launch. Arming
+// is a one-line edit here plus the byte-equal edit in the vendored copies.
+// testnet/regtest are genesis-on so the widened format is in force in the suites
+// and on every test venue today.
+const PRICE_PAIR_WIDEN_ACTIVATION = {
+    mainnet: 9999999999,  // UNARMED sentinel - see  D6
+    testnet: 0,
+    regtest: 0,
+};
+
 // VALID_FIAT_CODES: the accepted FIAT_CODE allow-list for PRICE actions. The indexer's
 // config['FIATS'] keys (xchain-indexer/src/config.js) are the on-chain arbiter; this list
 // mirrors them in the indexer's insertion order. The SDK validator (VALID_FIAT_CODES) must
@@ -415,6 +460,9 @@ module.exports = {
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     ATTEST_ADMISSION_ACTIVATION,
     ORACLE_FEE_OUTPUT_ACTIVATION,
+    PRICE_PAIR_TICKER_MAX_LEGACY,
+    PRICE_PAIR_TICKER_MAX_WIDE,
+    PRICE_PAIR_WIDEN_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
     PRICE_MAX,
