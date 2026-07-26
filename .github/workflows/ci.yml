@@ -1,0 +1,53 @@
+name: CI
+
+# xchain-documentation had no CI at all, while carrying 79 tests that guard
+# consensus-relevant material rather than prose (, found while auditing
+# which repos' declared gates actually run anywhere):
+#
+#   protocol/constants.js       the canonical activation timestamps other repos
+#                               vendor and drift-check their copies against
+#   test/vectors.test.js        protocol test vectors run against the shipped
+#                               reference implementation in protocol/reference-impl
+#   test/action-example-fields  the field-count lint on the action docs, added
+#                               after five DISPENSER v0 examples were found one
+#                               field short, so anyone copying one encoded a
+#                               dispenser that was rejected on chain
+#
+# A drift in any of those is a wrong answer given to an implementer, and until
+# now nothing ran on a push to catch it.
+#
+# Hermetic: no sibling checkouts, no services, no secrets. Verified on a
+# pristine clone (clean clone + npm ci + npm test): 79 passing, 0 failing,
+# 2 skipped, exit 0.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 exactly: the platform's suites require it, and on some repos an
+      # off-version run degrades into silent skips rather than failing.
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # mathjs is a devDependency here, pinned to the same exact 15.2.0 the
+      # indexer, explorer, sdk and hub carry, because the reference
+      # implementation must compute quorum weights the way the fleet does.
+      - name: Install dependencies
+        run: if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Documentation conformance suite
+        run: npm test
