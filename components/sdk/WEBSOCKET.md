@@ -220,9 +220,29 @@ ws.unsubscribe(['address'], { address: '1abc...' });
 // cancellation, expiry. A parimutuel payout is only ever a projection until the
 // market resolves, so a market page needs the pools to stay current.
 await ws.subscribeBetFeed(1234);
-ws.on('BET_PLACED', (msg) => { /* recompute projected payouts */ });
+
+// Create, cancel, place and resolve all arrive as ONE event type, because BET is
+// one action name carrying four formats. `data.action_format` is what tells them
+// apart: 0 create, 1 cancel, 2 a stake placed, 3 the payout decision.
+ws.on('BET', (msg) => {
+    if (msg.data.action_format === 2) { /* recompute projected payouts */ }
+    if (msg.data.action_format === 3) { /* the market paid out */ }
+});
+
+// The deadline latch closes betting. It has no transaction behind it (the node
+// writes it in an end-of-block pass), so it arrives under its own type with
+// tx_hash null and synthetic true.
+ws.on('BET_CLOSED', (msg) => { /* stop accepting stakes; msg.data.block_index */ });
+
+// The refund pass, when a market is never resolved inside its refund window.
+ws.on('BET_EXPIRED', (msg) => { /* every stake refunded */ });
+
 ws.unsubscribeBetFeed(1234);
 ```
+
+Every event on this channel is keyed on the MARKET, not on the action that caused
+it: `data.feed_action_index` is the feed you subscribed to, so a page following one
+market receives stakes placed by strangers on it and nothing from any other.
 
 ## Reconnection and Catch-Up
 
