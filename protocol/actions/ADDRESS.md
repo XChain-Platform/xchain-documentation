@@ -52,7 +52,11 @@ This example allows anyone to open a dispenser on this address
 - `0` = Use the default disposition (same effect as omitting the field; treated as donate to protocol development)
 - `1` = `FEE` is destroyed, lowering supply
 - `2` = `FEE` to donated to protocol development (default)
-- `3` = `FEE` to donated to community development
+
+A community-development option (`3`) has been discussed but is NOT accepted by
+consensus at this time: the indexer's valid set is `{0, 1, 2}`
+(`xchain-indexer/src/actions/address.js` `validValues`), so a `3` indexes
+invalid. This list follows the code; do not emit `3`.
 
 ## `DISPENSER_PREFERENCE` Options
 - `1` = Only owner can open dispenser on this address (default)
