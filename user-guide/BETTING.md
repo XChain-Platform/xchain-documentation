@@ -130,7 +130,7 @@ Be aware that the protocol can only enforce this for the market's own address. B
 
 ### Your reputation is the whole system
 
-There is no bonding, staking, or slashing of oracles. Nobody is holding a deposit that gets taken away if you report dishonestly. The explorer shows each oracle's history: markets resolved, voided, cancelled, and expired. That history is the entire accountability mechanism.
+There is no bonding, staking, or slashing of oracles. Nobody is holding a deposit that gets taken away if you report dishonestly. Both the explorer and the wallet show each oracle's history: markets resolved, voided, cancelled, and expired, and the fees that address has earned from settling. That history is the entire accountability mechanism.
 
 It is also **per-address, and addresses are free**. A dishonest oracle can start again from a new address at any time. So an empty history means *unknown*, not *safe*, and bettors should read it that way.
 
@@ -139,7 +139,7 @@ It is also **per-address, and addresses are free**. A dishonest oracle can start
 ## Before You Bet on Someone Else's Market
 
 - **The oracle is trusted to report honestly.** The protocol guarantees the escrow and the arithmetic are correct. It cannot guarantee the reported result is true. This is unavoidable in any oracle design
-- **Read the oracle's history** on the explorer, and treat a blank one as unknown
+- **Read the oracle's history** before you stake anything, and treat a blank one as unknown. In the wallet, tap the address next to "Run by" on the market page; on the explorer it is the oracle page. Both show how many markets that address has settled, cancelled, or left to expire, and what it has earned in fees. The number to look at hardest is markets left to expire: everyone got refunded, but the oracle took their money out of play and decided nothing
 - **Read the market's terms**, including how it says it will be settled. Anything linked from a market is informational only; the protocol never reads it
 - **Whoever holds the creator's key chooses the result and receives the fee.** The oracle role cannot be transferred or rotated, so a compromised key means a compromised market
 
