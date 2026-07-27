@@ -103,6 +103,31 @@ SSL certificates are loaded from:
 
 If SSL files are not found, only the HTTP server starts.
 
+### Font Awesome kit
+
+The web UI loads its generic glyphs from a Font Awesome kit. The kit token is an
+account credential and the `pro` license flag is an entitlement claim, so both
+are supplied per deployment instead of being shipped in the source tree. The
+explorer assembles `/js/fontawesome-kit.js` at request time from the vendored
+kit loader plus these values.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `EXPLORER_FONTAWESOME_KIT_TOKEN` | No | None | Kit token. Unset means no kit is loaded. |
+| `EXPLORER_FONTAWESOME_KIT_ID` | No | None | Numeric kit id. |
+| `EXPLORER_FONTAWESOME_KIT_LICENSE` | No | `free` | Entitlement this deployment holds: `free` or `pro`. |
+| `EXPLORER_FONTAWESOME_KIT_VERSION` | No | `6.4.0` | Font Awesome version the kit serves. |
+| `EXPLORER_FONTAWESOME_KIT_CUSTOM_ICONS_PATH` | No | None | Path of the kit's uploaded-icons stylesheet, if it has one. |
+
+With no token set, `/js/fontawesome-kit.js` returns an inert stub and the
+explorer makes no requests to `fontawesome.com`. The UI still renders: the
+coin/network glyphs in the navigation bar are local images served from the
+explorer itself, so only the generic Font Awesome glyphs are absent.
+
+A value that does not match its expected shape (a non-numeric kit id, a
+license other than `free`/`pro`) is ignored with a warning rather than passed
+through to the browser.
+
 ## Local Configuration File
 
 The `src/config.json` file provides database connection details when xchain-hub is not available. Structure:
