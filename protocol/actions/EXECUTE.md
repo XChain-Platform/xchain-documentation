@@ -15,7 +15,7 @@ This action executes a method on a deployed XChain VM contract.
 ## Formats
 
 ### Version `0`
-- `VERSION|CONTRACT_ACTION_INDEX|METHOD|PARAMS...`
+- `VERSION|CONTRACT_ACTION_INDEX|METHOD|...PARAMS`
 
 ## Examples
 ```

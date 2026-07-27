@@ -32,8 +32,10 @@ In server mode, **no database environment variables are needed**. The service di
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `BLOCK_POLL_INTERVAL` | No | `3000` | Milliseconds between polls to each indexer database for new blocks |
-| `DB_POOL_SIZE` | No | `5` | Maximum simultaneous connections per chain/network/dbType pool. A server with 3 chains x 2 dbTypes opens 6 pools; at the default that is 30 total connections. Raise for high-throughput hosts. |
-| `DB_QUERY_TIMEOUT` | No | `30000` | Per-query timeout in milliseconds applied to every pool query. Raise only if legitimate long-running queries (e.g. full catalog scans) begin timing out. |
+| `DB_POOL_SIZE_INDEXER` | No | `12` | Maximum simultaneous connections per chain/network indexer pool. Sized for the poller's ~113-query-per-block fan-out plus concurrent snapshot streams. |
+| `DB_POOL_SIZE_DECODER` | No | `6` | Maximum simultaneous connections per chain/network decoder pool (8 narrow tables, no action fan-out). |
+| `DB_POOL_SIZE` | No | (per dbType) | Legacy flat override applied to every dbType when no `DB_POOL_SIZE_<DBTYPE>` is set. A server with 3 chains x 2 dbTypes opens 6 pools, so the per-dbType defaults cost 54 connections. |
+| `DB_QUERY_TIMEOUT` | No | `30000` | Per-query timeout in milliseconds applied to every pool query. Raise only if legitimate long-running queries (e.g. full catalog scans) begin timing out. Also per dbType via `DB_QUERY_TIMEOUT_INDEXER` / `DB_QUERY_TIMEOUT_DECODER`. |
 | `WS_MAX_PER_IP` | No | `100` | Maximum simultaneous WebSocket connections per IP address. The high default accommodates multi-chain validators that open one connection per chain/network/dbType from the same IP. |
 | `SNAPSHOT_RATE_FULL` | No | `12` | Maximum full snapshot downloads per hour per IP per chain/network/dbType |
 | `SNAPSHOT_RATE_INCR` | No | `600` | Maximum incremental snapshot downloads per hour per IP per chain/network/dbType |
@@ -183,19 +185,25 @@ The transparency log table (`sync_meta`) is not created for decoder replicas.
 
 ## Connection Pool Configuration
 
-Each chain/network/dbType gets its own MariaDB connection pool with these parameters (from `db.js`). The connection limit is controlled by the `DB_POOL_SIZE` environment variable (default `5`):
+Each chain/network/dbType gets its own MariaDB connection pool (from `db.js`, sized by `poolSizing.js`). Pool sizes are **per dbType**, because the two dbTypes carry very different loads: the indexer pool absorbs the poller's ~113-query-per-block fan-out plus any in-flight snapshot streams, while the decoder pool replicates 8 narrow tables.
 
-| Parameter | Value | Description |
-|---|---|---|
-| `connectionLimit` | `5` | Maximum simultaneous connections (override via `DB_POOL_SIZE`) |
-| `connectTimeout` | `10000` | Connection timeout (ms) |
-| `acquireTimeout` | `10000` | Pool acquisition timeout (ms) |
-| `idleTimeout` | `60000` | Idle connection timeout (ms) |
-| `insertIdAsNumber` | `true` | Return insert IDs as numbers (not BigInt) |
-| `bigIntAsNumber` | `true` | Return BIGINT columns as JS numbers instead of BigInt |
-| `dateStrings` | `true` | Return DATETIME columns as MariaDB-format strings rather than JS Dates, avoiding ISO re-insert failures in strict mode |
-| `minDelayValidation` | `3000` | Minimum delay between connection validation checks (ms) |
-| `queryTimeout` | `30000` | Per-query timeout in ms (override via `DB_QUERY_TIMEOUT`) |
+| Parameter | indexer | decoder | Description |
+|---|---|---|---|
+| `connectionLimit` | `12` | `6` | Maximum simultaneous connections (override via `DB_POOL_SIZE_INDEXER` / `DB_POOL_SIZE_DECODER`, or `DB_POOL_SIZE` for both) |
+| `connectTimeout` | `10000` | `10000` | Connection timeout (ms), override via `DB_CONNECT_TIMEOUT[_INDEXER|_DECODER]` |
+| `acquireTimeout` | `10000` | `10000` | Pool acquisition timeout (ms), override via `DB_ACQUIRE_TIMEOUT[_INDEXER|_DECODER]` |
+| `queryTimeout` | `30000` | `30000` | Per-query timeout (ms), override via `DB_QUERY_TIMEOUT[_INDEXER|_DECODER]` |
+| `idleTimeout` | `60000` | `60000` | Idle connection timeout (ms) |
+| `insertIdAsNumber` | `true` | `true` | Return insert IDs as numbers (not BigInt) |
+| `bigIntAsNumber` | `true` | `true` | Return BIGINT columns as JS numbers instead of BigInt |
+| `dateStrings` | `true` | `true` | Return DATETIME columns as MariaDB-format strings rather than JS Dates, avoiding ISO re-insert failures in strict mode |
+| `minDelayValidation` | `3000` | `3000` | Minimum delay between connection validation checks (ms) |
+
+Resolution order for every knob above: `<NAME>_<DBTYPE>`, then the flat `<NAME>`, then the per-dbType default. Values are clamped to `[2, 100]` so no single setting can starve the poller or exhaust MariaDB's `max_connections`.
+
+Sizing budget: a source serving 3 chains x 2 dbTypes opens 6 pools, so the defaults cost 3 x (12 + 6) = 54 connections.
+
+Measured on a regtest indexer schema with `test/perf/pool-fanout-load.js` (113 queries/block, 5 ms per query, median of 8 blocks): pool 3 = 213 ms/block, pool 5 = 129 ms, pool 12 = 55 ms, pool 20 = 34 ms. Run that script inside a container that already holds the DB credentials to re-measure on your own hardware before raising a pool.
 
 ## Circuit Breaker
 

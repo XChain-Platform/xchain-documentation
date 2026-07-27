@@ -129,6 +129,18 @@ Each ACTION specification follows a consistent structure:
 - **Formats**: Versioned pipe-delimited patterns showing parameter order for each format version
 - **Examples**: Concrete examples with explanations
 
+### Format notation
+
+A format line lists the fields of one version in wire order, separated by `|`. Three markers appear in those lines and nothing else does:
+
+| Marker | Meaning | Example |
+|---|---|---|
+| `...FIELD` | Rest field: `FIELD` is the last field and absorbs every remaining segment, so the action carries any number of them | `VERSION\|TYPE\|...ITEM` (LIST) |
+| `...` on its own | The preceding group repeats, as many times as a count field earlier in the format says | `SIG_COUNT\|PUBKEY1\|SIG1\|...` (ATTEST v1) |
+| `[\|FIELD]` | The bracketed tail is optional and may be omitted entirely | `VERSION[\|AMOUNT]` (COLLECT) |
+
+The rest-field marker is written as a **prefix** (`...ITEM`), never a suffix, matching the SDK's format table in `formats.js`, where a leading `...` is what marks a field as variadic. Trailing fields that are not bracketed are still omittable when the action's rules say so, so a shorter example is not necessarily a defect; a longer one always is. The conformance suite enforces this: an example may never carry more fields than its version's format declares unless that format ends in a rest field or repeat marker.
+
 ## Key Concepts
 
 ### VERSION (Format Version)

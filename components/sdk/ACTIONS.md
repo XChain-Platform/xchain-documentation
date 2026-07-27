@@ -245,9 +245,9 @@ Deploy a smart contract to the XChain VM. The contract source code is base64-enc
 
 **Format Versions:** v0 (standard contract), v1 (stakeable contract), v2 (chunked assemble, standard), v3 (chunked assemble, stakeable), v4 (chunk carrier)
 
-**Format v0:** `DEPLOY|VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS...`  
+**Format v0:** `DEPLOY|VERSION|CODE_ENCODING|GAS_LIMIT|...CONSTRUCTOR_PARAMS`  
 **Format v1:** `DEPLOY|VERSION|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION`  
-**Format v2:** `DEPLOY|VERSION|CODE_HASH|GAS_LIMIT|CONSTRUCTOR_PARAMS...` (chunked assemble, standard)  
+**Format v2:** `DEPLOY|VERSION|CODE_HASH|GAS_LIMIT|...CONSTRUCTOR_PARAMS` (chunked assemble, standard)  
 **Format v3:** `DEPLOY|VERSION|CODE_HASH|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION` (chunked assemble, stakeable)  
 **Format v4:** `DEPLOY|VERSION|CODE_HASH|CHUNK_INDEX|TOTAL_CHUNKS|CODE_PART` (chunk carrier)
 
@@ -450,7 +450,7 @@ Call a method on a deployed XChain VM smart contract.
 
 **Format Versions:** v0
 
-**Format v0:** `EXECUTE|VERSION|CONTRACT_ACTION_INDEX|METHOD|PARAMS...`
+**Format v0:** `EXECUTE|VERSION|CONTRACT_ACTION_INDEX|METHOD|...PARAMS`
 
 **Params:**
 
@@ -690,8 +690,8 @@ Create or edit an allow/block list of ticks or addresses.
 
 **Format Versions:** v0 (create), v1 (edit, add/remove items)
 
-**Format v0 (create):** `LIST|VERSION|TYPE|ITEM`  
-**Format v1 (edit):** `LIST|VERSION|EDIT|LIST_ACTION_INDEX|ITEM`
+**Format v0 (create):** `LIST|VERSION|TYPE|...ITEM`  
+**Format v1 (edit):** `LIST|VERSION|EDIT|LIST_ACTION_INDEX|...ITEM`
 
 **Params (create (v0):)**
 
@@ -1182,11 +1182,14 @@ Parimutuel betting markets: create a market, place a bet, resolve it, or cancel 
 | `buildBetDetails(definition, { outcomes })` | Validates a market definition against `DETAILS_SCHEMA`, cross-checks its `outcomes` against the market's `OUTCOMES` (filling them in when absent), and returns strict base64 |
 | `parseBetDetails(details)` | Decodes a `DETAILS` field from the chain under the consensus shape rules (strict canonical base64, size cap, JSON object, depth cap). Use this on any market you did not author |
 | `projectPayout({ pools, outcome, stake, feePct, decimals })` | Display-only projected payout, computed in mathjs bignumber in settlement's exact order and floor direction. Returns fixed-decimal strings |
+| `projectFeedCreateFee({ deadline, refundWindow, blockTime })` | What the protocol will charge in `XCHAIN` to open the market, so a wallet can quote it before signing. Also accepts `durationSeconds` directly, and per-chain `freeDays` / `perDay` / `gasPrice` overrides. Returns `{ durationSeconds, days, billableDays, free, fee }` |
 | `outcomeCaseCollisions(outcomes)` | Advisory: outcome labels differing only by case. Legal on-chain, almost always a mistake |
 | `DETAILS_SCHEMA` / `LIMITS` | The market-definition schema and the protocol limits, as data, for generating forms |
 
 **Notes:**
 - `FEE` is a **percent of the pot**, not a fraction: `1.00` is one percent and `0.01` is one hundredth of a percent.
+- Two unrelated quantities are both called a fee. `FEE` is the **oracle's** cut of the pot, paid by bettors and set per market. `projectFeedCreateFee` returns the **protocol's** charge for running the market, paid in `XCHAIN` by whoever creates it. Do not label them both "fee" in a UI.
+- Creation is **duration-priced** on the market's full life (`DEADLINE + REFUND_WINDOW`, not `DEADLINE`), with the first 90 days free. The day count rounds **half-up**, matching `bcdiv(seconds, 86400, 0)` on-chain, so a projection that floors under-quotes by a whole day's fee at every fractional-day boundary.
 - `OUTCOME` is a **zero-based index** into `OUTCOMES`, never a label, on the wire. Pass `outcomes` to a builder to use labels safely; a numeric value is always read as an index, because labels that look like numbers are legal.
 - Compose `DETAILS` through `createMarketParams` rather than encoding it yourself: a market whose `DETAILS.outcomes` disagrees with its `OUTCOMES` is rejected on-chain.
 - `DETAILS` is capped at 4096 **decoded** bytes. It rides the wire base64-encoded and shares one 8192-byte ACTION ceiling with every other field, so a create at the cap encodes as a multi-chunk `P2SH`/`P2WSH` payload (the SDK selects this automatically).

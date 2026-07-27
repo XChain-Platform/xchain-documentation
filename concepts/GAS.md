@@ -183,7 +183,13 @@ explorer (the indexer itself is not internet-facing):
   The quote runs the REAL action handler inside a forced-rollback dry-run, so `valid` is the
   handler's own verdict against current chain state and the fee is the handler's own number.
   `supported: false` means the action is not quotable here (native fees not enabled on the chain,
-  or a VM/compound action: `DEPLOY`/`EXECUTE`/`XEXEC`/`BATCH`; pay in XCHAIN instead).
+  or `XEXEC`/`BATCH`: the first is never wallet-broadcast, the second's fee is the sum of its
+  sub-actions' state-dependent fees).
+  `valid: null` is the third answer, returned for `DEPLOY` and `EXECUTE`. These never run in the
+  public pre-flight (they would execute caller-supplied code on a shared node), so they are priced
+  straight from the gas schedule instead: `staticQuote: true`, `validated: false`, and a fee that
+  is exactly what the chain checks the native output against, with NO validity verdict attached.
+  Size the output from it and broadcast, but tell the user the action itself is unverified.
   `valid: false` carries the handler's reason verbatim in `error`/`status`: an oracle price that
   is missing/stale, a supplied `feeOutputSats` below the acceptance floor, or the action itself
   being one the chain would reject (insufficient balance, taken ticker, expired order, ...), which
@@ -201,10 +207,13 @@ The `xchain-sdk` wraps this: `sdk.quoteNativeFee(actionData, { source })` return
 transaction that can't be priced. The `xchain-wallet` enforces the same gate at its broadcast
 chokepoint and warns the user that a native-coin fee is forfeited if the transaction is rejected.
 
-> Phase-2 scope (live): the pre-flight covers every action except the VM/compound set
-> (`DEPLOY`/`EXECUTE`/`XEXEC`/`BATCH`, which return `supported: false`; pay in XCHAIN). SEND,
+> Phase-2 scope (live): the pre-flight covers every action except the VM/compound set. SEND,
 > edits, AIRDROP, DIVIDEND and the rest are quoted by the real handler, including failure
-> reasons a fee estimator could never see (insufficient balance, taken ticker, ...).
+> reasons a fee estimator could never see (insufficient balance, taken ticker, ...). `DEPLOY` and
+> `EXECUTE` get a fee but no verdict (see `valid: null` above); `XEXEC`/`BATCH` get neither.
+> On LTC/DOGE the native output is the ONLY way to pay a protocol fee (no XCHAIN fee lane), so
+> "not quotable" there means "not payable": that is why the two VM actions are priced statically
+> rather than refused.
 
 ## Governance
 

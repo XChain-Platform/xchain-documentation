@@ -9,7 +9,7 @@ This action creates a list of items for use in actions.
 | --------------      | ------ | ----------------------------------|
 | `VERSION`           | String | Format Version                    |
 | `TYPE`              | String | List type (1=TICK, 2=ADDRESS)     |
-| `ITEM`              | String | Any valid `TICK` or `ADDRESS`     |
+| `ITEM`              | String | Any valid `TICK` or `ADDRESS`; rest field, repeat for each item |
 | `EDIT`              | String | Edit action (1=ADD, 2=REMOVE)     |
 | `LIST_ACTION_INDEX` | String | `ACTION_INDEX` of existing `LIST` |
 
@@ -17,10 +17,10 @@ This action creates a list of items for use in actions.
 ## Formats
 
 ### Version `0` 
-- `VERSION|TYPE|ITEM...`
+- `VERSION|TYPE|...ITEM`
 
 ### Version `1` 
-- `VERSION|EDIT|LIST_ACTION_INDEX|ITEM...`
+- `VERSION|EDIT|LIST_ACTION_INDEX|...ITEM`
 
 
 ## Examples
