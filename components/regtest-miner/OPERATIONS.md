@@ -226,6 +226,31 @@ Reset timers to defaults (30,000 / 5,000 ms).
 }
 ```
 
+### `set_idle_mine_interval`
+
+Turn the mine-empty heartbeat on or off at runtime. The mining loop is mempool-driven: with no transactions arriving it mines nothing, so an idle chain never gains height and anything gated on height (stake activation delays, confirmation depth, time-locked expiries) waits forever. With an interval set, the loop mines one empty block each time the mempool has been empty that long.
+
+Use `generate_blocks` to JUMP a height window; use this to WAIT one out on a quiet chain.
+
+**Request:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "set_idle_mine_interval",
+    "params": {
+        "interval_ms": 5000
+    },
+    "id": 9
+}
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `interval_ms` | number | Yes | Milliseconds of empty mempool before mining one empty block. `0` disables. Otherwise 1,000 to 3,600,000. |
+
+The boot-time equivalent is the `IDLE_MINE_INTERVAL_MS` environment variable. The current value is reported as `idle_mine_interval_ms` by `status`.
+
 ### `generate_blocks`
 
 Mine a specific number of empty blocks immediately, regardless of mempool state. Used by e2e tests to advance block height past time-locked states (such as `STAKE` activation delays).
