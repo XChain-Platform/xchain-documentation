@@ -209,6 +209,49 @@ Example, before encoding:
 ### Dividends
 Escrowed bet stakes are treated exactly like escrowed `ORDER` balances when a `DIVIDEND` is paid on the token.
 
+## What a market costs
+
+Two different things get called a "fee" around betting, and they are unrelated:
+
+- the **oracle fee** is the `FEE` field, a percentage of the pot that the market
+  creator keeps out of the winnings. It is set per market, paid by the bettors,
+  and described under [Settlement](#settlement)
+- the **market fee** is what the protocol charges in `XCHAIN` to run the market.
+  It is paid by whoever creates the market, and it is what this section is about
+
+The market fee is priced by **how long the market lives**, not by how many bets
+it takes. "How long it lives" means all the way to the end of the resolve window
+(`DEADLINE + REFUND_WINDOW`), not just to `DEADLINE`, because the protocol has to
+keep checking on the market until it can finally be settled or refunded.
+
+**The first 90 days are free.** A market that finishes inside 90 days costs
+nothing to create, so short-term markets, and anyone trying the system out, pay
+nothing. Past that you pay for each additional day:
+
+| Market lives for | Costs to create |
+|---|---|
+| Up to 90 days | Free |
+| 91 days | 0.0055 XCHAIN |
+| 120 days | 0.165 XCHAIN |
+| 1 year | 1.5125 XCHAIN |
+| 2 years (the maximum) | 3.52 XCHAIN |
+
+Day counts round to the nearest whole day, so a market lasting 90 days and 12
+hours is billed as 91 days.
+
+The rest of the lifecycle:
+
+- **Placing a bet** costs 0.001 XCHAIN. This prepays the payout or refund that
+  bet will eventually receive, which is why nobody is charged again at the end
+- **Resolving** is free, no matter how many bets are on the book. An oracle is
+  never billed more for doing the right thing on a busy market
+- **Cancelling** is free
+- **Cancelling and recreating** pays the creation fee again. Markets cannot be
+  edited, so fixing a mistake means making a new market, and that is a new market
+
+Wallets can quote the exact cost before you sign, using the SDK's
+`projectFeedCreateFee`.
+
 ## Notes
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` (^1234 = `TICK_ID` 1234); see [Index ID References](../Index_Id_References.md)
 - `ALLOW_LIST` and `BLOCK_LIST` are plain `ACTION_INDEX` values, not caret references
