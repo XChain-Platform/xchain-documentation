@@ -30,6 +30,16 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `XCHAIN_UNDO_BLOCKS_BTC` | Override the BTC reorg recovery window (blocks) | `12` |
 | `XCHAIN_UNDO_BLOCKS_LTC` | Override the LTC reorg recovery window (blocks) | `48` |
 | `XCHAIN_UNDO_BLOCKS_DOGE` | Override the DOGE reorg recovery window (blocks) | `120` |
+| `UTXO_TRACKER_RATE_LIMIT_RPM` | API requests per minute per IP | `500` |
+| `UTXO_MAX_RPC_BATCH` | Maximum calls accepted in one inbound JSON-RPC batch (array body). The router runs `Promise.all` over every element, so without this cap a single unauthenticated ~100kb POST fans out into thousands of concurrent read scans and node RPCs. Mirrors the decoder and encoder batch guards. | `20` |
+| `XCHAIN_COINBASE_MATURITY` | Confirmations a coinbase output needs before `getUtxosAddress` will serve it as spendable. The consensus rule is 100 on BTC/LTC/DOGE and their testnet/regtest variants; serving an immature coinbase hands the caller an input every node rejects. Lower it only for test harnesses that mine short chains. | `100` |
+| `XCHAIN_MAX_BLOCK_FETCH_RETRIES` | Attempts to fetch a block at one height before giving up. Raise it for slow-recovering nodes. Retries sleep 3000 ms apart. | `20` |
+| `BOOTSTRAP_RESTORE_ALLOW_UNVERIFIED` | Set to `1` to let `restorebootstrap` proceed when the archive has no `.sha256` sidecar. **Off by default and deliberately so:** the restore performs a destructive `/data` wipe, and without the sidecar the archive cannot be checked for truncation or tampering first. The correct fix is to publish a `.sha256` next to the archive; this flag exists as a last resort and logs a warning when used. | _(unset, fails closed)_ |
+| `LEVELDB_CACHE_BYTES` | LevelDB block-cache size in bytes | `4294967296` (4 GiB) |
+| `LEVELDB_WRITE_BUFFER_BYTES` | LevelDB write-buffer size in bytes | `67108864` (64 MiB) |
+| `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for JSON-RPC calls to the coin node | `30000` |
+| `DEBUG_TRACE` | Set to `1`/`true` for verbose tracker tracing on stdout. Debug only. | _(unset)_ |
+| `TRACE_UTXO` | Set to `1`/`true` for per-output LevelDB tracing (one line per `insertOutput`, per staged deletion, and a summary per transaction). Debug only; kept behind a flag so production cost is zero. | _(unset)_ |
 
 ### Bulk-Sync Variables
 

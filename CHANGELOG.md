@@ -8,11 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Platform-wide ACTION counts were stale everywhere: 35 wire-decoded ACTIONs (was 34) and 31 SDK-invocable (was 30), corrected across 13 pages.
+- `components/indexer/README.md`: the indexer processes 48 record types (was 45); BET, BET_EXPIRE, and VOTE were missing from the list.
+- `components/decoder/README.md`: the ACTION-name whitelist has 35 entries (was 34).
+- `components/wallet/README.md`: the wallet now authors all 31 user-encodable ACTIONs; the "29 of 30, all except ADDRESS" claim was wrong on both counts.
+- `WHITEPAPER.md`: the ACTION-set summary undercounted user-submittable actions by one and omitted the Governance category entirely.
+- `developer-guide/TESTING.md`: all platform test counts re-measured; the headline went from "over 10,500 tests" across six components to roughly 33,000 across fifteen.
+- Component test counts re-measured against the suites for decoder, encoder, hub, indexer, node, regtest-miner, sync, utxo-tracker, VM, and wallet.
+- `architecture/Component_Map.md`, `architecture/Data_Pipeline.md`: indexer handler-class count corrected to 48, SDK action-builder count to 31, explorer query wrappers to 118, and the explorer endpoint total re-derived to 232 (was 129 `/api` + 68 `/explorer`).
+- `developer-guide/Smart_Contract_Development.md`, `developer-guide/Solidity_To_XChain.md`: the contract template library ships 13 templates, not 4.
+- `components/decoder/CONFIGURATION.md`: the claim that non-`getRawTransaction` RPCs retry with no sleep was stale; `backoffOnTimeout()` now backs off the block-path methods too.
 - `protocol/actions/DISPENSER.md`: the front-running section wrongly said a first oracle price takes effect immediately; every PRICE v1 publish is delayed 24 hours, first included.
 - `protocol/actions/DISPENSER.md`: five v0 examples were one field short and shifted every field after `GIVE_OWNERSHIP`, including both FIAT examples.
 - review corpus corrections: zero-premint genesis, GAS supply, SPV wallet status, WS statuses filter, explorer port, open-source claim, ANCHOR v0-v6, VM lint-rule inventories, recursion depth, slashable engines, manifest re-vendor with encoder as sixth copy.
 
 ### Added
+- Configuration references now document every environment variable the services read: 196 were undocumented, now none are.
+- `test/env-var-doc-coverage.test.js`: gate failing the build when a service reads an environment variable its own component pages do not document, or documents a default the code contradicts.
+- `test/explorer-endpoint-counts.test.js`: gate deriving the explorer's endpoint counts from its dispatch table instead of trusting the hand-written figures.
+- Security-relevant switches that had been undocumented: the `http_get` attestation provider's SSRF guard, the hub's second reorg-scoped API key, the indexer's keyless escape hatch, the hub-mirror migration password, and the telemetry collector's IP salt and admin key.
+- `components/hub/CONFIGURATION.md`: new sections for the hub-DB WebSocket, indexer tip freshness, oracle publishing, attestation publishing, state checkpoints, the full-node challenge, retraction consensus, XCHAIN price derivation, and the LLM attestation provider.
+- `components/indexer/CONFIGURATION.md`: new sections for block-processing barriers, the hub push queue, fee quote and pre-flight, state-tree metrics, and genesis overrides.
+- `components/explorer/CONFIGURATION.md`: new contract-simulation section covering `EXPLORER_VM_QUERY_ENABLED` and its four resource caps.
+- `components/node/CONFIGURATION.md`: new bootstrap and go-live-gate sections.
+- `components/regtest-miner/CONFIGURATION.md`: `NODE_RPC_TIMEOUT`, whose default (60000) differs from the decoder's (30000) under the same variable name.
+- `components/contracts/README.md`: new component page for the MIT-licensed contract template library, its 13 templates, 5 patterns, CLI, and policy generator; indexed in the components README.
+- `concepts/ACTIONS.md`, `getting-started/What_Is_XChain.md`: BET documented in the ACTION set and the feature tour.
+- `WHITEPAPER.md`: section 6.10 documents the VOTE governance action.
+- `components/sdk/EXPLORER.md`: documented `getOracleFeeQuote` and `getPreflight`.
+- `components/explorer/API.md`: documented the `/preflight` and `/oraclefeequote` proxy routes.
+- `components/wallet/TESTING.md`: per-suite vitest counts and a measured smoke-file breakdown.
 - `protocol/actions/PRICE.md`, `protocol/actions/DISPENSER.md`: documented the oracle usage fee, paid up front by the dispenser opener as a native-coin output, with the quote endpoint to size it.
 - `test/action-example-fields.test.js`: lint pinning the DISPENSER v0 examples to the declared 17-field format.
 - `protocol/actions/DISPENSER.md`, `protocol/actions/ADDRESS.md`: documented the origin-standing create rule (`DISPENSER_ORIGIN_STANDING`): the source of a prior valid dispenser create on an address may open additional dispensers on it.

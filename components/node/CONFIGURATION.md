@@ -117,6 +117,19 @@ These variables are read by xchain-node itself at startup. They control runtime 
 | `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD` | MariaDB root password for the host-native (non-Docker) database, used alongside `XCHAIN_NODE_EXTERNAL_DB=1`. Avoids an interactive password prompt in headless installs. Supply alongside `XCHAIN_NODE_EXTERNAL_DB_HOST`, `XCHAIN_NODE_EXTERNAL_DB_PORT`, and `XCHAIN_NODE_EXTERNAL_DB_ROOT_USER`. |
 | `XCHAIN_NODE_NO_TELEMETRY` | Set to `1` to disable anonymous usage telemetry. Opt-out is also available via the `--no-telemetry` CLI flag or a persisted preference in `~/.xchain-node/telemetry.json`. |
 | `XCHAIN_NODE_TELEMETRY_URL` | Override the telemetry collector endpoint (default: `https://hub.xchain.io/telemetry`). Useful for self-hosted collectors or test environments. |
+| `HUB_API_KEY` | API key xchain-node sends as `x-api-key` when talking to the hub, and forwards into the generated service `.env` files. Required whenever the hub runs keyed. Treat as a credential. |
+| `FEE_DESTINATION` | Native-coin fee destination forwarded into the generated service `.env` files. **Honoured on testnet and regtest only**, and only when the more specific `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` is unset; on mainnet the bundled coin registry always wins, because fee acceptance is consensus and must not depend on an operator's environment. |
+
+### Telemetry collector
+
+These configure a hub acting as the telemetry **collector**, and are forwarded into its generated `.env`. They are distinct from `XCHAIN_NODE_NO_TELEMETRY`, which controls whether *this* node reports.
+
+| Variable | Description |
+|---|---|
+| `TELEMETRY_ENABLED` | Whether the collector accepts telemetry. Default `true`. |
+| `TELEMETRY_RETENTION_DAYS` | Days of telemetry retained before pruning. Default `90`. |
+| `TELEMETRY_IP_SALT` | Salt used to hash reporter IPs so they are aggregated without being stored. Empty by default; set it to a long random value on a real collector. Treat as a credential: changing it re-buckets historical data, and leaking it makes the hashes reversible by brute force. |
+| `TELEMETRY_ADMIN_KEY` | Key gating the collector's admin endpoints. Empty by default. Treat as a credential. |
 | `XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY` | Path to an Ed25519 private key PEM file used to sign bootstrap archives when running `bootstrap create`. If unset the archive is created unsigned and consumers cannot verify provenance. |
 | `XCHAIN_NODE_BOOTSTRAP_PUBKEY` | Path to the Ed25519 public key PEM file used to verify bootstrap archive signatures on restore (default: `src/config/bootstrap_signing_pubkey.pem` within the repo). Override when using a custom signing key. |
 | `XCHAIN_NODE_REQUIRE_SIGNED_BOOTSTRAP` | Set to `0`, `false`, or `no` to allow restoring bootstrap archives that have no accompanying signature (e.g. for a self-hosted bootstrap source). Default behaviour is fail-closed: unsigned or unverifiable archives are refused. |
@@ -125,6 +138,34 @@ These variables are read by xchain-node itself at startup. They control runtime 
 | `XCHAIN_NODE_DB_MAX_CONNECTIONS` | Passes `--max-connections` to the shared MariaDB container. Unlike the other tuning flags, this one has an xchain-node default of `1000` when unset: the image default of 151 saturates on a shared multi-chain container and surfaces as misleading "Can't connect to MariaDB" errors. |
 | `XCHAIN_NODE_DB_FLUSH_LOG_AT_TRX_COMMIT` | Passes `--innodb-flush-log-at-trx-commit` to the shared MariaDB container (e.g. `2` for faster, less durable flushing). |
 | `ALLOW_NO_COLOCATED_HUB_DB` | Forwarded into the explorer's env: set to `1` to let a regtest/dev explorer start without a hub-mirror (checkpoint) schema configured for every serving coin. |
+| `CORS_ORIGIN` | Forwarded into every managed service's generated `.env` as its CORS origin. Defaults to `*`, which is right for a local or regtest stack and too permissive for a public deployment; set it to your own origin there. |
+| `XCHAIN_NODE_DB_ROOT_PASSWORD` | MariaDB root password for the **bundled** container (the external-DB equivalent is `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD`). On a fresh install this becomes the password the container is created with; against an existing container it is verified before use. Same credential-handling caveat as the external-DB password below. |
+| `XCHAIN_NODE_DB_DATA_DIR` | Pin the bundled MariaDB datadir to a host path (e.g. `/var/lib/mysql` on a fast NVMe mount) instead of the image's anonymous volume, which lands under Docker's data-root and is often a bulk HDD. Unset leaves behaviour unchanged. |
+| `XCHAIN_NODE_CONTAINERD_ROOT` | Override the containerd root used for disk accounting (default `/var/lib/containerd`, the Debian/Ubuntu location). Set it for non-standard installs, or to silence a false positive when containerd was already relocated to a path xchain-node cannot infer. |
+| `XCHAIN_NODE_LOCK_DIR` | Directory holding `command.lock`. Defaults to the same per-user directory as `credentials.json`. Test and ops override. |
+| `XCHAIN_NODE_LOCK_WAIT_MS` | How long a non-mutating command waits for a lock-holding mutator before giving up. Bounded on purpose: a read-only command pauses and then errors clearly rather than provisioning concurrently and corrupting the stack. Default `15000`. |
+| `XCHAIN_NODE_AUTOHEAL_STATE_DIR` | Directory holding autoheal state. Defaults to the same per-user directory as `credentials.json`. Test and ops override. |
+| `GITHUB_TOKEN` / `GH_TOKEN` | Personal access token for GitHub downloads. Raises the anonymous API rate limit and is required to reach private module repositories. `GITHUB_TOKEN` is checked first. Treat as a credential: supply it from the environment, never a checked-in file. |
+| `BTC_INDEXER_API_URL` | BTC indexer JSON-RPC URL used as the block-height anchor for the validator-mode price oracle (`hub.getlatestblock`). Read from the host environment so a hub that is **not** co-located with a BTC indexer (the master hub box, where the BTC stack lives elsewhere) can point at a reachable one. Empty by default, in which case the hub falls back to its local resolution. |
+
+### Bootstrap
+
+| Variable | Description |
+|---|---|
+| `XCHAIN_NODE_BOOTSTRAP_BASE_URL` | Base URL for published bootstrap archives (default `https://sync.xchain.io/bootstraps`). Layout is `<base>/<module>/<coin>/<network>/latest.tgz`. Auto-restore is on by default on a fresh install. |
+| `XCHAIN_NODE_BOOTSTRAP_DIR` | Where bootstrap archives are written and read (default: the data directory). Bootstrap archives are the one artifact whose size is unbounded by the install (a mainnet tracker archive runs to tens of GB, and LTC mainnet alone is 45G of source data), so this exists to land them on a big volume **without** relocating live module data. |
+| `XCHAIN_NODE_NO_BOOTSTRAP` | Set to `1` to skip the auto-download/restore and sync from scratch. Equivalent to the global `--no-bootstrap` flag, which sets this variable. |
+| `XCHAIN_NODE_BOOTSTRAP_MAX_LAG_BLOCKS` | Maximum blocks a bootstrap source may trail the chain tip and still be accepted (default `100`). |
+| `XCHAIN_NODE_BOOTSTRAP_SKIP_HEALTH_GATE` | Set to `1`/`true`/`yes` to skip the bootstrap source health gate entirely. The gate exists to stop a stale or unhealthy source becoming a published archive; skip it only deliberately. |
+
+### Go-live gate
+
+`xchain-node` runs a pre-flight check before deploying a **mainnet** write surface (and before the hub and sync shared services, which deploy with no coin/network). It refuses the deploy if the configuration is not launch-ready.
+
+| Variable | Description |
+|---|---|
+| `XCHAIN_NODE_GO_LIVE` | Arm the go-live pre-flight. Until this is truthy, mainnet write surfaces are not treated as live. |
+| `XCHAIN_NODE_SKIP_GO_LIVE_GATE` | Set truthy to skip the pre-flight checks entirely. Logs a loud warning; intended for controlled test venues, not production. |
 
 > **Note on `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD`:** this is a credential value. Pass it via your deployment environment or secrets manager; do not store it in config files checked into version control.
 

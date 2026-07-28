@@ -95,7 +95,7 @@ const result = await vm.execute({
 | Command | Description |
 |---|---|
 | `npm test` | Unit tests (500+ tests, 30s timeout) |
-| `npm run test:all` | All suites (1,250+ tests) |
+| `npm run test:all` | All suites (2,028 tests) |
 | `npm run test:e2e` | E2E tests only (64 tests) |
 | `npm run smoke` | Smoke tests (10 tests, < 5s) |
 | `npm run test:fuzz` | Fuzz / property-based tests (53 tests) |
@@ -108,7 +108,7 @@ const result = await vm.execute({
 | `npm run mutation` | Mutation testing (Stryker, full suite) |
 | `npm run bench:quick` | Pipeline + gateway benchmarks |
 
-**Total: 1,250+ tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke.
+**Total: 2,028 tests** (measured 2026-07-27) across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke.
 
 ## Dependencies
 

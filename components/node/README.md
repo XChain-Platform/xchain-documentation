@@ -24,7 +24,7 @@ Unlike other XChain services that run as long-lived processes, xchain-node is a 
 - **Hub and explorer auto-management**: automatically installs, updates, and configures the shared xchain-hub and xchain-explorer services as part of any installation
 - **execFile security**: all child process calls use `execFile` with array arguments instead of `exec` with shell strings, eliminating shell injection as a vulnerability class
 - **Input validation**: branch name, port, and container ID validation with strict regex enforcement
-- **1,500+ tests**: unit, integration, e2e, smoke, fuzz, chaos, mutation, performance, and regression testing
+- **1,922 tests** (measured 2026-07-27): unit, integration, e2e, smoke, fuzz, chaos, mutation, performance, and regression testing
 
 ## Documentation
 
@@ -77,7 +77,7 @@ xchain-node monitor all bitcoin regtest
 
 | Command | Description |
 |---|---|
-| `npm test` | Unit tests (700+ tests) |
+| `npm test` | Unit tests (1,043 tests) |
 | `npm run test:integration` | Integration tests (100+ tests, 30s timeout) |
 | `npm run test:smoke` | Smoke tests (150+ tests, 5s timeout) |
 | `npm run test:e2e` | End-to-end tests (55+ tests, 30s timeout) |
@@ -90,7 +90,7 @@ xchain-node monitor all bitcoin regtest
 | `npm run test:regression:p0p1` | Regression P0+P1: standard gate (45+ tests) |
 | `npm run test:mutation` | Mutation testing (Stryker Mutator, full) |
 | `npm run test:mutation:config` | Mutation testing (ConfigService pilot) |
-| `npm run test:all` | All tests (1,500+ tests) |
+| `npm run test:all` | All tests (1,922 tests) |
 | `npm run benchmark` | Performance benchmarks (6 scenarios) |
 | `npm run benchmark:quick` | Quick benchmarks |
 

@@ -27,7 +27,7 @@ xchain-documentation/
 ├── developer-guide/      tutorials: build tokens, dispensers, query data, integrate, testing
 ├── ai-agents/            building AI agents with MCP and bounded wallets
 ├── user-guide/           capabilities, use cases, FAQ (no code required)
-├── protocol/             34 ACTION definitions, Token Information Standard, schemas
+├── protocol/             35 ACTION definitions, Token Information Standard, schemas
 ├── operations/           deployment, Docker, monitoring, upgrades, troubleshooting
 ├── legal/                licensing, commercial license, trademark, contributor agreement
 ├── BLOCKCHAINS.md        supported chains, adding new blockchains

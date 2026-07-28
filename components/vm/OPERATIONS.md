@@ -22,7 +22,7 @@ If `isolated-vm` fails to compile, ensure the native build prerequisites are ins
 
 ```bash
 npm test                      # unit tests (500+ tests, 30s timeout)
-npm run test:all              # all suites (1,250+ tests)
+npm run test:all              # all suites (2,028 tests)
 npm run test:regression:core  # P0+P1 regression: security + smoke (31 tests, < 200ms)
 npm run test:regression:full  # P0-P3 regression: full suite (100+ tests, < 1s)
 npm run test:fuzz             # property-based / fuzz tests (53 tests)

@@ -32,6 +32,12 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `FEE_DESTINATION` | Native-coin protocol fee destination override for this coin+network. The decoder persists outputs paying the resolved address to `transaction_outputs` so the indexer can validate native-coin fee payments. By default the address comes from the bundled coin registry (`src/coins`, pinned per coin/network), so capture is on for a stock install. This variable overrides the default on testnet/regtest only; on mainnet it is ignored with a warning, because fee acceptance is consensus and must not depend on operator environment. | _(coin registry)_ |
 | `DB_QUERY_TIMEOUT` | MariaDB query timeout in milliseconds (passed to the connection pool `queryTimeout` option) | `30000` |
 | `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for all JSON-RPC calls to the coin node (sets `axios.defaults.timeout` at startup) | `30000` |
+| `NODE_URL_FALLBACK` | Comma-separated list of additional coin-node endpoints. The connector rotates round-robin to the next endpoint after `NODE_FAILOVER_THRESHOLD` consecutive connection-level failures, so a recovered primary is retried again if the fallback also dies. Each fallback reuses `NODE_PORT`. | _(unset, single endpoint)_ |
+| `NODE_FAILOVER_THRESHOLD` | Consecutive connection-level failures before rotating to the next endpoint in `NODE_URL_FALLBACK`. Floored at 1. | `3` |
+| `RPC_TIMEOUT_RETRY_DELAY_MS` | Backoff in milliseconds between timeout (`ECONNABORTED`) retries in the block-path RPC methods. Each attempt has already burned the full RPC timeout before aborting, so an instant re-fire stacks retries onto a node that is timing out because it is overloaded. Set to `0` to disable (tests do). | `500` |
+| `DECODER_RPC_CONCURRENCY` | Maximum concurrent outbound JSON-RPC calls to the coin node. Floored at 1. | `50` |
+| `DECODER_RPC_MAX_BATCH` | Maximum number of calls permitted in one inbound JSON-RPC batch. The router runs `Promise.all` over a batch while the rate limiter counts the batch as a single request, so this bound is what stops one array from fanning out into thousands of concurrent handlers. | `20` |
+| `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; CI and operators running `node src/migrate.js` get the strict path anyway. | _(unset, non-fatal)_ |
 
 The `AUX_POW` variable should be set to any truthy value when running against Dogecoin nodes. It enables the `getBlockWithoutAuxPow()` code path that strips merge-mining headers before parsing.
 
@@ -69,7 +75,7 @@ Database names are validated on startup; only alphanumeric characters and unders
 
 ## Internal Constants
 
-These values are defined in source code and not configurable via environment variables:
+These values are defined in source code. Most are fixed; the rows that name an environment variable can be overridden by it:
 
 ### Polling & Sync
 
@@ -98,7 +104,9 @@ These values are defined in source code and not configurable via environment var
 | `queryTimeout` default | `30000` | db.js | MariaDB query execution timeout in milliseconds (30 seconds); overridable via `DB_QUERY_TIMEOUT` env var |
 | RPC timeout (axios) | `30000` | BlockchainConnector.js | HTTP timeout for all JSON-RPC calls (30 seconds); overridable via `NODE_RPC_TIMEOUT` env var |
 | RPC max retries | `10` | BlockchainConnector.js | Maximum retry attempts for failed RPC calls |
-| RPC retry delay | `500` | BlockchainConnector.js | Delay between retries in `getRawTransaction` only. All other RPC methods (`getBlock`, `getBlockHash`, `getBlockchainInfo`, etc.) retry immediately with no sleep on timeout. |
+| RPC retry delay | `500` | BlockchainConnector.js | Delay between retries in `getRawTransaction`, and (via `backoffOnTimeout()`) between timeout retries in the block-path RPC methods. Overridable via `RPC_TIMEOUT_RETRY_DELAY_MS`. Non-timeout failures in the block-path methods still retry without a sleep. |
+| RPC concurrency | `50` | BlockchainConnector.js | Maximum concurrent outbound RPC calls; overridable via `DECODER_RPC_CONCURRENCY` |
+| Failover threshold | `3` | BlockchainConnector.js | Consecutive connection failures before rotating to the next `NODE_URL_FALLBACK` endpoint |
 | RPC 429 backoff | `5000` | BlockchainConnector.js | Delay on HTTP 429 rate limiting (5 seconds) |
 
 ### API Security
@@ -106,7 +114,8 @@ These values are defined in source code and not configurable via environment var
 | Constant | Value | Location | Description |
 |---|---|---|---|
 | Rate limit window | `60000` | api.js | Rate limit window (1 minute) |
-| Rate limit max | `100` | api.js | Maximum requests per window per IP |
+| Rate limit max | `100` | api.js | Maximum requests per window per IP; overridable via `DECODER_RATE_LIMIT_RPM` |
+| JSON-RPC batch cap | `20` | api.js | Maximum calls in one inbound JSON-RPC batch; overridable via `DECODER_RPC_MAX_BATCH` |
 | Body size limit | `100kb` | api.js | Maximum JSON request body size |
 
 ## Start Block Heights

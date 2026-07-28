@@ -23,7 +23,7 @@ The largest, most liquid, most secure chains (Bitcoin and its relatives) were ne
 
 XChain is a **metalayer**: a protocol that runs above an unmodified base blockchain, using ordinary transactions to carry its data. Software running the protocol reads those transactions and derives its own state (balances, order books, contract storage) by a fixed, deterministic set of rules anyone can independently replay and verify.
 
-The result is a full digital-token stack expressed as **34 standard ACTIONs**: issue and manage tokens (including non-fungible and limited-edition tokens), transfer and airdrop, trade on a native on-chain exchange, swap tokens trustlessly across chains, deploy smart contracts and call them across chains, publish encrypted token-gated content, run staking, and store data, all secured by the base chain, with no bridge anywhere in the system.
+The result is a full digital-token stack expressed as **35 standard ACTIONs**: issue and manage tokens (including non-fungible and limited-edition tokens), transfer and airdrop, trade on a native on-chain exchange, swap tokens trustlessly across chains, deploy smart contracts and call them across chains, publish encrypted token-gated content, run staking, and store data, all secured by the base chain, with no bridge anywhere in the system.
 
 Critically, **none of this is Bitcoin-specific.** The metalayer technique works on any suitable chain. Bitcoin, Litecoin, and Dogecoin are the first three; adding another UTXO chain is a configuration change, not a rebuild. XChain is designed to grow into a platform spanning a large number of blockchains over time.
 
@@ -59,7 +59,7 @@ XChain is open source (AGPL-3.0) with a commercial license available for proprie
 
 - **Live in production** on Bitcoin, Litecoin, and Dogecoin, with public explorer, encoder, and hub services behind TLS.
 - **Cross-chain settlement proven end-to-end** between live chains.
-- **13 components** spanning the full stack: node manager, encoder, decoder, indexer, explorer, hub, UTXO tracker, VM, replication, SDK, multi-platform wallet, regtest tooling, and end-to-end tests, plus a complete protocol specification.
+- **14 components** spanning the full stack: node manager, encoder, decoder, indexer, explorer, hub, UTXO tracker, VM, replication, SDK, multi-platform wallet, contract template library, regtest tooling, and end-to-end tests, plus a complete protocol specification.
 - **A full developer SDK** (the full operation set, contract deploy/execute, cross-chain calls, light-client proof verification, live streaming, transaction building) with the wallet as a reference client.
 - **AGPL-3.0 licensed**, with a commercial license available for proprietary use; the source repositories flip public at launch.
 

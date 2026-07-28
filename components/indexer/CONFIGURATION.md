@@ -30,6 +30,70 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 |---|---|---|
 | `INDEXER_API_PORT` | API server listening port | `3004` |
 | `CORS_ORIGIN` | Allowed CORS origin for API requests | `http://localhost` |
+| `INDEXER_RATE_LIMIT_RPM` | API requests per minute per IP | `600` |
+| `HUB_API_URL` | Hub JSON-RPC base URL used by the indexer's hub client. Falls back to the URL passed in code when unset. | _(unset)_ |
+| `HUB_API_KEY` | API key sent with hub calls. Required whenever the hub runs keyed, which is always in validator mode. Treat as a credential. | _(unset)_ |
+| `HUB_REORG_API_KEY` | Separate key for the hub's retraction rails (`pushpricereorg`, `pushxcallreorg`, `pushdexreorg`) when the hub gates them independently. Unset falls back to `HUB_API_KEY`, which is the legacy single-key behaviour. Treat as a credential. | _(falls back to `HUB_API_KEY`)_ |
+| `INDEXER_ALLOW_UNAUTHENTICATED` | Set to `true` to restore keyless pass-through on the gated methods (validator-reward writes, federation reads, gated exec). With no API key configured those methods otherwise fail closed. This is the explicit escape hatch for single-host and regtest nodes; do not set it on a node reachable beyond its own host. | _(unset, fails closed)_ |
+| `UTXO_TRACKER_URL` | UTXO-tracker hostname. Optional overall, but required for the DISPENSER fresh-address check. | _(unset)_ |
+| `UTXO_TRACKER_API_PORT` | UTXO-tracker port, paired with `UTXO_TRACKER_URL`. | _(unset)_ |
+| `BTC_INDEXER_DB_NAME` | Name of the BTC indexer database, read by `recovery.js` when rebuilding state from an anchored checkpoint on a non-BTC chain that needs to resolve BTC-anchored data. | _(unset)_ |
+| `DB_CONNECT_TIMEOUT` | MariaDB connection timeout in milliseconds | `10000` |
+| `DB_ACQUIRE_TIMEOUT` | Time to wait for a free pooled connection, in milliseconds | `10000` |
+| `DB_QUERY_TIMEOUT` | MariaDB query execution timeout in milliseconds | `30000` |
+| `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; the operator path (`node src/migrate.js`) fails closed regardless. | _(unset, non-fatal)_ |
+
+### Block-processing barriers and health
+
+| Variable | Description | Default |
+|---|---|---|
+| `HUB_PRICE_SYNC_TIMEOUT_MS` | Price-sync barrier timeout. Before processing a block the indexer waits for its local price mirror to reach that block height, so native-coin fee validation is deterministic across operators. On timeout the block is deferred and retried rather than validated against a stale price copy. | `60000` |
+| `INDEXER_HEALTH_STALL_GRACE_MS` | How long with no committed block before the container reports unhealthy (`503`). Defaults to comfortably more than one barrier cycle so a single legitimate defer never flaps the healthcheck. Operational only, **not** a consensus parameter. | `max(2 × HUB_PRICE_SYNC_TIMEOUT_MS, 120000)` |
+| `XCALL_DIRECT_PRESENCE_TIMEOUT_MS` | Call-presence barrier timeout in direct-hub-DB mode. With no HubDbSync mirror the cross-chain-call sync barrier is skipped, but reading the hub's MariaDB directly does not guarantee an in-flight relay row has landed, so the indexer waits this long for it before the cross-chain-call pass. | `10000` |
+| `CHAIN_TIP_PUSH_MAX_LAG` | Skip pushing the chain tip to the hub while the indexer is more than this many blocks behind the decoder tip. During a bulk re-index, pushing a tip per historical block floods the hub's rate limiter with `429`s for no value: the hub only cares about the live tip. | `100` |
+
+### Hub push queue and mirror
+
+| Variable | Description | Default |
+|---|---|---|
+| `HUB_CONFIG_POLL_INTERVAL_MS` | Interval between hub config refresh polls | `60000` |
+| `HUB_DB_SYNC_POLL_INTERVAL` | Interval between hub-mirror table sync polls (used when `HUB_DB_SYNC_ENABLED=true`) | `30000` |
+| `HUB_SYNC_WATERMARK_INTERVAL_MS` | Interval at which the hub-mirror sync persists its progress watermark | `10000` |
+| `HUB_PUSH_RETRY_INTERVAL_MS` | How often the push-queue poller wakes to drain due rows | `30000` |
+| `HUB_PUSH_RETRY_BASE_MS` | Base backoff for a failed push. The wait grows as `base × 2^(attempts-1)`, capped at `HUB_PUSH_RETRY_MAX_MS`. | `30000` |
+| `HUB_PUSH_RETRY_MAX_MS` | Backoff ceiling for push retries | `600000` (10 min) |
+| `HUB_PUSH_MAX_ATTEMPTS` | Attempts before a push row is abandoned (about 30 minutes at the default backoff) | `10` |
+
+### Fee quote and pre-flight
+
+| Variable | Description | Default |
+|---|---|---|
+| `INDEXER_FEEQUOTE_MAX_PENDING` | Maximum concurrent in-flight `feequote` evaluations before new ones are rejected | `8` |
+| `INDEXER_FEEQUOTE_TIMEOUT_MS` | Per-request timeout for a `feequote` evaluation | `10000` |
+| `INDEXER_PREFLIGHT_MEMO_MAX` | Maximum memo length accepted by the read-only `preflight` endpoint | `256` |
+
+### State-tree metrics
+
+| Variable | Description | Default |
+|---|---|---|
+| `STATE_TREE_METRIC_INTERVAL_MS` | Interval for the state-tree orphan-statistics sweep. Set `0` to disable. | `14400000` (4 h) |
+| `STATE_TREE_METRIC_MAX_NODES` | Node ceiling for a single metric pass, bounding the sweep's cost on a large tree | `2000000` |
+
+### Genesis
+
+Genesis is pinned per network in the coin registry and the bundled dumps ship inside the Docker image, so a stock install needs none of these. They exist for regenerating or relocating the genesis inputs, and for drilling the genesis path on regtest. See [XCHAIN Genesis](../../operations/XCHAIN_GENESIS.md).
+
+| Variable | Description | Default |
+|---|---|---|
+| `GENESIS_LEDGER_PATH` | Path to the canonical genesis ledger CSV | `data/genesis/<coin>-ledger.csv` |
+| `GENESIS_DUMP_PATH` | Path to the pre-derived genesis state dump. When present, the dump-import path runs and is verified against `XCHAIN_GENESIS_DUMP_HASH` (sha256 of the *uncompressed* content) plus a recheck of the genesis block hashes; absent, the canonical CSV derivation runs instead. | `data/genesis/<coin>-<network>-genesis-dump.ndjson.gz` |
+| `GENESIS_BLOCK_TIMEOUT_MS` | Watchdog for the genesis block on the CSV-derivation path, which is the slow one | `14400000` (4 h) |
+| `GENESIS_DUMP_TIMEOUT_MS` | Watchdog for the genesis block on the dump-import path. Kept tight (BTC measures around 15 s) so a wedged import is caught fast. | `600000` (10 min) |
+| `GENESIS_AIRDROP_PATHS` | Comma-separated airdrop snapshot files to replay at genesis | _(none)_ |
+| `GENESIS_AIRDROP_HASHES` | Comma-separated sha256 digests pinning each `GENESIS_AIRDROP_PATHS` entry | _(none)_ |
+| `GENESIS_AIRDROP_AMOUNTS` | Comma-separated per-file airdrop amounts | _(none)_ |
+| `GENESIS_AIRDROP_SNAPSHOT_BLOCK` | Block height the airdrop snapshot was taken at | _(none)_ |
+| `CROSS_CHAIN_ROYALTY_REGTEST_TIME` | **Regtest only.** Override the cross-chain royalty activation time so the OFF/deny path stays drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
 
 ## Hub DB Price Source
 

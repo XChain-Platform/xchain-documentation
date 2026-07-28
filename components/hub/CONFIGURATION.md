@@ -83,6 +83,34 @@ mounts it into the hub container automatically. See OPERATIONS.md → Validator 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `PBFT_TIMEOUT` | No | `30000` | Consensus round timeout in milliseconds. Triggers view change on expiry. |
+| `MIN_VALIDATORS` | No | `1` | Minimum validators required before a consensus round may run. |
+| `HUB_CONSENSUS_INPUT_ALERT_AFTER` | No | _(built-in default)_ | Consecutive consensus-input failures before the alarm fires. A non-integer or non-positive value logs an error and falls back to the default rather than disabling the alarm, so a typo cannot silently restore fail-closed-and-silent behaviour. |
+| `HUB_SNAPSHOT_REORG_BUFFER` | No | `6` | Blocks of reorg buffer applied when building a capability snapshot. **Consensus-critical: it must match across the federation.** A malformed value logs an error and falls back to `6` rather than forking the federation on a typo. |
+| `XCHAIN_HUB_SKIP_MIN_STAKE_ASSERT` | No | _(unset)_ | Set to `1` to skip the minimum-stake assertion at startup. Test and bring-up seam; leaving it set on a real deployment disables a safety check. |
+
+### Hub-DB WebSocket (`GET /hub-db/subscribe`)
+
+Caps on the live-update channel indexers subscribe to. See [API](API.md#get-hub-dbsubscribe-websocket-upgrade-requires-authorization-bearer-hub_api_key).
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `WS_MAX_SUBSCRIBERS` | No | `1000` | Maximum simultaneous subscribers across all IPs |
+| `WS_MAX_PER_IP` | No | `100` | Maximum simultaneous subscribers from a single IP |
+| `WS_BACKPRESSURE_LIMIT` | No | `50` | Buffered messages a slow subscriber may accumulate before its connection is dropped |
+| `WS_WATERMARK_INTERVAL_MS` | No | `10000` | Interval between `watermark` heartbeats, which let a subscriber tell "the mirror is behind" apart from "no rows are being produced" |
+
+### Indexer tip freshness
+
+The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a stale tip from locking an out-of-date validator set into a round.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `BTC_INDEXER_URL` | No | _(from config table)_ | BTC indexer JSON-RPC URL used by the full-node challenge round. |
+| `BTC_INDEXER_API_KEY` | No | _(from config table)_ | API key presented to that indexer's fail-closed federation-read gate. Treat as a credential. |
+| `BTC_INDEXER_API_URL` | No | None | BTC indexer JSON-RPC URL for the validator-mode price oracle's block-height anchor (`getlatestblock`). Set it when the hub is **not** co-located with a BTC indexer, e.g. a master hub box whose BTC stack lives elsewhere. Empty falls back to local resolution. `xchain-node` forwards this from the host environment. |
+| `MAX_INDEXER_LAG_BLOCKS` | No | `200` | Maximum blocks the BTC indexer may lag before its tip is treated as untrustworthy and ignored, degrading gracefully instead of locking in a stale validator set. |
+| `MAX_TIP_AGE_S` | No | `2 × ORACLE_ROUND_INTERVAL` (seconds) | Maximum age of the indexer-pushed BTC tip before it is considered stale. |
+| `INDEXER_COIN_CHECK` | No | enabled | Set to `0` to disable the per-coin indexer reachability check. |
 
 ### Oracle
 
@@ -98,6 +126,25 @@ mounts it into the hub container automatically. See OPERATIONS.md → Validator 
 | `COINGECKO_API_KEY` | No | None | CoinGecko API key (optional, improves rate limits) |
 | `COINMARKETCAP_API_KEY` | No | None | CoinMarketCap API key (enables a third price source; CoinGecko and Kraken are both keyless and always active) |
 | `PRICE_FETCH_TIMEOUT` | No | `10000` | HTTP timeout for external price API calls (ms) |
+| `ORACLE_LEADER_TIMEOUT_MS` | No | `30000` | How long a round waits on its leader before failover. Kept below the finalization window. |
+| `ORACLE_FINALIZED_MAX` | No | `10000` | Cap on retained finalized-round records held in memory. |
+| `ORACLE_SUBMISSIONS_RETENTION_ROUNDS` | No | _(unset)_ | Number of past rounds of raw price submissions to retain. Unset keeps the built-in retention. |
+| `ORACLE_ALLOW_UNVERIFIED_PAIRS` | No | `false` | Set to `true` to accept price pairs that have not been verified. Loosens a fail-closed check; intended for bring-up, not production. |
+| `ORACLE_MAX_PRICE_AGE_SECONDS` | No | _(coin registry, per pair)_ | Maximum age of an oracle price before it is treated as stale. Resolution order is `p2pConfig` → this variable → the per-pair value pinned in the coin registry. The registry value is never a hardcoded literal, so a coordinated release that changes the pin cannot silently diverge the hub's advisory from the indexer's gate. Setting this per-host overrides that pin: do it deliberately, and match it across the federation. |
+
+### Oracle Publishing
+
+Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as DOGE `PRICE` actions.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `ORACLE_PUBLISH_ENABLED` | No | `true` | Set to `false` to stop this hub publishing oracle rounds on-chain. Consensus participation is unaffected. |
+| `PUBLISHER_QUEUE_PATH` | No | `./data/publisher-queue.jsonl` | Durable queue file for pending publishes. Point at persistent storage so a restart does not lose queued rows. |
+| `PUBLISHER_MAX_ATTEMPTS` | No | `5` | Attempts before a queued publish is abandoned. |
+| `DOGE_PUBKEY_HEX` | No | _(from config table)_ | Public key, hex, of the DOGE publishing wallet. |
+| `DOGE_ENCODER_URL` | No | _(from config table)_ | Encoder URL used to build DOGE publish transactions. |
+| `DOGE_ENCODER_API_KEY` | No | _(from config table)_ | API key presented to that encoder when it runs keyed. Treat as a credential. |
+| `DOGE_LOW_BALANCE_THRESHOLD` | No | `10` | DOGE balance below which the publisher warns that it is running out of funds. |
 
 ### Rewards and Slashing
 
@@ -119,6 +166,98 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_ELECTION_TOLERANCE_BLOCKS` | No | `36` | BTC blocks a non-leader hub waits before the next eligible rank may take over |
 | `ANCHOR_REWARD_PER_PUBLISH` | No | `"10.00000000"` | XCHAIN distributed to the elected ANCHOR publisher per successful publish cycle |
 | `ANCHOR_CHECKPOINT_EVERY_N` | No | `1` | Anchor only every Nth `checkpoint_seq` on-chain (per chain). Decouples on-chain ANCHOR spend from checkpoint production cadence: skipped (off-multiple) seqs remain in the off-chain hub-DB mirror and are still verifiable via the explorer. `1` anchors every checkpoint (original behaviour). |
+| `ANCHOR_ENABLED` | No | `true` | Set to `false` to stop this hub publishing ANCHORs. |
+| `ANCHOR_MAX_BATCH` | No | `1000` | Maximum `cross_chain_matches` rows drained into one publish cycle. |
+| `ANCHOR_CHUNK_MAX_BYTES` | No | `6000` | Maximum payload bytes per ANCHOR archive chunk. |
+| `ANCHOR_ROUND_TIMEOUT_MS` | No | `120000` | Timeout for one ANCHOR signing round. |
+| `ANCHOR_AMBIGUOUS_POLL_ATTEMPTS` | No | `3` | Re-polls before an ambiguous publish result (broadcast may or may not have landed) is resolved. |
+| `ANCHOR_AMBIGUOUS_POLL_MS` | No | `5000` | Delay between those re-polls. |
+| `ANCHOR_ANNOUNCE_RETRY_MS` | No | `300000` | Delay between retries of the anchor announcement (5 minutes). |
+| `ANCHOR_ANNOUNCE_RETRY_TTL_MS` | No | `21600000` | How long announcement retries continue before the entry is dropped (6 hours, roughly six times the 60-confirmation DOGE window). |
+| `ANCHOR_ANNOUNCE_QUEUE_MAX` | No | `500` | Maximum queued anchor announcements, bounding memory. |
+
+### Attestation Publishing
+
+Controls `AttestationPublisher`, which writes the validator network's answers to contract attestation requests back on-chain.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `ATTEST_ENABLED` | No | `true` | Set to `false` to stop this hub publishing attestation results. |
+| `ATTESTATION_QUEUE_PATH` | No | `./data/attestation-queue.jsonl` | Durable queue file for pending attestation publishes. Point at persistent storage. |
+| `ATTESTATION_FAILOVER_WINDOW_BLOCKS` | No | `2` | Blocks of leader silence before the rank-1 hub steps in. |
+| `ATTESTATION_FAILOVER_POLL_MS` | No | `30000` | Failover sweep cadence. |
+| `ATTESTATION_LEADER_RETRY_MS` | No | `60000` | Grace period before the sweep retries a leader's entry. |
+| `ATTESTATION_BLOCK_MS` | No | `600000` | Nominal block interval used to translate the failover window from blocks into time. Defaults to the BTC ~10 minute interval. |
+| `ATTESTATION_AMBIGUOUS_COOLDOWN_MS` | No | `ATTESTATION_FAILOVER_WINDOW_BLOCKS × ATTESTATION_BLOCK_MS` | Cooldown after an ambiguous publish result before another hub may retry. |
+| `BTC_ADDRESS` | No | _(from config table)_ | BTC address of this hub's publishing wallet. |
+| `BTC_PUBKEY_HEX` | No | _(from config table)_ | Public key, hex, of that wallet. |
+| `BTC_ENCODER_URL` | No | _(from config table)_ | Encoder URL used to build BTC publish transactions. |
+| `BTC_ENCODER_API_KEY` | No | _(from config table)_ | API key presented to that encoder when it runs keyed. Treat as a credential. |
+| `ATTESTATION_HTTP_GET_ALLOW_PRIVATE` | No | _(unset, fails closed)_ | Set to `1` to let the `http_get` attestation provider reach private and loopback addresses. **Off by default and security-relevant:** the provider normally resolves the hostname once and pins the request to that public address, which is what stops a contract-supplied URL being used for SSRF against the validator's own network. Enable only on an isolated test venue. |
+
+### State Checkpoints
+
+Controls `StateCheckpointEngine`, which produces the quorum-signed per-block state-hash checkpoints that light clients and `xchain-sync` replicas verify against.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `CHECKPOINT_ENABLED` | No | `true` | Set to `false` to stop this hub participating in checkpoint rounds. |
+| `CHECKPOINT_CHAINS` | No | all supported coins | Comma-separated list of chains to checkpoint. Entries outside the supported set are dropped. |
+| `CHECKPOINT_INTERVAL_BLOCKS` | No | `6` | Blocks between checkpoints. Raising it cuts checkpoint and anchor spend at the cost of a coarser recovery point; `144` is roughly daily on BTC. |
+| `CHECKPOINT_CONFIRMATIONS` | No | `6` | Confirmations required before a block is eligible for checkpointing. |
+| `CHECKPOINT_POLL_MS` | No | `60000` | Interval between checkpoint eligibility polls. |
+| `CHECKPOINT_ROUND_TIMEOUT_MS` | No | `60000` | Timeout for one checkpoint signing round. |
+| `CHECKPOINT_COSIGN_TOLERANCE_BLOCKS` | No | `144` | Fail-closed co-sign gate: a `SIGN_REQ` whose `snapshot_block` deviates from this hub's own BTC tip by more than this many blocks is declined. The default is roughly a day of BTC blocks. |
+
+### Full-Node Challenge
+
+Controls `FullNodeChallengeRound`, the periodic possession challenge proving a validator runs a real coin full node rather than mirroring the decoder and indexer databases. Feeds the full-node verified reward tier and the on-chain `NODEPROOF` action.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `FULLNODE_ENABLED` | No | `true` | Set to `false` to stop this hub running full-node challenges. |
+| `FULLNODE_BTC_RPC` | No | _(from coin config)_ | BTC node JSON-RPC URL used to pose the challenge. |
+| `FULLNODE_CHALLENGE_INTERVAL_BLOCKS` | No | `144` | Blocks between challenge rounds (about daily on BTC). |
+| `FULLNODE_CONFIRM_DEPTH` | No | `100` | Depth behind the tip from which challenge material is drawn. |
+| `FULLNODE_VERDICT_ACCEPT_WINDOW_BLOCKS` | No | `24` | Blocks during which a verdict remains acceptable. |
+| `FULLNODE_POLL_MS` | No | `30000` | Poll cadence for challenge progress. |
+| `FULLNODE_COLLECT_MS` | No | `20000` | Window for collecting challenge answers. |
+| `FULLNODE_COLLECT_DEPTH_BLOCKS` | No | `3` | Blocks past the collection point before the round closes. |
+
+### Retraction Consensus
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `RETRACT_ROUND_TIMEOUT_MS` | No | `180000` | Timeout for one retraction round. |
+| `RETRACT_SIGN_RETRY_MS` | No | `15000` | Delay before re-sending a retraction `SIGN_REQ`. |
+| `RETRACT_INTENT_TTL_MS` | No | `3600000` | How long a retraction intent stays live before expiring (1 hour). |
+
+### XCHAIN Price Derivation
+
+The XCHAIN/USD price is derived from platform-realized fills rather than an external feed. These read the indexer database holding those fills.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `XCHAIN_PRICE_INDEXER_DB_HOST` | No | None | Host of the indexer DB the fills are read from |
+| `XCHAIN_PRICE_INDEXER_DB_PORT` | No | None | Port of that database |
+| `XCHAIN_PRICE_INDEXER_DB_NAME` | No | None | Database name |
+| `XCHAIN_PRICE_INDEXER_DB_USER` | No | None | Database user |
+| `XCHAIN_PRICE_INDEXER_DB_PASS` | No | None | Database password. Treat as a credential: supply it from the deployment environment, never a checked-in file. |
+| `XCHAIN_PRICE_INDEXER_DB_COIN` | No | `BTC` | Chain whose fills the price is derived from |
+| `XCHAIN_PRICE_WINDOW_BLOCKS` | No | _(built-in)_ | Rolling window, in blocks, over which fills are aggregated |
+| `XCHAIN_PRICE_MIN_BTC_VOLUME` | No | _(built-in)_ | Minimum BTC-notional volume in the window before a derived price is considered valid |
+| `XCHAIN_PRICE_CONFIRMATION_BUFFER` | No | _(built-in)_ | Confirmations a fill needs before it counts toward the derived price |
+| `XCHAIN_PRICE_BOOTSTRAP_USD` | No | None | Bootstrap XCHAIN/USD price used before enough on-platform volume exists to derive one |
+
+### LLM Attestation Provider
+
+Backs the `ATTEST` path where a contract asks an approved model a question. See [Attestation](../../protocol/providers/llm.md).
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `LLM_PROVIDER_ENABLED` | No | `true` | Set to `false` to disable the LLM attestation provider on this hub. |
+| `LLM_MAX_BUDGET_USD` | No | _(built-in cap)_ | Spend ceiling in USD for LLM attestation calls. A kill-switch against runaway cost. |
+| `CLAUDE_BIN` | No | `claude` | Path to the Claude CLI binary the provider spawns. Override when it is not on `PATH`. |
 
 > **Cost note.** Each on-chain checkpoint anchor spends real DOGE on three transactions (BTC + LTC + DOGE checkpoints all broadcast on the DOGE chain). State recovery (`recovery.js`) only needs the **latest** anchored checkpoint per chain, so anchoring every intermediate `checkpoint_seq` is optional. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`), `ANCHOR_CHECKPOINT_EVERY_N=2` halves anchor spend (on-chain recovery point then trails the tip by up to ~2 checkpoint intervals). `checkpoint_seq` is consensus data, so the gate is deterministic across every hub.
 
@@ -134,18 +273,34 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 |---|---|---|---|
 | `ATTESTATION_TIMEOUT` | No | `60000` | Cross-chain attestation consensus timeout (ms) |
 | `CROSS_CHAIN_INDEXER_TIMEOUT` | No | `15000` | HTTP timeout (ms) for the hub's federation-read calls to indexers during cross-chain verification |
+| `XCALL_POLL_MS` | No | `15000` | Poll cadence of the cross-chain call relay |
+| `XCALL_RELAY_MARGIN_BLOCKS` | No | `4` | Margin, in blocks of the gating chain, stamped onto every relayed row's `effective_time`. Sized by that chain's nominal block interval. |
+| `XDEX_POLL_MS` | No | `15000` | Poll cadence of the cross-chain DEX settlement engine |
+| `XDEX_MIN_CONFIRMATIONS` | No | _(per-coin config)_ | Flat confirmation floor for cross-chain DEX settlement, overriding the per-coin values |
+| `XCHAIN_ATTEST_FINALIZED_MAX` | No | `10000` | Cap on retained finalized cross-chain attestation records held in memory |
+
+**Regtest-only seams.** Both engines honour these only when the hub's network is `regtest`, and read them as `NaN`/false everywhere else, so a stray environment variable or config row can never reach the signed snapshot anchor or seed a validator on mainnet or testnet. They deliberately share names between the DEX and XCALL engines so a no-BTC regtest stack is configured once.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `XDEX_SNAPSHOT_BLOCK` | No | None | Pin the snapshot anchor block on a regtest stack that has no BTC chain |
+| `XDEX_SEED_LOCAL_VALIDATOR` | No | None | Set to `1` to seed the local hub as a validator on a single-node regtest stack |
 
 ### Reorg
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `REORG_TIMEOUT` | No | `60000` | Reorg consensus timeout (ms) |
+| `REORG_MAX_LOOKBACK_MS` | No | `86400000` | How far back (24 hours) a reorg may be considered |
+| `REORG_MAX_PENDING` | No | `64` | Maximum concurrently pending reorg records, bounding memory |
+| `REORG_TIMESTAMP_SKEW_MS` | No | `10800000` | Tolerated clock skew (3 hours) when comparing reorg block timestamps |
 
 ### Governance
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `GOV_VOTING_PERIOD` | No | `604800000` | Governance voting period in milliseconds (default: 7 days) |
+| `GOVERNANCE_TALLY_INTERVAL` | No | `60000` | Interval between governance tally sweeps |
 
 ## Database Schema
 
@@ -236,8 +391,12 @@ Config is served as a nested object: `{ coin: { network: { module: { param: valu
 | Parameter | Value | Description |
 |---|---|---|
 | `connectionLimit` | `10` | Maximum simultaneous connections |
-| `connectTimeout` | `10000` | Connection timeout (ms) |
+| `connectTimeout` | `10000` | Connection timeout (ms); override with `DB_CONNECT_TIMEOUT` |
+| `acquireTimeout` | `10000` | Time to wait for a free pooled connection (ms); override with `DB_ACQUIRE_TIMEOUT` |
+| `queryTimeout` | `30000` | Query execution timeout (ms); override with `DB_QUERY_TIMEOUT` |
 | `idleTimeout` | `60000` | Idle connection timeout (ms) |
+
+`DB_CONNECT_TIMEOUT`, `DB_ACQUIRE_TIMEOUT`, and `DB_QUERY_TIMEOUT` are read by the indexer's pool with the same names and the same defaults.
 
 ## Circuit Breaker
 

@@ -261,7 +261,7 @@ A mismatch is a fatal violation: the transaction rolls back and the indexer halt
 
 ## 6. The ACTION Set
 
-The protocol defines 35 named ACTIONs across nine categories. Of these, 30 are user-submittable (all except ANCHOR, ATTEST, NODEPROOF, SLASH, and XCALL); the remaining five are validator-broadcast or VM-emitted actions described where relevant, along with system-synthesized actions (order/swap matching and expiry, betting market close and expiry, cross-chain settlement, XCALL relay, and so on). All user ACTIONs are available on every supported chain unless noted. A `^`-prefixed ticker field passes a numeric token id instead of a name.
+The protocol defines 36 named ACTIONs across ten categories. Of these, 31 are user-submittable (all except ANCHOR, ATTEST, NODEPROOF, SLASH, and XCALL); the remaining five are validator-broadcast or VM-emitted actions described where relevant, along with system-synthesized actions (order/swap matching and expiry, betting market close and expiry, cross-chain settlement, XCALL relay, and so on). Thirty-five of the 36 are decoded from a wire transaction; XCALL alone is mirror-injected into the destination chain's index instead. All user ACTIONs are available on every supported chain unless noted. A `^`-prefixed ticker field passes a numeric token id instead of a name.
 
 ### 6.1 Token lifecycle
 
@@ -323,6 +323,10 @@ The protocol defines 35 named ACTIONs across nine categories. Of these, 30 are u
 ### 6.9 Betting
 
 - **BET** is a self-contained parimutuel betting market: v0 creates a market (outcomes, wager token, oracle fee, deadline, refund window, optional allow/block gating, and an on-chain base64-JSON market definition), v2 places a wager, v3 resolves it to an outcome, and v1 cancels it with full refunds. Wagers in any token are escrowed at parse; on resolution the winning outcome's backers split the pot pro-rata after the oracle's percentage fee, and a winning outcome nobody backed refunds every stake with no fee. Markets are immutable from creation, close on a stored deadline latch rather than a recomputed clock check, and refund automatically if the oracle never resolves. The market creator is the oracle and is trusted only for outcome honesty; escrow and payout arithmetic are consensus-enforced.
+
+### 6.10 Governance
+
+- **VOTE** runs token-weighted governance polls in four version-discriminated phases: v0 creates a poll, v1 casts a ballot, v2 is the system-injected finalization, and v3 sets or clears a standing delegation. A poll names one token as both its electorate and its weight basis. Weight is never read from the payload: it is measured from on-chain holdings at the poll's effective close, so the outcome is a deterministic function of state the network has already agreed on and needs no validator consensus round. Polls support approval or split tallying, four weight modes (balance, flat, quadratic, time-weighted), quorum and minimum-voter floors, and early-decide thresholds. A poll can be made *binding* by naming a contract method to invoke at finalization, with its own gas escrow and an optional timelock between the result and the call, which is how a contract can be governed by its token holders rather than by an owner key.
 
 ---
 

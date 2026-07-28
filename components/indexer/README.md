@@ -7,11 +7,11 @@
 
 xchain-indexer is the state-processing engine of the XChain Platform. It reads decoded blockchain transactions from the Decoder database, validates and executes each ACTION according to protocol rules, maintains authoritative token state (balances, supplies, ownership, DEX orders, dispensers) in a separate MariaDB database, and makes that indexed data available for querying by xchain-explorer. The indexer runs as a long-lived Node.js process with an embedded Express JSON-RPC API server.
 
-Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, SLASH, and 36 more, passes through the indexer. The indexer determines whether the action is valid (checking balances, permissions, token rules, allow/block lists, sleep states), records the action with its status, updates the ledger (credits, debits, escrows), recalculates balances, and runs a sanity check after every block to guarantee consistency between token supplies and ledger totals.
+Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, SLASH, BET, and 38 more, passes through the indexer. The indexer determines whether the action is valid (checking balances, permissions, token rules, allow/block lists, sleep states), records the action with its status, updates the ledger (credits, debits, escrows), recalculates balances, and runs a sanity check after every block to guarantee consistency between token supplies and ledger totals.
 
 ## Features
 
-- **45 record types processed by the indexer** (of which 34 are wire-decoded ACTIONs; the rest are derived/system rows such as ORDER_MATCH, DISPENSE, COLLECT, `*_EXPIRE`, UNKNOWN, XEXEC, and XCALL - see `concepts/ACTIONS.md` for the canonical wire-decoded count): ADDRESS, AIRDROP, ANCHOR, ATTEST, BATCH, BROADCAST, CALLBACK, COINPAY, COINPAY_EXPIRE, COLLECT, CROSS_SETTLE, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSE, DISPENSER, DISPENSER_CLOSE, DISPENSER_EXPIRE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, NODEPROOF, ORDER, ORDER_EXPIRE, ORDER_MATCH, PRICE, SEND, SLASH, SLEEP, STAKE, SWAP, SWAP_EXPIRE, SWAP_MATCH, SWEEP, UNKNOWN, UNSTAKE, WITHDRAW, XCALL, XEXEC
+- **48 record types processed by the indexer** (of which 35 are wire-decoded ACTIONs; the rest are derived/system rows such as ORDER_MATCH, DISPENSE, COLLECT, `*_EXPIRE`, UNKNOWN, XEXEC, and XCALL - see `concepts/ACTIONS.md` for the canonical wire-decoded count): ADDRESS, AIRDROP, ANCHOR, ATTEST, BATCH, BET, BET_EXPIRE, BROADCAST, CALLBACK, COINPAY, COINPAY_EXPIRE, COLLECT, CROSS_SETTLE, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSE, DISPENSER, DISPENSER_CLOSE, DISPENSER_EXPIRE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, NODEPROOF, ORDER, ORDER_EXPIRE, ORDER_MATCH, PRICE, SEND, SLASH, SLEEP, STAKE, SWAP, SWAP_EXPIRE, SWAP_MATCH, SWEEP, UNKNOWN, UNSTAKE, VOTE, WITHDRAW, XCALL, XEXEC
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
 - **Atomic block processing**: every block is wrapped in a database transaction; failures roll back cleanly
 - **Block reorganization handling**: detects reorgs from the Decoder DB, rolls back affected data, and re-indexes
@@ -25,7 +25,7 @@ Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, S
 - **Action mapping**: creates address↔ticker↔action_index cross-references for fast lookups
 - **Circuit-breaker DB connections**: automatic failure detection and recovery for database connectivity
 - **Watchdog timeout**: configurable per-block processing timeout detects deadlocks
-- **3,200+ tests**: unit, integration, e2e, fuzz, chaos, mutation, boundary, smoke, performance, regression
+- **5,571 tests** (measured 2026-07-27): unit, integration, e2e, fuzz, chaos, mutation, boundary, smoke, performance, regression
 
 ## Documentation
 
@@ -33,7 +33,7 @@ Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, S
 |---|---|
 | [Architecture](ARCHITECTURE.md) | Data pipeline, internal components, action handlers, block processing pipeline |
 | [Configuration](CONFIGURATION.md) | Environment variables, coin-specific config, indexer constants |
-| [Actions](ACTIONS.md) | All 45 ACTION types, categories, format versions, protocol versioning |
+| [Actions](ACTIONS.md) | All 48 record types, categories, format versions, protocol versioning |
 | [Database](DATABASE.md) | Full schema reference: core, ledger, action, state, index, and mapping tables |
 | [Ledger](LEDGER.md) | Double-entry ledger, balance calculation, sanity checks, gas token fees |
 | [Operations](OPERATIONS.md) | Running, Docker, API endpoints, resilience, troubleshooting |
@@ -90,9 +90,9 @@ On startup, the indexer:
 | Command | Description |
 |---|---|
 | `npm run api` | Start the indexer and API server |
-| `npm test` | Run unit tests (3,000+ tests) |
-| `npm run test:integration` | Integration tests (150+ tests, requires MariaDB) |
-| `npm run test:e2e` | End-to-end tests (40+ tests, requires full stack) |
+| `npm test` | Run unit tests (4,977 tests) |
+| `npm run test:integration` | Integration tests (213 tests, requires MariaDB) |
+| `npm run test:e2e` | End-to-end tests (43 tests, requires full stack) |
 | `npm run test:boundary` | Boundary condition tests |
 | `npm run test:smoke` | Smoke tests (unit + connected) |
 | `npm run test:security` | Security tests |

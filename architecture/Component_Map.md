@@ -58,7 +58,7 @@ See [`../components/decoder/`](../components/decoder/) for full documentation.
 
 Key technical details:
 
-- Routes each ACTION string to one of ~45 dedicated handler classes (`IssueAction`, `SendAction`, `OrderAction`, `PriceAction`, etc.).
+- Routes each ACTION string to one of 48 dedicated handler classes (`IssueAction`, `SendAction`, `OrderAction`, `PriceAction`, etc.).
 - Validates all fields before execution. Invalid actions are recorded with status `invalid` and produce no ledger effects.
 - Maintains a double-entry ledger: every token movement is a credit to one address and a debit from another. Balance = SUM(credits) - SUM(debits). A sanity check asserts `token_supply == net ledger total` after each issuance.
 - Holds XCHAIN gas in escrow for time-bounded operations (orders, dispensers). Releases escrow on expiration or cancellation.
@@ -85,7 +85,10 @@ See [`../components/indexer/`](../components/indexer/) for full documentation.
 
 Key technical details:
 
-- Over 200 REST endpoint patterns across the `/api` and `/explorer` namespaces (129 `/api` routes and 68 `/explorer` routes in the dispatch table, plus additional hand-registered routes for file download, fee quote, fee schedule, checkpoints, Merkle proofs, hub-mirror status, and the OpenAPI spec), covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, governance polls and ballots, and more.
+- 232 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-07-27:
+  - 144 `/{COIN}/api/...` and 74 `/{COIN}/explorer/...` patterns in the dispatch table built by `setupUrls()`, matched by the catch-all handler rather than registered with Express individually.
+  - 14 hand-registered `/{COIN}/api/...` routes that bypass the dispatch table: raw file download, fee quote, oracle fee quote, preflight, fee schedule, checkpoint list, checkpoint range, checkpoint verify, hub-mirror status, the four Merkle proof endpoints (balance, action, validator set, contract state), and the POST contract-call query endpoint.
+  - Outside those two namespaces the same server also registers 87 HTML page routes plus `/openapi.json`, `/icon`, `/relay`, and the static asset mounts.
 - JSON-RPC 2.0 interface compatible with Counterparty-style tooling.
 - Bootstrap-based web UI with Highcharts for order book and market price visualization.
 - Reads configuration from xchain-hub every 60 seconds (fee schedules, supported parameters, fiat pricing).
@@ -186,7 +189,7 @@ See [`../components/utxo-tracker/`](../components/utxo-tracker/) for full docume
 
 Key technical details:
 
-- Exposes 30 action construction methods (one per developer-invocable ACTION type) and 100+ explorer query wrappers.
+- Exposes 31 action construction methods (one per developer-invocable ACTION type) and 118 explorer query wrappers.
 - Batch builder allows multiple actions to be combined into a single `BATCH` action string.
 - Discovers service endpoints via xchain-hub.
 - Implements retry with exponential backoff and connection pooling for all outbound calls.

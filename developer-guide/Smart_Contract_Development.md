@@ -13,7 +13,9 @@ This guide covers writing, deploying, and interacting with smart contracts on th
 
 ## Start from a template
 
-You don't have to start from a blank file. The `xchain-contracts` library ships audited, deploy-ready templates (escrow, vesting, crowdsale, AMM) and reusable patterns (access control, pausable, safe-transfer, input validation, state machines). The flow is **scaffold → customize → lint → deploy**.
+You don't have to start from a blank file. The `xchain-contracts` library ships 13 audited, deploy-ready templates and 5 reusable patterns (access control, pausable, safe-transfer, input validation, state machines). The flow is **scaffold → customize → lint → deploy**.
+
+The templates are escrow, vesting, crowdsale, amm, treasury, cardDispenser, urlOracle, priceBet, priceBetTimed, stableVault, escrowDelivery, englishAuction, and dutchAuction. Each ships with a walkthrough README, a test suite that runs the real contract through the XChain VM, and an explicit "attacks we considered" section. Start with escrow: it explains the custody model the rest build on.
 
 From the command line:
 

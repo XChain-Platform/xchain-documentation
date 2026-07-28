@@ -20,9 +20,9 @@ The decoder's job is extraction only; it does not interpret action semantics. It
 - **DISPENSER protocol**: parses DISPENSER actions and tracks active dispensers with expiration for real-time payment detection
 - **Mempool tracking**: maintains an index of unconfirmed transactions, updated every 60 seconds when synced
 - **Normalized storage**: addresses and transaction hashes stored in index tables with integer IDs for join efficiency
-- **ACTION name validation**: 34-name whitelist (SEND, ISSUE, MINT, ORDER, ANCHOR, NODEPROOF, SLASH, VOTE, etc.) enforced before database writes
+- **ACTION name validation**: 35-name whitelist (SEND, ISSUE, MINT, ORDER, ANCHOR, NODEPROOF, SLASH, VOTE, BET, etc.) enforced before database writes
 - **Graceful shutdown**: SIGTERM/SIGINT handlers complete in-flight work before exiting
-- **750+ tests**: unit, integration, e2e, boundary, security, fuzz, chaos, regression, benchmarks, and mutation testing
+- **1,333 tests** (measured 2026-07-27): unit, integration, e2e, boundary, security, fuzz, chaos, regression, benchmarks, and mutation testing
 
 ## Documentation
 
@@ -79,14 +79,14 @@ On startup, the decoder:
 | Command | Description |
 |---|---|
 | `npm run api` | Start the decoder and API server |
-| `npm run test:smoke` | Smoke tests (50+ tests, no external services) |
-| `npm run test:unit` | Unit tests (500+ tests, no external services) |
-| `npm run test:security` | Security tests (75+ tests, no external services) |
+| `npm run test:smoke` | Smoke tests (52 tests, no external services) |
+| `npm run test:unit` | Unit tests (911 tests, no external services) |
+| `npm run test:security` | Security tests (83 tests, no external services) |
 | `npm run test:integration` | Integration tests (requires bitcoind regtest + MariaDB) |
 | `npm run test:e2e` | End-to-end tests (requires full stack) |
 | `npm run test:fuzz` | Fuzz tests (5 harnesses, 1000 iterations each) |
 | `npm run test:fuzz:quick` | Quick fuzz (100 iterations) |
-| `npm run test:chaos` | Chaos engineering tests (50+ tests) |
+| `npm run test:chaos` | Chaos engineering tests (59 tests) |
 | `npm run test:regression` | Regression tests P0+P1 (60+ tests, fast) |
 | `npm run test:regression:critical` | Regression tests P0 only (45+ tests, <1s) |
 | `npm run test:regression:full` | Full regression suite (85+ tests) |

@@ -28,7 +28,7 @@ In addition to confirmed block data, the tracker maintains a separate in-memory 
 - **Bootstrap support**: compressed tar archive backup and restore for fast initial sync without re-scanning the full chain
 - **REST + JSON-RPC API**: dual interface for UTXO queries, balance lookups, address info, and bootstrap operations
 - **Rolling ETA**: 1000-block rolling window with day/hour/minute display for sync progress estimation
-- **750+ tests**: unit, integration, e2e, smoke, fuzz, chaos, performance, boundary, security, and regression testing
+- **1,015 tests** (measured 2026-07-27): unit, integration, e2e, smoke, fuzz, chaos, performance, boundary, security, and regression testing
 
 ## Documentation
 
@@ -80,20 +80,20 @@ On startup, the tracker:
 | Command | Description |
 |---|---|
 | `npm run api` | Start the tracker and API server |
-| `npm test` | Unit tests (400+ tests) |
-| `npm run test:smoke` | Smoke tests (9+ tests) |
+| `npm test` | Unit tests (591 tests) |
+| `npm run test:smoke` | Smoke tests (9 tests) |
 | `npm run test:integration` | Integration tests (65+ tests, requires LevelDB) |
-| `npm run test:e2e` | End-to-end tests (30+ tests) |
+| `npm run test:e2e` | End-to-end tests (36 tests) |
 | `npm run test:fuzz` | Fuzz tests (12 campaigns, 1000 iterations each) |
 | `npm run test:fuzz:quick` | Quick fuzz (100 iterations) |
 | `npm run test:fuzz:deep` | Deep fuzz (10,000 iterations) |
-| `npm run test:perf` | Performance tests (20+ tests) |
+| `npm run test:perf` | Performance tests (23 tests) |
 | `npm run test:perf:quick` | Quick performance (small scale) |
 | `npm run test:perf:deep` | Deep performance (large scale, 4 GB heap) |
-| `npm run test:boundary` | Boundary condition tests (15+ tests) |
-| `npm run test:security` | Security tests (50+ tests) |
-| `npm run test:regression` | Regression tests (15+ tests) |
-| `npm run test:chaos` | Chaos engineering tests (30+ tests) |
+| `npm run test:boundary` | Boundary condition tests (26 tests) |
+| `npm run test:security` | Security tests (52 tests) |
+| `npm run test:regression` | Regression tests (127 tests) |
+| `npm run test:chaos` | Chaos engineering tests (31 tests) |
 | `npm run test:all` | All unit + integration + e2e tests |
 | `npm run test:unit:ondisk` | Unit tests running against on-disk ClassicLevel instead of in-memory |
 | `npm run test:integration:ondisk` | Integration tests running against on-disk ClassicLevel |

@@ -32,7 +32,7 @@ npm run test:e2e                  # E2E meta-tests (35+ tests, --timeout 0)
 npm run test:smoke                # Quick bootstrap + connectivity (15+ tests, 30s timeout)
 
 # ─── Infrastructure Tests (no services) ──────────────────────────
-npm run test:unit                 # Unit tests (350+ tests)
+npm run test:unit                 # Unit tests (556 tests)
 npm run test:integration          # Integration tests (150+ tests)
 npm run test:boundary             # Boundary condition tests (140+ tests)
 npm run test:fuzz                 # Property-based fuzz tests (50+ tests, 60s timeout)
@@ -80,7 +80,7 @@ PR opened / commit pushed
          │
          ▼
   ┌──────────────────┐
-  │ Full Unit Tests   │ ◄── npm run test:unit (350+ tests)
+  │ Full Unit Tests   │ ◄── npm run test:unit (556 tests)
   └──────┬───────────┘
          │
          ▼ (on merge to main)

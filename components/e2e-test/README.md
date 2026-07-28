@@ -31,7 +31,7 @@ Each action test follows the same lifecycle:
 - **Wallet memory cleanup**: seed and private key buffers are zeroed during afterAll teardown
 - **Performance instrumentation**: nanosecond-precision bootstrap phase timing, per-poll metrics, custom Mocha reporter writing JSON to `perf-results/`
 - **Mutation testing**: Stryker Mutator with two-phase configuration (Phase 1: unit tests, Phase 2: unit + integration)
-- **1,150+ tests** across 11 testing disciplines
+- **1,700+ tests** across 11 testing disciplines (a floor: the suites read chain and service config at load time, so the tree cannot be enumerated without a live stack)
 
 ## Architecture
 

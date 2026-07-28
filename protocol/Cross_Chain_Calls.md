@@ -103,6 +103,43 @@ never drops.
   rollback-able action rows; the request's terminal flip is reset by the
   rollback pass via `resolved_block`, so replays re-deliver identically.
 
+## Client integration boundary (wallets, composers, SDK)
+
+No wallet, batch composer, or SDK call site ever submits an XCALL, and the
+absence of an XCALL entry in a client's action menu is the correct behaviour,
+not a coverage gap:
+
+- XCALL v0 exists only as an emission from inside contract code
+  (`xchain.emit.crossExecute(...)`), and XCALL v2 is synthesized by every
+  indexer from block height. Neither has a user-broadcast path, so the SDK
+  ships no XCALL encoder and `action-manifest.json` gives XCALL a category
+  outside `wire-user`, with neither `userEncodable` nor `walletForm` set (both
+  of which DEPLOY and EXECUTE do carry).
+- A client's entire request-side involvement is generic contract tooling:
+  DEPLOY a contract whose CODE calls `crossExecute`, then EXECUTE one of that
+  contract's methods. Those two forms are the client surface worth testing.
+  The XCALL is a consequence of the deployed contract, not of the client.
+
+### Exercising the request side
+
+Producing a real XCALL on chain is a two-contract engineering exercise rather
+than a UI flow:
+
+1. Deploy the TARGET contract on chain Y, exporting a `crossCallable` array
+   naming the method to be reached cross-chain.
+2. Deploy the SOURCE contract on chain X, whose method calls
+   `xchain.emit.crossExecute({ targetChain, contractIndex, method, gasLimit,
+   callbackMethod, ... })` against the target's DEPLOY action index on Y.
+3. Mine both deploys, then EXECUTE the source method from any wallet.
+
+The verifiable request-side half ends there: the EXECUTE indexes valid on X
+and X's indexer records an emitted XCALL v0. Everything past that point
+(dispatch, XEXEC injection on Y, the result callback) is federation work and
+requires the XCALL relay wired across both chains' indexers plus a hub. A
+single-chain wallet stack cannot settle a call no matter what the client
+does, so client test plans should assert the request half and leave
+settlement to a federation drill venue.
+
 ## Wire/spec details
 
 Formats, canonical signing strings, statuses, gas buckets, and the lifecycle

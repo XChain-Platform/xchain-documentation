@@ -27,6 +27,15 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `EXPLORER_FORCE_HTTPS` | No | None | Explicitly enable (`1`) or disable (`0`) the HTTPS-hardening headers (HSTS and `upgrade-insecure-requests`). By default they are active only when `NODE_ENV=production`, so plain-HTTP dev/regtest deploys are not broken. Set to `1` when running behind a TLS-terminating proxy without `NODE_ENV=production`. |
 | `EXPLORER_HOLDERS_CACHE_MS` | No | `15000` | TTL (ms) of the per-tick holders-query result cache. `getHolders` requires an unindexable full-table filesort, so results are cached briefly to bound repeated-query cost. |
 | `EXPLORER_HOLDERS_CACHE_MAX` | No | `500` | Maximum number of distinct holders-query results kept in the cache. |
+| `EXPLORER_TOTALS_CACHE_MS` | No | `60000` | TTL (ms) of the platform-totals query cache. |
+| `MEMPOOL_COUNT_CACHE_MS` | No | `15000` | TTL (ms) of the mempool-count cache. |
+| `PRICE_CACHE_MS` | No | `60000` | TTL (ms) of the oracle-price cache. |
+| `FEE_CACHE_MS` | No | `60000` | TTL (ms) of the fee-schedule cache. |
+| `EXPLORER_WALLET_URL` | No | `https://wallet.xchain.io` | Wallet handoff target for the contract page's Write Contract card. Set it to an **empty string** to disable the card entirely; the default applies only when the variable is unset, never when it is set to `''`. |
+| `ENCODER_URL` | No | None | Encoder base URL used for the UI's fee estimate. Unset returns a conservative `{low:1, medium:2, high:3}` fallback rather than an error. |
+| `UTXO_TRACKER_URL_<COIN>` | No | None | Per-coin UTXO-tracker base URL, used to fill the address page's balance and UTXO panel from the tracker's `GET /info/<address>`. `COIN` is the route code (`BTC`, `TBTC`, `RDOGE`, …). |
+| `UTXO_TRACKER_URL` | No | None | Fallback tracker base URL when no coin-specific variable is set. With neither configured the address page shows an honest "Unavailable" rather than fabricated zeroes. |
+| `HUB_URL` | No | None | Hub base URL used to fetch the coin's USD price for the UI. Unset leaves the `$0.00` placeholder, which is also what testnet and regtest route codes get, since the oracle only prices mainnet assets. |
 
 ### WebSocket
 
@@ -50,6 +59,11 @@ See [WEBSOCKET.md](WEBSOCKET.md) for the full WebSocket API reference.
 | `HUB_PORT` | No | `10000` | xchain-hub port (single-instance; ignored when `HUB_VALIDATORS` is set) |
 | `HUB_VALIDATORS` | No | None | Comma-separated list of hub URLs for high-availability config discovery (e.g. `http://hub1:10000,http://hub2:10000`). When set, takes precedence over `HUB_API_HOST`/`HUB_PORT` and the explorer tries each URL in order, falling back to the next on failure. |
 | `UPDATE_CONFIG_INTERVAL` | No | `60000` | Interval in milliseconds between hub config refresh polls |
+| `HUB_RETRY_ATTEMPTS` | No | `4` | Attempts per hub config fetch, with exponential backoff. After a power cycle the hub and its MariaDB can take several seconds to come up; a single-pass fetch loses that race and leaves the explorer with no config. `ping()` opts out so liveness checks stay fast. |
+| `HUB_RETRY_DELAY_MS` | No | `2000` | Base backoff between hub config retry attempts. Tests set `0`. |
+| `HUB_DB_SYNC_POLL_INTERVAL` | No | `30000` | Interval in milliseconds between hub-mirror table sync polls. |
+| `HUB_SYNC_WATERMARK_INTERVAL_MS` | No | `10000` | Interval in milliseconds at which the hub-mirror sync persists its progress watermark. |
+| `MIRROR_DB_PASS` | No | None | Password for the hub-mirror schema migration tool, read only by `bin/migrate-hub-mirror.js` and never by the running explorer. Passed in the environment specifically so it stays off the command line: `MIRROR_DB_PASS=… node bin/migrate-hub-mirror.js --host … --user … --schema …`. Treat as a credential. |
 | `CONFIG_CACHE_FILE` | No | `<appdir>/tmp/config-cache.json` | Path to the on-disk last-known-good hub config cache. The explorer writes here after each successful hub fetch and reads it on startup when the hub is unreachable, so it comes up serving the last known coin set rather than zero coins. Override to a mounted volume path to survive container recreation. |
 | `NO_HUB` | No | None | Set to `1` (or `true`/`yes`) to enable standalone mode: the hub is not contacted and all coin/network + database config is read from `src/config.json` (or `NODE_CONFIG`). Use on single-server deployments where the hub publishes docker-internal DB hosts that are not reachable from the explorer process. |
 
@@ -89,6 +103,20 @@ two endpoints return `503` (clients then fall back to paying the protocol fee in
 | `INDEXER_API_URL_<COIN>_<NETWORK>` | No | None | Indexer JSON-RPC URL for a specific coin+network (e.g. `INDEXER_API_URL_BTC_REGTEST=http://localhost:3004`) |
 | `INDEXER_API_URL` | No | None | Generic fallback indexer JSON-RPC URL used when no coin/network-specific var is set |
 | `INDEXER_API_TIMEOUT_MS` | No | `5000` | Per-request timeout for the indexer proxy calls |
+| `EXPLORER_INDEXER_API_KEY` | No | None | API key presented to the indexer's fail-closed federation-read gate. When the peer indexer sets `INDEXER_API_KEY`, gated methods such as `getstakeweightsbycapability` return `401` without this, which is what a hardened indexer needs in order to still serve the explorer's validator-set proof. |
+| `DECODER_API_TIMEOUT_MS` | No | `2500` | Per-request timeout for decoder health calls. Tighter than the indexer timeout on purpose: health aggregation runs on the `/api/status` hot path, so a stalled decoder must not hold the whole status response. |
+
+### Contract simulation (Read Contract card)
+
+The explorer can run a read-only contract call in the VM to power the contract page's Read Contract card. It is **off by default**: the endpoint exists only when explicitly enabled.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `EXPLORER_VM_QUERY_ENABLED` | No | `false` | Set to `true` to enable `POST /{COIN}/api/contract/{idx}/call` and advertise the Read Contract card. Any other value leaves the route disabled. |
+| `EXPLORER_VM_QUERY_RATE_LIMIT_RPM` | No | `20` | Simulation requests per minute per IP |
+| `EXPLORER_VM_MAX_CONCURRENT` | No | `4` | Global ceiling on concurrent simulations |
+| `EXPLORER_VM_MAX_CONCURRENT_PER_IP` | No | half the global pool, minimum 1 | Per-IP share of the simulation slot pool, so a small set of clients cannot monopolize every slot |
+| `EXPLORER_VM_MAX_STATE_BYTES` | No | `4194304` (4 MiB) | Byte cap on the initial contract-state load. The VM's own limits bound only *new* state writes, so without this cap a caller can aim simulations at a contract with huge accumulated state and burn SQL, `JSON.parse`, and IPC on every call. |
 
 ### SSL/TLS
 
@@ -260,6 +288,9 @@ The explorer uses `express-rate-limit` middleware:
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `EXPLORER_RATE_LIMIT_RPM` | No | `500` | Maximum requests per IP per 60-second window. Image requests (`.png`, `.jpg`, `.jpeg`, `.gif`, `.ico`, `.svg`, `.webp`), `/icon/` paths, and `/images` paths are excluded from the limit. |
+| `EXPLORER_ACTION_PROOF_RATE_LIMIT_RPM` | No | `60` | Separate, tighter limit for `/{COIN}/api/proof/action/{idx}` |
+| `EXPLORER_VALIDATOR_SET_PROOF_RATE_LIMIT_RPM` | No | `30` | Separate, tighter limit for `/BTC/api/proof/validator-set` |
+| `WS_TRUST_PROXY_HOPS` | No | `1` | Proxy hop count used to resolve the real client address for the WebSocket per-IP cap. The upgrade is handled on the raw HTTP server, where Express's `trust proxy` does not apply, so the hop count must be passed explicitly or the cap keys on a spoofable `X-Forwarded-For`. Keep it aligned with the HTTP side. |
 
 Rate limiting applies to all non-image endpoints (API, Explorer, and HTML).
 

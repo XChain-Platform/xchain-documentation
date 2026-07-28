@@ -234,7 +234,7 @@ sent to a single-tick contract are not recoverable by that template.
 ## Where to go next
 
 - Full contract authoring guide: [Smart_Contract_Development.md](./Smart_Contract_Development.md).
-- Templates: `escrow`, `vesting`, `crowdsale`, `amm` (audited, forkable) in `xchain-contracts/`.
+- Templates: 13 audited, forkable contracts in `xchain-contracts/`. The custody and finance set is `escrow`, `escrowDelivery`, `vesting`, `crowdsale`, `amm`, `stableVault`, `treasury`; the auction set is `englishAuction` and `dutchAuction`; the oracle-consuming set is `priceBet`, `priceBetTimed`, and `urlOracle`; plus `cardDispenser` for randomized inventory draws.
 - Building blocks + OpenZeppelin aliases: `xchain-contracts/patterns/`.
 - Typed gateway (editor autocomplete): `xchain-vm/src/gateway.d.ts`.
 - The full gateway API and gas schedule: the developer guide on docs.xchain.io.

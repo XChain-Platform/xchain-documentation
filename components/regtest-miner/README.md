@@ -23,7 +23,7 @@ This service is testing infrastructure. It must not be run against mainnet or te
 - **Error sanitization**: RPC credentials are never exposed in error messages or console output
 - **Concurrent call protection**: `fillMempool` mutex prevents overlapping stress test runs, with automatic `keepMining` flag restoration in a finally block
 - **Docker-ready**: Alpine Node 22 image with non-root user, healthcheck via JSON-RPC ping, and hardened security headers (Helmet, CORS)
-- **800+ tests**: unit, integration, e2e, smoke, boundary, security, fuzz, chaos, performance, mutation, and regression testing
+- **1,007 tests** (measured 2026-07-27): unit, integration, e2e, smoke, boundary, security, fuzz, chaos, performance, mutation, and regression testing
 
 ## Documentation
 
@@ -74,7 +74,7 @@ On startup, the miner:
 | Command | Description |
 |---|---|
 | `npm run api` | Start the miner and JSON-RPC API server |
-| `npm test` | All tests (800+ tests) |
+| `npm test` | All tests (1,007 tests) |
 | `npm run test:smoke` | Smoke tests (10+ tests, 10s timeout) |
 | `npm run test:e2e` | End-to-end tests (30s timeout) |
 | `npm run test:security` | Security tests (input validation, error sanitization, env validation, API hardening, resource exhaustion) |

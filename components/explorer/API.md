@@ -1700,9 +1700,15 @@ The following endpoints are registered and active. Detailed documentation is in 
 ```
 GET /{COIN}/api/feequote?action=ISSUE&params=0|NEWTICK&source=...&feeOutputSats=...
 GET /{COIN}/api/feeschedule
+GET /{COIN}/api/preflight?action=SEND&params=...&source=...
+GET /{COIN}/api/oraclefeequote?oracleAddress=...&giveTick=...&fiatCode=USD&giveEscrow=1000
 ```
 
-Proxied to the colocated indexer's `feequote` / `feeschedule` JSON-RPC. Returns `503` when no `INDEXER_API_URL` is configured. See [CONFIGURATION.md](CONFIGURATION.md) for `INDEXER_API_URL_<COIN>_<NETWORK>`.
+Proxied to the colocated indexer's `feequote` / `feeschedule` / `preflight` / `oraclefeequote` JSON-RPC. Returns `503` when no `INDEXER_API_URL` is configured. See [CONFIGURATION.md](CONFIGURATION.md) for `INDEXER_API_URL_<COIN>_<NETWORK>`.
+
+`preflight` answers "would the indexer accept this action?" independently of native-fee support, returning `{ supported, valid, status, error, guardInert, feeExempt, denied, blockIndex, blockTime }`.
+
+`oraclefeequote` sizes the up-front native-coin output a Mode B dispenser owes the oracle operator it names in `ORACLE_ADDRESS`, returning `{ valid, error, oracleAddress, blockTime, requiredFeeNative, requiredFeeSats, belowDust, note }`. The indexer computes it from the same code path it validates with, so an output sized from the quote is accepted on chain.
 
 ---
 
@@ -2046,6 +2052,8 @@ Content-Type: application/json
 | `GET /{COIN}/api/proof/contract-state/{idx}/{key}` | Contract-state proof (reserved; HTTP 501 in v1) |
 | `GET /{COIN}/api/feequote` | Native-coin fee pre-flight quote |
 | `GET /{COIN}/api/feeschedule` | Native-coin fee schedule |
+| `GET /{COIN}/api/preflight` | Validity-first action pre-flight, independent of fee support |
+| `GET /{COIN}/api/oraclefeequote` | Oracle usage-fee quote for a Mode B dispenser |
 | `GET /{COIN}/api/file/{actionIndex}/raw` | Raw FILE action bytes (or gated ciphertext) |
 | `GET /openapi.json` | OpenAPI 3.1 machine-readable spec |
 | `GET /relay?url={url}` | Off-chain resource proxy (JSON/PNG, SSRF-guarded) |

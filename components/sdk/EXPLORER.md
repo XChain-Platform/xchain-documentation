@@ -613,6 +613,26 @@ Returns the native-coin fee schedule and current oracle prices. Useful for displ
 
 - **Endpoint:** `GET /{COIN}/api/feeschedule`
 
+#### `getOracleFeeQuote({ oracleAddress, giveTick, fiatCode, giveEscrow, giveCoin?, getCoin?, blockTime? })`
+Oracle usage-fee quote for a Mode B dispenser. A dispenser that names an `ORACLE_ADDRESS` pays that oracle operator up front, as a native-coin output sized from the escrow the action adds. Call this before composing a `DISPENSER` v0 create or a v2 refill, then pass the amount as a custom output to the oracle's address.
+
+- **Endpoint:** `GET /{COIN}/api/oraclefeequote?oracleAddress=...&giveTick=...&fiatCode=...&giveEscrow=...`
+- **Returns:** `{ valid, error?, oracleAddress, blockTime, requiredFeeNative, requiredFeeSats, belowDust, note? }`
+
+```js
+const q = await sdk.explorer.getOracleFeeQuote({ oracleAddress, giveTick, fiatCode, giveEscrow });
+if (q.valid && !q.belowDust)
+    customOutputs.push({ address: q.oracleAddress, value: q.requiredFeeSats });
+```
+
+The indexer computes the quote from the same code path it validates with, so an output sized from the quote is accepted on chain. A dispenser whose oracle has published no effective price yet is rejected both here and on chain: the oracle must have prices set, and PRICE v1 quotes only become effective 24 hours after publication.
+
+#### `getPreflight({ action, params, source? }, opts?)`
+Validity-first pre-flight for a single action, decoupled from native-fee support: "would the indexer accept this action?".
+
+- **Endpoint:** `GET /{COIN}/api/preflight?action=...&params=...`
+- **Returns:** `{ supported, valid, status, error?, guardInert, feeExempt, denied, blockIndex, blockTime }`
+
 #### `getPriceSnapshots(query?, type?, opts?)`
 Returns oracle price-snapshot rounds for the price oracle.
 

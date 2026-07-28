@@ -27,7 +27,7 @@ Until additional maintainers join, the lead owns every area below. The table is 
 | Area | What it covers |
 |---|---|
 | Protocol spec | `protocol/` ACTION definitions, encoding formats, DB naming conventions, Token Information Standard, error codes, URI scheme, and JSON schemas |
-| Component docs | `components/` per-service documentation for each of the 13 xchain-* services |
+| Component docs | `components/` documentation for each of the 14 documented xchain-* components |
 | Developer guide | `developer-guide/` tutorials, integration examples, and query references |
 | Getting started | `getting-started/` platform intro, quickstarts, and glossary |
 | Concepts | `concepts/` metalayer model, tokens, ACTIONs, encoding, cross-chain, gas, and security overviews |

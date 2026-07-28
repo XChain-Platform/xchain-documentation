@@ -138,6 +138,8 @@ The API has three tiers when `HUB_API_KEY` is set. If no API key is configured, 
 2. **Sensitive reads** (key required): `getallconfigs`, because its response carries every service's connection parameters including database credentials. The `/hub-db/snapshot/*` and `/hub-db/subscribe` mirror feed is keyed the same way. Emergency opt-out for a staged rollout: `HUB_SENSITIVE_READ_AUTH=0` reopens the sensitive reads while leaving writes keyed.
 3. **Writes** (key required): the methods below.
 
+A fourth, narrower key exists for one group of writes. `HUB_REORG_API_KEY`, when set, gates the reorg-push methods (`pushpricereorg`, `pushxcallreorg`, `pushdexreorg`) with a key **separate from `HUB_API_KEY`**, so an indexer can be granted reorg-push rights without being handed the key that also unlocks `getallconfigs` and every other write. It is a bulk-key interim measure that is rolling-deploy safe; the full fix (2f+1 co-signed retractions) rides the  flag-day set. Treat it as a credential.
+
 | Method | Category |
 |---|---|
 | `updateconfig` | Config management |

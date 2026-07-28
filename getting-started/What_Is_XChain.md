@@ -29,7 +29,7 @@ In practice, XChain works by embedding small pieces of data inside ordinary bloc
 
 ## What Can You Do with XChain?
 
-XChain is built around 34 commands (called **ACTIONs**) that cover the full lifecycle of a digital asset ecosystem.
+XChain is built around 35 commands (called **ACTIONs**) that cover the full lifecycle of a digital asset ecosystem.
 
 ### Create and Manage Tokens
 
@@ -93,16 +93,20 @@ XChain supports **staking** for hub validation. Validators stake XCHAIN tokens t
 
 (DELEGATE versions 2 and 3 also remove a delegation without replacing it.)
 
+### Run a Betting Market
+
+**BET** runs a parimutuel betting market from creation through payout. Anyone can open a market on any question, name its outcomes, and pick the token wagers are denominated in. Anyone can then bet on it. Every wager is escrowed by the protocol, and when the market's creator publishes the winning outcome, everyone who backed it splits the whole pot in proportion to what they staked. There is no order book and no counterparty to find, so a bet never sits unfilled. The creator acts as the market's oracle and takes a percentage of the pot as a fee; if they never resolve it, the protocol refunds every bet automatically. See the [betting guide](../user-guide/BETTING.md).
+
 ### Validator and System Actions
 
-Four of the 34 ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not accessible through the SDK, but they appear on-chain and in the explorer, so it is worth knowing what they do.
+Four of the 35 ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not accessible through the SDK, but they appear on-chain and in the explorer, so it is worth knowing what they do.
 
 - **ANCHOR** is written by validators to commit a quorum-signed state checkpoint to the anchor chain (Dogecoin on all networks). It records the per-block ledger, action, and contract hash triple so light clients can verify indexer state against a threshold of validator signatures without trusting any single operator. Later versions of ANCHOR also archive cross-chain match records and SPV light-client roots, making the full platform state reconstructible from chain data alone.
 - **ATTEST** is written by validators when they answer a smart contract's request for outside-world data (an HTTP call, an LLM query, etc.). Validators fetch the answer independently, reach quorum, and broadcast the signed response back on-chain; a system-synthesized expiry version is written by the indexer if the deadline passes before quorum is reached.
 - **NODEPROOF** is written by validators to record a quorum-signed verdict proving which validators correctly answered a periodic block-data possession challenge. It serves as on-chain evidence that those validators operate real coin full nodes rather than relying on mirrored databases.
 - **SLASH** is submitted by anyone who catches a validator signing two conflicting values for the same consensus slot (equivocation). When the proof is valid, the offending validator's entire capability bond is burned automatically. The submitter receives a governance-configured bounty.
 
-XCALL, the platform's cross-chain contract call, works differently: it's emitted by the VM when a smart contract calls `emit.crossExecute(...)` to invoke a contract on a different chain, then mirror-injected into the destination chain's index by the validator federation rather than decoded from a wire transaction, so it isn't counted among the 34 wire-decoded ACTIONs above. The validator federation relays the call and delivers the result back through a callback on the originating chain; a system-synthesized version is written by the indexer if the deadline passes before a result arrives.
+XCALL, the platform's cross-chain contract call, works differently: it's emitted by the VM when a smart contract calls `emit.crossExecute(...)` to invoke a contract on a different chain, then mirror-injected into the destination chain's index by the validator federation rather than decoded from a wire transaction, so it isn't counted among the 35 wire-decoded ACTIONs above. The validator federation relays the call and delivers the result back through a callback on the originating chain; a system-synthesized version is written by the indexer if the deadline passes before a result arrives.
 
 ---
 
@@ -122,7 +126,7 @@ A lot of layer-2 and sidechain systems require you to trust a separate set of va
 
 ### Multi-Chain by Design
 
-XChain runs natively on Bitcoin, Litecoin, and Dogecoin simultaneously. A token on one chain is distinct from a token on another chain; they have separate ledgers. But the XChain software supports all three chains with the same protocol, the same 34 actions, and the same tooling. A single deployment of the platform can index and serve data for all three chains at once.
+XChain runs natively on Bitcoin, Litecoin, and Dogecoin simultaneously. A token on one chain is distinct from a token on another chain; they have separate ledgers. But the XChain software supports all three chains with the same protocol, the same 35 actions, and the same tooling. A single deployment of the platform can index and serve data for all three chains at once.
 
 ### AI-Callable Smart Contracts
 
@@ -134,9 +138,9 @@ The XChain platform is open source software. Anyone can run their own XChain nod
 
 ---
 
-## The 34 ACTIONs: The Building Blocks
+## The 35 ACTIONs: The Building Blocks
 
-Every operation on XChain is expressed as one of 34 ACTION commands. Think of them as the vocabulary of the protocol; a complete set of verbs for working with digital assets.
+Every operation on XChain is expressed as one of 35 ACTION commands. Think of them as the vocabulary of the protocol; a complete set of verbs for working with digital assets.
 
 | Category | ACTIONs |
 |---|---|
@@ -149,6 +153,7 @@ Every operation on XChain is expressed as one of 34 ACTION commands. Think of th
 | Data and communication | BROADCAST, MESSAGE, FILE |
 | Configuration | ADDRESS, BATCH, LINK, LIST |
 | Governance | VOTE |
+| Betting | BET |
 | Validator / system | ANCHOR, NODEPROOF, SLASH |
 
 Each ACTION has a versioned format, as the protocol evolves and adds new fields, old versions remain valid so that existing software doesn't break.
@@ -169,7 +174,7 @@ XCHAIN is itself just a token on XChain, issued by a designated address (called 
 
 ### Developers Building Token Platforms
 
-XChain provides a complete SDK (`xchain-sdk`) with methods for 30 of the 34 actions (the developer-invocable set), 100+ explorer queries, smart contract deployment and execution, a batch builder, live WebSocket event streaming, and PSBT generation. If you want to build a token platform, a DEX, an NFT marketplace, a DeFi protocol with smart contracts, or any application involving digital assets on Bitcoin-family chains, XChain gives you the full stack.
+XChain provides a complete SDK (`xchain-sdk`) with methods for all 31 of the 35 actions that are developer-invocable, 100+ explorer queries, smart contract deployment and execution, a batch builder, live WebSocket event streaming, and PSBT generation. If you want to build a token platform, a DEX, an NFT marketplace, a DeFi protocol with smart contracts, or any application involving digital assets on Bitcoin-family chains, XChain gives you the full stack.
 
 ### Organizations Wanting Private Deployments
 

@@ -146,21 +146,25 @@ npm run api
 | `MAX_FEE_RATE_MULTIPLIER` | No | `100` | Caps caller-supplied fee/feePerKb at this multiple of the node's fee estimate (`0` disables) |
 | `API_KEY` | No | Disabled | API key for `x-api-key` header authentication |
 | `ENCODER_RATE_LIMIT_RPM` | No | `60` | Maximum requests per minute per IP |
+| `ENCODER_MAX_RPC_BATCH` | No | `20` | Maximum calls permitted in one inbound JSON-RPC batch. The router runs `Promise.all` over a batch while the rate limiter counts the batch as a single request, so without this bound one ~1MB array fans out into thousands of concurrent `estimate_fee` / `create_tx` handlers |
+| `ENCODER_TRUST_PROXY` | No | `loopback, uniquelocal` | Express `trust proxy` setting. The default recovers the real client IP behind a host proxy (loopback) or a Docker bridge (uniquelocal), and ignores a forged `X-Forwarded-For` when the encoder is exposed directly. Override with `false`, a hop count (e.g. `1`), or an address/CIDR list. Mirrors the hub's `HUB_TRUST_PROXY` |
+| `UTXO_TRACKER_MAX_LAG_BLOCKS` | No | `2` | Maximum blocks the utxo-tracker may report as lag (its per-response `sync` field) before `create_tx` refuses to select UTXOs from it and fails with `UTXO_TRACKER_STALE` |
+| `NODE_RPC_TIMEOUT` | No | `30000` | HTTP timeout in milliseconds for JSON-RPC calls to the coin node |
 | `CORS_ORIGIN` | No | Disabled | CORS origin (`*` to allow all) |
 
 ## Testing
 
-The encoder maintains a comprehensive test suite spanning 10 testing disciplines with 800+ tests total. All tests except the root-level regtest integration suite run offline with mocked connectors. No live coin node required.
+The encoder maintains a comprehensive test suite spanning 11 testing disciplines with 1,342 tests total (measured 2026-07-27). All tests except the root-level regtest integration suite run offline with mocked connectors. No live coin node required.
 
 ### Test Scripts
 
 ```bash
-npm run smoke-test        # Operational health checks (50+ tests, <1s)
-npm run test:unit         # Isolated method tests (250+ tests)
-npm run test:integration  # Multi-component pipeline tests (100+ tests)
-npm run test:boundary     # Edge-case and limit tests (90+ tests)
-npm run test:chaos        # Failure injection tests (60+ tests)
-npm run test:regression   # Curated critical-path regression suite (190+ tests)
+npm run smoke-test        # Operational health checks (52 tests, <1s)
+npm run test:unit         # Isolated method tests (472 tests)
+npm run test:integration  # Multi-component pipeline tests (112 tests)
+npm run test:boundary     # Edge-case and limit tests (100 tests)
+npm run test:chaos        # Failure injection tests (62 tests)
+npm run test:regression   # Curated critical-path regression suite (263 tests)
 npm run mutate            # Full mutation testing via StrykerJS
 npm run mutate:quick      # Incremental mutation check (XChainEncoder.js only)
 npm run bench             # Performance benchmarks

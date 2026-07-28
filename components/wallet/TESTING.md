@@ -7,22 +7,46 @@ The wallet's test strategy combines headless unit tests (vitest), headless smoke
 
 ## Smoke suite
 
-`pnpm test:smoke` (run from the workspace root) runs the full smoke suite via Node. **250+ smokes** pass; CI fails on any regression.
+`pnpm test:smoke` (run from the workspace root) runs the full smoke suite via Node. **365 smoke files** run; CI fails on any regression.
 
 The smokes are deliberately *static*; they exercise component imports, render trees, registry validation, schema migrations, and audit scripts without spinning up real backends. They run in seconds and gate every commit.
 
-| Group | Approximate count | Coverage |
+Counts below are file counts per `test/smoke/` subdirectory, measured 2026-07-27.
+
+| Group | Files | Coverage |
 |---|---|---|
-| UI surfaces (routes) | ~50 | Onboarding, Home, Send, Receive, History, Issue, Mint, Destroy, Dispenser, Dividend, Airdrop, Broadcast, Compose, Markets, Place-Order, Orderbook, Recent-Trades, Open-Orders, Trade-History, Multisig-Create, Multisig-Signing, Cross-Chain, Parallel, Stake, Delegation, Operator, Contracts, Contract-Detail, Execute, Deploy, Funds, Messaging-Inbox, Address-List, Token-Wizard, Token-Admin, Migrate-to-BIP39, Pair-Signer, View-Private-Key, … |
-| UI primitives | ~9 | Button, Input, Screen, ChainBadge, AddressText, CopyButton, MultisigBadge, AnimatedQrFrames, QrScanner |
-| Signers | ~8 | Software, Trezor, Ledger, Remote, Multisig, hw-factories, hw-sign-e2e, signer-port-protocol |
-| Bridge & approval | ~5 | bridge-e2e, approval-broker, approval-screens, popup-shell, web-shell |
-| Flows & decoder | ~6 | sdk-wiring, sdk-bundle, action-decoder, decoder, freewallet-migration, unlock-flow |
-| Audits | 4 | a11y-audit, repro-build-audit, extension-manifest-audit, release-gates |
-| Other | ~6 | i18n, branding, phase-scope, shared-routes, ui-surface, vitest-setup |
-| **Total** | **250+** | All run on every commit |
+| `ui/` | 170 | Screens, layouts, and UI primitives: render trees, empty and error states, QR transport, capslock and paste handling, confirm-screen composition, reduced-motion behaviour |
+| `actions/` | 37 | Per-action authoring forms and their validation, one file per action surface (`airdrop-form`, `batch-composer`, `broadcast-form`, `address-preferences`, …) |
+| `audits/` | 28 | a11y-audit, repro-build-audit, extension-manifest-audit, release-gates, and the other static gates |
+| `core/` | 26 | Registry validation, schema migrations, shared helpers |
+| `markets/` | 14 | DEX surfaces |
+| `bridge/` | 12 | `window.xchain` dApp bridge and the approval broker |
+| `signers/` | 12 | Software, Trezor, Ledger, Remote, Multisig, hw-factories, hw-sign-e2e, signer-port-protocol |
+| `shells/` | 11 | Web SPA, extension popup/full-screen/side-panel, desktop |
+| `multisig/`, `onboarding/`, `staking/` | 8 each | Classical n-of-m + MuSig2, vault creation and import, staking and delegation |
+| `dispensers/`, `contracts/` | 7, 6 | Dispenser lifecycle; contract deploy/execute surfaces |
+| `addresses/`, `security/`, `governance/`, `messaging/` | 5, 4, 3, 3 | Address list, security gates, governance polls, encrypted messaging |
+| `wallet/`, `desktop/`, `docs/` | 1 each | Vault, Electron shell, docs conformance |
+| **Total** | **365** | All run on every commit |
 
 The test files live under `test/smoke/` (workspace root), organised into subdirectories by surface area. Each smoke is named for the surface it covers (`send-form.smoke.js`, `multisig-signing.smoke.js`, etc.); the convention makes it easy to find the right file when extending coverage.
+
+## Vitest suites
+
+Beyond the smokes, the wallet runs eight vitest suites. Measured 2026-07-27:
+
+| Suite | Command | Tests |
+|---|---|---|
+| Unit | `pnpm test:unit` | 4,264 across 291 files |
+| Integration | `pnpm test:integration` | 80 |
+| Boundary | `pnpm test:boundary` | 49 |
+| Security | `pnpm test:security` | 30 |
+| Chaos | `pnpm test:chaos` | 16 |
+| Fuzz | `pnpm test:fuzz` | 10 |
+| Accessibility | `pnpm test:a11y` | 8 |
+| Regression | `pnpm test:regression` | 4 |
+
+`pnpm test:all` chains all of them plus the smoke suite, for a wallet total of 4,825 tests.
 
 ## Audit gates
 

@@ -85,6 +85,14 @@ The SDK reads these environment variables at construction time. A `.env` file in
 | `ENCODER_PORT` | Port of the xchain-encoder server. | Encoder client |
 | `HUB_API_HOST` | Hostname or IP of the xchain-hub server. | Hub connector |
 | `HUB_PORT` | Port of the xchain-hub server. | Hub connector |
+| `HUB_URL` | Full hub base URL used by the interactive REPL (`npm run repl`), as an alternative to `HUB_API_HOST` + `HUB_PORT`. | REPL |
+| `HUB_API_KEY` | API key sent with hub calls as `x-api-key`. Required whenever the hub runs keyed. Treat as a credential. | Hub connector |
+| `XCHAIN_MCP_WIF` | Agent signing key for the MCP server's write tools. **Never logged or echoed.** Must be set together with `XCHAIN_MCP_POLICY`; with either missing the server starts read-only. Configured by the operator, never by the conversation. See [MCP Quickstart](../../ai-agents/MCP_Quickstart.md). Treat as a credential. | MCP server |
+| `XCHAIN_MCP_POLICY` | Path to the `AgentSession` policy JSON that bounds what the agent may spend. Required alongside `XCHAIN_MCP_WIF`; a policy with no spend ceiling is refused, because the MCP rail has no human in the loop. | MCP server |
+| `XCHAIN_INDEXER_PATH` | Path to a sibling `xchain-indexer` checkout, used by `bin/check-preflight-drift.js` to hash the indexer's action handlers. Falls back to `../xchain-indexer`. Development tooling only. | Drift checker |
+| `CORS_ORIGIN` | CORS origin for the JSON-RPC microservice API server. Disabled when unset. | API server (`npm run api`) |
+| `STOP_CHECK_INTERVAL` | Poll interval in milliseconds for `sdk.start()`'s shutdown loop, which sleeps this long between checks of the stop flag set by `sdk.stop()`. Only relevant when running the SDK as a long-lived process. Default: `5000`. | `sdk.start()` |
+| `COSIGNER_TOKEN` | Shared bearer token for the optional MuSig2 co-signer sidecar (`createCoSignerApp`). The sidecar is a local service: bind it to loopback and gate it with this token. No default; see [MULTISIG](../wallet/MULTISIG.md). | Co-signer sidecar |
 
 ## Hub Discovery
 
