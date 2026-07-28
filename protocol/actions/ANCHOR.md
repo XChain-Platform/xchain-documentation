@@ -351,6 +351,59 @@ exact bytes):
   anchor commits the latest signed checkpoint at publish time. Operators can also trigger an
   immediate flush via the hub's authenticated `anchorflush` JSON-RPC method.
 
+### Where the publisher constants come from
+
+None of these is consensus data: they are per-hub operator knobs, and two hubs running
+different values still produce mutually verifiable anchors. What follows is the derivation of
+each magnitude, so a tuner can tell what is load-bearing from what is merely a round number.
+The arithmetic is pinned by `xchain-hub/test/unit/StateAnchorPublisher.constant-derivations.test.js`.
+
+**`ANCHOR_CHUNK_MAX_BYTES` (6000).** The hard ceiling is `MAX_ACTION_DATA_LENGTH` = 8192
+compiled bytes (`protocol/constants.js`). The decoder is the arbiter and *silently drops* any
+action above it, so an oversize anchor is lost on every node rather than rejected loudly. Chunk
+0 never travels alone: it sits inside the v1/v6 head beside the checkpoint prefix (four 64-hex
+hashes plus the chain/network/seq/index fields, about 322 bytes at mainnet heights) and the
+signature lists, which cost 194 bytes per `(PUBKEY, SIG)` pair. A v6 adds roughly 67 bytes for
+`PUBLISHER` + `ATTEST_SIG_COUNT` and another 194 bytes per attesting signer. So `8192 - 6000 -
+322` leaves about 1870 bytes of head budget, which is about nine signature pairs on a v1, or
+four wrapper plus four attestation pairs on a v6. That reserve is the reason for 6000 rather
+than a figure nearer 8000. It constrains chunk 0 only (a v2 continuation carries about 30 bytes
+of overhead and could hold far more), but a single uniform slice keeps the splitter trivial.
+**This is the knob to lower as the federation grows:** a v6 with a 5+5 quorum needs
+`ANCHOR_CHUNK_MAX_BYTES` at or below about 5860, a 7+7 quorum about 5080. Raising it saves v2
+transactions but overflows the head first, and the encoder rejects the oversize v1/v6.
+
+**`ANCHOR_MATCH_BATCH_SIZE` (200) and `ANCHOR_MAX_BATCH` (1000).** The first is a latency
+trigger, not a size cap: 200 pending rows flush an archive early instead of waiting out
+`ANCHOR_INTERVAL_MS`, which bounds how much settled cross-chain state exists only in hub
+databases. The second is the per-cycle SQL `LIMIT` and therefore the DOGE spend bound. Archived
+rows are dominated by validator signatures and do not compress: roughly 0.55 KB of gzip+base64
+per settled match, so 1000 rows is about 550 KB, about 93 chunks, about 93 DOGE transactions in
+one cycle, while 200 rows is about 19. Both trade cost against archive latency and neither
+changes what the archive means; too large spends more DOGE per cycle, too small drains the
+backlog more slowly.
+
+**`ANCHOR_ELECTION_TOLERANCE_BLOCKS` (36).** The unit is BTC *blocks*, not wall clock, precisely
+so every hub computes the same rank unlock without clock synchronisation. 36 BTC blocks is about
+6 hours at the 10-minute target, so each failover rank waits about 6 hours of elected-publisher
+silence. The ordering is the load-bearing property:
+
+```
+signing round (120s) + DOGE burial (60 confs, ~1h)  <<  36 blocks (~6h)  <<  ANCHOR_INTERVAL_MS (24h)
+```
+
+The left inequality keeps a healthy but slow rank-0 publisher from being overtaken, so the
+federation never pays DOGE twice for the same checkpoint, and it keeps the on-chain
+confirmation wait in the `XANC_V0_DONE` path well inside a single rank. The right inequality
+means ranks 1 to 3 unlock at about 6, 12 and 18 hours, so up to three backups still get a slot
+inside one publishing cycle and a dead rank 0 cannot cost a whole day of anchoring. Anything in
+roughly 6 to 144 blocks (1 to 24 hours) preserves both bounds: below the DOGE burial window the
+ladder burns DOGE on duplicate anchors, above about 144 a dead leader stalls a cycle. Neither
+direction is a divergence risk, because concurrently unlocked publishers build byte-identical
+archives; the cost of getting it wrong is DOGE or delay, never a fork. The same value bounds how
+far a peer's claimed election block may sit from the receiver's own BTC tip when co-signing,
+which is anti-spam only.
+
 ## Recovery procedure (full-parse)
 1. Sync DOGE through the decoder/indexer from genesis: `anchor_actions` populates from the
    chain alone.

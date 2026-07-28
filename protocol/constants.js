@@ -398,6 +398,48 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
     regtest: 0,
 };
 
+// ── PRICE v0 signature-tally ordering  ───────────────────────────────
+//
+// The PRICE v0 tally keeps at most one signature per pubkey. Below this gate the
+// pubkey enters the dedupe set on FIRST ENCOUNTER, ahead of the capability check
+// and the ed25519 verify; at/above it, only AFTER the signature verifies. The
+// one-per-pubkey cap is unchanged in both eras.
+//
+// Mark-then-verify is order-dependent: a garbage signature carrying a qualified
+// oracle's pubkey, placed ahead of that oracle's real one, consumes the dedupe
+// slot, so the real signature is skipped as a duplicate and a legitimately
+// quorate round is rejected on chain. Every other tally site in the platform is
+// verify-then-mark already ( Pkg 13); PRICE was the last pair.
+//
+// GATED, unlike the Pkg 13 sites, because PRICE is genesis-active on mainnet
+// with a NON-EMPTY price-capability validator set and live history, so the
+// emptiness argument that made those ungated-safe does not hold here. The change
+// is monotone (the qualified-signer set only grows), which moves not just the
+// count and stake-weighted quorum verdicts but the oracle_round REWARD SPLIT
+// over that signer set, so an ungated change would make a from-genesis reindex
+// diverge from the chain the fleet already agreed on. Below the gate the legacy
+// ordering is preserved verbatim and replay stays bit-identical.
+//
+// Keyed on the round's BTC-anchored BTC_BLOCK_HEIGHT (carried inside the signed
+// payload), exactly like STAKE_WEIGHTED_QUORUM_ACTIVATION: PRICE v0 is
+// publishable on any chain and BTC/LTC/DOGE heights diverge by millions, so a
+// local-height gate would flip LTC/DOGE months early. The hub push carries and
+// validates the same field, so hub and indexers key on the identical number.
+//
+// mainnet is ARMED to 969500, the BTC snapshot_block already ratified on
+// 2026-07-16 for RETRACTION_SIGNING_ACTIVATION (~2026-10-01), rather than a newly
+// minted anchor, and deliberately not the nearer 961000 (~2026-08-04) whose
+// deploy train shipped on 2026-07-23. Deploy every indexer AND every hub before
+// this height; they are peers here, not producer and consumer, so a split fleet
+// has the hub finalizing rounds the chain rejects. Kept value-identical to the
+// local copies in xchain-{indexer,hub}/src/price_sig_tally_activation.js by the
+// activation-constants parity suite.
+const PRICE_SIG_TALLY_ACTIVATION = {
+    mainnet: 969500,      // ARMED : BTC anchor ~2026-10-01, ratified for RETRACTION_SIGNING; deploy ALL indexers + hubs before this height
+    testnet: 0,
+    regtest: 0,
+};
+
 // VALID_FIAT_CODES: the accepted FIAT_CODE allow-list for PRICE actions. The indexer's
 // config['FIATS'] keys (xchain-indexer/src/config.js) are the on-chain arbiter; this list
 // mirrors them in the indexer's insertion order. The SDK validator (VALID_FIAT_CODES) must
@@ -463,6 +505,7 @@ module.exports = {
     PRICE_PAIR_TICKER_MAX_LEGACY,
     PRICE_PAIR_TICKER_MAX_WIDE,
     PRICE_PAIR_WIDEN_ACTIVATION,
+    PRICE_SIG_TALLY_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
     PRICE_MAX,

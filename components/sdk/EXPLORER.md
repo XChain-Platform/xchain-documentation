@@ -627,11 +627,13 @@ if (q.valid && !q.belowDust)
 
 The indexer computes the quote from the same code path it validates with, so an output sized from the quote is accepted on chain. A dispenser whose oracle has published no effective price yet is rejected both here and on chain: the oracle must have prices set, and PRICE v1 quotes only become effective 24 hours after publication.
 
-#### `getPreflight({ action, params, source? }, opts?)`
+#### `getPreflight({ action, params, source?, feeMode? }, opts?)`
 Validity-first pre-flight for a single action, decoupled from native-fee support: "would the indexer accept this action?".
 
 - **Endpoint:** `GET /{COIN}/api/preflight?action=...&params=...`
-- **Returns:** `{ supported, valid, status, error?, guardInert, feeExempt, denied, blockIndex, blockTime }`
+- **Returns:** `{ supported, valid, status, error?, guardInert, feeExempt, denied, xchainFee, feeMode, feeTick, feeTokenBalance, feeAffordable, blockIndex, blockTime }`
+- `xchainFee` is the XCHAIN-denominated protocol fee the action would owe (decimal string, 8dp), echoed from the same dry-run as the verdict, so a confirm screen can show the fee without a second `getFeeQuote` call. It is `null` when the run staged no fee record and absent when no verdict was produced; pricing that fee as a native-coin output still needs `getFeeQuote`.
+- `feeMode` (`'xchain'` or `'native'`) states how the transaction you are composing will settle that fee, and the dry-run settles it the same way: `xchain` debits the payer's balance, so an underfunded payer is told `invalid` before signing; `native` pays a coin output instead. Omit it for the chain default (`native` on LTC/DOGE, the XCHAIN debit on BTC). `feeTokenBalance` is the payer's balance of `feeTick` at the quoted height, and `feeAffordable` says whether it covers `xchainFee` (`null` in native mode, where that balance is not what pays).
 
 #### `getPriceSnapshots(query?, type?, opts?)`
 Returns oracle price-snapshot rounds for the price oracle.

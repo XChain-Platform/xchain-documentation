@@ -176,6 +176,32 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_ANNOUNCE_RETRY_TTL_MS` | No | `21600000` | How long announcement retries continue before the entry is dropped (6 hours, roughly six times the 60-confirmation DOGE window). |
 | `ANCHOR_ANNOUNCE_QUEUE_MAX` | No | `500` | Maximum queued anchor announcements, bounding memory. |
 
+#### Why those magnitudes (before you retune them)
+
+None of the ANCHOR knobs is consensus data: hubs on different values still
+produce mutually verifiable anchors. Three of them do encode a real bound, and
+the full derivation is in
+[ANCHOR.md](../../protocol/actions/ANCHOR.md#where-the-publisher-constants-come-from):
+
+- **`ANCHOR_CHUNK_MAX_BYTES` = 6000** reserves head room under the protocol's
+  8192-byte `MAX_ACTION_DATA_LENGTH` ceiling, because chunk 0 shares its action
+  with the checkpoint prefix (~322 bytes) and the signature lists (194 bytes per
+  `(PUBKEY, SIG)` pair, doubled on a v6). What is left is about nine signature
+  pairs on a v1, or 4+4 on a v6, so **lower this as the federation grows**: a
+  5+5 v6 quorum needs ~5860 or less, a 7+7 quorum ~5080. Exceeding the ceiling
+  is silent, since the decoder simply drops the action.
+- **`ANCHOR_MATCH_BATCH_SIZE` = 200** is an early-flush latency trigger and
+  **`ANCHOR_MAX_BATCH` = 1000** is the per-cycle DOGE spend bound. Archive rows
+  are signature-dominated and barely compress (~0.55 KB of gzip+base64 per
+  settled match), so 1000 rows is ~550 KB, ~93 chunks, ~93 DOGE transactions in
+  a cycle; 200 rows is ~19.
+- **`ANCHOR_ELECTION_TOLERANCE_BLOCKS` = 36** is ~6 hours of BTC blocks per
+  failover rank, counted in blocks rather than wall clock so every hub agrees on
+  the unlock without clock sync. The ordering carries the meaning: signing round
+  (120s) + DOGE burial (60 confs, ~1h) << 36 blocks (~6h) <<
+  `ANCHOR_INTERVAL_MS` (24h). Roughly 6 to 144 blocks keeps both bounds; a wrong
+  value costs duplicate DOGE spend or delayed anchoring, never a divergence.
+
 ### Attestation Publishing
 
 Controls `AttestationPublisher`, which writes the validator network's answers to contract attestation requests back on-chain.

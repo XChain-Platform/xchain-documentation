@@ -1700,13 +1700,15 @@ The following endpoints are registered and active. Detailed documentation is in 
 ```
 GET /{COIN}/api/feequote?action=ISSUE&params=0|NEWTICK&source=...&feeOutputSats=...
 GET /{COIN}/api/feeschedule
-GET /{COIN}/api/preflight?action=SEND&params=...&source=...
+GET /{COIN}/api/preflight?action=SEND&params=...&source=...&feeMode=xchain|native
 GET /{COIN}/api/oraclefeequote?oracleAddress=...&giveTick=...&fiatCode=USD&giveEscrow=1000
 ```
 
 Proxied to the colocated indexer's `feequote` / `feeschedule` / `preflight` / `oraclefeequote` JSON-RPC. Returns `503` when no `INDEXER_API_URL` is configured. See [CONFIGURATION.md](CONFIGURATION.md) for `INDEXER_API_URL_<COIN>_<NETWORK>`.
 
-`preflight` answers "would the indexer accept this action?" independently of native-fee support, returning `{ supported, valid, status, error, guardInert, feeExempt, denied, blockIndex, blockTime }`.
+`preflight` answers "would the indexer accept this action?" independently of native-fee support, returning `{ supported, valid, status, error, guardInert, feeExempt, denied, xchainFee, feeMode, feeTick, feeTokenBalance, feeAffordable, blockIndex, blockTime }`. `xchainFee` is the protocol fee the action would owe as an XCHAIN-denominated decimal string, taken from the same dry-run that produced the verdict, so a confirm screen can disclose the fee without a second call to `feequote` (it is `null` when the run staged no fee record, and absent when no verdict was produced). Sizing a native-coin fee output still needs `feequote`, which prices that fee against the oracle.
+
+The dry-run settles that fee the way `feeMode` says the real transaction will, because the two modes give different answers: `xchain` debits the payer's XCHAIN balance (so a payer who cannot cover the fee is told `invalid` here, before signing anything), while `native` pays a coin output to the fee destination and never touches that balance. Omit `feeMode` to get the chain's own default, which is `native` on LTC/DOGE (they have no XCHAIN fee lane) and the XCHAIN debit on BTC. `feeTokenBalance` reports the payer's balance of `feeTick` at the quoted height, and `feeAffordable` says whether it covers `xchainFee`; `feeAffordable` is `null` in native mode, since that balance is not what pays.
 
 `oraclefeequote` sizes the up-front native-coin output a Mode B dispenser owes the oracle operator it names in `ORACLE_ADDRESS`, returning `{ valid, error, oracleAddress, blockTime, requiredFeeNative, requiredFeeSats, belowDust, note }`. The indexer computes it from the same code path it validates with, so an output sized from the quote is accepted on chain.
 
