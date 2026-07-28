@@ -111,7 +111,7 @@ build step and nothing to install (contracts stay single-file and import-free).
 | gas limit | `GAS_LIMIT` on deploy/execute; `sdk.suggestGasLimit(...)` | metered per the gas schedule |
 
 The `patterns/` column maps to the pattern library in `xchain-contracts/patterns/`,
-which ships an [OpenZeppelin alias table](../../xchain-contracts/patterns/README.md#coming-from-openzeppelin)
+which ships an [OpenZeppelin alias table](https://github.com/XChain-Platform/xchain-contracts/blob/master/patterns/README.md#coming-from-openzeppelin)
 so you can find each building block by the OZ name you already know.
 
 ## Worked example 1: an ERC-20 is not a contract

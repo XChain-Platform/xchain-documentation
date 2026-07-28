@@ -84,6 +84,34 @@ const rel  = (p) => path.relative(DOC_ROOT, p);
 
 describe('internal link integrity', () => {
 
+    // A link that climbs out of this repo resolves on a developer's monorepo
+    // checkout and nowhere else: not in a docs-only clone, and not on the
+    // published site, which serves this repo alone. Checked separately from a
+    // plain missing file so the failure names the real problem. The convention
+    // everywhere else in the set is a GitHub URL for cross-repo references.
+    test('no link escapes the documentation repo', () => {
+        const escaping = [];
+        for (const f of FILES) {
+            const text = fs.readFileSync(f, 'utf8');
+            LINK.lastIndex = 0;
+            let m;
+            while ((m = LINK.exec(text)) !== null) {
+                const target = m[1];
+                if (/^(https?:|mailto:|#)/.test(target)) continue;
+                const file = target.split('#')[0];
+                if (!file) continue;
+                const abs = path.resolve(path.dirname(f), file);
+                if (!abs.startsWith(DOC_ROOT + path.sep))
+                    escaping.push(`${rel(f)} -> ${target}`);
+            }
+        }
+        assert.deepEqual(escaping, [],
+            'relative links pointing outside xchain-documentation. These resolve only in a full ' +
+            'monorepo checkout, never on the published site. Use a ' +
+            'https://github.com/XChain-Platform/<repo>/blob/master/... URL instead:\n  ' +
+            escaping.join('\n  '));
+    });
+
     test('every relative link resolves to a file that exists', () => {
         const broken = [];
         for (const f of FILES) {
@@ -95,7 +123,9 @@ describe('internal link integrity', () => {
                 if (/^(https?:|mailto:|#)/.test(target)) continue;
                 const file = target.split('#')[0];
                 if (!file) continue;
-                if (!fs.existsSync(path.resolve(path.dirname(f), file)))
+                const abs = path.resolve(path.dirname(f), file);
+                if (!abs.startsWith(DOC_ROOT + path.sep)) continue;   // reported by the test above
+                if (!fs.existsSync(abs))
                     broken.push(`${rel(f)} -> ${target}`);
             }
         }
