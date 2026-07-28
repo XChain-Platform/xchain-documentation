@@ -866,6 +866,91 @@ GET /{COIN}/api/swap_expires/{query}/{type}
 
 ---
 
+### Bet Feeds (Betting Markets)
+
+Parimutuel betting markets, created by the BET action (format 0). A market's `action_index` IS its
+identifier: bets and oracle actions reference it as `feed_action_index`.
+
+```
+GET /{COIN}/api/bet_feeds/{query}/{type}
+GET /{COIN}/api/bet_feeds
+```
+
+| Type | Description |
+|---|---|
+| `block` | Markets created in a specific block |
+| `address` | Markets created by an address (that address is the market's oracle) |
+| `source` | Markets where this address is the source |
+| `token` | Markets denominated in a specific token |
+| `status` | Markets in a given lifecycle state: `open`, `closed`, `resolved`, `resolved_void`, `cancelled`, `expired` |
+
+**Response includes:** action index, source (the oracle), label, outcomes, tick, fee (the oracle's cut
+as a percent of the pot), deadline, refund window, expire_at, minimum amount, allow/block lists,
+details, feed status, closed_block, terminal_block, plus the usual block, transaction and status
+fields.
+
+The unfiltered form returns the most recent markets across every source.
+
+---
+
+### Get Bet Feed
+
+A single market by the action index that created it.
+
+```
+GET /{COIN}/api/bet_feed/{action_index}
+```
+
+Returns the same fields as above, with `outcomes` split back into an array in wire order so a caller
+can render the options without re-parsing the stored comma-joined list.
+
+---
+
+### Bets
+
+Individual wagers placed on a market (BET format 2). A bet is final once confirmed: there is no
+bettor-side cancel.
+
+```
+GET /{COIN}/api/bets/{query}/{type}
+GET /{COIN}/api/bets
+```
+
+| Type | Description |
+|---|---|
+| `block` | Bets placed in a specific block |
+| `address` | Bets placed by an address |
+| `feed` | Bets placed on a specific market, by that market's action index |
+| `token` | Bets denominated in a specific token |
+| `status` | Bets in a given settlement state: `open`, `won`, `lost`, `refunded` |
+
+**Response includes:** action index, feed action index, bettor address, outcome, tick, amount, bet
+status, settled_block.
+
+Payouts credit the address that PLACED the bet, automatically at resolution. There is no claim
+action, so a settled bet shows up as a `bet_status` flip plus a credit, never as a user-submitted
+collection.
+
+---
+
+### Oracle Track Record
+
+The per-address record of whoever creates markets. This is what a bettor reads to judge an oracle
+before staking on one of their markets.
+
+```
+GET /{COIN}/api/oracle/{address}
+```
+
+**Response includes:** address, total_feeds, active_feeds (open plus closed), counts per lifecycle
+status, fees_earned per token (tick, resolves, amount), and a `reputation_caveat` string.
+
+Fees are earned on the resolve path only: a void, a cancel and an expiry all pay the oracle nothing.
+The caveat field is returned because the record is per-address with no bonding, and addresses are
+free to create, so an empty history means unknown rather than safe.
+
+---
+
 ### Sweeps
 
 Records of SWEEP actions (transfer all assets to a destination).
@@ -1846,6 +1931,8 @@ All REST API action endpoints have a corresponding Explorer endpoint:
 | `/{COIN}/explorer/dispensers/{query}/{type}` | `/{COIN}/api/dispensers/{query}/{type}` |
 | `/{COIN}/explorer/dispenses/{query}/{type}` | `/{COIN}/api/dispenses/{query}/{type}` |
 | `/{COIN}/explorer/swaps/{query}/{type}` | `/{COIN}/api/swaps/{query}/{type}` |
+| `/{COIN}/explorer/bet_feeds/{query}/{type}` | `/{COIN}/api/bet_feeds/{query}/{type}` |
+| `/{COIN}/explorer/bets/{query}/{type}` | `/{COIN}/api/bets/{query}/{type}` |
 | `/{COIN}/explorer/sweeps/{query}/{type}` | `/{COIN}/api/sweeps/{query}/{type}` |
 | `/{COIN}/explorer/dividends/{query}/{type}` | `/{COIN}/api/dividends/{query}/{type}` |
 | `/{COIN}/explorer/airdrops/{query}/{type}` | `/{COIN}/api/airdrops/{query}/{type}` |
@@ -2004,6 +2091,8 @@ Content-Type: application/json
 | `GET /{COIN}/api/swap_cancels/...` | `block`, `address` |
 | `GET /{COIN}/api/swap_edits/...` | `block`, `address` |
 | `GET /{COIN}/api/swap_expires/...` | `block`, `address` |
+| `GET /{COIN}/api/bet_feeds/...` | `block`, `address`, `source`, `token`, `status` |
+| `GET /{COIN}/api/bets/...` | `block`, `address`, `feed`, `token`, `status` |
 | `GET /{COIN}/api/sweeps/...` | `block`, `address`, `source`, `destination` |
 | `GET /{COIN}/api/dividends/...` | `block`, `address`, `token` |
 | `GET /{COIN}/api/airdrops/...` | `block`, `address`, `token` |

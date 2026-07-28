@@ -42,7 +42,13 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `addresses` | ADDRESS action preferences (require memo, etc.) |
 | `airdrops` | AIRDROP distribution records |
 | `batches` | BATCH action container records |
-| `broadcasts` | BROADCAST messages and oracle feeds |
+| `bet_feeds` | BET betting-market definitions (format 0). The creating `action_index` is the market's id |
+| `bet_feed_statuses` | BET market lifecycle history (open, closed, resolved, resolved_void, cancelled, expired) |
+| `bets` | Individual wagers placed on a market (format 2) |
+| `bet_statuses` | Per-wager settlement history (open, won, lost, refunded) |
+| `bet_cancels` | BET market cancellation records (format 1), which refund every open wager in full |
+| `bet_resolves` | BET market resolution records (format 3), the only path that pays the oracle its fee |
+| `broadcasts` | BROADCAST messages and general-purpose data feeds. Betting markets are `bet_feeds`, not broadcasts |
 | `callbacks` | CALLBACK action records |
 | `destroys` | DESTROY (burn) records |
 | `dispensers` | DISPENSER vending machine definitions |

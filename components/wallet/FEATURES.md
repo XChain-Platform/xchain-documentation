@@ -37,6 +37,32 @@ The wallet exposes the platform's full on-chain DEX:
 
 Order matching happens in `xchain-indexer`; the wallet only places + cancels.
 
+## Betting (BET)
+
+Parimutuel betting markets, offered on every chain whose descriptor advertises `BET`. The wallet
+covers both roles: the bettor who backs an outcome, and the oracle who runs the market.
+
+- **Markets list**: `BetFeedsList.jsx`. Discovery view with search, a network filter, and status
+  pills that show the market's STORED status rather than one recomputed from the clock.
+- **Market view**: `BetFeedDetail.jsx`. Pools per outcome, the projected payout for a stake before
+  you commit it, and the place-bet flow itself.
+- **Create a market**: `CreateBetFeedForm.jsx`. Label, 2 to 16 outcomes, wager token, oracle fee,
+  deadline, refund window, optional minimum stake and allow/block lists.
+- **My bets**: `MyBets.jsx`. Your wagers across every address, as open / won / lost / refunded.
+- **Oracle console**: `OracleConsole.jsx`. The markets you run: Resolve (legal only between the
+  deadline and the end of the refund window) and Cancel (legal only before a terminal state), both
+  hidden in watcher mode. Markets are immutable once created, so the correction path is Cancel plus
+  "Copy to a new market".
+- **Oracle record**: `OracleRecord.jsx`. An oracle's history and fees earned, for judging a market
+  before staking on it.
+
+Composers live in `core/src/flows/betActions.js` (one per wire format) and read paths in
+`core/src/flows/betQueries.js`. Creating a market and placing a bet are both fee-bearing and mount
+`NativeFeeToggle`; resolve and cancel are not fee-bearing and deliberately do not.
+
+Settlement is automatic: payouts credit the address that placed the bet, so there is no claim step
+and no claim button.
+
 ## Encrypted messaging
 
 `MESSAGE` action with three encryption modes:

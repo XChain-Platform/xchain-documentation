@@ -22,6 +22,11 @@ The obfuscated payload is stored in an `OP_RETURN` output. OP_RETURN outputs are
 
 Most common XChain actions fit within 76 bytes of user data: SEND (single recipient), MINT, simple ISSUE, ADDRESS update, MESSAGE, and most DISPENSER and ORDER operations.
 
+Creating a betting market is a notable exception: a BET format 0 payload carries a label of up to 250
+characters plus 2 to 16 outcome labels, so it routinely exceeds OP_RETURN and lands in the chunked
+lane. Placing, resolving and cancelling a bet are small by comparison, since they reference the
+market by action index rather than repeating its definition.
+
 **Unconditional across chains:** All supported chains (Bitcoin, Litecoin, Dogecoin) enforce a single-OP_RETURN-per-transaction rule (`singleOpReturnPolicy: true`). The encoder rejects any OP_RETURN payload above 76 bytes of user data at construction time, on every chain, to prevent the creation of non-standard multi-OP_RETURN transactions that would be dropped by the network. There is no chain-dependent exception; the 76-byte limit is a hard ceiling regardless of which chain the transaction targets.
 
 ### Multisig: approximately 60 bytes per output, two fixed key slots

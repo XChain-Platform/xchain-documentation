@@ -57,7 +57,7 @@ Sent automatically on connection. Provides server info, current state, limits, a
       "max_message_size": 1024,
       "max_connections_per_ip": 5
     },
-    "channels": ["blocks", "actions", "mempool", "network", "attestation", "address", "token", "market", "dispenser"],
+    "channels": ["blocks", "actions", "mempool", "network", "attestation", "address", "token", "market", "dispenser", "bet_feed"],
     "types": ["ORDER", "ORDER_MATCH", "ORDER_EXPIRE", "COINPAY", "..."],
     "features": ["snapshot", "once", "fields", "ticks", "batch", "catch_up"]
   }
@@ -117,6 +117,7 @@ All client messages are JSON with an `action` field. An optional `id` field enab
 | `token` | `"tick": "PEPE"` | (use `ticks` array) |
 | `market` | `"tick1": "PEPE", "tick2": "BTC"` | `"pairs": [["PEPE","BTC"], ["XCHAIN","BTC"]]` |
 | `dispenser` | `"action_index": "12345"` | `"action_indexes": [12345, 12346]` |
+| `bet_feed` | `"action_index": "12345"` | `"action_indexes": [12345, 12346]` |
 
 ### unsubscribe
 
@@ -303,6 +304,52 @@ Channel: `dispenser`
   }
 }
 ```
+
+### Betting Events
+
+Channel: `bet_feed`, keyed by a market's `action_index` exactly like `dispenser`. One subscription
+follows one market through its whole life, so a market page or a wallet sees pools move live.
+
+Filterable types are `BET` (one action name over all four formats: create, place, resolve, cancel)
+and `BET_EXPIRE` (the system refund pass's minted action).
+
+```json
+{
+  "type": "BET",
+  "data": {
+    "action_index": "45900",
+    "feed_action_index": "45800",
+    "source": "1abc...",
+    "outcome": 1,
+    "amount": "250.00000000",
+    "tick": "PEPE"
+  }
+}
+```
+
+One event on this channel has no action row behind it:
+
+#### BET_CLOSED
+
+Emitted when a market's betting deadline latches shut. The end-of-block pass writes the status
+directly and mints no action, so this rides a second cursor over `bet_feeds.closed_block` rather than
+over `actions`. Without it a subscribed market page learned that betting had closed only on its next
+fetch.
+
+```json
+{
+  "type": "BET_CLOSED",
+  "data": {
+    "action_index": "45800",
+    "feed_status": "closed",
+    "closed_block": 962450
+  }
+}
+```
+
+A coin whose indexer predates the BET tables answers "no bet_feeds table"; the explorer parks that
+coin's latch cursor on a cooldown and retries, treating the gap as a deploy-order fact rather than a
+permanent property of the chain.
 
 ### Order Lifecycle Events
 

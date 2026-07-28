@@ -471,7 +471,7 @@ Retract user oracle prices after an indexer rolled back PRICE actions in a reorg
 
 ### `GET /api/v1/chain-registry`
 
-Public bootstrap endpoint for wallets and SDK clients: the chain descriptors (display metadata, address types, derivation paths, fee strategy, and default explorer/encoder/hub endpoint URLs) for every supported coin and network. No authentication; served with `Cache-Control: public, max-age=300`. The payload is a snapshot of the wallet's bundled descriptors, kept in sync by `xchain-wallet/bin/sync-chain-registry.mjs`.
+Public bootstrap endpoint for wallets and SDK clients: the chain descriptors (display metadata, address types, derivation paths, fee strategy, `supportedActions`, and default explorer/encoder/hub endpoint URLs) for every supported coin and network. `supportedActions` advertises what each chain's protocol accepts, and clients gate features on it: the wallet shows its betting surface only on chains whose descriptor lists `BET`, for example. No authentication; served with `Cache-Control: public, max-age=300`. The payload is a snapshot of the wallet's bundled descriptors, kept in sync by `xchain-wallet/bin/sync-chain-registry.mjs`.
 
 **Response:**
 ```json

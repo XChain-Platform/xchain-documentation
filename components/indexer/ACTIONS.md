@@ -51,6 +51,23 @@ The original 22 actions are registered at version `1.0.0` with activation at blo
 | **DISPENSER_CLOSE** | Automatic: closes a dispenser | Close delay timer, escrow release |
 | **DISPENSER_EXPIRE** | Automatic: expires a dispenser | Expiration time check, escrow release |
 
+## Betting Actions
+
+One action name over four wire formats, plus one automatic pass. Betting is parimutuel: every wager
+on a market goes into one pot and the winning outcome's backers split it in proportion to what they
+staked.
+
+| Action | Purpose | Key Validations |
+|---|---|---|
+| [**BET** (format 0)](../../protocol/actions/BET.md) | Create a betting market ("feed") | Valid label, 2-16 outcomes, valid token, fee 0-10% of the pot, deadline and refund window in the future |
+| **BET** (format 2) | Place a wager on an existing market | Market still open and before its deadline, sufficient balance, outcome in range, at or above the market's minimum, allow/block lists honoured, source is not the market's own oracle |
+| **BET** (format 3) | Resolve a market to its winning outcome | Oracle only, market closed, before the refund window ends. Pays winners and credits the oracle its fee |
+| **BET** (format 1) | Cancel a market | Oracle only, market not yet in a terminal state. Refunds every open wager in full |
+| **BET_EXPIRE** | Automatic: refunds a market left unresolved past its refund window | Block time past `expire_at`, market not terminal. Pays the oracle nothing |
+
+The deadline latch (open to closed) is a fifth transition with no action row: an end-of-block pass
+stamps `closed_block` directly.
+
 ## Cross-Chain Actions
 
 | Action | Purpose | Key Validations |

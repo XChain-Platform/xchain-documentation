@@ -160,8 +160,8 @@ Indexer replica databases use the same full schema as the authoritative indexer.
 - **Core**: `blocks`, `transactions`, `actions`
 - **Index/Dedup**: `index_addresses`, `index_tickers`, `index_transactions`, `index_actions`, `index_statuses`, `index_coins`, `index_fiats`, `index_memos`, `index_mime_types`, `index_pubkeys`
 - **Ledger**: `credits`, `debits`, `escrows`, `balances`, `fees`, `tokens`
-- **Action-specific**: `sends`, `issues`, `destroys`, `airdrops`, `dividends`, `orders`, `dispensers`, `swaps`, `broadcasts`, `messages`, `files`, `links`, `lists`, `callbacks`, `sleeps`, `sweeps`, `mints`, `batches`
-- **Lifecycle**: `order_matches`, `order_expires`, `order_edits`, `order_cancels`, `order_statuses`, `swap_matches`, `swap_expires`, `swap_edits`, `swap_cancels`, `swap_statuses`, `dispenser_closes`, `dispenser_expires`, `dispenser_edits`, `dispenser_cancels`, `dispenser_statuses`, `dispenses`
+- **Action-specific**: `sends`, `issues`, `destroys`, `airdrops`, `dividends`, `orders`, `dispensers`, `swaps`, `broadcasts`, `messages`, `files`, `links`, `lists`, `callbacks`, `sleeps`, `sweeps`, `mints`, `batches`, `bet_feeds`, `bets`
+- **Lifecycle**: `order_matches`, `order_expires`, `order_edits`, `order_cancels`, `order_statuses`, `swap_matches`, `swap_expires`, `swap_edits`, `swap_cancels`, `swap_statuses`, `dispenser_closes`, `dispenser_expires`, `dispenser_edits`, `dispenser_cancels`, `dispenser_statuses`, `dispenses`, `bet_feed_statuses`, `bet_statuses`, `bet_cancels`, `bet_resolves`
 - **COINPay**: `coinpays`, `coinpay_obligations`, `coinpay_expires`, `coinpay_statuses`
 - **Staking**: `stakes`, `unstakes`, `delegations`, `validator_rewards`, `reward_claims`
 - **VM**: `contracts`, `contract_state`, `contract_executions`, `contract_emissions`, `deposits`, `withdrawals`
