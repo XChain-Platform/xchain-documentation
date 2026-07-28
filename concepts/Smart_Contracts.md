@@ -53,7 +53,7 @@ Contracts also maintain persistent key-value state across executions, enabling t
 
 Two of the gateway namespaces extend this synchronous picture in important ways:
 
-- **`xchain.attestation.*`**: lets a contract ask a question of the outside world (HTTPS, AI) and receive the answer back as a separate, validator-signed EXECUTE later. Asynchronous; see [Asking the Outside World](#asking-the-outside-world--the-attestation-framework).
+- **`xchain.attestation.*`**: lets a contract ask a question of the outside world (HTTPS, AI) and receive the answer back as a separate, validator-signed EXECUTE later. Asynchronous; see [Asking the Outside World](#asking-the-outside-world-the-attestation-framework).
 - **`xchain.contract.*`**: lets a contract that declared itself stakeable read its own stakers and slash them. Synchronous; see [Stakeable Contracts](#stakeable-contracts).
 
 ## Contract Derived Addresses
@@ -104,6 +104,8 @@ A contract may additionally export a static `abi` object next to its methods, de
 
 Every contract receives an `xchain` object providing access to platform data and operations:
 
+Every figure in a **Gas** column below is in gas units, charged against the calling EXECUTE's `GAS_LIMIT`. A sum such as `500 + 5,000` lists the separate charges the call makes, in the order it makes them. Token amounts a call escrows or transfers are never gas and never appear in that column: they come out of the contract's own balance and are described in words.
+
 ### Context (0 gas)
 | Method | Returns |
 |---|---|
@@ -151,7 +153,7 @@ Every contract receives an `xchain` object providing access to platform data and
 | `xchain.emit.link(params)` | `coin1`, `coin1ActionIndex`, `coin2`, `coin2ActionIndex` |
 | `xchain.emit.broadcast(params)` | None |
 | `xchain.emit.message(params)` | `destination` |
-| `xchain.emit.execute(params)` | `contractIndex`, `method`, `gasLimit` (cross-contract call: deferred, caller-funded gas, max depth 4; see the [developer guide](../developer-guide/Smart_Contract_Development.md#calling-other-contracts--emitexecute)) |
+| `xchain.emit.execute(params)` | `contractIndex`, `method`, `gasLimit` (cross-contract call: deferred, caller-funded gas, max depth 4; see the [developer guide](../developer-guide/Smart_Contract_Development.md#calling-other-contracts-emitexecute)) |
 | `xchain.emit.vote(params)` | `version` (0 = create poll, 1 = cast ballot); v0 also requires `tick`, `endBlock`, `options`, v1 also requires `pollRef`, `ballot` (contract acts as its own poll actor and is the poll's `SOURCE`; see [VOTE](../protocol/actions/VOTE.md#contracts-as-poll-actors)) |
 
 ### Deterministic Math
@@ -213,10 +215,10 @@ block **after** the one where it was applied; the same one-block visibility rule
 |---|---|---|
 | `xchain.emit.crossExecute({targetChain, contractIndex, method, params?, gasLimit, callbackMethod, callbackParams?, deadlineBlocks?})` | 500 + 2,000 + gasLimit + 20,000 | Asynchronously invoke a `crossCallable` method on a contract on another chain; the outcome arrives via `callbackMethod(callId, targetChain, status, payload, ...callbackParams)`. Returns the deterministic 64-hex `callId`. No refunds; hop budget 2 (`xchain.getCrossHops()`). See `protocol/Cross_Chain_Calls.md`. |
 
-### External Attestation: asking the outside world (see [framework section below](#asking-the-outside-world--the-attestation-framework))
+### External Attestation: asking the outside world (see [framework section below](#asking-the-outside-world-the-attestation-framework))
 | Method | Gas | Description |
 |---|---|---|
-| `xchain.attestation.request(providerId, payload, callback, params, opts)` | 5,000 + provider escrow | Emit an ATTEST v0 request. Returns a deterministic 64-hex `requestId`. The response arrives later as a separate EXECUTE invoking `callback`. |
+| `xchain.attestation.request(providerId, payload, callback, params, opts)` | 500 + 5,000 | Emit an ATTEST v0 request. Returns a deterministic 64-hex `requestId`. The response arrives later as a separate EXECUTE invoking `callback`. The optional `feeAmount` is **not** gas: it is a token-denominated escrow taken from the contract's own balance and split among the responding validators (refunded on expiry or error). See the [framework section](#asking-the-outside-world-the-attestation-framework). |
 | `xchain.attestation.getResponse(requestId)` | 100 | Read a previously-stored response by request id. Returns `null` until the request is fulfilled. |
 
 ### Contract-Targeted Staking: readable + slashable from inside the staked-against contract (see [stakeable contracts section below](#stakeable-contracts))
@@ -424,7 +426,7 @@ xchain.contract.slash(pubkey, 'XCHAIN', '50');
 - **Security bonds**: a service operator stakes tokens as a deposit; users get paid from that bond if the service misbehaves.
 - **Validator-style services on top of XChain**: a contract can run its own internal validator set (for a sidechain bridge, a relay, a federated oracle) backed by stake on any chain.
 - **Reputation games**: communities stake against their own predictions or moderation decisions; reputation is calibrated by what gets slashed.
-- **Conditional escrow with teeth**: two parties stake against a deal; an arbitrator (or [an AI judge](#asking-the-outside-world--the-attestation-framework)) decides if the deal was kept and slashes accordingly.
+- **Conditional escrow with teeth**: two parties stake against a deal; an arbitrator (or [an AI judge](#asking-the-outside-world-the-attestation-framework)) decides if the deal was kept and slashes accordingly.
 - **DAO membership locks**: members stake to participate; the DAO's contract slashes for spam or rule-breaking.
 
 For the wire format, isolation rules, cooldown sweep behavior, and the on-chain `slash_events` table, see [`protocol/Contract_Staking.md`](../protocol/Contract_Staking.md).
@@ -458,7 +460,7 @@ Deployed contracts are **immutable** in API version 1. There is no mechanism to 
 - **Governance (DAOs)**: Token-weighted voting with on-chain proposal and execution
 - **Cross-chain orchestration**: Combined with the hub, contracts can coordinate actions across chains
 
-**Reaching the outside world** (via [the Attestation Framework](#asking-the-outside-world--the-attestation-framework)):
+**Reaching the outside world** (via [the Attestation Framework](#asking-the-outside-world-the-attestation-framework)):
 - **AI-judged contests, ranking, and moderation**: submit prompts to an approved language model and act on the verdict
 - **Real-world data triggers**: insurance, parametric payouts, and prediction-market settlement driven by an HTTPS feed
 - **News-sensitive treasuries**: adjust holdings based on AI summaries of headlines or social signals

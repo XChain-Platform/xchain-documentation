@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- `components/wallet/README.md`: `MultisigSigner` was listed among the shipped signers; the class does not exist (it is planned, and Keys_Signing.md already said so). There are four concrete signers.
+- `components/wallet/TESTING.md`: the multisig session state machine named an `indexed` status that does not exist and four other wrong status names.
+- `components/wallet/ARCHITECTURE.md`: `subscribe()` was missing from the signer interface list.
+- `components/wallet/MULTISIG.md`, `FEATURES.md`: dropped the `xchain-sdk@1.13.0+` floor, which predates the 2.0.0 SDK.
+- `components/hub/OPERATIONS.md`: the write-method table listed 17 of the 20 methods; `proposeslashpenalty`, `pauseeffectorspend` and `resumeeffectorspend` were missing.
+- `components/hub/DATABASE.md`: three tables added since June were undocumented (`anchor_reward_attestations`, `attestation_validator_stats`, `price_ingest_watermarks`).
+- `components/indexer/DATABASE.md`: 9 of 124 tables were undocumented, including the whole VOTE governance set and `coinpays`.
+- `concepts/ACTIONS.md`, `components/indexer/ACTIONS.md`, `components/indexer/README.md`: ACTIONs are gated by the indexer's protocol version, not by block heights; all 36 carry zero activation thresholds (21 at 1.0.0, 15 at 2.0.0).
+- The "original 22 actions" figure was stale: BET brought the 1.0.0 wire count to 21.
 - Platform-wide ACTION counts were stale everywhere: 35 wire-decoded ACTIONs (was 34) and 31 SDK-invocable (was 30), corrected across 13 pages.
 - `components/indexer/README.md`: the indexer processes 48 record types (was 45); BET, BET_EXPIRE, and VOTE were missing from the list.
 - `components/decoder/README.md`: the ACTION-name whitelist has 35 entries (was 34).
@@ -18,14 +27,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `architecture/Component_Map.md`, `architecture/Data_Pipeline.md`: indexer handler-class count corrected to 48, SDK action-builder count to 31, explorer query wrappers to 118, and the explorer endpoint total re-derived to 232 (was 129 `/api` + 68 `/explorer`).
 - `developer-guide/Smart_Contract_Development.md`, `developer-guide/Solidity_To_XChain.md`: the contract template library ships 13 templates, not 4.
 - `components/decoder/CONFIGURATION.md`: the claim that non-`getRawTransaction` RPCs retry with no sleep was stale; `backoffOnTimeout()` now backs off the block-path methods too.
+- `concepts/Smart_Contracts.md`: `attestation.request` costs 500 + 5,000 gas, not "5,000 + provider escrow"; the escrow is token-denominated and never belonged in a gas column.
+- 13 dead in-page anchors across 7 pages, all of which assumed heading punctuation becomes a hyphen when the site deletes it.
 - `protocol/actions/DISPENSER.md`: the front-running section wrongly said a first oracle price takes effect immediately; every PRICE v1 publish is delayed 24 hours, first included.
 - `protocol/actions/DISPENSER.md`: five v0 examples were one field short and shifted every field after `GIVE_OWNERSHIP`, including both FIAT examples.
 - review corpus corrections: zero-premint genesis, GAS supply, SPV wallet status, WS statuses filter, explorer port, open-source claim, ANCHOR v0-v6, VM lint-rule inventories, recursion depth, slashable engines, manifest re-vendor with encoder as sixth copy.
 
 ### Added
+- `test/wallet-signer-surface.test.js`: gate requiring every Signer method to be documented and forbidding docs from naming a signer class that does not exist.
+- `components/hub/OPERATIONS.md`: how to halt one effector's on-chain spend at runtime, its four valid labels, and the fact that the pause does not survive a restart.
+- `test/schema-table-coverage.test.js`: gate requiring every table in a service's `src/sql` to be named in its DATABASE.md.
+- `test/action-activation-model.test.js`: gate pinning the ACTION activation model to `protocol_changes.js`, including a guard against the "activate at block heights" phrasing returning.
+- `protocol/Protocol_Activation.md`: a rule may leave both thresholds at 0, which is how every ACTION is registered.
 - Configuration references now document every environment variable the services read: 196 were undocumented, now none are.
 - `test/env-var-doc-coverage.test.js`: gate failing the build when a service reads an environment variable its own component pages do not document, or documents a default the code contradicts.
 - `test/explorer-endpoint-counts.test.js`: gate deriving the explorer's endpoint counts from its dispatch table instead of trusting the hand-written figures.
+- `test/internal-link-integrity.test.js`: gate resolving every relative link and every `#fragment` against real headings, with the slug rule pinned against the docs site's own renderer.
+- `concepts/Smart_Contracts.md`: a note stating that every Gas column figure is in gas units and that token escrows never appear there.
 - Security-relevant switches that had been undocumented: the `http_get` attestation provider's SSRF guard, the hub's second reorg-scoped API key, the indexer's keyless escape hatch, the hub-mirror migration password, and the telemetry collector's IP salt and admin key.
 - `components/hub/CONFIGURATION.md`: new sections for the hub-DB WebSocket, indexer tip freshness, oracle publishing, attestation publishing, state checkpoints, the full-node challenge, retraction consensus, XCHAIN price derivation, and the LLM attestation provider.
 - `components/indexer/CONFIGURATION.md`: new sections for block-processing barriers, the hub push queue, fee quote and pre-flight, state-tree metrics, and genesis overrides.

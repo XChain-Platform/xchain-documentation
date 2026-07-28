@@ -25,7 +25,7 @@ and settled by the **xchain-hub validator federation**:
    (`getopencrosschainorders`).
 2. **Match**; a compatible pair is found. A cross-chain **`SWAP`** is exact, single-fill, FCFS; a
    cross-chain **`ORDER`** matches on a **price-time book** and may be **partially filled** across
-   several matches (see [ORDER offers & partial fills](#order-offers--partial-fills)).
+   several matches (see [ORDER offers & partial fills](#order-offers-partial-fills)).
 3. **Finalize + sign**; the federation reaches consensus and signs a single **match record**
    with `2f+1` `cross_chain`-capable validator signatures.
 4. **Deliver**; the signed match is written to the hub's `cross_chain_matches` table and

@@ -32,7 +32,7 @@ End-to-end usage examples for common XChain Platform SDK workflows.
 - [ECDH Session Messaging](#ecdh-session-messaging)
 - [AES Pre-Shared Key Messaging](#aes-pre-shared-key-messaging)
 - [Public Key Lookup](#public-key-lookup)
-- [Sleep / Pause an Address](#sleep--pause-an-address)
+- [Sleep / Pause an Address](#sleep-pause-an-address)
 - [Create and Edit a List](#create-and-edit-a-list)
 - [Pay Dividends](#pay-dividends)
 - [Query Market Data](#query-market-data)

@@ -69,7 +69,7 @@ broadcast (txid recorded)
 
 `cancelled` is a terminal status reachable from any non-terminal state. A coordinator or cosigner can cancel a session at any point before broadcast; cancelled sessions are archived and not retried.
 
-Each partial is a regular PSBT signed by one cosigner. The coordinator (any cosigner with all `n` partials) calls `xchain-sdk@1.13.0+`'s `wallet.signMultisigPsbt` to combine and finalize.
+Each partial is a regular PSBT signed by one cosigner. The coordinator (any cosigner with all `n` partials) calls `xchain-sdk`'s `wallet.signMultisigPsbt` to combine and finalize.
 
 ### MuSig2
 

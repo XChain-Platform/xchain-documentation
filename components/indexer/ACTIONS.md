@@ -16,7 +16,9 @@ An action is only processed if:
 2. The current block time is >= the action's activation timestamp for the active network
 3. The current block height is >= the action's activation block for the active network
 
-The original 22 actions are registered at version `1.0.0` with activation at block 0 / time 0 (active from genesis). The later actions (Hub Staking, Virtual Machine, Oracles, Attestation, and Validator categories) are registered at higher versions with non-zero activation blocks and timestamps. Future protocol upgrades can introduce new actions or changes at specific block heights by registering them with non-zero activation values.
+21 actions are registered at version `1.0.0` (ADDRESS, AIRDROP, BATCH, BET, BROADCAST, CALLBACK, COINPAY, DESTROY, DISPENSER, DIVIDEND, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, SEND, SLEEP, SWAP, SWEEP) and the other 15 at `2.0.0` (the Virtual Machine, Hub Staking, Oracle, Governance, and Validator categories). The two derived rows DISPENSE and COINPAY_EXPIRE are also registered at `1.0.0`.
+
+**All 36 actions carry an activation block and timestamp of `0` on every network**, so what gates them is condition 1 above, the indexer's own version, not a height. Non-zero activation values are used by the ~34 *behaviour* changes registered alongside the actions (`ISSUANCE_FEE`, `CONTROLLER_GUARD`, `VM_BANNED_ASYNC`, `CROSS_CHAIN_ROYALTY`, and so on): those are the block-height and timestamp flag-days, and they change how an already-live action behaves rather than introducing a new one. Future protocol upgrades can do either.
 
 ## Token Lifecycle Actions
 

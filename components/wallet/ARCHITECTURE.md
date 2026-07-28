@@ -137,6 +137,7 @@ Schemas declare a `version` and a forward migration. `core/src/schemas/migration
 - `signMusig2Round1(params)` / `signMusig2Round2(params)`: MuSig2 two-round protocol
 - `getAddresses(params)`: derive a range of addresses
 - `getStatus()`: check signer readiness (available / locked / disconnected / wrong-app / error)
+- `subscribe(listener)`: register a status-change listener; returns an unsubscribe function
 - `id` / `displayName` / `kind` / `requiresPhysicalConfirmation`, identity and gating
 
 Four concrete implementations:

@@ -159,6 +159,9 @@ A fourth, narrower key exists for one group of writes. `HUB_REORG_API_KEY`, when
 | `pushxcallreorg` | Reorg handling |
 | `pushdexreorg` | Reorg handling |
 | `anchorflush` | ANCHOR publishing |
+| `proposeslashpenalty` | Governance |
+| `pauseeffectorspend` | Operations |
+| `resumeeffectorspend` | Operations |
 
 ### Rate Limiting
 
@@ -261,6 +264,28 @@ curl -X POST http://localhost:10000 \
 ```
 
 The response reports how many anchor rounds were flushed and whether this hub was the elected publisher. A hub that is not the current election leader skips the publish and returns `{"elected":false}`.
+
+## Halting an Effector's On-Chain Spend
+
+Each subsystem that broadcasts on-chain (the oracle publisher, the attestation publisher, the state-anchor publisher, the full-node challenge round) spends real coin. `pauseeffectorspend` stops one of them immediately, **including its primary and leader path**, without restarting the hub. Use it when a publisher is misbehaving, burning funds, or broadcasting against a chain you are about to reorg, and you do not want to take the whole hub down.
+
+```bash
+# Halt just the oracle publisher's spending
+curl -X POST http://localhost:10000 \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $HUB_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"pauseeffectorspend","params":{"label":"OraclePublisher","reason":"investigating fee spike"},"id":1}'
+
+# Resume it
+curl -X POST http://localhost:10000 \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $HUB_API_KEY" \
+  -d '{"jsonrpc":"2.0","method":"resumeeffectorspend","params":{"label":"OraclePublisher"},"id":1}'
+```
+
+`label` is the effector's guard label: `OraclePublisher`, `AttestationPublisher`, `StateAnchorPublisher`, or `FullNodeChallengeRound`. An unknown label is refused with `no effector registered with label '<label>'` rather than silently doing nothing. `reason` is optional and recorded with the pause.
+
+The pause is **runtime state, not configuration**: it does not survive a hub restart. To disable an effector durably, use its `*_ENABLED` variable (`ORACLE_PUBLISH_ENABLED`, `ATTEST_ENABLED`, `ANCHOR_ENABLED`, `FULLNODE_ENABLED`) in [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Resilience and Recovery
 

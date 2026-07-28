@@ -80,6 +80,20 @@ Tracks known peers in the gossip network for reconnection and discovery.
 | `oracle_submissions` | Per-validator price submissions per round |
 | `price_snapshots` | Finalized oracle prices after PBFT consensus (cross-chain unified view) |
 | `oracle_prices` | User TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window |
+| `price_ingest_watermarks` | Per-source-chain fence rejecting stale price pushes after a retraction |
+
+### `price_ingest_watermarks`
+
+One row per source chain, recording how far the hub has processed that chain's price retractions. It is the ingest fence: after a rollback, a late push from the orphaned range must not be accepted just because it arrives after the retraction did.
+
+| Column | Type | Description |
+|---|---|---|
+| `source_chain` | `VARCHAR(10) NOT NULL` | Primary key: `BTC`, `LTC`, or `DOGE` |
+| `retraction_generation` | `BIGINT NOT NULL` | Highest source-chain rollback generation whose retraction the hub has processed |
+| `from_action_index` | `BIGINT NOT NULL` | Lower bound of that generation's orphaned range |
+| `updated_at` | `TIMESTAMP` | Last update |
+
+A push is rejected at ingest when its `push_generation` is at or below `retraction_generation` **and** its `action_index` is at or above `from_action_index`, which is exactly the already-retracted range.
 
 ### `oracle_submissions`
 
@@ -333,6 +347,25 @@ Individual validator votes cast on governance proposals.
 |---|---|
 | `validator_rewards` | Per-round oracle reward accounting |
 | `slash_proposals` | Detected validator misbehavior records |
+| `attestation_validator_stats` | Per-validator attestation spot-check outcomes feeding the failure-window slash trigger |
+
+### `attestation_validator_stats`
+
+One row per (validator, spot-checked attestation request): `passed = 1` when the validator's signed response matched the platform's expected answer, `0` when it diverged. The rolling window and threshold decision read live counts from these rows.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `BIGINT AUTO_INCREMENT` | Primary key |
+| `validator_pubkey` | `CHAR(64) NOT NULL` | Validator being spot-checked |
+| `provider_id` | `VARCHAR(64) NOT NULL` | Attestation provider the request went to |
+| `request_id` | `VARCHAR(128) NOT NULL` | The attestation request checked |
+| `block_index` | `BIGINT NOT NULL` | The request's creation block |
+| `passed` | `TINYINT(1) NOT NULL` | 1 if the response matched, 0 if it diverged |
+| `checked_at` | `TIMESTAMP` | Check time |
+
+**Keys:** unique `(validator_pubkey, request_id)`, `(validator_pubkey, passed)`, `(block_index)`
+
+`block_index` is what keeps the slash trigger reorg-safe: a chain reorg that orphans the request's block deletes the row, so an orphaned failure cannot count toward a slash.
 
 ### `validator_rewards`
 
@@ -374,6 +407,28 @@ Records detected validator misbehavior for governance review. The hub detects vi
 |---|---|
 | `state_checkpoints` | Quorum-signed per-chain ledger/actions/contract hash snapshots; mirrored to indexers |
 | `capability_snapshots` | Per-block capability validator sets locked at BTC-anchored block boundaries |
+| `anchor_reward_attestations` | Quorum-attested ANCHOR publisher rewards; mirrored to indexers |
+
+### `anchor_reward_attestations`
+
+Hub-authored, append-only record of who earned each ANCHOR publish reward. One row is written per attested reward tuple once the publisher-attestation quorum resolves. Mirrored to every indexer through `hub_db_sync` on the same terms as `state_checkpoints`: id-parity `INSERT IGNORE`, never retracted.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED AUTO_INCREMENT` | Primary key, doubles as the mirror cursor |
+| `chain` | `VARCHAR(10) NOT NULL` | Reward's chain (`BTC`/`LTC`/`DOGE`) |
+| `network` | `VARCHAR(20) NOT NULL` | `mainnet`, `testnet`, or `regtest` |
+| `reward_type` | `VARCHAR(32) NOT NULL` | `anchor_<CHAIN>` for per-chain checkpoint rewards, `anchor_archive` for the match archive |
+| `round_reference` | `BIGINT UNSIGNED NOT NULL` | The `checkpoint_seq`, or the match batch sequence for an archive reward |
+| `snapshot_block` | `BIGINT UNSIGNED NOT NULL` | BTC block selecting the `oracle_publish` set, and the reward's `block_index` |
+| `publisher` | `VARCHAR(64) NOT NULL` | Elected publisher pubkey credited with the reward (lowercase hex) |
+| `reward_amount` | `VARCHAR(32) NOT NULL` | **Audit only.** The indexer credits the frozen constant, never this wire value |
+| `publisher_attestations` | `TEXT NOT NULL` | JSON `[{pubkey,sig}]`, the 2f+1 quorum over the reward canonical |
+| `created_at` | `TIMESTAMP` | Insert time |
+
+**Keys:** unique `(chain, network, reward_type, round_reference, snapshot_block, publisher)`, `(network, snapshot_block)`
+
+Rows are written only after the quorum resolves for an already-finalized checkpoint, so there is nothing to un-finalize: a DOGE reorg cannot un-quorum an attested publish, and a BTC reorg unwinds the derived reward through ordinary block-scoped rollback keyed on `snapshot_block`.
 
 ### `state_checkpoints`
 

@@ -96,7 +96,7 @@ A few things to notice:
 - `xchain.contract.slash(pubkey, tick, amount)` is the *only* way tokens leave a staker's balance other than them calling `UNSTAKE`. It can only target stakers of **this** contract, you cannot slash someone else's contract's stakers.
 - `getStakers` returns the top 1000 stakers by amount. If you expect more than 1000, don't design rules that require iterating all of them in one call.
 
-For the full `xchain.contract.*` reference, see [Smart_Contract_Development.md](Smart_Contract_Development.md#contract-staking).
+For the full `xchain.contract.*` reference, see [Smart_Contract_Development.md](Smart_Contract_Development.md#contract-targeted-staking-xchaincontract).
 
 ---
 

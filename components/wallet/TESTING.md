@@ -131,8 +131,8 @@ Real-device coverage is manual and runs against the maintainer's test fleet befo
 |---|---|
 | `multisig-create.smoke.js` | Create flow: chain pick, threshold, cosigner addition, address derivation, persistence |
 | `multisig-multi-config.smoke.js` | Schema v2 per-address multi-config support |
-| `multisig-signing.smoke.js` | Session state machine: created → collecting → ready → finalized → broadcast → indexed |
-| `multisig-signer.smoke.js` | `MultisigSigner` orchestration over an underlying `SoftwareSigner` |
+| `multisig-signing.smoke.js` | Session state machine: `collecting-nonces` → `collecting-sigs` → `ready-to-finalize` → `finalized` → `broadcast`, plus `cancelled` from any non-terminal state |
+| `multisig-signer.smoke.js` | The abstract multisig surface on the `Signer` base class (`signMusig2Round1`, `signMusig2Round2`, `signMultisigClassical` all reject when not overridden), and the Trezor deferral error for classical multisig |
 | `multisig-psbt-signing.smoke.js` | Classical n-of-m PSBT combine + finalize via `xchain-sdk` `wallet.signMultisigPsbt` |
 | `multisig-psbt-qr.smoke.js` | Chunked PSBT-QR encode / decode round-trip |
 | `multisig-address.smoke.js` | BIP48 address derivation from threshold + cosigners |

@@ -145,7 +145,7 @@ positional, all-string input params (read via `xchain.getInputParam(i)`):
 
 | i | Param | Notes |
 |---|---|---|
-| 0 | `action_type` | the guard invocation point (see the [class table](#action-classes)). For `SWEEP_OWNERSHIP` there is one run per swept ownership deed, `from` = owner/SOURCE, `to` = DESTINATION. No guard runs at match or dispense: see [Proceeds split](#proceeds-split-royalty--fee-payout_legs). |
+| 0 | `action_type` | the guard invocation point (see the [class table](#action-classes)). For `SWEEP_OWNERSHIP` there is one run per swept ownership deed, `from` = owner/SOURCE, `to` = DESTINATION. No guard runs at match or dispense: see [Proceeds split](#proceeds-split-royalty-fee-payout_legs). |
 | 1 | `from` | the address giving up / sending the token (`''` if n/a) |
 | 2 | `to` | the address receiving the token (`''` if n/a) |
 | 3 | `tick` | the controlled token |
@@ -158,7 +158,7 @@ Decision semantics:
 - **Return normally ⇒ ALLOW.** The guard's state changes and emitted actions are committed
   atomically with the native action.
 - **A `trade`-class create guard may return `{ payoutLegs: [{ to, bps }, …] }`** to set a
-  basis-point split of the sale's proceeds (see [Proceeds split](#proceeds-split-royalty--fee-payout_legs)).
+  basis-point split of the sale's proceeds (see [Proceeds split](#proceeds-split-royalty-fee-payout_legs)).
 - **`revert(reason)` / out-of-gas / runtime error / missing `guard` method ⇒ DENY**
   (fail-closed). The native action is marked `invalid: controller (<reason>)` and everything
   the guard did is rolled back.

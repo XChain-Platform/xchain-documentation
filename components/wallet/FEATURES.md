@@ -115,7 +115,7 @@ Token-weighted governance polls, on every chain:
 
 See [Multisig](MULTISIG.md) for the full state machine. The wallet supports:
 
-- **Classical n-of-m**: every cosigner produces a partial PSBT; coordinator finalizes via `xchain-sdk@1.13.0+`'s `wallet.signMultisigPsbt`. Today: software signer is the path of least resistance; hardware signers surface a deferral with a fallback.
+- **Classical n-of-m**: every cosigner produces a partial PSBT; coordinator finalizes via `xchain-sdk`'s `wallet.signMultisigPsbt`. Today: software signer is the path of least resistance; hardware signers surface a deferral with a fallback.
 - **MuSig2**: two-round protocol per BIP327 (round 1: collect public nonces; round 2: collect partial signatures) producing a single Schnorr signature indistinguishable from a single-signer transaction. Software-signer-only today; hardware-signer support is firmware-gated.
 - **Per-address multi-config**: schema v2 supports more than one multisig config per address, useful for rolling key rotation.
 - **Transport**: paste-inbox + camera scanner + AnimatedQrFrames for offline cosigner round-trips. See [URI Schemes](URI_Schemes.md) for the encoded envelope.

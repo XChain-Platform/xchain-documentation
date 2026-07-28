@@ -50,6 +50,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `bet_resolves` | BET market resolution records (format 3), the only path that pays the oracle its fee |
 | `broadcasts` | BROADCAST messages and general-purpose data feeds. Betting markets are `bet_feeds`, not broadcasts |
 | `callbacks` | CALLBACK action records |
+| `coinpays` | COINPAY native-coin payments settling an ORDER_MATCH obligation: the amount paid, its `txid`/`vout`, and the obligation it discharges |
 | `destroys` | DESTROY (burn) records |
 | `dispensers` | DISPENSER vending machine definitions |
 | `dispenser_cancels` | DISPENSER cancellation records |
@@ -195,6 +196,21 @@ Two slashing systems produce distinct table families.
 | `recovery_pending_rewards` | Recovery-only staging table for archived validator reward rows. Populated by `recovery.js` before a reindex; rewards are materialized into `validator_rewards` when the source address first receives its deterministic in-block index ID. NOT replicated by `xchain-sync` |
 | `oracle_prices` | Local mirror of the hub's `oracle_prices` table (PRICE v1 user oracle rows). Populated by `hub_db_sync`. Rolled back on reorg by `(source_chain, action_index)` |
 | `price_snapshots` | Local mirror of the hub's `price_snapshots` table (PRICE v0 consensus rounds). Populated by `hub_db_sync`. Rolled back on reorg by `reference_block` |
+| `anchor_reward_attestations` | Local mirror of the hub's table of the same name: quorum-attested ANCHOR publisher rewards. Populated by `hub_db_sync`, INSERT-IGNORE, never retracted |
+| `anchor_reward_reconcile_log` | Pre-image log of validator-reward rows deleted when an ANCHOR reconciles a contested publisher. Stores each deleted row's exact `amount` string and its original `reward_block_index`, so a reorg restore re-inserts it byte-identically, and only when the earn-block itself survives |
+| `cross_chain_call_rejections` | Refused XCALL dispatch injections, one row per `call_id`, with the refusal `reason` family, human-readable `detail`, and the attempt count and first/last block. Makes a call that never lands diagnosable instead of silently absent |
+| `push_generations` | Per-coin monotonic counter bumped on every rollback and never decremented. Stamped onto hub pushes so the hub can fence stale pushes from an orphaned range (its `price_ingest_watermarks` side) |
+
+### Governance Tables (VOTE)
+
+Token-weighted polls. Each table is keyed by the `action_index` of the VOTE version that wrote it, and rolled back by `block_index`.
+
+| Table | Purpose |
+|---|---|
+| `polls` | Poll definitions written by VOTE v0. The creating `action_index` is the poll's id |
+| `votes` | Individual ballots (VOTE v1): the poll, the voter, the chosen option index, and its `share` (relative weight in split mode, `1` in approval mode) |
+| `poll_results` | Per-option tallies written by the system-injected VOTE v2 finalize: counted `total_weight`, distinct `voter_count`, and the `resolved_block` used as the reorg-rollback reset key |
+| `vote_delegations` | Standing delegations set or cleared by VOTE v3. A NULL `delegate_address_id` means the delegation was revoked; the latest row per delegator and governance token wins |
 
 ### PRICE Action Table
 
