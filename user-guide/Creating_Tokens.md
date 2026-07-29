@@ -120,9 +120,11 @@ Transferring ownership is done through an update to the token, changing the regi
 
 ## Fees
 
-Creating a token costs a fee paid in **XCHAIN**; the platform's gas token. XCHAIN is required for most write operations on the platform, similar to how Ethereum uses gas. The exact fee varies by blockchain (Bitcoin, Litecoin, or Dogecoin) and may change over time.
+Creating a token costs a protocol fee. The fee is *priced* in **XCHAIN**, the platform's gas token, but on every chain you can *pay* it in that chain's own coin: bitcoin, litecoin, or dogecoin. The network's price oracle converts the amount at the moment you act, so you do not have to acquire XCHAIN before you can create a token.
 
-You do not need to own the underlying coin (BTC, LTC, DOGE) in large amounts to create a token, you just need enough to cover the standard transaction fee to the miner plus your XCHAIN gas fee.
+On **Litecoin and Dogecoin, paying in the native coin is the only option**: an action submitted without a native-coin fee output is rejected. On **Bitcoin** you may instead have the fee deducted from an XCHAIN balance, if you hold one and prefer that.
+
+Either way you also need a small amount of the underlying coin to cover the ordinary miner transaction fee, exactly as you would for any transaction on that chain. See [Gas and Fees](../concepts/GAS.md) for the full schedule.
 
 ---
 

@@ -33,7 +33,7 @@ No. You can use public explorer instances to view token balances, transaction hi
 
 ### How much does it cost to create a token?
 
-Creating a token requires a fee paid in XCHAIN; the platform's gas token. The exact amount varies by blockchain. You also need a small amount of the underlying coin (BTC, LTC, or DOGE) to pay the standard miner transaction fee. Check the current fee schedule in the XChain Explorer for your chain of choice.
+Creating a token carries a protocol fee that is priced in XCHAIN, the platform's gas token, but paid in the chain's own coin. On Litecoin and Dogecoin, paying in litecoin or dogecoin is the only option; on Bitcoin you can pay in bitcoin or, if you prefer, have it deducted from an XCHAIN balance. You do not need to obtain XCHAIN first. You also need a small amount of the underlying coin for the ordinary miner transaction fee. Check the current fee schedule in the XChain Explorer for your chain of choice.
 
 ### Can I change my token's settings after creation?
 
