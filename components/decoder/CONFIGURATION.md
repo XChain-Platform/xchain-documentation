@@ -38,6 +38,7 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `DECODER_RPC_CONCURRENCY` | Maximum concurrent outbound JSON-RPC calls to the coin node. Floored at 1. | `50` |
 | `DECODER_RPC_MAX_BATCH` | Maximum number of calls permitted in one inbound JSON-RPC batch. The router runs `Promise.all` over a batch while the rate limiter counts the batch as a single request, so this bound is what stops one array from fanning out into thousands of concurrent handlers. | `20` |
 | `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; CI and operators running `node src/migrate.js` get the strict path anyway. | _(unset, non-fatal)_ |
+| `COIN` | Cosmetic label only, reported in the `/status` response. The decoder takes its chain identity from the node it is pointed at, so it has no coin setting of its own; the label stays empty unless a deploy sets one. | _(unset, empty label)_ |
 
 The `AUX_POW` variable should be set to any truthy value when running against Dogecoin nodes. It enables the `getBlockWithoutAuxPow()` code path that strips merge-mining headers before parsing.
 

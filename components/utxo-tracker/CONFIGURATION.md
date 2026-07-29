@@ -40,6 +40,8 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for JSON-RPC calls to the coin node | `30000` |
 | `DEBUG_TRACE` | Set to `1`/`true` for verbose tracker tracing on stdout. Debug only. | _(unset)_ |
 | `TRACE_UTXO` | Set to `1`/`true` for per-output LevelDB tracing (one line per `insertOutput`, per staged deletion, and a summary per transaction). Debug only; kept behind a flag so production cost is zero. | _(unset)_ |
+| `UTXO_TRACKER_MAX_CONCURRENT_PROBES` | Concurrency cap for cheap probe requests, gated separately so a monitoring flood cannot consume the budget real queries need. Past the cap a probe is refused immediately with `429` and `Retry-After: 1` rather than queued. `0` disables the cap. | `16` |
+| `UTXO_TRACKER_MAX_CONCURRENT_REQUESTS` | Concurrency cap for everything that is not a probe, with the same immediate-`429` behaviour. `0` disables the cap. | `100` |
 
 ### Bulk-Sync Variables
 

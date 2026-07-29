@@ -150,6 +150,8 @@ npm run api
 | `ENCODER_TRUST_PROXY` | No | `loopback, uniquelocal` | Express `trust proxy` setting. The default recovers the real client IP behind a host proxy (loopback) or a Docker bridge (uniquelocal), and ignores a forged `X-Forwarded-For` when the encoder is exposed directly. Override with `false`, a hop count (e.g. `1`), or an address/CIDR list. Mirrors the hub's `HUB_TRUST_PROXY` |
 | `UTXO_TRACKER_MAX_LAG_BLOCKS` | No | `2` | Maximum blocks the utxo-tracker may report as lag (its per-response `sync` field) before `create_tx` refuses to select UTXOs from it and fails with `UTXO_TRACKER_STALE` |
 | `NODE_RPC_TIMEOUT` | No | `30000` | HTTP timeout in milliseconds for JSON-RPC calls to the coin node |
+| `ENCODER_MAX_CONCURRENT_PROBES` | No | `16` | Concurrency cap for cheap probe requests (`GET /status`, `GET /openrpc.json`), which get their own gate so a monitoring flood cannot consume the budget real work needs. Over the cap a probe is refused immediately with `429` and `Retry-After: 1` rather than queued; `0` disables the cap |
+| `ENCODER_MAX_CONCURRENT_REQUESTS` | No | `50` | Concurrency cap for everything that is not a probe. Same immediate-`429` behaviour, and `0` likewise disables it |
 | `CORS_ORIGIN` | No | Disabled | CORS origin (`*` to allow all) |
 
 ## Testing

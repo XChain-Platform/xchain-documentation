@@ -91,7 +91,7 @@ The coin node requires no patches, plugins, or configuration changes. A fully sy
 
 ---
 
-*Next: [Actions](./ACTIONS.md), how the 35 ACTION commands drive every state change on the platform.*
+*Next: [Actions](./ACTIONS.md), how ACTION commands drive every state change on the platform.*
 
 ---
 

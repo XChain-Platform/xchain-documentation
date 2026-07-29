@@ -268,8 +268,8 @@ The SDK covers the 30 developer-invocable actions with convenience methods: `sdk
 ## Next Steps
 
 - [Full SDK Documentation](../components/sdk/): all methods, configuration options, error types, and examples
-- [ACTION Concepts](../concepts/ACTIONS.md): conceptual overview of the 35 actions and the ACTION format
-- [ACTION Protocol Specs](../protocol/actions/): per-action field-level formats and validation rules for all 35 actions
+- [ACTION Concepts](../concepts/ACTIONS.md): conceptual overview of the ACTION set and the ACTION format
+- [ACTION Protocol Specs](../protocol/actions/): per-action field-level formats and validation rules for all 36 actions
 - [Regtest Development](../developer-guide/Regtest_Development.md): run a full local stack for free
 - [Explorer API](../components/explorer/): all 200+ REST and JSON-RPC endpoints
 

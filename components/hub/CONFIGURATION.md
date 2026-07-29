@@ -98,6 +98,7 @@ Caps on the live-update channel indexers subscribe to. See [API](API.md#get-hub-
 | `WS_MAX_PER_IP` | No | `100` | Maximum simultaneous subscribers from a single IP |
 | `WS_BACKPRESSURE_LIMIT` | No | `50` | Buffered messages a slow subscriber may accumulate before its connection is dropped |
 | `WS_WATERMARK_INTERVAL_MS` | No | `10000` | Interval between `watermark` heartbeats, which let a subscriber tell "the mirror is behind" apart from "no rows are being produced" |
+| `WS_WATERMARK_LATE_FACTOR` | No | `2` | Multiple of `WS_WATERMARK_INTERVAL_MS` after which a heartbeat gap counts as late and is logged; `getWatermarkStats()` exposes the tally on `/health`. A value below `1` would mark an exactly-on-time tick late, so anything under `1` falls back to the default rather than raising permanent false alarms |
 
 ### Indexer tip freshness
 
@@ -234,6 +235,7 @@ Controls `StateCheckpointEngine`, which produces the quorum-signed per-block sta
 | `CHECKPOINT_POLL_MS` | No | `60000` | Interval between checkpoint eligibility polls. |
 | `CHECKPOINT_ROUND_TIMEOUT_MS` | No | `60000` | Timeout for one checkpoint signing round. |
 | `CHECKPOINT_COSIGN_TOLERANCE_BLOCKS` | No | `144` | Fail-closed co-sign gate: a `SIGN_REQ` whose `snapshot_block` deviates from this hub's own BTC tip by more than this many blocks is declined. The default is roughly a day of BTC blocks. |
+| `CHECKPOINT_STALL_LOG_MS` | No | `3600000` (1 h) | Throttle for the "cadence stalled" log line. The eligibility poll runs far more often than the checkpoint cadence, so the reason is logged at most this often and the counter carries the true rate. |
 
 ### Full-Node Challenge
 
@@ -249,6 +251,7 @@ Controls `FullNodeChallengeRound`, the periodic possession challenge proving a v
 | `FULLNODE_POLL_MS` | No | `30000` | Poll cadence for challenge progress. |
 | `FULLNODE_COLLECT_MS` | No | `20000` | Window for collecting challenge answers. |
 | `FULLNODE_COLLECT_DEPTH_BLOCKS` | No | `3` | Blocks past the collection point before the round closes. |
+| `XCHAIN_HUB_SKIP_FULLNODE_ASSERT` | No | _(unset, assertion active)_ | Set to `1` to skip the canonical-FULLNODE assertion at startup and warn instead . Intended as a loud one-off bypass for a venue running its own challenge cadence and verifier set: divergent `NODEPROOF` knobs fork the challenge schedule, so this is not a setting to leave on. |
 
 ### Retraction Consensus
 

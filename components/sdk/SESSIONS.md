@@ -50,7 +50,9 @@ await session.order({
 
 ### Available Action Methods
 
-All 30 action types are available as convenience methods:
+Thirty of the 31 action types are available as convenience methods. `BATCH` is
+the exception: it is composed with the SDK's batch builder
+(`sdk.batch().send({...}).mint({...}).build()`) rather than by a session method.
 
 | Category | Methods |
 |---|---|
@@ -60,6 +62,8 @@ All 30 action types are available as convenience methods:
 | Communication | `broadcast`, `message`, `file` |
 | Utility | `list`, `link`, `callback`, `sleep`, `address` |
 | Oracle | `price` |
+| Governance | `vote` |
+| Betting | `bet` |
 | Staking (BTC) | `stake`, `unstake`, `delegate`, `collect` |
 | Contract-targeted staking | `stakeToContract`, `unstakeFromContract`, `delegateForContract` |
 | Chunked deploy | `deployChunk` |

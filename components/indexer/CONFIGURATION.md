@@ -78,6 +78,8 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 |---|---|---|
 | `STATE_TREE_METRIC_INTERVAL_MS` | Interval for the state-tree orphan-statistics sweep. Set `0` to disable. | `14400000` (4 h) |
 | `STATE_TREE_METRIC_MAX_NODES` | Node ceiling for a single metric pass, bounding the sweep's cost on a large tree | `2000000` |
+| `INDEXER_SMT_TOUCH_AUDIT` | Set to `1` to audit, per block, the set of keys the state-commitment pass actually touched against the set the ledger rows say it should have, reporting the difference in both directions with the exact keys. That evidence cannot be recovered once the block is committed, which is why it is a flag rather than a post-hoc probe. Diagnostic only; off in normal operation. | _(unset, audit off)_ |
+| `INDEXER_TOUCH_GUARD` | Behaviour when the balances touched-set guard fails, meaning the ledger moved keys the commitment did not apply and `balances_root` would be committed incomplete . The default throws and stops the block. Set to `warn` to log and commit anyway; the node then **diverges from any node that full-rebuilds**, so this is a deliberate, temporary escape hatch rather than an operational setting. | _(unset, fails closed)_ |
 
 ### Genesis
 

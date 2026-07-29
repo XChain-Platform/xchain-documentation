@@ -177,7 +177,7 @@ XChain actions involved: ORDER, SWAP, or DISPENSER (each with the `GIVE_OWNERSHI
 
 ### Internal Company Networks
 
-Organizations can run XChain on a private regtest network; a fully featured, fully isolated instance of the platform. All 35 actions work identically to the public network. The organization controls the block production, the gas issuance, and the entire environment.
+Organizations can run XChain on a private regtest network; a fully featured, fully isolated instance of the platform. Every action works identically to the public network. The organization controls the block production, the gas issuance, and the entire environment.
 
 This is useful for internal asset management (tracking equipment, licenses, or internal credits), piloting blockchain applications before going to mainnet, and training teams on the platform without real-money risk.
 
@@ -203,7 +203,7 @@ XChain has a built-in smart contract layer that runs on top of Bitcoin, Litecoin
 
 ### Programmable Tokens
 
-A smart contract on XChain can do anything the protocol's 35 actions can do: issue tokens, transfer balances, place orders, set up dispensers, send messages; but on a schedule or under conditions that you define in code.
+A smart contract on XChain can do what a person with a wallet can do: issue tokens, transfer balances, place orders, set up dispensers, send messages; but on a schedule or under conditions that you define in code.
 
 - **Automatic token vesting**: tokens released to recipients on a schedule, without anyone needing to push a button on the date.
 - **Automated market makers**: liquidity pools that price tokens continuously based on supply and demand, going beyond the fixed-price model of orders and dispensers.

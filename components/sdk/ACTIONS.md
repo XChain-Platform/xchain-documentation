@@ -3,7 +3,7 @@
 
 # XChain Platform SDK: ACTION Reference
 
-Complete reference for all 30 ACTION types supported by the XChain Platform SDK.
+Complete reference for all 31 ACTION types supported by the XChain Platform SDK.
 
 ---
 

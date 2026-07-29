@@ -58,6 +58,7 @@ See [WEBSOCKET.md](WEBSOCKET.md) for the full WebSocket API reference.
 | `HUB_API_HOST` | No | `localhost` | xchain-hub hostname for config discovery (single-instance; ignored when `HUB_VALIDATORS` is set) |
 | `HUB_PORT` | No | `10000` | xchain-hub port (single-instance; ignored when `HUB_VALIDATORS` is set) |
 | `HUB_VALIDATORS` | No | None | Comma-separated list of hub URLs for high-availability config discovery (e.g. `http://hub1:10000,http://hub2:10000`). When set, takes precedence over `HUB_API_HOST`/`HUB_PORT` and the explorer tries each URL in order, falling back to the next on failure. |
+| `EXPLORER_MAX_CONCURRENT_REQUESTS` | No | `200` | Concurrency cap for API requests. Past the cap a request is refused immediately with `429` and `Retry-After: 1` rather than queued, so a burst degrades into fast rejections instead of a growing backlog. Static assets are exempt. Set to `0` to disable the cap |
 | `UPDATE_CONFIG_INTERVAL` | No | `60000` | Interval in milliseconds between hub config refresh polls |
 | `HUB_RETRY_ATTEMPTS` | No | `4` | Attempts per hub config fetch, with exponential backoff. After a power cycle the hub and its MariaDB can take several seconds to come up; a single-pass fetch loses that race and leaves the explorer with no config. `ping()` opts out so liveness checks stay fast. |
 | `HUB_RETRY_DELAY_MS` | No | `2000` | Base backoff between hub config retry attempts. Tests set `0`. |
