@@ -2,7 +2,7 @@
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - FILE
-This action uploads a file including file metadata. The action also supports **token-gated cryptographically secure files**, encrypted on-chain such that only holders of a specific token can decrypt them. Gating is enabled by populating the optional `GATE_TICKER`, `ENCRYPTION_METHOD`, and `KEY_HASH` fields. See [Token-Gated Content](../Token_Gated_Content.md) for the end-to-end design.
+This action uploads a file including file metadata. The action also supports **token-gated cryptographically secure files**, encrypted on-chain such that only holders of a specific token can decrypt them. Gating is enabled by populating the optional `GATE_TICKER`, `ENCRYPTION_METHOD`, and `KEY_HASH` fields, with an optional `GATE_MIN_AMOUNT` to require a minimum holding rather than any holding. See [Token-Gated Content](../Token_Gated_Content.md) for the end-to-end design.
 
 ## PARAMS
 | Name                | Type   | Description                                                              |
@@ -15,13 +15,14 @@ This action uploads a file including file metadata. The action also supports **t
 | `GATE_TICKER`       | String | (optional) Token ticker that gates this file. Empty = public file.       |
 | `ENCRYPTION_METHOD` | String | (optional) Encryption method code. `1` = AES-256-GCM. Required when gated. |
 | `KEY_HASH`          | String | (optional) Hex `sha256(K)` of the symmetric key. Required when gated.    |
+| `GATE_MIN_AMOUNT`   | String | (optional) Minimum balance of `GATE_TICKER` at which the content unlocks. Empty = any holder. |
 
 ## Formats
 
 ### Version `0`
-- `VERSION|NAME|TYPE|TITLE|MEMO|GATE_TICKER|ENCRYPTION_METHOD|KEY_HASH`
+- `VERSION|NAME|TYPE|TITLE|MEMO|GATE_TICKER|ENCRYPTION_METHOD|KEY_HASH|GATE_MIN_AMOUNT`
 
-The gating fields are optional and appended after `MEMO`. The encoder strips trailing empty fields, so a non-gated file serializes to the compact `FILE|0|NAME|TYPE|TITLE|MEMO` form and is wire-compatible with software that predates the gating extension.
+The gating fields are optional and appended after `MEMO`. The encoder strips trailing empty fields, so a non-gated file serializes to the compact `FILE|0|NAME|TYPE|TITLE|MEMO` form and is wire-compatible with software that predates the gating extension. The same holds for `GATE_MIN_AMOUNT`: an eight-field gated FILE is byte-identical to what it was before the field existed, so every historical FILE reads the same way.
 
 ## Examples
 ```
@@ -44,9 +45,11 @@ This example uploads an encrypted ZIP gated by the PEPECREATURE token. `ENCRYPTI
 - When `GATE_TICKER` is non-empty, `ENCRYPTION_METHOD` must be `1` (AES-256-GCM). Other values reserved for future algorithms.
 - When `GATE_TICKER` is non-empty, `KEY_HASH` must be a 64-character lowercase hex string (32 bytes / 256 bits).
 - When `GATE_TICKER` is non-empty, `rawData` is the ciphertext: `[12-byte nonce][16-byte GCM authentication tag][ciphertext]`.
+- `GATE_MIN_AMOUNT`, when present, must be a decimal amount strictly greater than zero (every zero form is invalid), at most 40 characters, digits with at most one `.`, no leading zeros unless the integer part is exactly `0`, a non-empty fractional part whenever a `.` is present, and no more decimal places than min(the gate token's divisibility, 18). A present-but-invalid value makes the FILE invalid rather than being ignored: a FILE is immutable, so a dropped threshold would leave the publisher believing one was in force while the chain recorded none.
+- `GATE_MIN_AMOUNT` is only meaningful with a `GATE_TICKER`; on a non-gated FILE it is invalid, since there is no balance to weigh it against.
 
 ## Pack semantics
-Two or more gated `FILE` actions with the same `GATE_TICKER` **and** the same `KEY_HASH` form a **pack**; they share a symmetric key and unlock together. Pack membership is implicit in the shared `KEY_HASH`; the protocol does not need a separate "pack" concept. See [Token-Gated Content](../Token_Gated_Content.md) for details and use cases.
+Two or more gated `FILE` actions by the same **publisher** with the same `GATE_TICKER` **and** the same `KEY_HASH` form a **pack**; they share a symmetric key and unlock together. Pack membership is implicit in that triple; the protocol does not need a separate "pack" concept. A pack's effective unlock threshold is the MINIMUM `GATE_MIN_AMOUNT` across its files, and any file in it without a threshold makes the whole pack unconditional, because one key unlocks all of them. The publisher is part of the key because token ownership transfers: without it, a former issuer's files would keep setting the threshold for a token they no longer control. See [Token-Gated Content](../Token_Gated_Content.md) for details and use cases.
 
 ## Notes
 - Raw file data is uploaded by specifying it as `rawData` to the XChain encoder.
