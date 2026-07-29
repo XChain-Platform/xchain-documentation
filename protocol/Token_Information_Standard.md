@@ -5,13 +5,13 @@
 
 The Token Information Standard (TIS) defines standardized formats to associate information like images, audio, video, and files with a token.
 
-# JSON Specifications
+## JSON Specifications
 
-## v1.0.0
+### v1.0.0
 - [Token Information Standard JSON Schema](./json/token-information-standard-v1.0.0-schema.json)
 - [Token Information Standard JSON Example](./json/token-information-standard-v1.0.0-example.json)
 
-### JSON Field Definitions
+#### JSON Field Definitions
 
 | Field       | Type   | Description
 | :---        | :---   | :---
@@ -31,7 +31,7 @@ The Token Information Standard (TIS) defines standardized formats to associate i
 | packs       | Object | Display metadata for [token-gated content packs](./Token_Gated_Content.md). Map of pack id → `{ name, description }`.
 | dns         | Array  | One or more DNS records related to the token.
 
-### File Entry Fields
+#### File Entry Fields
 
 Entries inside the `files`, `audio`, `video`, and `images` arrays can carry the following fields:
 
@@ -46,7 +46,7 @@ Entries inside the `files`, `audio`, `video`, and `images` arrays can carry the 
 | pack_id     | String  | (Optional) Pack identifier grouping files that share an unlock key. References the top-level `packs` map for display name and description. Does not need to be present for unlocking to work; the protocol groups by `KEY_HASH` directly.
 
 
-# NFT Usage
+## NFT Usage
 
 Tokens following the [NFT Standard](./NFT_Standard.md) use TIS as their **display
 layer**: the protocol records which files a token's owner has officially attached (via
@@ -82,25 +82,25 @@ Clients classify a token as NFT-pattern by chain state (`DECIMALS=0` +
 [NFT Standard](./NFT_Standard.md#classification-rule-for-clients)) and treat the TIS
 category as the issuer's stated intent.
 
-# Supported Token Description Formats
+## Supported Token Description Formats
 
 Below are a number of token description formats which should be recognized by XChain block explorers.
 
-## IMAGE Format
+### IMAGE Format
 <table>
 <tr><td><b>Format</b></td><td>https://domain.com/imagename.jpg</td></tr>
 <tr><td><b>Note</b></td><td>URL must end in gif, jpg, or png </td></tr>
 <tr><td><b>Example</b></td><td>https://xchain.io/img/xchain-color-500.png </td></tr>
 </table>
 
-## JSON Format
+### JSON Format
 <table>
 <tr><td><b>Format</b></td><td>https://domain.com/info.json</td></tr>
 <tr><td><b>Note</b></td><td>URL to a JSON file ending in .json</td></tr>
 <tr><td><b>Example</b></td><td>example.com/json/JDOG.json </td></tr>
 </table>
 
-## JSON Format with Hash
+### JSON Format with Hash
 <table>
 <tr><td><b>Format</b></td><td>https://domain.com/info.json;HASH</td></tr>
 <tr><td><b>HASH</b></td><td>64-character sha256 hash</td></tr>
@@ -108,7 +108,7 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>Example</b></td><td>example.com/json/JDOG.json;96fc96754c913f60e9d7a0be07d76ffbcdc53338295cbd69595e69cf49616c3b</td></tr>
 </table>
 
-## On-Chain Format (action index)
+### On-Chain Format (action index)
 <table>
 <tr><td><b>Format</b></td><td>action:INDEX <i>or</i> action:COIN:INDEX</td></tr>
 <tr><td><b>INDEX</b></td><td>ACTION_INDEX of a <a href="./actions/FILE.md">FILE</a> action whose raw bytes are a TIS JSON document (declared MIME type <code>application/json</code>)</td></tr>
@@ -117,7 +117,7 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>Example</b></td><td>action:12345 &nbsp;·&nbsp; action:DOGE:12345</td></tr>
 </table>
 
-## IMGUR Format
+### IMGUR Format
 <table>
 <tr><td><b>Format</b></td><td>imgur/IMAGENAME;TITLE</td></tr>
 <tr><td><b>IMAGENAME</b></td><td>Filename of the image on imgur.com</td></tr>
@@ -126,7 +126,7 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>Example</b></td><td>imgur/yTS3gEv.png;XChain</td></tr>
 </table>
 
-## SOUNDCLOUD Format
+### SOUNDCLOUD Format
 <table>
 <tr><td><b>Format</b></td><td>soundcloud/CODE;TITLE</td></tr>
 <tr><td><b>CODE</b></td><td>Unique code for the audio on soundcloud.com</td></tr>
@@ -135,7 +135,7 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>Example</b></td><td>soundcloud/924613324;Back in Blood</td></tr>
 </table>
 
-## YOUTUBE Format
+### YOUTUBE Format
 <table>
 <tr><td><b>Format</b></td><td>youtube/CODE;TITLE</td></tr>
 <tr><td><b>CODE</b></td><td>Unique code for the video on youtube.com</td></tr>
@@ -144,7 +144,7 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>Example</b></td><td>youtube/FenVJ_cyE5M;Can't Suck Dick!</td></tr>
 </table>
 
-## IPFS Format
+### IPFS Format
 <table>
 <tr><td><b>Format</b></td><td>ipfs:CODE</td></tr>
 <tr><td><b>CODE</b></td><td>Unique IPFS CID that points to a JSON file</td></tr>
@@ -152,7 +152,7 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>Example</b></td><td>IPFS:QmdnznjxzrjmLGpwjiDrgfdAu5r7VB4tWWWVtNRtqYqACq</td></tr>
 </table>
 
-## Ordinals Inscription Format
+### Ordinals Inscription Format
 <table>
 <tr><td><b>Format</b></td><td>ord:CODE</td></tr>
 <tr><td><b>CODE</b></td><td>Inscription Reveal Transaction ID (standard 64 character hex string or converted to Base64)</td></tr>
@@ -160,7 +160,7 @@ Below are a number of token description formats which should be recognized by XC
 <tr><td><b>Example</b></td><td>ORD:1d36aa544a20be86dca452e3abe464d33dd8567392dee8e333f72519e97af679<br/>or<br/>ORD:HTaqVEogvobcpFLjq+Rk0z3YVnOS3ujjM/clGel69nk=</td></tr>
 </table>
 
-## Arweave Format
+### Arweave Format
 <table>
 <tr><td><b>Format</b></td><td>ar:HASH</td></tr>
 <tr><td><b>HASH</b></td><td>Arweave transaction hash that points to a JSON file</td></tr>

@@ -7,19 +7,19 @@ The XChain URI Scheme defines a compact, QR-friendly text format for representin
 
 The scheme is the XChain equivalent of [BIP21](https://github.com/bitcoin/bips/blob/master/bip-0021.mediawiki); a payment-and-action URI you can put in a QR code, a link, or a clipboard. Unlike BIP21, the XChain scheme is cross-chain (Bitcoin / Litecoin / Dogecoin from a single namespace), names a specific action (not just a payment), and is open to future actions beyond send and receive.
 
-# JSON Specifications
+## JSON Specifications
 
-## v1.0.0
+### v1.0.0
 
 There is no JSON schema for this URI format; URI parameters are flat key=value pairs and are documented per action in the tables below. A machine-readable parameter manifest may be published under [`./json/`](./json/) in a future revision once the action surface stabilizes.
 
-# URI Format
+## URI Format
 
 ```
 xchain:<COINCODE>/<action>[?<param>=<value>[&<param>=<value>]...]
 ```
 
-## Components
+### Components
 
 | Component | Description |
 | :--- | :--- |
@@ -31,7 +31,7 @@ xchain:<COINCODE>/<action>[?<param>=<value>[&<param>=<value>]...]
 
 The URI is an opaque (no `//`) form, the same shape BIP21 uses (`bitcoin:bc1q…`). This is intentional: opaque URIs round-trip cleanly through QR scanners, terminal pastes, and OS-level handlers without being mangled by URL parsers that expect a host.
 
-# Coin Codes
+## Coin Codes
 
 Coin codes are the short identifier shared across the XChain Platform: explorer / encoder / hub URL paths all use the same codes, and the URI scheme follows that convention. A code combines the **coin** (BTC / LTC / DOGE) with the **network** (mainnet, testnet, regtest) into a single uppercase token.
 
@@ -47,13 +47,13 @@ Coin codes are the short identifier shared across the XChain Platform: explorer 
 | `TDOGE` | Dogecoin | testnet |
 | `RDOGE` | Dogecoin | regtest |
 
-## Naming Rule
+### Naming Rule
 
 Mainnet codes are the canonical ticker (`BTC`, `LTC`, `DOGE`). Testnet codes prepend `T`. Regtest codes prepend `R`. Adding a chain means registering its coin and its three network codes in this table.
 
 Codes are matched case-insensitively on input, but producers SHOULD emit them in uppercase for visual consistency.
 
-# Actions
+## Actions
 
 The action segment identifies the user intent. The scheme is open-ended: any verb the platform has a screen for can be a registered action. Today's actions:
 
@@ -64,7 +64,7 @@ The action segment identifies the user intent. The scheme is open-ended: any ver
 
 When a wallet generates a QR to **request payment** (i.e. someone wants to be paid), it encodes `action=send`: the scanner is the party that will send the funds, and `send` represents what they're about to do. `action=receive` is reserved for use cases where the URI is asking the consumer to open their own Receive screen, for example, a kiosk QR that says "tap to display your receive address."
 
-## Extensibility
+### Extensibility
 
 New actions are added by:
 
@@ -74,7 +74,7 @@ New actions are added by:
 
 Verbs SHOULD be short, lowercase, hyphen-separated, and describe the user-visible action (not an implementation detail). Examples of well-formed future verbs: `execute`, `issue`, `dispense`, `dex-buy`, `sign-message`.
 
-## Action Registry
+### Action Registry
 
 | Action | Status | Spec |
 | :--- | :--- | :--- |
@@ -83,7 +83,7 @@ Verbs SHOULD be short, lowercase, hyphen-separated, and describe the user-visibl
 | `execute` | Stable | [Per-Action Reference → execute](#execute) |
 | _(reserved for future actions)_ | None | None |
 
-# Parameter Conventions
+## Parameter Conventions
 
 URI parameters are flat `key=value` pairs joined by `&`, percent-encoded per RFC 3986. Two reserved prefixes carry meaning across all actions:
 
@@ -98,9 +98,9 @@ Amounts are decimal strings in the asset's display unit (e.g. `0.001` for one mB
 
 Memos cannot contain `|` or `;`; those characters are reserved by the protocol layer downstream. URI generators MUST strip or reject memos containing them. The wallet rejects pasted / scanned URIs whose memo violates this rule.
 
-# Per-Action Reference
+## Per-Action Reference
 
-## send
+### send
 
 Open the payer's Send screen for the named chain. The payer will sign and broadcast a transaction; the URI's job is to pre-fill the form.
 
@@ -113,7 +113,7 @@ Open the payer's Send screen for the named chain. The payer will sign and broadc
 | `label` | No | Optional receiver-facing label (display only; not persisted on-chain). |
 | `message` | No | Optional sender-facing note (display only; not persisted on-chain). |
 
-### Examples
+#### Examples
 
 | URI | Meaning |
 | :--- | :--- |
@@ -122,7 +122,7 @@ Open the payer's Send screen for the named chain. The payer will sign and broadc
 | `xchain:TBTC/send?to=tb1qexampleaddress&amount=1&tick=PEPECREATURE` | Open Send on Bitcoin testnet to `tb1q…`, pre-filled with 1 PEPECREATURE. |
 | `xchain:DOGE/send?to=DDoGeexampleaddress&amount=420&memo=Thanks!` | Open Send on Dogecoin mainnet, 420 DOGE, with a memo. |
 
-## receive
+### receive
 
 Open the consumer's Receive screen for the named chain. The consumer's wallet will display the user's own receive address for that chain.
 
@@ -132,14 +132,14 @@ Open the consumer's Receive screen for the named chain. The consumer's wallet wi
 | `amount` | No | Suggested amount for the Receive screen's payment-request UI. |
 | `memo` | No | Suggested memo for the payment-request UI. Must not contain `|` or `;`. |
 
-### Examples
+#### Examples
 
 | URI | Meaning |
 | :--- | :--- |
 | `xchain:BTC/receive` | Open Receive on Bitcoin mainnet. |
 | `xchain:TBTC/receive?tick=PEPECREATURE&amount=1` | Open Receive on Bitcoin testnet, pre-filled to request 1 PEPECREATURE. |
 
-## execute
+### execute
 
 Open the wallet's contract EXECUTE form for the named chain with the call target pre-filled. The wallet signs and broadcasts the resulting `EXECUTE` action; the URI's job is only to pre-fill the form (the explorer's "Write Contract" card is the primary producer). The wallet re-reads the contract's declared [ABI](Contract_ABI.md), when present, to render named parameter inputs.
 
@@ -150,16 +150,16 @@ Open the wallet's contract EXECUTE form for the named chain with the call target
 | `params` | No | Positional arguments as a single pipe-delimited string, percent-encoded (`a\|b` → `a%7Cb`). Elements must not themselves contain `\|` or `;` (the same rule as `EXECUTE`'s `PARAMS` wire field). Parameter names/types, when the contract declares them, are display metadata only; see [Contract ABI](Contract_ABI.md). |
 | `gas` | No | Gas-limit override for the call; the wallet's default applies if omitted. |
 
-### Examples
+#### Examples
 
 | URI | Meaning |
 | :--- | :--- |
 | `xchain:TBTC/execute?contract=500&method=fund` | Open the EXECUTE form on Bitcoin testnet targeting contract 500, method `fund` pre-selected. |
 | `xchain:RBTC/execute?contract=362&method=release&params=alice%7C42&gas=75000` | Regtest contract 362, `release("alice","42")` pre-filled with a 75000 gas limit. |
 
-# Compatibility
+## Compatibility
 
-## BIP21 alongside
+### BIP21 alongside
 
 Plain BIP21 URIs (`bitcoin:`, `litecoin:`, `dogecoin:`) remain fully supported as a parallel format. External wallets that only speak BIP21 can still pay an XChain address by scanning a bare-address BIP21 QR. The wallet generates a BIP21 URI by default when no XChain-specific customization (token, action, etc.) is set, maximizing interoperability with non-XChain wallets.
 
@@ -170,7 +170,7 @@ The wallet's BIP21 parser recognizes the XChain extension parameters `tick` and 
 | `xchain:<CODE>/<action>?…` | XChain-to-XChain QRs that need to carry chain, token, amount, or non-send actions |
 | `bitcoin:<addr>?amount=…` (and `litecoin:` / `dogecoin:`) | Bare-address payment requests intended to work with any wallet, not just XChain wallets |
 
-## Legacy path-style form
+### Legacy path-style form
 
 Older QRs may use the path-style form:
 
@@ -196,7 +196,7 @@ The full descriptor-to-coin-code mapping (source: `xchain-sdk/src/networks.js`):
 
 Wallets parsing the legacy form SHOULD translate the `<chainId>` to its coin code using this table before routing, then treat the URI as equivalent to the opaque form.
 
-# Versioning Rules
+## Versioning Rules
 
 The URI scheme follows semantic versioning. The current version is **v1.0.0**.
 

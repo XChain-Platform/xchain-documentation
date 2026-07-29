@@ -3,7 +3,7 @@
 
 # XChain Platform White Paper
 
-### A Chain-Agnostic Token, Exchange, and Smart-Contract Metalayer
+**A Chain-Agnostic Token, Exchange, and Smart-Contract Metalayer**
 
 **Authors:** Jeremy Johnson & Javier Varona Zavatti, Co-Founders, Dankest, LLC · **Version 1.2**
 

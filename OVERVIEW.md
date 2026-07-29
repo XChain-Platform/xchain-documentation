@@ -3,7 +3,7 @@
 
 # Overview
 
-### What XChain is, why it matters, and where it's going
+**What XChain is, why it matters, and where it's going**
 
 A short, plain-language introduction to the platform. For the full protocol specification, see the [XChain Platform White Paper](./WHITEPAPER.md).
 
