@@ -9,7 +9,7 @@ A reference glossary of XChain terminology, organized by category.
 
 ## Protocol
 
-**ACTION**: A command embedded in a blockchain transaction that instructs the XChain indexer to perform an operation, such as issuing a token, sending a balance, or placing an order. All XChain operations are expressed as one of 35 named ACTIONs.
+**ACTION**: A command embedded in a blockchain transaction that instructs the XChain indexer to perform an operation, such as issuing a token, sending a balance, or placing an order. All XChain operations are expressed as one of 36 named ACTIONs.
 
 **ACTION_INDEX**: A unique sequential integer assigned to every valid XChain ACTION transaction, in the order it was confirmed on-chain. Many actions reference prior actions by their ACTION_INDEX (e.g., an ORDER references the action that created the token being sold).
 
