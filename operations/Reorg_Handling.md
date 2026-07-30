@@ -72,6 +72,45 @@ The `index_addresses` table is intentionally left untouched: it is an append-onl
 
 The UTXO tracker keeps a per-chain undo window in its undo log (BTC: 12 blocks, LTC: 48 blocks, DOGE: 120 blocks; overridable via XCHAIN_UNDO_BLOCKS_<COIN>). Blocks are removed from LevelDB in reverse order until the local tip matches the coin node. A reorg deeper than the configured window would require a full re-sync from scratch; this is extremely rare on any mainnet chain.
 
+```mermaid
+flowchart TD
+  subgraph dec["Decoder"]
+    A["Poll coin node (~1s)"]
+    B{"previousblockhash mismatch?"}
+    C["Record reorg event in Decoder DB events table"]
+    D["Roll back decoder blocks and transactions to fork point"]
+    E["Decoder re-indexes from fork point"]
+    A --> B
+    B -- "No" --> A
+    B -- "Yes" --> C
+    C --> D
+    D --> E
+  end
+
+  subgraph idx["Indexer"]
+    F["Poll Decoder DB events table (every 5s)"]
+    G{"New reorg event found?"}
+    H["Delete rows at/after reorg block index (atomic transaction)"]
+    I["Indexer re-indexes from fork point"]
+    J["Run sanity check"]
+    F --> G
+    G -- "No" --> F
+    G -- "Yes" --> H
+    H --> I
+    I --> J
+  end
+
+  subgraph utx["UTXO Tracker"]
+    K["Detect chain tip change from coin node"]
+    L["Roll back blocks one at a time (LevelDB undo log)"]
+    M["Re-index forward until tip matches node"]
+    K --> L
+    L --> M
+  end
+
+  C -.-> F
+```
+
 ---
 
 ## What Happens to User-Visible Data

@@ -64,6 +64,21 @@ The action is refused **before anything is signed or broadcast**, with a typed `
 | `POLICY_UNRESOLVED_TICK` | The action references a token by its `^<id>` wire form and the policy has tick-scoped limits it cannot bind to an id. Declare the token in `tickIds` (see the co-signer section) or submit with `compactTickers` disabled. |
 | `POLICY_STATE_CORRUPT` | Usage-state file is unreadable or structurally invalid: indicates a corrupt state file, not a policy denial. Do not retry; inspect and remove or repair the file deliberately to recover. |
 
+```mermaid
+flowchart TD
+    A["Action proposed"] --> B{"Action type in allowedActions?"}
+    B -- "No" --> D1["POLICY_ACTION_DENIED"]
+    B -- "Yes" --> C{"Destination in allowedDestinations?"}
+    C -- "No" --> D2["POLICY_DESTINATION_DENIED"]
+    C -- "Yes" --> E{"Within per-action limit<br>(maxPerAction)?"}
+    E -- "No" --> D3["POLICY_AMOUNT_EXCEEDED"]
+    E -- "Yes" --> F{"Within rolling window limits<br>(maxPerWindow)?"}
+    F -- "No" --> D4["POLICY_WINDOW_AMOUNT_EXCEEDED,<br>POLICY_WINDOW_COUNT_EXCEEDED"]
+    F -- "Yes" --> G{"Amount above confirmAbove threshold?"}
+    G -- "Yes, handler declines" --> D5["POLICY_CONFIRMATION_DENIED"]
+    G -- "No, or handler approves" --> H["Allowed: signed and broadcast"]
+```
+
 Agents should treat all `SDKPolicyError` codes as final answers, not errors to retry.
 
 ## Designed to fail closed
@@ -85,6 +100,22 @@ Two practices close most of that gap:
 ## Hard enforcement: the MuSig2 co-signer
 
 The agent session is a guardrail inside the SDK; whoever holds the raw key can go around it. The co-signer removes that path. The agent's address becomes a MuSig2 (BIP-327) aggregate of two keys: the agent holds one, a policy daemon you run holds the other. Neither key can spend alone. Before adding its half of any signature, the daemon decodes the action **from the PSBT itself** (not from anything the agent claims), evaluates the same policy rules described above against its own persisted spending window, and checks the transaction outputs against value drains. The chain sees one ordinary Taproot signature, so there is no script an attacker can satisfy some other way.
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Daemon as Co-signer Daemon
+
+    Agent->>Daemon: Propose transaction (PSBT)
+    Daemon->>Daemon: Decode action from the PSBT itself
+    Daemon->>Daemon: Evaluate policy against its own persisted window, check outputs for value drains
+    alt Within policy
+        Daemon-->>Agent: Add daemon signature share (co-sign)
+    else Policy violation
+        Daemon-->>Agent: Refuse (no signature)
+        Note over Agent: Surfaces as SDKPolicyError
+    end
+```
 
 ```js
 // Daemon side, in its own process (ideally its own host):

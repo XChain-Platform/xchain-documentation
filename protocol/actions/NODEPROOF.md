@@ -76,6 +76,27 @@ For each epoch height `E` where `E % CHALLENGE_INTERVAL_BLOCKS == 0`:
 
 Full-node verifiers map `seed` to a concrete query inside the `target` block: `tx_index = int(seed) mod txcount`, `vout = int(seed[16:]) mod voutcount`, answer = that output's `scriptPubKey` (hex). This datum is provably absent from a synced mirror: the decoder stores no `scriptPubKey`, no raw tx/block bytes, no non-XChain transactions, and no UTXO set. The within-block mapping and the answer are resolved entirely by the verifiers (who have the block); the indexer never needs them and only recomputes `challenge_id`, trusting the quorum.
 
+```mermaid
+sequenceDiagram
+    participant Chain
+    participant Verifiers as Full-node verifiers
+    participant Indexer
+
+    Chain->>Chain: epoch height E reached, E mod CHALLENGE_INTERVAL_BLOCKS = 0
+    Note over Chain: seed = ledger_hash(E), target = E - CONFIRM_DEPTH,<br>challenge_id = SHA256(NETWORK, E, seed, target)
+    Verifiers->>Verifiers: map seed to target block, tx_index = int(seed) mod txcount,<br>vout = int(seed[16:]) mod voutcount
+    Verifiers->>Verifiers: answer = that output's scriptPubKey, read from a real full node
+    Verifiers->>Verifiers: sign canonical message, CHALLENGE_ID, EPOCH_HEIGHT, sorted PASS_PK list
+    Verifiers->>Indexer: NODEPROOF v0 verdict, PASS_PK list plus verifier signatures
+    Indexer->>Indexer: recompute challenge_id, verify each signature against the eligible verifier set
+    Indexer->>Indexer: check quorum, floor(2 x V / 3) + 1 of eligible verifiers
+    alt quorum met
+        Indexer->>Indexer: record full_node_verifications row for each passing PASS_PK
+    else quorum not met
+        Indexer->>Indexer: reject verdict
+    end
+```
+
 ## Config (`STAKING.CAPABILITIES.full_node`, `FULLNODE`)
 
 | Key | Default | Meaning |

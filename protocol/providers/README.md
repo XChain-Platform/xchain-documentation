@@ -11,6 +11,18 @@ The set of providers is **governance-controlled**; new providers can be added wi
 
 Each provider also carries a **`min_fee_xchain`** setting; a governance-configurable floor on the optional paid-attestation fee (`feeTick`/`feeAmount` in the request). Requests whose on-chain `FEE_AMOUNT` falls below the provider's floor are skipped by validators: the request expires on its deadline and the fee is refunded to the caller rather than being served.
 
+```mermaid
+flowchart TD
+    Request["Contract emits ATTEST v0 naming a provider"] --> FeeCheck{"FEE_AMOUNT at or above<br>the provider's min_fee_xchain floor?"}
+    FeeCheck -->|"no"| Skipped["Validators skip the request"]
+    FeeCheck -->|"yes"| Fetch["Validators holding the attestation capability<br>fetch the answer through the provider"]
+    Fetch --> Consensus{"Validators agree via the provider's<br>consensus strategy?"}
+    Consensus -->|"yes, before deadline"| Respond["ATTEST v1 written on-chain with the canonical result"]
+    Consensus -->|"no"| Pending["Request stays pending until its deadline block"]
+    Skipped --> Pending
+    Pending --> Expire["Deadline passes: request expires,<br>status=expired, empty payload,<br>attestation fee refunded"]
+```
+
 ## Available providers
 
 | Provider | Purpose | Payload | Consensus |

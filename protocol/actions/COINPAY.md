@@ -41,6 +41,15 @@ for the owed amount (or more).
 - On valid COINPAY: escrowed tokens are released to the buyer, ORDER_MATCH status changes to `valid`, and the obligation status changes to `fulfilled`.
 - Expired obligations are cleaned up by `COINPAY_EXPIRE`, a system action fired automatically by the indexer at the block where an obligation's deadline passes. `COINPAY_EXPIRE` is not user-invocable: it releases escrowed tokens back to the seller's order, cancels the coin-offering party's order if needed, and sets the ORDER_MATCH status to `expired`. The coin offerer's order (the side that was not holding tokens) remains open and can match again.
 
+```mermaid
+stateDiagram-v2
+    [*] --> pending_coinpay
+    pending_coinpay --> fulfilled: valid COINPAY, output covers coin_amount before expiration
+    pending_coinpay --> expired: deadline passes, COINPAY_EXPIRE fires
+    fulfilled --> [*]
+    expired --> [*]
+```
+
 ---
 
 **Copyright &copy; 2025–2026 Dankest, LLC**

@@ -5,47 +5,46 @@
 
 ## Position in the Data Pipeline
 
-```
-Coin Node (bitcoind / litecoind / dogecoind)
-    ↓  JSON-RPC polling
-xchain-decoder  →  Decoder DB (MariaDB)
-    ↓  SQL reads
-xchain-indexer  →  Indexer DB (MariaDB)
-    ↓  SQL reads
-xchain-explorer  →  REST / JSON-RPC / Web UI
+```mermaid
+flowchart TD
+    NODE["Coin Node<br>(bitcoind / litecoind / dogecoind)"]
+    DECODER["xchain-decoder"]
+    DECDB[("Decoder DB<br>(MariaDB)")]
+    INDEXER["xchain-indexer"]
+    IDXDB[("Indexer DB<br>(MariaDB)")]
+    EXPLORER["xchain-explorer"]
+    OUT["REST / JSON-RPC / Web UI"]
+
+    NODE -->|JSON-RPC polling| DECODER
+    DECODER --> DECDB
+    DECDB -->|SQL reads| INDEXER
+    INDEXER --> IDXDB
+    IDXDB -->|SQL reads| EXPLORER
+    EXPLORER --> OUT
 ```
 
 The decoder is the first service in the XChain data pipeline. It polls a cryptocurrency node for new blocks, extracts and deobfuscates XChain transactions, and writes the raw decoded data to a MariaDB database. The indexer reads from this database to execute protocol logic. The decoder never writes to the indexer database, and the indexer never writes to the decoder database.
 
 ## Internal Components
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                      api.js                             │
-│              Express + JSON-RPC server                  │
-│       Loads env vars, starts decoder, handles signals   │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────┐
-│                  XChainDecoder                          │
-│              Main orchestrator class                    │
-│        Block polling loop (1s interval)                 │
-│     Sync check → block fetch → parse → DB write        │
-├──────────────┬──────────────┬───────────────────────────┤
-│              │              │                           │
-│  ┌───────────▼──┐  ┌───────▼────────┐  ┌──────────────┐│
-│  │  Blockchain  │  │   Database     │  │  XChainBlock  ││
-│  │  Connector   │  │   (db.js)      │  │  Decoder      ││
-│  │  JSON-RPC    │  │  MariaDB pool  │  │  Block parser ││
-│  │  + retry     │  │  + tx locking  │  │  Coin-specific││
-│  └──────────────┘  └───────┬────────┘  └──────────────┘│
-│                            │                           │
-│  ┌──────────────┐  ┌───────▼────────┐  ┌──────────────┐│
-│  │  CryptoNets  │  │  Index tables  │  │    util.js   ││
-│  │  9 network   │  │  addresses +   │  │  sleep, hash ││
-│  │  configs     │  │  tx hashes     │  │  timer, hex  ││
-│  └──────────────┘  └────────────────┘  └──────────────┘│
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    API["api.js<br>Express + JSON-RPC server<br>Loads env vars, starts decoder, handles signals"]
+    XD["XChainDecoder<br>Main orchestrator class<br>Block polling loop (1s interval)<br>Sync check → block fetch → parse → DB write"]
+    CONN["Blockchain Connector<br>JSON-RPC<br>+ retry"]
+    DBJS["Database (db.js)<br>MariaDB pool<br>+ tx locking"]
+    BLOCKDEC["XChainBlockDecoder<br>Block parser<br>Coin-specific"]
+    CRYPTO["CryptoNets<br>9 network<br>configs"]
+    IDXTBL[("Index tables<br>addresses +<br>tx hashes")]
+    UTILJS["util.js<br>sleep, hash<br>timer, hex"]
+
+    API --> XD
+    XD --> CONN
+    XD --> DBJS
+    XD --> BLOCKDEC
+    XD --- CRYPTO
+    DBJS --> IDXTBL
+    XD --- UTILJS
 ```
 
 ## Source Files
@@ -65,47 +64,18 @@ The decoder is the first service in the XChain data pipeline. It polls a cryptoc
 
 The decoder runs a continuous loop with a 1-second delay between iterations:
 
-```
-┌─────────────────────────────────────────┐
-│ 1. Get blockchain info from coin node   │
-│    - Check verificationprogress >= 0.99 │
-│    - If not synced, wait and retry      │
-├─────────────────────────────────────────┤
-│ 2. Check for new blocks                 │
-│    - Compare node tip with last parsed  │
-│    - If caught up, enter mempool mode   │
-├─────────────────────────────────────────┤
-│ 3. Fetch and parse next block           │
-│    - getBlockHash → getBlock (hex)      │
-│    - For Dogecoin: strip AuxPoW first   │
-│    - Parse block with bitcoinjs-lib     │
-├─────────────────────────────────────────┤
-│ 4. Reorg detection                      │
-│    - Compare previous_block_hash        │
-│    - If mismatch: delete bad block,     │
-│      log reorg event, retry             │
-├─────────────────────────────────────────┤
-│ 5. Process each transaction             │
-│    - Parse outputs for XChain data      │
-│    - Deobfuscate (AES-128-CTR)          │
-│    - Validate XCHN prefix               │
-│    - Resolve source address             │
-│    - Check for dispenser payments       │
-├─────────────────────────────────────────┤
-│ 6. Write to database                    │
-│    - Begin transaction                  │
-│    - Insert block, transactions,        │
-│      dispensers, outputs                │
-│    - Delete expired dispensers          │
-│    - Commit transaction                 │
-├─────────────────────────────────────────┤
-│ 7. Mempool updates (when synced)        │
-│    - Every 60 seconds                   │
-│    - Fetch mempool txids                │
-│    - Diff against DB, add new, remove   │
-│      stale                              │
-│    - Batch fetch in 1000-tx chunks      │
-└─────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    S1["1. Get blockchain info from coin node<br>- Check verificationprogress >= 0.99<br>- If not synced, wait and retry"]
+    S2["2. Check for new blocks<br>- Compare node tip with last parsed<br>- If caught up, enter mempool mode"]
+    S3["3. Fetch and parse next block<br>- getBlockHash → getBlock (hex)<br>- For Dogecoin: strip AuxPoW first<br>- Parse block with bitcoinjs-lib"]
+    S4["4. Reorg detection<br>- Compare previous_block_hash<br>- If mismatch: delete bad block, log reorg event, retry"]
+    S5["5. Process each transaction<br>- Parse outputs for XChain data<br>- Deobfuscate (AES-128-CTR)<br>- Validate XCHN prefix<br>- Resolve source address<br>- Check for dispenser payments"]
+    S6["6. Write to database<br>- Begin transaction<br>- Insert block, transactions, dispensers, outputs<br>- Delete expired dispensers<br>- Commit transaction"]
+    S7["7. Mempool updates (when synced)<br>- Every 60 seconds<br>- Fetch mempool txids<br>- Diff against DB, add new, remove stale<br>- Batch fetch in 1000-tx chunks"]
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
+    S7 -.->|"next iteration, 1s delay"| S1
 ```
 
 ## Transaction Parsing
@@ -137,6 +107,21 @@ XChain data is obfuscated using AES-128-CTR before embedding in the transaction.
 
 Error handling: `ERR_OSSL_WRONG_FINAL_BLOCK_LENGTH` and `ERR_OSSL_BAD_DECRYPT` errors are silenced (return null). All other crypto errors are re-thrown.
 
+```mermaid
+flowchart TD
+    A["Reverse hex of the first input's prevout txid"]
+    B["First 16 hex chars -> AES-128 key (16 bytes, ASCII)"]
+    C["Next 16 hex chars -> CTR-mode IV (16 bytes, ASCII)"]
+    D["Decrypt payload with aes-128-ctr(key, iv)"]
+    E{"XCHN magic prefix present?"}
+    F["Strip prefix, decompile script to extract ACTION string"]
+    G["Skip transaction (no prefix)"]
+
+    A --> B --> C --> D --> E
+    E -->|"yes"| F
+    E -->|"no"| G
+```
+
 ## Source Address Resolution
 
 The source address of a transaction is determined by looking up the output being spent by the transaction's first input:
@@ -146,6 +131,23 @@ The source address of a transaction is determined by looking up the output being
 3. If the output is a P2SH script (23 bytes: OP_HASH160 PUSH20 ... OP_EQUAL), chase one level deeper to the first input of the funding transaction
 4. Convert the output script to an address via `bitcoin.address.fromOutputScript()`
 5. Future segwit versions (OP_2 through OP_16) are detected and skipped
+
+```mermaid
+flowchart TD
+    A["Fetch previous transaction via getRawTransaction()"]
+    B["Get output at the input's index"]
+    C{"Output is P2SH? (23 bytes: OP_HASH160 PUSH20...OP_EQUAL)"}
+    D["Chase one level deeper: look up the first input of the funding transaction"]
+    E{"Output is a future segwit version? (OP_2 through OP_16)"}
+    F["Skip, source address unresolved"]
+    G["Convert output script to address via bitcoin.address.fromOutputScript()"]
+
+    A --> B --> C
+    C -->|"yes"| D --> E
+    C -->|"no"| E
+    E -->|"yes"| F
+    E -->|"no"| G
+```
 
 ## Reorg Detection
 

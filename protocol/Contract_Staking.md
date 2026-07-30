@@ -95,6 +95,15 @@ Tokens are debited from the staker at STAKE time and only credited back at the b
 
 The same sweep also finalizes capability `unstakes` (previously unaddressed), contract staking and capability staking share the same cooldown finalization pass.
 
+```mermaid
+stateDiagram-v2
+    [*] --> Active: STAKE v3
+    Active --> Cooldown: UNSTAKE v1, cooldown_end_block = current + cooldown_blocks
+    Cooldown --> Cooldown: slash reaches locked balance, stays slashable
+    Cooldown --> Completed: block-end sweep, cooldown_end_block <= current block,<br>remaining amount credited back to staker
+    Completed --> [*]
+```
+
 ### Intra-block ordering (consensus-critical)
 
 Within a single block `N`, **all transaction processing (including every EXECUTE and therefore every `xchain.contract.slash(...)` emission) runs BEFORE the cooldown release sweep.** The sweep is a block-END pass, never a block-start pass.
@@ -105,6 +114,17 @@ The boundary case this ordering decides: a `contract_unstakes` row with `cooldow
 2. The block-end sweep then releases only the **post-slash remainder** and marks the row `completed`.
 
 An implementation that ran the release sweep at block START would credit the staker back before the slash EXECUTE, the same slash would find nothing slashable, and its ledger would diverge from the canonical one; a chain fork. **Slash-before-release within the same block is normative**, not an implementation detail.
+
+```mermaid
+sequenceDiagram
+    participant EXECUTE as EXECUTE (xchain.contract.slash)
+    participant Row as contract_unstakes row (cooldown_end_block = N)
+    participant Sweep as Block-end release sweep
+
+    Note over EXECUTE,Sweep: Block N
+    EXECUTE->>Row: slash reaches the cooldown-locked balance<br>(row not yet completed)
+    Sweep->>Row: releases the post-slash remainder<br>and marks the row completed
+```
 
 ## Isolation between capability and contract staking
 

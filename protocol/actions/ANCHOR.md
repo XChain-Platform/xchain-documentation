@@ -35,6 +35,24 @@ archive, in a single action with seven version-discriminated phases:
   archive leader emits v6 in place of v1; a degraded federation falls back to a legacy v1 so the
   archive still lands (no reward).
 
+```mermaid
+flowchart TD
+    v0["v0: Checkpoint"]
+    v1["v1: Checkpoint + match archive"]
+    v2["v2: Archive continuation<br>(overflow chunks, authenticated by parent v1)"]
+    v3["v3: Checkpoint + light-client roots"]
+    v4["v4: v0 + publisher attestation<br>(rootless)"]
+    v5["v5: v3 + publisher attestation<br>(root-bearing)"]
+    v6["v6: v1 archive + publisher attestation"]
+
+    v0 -->|"add match archive"| v1
+    v1 -->|"overflow chunks"| v2
+    v0 -->|"add SPV light-client roots"| v3
+    v0 -->|"add publisher attestation"| v4
+    v3 -->|"add publisher attestation"| v5
+    v1 -->|"add publisher attestation"| v6
+```
+
 `ANCHOR` is valid **only on the anchor chain; DOGE** (all networks). Indexers on other chains
 reject it. BTC and LTC state is still covered: each v0/v1/v3/v4/v5/v6 names the `CHAIN` it
 checkpoints, so one cheap chain carries the commitments for all three.
@@ -340,6 +358,20 @@ exact bytes):
   `XANC_V0_DONE` back-fill stops peers from re-anchoring a checkpoint someone already paid
   for). The v1/v2 archive round elects a single leader the same way, keyed per election block.
   A single-validator federation degenerates to today's serialized single-wallet behavior.
+
+```mermaid
+flowchart TD
+    A["Pending checkpoint (per chain)"] --> B["Elect publisher: oracle_publish snapshot at snapshot_block,<br>ordered by SHA256(election key ‖ pubkey) ascending"]
+    B --> C["Rank 0 publishes<br>from its own funded DOGE wallet"]
+    B -.->|"same election, keyed per election block"| I["v1/v2 archive round<br>elects a single leader"]
+    C --> D{"XANC_V0_DONE gossiped<br>before next rank unlocks?"}
+    D -->|"yes"| E["Peers stand down,<br>no re-anchor"]
+    D -->|"no, after ANCHOR_ELECTION_TOLERANCE_BLOCKS<br>more BTC blocks"| F["Rank 1 publishes"]
+    F --> G{"XANC_V0_DONE gossiped?"}
+    G -->|"yes"| E
+    G -->|"no, after ANCHOR_ELECTION_TOLERANCE_BLOCKS<br>more BTC blocks"| H["Rank 2+ unlocks<br>(ladder continues)"]
+```
+
 - Each successful publish records an `anchor_<chain>` (round = `checkpoint_seq`) or
   `anchor_archive` (round = `batch_seq`) reward of `ANCHOR_REWARD_PER_PUBLISH` XCHAIN
   (default 10) on the `validator_rewards` rail, collectable on BTC via `COLLECT` like
@@ -418,6 +450,15 @@ which is anti-spam only.
 3. Reindex BTC/LTC/DOGE from genesis against the recovered tables, cross-chain settlements,
    XCALL injections, `oracle_round`/`attest_fee` rewards, and historical COLLECT claims all
    re-derive identically; final `blocks` hash triples must match the anchored checkpoints.
+
+```mermaid
+flowchart TD
+    S1["Step 1: Sync DOGE via decoder/indexer from genesis<br>anchor_actions populates from the chain alone"]
+    S2["Step 2: Run recovery.js with --skip-stake-verification --i-understand-unverified<br>reassemble chunked batches, verify CRC32 and signatures,<br>restore rewards into the BTC indexer DB's validator_rewards"]
+    S3["Step 3: Reindex BTC/LTC/DOGE from genesis<br>against the recovered tables"]
+    S1 --> S2
+    S2 -->|"must complete first, COLLECT validation reads validator_rewards at parse time"| S3
+```
 
 **Ordering is load-bearing:** the reward restore (step 2) MUST complete before the BTC reindex
 (step 3); COLLECT validation reads `validator_rewards` synchronously at parse time, so a

@@ -68,6 +68,19 @@ XChain has no `msg.value`, so a contract call carries no tokens. A contract is a
 
 A safe contract never trusts a caller-supplied amount: it reads its own balance with `xchain.getBalance(xchain.getContractAddress(), tick)`. Every template follows that rule, and `escrow`'s README explains it in full.
 
+```mermaid
+sequenceDiagram
+    participant Wallet
+    participant Chain
+    participant Contract
+
+    Wallet->>Chain: BATCH [DEPOSIT, EXECUTE]
+    Chain->>Contract: DEPOSIT (tokens credited to contract balance)
+    Chain->>Contract: EXECUTE (runs contract logic)
+    Contract->>Contract: getBalance(getContractAddress(), tick)
+    Note over Contract: reads its own balance rather than trusting a caller-supplied amount
+```
+
 ## Prerequisites
 
 Value-holding contracts require the VM gateway's `getBalance` / `getTokenInfo` to return real data, which the indexer wires up. Without that, a contract cannot read its own holdings to verify a deposit.

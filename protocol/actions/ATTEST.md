@@ -107,6 +107,40 @@ Where `sha256(response_payload)` is the lowercase hex digest of the raw response
 5. On a terminal v1 the indexer flips the request to `fulfilled` (`STATUS=ok`) or `errored` (a genuinely terminal failure such as `expired`) and injects a system EXECUTE invoking the callback. A retryable v1 (`STATUS` of `no_quorum`, `timeout`, or `provider_error`) is recorded but leaves `request_status='pending'`, so the responsible set can attempt another round before the deadline; no callback fires yet.
 6. If `DEADLINE_BLOCK` passes while still `pending` (no terminal v1, or only retryable rounds), the indexer's per-block expiry pipeline synthesizes ATTEST v2 (flips status to `expired`, fires the callback with `status='expired'`).
 
+```mermaid
+sequenceDiagram
+    participant VM
+    participant Indexer
+    participant Validators
+    participant Leader
+
+    VM->>Indexer: ATTEST v0, request emitted
+    Note over Indexer: store v0 row, request_status=pending
+    Validators->>Indexer: poll for pending requests, AttestationRound
+    Validators->>Validators: fetch via provider, gossip ATTEST_PROPOSE
+    Leader->>Indexer: ATTEST v1, REDUNDANCY signatures
+    alt terminal status, ok or errored
+        Indexer->>Indexer: flip request_status, inject callback EXECUTE
+    else retryable, no_quorum or timeout or provider_error
+        Indexer->>Indexer: record v1, request_status stays pending
+    end
+    alt DEADLINE_BLOCK passes while still pending
+        Indexer->>Indexer: synthesize ATTEST v2, flip to expired, fire callback
+    end
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: ATTEST v0 emitted
+    pending --> fulfilled: v1 terminal, STATUS=ok
+    pending --> errored: v1 terminal non-ok, e.g. expired
+    pending --> expired: DEADLINE_BLOCK passes while still pending, v2 synthesized
+    fulfilled --> [*]
+    errored --> [*]
+    expired --> [*]
+    note right of pending: retryable v1, no_quorum, timeout, or provider_error, leaves request_status pending
+```
+
 ## Effects on v1 with valid signatures
 - Persists a v1 row into the `attests` table (`version=1`) with the agreed body and the verified federation sigs inlined as a JSON array in `validator_signatures` (always, including retryable rounds, for audit). A v0 request and its v1 response(s) are separate rows correlated by `request_id`.
 - Terminal statuses flip the matching v0 `attests` row: `fulfilled` (`STATUS=ok`) or `errored` (a terminal failure such as `expired`).

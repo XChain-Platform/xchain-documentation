@@ -80,6 +80,27 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
   7. Banned generator check (consensus-gated), rejects `function*`, generator methods, and `yield`; live from genesis on testnet/regtest
   8. Banned WebAssembly check (consensus-gated), rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest
 - If syntax validation fails, the deployment is rejected with `invalid: CODE_ENCODING (<reason>)` and no gas is charged
+
+```mermaid
+flowchart TD
+    Start["DEPLOY submitted"] --> V8{"1. V8 compilation check"}
+    V8 -->|"syntax error"| Reject["invalid: CODE_ENCODING (reason), no gas charged"]
+    V8 -->|"pass"| Acorn{"2. Acorn metering pass, ES2020 syntax set"}
+    Acorn -->|"fail"| Reject
+    Acorn -->|"pass"| Reserved{"3. Reserved identifier check, __gas and metering helpers"}
+    Reserved -->|"fail"| Reject
+    Reserved -->|"pass"| MathCheck{"4. Banned Math.* check, sqrt/pow/log/log2/log10, widened under VM_LINT_HARDENING"}
+    MathCheck -->|"fail"| Reject
+    MathCheck -->|"pass"| Literal{"5. Banned literal check, BigInt and RegExp"}
+    Literal -->|"fail"| Reject
+    Literal -->|"pass"| Async{"6. Banned async check, async/await/Promise, consensus-gated"}
+    Async -->|"fail"| Reject
+    Async -->|"pass"| Generator{"7. Banned generator check, function*, generator methods, yield"}
+    Generator -->|"fail"| Reject
+    Generator -->|"pass"| Wasm{"8. Banned WebAssembly check, global WebAssembly reference"}
+    Wasm -->|"fail"| Reject
+    Wasm -->|"pass"| Charge["Gas charged, deployment proceeds"]
+```
 - A non-blocking float usage warning is generated if decimal number literals are detected (visible in the execution record)
 - A gas fee is charged at deployment: `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`
 - `SOURCE` address must hold sufficient XCHAIN tokens to cover the gas fee
@@ -122,6 +143,15 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
 - Reorg/recovery: because a DEPLOY only ever consumes carriers at a lower action index, any reorg that removes a carrier also removes the dependent DEPLOY (and its contract) via the standard action-index rollback. No bespoke logic. The code is fully on-chain in the v4 carrier actions, so a from-scratch chain re-parse reconstructs the contract with no ANCHOR change.
 - Submit the carriers before the assembling DEPLOY: a DEPLOY v2/v3 only consumes carriers recorded at a lower action index than itself.
 - The SDK (`sdk.deployContract`) auto-selects: it deploys inline (v0/v1) when `base64(code)` fits one action, else uploads the slices as v4 carriers (awaiting indexer confirmation of each) and assembles via v2/v3.
+
+```mermaid
+flowchart TD
+    Carriers[("v4 carrier actions, same CODE_HASH, lower action index, matched by source_id")] --> Concat["Concatenate CODE_PART fields in CHUNK_INDEX order"]
+    Concat --> Decode["Base64-decode the concatenated result"]
+    Decode --> Verify{"sha256(code) === CODE_HASH?"}
+    Verify -->|"missing position, non-contiguous, short group, bad chunk count, or digest mismatch"| Reject["invalid: CODE_HASH (...), DEPLOY rejected"]
+    Verify -->|"match"| Inline["Assembled code flows through the same size/syntax/manifest/constructor path as an inline deploy"]
+```
 
 ## Encoding activation
 

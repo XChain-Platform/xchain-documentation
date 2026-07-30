@@ -11,24 +11,42 @@ This document covers all error classes thrown by the XChain Platform SDK, their 
 
 All SDK errors extend a common base class:
 
-```
-Error
-  └── SDKError
-        ├── SDKValidationError
-        ├── SDKFormatError
-        ├── SDKEncoderError
-        ├── SDKExplorerError
-        ├── SDKHubError
-        ├── SDKConfigError
-        ├── SDKContractError
-        ├── SDKWalletError
-        ├── SDKAuthError
-        ├── SDKMessagingError
-        ├── SDKActionError
-        ├── SDKMuSigError
-        ├── SDKGatedFileError
-        ├── SDKPolicyError
-        └── SDKX402Error
+```mermaid
+flowchart TD
+    ERR["Error"]
+    SDKERR["SDKError"]
+    VAL["SDKValidationError"]
+    FMT["SDKFormatError"]
+    ENC["SDKEncoderError"]
+    EXP["SDKExplorerError"]
+    HUB["SDKHubError"]
+    CFG["SDKConfigError"]
+    CONTRACT["SDKContractError"]
+    WALLET["SDKWalletError"]
+    AUTH["SDKAuthError"]
+    MSG["SDKMessagingError"]
+    ACTION["SDKActionError"]
+    MUSIG["SDKMuSigError"]
+    GATED["SDKGatedFileError"]
+    POLICY["SDKPolicyError"]
+    X402["SDKX402Error"]
+
+    ERR --> SDKERR
+    SDKERR --> VAL
+    SDKERR --> FMT
+    SDKERR --> ENC
+    SDKERR --> EXP
+    SDKERR --> HUB
+    SDKERR --> CFG
+    SDKERR --> CONTRACT
+    SDKERR --> WALLET
+    SDKERR --> AUTH
+    SDKERR --> MSG
+    SDKERR --> ACTION
+    SDKERR --> MUSIG
+    SDKERR --> GATED
+    SDKERR --> POLICY
+    SDKERR --> X402
 ```
 
 Every error instance carries four properties:

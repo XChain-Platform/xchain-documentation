@@ -85,6 +85,24 @@ Auto-update for desktop:
 - Signature verification runs **before** swap; the updater refuses to install an artifact whose signature doesn't match the publisher key
 - The user is prompted to install + restart; auto-apply is opt-in
 
+```mermaid
+flowchart TD
+    A1["Launch"]
+    A2["User-initiated check for updates"]
+    CHECK["electron-updater checks the update feed"]
+    B["New artifact downloaded in the background"]
+    C{"Signature verification before swap, matches the publisher key?"}
+    D["Updater refuses to install"]
+    E["User prompted to install and restart, auto-apply is opt-in"]
+
+    A1 --> CHECK
+    A2 --> CHECK
+    CHECK --> B
+    B --> C
+    C -->|"no"| D
+    C -->|"yes"| E
+```
+
 Auto-update for the extension is handled entirely by the CWS; the wallet publishes a new build and the CWS pushes it to installed instances within ~24 hours. The wallet does not implement its own auto-update channel.
 
 ## Chrome Web Store submission

@@ -58,6 +58,19 @@ console.log(result.swap.txid);
 
 All parameters beyond `giveCoin`/`giveTick`/`giveAmount`/`getCoin`/`getTick`/`getAmount` and `wif` are optional. `expiration` is a block height on the give chain after which the offer expires. The optional `submitOpts` object is forwarded to the underlying session (encoder options, wait timeout, etc.).
 
+```mermaid
+sequenceDiagram
+    participant Caller
+    participant Bridge as CrossChainHelper
+    participant GiveSDK as Give-chain SDK
+
+    Caller->>Bridge: createSwap(giveCoin, giveTick, giveAmount, getCoin, getTick, getAmount, wif, expiration, ...)
+    Note over Bridge: routes to the SDK instance for giveCoin
+    Bridge->>GiveSDK: submit SWAP action on the give chain
+    GiveSDK-->>Bridge: swap txid
+    Bridge-->>Caller: result with swap.txid
+```
+
 ---
 
 ## link

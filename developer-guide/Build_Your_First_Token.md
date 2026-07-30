@@ -306,6 +306,27 @@ Each action you broadcast went through this pipeline:
 4. **Indexer**: read the decoder DB, applied business logic (supply math, balance updates, ownership tracking), and wrote final state to the indexer MariaDB.
 5. **Explorer**: exposed the indexer DB via REST API; the SDK's `explorer.*` calls hit these endpoints.
 
+```mermaid
+sequenceDiagram
+    participant You as You (SDK)
+    participant Enc as Encoder
+    participant Node as Coin node
+    participant Dec as Decoder
+    participant Idx as Indexer
+    participant Exp as Explorer
+
+    You->>Enc: broadcast action
+    Enc->>Node: transaction with OP_RETURN payload
+    Note over Node: regtest-miner mines the block
+    Node->>Dec: polled via JSON-RPC
+    Dec->>Dec: decode payload, write raw records to Decoder DB
+    Dec->>Idx: read decoder DB
+    Idx->>Idx: apply business logic, write final state to Indexer DB
+    Idx->>Exp: expose state via REST API
+    You->>Exp: explorer.* calls
+    Exp-->>You: query results
+```
+
 ---
 
 ## Next Steps

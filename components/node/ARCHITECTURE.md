@@ -7,64 +7,59 @@
 
 xchain-node sits above all other XChain services. It does not participate in the data pipeline at runtime, instead, it provisions and manages the containers that form the pipeline:
 
-```
-                              ┌──────────────────────┐
-                              │     xchain-node      │
-                              │   (CLI orchestrator)  │
-                              └──────────┬───────────┘
-                                         │ installs / manages
-              ┌────────────┬─────────────┼─────────────┬────────────┐
-              ▼             ▼             ▼             ▼            ▼
-        ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-        │ Coin Node│ │ Decoder  │ │ Indexer  │ │ Explorer │ │   Hub    │
-        │(bitcoind)│ │          │ │          │ │          │ │          │
-        └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘
-              ▲             ▲             ▲             ▲            ▲
-              │             │             │             │            │
-              └─────────────┴─────────────┴─────────────┴────────────┘
-                              Docker containers + networks
+```mermaid
+flowchart TD
+    NODE["xchain-node<br>(CLI orchestrator)"]
+    COIN["Coin Node<br>(bitcoind)"]
+    DECODER["Decoder"]
+    INDEXER["Indexer"]
+    EXPLORER["Explorer"]
+    HUB["Hub"]
+    DOCKER["Docker containers + networks"]
+
+    NODE -->|installs / manages| COIN
+    NODE -->|installs / manages| DECODER
+    NODE -->|installs / manages| INDEXER
+    NODE -->|installs / manages| EXPLORER
+    NODE -->|installs / manages| HUB
+    COIN --> DOCKER
+    DECODER --> DOCKER
+    INDEXER --> DOCKER
+    EXPLORER --> DOCKER
+    HUB --> DOCKER
 ```
 
 Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker network. Shared services (database, hub, explorer) are connected to all coin/network networks.
 
 ## Internal Components
 
-```
-┌───────────────────────────────────────────────────────────────────────┐
-│                           xchain-node                                 │
-│                                                                       │
-│  ┌─────────────┐    ┌────────────────────────────────────────────┐    │
-│  │   cli.js     │    │          moduleOperations.js               │    │
-│  │  Commander   │───►│  installModules / startModules /          │    │
-│  │  21 commands │    │  stopModules / restartModules /            │    │
-│  └─────────────┘    │  uninstallModules / resetModules           │    │
-│         │            └──────────────┬────────────────────────────┘    │
-│         │                           │                                 │
-│  ┌──────▼──────┐         ┌─────────▼─────────┐                      │
-│  │ precheck.js  │         │  ModuleService     │                      │
-│  │ Docker check │         │  cloneGit()        │                      │
-│  │ Dir creation │         │  buildAndUp()      │                      │
-│  │ MariaDB open │         │  uninstallModule() │                      │
-│  │ Version fetch│         └─────────┬─────────┘                      │
-│  └──────────────┘                   │                                 │
-│                          ┌──────────┼──────────┐                     │
-│                          ▼          ▼          ▼                     │
-│                   ┌────────┐ ┌──────────┐ ┌──────────┐               │
-│                   │ Config │ │  Docker  │ │ Database │               │
-│                   │Service │ │ Service  │ │ Service  │               │
-│                   └────────┘ └──────────┘ └──────────┘               │
-│                          ▲          ▲          ▲                     │
-│                          │          │          │                     │
-│                   ┌──────┴──┐ ┌─────┴────┐ ┌──┴───────┐             │
-│                   │ Version │ │ Node     │ │ Bootstrap│             │
-│                   │ Service │ │ Service  │ │ Service  │             │
-│                   └─────────┘ └──────────┘ └──────────┘             │
-│                                                                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
-│  │ MariaDbStore │  │  state.js    │  │  constants   │               │
-│  │  modules tbl │  │  singletons  │  │  enums/paths │               │
-│  └──────────────┘  └──────────────┘  └──────────────┘               │
-└───────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph NODEBOX["xchain-node"]
+        CLI["cli.js<br>Commander<br>21 commands"]
+        MODOPS["moduleOperations.js<br>installModules / startModules /<br>stopModules / restartModules /<br>uninstallModules / resetModules"]
+        PRECHECK["precheck.js<br>Docker check<br>Dir creation<br>MariaDB open<br>Version fetch"]
+        MODSVC["ModuleService<br>cloneGit()<br>buildAndUp()<br>uninstallModule()"]
+        CONFIGSVC["ConfigService"]
+        DOCKERSVC["DockerService"]
+        DBSVC["DatabaseService"]
+        VERSIONSVC["VersionService"]
+        NODESVC["NodeService"]
+        BOOTSTRAPSVC["BootstrapService"]
+        MARIADBSTORE["MariaDbStore<br>modules tbl"]
+        STATEJS["state.js<br>singletons"]
+        CONSTANTS["constants<br>enums/paths"]
+
+        CLI --> MODOPS
+        CLI --> PRECHECK
+        MODOPS --> MODSVC
+        MODSVC --> CONFIGSVC
+        MODSVC --> DOCKERSVC
+        MODSVC --> DBSVC
+        VERSIONSVC --> CONFIGSVC
+        NODESVC --> DOCKERSVC
+        BOOTSTRAPSVC --> DBSVC
+    end
 ```
 
 ### Source Files
@@ -113,6 +108,22 @@ Every command runs `preCheck()` before execution:
 8. Query installed modules status
 9. Install or update xchain-hub
 10. Update hub and explorer configurations with current service endpoints (skipped for read-only commands)
+
+```mermaid
+flowchart TD
+    S1["1. Verify Docker installed and accessible"]
+    S2["2. Create runtime directories"]
+    S3["3. Create base Docker network"]
+    S4["4. Start or verify the shared MariaDB container"]
+    S5["5. Ensure per-OS-user xchain_node DB credentials exist,<br>open a MariaDB connection"]
+    S6["6. Scan running containers,<br>reconcile the xchain_node.modules table"]
+    S7["7. Fetch remote service versions from GitHub<br>(install/update commands only)"]
+    S8["8. Query installed modules status"]
+    S9["9. Install or update xchain-hub"]
+    S10["10. Update hub and explorer configurations<br>(skipped for read-only commands)"]
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9 --> S10
+```
 
 ## Module State Schema
 
@@ -173,21 +184,27 @@ xchain-node/
 
 Each coin/network combination gets its own Docker network. Shared services are connected to all networks:
 
-```
-┌─ xchain-node-bitcoin-mainnet ───────────────────────────┐
-│  encoder, decoder, utxo-tracker, indexer, node           │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐                │
-│  │ database ├─┤   hub    ├─┤ explorer │ (shared, also  │
-│  └──────────┘ └──────────┘ └──────────┘  connected to   │
-└──────────────────────────────────────────  other nets)───┘
+```mermaid
+flowchart TD
+    subgraph MAINNET["xchain-node-bitcoin-mainnet"]
+        MN_SVC["encoder, decoder, utxo-tracker, indexer, node"]
+        MN_DB[("database")]
+        MN_HUB["hub"]
+        MN_EXPLORER["explorer"]
+        MN_NOTE["shared, also connected to other nets"]
+        MN_DB --- MN_HUB --- MN_EXPLORER
+        MN_EXPLORER -.-> MN_NOTE
+    end
 
-┌─ xchain-node-bitcoin-regtest ───────────────────────────┐
-│  encoder, decoder, utxo-tracker, indexer, node,          │
-│  regtest-miner                                           │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐                │
-│  │ database ├─┤   hub    ├─┤ explorer │ (same shared   │
-│  └──────────┘ └──────────┘ └──────────┘  containers)    │
-└──────────────────────────────────────────────────────────┘
+    subgraph REGTEST["xchain-node-bitcoin-regtest"]
+        RT_SVC["encoder, decoder, utxo-tracker, indexer, node, regtest-miner"]
+        RT_DB[("database")]
+        RT_HUB["hub"]
+        RT_EXPLORER["explorer"]
+        RT_NOTE["same shared containers"]
+        RT_DB --- RT_HUB --- RT_EXPLORER
+        RT_EXPLORER -.-> RT_NOTE
+    end
 ```
 
 ---

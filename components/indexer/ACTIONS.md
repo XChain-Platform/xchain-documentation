@@ -70,6 +70,22 @@ staked.
 The deadline latch (open to closed) is a fifth transition with no action row: an end-of-block pass
 stamps `closed_block` directly.
 
+```mermaid
+stateDiagram-v2
+    [*] --> open: BET format 0, create market
+    open --> open: BET format 2, place wager
+    open --> closed: deadline reached
+    closed --> resolved: BET format 3, winning outcome backed
+    closed --> resolved_void: BET format 3, no bet backed the winner
+    closed --> expired: BET_EXPIRE, unresolved past the refund window
+    open --> cancelled: BET format 1, cancel
+    closed --> cancelled: BET format 1, cancel
+    resolved --> [*]
+    resolved_void --> [*]
+    expired --> [*]
+    cancelled --> [*]
+```
+
 ## Cross-Chain Actions
 
 | Action | Purpose | Key Validations |
@@ -80,6 +96,18 @@ stamps `closed_block` directly.
 | **CROSS_SETTLE** | System-injected: settles this chain's leg of a hub-matched cross-chain trade (covers both SWAP and ORDER legs). There is no on-chain transaction; the indexer injects one per unsettled match from the hub-mirrored `cross_chain_matches` table, verifies 2f+1 `cross_chain` validator signatures, and releases the local escrow to the counterparty's payout address. Recorded in `cross_chain_settlements` for idempotency and rollback. Not registered in `protocol_changes.js` (never decoded from a transaction); dispatched from `utility.js processCrossChainSettlements` at each block. | Network scope matches this indexer's network; quorum signatures verify against the locked capability snapshot at `snapshot_block`; local offer must still be open |
 | [**XCALL**](../../protocol/actions/XCALL.md) | Mirror-injected: dispatches a cross-chain contract call from the hub-mirrored capability snapshot onto the target chain, applied in `(snapshot_block, call_id)` order. There is no on-chain transaction on the source chain; not registered in `protocol_changes.js`. | Quorum signatures verify against the locked capability snapshot; per-block dispatch cap enforced (overflow carries forward, never dropped) |
 | [**XEXEC**](../../protocol/actions/XCALL.md) | System-injected: executes the mirrored contract call produced by XCALL on the target chain and records the outcome. Recorded in `cross_chain_call_executions` (see [DATABASE.md](DATABASE.md)). | Target contract exists and is active; execution outcome recorded for idempotency |
+
+```mermaid
+sequenceDiagram
+    participant Source as Source chain
+    participant Target as Target chain
+
+    Source->>Target: XCALL dispatch, mirror-injected from the hub-mirrored capability snapshot
+    Target->>Target: XEXEC executes the mirrored contract call
+    Note over Target: outcome recorded in cross_chain_call_executions
+    Target-->>Source: result
+    Note over Source: source-chain callback relay
+```
 
 ## Data and Communication Actions
 

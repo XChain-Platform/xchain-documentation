@@ -1139,6 +1139,15 @@ Token-weighted governance: create a poll, cast a ballot, or set a standing deleg
 - Setting `callbackContract` makes the poll binding (`callbackMethod` then required): finalization fires a synthesized EXECUTE with the poll result.
 - A later valid ballot from the same voter replaces the earlier one (last-write-wins); storage is append-only, so a reorg that removes the replacement restores the prior ballot.
 
+```mermaid
+stateDiagram-v2
+    [*] --> Created: v0, create poll
+    Created --> BallotsAccumulating: v1, ballot cast
+    BallotsAccumulating --> BallotsAccumulating: v1, another ballot cast
+    BallotsAccumulating --> Finalized: v2, system-synthesized at end block
+    Finalized --> [*]
+```
+
 ```js
 // Create an advisory poll
 await sdk.vote(sdk.voting.createPollParams({

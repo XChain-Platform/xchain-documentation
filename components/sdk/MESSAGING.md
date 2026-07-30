@@ -110,6 +110,25 @@ const decrypted = sdk.messaging.sessionDecrypt(ciphertext, sharedSecret);
 // decrypted.plaintext: original message
 ```
 
+```mermaid
+sequenceDiagram
+    participant Sender
+    participant Recipient
+
+    Sender->>Sender: generateSessionKey(wif)
+    Recipient->>Recipient: generateSessionKey(wif)
+    Sender->>Recipient: format 0 MESSAGE, sender publicKey
+    Recipient->>Sender: format 1 MESSAGE, recipient publicKey
+
+    Sender->>Sender: deriveSharedSecret(wif, recipient publicKey)
+    Recipient->>Recipient: deriveSharedSecret(wif, sender publicKey)
+    Note over Sender,Recipient: both derive the same shared secret
+
+    Sender->>Sender: sessionEncrypt(plaintext, sharedSecret)
+    Sender->>Recipient: ciphertext
+    Recipient->>Recipient: sessionDecrypt(ciphertext, sharedSecret)
+```
+
 ---
 
 ## AES (Method 3): Shared Secret Communication

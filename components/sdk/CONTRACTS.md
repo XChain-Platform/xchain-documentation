@@ -65,6 +65,33 @@ let result = await sdk.deployContract(
 
 Contracts larger than 64 KB (base64-encoded source requiring more than 16 slices) are rejected at the planning stage with an error before any transaction is submitted.
 
+```mermaid
+flowchart TD
+    START["sdk.deployContract(wif, deployParams, deposits, opts)"]
+    PLAN["chunkHelper.planDeploy()"]
+    SIZE{"base64 source size?"}
+    TOO_BIG["Reject: exceeds 64 KB / 16 slices, rejected at planning, before any transaction is submitted"]
+    SINGLE["Single-shot path: sdk.deploy()"]
+    SINGLE_EMIT["Emit DEPLOY v0 (no constructor) or v1 (with constructor)"]
+    CHUNK_SPLIT["Split base64 source into ordered slices of up to 7,800 bytes each (max 16 slices)"]
+    CARRIER["Carrier phase: broadcast each slice as a DEPLOY v4 carrier action, wait for each individually"]
+    ASSEMBLE["Assemble phase: broadcast DEPLOY v2, or v3 for staking contracts, carrying CODE_HASH"]
+    INDEXER["Indexer locates carriers by code hash, concatenates slices in order, verifies hash, runs normal deploy flow"]
+    DONE["Deploy complete"]
+
+    START --> PLAN
+    PLAN --> SIZE
+    SIZE -->|"fits in one action, roughly 6 KB raw source"| SINGLE
+    SINGLE --> SINGLE_EMIT
+    SINGLE_EMIT --> DONE
+    SIZE -->|"6 KB to 64 KB raw source"| CHUNK_SPLIT
+    CHUNK_SPLIT --> CARRIER
+    CARRIER --> ASSEMBLE
+    ASSEMBLE --> INDEXER
+    INDEXER --> DONE
+    SIZE -->|"exceeds 64 KB, more than 16 slices"| TOO_BIG
+```
+
 See [ACTIONS.md; DEPLOY](ACTIONS.md#deploy) for full parameter reference.
 
 ### EXECUTE

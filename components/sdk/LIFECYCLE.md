@@ -86,6 +86,39 @@ await sdk.submitAction(actionData, encoderOpts, {
 
 Steps emitted: `creating`, `encoding`, `signing`, `broadcasting`, `p2sh_spending` (if P2SH), `waiting`, `confirmed`.
 
+```mermaid
+sequenceDiagram
+    participant SDK
+    participant Encoder
+    participant Wallet
+    participant Indexer
+
+    Note over SDK: creating
+    SDK->>SDK: create action string
+    Note over SDK: encoding
+    SDK->>Encoder: createTx(action, encoderOpts)
+    Encoder-->>SDK: PSBT
+    Note over SDK: signing
+    SDK->>Wallet: signPsbt(psbt, wif)
+    Wallet-->>SDK: signed transaction
+    Note over SDK: broadcasting
+    SDK->>Encoder: broadcastTx(txHex)
+    Encoder-->>SDK: txid
+    opt P2SH or P2WSH encoding selected
+        Note over SDK: p2sh_spending
+        SDK->>Encoder: spendP2sh()
+        Encoder-->>SDK: phase 2 PSBT
+        SDK->>Wallet: signPsbt(phase 2 psbt, wif)
+        Wallet-->>SDK: signed phase 2 transaction
+        SDK->>Encoder: broadcastTx(phase 2 txHex)
+        Encoder-->>SDK: phase 2 txid
+    end
+    Note over SDK: waiting
+    SDK->>Indexer: poll for transaction
+    Indexer-->>SDK: indexed action data
+    Note over SDK: confirmed
+```
+
 ### P2SH Two-Phase Handling
 
 When the encoder selects P2SH or P2WSH encoding (for large action strings), `submitAction` automatically handles the two-transaction pattern:

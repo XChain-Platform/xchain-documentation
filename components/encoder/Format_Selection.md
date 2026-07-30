@@ -59,23 +59,13 @@ The 8,192-byte figure is the effective protocol ceiling: it is the maximum **com
 
 ## Decision Flowchart
 
-```
-Obfuscated payload length?
-         |
-    <= 76 bytes  (user data; 80 bytes total per output including 4-byte XCHN prefix)
-         |
-    OP_RETURN  (single tx, cheapest)  <-- auto-selected
-         |
-    > 76 bytes  (user data), <= 8,192 bytes
-         |
-    P2SH  (two tx, medium cost; 476-byte chunks)  <-- auto-selected
-         |
-         |  (P2WSH, same 476-byte chunking + 8,192 ceiling, is SegWit-discounted
-         |   but must be requested explicitly via encoding=P2WSH; never auto-selected)
-         |
-    > 8,192 bytes
-         |
-    Rejected  (exceeds the 8,192-byte protocol ceiling enforced by the decoder)
+```mermaid
+flowchart TD
+    START{"Obfuscated payload length?"}
+    START -->|"<= 76 bytes (user data; 80 bytes total per output including 4-byte XCHN prefix)"| OPRETURN["OP_RETURN<br>(single tx, cheapest)<br>auto-selected"]
+    START -->|"> 76 bytes (user data), <= 8,192 bytes"| P2SH["P2SH<br>(two tx, medium cost; 476-byte chunks)<br>auto-selected"]
+    P2SH -.->|"alternative, explicit only"| P2WSH["P2WSH<br>same 476-byte chunking + 8,192 ceiling, SegWit-discounted,<br>must be requested explicitly via encoding=P2WSH,<br>never auto-selected"]
+    START -->|"> 8,192 bytes"| REJECTED["Rejected<br>(exceeds the 8,192-byte protocol ceiling<br>enforced by the decoder)"]
 ```
 
 The auto-selection path only produces `OP_RETURN` or `P2SH`. The `P2WSH` and `MULTISIGN` rows represent recommended explicit encoding choices; they are never chosen automatically. To use either, pass the `encoding` parameter explicitly in your `create_tx` call.

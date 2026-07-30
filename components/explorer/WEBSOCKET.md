@@ -729,6 +729,24 @@ Response to client `ping`.
 5. Wait for `CATCH_UP_COMPLETE` before treating events as live
 6. If `CATCH_UP_TOO_OLD` error, use the REST API to backfill
 
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Explorer WebSocket Server
+
+    C->>S: connect
+    S-->>C: WELCOME
+    C->>S: subscribe
+    S-->>C: SUBSCRIBED
+    S-->>C: live events
+
+    Note over C,S: disconnect
+    C->>S: reconnect, resubscribe with since_action_index
+    S-->>C: replayed events
+    S-->>C: CATCH_UP_COMPLETE
+    S-->>C: live events
+```
+
 ---
 
 ## Configuration

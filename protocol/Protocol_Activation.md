@@ -33,6 +33,17 @@ these hold for the node's own network:
 3. **The block is at or past the height threshold.** The block's index is `>=` the network's `*_block`
    value (0 means "no height gate").
 
+```mermaid
+flowchart TD
+    Start["isEnabled(name, block_index) called at each block"] --> V{"Running software version at or past<br>the version the change was introduced in?"}
+    V -->|"no"| False["Returns false, rule not yet active"]
+    V -->|"yes"| T{"Block timestamp at or past the network's<br>*_time threshold? (0 = no time gate)"}
+    T -->|"no"| False
+    T -->|"yes"| H{"Block index at or past the network's<br>*_block threshold? (0 = no height gate)"}
+    H -->|"no"| False
+    H -->|"yes"| True["Returns true, rule active"]
+```
+
 A gate is keyed on **time** or **height**, not both: set the one you want and leave the other 0. The
 choice matters (below). The check is per network, so mainnet, testnet, and regtest each carry their
 own threshold and cross independently.
@@ -157,6 +168,19 @@ straggler is an operational blip, not a consensus split.
   release. Nothing has taken effect yet, so this is free.
 - Once a value is **crossed**, it is live consensus. Reverting it is itself a consensus change and
   requires a new flag day under the same [notice policy](./Upgrade_Notice_Policy.md).
+
+```mermaid
+stateDiagram-v2
+    [*] --> Inert: rule ships inert in a release
+    Inert --> Armed: activation threshold registered (time or height)
+    Armed --> Armed: deferred, threshold moved later (before crossed)
+    Armed --> Crossed: activation point reached, live consensus
+    Crossed --> Armed: reverted, new flag day under the same notice policy
+    Crossed --> Forked: Cohort A/B (forking), straggler node misses upgrade
+    Crossed --> Halted: Cohort C (additive), straggler node misses upgrade
+    Forked --> [*]: recovery, upgrade and resync from a converged snapshot
+    Halted --> [*]: upgrade, clear the halt (or resync), folds state and catches up
+```
 
 ## Related documentation
 

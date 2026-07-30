@@ -75,6 +75,21 @@ Unused target-side gas is not refunded in v1. The callback runs against the fixe
   Variable-length fields enter as a `sha256` digest so the canonical string stays fixed-arity and `|`-safe
 - Target-side execution (`XEXEC`) is an internal action: a depth-0 `EXECUTE` under `gasCeiling = GAS_LIMIT`, with a synthetic chain/network-namespaced `TX_HASH`, the `crossCallable` allowlist enforced, and its own savepoint. A failed run rolls its state back and that failure becomes the relayed result. It is idempotent and reorg-safe via `cross_chain_call_executions`
 - Lifecycle (source-chain request status): a request starts `pending`. The federation waits for source-chain confirmation depth, then signs the dispatch row; the target chain verifies signatures and injects `XEXEC` at the first block at or after `effective_time`, then the federation waits for target-chain depth and signs the result row. The request becomes `completed` when a verified result arrives, or `expired` once `DEADLINE_BLOCKS` passes with no result
+
+  ```mermaid
+  stateDiagram-v2
+      [*] --> Pending
+      state Pending {
+          [*] --> AwaitingDispatch
+          AwaitingDispatch --> DispatchSigned: source confirmation depth reached,<br>federation signs dispatch row
+          DispatchSigned --> XEXECInjected: target chain verifies signatures,<br>injects XEXEC at first block at or after effective_time
+          XEXECInjected --> ResultSigned: target-chain depth reached,<br>federation signs result row
+      }
+      Pending --> Completed: verified result arrives
+      Pending --> Expired: DEADLINE_BLOCKS passes with no result
+      Completed --> [*]
+      Expired --> [*]
+  ```
 - Recoverability: the Version `0` request is reproducible from a pure chain parse, and both relay phases are included in the ANCHOR v1 archive and rebuilt and signature-verified by `xchain-indexer/src/recovery.js`, so a from-genesis reindex re-derives identical injected executions and callbacks
 
 ---

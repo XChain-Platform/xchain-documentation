@@ -77,6 +77,27 @@ Every signing surface (Send, Issue, Mint, Order, Dispenser, Dividend, Airdrop, S
 5. The user reviews the form values **and** the decoded summary (both must match) and confirms.
 6. The signer signs the PSBT.
 
+```mermaid
+sequenceDiagram
+    participant UserForm as User Form
+    participant ActionDescriptor as Action Descriptor
+    participant Encoder
+    participant WalletDecoder as Wallet Decoder
+    participant Signer
+
+    UserForm->>UserForm: user fills form, plain-English values are canonical intent
+    UserForm->>ActionDescriptor: form values
+    ActionDescriptor->>ActionDescriptor: encode intent into ACTION string
+    ActionDescriptor->>Encoder: ACTION string
+    Encoder-->>ActionDescriptor: unsigned PSBT
+    ActionDescriptor->>WalletDecoder: ACTION string
+    WalletDecoder->>WalletDecoder: re-decode ACTION string, render human-readable summary
+    WalletDecoder-->>UserForm: decoded summary, alongside the PSBT
+    UserForm->>UserForm: user reviews form values and decoded summary, both must match, confirms
+    UserForm->>Signer: PSBT
+    Signer->>Signer: sign PSBT
+```
+
 This means: even if the encoder is malicious and fabricates PSBT bytes, the user sees `to`, `amount`, `asset`, etc., reflected back from their own form input. The safety rail is *user-visible*: a mismatch is something a careful user can catch by eye.
 
 The next iteration adds a byte-level cross-check that re-decodes the encoder's PSBT and compares it to the user's intent automatically, raising the rail from "user-visible" to "wallet-enforced".

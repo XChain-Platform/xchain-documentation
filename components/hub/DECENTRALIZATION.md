@@ -102,36 +102,16 @@ A validator's P2P signing key is authorized by the **union** of the hub's local 
 
 ## Architecture Summary
 
-```
-                    +-------------------+
-                    |   External APIs   |
-                    | (CoinGecko,       |
-                    |  Kraken, CMC)     |
-                    +--------+----------+
-                             |
-              +--------------v--------------+
-              |        Validator A           |
-              |  PriceFetcher -> OracleRound |
-              |  PeerManager <-> Consensus   |
-              |  CrossChainEngine            |
-              |  ReorgHandler                |
-              |  Governance                  |
-              |  RewardTracker               |
-              |  SlashDetector               |
-              +----+----+----+--------------+
-                   |    |    |
-          gossip   |    |    |   gossip
-                   |    |    |
-              +----v----v----v--------------+
-              |        Validator B           |
-              |        (same stack)          |
-              +----+----+----+--------------+
-                   |    |    |
-                   |    |    |
-              +----v----v----v--------------+
-              |        Validator C           |
-              |        (same stack)          |
-              +-----------------------------+
+```mermaid
+flowchart TD
+    EXT["External APIs<br>(CoinGecko, Kraken, CMC)"]
+    A["Validator A<br>PriceFetcher → OracleRound<br>PeerManager ↔ Consensus<br>CrossChainEngine<br>ReorgHandler<br>Governance<br>RewardTracker<br>SlashDetector"]
+    B["Validator B<br>(same stack)"]
+    C["Validator C<br>(same stack)"]
+
+    EXT --> A
+    A -->|gossip| B
+    B -->|gossip| C
 ```
 
 Each validator runs the full hub stack. Communication happens via WebSocket-based P2P gossip with Ed25519-signed messages. All consensus decisions require `max(2f+1, ceil((N+1)/2))` agreement; the simple-majority floor prevents a single validator from finalizing alone at small federation sizes (N=3 requires 2 votes; N=2 requires both).

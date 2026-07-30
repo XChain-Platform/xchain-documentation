@@ -9,39 +9,25 @@ XChain uses two database technologies; MariaDB for relational data (decoder, ind
 
 Each indexer maintains **three** database connections per chain/network: a Decoder DB (input), an Indexer DB (its own state), and a local Hub DB (synced from xchain-hub). These serve different purposes and are owned by different services.
 
-```
-Blockchain
-    |
-    | (raw bytes, JSON-RPC)
-    v
-xchain-decoder
-    |
-    | writes raw decoded data
-    v
-Decoder MariaDB  (XChain_{CHAIN}_{NETWORK}_Decoder)
-    |
-    | polls every 5s
-    v
-xchain-indexer  ←──┐
-    |              │
-    | writes       │ reads cross-chain infrastructure
-    v              │ (price_snapshots, oracle_prices, etc.)
-Indexer MariaDB    │
-(XChain_{CHAIN}_   │
- {NETWORK}_        │
- Indexer)          │
-    |              │
-    | direct SQL   │
-    v              │
-xchain-explorer    │
-                   │
-                   │
-            Hub MariaDB (local copy, synced from xchain-hub via WebSocket)
-                   ^
-                   |
-                   | broadcasts new rows on /hub-db/subscribe
-                   |
-              xchain-hub  ←──── PRICE actions pushed by indexers from all chains
+```mermaid
+flowchart TD
+    CHAIN["Blockchain"]
+    DECODER["xchain-decoder"]
+    DECDB[("Decoder MariaDB<br>XChain_{CHAIN}_{NETWORK}_Decoder")]
+    INDEXER["xchain-indexer"]
+    IDXDB[("Indexer MariaDB<br>XChain_{CHAIN}_{NETWORK}_Indexer")]
+    EXPLORER["xchain-explorer"]
+    HUBDB[("Hub MariaDB<br>local copy, synced from<br>xchain-hub via WebSocket")]
+    HUB["xchain-hub"]
+
+    CHAIN -->|"raw bytes, JSON-RPC"| DECODER
+    DECODER -->|"writes raw decoded data"| DECDB
+    DECDB -->|"polls every 5s"| INDEXER
+    INDEXER -->|writes| IDXDB
+    IDXDB -->|"direct SQL"| EXPLORER
+    HUBDB -->|"reads cross-chain infrastructure<br>(price_snapshots, oracle_prices, etc.)"| INDEXER
+    HUB -->|"broadcasts new rows<br>on /hub-db/subscribe"| HUBDB
+    INDEXER -->|"PRICE actions pushed by<br>indexers from all chains"| HUB
 ```
 
 **Separation principle:** The indexer DB contains only state derived from processing that chain's blocks. Cross-chain data synced from the hub lives in its own database. This means:

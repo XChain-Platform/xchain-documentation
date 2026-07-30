@@ -37,6 +37,27 @@ and settled by the **xchain-hub validator federation**:
 6. **Retract**: if a source order is rolled back by a chain reorg, the federation retracts the
    match (mirror deletion) and any indexer that settled rolls its leg back.
 
+```mermaid
+sequenceDiagram
+    participant Chain as Source chains (escrow)
+    participant Federation as Validator federation
+    participant Hub as cross_chain_matches (mirror)
+    participant Indexer
+
+    Note over Chain: GIVE side escrowed locally on the posting chain
+    Federation->>Chain: Discover, polls open cross-chain offers<br>(getopencrosschainorders)
+    Federation->>Federation: Match, compatible pair found<br>(SWAP exact single-fill FCFS,<br>or ORDER price-time book, may partial-fill)
+    Federation->>Federation: Finalize, reaches consensus,<br>signs match record with 2f+1 cross_chain signatures
+    Federation->>Hub: Deliver, signed match written<br>and streamed to every indexer over the hub-DB mirror
+    Hub->>Indexer: mirrored match record
+    Indexer->>Indexer: Settle, verifies signatures,<br>releases leg's escrow to counterparty as CROSS_SETTLE
+    opt source order rolled back by chain reorg
+        Federation->>Hub: Retract, match deleted from mirror
+        Hub->>Indexer: mirror deletion
+        Indexer->>Indexer: rolls back settled leg
+    end
+```
+
 Because both sides are **pre-escrowed**, there is no payment that can bounce, settlement is just
 "release from escrow," so a single phase is sufficient (no reserve/commit handshake).
 

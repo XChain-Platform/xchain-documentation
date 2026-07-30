@@ -35,6 +35,21 @@ The slash is applied only when every check passes; otherwise the action is recor
 4. **Membership.** `OFFENDER_PUBKEY` must have been in the locked validator snapshot that authorized the slot at its `snapshot_block`. The `snapshot_block` is recovered deterministically from the proof itself: from the signed content for `XDEX` / `XCALL` / `XCHECKPOINT` / `XCONFIG`, from the round id for `XORACLE` (the round is a BTC block), and from the referenced request for `XATTEST`. For the five capability-scoped engines the snapshot is `CAPABILITY`'s MIN_STAKE-qualified set; for `XCONFIG` it is the whole federation (every active staker, since config-change PBFT has no capability subset), hence the `config` label. `CAPABILITY` must be the one the engine maps to; it is derived, not trusted. This snapshot-block rule covers six of the seven EQUIV-headered engines; the seventh, `XNODEPROOF`, has no `snapshot_block` rule and no `CAPABILITY` mapping, so an `XNODEPROOF`-headered proof is rejected (see the Notes bullet below).
 5. **Idempotency.** A first valid proof burns the whole bond, active stake and cooldown-locked unstakes alike. Later proofs for the same `(OFFENDER_PUBKEY, CAPABILITY)` are no-ops.
 
+```mermaid
+flowchart TD
+    Start["SLASH submitted"] --> C1{"1. EQUIV header and key match,<br>same engine, round, view?"}
+    C1 -->|"no"| Invalid["Recorded invalid, nothing burned"]
+    C1 -->|"yes"| C2{"2. MSG_A and MSG_B content differ<br>after the header?"}
+    C2 -->|"no"| Invalid
+    C2 -->|"yes"| C3{"3. SIG_A and SIG_B both verify<br>against OFFENDER_PUBKEY?"}
+    C3 -->|"no"| Invalid
+    C3 -->|"yes"| C4{"4. OFFENDER_PUBKEY was in the locked<br>validator snapshot at snapshot_block?"}
+    C4 -->|"no"| Invalid
+    C4 -->|"yes"| C5{"5. First valid proof for this<br>(OFFENDER_PUBKEY, CAPABILITY)?"}
+    C5 -->|"no, later proof"| NoOp["No-op"]
+    C5 -->|"yes"| Effect["Entire capability bond burned,<br>submitter receives capped bounty,<br>remainder routed to governance treasury"]
+```
+
 ### Effect
 - The offender's entire capability bond (active `stakes` plus cooldown-locked `unstakes`) is burned in place; each reduction is logged so a chain reorg restores the pre-slash amounts exactly.
 - The submitter receives a capped bounty and the remainder is routed to a governance treasury (both governance-configured; until set, the burn pays no bounty and routes nothing, making it a pure burn).

@@ -121,17 +121,18 @@ The explorer syncs configuration from xchain-hub every 60 seconds: fee schedules
 
 In addition to the validation pipeline above, oracle price data flows separately:
 
-```
-Validators with `price` capability fetch from CoinGecko/Kraken (CoinMarketCap optional)
-  → PBFT consensus on prices (signs canonical PRICE v0 payload)
-    → A validator with `oracle_publish` capability writes PRICE v0 to a chain
-      → That chain's decoder + indexer process the action
-        → Indexer validates PBFT signatures, writes to local prices table
-          → Indexer pushes validated round to xchain-hub
-            → Hub deduplicates by round_number, writes to price_snapshots
-              → Hub broadcasts new row to all indexers' local hub DB copies
-                → Indexers query their local hub DB for fee validation,
-                  FIAT dispenser settlement, and VM oracle queries
+```mermaid
+flowchart TD
+    FETCH["Validators with price capability fetch from<br>CoinGecko / Kraken (CoinMarketCap optional)"]
+    PBFT["PBFT consensus on prices<br>(signs canonical PRICE v0 payload)"]
+    PUBLISH["A validator with oracle_publish capability<br>writes PRICE v0 to a chain"]
+    PROCESS["That chain's decoder + indexer<br>process the action"]
+    VALIDATE["Indexer validates PBFT signatures,<br>writes to local prices table"]
+    PUSH["Indexer pushes validated round to xchain-hub"]
+    DEDUPE["Hub deduplicates by round_number,<br>writes to price_snapshots"]
+    BROADCAST["Hub broadcasts new row to all indexers'<br>local hub DB copies"]
+    QUERY["Indexers query their local hub DB for fee validation,<br>FIAT dispenser settlement, and VM oracle queries"]
+    FETCH --> PBFT --> PUBLISH --> PROCESS --> VALIDATE --> PUSH --> DEDUPE --> BROADCAST --> QUERY
 ```
 
 Capability assignment is governed entirely by stake amount; a validator with sufficient aggregate stake against its pubkey qualifies for every capability whose `min_stake` it meets. Self-tests are local to each hub and gate participation, not the federation-wide quorum count.
@@ -152,65 +153,40 @@ See the [Explorer WebSocket API Reference](../components/explorer/WEBSOCKET.md) 
 
 ---
 
-## Pipeline ASCII Diagram
+## Pipeline Diagram
 
-```
-  Developer / Wallet
-        |
-        |  ACTION string
-        v
-  +-----------+       +---------------+
-  |  xchain   |------>|  xchain-hub   |  (config, oracle prices, fee quotes)
-  |    sdk    |       | (validator    |
-  |           |       |  network)     |
-  |           |       +---------------+
-  |           |------>+------------------+
-  |           |       | xchain-utxo-     |  (UTXOs for sender)
-  +-----------+       | tracker  LevelDB |
-        |             +------------------+
-        |  PSBT request (ACTION + UTXOs + pubkey)
-        v
-  +-----------+
-  |  xchain-  |  (stateless; AES-128-CTR obfuscation)
-  |  encoder  |
-  +-----------+
-        |
-        |  unsigned PSBT
-        v
-  Developer signs + broadcasts
-        |
-        v
-  Coin Node (bitcoind / litecoind / dogecoind)
-   mempool → block
-        |
-        |  JSON-RPC polling
-        v
-  +-----------+       +----------------------+
-  |  xchain-  |------>|  Decoder MariaDB     |
-  |  decoder  |       |  XChain_{C}_{N}_     |
-  |           |       |  Decoder             |
-  +-----------+       +----------------------+
-                                |
-                                |  SQL polling (every 5s)
-                                v
-                      +-----------+       +----------------------+
-                      |  xchain-  |------>|  Indexer MariaDB     |
-                      |  indexer  |       |  XChain_{C}_{N}_     |
-                      |           |       |  Indexer             |
-                      +-----------+       +----------------------+
-                                                    |
-                                        +-----------+-----------+
-                                        |                       |
-                                        |  direct SQL reads     |  SQL polling (every 3s)
-                                        v                       v
-                              +-----------+           +------------------+
-                              |  xchain-  |           |  xchain-indexer- |
-                              |  explorer |           |  sync            |
-                              +-----------+           +------------------+
-                                    |                       |
-                        REST / JSON-RPC / Web UI    REST / WebSocket API
-                                    |                       |
-                                Clients             Validator replicas
+```mermaid
+flowchart TD
+    DEV["Developer / Wallet"]
+    SDK["xchain-sdk"]
+    HUB["xchain-hub<br>(validator network)"]
+    UTXO["xchain-utxo-tracker<br>(LevelDB)"]
+    ENC["xchain-encoder<br>(stateless; AES-128-CTR obfuscation)"]
+    SIGN["Developer signs + broadcasts"]
+    NODE["Coin node (bitcoind / litecoind / dogecoind)<br>mempool → block"]
+    DECODER["xchain-decoder"]
+    DECDB[("Decoder MariaDB<br>XChain_{C}_{N}_Decoder")]
+    INDEXER["xchain-indexer"]
+    IDXDB[("Indexer MariaDB<br>XChain_{C}_{N}_Indexer")]
+    EXPLORER["xchain-explorer"]
+    SYNC["xchain-indexer-sync"]
+    CLIENTS["Clients"]
+    REPLICAS["Validator replicas"]
+
+    DEV -->|ACTION string| SDK
+    SDK -->|config, oracle prices, fee quotes| HUB
+    SDK -->|UTXOs for sender| UTXO
+    SDK -->|"PSBT request (ACTION + UTXOs + pubkey)"| ENC
+    ENC -->|unsigned PSBT| SIGN
+    SIGN --> NODE
+    NODE -->|JSON-RPC polling| DECODER
+    DECODER --> DECDB
+    DECDB -->|"SQL polling (every 5s)"| INDEXER
+    INDEXER --> IDXDB
+    IDXDB -->|direct SQL reads| EXPLORER
+    IDXDB -->|"SQL polling (every 3s)"| SYNC
+    EXPLORER -->|REST / JSON-RPC / Web UI| CLIENTS
+    SYNC -->|REST / WebSocket API| REPLICAS
 ```
 
 ---

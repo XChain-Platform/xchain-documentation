@@ -97,6 +97,22 @@ This example trades ownership of JDOG for ownership of PEPECOIN. Both sides escr
 - Cancelling an order with pending COINPay obligations sets status to `cancelling` instead of `cancelled`; obligations must resolve before the order is finalized
 - Order expiration with pending COINPay obligations sets status to `expiring`; same deferred finalization
 
+```mermaid
+stateDiagram-v2
+    [*] --> open: ORDER v0 create
+    open --> pending_coinpay: native coin pair matched,<br>ORDER_MATCH created instead of instant settlement
+    pending_coinpay --> settled: COINPAY resolves the obligation
+    settled --> [*]
+    open --> cancelled: ORDER v1 cancel, no pending COINPay obligations
+    cancelled --> [*]
+    pending_coinpay --> cancelling: ORDER v1 cancel, pending COINPay obligations exist
+    cancelling --> cancelled: obligations resolve
+    open --> expired: EXPIRATION, no pending COINPay obligations
+    expired --> [*]
+    pending_coinpay --> expiring: EXPIRATION, pending COINPay obligations exist
+    expiring --> expired: obligations resolve
+```
+
 ### Token Ownership Sales
 - `GIVE_OWNERSHIP=1` requires SOURCE to be the current owner of `GIVE_TICK`; `GIVE_AMOUNT` must be empty; the ownership record moves into a protocol-held escrow state. [`SWAP`](./SWAP.md) and [`DISPENSER`](./DISPENSER.md) support the same `GIVE_OWNERSHIP=1` flag and place ownership into the same escrow state; all three actions share the "only one open ownership offer at a time" constraint described below.
 - `GET_OWNERSHIP=1` requires the matcher's SOURCE to be the current owner of `GET_TICK`; `GET_AMOUNT` must be empty
@@ -113,6 +129,19 @@ This example trades ownership of JDOG for ownership of PEPECOIN. Both sides escr
 - On match: ownership transfers atomically to the counterparty's SOURCE
 - On cancel (Version 1) or `EXPIRATION`: ownership returns to the original SOURCE
 - When matched against a native-coin counterparty: ownership remains in escrow as a `pending_coinpay` obligation and is delivered to the buyer once `COINPAY` settles; if the obligation expires or is cancelled, ownership returns to the original SOURCE
+
+```mermaid
+flowchart TD
+    A["ORDER v0, GIVE_OWNERSHIP=1<br>SOURCE is current owner of GIVE_TICK"] --> B["Ownership record moves into<br>protocol-held escrow state"]
+    B --> C["While escrowed: ISSUE v0-6, CALLBACK, SLEEP,<br>LINK using this TICK's ISSUE, FILE with this GATE_TICKER,<br>new child ISSUE, additional ownership offers<br>all rejected on this TICK"]
+    C --> D{"Order resolution"}
+    D -->|"matched against token counterparty"| E["Ownership transfers atomically<br>to counterparty's SOURCE"]
+    D -->|"matched against native-coin counterparty"| F["Ownership remains in escrow<br>as a pending_coinpay obligation"]
+    F --> G{"COINPAY settles?"}
+    G -->|"yes"| H["Ownership delivered to the buyer"]
+    G -->|"no, obligation expires or is cancelled"| I["Ownership returns to original SOURCE"]
+    D -->|"cancel (v1) or EXPIRATION"| I
+```
 
 ### Sweep Closure
 - When `SWEEP` is broadcast from this order's SOURCE with `ORDERS=1`, the order is cancelled and the escrowed `GIVE_TICK` balance (or `GIVE_OWNERSHIP` ownership record) is credited to the SWEEP `DESTINATION` rather than returned to SOURCE (see [`SWEEP`](./SWEEP.md))

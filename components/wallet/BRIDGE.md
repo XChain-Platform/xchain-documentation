@@ -20,6 +20,30 @@ if (!xchain) {
 
 `getProvider` resolves once `window.xchain` is available, or rejects on timeout. The reference implementation in `@xchain-wallet/test-dapp` shows the recommended detection + reconnect logic.
 
+```mermaid
+sequenceDiagram
+    participant Page as dApp Page
+    participant Provider as Injected Provider
+    participant Content as Content Script
+    participant Worker as Service Worker
+    participant Popup as Approval Popup
+
+    Page->>Provider: window.xchain.connect(opts)
+    Provider->>Content: postMessage
+    Content->>Worker: forward request
+
+    alt origin already has a grant
+        Worker-->>Content: resolve immediately
+    else first call from a new origin
+        Worker->>Popup: surface approval popup
+        Popup-->>Worker: user approves or rejects
+    end
+
+    Worker-->>Content: result
+    Content-->>Provider: postMessage
+    Provider-->>Page: resolve, accounts and addresses
+```
+
 ## Versioning
 
 The bridge protocol carries its own semver, independent of the wallet release version:

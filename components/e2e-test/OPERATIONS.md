@@ -63,48 +63,24 @@ npm run mutate:report             # Generate mutation report
 
 ### Recommended Pipeline
 
-```
-PR opened / commit pushed
-        │
-        ▼
-  ┌──────────────────┐
-  │ npm install       │
-  └──────┬───────────┘
-         │
-         ▼
-  ┌──────────────────┐
-  │ Regression P0     │ ◄── gate: blocks merge (85+ tests, < 500ms)
-  │ npm run           │
-  │ test:regression:p0│
-  └──────┬───────────┘
-         │
-         ▼
-  ┌──────────────────┐
-  │ Full Unit Tests   │ ◄── npm run test:unit (556 tests)
-  └──────┬───────────┘
-         │
-         ▼ (on merge to main)
-  ┌──────────────────┐
-  │ Regression P0+P1  │ ◄── gate: blocks release (100+ tests, < 500ms)
-  └──────┬───────────┘
-         │
-         ▼ (nightly)
-  ┌──────────────────┐
-  │ Full Regression   │ ◄── 120+ tests, < 500ms
-  │ + Boundary        │ ◄── 140+ tests
-  │ + Fuzz            │ ◄── 50+ tests
-  │ + Chaos           │ ◄── 75+ tests
-  └──────┬───────────┘
-         │
-         ▼ (weekly / pre-release)
-  ┌──────────────────┐
-  │ Mutation Testing  │ ◄── Stryker Phase 1+2
-  └──────┬───────────┘
-         │
-         ▼ (requires Docker stack)
-  ┌──────────────────┐
-  │ Live E2E + Smoke  │ ◄── Full action suite against regtest
-  └──────────────────┘
+```mermaid
+flowchart TD
+    TRIGGER["PR opened / commit pushed"]
+    INSTALL["npm install"]
+    REGP0["Regression P0<br>npm run test:regression:p0<br>(gate: blocks merge, 85+ tests, < 500ms)"]
+    UNIT["Full Unit Tests<br>npm run test:unit (556 tests)"]
+    REGP01["Regression P0+P1<br>(gate: blocks release, 100+ tests, < 500ms)"]
+    FULLREG["Full Regression (120+ tests, < 500ms)<br>+ Boundary (140+ tests)<br>+ Fuzz (50+ tests)<br>+ Chaos (75+ tests)"]
+    MUTATE["Mutation Testing<br>Stryker Phase 1+2"]
+    LIVEE2E["Live E2E + Smoke<br>Full action suite against regtest"]
+
+    TRIGGER --> INSTALL
+    INSTALL --> REGP0
+    REGP0 --> UNIT
+    UNIT -->|on merge to main| REGP01
+    REGP01 -->|nightly| FULLREG
+    FULLREG -->|weekly / pre-release| MUTATE
+    MUTATE -->|requires Docker stack| LIVEE2E
 ```
 
 ### Regression Tiers

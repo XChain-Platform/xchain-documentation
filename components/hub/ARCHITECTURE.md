@@ -5,74 +5,71 @@
 
 ## Position in the Data Pipeline
 
-```
-Coin Node (bitcoind / litecoind / dogecoind)
-    |  JSON-RPC
-    v
-xchain-decoder  ->  Decoder DB (MariaDB)
-    |
-    v
-xchain-indexer  ->  Indexer DB (MariaDB)
-    |                    |
-    v                    v
-xchain-explorer     xchain-sync  ->  Validator replicas
-                         ^
-                         |
-                    xchain-hub  <-->  P2P Validator Network
-                         |
-                    - Config oracle (all services poll)
-                    - Price oracle (CoinGecko, Kraken, CoinMarketCap)
-                    - Cross-chain attestation
-                    - SWAP lifecycle tracking
-                    - Reorg propagation
-                    - Governance
+```mermaid
+flowchart TD
+    NODE["Coin Node<br>(bitcoind / litecoind / dogecoind)"]
+    DECODER["xchain-decoder"]
+    DECDB[("Decoder DB (MariaDB)")]
+    INDEXER["xchain-indexer"]
+    IDXDB[("Indexer DB (MariaDB)")]
+    EXPLORER["xchain-explorer"]
+    SYNC["xchain-sync"]
+    REPLICAS["Validator replicas"]
+    HUB["xchain-hub<br>- Config oracle (all services poll)<br>- Price oracle (CoinGecko, Kraken, CoinMarketCap)<br>- Cross-chain attestation<br>- SWAP lifecycle tracking<br>- Reorg propagation<br>- Governance"]
+    P2P["P2P Validator Network"]
+
+    NODE -->|JSON-RPC| DECODER
+    DECODER --> DECDB
+    DECDB --> INDEXER
+    INDEXER --> IDXDB
+    IDXDB --> EXPLORER
+    IDXDB --> SYNC
+    SYNC --> REPLICAS
+    HUB --> SYNC
+    HUB <--> P2P
 ```
 
 The hub sits at the center of the platform. All other services depend on it for configuration discovery. In validator mode, it also serves as the decentralized coordination layer for pricing, cross-chain operations, and governance.
 
 ## Operating Modes
 
-```
-STANDALONE MODE                          VALIDATOR MODE
-(P2P_VALIDATOR_ADDR not set)             (P2P_VALIDATOR_ADDR set)
+```mermaid
+flowchart LR
+    subgraph STANDALONE["STANDALONE MODE<br>(P2P_VALIDATOR_ADDR not set)"]
+        direction TB
+        SA_API["api.js<br>Express + JSON-RPC"]
+        SA_HUB["XChainHub<br>(orchestrator)"]
+        SA_DB["db.js<br>MariaDB pool + circuit breaker"]
+        SA_NOTE["Config writes go directly to MariaDB.<br>No P2P, no consensus."]
+        SA_API --> SA_HUB --> SA_DB
+        SA_DB -.-> SA_NOTE
+    end
 
-+---------------------------+            +---------------------------+
-|        xchain-hub         |            |        xchain-hub         |
-|                           |            |                           |
-|  +---------------------+ |            |  +---------------------+ |
-|  |      api.js          | |            |  |      api.js          | |
-|  |  Express + JSON-RPC  | |            |  |  Express + JSON-RPC  | |
-|  +----------+-----------+ |            |  +----------+-----------+ |
-|             |             |            |             |             |
-|  +----------v-----------+ |            |  +----------v-----------+ |
-|  |    XChainHub          | |            |  |    XChainHub          | |
-|  |  (orchestrator)       | |            |  |  (orchestrator)       | |
-|  +----------+-----------+ |            |  +----------+-----------+ |
-|             |             |            |             |             |
-|  +----------v-----------+ |            |  +----------v-----------+ |
-|  |      db.js            | |            |  |  PeerManager          | |
-|  |  MariaDB pool +       | |            |  |  P2P gossip layer     | |
-|  |  circuit breaker      | |            |  +----------+-----------+ |
-|  +----------------------+ |            |             |             |
-|                           |            |  +----+-----+-----+----+ |
-+---------------------------+            |  |    |     |     |    | |
-                                         |  v    v     v     v    v |
-  Config writes go directly              | Con- Oracle Cross Reorg  |
-  to MariaDB.                            | sen- Round Chain Hand-   |
-  No P2P, no consensus.                  | sus       Engine ler     |
-                                         |  |    |     |     |    | |
-                                         |  v    v     v     v    v |
-                                         | Gov-  Reward Slash Swap  |
-                                         | ern-  Track- Detec Track |
-                                         | ance  er    tor   er    |
-                                         |  +----+-----+-----+----+ |
-                                         |             |             |
-                                         |  +----------v-----------+ |
-                                         |  |      db.js            | |
-                                         |  |  MariaDB pool +       | |
-                                         |  |  circuit breaker      | |
-                                         |  +----------------------+ |
-                                         +---------------------------+
+    subgraph VALIDATOR["VALIDATOR MODE<br>(P2P_VALIDATOR_ADDR set)"]
+        direction TB
+        VA_API["api.js<br>Express + JSON-RPC"]
+        VA_HUB["XChainHub<br>(orchestrator)"]
+        VA_PEER["PeerManager<br>P2P gossip layer"]
+        VA_CONS["Consensus"]
+        VA_ORACLE["OracleRound"]
+        VA_CROSS["CrossChainEngine"]
+        VA_REORG["ReorgHandler"]
+        VA_GOV["Governance"]
+        VA_REWARD["RewardTracker"]
+        VA_SLASH["SlashDetector"]
+        VA_SWAP["SwapTracker"]
+        VA_DB["db.js<br>MariaDB pool + circuit breaker"]
+
+        VA_API --> VA_HUB --> VA_PEER
+        VA_PEER --> VA_CONS --> VA_GOV
+        VA_PEER --> VA_ORACLE --> VA_REWARD
+        VA_PEER --> VA_CROSS --> VA_SLASH
+        VA_PEER --> VA_REORG --> VA_SWAP
+        VA_GOV --> VA_DB
+        VA_REWARD --> VA_DB
+        VA_SLASH --> VA_DB
+        VA_SWAP --> VA_DB
+    end
 ```
 
 In standalone mode, the hub is a simple config oracle. In validator mode, the `XChainHub` orchestrator wires together all subsystems via event-driven architecture.
@@ -83,23 +80,36 @@ In standalone mode, the hub is a simple config oracle. In validator mode, the `X
 
 Subsystems communicate via Node.js EventEmitter events rather than direct method calls:
 
-```
-OracleConsensus  --round:finalized-->  RewardTracker
-                 --round:finalized-->  SlashDetector
-                 --round:finalized-->  OraclePublisher (queues for DOGE broadcast)
+```mermaid
+flowchart TD
+    ORACLECONS["OracleConsensus"]
+    REWARD["RewardTracker"]
+    SLASH["SlashDetector"]
+    ORACLEPUB["OraclePublisher<br>(queues for DOGE broadcast)"]
+    PRICEAGG["PriceAggregator"]
+    CHECKPOINT["StateCheckpointEngine"]
+    DEXENGINE["CrossChainDexEngine"]
+    CALLENGINE["CrossChainCallEngine"]
+    BROADCASTER["HubDbBroadcaster<br>(forwards to WebSocket subscribers)"]
+    ANCHORPUB["StateAnchorPublisher<br>(queues for DOGE ANCHOR broadcast)"]
+    CROSSCHAIN["CrossChainEngine"]
+    SWAP["SwapTracker"]
+    REORG["ReorgHandler"]
+    DOWNSTREAM["downstream indexer notification"]
+    GOV["Governance"]
+    PARAMAPPLY["parameter application"]
 
-PriceAggregator        --row:inserted-->  HubDbBroadcaster (forwards to WebSocket subscribers)
-StateCheckpointEngine  --row:inserted-->  HubDbBroadcaster
-CrossChainDexEngine    --row:inserted-->  HubDbBroadcaster
-CrossChainCallEngine   --row:inserted-->  HubDbBroadcaster
-
-StateCheckpointEngine  --checkpoint:finalized-->  StateAnchorPublisher (queues for DOGE ANCHOR broadcast)
-
-CrossChainEngine --attestation:finalized-->  SwapTracker
-
-ReorgHandler     --reorg:confirmed-->  (downstream indexer notification)
-
-Governance       --proposal:passed-->  (parameter application)
+    ORACLECONS -->|round:finalized| REWARD
+    ORACLECONS -->|round:finalized| SLASH
+    ORACLECONS -->|round:finalized| ORACLEPUB
+    PRICEAGG -->|row:inserted| BROADCASTER
+    CHECKPOINT -->|row:inserted| BROADCASTER
+    DEXENGINE -->|row:inserted| BROADCASTER
+    CALLENGINE -->|row:inserted| BROADCASTER
+    CHECKPOINT -->|checkpoint:finalized| ANCHORPUB
+    CROSSCHAIN -->|attestation:finalized| SWAP
+    REORG -->|reorg:confirmed| DOWNSTREAM
+    GOV -->|proposal:passed| PARAMAPPLY
 ```
 
 ## Source Files
@@ -147,21 +157,26 @@ Governance       --proposal:passed-->  (parameter application)
 
 The `PeerManager` provides the transport layer for all consensus protocols.
 
-```
-Validator A                         Validator B
-+-----------+                       +-----------+
-|PeerManager|---WebSocket outbound->|PeerManager|
-|           |<--WebSocket inbound---|           |
-+-----------+                       +-----------+
-     |  ^                                |  ^
-     |  |  message events                |  |
-     v  |                                v  |
-+----------+                        +----------+
-|Consensus |                        |Consensus |
-|Oracle    |                        |Oracle    |
-|CrossChain|                        |CrossChain|
-|Governance|                        |Governance|
-+----------+                        +----------+
+```mermaid
+flowchart LR
+    subgraph A["Validator A"]
+        direction TB
+        PMA["PeerManager"]
+        SUBA["Consensus<br>Oracle<br>CrossChain<br>Governance"]
+        PMA -->|message events| SUBA
+        SUBA -->|message events| PMA
+    end
+
+    subgraph B["Validator B"]
+        direction TB
+        PMB["PeerManager"]
+        SUBB["Consensus<br>Oracle<br>CrossChain<br>Governance"]
+        PMB -->|message events| SUBB
+        SUBB -->|message events| PMB
+    end
+
+    PMA -->|WebSocket outbound| PMB
+    PMB -->|WebSocket inbound| PMA
 ```
 
 ### Message Flow
@@ -255,20 +270,19 @@ Unrecognized types are still deduplicated, signature-checked, and relayed (so th
 
 The consensus engine implements simplified PBFT for config writes:
 
-```
-Leader                  Validators (2f+1 required)
-  |                          |
-  |--PRE_PREPARE----------->|  Leader proposes config write
-  |                          |
-  |<---------PREPARE---------|  Validators acknowledge
-  |  (collect 2f+1)          |
-  |                          |
-  |--COMMIT---------------->|  Leader broadcasts commit
-  |                          |
-  |<---------COMMIT----------|  Validators confirm
-  |  (collect 2f+1)          |
-  |                          |
-  [Apply config to MariaDB]    [Apply config to MariaDB]
+```mermaid
+sequenceDiagram
+    participant L as Leader
+    participant V as Validators (2f+1 required)
+    L->>V: PRE_PREPARE
+    Note right of V: Leader proposes config write
+    V-->>L: PREPARE
+    Note left of L: Validators acknowledge (collect 2f+1)
+    L->>V: COMMIT
+    Note right of V: Leader broadcasts commit
+    V-->>L: COMMIT
+    Note left of L: Validators confirm (collect 2f+1)
+    Note over L,V: Apply config to MariaDB
 ```
 
 ### Leader Selection
@@ -292,66 +306,37 @@ alone. With the floor, N=3 requires 2 votes and N=2 requires both.
 
 ## Oracle Pipeline
 
-```
-Every ORACLE_ROUND_INTERVAL (default 10 min):
+```mermaid
+flowchart TD
+    subgraph ROUND["Every ORACLE_ROUND_INTERVAL (default 10 min)"]
+        S1["1. CHAIN TIP<br>OracleRound reads BTC chain tip from configs table<br>→ currentBtcBlockHeight, currentBtcBlockTime"]
+        S2["2. FETCH<br>PriceFetcher queries CoinGecko + Kraken (keyless) + CoinMarketCap (if key set)<br>→ 3 coins x 12 fiats = 36 pairs per source<br>→ compute local median across sources"]
+        S3["3. SUBMIT<br>Broadcast ORACLE_PRICE_SUBMIT via gossip<br>→ stored in oracle_submissions table"]
+        S4["4. COLLECT<br>Wait ORACLE_SUBMISSION_WINDOW (default 3 min)<br>→ accumulate other validators' submissions"]
+        S5["5. AGGREGATE<br>Round leader computes trimmed median:<br>→ sort submissions, discard top/bottom 15%<br>→ median of remaining values"]
+        S6["6. SIGN<br>Each validator signs the canonical PRICE v0 payload<br>→ JSON.stringify({round, timestamp, sortedPairs})<br>→ Ed25519 via ValidatorIdentity"]
+        S7["7. PROPOSE<br>Leader broadcasts ORACLE_PROPOSE (with sig)"]
+        S8["8. PREPARE<br>Validators verify and send ORACLE_PREPARE (with their sig)<br>→ sigs stored on pending.signatures Map<br>→ collect 2f+1 prepares"]
+        S9["9. COMMIT<br>Leader broadcasts ORACLE_COMMIT (with sig)<br>→ collect 2f+1 commits"]
+        S10["10. FINALIZE<br>Store in price_snapshots (status='finalized')<br>→ reference_block = btcBlockHeight (not 0)<br>→ emit round:finalized event with collected sigs<br>→ RewardTracker distributes XCHAIN (pushes to BTC indexer)<br>→ SlashDetector checks for misbehavior<br>→ OraclePublisher queues for DOGE broadcast (if leader)"]
 
-1. CHAIN TIP    OracleRound reads BTC chain tip from configs table
-                  -> currentBtcBlockHeight, currentBtcBlockTime
-
-2. FETCH        PriceFetcher queries CoinGecko + Kraken (keyless) + CoinMarketCap (if key set)
-                  -> 3 coins x 12 fiats = 36 pairs per source
-                  -> compute local median across sources
-
-3. SUBMIT       Broadcast ORACLE_PRICE_SUBMIT via gossip
-                  -> stored in oracle_submissions table
-
-4. COLLECT      Wait ORACLE_SUBMISSION_WINDOW (default 3 min)
-                  -> accumulate other validators' submissions
-
-5. AGGREGATE    Round leader computes trimmed median:
-                  -> sort submissions, discard top/bottom 15%
-                  -> median of remaining values
-
-6. SIGN         Each validator signs the canonical PRICE v0 payload
-                  -> JSON.stringify({round, timestamp, sortedPairs})
-                  -> Ed25519 via ValidatorIdentity
-
-7. PROPOSE      Leader broadcasts ORACLE_PROPOSE (with sig)
-
-8. PREPARE      Validators verify and send ORACLE_PREPARE (with their sig)
-                  -> sigs stored on pending.signatures Map
-                  -> collect 2f+1 prepares
-
-9. COMMIT       Leader broadcasts ORACLE_COMMIT (with sig)
-                  -> collect 2f+1 commits
-
-10. FINALIZE    Store in price_snapshots (status='finalized')
-                  -> reference_block = btcBlockHeight (not 0)
-                  -> emit round:finalized event with collected sigs
-                  -> RewardTracker distributes XCHAIN (pushes to BTC indexer)
-                  -> SlashDetector checks for misbehavior
-                  -> OraclePublisher queues for DOGE broadcast (if leader)
+        S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9 --> S10
+    end
 ```
 
 ### oracle_publish Capability Publishing Pipeline
 
 After consensus finalizes a round, the OraclePublisher takes over:
 
-```
-1. ROTATION     Leader = SHA256(round_number || pubkey) ordering
-                oracle_publish validators sorted deterministically
+```mermaid
+flowchart TD
+    S1["1. ROTATION<br>Leader = SHA256(round_number || pubkey) ordering<br>oracle_publish validators sorted deterministically"]
+    S2["2. ENQUEUE<br>If local node is the leader, append to JSONL queue (fsync)"]
+    S3["3. BROADCAST<br>EncoderClient.getUtxos(DOGE_ADDRESS)<br>→ EncoderClient.createTx(payload, P2SH encoding)<br>→ walletSignFn(psbtHex) [operator-provided signer]<br>→ EncoderClient.broadcastTx(signedHex)"]
+    S4["4. CONFIRM<br>Remove from queue on successful broadcast"]
+    S5["5. FAILOVER<br>If leader misses by 1 BTC block, next oracle_publish validator in rotation takes over and batches all missed rounds in a single tx"]
 
-2. ENQUEUE      If local node is the leader, append to JSONL queue (fsync)
-
-3. BROADCAST    EncoderClient.getUtxos(DOGE_ADDRESS)
-                -> EncoderClient.createTx(payload, P2SH encoding)
-                -> walletSignFn(psbtHex) [operator-provided signer]
-                -> EncoderClient.broadcastTx(signedHex)
-
-4. CONFIRM      Remove from queue on successful broadcast
-
-5. FAILOVER     If leader misses by 1 BTC block, next oracle_publish validator in rotation
-                takes over and batches all missed rounds in a single tx
+    S1 --> S2 --> S3 --> S4 --> S5
 ```
 
 ### Price Sources
@@ -370,20 +355,24 @@ CoinGecko and Kraken are both keyless, so every hub has two uncorrelated upstrea
 
 For geographically distributed deployments, the hub broadcasts row inserts to indexers' local hub DB copies via a WebSocket channel separate from the per-chain sync.
 
-```
-Hub                                    Indexer (HubDbSync client)
-+--------------------+                 +--------------------+
-| PriceAggregator    |                 | XChainIndexer      |
-|  receiveValidated  |                 |  - hubDb (local)   |
-|  Round/OraclePrice |                 |  - HubDbSync       |
-|       |            |                 |       ^            |
-|       v            |                 |       |            |
-|  emit row:inserted |                 |       |            |
-|       |            |                 |  Apply row to      |
-|       v            |                 |  local hub DB      |
-| HubDbBroadcaster   |  ws send -->    |  via INSERT IGNORE |
-|  WebSocket subs    |  --------->     +--------------------+
-+--------------------+
+```mermaid
+flowchart LR
+    subgraph HUB["Hub"]
+        direction TB
+        PA["PriceAggregator<br>receiveValidatedRound/OraclePrice"]
+        EMIT["emit row:inserted"]
+        HDB["HubDbBroadcaster<br>WebSocket subs"]
+        PA --> EMIT --> HDB
+    end
+
+    subgraph IDX["Indexer (HubDbSync client)"]
+        direction TB
+        XI["XChainIndexer<br>- hubDb (local)<br>- HubDbSync"]
+        APPLY["Apply row to local hub DB<br>via INSERT IGNORE"]
+        XI --> APPLY
+    end
+
+    HDB -->|ws send| XI
 ```
 
 ### REST Bootstrap Endpoints
@@ -416,22 +405,15 @@ This resists manipulation: an attacker would need to control >30% of validators 
 
 ## Cross-Chain Attestation
 
-```
-1. REQUEST      requestattestation(source_chain, source_action_index, dest_chain)
+```mermaid
+flowchart TD
+    S1["1. REQUEST<br>requestattestation(source_chain, source_action_index, dest_chain)"]
+    S2["2. PROPOSE<br>Leader broadcasts XCHAIN_ATTEST_PROPOSE<br>→ includes attestation_id: '{source_chain}:{action_index}:{dest_chain}'"]
+    S3["3. PREPARE<br>Validators send XCHAIN_ATTEST_PREPARE<br>→ only validators supporting BOTH chains participate<br>→ collect 2f+1 from eligible validator subset"]
+    S4["4. COMMIT<br>Leader broadcasts XCHAIN_ATTEST_COMMIT<br>→ collect 2f+1 commits"]
+    S5["5. FINALIZE<br>Store in attestations table (status='attested')<br>→ emit attestation:finalized event<br>→ SwapTracker auto-progresses matching swaps"]
 
-2. PROPOSE      Leader broadcasts XCHAIN_ATTEST_PROPOSE
-                  -> includes attestation_id: "{source_chain}:{action_index}:{dest_chain}"
-
-3. PREPARE      Validators send XCHAIN_ATTEST_PREPARE
-                  -> only validators supporting BOTH chains participate
-                  -> collect 2f+1 from eligible validator subset
-
-4. COMMIT       Leader broadcasts XCHAIN_ATTEST_COMMIT
-                  -> collect 2f+1 commits
-
-5. FINALIZE     Store in attestations table (status='attested')
-                  -> emit attestation:finalized event
-                  -> SwapTracker auto-progresses matching swaps
+    S1 --> S2 --> S3 --> S4 --> S5
 ```
 
 ### Confirmation Thresholds
@@ -454,54 +436,28 @@ Validators declare which chains they support via the `chains` column. Only valid
 
 ## Reorg Handling
 
-```
-1. REPORT       reportreorg(chain, reorg_height, timestamp, old_hash, new_hash)
-                  -> old_hash/new_hash = the reporter's observed block hash at
-                     reorg_height before and after the reorg
-                  -> receiving hub verifies new_hash against its OWN indexer
-                     (getblockhashes) before broadcasting
+```mermaid
+flowchart TD
+    S1["1. REPORT<br>reportreorg(chain, reorg_height, timestamp, old_hash, new_hash)<br>→ old_hash/new_hash = the reporter's observed block hash at reorg_height before and after the reorg<br>→ receiving hub verifies new_hash against its OWN indexer (getblockhashes) before broadcasting"]
+    S2["2. ALERT<br>Broadcast REORG_ALERT via gossip (carries the hash pair)"]
+    S3["3. CONSENSUS<br>PBFT round: XCHAIN_REORG_PREPARE / XCHAIN_REORG_COMMIT<br>→ the digest binds reorgId, chain, height, timestamp AND the hash pair, so a Byzantine leader cannot swap hashes per-follower<br>→ each hub co-signs ONLY after its own indexer serves new_hash at reorg_height, within height bounds (&le; own tip, &ge; tip - REORG_MAX_DEPTH) and on the federation network; otherwise it abstains<br>→ 2f+1 agreement = 2f+1 independent observations"]
+    S4["4. ROLLBACK<br>Hub state cleanup:<br>→ DELETE attestations after reorg timestamp for affected chain<br>→ Mark price_snapshots as 'disputed'"]
+    S5["5. NOTIFY<br>Store in reorg_attestations table<br>→ emit reorg:confirmed event"]
 
-2. ALERT        Broadcast REORG_ALERT via gossip (carries the hash pair)
-
-3. CONSENSUS    PBFT round: XCHAIN_REORG_PREPARE / XCHAIN_REORG_COMMIT
-                  -> the digest binds reorgId, chain, height, timestamp AND the
-                     hash pair, so a Byzantine leader cannot swap hashes
-                     per-follower
-                  -> each hub co-signs ONLY after its own indexer serves
-                     new_hash at reorg_height, within height bounds
-                     (<= own tip, >= tip - REORG_MAX_DEPTH) and on the
-                     federation network; otherwise it abstains
-                  -> 2f+1 agreement = 2f+1 independent observations
-
-4. ROLLBACK     Hub state cleanup:
-                  -> DELETE attestations after reorg timestamp for affected chain
-                  -> Mark price_snapshots as 'disputed'
-
-5. NOTIFY       Store in reorg_attestations table
-                  -> emit reorg:confirmed event
+    S1 --> S2 --> S3 --> S4 --> S5
 ```
 
 ## Governance
 
-```
-1. PROPOSE      propose(parameter, current_value, proposed_value, rationale)
-                  -> only active validators can propose
-                  -> stored in governance_proposals (status='voting')
+```mermaid
+flowchart TD
+    S1["1. PROPOSE<br>propose(parameter, current_value, proposed_value, rationale)<br>→ only active validators can propose<br>→ stored in governance_proposals (status='voting')"]
+    S2["2. GOSSIP<br>Broadcast GOV_PROPOSE via P2P"]
+    S3["3. VOTE<br>vote(proposal_id, vote) [approve/reject]<br>→ stored in governance_votes<br>→ broadcast GOV_VOTE via P2P"]
+    S4["4. TALLY<br>Automatic tally every 60 seconds:<br>→ check if voting period (7 days) has ended<br>→ quorum: 50% minimum participation<br>→ approval: 2/3+ of validator set<br>→ broadcast GOV_RESULT via P2P"]
+    S5["5. APPLY<br>If passed: emit proposal:passed event<br>→ downstream parameter application"]
 
-2. GOSSIP       Broadcast GOV_PROPOSE via P2P
-
-3. VOTE         vote(proposal_id, vote)  [approve/reject]
-                  -> stored in governance_votes
-                  -> broadcast GOV_VOTE via P2P
-
-4. TALLY        Automatic tally every 60 seconds:
-                  -> check if voting period (7 days) has ended
-                  -> quorum: 50% minimum participation
-                  -> approval: 2/3+ of validator set
-                  -> broadcast GOV_RESULT via P2P
-
-5. APPLY        If passed: emit proposal:passed event
-                  -> downstream parameter application
+    S1 --> S2 --> S3 --> S4 --> S5
 ```
 
 ### Constraints

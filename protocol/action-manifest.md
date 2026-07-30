@@ -53,6 +53,19 @@ actions, and the `UNKNOWN` catch-all sentinel.
 2. Re-vendor: copy this file over every `test/fixtures/action-manifest.json`.
 3. Run each repo's conformance test. Each repo whose flag you set but did not wire fails loudly; wire it until green.
 
+```mermaid
+flowchart TD
+    Add["Add entry to action-manifest.json<br>with the role flags it should carry"] --> Vendor["Re-vendor: copy the file over every<br>repo's test/fixtures/action-manifest.json"]
+    Vendor --> Test["Each repo runs ActionManifestConformance.test.js<br>in its own unit tier"]
+    Test --> Behavior{"BEHAVIOR: repo's local action set<br>equals the manifest slice for its role flag?"}
+    Behavior -->|"no"| Fail["That repo's CI fails,<br>naming the missing action and the file to edit"]
+    Behavior -->|"yes"| Identity{"IDENTITY: vendored copy<br>byte-identical to the canonical file?"}
+    Identity -->|"no"| Fail
+    Identity -->|"yes"| Green["Repo's conformance test passes"]
+    Fail --> Wire["Wire the action in that repo"]
+    Wire --> Test
+```
+
 > The full collapse of the per-repo literals into generated code (so step 2 and
 > the per-repo edits disappear) is a future follow-on; today the manifest +
 > conformance guards make the fan-out **safe**, not yet **single-edit**.

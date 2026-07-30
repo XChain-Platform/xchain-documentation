@@ -97,6 +97,27 @@ When `xchain-node install master all bitcoin regtest` is executed:
 5. **Database setup**: create databases and users for decoder and indexer
 6. **Hub/Explorer configuration**: update hub and explorer with service endpoint information
 
+```mermaid
+flowchart TD
+    S1["1. Pre-flight checks:<br>Docker verification, directory creation,<br>MariaDB connection open, version fetch"]
+    S2["2. Docker network creation"]
+    S3["3. Database provisioning:<br>pull MariaDB image, create shared database container"]
+    S5["5. Database setup:<br>create databases and users for decoder and indexer"]
+    S6["6. Hub/Explorer configuration:<br>update hub and explorer with service endpoint information"]
+
+    subgraph S4["4. Module installation, for each service in dependency order"]
+        direction TD
+        C1["Clone the service repository from GitHub at the specified branch"]
+        C2["Build a Docker image tagged with the naming convention"]
+        C3["Create and start a container with generated environment variables"]
+        C4["Store the container ID in the module state table"]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    S1 --> S2 --> S3 --> S4
+    S4 --> S5 --> S6
+```
+
 ## Docker
 
 xchain-node manages Docker directly via `execFile` calls; it does not use Docker Compose. All Docker commands use array-based arguments (no shell interpolation).

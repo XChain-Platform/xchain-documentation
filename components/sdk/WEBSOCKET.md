@@ -256,6 +256,20 @@ ws.on('CATCH_UP_COMPLETE', (msg) => {
 });
 ```
 
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Note over Client,Server: connection is lost
+    Client->>Client: reconnect with exponential backoff
+    Client->>Server: reconnect
+
+    Client->>Server: replay subscriptions, since_action_index = last received index
+    Server-->>Client: catch-up events, catch_up true
+    Server-->>Client: CATCH_UP_COMPLETE, events_replayed
+```
+
 Reconnection uses the same retry configuration as the explorer/encoder clients:
 
 | Setting | Default |

@@ -88,6 +88,19 @@ const state = createXcwCollector();
 
 `createXcwCollector` returns a mutable state object. `addChunkToCollector(state, frame)` parses and CRC-validates the frame, extracts the SHA256 anchor from chunk 1, and accumulates payload slices. When the last chunk arrives it reassembles the full PSBT and verifies the SHA256. Duplicate scans (the animated QR loops) are silently ignored. `state.error` is set (and `state.complete` stays false) on any CRC mismatch, hash mismatch, or frame count conflict.
 
+```mermaid
+stateDiagram-v2
+    [*] --> Buffering
+    Buffering --> Buffering: frame received, CRC valid, not yet the last chunk
+    Buffering --> Error: CRC mismatch or frame count conflict
+    Buffering --> Reassembling: last chunk arrives
+    Reassembling --> VerifyingSHA256: reassemble the full PSBT
+    VerifyingSHA256 --> Complete: SHA256 anchor verifies
+    VerifyingSHA256 --> Error: SHA256 mismatch
+    Complete --> [*]
+    Error --> [*]
+```
+
 ## UR (ur:crypto-psbt) ingestion
 
 Air-gapped hardware signers in the Keystone / Passport family speak the Uniform Resources (UR) animated-QR format rather than the wallet's own XCW framing. `core/src/uri/urPsbt.js` is a clean-room decoder for `ur:crypto-psbt` frames: bytewords decoding, minimal CBOR unwrapping, and Luby-transform fountain-code reassembly (Xoshiro256-seeded part selection), validated against bc-ur gold vectors including all-mixed fountain streams.

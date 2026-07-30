@@ -188,6 +188,27 @@ The underlying encoder RPC is the `estimate_fee` endpoint (internally `encoder.e
 
 2. **Phase 2; Spend:** `spendP2sh` builds a second transaction that spends the P2SH/P2WSH output, revealing the redeem script (and therefore the ACTION data) to the network. The decoder reads the data from this spend transaction.
 
+```mermaid
+sequenceDiagram
+    participant Caller
+    participant Encoder
+    participant Network
+
+    Note over Caller,Network: Phase 1, Fund
+    Caller->>Encoder: createTx(data, pubkey, encoding P2SH/P2WSH)
+    Encoder-->>Caller: phase 1 PSBT
+    Caller->>Caller: sign phase 1 PSBT
+    Caller->>Network: broadcast phase 1 transaction
+    Note over Network: wait for block inclusion, or at minimum mempool propagation
+
+    Note over Caller,Network: Phase 2, Spend
+    Caller->>Encoder: spendP2sh(pubkey, p2shHash, p2shHex, feePerKb)
+    Encoder-->>Caller: phase 2 PSBT
+    Caller->>Caller: sign phase 2 PSBT
+    Caller->>Network: broadcast phase 2 transaction
+    Note over Network: redeem script and ACTION data revealed
+```
+
 ```js
 // Phase 1: create the funding transaction
 let phase1 = await sdk.encodeTx({

@@ -93,6 +93,16 @@ SLEEP is useful for scheduled maintenance, governance votes, or any scenario req
 
 Every transfer (SEND, SWEEP, AIRDROP, DIVIDEND, ORDER, DISPENSER) runs the same validation chain before any state change:
 
+```mermaid
+flowchart TD
+    A["Token exists?<br>Ticker refers to a valid, issued token"] --> B["Sufficient balance?<br>Sender has enough available balance"]
+    B --> C["Not sleeping?<br>Token is not in a SLEEP period"]
+    C --> D["Allow list check<br>Recipient is on the allow list, if one is set"]
+    D --> E["Block list check<br>Recipient is not on the block list, if one is set"]
+    E --> F["Memo check<br>Transfer includes a memo, if the recipient requires one"]
+    F --> G["Transfer executes"]
+```
+
 1. **Token exists**: The ticker must refer to a valid, issued token.
 2. **Sufficient balance**: The sender must have enough available (unescowed) balance.
 3. **Not sleeping**: The token must not be in a SLEEP period.

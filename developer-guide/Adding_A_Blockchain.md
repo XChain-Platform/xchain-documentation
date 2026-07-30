@@ -30,6 +30,30 @@ identically.
 
 ### How it reaches the other services
 
+```mermaid
+flowchart TD
+    A[("xchain-hub/src/coins/<br>canonical coin files")] --> B["sync-coins.sh"]
+    subgraph Consumers["8 consumer repos"]
+        C1["xchain-indexer"]
+        C2["xchain-explorer"]
+        C3["xchain-decoder"]
+        C4["xchain-encoder"]
+        C5["xchain-utxo-tracker"]
+        C6["xchain-sdk"]
+        C7["xchain-sync"]
+        C8["xchain-node"]
+    end
+    B --> C1
+    B --> C2
+    B --> C3
+    B --> C4
+    B --> C5
+    B --> C6
+    B --> C7
+    B --> C8
+    D["CI drift guard<br>sync-coins.sh --check, in ci-all.sh"] -.->|"fails build if any copy<br>is not byte-identical"| Consumers
+```
+
 The services build into independent containers without sibling repositories, so
 each one bundles its own byte-identical copy of `src/coins/`. The copies are kept
 in sync by **`xchain-hub/bin/sync-coins.sh`**, which the release pipeline runs to

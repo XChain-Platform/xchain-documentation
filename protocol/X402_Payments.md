@@ -13,18 +13,19 @@ This is an **off-chain HTTP convention over existing on-chain actions**. It intr
 
 ## Flow
 
-```
-Client                          Server (gateway)                 Chain
-  | GET /resource                  |                               |
-  |------------------------------->|                               |
-  |   402 {accepts:[...]}          |                               |
-  |<-------------------------------|                               |
-  |  SEND tick/amount -> payTo, MEMO = invoice nonce               |
-  |---------------------------------------------------------------->
-  | GET /resource  X-Payment: <proof>                              |
-  |------------------------------->| verify via explorer ----------|
-  |   200 + X-Payment-Response     |   (mempool 0-conf / indexed)  |
-  |<-------------------------------|                               |
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server as Server (gateway)
+    participant Chain
+
+    Client->>Server: GET /resource
+    Server-->>Client: 402 {accepts:[...]}
+    Client->>Chain: SEND tick/amount → payTo, MEMO = invoice nonce
+    Client->>Server: GET /resource with X-Payment proof
+    Server->>Chain: verify via explorer
+    Note over Server,Chain: mempool 0-conf / indexed
+    Server-->>Client: 200 + X-Payment-Response
 ```
 
 ## Challenge (HTTP 402 response body)

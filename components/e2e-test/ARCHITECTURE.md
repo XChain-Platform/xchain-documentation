@@ -27,59 +27,53 @@
 
 The `initialCheck.test.js` `beforeAll` hook executes five named phases, each instrumented via `perfCollector.phase()`:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Phase 1: env-resolution                                        │
-│  - Read .env via dotenv                                         │
-│  - If direct env vars missing → query Hub for service config    │
-│  - Set global COIN, NETWORK, COIN_CODE, NETWORK_OBJECT          │
-├─────────────────────────────────────────────────────────────────┤
-│  Phase 2: connector-init                                        │
-│  - Instantiate 8 connectors as globals                          │
-│  - Create MariaDB connection pool (limit 10)                    │
-├─────────────────────────────────────────────────────────────────┤
-│  Phase 3: service-pings                                         │
-│  - Ping all 8 services (node, tracker, encoder, decoder,        │
-│    indexer, explorer, DB, miner); throw on failure              │
-│  - Configure mining: setMiningTime(1000, 1000)                  │
-├─────────────────────────────────────────────────────────────────┤
-│  Phase 4: native-fee-price-seed                                 │
-│  - Seed XCHAIN/USD and {COIN}/USD prices via nativeFeeHelper    │
-│  - Ensures oracle prices are fresh before any action test runs  │
-├─────────────────────────────────────────────────────────────────┤
-│  Phase 5: gas-token-check                                       │
-│  - checkIssue({ tick: 'XCHAIN', status: 'valid' })             │
-│  - If not found: fund address, ISSUE XCHAIN token               │
-│  - If found: skip (idempotent)                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    P1["Phase 1: env-resolution<br>- Read .env via dotenv<br>- If direct env vars missing → query Hub for service config<br>- Set global COIN, NETWORK, COIN_CODE, NETWORK_OBJECT"]
+    P2["Phase 2: connector-init<br>- Instantiate 8 connectors as globals<br>- Create MariaDB connection pool (limit 10)"]
+    P3["Phase 3: service-pings<br>- Ping all 8 services (node, tracker, encoder, decoder, indexer, explorer, DB, miner); throw on failure<br>- Configure mining: setMiningTime(1000, 1000)"]
+    P4["Phase 4: native-fee-price-seed<br>- Seed XCHAIN/USD and {COIN}/USD prices via nativeFeeHelper<br>- Ensures oracle prices are fresh before any action test runs"]
+    P5["Phase 5: gas-token-check<br>- checkIssue({ tick: 'XCHAIN', status: 'valid' })<br>- If not found: fund address, ISSUE XCHAIN token<br>- If found: skip (idempotent)"]
+
+    P1 --> P2 --> P3 --> P4 --> P5
 ```
 
 ## Transaction Flow
 
 ### Standard OP_RETURN Path
 
-```
-cryptoHelper.getNewFundedAddress()
-    │
-    ├── getNewAddress() → BIP39 mnemonic → BIP32 derivation → P2PKH address
-    ├── regtestMinerConnector.sendFunds(address, amount)
-    ├── nodeConnector.waitForTx(txid) → poll until confirmed
-    └── utxoTrackerConnector.waitForUtxos(address) → poll until indexed
-            │
-            ▼
-transactionHelper.createAndSendTransaction(addressInfo, message)
-    │
-    ├── encoderConnector.createTx(utxos, pubkey, ..., data, ..., changeAddress)
-    │       → returns { encoding: 'opreturn', psbt: hex }
-    ├── Psbt.fromHex() → signInput() → finalizeAllInputs() → extractTransaction()
-    ├── nodeConnector.broadcastTx(txHex)
-    ├── nodeConnector.waitForTx(txHash, 60000)
-    └── utxoTrackerConnector.getUtxosFromAddress() → filter confirmed → cache
-            │
-            ▼
-indexerDatabase.waitForIssue({ source, tick, txHash, status: 'valid' })
-    │
-    └── polls every 1s for up to 30s → returns row or null
+```mermaid
+flowchart TD
+    GNFA["cryptoHelper.getNewFundedAddress()"]
+    GNA["getNewAddress()<br>→ BIP39 mnemonic → BIP32 derivation → P2PKH address"]
+    SF["regtestMinerConnector.sendFunds(address, amount)"]
+    WFT["nodeConnector.waitForTx(txid)<br>→ poll until confirmed"]
+    WFU["utxoTrackerConnector.waitForUtxos(address)<br>→ poll until indexed"]
+
+    CAST["transactionHelper.createAndSendTransaction(addressInfo, message)"]
+    CTX["encoderConnector.createTx(utxos, pubkey, ..., data, ..., changeAddress)<br>→ returns { encoding: 'opreturn', psbt: hex }"]
+    PSBT["Psbt.fromHex() → signInput() → finalizeAllInputs() → extractTransaction()"]
+    BTX["nodeConnector.broadcastTx(txHex)"]
+    WFT2["nodeConnector.waitForTx(txHash, 60000)"]
+    GUFA["utxoTrackerConnector.getUtxosFromAddress()<br>→ filter confirmed → cache"]
+
+    WFI["indexerDatabase.waitForIssue({ source, tick, txHash, status: 'valid' })"]
+    POLL["polls every 1s for up to 30s → returns row or null"]
+
+    GNFA --> GNA
+    GNFA --> SF
+    GNFA --> WFT
+    GNFA --> WFU
+    GNFA -->|next| CAST
+
+    CAST --> CTX
+    CAST --> PSBT
+    CAST --> BTX
+    CAST --> WFT2
+    CAST --> GUFA
+    CAST -->|next| WFI
+
+    WFI --> POLL
 ```
 
 ### P2SH Two-Step Path
@@ -94,6 +88,27 @@ When the encoder returns `encoding: "P2SH"`, `transactionHelper` automatically h
 6. Broadcast second transaction
 7. Wait for both transactions to confirm
 8. Return the second transaction's hash (the one the indexer processes)
+
+```mermaid
+sequenceDiagram
+    participant TH as transactionHelper
+    participant ENC as encoder
+    participant NODE as coin node
+
+    TH->>ENC: createTx() (first PSBT, funds the P2SH output)
+    ENC-->>TH: unsigned PSBT
+    TH->>TH: sign with finalizeAllInputs()
+    TH->>NODE: broadcast first transaction
+    NODE-->>TH: confirmation
+
+    TH->>ENC: createTx() again with p2shHash and p2shHex (second PSBT)
+    ENC-->>TH: unsigned PSBT
+    TH->>TH: sign with xchainP2shFinalizer
+    TH->>NODE: broadcast second transaction
+    NODE-->>TH: confirmation
+
+    Note over TH: returns the second transaction's hash, the one the indexer processes
+```
 
 ## UTXO Verification Cache
 

@@ -99,6 +99,29 @@ limit: `WS_MAX_PER_IP` (default 100).
   but reports `null` lag. Use this (or the `POST /validator-heartbeat` fallback)
   to stay visible to operators.
 
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Sync server
+
+    C->>S: connect ws /subscribe/:dbType/:chain/:network
+    opt auth, within 5s of connecting
+        C->>S: auth (pubkey, sig, ts)
+    end
+    S-->>C: status, on connect and every 60 seconds
+    S-->>C: block, per processed block
+    opt heartbeat
+        C->>S: heartbeat (appliedBlock)
+    end
+    S-->>C: reorg, block_index to roll back from
+
+    Note over C,S: disconnect
+    C->>S: reconnect after 5 seconds
+    C->>S: fetch incremental snapshot since last applied block
+    S-->>C: incremental snapshot
+    C->>S: resume subscription
+```
+
 ### Backpressure and reconnection
 
 Backpressure is byte-based, not message-count based. The server drops a subscriber

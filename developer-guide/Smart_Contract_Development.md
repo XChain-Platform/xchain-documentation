@@ -273,6 +273,24 @@ The gas ceiling is **1,000,000** per execution. Deployment gas is calculated as 
 
 A contract can ask a question to a registered external provider and have the validator network deliver the answer back on-chain. The contract method that issued the request returns immediately; the answer arrives later as a callback into a method you name. The platform handles provider lookup, validator coordination, signature aggregation, and the on-chain write of the response; your contract just sends a question and writes a callback.
 
+```mermaid
+sequenceDiagram
+    participant Contract
+    participant Indexer
+    participant Validators
+
+    Contract->>Indexer: xchain.attestation.request(providerId, payload, callbackMethod, options)
+    Indexer->>Indexer: emit ATTEST v0, method returns immediately
+    Validators->>Validators: fetch answer via provider, reach quorum (redundancy)
+    alt Agreed answer reaches quorum before deadline
+        Validators->>Indexer: broadcast ATTEST v1 (response, signatures)
+        Indexer->>Contract: invoke callback method (status, response payload)
+    else Deadline passes with no agreed answer
+        Indexer->>Indexer: synthesize ATTEST v2 (expired)
+        Indexer->>Contract: invoke callback method (status expired, empty response)
+    end
+```
+
 ### Request
 
 ```javascript
@@ -458,6 +476,24 @@ Inside the callee, `xchain.getSourceAddress()` is the **calling contract's** add
 ## Calling Contracts on Other Chains: `emit.crossExecute`
 
 A contract can invoke a method on a contract deployed on a **different chain** (BTC/LTC/DOGE). The validator federation relays the call after your chain's confirmation depth and relays the outcome back (there is no extra on-chain transaction), but the round trip takes **minutes to tens of minutes**. Design fully async: emit the call, return, and handle the outcome in the callback.
+
+```mermaid
+sequenceDiagram
+    participant Source as Source Contract
+    participant Federation as Validator Federation
+    participant Target as Target Contract
+
+    Source->>Federation: emit.crossExecute(targetChain, contractIndex, method, params, gasLimit, callbackMethod, deadlineBlocks)
+    Note over Federation: Wait for source chain's confirmation depth
+    Federation->>Target: Relay call (hop 1 of 2)
+    alt Target responds before deadlineBlocks
+        Target->>Target: Run method (calling back or onward consumes hop 2)
+        Target-->>Federation: Relay outcome (ok, reverted, out_of_gas,<br>no_contract, not_callable, payload_too_large, or error)
+        Federation-->>Source: Invoke callbackMethod with outcome
+    else deadlineBlocks passes with no result
+        Federation-->>Source: Invoke callbackMethod with status expired
+    end
+```
 
 ```javascript
 const callId = xchain.emit.crossExecute({

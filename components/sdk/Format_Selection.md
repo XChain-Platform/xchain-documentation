@@ -32,6 +32,28 @@ The selection algorithm in `FormatSelector.select(action, fields)` runs the foll
 
 The selected version, its field list, and the estimated length are returned together so the serializer can produce the final action string.
 
+```mermaid
+flowchart TD
+    START["FormatSelector.select(action, fields)"]
+    A["a. Identify populated fields (null, undefined, or empty string excluded, VERSION excluded)"]
+    B["b. Check each registered version for eligibility, no data loss rule"]
+    B_DECIDE{"does every populated field have a named slot in this version?"}
+    REJECT["Version rejected"]
+    ELIGIBLE["Version eligible"]
+    C["c. Estimate serialized length for each eligible version"]
+    D["d. Pick the shortest eligible version, ties broken by lower version number"]
+    RESULT["Return selected version, field list, and estimated length"]
+
+    START --> A
+    A --> B
+    B --> B_DECIDE
+    B_DECIDE -->|"no"| REJECT
+    B_DECIDE -->|"yes"| ELIGIBLE
+    ELIGIBLE --> C
+    C --> D
+    D --> RESULT
+```
+
 ---
 
 ## ISSUE Example: the Most Versions

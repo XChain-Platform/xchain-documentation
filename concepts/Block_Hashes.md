@@ -77,6 +77,13 @@ The `hash_version` field is mandatory in every preimage. An implementor that omi
 
 ### Hash Chaining
 
+```mermaid
+flowchart LR
+    T["Tamper with Block N-1 data"] --> A["Block N-1<br>hash changes"]
+    A --> B["Block N<br>hash changes<br>(includes hash of N-1)"]
+    B --> C["Block N+1<br>hash changes<br>(includes hash of N)"]
+```
+
 Each block's hash includes the previous block's hash of the same type. This means:
 
 - Changing any data in any historical block would change that block's hash

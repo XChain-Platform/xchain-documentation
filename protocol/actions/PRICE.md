@@ -227,27 +227,37 @@ See [STAKE.md](STAKE.md) for the full action spec.
 ## Architecture
 
 ### Data Flow: Validator Prices (v0)
-```
-`price`-capable validators fetch prices from CoinGecko and Kraken (keyless, always active), plus CoinMarketCap if a key is configured
-  → PBFT consensus (2/3+ agree on prices per BTC block)
-    → Each validator signs the canonical PRICE v0 payload during prepare/commit
-      → An `oracle_publish`-capable validator writes PRICE v0 (with collected sigs) to a chain (DOGE recommended)
-        → That chain's decoder picks up the action
-          → That chain's indexer validates PBFT signatures and writes to local prices table
-            → Indexer pushes validated round to hub
-              → Hub deduplicates by round_number, writes to unified price_snapshots table
-                → Hub broadcasts new row to all connected indexers' local hub DB copies
+
+This mirrors the PRICE Oracle Data Flow diagram in [architecture/Data_Pipeline.md](../../architecture/Data_Pipeline.md), with the extra detail specific to v0.
+
+```mermaid
+flowchart TD
+    FETCH["price-capable validators fetch prices from<br>CoinGecko and Kraken (keyless, always active),<br>plus CoinMarketCap if a key is configured"]
+    PBFT["PBFT consensus<br>(2/3+ agree on prices per BTC block)"]
+    SIGN["Each validator signs the canonical<br>PRICE v0 payload during prepare/commit"]
+    PUBLISH["An oracle_publish-capable validator writes<br>PRICE v0 (with collected sigs) to a chain<br>(DOGE recommended)"]
+    DECODE["That chain's decoder picks up the action"]
+    VALIDATE["That chain's indexer validates PBFT signatures<br>and writes to local prices table"]
+    PUSH["Indexer pushes validated round to hub"]
+    DEDUPE["Hub deduplicates by round_number,<br>writes to unified price_snapshots table"]
+    BROADCAST["Hub broadcasts new row to all connected<br>indexers' local hub DB copies"]
+
+    FETCH --> PBFT --> SIGN --> PUBLISH --> DECODE --> VALIDATE --> PUSH --> DEDUPE --> BROADCAST
 ```
 
 ### Data Flow: User Oracle Prices (v1)
-```
-User broadcasts PRICE v1 on any chain
-  → Chain's decoder extracts PRICE action
-    → Chain's indexer validates fields and writes to local prices table
-      → Indexer pushes to hub oracle_prices table
-        → Hub applies the uniform 24-hour lock window (every publish effective at block_time + 86400)
-          → Hub broadcasts new row to all connected indexers' local hub DB copies
-            → All indexers query their local hub DB for oracle data (no hub round-trip during block processing)
+
+```mermaid
+flowchart TD
+    BCAST["User broadcasts PRICE v1 on any chain"]
+    DECODE2["Chain's decoder extracts PRICE action"]
+    VALIDATE2["Chain's indexer validates fields<br>and writes to local prices table"]
+    PUSH2["Indexer pushes to hub oracle_prices table"]
+    LOCK["Hub applies the uniform 24-hour lock window<br>(every publish effective at block_time + 86400)"]
+    BROADCAST2["Hub broadcasts new row to all connected<br>indexers' local hub DB copies"]
+    QUERY["All indexers query their local hub DB for<br>oracle data (no hub round-trip during<br>block processing)"]
+
+    BCAST --> DECODE2 --> VALIDATE2 --> PUSH2 --> LOCK --> BROADCAST2 --> QUERY
 ```
 
 ### Three-Database Model

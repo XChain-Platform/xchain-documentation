@@ -52,6 +52,26 @@ The publisher is part of the key because token ownership transfers. A former iss
 
 Because every file in the pack shares the same `K`, one 32-byte entry in the handoff unlocks every file in the pack regardless of how many there are.
 
+```mermaid
+sequenceDiagram
+    participant Issuer
+    participant Chain
+
+    Note over Issuer: Single file
+    Issuer->>Issuer: generate random 256-bit K, compute KEY_HASH = sha256(K)
+    Issuer->>Issuer: encrypt file plaintext with AES-256-GCM under K
+    Issuer->>Chain: BATCH(FILE with GATE_TICKER/KEY_HASH, MESSAGE v2 self-ECIES containing K)
+    Note over Chain: single transaction, no window without the key recorded
+
+    Note over Issuer: Pack of files, shared key
+    Issuer->>Issuer: generate one K and KEY_HASH
+    Issuer->>Issuer: encrypt each file under K with a fresh nonce per file
+    loop each file in the pack
+        Issuer->>Chain: FILE|0|... action, same publisher, GATE_TICKER, KEY_HASH
+    end
+    Issuer->>Chain: self-MESSAGE, ECIES, binary payload contains the shared K
+```
+
 ---
 
 ## How transfers work
@@ -97,6 +117,23 @@ Unlocking is entirely client-side and offline-capable once the wallet has fetche
 4. On success, wallet parses the plaintext as the binary handoff payload (see below): validates the leading version byte, slices the body into 32-byte candidate keys.
 5. For each candidate `K`, wallet computes `sha256(K)` and matches against the target file's `KEY_HASH`. Mismatches are skipped (defends against malicious senders shipping wrong keys).
 6. Wallet AES-256-GCM-decrypts the ciphertext with the matched key. Result is the plaintext file bytes.
+
+```mermaid
+sequenceDiagram
+    participant Wallet
+    participant Explorer
+
+    Wallet->>Explorer: GET /{COIN}/api/file/ACTION_INDEX/raw
+    Explorer-->>Wallet: ciphertext
+    Wallet->>Explorer: GET /{COIN}/api/messages/ADDRESS/destination
+    Explorer-->>Wallet: MESSAGEs addressed to holder
+    loop for each MESSAGE
+        Wallet->>Wallet: attempt ECIES decryption (binary mode)<br>with the address's private key, skip on failure
+    end
+    Wallet->>Wallet: parse plaintext as binary handoff payload,<br>validate leading version byte,<br>slice body into 32-byte candidate keys
+    Wallet->>Wallet: for each candidate K, compute sha256(K)<br>and match against the file's KEY_HASH, skip mismatches
+    Wallet->>Wallet: AES-256-GCM-decrypt the ciphertext<br>with the matched key
+```
 
 No on-chain action is required to unlock. The holder can decrypt and re-decrypt as often as they like.
 

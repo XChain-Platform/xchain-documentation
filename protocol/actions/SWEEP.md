@@ -54,6 +54,25 @@ All-in cleanup with a memo.
 - Escrow routing via `ORDERS` / `SWAPS` / `DISPENSERS` is independent of the `OWNERSHIPS` flag, escrowed ownership is in protocol custody, not in `SOURCE`'s ownership records, so `OWNERSHIPS=1` alone cannot reach it.
 - **`SWEEP` does not touch [`BET`](./BET.md) escrows.** There is no flag for them. Stakes escrowed in a betting market always settle back to the address that placed the bet, and a swept oracle key still has to resolve (or cancel) its own markets. Sweep before betting, or expect bet payouts and refunds to land on the old address.
 
+```mermaid
+flowchart TD
+    Start["SWEEP action on SOURCE"] --> B{"BALANCES=1?"}
+    B -->|"yes"| BOut["TICK balances SOURCE currently holds<br>credited to DESTINATION"]
+    B -->|"no"| Skip["Untouched"]
+    Start --> O{"OWNERSHIPS=1?"}
+    O -->|"yes"| OOut["Ticks SOURCE currently owns<br>delivered to DESTINATION"]
+    O -->|"no"| Skip
+    Start --> Ord{"ORDERS=1?"}
+    Ord -->|"yes"| OrdOut["Every open ORDER from SOURCE cancelled,<br>escrowed balance/ownership routed to DESTINATION"]
+    Ord -->|"no"| Skip
+    Start --> Sw{"SWAPS=1?"}
+    Sw -->|"yes"| SwOut["Every open SWAP from SOURCE cancelled,<br>escrowed balance/ownership routed to DESTINATION"]
+    Sw -->|"no"| Skip
+    Start --> Disp{"DISPENSERS=1?"}
+    Disp -->|"yes"| DispOut["Every open DISPENSER from SOURCE closed,<br>1-hour close window,<br>remaining escrow routed to DESTINATION"]
+    Disp -->|"no"| Skip
+```
+
 ## Notes
 - Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `DESTINATION` (^57 = `ADDRESS_ID` 57); see [Index ID References](../Index_Id_References.md)
 - `DISPENSERS=1` closure is delayed by the standard dispenser-close window (1 hour). Escrow routing to `DESTINATION` happens at close time, not at sweep time.

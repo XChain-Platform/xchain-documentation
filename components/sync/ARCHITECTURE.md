@@ -5,109 +5,82 @@
 
 ## Position in the Data Pipeline
 
-```
-Coin Node (bitcoind / litecoind / dogecoind)
-    |  JSON-RPC polling
-    v
-xchain-decoder  ->  Decoder DB (MariaDB)
-    |  SQL reads          |
-    v                     | (dbType=decoder)
-xchain-indexer  ->  Indexer DB (MariaDB)
-    |                    |
-    v                    | (dbType=indexer)
-xchain-explorer     xchain-sync  ->  REST / WebSocket API
-                         |
-                         v
-                    Validator replicas (MariaDB)
-                    (indexer replica + decoder replica)
+```mermaid
+flowchart TD
+    NODE["Coin Node<br>(bitcoind / litecoind / dogecoind)"]
+    DECODER["xchain-decoder"]
+    DECDB[("Decoder DB (MariaDB)")]
+    INDEXER["xchain-indexer"]
+    IDXDB[("Indexer DB (MariaDB)")]
+    EXPLORER["xchain-explorer"]
+    SYNC["xchain-sync"]
+    REPLICAS[("Validator replicas (MariaDB)<br>(indexer replica + decoder replica)")]
+
+    NODE -->|JSON-RPC polling| DECODER
+    DECODER --> DECDB
+    DECDB -->|SQL reads| INDEXER
+    DECDB -->|dbType=decoder| SYNC
+    INDEXER --> IDXDB
+    IDXDB --> EXPLORER
+    IDXDB -->|dbType=indexer| SYNC
+    SYNC -->|REST / WebSocket API| REPLICAS
 ```
 
 The sync service reads from both the decoder database and the indexer database. It serves each under a separate `/:dbType/` path namespace: `indexer` for the full indexer table set (with transparency log) and `decoder` for the 8 replicated decoder tables (blocks, transactions, transaction_outputs, dispensers, index_addresses, index_transactions, pubkeys, events). Instead of serving end-user queries like the explorer, xchain-sync replicates data to remote consumers, primarily lightweight validators that need chain data for cross-chain attestation without running the full decoder+indexer stack.
 
 ## Dual-Mode Architecture
 
-```
-SERVER MODE                              CLIENT MODE
-(runs on xchain-node                     (runs on validator node
- alongside authoritative indexers)        or any consumer)
+```mermaid
+flowchart LR
+    subgraph SERVER["SERVER MODE<br>(runs on xchain-node alongside authoritative indexers)"]
+        direction TB
+        SRV_SVC["SyncService<br>(orchestrator)"]
+        SRV_HUB["HubClient<br>(discovers chains)"]
+        SRV_POLL["ServerPoller (x N)<br>(one per chain/net)"]
+        SRV_BC["BlockBroadcaster<br>SnapshotBuilder<br>TransparencyLog"]
+        SRV_DB[("Indexer + Decoder DBs<br>(read, per dbType)")]
+        SRV_SVC --> SRV_HUB --> SRV_POLL --> SRV_BC --> SRV_DB
+    end
 
-+---------------------------+            +---------------------------+
-|     xchain-sync   |            |     xchain-sync   |
-|                           |            |                           |
-|  +---------------------+ |            |  +---------------------+ |
-|  |    SyncService       | |            |  |    SyncService       | |
-|  |  (orchestrator)      | |            |  |  (orchestrator)      | |
-|  +----------+-----------+ |            |  +----------+-----------+ |
-|             |             |            |             |             |
-|  +----------v-----------+ |            |  +----------v-----------+ |
-|  |    HubClient         | |            |  |    HubClient         | |
-|  |  (discovers chains)  | |            |  |  (discovers chains)  | |
-|  +----------+-----------+ |            |  +----------+-----------+ |
-|             |             |            |             |             |
-|  +----------v-----------+ |            |  +----------v-----------+ |
-|  | ServerPoller (x N)   | |   REST/WS  |  |    ClientSync (x N)  | |
-|  | (one per chain/net)  |<------------>|  | (one per chain/net)  | |
-|  +----------+-----------+ |            |  +----------+-----------+ |
-|             |             |            |             |             |
-|  +----------v-----------+ |            |  +----------v-----------+ |
-|  | BlockBroadcaster     | |            |  | ClientApplier        | |
-|  | SnapshotBuilder      | |            |  | ClientRollback       | |
-|  | TransparencyLog      | |            |  | HashVerifier         | |
-|  +----------------------+ |            |  +----------------------+ |
-|             |             |            |             |             |
-|  +----------v-----------+ |            |  +----------v-----------+ |
-|  | Indexer + Decoder    | |            |  | Replica DBs (write)  | |
-|  | DBs (read, per dbType| |            |  | (per dbType schema)  | |
-|  +----------------------+ |            |  +----------------------+ |
-+---------------------------+            +---------------------------+
+    subgraph CLIENT["CLIENT MODE<br>(runs on validator node or any consumer)"]
+        direction TB
+        CLI_SVC["SyncService<br>(orchestrator)"]
+        CLI_HUB["HubClient<br>(discovers chains)"]
+        CLI_SYNC["ClientSync (x N)<br>(one per chain/net)"]
+        CLI_APP["ClientApplier<br>ClientRollback<br>HashVerifier"]
+        CLI_DB[("Replica DBs (write)<br>(per dbType schema)")]
+        CLI_SVC --> CLI_HUB --> CLI_SYNC --> CLI_APP --> CLI_DB
+    end
+
+    SRV_POLL <-->|REST/WS| CLI_SYNC
 ```
 
 ## Internal Components
 
-```
-+-------------------------------------------------------------+
-|                         api.js                               |
-|              Express + WebSocket server                      |
-|         Validates env vars, mounts routes                    |
-+----------------------------+--------------------------------+
-                             |
-+----------------------------v--------------------------------+
-|                      SyncService                             |
-|              Main orchestrator class                         |
-|     Hub discovery -> DB pool creation -> mode branching      |
-+----+-------------+-------------+----------------------------+
-     |             |             |
-     v             v             v
-+---------+  +-----------+  +------------+
-|HubClient|  |ServerPoller|  |ClientSync  |
-|JSON-RPC |  | (per chain)|  |(per chain) |
-|to hub   |  | polls DB   |  |bootstrap + |
-|         |  | builds     |  |WS subscribe|
-|         |  | payloads   |  |            |
-+---------+  +-----+------+  +-----+------+
-                   |                |
-          +--------+------+  +-----+--------+
-          |               |  |              |
-+---------v--+ +----------v--v-+ +----------v--+
-|Block       | |Snapshot       | |Client       |
-|Broadcaster | |Builder        | |Applier      |
-|WS subs,    | |full + incr    | |INSERT IGNORE|
-|per-chain   | |streamed gzip  | |block-by-block|
-+------------+ +---------------+ +------+------+
-                                        |
-+---------------+               +-------v------+
-|Transparency   |               |Client        |
-|Log            |               |Rollback      |
-|append-only    |               |DELETE >= block|
-|block hashes   |               |mirrors indexer|
-+---------------+               +--------------+
+```mermaid
+flowchart TD
+    API["api.js<br>Express + WebSocket server<br>Validates env vars, mounts routes"]
+    SVC["SyncService<br>Main orchestrator class<br>Hub discovery → DB pool creation → mode branching"]
+    HUBCLIENT["HubClient<br>JSON-RPC to hub"]
+    SRVPOLL["ServerPoller (per chain)<br>polls DB, builds payloads"]
+    CLISYNC["ClientSync (per chain)<br>bootstrap + WS subscribe"]
+    BLOCKBC["BlockBroadcaster<br>WS subs, per-chain"]
+    SNAPBUILD["SnapshotBuilder<br>full + incr streamed gzip"]
+    CLIAPP["ClientApplier<br>INSERT IGNORE block-by-block"]
+    TLOG["TransparencyLog<br>append-only block hashes"]
+    CLIROLLBACK["ClientRollback<br>DELETE >= block, mirrors indexer"]
+    HASHVER["HashVerifier<br>chain continuity, cross-source"]
 
-                +---------------+
-                |Hash           |
-                |Verifier       |
-                |chain continuity|
-                |cross-source   |
-                +---------------+
+    API --> SVC
+    SVC --> HUBCLIENT
+    SVC --> SRVPOLL
+    SVC --> CLISYNC
+    SRVPOLL --> BLOCKBC
+    SRVPOLL --> SNAPBUILD
+    SRVPOLL --> TLOG
+    CLISYNC --> CLIAPP
+    CLIAPP --> CLIROLLBACK
+    CLISYNC --> HASHVER
 ```
 
 ## Source Files
@@ -152,99 +125,62 @@ SERVER MODE                              CLIENT MODE
 
 ## Hub Discovery Flow
 
-```
-1. SyncService.start()
-      |
-2. HubClient.getallconfigs()  -->  POST http://HUB_API_HOST:HUB_PORT
-      |                              { jsonrpc: "2.0", method: "getallconfigs", id: 1 }
-      |
-3. Parse response: for each coin/network with an "xchain-indexer" or "xchain-decoder" entry:
-      |   - Extract: db_host, db_port, name (DB name), user, pass, dbType
-      |   - Build: { coin: "bitcoin", network: "mainnet", dbType: "indexer",
-      |              db_host: "mariadb", db_port: 3306,
-      |              db_name: "XChain_BTC_Mainnet_Indexer", ... }
-      |
-4. For each discovered chain/network:
-      |   - Create a Database instance (MariaDB connection pool)
-      |   - Verify DB connection
-      |
-5. Branch on SYNC_MODE:
-      |   - "server": create ServerPoller per chain + BlockBroadcaster
-      |   - "client": create ClientSync per chain
-      |
-6. Schedule re-poll every 5 minutes to detect new chains
+```mermaid
+flowchart TD
+    S1["1. SyncService.start()"]
+    S2["2. HubClient.getallconfigs()<br>→ POST http://HUB_API_HOST:HUB_PORT<br>{ jsonrpc: '2.0', method: 'getallconfigs', id: 1 }"]
+    S3["3. Parse response: for each coin/network with an 'xchain-indexer' or 'xchain-decoder' entry:<br>- Extract: db_host, db_port, name (DB name), user, pass, dbType<br>- Build: { coin: 'bitcoin', network: 'mainnet', dbType: 'indexer', db_host: 'mariadb', db_port: 3306, db_name: 'XChain_BTC_Mainnet_Indexer', ... }"]
+    S4["4. For each discovered chain/network:<br>- Create a Database instance (MariaDB connection pool)<br>- Verify DB connection"]
+    S5["5. Branch on SYNC_MODE:<br>- 'server': create ServerPoller per chain + BlockBroadcaster<br>- 'client': create ClientSync per chain"]
+    S6["6. Schedule re-poll every 5 minutes to detect new chains"]
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6
 ```
 
 ## Server Poll Loop
 
 For each chain/network/dbType combination, a `ServerPoller` instance runs independently:
 
-```
-1. POLL        SELECT MAX(block_index) FROM blocks
-                 on the indexer or decoder DB (per dbType)
-                 |
-2. NEW BLOCK?  If block_index > lastPolledBlock:
-                 |
-3. BUILD       buildBlockPayload(block_index):
-                 - Read blocks row (with hash JOINs)
-                 - Read transactions for this block
-                 - Read actions for this block
-                 - Read all action-specific tables for actions in this block
-                 - Package as JSON payload with hashes
-                 |
-4. LOG         TransparencyLog.recordBlock(block_index, hashes)
-                 |
-5. BROADCAST   BlockBroadcaster.broadcast("chain:network", payload)
-                 -> all WebSocket subscribers for this chain/network
-                 |
-6. UPDATE      lastPolledBlock = block_index
-                 |
-7. CHECK REORG Compare reorg indicators against last-seen reorg
-                 If new reorg detected: broadcast reorg event
-                 |
-8. SLEEP       Wait BLOCK_POLL_INTERVAL ms, then goto 1
+```mermaid
+flowchart TD
+    S1["1. POLL<br>SELECT MAX(block_index) FROM blocks<br>on the indexer or decoder DB (per dbType)"]
+    S2{"2. NEW BLOCK?<br>block_index &gt; lastPolledBlock?"}
+    S3["3. BUILD<br>buildBlockPayload(block_index):<br>- Read blocks row (with hash JOINs)<br>- Read transactions for this block<br>- Read actions for this block<br>- Read all action-specific tables for actions in this block<br>- Package as JSON payload with hashes"]
+    S4["4. LOG<br>TransparencyLog.recordBlock(block_index, hashes)"]
+    S5["5. BROADCAST<br>BlockBroadcaster.broadcast('chain:network', payload)<br>→ all WebSocket subscribers for this chain/network"]
+    S6["6. UPDATE<br>lastPolledBlock = block_index"]
+    S7["7. CHECK REORG<br>Compare reorg indicators against last-seen reorg<br>If new reorg detected: broadcast reorg event"]
+    S8["8. SLEEP<br>Wait BLOCK_POLL_INTERVAL ms, then goto 1"]
+
+    S1 --> S2
+    S2 -->|yes| S3 --> S4 --> S5 --> S6 --> S7 --> S8
+    S2 -->|no| S8
+    S8 --> S1
 ```
 
 ## Client Sync Algorithm
 
-```
-START
-  |
-  v
-Check local replica: SELECT MAX(block_index) FROM blocks
-  |
-  +-- Empty? ---------> Download full snapshot from sources[0]
-  |                      Apply via ClientApplier.applyFullSnapshot()
-  |                      Verify hashes against sources[1] /status/:dbType endpoint
-  |
-  +-- Has blocks? ----> Download incremental snapshot since lastBlock
-  |                      from sources[0] /snapshot/:dbType/:chain/:network/since/:blockHeight
-  |                      Apply via ClientApplier.applyIncrementalSnapshot()
-  |                      Verify hashes against sources[1]
-  |
-  v
-Open WebSocket connections to ALL configured SYNC_SOURCES
-  for WS /subscribe/:dbType/:chain/:network
-  |
-  v
-MAIN LOOP: process incoming events
-  |
-  +-- "block" event -->
-  |    HashVerifier.verifyChainContinuity(prevHashes, payload)
-  |      If chain break: trigger incremental catch-up via REST
-  |    If VERIFY_HASHES=true:
-  |      Wait for matching block from second source
-  |      HashVerifier.compareBlockHashes(height, hashesA, hashesB)
-  |      If mismatch: log DISCREPANCY_ALERT, skip until resolved
-  |    ClientApplier.applyBlock(payload)
-  |
-  +-- "reorg" event -->
-  |    ClientRollback.rollback(event.block_index)
-  |    Wait for new blocks via WS stream
-  |
-  +-- WS disconnect -->
-       Wait 5s, reconnect
-       Detect block gap, fetch incremental snapshot to fill
+```mermaid
+flowchart TD
+    START(["START"])
+    CHECK{"Check local replica:<br>SELECT MAX(block_index) FROM blocks"}
+    EMPTY["Download full snapshot from sources[0]<br>Apply via ClientApplier.applyFullSnapshot()<br>Verify hashes against sources[1] /status/:dbType endpoint"]
+    HASBLOCKS["Download incremental snapshot since lastBlock<br>from sources[0] /snapshot/:dbType/:chain/:network/since/:blockHeight<br>Apply via ClientApplier.applyIncrementalSnapshot()<br>Verify hashes against sources[1]"]
+    WSOPEN["Open WebSocket connections to ALL configured SYNC_SOURCES<br>for WS /subscribe/:dbType/:chain/:network"]
+    LOOP["MAIN LOOP: process incoming events"]
+    BLOCKEV["'block' event:<br>HashVerifier.verifyChainContinuity(prevHashes, payload)<br>If chain break: trigger incremental catch-up via REST<br>If VERIFY_HASHES=true:<br>  Wait for matching block from second source<br>  HashVerifier.compareBlockHashes(height, hashesA, hashesB)<br>  If mismatch: log DISCREPANCY_ALERT, skip until resolved<br>ClientApplier.applyBlock(payload)"]
+    REORGEV["'reorg' event:<br>ClientRollback.rollback(event.block_index)<br>Wait for new blocks via WS stream"]
+    DISCEV["WS disconnect:<br>Wait 5s, reconnect<br>Detect block gap, fetch incremental snapshot to fill"]
+
+    START --> CHECK
+    CHECK -->|Empty| EMPTY
+    CHECK -->|Has blocks| HASBLOCKS
+    EMPTY --> WSOPEN
+    HASBLOCKS --> WSOPEN
+    WSOPEN --> LOOP
+    LOOP --> BLOCKEV
+    LOOP --> REORGEV
+    LOOP --> DISCEV
 ```
 
 ## Hash Chain Integrity
@@ -292,33 +228,36 @@ The client logs an explicit `SECURITY:` warning at startup whenever it runs sing
 
 ### Server Side
 
-```
-1. ServerPoller detects reorg in indexer DB
-     (decoder signals reorg -> indexer rolls back -> new blocks appear)
-     |
-2. Broadcast { type: "reorg", chain, network, block_index } to all WS subscribers
-     |
-3. Re-poll: new blocks arrive as indexer re-processes the new fork
-     |
-4. Broadcast new blocks normally
+```mermaid
+sequenceDiagram
+    participant SP as ServerPoller
+    participant IDB as Indexer DB
+    participant WS as WS Subscribers
+    SP->>IDB: 1. detect reorg
+    Note over SP,IDB: decoder signals reorg → indexer rolls back → new blocks appear
+    SP->>WS: 2. broadcast { type: 'reorg', chain, network, block_index }
+    SP->>IDB: 3. re-poll
+    Note over SP,IDB: new blocks arrive as indexer re-processes the new fork
+    SP->>WS: 4. broadcast new blocks normally
 ```
 
 ### Client Side
 
-```
-1. Receive { type: "reorg", block_index } via WebSocket
-     |
-2. ClientRollback.rollback(block_index):
-     - Find first action_index at/after block_index
-     - DELETE FROM dataTables WHERE action_index >= firstActionIndex
-     - DELETE FROM blockTables WHERE block_index >= block_index
-     |
-3. Wait for new block events via WebSocket
-     (server re-broadcasts as indexer re-indexes)
-     |
-4. If WS disconnects during reorg:
-     - Reconnect, detect gap
-     - Fetch incremental snapshot from REST API
+```mermaid
+sequenceDiagram
+    participant WS as WebSocket
+    participant CS as ClientSync
+    participant CR as ClientRollback
+    participant REST as REST API
+    WS->>CS: 1. { type: 'reorg', block_index }
+    CS->>CR: 2. rollback(block_index)
+    Note over CR: Find first action_index at/after block_index<br>DELETE FROM dataTables WHERE action_index >= firstActionIndex<br>DELETE FROM blockTables WHERE block_index >= block_index
+    CS->>WS: 3. wait for new block events
+    Note over CS,WS: server re-broadcasts as indexer re-indexes
+    alt 4. WS disconnects during reorg
+        CS->>CS: reconnect, detect gap
+        CS->>REST: fetch incremental snapshot
+    end
 ```
 
 The `ClientRollback` table lists (`blockTables` and `dataTables`) are copied from the indexer's `Rollback.js` to ensure identical rollback behavior. These lists must be kept in sync when new tables are added to the indexer.

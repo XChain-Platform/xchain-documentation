@@ -41,35 +41,29 @@ Every route renders the same React tree across shells; only the host bridge diff
 
 ## Package boundaries
 
-```
-                   ┌────────────────────────────────────────────────┐
-                   │                @xchain-wallet/core             │
-                   │  React routes + components + flows + signers   │
-                   │  + storage + schemas + decoder + uri + crypto  │
-                   └─┬──────────────────┬──────────────────┬────────┘
-                     │                  │                  │
-   ┌─────────────────▼─────┐  ┌─────────▼─────────┐  ┌─────▼─────────────────┐
-   │ @xchain-wallet/web    │  │ @xchain-wallet/   │  │ @xchain-wallet/       │
-   │ Vite SPA              │  │ extension         │  │ desktop               │
-   │ hostBridge.js         │  │ background +      │  │ Electron main +       │
-   │ sdkFactory.js         │  │ content + popup + │  │ preload + renderer    │
-   │                       │  │ approval + inject │  │                       │
-   └─────────────────┬─────┘  └─────────┬─────────┘  └─────┬─────────────────┘
-                     │                  │                  │
-                     └──────────────┐   │   ┌──────────────┘
-                                    ▼   ▼   ▼
-                            ┌──────────────────────┐
-                            │      xchain-sdk      │  (sibling repo)
-                            │  actions + encoder + │
-                            │  explorer + hub + ws │
-                            └──────────────────────┘
+```mermaid
+flowchart TD
+    CORE["@xchain-wallet/core<br>React routes + components + flows + signers<br>+ storage + schemas + decoder + uri + crypto"]
+    WEB["@xchain-wallet/web<br>Vite SPA<br>hostBridge.js<br>sdkFactory.js"]
+    EXT["@xchain-wallet/extension<br>background + content + popup +<br>approval + inject"]
+    DESKTOP["@xchain-wallet/desktop<br>Electron main +<br>preload + renderer"]
+    SDK["xchain-sdk (sibling repo)<br>actions + encoder +<br>explorer + hub + ws"]
 
-@xchain-wallet/signers-trezor  TrezorSigner + trezorFormat.js (packages/signers-trezor/)
-@xchain-wallet/signers-ledger  LedgerSigner + ledgerFormat.js (packages/signers-ledger/)
-@xchain-wallet/bridge-spec    typed window.xchain definitions (consumed by dApps)
-@xchain-wallet/test-dapp      reference dApp exercising the bridge
-@xchain-wallet/e2e            Playwright suite (web shell)
+    CORE --> WEB
+    CORE --> EXT
+    CORE --> DESKTOP
+    WEB --> SDK
+    EXT --> SDK
+    DESKTOP --> SDK
 ```
+
+Sibling packages alongside the three shells:
+
+- `@xchain-wallet/signers-trezor`: TrezorSigner + `trezorFormat.js` (`packages/signers-trezor/`)
+- `@xchain-wallet/signers-ledger`: LedgerSigner + `ledgerFormat.js` (`packages/signers-ledger/`)
+- `@xchain-wallet/bridge-spec`: typed `window.xchain` definitions (consumed by dApps)
+- `@xchain-wallet/test-dapp`: reference dApp exercising the bridge
+- `@xchain-wallet/e2e`: Playwright suite (web shell)
 
 `xchain-sdk` is the only data + signing dependency. The wallet never talks directly to the encoder, explorer, hub, or coin nodes; every blockchain-facing call routes through the SDK. This single boundary means the SDK can swap out endpoints, add chains, or change protocols and the wallet inherits the change without modification.
 
@@ -82,20 +76,17 @@ Each shell registers *two* host functions with core:
 
 The hot path for a signed action across shells is identical:
 
-```
-User clicks Send in a route from core/src/shared/routes/
-   ↓
-flow function from core/src/flows/sendAsset.js
-   ↓
-sdk.send(actionParams) → action string
-   ↓
-sdk.encoder.createTransaction(...) → unsigned PSBT
-   ↓
-signer.signPsbt(psbt) → signed PSBT  ← Signer chosen via core/src/flows/resolveSigner
-   ↓                                    Software / Trezor / Ledger / Remote / Multisig
-sdk.broadcast(rawTx) → txid
-   ↓
-sdk.waitForAction(txid) → indexed
+```mermaid
+flowchart TD
+    CLICK["User clicks Send in a route from<br>core/src/shared/routes/"]
+    FLOW["Flow function from<br>core/src/flows/sendAsset.js"]
+    SEND["sdk.send(actionParams) → action string"]
+    CREATE["sdk.encoder.createTransaction(...) → unsigned PSBT"]
+    SIGN["signer.signPsbt(psbt) → signed PSBT<br>Signer chosen via core/src/flows/resolveSigner<br>(Software / Trezor / Ledger / Remote / Multisig)"]
+    BROADCAST["sdk.broadcast(rawTx) → txid"]
+    WAIT["sdk.waitForAction(txid) → indexed"]
+
+    CLICK --> FLOW --> SEND --> CREATE --> SIGN --> BROADCAST --> WAIT
 ```
 
 The path is the same in the web shell (signer runs in the page), the extension (signer runs in the service worker), and the desktop app (signer runs in the main process). Differences live entirely behind the SDK factory + storage backend seams.

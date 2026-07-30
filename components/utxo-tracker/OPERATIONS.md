@@ -29,6 +29,24 @@ On startup, the tracker:
 7. Waits for the coin node to reach 99% sync progress
 8. Begins the block polling loop
 
+```mermaid
+flowchart TD
+    A["Load environment variables from .env"]
+    B{"LevelDB empty AND coin node has enough blocks?"}
+    C["Run bulk-sync pipeline (parallel offline parse) to completion"]
+    D["Skip bulk-sync, incremental sync starts from block 0"]
+    E["Create XChainUtxoTracker instance, open LevelDB"]
+    F["Start Express REST + JSON-RPC API server"]
+    G["Read last checkpoint (LAST_BLOCK_HEIGHT, LAST_BLOCK_HASH)"]
+    H["Wait for coin node to reach 99% sync"]
+    I["Begin block polling loop"]
+
+    A --> B
+    B -->|"yes"| C --> E
+    B -->|"no (chain shorter than undo window)"| D --> E
+    E --> F --> G --> H --> I
+```
+
 ## Docker
 
 The tracker is designed to run inside Docker. The Dockerfile creates the `/data/` directory for LevelDB storage. Mount a persistent volume at `/data/` to retain the database across container restarts.

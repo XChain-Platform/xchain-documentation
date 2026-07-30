@@ -65,6 +65,24 @@ is committed:
 Exactly one guard runs per action (there is no stacking). To layer several policies, put
 them inside one controller's `guard`.
 
+```mermaid
+sequenceDiagram
+    participant Indexer
+    participant Controller as Controller (guard)
+
+    Indexer->>Indexer: parse action, run normal validation
+    alt action's class is bound to a controller
+        Indexer->>Controller: call guard method with the action's details
+        alt guard returns normally
+            Controller-->>Indexer: return
+            Indexer->>Indexer: settle the action, guard's state changes<br>and emitted actions commit atomically
+        else guard reverts, errors, or runs out of gas
+            Controller-->>Indexer: revert / error / out of gas
+            Indexer->>Indexer: deny the action, record invalid: controller (reason),<br>roll back everything the guard did
+        end
+    end
+```
+
 ---
 
 ## Binding a controller (ISSUE v6)
@@ -93,6 +111,15 @@ Rules:
   `unbind` gates only until its cooldown elapses. There is no `LOCK_CONTROLLER` flag; the
   drop-cooldown is the only friction on changing a binding.
 - A token with no binding for a class behaves exactly as before (one NULL check, zero overhead).
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unbound
+    Unbound --> Bound: ISSUE v6, UNBIND=0
+    Bound --> UnbindPending: ISSUE v6, UNBIND=1 (COOLDOWN_BLOCKS starts)
+    UnbindPending --> UnbindPending: still gates ACTION_CLASS until cooldown elapses
+    UnbindPending --> Unbound: COOLDOWN_BLOCKS elapses
+```
 
 ### Action classes
 
@@ -231,6 +258,22 @@ When the flag is on:
 3. **At settlement** (`cross_settle`), the proceeds chain applies the *counterparty's* legs
    to the escrow it releases, re-encoding each leg address to its own encoding before
    crediting (`applyProceedsSplit`, same remainder-first conservation as same-chain).
+
+```mermaid
+sequenceDiagram
+    participant TokenChain as Token chain (listing)
+    participant Hub
+    participant ProceedsChain as Proceeds chain (GET_COIN)
+
+    Note over TokenChain: create (ORDER_CREATE / SWAP_CREATE)
+    TokenChain->>TokenChain: guard call at create returns payout_legs,<br>each leg re-encodes to GET_COIN or the listing is denied
+    TokenChain->>Hub: order with stored legs
+    Note over Hub: match
+    Hub->>Hub: copies legs onto cross_chain_matches row<br>(a_payout_legs / b_payout_legs),<br>part of the validator-signed XMATCH canonical (2f+1 cross_chain)
+    Hub->>ProceedsChain: validator-signed match with legs
+    Note over ProceedsChain: settlement (cross_settle)
+    ProceedsChain->>ProceedsChain: applies the counterparty's legs to the escrow it releases,<br>re-encoding each leg address to its own encoding
+```
 
 **Leg-address encoding convention (for guard authors).** Leg `to` addresses are expressed in
 the **controlled token's own chain encoding** (the chain the guard runs on). P2PKH/P2SH

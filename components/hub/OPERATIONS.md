@@ -140,6 +140,22 @@ The API has three tiers when `HUB_API_KEY` is set. If no API key is configured, 
 
 A fourth, narrower key exists for one group of writes. `HUB_REORG_API_KEY`, when set, gates the reorg-push methods (`pushpricereorg`, `pushxcallreorg`, `pushdexreorg`) with a key **separate from `HUB_API_KEY`**, so an indexer can be granted reorg-push rights without being handed the key that also unlocks `getallconfigs` and every other write. It is a bulk-key interim measure that is rolling-deploy safe; the full fix (2f+1 co-signed retractions) rides the  flag-day set. Treat it as a credential.
 
+```mermaid
+flowchart TD
+    REQ["Incoming API request"] --> TIER{"Method category"}
+    TIER -->|"Public read<br>(getprice, getproposals, getvalidators, ...)"| PUB["No key required<br>(rate-limited only)"]
+    TIER -->|"Sensitive read<br>(getallconfigs, hub-db snapshot/subscribe)"| SENSKEY{"HUB_API_KEY valid?"}
+    TIER -->|"Write<br>(updateconfig, registervalidator, propose, ...)"| WRITEKEY{"HUB_API_KEY valid?"}
+    TIER -->|"Reorg-push write<br>(pushpricereorg, pushxcallreorg, pushdexreorg)"| REORGKEY{"HUB_REORG_API_KEY valid?"}
+
+    SENSKEY -->|"yes"| ALLOW["Request allowed"]
+    SENSKEY -->|"no"| DENY["Request rejected"]
+    WRITEKEY -->|"yes"| ALLOW
+    WRITEKEY -->|"no"| DENY
+    REORGKEY -->|"yes"| ALLOW
+    REORGKEY -->|"no"| DENY
+```
+
 | Method | Category |
 |---|---|
 | `updateconfig` | Config management |
@@ -226,6 +242,30 @@ Run the routine sequence but broadcast the **v2 revoke immediately after** the v
 
 During the overlap window both keys are valid; the new key takes effect ~6 blocks before the compromised one is fully revoked, so the validator never loses its slot. (Revoking a compromised *original stake* key is the v2 stake-key revoke, see the [`DELEGATE`](../../protocol/actions/DELEGATE.md) notes.)
 
+```mermaid
+sequenceDiagram
+    participant Op as Operator
+    participant Chain as BTC chain
+    participant Peers as Federation peers
+
+    alt Routine rotation
+        Op->>Op: 1. generate the new key offline
+        Op->>Chain: 2. broadcast DELEGATE v0 with the new key
+        Note over Chain: new key active after the 6-block activation delay
+        Op->>Op: 3. after the delay, swap local signing key material and restart the hub
+        Peers-->>Peers: admit the new key within one refresh interval
+        opt optionally retire the old key
+            Op->>Chain: 4. broadcast DELEGATE v2 revoking the old key
+            Note over Chain: old key deactivates 6 blocks later
+        end
+    else Emergency rotation
+        Op->>Chain: 1. broadcast DELEGATE v0 with the new key, active in 6 blocks
+        Op->>Chain: 2. broadcast DELEGATE v2 revoking the compromised key immediately
+        Note over Chain: both keys valid during the overlap window
+        Op->>Op: 3. swap local key material and restart once the new key is active
+    end
+```
+
 ### Manual registry tools (fallback / pre-chain bootstrap)
 
 When the hub is **not** following an on-chain set (single-validator deployment, or pre-stake bootstrap), edit the registry floor directly over JSON-RPC. Both methods reload and propagate the new set to every running consensus engine immediately. No restart, no raw SQL:
@@ -296,6 +336,19 @@ The `Database` class includes a circuit breaker pattern for connection managemen
 - **Closed** (normal): Connections proceed normally
 - **Open** (failing): After consecutive failures, the circuit opens and rejects connections for a cooldown period
 - **Half-open** (testing): After the cooldown, a single connection attempt is allowed; success closes the circuit, failure re-opens it
+
+```mermaid
+stateDiagram-v2
+    [*] --> Closed
+    Closed: Connections proceed normally
+    Open: Rejects connections for a cooldown period
+    HalfOpen: A single connection attempt is allowed
+
+    Closed --> Open: consecutive failures
+    Open --> HalfOpen: cooldown elapses
+    HalfOpen --> Closed: attempt succeeds
+    HalfOpen --> Open: attempt fails
+```
 
 Connection retries use exponential backoff.
 

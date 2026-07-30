@@ -131,6 +131,20 @@ Build an unsigned PSBT that embeds an XChain ACTION payload. The caller signs th
 
 The encoder auto-selects the encoding format by payload size: `OP_RETURN` for payloads of 76 bytes or fewer, otherwise `P2SH`. The `P2SH` and `P2WSH` formats use a two-transaction flow: call `create_tx` once to build the funding transaction, then call it again with `p2shHash` and `p2shHex` set to build the reveal transaction. `rawData` is decoded as Latin-1 so arbitrary bytes round-trip losslessly. Dogecoin has no SegWit, so `P2WSH` is rejected on DOGE networks.
 
+```mermaid
+sequenceDiagram
+    participant Caller
+    participant Encoder as encoder
+
+    Caller->>Encoder: create_tx (tx1, funding transaction)
+    Encoder-->>Caller: psbt, encoding P2SH or P2WSH
+    Note over Caller: sign and broadcast tx1
+
+    Caller->>Encoder: create_tx again with p2shHash and p2shHex (tx2, reveal transaction)
+    Encoder-->>Caller: psbt
+    Note over Caller: sign and broadcast tx2
+```
+
 **Parameters:**
 
 | Parameter | Type | Required | Description |

@@ -81,6 +81,34 @@ Differences from a user-submitted EXECUTE:
 - **Caller identity.** Inside the callee, `xchain.getSourceAddress()` is the calling contract's derived address (`C:<CHAIN>:<caller index>`), so contracts can authenticate their callers.
 - **No return value.** A callee that must respond calls back via its own `emit.execute` (the attestation-callback pattern). `gasLimit` travels in the emission metadata, not as a positional wire param.
 
+```mermaid
+sequenceDiagram
+    participant Caller as Caller contract
+    participant VM
+    participant Callee as Callee contract
+
+    Caller->>VM: emit.execute(contractIndex, method, params, gasLimit)
+    Note over VM: real action row + contract_executions record,<br>never appears on the wire
+    VM->>VM: check depth = caller depth + 1, against VM_MAX_CALL_DEPTH (4)
+    alt depth exceeds VM_MAX_CALL_DEPTH
+        VM-->>Caller: throw at emit time
+    else depth allowed
+        VM->>Caller: charge VM_EMISSION + gasLimit from caller's gas budget
+        VM->>Callee: run callee, gasLimit as ceiling, VM_MIN_CALL_GAS minimum
+        Note over Callee: xchain.getSourceAddress() returns caller's derived address
+        opt callee emits its own EXECUTE
+            Callee->>VM: emit.execute(...), depth + 1, nested call chain continues
+        end
+        alt whole call tree succeeds
+            Callee-->>VM: callee completes
+            VM->>Caller: refund unused gas into top-level fee settlement
+        else failure anywhere in tree, revert, out of gas, unknown contract, or failed emission
+            VM->>VM: roll back entire tree, caller state, callee state, every emission
+            Note over VM,Caller: all refunds forfeited, caller still pays for gas consumed
+        end
+    end
+```
+
 ---
 
 **Copyright &copy; 2025–2026 Dankest, LLC**

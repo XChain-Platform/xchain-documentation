@@ -38,6 +38,28 @@ The vault is a single AES-256-GCM ciphertext. On unlock the wallet:
 4. JSON-parses the plaintext into the schema-validated vault tree
 5. Runs `core/src/schemas/migrations.js` if the schema version is older than current
 
+```mermaid
+flowchart TD
+    START["Unlock vault"]
+    S1["1. Read salt and KDF parameters from the storage backend"]
+    S2["2. Derive the master key from the user's password"]
+    S3["3. Decrypt the AES-256-GCM ciphertext"]
+    S3_CHECK{"tag matches?"}
+    FAIL["Wrong password"]
+    S4["4. JSON-parse the plaintext into the schema-validated vault tree"]
+    S5["5. Run core/src/schemas/migrations.js if the schema version is older than current"]
+    DONE["Vault unlocked"]
+
+    START --> S1
+    S1 --> S2
+    S2 --> S3
+    S3 --> S3_CHECK
+    S3_CHECK -->|"no"| FAIL
+    S3_CHECK -->|"yes"| S4
+    S4 --> S5
+    S5 --> DONE
+```
+
 Vault contents include the encrypted seed, derivation roots, accounts, addresses, contacts, connected-sites, multisig configs, in-flight signing sessions, queued broadcasts, registered signers, and settings. See [Architecture; Vault and state model](ARCHITECTURE.md) for the full collection list.
 
 ## Mnemonic handling

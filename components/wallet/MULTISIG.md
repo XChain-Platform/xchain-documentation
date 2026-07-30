@@ -49,6 +49,24 @@ A single address can host more than one configuration (schema v2's per-address m
 
 Address derivation uses BIP48 paths (`m / 48' / coin' / account' / script-type'`) for classical multisig and the appropriate Taproot-MuSig2 derivation for MuSig2 configurations. `DerivationPathCrossCheck.jsx` shows the path next to each cosigner so users can verify across wallets.
 
+```mermaid
+flowchart TD
+    S1["1. Pick chain and address type, classical n-of-m any chain or MuSig2 BTC only"]
+    S2["2. Pick threshold, the n in n-of-m"]
+    S3{"3. Add cosigners"}
+    LOCAL["Local, derive a fresh address under the current wallet's mnemonic"]
+    PAIRED["Paired, read the pubkey from a paired hardware or remote signer"]
+    IMPORTED["Imported, paste a cosigner's pubkey out-of-band"]
+    S4["4. Confirm address, derived from threshold and cosigners"]
+    S5["5. Persist, config saved to the vault's multisigs collection"]
+
+    S1 --> S2 --> S3
+    S3 --> LOCAL --> S4
+    S3 --> PAIRED --> S4
+    S3 --> IMPORTED --> S4
+    S4 --> S5
+```
+
 ## Signing session state machine
 
 A signing session is created when any cosigner originates a transaction from a multisig address. The session is persisted to `multisigSigningSessions` and replicated to other devices via the wallet's normal vault sync (where applicable).
@@ -57,14 +75,24 @@ A signing session is created when any cosigner originates a transaction from a m
 
 ### Classical n-of-m
 
-```
-collecting-sigs (waiting for n signatures from cosigners)
-    ↓
-ready-to-finalize (n sigs collected; coordinator can finalize)
-    ↓
-finalized (combined PSBT ready for broadcast)
-    ↓
-broadcast (txid recorded)
+```mermaid
+stateDiagram-v2
+    [*] --> collecting_sigs
+    collecting_sigs: collecting-sigs (waiting for n signatures from cosigners)
+    ready_to_finalize: ready-to-finalize (n sigs collected, coordinator can finalize)
+    finalized: finalized (combined PSBT ready for broadcast)
+    broadcast: broadcast (txid recorded)
+    cancelled: cancelled (terminal, archived, not retried)
+
+    collecting_sigs --> ready_to_finalize
+    ready_to_finalize --> finalized
+    finalized --> broadcast
+    broadcast --> [*]
+
+    collecting_sigs --> cancelled
+    ready_to_finalize --> cancelled
+    finalized --> cancelled
+    cancelled --> [*]
 ```
 
 `cancelled` is a terminal status reachable from any non-terminal state. A coordinator or cosigner can cancel a session at any point before broadcast; cancelled sessions are archived and not retried.
@@ -75,16 +103,27 @@ Each partial is a regular PSBT signed by one cosigner. The coordinator (any cosi
 
 MuSig2 uses a two-round protocol per BIP327:
 
-```
-collecting-nonces (round 1: each cosigner contributes a 66-byte publicNonce)
-    ↓
-collecting-sigs (round 2: aggNonce computed; each cosigner contributes a 32-byte partial sig)
-    ↓
-ready-to-finalize (partial sigs aggregated into a single 64-byte Schnorr sig)
-    ↓
-finalized
-    ↓
-broadcast (txid recorded)
+```mermaid
+stateDiagram-v2
+    [*] --> collecting_nonces
+    collecting_nonces: collecting-nonces (round 1: each cosigner contributes a 66-byte publicNonce)
+    collecting_sigs: collecting-sigs (round 2: aggNonce computed, each cosigner contributes a 32-byte partial sig)
+    ready_to_finalize: ready-to-finalize (partial sigs aggregated into a single 64-byte Schnorr sig)
+    finalized: finalized
+    broadcast: broadcast (txid recorded)
+    cancelled: cancelled (terminal)
+
+    collecting_nonces --> collecting_sigs
+    collecting_sigs --> ready_to_finalize
+    ready_to_finalize --> finalized
+    finalized --> broadcast
+    broadcast --> [*]
+
+    collecting_nonces --> cancelled
+    collecting_sigs --> cancelled
+    ready_to_finalize --> cancelled
+    finalized --> cancelled
+    cancelled --> [*]
 ```
 
 As with classical sessions, `cancelled` is a terminal status reachable from any non-terminal state.

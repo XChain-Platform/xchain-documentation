@@ -44,21 +44,50 @@ The VM is instantiated once in the indexer's `actions.js` and shared across all 
 4. **EXECUTE action:** `execute.js` calls `vm.execute()` with the contract code, current state, method name, parameters, and block context
 5. **Result processing:** The indexer applies `stateChanges` and `stateDeletes` to the database, processes `emittedActions` through standard action handlers, and records `gasUsed` for fee charging
 
+```mermaid
+sequenceDiagram
+    participant Indexer
+    participant VM
+
+    Note over Indexer: Startup
+    Indexer->>VM: new XChainVM({ gasSchedule, gasCeiling, limits })
+
+    Note over Indexer: Per block
+    Indexer->>VM: vm.beginBlock()
+    Indexer->>VM: vm.endBlock()
+
+    Note over Indexer: DEPLOY action (deploy.js)
+    Indexer->>VM: vm.validateSyntax(code)
+    Indexer->>VM: vm.execute() (run constructor)
+
+    Note over Indexer: EXECUTE action (execute.js)
+    Indexer->>VM: vm.execute(code, state, method, params, block context)
+
+    Note over Indexer: Result processing
+    Indexer->>Indexer: apply stateChanges/stateDeletes, process emittedActions, record gasUsed
+```
+
 ### Data Flow
 
-```
-Indexer (execute.js)
-    |
-    |-- Loads contract code + state from DB
-    |-- Builds balances, tokenInfo, oracleData, crossChainData
-    |
-    '-> vm.execute({ code, state, method, params, caller, ... })
-            |
-            '-> Returns { success, error, gasUsed, returnValue,
-                          stateChanges, stateDeletes, emittedActions, logs }
-    |
-    |-- On success: apply state changes, process emissions, charge gas
-    '-- On failure: discard state/emissions, charge gas up to failure point
+```mermaid
+flowchart TD
+    INDEXER["Indexer (execute.js)"]
+    LOAD["Loads contract code + state from DB"]
+    BUILD["Builds balances, tokenInfo,<br>oracleData, crossChainData"]
+    EXEC["vm.execute({ code, state, method,<br>params, caller, ... })"]
+    RETURNS["Returns { success, error, gasUsed, returnValue,<br>stateChanges, stateDeletes, emittedActions, logs }"]
+    DECIDE{"execution succeeded?"}
+    SUCCESS["On success: apply state changes,<br>process emissions, charge gas"]
+    FAILURE["On failure: discard state/emissions,<br>charge gas up to failure point"]
+
+    INDEXER --> LOAD
+    INDEXER --> BUILD
+    LOAD --> EXEC
+    BUILD --> EXEC
+    EXEC --> RETURNS
+    RETURNS --> DECIDE
+    DECIDE -->|success| SUCCESS
+    DECIDE -->|failure| FAILURE
 ```
 
 ## Error Classification
@@ -99,6 +128,39 @@ Before a contract is deployed, `vm.validateSyntax(code)` runs the following chec
 6. **Banned async check** (consensus-gated): rejects `async` functions, `await` expressions, and `Promise` references after the `VM_BANNED_ASYNC` flag-day. The CONTRACT_WRAPPER invokes exports synchronously; an async export returns a pending Promise whose post-`await` effects depend on isolated-vm's version-dependent microtask-drain timing, which is outside the consensus-runtime pin and can diverge across validators. Under `VM_LINT_HARDENING` this also rejects dynamic `import(...)` (it evaluates to a Promise).
 7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): rejects `function*`, generator methods, and any `yield`; live from genesis on testnet/regtest.
 8. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest.
+
+```mermaid
+flowchart TD
+    START["DEPLOY action: code"]
+    S1{"1. V8 syntax check (throwaway isolate)"}
+    S2{"2. Acorn metering pass"}
+    S3{"3. Reserved identifier check"}
+    S4{"4. Banned transcendental Math check"}
+    S5{"5. Banned literal check"}
+    S6{"6. Banned async check (VM_BANNED_ASYNC flag-day)"}
+    S7{"7. Banned generator check (live from genesis, testnet/regtest)"}
+    S8{"8. Banned WebAssembly check (live from genesis, testnet/regtest)"}
+    ACCEPT["DEPLOY accepted"]
+    REJECT["DEPLOY rejected"]
+
+    START --> S1
+    S1 -->|"syntax error"| REJECT
+    S1 -->|"compiles"| S2
+    S2 -->|"parse failure"| REJECT
+    S2 -->|"parses"| S3
+    S3 -->|"reserved identifier found"| REJECT
+    S3 -->|"clean"| S4
+    S4 -->|"banned Math call found"| REJECT
+    S4 -->|"clean"| S5
+    S5 -->|"BigInt or RegExp literal found"| REJECT
+    S5 -->|"clean"| S6
+    S6 -->|"async, await, or Promise found, flag-day active"| REJECT
+    S6 -->|"clean, or flag-day not active"| S7
+    S7 -->|"generator or yield found"| REJECT
+    S7 -->|"clean"| S8
+    S8 -->|"WebAssembly reference found"| REJECT
+    S8 -->|"clean"| ACCEPT
+```
 
 `vm.checkFloatWarnings(code)` additionally scans for non-integer number literals and returns warnings (non-blocking).
 

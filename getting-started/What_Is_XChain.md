@@ -21,6 +21,12 @@ XChain is what's called a **metalayer**; a protocol that runs *above* the base b
 
 Think of it like a building's electrical wiring. The building's concrete and steel structure (the blockchain) provides the foundation. The wiring (XChain) runs through that structure to provide new capabilities; but the structure itself doesn't change. Anyone can use those new capabilities without altering the building's foundation.
 
+```mermaid
+flowchart TD
+    A["Blockchain<br>(the building's structure)"] --> B["XChain<br>(the wiring running through it)"]
+    B --> C["New capabilities:<br>tokens, trading, contracts, and more"]
+```
+
 In practice, XChain works by embedding small pieces of data inside ordinary blockchain transactions. Those data packets are invisible to Bitcoin itself, they're just part of a normal transaction. But XChain's software layer reads those packets, interprets them as commands, and maintains its own database of token balances, orders, and state.
 
 **Nothing about Bitcoin, Litecoin, or Dogecoin is changed.** XChain tokens exist on the actual blockchain, secured by the same proof-of-work consensus that secures every other Bitcoin transaction. There are no sidechains and no bridges: your token balances need no separate validators and no new consensus mechanism to trust. (A staked validator federation does provide the optional cross-chain, oracle, and attestation services described later; those services never sit between you and your base-layer token records.)

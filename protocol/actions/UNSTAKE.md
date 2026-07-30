@@ -80,6 +80,23 @@ Separate from the deactivation delay, tracked via the `cooldown_end_block` colum
 - Default cooldown: 1000 blocks (configurable via `STAKING.COOLDOWN_BLOCKS`)
 - After cooldown elapses, the staked XCHAIN tokens are returned to the broadcasting address
 
+```mermaid
+stateDiagram-v2
+    [*] --> Active
+    Active --> Unstaked: UNSTAKE confirms
+    state Unstaked {
+        [*] --> Deactivating
+        Deactivating --> Deactivated: deactivation_block reached (block_index + 6)
+        Deactivated --> [*]
+        --
+        [*] --> CoolingDown
+        CoolingDown --> CooldownComplete: cooldown_end_block reached (default 1000 blocks)
+        CooldownComplete --> [*]
+    }
+    Unstaked --> TokensReturned: cooldown elapses
+    TokensReturned --> [*]
+```
+
 ## Notes
 - Two distinct delays apply on UNSTAKE:
   1. 6 blocks: validator removal from the active set (BTC reorg safety)

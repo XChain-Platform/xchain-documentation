@@ -5,27 +5,38 @@
 
 ## Execution Pipeline
 
-```
-Contract Source Code
-    |
-  acorn (parse AST, ES2020)
-    |
-  metering.js (inject __gas() calls at control flow points)
-    |
-  astring (regenerate source from modified AST)
-    |
-  isolated-vm (V8 isolate)
-    |-- sandbox.js (strip non-deterministic globals)
-    |-- gateway.js (inject xchain object via JSON bridge protocol)
-    |-- gas.js (__gas -> chargeComputation on host side)
-    '-- script.runSync() (execute with wall-clock timeout)
-    |
-  Collect results
-    |-- state.js -> stateChanges, stateDeletes
-    |-- collector.js -> emittedActions, logs
-    '-- gas.js -> gasUsed
-    |
-  Return to indexer (execute.js)
+```mermaid
+flowchart TD
+    SRC["Contract Source Code"]
+    ACORN["acorn (parse AST, ES2020)"]
+    METER["metering.js (inject __gas() calls<br>at control flow points)"]
+    ASTR["astring (regenerate source<br>from modified AST)"]
+    ISOLATE["isolated-vm (V8 isolate)"]
+    SANDBOX["sandbox.js (strip non-deterministic globals)"]
+    GATEWAY["gateway.js (inject xchain object<br>via JSON bridge protocol)"]
+    GASHOST["gas.js (__gas -> chargeComputation on host side)"]
+    RUNSYNC["script.runSync() (execute with wall-clock timeout)"]
+    COLLECT["Collect results"]
+    STATE["state.js -> stateChanges, stateDeletes"]
+    COLLECTOR["collector.js -> emittedActions, logs"]
+    GASRESULT["gas.js -> gasUsed"]
+    RETURN["Return to indexer (execute.js)"]
+
+    SRC --> ACORN --> METER --> ASTR --> ISOLATE
+    ISOLATE --> SANDBOX
+    ISOLATE --> GATEWAY
+    ISOLATE --> GASHOST
+    ISOLATE --> RUNSYNC
+    SANDBOX --> COLLECT
+    GATEWAY --> COLLECT
+    GASHOST --> COLLECT
+    RUNSYNC --> COLLECT
+    COLLECT --> STATE
+    COLLECT --> COLLECTOR
+    COLLECT --> GASRESULT
+    STATE --> RETURN
+    COLLECTOR --> RETURN
+    GASRESULT --> RETURN
 ```
 
 ## Internal Components
@@ -64,6 +75,28 @@ Each host-side gateway function is wrapped in a `bridge()` helper and injected i
 5. The host calls the actual gateway function: `stateManager.get('key')`
 6. The return value is JSON-encoded with a `\x01` prefix: `'\x01{"count":"5"}'` (all non-null/undefined returns use this encoding to prevent user data containing control characters from being misinterpreted as protocol markers)
 7. The isolate-side `wrap()` detects the `\x01` prefix and `JSON.parse`s the result
+
+```mermaid
+sequenceDiagram
+    participant Contract as Contract (isolate)
+    participant Wrap as wrap() (isolate)
+    participant Bridge as bridge() (host)
+    participant Gateway as gateway function (host)
+
+    Contract->>Wrap: xchain.state.get(key)
+    Wrap->>Wrap: JSON-serialize the arguments
+    Wrap->>Bridge: applySync sends the JSON string
+    Bridge->>Bridge: JSON.parse the arguments
+    Bridge->>Gateway: call the gateway function
+    Gateway-->>Bridge: return value
+    Bridge-->>Wrap: JSON-encode, tagged with the 0x01 prefix
+    Wrap-->>Contract: JSON.parse the result
+
+    alt gateway method throws a typed error
+        Gateway-->>Bridge: throws ContractRevertError or GasExhaustedError
+        Bridge-->>Wrap: re-throw tagged with the 0x03 prefix, REVERT or GAS
+    end
+```
 
 **Return value encoding:**
 
@@ -168,6 +201,23 @@ The CONTRACT_WRAPPER script runs the contract code inside the isolate and routes
    - **Object export:** looks up the named method on the object, throws `'unknown method'` if not found  
    - **Other:** throws `'contract must export a function or object'`
 5. JSON-serializes the return value with a `\x02` prefix before crossing the isolate boundary
+
+```mermaid
+flowchart TD
+    A["Create module and exports object"]
+    B["Compile metered contract code as a function body<br>(module, exports, xchain params)"]
+    C["Execute the compiled function"]
+    D{"Export type?"}
+    E["Function export: call the function directly with xchain<br>(method param ignored)"]
+    F["Object export: look up the named method on the object<br>(throws unknown method if not found)"]
+    G["Other: throws contract must export a function or object"]
+    H["JSON-serialize return value with \x02 prefix, cross isolate boundary"]
+
+    A --> B --> C --> D
+    D -->|"function"| E --> H
+    D -->|"object"| F --> H
+    D -->|"other"| G
+```
 
 ---
 

@@ -5,19 +5,27 @@
 
 ## Position in the Data Pipeline
 
-```
-Coin Node (bitcoind / litecoind / dogecoind)
-    ↓  JSON-RPC polling
-xchain-decoder  →  Decoder DB (MariaDB)
-    ↓  SQL reads
-xchain-indexer  →  Indexer DB (MariaDB)
-    ↑                              ↓  push chain tip + PRICE actions
-    │ reads cross-chain data       └─→  xchain-hub
-    │
-    Hub DB (local copy, read-only)
-    synced from xchain-hub via WebSocket
-    ↓  SQL reads
-xchain-explorer  →  REST / JSON-RPC / Web UI
+```mermaid
+flowchart TD
+    NODE["Coin Node<br>(bitcoind / litecoind / dogecoind)"]
+    DECODER["xchain-decoder"]
+    DECDB[("Decoder DB (MariaDB)")]
+    INDEXER["xchain-indexer"]
+    IDXDB[("Indexer DB (MariaDB)")]
+    HUB["xchain-hub"]
+    HUBDB[("Hub DB (local copy, read-only)<br>synced from xchain-hub via WebSocket")]
+    EXPLORER["xchain-explorer"]
+    API["REST / JSON-RPC / Web UI"]
+
+    NODE -->|JSON-RPC polling| DECODER
+    DECODER --> DECDB
+    DECDB -->|SQL reads| INDEXER
+    INDEXER --> IDXDB
+    INDEXER -->|push chain tip + PRICE actions| HUB
+    HUB -->|synced via WebSocket| HUBDB
+    HUBDB -->|reads cross-chain data| INDEXER
+    IDXDB -->|SQL reads| EXPLORER
+    EXPLORER -->|REST / JSON-RPC / Web UI| API
 ```
 
 The indexer sits between the decoder and the explorer. It reads raw decoded transaction data from the Decoder database (read-only), processes each transaction through the appropriate ACTION handler, and writes the resulting state to the Indexer database. The explorer then reads from the Indexer database to serve API queries.
@@ -28,42 +36,30 @@ After processing each block, the indexer pushes its chain tip to xchain-hub (so 
 
 ## Internal Components
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                      api.js                             │
-│              Express + JSON-RPC server                  │
-│         Validates env vars, starts indexer              │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────┐
-│                  XChainIndexer                          │
-│              Main orchestrator class                    │
-│        Block polling loop (5s interval)                 │
-│     Reorg detection → block processing → sanity check  │
-├──────────────┬──────────────┬───────────────────────────┤
-│              │              │                           │
-│  ┌───────────▼──┐  ┌───────▼────────┐  ┌──────────────┐│
-│  │   Actions    │  │   Database     │  │  Rollback    ││
-│  │  46 handlers │  │  3 pool conns  │  │  Atomic undo ││
-│  │  + aliases   │  │  (decoder/idx/ │  │  by block    ││
-│  │  inc. PRICE  │  │   hub)         │  │              ││
-│  └──────┬───────┘  └───────┬────────┘  └──────────────┘│
-│         │                  │                           │
-│  ┌──────▼───────┐  ┌───────▼────────┐  ┌──────────────┐│
-│  │   Utility    │  │    Mapper      │  │  Protocol    ││
-│  │  Math, timer │  │  action_index  │  │  Changes     ││
-│  │  Expirations │  │  ↔ addr/tick   │  │  Activation  ││
-│  │  Ledger ops  │  │  mappings      │  │  by version  ││
-│  └──────────────┘  └────────────────┘  └──────────────┘│
-│                                                         │
-│  ┌──────────────┐  ┌────────────────┐  ┌──────────────┐│
-│  │  HubClient   │  │   HubDbSync    │  │   Ed25519    ││
-│  │  Pushes chain│  │  Bootstraps +  │  │  Verify sigs ││
-│  │  tip + PRICE │  │  WebSocket     │  │  on PRICE v0 ││
-│  │  to xchain-  │  │  syncs hub DB  │  │  via Node    ││
-│  │  hub         │  │  tables        │  │  crypto      ││
-│  └──────────────┘  └────────────────┘  └──────────────┘│
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    API["api.js<br>Express + JSON-RPC server<br>Validates env vars, starts indexer"]
+    XI["XChainIndexer<br>Main orchestrator class<br>Block polling loop (5s interval)<br>Reorg detection → block processing → sanity check"]
+    ACTIONS["Actions<br>46 handlers + aliases<br>inc. PRICE"]
+    DB["Database<br>3 pool conns<br>(decoder/idx/hub)"]
+    ROLLBACK["Rollback<br>Atomic undo by block"]
+    UTIL["Utility<br>Math, timer<br>Expirations<br>Ledger ops"]
+    MAPPER["Mapper<br>action_index ↔ addr/tick mappings"]
+    PROTOCOL["Protocol Changes<br>Activation by version"]
+    HUBCLIENT["HubClient<br>Pushes chain tip + PRICE to xchain-hub"]
+    HUBDBSYNC["HubDbSync<br>Bootstraps + WebSocket syncs hub DB tables"]
+    ED25519["Ed25519<br>Verify sigs on PRICE v0 via Node crypto"]
+
+    API --> XI
+    XI --> ACTIONS
+    XI --> DB
+    XI --> ROLLBACK
+    ACTIONS --> UTIL
+    DB --> MAPPER
+    ROLLBACK --> PROTOCOL
+    XI --> HUBCLIENT
+    XI --> HUBDBSYNC
+    XI --> ED25519
 ```
 
 ### Three-Database Model
@@ -100,28 +96,17 @@ The indexer's API also exposes a write endpoint that the hub calls:
 
 The Virtual Machine is implemented as the standalone `xchain-vm` module; a library that the indexer loads at startup. Contract code runs in sandboxed V8 isolates (via `isolated-vm`) with AST-based gas metering (via `acorn`). The VM has no awareness of the database; it takes inputs and returns outputs.
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                     xchain-vm module                         │
-│                                                              │
-│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐  │
-│  │ isolated-vm  │  │ AST-based   │  │ Gateway (xchain.*) │  │
-│  │ V8 Isolate   │  │ Gas Meter   │  │ State, Emit, Math, │  │
-│  │ (one per     │  │ acorn parse │  │ Oracle, CrossChain │  │
-│  │  EXECUTE)    │  │ → inject    │  │ via JSON bridge    │  │
-│  │              │  │ __gas() →   │  │ protocol           │  │
-│  │ Sandbox:     │  │ astring     │  │                    │  │
-│  │ no Date,     │  │ regenerate  │  │ 19 emittable       │  │
-│  │ no random,   │  │             │  │ action types       │  │
-│  │ no network   │  │ Charges per │  │                    │  │
-│  └──────┬───────┘  │ control     │  └────────┬───────────┘  │
-│         │          │ flow point  │           │              │
-│         │          └─────────────┘           │              │
-│  ┌──────▼───────────────────────────────────▼────────────┐  │
-│  │  Result: stateChanges, stateDeletes, emittedActions,  │  │
-│  │          gasUsed, returnValue, logs                    │  │
-│  └───────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph VM["xchain-vm module"]
+        ISOVM["isolated-vm<br>V8 Isolate (one per EXECUTE)<br>Sandbox: no Date, no random, no network"]
+        GASMETER["AST-based Gas Meter<br>acorn parse → inject __gas() → astring regenerate<br>Charges per control flow point"]
+        GATEWAY["Gateway (xchain.*)<br>State, Emit, Math, Oracle, CrossChain via JSON bridge protocol<br>19 emittable action types"]
+        RESULT["Result: stateChanges, stateDeletes, emittedActions, gasUsed, returnValue, logs"]
+
+        ISOVM --> RESULT
+        GATEWAY --> RESULT
+    end
 ```
 
 The indexer's `execute.js` handler bridges the VM and the database:
@@ -254,6 +239,21 @@ After all transactions in a block are processed:
 ### 5. Watchdog Timeout
 
 The entire block processing pipeline runs under a configurable timeout (`BLOCK_PROCESS_TIMEOUT`, default 5 minutes). If a block takes longer than this, the indexer throws an error and rolls back the transaction, preventing deadlocks or infinite loops from stalling the indexer.
+
+```mermaid
+flowchart TD
+    P1["1. Reorg Detection<br>rollback affected records if a reorg is found"]
+    P2["2. Transaction Processing<br>parse and route each tx to its action handler"]
+    P3["3. Expiration and Cancellation Processing<br>expire ORDERs/SWAPs/DISPENSERs, cancel DISPENSERs"]
+    P4["4. Block Finalization<br>write blocks record, update DEX info, sanity check"]
+    WD{"5. Watchdog Timeout<br>exceeded BLOCK_PROCESS_TIMEOUT?"}
+    ERR["Throw error, roll back the transaction"]
+    NEXT["Next loop iteration"]
+
+    P1 --> P2 --> P3 --> P4 --> WD
+    WD -->|yes| ERR
+    WD -->|no| NEXT
+```
 
 ---
 

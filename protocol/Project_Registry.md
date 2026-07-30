@@ -94,6 +94,16 @@ Notes on the rule:
   rule reads only `TICK`-type `LIST` links; `FILE` links keep their
   [content-attachment meaning](./NFT_Standard.md#attaching-content).
 
+```mermaid
+flowchart TD
+    Issue["ISSUE the project tick, once"] --> List["LIST|0|1|TOKEN1|TOKEN2|...<br>publish the roster as a tick list"]
+    List --> Link["LINK: COIN1 = the LIST action index,<br>COIN2 = the project ISSUE action index"]
+    Link --> Check{"SOURCE is the tick's current owner,<br>ownership not escrowed,<br>both sides on the project's own chain?"}
+    Check -->|"no"| Ignored["LINK carries no authority, ignored by clients"]
+    Check -->|"yes"| Valid["Valid roster LINK"]
+    Valid --> Resolve["Current roster = item set of the LIST<br>referenced by the most recent valid LINK,<br>highest ACTION_INDEX"]
+```
+
 ---
 
 ## What clients render

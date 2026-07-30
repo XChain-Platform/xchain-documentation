@@ -112,6 +112,17 @@ http://localhost:18080/rest
 
 ## Multi-Chain Setup
 
+```mermaid
+flowchart TD
+    A["xchain-node install master all CHAIN NETWORK"] --> B["Verify Docker, create runtime directories"]
+    B --> C["Install xchain-hub first<br>(shared coordination layer)"]
+    C --> D["Clone service repos into modules/,<br>build Docker images, start containers"]
+    D --> E["Download and verify crypto node binary (SHA-256)"]
+    E --> F["Configure inter-service networking<br>on isolated Docker networks"]
+    F --> G[("One xchain-hub + one xchain-explorer<br>serve all chains")]
+    F --> H[("Each coin gets its own decoder,<br>indexer, encoder, UTXO tracker")]
+```
+
 A single `xchain-node` installation can run Bitcoin, Litecoin, and Dogecoin simultaneously. The `xchain-hub` and `xchain-explorer` are shared services; one instance serves all chains. Each coin gets its own set of coin-specific services (decoder, indexer, encoder, UTXO tracker).
 
 ```bash

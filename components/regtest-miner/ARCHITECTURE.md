@@ -7,62 +7,34 @@
 
 The regtest miner is testing infrastructure that sits alongside the coin node in the data pipeline. It drives block production in regtest environments, which is required for the decoder, indexer, and all downstream services to function during development and testing:
 
-```
-                    ┌────────────────────────┐
-                    │  xchain-regtest-miner  │
-                    │  (auto-mines blocks)   │
-                    └───────────┬────────────┘
-                                │ generatetoaddress
-                                ▼
-                    ┌────────────────────────┐
-                    │  Coin Node (regtest)   │
-                    │  bitcoind / litecoind  │
-                    │  / dogecoind           │
-                    └───────────┬────────────┘
-                                │ JSON-RPC
-                    ┌───────────▼────────────┐
-                    │    xchain-decoder      │
-                    │ (extracts XChain txs)  │
-                    └───────────┬────────────┘
-                                │
-                    ┌───────────▼────────────┐
-                    │    xchain-indexer      │
-                    │  (processes ACTIONs)   │
-                    └───────────┬────────────┘
-                                │
-                    ┌───────────▼────────────┐
-                    │    xchain-explorer     │
-                    │  (serves API + UI)     │
-                    └────────────────────────┘
+```mermaid
+flowchart TD
+    MINER["xchain-regtest-miner<br>(auto-mines blocks)"]
+    NODE["Coin Node (regtest)<br>bitcoind / litecoind<br>/ dogecoind"]
+    DECODER["xchain-decoder<br>(extracts XChain txs)"]
+    INDEXER["xchain-indexer<br>(processes ACTIONs)"]
+    EXPLORER["xchain-explorer<br>(serves API + UI)"]
+
+    MINER -->|generatetoaddress| NODE
+    NODE -->|JSON-RPC| DECODER
+    DECODER --> INDEXER
+    INDEXER --> EXPLORER
 ```
 
 ## Internal Components
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  xchain-regtest-miner                    │
-│                                                          │
-│  ┌────────────┐    ┌──────────────────────┐              │
-│  │  api.js     │    │ XChainRegtestMiner   │              │
-│  │  (Express)  │───►│  - prepareWallet()   │              │
-│  │  JSON-RPC   │    │  - start() loop      │              │
-│  │  9 methods  │    │  - fillMempool()     │              │
-│  └────────────┘    │  - setMiningTime()   │              │
-│                     └─────────┬────────────┘              │
-│                               │                           │
-│                     ┌─────────▼────────────┐              │
-│                     │ BlockchainConnector   │              │
-│                     │  15 RPC methods       │              │
-│                     │  axios + Basic Auth   │              │
-│                     └─────────┬────────────┘              │
-└───────────────────────────────┼──────────────────────────┘
-                                │ HTTP JSON-RPC
-                                ▼
-                    ┌───────────────────────┐
-                    │  Coin Node (regtest)  │
-                    │  bitcoind / litecoind │
-                    │  / dogecoind          │
-                    └───────────────────────┘
+```mermaid
+flowchart TD
+    subgraph MINER["xchain-regtest-miner"]
+        API["api.js<br>(Express)<br>JSON-RPC<br>9 methods"]
+        RM["XChainRegtestMiner<br>- prepareWallet()<br>- start() loop<br>- fillMempool()<br>- setMiningTime()"]
+        BC["BlockchainConnector<br>15 RPC methods<br>axios + Basic Auth"]
+        API --> RM
+        RM --> BC
+    end
+    NODE["Coin Node (regtest)<br>bitcoind / litecoind<br>/ dogecoind"]
+
+    BC -->|HTTP JSON-RPC| NODE
 ```
 
 ### Source Files
@@ -87,32 +59,25 @@ The miner's core loop runs every 1 second (`CHECK_BLOCK_DELAY_MS`):
 
 The loop skips mempool polling when `keepMining` is `false`, allowing external control of mining via the API.
 
-```
-┌─────────────────────────────────────────────────┐
-│                  Mining Loop                     │
-│                                                  │
-│  ┌──────────┐     ┌──────────────────────────┐  │
-│  │  Sleep    │────►│ Check keepMining flag    │  │
-│  │  1 second │     └──────────┬───────────────┘  │
-│  └──────────┘                │                   │
-│       ▲            ┌─────────▼──────────┐        │
-│       │            │ getrawmempool      │        │
-│       │            └─────────┬──────────┘        │
-│       │                      │                   │
-│       │            ┌─────────▼──────────┐        │
-│       │            │ New txs detected?  │        │
-│       │            └──┬──────────────┬──┘        │
-│       │           Yes │              │ No        │
-│       │     ┌─────────▼────┐   ┌─────▼────────┐ │
-│       │     │ Start/reset  │   │ Timer expired?│ │
-│       │     │ timers       │   └──┬─────────┬──┘ │
-│       │     └──────────────┘  Yes │         │ No │
-│       │              ┌────────────▼───┐     │    │
-│       │              │ Mine 1 block   │     │    │
-│       │              │ Reset timers   │     │    │
-│       │              └────────────────┘     │    │
-│       └─────────────────────────────────────┘    │
-└──────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    SLEEP["Sleep<br>1 second"]
+    CHECK["Check keepMining flag"]
+    POLL["getrawmempool"]
+    NEWTX{"New txs detected?"}
+    RESET["Start/reset timers"]
+    EXPIRED{"Timer expired?"}
+    MINE["Mine 1 block<br>Reset timers"]
+
+    SLEEP --> CHECK
+    CHECK --> POLL
+    POLL --> NEWTX
+    NEWTX -->|Yes| RESET
+    NEWTX -->|No| EXPIRED
+    EXPIRED -->|Yes| MINE
+    EXPIRED -->|No| SLEEP
+    RESET --> SLEEP
+    MINE --> SLEEP
 ```
 
 ## Wallet Lifecycle
@@ -123,6 +88,38 @@ On startup, `prepareWallet` uses a probe-first strategy to handle the wide range
 2. **Load fallback**: If all 10 probes fail, attempt `loadWallet('xchain_regtest_wallet')`. If this succeeds, the connector URL is pinned to the named wallet path (`/wallet/<name>/`) so subsequent wallet RPCs route correctly even when multiple wallets are loaded on the same node.
 3. **Create fallback**: If `loadWallet` also fails, call `createWallet('xchain_regtest_wallet')`. The connector URL is pinned to the named wallet path here as well. If `createWallet` fails (e.g. on Dogecoin v1.14.x), an error is thrown with a clear message.
 4. **Balance check**: After a usable address is obtained, check the wallet balance. If it is zero and chain height is 100 or below, mine 101 blocks for coinbase maturity. If height is above 100, mine 1 block. `walletReady` is set to `true` after this step completes.
+
+```mermaid
+flowchart TD
+    PROBE["Probe phase: getNewAddress() up to 10 times"]
+    PROBEOK{"Probe succeeded?"}
+    LOAD["Load fallback: loadWallet('xchain_regtest_wallet')"]
+    LOADOK{"Load succeeded?"}
+    CREATE["Create fallback: createWallet('xchain_regtest_wallet')"]
+    CREATEOK{"Create succeeded?"}
+    ERR["Throw error"]
+    BAL["Balance check"]
+    ZEROQ{"Balance zero?"}
+    HEIGHTQ{"Chain height 100 or below?"}
+    MINE101["Mine 101 blocks for coinbase maturity"]
+    MINE1["Mine 1 block"]
+    READY["walletReady = true"]
+
+    PROBE --> PROBEOK
+    PROBEOK -->|Yes, use the returned address directly| BAL
+    PROBEOK -->|No| LOAD
+    LOAD --> LOADOK
+    LOADOK -->|Yes, pin connector to the named wallet path| BAL
+    LOADOK -->|No| CREATE
+    CREATE --> CREATEOK
+    CREATEOK -->|Yes, pin connector to the named wallet path| BAL
+    CREATEOK -->|No| ERR
+    BAL --> ZEROQ
+    ZEROQ -->|No| READY
+    ZEROQ -->|Yes| HEIGHTQ
+    HEIGHTQ -->|Yes| MINE101 --> READY
+    HEIGHTQ -->|No| MINE1 --> READY
+```
 
 ## fillMempool Stress Testing
 
@@ -136,6 +133,20 @@ The `fillMempool` method constructs real Bitcoin transactions for mempool load t
 6. Construct and broadcast individual spending transactions back to the main address
 
 Mining is paused during this process (`keepMining = false`) and automatically restored in a `finally` block. A mutex prevents concurrent `fillMempool` calls.
+
+```mermaid
+flowchart TD
+    A["Pause mining (keepMining = false)"]
+    B["Generate BIP39 mnemonic, derive BIP32 HD wallet (m/44'/0'/0'/0)"]
+    C["Request funding from node wallet (chunks of up to 2,500 outputs)"]
+    D["Mine blocks to confirm funding transactions"]
+    E["Construct PSBTs distributing funds to derived addresses (one per chunk)"]
+    F["Sign, finalize, and broadcast each PSBT"]
+    G["Construct and broadcast spending transactions back to the main address"]
+    H["Resume mining (finally block)"]
+
+    A --> B --> C --> D --> E --> F --> G --> H
+```
 
 ---
 

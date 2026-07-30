@@ -501,6 +501,31 @@ const result = await sdk.sendMessage({
 });
 ```
 
+```mermaid
+sequenceDiagram
+    participant Sender
+    participant Recipient
+
+    Note over Sender: Step 1, generate session key
+    Sender->>Sender: generateSessionKey(senderWIF)
+
+    Note over Sender,Recipient: Step 2, send format 0 key exchange request, on-chain
+    Sender->>Recipient: message(encryptionMethod 2, encryptionKey senderSession.publicKey)
+
+    Note over Recipient: Step 3, respond with format 1 containing recipient pubkey
+    Recipient->>Recipient: generateSessionKey(recipientWIF)
+    Recipient->>Sender: message(encryptionMethod 2, encryptionKey recipientSession.publicKey)
+
+    Note over Sender,Recipient: Step 4, both sides derive the same shared secret
+    Sender->>Sender: deriveSharedSecret(senderWIF, recipientSession.publicKey)
+    Recipient->>Recipient: deriveSharedSecret(recipientWIF, senderSession.publicKey)
+
+    Note over Sender,Recipient: Step 5, encrypt/decrypt with the shared secret
+    Sender->>Sender: sessionEncrypt(message, senderSecret.sharedSecret)
+    Sender->>Recipient: ciphertext
+    Recipient->>Recipient: sessionDecrypt(ciphertext, recipientSecret.sharedSecret)
+```
+
 ---
 
 ## AES Pre-Shared Key Messaging
@@ -1223,6 +1248,35 @@ app.post('/auth/verify', async (req, res) => {
 app.get('/stream/:trackId', requireSession, (req, res) => {
     res.json({ streamUrl: getSignedUrl(req.params.trackId) });
 });
+```
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Client->>Server: POST /auth/challenge, address
+    Server->>Server: generateChallenge(address)
+    Server-->>Client: challenge message, nonce
+
+    Note over Client: sign the challenge with the wallet
+
+    Client->>Server: POST /auth/verify, address, signature, nonce
+    Server->>Server: verifyOwnership(address, storedChallenge, signature)
+    alt signature invalid or challenge not found
+        Server-->>Client: error
+    else signature valid
+        Server->>Server: getBalances(address), check ALBUMTOKEN balance
+        alt balance below required amount
+            Server-->>Client: error, must hold at least 1 ALBUMTOKEN
+        else balance sufficient
+            Server->>Server: createSession(address)
+            Server-->>Client: sessionToken
+        end
+    end
+
+    Client->>Server: GET /stream/:trackId, session
+    Server-->>Client: streamUrl
 ```
 
 ---

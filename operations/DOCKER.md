@@ -35,6 +35,30 @@ This naming is consistent across `docker ps`, `docker logs`, and the xchain-node
 
 ## Docker Networks
 
+```mermaid
+flowchart TD
+    subgraph BASE["xchain-node (base network)"]
+        HUB["xchain-node-xchain-hub"]
+        EXPLORER["xchain-node-xchain-explorer"]
+        DB[("xchain-node-database")]
+    end
+
+    subgraph BTCMAIN["xchain-node-bitcoin-mainnet"]
+        BTCSVC["decoder, indexer, encoder,<br>utxo-tracker (bitcoin mainnet)"]
+    end
+
+    subgraph LTCREGTEST["xchain-node-litecoin-regtest"]
+        LTCSVC["decoder, indexer, encoder,<br>utxo-tracker (litecoin regtest)"]
+    end
+
+    BTCSVC --- HUB
+    BTCSVC --- EXPLORER
+    BTCSVC --- DB
+    LTCSVC --- HUB
+    LTCSVC --- EXPLORER
+    LTCSVC --- DB
+```
+
 Each coin+network stack gets its own Docker network for service isolation:
 
 ```

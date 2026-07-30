@@ -5,50 +5,46 @@
 
 ## Position in the Data Pipeline
 
-```
-Coin Node (bitcoind / litecoind / dogecoind)
-    ↓  JSON-RPC polling
-xchain-decoder  →  Decoder DB (MariaDB)
-    ↓  SQL reads
-xchain-indexer  →  Indexer DB (MariaDB)
-    ↓  SQL reads (read-only)
-xchain-explorer  →  REST API / JSON-RPC / Web UI
-    ↑
-xchain-hub  (config discovery, 60s refresh)
+```mermaid
+flowchart TD
+    NODE["Coin Node (bitcoind / litecoind / dogecoind)"]
+    DECODER["xchain-decoder"]
+    DECDB[("Decoder DB (MariaDB)")]
+    INDEXER["xchain-indexer"]
+    IDXDB[("Indexer DB (MariaDB)")]
+    EXPLORER["xchain-explorer"]
+    OUT["REST API / JSON-RPC / Web UI"]
+    HUB["xchain-hub"]
+
+    NODE -->|"JSON-RPC polling"| DECODER
+    DECODER --> DECDB
+    DECDB -->|"SQL reads"| INDEXER
+    INDEXER --> IDXDB
+    IDXDB -->|"SQL reads (read-only)"| EXPLORER
+    EXPLORER --> OUT
+    HUB -->|"config discovery, 60s refresh"| EXPLORER
 ```
 
 The explorer sits at the end of the data pipeline. It reads indexed state from the Indexer database (read-only access) and presents it through three interfaces: a REST API, a JSON-RPC 2.0 endpoint, and a web block explorer. It also connects to the Decoder database for raw transaction data lookups. The explorer never writes to any database.
 
 ## Internal Components
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                         api.js                               │
-│               Express + JSON-RPC server                      │
-│        HTTP + HTTPS listeners, Helmet, CORS, rate limit      │
-└────────────────────────┬─────────────────────────────────────┘
-                         │
-┌────────────────────────▼─────────────────────────────────────┐
-│                    XChainExplorer                            │
-│                 Main orchestrator class                      │
-│           URL routing, request processing,                   │
-│           response formatting, icon/relay handlers           │
-├──────────────┬──────────────┬────────────────────────────────┤
-│              │              │                                │
-│  ┌───────────▼──┐  ┌───────▼────────┐  ┌───────────────────┐ │
-│  │   Database   │  │    Config      │  │  Hub Connector    │ │
-│  │ ~9,400 LOC   │  │  Local + Hub   │  │  JSON-RPC client  │ │
-│  │ 50+ queries  │  │  60s auto-sync │  │  ping + getAll    │ │
-│  │ Parameterized│  │  Coin configs  │  │  axios-based      │ │
-│  └──────┬───────┘  └───────┬────────┘  └───────────────────┘ │
-│         │                  │                                 │
-│  ┌──────▼───────┐  ┌───────▼────────┐                        │
-│  │   Utility    │  │  Coin Configs  │                        │
-│  │  BigNumber   │  │  BTC.js        │                        │
-│  │  Timers      │  │  LTC.js        │                        │
-│  │  Sanitization│  │  DOGE.js       │                        │
-│  └──────────────┘  └────────────────┘                        │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    API["api.js<br>Express + JSON-RPC server<br>HTTP + HTTPS listeners, Helmet, CORS, rate limit"]
+    XCE["XChainExplorer<br>Main orchestrator class<br>URL routing, request processing,<br>response formatting, icon/relay handlers"]
+    DB["Database<br>~9,400 LOC<br>50+ queries<br>Parameterized"]
+    CONFIG["Config<br>Local + Hub<br>60s auto-sync<br>Coin configs"]
+    HUBCONN["Hub Connector<br>JSON-RPC client<br>ping + getAll<br>axios-based"]
+    UTIL["Utility<br>BigNumber<br>Timers<br>Sanitization"]
+    COINCONFIGS["Coin Configs<br>BTC.js<br>LTC.js<br>DOGE.js"]
+
+    API --> XCE
+    XCE --> DB
+    XCE --> CONFIG
+    XCE --> HUBCONN
+    DB --> UTIL
+    CONFIG --> COINCONFIGS
 ```
 
 ## Source Files
@@ -94,8 +90,9 @@ Every incoming request follows this sequence:
 
 ### 1. Middleware Stack
 
-```
-Request → Rate Limiter → Helmet → CORS → Express Router
+```mermaid
+flowchart LR
+    REQ["Request"] --> RL["Rate Limiter"] --> HELMET["Helmet"] --> CORS["CORS"] --> ROUTER["Express Router"]
 ```
 
 - **Rate limiter**: 500 requests per 60-second window per IP (configurable)
@@ -125,6 +122,18 @@ Special routes handled separately:
 5. **Build config object**: Populate method, search query, type, pagination parameters, and offset data
 6. **Execute query**: Call the corresponding database method (e.g., `db.getSends(config)`)
 7. **Format response**: Apply `getPagingDataResults()` to format data for the response type
+
+```mermaid
+flowchart TD
+    A["Load config<br>(hub-sourced or local)"]
+    B["Parse URL<br>(coin prefix, route type, method, query, type)"]
+    C["Validate coin<br>(COIN_SUPPORTED / COIN_AVAILABLE)"]
+    D["Match route<br>(find pattern in route table)"]
+    E["Execute query<br>(call db.method(config))"]
+    F["Format response<br>(getPagingDataResults)"]
+
+    A --> B --> C --> D --> E --> F
+```
 
 ### 4. Response Formatting
 
@@ -202,12 +211,17 @@ src/ws/
 
 **Data flow:**
 
-```
-ChangeDetector polls MAX(block_index) / MAX(action_index)
-  → diff detected → fetch new rows
-  → emit block / action / lifecycle_event / entity_update
-  → Broadcaster evaluates per-client filters (types → statuses → ticks)
-  → apply fields projection → send to matching clients
+```mermaid
+flowchart TD
+    CD["ChangeDetector polls<br>MAX(block_index) / MAX(action_index)"]
+    DIFF["diff detected"]
+    FETCH["fetch new rows"]
+    EMIT["emit block / action / lifecycle_event / entity_update"]
+    BC["Broadcaster evaluates per-client filters<br>(types → statuses → ticks)"]
+    PROJ["apply fields projection"]
+    SEND["send to matching clients"]
+
+    CD --> DIFF --> FETCH --> EMIT --> BC --> PROJ --> SEND
 ```
 
 The WebSocket server attaches to the same HTTP/HTTPS servers as Express via the `upgrade` event. No additional port. Clients connect to `/{COIN}/api/websocket`.

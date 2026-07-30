@@ -157,6 +157,19 @@ await sdk.workflows.cancelMarket(wif, { feedActionIndex: market.feedRef, memo: '
 
 Market closing (at the deadline) and expiry (when an oracle never resolves) are performed by the protocol at the end of a block; there is no submit recipe for either. Read markets back with `sdk.explorer.getBetFeed` / `getBets` (see [EXPLORER.md](./EXPLORER.md)) and follow one live with `sdk.ws.subscribeBetFeed(index)`.
 
+```mermaid
+stateDiagram-v2
+    [*] --> open: openMarket
+    open --> open: placeBet, not the creator
+    open --> closed: deadline reached, protocol end of block
+    open --> cancelled: cancelMarket, refunds everyone
+    closed --> resolved: resolveMarket, oracle resolves after the deadline
+    closed --> expired: oracle never resolves, protocol end of block
+    resolved --> [*]
+    cancelled --> [*]
+    expired --> [*]
+```
+
 ---
 
 ## deployContract

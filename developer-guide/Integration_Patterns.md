@@ -149,6 +149,17 @@ Gate access to content, features, or services based on whether a user holds a sp
 
 > **SDK v1.5.0+:** The XChain SDK now has built-in wallet verification methods (`sdk.generateChallenge()`, `sdk.signMessage()`, `sdk.verifyOwnership()`) that handle challenge generation, message signing, and signature verification. See the [Wallet & Auth Reference](../components/sdk/WALLET.md) for the full API and the [SDK Examples](../components/sdk/EXAMPLES.md#challenge-response-wallet-verification) for end-to-end code. The patterns below show both the raw `bitcoinjs-message` approach and the SDK approach.
 
+```mermaid
+flowchart TD
+    A["Step 1: Balance check<br>Query explorer for token balance"] --> B{"Balance check alone<br>sufficient for production?"}
+    B -->|"No, anyone can claim an address"| C["Step 2: Challenge-response<br>Issue nonce, verify signed message"]
+    C --> D["Step 3: Session and caching<br>Issue session token, recheck balance on a schedule"]
+    D --> E["Step 4: WebSocket invalidation<br>Revoke session on balance-change event"]
+    E --> F{"Gating logic must be<br>trustless and on-chain?"}
+    F -->|"No, server-controlled is fine"| G["Off-chain gating<br>server checks balance, serves content"]
+    F -->|"Yes"| H["Step 5: On-chain gating<br>contract checks balance, emits proof or content hash"]
+```
+
 ### Step 1: Balance Check
 
 The simplest form, query the explorer to see if an address holds enough of a token:

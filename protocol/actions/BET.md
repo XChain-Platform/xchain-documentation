@@ -109,13 +109,20 @@ This example cancels market 1234. Every open bet is refunded in full and the ora
 - Cancel stays available even after `DEADLINE + REFUND_WINDOW` has passed, right up until the market actually expires
 
 ### Market Lifecycle
-```
-BET|0 create -> open --deadline reached--> closed --BET|3 resolve--> resolved / resolved_void
-      |            |                          |
-      |        BET|2 place bets           no resolve within the refund window
-      |        (stake escrowed)               -> expired (everything refunded, no fee)
-      |
-  BET|1 cancel (creator only, while open or closed) -> cancelled (everything refunded, no fee)
+```mermaid
+stateDiagram-v2
+    [*] --> open: BET|0 create
+    open --> open: BET|2 place bets<br>(stake escrowed)
+    open --> closed: deadline reached
+    closed --> resolved: BET|3 resolve<br>(winning outcome backed)
+    closed --> resolved_void: BET|3 resolve<br>(no bet backed the winner)
+    closed --> expired: no resolve within the refund window<br>(everything refunded, no fee)
+    open --> cancelled: BET|1 cancel, creator only<br>(everything refunded, no fee)
+    closed --> cancelled: BET|1 cancel, creator only<br>(everything refunded, no fee)
+    resolved --> [*]
+    resolved_void --> [*]
+    expired --> [*]
+    cancelled --> [*]
 ```
 
 A market's status is one of `open`, `closed`, `resolved`, `resolved_void`, `cancelled`, or `expired`. A bet's status is one of `open`, `won`, `lost`, or `refunded`.

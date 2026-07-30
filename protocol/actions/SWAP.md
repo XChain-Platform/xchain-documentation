@@ -93,6 +93,25 @@ This example atomically swaps ownership of JDOG (BTC chain) for ownership of WOW
   matched + settled by the validator federation. Not the local DEX. The signed match is delivered
   to each chain over the hub mirror and settled from escrow with no per-trade on-chain transaction.
   See [Cross-Chain DEX](../Cross_Chain_DEX.md).
+
+```mermaid
+sequenceDiagram
+    participant Poster
+    participant ChainA as Posting chain
+    participant Federation as Validator federation
+    participant ChainB as Counterparty chain
+
+    Poster->>ChainA: SWAP v0 create, GET_COIN differs from posting chain
+    ChainA->>ChainA: escrow the GIVE side locally
+    Note over Federation: matched and settled by the validator federation, not the local DEX
+    Federation->>Federation: match the order against a cross-chain counterparty
+    Federation->>Federation: sign the match
+    Federation->>ChainA: deliver signed match over the hub mirror
+    Federation->>ChainB: deliver signed match over the hub mirror
+    ChainA->>ChainA: settle from escrow, no per-trade on-chain transaction
+    ChainB->>ChainB: settle from escrow, no per-trade on-chain transaction
+```
+
 - `SWAP` DOES NOT work with native `COIN` (BTC, LTC, DOGE)
 - Use a `DISPENSER` if you want to sell a `TICK` for `COIN` (BTC, LTC, DOGE)
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)

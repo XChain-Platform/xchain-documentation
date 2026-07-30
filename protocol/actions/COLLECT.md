@@ -77,6 +77,26 @@ The pool is seeded at genesis and **topped up manually** (an ordinary XCHAIN `SE
 
 If the pool cannot cover the full pending reward, the `COLLECT` is rejected with `invalid: insufficient reward pool`. The claim is recorded as invalid, so the reward **remains unclaimed and fully collectible later**; the validator simply re-broadcasts `COLLECT` once the pool has been replenished. No rewards are lost or partially paid.
 
+```mermaid
+flowchart TD
+    D1["Indexer computes oracle_round / oracle_base /<br>oracle_full_node / attest_fee during block processing"]
+    P1["Hub federation records anchor_CHAIN / anchor_archive<br>reward on publish"]
+    P2["Pushed via pushvalidatorrewards JSON-RPC"]
+    VR[("validator_rewards table")]
+    C1["COLLECT sums unclaimed rewards<br>at or before its own block"]
+    C2{"Reward pool holds<br>enough XCHAIN?"}
+    C3["Debit reward pool address,<br>credit broadcasting address"]
+    C4["Rejected: insufficient reward pool<br>(reward stays unclaimed, collectible later)"]
+
+    D1 -->|"derived, replayable"| VR
+    P1 --> P2
+    P2 -->|"pushed, archived via ANCHOR v1"| VR
+    VR --> C1
+    C1 --> C2
+    C2 -->|"yes"| C3
+    C2 -->|"no"| C4
+```
+
 ## Notes
 - Rewards accrue continuously while the address holds an active stake
 - By default all pending rewards are collected in a single action; a partial claim is available via the optional trailing `AMOUNT` (see Partial Claim above)

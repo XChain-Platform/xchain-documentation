@@ -61,6 +61,18 @@ This example sends 5 BRRR tokens to 1ExampleAddressXXXXXXXXXXXXXXXXXXX and 1 TES
 
   The requirement is CONDITIONAL where the gating files set an unlock threshold (`GATE_MIN_AMOUNT`). Each pack gating `TICK` (same publisher, `GATE_TICKER` and `KEY_HASH`) has an effective threshold equal to the MINIMUM `GATE_MIN_AMOUNT` across its files, and a pack with any threshold-less file is unconditional. A pack requires the handoff when it is unconditional, or when the DESTINATION's balance of `TICK` after this action (its pre-action balance plus everything this action sends it, totalled across all legs) reaches that threshold. The MESSAGE is required if at least one pack requires it; if every pack sits above the recipient's post-send balance, a plain `SEND` with no MESSAGE is valid and the recipient deliberately receives no key. See [Token-Gated Content](../Token_Gated_Content.md).
 
+```mermaid
+flowchart TD
+    Start["SEND action targets TICK, DESTINATION"] --> Gated{"TICK has an active gated FILE,<br>non-empty GATE_TICKER, not superseded?"}
+    Gated -->|"no"| PlainOK["Plain SEND is valid, no MESSAGE needed"]
+    Gated -->|"yes"| Threshold{"Any pack gating TICK is unconditional,<br>no GATE_MIN_AMOUNT,<br>or DESTINATION's post-send TICK balance<br>reaches that pack's effective threshold?"}
+    Threshold -->|"no pack requires it"| PlainOK
+    Threshold -->|"yes, at least one pack requires it"| NeedMsg["MESSAGE v2 (ECIES) to DESTINATION<br>required in the same transaction"]
+    NeedMsg --> Present{"Sibling MESSAGE v2 present<br>in the same transaction?"}
+    Present -->|"yes"| Valid["SEND is valid"]
+    Present -->|"no"| Rejected["SEND is rejected, sibling actions survive"]
+```
+
 ## Notes
 - `TRANSFER` action can be used for compatability with BRC20/SRC20 `TRANSFER`
 - Format version `0` allows for a single send

@@ -10,31 +10,21 @@ recoverability.
 
 ## Architecture
 
-```
-Chain X (source)                 Hub federation                  Chain Y (target)
-────────────────                 ──────────────                  ────────────────
-contract calls                   polls getpendingcrosschaincalls;
-xchain.emit.crossExecute   ──►   waits CONF[X] confirmations;
-→ XCALL v0 action row            every peer re-verifies the
-  (derived from the user's       request against its OWN X
-  tx; no extra on-chain tx)      indexer, then signs (2f+1)
-                                       │
-                                       ▼
-                                 cross_chain_calls row     ──►   indexers verify sigs vs the
-                                 (phase='dispatch'),             cross_chain capability snapshot,
-                                 mirrored to every indexer       inject XEXEC at the first block
-                                                                 ≥ effective_time (ordered by
-                                                                 (snapshot_block, call_id),
-                                                                 ≤25/block): depth-0 EXECUTE,
-                                                                 gasCeiling = gas_limit,
-                                                                 crossCallable allowlist
-                                       ┌─────────────────────────────┘
-                                       ▼
-X indexers verify sigs,    ◄──   polls getcrosschaincallresult;
-inject the callback              waits CONF[Y] depth; peers
-EXECUTE into the                 re-verify the outcome against
-requesting contract              their OWN Y indexer, sign the
-                                 phase='result' row, mirror it
+```mermaid
+sequenceDiagram
+    participant X as Chain X (source)
+    participant Hub as Hub federation
+    participant Y as Chain Y (target)
+
+    X->>Hub: contract calls xchain.emit.crossExecute<br>→ XCALL v0 action row<br>(derived from the user's tx, no extra on-chain tx)
+    Note over Hub: polls getpendingcrosschaincalls, waits CONF[X]<br>confirmations, every peer re-verifies the request<br>against its OWN X indexer, then signs (2f+1)
+    Hub->>Hub: writes cross_chain_calls row (phase='dispatch'),<br>mirrored to every indexer
+    Hub->>Y: mirrored dispatch row
+    Note over Y: indexers verify sigs vs the cross_chain capability<br>snapshot, inject XEXEC at the first block ≥ effective_time<br>(ordered by (snapshot_block, call_id), ≤25/block):<br>depth-0 EXECUTE, gasCeiling = gas_limit, crossCallable allowlist
+    Hub->>Y: polls getcrosschaincallresult
+    Note over Hub,Y: waits CONF[Y] depth, peers re-verify the outcome<br>against their OWN Y indexer, sign the phase='result'<br>row, mirror it
+    Hub->>X: mirrored result row
+    Note over X: X indexers verify sigs, inject the callback<br>EXECUTE into the requesting contract
 ```
 
 **Zero per-call on-chain transactions.** The only chain footprint is the

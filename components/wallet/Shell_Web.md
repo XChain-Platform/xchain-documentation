@@ -15,16 +15,26 @@ The web shell's key isolation is fundamentally weaker than the extension's, same
 
 ## Architecture
 
-```
-Browser tab
-  └── React SPA (Vite-built, served from a static origin)
-       ├── @xchain-wallet/core   → routes, components, flows, signers
-       ├── @xchain-wallet/extension (direct dep; `createBackgroundHost` reused for parity)
-       ├── xchain-sdk            → encoder, explorer, hub, WebSocket
-       ├── hostBridge.js         → SDK factory + storage backend (web-specific)
-       ├── sdkFactory.js         → instantiate per-chain SDK
-       ├── signerBridge.js       → cross-shell remote-signer pairing
-       └── messaging.js          → RPC helpers (mirrors popup messaging.js)
+```mermaid
+flowchart TD
+    TAB["Browser tab"]
+    SPA["React SPA (Vite-built,<br>served from a static origin)"]
+    CORE["@xchain-wallet/core<br>→ routes, components, flows, signers"]
+    EXT["@xchain-wallet/extension (direct dep;<br>createBackgroundHost reused for parity)"]
+    SDK["xchain-sdk<br>→ encoder, explorer, hub, WebSocket"]
+    HOSTBRIDGE["hostBridge.js<br>→ SDK factory + storage backend (web-specific)"]
+    SDKFACTORY["sdkFactory.js<br>→ instantiate per-chain SDK"]
+    SIGNERBRIDGE["signerBridge.js<br>→ cross-shell remote-signer pairing"]
+    MESSAGING["messaging.js<br>→ RPC helpers (mirrors popup messaging.js)"]
+
+    TAB --> SPA
+    SPA --> CORE
+    SPA --> EXT
+    SPA --> SDK
+    SPA --> HOSTBRIDGE
+    SPA --> SDKFACTORY
+    SPA --> SIGNERBRIDGE
+    SPA --> MESSAGING
 ```
 
 `hostBridge.js` is the web's analog of the extension service worker: it owns the in-tab Vault + signers + SDK registry. Unlike the extension, the host bridge runs in the same JS realm as the page UI, there's no service-worker-level isolation. This is why session keys are in-memory only and refresh = re-locked.

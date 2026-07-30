@@ -169,6 +169,17 @@ A poll closes at the earlier of two triggers:
 - **time:** `END_BLOCK` is reached.
 - **early-decide:** an option's weight crosses `DECIDE_THRESHOLD` of supply before `END_BLOCK`, subject to the same validity gates. The finalized row carries `decided_early=1` and an `effective_close_block` below `END_BLOCK`.
 
+```mermaid
+stateDiagram-v2
+    [*] --> Open
+    Open --> EffectiveClose: END_BLOCK reached (time)
+    Open --> EffectiveClose: DECIDE_THRESHOLD crossed (early-decide)
+    EffectiveClose --> Finalized: QUORUM and MIN_VOTERS gates pass
+    EffectiveClose --> FailedQuorum: QUORUM and/or MIN_VOTERS not met
+    Finalized --> [*]
+    FailedQuorum --> [*]
+```
+
 ## Binding polls
 A poll is *binding* when its v0 sets `CALLBACK_CONTRACT`: finalization then calls a contract method with the result, turning a decided poll into an on-chain effect (treasury release, parameter change, contract state update). An advisory poll just freezes its tally.
 
@@ -202,6 +213,24 @@ A deployed contract can take part in governance as itself, not just react to it,
 2. Holders broadcast VOTE v1 ballots while `cast_block <= END_BLOCK`; each valid ballot is stored in `votes` as an append-only set (the voter's latest set is their standing ballot; earlier sets stay recorded for reorg safety). Optional VOTE v3 delegations are recorded in `vote_delegations`.
 3. The per-block sweep detects polls at their effective close (time trigger, or an early-decide crossing) and synthesizes VOTE v2.
 4. v2 computes the tally from the `votes` ledger and on-chain holdings at the close block (weight mode, delegation, and gates all applied at read time), writes one `poll_results` row per option, freezes the summary on the `polls` row, releases any deposit, and (for a binding poll whose `CALLBACK_ON` gate is met) injects the callback EXECUTE.
+
+```mermaid
+sequenceDiagram
+    participant Creator
+    participant Voter
+    participant Sweep as Per-block sweep
+    participant Contract as Callback contract
+
+    Creator->>Sweep: VOTE v0, poll definition stored in polls,<br>DEPOSIT and GAS_ESCROW escrowed
+    Voter->>Sweep: VOTE v1 ballots while cast_block <= END_BLOCK,<br>stored in votes (append-only)
+    Voter->>Sweep: VOTE v3 delegation (optional),<br>recorded in vote_delegations
+    Note over Sweep: detects effective close (time trigger<br>or early-decide crossing)
+    Sweep->>Sweep: synthesizes VOTE v2
+    Note over Sweep: computes tally from votes ledger and<br>on-chain holdings at close block,<br>writes poll_results, freezes polls summary,<br>releases deposit
+    opt binding poll, CALLBACK_ON gate met
+        Sweep->>Contract: injects callback EXECUTE
+    end
+```
 
 ## Effects on v0 (create)
 - Inserts a `polls` row (idempotent on the v0 `action_index`): options, close, tally/weight modes, gates, question, deposit, and callback fields. Finalization columns (and `callback_execute_action_index`) stay null until v2.

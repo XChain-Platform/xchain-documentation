@@ -33,6 +33,16 @@ The raw string is obfuscated before being embedded in a transaction. See [Encodi
 
 ## How ACTIONs Flow Through the Platform
 
+```mermaid
+flowchart TD
+    A["1. Construction<br>App builds the ACTION string via the SDK"] --> B["2. Encoding<br>Encoder embeds obfuscated ACTION, returns unsigned PSBT"]
+    B --> C["3. Signing and Broadcast<br>Caller signs PSBT, broadcasts to coin network"]
+    C --> D["4. Decoding<br>Decoder polls blocks, extracts and deobfuscates ACTION"]
+    D --> E["5. Validation<br>Indexer checks balance, token existence, permissions"]
+    E --> F["6. Execution<br>Indexer updates balances, ledger, order books atomically"]
+    F --> G["7. Querying<br>Clients read state via Explorer REST or JSON-RPC API"]
+```
+
 1. **Construction**: An application builds the ACTION string. The [xchain-sdk](../components/sdk/) provides methods for each action and handles parameter formatting.
 2. **Encoding**: The encoder embeds the obfuscated ACTION into a standard blockchain transaction and returns an unsigned PSBT.
 3. **Signing and Broadcast**: The caller signs the PSBT with their wallet and broadcasts it to the coin network.

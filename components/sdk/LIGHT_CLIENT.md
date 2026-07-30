@@ -39,6 +39,23 @@ Nothing trusts the server's own `verified` flag or its returned `amount`: the
 amount is bound to the committed leaf, so a tampered amount fails with
 `LEAF_AMOUNT_MISMATCH`. A zero balance verifies as SMT **non-inclusion**.
 
+```mermaid
+flowchart TD
+    START["Balance/action proof received from explorer"]
+    S1["1. Checkpoint commits state_root and block_merkle_root, signed by the federation"]
+    S2{"2. Checkpoint signatures meet stake-weighted quorum under a validator set not taken from the server?"}
+    FAIL["Verification fails"]
+    S3{"3. Proof recomputed locally with merkle.js reproduces the committed root exactly?"}
+    PASS["Verified"]
+
+    START --> S1
+    S1 --> S2
+    S2 -->|"no"| FAIL
+    S2 -->|"yes"| S3
+    S3 -->|"no"| FAIL
+    S3 -->|"yes"| PASS
+```
+
 ---
 
 ## Quick start
@@ -135,6 +152,20 @@ The signer set used for the quorum check is resolved in this order:
 A `trustedCheckpoint` (for example one returned by the
 [DOGE-anchor cold start](#doge-anchor-cold-start)) binds a proof directly without
 re-fetching quorum, provided the proof is for that checkpoint's height.
+
+```mermaid
+flowchart TD
+    START{"Explicit validators passed?"}
+    T1["Tier 1: use the explicit validators, strongest, the explorer is never consulted for the set"]
+    CHECK2{"Pinned launch set present for this coin?"}
+    T2["Tier 2: use the pinned launch set, the explorer /verify endpoint is never called"]
+    T3["Tier 3: fetch the qualifying set from the explorer /verify endpoint, weakest"]
+
+    START -->|"yes"| T1
+    START -->|"no"| CHECK2
+    CHECK2 -->|"yes"| T2
+    CHECK2 -->|"no"| T3
+```
 
 ---
 

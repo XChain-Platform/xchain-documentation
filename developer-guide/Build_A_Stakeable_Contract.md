@@ -223,6 +223,24 @@ Both timers start at the UNSTAKE block and run in parallel (they do **not** run 
 
 During the cooldown window, the contract can still slash the staker; the cooldown-locked balance is reachable by `xchain.contract.slash`.
 
+The full stake lifecycle described above:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Deployed: DEPLOY v1
+
+    Deployed --> Pending: STAKE v3, locks tokens
+    Pending --> Active: activation delay elapses, getStake returns balance
+
+    Active --> Active: slashStaker, slashes active stake first
+    Active --> Cooldown: UNSTAKE v1, begins cooldown
+
+    Cooldown --> Cooldown: slashStaker, slashes cooldown-locked stake
+    Cooldown --> Released: COOLDOWN_BLOCKS elapse, tokens credited back
+
+    Released --> [*]
+```
+
 ---
 
 ## Step 7: Rotate or Revoke the Signing Key (DELEGATE)

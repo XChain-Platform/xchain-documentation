@@ -32,6 +32,33 @@ The `SWAP` ACTION enables trustless exchange of tokens across chains. The mechan
 
 5. **Timeout / cancellation**: If no counterparty matches within the offer's validity window, the originating user can cancel and recover their escrowed tokens.
 
+```mermaid
+sequenceDiagram
+    participant UserA as User (Chain A)
+    participant IndexerA as Indexer A
+    participant Hub as XChain Hub
+    participant UserB as User (Chain B)
+    participant IndexerB as Indexer B
+
+    UserA->>IndexerA: SWAP action (offer token, amount, desired return)
+    IndexerA->>IndexerA: Lock offered tokens in escrow
+    IndexerA->>Hub: Report open offer
+    Hub->>Hub: Record offer, make discoverable
+    alt Counterparty matches within validity window
+        UserB->>IndexerB: SWAP action (mirrored token pair, amounts)
+        IndexerB->>IndexerB: Lock offered tokens in escrow
+        Hub->>Hub: Federation matches the two offers
+        Hub->>IndexerA: Signal match exists
+        Hub->>IndexerB: Signal match exists
+        IndexerA->>UserB: Release escrowed tokens
+        IndexerB->>UserA: Release escrowed tokens
+        Note over IndexerA,IndexerB: Both sides settle, or neither does
+    else No counterparty matches in time
+        UserA->>IndexerA: Cancel offer
+        IndexerA->>UserA: Recover escrowed tokens
+    end
+```
+
 Throughout this process, no tokens leave their native chain. Bitcoin tokens stay on Bitcoin. Litecoin tokens stay on Litecoin. Only ownership changes.
 
 ## The Hub's Role
@@ -57,6 +84,23 @@ For details on the hub's decentralized validator architecture, see the [`../comp
 Smart contracts can call methods on contracts deployed on a different chain using `xchain.emit.crossExecute`. The calling contract specifies the target chain, the target contract, a method name, parameters, and a mandatory callback method. The validator federation relays the call (after confirming the source-chain request) to the target chain, where it is injected as an execution. The outcome (success, revert, expiry, or error) is relayed back and delivered to the callback method on the source chain.
 
 No per-call on-chain transaction is required, and no value is transferred between chains. Every call is bounded by a deadline: if no result arrives before the deadline block, the callback fires with status `expired`. Contracts that need to respond must implement the `crossCallable` export.
+
+```mermaid
+sequenceDiagram
+    participant Source as Source Contract
+    participant Federation as Validator Federation
+    participant Target as Target Contract
+
+    Source->>Federation: emit.crossExecute(target chain, contract, method, params, callback)
+    Federation->>Federation: Confirm source-chain request
+    Federation->>Target: Relay call, inject as execution
+    alt Result arrives before deadline block
+        Target-->>Federation: Outcome (success, revert, or error)
+        Federation-->>Source: Deliver outcome to callback method
+    else Deadline block passes with no result
+        Federation-->>Source: Deliver expired status to callback method
+    end
+```
 
 For the full trust model, relay architecture, and lifecycle details, see [`../protocol/Cross_Chain_Calls.md`](../protocol/Cross_Chain_Calls.md).
 

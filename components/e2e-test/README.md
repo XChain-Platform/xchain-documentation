@@ -19,6 +19,27 @@ Each action test follows the same lifecycle:
 4. **Mine**; the regtest miner detects the mempool transaction and mines a block (with a configurable delay to batch related transactions like P2SH fund + spend pairs)
 5. **Poll and verify**; the test polls the indexer MariaDB via `waitFor*` methods until the ACTION record appears, then asserts the expected token state, balances, or transaction status
 
+```mermaid
+sequenceDiagram
+    participant Wallet
+    participant Miner as Regtest Miner
+    participant Encoder
+    participant Node as Coin Node
+    participant Indexer
+
+    Note over Wallet: Create wallets (BIP39 mnemonic, BIP32 derivation)
+    Miner->>Wallet: send_funds (fund test addresses)
+    Wallet->>Encoder: build PSBT for the desired action
+    Encoder-->>Wallet: PSBT
+    Wallet->>Wallet: sign PSBT locally
+    Wallet->>Node: broadcast transaction
+    Miner->>Node: detect mempool transaction, mine block
+    loop poll until ACTION record appears
+        Wallet->>Indexer: waitFor* query
+    end
+    Indexer-->>Wallet: ACTION record found, assert token state / balances / status
+```
+
 ## Features
 
 - **27 ACTION test suites**: ISSUE (V0–V5), SEND (V0–V3), MINT, DESTROY, ORDER, DISPENSER, SWAP, DIVIDEND, AIRDROP, FILE, MESSAGE, BROADCAST, ADDRESS, LINK, LIST, CALLBACK, BATCH, SWEEP, SLEEP, COINPAY, STAKE, UNSTAKE, DELEGATE, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW
@@ -39,34 +60,19 @@ Each action test follows the same lifecycle:
 
 The test suite communicates with 9 service connectors through dedicated connector classes:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  xchain-e2e-test                                                │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │ cryptoHelper  │  │ transaction  │  │ action helpers       │  │
-│  │ BIP39/BIP32   │  │ Helper       │  │ (36 modules)         │  │
-│  │ wallet mgmt   │  │ PSBT/P2SH    │  │ message construction │  │
-│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘  │
-│         │                 │                      │               │
-│  ┌──────▼─────────────────▼──────────────────────▼───────────┐  │
-│  │              Service Connectors (src/)                     │  │
-│  │  BlockchainConnector     XChainEncoderConnector            │  │
-│  │  XChainUtxoTrackerConn   XChainDecoderConnector            │  │
-│  │  XChainIndexerConnector  XChainExplorerConnector           │  │
-│  │  XChainHubConnector      RegtestMinerConnector             │  │
-│  │  Database (MariaDB)                                        │  │
-│  └──────────────────────────┬────────────────────────────────┘  │
-│                             │                                    │
-└─────────────────────────────┼────────────────────────────────────┘
-                              │  HTTP / JSON-RPC / MariaDB
-┌─────────────────────────────▼────────────────────────────────────┐
-│  LIVE REGTEST SERVICES                                            │
-│  • bitcoind/litecoind/dogecoind    • xchain-decoder               │
-│  • xchain-utxo-tracker            • xchain-indexer + MariaDB      │
-│  • xchain-encoder                 • xchain-hub                    │
-│  • xchain-regtest-miner                                           │
-└───────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph E2E["xchain-e2e-test"]
+        CH["cryptoHelper<br>BIP39/BIP32<br>wallet mgmt"]
+        TH["transactionHelper<br>PSBT/P2SH"]
+        AH["action helpers (36 modules)<br>message construction"]
+        SC["Service Connectors (src/)<br>BlockchainConnector, XChainEncoderConnector<br>XChainUtxoTrackerConn, XChainDecoderConnector<br>XChainIndexerConnector, XChainExplorerConnector<br>XChainHubConnector, RegtestMinerConnector<br>Database (MariaDB)"]
+        CH --> SC
+        TH --> SC
+        AH --> SC
+    end
+    SVC["LIVE REGTEST SERVICES<br>• bitcoind/litecoind/dogecoind<br>• xchain-utxo-tracker<br>• xchain-encoder<br>• xchain-regtest-miner<br>• xchain-decoder<br>• xchain-indexer + MariaDB<br>• xchain-hub"]
+    SC -->|HTTP / JSON-RPC / MariaDB| SVC
 ```
 
 ### Bootstrap Sequence

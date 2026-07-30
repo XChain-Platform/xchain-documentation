@@ -65,6 +65,23 @@ Your full stake is returned, with no fee taken, in any of these cases:
 
 Refunds and payouts are unconditional. They still arrive even if the token has since been put to sleep, or your address has since been added to a token's block list. Getting in is gated; getting out never is.
 
+```mermaid
+stateDiagram-v2
+    [*] --> open: market created
+    open --> open: bet placed (stake escrowed)
+    open --> closed: deadline reached
+    open --> cancelled: oracle cancels
+    closed --> cancelled: oracle cancels
+    closed --> resolved: oracle publishes result (someone backed the winner)
+    closed --> resolved_void: oracle publishes result (nobody backed the winner)
+    closed --> expired: resolve window elapses, oracle never resolves
+    resolved --> [*]: winners paid
+    resolved_void --> [*]: everyone refunded, no fee
+    expired --> [*]: everyone refunded, no fee
+    cancelled --> [*]: everyone refunded, no fee
+    note right of resolved: If everyone backed the winner, winners get back slightly less than they staked (the oracle's fee still comes out of the pot)
+```
+
 ### Two things that will catch you out
 
 - **Sweeping your address does not move your bets.** If you sweep your wallet to a new address after betting, the payout still goes to the address that placed the bet. Sweep first, then bet

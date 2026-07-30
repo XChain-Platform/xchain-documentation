@@ -296,6 +296,17 @@ When `.build()` is called, the following steps happen in sequence:
 
 The BATCH action itself uses format version 0 (`VERSION|COMMAND`), there is only one BATCH format.
 
+```mermaid
+flowchart TD
+    S1["1. validate(), check BATCH protocol constraints"]
+    S2["2. createAction() per queued action, validate, format select, serialize"]
+    S3["3. join all actionString values with semicolon"]
+    S4["4. hoist FILE rawData into encoder opts, if provided"]
+    S5["5. wrap the joined string as the outer BATCH action"]
+
+    S1 --> S2 --> S3 --> S4 --> S5
+```
+
 ---
 
 **Copyright &copy; 2025–2026 Dankest, LLC**

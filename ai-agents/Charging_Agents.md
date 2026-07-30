@@ -9,6 +9,26 @@ A commercial license is available, contact legal@dankest.llc.
 
 You have something an AI agent wants; a data feed, an API, a file. XChain lets the agent pay for it in your token, inside the request itself: the agent asks, your server answers "402, here's the price," the agent pays on-chain, retries, and gets the goods. No accounts, no API keys, no card forms. This guide is for the **seller** side; agents paying are covered by the SDK's `X402Client` (one call: `client.fetchUrl(url)`).
 
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Server as Server (gateway)
+    participant Chain
+
+    Agent->>Server: GET resource
+    Server-->>Agent: 402, price and payment instructions
+    Agent->>Chain: pay on-chain (SEND, one-time invoice)
+    Agent->>Server: retry request
+    Server->>Chain: verify payment
+    Server-->>Agent: 200, content served (provisional if minConfirmations is 0)
+    Note over Server,Chain: minConfirmations 0 grants are provisional on mempool sight, gateway rechecks later
+    alt payment confirms
+        Note over Server: provisional grant confirmed
+    else payment never confirms
+        Note over Server: onProvisionalFailed, operator notified
+    end
+```
+
 ## The five-minute version
 
 ```js

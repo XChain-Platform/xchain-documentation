@@ -813,6 +813,20 @@ Query swap records by status.
 
 Swap statuses: `initiated`, `attested`, `executed`, `settled`, `failed`.
 
+```mermaid
+stateDiagram-v2
+    [*] --> Initiated
+    Initiated --> Attested: attestation finalizes
+    Attested --> Executed
+    Executed --> Settled
+    Settled --> [*]
+
+    Initiated --> Failed
+    Attested --> Failed
+    Executed --> Failed
+    Failed --> [*]
+```
+
 ## Reorg Handling
 
 ### `reportreorg`

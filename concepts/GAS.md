@@ -8,13 +8,15 @@ XChain uses a unified gas-based fee system. All protocol fees are expressed in *
 ## Fee Conversion Paths
 
 **Native coin payment (all chains):**
-```
-gas cost → GAS_PRICE → XCHAIN amount → XCHAIN/USD oracle → USD → USD/coin oracle → native coin
+```mermaid
+flowchart LR
+    GC["gas cost"] --> GP["GAS_PRICE"] --> XA["XCHAIN amount"] --> XU["XCHAIN/USD oracle"] --> USD["USD"] --> UC["USD/coin oracle"] --> NC["native coin"]
 ```
 
 **XCHAIN balance payment (BTC only):**
-```
-gas cost → GAS_PRICE → XCHAIN amount → debit from user's XCHAIN balance
+```mermaid
+flowchart LR
+    GC2["gas cost"] --> GP2["GAS_PRICE"] --> XA2["XCHAIN amount"] --> DB["debit from user's<br>XCHAIN balance"]
 ```
 
 On BTC, the indexer uses implicit detection: if the transaction includes a native coin output to the fee destination address, it's validated as native coin payment against the oracle. If there is no fee output, the indexer debits XCHAIN from the user's balance. On LTC/DOGE, native coin payment is the only option; a missing fee output means the action is rejected.

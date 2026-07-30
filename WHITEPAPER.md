@@ -111,22 +111,27 @@ The hub runs as a single shared instance across all chains; the core pipeline se
 
 ### 3.2 The data pipeline
 
-```
-Coin node ──JSON-RPC──> utxo-tracker (LevelDB: balances/UTXOs)
-                              │
-   developer ─ SDK ───────────┤
-                              ▼
-                          encoder ──> unsigned PSBT ── sign ── broadcast ──> Coin node
-                                                                                  │
-                                                                          (block mined)
-                                                                                  ▼
-                                                          decoder ──> decoder DB (raw decoded ACTIONs)
-                                                                                  ▼
-                                                          indexer ──> indexer DB (validated state, ledger, VM)
-                                                                                  ▼
-                                                          explorer ──> HTML / REST / JSON-RPC / WS
-                                                                                  ▲
-                                                          hub ── config / prices / cross-chain / attestation
+```mermaid
+flowchart TD
+    NODE["Coin node"]
+    UTXO["utxo-tracker<br>(LevelDB: balances/UTXOs)"]
+    DEV["Developer via SDK"]
+    ENC["encoder"]
+    SIGN["unsigned PSBT → sign → broadcast"]
+    DEC["decoder"]
+    DECDB[("decoder DB<br>(raw decoded ACTIONs)")]
+    IDX["indexer"]
+    IDXDB[("indexer DB<br>(validated state, ledger, VM)")]
+    EXP["explorer<br>HTML / REST / JSON-RPC / WS"]
+    HUB["hub<br>(config / prices / cross-chain / attestation)"]
+
+    NODE -->|JSON-RPC| UTXO
+    UTXO --> ENC
+    DEV --> ENC
+    ENC --> SIGN --> NODE
+    NODE -->|block mined| DEC
+    DEC --> DECDB --> IDX --> IDXDB --> EXP
+    HUB --> EXP
 ```
 
 The pipeline is strictly unidirectional: raw data enters at the decoder, is promoted to validated state by the indexer, and is served read-only by the explorer.
@@ -397,6 +402,16 @@ Emitted actions are queued during execution and applied **only after the VM retu
 
 Sections 7.1-7.7 describe contracts that users call. The controller mechanism is the inverse: **the protocol calls a contract**. A token (via `ISSUE` v6) or an account (via `ADDRESS` v1, self-signed) may bind a deployed contract as its **controller** for one action class (`transfer`, `trade`, `mint`, `burn`, `stake`, `ownership`, or the `all` fallback; resolution is most-specific-wins and exactly one guard ever runs). Once bound, the indexer invokes the controller's `guard` method after an action of that class passes normal validation and **before it settles**, inside the same atomic scope. The guard is an ordinary deterministic VM execution: it may read and write its own state, emit actions, return normally to allow, or `revert` to deny; a revert, error, missing method, or out-of-gas **fails closed**, rolling back everything the guard did and recording the action invalid. Because the indexer is the only settlement path, a bound rule is unavoidable: there is no marketplace or side venue where it can be sidestepped, which is the property goodwill-based royalty schemes on other platforms never achieved.
 
+```mermaid
+flowchart TD
+    A["Action passes normal validation"] --> B{"Action class bound<br>to a controller?"}
+    B -->|"No binding"| F["Settle normally"]
+    B -->|"Bound"| C["Controller guard method runs<br>(same atomic scope)"]
+    C --> D{"Guard returns normally, or<br>reverts, errors, or runs out of gas?"}
+    D -->|"Returns normally"| E["Allow: settle,<br>guard's state changes commit atomically"]
+    D -->|"Revert, error, or out of gas"| G["Fail closed: deny the action,<br>roll back everything the guard did"]
+```
+
 A `trade`-class guard may additionally return a basis-point **proceeds split** (`payoutLegs`) when a listing is created. The split is validated and stored on the order or swap as declarative data and applied at match with exact conservation (remainder to the seller first, then each leg); no guard runs on the system-triggered fill path, so matching stays deterministic and gas-free. This one primitive expresses enforced royalties, marketplace fees, and revenue share; there is no royalty-specific code path. On cross-chain sales the legs travel inside the validator-signed match canonical and are applied by the settling chain, so a corrupted mirror cannot strip a royalty (§9.2).
 
 The mechanism is bounded by design. A controller is a gate, never an agent: it cannot move user funds on its own initiative, and it may not call the asynchronous frameworks (attestation, XCALL) or emit `SLASH`. A contract may declare an immutable **permissions manifest** at deploy time (an emission allowlist, and a royalty cap tighter than the global ceiling). Guard gas is billed to the action's source against a bounded ceiling (200,000 gas by default, reserved up front and charged on allow only). Bindings are droppable, subject to a per-binding cooldown the owner commits at bind time. Bulk distributions are guarded once, sender-side, per tick (never per recipient, which keeps guard cost independent of recipient count and un-griefable). A token or account with no binding takes a single NULL check: zero VM work, zero added fee, unchanged behavior. *(pre-launch: rides the 2.0.0 contract-era flag day; cross-chain royalty acceptance follows its own later gate after the match-canonical flag-day, with royalty-bearing cross-chain listings denied fail-closed in the interim.)*
@@ -414,6 +429,23 @@ Most contract platforms can only reason about on-chain data. XChain contracts ca
 - **v0 (request, VM-emitted only):** `request_id` is `SHA256(tx_hash + ':' + root_action_index + ':' + emitter_path + ':' + contract_index + ':' + emitter_position)`, which the indexer re-derives to defend against a compromised VM. The wire carries provider id, payload, callback method/params, redundancy, deadline, and a trailing fee tick/amount. A user-broadcast v0 is rejected.
 - **v1 (response, validator-broadcast):** carries the response payload, a status (`ok`/`timeout`/`no_quorum`/`provider_error`/`expired`), provider metadata, and `(pubkey, signature)` pairs. The canonical signing message binds the request id, provider id, a hash of the response payload, the status, and metadata. Signers are checked against the `attestation` capability snapshot **at the request's block**, so every node computes the same eligible set, and signatures are further filtered to a deterministic responsible subset. The valid signature count must meet the requested redundancy. Terminal statuses fire the callback; retryable statuses leave the request pending.
 - **v2 (expiry, system-synthesized):** the per-block expiry pipeline flips any past-deadline pending request to expired and fires the callback with an expired status.
+
+```mermaid
+sequenceDiagram
+    participant Contract
+    participant Indexer
+    participant Validators as Validator quorum (attestation capability)
+
+    Contract->>Indexer: emit ATTEST v0 (request, returns request id)
+    alt Response received before deadline
+        Note over Validators: Fetch answer independently, agree on canonical result
+        Validators->>Indexer: ATTEST v1 (leader broadcasts signatures)
+        Indexer->>Contract: EXECUTE callback (terminal status)
+    else Deadline passes with no response
+        Note over Indexer: Synthesize ATTEST v2 (expiry)
+        Indexer->>Contract: EXECUTE callback (status expired)
+    end
+```
 
 ### 8.3 Providers
 
@@ -457,6 +489,24 @@ When a user posts an `ORDER` or `SWAP` whose get-side coin differs from the post
 5. **Settle**: each indexer independently verifies the signatures against the snapshot validator set and releases its leg's escrow to the counterparty, recording an internal settlement for idempotency and reorg-safety. Indexers apply a match at the first block whose timestamp passes the match's effective time, so all operators of a chain settle identically.
 6. **Retract** on a source-order reorg; any indexer that settled within the reorged span rolls its leg back.
 
+```mermaid
+sequenceDiagram
+    participant ChainA as Chain A
+    participant ChainB as Chain B
+    participant Quorum as Validator quorum
+
+    ChainA->>Quorum: Discover open offer (posted on chain A)
+    ChainB->>Quorum: Discover open offer (posted on chain B)
+    Note over Quorum: Match compatible offers
+    Note over Quorum: Finalize and sign match (cross_chain quorum)
+    Quorum->>ChainA: Deliver signed match (hub-DB mirror)
+    Quorum->>ChainB: Deliver signed match (hub-DB mirror)
+    Note over ChainA,ChainB: Settle, each indexer verifies signatures and releases its leg's escrow
+    alt Source-order reorg after settlement
+        Note over ChainA,ChainB: Retract, roll back the settled leg
+    end
+```
+
 The mirror is a transport, not an authority: a corrupted mirror can delay but **cannot forge**, because the signed canonical match string includes the network identifier (preventing cross-network replay) and every signature must verify against the on-snapshot `cross_chain` set. When a listing carries a controller-set proceeds split (§7.8), its payout legs are folded into the same signed canonical and applied by the settling chain, so a corrupted mirror cannot strip a royalty either *(pre-launch, gated with the cross-chain royalty flag-days)*. Throughout, **no tokens leave their home chain** (only ownership changes) and **the hub never takes custody**. An optional Merkle-rooted audit anchor may be published to a chain for transparency without gating settlement.
 
 Cross-chain settlement uses a per-chain source-confirmation depth that operators tune to the assurance each chain warrants, raising it on lower-hashpower chains; the deeper per-chain depths in §10.4 govern the cross-chain attestation path. The matching layer's default is a single source confirmation, so settlement finality tracks the chosen depth: a source-chain reorg deeper than that depth after settlement is the residual risk this knob exists to manage.
@@ -484,6 +534,24 @@ The hub is a decentralized validator network: a WebSocket P2P flood-fill gossip 
 ### 10.2 PBFT consensus
 
 All consensus domains use a simplified three-phase PBFT (pre-prepare, prepare, commit). The fault-tolerance floor is a count quorum of `max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)`; the majority term keeps a small federation from collapsing to a single signer (for `N=3`, quorum is 2, not 1). Leaders are chosen by deterministic round-robin over the pubkey-sorted set; a leader that stalls past the timeout triggers a view change to the next leader once enough view-change votes accumulate. The consensus **sequence number** is persisted so validators resume correctly after restart (the view number and pending proposals are in-memory and reset on restart). With no peers connected, a single instance executes operations directly (degenerate single-node mode).
+
+```mermaid
+sequenceDiagram
+    participant L as Leader
+    participant V as Validators (quorum required)
+
+    L->>V: PRE_PREPARE
+    V-->>L: PREPARE
+    Note over L,V: Collect quorum before proceeding
+    L->>V: COMMIT
+    V-->>L: COMMIT
+    Note over L,V: Collect quorum, decision finalized
+    alt Leader stalls past timeout
+        V->>V: Broadcast view-change votes for next view
+        Note over V: Once enough view-change votes accumulate
+        Note over V: Next leader (round-robin over pubkey-sorted set) takes over
+    end
+```
 
 **Stake-weighted quorum.** Beyond the count floor, the consensus engines weight quorum by stake: a decision needs signers whose combined stake exceeds two-thirds of the total active staked weight (`3 * sum(signer stake) > 2 * total stake`), counted over distinct stake sources. Capturing a quorum therefore requires out-staking the honest set, not merely out-numbering it. This is wired into config, cross-chain DEX and XCALL, the oracle, and state checkpoints, and is verified on testnet and regtest. As a consensus change it activates fleet-wide at a single coordinated flag-day height, the standard way to roll out a rule change without risking a chain split, and the count quorum governs until that height so every node crosses the boundary identically. *(pre-launch: armed to activate at BTC height 961,000, expected early August 2026.)*
 

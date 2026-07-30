@@ -253,6 +253,19 @@ The `Database` class includes a circuit breaker pattern for connection managemen
 - **Open** (failing): After 10 consecutive failures, the circuit opens and rejects connections for 30 seconds
 - **Half-open** (testing): After the cooldown period, a single connection attempt is allowed; success closes the circuit, failure re-opens it
 
+```mermaid
+stateDiagram-v2
+    [*] --> Closed
+    Closed: Connections proceed normally
+    Open: Rejects connections for 30 seconds
+    HalfOpen: A single connection attempt is allowed
+
+    Closed --> Open: 10 consecutive failures
+    Open --> HalfOpen: cooldown elapses
+    HalfOpen --> Closed: attempt succeeds
+    HalfOpen --> Open: attempt fails
+```
+
 ### Database Verification on Startup
 
 On startup, the indexer retries database connections indefinitely with a 5-second delay between attempts. This allows the indexer to start before the database is fully available (common in Docker orchestration).

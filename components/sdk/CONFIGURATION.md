@@ -118,6 +118,24 @@ await sdk.init();
 await sdk.init(); // re-fetches and re-resolves (safe)
 ```
 
+```mermaid
+sequenceDiagram
+    participant App
+    participant SDK
+    participant Hub
+
+    App->>SDK: new XChainSDK(hubUrl, hubPort)
+    App->>SDK: init()
+    SDK->>Hub: getAllConfig(), JSON-RPC
+    Hub-->>SDK: platform config, explorer and encoder endpoints for network
+    SDK->>SDK: re-initialize explorer and encoder clients, explicit options take precedence
+    loop every 60 seconds
+        SDK->>Hub: re-fetch config
+        Hub-->>SDK: config
+        SDK->>SDK: re-initialize clients if endpoints changed
+    end
+```
+
 ## Public Endpoint Defaults
 
 When only `network` is specified (no explicit service URLs, no environment overrides, and the network is not regtest), the SDK applies public XChain Platform endpoint defaults so you can query mainnet or testnet with minimal config:

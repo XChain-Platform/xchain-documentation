@@ -31,6 +31,16 @@ The database and all tables are auto-created on startup if they don't exist. Sch
 
 ## Core Tables
 
+```mermaid
+erDiagram
+    index_transactions ||--o{ blocks : "block_hash_id, previous_block_hash_id"
+    index_transactions ||--o{ transactions : "tx_hash_id"
+    index_addresses ||--o{ transactions : "source_id, destination_id"
+    index_addresses ||--o{ dispensers : "address_id"
+    index_addresses ||--o{ transaction_outputs : "destination_id"
+    index_addresses ||--o{ pubkeys : "address_id"
+```
+
 ### blocks
 
 Stores one row per block that the decoder has processed.
@@ -186,18 +196,27 @@ Notable applied migrations:
 
 ## Data Flow
 
-```
-Coin Node  →  BlockchainConnector  →  XChainDecoder.parseTransaction()
-                                           │
-                                    ┌──────┴──────┐
-                                    │             │
-                              blocks table   transactions table
-                                    │             │
-                              index_transactions  index_addresses
-                                    │             │
-                              dispensers     transaction_outputs
-                                    │
-                              events (reorgs)
+```mermaid
+flowchart TD
+    NODE["Coin Node"]
+    CONN["BlockchainConnector"]
+    PARSE["XChainDecoder.parseTransaction()"]
+    BLOCKS[("blocks table")]
+    TXN[("transactions table")]
+    IDXTX[("index_transactions")]
+    IDXADDR[("index_addresses")]
+    DISP[("dispensers")]
+    TXOUT[("transaction_outputs")]
+    EVENTS[("events (reorgs)")]
+
+    NODE --> CONN --> PARSE
+    PARSE --> BLOCKS
+    PARSE --> TXN
+    BLOCKS --> IDXTX
+    TXN --> IDXADDR
+    IDXTX --> DISP
+    IDXADDR --> TXOUT
+    DISP --> EVENTS
 ```
 
 ## Satoshi Conversion

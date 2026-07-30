@@ -35,18 +35,16 @@ In other words, XChain contracts are **orchestration logic**, not **state-mutati
 
 Contracts are written in JavaScript (ES2020) and deployed to the blockchain via the `DEPLOY` action. Once deployed, anyone can invoke a contract with an `EXECUTE` action, passing a method name and parameters. The contract runs inside a sandboxed V8 isolate within the indexer, reads platform state (balances, token info, block height), applies its logic, and emits zero or more platform ACTIONs in response. Those emitted actions are validated and executed through the same handlers as if a user had broadcast them directly.
 
-```
-User broadcasts EXECUTE action
-    ↓
-Indexer loads contract code + state from DB
-    ↓
-VM executes contract in sandboxed V8 isolate
-    ↓
-Contract reads state, does math, emits platform ACTIONs
-    ↓
-Each emitted ACTION validated and processed by existing handlers
-    ↓
-All succeed atomically, or all roll back
+```mermaid
+flowchart TD
+    USER["User broadcasts EXECUTE action"]
+    LOAD["Indexer loads contract code<br>+ state from DB"]
+    VM["VM executes contract in<br>sandboxed V8 isolate"]
+    LOGIC["Contract reads state, does math,<br>emits platform ACTIONs"]
+    VALIDATE["Each emitted ACTION validated and<br>processed by existing handlers"]
+    RESULT["All succeed atomically,<br>or all roll back"]
+
+    USER --> LOAD --> VM --> LOGIC --> VALIDATE --> RESULT
 ```
 
 Contracts also maintain persistent key-value state across executions, enabling them to track conditions, accumulate data, and implement multi-step workflows.
@@ -271,21 +269,30 @@ This is built on two ideas. First, the contract doesn't talk to the outside worl
 
 A smart contract can't pause and wait for an answer (the VM is synchronous, gas-bounded, and runs in a single block). So attestation uses an **asynchronous request-and-callback** pattern:
 
-```
-Block N:  Contract method calls xchain.attestation.request(...)
-              → Emits ATTEST v0 (request); contract method returns immediately
+```mermaid
+sequenceDiagram
+    participant Contract
+    participant Validators
+    participant Indexer
 
-Block N+1..N+deadline:  Validators with the 'attestation' capability
-                        each fetch the answer independently via the provider
-                        → They gossip proposals and agree on the canonical response
-                        → Leader broadcasts ATTEST v1 (response) with everyone's signatures
+    Note over Contract: Block N
+    Contract->>Indexer: xchain.attestation.request(...)
+    Indexer->>Indexer: emits ATTEST v0 (request),<br>contract method returns immediately
 
-Some block N+k:  Indexer accepts the ATTEST v1
-                 → Synthesizes a fresh EXECUTE calling the contract's callback method
-                 → Callback receives: (requestId, providerId, status, response, ...originalParams)
+    Note over Validators: Block N+1..N+deadline
+    Validators->>Validators: validators with the 'attestation' capability<br>each fetch the answer independently via the provider
+    Validators->>Validators: gossip proposals and agree<br>on the canonical response
 
-If no v1 by the deadline:  Indexer synthesizes ATTEST v2 (expire)
-                            → Callback fires anyway with status='expired'
+    alt response received before deadline
+        Validators->>Indexer: leader broadcasts ATTEST v1 (response)<br>with everyone's signatures
+        Note over Indexer: some block N+k
+        Indexer->>Indexer: accepts the ATTEST v1
+        Indexer->>Contract: synthesizes a fresh EXECUTE calling<br>the contract's callback method
+        Note over Contract: callback receives: (requestId, providerId,<br>status, response, ...originalParams)
+    else no v1 by the deadline
+        Indexer->>Indexer: synthesizes ATTEST v2 (expire)
+        Indexer->>Contract: callback fires anyway<br>with status='expired'
+    end
 ```
 
 The contract's first method (the one that called `request`) returns synchronously; its work in that block is done. The callback method runs in a separate EXECUTE later, when the answer is available. The callback runs as if the contract were calling itself: `xchain.getSourceAddress()` returns the contract's own derived address.

@@ -139,6 +139,19 @@ from `LIST` + `LINK`.
 items = N child ticks. A collection of editions (e.g. 50 items × 10 prints each) is 50
 children, each with `MAX_SUPPLY=10`.
 
+```mermaid
+erDiagram
+    PARENT_TICK ||--o{ CHILD_TICK : "current owner may ISSUE, rejected while parent ownership is escrowed"
+    PARENT_TICK {
+        string tick "e.g. PEPESERIES"
+        address current_owner
+    }
+    CHILD_TICK {
+        string tick "e.g. PEPESERIES.GENESIS"
+        address current_owner "independent record, does not move with the parent"
+    }
+```
+
 ---
 
 ## Attaching content

@@ -78,6 +78,16 @@ you ever need to move funds *out* of the pool manually.
 Refill the pool at any time by sending XCHAIN to the reward-pool address (treasury → pool). No
 special action type; a plain `SEND`. The next `COLLECT` immediately sees the higher balance.
 
+```mermaid
+stateDiagram-v2
+    [*] --> Empty
+    Empty --> Funded: Seed, SEND to reward-pool address
+    Funded --> Funded: COLLECT drains the pool, validator credited
+    Funded --> Depleted: Pool balance reaches zero
+    Depleted --> Depleted: COLLECT fails, invalid insufficient reward pool
+    Depleted --> Funded: Top-up, SEND replenishes the pool
+```
+
 ## Verification
 
 1. **Token exists with the right shape**: query the indexer `tokens` table for `tick='XCHAIN'`:

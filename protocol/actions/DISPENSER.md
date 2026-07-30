@@ -101,6 +101,22 @@ Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH
 - If a dispenser is closed by the dispenser `SOURCE`, tokens escrowed in the dispenser are returned to `SOURCE`
 - If a dispenser is closed via `SWEEP` (`DISPENSERS=1`), remaining escrowed tokens (or the escrowed ownership record, if `GIVE_OWNERSHIP=1`) are credited to the SWEEP `DESTINATION` (see [`SWEEP`](./SWEEP.md))
 - If a dispenser closes due to `EXPIRATION` (no canceller), tokens escrowed in the dispenser are returned to `SOURCE`
+
+```mermaid
+stateDiagram-v2
+    [*] --> open: DISPENSER v0 create, GIVE_ESCROW locked
+    open --> open: valid payment, DISPENSE (not the final one)
+    open --> ownership_dispensed: single-shot ownership dispenser's one DISPENSE
+    ownership_dispensed --> [*]: ownership transfers atomically to payer
+    open --> cancelling: DISPENSER v1 cancel (by GET_ADDRESS or SOURCE),<br>or 1000-dispense fill limit reached
+    cancelling --> closed: 1-hour close delay elapses<br>(FIAT payments confirming during the window still processed)
+    closed --> [*]: escrow returned to whichever of GET_ADDRESS/SOURCE closed it,<br>or refunded to SOURCE if closed by the fill limit
+    open --> expired: EXPIRATION reached, no canceller
+    expired --> [*]: escrow returned to SOURCE
+    open --> swept: SWEEP DISPENSERS=1
+    swept --> [*]: escrow credited to SWEEP DESTINATION
+```
+
 - `FIAT_CODE` and `FIAT_AMOUNT` must both be provided together (or both empty), unless `ORACLE_ADDRESS` is set
 - `ORACLE_ADDRESS` requires `FIAT_CODE` to be set (the oracle prices the token in that fiat currency)
 - `ORACLE_ADDRESS` makes `FIAT_AMOUNT` optional/ignored; the oracle provides the price
@@ -178,6 +194,15 @@ units         = floor((COIN_AMOUNT × coin_price) / oracle_price)
 
 **Why both oracles?** The user oracle prices the *token*, the validator oracle prices the *coin*, both are needed when the buyer is paying in a coin different from the oracle's quote currency. Both must use the same FIAT currency as the bridge.
 
+```mermaid
+flowchart TD
+    Create["DISPENSER created with FIAT_CODE set"] --> Check{"ORACLE_ADDRESS set?"}
+    Check -->|"no"| Mode1["Mode 1: Validator Price Oracle<br>FIAT_CODE and FIAT_AMOUNT set directly"]
+    Check -->|"yes"| Mode2["Mode 2: User Oracle, PRICE v1<br>oracle publishes token price in FIAT_CODE"]
+    Mode1 --> Calc1["btc_per_token = FIAT_AMOUNT / btc_usd_price<br>from validator PRICE v0"]
+    Mode2 --> Calc2["oracle_price from user PRICE v1,<br>coin_price from validator PRICE v0,<br>units = floor((COIN_AMOUNT x coin_price) / oracle_price)"]
+```
+
 ### Reverse Price Matching
 Because blockchain payments can take time to confirm, oracle prices may change between when the buyer sends the payment and when it lands in a block. The system handles this by searching historical oracle price snapshots within a **24-hour window** (86400 seconds) before the payment's `block_time`.
 
@@ -197,6 +222,24 @@ Because blockchain payments can take time to confirm, oracle prices may change b
    - Calculate `units = floor((COIN_AMOUNT × coin_price) / oracle_price)`
    - If `units >= 1`: **match found**
 3. Returns the first matching combination
+
+```mermaid
+flowchart TD
+    A["Buyer payment confirms in a block"] --> B{"ORACLE_ADDRESS set?"}
+    B -->|"no, validator path"| C["Retrieve finalized validator price snapshots<br>for COIN/FIAT, 24h window before block_time,<br>newest-first"]
+    B -->|"yes, user oracle path"| D["Retrieve user oracle prices for<br>(ORACLE_ADDRESS, GIVE_COIN, GIVE_TICK, FIAT_CODE),<br>24h window, newest-first,<br>effective_at at or before block_time"]
+    C --> E["Take next snapshot, newest to oldest"]
+    D --> E
+    E --> F{"validator or user oracle path?"}
+    F -->|"validator"| G["btc_per_token = FIAT_AMOUNT / snapshot.price<br>units = floor(COIN_AMOUNT / btc_per_token)"]
+    F -->|"user oracle"| H["fetch validator GET_COIN/FIAT price<br>at oracle's effective time<br>units = floor((COIN_AMOUNT x coin_price) / oracle_price)"]
+    G --> I{"units at least 1?"}
+    H --> I
+    I -->|"yes"| J["Match found, first (most recent) match wins:<br>dispense units x GIVE_AMOUNT tokens"]
+    I -->|"no"| K{"more snapshots<br>remain in window?"}
+    K -->|"yes"| E
+    K -->|"no"| L["No match: dispense invalid"]
+```
 
 ### Overpayment / Tips
 If a buyer sends slightly more coin than the exact calculated amount, the system floors the unit count and absorbs the excess as overpayment. The extra amount does not trigger additional dispenses. For example, if the exact cost for 5 units is 0.000005 BTC and the buyer sends 0.0000055 BTC, the system dispenses 5 units.

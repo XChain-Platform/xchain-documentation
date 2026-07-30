@@ -87,4 +87,24 @@ export XCHAIN_MCP_POLICY=/path/to/policy.json # or the server stays read-only
 
 That unlocks `submit_action` (compose → policy check → sign → broadcast → wait for the indexer) and `get_agent_wallet` (address, balances, remaining window budget). Every submission is enforced by an [agent session](Agent_Wallets.md): out-of-policy requests are refused **before signing** with a `POLICY_*` code, and results carry the window usage so the agent can track its own budget. Agents should treat policy refusals as final answers, not errors to retry.
 
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant MCP as xchain-mcp Server
+    participant Indexer
+
+    Agent->>MCP: submit_action request
+    MCP->>MCP: Compose action
+    MCP->>MCP: Policy check against agent session
+    alt Policy violation
+        MCP-->>Agent: Refuse before signing, POLICY_* code
+    else Within policy
+        MCP->>MCP: Sign with configured wallet
+        MCP->>Indexer: Broadcast transaction
+        MCP->>Indexer: Wait for the indexer to process
+        Indexer-->>MCP: Confirmation
+        MCP-->>Agent: Result, plus window usage
+    end
+```
+
 Notes: `confirmAbove` is rejected in the MCP policy file, there is no human in this loop, use hard caps. Fund the agent's address like a spending account, not a vault.

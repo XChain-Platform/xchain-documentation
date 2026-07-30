@@ -24,6 +24,21 @@ Elliptic Curve Integrated Encryption Scheme. Encrypts a message directly to the 
 - Works across multiple devices; any device with the recipient's private key can decrypt
 - Recommended for general address-to-address messaging
 
+```mermaid
+sequenceDiagram
+    participant Sender
+    participant Chain
+    participant Recipient
+
+    Sender->>Sender: generate ephemeral keypair per message
+    Sender->>Sender: derive shared secret via ECDH using recipient's public key
+    Sender->>Sender: encrypt message with AES-256-GCM
+    Sender->>Chain: MESSAGE v2, ciphertext includes the ephemeral public key
+    Chain->>Recipient: ciphertext delivered
+    Recipient->>Recipient: derive shared secret via ECDH using own private key and the ephemeral public key
+    Recipient->>Recipient: decrypt message
+```
+
 ### Method `2` - ECDH: Session Communication
 Elliptic Curve Diffie-Hellman key exchange. Both parties exchange public keys (via format `0` and `1` messages) and derive a shared secret. All subsequent messages in the session are encrypted with that shared secret.
 
@@ -31,6 +46,21 @@ Elliptic Curve Diffie-Hellman key exchange. Both parties exchange public keys (v
 - Session is device-bound; the shared secret only exists on the devices that performed the exchange
 - Provides forward secrecy when using ephemeral keys
 - Best for long-running conversations where both parties are on the same device
+
+```mermaid
+sequenceDiagram
+    participant A as Initiator
+    participant B as Recipient
+
+    A->>B: MESSAGE v0 Sender Key, ENCRYPTION_METHOD=2, ENCRYPTION_KEY=A public key
+    Note over A,B: format 0 initializes the ECDH key exchange request
+    B->>A: MESSAGE v1 Receiver Key, ENCRYPTION_METHOD=2, ENCRYPTION_KEY=B public key
+    Note over A,B: format 1 responds to the request
+    A->>A: derive shared secret via ECDH using B's public key
+    B->>B: derive shared secret via ECDH using A's public key
+    Note over A,B: session is device-bound, the shared secret only exists on the devices that performed the exchange
+    A->>B: MESSAGE v2 Encrypted Message, ENCRYPTED_MESSAGE encrypted with the shared secret
+```
 
 ### Method `3` - AES: Shared Secret Communication
 Advanced Encryption Standard with a pre-shared key. Both parties must already know the same secret key, exchanged out-of-band (not on-chain).

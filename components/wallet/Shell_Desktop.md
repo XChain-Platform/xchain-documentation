@@ -9,35 +9,14 @@
 
 The desktop shell uses Electron's main / renderer split (§9.3.2 of the spec) as a hard isolation boundary:
 
-```
-                ┌─────────────────────────────────────┐
-                │           Electron main             │
-                │                                     │
-                │  Vault (encrypted file at rest)     │
-                │  SDKRegistry (per-chain SDK)        │
-                │  Signers (Software / HW / Remote)   │
-                │  ApprovalBroker                     │
-                │  ConnectedSites                     │
-                └─────────────────────────────────────┘
-                                 ▲
-                                 │ ipcMain.handle('xchain-wallet:message', …)
-                                 │
-                ┌─────────────────────────────────────┐
-                │            preload.js               │
-                │  contextBridge.exposeInMainWorld(   │
-                │    'xchainWalletBridge',            │
-                │    { sendMessage(message) { … } },  │
-                │  )                                  │
-                └─────────────────────────────────────┘
-                                 ▲
-                                 │ window.xchainWalletBridge.sendMessage(...)
-                                 │
-                ┌─────────────────────────────────────┐
-                │          Electron renderer          │
-                │  React app from @xchain-wallet/core │
-                │  (same routes / components / flows  │
-                │   as web + extension)               │
-                └─────────────────────────────────────┘
+```mermaid
+flowchart BT
+    RENDERER["Electron renderer<br>React app from @xchain-wallet/core<br>(same routes / components / flows<br>as web + extension)"]
+    PRELOAD["preload.js<br>contextBridge.exposeInMainWorld(<br>'xchainWalletBridge',<br>exposes sendMessage(message)<br>)"]
+    MAIN["Electron main<br>Vault (encrypted file at rest)<br>SDKRegistry (per-chain SDK)<br>Signers (Software / HW / Remote)<br>ApprovalBroker<br>ConnectedSites"]
+
+    RENDERER -->|"window.xchainWalletBridge.sendMessage(...)"| PRELOAD
+    PRELOAD -->|"ipcMain.handle('xchain-wallet:message', …)"| MAIN
 ```
 
 Keys never cross the IPC boundary into the renderer. Even if the renderer is compromised, the worst it can do is request a sign; and every sign routes through the user-confirmed approval surface.

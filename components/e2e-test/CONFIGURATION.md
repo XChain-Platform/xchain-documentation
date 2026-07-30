@@ -84,18 +84,21 @@ The test suite reads configuration from a `.env` file (loaded via `dotenv`) or f
 
 When direct environment variables are not set, the bootstrap sequence discovers configuration from xchain-hub:
 
-```
-checkAllEnvironmentalVariables()
-    │
-    ├── All 21 vars set? → Use direct config
-    │
-    └── Any missing? → Hub fallback:
-        ├── Parse endpoints: HUB_VALIDATORS > HUB_URL+HUB_PORT > localhost:10000
-        ├── new XChainHubConnector(endpoints)
-        ├── hubConnector.ping()
-        ├── hubConnector.getAllConfig() → config[coin][network][service][param]
-        └── Extract host/port for: node, database, utxo-tracker, encoder, decoder, indexer, regtest-miner
-            Note: explorer is NOT hub-discoverable; EXPLORER_URL/EXPLORER_API_PORT must be set directly
+```mermaid
+flowchart TD
+    CHECK{"checkAllEnvironmentalVariables()<br>All 21 vars set?"}
+    DIRECT["Use direct config"]
+    FALLBACK["Hub fallback"]
+    PARSE["Parse endpoints:<br>HUB_VALIDATORS > HUB_URL+HUB_PORT > localhost:10000"]
+    NEWCONN["new XChainHubConnector(endpoints)"]
+    PING["hubConnector.ping()"]
+    GETCONFIG["hubConnector.getAllConfig()<br>→ config[coin][network][service][param]"]
+    EXTRACT["Extract host/port for:<br>node, database, utxo-tracker, encoder, decoder, indexer, regtest-miner"]
+    NOTE["Note: explorer is NOT hub-discoverable;<br>EXPLORER_URL/EXPLORER_API_PORT must be set directly"]
+
+    CHECK -->|Yes| DIRECT
+    CHECK -->|"No (missing)"| FALLBACK
+    FALLBACK --> PARSE --> NEWCONN --> PING --> GETCONFIG --> EXTRACT --> NOTE
 ```
 
 **Docker convention:** When using hub discovery, all service hostnames are overridden to `"localhost"` (Docker Compose services are accessed via port mapping, not container hostnames). Database host defaults to `"mariadb"`.

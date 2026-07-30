@@ -65,6 +65,18 @@ This updates all services for the given chain and network in sequence.
 
 When a release touches more than one service, update in this order. The ordering is a hard constraint, not a preference: indexers consume config and consensus rules published by the hub, so an indexer built against a newer hub surface must never run against an older hub.
 
+```mermaid
+flowchart TD
+    A["1. xchain-hub<br>verify /health endpoint and logs"] --> B["2. xchain-sync, then xchain-decoder (if changed)"]
+    B --> C["3. xchain-indexer: canary one chain,<br>confirm it keeps pace with the decoder for 10 blocks"]
+    C --> D["Roll remaining indexers one at a time"]
+    D --> E["4. xchain-explorer and xchain-encoder<br>(stateless tier)"]
+    E --> F["5. xchain-utxo-tracker (if changed)"]
+    F --> G{"Post-deploy smoke pass:<br>versions, heights converge, api/ping answers"}
+    G -->|"Clean"| H["Upgrade complete"]
+    G -->|"Not clean"| I["Upgrade not complete"]
+```
+
 1. **xchain-hub** first. Verify its `/health` endpoint and logs before proceeding.
 2. **xchain-sync**, then **xchain-decoder** (if changed).
 3. **xchain-indexer**: canary one chain first. Update a single indexer, confirm it resumes and its block height keeps pace with the decoder for at least 10 blocks, then roll the remaining indexers one at a time.

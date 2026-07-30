@@ -182,6 +182,26 @@ app.post('/auth/verify', (req, res) => {
 });
 ```
 
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client as Wallet/Client
+
+    Note over Server: Step 1, Generate a Challenge
+    Server->>Server: generateChallenge(address, opts)
+    Note over Server: challenge, nonce, timestamp, expiresAt
+    Server->>Client: challenge.challenge
+
+    Note over Client: Step 2, Sign the Challenge
+    Client->>Client: signMessage(challenge.challenge, userWIF)
+    Note over Client: signature, address
+    Client->>Server: signed.signature
+
+    Note over Server: Step 3, Verify Ownership
+    Server->>Server: verifyOwnership(address, challenge.challenge, signed.signature)
+    Note over Server: result.valid, result.address, result.error
+```
+
 ### Verify Any Message
 
 `verifyMessage` is a simpler alias that doesn't return the address:

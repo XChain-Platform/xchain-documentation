@@ -346,55 +346,41 @@ See [`../components/wallet/`](../components/wallet/) for full documentation.
 
 ## Full Connection Diagram
 
-```
-                         +------------------+
-                         |   xchain-hub     |  (MariaDB)
-                         | config + oracle  |
-                         +------------------+
-                           ^    ^    ^    ^
-                    config |    |    |    | config
-                           |    |    |    |
-         +-----------+     |    |    |    |     +-----------+
-         | xchain-   |-----+    |    |    +-----| xchain-   |
-         |   sdk     |          |    |          | explorer  |
-         +-----------+          |    |          +-----------+
-               |                |    |                |
-               | JSON-RPC       |    |         SQL    |
-               v                |    |         reads  v
-         +-----------+          |    |     +------------------+
-         | xchain-   |          |    |     | Indexer MariaDB  |
-         |  encoder  |          |    |     | XChain_{C}_{N}_  |
-         +-----------+          |    |     | Indexer          |
-               |                |    |     +------------------+
-               | PSBT           |    |                ^
-               v                |    |         SQL    |
-         User signs +           |    |         writes |
-         broadcasts             |    |     +-----------+
-               |                |    |     | xchain-   |
-               v                |    +-----| indexer   |
-         +-----------+          |          +-----------+
-         | Coin Node |          |                ^
-         | (bitcoind |          |          SQL   |
-         |  etc.)    |          |          reads |
-         +-----------+          |     +------------------+
-               ^    |           |     | Decoder MariaDB  |
-               |    | JSON-RPC  |     | XChain_{C}_{N}_  |
-          mine |    | polling   |     | Decoder          |
-               |    v           |     +------------------+
-         +-----------+          |                ^
-         | regtest-  |          |         SQL    |
-         |  miner    |          |         writes |
-         +-----------+          |     +-----------+
-                                +-----| xchain-   |
-         +-----------+                | decoder   |
-         | utxo-     |<-- polling ----+-----------+
-         | tracker   |-- LevelDB         ^
-         +-----------+                   |
-               ^                  JSON-RPC polling
-               | JSON-RPC                |
-               | queries           +-----------+
-               +-------------------| Coin Node |
-                                   +-----------+
+The `xchain-hub` config oracle serves four consumers (sdk, explorer, indexer, decoder); the coin node itself is one physical service that every pipeline stage below reaches over JSON-RPC, drawn once here even though it sits at the center of several flows.
+
+```mermaid
+flowchart TD
+    HUB["xchain-hub<br>(MariaDB; config + oracle)"]
+    SDK["xchain-sdk"]
+    EXPLORER["xchain-explorer"]
+    ENCODER["xchain-encoder"]
+    IDXDB[("Indexer MariaDB<br>XChain_{C}_{N}_Indexer")]
+    INDEXER["xchain-indexer"]
+    SIGN["User signs +<br>broadcasts"]
+    COINNODE["Coin Node<br>(bitcoind etc.)"]
+    MINER["regtest-miner"]
+    DECDB[("Decoder MariaDB<br>XChain_{C}_{N}_Decoder")]
+    DECODER["xchain-decoder"]
+    UTXO["utxo-tracker<br>(LevelDB)"]
+
+    SDK -->|config| HUB
+    EXPLORER -->|config| HUB
+    INDEXER -->|config| HUB
+    DECODER -->|config| HUB
+
+    SDK -->|"JSON-RPC"| ENCODER
+    ENCODER -->|PSBT| SIGN
+    SIGN --> COINNODE
+
+    EXPLORER -->|"SQL reads"| IDXDB
+    INDEXER -->|"SQL writes"| IDXDB
+    DECDB -->|"SQL reads"| INDEXER
+    DECODER -->|"SQL writes"| DECDB
+
+    MINER -->|mine| COINNODE
+    COINNODE -->|"JSON-RPC polling"| MINER
+    COINNODE -->|"JSON-RPC polling"| DECODER
+    COINNODE -->|"JSON-RPC queries"| UTXO
 ```
 
 ---

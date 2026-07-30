@@ -37,6 +37,30 @@ Cross-chain swaps on XChain follow a straightforward flow:
 
 3. **Both sides complete, or neither does.** The hub records a match signed by a supermajority of validators; each chain's indexer independently checks those signatures before releasing the escrowed tokens to the counterparty. If the match does not go through, both sides get their tokens back automatically.
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant YourChain as Your Blockchain
+    participant Hub as XChain Hub (validators)
+    participant CounterpartyChain as Counterparty Blockchain
+    participant Counterparty
+
+    User->>YourChain: Create offer, escrow tokens
+    YourChain->>Hub: Offer recorded
+    Counterparty->>CounterpartyChain: Accept offer, escrow tokens
+    CounterpartyChain->>Hub: Acceptance recorded
+    Note over Hub: Supermajority of validators sign the match
+    alt Match signed
+        Hub->>YourChain: Signed match
+        Hub->>CounterpartyChain: Signed match
+        YourChain->>Counterparty: Indexer verifies signatures, releases escrow
+        CounterpartyChain->>User: Indexer verifies signatures, releases escrow
+    else Match not reached
+        YourChain->>User: Escrowed tokens returned automatically
+        CounterpartyChain->>Counterparty: Escrowed tokens returned automatically
+    end
+```
+
 At no point does a company, server, or third party hold your tokens. Your assets remain under protocol-level escrow on your own blockchain until the swap finalizes.
 
 ---
@@ -96,6 +120,22 @@ Where SWAP moves value between users, XCALL moves logic between contracts. A con
 2. The validator federation relays the call to the target chain, where the specified method runs on the target contract.
 3. The result is relayed back and delivered to the callback method on the source contract.
 4. If the call does not complete before the deadline, the source contract receives an `expired` callback automatically.
+
+```mermaid
+sequenceDiagram
+    participant SourceContract as Source Contract
+    participant Federation as Validator Federation
+    participant TargetContract as Target Contract
+
+    Note over SourceContract: Emits crossExecute during an EXECUTE, not a direct user transaction
+    SourceContract->>Federation: Relay the call
+    Federation->>TargetContract: Call the target method
+    TargetContract-->>Federation: Result
+    Federation-->>SourceContract: Deliver result to the callback method
+    alt Deadline passes before completion
+        Federation-->>SourceContract: Deliver expired callback automatically
+    end
+```
 
 **When to use XCALL instead of SWAP:**
 

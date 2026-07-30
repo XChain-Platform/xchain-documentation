@@ -45,6 +45,27 @@ Every XChain operation follows this path:
 
 The coin node never executes step 5 or beyond. It simply stores the transaction. XChain nodes do all the interpretation themselves.
 
+```mermaid
+sequenceDiagram
+    participant Client
+    participant CoinNode as Coin Node
+    participant Decoder
+    participant Indexer
+    participant Explorer
+
+    Note over Client: 1. Construct - build ACTION string
+    Note over Client: 2. Encode - embed in standard transaction
+    Client->>CoinNode: 3. Broadcast transaction to mempool
+    Note over CoinNode: 4. Mine - transaction included in a block
+    Decoder->>CoinNode: 5. Decode - poll via JSON-RPC, scan blocks
+    Decoder->>Indexer: Pass decoded ACTION payload
+    Note over Indexer: 6. Index - validate against state and execute
+    Client->>Explorer: 7. Query state
+    Explorer->>Indexer: Read from indexer database
+    Indexer-->>Explorer: Return state
+    Explorer-->>Client: Return result
+```
+
 ## Benefits of the Metalayer Approach
 
 **Inherited security**: XChain transactions have the same finality and immutability guarantees as the underlying blockchain. A 6-confirmation XChain transfer is as final as a 6-confirmation BTC transfer. No XChain-specific consensus needs to be secured.

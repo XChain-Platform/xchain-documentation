@@ -18,6 +18,25 @@ The SWAP action lets you trade a token on one chain for a token on a different c
 5. Each indexer credits the counterparty: Alice receives `GET_AMOUNT` on Litecoin; Bob receives `GIVE_AMOUNT` on Bitcoin.
 6. If no match occurs before expiration, tokens are returned automatically.
 
+```mermaid
+sequenceDiagram
+    participant Alice
+    participant BTC as Bitcoin Chain
+    participant Hub as xchain-hub
+    participant LTC as Litecoin Chain
+    participant Bob
+
+    Alice->>BTC: Create SWAP offer, escrow GIVE_AMOUNT
+    BTC->>Hub: Open swap detected
+    Hub->>LTC: Broadcast open swap
+    Bob->>LTC: Create matching SWAP, escrow GET_AMOUNT
+    LTC->>Hub: Matching swap detected
+    Hub->>Hub: Signal settlement
+    Hub->>LTC: Credit Alice with GET_AMOUNT
+    Hub->>BTC: Credit Bob with GIVE_AMOUNT
+    Note over Hub: If no match before expiration, tokens are returned automatically
+```
+
 ---
 
 ## Step 1: Create the Swap Offer (Chain A: Bitcoin)

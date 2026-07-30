@@ -115,6 +115,30 @@ Native coin trades use a **two-phase settlement model** because the indexer can 
 3. **Payment**: The buyer sends a **COINPAY** transaction; a single blockchain transaction that includes both the COINPAY action data and a native coin output paying the seller.
 4. **Settlement**: The indexer validates the payment and releases the escrowed tokens to the buyer.
 
+```mermaid
+sequenceDiagram
+    participant Seller
+    participant Indexer
+    participant Buyer
+
+    Seller->>Indexer: Place order (tokens escrowed)
+    Buyer->>Indexer: Place matching order (native coin)
+    Indexer->>Indexer: Match orders, create COINPay obligation
+    Note over Buyer,Indexer: Buyer has 2 hours to pay
+
+    alt Buyer pays on time, confirms before expiry
+        Buyer->>Indexer: Send COINPAY transaction (native coin to Seller)
+        Indexer->>Buyer: Validate payment, release escrowed tokens
+    else Buyer never pays within 2-hour window
+        Note over Indexer: Obligation expires automatically
+        Indexer->>Seller: Release tokens back to order
+        Note over Buyer: Buyer's order remains open for other sellers
+    else COINPAY broadcast but confirms after expiry
+        Buyer->>Seller: Native coin reaches Seller
+        Note over Indexer: No tokens released, Buyer loses their coin
+    end
+```
+
 ### What If the Buyer Doesn't Pay?
 
 If the buyer doesn't send a COINPAY within the 2-hour window, the obligation expires automatically. The seller's tokens are released back to their order (available for other buyers). The buyer's order remains open and can match with other sellers.

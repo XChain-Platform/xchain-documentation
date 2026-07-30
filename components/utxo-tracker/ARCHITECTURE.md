@@ -5,12 +5,18 @@
 
 ## Position in the Data Pipeline
 
-```
-Coin Node (bitcoind / litecoind / dogecoind)
-    ↓  JSON-RPC polling
-xchain-utxo-tracker  →  LevelDB  (UTXO/balance queries for encoder)
-    ↓
-xchain-encoder  →  PSBT  (signed+broadcast by caller)
+```mermaid
+flowchart TD
+    NODE["Coin Node<br>(bitcoind / litecoind / dogecoind)"]
+    TRACKER["xchain-utxo-tracker"]
+    LEVELDB[("LevelDB")]
+    ENCODER["xchain-encoder"]
+    PSBT["PSBT<br>(signed+broadcast by caller)"]
+
+    NODE -->|"JSON-RPC polling"| TRACKER
+    TRACKER -->|"UTXO/balance queries for encoder"| LEVELDB
+    TRACKER --> ENCODER
+    ENCODER --> PSBT
 ```
 
 The UTXO tracker sits between the coin node and the encoder. It continuously polls the coin node for new blocks, parses every transaction, and maintains a LevelDB index of all unspent outputs. The encoder queries the tracker's API to find spendable inputs when constructing transactions.
@@ -19,33 +25,23 @@ Unlike the decoder (which extracts XChain ACTION data), the UTXO tracker indexes
 
 ## Internal Components
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                       api.js                            │
-│               Express + JSON-RPC server                 │
-│          REST endpoints + JSON-RPC methods              │
-│       Loads env vars, creates tracker, starts API       │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────┐
-│                XChainUtxoTracker                        │
-│             Main orchestrator class                     │
-│       Block polling loop (1s interval)                  │
-│  Reorg detection → block processing → mempool updates   │
-├──────────────┬──────────────┬───────────────────────────┤
-│              │              │                           │
-│  ┌───────────▼──┐  ┌───────▼────────┐  ┌──────────────┐│
-│  │  LevelUpDb   │  │  Blockchain    │  │  Block       ││
-│  │  (LevelDB    │  │  Connector     │  │  Decoder     ││
-│  │   storage)   │  │  (RPC client)  │  │  (parsing)   ││
-│  └──────┬───────┘  └───────┬────────┘  └──────────────┘│
-│         │                  │                           │
-│  ┌──────▼───────┐  ┌───────▼────────┐  ┌──────────────┐│
-│  │ memory-level │  │  CryptoNetworks│  │  bufferutils ││
-│  │  (mempool    │  │  (network      │  │  (binary     ││
-│  │   in-memory) │  │   params)      │  │   encoding)  ││
-│  └──────────────┘  └────────────────┘  └──────────────┘│
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    API["api.js<br>Express + JSON-RPC server<br>REST endpoints + JSON-RPC methods<br>Loads env vars, creates tracker, starts API"]
+    ORCH["XChainUtxoTracker<br>Main orchestrator class<br>Block polling loop (1s interval)<br>Reorg detection → block processing → mempool updates"]
+    LEVELUP["LevelUpDb<br>(LevelDB storage)"]
+    CONN["Blockchain Connector<br>(RPC client)"]
+    DECODER["Block Decoder<br>(parsing)"]
+    MEMLEVEL["memory-level<br>(mempool in-memory)"]
+    CRYPTONET["CryptoNetworks<br>(network params)"]
+    BUFUTILS["bufferutils<br>(binary encoding)"]
+
+    API --> ORCH
+    ORCH --> LEVELUP
+    ORCH --> CONN
+    ORCH --> DECODER
+    LEVELUP --> MEMLEVEL
+    CONN --> CRYPTONET
 ```
 
 ## Source Files
@@ -103,27 +99,35 @@ Two string keys are also used as checkpoints:
 
 The main loop runs continuously in `XChainUtxoTracker.start()`:
 
-```
-while (keepParsing):
-  1. Poll getblockchaininfo() every 1 second
-  2. Wait for node sync (verificationprogress >= 0.99)
-  3. If caught up with tip: trigger mempool updates every 60 seconds
-  4. If new blocks available:
-     a. Fill prefetch queue (up to 10 blocks ahead)
-     b. Fetch next block hash and hex data
-     c. Decode block via XChainBlockDecoder
-     d. Verify chain continuity (prevHash == last stored hash)
-        → If mismatch: enter reorg handling (see below)
-     e. Begin LevelDB batch transaction (if first block in batch)
-     f. Two-pass transaction processing:
-        - Pass 1: Insert all outputs (O + H + S + W records)
-        - Pass 2: Process all inputs (delete spent O/H, create K/M/I/J)
-     g. Record block metadata (B, T, N records)
-     h. If batch complete (200 blocks) or at chain tip:
-        - Commit batch transaction atomically
-        - Cleanup aged K/M records (blocks older than UNDO_BLOCKS)
-        - Save checkpoint (LAST_BLOCK_HEIGHT, LAST_BLOCK_HASH)
-        - Calculate and display ETA from rolling 1000-block window
+```mermaid
+flowchart TD
+    TOP(("while (keepParsing)"))
+    S1["1. Poll getblockchaininfo()<br>every 1 second"]
+    S2["2. Wait for node sync<br>(verificationprogress >= 0.99)"]
+    Q3{"3. Caught up with tip?"}
+    MEMPOOL["Trigger mempool updates<br>every 60 seconds"]
+    Q4{"4. New blocks available?"}
+    STEPA["a. Fill prefetch queue<br>(up to 10 blocks ahead)"]
+    STEPB["b. Fetch next block hash<br>and hex data"]
+    STEPC["c. Decode block via<br>XChainBlockDecoder"]
+    STEPD["d. Verify chain continuity<br>(prevHash == last stored hash)"]
+    QREORG{"prevHash mismatch?"}
+    REORG["Enter reorg handling<br>(see Reorg Handling below)"]
+    STEPE["e. Begin LevelDB batch transaction<br>(if first block in batch)"]
+    STEPF["f. Two-pass transaction processing:<br>Pass 1: insert all outputs (O + H + S + W records)<br>Pass 2: process all inputs<br>(delete spent O/H, create K/M/I/J)"]
+    STEPG["g. Record block metadata<br>(B, T, N records)"]
+    QH{"h. Batch complete (200 blocks)<br>or at chain tip?"}
+    COMMIT["Commit batch transaction atomically<br>Cleanup aged K/M records<br>(blocks older than UNDO_BLOCKS)<br>Save checkpoint<br>(LAST_BLOCK_HEIGHT, LAST_BLOCK_HASH)<br>Calculate and display ETA<br>from rolling 1000-block window"]
+
+    TOP --> S1 --> S2 --> Q3
+    Q3 -->|yes| MEMPOOL --> Q4
+    Q3 -->|no| Q4
+    Q4 -->|yes| STEPA --> STEPB --> STEPC --> STEPD --> QREORG
+    QREORG -->|mismatch| REORG --> TOP
+    QREORG -->|match| STEPE --> STEPF --> STEPG --> QH
+    QH -->|yes| COMMIT --> TOP
+    QH -->|no| TOP
+    Q4 -->|no| TOP
 ```
 
 ### Two-Pass Transaction Processing
@@ -156,6 +160,18 @@ When the tracker detects that an incoming block's `previousHash` does not match 
 4. **Reset state**: Clear the prefetch queue, update `LAST_BLOCK_HEIGHT`/`LAST_BLOCK_HASH`, reset the `lastBlocks` array.
 5. **Resume**: Normal forward indexing resumes from the fork point.
 
+```mermaid
+flowchart TD
+    DETECT["Incoming block's previousHash does not match stored LAST_BLOCK_HASH"]
+    WALK["1. Walk back one block at a time,<br>comparing tracker hash to node hash"]
+    FORK["2. Find fork point where hashes match"]
+    ROLLBACK["3. Rollback each rolled-back block:<br>restore K/M archives to O/H records<br>delete B, T, N records<br>delete I/J records<br>remove Z/S records"]
+    RESET["4. Reset state:<br>clear prefetch queue, update LAST_BLOCK_HEIGHT/LAST_BLOCK_HASH,<br>reset lastBlocks array"]
+    RESUME["5. Resume normal forward indexing from the fork point"]
+
+    DETECT --> WALK --> FORK --> ROLLBACK --> RESET --> RESUME
+```
+
 The undo window is determined per chain: BTC 12 blocks, LTC 48 blocks, DOGE 120 blocks (overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`). Reorgs exceeding the configured window throw an error and require a full re-index.
 
 ## Mempool Tracking
@@ -172,6 +188,18 @@ When the tracker is caught up with the chain tip, it updates the mempool every 6
 Mempool data is **not** written to the persistent LevelDB. When a mempool transaction confirms (its block is processed), the confirmed UTXO is written to the main database and the mempool entry is naturally superseded.
 
 The `mempoolBusy` flag prevents concurrent mempool updates.
+
+```mermaid
+flowchart TD
+    A["Every 60 seconds, once caught up with the chain tip"] --> B["getrawmempool: fetch current txids"]
+    B --> C["Sort and diff against the in-memory mempool DB"]
+    C --> D["Remove entries no longer in the node's mempool"]
+    C --> E["Skip entries already indexed"]
+    D --> F["Fetch raw tx hex for new entries (batches of 1000)"]
+    E --> F
+    F --> G["Parse transactions, insert outputs/inputs into the mempool DB"]
+    G -.->|"next cycle"| A
+```
 
 ## Balance Calculation
 

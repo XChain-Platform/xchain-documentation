@@ -128,6 +128,28 @@ The Send route is the canonical example of the sign-screen safety rail (see [Sec
 4. **Broadcast**: wallet broadcasts via SDK; status surface streams encoder accept → mempool → confirmed → indexed
 5. **Done**: txid + indexed action, with a link to History
 
+```mermaid
+stateDiagram-v2
+    state "encoder accept" as EncoderAccept
+    state "mempool" as Mempool
+    state "confirmed" as Confirmed
+    state "indexed" as Indexed
+    state "failed" as Failed
+
+    [*] --> Form
+    Form --> Review
+    Review --> Sign
+    Sign --> Broadcast
+    Broadcast --> EncoderAccept
+    EncoderAccept --> Mempool
+    Mempool --> Confirmed
+    Confirmed --> Indexed
+    Confirmed --> Failed
+    Indexed --> Done
+    Done --> [*]
+    Failed --> [*]
+```
+
 Identical structure for every action form; only the form fields and review template differ.
 
 ## Receive

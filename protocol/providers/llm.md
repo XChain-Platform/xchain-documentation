@@ -68,6 +68,19 @@ The `judge_model` (default `claude-haiku-4-5`) is also block-anchored. The leade
 
 LLM responses won't be byte-identical even at `temperature=0` (whitespace, occasional rerouting). The judge call decides whether they're *semantically* equivalent; if so, it returns a `canonical_index` and that proposal becomes the on-chain response. If not, the round emits no-quorum and the request expires on its deadline (callback fires with `status='expired'`).
 
+```mermaid
+flowchart TD
+    A["Request"] --> B["Validators sorted by<br>SHA-256(request_id || pubkey)"]
+    B --> C{"REDUNDANCY"}
+    C -->|"1"| D["Top-1 validator serves<br>(responsible validator)"]
+    D --> E["Single response is final<br>after the deadline window"]
+    C -->|"3 or 5"| F["Top-REDUNDANCY validators<br>fetch independently"]
+    F --> G["Judge model evaluates<br>semantic equivalence"]
+    G -->|"equivalent"| H["Returns canonical_index,<br>becomes the on-chain response"]
+    G -->|"not equivalent"| I["Round emits no-quorum,<br>request expires on deadline"]
+    I --> J["Callback fires with status='expired'"]
+```
+
 ## Auth & Transport (operator-managed)
 
 Each validator's hub picks a transport per `xchain-hub/src/lib/hub-credentials.js`. Both transports return `{ body, meta: <model> }`; the choice is invisible to contracts and to other validators (only response bytes feed PBFT).

@@ -100,6 +100,29 @@ Every privileged op enters the service worker as a typed message, routes through
 4. Forwards the stamped message to the service worker via `chrome.runtime.sendMessage`
 5. Forwards the service worker's response back to the page via `window.postMessage`
 
+```mermaid
+sequenceDiagram
+    participant Page
+    participant ContentScript as Content Script
+    participant ServiceWorker as Service Worker
+
+    Note over ContentScript: Step 1, insert script tag pointing at the injected provider
+    ContentScript->>Page: inject xchainProvider.js
+
+    Note over ContentScript: Step 2, listen for window.postMessage events from the injected provider
+    Page->>ContentScript: window.postMessage
+
+    Note over ContentScript: Step 3, stamp origin from window.location.origin onto the message
+    ContentScript->>ContentScript: stamp origin
+
+    Note over ContentScript: Step 4, forward the stamped message to the service worker
+    ContentScript->>ServiceWorker: chrome.runtime.sendMessage
+
+    Note over ContentScript: Step 5, forward the service worker's response back to the page
+    ServiceWorker-->>ContentScript: response
+    ContentScript-->>Page: window.postMessage
+```
+
 The page can never read or modify the stamped origin because it never sees the post-stamp message; only the service worker does.
 
 ## Injected provider

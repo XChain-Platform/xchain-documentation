@@ -98,6 +98,17 @@ Collision rules keep the set unambiguous: a key can never simultaneously be a st
   1. Broadcast a rotate (v0/v1) with a new key (takes 6 blocks to activate)
   2. Broadcast a revoke (v2/v3) for the old key (takes 6 blocks to deactivate); for a compromised original stake key, this is the v2 stake-key revoke
   3. During the overlap window, both keys are valid; the new key takes effect approximately 6 blocks before the old key is fully revoked.
+
+```mermaid
+stateDiagram-v2
+    [*] --> old_key_active: old key is sole valid signer
+    old_key_active --> new_key_pending: DELEGATE v0/v1 rotate broadcast<br>(new key)
+    new_key_pending --> overlap: 6 blocks, new key activates
+    overlap --> old_key_revoking: DELEGATE v2/v3 revoke broadcast<br>(old key)
+    old_key_revoking --> new_key_only: 6 blocks, old key deactivates
+    new_key_only --> [*]
+```
+
 - A v2 stake-key revocation is cleared only by re-staking the same key (STAKE v2 re-activation); there is no separate "un-revoke". Rotating back to a revoked original key is otherwise impossible (v0 rejects keys with stake history).
 - Does not affect staked token amounts or capability qualifications.
 

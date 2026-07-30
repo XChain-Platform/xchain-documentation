@@ -97,6 +97,20 @@ Independent verifier runs the protocol above against the same git tag, then diff
 
 The verifier doesn't need the maintainer's signing identity, they're verifying the **input to signing**, not the signature itself. This is the core security property: a maintainer who quietly slipped malicious code into a release would have to ship a bundle whose SHA-256 doesn't match what a verifier would produce from public source, and verifiers would notice.
 
+```mermaid
+sequenceDiagram
+    participant Maintainer
+    participant Verifier
+
+    Maintainer->>Verifier: publish signed installers, pre-signing Linux bundle, RELEASE_HASHES.txt, git tag
+
+    Verifier->>Verifier: run the reproduce protocol against the same git tag
+    Verifier->>Verifier: produce its own RELEASE_HASHES.txt
+    Verifier->>Verifier: diff its RELEASE_HASHES.txt against the maintainer's
+
+    Note over Verifier: clean diff, independently confirms the maintainer's bundle came from the published source
+```
+
 ## Common drift sources
 
 - **Lockfile drift.** Always run with `--frozen-lockfile`. The audit asserts this in `scripts/build.sh`.
