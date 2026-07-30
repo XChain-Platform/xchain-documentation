@@ -361,6 +361,38 @@ const ATTEST_ADMISSION_ACTIVATION = {
     regtest: 0,
 };
 
+// ATTEST_RELAY_ACTIVATION (, attestation Phase 5 cross-chain delivery): the flag-day
+// at/above which the two relay legs of the §12 CrossChainEngine model are accepted on chain:
+// ATTEST v3 (an LTC/DOGE-origin request materialized onto BTC, carrying 2f+1 cross_chain
+// signatures) and ATTEST v4 (the BTC response relayed back to the origin chain, same signature
+// rail). Both are new VERSION values on an existing action, so an indexer that has NOT been
+// upgraded rejects them as an unknown VERSION while an upgraded one accepts: every indexer and
+// hub MUST be deployed before this height, exactly like the sibling maps.
+//
+// Both legs carry an explicit BTC-anchored SNAPSHOT_BLOCK in their signed canonical, and THAT is
+// what this gate is evaluated against, never a local height. Preserving the BTC plane is the whole
+// point of the ratified model: CapabilitySnapshot keys the responsible set on a BTC block, and a
+// foreign-origin block_index (DOGE ~6.3M / LTC ~3.16M vs BTC ~962K) would break the block-echo
+// determinism check with no deterministic anchor. On BTC the v3's own block_index IS the anchor,
+// so the responsible set for a relayed request resolves identically to a native one.
+//
+// The origin-side half of Phase 5 (admitting an LTC/DOGE v0 whose responsible set is empty, so it
+// survives long enough to be relayed) is deliberately NOT gated here: it has no BTC anchor to key
+// on, and a BTC-derived value compared against an LTC/DOGE local height is already satisfied there
+// (the ATTEST_ADMISSION_ACTIVATION plane trap). That half rides the ATTEST_RELAY_ORIGIN block-time
+// gate in xchain-indexer/src/protocol_changes.js, which flips every chain at one wall clock.
+// Either order of the two gates is safe: origin-first admits requests nothing can service yet and
+// they expire on their own deadline (the pre-Phase-5 outcome); BTC-first leaves no origin request
+// to relay.
+//
+// Armed on the  cohort anchor. Kept value-identical to the local copies in
+// xchain-{hub,indexer}/src/attest_relay_activation.js by the activation-constants parity suite.
+const ATTEST_RELAY_ACTIVATION = {
+    mainnet: 969500,      // ARMED 2026-07-30  on the ratified  BTC anchor; deploy every indexer + hub before this height
+    testnet: 0,
+    regtest: 0,
+};
+
 // ORACLE_FEE_OUTPUT_ACTIVATION ( /  PRICE v1 oracle usage fee): the flag-day
 // at/above which the DECODER persists a native-coin output paying a DISPENSER's
 // ORACLE_ADDRESS into transaction_outputs, so the indexer's validateOracleFee can see the
@@ -536,6 +568,7 @@ module.exports = {
     RETRACTION_SIGNING_ACTIVATION,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     ATTEST_ADMISSION_ACTIVATION,
+    ATTEST_RELAY_ACTIVATION,
     ORACLE_FEE_OUTPUT_ACTIVATION,
     PRICE_PAIR_TICKER_MAX_LEGACY,
     PRICE_PAIR_TICKER_MAX_WIDE,

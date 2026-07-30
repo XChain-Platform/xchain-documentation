@@ -2,12 +2,18 @@
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - ATTEST
-This action covers the external-data attestation lifecycle in three version-discriminated phases: v0 (VM-emitted request), v1 (validator-broadcast response), and v2 (system-synthesized expiry).
+This action covers the external-data attestation lifecycle in five version-discriminated phases: v0 (VM-emitted request), v1 (validator-broadcast response), v2 (system-synthesized expiry), and the two cross-chain relay legs v3 (a request materialized onto BTC) and v4 (the response relayed back to the origin chain).
+
+All `attestation` capability stake lives on BTC, so a request emitted by an LTC or DOGE contract has no responsible set where it landed and cannot be fulfilled there. v3 materializes such a request onto BTC, giving it a real BTC `block_index`; from that point the ordinary v0/v1 machinery services it. v4 carries the outcome back so the origin chain fires the contract callback. Both legs are gated (see the Formats section) and inert until then.
 
 ## PARAMS
 | Name                   | Type    | Description                                                                                     |
 | ---------------------- | ------- | ----------------------------------------------------------------------------------------------- |
-| `VERSION`              | Integer | Format version (0=request, 1=response, 2=expire)                                                |
+| `VERSION`              | Integer | Format version (0=request, 1=response, 2=expire, 3=relay request, 4=relay response)             |
+| `ORIGIN_CHAIN`         | String  | Chain a relayed request was emitted on (`LTC` or `DOGE`); v3 only                              |
+| `ORIGIN_ACTION_INDEX`  | Integer | The origin chain's v0 `action_index`, the relay correlation key; v3 only                       |
+| `HOME_RESPONSE_ACTION_INDEX` | Integer | The BTC v1 `action_index` whose outcome is being relayed; v4 only                        |
+| `SNAPSHOT_BLOCK`       | Integer | BTC-anchored block the `cross_chain` signer set is pinned at, and the plane both relay gates resolve on; v3 and v4 |
 | `REQUEST_ID`           | String  | 64-hex SHA-256 over `tx_hash:root_action_index:emitter_path:contract_index:emitter_position` (colon-delimited) |
 | `PROVIDER_ID`          | String  | Governance-registered provider (`http_get`, `llm`, etc.); present in v0 and v1                 |
 | `REQUEST_PAYLOAD`      | String  | Provider-specific payload (URL for `http_get`, JSON envelope for `llm`); v0 only               |
@@ -36,6 +42,14 @@ The trailing `FEE_TICK|FEE_AMOUNT` pair is optional. A feeless request omits the
 
 ### Version `2` - Expire (system-synthesized; never user-broadcast)
 - `ATTEST|2|REQUEST_ID`
+
+### Version `3` - Relay request (cross-chain, BTC only, flag-day gated)
+- `ATTEST|3|REQUEST_ID|ORIGIN_CHAIN|ORIGIN_ACTION_INDEX|PROVIDER_ID|REQUEST_PAYLOAD|REDUNDANCY|DEADLINE_BLOCKS|SNAPSHOT_BLOCK|SIG_COUNT|PUBKEY1|SIG1|...`
+
+### Version `4` - Relay response (cross-chain, origin chain only, flag-day gated)
+- `ATTEST|4|REQUEST_ID|HOME_RESPONSE_ACTION_INDEX|RESPONSE_PAYLOAD|STATUS|META|SNAPSHOT_BLOCK|SIG_COUNT|PUBKEY1|SIG1|...`
+
+Both relay versions activate at `ATTEST_RELAY_ACTIVATION` (BTC 969500 on mainnet, genesis on testnet and regtest). Below the height they are rejected as an unknown VERSION and persist nothing. Every indexer and hub must be deployed before that height.
 
 ## Examples
 ```
@@ -89,6 +103,32 @@ System-synthesized expiry for request abc...def
 - Never user-broadcast: `VALID_ACTION_NAMES` accepts `ATTEST` for the decoder's v0/v1 paths, but v2 is rejected if it appears in a user transaction.
 - Synthesized once per stale pending request: indexer queries `SELECT * FROM attests WHERE version=0 AND request_status='pending' AND deadline_block < <current_block>` and synthesizes one v2 per row.
 - `REQUEST_ID` must match an existing `pending` row.
+
+### Version 3 (relay request, BTC only)
+- Accepted only on BTC, and only at/above `ATTEST_RELAY_ACTIVATION` resolved on this action's own BTC `block_index`. Below the height, and on any other chain, it is treated exactly as an unknown VERSION: nothing is persisted.
+- `ORIGIN_CHAIN` must be `LTC` or `DOGE`. `ORIGIN_ACTION_INDEX` must be a positive integer.
+- `SNAPSHOT_BLOCK` must not exceed this action's `block_index`, so a broadcaster cannot pin a future signer set.
+- `PROVIDER_ID`, `REDUNDANCY`, `REQUEST_PAYLOAD` size and the derived deadline are validated exactly as for v0.
+- `REQUEST_ID` must not already exist on this chain; one request materializes once.
+- The signature list must meet the `cross_chain` federation quorum at `SNAPSHOT_BLOCK`: stake-weighted (source-deduped) at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count. This is the same rule the XCALL dispatch leg applies.
+- The stored request row is feeless, carries no callback and no `contract_index` (the contract is on the origin chain), and pins its responsible set at this action's BTC `block_index`. A v1 fulfilling it closes the request but fires no local callback.
+
+### Version 4 (relay response, origin chain only)
+- Accepted only off BTC, and only at/above `ATTEST_RELAY_ACTIVATION` resolved on the `SNAPSHOT_BLOCK` the action carries. The gate is deliberately NOT resolved on the local `block_index`: a BTC-derived height is already exceeded by LTC and DOGE local heights, so gating there would activate the leg immediately.
+- `STATUS` must be `ok` or `expired`. The retryable statuses (`no_quorum`, `timeout`, `provider_error`) are refused, because the home chain may still fulfill the request.
+- `REQUEST_ID` must name a `pending` request on this chain whose `origin_chain` is this chain, i.e. one this chain admitted for relay. A native request cannot be closed by a v4.
+- The signature list must meet the same `cross_chain` quorum as v3, over the relay-response canonical.
+- On acceptance the request goes `fulfilled` (`ok`) or `errored` (`expired`), its v0 fee escrow settles, and the contract callback is injected with the identical argument shape a locally serviced attestation produces.
+
+## Canonical signing messages (v3/v4)
+The relay legs sign pipe-joined field lists, with free-form payloads folded in as SHA-256 digests so the signed bytes stay bounded:
+
+```
+ATTEST|RELAY_REQUEST|request_id|snapshot_block|network|origin_chain|origin_action_index|provider_id|sha256(request_payload)|redundancy|deadline_blocks
+ATTEST|RELAY_RESPONSE|request_id|snapshot_block|network|origin_chain|home_response_action_index|provider_id|sha256(response_body)|status|meta
+```
+
+At/above `EQUIV_HEADER_ACTIVATION` (resolved on `SNAPSHOT_BLOCK`) each is wrapped in the uniform equivocation header with `TAG=XATTEST` and a phase-specific `ROUND_ID`, so the request and response legs of one `request_id` never share a round key.
 
 ## Canonical signing message (v1)
 Each `SIG_n` covers the canonical bytes:
