@@ -95,6 +95,8 @@ One row per source chain, recording how far the hub has processed that chain's p
 
 A push is rejected at ingest when its `push_generation` is at or below `retraction_generation` **and** its `action_index` is at or above `from_action_index`, which is exactly the already-retracted range.
 
+**Resetting an indexer DB means clearing that chain's row here.** A rebuilt indexer starts its rollback-generation counter over at 0 and, after replay, covers the same action indices again, so every price push it sends matches the rejection condition above and that chain's price rail stops (along with the native-fee and XCHAIN/USD path that reads prices). `xchain-node reset xchain-indexer` clears the row for the chain it resets; an indexer reset performed by hand needs `DELETE FROM price_ingest_watermarks WHERE source_chain = '<CHAIN>';` on the hub DB. The hub logs a warning naming this whenever the fence drops a push, so a missed reset is visible in the hub log rather than silent.
+
 ### `oracle_submissions`
 
 Raw price submissions from validators during each oracle round.
