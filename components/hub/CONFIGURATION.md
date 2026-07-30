@@ -323,6 +323,7 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | `REORG_MAX_LOOKBACK_MS` | No | `86400000` | How far back (24 hours) a reorg may be considered |
 | `REORG_MAX_PENDING` | No | `64` | Maximum concurrently pending reorg records, bounding memory |
 | `REORG_TIMESTAMP_SKEW_MS` | No | `10800000` | Tolerated clock skew (3 hours) when comparing reorg block timestamps |
+| `REORG_ALLOW_UNRECORDED_OLDHASH` | No | _(unset, abstain)_ | Set to `1` to co-sign a reorg whose recorded orphaned block hash is null (unrecorded), so its claimed old hash cannot be verified against local history. Off by default: the hub abstains from such rounds rather than co-sign a claim it cannot check. An escape hatch for operators knowingly running against history with unrecorded orphan hashes, at the cost of co-signing unverified claims. |
 
 ### Governance
 

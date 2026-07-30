@@ -43,6 +43,20 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `DB_QUERY_TIMEOUT` | MariaDB query execution timeout in milliseconds | `30000` |
 | `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; the operator path (`node src/migrate.js`) fails closed regardless. | _(unset, non-fatal)_ |
 
+### Migration compatibility harness
+
+`bin/check-migration-old-code-compat.js` is a standalone maintenance harness (run through `bin/check-migration-old-code-compat.sh`) that checks an older code ref against a migrated database schema. It reads its own environment, separate from the service configuration above:
+
+| Variable | Description | Default |
+|---|---|---|
+| `OLD_REF` | Git ref of the older indexer code to check the migrated schema against | _(required)_ |
+| `DB_NAME` | Database the compatibility checks run against | _(required)_ |
+| `DB_HOST` | MariaDB host for that database | _(required)_ |
+| `DB_PORT` | MariaDB port | _(unset)_ |
+| `DB_USER` | MariaDB user | _(unset)_ |
+| `DB_PASS` | MariaDB password. Treat as a credential; pass it through the environment, never on a command line. | _(unset)_ |
+| `REPO` | Path to the indexer checkout whose git history holds `OLD_REF` | _(the repo containing the script)_ |
+
 ### Block-processing barriers and health
 
 | Variable | Description | Default |
