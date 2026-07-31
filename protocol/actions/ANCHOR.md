@@ -335,8 +335,27 @@ exact bytes):
 - `MATCH_BATCH_SEQ` must reference a previously indexed v1 with `TOTAL_CHUNKS` > 1 (out-of-order
   arrival within the same block is tolerated; the batch assembles when all chunks are present).
 - `CHUNK_INDEX` must be in `[1, TOTAL_CHUNKS-1]` and not a duplicate.
+- The chunk's source address must equal the head's: "authenticated by its parent v1" is
+  enforced, so only the publisher whose batch it is can fill a slot.
 - Carries no signatures; a v2 is meaningful only joined to its authenticated v1; orphan or
   CRC-failing batches are flagged `invalid_archive` and ignored by recovery.
+
+#### Archive batch identity (flag-day gated)
+
+`MATCH_BATCH_SEQ` is not unique: an equal seq is accepted (re-broadcast, failover
+double-publish), so more than one head can carry it. At/after the per-network
+`ARCHIVE_BATCH_AUTHOR` flag-day an archive batch is identified by
+**(`MATCH_BATCH_SEQ`, head source address)**, not by the seq alone:
+
+- a chunk's parent is the earliest head for that seq **authored by the same address**,
+- `TOTAL_CHUNKS`, slot occupancy and `BATCH_CRC32` reassembly are all evaluated within
+  that publisher's own batch, and
+- a chunk whose publisher has no head for the seq is an orphan.
+
+Before the flag-day the parent is the earliest head for the seq regardless of author, which
+lets anyone deny a batch by broadcasting a junk head at the next seq: its `TOTAL_CHUNKS`
+invalidates every legitimate chunk, and its address becomes the only one whose chunks count.
+A publisher publishing one head per seq sees no difference between the two rules.
 
 ## Effects
 - Persists into `anchor_actions` (action-indexed; rolled back on reorg like any data table).
