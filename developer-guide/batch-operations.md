@@ -24,7 +24,7 @@ The indexer processes each command in order, within the same "atomic" context. A
 Use the SDK's fluent batch builder to compose actions:
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 const batchAction = sdk.batch()

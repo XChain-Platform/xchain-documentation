@@ -16,7 +16,7 @@ This guide walks you through creating your first XChain token using the SDK. You
 ## Step 1: Install the SDK
 
 ```bash
-npm install xchain-sdk
+npm install @dankest-llc/xchain-sdk
 ```
 
 ---
@@ -26,7 +26,7 @@ npm install xchain-sdk
 The SDK connects to an XChain hub to discover all running services automatically.
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 
 const sdk = new XChainSDK({
   hubUrl: 'http://localhost:10000',  // xchain-hub address
@@ -226,7 +226,7 @@ await sdk.explorer.getDispensers('MYTOKEN', 'token');
 The SDK throws typed errors you can catch by class:
 
 ```js
-const { SDKValidationError, SDKEncoderError } = require('xchain-sdk');
+const { SDKValidationError, SDKEncoderError } = require('@dankest-llc/xchain-sdk');
 
 try {
   const result = await sdk.issue({ tick: 'MYTOKEN', maxSupply: '1000000' });
@@ -255,7 +255,7 @@ See [Regtest Development](../developer-guide/regtest-development.md) for setup i
 
 | Mode | How | When to use |
 |---|---|---|
-| Node.js library | `require('xchain-sdk')` | Application code, scripts |
+| Node.js library | `require('@dankest-llc/xchain-sdk')` | Application code, scripts |
 | JSON-RPC microservice | `npm run api` in xchain-sdk | Any language via HTTP |
 | Browser bundle | `dist/xchain_sdk.min.js` | Client-side web apps |
 

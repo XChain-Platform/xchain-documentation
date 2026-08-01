@@ -15,7 +15,7 @@ functions are stateless and take an `explorerUrl` + `coin` per call (they do not
 read the instance config), so they can also be required directly:
 
 ```js
-const { LightClient } = require('xchain-sdk');   // === sdk.light
+const { LightClient } = require('@dankest-llc/xchain-sdk');   // === sdk.light
 ```
 
 ---
@@ -61,7 +61,7 @@ flowchart TD
 ## Quick start
 
 ```js
-const { XChainSDK } = require('xchain-sdk');
+const { XChainSDK } = require('@dankest-llc/xchain-sdk');
 const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
 
 const res = await sdk.light.verifyBalance({

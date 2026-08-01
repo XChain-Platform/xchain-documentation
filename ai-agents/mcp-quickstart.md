@@ -7,21 +7,18 @@ A commercial license is available, contact legal@dankest.llc.
 
 # MCP Quickstart
 
-`xchain-mcp` is a Model Context Protocol server that gives any MCP-capable agent read-only tools over the XChain Platform. It ships inside the `xchain-sdk` package and needs zero configuration, tools default to the public platform hosts.
+`xchain-mcp` is a Model Context Protocol server that gives any MCP-capable agent read-only tools over the XChain Platform. It is published on npm as [`xchain-mcp`](https://www.npmjs.com/package/xchain-mcp), backed by the [`@dankest-llc/xchain-sdk`](https://www.npmjs.com/package/@dankest-llc/xchain-sdk) package, and needs zero configuration, tools default to the public platform hosts.
 
 ## Install
 
-```bash
-# From the xchain-sdk checkout (npm package publication is pending):
-cd xchain-sdk && npm install
-```
+Nothing to install ahead of time: your MCP client launches it with `npx`, which fetches the package on first run (Node 22 required).
 
 ## Connect your client
 
 **Claude Code:**
 
 ```bash
-claude mcp add xchain -- node /path/to/xchain-sdk/mcp/cli.js
+claude mcp add xchain -- npx -y xchain-mcp
 ```
 
 **Claude Desktop** (`claude_desktop_config.json`):
@@ -29,12 +26,12 @@ claude mcp add xchain -- node /path/to/xchain-sdk/mcp/cli.js
 ```json
 {
   "mcpServers": {
-    "xchain": { "command": "node", "args": ["/path/to/xchain-sdk/mcp/cli.js"] }
+    "xchain": { "command": "npx", "args": ["-y", "xchain-mcp"] }
   }
 }
 ```
 
-Any other MCP client: run `node mcp/cli.js` as a stdio server.
+Any other MCP client: run `npx -y xchain-mcp` as a stdio server. From a source checkout of `xchain-sdk`, `node mcp/cli.js` works the same.
 
 ## What you get
 

@@ -284,7 +284,7 @@ Encoder methods throw `SDKEncoderError` on failure. Pre-flight validation failur
 | `MISSING_COMPRESSED_PUBKEY` | `encoding: 'MULTISIGN'` set but `compressedPubKey` is absent. |
 
 ```js
-const { SDKEncoderError, SDKValidationError } = require('xchain-sdk');
+const { SDKEncoderError, SDKValidationError } = require('@dankest-llc/xchain-sdk');
 
 try {
     let result = await sdk.send({

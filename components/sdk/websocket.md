@@ -10,7 +10,7 @@ The SDK includes a built-in WebSocket client for real-time event streaming from 
 ## Quick Start
 
 ```javascript
-const { XChainSDK } = require('xchain-sdk');
+const { XChainSDK } = require('@dankest-llc/xchain-sdk');
 
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
@@ -318,7 +318,7 @@ const sdk = new XChainSDK({
 WebSocket errors throw `SDKExplorerError` (same class as REST API errors):
 
 ```javascript
-const { SDKExplorerError } = require('xchain-sdk');
+const { SDKExplorerError } = require('@dankest-llc/xchain-sdk');
 
 try {
     await sdk.connectWs();

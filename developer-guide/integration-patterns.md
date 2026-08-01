@@ -12,7 +12,7 @@ This guide covers common patterns for integrating XChain into real applications.
 In production, use hub-based config discovery so services can be relocated without code changes:
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 
 const sdk = new XChainSDK({
   hubUrl: process.env.XCHAIN_HUB_URL || 'http://localhost:10000',
@@ -417,7 +417,7 @@ const express = require('express');
 const crypto = require('crypto');
 const bitcoinMessage = require('bitcoinjs-message');
 const { bignumber, largerEq } = require('mathjs');
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 
 const app = express();
 app.use(express.json());
@@ -735,7 +735,7 @@ Instead of polling the explorer REST API, use the WebSocket API for instant even
 ### Example: Event-Driven COINPay Bot
 
 ```js
-const { XChainSDK } = require('xchain-sdk');
+const { XChainSDK } = require('@dankest-llc/xchain-sdk');
 
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',

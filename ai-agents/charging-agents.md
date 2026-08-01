@@ -32,7 +32,7 @@ sequenceDiagram
 ## The five-minute version
 
 ```js
-const { XChainSDK, X402Gateway } = require('xchain-sdk');
+const { XChainSDK, X402Gateway } = require('@dankest-llc/xchain-sdk');
 const express = require('express');
 
 const sdk = new XChainSDK({ network: 'dogecoin-mainnet' });

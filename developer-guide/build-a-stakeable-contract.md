@@ -105,7 +105,7 @@ For the full `xchain.contract.*` reference, see [Smart_Contract_Development.md](
 Use the SDK's `deployStakeableContract` workflow. This is `DEPLOY v1` under the hood: `VERSION: '1'`, with `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` set.
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 const contractSource = `module.exports = { /* ... the code from Step 2 ... */ };`;

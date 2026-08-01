@@ -78,7 +78,13 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 
 ## Installation
 
-Clone the repository and install dependencies from within the `xchain-sdk` directory:
+From npm (published as [`@dankest-llc/xchain-sdk`](https://www.npmjs.com/package/@dankest-llc/xchain-sdk)):
+
+```bash
+npm install @dankest-llc/xchain-sdk
+```
+
+Or, for development against the source, clone the repository and install dependencies from within the `xchain-sdk` directory:
 
 ```bash
 git clone https://github.com/XChain-Platform/xchain-sdk.git
@@ -189,7 +195,7 @@ The server listens on `SDK_API_PORT` (default `3005`) and exposes all SDK method
 Require the SDK directly in your application. All action and explorer methods are available as async functions on the SDK instance. Suitable for backend services, scripts, and testing.
 
 ```javascript
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 const sdk = new XChainSDK({ network: 'dogecoin-mainnet', explorerUrl: 'localhost' });
 ```
 

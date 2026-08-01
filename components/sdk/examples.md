@@ -70,7 +70,7 @@ End-to-end usage examples for common XChain Platform SDK workflows.
 ## Setup
 
 ```js
-const { XChainSDK } = require('xchain-sdk');
+const { XChainSDK } = require('@dankest-llc/xchain-sdk');
 
 // Minimal setup: action string generation only (no network calls)
 const sdk = new XChainSDK();
@@ -715,7 +715,7 @@ try {
 ## Error Handling
 
 ```js
-const { XChainSDK, SDKValidationError, SDKEncoderError, SDKExplorerError } = require('xchain-sdk');
+const { XChainSDK, SDKValidationError, SDKEncoderError, SDKExplorerError } = require('@dankest-llc/xchain-sdk');
 
 try {
     await sdk.send({ tick: 'BAD|TOKEN', amount: '100', destination: 'bc1q...' });
@@ -1085,7 +1085,7 @@ console.log(result.network); // 'bitcoin-mainnet' (auto-detected)
 Full server + client flow for proving a user owns a wallet address.
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 
 // --- Server side ---
 
@@ -1201,7 +1201,7 @@ Check if a user holds a token before granting access. Combines wallet verificati
 
 ```js
 const express = require('express');
-const { XChainSDK } = require('xchain-sdk');
+const { XChainSDK } = require('@dankest-llc/xchain-sdk');
 const { bignumber, largerEq } = require('mathjs');
 
 const app = express();
@@ -1427,7 +1427,7 @@ await session.unstake({ signingPubkey: 'aabbccdd...' });  // releases the pubkey
 Execute actions on multiple chains simultaneously:
 
 ```js
-const { XChainSDK, CrossChainHelper } = require('xchain-sdk');
+const { XChainSDK, CrossChainHelper } = require('@dankest-llc/xchain-sdk');
 
 const btcSdk = new XChainSDK({ network: 'bitcoin-mainnet', explorerUrl: '...', encoderUrl: '...' });
 const ltcSdk = new XChainSDK({ network: 'litecoin-mainnet', explorerUrl: '...', encoderUrl: '...' });

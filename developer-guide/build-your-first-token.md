@@ -16,7 +16,7 @@ For environment setup, see [Regtest_Development.md](regtest-development.md).
 - `xchain-sdk` installed in your project
 
 ```bash
-npm install xchain-sdk
+npm install @dankest-llc/xchain-sdk
 ```
 
 ---
@@ -26,7 +26,7 @@ npm install xchain-sdk
 Point the SDK at your local regtest hub. The hub handles config discovery for all other services automatically.
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 
 const sdk = new XChainSDK({
   hubUrl: 'http://localhost:10000',

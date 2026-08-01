@@ -685,7 +685,7 @@ All explorer methods throw `SDKExplorerError` on failure. The error object has a
 | `INVALID_NETWORK` | The `network` string passed to the SDK is not a recognised value |
 
 ```js
-const { SDKExplorerError } = require('xchain-sdk');
+const { SDKExplorerError } = require('@dankest-llc/xchain-sdk');
 
 try {
     let token = await sdk.explorer.getToken('UNKNOWNTICK');

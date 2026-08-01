@@ -16,7 +16,7 @@ Restrict which addresses may interact with your token by attaching an address LI
 ### Creating an Address List
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 // TYPE 2 = ADDRESS list
@@ -383,7 +383,7 @@ This composes three primitives: the FILE action (carries the encrypted bytes plu
 The issuer publishes the encrypted file and a self-MESSAGE that records the key (encrypted to the issuer's own address, so the issuer can retrieve it later to deliver to buyers on transfer).
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 const fs = require('fs');
 const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 

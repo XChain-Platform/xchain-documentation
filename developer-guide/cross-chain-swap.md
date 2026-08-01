@@ -44,7 +44,7 @@ sequenceDiagram
 Alice wants to trade 1 `RAREPEPE` (on BTC) for 1000 `LTCTOKEN` (on LTC).
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 
 // Alice's SDK, pointed at the Bitcoin regtest stack
 const aliceSdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });

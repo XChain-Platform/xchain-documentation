@@ -12,7 +12,7 @@ The `CrossChainHelper` class coordinates actions across multiple SDK instances c
 Create one SDK instance per chain, then pass them to the helper:
 
 ```js
-const { XChainSDK, CrossChainHelper } = require('xchain-sdk');
+const { XChainSDK, CrossChainHelper } = require('@dankest-llc/xchain-sdk');
 
 const btcSdk = new XChainSDK({
     network: 'bitcoin-mainnet',

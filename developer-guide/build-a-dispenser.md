@@ -34,7 +34,7 @@ Additional controls:
 ## Step 2: Create the Dispenser
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 // Sell 10 MYTOKEN per 0.001 BTC

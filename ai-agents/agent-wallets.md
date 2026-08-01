@@ -119,8 +119,8 @@ sequenceDiagram
 
 ```js
 // Daemon side, in its own process (ideally its own host):
-const { CoSigner } = require('xchain-sdk').coSigner;
-const { createCoSignerApp } = require('xchain-sdk/src/cosigner/server.js');
+const { CoSigner } = require('@dankest-llc/xchain-sdk').coSigner;
+const { createCoSignerApp } = require('@dankest-llc/xchain-sdk/src/cosigner/server.js');
 
 // Agent side: same session API, hard-enforced.
 const session = sdk.musig2AgentSession(agentWif, policy, { transport });

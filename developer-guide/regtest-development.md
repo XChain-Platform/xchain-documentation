@@ -121,7 +121,7 @@ Alternatively, the GAS address can issue XCHAIN to your test address immediately
 ## Connecting the SDK to Regtest
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 
 // Hub-based discovery (recommended: hub knows all service ports)
 const sdk = new XChainSDK({

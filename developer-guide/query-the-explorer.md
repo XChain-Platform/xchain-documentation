@@ -12,7 +12,7 @@ The explorer exposes the full indexed state of the XChain platform via a REST AP
 The SDK's `explorer` object is a thin wrapper around the REST API. Both approaches work; use the SDK when you want typed convenience methods with hub-based URL discovery, and direct HTTP when you need a simple script, a browser fetch, or a language other than Node.js.
 
 ```js
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
 // SDK style

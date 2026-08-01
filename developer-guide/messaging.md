@@ -23,7 +23,7 @@ The MESSAGE action supports three encryption methods:
 ## Setup
 
 ```javascript
-const XChainSDK = require('xchain-sdk');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
 
 const sdk = new XChainSDK({
     network:     'bitcoin-regtest',
