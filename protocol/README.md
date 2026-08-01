@@ -11,6 +11,7 @@ This section is the canonical reference for the XChain Protocol; ACTION command 
 | [ACTION Manifest](./action-manifest.md) | The authoritative cross-repo ACTION registry (`action-manifest.json`) and the conformance tests that enforce it |
 | [Token Information Standard](./Token_Information_Standard.md) | Standard for token metadata fields and discovery |
 | [Token-Gated Content](./Token_Gated_Content.md) | End-to-end design for cryptographically secure token-gated file publishing (single files and packs) |
+| [Taproot Envelope](./Taproot_Envelope.md) | Large-payload carrier for Bitcoin and Litecoin: one commit/reveal pair writes a whole file into a single tapscript witness |
 | [NFT Standard](./NFT_Standard.md) | Non-fungible tokens as a composition of existing primitives: uniques, editions, collections, content attachment, display |
 | [Project Registry Standard](./Project_Registry.md) | Chain-native curated directories; a project tick attests its official tokens via an owner-validated LIST + LINK roster |
 | [Controller-Bound Tokens](./Controller_Bound_Tokens.md) | Programmable policy layer: a contract gates native actions on a bound token or address, with royalty enforcement |

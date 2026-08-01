@@ -33,9 +33,9 @@ The token issuer composes one or more on-chain transactions that publish the enc
 ### Single file
 
 1. Issuer generates a random 256-bit symmetric key `K` and computes `KEY_HASH = sha256(K)` (hex).
-2. Issuer encrypts the file plaintext with AES-256-GCM under `K`. Output ciphertext is `[12-byte nonce][16-byte GCM authentication tag][ciphertext]`.
+2. Issuer **compresses the plaintext, then encrypts it** with AES-256-GCM under `K`. Output ciphertext is `[12-byte nonce][16-byte GCM authentication tag][ciphertext]`. The order is not a preference: GCM ciphertext is incompressible, so encrypting first throws the saving away entirely. When the compressed form is kept, the `FILE` action's `COMPRESSION` field is set to `1` and means **inflate after decrypt** (see [Compression ordering](#compression-ordering) below).
 3. Issuer constructs `BATCH(FILE, MESSAGE-to-self)`:
-   - `FILE|0|NAME|TYPE|TITLE|MEMO|GATE_TICKER|1|KEY_HASH|GATE_MIN_AMOUNT` (where `1` = AES-256-GCM in the `ENCRYPTION_METHOD` field) with the ciphertext as the action's `rawData` (transported via P2WSH per [Transaction Encoding](../concepts/ENCODING.md)). `GATE_MIN_AMOUNT` is optional and may be omitted entirely; the eight-field form is unchanged and still valid, so every historical `FILE` reads identically.
+   - `FILE|0|NAME|TYPE|TITLE|MEMO|GATE_TICKER|1|KEY_HASH|GATE_MIN_AMOUNT|COMPRESSION` (where `1` = AES-256-GCM in the `ENCRYPTION_METHOD` field) with the ciphertext as the action's `rawData` (transported via P2WSH per [Transaction Encoding](../concepts/ENCODING.md)). `GATE_MIN_AMOUNT` is optional and may be omitted entirely; the eight-field form is unchanged and still valid, so every historical `FILE` reads identically.
    - `MESSAGE|2|COIN|<issuer-address>|<ECIES ciphertext>` whose decrypted plaintext is the binary payload below, encrypted to the issuer's own address so the issuer can recover `K` later for redistribution.
 4. The single transaction is signed and broadcast. There is no window in which the encrypted file exists on-chain without the key being recorded.
 
@@ -73,6 +73,15 @@ sequenceDiagram
 ```
 
 ---
+
+### Compression ordering
+
+For a gated file the pipeline is `deflate(plaintext)` then `encrypt`, and the client inverts it: `decrypt` then `inflate`. `KEY_HASH` semantics are unchanged - it still commits to `K`, not to the bytes.
+
+Two consequences worth stating plainly:
+
+- **Serve layers must never inflate gated ciphertext.** On a gated FILE, `COMPRESSION` describes the plaintext inside the encryption, so an explorer or indexer that inflated the stored bytes would be inflating ciphertext. Gated files are always served exactly as stored; only the holder's client, after decrypting, inflates. The encoder never sets the field on a gated FILE for the same reason: it belongs to whoever performed compress-then-encrypt.
+- **A known side channel, documented rather than hidden.** The on-chain ciphertext length reveals how compressible the plaintext was (a CRIME-family leak). It is low value against file storage, but it is real. Where the compressibility of the content is itself sensitive, publish without compression: the opt-out exists for exactly this.
 
 ## How transfers work
 
@@ -116,7 +125,8 @@ Unlocking is entirely client-side and offline-capable once the wallet has fetche
 3. For each MESSAGE, wallet attempts ECIES decryption (binary mode) with the address's private key. Skips on failure.
 4. On success, wallet parses the plaintext as the binary handoff payload (see below): validates the leading version byte, slices the body into 32-byte candidate keys.
 5. For each candidate `K`, wallet computes `sha256(K)` and matches against the target file's `KEY_HASH`. Mismatches are skipped (defends against malicious senders shipping wrong keys).
-6. Wallet AES-256-GCM-decrypts the ciphertext with the matched key. Result is the plaintext file bytes.
+6. Wallet AES-256-GCM-decrypts the ciphertext with the matched key.
+7. If the `FILE` action carries `COMPRESSION=1`, wallet **inflates the decrypted bytes** (deflate-raw) under the same streamed 150:1 guard every reader applies. On an invalid stream or a tripped guard it presents the decrypted bytes as stored-form with an explicit error, never partial output. Result is the plaintext file bytes.
 
 ```mermaid
 sequenceDiagram

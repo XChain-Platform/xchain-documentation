@@ -145,6 +145,7 @@ npm run api
 | `MAX_FEE_RATE_KB` | No | Uncapped | Absolute maximum fee rate in sat/kB |
 | `MAX_FEE_RATE_MULTIPLIER` | No | `100` | Caps caller-supplied fee/feePerKb at this multiple of the node's fee estimate (`0` disables) |
 | `API_KEY` | No | Disabled | API key for `x-api-key` header authentication |
+| `XCHAIN_COMPRESSION_DEFAULT` | No | On | Set to `0`/`false`/`off` to stop compressing FILE payloads by default. A deploy-time lever, not a feature switch: compressed FILEs are unreadable to a reader that predates compression support, so this exists to let the code release and the behaviour change land separately (readers everywhere first, then the encoder). Callers can always override per request with the `compress` parameter |
 | `ENCODER_RATE_LIMIT_RPM` | No | `60` | Maximum requests per minute per IP |
 | `ENCODER_MAX_RPC_BATCH` | No | `20` | Maximum calls permitted in one inbound JSON-RPC batch. The router runs `Promise.all` over a batch while the rate limiter counts the batch as a single request, so without this bound one ~1MB array fans out into thousands of concurrent `estimate_fee` / `create_tx` handlers |
 | `ENCODER_TRUST_PROXY` | No | `loopback, uniquelocal` | Express `trust proxy` setting. The default recovers the real client IP behind a host proxy (loopback) or a Docker bridge (uniquelocal), and ignores a forged `X-Forwarded-For` when the encoder is exposed directly. Override with `false`, a hop count (e.g. `1`), or an address/CIDR list. Mirrors the hub's `HUB_TRUST_PROXY` |

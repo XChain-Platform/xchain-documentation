@@ -1,0 +1,149 @@
+{
+  "_meta": {
+    "id": "taproot_envelope",
+    "item": "",
+    "spec": "claude/specs/taproot-envelope-and-payload-compression.md",
+    "generated": "2026-07-31",
+    "description": "Golden and adversarial vectors for the Taproot envelope encoding (Part A) and default payload compression (Part B). Grammar bytes are frozen: any implementation must reproduce them exactly. Recognition expectations activate at the per-network §7 flag height; below it a decoder behaves exactly as shipped.",
+    "leaf_version": "0xc0",
+    "grammar": "OP_FALSE OP_IF <\"XCHN\"> <format byte> <payload push 1..n, 520-byte elements> OP_ENDIF <internal x-only pubkey> OP_CHECKSIG",
+    "payload_definition": "The reassembled payload (payload pushes concatenated, push framing excluded) is byte-identical to the compiled action stream the shipped lanes carry: the action-string push plus the rawData push, magic excluded (the envelope header carries it). The payload is RAW: never obfuscated (spec §3.3, pinned).",
+    "ceiling": {
+      "name": "ENVELOPE_MAX_PAYLOAD",
+      "value": 400000,
+      "measures": "reassembled payload byte length after concatenation, before parse; envelope push framing not counted; enforced identically in block and mempool paths"
+    }
+  },
+  "envelope_grammar": {
+    "description": "Golden grammar bytes for a single-push payload. envelope_script_hex is frozen.",
+    "internal_pubkey_compressed": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "internal_pubkey_xonly": "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "action_string": "FILE|0|golden.txt|text/plain|Golden vector||||||",
+    "raw_data_utf8": "XChain taproot envelope golden vector payload",
+    "compiled_payload_hex": "3046494c457c307c676f6c64656e2e7478747c746578742f706c61696e7c476f6c64656e20766563746f727c7c7c7c7c7c2d58436861696e20746170726f6f7420656e76656c6f706520676f6c64656e20766563746f72207061796c6f6164",
+    "envelope_script_hex": "0063045843484e01004c5f3046494c457c307c676f6c64656e2e7478747c746578742f706c61696e7c476f6c64656e20766563746f727c7c7c7c7c7c2d58436861696e20746170726f6f7420656e76656c6f706520676f6c64656e20766563746f72207061796c6f6164682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+    "tapleaf_hash": "7eca220b9ea385f5fc086068c9af5cabda4dabd2ad301ef3ac0cdce95c796656",
+    "merkle_root": "7eca220b9ea385f5fc086068c9af5cabda4dabd2ad301ef3ac0cdce95c796656",
+    "commit_scriptPubKey_hex": "51201379a29bc4bf67418c7cab7ea02b3c68c2f92381eb1ccd5f4fb3048f5dafca22",
+    "commit_address_btc_mainnet": "bc1pzdu69x7yhan5rrru4dl2q2eudrp0jgupavwv6h60kvzg7hd0eg3qeyq98z",
+    "control_block_hex": "c079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+  },
+  "envelope_chunking": {
+    "description": "1,246-byte compiled payload split into 520-byte pushes, in order; reassembly by concatenation is byte-identical.",
+    "payload_generation": "action \"FILE|0|chunks.bin|application/octet-stream|||||||\" + 1200 rawData bytes where byte[i] = (i*7+13) & 0xff",
+    "compiled_payload_sha256": "ae00e58a01ed2978a7c0226399cb944f3736874114103f62b8471aced34308a0",
+    "compiled_payload_length": 1253,
+    "push_lengths": [
+      520,
+      520,
+      213
+    ],
+    "envelope_script_sha256": "89f79616adb84fd77750ef248c081c97dd6940e3b7fb817c27e506648d566a0c",
+    "envelope_script_length": 1305,
+    "tapleaf_hash": "562084ca87eb782b648f9e8e8c5817eec29281af16c56fc353edb1072d532fba"
+  },
+  "chunk_rebalance": {
+    "description": "A payload whose length ≡ 1 (mod 520) with a final byte in the minimal-opcode range (0x01-0x10, 0x81) MUST be rebalanced: the final two pushes become (n-1, 2) bytes so no push canonicalizes to a bare opcode. Reassembly stays byte-identical.",
+    "compiled_payload_sha256": "9f066f45dfee762d8e7a5ab94d9a7955fdafd88fcb751da96ba60178000a3aae",
+    "compiled_payload_length": 1041,
+    "final_byte": "0x07",
+    "push_lengths": [
+      520,
+      519,
+      2
+    ],
+    "envelope_script_sha256": "3423b26a8463b081ef55f8ba4500ad46f3156e0dc79e82684098ef4d38aaa771"
+  },
+  "source_attribution": {
+    "description": "Spec §3.4 (decision pinned by this vector once review lands): the reveal's ins[0] is the commit output, a payload-dependent one-time P2TR address, so naive ins[0]-prevout attribution breaks ownership/gating/fees.",
+    "rule": "source = the address funding the commit, i.e. the prevout of the COMMIT transaction's ins[0], mirroring how the funding transaction anchors identity in the chunk lanes",
+    "build_time_task": "read the shipped chunk-reveal attribution rule and keep the envelope structurally identical to it; if the shipped rule differs from this recommendation, the shipped rule wins and this vector is regenerated",
+    "requires": "SIGHASH_ALL on all commit inputs (§3.5); commit-RBF replacements MUST preserve ins[0]"
+  },
+  "commit_fee_output_placement": {
+    "description": "Spec §3.5: native fee-destination outputs ride the COMMIT transaction, mirroring the funding transaction's role in the chunk lanes; the decoder's funding-fee resolver (findFundingFeeOutputs / FUNDING_VOUT_BASE) extends to the commit.",
+    "commit_vout_0": "the envelope P2TR output (by construction in the shipped encoder)",
+    "fee_destination_outputs": "vout >= 1 on the commit",
+    "fee_evaluation_height": "the requirement in force at the REVEAL's block height, using the outputs recorded on the commit (build-time task: verify the shipped chunk-lane evaluation height and mirror it exactly)",
+    "reveal_outputs": "never consulted for protocol-fee sufficiency"
+  },
+  "deflate_raw_pair": {
+    "description": "Part B golden pair. Compression is presentational, never consensus: only INFLATION must be reproduced. deflated_hex is one valid encoding (Node zlib.deflateRawSync, default level), pinned for reader regression tests; encoders MAY produce different bytes for the same raw input.",
+    "raw_utf8_sha256": "acfcfd00538a51f2ed6d96fe549d3c008af7a112cc20a8b5914db790f40add09",
+    "raw_length": 3660,
+    "deflated_hex": "edd0c14a03410cc6f157f91ea0ed41d0839ed40af622d27ae84dd299d80d4c33cb24db657d7ad9d2fa14b906f24ff8ed5f3b12c52735c70b523df58dcda42a8eb56456f4246d85353bb793a8984b425578c7d8be3daf61921955cbf408d2e9522842eac8fc53c879d9688479633ac13b72885ee606af68347e5b4777f70f10c3998a64545da6f9a7277cbd6f76b74cbe35c450956143eac09a6a163d2ed0b79a87c41987091f35337e8b1c56d7dd2d8dbb4913e6e36e739186e2287ce6b2402faa73bea231656e86448ac6c72bc4d2d9febf5e611f600116600116600116600116600116600116607f",
+    "deflated_sha256": "98615b592db1615566323cad4e61a495030a40493641bdd5351970b0849eb97e",
+    "deflated_length": 233,
+    "compression_field": "1 (deflate-raw); empty/absent = raw; unknown values NEVER invalidate an action, readers degrade to serve-raw with a stored-form indicator",
+    "serve_guard": "streaming decompression with a 150:1 ratio cap enforced as a streamed abort; fail-closed serving on any invalid stream"
+  },
+  "gated_compress_then_encrypt": {
+    "description": "Spec §5.4 ordering vector: deflate(plaintext) THEN AES-256-GCM (Token_Gated_Content layout: [12-byte nonce][16-byte tag][ciphertext]). The client inverts: decrypt, then inflate. Serve layers MUST NOT inflate ciphertext.",
+    "key_hex": "9f3c7a1e5b8d2046c1e9f7a35d0b48628e4a6c025f19d3b7ca57beef00112233",
+    "key_hash": "68d4962ee380a22baefa3d2bbcd6e21ea71885c21c86bf07200856f1a5e7c9e5",
+    "nonce_hex": "000102030405060708090a0b",
+    "plaintext_sha256": "657824efb7d0cebf281dabb6cd63a0896e55e8446e26daa91a514ba2c1a83e88",
+    "plaintext_length": 1760,
+    "deflated_sha256": "5dd79744d22ce94fa9a82bb4707f0679094847930eb19b264a70758916e541d5",
+    "deflated_length": 98,
+    "ciphertext_hex": "000102030405060708090a0b3f9888180e59c179aa9196ec1473990c3d1e28e84c34f59c37fe7f29dd6db06ee96cabdf16ef9a21476c6dea240afee5a35ccc53d505d225ee9c418c9af365ea8b21adccfef193a6eba683600ae8c6427823219fac17c28edcc2fce7c7b2765835e359943ed326914d33811e5c3b5edb0650",
+    "ciphertext_sha256": "35e425b528ea41649892faec6148ce0a87f962355b85195e209d654f1c4f06b4",
+    "compression_semantics": "for gated FILEs COMPRESSION=1 means inflate-after-decrypt, client-side only"
+  },
+  "adversarial": [
+    {
+      "name": "bad_magic",
+      "description": "Same grammar, magic \"XCHM\": not an envelope. No action, no error, no RPC fetch.",
+      "envelope_script_hex": "0063045843484d0100291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+      "expect": "not_recognized"
+    },
+    {
+      "name": "unknown_format_byte",
+      "description": "Format byte 0x01: unrecognized BY DESIGN (invisible, not invalid). Future formats activate via their own §7 flag heights.",
+      "envelope_script_hex": "0063045843484e0101291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+      "expect": "not_recognized"
+    },
+    {
+      "name": "annex_bearing_reveal",
+      "description": "A reveal whose witness stack carries a BIP341 annex (last item leading 0x50) is NOT recognized as an envelope, forever (spec §3.8). Witness parsing MUST index from the END of the stack, annex-aware; fixed-index parsing misparses this.",
+      "witness_stack_hex": [
+        "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "0063045843484e0100291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+        "c079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+        "50ff00ff00"
+      ],
+      "expect": "not_recognized"
+    },
+    {
+      "name": "mixed_carrier_envelope_plus_op_return",
+      "description": "A tx containing an envelope reveal input AND an OP_RETURN XCHN payload is NOT a valid action (spec §3.8, height-gated: below the recognition flag height it replays exactly as the fleet indexed it, i.e. as the OP_RETURN action).",
+      "expect": "no_action_post_flag__shipped_behavior_pre_flag"
+    },
+    {
+      "name": "mixed_carrier_envelope_plus_chunk_marker",
+      "description": "Envelope input plus P2SH/P2WSH chunk marker: no action post-flag.",
+      "expect": "no_action_post_flag__shipped_behavior_pre_flag"
+    },
+    {
+      "name": "mixed_carrier_envelope_plus_multisign",
+      "description": "Envelope input plus MULTISIGN data outputs: no action post-flag.",
+      "expect": "no_action_post_flag__shipped_behavior_pre_flag"
+    },
+    {
+      "name": "two_envelope_inputs",
+      "description": "A tx with two or more envelope reveal inputs is NOT a valid action (spec §3.8).",
+      "expect": "no_action_post_flag__shipped_behavior_pre_flag"
+    },
+    {
+      "name": "over_ceiling_payload",
+      "description": "Reassembled payload length 400,001 > ENVELOPE_MAX_PAYLOAD: dropped (never truncated), deterministically, in BOTH the block and mempool paths.",
+      "payload_length": 400001,
+      "expect": "dropped_both_paths"
+    },
+    {
+      "name": "foreign_op_false_op_if",
+      "description": "Ord-style inscriptions and arbitrary OP_FALSE OP_IF trees without the XCHN magic + format byte: no crash, no false positive, no RPC fetch (recognition is free pattern-matching, spec §3.2).",
+      "expect": "not_recognized"
+    }
+  ]
+}

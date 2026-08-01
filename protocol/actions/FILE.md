@@ -16,18 +16,31 @@ This action uploads a file including file metadata. The action also supports **t
 | `ENCRYPTION_METHOD` | String | (optional) Encryption method code. `1` = AES-256-GCM. Required when gated. |
 | `KEY_HASH`          | String | (optional) Hex `sha256(K)` of the symmetric key. Required when gated.    |
 | `GATE_MIN_AMOUNT`   | String | (optional) Minimum balance of `GATE_TICKER` at which the content unlocks. Empty = any holder. |
+| `COMPRESSION`       | String | (optional) How the stored bytes are compressed. Empty/absent = raw (every historical FILE). `1` = deflate-raw. Other values reserved. |
 
 ## Formats
 
 ### Version `0`
-- `VERSION|NAME|TYPE|TITLE|MEMO|GATE_TICKER|ENCRYPTION_METHOD|KEY_HASH|GATE_MIN_AMOUNT`
+- `VERSION|NAME|TYPE|TITLE|MEMO|GATE_TICKER|ENCRYPTION_METHOD|KEY_HASH|GATE_MIN_AMOUNT|COMPRESSION`
 
 The gating fields are optional and appended after `MEMO`. The encoder strips trailing empty fields, so a non-gated file serializes to the compact `FILE|0|NAME|TYPE|TITLE|MEMO` form and is wire-compatible with software that predates the gating extension. The same holds for `GATE_MIN_AMOUNT`: an eight-field gated FILE is byte-identical to what it was before the field existed, so every historical FILE reads the same way.
+
+## COMPRESSION
+
+`COMPRESSION` tells a reader how to reconstruct the original file from the bytes that are actually on chain. It is **presentational, never consensus**: FILE validity rules do not inspect `rawData`, so an indexer that has never heard of this field produces identical validity verdicts and identical state. What an old reader gets wrong is only the display, and only for files published after it.
+
+That is also why **no reader may ever validate it**. Shipped indexers silently ignore unknown trailing fields, so a reader that rejected a malformed `COMPRESSION` value while others ignored it would fork validity across the fleet. An unknown or invalid code degrades to serving the stored bytes as-is; it never invalidates an action.
+
+**Readers must derive `COMPRESSION` from the stored action string at serve time**, not from a column parsed at ingest. A compressed FILE mined before a given indexer upgraded would otherwise have been stored marker-less and served as deflated garbage forever, even after that indexer caught up.
+
+**Public files.** The encoder compresses by default and keeps the compressed form only when it is genuinely smaller, so already-compressed media (JPEG, MP4, ZIP) silently rides raw. A reader inflates before serving, with a streamed 150:1 ratio guard, and falls back to the stored bytes with an explicit indicator if inflation fails: the field is sender-asserted and a lying one must never crash a reader or produce partial output.
+
+**Gated files are the exception.** On a gated FILE, `COMPRESSION=1` means **inflate after decrypt**: the field describes the plaintext, which the client compressed before encrypting (see [Token-Gated Content](../Token_Gated_Content.md)). Serving layers MUST NOT attempt to inflate ciphertext, and the encoder never sets the field on a gated FILE - it belongs to whoever performed compress-then-encrypt.
 
 ## Examples
 ```
 FILE|0|test.txt|text/plain|Test File|This is a test upload
-This example uploads a plain text file named test.txt with the `TITLE` of Test File and a `MEMO`. Trailing gating fields are empty and stripped.
+This example uploads a plain text file named test.txt with the `TITLE` of Test File and a `MEMO`. Trailing gating and compression fields are empty and stripped.
 ```
 
 ```

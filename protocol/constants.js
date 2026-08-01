@@ -39,6 +39,18 @@
 // encoder produces above this size would be silently dropped by every node.
 const MAX_ACTION_DATA_LENGTH = 8192;
 
+// Taproot-envelope payload ceiling , PER-ENCODING by design: only the
+// TAPROOT envelope lane gets it; every legacy lane keeps MAX_ACTION_DATA_LENGTH
+// (a global raise would multiply the chunk-lane abuse ceiling ~50x for no
+// benefit). Measures the REASSEMBLED envelope payload byte length after
+// concatenation of the payload pushes, before parse; the envelope's own
+// 520-byte push framing is not counted. Note the deliberate difference from
+// MAX_ACTION_DATA_LENGTH, which is framing-inclusive of the single on-chain
+// push: the two constants measure different things. Matched to tapscript
+// standardness reality (~400k WU per transaction; a full envelope reveal
+// weighs ~392k WU). Enforced identically in the block and mempool paths.
+const ENVELOPE_MAX_PAYLOAD = 400000;
+
 // Bytes added by the OP_PUSHDATA2 push prefix (1-byte opcode + 2-byte
 // little-endian length) when a 256..65535-byte payload is compiled into the
 // on-chain script. For a single such push the compiled length is therefore
@@ -444,6 +456,62 @@ const ORACLE_FEE_OUTPUT_ACTIVATION = {
     regtest: 0,
 };
 
+// ENVELOPE_RECOGNITION_ACTIVATION ( spec §7): the LOCAL block height
+// at/above which the decoder recognizes Taproot-envelope reveals as
+// action-bearing transactions, per host chain and network. Recognition (and
+// the §3.8 mixed-carrier/multi-envelope rejections, which activate at the same
+// height) is fleet-deterministic: every decoder for a chain+network MUST flip
+// at the same height or the fleet forks on the first envelope. Keyed on each
+// chain's OWN local block height (like STATE_COMMITMENT_ACTIVATION) because
+// recognition happens while parsing that chain's blocks. DOGE has no segwit,
+// hence no envelope: its entry is null (never active) and must stay null.
+// mainnet is a DISABLED far-future sentinel until the §7 cohort decision
+// (riding the  launch-baseline sequencing) arms it; testnet/regtest are
+// genesis-active. Vendored byte-equal into xchain-decoder/src/protocol/
+// constants.js; the cross-service regression suite keeps the copies in
+// lockstep. Rollout order within any venue: decoder before encoder.
+const ENVELOPE_RECOGNITION_ACTIVATION = {
+    BTC:  { mainnet: 999999999, testnet: 0, regtest: 0 },
+    LTC:  { mainnet: 999999999, testnet: 0, regtest: 0 },
+    DOGE: { mainnet: null, testnet: null, regtest: null },
+};
+
+// ── FILE payload compression ( spec Part B) ────────────────────────────
+//
+// COMPRESSION is a trailing optional field on FILE v0:
+//   FILE|0|NAME|TYPE|TITLE|MEMO|GATE_TICKER|ENCRYPTION_METHOD|KEY_HASH|GATE_MIN_AMOUNT|COMPRESSION
+// Empty/absent = raw (every historical FILE); '1' = deflate-raw. The compressed
+// bytes are what live on chain and in every database; the field tells a reader
+// how to reconstruct the original byte-exactly.
+//
+// PRESENTATIONAL, NOT CONSENSUS (spec §5.5). FILE validity rules never inspect
+// rawData content, so an indexer that has never heard of this field produces
+// identical validity verdicts and identical state. That is why it ships as a
+// trailing-field extension rather than a version bump, and it is also why the
+// field must NEVER be validated: shipped indexers silently ignore unknown
+// trailing fields, so a reader that rejected a malformed COMPRESSION value
+// would fork validity across the fleet. Unknown or invalid codes degrade to
+// serve-raw, everywhere, always.
+const COMPRESSION_CODE_DEFLATE_RAW = '1';
+
+// Serve-side decompression ratio cap, enforced as a STREAMED abort (spec §5.5):
+// a crafted payload must not be able to bomb an explorer or wallet. 150:1 is
+// chosen against deflate-raw's ~1032:1 theoretical maximum (a 1000:1 cap would
+// guard nothing) while clearing real-world text ratios by a wide margin.
+//
+// There is deliberately no separate absolute output cap: ENVELOPE_MAX_PAYLOAD
+// (400,000) makes ~60 MB the worst reachable inflation, so an absolute bound
+// would be dead configuration. That implied bound is COUPLED to the envelope
+// ceiling: if ENVELOPE_MAX_PAYLOAD ever rises, revisit this ratio.
+const COMPRESSION_MAX_RATIO = 150;
+
+// Pre-compression input cap on rawData at the encoder (spec §5.2). The encoder
+// is a hard single-instance service ( lockfile guard), so compression
+// must be async/streamed and bounded; this is the bound. It applies to the
+// bytes handed IN, before any compression attempt. The encoder never
+// decompresses anything.
+const COMPRESSION_MAX_INPUT_BYTES = 16 * 1024 * 1024;
+
 // ── PRICE v0 pair-name format  ───────────────────────────────────────
 //
 // A PRICE v0 round names each pair as TICKER/FIAT. The ticker side has always been
@@ -567,6 +635,7 @@ const ORACLE_DEVIATION_THRESHOLD = 0.05;
 
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
+    ENVELOPE_MAX_PAYLOAD,
     OP_RETURN_PUSH_OVERHEAD,
     MAX_CODE_SIZE,
     MAX_DEPLOY_CHUNKS,
@@ -597,6 +666,10 @@ module.exports = {
     ATTEST_ADMISSION_ACTIVATION,
     ATTEST_RELAY_ACTIVATION,
     ORACLE_FEE_OUTPUT_ACTIVATION,
+    ENVELOPE_RECOGNITION_ACTIVATION,
+    COMPRESSION_CODE_DEFLATE_RAW,
+    COMPRESSION_MAX_RATIO,
+    COMPRESSION_MAX_INPUT_BYTES,
     PRICE_PAIR_TICKER_MAX_LEGACY,
     PRICE_PAIR_TICKER_MAX_WIDE,
     PRICE_PAIR_WIDEN_ACTIVATION,
