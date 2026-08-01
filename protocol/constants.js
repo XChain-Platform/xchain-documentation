@@ -46,10 +46,30 @@ const MAX_ACTION_DATA_LENGTH = 8192;
 // concatenation of the payload pushes, before parse; the envelope's own
 // 520-byte push framing is not counted. Note the deliberate difference from
 // MAX_ACTION_DATA_LENGTH, which is framing-inclusive of the single on-chain
-// push: the two constants measure different things. Matched to tapscript
-// standardness reality (~400k WU per transaction; a full envelope reveal
-// weighs ~392k WU). Enforced identically in the block and mempool paths.
-const ENVELOPE_MAX_PAYLOAD = 400000;
+// push: the two constants measure different things. Enforced identically in
+// the block and mempool paths.
+//
+// DERIVED FROM WEIGHT, NOT CHOSEN AS A ROUND BYTE COUNT . The binding
+// limit is MAX_STANDARD_TX_WEIGHT: a reveal over it is non-standard and no node
+// relays it, so a ceiling that admits one strands the commit that funded it.
+// Payload bytes ride the witness at ~1 WU each, plus ~3 bytes of OP_PUSHDATA2
+// framing per 520-byte chunk (~0.58%) and ~480 WU of fixed input/output/control
+// -block overhead. Measured against the real script builder: 400,000 payload
+// bytes compile to a 402,353-byte tapscript and a 402,789 WU reveal, which is
+// OVER the limit; the true maxima are 397,228 bytes with a P2WPKH change output
+// and 397,009 with P2TR change plus a stripped-floor pad. 390,000 sits 7,050 WU
+// under the limit in the worst reveal shape, which absorbs a larger change
+// output and the §3.5 extra reveal inputs/outputs without going non-standard.
+// The 400,000 shipped before 2026-07-31 admitted an unbroadcastable band of
+// roughly 397,010..400,000 that the encoder built and the validator accepted.
+// If this ever rises, re-derive it from MAX_STANDARD_TX_WEIGHT rather than
+// picking a number, and re-check the ratio-cap note below.
+const ENVELOPE_MAX_PAYLOAD = 390000;
+
+// Bitcoin Core's MAX_STANDARD_TX_WEIGHT policy limit, in weight units. Exported
+// so ENVELOPE_MAX_PAYLOAD's derivation above is checkable by a test that builds
+// a real max-payload envelope rather than trusting the arithmetic in a comment.
+const MAX_STANDARD_TX_WEIGHT = 400000;
 
 // Bytes added by the OP_PUSHDATA2 push prefix (1-byte opcode + 2-byte
 // little-endian length) when a 256..65535-byte payload is compiled into the
@@ -500,7 +520,7 @@ const COMPRESSION_CODE_DEFLATE_RAW = '1';
 // guard nothing) while clearing real-world text ratios by a wide margin.
 //
 // There is deliberately no separate absolute output cap: ENVELOPE_MAX_PAYLOAD
-// (400,000) makes ~60 MB the worst reachable inflation, so an absolute bound
+// (390,000) makes ~58.5 MB the worst reachable inflation, so an absolute bound
 // would be dead configuration. That implied bound is COUPLED to the envelope
 // ceiling: if ENVELOPE_MAX_PAYLOAD ever rises, revisit this ratio.
 const COMPRESSION_MAX_RATIO = 150;
@@ -636,6 +656,7 @@ const ORACLE_DEVIATION_THRESHOLD = 0.05;
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     ENVELOPE_MAX_PAYLOAD,
+    MAX_STANDARD_TX_WEIGHT,
     OP_RETURN_PUSH_OVERHEAD,
     MAX_CODE_SIZE,
     MAX_DEPLOY_CHUNKS,

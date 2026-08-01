@@ -10,7 +10,7 @@
     "payload_definition": "The reassembled payload (payload pushes concatenated, push framing excluded) is byte-identical to the compiled action stream the shipped lanes carry: the action-string push plus the rawData push, magic excluded (the envelope header carries it). The payload is RAW: never obfuscated (spec §3.3, pinned).",
     "ceiling": {
       "name": "ENVELOPE_MAX_PAYLOAD",
-      "value": 400000,
+      "value": 390000,
       "measures": "reassembled payload byte length after concatenation, before parse; envelope push framing not counted; enforced identically in block and mempool paths"
     }
   },
@@ -136,8 +136,8 @@
     },
     {
       "name": "over_ceiling_payload",
-      "description": "Reassembled payload length 400,001 > ENVELOPE_MAX_PAYLOAD: dropped (never truncated), deterministically, in BOTH the block and mempool paths.",
-      "payload_length": 400001,
+      "description": "Reassembled payload length 390,001 > ENVELOPE_MAX_PAYLOAD: dropped (never truncated), deterministically, in BOTH the block and mempool paths.",
+      "payload_length": 390001,
       "expect": "dropped_both_paths"
     },
     {
