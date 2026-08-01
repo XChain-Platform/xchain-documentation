@@ -61,6 +61,29 @@ This example uploads an encrypted ZIP gated by the PEPECREATURE token. `ENCRYPTI
 - `GATE_MIN_AMOUNT`, when present, must be a decimal amount strictly greater than zero (every zero form is invalid), at most 40 characters, digits with at most one `.`, no leading zeros unless the integer part is exactly `0`, a non-empty fractional part whenever a `.` is present, and no more decimal places than min(the gate token's divisibility, 18). A present-but-invalid value makes the FILE invalid rather than being ignored: a FILE is immutable, so a dropped threshold would leave the publisher believing one was in force while the chain recorded none.
 - `GATE_MIN_AMOUNT` is only meaningful with a `GATE_TICKER`; on a non-gated FILE it is invalid, since there is no balance to weigh it against.
 
+## Cost and storage
+
+**A `FILE` pays no XCHAIN protocol fee.** The gas schedule's only per-byte term is
+`VM_DEPLOY_PER_BYTE`, which applies to contract deployment, and the static protocol fee
+covers `EXECUTE`/`DEPLOY`; `FILE` appears in neither. What a publisher pays is the **native
+miner fee** on the host chain, which scales with the bytes actually written, so choosing a
+cheaper carrier or letting `COMPRESSION` shrink the payload lowers the real cost directly.
+
+This is a deliberate position, not an oversight. The Taproot envelope and default
+compression together make a stored byte roughly 50x cheaper than the legacy chunk lane, and
+those bytes live forever in every decoder, indexer and explorer database. Two limits, not a
+fee, are what bound that growth:
+
+- the per-encoding payload ceiling (`ENVELOPE_MAX_PAYLOAD` for envelope-carried actions,
+  8,192 compiled bytes for the legacy lanes), enforced identically in the block and mempool
+  paths, and
+- the serve-time decompression ratio cap, which bounds what a crafted payload can inflate to
+  in a reader.
+
+If FILE volume ever makes storage growth an operational problem, the ceiling is the lever to
+reach for. Anyone sizing indexer or explorer capacity should plan against the ceiling and
+expected FILE rate rather than assuming a fee throttles demand, because none does.
+
 ## Pack semantics
 Two or more gated `FILE` actions by the same **publisher** with the same `GATE_TICKER` **and** the same `KEY_HASH` form a **pack**; they share a symmetric key and unlock together. Pack membership is implicit in that triple; the protocol does not need a separate "pack" concept. A pack's effective unlock threshold is the MINIMUM `GATE_MIN_AMOUNT` across its files, and any file in it without a threshold makes the whole pack unconditional, because one key unlocks all of them. The publisher is part of the key because token ownership transfers: without it, a former issuer's files would keep setting the threshold for a token they no longer control. See [Token-Gated Content](../Token_Gated_Content.md) for details and use cases.
 
