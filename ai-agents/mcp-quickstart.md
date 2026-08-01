@@ -60,7 +60,7 @@ Ask your agent things like:
 
 ## Pointing at a regtest stack
 
-The `R*` coins (`RBTC`, `RLTC`, `RDOGE`) default to localhost services. The standard SDK environment variables (`EXPLORER_URL`, `EXPLORER_PORT`, `HUB_API_HOST`, …) override any endpoint (see [SDK configuration](../components/sdk/configuration.md).
+The `R*` coins (`RBTC`, `RLTC`, `RDOGE`) default to localhost services. The standard SDK environment variables (`EXPLORER_URL`, `EXPLORER_PORT`, `HUB_API_HOST`, …) override any endpoint (see [SDK configuration](../components/sdk/configuration.md)).
 
 ## Writes are off by default: and policy-gated when on
 

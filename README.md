@@ -36,6 +36,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**xchain-hub**](https://github.com/XChain-Platform/xchain-hub/) | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, P2P gossip, governance |
 | [**xchain-utxo-tracker**](https://github.com/XChain-Platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |
 | [**xchain-vm**](https://github.com/XChain-Platform/xchain-vm/) | Sandboxed JavaScript virtual machine for on-chain smart contracts with gas metering, deterministic execution, and reorg-safe state |
+| [**xchain-contracts**](https://github.com/XChain-Platform/xchain-contracts/) | MIT-licensed template library: audited example smart contracts, reusable patterns, a no-code policy generator, and a CLI, deployed via the ordinary `DEPLOY` action |
 | [**xchain-sdk**](https://github.com/XChain-Platform/xchain-sdk/) | Developer SDK: builders for all 31 developer-invocable actions, 100+ explorer query methods, smart contract support, live WebSocket events, batch builder, PSBT generation |
 | [**xchain-wallet**](https://github.com/XChain-Platform/xchain-wallet/) | Reference self-custodial multi-chain wallet: browser, Chrome extension, and Electron desktop from a single codebase; software + Trezor + Ledger + remote + multisig signers; full DEX, messaging, contracts, staking, and `window.xchain` dApp bridge |
 | [**xchain-regtest-miner**](https://github.com/XChain-Platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
@@ -62,4 +63,4 @@ with a commercial license available for proprietary use.
 
 You may use, modify, and distribute this material under the terms of the License.
 See [LICENSE](./LICENSE.md) and [NOTICE](./NOTICE.md) for full terms.
-See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).
+See the [licensing overview](https://docs.xchain.io/legal/licensing).

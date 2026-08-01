@@ -3,11 +3,11 @@
 
 # Wallet Architecture
 
-This document describes how the wallet is organized at the package level, how the three shells relate to the shared core, and how state and messages flow through the system at runtime.
+This document describes how the wallet is organized at the package level, how the four shells relate to the shared core, and how state and messages flow through the system at runtime.
 
-## Three shells, one core
+## Four shells, one core
 
-The wallet is a pnpm workspace with three product surfaces (a browser web app, a Chrome MV3 extension, and an Electron desktop app) and a shared `@xchain-wallet/core` that contains everything *except* the host-specific glue.
+The wallet is a pnpm workspace with four product surfaces (a browser web app, a Chrome MV3 extension, an Electron desktop app, and a Capacitor mobile app for Android now, iOS later) and a shared `@xchain-wallet/core` that contains everything *except* the host-specific glue.
 
 ```
 @xchain-wallet/core
@@ -36,8 +36,9 @@ Each shell wraps the core in a small amount of host-specific glue:
 | `@xchain-wallet/web` | Vite SPA + `hostBridge.js` | IndexedDB | in-memory only |
 | `@xchain-wallet/extension` | service worker + content script + injected provider + popup + approval window | `chrome.storage.local` | `chrome.storage.session` |
 | `@xchain-wallet/desktop` | Electron main / preload / renderer | encrypted file via main process | OS keychain (optional) |
+| `@xchain-wallet/mobile` | Capacitor WebView wrapping the built `@xchain-wallet/web` SPA verbatim, no UI or glue of its own | IndexedDB (same as web) | in-memory only (same as web) |
 
-Every route renders the same React tree across shells; only the host bridge differs.
+Every route renders the same React tree across shells; only the host bridge differs. Mobile is a wrapper, not a port: it packages the web shell's own build, so it inherits the web shell's bridge, vault, and session behavior unchanged.
 
 ## Package boundaries
 
@@ -47,6 +48,7 @@ flowchart TD
     WEB["@xchain-wallet/web<br>Vite SPA<br>hostBridge.js<br>sdkFactory.js"]
     EXT["@xchain-wallet/extension<br>background + content + popup +<br>approval + inject"]
     DESKTOP["@xchain-wallet/desktop<br>Electron main +<br>preload + renderer"]
+    MOBILE["@xchain-wallet/mobile<br>Capacitor (Android/iOS)<br>wraps the web shell's build"]
     SDK["xchain-sdk (sibling repo)<br>actions + encoder +<br>explorer + hub + ws"]
 
     CORE --> WEB
@@ -55,9 +57,10 @@ flowchart TD
     WEB --> SDK
     EXT --> SDK
     DESKTOP --> SDK
+    WEB --> MOBILE
 ```
 
-Sibling packages alongside the three shells:
+Sibling packages alongside the four shells:
 
 - `@xchain-wallet/signers-trezor`: TrezorSigner + `trezorFormat.js` (`packages/signers-trezor/`)
 - `@xchain-wallet/signers-ledger`: LedgerSigner + `ledgerFormat.js` (`packages/signers-ledger/`)
@@ -67,12 +70,14 @@ Sibling packages alongside the three shells:
 
 `xchain-sdk` is the only data + signing dependency. The wallet never talks directly to the encoder, explorer, hub, or coin nodes; every blockchain-facing call routes through the SDK. This single boundary means the SDK can swap out endpoints, add chains, or change protocols and the wallet inherits the change without modification.
 
-## Three-shell-to-core seams
+## Shell-to-core seams
 
-Each shell registers *two* host functions with core:
+Each of the three shells that build against core directly (web, extension, desktop) registers *two* host functions with it:
 
 1. **SDK factory**: `core/src/sdk/SDKRegistry` calls a host-supplied factory to mint per-chain SDK instances. Web/desktop instantiate `xchain-sdk` directly; the extension instantiates the SDK in the service worker and routes calls from popup / approval / full-screen via `MessageHost`.
 2. **Storage backend**: `core/src/storage/backend.js` selects between IndexedDB (web), `chrome.storage.local` (extension), and a file-backed adapter (desktop main process). Vault encryption / decryption is identical across all three.
+
+Mobile registers neither: it has no seam of its own, since it packages the web shell's already-built SDK factory and IndexedDB storage backend verbatim.
 
 The hot path for a signed action across shells is identical:
 
@@ -89,7 +94,7 @@ flowchart TD
     CLICK --> FLOW --> SEND --> CREATE --> SIGN --> BROADCAST --> WAIT
 ```
 
-The path is the same in the web shell (signer runs in the page), the extension (signer runs in the service worker), and the desktop app (signer runs in the main process). Differences live entirely behind the SDK factory + storage backend seams.
+The path is the same in the web shell (signer runs in the page), the extension (signer runs in the service worker), and the desktop app (signer runs in the main process). Mobile follows the web shell's path exactly, since it runs the same build in a Capacitor WebView. Differences live entirely behind the SDK factory + storage backend seams.
 
 ## Vault and state model
 

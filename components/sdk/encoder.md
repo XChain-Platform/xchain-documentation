@@ -13,11 +13,9 @@ There are two ways to use the encoder:
 2. **Via `sdk.encodeTx(params)` directly**: supply your own `data` string and encoder options for full control.
 
 ```js
-const sdk = new XChainSDK({
-    network:    'bitcoin-mainnet',
-    encoderUrl: 'localhost',
-    encoderPort: 3003
-});
+// Zero-config: for mainnet/testnet, encoderUrl resolves automatically to the
+// public https://encoder.xchain.io/{COIN}. See configuration.md.
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
 ```
 
 ---

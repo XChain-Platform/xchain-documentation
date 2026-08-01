@@ -99,11 +99,10 @@ npm install
 ```javascript
 const XChainSDK = require('./index.js');
 
-const sdk = new XChainSDK({
-    network:     'bitcoin-mainnet',
-    explorerUrl: 'explorer.example.com',
-    explorerPort: 8080
-});
+// Zero-config: for a mainnet or testnet network string, the SDK resolves
+// explorer/encoder/hub endpoints to the public XChain Platform hosts
+// (https://explorer.xchain.io, etc.) automatically. See configuration.md.
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
 
 // Build a SEND action string
 const result = await sdk.send({
@@ -124,13 +123,10 @@ console.log(balances);
 ```javascript
 const XChainSDK = require('./index.js');
 
-const sdk = new XChainSDK({
-    network:      'bitcoin-mainnet',
-    explorerUrl:  'explorer.example.com',
-    explorerPort: 8080,
-    encoderUrl:   'encoder.example.com',
-    encoderPort:  3003
-});
+// Zero-config again: explorer and encoder both resolve to the public hosts
+// for a mainnet/testnet network. Pass explorerUrl/encoderUrl explicitly only
+// when pointing at a self-hosted or regtest stack.
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
 
 // Build a SEND action and encode it into a PSBT in one call
 const result = await sdk.send(
@@ -162,12 +158,14 @@ console.log(result.encoding);      // encoding format used
 
 When using xchain-hub for service discovery, call `init()` after construction. The SDK fetches endpoint config from the hub and automatically re-resolves clients if config changes.
 
+For a mainnet or testnet network, `hubUrl` already defaults to `https://hub.xchain.io`, so `init()` works with zero config too. Pass `hubUrl` explicitly (as below) only when pointing at a self-hosted hub instance.
+
 ```javascript
 const XChainSDK = require('./index.js');
 
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
-    hubUrl:  'hub.example.com',
+    hubUrl:  'https://my-hub.example.com',
     hubPort: 10000
 });
 
@@ -196,7 +194,8 @@ Require the SDK directly in your application. All action and explorer methods ar
 
 ```javascript
 const XChainSDK = require('@dankest-llc/xchain-sdk');
-const sdk = new XChainSDK({ network: 'dogecoin-mainnet', explorerUrl: 'localhost' });
+// Zero-config: resolves to the public https://explorer.xchain.io/DOGE, etc.
+const sdk = new XChainSDK({ network: 'dogecoin-mainnet' });
 ```
 
 ### JSON-RPC microservice
@@ -217,7 +216,8 @@ Load the bundle in a `<script>` tag; the SDK is exposed as the global `XChainSDK
 ```html
 <script src="dist/xchain_sdk.min.js"></script>
 <script>
-    const sdk = new XChainSDK({ network: 'bitcoin-mainnet', explorerUrl: 'localhost' });
+    // Zero-config: resolves to the public https://explorer.xchain.io, etc.
+    const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
 </script>
 ```
 

@@ -16,11 +16,9 @@ The SDK provides a messaging module for encrypted and plaintext communication be
 Available on the SDK instance and as top-level convenience methods:
 
 ```js
-const sdk = new XChainSDK({
-    network: 'bitcoin-mainnet',
-    explorerUrl: 'localhost',
-    encoderUrl: 'localhost'
-});
+// Zero-config: for mainnet/testnet, explorerUrl and encoderUrl resolve
+// automatically to the public XChain Platform hosts. See configuration.md.
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
 
 // Namespaced access
 sdk.messaging.eciesEncrypt('Hello', recipientPubkey);

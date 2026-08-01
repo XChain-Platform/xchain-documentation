@@ -10,11 +10,9 @@ The SDK's explorer client wraps the xchain-explorer REST API, providing typed me
 The explorer client is instantiated automatically when `network` is provided in the SDK options. The correct coin prefix for all URL paths is derived from the `network` string, you never construct paths manually.
 
 ```js
-const sdk = new XChainSDK({
-    network:      'bitcoin-mainnet',
-    explorerUrl:  'localhost',
-    explorerPort: 8080
-});
+// Zero-config: for mainnet/testnet, explorerUrl resolves automatically to
+// the public https://explorer.xchain.io. See configuration.md.
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
 
 // Access explorer methods directly on the SDK instance
 let balances = await sdk.explorer.getBalances('bc1q...');

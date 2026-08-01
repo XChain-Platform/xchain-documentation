@@ -14,11 +14,11 @@ const sdk = new XChainSDK(options);
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `network` | string | `NETWORK` env var | Target blockchain and network. See [Network Strings](#network-strings) for valid values. |
-| `explorerUrl` | string | `EXPLORER_URL` env var or `'localhost'` | Hostname or IP of the xchain-explorer API server. |
-| `explorerPort` | number | `EXPLORER_PORT` env var or `8080` | Port of the xchain-explorer API server. |
-| `encoderUrl` | string | `ENCODER_URL` env var or `'localhost'` | Hostname or IP of the xchain-encoder JSON-RPC server. |
-| `encoderPort` | number | `ENCODER_PORT` env var or `3003` | Port of the xchain-encoder JSON-RPC server. |
-| `hubUrl` | string | `HUB_API_HOST` env var or `'localhost'` | Hostname or IP of the xchain-hub config oracle. Required for hub discovery. |
+| `explorerUrl` | string | `EXPLORER_URL` env var, then the public XChain host for mainnet/testnet, then `'localhost'` for regtest | Hostname or IP of the xchain-explorer API server. See [Public Endpoint Defaults](#public-endpoint-defaults). |
+| `explorerPort` | number | `EXPLORER_PORT` env var or `8080` | Port of the xchain-explorer API server. Unused when `explorerUrl` resolves to a full `https://` URL (the public default). |
+| `encoderUrl` | string | `ENCODER_URL` env var, then the public XChain host for mainnet/testnet, then `'localhost'` for regtest | Hostname or IP of the xchain-encoder JSON-RPC server. See [Public Endpoint Defaults](#public-endpoint-defaults). |
+| `encoderPort` | number | `ENCODER_PORT` env var or `3003` | Port of the xchain-encoder JSON-RPC server. Unused when `encoderUrl` resolves to a full `https://` URL (the public default). |
+| `hubUrl` | string | `HUB_API_HOST` env var, then the public XChain host for mainnet/testnet, then `'localhost'` for regtest | Hostname or IP of the xchain-hub config oracle. Required for hub discovery. See [Public Endpoint Defaults](#public-endpoint-defaults). |
 | `hubPort` | number | `HUB_PORT` env var or `10000` | Port of the xchain-hub config oracle. |
 | `hubPollInterval` | number | `60000` | How often (ms) to re-fetch config from hub after `init()`. |
 | `timeout` | number | `30000` | Request timeout in milliseconds applied to all HTTP requests. |
@@ -64,11 +64,12 @@ const sdk = new XChainSDK(options);
 When the same setting can be specified in multiple places, the SDK resolves it in this order (highest priority first):
 
 1. **Constructor options**: values passed directly to `new XChainSDK(options)`.
-2. **Hub-discovered endpoints**: endpoint URLs and ports fetched from xchain-hub during `init()`. Only applies to `explorerUrl`, `explorerPort`, `encoderUrl`, and `encoderPort`.
+2. **Hub-discovered endpoints**: endpoint URLs and ports fetched from xchain-hub during `init()`. Only applies to `explorerUrl`, `explorerPort`, `encoderUrl`, and `encoderPort`, and only overlays a field that was not pinned via constructor options.
 3. **Environment variables**: values read from process environment or a `.env` file.
-4. **Built-in defaults**: hardcoded fallback values within each client class.
+4. **Public endpoint defaults**: for mainnet/testnet networks only, the public XChain Platform hosts (`https://hub.xchain.io`, `https://explorer.xchain.io`, `https://encoder.xchain.io`). See [Public Endpoint Defaults](#public-endpoint-defaults).
+5. **Localhost fallback**: the last resort, used by regtest networks (inherently local) and any construction with no network at all.
 
-Constructor options always win. Hub discovery fills gaps that explicit options did not cover. Environment variables fill gaps that hub discovery did not cover. Built-in defaults are the last resort.
+Constructor options always win. Hub discovery fills gaps that explicit options did not cover. Environment variables fill gaps that hub discovery did not cover. For mainnet/testnet, public endpoint defaults fill gaps environment variables did not cover, so a network-only construction (`new XChainSDK({ network: 'bitcoin-mainnet' })`) already has working explorer, encoder, and hub clients with no other configuration. The localhost fallback only applies to regtest, or when no network is set at all.
 
 ## Environment Variables
 
@@ -225,8 +226,7 @@ The SDK automatically retries requests that fail due to transient errors. By def
 
 ```javascript
 const sdk = new XChainSDK({
-    network:     'bitcoin-mainnet',
-    explorerUrl: 'localhost',
+    network: 'bitcoin-mainnet',
     retry: {
         maxRetries:    5,
         baseDelay:     500,    // start at 500ms
@@ -242,9 +242,8 @@ Pass `false` to disable all retry logic. Requests will fail immediately on any e
 
 ```javascript
 const sdk = new XChainSDK({
-    network:     'bitcoin-mainnet',
-    explorerUrl: 'localhost',
-    retry: false
+    network: 'bitcoin-mainnet',
+    retry:   false
 });
 ```
 
@@ -254,8 +253,7 @@ Use the `onRetry` hook to log retry attempts:
 
 ```javascript
 const sdk = new XChainSDK({
-    network:     'bitcoin-mainnet',
-    explorerUrl: 'localhost',
+    network: 'bitcoin-mainnet',
     hooks: {
         onRetry: (attempt, delay, error) => {
             console.warn(`Retry #${attempt} in ${delay}ms after: ${error.message}`);

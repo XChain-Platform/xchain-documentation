@@ -17,7 +17,9 @@ The SDK provides two modules for wallet integration:
 Both modules are available on the SDK instance and as top-level convenience methods:
 
 ```js
-const sdk = new XChainSDK({ network: 'bitcoin-mainnet', encoderUrl: 'localhost' });
+// Zero-config: for mainnet/testnet, encoderUrl resolves automatically to the
+// public https://encoder.xchain.io/{COIN}. See configuration.md.
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
 
 // Namespaced access
 sdk.wallet.generateKeyPair();

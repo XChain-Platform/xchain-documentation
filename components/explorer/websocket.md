@@ -10,6 +10,14 @@ The xchain-explorer provides a WebSocket API for real-time streaming of blockcha
 
 ### URL Pattern
 
+For the public XChain Platform (mainnet or testnet):
+
+```
+wss://explorer.xchain.io/{COIN}/api/websocket
+```
+
+For a self-hosted or local explorer instance:
+
 ```
 ws://host:8080/{COIN}/api/websocket
 wss://host:8081/{COIN}/api/websocket
@@ -32,7 +40,10 @@ The `{COIN}` segment determines the chain and network for the connection:
 ### Example
 
 ```bash
-# Connect with wscat
+# Connect with wscat, against the public platform
+wscat -c wss://explorer.xchain.io/BTC/api/websocket
+
+# Or against a self-hosted / local explorer instance
 wscat -c ws://localhost:8080/BTC/api/websocket
 ```
 

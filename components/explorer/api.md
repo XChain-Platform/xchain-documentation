@@ -35,9 +35,19 @@ Where:
 
 ### Base URL
 
+For the public XChain Platform (mainnet or testnet), query the hosted explorer directly:
+
+```
+https://explorer.xchain.io/{COIN}/api/
+```
+
+For a self-hosted or local explorer instance:
+
 ```
 http://{host}:{port}/{COIN}/api/
 ```
+
+The examples below use `http://localhost:8080` for a self-hosted instance; against the public platform, substitute `https://explorer.xchain.io` (no port).
 
 ---
 
