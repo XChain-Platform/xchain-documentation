@@ -217,6 +217,17 @@ Controls `AttestationPublisher`, which writes the validator network's answers to
 | `ATTESTATION_BLOCK_MS` | No | `600000` | Nominal block interval used to translate the failover window from blocks into time. Defaults to the BTC ~10 minute interval. |
 | `ATTESTATION_AMBIGUOUS_COOLDOWN_MS` | No | `ATTESTATION_FAILOVER_WINDOW_BLOCKS × ATTESTATION_BLOCK_MS` | Cooldown after an ambiguous publish result before another hub may retry. |
 | `BTC_ADDRESS` | No | _(from config table)_ | BTC address of this hub's publishing wallet. |
+
+### Attestation Relay
+
+Controls `AttestationRelay`, the driver that carries attestation requests to the validator network and the response leg back .
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `ATTEST_RELAY_ENABLED` | No | `0` | Set to `1` to run the relay. Opt-in rather than a kill switch, deliberately: a fleet that has merely deployed this code must run nothing until an operator turns it on. |
+| `ATTEST_RELAY_POLL_MS` | No | `15000` | How often the relay sweeps for work. |
+| `ATTEST_RELAY_FAILOVER_MS` | No | `1200000` | Leader silence tolerated before another hub takes the relay over. Twenty minutes. |
+| `ATTEST_RELAY_QUEUE_PATH` | No | `./data/attest-relay-queue.jsonl` | Durable at-most-once record of v3 broadcasts. Point it at persistent storage: replaying a v3 is rejected on-chain but still burns a real BTC fee, and this file is what stops a restart from doing that. |
 | `BTC_PUBKEY_HEX` | No | _(from config table)_ | Public key, hex, of that wallet. |
 | `BTC_ENCODER_URL` | No | _(from config table)_ | Encoder URL used to build BTC publish transactions. |
 | `BTC_ENCODER_API_KEY` | No | _(from config table)_ | API key presented to that encoder when it runs keyed. Treat as a credential. |
