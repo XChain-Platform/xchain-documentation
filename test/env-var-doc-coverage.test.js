@@ -460,7 +460,7 @@ describe('environment-variable documentation coverage ', { skip: siblingsMissing
                 assert.deepEqual(
                     undocumented, [],
                     `undocumented in components/${c}/:\n  ${undocumented.join('\n  ')}\n` +
-                    `Add a row for each to components/${c}/CONFIGURATION.md (name, meaning, default).`
+                    `Add a row for each to components/${c}/configuration.md (name, meaning, default).`
                 );
             });
 

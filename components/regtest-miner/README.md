@@ -29,9 +29,9 @@ This service is testing infrastructure. It must not be run against mainnet or te
 
 | Document | Description |
 |---|---|
-| [Architecture](ARCHITECTURE.md) | Component diagram, source files, mining loop, wallet lifecycle, fillMempool |
-| [Configuration](CONFIGURATION.md) | Environment variables, internal constants |
-| [Operations](OPERATIONS.md) | JSON-RPC API endpoints, startup sequence, Docker, troubleshooting |
+| [Architecture](architecture.md) | Component diagram, source files, mining loop, wallet lifecycle, fillMempool |
+| [Configuration](configuration.md) | Environment variables, internal constants |
+| [Operations](operations.md) | JSON-RPC API endpoints, startup sequence, Docker, troubleshooting |
 
 ## Installation
 
@@ -119,9 +119,9 @@ On startup, the miner:
 
 ## Related
 
-- [Regtest Development Guide](../../developer-guide/Regtest_Development.md): full guide to setting up a local regtest environment
+- [Regtest Development Guide](../../developer-guide/regtest-development.md): full guide to setting up a local regtest environment
 - [E2E Tests](../e2e-test/); the test suite that depends on the regtest miner for block production
-- [Data Pipeline](../../architecture/Data_Pipeline.md): how the regtest miner fits into the full platform flow
+- [Data Pipeline](../../architecture/data-pipeline.md): how the regtest miner fits into the full platform flow
 - [Encoder](../encoder/): constructs XChain transactions that the miner includes in blocks
 - [Decoder](../decoder/): decodes mined blocks to extract XChain ACTION data
 

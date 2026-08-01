@@ -87,11 +87,11 @@ Value-holding contracts require the VM gateway's `getBalance` / `getTokenInfo` t
 
 ## Related documentation
 
-- [Smart Contract Development](../../developer-guide/Smart_Contract_Development.md): the full authoring guide
-- [Solidity to XChain](../../developer-guide/Solidity_To_XChain.md): the on-ramp for EVM developers
-- [Smart Contracts](../../concepts/Smart_Contracts.md): the conceptual model, gas, and the attestation framework
+- [Smart Contract Development](../../developer-guide/smart-contract-development.md): the full authoring guide
+- [Solidity to XChain](../../developer-guide/solidity-to-xchain.md): the on-ramp for EVM developers
+- [Smart Contracts](../../concepts/smart-contracts.md): the conceptual model, gas, and the attestation framework
 - [vm](../vm/): the execution engine the templates run on
-- [Controller-Bound Tokens](../../protocol/Controller_Bound_Tokens.md): what the policy generator produces
+- [Controller-Bound Tokens](../../protocol/controller-bound-tokens.md): what the policy generator produces
 
 ---
 

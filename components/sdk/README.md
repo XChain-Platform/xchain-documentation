@@ -54,27 +54,27 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 
 | Document | Description |
 |---|---|
-| [Configuration](CONFIGURATION.md) | Constructor options, environment variables, hub discovery, retry and pooling config |
-| [Actions](ACTIONS.md) | All 30 supported ACTION types, parameters, and version formats |
-| [Transaction Lifecycle](LIFECYCLE.md) | `submitAction`, fee estimation, UTXO chaining, P2SH two-phase handling |
-| [Wallet Sessions](SESSIONS.md) | Bound wallet sessions, convenience methods, UTXO cache |
-| [Workflows](WORKFLOWS.md) | High-level recipes: issueAndDistribute, deployAndFund, stakeAndDelegate |
-| [Cross-Chain](CROSSCHAIN.md) | Multi-chain coordination: parallel actions, swaps, links |
-| [Explorer](EXPLORER.md) | Explorer API client methods: balances, tokens, transactions, markets |
-| [Light Client (SPV)](LIGHT_CLIENT.md) | `sdk.light`: verify a balance or action against a quorum-signed checkpoint, pinned trust roots, validator rotation, DOGE-anchor cold start |
-| [Encoder](ENCODER.md) | Encoding actions into PSBTs, encoding formats, P2SH two-phase flow |
-| [Batch Builder](BATCH.md) | Fluent API for constructing multi-action BATCH transactions |
-| [Format Selection](Format_Selection.md) | How the SDK picks the optimal format version |
-| [Contracts](CONTRACTS.md) | VM smart contract integration: deploy, execute, deposit, withdraw, ContractClient |
-| [WebSocket](WEBSOCKET.md) | Real-time event client: connection, convenience methods, filters, reconnection, hooks |
-| [Wallet & Auth](WALLET.md) | Key management, address validation, PSBT signing, message signing, challenge-response verification |
-| [Messaging](MESSAGING.md) | ECIES/ECDH/AES encryption, public key lookup, high-level send/receive for MESSAGE actions |
-| [Errors](ERRORS.md) | Error types, codes, and handling patterns |
-| [Examples](EXAMPLES.md) | Complete worked examples for common use cases |
-| [NFT & Registry](NFT_AND_REGISTRY.md) | `sdk.nft.*` and `sdk.project.*` builder namespaces for NFTs, collections, TIS documents, and project rosters |
-| [Agent Wallets](../../ai-agents/Agent_Wallets.md) | Policy-bounded agent sessions: allowlists, caps, confirmation hooks |
-| [Charging Agents](../../ai-agents/Charging_Agents.md) | HTTP 402 payment flows; X402Gateway, X402Client, scheme reference |
-| [MCP Quickstart](../../ai-agents/MCP_Quickstart.md) | Running the xchain-mcp server for LLM tool use |
+| [Configuration](configuration.md) | Constructor options, environment variables, hub discovery, retry and pooling config |
+| [Actions](actions.md) | All 30 supported ACTION types, parameters, and version formats |
+| [Transaction Lifecycle](lifecycle.md) | `submitAction`, fee estimation, UTXO chaining, P2SH two-phase handling |
+| [Wallet Sessions](sessions.md) | Bound wallet sessions, convenience methods, UTXO cache |
+| [Workflows](workflows.md) | High-level recipes: issueAndDistribute, deployAndFund, stakeAndDelegate |
+| [Cross-Chain](crosschain.md) | Multi-chain coordination: parallel actions, swaps, links |
+| [Explorer](explorer.md) | Explorer API client methods: balances, tokens, transactions, markets |
+| [Light Client (SPV)](light-client.md) | `sdk.light`: verify a balance or action against a quorum-signed checkpoint, pinned trust roots, validator rotation, DOGE-anchor cold start |
+| [Encoder](encoder.md) | Encoding actions into PSBTs, encoding formats, P2SH two-phase flow |
+| [Batch Builder](batch.md) | Fluent API for constructing multi-action BATCH transactions |
+| [Format Selection](format-selection.md) | How the SDK picks the optimal format version |
+| [Contracts](contracts.md) | VM smart contract integration: deploy, execute, deposit, withdraw, ContractClient |
+| [WebSocket](websocket.md) | Real-time event client: connection, convenience methods, filters, reconnection, hooks |
+| [Wallet & Auth](wallet.md) | Key management, address validation, PSBT signing, message signing, challenge-response verification |
+| [Messaging](messaging.md) | ECIES/ECDH/AES encryption, public key lookup, high-level send/receive for MESSAGE actions |
+| [Errors](errors.md) | Error types, codes, and handling patterns |
+| [Examples](examples.md) | Complete worked examples for common use cases |
+| [NFT & Registry](nft-and-registry.md) | `sdk.nft.*` and `sdk.project.*` builder namespaces for NFTs, collections, TIS documents, and project rosters |
+| [Agent Wallets](../../ai-agents/agent-wallets.md) | Policy-bounded agent sessions: allowlists, caps, confirmation hooks |
+| [Charging Agents](../../ai-agents/charging-agents.md) | HTTP 402 payment flows; X402Gateway, X402Client, scheme reference |
+| [MCP Quickstart](../../ai-agents/mcp-quickstart.md) | Running the xchain-mcp server for LLM tool use |
 
 ## Installation
 

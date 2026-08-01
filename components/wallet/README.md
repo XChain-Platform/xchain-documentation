@@ -37,21 +37,21 @@ The wallet implements every XChain feature exposed by the platform: all 31 user-
 
 | Document | Description |
 |---|---|
-| [Architecture](ARCHITECTURE.md) | Repo layout, package boundaries, state flow, three-shell model, core/web/extension/desktop seams |
-| [Keys & Signing](Keys_Signing.md) | BIP39 + passphrase, HD derivation, vault encryption, signer interface, software / Trezor / Ledger / Remote / Multisig |
-| [Security & Threat Model](SECURITY.md) | Protected assets, in-scope and out-of-scope threats, sign-screen safety rails, audit posture |
-| [UX Surfaces](UX.md) | Onboarding, lock/unlock, balances, history, send/receive, sign screens, contacts, QR scanner, command palette, settings |
-| [Features](FEATURES.md) | Token issuance, DEX, messaging, dispensers, contracts, staking, multisig, cross-chain: surface-by-surface |
-| [Bridge](BRIDGE.md) | `window.xchain` dApp bridge: connect, signMessage, signPsbt, signAction, signIn, events, error codes |
-| [URI Schemes](URI_Schemes.md) | BIP21 + chain URIs + multisig PSBT envelope + chunked PSBT-QR transport |
-| [Multisig](MULTISIG.md) | Classical n-of-m + MuSig2: create flow, paste inbox, session state machine, PSBT-QR cosigner round-trips |
-| [Shell; Extension](Shell_Extension.md) | Chrome MV3 architecture, manifest, service worker, content script, injected provider, approval popup |
-| [Shell; Desktop](Shell_Desktop.md) | Electron main / renderer split, OS keychain, WebHID hardware transports, electron-builder packaging, auto-updater |
-| [Shell; Web](Shell_Web.md) | Vite SPA, mobile responsiveness, extension-detect banner, session-only key handling |
-| [Build & Release](Build_Release.md) | Synchronized versioning, Chrome Web Store submission, electron-builder, signing, release-hashes |
-| [Reproducible Builds](Reproducible_Builds.md) | Level-2 reproducibility: scope, scaffolding audit, run-twice verification, drift sources |
-| [Testing](TESTING.md) | Smoke gates, Playwright E2E, a11y audit, repro-build audit, manifest audit, bridge-e2e, hw-sign-e2e |
-| [Configuration](CONFIGURATION.md) | Per-chain endpoints, custom RPC, signer registration, settings store, developer mode |
+| [Architecture](architecture.md) | Repo layout, package boundaries, state flow, three-shell model, core/web/extension/desktop seams |
+| [Keys & Signing](keys-signing.md) | BIP39 + passphrase, HD derivation, vault encryption, signer interface, software / Trezor / Ledger / Remote / Multisig |
+| [Security & Threat Model](security.md) | Protected assets, in-scope and out-of-scope threats, sign-screen safety rails, audit posture |
+| [UX Surfaces](ux.md) | Onboarding, lock/unlock, balances, history, send/receive, sign screens, contacts, QR scanner, command palette, settings |
+| [Features](features.md) | Token issuance, DEX, messaging, dispensers, contracts, staking, multisig, cross-chain: surface-by-surface |
+| [Bridge](bridge.md) | `window.xchain` dApp bridge: connect, signMessage, signPsbt, signAction, signIn, events, error codes |
+| [URI Schemes](uri-schemes.md) | BIP21 + chain URIs + multisig PSBT envelope + chunked PSBT-QR transport |
+| [Multisig](multisig.md) | Classical n-of-m + MuSig2: create flow, paste inbox, session state machine, PSBT-QR cosigner round-trips |
+| [Shell; Extension](shell-extension.md) | Chrome MV3 architecture, manifest, service worker, content script, injected provider, approval popup |
+| [Shell; Desktop](shell-desktop.md) | Electron main / renderer split, OS keychain, WebHID hardware transports, electron-builder packaging, auto-updater |
+| [Shell; Web](shell-web.md) | Vite SPA, mobile responsiveness, extension-detect banner, session-only key handling |
+| [Build & Release](build-release.md) | Synchronized versioning, Chrome Web Store submission, electron-builder, signing, release-hashes |
+| [Reproducible Builds](reproducible-builds.md) | Level-2 reproducibility: scope, scaffolding audit, run-twice verification, drift sources |
+| [Testing](testing.md) | Smoke gates, Playwright E2E, a11y audit, repro-build audit, manifest audit, bridge-e2e, hw-sign-e2e |
+| [Configuration](configuration.md) | Per-chain endpoints, custom RPC, signer registration, settings store, developer mode |
 
 ## Installation
 
@@ -89,7 +89,7 @@ pnpm --filter @xchain-wallet/extension build
 pnpm --filter @xchain-wallet/desktop start
 ```
 
-Builds the renderer and launches Electron locally. For packaged releases, see [Build & Release](Build_Release.md).
+Builds the renderer and launches Electron locally. For packaged releases, see [Build & Release](build-release.md).
 
 ## Usage Modes
 
@@ -112,11 +112,11 @@ The desktop shell uses Electron with a hard main / renderer split (§9.3.2):
 - **Main process** owns the Vault, the SDK instance, and all signers. Keys never cross the IPC boundary into the renderer.
 - **Renderer process** runs the same React app from `@xchain-wallet/core` and talks to main via a preload-exposed `window.xchainWalletBridge.sendMessage(message)`.
 
-Builds target Windows, macOS, and Linux via electron-builder. The pre-signing Linux artifact is Level-2 reproducible (see [Reproducible Builds](Reproducible_Builds.md).
+Builds target Windows, macOS, and Linux via electron-builder. The pre-signing Linux artifact is Level-2 reproducible (see [Reproducible Builds](reproducible-builds.md).
 
 ### dApp integration
 
-Third-party dApps integrate via the `window.xchain` provider injected by the extension (and exposed equivalently by the desktop shell). Consume the typed `@xchain-wallet/bridge-spec` package for full TypeScript types of every method, parameter, and result envelope. See [Bridge](BRIDGE.md) for the full API.
+Third-party dApps integrate via the `window.xchain` provider injected by the extension (and exposed equivalently by the desktop shell). Consume the typed `@xchain-wallet/bridge-spec` package for full TypeScript types of every method, parameter, and result envelope. See [Bridge](bridge.md) for the full API.
 
 ## Repository Layout
 

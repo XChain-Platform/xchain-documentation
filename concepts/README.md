@@ -7,17 +7,17 @@ This section explains the fundamental ideas behind the XChain Protocol. Each doc
 
 | Document | Description |
 |---|---|
-| [Metalayer](./METALAYER.md) | How XChain runs above existing blockchains without sidechains or bridges |
-| [Actions](./ACTIONS.md) | What ACTIONs are and how they drive every state change on the platform |
-| [Tokens](./TOKENS.md) | The XChain token model: supply, decimals, ownership, and locking rules |
-| [Ledger](./LEDGER.md) | Double-entry accounting model underlying all balance and ownership tracking |
-| [Encoding](./ENCODING.md) | How ACTION data is embedded in blockchain transactions via AES-128-CTR obfuscation |
-| [Cross-Chain](./CROSS_CHAIN.md) | How XChain coordinates token swaps across Bitcoin, Litecoin, and Dogecoin |
-| [Gas](./GAS.md) | The XCHAIN fee token: what it is, how it works, and why it exists |
-| [Security Model](./Security_Model.md) | Threat model, trust assumptions, and protocol-level security guarantees |
-| [Smart Contracts](./Smart_Contracts.md) | Programmable contract layer: sandboxed JavaScript VM with gas metering that orchestrates existing ACTIONs |
-| [Block Hashes](./Block_Hashes.md) | Per-block cryptographic hashes (ledger, actions, contracts) for state verification and integrity checking |
-| [Scope and Non-Goals](./Scope_And_Non_Goals.md) | What XChain deliberately is and is not: design boundaries, current limitations, and when to choose it |
+| [Metalayer](./metalayer.md) | How XChain runs above existing blockchains without sidechains or bridges |
+| [Actions](./actions.md) | What ACTIONs are and how they drive every state change on the platform |
+| [Tokens](./tokens.md) | The XChain token model: supply, decimals, ownership, and locking rules |
+| [Ledger](./ledger.md) | Double-entry accounting model underlying all balance and ownership tracking |
+| [Encoding](./encoding.md) | How ACTION data is embedded in blockchain transactions via AES-128-CTR obfuscation |
+| [Cross-Chain](./cross-chain.md) | How XChain coordinates token swaps across Bitcoin, Litecoin, and Dogecoin |
+| [Gas](./gas.md) | The XCHAIN fee token: what it is, how it works, and why it exists |
+| [Security Model](./security-model.md) | Threat model, trust assumptions, and protocol-level security guarantees |
+| [Smart Contracts](./smart-contracts.md) | Programmable contract layer: sandboxed JavaScript VM with gas metering that orchestrates existing ACTIONs |
+| [Block Hashes](./block-hashes.md) | Per-block cryptographic hashes (ledger, actions, contracts) for state verification and integrity checking |
+| [Scope and Non-Goals](./scope-and-non-goals.md) | What XChain deliberately is and is not: design boundaries, current limitations, and when to choose it |
 
 ---
 

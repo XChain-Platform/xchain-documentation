@@ -18,18 +18,18 @@
  *     described as implemented". It fixed one instance. README.md kept listing
  *     `MultisigSigner` among the pluggable signers until 2026-07-27, when the
  *     class still did not exist: Signer.js names it as planned (§17.5), and
- *     Keys_Signing.md correctly said "planned but not yet implemented", so the
+ *     keys-signing.md correctly said "planned but not yet implemented", so the
  *     doc set disagreed with itself and the README was the copy readers hit
  *     first.
  *   - `subscribe()` was on the Signer base class and absent from the
- *     ARCHITECTURE.md interface list.
+ *     architecture.md interface list.
  *
  * A vapour class is worse than a missing one: it sends an integrator looking
  * for an implementation that was never written.
  *
  * WHAT IT CHECKS.
  *
- *   1. Every method on the Signer base class appears in ARCHITECTURE.md.
+ *   1. Every method on the Signer base class appears in architecture.md.
  *   2. Every `*Signer` class name the docs mention exists in the code, unless
  *      the sentence marks it as planned/not implemented.
  *
@@ -46,7 +46,7 @@ const path = require('node:path');
 const DOC_ROOT   = path.join(__dirname, '..');
 const WALLET     = path.resolve(DOC_ROOT, '../xchain-wallet');
 const SIGNER_SRC = path.join(WALLET, 'packages/core/src/signers/Signer.js');
-const ARCH_DOC   = path.join(DOC_ROOT, 'components/wallet/ARCHITECTURE.md');
+const ARCH_DOC   = path.join(DOC_ROOT, 'components/wallet/architecture.md');
 const haveWallet = fs.existsSync(SIGNER_SRC);
 
 // Methods on the abstract base, excluding the constructor and the protected
@@ -78,12 +78,12 @@ function concreteSignerClasses() {
 
 describe('wallet signer surface', () => {
 
-    test('every Signer base-class method is listed in ARCHITECTURE.md',
+    test('every Signer base-class method is listed in architecture.md',
         { skip: !haveWallet && 'xchain-wallet not present in this checkout' }, () => {
         const doc = fs.readFileSync(ARCH_DOC, 'utf8');
         const missing = signerMethods().filter((m) => !doc.includes(m + '('));
         assert.deepEqual(missing, [],
-            'Signer methods absent from components/wallet/ARCHITECTURE.md:\n  ' + missing.join('\n  '));
+            'Signer methods absent from components/wallet/architecture.md:\n  ' + missing.join('\n  '));
     });
 
     test('no doc presents a signer class that does not exist',

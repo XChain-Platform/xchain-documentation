@@ -32,11 +32,11 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 
 | Document | Description |
 |---|---|
-| [Architecture](ARCHITECTURE.md) | Data pipeline position, internal components, request processing pipeline, source files |
-| [Configuration](CONFIGURATION.md) | Environment variables, config.json, hub discovery, SSL/TLS, CORS, rate limiting, coin config |
-| [API Reference](API.md) | Complete REST API: all 200+ endpoints with paths, parameters, response formats, and examples |
-| [WebSocket API](WEBSOCKET.md) | Real-time event streaming: connection, channels, subscriptions, filters, lifecycle events, catch-up |
-| [Operations](OPERATIONS.md) | Running, Docker, SSL setup, security features, relay endpoint, troubleshooting |
+| [Architecture](architecture.md) | Data pipeline position, internal components, request processing pipeline, source files |
+| [Configuration](configuration.md) | Environment variables, config.json, hub discovery, SSL/TLS, CORS, rate limiting, coin config |
+| [API Reference](api.md) | Complete REST API: all 200+ endpoints with paths, parameters, response formats, and examples |
+| [WebSocket API](websocket.md) | Real-time event streaming: connection, channels, subscriptions, filters, lifecycle events, catch-up |
+| [Operations](operations.md) | Running, Docker, SSL setup, security features, relay endpoint, troubleshooting |
 
 ## Installation
 
@@ -50,7 +50,7 @@ npm install
 
 ## Quick Start
 
-Create a `.env` file with the required environment variables (see [Configuration](CONFIGURATION.md) for full details):
+Create a `.env` file with the required environment variables (see [Configuration](configuration.md) for full details):
 
 ```env
 HUB_API_HOST=localhost
@@ -59,7 +59,7 @@ EXPLORER_API_PORT_HTTP=8080
 EXPLORER_API_PORT_HTTPS=8081
 ```
 
-Or configure a local `src/config.json` with database connection details (see [Configuration](CONFIGURATION.md)).
+Or configure a local `src/config.json` with database connection details (see [Configuration](configuration.md)).
 
 Start the explorer:
 
@@ -141,10 +141,10 @@ curl http://localhost:8080/BTC/api/status
 ## Related
 
 - [Indexer](../indexer/); the service that produces the database the explorer reads
-- [Indexer Database Schema](../indexer/DATABASE.md): full schema reference for the underlying tables
+- [Indexer Database Schema](../indexer/database.md): full schema reference for the underlying tables
 - [Hub](../hub/): config oracle the explorer polls for connection details
 - [SDK](../sdk/): developer SDK that wraps the explorer API with typed methods
-- [SDK Explorer Reference](../sdk/EXPLORER.md): SDK client documentation for these same endpoints
+- [SDK Explorer Reference](../sdk/explorer.md): SDK client documentation for these same endpoints
 
 ---
 

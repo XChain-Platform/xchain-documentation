@@ -71,7 +71,7 @@
  *
  * The sweep also found the one genuine notation gap it was looking for: LIST
  * v0/v1 take a repeatable ITEM (list.js loops params[idx] for idx > 1 and > 2)
- * but declared no rest marker, so LIST.md now writes `...ITEM`.
+ * but declared no rest marker, so list.md now writes `...ITEM`.
  *
  * The parser is exercised on synthetic docs at the bottom of this file, so its
  * sensitivity is proven on every run rather than by a one-off manual injection.
@@ -84,8 +84,8 @@ const fs   = require('node:fs');
 const path = require('node:path');
 
 const ACTIONS_DIR  = path.resolve(__dirname, '../protocol/actions');
-const SDK_ACTIONS  = path.resolve(__dirname, '../components/sdk/ACTIONS.md');
-const DISPENSER_MD = path.join(ACTIONS_DIR, 'DISPENSER.md');
+const SDK_ACTIONS  = path.resolve(__dirname, '../components/sdk/actions.md');
+const DISPENSER_MD = path.join(ACTIONS_DIR, 'dispenser.md');
 const src = fs.readFileSync(DISPENSER_MD, 'utf8');
 
 // ---------------------------------------------------------------------------
@@ -208,7 +208,7 @@ describe('declared formats use one rest-field notation ', () => {
         });
     }
 
-    test('components/sdk/ACTIONS.md uses the same notation', () => {
+    test('components/sdk/actions.md uses the same notation', () => {
         // The SDK reference restates every wire format, and carried the suffix
         // form for DEPLOY v0/v2 and EXECUTE v0 while the protocol docs carried
         // the prefix form. Two spellings of one concept in the two documents a
@@ -222,7 +222,7 @@ describe('declared formats use one rest-field notation ', () => {
                 problems.push(`  line ${i + 1}: ${problem}`);
         });
         assert.equal(problems.length, 0,
-            'components/sdk/ACTIONS.md: rest fields must be written `...FIELD`:\n' + problems.join('\n'));
+            'components/sdk/actions.md: rest fields must be written `...FIELD`:\n' + problems.join('\n'));
     });
 });
 
@@ -339,18 +339,18 @@ describe('DISPENSER v0 examples match the declared format ', () => {
     });
 
     test('does not claim a first oracle price is effective immediately', () => {
-        // DISPENSER.md and PRICE.md contradicted each other and the code:
-        // DISPENSER.md said the first price for a feed took effect immediately
+        // dispenser.md and price.md contradicted each other and the code:
+        // dispenser.md said the first price for a feed took effect immediately
         // and only updates were delayed, while PriceAggregator.js applies a flat
         // +86400 to EVERY publish (verified live: three rows, first publishes
-        // included, all delay_seconds = 86400). PRICE.md already documented the
+        // included, all delay_seconds = 86400). price.md already documented the
         // uniform rule and the consensus reason for it. Someone following the old
-        // DISPENSER.md text would stand up an oracle-priced dispenser and watch
+        // dispenser.md text would stand up an oracle-priced dispenser and watch
         // every dispense fail for a day with no explanation.
         const section = src.split('### Oracle Front-Running Protection')[1] || '';
         assert.ok(section, 'the front-running section must still exist');
         assert.ok(!/first[\s\S]{0,80}takes effect immediately/i.test(section),
-            'DISPENSER.md must not claim the first oracle price is effective immediately');
+            'dispenser.md must not claim the first oracle price is effective immediately');
         assert.match(section, /includ\w*\s+the\s+first/i,
             'the section must state that the delay includes the first publish');
         assert.match(section, /86400|24 hours/,

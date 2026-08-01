@@ -31,12 +31,12 @@ Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, S
 
 | Document | Description |
 |---|---|
-| [Architecture](ARCHITECTURE.md) | Data pipeline, internal components, action handlers, block processing pipeline |
-| [Configuration](CONFIGURATION.md) | Environment variables, coin-specific config, indexer constants |
-| [Actions](ACTIONS.md) | All 48 record types, categories, format versions, protocol versioning |
-| [Database](DATABASE.md) | Full schema reference: core, ledger, action, state, index, and mapping tables |
-| [Ledger](LEDGER.md) | Double-entry ledger, balance calculation, sanity checks, gas token fees |
-| [Operations](OPERATIONS.md) | Running, Docker, API endpoints, resilience, troubleshooting |
+| [Architecture](architecture.md) | Data pipeline, internal components, action handlers, block processing pipeline |
+| [Configuration](configuration.md) | Environment variables, coin-specific config, indexer constants |
+| [Actions](actions.md) | All 48 record types, categories, format versions, protocol versioning |
+| [Database](database.md) | Full schema reference: core, ledger, action, state, index, and mapping tables |
+| [Ledger](ledger.md) | Double-entry ledger, balance calculation, sanity checks, gas token fees |
+| [Operations](operations.md) | Running, Docker, API endpoints, resilience, troubleshooting |
 
 ## Installation
 
@@ -50,7 +50,7 @@ npm install
 
 ## Quick Start
 
-Create a `.env` file with the required environment variables (see [Configuration](CONFIGURATION.md) for full details):
+Create a `.env` file with the required environment variables (see [Configuration](configuration.md) for full details):
 
 ```env
 DECODER_DB_HOST=127.0.0.1
@@ -70,7 +70,7 @@ INDEXER_COIN=BTC
 INDEXER_NETWORK=mainnet
 ```
 
-> **Optional: Hub database variables.** If `HUB_DB_HOST` and `HUB_DB_NAME` are not set, the indexer logs a `WARNING: HUB_DB_HOST / HUB_DB_NAME not set` message at startup and reads price/oracle tables from its own local database instead. This is correct for single-host deployments. On a distributed node where the hub runs on a separate host, set these variables (along with `HUB_DB_PORT`, `HUB_DB_USER`, `HUB_DB_PASS`) to avoid using stale or absent fee/price data. See [Configuration](CONFIGURATION.md) for the full variable list.
+> **Optional: Hub database variables.** If `HUB_DB_HOST` and `HUB_DB_NAME` are not set, the indexer logs a `WARNING: HUB_DB_HOST / HUB_DB_NAME not set` message at startup and reads price/oracle tables from its own local database instead. This is correct for single-host deployments. On a distributed node where the hub runs on a separate host, set these variables (along with `HUB_DB_PORT`, `HUB_DB_USER`, `HUB_DB_PASS`) to avoid using stale or absent fee/price data. See [Configuration](configuration.md) for the full variable list.
 
 Start the indexer:
 

@@ -1,0 +1,141 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Copyright © 2025–2026 Dankest, LLC -->
+
+# Hub Decentralization
+
+## Overview
+
+xchain-hub has evolved from a centralized config oracle into a fully decentralized validator network across nine implementation phases. Phases 0–5 shipped v1.0.0 → v2.0.0; Phase 6 (capability model + external attestation framework, 2026-05), Phase 7 (federation key rotation + quorum hardening, 2026-06), and Phase 8 (full-node verified tier: `full_node` capability, `FullNodeChallengeRound`, NODEPROOF verdicts, 2026-06) are all complete.
+
+## Motivation
+
+### Single point of failure
+
+A centralized hub means the entire platform degrades when the hub process crashes or its database becomes unavailable. Services that cannot reach the hub fall back to stale local config or fail their startup checks. Cross-chain swaps stall until the hub recovers.
+
+### Single point of trust
+
+A centralized hub operator controls configuration for all services. In a self-hosted deployment this is acceptable, but it creates a trust assumption that is difficult to remove as the platform grows. A malicious or misconfigured hub could redirect services to wrong endpoints or manipulate pricing data.
+
+### Scalability ceiling
+
+A single-instance hub has limited horizontal scaling options. Under high coordination load (many concurrent cross-chain swaps), the hub becomes a bottleneck.
+
+## Capability Model
+
+The validator network uses a **capability model** rather than fixed tiers. A validator stakes XCHAIN against an Ed25519 signing pubkey; that pubkey's aggregate active stake auto-qualifies it for each of five independent capabilities whose `min_stake` it meets:
+
+| Capability | Role | Default consumers |
+|---|---|---|
+| `price` | Fetch external prices and sign PBFT-finalized PRICE v0 rounds | PRICE v0 producers; OracleRound, OracleConsensus |
+| `cross_chain` | Attest to cross-chain swap actions per chain-pair | CrossChainEngine |
+| `oracle_publish` | Broadcast finalized PRICE v0 rounds on-chain (typically DOGE for low fees) | PRICE v0 publisher, formerly "Tier 3" |
+| `attestation` | Fetch external attestation requests via registered providers (`http_get`, `llm`) and PBFT-finalize the response | AttestationRound, AttestationConsensus |
+| `full_node` | Claim the full-node reward tier by passing block-hash challenge rounds issued by `FullNodeChallengeRound` | FullNodeChallengeRound |
+
+A single pubkey can hold any combination of capabilities, there is no overlap restriction. `min_stake[capability]` is governance-configurable; defaults are set by hub config. The historical model where the cross-chain tier required 5× the oracle stake is preserved by appropriate `min_stake` defaults but the protocol does not enforce a hierarchy.
+
+### `price`: Price Oracles
+
+Validators with the `price` capability independently fetch cryptocurrency prices from multiple external sources (CoinGecko and Kraken are both keyless and always active; CoinMarketCap is optional when an API key is configured), submit them to the network, and reach consensus using a trimmed median algorithm (discard top/bottom 15%). This replaces centralized pricing with a manipulation-resistant oracle feed. Price rounds run on a configurable interval (default 10 minutes). Each round goes through: fetch → submit → collect → aggregate → PBFT finalize.
+
+### `cross_chain`: Cross-Chain Validators
+
+Validators with the `cross_chain` capability attest to cross-chain swap actions. Rather than running full decoder and indexer stacks for every chain, they use **xchain-sync** to replicate indexer + decoder databases, keeping them lightweight. Consensus is calculated per chain-pair; only validators supporting both chains in a swap participate in attestation, using a PBFT-derived consensus requiring `max(2f+1, ceil((N+1)/2))` agreement (simple-majority floor; see Quorum below).
+
+### `oracle_publish`: PRICE v0 Broadcasters
+
+After a `price` round PBFT-finalizes, a validator with `oracle_publish` broadcasts the signed round on-chain (typically to DOGE for low tx fees). Leader rotation among `oracle_publish`-capable validators is deterministic via `SHA256(round_number || pubkey)` ordering with cascading failover at each subsequent block.
+
+### `attestation`: External Attestation Framework
+
+Validators with `attestation` serve `ATTEST` v0 (request) actions emitted by VM contracts via `xchain.attestation.request(...)`. Responsible-set selection is deterministic via `SHA256(request_id || pubkey)` ordering; the top `redundancy` validators fetch from the named provider (`http_get` or `llm`) and reach PBFT consensus on the response. Two consensus strategies are supported: `byte_equality` (all responses must be identical, used by `http_get`) and `judge_model` (an LLM judges semantic equivalence, used by `llm`). The signed bundle is submitted on-chain as `ATTEST` v1 (response), which fires the requesting contract's callback EXECUTE.
+
+### Block-boundary snapshots
+
+Every PBFT engine (config, oracle, attestation, cross-chain) locks its quorum at a specific `block_index` via `CapabilitySnapshot.getSnapshot(capability, block_index)`. This queries the indexer's `getcapabilityvalidators` RPC (60s cache) so every hub in the federation sees the same qualified set even as stake drifts mid-round. Self-tests are local to each hub; a failed self-test means the validator skips the round but is still counted in N (laggards get slashed for non-participation).
+
+## Staking and Governance
+
+All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain actions on the BTC chain, processed by the indexer. STAKE comes in two semantic versions (`VERSION=1` new stake, `VERSION=2` top-up of an existing pubkey); both wire to `VERSION|AMOUNT|SIGNING_PUBKEY`. Active stake for a pubkey is `SUM(amount)` across rows where `activation_block ≤ now < COALESCE(deactivation_block, +∞)`.
+
+| Property | Value |
+|---|---|
+| Slashing | Stake can be slashed for: price deviation >5%, repeated deviations (3+ in 24h), non-participation (30+ missed rounds), attestation divergence on `byte_equality` providers. Adjudicated via governance vote. |
+| Activation delay | 6 BTC blocks (~1 hour): protects against ≤5-block reorgs |
+| Deactivation delay | 6 BTC blocks on UNSTAKE (same reorg safety) |
+
+> **Note:** Capability staking above is BTC-only, so the activation/deactivation delays are stated in BTC blocks (~1 hour). Contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1/v3) runs on every chain and calibrates this delay per chain for equivalent ~60-min reorg protection (**6 blocks on BTC, 24 on LTC, 60 on DOGE**) since a flat 6 blocks would give DOGE only ~6 minutes. See `protocol/Contract_Staking.md`.
+| Cooldown | 1000 BTC blocks before staked XCHAIN returns to source (configurable via `STAKING.COOLDOWN_BLOCKS`) |
+| Delegation | Token holders can delegate stake to existing validators |
+| Rewards | Proportional to stake and participation per capability. A pubkey holding both `price` and `oracle_publish` earns both per-round (consensus + broadcast). |
+
+## Decentralized Roles
+
+| Hub Role | Decentralized Mechanism |
+|---|---|
+| **Configuration** | PBFT consensus for config writes across validator set; quorum locked at block boundary via CapabilitySnapshot |
+| **Service discovery** | Hub config store, polled by all platform services |
+| **Price data** | `price`-capable validators with trimmed median consensus; published on-chain by `oracle_publish`-capable validators |
+| **Cross-chain coordination** | `cross_chain`-capable validator attestation with per-chain-pair PBFT |
+| **External attestation** | `attestation`-capable validators fetch from registered providers (`http_get`, `llm`) and PBFT-finalize; result submitted on-chain as `ATTEST` v1 (response) |
+| **Full-node verification** | `full_node`-capable validators answer block-hash possession challenges issued by `FullNodeChallengeRound`; passing validators earn the full-node reward tranche (NODEPROOF) |
+| **Governance** | Off-chain PBFT voting with 7-day period, 2/3+ approval |
+
+### Transport auth follows on-chain key rotation
+
+A validator's P2P signing key is authorized by the **union** of the hub's local validator registry and the on-chain effective signer set (polled from `getactivevalidators` at the BTC tip every 30 s, never fail-open). So when a validator rotates its signing key on-chain via [`DELEGATE`](../../protocol/actions/delegate.md), every peer's transport auth follows automatically within one poll interval. No hand-edited registry on each hub. The operator procedure is in [Operations → Validator Key Rotation](operations.md#validator-key-rotation).
+
+## Implementation Phases
+
+| Phase | Name | Version | Status |
+|---|---|---|---|
+| 0 | **MariaDB migration**; Replace LevelDB with MariaDB | v1.0.0 | Complete |
+| 1 | **Multi-instance hub**; Run multiple instances against shared MariaDB; consumer fallback via `HUB_VALIDATORS` | v1.0.0 | Complete |
+| 2 | **Gossip + PBFT consensus**; P2P gossip layer (WebSocket), PBFT consensus for config writes, Ed25519 validator identity, leader rotation, view change | v1.1.0–v1.3.0 | Complete |
+| 3 | **Decentralized price oracle**; External price fetching, trimmed median aggregation, oracle PBFT consensus, price snapshots, reward tracking, slash detection, fee quotes | v1.4.0–v1.6.0 | Complete |
+| 4 | **Cross-chain coordination**; Attestation engine, reorg propagation, SWAP lifecycle tracking, per-chain-pair validator filtering | v1.7.0–v1.9.0 | Complete |
+| 5 | **Open validator set + governance**; Off-chain PBFT voting for parameter changes, version signaling in heartbeats | v2.0.0 | Complete |
+| 6 | **Capability model + external attestation framework**; Replace Tier 1/2 with four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) auto-qualified by stake amount; block-boundary federation snapshots; external attestation framework (`http_get` byte_equality + `llm` judge_model providers); STAKE rewritten as `VERSION|AMOUNT|SIGNING_PUBKEY` with v1=new / v2=top-up; UNSTAKE rewritten as pubkey-based | 2026-05 | Complete |
+| 7 | **Federation key rotation + quorum hardening**: addr-keyed `rotatevalidator`/`deregistervalidator` RPC; stake-key revocation via `DELEGATE` v2; Option A union-membership transport auth (on-chain effective signer set + local registry, never fail-open); anchor reward archive (`anchor_<chain>` reward_type) + hub-local oracle/attest_fee reward separation; simple-majority quorum floor (`max(2f+1, ceil((N+1)/2))`) across all consensus engines | 2026-06 | Complete |
+| 8 | **Full-node verified tier**: `full_node` capability and `FullNodeChallengeRound`; derived possession challenge (no broadcast of the question); answer = scriptPubKey of a seed-selected UTXO in a buried block, provably absent from a sync mirror; verdict collected as NODEPROOF; full-node reward tranche paid via indexer price.js; `failed_full_node_challenge` slash detection (later removed; tier is reward-only, no slashing) | 2026-06 (bcbe4b8) | Complete |
+
+## Architecture Summary
+
+```mermaid
+flowchart TD
+    EXT["External APIs<br>(CoinGecko, Kraken, CMC)"]
+    A["Validator A<br>PriceFetcher → OracleRound<br>PeerManager ↔ Consensus<br>CrossChainEngine<br>ReorgHandler<br>Governance<br>RewardTracker<br>SlashDetector"]
+    B["Validator B<br>(same stack)"]
+    C["Validator C<br>(same stack)"]
+
+    EXT --> A
+    A -->|gossip| B
+    B -->|gossip| C
+```
+
+Each validator runs the full hub stack. Communication happens via WebSocket-based P2P gossip with Ed25519-signed messages. All consensus decisions require `max(2f+1, ceil((N+1)/2))` agreement; the simple-majority floor prevents a single validator from finalizing alone at small federation sizes (N=3 requires 2 votes; N=2 requires both).
+
+### Quorum
+
+`max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)`, tolerates `f` Byzantine validators out of `N` total. The simple-majority floor matters for small federations: bare `2f+1` degenerates to a quorum of 1 at N=3 (f=0), which would let a single validator finalize alone. With the floor, N=3 requires 2 votes and N=2 requires both.
+
+## Related
+
+- [Hub](README.md): hub architecture and API reference
+- [Architecture](architecture.md): internal subsystem design
+- [Cross-Chain Concepts](../../concepts/cross-chain.md): how cross-chain swaps work at the protocol level
+- [Gas Token](../../concepts/gas.md): the XCHAIN token used for staking and fees
+
+---
+
+**Copyright &copy; 2025–2026 Dankest, LLC**
+
+**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+
+Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later)
+with a commercial license available for proprietary use.
+
+You may use, modify, and distribute this material under the terms of the License.
+See [LICENSE](../../LICENSE.md) and [NOTICE](../../NOTICE.md) for full terms.
+See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).

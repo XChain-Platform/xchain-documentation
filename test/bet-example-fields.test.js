@@ -42,7 +42,7 @@ const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
 
-const BET_MD = path.resolve(__dirname, '../protocol/actions/BET.md');
+const BET_MD = path.resolve(__dirname, '../protocol/actions/bet.md');
 const src = fs.readFileSync(BET_MD, 'utf8');
 
 // Declared formats: `### Version `N` - Title` followed by `- `VERSION|...``.
@@ -172,7 +172,7 @@ describe('BET examples match the declared formats ', () => {
         const { MAX_ACTION_DATA_LENGTH, OP_RETURN_PUSH_OVERHEAD } = require('../protocol/constants.js');
 
         const cap = src.match(/At most (\d+) bytes once decoded/);
-        assert.ok(cap, 'BET.md must state the decoded DETAILS cap');
+        assert.ok(cap, 'bet.md must state the decoded DETAILS cap');
         const decoded = Number(cap[1]);
 
         const base64 = Math.ceil(decoded / 3) * 4;
@@ -184,7 +184,7 @@ describe('BET examples match the declared formats ', () => {
 
         assert.ok(total <= MAX_ACTION_DATA_LENGTH,
             `a worst-case BET create with a ${decoded}-byte DETAILS compiles to ${total} bytes, ` +
-            `over the ${MAX_ACTION_DATA_LENGTH}-byte ACTION cap. BET.md would be documenting a ` +
+            `over the ${MAX_ACTION_DATA_LENGTH}-byte ACTION cap. bet.md would be documenting a ` +
             'market definition size that cannot be broadcast.');
     });
 

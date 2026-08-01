@@ -153,7 +153,7 @@ The test suite resolves configuration in priority order:
 2. **Hub discovery**: if direct env vars are missing, queries `HUB_URL`/`HUB_PORT` for service config
 3. **Docker defaults**: database host defaults to `"mariadb"` (Docker Compose convention)
 
-See [Configuration](CONFIGURATION.md) for the full environment variable reference.
+See [Configuration](configuration.md) for the full environment variable reference.
 
 ## Running the Tests
 
@@ -179,17 +179,17 @@ npm run test:chaos
 
 | Document | Description |
 |---|---|
-| [Architecture](ARCHITECTURE.md) | Connector classes, bootstrap sequence, polling pattern, UTXO cache, P2SH flow |
-| [Configuration](CONFIGURATION.md) | Environment variables, hub discovery fallback, Docker setup |
-| [Operations](OPERATIONS.md) | Running tests, Docker execution, CI integration, troubleshooting |
+| [Architecture](architecture.md) | Connector classes, bootstrap sequence, polling pattern, UTXO cache, P2SH flow |
+| [Configuration](configuration.md) | Environment variables, hub discovery fallback, Docker setup |
+| [Operations](operations.md) | Running tests, Docker execution, CI integration, troubleshooting |
 
 ## Related
 
-- [Regtest Development Guide](../../developer-guide/Regtest_Development.md): setting up a local regtest environment
+- [Regtest Development Guide](../../developer-guide/regtest-development.md): setting up a local regtest environment
 - [Regtest Miner](../regtest-miner/); the auto-mining service the E2E suite depends on
 - [Encoder](../encoder/): constructs XChain transactions tested by this suite
 - [Indexer](../indexer/): processes transactions and maintains token state verified by this suite
-- [Testing Guide](../../developer-guide/TESTING.md): platform-wide testing philosophy and coverage
+- [Testing Guide](../../developer-guide/testing.md): platform-wide testing philosophy and coverage
 
 ---
 

@@ -9,24 +9,24 @@ This section is the canonical reference for the XChain Protocol; ACTION command 
 |---|---|
 | [ACTION Specifications](./actions/) | Authoritative format specs for every named ACTION command |
 | [ACTION Manifest](./action-manifest.md) | The authoritative cross-repo ACTION registry (`action-manifest.json`) and the conformance tests that enforce it |
-| [Token Information Standard](./Token_Information_Standard.md) | Standard for token metadata fields and discovery |
-| [Token-Gated Content](./Token_Gated_Content.md) | End-to-end design for cryptographically secure token-gated file publishing (single files and packs) |
-| [Taproot Envelope](./Taproot_Envelope.md) | Large-payload carrier for Bitcoin and Litecoin: one commit/reveal pair writes a whole file into a single tapscript witness |
-| [NFT Standard](./NFT_Standard.md) | Non-fungible tokens as a composition of existing primitives: uniques, editions, collections, content attachment, display |
-| [Project Registry Standard](./Project_Registry.md) | Chain-native curated directories; a project tick attests its official tokens via an owner-validated LIST + LINK roster |
-| [Controller-Bound Tokens](./Controller_Bound_Tokens.md) | Programmable policy layer: a contract gates native actions on a bound token or address, with royalty enforcement |
-| [Contract ABI](./Contract_ABI.md) | Optional self-declared display metadata (method summaries, typed params, read-only flags) contracts export for wallets and explorers |
-| [Contract-Targeted Staking](./Contract_Staking.md) | Design and VM API for staking any token against a smart contract with contract-decided slashing |
-| [Cross-Chain Contract Calls](./Cross_Chain_Calls.md) | XCALL: a contract on one chain calls a contract on another, verified by federation capability signatures |
-| [Cross-Chain DEX](./Cross_Chain_DEX.md) | Network-scoped mirror settlement: trading a token on one chain against a token on another |
-| [x402 Payments](./X402_Payments.md) | HTTP 402 payment interop: machine-payable web resources settled with XChain actions |
+| [Token Information Standard](./token-information-standard.md) | Standard for token metadata fields and discovery |
+| [Token-Gated Content](./token-gated-content.md) | End-to-end design for cryptographically secure token-gated file publishing (single files and packs) |
+| [Taproot Envelope](./taproot-envelope.md) | Large-payload carrier for Bitcoin and Litecoin: one commit/reveal pair writes a whole file into a single tapscript witness |
+| [NFT Standard](./nft-standard.md) | Non-fungible tokens as a composition of existing primitives: uniques, editions, collections, content attachment, display |
+| [Project Registry Standard](./project-registry.md) | Chain-native curated directories; a project tick attests its official tokens via an owner-validated LIST + LINK roster |
+| [Controller-Bound Tokens](./controller-bound-tokens.md) | Programmable policy layer: a contract gates native actions on a bound token or address, with royalty enforcement |
+| [Contract ABI](./contract-abi.md) | Optional self-declared display metadata (method summaries, typed params, read-only flags) contracts export for wallets and explorers |
+| [Contract-Targeted Staking](./contract-staking.md) | Design and VM API for staking any token against a smart contract with contract-decided slashing |
+| [Cross-Chain Contract Calls](./cross-chain-calls.md) | XCALL: a contract on one chain calls a contract on another, verified by federation capability signatures |
+| [Cross-Chain DEX](./cross-chain-dex.md) | Network-scoped mirror settlement: trading a token on one chain against a token on another |
+| [x402 Payments](./x402-payments.md) | HTTP 402 payment interop: machine-payable web resources settled with XChain actions |
 | [Attestation Providers](./providers/) | Provider specs for the attestation framework (`http_get`, `llm`) |
-| [Error Codes](./Error_Codes.md) | Stable machine-readable error-code registry |
-| [XChain URI Scheme](./XChain_URI_Scheme.md) | Cross-chain payment and action URI format for QR codes, deep links, and clipboard payloads |
-| [Index ID References](./Index_Id_References.md) | The `^<id>` compact wire form for tickers and addresses, and the deterministic reorg-safe id assignment rule |
-| [Database Naming Structure](./Database_Naming_Structure.md) | Naming conventions for all platform databases |
-| [Protocol Activation (Flag Days)](./Protocol_Activation.md) | How consensus changes activate: the per-network time/height gate, the three activation cohorts, and forking vs halt-recoverable straggler behavior |
-| [Upgrade Notice Policy](./Upgrade_Notice_Policy.md) | Minimum lead time between a release carrying consensus activation values and the moment they fire |
+| [Error Codes](./error-codes.md) | Stable machine-readable error-code registry |
+| [XChain URI Scheme](./xchain-uri-scheme.md) | Cross-chain payment and action URI format for QR codes, deep links, and clipboard payloads |
+| [Index ID References](./index-id-references.md) | The `^<id>` compact wire form for tickers and addresses, and the deterministic reorg-safe id assignment rule |
+| [Database Naming Structure](./database-naming-structure.md) | Naming conventions for all platform databases |
+| [Protocol Activation (Flag Days)](./protocol-activation.md) | How consensus changes activate: the per-network time/height gate, the three activation cohorts, and forking vs halt-recoverable straggler behavior |
+| [Upgrade Notice Policy](./upgrade-notice-policy.md) | Minimum lead time between a release carrying consensus activation values and the moment they fire |
 | [JSON Schemas](./json/) | Machine-readable schemas for ACTION payloads and API responses |
 
 ---

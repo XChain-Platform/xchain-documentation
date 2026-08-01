@@ -12,7 +12,7 @@ The off-chain token metadata document referenced by a token's on-chain `DESCRIPT
 - [Schema](./token-information-standard-v1.0.0-schema.json): JSON Schema for the metadata document.
 - [Example](./token-information-standard-v1.0.0-example.json): a worked example that conforms to the schema.
 
-See the [Token Information Standard](../Token_Information_Standard.md) for the field-by-field reference.
+See the [Token Information Standard](../token-information-standard.md) for the field-by-field reference.
 
 ---
 

@@ -33,93 +33,93 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 
 | ACTION | Description |
 |---|---|
-| [`ISSUE`](./ISSUE.md) | Creates or updates a token (`TICK`) with supply, decimals, locks, and minting rules |
-| [`MINT`](./MINT.md) | Mints additional supply of an existing token |
-| [`DESTROY`](./DESTROY.md) | Permanently burns token supply |
-| [`CALLBACK`](./CALLBACK.md) | Force-recalls tokens from all holders back to the token owner |
-| [`SLEEP`](./SLEEP.md) | Pauses all actions on a token until a specified `RESUME_BLOCK` |
+| [`ISSUE`](./issue.md) | Creates or updates a token (`TICK`) with supply, decimals, locks, and minting rules |
+| [`MINT`](./mint.md) | Mints additional supply of an existing token |
+| [`DESTROY`](./destroy.md) | Permanently burns token supply |
+| [`CALLBACK`](./callback.md) | Force-recalls tokens from all holders back to the token owner |
+| [`SLEEP`](./sleep.md) | Pauses all actions on a token until a specified `RESUME_BLOCK` |
 
 ### Transfers
 
 | ACTION | Description |
 |---|---|
-| [`SEND`](./SEND.md) | Sends one or more tokens to one or more addresses (4 format versions) |
-| [`SWEEP`](./SWEEP.md) | Transfers all token balances and/or ownerships to a destination address |
-| [`AIRDROP`](./AIRDROP.md) | Distributes token supply to addresses in one or more lists |
-| [`DIVIDEND`](./DIVIDEND.md) | Pays a dividend to all holders of a token |
+| [`SEND`](./send.md) | Sends one or more tokens to one or more addresses (4 format versions) |
+| [`SWEEP`](./sweep.md) | Transfers all token balances and/or ownerships to a destination address |
+| [`AIRDROP`](./airdrop.md) | Distributes token supply to addresses in one or more lists |
+| [`DIVIDEND`](./dividend.md) | Pays a dividend to all holders of a token |
 
 ### Decentralized Exchange (DEX)
 
 | ACTION | Description |
 |---|---|
-| [`ORDER`](./ORDER.md) | Places a buy/sell order on the decentralized exchange |
-| [`COINPAY`](./COINPAY.md) | Fulfills a native coin payment obligation from an ORDER_MATCH |
-| [`DISPENSER`](./DISPENSER.md) | Creates a vending machine that dispenses tokens when triggered by a send |
-| [`SWAP`](./SWAP.md) | Creates a cross-chain token swap offer between supported blockchains |
+| [`ORDER`](./order.md) | Places a buy/sell order on the decentralized exchange |
+| [`COINPAY`](./coinpay.md) | Fulfills a native coin payment obligation from an ORDER_MATCH |
+| [`DISPENSER`](./dispenser.md) | Creates a vending machine that dispenses tokens when triggered by a send |
+| [`SWAP`](./swap.md) | Creates a cross-chain token swap offer between supported blockchains |
 
 ### Data and Communication
 
 | ACTION | Description |
 |---|---|
-| [`BROADCAST`](./BROADCAST.md) | Broadcasts a message; can also create oracles and data feeds |
-| [`MESSAGE`](./MESSAGE.md) | Sends plaintext or encrypted messages between addresses |
-| [`FILE`](./FILE.md) | Uploads a file with metadata (name, MIME type, title) |
+| [`BROADCAST`](./broadcast.md) | Broadcasts a message; can also create oracles and data feeds |
+| [`MESSAGE`](./message.md) | Sends plaintext or encrypted messages between addresses |
+| [`FILE`](./file.md) | Uploads a file with metadata (name, MIME type, title) |
 
 ### Oracles
 
 | ACTION | Description |
 |---|---|
-| [`PRICE`](./PRICE.md) | Publishes oracle price data on-chain (v0: validator COIN/FIAT snapshots, v1: user TOKEN/FIAT oracles) |
-| [`ATTEST`](./ATTEST.md) | External-data attestation lifecycle: v0=request (VM-emitted), v1=response (validator-broadcast), v2=expire (system-synthesized) |
-| [`ANCHOR`](./ANCHOR.md) | Validator-broadcast, DOGE-only: quorum-signed state checkpoints (v0/v3, v3 adding SPV light-client roots), the cross-chain match archive (v1/v2), publisher-attested anchors (v4/v5), and v6 (the archive-leg counterpart to v1, with publisher attestation appended) for full-parse recoverability |
+| [`PRICE`](./price.md) | Publishes oracle price data on-chain (v0: validator COIN/FIAT snapshots, v1: user TOKEN/FIAT oracles) |
+| [`ATTEST`](./attest.md) | External-data attestation lifecycle: v0=request (VM-emitted), v1=response (validator-broadcast), v2=expire (system-synthesized) |
+| [`ANCHOR`](./anchor.md) | Validator-broadcast, DOGE-only: quorum-signed state checkpoints (v0/v3, v3 adding SPV light-client roots), the cross-chain match archive (v1/v2), publisher-attested anchors (v4/v5), and v6 (the archive-leg counterpart to v1, with publisher attestation appended) for full-parse recoverability |
 
 ### Betting
 
 | ACTION | Description |
 |---|---|
-| [`BET`](./BET.md) | Parimutuel betting markets end to end: v0=create market, v1=cancel, v2=place bet, v3=resolve |
+| [`BET`](./bet.md) | Parimutuel betting markets end to end: v0=create market, v1=cancel, v2=place bet, v3=resolve |
 
 ### Governance
 
 | ACTION | Description |
 |---|---|
-| [`VOTE`](./VOTE.md) | Token-weighted governance polls: v0=create poll, v1=cast ballot, v2=finalize (system-injected), v3=set/clear delegation |
+| [`VOTE`](./vote.md) | Token-weighted governance polls: v0=create poll, v1=cast ballot, v2=finalize (system-injected), v3=set/clear delegation |
 
 ### Staking (capability staking BTC-only; contract-targeted staking any chain)
 
 | ACTION | Description |
 |---|---|
-| [`STAKE`](./STAKE.md) | Stakes tokens for validator participation (v1=new capability stake, v2=top-up, v3=contract-targeted) |
-| [`UNSTAKE`](./UNSTAKE.md) | Begins the unstaking cooldown period (v0=capability, v1=contract-targeted) |
-| [`DELEGATE`](./DELEGATE.md) | Manages the signing key for a stake (v0/v1 rotate, v2/v3 revoke; capability or contract-targeted) |
-| [`COLLECT`](./COLLECT.md) | Collects accrued validator rewards |
+| [`STAKE`](./stake.md) | Stakes tokens for validator participation (v1=new capability stake, v2=top-up, v3=contract-targeted) |
+| [`UNSTAKE`](./unstake.md) | Begins the unstaking cooldown period (v0=capability, v1=contract-targeted) |
+| [`DELEGATE`](./delegate.md) | Manages the signing key for a stake (v0/v1 rotate, v2/v3 revoke; capability or contract-targeted) |
+| [`COLLECT`](./collect.md) | Collects accrued validator rewards |
 
 ### Validator / Consensus
 
 | ACTION | Description |
 |---|---|
-| [`NODEPROOF`](./NODEPROOF.md) | Quorum-signed verdict recording which validators passed a periodic coin full-node possession challenge, proving they run real nodes rather than mirroring replicas |
-| [`SLASH`](./SLASH.md) | Permissionless equivocation proof: burns a capability validator's entire bond when they signed two conflicting values for the same consensus slot |
+| [`NODEPROOF`](./nodeproof.md) | Quorum-signed verdict recording which validators passed a periodic coin full-node possession challenge, proving they run real nodes rather than mirroring replicas |
+| [`SLASH`](./slash.md) | Permissionless equivocation proof: burns a capability validator's entire bond when they signed two conflicting values for the same consensus slot |
 
 ### Virtual Machine (VM)
 
 | ACTION | Description |
 |---|---|
-| [`DEPLOY`](./DEPLOY.md) | Deploys a smart contract to the XChain VM (v0/v1 inline; v2/v3 assemble from v4 carriers; v4 carries one base64 code slice for a large-contract deploy) |
-| [`EXECUTE`](./EXECUTE.md) | Executes a method on a deployed smart contract |
-| [`DEPOSIT`](./DEPOSIT.md) | Transfers tokens from a user to a contract's custody |
-| [`WITHDRAW`](./WITHDRAW.md) | Withdraws tokens from a contract's custody back to the owner |
-| [`XCALL`](./XCALL.md) | Cross-chain contract call request: v0 = VM-emitted request (`xchain.emit.crossExecute`), v2 = system-synthesized deadline expiry |
-| `XEXEC` | System-injected target-side execution of an XCALL dispatch row; internal only, no user-broadcast form: see [XCALL.md](./XCALL.md) |
+| [`DEPLOY`](./deploy.md) | Deploys a smart contract to the XChain VM (v0/v1 inline; v2/v3 assemble from v4 carriers; v4 carries one base64 code slice for a large-contract deploy) |
+| [`EXECUTE`](./execute.md) | Executes a method on a deployed smart contract |
+| [`DEPOSIT`](./deposit.md) | Transfers tokens from a user to a contract's custody |
+| [`WITHDRAW`](./withdraw.md) | Withdraws tokens from a contract's custody back to the owner |
+| [`XCALL`](./xcall.md) | Cross-chain contract call request: v0 = VM-emitted request (`xchain.emit.crossExecute`), v2 = system-synthesized deadline expiry |
+| `XEXEC` | System-injected target-side execution of an XCALL dispatch row; internal only, no user-broadcast form: see [XCALL.md](./xcall.md) |
 
 ### Utility
 
 | ACTION | Description |
 |---|---|
-| [`ADDRESS`](./ADDRESS.md) | Configures address-specific preferences (e.g., require memo) |
-| [`BATCH`](./BATCH.md) | Executes multiple ACTION commands in a single transaction |
-| [`LINK`](./LINK.md) | Links two actions by `ACTION_INDEX`, including cross-chain links |
-| [`LIST`](./LIST.md) | Creates a list of items (addresses, tickers) for use in other actions |
+| [`ADDRESS`](./address.md) | Configures address-specific preferences (e.g., require memo) |
+| [`BATCH`](./batch.md) | Executes multiple ACTION commands in a single transaction |
+| [`LINK`](./link.md) | Links two actions by `ACTION_INDEX`, including cross-chain links |
+| [`LIST`](./list.md) | Creates a list of items (addresses, tickers) for use in other actions |
 
 ## Specification Format
 
@@ -173,10 +173,10 @@ Supported encoding types: `OP_RETURN` (up to 80 bytes total per output, 76 bytes
 
 | Resource | Description |
 |---|---|
-| [Indexer Actions Reference](../../components/indexer/ACTIONS.md) | How each ACTION is validated and processed by the indexer |
-| [SDK Actions Reference](../../components/sdk/ACTIONS.md) | How to generate ACTION strings using the SDK |
-| [Database Naming Structure](../Database_Naming_Structure.md) | Database naming conventions for the platform |
-| [Token Information Standard](../Token_Information_Standard.md) | Standard for token metadata |
+| [Indexer Actions Reference](../../components/indexer/actions.md) | How each ACTION is validated and processed by the indexer |
+| [SDK Actions Reference](../../components/sdk/actions.md) | How to generate ACTION strings using the SDK |
+| [Database Naming Structure](../database-naming-structure.md) | Database naming conventions for the platform |
+| [Token Information Standard](../token-information-standard.md) | Standard for token metadata |
 
 ---
 

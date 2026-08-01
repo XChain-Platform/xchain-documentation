@@ -28,10 +28,10 @@ The decoder's job is extraction only; it does not interpret action semantics. It
 
 | Document | Description |
 |---|---|
-| [Architecture](ARCHITECTURE.md) | Data pipeline, internal components, polling loop, transaction parsing, deobfuscation |
-| [Configuration](CONFIGURATION.md) | Environment variables, internal constants, network-specific settings |
-| [Database](DATABASE.md) | Full schema reference: 9 tables covering blocks, transactions, dispensers, pubkeys, indexes, and events |
-| [Operations](OPERATIONS.md) | Running, Docker, API endpoints, reorg handling, mempool, troubleshooting |
+| [Architecture](architecture.md) | Data pipeline, internal components, polling loop, transaction parsing, deobfuscation |
+| [Configuration](configuration.md) | Environment variables, internal constants, network-specific settings |
+| [Database](database.md) | Full schema reference: 9 tables covering blocks, transactions, dispensers, pubkeys, indexes, and events |
+| [Operations](operations.md) | Running, Docker, API endpoints, reorg handling, mempool, troubleshooting |
 
 ## Installation
 
@@ -45,7 +45,7 @@ npm install
 
 ## Quick Start
 
-Create a `.env` file with the required environment variables (see [Configuration](CONFIGURATION.md) for full details):
+Create a `.env` file with the required environment variables (see [Configuration](configuration.md) for full details):
 
 ```env
 NETWORK=bitcoin-mainnet
@@ -123,7 +123,7 @@ On startup, the decoder:
 
 ## Related
 
-- [Data Pipeline](../../architecture/Data_Pipeline.md): how the decoder fits into the full ingestion flow
+- [Data Pipeline](../../architecture/data-pipeline.md): how the decoder fits into the full ingestion flow
 - [Indexer](../indexer/); the service that consumes decoder output and processes action logic
 - [Encoder](../encoder/): how XChain payloads are constructed for embedding
 

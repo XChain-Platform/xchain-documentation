@@ -20,7 +20,7 @@
  * submit. The client's whole request-side involvement is generic DEPLOY +
  * EXECUTE of a contract that happens to call crossExecute.
  *
- * Cross_Chain_Calls.md now states that boundary so the next reader does not
+ * cross-chain-calls.md now states that boundary so the next reader does not
  * re-derive it. This gate keeps the statement and the machine-readable facts
  * it rests on from drifting apart:
  *
@@ -42,8 +42,8 @@ const path = require('node:path');
 
 const PROTOCOL_DIR = path.resolve(__dirname, '../protocol');
 const MANIFEST     = require(path.join(PROTOCOL_DIR, 'action-manifest.json'));
-const ARCH_DOC     = path.join(PROTOCOL_DIR, 'Cross_Chain_Calls.md');
-const XCALL_DOC    = path.join(PROTOCOL_DIR, 'actions/XCALL.md');
+const ARCH_DOC     = path.join(PROTOCOL_DIR, 'cross-chain-calls.md');
+const XCALL_DOC    = path.join(PROTOCOL_DIR, 'actions/xcall.md');
 
 const arch  = fs.readFileSync(ARCH_DOC, 'utf8');
 const xcall = fs.readFileSync(XCALL_DOC, 'utf8');
@@ -58,7 +58,7 @@ describe('XCALL client-integration boundary', () => {
             const entry = MANIFEST.actions[name];
             assert.ok(entry, name + ' missing from action-manifest.json');
             assert.notEqual(entry.category, 'wire-user',
-                name + ' became wire-user; Cross_Chain_Calls.md "Client integration boundary" is now wrong');
+                name + ' became wire-user; cross-chain-calls.md "Client integration boundary" is now wrong');
             assert.notEqual(entry.userEncodable, true,
                 name + ' became userEncodable; the SDK would need an encoder and the boundary section needs rewriting');
             assert.notEqual(entry.walletForm, true,
@@ -79,7 +79,7 @@ describe('XCALL client-integration boundary', () => {
 
     test('the architecture doc carries the boundary section', () => {
         assert.match(arch, /^## Client integration boundary/m,
-            'Cross_Chain_Calls.md lost its "Client integration boundary" section ');
+            'cross-chain-calls.md lost its "Client integration boundary" section ');
         assert.match(arch, /^### Exercising the request side/m,
             'the boundary section lost its request-side recipe');
 
@@ -93,7 +93,7 @@ describe('XCALL client-integration boundary', () => {
 
     test('the XCALL action doc still states the no-user-broadcast rule', () => {
         assert.match(xcall, /never broadcast by users/,
-            'XCALL.md dropped the rule the client boundary is derived from');
+            'xcall.md dropped the rule the client boundary is derived from');
         assert.match(xcall, /Version `0` - Request \(VM-emitted\)/,
             'XCALL v0 is no longer documented as VM-emitted');
     });

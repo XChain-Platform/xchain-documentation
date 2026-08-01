@@ -14,24 +14,24 @@
  *
  * WHY. action-count-claims.test.js pins the integers, and integers are the
  * cheap half of the problem. On 2026-07-29, with every count correct, the
- * SESSIONS.md convenience-method table was still missing `bet` and `vote` and
+ * sessions.md convenience-method table was still missing `bet` and `vote` and
  * still implied `batch` was among them. A reader counting the table would have
  * got a plausible number and the wrong set, which is precisely the drift a
  * count guard cannot see.
  *
  * That same session also produced the mistake this file exists to stop: the
- * SESSIONS.md count was "corrected" from 30 to 31 using the XChainSDK builder
+ * sessions.md count was "corrected" from 30 to 31 using the XChainSDK builder
  * list, which is the wrong authority for a page about sessions. Sessions expose
  * 30 of the 31 action types; BATCH is composed with the batch builder instead.
  * Two nearly identical surfaces, two different correct numbers.
  *
  * WHAT IT CHECKS, against xchain-sdk source rather than against prose:
  *
- *   1. concepts/ACTIONS.md names every action in protocol/actions/.
- *   2. components/sdk/ACTIONS.md names exactly the SDK-invocable set, and
+ *   1. concepts/actions.md names every action in protocol/actions/.
+ *   2. components/sdk/actions.md names exactly the SDK-invocable set, and
  *      never the five that are not invocable, so nobody goes looking for a
  *      builder that does not exist.
- *   3. The SESSIONS.md convenience table lists exactly the action types
+ *   3. The sessions.md convenience table lists exactly the action types
  *      walletSession.js actually exposes.
  */
 const test = require('node:test');
@@ -68,8 +68,8 @@ function named(text) {
   return NAMED.filter((n) => new RegExp(`\\b${n}\\b`).test(text)).sort();
 }
 
-test('concepts/ACTIONS.md names every action that has a spec', () => {
-  const missing = NAMED.filter((n) => !named(doc('concepts/ACTIONS.md')).includes(n));
+test('concepts/actions.md names every action that has a spec', () => {
+  const missing = NAMED.filter((n) => !named(doc('concepts/actions.md')).includes(n));
   assert.deepStrictEqual(missing, [],
     'the canonical ACTION concept page does not mention: ' + missing.join(', '));
 });
@@ -81,14 +81,14 @@ test('the SDK reference covers exactly the invocable set',
       'the SDK builder methods no longer match "every action except ' + NOT_INVOCABLE.join(', ')
       + '". Re-derive the split before touching the docs.');
 
-    const listed = named(doc('components/sdk/ACTIONS.md'));
+    const listed = named(doc('components/sdk/actions.md'));
     const missing = invocable.filter((n) => !listed.includes(n));
     const bogus = NOT_INVOCABLE.filter((n) => listed.includes(n));
 
     assert.deepStrictEqual(missing, [],
-      'components/sdk/ACTIONS.md documents the SDK surface but never mentions: ' + missing.join(', '));
+      'components/sdk/actions.md documents the SDK surface but never mentions: ' + missing.join(', '));
     assert.deepStrictEqual(bogus, [],
-      'components/sdk/ACTIONS.md names actions the SDK cannot build, which sends a developer '
+      'components/sdk/actions.md names actions the SDK cannot build, which sends a developer '
       + 'hunting for a method that does not exist: ' + bogus.join(', '));
   });
 
@@ -98,7 +98,7 @@ test('the session convenience table lists exactly the session methods',
 
     // Only the convenience-method table, not the whole page: the prose below it
     // discusses BATCH and the version-pinned variants by name on purpose.
-    const page = doc('components/sdk/SESSIONS.md');
+    const page = doc('components/sdk/sessions.md');
     const from = page.indexOf('### Available Action Methods');
     assert.notStrictEqual(from, -1, 'the "Available Action Methods" heading moved; re-point this test');
     const table = page.slice(from, page.indexOf('\n###', from + 1));

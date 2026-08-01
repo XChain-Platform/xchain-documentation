@@ -7,18 +7,18 @@ This section is the entry point for everyone new to XChain, whether you want to 
 
 | Document | Description |
 |---|---|
-| [What is XChain?](./What_Is_XChain.md) | Non-technical platform introduction |
-| [Developer Quickstart](./Quickstart_Developer.md) | SDK install → first token in 5 minutes |
-| [Node Operator Quickstart](./Quickstart_Node_Operator.md) | Install and run the full platform stack |
-| [Key Terms](./Key_Terms.md) | Glossary of XChain terminology |
+| [What is XChain?](./what-is-xchain.md) | Non-technical platform introduction |
+| [Developer Quickstart](./quickstart-developer.md) | SDK install → first token in 5 minutes |
+| [Node Operator Quickstart](./quickstart-node-operator.md) | Install and run the full platform stack |
+| [Key Terms](./key-terms.md) | Glossary of XChain terminology |
 
 ## Where Should You Start?
 
-**"I want to understand what XChain is"** → [What is XChain?](./What_Is_XChain.md)
+**"I want to understand what XChain is"** → [What is XChain?](./what-is-xchain.md)
 
-**"I want to build something with XChain"** → [Developer Quickstart](./Quickstart_Developer.md)
+**"I want to build something with XChain"** → [Developer Quickstart](./quickstart-developer.md)
 
-**"I want to run an XChain node"** → [Node Operator Quickstart](./Quickstart_Node_Operator.md)
+**"I want to run an XChain node"** → [Node Operator Quickstart](./quickstart-node-operator.md)
 
 **"I want to understand the protocol deeply"** → [Core Concepts](../concepts/) → [Architecture](../architecture/) → [Protocol Spec](../protocol/)
 

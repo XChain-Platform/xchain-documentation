@@ -39,12 +39,12 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 
 | Document | Description |
 |---|---|
-| [Architecture](ARCHITECTURE.md) | Subsystem design, source files, P2P gossip, PBFT consensus, oracle pipeline, cross-chain engine |
-| [Configuration](CONFIGURATION.md) | Environment variables, standalone vs validator mode, database schema, connection pool |
-| [API](API.md) | JSON-RPC method reference: config, validators, oracle, attestations, swaps, reorgs, governance |
-| [Database](DATABASE.md) | Full schema reference: config, validators, oracle (price_snapshots, oracle_prices), attestations, governance |
-| [Operations](OPERATIONS.md) | Running, Docker, validator key rotation, resilience, troubleshooting |
-| [Decentralization](DECENTRALIZATION.md) | Evolution from centralized oracle to decentralized validator network (all phases complete) |
+| [Architecture](architecture.md) | Subsystem design, source files, P2P gossip, PBFT consensus, oracle pipeline, cross-chain engine |
+| [Configuration](configuration.md) | Environment variables, standalone vs validator mode, database schema, connection pool |
+| [API](api.md) | JSON-RPC method reference: config, validators, oracle, attestations, swaps, reorgs, governance |
+| [Database](database.md) | Full schema reference: config, validators, oracle (price_snapshots, oracle_prices), attestations, governance |
+| [Operations](operations.md) | Running, Docker, validator key rotation, resilience, troubleshooting |
+| [Decentralization](decentralization.md) | Evolution from centralized oracle to decentralized validator network (all phases complete) |
 
 ## Installation
 
@@ -60,7 +60,7 @@ npm install
 
 ### Standalone mode: config oracle only
 
-Create a `.env` file with the required environment variables (see [Configuration](CONFIGURATION.md) for full details):
+Create a `.env` file with the required environment variables (see [Configuration](configuration.md) for full details):
 
 ```env
 HUB_HOST=0.0.0.0
@@ -175,9 +175,9 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 
 ## Related Documentation
 
-- [Decentralization](DECENTRALIZATION.md): evolution of the hub toward a decentralized validator network
-- [Cross-Chain Concepts](../../concepts/CROSS_CHAIN.md): how cross-chain swaps work at the protocol level
-- [Configuration Guide](../../operations/CONFIGURATION.md): how to configure and manage hub parameters
+- [Decentralization](decentralization.md): evolution of the hub toward a decentralized validator network
+- [Cross-Chain Concepts](../../concepts/cross-chain.md): how cross-chain swaps work at the protocol level
+- [Configuration Guide](../../operations/configuration.md): how to configure and manage hub parameters
 - [xchain-sync](../sync/README.md): database replication service used by validators
 
 ---

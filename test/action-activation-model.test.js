@@ -54,7 +54,9 @@ const haveRegistry = fs.existsSync(REGISTRY);
 // The 36 documented ACTIONs: one page per action under protocol/actions/.
 const ACTIONS = fs.readdirSync(path.join(DOC_ROOT, 'protocol/actions'))
     .filter((f) => f.endsWith('.md') && f !== 'README.md')
-    .map((f) => f.replace(/\.md$/, ''));
+    // Filenames are lowercase-kebab (the naming standard); an ACTION name is the
+    // uppercase protocol identifier, so derive the identifier from the file.
+    .map((f) => f.replace(/\.md$/, '').toUpperCase());
 
 function readRegistry() {
     const src = fs.readFileSync(REGISTRY, 'utf8');
@@ -100,7 +102,7 @@ describe('ACTION activation model', () => {
         assert.equal(byVersion['1.0.0'].length, 21, 'v1.0.0 action count changed; update the docs');
         assert.equal(byVersion['2.0.0'].length, 15, 'v2.0.0 action count changed; update the docs');
         assert.ok(byVersion['1.0.0'].includes('BET'),
-            'BET moved off 1.0.0; concepts/ACTIONS.md and components/indexer/ACTIONS.md name it as a 1.0.0 action');
+            'BET moved off 1.0.0; concepts/actions.md and components/indexer/actions.md name it as a 1.0.0 action');
     });
 
     // Guards the prose itself, so the corrected pages cannot quietly regress.

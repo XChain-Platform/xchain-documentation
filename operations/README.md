@@ -7,17 +7,17 @@ This section covers everything needed to deploy, configure, monitor, and maintai
 
 | Document | Description |
 |---|---|
-| [Deployment](./DEPLOYMENT.md) | How to deploy the full platform stack from scratch |
-| [XCHAIN Genesis](./XCHAIN_GENESIS.md) | One-time fixed-supply XCHAIN issuance and validator reward-pool funding |
-| [Docker](./DOCKER.md) | Docker Compose configuration and container management |
-| [Configuration](./CONFIGURATION.md) | All configuration options across each service |
-| [API Keys](./API_KEYS.md) | The platform-wide no-key posture: fail-open with a loud startup warning |
-| [Monitoring](./MONITORING.md) | Health checks, metrics, and alerting for a running node |
-| [Disk Management](./DISK_MANAGEMENT.md) | Moving a chain's block data or datadir to a larger disk safely |
-| [Reorg Handling](./Reorg_Handling.md) | How the platform detects and recovers from blockchain reorganizations |
-| [Upgrading](./UPGRADING.md) | Safe upgrade procedures for each service |
-| [Troubleshooting](./TROUBLESHOOTING.md) | Common problems and how to diagnose and fix them |
-| [Privacy & Telemetry](./TELEMETRY.md) | What anonymous usage data xchain-node sends, and how to turn it off |
+| [Deployment](./deployment.md) | How to deploy the full platform stack from scratch |
+| [XCHAIN Genesis](./xchain-genesis.md) | One-time fixed-supply XCHAIN issuance and validator reward-pool funding |
+| [Docker](./docker.md) | Docker Compose configuration and container management |
+| [Configuration](./configuration.md) | All configuration options across each service |
+| [API Keys](./api-keys.md) | The platform-wide no-key posture: fail-open with a loud startup warning |
+| [Monitoring](./monitoring.md) | Health checks, metrics, and alerting for a running node |
+| [Disk Management](./disk-management.md) | Moving a chain's block data or datadir to a larger disk safely |
+| [Reorg Handling](./reorg-handling.md) | How the platform detects and recovers from blockchain reorganizations |
+| [Upgrading](./upgrading.md) | Safe upgrade procedures for each service |
+| [Troubleshooting](./troubleshooting.md) | Common problems and how to diagnose and fix them |
+| [Privacy & Telemetry](./telemetry.md) | What anonymous usage data xchain-node sends, and how to turn it off |
 
 ---
 

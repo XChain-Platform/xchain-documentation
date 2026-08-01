@@ -16,8 +16,8 @@ A pure function library. Takes contract code + state + inputs + block context. R
 - **AST-based gas metering**: `acorn` parses the source, injects `__gas()` at control flow points, `astring` regenerates, fully deterministic, not wall-clock
 - **JSON bridge protocol**: host-side gateway functions communicate with the isolate via JSON-serialized arguments and type-prefixed return values
 - **19 emittable action types**: SEND, DESTROY, ISSUE, MINT, ORDER, DISPENSER, DIVIDEND, AIRDROP, CALLBACK, FILE, LIST, COINPAY, SWEEP, LINK, BROADCAST, MESSAGE, VOTE, plus `emit.execute` (cross-contract call) and `emit.crossExecute` (cross-chain call via XCALL)
-- **External attestation gateway**: `xchain.attestation.request(...)` and `getResponse(...)`. Contracts ask an HTTPS endpoint or an approved LLM, and the validator network writes a signed answer back on-chain that re-enters the contract through a callback. See [Smart Contracts; Attestation Framework](../../concepts/Smart_Contracts.md#asking-the-outside-world-the-attestation-framework).
-- **Contract-targeted staking gateway**: `xchain.contract.getStake`, `getTotalStaked`, `getStakers`, `slash`. Any contract can declare itself stakeable at deploy time and slash its own stakers per its own rules. See [Smart Contracts; Stakeable Contracts](../../concepts/Smart_Contracts.md#stakeable-contracts).
+- **External attestation gateway**: `xchain.attestation.request(...)` and `getResponse(...)`. Contracts ask an HTTPS endpoint or an approved LLM, and the validator network writes a signed answer back on-chain that re-enters the contract through a callback. See [Smart Contracts; Attestation Framework](../../concepts/smart-contracts.md#asking-the-outside-world-the-attestation-framework).
+- **Contract-targeted staking gateway**: `xchain.contract.getStake`, `getTotalStaked`, `getStakers`, `slash`. Any contract can declare itself stakeable at deploy time and slash its own stakers per its own rules. See [Smart Contracts; Stakeable Contracts](../../concepts/smart-contracts.md#stakeable-contracts).
 - **Deterministic math**: `xchain.math.*` wraps mathjs bignumber with string I/O, no floating-point at the gateway boundary
 - **Contract state management**: key-value store with dirty tracking, key count, key size, and value size limits
 - **Deploy-time validation**: V8 syntax check, acorn metering pass, reserved identifier detection, float warnings
@@ -27,9 +27,9 @@ A pure function library. Takes contract code + state + inputs + block context. R
 
 | Document | Description |
 |---|---|
-| [Architecture](ARCHITECTURE.md) | Execution pipeline, internal components, JSON bridge protocol, gas metering, sandbox security, compilation cache |
-| [Configuration](CONFIGURATION.md) | Constructor parameters, gas schedule, resource limits |
-| [Operations](OPERATIONS.md) | Indexer integration, error classification, atomicity guarantees, troubleshooting |
+| [Architecture](architecture.md) | Execution pipeline, internal components, JSON bridge protocol, gas metering, sandbox security, compilation cache |
+| [Configuration](configuration.md) | Constructor parameters, gas schedule, resource limits |
+| [Operations](operations.md) | Indexer integration, error classification, atomicity guarantees, troubleshooting |
 
 ## Installation
 
@@ -132,15 +132,15 @@ const result = await vm.execute({
 
 ## Related
 
-- [Smart Contracts Concept](../../concepts/Smart_Contracts.md): gateway API reference, contract format, deterministic execution model, attestation framework, stakeable contracts
-- [Contract Development Guide](../../developer-guide/Smart_Contract_Development.md): writing, deploying, and debugging contracts
-- [Gas and Fees](../../concepts/GAS.md): gas economics, fee schedule, XCHAIN token
-- [Indexer Architecture](../indexer/ARCHITECTURE.md): how the indexer integrates the VM
-- [DEPLOY Action](../../protocol/actions/DEPLOY.md): deploying a contract (including stakeable-contract metadata)
-- [EXECUTE Action](../../protocol/actions/EXECUTE.md): calling a contract method
-- [ATTEST Action](../../protocol/actions/ATTEST.md): request/response/expire lifecycle behind `xchain.attestation.*`
+- [Smart Contracts Concept](../../concepts/smart-contracts.md): gateway API reference, contract format, deterministic execution model, attestation framework, stakeable contracts
+- [Contract Development Guide](../../developer-guide/smart-contract-development.md): writing, deploying, and debugging contracts
+- [Gas and Fees](../../concepts/gas.md): gas economics, fee schedule, XCHAIN token
+- [Indexer Architecture](../indexer/architecture.md): how the indexer integrates the VM
+- [DEPLOY Action](../../protocol/actions/deploy.md): deploying a contract (including stakeable-contract metadata)
+- [EXECUTE Action](../../protocol/actions/execute.md): calling a contract method
+- [ATTEST Action](../../protocol/actions/attest.md): request/response/expire lifecycle behind `xchain.attestation.*`
 - [LLM Provider](../../protocol/providers/llm.md): prompt envelope, approved models, judge-model consensus
-- [Contract-Targeted Staking](../../protocol/Contract_Staking.md): wire spec for `xchain.contract.*`
+- [Contract-Targeted Staking](../../protocol/contract-staking.md): wire spec for `xchain.contract.*`
 
 ---
 

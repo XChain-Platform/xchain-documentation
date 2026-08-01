@@ -12,7 +12,7 @@
  *
  * Explorer REST endpoint-count gate.
  *
- * WHY . Component_Map.md quotes hard numbers for the explorer's REST
+ * WHY . component-map.md quotes hard numbers for the explorer's REST
  * surface. Those numbers were written by a 2026-06-20 audit and had gone stale
  * by 2026-07-27 (129/68 against a real 144/74), because the explorer gained BET,
  * oracle-fee-quote and preflight surfaces in between and nobody re-counted. A
@@ -44,7 +44,7 @@ const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
 
-const COMPONENT_MAP  = path.resolve(__dirname, '../architecture/Component_Map.md');
+const COMPONENT_MAP  = path.resolve(__dirname, '../architecture/component-map.md');
 const EXPLORER_SOURCE = path.resolve(__dirname, '../../xchain-explorer/src/XChainExplorer.js');
 
 const doc = fs.readFileSync(COMPONENT_MAP, 'utf8');
@@ -88,11 +88,11 @@ function readHandRegisteredApiRoutes(source) {
 function documentedFigure(label) {
     const re = new RegExp('(\\d+)\\s+' + label);
     const m = doc.match(re);
-    assert.ok(m, 'Component_Map.md no longer states a figure for "' + label + '"');
+    assert.ok(m, 'component-map.md no longer states a figure for "' + label + '"');
     return Number(m[1]);
 }
 
-describe('explorer REST endpoint counts in Component_Map.md', () => {
+describe('explorer REST endpoint counts in component-map.md', () => {
 
     test('the doc still states a total and a per-namespace breakdown', () => {
         assert.match(doc, /233 REST endpoint patterns across the `\/api` and `\/explorer` namespaces/,

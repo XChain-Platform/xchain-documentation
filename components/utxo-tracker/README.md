@@ -34,9 +34,9 @@ In addition to confirmed block data, the tracker maintains a separate in-memory 
 
 | Document | Description |
 |---|---|
-| [Architecture](ARCHITECTURE.md) | Data pipeline position, internal components, LevelDB key schema, block processing loop, reorg handling, mempool tracking |
-| [Configuration](CONFIGURATION.md) | Environment variables, internal constants, database paths |
-| [Operations](OPERATIONS.md) | Running, Docker, REST and JSON-RPC API reference, resilience, troubleshooting |
+| [Architecture](architecture.md) | Data pipeline position, internal components, LevelDB key schema, block processing loop, reorg handling, mempool tracking |
+| [Configuration](configuration.md) | Environment variables, internal constants, database paths |
+| [Operations](operations.md) | Running, Docker, REST and JSON-RPC API reference, resilience, troubleshooting |
 
 ## Installation
 
@@ -50,7 +50,7 @@ npm install
 
 ## Quick Start
 
-Create a `.env` file with the required environment variables (see [Configuration](CONFIGURATION.md) for full details):
+Create a `.env` file with the required environment variables (see [Configuration](configuration.md) for full details):
 
 ```env
 NETWORK=bitcoin-mainnet
@@ -142,7 +142,7 @@ On startup, the tracker:
 
 - [Encoder](../encoder/); the primary consumer of UTXO tracker queries
 - [Decoder](../decoder/): also polls coin nodes, but extracts XChain ACTION data rather than UTXOs
-- [Data Pipeline](../../architecture/Data_Pipeline.md): how the UTXO tracker fits into the full platform flow
+- [Data Pipeline](../../architecture/data-pipeline.md): how the UTXO tracker fits into the full platform flow
 
 ---
 

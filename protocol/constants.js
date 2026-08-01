@@ -99,7 +99,7 @@ const VM_MIN_CALL_GAS = 5000;
 // ── Cross-CHAIN contract calls (emit.crossExecute / XCALL) ──────────────────
 // Enforced by the VM at emit time and re-validated host-side by the indexer
 // (processEmission + actions/xcall.js); the target chain re-validates the
-// signed dispatch row before injecting. See protocol/Cross_Chain_Calls.md.
+// signed dispatch row before injecting. See protocol/cross-chain-calls.md.
 
 // Target-side gas ceiling bounds. The injected execution is fee-less on the
 // target chain (the caller pre-paid on the source chain), so the per-call cap

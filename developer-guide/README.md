@@ -7,22 +7,22 @@ This section is for application developers building on top of the XChain Platfor
 
 | Document | Description |
 |---|---|
-| [Build Your First Token](./Build_Your_First_Token.md) | Step-by-step walkthrough of issuing and transferring a token |
-| [Build a Dispenser](./Build_A_Dispenser.md) | Set up a vending machine that dispenses tokens on receipt of payment |
-| [Build a Stakeable Contract](./Build_A_Stakeable_Contract.md) | Deploy a smart contract that anyone can stake tokens against on Bitcoin, Litecoin, or Dogecoin |
-| [Query the Explorer](./Query_The_Explorer.md) | Use the REST and JSON-RPC APIs to read balances, actions, and token data |
-| [API Reference](./API_Reference.md) | Complete REST and JSON-RPC reference for the Explorer, Encoder, and Hub APIs |
-| [Cross-Chain Swap](./Cross_Chain_Swap.md) | Create and complete a cross-chain token swap between supported blockchains |
-| [Messaging](./MESSAGING.md) | Send and receive encrypted or plaintext messages between addresses with the SDK |
-| [Advanced Token Features](./Advanced_Token_Features.md) | Locking, callbacks, dividends, airdrops, and other advanced token operations |
-| [Batch Operations](./Batch_Operations.md) | Combine multiple ACTION commands into a single transaction with BATCH |
-| [Regtest Development](./Regtest_Development.md) | Run a local regtest stack for rapid development and testing |
-| [Integration Patterns](./Integration_Patterns.md) | Recommended patterns for integrating XChain into wallets and applications |
-| [Smart Contract Development](./Smart_Contract_Development.md) | Writing, deploying, and interacting with smart contracts on XChain |
-| [Solidity to XChain](./Solidity_To_XChain.md) | On-ramp for Solidity/EVM developers: concept map, native-primitive shortcuts, and side-by-side examples |
-| [AI-Assisted Contract Authoring](./AI_Assisted_Authoring.md) | Describe a contract in English or paste your Solidity; get a gate-validated XChain contract back |
-| [Adding a Blockchain](./Adding_A_Blockchain.md) | Add a new chain via the single canonical per-coin config file |
-| [Testing](./TESTING.md) | Testing philosophy, 11 test types, platform coverage, and contributing tests |
+| [Build Your First Token](./build-your-first-token.md) | Step-by-step walkthrough of issuing and transferring a token |
+| [Build a Dispenser](./build-a-dispenser.md) | Set up a vending machine that dispenses tokens on receipt of payment |
+| [Build a Stakeable Contract](./build-a-stakeable-contract.md) | Deploy a smart contract that anyone can stake tokens against on Bitcoin, Litecoin, or Dogecoin |
+| [Query the Explorer](./query-the-explorer.md) | Use the REST and JSON-RPC APIs to read balances, actions, and token data |
+| [API Reference](./api-reference.md) | Complete REST and JSON-RPC reference for the Explorer, Encoder, and Hub APIs |
+| [Cross-Chain Swap](./cross-chain-swap.md) | Create and complete a cross-chain token swap between supported blockchains |
+| [Messaging](./messaging.md) | Send and receive encrypted or plaintext messages between addresses with the SDK |
+| [Advanced Token Features](./advanced-token-features.md) | Locking, callbacks, dividends, airdrops, and other advanced token operations |
+| [Batch Operations](./batch-operations.md) | Combine multiple ACTION commands into a single transaction with BATCH |
+| [Regtest Development](./regtest-development.md) | Run a local regtest stack for rapid development and testing |
+| [Integration Patterns](./integration-patterns.md) | Recommended patterns for integrating XChain into wallets and applications |
+| [Smart Contract Development](./smart-contract-development.md) | Writing, deploying, and interacting with smart contracts on XChain |
+| [Solidity to XChain](./solidity-to-xchain.md) | On-ramp for Solidity/EVM developers: concept map, native-primitive shortcuts, and side-by-side examples |
+| [AI-Assisted Contract Authoring](./ai-assisted-authoring.md) | Describe a contract in English or paste your Solidity; get a gate-validated XChain contract back |
+| [Adding a Blockchain](./adding-a-blockchain.md) | Add a new chain via the single canonical per-coin config file |
+| [Testing](./testing.md) | Testing philosophy, 11 test types, platform coverage, and contributing tests |
 
 ---
 

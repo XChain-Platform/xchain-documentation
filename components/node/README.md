@@ -30,9 +30,9 @@ Unlike other XChain services that run as long-lived processes, xchain-node is a 
 
 | Document | Description |
 |---|---|
-| [Architecture](ARCHITECTURE.md) | Data pipeline position, internal components, source files, runtime directory structure |
-| [Configuration](CONFIGURATION.md) | Config file system, generated environment variables, naming conventions, internal constants |
-| [Operations](OPERATIONS.md) | CLI commands reference, global options, parameters, troubleshooting |
+| [Architecture](architecture.md) | Data pipeline position, internal components, source files, runtime directory structure |
+| [Configuration](configuration.md) | Config file system, generated environment variables, naming conventions, internal constants |
+| [Operations](operations.md) | CLI commands reference, global options, parameters, troubleshooting |
 
 ## Installation
 
@@ -124,9 +124,9 @@ xchain-node monitor all bitcoin regtest
 
 ## Related
 
-- [Deployment Guide](../../operations/DEPLOYMENT.md): step-by-step production deployment walkthrough
-- [Docker Guide](../../operations/DOCKER.md): Docker configuration details and volume management
-- [Data Pipeline](../../architecture/Data_Pipeline.md): how services connect in the full platform flow
+- [Deployment Guide](../../operations/deployment.md): step-by-step production deployment walkthrough
+- [Docker Guide](../../operations/docker.md): Docker configuration details and volume management
+- [Data Pipeline](../../architecture/data-pipeline.md): how services connect in the full platform flow
 - [Encoder](../encoder/): constructs XChain transactions (depends on xchain-node for deployment)
 - [Decoder](../decoder/): decodes mined blocks (depends on xchain-node for deployment)
 - [Regtest Miner](../regtest-miner/): auto-mines blocks in regtest (managed by xchain-node)

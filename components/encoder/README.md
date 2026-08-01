@@ -29,8 +29,8 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 
 | Document | Description |
 |---|---|
-| [API Reference](API.md) | Complete JSON-RPC reference: all six methods with parameters, request/response examples, and error codes |
-| [Format Selection](Format_Selection.md) | Decision guide and size limits for the four encoding formats |
+| [API Reference](api.md) | Complete JSON-RPC reference: all six methods with parameters, request/response examples, and error codes |
+| [Format Selection](format-selection.md) | Decision guide and size limits for the four encoding formats |
 
 ## Encoding Process
 
@@ -40,7 +40,7 @@ Every encode call follows this sequence. Some steps are format-specific and are 
 2. **Obfuscate** (OP_RETURN and MULTISIGN only); the prefixed payload is encrypted with AES-128-CTR using the first input's txid. P2SH and P2WSH embed the payload directly in the redeem/witness script without this step.
    - Key: first 16 hex characters of the txid (16 bytes when treated as ASCII)
    - IV: next 16 hex characters of the txid (16 bytes when treated as ASCII)
-3. **Select format**; the encoder picks the most efficient encoding format based on the obfuscated payload length (see [Format Selection](Format_Selection.md))
+3. **Select format**; the encoder picks the most efficient encoding format based on the obfuscated payload length (see [Format Selection](format-selection.md))
 4. **Build transaction**: inputs are selected from the provided UTXOs, outputs are constructed per the chosen format, fees are calculated, and a change output is added if needed
 5. **Return PSBT**; the unsigned PSBT is returned to the caller in hex format
 
@@ -84,7 +84,7 @@ Multisig encoding is an alternative for payloads that exceed OP_RETURN's 76-byte
 
 ## Format Auto-Selection
 
-The encoder selects the most efficient format automatically based on obfuscated payload length. See [Format Selection](Format_Selection.md) for the full decision logic and size limits.
+The encoder selects the most efficient format automatically based on obfuscated payload length. See [Format Selection](format-selection.md) for the full decision logic and size limits.
 
 ## UTXO Management
 
@@ -109,7 +109,7 @@ The encoder exposes a JSON-RPC API via Express with `express-json-rpc-router`.
 
 A machine-readable OpenRPC 1.3.2 spec for all JSON-RPC methods is served at `GET /openrpc.json`.
 
-See the **[API Reference](API.md)** for full per-method parameters, request and response examples, the UTXO object shape, and the JSON-RPC error codes.
+See the **[API Reference](api.md)** for full per-method parameters, request and response examples, the UTXO object shape, and the JSON-RPC error codes.
 
 ## Browser Bundle
 
@@ -200,10 +200,10 @@ Shared test utilities in `test/integration/helpers/`:
 
 ## Related
 
-- [Format Selection](Format_Selection.md): decision guide for choosing an encoding format
+- [Format Selection](format-selection.md): decision guide for choosing an encoding format
 - [UTXO Tracker](../utxo-tracker/); the service that supplies UTXOs to the encoder
-- [Data Pipeline](../../architecture/Data_Pipeline.md): full platform ingestion flow
-- [Testing](../../developer-guide/TESTING.md): platform-wide testing philosophy and coverage
+- [Data Pipeline](../../architecture/data-pipeline.md): full platform ingestion flow
+- [Testing](../../developer-guide/testing.md): platform-wide testing philosophy and coverage
 
 ---
 

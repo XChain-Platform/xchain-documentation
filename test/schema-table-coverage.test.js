@@ -12,7 +12,7 @@
  *
  * Schema table-coverage gate.
  *
- * WHY. The 2026-06-20 round verified the hub's DATABASE.md against
+ * WHY. The 2026-06-20 round verified the hub's database.md against
  * `ls src/sql/` and found all 20 tables documented. By 2026-07-27 the hub had
  * 23 and the indexer was missing 9, including the entire VOTE governance set
  * (`polls`, `votes`, `poll_results`, `vote_delegations`) and `coinpays`. A
@@ -20,7 +20,7 @@
  * because a missing row reads exactly like a table that does not exist.
  *
  * WHAT IT CHECKS. Every `src/sql/*.sql` file in the decoder, indexer and hub
- * has its table named somewhere in that component's DATABASE.md. Naming is the
+ * has its table named somewhere in that component's database.md. Naming is the
  * bar, not column-level detail: the indexer has 124 tables and documenting
  * each column would rot faster than it helps, whereas an unnamed table is
  * invisible to a reader.
@@ -49,10 +49,10 @@ const COMPONENTS = [
 describe('schema table coverage', () => {
     for (const { doc, repo } of COMPONENTS) {
         const sqlDir  = path.resolve(DOC_ROOT, '..', repo, 'src/sql');
-        const dbDoc   = path.join(DOC_ROOT, 'components', doc, 'DATABASE.md');
+        const dbDoc   = path.join(DOC_ROOT, 'components', doc, 'database.md');
         const havePair = fs.existsSync(sqlDir) && fs.existsSync(dbDoc);
 
-        test(`${doc}: every table in src/sql is named in DATABASE.md`,
+        test(`${doc}: every table in src/sql is named in database.md`,
             { skip: !havePair && `${repo} not present in this checkout` }, () => {
 
             const tables = fs.readdirSync(sqlDir)
@@ -65,7 +65,7 @@ describe('schema table coverage', () => {
             const missing = tables.filter((t) => !new RegExp(`\\b${t}\\b`).test(text));
 
             assert.deepEqual(missing, [],
-                `${repo} has ${tables.length} tables; these are undocumented in components/${doc}/DATABASE.md:\n  ` +
+                `${repo} has ${tables.length} tables; these are undocumented in components/${doc}/database.md:\n  ` +
                 missing.join('\n  '));
         });
     }

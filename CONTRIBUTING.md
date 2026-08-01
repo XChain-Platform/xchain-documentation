@@ -93,6 +93,29 @@ Once the issue has consensus, open the PR against `master`. Keep one logical cha
 - Keep line length reasonable (80-100 chars) for readability in `git diff`, but do not wrap mid-sentence just to hit a target.
 - Spell out numbers under 10 in prose; use digits for larger values and for all byte counts, hex values, and numeric parameters.
 
+### File naming
+
+**Name every new document `lowercase-kebab-case.md`.** `cross-chain-dex.md`, not `CROSS_CHAIN_DEX.md`, `Cross_Chain_DEX.md`, or `crossChainDex.md`. Directories follow the same rule, and already do.
+
+Three reasons this is a rule rather than a preference:
+
+- **The filename IS the URL.** `protocol/cross-chain-dex.md` is published at `/protocol/cross-chain-dex`. No case or separator transformation happens in between, so a link cannot drift from the file it points at.
+- **It removes a bug the repo has already hit.** macOS is case-insensitive and the servers are not, so a wrong-case link resolves fine on a contributor's laptop and 404s in production. All-lowercase makes that mistake impossible rather than something a test has to catch after the fact.
+- **Hyphens read as word separators; underscores read as word joiners.** `cross_chain_dex` is one token to a search engine, `cross-chain-dex` is three. Underscores also disappear underneath a link underline.
+
+Spell acronyms out in lowercase like any other word: `nft-standard.md`, `api-reference.md`, `xchain-uri-scheme.md`, `mcp-quickstart.md`.
+
+**Exempt, and deliberately so**, because GitHub and other tooling look these up by exact name:
+
+- **`README.md`, at any depth.** It is the folder-index convention: GitHub renders it when you browse into a directory, and the docs build publishes it as that directory's index, so it never appears in a URL to be inconsistent with.
+- **At the repository root only:** `LICENSE.md`, `NOTICE.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `MAINTAINERS.md`, `AUTHORS.md`.
+
+Nested copies of those names get no special treatment from any tool, so they are ordinary pages and follow the rule: `legal/CLA.md` is `legal/cla.md`.
+
+Root-level exempt files still publish at a lowercase URL (`/license`, `/changelog`). Lowercasing the URL is the URL layer's job and says nothing about what the file is called on disk.
+
+Renaming an existing document is a URL change, so it needs a redirect. Add the old path to the rename manifest the docs build reads, rather than leaving the old URL to 404: there are links to these pages on sites nobody here controls.
+
 ### Keeping examples accurate
 
 All byte-level encoding examples and on-chain data samples in the spec must match the actual platform behavior. If you discover a discrepancy between a spec example and what the services actually do, note it explicitly in your PR description and flag which side is authoritative.
