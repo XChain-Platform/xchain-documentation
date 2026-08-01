@@ -485,14 +485,16 @@ const ORACLE_FEE_OUTPUT_ACTIVATION = {
 // chain's OWN local block height (like STATE_COMMITMENT_ACTIVATION) because
 // recognition happens while parsing that chain's blocks. DOGE has no segwit,
 // hence no envelope: its entry is null (never active) and must stay null.
-// mainnet is a DISABLED far-future sentinel until the §7 cohort decision
-// (riding the  launch-baseline sequencing) arms it; testnet/regtest are
-// genesis-active. Vendored byte-equal into xchain-decoder/src/protocol/
-// constants.js; the cross-service regression suite keeps the copies in
-// lockstep. Rollout order within any venue: decoder before encoder.
+// MAINNET ARMED 2026-08-01 by operator decision (§7 cohort call): BTC 961000
+// (~2026-08-04, the existing cohort), LTC 3160000 (~2026-08-14, after the BTC
+// gate per the BTC-gated wire-format policy); testnet/regtest stay
+// genesis-active. Every decoder on a chain MUST carry these values before its
+// height or the fleet forks on the first envelope. Vendored byte-equal into
+// xchain-decoder/src/protocol/constants.js; the cross-service regression suite
+// keeps the copies in lockstep. Rollout order: decoder before encoder.
 const ENVELOPE_RECOGNITION_ACTIVATION = {
-    BTC:  { mainnet: 999999999, testnet: 0, regtest: 0 },
-    LTC:  { mainnet: 999999999, testnet: 0, regtest: 0 },
+    BTC:  { mainnet: 961000, testnet: 0, regtest: 0 },
+    LTC:  { mainnet: 3160000, testnet: 0, regtest: 0 },
     DOGE: { mainnet: null, testnet: null, regtest: null },
 };
 
