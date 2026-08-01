@@ -49,7 +49,7 @@ xchain-documentation/
 ### First-time clone
 
 ```bash
-git clone https://github.com/XChain-platform/xchain-documentation.git
+git clone https://github.com/XChain-Platform/xchain-documentation.git
 cd xchain-documentation
 ```
 
@@ -141,7 +141,7 @@ Before opening a PR:
 2. Update `CHANGELOG.md` with a terse entry for your change.
 3. Open the PR with a clear title and a description of what changed and why. For spec changes, link to the issue where maintainer sign-off was obtained.
 
-For non-security bugs or editorial issues, open an issue at <https://github.com/XChain-platform/xchain-documentation/issues/new>. For security bugs, see [`SECURITY.md`](./SECURITY.md).
+For non-security bugs or editorial issues, open an issue at <https://github.com/XChain-Platform/xchain-documentation/issues/new>. For security bugs, see [`SECURITY.md`](./SECURITY.md).
 
 ---
 

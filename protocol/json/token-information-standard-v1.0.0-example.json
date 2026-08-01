@@ -41,10 +41,10 @@
 
     "social": [{
         "type": "github",
-        "data": "https://github.com/XChain-platform"
+        "data": "https://github.com/XChain-Platform"
     },{
         "type": "facebook",
-        "data": "https://facebook.com/XChain-platform"
+        "data": "https://facebook.com/XChain-Platform"
     },{
         "type": "twitter",
         "data": "https://twitter.com/xchain_io"
