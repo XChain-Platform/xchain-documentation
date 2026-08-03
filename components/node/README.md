@@ -32,7 +32,7 @@ Unlike other XChain services that run as long-lived processes, xchain-node is a 
 |---|---|
 | [Architecture](architecture.md) | Data pipeline position, internal components, source files, runtime directory structure |
 | [Configuration](configuration.md) | Config file system, generated environment variables, naming conventions, internal constants |
-| [Operations](operations.md) | CLI commands reference, global options, parameters, troubleshooting |
+| [CLI Manual](operations.md) | Every command, option, and parameter, plus troubleshooting |
 
 ## Installation
 

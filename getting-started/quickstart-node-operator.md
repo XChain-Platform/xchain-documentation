@@ -3,7 +3,7 @@
 
 # Node Operator Quickstart
 
-This guide walks you through installing and running the full XChain platform stack on your own machine.
+This guide walks you through installing and running the full XChain platform stack on your own machine. The whole thing is a handful of commands: clone the repo, `npm install`, `npm link`, then `xchain-node install` and `xchain-node start`. From then on, keeping the node current is a single `xchain-node update all`.
 
 ## Prerequisites
 
@@ -176,9 +176,11 @@ xchain-node monitor all bitcoin mainnet
 # Open a shell inside a container
 xchain-node shell xchain-indexer bitcoin mainnet
 
-# Update a service to latest
-xchain-node update xchain-indexer bitcoin mainnet
+# Update everything you have installed (all services, all chains, all networks)
+xchain-node update all
 ```
+
+Every command takes the same `service` / `chain` / `network` arguments in any order, and `all` works at every position, so you can manage the whole node with one command or drill down to a single service on a single network. Run `xchain-node --help` (or `xchain-node <command> --help`) for the full option list, or see the [xchain-node CLI Manual](../components/node/operations.md).
 
 ---
 
@@ -201,6 +203,8 @@ xchain-node install master all bitcoin mainnet --no-bootstrap
 
 ## Next Steps
 
+- [xchain-node CLI Manual](../components/node/operations.md): every command, option, and parameter
+- [Upgrading](../operations/upgrading.md): keeping your node current with `xchain-node update all`
 - [Deployment Guide](../operations/deployment.md): production configuration, security, reverse proxies
 - [Docker Reference](../operations/docker.md): container naming, networking, volume management
 - [Regtest Development](../developer-guide/regtest-development.md): full local development setup

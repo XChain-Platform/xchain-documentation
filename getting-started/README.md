@@ -18,7 +18,7 @@ This section is the entry point for everyone new to XChain, whether you want to 
 
 **"I want to build something with XChain"** → [Developer Quickstart](./quickstart-developer.md)
 
-**"I want to run an XChain node"** → [Node Operator Quickstart](./quickstart-node-operator.md)
+**"I want to run an XChain node"** → [Node Operator Quickstart](./quickstart-node-operator.md), then keep the [xchain-node CLI Manual](../components/node/operations.md) handy
 
 **"I want to understand the protocol deeply"** → [Core Concepts](../concepts/) → [Architecture](../architecture/) → [Protocol Spec](../protocol/)
 

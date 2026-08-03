@@ -1,7 +1,11 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
-# XChain Node: Operations
+# XChain Node: CLI Manual
+
+The complete reference for the `xchain-node` command line: every command, its arguments, and its options. This is the same information as `xchain-node --help` and `xchain-node <command> --help`, expanded with context.
+
+If you are setting up a node for the first time, start with the [Node Operator Quickstart](../../getting-started/quickstart-node-operator.md). For keeping a node current, see [Upgrading](../../operations/upgrading.md): the short version is `xchain-node update all`.
 
 ## Prerequisites
 
@@ -32,7 +36,8 @@ Arguments are order-independent: `xchain-node start bitcoin mainnet xchain-encod
 | `start` | `start <service> [chain] [network]` | Start stopped container(s) by looking up container IDs from the module state table |
 | `stop` | `stop <service> [chain] [network]` | Stop running container(s) |
 | `restart` | `restart <service> [chain] [network]` | Restart container(s) |
-| `reset` | `reset <service> <chain> <network>` | Stop containers, clear data (volumes or databases), restart |
+| `autoheal` | `autoheal [--dry-run]` | Restart containers stuck in the Docker "unhealthy" state (opt-in per service); one-shot, safe to run from cron or a systemd timer |
+| `reset` | `reset <service> <chain> <network> [--yes]` | Stop containers, clear data (volumes or databases), restart; `--yes` skips the confirmation prompt for scripted resets |
 | `ps` | `ps` | Display status table of all installed services with versions and ports |
 | `sync` | `sync` | Scan Docker for xchain-node containers and register any missing in the module state table |
 
@@ -56,8 +61,8 @@ Arguments are order-independent: `xchain-node start bitcoin mainnet xchain-encod
 
 | Command | Syntax | Description |
 |---|---|---|
-| `bootstrap` | `bootstrap <create\|restore> <service> <chain> <network>` | Create or restore gzipped bootstrap snapshots with SHA-256 verification |
-| `e2etest` | `e2etest <chain> [testName]` | Run the xchain-e2e-test suite on a regtest network; supports `--grep` filtering |
+| `bootstrap` | `bootstrap <create\|restore> <service> <chain> <network> [--latest] [--file <name>]` | Create or restore gzipped bootstrap snapshots with SHA-256 verification; `--latest` or `--file` make restore non-interactive |
+| `e2etest` | `e2etest <chain> [testName] [--grep <pattern>] [--script <npmScript>]` | Run the xchain-e2e-test suite on a regtest network; filter with `--grep`, or run an alternate suite with `--script` |
 | `rollback` | `rollback <block_index> <service> <chain> <network>` | Rollback to a specific block (placeholder. Not yet implemented) |
 | `validator init` | `validator init [options]` | Generate a validator signing key + config so the hub runs in validator mode |
 | `validator status` | `validator status` | Show this node's validator configuration (pubkey, peers, capabilities) |
@@ -70,6 +75,7 @@ Arguments are order-independent: `xchain-node start bitcoin mainnet xchain-encod
 | `-i, --interactive` | Enable interactive TUI mode |
 | `--no-bootstrap` | Skip bootstrap file downloads during installation |
 | `--no-explorer` | Skip explorer installation |
+| `--no-telemetry` | Disable anonymous usage telemetry (see [Telemetry](#telemetry)) |
 | `-V, --version` | Display xchain-node version |
 
 ## Parameters
