@@ -151,9 +151,17 @@ The `.github/workflows/release.yml` tag workflow builds the extension zip and le
 ```bash
 ls release-artifacts/vX.Y.Z/xchain-wallet-extension-vX.Y.Z.zip
 ls release-artifacts/vX.Y.Z/RELEASE_HASHES.txt
+head -4 release-artifacts/vX.Y.Z/RELEASE_HASHES.txt
 ```
 
-If either is missing, stop; go back to the release procedure, not around it. Submitting a zip you built or found without a signed manifest behind it defeats the entire provenance chain this phase exists to enforce.
+If either file is missing, stop; go back to the release procedure, not around it. Submitting a zip you built or found without a signed manifest behind it defeats the entire provenance chain this phase exists to enforce.
+
+**Read the header, do not just confirm the filename exists.** The two `ls` lines above pass on a manifest that cannot possibly satisfy the next step, and that is not hypothetical: a locally recomputed manifest is named `RELEASE_HASHES.txt` exactly like a release one. The header tells them apart:
+
+⬜ The header says `# tag: vX.Y.Z`, naming the tag you are submitting. **If it says `# tag: (none)`, this is a local recompute, not a release manifest, and it cannot be uploaded.** A recompute proves a zip matches itself; it says nothing about which release the zip is. Verifying with `--tag` will refuse it (`manifest describes '(none)' but you expected ...`), and verifying without `--tag` will also refuse it (`cannot tell which release this manifest is for`). Both refusals are correct. Neither is a tool fault, and neither means you may proceed.  
+⬜ The header says `# dev-mock-gate:` something other than `not-run`.  
+
+If you have a recompute rather than a release manifest, the artifact you need has not been produced yet. That is a release-engineering blocker upstream of this ceremony, not something to work around here: the store assigns a permanent extension ID to whatever you upload first.
 
 #### 4b. Check the sha256 before upload
 
