@@ -52,6 +52,11 @@ The wallet implements every XChain feature exposed by the platform: all 31 user-
 | [Reproducible Builds](reproducible-builds.md) | Level-2 reproducibility: scope, scaffolding audit, run-twice verification, drift sources |
 | [Testing](testing.md) | Smoke gates, Playwright E2E, a11y audit, repro-build audit, manifest audit, bridge-e2e, hw-sign-e2e |
 | [Configuration](configuration.md) | Per-chain endpoints, custom RPC, signer registration, settings store, developer mode |
+| [Threat Model](threat-model.md) | Attacker-scenario walkthroughs, known open risks, verification cadence; complements Security |
+| [Glossary](glossary.md) | Wallet and protocol terminology used across these pages |
+| [Dependencies](dependencies.md) | Why each runtime dependency exists and what it is trusted with |
+| [Release Engineering](release/README.md) | Lane index: desktop installers, Chrome Web Store, Google Play, App Store, verify-release, QA checklist, CI setup |
+| [Privacy](privacy/privacy-policy.md) | Privacy policy plus store collateral: data collection, Play data safety, Apple nutrition labels, Chrome disclosure, trader identity, export compliance |
 
 ## Installation
 
@@ -208,7 +213,7 @@ Per-package scripts (run with `pnpm --filter <pkg> <script>`):
 | `playwright` | E2E test runner (web shell) |
 | `@axe-core/playwright` | Automated WCAG 2.1 A/AA scan inside Playwright |
 
-See `docs/DEPENDENCIES.md` in the wallet repo for the per-package "why we depend on this" review.
+See [Dependencies](dependencies.md) for the per-package "why we depend on this" review.
 
 ---
 

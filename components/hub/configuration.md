@@ -1,9 +1,87 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
+<!-- ported 2026-08-02 from xchain-hub/CONFIGURATION.md (worktree) -->
 
 # XChain Platform Hub: Configuration
 
 ## Environment Variables
+
+### Silent-failure variables (read this first)
+
+Two variables degrade security when left empty. The hub starts and appears
+healthy either way, so the misconfiguration is easy to miss.
+
+**`HUB_API_KEY`: empty disables API authentication.** When `HUB_API_KEY` is
+set, authentication fails closed: mutating methods (`updateconfig`,
+`registervalidator`, `propose`, `vote`, `requestattestation`, `reportreorg`,
+`initiateswap`, the oracle/price push methods) and the hub-DB WebSocket
+upgrade return 401 unless the caller presents the configured key.
+
+When it is unset or empty, those paths are open, so the hub refuses to boot
+unless keyless operation is declared with `HUB_ALLOW_UNAUTHENTICATED=true`.
+Keyless remains supported (single-host regtest, a hub reachable only on a
+private network or behind an authenticating proxy), but it has to be a stated
+choice rather than the result of a forgotten variable. `xchain-node` sets the
+declaration automatically when it deploys a hub with no key in the host
+environment, except on mainnet, where the refusal stands.
+
+Always set a strong, random `HUB_API_KEY` in production. Generate one with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Clients then send it on each request (the indexer reads the same value as
+`HUB_API_KEY`, the encoder-facing services as their own `*_ENCODER_API_KEY`,
+and so on).
+
+**`SIGNING_PRIVKEY_SECRET`: empty means unsigned P2P messages and no
+federation identity.** `SIGNING_PRIVKEY_SECRET` is the Ed25519 private key (a
+32-byte seed, encoded as 64 hex characters) that authenticates this hub's P2P
+messages to the rest of the validator federation. When the P2P cluster is
+enabled (see `P2P_VALIDATOR_ADDR`) but this key is empty, the hub loads no
+validator identity: outbound messages go out unsigned, and this hub has no
+verifiable identity among its peers. Nothing fails loudly; the hub simply
+never participates as an authenticated validator, and depending on peers'
+`REQUIRE_SIGNATURES` its messages may be silently dropped.
+
+Generate a key pair (the private seed is what you set; keep it secret):
+
+```bash
+# Private seed (set this as SIGNING_PRIVKEY_SECRET):
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+The corresponding public key is derived automatically at startup from the
+seed (the hub logs the first 16 hex characters of the pubkey when the
+identity loads). Each validator's pubkey must be registered in the cluster so
+peers can verify its signatures.
+
+The key format is validated: it must be exactly 64 hex characters. An invalid
+non-empty value throws at startup; only the empty case is silent.
+
+### Secret variable naming
+
+Automatic secret redaction, in terminals, CI logs and assistant transcripts,
+keys on the variable name and matches `_SECRET`, `_KEY`, or `_TOKEN`. A name
+like `HUB_DB_PASS` matches nothing, so the value prints in full every time
+someone reads the env file.
+
+Three hub secrets accept a `_SECRET` name, with the historical name kept as a
+deprecated fallback so no running deployment breaks:
+
+| Preferred | Deprecated |
+|---|---|
+| `HUB_DB_SECRET` | `HUB_DB_PASS` |
+| `XCHAIN_PRICE_INDEXER_DB_SECRET` | `XCHAIN_PRICE_INDEXER_DB_PASS` |
+| `SIGNING_PRIVKEY_SECRET` | `SIGNING_PRIVKEY_HEX` |
+
+The hub logs a warning at startup for each secret still supplied under the
+deprecated name. Setting both names to different values is a startup error,
+not a precedence rule: that shape is a half-finished rename, and picking a
+winner is how a hub keeps authenticating with the credential it was supposed
+to rotate away from. Renaming does not un-leak anything by itself: a
+credential that has already been read out loud still has to be rotated.
 
 ### Core (Required)
 
@@ -17,10 +95,46 @@ These variables are required regardless of operating mode.
 | `HUB_DB_PORT` | Yes | None | MariaDB port |
 | `HUB_DB_NAME` | Yes | None | MariaDB database name (e.g., `XChain_Hub`) |
 | `HUB_DB_USER` | Yes | None | MariaDB username |
-| `HUB_DB_PASS` | Yes | None | MariaDB password |
+| `HUB_DB_SECRET` | Yes | None | MariaDB password. Deprecated name `HUB_DB_PASS` is still read; see Secret variable naming above. |
 | `HUB_DB_KEEPALIVE_INTERVAL` | No | `30000` | Interval (ms) between no-op keepalive queries sent to the MariaDB pool to prevent idle-connection drops |
 | `HUB_TRUST_PROXY` | No | `loopback, uniquelocal` | Express `trust proxy` setting. A containerized hub behind a local reverse proxy works with the default. Set to `false` to disable, a hop count (e.g. `1`), or a CIDR list for other topologies. See [Express docs](https://expressjs.com/en/guide/behind-proxies.html). |
 | `HUB_ALLOW_UNAUTHENTICATED` | No | `false` | A hub in validator mode (`P2P_VALIDATOR_ADDR` set) with no `HUB_API_KEY` refuses to boot, because its write methods would let anyone drive consensus-affecting writes. Set to `true` to explicitly acknowledge running keyless (regtest/dev only). See OPERATIONS.md → Authentication. |
+
+### Telemetry Collector
+
+The hub is the single collector for anonymous node-operator telemetry (the
+`telemetry_pings` table; see Database Schema below). The raw client IP is
+never stored: at ingest the hub derives a coarse country/region and a keyed
+one-way hash, then discards the IP.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `TELEMETRY_ENABLED` | No | `true` | Accept telemetry pings. Set `false` on a private/local hub. |
+| `TELEMETRY_RETENTION_DAYS` | No | `90` | Prune telemetry rows older than N days. |
+| `TELEMETRY_IP_SALT` | No | None | Secret salt for the one-way IP hash. Without it, `ip_hash` is left null (an unsalted hash would be trivially reversible). |
+| `TELEMETRY_ADMIN_KEY` | No | None | `x-api-key` gate for the telemetry admin/query surface (empty leaves it fail-closed). Must match the value the dashboard service is configured with. |
+
+### Metrics and Log Shipping
+
+The shared observability module adds a Prometheus scrape endpoint and a
+structured log shim. Both are off unless set here: with no variables the hub
+registers no extra route, starts no timer, and opens no socket.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `METRICS_ENABLED` | No | off | Serve the Prometheus scrape endpoint. |
+| `METRICS_PATH` | No | `/metrics` | Scrape path. |
+| `METRICS_TOKEN` | No | None | Require `Authorization: Bearer <token>` on the scrape. Set this (or keep the path behind the fronting proxy) on any internet-reachable box. |
+| `METRICS_HTTP` | No | `true` when metrics are on | Per-request counters and a latency histogram. Set `0` for endpoint-only. |
+| `LOG_FORMAT` | No | `text` | `json` emits one NDJSON record per log line. |
+| `LOG_LEVEL` | No | `info` | `debug`, `info`, `warn`, or `error`. |
+| `LOG_SHIP_ENABLED` | No | off | POST batched NDJSON to a collector. Needs `LOG_SHIP_URL` too; either alone stays off. |
+| `LOG_SHIP_URL` | No | None | Collector endpoint (http/https). |
+| `LOG_SHIP_TOKEN` | No | None | Bearer token for the collector. Never logged or echoed. |
+| `LOG_SHIP_BATCH_SIZE` | No | `100` | Lines per POST. |
+| `LOG_SHIP_INTERVAL_MS` | No | `5000` | Flush interval. |
+| `LOG_SHIP_MAX_BUFFER` | No | `5000` | Bounded buffer; the oldest lines are dropped and counted, never grown without limit. |
+| `LOG_SHIP_TIMEOUT_MS` | No | `5000` | Per-batch POST timeout. |
 
 ### P2P Gossip Layer
 
@@ -32,7 +146,7 @@ Validator mode is activated when `P2P_VALIDATOR_ADDR` is set. All P2P-dependent 
 | `P2P_PORT` | No | `10001` | WebSocket P2P listen port |
 | `P2P_HOST` | No | `0.0.0.0` | P2P bind address |
 | `SEED_NODES` | No | None | Comma-separated list of peer addresses (e.g., `peer1.example.com:10001,peer2.example.com:10001`) |
-| `SIGNING_PRIVKEY_HEX` | No | None | 64-hex-char Ed25519 private key seed for message signing |
+| `SIGNING_PRIVKEY_SECRET` | No | None | 64-hex-char Ed25519 private key seed for message signing. Deprecated name `SIGNING_PRIVKEY_HEX` is still read; see Secret variable naming above and Silent-failure variables for what an empty value does. |
 | `HUB_NETWORK` | Yes (validator mode) | None | Deployment network: `mainnet`, `testnet`, or `regtest`. Required when `P2P_VALIDATOR_ADDR` is set; `process.exit(1)` if absent or invalid. Must match the `INDEXER_NETWORK` of the chains this hub federates. Controls consensus activation gating (e.g. `STAKE_WEIGHTED_QUORUM` activation height is per-network). |
 | `REQUIRE_SIGNATURES` | No | `true` | When `true`, reject unsigned P2P messages. Defaults to `true` in validator mode; pass `false` to bootstrap a new federation before all nodes have keys. |
 | `P2P_HEARTBEAT_INTERVAL` | No | `15000` | Milliseconds between heartbeat broadcasts |
@@ -220,7 +334,7 @@ Controls `AttestationPublisher`, which writes the validator network's answers to
 
 ### Attestation Relay
 
-Controls `AttestationRelay`, the driver that carries attestation requests to the validator network and the response leg back .
+Controls `AttestationRelay`, the driver that carries attestation requests to the validator network and the response leg back. Attestation staking lives on Bitcoin, so an ATTEST request made on an origin chain (LTC, DOGE) is relayed to BTC as a v3 request, and the finalized answer is relayed back to the origin chain as a v4 response. The relay therefore needs a broadcast rail on every origin chain it serves, not just on the home chain.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
@@ -232,6 +346,37 @@ Controls `AttestationRelay`, the driver that carries attestation requests to the
 | `BTC_ENCODER_URL` | No | _(from config table)_ | Encoder URL used to build BTC publish transactions. |
 | `BTC_ENCODER_API_KEY` | No | _(from config table)_ | API key presented to that encoder when it runs keyed. Treat as a credential. |
 | `ATTESTATION_HTTP_GET_ALLOW_PRIVATE` | No | _(unset, fails closed)_ | Set to `1` to let the `http_get` attestation provider reach private and loopback addresses. **Off by default and security-relevant:** the provider normally resolves the hostname once and pins the request to that public address, which is what stops a contract-supplied URL being used for SSRF against the validator's own network. Enable only on an isolated test venue. |
+
+#### Per-origin-chain broadcast rail
+
+The variables below are read dynamically (`process.env[coin + '_ENCODER_URL']` and friends) for each origin chain, so a static scan of the source will not list them; `<COIN>` is any allowed coin other than BTC, so today `LTC` and `DOGE`. Each also resolves from the hub's `p2pConfig`; the env var wins.
+
+Leaving an origin chain's rail unconfigured does not fail loudly. The v4 response is still consensus-finalized and then held forever, behind one startup warning (`no <COIN> broadcast rail`). Responses are held rather than dropped, so the recovery is to configure the rail and restart, but nothing re-warns in the meantime. Check `attest_relay` on `/health` to see the hold: a rising `awaiting_broadcast` with a flat `responses_relayed` is this misconfiguration.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `<COIN>_ENCODER_URL` | If relaying to `<COIN>` | None | xchain-encoder endpoint used to build the v4 response transaction on origin chain `<COIN>` (e.g. `LTC_ENCODER_URL`). Empty means no rail; see the hold warning above. |
+| `<COIN>_ENCODER_API_KEY` | No | None | API key for that origin chain's encoder. |
+| `<COIN>_ADDRESS` | If relaying to `<COIN>` | None | Wallet address on `<COIN>` that pays for and publishes v4 responses (e.g. `LTC_ADDRESS`). |
+| `<COIN>_PUBKEY_HEX` | If relaying to `<COIN>` | None | Public key (hex) for that address. |
+| `<COIN>_INDEXER_API_URL` | If relaying to `<COIN>` | None | Indexer endpoint the relay reads `<COIN>`-origin ATTEST requests from. Also accepted as `<COIN>_INDEXER_URL`, or pushed via `xchain-node updateconfig`. A chain with no indexer URL is skipped every tick, with a startup warning. |
+| `<COIN>_INDEXER_API_KEY` | No | None | API key for that indexer. |
+
+The home (BTC) rail reuses the BTC attestation publisher variables above (`BTC_ENCODER_URL`, `BTC_ADDRESS`, `BTC_PUBKEY_HEX`, `BTC_INDEXER_API_URL`). Origin rails are deliberately kept separate from it: an operator broadcast hook configured for one chain would put an LTC payload on BTC, where it is rejected outright after burning a real BTC fee. Spend limits come from the shared spend guard under the `ATTEST` prefix (see Effector Spend Policy below), and confirmation depths from `XCHAIN_CONFIRMATIONS_<COIN>`.
+
+### Effector Spend Policy
+
+Every hub effector that spends real coin on-chain runs behind a shared spend guard: a balance floor, a rolling per-window spend ceiling (hard-clamped at a $2000 admission ceiling), and a per-capability runtime pause. The knobs below take a per-effector `<PREFIX>`; the four prefixes are `ORACLE_PUBLISH`, `ATTEST`, `ANCHOR`, and `FULLNODE`. Each variable also resolves from `p2pConfig`; the env var wins. The spend ceiling is default-enabled: unset config yields the $2000 clamp, never "off".
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `<PREFIX>_MAX_SPEND_USD_CENTS_PER_WINDOW` | No | `200000` ($2000) | Rolling per-window spend budget in USD cents. Clamped to `<= 200000`; an operator can only lower it. |
+| `<PREFIX>_EST_SPEND_USD_CENTS` | No | `100` ($1) | Per-broadcast cost estimate charged against the window budget when the caller does not supply a real fee. |
+| `<PREFIX>_MAX_PUBLISHES_PER_WINDOW` | No | `0` (off) | Optional per-window broadcast count cap, defense in depth alongside the USD budget. `<=0` disables the count cap. |
+| `<PREFIX>_SPEND_WINDOW_MS` | No | `3600000` (1h) | Rolling window length (ms) for both the count and USD ceilings. |
+| `<PREFIX>_MIN_BALANCE` | No | `0` | Wallet floor (native coin). A balance below the floor, or an unreadable (null) balance, skips the spend fail-closed. |
+
+Runtime pause is operator-driven via JSON-RPC (auth-gated): `pauseeffectorspend` / `resumeeffectorspend` take `{ label }` (the effector's guard label, e.g. `OraclePublisher`), and `geteffectorspendstatus` lists every effector's live state. A pause halts the effector's primary/leader spend path immediately, with no restart.
 
 ### State Checkpoints
 
@@ -262,7 +407,12 @@ Controls `FullNodeChallengeRound`, the periodic possession challenge proving a v
 | `FULLNODE_POLL_MS` | No | `30000` | Poll cadence for challenge progress. |
 | `FULLNODE_COLLECT_MS` | No | `20000` | Window for collecting challenge answers. |
 | `FULLNODE_COLLECT_DEPTH_BLOCKS` | No | `3` | Blocks past the collection point before the round closes. |
-| `XCHAIN_HUB_SKIP_FULLNODE_ASSERT` | No | _(unset, assertion active)_ | Set to `1` to skip the canonical-FULLNODE assertion at startup and warn instead . Intended as a loud one-off bypass for a venue running its own challenge cadence and verifier set: divergent `NODEPROOF` knobs fork the challenge schedule, so this is not a setting to leave on. |
+| `FULLNODE_PROOF_WINDOW_BLOCKS` | No | per-coin | Blocks a challenged node has to submit a proof. |
+| `FULLNODE_REWARD_PASS_WINDOW_BLOCKS` | No | per-coin | Blocks in the reward-pass window. |
+| `FULLNODE_MIN_PASS_RATE_BPS` | No | per-coin | Minimum pass rate, in basis points, for a node to be treated as passing. |
+| `FULLNODE_REWARD_SHARE` | No | per-coin | Reward share for passing full nodes. |
+| `FULLNODE_GENESIS_VERIFIERS` | No | per-coin | Comma-separated genesis verifier pubkeys (lowercased). |
+| `XCHAIN_HUB_SKIP_FULLNODE_ASSERT` | No | _(unset, assertion active)_ | Set to `1` to skip the canonical-FULLNODE assertion at startup and warn instead. Intended as a loud one-off bypass for a venue running its own challenge cadence and verifier set: divergent `NODEPROOF` knobs fork the challenge schedule, so this is not a setting to leave on. |
 
 ### Retraction Consensus
 
@@ -282,7 +432,7 @@ The XCHAIN/USD price is derived from platform-realized fills rather than an exte
 | `XCHAIN_PRICE_INDEXER_DB_PORT` | No | None | Port of that database |
 | `XCHAIN_PRICE_INDEXER_DB_NAME` | No | None | Database name |
 | `XCHAIN_PRICE_INDEXER_DB_USER` | No | None | Database user |
-| `XCHAIN_PRICE_INDEXER_DB_PASS` | No | None | Database password. Treat as a credential: supply it from the deployment environment, never a checked-in file. |
+| `XCHAIN_PRICE_INDEXER_DB_SECRET` | No | None | Database password. Deprecated name `XCHAIN_PRICE_INDEXER_DB_PASS` is still read; see Secret variable naming above. Treat as a credential: supply it from the deployment environment, never a checked-in file. |
 | `XCHAIN_PRICE_INDEXER_DB_COIN` | No | `BTC` | Chain whose fills the price is derived from |
 | `XCHAIN_PRICE_WINDOW_BLOCKS` | No | _(built-in)_ | Rolling window, in blocks, over which fills are aggregated |
 | `XCHAIN_PRICE_MIN_BTC_VOLUME` | No | _(built-in)_ | Minimum BTC-notional volume in the window before a derived price is considered valid |
@@ -317,6 +467,8 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | `XCALL_RELAY_MARGIN_BLOCKS` | No | `4` | Margin, in blocks of the gating chain, stamped onto every relayed row's `effective_time`. Sized by that chain's nominal block interval. |
 | `XDEX_POLL_MS` | No | `15000` | Poll cadence of the cross-chain DEX settlement engine |
 | `XDEX_MIN_CONFIRMATIONS` | No | _(per-coin config)_ | Flat confirmation floor for cross-chain DEX settlement, overriding the per-coin values |
+| `XDEX_MIN_CONFIRMATIONS_<COIN>` | No | per-coin (BTC `6`, LTC `12`, DOGE `60`) | Per-coin confirmation depth override (e.g. `XDEX_MIN_CONFIRMATIONS_DOGE`). Takes precedence over the flat `XDEX_MIN_CONFIRMATIONS` variable. Consensus-affecting. |
+| `XCHAIN_CONFIRMATIONS_<COIN>` | No | per-coin | Cross-chain attestation/swap confirmation depth for `<COIN>` (e.g. `XCHAIN_CONFIRMATIONS_BTC`), read by the cross-chain and cross-chain-call engines. Also resolves from `p2pConfig` and falls back to per-coin defaults; the env var is the highest-precedence override. Consensus-affecting. |
 | `XCHAIN_ATTEST_FINALIZED_MAX` | No | `10000` | Cap on retained finalized cross-chain attestation records held in memory |
 
 **Regtest-only seams.** Both engines honour these only when the hub's network is `regtest`, and read them as `NaN`/false everywhere else, so a stray environment variable or config row can never reach the signed snapshot anchor or seed a validator on mainnet or testnet. They deliberately share names between the DEX and XCALL engines so a no-BTC regtest stack is configured once.
@@ -325,6 +477,22 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 |---|---|---|---|
 | `XDEX_SNAPSHOT_BLOCK` | No | None | Pin the snapshot anchor block on a regtest stack that has no BTC chain |
 | `XDEX_SEED_LOCAL_VALIDATOR` | No | None | Set to `1` to seed the local hub as a validator on a single-node regtest stack |
+
+### Genesis and Regtest Binding
+
+Regtest-only genesis overrides, ignored on mainnet and testnet, which always use the frozen bundled values. Consensus-relevant: they bind the local chain's genesis anchor.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `XCHAIN_GENESIS_BLOCK` | Regtest only | per-coin | Genesis block height for a regtest chain. |
+| `XCHAIN_GENESIS_LEDGER_HASH` | Regtest only | per-coin | Genesis ledger-hash pin for a regtest chain. |
+| `XCHAIN_GENESIS_DUMP_HASH` | Regtest only | per-coin | Genesis dump-hash pin for a regtest chain. |
+
+### Fee Destination Override
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` | Regtest only | bundled | Overrides the native-fee destination address for `<COIN>` on `<NETWORK>`. Honored on regtest only: on mainnet and testnet it is ignored (and logged), because the fee destination is consensus-pinned and an env override would escape the freeze and fork the block-hashed ledger. |
 
 ### Reorg
 
@@ -454,7 +622,7 @@ When the circuit opens, all database queries fail fast until the cooldown period
 
 Ed25519 keys are used for P2P message signing and verification:
 
-- **Private key**: 32-byte seed from `SIGNING_PRIVKEY_HEX` (64 hex chars), wrapped in PKCS8 DER for Node.js crypto.
+- **Private key**: 32-byte seed from `SIGNING_PRIVKEY_SECRET` (64 hex chars), wrapped in PKCS8 DER for Node.js crypto.
 - **Public key**: extracted as raw 32-byte SPKI, stored as 64 hex chars.
 - **Signing**: canonical payload is JSON with sorted fields (`id`, `type`, `sender`, `timestamp`, `data`).
 - **Generation**: `ValidatorIdentity.generate()` produces a random keypair.
@@ -462,7 +630,7 @@ Ed25519 keys are used for P2P message signing and verification:
 ```javascript
 const { ValidatorIdentity } = require('./src/ValidatorIdentity');
 const { privkey, pubkey } = ValidatorIdentity.generate();
-// privkey: 64-char hex string for SIGNING_PRIVKEY_HEX
+// privkey: 64-char hex string for SIGNING_PRIVKEY_SECRET
 // pubkey:  64-char hex string for registervalidator
 ```
 

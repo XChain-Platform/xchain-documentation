@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
+<!-- ported 2026-08-02 from xchain-explorer/Docker notes.md (worktree) -->
 
 # XChain Platform Explorer: Operations
 
@@ -61,6 +62,24 @@ docker run -d \
     -e EXPLORER_API_PORT_HTTPS=8081 \
     xchain-explorer
 ```
+
+### Docker Compose
+
+The repository also ships a `docker-compose.yml` for running the explorer standalone (outside of an xchain-node-managed stack), publishing the same HTTP and HTTPS ports and attaching to a network named `xchain_network`:
+
+```bash
+# Create the network once, if it doesn't already exist
+docker network create xchain_network
+
+# Build and start
+docker compose up
+
+# Or, to rebuild the image and prune old containers first
+docker compose build
+docker compose up
+```
+
+The shipped `docker-compose.yml` does not declare an `environment:` block, so add one (or an `env_file:` entry) with the same variables shown in the direct `docker run` example above before relying on this method; otherwise the container falls back to `src/config.json` if present.
 
 ### Stopping
 

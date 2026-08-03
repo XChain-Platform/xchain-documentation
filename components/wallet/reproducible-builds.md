@@ -1,134 +1,220 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2026 Dankest, LLC -->
+<!-- ported 2026-08-02 from xchain-wallet/docs/Reproducible_Builds.md @ 34639117 (worktree dirty) -->
+<!-- ported 2026-08-02 from xchain-wallet/packages/desktop/REPRODUCIBLE_BUILDS.md @ 34639117 (worktree dirty) -->
+<!-- ported 2026-08-02 from xchain-wallet/packages/extension/REPRODUCIBLE_BUILDS.md @ 34639117 (worktree dirty) -->
+<!-- ported 2026-08-02 from xchain-wallet/packages/web/REPRODUCIBLE_BUILDS.md @ 34639117 (worktree dirty) -->
 
 # Reproducible Builds
 
-XChain Wallet aims for **Level-2 reproducibility of the pre-signing artifact** per §51 of the wallet specification. Independent verifiers can rebuild the desktop bundle from source and produce the exact same unsigned `.app` / `.exe` / `.AppImage` content the maintainer signs for an official release. Combined with the published `RELEASE_HASHES.txt` for each tag, that closes a real verification loop without the operational overhead of multi-party signing (Level 3).
+XChain Wallet aims for **Level-2 reproducibility of the pre-signing artifact**. Any independent verifier with a clean checkout, the pinned toolchain, and the published environment can rebuild from a tagged commit and produce the exact same unsigned bundle that the maintainer signs (or, for the web shell, deploys) for an official release. Combined with published SHA-256 hashes per release, that closes a real verification loop without the operational overhead of multi-party signing (Level 3).
 
-## What's reproducible
+## What this protects against
 
-- **The pre-signing Linux app bundle** produced by `dist:unpacked` (electron-builder's `--dir` mode). This is the `linux-unpacked/` directory inside `packages/desktop/dist/`, containing the asar archive + the Electron binary + supporting resources.
-- **The SHA-256 of every file in that directory**, captured in `RELEASE_HASHES.txt` (emitted by `scripts/build.sh` at the end of each run).
+- A maintainer's machine being compromised to inject a backdoor into the artifact between source and signing.
+- Silent tampering with published artifacts on the download host.
+- "Mystery binary" releases where users have no way to verify the bytes they install correspond to the source they can read.
 
-## What's not reproducible
+## What this does not protect against
 
-- **Signed artifacts (`.dmg`, signed `.app`, signed `.exe`, notarized builds).** Code signatures embed a certificate-specific signature plus, for macOS, Apple's notarization ticket. These outputs are inherently maintainer-specific. The pre-signing artifact hashes let verifiers prove the *content* going into signing matches what was built from source; the signature is a separate, by-design maintainer-only operation.
-- **macOS and Windows builds.** The reproducible-build container targets Linux only. Cross-compiling macOS (requires `lipo` + Apple's signing toolchain) and Windows (requires a Windows runner for Authenticode signing) bit-for-bit is a significantly larger undertaking. macOS and Windows releases publish pre-signing SHAs produced on a Mac runner / Windows runner the maintainer operates; a later phase may add VM-based reproduction.
-- **The web SPA and the extension** ship from a different pipeline. Reproducibility there is the next item on the roadmap; the desktop pre-signing artifact is the first beachhead.
+Out of scope for Level 2:
 
-## Two-halves of the property
+- The Electron / Chromium upstream supply chain. The wallet uses prebuilt Electron binaries; a self-built Chromium fork is not realistic at this scale.
+- Operating-system-vendor signing infrastructure (Apple notarization, Microsoft Authenticode). Signed outputs are inherently maintainer-specific: Level 2 verifies the content going into signing, not the signed byte stream.
+- The maintainer's signing keys themselves. Key rotation and revocation are a separate operational concern.
+
+## Two halves of the property
 
 Reproducibility breaks down into two enforceable halves:
 
-1. **Scaffolding audit**: every ingredient required for reproducibility is present in the repo. CI fails if a digest pin is dropped, the lockfile is un-frozen, or a non-deterministic step sneaks into the build config.
-2. **Run-twice verification**; the actual byte-for-byte property: rebuild from source twice on a clean dev machine and verify the two `RELEASE_HASHES.txt` match.
+1. **Scaffolding audit.** Every ingredient required for reproducibility is present in the repo: a digest-pinned base image, a frozen lockfile, a pinned toolchain version, pinned locale and timezone, and no non-deterministic step in the build config. Automated checks fail a change that regresses any of these.
+2. **Run-twice verification.** The actual byte-for-byte property: rebuild from source twice on a clean machine and verify the resulting hash manifests match.
 
-The audit catches regressions automatically on every commit. The verification catches subtler drift (build-tool version bumps that quietly lose determinism) but requires a clean Docker host. Splitting the work makes both halves enforceable.
+The audit catches regressions automatically on every commit. The run-twice verification catches subtler drift, such as a build-tool version bump that quietly loses determinism, but it requires a clean Docker host to run. Splitting the work this way makes both halves independently checkable.
 
-## Scaffolding audit
+## Non-determinism sources addressed across every shell
 
-`packages/core/scripts/repro-build-audit.js` runs 18 static rules:
+- **`pnpm install --frozen-lockfile`** rejects builds against an out-of-sync lockfile. Any dependency-tree change requires a lockfile update and commit before a release tag is cut.
+- **Pinned Node version**, declared in the toolchain configuration and honored by every reproduction container. Tooling outside the container (a verifier's own local Node or pnpm) does not affect the build.
+- **`SOURCE_DATE_EPOCH`**, derived from the release commit's author date, is injected by each shell's reproduce script and honored by Vite, electron-builder's asar packing, and the archive tools used for Linux packaging. Web bundles sidestep embedded timestamps entirely.
+- **`LC_ALL=C.UTF-8` and `TZ=UTC`**, pinned in both the container image and the in-container environment, so locale-sensitive tools (`sort`, `date`) emit deterministic output.
+- **Vite**, with source maps off in production, deterministic chunk and asset filenames, and no plugin that captures wall-clock time or generates random IDs.
+- **A digest-pinned base image**, so the toolchain a verifier's container installs is byte-identical to the one the release lane used, not just "the same major version" resolved on different days.
 
-### Dockerfile
+Each shell's section below covers what is specific to it on top of this shared floor.
 
-- Digest-pinned base image (`FROM node@sha256:...`)
-- `NODE_VERSION` pinned in the image
-- Locale and timezone pinned together (`LC_ALL=C.UTF-8`, `LANG=C.UTF-8`, `TZ=UTC`). The audit rule `dockerfile-pins-locale` checks all three in a single assertion; all three must be present.
+## Desktop (`@xchain-wallet/desktop`)
 
-### `scripts/build.sh`
+### What's reproducible
 
-- Asserts `SOURCE_DATE_EPOCH` is set
-- Uses `pnpm install --frozen-lockfile`
-- Emits a `RELEASE_HASHES.txt` SHA-256 manifest at the end of the build
+- **The packaged Linux artifacts, exactly as shipped:** `.AppImage` and `.deb`, for both shipped architectures (x64 and arm64), captured file-by-file in a SHA-256 release manifest emitted at the end of each build. These carry no code signature, which is what makes them verifiable as the bytes a user downloads rather than as a proxy for them, and it is why Linux is the platform where this promise is whole.
+- **The pre-signing app bundles** that packaging produces on the way there (`linux-unpacked` for x64, a separate directory for arm64), hashed file by file into a diagnostic manifest. That file is not itself a claim, it is how a verifier locates which file differs once the packaged-artifact hashes disagree.
 
-### `scripts/reproduce.sh`
+Both architectures are covered because both are released: the build's architecture list is read from a single pinned toolchain configuration, and a guard test holds the release lane to the same list so the build and the published manifest can never silently diverge on which architectures are covered.
 
-- Derives `SOURCE_DATE_EPOCH` from `git log -1 --pretty=%ct`
-- Builds from a fresh worktree (`git worktree add --detach` into a `mktemp -d` directory) rather than using the maintainer's working tree. The worktree is removed on exit via a `trap`.
+### A verifier with just this repo can reproduce a build
 
-### `electron-builder.config.cjs`
+The wallet depends on `xchain-sdk` as a normal, published npm dependency, pinned in the committed lockfile. That matters for reproducibility specifically: earlier in the project's history the SDK was consumed as a filesystem link to a sibling repository that was itself unpublished, so a verifier with only a clone of the wallet repo could not resolve the dependency at all. With the SDK published and lockfile-pinned, a standalone clone with no sibling checkout anywhere near it installs with a frozen lockfile and builds successfully, and the pin is also what a signed release manifest is now meaningful over: a filesystem link records a path, not a version, so nothing in a signed manifest used to say which SDK build went into the artifact. A maintainer's local workflow that swaps in a symlinked SDK checkout for development is not reproducing the pinned dependency; the reproduce script always records whichever SDK actually went into the build in its manifest header, because the same wallet tag against a different SDK build is a different artifact.
 
-- `asar: true` (deterministic asar archive)
-- References `SOURCE_DATE_EPOCH`
-- Pins AppImage compression to xz
+### What's not reproducible
 
-### `Reproducible_Builds.md` (in the desktop package)
+- **Signed artifacts** (`.dmg`, signed `.app`, signed `.exe`, notarized builds). Code signatures embed a certificate-specific signature plus, for macOS, Apple's notarization ticket. These outputs are inherently maintainer-specific. The pre-signing artifact hashes let verifiers prove the content going into signing matches what was built from source.
+- **macOS and Windows builds.** The reproducible-build container targets Linux only. Cross-compiling macOS (requires platform-specific tooling and Apple's signing toolchain) and Windows (requires a Windows runner for code signing) bit-for-bit is a significantly larger undertaking. macOS and Windows releases publish pre-signing hashes produced on maintainer-operated runners; a later phase may add VM-based reproduction.
+- **Anything run on a host that is not amd64, natively.** The pinned base image resolves to `linux/amd64` only, and the reproduce script passes an explicit platform flag, so this is a stated cost rather than a surprise. The release lane itself runs on an amd64 runner and cross-builds the arm64 artifact from there, so an arm64 container would faithfully reproduce a build that was never actually cut that way. Verifiers on Apple Silicon or arm64 Linux need working amd64 emulation (Rosetta, or qemu via binfmt); this has been exercised and works, at a speed penalty.
+- **The Electron framework download itself.** electron-builder fetches prebuilt Electron binaries from Electron's own distribution server; the SHA-256 is checked against electron-builder's baked-in manifest, but the trust assumption cannot be eliminated without shipping a self-built Chromium fork. This is an Electron-ecosystem-wide constraint, not specific to this wallet.
 
-- Mentions Level-2 + RELEASE_HASHES, proof the docs match the implementation
+### Verification protocol
 
-`test/smoke/audits/repro-build-audit.smoke.js` imports `runReproBuildAudit()` and asserts every rule returns `ok: true`. CI fails on any regression. Future PRs that drop a digest pin / un-freeze the lockfile / introduce non-determinism in the build config fail this smoke before they merge.
-
-## Run-twice verification protocol
-
-The byte-for-byte verification has to happen on a clean dev machine. The `reproduce.sh` script (invoked via `pnpm --filter @xchain-wallet/desktop reproduce`) uses `git worktree add --detach` rather than a fresh clone, so each run checks out the target ref into a temporary directory without touching the working tree:
+Prerequisites: Docker, git, bash.
 
 ```bash
-# 1. Clone the repo at a specific tag (only needed once per verifier machine)
-git clone --depth 1 --branch v1.0.0 https://github.com/XChain-Platform/xchain-wallet.git
+# Clone the repo and check out the tag you want to verify.
+git clone https://github.com/XChain-Platform/xchain-wallet.git
 cd xchain-wallet
 
-# 2. First build: reproduce.sh checks out v1.0.0 into a temp worktree,
-#    builds in Docker, and writes RELEASE_HASHES.txt into the output dir.
-pnpm --filter @xchain-wallet/desktop reproduce v1.0.0 /tmp/repro-run-1
-
-# 3. Second build: same script, fresh worktree, different output dir.
-pnpm --filter @xchain-wallet/desktop reproduce v1.0.0 /tmp/repro-run-2
-
-# 4. Compare
-diff /tmp/repro-run-1/RELEASE_HASHES.txt /tmp/repro-run-2/RELEASE_HASHES.txt
+# Run reproduction against a specific tag.
+bash packages/desktop/scripts/reproduce.sh v0.58.0
 ```
 
-Because `reproduce.sh` isolates each run in its own `mktemp` worktree, back-to-back runs on the same clone are equivalent to two independent clones for reproducibility purposes. If you prefer the original two-clone approach, that also works; the git-worktree approach is simply faster for local verification.
+That emits two files:
 
-A successful verification produces a zero-line `diff`. Any difference means something non-deterministic crept in; report it via `security@dankest.llc`.
+- **`RELEASE_HASHES.txt`**, the packaged Linux artifacts under the same filenames the release publishes. This is the one to compare against the maintainer's published manifest.
+- `UNPACKED_HASHES.txt`, every file of the unpacked bundles left behind as a packaging intermediate. Not directly comparable against anything published; it is what localizes a mismatch to a specific file once the packaged-artifact manifest has already found one.
 
-The recommendation at GA: run the verification on at least two **independent** dev machines (different OS host + different CPU architecture if practical). A single-machine run rules out repo-side non-determinism; multi-machine runs rule out machine-specific compiler / linker / library quirks.
+```bash
+# Fetch the official manifest for the tag, then diff. Only the Linux
+# artifacts are comparable here; the official manifest also covers
+# macOS, Windows, and web, which this protocol does not reproduce.
+curl -fsSL -o official.txt "https://downloads.xchain.io/wallet/desktop/RELEASE_HASHES/v0.58.0.txt"
+diff <(grep -v '^#' official.txt | grep -E '\.(AppImage|deb)$' | sort) \
+     <(grep -v '^#' RELEASE_HASHES.txt | sort)
+```
 
-## Comparing against a maintainer release
+A zero-byte diff means the verifier's bytes are the maintainer's bytes. Two independently run builds of the same commit in the pinned container produce byte-identical `.AppImage` and `.deb` output on both architectures; getting there required two fixes to the archive-packing step described below, so a nonzero diff on a current release should be reported.
 
-Maintainer publishes:
+Any difference between two runs is diagnostic:
 
-- The signed installers
-- The pre-signing Linux bundle
-- `RELEASE_HASHES.txt` over the pre-signing bundle
-- The git tag
+- **Toolchain drift.** A Node or pnpm pinning mismatch, most often a stale cached container image built against an older Dockerfile. The build script asserts the running Node version against the tag's pin and aborts with that message rather than letting a stale image silently express itself as a hash difference later.
+- **Timestamp leakage.** A path that missed `SOURCE_DATE_EPOCH` propagation; this is a bug on the maintainer's side, worth reporting.
+- **Supply-chain tampering.** The maintainer's build environment produced something different from what source alone produces; worth investigating.
 
-Independent verifier runs the protocol above against the same git tag, then diffs their `RELEASE_HASHES.txt` against the maintainer's. A clean diff means the verifier has independently confirmed the maintainer's bundle came from the published source.
+### Archive-packing determinism
 
-The verifier doesn't need the maintainer's signing identity, they're verifying the **input to signing**, not the signature itself. This is the core security property: a maintainer who quietly slipped malicious code into a release would have to ship a bundle whose SHA-256 doesn't match what a verifier would produce from public source, and verifiers would notice.
+Two extra fixes were needed beyond `SOURCE_DATE_EPOCH` to get a byte-identical AppImage, because the squashfs tool used to build it predates that variable's adoption and does not honor it. A wrapper installed ahead of the pinned squashfs binary normalizes both the archive's internal creation time and its per-file modification times to the commit's author date, which the underlying tool otherwise reads from the wall clock and from the build's staging directory respectively. The `.deb` packaging path was unaffected; only the AppImage needed this. A dedicated smoke test guards this behavior.
+
+The timestamp used throughout is the commit's author date, not its committer date, the two differ whenever a commit is rebased or amended after the fact, and using the wrong one silently changes the reproduced bytes for any tag where that happened.
+
+### Update trust chain
+
+Auto-updates are downloaded and installed by a standard updater component, which does not itself decide whether an update is trustworthy: on Windows and macOS, code-signature checks (against the currently-installed app's publisher) provide a genuine second factor, but on Linux the update-info file only carries a checksum served by the same host as the binary, which on its own would leave Linux update integrity resting entirely on TLS plus control of the download hostname.
+
+To close that gap, before any update installs on any platform, the wallet verifies a detached signature over the release's hash manifest against a copy of the release public key compiled into the app itself, and refuses to install an artifact the signed manifest does not cover. There is no "could not verify, proceed anyway" fallback path. This moves the Linux trust root from the download host to the pinned key: compromising the download host or the CDN in front of it afterward buys an attacker nothing. The cost is that rotating the signing key requires shipping a wallet release.
+
+### Trezor Connect trust boundary
+
+The desktop app loads the Trezor Connect iframe from Trezor's own domain, declared explicitly in the renderer's Content Security Policy. Only that isolated iframe fetches from that domain; the renderer's own code never does. Trezor's own on-device display is the trust anchor for signing: even a fully compromised Connect iframe cannot get a transaction signed that the user did not physically approve on the hardware device itself.
+
+### Per-release checklist
+
+The reproducibility step of a release is:
+
+```bash
+bash packages/desktop/scripts/reproduce.sh vX.Y.Z ./release-out
+```
+
+Run against a pristine clone at the tag, before signing, and keep the resulting `RELEASE_HASHES.txt` with the release record.
+
+## Extension (`@xchain-wallet/extension`)
+
+### What's reproducible
+
+- **The unpacked MV3 bundle** produced by the extension's production build: popup, service worker, content script, inject script, `manifest.json`, and resized icons.
+- **The SHA-256 of every file in that directory**, captured in a release hash manifest.
+
+### What's not reproducible
+
+- **The published `.crx`.** The Chrome Web Store re-packages and re-signs the extension server-side; the store-delivered `.crx` embeds a Google-issued signature and will never be byte-for-byte identical to a locally built one. Reproducibility here covers the pre-store unpacked bundle, the content going into submission, not the store's own output. This is a Web-Store-ecosystem-wide constraint.
+- **Icon rasterization drift.** Icons are resized from source images at build time by a native image library. That library normally resolves a prebuilt binary pinned by the lockfile; the reproduce image keeps a C/C++ toolchain present so a fallback source build stays deterministic rather than failing reproduction outright.
+- **Anything run on a host that is not amd64, natively.** Same constraint as the desktop shell, and the same reasoning: the release lane runs on an amd64 runner, so this is a stated cost rather than a surprise.
+
+### Verification protocol
+
+Prerequisites: Docker, git, bash.
+
+**On arm64 (Apple Silicon, arm64 Linux) working amd64 emulation is required**, since the image is amd64-only by design. Docker Desktop ships it; a plain Docker Engine on arm64 Linux does not, and without it reproduction fails with an opaque exec-format error from the Node install layer that names no clear cause. Register emulation once:
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --install amd64
+```
+
+Expect a substantial speed penalty under emulation, and note that plain `qemu` user-mode emulation is not sufficient for this particular shell: the extension's build pipeline uses a bundler with a static Go-runtime binary, and Go's runtime is one of the things qemu user-mode emulation handles worst, producing an internal crash rather than a slow but successful build. The reliable routes on arm64 are, in order: Docker Desktop on Apple Silicon (which emulates amd64 with Rosetta and runs Go binaries correctly), or any amd64 Linux host with Docker.
+
+```bash
+# From anywhere inside the repo:
+bash packages/extension/scripts/reproduce.sh v0.334.0 ./verify-out
+
+# Or via the package script (builds current HEAD):
+pnpm --filter @xchain-wallet/extension reproduce
+```
+
+The script checks out the tag in an isolated worktree, builds the digest-pinned image, runs the in-container build, and prints the resulting hash manifest. Diff it against the official manifest published with the release tag. Expect the unpacked bundle to match; the store-published `.crx` will not.
+
+The in-container build also runs a check that fails before a manifest is emitted if the bundle reached the development-mode SDK fallback, so a build that would silently ship without real signing capability never produces a manifest that looks like a valid release.
+
+## Web (`@xchain-wallet/web`)
+
+### What's reproducible
+
+- **The static SPA bundle** produced by the web shell's production build.
+- **The SHA-256 of every file in that directory**, captured in a release hash manifest at the end of each build.
+
+Determinism comes from the same shared floor described above: a digest-pinned base image, a pinned Node version, a frozen lockfile install, and `SOURCE_DATE_EPOCH` derived from the release commit's date.
+
+### What's not reproducible
+
+- **The deployment pipeline is the trust boundary.** The served bundle is whatever the hosting deploy pushes; reproducibility proves the build output a verifier can independently produce matches the tag, not that the live site is currently serving those exact bytes. Verify the deployed asset hashes separately if that distinction matters to your threat model.
+- **CDN or edge transforms.** Any minification, compression, or asset rewriting applied by a CDN in front of the site happens outside this build and is not covered.
+
+### Verification protocol
+
+Prerequisites: Docker, git, bash.
+
+```bash
+# From anywhere inside the repo:
+bash packages/web/scripts/reproduce.sh v0.333.1 ./verify-out
+
+# Or via the package script (builds current HEAD):
+pnpm --filter @xchain-wallet/web reproduce
+```
+
+The script checks out the tag in an isolated worktree, builds the digest-pinned image, runs the in-container build, and prints the resulting hash manifest. Diff it against the official manifest published with the release tag. A mismatch means either build-environment drift (a toolchain pinning bug) or supply-chain tampering.
+
+The in-container build also runs the same development-mode SDK fallback check used by the other shells, so a bundle that reached that fallback fails before a manifest is ever emitted.
+
+## Comparing against a maintainer release, in general
 
 ```mermaid
 sequenceDiagram
     participant Maintainer
     participant Verifier
 
-    Maintainer->>Verifier: publish signed installers, pre-signing Linux bundle, RELEASE_HASHES.txt, git tag
+    Maintainer->>Verifier: publish signed installers, pre-signing bundles, hash manifest, git tag
 
     Verifier->>Verifier: run the reproduce protocol against the same git tag
-    Verifier->>Verifier: produce its own RELEASE_HASHES.txt
-    Verifier->>Verifier: diff its RELEASE_HASHES.txt against the maintainer's
+    Verifier->>Verifier: produce its own hash manifest
+    Verifier->>Verifier: diff its manifest against the maintainer's
 
-    Note over Verifier: clean diff, independently confirms the maintainer's bundle came from the published source
+    Note over Verifier: a clean diff independently confirms the maintainer's bundle came from the published source
 ```
 
-## Common drift sources
-
-- **Lockfile drift.** Always run with `--frozen-lockfile`. The audit asserts this in `scripts/build.sh`.
-- **Build-tool version drift.** The Docker base image is digest-pinned; NODE_VERSION is pinned in the image. Tooling outside the container (host's pnpm, host's Node) does not affect the build.
-- **Locale / timezone.** Some toolchains embed locale-dependent strings into output. Both are pinned in the Dockerfile.
-- **Timestamp drift.** `SOURCE_DATE_EPOCH` is sourced from `git log -1 --pretty=%ct`, same input across runs.
-- **PnP / hoist drift.** pnpm's hoist mode can produce different `node_modules/` layouts; the lockfile + frozen install + container isolation rule this out.
-- **electron-builder asar drift.** `asar: true` produces a deterministic archive; the audit asserts the config flag is set.
-- **AppImage compression drift.** Pinned to xz with deterministic flags.
-
-If a reproducer fails, the most-common cause is a dep drifting *outside* the repo; a published npm version retroactively republished, a base image's tag pointing to a different digest. The pinned digest + frozen lockfile rule out both.
+The verifier does not need the maintainer's signing identity; the comparison verifies the input to signing, not the signature itself. That is the core security property: a maintainer who quietly slipped malicious code into a release would have to ship a bundle whose hash does not match what a verifier independently produces from the public source, and verifiers would notice.
 
 ## Roadmap
 
-- **Web SPA reproducibility.** Same protocol applied to the static SPA bundle.
-- **Chrome extension reproducibility.** Reproduce the unpacked extension bytes; the CWS-signed package signature is an independent maintainer-only step.
-- **macOS / Windows reproducibility.** Requires VM-based per-OS runners. Larger undertaking; tracked but unscheduled.
-- **Level-3 multi-party signing.** Currently out of scope. Level-2 covers what's verifiable without operational overhead; Level-3 (multi-party signing) trades simplicity for stronger custody of the signing identity itself.
+- Publishing per-release SHA-256 manifests for the extension and web shells alongside their already-deterministic builds, so the same diff-based comparison used for desktop today extends to them.
+- Subresource Integrity coverage for the web SPA's script and stylesheet tags, so a tampered file fails to execute in the browser even before a manual hash comparison.
+- macOS and Windows reproducibility, which needs VM-based per-OS runners and is a larger undertaking than the Linux path above.
+- Level-3 multi-party signing is out of scope for now. Level-2 covers what is verifiable without operational overhead; Level-3 trades that simplicity for stronger custody of the signing identity itself.
 
 ---
 

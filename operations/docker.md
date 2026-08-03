@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025–2026 Dankest, LLC -->
+<!-- ported 2026-08-02 from xchain-indexer/docker-notes.md and xchain-explorer/Docker notes.md (worktree) -->
 
 # Docker
 
@@ -178,6 +179,11 @@ xchain-node exec xchain-decoder bitcoin mainnet "node --version"
 docker exec xchain-node-bitcoin-mainnet-xchain-decoder node --version
 ```
 
+Open an interactive MariaDB shell against the shared database container:
+```bash
+docker exec -it xchain-node-database mariadb -u root -p
+```
+
 ---
 
 ## Restarting Containers
@@ -212,6 +218,29 @@ xchain-node update xchain-hub
 ```
 
 See [Upgrading](./upgrading.md) for safe upgrade procedures including database migrations.
+
+---
+
+## Housekeeping
+
+Stopped containers and unused images accumulate over time, particularly after
+repeated updates or rebuilds. List and remove them with plain Docker commands:
+
+```bash
+# List all containers, including stopped ones
+docker container ls -a
+
+# Remove all stopped containers
+docker container prune
+
+# Remove unused images, networks, and build cache (more aggressive)
+docker system prune
+```
+
+`docker system prune` removes anything not currently referenced by a running
+container, including images for services you may want to keep around for a
+quick rollback. Prefer `docker container prune` for routine cleanup, and use
+`docker system prune` deliberately when reclaiming disk space.
 
 ---
 
