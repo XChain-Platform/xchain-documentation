@@ -50,8 +50,11 @@ Install the API key and its identifiers into the release pipeline's secret store
 
 ### Phase 3: the first archive
 
-On a tagged release, the release pipeline builds the store-profile app bundle, runs a pre-flight check confirming the shipped SDK is not a development mock, stages the bundle, and archives and exports a signed app package for App Store Connect. Confirm, in this order, since each of the following masks the next:
+On a tagged release, the release pipeline builds the store-profile app bundle, runs a pre-flight check confirming the shipped SDK is not a development mock, stages the bundle, and archives and exports a signed app package for App Store Connect.
 
+The pipeline archives **twice**, and knowing which one you are looking at matters here more than anywhere else in this document. The first archive is unsigned and runs on every tagged release, whether or not the Apple credentials are installed; it proves the build path works. The signed archive runs only when the credentials are present, and it is the only one that can produce something uploadable. **A green archive step therefore does not mean signing happened.** Confirm, in this order, since each of the following masks the next:
+
+- The signed archive ran at all, rather than being skipped for missing credentials. On a first release this is the step most likely to have been silently passed over.
 - The build-number fields are populated from the tag, not left empty; an empty build number uploads as one that can never be reused.
 - Provisioning succeeds; a failure here is usually a missing capability from Phase 1 step 1, not a certificate problem.
 - The exported package is named as expected; an unexpected name can fail a later signing or verification step.
