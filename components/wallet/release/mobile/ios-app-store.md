@@ -60,7 +60,7 @@ On a tagged release, the release pipeline builds the store-profile app bundle, r
 ### Phase 4: the app record and the upload
 
 1. Create the app record in App Store Connect against the Phase 1 App ID. This is the step that pins the bundle identifier publicly.
-2. Decide deliberately whether to opt out of "Designed for iPhone/iPad" Mac availability, which is on by default. Running a mobile web-shell wallet on macOS beside a separate desktop wallet build means two vaults and two update paths, which is worth naming explicitly rather than accepting by default.
+2. **Opt OUT of "Designed for iPhone/iPad" Mac availability.** It is on by default, and the operator decided against it on 2026-08-03, so this is a step to perform rather than a question to weigh. Running a mobile web-shell wallet on macOS beside a separate desktop wallet build means two vaults and two update paths, on a surface no smoke or e2e run covers. Availability is editable in App Store Connect at any time, so revisiting it post-launch as a deliberate product decision costs nothing.
 3. Upload the signed package by hand, through Apple's own upload tools, never from CI.
 4. Answer the export-compliance questionnaire. If the app is not exempt from encryption export rules, this carries recurring annual reporting obligations; if it is exempt, which is the common case for a wallet using only standard cryptographic algorithms, record that exemption's basis before submitting.
 5. Wait for the upload to finish processing. A build that fails processing is burned and needs a fresh build number.
