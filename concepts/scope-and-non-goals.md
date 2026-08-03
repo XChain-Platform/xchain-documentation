@@ -87,15 +87,22 @@ bypass protocol rules or corrupt the ledger.
 
 ### Bridging to non-UTXO ecosystems
 
-XChain runs on Bitcoin-compatible (UTXO) chains. Adding another such chain is a configuration
-change. It does **not** bridge to or interoperate with account-model ecosystems (Ethereum/EVM,
-Solana, etc.), and there are no wrapped external assets or cross-ecosystem liquidity. Cross-chain
-functionality is limited to swaps and references **among the supported UTXO chains**, and is
-coordinated (not custodied) by the hub.
+XChain runs today on Bitcoin-compatible (UTXO) chains. Adding another such chain is a
+configuration change, not a protocol change. Support for account-model ecosystems
+(Ethereum/EVM, Solana) is **planned**: the roadmap is to extend the same metalayer model to
+those chains as first-class supported chains, not to bridge to them. Until that support
+ships, cross-chain functionality is limited to swaps and references **among the supported
+UTXO chains**, and is coordinated (not custodied) by the hub.
+
+What stays out of scope on every roadmap: custodial bridge contracts, wrapped external
+assets, and pooled cross-ecosystem liquidity.
 
 *Why:* the metalayer technique, embedding and replaying data on an unmodified base chain,
-only applies to chains that work like Bitcoin. Reaching other ecosystems would reintroduce the
-bridge risk XChain was designed to avoid.
+generalizes beyond UTXO chains, but each chain family needs its own carrier design; UTXO
+chains share Bitcoin's, which is why they onboard as configuration while account-model
+support is a build. Reaching other ecosystems through a bridge instead would reintroduce
+exactly the bridge risk XChain was designed to avoid, so new ecosystems arrive as supported
+chains or not at all.
 
 ---
 
