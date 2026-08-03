@@ -16,67 +16,310 @@ This page covers submitting the XChain Wallet Android app to Google Play: the op
 3. Every console field has an answer drawn from this documentation and the listing collateral below. A field with no documented answer is a gap to fill in deliberately, not to improvise at the console.
 4. The application ID and the first upload's version code are permanent. Play refuses a duplicate version code even on the internal testing track, so a replaced upload is always a new version, never a hand-edited number.
 
-### Before opening a store form
+### Phase 0: the blocking gate
 
-Confirm, in order:
+Do not open a store form until every line here is true. Each one has cost a
+release somewhere, and the last two are the ones a schedule quietly eats.
 
-- The developer account exists, is organization-owned, and is identity-verified.
-- Hardware-key two-factor authentication is enrolled on the console account, with no SMS or authenticator fallback.
-- The release-signing keys exist, and a sealed offline backup of the upload key exists.
-- The privacy policy is live at a fetchable public URL and serves the current text. Re-check this immediately before every submission: see [the wallet's privacy policy](../../privacy/privacy-policy.md).
-- Country availability is decided (see Country availability below).
-- Data safety answers are settled; see [the wallet's data-safety answers](../../privacy/data-safety.md).
-- Any build-time supply-chain verification metadata is committed and current.
-- The demo path a reviewer's scripted walkthrough depends on is reachable from a plain, non-browser client, on an outside network rather than an allowlisted internal one.
+⬜ The Play developer account exists, is organization-owned, and is identity-verified.  
+⬜ Two-factor authentication on the console account is a hardware security key or a passkey, and **the SMS and authenticator-app fallbacks are removed**. While a text-message fallback is live, a SIM swap bypasses the hardware key entirely. An attacker inside this console can reset the upload key and ship a malicious update to every install, which makes it the worst single compromise on the lane.  
+⬜ Both release-signing keys exist on the release machine: the Play upload key and the direct-distribution key.  
+⬜ **A sealed offline copy of the direct-distribution key exists, off this machine.** The direct-distribution key can never be rotated: Android refuses an update signed by a different key, so every existing direct install is stranded if it is lost. The upload key is merely painful to replace, because Google can reset it.  
+⬜ The privacy policy is live at a fetchable public URL and serves the **current** text, re-checked immediately before this submission rather than remembered from the last one.  
+⬜ Country availability is decided (see Country availability below).  
+⬜ Data safety answers are settled; see [the wallet's data-safety answers](../../privacy/data-safety.md).  
+⬜ The build-time dependency verification metadata is committed to the repository, not just present on one machine.  
+⬜ The demo path a reviewer's walkthrough depends on is reachable **from outside**, with a plain non-browser client.
+
+The privacy-policy check is one command, and it is the only thing standing
+between a correct set of answers and a reviewer reading a stale page:
+
+```bash
+node tools/release/verify-privacy-url.mjs
+```
+
+The outside-reachability check is the other one. It is not an iOS-only gate,
+and it was treated as one once: a Play reviewer walks the same scripted
+demo against the same public test-network endpoints, from a network we have
+never seen, with a client that does not look like a browser. Every suite in
+the repository either stubs the network or runs against a local chain, and CI
+runs from allow-listed hosts, so the only way to ask this question is to ask it
+from outside:
+
+```bash
+node tools/release/verify-demo-endpoints.mjs
+```
+
+The failure this catches is a functionality rejection: an edge that answers
+anything non-browser with a 403 leaves a reviewer looking at a wallet that
+cannot load a balance.
 
 ### Phase 1: build and sign
 
-Build and sign on a dedicated release machine, at a keyboard, with a clean tree checked out at the release tag. Signing passwords are never passed on a command line or read from an environment variable; the signing tools prompt for them, or read them from a locally-restricted file by path. That is what makes it a ceremony rather than a script.
+Run on the release machine, at a keyboard, with the tree clean and HEAD on the
+release tag. The script refuses otherwise, and refuses to run in CI at all.
 
-The signing step produces, alongside a provenance record:
+```bash
+export XCHAIN_K9_KEYSTORE=...   XCHAIN_K9_ALIAS=...
+export XCHAIN_K10_KEYSTORE=...  XCHAIN_K10_ALIAS=...
+bash tools/release/android-ceremony.sh --tag vX.Y.Z --output release-artifacts/X.Y.Z
+```
 
-| Artifact | Signed by | Distribution |
+No password is passed on a command line or read from the environment. The
+signing tools prompt for them, or read them from a locally-restricted file **by
+path**. That is what makes it a ceremony rather than a script.
+
+Add `--rehearsal` to produce the same artifacts without them counting as a
+release. Rehearse before the real run whenever the code has moved much since
+the last one: it costs minutes and it is the only way to find out that the
+machinery still works without spending the tag to do it.
+
+It produces, into the output directory:
+
+| File | Signed by | Where it goes |
 |---|---|---|
-| Android App Bundle (`.aab`) | the upload key | Play only, never hosted publicly |
-| Universal APK (`.apk`) | the direct-distribution key | the direct-download channel |
+| `xchain-wallet-android-vX.Y.Z.aab` | the upload key | Play only. **Never hosted publicly.** |
+| `xchain-wallet-vX.Y.Z.apk` | the direct-distribution key | the direct-download channel |
+| `PROVENANCE.txt` | - | beside the bytes, every run |
+| `DO-NOT-PUBLISH.txt` | - | only on `--rehearsal` |
 
-The APK is derived from the same bundle as the AAB, never a second build, so both artifacts are provably the same code.
+The APK is derived from **that same bundle** with `bundletool --mode=universal`,
+never a second build, so the two files are provably the same code.
 
-Before uploading, dump the bundle's manifest and confirm the package name, the version code, the backup and cleartext-traffic flags, and the permission count all match what is expected.
+Then run `tools/release/sign.sh` over the output directory, so both artifacts
+land in the release hash list and the signed manifest. Both names are declared
+in `tools/release/expected-artifacts.txt`; an artifact whose name matches no
+declared line is a hard failure there, not a cosmetic mismatch.
+
+**Before you upload, confirm the bundle is what you think it is:**
+
+```bash
+bundletool dump manifest --bundle xchain-wallet-android-vX.Y.Z.aab
+```
+
+Expect `package="io.xchain.wallet.android"`, the `versionCode` that
+`node packages/mobile/scripts/version.js vX.Y.Z` derives, `allowBackup="false"`,
+`usesCleartextTraffic="false"`, exactly one exported component, and exactly this
+set of permissions:
+
+```
+android.permission.CAMERA
+android.permission.INTERNET
+android.permission.USE_BIOMETRIC
+android.permission.USE_FINGERPRINT
+io.xchain.wallet.android.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+```
+
+**It is the set that matters, not how many there are.** Every permission is
+Play review surface, so a swap is as significant as an addition: trading the
+camera permission for a location permission keeps the count identical and
+changes the review surface completely. The last entry is not one the app asks
+for; it is the Android support library's own signature-level permission,
+listed because it is genuinely merged in. A vendor permission appearing here
+that is not on this list is the signal to stop: push messaging and Play
+Services announce themselves exactly that way, and this app deliberately
+carries neither.
 
 ### Phase 2: the console forms
 
-**Create the app record.** Set the app name, default language, app type, and free-or-paid status. Free-or-paid is permanent: a free app can never be switched to paid. If the console asks for the package name at this step, confirm it against the built bundle rather than typing it from memory. If it differs from the bundle, Play rejects the upload; if it differs from the domain-verification file, deep linking fails silently instead, which is the worse of the two failures.
+#### 2a: create the app record, and two of its answers are permanent
 
-**Fill the listing and policy forms.** Use the listing collateral below for the store name, descriptions, categorization, contact details, the trader declaration, the financial-features declaration, review notes, and demo credentials. Use [the wallet's data-safety answers](../../privacy/data-safety.md) for the data safety form, and the privacy policy URL and country-availability decision from the steps above.
+Nothing exists in the console until this step, and the record is what every
+later phase writes into.
+
+Go to `https://play.google.com/console`, then All apps, then **Create app**.
+
+| Field | Value | Reversible? |
+|---|---|---|
+| App name | `XChain Wallet` | yes, editable later |
+| Default language | English (United States) | yes |
+| App or game | App | yes |
+| Free or paid | **Free** | **NO.** A free app can never be switched to paid |
+| Package name, if the console asks for it here | **`io.xchain.wallet.android`** | **NO.** Immutable once published |
+
+**The package name is not something to compose at the keyboard.** It is already
+compiled into the artifact you are about to upload, in six places that a test
+holds to each other: the Capacitor config, the Gradle application ID and
+namespace, two values in `strings.xml`, the main activity's package and its
+directory, and the asset-links template. Confirm it against the artifact rather
+than against this sentence:
+
+```bash
+bundletool dump manifest --bundle xchain-wallet-android-vX.Y.Z.aab | grep -o 'package="[^"]*"'
+```
+
+If what you type differs from what the bundle carries, Play rejects the upload.
+If it differs from the published asset-links file, deep links fail silently
+instead, which is the worse of the two.
+
+Historically the console derived the package name from the first uploaded
+bundle rather than asking at creation time. If your console asks for it up
+front, the value above is the answer either way; if it does not ask, the first
+upload in Phase 3 sets it, and it is equally permanent then.
+
+#### 2b: the listing and policy forms
+
+Every answer is written down. Copy, do not compose.
+
+| Console field | Source |
+|---|---|
+| Store name, short and full description | Listing collateral, below |
+| Categorization, contact details | Listing collateral, below |
+| Trader declaration (EU DSA) | Listing collateral, below. It appears publicly on the listing |
+| Financial features declaration | Listing collateral, below |
+| Reviewer instructions and app access | Listing collateral, below |
+| Data safety form | [the wallet's data-safety answers](../../privacy/data-safety.md) |
+| Privacy policy URL | the URL checked in Phase 0 |
+| Country availability | Listing collateral, below |
+| Icon, feature graphic, screenshots | the store assets directory, and its README for provenance |
+
+Two answers in the data-safety form are easy to get wrong under form pressure
+and are written down there for that reason: the **issuer-chosen token metadata
+host**, which is a third-party contact that is on by default, and the **update
+feed**, which is declared even though a Play-installed build never requests it.
 
 ### Phase 3: internal testing track
 
-Upload the bundle to internal testing first. It is the cheapest place to discover a problem with the bundle itself.
+Upload the bundle to **internal testing** first. It is the cheapest place to
+discover that the console rejects something about the bundle itself.
 
-Immediately after the first upload, record Google's own app-signing certificate fingerprint. Play App Signing is mandatory for new apps, so Google generates its own signing key on first upload and re-signs everything it distributes. That fingerprint, alongside the direct-distribution key's fingerprint, is what a deep-linking verification file needs (see Phase 6).
+Immediately after the first upload, do the thing that only becomes possible
+now. **Read Google's app-signing certificate.** Play App Signing is mandatory
+for new apps, so Google generates its own signing key on first upload and
+re-signs everything it distributes. In the console, go to Test and release,
+then Setup, then App signing, and copy the **SHA-256 certificate fingerprint of
+the app signing key**, not the upload key.
 
-Install from the internal track on a real physical device and confirm the flows work end to end. An emulator cannot reliably validate biometric unlock, camera-based QR scanning, or that remote debugging is genuinely disabled, so a physical device is a release gate for those specifically.
+That fingerprint is the missing half of the asset-links file. Phase 6 is what
+it unblocks.
+
+Then install from the internal track on a **real physical device** and walk the
+flows end to end. A physical device is a release gate for three checks an
+emulator structurally cannot settle: biometric optics, real-camera QR scanning,
+and that remote web debugging is genuinely off. Every emulator image with Google
+APIs runs as a debuggable build, which starts a debugging server for every app
+regardless of the flag, so an emulator always looks like a failure on the third
+one and can never confirm it.
 
 ### Phase 4: closed testing (beta)
 
-Promote the same bundle to a closed testing track for a beta cohort before production.
+Promote the same bundle to a closed testing track for a beta cohort before
+production. This is also where the new-app review clock starts, and a new-app
+review runs longer than an update review and can draw a manual review for a
+wallet.
 
 ### Phase 5: production, staged
 
-Promote to production at a staged rollout percentage rather than 100% immediately. Know how to halt a staged rollout before starting one; it is the only Play-side incident control available once a release is live.
+Promote to production at a staged rollout percentage rather than at 100%, and
+**know where the halt lever is before you start**: halting a staged rollout is
+the only Play-side incident control that exists once a release is live.
 
 ### Phase 6: close the deep-linking loop
 
-1. Add Google's app-signing certificate fingerprint (from Phase 3) alongside the direct-distribution key's fingerprint in the domain's asset-links file, both under the one application ID.
-2. Publish the asset-links file at the domain's `.well-known/assetlinks.json` path, served without authentication: Android's verifier fetches it directly with its own client, not through a user's browser.
-3. Verify on a signed install that the operating system reports the links as verified. The failure mode is silent: an unverified link simply opens in the browser with nothing explaining why.
+This can only happen now, and it is the last open item in the verification
+list.
+
+1. Pin Google's app-signing SHA-256 from Phase 3 into the website repository's
+   `xchain.io/build/play-app-signing-sha256.txt`, replacing the `UNPINNED`
+   sentinel. The direct-distribution key's fingerprint is already there and
+   already real; both fingerprints go under the one application ID.
+2. Generate and publish the file:
+
+   ```bash
+   npm run build:assetlinks
+   ```
+
+   It writes `.well-known/assetlinks.json`. **It is deliberately fail-closed and
+   is not part of the aggregate site build:** while the sentinel is in place it
+   refuses and writes nothing, exiting non-zero. That is the safer failure. An
+   asset-links file with a wrong fingerprint is worse than no file at all,
+   because Android verifies App Links at install time and **caches the verdict**,
+   so a bad fingerprint means links open in the browser forever with nothing
+   raised anywhere, and a 404 at least tells the truth.
+3. Deploy it, and confirm the edge serves it to an unauthenticated client.
+   Android's verifier fetches this file with its own client through Google's
+   infrastructure, never through the user's browser, so anything gating it on a
+   browser-shaped request breaks verification silently.
+4. Verify on a signed install:
+
+   ```bash
+   adb shell pm get-app-links io.xchain.wallet.android
+   ```
+
+   Expect `verified`. The failure mode is silent: links simply open in the
+   browser with nothing anywhere saying why.
 
 ### Phase 7: the direct-download channel
 
-Publish the signed APK, alongside its certificate fingerprint and a version-check feed, on the project's own download page once the staged Play rollout reaches 100%, or on an explicit release decision. This ordering exists so the direct channel never carries a release the Play rollout could still halt. Whenever Play stalls, rejects, or suspends a release, promoting the direct channel is the normal fallback path.
+Publish the signed APK and its signed manifest under `wallet/android/` on the
+downloads host, **after** the staged rollout reaches 100% or on an explicit
+release decision. That ordering exists only so the direct channel never
+receives a release the Play rollout could still halt; it orders steps within
+one release and never drops or delays one. **Whenever Play stalls, rejects, or
+suspends a release, promoting the direct channel is the normal path**, not an
+exception.
 
-There is no halt, rollback, or downgrade on the direct channel: Android refuses a version-code regression without an uninstall, and an uninstall wipes the wallet's local vault. The remedy for a bad direct release is a signed advisory, a fixed higher-version-code build, and an update to the version-check feed.
+```bash
+bash tools/release/publish.sh --version X.Y.Z
+```
+
+The publisher routes the `.apk` to `wallet/android/` and **refuses the `.aab`
+by name**. Play re-signs every bundle before serving it, so a hosted `.aab` is
+a file nobody can install and nobody can check against anything Google handed
+them.
+
+Publish beside it:
+
+- The direct-distribution certificate's SHA-256 and the one-liner a user
+  actually runs:
+
+  ```bash
+  apksigner verify --print-certs xchain-wallet-vX.Y.Z.apk
+  ```
+
+  The copy in the repository's `SECURITY.md` is canonical; the download-page
+  copy is convenience, because a fingerprint served by the same origin as the
+  file it describes proves nothing if that origin is compromised.
+- **The version-check feed, and only after the APK is in place.** It is the
+  direct channel's only update mechanism. A feed naming a version nobody can
+  download is an alarm with no exit.
+
+Then make the download page's Android entry live. It is a one-line change: the
+platform grid renders a tile as "coming soon" until its link is filled in.
+**Move the lane-switching warning above the grid at the same time.** Once the
+Play button and the direct `.apk` link sit two clicks apart on one tile, a user
+can switch lanes without meaning to, and switching lanes means an uninstall.
+
+**There is no halt, no rollback and no downgrade on this channel.** Android
+refuses a version-code regression without an uninstall, and an uninstall wipes
+the wallet's local vault. The remedy for a bad direct release is a signed
+advisory, a fixed build with a higher version code, and a feed update. Nothing
+else exists.
+
+### Phase 8: arm release parity, in this release's own commit
+
+The moment Phase 3 uploads and Phase 7 publishes, Android has users. Neither
+action changes what the release gate demands, so **the next release could omit
+the Android pair entirely and still produce a manifest that is internally
+perfect**: every hash correct, every signature good, verification green, while
+every direct install sits on a version nothing will ever update. A gate cannot
+fail on an artifact nobody told it to want.
+
+Flip one word in `tools/release/shipped-lanes.txt`:
+
+```
+android   SHIPPED   xchain-wallet-android-v*.aab xchain-wallet-v*.apk
+```
+
+and record in its comment which tag shipped first. From then on the signing
+step refuses any release staging neither artifact, by name, and refuses one
+staging the bundle without the APK, which is the asymmetry that matters: the
+direct channel is both the contingency lane and the one whose users chose to
+opt out of the store.
+
+**Do this in the same commit that records the release.** It is one word, and it
+is the only step in this runbook whose omission is invisible until the release
+*after* the one that omitted it.
 
 ### What this runbook does not cover
 
@@ -184,7 +427,12 @@ Biometric unlock is off until a user turns it on after a password unlock, so on
 a fresh install there is no biometric gate to bypass either.
 
 The instructions field holds a walkthrough of this shape. Any edit has to stay
-under the character cap, so count it before saving:
+under the 500-character cap, so measure it rather than eyeball it. The text
+below is 485 characters, which leaves very little room:
+
+```bash
+printf %s "<the walkthrough text>" | wc -c
+```
 
 > XChain Wallet is a non-custodial cryptocurrency wallet. There are no accounts,
 > so nothing needs signing in to and no credentials are required. Open the app
