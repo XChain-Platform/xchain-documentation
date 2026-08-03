@@ -113,7 +113,7 @@ What's not in Playwright today: real signing + broadcast (the web shell ships a 
 - Per-origin permission policy enforcement (`always` / `ask` / `never`)
 - Approval popup routing for every privileged op
 
-The headless suite catches regressions on every commit. The manual `packages/extension/docs/TEST_DAPP_RUNBOOK.md` complements it by exercising real Chrome runtime behaviors (extension message ports, content-script origin stamping, popup window lifecycle).
+The headless suite catches regressions on every commit. The manual [test-dApp runbook](release/extension/test-dapp-runbook.md) complements it by exercising real Chrome runtime behaviors (extension message ports, content-script origin stamping, popup window lifecycle).
 
 ## Hardware signer E2E
 
@@ -150,7 +150,7 @@ The byte-for-byte verification is **manual** and run on a clean dev machine. See
 - **Hardware-signer device interaction.** Mocked at the format-adapter layer; real-device coverage is manual.
 - **Cross-shell remote-signer round-trip.** Pair + sign over a real channel is exercised manually; the unit-level `signer-port-protocol.smoke.js` covers the envelope.
 - **OS keychain integration.** Mocked in `desktop-keychain.smoke.js`; real Keychain Access / Credential Manager / Secret Service interaction is verified manually per platform.
-- **Chrome runtime APIs.** `chrome.storage.local` / `chrome.storage.session` / `chrome.runtime.sendMessage` are mocked by the smoke harness. Real extension behavior is verified by loading the unpacked extension and walking the `TEST_DAPP_RUNBOOK.md`.
+- **Chrome runtime APIs.** `chrome.storage.local` / `chrome.storage.session` / `chrome.runtime.sendMessage` are mocked by the smoke harness. Real extension behavior is verified by loading the unpacked extension and walking the [test-dApp runbook](release/extension/test-dapp-runbook.md).
 - **Real device cameras.** `getUserMedia` is mocked; actual scanner behavior is verified manually with a real device camera.
 
 These gaps live with the maintainer's manual QA checklist and are exercised before each release-tag.

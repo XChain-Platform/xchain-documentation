@@ -173,7 +173,7 @@ The CWS submission playbook lives in the platform repo (gitignored) at `claude/r
 
 ## Test runbook
 
-`packages/extension/docs/TEST_DAPP_RUNBOOK.md` walks through a hands-on bridge round-trip:
+[The test-dApp runbook](release/extension/test-dapp-runbook.md) walks through a hands-on bridge round-trip:
 
 1. Build the extension (`pnpm --filter @xchain-wallet/extension build`)
 2. Load `packages/extension/dist/` as an unpacked extension
