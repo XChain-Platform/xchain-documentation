@@ -30,7 +30,7 @@ Confirm, in order:
 - The demo path a reviewer's scripted walkthrough depends on is reachable from a plain client on an outside network, not just an allowlisted internal one.
 - A support URL is live and reachable.
 - The release is built from a committed tree, not a local working copy: a submission built from an uncommitted tree has no durable record of what was actually submitted.
-- Whether to run an external TestFlight beta ahead of the first submission is decided; it is the cheapest real-device coverage available and it builds review history ahead of the first submission.
+- The TestFlight posture is settled: an internal group for the first release, no external group yet (see Phase 5). What is NOT optional is that the app has been run on a real device, because the release pipeline's own build cannot demonstrate that.
 
 The store build compiles out in-development surfaces that are not ready for review (for example, an in-app exchange) entirely, rather than feature-flagging them off, so a reviewer sees a build with no code path to the excluded surface, not a flag that could be flipped back on remotely.
 
@@ -67,7 +67,11 @@ On a tagged release, the release pipeline builds the store-profile app bundle, r
 
 ### Phase 5: TestFlight
 
-Internal testers get a build immediately with no review. External testers draw a Beta App Review on the first build of each version, usually within hours but occasionally longer: a recurring gate, not a one-time one. TestFlight builds hard-expire 90 days after upload, so a beta channel needs either a re-upload cadence or a deliberate decision to let it lapse. Rehearse the full review demo (see Review notes below) here, on real devices, since the reviewer will use a device too.
+**Run an internal group for the first release. Do not open an external group yet**; that was decided deliberately on 2026-08-03 and is revisited once the first submission's outcome is known.
+
+Internal testers get a build immediately with no review, and that is what makes this phase mandatory rather than optional: the release pipeline builds the app unsigned, and an unsigned build has no keychain access group, so every secure-storage call in anything the pipeline produces fails with a missing-entitlement error. A green pipeline proves the app COMPILES. It cannot prove the app RUNS. This phase is the only place that question gets answered, so rehearse the full review demo here, on real devices, because the reviewer will use a device too.
+
+An external group adds testers outside the team and builds review history ahead of the first submission. It also starts two recurring clocks, which is why it is not on by default: external testers draw a Beta App Review on the first build of each version, usually within hours but occasionally longer, and every uploaded build hard-expires 90 days after upload, so a standing beta channel needs a re-upload cadence or a deliberate decision to let it lapse. No other distribution channel has that expiry.
 
 ### Phase 6: the console forms
 
@@ -102,7 +106,9 @@ The iPad screenshot set is mandatory for a universal app; a missing iPad set blo
     Name:     XChain Wallet
     Subtitle: Self-custody crypto wallet
 
-(Subtitle limit is 30 characters; other options that fit: "Self-custody crypto wallet" or "Your keys, on your phone".)
+The subtitle is settled, not a shortlist: enter it exactly as above. It is 26 characters against a 30-character limit.
+
+Two things worth knowing before anyone improvises a replacement at the console. The limit is enforced at entry, so a longer line cannot be saved and there is no reason to arrive without one that fits. And the store indexes the app name, the subtitle and the keyword list as a single pool, so any word repeated between them is wasted search space rather than reinforcement: the keyword line already sits at 90 of its 100 characters, and a subtitle built around "keys" or "wallet" would burn a slot that is already spent. A considered alternative, "Your keys, on your phone", was set aside for exactly that reason.
 
 **Keywords** (100-character limit, comma separated, no repeats of a word already in the name or subtitle):
 
@@ -206,7 +212,8 @@ There is no sign-in, so the account fields stay empty and the demo wallet goes i
 
 ## TestFlight
 
+- **Current posture: internal group only.** An external group is deferred until the first submission's outcome is known, and opening one later costs nothing.
 - Internal testers get builds immediately, with no review.
 - External testers need Beta App Review on the first build of each version: usually hours, occasionally a real review, a recurring clock rather than a one-time gate.
-- Builds hard-expire 90 days after upload. No other channel has this clock.
-- This is the pre-submission venue for rehearsing the review demo above; rehearse on a device, not in the simulator, since the reviewer is on a device.
+- Builds hard-expire 90 days after upload. No other channel has this clock, and it is the main reason a standing external channel is not free.
+- This is the pre-submission venue for rehearsing the review demo above; rehearse on a device, not in the simulator, since the reviewer is on a device. It is also the only venue that can show the app running at all, for the unsigned-build reason given in Phase 5.
