@@ -59,6 +59,34 @@ cannot load a balance.
 Run on the release machine, at a keyboard, with the tree clean and HEAD on the
 release tag. The script refuses otherwise, and refuses to run in CI at all.
 
+**Set up the machine before you start, because a release worktree is normally a
+fresh one.** The clean tree this phase demands is usually a detached worktree
+checked out at the tag, and a fresh worktree has no installed dependencies and
+inherits nothing from your usual shell. Four things have to be true, and each
+one has stopped a real ceremony:
+
+⬜ A **JDK 21** is on the path, which is where `java` and `jarsigner` come from.  
+⬜ The Android SDK's **build-tools** directory is on the path, which is where
+`apksigner` comes from. It is not on the path by default on any platform, and
+without it the ceremony stops before it builds anything.  
+⬜ **bundletool** is available, and its location is passed in. The universal APK
+is derived from the bundle with it, so it is not optional.  
+⬜ The **workspace is installed** in the worktree you are about to build in.
+Without this the build fails minutes later, inside the package manager, with a
+missing-command error that names a build tool rather than the real cause.
+
+```bash
+export JAVA_HOME=/path/to/jdk-21
+export ANDROID_HOME=/path/to/android-sdk
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/build-tools/<version>:$PATH"
+export BUNDLETOOL=/path/to/bundletool.jar
+
+pnpm install --frozen-lockfile
+```
+
+The ceremony checks all four before it does any work and names the one that is
+missing, so a wrong machine costs a line of output rather than a build. Then:
+
 ```bash
 export XCHAIN_K9_KEYSTORE=...   XCHAIN_K9_ALIAS=...
 export XCHAIN_K10_KEYSTORE=...  XCHAIN_K10_ALIAS=...
