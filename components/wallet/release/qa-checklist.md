@@ -246,7 +246,7 @@ Before sign-off, verify the docs that ship with this release still match what th
 - ⬜ Architecture documentation: the signal flow, signer abstraction, storage substrate, and reachability sections still match the current code. Look for renamed packages, deleted flows, or new bridge surfaces.
 - ⬜ Bridge documentation: every method listed (connect, getAccounts, getSupportedChains, getActiveChains, signMessage, signAction, signPsbt, signIn, disconnect, event subscriptions) is registered in the bridge handlers. The error code table covers every code the handlers throw.
 - ⬜ Reproducible-builds documentation: the per-target status table reflects the current build pipeline. The desktop reproduce script references the hash file the script actually produces.
-- ⬜ [Verify a release](verify-release.md): the GPG key fingerprint is up to date with the actual published key, or still flagged honestly as pending publication.
+- ⬜ [Verify a release](verify-release.md): the page still sends the reader to the two publication channels for the GPG key fingerprint (`SECURITY.md` in `xchain-wallet` and `https://xchain.io/security`), both channels resolve, and neither has gone stale against the key actually in use. The page must not grow a third copy of the fingerprint.
 - ⬜ Glossary: newly added user-facing terms from this release are present, for example when a feature ships a new on-screen word the user might not know.
 - ⬜ Threat model: the controls table and out-of-scope section still hold. Anything new in the threat surface (a new bridge method, a new signer kind, a new persistent surface) gets a row.
 - ⬜ Maintainer and escalation contacts are current.
