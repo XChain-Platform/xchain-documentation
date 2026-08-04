@@ -26,7 +26,7 @@ That is a real reduction in defence in depth and it is worth being precise about
 
 ## 2. Signing credentials are bound to that environment
 
-Every signing credential (macOS code-signing and notarization, Windows code-signing, and the credentials used for store submission builds) is scoped to the protected environment, never stored as a repository-wide secret. A repository-wide secret is readable by any workflow, including one added from a pull request branch; an environment-scoped one is only readable by a job that has already cleared the approval gate above.
+Every signing credential (macOS code-signing and notarization, Windows code-signing, and the credentials used for store submission builds) is scoped to the protected environment, never stored as a repository-wide secret. A repository-wide secret is readable by any workflow, including one added from a pull request branch; an environment-scoped one is only readable by a job that names that environment, and a job that names it can only run on a release tag (§1). There is no approval gate in front of it, for the reason given in §1; what stands in front of it is the signature check in §3.
 
 Some of these credentials have configuration that must be complete or not present at all: a partially configured signing path can silently fall back to producing an unsigned artifact rather than failing loudly. The build tooling does not treat a missing signing credential as an error, it simply skips signing, so a single mistyped value can yield a complete, correctly named, correctly sized set of installers that are not signed at all.
 
@@ -62,7 +62,7 @@ Before the first real release, and after any change to this setup, the whole cha
 - The run summary should show what ran and confirm nothing was published anywhere automatically.
 - **Every artifact the release produced should be checked for its expected code signature before the hash manifest is signed** (§2). A release whose signing credentials were missing should fail here rather than produce a signed manifest describing unsigned files.
 
-These four are what can actually be verified. The two checks this list used to open with, a refused tag creation from a non-maintainer and a run "waiting for approval", would both fail today, because neither control exists (§1, §3). A verification step that cannot pass is worse than no step: it either gets quietly skipped or it gets read as a failure of something else.
+These five are what can actually be verified. The two checks this list used to open with, a refused tag creation from a non-maintainer and a run "waiting for approval", would both fail today, because neither control exists (§1, §3). A verification step that cannot pass is worse than no step: it either gets quietly skipped or it gets read as a failure of something else.
 
 ---
 
