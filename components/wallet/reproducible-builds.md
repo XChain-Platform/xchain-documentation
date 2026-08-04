@@ -47,7 +47,7 @@ Each shell's section below covers what is specific to it on top of this shared f
 
 ### What's reproducible
 
-- **The packaged Linux artifacts, exactly as shipped:** `.AppImage` and `.deb`, for both shipped architectures (x64 and arm64), captured file-by-file in a SHA-256 release manifest emitted at the end of each build. These carry no code signature, which is what makes them verifiable as the bytes a user downloads rather than as a proxy for them, and it is why Linux is the platform where this promise is whole.
+- **The two hosted Linux artifacts, exactly as shipped:** `.AppImage` and `.deb`, for both shipped architectures (x64 and arm64), captured file-by-file in a SHA-256 release manifest emitted at the end of each build. These carry no code signature, which is what makes them verifiable as the bytes a user downloads rather than as a proxy for them, and it is why these two are the artifacts where this promise is whole. The Snap Store package is a third Linux artifact and is **not** covered; see below.
 - **The pre-signing app bundles** that packaging produces on the way there (`linux-unpacked` for x64, a separate directory for arm64), hashed file by file into a diagnostic manifest. That file is not itself a claim, it is how a verifier locates which file differs once the packaged-artifact hashes disagree.
 
 Both architectures are covered because both are released: the build's architecture list is read from a single pinned toolchain configuration, and a guard test holds the release lane to the same list so the build and the published manifest can never silently diverge on which architectures are covered.
@@ -61,6 +61,7 @@ The wallet depends on `xchain-sdk` as a normal, published npm dependency, pinned
 - **Signed artifacts** (`.dmg`, signed `.app`, signed `.exe`, notarized builds). Code signatures embed a certificate-specific signature plus, for macOS, Apple's notarization ticket. These outputs are inherently maintainer-specific. The pre-signing artifact hashes let verifiers prove the content going into signing matches what was built from source.
 - **macOS and Windows builds.** The reproducible-build container targets Linux only. Cross-compiling macOS (requires platform-specific tooling and Apple's signing toolchain) and Windows (requires a Windows runner for code signing) bit-for-bit is a significantly larger undertaking. macOS and Windows releases publish pre-signing hashes produced on maintainer-operated runners; a later phase may add VM-based reproduction.
 - **Anything run on a host that is not amd64, natively.** The pinned base image resolves to `linux/amd64` only, and the reproduce script passes an explicit platform flag, so this is a stated cost rather than a surprise. The release lane itself runs on an amd64 runner and cross-builds the arm64 artifact from there, so an arm64 container would faithfully reproduce a build that was never actually cut that way. Verifiers on Apple Silicon or arm64 Linux need working amd64 emulation (Rosetta, or qemu via binfmt); this has been exercised and works, at a speed penalty.
+- **The Snap Store package (`.snap`).** The AppImage and `.deb` are packed by our own build, which is where the archive-timestamp normalization described below is installed, so both are byte-identical across independent builds. A snap's squashfs image is assembled by `snapcraft` instead, outside that step entirely, so none of the normalization that makes the other two reproducible applies to it and no claim is made here. This is stated rather than quietly omitted because a reader comparing hashes would otherwise expect the snap to behave like the `.deb` beside it. A snap also carries its own integrity story that the hosted artifacts do not: the Snap Store signs what it serves and `snapd` installs only what the Store has signed, so the verification recipe below is the right tool for a hosted download and the wrong one for a store install.
 - **The Electron framework download itself.** electron-builder fetches prebuilt Electron binaries from Electron's own distribution server; the SHA-256 is checked against electron-builder's baked-in manifest, but the trust assumption cannot be eliminated without shipping a self-built Chromium fork. This is an Electron-ecosystem-wide constraint, not specific to this wallet.
 
 ### Verification protocol
@@ -82,9 +83,11 @@ That emits two files:
 - `UNPACKED_HASHES.txt`, every file of the unpacked bundles left behind as a packaging intermediate. Not directly comparable against anything published; it is what localizes a mismatch to a specific file once the packaged-artifact manifest has already found one.
 
 ```bash
-# Fetch the official manifest for the tag, then diff. Only the Linux
-# artifacts are comparable here; the official manifest also covers
-# macOS, Windows, and web, which this protocol does not reproduce.
+# Fetch the official manifest for the tag, then diff. Only the AppImage
+# and .deb are comparable here; the official manifest also covers macOS,
+# Windows, web, and the Snap Store package, none of which this protocol
+# reproduces. The filter below is what keeps those out of the comparison,
+# so widening it turns a clean verification into a false alarm.
 curl -fsSL -o official.txt "https://downloads.xchain.io/wallet/desktop/RELEASE_HASHES/v0.58.0.txt"
 diff <(grep -v '^#' official.txt | grep -E '\.(AppImage|deb)$' | sort) \
      <(grep -v '^#' RELEASE_HASHES.txt | sort)
