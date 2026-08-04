@@ -13,6 +13,8 @@ The Linux desktop build ships two artifacts we host ourselves, from the same sou
 | `.deb` | A Debian package, for `apt`/`dpkg`-based distributions. |
 | `.snap` | Not covered here. Installed from the Snap Store, signed by the Store rather than by us, and updated by `snapd`. See [Snap Store](snap-store.md). |
 
+**If you install both a hosted artifact and the snap, they hold separate wallets.** Strict confinement redirects a snap's writes into its own directory under your home folder, so the snap and the `.AppImage` or `.deb` described on this page do not share a wallet, and neither one can see the other's. Nothing detects this or warns you about it, and that is not planned. If you want the same wallet in both, move it deliberately: export an encrypted backup from one and import it into the other.
+
 ## How it's built
 
 Both artifacts come from `electron-builder`, packaged with an `xz`-compressed archive for the `.deb`. Neither artifact carries an operating-system code signature: Linux has no equivalent of Windows Authenticode or Apple notarization for a generic binary, so integrity here rests on the published hashes and signature described below rather than OS-level signing.

@@ -33,3 +33,5 @@ See [Verify a release](../verify-release.md) for the full recipe: importing the 
 ## Other macOS distribution
 
 A Mac App Store build is a separate distribution channel, signed and sandboxed differently from the direct-download build described here, and updated by the App Store instead of the in-app updater. See [Mac App Store](mac-app-store.md).
+
+**If you install both, they hold separate wallets.** The App Store build runs in Apple's sandbox, which gives it its own storage, so it and the direct download described on this page do not share a wallet and neither one can see the other's. Nothing detects this or warns you about it, and that is not planned. If you want the same wallet in both, move it deliberately: export an encrypted backup from one and import it into the other.

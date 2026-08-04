@@ -35,3 +35,5 @@ See [Verify a release](../verify-release.md) for the full recipe: importing the 
 ## Other Windows distribution
 
 A Microsoft Store package is a separate distribution channel from the direct-download installer described here. See [Microsoft Store](microsoft-store.md).
+
+**If you install both, they hold separate wallets.** Windows keeps a Store app's files in its own per-package storage, so the Store install and the installer described on this page do not share a wallet, and neither one can see the other's. Nothing detects this or warns you about it, and that is not planned. If you want the same wallet in both, move it deliberately: export an encrypted backup from one and import it into the other.
