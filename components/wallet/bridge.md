@@ -22,13 +22,15 @@ It does **not** let a dApp:
 - Bypass the approval popup for any privileged operation.
 - Persist anything in the wallet beyond the per-site permission record.
 
-Approval popups are real windows owned by the wallet's own origin. A page cannot forge an approval, and closing the approval window unconditionally rejects the request.
+Approval popups are real windows owned by the wallet's own origin (`chrome-extension://<id>/approval.html` in the browser extension). A page cannot forge an approval, and closing the approval window unconditionally rejects the request.
 
 ## Provider lifecycle
 
 The Chrome extension's content script injects a provider script into every page at document start. The injected provider exposes `window.xchain` and proxies calls to the extension's service worker. The desktop app exposes the same provider over its preload bridge.
 
 Detection should not assume the provider is ready immediately on page load; the content script may inject slightly after that.
+
+**The extension's own origin.** Everything the extension serves in the browser, its popup, its side panel and the approval windows above, loads from `chrome-extension://<id>/`, where `<id>` is the 32-character identifier the Chrome Web Store assigns the listing at its first upload and never changes afterwards. That identifier is written as `<id>` throughout this page because the wallet has not been published to the store yet; once it has, the real identifier replaces it here and the origin above becomes a literal address you can check against. Detect the wallet through `window.xchain` and the helpers below rather than by matching that origin: a dApp cannot read the origin of an injected provider, and pinning an identifier a page cannot verify buys nothing.
 
 ```ts
 import { isXChainAvailable, getProvider, PROVIDER_READY_EVENT } from '@xchain-wallet/bridge-spec';
