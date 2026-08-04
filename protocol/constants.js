@@ -335,7 +335,7 @@ const ANCHOR_REWARD_AMOUNT = '10.00000000';
 // ANCHOR_REWARD_ACTIVATION; kept byte-identical to the local copies in
 // xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
 const ARCHIVE_REWARD_ACTIVATION = {
-    mainnet: 969500,      // ARMED 2026-07-16 : BTC snapshot_block ~2026-08-17 (ratified anchor; derived from tip 957062 on 07-07 at ~144 blocks/day); deploy every consumer before this era
+    mainnet: 969500,      // ARMED 2026-07-16 : BTC snapshot_block ~2026-08-07 (ratified anchor; derived from tip 957062 on 07-07 at ~144 blocks/day); deploy every consumer before this era
     testnet: 0,
     regtest: 0,
 };
@@ -374,7 +374,7 @@ const ANCHOR_REWARD_DERIVE_ACTIVATION = {
 // while a mirror enforces another, forking the fleet at the boundary. Canonical map of
 // record for those copies (armed 2026-07-16, ).
 const RETRACTION_SIGNING_ACTIVATION = {
-    mainnet: 969500,      // ARMED 2026-07-16 : BTC snapshot_block ~2026-08-17 (ratified anchor; derived from tip 957062 on 07-07 at ~144 blocks/day); deploy every consumer before this era
+    mainnet: 969500,      // ARMED 2026-07-16 : BTC snapshot_block ~2026-08-07 (ratified anchor; derived from tip 957062 on 07-07 at ~144 blocks/day); deploy every consumer before this era
     testnet: 0,
     regtest: 0,
 };
@@ -460,7 +460,7 @@ const ATTEST_RELAY_ACTIVATION = {
 //
 // The mainnet value is NOT free to choose: capturing a second output on a data-bearing
 // transaction makes it fan out to two rows in getDecoderBlockData, and BELOW the indexer's
-// FIX_OUTPUT_FANOUT flag-day (protocol_changes.js, mainnet block_time 1786924800) such a
+// FIX_OUTPUT_FANOUT flag-day (protocol_changes.js, mainnet block_time 1786060800) such a
 // transaction is a consensus-critical fault that HALTS the block. This gate must therefore
 // never precede FIX_OUTPUT_FANOUT; it is armed to exactly the same instant so capture begins
 // in the same block the collapse does. Below it a Mode B create against a fee-bearing oracle
@@ -471,7 +471,7 @@ const ATTEST_RELAY_ACTIVATION = {
 // Vendored byte-equal into xchain-decoder/src/protocol/constants.js; the parity suites keep
 // the two copies and the indexer's FIX_OUTPUT_FANOUT timestamp in lockstep.
 const ORACLE_FEE_OUTPUT_ACTIVATION = {
-    mainnet: 1786924800,  // 2026-08-17 00:00:00 UTC, the contract-era flag-day FIX_OUTPUT_FANOUT rides
+    mainnet: 1786060800,  // 2026-08-07 00:00:00 UTC, the contract-era flag-day FIX_OUTPUT_FANOUT rides
     testnet: 0,
     regtest: 0,
 };
@@ -573,7 +573,7 @@ const PRICE_PAIR_TICKER_MAX_WIDE   = 6;
 
 // UNARMED on mainnet. 9999999999 is a far-future sentinel (year 2286), NOT a
 // scheduled flag-day:  D6 (the pre-launch instant this gate arms at) is an
-// open operator decision. The usual contract-era stamp 1786924800 (2026-08-17) is
+// open operator decision. The usual contract-era stamp 1786060800 (2026-08-07) is
 // NOT usable here because it falls AFTER the early-September launch target, which
 // would leave LTC/DOGE native-coin fees unpayable straight through launch. Arming
 // is a one-line edit here plus the byte-equal edit in the vendored copies.
@@ -614,7 +614,7 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
 // validates the same field, so hub and indexers key on the identical number.
 //
 // mainnet is ARMED to 969500, the BTC snapshot_block already ratified on
-// 2026-07-16 for RETRACTION_SIGNING_ACTIVATION (~2026-08-17), rather than a newly
+// 2026-07-16 for RETRACTION_SIGNING_ACTIVATION (~2026-08-07), rather than a newly
 // minted anchor, and deliberately not the nearer 961000 (~2026-08-04) whose
 // deploy train shipped on 2026-07-23. Deploy every indexer AND every hub before
 // this height; they are peers here, not producer and consumer, so a split fleet
@@ -622,7 +622,7 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
 // local copies in xchain-{indexer,hub}/src/price_sig_tally_activation.js by the
 // activation-constants parity suite.
 const PRICE_SIG_TALLY_ACTIVATION = {
-    mainnet: 969500,      // ARMED : BTC anchor ~2026-08-17, ratified for RETRACTION_SIGNING; deploy ALL indexers + hubs before this height
+    mainnet: 969500,      // ARMED : BTC anchor ~2026-08-07, ratified for RETRACTION_SIGNING; deploy ALL indexers + hubs before this height
     testnet: 0,
     regtest: 0,
 };

@@ -94,7 +94,7 @@ Contracts support **ES2020** syntax. This includes:
 - `class` declarations and methods
 - `for...of`, `for...in`, spread operator
 - Optional chaining (`?.`) and nullish coalescing (`??`)
-- `async`/`await` syntax and `Promise` are **rejected at deploy** by the consensus-gated `banned-async` rule (enforced today by the `xchain-lint` CLI, the SDK, and testnet/regtest; on mainnet at/after the `VM_BANNED_ASYNC` flag-day, 2026-08-17). Write contracts synchronously.
+- `async`/`await` syntax and `Promise` are **rejected at deploy** by the consensus-gated `banned-async` rule (enforced today by the `xchain-lint` CLI, the SDK, and testnet/regtest; on mainnet at/after the `VM_BANNED_ASYNC` flag-day, 2026-08-07). Write contracts synchronously.
 
 **Not supported:**
 - ES2021+ features (class fields `#private`, `Object.hasOwn()`, top-level await)
@@ -191,8 +191,8 @@ If any emitted action fails validation (e.g., insufficient balance), ALL state c
 1. Write your contract as a JavaScript file
 2. Encode the UTF-8 source per the active `CODE_ENCODING`: base64
    (`Buffer.from(source, 'utf8').toString('base64')`) at or after the
-   `DEPLOY_BASE64_CODE` activation (mainnet block time `1786924800`,
-   2026-08-17 00:00 UTC), hex-encoded before it. See `protocol/actions/DEPLOY.md`.
+   `DEPLOY_BASE64_CODE` activation (mainnet block time `1786060800`,
+   2026-08-07 00:00 UTC), hex-encoded before it. See `protocol/actions/DEPLOY.md`.
 3. Broadcast a DEPLOY action: `DEPLOY|0|<code>|<gas_limit>|<constructor_params>`
 
 The indexer validates the code syntax before charging gas. If syntax is invalid, the deployment is rejected without cost.
@@ -206,7 +206,7 @@ The VM performs the following checks before deployment:
 3. **Reserved identifier check**; the code must not use `__gas` (reserved for gas metering), the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); all are harness-injected and a contract may not define or reference them. Under the `VM_LINT_HARDENING` flag-day (below), this also covers the `CONTRACT_WRAPPER`'s injected control bindings: `__contractCode`, `__methodName`, `__isCrossCall`, `__readManifest`.
 4. **Banned `Math.*`:** `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` are rejected outright (IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures, which would cause hash divergence between indexers). Under `VM_LINT_HARDENING` the ban widens to the **complement** of the deterministic SafeMath whitelist (`floor`, `ceil`, `round`, `abs`, `min`, `max`, `sign`, `trunc`, `PI`, `E`), so `Math.random`, `Math.atan2`, and any other Math member outside that list are rejected too, along with the `**`/`**=` exponentiation operator. Use the deterministic equivalents in `xchain.math.*` instead.
 5. **Banned DoS literals:** `BigInt` literals (e.g. `10n`) and `RegExp` literals (e.g. `/foo/`) are rejected. Both expose unmetered native computation; a `BigInt` arithmetic loop or a catastrophic regex can exhaust the block watchdog and halt the chain. The `BigInt` global and `RegExp` constructor are also stripped at runtime; use `xchain.math.*` for big-number work.
-6. **Banned async check** (consensus-gated): `async` functions, `await` expressions, and `Promise` references are rejected. Under `VM_LINT_HARDENING` this also rejects dynamic `import(...)` (it evaluates to a Promise). Enforced today by the `xchain-lint` CLI, the SDK, and testnet/regtest; on mainnet at/after the `VM_BANNED_ASYNC` flag-day (2026-08-17).
+6. **Banned async check** (consensus-gated): `async` functions, `await` expressions, and `Promise` references are rejected. Under `VM_LINT_HARDENING` this also rejects dynamic `import(...)` (it evaluates to a Promise). Enforced today by the `xchain-lint` CLI, the SDK, and testnet/regtest; on mainnet at/after the `VM_BANNED_ASYNC` flag-day (2026-08-07).
 7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): `function*`, generator methods, and any `yield` are rejected.
 8. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): any reference to the global `WebAssembly` is rejected.
 
