@@ -68,7 +68,9 @@ already-live action, not to the arrival of an action.
 ## Where the values live
 
 [`constants.js`](constants.js) in this repository is the canonical source for the **validator-era
-(Cohort B)** and **state-commitment (Cohort C)** gates below. Each consuming service carries a
+(Cohort B)** and **state-commitment (Cohort C)** gates below, and for the **encoding-recognition**
+gate ([below](#encoding-recognition-decoder-carried)), which sits outside all three cohorts because it
+is evaluated in the decoder rather than the indexer. Each consuming service carries a
 **byte-identical twin** of the maps it needs, and a cross-repo conformance gate fails CI if a twin
 drifts. Cohort A (contract-era) values are not carried in `constants.js` at all: they are
 service-carried in `xchain-indexer/protocol_changes.js` and the `xchain-vm` gate constants (see the
@@ -85,6 +87,7 @@ four are byte-guarded between their indexer and sync twins rather than against t
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
 | `xchain-vm` | the six contract-era VM gate constants (async ban, binary-alloc metering, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) |
 | `xchain-hub` | the six validator-era gate modules (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical) |
+| `xchain-decoder` | `ENVELOPE_RECOGNITION_ACTIVATION`, the one activation map consumed in the decoder's own parse path |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
 
 Because the values are byte-identical everywhere, a heterogeneous fleet and any from-genesis replay
@@ -134,6 +137,37 @@ The DISPENSE cancelling-dispenser match gate is a block-time forking rule keyed 
 contract-era timestamp (`1786924800`), so it belongs with **Cohort A**; it is registered as a
 standalone twin-style module rather than a `protocol_changes.addChange` entry to keep it self-contained
 next to the query it gates.
+
+## Encoding recognition (decoder-carried)
+
+One gate does not belong to any cohort, and the difference is worth stating because everything above
+describes the **indexer's** `isEnabled` check. `ENVELOPE_RECOGNITION_ACTIVATION` is evaluated in the
+**decoder**, while it parses a transaction, and it governs what counts as an action-bearing
+transaction in the first place. It is canonical in [`constants.js`](constants.js).
+
+| Gate | Keyed on | Thresholds | Straggler | Lives in |
+|---|---|---|---|---|
+| **Taproot envelope recognition** (`ENVELOPE_RECOGNITION_ACTIVATION`, and with it every [envelope consensus rule](./taproot-envelope.md): end-indexed witness parsing, annex refusal, input-0 binding, mixed-carrier and multi-envelope rejection) | per-chain **local height** | `BTC:mainnet` 960850, `LTC:mainnet` 3153500 (both crossed 2026-08-03), `DOGE` **null on every network**; testnet and regtest genesis-active (0) | forks | `xchain-decoder/src/XChainDecoder.js`, mirrored in `xchain-encoder/src/CryptoNetworks.js` |
+
+The **encoder** carries a byte-identical twin of this map, which is unusual enough to explain: no
+other activation gate is consulted by a transaction *builder*. The encoder refuses to build an
+envelope below the height its decoder counterpart would recognize, because the failure it prevents is
+not a fork but a loss. A caller would pay a real miner fee for a commit and reveal carrying an action
+that no decoder on the network will ever index, and nothing about the transaction would look wrong.
+Drift between the two copies in the other direction is the ordinary forking hazard.
+
+Three further properties of this gate differ from the cohorts above:
+
+- **It is keyed on each chain's own local height**, like Cohort C and unlike the BTC-anchored Cohort
+  B, because recognition happens while parsing that chain's blocks. There is no cross-chain moment to
+  coordinate.
+- **`DOGE` is null rather than a future height**, and that is the encoding of "never". Dogecoin has no
+  SegWit, therefore no Taproot and no envelope. A DOGE entry holding a number would mean somebody had
+  scheduled a flag day on a chain that cannot carry the format.
+- **Below the height the decoder behaves exactly as it shipped.** A pre-flag transaction carrying an
+  envelope alongside an `XCHN` OP_RETURN replays as the OP_RETURN action, which is how the fleet
+  indexed it live. This is what keeps a from-genesis replay matching history, and it is why the
+  constant stays in the tree now that both mainnet heights have passed: it is history, not a control.
 
 Within **Cohort A**, the **cross-chain royalty create-side** gate is the one rule that does not share
 the single 2026-08-17 contract-era timestamp (`1786924800`): it is deliberately armed one quarter later,

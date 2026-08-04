@@ -44,7 +44,7 @@ These are consensus-relevant: every implementation must agree, or the fleet fork
 - The envelope input must be **input 0**. Anywhere else, it is not an action.
 - **Two or more envelope inputs** in one transaction: not an action.
 - An envelope **mixed with any other carrier** (an `XCHN` OP_RETURN, a chunk marker, MULTISIGN outputs): not an action. Deterministic refusal, not a preference between carriers.
-- The reassembled payload has its own ceiling, `ENVELOPE_MAX_PAYLOAD` (400,000 bytes), measured **before** parse and **excluding** the envelope's own push framing. Note this measures a different quantity from `MAX_ACTION_DATA_LENGTH`, which is framing-inclusive and still governs every legacy lane.
+- The reassembled payload has its own ceiling, `ENVELOPE_MAX_PAYLOAD` (390,000 bytes), measured **before** parse and **excluding** the envelope's own push framing. The ceiling is sized against transaction **weight**, not chosen as a round byte count. A payload filling the larger cap this constant carried before 2026-07-31 compiles to a reveal of 402,789 WU, over Bitcoin Core's `MAX_STANDARD_TX_WEIGHT` of 400,000 WU: the encoder builds it, the validator accepts it, and no node relays it. The current value leaves 7,050 WU of margin under the worst reveal shape, so an implementer sizing a cap of their own should derive it from weight rather than copy a byte count. Note this measures a different quantity from `MAX_ACTION_DATA_LENGTH`, which is framing-inclusive and still governs every legacy lane.
 
 ## Source attribution
 

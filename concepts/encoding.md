@@ -62,14 +62,14 @@ The two-transaction pattern means the ACTION is not visible until the spend tran
 
 ### TAPROOT (envelope)
 
-**Capacity**: up to 400,000 bytes of data  
+**Capacity**: up to 390,000 bytes of data  
 **Transactions**: 2 (commit then reveal)  
 **Availability**: Bitcoin and Litecoin. Dogecoin has no SegWit, so it has no Taproot and no envelope.  
 **Mechanism**: the whole payload is pushed **raw** inside a single tapscript, in an `OP_FALSE OP_IF` branch that never executes. A commit transaction creates a P2TR output whose script tree holds that leaf; a reveal transaction spends it through the script path, exposing the payload in the witness. Unlike the chunk lanes there is no marker `OP_RETURN`: the leaf carries a cleartext `XCHN` magic so recognition is a pattern match with no extra output to pay for.
 
 Tapscript has no 3,600-byte witness-script policy cap and no 10,000-byte script cap, so a single reveal carries a payload bounded only by standardness weight. That is what collapses ~820 chunk outputs into one input and one output per 390 KB, at roughly **half the weight per byte of P2WSH**.
 
-The envelope has its own ceiling, `ENVELOPE_MAX_PAYLOAD` (400,000 bytes), which replaces the 8,192-byte limit for this format only; every legacy lane keeps that limit. The two measure different things: the envelope ceiling is the reassembled payload before parse, excluding its own push framing.
+The envelope has its own ceiling, `ENVELOPE_MAX_PAYLOAD` (390,000 bytes), which replaces the 8,192-byte limit for this format only; every legacy lane keeps that limit. The two measure different things: the envelope ceiling is the reassembled payload before parse, excluding its own push framing. The number is derived from standardness weight rather than picked: the larger cap this constant carried before 2026-07-31 produced a 402,789 WU reveal, over `MAX_STANDARD_TX_WEIGHT`, which no node relays.
 
 Full specification: [Taproot Envelope](../protocol/taproot-envelope.md).
 
