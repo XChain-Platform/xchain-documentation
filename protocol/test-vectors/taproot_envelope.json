@@ -2,7 +2,7 @@
   "_meta": {
     "id": "taproot_envelope",
     "item": "",
-    "spec": "claude/specs/taproot-envelope-and-payload-compression.md",
+    "spec": "claude/specs/resolved/taproot-envelope-and-payload-compression.md",
     "generated": "2026-07-31",
     "description": "Golden and adversarial vectors for the Taproot envelope encoding (Part A) and default payload compression (Part B). Grammar bytes are frozen: any implementation must reproduce them exactly. Recognition expectations activate at the per-network §7 flag height; below it a decoder behaves exactly as shipped.",
     "leaf_version": "0xc0",
