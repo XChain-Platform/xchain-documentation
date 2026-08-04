@@ -80,8 +80,9 @@ Detailed health status. Unlike `ping` (which only confirms the HTTP server is up
         "running": true,
         "synced": true,
         "lastIndexedBlock": 893000,
-        "decoderBlock": 893000,
-        "lag": 0,
+        "inFlightBlock": 893001,
+        "decoderBlock": 893001,
+        "lag": 1,
         "decoderDbCircuit": "closed",
         "indexerDbCircuit": "closed",
         "error": null
@@ -95,9 +96,10 @@ Detailed health status. Unlike `ping` (which only confirms the HTTP server is up
 | `status` | `string` | `"healthy"` when the indexer is running and neither DB circuit is open; `"unhealthy"` otherwise. |
 | `running` | `boolean` | Whether the indexer process is alive. |
 | `synced` | `boolean` | Whether the indexer has caught up to the decoder. |
-| `lastIndexedBlock` | `number\|null` | Latest block index written to the indexer DB; `null` if the indexer DB is unreachable. |
+| `lastIndexedBlock` | `number\|null` | Highest **committed** block index in the indexer DB; `null` if the indexer DB is unreachable. Safe to query at: it is read on the same committed-only connection the block-scoped query endpoints use, so a caller may poll `health` and immediately query at this height. |
+| `inFlightBlock` | `number\|null` | The block being parsed right now, inside the indexer's open transaction, or `null` when no block is in flight. It is **not** indexed yet: block-scoped queries at this height are rejected, and a reorg may mean it never commits. Reported for visibility only. |
 | `decoderBlock` | `number\|null` | Decoder's current tip as last observed by the indexer. |
-| `lag` | `number\|null` | `decoderBlock − lastIndexedBlock`; `null` when either value is unavailable. |
+| `lag` | `number\|null` | `decoderBlock − lastIndexedBlock`; `null` when either value is unavailable. Measured against the committed height, so a poll landing mid-block reads as lag 1 rather than lag 0. |
 | `decoderDbCircuit` | `string\|null` | Decoder DB circuit-breaker state (`"closed"`, `"open"`, `"half-open"`), or `null` if no handle is configured. |
 | `indexerDbCircuit` | `string\|null` | Indexer DB circuit-breaker state, same value set as above. |
 | `error` | `string\|null` | Last fatal indexer error message, or `null`. |
