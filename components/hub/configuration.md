@@ -437,7 +437,7 @@ The XCHAIN/USD price is derived from platform-realized fills rather than an exte
 | `XCHAIN_PRICE_WINDOW_BLOCKS` | No | _(built-in)_ | Rolling window, in blocks, over which fills are aggregated |
 | `XCHAIN_PRICE_MIN_BTC_VOLUME` | No | _(built-in)_ | Minimum BTC-notional volume in the window before a derived price is considered valid |
 | `XCHAIN_PRICE_CONFIRMATION_BUFFER` | No | _(built-in)_ | Confirmations a fill needs before it counts toward the derived price |
-| `XCHAIN_PRICE_BOOTSTRAP_USD` | No | None | Bootstrap XCHAIN/USD price used before enough on-platform volume exists to derive one |
+| `XCHAIN_PRICE_BOOTSTRAP_SATS` | No | `1000` | Bootstrap XCHAIN price in SATOSHIS, used before enough on-platform volume exists to derive one. Converted to USD at round time with the consensus BTC/USD, so it is never a USD pin. Consensus-critical: a per-operator value forks fee acceptance |
 
 ### LLM Attestation Provider
 
