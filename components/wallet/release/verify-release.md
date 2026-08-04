@@ -171,7 +171,7 @@ Everything above describes verifying by hand. The desktop app does the equivalen
 
 Two consequences worth understanding:
 
-- On Linux this is the only authenticity check. The `.AppImage` and `.deb` carry no operating-system signature, and the SHA-512 in the update-info file is served by the same host as the binary, so it is a checksum from the same party, not a signature. The pinned key is what makes a compromise of the download host survivable.
+- On Linux this is the only authenticity check **for the artifacts we host**. The `.AppImage` and `.deb` carry no operating-system signature, and the SHA-512 in the update-info file is served by the same host as the binary, so it is a checksum from the same party, not a signature. The pinned key is what makes a compromise of the download host survivable. A Snap Store install is the exception and works the other way round: the Store signs what it serves, `snapd` installs only what the Store has signed and handles updates itself, so the wallet's own update path is switched off there and none of the manual recipe on this page applies to it.
 - Because the key is compiled in, rotating it means shipping a wallet update. That is what pinning costs and what it buys.
 
 ---

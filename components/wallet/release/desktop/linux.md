@@ -3,7 +3,7 @@
 
 # Desktop: Linux
 
-The Linux desktop build ships two artifacts from the same source tree, for both `x64` and `arm64`.
+The Linux desktop build ships two artifacts we host ourselves, from the same source tree, for both `x64` and `arm64`. A third Linux package, the Snap Store one, is built from the same tree but is a separate channel with its own signing, updates and integrity story; everything on this page describes the two hosted artifacts unless it says otherwise. See [Snap Store](snap-store.md).
 
 ## Artifacts
 
@@ -11,6 +11,7 @@ The Linux desktop build ships two artifacts from the same source tree, for both 
 |---|---|
 | `.AppImage` | A self-contained, portable binary; run it directly, no install step. |
 | `.deb` | A Debian package, for `apt`/`dpkg`-based distributions. |
+| `.snap` | Not covered here. Installed from the Snap Store, signed by the Store rather than by us, and updated by `snapd`. See [Snap Store](snap-store.md). |
 
 ## How it's built
 

@@ -66,7 +66,8 @@ All builds run with the workspace's `pnpm install --frozen-lockfile` to lock dep
 | Extension | CWS signs the published artifact; no maintainer-side signing |
 | Desktop macOS | Apple Developer cert via `electron-builder`; Apple-notarized `.dmg` |
 | Desktop Windows | Authenticode cert via `electron-builder`; signed `.exe` |
-| Desktop Linux | xz-compressed `.AppImage`; no built-in OS-level code signing: users verify via published SHA-256 |
+| Desktop Linux (hosted) | xz-compressed `.AppImage` and `.deb`; no built-in OS-level code signing: users verify via published SHA-256 |
+| Desktop Linux (Snap Store) | `.snap`, signed by the Store at ingestion rather than by us; `snapd` verifies and updates it, and the wallet's own updater is switched off in that channel |
 
 Signing identities live with the publisher (Dankest, LLC). Independent verifiers reproduce the **pre-signing** Linux artifact and verify it matches the maintainer's published `RELEASE_HASHES.txt` (see [Reproducible Builds](reproducible-builds.md).
 
