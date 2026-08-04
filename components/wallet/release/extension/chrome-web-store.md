@@ -170,7 +170,9 @@ bash tools/release/verify.sh --input release-artifacts/vX.Y.Z/ \
   --tag vX.Y.Z --artifact xchain-wallet-extension-vX.Y.Z.zip
 ```
 
-Confirm it reports the hash as OK, and, once the release-key ceremony has landed, the signature as OK too. This is the same command the [release QA checklist](../qa-checklist.md) asks for in its store-release provenance section; this page does not duplicate that checklist, it points at the one command you need at this exact moment.
+Confirm it reports the hash as OK, and the signature as OK too. This is the same command the [release QA checklist](../qa-checklist.md) asks for in its store-release provenance section; this page does not duplicate that checklist, it points at the one command you need at this exact moment.
+
+**This phase cannot be completed before the release-signing key exists, and that is a stronger statement than it used to make here.** This page said until 2026-08-03 that only the SIGNATURE waited on the key ceremony, implying the hash could be checked today. It cannot, and the reason is worth stating so nobody burns a day rediscovering it: the tagged manifest and the signature come from the same command. Only the signing step writes a `RELEASE_HASHES.txt` that names a tag; the unsigned fallback (`verify.sh --recompute`) deliberately stamps `# tag: (none)`, which 4a above rejects and which `verify.sh` itself then refuses in both directions. The release runners hold no signing key by design, so CI cannot supply one either. Until the key ceremony lands there is no artifact this phase can accept, and therefore no upload in Phase 6.
 
 ⬜ `verify.sh` reports the zip's hash as OK against `RELEASE_HASHES.txt`.  
 ⬜ The checked sha256 is ready to record in the publish log. That row is written in the same step as the actual upload (Phase 6), not before it.  
