@@ -43,6 +43,29 @@ The audit catches regressions automatically on every commit. The run-twice verif
 
 Each shell's section below covers what is specific to it on top of this shared floor.
 
+## Verifying from an arm64 machine
+
+Every shell builds in a container pinned to `linux/amd64`, because the release lane runs on an amd64 runner and the pinned base image resolves to amd64 only. On an Apple Silicon Mac or an arm64 Linux box the whole build therefore runs under emulation, and the two emulators that can answer that platform flag do not behave the same way.
+
+**Rosetta works. qemu user-mode emulation does not.** The build leans on esbuild, which ships as a static Go binary, and Go's runtime is one of the things qemu user-mode emulation handles worst. Under qemu the build does not run slowly, it crashes, minutes in, with a message that names neither qemu nor the architecture:
+
+- Extension and web shells: `[vite:define] The service was stopped`, after a goroutine traceback out of `esbuild/pkg/api.Transform`.
+- Desktop shell: `fatal error: lfstack.push`, with a truncated pointer, out of Go's garbage collector.
+
+Both read as a defect in the wallet, and neither is one. An earlier version of this page said emulated reproduction "works, at a speed penalty"; that was measured on a lane that does not push esbuild through qemu the same way, and it is retracted here.
+
+The routes that do work, in order of preference:
+
+1. **Any amd64 Linux host with Docker.** No emulation, no caveats. This is what the maintainers verify on.
+2. **Docker Desktop on Apple Silicon**, with Settings > General > "Use Rosetta for x86_64/amd64 emulation" enabled. Rosetta translates the Go binary correctly.
+3. **An arm64 Linux VM with Rosetta for Linux enabled** (Parallels or UTM on Apple Silicon). It registers a binfmt handler named `RosettaLinux`, and amd64 containers then run through Rosetta instead of qemu.
+
+Measured 2026-08-04 on route 3, an aarch64 Ubuntu VM: the extension shell of `v0.335.0` reproduced to a hash manifest byte-identical to the one a native amd64 host produced from the same tag, 45 of 45 files, and the desktop shell's packaged `.AppImage` and `.deb` came out byte-identical across the two hosts as well.
+
+Each reproduce script checks this before it builds anything. `tools/release/emulation-preflight.sh` reads the host architecture and the registered binfmt handlers, proceeds on a native or Rosetta host, and refuses on a qemu-only host, naming the routes above, rather than letting the build crash twenty minutes later. `XCHAIN_REPRODUCE_ALLOW_EMULATION=1` overrides the refusal.
+
+One piece of common advice to be careful with: `docker run --privileged --rm tonistiigi/binfmt --install amd64` is the usual way to give an arm64 Docker host amd64 support, and it is exactly what registers the qemu handler that cannot finish this build. It is enough for most containers and is not enough here.
+
 ## Desktop (`@xchain-wallet/desktop`)
 
 ### What's reproducible
@@ -60,7 +83,7 @@ The wallet depends on `xchain-sdk` as a normal, published npm dependency, pinned
 
 - **Signed artifacts** (`.dmg`, signed `.app`, signed `.exe`, notarized builds). Code signatures embed a certificate-specific signature plus, for macOS, Apple's notarization ticket. These outputs are inherently maintainer-specific. The pre-signing artifact hashes let verifiers prove the content going into signing matches what was built from source.
 - **macOS and Windows builds.** The reproducible-build container targets Linux only. Cross-compiling macOS (requires platform-specific tooling and Apple's signing toolchain) and Windows (requires a Windows runner for code signing) bit-for-bit is a significantly larger undertaking. macOS and Windows releases publish pre-signing hashes produced on maintainer-operated runners; a later phase may add VM-based reproduction.
-- **Anything run on a host that is not amd64, natively.** The pinned base image resolves to `linux/amd64` only, and the reproduce script passes an explicit platform flag, so this is a stated cost rather than a surprise. The release lane itself runs on an amd64 runner and cross-builds the arm64 artifact from there, so an arm64 container would faithfully reproduce a build that was never actually cut that way. Verifiers on Apple Silicon or arm64 Linux need working amd64 emulation (Rosetta, or qemu via binfmt); this has been exercised and works, at a speed penalty.
+- **Anything run on a host that is not amd64, natively.** The pinned base image resolves to `linux/amd64` only, and the reproduce script passes an explicit platform flag, so this is a stated cost rather than a surprise. The release lane itself runs on an amd64 runner and cross-builds the arm64 artifact from there, so an arm64 container would faithfully reproduce a build that was never actually cut that way. Verifiers on Apple Silicon or arm64 Linux need working amd64 emulation, and which emulator they have decides whether this lane finishes at all: under qemu user-mode it crashes inside esbuild's Go runtime (`fatal error: lfstack.push`) rather than running slowly. See "Verifying from an arm64 machine" above for the routes that work.
 - **The Snap Store package (`.snap`).** The AppImage and `.deb` are packed by our own build, which is where the archive-timestamp normalization described below is installed, so both are byte-identical across independent builds. A snap's squashfs image is assembled by `snapcraft` instead, outside that step entirely, so none of the normalization that makes the other two reproducible applies to it and no claim is made here. This is stated rather than quietly omitted because a reader comparing hashes would otherwise expect the snap to behave like the `.deb` beside it. A snap also carries its own integrity story that the hosted artifacts do not: the Snap Store signs what it serves and `snapd` installs only what the Store has signed, so the verification recipe below is the right tool for a hosted download and the wrong one for a store install.
 - **The Electron framework download itself.** electron-builder fetches prebuilt Electron binaries from Electron's own distribution server; the SHA-256 is checked against electron-builder's baked-in manifest, but the trust assumption cannot be eliminated without shipping a self-built Chromium fork. This is an Electron-ecosystem-wide constraint, not specific to this wallet.
 
@@ -144,13 +167,7 @@ Run against a pristine clone at the tag, before signing, and keep the resulting 
 
 Prerequisites: Docker, git, bash.
 
-**On arm64 (Apple Silicon, arm64 Linux) working amd64 emulation is required**, since the image is amd64-only by design. Docker Desktop ships it; a plain Docker Engine on arm64 Linux does not, and without it reproduction fails with an opaque exec-format error from the Node install layer that names no clear cause. Register emulation once:
-
-```bash
-docker run --privileged --rm tonistiigi/binfmt --install amd64
-```
-
-Expect a substantial speed penalty under emulation, and note that plain `qemu` user-mode emulation is not sufficient for this particular shell: the extension's build pipeline uses a bundler with a static Go-runtime binary, and Go's runtime is one of the things qemu user-mode emulation handles worst, producing an internal crash rather than a slow but successful build. The reliable routes on arm64 are, in order: Docker Desktop on Apple Silicon (which emulates amd64 with Rosetta and runs Go binaries correctly), or any amd64 Linux host with Docker.
+**On arm64 (Apple Silicon, arm64 Linux) working amd64 emulation is required**, since the image is amd64-only by design. Without any emulation registered, reproduction fails with an opaque exec-format error from the Node install layer that names no clear cause; with qemu user-mode emulation it gets further and then crashes inside the bundler (`[vite:define] The service was stopped`). Read "Verifying from an arm64 machine" above before starting: it names the routes that work and the pre-flight check that refuses the one that does not.
 
 ```bash
 # From anywhere inside the repo:
