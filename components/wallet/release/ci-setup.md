@@ -18,21 +18,35 @@ Nothing in a workflow file alone can enforce any of this, because a workflow fil
 
 ## 1. A protected signing environment
 
-Signing jobs run inside a protected deployment environment that requires a human reviewer to approve each run before it can start. A job that names this environment cannot start, and therefore cannot read a signing credential, until a maintainer approves it. The environment is also restricted to the release tag pattern, so it cannot be triggered from an arbitrary branch or pull request.
+Signing jobs run inside a protected deployment environment that is restricted to the release tag pattern, so it cannot be triggered from an arbitrary branch or from a pull request. A job that names this environment can only run on a release tag.
 
-Approval is meant to be a real check, not a rubber stamp: the maintainer looks at the run, confirms the tag points at the commit they meant, on a run they expected, before approving. An unexpected release run gets the same scrutiny as an unexpected password-reset email.
+**There is no human approval step, and this page previously said there was.** A per-run reviewer gate is the natural companion to the restriction above, and it is not available on this repository's plan tier: the platform refuses to create the rule at all. Rather than describe a control that does not exist, this page states what actually stands in its place, which is the signature requirement in §3.
+
+That is a real reduction in defence in depth and it is worth being precise about what it does and does not mean. There is no release path that is unprotected; there is one that is *singly* protected. Someone who obtained the maintainer's repository account, but not the offline tag-signing key, still could not produce a release, because no signing job runs on a tag that is not signed by that key. Someone holding both would meet nothing further.
 
 ## 2. Signing credentials are bound to that environment
 
 Every signing credential (macOS code-signing and notarization, Windows code-signing, and the credentials used for store submission builds) is scoped to the protected environment, never stored as a repository-wide secret. A repository-wide secret is readable by any workflow, including one added from a pull request branch; an environment-scoped one is only readable by a job that has already cleared the approval gate above.
 
-Some of these credentials have configuration that must be complete or not present at all: a partially configured signing path can silently fall back to producing an unsigned artifact rather than failing loudly. That is exactly why the setup is verified end to end (see below) rather than assumed correct from the presence of a few values.
+Some of these credentials have configuration that must be complete or not present at all: a partially configured signing path can silently fall back to producing an unsigned artifact rather than failing loudly. The build tooling does not treat a missing signing credential as an error, it simply skips signing, so a single mistyped value can yield a complete, correctly named, correctly sized set of installers that are not signed at all.
+
+**That failure is now caught rather than merely warned about.** Before the release hash manifest is signed, every artifact is checked against the code signature its platform is expected to carry, and a release with even one unsigned artifact is refused. The ordering matters: the manifest attests the bytes of a file, not who published it, so a manifest signed over unsigned installers would verify perfectly forever and no later check, by us or by a user, could tell the difference. The check has to happen before that signature exists, and it does.
+
+Platforms whose signature cannot be read from the machine assembling the release are recorded as unchecked rather than reported as fine, because "we did not look" and "we looked and it was good" must not appear the same way in a release record.
 
 **The manifest-signing key never appears here, and must never be added.** The release hash manifest is signed offline, on a separate release machine, not inside CI. A CI runner that could sign the manifest would turn every path into the workflow into a path to a signed release; keeping that key off every runner is what makes the rest of this page meaningful.
 
-## 3. Restricting who can create a release tag
+## 3. What actually gates a release: the tag has to be signed
 
-Creating a tag matching the release pattern is restricted to the release maintainer through a repository tag ruleset. Everyone else with push access can still push code and still cannot start a release. Force-pushing over an existing release tag is blocked, so a tag cannot be silently repointed at a different commit after the run that built from it; without that, the run recorded against a tag would stop proving anything, since the tag could later mean something else.
+**A release tag must carry a cryptographic signature from the maintainer's release tag-signing key.** The workflow verifies that signature first, before any job that can read a signing credential runs. A tag pushed by anyone else, or an unsigned tag pushed by the maintainer's own account, starts nothing.
+
+This is the control that does the work, and it is deliberately the one control that does not depend on repository settings or on the maintainer's platform account. The signing key is held offline, not in the repository and not on any runner, so obtaining push access is not enough to produce a release.
+
+**There is no rule restricting who can create a release tag, and this page previously said there was.** Such a rule cannot be expressed correctly here: the platform's tag rules can exempt roles, teams and applications, but not one named person, and this repository has more than one account holding administrative access. Any exemption wide enough to admit the release maintainer would admit the other account too.
+
+**No partial rule was created, and that was a deliberate choice rather than an oversight.** A rule that appears in the settings page while exempting everyone it needed to exclude protects nothing and reads, to the next person who checks, exactly like a rule that works. An absent control that is written down is safer than a present control that does nothing.
+
+Anyone with push access can therefore create a tag. What they cannot do is make a signing job run on it.
 
 ## 4. Keeping signing secrets away from pull requests
 
@@ -43,9 +57,12 @@ The release workflow triggers only on a tag push, never on a pull request or an 
 Before the first real release, and after any change to this setup, the whole chain is exercised end to end rather than assumed:
 
 - A throwaway tag pushed from the maintainer account should start the run, fail the early tag/version consistency check, and never reach a signing job. That is the cheap gate working.
-- A tag creation attempt from a non-maintainer account with push access should be refused outright. If it is not, the tag restriction is not in force and nothing else here matters.
-- On a real tag, the signing jobs should sit in a "waiting for approval" state, with no secret-bearing step run before that approval is given.
-- After approval, the run summary should show what ran and confirm nothing was published anywhere automatically.
+- **An unsigned release tag should stop the run at the signature check, before any secret-bearing job starts.** This is the important one, because it is the control everything else now rests on. If an unsigned tag reaches a signing job, nothing else on this page matters.
+- The signing jobs should be unable to start from a branch or a pull request at all, because the environment they name is restricted to the release tag pattern.
+- The run summary should show what ran and confirm nothing was published anywhere automatically.
+- **Every artifact the release produced should be checked for its expected code signature before the hash manifest is signed** (§2). A release whose signing credentials were missing should fail here rather than produce a signed manifest describing unsigned files.
+
+These four are what can actually be verified. The two checks this list used to open with, a refused tag creation from a non-maintainer and a run "waiting for approval", would both fail today, because neither control exists (§1, §3). A verification step that cannot pass is worse than no step: it either gets quietly skipped or it gets read as a failure of something else.
 
 ---
 

@@ -13,7 +13,7 @@ Start with [Verify a release](verify-release.md) if you just want to check a dow
 |---|---|---|
 | Verification | [Verify a release](verify-release.md) | The recipe anyone can run to verify a downloaded artifact: hash, signature, release identity, and reproducibility |
 | QA | [QA checklist](qa-checklist.md) | The manual pre-release checklist run against every shell before a release is tagged |
-| Release CI | [Release CI setup](ci-setup.md) | How the signing lane in continuous integration is protected: approval gates, tag restrictions, and what is deliberately not automated |
+| Release CI | [Release CI setup](ci-setup.md) | How the signing lane in continuous integration is protected: the signed-tag requirement, the restricted signing environment, the artifact signature check, and what is deliberately not automated |
 | Desktop: Windows | [desktop/windows.md](desktop/windows.md) | NSIS installer and portable zip, Authenticode signing, update channel |
 | Desktop: macOS | [desktop/macos.md](desktop/macos.md) | `.dmg` and `.zip`, notarization, update channel |
 | Desktop: Linux | [desktop/linux.md](desktop/linux.md) | AppImage and `.deb`, reproducible builds, update channel |
