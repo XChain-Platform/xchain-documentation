@@ -106,7 +106,9 @@ info@dankest.llc
 
 On 2026-08-01 the hosted policy URL returned **404**: the page was built, correct and deployed, but only at a staging hostname, because the apex still served an old placeholder document root. The operator flipped the apex the same day and the URL now serves the current policy, confirmed through the edge in a browser and against the origin directly. Re-confirm it yourself before you submit anyway, with the two checks below. This is exactly the kind of thing that is true on the day it is written down and false on the day someone needs it.
 
-The canonical URL, with its trailing slash, is the one [the wallet's privacy policy](../../privacy/privacy-policy.md) publishes. Take it from there rather than retyping it, so there is only ever one copy of it.
+**Where the canonical URL comes from, and it is not a document.** The check below prints it as the first line of its output (`url: ...`), trailing slash included. Take it from there and paste that, rather than retyping it or copying it out of a page: the value the check verified and the value you paste are then the same string, which is the only way to be sure the address you gave the store is the address that was tested. The tool holds it as a single exported constant and a smoke pins that constant, so there is exactly one copy of it anywhere.
+
+**This instruction used to say to take the URL from the privacy policy page, and that page has never carried it** (measured 2026-08-03: the policy names three documentation links and an issue tracker, and never its own hosted address). An operator following the old wording had nowhere to take the value from, and would have retyped from memory the one field on the whole form that the store validates.
 
 ⬜ Confirm the hosted policy URL resolves and serves the current policy:  
 
@@ -189,14 +191,14 @@ Everything paste-ready lives in [Listing collateral](#listing-collateral) below.
 | Listing name, summary, full description | [Listing copy](#listing-copy) |
 | Screenshots (1280x800 popup, side panel, sign approval) and small promo tile (440x280) | [Listing assets](#listing-assets) |
 | Category and final name | [Category and name](#category-and-name) |
-| Privacy-policy URL | The canonical URL from [the wallet's privacy policy](../../privacy/privacy-policy.md); confirm it is still live right before you paste it (Phase 3) |
+| Privacy-policy URL | The `url:` line printed by the Phase 3 check, which is the address it verified live. Re-run it right before you paste, so the verified string and the pasted string are the same one |
 | Privacy practices: remote code, and the data-usage checkboxes | [The extension's data-disclosure answers](../../privacy/data-disclosure.md), which answer the whole tab field by field |
 
 ⬜ Single-purpose, permission justifications, and content-script justification pasted from the collateral below.  
 ⬜ Listing name and description pasted. The name is **`XChain Wallet`**, and it must equal `manifest.json`'s own `name`, which a smoke enforces.  
 ⬜ Four listing assets uploaded from `packages/extension/docs/listing-assets/`.  
 ⬜ Remote-code answer and the data-usage categories ticked from the [data-disclosure answers](../../privacy/data-disclosure.md), and every category the console shows that the disclosure does not name recorded back into it before submitting.  
-⬜ Privacy-policy URL field set to the canonical hosted address.  
+⬜ Privacy-policy URL field set to the exact address the Phase 3 check printed, trailing slash included, not retyped.  
 ⬜ Category and name fields filled from [Category and name](#category-and-name).  
 
 **Before ticking any data-usage box, re-measure.** The wallet does not collect user data, and that is a measured fact rather than a position: the first-party API hosts sit behind a proxy and retain no visitor IP address, and the one log that carries wallet addresses is kept for a day. Two ordinary administrative changes would silently make the answer false again (enabling a real-client-IP module on the API hosts, or moving the explorer access log back under the default rotation). The [data-collection record](../../privacy/data-collection.md) is the declaration all three store forms are transcribed from; confirm it is still true before you answer.
@@ -233,7 +235,7 @@ Do not flip visibility to public until every item below is checked. These are co
 
 ⬜ Installed from the store link (the unlisted item's direct URL, not a sideload) on at least 2 machines.  
 ⬜ A patch version published and observed auto-updating on both of those machines within 24 hours, **measured from the patch showing as PUBLISHED in the console**, not from when it was uploaded; its own review clock sits in between the two.  
-⬜ Connect and sign driven end to end against the sample dApp (see [Testing with the sample dApp](test-dapp-runbook.md)), from the **store-installed** build specifically, not a local development build. This matters because a development server can silently substitute a mock SDK; only a store-installed build proves the real signing path.  
+⬜ Connect and sign driven end to end against the sample dApp, from the **store-installed** build specifically, not a local development build, following [Running this against a store-installed build](test-dapp-runbook.md#1b-running-this-against-a-store-installed-build). This matters because a development server can silently substitute a mock SDK; only a store-installed build proves the real signing path. **Follow that section rather than the runbook's opening steps:** section 1 of that page builds the extension locally and loads it unpacked, which is the exact thing this criterion excludes, and until 2026-08-03 this step linked the page as a whole, so an operator following it did the forbidden thing and ticked the box having proved nothing about the shipped build.  
 
 > **Serve the sample dApp on the machine you are testing from.** These two criteria combine into a trap: "at least 2 machines" invites pointing the second machine at the first one's static server by LAN address, and `http://192.168.x.x:5500` is neither `localhost` nor `127.0.0.1`, so the content script does not run there. `window.xchain` never appears and it reads exactly like a wallet bug, which is a symptom this scope decision has already produced once. Run the server on each machine, or put it behind TLS. Do not widen the manifest to make a test setup work: `test/smoke/audits/extension-provider-origins.smoke.js` will fail, and widening triggers a store re-review and can disable the extension for installed users until they re-accept.
 

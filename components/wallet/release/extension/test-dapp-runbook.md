@@ -35,6 +35,23 @@ In the browser:
 3. Click **Load unpacked** and select `packages/extension/dist/`.
 4. Pin the XChain Wallet action icon so the popup is one click away.
 
+## 1b. Running this against a store-installed build
+
+Everything above builds the extension locally and loads it unpacked, which is right for development and **wrong for the release exit criterion**. The store-release ceremony requires connect and sign to be driven from the build the store actually served, because that is the only version of this walkthrough that proves the shipped artifact signs: a local build can differ from the uploaded one, and a development server can silently substitute a mock SDK, so an unpacked run can pass while the published extension is broken.
+
+When you are here for that criterion rather than for development, replace section 1 with:
+
+1. Open the unlisted item's direct store link in the browser profile you are testing with, and install it from there. Not a sideload, not a re-load of `packages/extension/dist/`.
+2. Confirm on `chrome://extensions` that the entry shows the store item, not an unpacked one: it has the store item's own identifier, and no "Load unpacked" origin.
+3. Pin the action icon as above.
+
+The rest of this page then applies unchanged, with two differences worth knowing before you start:
+
+- **The extension's origin is the store-assigned identifier**, so any origin you see in an approval popup or in developer tools is `chrome-extension://<id>/` with the real identifier rather than a locally generated one.
+- **Seeding a wallet (section 2) is the same operation but a different route**: a store build has no development origin to seed through, so onboard through the extension's own flow, or attach to its service worker from `chrome://extensions` in developer mode exactly as below.
+
+Serve the sample dApp on the machine you are testing from. A LAN address is neither `localhost` nor `127.0.0.1`, the content script does not run there, and `window.xchain` never appears, which reads exactly like a wallet bug.
+
 ## 2. Seed a wallet
 
 Until the packaged onboarding flow covers this, seed a wallet for the test run through the extension's own developer tools: open the service worker's storage panel and confirm the wallet's vault entries exist. If not, plant a vault using a scripted helper, or skip ahead and run a headless automated smoke test instead of the manual pass.
