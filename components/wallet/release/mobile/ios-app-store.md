@@ -19,18 +19,25 @@ This page covers submitting the XChain Wallet iOS app to the Apple App Store: th
 
 ### Before opening a console form
 
-Confirm, in order:
+Tick these in order. Every one of them is cheaper to discover here than at a form that will not let you go back.
 
-- Apple Developer Program organization enrollment is complete and the entity is verified.
-- An Account Holder is named, with hardware-key two-factor authentication on that Apple ID.
-- Release-signing credentials exist and are installed for the release pipeline.
-- The privacy policy URL resolves and serves the current text: see [the wallet's privacy policy](../../privacy/privacy-policy.md). Re-check this immediately before every submission, since it is the deployed text that matters, not just that the URL responds.
-- Privacy answers are settled and consistent with the Android listing's data safety answers; see [the wallet's privacy nutrition labels](../../privacy/privacy-nutrition-labels.md).
-- Territories (storefront availability) are decided (see Territories below).
-- The demo path a reviewer's scripted walkthrough depends on is reachable from a plain client on an outside network, not just an allowlisted internal one.
-- A support URL is live and reachable.
-- The release is built from a committed tree, not a local working copy: a submission built from an uncommitted tree has no durable record of what was actually submitted.
-- The TestFlight posture is settled: an internal group for the first release, no external group yet (see Phase 5). What is NOT optional is that the app has been run on a real device, because the release pipeline's own build cannot demonstrate that.
+⬜ Apple Developer Program organization enrollment is complete and the entity is verified.  
+⬜ An Account Holder is named, with hardware-key two-factor authentication on that Apple ID.  
+⬜ Release-signing credentials exist and are installed for the release pipeline: `APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` and `APPLE_TEAM_ID`. Signing is cloud-managed, so those four are the whole set; no certificate or provisioning profile is installed by hand.  
+⬜ The privacy policy URL resolves and serves the current text. Run the check rather than loading the page and glancing at it:  
+
+```bash
+node tools/release/verify-privacy-url.mjs
+```
+
+Exit 0 means live, direct, and carrying the current policy word for word. It is the deployed text that matters, not just that the URL responds: [the wallet's privacy policy](../../privacy/privacy-policy.md) is the source it compares against, and re-running this immediately before every submission is the point, because a URL that was right last month is not evidence about today.
+
+⬜ Privacy answers are settled and consistent with the Android listing's data safety answers; see [the wallet's privacy nutrition labels](../../privacy/privacy-nutrition-labels.md).  
+⬜ Territories (storefront availability) are decided (see Territories below).  
+⬜ The demo path a reviewer's scripted walkthrough depends on is reachable from a plain client on an outside network, not just an allowlisted internal one.  
+⬜ The support URL is live and reachable: `https://xchain.io/wallet/support/`.  
+⬜ The release is built from a committed tree, not a local working copy: a submission built from an uncommitted tree has no durable record of what was actually submitted.  
+⬜ The TestFlight posture is settled: an internal group for the first release, no external group yet (see Phase 5). What is NOT optional is that the app has been run on a real device, because the release pipeline's own build cannot demonstrate that.  
 
 The store build compiles out in-development surfaces that are not ready for review (for example, an in-app exchange) entirely, rather than feature-flagging them off, so a reviewer sees a build with no code path to the excluded surface, not a flag that could be flipped back on remotely.
 
@@ -38,35 +45,44 @@ The store build compiles out in-development surfaces that are not ready for revi
 
 As the Account Holder:
 
-1. Register the App ID and enable the Associated Domains capability on it, needed for Universal Links. An App ID missing this capability makes the corresponding entitlement unsignable, and the build fails with a provisioning error that does not name the real cause.
-2. Create the Apple Distribution certificate and an App Store provisioning profile for that App ID.
-3. Create an App Store Connect API key scoped to the minimum role that cloud signing accepts, never a broader admin role, since the key is capable of minting new certificates.
-4. Route Apple's certificate-issuance notification emails to a monitored inbox: an unexpected certificate-issuance notice is the signal that the API key has leaked.
-5. Record the Team ID; it is needed later for the domain-association file.
+⬜ Register the App ID and enable the Associated Domains capability on it, needed for Universal Links. An App ID missing this capability makes the corresponding entitlement unsignable, and the build fails with a provisioning error that does not name the real cause.  
+⬜ Create the Apple Distribution certificate and an App Store provisioning profile for that App ID.  
+⬜ Create an App Store Connect API key scoped to the minimum role that cloud signing accepts, never a broader admin role, since the key is capable of minting new certificates.  
+⬜ Route Apple's certificate-issuance notification emails to a monitored inbox: an unexpected certificate-issuance notice is the signal that the API key has leaked.  
+⬜ Record the Team ID; it is needed later for the domain-association file.  
 
 ### Phase 2: release-signing secrets
 
 Install the API key and its identifiers into the release pipeline's secret store. These same values are typically reused by a desktop-notarization lane where one exists, so changing them can affect more than one release lane.
 
+⬜ `APPLE_API_KEY` (the `.p8` contents), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` and `APPLE_TEAM_ID` are set as repository secrets. `tools/release/ios-archive.sh` refuses to run without all four unless it is explicitly in unsigned mode, and the release workflow skips both signing steps when the key id is empty, so a missing secret shows up as a green run that produced nothing rather than as a failure.  
+⬜ The key is stored nowhere else. It can mint certificates, which is why its blast radius is worth one deliberate sentence rather than a habit.  
+
 ### Phase 3: the first archive
 
-On a tagged release, the release pipeline builds the store-profile app bundle, runs a pre-flight check confirming the shipped SDK is not a development mock, stages the bundle, and archives and exports a signed app package for App Store Connect.
+On a tagged release, the release pipeline builds the store-profile app bundle, runs a pre-flight check confirming the shipped SDK is not a development mock, stages the bundle, and archives and exports a signed app package for App Store Connect. The two scripts it runs are the ones you can also run by hand:
 
-The pipeline archives **twice**, and knowing which one you are looking at matters here more than anywhere else in this document. The first archive is unsigned and runs on every tagged release, whether or not the Apple credentials are installed; it proves the build path works. The signed archive runs only when the credentials are present, and it is the only one that can produce something uploadable. **A green archive step therefore does not mean signing happened.** Confirm, in this order, since each of the following masks the next:
+```bash
+XCHAIN_IOS_ARCHIVE_UNSIGNED=1 bash tools/release/ios-archive.sh   # proves the lane, no Apple account
+bash tools/release/ios-archive.sh                                 # signed, needs the four secrets
+XCHAIN_RELEASE_TAG=vX.Y.Z bash tools/release/ios-export.sh        # produces the .ipa, uploads nothing
+```
 
-- The signed archive ran at all, rather than being skipped for missing credentials. On a first release this is the step most likely to have been silently passed over.
-- The build-number fields are populated from the tag, not left empty; an empty build number uploads as one that can never be reused.
-- Provisioning succeeds; a failure here is usually a missing capability from Phase 1 step 1, not a certificate problem.
-- The exported package is named as expected; an unexpected name can fail a later signing or verification step.
-- The artifact-upload step actually ran; check the pipeline's own output on a first release rather than assuming a green run means the artifact exists.
+The pipeline archives **twice**, and knowing which one you are looking at matters here more than anywhere else in this document. The first archive is unsigned and runs on every tagged release, whether or not the Apple credentials are installed; it proves the build path works. The signed archive runs only when the credentials are present, and it is the only one that can produce something uploadable. **A green archive step therefore does not mean signing happened.** Confirm in this order, since each of the following masks the next:
+
+⬜ The signed archive ran at all, rather than being skipped for missing credentials. On a first release this is the step most likely to have been silently passed over.  
+⬜ The build-number fields are populated from the tag, not left empty; an empty build number uploads as one that can never be reused.  
+⬜ Provisioning succeeds; a failure here is usually the missing Associated Domains capability from Phase 1, not a certificate problem.  
+⬜ The exported package is named as expected. `tools/release/ios-export.sh` names it deliberately, because the artifact list matches on that name and an unexpected one hard-fails a later step.  
+⬜ The artifact-upload step actually ran; check the pipeline's own output on a first release rather than assuming a green run means the artifact exists.  
 
 ### Phase 4: the app record and the upload
 
-1. Create the app record in App Store Connect against the Phase 1 App ID. This is the step that pins the bundle identifier publicly.
-2. **Opt OUT of "Designed for iPhone/iPad" Mac availability.** It is on by default, and the operator decided against it on 2026-08-03, so this is a step to perform rather than a question to weigh. Running a mobile web-shell wallet on macOS beside a separate desktop wallet build means two vaults and two update paths, on a surface no smoke or e2e run covers. Availability is editable in App Store Connect at any time, so revisiting it post-launch as a deliberate product decision costs nothing.
-3. Upload the signed package by hand, through Apple's own upload tools, never from CI.
-4. Answer the export-compliance questionnaire. If the app is not exempt from encryption export rules, this carries recurring annual reporting obligations; if it is exempt, which is the common case for a wallet using only standard cryptographic algorithms, record that exemption's basis before submitting.
-5. Wait for the upload to finish processing. A build that fails processing is burned and needs a fresh build number.
+⬜ Create the app record in App Store Connect against the Phase 1 App ID. This is the step that pins the bundle identifier `io.xchain.wallet.ios` publicly, and it cannot be changed afterwards.  
+⬜ **Opt OUT of "Designed for iPhone/iPad" Mac availability.** It is on by default, and the operator decided against it on 2026-08-03, so this is a step to perform rather than a question to weigh. Running a mobile web-shell wallet on macOS beside a separate desktop wallet build means two vaults and two update paths, on a surface no smoke or e2e run covers. Availability is editable in App Store Connect at any time, so revisiting it post-launch as a deliberate product decision costs nothing.  
+⬜ Upload the signed package by hand, through Apple's own upload tools, never from CI.  
+⬜ Answer the export-compliance questionnaire. If the app is not exempt from encryption export rules, this carries recurring annual reporting obligations; if it is exempt, which is the common case for a wallet using only standard cryptographic algorithms, record that exemption's basis before submitting.  
+⬜ Wait for the upload to finish processing. A build that fails processing is burned and needs a fresh build number; App Store Connect accepts each build number exactly once.  
 
 ### Phase 5: TestFlight
 
@@ -76,24 +92,49 @@ Internal testers get a build immediately with no review, and that is what makes 
 
 An external group adds testers outside the team and builds review history ahead of the first submission. It also starts two recurring clocks, which is why it is not on by default: external testers draw a Beta App Review on the first build of each version, usually within hours but occasionally longer, and every uploaded build hard-expires 90 days after upload, so a standing beta channel needs a re-upload cadence or a deliberate decision to let it lapse. No other distribution channel has that expiry.
 
+⬜ The build is installed on a real device from the internal group, and the wallet unlocks. A vault call failing with a keychain error here means the build reaching you is unsigned, not that the app is broken.  
+⬜ The full review demo below has been rehearsed end to end on that device, including the airplane-mode signing step.  
+⬜ Native logging was read at least once rather than guessed at, so a startup problem in review is diagnosable:  
+
+```bash
+bash packages/mobile/scripts/ios-console.sh
+```
+
+That script exists because the obvious `simctl launch --console` prints nothing at all: the app's stdout is block-buffered into a pipe that a wallet at rest never fills. Silence from it is not evidence of anything.
+
 ### Phase 6: the console forms
 
-Use the listing collateral below for the app name, subtitle, keywords, promotional text, description, category and contact details, the age-rating questionnaire, review notes, demo account details, screenshots, and the app icon. Use [the wallet's privacy nutrition labels](../../privacy/privacy-nutrition-labels.md) for the privacy section, and confirm territories against the decision below.
+Every answer is written down. Copy, do not compose. Use the listing collateral below for the app name, subtitle, keywords, promotional text, description, category and contact details, the age-rating questionnaire, review notes, demo account details, screenshots, and the app icon. Use [the wallet's privacy nutrition labels](../../privacy/privacy-nutrition-labels.md) for the privacy section, and confirm territories against the decision below.
+
+⬜ App name, subtitle and keywords entered exactly as written under Listing collateral, character counts unchanged.  
+⬜ Promotional text and description pasted from below, not retyped.  
+⬜ Category, support URL, marketing URL and privacy policy URL taken from Categorization and contact below.  
+⬜ **Trader declaration submitted, transcribed from the block below: entity, address, email and phone.** This one is not editable in the sense that matters, so it is the field to slow down on: see Trader declaration (EU DSA) below.  
+⬜ Age-rating questionnaire answered as tabulated below; the expected outcome is 4+.  
+⬜ Review notes and demo wallet filled in, with a seed generated fresh for this submission.  
+⬜ Screenshot sets uploaded for iPhone and iPad.  
 
 The iPad screenshot set is mandatory for a universal app; a missing iPad set blocks submission outright rather than degrading the listing. The app icon is the one listing asset compiled into the binary itself: unlike every other field here, fixing it after upload needs a new build, not a console edit, so confirm it is correct before archiving.
 
 ### Phase 7: submit
 
-- Always choose manual release rather than automatic release on approval. Automatic release lands at Apple's own schedule and could ship a client ahead of the server-side changes it depends on.
-- Turn phased release on for version updates. It only throttles automatic updates; manual updates and new installs get the new build immediately, so treat it as partial cover, not a full staged rollout.
-- If rejected, a metadata or review-notes fix can sometimes resubmit the same build. Any code change made to pass review needs a new build number, and should ship consistently across every distribution shell rather than only on iOS.
+⬜ Choose **manual release**, never automatic release on approval. Automatic release lands at Apple's own schedule and could ship a client ahead of the server-side changes it depends on.  
+⬜ Turn phased release on for version updates. It only throttles automatic updates; manual updates and new installs get the new build immediately, so treat it as partial cover, not a full staged rollout.  
+⬜ Press submit, and record the build number submitted. If rejected, a metadata or review-notes fix can sometimes resubmit the same build; any code change made to pass review needs a new build number, and should ship consistently across every distribution shell rather than only on iOS.  
 
 ### Phase 8: close the Universal Links loop
 
-1. Publish the domain-association file naming the Team ID and bundle identifier.
-2. Serve it at the domain's `.well-known/apple-app-site-association` path, with no redirect, to an unauthenticated client: iOS fetches it directly through Apple's infrastructure, not through a user's browser.
-3. Claim only a narrow, versioned URL prefix for the app, so the rest of the domain (marketing pages, documentation) keeps opening in the browser as expected.
-4. Verify on a real signed install. The failure mode is silent: an unclaimed or misconfigured link just opens in the browser with nothing explaining why.
+⬜ Publish the domain-association file naming the Team ID and bundle identifier.  
+⬜ Serve it at the domain's `.well-known/apple-app-site-association` path, with no redirect, to an unauthenticated client: iOS fetches it directly through Apple's infrastructure, not through a user's browser. Check it the way Apple's fetcher will, unauthenticated and following nothing:  
+
+```bash
+curl -sS -D- -o /dev/null https://xchain.io/.well-known/apple-app-site-association
+```
+
+A `200` with a JSON content type is what you want. A `301` or a `403` here is the whole failure, and it is invisible from inside a browser session that is already authenticated or already redirected.
+
+⬜ Claim only a narrow, versioned URL prefix for the app, so the rest of the domain (marketing pages, documentation) keeps opening in the browser as expected.  
+⬜ Verify on a real signed install. The failure mode is silent: an unclaimed or misconfigured link just opens in the browser with nothing explaining why.  
 
 ### What this runbook does not cover
 
@@ -151,10 +192,32 @@ Two things worth knowing before anyone improvises a replacement at the console. 
 |---|---|
 | Primary category | Finance |
 | Secondary category | Utilities |
-| Support URL | The project's support page. |
-| Marketing URL | The project's main website. |
-| Privacy policy URL | See [the wallet's privacy policy](../../privacy/privacy-policy.md). |
-| Trader status (EU DSA) | Trader, using the same contact details published on the Chrome and Google Play listings. |
+| Support URL | `https://xchain.io/wallet/support/`. A page rather than a bare address on purpose: it carries the seed-phrase scam warnings and the bug-report route, and an email address on a wallet's public listing is scraped by phishers within days. |
+| Marketing URL | `https://xchain.io` |
+| Privacy policy URL | The URL [the wallet's privacy policy](../../privacy/privacy-policy.md) publishes, with its trailing slash, taken from there rather than retyped here so there is only ever one copy of it. It was checked before the console was opened, and the un-slashed form 301s, which is not what you want a store validator following. |
+| Trader status (EU DSA) | Trader. The values go in exactly as written under Trader declaration below, and they are the same ones the Chrome and Google Play listings publish. |
+
+### Trader declaration (EU DSA)
+
+The trader declaration publishes the legal entity's name, business postal address, contact email, and phone number, permanently and publicly, on the listing. It is not reversible in the sense that matters: editing a field later does not unpublish what was already indexed. Type these exactly, transcribed from here rather than from memory. They are the same values every other store listing publishes; [Trader identity](../../privacy/trader-identity.md) is the declaration of record they come from.
+
+```
+Dankest, LLC
+30 N Gould St Ste N
+Sheridan, WY 82801
+United States
+info@dankest.llc
++1 949-510-5364
+```
+
+| Field | Value |
+|---|---|
+| Entity | `Dankest, LLC` |
+| Postal address | `30 N Gould St Ste N, Sheridan, WY 82801, United States` (a registered agent's, so it exists to be public) |
+| Email | `info@dankest.llc` (identical to what the Chrome and Google Play listings publish, and proven to receive) |
+| Phone | `+1 949-510-5364` |
+
+**Do not silently substitute a different phone number at the console.** If the published number is ever swapped for a forwarding line (a VOIP number that rings the same handset satisfies the EU Digital Services Act identically, since the rule is a working means of contact, not a carrier line), that change lands on all three store listings in the same pass. One legal entity showing different public contacts on different listings is exactly what a reviewer or a regulator notices.
 
 ### Territories
 

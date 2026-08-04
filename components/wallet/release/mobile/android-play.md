@@ -229,12 +229,59 @@ APIs runs as a debuggable build, which starts a debugging server for every app
 regardless of the flag, so an emulator always looks like a failure on the third
 one and can never confirm it.
 
+#### 3a: decide when an approved change goes live, before you submit one
+
+Managed publishing is a single switch on the Publishing overview, and it is
+**off** unless someone turns it on. Off means an approved change publishes at
+the moment Google approves it, which is whatever hour Google happens to finish.
+On means approval parks the change and you press Publish yourself.
+
+Set it before the first submission rather than after, because it decides the
+character of every go-live that follows. For a wallet's first public release
+the argument for turning it on is that the direct-download channel is published
+by hand (Phase 7): if Play goes live while nobody is awake, the two channels
+disagree about what the current release is for as long as it takes someone to
+notice.
+
+It does not affect internal testing. An internal release reaches its testers
+immediately either way, so turning it on costs nothing in the phase you are
+standing in.
+
+⬜ Managed publishing is set deliberately, either on or off, rather than left at
+its default without a reading.
+
+#### 3b: send the app content and listing for review
+
+**This is a separate action from promoting between tracks, and it is easy to
+miss because nothing prompts you.** Uploading a bundle does not submit anything
+for review, and neither does promoting one track to the next. The review is
+requested from the Publishing overview, where a button reads **Submit N changes
+for review** and stays greyed until a bundle exists on some track. That is why
+the step sits here and not in Phase 2 with the forms it submits.
+
+Until this review passes, three things read as though something is broken and
+none of them is:
+
+- the app carries a **temporary name**, its package id with `(unreviewed)`
+  beside it, in place of the store name
+- the track summary reads **Inactive**
+- the release reads **Not reviewed**
+
+Read the staged list before submitting it. The overview names every change it is
+about to send, and a change you do not recognise is one you did not intend to
+make. Below that list sits a separate block of declarations that are not
+published but are taken into account during review; those need no action here.
+
+⬜ The staged change list has been read line by line and every entry is intended.  
+⬜ The submission is sent, and the expectation is set with whoever is waiting:
+a first-time review runs longer than an update review and can draw a manual
+review for a wallet.
+
 ### Phase 4: closed testing (beta)
 
 Promote the same bundle to a closed testing track for a beta cohort before
-production. This is also where the new-app review clock starts, and a new-app
-review runs longer than an update review and can draw a manual review for a
-wallet.
+production. The review clock starts at Phase 3b's submission rather than here,
+so by the time you promote, that clock is usually already running.
 
 ### Phase 5: production, staged
 
@@ -395,13 +442,33 @@ XChain Wallet
 |---|---|
 | Category | Finance |
 | Form factors | Phone only. Tablet, Wear, TV, Auto, and ChromeOS are not claimed: a tablet-optimized layout is an explicit non-goal, and claiming the tablet form factor would obligate tablet-sized screenshots the listing does not carry. The app still runs on a tablet; claiming the form factor is a separate promise from tolerating the screen. |
-| Contact email | The organization's published support address, kept identical across every store listing. |
-| Website | The project's main website. |
-| Privacy policy | See [the wallet's privacy policy](../../privacy/privacy-policy.md). |
+| Contact email | `info@dankest.llc`, which is the trader email below and the address every other store listing publishes. It is the one proven to receive mail; do not swap in a different address for this field alone. |
+| Website (app listing) | `https://xchain.io`. The account-level website is `https://dankest.llc`, and the two are different fields. |
+| Privacy policy | The URL [the wallet's privacy policy](../../privacy/privacy-policy.md) publishes, with its trailing slash, taken from there rather than retyped here so there is only ever one copy of it. Phase 0 already checked it is live and serving the current text. |
 
 ### Trader declaration (EU DSA)
 
-The trader declaration publishes the legal entity's name, business postal address, contact email, and phone number, permanently and publicly, on the listing. Use the same contact details published on the Chrome and App Store listings; one legal entity showing different public contacts on different listings is exactly what a reviewer or a regulator notices.
+The trader declaration publishes the legal entity's name, business postal address, contact email, and phone number, permanently and publicly, on the listing. It is not reversible in the sense that matters: editing a field later does not unpublish what was already indexed. Type these exactly, transcribed from here rather than from memory. They are the same values every other store listing publishes; [Trader identity](../../privacy/trader-identity.md) is the declaration of record they come from.
+
+```
+Dankest, LLC
+30 N Gould St Ste N
+Sheridan, WY 82801
+United States
+info@dankest.llc
++1 949-510-5364
+```
+
+| Field | Value |
+|---|---|
+| Entity | `Dankest, LLC` |
+| Postal address | `30 N Gould St Ste N, Sheridan, WY 82801, United States` (a registered agent's, so it exists to be public) |
+| Email | `info@dankest.llc` (identical to what the Chrome and App Store listings publish, and proven to receive) |
+| Phone | `+1 949-510-5364` |
+
+**Do not silently substitute a different phone number at the console.** If the published number is ever swapped for a forwarding line (a VOIP number that rings the same handset satisfies the EU Digital Services Act identically, since the rule is a working means of contact, not a carrier line), that change lands on all three store listings in the same pass. One legal entity showing different public contacts on different listings is exactly what a reviewer or a regulator notices.
+
+⬜ Trader declaration submitted, matching the identity above: entity, address, email and phone.  
 
 ### Country availability
 
