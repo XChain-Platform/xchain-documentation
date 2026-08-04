@@ -131,7 +131,14 @@ All three are certified. They are true statements about this product, not aspira
 
 ✅ All three store forms answer "not collected", and a smoke fails if they ever stop agreeing. Three stores, one binary.  
 ⬜ [The data-collection record](data-collection.md) has been re-read and is still true; in particular its server-logging finding is a claim with an expiry date, and the collection decision above rests on it. Re-measure the access-log configuration and retention on the explorer, encoder and hub hosts before submitting.  
-⬜ `node packages/extension/scripts/remote-code-audit.mjs` is clean, so the remote-code answer is a measurement rather than a memory.  
+⬜ The remote-code audit is clean **against the artifact being uploaded**, not against a local build. Unpack the release zip you hash-checked in the submission runbook's build-provenance phase, and point the audit at it:
+
+```bash
+unzip -q -o release-artifacts/vX.Y.Z/xchain-wallet-extension-vX.Y.Z.zip -d /tmp/cws-audit
+node packages/extension/scripts/remote-code-audit.mjs /tmp/cws-audit
+```
+
+That directory argument is the whole point of this step. Run bare, the script defaults to `packages/extension/dist`, which is a gitignored local build: it is whatever was last compiled on this machine, from whatever the working tree held at the time, and it can be days old and need never have matched what the store will serve. The remote-code answer is permanent and public, and the same ceremony already refuses a locally built zip for upload for exactly this reason, so auditing one here and calling the answer a measurement would be measuring a different artifact from the one being shipped.  
 ⬜ `node tools/release/verify-privacy-url.mjs` exits 0, so the policy URL the form validates is live and serving the current policy. **Run it for real, over the network.** The smoke suite exercises the checker against stubs, not against the live URL, which is exactly how a 404 survived every green suite on 2026-08-01. **Exit 4 is not a failure and does not block you:** it means the URL is live and current but a contact address the policy publishes is JavaScript-gated at the edge, which is submittable, since the store validates that the URL resolves and serves the policy, and it does. The script prints both ways out when it fires. The CDN was obfuscating the contact address until 2026-08-02; it is not any more (measured: zero obfuscation spans zone-wide), and exit 4 is what tells you if that comes back, rather than the silent decode that hid it.  
 ⬜ The wallet's smoke suite is green, so the host table above still matches `packages/core/src/privacy/wireAudit.js` and the permission claims still match `packages/extension/manifest.json`.  
 ⬜ Any console label that differs from the categories named here has been recorded under [What the console is the authority on](#what-the-console-is-the-authority-on) above, in this pass, before submission.  
