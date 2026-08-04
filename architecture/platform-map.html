@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Copyright © 2025–2026 Dankest, LLC -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XChain Platform - Interactive Architecture Map</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --panel: #161b26;
+    --panel2: #1c2333;
+    --border: #2a3348;
+    --text: #dbe2f0;
+    --muted: #8b96ad;
+    --accent: #5b9dff;
+    --hl: #ffd166;
+    --rpc: #6ea8fe;
+    --async: #f0a94b;
+    --read: #4fd1c5;
+    --write: #c084fc;
+    --lib: #7ee081;
+    --actor: #8b96ad;
+    --build: #8b96ad;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 10px 18px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 16px; font-weight: 600; letter-spacing: .3px; }
+  header h1 span { color: var(--accent); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-left: auto; }
+  .legend .item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .legend .swatch { width: 22px; height: 0; border-top: 2.5px solid; border-radius: 2px; }
+  .legend .swatch.dashed { border-top-style: dashed; }
+  #app { display: flex; flex: 1; min-height: 0; }
+  #diagram-wrap {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(91,157,255,.05), transparent 45%),
+      radial-gradient(circle at 80% 80%, rgba(192,132,252,.04), transparent 45%);
+    cursor: grab;
+  }
+  #diagram-wrap.panning { cursor: grabbing; }
+  svg { width: 100%; height: 100%; display: block; }
+  #zoombar {
+    position: absolute; top: 10px; left: 10px;
+    display: flex; gap: 6px; z-index: 5;
+  }
+  #zoombar button {
+    width: 30px; height: 30px;
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 15px; cursor: pointer;
+  }
+  #zoombar button:hover { border-color: var(--accent); }
+  #hint {
+    position: absolute; bottom: 8px; left: 12px;
+    font-size: 11px; color: var(--muted); pointer-events: none;
+  }
+  /* ---------- SVG elements ---------- */
+  .grp rect { fill: rgba(255,255,255,.022); stroke: var(--border); stroke-dasharray: 5 4; rx: 12; }
+  .grp text { fill: var(--muted); font-size: 12.5px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; }
+  .node { cursor: pointer; }
+  .node .box {
+    fill: var(--panel2);
+    stroke: #3a4663;
+    stroke-width: 1.4;
+    rx: 9;
+    transition: stroke .15s, fill .15s;
+  }
+  .node.type-actor .box { fill: #232a3b; stroke: #4a5570; rx: 26; }
+  .node.type-external .box { fill: #20242e; stroke: #57617a; stroke-dasharray: 6 3; }
+  .node.type-database .box { fill: #1b2436; stroke: #3f5378; }
+  .node.type-library .box { fill: #1b2b22; stroke: #3f6a4d; }
+  .node text.label { fill: var(--text); font-size: 12.5px; font-weight: 600; pointer-events: none; }
+  .node text.sub { fill: var(--muted); font-size: 10px; pointer-events: none; }
+  .node:hover .box, .node.selected .box { stroke: var(--accent); stroke-width: 2; }
+  .node.on-path .box { stroke: var(--hl); stroke-width: 2.4; fill: #263048; }
+  .edge path { fill: none; stroke-width: 1.7; transition: stroke .15s, opacity .2s, stroke-width .15s; }
+  .edge.k-rpc path   { stroke: var(--rpc); }
+  .edge.k-async path { stroke: var(--async); stroke-dasharray: 6 4; }
+  .edge.k-read path  { stroke: var(--read); }
+  .edge.k-write path { stroke: var(--write); }
+  .edge.k-lib path   { stroke: var(--lib); }
+  .edge.k-actor path { stroke: var(--actor); }
+  .edge.k-build path { stroke: var(--build); stroke-dasharray: 3 4; }
+  .edge.on-path path { stroke: var(--hl) !important; stroke-width: 3; stroke-dasharray: none; }
+  .edge.adjacent path { stroke-width: 2.6; }
+  .dimmable.dim { opacity: .13; }
+  .badge circle { fill: var(--hl); stroke: #0e1117; stroke-width: 1.5; }
+  .badge text { fill: #1a1a1a; font-size: 10.5px; font-weight: 700; text-anchor: middle; }
+  /* ---------- Tooltip ---------- */
+  #tooltip {
+    position: absolute;
+    max-width: 320px;
+    background: #0b0e14ee;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    pointer-events: none;
+    z-index: 20;
+    display: none;
+    box-shadow: 0 6px 24px rgba(0,0,0,.5);
+  }
+  #tooltip .t-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+  #tooltip .t-meta { color: var(--accent); font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+  #tooltip .t-desc { color: var(--text); }
+  /* ---------- Flows panel ---------- */
+  #panel {
+    width: 340px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #panel .panel-head {
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  #panel .panel-head h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  #clear-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    font-size: 11px; border-radius: 5px; padding: 3px 9px; cursor: pointer;
+  }
+  #clear-btn:hover { color: var(--text); border-color: var(--accent); }
+  #flow-list { overflow-y: auto; flex: 1; padding: 8px; }
+  .flow {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: var(--panel2);
+    overflow: hidden;
+  }
+  .flow-head { padding: 10px 12px; cursor: pointer; }
+  .flow-head:hover { background: #222b40; }
+  .flow.active { border-color: var(--hl); }
+  .flow.active .flow-head { background: #2a3049; }
+  .flow-title { font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .flow-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+  .flow.active .flow-title .dot { background: var(--hl); }
+  .flow-desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  .flow-steps { display: none; border-top: 1px solid var(--border); padding: 6px 8px 8px; }
+  .flow.active .flow-steps { display: block; }
+  .step {
+    display: flex; gap: 8px; padding: 5px 6px; border-radius: 5px;
+    font-size: 11.5px; line-height: 1.4; cursor: default;
+  }
+  .step:hover { background: #2c3550; }
+  .step .num {
+    flex: none; width: 17px; height: 17px; border-radius: 50%;
+    background: var(--hl); color: #1a1a1a; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .step .txt b { color: var(--accent); font-weight: 600; }
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    #app { flex-direction: column; }
+    #panel { width: 100%; max-height: 45%; border-left: none; border-top: 1px solid var(--border); }
+    .legend { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>XChain</span> Platform &middot; Architecture Map</h1>
+  <nav style="display:flex;gap:14px;font-size:12px"><a href="./" style="color:var(--muted);text-decoration:none">&larr; Architecture docs</a><a href="./platform-map.json" style="color:var(--muted);text-decoration:none">JSON for agents</a></nav>
+  <div class="legend">
+    <div class="item"><div class="swatch" style="border-color:var(--rpc)"></div>RPC / HTTP</div>
+    <div class="item"><div class="swatch dashed" style="border-color:var(--async)"></div>Async / broadcast</div>
+    <div class="item"><div class="swatch" style="border-color:var(--read)"></div>DB read</div>
+    <div class="item"><div class="swatch" style="border-color:var(--write)"></div>DB write</div>
+    <div class="item"><div class="swatch" style="border-color:var(--lib)"></div>In-process library</div>
+    <div class="item"><div class="swatch" style="border-color:var(--hl); border-top-width:3px"></div>Selected flow</div>
+  </div>
+</header>
+<div id="app">
+  <div id="diagram-wrap">
+    <div id="zoombar">
+      <button id="z-in" title="Zoom in">+</button>
+      <button id="z-out" title="Zoom out">&minus;</button>
+      <button id="z-fit" title="Fit">&#8635;</button>
+    </div>
+    <svg id="svg" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="hint">Hover a component for details &middot; click a node to trace its links &middot; pick a flow on the right &middot; drag to pan, scroll to zoom</div>
+    <div id="tooltip"></div>
+  </div>
+  <aside id="panel">
+    <div class="panel-head">
+      <h2>Flows</h2>
+      <button id="clear-btn">Clear</button>
+    </div>
+    <div id="flow-list"></div>
+  </aside>
+</div>
+
+<script id="graph-data" type="application/json">
+{
+  "meta": {
+    "name": "xchain-platform-architecture",
+    "generated": "2026-08-04",
+    "description": "Component graph and end-to-end flows of the XChain Platform, a token protocol on Bitcoin, Litecoin and Dogecoin. Nodes are microservices, libraries, databases and external systems; edges are runtime dependencies; flows are ordered walks through the graph.",
+    "source": "Maintained in the xchain-documentation repo (architecture/platform-map.html); topology mirrors the XChain Platform service repositories. Machine-readable copy: platform-map.json."
+  },
+  "nodes": [
+    { "id": "user", "label": "Token Holder", "type": "actor", "group": "actors", "description": "End user: trades tokens, runs contracts, uses the wallet and browses the explorer." },
+    { "id": "dev", "label": "Developer / Operator", "type": "actor", "group": "actors", "description": "Runs nodes, deploys services, builds integrations on the SDK, drives the e2e suite." },
+    { "id": "coinnode", "label": "Coin Node", "type": "external", "group": "chain", "tech": "bitcoind / litecoind / dogecoind", "description": "Layer-1 full node reached over JSON-RPC. Transactions carry AES-128-CTR obfuscated XCHN ACTION payloads via OP_RETURN, P2SH, P2WSH, multisig or the Taproot envelope (BTC/LTC)." },
+    { "id": "utxo", "label": "xchain-utxo-tracker", "type": "service", "group": "access", "tech": "Node.js, LevelDB", "description": "Two-pass block indexer over the coin node. Persists all UTXOs and balances to LevelDB, keeps an in-memory mempool DB, and serves address/balance/UTXO queries over Express." },
+    { "id": "utxodb", "label": "UTXO Store", "type": "database", "group": "access", "tech": "LevelDB", "description": "Prefix-keyed LevelDB (B=block, T=tx, I=input, O=output, H/J=hints) of UTXOs and balances." },
+    { "id": "encoder", "label": "xchain-encoder", "type": "service", "group": "access", "tech": "Node.js, Express", "description": "Builds unsigned PSBTs embedding XCHN ACTION payloads and picks the carrier (OP_RETURN, P2SH, P2WSH, multisig, Taproot, or AUTO). JSON-RPC: create_tx, estimate_fee, broadcast_tx, get_utxos. Single-instance hard constraint (PID lockfile)." },
+    { "id": "decoder", "label": "xchain-decoder", "type": "service", "group": "index", "tech": "Node.js, MariaDB", "description": "Polls the coin node (blocks + mempool), deobfuscates XCHN payloads, canonicalizes 5 action aliases, validates against the 35-name allowlist and persists raw decoded actions. Detects reorgs and rolls back before re-indexing." },
+    { "id": "decoderdb", "label": "Decoder DB", "type": "database", "group": "index", "tech": "MariaDB", "description": "XChain_{CHAIN}_{NETWORK}_Decoder: raw decoded XChain transactions plus mempool and transparency tables." },
+    { "id": "indexer", "label": "xchain-indexer", "type": "service", "group": "index", "tech": "Node.js, MariaDB", "description": "Reads the decoder DB and applies ACTION semantics: double-entry ledger, XCHAIN gas fees, orders/swaps/dispensers, staking capabilities, attestation validation, system-injected expiries. Executes contracts through xchain-vm and follows decoder reorgs." },
+    { "id": "indexerdb", "label": "Indexer DB", "type": "database", "group": "index", "tech": "MariaDB", "description": "Canonical protocol state: balances, tokens, orders, contracts, contract_state (append-only), staking, attestation and SPV tables." },
+    { "id": "vm", "label": "xchain-vm", "type": "library", "group": "index", "tech": "Node.js, isolated-vm", "description": "Deterministic smart-contract engine: sandboxed V8 isolates, host-side gas metering, 30s CPU / 8MB memory / call depth 4 limits, hardened sandbox (constructor neutering, RegExp removal). Emits actions (XCALL, ATTEST) back to the indexer." },
+    { "id": "hub", "label": "xchain-hub", "type": "service", "group": "hub", "tech": "Node.js, MariaDB", "description": "Config oracle and cross-chain coordinator. PBFT federation (2f+1), five stake-qualified capabilities, price-oracle rounds, attestation engine (http_get / llm providers), reorg-retraction co-signing, governance/slash, and StateAnchorPublisher (ANCHOR on DOGE)." },
+    { "id": "hubdb", "label": "Hub DB", "type": "database", "group": "hub", "tech": "MariaDB", "description": "About 20 tables: configs, validators, consensus state, cross-chain calls, price_snapshots, oracle_prices, attestation stats." },
+    { "id": "explorer", "label": "xchain-explorer", "type": "service", "group": "serve", "tech": "Node.js, Express, WS", "description": "Read-only REST + JSON-RPC + WebSocket API and web UI over indexer state (60+ endpoints, /{COIN} prefixed). Runs a hub-mirror sync for consensus tables, ABI introspection, and an optional sandboxed contract-simulation endpoint." },
+    { "id": "sync", "label": "xchain-sync", "type": "service", "group": "serve", "tech": "Node.js, WS", "description": "Replicates indexer + decoder DBs to validators: REST snapshots plus a WebSocket block feed, transactional apply with rollback, merkle transparency log (sync_meta, merkle_epochs) and pinned-validator checkpoint quorum verification." },
+    { "id": "replicas", "label": "Validator / Replica Nodes", "type": "external", "group": "serve", "description": "Downstream validator stacks fed by xchain-sync. Run their own indexer/explorer against replicated state and re-verify state commitments." },
+    { "id": "miner", "label": "xchain-regtest-miner", "type": "service", "group": "access", "tech": "Node.js", "description": "Regtest-only auto-miner: dual-timer mempool mining, generate_blocks, send_funds, fill_mempool stress tool, set_mock_time for deterministic expiries. Refused on mainnet." },
+    { "id": "sdk", "label": "xchain-sdk", "type": "library", "group": "clients", "tech": "Node.js (npm: library + JSON-RPC server)", "description": "Developer SDK generating all 31 user ACTION types with ticker compaction and a MuSig2 co-signer toolkit. Discovers endpoints via hub getallconfigs with an https downgrade guard; defaults to public .xchain.io hosts off-regtest." },
+    { "id": "wallet", "label": "xchain-wallet", "type": "service", "group": "clients", "tech": "JS monorepo: web SPA, MV3 extension, Electron", "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device." },
+    { "id": "node", "label": "xchain-node", "type": "service", "group": "clients", "tech": "Node.js, Docker, Commander CLI", "description": "Installer/operator CLI: provisions coin nodes (SHA-256 pinned binaries) and every platform service as Docker containers. Ed25519-signed bootstraps, go-live and skew guards, telemetry (opt-out), interactive TUI." },
+    { "id": "dashboard", "label": "xchain-dashboard", "type": "service", "group": "serve", "tech": "Node.js, Express", "description": "Ops dashboard host: auth/users/audit, plugin loader, bundled network-monitor (push-agent ingest) and CI-status plugins." },
+    { "id": "e2e", "label": "xchain-e2e-test", "type": "service", "group": "clients", "tech": "Mocha", "description": "Full-stack end-to-end suite: broadcasts real transactions on regtest through service connectors (Blockchain, Encoder, Indexer, Hub, UtxoTracker, RegtestMiner), 30+ waitFor* DB pollers, BTC/LTC/DOGE parity corpus, perf gates." },
+    { "id": "contracts", "label": "xchain-contracts", "type": "library", "group": "clients", "tech": "Node.js, mocha (tooling only)", "description": "Smart-contract template library (amm, escrow, vesting, crowdsale, treasury, priceBet, stableVault, urlOracle, cardDispenser) plus a policy-driven controller-guard generator. Deployed as base64 DEPLOY actions; tested against xchain-vm." },
+    { "id": "docs", "label": "xchain-documentation", "type": "service", "group": "content", "tech": "Markdown", "description": "Protocol reference: per-ACTION specs, gas/fee schedule, Token Information Standard schema, architecture, operator and user guides." },
+    { "id": "websites", "label": "xchain-websites", "type": "service", "group": "content", "tech": "Node.js static-site builder", "description": "Builds xchain.io, the docs site (with search index), bootstrap/database download pages, and verifies the live encoder catalog against deployment." }
+  ],
+  "edges": [
+    { "id": "r1", "source": "utxo", "target": "coinnode", "label": "reads blocks + mempool (JSON-RPC)", "kind": "rpc" },
+    { "id": "r2", "source": "utxo", "target": "utxodb", "label": "persists UTXOs / balances", "kind": "write" },
+    { "id": "r3", "source": "encoder", "target": "utxo", "label": "get_utxos for transaction inputs", "kind": "rpc" },
+    { "id": "r4", "source": "encoder", "target": "coinnode", "label": "broadcast_tx: signed tx to mempool", "kind": "async" },
+    { "id": "r5", "source": "decoder", "target": "coinnode", "label": "polls blocks + mempool", "kind": "rpc" },
+    { "id": "r6", "source": "decoder", "target": "decoderdb", "label": "writes decoded actions", "kind": "write" },
+    { "id": "r7", "source": "indexer", "target": "decoderdb", "label": "reads decoded actions", "kind": "read" },
+    { "id": "r8", "source": "indexer", "target": "indexerdb", "label": "writes protocol state", "kind": "write" },
+    { "id": "r9", "source": "indexer", "target": "vm", "label": "DEPLOY / EXECUTE in V8 sandbox", "kind": "lib" },
+    { "id": "r10", "source": "indexer", "target": "hub", "label": "config, price snapshots, cross-chain coordination", "kind": "async" },
+    { "id": "r11", "source": "explorer", "target": "indexerdb", "label": "reads protocol state", "kind": "read" },
+    { "id": "r12", "source": "explorer", "target": "hub", "label": "config oracle + hub-mirror sync", "kind": "async" },
+    { "id": "r13", "source": "hub", "target": "hubdb", "label": "config / consensus / oracle state", "kind": "write" },
+    { "id": "r14", "source": "hub", "target": "encoder", "label": "publishes ANCHOR / ATTEST / PRICE actions", "kind": "rpc" },
+    { "id": "r15", "source": "sync", "target": "indexerdb", "label": "snapshots + follows state", "kind": "read" },
+    { "id": "r16", "source": "sync", "target": "decoderdb", "label": "snapshots decoded txs (8 of 9 tables)", "kind": "read" },
+    { "id": "r17", "source": "sync", "target": "replicas", "label": "REST snapshots + WebSocket block feed", "kind": "async" },
+    { "id": "r18", "source": "miner", "target": "coinnode", "label": "auto-mines mempool (regtest)", "kind": "rpc" },
+    { "id": "r19", "source": "sdk", "target": "encoder", "label": "create_tx / broadcast", "kind": "rpc" },
+    { "id": "r20", "source": "sdk", "target": "explorer", "label": "queries + WebSocket subscriptions", "kind": "rpc" },
+    { "id": "r21", "source": "sdk", "target": "hub", "label": "endpoint discovery (getallconfigs)", "kind": "rpc" },
+    { "id": "r22", "source": "wallet", "target": "sdk", "label": "composes + signs actions", "kind": "lib" },
+    { "id": "r23", "source": "wallet", "target": "explorer", "label": "balances / history / action decode", "kind": "rpc" },
+    { "id": "r24", "source": "node", "target": "coinnode", "label": "provisions + runs containers", "kind": "rpc" },
+    { "id": "r25", "source": "node", "target": "hub", "label": "pushes config (updateconfig)", "kind": "rpc" },
+    { "id": "r26", "source": "dashboard", "target": "indexerdb", "label": "reads ops data", "kind": "read" },
+    { "id": "r27", "source": "e2e", "target": "encoder", "label": "broadcasts real test transactions", "kind": "rpc" },
+    { "id": "r28", "source": "e2e", "target": "miner", "label": "mines blocks on demand", "kind": "rpc" },
+    { "id": "r29", "source": "e2e", "target": "indexerdb", "label": "waitFor* state polling", "kind": "read" },
+    { "id": "r30", "source": "e2e", "target": "hub", "label": "federation / config checks", "kind": "rpc" },
+    { "id": "r31", "source": "contracts", "target": "vm", "label": "templates linted + tested against the VM", "kind": "lib" },
+    { "id": "r32", "source": "websites", "target": "docs", "label": "builds the docs site", "kind": "build" },
+    { "id": "r33", "source": "user", "target": "wallet", "label": "manages tokens", "kind": "actor" },
+    { "id": "r34", "source": "user", "target": "explorer", "label": "browses on-chain activity", "kind": "actor" },
+    { "id": "r35", "source": "dev", "target": "node", "label": "installs / operates the stack", "kind": "actor" },
+    { "id": "r36", "source": "dev", "target": "sdk", "label": "builds integrations", "kind": "actor" },
+    { "id": "r37", "source": "dev", "target": "e2e", "label": "runs the full-stack suite", "kind": "actor" }
+  ],
+  "flows": [
+    {
+      "id": "f1",
+      "name": "Submit an action (write path)",
+      "description": "A user sends a token action from the wallet all the way to confirmed, indexed protocol state.",
+      "steps": [
+        { "n": 1, "node": "user", "edge": "r33", "action": "User initiates an action (SEND, ISSUE, ORDER, ...) in the wallet." },
+        { "n": 2, "node": "wallet", "edge": "r22", "action": "Wallet composes the pipe-delimited ACTION payload via the SDK." },
+        { "n": 3, "node": "sdk", "edge": "r19", "action": "SDK calls encoder create_tx with the payload and funding address." },
+        { "n": 4, "node": "encoder", "edge": "r3", "action": "Encoder fetches spendable UTXOs from the utxo-tracker and builds an unsigned PSBT (carrier chosen: OP_RETURN, P2SH, P2WSH, multisig or Taproot)." },
+        { "n": 5, "node": "wallet", "action": "Wallet signs the PSBT locally; keys never leave the device." },
+        { "n": 6, "node": "encoder", "edge": "r4", "action": "Signed transaction is broadcast to the coin node mempool via broadcast_tx." },
+        { "n": 7, "node": "coinnode", "edge": "r5", "action": "Transaction confirms in a block; decoder polls it out." },
+        { "n": 8, "node": "decoder", "edge": "r6", "action": "Decoder deobfuscates the XCHN payload and persists the raw action." },
+        { "n": 9, "node": "indexer", "edge": "r7", "action": "Indexer reads the decoded action and applies protocol semantics (ledger moves, XCHAIN gas fee)." },
+        { "n": 10, "node": "indexerdb", "edge": "r8", "action": "Canonical state is written to the indexer DB." },
+        { "n": 11, "node": "explorer", "edge": "r11", "action": "Explorer serves the new balance/action to users and the wallet." }
+      ]
+    },
+    {
+      "id": "f2",
+      "name": "Block confirmation pipeline",
+      "description": "The core read pipeline: coin node to decoder to indexer to explorer, with reorg rollback at each stage.",
+      "steps": [
+        { "n": 1, "node": "coinnode", "edge": "r5", "action": "Decoder polls each new block (and mempool every 60s)." },
+        { "n": 2, "node": "decoder", "edge": "r6", "action": "XCHN payloads are deobfuscated, alias-canonicalized, allowlist-validated and persisted." },
+        { "n": 3, "node": "decoderdb", "edge": "r7", "action": "Indexer picks up new decoded rows (and detects decoder-side reorg rollbacks)." },
+        { "n": 4, "node": "indexer", "edge": "r9", "action": "DEPLOY/EXECUTE actions run inside xchain-vm isolates with gas metering." },
+        { "n": 5, "node": "vm", "edge": "r8", "action": "State changes and emitted actions are folded into the block result and written." },
+        { "n": 6, "node": "indexerdb", "edge": "r11", "action": "Explorer, dashboard and sync all consume the canonical state." },
+        { "n": 7, "node": "explorer", "action": "REST / JSON-RPC / WebSocket clients see the confirmed block." }
+      ]
+    },
+    {
+      "id": "f3",
+      "name": "Smart-contract deploy + execute",
+      "description": "A contract template goes from the contracts library through DEPLOY/EXECUTE to append-only contract state.",
+      "steps": [
+        { "n": 1, "node": "contracts", "edge": "r31", "action": "Template (amm, escrow, vesting, ...) is authored and tested against xchain-vm; guard contracts can be generated from a JSON policy." },
+        { "n": 2, "node": "sdk", "edge": "r19", "action": "Contract code is base64-encoded into a DEPLOY action (or EXECUTE with method + params) and sent to the encoder. DEPOSIT + method calls travel together as a BATCH." },
+        { "n": 3, "node": "encoder", "edge": "r4", "action": "PSBT is built, signed by the caller and broadcast." },
+        { "n": 4, "node": "coinnode", "edge": "r5", "action": "Confirmed action flows down the decode pipeline." },
+        { "n": 5, "node": "decoder", "edge": "r6", "action": "Raw DEPLOY/EXECUTE persisted." },
+        { "n": 6, "node": "indexer", "edge": "r9", "action": "Indexer drives beginBlock, DEPLOY/EXECUTE in the sandbox, endBlock; gas is charged in XCHAIN." },
+        { "n": 7, "node": "vm", "edge": "r8", "action": "Deterministic result (state changes, emitted actions, logs) is committed; contract custody uses derived address C:CHAIN:index." },
+        { "n": 8, "node": "explorer", "edge": "r11", "action": "Contract page shows ABI, state and executions; optional sandboxed read-only simulation." }
+      ]
+    },
+    {
+      "id": "f4",
+      "name": "Cross-chain call (XCALL)",
+      "description": "A contract on one chain calls a contract on another via VM emission and the hub federation.",
+      "steps": [
+        { "n": 1, "node": "vm", "edge": "r9", "action": "Source-chain contract calls xchain.emit.crossExecute(...), emitting XCALL v0 with a deterministic sha256 request_id." },
+        { "n": 2, "node": "indexer", "edge": "r10", "action": "Source indexer records the cross-chain call and surfaces it to the hub." },
+        { "n": 3, "node": "hub", "edge": "r13", "action": "Hub federation reaches PBFT quorum (2f+1) on the call and tracks it in cross_chain_calls." },
+        { "n": 4, "node": "hub", "edge": "r10", "action": "Target-chain indexer receives the mirrored call and system-injects XEXEC (no on-chain tx on the target)." },
+        { "n": 5, "node": "indexer", "edge": "r9", "action": "Target contract executes in the VM; results settle into target-chain state." },
+        { "n": 6, "node": "indexerdb", "edge": "r8", "action": "If the deadline passes without quorum, XCALL v2 expiry is system-synthesized and escrow refunded." }
+      ]
+    },
+    {
+      "id": "f5",
+      "name": "External attestation round-trip",
+      "description": "A contract requests off-chain data; the hub federation fetches, agrees and answers on-chain.",
+      "steps": [
+        { "n": 1, "node": "vm", "edge": "r9", "action": "Contract calls xchain.attestation.request(providerId, payload, callback...), emitting ATTEST v0 with gas escrow." },
+        { "n": 2, "node": "indexer", "edge": "r10", "action": "Request lands in protocol state; hub validators poll getpendingattestation_requests." },
+        { "n": 3, "node": "hub", "edge": "r13", "action": "A responsible set is selected by hash ordering; the provider fetches (http_get byte-equality or llm judge-model) and PBFT consensus runs." },
+        { "n": 4, "node": "hub", "edge": "r14", "action": "AttestationPublisher submits ATTEST v1 (response) on-chain through the encoder." },
+        { "n": 5, "node": "encoder", "edge": "r4", "action": "Response transaction is broadcast and confirms." },
+        { "n": 6, "node": "decoder", "edge": "r6", "action": "Decoder persists the ATTEST v1 action." },
+        { "n": 7, "node": "indexer", "edge": "r9", "action": "Indexer validates 2f+1 signatures and fires the contract's callback EXECUTE; on deadline expiry it injects ATTEST v2 and refunds escrow." }
+      ]
+    },
+    {
+      "id": "f6",
+      "name": "PRICE oracle + native-fee pricing",
+      "description": "Validator price rounds flow on-chain and back into every indexer for fee conversion.",
+      "steps": [
+        { "n": 1, "node": "hub", "edge": "r13", "action": "Oracle rounds run in the federation; price-capable signers agree COIN/FIAT snapshots." },
+        { "n": 2, "node": "hub", "edge": "r14", "action": "An oracle_publish-capable publisher broadcasts PRICE v0 through the encoder." },
+        { "n": 3, "node": "encoder", "edge": "r4", "action": "PRICE transaction is broadcast and confirms." },
+        { "n": 4, "node": "decoder", "edge": "r6", "action": "Decoder persists the PRICE action from the chain." },
+        { "n": 5, "node": "hub", "edge": "r13", "action": "Hub indexes snapshots into price_snapshots / oracle_prices (its local DB copy)." },
+        { "n": 6, "node": "indexer", "edge": "r10", "action": "Every indexer reads the price tables during block processing to convert native-coin fees to XCHAIN." }
+      ]
+    },
+    {
+      "id": "f7",
+      "name": "Validator replication (xchain-sync)",
+      "description": "How a validator or replica node acquires and verifies platform state without trusting the source.",
+      "steps": [
+        { "n": 1, "node": "sync", "edge": "r15", "action": "Sync server snapshots the indexer DB and tails new blocks." },
+        { "n": 2, "node": "sync", "edge": "r16", "action": "Decoder DB is snapshotted too (8 of 9 tables; transparency/mempool excluded by design)." },
+        { "n": 3, "node": "sync", "edge": "r17", "action": "Replicas bootstrap over REST snapshots then follow the WebSocket block feed." },
+        { "n": 4, "node": "replicas", "action": "ClientApplier applies transactionally (batches of 100, rollback support); merkle epochs and pinned-validator checkpoint quorum verify the stream." }
+      ]
+    },
+    {
+      "id": "f8",
+      "name": "State anchoring (ANCHOR on DOGE)",
+      "description": "Quorum-signed per-chain state checkpoints are anchored on Dogecoin for chain-parse recoverability.",
+      "steps": [
+        { "n": 1, "node": "hub", "edge": "r13", "action": "StateAnchorPublisher elects a publisher by hash ordering and assembles quorum-signed per-chain checkpoints plus the compressed cross-chain match archive." },
+        { "n": 2, "node": "hub", "edge": "r14", "action": "ANCHOR v0/v1/v2 is built and submitted through the DOGE encoder (hub signer wallet)." },
+        { "n": 3, "node": "encoder", "edge": "r4", "action": "Anchor transaction is broadcast on Dogecoin." },
+        { "n": 4, "node": "decoder", "edge": "r6", "action": "DOGE decoder picks the ANCHOR out of the block." },
+        { "n": 5, "node": "indexer", "edge": "r8", "action": "Indexers verify and record the checkpoint; RewardTracker records publisher rewards." }
+      ]
+    },
+    {
+      "id": "f9",
+      "name": "Regtest e2e campaign",
+      "description": "How the full stack is exercised end to end with real transactions on regtest.",
+      "steps": [
+        { "n": 1, "node": "dev", "edge": "r37", "action": "Operator runs the Mocha suite (mainnet guard refuses NETWORK=mainnet)." },
+        { "n": 2, "node": "e2e", "edge": "r27", "action": "Action tests build and broadcast real transactions through the encoder connector; no mocking at the action level." },
+        { "n": 3, "node": "encoder", "edge": "r4", "action": "Transactions enter the regtest mempool." },
+        { "n": 4, "node": "e2e", "edge": "r28", "action": "Regtest miner mines on demand (or on its dual timers); set_mock_time pins clocks for deterministic expiries." },
+        { "n": 5, "node": "miner", "edge": "r18", "action": "Blocks are mined; the pipeline processes them." },
+        { "n": 6, "node": "e2e", "edge": "r29", "action": "30+ waitFor* pollers assert indexer state; the parity corpus asserts identical state across BTC/LTC/DOGE." }
+      ]
+    },
+    {
+      "id": "f10",
+      "name": "Explore (read path)",
+      "description": "A user browses balances, actions and contracts without touching a wallet.",
+      "steps": [
+        { "n": 1, "node": "user", "edge": "r34", "action": "User opens the explorer UI or hits the REST/WebSocket API." },
+        { "n": 2, "node": "explorer", "edge": "r11", "action": "Explorer answers from the indexer DB (read-only, parameterized SQL)." },
+        { "n": 3, "node": "explorer", "edge": "r12", "action": "Consensus/governance tables come from the hub mirror; config is auto-refreshed from the hub every 60s." }
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  "use strict";
+  const DATA = JSON.parse(document.getElementById("graph-data").textContent);
+
+  // ----- Layout (presentation-only; the JSON above is the data contract) -----
+  const W = 1660, H = 980;
+  const POS = {
+    user:      { x: 88,   y: 120 },
+    dev:       { x: 88,   y: 760 },
+    wallet:    { x: 285,  y: 120 },
+    sdk:       { x: 285,  y: 265 },
+    contracts: { x: 285,  y: 405 },
+    e2e:       { x: 285,  y: 640 },
+    node:      { x: 285,  y: 800 },
+    encoder:   { x: 545,  y: 195 },
+    utxo:      { x: 545,  y: 355 },
+    utxodb:    { x: 545,  y: 470 },
+    miner:     { x: 545,  y: 660 },
+    coinnode:  { x: 775,  y: 470 },
+    hub:       { x: 1000, y: 85 },
+    hubdb:     { x: 1185, y: 85 },
+    decoder:   { x: 970,  y: 285 },
+    decoderdb: { x: 1155, y: 285 },
+    vm:        { x: 970,  y: 470 },
+    indexer:   { x: 1155, y: 470 },
+    indexerdb: { x: 1330, y: 470 },
+    explorer:  { x: 1520, y: 285 },
+    sync:      { x: 1520, y: 520 },
+    replicas:  { x: 1520, y: 655 },
+    dashboard: { x: 1520, y: 795 },
+    websites:  { x: 790,  y: 880 },
+    docs:      { x: 990,  y: 880 }
+  };
+  const GROUPS = [
+    { label: "Clients & Dev Tooling",    x: 195, y: 55,  w: 185, h: 800 },
+    { label: "Chain Access",             x: 445, y: 130, w: 200, h: 590 },
+    { label: "Hub Federation",           x: 895, y: 30,  w: 385, h: 115 },
+    { label: "Decode / Index / Execute", x: 870, y: 220, w: 555, h: 315 },
+    { label: "Serving & Replication",    x: 1425,y: 220, w: 195, h: 630 },
+    { label: "Docs & Sites",             x: 690, y: 825, w: 400, h: 115 }
+  ];
+  const NODE_W = 158, NODE_H = 52;
+
+  const nodesById = {}; DATA.nodes.forEach(n => nodesById[n.id] = n);
+  const edgesById = {}; DATA.edges.forEach(e => edgesById[e.id] = e);
+
+  const svg = document.getElementById("svg");
+  const NS = "http://www.w3.org/2000/svg";
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const el = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+
+  const root = el("g", { id: "root" }, svg);
+  const gGroups = el("g", {}, root);
+  const gEdges  = el("g", {}, root);
+  const gNodes  = el("g", {}, root);
+  const gBadges = el("g", {}, root);
+
+  // Arrow markers per kind
+  const defs = el("defs", {}, svg);
+  const KINDS = { rpc: "#6ea8fe", async: "#f0a94b", read: "#4fd1c5", write: "#c084fc", lib: "#7ee081", actor: "#8b96ad", build: "#8b96ad", path: "#ffd166" };
+  for (const k in KINDS) {
+    const m = el("marker", { id: "arr-" + k, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
+    el("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: KINDS[k] }, m);
+  }
+
+  // Group boxes
+  GROUPS.forEach(g => {
+    const gg = el("g", { class: "grp" }, gGroups);
+    el("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 12 }, gg);
+    const t = el("text", { x: g.x + 10, y: g.y + 18 }, gg);
+    t.textContent = g.label;
+  });
+
+  // ---- Edge geometry: anchor on node borders, gentle beziers ----
+  function anchor(fromId, toId) {
+    const a = POS[fromId], b = POS[toId];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const hw = NODE_W / 2, hh = NODE_H / 2;
+    if (Math.abs(dx) * hh > Math.abs(dy) * hw) {
+      return { x: a.x + Math.sign(dx) * hw, y: a.y + dy * (hw / Math.abs(dx || 1)) * 0.4, side: dx > 0 ? "r" : "l" };
+    }
+    return { x: a.x + dx * (hh / Math.abs(dy || 1)) * 0.4, y: a.y + Math.sign(dy) * hh, side: dy > 0 ? "b" : "t" };
+  }
+  function edgePath(e) {
+    const p1 = anchor(e.source, e.target);
+    const p2 = anchor(e.target, e.source);
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const bend = Math.min(90, Math.max(35, Math.hypot(dx, dy) / 3));
+    const c1 = { x: p1.x, y: p1.y }, c2 = { x: p2.x, y: p2.y };
+    if (p1.side === "r") c1.x += bend; else if (p1.side === "l") c1.x -= bend;
+    else if (p1.side === "b") c1.y += bend; else c1.y -= bend;
+    if (p2.side === "r") c2.x += bend; else if (p2.side === "l") c2.x -= bend;
+    else if (p2.side === "b") c2.y += bend; else c2.y -= bend;
+    return `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`;
+  }
+
+  const edgeEls = {};
+  DATA.edges.forEach(e => {
+    const g = el("g", { class: `edge dimmable k-${e.kind}`, "data-id": e.id }, gEdges);
+    // invisible fat hit path for hover
+    const hit = el("path", { d: edgePath(e), stroke: "transparent", "stroke-width": 14, fill: "none" }, g);
+    const p = el("path", { d: edgePath(e), "marker-end": `url(#arr-${e.kind})` }, g);
+    edgeEls[e.id] = g;
+    g.addEventListener("mousemove", ev => showTip(ev, {
+      name: `${nodesById[e.source].label} → ${nodesById[e.target].label}`,
+      meta: e.kind.toUpperCase() + " link",
+      desc: e.label
+    }));
+    g.addEventListener("mouseleave", hideTip);
+  });
+
+  // ---- Nodes ----
+  const nodeEls = {};
+  DATA.nodes.forEach(n => {
+    const p = POS[n.id];
+    const g = el("g", { class: `node dimmable type-${n.type}`, "data-id": n.id, transform: `translate(${p.x - NODE_W / 2}, ${p.y - NODE_H / 2})` }, gNodes);
+    el("rect", { class: "box", width: NODE_W, height: NODE_H, rx: n.type === "actor" ? 26 : 9 }, g);
+    if (n.type === "database") {
+      el("ellipse", { cx: NODE_W / 2, cy: 5, rx: NODE_W / 2 - 8, ry: 5, fill: "none", stroke: "#3f5378", "stroke-width": 1.2 }, g);
+    }
+    const label = el("text", { class: "label", x: NODE_W / 2, y: n.tech ? 23 : 31, "text-anchor": "middle" }, g);
+    label.textContent = n.label;
+    if (n.tech) {
+      const sub = el("text", { class: "sub", x: NODE_W / 2, y: 39, "text-anchor": "middle" }, g);
+      let t = n.tech; if (t.length > 30) t = t.slice(0, 29) + "…";
+      sub.textContent = t;
+    }
+    nodeEls[n.id] = g;
+    g.addEventListener("mousemove", ev => showTip(ev, { name: n.label, meta: `${n.type}${n.tech ? " · " + n.tech : ""}`, desc: n.description }));
+    g.addEventListener("mouseleave", hideTip);
+    g.addEventListener("click", ev => { ev.stopPropagation(); selectNode(n.id); });
+  });
+
+  // ---- Tooltip ----
+  const tip = document.getElementById("tooltip");
+  const wrap = document.getElementById("diagram-wrap");
+  function showTip(ev, { name, meta, desc }) {
+    tip.innerHTML = `<div class="t-name"></div><div class="t-meta"></div><div class="t-desc"></div>`;
+    tip.children[0].textContent = name;
+    tip.children[1].textContent = meta;
+    tip.children[2].textContent = desc || "";
+    tip.style.display = "block";
+    const r = wrap.getBoundingClientRect();
+    let x = ev.clientX - r.left + 16, y = ev.clientY - r.top + 14;
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    if (x + tw > r.width - 8) x = ev.clientX - r.left - tw - 12;
+    if (y + th > r.height - 8) y = ev.clientY - r.top - th - 12;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hideTip() { tip.style.display = "none"; }
+
+  // ---- Highlighting ----
+  const allDim = () => document.querySelectorAll(".dimmable");
+  function clearHighlight() {
+    allDim().forEach(e => e.classList.remove("dim", "on-path", "adjacent", "selected"));
+    gBadges.innerHTML = "";
+    document.querySelectorAll(".flow").forEach(f => f.classList.remove("active"));
+    activeFlow = null; selectedNode = null;
+  }
+  let selectedNode = null, activeFlow = null;
+
+  function selectNode(id) {
+    if (selectedNode === id) { clearHighlight(); return; }
+    clearHighlight();
+    selectedNode = id;
+    const keepN = new Set([id]), keepE = new Set();
+    DATA.edges.forEach(e => {
+      if (e.source === id || e.target === id) {
+        keepE.add(e.id); keepN.add(e.source); keepN.add(e.target);
+      }
+    });
+    DATA.nodes.forEach(n => { if (!keepN.has(n.id)) nodeEls[n.id].classList.add("dim"); });
+    DATA.edges.forEach(e => {
+      if (!keepE.has(e.id)) edgeEls[e.id].classList.add("dim");
+      else edgeEls[e.id].classList.add("adjacent");
+    });
+    nodeEls[id].classList.add("selected");
+  }
+
+  function activateFlow(flow, cardEl) {
+    if (activeFlow === flow.id) { clearHighlight(); return; }
+    clearHighlight();
+    activeFlow = flow.id;
+    cardEl.classList.add("active");
+    const keepN = new Set(), keepE = new Set();
+    flow.steps.forEach(s => { if (s.node) keepN.add(s.node); if (s.edge) { keepE.add(s.edge); const e = edgesById[s.edge]; keepN.add(e.source); keepN.add(e.target); } });
+    DATA.nodes.forEach(n => {
+      if (keepN.has(n.id)) nodeEls[n.id].classList.add("on-path");
+      else nodeEls[n.id].classList.add("dim");
+    });
+    DATA.edges.forEach(e => {
+      if (keepE.has(e.id)) { edgeEls[e.id].classList.add("on-path"); edgeEls[e.id].querySelector("path:last-child").setAttribute("marker-end", "url(#arr-path)"); }
+      else edgeEls[e.id].classList.add("dim");
+    });
+    if (!keepE.size) return badgeSteps(flow);
+    badgeSteps(flow);
+  }
+  function badgeSteps(flow) {
+    // number badges at the first-step node positions
+    const seen = {};
+    flow.steps.forEach(s => {
+      if (!s.node) return;
+      (seen[s.node] = seen[s.node] || []).push(s.n);
+    });
+    for (const id in seen) {
+      const p = POS[id];
+      const g = el("g", { class: "badge" }, gBadges);
+      const label = seen[id].join(",");
+      const w = Math.max(20, 8 + label.length * 6.5);
+      el("rect", { x: p.x + NODE_W / 2 - w + 6, y: p.y - NODE_H / 2 - 10, width: w, height: 18, rx: 9, fill: "#ffd166", stroke: "#0e1117", "stroke-width": 1.5 }, g);
+      const t = el("text", { x: p.x + NODE_W / 2 - w / 2 + 6, y: p.y - NODE_H / 2 + 3 }, g);
+      t.textContent = label;
+    }
+  }
+
+  // Reset markers when clearing (on-path marker swap)
+  const origClear = clearHighlight;
+  clearHighlight = function () {
+    DATA.edges.forEach(e => {
+      edgeEls[e.id].querySelector("path:last-child").setAttribute("marker-end", `url(#arr-${e.kind})`);
+    });
+    origClear();
+  };
+
+  // ---- Flows panel ----
+  const list = document.getElementById("flow-list");
+  DATA.flows.forEach(flow => {
+    const card = document.createElement("div");
+    card.className = "flow";
+    const head = document.createElement("div");
+    head.className = "flow-head";
+    head.innerHTML = `<div class="flow-title"><span class="dot"></span><span></span></div><div class="flow-desc"></div>`;
+    head.querySelector(".flow-title span:last-child").textContent = flow.name;
+    head.querySelector(".flow-desc").textContent = flow.description;
+    const steps = document.createElement("div");
+    steps.className = "flow-steps";
+    flow.steps.forEach(s => {
+      const d = document.createElement("div");
+      d.className = "step";
+      const num = document.createElement("div"); num.className = "num"; num.textContent = s.n;
+      const txt = document.createElement("div"); txt.className = "txt";
+      const b = document.createElement("b"); b.textContent = s.node ? nodesById[s.node].label + ": " : "";
+      txt.appendChild(b); txt.appendChild(document.createTextNode(s.action));
+      d.appendChild(num); d.appendChild(txt);
+      d.addEventListener("mouseenter", () => {
+        if (s.node) nodeEls[s.node].classList.add("selected");
+        if (s.edge) edgeEls[s.edge].classList.add("adjacent");
+      });
+      d.addEventListener("mouseleave", () => {
+        if (s.node) nodeEls[s.node].classList.remove("selected");
+        if (s.edge) edgeEls[s.edge].classList.remove("adjacent");
+      });
+      steps.appendChild(d);
+    });
+    head.addEventListener("click", () => activateFlow(flow, card));
+    card.appendChild(head); card.appendChild(steps);
+    list.appendChild(card);
+  });
+  document.getElementById("clear-btn").addEventListener("click", clearHighlight);
+  svg.addEventListener("click", ev => { if (ev.target === svg) clearHighlight(); });
+
+  // ---- Pan / zoom ----
+  let view = { x: 0, y: 0, w: W, h: H };
+  function applyView() { svg.setAttribute("viewBox", `${view.x} ${view.y} ${view.w} ${view.h}`); }
+  function zoom(factor, cx, cy) {
+    const nw = Math.min(W * 2.5, Math.max(W / 6, view.w * factor));
+    const nh = nw * (H / W);
+    const px = cx !== undefined ? (cx - view.x) / view.w : 0.5;
+    const py = cy !== undefined ? (cy - view.y) / view.h : 0.5;
+    view.x += (view.w - nw) * px; view.y += (view.h - nh) * py;
+    view.w = nw; view.h = nh; applyView();
+  }
+  wrap.addEventListener("wheel", ev => {
+    ev.preventDefault();
+    const r = svg.getBoundingClientRect();
+    const cx = view.x + (ev.clientX - r.left) / r.width * view.w;
+    const cy = view.y + (ev.clientY - r.top) / r.height * view.h;
+    zoom(ev.deltaY > 0 ? 1.12 : 0.89, cx, cy);
+  }, { passive: false });
+  let pan = null;
+  wrap.addEventListener("mousedown", ev => {
+    if (ev.target.closest(".node") || ev.target.closest("#zoombar")) return;
+    pan = { x: ev.clientX, y: ev.clientY, vx: view.x, vy: view.y };
+    wrap.classList.add("panning");
+  });
+  window.addEventListener("mousemove", ev => {
+    if (!pan) return;
+    const r = svg.getBoundingClientRect();
+    view.x = pan.vx - (ev.clientX - pan.x) / r.width * view.w;
+    view.y = pan.vy - (ev.clientY - pan.y) / r.height * view.h;
+    applyView();
+  });
+  window.addEventListener("mouseup", () => { pan = null; wrap.classList.remove("panning"); });
+  document.getElementById("z-in").addEventListener("click", () => zoom(0.8));
+  document.getElementById("z-out").addEventListener("click", () => zoom(1.25));
+  document.getElementById("z-fit").addEventListener("click", () => { view = { x: 0, y: 0, w: W, h: H }; applyView(); });
+})();
+</script>
+</body>
+</html>

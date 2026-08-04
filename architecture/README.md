@@ -9,6 +9,8 @@ This section describes how the XChain Platform is structured as a system; the da
 |---|---|
 | [Data Pipeline](./data-pipeline.md) | End-to-end data flow from coin node through decoder, indexer, and explorer |
 | [Component Map](./component-map.md) | All 13 services, their roles, and how they connect to each other |
+| [Platform Map (interactive)](./platform-map.html) | Zoomable diagram of every service and link, with selectable end-to-end flows (action write path, XCALL, attestation, replication, anchoring) |
+| [Platform Map (JSON)](./platform-map.json) | The same graph as machine-readable `{nodes, edges, flows}` for tools and AI agents |
 | [Database Design](./database-design.md) | Naming conventions, the three-DB model (decoder + indexer + hub), and schema overview |
 
 ---

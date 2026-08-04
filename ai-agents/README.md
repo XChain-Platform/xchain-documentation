@@ -17,6 +17,8 @@ XChain is built to be easy for AI agents and LLM-powered tools to use. Not as an
 
 **Read the docs in one request.** The full documentation is published for LLMs at `https://docs.xchain.io/llms.txt` (curated index) and `https://docs.xchain.io/llms-full.txt` (the whole corpus, one file). Every doc page is also available as raw markdown, replace `.html` with `.md` in any docs URL.
 
+**Load the platform map.** The whole platform topology is published as one JSON document at `https://docs.xchain.io/architecture/platform-map.json`: typed nodes (services, libraries, databases), the runtime edges between them, and ordered end-to-end flows an agent can walk (submit an action, cross-chain call, attestation, replication). The human-readable version is the [interactive Platform Map](../architecture/platform-map.html).
+
 **Verify, don't trust.** Quorum-signed state checkpoints let an agent verify platform state client-side: fetch `https://explorer.xchain.io/{COIN}/api/checkpoint/{height}/verify` and check the validator signatures yourself (the SDK and MCP server both do this for you).
 
 ## What smart contracts can do with AI

@@ -1,0 +1,915 @@
+{
+  "meta": {
+    "name": "xchain-platform-architecture",
+    "generated": "2026-08-04",
+    "description": "Component graph and end-to-end flows of the XChain Platform, a token protocol on Bitcoin, Litecoin and Dogecoin. Nodes are microservices, libraries, databases and external systems; edges are runtime dependencies; flows are ordered walks through the graph.",
+    "source": "Maintained in the xchain-documentation repo (architecture/platform-map.html); topology mirrors the XChain Platform service repositories. Machine-readable copy: platform-map.json."
+  },
+  "nodes": [
+    {
+      "id": "user",
+      "label": "Token Holder",
+      "type": "actor",
+      "group": "actors",
+      "description": "End user: trades tokens, runs contracts, uses the wallet and browses the explorer."
+    },
+    {
+      "id": "dev",
+      "label": "Developer / Operator",
+      "type": "actor",
+      "group": "actors",
+      "description": "Runs nodes, deploys services, builds integrations on the SDK, drives the e2e suite."
+    },
+    {
+      "id": "coinnode",
+      "label": "Coin Node",
+      "type": "external",
+      "group": "chain",
+      "tech": "bitcoind / litecoind / dogecoind",
+      "description": "Layer-1 full node reached over JSON-RPC. Transactions carry AES-128-CTR obfuscated XCHN ACTION payloads via OP_RETURN, P2SH, P2WSH, multisig or the Taproot envelope (BTC/LTC)."
+    },
+    {
+      "id": "utxo",
+      "label": "xchain-utxo-tracker",
+      "type": "service",
+      "group": "access",
+      "tech": "Node.js, LevelDB",
+      "description": "Two-pass block indexer over the coin node. Persists all UTXOs and balances to LevelDB, keeps an in-memory mempool DB, and serves address/balance/UTXO queries over Express."
+    },
+    {
+      "id": "utxodb",
+      "label": "UTXO Store",
+      "type": "database",
+      "group": "access",
+      "tech": "LevelDB",
+      "description": "Prefix-keyed LevelDB (B=block, T=tx, I=input, O=output, H/J=hints) of UTXOs and balances."
+    },
+    {
+      "id": "encoder",
+      "label": "xchain-encoder",
+      "type": "service",
+      "group": "access",
+      "tech": "Node.js, Express",
+      "description": "Builds unsigned PSBTs embedding XCHN ACTION payloads and picks the carrier (OP_RETURN, P2SH, P2WSH, multisig, Taproot, or AUTO). JSON-RPC: create_tx, estimate_fee, broadcast_tx, get_utxos. Single-instance hard constraint (PID lockfile)."
+    },
+    {
+      "id": "decoder",
+      "label": "xchain-decoder",
+      "type": "service",
+      "group": "index",
+      "tech": "Node.js, MariaDB",
+      "description": "Polls the coin node (blocks + mempool), deobfuscates XCHN payloads, canonicalizes 5 action aliases, validates against the 35-name allowlist and persists raw decoded actions. Detects reorgs and rolls back before re-indexing."
+    },
+    {
+      "id": "decoderdb",
+      "label": "Decoder DB",
+      "type": "database",
+      "group": "index",
+      "tech": "MariaDB",
+      "description": "XChain_{CHAIN}_{NETWORK}_Decoder: raw decoded XChain transactions plus mempool and transparency tables."
+    },
+    {
+      "id": "indexer",
+      "label": "xchain-indexer",
+      "type": "service",
+      "group": "index",
+      "tech": "Node.js, MariaDB",
+      "description": "Reads the decoder DB and applies ACTION semantics: double-entry ledger, XCHAIN gas fees, orders/swaps/dispensers, staking capabilities, attestation validation, system-injected expiries. Executes contracts through xchain-vm and follows decoder reorgs."
+    },
+    {
+      "id": "indexerdb",
+      "label": "Indexer DB",
+      "type": "database",
+      "group": "index",
+      "tech": "MariaDB",
+      "description": "Canonical protocol state: balances, tokens, orders, contracts, contract_state (append-only), staking, attestation and SPV tables."
+    },
+    {
+      "id": "vm",
+      "label": "xchain-vm",
+      "type": "library",
+      "group": "index",
+      "tech": "Node.js, isolated-vm",
+      "description": "Deterministic smart-contract engine: sandboxed V8 isolates, host-side gas metering, 30s CPU / 8MB memory / call depth 4 limits, hardened sandbox (constructor neutering, RegExp removal). Emits actions (XCALL, ATTEST) back to the indexer."
+    },
+    {
+      "id": "hub",
+      "label": "xchain-hub",
+      "type": "service",
+      "group": "hub",
+      "tech": "Node.js, MariaDB",
+      "description": "Config oracle and cross-chain coordinator. PBFT federation (2f+1), five stake-qualified capabilities, price-oracle rounds, attestation engine (http_get / llm providers), reorg-retraction co-signing, governance/slash, and StateAnchorPublisher (ANCHOR on DOGE)."
+    },
+    {
+      "id": "hubdb",
+      "label": "Hub DB",
+      "type": "database",
+      "group": "hub",
+      "tech": "MariaDB",
+      "description": "About 20 tables: configs, validators, consensus state, cross-chain calls, price_snapshots, oracle_prices, attestation stats."
+    },
+    {
+      "id": "explorer",
+      "label": "xchain-explorer",
+      "type": "service",
+      "group": "serve",
+      "tech": "Node.js, Express, WS",
+      "description": "Read-only REST + JSON-RPC + WebSocket API and web UI over indexer state (60+ endpoints, /{COIN} prefixed). Runs a hub-mirror sync for consensus tables, ABI introspection, and an optional sandboxed contract-simulation endpoint."
+    },
+    {
+      "id": "sync",
+      "label": "xchain-sync",
+      "type": "service",
+      "group": "serve",
+      "tech": "Node.js, WS",
+      "description": "Replicates indexer + decoder DBs to validators: REST snapshots plus a WebSocket block feed, transactional apply with rollback, merkle transparency log (sync_meta, merkle_epochs) and pinned-validator checkpoint quorum verification."
+    },
+    {
+      "id": "replicas",
+      "label": "Validator / Replica Nodes",
+      "type": "external",
+      "group": "serve",
+      "description": "Downstream validator stacks fed by xchain-sync. Run their own indexer/explorer against replicated state and re-verify state commitments."
+    },
+    {
+      "id": "miner",
+      "label": "xchain-regtest-miner",
+      "type": "service",
+      "group": "access",
+      "tech": "Node.js",
+      "description": "Regtest-only auto-miner: dual-timer mempool mining, generate_blocks, send_funds, fill_mempool stress tool, set_mock_time for deterministic expiries. Refused on mainnet."
+    },
+    {
+      "id": "sdk",
+      "label": "xchain-sdk",
+      "type": "library",
+      "group": "clients",
+      "tech": "Node.js (npm: library + JSON-RPC server)",
+      "description": "Developer SDK generating all 31 user ACTION types with ticker compaction and a MuSig2 co-signer toolkit. Discovers endpoints via hub getallconfigs with an https downgrade guard; defaults to public .xchain.io hosts off-regtest."
+    },
+    {
+      "id": "wallet",
+      "label": "xchain-wallet",
+      "type": "service",
+      "group": "clients",
+      "tech": "JS monorepo: web SPA, MV3 extension, Electron",
+      "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device."
+    },
+    {
+      "id": "node",
+      "label": "xchain-node",
+      "type": "service",
+      "group": "clients",
+      "tech": "Node.js, Docker, Commander CLI",
+      "description": "Installer/operator CLI: provisions coin nodes (SHA-256 pinned binaries) and every platform service as Docker containers. Ed25519-signed bootstraps, go-live and skew guards, telemetry (opt-out), interactive TUI."
+    },
+    {
+      "id": "dashboard",
+      "label": "xchain-dashboard",
+      "type": "service",
+      "group": "serve",
+      "tech": "Node.js, Express",
+      "description": "Ops dashboard host: auth/users/audit, plugin loader, bundled network-monitor (push-agent ingest) and CI-status plugins."
+    },
+    {
+      "id": "e2e",
+      "label": "xchain-e2e-test",
+      "type": "service",
+      "group": "clients",
+      "tech": "Mocha",
+      "description": "Full-stack end-to-end suite: broadcasts real transactions on regtest through service connectors (Blockchain, Encoder, Indexer, Hub, UtxoTracker, RegtestMiner), 30+ waitFor* DB pollers, BTC/LTC/DOGE parity corpus, perf gates."
+    },
+    {
+      "id": "contracts",
+      "label": "xchain-contracts",
+      "type": "library",
+      "group": "clients",
+      "tech": "Node.js, mocha (tooling only)",
+      "description": "Smart-contract template library (amm, escrow, vesting, crowdsale, treasury, priceBet, stableVault, urlOracle, cardDispenser) plus a policy-driven controller-guard generator. Deployed as base64 DEPLOY actions; tested against xchain-vm."
+    },
+    {
+      "id": "docs",
+      "label": "xchain-documentation",
+      "type": "service",
+      "group": "content",
+      "tech": "Markdown",
+      "description": "Protocol reference: per-ACTION specs, gas/fee schedule, Token Information Standard schema, architecture, operator and user guides."
+    },
+    {
+      "id": "websites",
+      "label": "xchain-websites",
+      "type": "service",
+      "group": "content",
+      "tech": "Node.js static-site builder",
+      "description": "Builds xchain.io, the docs site (with search index), bootstrap/database download pages, and verifies the live encoder catalog against deployment."
+    }
+  ],
+  "edges": [
+    {
+      "id": "r1",
+      "source": "utxo",
+      "target": "coinnode",
+      "label": "reads blocks + mempool (JSON-RPC)",
+      "kind": "rpc"
+    },
+    {
+      "id": "r2",
+      "source": "utxo",
+      "target": "utxodb",
+      "label": "persists UTXOs / balances",
+      "kind": "write"
+    },
+    {
+      "id": "r3",
+      "source": "encoder",
+      "target": "utxo",
+      "label": "get_utxos for transaction inputs",
+      "kind": "rpc"
+    },
+    {
+      "id": "r4",
+      "source": "encoder",
+      "target": "coinnode",
+      "label": "broadcast_tx: signed tx to mempool",
+      "kind": "async"
+    },
+    {
+      "id": "r5",
+      "source": "decoder",
+      "target": "coinnode",
+      "label": "polls blocks + mempool",
+      "kind": "rpc"
+    },
+    {
+      "id": "r6",
+      "source": "decoder",
+      "target": "decoderdb",
+      "label": "writes decoded actions",
+      "kind": "write"
+    },
+    {
+      "id": "r7",
+      "source": "indexer",
+      "target": "decoderdb",
+      "label": "reads decoded actions",
+      "kind": "read"
+    },
+    {
+      "id": "r8",
+      "source": "indexer",
+      "target": "indexerdb",
+      "label": "writes protocol state",
+      "kind": "write"
+    },
+    {
+      "id": "r9",
+      "source": "indexer",
+      "target": "vm",
+      "label": "DEPLOY / EXECUTE in V8 sandbox",
+      "kind": "lib"
+    },
+    {
+      "id": "r10",
+      "source": "indexer",
+      "target": "hub",
+      "label": "config, price snapshots, cross-chain coordination",
+      "kind": "async"
+    },
+    {
+      "id": "r11",
+      "source": "explorer",
+      "target": "indexerdb",
+      "label": "reads protocol state",
+      "kind": "read"
+    },
+    {
+      "id": "r12",
+      "source": "explorer",
+      "target": "hub",
+      "label": "config oracle + hub-mirror sync",
+      "kind": "async"
+    },
+    {
+      "id": "r13",
+      "source": "hub",
+      "target": "hubdb",
+      "label": "config / consensus / oracle state",
+      "kind": "write"
+    },
+    {
+      "id": "r14",
+      "source": "hub",
+      "target": "encoder",
+      "label": "publishes ANCHOR / ATTEST / PRICE actions",
+      "kind": "rpc"
+    },
+    {
+      "id": "r15",
+      "source": "sync",
+      "target": "indexerdb",
+      "label": "snapshots + follows state",
+      "kind": "read"
+    },
+    {
+      "id": "r16",
+      "source": "sync",
+      "target": "decoderdb",
+      "label": "snapshots decoded txs (8 of 9 tables)",
+      "kind": "read"
+    },
+    {
+      "id": "r17",
+      "source": "sync",
+      "target": "replicas",
+      "label": "REST snapshots + WebSocket block feed",
+      "kind": "async"
+    },
+    {
+      "id": "r18",
+      "source": "miner",
+      "target": "coinnode",
+      "label": "auto-mines mempool (regtest)",
+      "kind": "rpc"
+    },
+    {
+      "id": "r19",
+      "source": "sdk",
+      "target": "encoder",
+      "label": "create_tx / broadcast",
+      "kind": "rpc"
+    },
+    {
+      "id": "r20",
+      "source": "sdk",
+      "target": "explorer",
+      "label": "queries + WebSocket subscriptions",
+      "kind": "rpc"
+    },
+    {
+      "id": "r21",
+      "source": "sdk",
+      "target": "hub",
+      "label": "endpoint discovery (getallconfigs)",
+      "kind": "rpc"
+    },
+    {
+      "id": "r22",
+      "source": "wallet",
+      "target": "sdk",
+      "label": "composes + signs actions",
+      "kind": "lib"
+    },
+    {
+      "id": "r23",
+      "source": "wallet",
+      "target": "explorer",
+      "label": "balances / history / action decode",
+      "kind": "rpc"
+    },
+    {
+      "id": "r24",
+      "source": "node",
+      "target": "coinnode",
+      "label": "provisions + runs containers",
+      "kind": "rpc"
+    },
+    {
+      "id": "r25",
+      "source": "node",
+      "target": "hub",
+      "label": "pushes config (updateconfig)",
+      "kind": "rpc"
+    },
+    {
+      "id": "r26",
+      "source": "dashboard",
+      "target": "indexerdb",
+      "label": "reads ops data",
+      "kind": "read"
+    },
+    {
+      "id": "r27",
+      "source": "e2e",
+      "target": "encoder",
+      "label": "broadcasts real test transactions",
+      "kind": "rpc"
+    },
+    {
+      "id": "r28",
+      "source": "e2e",
+      "target": "miner",
+      "label": "mines blocks on demand",
+      "kind": "rpc"
+    },
+    {
+      "id": "r29",
+      "source": "e2e",
+      "target": "indexerdb",
+      "label": "waitFor* state polling",
+      "kind": "read"
+    },
+    {
+      "id": "r30",
+      "source": "e2e",
+      "target": "hub",
+      "label": "federation / config checks",
+      "kind": "rpc"
+    },
+    {
+      "id": "r31",
+      "source": "contracts",
+      "target": "vm",
+      "label": "templates linted + tested against the VM",
+      "kind": "lib"
+    },
+    {
+      "id": "r32",
+      "source": "websites",
+      "target": "docs",
+      "label": "builds the docs site",
+      "kind": "build"
+    },
+    {
+      "id": "r33",
+      "source": "user",
+      "target": "wallet",
+      "label": "manages tokens",
+      "kind": "actor"
+    },
+    {
+      "id": "r34",
+      "source": "user",
+      "target": "explorer",
+      "label": "browses on-chain activity",
+      "kind": "actor"
+    },
+    {
+      "id": "r35",
+      "source": "dev",
+      "target": "node",
+      "label": "installs / operates the stack",
+      "kind": "actor"
+    },
+    {
+      "id": "r36",
+      "source": "dev",
+      "target": "sdk",
+      "label": "builds integrations",
+      "kind": "actor"
+    },
+    {
+      "id": "r37",
+      "source": "dev",
+      "target": "e2e",
+      "label": "runs the full-stack suite",
+      "kind": "actor"
+    }
+  ],
+  "flows": [
+    {
+      "id": "f1",
+      "name": "Submit an action (write path)",
+      "description": "A user sends a token action from the wallet all the way to confirmed, indexed protocol state.",
+      "steps": [
+        {
+          "n": 1,
+          "node": "user",
+          "edge": "r33",
+          "action": "User initiates an action (SEND, ISSUE, ORDER, ...) in the wallet."
+        },
+        {
+          "n": 2,
+          "node": "wallet",
+          "edge": "r22",
+          "action": "Wallet composes the pipe-delimited ACTION payload via the SDK."
+        },
+        {
+          "n": 3,
+          "node": "sdk",
+          "edge": "r19",
+          "action": "SDK calls encoder create_tx with the payload and funding address."
+        },
+        {
+          "n": 4,
+          "node": "encoder",
+          "edge": "r3",
+          "action": "Encoder fetches spendable UTXOs from the utxo-tracker and builds an unsigned PSBT (carrier chosen: OP_RETURN, P2SH, P2WSH, multisig or Taproot)."
+        },
+        {
+          "n": 5,
+          "node": "wallet",
+          "action": "Wallet signs the PSBT locally; keys never leave the device."
+        },
+        {
+          "n": 6,
+          "node": "encoder",
+          "edge": "r4",
+          "action": "Signed transaction is broadcast to the coin node mempool via broadcast_tx."
+        },
+        {
+          "n": 7,
+          "node": "coinnode",
+          "edge": "r5",
+          "action": "Transaction confirms in a block; decoder polls it out."
+        },
+        {
+          "n": 8,
+          "node": "decoder",
+          "edge": "r6",
+          "action": "Decoder deobfuscates the XCHN payload and persists the raw action."
+        },
+        {
+          "n": 9,
+          "node": "indexer",
+          "edge": "r7",
+          "action": "Indexer reads the decoded action and applies protocol semantics (ledger moves, XCHAIN gas fee)."
+        },
+        {
+          "n": 10,
+          "node": "indexerdb",
+          "edge": "r8",
+          "action": "Canonical state is written to the indexer DB."
+        },
+        {
+          "n": 11,
+          "node": "explorer",
+          "edge": "r11",
+          "action": "Explorer serves the new balance/action to users and the wallet."
+        }
+      ]
+    },
+    {
+      "id": "f2",
+      "name": "Block confirmation pipeline",
+      "description": "The core read pipeline: coin node to decoder to indexer to explorer, with reorg rollback at each stage.",
+      "steps": [
+        {
+          "n": 1,
+          "node": "coinnode",
+          "edge": "r5",
+          "action": "Decoder polls each new block (and mempool every 60s)."
+        },
+        {
+          "n": 2,
+          "node": "decoder",
+          "edge": "r6",
+          "action": "XCHN payloads are deobfuscated, alias-canonicalized, allowlist-validated and persisted."
+        },
+        {
+          "n": 3,
+          "node": "decoderdb",
+          "edge": "r7",
+          "action": "Indexer picks up new decoded rows (and detects decoder-side reorg rollbacks)."
+        },
+        {
+          "n": 4,
+          "node": "indexer",
+          "edge": "r9",
+          "action": "DEPLOY/EXECUTE actions run inside xchain-vm isolates with gas metering."
+        },
+        {
+          "n": 5,
+          "node": "vm",
+          "edge": "r8",
+          "action": "State changes and emitted actions are folded into the block result and written."
+        },
+        {
+          "n": 6,
+          "node": "indexerdb",
+          "edge": "r11",
+          "action": "Explorer, dashboard and sync all consume the canonical state."
+        },
+        {
+          "n": 7,
+          "node": "explorer",
+          "action": "REST / JSON-RPC / WebSocket clients see the confirmed block."
+        }
+      ]
+    },
+    {
+      "id": "f3",
+      "name": "Smart-contract deploy + execute",
+      "description": "A contract template goes from the contracts library through DEPLOY/EXECUTE to append-only contract state.",
+      "steps": [
+        {
+          "n": 1,
+          "node": "contracts",
+          "edge": "r31",
+          "action": "Template (amm, escrow, vesting, ...) is authored and tested against xchain-vm; guard contracts can be generated from a JSON policy."
+        },
+        {
+          "n": 2,
+          "node": "sdk",
+          "edge": "r19",
+          "action": "Contract code is base64-encoded into a DEPLOY action (or EXECUTE with method + params) and sent to the encoder. DEPOSIT + method calls travel together as a BATCH."
+        },
+        {
+          "n": 3,
+          "node": "encoder",
+          "edge": "r4",
+          "action": "PSBT is built, signed by the caller and broadcast."
+        },
+        {
+          "n": 4,
+          "node": "coinnode",
+          "edge": "r5",
+          "action": "Confirmed action flows down the decode pipeline."
+        },
+        {
+          "n": 5,
+          "node": "decoder",
+          "edge": "r6",
+          "action": "Raw DEPLOY/EXECUTE persisted."
+        },
+        {
+          "n": 6,
+          "node": "indexer",
+          "edge": "r9",
+          "action": "Indexer drives beginBlock, DEPLOY/EXECUTE in the sandbox, endBlock; gas is charged in XCHAIN."
+        },
+        {
+          "n": 7,
+          "node": "vm",
+          "edge": "r8",
+          "action": "Deterministic result (state changes, emitted actions, logs) is committed; contract custody uses derived address C:CHAIN:index."
+        },
+        {
+          "n": 8,
+          "node": "explorer",
+          "edge": "r11",
+          "action": "Contract page shows ABI, state and executions; optional sandboxed read-only simulation."
+        }
+      ]
+    },
+    {
+      "id": "f4",
+      "name": "Cross-chain call (XCALL)",
+      "description": "A contract on one chain calls a contract on another via VM emission and the hub federation.",
+      "steps": [
+        {
+          "n": 1,
+          "node": "vm",
+          "edge": "r9",
+          "action": "Source-chain contract calls xchain.emit.crossExecute(...), emitting XCALL v0 with a deterministic sha256 request_id."
+        },
+        {
+          "n": 2,
+          "node": "indexer",
+          "edge": "r10",
+          "action": "Source indexer records the cross-chain call and surfaces it to the hub."
+        },
+        {
+          "n": 3,
+          "node": "hub",
+          "edge": "r13",
+          "action": "Hub federation reaches PBFT quorum (2f+1) on the call and tracks it in cross_chain_calls."
+        },
+        {
+          "n": 4,
+          "node": "hub",
+          "edge": "r10",
+          "action": "Target-chain indexer receives the mirrored call and system-injects XEXEC (no on-chain tx on the target)."
+        },
+        {
+          "n": 5,
+          "node": "indexer",
+          "edge": "r9",
+          "action": "Target contract executes in the VM; results settle into target-chain state."
+        },
+        {
+          "n": 6,
+          "node": "indexerdb",
+          "edge": "r8",
+          "action": "If the deadline passes without quorum, XCALL v2 expiry is system-synthesized and escrow refunded."
+        }
+      ]
+    },
+    {
+      "id": "f5",
+      "name": "External attestation round-trip",
+      "description": "A contract requests off-chain data; the hub federation fetches, agrees and answers on-chain.",
+      "steps": [
+        {
+          "n": 1,
+          "node": "vm",
+          "edge": "r9",
+          "action": "Contract calls xchain.attestation.request(providerId, payload, callback...), emitting ATTEST v0 with gas escrow."
+        },
+        {
+          "n": 2,
+          "node": "indexer",
+          "edge": "r10",
+          "action": "Request lands in protocol state; hub validators poll getpendingattestation_requests."
+        },
+        {
+          "n": 3,
+          "node": "hub",
+          "edge": "r13",
+          "action": "A responsible set is selected by hash ordering; the provider fetches (http_get byte-equality or llm judge-model) and PBFT consensus runs."
+        },
+        {
+          "n": 4,
+          "node": "hub",
+          "edge": "r14",
+          "action": "AttestationPublisher submits ATTEST v1 (response) on-chain through the encoder."
+        },
+        {
+          "n": 5,
+          "node": "encoder",
+          "edge": "r4",
+          "action": "Response transaction is broadcast and confirms."
+        },
+        {
+          "n": 6,
+          "node": "decoder",
+          "edge": "r6",
+          "action": "Decoder persists the ATTEST v1 action."
+        },
+        {
+          "n": 7,
+          "node": "indexer",
+          "edge": "r9",
+          "action": "Indexer validates 2f+1 signatures and fires the contract's callback EXECUTE; on deadline expiry it injects ATTEST v2 and refunds escrow."
+        }
+      ]
+    },
+    {
+      "id": "f6",
+      "name": "PRICE oracle + native-fee pricing",
+      "description": "Validator price rounds flow on-chain and back into every indexer for fee conversion.",
+      "steps": [
+        {
+          "n": 1,
+          "node": "hub",
+          "edge": "r13",
+          "action": "Oracle rounds run in the federation; price-capable signers agree COIN/FIAT snapshots."
+        },
+        {
+          "n": 2,
+          "node": "hub",
+          "edge": "r14",
+          "action": "An oracle_publish-capable publisher broadcasts PRICE v0 through the encoder."
+        },
+        {
+          "n": 3,
+          "node": "encoder",
+          "edge": "r4",
+          "action": "PRICE transaction is broadcast and confirms."
+        },
+        {
+          "n": 4,
+          "node": "decoder",
+          "edge": "r6",
+          "action": "Decoder persists the PRICE action from the chain."
+        },
+        {
+          "n": 5,
+          "node": "hub",
+          "edge": "r13",
+          "action": "Hub indexes snapshots into price_snapshots / oracle_prices (its local DB copy)."
+        },
+        {
+          "n": 6,
+          "node": "indexer",
+          "edge": "r10",
+          "action": "Every indexer reads the price tables during block processing to convert native-coin fees to XCHAIN."
+        }
+      ]
+    },
+    {
+      "id": "f7",
+      "name": "Validator replication (xchain-sync)",
+      "description": "How a validator or replica node acquires and verifies platform state without trusting the source.",
+      "steps": [
+        {
+          "n": 1,
+          "node": "sync",
+          "edge": "r15",
+          "action": "Sync server snapshots the indexer DB and tails new blocks."
+        },
+        {
+          "n": 2,
+          "node": "sync",
+          "edge": "r16",
+          "action": "Decoder DB is snapshotted too (8 of 9 tables; transparency/mempool excluded by design)."
+        },
+        {
+          "n": 3,
+          "node": "sync",
+          "edge": "r17",
+          "action": "Replicas bootstrap over REST snapshots then follow the WebSocket block feed."
+        },
+        {
+          "n": 4,
+          "node": "replicas",
+          "action": "ClientApplier applies transactionally (batches of 100, rollback support); merkle epochs and pinned-validator checkpoint quorum verify the stream."
+        }
+      ]
+    },
+    {
+      "id": "f8",
+      "name": "State anchoring (ANCHOR on DOGE)",
+      "description": "Quorum-signed per-chain state checkpoints are anchored on Dogecoin for chain-parse recoverability.",
+      "steps": [
+        {
+          "n": 1,
+          "node": "hub",
+          "edge": "r13",
+          "action": "StateAnchorPublisher elects a publisher by hash ordering and assembles quorum-signed per-chain checkpoints plus the compressed cross-chain match archive."
+        },
+        {
+          "n": 2,
+          "node": "hub",
+          "edge": "r14",
+          "action": "ANCHOR v0/v1/v2 is built and submitted through the DOGE encoder (hub signer wallet)."
+        },
+        {
+          "n": 3,
+          "node": "encoder",
+          "edge": "r4",
+          "action": "Anchor transaction is broadcast on Dogecoin."
+        },
+        {
+          "n": 4,
+          "node": "decoder",
+          "edge": "r6",
+          "action": "DOGE decoder picks the ANCHOR out of the block."
+        },
+        {
+          "n": 5,
+          "node": "indexer",
+          "edge": "r8",
+          "action": "Indexers verify and record the checkpoint; RewardTracker records publisher rewards."
+        }
+      ]
+    },
+    {
+      "id": "f9",
+      "name": "Regtest e2e campaign",
+      "description": "How the full stack is exercised end to end with real transactions on regtest.",
+      "steps": [
+        {
+          "n": 1,
+          "node": "dev",
+          "edge": "r37",
+          "action": "Operator runs the Mocha suite (mainnet guard refuses NETWORK=mainnet)."
+        },
+        {
+          "n": 2,
+          "node": "e2e",
+          "edge": "r27",
+          "action": "Action tests build and broadcast real transactions through the encoder connector; no mocking at the action level."
+        },
+        {
+          "n": 3,
+          "node": "encoder",
+          "edge": "r4",
+          "action": "Transactions enter the regtest mempool."
+        },
+        {
+          "n": 4,
+          "node": "e2e",
+          "edge": "r28",
+          "action": "Regtest miner mines on demand (or on its dual timers); set_mock_time pins clocks for deterministic expiries."
+        },
+        {
+          "n": 5,
+          "node": "miner",
+          "edge": "r18",
+          "action": "Blocks are mined; the pipeline processes them."
+        },
+        {
+          "n": 6,
+          "node": "e2e",
+          "edge": "r29",
+          "action": "30+ waitFor* pollers assert indexer state; the parity corpus asserts identical state across BTC/LTC/DOGE."
+        }
+      ]
+    },
+    {
+      "id": "f10",
+      "name": "Explore (read path)",
+      "description": "A user browses balances, actions and contracts without touching a wallet.",
+      "steps": [
+        {
+          "n": 1,
+          "node": "user",
+          "edge": "r34",
+          "action": "User opens the explorer UI or hits the REST/WebSocket API."
+        },
+        {
+          "n": 2,
+          "node": "explorer",
+          "edge": "r11",
+          "action": "Explorer answers from the indexer DB (read-only, parameterized SQL)."
+        },
+        {
+          "n": 3,
+          "node": "explorer",
+          "edge": "r12",
+          "action": "Consensus/governance tables come from the hub mirror; config is auto-refreshed from the hub every 60s."
+        }
+      ]
+    }
+  ]
+}

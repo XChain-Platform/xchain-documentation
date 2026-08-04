@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `architecture/platform-map.html` / `platform-map.json`: interactive platform map with selectable end-to-end flows, plus the same graph as machine-readable JSON for AI agents, linked from the Architecture and AI & Agents sections and guarded by a new integrity/parity test.
+
 ### Fixed
 - `components/wallet/README.md`: `MultisigSigner` was listed among the shipped signers; the class does not exist (it is planned, and Keys_Signing.md already said so). There are four concrete signers.
 - `components/wallet/TESTING.md`: the multisig session state machine named an `indexed` status that does not exist and four other wrong status names.
