@@ -129,9 +129,19 @@ The pipeline archives **twice**, and knowing which one you are looking at matter
 
 ⬜ Create the app record in App Store Connect against the Phase 1 App ID. This is the step that pins the bundle identifier `io.xchain.wallet.ios` publicly, and it cannot be changed afterwards.  
 ⬜ **Opt OUT of "Designed for iPhone/iPad" Mac availability.** It is on by default, and the operator decided against it on 2026-08-03, so this is a step to perform rather than a question to weigh. Running a mobile web-shell wallet on macOS beside a separate desktop wallet build means two vaults and two update paths, on a surface no smoke or e2e run covers. Availability is editable in App Store Connect at any time, so revisiting it post-launch as a deliberate product decision costs nothing.  
-⬜ Upload the signed package by hand, through Apple's own upload tools, never from CI.  
+⬜ **Validate the package before uploading it.** Validation runs the same checks the upload runs, against Apple's own service, but it creates no build record, adds nothing to TestFlight, and does not spend the build number. It takes about a minute, and it is the only check that answers for the party that can reject you:
+
+```bash
+xcrun altool --validate-app -t ios \
+  -f packages/mobile/ios/build/xchain-wallet-ios-vX.Y.Z.ipa \
+  --apiKey <key id> --apiIssuer <issuer id>
+```
+
+The key id and issuer id are the same App Store Connect API credentials the release secrets already hold; the private key file itself must be readable at `~/.appstoreconnect/private_keys/`, which is where the tool looks for it. A pass prints `VERIFY SUCCEEDED with no errors` and exits 0. Do this every time, not only on a first release. Reading the built package's own metadata is NOT a substitute for it: on 2026-08-06 an apparently missing icon key in that metadata looked exactly like a rejection class, and validation showed the package was fine.
+
+⬜ Upload the signed package by hand, never from CI. It is the same command with `--upload-app` in place of `--validate-app`. This is the step that spends the build number, which is why the validation above comes first.  
 ⬜ Answer the export-compliance questionnaire. If the app is not exempt from encryption export rules, this carries recurring annual reporting obligations; if it is exempt, which is the common case for a wallet using only standard cryptographic algorithms, record that exemption's basis before submitting.  
-⬜ Wait for the upload to finish processing. A build that fails processing is burned and needs a fresh build number; App Store Connect accepts each build number exactly once.  
+⬜ Wait for the upload to finish processing. A build that fails processing is burned and needs a fresh build number; App Store Connect accepts each build number exactly once. This is the cost the validation step above exists to avoid paying.  
 
 ### Phase 5: TestFlight
 
