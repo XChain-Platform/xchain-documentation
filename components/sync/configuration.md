@@ -45,6 +45,7 @@ In server mode, **no database environment variables are needed**. The service di
 | `WS_BACKPRESSURE_STALL_MS` | No | `30000` | How long (ms) an over-limit subscriber's send buffer may fail to drain before it is force-disconnected. The stall timer resets on any drop in buffered bytes. |
 | `VALIDATOR_HEARTBEAT_TTL` | No | `60000` | Milliseconds before an unresponsive validator is marked `stale` in `/validator-status` (rather than deleted) |
 | `EXPECTED_VALIDATORS` | No | `""` | Comma-separated list of expected validator IDs/pubkeys. When set, `/validator-status` reports an `expected_total` denominator and flags roster members that have never sent a heartbeat as `absent`. Unset means no roster check. |
+| `REPLICA_DB_READONLY` | No | `false` | Makes the transparency log serve-only, for a server process whose database is itself a replica (for example, kept current by MariaDB binlog replication) that this process must never write to. When `true` (also accepts `1`), the four `TransparencyLog` write entry points (`recordBlock`, `commitEpoch`, `pruneFrom`, `recommitEpoch`) and the startup gap-repair scan (`ServerPoller.backfillGaps`) all become no-ops. Every read path, proofs, epoch roots, the paginated log, and the `/transparency/*` endpoints, is unaffected. See [Operations: read-only-replica deployment](operations.md#read-only-replica-deployment) for the full pattern. |
 
 ### Client Mode
 

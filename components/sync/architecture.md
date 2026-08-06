@@ -99,7 +99,7 @@ flowchart TD
 | `ServerPoller.js` | `ServerPoller` | Polls one indexer DB for new blocks; builds block payloads; emits events |
 | `BlockBroadcaster.js` | `BlockBroadcaster` | Manages WebSocket subscriptions per chain/network; broadcasts block/reorg events |
 | `SnapshotBuilder.js` | `SnapshotBuilder` | Builds full and incremental JSON snapshots with gzip streaming |
-| `TransparencyLog.js` | `TransparencyLog` | Writes append-only per-block hash records to `sync_meta` table |
+| `TransparencyLog.js` | `TransparencyLog` | Writes append-only per-block hash records to `sync_meta` table; every write is a no-op when `REPLICA_DB_READONLY=1` (see Configuration) |
 | `replicatedTables.js` | `getTopology()` | Single source of truth for the block/tx/action-scoped table sets that replicate per dbType; shared by ServerPoller and the row-count completeness check |
 | `updatedRows.js` | `collectUpdatedRows` | Collects in-place mutations to surviving (earlier-block) rows for a block window; the source side of the "updated rows" replication channel |
 | `cooldownCredits.js` | `collectMaturedCooldownCredits` | Collects backdated cooldown-refund credits that the action-scoped join cannot reach; source side |
@@ -157,6 +157,8 @@ flowchart TD
     S2 -->|no| S8
     S8 --> S1
 ```
+
+Step 4 assumes the server's database is writable. A server can instead run against a database it must not write to, a `read_only` replica of the authoritative database kept current by something outside this process (for example, MariaDB binlog replication). Setting `REPLICA_DB_READONLY=1` (see [Configuration](configuration.md)) turns that step, the epoch commit it can trigger, and reorg pruning into no-ops; the poller still builds and broadcasts every block payload and still runs the poll loop above, it just stops writing `sync_meta` / `merkle_epochs` locally. Every read path, proofs, epoch roots, and the `/transparency/*` endpoints, still serves normally. See [Operations: read-only-replica deployment](operations.md#read-only-replica-deployment) for the deployment pattern this supports.
 
 ## Client Sync Algorithm
 

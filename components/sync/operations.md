@@ -29,6 +29,38 @@ npm run api
 
 The service discovers all installed chains/networks from the hub automatically. No database credentials are needed in the environment; they come from the hub config.
 
+### Read-Only-Replica Deployment
+
+Server mode can also run against a database it must not write to: a host whose MariaDB is itself a `read_only=1` replica of the authoritative indexer/decoder databases, kept current by something outside this process (for example, MariaDB binlog replication) rather than by xchain-sync. This lets a re-serving tier stand up additional public sync origins fed from an authoritative recorder, without any of them writing to their own database.
+
+Point the server at the local replica database and set `REPLICA_DB_READONLY=1`:
+
+```bash
+export SYNC_MODE=server
+export SYNC_API_PORT=3006
+export HUB_API_HOST=localhost
+export HUB_PORT=10000
+export REPLICA_DB_HOST=127.0.0.1
+export REPLICA_DB_PORT=3306
+export REPLICA_DB_USER=xchain_sync_ro
+export REPLICA_DB_PASS=your_password
+export REPLICA_DB_READONLY=1
+
+npm run api
+```
+
+`REPLICA_DB_HOST` (normally a client-mode setting) also works in server mode: when set, the server connects to that host with the `REPLICA_DB_*` credentials for every discovered chain's database instead of the authoritative coordinates the hub returns, while still using the hub only to enumerate which chains/networks exist.
+
+Server mode's only writes are the transparency log's four entry points, `recordBlock` (a `sync_meta` row per polled block), `commitEpoch` (a `merkle_epochs` row at each epoch boundary), and `pruneFrom` / `recommitEpoch` (rewriting both on a reorg), plus the startup gap-repair scan, `ServerPoller.backfillGaps`. `REPLICA_DB_READONLY=1` turns all of these into no-ops. On this tier those rows are not the server's to write: they arrive already recorded, by replication from the authoritative recorder, so writing them locally would either be refused by a `read_only` database or fork the log from its source. Every read path is unaffected: proofs, epoch roots, the paginated log, and the `/transparency/*` endpoints all serve exactly as they do on a writable server. `verifySyncTables()` needs no special handling either: the sync-owned control tables (`sync_meta`, `merkle_epochs`, `sync_halt`) arrive via replication, so its check-then-create finds them already present and writes nothing.
+
+To confirm a read-only-replica deployment is actually write-free rather than merely configured that way, check all of the following:
+
+- MariaDB's `read_only` variable is still `1` after the sync server has been polling for a while (`SHOW VARIABLES LIKE 'read_only'`).
+- The transparency roots still serve: `GET /transparency/indexer/:chain/:network/root/latest` returns the same Merkle root as the authoritative origin at the same block height.
+- `GET /status/indexer/:chain/:network` reports the same `ledger_hash` as the origin at the same `block_height`, with `lag_blocks: 0` and `poll_error_count: 0`.
+
+This pattern assumes the process that keeps the local database current (MariaDB binlog replication or an equivalent) is already running; `REPLICA_DB_READONLY` only stops xchain-sync itself from writing, it is not a replication mechanism.
+
 ### Client Mode
 
 Client mode is used on validator nodes or any machine that needs a replica of the indexer data. It downloads data from remote sync servers.
