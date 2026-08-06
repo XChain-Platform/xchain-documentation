@@ -173,6 +173,28 @@ git show vX.Y.Z:tools/release/sign.sh | grep -c -- '--artifacts'
 
 If you have a recompute rather than a release manifest, the artifact you need has not been produced yet. That is a release-engineering blocker upstream of this ceremony, not something to work around here: the store assigns a permanent extension ID to whatever you upload first.
 
+#### 4a-bis. If the release cannot be signed as a whole set
+
+**This submission does not need every other lane's artifacts to be signable.** It used to: `sign.sh` signs a release as a set, and for most of 2026-08 that meant the Chrome submission was blocked by two Windows installers that could not be Authenticode-signed for want of a vendor account. Nothing about that had anything to do with the extension, and the extension zip's own signature requirement is `none` (Chrome signs the store item itself, with a key the store holds and we never see).
+
+So a partial manifest is available, and it is the ordinary path when the desktop lanes are not signable:
+
+```bash
+bash tools/release/sign.sh --tag vX.Y.Z --lane extension \
+  --input release-artifacts/vX.Y.Z/
+```
+
+⬜ The manifest header says `coverage: partial` and `lanes: extension`. **That is the point of it, not a caveat to explain away**: it attests the zip the store is getting and states in writing that it says nothing about any other lane of this release. `verify.sh` prints the same notice when it reads one, so nobody downstream mistakes an absent desktop artifact for a tampered release.  
+⬜ **The tag you are signing carries the flag.** Signing runs from a pristine clone at the release tag, so it runs THAT TAG's copy of `sign.sh`, exactly as 4a's dev-mock check describes. A tag cut before the per-lane mode existed cannot use it:
+
+```bash
+git show vX.Y.Z:tools/release/sign.sh | grep -c -- '--lane'
+```
+
+If that count is 0, this tag predates the mode and the only ways forward are the whole-set signature or a newer tag. Neither is something to work around here.  
+
+A partial manifest is a smaller claim, not a weaker one: every gate that runs on a whole release runs inside the lane's scope too, and inside that scope it is stricter, since every artifact the lane claims is required even where the release list calls it optional.
+
 #### 4b. Check the sha256 before upload
 
 ```bash
@@ -260,6 +282,7 @@ All three store forms answer "not collected", together, and a smoke fails if the
 ⬜ Add the extension ID to the release credential inventory row for this account.  
 ⬜ Add it to the [dApp bridge documentation](../../bridge.md), wherever it documents `chrome-extension://<id>/...` for integrators (currently a placeholder `<id>`), so provider-detection guidance stops being hypothetical.  
 ⬜ **Append the publish-log row**, in the same sitting as the upload, not later: version, the zip sha256 from Phase 4b, item (`main`, since this is the first submission), operator, date. Follow the format already scaffolded in `packages/extension/docs/publish-log.md`; its current row is a labelled example, and the replace-with-a-real-entry conventions are documented at the top of that file.  
+⬜ **Flip the extension lane to `SHIPPED`**, in the same commit that records the upload. `tools/release/shipped-lanes.txt` carries the extension as `NOT-SHIPPED` until this moment, which is what let the submission be signed on its own while the desktop lanes were not signable. The flip is the other half of that arrangement: from here on there are users who installed from the store and expect the next version, so a release staging no extension zip is a lane left behind rather than a smaller release, and the shipped-lane gate starts saying so. Doing it in the upload's own commit is deliberate; a parity flip that waits for someone to remember is one nobody makes.  
 
 ### Phase 7: While the review clock runs
 
