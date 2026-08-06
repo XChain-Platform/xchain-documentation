@@ -174,9 +174,32 @@ bash tools/release/verify.sh --input release-artifacts/vX.Y.Z/ \
 
 Confirm it reports the hash as OK, and the signature as OK too. This is the same command the [release QA checklist](../qa-checklist.md) asks for in its store-release provenance section; this page does not duplicate that checklist, it points at the one command you need at this exact moment.
 
-**This phase cannot be completed before the release-signing key exists, and that is a stronger statement than it used to make here.** This page said until 2026-08-03 that only the SIGNATURE waited on the key ceremony, implying the hash could be checked today. It cannot, and the reason is worth stating so nobody burns a day rediscovering it: the tagged manifest and the signature come from the same command. Only the signing step writes a `RELEASE_HASHES.txt` that names a tag; the unsigned fallback (`verify.sh --recompute`) deliberately stamps `# tag: (none)`, which 4a above rejects and which `verify.sh` itself then refuses in both directions. The release runners hold no signing key by design, so CI cannot supply one either. Until the key ceremony lands there is no artifact this phase can accept, and therefore no upload in Phase 6.
+**Whether the release-signing key exists is no longer written on this page, and that change is the point rather than a tidy-up.** This paragraph used to say the phase could not be completed at all until the key ceremony had run. That was true when it was written and it stayed on the page for a full day after it stopped being true, because the ceremony happens on one machine and nothing here could see it. A stale blocker is worse than a stale step: it makes work that is available look impossible, and nobody thinks to re-measure a blocker.
+
+So the fact is anchored instead of asserted. `tools/release/verify-release-key.sh` is the only thing that can observe the key, and it observes it the honest way, by driving the real signing pipeline end to end. On success it records what it saw in `docs/release-key-pin.json`: a key that signed a manifest, a detached signature that verified, and a manifest that anchors to its tag. Only a real run can write that note.
+
+⬜ `docs/release-key-pin.json` is present. If it is not, the signing key has not been proved on this machine, this phase cannot be completed, and there is no upload in Phase 6 either. Stop here and run `bash tools/release/verify-release-key.sh --key <fingerprint>` on the release machine; the fingerprint is published on the two channels named in `SECURITY.md`.  
+
+What has not changed is why a locally recomputed manifest can never stand in for a signed one: the tagged manifest and the signature come from the same command. Only the signing step writes a `RELEASE_HASHES.txt` that names a tag; the unsigned fallback (`verify.sh --recompute`) deliberately stamps `# tag: (none)`, which 4a above rejects and which `verify.sh` itself then refuses in both directions. The release runners hold no signing key by design, so CI cannot supply one either. Staging and signing happen on the release machine, after the build, and that is a release-procedure step upstream of this ceremony.
 
 ⬜ `verify.sh` reports the zip's hash as OK against `RELEASE_HASHES.txt`.  
+
+#### 4c. Record which build the store is getting
+
+The wallet is built at two profiles. A `default` build carries every surface; a `store` build compiles some of them out for review regimes that ask for it, and the mobile lane uses it. **They are different products in the way that matters to a listing, and the store assigns a permanent extension ID to whatever you upload first**, so the ceremony records which one went up rather than leaving it to be inferred from a workflow file months later.
+
+The artifact says so itself. Unpack it and read the stamp:
+
+```bash
+unzip -p release-artifacts/vX.Y.Z/xchain-wallet-extension-vX.Y.Z.zip build-profile.txt
+```
+
+⬜ The stamp is present and names the profile you meant to ship. **An absent stamp means the profile was never recorded, which is not the same as `default`**: treat it as unknown and find out which build you have before uploading, because that is the state this step exists to end.  
+⬜ The profile is written into the publish-log row alongside the version and sha256, in the same sitting as the upload (Phase 6).  
+
+**The current answer is `default`, by operator decision on 2026-08-06**, taken deliberately rather than by omission: the surfaces a `store` build removes were hidden for the Apple and Play review regimes, Chrome is a different one, and narrowing the product immediately before a first submission is the larger risk. If that is ever revisited, the listing copy and the screenshots have to move with it in the same change.
+
+
 ⬜ The checked sha256 is ready to record in the publish log. That row is written in the same step as the actual upload (Phase 6), not before it.  
 
 ### Phase 5: Fill in the store listing form

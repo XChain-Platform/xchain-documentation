@@ -1,6 +1,10 @@
 .DS_Store
 node_modules/
 
+# This repo's lockfile is package-lock.json. A pnpm-lock.yaml here comes from
+# running the wrong package manager, and two lockfiles resolve independently.
+pnpm-lock.yaml
+
 # Coverage output (c8/nyc): generated, not source
 coverage/
 .nyc_output/

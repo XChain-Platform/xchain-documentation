@@ -9,7 +9,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 
 ## Features
 
-- Generate all 30 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, COLLECT, PRICE, VOTE)
+- Generate all 31 XChain ACTION command strings (SEND, ISSUE, MINT, DESTROY, ORDER, DISPENSER, DIVIDEND, SWEEP, SWAP, CALLBACK, SLEEP, AIRDROP, MESSAGE, LIST, LINK, FILE, BROADCAST, ADDRESS, BATCH, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW, COINPAY, STAKE, UNSTAKE, DELEGATE, COLLECT, PRICE, VOTE, BET)
 - **Transaction Lifecycle Manager** (`submitAction`): full encode → sign → broadcast → wait pipeline in a single call, with automatic P2SH two-phase handling and progress callbacks
 - **Wallet Sessions** (`sdk.session(wif)`): bound wallet object that bundles address/key/UTXO state with action convenience methods: "I am this address, do things"
 - **Fee Estimation** (`estimateFees`): dry-run fee calculation via encoder, returns fee in satoshis plus reusable PSBT
@@ -55,7 +55,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 | Document | Description |
 |---|---|
 | [Configuration](configuration.md) | Constructor options, environment variables, hub discovery, retry and pooling config |
-| [Actions](actions.md) | All 30 supported ACTION types, parameters, and version formats |
+| [Actions](actions.md) | All 31 supported ACTION types, parameters, and version formats |
 | [Transaction Lifecycle](lifecycle.md) | `submitAction`, fee estimation, UTXO chaining, P2SH two-phase handling |
 | [Wallet Sessions](sessions.md) | Bound wallet sessions, convenience methods, UTXO cache |
 | [Workflows](workflows.md) | High-level recipes: issueAndDistribute, deployAndFund, stakeAndDelegate |

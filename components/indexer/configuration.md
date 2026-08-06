@@ -77,6 +77,8 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `HUB_PUSH_RETRY_BASE_MS` | Base backoff for a failed push. The wait grows as `base × 2^(attempts-1)`, capped at `HUB_PUSH_RETRY_MAX_MS`. | `30000` |
 | `HUB_PUSH_RETRY_MAX_MS` | Backoff ceiling for push retries | `600000` (10 min) |
 | `HUB_PUSH_MAX_ATTEMPTS` | Attempts before a push row is abandoned (about 30 minutes at the default backoff) | `10` |
+| `HUB_PUSH_FAILED_RETENTION_SECONDS` | How long an abandoned push row is kept before the sweep drops it. Without the sweep a long hub outage grows the queue table with no ceiling. Set to `0` to keep terminal rows forever. | `604800` (7 days) |
+| `HUB_PUSH_PRUNE_INTERVAL_MS` | How often the queue prunes abandoned rows older than the retention window | `3600000` (1 hour) |
 
 ### Fee quote and pre-flight
 

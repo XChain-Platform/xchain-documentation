@@ -149,6 +149,10 @@ The iOS app is the same wallet, wrapped the same way, and the differences are Ap
 - We do not track you across websites or apps. The browser extension requests no permission to read the pages you visit.
 - We do not load code at runtime from anywhere. Every version ships the code it runs.
 
+Every line above is about the XChain Wallet, and not about everything Dankest, LLC publishes. Our website is a separate thing under a separate notice: since 5 August 2026 the pages at `xchain.io` and its documentation, hub, sync, encoder and mcp sites count visits with Google Analytics, if and only if the visitor accepts the consent bar those pages show. That is exactly why "no analytics" is written here as the wallet's own claim rather than left to be assumed from the company. See the [website privacy notice](https://xchain.io/privacy) for what those pages do.
+
+One consequence is worth naming rather than leaving to be discovered. Those website cookies are set for the whole `xchain.io` domain, so if you accepted the bar on the website, a Google Analytics cookie exists in your browser for `wallet.xchain.io` as well. **The wallet never reads it and never sends it anywhere.** No wallet shell loads Google Analytics, or any other analytics, on any platform; the cookie is a website cookie that happens to share a domain, and nothing in the wallet is connected to it.
+
 ## The donation setting
 
 The wallet has an optional feature that adds a small donation to transactions you send, to fund development. We ask you about it once during setup, and you can change it any time in Settings.

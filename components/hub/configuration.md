@@ -402,6 +402,7 @@ Controls `FullNodeChallengeRound`, the periodic possession challenge proving a v
 | `FULLNODE_ENABLED` | No | `true` | Set to `false` to stop this hub running full-node challenges. |
 | `FULLNODE_BTC_RPC` | No | _(from coin config)_ | BTC node JSON-RPC URL used to pose the challenge. |
 | `FULLNODE_CHALLENGE_INTERVAL_BLOCKS` | No | `144` | Blocks between challenge rounds (about daily on BTC). |
+| `FULLNODE_SPEND_LOG_PATH` | No | `./data/fullnode-verdict.spend.jsonl` | JSONL record written and fsynced BEFORE a verdict fee is committed, so a crash mid-flight leaves a durable trace instead of only stdout. |
 | `FULLNODE_CONFIRM_DEPTH` | No | `100` | Depth behind the tip from which challenge material is drawn. |
 | `FULLNODE_VERDICT_ACCEPT_WINDOW_BLOCKS` | No | `24` | Blocks during which a verdict remains acceptable. |
 | `FULLNODE_POLL_MS` | No | `30000` | Poll cadence for challenge progress. |

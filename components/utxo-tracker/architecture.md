@@ -216,8 +216,12 @@ flowchart TD
 
 For new deployments, syncing from block 0 can take a long time. The tracker supports:
 
-- **Backup** (`getbootstrap`): Creates a compressed tar+gzip archive of the LevelDB data directory using `tar`, `pv` (for progress), and `pigz` (parallel gzip). Original size stored in the gzip comment for progress reporting.
-- **Restore** (`restorebootstrap`): Decompresses an archive back into the data directory, then resumes normal polling from the restored height. Tip continuity is checked lazily by the reorg path on the next block, not eagerly at restore time.
+- **Backup** (`getbootstrap`): Creates a compressed tar+gzip archive of the LevelDB data directory using `tar`, `pv` (for progress), and `pigz` (parallel gzip). Original size stored in the gzip comment for progress reporting. A `.sha256` sidecar is written next to the archive so the restore path below can verify it.
+- **Restore** (`restorebootstrap`): Accepts **two archive layouts** and validates the archive *before* the destructive `/data` wipe, so a wrong-layout or checksum-failing archive aborts with the live store intact:
+  - *Single-layer* (what `getbootstrap` above produces): the archive is the LevelDB data directory itself. It is verified against its published `<archive>.sha256` sidecar, and a missing sidecar fails closed unless `BOOTSTRAP_RESTORE_ALLOW_UNVERIFIED=1`.
+  - *Wrapper* (what the node's `BootstrapService` publishes): an outer tar whose members are `data.tar.gz` plus `data.sha256`. It is detected by those member names, unwrapped to a temp dir, and the inner `data.tar.gz` is checksum-verified against the bundled `data.sha256` before becoming the effective restore source. No external `.sha256` sidecar is required or consulted for this layout.
+
+  After extraction the tracker resumes normal polling from the restored height. Tip continuity is checked lazily by the reorg path on the next block, not eagerly at restore time.
 
 Both operations run as background tasks tracked by UUID, with progress queryable via `getbootstrapstatus` / `getbootstraprestorestatus`.
 
