@@ -152,7 +152,8 @@ Internal testers get a build immediately with no review, and that is what makes 
 An external group adds testers outside the team and builds review history ahead of the first submission. It also starts two recurring clocks, which is why it is not on by default: external testers draw a Beta App Review on the first build of each version, usually within hours but occasionally longer, and every uploaded build hard-expires 90 days after upload, so a standing beta channel needs a re-upload cadence or a deliberate decision to let it lapse. No other distribution channel has that expiry.
 
 ⬜ The build is installed on a real device from the internal group, and the wallet unlocks. A vault call failing with a keychain error here means the build reaching you is unsigned, not that the app is broken.  
-⬜ The full review demo below has been rehearsed end to end on that device, including the airplane-mode signing step.  
+⬜ The demo wallet is prepared and funded, per the demo-account steps below. The rehearsal cannot be done without it, and it is the step most likely to be left until the console is open.  
+⬜ The full review demo below has been rehearsed end to end on that device, including the network switch in step 2 and the airplane-mode signing step.  
 ⬜ Native logging was read at least once rather than guessed at, so a startup problem in review is diagnosable:  
 
 ```bash
@@ -170,7 +171,8 @@ Every answer is written down. Copy, do not compose. Use the listing collateral b
 ⬜ Category, support URL, marketing URL and privacy policy URL taken from Categorization and contact below.  
 ⬜ **Trader declaration submitted, transcribed from the block below: entity, address, email and phone.** This one is not editable in the sense that matters, so it is the field to slow down on: see Trader declaration (EU DSA) below.  
 ⬜ Age-rating questionnaire answered as tabulated below; the expected outcome is 4+.  
-⬜ Review notes and demo wallet filled in, with a seed generated fresh for this submission.  
+⬜ **App Review contact information first, before anything else on the version page.** The first name, last name, phone number and email under App Review Information are required, and they gate the whole page rather than only themselves: with any of them empty the console refuses to save the version page at all, naming those four and discarding every other edit made in the same pass. It reads like the last box to tick on the way out and it is the first thing that has to go in. Whose details these are is a decision, not a transcription: they are a direct line Apple uses during review.  
+⬜ Review notes and demo wallet filled in, with a seed generated fresh for this submission. Paste the notes from this page rather than editing what is already in the console, so a correction made here reaches the submission; the demo wallet has to be prepared and funded first, per Demo account below.  
 ⬜ Screenshot sets uploaded for iPhone and iPad.  
 
 The iPad screenshot set is mandatory for a universal app; a missing iPad set blocks submission outright rather than degrading the listing. The app icon is the one listing asset compiled into the binary itself: unlike every other field here, fixing it after upload needs a new build, not a console edit, so confirm it is correct before archiving.
@@ -349,10 +351,10 @@ Generated from the simulator at the store build profile, never a build carrying 
 > Demo steps (about three minutes):
 >
 > 1. Open the app and choose "Import wallet". Enter the recovery phrase below and any password. The wallet opens on the balances screen.
-> 2. The wallet is already set to a public test network, so no real funds are involved. Balances are read from a public blockchain indexer; no account is involved.
+> 2. Open Settings and set Network to "Testnet". The app reloads onto a public test network, so no real funds are involved at any point in this demo. Balances are read from a public blockchain indexer; no account is involved.
 > 3. Tap Receive. The app shows an address and a QR code. Tap the camera icon to scan one; this uses the device camera directly.
 > 4. Turn on Airplane Mode. Tap Send, enter the address shown below and any small amount, and confirm. The app builds and signs the transaction on the device and shows you the signed result. It cannot broadcast it, and says so. Turn Airplane Mode off and the same signed transaction broadcasts. Nothing about the signing step needed a server.
-> 5. Settings shows the network selector used in step 2, and the privacy toggles that turn off the only third-party requests the app makes.
+> 5. Settings also holds the privacy toggles that turn off the only third-party requests the app makes.
 >
 > The app is open source under AGPL-3.0-or-later.
 
@@ -361,6 +363,15 @@ This text is written to keep two things true, and they must stay true on any fut
 ### Demo account
 
 There is no sign-in, so the account fields stay empty and the demo wallet goes in the review notes instead: a funded test-network recovery phrase, password, and a send-to address, filled in fresh at submission time. Treat the seed as burned the moment it enters review notes: never reuse it across stores or releases, since a shared seed is a resource two concurrent reviewers could race into a false "does not work" rejection.
+
+**Step 2 of the demo is load-bearing and must not be dropped as a formality.** An imported wallet does not open on a test network. Both the create and the import paths start a wallet on the three main networks, so without that step a reviewer is looking at an empty mainnet wallet, the funded demo balance is nowhere on screen, and the airplane-mode signing step in step 4 has nothing to spend: the wallet would read as broken at exactly the moment the demo exists to prove it works. Switching the network in Settings derives the addresses for the network being switched to, so one step is genuinely all it takes. If the app ever starts a new wallet on a test network by default, this step becomes redundant and can go; while it does not, the walkthrough has to carry it.
+
+Preparing the wallet is four steps, and none of them can be left until the console is open:
+
+⬜ Install the build being submitted, create or import a throwaway wallet, and set Network to "Testnet" in Settings.  
+⬜ Fund it on one of the public test networks this listing's demo endpoints serve, from a public faucet or the project's own test-network funding wallet. A few thousand of the smallest unit is enough; the demo spends almost nothing, and a large test balance on a phrase published to a reviewer is a balance somebody else will move.  
+⬜ Confirm the balance is visible **in the app**, not only on a block explorer. This is the whole point of the check: it exercises the same indexer path the reviewer's device will use, from a network that is on no allowlist.  
+⬜ Walk the demo steps above end to end on a device, including the airplane-mode step, and only then paste the phrase, the password and the send-to address into the review notes.
 
 ### Release control
 
