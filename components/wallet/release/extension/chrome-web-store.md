@@ -43,7 +43,7 @@ Confirm all of these before Phase 1.
 ⬜ **If the console asks for a publisher display name during signup, use `Dankest, LLC`** to match the Android listing. That field is editable later, unlike the trader details, so it is not a permanent commitment; it just avoids two stores disagreeing in the meantime.  
 ⬜ **The blast-radius trade this decision accepts:** one phished account now reaches both stores. That is what the group-publisher conversion in Phase 2a exists to unwind, so do not skip it before first public release.  
 ⬜ **Set up two-factor authentication with a hardware security key or a passkey.** Do this at registration time, before anything else touches the account. Never enable SMS or a time-based code as a "backup" option; if the console offers one, decline it.  
-⬜ **Grant no OAuth access to any third-party tool from this identity.** This includes automation you may be tempted to wire up early "to save time later". Upload automation is deliberately not decided yet, and when it is, the token it uses will be scoped narrowly and reviewed, not a blanket OAuth grant to the publisher account itself.  
+⬜ **Grant no OAuth access to any third-party tool from this identity.** This includes automation you may be tempted to wire up early "to save time later". Upload automation exists, and it does not change this step: its credential is a FIRST-PARTY OAuth client owned by this same organization, scoped to this one store item, created deliberately and after the first submission. What this step forbids is a blanket grant to the publisher account itself, and a third-party tool holding one. The two are easy to confuse at the console, where the same consent screen serves both.  
 ⬜ **Record the recovery codes into the recovery-credential store**, in the same sitting you generate them. A generated credential with nowhere durable to live is a future outage, not a future convenience.  
 ⬜ **Set the account's contact email to a forwarding address that lands in a monitored shared inbox.** Do not point it at a personal inbox.  
 
@@ -163,6 +163,14 @@ If either file is missing, stop; go back to the release procedure, not around it
 ⬜ The header says `# tag: vX.Y.Z`, naming the tag you are submitting. **If it says `# tag: (none)`, this is a local recompute, not a release manifest, and it cannot be uploaded.** A recompute proves a zip matches itself; it says nothing about which release the zip is. Verifying with `--tag` will refuse it (`manifest describes '(none)' but you expected ...`), and verifying without `--tag` will also refuse it (`cannot tell which release this manifest is for`). Both refusals are correct. Neither is a tool fault, and neither means you may proceed.  
 ⬜ The header says `# dev-mock-gate:` something other than `not-run`.  
 
+**That word is only as good as the gate that wrote it, and which gate wrote it is a property of the TAG rather than of the current code.** Signing runs from a pristine clone checked out at the release tag, and the signing script refuses any other tree, so it runs that tag's copy of `tools/release/sign.sh`. A fix to the signing tooling therefore protects the next release and never one that is already tagged. This is not hypothetical either: until 2026-08-06 the gate ran against the repository's own `dist/` directories, which a pristine clone does not have, so on every real signing run it read nothing, exited 0, and `enforced` was written into the signed manifest on the strength of an empty scan. Ask the tag which gate it carries:
+
+```bash
+git show vX.Y.Z:tools/release/sign.sh | grep -c -- '--artifacts'
+```
+
+⬜ The count of `--artifacts` is 1 or more, so this tag's signing script points the dev-mock gate at the staged artifacts it is about to sign. **If it is 0, the `enforced` in that manifest header is not evidence of anything**: that tag scans the repository rather than the release, and from the pristine clone signing requires, it scans nothing at all. Two honest ways out, both of them release-procedure work upstream of this page, and neither of them is proceeding anyway: cut the release from a tag that carries the fix, or run the gate against the staged artifact set by hand and record what it read in the release record before signing, so the header and the evidence behind it say the same thing.  
+
 If you have a recompute rather than a release manifest, the artifact you need has not been produced yet. That is a release-engineering blocker upstream of this ceremony, not something to work around here: the store assigns a permanent extension ID to whatever you upload first.
 
 #### 4b. Check the sha256 before upload
@@ -280,8 +288,8 @@ Once public: the store's staged-rollout percentage is not available to this list
 
 - **Rollback.** There is no rollback lever on the Chrome Web Store; a previous version can never be re-served. If you need one, read `tools/release/rollback-rerelease.sh`'s own header first, then the incident runbook's emergency-levers section, before reaching for the script during an actual incident. The recipe is prepared and gated by `test/smoke/audits/rollback-rerelease.smoke.js`, so nothing about it is outstanding; it is simply a different ceremony, run under different conditions, and it is the slow path in every case.
 - **Post-publish byte verification.** Once you are live, `tools/release/verify-store.sh` checks the store-served item against the signed reference (required at first publish, and after any account-security event). Its usage and flags are documented in its own header; this page does not repeat them, since the command differs by whether you have an unpacked install directory or a raw CRX.
-- **Store API upload automation.** Not decided. Nothing here assumes it exists.
-- **A second unlisted item for a beta-lane soak.** A separate setup ceremony once decided.
+- **Store API upload automation.** It exists: `tools/release/cws-upload.mjs` uploads a signed release zip through the store's API, checks the zip against its signed manifest first, and refuses to publish publicly without an explicit flag. It is deliberately not part of a FIRST submission, which is a console session with account and identity steps around it, and it needs an OAuth credential this ceremony does not set up. Read the tool's own `--help` when you want it; nothing on this page depends on it.
+- **A second unlisted item for a beta-lane soak.** Required from the release after the first one, and it is a separate setup ceremony with its own store item, its own listing and its own credential row. Nothing in the first submission creates it.
 
 ### What this runbook could not verify
 
