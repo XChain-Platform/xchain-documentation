@@ -62,7 +62,7 @@ The design calls for a second, independent channel on a different host with a di
 
 If a document says "the release key" without saying which one, take the fingerprint as the answer rather than the name.
 
-**No signed XChain Wallet release exists yet.** The release key now exists and both channels publish its fingerprint, but nothing has been signed with it, so any file offered to you as a signed XChain Wallet release is not one.
+**One signed XChain Wallet release exists: `v0.336.0`, published 2026-08-06, and it covers Android only.** The Android `.apk` is at `https://downloads.xchain.io/wallet/android/`, and the manifest describing it is at `https://downloads.xchain.io/wallet/RELEASE_HASHES/v0.336.0.txt` with its signature beside it. That manifest says in its own signed header that its coverage is partial and names the lane it covers, so read the note the verify step prints about partial manifests: an artifact missing from it is not evidence the release omitted that artifact. No desktop, extension or iOS artifact has been published, so any file offered to you as one of those is not a release of ours.
 
 ---
 
@@ -168,11 +168,12 @@ grep '^#' RELEASE_HASHES.txt
 # profile store: ./xchain-wallet-ios-v0.333.1.ipa
 ```
 
-These lines are inside the signed bytes, so a good signature vouches for them too. Four things to read:
+These lines are inside the signed bytes, so a good signature vouches for them too. Five things to read:
 
 - **`tag`** must be the release you meant to download. A manifest lifted from another release hashes and verifies perfectly; this line is the only thing that catches it.
 - **`tag-commit`** is the commit the tag resolved to at signing time. Use it for the reproduce step below.
 - **`dev-mock-gate`** must say `enforced`. Anything else means the release was signed without the check that keeps the development stub SDK, which shows fabricated addresses and cannot really sign, out of a shipped bundle. Treat that as a reason to ask before installing.
+- **`coverage` and `lanes`**, when present, say the manifest covers only part of a release. Most manifests carry neither line, and that means the manifest describes the whole release. A manifest that reads `coverage: partial` with, say, `lanes: android` was signed for that one download channel on its own, which is what happens when one channel is ready to publish before the others are built. It is a normal, fully signed record: everything above still applies to the artifacts it lists. What it does not tell you is anything about the rest of that version, so an artifact missing from it is not evidence that the release omitted that artifact. Fetch the manifest for the channel you downloaded from.
 - **`profile`** says which feature set each artifact was built with. `default` is the full app: web, desktop and the extension. `store` is the mobile build, which compiles out the surfaces the app stores' review rules keep us from shipping there, so an Android or iOS build genuinely contains less code than the desktop one of the same version. Every artifact appears on exactly one of these lines; the Android APK you download directly is `store` too, because it is built from the same bundle that goes to the store.
 
 At this point the artifact has been authenticated. You can install or run it.

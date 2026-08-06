@@ -109,16 +109,57 @@ It produces, into the output directory:
 |---|---|---|
 | `xchain-wallet-android-vX.Y.Z.aab` | the upload key | Play only. **Never hosted publicly.** |
 | `xchain-wallet-vX.Y.Z.apk` | the direct-distribution key | the direct-download channel |
-| `PROVENANCE.txt` | - | beside the bytes, every run |
-| `DO-NOT-PUBLISH.txt` | - | only on `--rehearsal` |
+| `records/PROVENANCE.txt` | - | beside the bytes, every run |
+| `records/DO-NOT-PUBLISH.txt` | - | only on `--rehearsal` |
 
 The APK is derived from **that same bundle** with `bundletool --mode=universal`,
 never a second build, so the two files are provably the same code.
 
-Then run `tools/release/sign.sh` over the output directory, so both artifacts
-land in the release hash list and the signed manifest. Both names are declared
-in `tools/release/expected-artifacts.txt`; an artifact whose name matches no
-declared line is a hard failure there, not a cosmetic mismatch.
+The two notes go in a `records/` subdirectory rather than beside the artifacts,
+and that is not tidiness. The output directory is the signing input, and the
+signing step below hard-fails any file in it that the release list does not
+declare, which is what stops a stray build output being signed into the
+release. A record written next to the bytes blocked the signing step itself.
+
+### Signing this lane on its own
+
+```bash
+XCHAIN_RELEASE_GPG_KEY=<the release key fingerprint, from the security page> \
+  bash tools/release/sign.sh --tag vX.Y.Z --lane android \
+    --input <output directory>
+```
+
+`--lane android` is required here and is not a shortcut. A release manifest
+normally has to cover a whole release: the artifact-set gate demands the web
+tarball, the extension package and both architectures of every desktop
+artifact, because a manifest missing a lane verifies perfectly while describing
+a release nobody built. This ceremony builds none of those, so without the flag
+the signing step refuses.
+
+What the flag does is narrow the gate to the lanes named in
+`tools/release/shipped-lanes.txt`, and **inside that scope the gate is stricter
+than the full list, not weaker**:
+
+- both halves of the Android pair become required, even though the release list
+  calls them optional. The pair is one build, so half of it is an interrupted
+  ceremony rather than a smaller release;
+- an artifact belonging to any other lane is undeclared and hard-fails, so a
+  per-lane manifest is not a place a stray file can be laundered into the
+  release;
+- a lane name that is not declared is refused, rather than quietly resolving to
+  a scope that demands nothing.
+
+The manifest records its own coverage in the signed header:
+
+```
+# coverage: partial
+# lanes: android
+```
+
+so `verify.sh`, a reader following the verify-release page, and the desktop
+updater are all told what it does not attest. The desktop updater refuses a
+partial manifest outright: it is a legitimate record, but it never covered the
+artifact that updater is installing.
 
 **Before you upload, confirm the bundle is what you think it is:**
 
@@ -336,8 +377,33 @@ suspends a release, promoting the direct channel is the normal path**, not an
 exception.
 
 ```bash
-bash tools/release/publish.sh --version X.Y.Z
+bash tools/release/publish.sh \
+  --input  <signed-staging-dir>/ \
+  --tag    vX.Y.Z \
+  --target <release-feed-alias>:wallet \
+  --public-base https://downloads.xchain.io/wallet
 ```
+
+Four things about that command are load-bearing, and each one cost a failed run
+to learn:
+
+- **The target is an `ssh` config alias, not a hostname typed here.** The feed
+  key is pinned to a forced `rrsync` command, so the client's path is
+  *relative* to the directory that key may write - `<alias>:wallet`, never an
+  absolute path, which `rrsync` rejects as an escape attempt. The alias, its
+  identity file and the directory it opens are recorded with the release keys,
+  not on this page.
+- **Add `--dry-run` first.** It walks every gate, verifies the signed manifest,
+  prints the upload plan and changes nothing.
+- **The release record must be readable.** The publisher refuses to upload
+  without the release record for this tag, and the records live outside this
+  repository; point `XCHAIN_WALLET_RELEASE_RECORDS` at them if they are not
+  where it looks by default. That relocates the records, it does not waive
+  them.
+- **GNU `rsync`, not Apple's.** macOS ships `openrsync`, which sends an option
+  the forced-command feed rejects, and the error names neither `rsync` nor
+  `PATH`. The publisher refuses `openrsync` outright rather than letting the
+  upload fail obscurely.
 
 The publisher routes the `.apk` to `wallet/android/` and **refuses the `.aab`
 by name**. Play re-signs every bundle before serving it, so a hosted `.aab` is
@@ -360,11 +426,22 @@ Publish beside it:
   direct channel's only update mechanism. A feed naming a version nobody can
   download is an alarm with no exit.
 
-Then make the download page's Android entry live. It is a one-line change: the
+Then make the download page's Android entry live. It is a data change: the
 platform grid renders a tile as "coming soon" until its link is filled in.
-**Move the lane-switching warning above the grid at the same time.** Once the
-Play button and the direct `.apk` link sit two clicks apart on one tile, a user
-can switch lanes without meaning to, and switching lanes means an uninstall.
+
+**Which link, and the trap in that sentence.** The grid's model treats the
+store page as a platform's link and the direct file as an escape hatch beneath
+it, so filling in only the direct file used to leave the tile reading "coming
+soon" over a published, verifiable download. A platform can now go live on its
+direct file alone, and when it does the tile carries the reason there is no
+store link beside it.
+
+**The lane-switching warning goes wherever both lanes are reachable.** With
+both live, it belongs above the grid, because a Play button and a direct
+`.apk` two clicks apart on one tile let a user switch lanes without meaning to,
+and switching lanes means an uninstall. With only the direct file live, it
+belongs on that tile: the visitor is being offered a sideload, and the cost of
+changing their mind later is the wallet.
 
 **There is no halt, no rollback and no downgrade on this channel.** Android
 refuses a version-code regression without an uninstall, and an uninstall wipes
