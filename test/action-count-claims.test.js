@@ -71,10 +71,14 @@ function namedActions() {
  * is right. Three were checked against source on 2026-07-29 and two were wrong:
  * the e2e tree said 59 action test files against 64 on disk, and 36 helper
  * modules against 40. Verifying the rest means deriving each from its own repo,
- * which is a separate job. `46 action` in particular resisted a cheap check:
- * 51 handler files and 49 instantiation sites measure different things, and
- * neither is obviously the documented figure, so it is left alone and labelled
- * rather than guessed at.
+ * which is a separate job. The indexer's figure was one of the wrong ones: it
+ * read `46 action` handler classes until 2026-08-06, when xchain-indexer
+ * src/actions.js was counted three independent ways (48 requires from
+ * src/actions/, 48 `new <handler>(this)` instantiations, 48 unique
+ * `if(action=='X')` dispatch cases) and all three agreed on 48. The three
+ * src/actions/*.js files actions.js does not require are deploy_chunk.js (a
+ * sub-handler deploy.js loads), execContext.js and faultGuard.js (not
+ * handlers), which is what the old "51 handler files" tally was counting.
  */
 /*
  * The wire-decoded count (36 minus XCALL) is correct only where the text is
@@ -112,8 +116,9 @@ const SCOPED = [
     why: 'test files, several per action; re-counted from the directory 2026-07-29' },
   { file: 'components/e2e-test/README.md', claim: '27 ACTION', count: 1,
     why: 'test suites, not actions; the sentence enumerates all 27' },
-  { file: 'components/indexer/architecture.md', claim: '46 action', count: 1,
-    why: 'handler classes plus an internal sub-handler. NOT verified against source' },
+  { file: 'components/indexer/architecture.md', claim: '48 action', count: 1,
+    why: 'handler classes in xchain-indexer src/actions.js, not the ACTION set; '
+       + 'requires, instantiations and dispatch cases all counted 48 on 2026-08-06' },
   { file: 'components/indexer/actions.md', claim: '21 actions', count: 1,
     why: 'the subset registered at protocol version 1.0.0; 21 + 15 = 36 on the same page' },
   { file: 'components/vm/architecture.md', claim: '19 action types', count: 1,

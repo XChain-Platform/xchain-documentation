@@ -40,7 +40,7 @@ After processing each block, the indexer pushes its chain tip to xchain-hub (so 
 flowchart TD
     API["api.js<br>Express + JSON-RPC server<br>Validates env vars, starts indexer"]
     XI["XChainIndexer<br>Main orchestrator class<br>Block polling loop (5s interval)<br>Reorg detection → block processing → sanity check"]
-    ACTIONS["Actions<br>46 handlers + aliases<br>inc. PRICE"]
+    ACTIONS["Actions<br>48 handlers + aliases<br>inc. PRICE"]
     DB["Database<br>3 pool conns<br>(decoder/idx/hub)"]
     ROLLBACK["Rollback<br>Atomic undo by block"]
     UTIL["Utility<br>Math, timer<br>Expirations<br>Ledger ops"]
@@ -135,7 +135,7 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server + JSON-RPC, env var validation, indexer startup |
 | `src/XChainIndexer.js` | `XChainIndexer` | Main orchestrator: block polling loop, reorg detection, block processing pipeline |
-| `src/actions.js` | `Actions` | Loads all 46 action handler classes (45 routable action types plus the internal `deploy_chunk` sub-handler), routes transactions to the correct handler |
+| `src/actions.js` | `Actions` | Loads all 48 action handler classes (one per routable ACTION string, including the `UNKNOWN` fallback), routes transactions to the correct handler. The internal `deploy_chunk` sub-handler is loaded by `deploy.js`, not here |
 | `src/db.js` | `Database` | MariaDB connection pool management, all SQL queries, table creation, sanity checks |
 | `src/config.js` | None | Merges environment variables with coin-specific config into a single config object |
 | `src/configs/BTC.js` | None | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |

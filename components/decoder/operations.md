@@ -128,7 +128,15 @@ Detailed health status including decoder state.
 
 ### `GET /status` (REST)
 
-Returns HTTP 200 with `{status: "healthy", db, running}` when the decoder is running and MariaDB is reachable, or HTTP 503 otherwise. Distinct from the JSON-RPC `health` method so load balancers and uptime monitors can rely on the HTTP status code directly (a plain GET against the JSON-RPC root always answers 200). Point Docker HEALTHCHECKs and load balancers here.
+Returns HTTP 200 with `{status: "healthy", db, running}` when the decoder is running and MariaDB is reachable, or HTTP 503 otherwise. Distinct from the JSON-RPC `health` method so load balancers and uptime monitors can rely on the HTTP status code directly (a plain GET against the JSON-RPC root always answers 200). Point load balancers and uptime monitors here; point Docker HEALTHCHECKs at `GET /live`.
+
+### `GET /live` (REST)
+
+The liveness probe, and the route the Docker HEALTHCHECK runs. Everything `/status` reports, plus `stalled`, `last_processed_block`, `node_height`, `lag`, `parse_errors`, and `rpc_errors`. Returns HTTP 503 when the decoder is not running, MariaDB is unreachable, **or** the block loop is stalled.
+
+Stalled means the loop is alive and retrying but no longer making progress the chain is waiting on: either one height has failed to fetch on many consecutive attempts, or nothing advanced for `DECODER_STALL_ALERT_MS` (default 15 minutes) while the node tip was fresh and visibly ahead. The block loop never skips a block on a fetch or parse fault, because skipping would corrupt the index, so a deterministic fault at one height retries forever with the process alive and the DB answering. That case is invisible to `/status`, which is why autoheal probes `/live` instead.
+
+A frozen node tip (node outage) is deliberately **not** stalled: both sides stop and a restart fixes nothing. Tune the window per host with `DECODER_STALL_ALERT_MS`, and the consecutive-fetch-failure threshold with `DECODER_STALL_FETCH_ATTEMPTS` (default 20 attempts, about one minute).
 
 ### `getlatestblock`
 
