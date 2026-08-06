@@ -27,7 +27,9 @@ These variables are required regardless of whether the service runs in server or
 
 ### Server Mode
 
-In server mode, **no database environment variables are needed**. The service discovers all indexer and decoder database connections by calling the hub's `getallconfigs` method. The hub returns the `db_host`, `db_port`, `name` (database name), `user`, and `pass` for every installed indexer and decoder.
+By default, **no database environment variables are needed**. The service discovers all indexer and decoder database connections by calling the hub's `getallconfigs` method. The hub returns the `db_host`, `db_port`, `name` (database name), `user`, and `pass` for every installed indexer and decoder.
+
+Setting `REPLICA_DB_HOST` overrides that default: the server instead connects to a local replica database, using `REPLICA_DB_HOST`/`REPLICA_DB_PORT`/`REPLICA_DB_USER`/`REPLICA_DB_PASS` in place of the hub-provided `db_host`/`db_port`/`user`/`pass` (the database name still comes from the hub, so the replica must use the same name). The hub is still queried, only to enumerate which chains/networks exist. This is how a re-serving tier, a box that already pulled the databases as a client, serves those local replicas onward to downstream clients instead of the authoritative DB coordinates. See [Operations: read-only-replica deployment](operations.md#read-only-replica-deployment) for the full pattern, including pairing this with `REPLICA_DB_READONLY` when the local replica is fed by something other than this process (for example MariaDB binlog replication).
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
@@ -45,6 +47,10 @@ In server mode, **no database environment variables are needed**. The service di
 | `WS_BACKPRESSURE_STALL_MS` | No | `30000` | How long (ms) an over-limit subscriber's send buffer may fail to drain before it is force-disconnected. The stall timer resets on any drop in buffered bytes. |
 | `VALIDATOR_HEARTBEAT_TTL` | No | `60000` | Milliseconds before an unresponsive validator is marked `stale` in `/validator-status` (rather than deleted) |
 | `EXPECTED_VALIDATORS` | No | `""` | Comma-separated list of expected validator IDs/pubkeys. When set, `/validator-status` reports an `expected_total` denominator and flags roster members that have never sent a heartbeat as `absent`. Unset means no roster check. |
+| `REPLICA_DB_HOST` | No | None | Serves from a local replica database instead of the hub-provided authoritative database. When set, the server connects to this host using `REPLICA_DB_PORT`/`REPLICA_DB_USER`/`REPLICA_DB_PASS` instead of the hub's `db_host`/`db_port`/`user`/`pass` (the database name still comes from the hub). Unset (the default): the server connects to the hub-provided authoritative database, as described above. |
+| `REPLICA_DB_PORT` | No | `3306` | MariaDB port for the local replica database. Only read when `REPLICA_DB_HOST` is set. |
+| `REPLICA_DB_USER` | No | None | MariaDB username for the local replica database. Only read when `REPLICA_DB_HOST` is set; leaving it unset while `REPLICA_DB_HOST` is set fails the database connection. |
+| `REPLICA_DB_PASS` | No | None | MariaDB password for the local replica database. Only read when `REPLICA_DB_HOST` is set; leaving it unset while `REPLICA_DB_HOST` is set fails the database connection. |
 | `REPLICA_DB_READONLY` | No | `false` | Makes the transparency log serve-only, for a server process whose database is itself a replica (for example, kept current by MariaDB binlog replication) that this process must never write to. When `true` (also accepts `1`), the four `TransparencyLog` write entry points (`recordBlock`, `commitEpoch`, `pruneFrom`, `recommitEpoch`) and the startup gap-repair scan (`ServerPoller.backfillGaps`) all become no-ops. Every read path, proofs, epoch roots, the paginated log, and the `/transparency/*` endpoints, is unaffected. See [Operations: read-only-replica deployment](operations.md#read-only-replica-deployment) for the full pattern. |
 
 ### Client Mode
@@ -64,7 +70,7 @@ In client mode, the service connects to remote sync servers and replicates their
 | `INDEX_MAP_PARITY_CHECK` | No | `false` | **Advisory only; never halts.** When `true`, periodically checks that the replica's `index_addresses` id-to-address mapping matches the source's deterministic-subset checksum. A mismatch is logged and counted but never halted on. Off by default because computing it scans `index_addresses` (an index on `block_index` is advisable before enabling on a high-volume chain). |
 | `VERIFY_CHECKPOINT_QUORUM` | No | `false` | **Default OFF.** When `true`, anchors the replica's independently recomputed `state_root` to the federation quorum: the client fetches the source's signed checkpoint, verifies its Ed25519 signatures against the pinned validator set in `pinnedValidators.js`, and halts if the quorum fails or the checkpoint's `state_root` disagrees with the replica's own computed root. Inert without a pinned set configured for the chain/network. |
 | `CHECKPOINT_VERIFY_INTERVAL` | No | `50` | How often to probe the `/latest` checkpoint, measured in applied blocks. Only used when `VERIFY_CHECKPOINT_QUORUM=true`. |
-| `REPLICA_DB_HOST` | Yes | None | MariaDB hostname for local replica databases |
+| `REPLICA_DB_HOST` | Yes | None | MariaDB hostname for local replica databases. This variable, and the three below, are also honored in server mode as an opt-in override; see [Server Mode](#server-mode) above. |
 | `REPLICA_DB_PORT` | No | `3306` | MariaDB port |
 | `REPLICA_DB_USER` | Yes | None | MariaDB username for replica databases |
 | `REPLICA_DB_PASS` | Yes | None | MariaDB password |
