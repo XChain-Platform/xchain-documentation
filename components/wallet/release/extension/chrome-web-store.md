@@ -228,6 +228,14 @@ Everything paste-ready lives in [Listing collateral](#listing-collateral) below.
 ⬜ Single-purpose, permission justifications, and content-script justification pasted from the collateral below.  
 ⬜ Listing name and description pasted. The name is **`XChain Wallet`**, and it must equal `manifest.json`'s own `name`, which a smoke enforces.  
 ⬜ Four listing assets uploaded from `packages/extension/docs/listing-assets/`.  
+
+**The assets are checked for their size everywhere and for their subject nowhere, so check the subject here.** A screenshot of a build nobody can install passes every dimension check perfectly, and it is a review finding days into a clock, on a listing whose extension ID is already permanent. Ask which build these images depict, naming the tag you are uploading rather than your working tree:
+
+```bash
+node tools/release/verify-listing-assets.mjs --since vX.Y.Z
+```
+
+⬜ It reports `CLEAN`. **If it reports `STALE`, it prints the commits that touched what each asset depicts since the images were captured**, and there are two honest ways out, neither of which is uploading anyway: rebuild the extension at the tag and re-run `packages/extension/scripts/capture-listing-screenshots.mjs`, which re-pins as it goes; or read the listed commits and record in the release record why none of them can change these pixels. The tool deliberately cannot tell a cosmetic commit from a visible one, so it names them instead of guessing. `INCONCLUSIVE` means it could not tell at all (no pin, or a checkout without the history), which is not a pass.  
 ⬜ Remote-code answer and the data-usage categories ticked from the [data-disclosure answers](../../privacy/data-disclosure.md), and every category the console shows that the disclosure does not name recorded back into it before submitting.  
 ⬜ Privacy-policy URL field set to the exact address the Phase 3 check printed, trailing slash included, not retyped.  
 ⬜ Category and name fields filled from [Category and name](#category-and-name).  
@@ -383,6 +391,7 @@ The four uploaded files live in `packages/extension/docs/listing-assets/`, gener
 ✅ Screenshot 1280x800: sign-approval view. A `signMessage` approval window, driven end to end from a fake demo dApp origin (served locally by the capture script, never a real site) through the real injected-provider, content-script, service-worker and approval-broker route: connect, then request a message signature. It shows the demo wallet's own freshly generated, unfunded address as signer. The other two password-gated approval kinds both need a funded wallet, which the throwaway demo wallet deliberately never has; `signMessage` needs no funds, only a key, and is a genuine approval surface, so it covers this row.  
 ✅ Small promo tile 440x280: brand logo and wordmark on the accent gradient from `packages/core/src/ui/tokens.css`; no wallet data at all.  
 ✅ Every asset's pixel dimensions are re-read from the PNG headers by the listing-pack smoke, because a screenshot regenerated at a changed viewport is rejected by the store's upload form days into a review clock.  
+✅ **Which build each asset depicts is recorded, because its dimensions cannot say.** A successful capture writes `packages/extension/docs/listing-assets/capture-pin.json`: the commit and version it drove, and each asset's sha256. The release-tools smoke holds the assets to that note, so an image replaced or re-cropped without a capture run fails; Phase 5's own step asks the other half, whether anything an asset depicts has moved since. Measured on 2026-08-06, before either existed: these four were captured at v0.333.1 and the release staged for submission was v0.336.0, with 33 commits to the surfaces they show in between.  
 
 ### Category and name
 
