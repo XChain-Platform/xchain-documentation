@@ -65,20 +65,26 @@ Two channels exist so that whoever could quietly rewrite one of them cannot quie
 
 If a document says "the release key" without saying which one, take the fingerprint as the answer rather than the name.
 
-**No signed XChain Wallet release exists yet.** Until the key ceremony has run and both channels carry a value, any file offered to you as a signed XChain Wallet release is not one.
+**No signed XChain Wallet release exists yet.** The release key now exists and both channels publish its fingerprint, but nothing has been signed with it, so any file offered to you as a signed XChain Wallet release is not one.
 
 ---
 
 ## Step 1: import the maintainer's release key
 
-Take the fingerprint from the [two channels above](#where-the-release-key-fingerprint-is-published). Once it is published you can fetch the key from a keyserver:
+Take the fingerprint from the [two channels above](#where-the-release-key-fingerprint-is-published). Then get the key itself. **Where you get the key from matters far less than the fingerprint check that follows it**, which is the whole reason the fingerprint is published separately from the key: a key that fails that check is discarded no matter how official its source looked, and a key that passes it is the right key no matter how ordinary its source was.
+
+The key is committed in the wallet repository, so this works today:
 
 ```bash
-gpg --keyserver keys.openpgp.org --recv-keys <FINGERPRINT>
+curl -fsSL -o release-signing-key.asc \
+  https://raw.githubusercontent.com/XChain-Platform/xchain-wallet/master/tools/release/release-signing-key.asc
+gpg --import release-signing-key.asc
 gpg --fingerprint <FINGERPRINT>
 ```
 
-Cross-check the fingerprint output against the published one. They must match exactly. If they do not, stop and ask in a public channel before proceeding: a mismatching fingerprint is the canonical sign that your view of either the keyserver or the published fingerprint is compromised.
+The key is not on a public keyserver yet. When it is, `gpg --keyserver keys.openpgp.org --recv-keys <FINGERPRINT>` will fetch the same key, and the fingerprint check below is unchanged either way.
+
+Cross-check the fingerprint output against the published one. They must match exactly. If they do not, stop and ask in a public channel before proceeding: a mismatching fingerprint is the canonical sign that your view of either the key's source or the published fingerprint is compromised.
 
 If you already have the key from a prior verification, you do not need to re-import.
 
