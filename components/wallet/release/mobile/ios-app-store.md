@@ -225,6 +225,10 @@ Mirrors the same worldwide-minus-exclusions policy described in the Android list
 
 One difference from Android: there is no direct-download channel on iOS and no alternate marketplace, so the excluded storefronts are the whole story on this platform, not a fallback-covered gap the way Android's direct APK covers its own exclusion list.
 
+**Some of the excluded places cannot be excluded here, because the App Store does not offer them.** Measured while entering the list: Cuba, Iran, North Korea and Syria have no App Store storefront at all, so the comprehensive-sanctions exclusion is already Apple's and there is nothing to switch off. **Bangladesh is the one worth writing down**, because it is easy to mistake for an oversight: it is not an App Store storefront either, while its neighbours (Pakistan, Sri Lanka, India, Maldives, Nepal) all are. So the Android list excludes one market the App Store never offered.
+
+The practical effect is that "mirror the Android list" resolves to **165 of the 175 available storefronts**, not to an identical set of names. If a future check compares the two lists literally, expect that difference and confirm it against this paragraph before treating it as drift. Do not go hunting for a Bangladesh checkbox; there isn't one.
+
 ### Age rating questionnaire
 
 | Question | Answer |
