@@ -46,7 +46,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const DOC_ROOT = path.join(__dirname, '..');
-const HTML = path.join(DOC_ROOT, 'architecture/platform-map.html');
+const HTML = path.join(DOC_ROOT, 'architecture/platform-map-app.html');
+const MD_PAGE = path.join(DOC_ROOT, 'architecture/platform-map.md');
 const JSON_FILE = path.join(DOC_ROOT, 'architecture/platform-map.json');
 // In the platform workspace layout this repo is cloned inside the
 // xchain-platform-ai checkout, so the LikeC4 model is the parent's.
@@ -110,6 +111,21 @@ describe('platform-map scrub', () => {
             }
         });
     }
+});
+
+describe('platform-map doc page wiring', () => {
+    // The sidebar is generated from markdown pages only, so the map is
+    // discoverable exactly as long as platform-map.md exists and embeds
+    // the app. A rename that orphans either artifact should fail here,
+    // not surface as a dead iframe in production.
+    test('platform-map.md embeds the app and links the JSON', () => {
+        const md = fs.readFileSync(MD_PAGE, 'utf8');
+        assert.match(md, /<iframe[^>]+src="platform-map-app\.html"/, 'doc page does not embed platform-map-app.html');
+        assert.match(md, /\(platform-map\.json\)/, 'doc page does not link platform-map.json');
+    });
+    test('the app file the page embeds exists', () => {
+        assert.ok(fs.existsSync(HTML), 'architecture/platform-map-app.html missing');
+    });
 });
 
 describe('platform-map covers the LikeC4 topology model', { skip: !fs.existsSync(LIKEC4) && 'xchain-platform-ai workspace checkout not present' }, () => {

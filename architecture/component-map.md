@@ -334,7 +334,7 @@ See [`../components/vm/`](../components/vm/) for full documentation.
 
 Key technical details:
 
-- Built on xchain-sdk; all action construction goes through the SDK's 29 developer-invocable ACTION methods.
+- Built on xchain-sdk; all action construction goes through the SDK's 31 developer-invocable ACTION methods.
 - Supports Bitcoin, Litecoin, and Dogecoin (mainnet, testnet, regtest) from the same codebase.
 - Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), and an Electron desktop application.
 - Private keys never leave the client; signing happens locally before broadcast.
