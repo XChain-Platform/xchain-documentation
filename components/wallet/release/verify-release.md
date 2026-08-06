@@ -48,12 +48,9 @@ Anything beyond that depends on the target you're verifying.
 
 ## Where the release key fingerprint is published
 
-The fingerprint is published through two independent channels, and neither of them is this documentation site:
+The fingerprint is published at [`https://xchain.io/security`](https://xchain.io/security), and **that is currently the only place you can read it**. It is not on this documentation site either, deliberately: a third copy is a third thing the key ceremony has to keep in step, and a stale copy of a trust root is worse than no copy.
 
-- [`SECURITY.md`](https://github.com/XChain-Platform/xchain-wallet/blob/master/SECURITY.md) in the `xchain-wallet` repository on GitHub.
-- [`https://xchain.io/security`](https://xchain.io/security), on a different host with a different deployment path.
-
-Two channels exist so that whoever could quietly rewrite one of them cannot quietly rewrite both, which is the only reason a published fingerprint is worth anything. Read it from both. **If the two disagree, trust neither**: do not install anything, and ask in a public channel which one is current. This page deliberately links to those channels rather than repeating the value, because a third copy is a third thing the key ceremony has to keep in step, and a stale copy of a trust root is worse than no copy.
+The design calls for a second, independent channel on a different host with a different deployment path, so that whoever could quietly rewrite one could not quietly rewrite both. **That second channel is not published yet.** We would rather tell you there is one than send you to a copy you cannot reach. When it exists, this page will name it, and the rule for a disagreement will be the obvious one: trust neither, install nothing, and ask in public which is current.
 
 **Which key this is.** Three GPG keys exist in this project's orbit, and they are not interchangeable:
 
@@ -73,11 +70,10 @@ If a document says "the release key" without saying which one, take the fingerpr
 
 Take the fingerprint from the [two channels above](#where-the-release-key-fingerprint-is-published). Then get the key itself. **Where you get the key from matters far less than the fingerprint check that follows it**, which is the whole reason the fingerprint is published separately from the key: a key that fails that check is discarded no matter how official its source looked, and a key that passes it is the right key no matter how ordinary its source was.
 
-The key is committed in the wallet repository, so this works today:
+The key is served next to the fingerprint, so this works today:
 
 ```bash
-curl -fsSL -o release-signing-key.asc \
-  https://raw.githubusercontent.com/XChain-Platform/xchain-wallet/master/tools/release/release-signing-key.asc
+curl -fsSL -o release-signing-key.asc https://xchain.io/security/release-signing-key.asc
 gpg --import release-signing-key.asc
 gpg --fingerprint <FINGERPRINT>
 ```

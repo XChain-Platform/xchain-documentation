@@ -49,12 +49,42 @@ const path = require('node:path');
 const DOC_ROOT = path.join(__dirname, '..');
 const RECIPE   = path.join(DOC_ROOT, 'components/wallet/release/verify-release.md');
 
-// The two independent channels the rails names ( §4, K1 policy).
-// Matched by substring so a trailing slash or a deep link still counts.
-const CHANNELS = [
-    'github.com/XChain-Platform/xchain-wallet/blob/master/SECURITY.md',
-    'https://xchain.io/security',
-];
+// The channels the rails names ( §4, K1 policy). Matched by substring
+// so a trailing slash or a deep link still counts.
+//
+// HOW MANY OF THESE A READER CAN ACTUALLY REACH IS NOT A CONSTANT, and this
+// file used to treat it as one. The SECURITY.md channel lives in a PRIVATE
+// repository: every URL naming it returns 404 to the public, measured
+// 2026-08-06 on the day the fingerprint went live. A guard that requires the
+// docs to name it requires the docs to send readers to a 404 while they are
+// verifying a signing key, which is the opposite of what it was written for.
+//
+// So the security page declares its own reachable-channel count and this reads
+// that, the same way the page declares its release state. The page is the
+// right home for the declaration because it is the channel that is definitely
+// reachable. Absent the sibling, the strict two-channel expectation stands:
+// the safe default for a guard is the stricter claim.
+const PRIVATE_CHANNEL = 'github.com/XChain-Platform/xchain-wallet/blob/master/SECURITY.md';
+const PUBLIC_CHANNEL = 'https://xchain.io/security';
+
+/* HOW MANY CHANNELS ARE PUBLISHED IS A DECISION, SO IT IS WRITTEN DOWN AS ONE.
+ *
+ * This was briefly derived from the security page's own data-channel-count via
+ * the sibling checkout, and that was wrong twice over: this repo's gate venue
+ * carries NO siblings, so the derivation silently fell back to its default and
+ * demanded the private channel on every CI run, and a guard whose meaning
+ * depends on whether a sibling happens to be present is the exact shape this
+ * project keeps getting caught by.
+ *
+ * So it is a constant. PRIVATE_CHANNEL is NOT in the published set as of
+ * 2026-08-06 because xchain-wallet is a private repository: naming it in a
+ * public verification recipe sends readers to a 404 while they check a signing
+ * key, which is worse than admitting there is one channel. Put it back in the
+ * same commit that makes the repository public, and the assertions below start
+ * requiring it again with no other edit. The page half of this contract is
+ * enforced separately, in xchain-websites' release-key-channels.test.js, which
+ * DOES have the page in front of it. */
+const CHANNELS = [PUBLIC_CHANNEL];
 
 // Must match the site's slugify (see internal-link-integrity.test.js):
 // punctuation is deleted, not replaced.
@@ -207,10 +237,18 @@ describe('release key fingerprint cross-references', () => {
                 /id="release-key-fingerprint"/.test(src),
                 'the xchain.io security page has no release-key-fingerprint element',
             );
-            assert.ok(
-                src.includes('xchain-wallet/blob/master/SECURITY.md'),
-                'the xchain.io security page does not name the other channel by URL',
-            );
+            if (CHANNELS.length === 1) {
+                assert.ok(
+                    !src.includes('xchain-wallet/blob/master/SECURITY.md'),
+                    'the xchain.io security page declares ONE reachable channel and still links ' +
+                    'SECURITY.md in the private wallet repository. That link 404s for every reader.',
+                );
+            } else {
+                assert.ok(
+                    src.includes('xchain-wallet/blob/master/SECURITY.md'),
+                    'the xchain.io security page does not name the other channel by URL',
+                );
+            }
         });
     });
 });
