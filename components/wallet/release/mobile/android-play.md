@@ -27,6 +27,7 @@ release somewhere, and the last two are the ones a schedule quietly eats.
 ⬜ **A sealed offline copy of the direct-distribution key exists, off this machine.** The direct-distribution key can never be rotated: Android refuses an update signed by a different key, so every existing direct install is stranded if it is lost. The upload key is merely painful to replace, because Google can reset it.  
 ⬜ The privacy policy is live at a fetchable public URL and serves the **current** text, re-checked immediately before this submission rather than remembered from the last one.  
 ⬜ Country availability is decided (see Country availability below).  
+⬜ **The cryptocurrency licensing declaration is complete for every jurisdiction Google lists** (see Cryptocurrency licensing documentation below). Until it is, Google accepts nothing for review: not a release, not a listing edit, not a country change. This is the one item on this list that is a legal statement rather than a configuration, and it cannot be delegated to whoever is running the submission.  
 ⬜ Data safety answers are settled; see [the wallet's data-safety answers](../../privacy/data-safety.md).  
 ⬜ The build-time dependency verification metadata is committed to the repository, not just present on one machine.  
 ⬜ The demo path a reviewer's walkthrough depends on is reachable **from outside**, with a plain non-browser client.
@@ -481,6 +482,20 @@ Available worldwide, minus jurisdictions excluded for regulatory reasons:
 
 This exclusion list binds the Play listing only. The direct-download channel is not geo-restricted, by design: it exists precisely so the wallet remains reachable where a store's own distribution rules do not apply.
 
+**What the selector actually offers, and how the list above maps onto it.** The
+production track's Countries / regions tab lists **177 rows: 176 countries plus
+a final `Rest of World` catch-all**. Three of the exclusions above are not
+individually selectable, because Google does not list them: North Korea, Syria,
+and the Crimea, Donetsk and Luhansk regions. They are reachable only through
+`Rest of World`, so **`Rest of World` is left off** - that is what makes those
+three exclusions real rather than merely written down. Ukraine is targeted as a
+country; Play cannot express a sub-country exclusion, so the occupied regions
+rest on Google's own sanctions handling.
+
+Selecting every row and then removing the exclusions leaves **163 targeted**.
+The tab's own filter chip reading `Targeted (163)` after a page reload is the
+check that it saved; the track summary line shows the same number.
+
 ### Financial features declaration
 
 The console does not ask this as a set of yes/no questions. It presents a
@@ -502,9 +517,64 @@ policy: the store build compiles the exchange and trading surfaces out
 entirely, so the shipped app has no code behind them. The direct-download
 build is the same artifact in this respect, and the download page says so.
 
-Ticking "Cryptocurrency wallet" did not trigger a request for regulatory
-documentation. Expect that to be re-assessed at each submission rather than
-assumed, since the policy text behind this form changes.
+**The obvious way to make the licensing requirement go away is to untick
+`Cryptocurrency wallet`, and it works, and it is a misdeclaration.** Step 2
+below appears *because* that box is ticked; clearing it takes the eleven
+jurisdiction rows off the page and lets the submission through. Nothing in the
+console warns you. What it actually does is tell Google that an app called
+XChain Wallet, whose listing and entire function are a cryptocurrency wallet, is
+not one. Play enforces its cryptocurrency policy against what an app does rather
+than what the form says, so this trades a blocked submission for a removable
+app. **If the licensing rows cannot be answered, the supported remedy is
+Google's own: narrow the country list until the jurisdictions that demand a
+licence are no longer targeted.** Do not solve it on the checklist.
+
+The feature checklist is step 1 of two. **Step 2 is Documentation, and it is
+what actually holds up a submission.** An earlier version of this page said
+ticking "Cryptocurrency wallet" did not trigger a request for regulatory
+documentation. That is no longer true, and the note that it would need
+re-checking at each submission was the right instinct.
+
+### Cryptocurrency licensing documentation
+
+Ticking "Cryptocurrency wallet" puts eleven rows on step 2, each reading
+`Not started`, under the heading *"You need to submit location-specific
+licensing documentation to prove your app can provide cryptocurrency
+features"*:
+
+| Row | What it asks for |
+|---|---|
+| Bahrain, Canada, Israel, Japan, Philippines, South Africa, South Korea, United Arab Emirates | Local licensing details, or one of the two confirmations below |
+| European Union | MiCA: authorized entity legal name, MiCA licence number, and an uploaded licence document (JPEG/PDF/PNG, up to 10MB), or one of the two confirmations below |
+| United States | FinCEN money-service-business registration plus state money-transmitter registration, or a federal/state chartered bank licence, or one of the two confirmations below |
+| All countries / regions | A terms-of-service acknowledgement covering holding the appropriate licences, compliance in every targeted country, and telling Google when regulatory status changes |
+
+Each of the ten country rows offers the same two alternatives to uploading a
+licence:
+
+- *"I confirm that my app does not offer the purchase, holding, or exchange of
+  cryptocurrencies in this country/region and I have applied the necessary
+  geo-restriction measures"*
+- *"I confirm that my app is a non-custodial software wallet"*
+
+**These are legal attestations made by the developer entity, not build
+configuration.** They are the operator's to make and nobody else's, and the
+console states the consequence of getting them wrong plainly: *"Apps that
+provide cryptocurrency features in the United States without uploading valid
+license documents will be removed from Google Play"*, with the same sentence
+for the European Union.
+
+**Nothing can be sent to Google while any row reads `Not started`.** Publishing
+overview refuses with *"1 issue found ... You must address these issues before
+you can send your changes for review"*, and the Submit button stays disabled.
+This gates every change, not just the release: a store-listing edit is held up
+by it too.
+
+The country list in step 2 is fixed by Google and does not shrink when a
+country is dropped from a track. Removing a jurisdiction from targeting is
+Google's own suggested remedy where a licence cannot be produced ("remove the
+United States from your targeting list across all tracks"), so a decision to
+narrow the D8 list is a live alternative to attesting, not a separate topic.
 
 ### Reviewer instructions and app access
 
