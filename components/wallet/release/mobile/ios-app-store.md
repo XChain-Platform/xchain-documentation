@@ -46,10 +46,59 @@ The store build compiles out in-development surfaces that are not ready for revi
 As the Account Holder:
 
 ⬜ Register the App ID and enable the Associated Domains capability on it, needed for Universal Links. An App ID missing this capability makes the corresponding entitlement unsignable, and the build fails with a provisioning error that does not name the real cause.  
+⬜ Register at least one real device before expecting any archive to succeed. This reads like a testing detail and is a hard build requirement: with cloud-managed signing the archive step is signed with a *development* identity and only re-signed for distribution at export, and a development profile cannot be generated for a team with no registered devices. The archive fails with "your team has no devices from which to generate a provisioning profile", which does not sound like a build error. One device of the right platform is enough, and a tablet counts for a universal app.  
 ⬜ Create the Apple Distribution certificate and an App Store provisioning profile for that App ID.  
-⬜ Create an App Store Connect API key scoped to the minimum role that cloud signing accepts, never a broader admin role, since the key is capable of minting new certificates.  
+⬜ Create an App Store Connect API key for the release pipeline. **Choose the role by what the pipeline must actually do, and read the paragraph below before choosing the narrowest one.**  
 ⬜ Route Apple's certificate-issuance notification emails to a monitored inbox: an unexpected certificate-issuance notice is the signal that the API key has leaked.  
 ⬜ Record the Team ID; it is needed later for the domain-association file.  
+
+**The two bullets above pull in opposite directions, and which one you follow
+decides whether the release pipeline works.** Measured on this project's first
+signed run:
+
+- An API key at the **App Manager** role authenticates correctly, is accepted
+  for provisioning, and can create *development* certificates. The archive step
+  therefore succeeds and nothing warns you.
+- The same key **cannot create the distribution certificate**, because Apple
+  restricts that to the Admin and Account Holder roles. The failure surfaces
+  only at the export step, after a full archive has been built, as a cloud
+  signing permission error together with "no signing certificate found" and "no
+  profiles were found".
+
+So "the minimum role that cloud signing accepts" is not App Manager if the
+pipeline is expected to mint its own certificate. Pick one of two postures
+deliberately:
+
+1. **Cloud signing owns the certificate.** The key needs Admin. That is a
+   broader key than a release pipeline would otherwise hold, and its blast
+   radius is the reason to route certificate-issuance mail to a monitored
+   inbox.
+2. **A person owns the certificate.** Create the Apple Distribution certificate
+   and the App Store provisioning profile by hand once (the bullet above), keep
+   the key narrow, and switch the pipeline to manual signing. The certificate's
+   private key then becomes a custody item with an owner and a backup, which is
+   real ongoing work rather than a one-off.
+
+Neither is wrong. What does not work is holding the first posture with a key
+provisioned for the second, which is a failure that hides until the last step of
+a release.
+
+**This project chose posture 1**, and the pipeline is built around it: the key
+holds the Admin role, cloud-managed signing creates and renews the certificate,
+and the certificate-issuance email alarm above is what keeps that honest. Two
+practical notes for whoever repeats it. A key's role **cannot be changed after
+it is created**, which the console states plainly, so raising a role means
+generating a second key, reinstalling the secrets and revoking the first.
+And the certificates and profiles created this way are **Xcode-managed**, so
+they do not appear in the portal's ordinary certificate and profile lists -
+an empty list there is not evidence that signing is broken.
+
+**One non-Apple trap that stops the export dead.** The packaging step shells out
+to `rsync` and expects the system one. If a newer `rsync` from a package manager
+comes first on `PATH`, the export fails with `error: exportArchive Copy failed`,
+which names neither `rsync` nor `PATH`; the real message is buried in the
+distribution logs. The release script pins the system copy itself, so this bites
+only someone running the export by hand.
 
 ### Phase 2: release-signing secrets
 
@@ -234,13 +283,42 @@ The practical effect is that "mirror the Android list" resolves to **165 of the 
 | Question | Answer |
 |---|---|
 | Unrestricted web access | No. The app embeds no general-purpose browser; external links open in the system browser. |
-| Gambling, contests | No |
-| Simulated gambling | No |
+| **Messaging and chat** | **Yes.** The wallet sends encrypted messages from one address to another, so users can communicate directly through the app. |
+| Gambling, contests | No, and see the warning below before submitting. |
+| Simulated gambling | No, and see the warning below before submitting. |
 | Horror, violence, mature themes | No |
 | Medical, drug references | No |
 | Frequent or intense profanity | No |
 
-Expected rating: 4+.
+Calculated rating: 4+, measured after answering rather than predicted. The
+messaging answer was the one worth checking, because declaring a capability
+honestly is only cheap if it does not cost the rating: it did not, and the
+rating held at 4+ across all 172 countries.
+
+**Answer this questionnaire from the app, not from this table.** Two of the
+answers above were once wrong in the same direction, and both were found by
+re-deriving the answer from what the build actually ships rather than by
+checking that the form was complete. The wizard has more steps than it appears
+to: walk every one, and read the calculated rating on the final step before
+saving.
+
+**Before you submit, re-read the gambling answers.** The build currently
+includes a peer-to-peer betting surface, and the answers above say it does not.
+That is a decision the project has taken deliberately and not an oversight, but
+it is only a draft answer until the moment a version is submitted, because
+submitting asserts the questionnaire and the binary together. Gambling is
+governed by a different review guideline from the wallet's other functions, and
+one that generally expects per-storefront licensing. An age rating that
+understates what an app does is grounds for rejection before approval and for
+removal afterwards, so this is a deliberate re-read at submission time, not a
+box already ticked.
+
+**Two Apple defaults to check on every form, not only this one.** Every
+untouched control on an App Store form has so far turned out to be set to the
+permissive answer rather than to no answer: store availability on other Apple
+platforms, automatic release on approval, and "sign-in required" were all
+switched on by default on an app where each was wrong. Treat an untouched
+control as an unanswered question.
 
 ### Screenshots
 
