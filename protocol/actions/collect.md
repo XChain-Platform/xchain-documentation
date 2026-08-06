@@ -27,7 +27,7 @@ Collect 25 XCHAIN of the accrued rewards; the remainder stays pending and collec
 ```
 
 ## Partial Claim (optional AMOUNT)
-The trailing `AMOUNT` is activated by the `PARTIAL_UNSTAKE_COLLECT` protocol change (mainnet: the coordinated 2026-10-01 contract-era flag-day; testnet/regtest: genesis). Semantics:
+The trailing `AMOUNT` is activated by the `PARTIAL_UNSTAKE_COLLECT` protocol change (mainnet: the coordinated 2026-08-07 contract-era flag-day; testnet/regtest: genesis). Semantics:
 
 - **Absent**: claim the full unclaimed total, byte-identical to the historical behavior
 - **Present (at/after the flag-day)**: claim only `AMOUNT`; the remainder stays pending

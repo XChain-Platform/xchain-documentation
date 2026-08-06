@@ -267,7 +267,7 @@ No output is required when the oracle's `FEE` is `0` (the common case) or when t
 
 **Write `ORACLE_ADDRESS` in full, never as a `^<id>` reference.** The fee output is recognized by reading `ORACLE_ADDRESS` straight out of this transaction's payload, and a compacted id cannot be resolved at that point, so a create using one is rejected as unpaid however much was actually sent. The official SDK emits this field in full for that reason (the same rule `GET_ADDRESS` already follows).
 
-On **mainnet** the fee output is recognized from `2026-10-01 00:00:00 UTC` onward; a Mode B create against a fee-charging oracle before that instant is rejected whether or not it pays. Testnet and regtest recognize it from genesis.
+On **mainnet** the fee output is recognized from `2026-08-07 00:00:00 UTC` onward; a Mode B create against a fee-charging oracle before that instant is rejected whether or not it pays. Testnet and regtest recognize it from genesis.
 
 ### Recommendations
 - Buyers should send with a high transaction fee to ensure confirmation within the 24-hour price window

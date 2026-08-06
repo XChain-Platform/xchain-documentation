@@ -127,7 +127,7 @@ A reference glossary of XChain terminology, organized by category.
 
 ## Addressing and Messaging
 
-**ADDRESS**: An ACTION that sets per-address configuration preferences, such as requiring a memo on all incoming transfers or specifying a preferred fee token.
+**ADDRESS**: An ACTION that sets per-address configuration preferences, such as requiring a memo on all incoming transfers or choosing what happens to an XCHAIN-balance protocol fee (destroyed, or donated to protocol development).
 
 **BROADCAST**: An ACTION with multiple modes: plain messages, oracle data feeds, prediction market questions, and feed result publication. Used for on-chain data publication.
 

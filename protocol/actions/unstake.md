@@ -43,7 +43,7 @@ Begin unstaking 40 MYTOKEN of the (contract=500, tick=MYTOKEN) stake for pubkey 
 ```
 
 ## Partial Unstake (optional AMOUNT)
-The trailing `AMOUNT` is activated by the `PARTIAL_UNSTAKE_COLLECT` protocol change (mainnet: the coordinated 2026-10-01 contract-era flag-day; testnet/regtest: genesis). Semantics:
+The trailing `AMOUNT` is activated by the `PARTIAL_UNSTAKE_COLLECT` protocol change (mainnet: the coordinated 2026-08-07 contract-era flag-day; testnet/regtest: genesis). Semantics:
 
 - **Absent**: full sweep, byte-identical to the historical behavior
 - **Present (at/after the flag-day)**: only `AMOUNT` enters cooldown; the residual is re-staked seamlessly (it activates at the exact block the swept rows deactivate, so stake weight is continuous with no double-count and no gap)
