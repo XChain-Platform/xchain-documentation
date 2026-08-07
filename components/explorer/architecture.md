@@ -63,7 +63,7 @@ flowchart TD
 | `src/merkle.js` | None | Consensus-critical, DB-free Merkle primitives for the additive state commitment, per-block content root, and top-level state root; shared byte-identically with xchain-indexer and xchain-sdk |
 | `src/checkpoint_commitment_activation.js` | None | Flag-day gate (SPV Phase 2, spec §6.1/§6.3): determines at which BTC block the signed checkpoint canonical gains `state_root` and `block_merkle_root` fields; consensus-critical, vendored across hub/indexer/explorer |
 | `src/equivocation_header.js` | None | Consensus-critical equivocation header (`EQUIV|ENGINE|ROUND|VIEW||content`) that prefixes every PBFT canonical at/above its activation height; vendored byte-identically across all consensus-bearing services |
-| `src/stake_weighted_quorum.js` | None | Consensus-critical stake-weighted 2f+1 quorum predicate used by every settlement gate and the checkpoint verifier; vendored byte-identically across all consensus-bearing services |
+| `src/stake_weighted_quorum.js` | None | Consensus-critical source-deduplicated stake predicate (3 x tally > 2 x total stake); the 2f+1 signer count is the separate pre-activation rule, not this used by every settlement gate and the checkpoint verifier; vendored byte-identically across all consensus-bearing services |
 | `src/IconDownloader.js` | `IconDownloader` | In-process worker that downloads, resizes, and caches token icons from the indexer's `icons` table |
 | `src/IconResolver.js` | `IconResolver` | Pure icon URL resolution logic; mirrors the priority chain used in the web UI's `xchain.js` so server and browser select the same source |
 | `src/configs/BTC.js` | None | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |

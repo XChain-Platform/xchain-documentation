@@ -54,7 +54,7 @@ module.exports = {
 
     // Anyone who staked >= 100 MYTOKEN can call this and get the secret.
     getSecret: function(xchain) {
-        var caller = xchain.getInputParam(0);  // pubkey passed by caller
+        var caller = xchain.getSourceAddress();  // authenticated caller, NOT caller-supplied data
         var staked = xchain.contract.getStake(caller, 'MYTOKEN');
         if (xchain.math.gte(staked, '100')) {
             return 'the secret handshake';
@@ -75,9 +75,9 @@ module.exports = {
     // Only the admin can call this. Slashes one staker by a specific amount.
     // Slashed tokens go to whatever SLASH_DESTINATION was set at deploy time.
     slashStaker: function(xchain) {
-        var caller   = xchain.getInputParam(0);  // who is calling
-        var pubkey   = xchain.getInputParam(1);  // who to slash
-        var amount   = xchain.getInputParam(2);  // how much
+        var caller   = xchain.getSourceAddress();  // authenticated caller, NOT caller-supplied data
+        var pubkey   = xchain.getInputParam(0);  // who to slash
+        var amount   = xchain.getInputParam(1);  // how much
         var admin    = xchain.state.get('admin');
 
         if (caller !== admin) {
@@ -167,7 +167,7 @@ This locks 250 MYTOKEN out of the staker's balance and writes a row in the `cont
 ```js
 await stakerSession.batch([
     sdk.stakeToContract({ amount: '250', signingPubkey, targetContractIndex, tick: 'MYTOKEN' }),
-    sdk.execute({ contractActionIndex: targetContractIndex, method: 'getSecret', params: [signingPubkey] }),
+    sdk.execute({ contractActionIndex: targetContractIndex, method: 'getSecret', params: [] }),
 ]);
 ```
 
@@ -186,7 +186,6 @@ await adminSession.execute({
     contractActionIndex: targetContractIndex,
     method: 'slashStaker',
     params: [
-        ADMIN_PUBKEY_HEX,           // caller
         MISBEHAVING_STAKER_PUBKEY,  // who to slash
         '50'                         // how much MYTOKEN
     ]

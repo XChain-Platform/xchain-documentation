@@ -243,7 +243,7 @@ node xchain-vm/bin/lint.js path/to/contract.js   # or: npx xchain-lint contract.
 # exit 0 = clean · 1 = errors · 2 = usage / no readable input files · warnings print to stderr (exit 0)
 ```
 
-The CLI runs the **full** validator including the V8 syntax check, so a clean result is exact deploy parity. The `code-size` rule that rejects source over the 64KiB deploy cap before it even reaches the syntax gate lives in shared `lint-core`, not the CLI alone, so `sdk.validateContract` carries it too; the only check the SDK pre-flight cannot run is the V8 syntax step, which needs the VM's isolated runtime. Use the CLI as a local pre-commit / CI gate for contract source.
+The CLI runs the **full** validator including the V8 syntax check, so a clean result is a conservative preflight: it is a SUPERSET of the deploy gate, never exact parity. Author-facing gates default on and future or mainnet-gated rules are enforced immediately (see below), and a malformed `crossCallable` is a CLI error the chain itself accepts, so the CLI can refuse code a given chain, network and block would deploy. The `code-size` rule that rejects source over the 64KiB deploy cap before it even reaches the syntax gate lives in shared `lint-core`, not the CLI alone, so `sdk.validateContract` carries it too; the only check the SDK pre-flight cannot run is the V8 syntax step, which needs the VM's isolated runtime. Use the CLI as a local pre-commit / CI gate for contract source.
 
 ## Gas Costs
 

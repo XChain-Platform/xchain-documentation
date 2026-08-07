@@ -158,11 +158,11 @@ STAKE|3|200.00000000|abc...64hex...|42|XCHAIN
 //   - any caller can check whether `pubkey` has at least 100 XCHAIN staked
 //   - only the contract itself can slash via xchain.contract.slash
 module.exports = {
-    isStaked: function() {
+    isStaked: function(xchain) {
         let pubkey = xchain.getInputParam(0)
         return xchain.math.gte(xchain.contract.getStake(pubkey, 'XCHAIN'), '100') ? 'yes' : 'no'
     },
-    punishMisbehavior: function() {
+    punishMisbehavior: function(xchain) {
         let pubkey = xchain.getInputParam(0)
         // Slash 50 XCHAIN; funds go to BURN address per the deploy-time config.
         xchain.contract.slash(pubkey, 'XCHAIN', '50')
