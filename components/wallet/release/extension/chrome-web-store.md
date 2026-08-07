@@ -53,10 +53,10 @@ Compliance clocks on this account run as short as 7 days (rejection responses, p
 
 ⬜ From an **external** account (not anything that already forwards into the same inbox), send a test email to the console's registered contact address.  
 
-**Done 2026-08-01, at the SMTP layer, for both addresses.** Sent from outside Google Workspace, and Google accepted both `info@dankest.llc` and `privacy@dankest.llc`, each `status=sent (250 2.0.0 OK ... gsmtp)` via `aspmx.l.google.com`. That proves the aliases exist and the path works, since a nonexistent address is refused at RCPT. **It does not prove inbox placement:** neither domain publishes SPF, so an unauthenticated message can be accepted and then filed as spam. Confirm visually, spam folder included, and treat a send from an unrelated consumer mail provider as the stronger test, because our own infrastructure carries its own reputation.
+**Done 2026-08-01, at the SMTP layer, for both addresses.** Sent from outside Google Workspace, and Google accepted both `info@dankest.llc` and `privacy@dankest.llc`, each `status=sent (250 2.0.0 OK ... gsmtp)` via `aspmx.l.google.com`. That proves the aliases exist and the path works, since a nonexistent address is refused at RCPT. **It does not prove inbox placement:** a test send proves acceptance, not placement, so it can still be filed as spam. **Re-measured 2026-08-07: both domains now publish SPF** (`v=spf1 include:_spf.google.com ~all` on `dankest.llc`, and the same include plus one host on `xchain.io`), where this step used to record that neither did. Confirm visually, spam folder included, and treat a send from an unrelated consumer mail provider as the stronger test, because our own infrastructure carries its own reputation.
 
 ⬜ Confirm it arrives in the monitored shared inbox, and confirm someone is actually watching that inbox on a cadence shorter than 7 days.  
-⬜ **Correction, measured 2026-08-01:** this runbook previously said inbound mail to `@xchain.io` depends on the outbound mail-relay work, and that was wrong. That work is the OUTBOUND relay (so cron and alert mail can leave the host); inbound is unrelated. `dig MX` shows BOTH `dankest.llc` and `xchain.io` pointing at Google Workspace (`aspmx.l.google.com` and its siblings), so either domain can receive. What MX records do not prove is that a given address resolves to a mailbox or an alias, so confirm the specific address in the mail admin console (or mail it) before you put it in the store console. Note also that neither domain publishes SPF, which is a deliverability risk for anything you send FROM them, not a receiving problem. Test whatever mailbox you are actually using today.  
+⬜ **Correction, measured 2026-08-01:** this runbook previously said inbound mail to `@xchain.io` depends on the outbound mail-relay work, and that was wrong. That work is the OUTBOUND relay (so cron and alert mail can leave the host); inbound is unrelated. `dig MX` shows BOTH `dankest.llc` and `xchain.io` pointing at Google Workspace (`aspmx.l.google.com` and its siblings), so either domain can receive. What MX records do not prove is that a given address resolves to a mailbox or an alias, so confirm the specific address in the mail admin console (or mail it) before you put it in the store console. Note also that both domains publish SPF as of 2026-08-07 (`dig +short TXT <domain>`), which closes the deliverability gap this step used to warn about for anything you send FROM them; it was never a receiving problem either way. Test whatever mailbox you are actually using today.  
 
 ### Phase 2: Account-shape changes before first submission
 
@@ -163,13 +163,17 @@ If either file is missing, stop; go back to the release procedure, not around it
 ⬜ The header says `# tag: vX.Y.Z`, naming the tag you are submitting. **If it says `# tag: (none)`, this is a local recompute, not a release manifest, and it cannot be uploaded.** A recompute proves a zip matches itself; it says nothing about which release the zip is. Verifying with `--tag` will refuse it (`manifest describes '(none)' but you expected ...`), and verifying without `--tag` will also refuse it (`cannot tell which release this manifest is for`). Both refusals are correct. Neither is a tool fault, and neither means you may proceed.  
 ⬜ The header says `# dev-mock-gate:` something other than `not-run`.  
 
-**That word is only as good as the gate that wrote it, and which gate wrote it is a property of the TAG rather than of the current code.** Signing runs from a pristine clone checked out at the release tag, and the signing script refuses any other tree, so it runs that tag's copy of `tools/release/sign.sh`. A fix to the signing tooling therefore protects the next release and never one that is already tagged. This is not hypothetical either: until 2026-08-06 the gate ran against the repository's own `dist/` directories, which a pristine clone does not have, so on every real signing run it read nothing, exited 0, and `enforced` was written into the signed manifest on the strength of an empty scan. Ask the tag which gate it carries:
+**That word is only as good as the gate that wrote it, and a signing run reads TWO trees rather than one.** `sign.sh` comes from the checkout you invoke; the tree it verifies the tag against is the `--repo` argument, a pristine clone at the release tag, and the dev-mock gate script it runs comes from THERE. Those are routinely different trees, deliberately: `--repo` is what lets a current `sign.sh` sign an older tag's artifacts, and it is how the only signed manifest this project has published was made. So a fix to `sign.sh` reaches a release already tagged, and a fix to the gate script does not.
+
+Until 2026-08-06 that gate ran against the repository's own `dist/` directories, which a pristine clone does not have, so it read nothing, exited 0, and `enforced` was written into the signed manifest on the strength of an empty scan. **A tag cut before the fix still carries that gate**, and pointing a current `sign.sh` at it reproduces the empty scan exactly.
+
+Since 2026-08-07 `sign.sh` refuses that rather than leaving it to be noticed: the gate now has to report how many staged bundles it opened, and a run whose gate cannot say gets no signature and no `enforced`. **So this is a diagnosis step, not a guard**: if a signing run stops with `the dev-mock gate exited 0 without saying it read anything`, ask the tag which gate it carries.
 
 ```bash
-git show vX.Y.Z:tools/release/sign.sh | grep -c -- '--artifacts'
+git show vX.Y.Z:tools/build-reproduce/check-no-dev-mock.sh | grep -c -- '--artifacts'
 ```
 
-⬜ The count of `--artifacts` is 1 or more, so this tag's signing script points the dev-mock gate at the staged artifacts it is about to sign. **If it is 0, the `enforced` in that manifest header is not evidence of anything**: that tag scans the repository rather than the release, and from the pristine clone signing requires, it scans nothing at all. Two honest ways out, both of them release-procedure work upstream of this page, and neither of them is proceeding anyway: cut the release from a tag that carries the fix, or run the gate against the staged artifact set by hand and record what it read in the release record before signing, so the header and the evidence behind it say the same thing.  
+⬜ Either you have a signed manifest (in which case `sign.sh` already made this check for you), or the tag's gate takes `--artifacts` (count 1 or more) so a fresh signing run can produce one. **If it is 0, the tag predates the fix and no `enforced` from it is evidence of anything.** Two honest ways out, both release-procedure work upstream of this page, and neither of them is proceeding anyway: cut the release from a tag that carries the fix, or run the gate against the staged artifact set by hand and record what it read in the release record, signing with `SIGN_SKIP_DEV_MOCK_CHECK=1` so the header says `SKIPPED` rather than claiming a gate that did not run.  
 
 If you have a recompute rather than a release manifest, the artifact you need has not been produced yet. That is a release-engineering blocker upstream of this ceremony, not something to work around here: the store assigns a permanent extension ID to whatever you upload first.
 
@@ -180,18 +184,26 @@ If you have a recompute rather than a release manifest, the artifact you need ha
 So a partial manifest is available, and it is the ordinary path when the desktop lanes are not signable:
 
 ```bash
+# from the pristine clone checked out at the tag
 bash tools/release/sign.sh --tag vX.Y.Z --lane extension \
+  --input release-artifacts/vX.Y.Z/
+
+# or, to sign an older tag with a current sign.sh, from your own checkout
+bash tools/release/sign.sh --tag vX.Y.Z --lane extension \
+  --repo /path/to/pristine-clone-at-vX.Y.Z \
   --input release-artifacts/vX.Y.Z/
 ```
 
+**Stage the lane's own artifacts, not the whole release.** `--lane` narrows the artifact list to the lane's row, so every other staged file becomes `UNDECLARED` and the artifact-set gate refuses the run. Driven 2026-08-07 against the full `v0.336.0` staging directory: 13 problems, all of them artifacts belonging to other lanes.
+
 ⬜ The manifest header says `coverage: partial` and `lanes: extension`. **That is the point of it, not a caveat to explain away**: it attests the zip the store is getting and states in writing that it says nothing about any other lane of this release. `verify.sh` prints the same notice when it reads one, so nobody downstream mistakes an absent desktop artifact for a tampered release.  
-⬜ **The tag you are signing carries the flag.** Signing runs from a pristine clone at the release tag, so it runs THAT TAG's copy of `sign.sh`, exactly as 4a's dev-mock check describes. A tag cut before the per-lane mode existed cannot use it:
+⬜ **The tag you are signing declares this lane.** The `--lane` flag itself is `sign.sh`'s, so it comes from the checkout you invoke and a tag cut before the mode existed is no obstacle to it: point a current checkout's `sign.sh` at the tag with `--repo`, exactly as 4a describes. What `sign.sh` reads out of the tag is the lane TABLE, and a lane it does not find there is one it refuses to scope a manifest to:
 
 ```bash
-git show vX.Y.Z:tools/release/sign.sh | grep -c -- '--lane'
+git show vX.Y.Z:tools/release/shipped-lanes.txt | grep -c '^extension'
 ```
 
-If that count is 0, this tag predates the mode and the only ways forward are the whole-set signature or a newer tag. Neither is something to work around here.  
+If that count is 0, the tag predates the lane row and `--lane extension` refuses (`'extension' is not a lane declared in ...`). The ways forward are a newer tag or the whole-set signature; neither is something to work around here. **Do not read the older form of this step**, which asked `git show vX.Y.Z:tools/release/sign.sh | grep -c -- '--lane'`: that asks the tag about the one file that does not come from the tag, it answers 0 for every tag cut to date, and it would have blocked the Android partial manifest that was in fact signed from `v0.336.0` and published.  
 
 A partial manifest is a smaller claim, not a weaker one: every gate that runs on a whole release runs inside the lane's scope too, and inside that scope it is stricter, since every artifact the lane claims is required even where the release list calls it optional.
 
