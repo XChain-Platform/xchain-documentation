@@ -5,7 +5,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XChain Platform - Interactive Architecture Map</title>
+<title>Interactive Architecture Map · XChain Developers</title>
+<meta name="robots" content="noindex" />
+<meta name="description" content="The XChain Platform architecture map as a live, pannable diagram. The written page is architecture/platform-map." />
 <style>
   :root {
     --bg: #0e1117;
@@ -50,6 +52,10 @@
   .legend .swatch { width: 22px; height: 0; border-top: 2.5px solid; border-radius: 2px; }
   .legend .swatch.dashed { border-top-style: dashed; }
   #app { display: flex; flex: 1; min-height: 0; }
+  /* Skip target wraps the app so the flex chain body > main > #app stays unbroken. */
+  #main { display: flex; flex: 1; min-height: 0; }
+  .skip { position: absolute; left: -9999px; top: 0; background: var(--panel); color: inherit; padding: 8px 12px; z-index: 100; }
+  .skip:focus { left: 8px; }
   #diagram-wrap {
     flex: 1;
     position: relative;
@@ -184,6 +190,7 @@
 </style>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <header>
   <h1><span>XChain</span> Platform &middot; Architecture Map</h1>
   <nav style="display:flex;gap:14px;font-size:12px"><a href="./platform-map" style="color:var(--muted);text-decoration:none">&larr; Architecture docs</a><a href="./platform-map.json" style="color:var(--muted);text-decoration:none">JSON for agents</a></nav>
@@ -196,6 +203,7 @@
     <div class="item"><div class="swatch" style="border-color:var(--hl); border-top-width:3px"></div>Selected flow</div>
   </div>
 </header>
+<main id="main" tabindex="-1">
 <div id="app">
   <div id="diagram-wrap">
     <div id="zoombar">
@@ -215,6 +223,7 @@
     <div id="flow-list"></div>
   </aside>
 </div>
+</main>
 
 <script id="graph-data" type="application/json">
 {
