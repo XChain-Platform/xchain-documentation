@@ -25,7 +25,7 @@ Email **security@dankest.llc** with:
 - A concrete scenario: which implementer behavior the spec permits or encourages, and why that behavior is insecure.
 - Any proposed corrected text you'd like considered.
 
-For sensitive reports, encrypt the email body to our PGP key. The fingerprint will be published alongside the first signed release artifact; until then, the email channel is acceptable for first contact and we will coordinate an encrypted exchange before you share details.
+For sensitive reports, encrypt the email body to our PGP key. Its fingerprint is published at <https://xchain.io/security>, which is currently the only place a public reader can read it, and the key itself is served beside it. If you would rather make first contact before sending anything sensitive, the email channel is fine for that and we will coordinate an encrypted exchange before you share details.
 
 We do not currently offer a paid bug bounty. We do offer public credit in release notes and the advisory itself, unless you prefer to remain anonymous.
 
