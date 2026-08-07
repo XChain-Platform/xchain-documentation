@@ -278,6 +278,23 @@ recorded weeks ago now describes a certificate Google has stopped using. The
 only way to catch it is to re-read this page. It has already happened once, and
 it left the published asset-links file naming a retired certificate.
 
+**Do not use the ready-made snippet at the bottom of that page.** The App
+signing page ends with a block headed **Digital Asset Links JSON**, captioned
+"copy and paste this snippet into your Digital Asset Links JSON file". It is
+the most tempting shortcut on the page and it is the one thing here that has
+been measured wrong: on 2026-08-07 that snippet offered a single fingerprint,
+and it was the key Google had already rotated away from. Pasting it would have
+dropped both certificates Google actually signs with, and dropped the
+direct-download key as well, which is not on Google's page at all.
+
+Read the fingerprints from the key panels above the snippet instead, and add
+them to the pin file rather than replacing what is already there. The asset-links
+file is a list on purpose: an extra superseded certificate costs nothing,
+because it only widens what Android will accept, while a missing live one
+breaks every install of that lane silently. The generator now refuses any build
+that would publish fewer certificates than the current file does, and names the
+ones that would disappear, so this particular paste stops rather than ships.
+
 Those fingerprints are the missing half of the asset-links file. Phase 6 is what
 they unblock.
 
