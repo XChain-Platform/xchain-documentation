@@ -28,8 +28,12 @@ You need all four to claim verification. Skipping signatures trusts the download
 **The short version.** `tools/release/verify.sh` does claims 2, 3 and 4 in one command, and is the same script the maintainer runs before publishing:
 
 ```bash
-bash tools/release/verify.sh --input <download-dir> --tag vX.Y.Z
+bash tools/release/verify.sh --input <download-dir> --tag vX.Y.Z --key <FINGERPRINT>
 ```
+
+`--key` is the second half of claim 3, and it is worth knowing why it is spelled out rather than assumed. Until 2026-08-06 this script ran a bare `gpg --verify`, which asks whether **somebody in your keyring** signed the manifest and never **which key did**. If K1 is the only key you imported, those two questions have the same answer and you were never exposed. If you also hold the tag-signing key or the platform key from the table below, they do not, and the script said `GPG signature is good` either way. It now prints `signer ok - <fingerprint>` and refuses a good signature from any other key, naming both fingerprints so you can see which one you actually have.
+
+Run from a checkout of `xchain-wallet` you may omit `--key`: the script falls back to the fingerprint recorded in `docs/release-key-pin.json`, which only an observed signing run writes. That fallback is a convenience for the maintainer, not a trust root for you. **Take the fingerprint from the [published channel](#where-the-release-key-fingerprint-is-published) and pass it**, which is the same discipline as the fingerprint check in step 1: a value that travels with the thing it is supposed to authenticate is not an independent check.
 
 The manual walk-through below exists so you can check each claim yourself without trusting our script either.
 
