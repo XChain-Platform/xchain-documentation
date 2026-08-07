@@ -162,7 +162,7 @@ const stakeResult = await stakerSession.stakeToContract({
 
 This locks 250 MYTOKEN out of the staker's balance and writes a row in the `contract_stakes` table. Once the action is confirmed (and the per-chain activation delay has elapsed: 6 blocks on BTC, 24 on LTC, 60 on DOGE), `xchain.contract.getStake(pubkey, 'MYTOKEN')` inside the contract will return `'250'` for that staker.
 
-**Stake-and-execute pattern:** if the contract grants access on stake, a staker often wants to immediately call a contract method. Use `BATCH v0` to bundle `STAKE v3 + EXECUTE v0` into one broadcast, the EXECUTE will see the new stake once the BATCH is indexed.
+**Stake-and-execute pattern:** if the contract grants access on stake, a staker often wants to call a contract method right after staking. Use `BATCH v0` to bundle `STAKE v3 + EXECUTE v0` into one broadcast so both actions land together and in order. The batch saves a second broadcast; it does not shorten the activation delay, so a bundled EXECUTE still runs before the new stake is visible to the contract.
 
 ```js
 await stakerSession.batch([
