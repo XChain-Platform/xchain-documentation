@@ -254,14 +254,32 @@ Upload the bundle to **internal testing** first. It is the cheapest place to
 discover that the console rejects something about the bundle itself.
 
 Immediately after the first upload, do the thing that only becomes possible
-now. **Read Google's app-signing certificate.** Play App Signing is mandatory
+now. **Read Google's app-signing certificates.** Play App Signing is mandatory
 for new apps, so Google generates its own signing key on first upload and
 re-signs everything it distributes. In the console, go to Test and release,
 then Setup, then App signing, and copy the **SHA-256 certificate fingerprint of
 the app signing key**, not the upload key.
 
-That fingerprint is the missing half of the asset-links file. Phase 6 is what
-it unblocks.
+**Copy every certificate on that page, not just the one at the top, and read
+the page again before every release.** There is usually more than one, and the
+set changes without warning:
+
+- the current app signing key has a **classical** certificate and, where
+  quantum-ready signing is switched on, a **post-quantum** one as well. Take
+  both. It is not documented which one a device matches against, and guessing
+  wrong here fails silently.
+- if the page shows a **Previous app signing keys** table, take those too.
+  Google can rotate this key, and installs signed by the old certificate keep
+  working only while it stays listed.
+
+This matters more than it looks. A rotation changes no file in this project, so
+nothing in a code review, a test run or a diff can notice that a fingerprint
+recorded weeks ago now describes a certificate Google has stopped using. The
+only way to catch it is to re-read this page. It has already happened once, and
+it left the published asset-links file naming a retired certificate.
+
+Those fingerprints are the missing half of the asset-links file. Phase 6 is what
+they unblock.
 
 Then install from the internal track on a **real physical device** and walk the
 flows end to end. A physical device is a release gate for three checks an
@@ -336,10 +354,16 @@ the only Play-side incident control that exists once a release is live.
 This can only happen now, and it is the last open item in the verification
 list.
 
-1. Pin Google's app-signing SHA-256 from Phase 3 into the website repository's
-   `xchain.io/build/play-app-signing-sha256.txt`, replacing the `UNPINNED`
-   sentinel. The direct-distribution key's fingerprint is already there and
-   already real; both fingerprints go under the one application ID.
+1. Pin the Google app-signing fingerprints from Phase 3 into the website
+   repository's `xchain.io/build/play-app-signing-sha256.txt`, replacing the
+   `UNPINNED` sentinel. **One fingerprint per line, and put all of them in:**
+   the current certificate, its post-quantum twin where there is one, and any
+   previous key still listed in the console. Every line is published. Listing a
+   certificate Google no longer uses costs nothing, because it only widens what
+   Android will accept; leaving out one it does use costs the entire store lane,
+   silently. The direct-distribution key's fingerprint is not in this file: it
+   is already known and the generator adds it itself, and will refuse the build
+   if you paste it here. All of them go under the one application ID.
 2. Generate and publish the file:
 
    ```bash
