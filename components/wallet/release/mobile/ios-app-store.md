@@ -179,6 +179,20 @@ The iPad screenshot set is mandatory for a universal app; a missing iPad set blo
 
 ### Phase 7: submit
 
+⬜ Ask App Store Connect whether it would accept a submission, instead of reading the console and concluding it looks complete:  
+
+```bash
+node tools/release/verify-appstore-version.mjs
+```
+
+Exit 0 means the record Apple holds carries everything a submission needs. It reads and changes nothing.
+
+This check exists because a console can look finished while it is not. A build that has been uploaded, has passed processing, and is visible to your testers is **not thereby attached to the store version**: those are two separate links, and only the second one decides whether submitting does anything. A version with no build attached fails at submit, after the metadata form has gone green and after the submit control has become available. The check also re-reads the review notes as Apple holds them rather than as this page writes them, because a document can be corrected while the console keeps quoting the text it replaced.
+
+Read every `NOTE` line before pressing anything. Those are standing decisions rather than defects: nothing is asserted to Apple while the version is a draft, and the form and the binary are asserted together the moment you submit, which makes this the point to re-read them and not before.
+
+One failure is expected right up until the last moment. The demo seed is a placeholder between submissions on purpose, so fill it in the step above and re-run. If it is the only failure, the check says so instead of telling you not to submit.
+
 ⬜ Choose **manual release**, never automatic release on approval. Automatic release lands at Apple's own schedule and could ship a client ahead of the server-side changes it depends on.  
 ⬜ Turn phased release on for version updates. It only throttles automatic updates; manual updates and new installs get the new build immediately, so treat it as partial cover, not a full staged rollout.  
 ⬜ Press submit, and record the build number submitted. If rejected, a metadata or review-notes fix can sometimes resubmit the same build; any code change made to pass review needs a new build number, and should ship consistently across every distribution shell rather than only on iOS.  
