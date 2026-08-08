@@ -109,11 +109,50 @@ It produces, into the output directory:
 |---|---|---|
 | `xchain-wallet-android-vX.Y.Z.aab` | the upload key | Play only. **Never hosted publicly.** |
 | `xchain-wallet-vX.Y.Z.apk` | the direct-distribution key | the direct-download channel |
+| `xchain-wallet-vX.Y.Z-full.apk` | the direct-distribution key | the direct-download channel, **only when asked for** (see below) |
 | `records/PROVENANCE.txt` | - | beside the bytes, every run |
 | `records/DO-NOT-PUBLISH.txt` | - | only on `--rehearsal` |
 
-The APK is derived from **that same bundle** with `bundletool --mode=universal`,
-never a second build, so the two files are provably the same code.
+The `.apk` is derived from **that same bundle** with `bundletool
+--mode=universal`, never a second build, so it and the `.aab` are provably the
+same code.
+
+### The second, full-feature APK
+
+The store build deliberately leaves features out, because store review posture
+requires it. Everyone who installs from the store gets that smaller app, and
+until recently so did everyone who downloaded the file directly, since the
+direct APK was derived from the very bundle the store receives.
+
+The second APK closes that gap for people who avoid the store on purpose. It
+carries the full feature set, and because the full build is genuinely different
+code, it is a **second build** rather than something derived from the bundle
+above. Ask for it with an environment variable:
+
+```bash
+export XCHAIN_BUILD_ANDROID_FULL=1
+bash tools/release/android-ceremony.sh --tag vX.Y.Z --output release-artifacts/X.Y.Z
+```
+
+It runs after the store artifacts are signed and checked, so a failure in the
+extra build cannot cost you the ones the store is waiting for. Leaving the
+variable unset makes the ceremony behave exactly as it did before this section
+existed.
+
+Both APKs are signed by the same direct-distribution key. That is deliberate:
+Android refuses an update signed by a different key, so a person moving between
+the two files must not be forced to uninstall and lose their wallet data.
+
+**The `-full` ending is part of how the release is checked, not a description.**
+The release tooling decides which feature set a file carries by matching its
+name, and the two patterns are written so they cannot both match the same file.
+A differently-named APK matches neither and is refused outright, which is the
+intended outcome: an unexpected name is exactly the case that must not be
+quietly given a meaning.
+
+The full APK is not part of any release yet. The release tooling records it as a
+channel that has not shipped, so nothing demands the file; the release that first
+publishes it flips that record in the same commit.
 
 The two notes go in a `records/` subdirectory rather than beside the artifacts,
 and that is not tidiness. The output directory is the signing input, and the
@@ -502,7 +541,7 @@ fail on an artifact nobody told it to want.
 Flip one word in `tools/release/shipped-lanes.txt`:
 
 ```
-android   SHIPPED   xchain-wallet-android-v*.aab xchain-wallet-v*.apk
+android   SHIPPED   xchain-wallet-android-v*.aab xchain-wallet-v*[0-9].apk
 ```
 
 and record in its comment which tag shipped first. From then on the signing
@@ -510,6 +549,13 @@ step refuses any release staging neither artifact, by name, and refuses one
 staging the bundle without the APK, which is the asymmetry that matters: the
 direct channel is both the contingency lane and the one whose users chose to
 opt out of the store.
+
+Copy that line exactly as the file already spells it. The pattern ends the way
+it does so that it cannot also match the full-feature APK, which is a different
+feature set and has a channel of its own (`android-full`, listed just below it
+and not yet shipped). Changing the spelling here would either silently label one
+file as the other or make the two files disagree, and the tooling refuses a
+disagreement outright.
 
 **Do this in the same commit that records the release.** It is one word, and it
 is the only step in this runbook whose omission is invisible until the release
