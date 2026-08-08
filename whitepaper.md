@@ -307,7 +307,7 @@ The protocol defines 36 named ACTIONs across ten categories. Of these, 31 are us
 
 ### 6.4 Smart contracts
 
-- **DEPLOY** deploys a JavaScript contract (hex-encoded, up to 64 KB; larger code is carried by chunked DEPLOY v4, §4.3). v0 standard; v1 adds `COOLDOWN_BLOCKS` plus `SLASH_DESTINATION` to make the contract stakeable. Three-phase syntax validation before any gas is charged; the constructor runs immediately if constructor params are present; code and staking metadata are immutable after deploy. The contract receives a derived address `C:<CHAIN>:<action_index>`.
+- **DEPLOY** deploys a JavaScript contract (base64-encoded, up to 64 KB; larger code is carried by chunked DEPLOY v4, §4.3). v0 standard; v1 adds `COOLDOWN_BLOCKS` plus `SLASH_DESTINATION` to make the contract stakeable. Three-phase syntax validation before any gas is charged; the constructor runs immediately if constructor params are present; code and staking metadata are immutable after deploy. The contract receives a derived address `C:<CHAIN>:<action_index>`.
 - **EXECUTE** calls a method on a deployed contract. Gas is actual consumption times gas price. All state changes and emitted actions are atomic via a database savepoint. Attestation callbacks (§8), cross-contract calls, and cross-chain calls are synthesized as system EXECUTEs.
 - **DEPOSIT / WITHDRAW** move tokens into a contract's derived address / back out to the contract owner. No gas fee; only the owner may withdraw (even from a disabled contract).
 - **XCALL** (cross-chain contract call) is emitted by a contract via `xchain.emit.crossExecute(...)`; the federation relays it to a contract on the target chain and returns the result as a callback (§9.5). It is VM-emitted, not user-broadcast.

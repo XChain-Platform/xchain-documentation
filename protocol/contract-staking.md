@@ -149,7 +149,7 @@ A pubkey staked in one system does NOT count toward the other. They are tracked 
 
 ```javascript
 // Deploy a stakeable contract with 50-block cooldown, slashing to BURN
-DEPLOY|1|<hex>|500000||50|BURN
+DEPLOY|1|<base64_code>|500000||50|BURN
 
 // Stake 200 XCHAIN against contract #42 with a specific signing pubkey
 STAKE|3|200.00000000|abc...64hex...|42|XCHAIN

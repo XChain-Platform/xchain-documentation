@@ -1,5 +1,5 @@
 {
-  "_description": "Canonical conformance vectors for the stake-weighted quorum predicate (STAKE_WEIGHTED_QUORUM / WI-1). Each service (xchain-hub, xchain-indexer, xchain-explorer, xchain-sdk, xchain-sync) vendors a BYTE-IDENTICAL copy of protocol/reference-impl/stake_weighted_quorum.js; each repo's ConsensusPrimitiveConformance test runs these vectors against its local copy AND asserts byte-identity to the canonical source, so any drift is machine-detectable. A divergence in predicate logic forks the chain. This file is the single source of truth; do not fork it. Predicate: a source-deduped quorum holds iff 3 * sum(distinct signing-source weight) > 2 * S, where S = sum of weight over distinct sources; pubkeys are matched case-insensitively. Fail-closed rules: a blank or missing source fails closed; a NEGATIVE weight anywhere in the snapshot fails closed (totalStake throws); a non-positive total stake S is never quorate.",
+  "_description": "Canonical conformance vectors for the stake-weighted quorum predicate (STAKE_WEIGHTED_QUORUM / WI-1). Each service (xchain-hub, xchain-indexer, xchain-explorer, xchain-sdk, xchain-sync) vendors a BYTE-IDENTICAL copy of protocol/reference-impl/stake_weighted_quorum.js; each repo's ConsensusPrimitiveConformance test runs these vectors against its local copy AND asserts byte-identity to the canonical source, so any drift is machine-detectable. A divergence in predicate logic forks the chain. This file is the single source of truth; do not fork it. Predicate: a source-deduped quorum holds iff 3 * sum(distinct signing-source weight) > 2 * S, where S = sum of weight over distinct sources; pubkeys are matched case-insensitively. Fail-closed rules: a blank or missing source fails closed; a MISSING or nonnumeric weight fails closed (totalStake throws), because zeroing it shrinks S and lowers the very 2/3 bar it is measured against (#3897) - an explicit '0' is still legitimate; a NEGATIVE weight anywhere in the snapshot fails closed (totalStake throws); a non-positive total stake S is never quorate.",
   "meetsStakeThreshold": [
     {
       "name": "single source meets the threshold (3S > 2S)",
@@ -154,6 +154,43 @@
       "signers": ["K1"],
       "truncated": true,
       "expected": false
+    },
+    {
+      "name": "a missing weight fails closed: it must not shrink S and lower the 2/3 bar",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "70" },
+        { "pubkey": "K2", "source": "s2", "weight": "20" },
+        { "pubkey": "K3", "source": "s3" }
+      ],
+      "signers": ["K1"],
+      "expected": false
+    },
+    {
+      "name": "a null weight fails closed for the same reason",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "70" },
+        { "pubkey": "K2", "source": "s2", "weight": null }
+      ],
+      "signers": ["K1"],
+      "expected": false
+    },
+    {
+      "name": "a nonnumeric weight fails closed (bcnum would silently zero it)",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "70" },
+        { "pubkey": "K2", "source": "s2", "weight": "x" }
+      ],
+      "signers": ["K1"],
+      "expected": false
+    },
+    {
+      "name": "an explicit zero weight is still legitimate and does not fail closed",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "10" },
+        { "pubkey": "K2", "source": "s2", "weight": "0" }
+      ],
+      "signers": ["K1"],
+      "expected": true
     }
   ],
   "totalStake": [
@@ -184,6 +221,30 @@
       "validators": [{ "pubkey": "K1", "source": "s1", "weight": "10" }],
       "truncated": true,
       "throws": true
+    },
+    {
+      "name": "a missing weight throws (zeroing it would silently lower S)",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "10" },
+        { "pubkey": "K2", "source": "s2" }
+      ],
+      "throws": true
+    },
+    {
+      "name": "a nonnumeric weight throws (bcnum would silently zero it)",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "10" },
+        { "pubkey": "K2", "source": "s2", "weight": "x" }
+      ],
+      "throws": true
+    },
+    {
+      "name": "an explicit zero weight is legitimate and sums normally",
+      "validators": [
+        { "pubkey": "K1", "source": "s1", "weight": "10" },
+        { "pubkey": "K2", "source": "s2", "weight": "0" }
+      ],
+      "expected": "10"
     }
   ]
 }

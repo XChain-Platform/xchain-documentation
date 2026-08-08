@@ -3,7 +3,7 @@
 
 # Keys & Signing
 
-This document covers everything between the user's password and a broadcast transaction; KDF, vault encryption, mnemonic handling, HD derivation, the signer interface, and the five concrete signer implementations.
+This document covers everything between the user's password and a broadcast transaction; KDF, vault encryption, mnemonic handling, HD derivation, the signer interface, and the four concrete signer implementations.
 
 ## Master key derivation
 

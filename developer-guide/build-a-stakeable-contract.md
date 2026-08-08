@@ -37,7 +37,7 @@ Stakers will read both of those settings before they decide to lock anything up.
 
 Stakeable contracts use the same JavaScript runtime as any other XChain smart contract. The extra surface is the `xchain.contract.*` accessor, which lets a contract read and modify its own stakes.
 
-Here is a small example: a contract that grants a method (`getSecret`) to anyone who has staked at least 100 `MYTOKEN`, and allows an admin pubkey to slash a misbehaving staker.
+Here is a small example: a contract whose `getSecret` method reports whether a given signing pubkey has staked at least 100 `MYTOKEN`, and that allows an admin address to slash a misbehaving staker.
 
 ```js
 module.exports = {
@@ -47,15 +47,18 @@ module.exports = {
     // arguments come from xchain.getInputParam(n), not from a function
     // parameter, the same convention as every other method below.
     initialize: function(xchain) {
-        var adminPubkey = xchain.getInputParam(0);
-        // Store the admin's pubkey in state. Set once at construction.
-        xchain.state.set('admin', adminPubkey);
+        var adminAddress = xchain.getInputParam(0);
+        // Store the admin's base-chain address in state. Set once at
+        // construction; slashStaker compares getSourceAddress() against it.
+        xchain.state.set('admin', adminAddress);
     },
 
-    // Anyone who staked >= 100 MYTOKEN can call this and get the secret.
+    // Eligibility lookup on a named stake: does this signing pubkey have
+    // >= 100 MYTOKEN locked? The pubkey is caller-supplied, so this is NOT
+    // proof the caller controls it (the VM exposes no caller pubkey).
     getSecret: function(xchain) {
-        var caller = xchain.getSourceAddress();  // authenticated caller, NOT caller-supplied data
-        var staked = xchain.contract.getStake(caller, 'MYTOKEN');
+        var pubkey = xchain.getInputParam(0);  // staker's 64-hex Ed25519 signing pubkey
+        var staked = xchain.contract.getStake(pubkey, 'MYTOKEN');
         if (xchain.math.gte(staked, '100')) {
             return 'the secret handshake';
         }
@@ -72,11 +75,11 @@ module.exports = {
         return xchain.contract.getStakers('MYTOKEN');
     },
 
-    // Only the admin can call this. Slashes one staker by a specific amount.
-    // Slashed tokens go to whatever SLASH_DESTINATION was set at deploy time.
+    // Only the admin address can call this. Slashes one staker by a specific
+    // amount; slashed tokens go to the deploy-time SLASH_DESTINATION.
     slashStaker: function(xchain) {
-        var caller   = xchain.getSourceAddress();  // authenticated caller, NOT caller-supplied data
-        var pubkey   = xchain.getInputParam(0);  // who to slash
+        var caller   = xchain.getSourceAddress();  // authenticated caller address, NOT caller-supplied data
+        var pubkey   = xchain.getInputParam(0);  // who to slash (signing pubkey)
         var amount   = xchain.getInputParam(1);  // how much
         var admin    = xchain.state.get('admin');
 
@@ -92,6 +95,7 @@ module.exports = {
 
 A few things to notice:
 
+- **Two identity spaces, and they never mix.** Method callers, admins, and `SLASH_DESTINATION` are **base-chain addresses**; `xchain.getSourceAddress()` returns one. Stakers are identified by their **Ed25519 signing pubkey**, which is what `getStake`, `slash`, and `STAKE v3` are keyed on. Passing a caller address to `getStake` returns `'0'` for every real staker. Because a contract can only authenticate a caller by address, admin identity must be stored as an address, never as a pubkey: the VM exposes no caller-pubkey accessor, so caller-bound stake gating is not expressible.
 - The contract reads stakes with `xchain.contract.getStake(pubkey, tick)`. The `pubkey` is the Ed25519 signing key the staker used (passed in via `STAKE v3`). Stakers are identified by pubkey, not by address.
 - `xchain.contract.slash(pubkey, tick, amount)` is the *only* way tokens leave a staker's balance other than them calling `UNSTAKE`. It can only target stakers of **this** contract, you cannot slash someone else's contract's stakers.
 - `getStakers` returns the top 1000 stakers by amount. If you expect more than 1000, don't design rules that require iterating all of them in one call.
@@ -115,7 +119,7 @@ const result = await sdk.workflows.deployStakeableContract(
     {
         code: contractSource,
         gasLimit: 500000,
-        constructorParams: [ADMIN_PUBKEY_HEX],   // passed to initialize(...), read via xchain.getInputParam(0)
+        constructorParams: [ADMIN_ADDRESS],      // the admin's base-chain address; read via xchain.getInputParam(0)
         COOLDOWN_BLOCKS: 100,                    // 100 blocks before unstaked tokens are returned
         SLASH_DESTINATION: 'BURN'                // slashed tokens go to the burn address
         // SLASH_DESTINATION can also be a regular address:
@@ -167,7 +171,7 @@ This locks 250 MYTOKEN out of the staker's balance and writes a row in the `cont
 ```js
 await stakerSession.batch([
     sdk.stakeToContract({ amount: '250', signingPubkey, targetContractIndex, tick: 'MYTOKEN' }),
-    sdk.execute({ contractActionIndex: targetContractIndex, method: 'getSecret', params: [] }),
+    sdk.execute({ contractActionIndex: targetContractIndex, method: 'getSecret', params: [STAKER_SIGNING_PUBKEY_HEX] }),
 ]);
 ```
 
@@ -177,10 +181,10 @@ await stakerSession.batch([
 
 ## Step 5: Slash a Staker
 
-Calling the `slashStaker` method from the admin pubkey deducts tokens from a specific staker and routes them to the deploy-time `SLASH_DESTINATION`:
+Calling the `slashStaker` method from the admin address deducts tokens from a specific staker and routes them to the deploy-time `SLASH_DESTINATION`. `ADMIN_WIF` must be the key for the same `ADMIN_ADDRESS` passed as `constructorParams[0]` at deploy time; any other key gets `'unauthorized'`:
 
 ```js
-const adminSession = sdk.session(ADMIN_WIF);
+const adminSession = sdk.session(ADMIN_WIF);   // key for ADMIN_ADDRESS
 
 await adminSession.execute({
     contractActionIndex: targetContractIndex,
@@ -273,7 +277,7 @@ Until the staker delegates a new key, the stake row has no valid signer.
 
 ## Common Patterns
 
-**Reputation-weighted DAO membership.** Deploy a stakeable contract where each method gates on `getStake(caller, 'MYTOKEN') >= threshold`. Members lose voting power when slashed for bad-faith votes.
+**Reputation-weighted DAO membership.** Deploy a stakeable contract where each method gates on `getStake(pubkey, 'MYTOKEN') >= threshold`, with `pubkey` supplied as an input param. Members lose voting power when slashed for bad-faith votes.
 
 **Security bond for a service operator.** A service deploys the contract and stakes their own bond against it. Users get paid out of the bond if the service misbehaves; the slashStaker method routes slashed tokens to the affected user's address (via a per-incident `SLASH_DESTINATION` baked into a fresh contract deploy per incident, or via a payout contract method that consumes contract-held funds after a slash).
 

@@ -32,6 +32,10 @@
  *   1. Every method on the Signer base class appears in architecture.md.
  *   2. Every `*Signer` class name the docs mention exists in the code, unless
  *      the sentence marks it as planned/not implemented.
+ *   3. Every spelled-out "N concrete signers" count matches how many exist.
+ *      Check 2 catches a named vapour class but not a bare miscount: #3862 found
+ *      keys-signing.md promising "five concrete signer implementations" while its
+ *      own body listed four and called MultisigSigner planned.
  *
  * xchain-wallet is a sibling repo, not a dependency; the gate skips when it is
  * absent.
@@ -132,5 +136,42 @@ describe('wallet signer surface', () => {
         assert.deepEqual(offenders, [],
             'signer classes named in the docs with no implementation, and not marked planned:\n  ' +
             offenders.join('\n  '));
+    });
+
+    test('every spelled-out concrete-signer count matches the code',
+        { skip: !haveWallet && 'xchain-wallet not present in this checkout' }, () => {
+
+        // Count from source only: the extension's built bundles re-declare the
+        // same classes, and a dist copy is not a fifth signer.
+        const concrete = new Set(
+            [...concreteSignerClasses()].filter((n) => n !== 'Signer' && n !== 'CoSigner'),
+        );
+        const expected = concrete.size;
+        assert.ok(expected >= 4, 'found only ' + expected + ' concrete signers; the scan is probably broken');
+
+        const WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8 };
+        const COUNT_RE = /\b(one|two|three|four|five|six|seven|eight|\d+)\s+concrete\s+signers?\b/gi;
+        const wrong = [];
+
+        const walk = (dir) => {
+            for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+                if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+                const p = path.join(dir, e.name);
+                if (e.isDirectory()) { walk(p); continue; }
+                if (!e.name.endsWith('.md')) continue;
+                fs.readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
+                    for (const m of line.matchAll(COUNT_RE)) {
+                        const claimed = WORDS[m[1].toLowerCase()] ?? Number(m[1]);
+                        if (claimed === expected) continue;
+                        wrong.push(`${path.relative(DOC_ROOT, p)}:${i + 1}  claims ${claimed}, code has ${expected}`);
+                    }
+                });
+            }
+        };
+        walk(path.join(DOC_ROOT, 'components/wallet'));
+
+        assert.deepEqual(wrong, [],
+            'concrete-signer counts that disagree with the wallet source (' +
+            [...concrete].sort().join(', ') + '):\n  ' + wrong.join('\n  '));
     });
 });

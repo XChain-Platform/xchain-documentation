@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `architecture/platform-map.md` (+ `platform-map-app.html` / `platform-map.json`): interactive platform map with selectable end-to-end flows, embedded in a sidebar-listed doc page, plus the same graph as machine-readable JSON for AI agents, guarded by a new integrity/parity test.
 
 ### Fixed
+- Stake-weighted quorum reference implementation rejects a validator entry with a missing or non-numeric weight, with test vectors for the missing, null, non-numeric and explicit-zero cases ().
+- The stakeable-contract tutorial queries stake with the signing pubkey rather than the caller address, so its stake gate and admin slash path work as written ().
+- The contract-staking worked example uses the current DEPLOY encoding instead of the retired hex form ().
+- PRICE_MAX and ORACLE_DEVIATION_THRESHOLD are covered by the cross-repo value-equality gate ().
+- keys-signing.md counts four signer implementations, not five ().
 - review review-round accuracy fixes: white paper repinned to the shipped 2.0.0 flag day 2026-08-07, SLASH described as burning the entire bond, the stakeable-contract tutorial authorizes on `getSourceAddress()` instead of caller-supplied calldata, `xchain-lint` described as a conservative preflight rather than exact deploy parity, the stake-weighted predicate no longer called 2f+1, and the contract-staking example takes the gateway argument ().
 - `components/wallet/README.md`: `MultisigSigner` was listed among the shipped signers; the class does not exist (it is planned, and Keys_Signing.md already said so). There are four concrete signers.
 - `components/wallet/TESTING.md`: the multisig session state machine named an `indexed` status that does not exist and four other wrong status names.
