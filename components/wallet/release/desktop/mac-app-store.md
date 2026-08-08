@@ -86,7 +86,8 @@ node packages/desktop/scripts/capture-listing-screenshots.mjs
 node tools/release/verify-listing-assets.mjs --set mas --since vX.Y.Z
 ```
 
-⬜ It reports `CLEAN`. `STALE` prints the commits that touched what each screenshot shows since it was captured, and the two honest ways out are the same as on the other store pages: recapture at the tag, or record in the release record why none of those commits can change these pixels. `INCONCLUSIVE` means it could not tell at all, which is not a pass.  
+⬜ It reports `CLEAN`. `STALE` prints the commits that touched what each screenshot shows, and the two honest ways out are the same as on the other store pages: recapture at the tag, or record in the release record why none of those commits can change these pixels. `INCONCLUSIVE` means it could not tell at all, which is not a pass.  
+⬜ **Read which DIRECTION it reports.** A `STALE:` line means the screenshots are older than the tag; an `AHEAD:` line means they are newer, so they show a build the upload does not contain. The second is the likelier one at submission, because the tag you may cut is the last commit with a green CI run while captures get taken on the tip. A `NOTE:` line is a pass: the capture is ahead but nothing it depicts moved in between. Until 2026-08-07 the tool could not see the ahead direction at all and printed `CLEAN` for it, so a run from before that date proves less than it appears to.  
 ⬜ The privacy answers are filled in, consistent with the wallet's published privacy policy and with the answers given on the other stores.  
 ⬜ The export-compliance answer is given, consistent with the other listings.  
 ⬜ If Phase 1 found that hardware wallets do not work under the sandbox, the listing says so.
