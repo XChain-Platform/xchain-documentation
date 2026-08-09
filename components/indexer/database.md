@@ -39,7 +39,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 
 | Table | Purpose |
 |---|---|
-| `addresses` | ADDRESS action preferences (require memo, etc.) |
+| `addresses` | One row per ADDRESS action, valid or not: the preferences a v0 sets (require memo, etc.) plus the status every ADDRESS reads back by. A v1 controller bind writes the row with no preferences; its binding lives in `address_controllers` |
 | `airdrops` | AIRDROP distribution records |
 | `batches` | BATCH action container records |
 | `bet_feeds` | BET betting-market definitions (format 0). The creating `action_index` is the market's id |

@@ -40,6 +40,7 @@ The audit catches regressions automatically on every commit. The run-twice verif
 - **`LC_ALL=C.UTF-8` and `TZ=UTC`**, pinned in both the container image and the in-container environment, so locale-sensitive tools (`sort`, `date`) emit deterministic output.
 - **Vite**, with source maps off in production, deterministic chunk and asset filenames, and no plugin that captures wall-clock time or generates random IDs.
 - **A digest-pinned base image**, so the toolchain a verifier's container installs is byte-identical to the one the release lane used, not just "the same major version" resolved on different days.
+- **The release lane builds inside that same container**, running the same reproduce script a verifier runs rather than building on the bare CI runner. This is what extends the guarantee to compiled files. The desktop bundle carries a native addon for elliptic-curve maths, compiled from source by the dependency install, so a release built outside the container would compile it against the runner's C compiler and system libraries while the verifier compiled it against the image's. Every other file would still match, and that one, plus the archive header that records its hash, would not.
 
 Each shell's section below covers what is specific to it on top of this shared floor.
 
