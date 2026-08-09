@@ -50,12 +50,23 @@ actions, and the `UNKNOWN` catch-all sentinel.
 ## Adding a new ACTION
 
 1. Add one entry to `action-manifest.json` with the role flags it should carry.
-2. Re-vendor: copy this file over every `test/fixtures/action-manifest.json`.
+2. Re-vendor: run `bin/sync-action-manifest.sh` from the platform checkout. It copies
+   this file over every `test/fixtures/action-manifest.json` and verifies the result.
 3. Run each repo's conformance test. Each repo whose flag you set but did not wire fails loudly; wire it until green.
+
+`bin/sync-action-manifest.sh --check` is the cross-repo byte-parity gate, run by
+`bin/ci-all.sh`. It exists because the per-repo IDENTITY assertion below only
+compares against canonical when `xchain-documentation` is checked out beside the
+repo, which on GitHub it never is, so the monorepo run is where all six copies are
+compared at once. The same pass classifies every other `action-manifest.json` in
+the checkout: build output, `xchain-node` install clones and throwaway worktrees
+are reported and not gated, while a **tracked** copy in a platform repo that is
+not on the roster fails, since that is how a seventh vendoring site with its own
+conformance guard would otherwise appear with nothing keeping it in step.
 
 ```mermaid
 flowchart TD
-    Add["Add entry to action-manifest.json<br>with the role flags it should carry"] --> Vendor["Re-vendor: copy the file over every<br>repo's test/fixtures/action-manifest.json"]
+    Add["Add entry to action-manifest.json<br>with the role flags it should carry"] --> Vendor["Re-vendor: bin/sync-action-manifest.sh<br>copies the file over every repo's<br>test/fixtures/action-manifest.json"]
     Vendor --> Test["Each repo runs ActionManifestConformance.test.js<br>in its own unit tier"]
     Test --> Behavior{"BEHAVIOR: repo's local action set<br>equals the manifest slice for its role flag?"}
     Behavior -->|"no"| Fail["That repo's CI fails,<br>naming the missing action and the file to edit"]
@@ -66,6 +77,7 @@ flowchart TD
     Wire --> Test
 ```
 
-> The full collapse of the per-repo literals into generated code (so step 2 and
-> the per-repo edits disappear) is a future follow-on; today the manifest +
-> conformance guards make the fan-out **safe**, not yet **single-edit**.
+> Step 2 is one command as of . The full collapse of the per-repo literals
+> into generated code (so the per-repo edits disappear too) is still a future
+> follow-on; today the manifest, the sync tool and the conformance guards make the
+> fan-out **safe** and **one-edit to vendor**, not yet **one-edit to wire**.

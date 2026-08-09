@@ -289,8 +289,9 @@ acceptance rule is keyed on the local block (`protocol_changes.js`). Operators m
 coordinate the two: flip the canonical gate first or together with the create-side gate,
 never create-side first. Both mainnet values are armed: the canonical flip is set to
 `snapshot_block` height `961000` (BTC anchor ~2026-08-04; hub and every indexer must deploy
-before that height), and the create-side acceptance gate is set to block time `1798761600`
-(2027-01-01 00:00 UTC).
+before that height), and the create-side acceptance gate (`CROSS_CHAIN_ROYALTY`) is keyed on a
+block time listed on [Flag-Day Values](./flag-days.md#mainnet-time-keyed-gates), one quarter
+after the rest of Cohort A.
 
 ---
 

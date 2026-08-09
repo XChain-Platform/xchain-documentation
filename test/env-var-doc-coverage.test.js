@@ -17,27 +17,24 @@
  * gap simply accumulated, one tuning knob at a time, because no check ever
  * compared `process.env` reads against the documented set. The audit closed
  * the gap with a throwaway script, which means the gap re-opens at the rate
- * the services grow. This file is that script, checked in, so the next
+ * the services grow. This is that script, checked in, so the next
  * undocumented variable fails the build instead of waiting for the next audit.
  *
- * WHAT IT CHECKS. Three things, all of which the audit proved necessary:
+ * WHAT IT CHECKS, and why the scanner lives elsewhere: the rules are in
+ * ../lib/env-var-doc-coverage.js, because this suite is no longer their only
+ * caller. It only ran when somebody ran the docs suite, so a service repo
+ * could add a variable and leave the gate red indefinitely with no signal;
+ * bin/check-env-var-doc-coverage.js at the platform root is the cross-repo
+ * trigger that fixes that , and it applies these exact rules.
  *
- *   1. Coverage, scoped per component. A variable read by the hub must appear
- *      on the HUB's pages. Matching against the whole doc repo lets a name
- *      documented elsewhere, with a different meaning, read as covered.
- *   2. Documented defaults match the code. The default written in the docs is
- *      cross-checked against the literal on the line that reads the variable.
- *      This is what caught the NODE_RPC_TIMEOUT divergence.
- *   3. Cross-component divergence. A variable read by two components with
- *      DIFFERENT defaults is a trap: one doc row silently describes the wrong
- *      behaviour for the other component. Each side must carry its own value.
- *
- * WHAT IT DOES NOT CHECK. Only production source is scanned (src/, bin/,
- * mcp/, index.js). Test fixtures, benchmark scripts and operator one-offs set
- * env vars for their own purposes and are not part of the configuration
- * surface an operator needs documented. Reads inside xchain-node/modules/ are
- * skipped too: that directory holds vendored copies of the other services,
- * whose variables belong to those components' pages.
+ * WHICH TREE THIS SUITE READS. The sibling services are read at their
+ * COMMITTED state, this repo's own pages as they sit on disk. Reading a
+ * sibling's working tree is what made this gate unusable on a shared
+ * checkout: on 2026-08-06 it went red on two variables that existed only in
+ * another session's uncommitted experiment in xchain-indexer, for an API that
+ * might never land in that shape. Our own pages stay working-tree, because a
+ * suite that ignored the doc row you just wrote would be useless to edit
+ * against. Full reasoning in the library header.
  *
  * WHY THE HARNESS HAS ITS OWN TESTS. The audit's first default-checker
  * reported false green: the regex meant to drop the radix argument of
@@ -53,252 +50,21 @@
 const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
+const os   = require('node:os');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
-/*  ------------------------------------------------------------------
- *  Layout
- *  ------------------------------------------------------------------ */
+const cov = require('../lib/env-var-doc-coverage.js');
+
+const {
+    ENV_READ, extractDefault, scanSource, docLinesFor, defaultDocumented, isSourcePath,
+} = cov;
 
 // This repo sits beside the service repos in the platform tree. In a
 // standalone clone the siblings are absent and the coverage half of this
 // suite skips; the harness self-tests still run.
 const DOC_ROOT      = path.join(__dirname, '..');
 const PLATFORM_ROOT = path.join(DOC_ROOT, '..');
-
-// Doc directory name -> service repo name. Only shipped services are gated.
-// xchain-contracts, xchain-e2e-test and xchain-wallet are excluded: the first
-// two are harnesses whose env reads configure a test run, and the wallet
-// reads build-time `import.meta.env`, not `process.env`.
-const COMPONENTS = [
-    'decoder', 'encoder', 'explorer', 'hub', 'indexer', 'node',
-    'regtest-miner', 'sdk', 'sync', 'utxo-tracker', 'vm'
-];
-
-// Directories and entry files that make up a service's production surface.
-const SOURCE_ROOTS = ['src', 'bin', 'mcp', 'index.js'];
-
-// Never descend into these, wherever they appear.
-const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', 'dist', 'modules', 'test', 'tests']);
-
-// Injected by the runtime, not configured by an operator, so not documentable.
-const NOT_CONFIGURATION = (name) => name.startsWith('npm_') || name === 'NODE_V8_COVERAGE';
-
-/*  ------------------------------------------------------------------
- *  Known gaps at the time this gate landed (2026-07-27)
- *  ------------------------------------------------------------------
- *
- *  This gate is stricter than the audit's own script: it scans every
- *  production source file and requires the variable on the reading
- *  component's OWN pages. That turns up variables the audit's pass missed.
- *  They are listed here rather than left to silently fail, so the gate can
- *  land today and hold the line from here.
- *
- *  The list is a ratchet, not a parking lot. It may only shrink: an entry
- *  that no longer describes an undocumented read fails the build and must be
- *  deleted. Document the variable, delete its line.
- */
-const KNOWN_GAPS = {
-    // Empty as of 2026-07-27: every entry this gate landed with has been
-    // documented and deleted. A new entry may only be added with the
-    // variable's doc row already written and a reason it cannot land yet.
-};
-
-/*  ------------------------------------------------------------------
- *  Harness
- *  ------------------------------------------------------------------ */
-
-const ENV_READ = /process\.env\.([A-Za-z_][A-Za-z0-9_]*)|process\.env\[\s*['"]([A-Za-z_][A-Za-z0-9_]*)['"]\s*\]/g;
-
-/**
- * Reads the effective default off the expression that follows an env read.
- *
- * Written as a small scanner rather than a regex on purpose. The regex version
- * is what reported false green during the audit: `parseInt(process.env.X, 10)`
- * and `parseInt(process.env.X || '30000', 10)` differ only in where the comma
- * sits, and a pattern loose enough to skip the radix in the first is loose
- * enough to eat the default in the second.
- *
- * Rules, applied left to right from just after the read:
- *   - a `,` at the read's own depth means the read is an argument and what
- *     follows is a sibling argument (the radix), so jump past the enclosing
- *     call and keep looking;
- *   - `||` or `??` introduces a fallback: a literal is the default, an
- *     identifier (`cfg.X`) is another lookup, so keep going;
- *   - anything else ends the search.
- *
- * `'30000'` and `30000` are the same default to an operator, so the quoting is
- * not carried through: what matters downstream is whether the value is a
- * number, since that is the part a doc row gets wrong.
- *
- * @param {string} text  the source line, or the source from the read onward
- * @param {number} from  index just past the `process.env.X` read
- * @returns {{ value: string, numeric: boolean }|null}
- */
-function extractDefault(text, from) {
-    let i = from;
-    let depth = 0;
-
-    while (i < text.length) {
-        const ch = text[i];
-
-        if (ch === '(' || ch === '[' || ch === '{') { depth++; i++; continue; }
-
-        if (ch === ')' || ch === ']' || ch === '}') {
-            // Closing past our own depth means the enclosing expression ended.
-            if (depth === 0) return null;
-            depth--; i++; continue;
-        }
-
-        if (ch === ',' && depth === 0) {
-            // We are an argument; skip the remaining arguments of this call.
-            i = skipToEnclosingClose(text, i);
-            if (i === -1) return null;
-            continue;
-        }
-
-        if (depth === 0 && (text.startsWith('||', i) || text.startsWith('??', i))) {
-            const operand = readOperand(text, i + 2);
-            if (!operand) return null;
-            if (operand.literal) return { value: operand.value, numeric: /^-?\d+(\.\d+)?$/.test(operand.value) };
-            // A non-literal fallback (cfg.X, DEFAULTS.X); the real default is
-            // further along the chain, so resume scanning after it.
-            i = operand.end;
-            continue;
-        }
-
-        if (ch === ';') return null;
-
-        i++;
-    }
-    return null;
-}
-
-/** Advances past the `)` that closes the call the cursor sits inside. */
-function skipToEnclosingClose(text, i) {
-    let depth = 0;
-    for (; i < text.length; i++) {
-        const ch = text[i];
-        if (ch === '(' || ch === '[' || ch === '{') depth++;
-        else if (ch === ')' || ch === ']' || ch === '}') {
-            if (depth === 0) return i + 1;
-            depth--;
-        }
-    }
-    return -1;
-}
-
-/** Reads one operand after a `||`/`??`, reporting whether it is a literal. */
-function readOperand(text, i) {
-    while (i < text.length && /\s/.test(text[i])) i++;
-    if (i >= text.length) return null;
-
-    const ch = text[i];
-
-    if (ch === "'" || ch === '"' || ch === '`') {
-        const end = text.indexOf(ch, i + 1);
-        if (end === -1) return null;
-        return { literal: true, value: text.slice(i + 1, end), end: end + 1 };
-    }
-
-    const num = /^-?\d[\d_]*(\.\d+)?/.exec(text.slice(i));
-    if (num) {
-        return { literal: true, value: num[0].replace(/_/g, ''), end: i + num[0].length };
-    }
-
-    // Identifier, member expression or call: not a literal default.
-    const ident = /^[A-Za-z_$][A-Za-z0-9_$.]*(\([^)]*\))?/.exec(text.slice(i));
-    if (ident) return { literal: false, end: i + ident[0].length };
-
-    return null;
-}
-
-/**
- * Collects every env read in a source string.
- *
- * @returns {Map<string, Array<{line:number, default:object|null}>>}
- */
-function scanSource(source) {
-    const found = new Map();
-    const lines = source.split('\n');
-
-    lines.forEach((line, idx) => {
-        // A commented-out read documents nothing and configures nothing.
-        const code = line.replace(/\/\/.*$/, '');
-        ENV_READ.lastIndex = 0;
-        let m;
-        while ((m = ENV_READ.exec(code)) !== null) {
-            const name = m[1] || m[2];
-            if (!found.has(name)) found.set(name, []);
-            found.get(name).push({ line: idx + 1, default: extractDefault(code, m.index + m[0].length) });
-        }
-    });
-
-    return found;
-}
-
-/** Every .js/.cjs/.mjs file under a service's production source roots. */
-function sourceFiles(repoDir) {
-    const out = [];
-    const walk = (dir) => {
-        let entries;
-        try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
-        for (const e of entries) {
-            if (SKIP_DIRS.has(e.name)) continue;
-            const p = path.join(dir, e.name);
-            if (e.isDirectory()) walk(p);
-            else if (/\.(js|cjs|mjs)$/.test(e.name)) out.push(p);
-        }
-    };
-
-    for (const root of SOURCE_ROOTS) {
-        const p = path.join(repoDir, root);
-        if (!fs.existsSync(p)) continue;
-        if (fs.statSync(p).isDirectory()) walk(p);
-        else out.push(p);
-    }
-    return out;
-}
-
-/** Reads a component's own doc pages as one text blob plus its lines. */
-function readComponentDocs(docDir) {
-    const lines = [];
-    const walk = (dir) => {
-        let entries;
-        try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
-        for (const e of entries) {
-            const p = path.join(dir, e.name);
-            if (e.isDirectory()) walk(p);
-            else if (e.name.endsWith('.md')) {
-                for (const l of fs.readFileSync(p, 'utf8').split('\n')) lines.push(l);
-            }
-        }
-    };
-    walk(docDir);
-    return lines;
-}
-
-/** Lines of a component's docs that mention the variable by name. */
-function docLinesFor(docLines, name) {
-    const mention = new RegExp(`(?<![A-Za-z0-9_])${name}(?![A-Za-z0-9_])`);
-    return docLines.filter((l) => mention.test(l));
-}
-
-// A `|| 0` default is almost always "feature off", and a doc row that says so
-// in words is correct, not stale. Anything narrower produces noise; anything
-// wider lets a real number rot.
-const MEANS_ZERO = /\b(none|unset|disabled|disable|off|no limit|unlimited)\b/i;
-
-/**
- * Is a numeric default present on any doc line for the variable?
- *
- * Deliberately lenient about where in the row the number sits: the doc set
- * uses several table shapes, and pinning a column would break on the next one.
- * Strict about the value, which is the part that goes stale.
- */
-function defaultDocumented(rows, value) {
-    const asNumber = new RegExp(`(?<![\\d.])${value.replace('.', '\\.')}(?![\\d.])`);
-    return rows.some((r) => asNumber.test(r) || (value === '0' && MEANS_ZERO.test(r)));
-}
 
 /*  ------------------------------------------------------------------
  *  Harness self-tests: these run everywhere, siblings or not
@@ -385,6 +151,84 @@ describe('scanSource', () => {
     });
 });
 
+describe('the production-source predicate', () => {
+    // Both readers filter through this one function, so the committed tree and
+    // the working tree cannot disagree about what counts as production source.
+    test('accepts the source roots and the bare entry file', () => {
+        assert.equal(isSourcePath('src/config.js'), true);
+        assert.equal(isSourcePath('bin/run.mjs'), true);
+        assert.equal(isSourcePath('mcp/server.cjs'), true);
+        assert.equal(isSourcePath('index.js'), true);
+    });
+
+    test('rejects tests, vendored copies and everything outside the roots', () => {
+        assert.equal(isSourcePath('test/unit/db.test.js'), false);
+        assert.equal(isSourcePath('src/test/helper.js'), false);
+        assert.equal(isSourcePath('modules/xchain-vm/src/vm.js'), false);
+        assert.equal(isSourcePath('node_modules/x/index.js'), false);
+        assert.equal(isSourcePath('scripts/one-off.js'), false);
+        assert.equal(isSourcePath('src/README.md'), false);
+        assert.equal(isSourcePath('server.js'), false);
+    });
+});
+
+describe('the two tree readers (why a neighbour\'s in-flight edit no longer reddens this suite)', () => {
+    // Fixture repos under the temp dir, real git, no sibling checkout needed.
+    // Identity and signing are pinned per-invocation so these do not depend on
+    // (or disturb) the machine's global git config.
+    const GIT_ID = [
+        '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid',
+        '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null',
+    ];
+    const git = (dir, ...args) =>
+        execFileSync('git', ['-C', dir, ...GIT_ID, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+
+    /** A repo whose src/config.js is committed, then edited but not committed. */
+    const fixture = () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'envvar-reader-'));
+        fs.mkdirSync(path.join(dir, 'src'));
+        fs.writeFileSync(path.join(dir, 'src', 'config.js'), 'const p = process.env.COMMITTED || 3000;\n');
+        git(dir, 'init', '-q', '-b', 'main');
+        git(dir, 'add', '-A');
+        git(dir, 'commit', '-q', '-m', 'committed');
+        fs.appendFileSync(path.join(dir, 'src', 'config.js'), 'const q = process.env.IN_FLIGHT || 1;\n');
+        return dir;
+    };
+
+    const readsOf = (reader, dir) => {
+        const paths = reader.listPaths(dir, cov.SOURCE_ROOTS).filter(cov.isSourcePath);
+        const names = new Set();
+        for (const text of reader.readFiles(dir, paths).values()) {
+            for (const n of scanSource(text).keys()) names.add(n);
+        }
+        return names;
+    };
+
+    test('the committed reader cannot see an uncommitted read', () => {
+        const names = readsOf(cov.committedTreeReader('HEAD'), fixture());
+        assert.equal(names.has('COMMITTED'), true);
+        assert.equal(names.has('IN_FLIGHT'), false, 'a neighbour\'s uncommitted experiment leaked into the gate');
+    });
+
+    test('the working-tree reader sees both, which is why the doc side uses it', () => {
+        const names = readsOf(cov.workingTreeReader(), fixture());
+        assert.equal(names.has('COMMITTED'), true);
+        assert.equal(names.has('IN_FLIGHT'), true);
+    });
+
+    test('both readers agree on which paths are production source', () => {
+        const dir = fixture();
+        fs.mkdirSync(path.join(dir, 'test'), { recursive: true });
+        fs.writeFileSync(path.join(dir, 'test', 'x.test.js'), 'process.env.TEST_ONLY;\n');
+        git(dir, 'add', '-A');
+        git(dir, 'commit', '-q', '-m', 'a test file');
+
+        const paths = (reader) => reader.listPaths(dir, cov.SOURCE_ROOTS).filter(cov.isSourcePath).sort();
+        assert.deepEqual(paths(cov.committedTreeReader('HEAD')), ['src/config.js']);
+        assert.deepEqual(paths(cov.workingTreeReader()), ['src/config.js']);
+    });
+});
+
 describe('doc matching', () => {
     test('a variable name is not matched by a longer name containing it', () => {
         const rows = docLinesFor(['| `XCHAIN_HUB_API_KEY` | the hub key |'], 'HUB_API_KEY');
@@ -415,48 +259,42 @@ describe('doc matching', () => {
  *  The gate itself
  *  ------------------------------------------------------------------ */
 
-const present = COMPONENTS.filter((c) => fs.existsSync(path.join(PLATFORM_ROOT, `xchain-${c}`, 'package.json')));
-const siblingsMissing = present.length === 0;
+const present = cov.presentComponents(PLATFORM_ROOT);
 
-// Gathered once; every gate test below reads from this.
-const survey = new Map();
-for (const c of present) {
-    const repo = path.join(PLATFORM_ROOT, `xchain-${c}`);
-    const vars = new Map();
+// Reading a sibling at HEAD needs its object database. A service checked out
+// without one (an export, a tarball) cannot be judged, and guessing from its
+// working tree is the failure this suite is fixing, so it drops out.
+const readable = present.filter((c) => cov.isGitRepo(path.join(PLATFORM_ROOT, `xchain-${c}`)));
+const unreadable = present.filter((c) => !readable.includes(c));
 
-    for (const file of sourceFiles(repo)) {
-        const found = scanSource(fs.readFileSync(file, 'utf8'));
-        for (const [name, sites] of found) {
-            if (NOT_CONFIGURATION(name)) continue;
-            if (!vars.has(name)) vars.set(name, []);
-            for (const s of sites) vars.get(name).push({ ...s, file: path.relative(repo, file) });
-        }
-    }
+const siblingsMissing = readable.length === 0;
 
-    survey.set(c, { vars, docLines: readComponentDocs(path.join(DOC_ROOT, 'components', c)) });
-}
+const survey = siblingsMissing ? new Map() : cov.buildSurvey({
+    platformRoot:  PLATFORM_ROOT,
+    docRoot:       DOC_ROOT,
+    serviceReader: cov.committedTreeReader('HEAD'),
+    docReader:     cov.workingTreeReader(),
+    components:    readable,
+});
 
 describe('environment-variable documentation coverage ', { skip: siblingsMissing ? 'sibling service repos not checked out' : false }, () => {
-    test('the survey actually found something to check', () => {
-        const total = [...survey.values()].reduce((n, s) => n + s.vars.size, 0);
-        // A refactor that breaks the scanner must not read as a clean bill of
-        // health. The services read hundreds of variables between them.
-        assert.ok(total > 300, `only ${total} env reads found across ${present.length} components; the scanner is probably broken`);
+    test('every checked-out sibling could be read at HEAD', () => {
+        // A sibling silently dropping out is how a gate goes green while
+        // proving less than it did yesterday , so name it loudly.
+        assert.deepEqual(unreadable, [], `checked out but not a git repo, so not gated: ${unreadable.join(', ')}`);
     });
 
-    for (const c of present) {
-        describe(c, () => {
-            const { vars, docLines } = survey.get(c);
-            const waived = new Set(KNOWN_GAPS[c] || []);
+    test('the survey actually found something to check', () => {
+        // A refactor that breaks the scanner must not read as a clean bill of
+        // health. The services read hundreds of variables between them.
+        const total = cov.totalReads(survey);
+        assert.ok(total > 300, `only ${total} env reads found across ${readable.length} components; the scanner is probably broken`);
+    });
 
+    for (const c of readable) {
+        describe(c, () => {
             test('every variable the code reads is documented on this component\'s own pages', () => {
-                const undocumented = [];
-                for (const [name, sites] of vars) {
-                    if (waived.has(name)) continue;
-                    if (docLinesFor(docLines, name).length === 0) {
-                        undocumented.push(`${name} (read at ${sites[0].file}:${sites[0].line})`);
-                    }
-                }
+                const undocumented = cov.checkUndocumented(c, survey.get(c));
                 assert.deepEqual(
                     undocumented, [],
                     `undocumented in components/${c}/:\n  ${undocumented.join('\n  ')}\n` +
@@ -465,69 +303,28 @@ describe('environment-variable documentation coverage ', { skip: siblingsMissing
             });
 
             test('documented numeric defaults match the literal on the reading line', () => {
-                const wrong = [];
-                for (const [name, sites] of vars) {
-                    const rows = docLinesFor(docLines, name);
-                    if (rows.length === 0) continue; // coverage test owns this
-
-                    const numeric = sites.filter((s) => s.default && s.default.numeric);
-                    if (numeric.length === 0) continue;
-
-                    // Distinct defaults within one component are usually a
-                    // per-call override rather than drift, so any documented
-                    // one counts; a value documented nowhere does not.
-                    const values = [...new Set(numeric.map((s) => s.default.value))];
-                    if (!values.some((v) => defaultDocumented(rows, v))) {
-                        wrong.push(`${name}: code default ${values.join(' or ')} (${numeric[0].file}:${numeric[0].line}) appears on no doc line for it`);
-                    }
-                }
+                const wrong = cov.checkDefaultDrift(c, survey.get(c));
                 assert.deepEqual(wrong, [], `default drift in components/${c}/:\n  ${wrong.join('\n  ')}`);
             });
         });
     }
 
     test('a variable read by several components with different defaults says so on each', () => {
-        // NODE_RPC_TIMEOUT is why this exists: 30000 in the decoder, encoder
-        // and utxo-tracker, 60000 in the regtest-miner. Only the decoder's
-        // value was documented, so the miner's real timeout was undocumented
-        // behind a number that was wrong for it.
-        const byName = new Map();
-        for (const c of present) {
-            for (const [name, sites] of survey.get(c).vars) {
-                const values = [...new Set(sites.filter((s) => s.default && s.default.numeric).map((s) => s.default.value))];
-                if (values.length !== 1) continue;
-                if (!byName.has(name)) byName.set(name, new Map());
-                byName.get(name).set(c, values[0]);
-            }
-        }
-
-        const unflagged = [];
-        for (const [name, perComponent] of byName) {
-            if (new Set(perComponent.values()).size < 2) continue;
-            for (const [c, value] of perComponent) {
-                const rows = docLinesFor(survey.get(c).docLines, name);
-                if (rows.length === 0) continue; // coverage test owns this
-                if (!defaultDocumented(rows, value)) {
-                    unflagged.push(`${name} defaults to ${value} in ${c} but components/${c}/ does not say so (values across components: ${[...perComponent].map(([k, v]) => `${k}=${v}`).join(', ')})`);
-                }
-            }
-        }
+        const unflagged = cov.checkDivergentDefaults(survey);
         assert.deepEqual(unflagged, [], `divergent defaults documented on only one side:\n  ${unflagged.join('\n  ')}`);
     });
 
     test('the known-gap list only shrinks', () => {
-        const stale = [];
-        for (const [c, names] of Object.entries(KNOWN_GAPS)) {
-            if (!survey.has(c)) continue;
-            const { vars, docLines } = survey.get(c);
-            for (const name of names) {
-                if (!vars.has(name)) stale.push(`${c}/${name}: no longer read by the code`);
-                else if (docLinesFor(docLines, name).length > 0) stale.push(`${c}/${name}: now documented`);
-            }
-        }
+        const stale = cov.checkStaleKnownGaps(survey);
         assert.deepEqual(
             stale, [],
-            `KNOWN_GAPS entries that no longer describe a gap; delete these lines from ${path.basename(__filename)}:\n  ${stale.join('\n  ')}`
+            `KNOWN_GAPS entries that no longer describe a gap; delete these lines from lib/env-var-doc-coverage.js:\n  ${stale.join('\n  ')}`
         );
     });
+});
+
+// Referenced by the doc-page reader; kept so a standalone clone still fails
+// loudly if the components tree goes missing entirely.
+test('the components doc tree exists', () => {
+    assert.ok(fs.existsSync(path.join(DOC_ROOT, 'components')), 'components/ is missing from the docs repo');
 });

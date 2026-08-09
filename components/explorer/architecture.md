@@ -117,7 +117,7 @@ Special routes handled separately:
 
 1. **Load config**: Fetch current configuration (hub-sourced or local)
 2. **Parse URL**: Extract coin prefix, route type (html/api/explorer), method, query, and type from the path
-3. **Validate coin**: Check coin is in `COIN_SUPPORTED`; if not, return 503. Check coin is in `COIN_AVAILABLE`; if not, redirect to coin-unavailable page
+3. **Validate coin**: Check coin is in `COIN_SUPPORTED`; if not, return 503. Check coin is in `COIN_AVAILABLE`; if not, redirect to coin-unavailable page. A configured coin whose newest indexed block has aged past `EXPLORER_TIP_MAX_AGE_S` is treated the same way, so a frozen replica refuses the read rather than serving stale data as live; `/{COIN}/api/status` is exempt, since that is the endpoint an operator reads to see the freeze
 4. **Match route**: Find the matching URL pattern in the route table
 5. **Build config object**: Populate method, search query, type, pagination parameters, and offset data
 6. **Execute query**: Call the corresponding database method (e.g., `db.getSends(config)`)

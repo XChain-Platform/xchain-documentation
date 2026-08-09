@@ -67,6 +67,11 @@ already-live action, not to the arrival of an action.
 
 ## Where the values live
 
+**The mainnet time-keyed values themselves are on [Flag-Day Values](./flag-days.md)**, a page
+generated straight from the indexer's registry. No page in this documentation set quotes a flag-day
+date in prose, this one included: a flag-day value is the current setting of a constant, it has been
+repinned before, and prose cannot notice its source moving. Pages name the gate and link there.
+
 [`constants.js`](constants.js) in this repository is the canonical source for the **validator-era
 (Cohort B)** and **state-commitment (Cohort C)** gates below, and for the **encoding-recognition**
 gate ([below](#encoding-recognition-decoder-carried)), which sits outside all three cohorts because it
@@ -129,12 +134,12 @@ are listed here so the flag-day inventory stays complete pending consolidation i
 | **SWQ source cap** (`SWQ_SOURCE_CAP_ACTIVATION`, caps `STAKE_WEIGHT_MAX_SOURCES=1000`, `STAKE_WEIGHT_MAX_KEYS_PER_SOURCE=64`) | BTC height | `BTC:mainnet` 960000 (after state commitment 958500, before stake-weighted quorum 961000; LTC/DOGE inert) | forks | `xchain-indexer` / `xchain-sync` `src/swq_source_cap_activation.js` |
 | **Slash burns pending stake** (`SLASH_BURNS_PENDING_STAKE`) | BTC height | 961000 (Cohort-B anchor) | forks | `xchain-indexer/src/protocol_changes.js` |
 | **State-key collation** (`STATE_KEY_COLLATION_ACTIVATION`) | per-chain local height | `BTC:mainnet` 962500, `LTC:mainnet` 3160000, `DOGE:mainnet` 6335000 (armed 2026-07-10, ~10 days past Cohort-B) | halts, recoverable | `xchain-indexer` / `xchain-sync` `src/state_key_collation_activation.js` |
-| **DISPENSE cancelling-dispenser match** (`DISPENSE_CANCELLING_MATCH_ACTIVATION`, corrects the `db.findMatchingDispensers` latest-status correlation on the native-coin DISPENSE trigger path) | block time | `mainnet` 1786060800 (2026-08-07, the coordinated 2.0.0 contract-era flag-day; deploy all indexers before it) | forks | `xchain-indexer/src/dispense_cancelling_match_activation.js` |
+| **DISPENSE cancelling-dispenser match** (`DISPENSE_CANCELLING_MATCH_ACTIVATION`, corrects the `db.findMatchingDispensers` latest-status correlation on the native-coin DISPENSE trigger path) | block time | the coordinated 2.0.0 [contract-era flag day](./flag-days.md#contract-era-flag-day); deploy all indexers before it | forks | `xchain-indexer/src/dispense_cancelling_match_activation.js` |
 
 The SWQ source cap and slash-burns gates are BTC-height forking rules that belong with **Cohort B**;
 state-key collation is a per-chain additive gate that behaves like **Cohort C** (halts, recoverable).
 The DISPENSE cancelling-dispenser match gate is a block-time forking rule keyed on the shared 2.0.0
-contract-era timestamp (`1786060800`), so it belongs with **Cohort A**; it is registered as a
+contract-era timestamp, so it belongs with **Cohort A**; it is registered as a
 standalone twin-style module rather than a `protocol_changes.addChange` entry to keep it self-contained
 next to the query it gates.
 
@@ -170,8 +175,8 @@ Three further properties of this gate differ from the cohorts above:
   constant stays in the tree now that both mainnet heights have passed: it is history, not a control.
 
 Within **Cohort A**, the **cross-chain royalty create-side** gate is the one rule that does not share
-the single 2026-08-07 contract-era timestamp (`1786060800`): it is deliberately armed one quarter later,
-at `1798761600` (2027-01-01), so the deny window between the two dates is the safe interim while the
+the single contract-era timestamp: it is deliberately armed one quarter later (both values are on
+[Flag-Day Values](./flag-days.md)), so the deny window between the two dates is the safe interim while the
 fleet upgrades to legs-in-canonical. Its match-canonical partner is a Cohort-B gate (`CROSS_CHAIN_ROYALTY_ACTIVATION`,
 armed months earlier at BTC anchor 961000), preserving the canonical-first ordering. So Cohort A is
 "one shared time" in its keying *mechanism* (wall-clock time, synchronized across all three chains), but

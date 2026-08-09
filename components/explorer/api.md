@@ -121,34 +121,49 @@ GET /{COIN}/api/status
 ```json
 {
     "data": {
-        "supported": ["BTC", "TBTC", "RBTC", "LTC", ...],
-        "available": ["BTC", "RBTC"],
+        "supported": { "BTC": "BTC (mainnet)", "RBTC": "BTC (regtest)", ... },
+        "available": { "BTC": "BTC (mainnet)" },
         "hub_config_fetched_at": "2026-06-13T12:00:00.000Z",
         "hub_config_age_seconds": 42,
-        "last_block": { "BTC": 893000 },
-        "last_block_time": { "BTC": 1718280000 },
-        "decoder_tip": { "BTC": 893000 },
-        "decoder_lag_blocks": { "BTC": 0 },
-        "chain_tip": { "BTC": 893000 },
-        "chain_lag_blocks": { "BTC": 0 },
-        "decoder_health": { "BTC": "healthy" }
+        "last_block": { "BTC": 893000, "RBTC": 41 },
+        "last_block_time": { "BTC": 1718280000, "RBTC": 1718080000 },
+        "decoder_tip": { "BTC": 893000, "RBTC": 41 },
+        "decoder_lag_blocks": { "BTC": 0, "RBTC": 0 },
+        "tip_age_seconds": { "BTC": 120, "RBTC": 200120 },
+        "stale": { "BTC": false, "RBTC": true },
+        "chain_tip": { "BTC": 893000, "RBTC": 41 },
+        "chain_lag_blocks": { "BTC": 0, "RBTC": 0 },
+        "decoder_health": { "BTC": "healthy", "RBTC": "healthy" }
     }
 }
 ```
 
+The example above shows the gate in action: `RBTC` has a frozen tip, so it is
+`stale` and absent from `available`, while still listed in `supported`.
+
 | Field | Description |
 |---|---|
-| `supported` | Coin codes defined in the explorer's config |
-| `available` | Coin codes whose database is reachable |
+| `supported` | Every coin code the explorer's config defines, mapped to its display name. Static: the freshness gate never removes a coin from here |
+| `available` | The subset of coins this instance currently serves as up-to-date data, mapped to display names. Computed per request: it starts from the configured availability map and then drops every coin the freshness gate marks `stale`, so a coin can leave `available` and stay in `supported` |
 | `hub_config_fetched_at` | ISO-8601 timestamp of the last successful hub config fetch; `null` if hub has never responded |
 | `hub_config_age_seconds` | Seconds since last hub config fetch; `null` if no fetch has occurred |
 | `last_block` | Per-coin latest block index written to the indexer DB |
 | `last_block_time` | Per-coin unix timestamp of that block |
 | `decoder_tip` | Per-coin highest block the decoder has processed; `null` if the decoder DB is unreachable |
 | `decoder_lag_blocks` | `decoder_tip − last_block` (how far the indexer trails the decoder); `null` when either value is unavailable |
+| `tip_age_seconds` | Per-coin wall-clock seconds since `last_block_time`; `null` when no usable `block_time` was read. Unlike `decoder_lag_blocks` this catches a joint indexer plus decoder freeze, because it measures against the local clock rather than against the other replica |
+| `stale` | Per-coin freshness verdict: `true` when `tip_age_seconds` has passed that coin's threshold. Fails closed, so a missing or unreadable `block_time` also reads `true`. Only coins this instance actually measures (those with a live connection pool) appear here |
 | `chain_tip` | Per-coin chain tip as reported by the decoder's own health endpoint (what the coin node sees) |
 | `chain_lag_blocks` | `chain_tip − decoder_tip` (how far the decoder trails the chain) |
-| `decoder_health` | Per-coin decoder health string: `"healthy"`, `"unhealthy"` (decoder up but reporting problems), `"unreachable"` (decoder not responding), or `"unconfigured"` (no `DECODER_API_URL` set for this coin) |
+| `decoder_health` | Per-coin decoder health string: `"healthy"`, `"unhealthy"` (decoder up but reporting problems), `"node-stale"` (the decoder's cached coin-node height is frozen, so `chain_tip` and `chain_lag_blocks` are nulled), `"unreachable"` (decoder not responding), or `"unconfigured"` (no `DECODER_API_URL` set for this coin) |
+
+**Freshness gate.** The threshold behind `stale` is `EXPLORER_TIP_MAX_AGE_S`
+(6 hours by default), overridable per coin with `EXPLORER_TIP_MAX_AGE_S_<COIN>`
+and disabled entirely with `0`. See
+[configuration.md](configuration.md#environment-variables). A client that wants
+only current data should read `available` rather than `supported`, and treat a
+coin's disappearance from `available` as a transient outage of this instance,
+not as the coin being unknown.
 
 ---
 

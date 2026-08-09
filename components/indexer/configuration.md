@@ -85,7 +85,8 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | Variable | Description | Default |
 |---|---|---|
 | `INDEXER_FEEQUOTE_MAX_PENDING` | Maximum concurrent in-flight `feequote` evaluations before new ones are rejected | `8` |
-| `INDEXER_FEEQUOTE_TIMEOUT_MS` | Per-request timeout for a `feequote` evaluation | `10000` |
+| `INDEXER_FEEQUOTE_TIMEOUT_MS` | Per-request timeout for a `feequote` evaluation, measured from the moment the dry-run holds the transaction mutex | `10000` |
+| `INDEXER_FEEQUOTE_ACQUIRE_TIMEOUT_MS` | How long a `feequote` / `preflight` dry-run waits for the block-processing transaction mutex before answering `busy: true, retryable: true`. Keep it below the explorer's `INDEXER_API_TIMEOUT_MS`, or the busy answer loses the race to a proxy timeout and the caller sees a 502 instead | `2000` |
 | `INDEXER_PREFLIGHT_MEMO_MAX` | Maximum memo length accepted by the read-only `preflight` endpoint | `256` |
 
 ### State-tree metrics

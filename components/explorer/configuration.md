@@ -36,6 +36,8 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `UTXO_TRACKER_URL_<COIN>` | No | None | Per-coin UTXO-tracker base URL, used to fill the address page's balance and UTXO panel from the tracker's `GET /info/<address>`. `COIN` is the route code (`BTC`, `TBTC`, `RDOGE`, …). |
 | `UTXO_TRACKER_URL` | No | None | Fallback tracker base URL when no coin-specific variable is set. With neither configured the address page shows an honest "Unavailable" rather than fabricated zeroes. |
 | `HUB_URL` | No | None | Hub base URL used to fetch the coin's USD price for the UI. Unset leaves the `$0.00` placeholder, which is also what testnet and regtest route codes get, since the oracle only prices mainnet assets. |
+| `EXPLORER_TIP_MAX_AGE_S` | No | `21600` | Age (seconds) past which a coin's newest indexed block counts as stale. A stale coin is reported `stale: true` by `/{COIN}/api/status` and dropped from that response's `available` map, so consumers stop treating this instance as current for it. The gate fails closed: a missing or unreadable `block_time` also reads stale. Set to `0` to disable the gate for every coin. |
+| `EXPLORER_TIP_MAX_AGE_S_<COIN>` | No | value of `EXPLORER_TIP_MAX_AGE_S` | Per-coin override of the tip-age threshold, where `COIN` is the route code (`BTC`, `TBTC`, `RDOGE`, …). Use it where one chain's block interval makes the shared default wrong. |
 
 ### WebSocket
 
@@ -104,6 +106,7 @@ two endpoints return `503` (clients then fall back to paying the protocol fee in
 | `INDEXER_API_URL_<COIN>_<NETWORK>` | No | None | Indexer JSON-RPC URL for a specific coin+network (e.g. `INDEXER_API_URL_BTC_REGTEST=http://localhost:3004`) |
 | `INDEXER_API_URL` | No | None | Generic fallback indexer JSON-RPC URL used when no coin/network-specific var is set |
 | `INDEXER_API_TIMEOUT_MS` | No | `5000` | Per-request timeout for the indexer proxy calls |
+| `EXPLORER_FEEQUOTE_BUSY_RETRY_MS` | No | `6000` | Wall-clock budget for re-asking `/{COIN}/api/feequote` while the indexer answers `busy: true, retryable: true` (it is processing a block). This hop absorbs the overlap because the wallet reads the endpoint on every fee-bearing compose and has no retry of its own. Only a retryable busy answer is re-asked; a verdict never is. |
 | `EXPLORER_INDEXER_API_KEY` | No | None | API key presented to the indexer's fail-closed federation-read gate. When the peer indexer sets `INDEXER_API_KEY`, gated methods such as `getstakeweightsbycapability` return `401` without this, which is what a hardened indexer needs in order to still serve the explorer's validator-set proof. |
 | `DECODER_API_TIMEOUT_MS` | No | `2500` | Per-request timeout for decoder health calls. Tighter than the indexer timeout on purpose: health aggregation runs on the `/api/status` hot path, so a stalled decoder must not hold the whole status response. |
 
@@ -118,6 +121,14 @@ The explorer can run a read-only contract call in the VM to power the contract p
 | `EXPLORER_VM_MAX_CONCURRENT` | No | `4` | Global ceiling on concurrent simulations |
 | `EXPLORER_VM_MAX_CONCURRENT_PER_IP` | No | half the global pool, minimum 1 | Per-IP share of the simulation slot pool, so a small set of clients cannot monopolize every slot |
 | `EXPLORER_VM_MAX_STATE_BYTES` | No | `4194304` (4 MiB) | Byte cap on the initial contract-state load. The VM's own limits bound only *new* state writes, so without this cap a caller can aim simulations at a contract with huge accumulated state and burn SQL, `JSON.parse`, and IPC on every call. |
+
+#### Enabling it requires a canonical vendored VM
+
+Setting `EXPLORER_VM_QUERY_ENABLED=true` is not sufficient on its own. Before it serves a simulation the explorer checks the vendored `xchain-vm` it loaded, and refuses when that VM is not the consensus epoch this explorer expects or is missing the contract-era gate exports. A refusing endpoint answers `503` with code `VM_QUERY_VM_DRIFT` and names the reason, and the same reason is logged once at boot whenever the flag is on.
+
+The check exists because a deployed explorer's bundled VM can go stale silently: the vendored copy is staged by the rollout, not by the git checkout, and its version string moves by a patch while its bytes move by a hundred kilobytes. Simulating in a stale VM would answer contract calls with results the indexers do not agree with, on the same service that serves contract-state proofs, so the endpoint fails closed instead.
+
+The in-process check is coarser than a byte comparison, because a running process has no canonical copy to compare against. The full comparison is `bin/check-explorer-vm-drift.sh <host>` in the platform checkout: read-only over SSH, it hashes the deployed VM tree against canonical and reads the flag out of the running process. Run it before enabling the flag on a public explorer, and enable only once it reports `OK`.
 
 ### SSL/TLS
 

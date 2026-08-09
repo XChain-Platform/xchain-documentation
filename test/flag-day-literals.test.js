@@ -1,0 +1,164 @@
+/*********************************************************************
+ *
+ * Copyright © 2025–2026 Dankest, LLC
+ * Based on XChain Platform by Dankest, LLC – https://dankest.llc
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * This file is part of XChain Platform. Licensed under the GNU Affero
+ * General Public License v3.0 or later; see LICENSE.md.
+ *
+ **********************************************************************
+ *
+ * Flag-day literals in prose.
+ *
+ * WHY. The coordinated contract-era flag-day has been repinned twice
+ * (2026-10-01 -> 2026-08-17 -> 2026-08-07), and each repin rotted a different
+ * set of sentences. Measured 2026-08-06: five pages still carried the first
+ * retired stamp, and the review findings that flagged them proposed the SECOND
+ * retired stamp, so the docs and the report disagreed with the constant in two
+ * different directions at once. That timestamp backs 32 mainnet gates; a reader
+ * who trusts a rotted page plans a fleet upgrade for the wrong week.
+ *
+ * WHAT IT CHECKS.
+ *
+ *   1. protocol/flag-days.md is what bin/generate-flag-days.js emits from the
+ *      indexer's registry today. Skipped when the sibling xchain-indexer
+ *      checkout is absent, because the generated page is committed and a
+ *      standalone documentation clone can still read correct values.
+ *   2. No prose page states a live flag-day timestamp or its UTC date. The
+ *      generated page is the one place a value lives; every other page names
+ *      the gate and links there.
+ *   3. No prose page states a RETIRED flag-day date. This half is retroactive
+ *      and unconditional: those two dates are dead everywhere in the tree, and
+ *      pinning them literally is what stops a revert from being blessed.
+ *
+ * WHY CHECK 2 NEEDS A CUE AND CHECK 3 DOES NOT. `2026-08-07` is a live gate
+ * date AND an ordinary calendar day that the wallet release runbooks use to
+ * date seven unrelated measurements ("Re-measured 2026-08-07: both domains now
+ * publish SPF"). Banning the string outright would demand those be falsified.
+ * So a live date is a finding only next to flag-day language. A RETIRED date
+ * has no such legitimate use: it was never anything but this constant.
+ *
+ * CHANGELOG.md is history, exempt from all three: its entries were true when
+ * written, and rewriting them would be the actual lie.
+ *
+ * Run: node --test test/flag-day-literals.test.js   (Node 22)
+ *
+ ********************************************************************/
+
+'use strict';
+
+const assert = require('node:assert/strict');
+const { test } = require('node:test');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const gen = require('../bin/generate-flag-days.js');
+
+const DOC_ROOT = path.join(__dirname, '..');
+const GENERATED = path.join(DOC_ROOT, 'protocol', 'flag-days.md');
+const HAS_INDEXER = fs.existsSync(gen.REGISTRY);
+
+/**
+ * Flag-day dates the platform has retired. Pinned literally, which is the
+ * whole point: a value read from today's source cannot know what yesterday's
+ * was, so only a written-down list makes this guard retroactive.
+ *
+ *   2026-10-01  the original contract-era anchor (BTC-height-derived)
+ *   2026-08-17  the  repin, itself retired by  before the docs
+ *               that quoted the FIRST one had even been corrected
+ */
+const RETIRED_DATES = ['2026-10-01', '2026-08-17'];
+
+/** The same two, as the Unix values that appeared alongside them. */
+const RETIRED_TIMESTAMPS = ['1790812800', '1786924800'];
+
+/**
+ * Flag-day language. A live gate date next to any of these is a claim about
+ * the constant; the same date anywhere else is an ordinary calendar date and
+ * none of this guard's business. Deliberately narrow: "gate" alone matched a
+ * release runbook's artifact-set gate, and a cue that broad turns the guard
+ * into a list of sentences somebody had to exempt.
+ */
+const CUE = /flag[- ]day|contract[- ]era|cohort a|activation|activated|activates/i;
+
+function markdownFiles(dir = DOC_ROOT, out = []) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (e.name === 'node_modules' || e.name.startsWith('.') || e.name === 'dist') continue;
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) markdownFiles(p, out);
+        // CHANGELOG is a record of what was true when written.
+        else if (e.name.endsWith('.md') && e.name !== 'CHANGELOG.md' && p !== GENERATED) out.push(p);
+    }
+    return out;
+}
+
+function proseLines() {
+    const out = [];
+    for (const file of markdownFiles()) {
+        const rel = path.relative(DOC_ROOT, file);
+        fs.readFileSync(file, 'utf8').split('\n').forEach((line, i) => out.push({ rel, no: i + 1, line }));
+    }
+    return out;
+}
+
+test('the generated flag-day page matches the indexer registry', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+    assert.ok(fs.existsSync(GENERATED), 'protocol/flag-days.md is missing. Run node bin/generate-flag-days.js');
+    assert.strictEqual(
+        fs.readFileSync(GENERATED, 'utf8'),
+        gen.generate(),
+        'protocol/flag-days.md is stale against xchain-indexer/src/protocol_changes.js. '
+        + 'Run `node bin/generate-flag-days.js` and commit the result. Do not hand-edit the page: '
+        + 'the values are generated so that a repin costs one file instead of a dozen sentences.',
+    );
+});
+
+test('the generated page is the only place a live flag-day value appears', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+    const gates = gen.collectGates();
+    const liveDates = new Set(gates.map((g) => gen.utcDate(g.time)));
+    const liveStamps = new Set(gates.map((g) => String(g.time)));
+
+    const bad = [];
+    for (const { rel, no, line } of proseLines()) {
+        // A raw ten-digit gate timestamp is never anything but the constant,
+        // cue or no cue.
+        for (const m of line.matchAll(/\b(\d{10})\b/g)) {
+            if (!liveStamps.has(m[1])) continue;
+            bad.push(`${rel}:${no} states the block time ${m[1]} directly`);
+        }
+        if (!CUE.test(line)) continue;
+        for (const m of line.matchAll(/\b(20\d{2}-\d{2}-\d{2})\b/g)) {
+            if (!liveDates.has(m[1])) continue;
+            bad.push(`${rel}:${no} states the flag-day date ${m[1]} in prose`);
+        }
+    }
+
+    assert.deepStrictEqual(bad, [],
+        'these pages carry a flag-day value that a repin would rot. Name the gate and link to '
+        + 'protocol/flag-days.md instead of quoting the value:\n' + bad.join('\n'));
+});
+
+test('no retired flag-day value survives anywhere in the prose', () => {
+    const bad = [];
+    for (const { rel, no, line } of proseLines()) {
+        for (const date of RETIRED_DATES) {
+            if (line.includes(date)) bad.push(`${rel}:${no} states ${date}, a retired flag-day date`);
+        }
+        for (const stamp of RETIRED_TIMESTAMPS) {
+            if (line.includes(stamp)) bad.push(`${rel}:${no} states ${stamp}, a retired flag-day block time`);
+        }
+    }
+    assert.deepStrictEqual(bad, [],
+        'these publish a flag-day the platform repinned away from. Fix the sentence, not the guard:\n'
+        + bad.join('\n'));
+});
+
+test('every retired value is genuinely retired in the current registry', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+    const live = new Set(gen.collectGates().map((g) => String(g.time)));
+    for (const stamp of RETIRED_TIMESTAMPS) {
+        assert.ok(!live.has(stamp),
+            `${stamp} is listed here as RETIRED but the indexer arms a gate on it today. `
+            + 'A revert of the flag-day would otherwise be blessed by its own guard.');
+    }
+});
