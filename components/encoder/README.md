@@ -12,7 +12,7 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 ## Features
 
 - **Stateless**: no database, no persistent connections; every call is independent
-- **Four encoding formats**: OP_RETURN (80B total, 76B user data), P2SH (476B), P2WSH (8,192B), and multisig (~61B/key); auto-selected by payload size
+- **Four encoding formats**: OP_RETURN (80B total, 76B user data), P2SH (476B chunks up to 8,192B), P2WSH (the same 476B chunks up to 8,192B), and multisig (~61B/key); auto-selected by payload size
 - **Two-transaction orchestration**: automatic tx1 (fund) → tx2 (spend/reveal) pattern for P2SH and P2WSH with OP_RETURN marker
 - **AES-128-CTR obfuscation**: derives key and IV from the first input's txid; `XCHN` magic prefix on all payloads
 - **UTXO selection**: largest-first selection, duplicate removal, optional unconfirmed filtering, automatic change output
@@ -54,9 +54,9 @@ The obfuscated payload is embedded in an `OP_RETURN` output. This is a single tr
 
 ### P2SH
 
-Maximum payload: **476 bytes**
+Maximum payload: **8,192 bytes** (decoder-enforced ceiling), packed in 476-byte chunks across as many outputs as needed
 
-The payload is embedded in a redeem script, which is hashed and locked to a P2SH output in a funding transaction. A second spending transaction then reveals the full redeem script in the scriptSig, making the payload visible on-chain. Two transactions must be signed and broadcast in order:
+The payload is embedded in a redeem script, which is hashed and locked to a P2SH output in a funding transaction. Payloads larger than a single 476-byte chunk are split across multiple P2SH outputs (one fund-then-spend pair per chunk), up to the shared 8,192-byte compiled-ACTION ceiling. A second spending transaction then reveals the full redeem script in the scriptSig, making the payload visible on-chain. Two transactions must be signed and broadcast in order:
 
 1. **Fund**: locks coin to the P2SH output containing the hashed script
 2. **Spend**: spends from the P2SH output, revealing the full script (and therefore the payload) in the scriptSig
@@ -72,7 +72,7 @@ Functionally identical to P2SH but uses SegWit. The payload is embedded in a wit
 1. **Fund**: locks coin to the P2WSH output
 2. **Spend**: spends from the P2WSH output, revealing the witness script
 
-Because SegWit witness data is discounted when calculating transaction weight, P2WSH is more fee-efficient than P2SH for large payloads. Use this for FILE actions, large BROADCAST payloads, or any action requiring more than 476 bytes.
+Because SegWit witness data is discounted when calculating transaction weight, P2WSH is more fee-efficient than P2SH for large payloads. Capacity is the same as P2SH (476-byte chunks up to the 8,192-byte ceiling); the advantage is the fee discount, not a larger payload. Use this for FILE actions, large BROADCAST payloads, or any large payload where that discount matters.
 
 ### Multisig
 

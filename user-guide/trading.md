@@ -94,7 +94,7 @@ This transparency is a core property of the protocol. All market data is derived
 
 ## Fees
 
-The XChain DEX has a **tiered fee structure** for listings. On Bitcoin specifically, there is an introductory free tier for early listings, approximately the first six months of availability. After that window, paid tiers apply depending on the type and duration of your listing.
+DEX listings are priced by **how long the listing lives**, not by how early you create one. **The first 90 days are free**, so a listing that expires within 90 days carries no listing fee. Past that, every day beyond the 90th is charged at a per-day rate. The free window is identical on every supported chain (Bitcoin, Litecoin, and Dogecoin); it is not a Bitcoin-only or time-limited promotion.
 
 All DEX operations (placing orders, creating dispensers, cancelling) require a small XCHAIN gas fee, just like any other action on the platform.
 

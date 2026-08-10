@@ -114,6 +114,38 @@ test('the generated flag-day page matches the indexer registry', { skip: HAS_IND
     );
 });
 
+test('both registry parses still find their gates', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+    // collectGates reads the registry with two independent regexes, and the
+    // check above cannot tell you when one of them stops matching: it compares
+    // the COMMITTED page against a fresh render, so it goes red only until
+    // somebody regenerates. Regenerating on a broken parse rewrites the page to
+    // agree with the loss, and the gate list then ships one row short with
+    // every test green. These names are the anchor that survives that, one per
+    // parse path, so a formatting change or a rename fails here first.
+    const byName = new Map(gen.collectGates().map((g) => [g.gate, g.time]));
+
+    // `const NAME_MAINNET_TIME = ...` path (collectGates strips the suffix).
+    for (const gate of ['VM_BANNED_ASYNC', 'NATIVE_FEE_PRICE_TIME_GATE']) {
+        assert.ok(byName.has(gate),
+            `${gate} is absent from collectGates(): the \`const NAME_MAINNET_TIME\` parse in `
+            + 'bin/generate-flag-days.js stopped matching, so protocol/flag-days.md is short a row.');
+    }
+
+    // `addChange('NAME', 'version', mainnet_time, ...)` path.
+    assert.ok(byName.has('DEPLOY_BASE64_CODE'),
+        'DEPLOY_BASE64_CODE is absent from collectGates(): the addChange(...) parse in '
+        + 'bin/generate-flag-days.js stopped matching, so protocol/flag-days.md is short a row.');
+
+    // All three ride the coordinated instant. Asserted as equality against a
+    // value read from the registry, never as a literal: a repin is legitimate
+    // and must not have to edit this file.
+    const anchor = gen.coordinatedFlagDay(gen.collectGates()).time;
+    assert.ok(anchor >= gen.TIMESTAMP_FLOOR && anchor < gen.SENTINEL_FLOOR, 'the anchor is not a plausible gate time');
+    for (const gate of ['VM_BANNED_ASYNC', 'NATIVE_FEE_PRICE_TIME_GATE', 'DEPLOY_BASE64_CODE']) {
+        assert.strictEqual(byName.get(gate), anchor, `${gate} no longer rides the coordinated flag day`);
+    }
+});
+
 test('the generated page is the only place a live flag-day value appears', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
     const gates = gen.collectGates();
     const liveDates = new Set(gates.map((g) => gen.utcDate(g.time)));

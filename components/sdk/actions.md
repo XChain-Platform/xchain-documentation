@@ -1495,7 +1495,7 @@ When an `encoder` with an explicit `encoding` is passed, the SDK validates that 
 |---|---|
 | `OP_RETURN` | 76 bytes (80 − 4-byte magic `XCHN`) |
 | `MULTISIGN` | 60 bytes per chunk |
-| `P2SH` | 476 bytes (520 − 44-byte script overhead) |
+| `P2SH` | 476 bytes per redeem-script chunk (520 − 44-byte script overhead), chunked across outputs up to the 8,192-byte compiled ceiling |
 | `P2WSH` | 476 bytes per witness-script chunk (520 - 44-byte overhead), chunked across outputs up to the 8,192-byte compiled ceiling |
 
 If the action string exceeds the limit, an `ENCODING_DATA_TOO_LARGE` error is thrown with a suggested alternative encoding.

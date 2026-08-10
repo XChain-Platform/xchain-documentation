@@ -229,6 +229,105 @@ describe('the two tree readers (why a neighbour\'s in-flight edit no longer redd
     });
 });
 
+describe('the working-tree reader\'s error handling', () => {
+    // A bare catch here made a file the scanner could not READ look exactly
+    // like a file that was never there, so a permission or disk fault produced
+    // a survey that reported itself complete. Only the race is benign.
+    test('a file that vanished mid-scan is skipped; any other read fault is not', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'envvar-readfail-'));
+        fs.mkdirSync(path.join(dir, 'src'));
+        fs.writeFileSync(path.join(dir, 'src', 'kept.js'), 'const a = process.env.KEPT || 1;\n');
+        fs.writeFileSync(path.join(dir, 'src', 'raced.js'), 'const b = process.env.RACED || 1;\n');
+
+        const reader = cov.workingTreeReader();
+        const listed = reader.listPaths(dir, cov.SOURCE_ROOTS).filter(cov.isSourcePath).sort();
+        assert.deepEqual(listed, ['src/kept.js', 'src/raced.js']);
+
+        // The genuine race: listed a moment ago, gone before the read.
+        fs.unlinkSync(path.join(dir, 'src', 'raced.js'));
+        assert.deepEqual([...reader.readFiles(dir, listed).keys()], ['src/kept.js']);
+
+        // A directory where a file was listed is an I/O fault, not a race, and
+        // silently dropping it is how the survey under-reports while looking
+        // clean. EISDIR stands in for the whole class (a chmod-based fixture
+        // proves nothing when the suite runs as root).
+        fs.mkdirSync(path.join(dir, 'src', 'faulty.js'));
+        assert.throws(
+            () => reader.readFiles(dir, ['src/faulty.js']),
+            (err) => {
+                assert.notEqual(err.code, 'ENOENT', 'a non-race fault was reported as a missing file');
+                return true;
+            },
+            'an unreadable file was swallowed, so the survey would report itself complete',
+        );
+    });
+});
+
+describe('a partial survey (the subset the CLI builds when only some siblings are gated)', () => {
+    // buildSurvey's `components` list is how bin/check-env-var-doc-coverage.js
+    // narrows to the siblings it can actually read at a ref. Everything below
+    // this point only ever exercises the FULL survey, so nothing pinned what a
+    // subset returns: a narrowed survey that dropped a gated component, or
+    // quietly surveyed one it was not asked for, would look like a healthy run.
+    const GIT_ID = [
+        '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid',
+        '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null',
+    ];
+    const git = (dir, ...args) =>
+        execFileSync('git', ['-C', dir, ...GIT_ID, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+
+    /** A platform root holding a docs repo and two committed service repos. */
+    const platform = () => {
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'envvar-partial-'));
+        const docRoot = path.join(root, 'xchain-documentation');
+        for (const [component, vars] of [['sync', ['ALPHA', 'BETA']], ['hub', ['GAMMA']]]) {
+            const repo = path.join(root, `xchain-${component}`);
+            fs.mkdirSync(path.join(repo, 'src'), { recursive: true });
+            fs.writeFileSync(path.join(repo, 'package.json'), JSON.stringify({ name: `xchain-${component}` }));
+            fs.writeFileSync(path.join(repo, 'src', 'config.js'),
+                vars.map((v) => `const x = process.env.${v} || 1;`).join('\n') + '\n');
+            git(repo, 'init', '-q', '-b', 'main');
+            git(repo, 'add', '-A');
+            git(repo, 'commit', '-q', '-m', component);
+
+            fs.mkdirSync(path.join(docRoot, 'components', component), { recursive: true });
+            fs.writeFileSync(path.join(docRoot, 'components', component, 'configuration.md'),
+                vars.map((v) => `| \`${v}\` | No | \`1\` | a knob |`).join('\n') + '\n');
+        }
+        return { root, docRoot };
+    };
+
+    const surveyOf = (components) => {
+        const { root, docRoot } = platform();
+        return cov.buildSurvey({
+            platformRoot:  root,
+            docRoot,
+            serviceReader: cov.committedTreeReader('HEAD'),
+            docReader:     cov.workingTreeReader(),
+            components,
+        });
+    };
+
+    test('a subset surveys exactly the components it was given', () => {
+        const survey = surveyOf(['sync']);
+        assert.deepEqual([...survey.keys()], ['sync']);
+        assert.deepEqual([...survey.get('sync').vars.keys()].sort(), ['ALPHA', 'BETA']);
+    });
+
+    test('totalReads counts the subset only, so a narrowed run cannot borrow another component\'s reads', () => {
+        assert.equal(cov.totalReads(surveyOf(['sync'])), 2);
+        assert.equal(cov.totalReads(surveyOf(['hub'])), 1);
+        assert.equal(cov.totalReads(surveyOf(undefined)), 3);   // both, discovered on disk
+    });
+
+    test('the checks still scope doc lines per component inside a subset', () => {
+        const survey = surveyOf(['hub']);
+        assert.deepEqual(cov.checkUndocumented('hub', survey.get('hub')), []);
+        // sync's rows are on sync's pages, so they cannot cover a hub variable.
+        assert.equal(survey.get('hub').docLines.some((l) => l.includes('ALPHA')), false);
+    });
+});
+
 describe('doc matching', () => {
     test('a variable name is not matched by a longer name containing it', () => {
         const rows = docLinesFor(['| `XCHAIN_HUB_API_KEY` | the hub key |'], 'HUB_API_KEY');

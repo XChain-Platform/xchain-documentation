@@ -1887,7 +1887,7 @@ GET /{COIN}/api/file/{actionIndex}/raw
 
 Returns the raw bytes for a FILE action.
 
-- **Gated file**: returns the AES-256-GCM ciphertext (12-byte nonce || ciphertext || 16-byte GCM tag) as `application/octet-stream`. Holders decrypt client-side after receiving the symmetric key via an ECIES MESSAGE.
+- **Gated file**: returns the AES-256-GCM ciphertext (12-byte nonce || 16-byte GCM tag || ciphertext) as `application/octet-stream`. Holders decrypt client-side after receiving the symmetric key via an ECIES MESSAGE.
 - **Non-gated file**: returns the stored bytes from the colocated decoder DB, served inline for safe media MIME types (image, audio, video, PDF, JSON). Unsafe types (HTML, SVG, XML, scripts, unknown) are forced to download as `application/octet-stream`. This is the resolution target for TIS `data_ref` entries using the `action:<index>` scheme, enabling NFT artwork to render directly in the browser.
 
 Returns HTTP 404 when the `actionIndex` is unknown or the decoder DB is unreachable. Returns HTTP 400 for a non-numeric `actionIndex`.
