@@ -355,7 +355,19 @@ control as an unanswered question.
 
 ### Screenshots
 
-Generated from the simulator at the store build profile, never a build carrying compiled-out surfaces, covering the same four scenes on both iPhone and iPad: balances, receive with a QR code, send confirmation, and the biometric-unlock setting. iPad is mandatory since the app ships as a universal app. No screenshot shows a mainnet address holding real funds; every screenshot uses test-network demo data.
+Generated from the simulator at the store build profile, never a build carrying compiled-out surfaces, covering the same four scenes on both iPhone and iPad: balances, receive with a QR code, send confirmation, and the biometric-unlock setting. iPad is mandatory since the app ships as a universal app.
+
+The images come from the app's own demo mode, which uses fixed example balances and example addresses. It holds no keys and touches no network, so no screenshot can show a real recovery phrase or an address holding real funds. Demo mode is put on the main networks before the first capture, because the listing must show the app as a normal user sees it and the test networks are behind a developer setting the store build hides.
+
+**The screenshots are release collateral, not build output.** They are kept in the repository alongside the app, and each capture writes a pin recording the exact commit and version the images depict. Apple's accurate-metadata rule makes a listing that shows an older build than the binary a rejection, and dates on files cannot answer that question: a listing set shot before a round of interface changes looks no different from a current one.
+
+So the last step before uploading is to ask:
+
+```
+node tools/release/verify-listing-assets.mjs --set ios --since <the tag you are submitting>
+```
+
+It compares the pin against the images on disk and against every commit that has touched the screens they show. Exit 0 means the set depicts the build being submitted; exit 1 means re-shoot before uploading; exit 2 means there is no pin to check, which is the same answer as exit 1 for practical purposes. Re-shoot with `packages/mobile/scripts/screenshots.sh`, which runs both idioms and writes the new pin itself at the end of a successful run. Do not write a pin by hand: a pin that was not written by a capture is a claim about a capture nobody watched.
 
 ### Review notes
 
