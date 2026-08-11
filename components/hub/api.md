@@ -464,6 +464,10 @@ Retract user oracle prices after an indexer rolled back PRICE actions in a reorg
 |---|---|---|---|
 | `source_chain` | string | Yes | The chain whose PRICE actions were rolled back |
 | `from_action_index` | integer | Yes | Lowest rolled-back action index; rows at or above it are retracted |
+| `to_action_index` | integer | No | Upper bound; retracts the closed range `[from, to]` instead of everything at or above `from`. Omit for an open-ended retraction |
+| `retraction_generation` | integer | No | Push generation captured at rollback start; only rows stamped at or below it are retracted, so a row re-published at a recycled index survives. Omit for no fence |
+
+Omitting an optional bound is the open-ended / unfenced behaviour older indexers rely on. Sending one that is not a non-negative integer (or a `to_action_index` below `from_action_index`) is **rejected** rather than treated as omitted, since a widened retraction deletes rows the caller never asked for.
 
 **Response:** a summary of the retracted price rows, or an `{ "error": ... }` object on failure.
 
@@ -898,6 +902,10 @@ Retract `cross_chain_calls` relay rows after an indexer rolled back XCALL reques
 |---|---|---|---|
 | `source_chain` | string | Yes | The chain whose XCALL request actions were rolled back |
 | `from_action_index` | integer | Yes | Lowest rolled-back action index; relay rows at or above it are retracted |
+| `to_action_index` | integer | No | Upper bound; retracts the closed range `[from, to]`. Omit for an open-ended retraction |
+| `retraction_generation` | integer | No | Push generation captured at rollback start; only rows stamped at or below it are retracted. Omit for no fence |
+
+Omitting an optional bound is the open-ended / unfenced behaviour older indexers rely on. Sending one that is not a non-negative integer (or a `to_action_index` below `from_action_index`) is **rejected** with an `{ "error": ... }` object rather than treated as omitted.
 
 **Response:**
 ```json
@@ -925,6 +933,10 @@ Retract `cross_chain_matches` rows after an indexer rolled back DEX ORDER action
 |---|---|---|---|
 | `source_chain` | string | Yes | The chain whose DEX ORDER actions were rolled back |
 | `from_action_index` | integer | Yes | Lowest rolled-back action index; matches at or above it are retracted |
+| `to_action_index` | integer | No | Upper bound applied to whichever leg is on the reorged chain; retracts the closed range `[from, to]`. Omit for an open-ended retraction |
+| `retraction_generation` | integer | No | Push generation captured at rollback start; each leg is fenced by its own generation column. Omit for no fence |
+
+Omitting an optional bound is the open-ended / unfenced behaviour older indexers rely on. Sending one that is not a non-negative integer (or a `to_action_index` below `from_action_index`) is **rejected** with an `{ "error": ... }` object rather than treated as omitted.
 
 **Response:**
 ```json
