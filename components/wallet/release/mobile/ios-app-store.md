@@ -180,7 +180,7 @@ Every answer is written down. Copy, do not compose. Use the listing collateral b
 ⬜ Age-rating questionnaire answered as tabulated below; the expected outcome is 4+.  
 ⬜ **App Review contact information first, before anything else on the version page.** The first name, last name, phone number and email under App Review Information are required, and they gate the whole page rather than only themselves: with any of them empty the console refuses to save the version page at all, naming those four and discarding every other edit made in the same pass. It reads like the last box to tick on the way out and it is the first thing that has to go in. Whose details these are is a decision, not a transcription: they are a direct line Apple uses during review.  
 ⬜ Review notes and demo wallet filled in, with a seed generated fresh for this submission. Paste the notes from this page rather than editing what is already in the console, so a correction made here reaches the submission; the demo wallet has to be prepared and funded first, per Demo account below.  
-⬜ Screenshot sets uploaded for iPhone and iPad.  
+⬜ Screenshot sets uploaded for iPhone and iPad. This is the one item on this list that is **not** a console act, and doing it by hand is a mistake rather than a shortcut: upload both sets with `node tools/release/upload-listing-assets.mjs`, then confirm from Apple's own side with `verify-appstore-version.mjs`, whose `screenshots-pinned` check compares what the console holds against the pin. The tool takes the pin as its input, so it can only ever upload images that were verified to depict the build being submitted, and it sets the order explicitly afterwards. Dragging several files into the console lands them in completion order rather than capture order, which has already happened on this listing once and matters because Apple serves the first three images on install sheets.  
 
 The iPad screenshot set is mandatory for a universal app; a missing iPad set blocks submission outright rather than degrading the listing. The app icon is the one listing asset compiled into the binary itself: unlike every other field here, fixing it after upload needs a new build, not a console edit, so confirm it is correct before archiving.
 
@@ -368,6 +368,23 @@ node tools/release/verify-listing-assets.mjs --set ios --since <the tag you are 
 ```
 
 It compares the pin against the images on disk and against every commit that has touched the screens they show. Exit 0 means the set depicts the build being submitted; exit 1 means re-shoot before uploading; exit 2 means there is no pin to check, which is the same answer as exit 1 for practical purposes. Re-shoot with `packages/mobile/scripts/screenshots.sh`, which runs both idioms and writes the new pin itself at the end of a successful run. Do not write a pin by hand: a pin that was not written by a capture is a claim about a capture nobody watched.
+
+Then upload the verified set, which needs no browser:
+
+```
+node tools/release/upload-listing-assets.mjs --dry-run   # reads Apple, changes nothing
+node tools/release/upload-listing-assets.mjs
+```
+
+It uploads exactly the images the pin names, replaces whatever the version's localization currently holds, waits for Apple to report each one complete **and** to publish its checksum, and then sets the order. The checksum wait is not caution for its own sake: Apple reports an image complete before that image's digest is readable, so a tool that stops at "complete" reports a success the verifying gate cannot yet confirm. It refuses to run against any version that is not in preparation, because changing listing images on a version already in review is a different act.
+
+Confirm from Apple's side rather than from the tool's output:
+
+```
+node tools/release/verify-appstore-version.mjs
+```
+
+Its `screenshots-pinned` check asks whether the images the console holds are the pinned ones, per idiom, using Apple's own digest. That question is the reason this whole sequence exists: the listing carried images from a build eighteen interface commits older than the binary Apple held, and every other check was green at the time.
 
 ### Review notes
 
