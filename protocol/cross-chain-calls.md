@@ -17,7 +17,7 @@ sequenceDiagram
     participant Y as Chain Y (target)
 
     X->>Hub: contract calls xchain.emit.crossExecute<br>→ XCALL v0 action row<br>(derived from the user's tx, no extra on-chain tx)
-    Note over Hub: polls getpendingcrosschaincalls, waits CONF[X]<br>confirmations, every peer re-verifies the request<br>against its OWN X indexer, then signs (2f+1)
+    Note over Hub: polls getpendingcrosschaincalls, waits CONF[X]<br>confirmations, every peer re-verifies the request<br>against its OWN X indexer, then signs to the cross_chain quorum
     Hub->>Hub: writes cross_chain_calls row (phase='dispatch'),<br>mirrored to every indexer
     Hub->>Y: mirrored dispatch row
     Note over Y: indexers verify sigs vs the cross_chain capability<br>snapshot, inject XEXEC at the first block ≥ effective_time<br>(ordered by (snapshot_block, call_id), ≤25/block):<br>depth-0 EXECUTE, gasCeiling = gas_limit, crossCallable allowlist
@@ -34,19 +34,29 @@ many calls.
 
 ## Trust model
 
-The 2f+1 `cross_chain` capability quorum is the authority that tells chain Y
+The `cross_chain` capability quorum is the authority that tells chain Y
 "this call happened on X"; Y cannot read X's chain. This is the same trust
 that releases cross-chain DEX escrow, but with a larger potential blast radius
-(invoking contract methods vs releasing escrowed funds). It is bounded by:
+(invoking contract methods vs releasing escrowed funds).
+
+Both relay legs resolve that quorum against the capability snapshot the row pins at its
+`snapshot_block`, and that height also decides **which** quorum rule applies: **stake-weighted
+(source-deduped) at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`**, where the summed stake of the
+qualified signers must exceed two thirds of the total staked amount and one staking source counts
+once however many of its keys sign; **otherwise the legacy `2f+1` signer count**. It is the same
+rule cross-chain DEX settlement and the ATTEST relay legs apply. Below, "the quorum" means
+whichever of the two the `snapshot_block` selects.
+
+The quorum is bounded by:
 
 1. **`crossCallable` opt-in**; a contract must export a `crossCallable`
    array naming the methods reachable cross-chain. A forged dispatch can only
    reach methods the target consciously exposed.
 2. **Params-only v1**. No token value rides the call.
 3. **Local signature verification everywhere**. No indexer ever acts on a
-   mirror row without verifying its 2f+1 Ed25519 signatures against the
-   mirrored, BTC-anchored capability snapshot. Mirror equivocation degrades to
-   censorship, which the deadline bounds.
+   mirror row without verifying that its Ed25519 signatures meet the quorum
+   above against the mirrored, BTC-anchored capability snapshot. Mirror
+   equivocation degrades to censorship, which the deadline bounds.
 4. **Independent peer re-verification**; a hub follower only co-signs a
    dispatch/result after re-fetching it from its OWN indexer for that chain;
    a Byzantine leader cannot collect a quorum for a call no chain made.

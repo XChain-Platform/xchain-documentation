@@ -46,7 +46,7 @@ const result = await bridge.createSwap({
     getTick:    'TOKEN_B',
     getAmount:  '200',
     wif:        btcWIF,
-    expiration: 850000,
+    expiration: 1893456000,           // Unix seconds (2030-01-01); must be in the future
     getAddress: 'ltc1qrecipient...',  // optional: specific receive address on the get chain
     allowList:  ['bc1q...'],          // optional: restrict who can fill this swap
     blockList:  ['bc1q...'],          // optional: exclude specific addresses from filling
@@ -56,7 +56,7 @@ const result = await bridge.createSwap({
 console.log(result.swap.txid);
 ```
 
-All parameters beyond `giveCoin`/`giveTick`/`giveAmount`/`getCoin`/`getTick`/`getAmount` and `wif` are optional. `expiration` is a block height on the give chain after which the offer expires. The optional `submitOpts` object is forwarded to the underlying session (encoder options, wait timeout, etc.).
+All parameters beyond `giveCoin`/`giveTick`/`giveAmount`/`getCoin`/`getTick`/`getAmount` and `wif` are optional. `expiration` is a Unix timestamp (seconds) after which the offer expires; the indexer compares it against the block's own time, not against a block height. The optional `submitOpts` object is forwarded to the underlying session (encoder options, wait timeout, etc.).
 
 ```mermaid
 sequenceDiagram

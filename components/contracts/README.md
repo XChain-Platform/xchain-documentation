@@ -44,10 +44,10 @@ These templates deliberately do **not** reimplement native protocol actions. XCh
 |---|---|
 | `xchain-contracts list` | List available templates and patterns |
 | `xchain-contracts scaffold <name> [outfile]` | Print a template or pattern source, or write it to a file |
-| `xchain-contracts lint [files…] [--json]` | Lint sources against the exact deploy-time rules (defaults to every template and pattern) |
+| `xchain-contracts lint [files…] [--json]` | Lint sources against a conservative superset of the deploy-time rules (defaults to every template and pattern) |
 | `xchain-contracts policy <config.json> [out] [--json]` | Generate a controller guard contract from a policy config, no contract code written by hand |
 
-`lint` delegates to `xchain-vm`'s linter, so it runs the real deploy-time validation (V8 syntax, the acorn metering pass, reserved identifiers, banned `Math.*`, banned `BigInt`/`RegExp` literals) plus logic-level advisories. That means it requires **Node 22 exactly** and a built `isolated-vm`. A clean result means the contract clears deployment.
+`lint` delegates to `xchain-vm`'s linter, so it runs the real deploy-time validation (V8 syntax, the acorn metering pass, reserved identifiers, banned `Math.*`, banned `BigInt`/`RegExp` literals) plus logic-level advisories. That means it requires **Node 22 exactly** and a built `isolated-vm`. A clean result is a conservative preflight, not exact deploy parity: the source passed every rule the linter enforces, and that rule set is a superset of the live deploy gate (future and mainnet-gated rules are enforced immediately, and a malformed `crossCallable` is a linter error the chain itself accepts), so the linter can still refuse a contract a given chain, network and block would deploy. See [Smart Contract Development](../../developer-guide/smart-contract-development.md) for the full superset rationale.
 
 ## Using it from the SDK
 

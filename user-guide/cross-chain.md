@@ -5,7 +5,7 @@
 
 XChain runs on Bitcoin, Litecoin, and Dogecoin simultaneously; but these are separate blockchains. A token created on Bitcoin exists on Bitcoin. A token created on Litecoin exists on Litecoin. Normally, trading between them would require a bridge, a centralized exchange, or a complex multi-step process involving trust in a third party.
 
-XChain solves this with **SWAP**; a cross-chain atomic exchange that lets you trade tokens on one blockchain for tokens on another, without any intermediary holding your assets.
+XChain solves this with **SWAP**; a cross-chain exchange that lets you trade tokens on one blockchain for tokens on another, without any intermediary holding your assets.
 
 ---
 
@@ -19,11 +19,13 @@ XChain offers a different path.
 
 ---
 
-## The Solution: Atomic Swaps
+## The Solution: Escrowed Cross-Chain Swaps
 
-A SWAP on XChain is **atomic**; it either completes fully for both parties, or neither side happens. There is no moment where one party has given up their asset without receiving the other.
+A SWAP on XChain never hands your asset to a counterparty on trust. Your tokens sit in protocol-level escrow on your own blockchain, and they are released only against a match that a supermajority of hub validators has signed. If no match is signed before your deadline, the escrow returns to you automatically.
 
-Think of it like a currency exchange booth, but automated and trustless. You put your tokens in your side of a locked box. The other person puts their tokens in their side of a locked box. The exchange mechanism opens both sides simultaneously, or not at all. Nobody can take from one side without fulfilling the other.
+Think of it like a currency exchange booth, but automated and trustless. You put your tokens in your side of a locked box. The other person puts their tokens in their side of a locked box. Neither box opens until the validators agree the trade is real; if they never agree, both boxes open back to their owners.
+
+What XChain does *not* have is a single settlement step spanning two blockchains. Two chains cannot commit together, so each chain's indexer settles its own leg independently once it sees the signed match. In the normal case both legs settle within a few blocks of each other. See [Safety](#safety) below for the residual risk that follows from this and how the protocol bounds it.
 
 ---
 
@@ -35,7 +37,7 @@ Cross-chain swaps on XChain follow a straightforward flow:
 
 2. **Someone accepts.** A counterparty on the other chain sees your offer and agrees to the terms. They record their acceptance on their blockchain.
 
-3. **Both sides complete, or neither does.** The hub records a match signed by a supermajority of validators; each chain's indexer independently checks those signatures before releasing the escrowed tokens to the counterparty. If the match does not go through, both sides get their tokens back automatically.
+3. **The match settles on each chain.** The hub records a match signed by a supermajority of validators, and only after each side's escrow has reached that chain's required confirmation depth. Each chain's indexer then independently checks those signatures before releasing the escrowed tokens to the counterparty, so the two legs settle separately rather than in one step. If no match is signed, both sides get their tokens back automatically at the deadline.
 
 ```mermaid
 sequenceDiagram
@@ -79,7 +81,12 @@ Cross-chain swaps are designed to be safe by construction:
 
 - **Escrowed on your chain.** Your tokens are locked on your blockchain; they never move to another chain or to a third party.
 - **Time-bounded.** Every swap has a deadline. If the counterparty does not complete their side in time, the swap fails and your tokens are returned to you automatically.
-- **No partial outcomes.** You cannot end up in a state where you have given tokens away without receiving what was promised. The atomicity guarantee is enforced by the protocol.
+- **No release without a signed match.** Your escrow is released only against a match that a supermajority of hub validators has independently verified and signed. A single validator, or the hub operator, cannot move it.
+- **Confirmation floors before matching.** Validators will not sign a match until both escrows are buried under that chain's required number of confirmations (deeper on faster chains: currently 6 on Bitcoin, 12 on Litecoin, 60 on Dogecoin).
+
+### Residual risk
+
+Because the two chains settle their legs independently, there is one edge case the protocol bounds rather than eliminates. If one chain undergoes a reorganization deeper than its confirmation floor *after* the other chain has already settled its leg, that leg can be undone while the counter-leg stands, leaving one party paid and the other not. The confirmation floors above exist to make a reorg that deep implausible, and a swap that never gets matched always refunds. This is not the same guarantee as a single-chain atomic trade, where both sides of the exchange commit in one transaction and no such window exists.
 
 ---
 

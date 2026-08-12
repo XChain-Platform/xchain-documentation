@@ -33,17 +33,17 @@ This document names what the wallet defends against, what it deliberately doesn'
 ### Network threats
 
 - **MITM against SDK endpoints.** Every shell endpoint is HTTPS-by-default. Per-chain URLs live in the `ChainDescriptor` and are user-settable only via explicit Settings action.
-- **Malicious Hub / Explorer.** A lying server can never sign transactions; signing paths take destination / amount only from the user-authored Send form. For *displayed* data, token balances and action history are no longer taken on trust: the wallet SPV-verifies them against a quorum-signed checkpoint (see [Proof verification](#proof-verification-spv)). UTXO reads remain informational.
+- **Malicious Hub / Explorer.** A lying server can never sign transactions; signing paths take destination / amount only from the user-authored Send form. For *displayed* data, token balances and action history are SPV-verified against a quorum-signed checkpoint, and stop being taken on trust once a pinned or explicitly-supplied trust root is active (see [Proof verification](#proof-verification-spv)). UTXO reads remain informational.
 - **Malicious Encoder.** Returns a PSBT the wallet signs. Mitigation: the Send form renders a plain-English decoder summary (§30) BEFORE sign; the user sees `to`, `amount`, `asset` as they typed them, even if the encoder fabricates output bytes. Known gap: byte-level cross-check of encoder PSBT vs user intent is the next iteration of the safety rail.
 
 ### Proof verification (SPV)
 
-The wallet is the first consumer of the platform's light client (`sdk.light`). Instead of displaying the amount the explorer returns, it fetches a compact Merkle proof and verifies it locally against a checkpoint signed by a stake-weighted quorum of the validator federation. A compromised explorer cannot make a forged balance or a fabricated action verify; it can at most withhold a proof.
+The wallet is the first consumer of the platform's light client (`sdk.light`). Instead of displaying the amount the explorer returns, it fetches a compact Merkle proof and verifies it locally against a checkpoint signed by a stake-weighted quorum of the validator federation. When a pinned or explicitly-supplied validator set is active, a compromised explorer cannot make a forged balance or a fabricated action verify; it can at most withhold a proof. Until the pinned trust root is populated (see **Trust root** below), the signer set itself comes from the explorer's convenience path, so that guarantee is not yet in force: signatures and proofs are still checked, but the server chooses who signs.
 
 - **What is verified.** Token balances (Tokens rows) and history actions (`EntryRow`). The native coin is never badged, it is not in the committed state tree. Verification is on by default (`verifyProofs` setting, opt-out in Settings).
 - **Badges.** Each row shows `verified`, `proof-failed`, or `unverified` (a not-yet-checkpointed action). Verification never throws and never blocks the UI.
 - **Fail semantics.** Only a concrete proof-versus-amount contradiction badges as `proof-failed`. Quorum, checkpoint, or transport problems degrade to `unavailable`/`unverified`, the convenience path raises no false alarms.
-- **Trust root.** The signer set is not taken from the explorer. It comes from the SDK's pinned launch trust root (spec D4) and follows validator rotation forward against the committed BTC stakes root. The pinned root ships inert until launch values are filled in; see the SDK [Light Client](../sdk/light-client.md) reference for the trust model and rotation behavior.
+- **Trust root.** In the target model the signer set is not taken from the explorer: it comes from the SDK's pinned launch trust root (spec D4) and follows validator rotation forward against the committed BTC stakes root. That root ships inert, `null` for every real coin until launch values are filled in, and until then the signer set falls back to the explorer's convenience set, which is the weakest of the three tiers. See the SDK [Light Client](../sdk/light-client.md) reference for the trust model, the tier order, and rotation behavior.
 
 ### dApp-bridge threats
 
@@ -104,7 +104,7 @@ The next iteration adds a byte-level cross-check that re-decodes the encoder's P
 
 ## Audit posture
 
-The wallet is pre-v1.0 GA at `0.333.0`. Two external audits are queued before GA:
+The wallet is pre-v1.0 GA at `0.338.0`. Two external audits are queued before GA:
 
 - **Security audit.** Cryptography (xchain-sdk MuSig2 + signEcdsa + ECPair / WIF / KDF), wallet flows (unlockWallet, signers, multisig session state machine, signMultisigPsbt path), shell IPC (extension service-worker boundary, desktop main / preload / renderer split). Audit-readiness packet at `claude/reports/specs/2026-04-24_security-audit-readiness.md` in the platform repo (gitignored).
 - **Accessibility audit.** Color contrast, focus-visible, live-region timing, keyboard traps, screen-reader walkthroughs (NVDA + JAWS + VoiceOver), reduced-motion verification, touch-target sizing per WCAG 2.5.5, forced-colors / Windows high-contrast, reflow + zoom per WCAG 1.4.10. WCAG 2.2 AA target. Audit-readiness packet at `claude/reports/specs/2026-04-24_a11y-audit-readiness.md`.

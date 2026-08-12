@@ -129,6 +129,7 @@ The action's block must itself be checkpointed; the explorer returns
 | `SMT_PROOF_INVALID` / `SUBROOT_BIND_INVALID` | the balance proof does not reconstruct the committed root |
 | `MERKLE_PROOF_INVALID` / `LEAF_MISMATCH` | the action proof does not reconstruct `block_merkle_root` |
 | `PROOF_HEIGHT_MISMATCH` / `ACTION_INDEX_MISMATCH` / `PROOF_CHECKPOINT_CHAIN_MISMATCH` | the proof does not answer the question asked |
+| `CHECKPOINT_BELOW_ATHEIGHT` | the served checkpoint sits below the requested `atHeight`, so the answer is staler than the one asked for |
 | `MALFORMED_PROOF` / `VERIFY_ERROR:...` | the response was unusable |
 
 ---

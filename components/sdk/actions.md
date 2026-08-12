@@ -376,7 +376,7 @@ Create a vending machine that automatically exchanges one token for another.
 | fiatCode | string | No | Fiat currency code for pricing (e.g. `USD`) |
 | fiatAmount | string | No | Fiat price in `X.XX` format (used when the dispenser is fiat-priced) |
 | oracleAddress | string | No | Address of a user price oracle (PRICE v1) that prices the dispensed token in `fiatCode`; when set, `fiatAmount` is ignored |
-| expiration | integer | No | Block height at which the dispenser expires |
+| expiration | integer | No | Unix timestamp (seconds) at which the dispenser expires |
 | allowList | integer | No | ACTION_INDEX of a LIST to restrict buyers |
 | blockList | integer | No | ACTION_INDEX of a LIST to ban buyers |
 | memo | string | No | Optional note |
@@ -394,7 +394,7 @@ Create a vending machine that automatically exchanges one token for another.
 |---|---|---|---|
 | dispenserActionIndex | integer | Yes | ACTION_INDEX of the dispenser to edit |
 | giveEscrow | string | No | Updated escrow amount |
-| expiration | integer | No | Updated expiration block |
+| expiration | integer | No | Updated expiration (Unix timestamp, seconds) |
 | allowList | integer | No | Updated allow-list ACTION_INDEX |
 | blockList | integer | No | Updated block-list ACTION_INDEX |
 | memo | string | No | Optional note |
@@ -540,7 +540,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 | maxMint | string | No | Maximum per-mint amount |
 | decimals | integer | No | Decimal places (0–18) |
 | description | string | No | Token description (max 250 chars) |
-| mintSupply | string | No | Supply made available for minting |
+| mintSupply | string | No | Supply minted immediately to the issuer at ISSUE (default `0`) |
 | transfer | string | No | Address authorized to transfer the issuance |
 | transferSupply | string | No | Amount of supply available for transfer |
 | lockMaxSupply | integer | No | Lock max supply from future changes (`0` or `1`) |
@@ -553,7 +553,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 | callbackAmount | string | No | Amount paid per token on callback |
 | allowList | integer | No | ACTION_INDEX of a LIST to restrict minters |
 | blockList | integer | No | ACTION_INDEX of a LIST to ban minters |
-| mintAddressMax | string | No | Maximum mints allowed per address |
+| mintAddressMax | string | No | Maximum cumulative amount an address can mint |
 | mintStartBlock | integer | No | Block height minting opens |
 | mintStopBlock | integer | No | Block height minting closes |
 | lockMint | integer | No | Lock minting permanently (`0` or `1`) |
@@ -573,10 +573,10 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 | Param | Type | Required | Description |
 |---|---|---|---|
 | tick | string | Yes | Token to update |
-| maxMint | string | No | New max-mint value |
-| mintSupply | string | No | New mint supply |
+| maxMint | string | No | New per-transaction mint amount cap |
+| mintSupply | string | No | New mint supply: issues that amount to the owner again, unless `LOCK_MINT_SUPPLY` is set |
 | transferSupply | string | No | New transfer supply |
-| mintAddressMax | string | No | New per-address mint cap |
+| mintAddressMax | string | No | New maximum cumulative amount an address can mint |
 | mintStartBlock | integer | No | New mint open block |
 | mintStopBlock | integer | No | New mint close block |
 | memo | string | No | Optional note |
@@ -815,7 +815,7 @@ Create a peer-to-peer token exchange order.
 | getAmount | string | Yes | Amount requested (omit when `getOwnership` is `1`) |
 | getOwnership | integer | No | `1` = require the matcher to transfer `getTick` ownership (issuer rights) instead of a balance amount; `0` = balance amount (default) |
 | getAddress | string | No | Address to receive the get-side funds |
-| expiration | integer | No | Block height at which the order expires |
+| expiration | integer | No | Unix timestamp (seconds) at which the order expires |
 | allowList | integer | No | ACTION_INDEX of a LIST to restrict takers |
 | blockList | integer | No | ACTION_INDEX of a LIST to ban takers |
 | memo | string | No | Optional note |
@@ -832,7 +832,7 @@ Create a peer-to-peer token exchange order.
 | Param | Type | Required | Description |
 |---|---|---|---|
 | orderActionIndex | integer | Yes | ACTION_INDEX of the order to edit |
-| expiration | integer | No | Updated expiration block |
+| expiration | integer | No | Updated expiration (Unix timestamp, seconds) |
 | allowList | integer | No | Updated allow-list ACTION_INDEX |
 | blockList | integer | No | Updated block-list ACTION_INDEX |
 | memo | string | No | Optional note |
@@ -845,7 +845,7 @@ await sdk.order({
   getTick: 'OTHER',
   getAmount: '1000',
   getAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-  expiration: 900000
+  expiration: 1893456000 // Unix seconds (2030-01-01); must be in the future
 })
 
 // Cancel
@@ -1009,7 +1009,7 @@ Fulfill an open ORDER by providing the requested side of the exchange.
 | getAmount | string | Yes | Amount requested (omit when `getOwnership` is `1`) |
 | getOwnership | integer | No | `1` = require the matched ORDER to transfer `getTick` ownership (issuer rights) instead of a balance amount; `0` = balance amount (default) |
 | getAddress | string | No | Address to receive the get-side funds |
-| expiration | integer | No | Block height at which the swap offer expires |
+| expiration | integer | No | Unix timestamp (seconds) at which the swap offer expires |
 | allowList | integer | No | ACTION_INDEX of a LIST to restrict counterparties |
 | blockList | integer | No | ACTION_INDEX of a LIST to ban counterparties |
 | memo | string | No | Optional note |
@@ -1026,7 +1026,7 @@ Fulfill an open ORDER by providing the requested side of the exchange.
 | Param | Type | Required | Description |
 |---|---|---|---|
 | swapActionIndex | integer | Yes | ACTION_INDEX of the swap to edit |
-| expiration | integer | No | Updated expiration block |
+| expiration | integer | No | Updated expiration (Unix timestamp, seconds) |
 | allowList | integer | No | Updated allow-list ACTION_INDEX |
 | blockList | integer | No | Updated block-list ACTION_INDEX |
 | memo | string | No | Optional note |

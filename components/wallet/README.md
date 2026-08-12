@@ -5,13 +5,13 @@
 
 ## What is xchain-wallet
 
-xchain-wallet is the reference self-custodial wallet for the XChain Platform. It runs as a browser web app, a Chrome MV3 extension (popup + full-screen + side panel), and a desktop application (Windows / macOS / Linux), all from a single React codebase published as a pnpm workspace. The wallet supports Bitcoin, Dogecoin, and Litecoin at launch, with additional chains added as the platform adds them. It consumes [xchain-sdk](../sdk/) as its only data and signing layer and never duplicates SDK functionality.
+xchain-wallet is the reference self-custodial wallet for the XChain Platform. It runs as a browser web app, a Chrome MV3 extension (popup + full-screen + side panel), a desktop application (Windows / macOS / Linux), and a Capacitor mobile app (Android now, iOS later), all from a single React codebase published as a pnpm workspace. The wallet supports Bitcoin, Dogecoin, and Litecoin at launch, with additional chains added as the platform adds them. It consumes [xchain-sdk](../sdk/) as its only data and signing layer and never duplicates SDK functionality.
 
 The wallet implements every XChain feature exposed by the platform: all 31 user-encodable ACTION types, a built-in DEX surface, encrypted messaging (ECIES / ECDH / AES), smart contracts, BTC staking + delegation, classical n-of-m + MuSig2 multisig, cross-chain flows, dispensers, parimutuel betting markets, on-chain governance voting, a `window.xchain` dApp bridge, and air-gapped PSBT signing via animated QR transport.
 
 ## Features
 
-- **Three shells, one codebase**: `@xchain-wallet/web` (Vite SPA, mobile-responsive), `@xchain-wallet/extension` (Chrome MV3 popup + full-screen + side panel + service worker), `@xchain-wallet/desktop` (Electron, main-process signing isolation); all share `@xchain-wallet/core` for routes, components, flows, and signers
+- **Four shells, one codebase**: `@xchain-wallet/web` (Vite SPA, mobile-responsive), `@xchain-wallet/extension` (Chrome MV3 popup + full-screen + side panel + service worker), `@xchain-wallet/desktop` (Electron, main-process signing isolation), `@xchain-wallet/mobile` (Capacitor wrapper of the built web SPA; Android shipped, iOS later); all share `@xchain-wallet/core` for routes, components, flows, and signers
 - **All 31 user-encodable ACTIONs** (every action has an authoring form; `PROTOCOL_ONLY_ACTIONS` is empty): ADDRESS, AIRDROP, BATCH, BET, BROADCAST, CALLBACK, COINPAY, COLLECT, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, PRICE, SEND, SLEEP, STAKE, SWAP, SWEEP, UNSTAKE, VOTE, WITHDRAW. COLLECT, DEPLOY, and EXECUTE are BTC-only; the other 28 are offered on all three chains
 - **Self-custodial key management**: BIP39 mnemonic + optional 25th-word passphrase, BIP32 HD derivation per chain, AES-256-GCM vault encrypted with an Argon2id-derived master key (calibrated per device), Counterwallet legacy mnemonic import
 - **Pluggable signer interface**: four concrete signers, `SoftwareSigner` (in-vault keys), `TrezorSigner` (Trezor Connect), `LedgerSigner` (WebHID), and `RemoteSigner` (cross-shell pairing). Multisig (classical n-of-m + MuSig2) is orchestrated by flows over these signers rather than by a signer of its own; a dedicated `MultisigSigner` is planned but not implemented
@@ -78,7 +78,7 @@ The repository depends on a sibling `xchain-sdk` checkout, both `packages/web/pa
 pnpm --filter @xchain-wallet/web dev
 ```
 
-Vite serves the wallet at `http://localhost:5173`. The web shell is mobile-responsive, open it on a phone for the mobile UX while native iOS / Android apps are on the post-launch roadmap.
+Vite serves the wallet at `http://localhost:5173`. The web shell is mobile-responsive, open it on a phone for the mobile UX. A native Android app, the Capacitor wrapper of this web build, has shipped (`v0.336.0`); a native iOS app is still on the post-launch roadmap.
 
 ### Build the Chrome extension
 
@@ -151,7 +151,7 @@ All packages ship at the **same version**. Every shell's About screen surfaces i
 
 ## Status
 
-Pre-v1.0 release-candidate (`0.333.0`). All four implementation phases; Phase 1 (framework), Phase 2 (issuance + hardware), Phase 3 (DEX + messaging), Phase 4 (contracts + staking + cross-chain + multisig), are closed. The autonomous portion of the §56.3 pre-launch track is also closed; three user-driven items remain before v1.0.0 GA: external security audit, external accessibility audit, and Chrome Web Store submission. Audit-readiness packets ship with the repo.
+Pre-v1.0 release-candidate (`0.338.0`). All four implementation phases; Phase 1 (framework), Phase 2 (issuance + hardware), Phase 3 (DEX + messaging), Phase 4 (contracts + staking + cross-chain + multisig), are closed. The autonomous portion of the §56.3 pre-launch track is also closed; three user-driven items remain before v1.0.0 GA: external security audit, external accessibility audit, and Chrome Web Store submission. Audit-readiness packets ship with the repo.
 
 ## Scripts
 

@@ -12,7 +12,7 @@ This guide covers deploying the XChain Platform from scratch, from a single-chai
 ### Software
 
 - **Docker**: Engine 20.10 or later. Docker must be accessible to the current user (add user to `docker` group or run as root).
-- **Node.js**: v22 or later (required to run xchain-node CLI; the `mariadb` driver is ESM-only and fails to load on older Node).
+- **Node.js**: 22 (22.x LTS) exactly, required to run the xchain-node CLI. Node 18 and earlier fail on the ESM-only `mariadb` driver (`ERR_REQUIRE_ESM`); Node 24 cannot build the native `isolated-vm` module the indexer and explorer pull in.
 - **Git**: to clone xchain-node.
 
 Verify Docker is working before proceeding:

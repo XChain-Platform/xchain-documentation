@@ -77,7 +77,7 @@ The SDK reads these environment variables at construction time. A `.env` file in
 
 | Variable | Description | Used by |
 |---|---|---|
-| `NETWORK` | Network string (e.g. `bitcoin-mainnet`). See [Network Strings](#network-strings). | Explorer client, Hub connector |
+| `NETWORK` | Network string (e.g. `bitcoin-mainnet`). See [Network Strings](#network-strings). No default in the SDK itself; the interactive REPL (`npm run repl`) falls back to `bitcoin-regtest` when it is unset. | Explorer client, Hub connector, REPL |
 | `SDK_API_PORT` | Port for the JSON-RPC microservice API server. Default: `3005`. | API server (`npm run api`) |
 | `SDK_API_KEY` | Bearer token required for all API server methods except `ping`. No default; the server warns and rejects all non-ping calls when unset. | API server (`npm run api`) |
 | `SDK_API_MAX_BATCH` | Maximum calls accepted in one batch request. A non-numeric or non-positive value falls back to the default rather than disabling the cap. Default: `20`. | API server (`npm run api`) |

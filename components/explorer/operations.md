@@ -6,7 +6,7 @@
 
 ## Prerequisites
 
-- **Node.js** ≥ 22
+- **Node.js** 22 (22.x LTS), pinned in `.nvmrc`. Node 24 cannot build the native `isolated-vm` module that this component's vendored `xchain-vm` dependency pulls in.
 - **MariaDB** server with an existing Indexer database (populated by xchain-indexer)
 - **xchain-hub** (optional), for centralized config discovery
 - **SSL certificates** (optional), for HTTPS

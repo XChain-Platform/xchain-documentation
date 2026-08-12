@@ -81,6 +81,7 @@ Tracks known peers in the gossip network for reconnection and discovery.
 | `price_snapshots` | Finalized oracle prices after PBFT consensus (cross-chain unified view) |
 | `oracle_prices` | User TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window |
 | `price_ingest_watermarks` | Per-source-chain fence rejecting stale price pushes after a retraction |
+| `oracle_published_rounds` | At-most-once marker for PRICE v0 round broadcasts: intent is recorded before the send, completion after it |
 
 ### `price_ingest_watermarks`
 
@@ -159,6 +160,19 @@ User TOKEN/FIAT oracle prices published via PRICE v1. Cross-chain aggregated by 
 
 **Unique key:** `(source_chain, action_index)` (dedup)
 **Keys:** `(source_address, coin, tick, fiat)`, `(coin, tick, fiat, effective_at)`, `(source_chain)`
+
+### `oracle_published_rounds`
+
+The durable at-most-once marker for PRICE v0 round broadcasts, written by `OraclePublisher`. It records broadcast intent *before* the send and completion *after* it, so a restart never re-broadcasts a round it already paid for. `sent_at`, not `txid`, is the authoritative published signal: a broadcaster can legitimately return no txid. A round left with intent only (`sent_at` NULL) is a crash between the two writes, and startup **quarantines** it rather than re-sending it, because the on-chain outcome is unknown; the operator confirms it and replays by hand.
+
+| Column | Type | Description |
+|---|---|---|
+| `round` | `BIGINT NOT NULL` | Primary key: PRICE v0 round id (one broadcast per round) |
+| `txid` | `VARCHAR(80)` | DOGE txid of the PRICE tx (NULL until confirmed, and may stay NULL if the broadcaster returns none) |
+| `intent_at` | `TIMESTAMP DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
+| `sent_at` | `TIMESTAMP NULL` | When the broadcast completed; NULL means intent only |
+
+**Key:** `idx_sent (sent_at)`
 
 ## Cross-Chain Tables
 
@@ -256,7 +270,7 @@ PBFT-finalized DEX order match records. Each row represents a single fill betwee
 | `b_payout_addr` | `VARCHAR(255) NOT NULL` | Side B's receive address on side A's chain |
 | `effective_time` | `BIGINT UNSIGNED NOT NULL` | Wall-clock instant at which indexers apply this match (shared clock across chains) |
 | `finalizing_view` | `INT NOT NULL` | PBFT view the round finalized at (signed into the EQUIV canonical; default 0) |
-| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` (2f+1 signatures over the canonical match) |
+| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` over the canonical match, meeting the `cross_chain` quorum at `snapshot_block`: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count |
 | `status` | `VARCHAR(20) NOT NULL` | `finalized` or `retracted` (default `finalized`) |
 | `batch_root` | `VARCHAR(64)` | Retained for rows stamped by the retired XDEXANCHOR audit publisher |
 | `anchor_txid` | `VARCHAR(64)` | DOGE ANCHOR txid (ANCHOR v1 archive back-fill; legacy XDEXANCHOR rows too) |
@@ -291,7 +305,7 @@ PBFT-finalized XCALL dispatch and result records. Each XCALL produces two rows i
 | `status` | `VARCHAR(20) NOT NULL` | Row lifecycle: `finalized` or `retracted` (default `finalized`) |
 | `result_status` | `VARCHAR(20)` | Result phase only: `ok`, `reverted`, `out_of_gas`, `no_contract`, `not_callable`, `payload_too_large`, or `error` |
 | `return_payload_b64` | `TEXT` | Result phase only; base64 return value (SHA-256'd into the canonical) |
-| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` (2f+1 Ed25519 signatures over the phase canonical) |
+| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` Ed25519 signatures over the phase canonical, meeting the `cross_chain` quorum at `snapshot_block`: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count |
 | `batch_seq` | `BIGINT UNSIGNED` | ANCHOR archive batch this row was committed in (hub-side only) |
 | `archived_status` | `VARCHAR(20)` | Status at archive publish; a drift re-archives the row (hub-side only) |
 | `anchor_txid` | `VARCHAR(80)` | DOGE ANCHOR txid of the archiving transaction (hub-side audit; not mirrored) |

@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- Node.js >= 22
+- Node.js 22 (22.x LTS), the platform's canonical runtime, pinned in `.nvmrc`
 - A running coin node (bitcoind, litecoind, or dogecoind) with JSON-RPC enabled
 - Disk space for LevelDB data directory (size depends on chain; Bitcoin mainnet requires the most)
 

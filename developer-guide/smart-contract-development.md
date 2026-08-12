@@ -22,7 +22,7 @@ From the command line:
 ```bash
 npx xchain-contracts list                          # see available templates + patterns
 npx xchain-contracts scaffold escrow my-escrow.js  # write a template to customize
-npx xchain-contracts lint my-escrow.js             # exact deploy-time validation (Node 22)
+npx xchain-contracts lint my-escrow.js             # conservative deploy-time preflight, superset of the chain gate (Node 22)
 ```
 
 Or programmatically from the SDK (browser-safe, no Node-22 requirement):
@@ -235,7 +235,7 @@ Beyond the deploy-time rules above, the linter adds **logic-level** checks. None
 
 `sdk.deploy(params, encoder, { lint })` runs this automatically. The default `lint: 'block'` **throws before building the transaction** if the contract has errors, so a guaranteed-to-fail deploy never reaches the chain. Pass `lint: 'warn'` to log and proceed, or `lint: 'off'` to skip. Chunked deploys (`sdk.deployContract`) lint the fully-assembled source once, before chunking.
 
-**CLI (authoritative: exact deploy parity, requires Node 22):**
+**CLI (authoritative: conservative superset of the deploy gate, never exact parity, requires Node 22):**
 
 ```bash
 node xchain-vm/bin/lint.js path/to/contract.js   # or: npx xchain-lint contract.js

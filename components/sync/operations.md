@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** >= 22
+- **Node.js** 22 (22.x LTS), the platform's canonical runtime, pinned in `.nvmrc`
 - **MariaDB** (accessible from the service)
 - **xchain-hub**: must be running and reachable at `HUB_API_HOST:HUB_PORT`
 - **xchain-indexer** / **xchain-decoder**, at least one indexer or decoder must be installed and running (server mode only)

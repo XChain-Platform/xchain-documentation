@@ -81,15 +81,15 @@ A reference glossary of XChain terminology, organized by category.
 
 **LIST**: An ACTION that creates a named list of addresses or tickers that can be referenced as an allow list or block list in other actions (e.g., restricting who can mint a token).
 
-**allow list**: A LIST referenced by a token that restricts minting or transfers to only the addresses on the list.
+**allow list**: A LIST referenced by a token that restricts minting and transfers to only the addresses on the list. Both the sending and the receiving address of a transfer are checked, so an address that is not listed can neither send nor receive the token.
 
-**block list**: A LIST referenced by a token that prevents the listed addresses from receiving transfers or participating in minting.
+**block list**: A LIST referenced by a token that prevents the listed addresses from sending or receiving transfers, or participating in minting.
 
 **maxSupply**: The maximum total supply of a token. Once this amount has been minted, no further MINT actions are valid for that token.
 
-**MINT**: An ACTION that creates new token supply and credits it to the broadcasting address, up to the token's maxSupply.
+**MINT**: An ACTION that creates new token supply and credits it to the broadcasting address. The minter chooses the AMOUNT on each MINT; it is capped per transaction by maxMint, cumulatively per address by mintAddressMax, and overall by the token's maxSupply.
 
-**mintSupply**: The fixed amount of tokens produced by each valid MINT action for a given token.
+**mintSupply**: The amount of supply issued straight to the issuing address at ISSUE time (default 0), not the amount a public MINT produces.
 
 **SLEEP**: An ACTION that suspends another action (such as a dispenser or order) from a start block until an end block, temporarily deactivating it without cancelling it.
 

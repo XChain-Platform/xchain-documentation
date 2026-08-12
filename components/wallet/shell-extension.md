@@ -33,8 +33,8 @@ Background processes:
 {
     "manifest_version": 3,
     "name": "XChain Wallet",
-    "version": "0.333.0",
-    "version_name": "0.333.0",
+    "version": "0.338.0",
+    "version_name": "0.338.0",
     "permissions": ["storage", "sidePanel", "notifications", "alarms"],
     "host_permissions": [],
     "background": { "service_worker": "background.js", "type": "module" },

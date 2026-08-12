@@ -252,7 +252,9 @@ When the flag is on:
    settlement-time re-encode total: a trade that delivered can never hit an unpayable leg.
 2. **In the match**, the hub copies each order's stored legs onto the `cross_chain_matches`
    row (`a_payout_legs` / `b_payout_legs`), and the legs are part of the **validator-signed
-   XMATCH canonical** (2f+1 `cross_chain` signatures), so a colluding hub cannot strip a
+   XMATCH canonical** (a `cross_chain` quorum of signatures: stake-weighted at/above
+   `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count), so a
+   colluding hub cannot strip a
    royalty: a stripped or rewritten legs field breaks the signatures and the match never
    settles.
 3. **At settlement** (`cross_settle`), the proceeds chain applies the *counterparty's* legs
@@ -269,7 +271,7 @@ sequenceDiagram
     TokenChain->>TokenChain: guard call at create returns payout_legs,<br>each leg re-encodes to GET_COIN or the listing is denied
     TokenChain->>Hub: order with stored legs
     Note over Hub: match
-    Hub->>Hub: copies legs onto cross_chain_matches row<br>(a_payout_legs / b_payout_legs),<br>part of the validator-signed XMATCH canonical (2f+1 cross_chain)
+    Hub->>Hub: copies legs onto cross_chain_matches row<br>(a_payout_legs / b_payout_legs),<br>part of the validator-signed XMATCH canonical<br>(cross_chain quorum)
     Hub->>ProceedsChain: validator-signed match with legs
     Note over ProceedsChain: settlement (cross_settle)
     ProceedsChain->>ProceedsChain: applies the counterparty's legs to the escrow it releases,<br>re-encoding each leg address to its own encoding

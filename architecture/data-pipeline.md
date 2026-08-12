@@ -97,7 +97,7 @@ The indexer polls the Decoder DB every 5 seconds. When it finds a new decoded ac
 
 5. **Handles validation failures** gracefully: an action that fails validation is written to the actions table with status `invalid`, and no ledger entries are created. The block still commits.
 
-6. **Processes expirations** after each block: open orders, active dispensers, COINPay obligations, and other time-bounded objects are checked against the current block height and expired if necessary.
+6. **Processes expirations** after each block: open orders, active dispensers, COINPay obligations, and other time-bounded objects are checked against the current block's time and expired if necessary.
 
 7. **Detects reorgs** by monitoring the Decoder DB for block hash changes. On reorg, the indexer rolls back across 40+ tables in a single transaction.
 
@@ -147,7 +147,7 @@ The explorer's WebSocket server polls the Indexer DB every 5 seconds for new blo
 - **Lifecycle events**: ORDER_MATCH, COINPAY_REQUIRED, SWAP_MATCH, DISPENSE, etc.
 - **Entity updates**: ADDRESS_UPDATE, TOKEN_UPDATE, MARKET_UPDATE, DISPENSER_UPDATE
 
-Clients subscribe to channels with filters (action types, statuses, token tickers) so they only receive relevant events. On reconnect, clients can request catch-up of missed events via `since_action_index`.
+Clients subscribe to channels with filters (action types, token tickers) so they only receive relevant events. On reconnect, clients can request catch-up of missed events via `since_action_index`.
 
 See the [Explorer WebSocket API Reference](../components/explorer/websocket.md) and [SDK WebSocket Client](../components/sdk/websocket.md) for details.
 
@@ -169,7 +169,7 @@ flowchart TD
     INDEXER["xchain-indexer"]
     IDXDB[("Indexer MariaDB<br>XChain_{C}_{N}_Indexer")]
     EXPLORER["xchain-explorer"]
-    SYNC["xchain-indexer-sync"]
+    SYNC["xchain-sync"]
     CLIENTS["Clients"]
     REPLICAS["Validator replicas"]
 

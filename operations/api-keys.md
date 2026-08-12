@@ -32,6 +32,14 @@ The one deliberate exception to pure fail-open: methods that would be dangerous 
 
 - **Local regtest / e2e stacks:** run keyless. The warnings are expected noise.
 - **Any shared, multi-tenant, or public-facing deployment:** set a strong random key for every service you expose, and pass the matching key to its clients (for example the hub's `<COIN>_INDEXER_API_KEY` must equal the indexer's `INDEXER_API_KEY`, and `<COIN>_ENCODER_API_KEY` must equal the encoder's `API_KEY`).
-- **Auditing a running host:** the startup warnings appear in each container's logs (`docker logs <container> 2>&1 | grep -i "API_KEY"`), so an unkeyed service is always discoverable after the fact.
+- **Auditing a running host:** read the **current configuration**, not the logs. Whether a service is keyed is decided by whether its key variable from the table above is present in the running container's environment:
+
+  ```bash
+  docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' <container> | grep -i "API_KEY"
+  ```
+
+  A match means the key is configured; no match means the service is running keyless. This is authoritative because it reads the container's live configuration.
+
+  Do **not** audit by log grep. The startup warning is still printed on every keyless start (the open state is never silent), but xchain-node launches persistent containers with Docker json-file rotation capped at `max-size=10m` and `max-file=3`, so only the last ~30 MB of output survives. On a long-running node the one-time startup line has already rotated away, which means `docker logs <container> 2>&1 | grep -i "API_KEY"` searches retained history only: it can confirm a warning that is still in the window, but finding nothing is **not** evidence that a service is keyed.
 
 See [Configuration](./configuration.md) for where each variable is set.

@@ -29,14 +29,14 @@ XChain actions involved: ISSUE, FILE (to store the content), LINK (to associate 
 
 ### Token-Gated Encrypted Content and Packs
 
-Beyond public on-chain files, XChain supports **cryptographically secure token-gated publishing**. Encrypt a file (or a whole pack of files) and publish the ciphertext on-chain via the FILE action. Only holders of the gating token can decrypt; the symmetric key is delivered to each holder via an ECIES MESSAGE that travels alongside the token in every transfer. Anyone can see that the ciphertext exists; only holders can read it.
+Beyond public on-chain files, XChain supports **cryptographically secure token-gated publishing**. Encrypt a file (or a whole pack of files) and publish the ciphertext on-chain via the FILE action. Only holders of the gating token can decrypt; the symmetric key is delivered to each holder via an ECIES MESSAGE that the sender batches with a direct SEND. Anyone can see that the ciphertext exists; only holders who have been given the key can read it.
 
 **What this enables:**
 
 - **Sealed drops.** A creator can guarantee that no one. Not the indexer operators, not block explorers, not even early holders' nodes, has read the content until a holder unlocks. Useful for time-locked reveals, surprise releases, and "first-access" mechanics.
 - **Packs.** Multiple files encrypted with the same key form a pack that unlocks atomically. An album of FLAC stems plus liner notes plus high-res cover art can all be published as one pack; owning the token unlocks every file at once.
-- **Permanent, server-free distribution.** No download server, no key escrow, no DRM service. The creator publishes once and walks away; the blockchain stores the ciphertext, and the protocol handles key delivery automatically on every transfer.
-- **DEX-native paid downloads.** Sell the token via DISPENSER or ORDER. Whoever buys it receives the decryption key in the same transaction.
+- **Permanent, server-free distribution.** No download server, no key escrow, no DRM service. The creator publishes once and walks away; the blockchain stores the ciphertext, and the key handoff rides in the same transaction as a direct SEND, which the indexer requires whenever that transfer would leave the recipient able to unlock the content.
+- **DEX-native paid downloads.** Sell the token via DISPENSER or ORDER. The key handoff is enforced on direct SENDs only, so a buyer who receives the token through a dispenser, an order or swap settlement, an AIRDROP, or a DIVIDEND gets the token *without* the key and needs it sent afterwards in a direct SEND. Plan a delivery step for any sale that does not go through a SEND.
 - **Sell the whole pack, not just access.** Pair this with [Token Ownership Trading](#token-ownership-trading) below to sell the *entire issuance* of a gated pack to a single buyer, useful for selling a finished album to a label, transferring a research archive to a successor, or auctioning a complete sealed bundle.
 
 Unlock is purely client-side; holders decrypt with their address private key, no on-chain transaction required. Trust model: this is a first-access lock, not DRM (a holder who decrypts has the bytes forever), and loss of the address key means loss of access.
@@ -65,11 +65,11 @@ If your token has multiple holders and you want to pay them proportionally (like
 
 XChain actions involved: ISSUE (to create the share token), DIVIDEND (to make distributions), SEND (for ongoing transfers).
 
-### Fundraising Tokens with Minting Windows
+### Public Distribution Tokens with Minting Windows
 
-Set up a token with a defined minting window (a start block and stop block) during which the public can mint their own allocation at a fixed amount per mint. This is a transparent, on-chain crowdfunding mechanism. Contributors mint directly from the blockchain; there is no intermediary holding funds. After the window closes, no more tokens can be created.
+Set up a token with a defined minting window (a start block and a stop block) during which the public can mint the token themselves. Each minter chooses how much to mint in a given transaction, bounded by the caps you set on the token: an optional per-transaction cap (`MAX_MINT`), an optional per-address cap (`MINT_ADDRESS_MAX`), and the token's overall `MAX_SUPPLY`. This is a permissionless, on-chain distribution mechanism: anyone can mint directly from the blockchain during the window, with no intermediary and no allocation list. MINT carries no payment field and moves no funds to the issuer; it only creates the new supply and credits it to the minter. After the window closes or `MAX_SUPPLY` is reached, no more tokens can be created.
 
-XChain actions involved: ISSUE (with mint window configuration), MINT (by contributors during the window).
+XChain actions involved: ISSUE (with mint window configuration), MINT (by the public during the window).
 
 ---
 
@@ -89,9 +89,11 @@ XChain actions involved: ISSUE, SEND, CALLBACK (for revocation).
 
 ### Voting and Governance
 
-Issue a fixed number of voting tokens to eligible participants; one token equals one vote. Participants cast votes by sending their token to the address representing their chosen option. Because each transfer is on-chain, the vote tally is transparent and auditable by anyone. The token can be set up so that it cannot be sold or transferred to unregistered addresses, ensuring only eligible voters participate.
+Issue a governance token, distribute it to eligible participants, and run decisions with the VOTE action. A holder opens a poll by naming the governance token (which is both the electorate and the weight basis), the options, the block the poll closes on, and optional gates such as a quorum and a minimum number of voters. Holders then cast ballots. When the poll closes, the protocol measures each voter's weight from their on-chain holdings and tallies and finalizes the poll automatically, so nobody has to be trusted to count.
 
-XChain actions involved: ISSUE, LIST (for eligible voters), SEND (vote casting), AIRDROP (to distribute voting tokens).
+How weight is measured is your choice at poll creation: one vote per token held, one vote per address regardless of holdings, quadratic weighting to flatten large holders, or time-weighted holdings so a balance bought the day before the close does not carry a full vote. A holder can also delegate their voting weight to another address with a standing delegation. A poll can be made *binding*, meaning finalization calls a smart contract method with the result and the decision takes effect on-chain rather than needing someone to act on it. The token can be set up so that it cannot be sold or transferred to unregistered addresses, ensuring only eligible voters participate. See the [VOTE action spec](../protocol/actions/vote.md) for the full parameter set.
+
+XChain actions involved: ISSUE (to create the governance token), LIST (for eligible voters), AIRDROP or SEND (to distribute it), VOTE (to create the poll, cast ballots, and delegate weight).
 
 ### Access Control and Token-Gated Systems
 
@@ -211,7 +213,7 @@ A smart contract on XChain can do what a person with a wallet can do: issue toke
 - **On-chain governance**: token-weighted voting where the result of the vote is executed by the contract itself, with no human in the middle.
 - **Cross-chain automation**: contracts that coordinate actions across Bitcoin, Litecoin, and Dogecoin simultaneously.
 
-XChain actions involved: DEPLOY (to publish a contract), EXECUTE (to call a method on it), DEPOSIT and WITHDRAW (to move tokens in and out of the contract's custody), BATCH (to group multiple actions atomically so they all succeed or all fail), and SLEEP (a contract can put its own token to sleep, pausing trading on the token for a defined window or indefinitely).
+XChain actions involved: DEPLOY (to publish a contract), EXECUTE (to call a method on it), DEPOSIT and WITHDRAW (to move tokens in and out of the contract's custody), BATCH (to group multiple actions into one transaction; they execute in order and are *not* atomic, so if a later action fails the earlier ones still apply), and SLEEP (a contract can put its own token to sleep, pausing trading on the token for a defined window or indefinitely).
 
 ### AI-Powered Smart Contracts
 

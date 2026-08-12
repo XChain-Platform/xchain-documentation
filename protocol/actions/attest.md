@@ -105,7 +105,7 @@ System-synthesized expiry for request abc...def
 - `REQUEST_ID` must match an existing `pending` row.
 
 ### Version 3 (relay request, BTC only)
-- Accepted only on BTC, and only at/above `ATTEST_RELAY_ACTIVATION` resolved on this action's own BTC `block_index`. Below the height, and on any other chain, it is treated exactly as an unknown VERSION: nothing is persisted.
+- Accepted only on BTC, and only at/above `ATTEST_RELAY_ACTIVATION` resolved on BOTH planes: this action's own BTC `block_index` and the `SNAPSHOT_BLOCK` it carries. The landing height is what makes the leg inert before the flag day, since it cannot be forged the way a broadcaster-supplied `SNAPSHOT_BLOCK` can; the snapshot is the plane the hub resolves the same flag-day on, and the only one it has when it decides whether to co-sign, so gating on the landing height alone would accept a v3 the federation never produced and resolve its quorum against the pre-activation signer set. Below the height on either plane, and on any other chain, it is treated exactly as an unknown VERSION: nothing is persisted.
 - `ORIGIN_CHAIN` must be `LTC` or `DOGE`. `ORIGIN_ACTION_INDEX` must be a positive integer.
 - `SNAPSHOT_BLOCK` must not exceed this action's `block_index`, so a broadcaster cannot pin a future signer set.
 - `PROVIDER_ID`, `REDUNDANCY`, `REQUEST_PAYLOAD` size and the derived deadline are validated exactly as for v0.

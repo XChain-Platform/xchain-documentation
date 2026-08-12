@@ -70,7 +70,7 @@ Sent automatically on connection. Provides server info, current state, limits, a
     },
     "channels": ["blocks", "actions", "mempool", "network", "attestation", "address", "token", "market", "dispenser", "bet_feed"],
     "types": ["ORDER", "ORDER_MATCH", "ORDER_EXPIRE", "COINPAY", "..."],
-    "features": ["snapshot", "once", "fields", "ticks", "batch", "catch_up"]
+    "features": ["snapshot", "once", "fields", "batch", "catch_up"]
   }
 }
 ```
@@ -92,11 +92,10 @@ All client messages are JSON with an `action` field. An optional `id` field enab
   "channels": ["blocks", "actions"],
   "params": {
     "types": ["SEND", "ORDER_MATCH"],
-    "ticks": ["PEPE", "XCHAIN"],
     "fields": ["action_index", "source", "amount"],
     "snapshot": true,
     "once": true,
-    "since_action_index": 45677
+    "since_action_index": "45677"
   }
 }
 ```
@@ -114,11 +113,11 @@ All client messages are JSON with an `action` field. An optional `id` field enab
 |---|---|---|
 | `types` | string[] | Only receive events matching these action types. Omit for all. |
 | `statuses` | string[] | **Not supported. Do not use.** Accepted by the server for backward compatibility but never honored on any channel: no feed populates a per-event status (`getActionsSince` selects `NULL as status`), so the filter can never reject anything. It is absent from WELCOME `features` and from SUBSCRIBED `active_filters`. See . |
-| `ticks` | string[] | Only receive events involving these token tickers (global `actions` channel). |
+| `ticks` | string[] | **Not an event filter.** On the global `actions` channel it is accepted, silently ignored, and echoed back under SUBSCRIBED `ignored_filters`: action frames carry no tick column (`getActionsSince` selects none), so the filter can never reject anything. It is absent from WELCOME `features` and from SUBSCRIBED `active_filters`. See . Its one real use is as the batch (plural) form of the `token` channel's `tick` entity param, in the Entity params table below. |
 | `fields` | string[] | Only include these keys in the `data` payload. Envelope fields always included. |
 | `snapshot` | boolean | Send current entity state immediately on subscribe. |
 | `once` | boolean | Auto-unsubscribe after the first matching event. |
-| `since_action_index` | number | Replay missed events since this action_index (for catch-up on reconnect). |
+| `since_action_index` | string | Replay missed events since this action_index (for catch-up on reconnect). Send the decimal string the server gave you; a JSON number is still accepted but rounds above 2^53 and can skip an action. The server compares it exactly. |
 
 **Entity params (required for entity channels):**
 
@@ -224,10 +223,20 @@ Channel: `actions`
     "tx_hash": "abc123...",
     "block_index": "890123",
     "source": "1abc...",
-    "status": "valid"
+    "status": null
   }
 }
 ```
+
+**`status` is always `null` on every action-derived event.** `NEW_ACTION`, its
+catch-up replay, and every order/swap/coinpay/dispenser lifecycle event below are
+built from the same block-derived feed (`getActionsSince`), which selects
+`NULL as status` because the generic `actions` table carries no status column.
+Receiving one of these events is evidence an action was **indexed**, not that it
+was **valid**; confirm validity through the REST API. Only entity-channel frames
+that run their own query carry a real status (`DISPENSER_UPDATE`'s `status`,
+`BET_CLOSED`'s `feed_status`). It is the same null that makes the `statuses`
+subscribe param above a no-op on these events.
 
 #### NETWORK_STATS
 
@@ -239,8 +248,8 @@ Emitted with each new block.
 {
   "type": "NETWORK_STATS",
   "data": {
-    "block_height": 890123,
-    "total_actions": 45678
+    "block_height": "890123",
+    "total_actions": "45678"
   }
 }
 ```
@@ -260,7 +269,7 @@ Channel: `address`
       { "tick": "XCHAIN", "amount": "1000.00000000" },
       { "tick": "PEPE", "amount": "50000.00000000" }
     ],
-    "last_action_index": 45680
+    "last_action_index": "45680"
   }
 }
 ```
@@ -276,7 +285,7 @@ Channel: `token`
     "tick": "PEPE",
     "supply": "100000000.00000000",
     "holders": 1234,
-    "last_action_index": 45680
+    "last_action_index": "45680"
   }
 }
 ```
@@ -374,7 +383,7 @@ These fire on both the `actions` channel and the `address` channel for involved 
   "data": {
     "action_index": "45700",
     "settlement_type": "coinpay",
-    "status": "pending_coinpay",
+    "status": null,
     "source": "1abc...",
     "tx_hash": "def456..."
   }
@@ -408,7 +417,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
     "action_index": "45720",
     "tx_hash": "abc123...",
     "source": "1BotAddr...",
-    "status": "valid"
+    "status": null
   }
 }
 ```
@@ -421,7 +430,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "data": {
     "action_index": "45730",
     "source": "1BotAddr...",
-    "status": "valid"
+    "status": null
   }
 }
 ```
@@ -434,7 +443,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "data": {
     "action_index": "45740",
     "source": "1abc...",
-    "status": "valid"
+    "status": null
   }
 }
 ```
@@ -449,7 +458,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "data": {
     "action_index": "45850",
     "source": "1abc...",
-    "status": "valid"
+    "status": null
   }
 }
 ```
@@ -462,7 +471,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "data": {
     "action_index": "45860",
     "source": "1abc...",
-    "status": "valid"
+    "status": null
   }
 }
 ```
@@ -477,7 +486,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "data": {
     "action_index": "45800",
     "source": "1BuyerAddr...",
-    "status": "valid"
+    "status": null
   }
 }
 ```
@@ -490,7 +499,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "data": {
     "action_index": "45900",
     "source": "1OwnerAddr...",
-    "status": "valid"
+    "status": null
   }
 }
 ```
@@ -581,7 +590,6 @@ Sent on every successful subscribe. Echoes the `id` if provided.
     "address": "1abc...",
     "active_filters": {
       "types": ["ORDER_MATCH", "COINPAY_REQUIRED"],
-      "ticks": null,
       "fields": null,
       "once": false
     }
@@ -619,7 +627,7 @@ Sent when subscribing with `snapshot: true`. Contains current state of the subsc
     "channel": "address",
     "address": "1abc...",
     "balances": [{ "tick": "XCHAIN", "amount": "1000.00000000" }],
-    "last_action_index": 45680
+    "last_action_index": "45680"
   }
 }
 ```

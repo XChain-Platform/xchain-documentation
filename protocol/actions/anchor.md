@@ -76,29 +76,29 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 | Name                  | Type    | Versions | Description                                                            |
 | --------------------- | ------- | -------- | ---------------------------------------------------------------------- |
 | `VERSION`             | Integer | all      | Format version (0=checkpoint, 1=checkpoint+archive, 2=continuation, 3=checkpoint+SPV roots, 4=v0+publisher, 5=v3+publisher, 6=v1+publisher) |
-| `CHAIN`               | String  | 0, 1, 3  | Chain being checkpointed: `BTC` \| `LTC` \| `DOGE`                     |
-| `NETWORK`             | String  | 0, 1, 3  | `mainnet` \| `testnet` \| `regtest`                                    |
-| `BLOCK_INDEX`         | Integer | 0, 1, 3  | Checkpointed block height on `CHAIN`                                   |
-| `BLOCK_HASH`          | String  | 0, 1, 3  | 64-hex block hash of `CHAIN` at `BLOCK_INDEX`                          |
-| `LEDGER_HASH`         | String  | 0, 1, 3  | 64-hex chained ledger hash (`blocks.ledger_hash` at `BLOCK_INDEX`)     |
-| `ACTIONS_HASH`        | String  | 0, 1, 3  | 64-hex chained actions hash                                            |
-| `CONTRACT_HASH`       | String  | 0, 1, 3  | 64-hex chained contract hash                                           |
-| `CHECKPOINT_SEQ`      | Integer | 0, 1, 3  | Monotonic checkpoint counter per (`CHAIN`,`NETWORK`)                   |
-| `SNAPSHOT_BLOCK`      | Integer | 0, 1, 3  | BTC block selecting the `oracle_publish` validator set for the sigs    |
-| `STATE_ROOT`          | String  | 3        | 64-hex SPV state root (SMT over balances+stakes) at `BLOCK_INDEX`      |
-| `STATE_ROOT_VERSION`  | Integer | 3        | Merkle scheme version the `STATE_ROOT` was computed under              |
-| `BLOCK_MERKLE_ROOT`   | String  | 3        | 64-hex SPV per-block content Merkle root at `BLOCK_INDEX`              |
-| `BLOCK_MERKLE_VERSION`| Integer | 3        | Merkle scheme version the `BLOCK_MERKLE_ROOT` was computed under       |
-| `MATCH_BATCH_SEQ`     | Integer | 1, 2     | Monotonic archive-batch counter (ties v2 chunks to their v1)           |
-| `MATCH_COUNT`         | Integer | 1        | Number of match records in this archive batch                         |
-| `BATCH_CRC32`         | String  | 1        | 8-hex CRC32 of the **uncompressed** archive JSON bytes                 |
-| `ARCHIVE_B64`         | String  | 1        | base64url of `gzip(archive JSON)`: chunk 0 when the batch is chunked  |
-| `CHUNK_INDEX`         | Integer | 2        | 1-based continuation index (the v1 itself carries chunk 0)             |
-| `TOTAL_CHUNKS`        | Integer | 1, 2     | Total chunks in the batch (1 = unchunked, v1-only)                     |
+| `CHAIN`               | String  | 0, 1, 3, 4, 5, 6 | Chain being checkpointed: `BTC` \| `LTC` \| `DOGE`                     |
+| `NETWORK`             | String  | 0, 1, 3, 4, 5, 6 | `mainnet` \| `testnet` \| `regtest`                                    |
+| `BLOCK_INDEX`         | Integer | 0, 1, 3, 4, 5, 6 | Checkpointed block height on `CHAIN`                                   |
+| `BLOCK_HASH`          | String  | 0, 1, 3, 4, 5, 6 | 64-hex block hash of `CHAIN` at `BLOCK_INDEX`                          |
+| `LEDGER_HASH`         | String  | 0, 1, 3, 4, 5, 6 | 64-hex chained ledger hash (`blocks.ledger_hash` at `BLOCK_INDEX`)     |
+| `ACTIONS_HASH`        | String  | 0, 1, 3, 4, 5, 6 | 64-hex chained actions hash                                            |
+| `CONTRACT_HASH`       | String  | 0, 1, 3, 4, 5, 6 | 64-hex chained contract hash                                           |
+| `CHECKPOINT_SEQ`      | Integer | 0, 1, 3, 4, 5, 6 | Monotonic checkpoint counter per (`CHAIN`,`NETWORK`)                   |
+| `SNAPSHOT_BLOCK`      | Integer | 0, 1, 3, 4, 5, 6 | BTC block selecting the `oracle_publish` validator set for the sigs    |
+| `STATE_ROOT`          | String  | 3, 5     | 64-hex SPV state root (SMT over balances+stakes) at `BLOCK_INDEX`      |
+| `STATE_ROOT_VERSION`  | Integer | 3, 5     | Merkle scheme version the `STATE_ROOT` was computed under              |
+| `BLOCK_MERKLE_ROOT`   | String  | 3, 5     | 64-hex SPV per-block content Merkle root at `BLOCK_INDEX`              |
+| `BLOCK_MERKLE_VERSION`| Integer | 3, 5     | Merkle scheme version the `BLOCK_MERKLE_ROOT` was computed under       |
+| `MATCH_BATCH_SEQ`     | Integer | 1, 2, 6  | Monotonic archive-batch counter (ties v2 chunks to their v1/v6)        |
+| `MATCH_COUNT`         | Integer | 1, 6     | Number of match records in this archive batch                         |
+| `BATCH_CRC32`         | String  | 1, 6     | 8-hex CRC32 of the **uncompressed** archive JSON bytes                 |
+| `ARCHIVE_B64`         | String  | 1, 6     | base64url of `gzip(archive JSON)`: chunk 0 when the batch is chunked  |
+| `CHUNK_INDEX`         | Integer | 2        | 1-based continuation index (the v1/v6 head itself carries chunk 0)     |
+| `TOTAL_CHUNKS`        | Integer | 1, 2, 6  | Total chunks in the batch (1 = unchunked, archive-head-only)           |
 | `ARCHIVE_B64_CHUNK`   | String  | 2        | This continuation's slice of the base64url payload                    |
-| `SIG_COUNT`           | Integer | 0, 1, 3, 4, 5 | Number of (pubkey, sig) pairs that follow                         |
-| `PUBKEY_n`            | String  | 0, 1, 3, 4, 5 | 64-hex Ed25519 pubkey, in the `oracle_publish` set at `SNAPSHOT_BLOCK` |
-| `SIG_n`               | String  | 0, 1, 3, 4, 5 | 128-hex Ed25519 signature over the canonical checkpoint message    |
+| `SIG_COUNT`           | Integer | 0, 1, 3, 4, 5, 6 | Number of (pubkey, sig) pairs that follow                         |
+| `PUBKEY_n`            | String  | 0, 1, 3, 4, 5, 6 | 64-hex Ed25519 pubkey, in the `oracle_publish` set at `SNAPSHOT_BLOCK` |
+| `SIG_n`               | String  | 0, 1, 3, 4, 5, 6 | 128-hex Ed25519 signature over the canonical checkpoint message    |
 | `PUBLISHER`           | String  | 4, 5, 6  | 64-hex Ed25519 pubkey of the elected publisher that earns the anchor reward |
 | `ATTEST_SIG_COUNT`    | Integer | 4, 5, 6  | Number of (pubkey, sig) attestation pairs that follow                  |
 | `APUBKEY_n`           | String  | 4, 5, 6  | 64-hex pubkey in the `oracle_publish` set at `SNAPSHOT_BLOCK` (attestation signer) |

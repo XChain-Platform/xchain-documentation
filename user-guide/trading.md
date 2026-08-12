@@ -67,15 +67,19 @@ Once the dispenser is active, anyone anywhere can buy from it simply by sending 
 Dispensers are ideal when you want a reliable, always-on way to sell tokens:
 
 - **No counterparty needed.** The transaction is automatic, buyer sends coin, protocol sends tokens.
-- **Always available.** Your dispenser works 24 hours a day, 7 days a week, without any action from you.
-- **Fixed price clarity.** Buyers always know exactly what they will pay and what they will receive before sending anything.
-- **Self-limiting.** When a dispenser runs out of tokens (after its maximum number of dispenses), it closes automatically. You can also cancel it manually at any time.
+- **Always available.** Your dispenser works 24 hours a day, 7 days a week, without any action from you, up until the expiration you set for it.
+- **Fixed price clarity.** Buyers always know exactly what they will pay and what they will receive before sending anything, because the price is fixed when you create the dispenser and cannot be changed afterwards.
+- **Self-limiting.** A dispenser closes on its own in two ways: when it runs out of tokens (after its maximum number of dispenses), and when it reaches its expiration. You can also cancel it manually at any time.
 
 Think of a dispenser like a coin-operated machine at a store. You set it up once, fill it with tokens, set the price, and let it run. Each customer inserts their coins and gets what they paid for: automatically, reliably, without needing a clerk.
 
 ### Editing or Cancelling a Dispenser
 
-You can update a dispenser's price or cancel it at any time. When you cancel, any tokens still in the dispenser are returned to your balance.
+You can edit an active dispenser to add more tokens to it (a refill), change its expiration, or update its allow and block lists. Its **price and the amount dispensed per purchase are fixed when you create it and cannot be changed**; if you need a different price, cancel the dispenser and create a new one.
+
+You can cancel a dispenser at any time, and any tokens still in it are returned to your balance.
+
+**Every dispenser expires.** You set an expiration when you create it; if you do not choose one, a default of 90 days is applied. When that deadline passes, the dispenser closes automatically and any tokens still in it are returned to your balance, exactly as if you had cancelled it. A dispenser is never open indefinitely, so extend the expiration by editing the dispenser if you want it to keep selling.
 
 ---
 
@@ -96,7 +100,7 @@ This transparency is a core property of the protocol. All market data is derived
 
 DEX listings are priced by **how long the listing lives**, not by how early you create one. **The first 90 days are free**, so a listing that expires within 90 days carries no listing fee. Past that, every day beyond the 90th is charged at a per-day rate. The free window is identical on every supported chain (Bitcoin, Litecoin, and Dogecoin); it is not a Bitcoin-only or time-limited promotion.
 
-All DEX operations (placing orders, creating dispensers, cancelling) require a small XCHAIN gas fee, just like any other action on the platform.
+That listing fee is what creating or editing a listing costs: placing an order and creating a dispenser are charged on the duration schedule above, priced in XCHAIN. **Cancelling is free.** Taking an order or a dispenser off the book carries no protocol fee at all, so you are never charged for withdrawing a listing. You still pay the ordinary miner transaction fee on the underlying chain for any action you broadcast.
 
 Check the current fee schedule through the XChain Explorer or your wallet software for the latest amounts.
 
@@ -152,7 +156,7 @@ If a COINPAY transaction is broadcast but confirms **after** the obligation has 
 | | Native Coin Orders | Dispensers |
 |---|---|---|
 | Settlement | Two-phase (match → COINPay → settlement) | Automatic (send coin → receive tokens) |
-| Time limit | 2-hour COINPay window after match | None: always active |
+| Time limit | 2-hour COINPay window after match | Closes at its expiration (90 days by default) |
 | Price discovery | Order book matching | Fixed price |
 | Flexibility | Partial fills, limit orders | Fixed rate, fixed quantity |
 
@@ -165,7 +169,7 @@ If a COINPAY transaction is broadcast but confirms **after** the obligation has 
 | Best for | Trading between two parties | Selling at a fixed price to anyone |
 | How it works | Orders matched automatically | Buyer sends coin, tokens sent back |
 | Requires counterparty? | Yes (someone must match your order | No) works automatically |
-| Always active? | Until filled, cancelled, or expired | Yes, until depleted or cancelled |
+| Always active? | Until filled, cancelled, or expired | Until depleted, cancelled, or expired |
 | Price | Best available at time of match | Fixed when you set it up |
 
 ---

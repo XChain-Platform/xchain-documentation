@@ -116,6 +116,24 @@ describe('extractDefault (the checker that reported false green during the audit
         assert.equal(defaultOf("const on = process.env.FEATURE === '1';"), null);
     });
 
+    // A CALL fallback is the effective default and no doc row can carry it, so
+    // the walk must stop rather than run on to the last-resort literal behind
+    // it. Reporting `unknown` here is what would have failed a VALIDATOR_ID row
+    // that correctly said "system hostname" ().
+    test('stops at a computed fallback instead of reading past it', () => {
+        assert.equal(
+            defaultOf("this.validatorId = process.env.VALIDATOR_ID || require('os').hostname() || 'unknown';"),
+            null
+        );
+    });
+
+    test('still walks past a plain lookup to the literal behind it', () => {
+        assert.deepEqual(
+            defaultOf("const m = process.env.SYNC_MODE || DEFAULTS.SYNC_MODE || 'server';"),
+            { value: 'server', numeric: false }
+        );
+    });
+
     test('reports no default for a bare read', () => {
         assert.equal(defaultOf("const key = process.env.HUB_API_KEY;"), null);
     });
@@ -126,6 +144,52 @@ describe('extractDefault (the checker that reported false green during the audit
 
     test('does not mistake a later argument for a default', () => {
         assert.equal(defaultOf("logger.warn(process.env.MODE, 'fallback');"), null);
+    });
+
+    // A numeric coercion taking the read as its ONLY argument leaves the
+    // fallback outside its closing paren, where the scanner used to stop dead
+    // (). The idiom is everywhere: hub, decoder, indexer, sync.
+    test('steps out of a single-argument numeric wrapper to reach the default', () => {
+        assert.deepEqual(
+            defaultOf("this.maxLookbackMs = parseInt(process.env.REORG_MAX_LOOKBACK_MS) || 86400000;"),
+            { value: '86400000', numeric: true }
+        );
+        assert.deepEqual(
+            defaultOf("const STALL_ALERT_MS = Number(process.env.DECODER_STALL_ALERT_MS) || 900000"),
+            { value: '900000', numeric: true }
+        );
+        assert.deepEqual(
+            defaultOf("const r = parseFloat(process.env.RATE) ?? 0.5;"),
+            { value: '0.5', numeric: true }
+        );
+    });
+
+    test('steps out of at most one wrapper, so an outer expression keeps its own default', () => {
+        // `getConfig(...)` is not a numeric coercion, so its trailing fallback
+        // describes the config object, not the variable.
+        assert.equal(defaultOf("const t = getConfig(process.env.PROFILE).timeout || 5000;"), null);
+        // Two closes deep, the second belongs to somebody else.
+        assert.equal(defaultOf("const a = wrap(parseInt(process.env.X)) || 5;"), null);
+    });
+
+    // parseInt's second argument is a radix and must stay skipped; these
+    // helpers' second argument IS the fallback, and skipping it left every
+    // sync/indexer/sdk config default unchecked ().
+    test('reads a helper default that sits where parseInt would take a radix', () => {
+        assert.deepEqual(
+            defaultOf("config['SYNC_API_PORT'] = parseIntMin0(process.env.SYNC_API_PORT, 3006);"),
+            { value: '3006', numeric: true }
+        );
+        assert.deepEqual(
+            defaultOf("limit: concurrencyGate.resolveLimit(process.env.ENCODER_MAX_CONCURRENT_PROBES, 16),"),
+            { value: '16', numeric: true }
+        );
+    });
+
+    test('a helper whose fallback is not a literal still reports no default', () => {
+        // The real default is behind another lookup, and guessing the next
+        // argument of some enclosing call is how this scanner reports false.
+        assert.equal(defaultOf("const v = parseIntMin1(process.env.HUB_PORT, DEFAULTS.PORT), w = f(a, 7);"), null);
     });
 });
 
@@ -261,6 +325,52 @@ describe('the working-tree reader\'s error handling', () => {
             'an unreadable file was swallowed, so the survey would report itself complete',
         );
     });
+
+    // The LISTING seam had the same bare catch the read seam was fixed for
+    // (), and it fails harder: a directory that cannot be listed
+    // yields an empty path list, so the component contributes zero variables
+    // and every per-component check over it becomes vacuously true.
+    test('a prefix that is absent is skipped; a prefix that cannot be reached is not', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'envvar-listfail-'));
+        const reader = cov.workingTreeReader();
+
+        // Benign, and the common case: almost no service has an mcp/ dir.
+        fs.mkdirSync(path.join(dir, 'src'));
+        fs.writeFileSync(path.join(dir, 'src', 'config.js'), 'const a = process.env.KEPT || 1;\n');
+        assert.deepEqual(reader.listPaths(dir, cov.SOURCE_ROOTS), ['src/config.js']);
+
+        // A self-referential symlink resolves to ELOOP, which stands in for the
+        // whole unreachable class and, unlike chmod, still fails under root.
+        const loopDir = fs.mkdtempSync(path.join(os.tmpdir(), 'envvar-listloop-'));
+        fs.symlinkSync('src', path.join(loopDir, 'src'));
+        assert.throws(
+            () => reader.listPaths(loopDir, cov.SOURCE_ROOTS),
+            (err) => {
+                assert.notEqual(err.code, 'ENOENT', 'an unreachable prefix was reported as an absent one');
+                return true;
+            },
+            'an unreachable prefix listed as empty, so the component would survey as having no env reads',
+        );
+    });
+
+    test('a directory that cannot be listed aborts the walk', { skip: process.getuid && process.getuid() === 0 ? 'chmod does not restrict root' : false }, () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'envvar-listperm-'));
+        fs.mkdirSync(path.join(dir, 'src', 'inner'), { recursive: true });
+        fs.writeFileSync(path.join(dir, 'src', 'inner', 'config.js'), 'const a = process.env.HIDDEN || 1;\n');
+        fs.chmodSync(path.join(dir, 'src', 'inner'), 0o000);
+        try {
+            assert.throws(
+                () => cov.workingTreeReader().listPaths(dir, cov.SOURCE_ROOTS),
+                (err) => {
+                    assert.equal(err.code, 'EACCES');
+                    return true;
+                },
+                'an unreadable subdirectory produced a partial tree that looked complete',
+            );
+        } finally {
+            fs.chmodSync(path.join(dir, 'src', 'inner'), 0o700);
+        }
+    });
 });
 
 describe('a partial survey (the subset the CLI builds when only some siblings are gated)', () => {
@@ -320,11 +430,76 @@ describe('a partial survey (the subset the CLI builds when only some siblings ar
         assert.equal(cov.totalReads(surveyOf(undefined)), 3);   // both, discovered on disk
     });
 
+    test('a component whose source moved out from under the scanner is named, not averaged away', () => {
+        // The failure the fleet-wide read floor cannot see: hub's layout moves,
+        // its scan finds nothing, sync's reads still clear the floor, and every
+        // hub check then passes over an empty set ().
+        const { root, docRoot } = platform();
+        const hub = path.join(root, 'xchain-hub');
+        git(hub, 'mv', 'src', 'lib');
+        git(hub, 'commit', '-q', '-m', 'move the source out of the scanned roots');
+
+        const survey = cov.buildSurvey({
+            platformRoot:  root,
+            docRoot,
+            serviceReader: cov.committedTreeReader('HEAD'),
+            docReader:     cov.workingTreeReader(),
+            components:    ['sync', 'hub'],
+        });
+
+        assert.equal(survey.get('hub').sourceFiles, 0);
+        assert.equal(survey.get('sync').sourceFiles, 1);
+        assert.equal(cov.checkUndocumented('hub', survey.get('hub')).length, 0,
+            'the vacuous pass this guard exists to catch');
+        assert.deepEqual(cov.checkEmptyScan(survey).length, 1);
+        assert.match(cov.checkEmptyScan(survey)[0], /^hub: scanned 0 production source files/);
+    });
+
+    test('a component that simply reads no configuration is not accused of a broken scan', () => {
+        // The guard counts FILES, not variables, precisely so this stays clean.
+        const { root, docRoot } = platform();
+        const hub = path.join(root, 'xchain-hub');
+        fs.writeFileSync(path.join(hub, 'src', 'config.js'), 'const x = 1;\n');
+        git(hub, 'commit', '-q', '-a', '-m', 'no env reads left');
+
+        const survey = cov.buildSurvey({
+            platformRoot:  root,
+            docRoot,
+            serviceReader: cov.committedTreeReader('HEAD'),
+            docReader:     cov.workingTreeReader(),
+            components:    ['hub'],
+        });
+        assert.equal(survey.get('hub').vars.size, 0);
+        assert.deepEqual(cov.checkEmptyScan(survey), []);
+    });
+
     test('the checks still scope doc lines per component inside a subset', () => {
         const survey = surveyOf(['hub']);
         assert.deepEqual(cov.checkUndocumented('hub', survey.get('hub')), []);
         // sync's rows are on sync's pages, so they cannot cover a hub variable.
         assert.equal(survey.get('hub').docLines.some((l) => l.includes('ALPHA')), false);
+    });
+
+    test('the survey separates prose from fenced examples', () => {
+        const { root, docRoot } = platform();
+        fs.appendFileSync(path.join(docRoot, 'components', 'hub', 'configuration.md'),
+            '```bash\nexport GAMMA=999\n```\nGAMMA is also mentioned here.\n');
+
+        const survey = cov.buildSurvey({
+            platformRoot:  root,
+            docRoot,
+            serviceReader: cov.committedTreeReader('HEAD'),
+            docReader:     cov.workingTreeReader(),
+            components:    ['hub'],
+        });
+        const entry = survey.get('hub');
+        assert.equal(entry.docLines.some((l) => l.includes('export GAMMA=999')), true);
+        assert.equal(entry.docProse.some((l) => l.includes('export GAMMA=999')), false,
+            'a fenced example counted as an assertion about the default');
+        assert.equal(entry.docProse.some((l) => l.includes('also mentioned here')), true,
+            'the fence never closed, so every later line was swallowed');
+        // The example says 999 and the code says 1; only the prose row is evidence.
+        assert.deepEqual(cov.checkDefaultDrift('hub', entry), []);
     });
 });
 
@@ -351,6 +526,176 @@ describe('doc matching', () => {
     test('a wrong documented default is rejected, and a prefix does not count', () => {
         assert.equal(defaultDocumented(['| `NODE_RPC_TIMEOUT` | timeout | `30000` |'], '3000'), false);
         assert.equal(defaultDocumented(['| `NODE_RPC_TIMEOUT` | timeout | `30000` |'], '60000'), false);
+    });
+
+    test('a string default is matched and a wrong one is rejected', () => {
+        assert.equal(defaultDocumented(['| `SYNC_MODE` | mode | `server` |'], 'server'), true);
+        assert.equal(defaultDocumented(['| `SYNC_MODE` | mode | `client` |'], 'server'), false);
+    });
+
+    test('a string default is not read out of a longer word', () => {
+        assert.equal(defaultDocumented(['| `SYNC_MODE` | proxied by a webserver |'], 'server'), false);
+    });
+
+    test('a dotted string default matches literally, not as a wildcard', () => {
+        assert.equal(defaultDocumented(['| `DB_HOST` | host | `127.0.0.1` |'], '127.0.0.1'), true);
+        assert.equal(defaultDocumented(['| `DB_HOST` | host | `127a0b0c1` |'], '127.0.0.1'), false);
+    });
+
+    // : a switch's row names BOTH states by construction, so presence
+    // alone passed whichever value the code held. The row below is the shipped
+    // REQUIRE_SIGNATURES row, which is why `false` must not satisfy it.
+    test('a boolean default must be ASSERTED, not merely mentioned', () => {
+        const row = ['| `REQUIRE_SIGNATURES` | No | `true` | When `true`, reject unsigned P2P messages. Defaults to `true` in validator mode; pass `false` to bootstrap a new federation before all nodes have keys. |'];
+        assert.equal(defaultDocumented(row, 'true'), true);
+        assert.equal(defaultDocumented(row, 'false'), false);
+    });
+
+    test('a boolean default asserted only in prose still counts', () => {
+        assert.equal(defaultDocumented(['`TELEMETRY_ENABLED` defaults to `true`; set it to `false` to opt out.'], 'true'), true);
+        assert.equal(defaultDocumented(['`TELEMETRY_ENABLED` defaults to `true`; set it to `false` to opt out.'], 'false'), false);
+    });
+
+    // The numeric leniency is deliberately KEPT: requiring assertion there fails
+    // rows that annotate the value (`4194304` (4 MiB)) rather than misdocument it.
+    test('a numeric default still matches position-free beside an annotation', () => {
+        assert.equal(defaultDocumented(['| `EXPLORER_VM_MAX_STATE_BYTES` | No | `4194304` (4 MiB) | byte cap |'], '4194304'), true);
+    });
+});
+
+/*  ------------------------------------------------------------------
+ *  The comparators, on synthetic entries
+ *  ------------------------------------------------------------------
+ *
+ *  checkDefaultDrift and checkDivergentDefaults were reachable only through
+ *  the real survey, which needs the sibling checkouts, so in a standalone
+ *  clone nothing exercised them at all. These fixtures run everywhere.
+ */
+
+/**
+ * A survey entry. `docProse` defaults to the same lines, since a fixture that
+ * says nothing about fences has no fenced content; the fence-sensitive cases
+ * below pass the two views separately.
+ */
+const entryOf = (vars, docLines, docProse = docLines) => ({ vars: new Map(vars), docLines, docProse });
+
+describe('checkDefaultDrift', () => {
+    test('a mis-documented STRING default is drift, not a pass', () => {
+        // The blind spot itself (): extractDefault records
+        // `|| 'server'`, and a numeric-only filter used to throw it away, so a
+        // row saying `client` sailed through.
+        const entry = entryOf(
+            [['SYNC_MODE', [{ file: 'src/a.js', line: 1, default: { value: 'server', numeric: false } }]]],
+            ['| `SYNC_MODE` | No | `client` | which half to run |'],
+        );
+        assert.deepEqual(cov.checkDefaultDrift('sync', entry), [
+            'SYNC_MODE: code default server (src/a.js:1) appears on no doc line for it',
+        ]);
+    });
+
+    test('a correctly documented string default is clean', () => {
+        const entry = entryOf(
+            [['SYNC_MODE', [{ file: 'src/a.js', line: 1, default: { value: 'server', numeric: false } }]]],
+            ['| `SYNC_MODE` | No | `server` | which half to run |'],
+        );
+        assert.deepEqual(cov.checkDefaultDrift('sync', entry), []);
+    });
+
+    test('an empty-string default is not compared', () => {
+        // `|| ''` is "unset", which a row states in words; and an empty needle
+        // matches every row, so comparing it would pass whatever the docs said.
+        const entry = entryOf(
+            [['NETWORK', [{ file: 'src/a.js', line: 1, default: { value: '', numeric: false } }]]],
+            ['| `NETWORK` | No | None | chain and network |'],
+        );
+        assert.deepEqual(cov.checkDefaultDrift('explorer', entry), []);
+    });
+
+    // The reason enabling string comparison did not, on its own, close the case
+    // it was reported for: the sync pages carry `SYNC_MODE=server` in an env
+    // snippet, twice in `export` lines, in a `docker run -e` flag and in a
+    // mermaid node, so the table row could be rewritten to `client` and the
+    // check stayed green on the live corpus ().
+    test('a value shown only in an example does not document the default', () => {
+        const entry = entryOf(
+            [['SYNC_MODE', [{ file: 'src/a.js', line: 1, default: { value: 'server', numeric: false } }]]],
+            ['| `SYNC_MODE` | No | `client` | which half to run |', 'export SYNC_MODE=server'],
+            ['| `SYNC_MODE` | No | `client` | which half to run |'],
+        );
+        assert.deepEqual(cov.checkDefaultDrift('sync', entry), [
+            'SYNC_MODE: code default server (src/a.js:1) appears on no doc line for it',
+        ]);
+    });
+
+    test('a variable named only inside a fence is drift here, not silence', () => {
+        // checkUndocumented reads every line and is satisfied, so if this check
+        // read prose alone it would skip the variable and nothing would judge
+        // its default at all.
+        const entry = entryOf(
+            [['SYNC_MODE', [{ file: 'src/a.js', line: 1, default: { value: 'server', numeric: false } }]]],
+            ['export SYNC_MODE=server'],
+            [],
+        );
+        assert.equal(cov.checkUndocumented('sync', entry).length, 0);
+        assert.equal(cov.checkDefaultDrift('sync', entry).length, 1);
+    });
+});
+
+describe('checkDivergentDefaults', () => {
+    test('a string default that differs across components must be said on each', () => {
+        const survey = new Map([
+            ['sync', entryOf(
+                [['SYNC_MODE', [{ file: 'src/a.js', line: 1, default: { value: 'server', numeric: false } }]]],
+                ['| `SYNC_MODE` | No | `server` | which half to run |'],
+            )],
+            ['hub', entryOf(
+                [['SYNC_MODE', [{ file: 'src/b.js', line: 2, default: { value: 'client', numeric: false } }]]],
+                ['| `SYNC_MODE` | No | `server` | which half to run |'],
+            )],
+        ]);
+        const out = cov.checkDivergentDefaults(survey);
+        assert.equal(out.length, 1, `expected the hub side to be flagged, got: ${out.join('; ')}`);
+        assert.match(out[0], /^SYNC_MODE defaults to client in hub/);
+    });
+});
+
+describe('checkStaleKnownGaps (the waiver ratchet)', () => {
+    // KNOWN_GAPS is empty, and the only other test asserts the ratchet returns
+    // [] against the real survey, so both of its stale branches were dead: a
+    // body of `return []` passed the suite (). The waiver list is the
+    // one place this gate can be told to look away, so the check that keeps it
+    // shrinking has to be exercised on a non-empty list.
+    test('flags a waiver the code dropped and one the docs now cover, but not a live gap', () => {
+        const survey = new Map([
+            ['decoder', entryOf(
+                [
+                    ['NOW_DOCUMENTED', [{ file: 'src/a.js', line: 1, default: null }]],
+                    ['STILL_A_GAP', [{ file: 'src/b.js', line: 2, default: null }]],
+                    // NO_LONGER_READ is deliberately absent from vars.
+                ],
+                ['| `NOW_DOCUMENTED` | No | None | a knob |'],
+            )],
+        ]);
+
+        try {
+            cov.KNOWN_GAPS.decoder = ['NO_LONGER_READ', 'NOW_DOCUMENTED', 'STILL_A_GAP'];
+            assert.deepEqual(cov.checkStaleKnownGaps(survey), [
+                'decoder/NO_LONGER_READ: no longer read by the code',
+                'decoder/NOW_DOCUMENTED: now documented',
+            ]);
+        } finally {
+            // Leave the ratchet as we found it; every later check reads it.
+            delete cov.KNOWN_GAPS.decoder;
+        }
+    });
+
+    test('a component with no checkout is skipped rather than reported stale', () => {
+        try {
+            cov.KNOWN_GAPS.decoder = ['ANYTHING'];
+            assert.deepEqual(cov.checkStaleKnownGaps(new Map()), []);
+        } finally {
+            delete cov.KNOWN_GAPS.decoder;
+        }
     });
 });
 
@@ -388,6 +733,15 @@ describe('environment-variable documentation coverage ', { skip: siblingsMissing
         // health. The services read hundreds of variables between them.
         const total = cov.totalReads(survey);
         assert.ok(total > 300, `only ${total} env reads found across ${readable.length} components; the scanner is probably broken`);
+    });
+
+    test('every surveyed component contributed source files', () => {
+        // The fleet floor above is not enough on its own: the hub is about a
+        // third of the fleet's variables, so losing its whole scan to a moved
+        // layout still clears 300 while every hub check silently proves
+        // nothing.
+        const empty = cov.checkEmptyScan(survey);
+        assert.deepEqual(empty, [], `component scans that found no source at all:\n  ${empty.join('\n  ')}`);
     });
 
     for (const c of readable) {

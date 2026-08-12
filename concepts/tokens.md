@@ -16,14 +16,14 @@ Key parameters set at issuance:
 | `TICK` | The ticker symbol. 1–250 characters. Case-insensitive in lookups, stored as-is. |
 | `MAX_SUPPLY` | The ceiling on total supply. Can be up to 10^21 units. Once minted supply reaches this, no further minting is possible. |
 | `DECIMALS` | Decimal precision, 0–18. A token with `DECIMALS=8` and a balance of `100000000` displays as `1.00000000`. |
-| `MINT_SUPPLY` | How many units are created per `MINT` call. |
-| `MAX_MINT` | Maximum number of times the token can be minted (caps total mints, not total supply). |
+| `MINT_SUPPLY` | Supply minted immediately to the issuing address at `ISSUE` (default 0), not the amount a public `MINT` produces. |
+| `MAX_MINT` | Maximum amount of supply a single `MINT` transaction can issue (a per-transaction cap, not a limit on how many mints happen); `0` means no per-transaction cap. |
 | `DESCRIPTION` | A short human-readable description. |
-| `ALLOW_LIST` | Reference to a `LIST` of addresses permitted to hold or receive this token. If set, only listed addresses can receive transfers. |
-| `BLOCK_LIST` | Reference to a `LIST` of addresses barred from receiving this token. |
+| `ALLOW_LIST` | Reference to a `LIST` of addresses permitted to interact with this token. If set, only listed addresses can send or receive transfers of it. |
+| `BLOCK_LIST` | Reference to a `LIST` of addresses barred from sending or receiving this token. |
 | `MINT_START_BLOCK` | Block height before which minting is not allowed. |
 | `MINT_STOP_BLOCK` | Block height after which minting is not allowed. |
-| `MINT_ADDRESS_MAX` | Maximum cumulative mints allowed from a single address. |
+| `MINT_ADDRESS_MAX` | Maximum cumulative amount a single address can mint, summed across all its `MINT` transactions. |
 | `CALLBACK_BLOCK` | Block height at which the issuer can force-recall tokens. |
 | `CALLBACK_TICK` | The token paid to holders during a callback. |
 | `CALLBACK_AMOUNT` | How much `CALLBACK_TICK` is paid per unit recalled. |
@@ -54,8 +54,8 @@ Locking is a trust mechanism. A token with a locked max supply provably cannot b
 
 **Minting** adds tokens to circulation. A `MINT` ACTION, sent by any address (unless restricted), creates new units up to the `MAX_SUPPLY`. Minting is subject to:
 - Mint windows (`MINT_START_BLOCK` / `MINT_STOP_BLOCK`)
-- Per-address limits (`MINT_ADDRESS_MAX`)
-- Total mint count limits (`MAX_MINT`)
+- Per-address cumulative mint amount limits (`MINT_ADDRESS_MAX`)
+- Per-transaction mint amount limits (`MAX_MINT`)
 
 The token owner mints from the issuance address; public minting (where any address can mint) is also supported, enabling fair-launch token distributions.
 
@@ -65,8 +65,10 @@ The token owner mints from the issuance address; public minting (where any addre
 
 `ALLOW_LIST` and `BLOCK_LIST` reference `LIST` actions by their `ACTION_INDEX`. A list is a set of addresses or tickers defined on-chain.
 
-- **Allow list**: Only addresses on this list may receive transfers of the token. Useful for compliance-restricted instruments or private token distributions.
-- **Block list**: Addresses on this list cannot receive transfers. Useful for sanctions screening or preventing known bad actors from holding an asset.
+- **Allow list**: Only addresses on this list may send or receive transfers of the token. Useful for compliance-restricted instruments or private token distributions.
+- **Block list**: Addresses on this list cannot send or receive transfers. Useful for sanctions screening or preventing known bad actors from holding an asset.
+
+Both checks apply to the sending address as well as the recipient, so an address dropped from the allow list (or added to the block list) can no longer move the balance it already holds.
 
 Both lists can be updated unless locked. The `LIST` being referenced can itself be updated by its owner, making access control dynamic without requiring a new `ISSUE`.
 
@@ -97,8 +99,8 @@ Every transfer (SEND, SWEEP, AIRDROP, DIVIDEND, ORDER, DISPENSER) runs the same 
 flowchart TD
     A["Token exists?<br>Ticker refers to a valid, issued token"] --> B["Sufficient balance?<br>Sender has enough available balance"]
     B --> C["Not sleeping?<br>Token is not in a SLEEP period"]
-    C --> D["Allow list check<br>Recipient is on the allow list, if one is set"]
-    D --> E["Block list check<br>Recipient is not on the block list, if one is set"]
+    C --> D["Allow list check<br>Sender and recipient are both on the allow list, if one is set"]
+    D --> E["Block list check<br>Neither sender nor recipient is on the block list, if one is set"]
     E --> F["Memo check<br>Transfer includes a memo, if the recipient requires one"]
     F --> G["Transfer executes"]
 ```
@@ -106,8 +108,8 @@ flowchart TD
 1. **Token exists**: The ticker must refer to a valid, issued token.
 2. **Sufficient balance**: The sender must have enough available (unescowed) balance.
 3. **Not sleeping**: The token must not be in a SLEEP period.
-4. **Allow list check**: If the token has an allow list, the recipient must be on it.
-5. **Block list check**: If the token has a block list, the recipient must not be on it.
+4. **Allow list check**: If the token has an allow list, both the sender and the recipient must be on it.
+5. **Block list check**: If the token has a block list, neither the sender nor the recipient may be on it.
 6. **Memo check**: If the recipient has set a memo requirement via `ADDRESS`, the transfer must include a memo.
 
 All checks must pass for a transfer to execute. Partial execution is not possible.

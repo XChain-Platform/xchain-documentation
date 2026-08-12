@@ -80,7 +80,7 @@ const result = await sdk.createOrder(wif, {
     giveAmount: '100',
     getTick:    'TOKENB',
     getAmount:  '200',
-    expiration: 850000
+    expiration: 1893456000 // Unix seconds (2030-01-01); must be in the future
 }, { waitForIndexer: true });
 
 // Cancel the order (using the indexed action_index)

@@ -174,6 +174,25 @@ const XCALL_RESULT_ORPHAN_GRACE_SECONDS = 3600;
 // under the  batch because the fleet-wide replay recomputes all of it.
 const ATTEST_MAX_EXPIRIES_PER_BLOCK = 25;
 
+// ── Cross-chain settlement pass ─────────────────────────────────────────────
+// Deterministic per-block cap on the CROSS_SETTLE pass (), the one
+// cross-chain pass that had none: the indexer looped every finalized, effective,
+// unsettled match its hub mirror carried, so a mirror backlog injected an unbounded
+// number of escrow-releasing actions into a single block transaction, the same
+// block-processing-timeout shape the two caps above exist to prevent.
+//
+// Overflow carries forward rather than being dropped: the selection is ordered
+// (snapshot_block ASC, match_id ASC) over quorum-agreed row content, a total order,
+// so every operator takes the identical capped prefix and the remainder settles in
+// the next block. Mirrors both sibling caps in value and carry-forward semantics.
+//
+// CONSENSUS-VISIBLE, like both siblings: the cap decides which block a settlement
+// lands in. Unlike ATTEST_MAX_EXPIRIES_PER_BLOCK it has no fleet-wide replay behind
+// it, and the fresh-genesis testnet restart does not cover mainnet, so whether it
+// may be enforced UNGATED on an already-live chain is an operator decision recorded
+// with the deployment, not a property of this file.
+const CROSS_SETTLE_MAX_PER_BLOCK = 25;
+
 // ── Token-gated content (PC-29) ─────────────────────────────────────────────
 // Fixed fractional scale for comparing FILE.GATE_MIN_AMOUNT thresholds against a
 // holder's balance. The wallet scales both sides to this many fractional digits
@@ -681,6 +700,7 @@ module.exports = {
     XCALL_MAX_CALLS_PER_BLOCK,
     XCALL_RESULT_ORPHAN_GRACE_SECONDS,
     ATTEST_MAX_EXPIRIES_PER_BLOCK,
+    CROSS_SETTLE_MAX_PER_BLOCK,
     THRESHOLD_SCALE,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
     EQUIV_HEADER_ACTIVATION,

@@ -8,7 +8,7 @@
 ## When to use the web shell
 
 - **No-install access.** The web shell loads from a URL. No extension install, no desktop download. Lowest friction for first-time users.
-- **Mobile.** Native iOS / Android apps are on the post-launch roadmap. Until they ship, the web SPA is the mobile path; the layout is responsive between phone and desktop viewports.
+- **Mobile.** The native Android app, a Capacitor wrapper of this web build, has shipped (`v0.336.0`); a native iOS app is still on the post-launch roadmap. The web SPA remains the mobile path on iOS and anywhere the native app is not installed; the layout is responsive between phone and desktop viewports.
 - **Power-user expansion.** Users who already have the extension installed sometimes prefer the web's full-screen working surface for big workflows (multi-step issue + airdrop + dispenser flows). The web app surfaces an extension-detect banner offering to relaunch in the extension.
 
 The web shell's key isolation is fundamentally weaker than the extension's, same-origin scripts on `wallet.xchain.io` could in principle access in-memory key material. Mitigations are below; users with extreme threat models should prefer the extension or desktop shells.
@@ -89,14 +89,25 @@ The banner is a defensive recommendation; the extension's per-page-isolation sec
 
 ## CSP
 
-The web shell ships with a strict Content-Security-Policy meta tag:
+The web shell ships its own Content-Security-Policy meta tag, so the policy travels with the bundle instead of depending on a server-sent header that ops can forget. It is strict where an XSS payload would actually be stopped and deliberately relaxed in two places; both are named here rather than rounded off, because a reader who believes the policy is tighter than it is will mis-rate the shell's real boundary.
+
+Strict, and load-bearing:
 
 - `default-src 'self'`
-- No `unsafe-inline` styles or scripts
-- Connect to per-chain SDK endpoints only (configured via Settings)
-- No third-party fonts, analytics, ads, or trackers
+- `script-src 'self' https://connect.trezor.io`, with no `unsafe-inline` and no `unsafe-eval` (the crypto stack is pure JS, so no `wasm-unsafe-eval` either). The Trezor origin is the hosted Trezor Connect build, loaded at runtime instead of bundling the T-RSL-licensed npm package.
+- `object-src 'none'`, `base-uri 'none'`, `form-action 'none'`
+- `frame-ancestors 'none'`, set here for defence in depth. A `<meta>` CSP cannot enforce it; the fronting server must send it as a header for it to bind.
+- `frame-src 'self' https://connect.trezor.io`, because Trezor Connect runs its signing UI in a cross-origin frame it hosts.
+- `img-src 'self' data: blob:` and `font-src 'self' data:` for QR codes and the favicon, and `worker-src 'self' blob:`. No third-party fonts, analytics, ads, or trackers.
 
-Strict CSP is one of the few mitigations the web shell has against XSS; the wallet maintainers monitor browser support for additional layers (Trusted Types, prefetch policy) and add them where they don't break legitimate flows.
+Relaxed, on purpose:
+
+- `style-src` allows `'unsafe-inline'`. The UI uses React inline `style` attributes and runtime-injected `<style>` tags throughout. Inline styles cannot exfiltrate data, so this buys an attacker appearance and not reach.
+- `connect-src` allows `https:`, `wss:`, and loopback HTTP/WebSocket origins alongside `'self'`. The wallet talks to user-configured explorer, hub, and coin-node endpoints, which are data rather than code and cannot be enumerated at build time. This directive is best-effort; `script-src`, `object-src`, and `base-uri` are the ones defining the XSS boundary.
+
+The mobile `store` build profile ships the same policy minus the Trezor origins in `script-src` and `frame-src`: there is no WebHID in a WKWebView or an Android WebView, so a third-party script origin for an unreachable feature would be a remote-code surface kept open for nothing. Profiles can only ever subtract.
+
+The policy is one of the few mitigations the web shell has against XSS; the wallet maintainers monitor browser support for additional layers (Trusted Types, prefetch policy) and add them where they don't break legitimate flows. `packages/web/src/csp.js` in the wallet repo is the source of truth, and the bullets above track it rather than replacing it.
 
 ## Session lifetime
 

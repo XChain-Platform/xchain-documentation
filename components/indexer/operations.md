@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- Node.js >= 22
+- Node.js 22 (22.x LTS), pinned in `.nvmrc`. Node 24 cannot build the native `isolated-vm` module that this component's vendored `xchain-vm` dependency pulls in.
 - MariaDB server (for both Decoder and Indexer databases)
 - A running xchain-decoder instance (populating the Decoder database)
 

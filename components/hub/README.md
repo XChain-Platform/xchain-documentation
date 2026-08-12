@@ -69,7 +69,7 @@ HUB_DB_HOST=127.0.0.1
 HUB_DB_PORT=3306
 HUB_DB_NAME=XChain_Hub
 HUB_DB_USER=xchain
-HUB_DB_PASS=password
+HUB_DB_SECRET=password
 ```
 
 Start the hub:
@@ -91,12 +91,12 @@ HUB_DB_HOST=127.0.0.1
 HUB_DB_PORT=3306
 HUB_DB_NAME=XChain_Hub
 HUB_DB_USER=xchain
-HUB_DB_PASS=password
+HUB_DB_SECRET=password
 
 P2P_VALIDATOR_ADDR=validator1.example.com
 P2P_PORT=10001
 SEED_NODES=validator2.example.com:10001,validator3.example.com:10001
-SIGNING_PRIVKEY_HEX=your_64_hex_char_ed25519_private_key_seed
+SIGNING_PRIVKEY_SECRET=your_64_hex_char_ed25519_private_key_seed
 
 COINGECKO_API_KEY=your_api_key
 COINMARKETCAP_API_KEY=your_api_key

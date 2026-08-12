@@ -45,11 +45,13 @@ Locking a parameter makes it permanent. No future update (not from you, not from
 
 ### Can someone steal my tokens?
 
-Your tokens are controlled by your blockchain address, and your address is controlled by your private key. As long as your private key is secure, your tokens are secure. No one can move your tokens without your private key. XChain itself has no ability to freeze, seize, or move your tokens: there is no admin key, no backdoor, and no company with override access. The same rules that secure Bitcoin balances secure XChain token balances.
+Your tokens are controlled by your blockchain address, and your address is controlled by your private key. As long as your private key is secure, no one can transfer your balances out of your address without it. XChain itself has no ability to freeze, seize, or move your tokens: there is no admin key, no backdoor, and no company with override access. The same rules that secure Bitcoin balances secure XChain token balances.
+
+There is one exception, and it belongs to the token's issuer rather than to the platform. If a token was created with a callback (force-recall) configured, and its issuer has not locked that setting off, the issuer can recall that specific token from every holder: each holder's balance goes back to the issuer and each holder is credited the disclosed settlement amount in the settlement token, with no holder signature involved. That is a per-token property the issuer chooses and publishes at creation, readable on-chain before you acquire the token, and it does not exist on a token issued without a callback. See [Can a token be permanently destroyed?](#can-a-token-be-permanently-destroyed) below.
 
 ### Can I sell encrypted content as a token?
 
-Yes. You can publish a file (or a whole pack of files) to the blockchain encrypted, in a way that only people who hold a specific token can decrypt it. Then you put the token up for sale on the built-in exchange. Whoever buys the token automatically receives the decryption key as part of the same transaction; there is no separate download server, no key escrow service, and no membership database to maintain. If the buyer later sells the token, the key automatically transfers to the next holder, again all on-chain. This works for music, video, e-books, research papers, brand guidelines, board minutes, anything you can put in a file. See the [Token-Gated Encrypted Content](./use-cases.md#token-gated-encrypted-content-and-packs) use case for examples.
+Yes. You can publish a file (or a whole pack of files) to the blockchain encrypted, in a way that only people who hold a specific token can decrypt it. Then you put the token up for sale on the built-in exchange. There is no separate download server, no key escrow service, and no membership database to maintain. One thing to plan for: the decryption key is handed off automatically only on a direct send, where the protocol requires the key message to ride in the same transaction as the transfer. A buyer who receives the token any other way (a dispenser, an order or swap settlement, an airdrop, a dividend) gets the token without the key and needs it sent to them afterwards in a direct send. This works for music, video, e-books, research papers, brand guidelines, board minutes, anything you can put in a file. See the [Token-Gated Encrypted Content](./use-cases.md#token-gated-encrypted-content-and-packs) use case for examples.
 
 ### Can I sell my token's issuer rights?
 
@@ -73,11 +75,11 @@ The XChain DEX is an on-chain order book. When you place a buy or sell order, it
 
 ### What is a dispenser?
 
-A dispenser is a token vending machine. You set it up with a token, a price in coin (BTC, LTC, or DOGE), and a maximum number of sales. Anyone who sends the correct amount of coin to the dispenser address automatically receives the tokens. It works 24 hours a day without any action from you. Dispensers are useful for token sales, fundraisers, and any situation where you want reliable, always-on availability at a fixed price.
+A dispenser is a token vending machine. You set it up with a token, a price in coin (BTC, LTC, or DOGE), and a maximum number of sales. Anyone who sends the correct amount of coin to the dispenser address automatically receives the tokens. It works 24 hours a day without any action from you, up until the expiration you set for it (90 days by default). When a dispenser expires it closes automatically and any tokens still in it are returned to you, so no dispenser runs indefinitely. Dispensers are useful for token sales, fundraisers, and any situation where you want reliable, hands-off availability at a fixed price.
 
 ### Can I trade tokens across different blockchains?
 
-Yes. The SWAP action allows cross-chain atomic exchanges: you can trade a token on Bitcoin for a token on Litecoin, for example. The trade is atomic, meaning both sides complete or neither does. Your tokens are held in protocol-level escrow on your own blockchain throughout the process; they never pass through a third party. See the [Cross-Chain guide](./cross-chain.md) for a full explanation.
+Yes. The SWAP action allows cross-chain exchanges: you can trade a token on Bitcoin for a token on Litecoin, for example. Your tokens are held in protocol-level escrow on your own blockchain throughout the process; they never pass through a third party, and the escrow is released only against a match signed by a supermajority of hub validators, or returned to you at the deadline if no match is signed. Note that two blockchains cannot commit in a single step: each chain settles its own leg once it sees the signed match, so this is not atomic in the way a single-chain trade is. See the [Cross-Chain guide](./cross-chain.md) for the settlement flow and its residual risk.
 
 ### Are my tokens safe while a trade is in progress?
 

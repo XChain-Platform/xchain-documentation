@@ -67,7 +67,7 @@ Unused target-side gas is not refunded in v1. The callback runs against the fixe
 
 ## Notes
 - There is no on-chain Version `1`. The result comes back as a quorum-signed hub-mirror row (`cross_chain_calls`, phase `result`), and the callback is delivered as a system-injected `EXECUTE`, the same pattern used for attestation callbacks (see [`EXECUTE`](./execute.md) and [`ATTEST`](./attest.md))
-- Both relay legs travel as immutable `cross_chain_calls` rows (`UNIQUE(call_id, phase)`), signed 2f+1 by the `cross_chain` capability set and verified by every indexer against the mirrored capability snapshot at the row's `snapshot_block` before any effect is applied. The canonical signing strings are:
+- Both relay legs travel as immutable `cross_chain_calls` rows (`UNIQUE(call_id, phase)`), signed by the `cross_chain` capability set and verified by every indexer against the mirrored capability snapshot at the row's `snapshot_block` before any effect is applied. That `snapshot_block` also selects the quorum rule: stake-weighted (source-deduped) at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count (see [Cross-chain calls: trust model](../cross-chain-calls.md#trust-model)). The canonical signing strings are:
   ```
   Dispatch: XCALL|DISPATCH|call_id|snapshot_block|network|source_chain|source_action_index|source_contract_index|target_chain|target_contract_index|method|sha256(params_json)|gas_limit|cross_hops|effective_time
   Result:   XCALL|RESULT|call_id|snapshot_block|network|target_chain|result_status|sha256(return_payload_b64)|effective_time

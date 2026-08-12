@@ -50,7 +50,7 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 | [**LICENSE**](./LICENSE.md) | Full license text |
 | [**NOTICE**](./NOTICE.md) | Required attribution, license summary, and third-party notices |
 
-Any redistribution or modification must include the attribution notice specified in [NOTICE.md](./NOTICE.md). Commercial use requires prior written consent from Dankest, LLC (see [LICENSE.md](./LICENSE.md) for details.
+Any redistribution or modification must include the attribution notice specified in [NOTICE.md](./NOTICE.md). You may run and modify XChain for free under the AGPL-3.0, including inside a for-profit company, provided you share any modifications under the AGPL; a commercial license from Dankest, LLC is required only to keep modifications private or to embed XChain in a closed-source product (see [legal/licensing.md](./legal/licensing.md) for details).
 
 ---
 

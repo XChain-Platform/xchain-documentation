@@ -26,12 +26,14 @@ AI workflow is built on.
 ## Why this is safe
 
 An LLM can write a contract that *looks* right but would be rejected the moment
-you tried to deploy it: a stray float, a `Math.pow`, a `RegExp`, an `async`
-method. XChain's determinism gate rejects exactly those, on-chain, at deploy
-time. The AI-assisted workflow closes that gap by running every generated
-contract through the **same static determinism gate the on-chain validator uses**,
-then feeding any errors back to the model to fix, before you ever spend a
-transaction. You get generation speed with deploy-time correctness.
+you tried to deploy it: a `Math.pow`, a `RegExp`, an `async` method. XChain's
+determinism gate rejects exactly those, on-chain, at deploy time. A stray decimal
+literal is the quieter failure: it is a non-blocking **warning**, so the contract
+deploys and only the warning tells you the arithmetic is non-deterministic. The
+AI-assisted workflow closes both gaps by running every generated contract through
+the **same static determinism gate the on-chain validator uses**, then feeding any
+errors back to the model to fix, before you ever spend a transaction. You get
+generation speed with deploy-time correctness.
 
 The harness never invents rules of its own: it teaches the model the same
 concept map, model shifts, and hard rules documented in

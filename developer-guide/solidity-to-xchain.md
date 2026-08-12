@@ -95,7 +95,7 @@ build step and nothing to install (contracts stay single-file and import-free).
 | `require(c, "m")` | `xchain.require(c, 'm')` | reverts the whole execution + emissions |
 | `revert("m")` | `xchain.revert('m')` | |
 | `emit Event(...)` | `xchain.emit.broadcast(...)` | or rely on the indexer action log + explorer |
-| `uint` math / SafeMath | `xchain.math.add/subtract/multiply/divide/compare/gt/gte/lt/lte/eq/...` | bignumber, no overflow, **floats are rejected at deploy** |
+| `uint` math / SafeMath | `xchain.math.add/subtract/multiply/divide/compare/gt/gte/lt/lte/eq/...` | bignumber, no overflow; banned `Math.*` is rejected at deploy, a decimal literal is only a **warning** |
 | `transfer` / `send` value | `xchain.emit.send({ ... })` | emits a SEND; applied after return |
 | external call (returns a value) | `xchain.emit.execute({ contractIndex, method, params, gasLimit })` | **async, no return value**; respond via a callback method |
 | cross-chain call | `xchain.emit.crossExecute({ targetChain, contractIndex, method, params, callbackMethod, callbackParams, deadlineBlocks })` | bridgeless; target must export `crossCallable` |
@@ -211,10 +211,14 @@ sent to a single-tick contract are not recoverable by that template.
 
 ## Gotchas an EVM dev will hit
 
-- **Floats are rejected at deploy.** No `1.5`, no `Math.pow`/`sqrt`/`log` (stripped
-  for cross-CPU determinism). Use `xchain.math.*` for all arithmetic. The linter
-  (`sdk.validateContract` / `npx xchain-contracts lint`) catches this before you spend
-  a transaction.
+- **Banned math is rejected at deploy; a decimal literal is only a warning.** No
+  `Math.pow`/`sqrt`/`log` and no `**` (stripped for cross-CPU determinism): those are
+  `banned-math` errors and the chain refuses the DEPLOY. A decimal literal such as
+  `1.5` is different. It emits a non-blocking `float-literal` **warning** and the
+  contract still deploys, so nothing stops you shipping non-deterministic arithmetic
+  except reading the warning. Use `xchain.math.*` for all arithmetic. The linter
+  (`sdk.validateContract` / `npx xchain-contracts lint`) surfaces both, as an error
+  and as a warning respectively, before you spend a transaction.
 - **Everything is a string.** Params and state values are strings; convert with
   `parseInt` for small counters, use `xchain.math` for token amounts (never native
   float math on amounts).

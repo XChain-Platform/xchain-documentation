@@ -52,6 +52,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const gen = require('../bin/generate-flag-days.js');
@@ -144,6 +145,135 @@ test('both registry parses still find their gates', { skip: HAS_INDEXER ? false 
     for (const gate of ['VM_BANNED_ASYNC', 'NATIVE_FEE_PRICE_TIME_GATE', 'DEPLOY_BASE64_CODE']) {
         assert.strictEqual(byName.get(gate), anchor, `${gate} no longer rides the coordinated flag day`);
     }
+});
+
+/*  ------------------------------------------------------------------
+ *  Completeness: a declaration the parse cannot read must be LOUD
+ *  ------------------------------------------------------------------
+ *
+ *  The anchor test above can only name gates that already exist, which is no
+ *  help for the gate somebody adds tomorrow in a style the regexes miss: it
+ *  would drop from the page, the generator would rewrite the page to agree,
+ *  and every test here would stay green (). These fixtures drive
+ *  collectGates against a synthetic registry, so they run in a standalone
+ *  clone with no sibling indexer.
+ */
+
+/** A throwaway indexer src dir holding one fixture registry. */
+function fixtureRegistry(body) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flagday-registry-'));
+    fs.writeFileSync(path.join(dir, 'protocol_changes.js'), body);
+    return dir;
+}
+
+test('an addChange call the parse cannot read is refused, not skipped', () => {
+    const dir = fixtureRegistry('this.addChange("FOO", "1.0.0", 1786060800, 0, 0, 0, 0, 0);\n');
+    assert.throws(
+        () => gen.collectGates(dir),
+        /FOO/,
+        'a double-quoted call was dropped in silence, which is how the page ships one row short',
+    );
+});
+
+test('a drifted _MAINNET_TIME constant is refused, not skipped', () => {
+    const dir = fixtureRegistry('const FOO_MAINNET_TIME = 1_786_060_800;\n');
+    assert.throws(() => gen.collectGates(dir), /FOO_MAINNET_TIME/);
+});
+
+test('the check is structural: a legitimately value-filtered gate does not throw', () => {
+    // A block-height threshold and the unarmed sentinel are both READ and then
+    // dropped by the value filter. That is correct, and must not read as an
+    // unparsable declaration.
+    const dir = fixtureRegistry(
+        "this.addChange('BY_HEIGHT', '1.0.0', 850000, 0, 0, 0, 0, 0);\n"
+        + "this.addChange('UNARMED', '1.0.0', 9999999999, 0, 0, 0, 0, 0);\n"
+        + "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+});
+
+test('a call passing a collected constant by name does not throw', () => {
+    // The registry's own shape for the two cohort constants: declared as a
+    // const, then handed to addChange by identifier. The call is unreadable to
+    // changeRe, and nothing is lost, because the const pass already has it.
+    const dir = fixtureRegistry(
+        'const REAL_MAINNET_TIME = 1786060800;\n'
+        + "this.addChange('REAL', '2.0.0', REAL_MAINNET_TIME, 0, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+});
+
+test('a commented-out declaration is not mistaken for a live one', () => {
+    const dir = fixtureRegistry(
+        "// this.addChange(\"OLD\", '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+});
+
+/*  ------------------------------------------------------------------
+ *  The other half of that check: what it must stay QUIET about
+ *  ------------------------------------------------------------------
+ *
+ *  Most of the registry is not on this page. Around forty gates carry
+ *  mainnet_time 0, several carry block heights, and one parks the unarmed
+ *  sentinel, so a check that fires on unreadable SYNTAX alone fires hardest on
+ *  declarations that could never have contributed a row. Regenerating today's
+ *  registry cannot show that, because every call in it is single-quoted and no
+ *  arm of the check is exercised at all; only fixtures can.
+ */
+
+test('an unreadable call for a gate active since genesis does not throw', () => {
+    const dir = fixtureRegistry(
+        "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + 'this.addChange("ADDRESS", "1.0.0", 0, 0, 0, 0, 0, 0);\n',
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+});
+
+test('an unreadable call keyed to a block height does not throw', () => {
+    // Heights are not this page's subject, so an unreadable one drops nothing.
+    const dir = fixtureRegistry(
+        "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + 'this.addChange("BY_HEIGHT", "1.0.0", 961000, 0, 0, 0, 0, 0);\n',
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+});
+
+test('a call whose time is an identifier the const pass never saw does not throw', () => {
+    // No text scan can tell a parked sentinel from a live timestamp behind a
+    // name, and guessing is what turns a build gate into noise.
+    const dir = fixtureRegistry(
+        'const PRICE_PAIR_SENTINEL = 9999999999;\n'
+        + "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + "this.addChange('PRICE_PAIR', '1.0.0', PRICE_PAIR_SENTINEL, 0, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+});
+
+test('a declaration inside a block comment does not throw', () => {
+    // Its own line starts with `this.`, which a leading-token comment test
+    // reads as live code.
+    const dir = fixtureRegistry(
+        "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + '/*\n'
+        + 'this.addChange("OLD", "1.0.0", 1786060800, 0, 0, 0, 0, 0);\n'
+        + 'const OLD_MAINNET_TIME = someOtherThing;\n'
+        + '*/\n',
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+});
+
+test('a slash-slash inside a string does not blind the scan to the rest of the file', () => {
+    const dir = fixtureRegistry(
+        "const DOCS = 'https://xchain.dev/gates';\n"
+        + 'this.addChange("FOO", "1.0.0", 1786060800, 0, 0, 0, 0, 0);\n',
+    );
+    assert.throws(() => gen.collectGates(dir), /FOO/);
+});
+
+test('the real registry parses clean, so the check is not merely strict', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+    assert.ok(gen.collectGates().length > 0);
 });
 
 test('the generated page is the only place a live flag-day value appears', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {

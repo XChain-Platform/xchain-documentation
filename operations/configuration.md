@@ -152,11 +152,11 @@ CORS origins and other advanced settings may be configured through the hub or a 
 | `HUB_DB_PORT` | MariaDB port | Required |
 | `HUB_DB_NAME` | MariaDB database name (e.g., `XChain_Hub`) | Required |
 | `HUB_DB_USER` | MariaDB username | Required |
-| `HUB_DB_PASS` | MariaDB password | Required |
+| `HUB_DB_SECRET` | MariaDB password (deprecated name `HUB_DB_PASS` is still read) | Required |
 | `P2P_VALIDATOR_ADDR` | Validator address (activates validator mode) | Not set |
 | `P2P_PORT` | WebSocket P2P port | `10001` |
 | `SEED_NODES` | Comma-separated peer addresses | Not set |
-| `SIGNING_PRIVKEY_HEX` | Ed25519 private key (64 hex chars) | Not set |
+| `SIGNING_PRIVKEY_SECRET` | Ed25519 private key (64 hex chars; deprecated name `SIGNING_PRIVKEY_HEX` is still read) | Not set |
 
 The hub uses MariaDB for all data storage. The database and tables are auto-created on startup. In standalone mode the hub provides a config oracle, the `PriceAggregator` (for receiving on-chain PRICE actions from indexers), and the `HubDbBroadcaster` (for replicating cross-chain price data to connected indexers). In validator mode (when `P2P_VALIDATOR_ADDR` is set), the hub also activates PBFT consensus, the price oracle round system, the `oracle_publish` capability publisher, cross-chain attestation, governance, and reward/slash tracking. See the [hub Configuration reference](../components/hub/configuration.md) for the full list of environment variables.
 

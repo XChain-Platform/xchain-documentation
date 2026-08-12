@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** >= 22
+- **Node.js** 22 (22.x LTS), the platform's canonical runtime, pinned in `.nvmrc`
 - A running regtest coin node (bitcoind, litecoind, or dogecoind) with JSON-RPC enabled
 - The coin node must be in regtest mode with wallet support enabled
 

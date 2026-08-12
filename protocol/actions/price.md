@@ -92,7 +92,7 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 #### Batch Publishing
 - A single PRICE v0 transaction may contain multiple rounds (for failover catch-up)
 - When a failover publisher takes over, they batch all missed rounds into one or more transactions
-- No artificial cap on rounds per batch, bounded only by P2SH encoding limits (~65KB max)
+- No artificial cap on rounds per batch, bounded only by the P2SH compiled-ACTION encoding limit (8,192 bytes, see [Format Selection](../../components/encoder/format-selection.md))
 - If the batch exceeds a single P2SH transaction, multiple PRICE transactions are sent
 - Each round in the batch derives its own reward split from its own signer list (publishing itself earns no extra reward. see Round Rewards)
 
@@ -100,7 +100,9 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Each `PUBKEY` must correspond to a pubkey qualifying for `price` at the BLOCK_INDEX of the PRICE tx (`SUM(amount)` across active stake rows ≥ `min_stake[price]`, governance-configurable; rows are active where `activation_block ≤ block_index < COALESCE(deactivation_block, +∞)`)
 - Each `SIGNATURE` must be a valid Ed25519 signature over the canonical PRICE v0 payload by the corresponding `PUBKEY`
 - Canonical payload format: `JSON.stringify({round, timestamp, btc_block_height, pairs})` where `pairs` is sorted ascending by `pair` field. At/above the EQUIV activation height (keyed on `btc_block_height`) the canonical is prefixed with the uniform header `EQUIV|XORACLE|<btc_block_height>|0||` before signing
-- `SIG_COUNT` must meet PBFT quorum: `>= max(2 * floor((price_capable_count - 1) / 3) + 1, ceil((price_capable_count + 1) / 2))`, where `price_capable_count` is the number of pubkeys qualifying for `price` at the PRICE tx's BLOCK_INDEX. The simple-majority floor prevents the bare `2f+1` form from degenerating to a quorum of 1 at N=3
+- The qualified signers must meet the `price` quorum. Which rule applies is keyed on the round's **signed `BTC_BLOCK_HEIGHT`** (the BTC anchor carried in the payload, the same plane the EQUIV header gate uses), not on the PRICE tx's own BLOCK_INDEX: PRICE v0 is publishable on any chain, so keying on the landing chain's local height would flip the rule months early on LTC/DOGE and resolve one signed round under two rules
+  - **At/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`**: stake-weighted and source-deduplicated. The summed weight of the qualified signers' distinct staking sources must exceed two thirds of the total weight over all distinct sources qualifying for `price` at the PRICE tx's BLOCK_INDEX (`3 · Σ signer weight > 2 · S`). A staking source counts once however many of its keys sign (DELEGATE is additive), and the predicate fails closed on a truncated, blank-source or negative-weight stake snapshot
+  - **Below activation**: the legacy count quorum. `SIG_COUNT >= max(2 * floor((price_capable_count - 1) / 3) + 1, ceil((price_capable_count + 1) / 2))`, where `price_capable_count` is the number of pubkeys qualifying for `price` at the PRICE tx's BLOCK_INDEX. The simple-majority floor prevents the bare `2f+1` form from degenerating to a quorum of 1 at N=3
 - Duplicate pubkeys in the signature list count only once
 - Rounds that fail signature validation are marked `invalid` and not pushed to the hub
 - A pubkey qualifies either as a stake key or as a delegated key, see the effective signer set in [DELEGATE](delegate.md)

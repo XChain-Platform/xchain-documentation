@@ -27,7 +27,8 @@ and settled by the **xchain-hub validator federation**:
    cross-chain **`ORDER`** matches on a **price-time book** and may be **partially filled** across
    several matches (see [ORDER offers & partial fills](#order-offers-partial-fills)).
 3. **Finalize + sign**; the federation reaches consensus and signs a single **match record**
-   with `2f+1` `cross_chain`-capable validator signatures.
+   with a `cross_chain`-capability quorum of validator signatures. The quorum rule is
+   activation-gated, see [Trust model](#trust-model).
 4. **Deliver**; the signed match is written to the hub's `cross_chain_matches` table and
    **streamed to every indexer over the existing hub-DB mirror**: the same channel that already
    carries `price_snapshots`/`oracle_prices`. **There is no per-trade on-chain transaction.**
@@ -47,7 +48,7 @@ sequenceDiagram
     Note over Chain: GIVE side escrowed locally on the posting chain
     Federation->>Chain: Discover, polls open cross-chain offers<br>(getopencrosschainorders)
     Federation->>Federation: Match, compatible pair found<br>(SWAP exact single-fill FCFS,<br>or ORDER price-time book, may partial-fill)
-    Federation->>Federation: Finalize, reaches consensus,<br>signs match record with 2f+1 cross_chain signatures
+    Federation->>Federation: Finalize, reaches consensus,<br>signs match record with a cross_chain quorum<br>(stake-weighted at/above activation, else 2f+1 count)
     Federation->>Hub: Deliver, signed match written<br>and streamed to every indexer over the hub-DB mirror
     Hub->>Indexer: mirrored match record
     Indexer->>Indexer: Settle, verifies signatures,<br>releases leg's escrow to counterparty as CROSS_SETTLE
@@ -63,10 +64,16 @@ Because both sides are **pre-escrowed**, there is no payment that can bounce, se
 
 ## Trust model
 
-Every indexer **verifies the `2f+1` validator signatures before settling**. The mirror is a
-*transport*, not a trusted authority: a corrupted or lagging mirror can **delay or withhold** a
-settlement (a liveness/DoS concern) but **cannot forge** one; the signatures won't verify. Trust
-rests on the `cross_chain` validator set, decentrally, exactly as for on-chain validator actions.
+Every indexer **verifies the `cross_chain` federation quorum before settling**, against the
+capability snapshot the match pins at its `snapshot_block`, which is the same locked snapshot the
+hub tallied. Which quorum rule applies is decided by that `snapshot_block`: **stake-weighted
+(source-deduped) at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`**, where the summed stake of the
+qualified signers must exceed two thirds of the total staked amount and one staking source counts
+once no matter how many of its keys sign; **otherwise the legacy `2f+1` signer count**. This is the
+same rule the XCALL dispatch leg applies. The mirror is a *transport*, not a trusted authority: a
+corrupted or lagging mirror can **delay or withhold** a settlement (a liveness/DoS concern) but
+**cannot forge** one; the signatures won't verify. Trust rests on the `cross_chain` validator set,
+decentrally, exactly as for on-chain validator actions.
 
 ## The match record (`cross_chain_matches`)
 
@@ -81,7 +88,7 @@ A finalized match is symmetric and describes both legs:
 | `b_*` | order B |
 | `a_payout_legs`/`b_payout_legs` | each order's controller-guard royalty split (JSON `[{to,bps}]` in that order's OWN chain encoding; NULL = none). Applied to the released proceeds at settlement, re-encoded to the local chain; signed into the canonical at/above the `CROSS_CHAIN_ROYALTY` flag-day (see `Controller_Bound_Tokens.md` §Cross-chain sales) |
 | `effective_time` | wall-clock instant indexers apply at (the only shared clock across chains) |
-| `validator_signatures` | JSON `[{pubkey,sig}]`, `2f+1` over the canonical match |
+| `validator_signatures` | JSON `[{pubkey,sig}]` over the canonical match, meeting the `cross_chain` quorum at `snapshot_block` (see [Trust model](#trust-model)) |
 | `status` | `finalized` / `retracted` |
 | `batch_root` / `anchor_txid` | optional; DOGE anchoring metadata (`anchor_txid` back-filled by ANCHOR v1 archives; `batch_root` only on rows stamped by the retired XDEXANCHOR publisher) |
 
@@ -168,8 +175,8 @@ closes that gap: the federation periodically publishes, on **DOGE only**:
   `validator_signatures` and the `capability_snapshots` rows needed to re-verify them),
   compressed and batched.
 
-This **does not gate settlement** (settlement remains mirror-driven and verifies `2f+1`
-signatures as above); it guarantees that a full parse of the three chains, with no surviving hub
+This **does not gate settlement** (settlement remains mirror-driven and verifies the
+`cross_chain` quorum as above); it guarantees that a full parse of the three chains, with no surviving hub
 database, can rebuild the match set via the recovery tool (`xchain-indexer/src/recovery.js`) and
 re-derive identical state. A match retracted after being archived is re-published in a later
 batch with `status=retracted`; recovery applies latest-status-wins by `batch_seq`.

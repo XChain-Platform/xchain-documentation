@@ -71,7 +71,7 @@ Reward rows reach the indexer's `validator_rewards` table on two rails:
 
 ## Reward Funding
 
-XCHAIN is a fixed-supply token (minted once at genesis, then locked (see [GAS](../../concepts/gas.md)). Rewards are therefore **not minted**; they are paid out of a dedicated **reward pool address** (`config['ADDRESS']['REWARD']`, BTC only). A valid `COLLECT` debits the pool for the reward amount and credits the broadcasting address, leaving total XCHAIN supply unchanged.
+XCHAIN is a fixed-supply token: a permanent `MAX_SUPPLY` cap is set at genesis, but supply starts at zero (no pre-mint) and is created only through public mints during the launch window, up to the cap (see [GAS](../../concepts/gas.md)). Rewards are therefore **not minted**; they are paid out of a dedicated **reward pool address** (`config['ADDRESS']['REWARD']`, BTC only). A valid `COLLECT` debits the pool for the reward amount and credits the broadcasting address, leaving total XCHAIN supply unchanged.
 
 The pool is seeded at genesis and **topped up manually** (an ordinary XCHAIN `SEND` to the pool address) by the operator. Because the balance check reads the pool at the action's block/action index, every validator computes the same accept/reject outcome.
 

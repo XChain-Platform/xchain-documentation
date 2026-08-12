@@ -56,7 +56,7 @@ const result = await sdk.issue({
   tick:        'MYTOKEN',      // Token ticker (up to 250 chars, no | ; . / chars)
   maxSupply:   '1000000',      // Maximum total supply
   decimals:    8,              // Decimal places (0–18)
-  mintSupply:  '1000',         // How much each MINT action produces
+  mintSupply:  '1000',         // Supply credited to you immediately at ISSUE (not a per-MINT amount)
   description: 'My first XChain token',
 });
 
@@ -137,12 +137,12 @@ console.log(balances);
 
 ## Step 7: Mint Some Supply
 
-The ISSUE action defines the token. To actually put tokens in circulation, use MINT:
+The ISSUE action defines the token. `mintSupply` already credited you its amount at issuance; MINT is how any further supply enters circulation. Each MINT carries its own `amount`, which the minter chooses:
 
 ```js
 const mintResult = await sdk.mint({
-  tick: 'MYTOKEN',
-  // mintSupply from the ISSUE action is used automatically
+  tick:   'MYTOKEN',
+  amount: '500',     // Required. MINT never reuses mintSupply
 });
 
 // Encode, sign, broadcast the PSBT the same way as above
@@ -154,7 +154,7 @@ const { psbt } = await sdk.encoder.createTx({
 });
 ```
 
-Each MINT transaction adds `mintSupply` tokens to your address, up to `maxSupply`.
+Each MINT transaction adds the `amount` you passed to your address. That amount is capped per transaction by `maxMint` (unset means no per-transaction cap), cumulatively per address by `mintAddressMax`, and overall by `maxSupply`.
 
 ---
 

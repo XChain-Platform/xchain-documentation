@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- Node.js >= 22
+- Node.js 22 (22.x LTS), the platform's canonical runtime, pinned in `.nvmrc`
 - MariaDB server
 - A running coin node (bitcoind, litecoind, or dogecoind) with JSON-RPC enabled
 
@@ -132,11 +132,13 @@ Returns HTTP 200 with `{status: "healthy", db, running}` when the decoder is run
 
 ### `GET /live` (REST)
 
-The liveness probe, and the route the Docker HEALTHCHECK runs. Everything `/status` reports, plus `stalled`, `last_processed_block`, `node_height`, `lag`, `parse_errors`, and `rpc_errors`. Returns HTTP 503 when the decoder is not running, MariaDB is unreachable, **or** the block loop is stalled.
+The liveness probe, and the route the Docker HEALTHCHECK runs. Everything `/status` reports, plus `stalled`, `poll_silent`, `last_poll_at`, `last_processed_block`, `node_height`, `lag`, `parse_errors`, and `rpc_errors`. Returns HTTP 503 when the decoder is not running, MariaDB is unreachable, the block loop is stalled, **or** the block loop has stopped iterating.
 
-Stalled means the loop is alive and retrying but no longer making progress the chain is waiting on: either one height has failed to fetch on many consecutive attempts, or nothing advanced for `DECODER_STALL_ALERT_MS` (default 15 minutes) while the node tip was fresh and visibly ahead. The block loop never skips a block on a fetch or parse fault, because skipping would corrupt the index, so a deterministic fault at one height retries forever with the process alive and the DB answering. That case is invisible to `/status`, which is why autoheal probes `/live` instead.
+Stalled means the loop is alive and retrying but no longer making progress the chain is waiting on: either one height has failed to fetch on many consecutive attempts, or nothing advanced for `DECODER_STALL_ALERT_MS` (default `900000` ms, 15 minutes) while the node tip was fresh and visibly ahead. The block loop never skips a block on a fetch or parse fault, because skipping would corrupt the index, so a deterministic fault at one height retries forever with the process alive and the DB answering. That case is invisible to `/status`, which is why autoheal probes `/live` instead.
 
 A frozen node tip (node outage) is deliberately **not** stalled: both sides stop and a restart fixes nothing. Tune the window per host with `DECODER_STALL_ALERT_MS`, and the consecutive-fetch-failure threshold with `DECODER_STALL_FETCH_ATTEMPTS` (default 20 attempts, about one minute).
+
+Stopped iterating is a third failure, and the only one none of the fields above can see. `stalled` asks whether the CHAIN is advancing, so a caught-up decoder is never stalled by construction; a loop that dies or hangs while caught up therefore left `running` and `db` true and `stalled` false, and this probe answered 200 indefinitely while nothing parsed. `last_poll_at` is stamped at the top of every loop iteration whether or not a block arrived, and `poll_silent` goes true once it is older than `DECODER_POLL_SILENT_MS` (default twice the stall window, 30 minutes at stock settings). Unlike a frozen node tip this one gates health, because a restart does fix it. The outage retry path re-enters the loop top every three seconds, so a node outage keeps the heartbeat ticking and stays 200 here.
 
 ### `getlatestblock`
 

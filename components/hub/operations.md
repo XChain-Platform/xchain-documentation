@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- Node.js >= 22
+- Node.js 22 (22.x LTS), the platform's canonical runtime, pinned in `.nvmrc`
 - MariaDB server
 - For validator mode: seed node addresses, Ed25519 private key, price API keys
 
@@ -45,7 +45,7 @@ Without `P2P_VALIDATOR_ADDR`, the hub runs as a simple config oracle. Config rea
 ### Validator Mode
 
 With `P2P_VALIDATOR_ADDR` set, the hub joins the P2P validator network. All config writes go through PBFT consensus, price data is aggregated from multiple validators, and cross-chain actions are attested by a quorum. This mode requires:
-- `SIGNING_PRIVKEY_HEX`: Ed25519 private key for signing messages
+- `SIGNING_PRIVKEY_SECRET`: Ed25519 private key for signing messages (deprecated name `SIGNING_PRIVKEY_HEX` is still read)
 - `SEED_NODES`: comma-separated list of peer addresses to bootstrap the mesh
 - `ORACLE_EPOCH_START`: oracle round-numbering anchor (Unix ms), **identical across the federation**
 - `HUB_CAPABILITY_CONFIG`: path to the capability config JSON: `MIN_STAKE` thresholds + per-capability self-test config blocks (see CONFIGURATION.md)
@@ -210,13 +210,13 @@ Do not expose the hub's raw port publicly without `HUB_API_KEY` set: with no key
 
 ## Validator Key Rotation
 
-A validator's **transport identity** is the Ed25519 key in `SIGNING_PRIVKEY_HEX`; the key it signs P2P consensus envelopes with. Rotating it (routine hygiene, or after a suspected compromise) means changing that key *without* peers dropping the validator with `P2P: Invalid signature`.
+A validator's **transport identity** is the Ed25519 key in `SIGNING_PRIVKEY_SECRET`; the key it signs P2P consensus envelopes with. Rotating it (routine hygiene, or after a suspected compromise) means changing that key *without* peers dropping the validator with `P2P: Invalid signature`.
 
 Two layers authorize a signing key, and a peer admits an envelope whose signer is in **either**:
 
 | Layer | Source | Scope | Follows on-chain rotation? |
 |---|---|---|---|
-| **On-chain effective set** | `getactivevalidators` at the BTC tip, polled every `P2P_SIGNER_SET_REFRESH_MS` (default 30 s) | Federation-wide, authoritative | **Yes: automatically** |
+| **On-chain effective set** | `getactivevalidators` at the BTC tip, polled every `P2P_SIGNER_SET_REFRESH_MS` (default `30000` ms, 30 s) | Federation-wide, authoritative | **Yes: automatically** |
 | **Validator registry** | The hub's local `validators` table (`registervalidator` / `rotatevalidator` / `deregistervalidator`) | This hub only (a bootstrap *floor* | No) edited by hand/RPC |
 
 Because the effective set is the union of both, a hub that follows an on-chain validator set picks up a rotation on its own: once the new key is active on-chain, every peer admits it within one refresh interval. The poll **never fails open**, on an upstream error the last-known-good set is retained and the registry remains the floor, so a transient indexer outage can never silently widen who may sign.
@@ -229,7 +229,7 @@ The on-chain rotate is a [`DELEGATE` v0](../../protocol/actions/delegate.md) (ca
 
 1. **Generate the new key** offline (`xchain-node validator init` prints a fresh pubkey, or generate an Ed25519 keypair however you manage keys). Keep the seed offline until step 3.
 2. **Broadcast `DELEGATE` v0** from the validator's staking address with `NEW_SIGNING_PUBKEY = <new pubkey>`. The new key becomes active after the **6-block BTC activation delay** (~1 hour), signatures from it are rejected until then.
-3. **After the delay, swap the local key:** update the validator's signing material (`SIGNING_PRIVKEY_HEX`, plus the `signing.key` file if your deployment uses one) to the new seed and **restart the hub**. No hub-registry edit is needed, within ≤ `P2P_SIGNER_SET_REFRESH_MS` of the new key going active on-chain, all peers admit it.
+3. **After the delay, swap the local key:** update the validator's signing material (`SIGNING_PRIVKEY_SECRET`, plus the `signing.key` file if your deployment uses one) to the new seed and **restart the hub**. No hub-registry edit is needed, within ≤ `P2P_SIGNER_SET_REFRESH_MS` of the new key going active on-chain, all peers admit it.
 4. **(Optional) retire the old key.** `DELEGATE` v0 leaves the old key valid; broadcast a [`DELEGATE` v2](../../protocol/actions/delegate.md) (capability revoke) for it once the new key is confirmed working. The revoke also takes 6 blocks, so the keys overlap; the new key is live well before the old one is removed.
 
 ### Emergency rotation (compromised key)
@@ -282,7 +282,7 @@ curl -X POST http://localhost:10000 -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"deregistervalidator","params":{"addr":"validator1.example.com"},"id":1}'
 ```
 
-`registervalidator`/`rotatevalidator` are **addr-keyed**: each addr has exactly one active pubkey, and registering or rotating to a new key for an existing addr retires the old row first (no duplicate-active-row ambiguity). After editing the registry, still swap the local `SIGNING_PRIVKEY_HEX` + restart the affected validator.
+`registervalidator`/`rotatevalidator` are **addr-keyed**: each addr has exactly one active pubkey, and registering or rotating to a new key for an existing addr retires the old row first (no duplicate-active-row ambiguity). After editing the registry, still swap the local `SIGNING_PRIVKEY_SECRET` + restart the affected validator.
 
 ### Verifying a rotation
 
@@ -375,14 +375,14 @@ The P2P layer deduplicates messages using a TTL cache (default: 60 seconds). Thi
 
 ### Hub won't start
 
-- Verify all required environment variables are set (`HUB_PORT`, `HUB_DB_HOST`, `HUB_DB_PORT`, `HUB_DB_NAME`, `HUB_DB_USER`, `HUB_DB_PASS`)
+- Verify all required environment variables are set (`HUB_PORT`, `HUB_DB_HOST`, `HUB_DB_PORT`, `HUB_DB_NAME`, `HUB_DB_USER`, `HUB_DB_SECRET`)
 - Confirm MariaDB is reachable at the configured host and port
 - Check that the database user has CREATE DATABASE and CREATE TABLE privileges. On first run the hub creates its own database; if the user lacks that privilege the hub now **exits immediately** with a `Fatal DB error … cannot create the database` message (rather than retrying forever). Either grant the privilege or pre-create the database and grant `ALL` on it.
 
 ### Validator mode not activating
 
 - Ensure `P2P_VALIDATOR_ADDR` is set; this is the single switch that activates validator mode
-- Verify `SIGNING_PRIVKEY_HEX` is a valid 64-character hex string (Ed25519 seed)
+- Verify `SIGNING_PRIVKEY_SECRET` (or the deprecated `SIGNING_PRIVKEY_HEX`) is a valid 64-character hex string (Ed25519 seed)
 - Check that `SEED_NODES` contains reachable peer addresses
 - Set `ORACLE_EPOCH_START` (Unix ms); the hub refuses to start validator mode without it
 

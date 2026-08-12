@@ -100,6 +100,7 @@ In client mode, the service connects to remote sync servers and replicates their
 | `MAX_CONCURRENT_SNAPSHOTS` | No | pool size minus 2 | Maximum snapshot streams served concurrently per database, so a snapshot stampede cannot starve the block poller of its last connection. Clamped to `[1, poolSize - 1]`. On saturation the server answers `503` with `Retry-After` rather than queueing. |
 | `STATE_TREE_METRIC_INTERVAL_MS` | No | `14400000` (4 h) | Interval for the state-tree orphan-statistics sweep. Set to `0` to disable. Decoder replicas are skipped (they have no `state_tree_*` tables). |
 | `STATE_TREE_METRIC_MAX_NODES` | No | `2000000` | Node ceiling for a single state-tree metric pass, bounding the cost of the sweep on a large tree. |
+| `SYNC_QUERY_METRIC_INTERVAL_MS` | No | `900000` (15 m) | Interval between `[METRIC] sync_action_scoped_queries_per_block` lines, which record how many action-scoped queries a block payload cost and how many of them returned rows. The per-table read loop grows with every replicated table added, so this is how the trend against poll cadence stays observable. Set to `0` to disable. Indexer pollers only (a decoder has no action-scoped tables). |
 
 ## Hub Discovery
 

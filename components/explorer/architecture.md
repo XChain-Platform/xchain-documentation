@@ -204,7 +204,7 @@ The explorer provides a real-time event streaming API via WebSockets. Four modul
 ```
 src/ws/
 ├── WebSocketServer.js    # Connection handling, upgrade, WELCOME, message routing
-├── ChannelManager.js     # Subscription tracking with filters (types, statuses, ticks, etc.)
+├── ChannelManager.js     # Subscription tracking with filters (types, ticks, etc.; statuses accepted, never confirmed active)
 ├── ChangeDetector.js     # Polls DB for new blocks/actions, emits lifecycle events
 └── Broadcaster.js        # Routes events to subscribed clients through filter pipeline
 ```
@@ -223,6 +223,8 @@ flowchart TD
 
     CD --> DIFF --> FETCH --> EMIT --> BC --> PROJ --> SEND
 ```
+
+The `statuses` stage in that pipeline is not part of the client-facing filter contract and must not be advertised as a working filter. `ChannelManager.subscribe` still accepts and validates the parameter for backward compatibility, but `WebSocketServer._handleSubscribe` reports it back under `ignored_filters` and leaves it out of the confirmed `filters` / `active_filters`, and `ChannelManager.getSubscriptionList` omits it from SUBSCRIPTION_LIST for the same reason. A client therefore has no confirmation to rely on. See [WebSocket API](websocket.md) for the client-facing contract.
 
 The WebSocket server attaches to the same HTTP/HTTPS servers as Express via the `upgrade` event. No additional port. Clients connect to `/{COIN}/api/websocket`.
 

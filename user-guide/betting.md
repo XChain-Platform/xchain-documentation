@@ -113,7 +113,7 @@ You can also attach a full description of the market, so the terms live on-chain
 Two separate things get called a "fee", and mixing them up is the most common confusion:
 
 - **your fee** is your cut of the pot, as a percentage. Bettors pay it, and you receive it when you resolve the market
-- **the market fee** is what the protocol charges you to run the market, paid in XCHAIN
+- **the market fee** is what the protocol charges you to run the market, priced in XCHAIN
 
 The market fee is priced by **how long the market lives**, counted all the way to the end of the resolve window rather than just to the deadline. **The first 90 days are free**, so short-term markets and anything you create to try the system out cost nothing. Past that:
 
@@ -125,7 +125,9 @@ The market fee is priced by **how long the market lives**, counted all the way t
 | 1 year | 1.5125 XCHAIN |
 | 2 years (the maximum) | 3.52 XCHAIN |
 
-Placing a bet costs the bettor a small amount in XCHAIN. **Resolving is free**, no matter how many bets are on the book, so a busy market never costs you more to settle honestly. **Cancelling is free** too.
+Those prices are always denominated in XCHAIN, but XCHAIN is not always what pays them. On **Litecoin and Dogecoin, paying in the native coin is the only option**: a market created, or a bet placed, without a native-coin fee output is rejected. On **Bitcoin** you may instead have the fee deducted from an XCHAIN balance, if you hold one and prefer that.
+
+Placing a bet costs the bettor a small fee, priced in XCHAIN and paid the same way as above. **Resolving is free**, no matter how many bets are on the book, so a busy market never costs you more to settle honestly. **Cancelling is free** too.
 
 Markets cannot be edited. If you get the terms wrong, cancel and create a new one, which means paying the creation fee again.
 

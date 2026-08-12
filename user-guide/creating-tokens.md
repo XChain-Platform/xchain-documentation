@@ -63,10 +63,10 @@ A short text description of your token. This appears in explorers and wallets. K
 
 **Minting** is the act of creating new tokens and adding them to circulation. You set the rules for how minting works at creation time.
 
-- **Mint Supply**: How many tokens are created each time someone mints. For example, if mint supply is 100, every mint operation adds exactly 100 tokens.
-- **Max Mint**: The maximum number of times minting can happen. This lets you cap total mints separately from total supply, useful when you want a fixed number of minting events even if supply math would allow more.
+- **Mint Supply**: How much supply is issued straight to you at the moment you create the token, up to Max Supply. For example, if mint supply is 100, creating the token credits you 100 tokens. This is your own issued supply, not the amount a public mint produces; editing the token issues that much again unless you lock it.
+- **Max Mint**: The largest amount of supply any single mint transaction may create. It caps how much one mint produces, not how many mints can happen; left unset (`0`) there is no per-transaction cap and Max Supply is the only ceiling.
 - **Mint Start Block / Mint Stop Block**: You can schedule a minting window. Before the start block, minting is not allowed. After the stop block, minting closes. This is how you run a timed token launch; a window opens, people mint during it, and it closes automatically.
-- **Per-Address Limit**: You can cap how many times a single address can mint. This prevents one person from minting everything in a public launch.
+- **Per-Address Limit**: You can cap the total amount a single address is allowed to mint, added up across every mint that address makes. This prevents one person from minting everything in a public launch.
 
 If you want to be the only person who can mint (a controlled issuance), you keep the token locked down and mint from your own address. If you want a public fair launch where anyone can mint, you set open minting rules and let the community participate.
 
@@ -74,11 +74,13 @@ If you want to be the only person who can mint (a controlled issuance), you keep
 
 ## Access Control
 
-You can restrict who is allowed to receive your token.
+You can restrict which addresses are allowed to interact with your token. The lists gate **both sides** of a transfer: an address that fails the check can neither receive the token nor send tokens it already holds.
 
-**Allow List**: Only addresses on this list can receive the token. Everyone else is blocked. This is useful for compliance-restricted assets, private token distributions, or anything where you need to know exactly who holds your token.
+**Allow List**: Only addresses on this list can send or receive the token. Everyone else is blocked. This is useful for compliance-restricted assets, private token distributions, or anything where you need to know exactly who holds your token.
 
-**Block List**: Addresses on this list are barred from receiving the token. Everyone else can receive it normally. This is useful for blocking specific bad actors while keeping the token open to the general public.
+**Block List**: Addresses on this list are barred from sending or receiving the token. Everyone else can transact normally. This is useful for blocking specific bad actors while keeping the token open to the general public.
+
+Because the sending address is checked too, taking a holder off the allow list (or adding them to the block list) freezes the balance they already hold: they keep it, but they cannot move it until the lists change.
 
 Both lists reference named lists you define on-chain using the LIST action. You can update these lists at any time, unlessyou choose to lock them permanently.
 
@@ -96,8 +98,8 @@ Parameters you can lock include:
 
 - **LOCK_MAX_SUPPLY**: the `MAX_SUPPLY` ceiling can never be raised, proving the total cannot be inflated beyond what is set now
 - **LOCK_MINT**: no one can ever run the MINT command against this token again, so no new supply can ever be created
-- **LOCK_MINT_SUPPLY**: the per-operation mint amount (`MINT_SUPPLY`) is frozen; minting is still allowed, but the amount per mint cannot be changed
-- **LOCK_MAX_MINT**: the `MAX_MINT` count (how many times minting can happen in total) is frozen permanently
+- **LOCK_MINT_SUPPLY**: the token is frozen against you issuing any further supply to yourself via `MINT_SUPPLY`; public minting is unaffected
+- **LOCK_MAX_MINT**: the `MAX_MINT` per-transaction amount cap is frozen permanently and can never be edited again
 - **LOCK_DESCRIPTION**: proves the token's description cannot be swapped out
 - **LOCK_SLEEP**: the token can never be paused by the SLEEP command; useful for tokens that must always be tradeable
 - **Callback settings** (`LOCK_CALLBACK`): proves the recall terms cannot be altered after the fact
