@@ -108,6 +108,19 @@ describe('extractDefault (the checker that reported false green during the audit
         assert.deepEqual(defaultOf("const p = Number(process.env.PORT ?? 8080);"), { value: '8080', numeric: true });
     });
 
+    // : the recorded default was `4`, which the row's own `(4 MiB)`
+    // gloss then satisfied while the row actually asserts `4194304`.
+    test('folds a product of literals into the number the code actually uses', () => {
+        assert.deepEqual(
+            defaultOf('return parseInt(process.env.EXPLORER_VM_MAX_STATE_BYTES, 10) || 4 * 1024 * 1024;'),
+            { value: '4194304', numeric: true }
+        );
+    });
+
+    test('stops folding at the first non-literal factor', () => {
+        assert.deepEqual(defaultOf('const n = process.env.CAP || 4 * factor;'), { value: '4', numeric: true });
+    });
+
     test('reads a string default', () => {
         assert.deepEqual(defaultOf("const h = process.env.DB_HOST || '127.0.0.1';"), { value: '127.0.0.1', numeric: false });
     });
@@ -212,6 +225,53 @@ describe('scanSource', () => {
     test('records every site of a variable read more than once', () => {
         const found = scanSource("const a = process.env.DUP || 1;\nconst b = process.env.DUP || 2;");
         assert.equal(found.get('DUP').length, 2);
+    });
+});
+
+// . These are the reads the scanner cannot name, so the coverage check
+// cannot fail on them; the ratchet below is what keeps the set from growing.
+describe('scanComputedReads (the blind spot the gate cannot see into)', () => {
+    test('finds the computed shapes and leaves the literal ones to scanSource', () => {
+        const lines = cov.scanComputedReads([
+            "const a = process.env[envVar];",
+            "const b = process.env['BETA'];",
+            'const c = process.env[`${coin}_INDEXER_URL`];',
+            "const d = process.env.DELTA;",
+            "const e = process.env[ prefix + '_MAX' ];",
+        ].join('\n'));
+        assert.deepEqual(lines, [1, 3, 5]);
+    });
+
+    test('ignores a commented-out computed read', () => {
+        assert.deepEqual(cov.scanComputedReads("// const a = process.env[ghost];"), []);
+    });
+});
+
+describe('checkComputedReads (the blind-spot ratchet)', () => {
+    const entryWith = (n) => ({
+        vars: new Map(), docLines: [], docProse: [], sourceFiles: 1,
+        computed: Array.from({ length: n }, (_, i) => ({ file: 'src/x.js', line: i + 1 })),
+    });
+    const baseline = cov.COMPUTED_READ_BASELINE.decoder;
+
+    test('a new computed read fails, because it is new unscannable configuration', () => {
+        const problems = cov.checkComputedReads(new Map([['decoder', entryWith(baseline + 1)]]));
+        assert.equal(problems.length, 1);
+        assert.match(problems[0], /computed env reads, baseline/);
+    });
+
+    test('the count holding is clean', () => {
+        assert.deepEqual(cov.checkComputedReads(new Map([['decoder', entryWith(baseline)]])), []);
+    });
+
+    test('a count that dropped fails too, so the ratchet cannot go stale', () => {
+        const problems = cov.checkComputedReads(new Map([['decoder', entryWith(baseline - 1)]]));
+        assert.equal(problems.length, 1);
+        assert.match(problems[0], /set the baseline to/);
+    });
+
+    test('a component the baseline does not cover is skipped, not accused', () => {
+        assert.deepEqual(cov.checkComputedReads(new Map([['not-a-component', entryWith(9)]])), []);
     });
 });
 
@@ -556,10 +616,52 @@ describe('doc matching', () => {
         assert.equal(defaultDocumented(['`TELEMETRY_ENABLED` defaults to `true`; set it to `false` to opt out.'], 'false'), false);
     });
 
-    // The numeric leniency is deliberately KEPT: requiring assertion there fails
-    // rows that annotate the value (`4194304` (4 MiB)) rather than misdocument it.
-    test('a numeric default still matches position-free beside an annotation', () => {
-        assert.equal(defaultDocumented(['| `EXPLORER_VM_MAX_STATE_BYTES` | No | `4194304` (4 MiB) | byte cap |'], '4194304'), true);
+    // , second half: a NUMBER is masked the same way a switch is, by
+    // any other number the row carries. The row below is the shipped
+    // EXPLORER_VM_MAX_STATE_BYTES row, whose `(4 MiB)` gloss used to satisfy the
+    // `4` that extractDefault recorded for `4 * 1024 * 1024`.
+    test('a numeric default must be ASSERTED, not merely mentioned', () => {
+        const row = ['| `EXPLORER_VM_MAX_STATE_BYTES` | No | `4194304` (4 MiB) | byte cap |'];
+        assert.equal(defaultDocumented(row, '4194304'), true);
+        assert.equal(defaultDocumented(row, '4'), false);
+    });
+
+    test('a quoted or glossed value is still an assertion', () => {
+        assert.equal(defaultDocumented(['| `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | missed rounds |'], '30'), true);
+        assert.equal(defaultDocumented(['| `SOURCE_QUORUM` | No | `0` (auto) | agreeing sources |'], '0'), true);
+        assert.equal(defaultDocumented(['On each round, `ORACLE_REWARD_PER_ROUND` (default "10.00000000") XCHAIN is paid.'], '10.00000000'), true);
+    });
+
+    test('a number named only in a description does not document the default', () => {
+        const row = ['| `HUB_RATE_LIMIT_RPM` | rate-limited to 100 requests per minute, returns `429` past it |'];
+        assert.equal(defaultDocumented(row, '429'), false);
+        assert.equal(defaultDocumented(row, '100'), false);
+    });
+
+    test('a gloss is one trailing parenthetical, not arbitrary trailing prose', () => {
+        assert.equal(defaultDocumented(['| `SOME_CAP` | No | `500` requests before it refuses | cap |'], '500'), false);
+    });
+
+    // A neighbour's row mentions this variable because that is how it explains
+    // itself, and its own default cell then satisfied this variable's
+    // comparison: SOURCE_STRIKE_WINDOW's `200` passed for SOURCE_EVICT_THRESHOLD.
+    test('a neighbouring variable\'s row does not assert this variable\'s default', () => {
+        const rows = [
+            '| `SOURCE_EVICT_THRESHOLD` | No | `3` | Strikes within `SOURCE_STRIKE_WINDOW` before eviction |',
+            '| `SOURCE_STRIKE_WINDOW` | No | `200` | Window counted toward `SOURCE_EVICT_THRESHOLD` |',
+        ];
+        const own = cov.assertingRows(rows, 'SOURCE_EVICT_THRESHOLD');
+        assert.equal(own.length, 1);
+        assert.equal(defaultDocumented(own, '3'), true);
+        assert.equal(defaultDocumented(own, '200'), false);
+    });
+
+    test('a row whose leading cell is a label, and plain prose, both still count', () => {
+        const rows = [
+            '| RPC timeout (axios) | `30000` | BlockchainConnector.js | overridable via `NODE_RPC_TIMEOUT` |',
+            '`NODE_RPC_TIMEOUT` defaults to `30000`.',
+        ];
+        assert.deepEqual(cov.assertingRows(rows, 'NODE_RPC_TIMEOUT'), rows);
     });
 });
 
@@ -772,6 +874,18 @@ describe('environment-variable documentation coverage ', { skip: siblingsMissing
         assert.deepEqual(
             stale, [],
             `KNOWN_GAPS entries that no longer describe a gap; delete these lines from lib/env-var-doc-coverage.js:\n  ${stale.join('\n  ')}`
+        );
+    });
+
+    // . A `process.env[key]` read has no name for checkUndocumented to
+    // fail on, so the gate cannot see it at all. This does not recover the
+    // names; it holds the count, so the unscannable surface cannot grow while
+    // the gate reports green.
+    test('the computed-read blind spot only shrinks', () => {
+        const moved = cov.checkComputedReads(survey);
+        assert.deepEqual(
+            moved, [],
+            `COMPUTED_READ_BASELINE no longer matches the code:\n  ${moved.join('\n  ')}`
         );
     });
 });

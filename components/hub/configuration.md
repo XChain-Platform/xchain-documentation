@@ -97,6 +97,7 @@ These variables are required regardless of operating mode.
 | `HUB_DB_USER` | Yes | None | MariaDB username |
 | `HUB_DB_SECRET` | Yes | None | MariaDB password. Deprecated name `HUB_DB_PASS` is still read; see Secret variable naming above. |
 | `HUB_DB_KEEPALIVE_INTERVAL` | No | `30000` | Interval (ms) between no-op keepalive queries sent to the MariaDB pool to prevent idle-connection drops |
+| `HUB_RATE_LIMIT_RPM` | No | `100` | Requests allowed per IP per 60-second window across the whole API. Over the limit the request returns HTTP 429. Behind a reverse proxy the limiter keys on `X-Forwarded-For`, which is what `HUB_TRUST_PROXY` below governs. |
 | `HUB_TRUST_PROXY` | No | `loopback, uniquelocal` | Express `trust proxy` setting. A containerized hub behind a local reverse proxy works with the default. Set to `false` to disable, a hop count (e.g. `1`), or a CIDR list for other topologies. See [Express docs](https://expressjs.com/en/guide/behind-proxies.html). |
 | `HUB_ALLOW_UNAUTHENTICATED` | No | `false` | A hub in validator mode (`P2P_VALIDATOR_ADDR` set) with no `HUB_API_KEY` refuses to boot, because its write methods would let anyone drive consensus-affecting writes. Set to `true` to explicitly acknowledge running keyless (regtest/dev only). See OPERATIONS.md → Authentication. |
 
