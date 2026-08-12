@@ -26,7 +26,7 @@ The SDK guard asserts a third thing, one level below the action set: each
 `Formats[ACTION]` version set equals that action's `userEncodableVersions`
 array. Without it the role flags are action-level only, so a VERSION the
 indexer accepts solely from itself could be added to an authorable action's
-Formats and every guard stayed green . Two such versions exist today:
+Formats and every guard stayed green. Two such versions exist today:
 `VOTE` v2 (finalize) is rejected from a user broadcast by
 `if(!data['IS_SYNTHETIC'])` in the indexer's `vote.js`, and `PRICE` v0 is the
 validator COIN/FIAT snapshot, valid only with a PBFT quorum of Ed25519
@@ -97,7 +97,7 @@ flowchart TD
     Wire --> Test
 ```
 
-> Step 2 is one command as of . The full collapse of the per-repo literals
+> Step 2 is one command today. The full collapse of the per-repo literals
 > into generated code (so the per-repo edits disappear too) is still a future
 > follow-on; today the manifest, the sync tool and the conformance guards make the
 > fan-out **safe** and **one-edit to vendor**, not yet **one-edit to wire**.

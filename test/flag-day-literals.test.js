@@ -67,7 +67,7 @@ const HAS_INDEXER = fs.existsSync(gen.REGISTRY);
  * was, so only a written-down list makes this guard retroactive.
  *
  *   2026-10-01  the original contract-era anchor (BTC-height-derived)
- *   2026-08-17  the  repin, itself retired by  before the docs
+ *   2026-08-17  the second repin, itself retired before the docs
  *               that quoted the FIRST one had even been corrected
  */
 const RETIRED_DATES = ['2026-10-01', '2026-08-17'];
@@ -154,7 +154,7 @@ test('both registry parses still find their gates', { skip: HAS_INDEXER ? false 
  *  The anchor test above can only name gates that already exist, which is no
  *  help for the gate somebody adds tomorrow in a style the regexes miss: it
  *  would drop from the page, the generator would rewrite the page to agree,
- *  and every test here would stay green (). These fixtures drive
+ *  and every test here would stay green. These fixtures drive
  *  collectGates against a synthetic registry, so they run in a standalone
  *  clone with no sibling indexer.
  */

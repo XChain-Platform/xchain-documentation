@@ -12,7 +12,7 @@
  *
  * Action wire-format example lint.
  *
- * WHY . Five of the seven DISPENSER v0 examples had drifted one field
+ * WHY. Five of the seven DISPENSER v0 examples had drifted one field
  * short. They predated the GIVE_OWNERSHIP insertion at position 5, so every field
  * from GIVE_ESCROW rightwards was shifted by one. Both FIAT examples were among
  * them, so a reader copying the canonical "price a dispenser in USD" example
@@ -20,7 +20,7 @@
  * confusing rejection from the indexer. The class is silent (the docs render
  * fine) and it hands readers malformed transactions, so it is worth a gate.
  *
- * FOUR TIERS, because one rule does not fit every action .
+ * FOUR TIERS, because one rule does not fit every action.
  *
  * A first cut asserted "every example carries the field count its format
  * declares" across all 36 action docs and failed 17 of them, none of it this
@@ -180,7 +180,7 @@ const actionDocs = fs.readdirSync(ACTIONS_DIR)
 assert.ok(actionDocs.length > 0, 'no action docs found');
 
 // ---------------------------------------------------------------------------
-// Tier 1: one rest-field notation across every declared format 
+// Tier 1: one rest-field notation across every declared format
 // ---------------------------------------------------------------------------
 
 // A field carrying an ellipsis anywhere other than as a leading `...` prefix, or
@@ -192,7 +192,7 @@ function notationProblems(format, action) {
         .map(t => `field \`${t}\` in \`${format}\``);
 }
 
-describe('declared formats use one rest-field notation ', () => {
+describe('declared formats use one rest-field notation', () => {
 
     for (const { file, action, doc } of actionDocs) {
         test(file, () => {
@@ -227,10 +227,10 @@ describe('declared formats use one rest-field notation ', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tier 2: the lint actually reaches every action 
+// Tier 2: the lint actually reaches every action
 // ---------------------------------------------------------------------------
 
-describe('every action doc declares a parseable format ', () => {
+describe('every action doc declares a parseable format', () => {
 
     test('each doc has at least one declared format', () => {
         const missing = actionDocs
@@ -260,7 +260,7 @@ describe('every action doc declares a parseable format ', () => {
 // Tier 3 (all actions): a bounded format is an upper bound on example fields.
 // ---------------------------------------------------------------------------
 
-describe('action examples never exceed their declared format ', () => {
+describe('action examples never exceed their declared format', () => {
 
     for (const { file, action, doc } of actionDocs) {
         test(file, () => {
@@ -274,7 +274,7 @@ describe('action examples never exceed their declared format ', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tier 4: DISPENSER exact count 
+// Tier 4: DISPENSER exact count
 // ---------------------------------------------------------------------------
 
 // Declared formats: `### Version `N` - Title` followed by `- `VERSION|...``.
@@ -290,7 +290,7 @@ function examples(version) {
         .filter(e => re.test(e.text));
 }
 
-describe('DISPENSER v0 examples match the declared format ', () => {
+describe('DISPENSER v0 examples match the declared format', () => {
 
     test('the v0 format still has GIVE_OWNERSHIP at position 5', () => {
         // The insertion that caused the drift. If it moves again, every example
@@ -377,16 +377,17 @@ describe('DISPENSER v0 examples match the declared format ', () => {
 });
 
 // ---------------------------------------------------------------------------
-// The lint's own sensitivity, on synthetic docs 
+// The lint's own sensitivity, on synthetic docs
 // ---------------------------------------------------------------------------
 
 // A lint whose parser quietly stops matching is indistinguishable from a clean
-// corpus, which is exactly how the pre- version came to skip five docs. So
-// prove on every run that each dialect parses and that a too-long example fails.
+// corpus, which is exactly how the earlier version of this lint came to skip
+// five docs. So prove on every run that each dialect parses and that a
+// too-long example fails.
 const doc = (formatLines, exampleLines = []) =>
     ['# Fake', '', '## Formats', '', ...formatLines, '', '## Examples', '```', ...exampleLines, '```', ''].join('\n');
 
-describe('the lint itself catches a too-long example ', () => {
+describe('the lint itself catches a too-long example', () => {
 
     test('bullet dialect: `- `VERSION|...``', () => {
         const md = doc(['### Version `0`', '- `VERSION|TICK|AMOUNT|DESTINATION|MEMO`'],

@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Regtest tip-age escape-hatch documentation gate .
+ * Regtest tip-age escape-hatch documentation gate.
  *
  * WHY. The explorer's tip-age gate refuses reads for a coin whose newest
  * indexed block has aged past six hours. On a live chain that never fires. On
@@ -71,34 +71,34 @@ function tipMaxAgeSource(src) {
     assert.fail('tipMaxAgeSeconds body is unterminated');
 }
 
-describe('regtest tip-age escape hatch is documented for dev setups ', () => {
+describe('regtest tip-age escape hatch is documented for dev setups', () => {
 
     test('the regtest guide names the per-coin and global off switches', () => {
         assert.match(devDoc, /EXPLORER_TIP_MAX_AGE_S_[A-Z<]/,
-            'developer-guide/regtest-development.md no longer names the per-coin knob EXPLORER_TIP_MAX_AGE_S_<COIN> ');
+            'developer-guide/regtest-development.md no longer names the per-coin knob EXPLORER_TIP_MAX_AGE_S_<COIN>');
         assert.match(devDoc, /EXPLORER_TIP_MAX_AGE_S_[A-Z<][A-Z>]*\s*=\s*0/,
-            'the per-coin knob is named but never shown set to 0, which is the escape hatch ');
+            'the per-coin knob is named but never shown set to 0, which is the escape hatch');
         assert.match(devDoc, /`?EXPLORER_TIP_MAX_AGE_S=0`?/,
-            'the regtest guide no longer shows the global EXPLORER_TIP_MAX_AGE_S=0 form ');
+            'the regtest guide no longer shows the global EXPLORER_TIP_MAX_AGE_S=0 form');
     });
 
     test('the regtest guide names the symptom a developer searches for', () => {
         assert.match(devDoc, /COIN_DATA_STALE/,
-            'the regtest guide never mentions COIN_DATA_STALE, so nobody hitting it finds this page ');
+            'the regtest guide never mentions COIN_DATA_STALE, so nobody hitting it finds this page');
     });
 
     test('the explorer configuration page routes dev/regtest installs to the knob', () => {
         assert.match(cfgDoc, /regtest/i,
-            'components/explorer/configuration.md no longer mentions regtest around the tip-age gate ');
+            'components/explorer/configuration.md no longer mentions regtest around the tip-age gate');
         assert.match(cfgDoc, /EXPLORER_TIP_MAX_AGE_S_[A-Z<][A-Z>]*\s*=\s*0/,
-            'the configuration page no longer shows the per-coin gate disabled for dev/regtest ');
+            'the configuration page no longer shows the per-coin gate disabled for dev/regtest');
     });
 
     test('the documented default matches the explorer default', { skip: !haveDb && 'xchain-explorer not present in this checkout' }, () => {
         const m = /TIP_MAX_AGE_DEFAULT_S\s*=\s*(\d+)/.exec(fs.readFileSync(DB_SRC, 'utf8'));
         assert.ok(m, 'xchain-explorer no longer defines TIP_MAX_AGE_DEFAULT_S');
         assert.match(devDoc, new RegExp('\\b' + m[1] + '\\b'),
-            'the regtest guide states a tip-age default other than the explorer\'s ' + m[1] + 's ');
+            'the regtest guide states a tip-age default other than the explorer\'s ' + m[1] + 's');
     });
 
     test('no built-in regtest exemption was added to the explorer', { skip: !haveDb && 'xchain-explorer not present in this checkout' }, () => {
@@ -108,6 +108,6 @@ describe('regtest tip-age escape hatch is documented for dev setups ', () => {
         const code = body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
         assert.doesNotMatch(code, /regtest|testnet|mainnet/i,
             'tipMaxAgeSeconds branches on a network name; the operator chose an env knob over a built-in exemption ' +
-            'precisely so no network name can re-open the fail-open hole ');
+            'precisely so no network name can re-open the fail-open hole');
     });
 });

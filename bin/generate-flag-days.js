@@ -36,8 +36,8 @@
  *
  * THE SOURCE IS READ AS TEXT, NOT REQUIRED. `require('protocol_changes.js')`
  * pulls in the indexer's config and database layer, and this must run in a
- * documentation checkout with neither. The same reason claude/bin/
- * vm-gate-timestamp-claim.test.js reads the VM source as text.
+ * documentation checkout with neither. Other tooling in this monorepo reads
+ * source files as text for the same reason.
  *
  * A standalone documentation clone has no sibling indexer. The generated page
  * is COMMITTED, so such a clone still reads correct values; only regeneration
@@ -168,7 +168,7 @@ function mainnetTimeLiteral(text, callIndex) {
  * skipped in silence, and the generator then rewrote protocol/flag-days.md to
  * agree with the loss, so the page shipped one row short with the whole suite
  * green: test/flag-day-literals.test.js can only anchor gate names that already
- * exist, which is no help for the gate somebody adds tomorrow ().
+ * exist, which is no help for the gate somebody adds tomorrow.
  *
  * WHY THE CALL ARM IS VALUE-GATED. Most of the registry is not on this page at
  * all: roughly forty gates carry mainnet_time 0, several carry block heights,

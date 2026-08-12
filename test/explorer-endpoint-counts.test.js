@@ -12,7 +12,7 @@
  *
  * Explorer REST endpoint-count gate.
  *
- * WHY . component-map.md quotes hard numbers for the explorer's REST
+ * WHY. component-map.md quotes hard numbers for the explorer's REST
  * surface. Those numbers were written by a 2026-06-20 audit and had gone stale
  * by 2026-07-27 (129/68 against a real 144/74), because the explorer gained BET,
  * oracle-fee-quote and preflight surfaces in between and nobody re-counted. A
@@ -96,11 +96,11 @@ describe('explorer REST endpoint counts in component-map.md', () => {
 
     test('the doc still states a total and a per-namespace breakdown', () => {
         assert.match(doc, /233 REST endpoint patterns across the `\/api` and `\/explorer` namespaces/,
-            'the explorer endpoint-count sentence changed shape; re-derive the figures ');
+            'the explorer endpoint-count sentence changed shape; re-derive the figures');
         assert.match(doc, /144 `\/\{COIN\}\/api\/\.\.\.` and 74 `\/\{COIN\}\/explorer\/\.\.\.` patterns in the dispatch table/,
-            'the dispatch-table breakdown changed shape; re-derive the figures ');
+            'the dispatch-table breakdown changed shape; re-derive the figures');
         assert.match(doc, /15 hand-registered `\/\{COIN\}\/api\/\.\.\.` routes/,
-            'the hand-registered breakdown changed shape; re-derive the figures ');
+            'the hand-registered breakdown changed shape; re-derive the figures');
     });
 
     test('the stated parts add up to the stated total', () => {
@@ -125,15 +125,15 @@ describe('explorer REST endpoint counts in component-map.md', () => {
             'the explorer dispatch bucket holds a route outside the /explorer namespace');
 
         assert.equal(api.length, 144,
-            'the explorer dispatch table now has ' + api.length + ' /api routes, not the documented 144 ');
+            'the explorer dispatch table now has ' + api.length + ' /api routes, not the documented 144');
         assert.equal(expl.length, 74,
-            'the explorer dispatch table now has ' + expl.length + ' /explorer routes, not the documented 74 ');
+            'the explorer dispatch table now has ' + expl.length + ' /explorer routes, not the documented 74');
     });
 
     test('the hand-registered /api route count matches xchain-explorer source', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
         const routes = readHandRegisteredApiRoutes(fs.readFileSync(EXPLORER_SOURCE, 'utf8'));
         assert.equal(routes.length, 15,
-            'the explorer hand-registers ' + routes.length + ' /api routes, not the documented 15 :\n  ' +
+            'the explorer hand-registers ' + routes.length + ' /api routes, not the documented 15:\n  ' +
             routes.join('\n  '));
     });
 

@@ -137,8 +137,6 @@ Validators on `claude_spawn` amortize their subscription across requests they se
 
 ## References
 
-- Spec: `claude/reports/specs/2026-05-24_llm-attestation-provider.md`
-- Framework: `claude/reports/specs/2026-05-24_external-attestation-framework.md`
 - Provider def: `xchain-hub/src/ProviderRegistry.js` (DEFAULTS.llm)
 - Provider module: `xchain-hub/src/providers/llm.js`
 - Auth resolver: `xchain-hub/src/lib/hub-credentials.js`

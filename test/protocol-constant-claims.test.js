@@ -14,7 +14,7 @@
  *
  * WHY. When a protocol constant changes, the sweep that follows is a grep for
  * the IDENTIFIER across the repos that vendor it, and prose is not a vendoring
- * copy. corrected ENVELOPE_MAX_PAYLOAD from 400000 to 390000 because
+ * copy. A correction dropped ENVELOPE_MAX_PAYLOAD from 400000 to 390000 because
  * a 400,000-byte payload compiles to a 402,789 WU reveal, over Bitcoin Core's
  * MAX_STANDARD_TX_WEIGHT: the encoder built it, the validator accepted it, and
  * no node would relay it. The constant was then swept across twelve vendoring
@@ -66,7 +66,7 @@ const GUARDED = [
   {
     name: 'ENVELOPE_MAX_PAYLOAD',
     superseded: [400000],
-    why: ' 2026-07-31: 400000 admitted a ~397,010..400,000 band the encoder built, '
+    why: '2026-07-31: 400000 admitted a ~397,010..400,000 band the encoder built, '
       + 'the validator accepted and no node relayed, because the reveal exceeded MAX_STANDARD_TX_WEIGHT',
   },
   {
@@ -83,9 +83,9 @@ const GUARDED = [
  * silenced. Keyed per file and per occurrence count, so a NEW stale claim in an
  * already-exempt file is still caught.
  *
- * Empty on purpose as of 2026-08-03: no doc page narrates the
- * correction. The history lives in protocol/constants.js comments (a .js file,
- * which this guard does not read) and in the platform spec.
+ * Empty on purpose as of 2026-08-03: no doc page narrates the correction.
+ * The history lives in protocol/constants.js comments (a .js file, which
+ * this guard does not read).
  */
 const SCOPED = [];
 

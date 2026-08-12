@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Environment-variable documentation coverage gate .
+ * Environment-variable documentation coverage gate.
  *
  * WHY. The 2026-07-27 docs audit found 169 environment variables that the
  * services read and the doc set never mentioned. Nothing had gone wrong; the
@@ -25,7 +25,7 @@
  * caller. It only ran when somebody ran the docs suite, so a service repo
  * could add a variable and leave the gate red indefinitely with no signal;
  * bin/check-env-var-doc-coverage.js at the platform root is the cross-repo
- * trigger that fixes that , and it applies these exact rules.
+ * trigger that fixes that, and it applies these exact rules.
  *
  * WHICH TREE THIS SUITE READS. The sibling services are read at their
  * COMMITTED state, this repo's own pages as they sit on disk. Reading a
@@ -108,7 +108,7 @@ describe('extractDefault (the checker that reported false green during the audit
         assert.deepEqual(defaultOf("const p = Number(process.env.PORT ?? 8080);"), { value: '8080', numeric: true });
     });
 
-    // : the recorded default was `4`, which the row's own `(4 MiB)`
+    // The recorded default was `4`, which the row's own `(4 MiB)`
     // gloss then satisfied while the row actually asserts `4194304`.
     test('folds a product of literals into the number the code actually uses', () => {
         assert.deepEqual(
@@ -132,7 +132,7 @@ describe('extractDefault (the checker that reported false green during the audit
     // A CALL fallback is the effective default and no doc row can carry it, so
     // the walk must stop rather than run on to the last-resort literal behind
     // it. Reporting `unknown` here is what would have failed a VALIDATOR_ID row
-    // that correctly said "system hostname" ().
+    // that correctly said "system hostname".
     test('stops at a computed fallback instead of reading past it', () => {
         assert.equal(
             defaultOf("this.validatorId = process.env.VALIDATOR_ID || require('os').hostname() || 'unknown';"),
@@ -160,8 +160,8 @@ describe('extractDefault (the checker that reported false green during the audit
     });
 
     // A numeric coercion taking the read as its ONLY argument leaves the
-    // fallback outside its closing paren, where the scanner used to stop dead
-    // (). The idiom is everywhere: hub, decoder, indexer, sync.
+    // fallback outside its closing paren, where the scanner used to stop dead.
+    // The idiom is everywhere: hub, decoder, indexer, sync.
     test('steps out of a single-argument numeric wrapper to reach the default', () => {
         assert.deepEqual(
             defaultOf("this.maxLookbackMs = parseInt(process.env.REORG_MAX_LOOKBACK_MS) || 86400000;"),
@@ -187,7 +187,7 @@ describe('extractDefault (the checker that reported false green during the audit
 
     // parseInt's second argument is a radix and must stay skipped; these
     // helpers' second argument IS the fallback, and skipping it left every
-    // sync/indexer/sdk config default unchecked ().
+    // sync/indexer/sdk config default unchecked.
     test('reads a helper default that sits where parseInt would take a radix', () => {
         assert.deepEqual(
             defaultOf("config['SYNC_API_PORT'] = parseIntMin0(process.env.SYNC_API_PORT, 3006);"),
@@ -228,7 +228,7 @@ describe('scanSource', () => {
     });
 });
 
-// . These are the reads the scanner cannot name, so the coverage check
+// These are the reads the scanner cannot name, so the coverage check
 // cannot fail on them; the ratchet below is what keeps the set from growing.
 describe('scanComputedReads (the blind spot the gate cannot see into)', () => {
     test('finds the computed shapes and leaves the literal ones to scanSource', () => {
@@ -386,8 +386,8 @@ describe('the working-tree reader\'s error handling', () => {
         );
     });
 
-    // The LISTING seam had the same bare catch the read seam was fixed for
-    // (), and it fails harder: a directory that cannot be listed
+    // The LISTING seam had the same bare catch the read seam was fixed for,
+    // and it fails harder: a directory that cannot be listed
     // yields an empty path list, so the component contributes zero variables
     // and every per-component check over it becomes vacuously true.
     test('a prefix that is absent is skipped; a prefix that cannot be reached is not', () => {
@@ -493,7 +493,7 @@ describe('a partial survey (the subset the CLI builds when only some siblings ar
     test('a component whose source moved out from under the scanner is named, not averaged away', () => {
         // The failure the fleet-wide read floor cannot see: hub's layout moves,
         // its scan finds nothing, sync's reads still clear the floor, and every
-        // hub check then passes over an empty set ().
+        // hub check then passes over an empty set.
         const { root, docRoot } = platform();
         const hub = path.join(root, 'xchain-hub');
         git(hub, 'mv', 'src', 'lib');
@@ -602,7 +602,7 @@ describe('doc matching', () => {
         assert.equal(defaultDocumented(['| `DB_HOST` | host | `127a0b0c1` |'], '127.0.0.1'), false);
     });
 
-    // : a switch's row names BOTH states by construction, so presence
+    // A switch's row names BOTH states by construction, so presence
     // alone passed whichever value the code held. The row below is the shipped
     // REQUIRE_SIGNATURES row, which is why `false` must not satisfy it.
     test('a boolean default must be ASSERTED, not merely mentioned', () => {
@@ -616,7 +616,7 @@ describe('doc matching', () => {
         assert.equal(defaultDocumented(['`TELEMETRY_ENABLED` defaults to `true`; set it to `false` to opt out.'], 'false'), false);
     });
 
-    // , second half: a NUMBER is masked the same way a switch is, by
+    // A NUMBER is masked the same way a switch is, by
     // any other number the row carries. The row below is the shipped
     // EXPLORER_VM_MAX_STATE_BYTES row, whose `(4 MiB)` gloss used to satisfy the
     // `4` that extractDefault recorded for `4 * 1024 * 1024`.
@@ -683,7 +683,7 @@ const entryOf = (vars, docLines, docProse = docLines) => ({ vars: new Map(vars),
 
 describe('checkDefaultDrift', () => {
     test('a mis-documented STRING default is drift, not a pass', () => {
-        // The blind spot itself (): extractDefault records
+        // The blind spot itself: extractDefault records
         // `|| 'server'`, and a numeric-only filter used to throw it away, so a
         // row saying `client` sailed through.
         const entry = entryOf(
@@ -717,7 +717,7 @@ describe('checkDefaultDrift', () => {
     // it was reported for: the sync pages carry `SYNC_MODE=server` in an env
     // snippet, twice in `export` lines, in a `docker run -e` flag and in a
     // mermaid node, so the table row could be rewritten to `client` and the
-    // check stayed green on the live corpus ().
+    // check stayed green on the live corpus.
     test('a value shown only in an example does not document the default', () => {
         const entry = entryOf(
             [['SYNC_MODE', [{ file: 'src/a.js', line: 1, default: { value: 'server', numeric: false } }]]],
@@ -764,7 +764,7 @@ describe('checkDivergentDefaults', () => {
 describe('checkStaleKnownGaps (the waiver ratchet)', () => {
     // KNOWN_GAPS is empty, and the only other test asserts the ratchet returns
     // [] against the real survey, so both of its stale branches were dead: a
-    // body of `return []` passed the suite (). The waiver list is the
+    // body of `return []` passed the suite. The waiver list is the
     // one place this gate can be told to look away, so the check that keeps it
     // shrinking has to be exercised on a non-empty list.
     test('flags a waiver the code dropped and one the docs now cover, but not a live gap', () => {
@@ -823,10 +823,10 @@ const survey = siblingsMissing ? new Map() : cov.buildSurvey({
     components:    readable,
 });
 
-describe('environment-variable documentation coverage ', { skip: siblingsMissing ? 'sibling service repos not checked out' : false }, () => {
+describe('environment-variable documentation coverage', { skip: siblingsMissing ? 'sibling service repos not checked out' : false }, () => {
     test('every checked-out sibling could be read at HEAD', () => {
         // A sibling silently dropping out is how a gate goes green while
-        // proving less than it did yesterday , so name it loudly.
+        // proving less than it did yesterday, so name it loudly.
         assert.deepEqual(unreadable, [], `checked out but not a git repo, so not gated: ${unreadable.join(', ')}`);
     });
 
@@ -877,7 +877,7 @@ describe('environment-variable documentation coverage ', { skip: siblingsMissing
         );
     });
 
-    // . A `process.env[key]` read has no name for checkUndocumented to
+    // A `process.env[key]` read has no name for checkUndocumented to
     // fail on, so the gate cannot see it at all. This does not recover the
     // names; it holds the count, so the unscannable surface cannot grow while
     // the gate reports green.

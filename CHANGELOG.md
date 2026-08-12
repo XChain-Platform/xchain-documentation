@@ -8,21 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `components/dashboard/`: README, architecture, configuration and operations pages for the operator console, now a public AGPL repository .
+- `components/dashboard/`: README, architecture, configuration and operations pages for the operator console, now a public AGPL repository.
 - `architecture/platform-map.md` (+ `platform-map-app.html` / `platform-map.json`): interactive platform map with selectable end-to-end flows, embedded in a sidebar-listed doc page, plus the same graph as machine-readable JSON for AI agents, guarded by a new integrity/parity test.
 
 ### Fixed
-- The gated-FILE layout is documented as nonce then GCM tag then ciphertext, matching what the encoder emits ().
-- Six flat-cap P2SH statements across four files describe the chunked model and its compiled ceiling ().
-- The trading guide states the shipped duration-metered listing fee instead of a Bitcoin-only introductory free tier ().
-- The env-var coverage surveyor propagates real file I/O errors instead of treating them as files that raced away, and reports a git failure as a tool error rather than as a documentation gap ().
-- The docs suite pins partial-scan survey behaviour and specific collected gates ().
-- Stake-weighted quorum reference implementation rejects a validator entry with a missing or non-numeric weight, with test vectors for the missing, null, non-numeric and explicit-zero cases ().
-- The stakeable-contract tutorial queries stake with the signing pubkey rather than the caller address, so its stake gate and admin slash path work as written ().
-- The contract-staking worked example uses the current DEPLOY encoding instead of the retired hex form ().
-- PRICE_MAX and ORACLE_DEVIATION_THRESHOLD are covered by the cross-repo value-equality gate ().
-- keys-signing.md counts four signer implementations, not five ().
-- review review-round accuracy fixes: white paper repinned to the shipped 2.0.0 flag day 2026-08-07, SLASH described as burning the entire bond, the stakeable-contract tutorial authorizes on `getSourceAddress()` instead of caller-supplied calldata, `xchain-lint` described as a conservative preflight rather than exact deploy parity, the stake-weighted predicate no longer called 2f+1, and the contract-staking example takes the gateway argument ().
+- The gated-FILE layout is documented as nonce then GCM tag then ciphertext, matching what the encoder emits.
+- Six flat-cap P2SH statements across four files describe the chunked model and its compiled ceiling.
+- The trading guide states the shipped duration-metered listing fee instead of a Bitcoin-only introductory free tier.
+- The env-var coverage surveyor propagates real file I/O errors instead of treating them as files that raced away, and reports a git failure as a tool error rather than as a documentation gap.
+- The docs suite pins partial-scan survey behaviour and specific collected gates.
+- Stake-weighted quorum reference implementation rejects a validator entry with a missing or non-numeric weight, with test vectors for the missing, null, non-numeric and explicit-zero cases.
+- The stakeable-contract tutorial queries stake with the signing pubkey rather than the caller address, so its stake gate and admin slash path work as written.
+- The contract-staking worked example uses the current DEPLOY encoding instead of the retired hex form.
+- PRICE_MAX and ORACLE_DEVIATION_THRESHOLD are covered by the cross-repo value-equality gate.
+- keys-signing.md counts four signer implementations, not five.
+- Review-round accuracy fixes: white paper repinned to the shipped 2.0.0 flag day 2026-08-07, SLASH described as burning the entire bond, the stakeable-contract tutorial authorizes on `getSourceAddress()` instead of caller-supplied calldata, `xchain-lint` described as a conservative preflight rather than exact deploy parity, the stake-weighted predicate no longer called 2f+1, and the contract-staking example takes the gateway argument.
 - `components/wallet/README.md`: `MultisigSigner` was listed among the shipped signers; the class does not exist (it is planned, and Keys_Signing.md already said so). There are four concrete signers.
 - `components/wallet/TESTING.md`: the multisig session state machine named an `indexed` status that does not exist and four other wrong status names.
 - `components/wallet/ARCHITECTURE.md`: `subscribe()` was missing from the signer interface list.
@@ -112,7 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `components/decoder/OPERATIONS.md`: `lag_blocks` is `null` when either height is unknown, not `0`.
-- Explorer WEBSOCKET.md no longer advertises the `statuses` filter: it is out of WELCOME `features` and both SUBSCRIBED `active_filters` examples, matching what the server actually emits, and the parameter row now records that it is not supported ().
+- Explorer WEBSOCKET.md no longer advertises the `statuses` filter: it is out of WELCOME `features` and both SUBSCRIBED `active_filters` examples, matching what the server actually emits, and the parameter row now records that it is not supported.
 
 ## [0.12.0] - 2026-06-20
 

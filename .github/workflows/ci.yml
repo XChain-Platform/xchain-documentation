@@ -1,8 +1,8 @@
 name: CI
 
 # xchain-documentation had no CI at all, while carrying 79 tests that guard
-# consensus-relevant material rather than prose (, found while auditing
-# which repos' declared gates actually run anywhere):
+# consensus-relevant material rather than prose (found while auditing which
+# repos' declared gates actually run anywhere):
 #
 #   protocol/constants.js       the canonical activation timestamps other repos
 #                               vendor and drift-check their copies against

@@ -112,8 +112,8 @@ All client messages are JSON with an `action` field. An optional `id` field enab
 | Param | Type | Description |
 |---|---|---|
 | `types` | string[] | Only receive events matching these action types. Omit for all. |
-| `statuses` | string[] | **Not supported. Do not use.** Accepted by the server for backward compatibility but never honored on any channel: no feed populates a per-event status (`getActionsSince` selects `NULL as status`), so the filter can never reject anything. It is absent from WELCOME `features` and from SUBSCRIBED `active_filters`. See . |
-| `ticks` | string[] | **Not an event filter.** On the global `actions` channel it is accepted, silently ignored, and echoed back under SUBSCRIBED `ignored_filters`: action frames carry no tick column (`getActionsSince` selects none), so the filter can never reject anything. It is absent from WELCOME `features` and from SUBSCRIBED `active_filters`. See . Its one real use is as the batch (plural) form of the `token` channel's `tick` entity param, in the Entity params table below. |
+| `statuses` | string[] | **Not supported. Do not use.** Accepted by the server for backward compatibility but never honored on any channel: no feed populates a per-event status (`getActionsSince` selects `NULL as status`), so the filter can never reject anything. It is absent from WELCOME `features` and from SUBSCRIBED `active_filters`. |
+| `ticks` | string[] | **Not an event filter.** On the global `actions` channel it is accepted, silently ignored, and echoed back under SUBSCRIBED `ignored_filters`: action frames carry no tick column (`getActionsSince` selects none), so the filter can never reject anything. It is absent from WELCOME `features` and from SUBSCRIBED `active_filters`. Its one real use is as the batch (plural) form of the `token` channel's `tick` entity param, in the Entity params table below. |
 | `fields` | string[] | Only include these keys in the `data` payload. Envelope fields always included. |
 | `snapshot` | boolean | Send current entity state immediately on subscribe. |
 | `once` | boolean | Auto-unsubscribe after the first matching event. |

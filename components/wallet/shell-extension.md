@@ -169,7 +169,7 @@ Both are subject to Chrome's ~10 MB per-extension quota. The wallet's typical st
 - Absence of Google API integration
 - CWS-mandated single-purpose + limited-use disclosures
 
-The CWS submission playbook lives in the platform repo (gitignored) at `claude/reports/specs/2026-04-24_cws-submission.md`. CWS submission is one of the three remaining user-driven items before v1.0.0 GA.
+CWS submission is one of the three remaining user-driven items before v1.0.0 GA.
 
 ## Test runbook
 

@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Explorer /status response-contract gate .
+ * Explorer /status response-contract gate.
  *
  * WHY. The explorer's tip-age gate changed what `available` MEANS: it used to
  * be a static echo of the configured coin map and is now recomputed per
@@ -77,29 +77,29 @@ describe('explorer /status contract in components/explorer/api.md', () => {
         const rows     = documentedFields(section);
         const missing  = declared.filter((f) => !rows.has(f));
         assert.deepEqual(missing, [],
-            'the /status field table is missing a row for: ' + missing.join(', ') + ' ');
+            'the /status field table is missing a row for: ' + missing.join(', '));
     });
 
     test('states that available is staleness-filtered, not a fixed config echo', () => {
         assert.match(section, /\bstale\b/,
-            'the /status section never mentions staleness ');
+            'the /status section never mentions staleness');
         assert.match(section, /Computed per request/,
-            'the `available` row no longer says the map is computed per request ');
+            'the `available` row no longer says the map is computed per request');
     });
 
     test('states that a stale coin leaves available and stays supported', () => {
         assert.match(section, /leave `available` and stay in `supported`|absent from `available`, while still listed in `supported`/,
-            'the page no longer states where a stale coin goes ');
+            'the page no longer states where a stale coin goes');
     });
 
     test('names the threshold that decides staleness', () => {
         assert.match(section, /EXPLORER_TIP_MAX_AGE_S/,
-            'the /status section no longer names the tip-age threshold variable ');
+            'the /status section no longer names the tip-age threshold variable');
     });
 
     test('shows supported and available as keyed maps, not arrays', () => {
         assert.doesNotMatch(section, /"(supported|available)":\s*\[/,
-            'the response example shows supported/available as arrays; they are coin-keyed maps ');
+            'the response example shows supported/available as arrays; they are coin-keyed maps');
         assert.match(section, /"available":\s*\{/,
             'the response example no longer shows an `available` map');
     });

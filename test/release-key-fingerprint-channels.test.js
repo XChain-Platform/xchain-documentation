@@ -15,7 +15,7 @@
  * WHY. `components/wallet/release/verify-release.md` told a reader five
  * times to cross-check the release key against `components/wallet/
  * security.md`. That page has no fingerprint in it and never had one:
- * the rails ( §4, K1 policy) publish the fingerprint through two
+ * the rails (K1 policy) publish the fingerprint through two
  * channels OUTSIDE this repository, so the recipe dead-ended at the one
  * step the whole recipe exists for. Every link resolved, so the existing
  * internal-link gate was green throughout: a link can point at a real
@@ -49,7 +49,7 @@ const path = require('node:path');
 const DOC_ROOT = path.join(__dirname, '..');
 const RECIPE   = path.join(DOC_ROOT, 'components/wallet/release/verify-release.md');
 
-// The channels the rails names ( §4, K1 policy). Matched by substring
+// The channels the rails names (K1 policy). Matched by substring
 // so a trailing slash or a deep link still counts.
 //
 // HOW MANY OF THESE A READER CAN ACTUALLY REACH IS NOT A CONSTANT, and this
@@ -215,7 +215,7 @@ describe('release key fingerprint cross-references', () => {
 
         // Pending the key ceremony neither channel carries a VALUE yet, so
         // what is checked is the named slot plus its stated empty state. A
-        // channel with no slot at all is the  defect.
+        // channel with no slot at all is the defect this guard exists for.
         test('channel one: SECURITY.md in xchain-wallet', (t) => {
             if (!fs.existsSync(wallet)) return t.skip('sibling xchain-wallet not checked out');
             const src = read(wallet);

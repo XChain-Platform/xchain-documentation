@@ -12,7 +12,7 @@
  *
  * XCALL client-integration boundary gate.
  *
- * WHY . A wallet e2e pass looked for a "cross-chain contract call"
+ * WHY. A wallet e2e pass looked for a "cross-chain contract call"
  * flow, found no XCALL entry in any wallet form or composer dropdown, and
  * logged it as a wallet coverage gap. It is not one: XCALL v0 is emitted only
  * from inside contract code via xchain.emit.crossExecute(...), and XCALL v2 is
@@ -79,7 +79,7 @@ describe('XCALL client-integration boundary', () => {
 
     test('the architecture doc carries the boundary section', () => {
         assert.match(arch, /^## Client integration boundary/m,
-            'cross-chain-calls.md lost its "Client integration boundary" section ');
+            'cross-chain-calls.md lost its "Client integration boundary" section');
         assert.match(arch, /^### Exercising the request side/m,
             'the boundary section lost its request-side recipe');
 

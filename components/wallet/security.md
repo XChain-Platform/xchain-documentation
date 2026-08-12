@@ -106,8 +106,8 @@ The next iteration adds a byte-level cross-check that re-decodes the encoder's P
 
 The wallet is pre-v1.0 GA at `0.338.0`. Two external audits are queued before GA:
 
-- **Security audit.** Cryptography (xchain-sdk MuSig2 + signEcdsa + ECPair / WIF / KDF), wallet flows (unlockWallet, signers, multisig session state machine, signMultisigPsbt path), shell IPC (extension service-worker boundary, desktop main / preload / renderer split). Audit-readiness packet at `claude/reports/specs/2026-04-24_security-audit-readiness.md` in the platform repo (gitignored).
-- **Accessibility audit.** Color contrast, focus-visible, live-region timing, keyboard traps, screen-reader walkthroughs (NVDA + JAWS + VoiceOver), reduced-motion verification, touch-target sizing per WCAG 2.5.5, forced-colors / Windows high-contrast, reflow + zoom per WCAG 1.4.10. WCAG 2.2 AA target. Audit-readiness packet at `claude/reports/specs/2026-04-24_a11y-audit-readiness.md`.
+- **Security audit.** Cryptography (xchain-sdk MuSig2 + signEcdsa + ECPair / WIF / KDF), wallet flows (unlockWallet, signers, multisig session state machine, signMultisigPsbt path), shell IPC (extension service-worker boundary, desktop main / preload / renderer split).
+- **Accessibility audit.** Color contrast, focus-visible, live-region timing, keyboard traps, screen-reader walkthroughs (NVDA + JAWS + VoiceOver), reduced-motion verification, touch-target sizing per WCAG 2.5.5, forced-colors / Windows high-contrast, reflow + zoom per WCAG 1.4.10. WCAG 2.2 AA target.
 
 Static gates run on every commit and protect against regressions in both surfaces between audits:
 

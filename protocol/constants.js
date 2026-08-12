@@ -39,7 +39,7 @@
 // encoder produces above this size would be silently dropped by every node.
 const MAX_ACTION_DATA_LENGTH = 8192;
 
-// Taproot-envelope payload ceiling , PER-ENCODING by design: only the
+// Taproot-envelope payload ceiling, PER-ENCODING by design: only the
 // TAPROOT envelope lane gets it; every legacy lane keeps MAX_ACTION_DATA_LENGTH
 // (a global raise would multiply the chunk-lane abuse ceiling ~50x for no
 // benefit). Measures the REASSEMBLED envelope payload byte length after
@@ -49,7 +49,7 @@ const MAX_ACTION_DATA_LENGTH = 8192;
 // push: the two constants measure different things. Enforced identically in
 // the block and mempool paths.
 //
-// DERIVED FROM WEIGHT, NOT CHOSEN AS A ROUND BYTE COUNT . The binding
+// DERIVED FROM WEIGHT, NOT CHOSEN AS A ROUND BYTE COUNT. The binding
 // limit is MAX_STANDARD_TX_WEIGHT: a reveal over it is non-standard and no node
 // relays it, so a ceiling that admits one strands the commit that funded it.
 // Payload bytes ride the witness at ~1 WU each, plus ~3 bytes of OP_PUSHDATA2
@@ -131,7 +131,7 @@ const XCALL_MAX_CALLS_PER_BLOCK = 25;
 
 // Age-out window (seconds of consensus block time, measured from a mirrored
 // result row's quorum-signed effective_time) past which the SOURCE chain retires
-// a result row it can never deliver .
+// a result row it can never deliver.
 //
 // A result row whose call_id matches no local XCALL v0 request is rejected on
 // every block and pruned by nothing (pruning is keyed on a recorded callback),
@@ -156,7 +156,7 @@ const XCALL_MAX_CALLS_PER_BLOCK = 25;
 const XCALL_RESULT_ORPHAN_GRACE_SECONDS = 3600;
 
 // ── ATTEST expiry sweep ─────────────────────────────────────────────────────
-// Deterministic per-block cap on the ATTEST v0 deadline-expiry sweep ().
+// Deterministic per-block cap on the ATTEST v0 deadline-expiry sweep.
 // Each expired request synthesizes an ATTEST v2 action that flips the request to
 // 'expired' and fires its callback, so an unbounded sweep lets a single block
 // inherit an arbitrary backlog: one block's processing time (and its actions
@@ -171,11 +171,11 @@ const XCALL_RESULT_ORPHAN_GRACE_SECONDS = 3600;
 //
 // CONSENSUS-VISIBLE: the cap decides which block an expiry lands in, which moves
 // actions rows, the contract hash and the checkpoint preimage. It ships ungated
-// under the  batch because the fleet-wide replay recomputes all of it.
+// because the fleet-wide replay recomputes all of it.
 const ATTEST_MAX_EXPIRIES_PER_BLOCK = 25;
 
 // ── Cross-chain settlement pass ─────────────────────────────────────────────
-// Deterministic per-block cap on the CROSS_SETTLE pass (), the one
+// Deterministic per-block cap on the CROSS_SETTLE pass, the one
 // cross-chain pass that had none: the indexer looped every finalized, effective,
 // unsettled match its hub mirror carried, so a mirror backlog injected an unbounded
 // number of escrow-releasing actions into a single block transaction, the same
@@ -233,7 +233,7 @@ const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
 // Consensus-critical activation: at/above this BTC-anchored snapshot_block the
 // federation quorum becomes stake-WEIGHTED (signers' summed source stake must
 // exceed 2/3 of total active snapshot stake) instead of count-based (2f+1 of the
-// pubkey COUNT). Spec: claude/reports/2026-06-14_cross-chain-quorum-security-spec.md.
+// pubkey COUNT).
 //
 // Keyed on the BTC `snapshot_block` carried by every settlement/checkpoint
 // canonical (NOT each chain's local processing height) so the hub and the BTC,
@@ -276,7 +276,7 @@ const EQUIV_HEADER_ACTIVATION = {
     regtest: 0,
 };
 
-// CANONICAL_REORG_BUFFER / SNAPSHOT_BURIAL_ACTIVATION : a hub never resolves a
+// CANONICAL_REORG_BUFFER / SNAPSHOT_BURIAL_ACTIVATION: a hub never resolves a
 // capability snapshot at the height it was handed. CapabilitySnapshot subtracts
 // CANONICAL_REORG_BUFFER first, because stake state at the tip is not reorg-safe, while the
 // wire keeps the RAW height (the signed checkpoint's snapshot_block, the mirrored
@@ -291,8 +291,8 @@ const EQUIV_HEADER_ACTIVATION = {
 // xchain-{hub,indexer,sdk}/src/snapshot_reorg_buffer.js by the cross-service regression suite.
 const CANONICAL_REORG_BUFFER = 6;
 const SNAPSHOT_BURIAL_ACTIVATION = {
-    mainnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming 
-    testnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming 
+    mainnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming
+    testnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming
     regtest: 0,
 };
 
@@ -341,7 +341,7 @@ const STATE_COMMITMENT_ACTIVATION = {
 // (2026-07-07; BTC anchor ~2026-08-04), not a disabled placeholder.
 const CHECKPOINT_COMMITMENT_ACTIVATION = {
     mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers (+ sdk/explorer/sync copies) before this height
-    testnet: 146000,      // ARMED 2026-07-22 ( lead 0e418c8c): first BTC-testnet anchor past all three STATE_COMMITMENT testnet thresholds; was 0, which forced the SPV root suffix from testnet genesis before the indexer computes roots, so the hub refused to sign every testnet checkpoint
+    testnet: 146000,      // ARMED 2026-07-22 (commit 0e418c8c): first BTC-testnet anchor past all three STATE_COMMITMENT testnet thresholds; was 0, which forced the SPV root suffix from testnet genesis before the indexer computes roots, so the hub refused to sign every testnet checkpoint
     regtest: 0,
 };
 
@@ -368,7 +368,7 @@ const ANCHOR_REWARD_ACTIVATION = {
 // by the hub and re-derived by the indexer (never from the wire). Changing it is itself a flag-day.
 const ANCHOR_REWARD_AMOUNT = '10.00000000';
 
-// ARCHIVE_REWARD_ACTIVATION (archive-reward re-derivation, ): the flag-day at/above which the
+// ARCHIVE_REWARD_ACTIVATION (archive-reward re-derivation): the flag-day at/above which the
 // anchor_archive reward stops riding the key-authenticated `pushvalidatorrewards` rail and is instead
 // DERIVED by every indexer from the on-chain ANCHOR v6 bytes (the v1 archive anchor plus the same
 // PUBLISHER + 2f+1 XANCPUB attestation tail as v4/v5, attested over an 'anchor_archive' canonical
@@ -378,7 +378,7 @@ const ANCHOR_REWARD_AMOUNT = '10.00000000';
 // ANCHOR_REWARD_ACTIVATION; kept byte-identical to the local copies in
 // xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
 const ARCHIVE_REWARD_ACTIVATION = {
-    mainnet: 963000,      // ARMED 2026-07-16 , RE-PINNED 2026-08-12  off 969500 onto the  pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
+    mainnet: 963000,      // ARMED 2026-07-16, RE-PINNED 2026-08-12 off 969500 onto the shared pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
     testnet: 0,
     regtest: 0,
 };
@@ -388,7 +388,7 @@ const ARCHIVE_REWARD_ACTIVATION = {
 // hub's historical default (ANCHOR_REWARD_PER_PUBLISH). Changing it is itself a flag-day.
 const ARCHIVE_REWARD_AMOUNT = '10.00000000';
 
-// ANCHOR_REWARD_DERIVE_ACTIVATION (, Option C derive-on-BTC-side): the flag-day at/above
+// ANCHOR_REWARD_DERIVE_ACTIVATION (Option C, derive-on-BTC-side): the flag-day at/above
 // which anchor + archive reward derivation RELOCATES from the DOGE indexer to the BTC indexer.
 // ANCHOR is DOGE-only, but capability staking (hence the resolvable stake source the reward write
 // needs) is BTC-only, so the DOGE-side derivation gated by ANCHOR_REWARD_ACTIVATION /
@@ -415,9 +415,9 @@ const ANCHOR_REWARD_DERIVE_ACTIVATION = {
 // broadcast. Vendored byte-equal into xchain-{indexer,hub,explorer}/src/
 // retraction_signing_activation.js; a one-sided edit lets the hub sign under one era rule
 // while a mirror enforces another, forking the fleet at the boundary. Canonical map of
-// record for those copies (armed 2026-07-16, ).
+// record for those copies (armed 2026-07-16).
 const RETRACTION_SIGNING_ACTIVATION = {
-    mainnet: 963000,      // ARMED 2026-07-16 , RE-PINNED 2026-08-12  off 969500 onto the  pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
+    mainnet: 963000,      // ARMED 2026-07-16, RE-PINNED 2026-08-12 off 969500 onto the shared pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
     testnet: 0,
     regtest: 0,
 };
@@ -462,7 +462,7 @@ const ATTEST_ADMISSION_ACTIVATION = {
     regtest: 0,
 };
 
-// ATTEST_RELAY_ACTIVATION (, attestation Phase 5 cross-chain delivery): the flag-day
+// ATTEST_RELAY_ACTIVATION (attestation Phase 5 cross-chain delivery): the flag-day
 // at/above which the two relay legs of the §12 CrossChainEngine model are accepted on chain:
 // ATTEST v3 (an LTC/DOGE-origin request materialized onto BTC, carrying 2f+1 cross_chain
 // signatures) and ATTEST v4 (the BTC response relayed back to the origin chain, same signature
@@ -486,15 +486,15 @@ const ATTEST_ADMISSION_ACTIVATION = {
 // they expire on their own deadline (the pre-Phase-5 outcome); BTC-first leaves no origin request
 // to relay.
 //
-// Armed on the  cohort anchor. Kept value-identical to the local copies in
+// Armed on the shared mainnet cohort anchor. Kept value-identical to the local copies in
 // xchain-{hub,indexer}/src/attest_relay_activation.js by the activation-constants parity suite.
 const ATTEST_RELAY_ACTIVATION = {
-    mainnet: 963000,      // ARMED 2026-07-30  on the  BTC anchor, RE-PINNED 2026-08-12  off 969500 with the rest of that cohort; deploy every indexer + hub before this height
+    mainnet: 963000,      // ARMED 2026-07-30 on the shared BTC anchor, RE-PINNED 2026-08-12 off 969500 with the rest of that cohort; deploy every indexer + hub before this height
     testnet: 0,
     regtest: 0,
 };
 
-// ORACLE_FEE_OUTPUT_ACTIVATION ( /  PRICE v1 oracle usage fee): the flag-day
+// ORACLE_FEE_OUTPUT_ACTIVATION (PRICE v1 oracle usage fee): the flag-day
 // at/above which the DECODER persists a native-coin output paying a DISPENSER's
 // ORACLE_ADDRESS into transaction_outputs, so the indexer's validateOracleFee can see the
 // fee that was actually paid. Keyed on BLOCK TIME (not height) because dispensers settle on
@@ -519,7 +519,7 @@ const ORACLE_FEE_OUTPUT_ACTIVATION = {
     regtest: 0,
 };
 
-// ENVELOPE_RECOGNITION_ACTIVATION ( spec §7): the LOCAL block height
+// ENVELOPE_RECOGNITION_ACTIVATION (spec §7): the LOCAL block height
 // at/above which the decoder recognizes Taproot-envelope reveals as
 // action-bearing transactions, per host chain and network. Recognition (and
 // the §3.8 mixed-carrier/multi-envelope rejections, which activate at the same
@@ -531,8 +531,8 @@ const ORACLE_FEE_OUTPUT_ACTIVATION = {
 // MAINNET HEIGHTS PULLED IN 2026-08-02 by operator decision: BTC 961000 ->
 // 960850, LTC 3160000 -> 3153500, both ~6 hours out from a measured tip (BTC
 // 960812, LTC 3153356) rather than 2 and 12 days. The envelope is a pre-launch
-// feature, and 's standing policy is that only post-launch features carry
-// activation dates; its  contrast names the cheap remedy for a cohort
+// feature, and standing policy is that only post-launch features carry
+// activation dates; the counter-case names the cheap remedy for a cohort
 // already deployed and armed, which is to move the constant rather than rebase.
 // The fleet has carried the envelope code since the 08-01 train, so nothing is
 // wiped, replayed or rescanned. testnet/regtest stay genesis-active, as they
@@ -547,7 +547,7 @@ const ENVELOPE_RECOGNITION_ACTIVATION = {
     DOGE: { mainnet: null, testnet: null, regtest: null },
 };
 
-// ── FILE payload compression ( spec Part B) ────────────────────────────
+// ── FILE payload compression (spec Part B) ───────────────────────────────────
 //
 // COMPRESSION is a trailing optional field on FILE v0:
 //   FILE|0|NAME|TYPE|TITLE|MEMO|GATE_TICKER|ENCRYPTION_METHOD|KEY_HASH|GATE_MIN_AMOUNT|COMPRESSION
@@ -577,13 +577,13 @@ const COMPRESSION_CODE_DEFLATE_RAW = '1';
 const COMPRESSION_MAX_RATIO = 150;
 
 // Pre-compression input cap on rawData at the encoder (spec §5.2). The encoder
-// is a hard single-instance service ( lockfile guard), so compression
+// is a hard single-instance service (lockfile guard), so compression
 // must be async/streamed and bounded; this is the bound. It applies to the
 // bytes handed IN, before any compression attempt. The encoder never
 // decompresses anything.
 const COMPRESSION_MAX_INPUT_BYTES = 16 * 1024 * 1024;
 
-// ── PRICE v0 pair-name format  ───────────────────────────────────────
+// ── PRICE v0 pair-name format ─────────────────────────────────────────────────
 //
 // A PRICE v0 round names each pair as TICKER/FIAT. The ticker side has always been
 // bounded to 5 characters, which cannot express the 6-character gas ticker XCHAIN,
@@ -615,7 +615,7 @@ const PRICE_PAIR_TICKER_MAX_LEGACY = 5;
 const PRICE_PAIR_TICKER_MAX_WIDE   = 6;
 
 // UNARMED on mainnet. 9999999999 is a far-future sentinel (year 2286), NOT a
-// scheduled flag-day:  D6 (the pre-launch instant this gate arms at) is an
+// scheduled flag-day: the pre-launch instant this gate arms at is an
 // open operator decision. The usual contract-era stamp 1786060800 (2026-08-07) is
 // NOT usable here because it falls AFTER the early-September launch target, which
 // would leave LTC/DOGE native-coin fees unpayable straight through launch. Arming
@@ -623,12 +623,12 @@ const PRICE_PAIR_TICKER_MAX_WIDE   = 6;
 // testnet/regtest are genesis-on so the widened format is in force in the suites
 // and on every test venue today.
 const PRICE_PAIR_WIDEN_ACTIVATION = {
-    mainnet: 9999999999,  // UNARMED sentinel - see  D6
+    mainnet: 9999999999,  // UNARMED sentinel, pending an open operator decision
     testnet: 0,
     regtest: 0,
 };
 
-// ── PRICE v0 signature-tally ordering  ───────────────────────────────
+// ── PRICE v0 signature-tally ordering ─────────────────────────────────────────
 //
 // The PRICE v0 tally keeps at most one signature per pubkey. Below this gate the
 // pubkey enters the dedupe set on FIRST ENCOUNTER, ahead of the capability check
@@ -639,7 +639,7 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
 // oracle's pubkey, placed ahead of that oracle's real one, consumes the dedupe
 // slot, so the real signature is skipped as a duplicate and a legitimately
 // quorate round is rejected on chain. Every other tally site in the platform is
-// verify-then-mark already ( Pkg 13); PRICE was the last pair.
+// verify-then-mark already; PRICE was the last pair.
 //
 // GATED, unlike the Pkg 13 sites, because PRICE is genesis-active on mainnet
 // with a NON-EMPTY price-capability validator set and live history, so the
@@ -656,9 +656,9 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
 // local-height gate would flip LTC/DOGE months early. The hub push carries and
 // validates the same field, so hub and indexers key on the identical number.
 //
-// mainnet is ARMED to 963000, the single BTC-height boundary the whole 
-// cohort shares after the re-pin of 2026-08-12 (off 969500, onto the
-//  pre-freeze train boundary), rather than a newly minted anchor, and
+// mainnet is ARMED to 963000, the single BTC-height boundary the whole shared
+// mainnet cohort shares after the re-pin of 2026-08-12 (off 969500, onto the
+// shared pre-freeze train boundary), rather than a newly minted anchor, and
 // deliberately not the nearer 961000 whose deploy train shipped on 2026-07-23 and
 // whose height has already passed. Deploy every indexer AND every hub before
 // this height; they are peers here, not producer and consumer, so a split fleet
@@ -666,7 +666,7 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
 // local copies in xchain-{indexer,hub}/src/price_sig_tally_activation.js by the
 // activation-constants parity suite.
 const PRICE_SIG_TALLY_ACTIVATION = {
-    mainnet: 963000,      // ARMED , RE-PINNED 2026-08-12  off 969500 onto the  train boundary shared with RETRACTION_SIGNING; deploy ALL indexers + hubs before this height
+    mainnet: 963000,      // ARMED, RE-PINNED 2026-08-12 off 969500 onto the train boundary shared with RETRACTION_SIGNING; deploy ALL indexers + hubs before this height
     testnet: 0,
     regtest: 0,
 };

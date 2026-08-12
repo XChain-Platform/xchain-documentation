@@ -30,7 +30,7 @@ archive, in a single action with seven version-discriminated phases:
 - **v6: Archive + publisher attestation.** Validator-broadcast. The v1 archive anchor plus the
   elected archive leader's `PUBLISHER` pubkey and the same 2f+1 `oracle_publish` attestation tail
   as v4/v5, attested over an `anchor_archive` `XANCPUB` canonical keyed on `MATCH_BATCH_SEQ` and
-  gated by the `ARCHIVE_REWARD` flag-day . The indexer re-derives the archive reward from
+  gated by the `ARCHIVE_REWARD` flag-day. The indexer re-derives the archive reward from
   these bytes, retiring the last key-authenticated `pushvalidatorrewards` rail. Post-flag-day the
   archive leader emits v6 in place of v1; a degraded federation falls back to a legacy v1 so the
   archive still lands (no reward).
@@ -129,7 +129,7 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 
 ### Version `6`: Checkpoint + match archive + publisher attestation (validator-broadcast)
 - `ANCHOR|6|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|MATCH_BATCH_SEQ|MATCH_COUNT|BATCH_CRC32|TOTAL_CHUNKS|ARCHIVE_B64|SIG_COUNT|PUBKEY1|SIG1|...|PUBLISHER|ATTEST_SIG_COUNT|APUBKEY1|ASIG1|...`
-- The v1 archive anchor with the `PUBLISHER` + attestation list appended **after** the wrapper signature list (never inserted mid-string). Emitted in place of v1 at/above the `ARCHIVE_REWARD` flag-day . Continuation chunks stay v2, tied by `MATCH_BATCH_SEQ` exactly as for a v1 head.
+- The v1 archive anchor with the `PUBLISHER` + attestation list appended **after** the wrapper signature list (never inserted mid-string). Emitted in place of v1 at/above the `ARCHIVE_REWARD` flag-day. Continuation chunks stay v2, tied by `MATCH_BATCH_SEQ` exactly as for a v1 head.
 
 ## Examples
 
@@ -198,7 +198,7 @@ this reward attestation in the same round is never falsely slashable):
 EQUIV|XCHECKPOINT|XANCPUB|CHAIN|NETWORK|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|0||XANCPUB|anchor_<CHAIN>|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|PUBLISHER|ANCHOR_REWARD_AMOUNT
 ```
 
-The v6 archive attestation  uses the same shape keyed on the archive batch, with the
+The v6 archive attestation uses the same shape keyed on the archive batch, with the
 frozen `ARCHIVE_REWARD_AMOUNT` (`10.00000000`, from the same twin module) and an
 `XANCPUB|archive|...` round id disjoint from every per-chain round id (the two attestation
 families can never equivocation-collide):
@@ -321,7 +321,7 @@ exact bytes):
   the frozen `ARCHIVE_REWARD_AMOUNT`, never the wire. A failed, short, or forged attestation
   never invalidates the archive anchor; only the reward is skipped.
 - The `pushvalidatorrewards` push is retired for `anchor_archive` at/above the flag-day: every
-  indexer DERIVES the archive reward from these bytes instead (; closes the
+  indexer DERIVES the archive reward from these bytes instead (closing the
   insider-with-key forge surface the per-chain flag-day left open).
 
 ### Version 1 only

@@ -108,7 +108,7 @@ Auto-update for the extension is handled entirely by the CWS; the wallet publish
 
 ## Chrome Web Store submission
 
-The CWS submission packet lives in the platform repo (gitignored) at `claude/reports/specs/2026-04-24_cws-submission.md`. It covers:
+The CWS submission packet covers:
 
 - Build artifact + zip procedure
 - Listing copy with verbatim strings

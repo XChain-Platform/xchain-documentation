@@ -10,13 +10,13 @@
  *
  **********************************************************************
  *
- * Two-vaults disclosure gate .
+ * Two-vaults disclosure gate.
  *
  * WHY. A user who installs the wallet from a store AND from the download page
  * ends up with two separate wallets. That is structural, not a bug: MSIX
  * virtualizes a package's writes on Windows, the App Sandbox isolates the Mac
  * App Store build, and strict confinement redirects a Snap's writes. The
- * operator decided on 2026-08-03 ( row 12) that the wallets ARE separate,
+ * operator decided on 2026-08-03 that the wallets ARE separate,
  * that the copy says so plainly, and that the encrypted backup export/import is
  * the supported bridge. No cross-install detection ships, and none is planned,
  * because a sandboxed build largely cannot see the other install anyway.
@@ -107,7 +107,7 @@ function assertStatesBothHalves(text, where) {
     assert.ok(flat.length > 80, `${where}: the block is ${flat.length} characters; it cannot be carrying the disclosure`);
     assert.match(flat, SEPARATE,
         `${where} does not say a store install and a direct install are separate wallets. `
-        + 'That sentence is the whole mitigation for ; there is no in-app detection behind it.');
+        + 'That sentence is the whole mitigation; there is no in-app detection behind it.');
     assert.ok(BACKUP.test(flat) && EXPORT.test(flat) && IMPORT.test(flat),
         `${where} says the installs are separate but does not name the encrypted backup export/import as the way `
         + 'to move a wallet between them. Half the disclosure reads as data loss.');

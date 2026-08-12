@@ -45,8 +45,8 @@ covers both roles: the bettor who backs an outcome, and the oracle who runs the 
 - **Markets list**: `BetFeedsList.jsx`. Discovery view with search, a network filter, and status
   pills that show the market's STORED status rather than one recomputed from the clock.
 - **Market view**: `BetFeedDetail.jsx`. Pools per outcome and the place-bet flow itself. Note it does
-  NOT project what a win would pay: `projectBetPayout` exists in `betQueries.js` but no screen calls it
-  , so a bettor sees the current split and the round-down warning without the number itself.
+  NOT project what a win would pay: `projectBetPayout` exists in `betQueries.js` but no screen calls it,
+  so a bettor sees the current split and the round-down warning without the number itself.
 - **Create a market**: `CreateBetFeedForm.jsx`. Label, 2 to 16 outcomes, wager token, oracle fee,
   deadline, refund window, optional minimum stake and allow/block lists.
 - **My bets**: `MyBets.jsx`. Your wagers across every address, as open / won / lost / refunded.

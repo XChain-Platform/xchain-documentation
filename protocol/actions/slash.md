@@ -65,7 +65,6 @@ flowchart TD
 - **`XCONFIG` content format.** For `XCONFIG`, the signed `<CONTENT>` is `<snapshot_block>|<config_digest>`; the round's locked whole-federation snapshot block is carried in-content so the proof alone yields the membership block (the base-10 block and hex digest are pipe-free, so the action still splits cleanly).
 - **Six of the seven EQUIV engines are slashable.** As of the WI-2 bump 2 Phase-A amendment the config-change engine (`XCONFIG`) is slashable: its signed canonical now carries the round's locked `snapshot_block` in-content, and membership resolves against the whole-federation set. This changes the bytes hubs sign for config at and above the EQUIV flag-day, so it is a consensus-breaking change. Deploy the hub and all indexers atomically (it is mainnet-inert until the flag-day). The seventh EQUIV engine, `XNODEPROOF`, is deliberately **not** slashable: it carries no `CAPABILITY` mapping and no `snapshot_block` recovery rule, so a proof whose messages carry an `XNODEPROOF` header is recorded `invalid: ENGINE_TAG (not slashable)`. A node that fails challenges is penalized separately (see `NODEPROOF.md`); its `full_node` bond is untouched by `SLASH`.
 - **Anyone may submit.** There is no privileged accuser and no off-chain data; the proof is self-contained and self-verifying.
-- For the full design see `claude/reports/2026-06-14_cross-chain-quorum-security-spec.md` sections 4.1, 5, and 9.1.
 
 ---
 

@@ -10,9 +10,9 @@
  *
  **********************************************************************
  *
- * BET wire-format example lint ( P1).
+ * BET wire-format example lint.
  *
- * Same defect class as the DISPENSER lint next door : an example whose
+ * Same defect class as the DISPENSER lint next door: an example whose
  * fields are shifted by one renders fine and hands the reader a transaction the
  * indexer rejects for a reason that points at the wrong field. It bit BET
  * immediately: the first v0 example was authored with five empty separators
@@ -71,7 +71,7 @@ function fieldsOf(example) {
     return example.text.split('|').slice(1);
 }
 
-describe('BET examples match the declared formats ', () => {
+describe('BET examples match the declared formats', () => {
 
     test('all four formats are declared with the field order the spec pins', () => {
         assert.deepEqual(declaredFormat(0), [

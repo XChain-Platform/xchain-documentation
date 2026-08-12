@@ -102,7 +102,7 @@ sdk.onAction((event) => {
 }, { types: ['ORDER', 'ORDER_MATCH', 'ORDER_EXPIRE'] });
 ```
 
-**Options:** `{ types?: string[], statuses?: string[], ticks?: string[] }` (**neither `statuses` nor `ticks` is supported** on the actions stream: no action frame carries a status or a tick, so neither filter can ever reject an event. The SDK drops both rather than forward them, and a raw client that sends them gets them back under SUBSCRIBED `ignored_filters`. `ticks` is meaningful only as the token channel's batch entity param. See  and #3860)
+**Options:** `{ types?: string[], statuses?: string[], ticks?: string[] }` (**neither `statuses` nor `ticks` is supported** on the actions stream: no action frame carries a status or a tick, so neither filter can ever reject an event. The SDK drops both rather than forward them, and a raw client that sends them gets them back under SUBSCRIBED `ignored_filters`. `ticks` is meaningful only as the token channel's batch entity param.)
 
 ### sdk.onAddress(address, callback, opts?)
 
