@@ -23,6 +23,8 @@ All configuration is via environment variables (loaded from `.env` by dotenv). T
 | Variable | Description |
 |---|---|
 | `MINER_API_KEY` | When set, every JSON-RPC request must carry a matching `X-API-Key` header (401 otherwise). `ping` and `status` are exempt so healthchecks keep working. Unset by default (no auth), mirroring the encoder/hub opt-in pattern. |
+| `MINER_STALL_ERROR_THRESHOLD` | Consecutive failed mining cycles before the `health` probe reports the miner stalled. Defaults to `5`. A deliberate pause is never counted as a stall. |
+| `MINER_WALLET_GRACE_MS` | Cold-start grace period before a wallet that never became ready is reported as a stall by the `health` probe. Defaults to `60000` (60 seconds). |
 | `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for all JSON-RPC calls to the coin node (sets `axios.defaults.timeout` at startup). Defaults to `60000`, which is **not** the decoder's default for the same variable name (`30000`); if you export it globally for a whole stack, both services pick up your value. |
 | `IDLE_MINE_INTERVAL_MS` | Mine one empty block whenever the mempool has been empty this long. Unset or `0` (the default) keeps the mining loop purely mempool-driven, which means an idle chain never advances a block and anything gated on HEIGHT stalls: stake activation delays, confirmation depth, time-locked expiries. Set it on venues whose tests wait out a height window with no transactions in flight. Same bounds as the mining timers (1,000 to 3,600,000 ms); changeable at runtime with `set_idle_mine_interval`. |
 

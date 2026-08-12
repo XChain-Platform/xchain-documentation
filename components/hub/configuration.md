@@ -292,6 +292,8 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_ANNOUNCE_RETRY_MS` | No | `300000` | Delay between retries of the anchor announcement (5 minutes). |
 | `ANCHOR_ANNOUNCE_RETRY_TTL_MS` | No | `21600000` | How long announcement retries continue before the entry is dropped (6 hours, roughly six times the 60-confirmation DOGE window). |
 | `ANCHOR_ANNOUNCE_QUEUE_MAX` | No | `500` | Maximum queued anchor announcements, bounding memory. |
+| `ANCHOR_RANK_WAKE_MS` | No | `900000` | How often a non-rank-0 publisher wakes to check whether the anchor it is ranked behind was published (15 minutes). Only rank-0 keeps the interval and size triggers, so this is the takeover cadence, not the publish cadence. |
+| `ANCHOR_INTENT_TTL_MS` | No | `21600000` | How long a recorded anchor spend intent is held before it is dropped and the send re-broadcast (6 hours, the same reasoning as `ANCHOR_ANNOUNCE_RETRY_TTL_MS`: past roughly six times the 60-confirmation DOGE window, a send that never relayed is not coming back). |
 
 #### Why those magnitudes (before you retune them)
 
@@ -451,6 +453,7 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | `LLM_PROVIDER_ENABLED` | No | `true` | Set to `false` to disable the LLM attestation provider on this hub. |
 | `LLM_MAX_BUDGET_USD` | No | _(built-in cap)_ | Spend ceiling in USD for LLM attestation calls. A kill-switch against runaway cost. |
 | `CLAUDE_BIN` | No | `claude` | Path to the Claude CLI binary the provider spawns. Override when it is not on `PATH`. |
+| `LLM_SPEND_LOG_PATH` | No | `./data/llm-spend.jsonl` | File the provider appends each spend record to, written before the call so the audit trail cannot be lost to a crash mid-request. |
 
 > **Cost note.** Each on-chain checkpoint anchor spends real DOGE on three transactions (BTC + LTC + DOGE checkpoints all broadcast on the DOGE chain). State recovery (`recovery.js`) only needs the **latest** anchored checkpoint per chain, so anchoring every intermediate `checkpoint_seq` is optional. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`), `ANCHOR_CHECKPOINT_EVERY_N=2` halves anchor spend (on-chain recovery point then trails the tip by up to ~2 checkpoint intervals). `checkpoint_seq` is consensus data, so the gate is deterministic across every hub.
 
@@ -473,6 +476,8 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | `XDEX_MIN_CONFIRMATIONS_<COIN>` | No | per-coin (BTC `6`, LTC `12`, DOGE `60`) | Per-coin confirmation depth override (e.g. `XDEX_MIN_CONFIRMATIONS_DOGE`). Takes precedence over the flat `XDEX_MIN_CONFIRMATIONS` variable. Consensus-affecting. |
 | `XCHAIN_CONFIRMATIONS_<COIN>` | No | per-coin | Cross-chain attestation/swap confirmation depth for `<COIN>` (e.g. `XCHAIN_CONFIRMATIONS_BTC`), read by the cross-chain and cross-chain-call engines. Also resolves from `p2pConfig` and falls back to per-coin defaults; the env var is the highest-precedence override. Consensus-affecting. |
 | `XCHAIN_ATTEST_FINALIZED_MAX` | No | `10000` | Cap on retained finalized cross-chain attestation records held in memory |
+| `XCHAIN_ATTEST_STORE_RETRIES` | No | `4` | Attempts made when persisting a cross-chain attestation record. The INSERT is idempotent (`ON DUPLICATE KEY UPDATE`), so a retry after a partial failure is safe. |
+| `XCHAIN_ATTEST_STORE_RETRY_MS` | No | `100` | Base backoff (ms) between those attempts. |
 
 **Regtest-only seams.** Both engines honour these only when the hub's network is `regtest`, and read them as `NaN`/false everywhere else, so a stray environment variable or config row can never reach the signed snapshot anchor or seed a validator on mainnet or testnet. They deliberately share names between the DEX and XCALL engines so a no-BTC regtest stack is configured once.
 
