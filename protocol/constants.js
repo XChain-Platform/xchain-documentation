@@ -188,9 +188,13 @@ const ATTEST_MAX_EXPIRIES_PER_BLOCK = 25;
 //
 // CONSENSUS-VISIBLE, like both siblings: the cap decides which block a settlement
 // lands in. Unlike ATTEST_MAX_EXPIRIES_PER_BLOCK it has no fleet-wide replay behind
-// it, and the fresh-genesis testnet restart does not cover mainnet, so whether it
-// may be enforced UNGATED on an already-live chain is an operator decision recorded
-// with the deployment, not a property of this file.
+// it, and the fresh-genesis testnet restart does not cover mainnet, so enforcing it
+// on an already-live chain would reinterpret settled history. The operator ruled on
+// 2026-08-11 that it lands behind a flag day rather than ungated: the gate is
+// CROSS_SETTLE_PER_BLOCK_CAP in the indexer's protocol_changes.js, genesis-active on
+// testnet and regtest and unarmed on mainnet until the operator ratifies the anchor.
+// The value below is the cap; the gate decides when it applies. Before the flag day a
+// mainnet block settles the full effective backlog, exactly as it always has.
 const CROSS_SETTLE_MAX_PER_BLOCK = 25;
 
 // ── Token-gated content (PC-29) ─────────────────────────────────────────────
@@ -269,6 +273,26 @@ const STAKE_WEIGHTED_QUORUM_ACTIVATION = {
 const EQUIV_HEADER_ACTIVATION = {
     mainnet: 961000,      // ARMED 2026-07-07: BTC anchor ~2026-08-04; deploy hub + ALL indexers (+ sdk/explorer/sync copies) before this height
     testnet: 0,
+    regtest: 0,
+};
+
+// CANONICAL_REORG_BUFFER / SNAPSHOT_BURIAL_ACTIVATION : a hub never resolves a
+// capability snapshot at the height it was handed. CapabilitySnapshot subtracts
+// CANONICAL_REORG_BUFFER first, because stake state at the tip is not reorg-safe, while the
+// wire keeps the RAW height (the signed checkpoint's snapshot_block, the mirrored
+// capability_snapshots rows, an ATTEST request's block_index). The convention is that every
+// consumer buries exactly once, locally; the defect was that only the hub did, so the three
+// verifier families that re-derive the set from on-chain state (indexer attest.js, indexer
+// recovery.js, sdk light.js) resolved a different set than the signer whenever a validator's
+// stake activated or deactivated inside (H - 6, H]. Burying changes ACCEPTANCE, so it is
+// flag-day gated: INERT on mainnet/testnet (null = never active) until the operator ratifies a
+// coordinated BTC snapshot_block AND rules on artifacts already signed under the current
+// reading; regtest active from genesis. Kept byte-identical to the local copies in
+// xchain-{hub,indexer,sdk}/src/snapshot_reorg_buffer.js by the cross-service regression suite.
+const CANONICAL_REORG_BUFFER = 6;
+const SNAPSHOT_BURIAL_ACTIVATION = {
+    mainnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming 
+    testnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming 
     regtest: 0,
 };
 
@@ -354,7 +378,7 @@ const ANCHOR_REWARD_AMOUNT = '10.00000000';
 // ANCHOR_REWARD_ACTIVATION; kept byte-identical to the local copies in
 // xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
 const ARCHIVE_REWARD_ACTIVATION = {
-    mainnet: 969500,      // ARMED 2026-07-16 : BTC snapshot_block ~2026-10-01 (ratified anchor; derived from tip 957062 on 07-07 at ~144 blocks/day); deploy every consumer before this era
+    mainnet: 963000,      // ARMED 2026-07-16 , RE-PINNED 2026-08-12  off 969500 onto the  pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
     testnet: 0,
     regtest: 0,
 };
@@ -374,7 +398,7 @@ const ARCHIVE_REWARD_AMOUNT = '10.00000000';
 // the BTC indexer derives the reward from the mirrored row (re-verifying the XANCPUB sigs against
 // its own local oracle_publish/stake set at snapshot_block) into validator_rewards at
 // block_index = snapshot_block. Consensus-relevant (COLLECT-spendable), same snapshot_block gating
-// and atomic-deploy rules as ANCHOR_REWARD_ACTIVATION. It CANNOT ride the 961000/969500 boundaries
+// and atomic-deploy rules as ANCHOR_REWARD_ACTIVATION. It CANNOT ride the 961000/963000 boundaries
 // (already live on testnet/regtest, so no coordinated flip window; and one gate must cover both
 // the v4/v5 and v6 families). Kept byte-identical to the local copies in
 // xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
@@ -393,7 +417,7 @@ const ANCHOR_REWARD_DERIVE_ACTIVATION = {
 // while a mirror enforces another, forking the fleet at the boundary. Canonical map of
 // record for those copies (armed 2026-07-16, ).
 const RETRACTION_SIGNING_ACTIVATION = {
-    mainnet: 969500,      // ARMED 2026-07-16 : BTC snapshot_block ~2026-10-01 (ratified anchor; derived from tip 957062 on 07-07 at ~144 blocks/day); deploy every consumer before this era
+    mainnet: 963000,      // ARMED 2026-07-16 , RE-PINNED 2026-08-12  off 969500 onto the  pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
     testnet: 0,
     regtest: 0,
 };
@@ -465,7 +489,7 @@ const ATTEST_ADMISSION_ACTIVATION = {
 // Armed on the  cohort anchor. Kept value-identical to the local copies in
 // xchain-{hub,indexer}/src/attest_relay_activation.js by the activation-constants parity suite.
 const ATTEST_RELAY_ACTIVATION = {
-    mainnet: 969500,      // ARMED 2026-07-30  on the ratified  BTC anchor; deploy every indexer + hub before this height
+    mainnet: 963000,      // ARMED 2026-07-30  on the  BTC anchor, RE-PINNED 2026-08-12  off 969500 with the rest of that cohort; deploy every indexer + hub before this height
     testnet: 0,
     regtest: 0,
 };
@@ -632,16 +656,17 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
 // local-height gate would flip LTC/DOGE months early. The hub push carries and
 // validates the same field, so hub and indexers key on the identical number.
 //
-// mainnet is ARMED to 969500, the BTC snapshot_block already ratified on
-// 2026-07-16 for RETRACTION_SIGNING_ACTIVATION (~2026-10-01), rather than a newly
-// minted anchor, and deliberately not the nearer 961000 (~2026-08-04) whose
-// deploy train shipped on 2026-07-23. Deploy every indexer AND every hub before
+// mainnet is ARMED to 963000, the single BTC-height boundary the whole 
+// cohort shares after the re-pin of 2026-08-12 (off 969500, onto the
+//  pre-freeze train boundary), rather than a newly minted anchor, and
+// deliberately not the nearer 961000 whose deploy train shipped on 2026-07-23 and
+// whose height has already passed. Deploy every indexer AND every hub before
 // this height; they are peers here, not producer and consumer, so a split fleet
 // has the hub finalizing rounds the chain rejects. Kept value-identical to the
 // local copies in xchain-{indexer,hub}/src/price_sig_tally_activation.js by the
 // activation-constants parity suite.
 const PRICE_SIG_TALLY_ACTIVATION = {
-    mainnet: 969500,      // ARMED : BTC anchor ~2026-10-01, ratified for RETRACTION_SIGNING; deploy ALL indexers + hubs before this height
+    mainnet: 963000,      // ARMED , RE-PINNED 2026-08-12  off 969500 onto the  train boundary shared with RETRACTION_SIGNING; deploy ALL indexers + hubs before this height
     testnet: 0,
     regtest: 0,
 };
@@ -704,6 +729,8 @@ module.exports = {
     THRESHOLD_SCALE,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
     EQUIV_HEADER_ACTIVATION,
+    CANONICAL_REORG_BUFFER,
+    SNAPSHOT_BURIAL_ACTIVATION,
     STATE_COMMITMENT_ACTIVATION,
     CHECKPOINT_COMMITMENT_ACTIVATION,
     ANCHOR_REWARD_ACTIVATION,

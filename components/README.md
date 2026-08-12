@@ -3,7 +3,7 @@
 
 # Components
 
-This section contains documentation for each of the 14 XChain Platform components. Each subdirectory covers the component's role, configuration, API surface, and internal design. Intended for developers and operators who need to understand or work with a specific service.
+This section contains documentation for each of the 15 XChain Platform components. Each subdirectory covers the component's role, configuration, API surface, and internal design. Intended for developers and operators who need to understand or work with a specific service.
 
 | Component | Role |
 |---|---|
@@ -21,6 +21,7 @@ This section contains documentation for each of the 14 XChain Platform component
 | [node](./node/) | CLI tool for installing and managing all platform services as Docker containers |
 | [e2e-test](./e2e-test/) | End-to-end Mocha test suite that exercises the full platform stack |
 | [regtest-miner](./regtest-miner/) | Auto-mines mempool transactions for regtest development environments |
+| [dashboard](./dashboard/) | Operator console: auth, plugin host, network monitor, and CI-status board |
 
 ---
 

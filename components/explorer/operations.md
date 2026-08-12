@@ -250,7 +250,7 @@ Action-specific listing pages:
 | `deploy_chunks.html` | `/{COIN}/deploy_chunks` | Chunked contract deploy listing |
 | `contract_stakes.html` | `/{COIN}/contract_stakes` | Contract stake listing |
 | `contract_unstakes.html` | `/{COIN}/contract_unstakes` | Contract unstake listing |
-| `validators.html` | `/{COIN}/validators` | Validator listing |
+| `validators.html` | `/{COIN}/validators` | Validator listing (on-chain active set plus the hub registry's addr, chains and registration status) |
 | `controllers.html` | `/{COIN}/controllers` | Controller address listing |
 | `attestations.html` | `/{COIN}/attestations` | Attestation listing |
 | `slash_events.html` | `/{COIN}/slash_events` | Validator slash event listing |

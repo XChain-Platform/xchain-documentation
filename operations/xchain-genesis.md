@@ -50,6 +50,37 @@ image. LTC and **all testnets/regtest launch clean** (genesis disabled); regtest
 the `XCHAIN_GENESIS_BLOCK` / `XCHAIN_GENESIS_LEDGER_HASH` / `XCHAIN_GENESIS_DUMP_HASH` env
 overrides.
 
+### Arming the XCP/XDP airdrop set
+
+The genesis pass can also credit the CP/DP snapshot holders their XCHAIN allocation, one
+hash-pinned `address,quantity` CSV per bucket. It is disabled everywhere today, and arming it
+is an edit to the coin bundle, never a per-node environment variable: the bucket set decides
+how much XCHAIN each holder mints and which synthetic transaction hash carries the credit, so
+a node that read it from its own environment could replay a different ledger than its peers
+while every other pin verified clean.
+
+To arm a chain, set all five fields in `src/coins/<COIN>.js` under the network's `genesis`
+block, then re-vendor with `xchain-hub/bin/sync-coins.sh` so all ten consumer repos carry the
+same bundle:
+
+| Field | Meaning |
+|---|---|
+| `airdropPaths` | The bucket snapshot files, in any order (the indexer sorts by bucket name before deriving anything) |
+| `airdropHashes` | sha256 of each file, index-aligned with `airdropPaths` |
+| `airdropAmounts` | XCHAIN funding each bucket, index-aligned with `airdropPaths` |
+| `airdropSnapshotBlock` | The height the snapshots were cut at (informational) |
+| `airdropSetHash` | sha256 over the canonical `NAME:hash:amount` line per bucket, newline-joined in bucket-name byte-order |
+
+`airdropSetHash` is the one that pins the **set**: the per-file hashes above prove each CSV is
+the file you meant, and this proves the buckets, their funding and their derivation order are
+the ones the federation agreed on. The indexer verifies it before crediting anyone, halts on a
+mismatch, and refuses a mainnet bucket set that carries no such pin. On regtest the same five
+values may come from `GENESIS_AIRDROP_PATHS`, `GENESIS_AIRDROP_HASHES`,
+`GENESIS_AIRDROP_AMOUNTS`, `GENESIS_AIRDROP_SNAPSHOT_BLOCK` and `GENESIS_AIRDROP_SET_HASH` so
+the leg can be rehearsed on a throwaway chain; those variables are ignored on mainnet and
+testnet. The set-hash a run computes is printed as `GENESIS: airdrop set-hash <hex>`, which is
+how you read the value to pin in the first place.
+
 ## Step 1: Open the mint (launch)
 
 Minting is governed entirely by the token's own genesis parameters. To open the launch window,

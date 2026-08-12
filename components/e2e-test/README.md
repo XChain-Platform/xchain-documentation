@@ -42,7 +42,9 @@ sequenceDiagram
 
 ## Features
 
-- **27 ACTION test suites**: ISSUE (V0–V5), SEND (V0–V3), MINT, DESTROY, ORDER, DISPENSER, SWAP, DIVIDEND, AIRDROP, FILE, MESSAGE, BROADCAST, ADDRESS, LINK, LIST, CALLBACK, BATCH, SWEEP, SLEEP, COINPAY, STAKE, UNSTAKE, DELEGATE, DEPLOY, EXECUTE, DEPOSIT, WITHDRAW
+- **29 ACTION test suites**: ADDRESS, AIRDROP, BATCH, BROADCAST, CALLBACK, COINPAY, COLLECT, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, PRICE, SEND, SLEEP, STAKE, SWAP, SWEEP, UNSTAKE, WITHDRAW
+
+  **How that number is counted:** one suite per ACTION name, with every version of an action folded into a single entry, so ISSUE V0 through V5 counts once and SEND V0 through V3 counts once. An ACTION name is counted when a suite under `test/actions/` builds a payload for it, whether directly or through a helper it loads, and the name is recognised by the decoder's `VALID_ACTION_NAMES`. The figure is not a file count: 69 files collapse onto these 29 names because reorg, negative, and variant suites re-test actions already listed. Regenerate it with `node scripts/count-action-suites.js` (add `--json` for the per-suite breakdown); `test/unit/scripts/actionSuiteCount.test.js` fails if this list and the tree disagree. Actions exercised only by other tiers, such as BET and VOTE in `test/sdk/` or ATTEST and NODEPROOF in `test/federation/`, are outside this count.
 - **9 service connectors**: BlockchainConnector (axios, Basic Auth), XChainUtxoTrackerConnector, XChainEncoderConnector, XChainDecoderConnector, XChainIndexerConnector, XChainExplorerConnector, XChainHubConnector (multi-endpoint failover), RegtestMinerConnector, and Database (MariaDB connection pool)
 - **Hub auto-discovery**: falls back to xchain-hub for service endpoint resolution when direct environment variables are not set
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on regtest (network configs via `CryptoNetworks.js`)
@@ -65,7 +67,7 @@ flowchart TD
     subgraph E2E["xchain-e2e-test"]
         CH["cryptoHelper<br>BIP39/BIP32<br>wallet mgmt"]
         TH["transactionHelper<br>PSBT/P2SH"]
-        AH["action helpers (36 modules)<br>message construction"]
+        AH["action helpers (42 modules)<br>message construction"]
         SC["Service Connectors (src/)<br>BlockchainConnector, XChainEncoderConnector<br>XChainUtxoTrackerConn, XChainDecoderConnector<br>XChainIndexerConnector, XChainExplorerConnector<br>XChainHubConnector, RegtestMinerConnector<br>Database (MariaDB)"]
         CH --> SC
         TH --> SC

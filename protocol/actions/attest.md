@@ -49,7 +49,7 @@ The trailing `FEE_TICK|FEE_AMOUNT` pair is optional. A feeless request omits the
 ### Version `4` - Relay response (cross-chain, origin chain only, flag-day gated)
 - `ATTEST|4|REQUEST_ID|HOME_RESPONSE_ACTION_INDEX|RESPONSE_PAYLOAD|STATUS|META|SNAPSHOT_BLOCK|SIG_COUNT|PUBKEY1|SIG1|...`
 
-Both relay versions activate at `ATTEST_RELAY_ACTIVATION` (BTC 969500 on mainnet, genesis on testnet and regtest). Below the height they are rejected as an unknown VERSION and persist nothing. Every indexer and hub must be deployed before that height.
+Both relay versions activate at `ATTEST_RELAY_ACTIVATION` (BTC 963000 on mainnet, genesis on testnet and regtest). Below the height they are rejected as an unknown VERSION and persist nothing. Every indexer and hub must be deployed before that height.
 
 ## Examples
 ```

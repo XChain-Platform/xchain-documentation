@@ -22,6 +22,18 @@ and ships an `ActionManifestConformance.test.js` that runs in its own unit tier
 So adding an action everywhere-but-one-repo fails that repo's CI, naming the
 missing action and the file to edit.
 
+The SDK guard asserts a third thing, one level below the action set: each
+`Formats[ACTION]` version set equals that action's `userEncodableVersions`
+array. Without it the role flags are action-level only, so a VERSION the
+indexer accepts solely from itself could be added to an authorable action's
+Formats and every guard stayed green . Two such versions exist today:
+`VOTE` v2 (finalize) is rejected from a user broadcast by
+`if(!data['IS_SYNTHETIC'])` in the indexer's `vote.js`, and `PRICE` v0 is the
+validator COIN/FIAT snapshot, valid only with a PBFT quorum of Ed25519
+signatures from price-capability stakes. Both are parsed by the indexer and
+absent from `userEncodableVersions`, so an SDK Format for either now fails CI
+instead of shipping a composer for transactions that die on arrival.
+
 ## Schema
 
 ```jsonc
@@ -30,11 +42,19 @@ missing action and the file to edit.
   "categories": { /* human-readable grouping (wire-user / validator / mirror-injected / lifecycle / explorer-legacy-render) */ },
   "aliases":    { "TRANSFER": "SEND", ... },   // expanded to canonical before any gate
   "actions": {
-    "SEND": { "category": "wire-user", "wireDecoded": true, "indexerHandled": true, "userEncodable": true, "explorerRender": true, "walletForm": true }
+    "SEND": { "category": "wire-user", "wireDecoded": true, "indexerHandled": true, "userEncodable": true, "userEncodableVersions": [0, 1, 2, 3], "explorerRender": true, "walletForm": true }
     // one entry per action; only the TRUE flags are present
   }
 }
 ```
+
+`userEncodableVersions` is required on every `userEncodable` action and
+forbidden on the rest. It lists the FORMAT versions a user may author, audited
+against the indexer handler's own `this.formats` map and its system-only gates
+rather than copied from the SDK. Getting an entry wrong is worse than leaving
+the array out: a version listed here that the indexer will not accept from a
+user forces an SDK Format that can only build dead transactions, so re-read the
+handler before editing one.
 
 The per-repo sets legitimately differ by role: the SDK omits validator-only
 actions (`ANCHOR`/`ATTEST`/`NODEPROOF`/`SLASH`); the indexer adds mirror-injected

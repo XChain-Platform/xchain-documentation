@@ -15,7 +15,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**Core Concepts**](./concepts/) | Metalayer, tokens, ACTIONs, encoding, cross-chain, gas, security | Everyone |
 | [**Architecture**](./architecture/) | Data pipeline, component map, database design | Developers |
 | [**Supported Blockchains**](./blockchains.md) | Supported chains, adding new blockchains, private deployments | Developers / Operators |
-| [**Components**](./components/) | Detailed docs for each of the 14 components | Developers |
+| [**Components**](./components/) | Detailed docs for each of the 15 components | Developers |
 | [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate, testing | Developers |
 | [**AI & Agents**](./ai-agents/) | Building AI agents: reading, transacting via MCP, bounded agent wallets, charging agents for data | Developers |
 | [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ. No code required | Non-technical |

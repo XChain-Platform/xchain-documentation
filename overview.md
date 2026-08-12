@@ -59,7 +59,7 @@ XChain is open source (AGPL-3.0) with a commercial license available for proprie
 
 - **Live in production** on Bitcoin, Litecoin, and Dogecoin, with public explorer, encoder, and hub services behind TLS.
 - **Cross-chain settlement proven end-to-end** between live chains.
-- **14 components** spanning the full stack: node manager, encoder, decoder, indexer, explorer, hub, UTXO tracker, VM, replication, SDK, multi-platform wallet, contract template library, regtest tooling, and end-to-end tests, plus a complete protocol specification.
+- **15 components** spanning the full stack: node manager, encoder, decoder, indexer, explorer, hub, UTXO tracker, VM, replication, SDK, multi-platform wallet, contract template library, regtest tooling, end-to-end tests, and the operator dashboard, plus a complete protocol specification.
 - **A full developer SDK** (the full operation set, contract deploy/execute, cross-chain calls, light-client proof verification, live streaming, transaction building) with the wallet as a reference client.
 - **AGPL-3.0 licensed**, with a commercial license available for proprietary use; the source repositories flip public at launch.
 

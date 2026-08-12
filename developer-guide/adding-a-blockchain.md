@@ -96,7 +96,20 @@ Each network block carries:
   `minStandardTxNonWitnessSize`, `singleOpReturnPolicy`). The decoder, encoder,
   and UTXO tracker pass this straight to bitcoinjs-lib, so the byte-prefixes are
   consensus-critical.
-- **`firstBlock`**: the indexing start boundary (not part of any consensus hash).
+- **`firstBlock`**: the indexing start boundary. It decides which block the action
+  history begins at, so it IS content-hashed; changing it is a coordinated
+  fleet-wide change, not a local knob.
+- **`chainGenesisHash`**: the block-0 hash of the chain itself, or `null` when it
+  is not pinned yet. This is not the `genesis` ledger pin below: it identifies the
+  node endpoint. `getblockchaininfo`'s `chain` field names only the network tier,
+  so a Bitcoin-mainnet node and a Dogecoin-mainnet node both report `main`, and
+  Bitcoin testnet3 and testnet4 are indistinguishable by it; block 0 is the only
+  constant that separates them. The decoder compares it against the node's
+  `getblockhash 0` at startup and on its throttled tip refresh, and refuses to
+  ingest on a mismatch. Read the value from the node itself
+  (`<coin>-cli [-testnet] getblockhash 0`); a guessed value would stop a healthy
+  decoder. Leave regtest `null`: every regtest stack mines its own chain. Not part
+  of the consensus hash, so pinning one needs no coordinated flag-day.
 - **`addresses`**: the canonical protocol address roles in UPPERCASE:
   `BURN`, `GAS`, `DONATE1` (protocol development), `DONATE2` (community
   development), `FEE_DESTINATION` (native-fee destination, environment-overridable),
@@ -121,17 +134,19 @@ live-polls them.
 
 `index.js` splits the fields into two classes that matter when you change a value:
 
-- **Pinned (consensus-critical):** `net`, `addresses` (except `EXPLORER`),
-  `legacyFees`, `GAS_PRICE`, `UNIFIED_EXPIRATION_FEE_FREE_DAYS`, fee tolerances,
+- **Pinned (consensus-critical):** `net`, `wireFormat`, `firstBlock`, `addresses`
+  (except `EXPLORER`), `legacyFees`, `GAS_PRICE`,
+  `UNIFIED_EXPIRATION_FEE_FREE_DAYS`, fee tolerances,
   `ORACLE_MAX_PRICE_AGE_SECONDS`, `VALIDATOR_QUERY_LIMIT`, `GAS_SCHEDULE`,
   `STAKING`, `CONFIG_SLASH`, and the frozen `FULLNODE` defaults. These are
   content-hashed by `consensusHash()` and must stay byte-identical fleet-wide. A
   node verifies its bundled files against the pin at boot and halts on mismatch.
   (Genesis is excluded from this hash because `genesis.js` already fail-closes on
   it separately.)
-- **Display / connection (served live):** `displayName`, `site`, `firstBlock`,
-  `confirmations`, the `EXPLORER` address, `FEE_PAYMENT_MODE`. Changing these is
-  not consensus-breaking.
+- **Display / connection (served live):** `displayName`, `site`,
+  `confirmations`, the `EXPLORER` address, `FEE_PAYMENT_MODE`,
+  `chainGenesisHash`. Changing these is not consensus-breaking; a wrong
+  `chainGenesisHash` stops that node alone rather than forking the fleet.
 
 ## Procedure: add a new coin
 
@@ -144,7 +159,8 @@ cp xchain-hub/src/coins/BTC.js xchain-hub/src/coins/FOO.js
 ```
 
 Edit `FOO.js`: set the identity fields, and for each network set the `net`
-byte-prefixes, `firstBlock`, the seven `addresses`, and the `genesis` block.
+byte-prefixes, `firstBlock`, `chainGenesisHash`, the seven `addresses`, and the
+`genesis` block.
 Adjust the coin-level consensus params if the chain's economics differ.
 
 Chain-specific parsing quirks (for example Litecoin's HogEx flag, Dogecoin's

@@ -1804,7 +1804,7 @@ GET /{COIN}/api/contract_delegations[/{query}/{type}]
 GET /{COIN}/api/slash_events[/{query}/{type}]
 ```
 
-Validator federation data. `stakes` and `delegations` `type` values: `block`, `address`, `source`. `rewards` `type` values: `address`, `source`. `delegation_revocations` (DELEGATE v2/v3 signing-key revocations) and `collects` (COLLECT validator reward claims) `type` values: `block`, `address`, `source`. `full_node_verifications` `type` values: `block`, `epoch`, `pubkey`, `address`. Contract-targeted staking (`contract_stakes`, `contract_unstakes`, `contract_delegations`) and `slash_events` support types: `block`, `address`, `contract`.
+Validator federation data. `validators` rows are the on-chain active set, and each one also carries the hub federation registry's view of the same signing pubkey: `hub_addr` (the validator's network address), `hub_chains` (the chains it serves) and `hub_status` (its registration status: `active`, `suspended`, `removed`, or `unregistered` when the registry does not list the pubkey). All three are `null` when no hub registry is reachable, which means unknown rather than unregistered. `stakes` and `delegations` `type` values: `block`, `address`, `source`. `rewards` `type` values: `address`, `source`. `delegation_revocations` (DELEGATE v2/v3 signing-key revocations) and `collects` (COLLECT validator reward claims) `type` values: `block`, `address`, `source`. `full_node_verifications` `type` values: `block`, `epoch`, `pubkey`, `address`. Contract-targeted staking (`contract_stakes`, `contract_unstakes`, `contract_delegations`) and `slash_events` support types: `block`, `address`, `contract`.
 
 ---
 
@@ -1818,7 +1818,7 @@ GET /{COIN}/api/capability_slash_events[/{query}/{type}]
 GET /{COIN}/api/oracle_prices[/{query}/{type}]
 ```
 
-Hub-only federation state read from the co-located hub DB (tables that have no on-chain action; the validator registry itself is surfaced on-chain via `/{COIN}/api/validators`). `validator_capabilities` `type` values: `capability`, `pubkey`. `governance_proposals` `type` values: `status`, `parameter`, `proposal`. `governance_votes` `type` values: `proposal`, `voter`. `capability_slash_events` (SLASH wire actions) `type` values: `block`, `capability`, `pubkey`, `address`. `oracle_prices` (user-published PRICE v1 rows, hub-mirrored) `type` values: `token`, `address`.
+Hub-only federation state read from the co-located hub DB (tables that have no on-chain action). The hub's own validator registry has no endpoint or page of its own: its addr, chains and registration-status columns are folded onto `/{COIN}/api/validators` and the `/{COIN}/validators` page, so the on-chain active set and the hub registry read as one table. `validator_capabilities` `type` values: `capability`, `pubkey`. `governance_proposals` `type` values: `status`, `parameter`, `proposal`. `governance_votes` `type` values: `proposal`, `voter`. `capability_slash_events` (SLASH wire actions) `type` values: `block`, `capability`, `pubkey`, `address`. `oracle_prices` (user-published PRICE v1 rows, hub-mirrored) `type` values: `token`, `address`.
 
 ---
 

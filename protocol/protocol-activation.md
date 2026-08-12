@@ -110,7 +110,7 @@ coordinated fleet rollout retire a whole batch at once.
 | **C (state commitment)** | per-chain **local height** | light-client state commitment (state root + block-merkle root) and its state-hash classes (e.g. token-supply, poll-finalize) | **halts, recoverable** |
 
 Five of the six Cohort B rules share the same mainnet BTC height (961000). The archive reward
-(`ARCHIVE_REWARD_ACTIVATION`) is armed separately at mainnet height 969500, so "one BTC height" is
+(`ARCHIVE_REWARD_ACTIVATION`) is armed separately at mainnet height 963000, so "one BTC height" is
 shorthand for "a BTC height per rule, mostly coinciding" rather than a single shared value across the
 whole cohort.
 

@@ -238,6 +238,22 @@ GET /status/indexer/bitcoin/mainnet
 
 Returns `400` if `:dbType` is not `indexer` or `decoder`. Returns `404` if the chain/network/dbType combination is not supported.
 
+#### `missing_tables`: the completeness field to alert on
+
+Every status row also carries `missing_tables`, an array naming the replicated tables this database does not have.
+
+Sync tolerates a missing table on purpose. A replica whose schema is older than its source would otherwise stop dead the first time the source streamed rows for a table the replica has never heard of, so the apply paths skip those rows and carry on. The cost is that the gap is quiet: the replica keeps reporting `halted: false` and `lag_blocks: 0` while whole tables never arrive, and `table_counts` cannot show it, because a table that does not exist is simply not a key in that object.
+
+`missing_tables` is the signal that does show it:
+
+- `[]` means every table this build replicates exists here. This is the healthy value.
+- A non-empty array names tables whose rows are being skipped. Replication is partial, whatever the heights say. Migrate the database to the source schema.
+- `null` means the table listing itself could not be read, so completeness is unknown. Treat it as needing a look, not as healthy.
+
+Alert on `missing_tables` being anything other than `[]`. A replica also writes the same list once to its log at startup, on a line beginning `MISSING_REPLICATED_TABLES`.
+
+This matters most right after a new feature ships. If an indexer starts writing a new family of tables before its replicas are migrated, those replicas hold none of that data while every other health figure stays perfect.
+
 ### `POST /validator-heartbeat/:dbType/:chain/:network`
 
 REST fallback to the WebSocket `heartbeat` message, for replicating clients that cannot hold a persistent WebSocket connection. A named validator POSTs its applied height so operators can observe its replication lag without an active subscription. **Server mode only.** Rate-limited per IP. `:dbType` must be `indexer` or `decoder`.
@@ -758,6 +774,8 @@ Set `SYNC_EXCLUDE=COIN:network:dbType` (comma-separated, e.g. `DOGE:testnet:inde
 ### Depth-Limited Bootstrap (Fast Chains)
 
 `SYNC_BOOTSTRAP_DEPTH_<CHAIN>_<NETWORK>=N` (e.g. `SYNC_BOOTSTRAP_DEPTH_DOGE_TESTNET=50000`) seeds an empty replica from `(sourceTip - N)` using one incremental snapshot. This is the only practical way to bootstrap a chain with tens of millions of blocks. The resulting replica holds only recent-window history and is suitable only for non-consensus explorer mirrors. Set `VERIFY_STATE_COMMITMENT=false` on any truncated replica: the incomplete balances history would cause the SMT root recompute to diverge from the source's committed root and halt the replica immediately after bootstrap.
+
+`<CHAIN>` may be the ticker (`DOGE`) or the full coin name (`DOGECOIN`); both resolve to the same chain, so `SYNC_BOOTSTRAP_DEPTH_DOGECOIN_TESTNET=50000` is equivalent to the example above. A key naming a chain the hub never published (a typo, or a chain removed from hub config) makes the client **exit at startup** with the offending key and the discovered chain list. That is deliberate: an ignored key resolves to depth 0, which is the full-history snapshot branch, so the silent outcome was the unbounded bootstrap the key was set to avoid.
 
 ### State-Commitment and Checkpoint Verification
 

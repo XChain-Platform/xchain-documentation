@@ -125,6 +125,16 @@ This document covers common problems, their symptoms, and how to diagnose and re
 
 **Fix:** Wait for the indexer to catch up, or correct the database configuration if the explorer is pointed at the wrong database.
 
+### Explorer Returns 503 `COIN_DATA_STALE`
+
+**Symptom:** every read for one coin fails with `503` and `{"code": "COIN_DATA_STALE"}`, WebSocket subscribes answer with the same code, and `/{COIN}/api/status` reports `stale: true` for it and leaves it out of `available`.
+
+**Cause:** the newest indexed block for that coin is older than `EXPLORER_TIP_MAX_AGE_S` (default `21600`, six hours), so the explorer refuses to serve data it cannot vouch for as current. On production that means the chain, the decoder, or the indexer has stopped, or this replica has stopped replicating.
+
+**Fix:** find what stopped and restart it. Verify with `/{COIN}/api/status`, which is exempt from the gate and reports `tip_age_seconds`.
+
+**On dev and regtest stacks this is expected**, because blocks are mined on demand and an idle chain ages out. Mine a block to clear it, or disable the gate for that coin with `EXPLORER_TIP_MAX_AGE_S_<COIN>=0`. See [Regtest Development](../developer-guide/regtest-development.md#keeping-an-idle-chain-available).
+
 ### Slow API Responses
 
 **Symptom:** Explorer API calls take multiple seconds to return.

@@ -50,6 +50,42 @@ After `install`, all the following services are running locally:
 
 ---
 
+## Keeping an Idle Chain Available
+
+The explorer refuses to serve a coin whose newest indexed block has aged past a wall-clock threshold, so a frozen replica returns an error instead of passing old data off as current. That threshold is `EXPLORER_TIP_MAX_AGE_S` and it defaults to `21600` seconds (6 hours).
+
+A live chain never reaches it, because blocks keep arriving. Regtest reaches it all the time, because blocks are mined on demand. Leave a dev stack idle overnight and by morning the coin has aged out:
+
+- REST reads return `503` with `{"code": "COIN_DATA_STALE"}`
+- WebSocket subscribe and catch-up frames come back as an `error` frame with the same code
+- `/{COIN}/api/status` reports `stale: true` and drops the coin from its `available` map, while leaving it in `supported`
+
+Nothing is broken and nothing is lost. Mining one block clears it immediately. To stop it happening at all, switch the gate off for your regtest coin:
+
+| Setting | Effect |
+|---|---|
+| `EXPLORER_TIP_MAX_AGE_S_RBTC=0` | Disables the tip-age gate for that one coin. `RBTC` is the route code, so use `RLTC` or `RDOGE` for the other regtest chains. |
+| `EXPLORER_TIP_MAX_AGE_S=0` | Disables the gate for every coin this explorer serves. |
+
+Prefer the per-coin form. It leaves the gate working for anything else the same instance serves.
+
+On an `xchain-node` stack the setting goes in that coin/network's config file, one `KEY=VALUE` line, then recreate the explorer container so it picks the new environment up:
+
+```bash
+# from your xchain-node checkout
+echo 'EXPLORER_TIP_MAX_AGE_S_RBTC=0' >> config/bitcoin-regtest
+
+# container environment is fixed when the container is created, so a plain
+# restart is not enough
+xchain-node install master xchain-explorer bitcoin regtest
+```
+
+Running the explorer straight from its repo instead, put the same line in its `.env`.
+
+There is deliberately no built-in regtest exemption. The gate fails closed on purpose, and a rule keyed on a network name would let anything calling itself regtest re-open that hole silently. Disabling it stays an explicit operator setting, per coin, in a file you can read.
+
+---
+
 ## Funding Test Addresses
 
 The regtest miner exposes a simple JSON-RPC for funding addresses:
@@ -182,6 +218,8 @@ curl http://localhost:8080/BTC/api/token/MYTOKEN
 curl http://localhost:8080/BTC/api/balances/YOUR_ADDRESS
 curl http://localhost:8080/BTC/api/history/MYTOKEN/token
 ```
+
+If the explorer answers `503 COIN_DATA_STALE` for every endpoint on a coin, the query is fine and the chain has simply gone quiet: see [Keeping an Idle Chain Available](#keeping-an-idle-chain-available).
 
 ### Service Logs
 

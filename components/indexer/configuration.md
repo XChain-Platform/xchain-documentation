@@ -108,10 +108,18 @@ Genesis is pinned per network in the coin registry and the bundled dumps ship in
 | `GENESIS_DUMP_PATH` | Path to the pre-derived genesis state dump. When present, the dump-import path runs and is verified against `XCHAIN_GENESIS_DUMP_HASH` (sha256 of the *uncompressed* content) plus a recheck of the genesis block hashes; absent, the canonical CSV derivation runs instead. | `data/genesis/<coin>-<network>-genesis-dump.ndjson.gz` |
 | `GENESIS_BLOCK_TIMEOUT_MS` | Watchdog for the genesis block on the CSV-derivation path, which is the slow one | `14400000` (4 h) |
 | `GENESIS_DUMP_TIMEOUT_MS` | Watchdog for the genesis block on the dump-import path. Kept tight (BTC measures around 15 s) so a wedged import is caught fast. | `600000` (10 min) |
-| `GENESIS_AIRDROP_PATHS` | Comma-separated airdrop snapshot files to replay at genesis | _(none)_ |
-| `GENESIS_AIRDROP_HASHES` | Comma-separated sha256 digests pinning each `GENESIS_AIRDROP_PATHS` entry | _(none)_ |
-| `GENESIS_AIRDROP_AMOUNTS` | Comma-separated per-file airdrop amounts | _(none)_ |
-| `GENESIS_AIRDROP_SNAPSHOT_BLOCK` | Block height the airdrop snapshot was taken at | _(none)_ |
+| `GENESIS_AIRDROP_PATHS` | **Regtest only.** Comma-separated airdrop snapshot files to replay at genesis | _(none)_ |
+| `GENESIS_AIRDROP_HASHES` | **Regtest only.** Comma-separated sha256 digests pinning each `GENESIS_AIRDROP_PATHS` entry, index-aligned (an empty entry leaves that bucket unpinned) | _(none)_ |
+| `GENESIS_AIRDROP_AMOUNTS` | **Regtest only.** Comma-separated per-file airdrop amounts, index-aligned with `GENESIS_AIRDROP_PATHS` | _(none)_ |
+| `GENESIS_AIRDROP_SNAPSHOT_BLOCK` | **Regtest only.** Block height the airdrop snapshot was taken at | _(none)_ |
+| `GENESIS_AIRDROP_SET_HASH` | **Regtest only.** sha256 over the canonical `NAME:hash:amount` line per bucket, newline-joined in name byte-order. Pins the airdrop SET (which buckets exist, what each is funded with, and the order their actions are derived in), which the per-file hashes above do not. Verified before the first credit; a mismatch halts the node, and a mainnet bucket set without this pin is refused. | _(none)_ |
+
+On mainnet and testnet the five airdrop variables are **ignored**. The armed bucket set is
+part of the pinned coin bundle (`src/coins/<COIN>.js`, `genesis.airdropPaths` /
+`airdropHashes` / `airdropAmounts` / `airdropSnapshotBlock` / `airdropSetHash`), because it
+decides how much XCHAIN each snapshot holder mints and which synthetic transaction hash
+carries the credit. Arming the leg is an edit to that bundle plus a
+`xchain-hub/bin/sync-coins.sh` re-vendoring wave, never a per-node export.
 | `CROSS_CHAIN_ROYALTY_REGTEST_TIME` | **Regtest only.** Override the cross-chain royalty activation time so the OFF/deny path stays drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
 
 ## Hub DB Price Source

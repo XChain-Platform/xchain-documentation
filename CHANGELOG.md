@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `components/dashboard/`: README, architecture, configuration and operations pages for the operator console, now a public AGPL repository .
 - `architecture/platform-map.md` (+ `platform-map-app.html` / `platform-map.json`): interactive platform map with selectable end-to-end flows, embedded in a sidebar-listed doc page, plus the same graph as machine-readable JSON for AI agents, guarded by a new integrity/parity test.
 
 ### Fixed

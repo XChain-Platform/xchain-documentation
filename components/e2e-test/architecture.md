@@ -178,8 +178,8 @@ xchain-e2e-test/
 │   ├── initialCheck.test.js      # Mocha root hooks (beforeAll/afterAll)
 │   ├── cryptoHelper.js           # BIP39/BIP32 wallet management
 │   ├── transactionHelper.js      # PSBT construction, signing, broadcast
-│   ├── actions/                  # 64 action test files (live, ordered)
-│   ├── helpers/                  # 40 modules (action helpers + federation/fee/utility helpers)
+│   ├── actions/                  # 69 action test files (live, ordered), covering 29 ACTION names
+│   ├── helpers/                  # 42 modules (action helpers + federation/fee/utility helpers)
 │   ├── unit/                     # 350+ unit tests (stubbed, no services)
 │   ├── integration/              # 150+ integration tests (stubbed I/O)
 │   │   ├── fixtures/             # mockMariadb, services, dbRows, hub
