@@ -66,7 +66,9 @@ The design calls for a second, independent channel on a different host with a di
 
 If a document says "the release key" without saying which one, take the fingerprint as the answer rather than the name.
 
-**One signed XChain Wallet release exists: `v0.336.0`, published 2026-08-06, and it covers Android only.** The Android `.apk` is at `https://downloads.xchain.io/wallet/android/`, and the manifest describing it is at `https://downloads.xchain.io/wallet/RELEASE_HASHES/v0.336.0.txt` with its signature beside it. That manifest says in its own signed header that its coverage is partial and names the lane it covers, so read the note the verify step prints about partial manifests: an artifact missing from it is not evidence the release omitted that artifact. No desktop, extension or iOS artifact has been published, so any file offered to you as one of those is not a release of ours.
+**Two signed XChain Wallet releases exist, and each one covers part of the platform rather than all of it.** `v0.336.0`, published 2026-08-06, covers Android: the `.apk` is at `https://downloads.xchain.io/wallet/android/`. `v0.338.0`, published 2026-08-11, covers macOS and Linux: the `.dmg`, `-mac.zip`, `.AppImage` and `.deb` files, both architectures of each, are at `https://downloads.xchain.io/wallet/desktop/`. Each release's manifest is at `https://downloads.xchain.io/wallet/RELEASE_HASHES/<tag>.txt` with its signature beside it, and each says in its own signed header that its coverage is partial and names the lanes it covers, so read the note the verify step prints about partial manifests: an artifact missing from one is not evidence the release omitted it.
+
+**No Windows, extension or iOS artifact has been published**, so a file offered to you as one of those is not a release of ours. Read that list as the current state rather than as a permanent one; the manifests are the standing answer, because a genuine artifact is named in a K1-signed manifest and nothing else is.
 
 ---
 
@@ -110,11 +112,13 @@ curl -fsSLO --path-as-is "${BASE}/desktop/<artifact-filename>"
 
 Use the artifact filename appropriate for your platform. Desktop installers are under `desktop/`, the web tarball under `web/`, and the extension zip under `extension/`.
 
-**Note the space.** Every desktop artifact name contains one (the product name is two words), so a URL you paste by hand needs it percent-encoded as `%20`, for example:
+Desktop artifact names carry the version and the architecture, and nothing needs escaping in them:
 
 ```bash
-curl -fsSLO "${BASE}/desktop/XChain%20Wallet-0.334.0-arm64-mac.zip"
+curl -fsSLO "${BASE}/desktop/xchain-wallet-0.338.0-arm64.dmg"
 ```
+
+Take the exact filename from the manifest rather than from an example on this page. The manifest is generated from the release, so it cannot drift from what was actually published, and an example can.
 
 If you took a manifest named plainly `RELEASE_HASHES.txt` from somewhere else, pass `--tag vX.Y.Z` to `verify.sh` so the same check can still run: it refuses to call a manifest verified when nothing says which release it belongs to.
 
