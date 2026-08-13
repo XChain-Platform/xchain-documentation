@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - keys-signing.md counts four signer implementations, not five.
 - Review-round accuracy fixes: white paper repinned to the shipped 2.0.0 flag day 2026-08-07, SLASH described as burning the entire bond, the stakeable-contract tutorial authorizes on `getSourceAddress()` instead of caller-supplied calldata, `xchain-lint` described as a conservative preflight rather than exact deploy parity, the stake-weighted predicate no longer called 2f+1, and the contract-staking example takes the gateway argument.
 - `components/wallet/README.md`: `MultisigSigner` was listed among the shipped signers; the class does not exist (it is planned, and Keys_Signing.md already said so). There are four concrete signers.
+- `components/wallet/release/desktop/mac-app-store.md`: the Mac App Store screenshots were re-captured, and the page describes the frozen seed and clock that make a capture reproducible instead of calling the demo address freshly generated.
 - `components/wallet/TESTING.md`: the multisig session state machine named an `indexed` status that does not exist and four other wrong status names.
 - `components/wallet/ARCHITECTURE.md`: `subscribe()` was missing from the signer interface list.
 - `components/wallet/MULTISIG.md`, `FEATURES.md`: dropped the `xchain-sdk@1.13.0+` floor, which predates the 2.0.0 SDK.
