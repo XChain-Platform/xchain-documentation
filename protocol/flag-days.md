@@ -28,7 +28,7 @@ simultaneously on Bitcoin, Litecoin, and Dogecoin.
 | **UTC instant** | 2026-08-07 00:00:00 UTC |
 | **Gates riding it** | 37 |
 
-2 gates do not ride it and carry a date of its own: `CONTRACT_DELEGATION_MATERIALIZE` at 2026-09-15 00:00:00 UTC, `CROSS_CHAIN_ROYALTY` at 2027-01-01 00:00:00 UTC. The reason each is armed separately is on [Protocol Activation](./protocol-activation.md#additional-armed-gates-service-carried).
+3 gates do not ride it and carry a date of its own: `CONTRACT_DELEGATION_MATERIALIZE` at 2026-09-15 00:00:00 UTC, `DISPENSER_ORACLE_PER_TOKEN_PRICE` at 2026-09-15 00:00:00 UTC, `CROSS_CHAIN_ROYALTY` at 2027-01-01 00:00:00 UTC. The reason each is armed separately is on [Protocol Activation](./protocol-activation.md#additional-armed-gates-service-carried).
 
 **Testnet and regtest are genesis-active** for the time-keyed gates: they carry
 threshold `0`, so a testnet or regtest stack has always run the
@@ -76,6 +76,7 @@ post-activation behavior. The values on this page are mainnet values only.
 | `VOTE_RESPECTS_SLEEP` | `1786060800` | 2026-08-07 00:00:00 UTC | contract-era flag day | `protocol_changes.js` |
 | `XCALL_RESULT_ORPHAN_RETIREMENT` | `1786060800` | 2026-08-07 00:00:00 UTC | contract-era flag day | `protocol_changes.js` |
 | `CONTRACT_DELEGATION_MATERIALIZE` | `1789430400` | 2026-09-15 00:00:00 UTC | own date | `protocol_changes.js` |
+| `DISPENSER_ORACLE_PER_TOKEN_PRICE` | `1789430400` | 2026-09-15 00:00:00 UTC | own date | `protocol_changes.js` |
 | `CROSS_CHAIN_ROYALTY` | `1798761600` | 2027-01-01 00:00:00 UTC | own date | `protocol_changes.js` |
 
 Thresholds keyed on a **block height** rather than a block time (the

@@ -60,13 +60,13 @@ This example updates the allow and block lists for dispenser with `ACTION_INDEX`
 ```
 
 ```
-DISPENSER|0|BTC|PEPECASH|100|0|100|BTC||0|1ExampleAddressXXXXXXXXXXXXXXXXXXX|USD|0.05||0|||Selling PEPECASH for $0.05 USD each
-FIAT dispenser using validator price oracle (PRICE v0): escrows 100 PEPECASH and dispenses 100 at a time when a buyer sends BTC equivalent to $0.05 USD per token. GET_AMOUNT is set to 0 because the effective BTC price is determined dynamically via validator BTC/USD snapshots. ORACLE_ADDRESS is empty.
+DISPENSER|0|BTC|PEPECASH|100|0|100|BTC||0|1ExampleAddressXXXXXXXXXXXXXXXXXXX|USD|0.05||0|||Selling PEPECASH 100 at a time for $0.05 USD
+FIAT dispenser using validator price oracle (PRICE v0): escrows 100 PEPECASH and dispenses 100 at a time when a buyer sends BTC equivalent to $0.05 USD. `FIAT_AMOUNT` is the price of one DISPENSE (all 100 tokens), not the price of one token; Mode 2 below is the mode whose price is per-token. GET_AMOUNT is set to 0 because the effective BTC price is determined dynamically via validator BTC/USD snapshots. ORACLE_ADDRESS is empty.
 ```
 
 ```
 DISPENSER|0|BTC|PEPECASH|100|0|100|BTC||0|1ExampleAddressXXXXXXXXXXXXXXXXXXX|JPY||1OracleSourceAddrXXXXXXXXXXXXXXXXX|0|||Using user oracle for JPY pricing
-FIAT dispenser using a user-run TOKEN/FIAT oracle (PRICE v1): the oracle at `1OracleSourceAddrXXX...` publishes PEPECASH/JPY prices. FIAT_AMOUNT is empty because the oracle provides the price. The system combines the user oracle PEPECASH/JPY with the validator BTC/JPY snapshot to compute the BTC equivalent.
+FIAT dispenser using a user-run TOKEN/FIAT oracle (PRICE v1): the oracle at `1OracleSourceAddrXXX...` publishes PEPECASH/JPY prices. FIAT_AMOUNT is empty because the oracle provides the price. The system combines the user oracle PEPECASH/JPY with the validator BTC/JPY snapshot to compute the BTC equivalent. The oracle prices one PEPECASH, and this dispenser gives 100 at a time, so one dispense costs 100 times the published price.
 ```
 
 ```
@@ -172,7 +172,7 @@ There are two pricing modes:
 ### Mode 1: Validator Price Oracle (no `ORACLE_ADDRESS`)
 The dispenser sets `FIAT_CODE` and `FIAT_AMOUNT` directly. Pricing uses the validator COIN/FIAT snapshot for the GET_COIN/FIAT pair.
 
-**Example:** Dispenser sells PEPECASH for BTC at $0.05 USD per token. Buyer sends BTC; system uses the validator BTC/USD price to compute the equivalent BTC amount.
+**Example:** Dispenser sells PEPECASH for BTC at $0.05 USD per dispense. Buyer sends BTC; system uses the validator BTC/USD price to compute the equivalent BTC amount. `FIAT_AMOUNT` prices one whole dispense of `GIVE_AMOUNT` tokens, so a dispenser giving 100 at a time sells the lot for $0.05.
 
 **Calculation:**
 ```
@@ -189,8 +189,11 @@ The dispenser delegates pricing to a user-run TOKEN/FIAT oracle (PRICE v1). The 
 ```
 oracle_price  = pepecash_jpy   (from user PRICE v1, oracle's effective price)
 coin_price    = btc_jpy        (from validator PRICE v0)
-units         = floor((COIN_AMOUNT × coin_price) / oracle_price)
+tokens        = (COIN_AMOUNT × coin_price) / oracle_price
+fills         = floor(tokens / GIVE_AMOUNT)
 ```
+
+**The oracle prices one TOKEN, not one fill.** A dispenser hands out `GIVE_AMOUNT` tokens at a time, so a payment buys as many whole fills as the published per-token price covers, and the leftover is kept as overpayment. At ¥7.50 a token with `GIVE_AMOUNT` 5, one fill costs ¥37.50. A payment worth less than one whole fill buys nothing and is not returned. This is the [`DISPENSER_ORACLE_PER_TOKEN_PRICE`](../flag-days.md#mainnet-time-keyed-gates) rule; before it, settlement spent the published price as the price of one whole fill, so each token sold for a `GIVE_AMOUNT`-th of it.
 
 **Why both oracles?** The user oracle prices the *token*, the validator oracle prices the *coin*, both are needed when the buyer is paying in a coin different from the oracle's quote currency. Both must use the same FIAT currency as the bridge.
 
@@ -200,7 +203,7 @@ flowchart TD
     Check -->|"no"| Mode1["Mode 1: Validator Price Oracle<br>FIAT_CODE and FIAT_AMOUNT set directly"]
     Check -->|"yes"| Mode2["Mode 2: User Oracle, PRICE v1<br>oracle publishes token price in FIAT_CODE"]
     Mode1 --> Calc1["btc_per_token = FIAT_AMOUNT / btc_usd_price<br>from validator PRICE v0"]
-    Mode2 --> Calc2["oracle_price from user PRICE v1,<br>coin_price from validator PRICE v0,<br>units = floor((COIN_AMOUNT x coin_price) / oracle_price)"]
+    Mode2 --> Calc2["oracle_price from user PRICE v1,<br>coin_price from validator PRICE v0,<br>tokens = (COIN_AMOUNT x coin_price) / oracle_price,<br>fills = floor(tokens / GIVE_AMOUNT)"]
 ```
 
 ### Reverse Price Matching
@@ -219,9 +222,10 @@ Because blockchain payments can take time to confirm, oracle prices may change b
 1. Retrieve all user oracle prices for the `(ORACLE_ADDRESS, GIVE_COIN, GIVE_TICK, FIAT_CODE)` combination within the 24-hour window, ordered newest-first
 2. For each oracle price (gated by the 24-hour lock window via `effective_at <= block_time`):
    - Fetch the validator GET_COIN/FIAT price at the oracle's effective time
-   - Calculate `units = floor((COIN_AMOUNT × coin_price) / oracle_price)`
-   - If `units >= 1`: **match found**
+   - Calculate `tokens = (COIN_AMOUNT × coin_price) / oracle_price`
+   - If `floor(tokens) >= 1`: **match found**
 3. Returns the first matching combination
+4. The payment then buys `fills = floor(tokens / GIVE_AMOUNT)` whole fills, dispensing `fills × GIVE_AMOUNT` tokens. A payment that covers at least one token but not one whole fill is invalid, and the coin is kept
 
 ```mermaid
 flowchart TD
@@ -232,7 +236,7 @@ flowchart TD
     D --> E
     E --> F{"validator or user oracle path?"}
     F -->|"validator"| G["btc_per_token = FIAT_AMOUNT / snapshot.price<br>units = floor(COIN_AMOUNT / btc_per_token)"]
-    F -->|"user oracle"| H["fetch validator GET_COIN/FIAT price<br>at oracle's effective time<br>units = floor((COIN_AMOUNT x coin_price) / oracle_price)"]
+    F -->|"user oracle"| H["fetch validator GET_COIN/FIAT price<br>at oracle's effective time<br>tokens = (COIN_AMOUNT x coin_price) / oracle_price<br>units = floor(tokens / GIVE_AMOUNT)"]
     G --> I{"units at least 1?"}
     H --> I
     I -->|"yes"| J["Match found, first (most recent) match wins:<br>dispense units x GIVE_AMOUNT tokens"]
