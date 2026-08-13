@@ -277,6 +277,7 @@ Every answer is written down. Copy, do not compose.
 | Trader declaration (EU DSA) | Listing collateral, below. It appears publicly on the listing |
 | Financial features declaration | Listing collateral, below |
 | Reviewer instructions and app access | Listing collateral, below |
+| Content rating (IARC questionnaire) | Listing collateral, below. Its user-interaction answer has to agree with the data-safety form |
 | Data safety form | [the wallet's data-safety answers](../../privacy/data-safety.md) |
 | Privacy policy URL | the URL checked in Phase 0 |
 | Country availability | Listing collateral, below |
@@ -829,6 +830,64 @@ cycle. Nothing in the current submission needs one.
 - At least two phone screenshots (this listing ships four: balances, receive, send confirmation, and biometric unlock).
 - Tablet screenshots are not provided, since tablet support is not claimed.
 - No screenshot shows a real mainnet address or real funds; every screenshot comes from a build on a test network with the exchange and trading surface compiled out entirely.
+
+### Content rating (IARC questionnaire)
+
+Play does not set an age rating itself. It hands the answers to the IARC
+system, which returns a rating per region (ESRB, PEGI, USK, ClassInd and the
+rest) from one questionnaire. The questionnaire is filled in once and can be
+re-taken later, but a rating that understates what the app does is grounds for
+rejection before publication and for removal after it, so the answers are
+derived here from the surfaces the uploaded build actually carries rather than
+composed at the console.
+
+The form starts by asking for an email address for the rating certificate and a
+category. The wallet is not a game: pick the app category that describes a
+utility, not `Social` and not `Entertainment`, and answer the questions the
+category then shows.
+
+| Question | Answer |
+|---|---|
+| **Users can interact or exchange content** | **Yes.** The wallet composes and sends encrypted messages from one address to another, so two users of the app can communicate directly through it. |
+| Users can share their physical location with other users | No. No location permission is declared and nothing in the app reads a location. |
+| Users can purchase digital goods | No. There is no Play Billing integration and nothing is sold through the app; on-chain transactions the user signs are covered by the financial-features declaration above. |
+| Personal information is shared with third parties | No. There is no account and no personal information to share; the third-party contacts the app makes are listed in the data-safety wire audit. |
+| Unrestricted internet access | No. The app embeds no general-purpose browser and external links open in the system browser. |
+| Gambling, real or simulated | No, and see the warning below before submitting. |
+| Violence, sexuality, profanity, controlled substances, horror | No |
+
+**The user-interaction answer is the one that has to agree with a second
+form.** It is the same fact the [data-safety answers](../../privacy/data-safety.md)
+describe, and the two questions are easy to read as contradicting each other:
+content rating asks whether users can communicate through the app, which is
+**Yes**, while data safety asks whether we collect or share the Messages data
+type, which is **No**, because the messages travel on-chain between two
+addresses and no server of ours holds a copy. Both are true and both must stay
+as they are. If either form is ever re-answered, re-read the other in the same
+sitting: a reviewer comparing them is comparing two answers to two different
+questions, and an app that says it has no messaging on one form while shipping
+it is the failure this section exists to prevent.
+
+Read the calculated rating on the final step before saving, rather than
+predicting it. The iOS twin of this questionnaire answered messaging honestly
+and kept its 4+ rating, so the expectation here is that declaring the
+communication capability costs nothing.
+
+**Before you submit, re-read the gambling answers.** The build includes a
+peer-to-peer parimutuel betting surface, and the answers above say it does not.
+That is a decision the project has taken deliberately and not an oversight, but
+it is only a draft answer until the moment a release is sent for review, because
+submitting asserts the questionnaire and the binary together. Gambling is
+governed by its own Play policy, one that generally expects per-territory
+licensing and a separate real-money-gambling application, so changing this
+answer is not a checkbox edit. The two honest ways to close it are to answer the
+gambling questions for what ships and accept the rating and policy that follow,
+or to compile the surface out of the store build the way the exchange surface
+already is. Leaving it as it stands is the third option, and it is a decision
+that has to be re-taken at every submission rather than inherited.
+
+⬜ The questionnaire is answered from the build, every step of the wizard is
+walked, and the calculated rating is read before saving.
 
 ### Data safety form
 
