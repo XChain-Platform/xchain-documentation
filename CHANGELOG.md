@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.12.1] - 2026-08-13
 
 ### Added
 - `components/wallet/release/mobile/android-play.md`: the Play content-rating (IARC) questionnaire, answered from the surfaces the store build ships and cross-referenced to the data-safety form it has to agree with.
@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 13 dead in-page anchors across 7 pages, all of which assumed heading punctuation becomes a hyphen when the site deletes it.
 - `protocol/actions/DISPENSER.md`: the front-running section wrongly said a first oracle price takes effect immediately; every PRICE v1 publish is delayed 24 hours, first included.
 - `protocol/actions/DISPENSER.md`: five v0 examples were one field short and shifted every field after `GIVE_OWNERSHIP`, including both FIAT examples.
-- review corpus corrections: zero-premint genesis, GAS supply, SPV wallet status, WS statuses filter, explorer port, open-source claim, ANCHOR v0-v6, VM lint-rule inventories, recursion depth, slashable engines, manifest re-vendor with encoder as sixth copy.
+- Accuracy corrections: zero-premint genesis, GAS supply, SPV wallet status, WS statuses filter, explorer port, open-source claim, ANCHOR v0-v6, VM lint-rule inventories, recursion depth, slashable engines, manifest re-vendor with encoder as sixth copy.
 
 ### Added
 - `test/wallet-signer-surface.test.js`: gate requiring every Signer method to be documented and forbidding docs from naming a signer class that does not exist.
