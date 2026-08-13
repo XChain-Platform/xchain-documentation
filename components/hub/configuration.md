@@ -246,6 +246,7 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 | `ORACLE_LEADER_TIMEOUT_MS` | No | `30000` | How long a round waits on its leader before failover. Kept below the finalization window. |
 | `ORACLE_FINALIZED_MAX` | No | `10000` | Cap on retained finalized-round records held in memory. |
 | `ORACLE_SUBMISSIONS_RETENTION_ROUNDS` | No | _(unset)_ | Number of past rounds of raw price submissions to retain. Unset keeps the built-in retention. |
+| `ORACLE_PUBLISHED_ROUNDS_RETENTION_ROUNDS` | No | `12960` | Number of recent rounds of published-round markers to keep, roughly 90 days at the default round interval. Set to `0` to disable pruning and keep every marker. Only confirmed markers are ever pruned: a marker for a round whose on-chain state is still unknown is a quarantine record an operator reconciles by hand, so those are always retained. |
 | `ORACLE_ALLOW_UNVERIFIED_PAIRS` | No | `false` | Set to `true` to accept price pairs that have not been verified. Loosens a fail-closed check; intended for bring-up, not production. |
 | `ORACLE_MAX_PRICE_AGE_SECONDS` | No | _(coin registry, per pair)_ | Maximum age of an oracle price before it is treated as stale. Resolution order is `p2pConfig` → this variable → the per-pair value pinned in the coin registry. The registry value is never a hardcoded literal, so a coordinated release that changes the pin cannot silently diverge the hub's advisory from the indexer's gate. Setting this per-host overrides that pin: do it deliberately, and match it across the federation. |
 
