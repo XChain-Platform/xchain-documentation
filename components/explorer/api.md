@@ -131,6 +131,7 @@ GET /{COIN}/api/status
         "decoder_lag_blocks": { "BTC": 0, "RBTC": 0 },
         "tip_age_seconds": { "BTC": 120, "RBTC": 200120 },
         "stale": { "BTC": false, "RBTC": true },
+        "replica_halted": { "BTC": false, "RBTC": null },
         "chain_tip": { "BTC": 893000, "RBTC": 41 },
         "chain_lag_blocks": { "BTC": 0, "RBTC": 0 },
         "decoder_health": { "BTC": "healthy", "RBTC": "healthy" }
@@ -153,6 +154,7 @@ The example above shows the gate in action: `RBTC` has a frozen tip, so it is
 | `decoder_lag_blocks` | `decoder_tip − last_block` (how far the indexer trails the decoder); `null` when either value is unavailable |
 | `tip_age_seconds` | Per-coin wall-clock seconds since `last_block_time`; `null` when no usable `block_time` was read. Unlike `decoder_lag_blocks` this catches a joint indexer plus decoder freeze, because it measures against the local clock rather than against the other replica |
 | `stale` | Per-coin freshness verdict: `true` when `tip_age_seconds` has passed that coin's threshold. Fails closed, so a missing or unreadable `block_time` also reads `true`. Only coins this instance actually measures (those with a live connection pool) appear here |
+| `replica_halted` | Per-coin durable consensus-divergence halt verdict, read from the sync client's `sync_halt` table on the same replica this instance reads (`true` when an active, uncleared halt row exists). A halted replica keeps reporting a small lag until its source mints past it, so this catches what neither `stale` nor `tip_age_seconds` can see; it composes with `stale` rather than replacing it (this field flags the halt immediately, `stale`/`available` only drop the coin once its tip actually ages out). `true`/`false` only once the table was read successfully; `null` when the signal could not be determined (no live pool, the table doesn't exist on this replica, or the read failed), and `null` is never coerced to `false`. Only coins this instance measures appear here |
 | `chain_tip` | Per-coin chain tip as reported by the decoder's own health endpoint (what the coin node sees) |
 | `chain_lag_blocks` | `chain_tip − decoder_tip` (how far the decoder trails the chain) |
 | `decoder_health` | Per-coin decoder health string: `"healthy"`, `"unhealthy"` (decoder up but reporting problems), `"node-stale"` (the decoder's cached coin-node height is frozen, so `chain_tip` and `chain_lag_blocks` are nulled), `"unreachable"` (decoder not responding), or `"unconfigured"` (no `DECODER_API_URL` set for this coin) |

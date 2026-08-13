@@ -96,11 +96,7 @@ Install it on a watched host from a checkout:
 sudo ./server-monitor/install.sh
 ```
 
-Or directly:
-
-```bash
-curl -sSL https://raw.githubusercontent.com/XChain-Platform/xchain-dashboard/master/server-monitor/install.sh | sudo bash
-```
+A one-line remote install (fetching the script directly by URL) is not offered publicly, because xchain-dashboard's source is not publicly distributed.
 
 Register the host first on `/servers/admin`. The page issues a bearer token and prints the matching install snippet, using `DASHBOARD_INGEST_URL` as the base. Only the token's SHA-256 hash is stored, so a lost token is regenerated rather than recovered, and the token is bound to the hostname it was issued for.
 

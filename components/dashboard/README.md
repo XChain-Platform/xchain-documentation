@@ -32,15 +32,7 @@ It has its own MariaDB database for users, sessions, audit rows, host metrics, m
 
 ## Installation
 
-Clone the repository and install dependencies:
-
-```bash
-git clone https://github.com/XChain-Platform/xchain-dashboard.git
-cd xchain-dashboard
-npm install
-```
-
-Node.js 22 or later is required.
+xchain-dashboard is an internal operator tool. Its source is not distributed publicly, so there is no public repository to clone or install from. The sections below describe what it does and how it behaves, for readers who want to understand this part of the platform's operational tooling.
 
 ## Quick Start
 

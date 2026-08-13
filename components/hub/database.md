@@ -313,6 +313,44 @@ PBFT-finalized XCALL dispatch and result records. Each XCALL produces two rows i
 
 **Unique key:** `(call_id, phase)`. **Keys:** `(source_chain, source_action_index)`, `(target_chain, phase)`, `(effective_time)`, `(status)`, `(batch_seq)`
 
+## External Attestation Tables
+
+| Table | Purpose |
+|---|---|
+| `attest_published_requests` | Durable at-most-once broadcast marker for ATTEST v1 response publishes |
+| `attestation_fetch_cache` | Per-request cache of a validator's own provider-fetch outcome, so a retry doesn't pay for the same fetch twice |
+
+These tables back the External Attestation Framework: validators fetch data from a governance-approved provider for an ATTEST v0 request, gossip their proposal to PBFT-style quorum, and the elected leader publishes the finalized ATTEST v1 response on-chain. They are unrelated to the `attestations` table under Cross-Chain Tables, which records cross-chain *action* confirmations rather than external-data attestations.
+
+### `attest_published_requests`
+
+The restart-surviving half of the at-most-once guard around `AttestationPublisher`'s broadcast of a finalized ATTEST v1 response. The indexer's pending-request set is the first double-broadcast guard, but an accepted-but-unmined response is still pending there and reads exactly like a request that was never sent, so it can't stand alone across a restart. This table closes that gap: broadcast intent is recorded here *before* the send, past every remaining no-send exit, and confirmed (`sent_at` + `txid`) after it. `sent_at`, not `txid`, is the authoritative "already broadcast" signal, since a broadcaster can legitimately return no txid. A row left with intent only after a restart is quarantined for an operator to verify on-chain and replay by hand, rather than re-broadcast automatically, because whether the response actually landed is unknown. Same pattern as `oracle_published_rounds` and `anchor_published_checkpoints`.
+
+| Column | Type | Description |
+|---|---|---|
+| `request_id` | `VARCHAR(80) NOT NULL` | ATTEST v1 request id; one response broadcast per request |
+| `txid` | `VARCHAR(80)` | BTC txid of the ATTEST response tx; NULL until confirmed, and may stay NULL if the broadcaster returns none |
+| `intent_at` | `TIMESTAMP DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
+| `sent_at` | `TIMESTAMP NULL` | When the broadcast completed; authoritative at-most-once marker. NULL means intent only |
+
+**Primary key:** `(request_id)`. **Key:** `idx_sent (sent_at)`
+
+### `attestation_fetch_cache`
+
+Caches the outcome of this validator's own fetch from an attestation provider for a given ATTEST v0 request. Provider fetches are billed, so without this a retry within the same request's retry window would pay for the identical fetch again; a cache hit returns the earlier recorded outcome (`ok` or `provider_error`) instead of calling the provider a second time. Rows age out on the same retry window the round manager uses and are evicted along with it.
+
+| Column | Type | Description |
+|---|---|---|
+| `request_id` | `VARCHAR(80) NOT NULL` | ATTEST v1 request id; one billed provider fetch per request per retry window |
+| `provider_id` | `VARCHAR(100) NOT NULL` | Provider that was fetched (audit) |
+| `status` | `VARCHAR(32) NOT NULL` | `ok` or `provider_error`: the outcome this validator proposed |
+| `body` | `LONGBLOB` | Provider response bytes (empty on `provider_error`) |
+| `meta` | `MEDIUMTEXT` | Provider meta string (empty on `provider_error`) |
+| `model` | `VARCHAR(128)` | Block-pinned fetch model id, for audit |
+| `created_at` | `TIMESTAMP DEFAULT CURRENT_TIMESTAMP` | Fetch completion time; rows age out with the retry window |
+
+**Primary key:** `(request_id)`. **Key:** `idx_created (created_at)`
+
 ## Governance Tables
 
 | Table | Purpose |
@@ -422,6 +460,7 @@ Records detected validator misbehavior for governance review. The hub detects vi
 | Table | Purpose |
 |---|---|
 | `state_checkpoints` | Quorum-signed per-chain ledger/actions/contract hash snapshots; mirrored to indexers |
+| `anchor_published_checkpoints` | Durable at-most-once broadcast marker for the ANCHOR checkpoint publish (hub-local, not mirrored) |
 | `capability_snapshots` | Per-block capability validator sets locked at BTC-anchored block boundaries |
 | `anchor_reward_attestations` | Quorum-attested ANCHOR publisher rewards; mirrored to indexers |
 
@@ -471,6 +510,21 @@ Quorum-signed block-level hash checkpoints for each chain. Rows are append-only;
 | `created_at` | `TIMESTAMP NOT NULL` | Record creation time |
 
 **Unique key:** `(chain, network, block_index, checkpoint_seq)`. **Keys:** `(chain, network, checkpoint_seq)`
+
+### `anchor_published_checkpoints`
+
+The restart-surviving half of the at-most-once guard around `StateAnchorPublisher`'s DOGE broadcast of an ANCHOR checkpoint. `state_checkpoints.anchor_txid` is stamped only after the broadcast returns, and the existence check used to detect an earlier send resolves txids through mined blocks only, so a crash between an accepted-but-unmined send and that stamp would otherwise leave nothing recording that the DOGE fee was already paid, and the next flush would rebuild and pay for a second anchor. This table closes that gap: broadcast intent is recorded here *before* the send and confirmed (`txid` + `sent_at`) after it, so a restart holds the checkpoint instead of re-spending on it. Same pattern as `oracle_published_rounds` and `attest_published_requests`. Hub-local audit only; deliberately not mirrored to indexers.
+
+| Column | Type | Description |
+|---|---|---|
+| `chain` | `VARCHAR(10) NOT NULL` | Chain being checkpointed (BTC, LTC, DOGE) |
+| `network` | `VARCHAR(20) NOT NULL` | Network (mainnet, testnet, regtest) |
+| `checkpoint_seq` | `BIGINT UNSIGNED NOT NULL` | The `state_checkpoints.checkpoint_seq` this marker guards |
+| `txid` | `VARCHAR(64)` | DOGE txid once the broadcast returned one; NULL while intent-only |
+| `intent_at` | `TIMESTAMP DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
+| `sent_at` | `TIMESTAMP NULL` | When the broadcast returned a txid; NULL means intent only |
+
+**Primary key:** `(chain, network, checkpoint_seq)`. **Key:** `idx_intent (intent_at)`
 
 ### `capability_snapshots`
 

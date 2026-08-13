@@ -41,6 +41,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Dogecoin, and
 | [**xchain-wallet**](https://github.com/XChain-Platform/xchain-wallet/) | Reference self-custodial multi-chain wallet: browser, Chrome extension, and Electron desktop from a single codebase; software + Trezor + Ledger + remote + multisig signers; full DEX, messaging, contracts, staking, and `window.xchain` dApp bridge |
 | [**xchain-regtest-miner**](https://github.com/XChain-Platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-Platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
+| **xchain-dashboard** (internal) | Operator console: service monitoring, CI status, host metrics; source is not publicly distributed |
 ## Legal
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** with a commercial license available for proprietary use.
