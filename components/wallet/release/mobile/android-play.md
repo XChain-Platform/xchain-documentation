@@ -287,6 +287,53 @@ and are written down there for that reason: the **issuer-chosen token metadata
 host**, which is a third-party contact that is on by default, and the **update
 feed**, which is declared even though a Play-installed build never requests it.
 
+**The graphics are checked for their size everywhere and for their subject
+nowhere, so check the subject here.** Uploading them binds six images to a
+listing users read as a description of the build they are about to install, and
+a screenshot of a version nobody can install passes every dimension check
+perfectly. Dates on files cannot answer the question either: a set shot before a
+round of interface changes looks no different from a current one. So a pin
+beside the images records which commit and version they depict, and the verifier
+compares that pin against the bytes on disk and against every commit that has
+touched the surfaces each image shows. Ask it before you upload, naming the tag
+you are shipping rather than your working tree:
+
+```bash
+node tools/release/verify-listing-assets.mjs --set play --since vX.Y.Z
+```
+
+⬜ It reports `CLEAN`. `STALE` prints the commits that touched what each image
+shows, and under each one the files that commit changed inside those paths, and
+there are two honest ways out, neither of which is uploading anyway: reshoot the
+set and re-pin, or read the listed commits and record in the release record why
+none of them can change these pixels. `INCONCLUSIVE` means it could not tell at
+all, which is not a pass.  
+⬜ **Judge it on the files, not on the subject line.** A subject says what a
+commit was for, not how far it reached, and each image depends on whole shared
+directories rather than a per-file list, so the scan over-reports by design. The
+file list is what makes an over-report cheap to dismiss instead of a reason to
+reshoot the listing.  
+⬜ **Read which direction it reports.** A `STALE:` line means the images are
+older than the tag. An `AHEAD:` line means they are newer, so they show a build
+the upload does not contain, and at submission time that is the likelier one:
+the tag you cut is the last commit with a green CI run, while captures get taken
+on the tip. A `NOTE:` line is a pass, meaning the capture is ahead but nothing it
+depicts moved in between.  
+
+**This lane has no capture script, so reshooting is a manual step and re-pinning
+is a separate command.** The iOS wording does not carry over: there is no
+Android harness to re-run, and `packages/mobile/scripts/screenshots.sh` is the
+iOS XCUITest driver, which writes build output rather than these checked-in
+images. Reshoot on the API 36 emulator against a store-profile build, following
+`packages/mobile/store-assets/play/README.md`, and only then record it:
+
+```bash
+node tools/release/verify-listing-assets.mjs --write --set play
+```
+
+Do not write a pin by hand. A pin nobody captured against is a claim about a
+capture nobody watched, and it reads exactly like a real one.
+
 ### Phase 3: internal testing track
 
 Upload the bundle to **internal testing** first. It is the cheapest place to
