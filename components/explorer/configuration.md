@@ -89,14 +89,36 @@ See [WEBSOCKET.md](websocket.md) for the full WebSocket API reference.
 
 ### Decoder Health (for `/api/status` chain lag fields)
 
-The explorer polls each coin's decoder health endpoint to populate `chain_tip`, `chain_lag_blocks`, and `decoder_health` in `/api/status`. Configure the URL of each decoder's JSON-RPC API:
+The explorer polls each coin's decoder health endpoint to populate `chain_tip`, `chain_lag_blocks`, and `decoder_health` in `/api/status`. This is the only place the chain-to-decoder gap is visible: the explorer reads databases only, so a decoder stalled behind its coin node still reports `decoder_lag_blocks: 0` once the indexer catches up to it.
+
+The endpoint is resolved per coin+network, in this order:
+
+1. `DECODER_API_URL_<COIN>_<NETWORK>` (explicit operator override)
+2. The decoder endpoint in the explorer's own configuration (below)
+3. `DECODER_API_URL` (generic fallback)
+
+Step 2 outranks the generic variable on purpose: `DECODER_API_URL` names one decoder and is applied to every coin, so on a multi-chain deployment it is correct for at most one of them.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `DECODER_API_URL_<COIN>_<NETWORK>` | No | None | Decoder JSON-RPC URL for a specific coin+network (e.g. `DECODER_API_URL_BTC_MAINNET=http://localhost:4001`). `COIN` and `NETWORK` are uppercase. |
-| `DECODER_API_URL` | No | None | Generic fallback used when no coin/network-specific variable is set |
+| `DECODER_API_URL` | No | None | Generic fallback used when no coin/network-specific variable is set and the configuration carries no endpoint for the coin |
 
-When no decoder URL is configured for a coin, `decoder_health` is `"unconfigured"` and `chain_tip`/`chain_lag_blocks` are `null` for that coin.
+**Endpoint from the configuration (step 2).** On a hub-driven deployment nothing needs to be set: xchain-node's config push already sends each decoder's API host and port (`host` / `port` on the `xchain-decoder` module entry, alongside `db_host` / `db_port` for its database), and the explorer uses that pair directly.
+
+On a `config.json` deployment there is no such pair, because there `host` and `port` are the decoder **database** and the explorer will not poll a database with JSON-RPC. Name the API endpoint explicitly on the same `decoder` entry instead, with either form:
+
+```json
+"decoder": {
+    "host": "127.0.0.1", "port": "3306",
+    "name": "XChain_BTC_Mainnet_Decoder", "user": "xchain", "pass": "",
+    "api_host": "10.0.0.7", "api_port": "3002"
+}
+```
+
+`api_url` (a full URL, e.g. `"api_url": "http://10.0.0.7:3002"`) is accepted in place of the host/port pair and takes precedence over it. A host written without a scheme is reached over `http`.
+
+When no endpoint resolves for a coin, `decoder_health` is `"unconfigured"` and `chain_tip`/`chain_lag_blocks` are `null` for that coin. A coin whose endpoint is configured but unresponsive reports `"unreachable"` instead, so a missing endpoint and a broken one are distinguishable.
 
 ### Indexer API (native-coin fee pre-flight)
 
