@@ -209,7 +209,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 - [`FILE`](./actions/file.md): format 0 including the optional gating fields.
 - [`MESSAGE`](./actions/message.md): v2 ECIES used for key handoff.
 - [`SEND`](./actions/send.md): gated-SEND validation rule.
-- [`BATCH`](./actions/batch.md): composition pattern for atomic publish and atomic transfer-with-handoff.
+- [`BATCH`](./actions/batch.md): composition pattern for publish-with-key and transfer-with-handoff in one transaction. A `BATCH` is not atomic, so confirm both commands settled valid.
 - [Token Information Standard](./token-information-standard.md): TIS file-entry extension (`data_ref`, `locked`, `pack_id`, top-level `packs` map).
 - [Transaction Encoding](../concepts/encoding.md): how P2WSH carries the encrypted file bytes.
 

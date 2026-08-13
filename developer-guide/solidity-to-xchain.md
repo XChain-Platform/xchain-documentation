@@ -21,7 +21,7 @@ runner, and LLM codegen all work on them natively.
    the same ACTIONs a user could.
 2. **There is no `msg.value`.** Value does not ride a call. Tokens enter a contract
    through a separate `DEPOSIT` action to the contract's address; logic runs through
-   `EXECUTE`. To make funding atomic, the caller submits both in one transaction
+   `EXECUTE`. To fund and call together, the caller submits both in one transaction
    with `BATCH`. Your contract trusts its **own balance** (`getBalance`), never a
    caller-supplied amount.
 3. **Emissions are deferred (snapshot semantics).** Emitted actions apply only after
@@ -186,8 +186,10 @@ function deposit() external payable { balances[msg.sender] += msg.value; }
 ```
 
 XChain: there is no `payable`. The caller funds the contract with a `DEPOSIT` and
-triggers logic with `EXECUTE`, atomically via `BATCH`. The contract reads its own
-balance as the source of truth.
+triggers logic with `EXECUTE`, in one transaction via `BATCH`. A `BATCH` is not
+atomic, so the two commands settle independently and a failing `EXECUTE` leaves
+the `DEPOSIT` in place; write the contract so it reads its own balance as the
+source of truth rather than assuming the pair moved together.
 
 ```javascript
 // caller submits, in ONE transaction:

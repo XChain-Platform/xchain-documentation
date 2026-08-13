@@ -248,6 +248,13 @@ flowchart TD
 ### Overpayment / Tips
 If a buyer sends slightly more coin than the exact calculated amount, the system floors the unit count and absorbs the excess as overpayment. The extra amount does not trigger additional dispenses. For example, if the exact cost for 5 units is 0.000005 BTC and the buyer sends 0.0000055 BTC, the system dispenses 5 units.
 
+### One Payment, Several Dispensers
+An address can hold more than one open dispenser, and a single payment to that address triggers each of them. The payment is **shared**, not reused: each dispenser is priced against what is left of the payment after the dispensers before it in the same transaction have taken their share, so a payment worth one fill buys one fill in total rather than one fill from every dispenser. Whatever remains above the last whole fill stays available as overpayment, exactly as it does for a single dispenser.
+
+Each dispense record therefore reports **the amount attributed to that dispense**, which is what the explorer shows as the dispense's get-amount. It is the coin that particular fill was charged, not the whole payment that triggered it, so the get-amounts of the dispenses from one payment now add up to what the buyer spent instead of each restating the full payment. Dispenses that settle nothing, and dispenses on a chain where the gate below is not yet in force, keep the older whole-payment figure.
+
+*(gated on `BATCH_ISSUANCE_LIMITS`, which is active from genesis on testnet and regtest and not yet armed on mainnet. Below it, each dispenser behind a paid address prices against the full payment and each record restates it.)*
+
 ### Oracle Front-Running Protection
 User oracles (PRICE v1) have a built-in anti-front-running mechanism: **every** price for a `(ORACLE_ADDRESS, COIN, TICK, FIAT)` combination, **including the first**, takes effect 86400 seconds (24 hours) after its `block_time`. An oracle operator therefore cannot see an incoming dispenser payment and rush a price update to manipulate the exchange rate; pending payments settle at the price already in effect.
 

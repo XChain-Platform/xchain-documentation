@@ -257,7 +257,7 @@ const pauseForever = sdk.sleep({ version: 1, tick: 'MYTOKEN', resumeBlock: '-1' 
 
 Note: SLEEP does not prevent DISPENSER dispenses, ORDER matches, or SWAP matches, as interrupting those could cost users funds.
 
-Use BATCH to pause, make changes, and re-pause atomically:
+Use BATCH to pause, make changes, and re-pause in one transaction:
 
 ```js
 const batchAction = sdk.batch()
@@ -376,7 +376,7 @@ Escrowed tokens from open orders, swaps, and dispensers are credited to the dest
 
 Publish a file (or a whole pack of files) directly to the blockchain, encrypted such that only holders of a specific token can decrypt it. The decryption key is automatically re-encrypted to each new holder on every transfer, so a buyer of the token receives the unlock as part of the same transaction. No download server, no key escrow service, no off-chain infrastructure.
 
-This composes three primitives: the FILE action (carries the encrypted bytes plus three new gating fields), the MESSAGE v2 action in ECIES mode (carries the encrypted key handoff), and the BATCH action (composes the two atomically). The SDK exposes a `gatedFile` helper for the encryption side.
+This composes three primitives: the FILE action (carries the encrypted bytes plus three new gating fields), the MESSAGE v2 action in ECIES mode (carries the encrypted key handoff), and the BATCH action (carries the two in one transaction). The SDK exposes a `gatedFile` helper for the encryption side.
 
 ### Publishing a Single Encrypted File
 
@@ -415,7 +415,7 @@ const selfMessageAction = sdk.message({
   plaintext:        handoffPayload,
 });
 
-// 4. Bundle the two into one BATCH and broadcast atomically.
+// 4. Bundle the two into one BATCH and broadcast them in one transaction.
 const batchAction = sdk.batch().file(fileAction).message(selfMessageAction).build();
 const psbt = await sdk.encoder.createPSBT({
   action:    batchAction,
@@ -543,7 +543,7 @@ For the protocol-level spec (wire format, handoff payload layout, indexer valida
 
 ## Next Steps
 
-- [Batch_Operations.md](batch-operations.md): combine advanced operations atomically
+- [Batch_Operations.md](batch-operations.md): combine advanced operations in one transaction
 - [Build_A_Dispenser.md](build-a-dispenser.md): sell tokens with access control
 - [Integration_Patterns.md](integration-patterns.md): building on top of these features
 

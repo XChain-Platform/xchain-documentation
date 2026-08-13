@@ -166,7 +166,10 @@ Combine multiple action commands into a single transaction.
 - BATCH cannot contain DEPLOY actions.
 - At most **one FILE** action per BATCH (one rawData payload per transaction).
 - At most **one MINT** action per BATCH.
-- At most **one ISSUE** action per BATCH.
+- At most **one top-level ISSUE** action per BATCH. A child issuance, whose `tick` contains a `.` (for example `JDOG.1`), does not use that slot, so one BATCH can register a parent plus any number of its children. A `^<id>` tick is never treated as a child.
+- At most **250 commands** per BATCH, counted over the raw semicolon-separated list including empty entries.
+- Sub-commands are **not atomic**: each is validated and settled on its own, so a command that fails does not undo the ones before it. Protocol fees are charged per command and accumulate across the batch.
+- The child-issuance exemption, the 250-command cap and cumulative fee accounting are active on testnet and regtest and are not yet armed on mainnet.
 - See [BATCH.md](./batch.md) for the fluent builder interface (`sdk.batch()`).
 
 ```js
@@ -1485,7 +1488,11 @@ await sdk.collect({});
 - BATCH cannot contain DEPLOY actions.
 - At most **one FILE** per BATCH (one rawData payload per transaction).
 - At most **one MINT** per BATCH.
-- At most **one ISSUE** per BATCH.
+- At most **one top-level ISSUE** per BATCH; child issuances (a `tick` containing a `.`, such as `JDOG.1`) are exempt and uncapped, while a `^<id>` tick is never treated as a child.
+- At most **250 commands** per BATCH, counted over the raw semicolon-separated list including empty entries.
+- Commands settle independently, not atomically, and each pays its own protocol fee.
+
+The child-issuance exemption, the command cap and cumulative fee accounting are active on testnet and regtest and are not yet armed on mainnet.
 
 ### Encoding size limits
 

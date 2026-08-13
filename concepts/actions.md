@@ -174,13 +174,15 @@ The `BATCH` ACTION combines multiple commands in one transaction:
 BATCH|0;SEND|0|TOKEN|100|1AddressA;MINT|0|TOKEN|50
 ```
 
-The `BATCH|0` header is followed by a semicolon-delimited list of ACTION strings. All commands in the batch are attributed to the same sender and assigned consecutive `ACTION_INDEX` values. If any individual ACTION fails validation, the entire batch is rolled back.
+The `BATCH|0` header is followed by a semicolon-delimited list of ACTION strings. All commands in the batch are attributed to the same sender and assigned consecutive `ACTION_INDEX` values.
+
+**A BATCH is not atomic.** Each command is validated and settled on its own, in order, and records its own result. A command that fails is recorded invalid by itself; the commands before it stand and the ones after it are still attempted. Structural faults (an unrecognized action, a nested BATCH, going over a limit) do reject the whole BATCH as one record before any command runs, but an ordinary per-command validation failure does not. Protocol fees are likewise charged per command and add up across the batch.
 
 BATCH is particularly useful for:
-- Atomic multi-step operations (issue + mint in one block)
-- Reducing transaction costs by combining multiple operations
-- Ensuring related actions either all succeed or all fail
-- Publishing [token-gated files](../protocol/token-gated-content.md): `BATCH(FILE, MESSAGE-to-self)` to publish ciphertext and commit the recoverable key atomically
+- Multi-step operations in one transaction (issue + mint in one block)
+- Reducing transaction costs by combining multiple operations under one miner fee and one confirmation
+- Registering a parent token and any number of its child tokens (`JDOG`, `JDOG.1`, `JDOG.2`, ...) in a single transaction
+- Publishing [token-gated files](../protocol/token-gated-content.md): `BATCH(FILE, MESSAGE-to-self)` to publish ciphertext and commit the recoverable key in the same transaction
 - Transferring tokens that gate content: `BATCH(SEND, MESSAGE)` to deliver the key to the new holder in the same transaction as the transfer
 
 ## Protocol Versioning

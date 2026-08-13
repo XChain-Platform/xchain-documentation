@@ -97,7 +97,7 @@ Thrown during action validation before any network call is made.
 | `INVALID_TICK_NAME` | None | TICK name violates naming rules (length, characters, reserved names) |
 | `INVALID_TICK_ID` | None | A `^ID` reference is not a valid numeric index |
 | `FORBIDDEN_CHARACTER` | None | A text field contains a `|` or `;` character, which would corrupt the pipe-delimited format |
-| `BATCH_CONSTRAINT` | `count` (for MINT/ISSUE violations) | A BATCH protocol rule was violated (nested BATCH, FILE action, more than 1 MINT, more than 1 ISSUE) |
+| `BATCH_CONSTRAINT` | `count` (for MINT/ISSUE violations), `limit` (for the command cap) | A BATCH protocol rule was violated (nested BATCH, DEPLOY action, more than 1 FILE, more than 1 MINT, more than 1 top-level ISSUE, more than 250 commands). Child issuances such as `JDOG.1` do not count against the ISSUE limit |
 | `BATCH_EMPTY` | None | A batch was built with no actions queued |
 | `ENCODING_DATA_TOO_LARGE` | `suggestion` | The serialized action string exceeds 76 bytes (the OP_RETURN user-data limit; 80 bytes total per output including the 4-byte XCHN prefix) |
 | `MISSING_COMPRESSED_PUBKEY` | None | A MULTISIGN encoding was requested without providing a `compressedPubKey` |

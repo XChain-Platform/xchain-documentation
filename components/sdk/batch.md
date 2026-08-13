@@ -150,9 +150,12 @@ The BATCH protocol enforces the following rules. Violations throw `SDKValidation
 | No DEPLOY actions | `BATCH_CONSTRAINT` | DEPLOY payloads are too large for BATCH |
 | At most 1 FILE action | `BATCH_CONSTRAINT` | One rawData payload per transaction; `details.count` contains the actual count |
 | At most 1 MINT action | `BATCH_CONSTRAINT` | `details.count` contains the actual count |
-| At most 1 ISSUE action | `BATCH_CONSTRAINT` | `details.count` contains the actual count |
+| At most 1 top-level ISSUE action | `BATCH_CONSTRAINT` | Child issuances (a dotted `tick` such as `JDOG.1`) are exempt and uncapped; a `^<id>` tick is never treated as a child. `details.count` contains the actual count |
+| At most 250 commands | `BATCH_CONSTRAINT` | Counted over the raw semicolon-separated list, empty entries included; `details.limit` carries the cap |
 
 All sub-actions are also fully validated by the Validator before the BATCH is built. A bad field value in any sub-action will throw the corresponding `SDKValidationError` before `.build()` returns.
+
+**On-chain, a BATCH is not atomic.** These constraints are compose-time guards, and passing them does not mean every command will settle. The indexer validates and settles each command on its own, so a command that fails on chain is recorded invalid by itself while its siblings stand. Protocol fees are charged per command and accumulate across the batch, so fund the sending address for the whole set. The child-issuance exemption and the 250-command cap are active on testnet and regtest and are not yet armed on mainnet.
 
 ---
 
@@ -205,7 +208,7 @@ try {
 
 ### Gated Content: FILE + MESSAGE in One Transaction
 
-A common pattern for publishing token-gated content is to include a FILE and a MESSAGE to self in the same BATCH. The FILE records the content and its gate ticker on-chain; the MESSAGE records the encrypted decryption key so the issuer can recover it later. Both are committed atomically.
+A common pattern for publishing token-gated content is to include a FILE and a MESSAGE to self in the same BATCH. The FILE records the content and its gate ticker on-chain; the MESSAGE records the encrypted decryption key so the issuer can recover it later. Both are broadcast in one transaction, but they settle independently, so confirm that both were recorded valid rather than assuming the pair moved as a unit.
 
 ```js
 const { encryptedData, encryptedKey, keyHash } = await encryptForGate(rawFileBuffer, 'MYTOKEN');

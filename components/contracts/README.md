@@ -64,7 +64,7 @@ sdk.deploy({ CODE: source, GAS_LIMIT: '200000' }, encoder, { lint });
 
 ## The custody model
 
-XChain has no `msg.value`, so a contract call carries no tokens. A contract is an address (`C:<CHAIN>:<index>`) that holds balances like a wallet; tokens enter through a separate `DEPOSIT` action and logic runs through an `EXECUTE`. To fund and act atomically, submit both in one `BATCH`.
+XChain has no `msg.value`, so a contract call carries no tokens. A contract is an address (`C:<CHAIN>:<index>`) that holds balances like a wallet; tokens enter through a separate `DEPOSIT` action and logic runs through an `EXECUTE`. To fund and act in one transaction, submit both in one `BATCH`. The two commands still settle independently: a `BATCH` is not atomic, so an `EXECUTE` that fails does not undo the `DEPOSIT` before it.
 
 A safe contract never trusts a caller-supplied amount: it reads its own balance with `xchain.getBalance(xchain.getContractAddress(), tick)`. Every template follows that rule, and `escrow`'s README explains it in full.
 
