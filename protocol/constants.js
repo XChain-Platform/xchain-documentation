@@ -410,6 +410,19 @@ const ANCHOR_REWARD_DERIVE_ACTIVATION = {
     regtest: 0,
 };
 
+// ANCHOR_REWARD_MIRROR_MATURITY (the fleet-agreed mirror-completeness watermark, in BTC
+// blocks). Derivation under the gate above does NOT mature a mirrored attestation at
+// snapshot_block: that height is the one the XANCPUB signing set was resolved at and is
+// already in the past when the row is written (the hub writes only after the DOGE anchor is
+// buried, after the publisher failover ladder, and after the hub-to-hub federation hop), so
+// keying maturity on it let two nodes with different mirror contents derive the same reward
+// at different BTC heights. A row instead matures at snapshot_block + this constant, and a
+// node whose attestation mirror is not provably caught up defers the block rather than
+// deriving a partial set. It moves the block a COLLECT-spendable reward materializes at, so
+// it is a hashed value frozen with the map above; changing it needs its own flag-day. Kept
+// byte-identical to xchain-{hub,indexer}/src/anchor_reward_activation.js.
+const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
+
 // RETRACTION_SIGNING_ACTIVATION (quorum-class retraction co-signing): the BTC-anchored
 // snapshot_block era at/above which a mirror REFUSES an unsigned quorum-class retraction
 // broadcast. Vendored byte-equal into xchain-{indexer,hub,explorer}/src/
@@ -824,6 +837,7 @@ module.exports = {
     ARCHIVE_REWARD_ACTIVATION,
     ARCHIVE_REWARD_AMOUNT,
     ANCHOR_REWARD_DERIVE_ACTIVATION,
+    ANCHOR_REWARD_MIRROR_MATURITY,
     RETRACTION_SIGNING_ACTIVATION,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     ATTEST_ADMISSION_ACTIVATION,
