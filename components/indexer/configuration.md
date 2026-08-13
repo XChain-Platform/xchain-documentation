@@ -126,6 +126,22 @@ carries the credit. Arming the leg is an edit to that bundle plus a
 `xchain-hub/bin/sync-coins.sh` re-vendoring wave, never a per-node export.
 | `CROSS_CHAIN_ROYALTY_REGTEST_TIME` | **Regtest only.** Override the cross-chain royalty activation time so the OFF/deny path stays drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
 
+### A7 replay-equivalence harness
+
+Read only by `bin/verify-batch-limits-replay-equivalence.js` (the below-the-flag
+replay-equivalence drill); never by the indexer service itself.
+
+| Variable | Description | Example |
+|---|---|---|
+| `A7_SIDE_ROOT` | **Harness only.** Repo root the forked side-process replays from | `/path/to/xchain-indexer` |
+| `A7_SIDE_GATE` | **Harness only.** Side-process gate mode: `natural` replays with the registered activation instant; `off` moves the instant forward so the flag reads disabled on the replayed range | `off` |
+| `TEST_DB_HOST` | **Harness only.** Test database hostname; falls back to `INDEXER_DB_HOST`, then `127.0.0.1` | `127.0.0.1` |
+| `TEST_DB_PORT` | **Harness only.** Test database port; falls back to `INDEXER_DB_PORT`, then `3306` | `3306` |
+| `TEST_DB_USER` | **Harness only.** Test database username; falls back to `INDEXER_DB_USER`, then `root` | `root` |
+| `TEST_DB_PASS` | **Harness only.** Test database password; falls back to `INDEXER_DB_PASS`, then empty | _(none)_ |
+| `TEST_DB_NS` | **Harness only.** Namespace prefix for the harness's scratch databases (`<ns>_dec`, `<ns>_old`, `<ns>_off`, `<ns>_on`) | `xchain_test_a7` |
+| `TEST_DECODER_DB` | **Harness only.** Decoder-side scratch database name the replay reads; set by the harness itself for child processes | `xchain_test_a7_dec` |
+
 ## Hub DB Price Source
 
 Native-coin fee validation and FIAT settlement read the oracle tables (`price_snapshots`,
