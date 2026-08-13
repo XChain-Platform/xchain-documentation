@@ -258,7 +258,7 @@ await stakerSession.delegateForContract({
 });
 ```
 
-After the per-chain activation delay (6 blocks on BTC, 24 on LTC, 60 on DOGE), the old pubkey is retired and the new pubkey owns the stake row. Useful for key hygiene without exiting the stake.
+After the per-chain activation delay (6 blocks on BTC, 24 on LTC, 60 on DOGE), the old pubkey is retired and the new pubkey owns the stake row: the indexer writes the new key onto the stake rows themselves at that height, so `getStakers()` lists the new pubkey, an `UNSTAKE` names it, and a slash against it debits the stake. Useful for key hygiene without exiting the stake. (Rotations reach the stake rows at and after the `CONTRACT_DELEGATION_MATERIALIZE` flag day; see [Flag Days](../protocol/flag-days.md).)
 
 To revoke a delegated key without replacing it, use `DELEGATE v3`:
 
@@ -271,7 +271,7 @@ await stakerSession.delegate({
 });
 ```
 
-Until the staker delegates a new key, the stake row has no valid signer.
+Once the revoke takes effect, the delegated key stops owning the stake: the stake rows return to the pubkey they were staked with (or to an earlier delegated key that is still active), so a revoked key never keeps appearing as a staker. Delegate a fresh key when you want a different one in its place.
 
 ---
 
