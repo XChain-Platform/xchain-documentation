@@ -99,6 +99,42 @@ keyed on an indexed column, and never allowed to crash the money-bearing
 service. See [Hub Configuration](../hub/configuration.md) for these
 variables.
 
+## Sync transparency log
+
+The sync service owns two tables that no other service prunes: `sync_meta`,
+one row per block holding the three block hashes that form a Merkle leaf, and
+`merkle_epochs`, one committed root per epoch. `sync_meta` grows one row per
+block forever; `merkle_epochs` grows one row per `MERKLE_EPOCH_SIZE` blocks
+and is small enough to keep indefinitely.
+
+Retention here follows the same default-off shape. Setting
+`SYNC_META_RETENTION_BLOCKS` to a positive value lets the sync service delete
+`sync_meta` rows older than that window; unset or `0` keeps the full log,
+which remains the shipped behavior.
+
+| Variable | Default | Effect |
+|---|---|---|
+| `SYNC_META_RETENTION_BLOCKS` | unset (`0`) | A positive integer turns on `sync_meta` retention and sets the window in blocks. Unset or `0` means keep the whole log. |
+
+Two properties make this safe to turn on:
+
+- **Committed roots are never pruned.** Only the leaves go. The published
+  root chain, and the `merkle_reorgs` audit trail that references it, survive
+  for ranges whose leaves are gone.
+- **The cut lands on a committed epoch boundary.** The delete boundary is the
+  end block of a committed epoch that lies wholly outside the window, never an
+  arbitrary height. A half-pruned epoch would let the proof endpoint rebuild
+  that epoch's tree from the surviving subset and answer with a proof against
+  a root that no longer matches the committed one, so the sweep refuses rather
+  than cut through an epoch.
+
+What is given up is exactly the inclusion proofs: a block whose `sync_meta`
+row is pruned can no longer be served from
+`/transparency/indexer/{chain}/{network}/proof/{block}`, which answers `404`
+for it. Choose the window from the proof horizon the deployment intends to
+honor, and leave retention off on any tier that advertises proofs over full
+history.
+
 ## Decoder tables
 
 The decoder retains full transaction history by design (it is the source the

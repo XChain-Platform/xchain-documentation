@@ -24,6 +24,7 @@ These variables are required regardless of whether the service runs in server or
 | `MAX_HUB_WAIT_MS` | No | `300000` | Maximum milliseconds to wait for the hub to become reachable at startup before the process exits non-zero (5 minutes). The supervisor then restarts the container. |
 | `MERKLE_EPOCH_SIZE` | No | `100` | Number of blocks per Merkle epoch in the transparency log. Changing this after a log already exists will make existing epoch roots inconsistent; only set at initial deploy. |
 | `TRANSPARENCY_RATE_LIMIT` | No | `10` | Maximum transparency-proof endpoint requests per minute per IP. |
+| `SYNC_META_RETENTION_BLOCKS` | No | `0` (off) | Transparency-log retention window in blocks. `0` or unset keeps the full log, so every historical inclusion proof stays serveable. A positive value prunes `sync_meta` rows older than the window at epoch boundaries, which bounds table growth and gives up proofs below the window. Committed Merkle roots (`merkle_epochs`) are kept either way. See [Indexer: Data Retention and Pruning](../indexer/data-retention.md). |
 
 ### Server Mode
 
