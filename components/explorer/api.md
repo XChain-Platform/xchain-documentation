@@ -130,6 +130,7 @@ GET /{COIN}/api/status
         "decoder_tip": { "BTC": 893000, "RBTC": 41 },
         "decoder_lag_blocks": { "BTC": 0, "RBTC": 0 },
         "tip_age_seconds": { "BTC": 120, "RBTC": 200120 },
+        "tip_future_seconds": { "BTC": 0, "RBTC": 0 },
         "stale": { "BTC": false, "RBTC": true },
         "replica_halted": { "BTC": false, "RBTC": null },
         "chain_tip": { "BTC": 893000, "RBTC": 41 },
@@ -152,8 +153,9 @@ The example above shows the gate in action: `RBTC` has a frozen tip, so it is
 | `last_block_time` | Per-coin unix timestamp of that block |
 | `decoder_tip` | Per-coin highest block the decoder has processed; `null` if the decoder DB is unreachable |
 | `decoder_lag_blocks` | `decoder_tip − last_block` (how far the indexer trails the decoder); `null` when either value is unavailable |
-| `tip_age_seconds` | Per-coin wall-clock seconds since `last_block_time`; `null` when no usable `block_time` was read. Unlike `decoder_lag_blocks` this catches a joint indexer plus decoder freeze, because it measures against the local clock rather than against the other replica |
-| `stale` | Per-coin freshness verdict: `true` when `tip_age_seconds` has passed that coin's threshold. Fails closed, so a missing or unreadable `block_time` also reads `true`. Only coins this instance actually measures (those with a live connection pool) appear here |
+| `tip_age_seconds` | Per-coin wall-clock seconds since `last_block_time`; `null` when no usable `block_time` was read. Never negative: a tip dated ahead of this host reads `0` here and reports its skew in `tip_future_seconds`. Unlike `decoder_lag_blocks` this catches a joint indexer plus decoder freeze, because it measures against the local clock rather than against the other replica |
+| `tip_future_seconds` | Per-coin seconds the newest indexed block is dated *ahead* of this host's clock; `0` when it is not ahead, `null` when no usable `block_time` was read. A non-zero value means host clock drift or a chain with lax timestamp rules, and that `tip_age_seconds` is clamped rather than measured |
+| `stale` | Per-coin freshness verdict: `true` when `tip_age_seconds` has passed that coin's threshold, and also `true` when `tip_future_seconds` has passed that coin's future-skew tolerance. Fails closed, so a missing or unreadable `block_time` also reads `true`. Only coins this instance actually measures (those with a live connection pool) appear here |
 | `replica_halted` | Per-coin durable consensus-divergence halt verdict, read from the sync client's `sync_halt` table on the same replica this instance reads (`true` when an active, uncleared halt row exists). A halted replica keeps reporting a small lag until its source mints past it, so this catches what neither `stale` nor `tip_age_seconds` can see; it composes with `stale` rather than replacing it (this field flags the halt immediately, `stale`/`available` only drop the coin once its tip actually ages out). `true`/`false` only once the table was read successfully; `null` when the signal could not be determined (no live pool, the table doesn't exist on this replica, or the read failed), and `null` is never coerced to `false`. Only coins this instance measures appear here |
 | `chain_tip` | Per-coin chain tip as reported by the decoder's own health endpoint (what the coin node sees) |
 | `chain_lag_blocks` | `chain_tip − decoder_tip` (how far the decoder trails the chain) |
@@ -161,7 +163,10 @@ The example above shows the gate in action: `RBTC` has a frozen tip, so it is
 
 **Freshness gate.** The threshold behind `stale` is `EXPLORER_TIP_MAX_AGE_S`
 (6 hours by default), overridable per coin with `EXPLORER_TIP_MAX_AGE_S_<COIN>`
-and disabled entirely with `0`. See
+and disabled entirely with `0`. A tip dated ahead of the host is gated the other
+way by `EXPLORER_TIP_MAX_FUTURE_SKEW_S` (2 hours by default, per coin with
+`EXPLORER_TIP_MAX_FUTURE_SKEW_S_<COIN>`, `0` to disable): skew past it reads
+`stale`, so a frozen chain cannot sit behind a future-dated block forever. See
 [configuration.md](configuration.md#environment-variables). A client that wants
 only current data should read `available` rather than `supported`, and treat a
 coin's disappearance from `available` as a transient outage of this instance,
