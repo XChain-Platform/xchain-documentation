@@ -461,6 +461,7 @@ Records detected validator misbehavior for governance review. The hub detects vi
 |---|---|
 | `state_checkpoints` | Quorum-signed per-chain ledger/actions/contract hash snapshots; mirrored to indexers |
 | `anchor_published_checkpoints` | Durable at-most-once broadcast marker for the ANCHOR checkpoint publish (hub-local, not mirrored) |
+| `anchor_published_archives` | The same at-most-once marker for the ANCHOR archive publish, held per network rather than per batch because a crashed round always rebuilds under a fresh `batch_seq` (hub-local, not mirrored) |
 | `capability_snapshots` | Per-block capability validator sets locked at BTC-anchored block boundaries |
 | `anchor_reward_attestations` | Quorum-attested ANCHOR publisher rewards; mirrored to indexers |
 
