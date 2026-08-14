@@ -334,7 +334,11 @@ Rate limiting applies to all non-image endpoints (API, Explorer, and HTML).
 
 ## CORS
 
-Cross-Origin Resource Sharing is configured via the `cors` middleware. Allowed origins can be specified in the configuration. When not explicitly configured, CORS defaults to allowing all origins.
+Cross-Origin Resource Sharing is configured via the `cors` middleware. The explorer serves a public read API, so with nothing configured every origin is allowed: cross-origin `GET` requests are the normal case for documentation examples, wallets and third-party dashboards. A deployment that needs to fence the API sets an allowlist instead.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `EXPLORER_CORS_ORIGIN` | No | None (all origins allowed) | Comma-separated allowlist of exact origins permitted to make cross-origin requests, for example `https://xchain.io,https://wallet.xchain.io`. Each entry is matched in full, including scheme and port, so `https://xchain.io` does not admit `https://xchain.io.example.com`. When unset (or set to `*`) every origin is allowed. Requests carrying no `Origin` header, such as `curl` or same-origin page loads, are always allowed. |
 
 ## Security Headers
 
