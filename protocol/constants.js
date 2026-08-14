@@ -229,6 +229,27 @@ const MAX_DEPLOY_CHUNKS = 16;
 // larger part (belt-and-suspenders; the decoder already drops oversize pushes).
 const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
 
+// ── BATCH command cap (BATCH_ISSUANCE_LIMITS) ───────────────────────────────
+// Maximum number of ;-separated sub-commands one BATCH action may carry. The
+// count is the raw semicolon-separated list after the `BATCH|<VERSION>|`
+// prefix, including empty elements, so 250 commands plus a trailing `;`
+// counts as 251 and is over the cap. Checked FIRST, before every other
+// batch-level rule. A denial-of-service bound on indexer processing cost
+// (every parse-valid sub-command costs an ACTION_INDEX, mappings and,
+// on failure, an invalid row), not a product quota: an issuer with 500
+// children uses two transactions.
+//
+// Enforced by the indexer (actions/batch.js `this.commandLimit`) and the SDK
+// (batchLimits.js `BATCH_COMMAND_LIMIT`), each its own local copy; this
+// cross-service regression suite (protocol-constant-claims.test.js) asserts
+// both copies and every prose claim equal this value.
+//
+// Gated by BATCH_ISSUANCE_LIMITS in the indexer's protocol_changes.js:
+// active from genesis on testnet/regtest, not yet armed on mainnet (see
+// protocol/actions/batch.md). Before that instant mainnet enforces no
+// command cap at all; this constant is the value the gate gives it.
+const BATCH_COMMAND_LIMIT = 250;
+
 // ── Stake-weighted quorum (STAKE_WEIGHTED_QUORUM / WI-1) ────────────────────
 // Consensus-critical activation: at/above this BTC-anchored snapshot_block the
 // federation quorum becomes stake-WEIGHTED (signers' summed source stake must
@@ -863,6 +884,7 @@ module.exports = {
     MAX_CODE_SIZE,
     MAX_DEPLOY_CHUNKS,
     MAX_DEPLOYCHUNK_PART_BYTES,
+    BATCH_COMMAND_LIMIT,
     VM_MAX_CALL_DEPTH,
     VM_MIN_CALL_GAS,
     XCALL_MIN_GAS,

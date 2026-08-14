@@ -166,6 +166,125 @@ test('prose that names a byte constant states its current value', () => {
     'these sentences name a constant and then state the wrong size:\n' + bad.join('\n'));
 });
 
+/*
+ * ── BATCH_COMMAND_LIMIT (a COUNT, not a byte size) ─────────────────────────
+ *
+ * WHY A SECOND MECHANISM. Everything above keys on the literal identifier
+ * name sitting next to the number (`ENVELOPE_MAX_PAYLOAD` (390,000 bytes)`).
+ * No prose page ever writes `BATCH_COMMAND_LIMIT`; every page just says
+ * "250 commands" or "the 250-command cap". The identifier-adjacency anchor
+ * therefore cannot see this constant at all, so it needs its own claim
+ * scan rather than an entry in GUARDED (a `bytes` claim, wrong unit) or a
+ * silent no-op entry.
+ *
+ * WHY EVERY COMMAND COUNT IS CHECKED, with no digit floor. The first cut of
+ * this guard borrowed BYTE_QUANTITY's 3-digit floor to keep two unrelated
+ * phrases out ("21 commands" for the CLI, "35 commands" for the ACTION set).
+ * That was measured and REJECTED on 2026-08-13: driving a real prose page
+ * from "250 commands" to "260 commands" reddened the guard, but driving it
+ * to "99 commands" passed SILENTLY, because the drifted value fell under the
+ * floor. A guard that only catches drift which stays 3 digits wide is not a
+ * guard, and the drift direction it misses (a smaller cap) is the one a
+ * careless edit is likelier to produce.
+ *
+ * So the floor is gone and the three legitimate non-BATCH claims are named
+ * explicitly in COMMAND_SCOPED instead. An explicit allowlist states what is
+ * exempt and why; a digit heuristic only states what happened to be true of
+ * the numbers in the repo the day it was written. The unspent-entry
+ * assertion below is what keeps the allowlist honest: delete one of those
+ * three prose lines and the run fails until the exemption goes too.
+ */
+const BATCH_COMMAND_LIMIT_NAME = 'BATCH_COMMAND_LIMIT';
+
+/** Same shape as BYTE_QUANTITY, unit swapped from bytes to commands, no floor (see above). */
+const COMMAND_QUANTITY = /\b(\d{1,3}(?:,\d{3})+|\d+)\s*-?\s*commands?\b/gi;
+
+/*
+ * Claims that legitimately state a command count unrelated to the BATCH cap.
+ * `times` is how many occurrences that file is allowed, NOT the number being
+ * claimed: the two are different and conflating them made an exemption for
+ * "21 commands" quietly permit twenty-one of them.
+ */
+const COMMAND_SCOPED = [
+  { file: 'components/node/architecture.md', count: 21, times: 2,
+    why: 'the xchain-node Commander CLI verb count, nothing to do with BATCH' },
+  { file: 'getting-started/what-is-xchain.md', count: 35, times: 1,
+    why: 'the size of the ACTION set, nothing to do with BATCH' },
+];
+
+test('prose command counts for the BATCH cap match the canonical value', () => {
+  const budget = new Map(COMMAND_SCOPED.map((s) => [`${s.file}|${s.count}`, s.times]));
+  const bad = [];
+  for (const { rel, no, line } of readLines()) {
+    COMMAND_QUANTITY.lastIndex = 0;
+    let m;
+    while ((m = COMMAND_QUANTITY.exec(line))) {
+      const claimed = Number(m[1].replace(/,/g, ''));
+      if (claimed === CONSTANTS.BATCH_COMMAND_LIMIT) continue;
+      const key = `${rel}|${claimed}`;
+      const left = budget.get(key) || 0;
+      if (left > 0) { budget.set(key, left - 1); continue; }
+      bad.push(`${rel}:${no} states ${claimed} commands, but ${BATCH_COMMAND_LIMIT_NAME} is `
+        + `${CONSTANTS.BATCH_COMMAND_LIMIT}: "${m[0].trim()}"`);
+    }
+  }
+
+  const unspent = [...budget.entries()].filter(([, left]) => left > 0)
+    .map(([key, left]) => `${key} (${left} unmatched)`);
+  assert.deepStrictEqual(unspent, [],
+    'COMMAND_SCOPED registers exemptions that no longer appear. Delete them:\n' + unspent.join('\n'));
+
+  assert.deepStrictEqual(bad, [],
+    'these state a BATCH command count that disagrees with protocol/constants.js. Fix the sentence, '
+    + 'or if it genuinely measures something other than the BATCH cap, add it to COMMAND_SCOPED with '
+    + 'a reason:\n' + bad.join('\n'));
+});
+
+/*
+ * ── Cross-repo drift: the same 250 in xchain-indexer and xchain-sdk ────────
+ *
+ * protocol/constants.js is this repo's canonical copy, but the number that
+ * actually runs lives in two sibling repos, each with its own literal:
+ * xchain-indexer/src/actions/batch.js (`this.commandLimit`) and
+ * xchain-sdk/src/batchLimits.js (`BATCH_COMMAND_LIMIT`). Prose drifting from
+ * this file is the smaller failure mode; code drifting from this file, or
+ * the two services drifting from each other, is the one that actually
+ * breaks something on chain.
+ *
+ * Read as source and parsed with a regex, exactly like action-activation-model
+ * .test.js reads xchain-indexer/src/protocol_changes.js and sdk-action-surface
+ * .test.js reads xchain-sdk/src/*.js: these are sibling repos in the monorepo
+ * checkout, not dependencies, so the assertion skips (not fails) when a
+ * sibling checkout is absent, the same convention every other cross-repo test
+ * in this directory uses.
+ */
+const INDEXER_BATCH = path.resolve(ROOT, '../xchain-indexer/src/actions/batch.js');
+const SDK_BATCH_LIMITS = path.resolve(ROOT, '../xchain-sdk/src/batchLimits.js');
+const haveIndexerBatch = fs.existsSync(INDEXER_BATCH);
+const haveSdkBatchLimits = fs.existsSync(SDK_BATCH_LIMITS);
+
+test('xchain-indexer commandLimit matches the canonical BATCH_COMMAND_LIMIT',
+  { skip: !haveIndexerBatch && 'sibling xchain-indexer not present in this checkout' }, () => {
+    const src = fs.readFileSync(INDEXER_BATCH, 'utf8');
+    const m = /this\.commandLimit\s*=\s*(\d+)\s*;/.exec(src);
+    assert.ok(m, 'this.commandLimit assignment not found in xchain-indexer/src/actions/batch.js; '
+      + 'the declaration shape changed, re-point this regex');
+    assert.strictEqual(Number(m[1]), CONSTANTS.BATCH_COMMAND_LIMIT,
+      `xchain-indexer's this.commandLimit is ${m[1]}, but protocol/constants.js BATCH_COMMAND_LIMIT `
+      + `is ${CONSTANTS.BATCH_COMMAND_LIMIT}`);
+  });
+
+test('xchain-sdk BATCH_COMMAND_LIMIT matches the canonical value',
+  { skip: !haveSdkBatchLimits && 'sibling xchain-sdk not present in this checkout' }, () => {
+    const src = fs.readFileSync(SDK_BATCH_LIMITS, 'utf8');
+    const m = /const\s+BATCH_COMMAND_LIMIT\s*=\s*(\d+)\s*;/.exec(src);
+    assert.ok(m, 'BATCH_COMMAND_LIMIT declaration not found in xchain-sdk/src/batchLimits.js; '
+      + 'the declaration shape changed, re-point this regex');
+    assert.strictEqual(Number(m[1]), CONSTANTS.BATCH_COMMAND_LIMIT,
+      `xchain-sdk's BATCH_COMMAND_LIMIT is ${m[1]}, but protocol/constants.js BATCH_COMMAND_LIMIT `
+      + `is ${CONSTANTS.BATCH_COMMAND_LIMIT}`);
+  });
+
 test('no superseded byte value survives anywhere in the prose', () => {
   const stale = new Map();
   for (const g of GUARDED) {
