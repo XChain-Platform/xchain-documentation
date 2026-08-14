@@ -142,6 +142,17 @@ replay-equivalence drill); never by the indexer service itself.
 | `TEST_DB_NS` | **Harness only.** Namespace prefix for the harness's scratch databases (`<ns>_dec`, `<ns>_old`, `<ns>_off`, `<ns>_on`) | `xchain_test_a7` |
 | `TEST_DECODER_DB` | **Harness only.** Decoder-side scratch database name the replay reads; set by the harness itself for child processes | `xchain_test_a7_dec` |
 
+### BATCH cost-measurement harness
+
+Read only by `bin/measure-batch-execute-cost.js`, which measures the block-loop
+cost of `EXECUTE` and `DEPLOY` sub-commands against an ordinary sub-command
+baseline; never by the indexer service itself. The harness also reads the
+`TEST_DB_*` variables documented above.
+
+| Variable | Description | Example |
+|---|---|---|
+| `XCHAIN_DECODER_SQL_PATH` | **Harness only.** Path to the decoder's SQL schema directory, used to build the scratch decoder database the measured blocks are read from. The harness refuses to run when it is unset rather than measuring against a schema it guessed at | `/path/to/xchain-decoder/src/sql` |
+
 ## Hub DB Price Source
 
 Native-coin fee validation and FIAT settlement read the oracle tables (`price_snapshots`,
