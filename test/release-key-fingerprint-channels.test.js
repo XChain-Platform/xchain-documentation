@@ -95,6 +95,24 @@ const FINGERPRINT_VALUE = /\b(?:[0-9A-Fa-f]{4}[  ]+){9}[0-9A-Fa-f]{4}\b|\b[0-9A
 
 const read = (p) => fs.readFileSync(p, 'utf8');
 
+// Whether prose text names a given URL, checked on the PARSED origin/path
+// rather than a raw substring: `text.includes(target)` also matches
+// `https://xchain.io/security.evil.example` or `https://evil.example/?u=
+// https://xchain.io/security`, neither of which actually names the channel.
+const HREF_RE = /https?:\/\/[^\s"'<>)]+/g;
+function namesUrl(text, target) {
+    const want = new URL(target);
+    return [...text.matchAll(HREF_RE)].some((m) => {
+        try {
+            const got = new URL(m[0]);
+            return got.hostname === want.hostname &&
+                (got.pathname === want.pathname || got.pathname.startsWith(want.pathname + '/'));
+        } catch {
+            return false;
+        }
+    });
+}
+
 // Strip fenced code blocks: a shell example saying `gpg --fingerprint
 // <FINGERPRINT>` is not a cross-reference and has no link to check.
 function proseLines(text) {
@@ -224,7 +242,7 @@ describe('release key fingerprint cross-references', () => {
                 'xchain-wallet/SECURITY.md carries neither a fingerprint nor a named slot for one',
             );
             assert.ok(
-                src.includes('https://xchain.io/security'),
+                namesUrl(src, PUBLIC_CHANNEL),
                 'xchain-wallet/SECURITY.md does not name the other channel by URL; two channels ' +
                 'that cannot find each other cannot be compared',
             );

@@ -20,6 +20,10 @@ name: CI
 # pristine clone (clean clone + npm ci + npm test): 79 passing, 0 failing,
 # 2 skipped, exit 0.
 
+# Least privilege for the default GITHUB_TOKEN: every job here only reads the repo.
+permissions:
+  contents: read
+
 on:
   push:
     branches: [master]
