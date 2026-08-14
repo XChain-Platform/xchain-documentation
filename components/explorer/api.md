@@ -715,7 +715,7 @@ GET /{COIN}/api/coinpays/{query}/{type}
 | `block` | COINPay actions in a specific block |
 | `address` | COINPay actions involving an address |
 
-**Response includes:** obligation action_index, coin amount, txid, vout, status, block, timestamp. When one transaction settles more than one obligation, `coin_amount`/`vout` name the specific output that paid THIS obligation, not just the transaction's first output. Testnet and regtest already behave this way; mainnet has not yet activated the change.
+**Response includes:** obligation action_index, coin amount, txid, vout, status, block, timestamp. When one transaction settles more than one obligation, `coin_amount`/`vout` name the specific output that paid THIS obligation, not just the transaction's first output. Testnet and regtest already behave this way; mainnet activates the change at `2026-08-16T00:00:00Z`.
 
 ```
 GET /{COIN}/api/coinpay_expires/{query}/{type}
@@ -775,7 +775,7 @@ GET /{COIN}/api/dispenses/{query}/{type}
 | `destination` | Dispenses to this address |
 | `token` | Dispenses of a specific token |
 
-**Response includes:** give/get coin, give/get tick, give/get amounts, source, destination, status, block, timestamp. When one payment fills several dispenses in the same transaction, `get_amount` is the coin attributed to that dispense, not the full payment. Testnet and regtest already behave this way; mainnet has not yet activated the change.
+**Response includes:** give/get coin, give/get tick, give/get amounts, source, destination, status, block, timestamp. When one payment fills several dispenses in the same transaction, `get_amount` is the coin attributed to that dispense, not the full payment. Testnet and regtest already behave this way; mainnet activates the change at `2026-08-16T00:00:00Z`.
 
 ---
 

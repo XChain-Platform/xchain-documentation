@@ -155,7 +155,7 @@ The BATCH protocol enforces the following rules. Violations throw `SDKValidation
 
 All sub-actions are also fully validated by the Validator before the BATCH is built. A bad field value in any sub-action will throw the corresponding `SDKValidationError` before `.build()` returns.
 
-**On-chain, a BATCH is not atomic.** These constraints are compose-time guards, and passing them does not mean every command will settle. The indexer validates and settles each command on its own, so a command that fails on chain is recorded invalid by itself while its siblings stand. Protocol fees are charged per command and accumulate across the batch, so fund the sending address for the whole set. The child-issuance exemption and the 250-command cap are active on testnet and regtest and are not yet armed on mainnet.
+**On-chain, a BATCH is not atomic.** These constraints are compose-time guards, and passing them does not mean every command will settle. The indexer validates and settles each command on its own, so a command that fails on chain is recorded invalid by itself while its siblings stand. Protocol fees are charged per command and accumulate across the batch, so fund the sending address for the whole set. The child-issuance exemption and the 250-command cap are active on testnet and regtest, and activate on mainnet at `2026-08-16T00:00:00Z`.
 
 ---
 
