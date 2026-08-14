@@ -50,7 +50,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `bet_resolves` | BET market resolution records (format 3), the only path that pays the oracle its fee |
 | `broadcasts` | BROADCAST messages and general-purpose data feeds. Betting markets are `bet_feeds`, not broadcasts |
 | `callbacks` | CALLBACK action records |
-| `coinpays` | COINPAY native-coin payments settling an ORDER_MATCH obligation: the amount paid, its `txid`/`vout`, and the obligation it discharges |
+| `coinpays` | COINPAY native-coin payments settling an ORDER_MATCH obligation: the amount paid, its `txid`/`vout`, and the obligation it discharges. When one transaction settles more than one obligation, each row's `coin_amount`/`vout` name the specific output that paid THAT obligation, not just the transaction's first output. Testnet and regtest already behave this way; mainnet has not yet activated the change |
 | `destroys` | DESTROY (burn) records |
 | `dispensers` | DISPENSER vending machine definitions |
 | `dispenser_cancels` | DISPENSER cancellation records |
@@ -58,7 +58,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `dispenser_edits` | DISPENSER modification records |
 | `dispenser_expires` | DISPENSER expiration events |
 | `dispenser_statuses` | DISPENSER status change history |
-| `dispenses` | Individual dispense events triggered by sends |
+| `dispenses` | Individual dispense events triggered by sends. `get_amount` records the coin attributed to that specific event; when one payment fills several dispenses in the same transaction, each row's `get_amount` is its share of the payment rather than the payment's full amount. Testnet and regtest already behave this way; mainnet has not yet activated the change |
 | `dividends` | DIVIDEND distribution records |
 | `files` | FILE upload metadata |
 | `issues` | ISSUE (token creation/update) records |
