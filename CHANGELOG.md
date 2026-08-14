@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `operations/release-process.md`: how a release train is cut, signed and published, the hotfix path, and the classification rule that decides whether a fix needs an activation point.
+- The operations index now lists Release Signing, which existed as a page but was reachable only by direct link.
+
 ## [0.12.1] - 2026-08-13
 
 ### Added
