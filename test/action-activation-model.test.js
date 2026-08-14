@@ -27,8 +27,8 @@
  * WHAT IT CHECKS, against xchain-indexer/src/protocol_changes.js:
  *
  *   1. No ACTION carries a non-zero activation time or height.
- *   2. The version split the docs state (21 at 1.0.0, 15 at 2.0.0) is real.
- *   3. BET specifically is a 1.0.0 action, since that is the one the audit
+ *   2. The version split the docs state (21 at 0.1.0, 15 at 0.2.0) is real.
+ *   3. BET specifically is a 0.1.0 action, since that is the one the audit
  *      got backwards.
  *   4. The docs do not reintroduce the "actions activate at block heights"
  *      phrasing.
@@ -97,12 +97,12 @@ describe('ACTION activation model', () => {
         const byVersion = {};
         for (const a of acts) (byVersion[a.version] = byVersion[a.version] || []).push(a.name);
 
-        assert.deepEqual(Object.keys(byVersion).sort(), ['1.0.0', '2.0.0'],
-            'actions are now registered at versions beyond 1.0.0/2.0.0: ' + Object.keys(byVersion).join(', '));
-        assert.equal(byVersion['1.0.0'].length, 21, 'v1.0.0 action count changed; update the docs');
-        assert.equal(byVersion['2.0.0'].length, 15, 'v2.0.0 action count changed; update the docs');
-        assert.ok(byVersion['1.0.0'].includes('BET'),
-            'BET moved off 1.0.0; concepts/actions.md and components/indexer/actions.md name it as a 1.0.0 action');
+        assert.deepEqual(Object.keys(byVersion).sort(), ['0.1.0', '0.2.0'],
+            'actions are now registered at versions beyond 0.1.0/0.2.0: ' + Object.keys(byVersion).join(', '));
+        assert.equal(byVersion['0.1.0'].length, 21, 'v0.1.0 action count changed; update the docs');
+        assert.equal(byVersion['0.2.0'].length, 15, 'v0.2.0 action count changed; update the docs');
+        assert.ok(byVersion['0.1.0'].includes('BET'),
+            'BET moved off 0.1.0; concepts/actions.md and components/indexer/actions.md name it as a 0.1.0 action');
     });
 
     // Guards the prose itself, so the corrected pages cannot quietly regress.

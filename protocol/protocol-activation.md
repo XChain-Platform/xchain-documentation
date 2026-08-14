@@ -49,8 +49,8 @@ choice matters (below). The check is per network, so mainnet, testnet, and regte
 own threshold and cross independently.
 
 A rule may also leave **both** at 0, in which case condition 1 is the whole gate. That is how the
-ACTIONs themselves are registered: all 36 carry `0` for every time and height, 21 at version `1.0.0`
-and 15 at `2.0.0`, so an action becomes available as soon as the node runs new enough code. Every
+ACTIONs themselves are registered: all 36 carry `0` for every time and height, 21 at version `0.1.0`
+and 15 at `0.2.0`, so an action becomes available as soon as the node runs new enough code. Every
 non-zero threshold in the registry therefore belongs to a *behaviour* change applied to an
 already-live action, not to the arrival of an action.
 
