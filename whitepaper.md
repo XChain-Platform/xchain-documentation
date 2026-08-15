@@ -5,12 +5,12 @@
 
 **A Chain-Agnostic Token, Exchange, and Smart-Contract Metalayer**
 
-**Authors:** Jeremy Johnson & Javier Varona Zavatti, Co-Founders, Dankest, LLC · **Version 1.2**
+**Authors:** Jeremy Johnson & Javier Varona Zavatti, Co-Founders, Dankest, LLC · **Version 1.3**
 
-**Date:** 2026-07-28  
-**Status:** Reconciled against the implementation at HEAD; adds the programmable policy layer (controller-bound tokens), the agent-economy surface, permissionless price oracles, and current activation status.  
+**Date:** 2026-08-15  
+**Status:** Reconciled against the implementation at HEAD; adds the Taproot envelope carrier and payload compression, the reworked BATCH rules and cost budget, cross-chain attestation relay, and current activation status.  
 
-> Some economic parameters in this paper (the gas schedule and `GAS_PRICE`) are consensus-critical and are finalized at protocol freeze ahead of launch; the values shown convey the model and current defaults. Features marked *(pre-launch)* are specified and implemented but not yet activated on mainnet, where they switch on at a coordinated flag-day; the first activation wave is armed (a validator-era batch at BTC height 961,000 and the 2.0.0 contract-era flag day, both of whose armed instants have passed), with later gates carrying their own dates. Every armed mainnet flag-day value is listed on [Flag-Day Values](./protocol/flag-days.md), generated from the indexer's activation registry rather than restated here, because a repin would otherwise silently rot this paragraph. The genesis supply, distribution and snapshot figures are final and are stated in §13.3.
+> **What is final and what is not.** The protocol described here (the wire format, the ledger rules, the ACTION set, the VM, the validator network) is implemented and running. Two things are deliberately **not final and remain pre-launch**: the **gas schedule and `GAS_PRICE`** (§13.1, Appendix A), and the **initial XCHAIN distribution**, meaning the holder airdrop, the open-mint terms, and the allocation table (§13.2, §13.3, Appendix B). Both are consensus-critical, both are shown here at their current values so the model is legible, and both are finalized before the mainnet distribution runs; until then they may change. Features marked *(pre-launch)* are specified and implemented but not yet activated on mainnet, where they switch on at a coordinated flag-day; the first activation wave is armed (a validator-era batch at BTC height 961,000 and the 2.0.0 contract-era flag day, both of whose armed instants have passed), with later gates carrying their own dates. Every armed mainnet flag-day value is listed on [Flag-Day Values](./protocol/flag-days.md), generated from the indexer's activation registry rather than restated here, because a repin would otherwise silently rot this paragraph.
 
 ---
 
@@ -18,7 +18,7 @@
 
 XChain is a token-and-settlement **metalayer** for UTXO blockchains. It embeds a complete digital-asset protocol (tokens, a native decentralized exchange, trustless cross-chain swaps, on-chain data and messaging, and a deterministic smart-contract virtual machine) inside ordinary transactions on an unmodified base chain, so that every asset and every state transition is secured directly by the host chain's existing proof-of-work consensus. There are no sidechains, no bridges, and no new consensus layer to trust.
 
-The protocol is chain-agnostic by construction. It runs today, in production, on **Bitcoin, Litecoin, and Dogecoin**; adding any further UTXO chain is a configuration change rather than a protocol change, and the platform is designed to extend toward a broad set of blockchains over time. The same protocol, the same ACTION set, and the same tooling operate identically across every supported chain.
+The protocol is chain-agnostic by construction. It is deployed and running on the **Bitcoin, Litecoin, and Dogecoin** testnets, with mainnet launch pending; adding any further UTXO chain is a configuration change rather than a protocol change, and the platform is designed to extend toward a broad set of blockchains over time. The same protocol, the same ACTION set, and the same tooling operate identically across every supported chain.
 
 XChain advances the metalayer approach on four fronts. First, a **smart-contract VM** that runs on Bitcoin-class chains by *orchestrating* the protocol's validated actions rather than mutating ledger state directly, giving general-purpose programmability while keeping a small, fixed, auditable state-transition surface. Second, an **attestation framework** that lets contracts ask the outside world a question (an HTTPS fetch, or a prompt to an approved AI model) and receive a validator-verified answer back on-chain, deterministically; the same rails extend outward, letting web services charge AI agents for access and letting agents query and pay on the platform natively (§8.5). Third, **native multi-chain operation** with trustless cross-chain swaps and cross-chain contract calls coordinated by a stake-weighted Byzantine-fault-tolerant validator network that never takes custody. Fourth, a **programmable policy layer**: a token or an account may bind a contract whose guard the settlement layer itself consults before a transfer, trade, mint, burn, or ownership change settles, which makes rules such as royalties, compliance gates, and spending controls unavoidable rather than dependent on marketplace goodwill (§7.8).
 
@@ -76,7 +76,7 @@ The mechanism chapters that follow are organized by subsystem; this list is orga
 
 ### 2.1 Embedding a protocol in transactions
 
-Each XChain operation is expressed as a compact, pipe-delimited **ACTION string** (for example `ISSUE|0|MYTOKEN|1000000|...`). Before broadcast, the string is lightly obfuscated and embedded in a standard transaction using one of four encoding formats, chosen automatically by payload size (§4). To the base chain these are ordinary transactions; to XChain software they are protocol commands.
+Each XChain operation is expressed as a compact, pipe-delimited **ACTION string** (for example `ISSUE|0|MYTOKEN|1000000|...`). Before broadcast, the string is lightly obfuscated and embedded in a standard transaction using one of five encoding formats, chosen by payload size and cost (§4). To the base chain these are ordinary transactions; to XChain software they are protocol commands.
 
 A node running the protocol observes each new block, extracts and de-obfuscates any embedded ACTION strings, validates them against the protocol rules, and applies their effects to its derived state. Because the inputs (the block data) and the rules (the protocol) are both fixed and public, the derived state is reproducible by anyone.
 
@@ -160,7 +160,7 @@ ACTION|VERSION|PARAM1|PARAM2|...
 
 Tickers (`TICK`) are 1-250 characters and case-sensitive; `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved. Memos are limited to 250 characters and may not contain `|` or `;`. The decoder canonicalizes a handful of legacy action aliases (`TRANSFER` to `SEND`, `ADDR` to `ADDRESS`, `DROP` to `AIRDROP`, `CAST` to `BROADCAST`, `MSG` to `MESSAGE`).
 
-> FREEZE-PENDING: pre-launch, an ACTION's field layout for a given VERSION may be edited in place for additive changes without incrementing the version. After protocol freeze, any wire-format change requires a new VERSION.
+> Pre-launch, not final: an ACTION's field layout for a given VERSION may be edited in place for additive changes without incrementing the version. After protocol freeze, any wire-format change requires a new VERSION.
 
 ### 4.2 The obfuscation layer
 
@@ -175,13 +175,18 @@ The encoder measures the obfuscated payload and selects a format that fits. The 
 | **OP_RETURN** | 80 bytes total (incl. 4-byte prefix) | 1 | Data in a provably-unspendable output | No UTXO bloat; the common case |
 | **Bare multisig** | 60 data bytes per key slot | 1 | Payload packed into fake pubkey slots of an `m-of-n` multisig | Single-tx flow for medium payloads; leaves a spendable (dust) output |
 | **P2SH** | 476 bytes per chunk, many outputs | 2 | Fund a script hash, then reveal the redeem script in the spend's scriptSig | Fund must reach mempool before the spend is valid |
-| **P2WSH** | 476 bytes per chunk, many outputs | 2 | Fund a witness script hash, then reveal the witness script | SegWit witness discount makes this the most fee-efficient large format |
+| **P2WSH** | 476 bytes per chunk, many outputs | 2 | Fund a witness script hash, then reveal the witness script | SegWit witness discount makes this the most fee-efficient chunked format |
+| **Taproot envelope** | up to 390,000 bytes in one witness | 2 | Commit to a P2TR output whose script tree holds one data leaf; reveal it through the script path | BTC and LTC only (DOGE has no SegWit); the large-payload carrier |
 
-A single **global ceiling of 8,192 bytes** caps the assembled compiled payload across *all* formats, enforced identically by the encoder and the decoder. This is a per-transaction limit, not a per-format one: the chunked formats pack 476 data bytes per output across as many outputs as needed up to that ceiling.
+A **ceiling of 8,192 bytes** caps the assembled compiled payload across the four script-output formats, enforced identically by the encoder and the decoder. This is a per-transaction limit, not a per-format one: the chunked formats pack 476 data bytes per output across as many outputs as needed up to that ceiling. The Taproot envelope has its own ceiling, `ENVELOPE_MAX_PAYLOAD` = **390,000 bytes**, sized against Bitcoin's standard transaction weight rather than chosen as a round number.
 
-Auto-selection is two-tier: if `payload + 4 bytes <= 80` the encoder uses OP_RETURN, otherwise it uses P2SH. P2WSH and bare multisig are never auto-selected and must be requested explicitly via the `encoding` argument. Payloads above the 8,192-byte ceiling are rejected at encode time and dropped by the decoder.
+Auto-selection is two-tier: if `payload + 4 bytes <= 80` the encoder uses OP_RETURN, otherwise it uses P2SH. P2WSH, bare multisig and the envelope are not auto-selected by default and are requested via the `encoding` argument, or by asking the encoder for the **cheapest carrier**, which weighs every lane the chain supports for that payload and picks the lowest fee. Payloads above a lane's ceiling are rejected at encode time and dropped by the decoder.
 
-**Large contract code (chunked DEPLOY).** A contract's code may reach **64 KB**, well beyond the 8,192-byte per-transaction ceiling. It is assembled from up to 16 **DEPLOY v4** carrier transactions of up to 7,800 bytes each; the assembling `DEPLOY` references the parts by `CODE_HASH` and the carriers must occupy lower action indices than the assembler. The per-transaction ceiling itself is unchanged; chunking is how a payload larger than one transaction is carried.
+**The Taproot envelope.** For large payloads on chains with Taproot, the envelope writes a whole file into a single tapscript witness instead of spraying it across hundreds of script outputs, at roughly half the weight per byte of the P2WSH chunk lane (one input and one output replace about 820 outputs per 390 KB). The commit transaction creates one P2TR output whose script tree contains a single `OP_FALSE OP_IF <"XCHN"> <format byte> <payload pushes...> OP_ENDIF` leaf under a sender-owned internal key; the reveal spends it through the script path and **is the transaction the action belongs to**. The magic and format byte are cleartext by design (recognition must be free pattern-matching, or every unrelated inscription would cost an indexer a cipher attempt), the payload itself travels raw like the P2WSH lane, and the action is attributed to the address that funded the commit, the same walk-back the chunk lanes use. Its recognition rules are consensus: the envelope must be input 0, a reveal carrying a BIP341 annex or mixed with any other carrier is not an action, and an unknown format byte is invisible rather than invalid. Recognition is height-gated per chain (crossed on BTC and LTC mainnet in August 2026; DOGE never), and the encoder refuses to build an envelope below the height its decoder twin would recognize, because that failure would be a paid transaction nobody indexes.
+
+**Payload compression.** Independently of the carrier, `FILE` payloads may be stored compressed (deflate-raw, signalled by a `COMPRESSION` field the encoder sets by default) so what goes on chain is smaller than the file. Compression is presentational, never consensus: validity rules do not inspect the raw bytes, readers derive the flag from the stored action at serve time, and no reader may reject a value it does not understand, since shipped indexers ignore unknown trailing fields. Together the envelope and compression make a stored byte roughly 50x cheaper than the legacy chunk lane; DOGE, which has no envelope, still gets the compression saving.
+
+**Large contract code (chunked DEPLOY).** A contract's code may reach **64 KB**, well beyond the 8,192-byte ceiling of the script-output formats. On chains without the Taproot envelope it is assembled from up to 16 **DEPLOY v4** carrier transactions of up to 7,800 bytes each; the assembling `DEPLOY` references the parts by `CODE_HASH` and the carriers must occupy lower action indices than the assembler. The per-transaction ceiling itself is unchanged; chunking is how a payload larger than one transaction is carried.
 
 The encoder is fully stateless and returns BIP-174 PSBTs (two PSBTs for the fund-plus-reveal formats); it never handles private keys. Signing and broadcasting are the caller's responsibility.
 
@@ -315,8 +320,8 @@ The protocol defines 36 named ACTIONs across ten categories. Of these, 31 are us
 ### 6.5 Outside-world data
 
 - **PRICE** publishes on-chain oracle prices. v0 is the validator COIN/FIAT snapshot (one round per BTC block, PBFT-signed); v1 is a permissionless user TOKEN/FIAT oracle with a 24-hour anti-front-running delay on updates.
-- **ATTEST** drives the attestation lifecycle (§8): v0 request (VM-emitted only), v1 validator response (multi-signed), v2 system-synthesized expiry.
-- **ANCHOR** is a validator-broadcast, DOGE-only action that publishes quorum-signed state checkpoints and the cross-chain match archive used for full-parse recovery (§9), across seven wire versions: v0/v1/v2 carry the base checkpoint, checkpoint-plus-archive, and archive continuation; v3 adds the light-client roots of §14; and v4/v5/v6 add a second quorum attestation naming the elected publisher, replacing the earlier trusted reward push with a derived, attested anchor reward. The base versions are live on DOGE mainnet; the root- and reward-bearing versions activate with their flag-days.
+- **ATTEST** drives the attestation lifecycle (§8): v0 request (VM-emitted only), v1 validator response (multi-signed), v2 system-synthesized expiry, and v3/v4 the cross-chain relay pair that carries an LTC- or DOGE-emitted request to BTC, where all `attestation` stake lives, and its outcome back *(relay: gated at BTC height 963,000 on mainnet)*.
+- **ANCHOR** is a validator-broadcast, DOGE-only action that publishes quorum-signed state checkpoints and the cross-chain match archive used for full-parse recovery (§9), across seven wire versions: v0/v1/v2 carry the base checkpoint, checkpoint-plus-archive, and archive continuation; v3 adds the light-client roots of §14; and v4/v5/v6 add a second quorum attestation naming the elected publisher, replacing the earlier trusted reward push with a derived, attested anchor reward. The base versions are already in service on DOGE; the root- and reward-bearing versions activate with their flag-days.
 
 ### 6.6 Staking and validator proofs
 
@@ -331,12 +336,12 @@ The protocol defines 36 named ACTIONs across ten categories. Of these, 31 are us
 
 - **BROADCAST** carries general on-chain text and oracle/data feeds (v0-v3). It plays no part in betting; see **BET** (§6.9).
 - **MESSAGE** carries encrypted or plaintext messaging. v0/v1 ECDH handshake; v2 encrypted payload; v3 plaintext. Three methods: ECIES (ephemeral key per message, no handshake, used for token-gated key delivery), ECDH (session), and pre-shared AES. The destination coin is independent of the broadcast chain (a message to a BTC address can be sent cheaply on DOGE).
-- **FILE** stores file metadata and optionally an encrypted payload on-chain. Supports AES-256-GCM token-gating; files sharing a gate ticker and key hash form an implicit pack (§15).
+- **FILE** stores file metadata and optionally an encrypted payload on-chain. Supports AES-256-GCM token-gating with an optional `GATE_MIN_AMOUNT` unlock threshold (hold at least this much of the gate token, rather than any amount); files by the same publisher sharing a gate ticker and key hash form an implicit pack (§15). A trailing `COMPRESSION` field records deflate-raw storage (§4.3); on a gated file it describes the plaintext, so a reader inflates after decrypting.
 
 ### 6.8 Configuration and utility
 
 - **ADDRESS** sets per-address preferences: fee bucket preference, require-memo, dispenser permission. v1 binds a controller contract to the address itself, a self-imposed guard on the account's own sends, inbound or outbound (§7.8).
-- **BATCH** executes multiple actions in one transaction, in order, each with its own action index and its own verdict. It is deliberately **not atomic**: a command that fails is recorded invalid on its own and the commands around it stand, so what the transaction guarantees is a shared sender, fee and confirmation rather than all-or-nothing settlement. Limits are one MINT, one FILE, one *top-level* ISSUE, and 250 commands; nesting is not allowed. Child issuances (a dotted ticker such as `JDOG.1`) are exempt from the ISSUE limit, so a parent and any number of its children register in a single transaction where comparable systems need one transaction per child. Protocol fees and settlement values are accounted cumulatively across the batch: one command's worth of fee funds one command. The structural basis for token-gated transfers and for pause/operate/unpause sequences. *(the child-issuance exemption, the command cap and cumulative accounting are gated on `BATCH_ISSUANCE_LIMITS`, active on testnet and regtest and activating on mainnet at `2026-08-16T00:00:00Z`.)*
+- **BATCH** executes multiple actions in one transaction, in order, each with its own action index and its own verdict. It is deliberately **not atomic**: a command that fails is recorded invalid on its own and the commands around it stand, so what the transaction guarantees is a shared sender, fee and confirmation rather than all-or-nothing settlement. Limits are one *top-level* ISSUE, one MINT per distinct token, one DEPLOY (every deploy runs a constructor in the VM, by far the most expensive per-command work, so it is capped for cost rather than size), one FILE, and 250 commands; nesting is not allowed. Child issuances (a dotted ticker such as `JDOG.1`) are exempt from the ISSUE limit, so a parent and any number of its children register in a single transaction where comparable systems need one transaction per child. Protocol fees and settlement values are accounted cumulatively across the batch through a batch-scoped consumed-value ledger: one command's worth of native-coin fee funds one command, N `COINPAY` sub-commands need N payments, and the same tally covers dispenser draw-downs and oracle fees, so a batch can never stretch one output over many commands. The structural basis for token-gated transfers and for pause/operate/unpause sequences. *(the child-issuance exemption, the per-action caps and cumulative accounting are gated on `BATCH_ISSUANCE_LIMITS`, active on testnet and regtest and activating on mainnet at `2026-08-16T00:00:00Z`.)* A follow-on gate, `BATCH_COST_WEIGHTING`, replaces the flat command count with a **weighted cost budget**: each sub-command contributes a weight and the batch caps their sum, with the budget still 250 and the default weight 1, so a batch of cheap commands is admitted or refused exactly as before and the rule only bites where a count was already the wrong unit (VM sub-commands, and fan-out actions such as AIRDROP and DIVIDEND that write one row per recipient). A companion gate counts VM-emitted issuances against the same per-transaction top-level budget the wire path carries, closing the route by which an EXECUTE could register names for free. *(both: active on testnet and regtest, not yet armed on mainnet.)*
 - **LINK** is a persistent cross-reference between two actions by index, optionally across chains (for example attaching a logo FILE to a token).
 - **LIST** creates (v0) or derives (v1) an immutable list of tickers or addresses, referenced by index as allow/block lists and airdrop targets.
 
@@ -382,13 +387,13 @@ The boundary between isolate and host uses a JSON bridge with typed, anti-spoof-
 
 ### 7.4 Gas metering
 
-Gas is metered by **AST instrumentation**, not wall-clock timing, so cost is a deterministic function of code structure. Before execution the source is parsed (acorn), `__gas()` charges are injected at every control-flow point (function entry, loop bodies, branches, switch cases, ternaries, try/catch/finally, deep binary-expression chains, and every call expression), and the source is regenerated (astring). A notable consequence: an indexed `for` loop is charged **twice per iteration** (body plus update expression), whereas `while`/`for-of`/`for-in` cost once per iteration.
+Gas is metered by **AST instrumentation**, not wall-clock timing, so cost is a deterministic function of code structure. Before execution the source is parsed (acorn), `__gas()` charges are injected at every control-flow point (function entry, loop bodies, branches, switch cases, ternaries, try/catch/finally, deep binary-expression chains, and every call expression), and the source is regenerated (astring). A notable consequence: an indexed `for` loop is charged **twice per iteration** (body plus update expression), whereas `while`/`for-of`/`for-in` cost once per iteration. Growth of in-memory `Set` and `Map` collections is charged as well, so a contract cannot accumulate unbounded heap for free between control-flow points.
 
-Representative gas costs (FREEZE-PENDING, see Appendix A): computation 1 per point; state read 100 / write 200 / delete 100; oracle read 100; cross-chain read 100; action emission 500; attestation request 5,000 (on top of the emission charge); cross-chain call request 2,000 and callback up to 20,000. Context accessors, `revert`/`require`, and logging are free.
+Representative gas costs (pre-launch, not final; see Appendix A): computation 1 per point; state read 100 / write 200 / delete 100; oracle read 100; cross-chain read 100; action emission 500; attestation request 5,000 (on top of the emission charge); cross-chain call request 2,000 and callback up to 20,000. Context accessors, `revert`/`require`, and logging are free.
 
 ### 7.5 Bounded execution
 
-Every execution is hard-bounded (FREEZE-PENDING values): gas ceiling **1,000,000**; isolate heap **8 MB**; **50** emitted actions; **10,000** state keys; **1 KB** per key and **64 KB** per value; **64 KB** code; **100** log entries (1 KB each); and a **30-second** wall-clock timeout that exists solely as a safety net. Gas is the binding constraint and halts a normal contract in well under a second; the wall-clock limit is deliberately generous so legitimate contracts are never killed prematurely.
+Every execution is hard-bounded (pre-launch values, not final): gas ceiling **1,000,000**; isolate heap **8 MB**; **50** emitted actions; **10,000** state keys; **1 KB** per key and **64 KB** per value; **64 KB** code; **100** log entries (1 KB each); and a **30-second** wall-clock timeout that exists solely as a safety net. Gas is the binding constraint and halts a normal contract in well under a second; the wall-clock limit is deliberately generous so legitimate contracts are never killed prematurely.
 
 ### 7.6 Contract state and derived addresses
 
@@ -429,6 +434,7 @@ Most contract platforms can only reason about on-chain data. XChain contracts ca
 - **v0 (request, VM-emitted only):** `request_id` is `SHA256(tx_hash + ':' + root_action_index + ':' + emitter_path + ':' + contract_index + ':' + emitter_position)`, which the indexer re-derives to defend against a compromised VM. The wire carries provider id, payload, callback method/params, redundancy, deadline, and a trailing fee tick/amount. A user-broadcast v0 is rejected.
 - **v1 (response, validator-broadcast):** carries the response payload, a status (`ok`/`timeout`/`no_quorum`/`provider_error`/`expired`), provider metadata, and `(pubkey, signature)` pairs. The canonical signing message binds the request id, provider id, a hash of the response payload, the status, and metadata. Signers are checked against the `attestation` capability snapshot **at the request's block**, so every node computes the same eligible set, and signatures are further filtered to a deterministic responsible subset. The valid signature count must meet the requested redundancy. Terminal statuses fire the callback; retryable statuses leave the request pending.
 - **v2 (expiry, system-synthesized):** the per-block expiry pipeline flips any past-deadline pending request to expired and fires the callback with an expired status.
+- **v3 / v4 (cross-chain relay, BTC only):** all `attestation` capability stake lives on BTC (§11.1), so a request emitted by a contract on LTC or DOGE has no responsible signer set where it landed. The federation's relay materializes it on BTC as a v3 naming the origin chain and origin action index, pinned to a BTC-anchored snapshot block; the ordinary v1 response is produced there, and a v4 carries the outcome back to the origin chain, where the callback fires exactly as for a home-chain request. Both legs are gated on `ATTEST_RELAY_ACTIVATION` (BTC 963,000 on mainnet; genesis on testnet and regtest) resolved on both the landing block and the snapshot block, and each is rejected as an unknown version below it.
 
 ```mermaid
 sequenceDiagram
@@ -460,7 +466,7 @@ The `llm` provider takes a JSON prompt envelope (`prompt`, optional `system`/`ma
 
 ### 8.4 Redundancy
 
-The `redundancy` option (1, 3, or 5) sets how many validators must agree. `1` is the cheap path: one validator's answer is final. `3`/`5` add independent verification (byte-equality for `http_get`; judge consensus for `llm`); if quorum cannot be reached the request expires. Redundancy changes the trust model and the escrowed fee, never the contract-visible callback signature. The request fee is escrowed at request time, split across the responsible signer set on fulfillment, and refunded to the payer on error or expiry.
+The `redundancy` option (1, 3, or 5) sets how many validators must agree. `1` is the cheap path: one validator's answer is final. `3`/`5` add independent verification (byte-equality for `http_get`; judge consensus for `llm`); if quorum cannot be reached the request expires. Redundancy changes the trust model and the escrowed fee, never the contract-visible callback signature. The request fee is escrowed at request time, split across the responsible signer set on fulfillment, and refunded to the payer on error or expiry. Because the leader that broadcasts the v1 response pays a real native-coin transaction fee to do so, a further gate lets that broadcast fee be reimbursed from the request's escrow up to a per-provider cap, so serving attestations is never a net cost to the leader *(pre-launch: armed on regtest, mainnet height operator-owned)*.
 
 ### 8.5 The agent economy
 
@@ -639,7 +645,7 @@ A general-purpose primitive available on **every chain, for any token**. A contr
 
 All protocol fees are expressed in **gas**, converted to XCHAIN by a single `GAS_PRICE` lever, and paid either in native coin (all chains, via oracle conversion) or by XCHAIN-balance deduction (BTC only). A fee output to the destination address signals native-coin payment (validated against the oracle within a 95-110% tolerance band); on BTC, its absence triggers an XCHAIN-balance debit, while LTC and DOGE require the native fee output. Native-coin fees are real on-chain outputs and are non-refundable if the action later fails, so clients pre-flight a fee quote and refuse to broadcast an action they cannot price. XCHAIN-balance fees route by the payer's `FEE_PREFERENCE`: **burn** (deflationary, `1`) or **protocol development** (`2`, and the default). A community-development bucket has been discussed but is not accepted by consensus; the ADDRESS validator's valid set is `{0, 1, 2}`. Actions emitted by a contract do not pay the per-transaction protocol fee a second time.
 
-The full schedule is in Appendix A and is **FREEZE-PENDING**: the gas costs and `GAS_PRICE` are consensus-critical and lock with the wire format at protocol freeze.
+The full schedule is in Appendix A and is **pre-launch, not final**: the gas costs and `GAS_PRICE` are consensus-critical and are finalized before the mainnet distribution runs, at protocol freeze. Everything in this section describes the mechanism; the numbers may still change.
 
 ### 13.2 The XCHAIN monetary model
 
@@ -647,7 +653,9 @@ XCHAIN is the gas token, injected on the BTC chain at genesis with a permanent `
 
 ### 13.3 Genesis and fair launch
 
-XChain launches with no inflationary mint, no ICO and no insider faucet. XCHAIN's cap is fixed at genesis at **100,000,000** units (8 decimals), on the BTC chain only, and the genesis `ISSUE` mints none of it: `MINT_SUPPLY` is empty and `MINT_START_BLOCK` sits at a far-future sentinel until the operator lowers it, so supply is literally zero until the launch distribution runs. The cap is allocated as follows.
+> **Pre-launch.** The distribution in this section, including the holder airdrop, the open-mint terms and the allocation table, is the current plan and is **not yet final**. It is finalized before the mainnet distribution runs, and any change before then is published on the docs site and in a revision of this paper. What is already fixed and running is the mechanism: the cap, the zero pre-mint, the hash-pinned snapshot files, and the halt-on-mismatch verification described below.
+
+XChain launches with no inflationary mint, no ICO and no insider faucet. XCHAIN's cap is fixed at genesis at **100,000,000** units (8 decimals), on the BTC chain only, and the genesis `ISSUE` mints none of it: `MINT_SUPPLY` is empty and `MINT_START_BLOCK` sits at a far-future sentinel until the operator lowers it, so supply is literally zero until the launch distribution runs. The cap is currently allocated as follows.
 
 | Allocation | XCHAIN | Share | Notes |
 |---|---|---|---|
@@ -659,9 +667,9 @@ XChain launches with no inflationary mint, no ICO and no insider faucet. XCHAIN'
 | Validator reward pool | 5,300,000 | 5.3% | Pre-funds the `REWARD` address for roughly a decade at default rates; rewards are paid from it, never minted (§13.2) |
 | Team, founders, advisors | 0 | 0% | There is no team, founder or advisor allocation |
 
-**The snapshot.** Asset-*name* ownership from Counterparty (BTC) and Dogeparty (DOGE) is replayed onto the XChain ledger at genesis, so the communities that pioneered Bitcoin-native tokens keep their names here: name reservations only, no balances. The pin is a block height rather than a date, because a height is the only form every node can agree on: **BTC block 950,000** and **DOGE block 6,240,000**. Each carries a ledger hash and a state-dump hash that every indexer verifies before deriving a single genesis action, and the holder-airdrop set carries a further set hash over the buckets, their funding and their derivation order. A node whose files do not match those pins halts rather than publish a divergent ledger, so the distribution above is verifiable by replay rather than by announcement.
+**The snapshot.** Asset-*name* ownership from Counterparty (BTC) and Dogeparty (DOGE) is replayed onto the XChain ledger at genesis, so the communities that pioneered Bitcoin-native tokens keep their names here: name reservations only, no balances. The pin is a block height rather than a date, because a height is the only form every node can agree on: **BTC block 950,000** and **DOGE block 6,240,000**. Each carries a ledger hash and a state-dump hash that every indexer verifies before deriving a single genesis action, and the holder-airdrop set carries a further set hash over the buckets, their funding and their derivation order. A node whose files do not match those pins halts rather than publish a divergent ledger, so the distribution above is verifiable by replay rather than by announcement. The airdrop set itself (which source tokens, which bucket files, and their amounts) is part of the pre-launch distribution and is finalized with it.
 
-**The open mint.** Once the operator lowers `MINT_START_BLOCK`, anyone can `MINT` on a first-come basis for the cost of a Bitcoin transaction plus the protocol fee. There is no window and no per-address cap, so the leg simply ends when its 25,000,000 are minted (25,000 mints at 1,000 each), and total supply is final at that point. Every other allocation is fixed at genesis, which is why total supply can only fall afterward, through the burn bucket.
+**The open mint.** Once the operator lowers `MINT_START_BLOCK`, anyone can `MINT` on a first-come basis for the cost of a Bitcoin transaction plus the protocol fee. Under the current terms there is no window and no per-address cap, so the leg simply ends when its 25,000,000 are minted (25,000 mints at 1,000 each), and total supply is final at that point. Every other allocation is fixed when the distribution runs, which is why total supply can only fall afterward, through the burn bucket.
 
 ---
 
@@ -679,13 +687,13 @@ Current limits: the path is active on testnet and regtest but gated off on mainn
 
 ## 15. Token-Gated Content
 
-XChain can publish files on-chain that only holders of a given token can decrypt, with no key server and no on-chain unlock action. A creator encrypts content with **AES-256-GCM** under a random key `K` and publishes it via `FILE` with the gate ticker, encryption method, and `KEY_HASH = sha256(K)`; files sharing a gate ticker and key hash form an implicit pack that unlocks together. The key itself is handed to holders inside an **ECIES** envelope carried by `MESSAGE v2`, using a compact binary payload: a single-key handoff is just **33 bytes** (a version byte plus the 32-byte key), versus roughly 154 bytes for a JSON encoding. Crucially, the protocol enforces that any `SEND` of a gated token must be batched with a `MESSAGE v2` re-encrypting `K` to the recipient's public key, so the key follows the token automatically on every transfer and sale. Unlocking is entirely client-side: fetch the ciphertext, ECIES-decrypt the messages addressed to you, match each candidate key against the file's `KEY_HASH`, and decrypt.
+XChain can publish files on-chain that only holders of a given token can decrypt, with no key server and no on-chain unlock action. A creator encrypts content with **AES-256-GCM** under a random key `K` and publishes it via `FILE` with the gate ticker, encryption method, `KEY_HASH = sha256(K)`, and optionally a `GATE_MIN_AMOUNT` threshold, so content can unlock for holders of at least a given balance rather than any holder at all; files by the same publisher sharing a gate ticker and key hash form an implicit pack that unlocks together. The plaintext may be compressed before encryption (the `COMPRESSION` field then tells a client to inflate after decrypting), and large gated files ride the Taproot envelope on BTC and LTC (§4.3). The key itself is handed to holders inside an **ECIES** envelope carried by `MESSAGE v2`, using a compact binary payload: a single-key handoff is just **33 bytes** (a version byte plus the 32-byte key), versus roughly 154 bytes for a JSON encoding. Crucially, the protocol enforces that any `SEND` of a gated token must be batched with a `MESSAGE v2` re-encrypting `K` to the recipient's public key, so the key follows the token automatically on every transfer and sale; where a threshold is set, the requirement applies to transfers that put the recipient at or over it, since a smaller balance unlocks nothing. Unlocking is entirely client-side: fetch the ciphertext, ECIES-decrypt the messages addressed to you, match each candidate key against the file's `KEY_HASH`, and decrypt.
 
 ---
 
 ## 16. Roadmap and Future Chains
 
-The near-term path to launch is the protocol freeze (locking the wire format, the gas schedule, and the consensus flag-day activations), a legal pass on the commercial license and contributor agreement, public-facing site and API documentation, and the public repository flip.
+The repositories are public, the site and API documentation are live, and the contributor license agreement is in force. What remains before the mainnet distribution is the protocol freeze: locking the wire format, finalizing the gas schedule and `GAS_PRICE` (§13.1), finalizing the XCHAIN distribution and open-mint terms (§13.3), and arming the remaining consensus flag-days.
 
 Beyond launch, the platform's chain-agnostic design makes **breadth across the UTXO family** the natural growth vector: each new chain is additive and config-driven, sharing the same protocol and tooling. The later economic phases of the attestation framework are planned protocol extensions. The light-client/SPV path described in §14 is implemented and active on testnet and regtest, with the reference wallet already wired in as its first consumer (balance and action proofs against quorum-signed, DOGE-anchored checkpoints); escrow and contract-state proofs are implemented behind the same gate, so the remaining work is mainnet flag-day activation. A growing open library of contract templates (collateralized vaults, English and Dutch auctions, delivery escrow, oracle-settled binary markets, and a declarative no-code token-policy generator) seeds the application layer. Support for **account-model chains** (Ethereum and similar) is a longer-term research direction: the pure data-layer of the protocol is bounded and additive, while reaching account-model ecosystems without reintroducing bridge risk is the harder, open part of the problem. The platform is designed so that supporting a large number of blockchains over time is an extension of its core technique, not a departure from it.
 
@@ -693,13 +701,13 @@ Beyond launch, the platform's chain-agnostic design makes **breadth across the U
 
 ## 17. Conclusion
 
-XChain demonstrates that a complete digital-asset platform, including tokens, an exchange, cross-chain settlement and calls, structured data, and a programmable, AI-reachable smart-contract engine, can be built *on top of* unmodified UTXO blockchains, inheriting their security wholesale rather than rebuilding it on a weaker foundation. By embedding a deterministic protocol in ordinary transactions, constraining contracts to orchestrate a fixed and audited action set, coordinating cross-chain settlement through a custody-free, stake-weighted Byzantine-fault-tolerant validator network, and grounding its economics in a fixed, deflationary gas token, XChain offers the capabilities the market wants without the trust assumptions it has learned to fear. It is live today on three chains and designed to extend across many.
+XChain demonstrates that a complete digital-asset platform, including tokens, an exchange, cross-chain settlement and calls, structured data, and a programmable, AI-reachable smart-contract engine, can be built *on top of* unmodified UTXO blockchains, inheriting their security wholesale rather than rebuilding it on a weaker foundation. By embedding a deterministic protocol in ordinary transactions, constraining contracts to orchestrate a fixed and audited action set, coordinating cross-chain settlement through a custody-free, stake-weighted Byzantine-fault-tolerant validator network, and grounding its economics in a fixed, deflationary gas token, XChain offers the capabilities the market wants without the trust assumptions it has learned to fear. It runs today on three chains in testnet, with mainnet launch pending, and is designed to extend across many.
 
 ---
 
-## Appendix A: Fee Schedule (FREEZE-PENDING)
+## Appendix A: Fee Schedule (pre-launch, not final)
 
-> Current pre-launch values, shown to convey the model. Final numbers lock at protocol freeze and are consensus-critical.
+> Current pre-launch values, shown to convey the model. The gas schedule and `GAS_PRICE` are consensus-critical and are finalized before the mainnet distribution runs; treat every number below as subject to change until then.
 
 | Parameter | Current value |
 |---|---|
@@ -725,8 +733,11 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 | Parameter | Value |
 |---|---|
 | Supported chains (today) | BTC, LTC, DOGE (UTXO; more by configuration) |
-| Per-transaction payload ceiling (all formats, decoder-enforced) | 8,192 bytes |
+| Per-transaction payload ceiling (script-output formats, decoder-enforced) | 8,192 bytes |
+| Taproot envelope payload ceiling (`ENVELOPE_MAX_PAYLOAD`, BTC and LTC) | 390,000 bytes |
 | Per-chunk script capacity (P2SH/P2WSH) | 476 data bytes per output |
+| FILE payload compression | deflate-raw, `COMPRESSION=1`, presentational only |
+| BATCH budget | 250 commands (weighted cost budget of 250 once `BATCH_COST_WEIGHTING` arms) |
 | Max contract code (chunked DEPLOY) | 64 KB (up to 16 carriers of 7,800 bytes) |
 | Magic prefix | `XCHN` |
 | Cross-chain attestation/XCALL confirmations (default) | BTC 6 / LTC 12 / DOGE 60 |
@@ -739,9 +750,10 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 | utxo-tracker reorg undo window | BTC 12 / LTC 48 / DOGE 120 blocks (default, env-overridable) |
 | Capability stake activation / cooldown | ~6 BTC blocks / 1,000 blocks (governance-set) |
 | XCHAIN supply | 100,000,000 (8 decimals), capped at genesis, zero pre-mint, BTC-chain only |
-| XCHAIN genesis distribution (§13.3) | 30% holder airdrop / 25% open mint / 20% treasury / 10% liquidity / 9.7% validators / 5.3% reward pool / 0% team |
+| XCHAIN genesis distribution (§13.3; **pre-launch, not final**) | 30% holder airdrop / 25% open mint / 20% treasury / 10% liquidity / 9.7% validators / 5.3% reward pool / 0% team |
 | Genesis snapshot pins | BTC block 950,000, DOGE block 6,240,000 |
-| Open-mint terms | 1,000 XCHAIN per `MINT`, no per-address cap, no closing date |
+| Open-mint terms (**pre-launch, not final**) | 1,000 XCHAIN per `MINT`, no per-address cap, no closing date |
+| Gas schedule and `GAS_PRICE` (**pre-launch, not final**) | Appendix A |
 
 ---
 
