@@ -7,10 +7,9 @@
 
 **Authors:** Jeremy Johnson & Javier Varona Zavatti, Co-Founders, Dankest, LLC · **Version 1.3**
 
-**Date:** 2026-08-15  
-**Status:** Reconciled against the implementation at HEAD; adds the Taproot envelope carrier and payload compression, the reworked BATCH rules and cost budget, cross-chain attestation relay, and current activation status.  
+**Date:** 2026-08-15
 
-> **What is final and what is not.** The protocol described here (the wire format, the ledger rules, the ACTION set, the VM, the validator network) is implemented and running. Two things are deliberately **not final and remain pre-launch**: the **gas schedule and `GAS_PRICE`** (§13.1, Appendix A), and the **initial XCHAIN distribution**, meaning the holder airdrop, the open-mint terms, and the allocation table (§13.2, §13.3, Appendix B). Both are consensus-critical, both are shown here at their current values so the model is legible, and both are finalized before the mainnet distribution runs; until then they may change. Features marked *(pre-launch)* are specified and implemented but not yet activated on mainnet, where they switch on at a coordinated flag-day; the first activation wave is armed (a validator-era batch at BTC height 961,000 and the 2.0.0 contract-era flag day, both of whose armed instants have passed), with later gates carrying their own dates. Every armed mainnet flag-day value is listed on [Flag-Day Values](./protocol/flag-days.md), generated from the indexer's activation registry rather than restated here, because a repin would otherwise silently rot this paragraph.
+> **What is final and what is not.** The protocol described here (the wire format, the ledger rules, the ACTION set, the VM, the validator network) is implemented and running. Two things are deliberately **not final and remain pre-launch**: the **gas schedule and `GAS_PRICE`** (§13.1, Appendix A), and the **initial XCHAIN distribution**, meaning the holder airdrop, the open-mint terms, and the allocation table (§13.2, §13.3, Appendix B). Both are consensus-critical, both are shown here at their current values so the model is legible, and both are finalized before the mainnet distribution runs; until then they may change. Features marked *(pre-launch)* are specified and implemented but not yet switched on for mainnet, where they activate at a coordinated flag-day; the current values are listed on [Flag-Day Values](./protocol/flag-days.md), generated from the indexer's activation registry rather than restated here.
 
 ---
 
