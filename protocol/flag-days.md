@@ -28,7 +28,7 @@ simultaneously on Bitcoin, Litecoin, and Dogecoin.
 | **UTC instant** | 2026-08-07 00:00:00 UTC |
 | **Gates riding it** | 37 |
 
-4 gates do not ride it and carry a date of its own: `BATCH_ISSUANCE_LIMITS` at 2026-08-16 00:00:00 UTC, `CONTRACT_DELEGATION_MATERIALIZE` at 2026-09-15 00:00:00 UTC, `DISPENSER_ORACLE_PER_TOKEN_PRICE` at 2026-09-15 00:00:00 UTC, `CROSS_CHAIN_ROYALTY` at 2027-01-01 00:00:00 UTC. The reason each is armed separately is on [Protocol Activation](./protocol-activation.md#additional-armed-gates-service-carried).
+4 gates do not ride it and carry a date of its own: `BATCH_ISSUANCE_LIMITS` at 2026-08-16 00:00:00 UTC, `CONTRACT_DELEGATION_MATERIALIZE` at 2026-09-15 00:00:00 UTC, `DISPENSER_ORACLE_PER_TOKEN_PRICE` at 2026-09-15 00:00:00 UTC, `CROSS_CHAIN_ROYALTY` at 2027-01-01 00:00:00 UTC. Each carries the reason it is armed separately in its registration comment, in the file the **Declared in** column names below. For how a gate is evaluated and what happens to a node that misses one, see [Protocol Activation](./protocol-activation.md).
 
 **Testnet and regtest are genesis-active** for the time-keyed gates: they carry
 threshold `0`, so a testnet or regtest stack has always run the

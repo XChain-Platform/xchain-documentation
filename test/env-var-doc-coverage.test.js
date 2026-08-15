@@ -226,6 +226,30 @@ describe('scanSource', () => {
         const found = scanSource("const a = process.env.DUP || 1;\nconst b = process.env.DUP || 2;");
         assert.equal(found.get('DUP').length, 2);
     });
+
+    // A `//` inside a string starts no comment. The strip used to cut the line
+    // there anyway, so a URL-shaped default lost its closing quote and the
+    // variable was recorded with NO default: permanently and silently exempt from
+    // the drift check, which is the failure class this scanner exists to catch.
+    test('a URL-shaped default survives the comment strip', () => {
+        const found = scanSource("const u = process.env.RPC_URL || 'http://localhost:8332';");
+        assert.equal(found.get('RPC_URL')[0].default.value, 'http://localhost:8332');
+    });
+
+    test('a read after a //-bearing string on the same line is still seen', () => {
+        const found = scanSource("const a = process.env.A || 'x//y'; const b = process.env.B;");
+        assert.deepEqual([...found.keys()].sort(), ['A', 'B']);
+    });
+
+    test('a read inside a block comment is not live configuration', () => {
+        assert.equal(scanSource('/* const a = process.env.GHOST || 1; */').size, 0);
+        assert.equal(scanSource('/*\n  process.env.GHOST\n*/').size, 0);
+    });
+
+    test('blanking a comment keeps the line numbers of the code after it', () => {
+        const found = scanSource('/* two\n   lines */\nconst a = process.env.LATE || 1;');
+        assert.equal(found.get('LATE')[0].line, 3);
+    });
 });
 
 // These are the reads the scanner cannot name, so the coverage check
@@ -244,6 +268,11 @@ describe('scanComputedReads (the blind spot the gate cannot see into)', () => {
 
     test('ignores a commented-out computed read', () => {
         assert.deepEqual(cov.scanComputedReads("// const a = process.env[ghost];"), []);
+        assert.deepEqual(cov.scanComputedReads('/* const a = process.env[ghost]; */'), []);
+    });
+
+    test('a computed read after a //-bearing string on the same line still counts', () => {
+        assert.deepEqual(cov.scanComputedReads("const a = 'http://x'; const b = process.env[k];"), [1]);
     });
 });
 

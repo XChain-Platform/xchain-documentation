@@ -91,7 +91,7 @@ This document walks every primary route the wallet exposes. All routes live in `
 
 The first-run experience is one of:
 
-- **Create new**: generate a fresh 24-word BIP39 mnemonic; user is required to acknowledge the phrase has been saved before the vault persists. Closing the tab at this stage leaves no persisted state.
+- **Create new**: generate a fresh BIP39 mnemonic, **12 words by default (128-bit entropy), with 24 words selectable**; user is required to acknowledge the phrase has been saved before the vault persists. Closing the tab at this stage leaves no persisted state.
 - **Import existing**: paste a 12 / 15 / 18 / 21 / 24-word BIP39 mnemonic, with word-count + dictionary validation; or import a single WIF private key.
 - **Restore from backup file**: re-wrap an exported vault under a fresh device password.
 - **Counterwallet migration**: accept the legacy 12-word format, then optionally migrate to BIP39 from Settings later.

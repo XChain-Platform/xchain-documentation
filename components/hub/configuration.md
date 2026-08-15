@@ -271,6 +271,8 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 | `ORACLE_REWARD_PER_ROUND` | No | `"10.00000000"` | XCHAIN distributed per finalized oracle round |
 | `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation threshold (5%) for slash detection |
 | `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Consecutive missed rounds before non-participation slash |
+| `REWARD_PUSH_MAX_ATTEMPTS` | No | `3` | Attempts `RewardTracker` makes when pushing a validator-reward record to the indexer before giving up and recording the failure. The push was previously fire-and-forget, so a dropped push lost the reward record silently. |
+| `REWARD_PUSH_RETRY_DELAY_MS` | No | `2000` | Delay (ms) between those attempts. |
 
 ### ANCHOR Publishing
 

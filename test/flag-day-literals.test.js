@@ -204,8 +204,13 @@ test('a call passing a collected constant by name does not throw', () => {
 });
 
 test('a commented-out declaration is not mistaken for a live one', () => {
+    // Written in the SHAPE THE COLLECTOR READS, single-quoted and digit-timed.
+    // The earlier fixture double-quoted the retired name, which the
+    // single-quote-only changeRe never matched under any implementation, so it
+    // passed without the collector ever having stripped a comment.
     const dir = fixtureRegistry(
-        "// this.addChange(\"OLD\", '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        "// this.addChange('OLD', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + '// const OLD_MAINNET_TIME = 1786924800;\n'
         + "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n",
     );
     assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
@@ -251,14 +256,16 @@ test('a call whose time is an identifier the const pass never saw does not throw
     assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
 });
 
-test('a declaration inside a block comment does not throw', () => {
+test('a declaration inside a block comment neither throws nor becomes a row', () => {
     // Its own line starts with `this.`, which a leading-token comment test
-    // reads as live code.
+    // reads as live code. Both declarations are in the shape the collectors
+    // read, so this fixture now proves the second half too: a retired gate
+    // parked in a block comment must not reach the page.
     const dir = fixtureRegistry(
         "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
         + '/*\n'
-        + 'this.addChange("OLD", "1.0.0", 1786060800, 0, 0, 0, 0, 0);\n'
-        + 'const OLD_MAINNET_TIME = someOtherThing;\n'
+        + "this.addChange('OLD', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + 'const OLD_MAINNET_TIME = 1786924800;\n'
         + '*/\n',
     );
     assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
@@ -270,6 +277,94 @@ test('a slash-slash inside a string does not blind the scan to the rest of the f
         + 'this.addChange("FOO", "1.0.0", 1786060800, 0, 0, 0, 0, 0);\n',
     );
     assert.throws(() => gen.collectGates(dir), /FOO/);
+});
+
+/*  ------------------------------------------------------------------
+ *  The sibling arm: same rigor as the registry arm
+ *  ------------------------------------------------------------------
+ *
+ *  The sibling `*_activation.js` scan once read raw text, took the first
+ *  `mainnet:` per FILE, and named the gate after the file. Each of those is a
+ *  way for the page to disagree with the indexer while every test here stays
+ *  green, so each gets a fixture. The quiet cases matter as much as the loud
+ *  ones: eleven real modules key their thresholds per coin and one declares no
+ *  mainnet threshold at all, so a guard that fires on "no readable slot" would
+ *  fail the build on twelve correct files.
+ */
+
+/** A throwaway indexer src dir holding a fixture registry plus sibling modules. */
+function fixtureTree(registry, siblings) {
+    const dir = fixtureRegistry(registry);
+    for (const [name, body] of Object.entries(siblings)) fs.writeFileSync(path.join(dir, name), body);
+    return dir;
+}
+
+const LIVE_REGISTRY = "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n";
+
+test('every activation map in a sibling module is read, not just the first', () => {
+    // anchor_reward_activation.js really does declare three. While all three
+    // are block heights nothing is lost, and the day the second one is keyed
+    // on a time it would never have entered the page.
+    const dir = fixtureTree(LIVE_REGISTRY, {
+        'multi_activation.js':
+            'const FIRST_GATE_ACTIVATION = {\n    mainnet: 961000,\n    testnet: 0,\n};\n'
+            + 'const SECOND_GATE_ACTIVATION = {\n    mainnet: 1786060800,\n    testnet: 0,\n};\n',
+    });
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL', 'SECOND_GATE_ACTIVATION'],
+        'the second activation map in a sibling module was dropped, so the page ships one row short');
+});
+
+test('a sibling gate is named by its enclosing const, not by its filename', () => {
+    // A filename can name one map; a module may declare several, and the
+    // `found` map is first-wins, so filename naming collides them into one.
+    const dir = fixtureTree(LIVE_REGISTRY, {
+        'renamed_file_activation.js': 'const SOMETHING_ELSE_ACTIVATION = {\n    mainnet: 1786060800,\n};\n',
+    });
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL', 'SOMETHING_ELSE_ACTIVATION']);
+});
+
+test('a sibling activation map inside a block comment is not published as a gate', () => {
+    const dir = fixtureTree(LIVE_REGISTRY, {
+        'ghost_activation.js':
+            '/*\nconst OLD_ACTIVATION = {\n    mainnet: 1786924800,\n};\n*/\n'
+            + 'const GHOST_ACTIVATION = {\n    mainnet: 0,\n};\n',
+    });
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL'],
+        'a retired sibling map parked in a comment was published as a live flag-day row');
+});
+
+test('a sibling mainnet slot the scan cannot read is refused, not skipped', () => {
+    const dir = fixtureTree(LIVE_REGISTRY, {
+        'odd_activation.js': "const ODD_ACTIVATION = {\n    mainnet: '1786060800',\n};\n",
+    });
+    assert.throws(() => gen.collectGates(dir), /ODD_ACTIVATION/);
+});
+
+test('a per-coin sibling slot holding a block TIME is refused, not skipped', () => {
+    // Per-coin maps are heights by construction, so a value inside the
+    // time-keyed window is a gate this page would carry through a shape the
+    // sibling scan does not collect.
+    const dir = fixtureTree(LIVE_REGISTRY, {
+        'percoin_activation.js': "const PERCOIN_ACTIVATION = {\n    'BTC:mainnet': 1786060800,\n};\n",
+    });
+    assert.throws(() => gen.collectGates(dir), /PERCOIN_ACTIVATION/);
+});
+
+test('the legitimately quiet sibling shapes do not throw', () => {
+    // Every one of these ships in xchain-indexer/src today: per-coin heights, a
+    // per-coin null, an inert bare null, a named constant no text scan can
+    // resolve, a nested per-slot map with no mainnet key at all, and the parked
+    // far-future sentinel. A guard that fires on any of them fails the build on
+    // correct source.
+    const dir = fixtureTree(LIVE_REGISTRY, {
+        'percoin_activation.js': "const PERCOIN_ACTIVATION = {\n    'BTC:mainnet': 961000,\n    'DOGE:mainnet': 6319000,\n};\n",
+        'percoin_null_activation.js': "const PERCOIN_NULL_ACTIVATION = {\n    'BTC:mainnet': null,\n};\n",
+        'inert_activation.js': 'const INERT_ACTIVATION = {\n    mainnet: null,\n    testnet: 0,\n};\n',
+        'named_activation.js': 'const NAMED_ACTIVATION = {\n    mainnet: SOME_SENTINEL,\n};\n',
+        'nested_activation.js': "const NESTED_ACTIVATION = {\n    tokens_root: {},\n    contract_state_root: { 'BTC:regtest': 10000 },\n};\n",
+        'sentinel_activation.js': 'const SENTINEL_ACTIVATION = {\n    mainnet: 9999999999,\n};\n',
+    });
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
 });
 
 test('the real registry parses clean, so the check is not merely strict', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {

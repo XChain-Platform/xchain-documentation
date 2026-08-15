@@ -362,7 +362,9 @@ fetch.
   "data": {
     "action_index": "45800",
     "feed_status": "closed",
-    "closed_block": 962450
+    "block_index": "962450",
+    "tx_hash": null,
+    "synthetic": true
   }
 }
 ```
@@ -398,12 +400,12 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
 {
   "type": "COINPAY_REQUIRED",
   "data": {
-    "obligation_action_index": 45700,
-    "order_match_action_index": 45700,
+    "obligation_action_index": "45700",
+    "order_match_action_index": "45700",
     "payer_address": "1BotAddr...",
     "payee_address": "1SellerAddr...",
     "coin_amount": "0.01000000",
-    "expiration": 1743642100
+    "expiration": "1743642100"
   }
 }
 ```
@@ -478,6 +480,14 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
 
 ### Dispenser Lifecycle Events
 
+Channel: `dispenser`. Every event here is keyed on the parent DISPENSER through
+`data.dispenser_action_index`, not on the action that caused it, exactly as
+`bet_feed` is keyed on `data.feed_action_index`. Read `data.action_index` with
+care: on `DISPENSER_UPDATE` and the subscribe snapshot it IS the dispenser you
+subscribed to, but on a `DISPENSE` frame it is that individual dispense's own
+action index. A subscriber following more than one dispenser must correlate on
+`dispenser_action_index`, or it will attribute fills to the wrong dispenser.
+
 #### DISPENSE
 
 ```json
@@ -485,6 +495,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "type": "DISPENSE",
   "data": {
     "action_index": "45800",
+    "dispenser_action_index": "45700",
     "source": "1BuyerAddr...",
     "status": null
   }
@@ -498,6 +509,7 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "type": "DISPENSER_CLOSED",
   "data": {
     "action_index": "45900",
+    "dispenser_action_index": "45700",
     "source": "1OwnerAddr...",
     "status": null
   }
