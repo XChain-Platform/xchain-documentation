@@ -3,7 +3,7 @@
 
 # XChain Trademark Policy
 
-The **XChain®** name and the XChain® logo are registered trademarks of **Dankest, LLC** in the United States. Related marks, including "XChain Platform", "XChain Wallet" and the XCHAIN token name, are trademarks of Dankest, LLC (together, the "Marks"). This policy explains how you may and may not use them.
+The **XChain®** name is a registered trademark of **Dankest, LLC** in the United States. The XChain logo, and related marks including "XChain Platform", "XChain Wallet" and the XCHAIN token name, are trademarks™ of Dankest, LLC (together with the registered name, the "Marks"). This policy explains how you may and may not use them.
 
 > **Why this is separate from the code license.** The software is open source under the [AGPL-3.0](../LICENSE.md): you are free to use, modify, and run the *code*. Trademark is different: it protects the *name and brand* so users can trust that something called "XChain" is the real thing. You can run the software freely; you cannot use the Marks to brand your own version without permission.
 
