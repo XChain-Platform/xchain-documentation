@@ -423,11 +423,14 @@ const ARCHIVE_REWARD_AMOUNT = '10.00000000';
 // (already live on testnet/regtest, so no coordinated flip window; and one gate must cover both
 // the v4/v5 and v6 families). Kept byte-identical to the local copies in
 // xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
-// INERT on mainnet/testnet (null = never active) until the operator ratifies a coordinated BTC
-// snapshot_block; regtest active from genesis.
+// INERT on mainnet (null = never active) until the operator ratifies a coordinated BTC
+// snapshot_block; testnet and regtest are active from genesis. Testnet was armed at 0 by the
+// 2026-08-11 operator ruling: it was re-genesised with no pre-flag history, so there is no
+// legacy set to diverge from and no mid-upgrade window to protect, and it is where the
+// relocated derive path gets exercised before mainnet ratifies a height.
 const ANCHOR_REWARD_DERIVE_ACTIVATION = {
     mainnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming
-    testnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming
+    testnet: 0,           // ARMED at genesis 2026-08-14 per the 2026-08-11 operator ruling
     regtest: 0,
 };
 
