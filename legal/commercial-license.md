@@ -32,11 +32,9 @@ In short: **the AGPL is free, but it requires you to share your changes. The com
 
 ## What the commercial license gives you
 
-> **[TO FINALIZE WITH COUNSEL]** Confirm the exact grant. Typical terms:
-
 - A non-exclusive right to use, modify, and deploy XChain Platform **without the AGPL's copyleft / network source-disclosure obligations**.
 - The right to keep your modifications and integrations **proprietary**.
-- Optionally: priority support, SLAs, and indemnification (define separately).
+- Support, SLAs, and indemnification are available as separate terms in the agreement, priced per engagement.
 
 The commercial license does **not** grant rights to the **XChain trademark or branding** (see [TRADEMARK.md](./trademark.md). You may run the software; you may not call your deployment "XChain" or use the marks without separate permission.
 
@@ -44,7 +42,7 @@ The commercial license does **not** grant rights to the **XChain trademark or br
 
 ## Pricing
 
-> **[TO FINALIZE]** Decide whether pricing is published, tiered (by company size / revenue / deployment count), or quote-based. Keep this consistent with [LICENSING.md](./licensing.md).
+Commercial licensing is quote-based. Pricing depends on how you deploy XChain (internal use, hosted service, or embedded in a product), the scale of the deployment, and whether you want support or an SLA. Tell us how you intend to use it and we will send terms; there is no published price list.
 
 ---
 
