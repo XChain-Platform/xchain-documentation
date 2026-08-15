@@ -168,6 +168,7 @@ These configure a hub acting as the telemetry **collector**, and are forwarded i
 |---|---|
 | `XCHAIN_NODE_GO_LIVE` | Arm the go-live pre-flight. Until this is truthy, mainnet write surfaces are not treated as live. |
 | `XCHAIN_NODE_SKIP_GO_LIVE_GATE` | Set truthy to skip the pre-flight checks entirely. Logs a loud warning; intended for controlled test venues, not production. |
+| `XCHAIN_NODE_SKIP_MIGRATION_PRECONDITION` | Set to `1`/`true`/`yes` to install a module whose source asserts a database migration that has not been applied. The precondition exists because such an update starts a service against a schema it expects to have changed; skip it only when you are applying the migration yourself. |
 
 > **Note on `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD`:** this is a credential value. Pass it via your deployment environment or secrets manager; do not store it in config files checked into version control.
 
