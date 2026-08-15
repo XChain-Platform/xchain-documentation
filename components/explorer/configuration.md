@@ -328,6 +328,7 @@ The explorer uses `express-rate-limit` middleware:
 | `EXPLORER_RATE_LIMIT_RPM` | No | `500` | Maximum requests per IP per 60-second window. Image requests (`.png`, `.jpg`, `.jpeg`, `.gif`, `.ico`, `.svg`, `.webp`), `/icon/` paths, and `/images` paths are excluded from the limit. |
 | `EXPLORER_ACTION_PROOF_RATE_LIMIT_RPM` | No | `60` | Separate, tighter limit for `/{COIN}/api/proof/action/{idx}` |
 | `EXPLORER_VALIDATOR_SET_PROOF_RATE_LIMIT_RPM` | No | `30` | Separate, tighter limit for `/BTC/api/proof/validator-set` |
+| `EXPLORER_PREFLIGHT_POST_RATE_LIMIT_RPM` | No | `60` | Separate limit for `POST /{COIN}/api/preflight`, the only unauthenticated route that accepts a large body. The limiter runs before the body parser, so a limited caller is refused without the server reading the payload. |
 | `WS_TRUST_PROXY_HOPS` | No | `1` | Proxy hop count used to resolve the real client address for the WebSocket per-IP cap. The upgrade is handled on the raw HTTP server, where Express's `trust proxy` does not apply, so the hop count must be passed explicitly or the cap keys on a spoofable `X-Forwarded-For`. Keep it aligned with the HTTP side. |
 
 Rate limiting applies to all non-image endpoints (API, Explorer, and HTML).
