@@ -51,7 +51,7 @@ Unless required by applicable law or agreed in writing, You provide Your Contrib
 
 ## How to sign
 
-Agreement is recorded by **CLA Assistant** on GitHub. When you open your first pull request in any XChain Platform repository, the CLA Assistant bot comments with a link to this agreement; sign in with your GitHub account there and click **I agree**. That signature is recorded once against your GitHub account and covers your present and future contributions across all XChain Platform repositories. Every pull request carries a `license/cla` check reporting whether the author has signed, and a contribution is not accepted without that signature. The pull request template also carries an agreement checkbox as a reminder; the bot's record is the one that counts.
+Agreement is recorded by **CLA Assistant** on GitHub. When you open your first pull request in any XChain Platform repository, the CLA Assistant bot comments with a link to this agreement; sign in with your GitHub account there and click **I agree**. That signature is recorded once against your GitHub account and covers your present and future contributions across all XChain Platform repositories. Every pull request carries a `license/cla` check, and it is a required check on the protected branches, so a pull request from a contributor who has not signed cannot be merged. The pull request template also carries an agreement checkbox as a reminder; the bot's record is the one that counts.
 
 By submitting a Contribution and agreeing through CLA Assistant, You accept and agree to the terms of this CLA for Your present and future Contributions to the Project.
 
