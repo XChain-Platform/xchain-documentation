@@ -125,10 +125,17 @@ check only happens here.
 > are individual clicks, and the all-green checkpoint is the only thing that
 > makes a half-merged train an anomaly rather than a routine occurrence.
 
-### 5. Merge and tag
+### 5. Merge, wait for master to go green, then tag
 
-Merge each PR (a **merge commit**, never squash, never rebase), then tag the new
-merge commit on `master` and push the tags:
+Merge each PR (a **merge commit**, never squash, never rebase).
+
+**Wait for `master`'s CI to finish green on each merge commit before tagging it.**
+The checkpoint in step 4 measured the release branches. A merge commit is a
+commit no CI has ever run on, and it is the one the tag names, the manifest
+pins, and anyone verifying the release resolves. This is also the last point
+where a problem is cheap: an untagged bad merge is a revert, while a tagged one
+means burning the train (see below), because a pushed tag is the start of the
+verification chain and moving it means deleting and re-pushing it.
 
 ```sh
 git checkout master && git pull
@@ -138,6 +145,20 @@ git push origin v0.9.0
 
 `-s` signs the tag. An unsigned train tag is a defect, not a style preference:
 the tag signature is what someone verifying the release starts from.
+
+**Then level `develop` with `master` in every repo you merged**, before moving
+on:
+
+```sh
+git fetch origin
+git checkout develop && git merge --ff-only origin/master && git push
+```
+
+The release branch carries at least the version bump and the changelog entry,
+and after the merge those commits exist only on `master`. Skip this and the
+next release diff reopens work that already shipped. A fast-forward is the
+normal case because the freeze window is short; if `develop` has moved, make it
+a real merge.
 
 ### 6. Cut `xchain-node` last
 
