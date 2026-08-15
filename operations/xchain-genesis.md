@@ -14,11 +14,14 @@ validator **reward pool**. XCHAIN exists on the **BTC chain only**.
 ## Monetary model (why)
 
 - **Hard-capped supply.** XCHAIN has a permanent `MAX_SUPPLY` of 100,000,000 (8 decimals),
-  fixed at genesis. There is **no pre-mint**: supply starts at zero and is created only through
-  public `MINT`s during the launch window, up to the cap.
-- **Fair-mint distribution.** Once the mint window opens, anyone can `MINT` their share; there
-  is no operator allocation minted upfront. `ISSUE` of XCHAIN stays GAS-only and BTC-only, so
-  only the operator can author the token's caps and window, but minting itself is public.
+  fixed at genesis. There is **no pre-mint**: the genesis `ISSUE` carries no `MINT_SUPPLY`, so
+  supply starts at zero and every unit is minted afterward, up to the cap.
+- **Fair-mint distribution.** The genesis pass credits the pinned distribution buckets (the
+  snapshot-holder airdrop below), and the remainder of the cap is minted publicly: once the mint
+  window opens, anyone can `MINT` their share, 1,000 XCHAIN per mint, with no per-address cap
+  and no closing date. `ISSUE` of XCHAIN stays GAS-only and BTC-only, so only the operator can
+  author the token's caps and window, but minting itself is public. The ratified allocation is
+  published in the white paper (§13.3).
 - **Rewards are paid, not minted.** Validator rewards are paid by **debiting a pre-funded reward
   pool address** (`config['ADDRESS']['REWARD']`) and crediting the validator. See
   [COLLECT](../protocol/actions/collect.md) and [GAS](../concepts/gas.md).

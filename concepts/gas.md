@@ -117,7 +117,7 @@ Fees can be paid two ways. **Native-coin fees** (BTC/LTC/DOGE) are collected at 
 
 XCHAIN is a standard XChain token issued via ISSUE on the **BTC chain only**. It does not exist natively on LTC or DOGE. The XCHAIN ticker is reserved on all chains to prevent unauthorized issuance.
 
-**Fixed supply, zero pre-mint.** XCHAIN has a permanent `MAX_SUPPLY` cap set at genesis, but supply starts at zero: there is no pre-mint and no operator allocation. Supply is created only through public mints during the launch window, up to the cap; once the mint window closes, no further XCHAIN can ever be created, by anyone, including the issuing address. Supply only ever decreases after that, via the burn bucket above.
+**Fixed supply, zero pre-mint.** XCHAIN has a permanent `MAX_SUPPLY` cap of 100,000,000 (8 decimals) set at genesis, but supply starts at zero: the genesis `ISSUE` carries no `MINT_SUPPLY`. Every unit is minted, either as a pinned genesis distribution credit or by a public mint, up to the cap; once the open mint is exhausted, no further XCHAIN can ever be created, by anyone, including the issuing address. Supply only ever decreases after that, via the burn bucket above. The genesis allocation itself is in the [white paper](../whitepaper.md#133-genesis-and-fair-launch).
 
 **Validator rewards** are paid from a dedicated, pre-funded **reward pool address**. Never by minting. The pool is seeded at genesis and topped up manually over time. When the pool cannot cover a pending reward, the `COLLECT` is rejected and the reward stays claimable until the pool is replenished (see [COLLECT](../protocol/actions/collect.md)).
 

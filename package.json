@@ -12,7 +12,8 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "test": "node --test --test-force-exit --test-timeout=120000"
+    "test": "node --test --test-force-exit --test-timeout=120000",
+    "ci": "npm test"
   },
   "devDependencies": {
     "mathjs": "15.2.0"

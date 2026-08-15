@@ -1,5 +1,5 @@
 {
-  "_description": "Canonical conformance vectors for the attestation responsible-set selection rule (_computeResponsibleSet). This rule is implemented independently in xchain-hub (AttestationRound._computeResponsibleSet) and xchain-indexer (actions/attest._computeResponsibleSet); the two MUST produce identical ordered output for the same inputs or attestation quorum evaluation forks (the hub signs with set S_hub, the indexer filters verified signatures against S_idx, and any divergence silently expires every affected request). Unlike the stake_weighted_quorum primitive this rule is not a single vendored file, so there is no byte-identity guard; each repo's conformance test instead runs these behaviour vectors against its own copy. Rule: for each validator compute SHA256(request_id || lowercased-pubkey), sort ascending by the hex hash string; when weighted, dedupe by staking source keeping the lowest-hash key per source and always keeping null-source keys; then take the first max(1, redundancy) pubkeys. This file is the single source of truth; do not fork it. Any change to either implementation must update these vectors and stay green in both repos.",
+  "_description": "Canonical conformance vectors for the attestation responsible-set selection rule (_computeResponsibleSet). This rule is implemented independently in xchain-hub (AttestationRound._computeResponsibleSet, AttestationPublisher._computeResponsible) and xchain-indexer (actions/attest._computeResponsibleSet, plus rollback._responsibleSet for the reorg recompute); they MUST produce identical ordered output for the same inputs or attestation quorum evaluation forks (the hub signs with set S_hub, the indexer filters verified signatures against S_idx, and any divergence silently expires every affected request). Unlike the stake_weighted_quorum primitive this rule is not a single vendored file, so there is no byte-identity guard; each repo's conformance test instead runs these behaviour vectors against its own copy. Rule: (1) when weighted, drop every validator whose staking source's aggregate `weight` is below `minStake`, the request provider's block-anchored min_stake_xchain floor, treating an unusable weight or an unusable floor as NOT clearing it; (2) for each surviving validator compute SHA256(request_id || lowercased-pubkey) and sort ascending by the hex hash string; (3) when weighted, dedupe by staking source keeping the lowest-hash key per source and always keeping null-source keys; (4) take the first max(1, redundancy) pubkeys. Steps 1 and 3 apply ONLY at/above the STAKE_WEIGHTED_QUORUM activation, which is the only path carrying per-source weight; below it `minStake` is ignored entirely and the legacy per-key selection runs. This file is the single source of truth; do not fork it. Any change to either implementation must update these vectors and stay green in both repos.",
   "computeResponsibleSet": [
     {
       "name": "unweighted hash-order, redundancy 3",
@@ -13,32 +13,35 @@
       "requestId": "req-alpha-0001",
       "redundancy": 3,
       "weighted": false,
+      "minStake": null,
       "expected": ["k3", "k5", "k4"]
     },
     {
       "name": "weighted source dedupe drops duplicate source",
       "validators": [
-        { "pubkey": "KA", "source": "sX" },
-        { "pubkey": "KB", "source": "sX" },
-        { "pubkey": "KC", "source": "sY" },
-        { "pubkey": "KD", "source": "sZ" }
+        { "pubkey": "KA", "source": "sX", "weight": "10000" },
+        { "pubkey": "KB", "source": "sX", "weight": "10000" },
+        { "pubkey": "KC", "source": "sY", "weight": "10000" },
+        { "pubkey": "KD", "source": "sZ", "weight": "10000" }
       ],
       "requestId": "req-beta-0002",
       "redundancy": 3,
       "weighted": true,
+      "minStake": "10000",
       "expected": ["kd", "kb", "kc"]
     },
     {
       "name": "weighted keeps null-source keys",
       "validators": [
-        { "pubkey": "KA", "source": null },
-        { "pubkey": "KB", "source": "sX" },
-        { "pubkey": "KC", "source": "sX" },
-        { "pubkey": "KD", "source": null }
+        { "pubkey": "KA", "source": null, "weight": "10000" },
+        { "pubkey": "KB", "source": "sX", "weight": "10000" },
+        { "pubkey": "KC", "source": "sX", "weight": "10000" },
+        { "pubkey": "KD", "source": null, "weight": "10000" }
       ],
       "requestId": "req-gamma-0003",
       "redundancy": 4,
       "weighted": true,
+      "minStake": "10000",
       "expected": ["kd", "ka", "kb"]
     },
     {
@@ -50,6 +53,7 @@
       "requestId": "req-delta-0004",
       "redundancy": 9,
       "weighted": false,
+      "minStake": null,
       "expected": ["p2", "p1"]
     },
     {
@@ -61,6 +65,7 @@
       "requestId": "req-epsilon-0005",
       "redundancy": 0,
       "weighted": false,
+      "minStake": null,
       "expected": ["q2"]
     },
     {
@@ -72,19 +77,90 @@
       "requestId": "req-zeta-0006",
       "redundancy": 2,
       "weighted": false,
+      "minStake": null,
       "expected": ["abcdef", "zzz"]
     },
     {
       "name": "weighted with redundancy 1 selects lowest-hash leader after dedupe",
       "validators": [
-        { "pubkey": "W1", "source": "sA" },
-        { "pubkey": "W2", "source": "sB" },
-        { "pubkey": "W3", "source": "sA" }
+        { "pubkey": "W1", "source": "sA", "weight": "10000" },
+        { "pubkey": "W2", "source": "sB", "weight": "10000" },
+        { "pubkey": "W3", "source": "sA", "weight": "10000" }
       ],
       "requestId": "req-eta-0007",
       "redundancy": 1,
       "weighted": true,
+      "minStake": "10000",
       "expected": ["w3"]
+    },
+    {
+      "name": "provider floor drops below-floor sources and promotes the next qualifier",
+      "_note": "The discriminating vector for the provider stake floor: at minStake '0' this same input selects [f3, f2], so an implementation that ignores the floor (or applies it AFTER the redundancy slice, which would only shrink the set) fails here rather than passing by accident. f4 sits one satoshi under the floor and is excluded.",
+      "validators": [
+        { "pubkey": "F1", "source": "sA", "weight": "50000" },
+        { "pubkey": "F2", "source": "sB", "weight": "500" },
+        { "pubkey": "F3", "source": "sC", "weight": "10000" },
+        { "pubkey": "F4", "source": "sD", "weight": "9999.99999999" }
+      ],
+      "requestId": "req-theta-0008",
+      "redundancy": 2,
+      "weighted": true,
+      "minStake": "10000",
+      "expected": ["f3", "f1"]
+    },
+    {
+      "name": "provider floor is inclusive and scale-insensitive at the boundary",
+      "_note": "'25000.00000000' clears a floor of '25000' (exact decimal comparison, not a float or an epsilon-tolerant one), and '24999.99999999' does not.",
+      "validators": [
+        { "pubkey": "E1", "source": "sA", "weight": "25000.00000000" },
+        { "pubkey": "E2", "source": "sB", "weight": "24999.99999999" }
+      ],
+      "requestId": "req-iota-0009",
+      "redundancy": 2,
+      "weighted": true,
+      "minStake": "25000",
+      "expected": ["e1"]
+    },
+    {
+      "name": "provider floor above every source yields an empty responsible set",
+      "validators": [
+        { "pubkey": "C1", "source": "sA", "weight": "1200" },
+        { "pubkey": "C2", "source": "sB", "weight": "1200" }
+      ],
+      "requestId": "req-kappa-0010",
+      "redundancy": 2,
+      "weighted": true,
+      "minStake": "25000",
+      "expected": []
+    },
+    {
+      "name": "unresolvable provider floor fails closed on the weighted path",
+      "_note": "A null floor means the node cannot know the bar (unknown provider, or an operator provider overlay carrying no min_stake_xchain). It must return NOTHING rather than fall back to a floor of 0, which would silently widen the serving set and fork against nodes that can resolve it.",
+      "validators": [
+        { "pubkey": "D1", "source": "sA", "weight": "50000" },
+        { "pubkey": "D2", "source": "sB", "weight": "50000" }
+      ],
+      "requestId": "req-lambda-0011",
+      "redundancy": 1,
+      "weighted": true,
+      "minStake": null,
+      "expected": []
+    },
+    {
+      "name": "provider floor bars the source aggregate, not each delegated key",
+      "_note": "Every effective key of a source carries that source's AGGREGATE weight, so sA's three keys all clear a 25000 floor on one 30000 stake and still collapse to a single responsible slot; sC at 100 is excluded outright.",
+      "validators": [
+        { "pubkey": "M1", "source": "sA", "weight": "30000" },
+        { "pubkey": "M2", "source": "sA", "weight": "30000" },
+        { "pubkey": "M3", "source": "sA", "weight": "30000" },
+        { "pubkey": "M4", "source": "sB", "weight": "25000" },
+        { "pubkey": "M5", "source": "sC", "weight": "100" }
+      ],
+      "requestId": "req-mu-0012",
+      "redundancy": 3,
+      "weighted": true,
+      "minStake": "25000",
+      "expected": ["m3", "m4"]
     }
   ]
 }

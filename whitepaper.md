@@ -10,7 +10,7 @@
 **Date:** 2026-07-28  
 **Status:** Reconciled against the implementation at HEAD; adds the programmable policy layer (controller-bound tokens), the agent-economy surface, permissionless price oracles, and current activation status.  
 
-> Some economic parameters in this paper (the gas schedule and `GAS_PRICE`) are consensus-critical and are finalized at protocol freeze ahead of launch; the values shown convey the model and current defaults. Features marked *(pre-launch)* are specified and implemented but not yet activated on mainnet, where they switch on at a coordinated flag-day; the first activation wave is armed (a validator-era batch at BTC height 961,000 and the 2.0.0 contract-era flag day, both of whose armed instants have passed), with later gates carrying their own dates. Every armed mainnet flag-day value is listed on [Flag-Day Values](./protocol/flag-days.md), generated from the indexer's activation registry rather than restated here, because a repin would otherwise silently rot this paragraph. Genesis distribution figures are finalized at genesis and announced separately.
+> Some economic parameters in this paper (the gas schedule and `GAS_PRICE`) are consensus-critical and are finalized at protocol freeze ahead of launch; the values shown convey the model and current defaults. Features marked *(pre-launch)* are specified and implemented but not yet activated on mainnet, where they switch on at a coordinated flag-day; the first activation wave is armed (a validator-era batch at BTC height 961,000 and the 2.0.0 contract-era flag day, both of whose armed instants have passed), with later gates carrying their own dates. Every armed mainnet flag-day value is listed on [Flag-Day Values](./protocol/flag-days.md), generated from the indexer's activation registry rather than restated here, because a repin would otherwise silently rot this paragraph. The genesis supply, distribution and snapshot figures are final and are stated in §13.3.
 
 ---
 
@@ -643,11 +643,25 @@ The full schedule is in Appendix A and is **FREEZE-PENDING**: the gas costs and 
 
 ### 13.2 The XCHAIN monetary model
 
-XCHAIN is the gas token, injected on the BTC chain at genesis with a permanent `MAX_SUPPLY` cap and **no pre-mint**: supply starts at zero and is created only through public `MINT`s during the launch window, up to the cap. Once the mint window closes, no further XCHAIN can ever be created, by anyone, including the issuer, and supply only ever *decreases* afterward through the burn bucket. Validator rewards are **paid from a pre-funded reward pool, never minted**; if the pool is exhausted, reward claims are rejected and stay claimable until it is topped up. XCHAIN's demand drivers are therefore fee payment and staking lockup against a fixed, deflationary cap. The token's USD price, needed to convert gas fees into native-coin outputs, is derived on-platform from realized DEX fills rather than from an external feed (§10.3).
+XCHAIN is the gas token, injected on the BTC chain at genesis with a permanent `MAX_SUPPLY` cap of **100,000,000** (8 decimals) and **no pre-mint**: the genesis `ISSUE` carries no `MINT_SUPPLY`, so supply starts at zero, and every unit that ever exists is minted, either as a pinned genesis distribution credit or by a public `MINT` (§13.3), up to the cap. Once the open mint is exhausted, no further XCHAIN can ever be created, by anyone, including the issuer, and supply only ever *decreases* afterward through the burn bucket. Validator rewards are **paid from a pre-funded reward pool, never minted**; if the pool is exhausted, reward claims are rejected and stay claimable until it is topped up. XCHAIN's demand drivers are therefore fee payment and staking lockup against a fixed, deflationary cap. The token's USD price, needed to convert gas fees into native-coin outputs, is derived on-platform from realized DEX fills rather than from an external feed (§10.3).
 
 ### 13.3 Genesis and fair launch
 
-XChain launches without an inflationary mint or an insider faucet: the gas token's supply is capped at genesis but starts at zero, with no pre-mint and no operator allocation. The genesis distribution is designed to honor the existing communities that pioneered Bitcoin-native tokens. It comprises a snapshot that reserves asset-*name* ownership for prior holders and a pre-funded validator reward pool (from which rewards are paid, never minted); there is no community airdrop and no treasury or market allocation. Once the operator opens the mint window, anyone can `MINT` their share on a first-come basis up to the fixed cap.
+XChain launches with no inflationary mint, no ICO and no insider faucet. XCHAIN's cap is fixed at genesis at **100,000,000** units (8 decimals), on the BTC chain only, and the genesis `ISSUE` mints none of it: `MINT_SUPPLY` is empty and `MINT_START_BLOCK` sits at a far-future sentinel until the operator lowers it, so supply is literally zero until the launch distribution runs. The cap is allocated as follows.
+
+| Allocation | XCHAIN | Share | Notes |
+|---|---|---|---|
+| Counterparty / Dogeparty holder airdrop | 30,000,000 | 30% | Credited from a hash-pinned holder snapshot, one `address,quantity` bucket file per source token |
+| Open mint (fair launch) | 25,000,000 | 25% | Public `MINT`: 1,000 XCHAIN per mint, no per-address cap, no closing date |
+| Treasury | 20,000,000 | 20% | Audits, listings, grants, legal; also the top-up source for the reward pool |
+| Market and liquidity | 10,000,000 | 10% | Launch liquidity: DEX pools, market-maker inventory, listings |
+| Independent validators | 9,700,000 | 9.7% | Sized so enough independent parties clear the `cross_chain` staking floor of 5,000 XCHAIN |
+| Validator reward pool | 5,300,000 | 5.3% | Pre-funds the `REWARD` address for roughly a decade at default rates; rewards are paid from it, never minted (§13.2) |
+| Team, founders, advisors | 0 | 0% | There is no team, founder or advisor allocation |
+
+**The snapshot.** Asset-*name* ownership from Counterparty (BTC) and Dogeparty (DOGE) is replayed onto the XChain ledger at genesis, so the communities that pioneered Bitcoin-native tokens keep their names here: name reservations only, no balances. The pin is a block height rather than a date, because a height is the only form every node can agree on: **BTC block 950,000** and **DOGE block 6,240,000**. Each carries a ledger hash and a state-dump hash that every indexer verifies before deriving a single genesis action, and the holder-airdrop set carries a further set hash over the buckets, their funding and their derivation order. A node whose files do not match those pins halts rather than publish a divergent ledger, so the distribution above is verifiable by replay rather than by announcement.
+
+**The open mint.** Once the operator lowers `MINT_START_BLOCK`, anyone can `MINT` on a first-come basis for the cost of a Bitcoin transaction plus the protocol fee. There is no window and no per-address cap, so the leg simply ends when its 25,000,000 are minted (25,000 mints at 1,000 each), and total supply is final at that point. Every other allocation is fixed at genesis, which is why total supply can only fall afterward, through the burn bucket.
 
 ---
 
@@ -724,7 +738,10 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 | Governance | 7-day vote, 50% quorum, two-thirds approval, 14-day re-proposal cooldown |
 | utxo-tracker reorg undo window | BTC 12 / LTC 48 / DOGE 120 blocks (default, env-overridable) |
 | Capability stake activation / cooldown | ~6 BTC blocks / 1,000 blocks (governance-set) |
-| XCHAIN supply | capped at genesis, zero pre-mint, public fair mint, BTC-chain only |
+| XCHAIN supply | 100,000,000 (8 decimals), capped at genesis, zero pre-mint, BTC-chain only |
+| XCHAIN genesis distribution (§13.3) | 30% holder airdrop / 25% open mint / 20% treasury / 10% liquidity / 9.7% validators / 5.3% reward pool / 0% team |
+| Genesis snapshot pins | BTC block 950,000, DOGE block 6,240,000 |
+| Open-mint terms | 1,000 XCHAIN per `MINT`, no per-address cap, no closing date |
 
 ---
 

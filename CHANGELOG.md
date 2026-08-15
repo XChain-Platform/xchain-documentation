@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- White paper §13.3 now publishes the final genesis figures (100,000,000 cap, the seven-leg distribution, snapshot pins and open-mint terms) instead of deferring them.
+- Overview, GAS, COLLECT and the genesis runbook no longer claim supply is created only by public mints, which held only while the distribution was unpublished.
+
 ### Added
+- A test that keeps the genesis allocation table arithmetically closed and in agreement with the genesis runbook.
 - `operations/release-process.md`: how a release train is cut, signed and published, the hotfix path, and the classification rule that decides whether a fix needs an activation point.
 - The operations index now lists Release Signing, which existed as a page but was reachable only by direct link.
 
