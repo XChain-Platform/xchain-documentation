@@ -528,6 +528,54 @@ const ATTEST_RELAY_ACTIVATION = {
     regtest: 0,
 };
 
+// ATTEST_BROADCAST_FEE_ACTIVATION (attestation Phase 3 economics, spec §11 leader broadcast-fee
+// reimbursement): the flag-day at/above which a FULFILLED ATTEST settle carves a broadcast-fee
+// reimbursement out of the v0 fee escrow and pays it to the lowest-hash member of the request's
+// responsible set, before splitting what is left equally across that set. Below the height the
+// whole escrow goes to the split, so a from-genesis replay of historical blocks is bit-identical.
+//
+// This changes v0 ESCROW COMPUTATION, which is why it needs a height of its own rather than
+// riding an existing anchor: two nodes on opposite sides of it settle the same request into
+// different reward rows, and validator_rewards is COLLECT-spendable.
+//
+// Evaluated against the LOCAL block_index of the SETTLING action. That is safe without the
+// plane caveat ATTEST_ADMISSION_ACTIVATION carries: the carve-out can only fire where the
+// responsible set is non-empty, and attestation capability stake is BTC-only, so the only chain
+// that reaches the predicate is the one whose local height IS a BTC height.
+//
+// UNALLOCATED. The four sub-decisions (denomination, broadcaster identity, height, amount bound)
+// were pinned by the operator on 2026-08-11 with the HEIGHT explicitly reserved to the operator,
+// so the implementation ships inert. Nearby cohort anchors in use are 961000, 962500 and 969500.
+// Kept value-identical to xchain-indexer/src/attest_broadcast_fee_activation.js by the
+// activation-constants parity suite.
+const ATTEST_BROADCAST_FEE_ACTIVATION = {
+    mainnet: null,        // INERT placeholder: the operator owns this height (pinned 2026-08-11, unratified)
+    testnet: null,        // INERT placeholder: the operator owns this height (pinned 2026-08-11, unratified)
+    regtest: 0,           // ARMED at genesis on regtest so the e2e venue exercises the carve-out
+};
+
+// ATTEST_BROADCAST_FEE_CAP: the per-provider broadcast-fee allowance the gate above pays out,
+// denominated in NATIVE coin (whole coins, not satoshis) and converted to XCHAIN at the oracle
+// price read at the SETTLE block. The allowance is paid FLAT rather than metered against the
+// settling transaction's actual miner fee: that number comes from each node's own decoder and is
+// not consensus-hashed, so keying a spendable reward on it would put per-node decoder output into
+// the ledger.
+//
+// PROVIDERS holds the shipped per-provider figure; DEFAULT covers a provider registered through an
+// operator ATTESTATION.PROVIDERS overlay that this map does not name; HARD_MAX clamps every
+// resolved value including an overlay's, which is what keeps the bound consensus-visible instead
+// of operator-controlled (without it a hostile overlay drains a request author's whole escrow into
+// the leader's pocket). Consensus-visible the moment the gate arms, so a change needs its own
+// flag-day exactly as the height does.
+const ATTEST_BROADCAST_FEE_CAP = {
+    DEFAULT:  '0.00010000',
+    HARD_MAX: '0.00100000',
+    PROVIDERS: {
+        http_get: '0.00010000',
+        llm:      '0.00010000',
+    },
+};
+
 // ORACLE_FEE_OUTPUT_ACTIVATION (PRICE v1 oracle usage fee): the flag-day
 // at/above which the DECODER persists a native-coin output paying a DISPENSER's
 // ORACLE_ADDRESS into transaction_outputs, so the indexer's validateOracleFee can see the
@@ -922,6 +970,8 @@ module.exports = {
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     ATTEST_ADMISSION_ACTIVATION,
     ATTEST_RELAY_ACTIVATION,
+    ATTEST_BROADCAST_FEE_ACTIVATION,
+    ATTEST_BROADCAST_FEE_CAP,
     ORACLE_FEE_OUTPUT_ACTIVATION,
     ORACLE_FEE_SET_CAPTURE_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
