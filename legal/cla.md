@@ -5,7 +5,7 @@
 
 > **Why this exists.** XChain Platform is dual-licensed: free under the [AGPL-3.0](../LICENSE.md), and available under a separate [commercial license](./commercial-license.md) for companies that need to keep modifications private. For Dankest, LLC to offer that commercial license, it must hold sufficient rights over **all** contributed code. This CLA grants those rights. **Every contributor must agree to it before their contribution can be merged.** Without it, contributed code could only ever be AGPL, which would break the dual-license model.
 
-> **[LAWYER REVIEW REQUIRED]** This is a working draft modeled on the Apache Individual CLA plus an explicit relicensing grant. Have counsel finalize before adopting. Decide also: (i) inbound license grant vs. full copyright assignment, (ii) whether to use a CLA-management tool (e.g. CLA Assistant) for GitHub sign-off, (iii) a separate Corporate/Entity CLA for contributions made on behalf of an employer.
+**Version:** 1.0 (2026-08-15). This is the individual CLA. Contributions made on behalf of an employer or other legal entity need that entity's written agreement to these terms; contact legal@dankest.llc.
 
 ---
 
@@ -35,7 +35,7 @@ You grant to the Project Owner and to recipients of the Project a perpetual, wor
 You represent that:
 
 - a. Each Contribution is **Your original creation**, and You have the legal right to grant the above licenses.
-- b. If Your employer has rights to intellectual property You create, You have either received permission to make the Contribution on behalf of that employer, or Your employer has waived such rights, or Your employer has executed a separate Corporate CLA.
+- b. If Your employer has rights to intellectual property You create, You have either received permission to make the Contribution on behalf of that employer, or Your employer has waived such rights, or Your employer has agreed to these terms in writing with the Project Owner.
 - c. Your Contribution does not, to Your knowledge, violate any third party's copyrights, trademarks, patents, or other intellectual property rights.
 - d. You will notify the Project Owner if any of the above becomes inaccurate.
 
@@ -51,11 +51,9 @@ Unless required by applicable law or agreed in writing, You provide Your Contrib
 
 ## How to sign
 
-> **[TO FINALIZE]** Choose a mechanism, e.g.:
-> - A bot (CLA Assistant / cla-bot) that records agreement on each pull request, **or**
-> - A signed copy returned to legal@dankest.llc before first contribution.
+Agreement is recorded by **CLA Assistant** on GitHub. When you open your first pull request in any XChain Platform repository, the CLA Assistant bot comments with a link to this agreement; sign in with your GitHub account there and click **I agree**. That signature is recorded once against your GitHub account and covers your present and future contributions across all XChain Platform repositories. Pull requests from contributors who have not signed cannot be merged. The pull request template also carries an agreement checkbox as a reminder; the bot's record is the one that counts.
 
-By submitting a Contribution and indicating agreement through the Project's chosen mechanism, You accept and agree to the terms of this CLA for Your present and future Contributions to the Project.
+By submitting a Contribution and agreeing through CLA Assistant, You accept and agree to the terms of this CLA for Your present and future Contributions to the Project.
 
 ---
 
