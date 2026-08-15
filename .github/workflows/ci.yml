@@ -26,19 +26,23 @@ permissions:
 
 on:
   push:
-    branches: [master]
+    # develop is where all work lands; master only ever receives release PRs.
+    # Both run the gate: develop so a lane push is verified as it lands, master
+    # so the merge commit a release tag points at has its own green run.
+    branches: [master, develop]
   pull_request:
     branches: [master]
 
-# Master is exempt from cancellation, and that needs both lines rather than the
-# second alone. `cancel-in-progress: false` only protects a run that has already
-# started, while GitHub keeps just one PENDING run per group, so a newer push
-# evicts a queued one regardless. Grouping per commit removes the contention:
-# two master commits are never in the same group, so each reaches a verdict.
-# Pull requests keep per-ref grouping and cancel freely, which is the point there.
+# Protected branches (master, develop) are exempt from cancellation, and that
+# needs both lines rather than the second alone. `cancel-in-progress: false`
+# only protects a run that has already started, while GitHub keeps just one
+# PENDING run per group, so a newer push evicts a queued one regardless.
+# Grouping per commit removes the contention: two protected-branch commits are
+# never in the same group, so each reaches a verdict. Pull requests keep
+# per-ref grouping and cancel freely, which is the point there.
 concurrency:
-  group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/master' && github.sha || 'ref' }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+  group: ci-${{ github.ref }}-${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop') && github.sha || 'ref' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/develop' }}
 
 jobs:
   test:
