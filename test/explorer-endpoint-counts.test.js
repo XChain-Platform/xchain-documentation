@@ -95,11 +95,11 @@ function documentedFigure(label) {
 describe('explorer REST endpoint counts in component-map.md', () => {
 
     test('the doc still states a total and a per-namespace breakdown', () => {
-        assert.match(doc, /233 REST endpoint patterns across the `\/api` and `\/explorer` namespaces/,
+        assert.match(doc, /234 REST endpoint patterns across the `\/api` and `\/explorer` namespaces/,
             'the explorer endpoint-count sentence changed shape; re-derive the figures');
         assert.match(doc, /144 `\/\{COIN\}\/api\/\.\.\.` and 74 `\/\{COIN\}\/explorer\/\.\.\.` patterns in the dispatch table/,
             'the dispatch-table breakdown changed shape; re-derive the figures');
-        assert.match(doc, /15 hand-registered `\/\{COIN\}\/api\/\.\.\.` routes/,
+        assert.match(doc, /16 hand-registered `\/\{COIN\}\/api\/\.\.\.` routes/,
             'the hand-registered breakdown changed shape; re-derive the figures');
     });
 
@@ -132,8 +132,8 @@ describe('explorer REST endpoint counts in component-map.md', () => {
 
     test('the hand-registered /api route count matches xchain-explorer source', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
         const routes = readHandRegisteredApiRoutes(fs.readFileSync(EXPLORER_SOURCE, 'utf8'));
-        assert.equal(routes.length, 15,
-            'the explorer hand-registers ' + routes.length + ' /api routes, not the documented 15:\n  ' +
+        assert.equal(routes.length, 16,
+            'the explorer hand-registers ' + routes.length + ' /api routes, not the documented 16:\n  ' +
             routes.join('\n  '));
     });
 

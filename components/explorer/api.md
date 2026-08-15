@@ -1735,6 +1735,7 @@ The following endpoints are registered and active. Detailed documentation is in 
 GET /{COIN}/api/feequote?action=ISSUE&params=0|NEWTICK&source=...&feeOutputSats=...
 GET /{COIN}/api/feeschedule
 GET /{COIN}/api/preflight?action=SEND&params=...&source=...&feeMode=xchain|native
+POST /{COIN}/api/preflight   {"action":"BATCH","params":"...","source":"...","feeMode":"xchain"}
 GET /{COIN}/api/oraclefeequote?oracleAddress=...&giveTick=...&fiatCode=USD&giveEscrow=1000
 ```
 
@@ -1743,6 +1744,10 @@ Proxied to the colocated indexer's `feequote` / `feeschedule` / `preflight` / `o
 `preflight` answers "would the indexer accept this action?" independently of native-fee support, returning `{ supported, valid, status, error, guardInert, feeExempt, denied, xchainFee, feeMode, feeTick, feeTokenBalance, feeAffordable, blockIndex, blockTime }`. `xchainFee` is the protocol fee the action would owe as an XCHAIN-denominated decimal string, taken from the same dry-run that produced the verdict, so a confirm screen can disclose the fee without a second call to `feequote` (it is `null` when the run staged no fee record, and absent when no verdict was produced). Sizing a native-coin fee output still needs `feequote`, which prices that fee against the oracle.
 
 The dry-run settles that fee the way `feeMode` says the real transaction will, because the two modes give different answers: `xchain` debits the payer's XCHAIN balance (so a payer who cannot cover the fee is told `invalid` here, before signing anything), while `native` pays a coin output to the fee destination and never touches that balance. Omit `feeMode` to get the chain's own default, which is `native` on LTC/DOGE (they have no XCHAIN fee lane) and the XCHAIN debit on BTC. `feeTokenBalance` reports the payer's balance of `feeTick` at the quoted height, and `feeAffordable` says whether it covers `xchainFee`; `feeAffordable` is `null` in native mode, since that balance is not what pays.
+
+A `BATCH` of non-VM sub-commands is pre-flighted too, and answers an extra `subCommands` array: one verdict per sub-command, in list order, each `{ position, action, status, refused }`. Read that rather than the batch-level `valid`, because sub-commands are not atomic, so a batch can be accepted while individual commands in it are not. A batch carrying a VM-reaching sub-command is still refused outright, naming it in `deniedSubAction`. Batches with Mode B dispensers also answer `oracleFeesOwed`, the total oracle usage fee owed per oracle address; it is disclosed so a composer can size the outputs, not judged.
+
+`POST` takes the same four fields as a JSON body and returns the same verdict. Use it for anything that will not fit a query string: a 250-command batch (the consensus maximum) runs to roughly 17,500 characters, and a `GET` that long is refused with a bare `431` by the HTTP server before the endpoint is reached. `params` is capped at the protocol's own action-payload ceiling on both transports, so the proxy never refuses on length something the indexer would have judged.
 
 `oraclefeequote` sizes the up-front native-coin output a Mode B dispenser owes the oracle operator it names in `ORACLE_ADDRESS`, returning `{ valid, error, oracleAddress, blockTime, requiredFeeNative, requiredFeeSats, belowDust, note }`. The indexer computes it from the same code path it validates with, so an output sized from the quote is accepted on chain.
 
@@ -2089,6 +2094,7 @@ Content-Type: application/json
 | `GET /{COIN}/api/feequote` | Native-coin fee pre-flight quote |
 | `GET /{COIN}/api/feeschedule` | Native-coin fee schedule |
 | `GET /{COIN}/api/preflight` | Validity-first action pre-flight, independent of fee support |
+| `POST /{COIN}/api/preflight` | Same pre-flight with the inputs in a JSON body, for actions too large for a URL |
 | `GET /{COIN}/api/oraclefeequote` | Oracle usage-fee quote for a Mode B dispenser |
 | `GET /{COIN}/api/file/{actionIndex}/raw` | Raw FILE action bytes (or gated ciphertext) |
 | `GET /openapi.json` | OpenAPI 3.1 machine-readable spec |
