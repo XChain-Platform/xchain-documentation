@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `operations/release-process.md`: how a release train is cut, signed and published, the hotfix path, and the classification rule that decides whether a fix needs an activation point.
 - The operations index now lists Release Signing, which existed as a page but was reachable only by direct link.
 
+### Fixed
+- The smart-contract development guide counted 13 shipped `xchain-contracts` templates and omitted `counterpartyBridge`; it now counts 14 and lists it, matching what `npx xchain-contracts list` reports.
+
 ## [0.12.1] - 2026-08-13
 
 ### Added
