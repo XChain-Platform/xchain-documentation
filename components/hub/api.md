@@ -580,7 +580,7 @@ Returns the per-capability minimum-stake thresholds live from the `CapabilityReg
 
 | Field | Type | Description |
 |---|---|---|
-| `capability` | `string` | Capability name (`price`, `cross_chain`, `oracle_publish`, `attestation`) |
+| `capability` | `string` | Capability name (`price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`) |
 | `min_stake` | `string` | Governance-configured minimum aggregate XCHAIN stake required to qualify |
 | `disabled` | `boolean` | `true` when the operator has disabled this capability via `DISABLED_CAPABILITIES` |
 

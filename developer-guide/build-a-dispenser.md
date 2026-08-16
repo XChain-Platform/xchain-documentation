@@ -27,7 +27,7 @@ A dispenser has two sides:
 Additional controls:
 - `EXPIRATION`: Unix timestamp when the dispenser closes automatically
 - `ALLOW_LIST` / `BLOCK_LIST`, restrict which addresses can trigger it
-- Maximum 1,000 dispenses per dispenser
+- Maximum 1,000 dispenses per fill; a refill (a Version 2 `DISPENSER_EDIT` topping up `GIVE_ESCROW`) resets the count, and refills are capped at 5, for a lifetime ceiling of 6 fills x 1,000
 
 ---
 

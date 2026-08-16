@@ -119,7 +119,7 @@ XCHAIN is a standard XChain token issued via ISSUE on the **BTC chain only**. It
 
 **Fixed supply, zero pre-mint.** XCHAIN has a permanent `MAX_SUPPLY` cap of 100,000,000 (8 decimals) set at genesis, but supply starts at zero: the genesis `ISSUE` carries no `MINT_SUPPLY`. Every unit is minted, either as a pinned genesis distribution credit or by a public mint, up to the cap; once the open mint is exhausted, no further XCHAIN can ever be created, by anyone, including the issuing address. Supply only ever decreases after that, via the burn bucket above. The genesis allocation itself is in the [white paper](../whitepaper.md#133-genesis-and-fair-launch).
 
-**Validator rewards** are paid from a dedicated, pre-funded **reward pool address**. Never by minting. The pool is seeded at genesis and topped up manually over time. When the pool cannot cover a pending reward, the `COLLECT` is rejected and the reward stays claimable until the pool is replenished (see [COLLECT](../protocol/actions/collect.md)).
+**Validator rewards** are paid from a dedicated, pre-funded **reward pool address**. Never by minting. The pool is seeded by the operator after the mint window opens (Step 2 of the [XCHAIN Genesis](../operations/xchain-genesis.md) runbook, since supply is zero at genesis) and topped up manually over time. When the pool cannot cover a pending reward, the `COLLECT` is rejected and the reward stays claimable until the pool is replenished (see [COLLECT](../protocol/actions/collect.md)).
 
 XCHAIN's value is driven by:
 - **Staking demand**: validators must stake XCHAIN (1,000 for oracle, 5,000 for cross-chain)

@@ -58,7 +58,7 @@ You set up a dispenser by specifying:
 - Which token you are selling
 - How many tokens are dispensed per purchase
 - The price in coin (what the buyer must send)
-- How many times the dispenser can sell (up to 1,000 dispenses per vending machine)
+- How many times the dispenser can sell (up to 1,000 dispenses per fill; a refill buys another 1,000, see below)
 
 Once the dispenser is active, anyone anywhere can buy from it simply by sending the right amount of coin to the dispenser address. The tokens are sent back automatically. No interaction with you is required, you do not need to be online, you do not need to approve anything.
 
@@ -69,13 +69,13 @@ Dispensers are ideal when you want a reliable, always-on way to sell tokens:
 - **No counterparty needed.** The transaction is automatic, buyer sends coin, protocol sends tokens.
 - **Always available.** Your dispenser works 24 hours a day, 7 days a week, without any action from you, up until the expiration you set for it.
 - **Fixed price clarity.** Buyers always know exactly what they will pay and what they will receive before sending anything, because the price is fixed when you create the dispenser and cannot be changed afterwards.
-- **Self-limiting.** A dispenser closes on its own in two ways: when it runs out of tokens (after its maximum number of dispenses), and when it reaches its expiration. You can also cancel it manually at any time.
+- **Self-limiting.** A dispenser closes on its own in two ways: when it hits 1,000 dispenses on its current fill (that last sale still goes through, then any tokens left in it are returned to you), and when it reaches its expiration. You can also cancel it manually at any time.
 
 Think of a dispenser like a coin-operated machine at a store. You set it up once, fill it with tokens, set the price, and let it run. Each customer inserts their coins and gets what they paid for: automatically, reliably, without needing a clerk.
 
 ### Editing or Cancelling a Dispenser
 
-You can edit an active dispenser to add more tokens to it (a refill), change its expiration, or update its allow and block lists. Its **price and the amount dispensed per purchase are fixed when you create it and cannot be changed**; if you need a different price, cancel the dispenser and create a new one.
+You can edit an active dispenser to add more tokens to it (a refill), change its expiration, or update its allow and block lists. A refill resets the dispense count to zero, so the dispenser can serve another 1,000 dispenses; you get 5 refills (the 6th is rejected), for a lifetime ceiling of 6 fills, or 6,000 dispenses. Its **price and the amount dispensed per purchase are fixed when you create it and cannot be changed**; if you need a different price, cancel the dispenser and create a new one.
 
 You can cancel a dispenser at any time, and any tokens still in it are returned to your balance.
 

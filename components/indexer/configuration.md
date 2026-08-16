@@ -250,7 +250,8 @@ These values are defined in `src/config.js` and apply to all chains:
 | `MAX_BROADCAST_VALUE_LENGTH` | `25` | Maximum broadcast value length |
 | `MAX_MESSAGE_LENGTH` | `1048576` | Maximum message content (1 MB) |
 | `MAX_MESSAGE_KEY_LENGTH` | `1048576` | Maximum encryption key length (1 MB) |
-| `MAX_DISPENSES` | `1000` | Maximum dispenses per dispenser |
+| `MAX_DISPENSES` | `1000` | Maximum dispenses per dispenser **fill** (a refill resets the count) |
+| `MAX_REFILLS` | `5` | Maximum refills per dispenser (the 6th is rejected), so 6 fills x `MAX_DISPENSES` lifetime |
 
 ### Timing and Delays
 
