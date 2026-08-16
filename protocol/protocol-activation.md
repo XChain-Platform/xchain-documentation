@@ -153,7 +153,7 @@ gates that carry a date of their own (`BATCH_ISSUANCE_LIMITS`, `CONTRACT_DELEGAT
 
 ## Additional armed gates (service-carried)
 
-These ten consensus gates are **armed** on mainnet but are not yet mirrored into
+These eleven consensus gates are **armed** on mainnet but are not yet mirrored into
 [`constants.js`](constants.js); each currently lives only in the service module named below (where a
 gate has a second copy it is byte-identical, and that pair is the drift guard; an execution-path gate
 has no second copy, see [above](#where-the-values-live)). They are listed here so the flag-day
@@ -171,13 +171,15 @@ inventoried on this page.
 | **Dispenser freshness** (`DISPENSER_FRESHNESS_ACTIVATION`, redefines freshness against indexer-local chain state instead of the external utxo tracker, changing which historical DISPENSER creates were valid) | per-chain local height | `BTC:mainnet` 961000, `LTC:mainnet` 3154250, `DOGE:mainnet` 6319000 (armed 2026-07-22) | forks | `xchain-indexer/src/dispenser_freshness_activation.js` |
 | **List-edit resolution** (`LIST_EDIT_RESOLUTION_ACTIVATION`, resolves a list to its newest valid edit; `getList` gates BET place, ORDER/SWAP match, DISPENSE, DIVIDEND, CALLBACK and AIRDROP, so action acceptance changes) | per-chain local height | `BTC:mainnet` 963000, `LTC:mainnet` 3162000, `DOGE:mainnet` 6338000 | forks | `xchain-indexer` / `xchain-explorer` `src/list_edit_resolution_activation.js` |
 | **Caret-ref strict** (`CARET_REF_STRICT_ACTIVATION`, makes an unresolvable address reference a hard reject at three sites that previously failed open, which moves the block's credits and debits) | per-chain local height | `BTC:mainnet` 963000, `LTC:mainnet` 3162000, `DOGE:mainnet` 6338000 (kept value-equal to list-edit resolution) | forks | `xchain-indexer/src/caret_ref_strict_activation.js` |
+| **Oracle stale-round visibility** (`ORACLE_STALE_ROUND_VISIBILITY_ACTIVATION`, keeps a stale tip round in the `getPrice()` view with its price withheld instead of dropping the round outright, so a contract can tell an oracle stall apart from an oracle that never ran; VM-visible, so it changes `contract_hash`) | per-chain local height | `BTC:mainnet` 963000, `LTC:mainnet` 3162000, `DOGE:mainnet` 6338000 (kept value-equal to list-edit resolution) | forks | `xchain-indexer/src/oracle_stale_round_visibility_activation.js` |
 | **State-key collation** (`STATE_KEY_COLLATION_ACTIVATION`) | per-chain local height | `BTC:mainnet` 962500, `LTC:mainnet` 3160000, `DOGE:mainnet` 6335000 (armed 2026-07-10, ~10 days past Cohort-B) | halts, recoverable | `xchain-indexer` / `xchain-sync` `src/state_key_collation_activation.js` |
 | **DISPENSE cancelling-dispenser match** (`DISPENSE_CANCELLING_MATCH_ACTIVATION`, corrects the `db.findMatchingDispensers` latest-status correlation on the native-coin DISPENSE trigger path) | block time | the coordinated 2.0.0 [contract-era flag day](./flag-days.md#contract-era-flag-day); deploy all indexers before it | forks | `xchain-indexer/src/dispense_cancelling_match_activation.js` |
 
 The SWQ source cap, slash-burns and slash-oracle-round gates are BTC-height forking rules that belong
 with **Cohort B**; state-key collation is a per-chain additive gate that behaves like **Cohort C**
-(halts, recoverable). The five remaining per-chain gates (VM deploy-lint Pkg 3, oracle snapshot-age
-causality, dispenser freshness, list-edit resolution, caret-ref strict) are the reason this section
+(halts, recoverable). The six remaining per-chain gates (VM deploy-lint Pkg 3, oracle snapshot-age
+causality, dispenser freshness, list-edit resolution, caret-ref strict, oracle stale-round
+visibility) are the reason this section
 exists rather than a cohort row: they are **keyed** like Cohort C, on each chain's own `block_index`,
 but they **fork** like Cohort A and B, because each changes an acceptance or deploy verdict rather
 than adding a commitment. Below its threshold each one runs its legacy path byte-identically, which
