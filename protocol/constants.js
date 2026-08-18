@@ -313,7 +313,11 @@ const EQUIV_HEADER_ACTIVATION = {
 const CANONICAL_REORG_BUFFER = 6;
 const SNAPSHOT_BURIAL_ACTIVATION = {
     mainnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming
-    testnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming
+    // ARMED AT GENESIS, operator-ratified 2026-08-18 (pre-launch: every feature active on
+    // testnet). Safe because testnet indexer state is REBUILT from the chain before launch and
+    // testnet carries no quorum-signed artifacts to reinterpret (0 validators, 0 stakes, 0
+    // checkpoints measured live). Mainnet keeps its own ratification.
+    testnet: 0,
     regtest: 0,
 };
 
@@ -499,6 +503,53 @@ const ATTEST_ADMISSION_ACTIVATION = {
     regtest: 0,
 };
 
+// ATTEST_REQUEST_CAP_ACTIVATION (framework spec §11.1 per-block admission caps): the flag-day
+// at/above which the indexer REJECTS an ATTEST v0 request that would exceed either the
+// per-contract or the network-wide per-block admission ceiling (ATTEST_REQUEST_CAPS below).
+//
+// Why a protocol rule rather than a price: an admitted request obliges REDUNDANCY validators to
+// make a provider call, and for the `llm` provider that call is a real invoice on each operator's
+// own vendor account, while the requester pays a flat VM_ATTEST_REQUEST gas charge that is the
+// same for a free HTTP GET as for a paid model. On a fee-bearing network economics bound the
+// shape; on testnet neither the coin nor XCHAIN is scarce, so the bound must be consensus.
+//
+// REJECTION, not deferral: unlike the three sibling per-block caps (XCALL_MAX_CALLS_PER_BLOCK,
+// ATTEST_MAX_EXPIRIES_PER_BLOCK, CROSS_SETTLE_MAX_PER_BLOCK) this caps admission of an action
+// already in the block rather than a pass the indexer schedules, so there is no next block to
+// carry overflow into. Over-cap requests go 'rejected' (terminal at creation, fee never escrowed).
+//
+// Counted deterministically from the attests table at (block_index = this block, action_index <
+// this action, request_status <> 'rejected'): a total order every node replays identically.
+//
+// CONSENSUS-VISIBLE, so arming at 0 on a chain that already has history is replay-safe only if no
+// past block ever admitted more than the cap - a chain-state question the CROSS_SETTLE_MAX_PER_BLOCK
+// ruling refused to assume. For testnet it was MEASURED instead of assumed, across all three chains
+// the `testnet` key covers: the live explorer reports `total: 0` attestation rows ever recorded on
+// BTC, LTC and DOGE testnet alike (/{TBTC,TLTC,TDOGE}/api/attestations, checked 2026-08-18), so no
+// block of any of them can have exceeded a cap of 10 and arming from genesis reinterprets nothing.
+// testnet 0 is operator-ratified (2026-08-18) so the public testnet launches with the cap in force.
+// regtest is armed at genesis (rebuilt from scratch). mainnet stays operator-owned and UNRATIFIED,
+// and a null height reads as INERT, so mainnet runs the legacy uncapped path byte for byte until a
+// height is pinned; mainnet HAS real attestation history, so pinning one there needs its own
+// measurement rather than this result.
+// Kept value-identical to the local copy in xchain-indexer/src/attest_request_cap_activation.js
+// by the activation-constants parity suite.
+const ATTEST_REQUEST_CAP_ACTIVATION = {
+    mainnet: null,        // INERT: operator-owned height, unratified
+    testnet: 0,           // ARMED at genesis (operator-ratified 2026-08-18; zero historical attestations, so nothing is reinterpreted)
+    regtest: 0,           // ARMED at genesis so the e2e venue exercises the cap
+};
+
+// The cap VALUES the gate above applies. perContract keeps one busy or hostile contract from
+// taking the whole ceiling and starving every other contract; perBlock is the number that bounds
+// validator spend (at REDUNDANCY 3 and BTC's ~144 blocks/day a full 10/block admits ~1440
+// requests/day, i.e. ~4320 provider calls/day across the responsible sets). Sized above any rate
+// observed on any network today, so legitimate use never meets them.
+const ATTEST_REQUEST_CAPS = {
+    perContract: 2,
+    perBlock:    10,
+};
+
 // ATTEST_RELAY_ACTIVATION (attestation Phase 5 cross-chain delivery): the flag-day
 // at/above which the two relay legs of the §12 CrossChainEngine model are accepted on chain:
 // ATTEST v3 (an LTC/DOGE-origin request materialized onto BTC, carrying 2f+1 cross_chain
@@ -551,9 +602,15 @@ const ATTEST_RELAY_ACTIVATION = {
 // so the implementation ships inert. Nearby cohort anchors in use are 961000, 962500 and 969500.
 // Kept value-identical to xchain-indexer/src/attest_broadcast_fee_activation.js by the
 // activation-constants parity suite.
+// TESTNET ARMED AT 0, operator-ratified 2026-08-18 under the standing ruling that every platform
+// feature must be ACTIVE on testnet. Safe by MEASUREMENT, not assumption: this gate only changes how
+// a fulfilled ATTEST settle splits its escrow, and the live explorer reports `total: 0` attestation
+// rows EVER recorded on BTC, LTC and DOGE testnet alike (/{TBTC,TLTC,TDOGE}/api/attestations, checked
+// 2026-08-18), so no settle exists to reinterpret. Mainnet HAS attestation history and stays
+// operator-owned; pinning a height there needs its own measurement rather than this result.
 const ATTEST_BROADCAST_FEE_ACTIVATION = {
     mainnet: null,        // INERT placeholder: the operator owns this height (pinned 2026-08-11, unratified)
-    testnet: null,        // INERT placeholder: the operator owns this height (pinned 2026-08-11, unratified)
+    testnet: 0,           // ARMED at genesis (operator-ratified 2026-08-18; zero historical attestation settles, so nothing is reinterpreted)
     regtest: 0,           // ARMED at genesis on regtest so the e2e venue exercises the carve-out
 };
 
@@ -641,7 +698,11 @@ const ORACLE_FEE_OUTPUT_ACTIVATION = {
 // ORACLE_FEE_OUTPUT_ACTIVATION.
 const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
     mainnet: null,        // DISARMED: awaiting the operator's ratified per-network instant
-    testnet: null,        // DISARMED: awaiting the operator's ratified per-network instant
+    // ARMED AT GENESIS (instant 0 = always in force), operator-ratified 2026-08-18 under the
+    // pre-launch ruling that every feature must be ACTIVE on testnet. This gate fixes a defect
+    // that spends a payer native coin and gives nothing back, so a public testnet WILL hit it.
+    // Safe at 0 because testnet decoder/indexer state is REBUILT from the chain before launch.
+    testnet: 0,
     regtest: 0,
 };
 
@@ -686,7 +747,11 @@ const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
 // keeps the two copies in lockstep.
 const DISPENSER_EXPIRY_REALIGN_ACTIVATION = {
     mainnet: null,        // DISARMED: awaiting the operator's ratified per-network instant
-    testnet: null,        // DISARMED: awaiting the operator's ratified per-network instant
+    // ARMED AT GENESIS (instant 0 = always in force), operator-ratified 2026-08-18 under the
+    // pre-launch ruling that every feature must be ACTIVE on testnet. This gate fixes a defect
+    // that spends a payer native coin and gives nothing back, so a public testnet WILL hit it.
+    // Safe at 0 because testnet decoder/indexer state is REBUILT from the chain before launch.
+    testnet: 0,
     regtest: 0,
 };
 
@@ -972,6 +1037,8 @@ module.exports = {
     RETRACTION_SIGNING_ACTIVATION,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     ATTEST_ADMISSION_ACTIVATION,
+    ATTEST_REQUEST_CAP_ACTIVATION,
+    ATTEST_REQUEST_CAPS,
     ATTEST_RELAY_ACTIVATION,
     ATTEST_BROADCAST_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_CAP,
