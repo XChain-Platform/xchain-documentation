@@ -161,6 +161,101 @@ function mainnetTimeLiteral(text, callIndex) {
 }
 
 /**
+ * The `{ ... }` body of the object literal whose opening brace sits at `open`,
+ * or null when the braces never close.
+ *
+ * Brace-counted rather than matched, because an activation map nests:
+ * `state_subtree_activation.js` keys three per-slot maps inside one const.
+ */
+function objectBody(text, open) {
+    let depth = 0;
+    for (let i = open; i < text.length; i++) {
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}' && --depth === 0) return text.slice(open + 1, i);
+    }
+    return null;
+}
+
+/** A `const NAME = {` activation map in a sibling module. */
+const SIBLING_MAP = /const\s+([A-Z][A-Z0-9_]*)\s*=\s*\{/g;
+
+/** A `mainnet:` threshold inside such a map, bare or keyed per coin. */
+const SIBLING_MAINNET_SLOT = /(?:^|[{,\s])(mainnet|['"][A-Z]+:mainnet['"])\s*:\s*([^,}\n]*)/g;
+
+/**
+ * What the sibling scan makes of a `mainnet:` value: a number it read, a shape
+ * it is deliberately quiet about, or one it refuses.
+ *
+ * QUIET BY DESIGN, on the registry arm's own rationale: `null` parks an inert
+ * placeholder no operator has ratified, and an identifier is a named constant
+ * no text scan can resolve, so guessing at it is what turns a build gate into
+ * noise. Everything else is a shape that could hide a live threshold.
+ */
+function readMainnetSlot(raw) {
+    const value = raw.trim().replace(/;$/, '');
+    if (value === 'null') return { kind: 'quiet' };
+    const digits = value.replace(/_/g, '');
+    if (/^\d+$/.test(digits)) return { kind: 'number', time: Number(digits) };
+    if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value)) return { kind: 'quiet' };
+    return { kind: 'unreadable' };
+}
+
+/**
+ * Every time-keyed gate the sibling `*_activation.js` modules declare, and the
+ * slots this scan refuses to guess at.
+ *
+ * READ WITH THE REGISTRY ARM'S RIGOR, which it once lacked in three ways. It
+ * scanned raw text, so a retired map parked in a block comment was published as
+ * a live row; it took the FIRST `mainnet:` per file, so the second map in a
+ * multi-map module could never enter the page (`anchor_reward_activation.js`
+ * alone declares three); and it named the gate after the FILE, which cannot
+ * name more than one map. Comments are stripped, every map is scanned, and each
+ * gate is named by its enclosing const.
+ *
+ * WHY THE GUARD IS VALUE-GATED, exactly as `assertEveryDeclarationParsed` is.
+ * Eleven of the twenty-four modules declare no bare `mainnet:` slot at all
+ * (they key per coin, because one shared height cannot fit BTC and DOGE at
+ * once) and one declares no mainnet threshold whatever, so refusing a module
+ * that exposes no readable slot would fail the build on twelve correct files.
+ * A slot is loud only when it could have carried a row: an unreadable value in
+ * any mainnet slot, or a per-coin slot holding a time rather than a height.
+ *
+ * HONEST LIMIT. A threshold under a RENAMED key (`mainnet_time:`) is still
+ * dropped in silence, and cannot be made loud without false-firing on those
+ * twelve modules. The registry arm has the same blind spot for the same reason.
+ */
+function collectSiblingGates(indexerSrc, add) {
+    const unreadable = [];
+
+    for (const name of fs.readdirSync(indexerSrc).filter((f) => f.endsWith('_activation.js')).sort()) {
+        const text = withoutComments(fs.readFileSync(path.join(indexerSrc, name), 'utf8'));
+        for (const decl of text.matchAll(SIBLING_MAP)) {
+            const body = objectBody(text, decl.index + decl[0].length - 1);
+            if (body === null) continue;
+            for (const slot of body.matchAll(SIBLING_MAINNET_SLOT)) {
+                const read = readMainnetSlot(slot[2]);
+                const where = `${name}: ${decl[1]}.${slot[1]} = ${slot[2].trim() || '(nothing this scan can read)'}`;
+                if (read.kind === 'unreadable') unreadable.push(where);
+                else if (read.kind !== 'number') continue;
+                else if (slot[1] === 'mainnet') add(decl[1], read.time, name);
+                else if (read.time >= TIMESTAMP_FLOOR && read.time < SENTINEL_FLOOR) unreadable.push(`${where} is a block TIME, so this page would carry it`);
+            }
+        }
+    }
+
+    if (unreadable.length > 0) {
+        throw new Error(
+            'a sibling activation module declares a mainnet threshold this generator cannot read, so '
+            + 'protocol/flag-days.md would publish an inventory that calls itself complete and is not:\n  '
+            + unreadable.join('\n  ')
+            + '\n\nThe sibling scan reads `mainnet: <digits>` inside a `const NAME = { ... }` map and stays '
+            + 'quiet for `null` and for an identifier it cannot resolve. Either write the threshold in that '
+            + 'shape or widen the parse in bin/generate-flag-days.js deliberately.',
+        );
+    }
+}
+
+/**
  * Refuses a registry that declares a gate in a style the two regexes above
  * cannot read.
  *
@@ -244,10 +339,20 @@ function collectGates(indexerSrc = INDEXER_SRC) {
 
     const registry = fs.readFileSync(path.join(indexerSrc, 'protocol_changes.js'), 'utf8');
 
+    // COLLECT FROM THE COMMENT-STRIPPED COPY, which the completeness check below
+    // already did and the two collectors did not. Dead code inside a comment is
+    // not a declaration, so a retired gate parked in one used to be collected,
+    // published as a row, and counted toward the coordinated flag day: the
+    // generator inventing a gate the indexer does not arm, on the page
+    // implementers plan fleet upgrades from. `withoutComments` preserves every
+    // offset and newline, so the bookkeeping below still lines up with the raw
+    // text the check quotes in its error message.
+    const scannable = withoutComments(registry);
+
     // addChange('NAME', 'version', mainnet_time, ...)
     const changeRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'([0-9.]+)'\s*,\s*(\d+)/g;
     let match;
-    while ((match = changeRe.exec(registry)) !== null) {
+    while ((match = changeRe.exec(scannable)) !== null) {
         parsedCalls.add(match.index);
         parsedNames.add(match[1]);
         add(match[1], Number(match[3]), 'protocol_changes.js');
@@ -256,8 +361,8 @@ function collectGates(indexerSrc = INDEXER_SRC) {
     // const NAME_MAINNET_TIME = 1786060800;  (gates the registry declares as a
     // shared constant because a second repo has to stay byte-identical to it)
     const constRe = /const\s+([A-Z][A-Z0-9_]*)_MAINNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(registry)) !== null) {
-        parsedConstLines.add(lineAt(registry, match.index));
+    while ((match = constRe.exec(scannable)) !== null) {
+        parsedConstLines.add(lineAt(scannable, match.index));
         parsedNames.add(match[1]);
         add(match[1], Number(match[2]), 'protocol_changes.js');
     }
@@ -267,12 +372,7 @@ function collectGates(indexerSrc = INDEXER_SRC) {
     // Sibling `*_activation.js` modules: a mainnet threshold above the
     // timestamp floor is a time-keyed gate; below it, a block height, which
     // this page does not cover.
-    for (const name of fs.readdirSync(indexerSrc).filter((f) => f.endsWith('_activation.js')).sort()) {
-        const text = fs.readFileSync(path.join(indexerSrc, name), 'utf8');
-        const m = /^\s*mainnet:\s*(\d+)/m.exec(text);
-        if (!m) continue;
-        add(name.replace(/\.js$/, '').toUpperCase(), Number(m[1]), name);
-    }
+    collectSiblingGates(indexerSrc, add);
 
     return [...found.values()].sort((a, b) => (a.time - b.time) || a.gate.localeCompare(b.gate));
 }
@@ -313,8 +413,18 @@ function render(gates) {
         : `${others.length === 1 ? 'One gate does' : `${others.length} gates do`} not ride it and `
           + `${others.length === 1 ? 'carries' : 'carry'} a date of its own: `
           + `${others.map((g) => `\`${g.gate}\` at ${utcInstant(g.time)}`).join(', ')}. `
-          + 'The reason each is armed separately is on '
-          + '[Protocol Activation](./protocol-activation.md#additional-armed-gates-service-carried).';
+          // POINT AT THE DECLARATION, not at a curated section. This used to promise the
+          // rationale at protocol-activation.md#additional-armed-gates-service-carried,
+          // which covers a disjoint set: that section inventories the HEIGHT-keyed
+          // service-carried gates, and every gate this page can list is TIME-keyed, so a
+          // reader following it for three of these four found nothing. The reason each is
+          // armed on its own date is written where the gate is registered, which is the
+          // one place that cannot drift away from the value, and the table below already
+          // names that file per gate.
+          + 'Each carries the reason it is armed separately in its registration comment, in '
+          + 'the file the **Declared in** column names below. For how a gate is evaluated '
+          + 'and what happens to a node that misses one, see '
+          + '[Protocol Activation](./protocol-activation.md).';
 
     return `<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025-2026 Dankest, LLC -->

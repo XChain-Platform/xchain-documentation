@@ -144,7 +144,28 @@ bounded-by-policy table is `mempool_transactions`, which is already
 reconciled against confirmed blocks. If a decoder deployment ever needs a
 hard floor on decoded history below the indexer's start block, it should
 follow the same default-off, indexed-column, best-effort deletion pattern
-described above. No decoder pruning ships today.
+described above.
+
+One decoder table is already bounded, and it is bounded differently from
+everything else on this page. `dispensers` is pruned in two stages: an expiring
+dispenser is **soft-expired** (its `expired_block_index` is stamped with the
+expiring height rather than the row being deleted, so a reorg can clear the mark
+and restore it), and the soft-expired row is **hard-deleted** later, once that
+height is reorg-safe-deep. The purge runs every block at
+`nextBlockHeight - DISPENSER_EXPIRE_SAFE_DEPTH` and outside the block
+transaction, so a transient failure there can never roll back committed block
+data. See [decoder database](../decoder/database.md#dispensers) for the schema
+and the current safe depth.
+
+Read that as a different class of retention from the knobs above, not another
+instance of them. It is always on rather than default-off, there is no env var
+to size or disable it, and its cutoff is a canonical block height rather than
+wall-clock time or a row count, so every node prunes exactly the same rows at
+exactly the same block. That determinism is what makes it safe to run against a
+replicated table. It is also why `dispensers` is replicated by full snapshot and
+periodic reconcile rather than by the per-block stream: neither the soft-expire
+`UPDATE` nor the hard purge rides that stream, so streamed inserts alone would
+let a follower's row count drift.
 
 ---
 

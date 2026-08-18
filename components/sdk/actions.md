@@ -693,14 +693,17 @@ Create or edit an allow/block list of ticks or addresses.
 
 **Format Versions:** v0 (create), v1 (edit, add/remove items)
 
-**Format v0 (create):** `LIST|VERSION|TYPE|...ITEM`  
-**Format v1 (edit):** `LIST|VERSION|EDIT|LIST_ACTION_INDEX|...ITEM`
+**Format v0 (create):** `LIST|VERSION|TYPE|MEMO|...ITEM`  
+**Format v1 (edit):** `LIST|VERSION|EDIT|LIST_ACTION_INDEX|MEMO|...ITEM`
+
+Note that `MEMO` comes before `ITEM` here, while every other action puts it last. `ITEM` repeats, so a memo placed after it could not be told apart from one more item.
 
 **Params (create (v0):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
 | type | integer | Yes | List type: `1` = TICK list, `2` = ADDRESS list |
+| memo | string | No | An optional memo to include |
 | item | string | Yes | Initial item to add |
 
 **Params (edit (v1):)**
@@ -709,11 +712,15 @@ Create or edit an allow/block list of ticks or addresses.
 |---|---|---|---|
 | edit | integer | Yes | Edit operation: `1` = ADD, `2` = REMOVE |
 | listActionIndex | integer | Yes | ACTION_INDEX of the LIST to edit |
+| memo | string | No | An optional memo to include |
 | item | string | Yes | Item to add or remove |
 
 ```js
 // Create an address list
 await sdk.list({ type: 2, item: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
+
+// Create an address list with a memo
+await sdk.list({ type: 2, memo: 'Q3 partner payouts', item: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
 
 // Add to an existing list
 await sdk.list({ edit: 1, listActionIndex: 55, item: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })

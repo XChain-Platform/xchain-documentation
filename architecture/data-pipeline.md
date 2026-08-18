@@ -99,7 +99,7 @@ The indexer polls the Decoder DB every 5 seconds. When it finds a new decoded ac
 
 6. **Processes expirations** after each block: open orders, active dispensers, COINPay obligations, and other time-bounded objects are checked against the current block's time and expired if necessary.
 
-7. **Detects reorgs** by monitoring the Decoder DB for block hash changes. On reorg, the indexer rolls back across 40+ tables in a single transaction.
+7. **Detects reorgs** by monitoring the Decoder DB for block hash changes. On reorg, the indexer rolls back across 80+ tables in a single transaction.
 
 The indexer is deterministic: given the same Decoder DB contents, it will always produce the same Indexer DB state. There is no external I/O during block processing.
 

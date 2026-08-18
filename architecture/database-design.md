@@ -166,7 +166,7 @@ See [`../components/hub/CONFIGURATION.md`](../components/hub/configuration.md) f
 
 Every write the indexer makes for a given block is wrapped in a single MariaDB transaction. All ledger entries, action records, token state changes, and expiration updates for a block either commit together or roll back together. There is no partial block state.
 
-On chain reorganization, the indexer rolls back across all 40+ affected tables in a single transaction, restoring the database to the state it was in before the reorged blocks were processed.
+On chain reorganization, the indexer rolls back across all 80+ affected tables in a single transaction, restoring the database to the state it was in before the reorged blocks were processed.
 
 ---
 

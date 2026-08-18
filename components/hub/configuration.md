@@ -271,6 +271,8 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 | `ORACLE_REWARD_PER_ROUND` | No | `"10.00000000"` | XCHAIN distributed per finalized oracle round |
 | `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation threshold (5%) for slash detection |
 | `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Consecutive missed rounds before non-participation slash |
+| `REWARD_PUSH_MAX_ATTEMPTS` | No | `3` | Attempts `RewardTracker` makes when pushing a validator-reward record to the indexer before giving up and recording the failure. The push was previously fire-and-forget, so a dropped push lost the reward record silently. |
+| `REWARD_PUSH_RETRY_DELAY_MS` | No | `2000` | Delay (ms) between those attempts. |
 
 ### ANCHOR Publishing
 
@@ -295,6 +297,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_ANNOUNCE_QUEUE_MAX` | No | `500` | Maximum queued anchor announcements, bounding memory. |
 | `ANCHOR_RANK_WAKE_MS` | No | `900000` | How often a non-rank-0 publisher wakes to check whether the anchor it is ranked behind was published (15 minutes). Only rank-0 keeps the interval and size triggers, so this is the takeover cadence, not the publish cadence. |
 | `ANCHOR_INTENT_TTL_MS` | No | `21600000` | How long a recorded anchor spend intent is held before it is dropped and the send re-broadcast (6 hours, the same reasoning as `ANCHOR_ANNOUNCE_RETRY_TTL_MS`: past roughly six times the 60-confirmation DOGE window, a send that never relayed is not coming back). |
+| `ANCHOR_MARKER_RETENTION_MS` | No | `7776000000` | How long a confirmed anchor broadcast marker is kept in `anchor_published_checkpoints` and `anchor_published_archives` before it is swept, roughly 90 days. Set to `0` to disable pruning and keep every marker. Only confirmed markers are ever deleted: an intent-only row is the ambiguous-send record, the sole durable trace that DOGE may already have paid, and it is kept regardless of age. The cutoff is floored at a multiple of `ANCHOR_INTENT_TTL_MS`, so a shorter window here can never reach a marker still inside its hold window. |
 
 #### Why those magnitudes (before you retune them)
 
@@ -335,6 +338,7 @@ Controls `AttestationPublisher`, which writes the validator network's answers to
 | `ATTESTATION_LEADER_RETRY_MS` | No | `60000` | Grace period before the sweep retries a leader's entry. |
 | `ATTESTATION_BLOCK_MS` | No | `600000` | Nominal block interval used to translate the failover window from blocks into time. Defaults to the BTC ~10 minute interval. |
 | `ATTESTATION_AMBIGUOUS_COOLDOWN_MS` | No | `ATTESTATION_FAILOVER_WINDOW_BLOCKS × ATTESTATION_BLOCK_MS` | Cooldown after an ambiguous publish result before another hub may retry. |
+| `ATTEST_PUBLISHED_REQUESTS_RETENTION_MS` | No | `7776000000` | How long a confirmed publish marker is kept in `attest_published_requests` before it is swept, roughly 90 days. Set to `0` to disable pruning and keep every marker. Only confirmed markers are ever deleted: an intent-only row is the quarantine record for a request whose on-chain state is unknown, which an operator reconciles by hand, so those are kept regardless of age. The window is also floored at the longest live provider `deadline_window_blocks` and never touches a request still on the durable queue file. |
 | `BTC_ADDRESS` | No | _(from config table)_ | BTC address of this hub's publishing wallet. |
 
 ### Attestation Relay

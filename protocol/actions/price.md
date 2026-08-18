@@ -119,9 +119,9 @@ User oracle publishes PEPECASH price in JPY with 2% usage fee
 - Indexers use the most recent valid price when no snapshot exists for a given round
 
 #### Activation Delay
-- A validator's STAKE, UNSTAKE, or DELEGATE (any version, including revoke) action does not take effect until **6 BTC blocks (~1 hour)** after confirmation
+- A validator's STAKE, UNSTAKE, or DELEGATE action in its capability form (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, including revoke) does not take effect until **6 BTC blocks (~1 hour)** after confirmation
 - Eliminates BTC reorg edge cases for reorgs of ≤5 blocks
-- Applies to every capability and every validator state change (see `activation_block` / `deactivation_block` on the `stakes` table)
+- Applies to every capability and every validator state change (see `activation_block` / `deactivation_block` on the `stakes` table). Capability staking is BTC-only, so the flat 6-block figure holds here; the contract-targeted forms (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) never touch the validator set and use a per-chain delay (see [STAKE](./stake.md))
 
 #### Supported COIN/FIAT Pairs
 - Validators publish all supported COIN × FIAT combinations per round

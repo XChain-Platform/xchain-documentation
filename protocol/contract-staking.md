@@ -1,6 +1,6 @@
 # Contract-Targeted Staking
 
-Smart contracts on XChain can declare themselves as staking targets at deploy time. Stakers can lock any token against a specific contract, and the contract's own logic (running in the VM) decides what staking unlocks and when to slash. This is layered on top of the existing capability-based staking (`price`, `cross_chain`, `oracle_publish`, `attestation`); the two systems coexist, share no state, and use the same wire-level actions (`STAKE`, `UNSTAKE`, `DELEGATE`) at different version numbers.
+Smart contracts on XChain can declare themselves as staking targets at deploy time. Stakers can lock any token against a specific contract, and the contract's own logic (running in the VM) decides what staking unlocks and when to slash. This is layered on top of the existing capability-based staking (`price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`); the two systems coexist, share no state, and use the same wire-level actions (`STAKE`, `UNSTAKE`, `DELEGATE`) at different version numbers.
 
 ## Wire formats
 

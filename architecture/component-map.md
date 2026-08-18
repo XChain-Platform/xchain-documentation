@@ -65,7 +65,7 @@ Key technical details:
 - DEX matching engine handles `ORDER` and `SWAP` actions, matching bids and asks within each block.
 - Processes expirations after each block: open orders and active dispensers whose expiration timestamp is past the block's own time are closed automatically. Token-weighted governance polls (`VOTE`) are finalized the same way, by a deterministic sweep at each poll's end block.
 - All writes for a block are wrapped in a single MariaDB transaction. Either the full block commits or it rolls back entirely.
-- On reorg, rolls back across 40+ tables in a single transaction, then re-processes from the reorg block.
+- On reorg, rolls back across 80+ tables in a single transaction, then re-processes from the reorg block.
 - Watchdog timer (5-minute default) restarts the indexer if it hangs during block processing.
 - Runs as one instance per chain/network combination.
 

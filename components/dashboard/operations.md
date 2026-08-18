@@ -5,7 +5,7 @@
 
 ## First Run
 
-1. Install dependencies with `npm install` on Node.js 22 or later.
+1. Install dependencies with `npm install` on Node.js 22 (22.x LTS), the platform's canonical runtime, pinned in `.nvmrc`.
 2. Start the host: `AUTH_REQUIRED=1 npm start`. It listens on `PORT` (default 7800) and `HOST` (default `0.0.0.0`).
 3. Open `/setup` from the machine itself. Give the wizard a MariaDB host, port, user, password, and database name. It tests the connection, creates the database and tables if they are missing, seeds the first admin, and writes `data/config.json`.
 4. Sign in at `/login` with the admin account the wizard created.

@@ -150,6 +150,15 @@ sdk.onDispenser(12345, (event) => {
 
 Events delivered: `DISPENSER_UPDATE`, `DISPENSE`, `DISPENSER_CLOSED`, `DISPENSER_EXPIRED`
 
+The three lifecycle events (`DISPENSE`, `DISPENSER_CLOSED`, `DISPENSER_EXPIRED`)
+carry `data.dispenser_action_index` = the dispenser you subscribed to, the same
+way the bet feed carries `data.feed_action_index`. On a `DISPENSE` event
+`data.action_index` is that individual dispense's own index, not the
+dispenser's, so a page following more than one dispenser correlates on
+`dispenser_action_index`. `DISPENSER_UPDATE` and the subscribe snapshot carry no
+`dispenser_action_index` at all: on those frames `data.action_index` already IS
+the dispenser you subscribed to.
+
 ### sdk.onCoinpayRequired(address, callback)
 
 Shortcut for watching an address for `COINPAY_REQUIRED` events only. Ideal for trading bots that need to auto-fulfill COINPay obligations.
