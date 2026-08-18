@@ -184,6 +184,7 @@ These env vars override where xchain-node stores its filesystem state on the hos
 | `XCHAIN_NODE_CRYPTO_NODES_DIR` | `<repo>/crypto_nodes` | Downloaded Bitcoin/Doge/Litecoin tarballs + extracted binaries. 100–500 MB per coin. |
 | `XCHAIN_NODE_CONFIG_DIR` | `<repo>/config` | Generated per-service `.env` files. Small. |
 | `XCHAIN_NODE_BLOCKS_DIR` | (unset → inside data volume) | Optional host path for the coin node's `blocks/` directory. If set, mounted as `/blocks` into the docker container so chain data can live on a separate disk from the rest of the node state. |
+| `XCHAIN_NODE_ALLOW_DEGRADED_EXPLORER` | (unset → install fails) | Accepted values `1`, `true`, `yes`. `install` waits for the explorer to start serving coin data and fails when it never does. Set this to continue anyway, accepting a stack whose explorer answers but serves no coins. Intended for callers that knowingly want the rest of the stack without a converged explorer; leave it unset on any node meant to serve reads. |
 
 > **⚠️ Testnet / regtest write to a network-prefixed subdirectory.** Dogecoind and litecoind place block data under a per-network subdirectory of the datadir on every network except mainnet:
 >
