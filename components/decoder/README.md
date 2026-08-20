@@ -14,7 +14,7 @@ The decoder's job is extraction only; it does not interpret action semantics. It
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
 - **AES-128-CTR deobfuscation**: derives key and IV from the first input's txid (first 16 hex chars = key, next 16 = IV)
 - **Magic prefix verification**: confirms `XCHN` (4 bytes) after deobfuscation before accepting a transaction
-- **Four encoding formats**: detects and reassembles OP_RETURN, P2SH, P2WSH, and multisig payloads
+- **Five encoding formats**: detects and reassembles OP_RETURN, P2SH, P2WSH and multisig payloads from a transaction's outputs, plus the [Taproot envelope](../../protocol/taproot-envelope.md) from input 0's tapscript witness (Bitcoin and Litecoin only, at or above that chain's envelope recognition height)
 - **Chain-specific parsing**: Litecoin strips the HogEx/MWEB flag; Dogecoin strips AuxPoW headers before passing blocks to bitcoinjs-lib
 - **Block reorganization detection**: identifies chain tip changes and records the reorg block so the indexer can roll back
 - **DISPENSER protocol**: parses DISPENSER actions and tracks active dispensers with expiration for real-time payment detection
