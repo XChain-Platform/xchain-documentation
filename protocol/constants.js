@@ -250,6 +250,60 @@ const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
 // command cap at all; this constant is the value the gate gives it.
 const BATCH_COMMAND_LIMIT = 250;
 
+// ── BATCH weighted cost budget (BATCH_COST_WEIGHTING) ───────────────────────
+// At/after the BATCH_COST_WEIGHTING activation the flat command count above
+// becomes a WEIGHT BUDGET: every sub-command contributes a cost weight and the
+// BATCH is refused when the weights SUM to more than this budget. The budget
+// is DELIBERATELY the same number as BATCH_COMMAND_LIMIT: with the default
+// weight of 1 the sum over an ordinary batch IS its command count, so every
+// batch carrying no weighted action is admitted or refused exactly as before,
+// including the error string (`invalid: COMMAND (limit)`). The two constants
+// are equal today and separately meaningful; do not collapse them into one,
+// or a future budget retune silently moves the pre-flag count cap.
+//
+// Enforced by the indexer (actions/batch.js `weightBudget`) and mirrored by
+// the SDK (batchLimits.js `BATCH_WEIGHT_BUDGET`), each its own local copy;
+// the cross-service regression suite (protocol-constant-claims.test.js)
+// holds all three copies and every prose claim equal to this value.
+//
+// Active from genesis on testnet/regtest, not yet armed on mainnet. The gate
+// must activate at or after BATCH_ISSUANCE_LIMITS: the budget check replaces
+// that gate's count cap in the same first position and reuses its
+// classification of sub-commands.
+const BATCH_WEIGHT_BUDGET = 250;
+
+// Per-action COST WEIGHTS for the budget above. An action absent from this
+// table weighs the DEFAULT of 1: one action index, its mappings and at most
+// one invalid row, roughly constant whatever the action. Two classes cost
+// more and are weighted for different reasons:
+//
+//   - FAN-OUT (AIRDROP, DIVIDEND): one sub-command writes a row PER
+//     RECIPIENT. The weight is a FLAT 25 rather than `1 + recipients`
+//     because the recipient count is not on the wire, and resolving it would
+//     re-run each handler's own list resolution and filtering before the
+//     batch is even known to be valid.
+//   - VM (DEPLOY, EXECUTE, XEXEC): contract code runs. 30 is the smallest
+//     round weight at which a full batch of worst-case VM sub-commands stays
+//     under the 250 ordinary-equivalent bound at every measured cost ratio.
+//
+// A chunk-carrier DEPLOY (format 4) is DISCOUNTED to the default 1: the
+// indexer short-circuits it into chunk storage before the VM path ever runs,
+// so it is a row write, not a contract run. The discount lives in the
+// weighing code on both sides, never in either table, so the vendored tables
+// stay byte-equal with no carve-outs.
+//
+// THE INVARIANT: every weight is an integer >= 1. That is what keeps the
+// cheap count check a sound pre-filter for the weighted one (a count over
+// the cap implies a weight sum over the budget), so the count cap is still
+// checked first and still reported first.
+const BATCH_COMMAND_WEIGHTS = Object.freeze({
+    AIRDROP:  25,
+    DIVIDEND: 25,
+    DEPLOY:   30,
+    EXECUTE:  30,
+    XEXEC:    30,
+});
+
 // ── Stake-weighted quorum (STAKE_WEIGHTED_QUORUM / WI-1) ────────────────────
 // Consensus-critical activation: at/above this BTC-anchored snapshot_block the
 // federation quorum becomes stake-WEIGHTED (signers' summed source stake must
@@ -1009,6 +1063,8 @@ module.exports = {
     MAX_DEPLOY_CHUNKS,
     MAX_DEPLOYCHUNK_PART_BYTES,
     BATCH_COMMAND_LIMIT,
+    BATCH_WEIGHT_BUDGET,
+    BATCH_COMMAND_WEIGHTS,
     VM_MAX_CALL_DEPTH,
     VM_MIN_CALL_GAS,
     XCALL_MIN_GAS,
