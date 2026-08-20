@@ -142,6 +142,18 @@ replay-equivalence drill); never by the indexer service itself.
 | `TEST_DB_NS` | **Harness only.** Namespace prefix for the harness's scratch databases (`<ns>_dec`, `<ns>_old`, `<ns>_off`, `<ns>_on`) | `xchain_test_a7` |
 | `TEST_DECODER_DB` | **Harness only.** Decoder-side scratch database name the replay reads; set by the harness itself for child processes | `xchain_test_a7_dec` |
 
+### A6 replay-equivalence harness (cost weighting)
+
+Read only by `bin/verify-batch-cost-weighting-replay-equivalence.js` (the
+below-the-flag replay-equivalence drill for the weighted BATCH budget); never by
+the indexer service itself. It shares the `TEST_DB_*` variables documented for
+the A7 harness above.
+
+| Variable | Description | Example |
+|---|---|---|
+| `A6_SIDE_ROOT` | **Harness only.** Repo root the forked side-process replays from | `/path/to/xchain-indexer` |
+| `A6_SIDE_GATE` | **Harness only.** Side-process gate mode: `natural` replays with the registered activation instant, `off` moves the instant to the unarmed sentinel so the flag reads disabled across the replayed range, and `on` forces it active from genesis to produce the negative control | `off` |
+
 ### BATCH cost-measurement harness
 
 Read only by `bin/measure-batch-execute-cost.js`, which measures the block-loop
