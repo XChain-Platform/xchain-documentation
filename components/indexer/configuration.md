@@ -154,6 +154,21 @@ the A7 harness above.
 | `A6_SIDE_ROOT` | **Harness only.** Repo root the forked side-process replays from | `/path/to/xchain-indexer` |
 | `A6_SIDE_GATE` | **Harness only.** Side-process gate mode: `natural` replays with the registered activation instant, `off` moves the instant to the unarmed sentinel so the flag reads disabled across the replayed range, and `on` forces it active from genesis to produce the negative control | `off` |
 
+### LAP replay-equivalence harness (ledger amount precision)
+
+Read only by `bin/verify-ledger-amount-precision-replay-equivalence.js` (the
+below-the-flag replay-equivalence drill for the ledger amount-precision flag);
+never by the indexer service itself. It shares the `TEST_DB_*` variables
+documented for the A7 harness above (its namespace default is
+`xchain_test_lap`).
+
+| Variable | Description | Example |
+|---|---|---|
+| `LAP_SIDE_ROOT` | **Harness only.** Repo root the forked side-process replays from | `/path/to/xchain-indexer` |
+| `LAP_SIDE_GATE` | **Harness only.** Side-process gate mode: `legacy` replays the pre-flag code (no flag module to move, its absence is reported as data), `off` moves the registered heights to the unarmed sentinel so the flag reads disabled across the replayed range, and `on` arms it from genesis | `off` |
+| `LAP_FIRST_BLOCK` | **Harness only.** First block of the replayed range, set by the parent for its side-processes | `100` |
+| `LAP_LAST_BLOCK` | **Harness only.** Last block of the replayed range, set by the parent for its side-processes | `250` |
+
 ### BATCH cost-measurement harness
 
 Read only by `bin/measure-batch-execute-cost.js`, which measures the block-loop
