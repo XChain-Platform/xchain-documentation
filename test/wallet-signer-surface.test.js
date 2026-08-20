@@ -53,12 +53,35 @@ const SIGNER_SRC = path.join(WALLET, 'packages/core/src/signers/Signer.js');
 const ARCH_DOC   = path.join(DOC_ROOT, 'components/wallet/architecture.md');
 const haveWallet = fs.existsSync(SIGNER_SRC);
 
+// A member-position `name(` and a member-position `if (` are the same shape, so
+// shape alone cannot tell them apart. Refuse the keywords that can legally sit
+// in front of a parenthesis instead.
+const KEYWORDS = new Set([
+    'if', 'for', 'while', 'switch', 'catch', 'do', 'else', 'return', 'try',
+    'function', 'throw', 'case', 'with', 'new', 'typeof', 'void', 'delete',
+    'await', 'yield', 'super', 'this',
+]);
+
+// Body of `class Signer`, from its declaration to the column-0 brace that closes
+// it. Whole-file scanning is what broke this gate: Signer.js also holds four
+// error classes and a module-level `assertCannotSignEnvelopeReveal()` helper
+// whose `if (params && ...)` sits at exactly member indentation, so the gate
+// demanded that a method named `if` be documented.
+function signerClassBody(src) {
+    const lines = src.split('\n');
+    const start = lines.findIndex((l) => /^\s*(?:export\s+)?(?:default\s+)?class\s+Signer\b[^{]*\{/.test(l));
+    assert.notEqual(start, -1, 'Signer.js no longer declares `class Signer`; this gate needs updating');
+    const end = lines.findIndex((l, i) => i > start && /^\}/.test(l));
+    assert.notEqual(end, -1, 'the Signer class body is unterminated; this gate needs updating');
+    return lines.slice(start + 1, end).join('\n');
+}
+
 // Methods on the abstract base, excluding the constructor and the protected
 // helpers (leading underscore) that are not part of the published surface.
 function signerMethods() {
-    const src = fs.readFileSync(SIGNER_SRC, 'utf8');
-    const names = [...src.matchAll(/^\s{4}(?:async\s+)?([a-zA-Z][A-Za-z0-9_]*)\s*\(/gm)].map((m) => m[1]);
-    return [...new Set(names)].filter((n) => n !== 'constructor');
+    const body  = signerClassBody(fs.readFileSync(SIGNER_SRC, 'utf8'));
+    const names = [...body.matchAll(/^\s{4}(?:static\s+)?(?:async\s+)?([a-zA-Z][A-Za-z0-9_]*)\s*\(/gm)].map((m) => m[1]);
+    return [...new Set(names)].filter((n) => n !== 'constructor' && !KEYWORDS.has(n));
 }
 
 // Every *Signer identifier that exists as a class anywhere in the wallet.
@@ -84,8 +107,15 @@ describe('wallet signer surface', () => {
 
     test('every Signer base-class method is listed in architecture.md',
         { skip: !haveWallet && 'xchain-wallet not present in this checkout' }, () => {
-        const doc = fs.readFileSync(ARCH_DOC, 'utf8');
-        const missing = signerMethods().filter((m) => !doc.includes(m + '('));
+        const doc     = fs.readFileSync(ARCH_DOC, 'utf8');
+        const methods = signerMethods();
+
+        // Narrowing the scan to the class body is one regex away from matching
+        // nothing at all, and an empty method list would pass this gate forever.
+        assert.ok(methods.length >= 8,
+            'found only ' + methods.length + ' Signer methods; the scan is probably broken');
+
+        const missing = methods.filter((m) => !doc.includes(m + '('));
         assert.deepEqual(missing, [],
             'Signer methods absent from components/wallet/architecture.md:\n  ' + missing.join('\n  '));
     });

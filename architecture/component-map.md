@@ -85,10 +85,10 @@ See [`../components/indexer/`](../components/indexer/) for full documentation.
 
 Key technical details:
 
-- 234 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-07-29:
-  - 144 `/{COIN}/api/...` and 74 `/{COIN}/explorer/...` patterns in the dispatch table built by `setupUrls()`, matched by the catch-all handler rather than registered with Express individually.
+- 286 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, contract emissions, vote delegations, validator capabilities and slashing, chain reorgs, anchor reward attestations, per-block commitments, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-08-20:
+  - 170 `/{COIN}/api/...` and 100 `/{COIN}/explorer/...` patterns in the dispatch table built by `setupUrls()`, matched by the catch-all handler rather than registered with Express individually.
   - 16 hand-registered `/{COIN}/api/...` routes that bypass the dispatch table: raw file download, fee quote, oracle fee quote, preflight (registered twice, GET and POST, because the largest legal action does not fit a query string), fee schedule, checkpoint list, checkpoint range, checkpoint verify, hub-mirror status, the five Merkle proof endpoints (balance, locked balance, action, validator set, contract state), and the POST contract-call query endpoint.
-  - Outside those two namespaces the same server also registers 87 HTML page routes plus `/openapi.json`, `/icon`, `/relay`, and the static asset mounts.
+  - Outside those two namespaces the same server also registers 103 HTML page routes plus `/openapi.json`, `/icon`, `/relay`, and the static asset mounts.
 - JSON-RPC 2.0 interface compatible with Counterparty-style tooling.
 - Bootstrap-based web UI with Highcharts for order book and market price visualization.
 - Reads configuration from xchain-hub every 60 seconds (fee schedules, supported parameters, fiat pricing).

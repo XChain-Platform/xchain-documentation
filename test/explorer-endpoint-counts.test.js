@@ -19,6 +19,12 @@
  * prose number with no gate behind it rots silently, so this test re-derives the
  * counts from the explorer source on every run and fails when the doc drifts.
  *
+ * The expected figures are read out of the doc rather than repeated here. An
+ * earlier draft hard-coded them in both places, so a genuine source change fired
+ * two failures at once and could be "fixed" by editing only the test, leaving the
+ * prose readers see still wrong. With the doc as the single source, source drift
+ * can only be settled by correcting the doc.
+ *
  * The explorer registers its REST surface two different ways, and both are
  * counted here:
  *
@@ -95,12 +101,14 @@ function documentedFigure(label) {
 describe('explorer REST endpoint counts in component-map.md', () => {
 
     test('the doc still states a total and a per-namespace breakdown', () => {
-        assert.match(doc, /234 REST endpoint patterns across the `\/api` and `\/explorer` namespaces/,
+        assert.match(doc, /\d+ REST endpoint patterns across the `\/api` and `\/explorer` namespaces/,
             'the explorer endpoint-count sentence changed shape; re-derive the figures');
-        assert.match(doc, /144 `\/\{COIN\}\/api\/\.\.\.` and 74 `\/\{COIN\}\/explorer\/\.\.\.` patterns in the dispatch table/,
+        assert.match(doc, /\d+ `\/\{COIN\}\/api\/\.\.\.` and \d+ `\/\{COIN\}\/explorer\/\.\.\.` patterns in the dispatch table/,
             'the dispatch-table breakdown changed shape; re-derive the figures');
-        assert.match(doc, /16 hand-registered `\/\{COIN\}\/api\/\.\.\.` routes/,
+        assert.match(doc, /\d+ hand-registered `\/\{COIN\}\/api\/\.\.\.` routes/,
             'the hand-registered breakdown changed shape; re-derive the figures');
+        assert.match(doc, /\d+ HTML page routes plus `\/openapi\.json`/,
+            'the HTML page-route sentence changed shape; re-derive the figures');
     });
 
     test('the stated parts add up to the stated total', () => {
@@ -124,16 +132,24 @@ describe('explorer REST endpoint counts in component-map.md', () => {
         assert.deepEqual(expl.filter(u => !u.startsWith('/{COIN}/explorer/')), [],
             'the explorer dispatch bucket holds a route outside the /explorer namespace');
 
-        assert.equal(api.length, 144,
-            'the explorer dispatch table now has ' + api.length + ' /api routes, not the documented 144');
-        assert.equal(expl.length, 74,
-            'the explorer dispatch table now has ' + expl.length + ' /explorer routes, not the documented 74');
+        const docApi  = documentedFigure('`/\\{COIN\\}/api/\\.\\.\\.` and');
+        const docExpl = documentedFigure('`/\\{COIN\\}/explorer/\\.\\.\\.` patterns');
+        const docHtml = documentedFigure('HTML page routes');
+
+        assert.equal(api.length, docApi,
+            'the explorer dispatch table now has ' + api.length + ' /api routes, not the documented ' + docApi);
+        assert.equal(expl.length, docExpl,
+            'the explorer dispatch table now has ' + expl.length + ' /explorer routes, not the documented ' + docExpl);
+        assert.equal(Object.keys(urls.html).length, docHtml,
+            'the explorer dispatch table now has ' + Object.keys(urls.html).length +
+            ' HTML page routes, not the documented ' + docHtml);
     });
 
     test('the hand-registered /api route count matches xchain-explorer source', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
-        const routes = readHandRegisteredApiRoutes(fs.readFileSync(EXPLORER_SOURCE, 'utf8'));
-        assert.equal(routes.length, 16,
-            'the explorer hand-registers ' + routes.length + ' /api routes, not the documented 16:\n  ' +
+        const routes  = readHandRegisteredApiRoutes(fs.readFileSync(EXPLORER_SOURCE, 'utf8'));
+        const docHand = documentedFigure('hand-registered');
+        assert.equal(routes.length, docHand,
+            'the explorer hand-registers ' + routes.length + ' /api routes, not the documented ' + docHand + ':\n  ' +
             routes.join('\n  '));
     });
 
