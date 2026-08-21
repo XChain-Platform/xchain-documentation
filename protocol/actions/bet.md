@@ -266,7 +266,7 @@ Wallets can quote the exact cost before you sign, using the SDK's
    - pipe `|` (used as field separator)
    - semicolon `;` (used as command separator)
 - A market lives on one chain. Wagers, escrow, and settlement all happen on the chain the market was created on
-- `DETAILS` is usually too large for an `OP_RETURN`, so a market creation normally encodes as a two-transaction `P2SH`/`P2WSH` payload. The SDK selects this automatically
+- `DETAILS` is usually too large for an `OP_RETURN`, so a market creation normally encodes as a two-transaction `P2SH`/`P2WSH` payload, which the size fallback selects automatically. An unusually large `DETAILS` that outgrows the 8,192-byte script-output ceiling needs the `TAPROOT` envelope, requested explicitly or via `encoding: AUTO`
 
 ## Trust Model
 Read this before betting on, or running, a market.

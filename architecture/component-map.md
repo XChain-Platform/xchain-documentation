@@ -143,8 +143,8 @@ These services support the construction and submission of XChain transactions.
 
 Key technical details:
 
-- Auto-selects between `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx) and `P2SH` (476 bytes/chunk, 2 tx) based on payload size. `multisig` (~61 bytes/key, 1 tx) and `P2WSH` (476 bytes/chunk up to the 8,192-byte compiled-payload ceiling, 2 tx) are never auto-selected; they are used only when explicitly requested.
-- P2SH and P2WSH use a two-transaction pattern: fund tx commits funds to a script; reveal tx spends it, embedding the data in the unlocking script.
+- With `encoding` omitted, selects between `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx) and `P2SH` (476 bytes/chunk, 2 tx) by payload size. `MULTISIGN` (~61 bytes/key, 1 tx), `P2WSH` (476 bytes/chunk up to the 8,192-byte compiled-payload ceiling, 2 tx) and `TAPROOT` (the envelope, up to 390,000 bytes in one tapscript witness, 2 tx, segwit chains only) are never reached by that size fallback; they are used only when explicitly requested, or when `encoding: AUTO` opts into smallest-footprint selection.
+- P2SH and P2WSH use a two-transaction pattern: fund tx commits funds to a script; reveal tx spends it, embedding the data in the unlocking script. TAPROOT uses a commit/reveal pair returned together from one call.
 - Obfuscates payloads with AES-128-CTR. Key and IV are derived from the first input's txid, deterministic and reversible by any party with the txid.
 - Available as a Node.js JSON-RPC service and as a browser bundle via webpack.
 - The encoder itself has no per-chain specialization; coin node interaction happens at the caller level.

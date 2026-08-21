@@ -25,7 +25,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - Contract authoring utilities: syntax validation, float detection, base64 encoding, gas estimation
 - Bound ContractClient for repeated interactions with a specific deployed contract
 - Encode actions into unsigned PSBTs via the xchain-encoder service
-- Support for all encoding formats: OP_RETURN, P2SH, P2WSH, multisign
+- Support for all encoding formats: OP_RETURN, P2SH, P2WSH, MULTISIGN, TAPROOT, plus AUTO for smallest-footprint selection
 - Fluent BatchBuilder for constructing multi-action BATCH transactions
 - Full Explorer API client: balances, tokens, transactions, history, markets, orderbook, contracts
 - Automatic retry with exponential backoff and jitter (respects Retry-After headers)

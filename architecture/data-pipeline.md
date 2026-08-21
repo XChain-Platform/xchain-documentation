@@ -33,11 +33,12 @@ Before encoding, the SDK queries xchain-hub to retrieve current network configur
 
 The SDK calls the encoder's JSON-RPC API, passing the ACTION string, the sender's UTXOs, and their public key. The encoder:
 
-1. **Selects a format** based on payload length:
+1. **Selects a format**. With `encoding` omitted the choice is by payload length alone (`OP_RETURN`, else `P2SH`); the other lanes are requested explicitly, or via `encoding: AUTO`, which picks the cheapest lane the network and signer support:
    - `OP_RETURN`: up to 80 bytes per output (76 bytes user data + 4-byte XCHN prefix), single transaction
    - `multisig`: up to ~61 bytes per key, single transaction
    - `P2SH`: 476 bytes per chunk, split across as many outputs as needed up to the 8,192-byte compiled-payload ceiling, two-transaction pattern
    - `P2WSH`: the same 476-byte chunking up to the 8,192-byte compiled-payload ceiling, two-transaction pattern
+   - `TAPROOT`: the envelope, up to 390,000 payload bytes in one tapscript witness, commit/reveal pair returned together; segwit chains only, and requested explicitly or via `encoding: AUTO` rather than reached by the size fallback
 
 2. **Obfuscates the payload** using AES-128-CTR. The key is the first 16 hex characters of the first input's txid; the IV is the next 16. This is deterministic (any observer with the txid can reverse it) but it filters casual blockchain scanners.
 

@@ -129,7 +129,7 @@ Suggested fee tiers in base units per vByte (satoshis on Bitcoin, litoshis on Li
 
 Build an unsigned PSBT that embeds an XChain ACTION payload. The caller signs the returned PSBT and broadcasts it (directly or via [`broadcast_tx`](#broadcast_tx)).
 
-The encoder auto-selects the encoding format by payload size: `OP_RETURN` for payloads of 76 bytes or fewer, otherwise `P2SH`. The `P2SH` and `P2WSH` formats use a two-transaction flow: call `create_tx` once to build the funding transaction, then call it again with `p2shHash` and `p2shHex` set to build the reveal transaction. `rawData` is decoded as Latin-1 so arbitrary bytes round-trip losslessly. Dogecoin has no SegWit, so `P2WSH` is rejected on DOGE networks.
+With `encoding` omitted, the encoder falls back on payload size alone: `OP_RETURN` for payloads of 76 bytes or fewer, otherwise `P2SH`. The `P2SH` and `P2WSH` formats use a two-transaction flow: call `create_tx` once to build the funding transaction, then call it again with `p2shHash` and `p2shHex` set to build the reveal transaction. `TAPROOT` is a single-call flow that returns the commit and reveal PSBTs together, and is never reached by the size fallback: request it explicitly, or pass `encoding: "AUTO"` to have the encoder pick the cheapest lane the network and signer support. `rawData` is decoded as Latin-1 so arbitrary bytes round-trip losslessly. Dogecoin has no SegWit, so `P2WSH` and `TAPROOT` are rejected on DOGE networks.
 
 ```mermaid
 sequenceDiagram
@@ -160,7 +160,7 @@ sequenceDiagram
 | `dust` | integer | No | Dust threshold override |
 | `rbf` | boolean | No | Signal Replace-By-Fee |
 | `unconfirmed` | boolean | No | Allow spending unconfirmed UTXOs |
-| `encoding` | string | No | Force encoding: `OP_RETURN`, `MULTISIGN`, `P2SH`, or `P2WSH` |
+| `encoding` | string | No | Force encoding: `OP_RETURN`, `MULTISIGN`, `P2SH`, `P2WSH`, or `TAPROOT`; or `AUTO` to let the encoder pick the cheapest lane |
 | `change` | string | No | Change address (defaults to the sender) |
 | `p2shHash` | string | No | Funding txid; switches to the P2SH/P2WSH reveal (tx2) flow |
 | `p2shHex` | string | No | Funding tx raw hex (required with `p2shHash`) |
@@ -201,7 +201,7 @@ A UTXO object has the shape:
 | Field | Type | Description |
 |---|---|---|
 | `psbt` | string | Unsigned PSBT in hex (BIP 174) |
-| `encoding` | string | Encoding actually used: `OP_RETURN`, `P2SH`, `P2WSH`, or `MULTISIGN` |
+| `encoding` | string | Encoding actually used: `OP_RETURN`, `P2SH`, `P2WSH`, `MULTISIGN`, or `TAPROOT`. Never `AUTO`, which resolves to one of these before the response is built |
 
 See [Format Selection](format-selection.md) for the full size limits and auto-selection logic.
 

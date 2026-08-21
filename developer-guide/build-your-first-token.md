@@ -300,7 +300,7 @@ console.log('Holders:', holders);
 
 Each action you broadcast went through this pipeline:
 
-1. **Encoder**: built a Bitcoin transaction embedding `XCHN`-prefixed, AES-128-CTR obfuscated ACTION data in an `OP_RETURN` output (or P2SH/P2WSH for larger payloads).
+1. **Encoder**: built a Bitcoin transaction embedding `XCHN`-prefixed, AES-128-CTR obfuscated ACTION data in an `OP_RETURN` output (or P2SH/P2WSH for larger payloads, or the TAPROOT envelope for payloads past the 8,192-byte script-output ceiling).
 2. **Coin node**: accepted the transaction into its mempool; regtest-miner mined the block.
 3. **Decoder**: polled the coin node via JSON-RPC, decoded the XChain payload, and wrote raw action records to its MariaDB.
 4. **Indexer**: read the decoder DB, applied business logic (supply math, balance updates, ownership tracking), and wrote final state to the indexer MariaDB.

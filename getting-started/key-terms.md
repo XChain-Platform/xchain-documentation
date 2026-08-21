@@ -17,7 +17,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **BATCH**: An ACTION that bundles multiple sub-actions into a single blockchain transaction, joined with semicolons. Reduces on-chain fees by combining operations.
 
-**encoding type**: The method used to embed ACTION data in a transaction. Options are `OP_RETURN` (up to 80 bytes per output, 76 bytes user data + 4-byte XCHN prefix), `P2SH`, `P2WSH`, and `multisig`. Larger payloads require P2SH or P2WSH, which use a two-transaction pattern.
+**encoding type**: The method used to embed ACTION data in a transaction. The encoder accepts `OP_RETURN` (up to 80 bytes per output, 76 bytes user data + 4-byte XCHN prefix), `P2SH`, `P2WSH`, `MULTISIGN`, `TAPROOT`, and `AUTO`. `P2SH` and `P2WSH` carry larger payloads with a two-transaction funding-then-reveal pattern, up to the 8,192-byte compiled ceiling every legacy encoding shares. Payloads beyond that need the opt-in `TAPROOT` envelope, a commit/reveal transaction pair carrying up to 390,000 bytes, on chains and signers that support Taproot. `AUTO` is not a carrier: it asks the encoder to pick the smallest-footprint carrier the network and signer support, and can resolve to `TAPROOT`.
 
 **magic prefix**: The 4-byte string `XCHN` that appears at the start of every decoded XChain payload, used to identify XChain transactions.
 
@@ -107,7 +107,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **ORDER**: An ACTION that places a sell order on the built-in DEX. Specifies the token being sold, the price, and the quantity. Buyers fill orders by sending payment.
 
-**SWAP** (An ACTION that enables atomic cross-chain token exchanges) trading a token on one blockchain for a token on another, without a bridge or custodian.
+**SWAP**: An ACTION that enables atomic cross-chain token exchanges, trading a token on one blockchain for a token on another, without a bridge or custodian.
 
 ---
 

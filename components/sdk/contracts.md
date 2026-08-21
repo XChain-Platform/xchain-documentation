@@ -37,11 +37,11 @@ let result = await sdk.deploy({
 }, { pubkey: 'yourPubkey', encoding: 'P2WSH' });
 ```
 
-DEPLOY payloads are almost always larger than 76 bytes of user data (the OP_RETURN limit; 80 bytes total per output), so OP_RETURN encoding will be rejected. Use P2SH or P2WSH.
+DEPLOY payloads are almost always larger than 76 bytes of user data (the OP_RETURN limit; 80 bytes total per output), so OP_RETURN encoding will be rejected. Use P2SH or P2WSH, or the TAPROOT envelope on chains that have Taproot.
 
 #### Chunked DEPLOY for large contracts
 
-A single DEPLOY action can carry at most 8,192 bytes of compiled action data. Contracts whose base64-encoded source exceeds that ceiling (roughly 6 KB of raw source) require the chunked deploy workflow. Use `sdk.deployContract(wif, deployParams, deposits?, opts?)` rather than `sdk.deploy()` directly: it calls `chunkHelper.planDeploy()` to decide which path to take.
+A single DEPLOY action on the script-output lanes (`OP_RETURN`, `MULTISIGN`, `P2SH`, `P2WSH`) can carry at most 8,192 bytes of compiled action data. Contracts whose base64-encoded source exceeds that ceiling (roughly 6 KB of raw source) require the chunked deploy workflow. Use `sdk.deployContract(wif, deployParams, deposits?, opts?)` rather than `sdk.deploy()` directly: it calls `chunkHelper.planDeploy()` to decide which path to take.
 
 **Single-shot path (fits in one action):** `sdk.deployContract` falls through to a normal `sdk.deploy()` call. DEPLOY v0 (no constructor) or v1 (with constructor) are emitted inline.
 

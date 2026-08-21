@@ -254,7 +254,7 @@ Both `encodeTx` and `spendP2sh` return the same structure:
 ```js
 {
     psbt:     '<hex string>',   // Partially Signed Bitcoin Transaction, ready to sign
-    encoding: '<string>'        // Encoding type actually used: 'OP_RETURN', 'P2SH', 'P2WSH', or 'MULTISIGN'
+    encoding: '<string>'        // Encoding type actually used: 'OP_RETURN', 'P2SH', 'P2WSH', 'MULTISIGN', or 'TAPROOT'. Never 'AUTO', which resolves to one of these first
 }
 ```
 

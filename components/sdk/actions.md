@@ -274,7 +274,7 @@ Deploy a smart contract to the XChain VM. The contract source code is base64-enc
 **Notes:**
 - Contract source must be valid JavaScript and under 64KB.
 - The SDK validates base64 encoding, code size, and gas limit before serialization.
-- DEPLOY payloads typically exceed the 76-byte OP_RETURN limit, use P2SH or P2WSH encoding.
+- DEPLOY payloads typically exceed the 76-byte OP_RETURN limit, use P2SH or P2WSH encoding, or TAPROOT on chains that have Taproot.
 - DEPLOY actions **cannot** appear inside a BATCH.
 - Constructor params are variable-length: each element becomes a separate pipe-delimited field in the action string.
 - For contracts over ~6KB, use the chunked deploy pattern: send multiple v4 carrier actions first, then a v2/v3 assemble action referencing the `codeHash`.
@@ -1511,10 +1511,12 @@ When an `encoder` with an explicit `encoding` is passed, the SDK validates that 
 | `MULTISIGN` | 60 bytes per chunk |
 | `P2SH` | 476 bytes per redeem-script chunk (520 − 44-byte script overhead), chunked across outputs up to the 8,192-byte compiled ceiling |
 | `P2WSH` | 476 bytes per witness-script chunk (520 - 44-byte overhead), chunked across outputs up to the 8,192-byte compiled ceiling |
+| `TAPROOT` | no SDK-side per-chunk budget; the envelope carries up to 390,000 payload bytes in one tapscript witness, enforced by the encoder |
+| `AUTO` | no SDK-side budget; the encoder resolves it to a concrete lane and enforces that lane's ceiling |
 
 If the action string exceeds the limit, an `ENCODING_DATA_TOO_LARGE` error is thrown with a suggested alternative encoding.
 
-The per-chunk figures above are the single-script-element bound. The end-to-end cap on total compiled ACTION data is 8,192 bytes (`MAX_COMPILED_ACTION_DATA_LENGTH` in the encoder's `validator.js`), which the chunked P2SH/P2WSH encodings reach by spreading data across multiple outputs.
+The per-chunk figures above are the single-script-element bound. The end-to-end cap on total compiled ACTION data is 8,192 bytes (`MAX_COMPILED_ACTION_DATA_LENGTH` in the encoder's `validator.js`) on every script-output lane, which the chunked P2SH/P2WSH encodings reach by spreading data across multiple outputs. The Taproot envelope is the one lane that ceiling does not govern: it carries its own `ENVELOPE_MAX_PAYLOAD` of 390,000 bytes. See [Format Selection](../encoder/format-selection.md).
 
 ---
 
