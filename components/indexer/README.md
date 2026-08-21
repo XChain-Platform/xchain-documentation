@@ -12,7 +12,7 @@ Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, S
 ## Features
 
 - **48 record types processed by the indexer** (of which 35 are wire-decoded ACTIONs; the rest are derived/system rows such as ORDER_MATCH, DISPENSE, COLLECT, `*_EXPIRE`, UNKNOWN, XEXEC, and XCALL - see `concepts/ACTIONS.md` for the canonical wire-decoded count): ADDRESS, AIRDROP, ANCHOR, ATTEST, BATCH, BET, BET_EXPIRE, BROADCAST, CALLBACK, COINPAY, COINPAY_EXPIRE, COLLECT, CROSS_SETTLE, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSE, DISPENSER, DISPENSER_CLOSE, DISPENSER_EXPIRE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, NODEPROOF, ORDER, ORDER_EXPIRE, ORDER_MATCH, PRICE, SEND, SLASH, SLEEP, STAKE, SWAP, SWAP_EXPIRE, SWAP_MATCH, SWEEP, UNKNOWN, UNSTAKE, VOTE, WITHDRAW, XCALL, XEXEC
-- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest
+- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin today, on mainnet, testnet, and regtest
 - **Atomic block processing**: every block is wrapped in a database transaction; failures roll back cleanly
 - **Block reorganization handling**: detects reorgs from the Decoder DB, rolls back affected data, and re-indexes
 - **Double-entry ledger**: all token movements recorded as credits, debits, and escrows

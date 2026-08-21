@@ -9,7 +9,7 @@ This section is for people who want to use XChain: creating tokens, trading, and
 |---|---|
 | [Creating Tokens](./creating-tokens.md) | How to create your own token on Bitcoin, Litecoin, or Dogecoin |
 | [Trading](./trading.md) | How to buy, sell, and swap tokens on the decentralized exchange |
-| [Cross-Chain](./cross-chain.md) | How to move tokens between Bitcoin, Litecoin, and Dogecoin |
+| [Cross-Chain](./cross-chain.md) | How to move tokens between the chains XChain runs on |
 | [Betting](./betting.md) | How to bet on a market, and how to run one of your own as an oracle |
 | [Use Cases](./use-cases.md) | Real-world examples of what people build and do with XChain |
 | [FAQ](./faq.md) | Answers to common questions about the platform |

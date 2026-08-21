@@ -23,7 +23,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **MEMO**: An optional free-text annotation that can be attached to many actions. Always the last field in an action format string.
 
-**metalayer**: A protocol that runs above an existing blockchain without modifying it. XChain is a metalayer on Bitcoin, Litecoin, and Dogecoin.
+**metalayer**: A protocol that runs above an existing blockchain without modifying it. XChain is a metalayer on any UTXO blockchain; today Bitcoin, Litecoin, and Dogecoin.
 
 **obfuscation**: The process of scrambling XChain payload data using AES-128-CTR before embedding it in a transaction. The key and IV are derived from the first input's txid. Obfuscation prevents accidental filtering by blockchain infrastructure; it is not encryption; the data is fully readable by any XChain node.
 

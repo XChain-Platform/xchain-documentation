@@ -61,7 +61,7 @@ The purpose is to prevent naive keyword scanning of the blockchain for XChain da
 
 | Property | Provided by |
 |---|---|
-| Transaction ordering and finality | Underlying blockchain (Bitcoin, Litecoin, Dogecoin) |
+| Transaction ordering and finality | Underlying blockchain (Bitcoin, Litecoin, and Dogecoin today) |
 | Token state correctness | Deterministic protocol rules + sanity checks |
 | Balance integrity | Double-entry ledger + block-level verification |
 | Independent verification | Anyone can run a full node |

@@ -5,7 +5,7 @@
 
 ## Overview
 
-The encoder is a stateless JSON-RPC 2.0 service that builds unsigned PSBTs embedding XChain ACTION payloads into Bitcoin, Litecoin, and Dogecoin transactions. It holds no database and no state between calls: the caller supplies the inputs, the encoder returns an unsigned PSBT, and the caller signs and broadcasts.
+The encoder is a stateless JSON-RPC 2.0 service that builds unsigned PSBTs embedding XChain ACTION payloads into transactions on every supported chain (Bitcoin, Litecoin, and Dogecoin today). It holds no database and no state between calls: the caller supplies the inputs, the encoder returns an unsigned PSBT, and the caller signs and broadcasts.
 
 All methods are called via HTTP POST to the service root (`/`) using the JSON-RPC 2.0 envelope:
 

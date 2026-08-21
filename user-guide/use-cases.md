@@ -154,7 +154,7 @@ XChain actions involved: ISSUE, DISPENSER.
 
 ### Cross-Chain Arbitrage and Exchange
 
-Trade tokens between Bitcoin, Litecoin, and Dogecoin using the SWAP action. This enables arbitrage between the same token type on different chains, or the exchange of value across chains for users who want to move their holdings from one blockchain ecosystem to another.
+Trade tokens between the chains XChain runs on, today Bitcoin, Litecoin, and Dogecoin, using the SWAP action. This enables arbitrage between the same token type on different chains, or the exchange of value across chains for users who want to move their holdings from one blockchain ecosystem to another.
 
 XChain actions involved: SWAP.
 
@@ -201,7 +201,7 @@ XChain actions involved: ORDER, DISPENSER.
 
 ## Smart Contracts and Programmable Logic
 
-XChain has a built-in smart contract layer that runs on top of Bitcoin, Litecoin, and Dogecoin. Contracts are written in JavaScript, deployed permanently on the blockchain, and executed by the same nodes that process token transactions. There is no separate contract chain, no separate validator network, and no separate token to buy: your existing wallet, your existing balances, and your existing XCHAIN gas fees are all you need.
+XChain has a built-in smart contract layer that runs on top of every supported chain (Bitcoin, Litecoin, and Dogecoin today). Contracts are written in JavaScript, deployed permanently on the blockchain, and executed by the same nodes that process token transactions. There is no separate contract chain, no separate validator network, and no separate token to buy: your existing wallet, your existing balances, and your existing XCHAIN gas fees are all you need.
 
 ### Programmable Tokens
 
@@ -211,7 +211,7 @@ A smart contract on XChain can do what a person with a wallet can do: issue toke
 - **Automated market makers**: liquidity pools that price tokens continuously based on supply and demand, going beyond the fixed-price model of orders and dispensers.
 - **Multi-condition escrow**: funds released only when several conditions are all met (time elapsed, multiple parties have approved, an outside event has occurred).
 - **On-chain governance**: token-weighted voting where the result of the vote is executed by the contract itself, with no human in the middle.
-- **Cross-chain automation**: contracts that coordinate actions across Bitcoin, Litecoin, and Dogecoin simultaneously.
+- **Cross-chain automation**: contracts that coordinate actions across the chains XChain runs on simultaneously.
 
 XChain actions involved: DEPLOY (to publish a contract), EXECUTE (to call a method on it), DEPOSIT and WITHDRAW (to move tokens in and out of the contract's custody), BATCH (to group multiple actions into one transaction; they execute in order and are *not* atomic, so if a later action fails the earlier ones still apply), and SLEEP (a contract can put its own token to sleep, pausing trading on the token for a defined window or indefinitely).
 
@@ -241,7 +241,7 @@ XChain actions involved: DEPLOY + EXECUTE on the contract side, ATTEST behind th
 
 ### Native Multi-Chain Staking
 
-XChain has a built-in mechanism that lets any token, on any chain, be staked against a smart contract. Stakers lock up tokens; the contract's code decides what that lockup unlocks (access, voting weight, a share of fees, etc.); and if the contract decides someone misbehaved, it can take some or all of the staked tokens away from them, sending the slashed tokens to a destination the contract author chose at deploy time, including the chain's burn address. This works on Bitcoin, Litecoin, and Dogecoin; every chain XChain supports.
+XChain has a built-in mechanism that lets any token, on any chain, be staked against a smart contract. Stakers lock up tokens; the contract's code decides what that lockup unlocks (access, voting weight, a share of fees, etc.); and if the contract decides someone misbehaved, it can take some or all of the staked tokens away from them, sending the slashed tokens to a destination the contract author chose at deploy time, including the chain's burn address. This works on every chain XChain supports, today Bitcoin, Litecoin, and Dogecoin.
 
 This is a general-purpose primitive. It is not just for validating the network; the network has its own separate staking system for that. *Anyone* deploying a contract can declare it stakeable, and that contract can then build whatever logic on top makes sense for the application.
 

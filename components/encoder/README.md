@@ -19,7 +19,7 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 - **Fee estimation**: byte-accurate transaction size estimation per format via `TxSizeEstimator`; dust floor enforcement
 - **Fee rate cap**: configurable maximum fee rate prevents runaway estimates (e.g., regtest feedback loops)
 - **Input validation**: centralized parameter validation with typed errors (TypeError/RangeError) for all 16 `createTransaction` parameters
-- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 network configs with chain-specific dust thresholds; Litecoin uses 5,460 litoshis on all three networks, 10× Bitcoin's 546 satoshis)
+- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin today, on mainnet, testnet, and regtest (9 network configs with chain-specific dust thresholds; Litecoin uses 5,460 litoshis on all three networks, 10× Bitcoin's 546 satoshis)
 - **Replace-By-Fee**: optional RBF signaling via UTXO sequence number
 - **Custom outputs**: arbitrary address/value outputs for COINPay native coin payments and other use cases
 - **JSON-RPC API**: Express server with Helmet security headers, optional API key authentication, configurable rate limiting, and CORS

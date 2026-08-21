@@ -9,7 +9,7 @@
 
 ### What is XChain?
 
-XChain is a token protocol that runs on top of existing blockchains; Bitcoin, Litecoin, and Dogecoin. It lets anyone create and manage digital tokens, trade them on a built-in decentralized exchange, and store data permanently on-chain, all using standard blockchain transactions. There is no separate XChain blockchain. Instead, XChain embeds its instructions invisibly inside normal Bitcoin, Litecoin, and Dogecoin transactions, and a network of indexer nodes reads and executes those instructions. The result is a full-featured token platform with the security and permanence of the world's most established blockchains underneath it.
+XChain is a token protocol that runs on top of existing blockchains. It is chain-agnostic by design and live today on Bitcoin, Litecoin, and Dogecoin, with more chains to come. It lets anyone create and manage digital tokens, trade them on a built-in decentralized exchange, and store data permanently on-chain, all using standard blockchain transactions. There is no separate XChain blockchain. Instead, XChain embeds its instructions invisibly inside ordinary transactions on its host chain, and a network of indexer nodes reads and executes those instructions. The result is a full-featured token platform with the security and permanence of the world's most established blockchains underneath it.
 
 ### Is XChain its own blockchain?
 
@@ -17,7 +17,7 @@ No. XChain is a protocol layer that sits on top of existing blockchains. It does
 
 ### Which blockchains does XChain support?
 
-XChain currently supports Bitcoin, Litecoin, and Dogecoin, including their respective test networks. The protocol is designed to work with any Bitcoin-compatible blockchain, so adding new chains is a straightforward configuration change rather than a major engineering effort.
+XChain currently supports Bitcoin, Litecoin, and Dogecoin, including their respective test networks, with more chains coming. The protocol is designed to work with any Bitcoin-compatible blockchain, so adding a new UTXO chain is a straightforward configuration change rather than a major engineering effort. Account-model ecosystems such as Ethereum and Solana are a longer-term roadmap item (see [Scope and Non-Goals](../concepts/scope-and-non-goals.md)).
 
 ### Is XChain decentralized?
 

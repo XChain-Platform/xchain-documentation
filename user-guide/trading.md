@@ -112,7 +112,7 @@ This transparency is a core property of the protocol. All market data is derived
 
 ## Fees
 
-DEX listings are priced by **how long the listing lives**, not by how early you create one. **The first 90 days are free**, so a listing that expires within 90 days carries no listing fee. Past that, every day beyond the 90th is charged at a per-day rate. The free window is identical on every supported chain (Bitcoin, Litecoin, and Dogecoin); it is not a Bitcoin-only or time-limited promotion.
+DEX listings are priced by **how long the listing lives**, not by how early you create one. **The first 90 days are free**, so a listing that expires within 90 days carries no listing fee. Past that, every day beyond the 90th is charged at a per-day rate. The free window is identical on every supported chain (Bitcoin, Litecoin, and Dogecoin today); it is not a Bitcoin-only or time-limited promotion.
 
 That listing fee is what creating or editing a listing costs: placing an order and creating a dispenser are charged on the duration schedule above, priced in XCHAIN. **Cancelling is free.** Taking an order or a dispenser off the book carries no protocol fee at all, so you are never charged for withdrawing a listing. You still pay the ordinary miner transaction fee on the underlying chain for any action you broadcast.
 

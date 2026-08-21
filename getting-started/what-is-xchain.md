@@ -5,9 +5,9 @@
 
 ## The Short Version
 
-XChain is a token protocol that runs on top of existing blockchains, specifically Bitcoin, Litecoin, and Dogecoin. It lets you create and manage digital assets (tokens), trade them on a built-in exchange, swap them across chains, run smart contracts that can call out to AI models and the web, publish encrypted files only your token holders can read, stake any token against any contract on any chain, store files, send messages, and much more, all without leaving the security of the underlying blockchain.
+XChain is a token protocol that runs on top of existing blockchains. It is chain-agnostic by design and live in production today on Bitcoin, Litecoin, and Dogecoin, with more chains to come; adding another UTXO chain is a configuration change, not a rebuild. It lets you create and manage digital assets (tokens), trade them on a built-in exchange, swap them across chains, run smart contracts that can call out to AI models and the web, publish encrypted files only your token holders can read, stake any token against any contract on any chain, store files, send messages, and much more, all without leaving the security of the underlying blockchain.
 
-If you've heard of other token protocols like Counterparty, Ordinals, or Colored Coins, XChain is in that tradition: it uses the existing Bitcoin (or Litecoin, or Dogecoin) network as its foundation, and adds a richer layer of functionality on top of it.
+If you've heard of other token protocols like Counterparty, Ordinals, or Colored Coins, XChain is in that tradition: it uses an existing blockchain network as its foundation (today Bitcoin, Litecoin, or Dogecoin), and adds a richer layer of functionality on top of it.
 
 ---
 
@@ -75,7 +75,7 @@ The FILE action also supports **token-gated cryptographic publishing**. A creato
 
 ### Run Smart Contracts
 
-XChain includes a built-in **virtual machine** that brings smart contract capabilities to Bitcoin, Litecoin, and Dogecoin, without sidechains or separate networks.
+XChain includes a built-in **virtual machine** that brings smart contract capabilities to every supported chain (Bitcoin, Litecoin, and Dogecoin today), without sidechains or separate networks.
 
 - **DEPLOY** uploads a smart contract to the blockchain. Contracts are written in JavaScript, base64-encoded, and stored permanently on-chain. Once deployed, a contract has its own address-like identity (referenced by its action_index) and can hold token balances.
 - **EXECUTE** calls a method on a deployed contract. The contract runs in a sandboxed V8 isolate with gas metering; every computation costs gas, preventing infinite loops and resource abuse. Contract state is stored on-chain and is fully deterministic: every node that processes the same transactions arrives at the same result.
@@ -132,7 +132,7 @@ A lot of layer-2 and sidechain systems require you to trust a separate set of va
 
 ### Multi-Chain by Design
 
-XChain runs natively on Bitcoin, Litecoin, and Dogecoin simultaneously. A token on one chain is distinct from a token on another chain; they have separate ledgers. But the XChain software supports all three chains with the same protocol, the same 35 actions, and the same tooling. A single deployment of the platform can index and serve data for all three chains at once.
+XChain runs natively on every supported chain simultaneously, which today means Bitcoin, Litecoin, and Dogecoin. A token on one chain is distinct from a token on another chain; they have separate ledgers. But the XChain software supports all three chains with the same protocol, the same 35 actions, and the same tooling. A single deployment of the platform can index and serve data for all three chains at once.
 
 ### AI-Callable Smart Contracts
 

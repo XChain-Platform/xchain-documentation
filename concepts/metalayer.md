@@ -3,7 +3,7 @@
 
 # The XChain Metalayer
 
-XChain is a **metalayer protocol**; a system that reads and writes structured data on existing blockchains without changing how those blockchains work. The underlying coin nodes (Bitcoin, Litecoin, Dogecoin) are completely standard, unmodified, and unaware that XChain exists. XChain reads their data and applies its own rules on top.
+XChain is a **metalayer protocol**; a system that reads and writes structured data on existing blockchains without changing how those blockchains work. The underlying coin nodes (Bitcoin, Litecoin, and Dogecoin today) are completely standard, unmodified, and unaware that XChain exists. XChain reads their data and applies its own rules on top.
 
 ## What a Metalayer Is
 

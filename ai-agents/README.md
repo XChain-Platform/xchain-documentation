@@ -11,7 +11,7 @@ XChain is built to be easy for AI agents and LLM-powered tools to use. Not as an
 
 ## What an agent can do today
 
-**Read everything.** Every token, balance, trade, smart contract, and attestation on Bitcoin, Litecoin, and Dogecoin is queryable through the explorer's REST API. No API key, no account. The API is described by a machine-readable spec at `https://explorer.xchain.io/openapi.json`, and every error carries a stable machine-readable code (see [Error Codes](../protocol/error-codes.md)).
+**Read everything.** Every token, balance, trade, smart contract, and attestation on every chain XChain runs on (Bitcoin, Litecoin, and Dogecoin today) is queryable through the explorer's REST API. No API key, no account. The API is described by a machine-readable spec at `https://explorer.xchain.io/openapi.json`, and every error carries a stable machine-readable code (see [Error Codes](../protocol/error-codes.md)).
 
 **Use the MCP server.** If your agent speaks the Model Context Protocol (Claude, and most agent frameworks), the `xchain-mcp` server gives it ready-made tools: token lookups, balances, dispensers, order books, contract state, checkpoint verification, across all chains and networks. See the [MCP Quickstart](mcp-quickstart.md).
 

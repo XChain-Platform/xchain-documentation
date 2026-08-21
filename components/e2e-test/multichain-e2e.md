@@ -5,7 +5,8 @@
 # E2E Test Suite: Running Against Multiple Chains
 
 The full E2E suite is chain-parameterized and runs one chain per process. This
-page covers running the same suite against Bitcoin, Litecoin, and Dogecoin so
+page covers running the same suite against every chain supported today (Bitcoin,
+Litecoin, and Dogecoin) so
 per-chain behavior is exercised (fee-payment mode, capability staking being
 BTC-only, and chain-specific node quirks), using the `xchain-node` CLI as the
 entry point rather than calling `npm test` directly.
