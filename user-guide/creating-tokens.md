@@ -9,7 +9,7 @@ Anyone can create a digital token on Bitcoin, Litecoin, or Dogecoin using XChain
 
 ## What Is a Token?
 
-A token is a digital asset that you define and control. Think of it like issuing your own currency, loyalty points, membership pass, or digital collectible, exceptinstead of a bank or company managing the records, the blockchain does. Every token balance, every transfer, every rule change is recorded permanently on Bitcoin, Litecoin, or Dogecoin.
+A token is a digital asset that you define and control. Think of it like issuing your own currency, loyalty points, membership pass, or digital collectible, except instead of a bank or company managing the records, the blockchain does. Every token balance, every transfer, every rule change is recorded permanently on Bitcoin, Litecoin, or Dogecoin.
 
 Once created, your token can be sent between addresses, traded on the built-in exchange, distributed to thousands of people at once, or used as the basis for a business application. The rules you set at creation determine what anyone (including you) can do with it later.
 
@@ -33,7 +33,9 @@ A few things to know when choosing a name:
 
 If you add a parent token name followed by a period and a suffix (for example `MYTOKEN.SILVER`) you create a **sub-token**. Sub-tokens are cheaper to create than top-level tokens and are useful for organizing related assets under a common brand.
 
-Think of a parent token like a company, and sub-tokens like individual product lines under that company. The naming connection is a convention; owning `MYTOKEN` does not automatically grant you control over `MYTOKEN.SILVER`, but you can create sub-tokens under any top-level name you own.
+Think of a parent token like a company, and sub-tokens like individual product lines under that company. The naming connection is enforced by the protocol, not just a convention: `MYTOKEN` must already exist, and only its current owner can create `MYTOKEN.SILVER`, so nobody else can register a direct child of a name you hold. The rule applies one level at a time: `MYTOKEN.SILVER.COIN` is gated on whoever owns `MYTOKEN.SILVER`, so once you sell a sub-token its new owner controls the names beneath it. Creation is also refused while the parent's ownership is escrowed in an open ownership offer.
+
+Each sub-token gets its own ownership record once it exists. Selling `MYTOKEN` does not hand over the sub-tokens already issued under it, and selling `MYTOKEN.SILVER` does not give the buyer any claim on the parent.
 
 ---
 
@@ -82,7 +84,7 @@ You can restrict which addresses are allowed to interact with your token. The li
 
 Because the sending address is checked too, taking a holder off the allow list (or adding them to the block list) freezes the balance they already hold: they keep it, but they cannot move it until the lists change.
 
-Both lists reference named lists you define on-chain using the LIST action. You can update these lists at any time, unlessyou choose to lock them permanently.
+Both lists reference named lists you define on-chain using the LIST action. You can update these lists at any time, unless you choose to lock them permanently.
 
 ---
 

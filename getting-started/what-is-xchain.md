@@ -172,7 +172,7 @@ ACTIONs are encoded as compact pipe-delimited strings embedded inside standard b
 
 Every economy needs a way to pay for operations. XChain uses a token called **XCHAIN** as its gas token; the fee currency for actions that write to the database. Creating tokens, minting supply, placing orders: these actions cost XCHAIN.
 
-XCHAIN is itself just a token on XChain, issued by a designated address (called the GAS address) for each chain. The GAS address is a configuration parameter, operators of private deployments can define their own GAS address and bootstrap XCHAIN supply however they choose.
+XCHAIN is itself just a token on XChain, issued via `ISSUE` by a designated address called the GAS address. On the public network it is issued on the BTC chain only and does not exist natively on LTC or DOGE, where fees are paid in native coin; the ticker is reserved on every chain so nobody else can issue it (see [Gas and Fees](../concepts/gas.md)). The GAS address itself is a per-chain configuration parameter, so operators of private deployments can define their own GAS address and bootstrap XCHAIN supply however they choose.
 
 ---
 

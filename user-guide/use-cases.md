@@ -148,7 +148,7 @@ XChain actions involved: ISSUE, ORDER.
 
 ### Automated Sales via Dispensers
 
-Set up a dispenser to sell your tokens at a fixed price, 24 hours a day, without any manual involvement. Buyers send the right amount of coin and receive tokens automatically. This is ideal for token sales, fundraisers, or any scenario where you want continuous, reliable availability without running a backend server.
+Set up a dispenser to sell your tokens 24 hours a day, without any manual involvement, at a fixed coin rate or at a fiat or token price. Buyers send the right amount and receive tokens automatically. This is ideal for token sales, fundraisers, or any scenario where you want continuous, reliable availability without running a backend server.
 
 XChain actions involved: ISSUE, DISPENSER.
 

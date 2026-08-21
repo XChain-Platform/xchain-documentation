@@ -82,10 +82,10 @@ service-carried in `xchain-indexer/protocol_changes.js` and the `xchain-vm` gate
 table below), byte-guarded against each other rather than against this file, pending a future
 consolidation.
 
-Ten later consensus gates are armed but **not yet folded into `constants.js`**: they currently live
+Eleven later consensus gates are armed but **not yet folded into `constants.js`**: they currently live
 only as service-carried modules (see [Additional armed gates](#additional-armed-gates-service-carried)
 below). Until they are consolidated here, `constants.js` is not the complete inventory, and each of
-those ten is guarded against whatever twin it has rather than against this file. Several are
+those eleven is guarded against whatever twin it has rather than against this file. Several are
 **indexer-only** by design: a gate on the execution path (which actions or deploys validate) has no
 `xchain-sync` twin at all, because `BlockHasher` replicates already-materialized rows and never
 re-runs an action handler, a deploy validator, or the VM.

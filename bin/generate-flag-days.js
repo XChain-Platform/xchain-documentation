@@ -90,6 +90,56 @@ function lineAt(text, index) {
     return text.slice(0, index).split('\n').length;
 }
 
+// The characters after which a `/` cannot be dividing a finished operand, so
+// it opens a regex literal. Kept byte-identical to the twin in
+// lib/env-var-doc-coverage.js.
+const REGEX_POSITION_AFTER = new Set(['(', ',', '=', ':', '[', '!', '&', '|', '?', '{', '}', ';', '+', '-', '*', '%', '<', '>', '~', '^']);
+const REGEX_POSITION_KEYWORDS = new Set(['return', 'typeof', 'case', 'in', 'of', 'new', 'delete', 'void', 'do', 'else', 'yield', 'await']);
+
+/**
+ * The index just past the regex literal starting at `i`, or -1 when there is
+ * no literal here to read.
+ *
+ * FAIL-SAFE BY CONSTRUCTION. Both ambiguous cases return -1, which leaves the
+ * caller doing exactly what it did before this existed: a `/` that follows a
+ * finished operand (so it divides), and a literal with no unescaped closing
+ * `/` before the newline (so the line is not the shape it looked like). Only
+ * an unambiguous literal takes the branch, so the walk is a strict superset of
+ * the previous behaviour rather than a new guess.
+ *
+ * RESIDUAL LIMIT, and it is deliberate: `}` and `{` are read as regex position
+ * even though a division can legally follow a block, and a division after
+ * `)` or `]` is always read as division even though no regex can follow those.
+ * Both readings are wrong only for source that does not exist here (measured
+ * 2026-08-20 across all 696 production files in the 11 gated components: zero
+ * change to the env-read survey and zero change to the computed-read ratchet).
+ *
+ * `[...]` classes are honoured, because a `/` inside one does not close.
+ */
+function regexLiteralEnd(text, i) {
+    let k = i - 1;
+    while (k >= 0 && (text[k] === ' ' || text[k] === '\t')) k--;
+    if (k >= 0 && text[k] !== '\n' && !REGEX_POSITION_AFTER.has(text[k])) {
+        if (!/[A-Za-z0-9_$]/.test(text[k])) return -1;
+        let start = k;
+        while (start >= 0 && /[A-Za-z0-9_$]/.test(text[start])) start--;
+        if (!REGEX_POSITION_KEYWORDS.has(text.slice(start + 1, k + 1))) return -1;
+    }
+
+    let j = i + 1;
+    let inClass = false;
+    while (j < text.length) {
+        const c = text[j];
+        if (c === '\n') return -1;
+        if (c === '\\') { j += 2; continue; }
+        if (inClass) { if (c === ']') inClass = false; j++; continue; }
+        if (c === '[') { inClass = true; j++; continue; }
+        if (c === '/') return j + 1;
+        j++;
+    }
+    return -1;
+}
+
 /**
  * Blanks every comment body, keeping length and newlines so offsets and line
  * numbers still line up with the raw text.
@@ -98,6 +148,11 @@ function lineAt(text, index) {
  * code inside a block comment is not a declaration: a leading-token test only
  * recognises the slash-slash and star shapes, so a commented-out call whose own
  * line starts with `this.` read as live and failed the build over nothing.
+ *
+ * A REGEX LITERAL IS COPIED WHOLE for the same reason a string is: the `//`
+ * inside `text.replace(/\/\//, '-')` starts no comment, and blanking from it
+ * drops every declaration later on that line. See `regexLiteralEnd` for the
+ * two shapes still read as division rather than as a literal.
  */
 function withoutComments(text) {
     let out = '';
@@ -115,6 +170,16 @@ function withoutComments(text) {
             const end = text.indexOf('*/', i + 2);
             const stop = end === -1 ? text.length : end + 2;
             out += blank(text.slice(i, stop)); i = stop; continue;
+        }
+        if (text[i] === '/') {
+            // Copy the regex literal whole: the `//` inside one starts no
+            // comment. Runs AFTER the two branches above, never before them,
+            // because `//` is how JavaScript itself spells a comment rather
+            // than an empty literal: testing this first reads every ordinary
+            // comment line as a zero-length regex, leaves the body live, and
+            // any apostrophe in it then opens a string that eats the file.
+            const end = regexLiteralEnd(text, i);
+            if (end !== -1) { out += text.slice(i, end); i = end; continue; }
         }
         const ch = text[i];
         if (ch === "'" || ch === '"' || ch === '`') {

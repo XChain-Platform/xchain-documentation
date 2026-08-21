@@ -40,8 +40,8 @@ After `install`, all the following services are running locally:
 | Service | Default Port | Role |
 |---|---|---|
 | Bitcoin node (regtest) | 18443 | Coin node |
-| xchain-decoder | None | Polls node, writes to Decoder DB |
-| xchain-indexer | None | Processes actions, writes to Indexer DB |
+| xchain-decoder | 3002 | Polls node, writes to Decoder DB |
+| xchain-indexer | 3004 | Processes actions, writes to Indexer DB |
 | xchain-explorer | 8080 | REST API + web UI |
 | xchain-encoder | 3003 | PSBT builder |
 | xchain-hub | 10000 | Config oracle |

@@ -59,7 +59,7 @@ Yes. A token has two separate things attached to it: the *balances* (who holds h
 
 ### What are sub-tokens?
 
-Sub-tokens are tokens whose names contain a period, like `BRAND.GOLD` or `PLATFORM.MEMBERSHIP`. The naming convention groups related tokens under a shared prefix. Sub-tokens are cheaper to create than top-level tokens. Owning a top-level token does not automatically give you control over sub-tokens with that prefix; but if you own the top-level token, you can establish that association as a convention for your ecosystem.
+Sub-tokens are tokens whose names contain a period, like `BRAND.GOLD` or `PLATFORM.MEMBERSHIP`. The naming link is enforced by the protocol, not left to convention: `BRAND` must already exist and only its current owner can create `BRAND.GOLD`, so nobody else can register a direct child of a name you hold. The check is one level deep: the owner of `BRAND.GOLD` is the one who can create `BRAND.GOLD.COIN`, so names beneath a sub-token follow that sub-token when it is sold. Sub-tokens are cheaper to create than top-level tokens. Once created, each sub-token carries its own ownership record, so a sub-token you have sold or transferred away is no longer yours even though you still own the top-level name.
 
 ### Can a token be permanently destroyed?
 
@@ -75,7 +75,7 @@ The XChain DEX is an on-chain order book. When you place a buy or sell order, it
 
 ### What is a dispenser?
 
-A dispenser is a token vending machine. You set it up with a token, a price in coin (BTC, LTC, or DOGE), and a maximum number of sales. Anyone who sends the correct amount of coin to the dispenser address automatically receives the tokens. It works 24 hours a day without any action from you, up until the expiration you set for it (90 days by default). When a dispenser expires it closes automatically and any tokens still in it are returned to you, so no dispenser runs indefinitely. Dispensers are useful for token sales, fundraisers, and any situation where you want reliable, hands-off availability at a fixed price.
+A dispenser is a token vending machine. You set it up with a token, a price, and a maximum number of sales. Anyone who sends the correct payment to the dispenser address automatically receives the tokens. The price is usually an amount of coin (BTC, LTC, or DOGE); it can instead be an amount of another token, or an amount in a traditional currency such as USD, in which case the buyer still pays in coin and the coin amount tracks the exchange rate at the time of purchase. See [How dispensers are priced](./trading.md#how-dispensers-are-priced). It works 24 hours a day without any action from you, up until the expiration you set for it (90 days by default). When a dispenser expires it closes automatically and any tokens still in it are returned to you, so no dispenser runs indefinitely. Dispensers are useful for token sales, fundraisers, and any situation where you want reliable, hands-off availability without negotiating with buyers.
 
 ### Can I trade tokens across different blockchains?
 
