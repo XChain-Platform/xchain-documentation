@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The decoder configuration reference documents the mempool response cache duration.
 - The sync configuration reference documents the replication-connection setting for multi-source replicas, and names the MariaDB privilege that replica-status reads actually require.
 - The open-mint terms now carry a 1,000 XCHAIN per-address cap in the white paper, overview and genesis runbook, enforced by the distribution-figures test.
 - The regtest guide now documents creating XCHAIN and minting gas on a fresh chain, replacing the incorrect claim that a pre-funded GAS address exists, and explains seeding oracle prices for native-coin fees.
