@@ -17,6 +17,7 @@ This section covers everything needed to deploy, configure, monitor, and maintai
 | [Disk Management](./disk-management.md) | Moving a chain's block data or datadir to a larger disk safely |
 | [Reorg Handling](./reorg-handling.md) | How the platform detects and recovers from blockchain reorganizations |
 | [Upgrading](./upgrading.md) | One command updates everything installed; granular control and rollback |
+| [Releases](./releases.md) | Every published train, its component set, and how to install a specific one |
 | [Release Process](./release-process.md) | How a release train is cut, signed and published, and how hotfixes ship |
 | [Release Signing](./release-signing.md) | The platform release key, and how to verify a download against it |
 | [Troubleshooting](./troubleshooting.md) | Common problems and how to diagnose and fix them |
