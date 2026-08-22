@@ -115,14 +115,15 @@ test('the generated flag-day page matches the indexer registry', { skip: HAS_IND
     );
 });
 
-test('both registry parses still find their gates', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
-    // collectGates reads the registry with two independent regexes, and the
-    // check above cannot tell you when one of them stops matching: it compares
-    // the COMMITTED page against a fresh render, so it goes red only until
-    // somebody regenerates. Regenerating on a broken parse rewrites the page to
-    // agree with the loss, and the gate list then ships one row short with
-    // every test green. These names are the anchor that survives that, one per
-    // parse path, so a formatting change or a rename fails here first.
+test('all three gate-collection paths still find their gates', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+    // collectGates reads the registry with two independent regexes and then
+    // scans the sibling `*_activation.js` modules, and the check above cannot
+    // tell you when one of the three stops matching: it compares the COMMITTED
+    // page against a fresh render, so it goes red only until somebody
+    // regenerates. Regenerating on a broken parse rewrites the page to agree
+    // with the loss, and the gate list then ships one row short with every test
+    // green. These names are the anchor that survives that, one per collection
+    // path, so a formatting change or a rename fails here first.
     const byName = new Map(gen.collectGates().map((g) => [g.gate, g.time]));
 
     // `const NAME_MAINNET_TIME = ...` path (collectGates strips the suffix).
@@ -137,12 +138,29 @@ test('both registry parses still find their gates', { skip: HAS_INDEXER ? false 
         'DEPLOY_BASE64_CODE is absent from collectGates(): the addChange(...) parse in '
         + 'bin/generate-flag-days.js stopped matching, so protocol/flag-days.md is short a row.');
 
-    // All three ride the coordinated instant. Asserted as equality against a
+    // Sibling `const NAME_ACTIVATION = { mainnet: ... }` path
+    // (collectSiblingGates). The two anchors above read one named file; this
+    // path reads a DIRECTORY listing filtered on the `_activation.js` suffix,
+    // so a module renamed off that suffix, moved out of src/, or restyled into
+    // one of the shapes the scan is deliberately quiet about (`mainnet:
+    // SOME_CONSTANT`, a bare `null`) drops its row with nothing loud. The
+    // fixture tests below prove the scan's logic against a throwaway tree and
+    // by construction cannot see that drift in the real one. Today this path
+    // alone sources three published rows.
+    assert.ok(byName.has('DISPENSER_CAPS_ACTIVATION'),
+        'DISPENSER_CAPS_ACTIVATION is absent from collectGates(): the sibling `*_activation.js` '
+        + 'scan in bin/generate-flag-days.js stopped reaching its module, so protocol/flag-days.md '
+        + 'is short a row. It is declared only in xchain-indexer/src/dispenser_caps_activation.js.');
+
+    // All four ride the coordinated instant. Asserted as equality against a
     // value read from the registry, never as a literal: a repin is legitimate
-    // and must not have to edit this file.
+    // and must not have to edit this file. The sibling gate belongs in this
+    // list on its own module's authority: dispenser_caps_activation.js pins
+    // mainnet to "the coordinated 2.0.0 contract-era flag-day" in the comment
+    // above the map.
     const anchor = gen.coordinatedFlagDay(gen.collectGates()).time;
     assert.ok(anchor >= gen.TIMESTAMP_FLOOR && anchor < gen.SENTINEL_FLOOR, 'the anchor is not a plausible gate time');
-    for (const gate of ['VM_BANNED_ASYNC', 'NATIVE_FEE_PRICE_TIME_GATE', 'DEPLOY_BASE64_CODE']) {
+    for (const gate of ['VM_BANNED_ASYNC', 'NATIVE_FEE_PRICE_TIME_GATE', 'DEPLOY_BASE64_CODE', 'DISPENSER_CAPS_ACTIVATION']) {
         assert.strictEqual(byName.get(gate), anchor, `${gate} no longer rides the coordinated flag day`);
     }
 });

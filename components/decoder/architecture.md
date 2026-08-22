@@ -85,7 +85,7 @@ Each transaction is parsed with bitcoinjs-lib. Before parsing:
 - **Litecoin**: the HogEx/MWEB witness flag (0x08 or 0x09) is stripped from the raw transaction bytes, as Litecoin uses a non-standard variant that bitcoinjs-lib does not natively support
 - **Dogecoin**: AuxPoW headers are stripped from block data using `getBlockWithoutAuxPow()`, because merge-mined blocks embed auxiliary proof-of-work data that precedes the standard block header
 
-After parsing, the decoder scans each transaction's outputs looking for XChain payloads in four formats:
+After parsing, the decoder scans each transaction's outputs looking for XChain payloads in the four script-output formats:
 
 | Script Type | Detection | Data Extraction |
 |---|---|---|
@@ -93,6 +93,8 @@ After parsing, the decoder scans each transaction's outputs looking for XChain p
 | P2SH | OP_RETURN decrypts to `XCHNp2sh` marker | Reassembled from redeem scripts across all inputs' scriptSigs |
 | P2WSH | OP_RETURN decrypts to `XCHNp2wsh` marker | Reassembled from witness scripts across all inputs' witness data |
 | 1-of-3 Multisig | 6-element decompiled script with OP_1...OP_CHECKMULTISIG | Data packed into pubkeys 1 & 2 (first byte stripped), trailing zeros removed |
+
+The fifth format, the [Taproot envelope](../../protocol/taproot-envelope.md), is not an output scan. The decoder reads input 0's witness stack from the end (control block last, script second-to-last, per BIP341) and pattern-matches the script against the envelope grammar `OP_FALSE OP_IF <"XCHN"> <format byte> <payload pushes> OP_ENDIF`, reassembling the payload from its 520-byte elements. The magic and format byte are cleartext, so recognition costs no deobfuscation attempt. Recognition is height-gated per chain and never fires on Dogecoin, which has no SegWit and therefore no Taproot. The action is attributed to the address that funded the commit transaction, the same walk-back the P2SH and P2WSH reveals use.
 
 ## AES-128-CTR Deobfuscation
 

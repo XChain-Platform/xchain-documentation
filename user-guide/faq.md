@@ -9,7 +9,7 @@
 
 ### What is XChain?
 
-XChain is a token protocol that runs on top of existing blockchains; Bitcoin, Litecoin, and Dogecoin. It lets anyone create and manage digital tokens, trade them on a built-in decentralized exchange, and store data permanently on-chain, all using standard blockchain transactions. There is no separate XChain blockchain. Instead, XChain embeds its instructions invisibly inside normal Bitcoin, Litecoin, and Dogecoin transactions, and a network of indexer nodes reads and executes those instructions. The result is a full-featured token platform with the security and permanence of the world's most established blockchains underneath it.
+XChain is a token protocol that runs on top of existing blockchains. It is chain-agnostic by design and live today on Bitcoin, Litecoin, and Dogecoin, with more chains to come. It lets anyone create and manage digital tokens, trade them on a built-in decentralized exchange, and store data permanently on-chain, all using standard blockchain transactions. There is no separate XChain blockchain. Instead, XChain embeds its instructions invisibly inside ordinary transactions on its host chain, and a network of indexer nodes reads and executes those instructions. The result is a full-featured token platform with the security and permanence of the world's most established blockchains underneath it.
 
 ### Is XChain its own blockchain?
 
@@ -17,7 +17,7 @@ No. XChain is a protocol layer that sits on top of existing blockchains. It does
 
 ### Which blockchains does XChain support?
 
-XChain currently supports Bitcoin, Litecoin, and Dogecoin, including their respective test networks. The protocol is designed to work with any Bitcoin-compatible blockchain, so adding new chains is a straightforward configuration change rather than a major engineering effort.
+XChain currently supports Bitcoin, Litecoin, and Dogecoin, including their respective test networks, with more chains coming. The protocol is designed to work with any Bitcoin-compatible blockchain, so adding a new UTXO chain is a straightforward configuration change rather than a major engineering effort. Account-model ecosystems such as Ethereum and Solana are a longer-term roadmap item (see [Scope and Non-Goals](../concepts/scope-and-non-goals.md)).
 
 ### Is XChain decentralized?
 
@@ -59,7 +59,7 @@ Yes. A token has two separate things attached to it: the *balances* (who holds h
 
 ### What are sub-tokens?
 
-Sub-tokens are tokens whose names contain a period, like `BRAND.GOLD` or `PLATFORM.MEMBERSHIP`. The naming convention groups related tokens under a shared prefix. Sub-tokens are cheaper to create than top-level tokens. Owning a top-level token does not automatically give you control over sub-tokens with that prefix; but if you own the top-level token, you can establish that association as a convention for your ecosystem.
+Sub-tokens are tokens whose names contain a period, like `BRAND.GOLD` or `PLATFORM.MEMBERSHIP`. The naming link is enforced by the protocol, not left to convention: `BRAND` must already exist and only its current owner can create `BRAND.GOLD`, so nobody else can register a direct child of a name you hold. The check is one level deep: the owner of `BRAND.GOLD` is the one who can create `BRAND.GOLD.COIN`, so names beneath a sub-token follow that sub-token when it is sold. Sub-tokens are cheaper to create than top-level tokens. Once created, each sub-token carries its own ownership record, so a sub-token you have sold or transferred away is no longer yours even though you still own the top-level name.
 
 ### Can a token be permanently destroyed?
 
@@ -75,7 +75,7 @@ The XChain DEX is an on-chain order book. When you place a buy or sell order, it
 
 ### What is a dispenser?
 
-A dispenser is a token vending machine. You set it up with a token, a price in coin (BTC, LTC, or DOGE), and a maximum number of sales. Anyone who sends the correct amount of coin to the dispenser address automatically receives the tokens. It works 24 hours a day without any action from you, up until the expiration you set for it (90 days by default). When a dispenser expires it closes automatically and any tokens still in it are returned to you, so no dispenser runs indefinitely. Dispensers are useful for token sales, fundraisers, and any situation where you want reliable, hands-off availability at a fixed price.
+A dispenser is a token vending machine. You set it up with a token, a price, and a maximum number of sales. Anyone who sends the correct payment to the dispenser address automatically receives the tokens. The price is usually an amount of coin (BTC, LTC, or DOGE); it can instead be an amount of another token, or an amount in a traditional currency such as USD, in which case the buyer still pays in coin and the coin amount tracks the exchange rate at the time of purchase. See [How dispensers are priced](./trading.md#how-dispensers-are-priced). It works 24 hours a day without any action from you, up until the expiration you set for it (90 days by default). When a dispenser expires it closes automatically and any tokens still in it are returned to you, so no dispenser runs indefinitely. Dispensers are useful for token sales, fundraisers, and any situation where you want reliable, hands-off availability without negotiating with buyers.
 
 ### Can I trade tokens across different blockchains?
 

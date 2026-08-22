@@ -5,7 +5,7 @@
 
 ## What is xchain-wallet
 
-xchain-wallet is the reference self-custodial wallet for the XChain Platform. It runs as a browser web app, a Chrome MV3 extension (popup + full-screen + side panel), a desktop application (Windows / macOS / Linux), and a Capacitor mobile app (Android now, iOS later), all from a single React codebase published as a pnpm workspace. The wallet supports Bitcoin, Dogecoin, and Litecoin at launch, with additional chains added as the platform adds them. It consumes [xchain-sdk](../sdk/) as its only data and signing layer and never duplicates SDK functionality.
+xchain-wallet is the reference self-custodial wallet for the XChain Platform. It runs as a browser web app, a Chrome MV3 extension (popup + full-screen + side panel), a desktop application (Windows / macOS / Linux), and a Capacitor mobile app (Android now, iOS later), all from a single React codebase published as a pnpm workspace. The wallet supports Bitcoin, Litecoin, and Dogecoin at launch, with additional chains added as the platform adds them. It consumes [xchain-sdk](../sdk/) as its only data and signing layer and never duplicates SDK functionality.
 
 The wallet implements every XChain feature exposed by the platform: all 31 user-encodable ACTION types, a built-in DEX surface, encrypted messaging (ECIES / ECDH / AES), smart contracts, BTC staking + delegation, classical n-of-m + MuSig2 multisig, cross-chain flows, dispensers, parimutuel betting markets, on-chain governance voting, a `window.xchain` dApp bridge, and air-gapped PSBT signing via animated QR transport.
 

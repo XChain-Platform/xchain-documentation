@@ -13,7 +13,7 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 
 - **Three interfaces**: REST API, JSON-RPC 2.0, and a web block explorer served from the same process
 - **200+ REST endpoints**: tokens, balances, transactions, market data, DEX state, addresses, blocks, files, messages, and more
-- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest (9 networks)
+- **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin today, on mainnet, testnet, and regtest (9 networks)
 - **Read-only**: the explorer never writes to the Indexer database
 - **Config discovery**: fetches configuration from xchain-hub on startup and refreshes every 60 seconds
 - **SSL/TLS support**: serves both HTTP and HTTPS with configurable certificates

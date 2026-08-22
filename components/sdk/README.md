@@ -5,7 +5,7 @@
 
 ## What is xchain-sdk
 
-xchain-sdk is the developer-facing Software Development Kit for the XChain Platform. It lets you generate XChain ACTION commands (SEND, ISSUE, MINT, ORDER, and more), encode them into unsigned Bitcoin, Dogecoin, or Litecoin transactions (as PSBTs), and query live blockchain data (balances, token information, transaction history, market orders) from the XChain Explorer API. The SDK runs both as a Node.js library you import directly into your own code and as a standalone JSON-RPC microservice.
+xchain-sdk is the developer-facing Software Development Kit for the XChain Platform. It lets you generate XChain ACTION commands (SEND, ISSUE, MINT, ORDER, and more), encode them into unsigned Bitcoin, Litecoin, or Dogecoin transactions (as PSBTs), and query live blockchain data (balances, token information, transaction history, market orders) from the XChain Explorer API. The SDK runs both as a Node.js library you import directly into your own code and as a standalone JSON-RPC microservice.
 
 ## Features
 
@@ -25,7 +25,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - Contract authoring utilities: syntax validation, float detection, base64 encoding, gas estimation
 - Bound ContractClient for repeated interactions with a specific deployed contract
 - Encode actions into unsigned PSBTs via the xchain-encoder service
-- Support for all encoding formats: OP_RETURN, P2SH, P2WSH, multisign
+- Support for all encoding formats: OP_RETURN, P2SH, P2WSH, MULTISIGN, TAPROOT, plus AUTO for smallest-footprint selection
 - Fluent BatchBuilder for constructing multi-action BATCH transactions
 - Full Explorer API client: balances, tokens, transactions, history, markets, orderbook, contracts
 - Automatic retry with exponential backoff and jitter (respects Retry-After headers)
@@ -38,7 +38,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - JSON-RPC microservice mode (server)
 - Browser bundle (minified and development builds)
 - Wallet key management: generate key pairs, import WIF keys, derive P2PKH/P2WPKH/P2SH-P2WPKH addresses
-- Address validation against all supported networks (Bitcoin, Litecoin, Dogecoin)
+- Address validation against all supported networks (Bitcoin, Litecoin, and Dogecoin today)
 - PSBT signing: sign unsigned PSBTs from the encoder with a WIF private key, finalize, and extract raw transaction hex
 - Transaction broadcasting: broadcast signed transactions to the coin node via the encoder
 - UTXO queries: fetch address UTXOs via the encoder (proxied from xchain-utxo-tracker)
@@ -48,7 +48,7 @@ xchain-sdk is the developer-facing Software Development Kit for the XChain Platf
 - Public key resolution: automatic lookup of recipient public keys from on-chain transaction data
 - High-level messaging API: `sendMessage()` handles pubkey lookup, encryption, PSBT signing, and broadcasting in one call
 - TypeScript type definitions included (`index.d.ts`)
-- Supports Bitcoin, Dogecoin, and Litecoin on mainnet, testnet, and regtest
+- Supports every chain the platform runs on, today Bitcoin, Litecoin, and Dogecoin, on mainnet, testnet, and regtest
 
 ## Documentation
 

@@ -28,7 +28,7 @@ Note: the key/IV are derived from the *spending* transaction's first input txid,
 
 ## Layer 2: Embedding Formats
 
-The obfuscated payload needs to be stored somewhere in the transaction that a standard node will accept and propagate. XChain supports four embedding formats, each with different capacity and transaction structure tradeoffs.
+The payload needs to be stored somewhere in the transaction that a standard node will accept and propagate. XChain supports five embedding formats, each with different capacity and transaction structure tradeoffs: four script-output lanes (OP_RETURN, multisig, P2SH, P2WSH) and the Taproot envelope, which carries the payload in a tapscript witness and exists only on chains that have Taproot.
 
 ### OP_RETURN
 

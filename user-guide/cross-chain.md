@@ -3,7 +3,7 @@
 
 # Cross-Chain Trading on XChain
 
-XChain runs on Bitcoin, Litecoin, and Dogecoin simultaneously; but these are separate blockchains. A token created on Bitcoin exists on Bitcoin. A token created on Litecoin exists on Litecoin. Normally, trading between them would require a bridge, a centralized exchange, or a complex multi-step process involving trust in a third party.
+XChain runs on every supported chain simultaneously, today Bitcoin, Litecoin, and Dogecoin; but these are separate blockchains. A token created on Bitcoin exists on Bitcoin. A token created on Litecoin exists on Litecoin. Normally, trading between them would require a bridge, a centralized exchange, or a complex multi-step process involving trust in a third party.
 
 XChain solves this with **SWAP**; a cross-chain exchange that lets you trade tokens on one blockchain for tokens on another, without any intermediary holding your assets.
 

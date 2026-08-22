@@ -168,6 +168,7 @@ const action = sdk.batch()
 | Max one top-level ISSUE per batch | One undotted ticker can be created or updated per batch |
 | Child ISSUEs are unlimited | An ISSUE whose ticker contains a dot (`JDOG.1`) does not use the top-level slot |
 | Max 250 commands per batch | Counted over the whole semicolon-separated list, empty entries included, so a trailing `;` costs a slot |
+| Weighted cost budget | Once cost weighting activates, command weights must sum to at most the budget; see [Command Weights](#command-weights) |
 | Max one MINT per batch | Only one MINT action allowed |
 | No nested BATCH | BATCH cannot contain another BATCH |
 | Max one FILE per batch | A BATCH can include at most one FILE action (one raw data payload per transaction) |
@@ -195,6 +196,29 @@ Most failures affect one command. These reject the batch as a single record, bef
 - a sending address that provably cannot afford even the cheapest command in the list
 
 That last one is a lower bound, not a budget check. Fees are charged in list order against one running balance, so an address that can pay for some of the commands is let through and lands the ones it can pay for.
+
+---
+
+## Command Weights
+
+Today a batch is bounded by a flat count: at most 250 commands, each counting as one. At/after the cost-weighting activation the bound becomes a **weight budget of 250**: each command carries a cost weight, and the whole batch is rejected (same `invalid: COMMAND (limit)` error as the count cap) when the weights add up to more than the budget. There are three cost regimes:
+
+| Class | Actions | Weight |
+|---|---|---|
+| Ordinary | everything not listed below | 1 |
+| Fan-out | `AIRDROP`, `DIVIDEND` | 25 |
+| VM | `DEPLOY`, `EXECUTE`, `XEXEC` | 30 |
+
+What that means in practice:
+
+- An ordinary command keeps the default weight of 1, so a batch with no VM and no fan-out action behaves exactly as before: same 250 bound, same error string. If your batches are sends, issues and mints, nothing changes for you.
+- Weights mix arithmetically. Two `EXECUTE`s (60) plus one `AIRDROP` (25) leave a budget of 165 for ordinary sub-commands in the same batch.
+- A full batch of VM sub-commands is 8 (8 x 30 = 240); a full batch of fan-out sub-commands is 10 (10 x 25 = 250).
+- A chunked contract deployment (a format-4 `DEPLOY` chunk carrier) weighs the default 1 rather than the VM weight: carrying code bytes is a data write, not a contract run, so uploading a large contract in chunks stays cheap.
+- The per-action caps above do not move: one `MINT`, one top-level `ISSUE` and at most one `DEPLOY` per batch at the protocol level (the SDK builder does not compose a `DEPLOY` at all), weighted or not.
+- The count cap is still checked first, and every weight is at least 1, so more than 250 commands always busts the budget too.
+
+*Like the other batch limits, the weighted budget is live on testnet and regtest and not yet switched on for mainnet.*
 
 ---
 
@@ -232,7 +256,7 @@ async function safeBroadcast(action) {
 
 ## Transaction Size Considerations
 
-Each action in a batch adds bytes to the embedded payload. OP_RETURN is limited to 80 bytes per output (76 bytes of user data plus the 4-byte XCHN prefix), so larger batches are automatically encoded as P2SH or P2WSH (two-transaction pattern). The encoder handles this transparently, check `psbt.format` in the response to see which encoding was used.
+Each action in a batch adds bytes to the embedded payload. OP_RETURN is limited to 80 bytes per output (76 bytes of user data plus the 4-byte XCHN prefix), so larger batches fall back to P2SH automatically (two-transaction pattern). P2WSH and the TAPROOT envelope are not reached by that fallback: request them with an explicit `encoding`, or pass `encoding: AUTO` to have the encoder pick the cheapest lane the network and signer support. Check `psbt.format` in the response to see which encoding was used.
 
 ```js
 const psbt = await sdk.encoder.createPSBT({ action: batchAction, ... });

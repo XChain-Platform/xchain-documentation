@@ -3,7 +3,7 @@
 
 # XChain Platform SDK: Cross-Chain Helpers
 
-The `CrossChainHelper` class coordinates actions across multiple SDK instances connected to different blockchains (Bitcoin, Litecoin, Dogecoin).
+The `CrossChainHelper` class coordinates actions across multiple SDK instances connected to different blockchains (Bitcoin, Litecoin, and Dogecoin today).
 
 ---
 

@@ -29,13 +29,13 @@ These options are passed inside the `encoder` object when using action helpers, 
 | `pubkey` | string | Yes | Sender's public key (hex) or address. Used to select UTXOs and build the change output. |
 | `change` | string | No | Change address. Defaults to `pubkey` on the encoder side if omitted. |
 | `utxos` | array | No | Explicit list of UTXO objects to spend. Pass `null` or omit to let the encoder auto-fetch from the UTXO tracker. |
-| `encoding` | string | No | Force a specific encoding type: `OP_RETURN`, `P2SH`, `P2WSH`, or `MULTISIGN`. Auto-selected by the encoder if omitted. |
+| `encoding` | string | No | Force a specific encoding type: `OP_RETURN`, `P2SH`, `P2WSH`, `MULTISIGN` or `TAPROOT`, or `AUTO` to let the encoder pick the smallest-footprint carrier the network and signer support. Omitted, the encoder falls back to the legacy two-tier choice between `OP_RETURN` and `P2SH`. |
 | `fee` | number | No | Fixed fee in satoshis. Takes precedence over `feePerKb`. |
 | `feePerKb` | number | No | Fee rate in satoshis per kilobyte for automatic fee calculation. |
 | `rbf` | boolean | No | Enable Replace-by-Fee signalling on all inputs. |
 | `dust` | number | No | Dust threshold override in satoshis. |
 | `unconfirmed` | boolean | No | Include unconfirmed UTXOs in selection. Defaults to `true` on the encoder side. |
-| `compressedPubKey` | string | No | A compressed public key (33-byte hex). Required when `encoding` is `MULTISIGN`. |
+| `compressedPubKey` | string | No | A compressed public key (33-byte hex). Required when `encoding` is `MULTISIGN`, and when it is `TAPROOT` (it becomes the envelope's internal key). |
 | `customOutputs` | array | No | Additional transaction outputs to include beyond the data output and change. |
 | `rawData` | string | No | Raw binary data appended after the ACTION string. Used by the FILE action for large payloads. |
 | `payFeeInNativeCoin` | boolean | No | Pay the XChain protocol fee in BTC/LTC/DOGE instead of in the token's gas balance. The SDK calls `sdk.quoteNativeFee()` first and refuses to build the transaction if the action cannot be priced (unsupported action or stale oracle). Valid only in `estimateFees()` and action-helper calls that go through `estimateFees`. |
@@ -44,14 +44,15 @@ These options are passed inside the `encoder` object when using action helpers, 
 
 ## Encoding Types
 
-The encoder supports four encoding strategies. Each trades off cost, data capacity, and transaction structure.
+The encoder supports five encoding strategies: four script-output lanes and the Taproot envelope. Each trades off cost, data capacity, and transaction structure.
 
 | Type | Max data per chunk | Notes |
 |---|---|---|
 | `OP_RETURN` | 80 bytes total (76 bytes user data) | Cheapest single-transaction encoding. Each output is 80 bytes: 4-byte `XCHN` magic prefix + 76 bytes for ACTION data. Auto-selected for small payloads. |
 | `P2SH` | 476 bytes | Two-phase transaction. Data is committed in a P2SH script (520 bytes minus 44 bytes of script overhead). Payloads larger than one chunk are split across multiple P2SH outputs (fund-then-spend pairs), up to the shared 8,192-byte compiled-ACTION ceiling. Auto-selected for anything above the OP_RETURN limit. |
-| `P2WSH` | 476 bytes | SegWit two-phase transaction. Same 476-byte chunking as `P2SH`; payloads larger than one chunk are split across multiple P2WSH outputs (fund-then-spend pairs), up to the shared 8,192-byte compiled-ACTION ceiling (`MAX_COMPILED_ACTION_DATA_LENGTH` in `xchain-encoder/src/validator.js`, decoder-wide, not P2WSH-specific). Best for FILE actions or large BATCH sequences. |
+| `P2WSH` | 476 bytes | SegWit two-phase transaction. Same 476-byte chunking as `P2SH`; payloads larger than one chunk are split across multiple P2WSH outputs (fund-then-spend pairs), up to the shared 8,192-byte compiled-ACTION ceiling (`MAX_COMPILED_ACTION_DATA_LENGTH` in `xchain-encoder/src/validator.js`, shared by all four script-output lanes, not P2WSH-specific). Best for FILE actions or large BATCH sequences. |
 | `MULTISIGN` | 60 bytes per chunk | Data spread across fake public keys in a multisig output. Requires `compressedPubKey`. Rarely used directly. |
+| `TAPROOT` | 390,000 bytes of payload total, pushed in 520-byte elements | The [Taproot envelope](../../protocol/taproot-envelope.md): one `createTx` call returns the commit and reveal PSBTs together, not the `p2shHash` two-call flow. It replaces the 8,192-byte ceiling with its own `ENVELOPE_MAX_PAYLOAD` of 390,000 bytes. Bitcoin and Litecoin only (Dogecoin has no SegWit), and only at or above that chain's envelope recognition height. Requires `compressedPubKey`, which becomes the envelope's internal key, and a signer that can produce a BIP341 script-path signature. |
 
 ---
 
@@ -62,7 +63,9 @@ When `encoding` is omitted the encoder chooses based on the byte length of the A
 - ACTION data fits in 76 bytes (user-data limit; 80 bytes total per output) → `OP_RETURN`
 - ACTION data is larger → `P2SH`
 
-`MULTISIGN` and `P2WSH` are never auto-selected; request them explicitly via the `encoding` parameter.
+`MULTISIGN`, `P2WSH` and `TAPROOT` are never chosen by that fallback; request them explicitly via the `encoding` parameter.
+
+Passing `encoding: 'AUTO'` opts into smallest-footprint selection instead: the encoder prices the payload after compression and picks the cheapest carrier the network and the caller's signer can actually use. It resolves to the Taproot envelope only when the chain has Taproot **and** the caller affirms `options.signerSupportsTapscript`. That flag defaults to false on purpose: the reveal has to be signable before the commit is broadcast, so selecting the envelope for a signer that cannot spend the leaf does not produce an error, it strands the committed funds. Without it, `AUTO` lands on `P2WSH` (or `P2SH` on a chain without SegWit).
 
 Relying on auto-selection is recommended for most use cases. Explicitly setting `encoding` is useful when you need deterministic output size or are working with the FILE action.
 
@@ -251,7 +254,7 @@ Both `encodeTx` and `spendP2sh` return the same structure:
 ```js
 {
     psbt:     '<hex string>',   // Partially Signed Bitcoin Transaction, ready to sign
-    encoding: '<string>'        // Encoding type actually used: 'OP_RETURN', 'P2SH', 'P2WSH', or 'MULTISIGN'
+    encoding: '<string>'        // Encoding type actually used: 'OP_RETURN', 'P2SH', 'P2WSH', 'MULTISIGN', or 'TAPROOT'. Never 'AUTO', which resolves to one of these first
 }
 ```
 

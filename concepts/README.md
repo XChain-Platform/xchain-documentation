@@ -12,7 +12,7 @@ This section explains the fundamental ideas behind the XChain Protocol. Each doc
 | [Tokens](./tokens.md) | The XChain token model: supply, decimals, ownership, and locking rules |
 | [Ledger](./ledger.md) | Double-entry accounting model underlying all balance and ownership tracking |
 | [Encoding](./encoding.md) | How ACTION data is embedded in blockchain transactions via AES-128-CTR obfuscation |
-| [Cross-Chain](./cross-chain.md) | How XChain coordinates token swaps across Bitcoin, Litecoin, and Dogecoin |
+| [Cross-Chain](./cross-chain.md) | How XChain coordinates token swaps across the chains it runs on |
 | [Gas](./gas.md) | The XCHAIN fee token: what it is, how it works, and why it exists |
 | [Security Model](./security-model.md) | Threat model, trust assumptions, and protocol-level security guarantees |
 | [Smart Contracts](./smart-contracts.md) | Programmable contract layer: sandboxed JavaScript VM with gas metering that orchestrates existing ACTIONs |

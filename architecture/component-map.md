@@ -85,10 +85,10 @@ See [`../components/indexer/`](../components/indexer/) for full documentation.
 
 Key technical details:
 
-- 234 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-07-29:
-  - 144 `/{COIN}/api/...` and 74 `/{COIN}/explorer/...` patterns in the dispatch table built by `setupUrls()`, matched by the catch-all handler rather than registered with Express individually.
+- 286 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, contract emissions, vote delegations, validator capabilities and slashing, chain reorgs, anchor reward attestations, per-block commitments, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-08-20:
+  - 170 `/{COIN}/api/...` and 100 `/{COIN}/explorer/...` patterns in the dispatch table built by `setupUrls()`, matched by the catch-all handler rather than registered with Express individually.
   - 16 hand-registered `/{COIN}/api/...` routes that bypass the dispatch table: raw file download, fee quote, oracle fee quote, preflight (registered twice, GET and POST, because the largest legal action does not fit a query string), fee schedule, checkpoint list, checkpoint range, checkpoint verify, hub-mirror status, the five Merkle proof endpoints (balance, locked balance, action, validator set, contract state), and the POST contract-call query endpoint.
-  - Outside those two namespaces the same server also registers 87 HTML page routes plus `/openapi.json`, `/icon`, `/relay`, and the static asset mounts.
+  - Outside those two namespaces the same server also registers 103 HTML page routes plus `/openapi.json`, `/icon`, `/relay`, and the static asset mounts.
 - JSON-RPC 2.0 interface compatible with Counterparty-style tooling.
 - Bootstrap-based web UI with Highcharts for order book and market price visualization.
 - Reads configuration from xchain-hub every 60 seconds (fee schedules, supported parameters, fiat pricing).
@@ -143,8 +143,8 @@ These services support the construction and submission of XChain transactions.
 
 Key technical details:
 
-- Auto-selects between `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx) and `P2SH` (476 bytes/chunk, 2 tx) based on payload size. `multisig` (~61 bytes/key, 1 tx) and `P2WSH` (476 bytes/chunk up to the 8,192-byte compiled-payload ceiling, 2 tx) are never auto-selected; they are used only when explicitly requested.
-- P2SH and P2WSH use a two-transaction pattern: fund tx commits funds to a script; reveal tx spends it, embedding the data in the unlocking script.
+- With `encoding` omitted, selects between `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx) and `P2SH` (476 bytes/chunk, 2 tx) by payload size. `MULTISIGN` (~61 bytes/key, 1 tx), `P2WSH` (476 bytes/chunk up to the 8,192-byte compiled-payload ceiling, 2 tx) and `TAPROOT` (the envelope, up to 390,000 bytes in one tapscript witness, 2 tx, segwit chains only) are never reached by that size fallback; they are used only when explicitly requested, or when `encoding: AUTO` opts into smallest-footprint selection.
+- P2SH and P2WSH use a two-transaction pattern: fund tx commits funds to a script; reveal tx spends it, embedding the data in the unlocking script. TAPROOT uses a commit/reveal pair returned together from one call.
 - Obfuscates payloads with AES-128-CTR. Key and IV are derived from the first input's txid, deterministic and reversible by any party with the txid.
 - Available as a Node.js JSON-RPC service and as a browser bundle via webpack.
 - The encoder itself has no per-chain specialization; coin node interaction happens at the caller level.
@@ -335,7 +335,7 @@ See [`../components/vm/`](../components/vm/) for full documentation.
 Key technical details:
 
 - Built on xchain-sdk; all action construction goes through the SDK's 31 developer-invocable ACTION methods.
-- Supports Bitcoin, Litecoin, and Dogecoin (mainnet, testnet, regtest) from the same codebase.
+- Supports every chain the platform runs on, today Bitcoin, Litecoin, and Dogecoin (mainnet, testnet, regtest), from the same codebase.
 - Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), and an Electron desktop application.
 - Private keys never leave the client; signing happens locally before broadcast.
 - Targets non-technical end users; UI language is intentionally plain (e.g., "About" not "Token Spec").

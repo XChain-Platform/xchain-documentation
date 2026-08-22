@@ -49,7 +49,7 @@ Your tokens are never at risk during an open order. They sit in protocol-level e
 
 ## Dispensers: Token Vending Machines
 
-A dispenser is a different kind of trading mechanism. Instead of matching orders, a dispenser works like a **vending machine**: you set a price, and anyone who sends the right amount of coin (BTC, LTC, or DOGE) to your dispenser address automatically receives tokens in return.
+A dispenser is a different kind of trading mechanism. Instead of matching orders, a dispenser works like a **vending machine**: you set a price, and anyone who sends the right payment to your dispenser address automatically receives tokens in return. The common setup is priced in coin (BTC, LTC, or DOGE), and a dispenser can also charge in another token or be priced in a traditional currency such as USD (see [How dispensers are priced](#how-dispensers-are-priced) below).
 
 ### How Dispensers Work
 
@@ -57,18 +57,32 @@ You set up a dispenser by specifying:
 
 - Which token you are selling
 - How many tokens are dispensed per purchase
-- The price in coin (what the buyer must send)
+- The price the buyer must pay, and what it is denominated in (see below)
 - How many times the dispenser can sell (up to 1,000 dispenses per fill; a refill buys another 1,000, see below)
 
-Once the dispenser is active, anyone anywhere can buy from it simply by sending the right amount of coin to the dispenser address. The tokens are sent back automatically. No interaction with you is required, you do not need to be online, you do not need to approve anything.
+Once the dispenser is active, anyone anywhere can buy from it simply by sending the right payment to the dispenser address. The tokens are sent back automatically. No interaction with you is required, you do not need to be online, you do not need to approve anything.
+
+A dispenser can also hand over a token's **ownership** instead of a balance. That kind of dispenser sells once and then closes: the first buyer to pay the asking price becomes the token's new issuer.
+
+### How Dispensers Are Priced
+
+A dispenser is priced in one of three ways, chosen when you create it:
+
+- **Priced in coin.** The buyer sends a set amount of BTC, LTC, or DOGE. This is the setup most dispensers use.
+- **Priced in a token.** The buyer pays a set amount of some other XChain token instead of coin.
+- **Priced in a traditional currency.** You denominate the dispenser in USD, JPY, GBP, or one of the other supported currencies, and the buyer still pays in coin. The amount of coin needed is worked out from the current exchange rate when the payment arrives, so it moves as the rate moves; the price in the currency you chose is what stays put.
+
+The first two are fixed prices: the buyer sends exactly the amount you set. The third is fixed in the currency you named, not in coin.
+
+For the encoding, the supported currencies, and how the exchange rate is sourced and matched, see the [DISPENSER action reference](../protocol/actions/dispenser.md).
 
 ### Benefits of Dispensers
 
 Dispensers are ideal when you want a reliable, always-on way to sell tokens:
 
-- **No counterparty needed.** The transaction is automatic, buyer sends coin, protocol sends tokens.
+- **No counterparty needed.** The transaction is automatic, buyer pays, protocol sends tokens.
 - **Always available.** Your dispenser works 24 hours a day, 7 days a week, without any action from you, up until the expiration you set for it.
-- **Fixed price clarity.** Buyers always know exactly what they will pay and what they will receive before sending anything, because the price is fixed when you create the dispenser and cannot be changed afterwards.
+- **Price clarity.** The price you set when you create the dispenser cannot be changed afterwards. On a coin-priced or token-priced dispenser buyers know the exact amount to send before sending anything; on a dispenser priced in a traditional currency the price in that currency is what is fixed, and the coin amount tracks the exchange rate at the time of purchase.
 - **Self-limiting.** A dispenser closes on its own in two ways: when it hits 1,000 dispenses on its current fill (that last sale still goes through, then any tokens left in it are returned to you), and when it reaches its expiration. You can also cancel it manually at any time.
 
 Think of a dispenser like a coin-operated machine at a store. You set it up once, fill it with tokens, set the price, and let it run. Each customer inserts their coins and gets what they paid for: automatically, reliably, without needing a clerk.
@@ -98,7 +112,7 @@ This transparency is a core property of the protocol. All market data is derived
 
 ## Fees
 
-DEX listings are priced by **how long the listing lives**, not by how early you create one. **The first 90 days are free**, so a listing that expires within 90 days carries no listing fee. Past that, every day beyond the 90th is charged at a per-day rate. The free window is identical on every supported chain (Bitcoin, Litecoin, and Dogecoin); it is not a Bitcoin-only or time-limited promotion.
+DEX listings are priced by **how long the listing lives**, not by how early you create one. **The first 90 days are free**, so a listing that expires within 90 days carries no listing fee. Past that, every day beyond the 90th is charged at a per-day rate. The free window is identical on every supported chain (Bitcoin, Litecoin, and Dogecoin today); it is not a Bitcoin-only or time-limited promotion.
 
 That listing fee is what creating or editing a listing costs: placing an order and creating a dispenser are charged on the duration schedule above, priced in XCHAIN. **Cancelling is free.** Taking an order or a dispenser off the book carries no protocol fee at all, so you are never charged for withdrawing a listing. You still pay the ordinary miner transaction fee on the underlying chain for any action you broadcast.
 
@@ -157,7 +171,7 @@ If a COINPAY transaction is broadcast but confirms **after** the obligation has 
 |---|---|---|
 | Settlement | Two-phase (match → COINPay → settlement) | Automatic (send coin → receive tokens) |
 | Time limit | 2-hour COINPay window after match | Closes at its expiration (90 days by default) |
-| Price discovery | Order book matching | Fixed price |
+| Price discovery | Order book matching | Fixed rate, or a live fiat or token price when configured |
 | Flexibility | Partial fills, limit orders | Fixed rate, fixed quantity |
 
 ---
@@ -166,11 +180,11 @@ If a COINPAY transaction is broadcast but confirms **after** the obligation has 
 
 | | Order Book | Dispenser |
 |---|---|---|
-| Best for | Trading between two parties | Selling at a fixed price to anyone |
-| How it works | Orders matched automatically | Buyer sends coin, tokens sent back |
-| Requires counterparty? | Yes (someone must match your order | No) works automatically |
+| Best for | Trading between two parties | Selling to anyone at a rate you set, in coin, fiat or another token |
+| How it works | Orders matched automatically | Buyer sends the configured payment, tokens sent back |
+| Requires counterparty? | Yes (someone must match your order) | No, works automatically |
 | Always active? | Until filled, cancelled, or expired | Until depleted, cancelled, or expired |
-| Price | Best available at time of match | Fixed when you set it up |
+| Price | Best available at time of match | Fixed at creation, or oracle-derived at dispense time for fiat-priced dispensers |
 
 ---
 

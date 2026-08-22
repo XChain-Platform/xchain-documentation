@@ -2,7 +2,7 @@
   "meta": {
     "name": "xchain-platform-architecture",
     "generated": "2026-08-04",
-    "description": "Component graph and end-to-end flows of the XChain Platform, a token protocol on Bitcoin, Litecoin and Dogecoin. Nodes are microservices, libraries, databases and external systems; edges are runtime dependencies; flows are ordered walks through the graph.",
+    "description": "Component graph and end-to-end flows of the XChain Platform, a token protocol for any blockchain, live today on Bitcoin, Litecoin, and Dogecoin. Nodes are microservices, libraries, databases and external systems; edges are runtime dependencies; flows are ordered walks through the graph.",
     "source": "Maintained in the xchain-documentation repo (architecture/platform-map-app.html); topology mirrors the XChain Platform service repositories. Machine-readable copy: platform-map.json."
   },
   "nodes": [

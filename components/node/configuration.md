@@ -169,6 +169,9 @@ These configure a hub acting as the telemetry **collector**, and are forwarded i
 | `XCHAIN_NODE_GO_LIVE` | Arm the go-live pre-flight. Until this is truthy, mainnet write surfaces are not treated as live. |
 | `XCHAIN_NODE_SKIP_GO_LIVE_GATE` | Set truthy to skip the pre-flight checks entirely. Logs a loud warning; intended for controlled test venues, not production. |
 | `XCHAIN_NODE_SKIP_MIGRATION_PRECONDITION` | Set to `1`/`true`/`yes` to install a module whose source asserts a database migration that has not been applied. The precondition exists because such an update starts a service against a schema it expects to have changed; skip it only when you are applying the migration yourself. |
+| `EXPLORER_CHECKPOINT_SELF_SYNC` | _(unset)_ | Opt in to a self-synced checkpoint mirror for the explorer. When set, the generated explorer config gains a `checkpoint` database descriptor whose host, port, user and password are taken from the indexer's own, plus a `<INDEXER_DB_NAME>_HubMirror` schema the explorer provisions and keeps current from the hub. Leave unset where `database.checkpoint` is pointed at a real hub schema by hand |
+| `HUB_API_URL` | derived from the hub container name and port | Base REST URL the explorer's mirror writer uses to pull hub-mirrored tables. Distinct from `HUB_API_HOST`/`HUB_PORT`, which feed the ordinary config poll rather than the mirror. Emitted only when `EXPLORER_CHECKPOINT_SELF_SYNC` is set |
+| `EXPLORER_VM_QUERY_ENABLED` | _(unset)_ | Passed through verbatim to the explorer to enable contract read-method simulation. The reader tests for the exact string `true`, so the value is not coerced |
 
 > **Note on `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD`:** this is a credential value. Pass it via your deployment environment or secrets manager; do not store it in config files checked into version control.
 
@@ -184,6 +187,7 @@ These env vars override where xchain-node stores its filesystem state on the hos
 | `XCHAIN_NODE_CRYPTO_NODES_DIR` | `<repo>/crypto_nodes` | Downloaded Bitcoin/Doge/Litecoin tarballs + extracted binaries. 100–500 MB per coin. |
 | `XCHAIN_NODE_CONFIG_DIR` | `<repo>/config` | Generated per-service `.env` files. Small. |
 | `XCHAIN_NODE_BLOCKS_DIR` | (unset → inside data volume) | Optional host path for the coin node's `blocks/` directory. If set, mounted as `/blocks` into the docker container so chain data can live on a separate disk from the rest of the node state. |
+| `XCHAIN_NODE_ALLOW_DEGRADED_EXPLORER` | (unset → install fails) | Accepted values `1`, `true`, `yes`, case-insensitive. An `install` that creates a coin stack waits for the explorer to start serving coin data and fails when it never does; an install that adds no coin stack does not wait. Set this to continue anyway, accepting a stack whose explorer answers but serves no coins. Intended for callers that knowingly want the rest of the stack without a converged explorer; leave it unset on any node meant to serve reads. |
 
 > **⚠️ Testnet / regtest write to a network-prefixed subdirectory.** Dogecoind and litecoind place block data under a per-network subdirectory of the datadir on every network except mainnet:
 >

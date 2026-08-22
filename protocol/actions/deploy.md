@@ -162,7 +162,7 @@ The inline `CODE_ENCODING` field (v0/v1) was originally hex-encoded and later ch
 
 This makes every historical inline DEPLOY decode identically across node versions and on a from-genesis re-parse, so its `code_hash` and therefore the per-block contract hash and the federation checkpoint preimage are stable.
 
-The activation is keyed on block time (a single coordinated flag-day), not block height, because DEPLOY runs on BTC, LTC and DOGE, whose heights diverge by millions of blocks; one timestamp names the same cutover on all three chains. Testnet/regtest activate at genesis (base64-native). The mainnet flag-day must be aligned with the SDK's base64 rollout: the SDK emits the matching encoding for the target block so an inline DEPLOY is always decoded on the side of the gate it was encoded for. v4 carrier slices (assembled by chunked v2/v3) are base64 from genesis and are unaffected.
+The activation is keyed on block time (a single coordinated flag-day), not block height, because DEPLOY runs on every supported chain (BTC, LTC, and DOGE today), whose heights diverge by millions of blocks; one timestamp names the same cutover on all three chains. Testnet/regtest activate at genesis (base64-native). The mainnet flag-day must be aligned with the SDK's base64 rollout: the SDK emits the matching encoding for the target block so an inline DEPLOY is always decoded on the side of the gate it was encoded for. v4 carrier slices (assembled by chunked v2/v3) are base64 from genesis and are unaffected.
 
 ## Notes
 - Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `SLASH_DESTINATION` (^57 = `ADDRESS_ID` 57); `SLASH_DESTINATION` may instead be the `BURN` sentinel, which is never compacted. See [Index ID References](../index-id-references.md)

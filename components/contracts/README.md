@@ -11,7 +11,7 @@ Unlike the rest of the platform, this repository is **MIT-licensed** rather than
 
 ## What is in it
 
-- **13 contract templates**, each a real contract that runs under the XChain VM, paired with a walkthrough README, a test suite, and an explicit "attacks we considered" section
+- **14 contract templates**, each a real contract that runs under the XChain VM, paired with a walkthrough README, a test suite, and an explicit "attacks we considered" section
 - **5 reusable patterns** (access control, pausable, safe-transfer, input validation, state machines), written as top-level helper functions to paste into your own contract rather than as an importable library, because XChain contracts have no import mechanism
 - **OpenZeppelin aliases** mapping familiar Solidity idioms onto the pattern helpers, for developers arriving from EVM chains
 - **A no-code policy generator** that turns a small JSON policy description into a deploy-ready controller guard contract
@@ -35,6 +35,7 @@ Unlike the rest of the platform, this repository is **MIT-licensed** rather than
 | `priceBet` | A two-party binary option settled by the PRICE oracle at an agreed round: round-anchored determinism and liveness escape hatches. |
 | `priceBetTimed` | The timestamp variant: the first oracle round at or after a settle time decides, with a gas-capped, cursor-persisted round scan. |
 | `urlOracle` | Reading off-chain HTTP data without breaking determinism: the ATTEST request/callback round-trip. |
+| `counterpartyBridge` | A one-way burn-to-mint migration for a single Counterparty asset: an attested burn to an unspendable Counterparty address is what unlocks the matching XChain mint, so value cannot be claimed here and sold there. |
 
 These templates deliberately do **not** reimplement native protocol actions. XChain already has native `ORDER`/`SWAP` (an orderbook DEX), `DISPENSER`, `DIVIDEND`, `ISSUE`, and `BET` (parimutuel betting markets); use those directly. Templates exist for what native actions cannot do: custody with custom release rules, multi-step state machines, and the oracle, attestation, and cross-chain primitives.
 

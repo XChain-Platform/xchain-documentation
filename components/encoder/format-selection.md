@@ -3,7 +3,7 @@
 
 # Encoder Format Selection
 
-XChain supports four encoding formats for embedding ACTION payloads in blockchain transactions. The encoder auto-selects between `OP_RETURN` (payload <= 76 bytes) and `P2SH` (larger payloads); `P2WSH` and `MULTISIGN` must be requested explicitly via the `encoding` parameter. This document explains each format's characteristics, limits, and trade-offs to help you choose when overriding the default.
+XChain supports five encoding formats for embedding ACTION payloads in blockchain transactions: four script-output lanes (`OP_RETURN`, `MULTISIGN`, `P2SH`, `P2WSH`) and the Taproot envelope, which carries the payload in a tapscript witness instead. The encoder auto-selects between `OP_RETURN` (payload <= 76 bytes) and `P2SH` (larger payloads); `P2WSH`, `MULTISIGN` and `TAPROOT` must be requested explicitly via the `encoding` parameter, or reached by passing `encoding: AUTO` for the cheapest carrier the network and signer support. This document explains each format's characteristics, limits, and trade-offs to help you choose when overriding the default.
 
 ## Format Summary
 
@@ -13,6 +13,7 @@ XChain supports four encoding formats for embedding ACTION payloads in blockchai
 | Multisig | ~60 bytes/output | 1 | Low–Medium | Single-tx medium payloads |
 | P2SH | 8,192 bytes (476-byte chunks) | 2 | Medium | Medium–large payloads |
 | P2WSH | 8,192 bytes (476-byte chunks) | 2 | Medium–High | Large payloads (SegWit-discounted) |
+| TAPROOT (envelope) | 390,000 bytes (520-byte pushes in one witness) | 2 | About half the weight per byte of P2WSH | Very large payloads on Bitcoin and Litecoin |
 
 ## Format Details
 
@@ -55,7 +56,27 @@ Functionally identical to P2SH but uses SegWit. The payload is embedded in a wit
 
 SegWit's witness discount makes P2WSH more fee-efficient than P2SH for large payloads. P2SH and P2WSH share the same 476-byte chunking and 8,192-byte ceiling; choose P2WSH (explicitly) for FILE actions, large BROADCAST messages, or any large payload where the SegWit fee discount matters. P2WSH is never auto-selected.
 
-The 8,192-byte figure is the effective protocol ceiling: it is the maximum **compiled** ACTION payload size the decoder will accept; the on-chain script push measured before decompile strips the OP_PUSHDATA prefix, not the decoded ACTION string (which is 1–3 bytes shorter) and not the raw P2WSH script-level capacity (which is higher, ~9,956 bytes). Payloads above 8,192 bytes are rejected at encode time and would be dropped by the decoder if broadcast, so this ceiling applies to every format; it is not specific to P2WSH.
+The 8,192-byte figure is the effective protocol ceiling: it is the maximum **compiled** ACTION payload size the decoder will accept; the on-chain script push measured before decompile strips the OP_PUSHDATA prefix, not the decoded ACTION string (which is 1–3 bytes shorter) and not the raw P2WSH script-level capacity (which is higher, ~9,956 bytes). Payloads above 8,192 bytes are rejected at encode time and would be dropped by the decoder if broadcast, so this ceiling applies to every script-output format; it is not specific to P2WSH. The Taproot envelope is the one lane it does not govern: it carries its own ceiling, described below.
+
+### TAPROOT: the envelope, up to 390,000 bytes in one witness
+
+Available on **Bitcoin and Litecoin only**. Dogecoin has no SegWit, therefore no Taproot and no envelope; DOGE keeps the chunk lanes.
+
+The whole payload is pushed raw inside a single tapscript, in an `OP_FALSE OP_IF` branch that never executes. Two transactions carry it:
+
+- **Commit tx**: creates one P2TR output whose script tree holds that data leaf, under a sender-owned internal key
+- **Reveal tx**: spends the output through the script path, exposing the envelope in the witness. The reveal is the transaction the action belongs to
+
+Unlike the chunk lanes there is no marker `OP_RETURN` output: the leaf carries a cleartext `XCHN` magic, so recognition is a pattern match with no extra output to pay for. One `create_tx` call returns both PSBTs together; the envelope never uses the `p2shHash` two-call reveal flow, and `compressedPubKey` is required because it becomes the envelope's internal key.
+
+The envelope replaces the 8,192-byte ceiling with its own, `ENVELOPE_MAX_PAYLOAD` = 390,000 bytes, sized against Bitcoin's standard transaction weight rather than picked as a round number. At roughly half the weight per byte of the P2WSH lane, one input and one output replace about 820 chunk outputs per 390 KB.
+
+Two gates guard it, both fail-closed:
+
+- The encoder refuses to build an envelope below the chain's recognition height. Every decoder would ignore the reveal, so the caller would pay a real fee for an action that never exists, and nothing downstream could detect the loss.
+- `AUTO` resolves to the envelope only when the caller affirms `options.signerSupportsTapscript`, which defaults to false. The reveal has to be signable before the commit is broadcast, so choosing the envelope for a signer that cannot spend the leaf does not raise an error, it strands the committed funds.
+
+Full specification: [Taproot Envelope](../../protocol/taproot-envelope.md).
 
 ## Decision Flowchart
 
@@ -65,12 +86,13 @@ flowchart TD
     START -->|"<= 76 bytes (user data; 80 bytes total per output including 4-byte XCHN prefix)"| OPRETURN["OP_RETURN<br>(single tx, cheapest)<br>auto-selected"]
     START -->|"> 76 bytes (user data), <= 8,192 bytes"| P2SH["P2SH<br>(two tx, medium cost; 476-byte chunks)<br>auto-selected"]
     P2SH -.->|"alternative, explicit only"| P2WSH["P2WSH<br>same 476-byte chunking + 8,192 ceiling, SegWit-discounted,<br>must be requested explicitly via encoding=P2WSH,<br>never auto-selected"]
-    START -->|"> 8,192 bytes"| REJECTED["Rejected<br>(exceeds the 8,192-byte protocol ceiling<br>enforced by the decoder)"]
+    START -->|"> 8,192 bytes"| TAPROOT["TAPROOT envelope<br>up to 390,000 bytes in one witness; BTC and LTC only,<br>must be requested explicitly via encoding=TAPROOT or AUTO,<br>never chosen by the size fallback"]
+    TAPROOT -.->|"chain has no Taproot, or payload > 390,000 bytes"| REJECTED["Rejected<br>(above the chosen lane's ceiling:<br>8,192 bytes on the script-output lanes,<br>390,000 in the envelope)"]
 ```
 
-The auto-selection path only produces `OP_RETURN` or `P2SH`. The `P2WSH` and `MULTISIGN` rows represent recommended explicit encoding choices; they are never chosen automatically. To use either, pass the `encoding` parameter explicitly in your `create_tx` call.
+The auto-selection path only produces `OP_RETURN` or `P2SH`. The `P2WSH`, `MULTISIGN` and `TAPROOT` rows represent recommended explicit encoding choices; they are never chosen by the size fallback. To use any of them, pass the `encoding` parameter explicitly in your `create_tx` call, or pass `encoding: AUTO` to have the encoder price the payload and pick the cheapest lane the network and signer support.
 
-Multisig is a single-transaction format chosen for medium payloads slightly larger than OP_RETURN, not an overflow path for payloads above the P2WSH range. The 8,192-byte decoder ceiling applies to every format, so no format can carry a payload above it.
+Multisig is a single-transaction format chosen for medium payloads slightly larger than OP_RETURN, not an overflow path for payloads above the P2WSH range. The 8,192-byte decoder ceiling applies to every script-output format, so none of the four can carry a payload above it; only the Taproot envelope reaches further, and only where Taproot exists.
 
 ## Practical Guidelines
 
@@ -82,13 +104,18 @@ Multisig is a single-transaction format chosen for medium payloads slightly larg
 
 **Use Multisig** rarely, primarily when a single-transaction flow is required and the payload is too large for OP_RETURN.
 
+**Use TAPROOT** (explicitly, on Bitcoin or Litecoin) for payloads that outgrow the 8,192-byte script-output ceiling, or for any large FILE where the weight saving over P2WSH is worth the commit/reveal pair. Confirm the signer can produce a BIP341 script-path signature first.
+
 ## Automatic Selection
 
-The encoder's built-in auto-selection chooses between two formats: `OP_RETURN` for payloads of 76 bytes or fewer (80 bytes including the XCHN prefix), and `P2SH` for everything larger. To use `P2WSH` or `MULTISIGN`, pass the `encoding` parameter explicitly. If you need to inspect which format was actually used, the response includes an `encoding` field.
+The encoder's built-in size fallback chooses between two formats: `OP_RETURN` for payloads of 76 bytes or fewer (80 bytes including the XCHN prefix), and `P2SH` for everything larger. It stays exactly as shipped, because resolving to the envelope would change the response from one PSBT to a commit/reveal pair and no existing caller expects that. To use `P2WSH`, `MULTISIGN` or `TAPROOT`, pass the `encoding` parameter explicitly.
+
+Passing `encoding: AUTO` opts into smallest-footprint selection instead: the encoder measures the payload after compression and picks the cheapest lane the network and the caller's signer can actually use, resolving to the envelope only when the chain has Taproot and `options.signerSupportsTapscript` is affirmed. If you need to inspect which format was actually used, the response includes an `encoding` field.
 
 ## Related
 
 - [Encoder](README.md): encoding service overview and API reference
+- [Taproot Envelope](../../protocol/taproot-envelope.md): the envelope's grammar, consensus rules, and activation heights
 - [Data Pipeline](../../architecture/data-pipeline.md): how encoded transactions move through the platform
 
 ---

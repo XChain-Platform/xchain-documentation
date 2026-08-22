@@ -3,7 +3,7 @@
 
 # Cross-Chain Functionality
 
-XChain runs independently on each supported blockchain. Bitcoin, Litecoin, and Dogecoin each have their own full pipeline; their own decoder, indexer, and state database. Tokens on Bitcoin are not the same assets as tokens on Litecoin, even if they share a ticker. The chains are parallel, independent ledgers.
+XChain runs independently on each supported blockchain. Bitcoin, Litecoin, and Dogecoin, the three chains it runs on today, each have their own full pipeline; their own decoder, indexer, and state database. Tokens on Bitcoin are not the same assets as tokens on Litecoin, even if they share a ticker. The chains are parallel, independent ledgers.
 
 ## Independent Per-Chain State
 

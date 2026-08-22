@@ -285,6 +285,143 @@ test('xchain-sdk BATCH_COMMAND_LIMIT matches the canonical value',
       + `is ${CONSTANTS.BATCH_COMMAND_LIMIT}`);
   });
 
+/*
+ * ── The weighted budget and the per-action weight table ────────────────────
+ *
+ * BATCH_COST_WEIGHTING replaces the flat command count with a weight budget,
+ * and the numbers again live in three places: protocol/constants.js
+ * (BATCH_WEIGHT_BUDGET and BATCH_COMMAND_WEIGHTS, canonical),
+ * xchain-indexer/src/actions/batch.js (`this.weightBudget` and the
+ * `this.commandWeights[...]` assignments) and xchain-sdk/src/batchLimits.js
+ * (`BATCH_WEIGHT_BUDGET` and the `BATCH_COMMAND_WEIGHTS` literal). These are
+ * consensus values: a budget that drifts moves batch verdicts, and a weight
+ * table that drifts moves them per action, either of which forks the SDK's
+ * pre-flight from the arbiter. Same sibling-checkout skip convention as the
+ * command-cap tests above.
+ */
+test('xchain-indexer weightBudget matches the canonical BATCH_WEIGHT_BUDGET',
+  { skip: !haveIndexerBatch && 'sibling xchain-indexer not present in this checkout' }, () => {
+    const src = fs.readFileSync(INDEXER_BATCH, 'utf8');
+    const m = /this\.weightBudget\s*=\s*(\d+)\s*;/.exec(src);
+    assert.ok(m, 'this.weightBudget assignment not found in xchain-indexer/src/actions/batch.js; '
+      + 'the declaration shape changed, re-point this regex');
+    assert.strictEqual(Number(m[1]), CONSTANTS.BATCH_WEIGHT_BUDGET,
+      `xchain-indexer's this.weightBudget is ${m[1]}, but protocol/constants.js BATCH_WEIGHT_BUDGET `
+      + `is ${CONSTANTS.BATCH_WEIGHT_BUDGET}`);
+  });
+
+test('xchain-sdk BATCH_WEIGHT_BUDGET matches the canonical value',
+  { skip: !haveSdkBatchLimits && 'sibling xchain-sdk not present in this checkout' }, () => {
+    const src = fs.readFileSync(SDK_BATCH_LIMITS, 'utf8');
+    const m = /const\s+BATCH_WEIGHT_BUDGET\s*=\s*(\d+)\s*;/.exec(src);
+    assert.ok(m, 'BATCH_WEIGHT_BUDGET declaration not found in xchain-sdk/src/batchLimits.js; '
+      + 'the declaration shape changed, re-point this regex');
+    assert.strictEqual(Number(m[1]), CONSTANTS.BATCH_WEIGHT_BUDGET,
+      `xchain-sdk's BATCH_WEIGHT_BUDGET is ${m[1]}, but protocol/constants.js BATCH_WEIGHT_BUDGET `
+      + `is ${CONSTANTS.BATCH_WEIGHT_BUDGET}`);
+  });
+
+test('xchain-indexer commandWeights matches the canonical BATCH_COMMAND_WEIGHTS',
+  { skip: !haveIndexerBatch && 'sibling xchain-indexer not present in this checkout' }, () => {
+    const src = fs.readFileSync(INDEXER_BATCH, 'utf8');
+    const table = {};
+    const entry = /this\.commandWeights\[['"]([A-Z]+)['"]\]\s*=\s*(\d+)\s*;/g;
+    let m;
+    while ((m = entry.exec(src))) table[m[1]] = Number(m[2]);
+    assert.ok(Object.keys(table).length > 0,
+      'no this.commandWeights[...] assignments found in xchain-indexer/src/actions/batch.js; '
+      + 'the declaration shape changed, re-point this regex');
+    assert.deepStrictEqual(table, { ...CONSTANTS.BATCH_COMMAND_WEIGHTS },
+      'xchain-indexer commandWeights disagrees with protocol/constants.js BATCH_COMMAND_WEIGHTS '
+      + '(actions and weights must match exactly, absences included: an action absent on both '
+      + 'sides weighs the default 1)');
+  });
+
+test('xchain-sdk BATCH_COMMAND_WEIGHTS matches the canonical table',
+  { skip: !haveSdkBatchLimits && 'sibling xchain-sdk not present in this checkout' }, () => {
+    const src = fs.readFileSync(SDK_BATCH_LIMITS, 'utf8');
+    const block = /const\s+BATCH_COMMAND_WEIGHTS\s*=\s*Object\.freeze\(\{([^}]*)\}\)/.exec(src);
+    assert.ok(block, 'BATCH_COMMAND_WEIGHTS literal not found in xchain-sdk/src/batchLimits.js; '
+      + 'the declaration shape changed, re-point this regex');
+    const table = {};
+    const entry = /([A-Z]+)\s*:\s*(\d+)/g;
+    let m;
+    while ((m = entry.exec(block[1]))) table[m[1]] = Number(m[2]);
+    assert.deepStrictEqual(table, { ...CONSTANTS.BATCH_COMMAND_WEIGHTS },
+      'xchain-sdk BATCH_COMMAND_WEIGHTS disagrees with protocol/constants.js BATCH_COMMAND_WEIGHTS');
+  });
+
+test('every canonical batch weight is an integer of at least 1', () => {
+  // The invariant that keeps the count cap a sound pre-filter for the budget
+  // (count > cap implies weight sum > budget). A zero or fractional weight
+  // would silently break that ordering in both vendoring services.
+  for (const [action, w] of Object.entries(CONSTANTS.BATCH_COMMAND_WEIGHTS)) {
+    assert.ok(Number.isInteger(w) && w >= 1,
+      `BATCH_COMMAND_WEIGHTS.${action} is ${w}; every weight must be an integer >= 1`);
+  }
+});
+
+/*
+ * ── Weight claims in prose ─────────────────────────────────────────────────
+ *
+ * Same failure mode as the command-count guard above, new unit. Prose never
+ * writes `BATCH_WEIGHT_BUDGET` or `BATCH_COMMAND_WEIGHTS`; it says a batch
+ * has a "weight budget of 250" and that an action "weighs 30". A repo-wide
+ * scan for every bare number near the word "weight" is hopeless (VOTE's
+ * weight modes and transaction-weight prose would drown it), so this keys on
+ * exactly those two phrasings, which the two batch pages use deliberately so
+ * this guard can see them. Two directions are covered:
+ *
+ *   1. DRIFTED PROSE: any "weighs N" claim anywhere must state a value the
+ *      canonical table carries (or the default 1), and any "weight budget of
+ *      N" must state the canonical budget. Retune a weight and a stale
+ *      sentence goes red.
+ *   2. MISSING PROSE: the two batch pages must state the budget, the default,
+ *      and every weighted action next to its current weight. Retune a weight
+ *      and an unedited page goes red, so prose and constant move together.
+ */
+const WEIGHT_PAGES = ['protocol/actions/batch.md', 'developer-guide/batch-operations.md'];
+
+test('every prose weight claim states a value the canonical table carries', () => {
+  const legal = new Set([1, ...Object.values(CONSTANTS.BATCH_COMMAND_WEIGHTS)]);
+  const bad = [];
+  for (const { rel, no, line } of readLines()) {
+    const re = /\bweighs\s+(?:the\s+default\s+)?(\d+)\b|\bweight\s+budget\s+of\s+\*{0,2}(\d+)\b/gi;
+    let m;
+    while ((m = re.exec(line))) {
+      if (m[2] !== undefined) {
+        const claimed = Number(m[2]);
+        if (claimed !== CONSTANTS.BATCH_WEIGHT_BUDGET) {
+          bad.push(`${rel}:${no} states a weight budget of ${claimed}, but BATCH_WEIGHT_BUDGET `
+            + `is ${CONSTANTS.BATCH_WEIGHT_BUDGET}`);
+        }
+      } else {
+        const claimed = Number(m[1]);
+        if (!legal.has(claimed)) {
+          bad.push(`${rel}:${no} says something weighs ${claimed}, a value BATCH_COMMAND_WEIGHTS `
+            + `does not carry (legal: ${[...legal].sort((a, b) => a - b).join(', ')})`);
+        }
+      }
+    }
+  }
+  assert.deepStrictEqual(bad, [],
+    'these state a batch weight that disagrees with protocol/constants.js:\n' + bad.join('\n'));
+});
+
+test('the batch pages teach every weight class at its current value', () => {
+  for (const rel of WEIGHT_PAGES) {
+    const src = fs.readFileSync(path.join(ROOT, ...rel.split('/')), 'utf8');
+    assert.match(src, new RegExp(`weight\\s+budget\\s+of\\s+\\*{0,2}${CONSTANTS.BATCH_WEIGHT_BUDGET}\\b`, 'i'),
+      `${rel} never states the current weight budget (${CONSTANTS.BATCH_WEIGHT_BUDGET})`);
+    assert.match(src, /default\s+weight\s+of\s+\*{0,2}1\b/i,
+      `${rel} never states the default weight of 1`);
+    for (const [action, w] of Object.entries(CONSTANTS.BATCH_COMMAND_WEIGHTS)) {
+      assert.match(src, new RegExp('`' + action + '`[^\\n]*\\b' + w + '\\b'),
+        `${rel} never puts \`${action}\` on a line with its current weight ${w}`);
+    }
+  }
+});
+
 test('no superseded byte value survives anywhere in the prose', () => {
   const stale = new Map();
   for (const g of GUARDED) {

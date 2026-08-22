@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Intro pages, FAQ, use cases, concepts and component pages now lead with the chain-agnostic claim and time-stamp Bitcoin, Litecoin, and Dogecoin as the live-today roster, enforced by a new chain-positioning test.
 - White paper §13.3 now publishes the final genesis figures (100,000,000 cap, the seven-leg distribution, snapshot pins and open-mint terms) instead of deferring them.
 - Overview, GAS, COLLECT and the genesis runbook no longer claim supply is created only by public mints, which held only while the distribution was unpublished.
 
