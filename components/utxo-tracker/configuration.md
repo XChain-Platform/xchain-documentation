@@ -38,13 +38,35 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `BOOTSTRAP_RESTORE_ALLOW_UNVERIFIED` | Set to `1` to let `restorebootstrap` proceed when the archive has no `.sha256` sidecar. **Off by default and deliberately so:** the restore performs a destructive `/data` wipe, and without the sidecar the archive cannot be checked for truncation or tampering first. The correct fix is to publish a `.sha256` next to the archive; this flag exists as a last resort and logs a warning when used. | _(unset, fails closed)_ |
 | `BOOTSTRAP_RESTORE_ALLOW_UNSIGNED` | Set to `1` to let `restorebootstrap` proceed when the archive has no `.sig` signature file, or when no bootstrap signing public key is pinned. **Off by default and deliberately so:** the restore performs a destructive `/data` wipe, and an archive`s own checksums prove only that it is internally consistent, never who published it. Publish a `.sig` next to the archive instead; this flag is the last resort. | _(unset, fails closed)_ |
 | `UTXO_TRACKER_BOOTSTRAP_PUBKEY` | Path to the bootstrap signing public key used to verify an archive`s signature, overriding the key pinned at `src/config/bootstrap_signing_pubkey.pem`. Swapping it moves the trust root off the pinned key, so treat it as a trust decision, not a path setting. | _(the pinned `src/config/bootstrap_signing_pubkey.pem`)_ |
-| `LEVELDB_CACHE_BYTES` | LevelDB block-cache size in bytes | `4294967296` (4 GiB) |
+| `LEVELDB_CACHE_BYTES` | LevelDB block-cache size in bytes. This is native memory, outside the V8 heap, and during a chain backfill it is the largest single contributor to the tracker's resident size. Set it only to override the derived default below. | a quarter of the memory budget, between 128 MiB and 4 GiB |
 | `LEVELDB_WRITE_BUFFER_BYTES` | LevelDB write-buffer size in bytes | `67108864` (64 MiB) |
+| `HEAP_FLUSH_THRESHOLD_MB` | Heap size, in MB, at which a partially-staged block batch is flushed early instead of accumulating to the full 200-block batch. Guards against a dense run of blocks pushing the V8 heap past its ceiling mid-parse. | an eighth of the memory budget, between 256 MB and 2048 MB |
 | `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for JSON-RPC calls to the coin node | `30000` |
 | `DEBUG_TRACE` | Set to `1`/`true` for verbose tracker tracing on stdout. Debug only. | _(unset)_ |
 | `TRACE_UTXO` | Set to `1`/`true` for per-output LevelDB tracing (one line per `insertOutput`, per staged deletion, and a summary per transaction). Debug only; kept behind a flag so production cost is zero. | _(unset)_ |
 | `UTXO_TRACKER_MAX_CONCURRENT_PROBES` | Concurrency cap for cheap probe requests, gated separately so a monitoring flood cannot consume the budget real queries need. Past the cap a probe is refused immediately with `429` and `Retry-After: 1` rather than queued. `0` disables the cap. | `16` |
 | `UTXO_TRACKER_MAX_CONCURRENT_REQUESTS` | Concurrency cap for everything that is not a probe, with the same immediate-`429` behaviour. `0` disables the cap. | `100` |
+
+### Memory Budget
+
+The two largest allocations the tracker makes, the LevelDB block cache and the staged write batch, are sized from a **memory budget** rather than fixed. The budget is the memory this process may actually use: normally the host's RAM, but the cgroup limit instead whenever one binds below it. That distinction matters because inside a container the host total is what a process sees by default, so a tracker under `--memory 2g` on a large machine would otherwise size itself for the machine and be killed by the kernel, repeatedly, without ever completing a batch.
+
+At startup the tracker logs the budget it resolved, which value bound it, and the two sizes it derived:
+
+```
+memory budget 8192MB (host memory); LevelDB block cache 2048MB, heap-flush threshold 1024MB
+```
+
+Read that line first when a tracker is killed for memory: on a capped container the numbers cannot be inferred from the host.
+
+| Budget | Block cache | Heap-flush threshold |
+|---|---|---|
+| 16 GB and above | 4 GiB | 2048 MB |
+| 8 GB | 2 GiB | 1024 MB |
+| 4 GB | 1 GiB | 512 MB |
+| 2 GB (for example a `--memory 2g` container) | 512 MB | 256 MB |
+
+Hosts at or above 16 GB derive exactly the values the tracker used before the budget existed, so an already-tuned server keeps its behaviour; only smaller hosts scale down. Setting `LEVELDB_CACHE_BYTES` or `HEAP_FLUSH_THRESHOLD_MB` overrides the derivation outright, which is the right move when you have measured your own workload. Note that a container memory limit alone is not a substitute: capping a tracker whose cache is still sized for the host trades a slow backfill for a restart loop.
 
 ### Bulk-Sync Variables
 
