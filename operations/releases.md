@@ -27,13 +27,17 @@ Second release train. Every component changed in this train.
 | xchain-utxo-tracker | 0.10.0 |
 | xchain-vm | 0.10.0 |
 | xchain-sdk | 0.10.0 |
-| xchain-contracts | 0.1.0 |
-| xchain-e2e-test | 0.3.9 |
-| xchain-regtest-miner | 0.1.21 |
+| xchain-contracts | 0.10.0 |
+| xchain-e2e-test | 0.10.0 |
+| xchain-regtest-miner | 0.10.0 |
 
-The last three keep their own version streams and carry a `v0.10.0` tag to mark
-the train they shipped in, so their version and tag differ. The manifest pins by
-commit, and the commit is what a pinned install resolves.
+`xchain-contracts`, `xchain-e2e-test` and `xchain-regtest-miner` were tagged for
+this train while still on their own legacy version streams, and adopted the
+platform stream immediately afterwards. Their `v0.10.0` tag therefore points at a
+commit whose `package.json` still reads the legacy number (`0.1.0`, `0.3.9` and
+`0.1.21` respectively); the version above is what the component carries from this
+train onward. The tag and the manifest pin by commit, and the commit is what a
+pinned install resolves, so nothing about reproducibility changes either way.
 
 Notable in this train: the ledger amount precision flag day is pinned on mainnet
 above each chain's tip; the contract state sub-root is armed from genesis on
