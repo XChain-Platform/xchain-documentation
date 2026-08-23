@@ -7,6 +7,13 @@
 
 Configuration is loaded from a `.env` file via `dotenv`. All variables are read in `src/api.js` at startup.
 
+**Running under `xchain-node`, set these in `config/<coin>-<network>`, not in your shell.** The tracker runs in a container, so an exported variable in the shell that starts the CLI never reaches it. The config file is read as plain `KEY=VALUE` lines and every key is passed through to the container environment, including the ones documented here and any the tracker adds later, so no allowlist has to be updated first. Credentials belong in the `config/<coin>-<network>.local` sidecar instead, which takes precedence. For example, to give a tracker on a shared 8 GB board a smaller cache and sort budget than it would derive on its own:
+
+```
+LEVELDB_CACHE_BYTES=268435456
+BULK_SYNC_RAM_BUDGET=768
+```
+
 ### Required Variables
 
 | Variable | Description | Example |
