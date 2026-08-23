@@ -443,6 +443,32 @@ function collectGates(indexerSrc = INDEXER_SRC) {
 }
 
 /**
+ * Nonzero TESTNET arms, as `{ gate, time }` sorted by time then name. Almost
+ * every time-keyed gate is genesis-active off mainnet, and the page states
+ * that as an invariant, so a gate that arms testnet at an instant of its own
+ * must be surfaced as the exception rather than left silently contradicting
+ * the prose. Read from the same two declaration shapes as the mainnet parse:
+ * a `const NAME_TESTNET_TIME = <digits>;` line, or a literal nonzero
+ * testnet_time slot (the fourth argument) in an addChange call.
+ */
+function collectTestnetArms(indexerSrc = INDEXER_SRC) {
+    const scannable = withoutComments(
+        fs.readFileSync(path.join(indexerSrc, 'protocol_changes.js'), 'utf8'),
+    );
+    const found = new Map();
+    const add = (gate, time) => {
+        if (!Number.isFinite(time) || time < TIMESTAMP_FLOOR || time >= SENTINEL_FLOOR) return;
+        if (!found.has(gate)) found.set(gate, { gate, time });
+    };
+    let match;
+    const constRe = /const\s+([A-Z][A-Z0-9_]*)_TESTNET_TIME\s*=\s*(\d+)\s*;/g;
+    while ((match = constRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
+    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*[A-Za-z0-9_]+\s*,\s*([1-9]\d*)/g;
+    while ((match = callRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
+    return [...found.values()].sort((a, b) => (a.time - b.time) || a.gate.localeCompare(b.gate));
+}
+
+/**
  * The coordinated contract-era flag day: the timestamp the most gates ride.
  * Derived rather than named, because naming it here would reintroduce exactly
  * the hardcoded value this generator exists to remove. Cohort A is 30+ gates
@@ -464,7 +490,7 @@ function coordinatedFlagDay(gates) {
     return { time: ranked[0][0], count: ranked[0][1] };
 }
 
-function render(gates) {
+function render(gates, testnetArms = []) {
     const anchor = coordinatedFlagDay(gates);
     const others = gates.filter((g) => g.time !== anchor.time);
 
@@ -490,6 +516,17 @@ function render(gates) {
           + 'the file the **Declared in** column names below. For how a gate is evaluated '
           + 'and what happens to a node that misses one, see '
           + '[Protocol Activation](./protocol-activation.md).';
+
+    // A testnet arm is rare enough to be prose, not a table: the invariant
+    // paragraph above stays true for every other gate, and the exception names
+    // itself with its value so a repin regenerates the sentence.
+    const testnetNote = testnetArms.length === 0
+        ? 'The values on this page are mainnet values only.'
+        : `${testnetArms.length === 1 ? 'One gate is the exception' : `${testnetArms.length} gates are the exception`}: `
+          + testnetArms.map((g) => `\`${g.gate}\` arms testnet at \`${g.time}\` (${utcInstant(g.time)})`).join(', ')
+          + '. The reason it cannot be genesis-active there is written in its registration '
+          + 'comment in \`protocol_changes.js\`. The values on this page are otherwise '
+          + 'mainnet values only.';
 
     return `<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025-2026 Dankest, LLC -->
@@ -525,7 +562,7 @@ ${outliers}
 
 **Testnet and regtest are genesis-active** for the time-keyed gates: they carry
 threshold \`0\`, so a testnet or regtest stack has always run the
-post-activation behavior. The values on this page are mainnet values only.
+post-activation behavior. ${testnetNote}
 
 ## Mainnet time-keyed gates
 
@@ -541,7 +578,7 @@ here; they are inventoried on
 }
 
 function generate(indexerSrc = INDEXER_SRC) {
-    return render(collectGates(indexerSrc));
+    return render(collectGates(indexerSrc), collectTestnetArms(indexerSrc));
 }
 
 if (require.main === module) {
@@ -561,6 +598,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-    collectGates, coordinatedFlagDay, render, generate, utcInstant, utcDate,
+    collectGates, collectTestnetArms, coordinatedFlagDay, render, generate, utcInstant, utcDate,
     DOC_ROOT, INDEXER_SRC, REGISTRY, OUTPUT, TIMESTAMP_FLOOR, SENTINEL_FLOOR,
 };

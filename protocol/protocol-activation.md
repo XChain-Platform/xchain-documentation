@@ -126,8 +126,13 @@ operator ratifies a height. They are not counted above and carry no flag day yet
 
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
-(Cohort B) gates genesis-active as well, with **two** exceptions:
+(Cohort B) gates genesis-active as well, with **three** exceptions:
 
+- **`ISSUE_INHERITED_MINT_WINDOW` (Cohort A) arms testnet at its own future instant, not from
+  genesis** (value on [Flag-Day Values](./flag-days.md)): the ISSUE mint-window
+  re-parameterization fix is a validity loosening, and testnet already held a recorded rejection
+  under the pre-fix rule, so a genesis-active arm would fork an already-synced testnet node
+  against a fresh reindex. It is the only Cohort A rule not genesis-active on testnet.
 - **Cohort C (state commitment) is armed at future _per-chain_ heights on testnet, not from genesis**
   (`STATE_COMMITMENT_ACTIVATION`: `BTC:testnet 145000`, `LTC:testnet 4805000`,
   `DOGE:testnet 67000000`), because it gates on each chain's own local block height rather than a
