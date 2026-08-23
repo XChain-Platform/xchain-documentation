@@ -51,22 +51,24 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 
 The two largest allocations the tracker makes, the LevelDB block cache and the staged write batch, are sized from a **memory budget** rather than fixed. The budget is the memory this process may actually use: normally the host's RAM, but the cgroup limit instead whenever one binds below it. That distinction matters because inside a container the host total is what a process sees by default, so a tracker under `--memory 2g` on a large machine would otherwise size itself for the machine and be killed by the kernel, repeatedly, without ever completing a batch.
 
-At startup the tracker logs the budget it resolved, which value bound it, and the two sizes it derived:
+At startup the tracker logs the budget it resolved, which value bound it, and the sizes it derived:
 
 ```
-memory budget 8192MB (host memory); LevelDB block cache 2048MB, heap-flush threshold 1024MB
+memory budget 8192MB (host memory); LevelDB block cache 2048MB, heap-flush threshold 1024MB, bulk-sync RAM budget 4096MB
 ```
 
 Read that line first when a tracker is killed for memory: on a capped container the numbers cannot be inferred from the host.
 
-| Budget | Block cache | Heap-flush threshold |
-|---|---|---|
-| 16 GB and above | 4 GiB | 2048 MB |
-| 8 GB | 2 GiB | 1024 MB |
-| 4 GB | 1 GiB | 512 MB |
-| 2 GB (for example a `--memory 2g` container) | 512 MB | 256 MB |
+| Budget | Block cache | Heap-flush threshold | Bulk-sync RAM budget |
+|---|---|---|---|
+| 16 GB and above | 4 GiB | 2048 MB | 4096 MB |
+| 8 GB | 2 GiB | 1024 MB | 4096 MB |
+| 4 GB | 1 GiB | 512 MB | 2048 MB |
+| 2 GB (for example a `--memory 2g` container) | 512 MB | 256 MB | 1024 MB |
 
-Hosts at or above 16 GB derive exactly the values the tracker used before the budget existed, so an already-tuned server keeps its behaviour; only smaller hosts scale down. Setting `LEVELDB_CACHE_BYTES` or `HEAP_FLUSH_THRESHOLD_MB` overrides the derivation outright, which is the right move when you have measured your own workload. Note that a container memory limit alone is not a substitute: capping a tracker whose cache is still sized for the host trades a slow backfill for a restart loop.
+Hosts at or above 16 GB derive exactly the values the tracker used before the budget existed, so an already-tuned server keeps its behaviour; only smaller hosts scale down. Setting `LEVELDB_CACHE_BYTES`, `HEAP_FLUSH_THRESHOLD_MB` or `BULK_SYNC_RAM_BUDGET` overrides the derivation outright, which is the right move when you have measured your own workload. Note that a container memory limit alone is not a substitute: capping a tracker whose cache is still sized for the host trades a slow backfill for a restart loop.
+
+The bulk-sync figure is the budget handed to the **orchestrator subprocess** that runs on an empty database, not to the tracker itself. It is derived here because a subprocess sized independently of the cgroup is killed just as dead: a tracker capped at 2 GB was handing its own child a 4 GB sort budget, and the kernel killed it at the merge every time. Both the parent and the child have to fit inside one limit, so the child gets half the budget and the parent keeps its cache and staged batch inside the rest.
 
 ### Bulk-Sync Variables
 
@@ -76,7 +78,7 @@ On first startup with an empty database the tracker automatically runs a paralle
 |---|---|---|
 | `BULK_SYNC_WORKERS` | Number of parallel worker processes for the bulk parse phase | `6` |
 | `BULK_SYNC_CHUNK_SIZE` | Number of blocks per worker chunk | `10000` |
-| `BULK_SYNC_RAM_BUDGET` | Memory budget in MB for the merge/load phase | `4096` |
+| `BULK_SYNC_RAM_BUDGET` | Memory budget in MB for the merge/load phase, handed to the orchestrator subprocess. Set it only to override the derived default; see [Memory Budget](#memory-budget) for why a flat value is unsafe on a capped container. | half the memory budget, between 512 MB and 4096 MB |
 | `BULK_SYNC_TIP_SAFETY` | Number of blocks before the node tip to stop the bulk dump (avoids indexing an unstable tip) | `10` |
 | `BULK_SYNC_BATCH_SIZE` | Number of UTXO records per LevelDB write batch during load | `10000` |
 | `BULK_SYNC_WORK_DIR` | Working directory for bulk-sync intermediate files | `/data/xchain-utxo-tracker/_bulk-sync-work` |

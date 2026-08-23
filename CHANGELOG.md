@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The utxo-tracker configuration reference documents the derived bulk-sync RAM budget alongside the other memory-budget figures.
 - The decoder configuration reference documents the mempool response cache duration.
 - The sync configuration reference documents the replication-connection setting for multi-source replicas, and names the MariaDB privilege that replica-status reads actually require.
 - The open-mint terms now carry a 1,000 XCHAIN per-address cap in the white paper, overview and genesis runbook, enforced by the distribution-figures test.
