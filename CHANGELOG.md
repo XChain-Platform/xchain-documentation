@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The ATTEST v3 rules document the relay-identity exactly-once gate the reference indexer enforces.
 - The utxo-tracker configuration reference documents the derived bulk-sync RAM budget alongside the other memory-budget figures.
 - The decoder configuration reference documents the mempool response cache duration.
 - The sync configuration reference documents the replication-connection setting for multi-source replicas, and names the MariaDB privilege that replica-status reads actually require.

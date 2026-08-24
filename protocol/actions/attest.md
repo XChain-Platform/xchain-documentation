@@ -11,7 +11,7 @@ All `attestation` capability stake lives on BTC, so a request emitted by an LTC 
 | ---------------------- | ------- | ----------------------------------------------------------------------------------------------- |
 | `VERSION`              | Integer | Format version (0=request, 1=response, 2=expire, 3=relay request, 4=relay response)             |
 | `ORIGIN_CHAIN`         | String  | Chain a relayed request was emitted on (`LTC` or `DOGE`); v3 only                              |
-| `ORIGIN_ACTION_INDEX`  | Integer | The origin chain's v0 `action_index`, the relay correlation key; v3 only                       |
+| `ORIGIN_ACTION_INDEX`  | Integer | The origin chain's v0 `action_index`: the relay correlation key, and together with `ORIGIN_CHAIN` the exactly-once relay identity on BTC; v3 only |
 | `HOME_RESPONSE_ACTION_INDEX` | Integer | The BTC v1 `action_index` whose outcome is being relayed; v4 only                        |
 | `SNAPSHOT_BLOCK`       | Integer | BTC-anchored block the `cross_chain` signer set is pinned at, and the plane both relay gates resolve on; v3 and v4 |
 | `REQUEST_ID`           | String  | 64-hex SHA-256 over `tx_hash:root_action_index:emitter_path:contract_index:emitter_position` (colon-delimited) |
@@ -119,6 +119,7 @@ Below the activation neither rule applies and the legacy per-key ranking runs un
 - `SNAPSHOT_BLOCK` must not exceed this action's `block_index`, so a broadcaster cannot pin a future signer set.
 - `PROVIDER_ID`, `REDUNDANCY`, `REQUEST_PAYLOAD` size and the derived deadline are validated exactly as for v0.
 - `REQUEST_ID` must not already exist on this chain; one request materializes once.
+- The relay identity `(ORIGIN_CHAIN, ORIGIN_ACTION_INDEX)` must not already name a request on this chain; one origin request materializes once on BTC. This is a second, independent gate and is not implied by the `REQUEST_ID` rule above: `REQUEST_ID` is derived from the origin transaction's `tx_hash`, so an origin-chain reorg that re-emits the same `ORIGIN_ACTION_INDEX` from a different transaction yields a different `REQUEST_ID` and clears that rule. A duplicate relay identity produces `invalid: ORIGIN_ACTION_INDEX (relay identity already materialized on this chain)`, an explicit stored verdict every node reaches identically, rather than a silent drop or a second BTC materialization that nothing on BTC can retract.
 - The signature list must meet the `cross_chain` federation quorum at `SNAPSHOT_BLOCK`: stake-weighted (source-deduped) at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count. This is the same rule the XCALL dispatch leg applies.
 - The stored request row is feeless, carries no callback and no `contract_index` (the contract is on the origin chain), and pins its responsible set at this action's BTC `block_index`. A v1 fulfilling it closes the request but fires no local callback.
 
