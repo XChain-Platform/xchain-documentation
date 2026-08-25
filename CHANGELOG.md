@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The DISPENSER effective-oracle-price rule is stated as a validity condition independent of escrow, with its activation status named, and the oracle usage fee lists the ownership dispenser among the cases owing no fee output.
 - The ATTEST v3 rules document the relay-identity exactly-once gate the reference indexer enforces.
 - The utxo-tracker configuration reference documents the derived bulk-sync RAM budget alongside the other memory-budget figures.
 - The decoder configuration reference documents the mempool response cache duration.

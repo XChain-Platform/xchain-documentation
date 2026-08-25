@@ -261,6 +261,8 @@ User oracles (PRICE v1) have a built-in anti-front-running mechanism: **every** 
 The delay applies to first publishes as well, and that part is a **consensus requirement** rather than an anti-manipulation one: an immediately-effective first publish would be *retroactively* effective, because its `effective_at` (the action's `block_time`) precedes the moment the row can exist in any indexer's hub-DB mirror. A FIAT dispense settled in that window would settle differently on replay and fork the ledger. See [`PRICE`](./price.md) for the full rule.
 
 > **Setting up a user-oracle dispenser:** point at an oracle whose price is **already effective**. A PRICE v1 quote becomes effective 24 hours after publication, and a `DISPENSER` naming an oracle with no effective price is rejected outright (`invalid: ORACLE_ADDRESS (no effective oracle price)`). Oracle operators are normally a separate, ongoing service, so this only bites when you are standing up your own oracle for your own dispenser: publish first, wait out the window, then create.
+>
+> The rule is a **validity** check on the create, independent of how much the dispenser escrows, so it applies to an ownership dispenser and to an open-now-refill-later dispenser exactly as it does to a fully-escrowed one. It is enforced on create from genesis on testnet and regtest; the mainnet activation instant is not yet named, and until it is, a mainnet create that escrows nothing is only price-checked if and when it refills.
 
 ### Oracle Usage Fee
 An oracle operator can charge a usage fee by publishing a non-zero `FEE` (see [`PRICE`](./price.md)). The charge lands **once, up front, on the address opening or refilling the dispenser**, never on buyers per dispense, and is paid as a real native-coin output inside the `DISPENSER` transaction:
@@ -275,6 +277,8 @@ oracle_fee = FEE x (oracle_price x GIVE_ESCROW) / validator_coin_price
 → `{ requiredFeeNative, requiredFeeSats, belowDust }` (SDK: `explorer.getOracleFeeQuote()`)
 
 No output is required when the oracle's `FEE` is `0` (the common case) or when the computed fee is below the chain's dust threshold. A v2 refill is charged on the escrow it adds, not on the whole balance, and a Mode A dispenser (`FIAT_AMOUNT` without `ORACLE_ADDRESS`) is never charged: it reads validator snapshots, and validators are compensated through the protocol fee.
+
+An **ownership dispenser** (`GIVE_OWNERSHIP=1`) is likewise never charged. It escrows no balance — `GIVE_ESCROW` must be empty — so the fee base `oracle_price x GIVE_ESCROW` is zero and no output is required. It is still price-checked: the effective-price rule above is a validity condition on the create, not a function of the fee.
 
 **Write `ORACLE_ADDRESS` in full, never as a `^<id>` reference.** The fee output is recognized by reading `ORACLE_ADDRESS` straight out of this transaction's payload, and a compacted id cannot be resolved at that point, so a create using one is rejected as unpaid however much was actually sent. The official SDK emits this field in full for that reason (the same rule `GET_ADDRESS` already follows).
 
