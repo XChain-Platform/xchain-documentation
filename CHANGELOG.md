@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - The upgrading guide's multi-host step 2 covers host-native sync servers: pin the checkout to the release tag, restart, and confirm health and ledger-hash parity with the origin.
+- The DISPENSER effective-oracle-price rule is stated as a validity condition independent of escrow, with its activation status named, and the oracle usage fee lists the ownership dispenser among the cases owing no fee output.
 
 ## [0.16.0] - 2026-09-08
 
