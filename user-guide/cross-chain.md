@@ -154,7 +154,7 @@ XCALL is a system-level mechanism used by contract authors, not an action end us
 
 ---
 
-*See also: [Trading](./trading.md) | [Use Cases](./use-cases.md) | [FAQ](./faq.md)*
+*See also: [Trading](./trading.md) | [Betting](./betting.md) | [Use Cases](./use-cases.md) | [FAQ](./faq.md)*
 
 ---
 

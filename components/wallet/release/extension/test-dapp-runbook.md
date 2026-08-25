@@ -10,7 +10,8 @@ Run this before tagging a release candidate, and after any change that touches t
 
 ## Prerequisites
 
-- Node 18 or later, and pnpm 9.
+- **Node.js** 22 (22.x LTS); Node 18 fails on the `mariadb` ESM package (`ERR_REQUIRE_ESM`); Node 24 cannot build `isolated-vm`. Node 22 is required.
+- pnpm at the major the wallet repo pins in its root `package.json` `packageManager` field (`pnpm@11.8.0` as of 2026-08-24). pnpm 9 cannot re-resolve that workspace, so the `pnpm install` below fails on it.
 - A regtest XChain stack running locally, so the local coin-node endpoints the wallet talks to respond.
 - A Chromium-family browser: Chrome, Edge, Brave, and Arc all work, since the Manifest V3 contract is the same across them.
 

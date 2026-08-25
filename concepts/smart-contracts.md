@@ -123,6 +123,7 @@ Every figure in a **Gas** column below is in gas units, charged against the call
 |---|---|
 | `xchain.getBalance(address, tick)` | Balance of address for token, or null |
 | `xchain.getTokenInfo(tick)` | Token metadata, or null |
+| `xchain.getPollResult(pollIndex)` | Frozen tally of a resolved [VOTE](../protocol/actions/vote.md) poll (`status` is `finalized` or `failed_quorum`), or null. A poll is readable only from the block after the one it resolved in, so it never reads as decided inside its own finalization block |
 
 ### Contract State (metered)
 | Method | Gas | Description |

@@ -41,6 +41,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value f
 | **ISSUE** | 100,000 | 1.0 | Same on all chains |
 | **Sub-token ISSUE** | 50,000 | 0.5 | Half of ISSUE |
 | **ORDER/DISPENSER/SWAP expiration** | 550/day | ~0.0055/day | 90-day free period |
+| **Ownership-escrow premium** | 50,000 | 0.5 | ORDER/SWAP/DISPENSER **create** that gives ownership; flat, charged on top of the expiration fee and not covered by the free period |
 | **AIRDROP** | 100/recipient | 0.001/recipient | 1,000 recipients = 1 XCHAIN |
 | **DIVIDEND** | 100/recipient | 0.001/recipient | Same as AIRDROP |
 
@@ -87,10 +88,12 @@ The 30-second value is deliberately generous so that legitimate contracts are ne
 
 ### Expiration Free Period
 
-The first 90 days of any ORDER/DISPENSER/SWAP are free. Fees only apply to days beyond 90:
-- 90-day order (default): **0 gas** (free)
+The free period covers the **duration** fee only. The first 90 days of any ORDER/DISPENSER/SWAP are free; fees only apply to days beyond 90:
+- 90-day order (default), giving a balance: **0 gas** (free)
 - 180-day order: 49,500 gas (0.495 XCHAIN)
 - 365-day order: 151,250 gas (~1.51 XCHAIN)
+
+A create that gives **ownership** still pays the flat 50,000-gas ownership-escrow premium above, so an ownership listing inside the free window costs 0.5 XCHAIN rather than nothing.
 
 ### Example Costs (at GAS_PRICE = 0.00001, XCHAIN = $1)
 
@@ -98,6 +101,7 @@ The first 90 days of any ORDER/DISPENSER/SWAP are free. Fees only apply to days 
 |---|---|---|---|
 | ISSUE a token | 100,000 | 1.0 | $1.00 |
 | 90-day ORDER (default) | 0 | 0 | $0 |
+| 90-day ORDER giving ownership | 50,000 | 0.5 | $0.50 |
 | 1-year ORDER | 151,250 | ~1.51 | $1.51 |
 | AIRDROP to 1,000 recipients | 100,000 | 1.0 | $1.00 |
 | Simple contract call | ~2,600 | 0.026 | $0.026 |

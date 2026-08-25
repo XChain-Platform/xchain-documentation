@@ -1246,10 +1246,10 @@ The SDK enforces these rules before serializing any action. Violations throw an 
 ### TICK names (for ISSUE)
 
 - Length: 1–250 characters.
-- Allowed characters: `a-z A-Z 0-9 ~ ! @ # $ % ^ & * ( ) _ + - = { } [ ] \ : < > . ?`
+- Allowed characters, and only these: `a-z A-Z 0-9 ~ ! @ # $ % ^ & * ( ) _ + - = { } [ ] : < > . ?`. The set is an allowlist, byte-for-byte the indexer's `TICK_CHARACTERS`; anything outside it, spaces and commas included, is rejected.
 - Cannot start with `^` (that prefix is reserved for ACTION_INDEX references).
 - Cannot contain `|` (field separator) or `;` (command separator).
-- Cannot contain `/` (directory separator).
+- Cannot contain `/` (directory separator) or `\` (reserved).
 - `.` is the parent/child separator for sub-tokens (e.g. `PARENT.CHILD`). It is allowed, but no segment may be empty: no leading, trailing, or consecutive dots.
 
 ### TICK references (everywhere except ISSUE)

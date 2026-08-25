@@ -24,7 +24,7 @@ A few things to know when choosing a name:
 - **Names are unique per blockchain.** If someone already created a token called `GOLD` on Bitcoin, you cannot create another `GOLD` on Bitcoin. You could, however, create `GOLD` on Litecoin, since each chain has its own independent namespace.
 - **First come, first served.** The first valid creation wins the name. There is no registration process or approval; it is simply a race to be first.
 - **Case does not matter for lookups.** `MYTOKEN`, `mytoken`, and `MyToken` all refer to the same ticker. The name is stored as you typed it, but searches are case-insensitive.
-- **Certain characters are not allowed.** The ticker cannot contain `|`, `;`, or `/`. These are reserved for the protocol's own formatting. A period (`.`) is allowed and is used to create sub-tokens (see below), but it cannot appear at the start or end of a name.
+- **Only certain characters are allowed.** A ticker may use letters (`a-z`, `A-Z`), digits (`0-9`), and the punctuation `~ ! @ # $ % ^ & * ( ) _ + - = { } [ ] : < > . ?`. Everything else is rejected, so a space, a comma, an apostrophe, a quotation mark, `|`, `;`, `/`, or `\` will fail; `MY TOKEN` and `GOLD,SILVER` are not valid names. A period (`.`) is allowed and is used to create sub-tokens (see below), but it cannot appear at the start or end of a name.
 - **Some names are reserved.** The tickers `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved for the platform itself and cannot be issued by anyone except the platform's designated accounts.
 
 ---
@@ -149,7 +149,7 @@ Your token lives on the blockchain permanently. Even if every XChain node went o
 
 ---
 
-*See also: [Trading](./trading.md) | [Use Cases](./use-cases.md) | [FAQ](./faq.md)*
+*See also: [Trading](./trading.md) | [Betting](./betting.md) | [Use Cases](./use-cases.md) | [FAQ](./faq.md)*
 
 ---
 

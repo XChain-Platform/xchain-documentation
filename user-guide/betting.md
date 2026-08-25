@@ -35,6 +35,8 @@ Your stake is moved into **escrow** immediately. This is not a company freezing 
 
 You can bet more than once on the same market, including on different outcomes. Each bet is its own separate wager and is paid out separately.
 
+**A market can fill up.** No market holds more than 10,000 open bets, which caps how much settlement work one block has to do. A very busy market therefore stops accepting wagers before its deadline arrives, and your wallet will report it as full rather than as closed. This is rare; it needs ten thousand separate bets on one question.
+
 ### Betting closes at the deadline
 
 Once a block arrives with a timestamp at or past the deadline, the market closes and no further bets are accepted. This is one-way: a later block cannot reopen it, even if that block carries an earlier timestamp.
@@ -101,7 +103,7 @@ You set:
 - the **token** wagers are made in. Betting is token-only; you cannot wager the coin itself
 - your **fee**, from 0% to 10% of the pot
 - the **deadline**, when betting closes
-- the **resolve window**, how long you have after the deadline to publish the result. The default is 14 days
+- the **resolve window**, how long you have after the deadline to publish the result. The default is 14 days, and you may set anything from 1 hour to 1 year; a market asking for a window outside that range is rejected
 - optionally, a **minimum stake**, and **membership lists** to restrict who may bet
 
 You can also attach a full description of the market, so the terms live on-chain with the market itself rather than on a website that might disappear.
