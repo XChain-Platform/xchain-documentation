@@ -31,7 +31,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **PSBT**: Partially Signed Bitcoin Transaction. The standard format for unsigned or partially signed transactions on Bitcoin-family chains. XChain's encoder produces PSBTs that the caller signs with their wallet and broadcasts.
 
-**TICK**: A token ticker symbol, up to 250 characters. Cannot contain `|`, `;`, or `/`, and cannot begin with `^`. A period (`.`) is allowed and is reserved as the parent/child sub-token separator (e.g. `MYTOKEN.SILVER`), but a TICK cannot begin or end with one. Used to identify tokens throughout the protocol. When referencing a token by its numeric ID instead of its ticker, prefix with `^` (e.g., `^1234`).
+**TICK**: A token ticker symbol, up to 250 characters. May contain only letters `a-zA-Z`, digits `0-9`, and the punctuation `~!@#$%^&*()_+-={}[]:<>.?`; every other character, including spaces, `|`, `;`, `/` and `\`, is rejected. Cannot begin with `^`. A period (`.`) is allowed and is reserved as the parent/child sub-token separator (e.g. `MYTOKEN.SILVER`), but a TICK cannot begin or end with one. Used to identify tokens throughout the protocol. When referencing a token by its numeric ID instead of its ticker, prefix with `^` (e.g., `^1234`).
 
 **TICK_ID**: The numeric ACTION_INDEX of the ISSUE action that created a token. An alternative way to reference a token that is stable even if the ticker is changed.
 

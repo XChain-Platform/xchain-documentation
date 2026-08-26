@@ -98,7 +98,7 @@ The VM classifies execution failures into six categories:
 |---|---|---|
 | Contract revert | `revert: <reason>` | `xchain.revert(reason)` or `xchain.require(false, reason)` |
 | Gas exhaustion | `out_of_gas: used X of Y` | Gas ceiling exceeded during execution |
-| Wall-clock timeout | `timeout: wall-clock safety net triggered` | Execution exceeded `maxCpuTimeMs` (safety net only) |
+| Wall-clock timeout | `timeout: wall-clock safety net triggered` | Execution exceeded its resolved wall-clock budget: the `CONSENSUS_MAX_WALL_MS` protocol constant (30,000 ms) for a consensus execution, the node's own `maxCpuTimeMs` only when ungated. Safety net only. See [Resource Limits](configuration.md#resource-limits) |
 | Memory exhaustion | `out_of_memory: isolate memory limit exceeded` | V8 isolate heap exceeded `maxMemory` |
 | Stack depth exceeded | `out_of_stack: maximum call depth exceeded` | Intra-contract recursion hit the deterministic depth limit, injected by the host as `__DEPTH_LIMIT`: 512 by default, tightened to **256** once the Package 3 VM-sandbox bundle gate is active for that (network, coin). The gate is active unconditionally on testnet and regtest today, and on mainnet at/above the per-coin heights BTC 961000 / LTC 3154250 / DOGE 6319000. The metering-injected `__depth_enter`/`__depth_exit` hooks throw when this limit is reached, producing a deterministic fault instead of relying on V8's architecture-variable native stack limit. `gasUsed` is clamped to the ceiling. |
 | Runtime error | `error: <message>` | Any other JavaScript error (undefined variable, type error, etc.) |

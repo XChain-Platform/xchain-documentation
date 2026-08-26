@@ -175,6 +175,42 @@ XChain actions involved: ORDER, SWAP, or DISPENSER (each with the `GIVE_OWNERSHI
 
 ---
 
+## Prediction Markets and Betting
+
+### Running a Market as an Oracle
+
+Anyone can open a betting market on any question, with no permission, licence, or relationship with anybody. You set the question, a fixed list of between 2 and 16 outcomes, the token wagers are made in, your fee as a percentage of the pot (0% to 10%), the deadline when betting closes, and the resolve window you have after the deadline to publish the result (14 days by default). You can optionally set a minimum stake and restrict who may bet with membership lists.
+
+The protocol charges you to create the market, priced by how long it lives; the first 90 days are free, so anything short-term costs nothing. After the deadline you publish the winning outcome and the protocol works out every payout, takes your fee, and credits everyone. You never distribute anything by hand, and resolving is free however many bets are on the book.
+
+**What this enables:**
+
+- **Event and sports markets.** Open a market on a match, an election, or an award, take a fee for settling it honestly, and let the participants find their own prices.
+- **Community questions.** A token community runs markets in its own token on the questions it actually argues about, with the payouts denominated in that token.
+- **Editorial and forecasting desks.** A publication or research group settles markets on the outcomes it already reports on, building a public record of how it resolved them.
+
+You cannot bet on your own market from the market's own address, because you decide the result. There is no bonding or slashing of oracles either: your published history of markets resolved, cancelled and left to expire is the entire accountability mechanism, and it is per-address.
+
+XChain actions involved: BET v0 (create the market), BET v3 (publish the result), BET v1 (cancel it, refunding everyone in full). If you never resolve, the protocol emits BET_EXPIRE at the end of the resolve window and refunds every wager automatically.
+
+### Betting into a Market
+
+XChain betting is parimutuel, the same system racetracks use: every wager goes into a shared pool, and when the result is published the losing wagers are split among the winners in proportion to what each staked. There is no bookmaker quoting you a fixed price, so the odds move as money arrives after you bet.
+
+Your stake is escrowed by the protocol the moment you bet, not held by a company, and bets are final: there is no cancel and no edit. Your stake comes back in full, with no fee taken, if the oracle cancels the market, if nobody backed the winning outcome, or if the oracle never resolves within the window.
+
+**What this enables:**
+
+- **Betting without a counterparty.** There is no order book to fill against, so a wager never sits unmatched no matter how thin the market is.
+- **Wagering in any token.** Markets are denominated in an XChain token rather than the coin, so a token can be the unit of account for the questions its holders care about.
+- **Auditable settlement.** Every wager, the escrow, and the published result are on-chain, so anyone can replay the arithmetic on their own node.
+
+XChain actions involved: BET v2 (place a wager on one outcome).
+
+The full guide to both sides is [Betting](./betting.md), and the protocol reference is [`BET`](../protocol/actions/bet.md).
+
+---
+
 ## Private Deployments
 
 ### Internal Company Networks
@@ -230,7 +266,7 @@ Two providers ship in the initial release:
 
 - **AI-judged contests and competitions.** A contest contract receives entries, asks an AI to score or rank them, and distributes prizes automatically based on the AI's verdict.
 - **Content moderation oracles.** A platform contract asks an AI whether content is in policy before paying out a creator royalty.
-- **Real-world data triggers.** An insurance contract pays out automatically when an HTTP-accessible weather API reports a storm above a threshold. A prediction market settles when an official source confirms the event.
+- **Real-world data triggers.** An insurance contract pays out automatically when an HTTP-accessible weather API reports a storm above a threshold. A market that must settle itself from an official source, with no human oracle, can read that source the same way; if a person is willing to publish the result, the native [betting system](#prediction-markets-and-betting) does the whole job without a contract.
 - **Sentiment-driven flows.** A treasury contract adjusts its allocation strategy based on AI analysis of news headlines or social posts.
 - **Translation, summarization, classification.** Any contract that needs the kind of judgment a person would make; but at machine speed, on every transaction.
 - **Dispute resolution.** A contract submits both sides' arguments to an AI judge and acts on the verdict.
@@ -247,7 +283,7 @@ This is a general-purpose primitive. It is not just for validating the network; 
 
 **What this enables:**
 
-- **Prediction markets and oracles.** Participants stake tokens to back their claims; the contract slashes wrong ones and pays out correct ones from the slashed pool.
+- **Staked claims and oracles.** Participants stake tokens to back their claims; the contract slashes wrong ones and pays out correct ones from the slashed pool. Use this shape when the payout rule itself has to be custom code; for an ordinary market on a question, [Prediction Markets and Betting](#prediction-markets-and-betting) is the native primitive and needs no contract.
 - **Security bonds for services.** A service operator stakes tokens as a deposit; users get paid out of that bond if the service misbehaves or goes offline.
 - **Validator-like services on top of XChain.** A contract can run its own internal validator set (for, say, a sidechain bridge, a relay service, or a federated oracle) backed by stake on any chain.
 - **Reputation games.** Communities stake tokens against their own predictions, votes, or moderation decisions, with reputation calibrated by what gets slashed and what gets rewarded.
@@ -262,7 +298,7 @@ For more details on the contract layer, see [Smart Contracts](../concepts/smart-
 
 ---
 
-*See also: [Creating Tokens](./creating-tokens.md) | [Trading](./trading.md) | [Cross-Chain](./cross-chain.md) | [FAQ](./faq.md)*
+*See also: [Creating Tokens](./creating-tokens.md) | [Trading](./trading.md) | [Betting](./betting.md) | [Cross-Chain](./cross-chain.md) | [FAQ](./faq.md)*
 
 ---
 

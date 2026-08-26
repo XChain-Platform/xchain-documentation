@@ -18,8 +18,8 @@ validator **reward pool**. XCHAIN exists on the **BTC chain only**.
   supply starts at zero and every unit is minted afterward, up to the cap.
 - **Fair-mint distribution.** The genesis pass credits the pinned distribution buckets (the
   snapshot-holder airdrop below), and the remainder of the cap is minted publicly: once the mint
-  window opens, anyone can `MINT` their share, 1,000 XCHAIN per mint, with no per-address cap
-  and no closing date. `ISSUE` of XCHAIN stays GAS-only and BTC-only, so only the operator can
+  window opens, anyone can `MINT` their share, 1,000 XCHAIN per mint, capped at 1,000 XCHAIN
+  per address, with no closing date. `ISSUE` of XCHAIN stays GAS-only and BTC-only, so only the operator can
   author the token's caps and window, but minting itself is public. The ratified allocation is
   published in the white paper (§13.3).
 - **Rewards are paid, not minted.** Validator rewards are paid by **debiting a pre-funded reward
@@ -87,9 +87,10 @@ how you read the value to pin in the first place.
 ## Step 1: Open the mint (launch)
 
 Minting is governed entirely by the token's own genesis parameters. To open the launch window,
-broadcast a GAS-signed `ISSUE` for `XCHAIN` that lowers `MINT_START_BLOCK` to the launch height,
-optionally setting `MAX_MINT` (per-tx cap) and `MINT_ADDRESS_MAX` (per-address cap). Because
-decimals stay editable while supply is zero, this launch `ISSUE` can still tune parameters.
+broadcast a GAS-signed `ISSUE` for `XCHAIN` that lowers `MINT_START_BLOCK` to the launch height
+and sets the ratified fairness caps: `MAX_MINT=1000` (per-tx) and `MINT_ADDRESS_MAX=1000`
+(per-address, one full mint per address; §13.3 of the white paper). Because decimals stay
+editable while supply is zero, this launch `ISSUE` can still tune parameters.
 
 Until then, any `MINT` fails `invalid: MINT_START_BLOCK`. After the window opens, `MINT`s are
 public and bounded by `MAX_SUPPLY` (`invalid: mint exceeds MAX_SUPPLY` past the cap) and the

@@ -29,8 +29,9 @@
  *   2. The cap in §13.3 equals the cap the genesis runbook documents as the
  *      pinned `MAX_SUPPLY`, so prose and runbook cannot drift apart.
  *   3. The snapshot pins named in §13.3 equal the genesis pins in the runbook.
- *   4. The open-mint terms (per-mint quantity, no per-address cap, no closing
- *      date) appear in both places and agree.
+ *   4. The open-mint terms (per-mint quantity, the 1,000 per-address cap, no
+ *      closing date) appear in both places and agree, and the superseded
+ *      uncapped wording appears in neither.
  *   5. The retired placeholder, and the absolutes that only held while it
  *      stood, appear nowhere in the published set.
  *
@@ -165,8 +166,11 @@ describe('§13.3 agrees with the genesis runbook', () => {
         const perMint = /1,000 XCHAIN per (?:`MINT`|mint)/;
         assert.match(genesis, perMint, '§13.3 states the per-mint quantity');
         assert.match(flat(runbook), perMint, 'the runbook states the per-mint quantity');
-        assert.match(genesis, /no per-address cap/, '§13.3 states there is no per-address cap');
-        assert.match(flat(runbook), /no per-address cap/, 'the runbook states there is no per-address cap');
+        const perAddress = /capped at 1,000 XCHAIN\s+per address/;
+        assert.match(genesis, perAddress, '§13.3 states the 1,000 per-address cap');
+        assert.match(flat(runbook), perAddress, 'the runbook states the 1,000 per-address cap');
+        assert.doesNotMatch(genesis, /no per-address cap/, 'the uncapped terms were superseded by the 2026-08-22 fairness ruling');
+        assert.doesNotMatch(flat(runbook), /no per-address cap/, 'the uncapped terms were superseded by the 2026-08-22 fairness ruling');
         assert.match(genesis, /no closing date/, '§13.3 states the leg has no closing date');
     });
 });

@@ -154,6 +154,40 @@ describe('internal link integrity', () => {
             'so "Foo: Bar" slugs to #foo-bar, not #foo--bar):\n  ' + dangling.join('\n  '));
     });
 
+    // Keep every user-guide page on the curated topical trail the "See also"
+    // footers carry. Reachability is NOT the rationale: docs.build.js
+    // auto-generates the sidebar from the directory tree, so every sibling
+    // already links every page (dist/user-guide/trading.html carries
+    // /user-guide/betting). `betting.md` shipped as a first-class guide and was
+    // swept into none of the five footers, which is a process miss in the
+    // curation, not a broken link.
+    //
+    // Deliberately weak: at least ONE sibling must link the page. The footers
+    // are curated, not exhaustive, and asserting completeness would force every
+    // page into every footer.
+    test('every user-guide page is linked from at least one sibling footer', () => {
+        const dir   = path.join(DOC_ROOT, 'user-guide');
+        const pages = fs.readdirSync(dir).filter((n) => n.endsWith('.md') && n !== 'README.md');
+
+        const linkedFromASibling = new Set();
+        for (const from of pages) {
+            for (const line of fs.readFileSync(path.join(dir, from), 'utf8').split('\n')) {
+                if (!/^\*See also:/.test(line)) continue;
+                LINK.lastIndex = 0;
+                let m;
+                while ((m = LINK.exec(line)) !== null) {
+                    const file = m[1].split('#')[0].replace(/^\.\//, '');
+                    if (file && file !== from) linkedFromASibling.add(file);
+                }
+            }
+        }
+
+        const orphaned = pages.filter((p) => !linkedFromASibling.has(p));
+        assert.deepEqual(orphaned, [],
+            'user-guide pages missing from every sibling "See also" footer, so the curated ' +
+            'topical trail skips them (the auto-generated sidebar still links them):\n  ' + orphaned.join('\n  '));
+    });
+
     // Without this, the copy above could drift from the renderer and quietly
     // start validating against a rule the site does not use.
     test('the slug rule still matches the docs site', { skip: !fs.existsSync(SITE_BUILD) && 'xchain-websites not present in this checkout' }, () => {

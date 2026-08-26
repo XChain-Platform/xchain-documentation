@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The ATTEST v3 rules document the relay-identity exactly-once gate the reference indexer enforces.
+- The utxo-tracker configuration reference documents the derived bulk-sync RAM budget alongside the other memory-budget figures.
+- The decoder configuration reference documents the mempool response cache duration.
+- The sync configuration reference documents the replication-connection setting for multi-source replicas, and names the MariaDB privilege that replica-status reads actually require.
+- The open-mint terms now carry a 1,000 XCHAIN per-address cap in the white paper, overview and genesis runbook, enforced by the distribution-figures test.
+- The regtest guide now documents creating XCHAIN and minting gas on a fresh chain, replacing the incorrect claim that a pre-funded GAS address exists, and explains seeding oracle prices for native-coin fees.
 - Intro pages, FAQ, use cases, concepts and component pages now lead with the chain-agnostic claim and time-stamp Bitcoin, Litecoin, and Dogecoin as the live-today roster, enforced by a new chain-positioning test.
 - White paper §13.3 now publishes the final genesis figures (100,000,000 cap, the seven-leg distribution, snapshot pins and open-mint terms) instead of deferring them.
 - Overview, GAS, COLLECT and the genesis runbook no longer claim supply is created only by public mints, which held only while the distribution was unpublished.

@@ -12,7 +12,7 @@ Regtest is a fully local, self-contained blockchain environment where you contro
 - A local Bitcoin (or Litecoin/Dogecoin) node in regtest mode with instant block production
 - Full XChain stack: decoder, indexer, explorer, encoder, hub, UTXO tracker
 - `xchain-regtest-miner`: auto-mines mempool transactions and exposes a funding API
-- Pre-seeded accounts and a GAS address that holds XCHAIN tokens
+- An open XCHAIN mint for gas: create the token once, then any address mints what it needs (see [Getting XCHAIN Gas Tokens](#getting-xchain-gas-tokens))
 - Zero confirmation latency, blocks appear in seconds, not minutes
 
 ---
@@ -126,31 +126,37 @@ await mineBlock();
 
 ## Getting XCHAIN Gas Tokens
 
-XCHAIN is the platform gas token. Actions that write to the database charge fees in XCHAIN. In regtest, the GAS address is pre-configured in each indexer's coin config (`src/configs/BTC.js`) and already holds XCHAIN.
+XCHAIN is the platform gas token. Actions that write to the database charge fees in XCHAIN (an ISSUE costs 1 XCHAIN on regtest), deducted from the acting address's XCHAIN balance.
 
-To get XCHAIN into a test address, have the GAS address send some:
+A fresh regtest chain starts with **no XCHAIN at all**. On mainnet the token is injected by the genesis ledger, and that injection deliberately never runs on regtest, so the token has to be created once per chain. Regtest lifts mainnet's restrictions for exactly this purpose: any funded address may issue the XCHAIN tick, that issue is itself fee-exempt, and once the token exists any address can mint gas freely.
+
+One-time, on a fresh chain (or after a reset), from any funded address:
 
 ```js
-// The GAS address's private key is available in the regtest config
-// Check xchain-indexer/src/configs/BTC.js for the address['GAS'] value (regtest network block)
-
-const sendAction = sdk.send({
+// Create the XCHAIN token with an open mint window
+await sdk.issue({
   tick: 'XCHAIN',
-  amount: '1000',
-  destination: 'YOUR_TEST_ADDRESS',
+  maxSupply: '100000000',
+  maxMint: '100000',   // per-mint cap; keep it high for dev convenience
+  decimals: 8,
 });
-
-const psbt = await sdk.encoder.createPSBT({
-  action: sendAction,
-  publicKey: 'GAS_ADDRESS_PUBLIC_KEY',
-  utxos: gasAddressUtxos,
-});
-
-await signAndBroadcastFromGas(psbt.psbt);
 await mineBlock();
 ```
 
-Alternatively, the GAS address can issue XCHAIN to your test address immediately during setup in your test harness, see the e2e test suite for examples.
+Then, whenever a test address needs gas, mint it. There is no special holder address or key to find:
+
+```js
+await sdk.mint({ tick: 'XCHAIN', amount: '1000' });
+await mineBlock();
+```
+
+If the ISSUE fails with `invalid: issued by another address`, the token already exists on your chain (something created it earlier); skip straight to minting. This is the same sequence the e2e suite performs: its first run creates XCHAIN if it is missing (`test/initialCheck.test.js` in `xchain-e2e-test`), and every fixture funds itself with a MINT.
+
+### Native-coin fees and oracle prices
+
+Fee-bearing actions can alternatively pay the fee in the native coin (an extra transaction output to the fee destination address) instead of XCHAIN. That path is validated against XCHAIN/USD and COIN/USD oracle prices, and a fresh regtest stack has no oracle publishing, so it fails with `no current oracle price for BTC/USD`. The error means the price is missing, not that the stack is broken.
+
+Either pay fees in XCHAIN (the default, needs no oracle), or seed prices the way the e2e harness does: `test/helpers/nativeFeeHelper.js` in `xchain-e2e-test` writes XCHAIN/USD and COIN/USD rows into the indexer's price snapshots and attaches the native fee output for you.
 
 ---
 

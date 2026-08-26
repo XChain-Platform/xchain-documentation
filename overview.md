@@ -51,7 +51,7 @@ The gas token, **XCHAIN**, is conservative by design:
 - **No inflation**: validator rewards are paid from a pre-funded pool, never minted.
 - **Demand** comes from fee payment and staking lockup against that fixed cap.
 
-The genesis distribution honors the communities that pioneered Bitcoin-native tokens: a snapshot reserving tick-name ownership for prior holders, plus a 30% airdrop to those same Counterparty and Dogeparty holders. The rest of the cap is 25% open mint, 20% treasury, 10% market and liquidity, 9.7% independent validators and 5.3% pre-funded validator reward pool, with **0% to the team**. No ICO, no pre-mint, no insider faucet; the open-mint leg is first-come at 1,000 XCHAIN per mint, with no per-address cap and no closing date. Full figures and the snapshot pins are in the [white paper](./whitepaper.md#133-genesis-and-fair-launch).
+The genesis distribution honors the communities that pioneered Bitcoin-native tokens: a snapshot reserving tick-name ownership for prior holders, plus a 30% airdrop to those same Counterparty and Dogeparty holders. The rest of the cap is 25% open mint, 20% treasury, 10% market and liquidity, 9.7% independent validators and 5.3% pre-funded validator reward pool, with **0% to the team**. No ICO, no pre-mint, no insider faucet; the open-mint leg is first-come at 1,000 XCHAIN per mint, capped at 1,000 XCHAIN per address, with no closing date. Full figures and the snapshot pins are in the [white paper](./whitepaper.md#133-genesis-and-fair-launch).
 
 XChain is open source (AGPL-3.0) with a commercial license available for proprietary use.
 

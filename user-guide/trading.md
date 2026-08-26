@@ -112,9 +112,11 @@ This transparency is a core property of the protocol. All market data is derived
 
 ## Fees
 
-DEX listings are priced by **how long the listing lives**, not by how early you create one. **The first 90 days are free**, so a listing that expires within 90 days carries no listing fee. Past that, every day beyond the 90th is charged at a per-day rate. The free window is identical on every supported chain (Bitcoin, Litecoin, and Dogecoin today); it is not a Bitcoin-only or time-limited promotion.
+DEX listings are priced by **how long the listing lives**, not by how early you create one. **The first 90 days are free**, so an ordinary listing that expires within 90 days carries no duration fee. Past that, every day beyond the 90th is charged at a per-day rate. The free window is identical on every supported chain (Bitcoin, Litecoin, and Dogecoin today); it is not a Bitcoin-only or time-limited promotion.
 
 That listing fee is what creating or editing a listing costs: placing an order and creating a dispenser are charged on the duration schedule above, priced in XCHAIN. **Cancelling is free.** Taking an order or a dispenser off the book carries no protocol fee at all, so you are never charged for withdrawing a listing. You still pay the ordinary miner transaction fee on the underlying chain for any action you broadcast.
+
+**Listings that hand over ownership cost extra.** A listing that escrows a token's **ownership** instead of a balance (the ownership dispenser described above, and the equivalent order or swap) also pays a flat **ownership-escrow premium of 50,000 gas, 0.5 XCHAIN at the current gas price**. It is charged on top of any duration fee, and it applies inside the 90-day window too, so an ownership listing is never free. The premium is charged when the listing is created; editing an existing ownership listing does not pay it again, and cancelling is still free. It is the same amount on Bitcoin, Litecoin, and Dogecoin.
 
 Check the current fee schedule through the XChain Explorer or your wallet software for the latest amounts.
 
@@ -188,7 +190,7 @@ If a COINPAY transaction is broadcast but confirms **after** the obligation has 
 
 ---
 
-*See also: [Cross-Chain Trading](./cross-chain.md) | [Creating Tokens](./creating-tokens.md) | [FAQ](./faq.md)*
+*See also: [Betting](./betting.md) | [Cross-Chain Trading](./cross-chain.md) | [Creating Tokens](./creating-tokens.md) | [FAQ](./faq.md)*
 
 ---
 

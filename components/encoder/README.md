@@ -144,6 +144,7 @@ npm run api
 | `UTXO_TRACKER_API_PORT` | No | None | xchain-utxo-tracker service port |
 | `MAX_FEE_RATE_KB` | No | Uncapped | Absolute maximum fee rate in sat/kB |
 | `MAX_FEE_RATE_MULTIPLIER` | No | `100` | Caps caller-supplied fee/feePerKb at this multiple of the node's fee estimate (`0` disables) |
+| `SUGGESTED_FEE_MAX_PER_VBYTE` | No | `20` on test chains, uncapped on mainnet | Ceiling on the fee rate the encoder picks for a caller that supplies none, in base units per vByte. A quiet test chain has no fee market, so `estimatesmartfee` returns a large fallback at every confirmation target, which prices an ordinary action above the balance funding it. Mainnet is unclamped by default, where the estimate is real and a ceiling would underpay a genuine spike. Set a number to override on any chain, or `0` to disable. Bounds only the rate chosen on the caller's behalf, never a caller-supplied rate and never the anchor the fee-drain caps derive from |
 | `API_KEY` | No | Disabled | API key for `x-api-key` header authentication |
 | `XCHAIN_COMPRESSION_DEFAULT` | No | On | Set to `0`/`false`/`off` to stop compressing FILE payloads by default. A deploy-time lever, not a feature switch: compressed FILEs are unreadable to a reader that predates compression support, so this exists to let the code release and the behaviour change land separately (readers everywhere first, then the encoder). Callers can always override per request with the `compress` parameter |
 | `ENCODER_RATE_LIMIT_RPM` | No | `60` | Maximum requests per minute per IP |

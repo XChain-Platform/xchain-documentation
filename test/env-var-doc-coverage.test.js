@@ -121,6 +121,21 @@ describe('extractDefault (the checker that reported false green during the audit
         assert.deepEqual(defaultOf('const n = process.env.CAP || 4 * factor;'), { value: '4', numeric: true });
     });
 
+    // A numeric scan that stops at the `e` records `|| 1e6` as `1`, and
+    // checkDefaultDrift then reports a row correctly saying `1000000` as drift.
+    // The two cases below fail against the
+    // exponent-free scan with `1` and `4`; the four tests above are the control
+    // proving the widened scan did not disturb plain decimals or partial folds.
+    test('reads a scientific-notation default at its real magnitude', () => {
+        assert.deepEqual(defaultOf('const t = process.env.TIMEOUT || 1e6;'), { value: '1000000', numeric: true });
+        assert.deepEqual(defaultOf('const r = process.env.RATE ?? 1.5e-3;'), { value: '0.0015', numeric: true });
+        assert.deepEqual(defaultOf('const n = process.env.MAX || 1e+10;'), { value: '10000000000', numeric: true });
+    });
+
+    test('folds a product whose factor is written in scientific notation', () => {
+        assert.deepEqual(defaultOf('const c = process.env.CAP || 4 * 1e3;'), { value: '4000', numeric: true });
+    });
+
     test('reads a string default', () => {
         assert.deepEqual(defaultOf("const h = process.env.DB_HOST || '127.0.0.1';"), { value: '127.0.0.1', numeric: false });
     });
@@ -661,6 +676,15 @@ describe('doc matching', () => {
         assert.equal(defaultDocumented(['On each round, `ORACLE_REWARD_PER_ROUND` (default "10.00000000") XCHAIN is paid.'], '10.00000000'), true);
     });
 
+    // Delimiters optional INDEPENDENTLY on each side credit a row that opened a
+    // quote and never closed it as an assertion.
+    // All three of these return true against that grammar.
+    test('a half-open quote or backtick is not an assertion', () => {
+        assert.equal(defaultDocumented(['| `T` | No | `\'30000" | ms |'], '30000'), false);
+        assert.equal(defaultDocumented(['| `X_TIMEOUT` | No | `30000 | ms |'], '30000'), false);
+        assert.equal(defaultDocumented(['`X_TIMEOUT` defaults to `"30000\' here.'], '30000'), false);
+    });
+
     test('a number named only in a description does not document the default', () => {
         const row = ['| `HUB_RATE_LIMIT_RPM` | rate-limited to 100 requests per minute, returns `429` past it |'];
         assert.equal(defaultDocumented(row, '429'), false);
@@ -690,6 +714,29 @@ describe('doc matching', () => {
             '| RPC timeout (axios) | `30000` | BlockchainConnector.js | overridable via `NODE_RPC_TIMEOUT` |',
             '`NODE_RPC_TIMEOUT` defaults to `30000`.',
         ];
+        assert.deepEqual(cov.assertingRows(rows, 'NODE_RPC_TIMEOUT'), rows);
+    });
+
+    // A subject grammar needing four characters never reads a SHORT variable's
+    // row as that variable's claim, so its default cell stays
+    // in the neighbour's asserting set, ready to launder the neighbour's value.
+    // Against the four-character floor this keeps both rows and reads `9`.
+    test('a short-named neighbour\'s row is still that neighbour\'s claim', () => {
+        const rows = [
+            '| `API` | No | `9` | Port, paired with `RPC_TIMEOUT` |',
+            '| `RPC_TIMEOUT` | No | `500` | timeout |',
+        ];
+        const own = cov.assertingRows(rows, 'RPC_TIMEOUT');
+        assert.equal(own.length, 1);
+        assert.equal(defaultDocumented(own, '500'), true);
+        assert.equal(defaultDocumented(own, '9'), false);
+    });
+
+    // The floor is two characters, not one: the wire field-code tables have
+    // live one-letter leading cells that are column codes, not variables, and
+    // dropping those rows would lose real assertions.
+    test('a one-letter field-code cell is not a row subject', () => {
+        const rows = ['| `B` | block height field, see `NODE_RPC_TIMEOUT` |'];
         assert.deepEqual(cov.assertingRows(rows, 'NODE_RPC_TIMEOUT'), rows);
     });
 });

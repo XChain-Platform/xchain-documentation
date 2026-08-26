@@ -30,7 +30,7 @@ const vm = new XChainVM({
 | `gasCeiling` | number | `1000000` | Maximum gas allowed per single contract execution |
 | `limits` | object | (see below) | Resource limits for isolate execution |
 
-The VM has no environment variables, configuration files, or runtime reconfiguration. All settings are fixed at construction time by the indexer.
+The VM has no environment variables, configuration files, or runtime reconfiguration. All settings are fixed at construction time by the indexer. Being settable is not the same as being binding: `limits.maxCpuTimeMs` is accepted here but bounds only ungated (non-consensus) executions, because a consensus execution resolves its wall-clock budget from a protocol constant instead (see Resource Limits below).
 
 ## Gas Schedule
 
@@ -39,7 +39,7 @@ The gas schedule defines the cost of each metered operation. These values are se
 | Operation | Key | Cost | Description |
 |---|---|---|---|
 | Computation | `VM_COMPUTATION` | 1 | Charged at each `__gas()` injection point (loop iterations, branches, function calls). Indexed `for` loops are charged **twice per iteration**: see note below |
-| State read | `VM_STATE_READ` | 100 | `state.get()`, `state.has()`, `getBalance()`, `getTokenInfo()`, `attestation.getResponse()`, `contract.getStake()`, `contract.getTotalStaked()`, `contract.getStakers()` |
+| State read | `VM_STATE_READ` | 100 | `state.get()`, `state.has()`, `getBalance()`, `getTokenInfo()`, `getPollResult()`, `attestation.getResponse()`, `contract.getStake()`, `contract.getTotalStaked()`, `contract.getStakers()` |
 | State write | `VM_STATE_WRITE` | 200 | `state.set()` |
 | State delete | `VM_STATE_DELETE` | 100 | `state.delete()` |
 | Oracle read | `VM_ORACLE_READ` | 100 | `oracle.getPrice()`, `oracle.getPriceAtRound()` |
@@ -60,7 +60,8 @@ Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`r
 | Gas ceiling | `gasCeiling` | 1,000,000 | Maximum gas per execution. Primary execution bound. |
 | Max call depth | `maxCallDepth` (`VM_MAX_CALL_DEPTH`) | 4 | Maximum call depth for `emit.execute` trees. A user-submitted EXECUTE is depth 0; each `emit.execute` hop adds 1. |
 | Min call gas | `minCallGas` (`VM_MIN_CALL_GAS`) | 5,000 | Minimum `gasLimit` per `emit.execute` call. Bounds call-tree fan-out: every call costs at least `VM_EMISSION + VM_MIN_CALL_GAS` out of the caller's budget. |
-| CPU timeout | `maxCpuTimeMs` | 30,000 ms | Wall-clock timeout (safety net only: should never trigger under normal operation) |
+| CPU timeout | `maxCpuTimeMs` | 30,000 ms | Wall-clock timeout for **ungated (non-consensus) executions only**: benches, fuzzing, the toolkit simulator, and pre-activation replay. A consensus execution ignores this knob (see the next row) |
+| Consensus wall-clock budget | `CONSENSUS_MAX_WALL_MS` | 30,000 ms | The wall-clock budget every consensus execution runs against. A protocol constant, not a node setting: it is unconditional on testnet and regtest, and on mainnet from the contract-era flag day (see [Flag Days](../../protocol/flag-days.md)). Lowering `maxCpuTimeMs` on a live indexer does not tighten it |
 | Memory | `maxMemory` | 8 MB | V8 isolate heap size limit. Exceeding triggers `out_of_memory` error. |
 | Emissions | `maxEmissions` | 50 | Maximum platform actions a contract can emit per execution |
 | State keys | `maxStateKeys` | 10,000 | Maximum key-value pairs a contract can store |
@@ -88,7 +89,7 @@ These limits are hardcoded in the VM and not configurable:
 |---|---|---|
 | Gas | 1,000,000 per execution | `GasTracker` throws `GasExhaustedError` |
 | Memory | 8 MB per isolate | `isolated-vm` kills isolate |
-| Wall-clock time | 30 seconds | `script.runSync()` timeout parameter |
+| Wall-clock time | 30 seconds | `script.runSync()` timeout parameter, set to the resolved budget: `CONSENSUS_MAX_WALL_MS` for a consensus execution, the node's `maxCpuTimeMs` only when ungated |
 | Emitted actions | 50 per execution | `EmissionCollector` throws on overflow |
 | State keys | 10,000 per contract | `StateManager.set()` throws on overflow |
 | State key size | 1 KB per key | `StateManager.set()` / `delete()` throws on overflow |
@@ -97,7 +98,7 @@ These limits are hardcoded in the VM and not configurable:
 | Block cache | 1,000 entries per block | Excess entries skip cache (non-fatal) |
 | Log entries | 100 per execution | `EmissionCollector.addLog()` silently drops |
 
-Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs; it should never trigger under normal operation.
+Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs; it should never trigger under normal operation. Its budget is a consensus quantity, not an operator setting: every validator runs a consensus execution against the same `CONSENSUS_MAX_WALL_MS`, so a node configured with a tighter `maxCpuTimeMs` cannot return a different status or a different `gasUsed` for the same execution.
 
 ---
 

@@ -659,7 +659,7 @@ XChain launches with no inflationary mint, no ICO and no insider faucet. XCHAIN'
 | Allocation | XCHAIN | Share | Notes |
 |---|---|---|---|
 | Counterparty / Dogeparty holder airdrop | 30,000,000 | 30% | Credited from a hash-pinned holder snapshot, one `address,quantity` bucket file per source token |
-| Open mint (fair launch) | 25,000,000 | 25% | Public `MINT`: 1,000 XCHAIN per mint, no per-address cap, no closing date |
+| Open mint (fair launch) | 25,000,000 | 25% | Public `MINT`: 1,000 XCHAIN per mint, capped at 1,000 XCHAIN per address, no closing date |
 | Treasury | 20,000,000 | 20% | Audits, listings, grants, legal; also the top-up source for the reward pool |
 | Market and liquidity | 10,000,000 | 10% | Launch liquidity: DEX pools, market-maker inventory, listings |
 | Independent validators | 9,700,000 | 9.7% | Sized so enough independent parties clear the `cross_chain` staking floor of 5,000 XCHAIN |
@@ -668,7 +668,7 @@ XChain launches with no inflationary mint, no ICO and no insider faucet. XCHAIN'
 
 **The snapshot.** Asset-*name* ownership from Counterparty (BTC) and Dogeparty (DOGE) is replayed onto the XChain ledger at genesis, so the communities that pioneered Bitcoin-native tokens keep their names here: name reservations only, no balances. The pin is a block height rather than a date, because a height is the only form every node can agree on: **BTC block 950,000** and **DOGE block 6,240,000**. Each carries a ledger hash and a state-dump hash that every indexer verifies before deriving a single genesis action, and the holder-airdrop set carries a further set hash over the buckets, their funding and their derivation order. A node whose files do not match those pins halts rather than publish a divergent ledger, so the distribution above is verifiable by replay rather than by announcement. The airdrop set itself (which source tokens, which bucket files, and their amounts) is part of the pre-launch distribution and is finalized with it.
 
-**The open mint.** Once the operator lowers `MINT_START_BLOCK`, anyone can `MINT` on a first-come basis for the cost of a Bitcoin transaction plus the protocol fee. Under the current terms there is no window and no per-address cap, so the leg simply ends when its 25,000,000 are minted (25,000 mints at 1,000 each), and total supply is final at that point. Every other allocation is fixed when the distribution runs, which is why total supply can only fall afterward, through the burn bucket.
+**The open mint.** Once the operator lowers `MINT_START_BLOCK`, anyone can `MINT` on a first-come basis for the cost of a Bitcoin transaction (`MINT` itself carries no protocol fee). Each address can mint at most 1,000 XCHAIN in total (`MINT_ADDRESS_MAX`), one full mint, so the leg spreads across at least 25,000 distinct addresses. There is no closing date; the leg simply ends when its 25,000,000 are minted (25,000 mints at 1,000 each), and total supply is final at that point. Every other allocation is fixed when the distribution runs, which is why total supply can only fall afterward, through the burn bucket.
 
 ---
 
@@ -751,7 +751,7 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 | XCHAIN supply | 100,000,000 (8 decimals), capped at genesis, zero pre-mint, BTC-chain only |
 | XCHAIN genesis distribution (§13.3; **pre-launch, not final**) | 30% holder airdrop / 25% open mint / 20% treasury / 10% liquidity / 9.7% validators / 5.3% reward pool / 0% team |
 | Genesis snapshot pins | BTC block 950,000, DOGE block 6,240,000 |
-| Open-mint terms (**pre-launch, not final**) | 1,000 XCHAIN per `MINT`, no per-address cap, no closing date |
+| Open-mint terms (**pre-launch, not final**) | 1,000 XCHAIN per `MINT`, capped at 1,000 XCHAIN per address, no closing date |
 | Gas schedule and `GAS_PRICE` (**pre-launch, not final**) | Appendix A |
 
 ---

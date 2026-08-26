@@ -37,9 +37,21 @@ Arguments are order-independent: `xchain-node start bitcoin mainnet xchain-encod
 | `stop` | `stop <service> [chain] [network]` | Stop running container(s) |
 | `restart` | `restart <service> [chain] [network]` | Restart container(s) |
 | `autoheal` | `autoheal [--dry-run]` | Restart containers stuck in the Docker "unhealthy" state (opt-in per service); one-shot, safe to run from cron or a systemd timer |
-| `reset` | `reset <service> <chain> <network> [--yes]` | Stop containers, clear data (volumes or databases), restart; `--yes` skips the confirmation prompt for scripted resets |
+| `reset` | `reset <service> <chain> <network> [--yes] [--with-indexer]` | Stop containers, clear data (volumes or databases), restart; `--yes` skips the confirmation prompt for scripted resets, `--with-indexer` resets `xchain-indexer` alongside `xchain-decoder` (see below) |
 | `ps` | `ps` | Display status table of all installed services with versions and ports |
 | `sync` | `sync` | Scan Docker for xchain-node containers and register any missing in the module state table |
+
+#### Resetting the decoder and indexer
+
+The decoder and the indexer are a coupled pair. The indexer tracks reorgs by a decoder event id, and the decoder never deletes those rows, so wiping the decoder alone restarts the ids underneath a cursor that now points past them: the indexer aborts with a reorg-cursor error (`RE-1`) and stops committing blocks until both are rebuilt together.
+
+`reset xchain-decoder` therefore refuses while an indexer is installed for that chain, before anything is touched, and names the joint form:
+
+```
+xchain-node reset xchain-decoder <chain> <network> --with-indexer
+```
+
+The coupling is one-directional, so `reset xchain-indexer` on its own stays available: it re-derives the indexer from an intact decoder, which is an ordinary reindex. `reset all` already moves both.
 
 ### Logging & Monitoring
 

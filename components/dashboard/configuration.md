@@ -74,8 +74,8 @@ Thresholds.
 |---|---|---|
 | `XCHAIN_INDEXER_LAG_WARN` | `50` | Indexer block lag that trips a warning. A named stall reason or an unhealthy circuit trips a critical regardless. |
 | `XCHAIN_UTXO_TRACKER_LAG_WARN` | `10` | UTXO-tracker block lag that trips a warning |
-| `XCHAIN_ANCHOR_BALANCE_WARN` | `30` | ANCHOR publisher wallet balance in DOGE below which a warning fires |
-| `XCHAIN_ANCHOR_BALANCE_CRIT` | `10` | Publisher balance in DOGE below which a critical fires |
+| `XCHAIN_ANCHOR_BALANCE_WARN` | `30` | Publisher wallet balance in DOGE below which a warning fires. Despite the name, this pair covers **both** the ANCHOR publisher and the ORACLE PRICE v0 publisher, which spend from the same DOGE wallet ([ANCHOR publisher not publishing / DOGE wallet low](../hub/operations.md)), so retuning it re-colours both panels. |
+| `XCHAIN_ANCHOR_BALANCE_CRIT` | `10` | Same shared wallet: the balance in DOGE below which a critical fires. Keep the warn value strictly above this one; the critical branch is tested first, so an equal or lower warn value is a state the monitor can never reach. |
 | `XCHAIN_CHECKPOINT_INTERVAL_BLOCKS` | `6` | Expected checkpoint cadence in BTC blocks, mirroring the hub's own default. Set it if a hub deployment overrides its interval. |
 | `XCHAIN_ORACLE_PUBLISH_COIN` | `DOGE` | Coin whose oracle publish cadence is tracked |
 | `XCHAIN_ORACLE_PUBLISH_ENV` | `mainnet` | Network the publish coverage check reads |
