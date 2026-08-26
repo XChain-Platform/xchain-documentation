@@ -9,6 +9,52 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.11.0
+
+Released 2026-08-26. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.11.0)
+
+Third release train. Every component changed in this train, and every component
+carries `0.11.0` in its own `package.json` at its tag, so this train needs none
+of the legacy-stream caveat that applies to v0.10.0 below.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.11.0 |
+| xchain-hub | 0.11.0 |
+| xchain-indexer | 0.11.0 |
+| xchain-explorer | 0.11.0 |
+| xchain-decoder | 0.11.0 |
+| xchain-encoder | 0.11.0 |
+| xchain-sync | 0.11.0 |
+| xchain-utxo-tracker | 0.11.0 |
+| xchain-vm | 0.11.0 |
+| xchain-sdk | 0.11.0 |
+| xchain-contracts | 0.11.0 |
+| xchain-e2e-test | 0.11.0 |
+| xchain-regtest-miner | 0.11.0 |
+
+Notable in this train: protocol time on testnet is read from median-time-past
+rather than the raw block timestamp, which removes an admission stall where a
+confirmed transaction could take up to about two hours to appear; the explorer
+status endpoint reports why the indexer trails and when the wait clears, so a
+deliberate pause for a block stamped in the future is distinguishable from a
+stuck indexer; mempool data is read live from each coin's decoder API, so
+explorers serving from synced replicas can show pending transactions; the
+bundled consensus pin is verified at API boot, so a host carrying a drifted coin
+registry halts instead of serving from it; and installs verify downloaded
+artifacts, recover from a failed mirror, and end with a bootstrap restore
+summary.
+
+**The median-time-past change is armed for testnet only.** Mainnet and regtest
+continue to read the raw block timestamp. Because the change alters how protocol
+time is derived, a testnet indexer must be rebuilt from chain after the v0.11.0
+build reaches it; a reindex under the previous build re-derives the old state and
+only looks like the step was taken.
+
+**Deploy the hubs together.** The oracle clamp convergence in this train leaves a
+straddle window of up to one re-seed interval, and a mixed-version hub set can
+disagree on the clamp reference and on whether a deviation accusation is raised.
+
 ## v0.10.0
 
 Released 2026-08-22. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.10.0)
