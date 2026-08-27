@@ -976,6 +976,28 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
     regtest: 0,
 };
 
+// ── PRICE v2 batching ──────────────────────────────────────────────────────────
+//
+// A PRICE v2 action carries an hourly batch of full-body oracle rounds instead of
+// the single round a v0 action carries. Below this gate a PRICE|2 action is
+// invalid on every node and records the same status a garbage VERSION field
+// already does ('invalid: VERSION (unknown)'), so existing-chain replay stays
+// byte-identical below the gate; at/above it, a well-formed v2 action is valid on
+// every node. A one-sided deploy forks the fleet on the first v2 round.
+//
+// TIME-keyed, not height-keyed, for the same reason PRICE_PAIR_WIDEN_ACTIVATION
+// above is: a PRICE action is parsed by the indexer of whichever chain carried
+// it, and BTC/LTC/DOGE heights diverge, so no single height names one cutover.
+//
+// UNARMED on mainnet. 9999999999 is a far-future sentinel (year 2286), NOT a
+// scheduled flag-day; arming is a separate operator pass, tracked in the ledger.
+// testnet/regtest are genesis-on so v2 is in force on every test venue today.
+const PRICE_BATCH_ACTIVATION = {
+    mainnet: 9999999999,  // UNARMED sentinel, pending a separate operator arming pass
+    testnet: 0,
+    regtest: 0,
+};
+
 // ── PRICE v0 signature-tally ordering ─────────────────────────────────────────
 //
 // The PRICE v0 tally keeps at most one signature per pubkey. Below this gate the
@@ -1109,6 +1131,7 @@ module.exports = {
     PRICE_PAIR_TICKER_MAX_LEGACY,
     PRICE_PAIR_TICKER_MAX_WIDE,
     PRICE_PAIR_WIDEN_ACTIVATION,
+    PRICE_BATCH_ACTIVATION,
     PRICE_SIG_TALLY_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
