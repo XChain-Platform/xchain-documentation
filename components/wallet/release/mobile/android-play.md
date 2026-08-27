@@ -494,6 +494,53 @@ list.
    Expect `verified`. The failure mode is silent: links simply open in the
    browser with nothing anywhere saying why.
 
+**Test venue: a Play-enabled emulator, when no signed physical device is at
+hand.** The command above only prints a verdict when Android's own
+domain-verification agent actually runs, and that needs two things a
+default emulator image does not have: a recent Android build (the command
+itself does not exist before API 31) and the Play Store present. A plain
+`google_apis` image has neither, so the domain sits at `none` forever no
+matter how long you wait or how many times you re-verify - and that reads
+exactly like a failure when it is really an absent verdict, never taken.
+
+A `google_apis_playstore` image carries both, and building one is four
+commands. Both SDK tools need `JAVA_HOME` set first (on this Mac,
+`/opt/homebrew/opt/openjdk@21`), or they fail with "Unable to locate a Java
+Runtime":
+
+```bash
+export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+sdkmanager "system-images;android-36;google_apis_playstore;arm64-v8a"
+avdmanager create avd -n xc36play \
+  -k "system-images;android-36;google_apis_playstore;arm64-v8a" -d pixel_6
+emulator -avd xc36play
+```
+
+Once it has booted and the signed APK is installed, reset and re-check the
+verdict:
+
+```bash
+adb shell pm set-app-links --package io.xchain.wallet.android 0 all
+adb shell pm verify-app-links --re-verify io.xchain.wallet.android
+adb shell pm get-app-links io.xchain.wallet.android   # poll until "verified"
+```
+
+**Prove the reading is real before trusting it.** Turn the device's network
+off (`adb shell svc wifi disable`, `adb shell svc data disable`), repeat the
+reset-and-re-verify sequence above, and expect it to land on `1024`
+(`STATE_FIRST_VERIFIER_DEFINED`, the verifier's own error state) instead of
+`verified` - this is the agent failing to fetch the live `assetlinks.json`,
+not a cached or default answer. Turn the network back on and the very next
+poll returns to `verified`. If the verdict does not move in both
+directions, the emulator is not actually reaching the live file and the
+earlier `verified` reading should not be trusted either.
+
+The same venue works for either signing key under test: sideload the direct
+APK to check its own certificate, or install a Play-delivered build to
+check the Play signing key currently pinned above. It also serves as the
+matching test venue for the iOS shell's Universal Links, which is verified
+the same way in principle.
+
 ### Phase 7: the direct-download channel
 
 Publish the signed APK and its signed manifest under `wallet/android/` on the
