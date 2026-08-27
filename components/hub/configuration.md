@@ -258,6 +258,10 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `ORACLE_PUBLISH_ENABLED` | No | `true` | Set to `false` to stop this hub publishing oracle rounds on-chain. Consensus participation is unaffected. |
+| `ORACLE_BATCH_WINDOW_ROUNDS` | No | `6` | How many finalized rounds one published action carries. A round does not ride its own transaction: it is buffered, and the whole window leaves together under a single quorum signature set. Hubs configured differently elect different leaders and may publish overlapping windows, which is harmless (ingest is idempotent) but wasteful, so keep this equal across a federation. |
+| `ORACLE_BATCH_GRACE_MS` | No | `300000` | How long after a window closes the elected leader waits before assembling it, giving late-finalizing peers time to agree on its contents. Armed once per window and never extended, so a trickle of stragglers cannot postpone a window indefinitely. |
+| `ORACLE_BATCH_SIGN_TIMEOUT_MS` | No | `60000` | How long the leader waits for a signing quorum on an assembled window. No quorum means no publication for that window: it stays buffered and a later leader can propose it again. |
+| `ORACLE_BATCH_BUFFER_MAX_ROUNDS` | No | `4032` | Upper bound on buffered rounds, so a hub that never leads a window cannot grow its buffer without limit. Reached only if publication has been failing for a long time; the oldest rounds are dropped first. |
 | `PUBLISHER_QUEUE_PATH` | No | `./data/publisher-queue.jsonl` | Durable queue file for pending publishes. Point at persistent storage so a restart does not lose queued rows. |
 | `PUBLISHER_MAX_ATTEMPTS` | No | `5` | Attempts before a queued publish is abandoned. |
 | `DOGE_PUBKEY_HEX` | No | _(from config table)_ | Public key, hex, of the DOGE publishing wallet. |

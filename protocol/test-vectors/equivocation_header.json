@@ -49,7 +49,7 @@
       "expected": "EQUIV|XORACLE|round-7|0||"
     },
     {
-      "name": "PRICE v2 batch: composite anchor|first|last round id survives verbatim",
+      "name": "PRICE batch: composite anchor|first|last round id survives verbatim",
       "engineTag": "XORACLEB",
       "roundId": "963000|1200|1205",
       "view": "0",
@@ -57,7 +57,7 @@
       "expected": "EQUIV|XORACLEB|963000|1200|1205|0||{\"first_round\":1200,\"last_round\":1205}"
     },
     {
-      "name": "PRICE v2 batch: a different split at the same anchor is a DIFFERENT key, not equivocation",
+      "name": "PRICE batch: a different split at the same anchor is a DIFFERENT key, not equivocation",
       "engineTag": "XORACLEB",
       "roundId": "963000|1200|1202",
       "view": "0",
