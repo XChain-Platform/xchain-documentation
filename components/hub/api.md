@@ -1111,7 +1111,7 @@ List per-validator capability qualification rows, optionally filtered by `signin
 
 ### `anchorflush` (write: requires API key)
 
-Trigger an immediate out-of-interval ANCHOR publish attempt on the `StateAnchorPublisher`, bypassing the normal `ANCHOR_INTERVAL_MS` timer. The publisher still enforces its per-chain election: a hub that is not the elected publisher for a pending anchor skips it and the response indicates so. Useful for operator-forced flushes after federation events or wallet refills.
+Trigger an immediate out-of-interval ANCHOR publish attempt on the `StateAnchorPublisher`, bypassing the normal `ANCHOR_INTERVAL_MS` timer. The publisher still enforces its election: a hub that is not the elected publisher for a pending bundle skips it and the response indicates so. Useful for operator-forced flushes after federation events or wallet refills.
 
 **Request:**
 ```json
@@ -1140,6 +1140,8 @@ ANCHOR publisher status (read, no auth): cumulative anchor counts plus the last-
   "active": true,
   "enabled": true,
   "anchorsPublished": 42,
+  "sectionsAnchored": 126,
+  "bundlesOversize": 0,
   "archiveChunkLosses": 0,
   "dogeAddress": "D...",
   "dogeBalance": 18.4,
@@ -1147,6 +1149,8 @@ ANCHOR publisher status (read, no auth): cumulative anchor counts plus the last-
   "lowBalanceThreshold": 10
 }
 ```
+
+`anchorsPublished` counts published **bundles**, one per network per cycle, not one per chain. `sectionsAnchored` counts the per-chain checkpoint sections inside them, so a healthy three-chain federation advances it by three for every bundle. `bundlesOversize` counts cycles refused because a single checkpoint section could not fit the 8189-byte wire budget even with an empty attestation tail; it should stay at 0, and a non-zero value means the federation has outgrown the budget and the anchor for that cycle was not sent.
 
 `dogeBalance`/`dogeBalanceAt` are `null` until the first publish cycle reads the wallet (or when no DOGE pipeline is configured).
 
@@ -1156,7 +1160,7 @@ ANCHOR publisher status (read, no auth): cumulative anchor counts plus the last-
 
 > **Note:** this method is implemented on `xchain-indexer`, not the hub. The hub's `RewardTracker` calls it to persist anchor-publish reward rows into the indexer's `validator_rewards` table.
 
-Accepted `reward_type` values must match `^anchor_[A-Za-z_]+$` (e.g. `anchor_BTC`, `anchor_DOGE`). The indexer **rejects** `oracle_round` and `attest_fee` because those are derived deterministically during block processing, accepting a push for them would open a replay-divergence window.
+Accepted `reward_type` values must match `^anchor_[A-Za-z_]+$` (the live types are `anchor_bundle` for a checkpoint bundle and `anchor_archive` for a match-archive batch). The indexer **rejects** `oracle_round` and `attest_fee` because those are derived deterministically during block processing, accepting a push for them would open a replay-divergence window.
 
 **Request** (from hub → indexer):
 ```json
@@ -1165,7 +1169,7 @@ Accepted `reward_type` values must match `^anchor_[A-Za-z_]+$` (e.g. `anchor_BTC
   "method":"pushvalidatorrewards",
   "params":{
     "round":850010,
-    "reward_type":"anchor_DOGE",
+    "reward_type":"anchor_bundle",
     "block_index":850010,
     "rewards":[{"pubkey":"a1b2c3...","amount":"10.00000000"}]
   },

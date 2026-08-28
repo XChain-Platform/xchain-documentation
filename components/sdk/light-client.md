@@ -205,11 +205,13 @@ or `QUORUM_FAILED@h`).
 ## DOGE-anchor cold start
 
 A client with no prior trust root can bootstrap from the on-chain ANCHOR: read
-the latest v3 ANCHOR off Dogecoin, confirm it is buried under a chosen
-proof-of-work depth, and adopt its quorum-signed checkpoint. Trust still bottoms
-out at the federation quorum (the PoW only hardens delivery and timing); the SDK
-has no Dogecoin backend, so the caller supplies the confirmation depth from its
-own source.
+the latest v7 ANCHOR off Dogecoin, confirm it is buried under a chosen
+proof-of-work depth, and adopt its quorum-signed checkpoint. A v7 anchor is a
+bundle carrying one section per checkpointed chain, so a single anchor can cold
+start any of them; `targetChain` picks the section you want and the call is
+otherwise unchanged. Trust still bottoms out at the federation quorum (the PoW
+only hardens delivery and timing); the SDK has no Dogecoin backend, so the caller
+supplies the confirmation depth from its own source.
 
 ```js
 const anchored = await sdk.light.fetchAnchoredCheckpoint({
@@ -228,9 +230,21 @@ if (anchored.verified) {
 }
 ```
 
-Related helpers: `parseAnchorV3(wire)` (a v3 ANCHOR wire string to a checkpoint
-shape), `anchorToCheckpoint(row)` (normalize an explorer `/api/anchors` row), and
-`verifyAnchoredCheckpoint({ checkpoint, validators, confirmations, minDepth })`.
+Related helpers:
+
+- `parseAnchorV7(wire)` parses a v7 ANCHOR wire string into
+  `{ version, network, snapshot_block, section_count, sections, publisher,
+  publisher_attestations }`. Each entry in `sections` is one chain's checkpoint,
+  in the wire's chain-ascending order.
+- `anchorBundleSection(bundleOrWire, chain)` returns that one chain's normalized
+  checkpoint from a parsed bundle or a raw wire string, or `null` when the bundle
+  does not carry that chain. A bundle legitimately omits a chain whose newest
+  checkpoint was already anchored, so `null` means "not in this anchor, look at
+  the next one", not "invalid".
+- `anchorToCheckpoint(row)` normalizes an explorer `/api/anchors` row. The
+  explorer serves one row per section, so this is unchanged by bundling.
+- `verifyAnchoredCheckpoint({ checkpoint, validators, confirmations, minDepth })`
+  verifies one checkpoint's quorum and burial depth.
 
 ---
 

@@ -474,7 +474,7 @@ Hub-authored, append-only record of who earned each ANCHOR publish reward. One r
 | `id` | `BIGINT UNSIGNED AUTO_INCREMENT` | Primary key, doubles as the mirror cursor |
 | `chain` | `VARCHAR(10) NOT NULL` | Reward's chain (`BTC`/`LTC`/`DOGE`) |
 | `network` | `VARCHAR(20) NOT NULL` | `mainnet`, `testnet`, or `regtest` |
-| `reward_type` | `VARCHAR(32) NOT NULL` | `anchor_<CHAIN>` for per-chain checkpoint rewards, `anchor_archive` for the match archive |
+| `reward_type` | `VARCHAR(32) NOT NULL` | `anchor_bundle` for a checkpoint bundle (one reward per bundle, whatever the chain count), `anchor_archive` for the match archive |
 | `round_reference` | `BIGINT UNSIGNED NOT NULL` | The `checkpoint_seq`, or the match batch sequence for an archive reward |
 | `snapshot_block` | `BIGINT UNSIGNED NOT NULL` | BTC block selecting the `oracle_publish` set, and the reward's `block_index` |
 | `publisher` | `VARCHAR(64) NOT NULL` | Elected publisher pubkey credited with the reward (lowercase hex) |

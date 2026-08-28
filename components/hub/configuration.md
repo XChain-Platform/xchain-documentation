@@ -308,6 +308,10 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_ANNOUNCE_QUEUE_MAX` | No | `500` | Maximum queued anchor announcements, bounding memory. |
 | `ANCHOR_RANK_WAKE_MS` | No | `900000` | How often a non-rank-0 publisher wakes to check whether the anchor it is ranked behind was published (15 minutes). Only rank-0 keeps the interval and size triggers, so this is the takeover cadence, not the publish cadence. |
 | `ANCHOR_INTENT_TTL_MS` | No | `21600000` | How long a recorded anchor spend intent is held before it is dropped and the send re-broadcast (6 hours, the same reasoning as `ANCHOR_ANNOUNCE_RETRY_TTL_MS`: past roughly six times the 60-confirmation DOGE window, a send that never relayed is not coming back). |
+| `ANCHOR_STARTUP_FLUSH_MS` | No | `60000` | Delay after start before the hub runs its one leader flush. The interval timer does not fire until a full `ANCHOR_INTERVAL_MS` after start, so without this a hub restarted more often than once per interval would never anchor. Safe across a rolling restart. `0` disables it. |
+| `ANCHOR_PUBLISH_ALLOW_UNCONFIRMED_INPUTS` | No | `false` | Whether an anchor may be funded from this wallet's own unconfirmed change. Off by default so every anchor stands on its own fee rate: Dogecoin miners score a transaction on its own rate, not its ancestors, so a well-paid child never lifts a stuck parent. A flush with no confirmed output stands down and the next rank wake retries it. Archive chunks always spend their head's change by design. Turn it on only on a test venue that mines on demand. |
+| `ANCHOR_CONFIRM_CHECK_MS` | No | `300000` | How often the watchdog re-reads the publisher wallet to see which of this hub's own anchor broadcasts have mined (5 minutes). `0` disables it. |
+| `ANCHOR_CONFIRM_STALE_MS` | No | `1800000` | Age at which a still-unconfirmed anchor broadcast starts being logged as stale on every watchdog pass (30 minutes). Nothing is re-broadcast or fee-bumped. |
 | `ANCHOR_MARKER_RETENTION_MS` | No | `7776000000` | How long a confirmed anchor broadcast marker is kept in `anchor_published_checkpoints` and `anchor_published_archives` before it is swept, roughly 90 days. Set to `0` to disable pruning and keep every marker. Only confirmed markers are ever deleted: an intent-only row is the ambiguous-send record, the sole durable trace that DOGE may already have paid, and it is kept regardless of age. The cutoff is floored at a multiple of `ANCHOR_INTENT_TTL_MS`, so a shorter window here can never reach a marker still inside its hold window. |
 
 #### Why those magnitudes (before you retune them)
@@ -593,7 +597,7 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 
 | Table | Purpose |
 |---|---|
-| `validator_rewards` | Per-round validator rewards: `(validator_pubkey, round_number, reward_type, amount, block_index, batch_seq, claimed)`: `reward_type` distinguishes `oracle_round`, `attest_fee`, `anchor_<chain>` etc.; `batch_seq` links anchor-publish batch rows; `block_index` pins the earn block |
+| `validator_rewards` | Per-round validator rewards: `(validator_pubkey, round_number, reward_type, amount, block_index, batch_seq, claimed)`: `reward_type` distinguishes `oracle_round`, `attest_fee`, `anchor_bundle`, `anchor_archive` etc.; `batch_seq` links anchor-publish batch rows; `block_index` pins the earn block |
 | `slash_proposals` | Detected validator offenses: `(signing_pubkey, offense_type, evidence, round_number)` |
 
 ### Telemetry
