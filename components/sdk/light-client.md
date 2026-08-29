@@ -216,7 +216,8 @@ supplies the confirmation depth from its own source.
 ```js
 const anchored = await sdk.light.fetchAnchoredCheckpoint({
     explorerUrl, dogeCoin: 'DOGE', targetChain: 'BTC',
-    validators,                       // the federation set to verify the anchor's quorum
+    targetCoin: 'BTC',                // the target chain's coin prefix, for the trust ladder
+    validators,                       // optional: the federation set, tier 1 of the ladder
     minDepth: 60,                     // required DOGE confirmations
     dogeTipHeight                     // from the caller's own DOGE source
 });
@@ -229,6 +230,17 @@ if (anchored.verified) {
     });
 }
 ```
+
+The signer set follows the same [trust roots](#trust-roots) ladder as every other
+network call: an explicit `validators`, then the pinned launch set, then the
+explorer's `/verify` endpoint. The ladder needs a coin prefix, and this call has
+two chains in play: `dogeCoin` is the chain the anchor sits on, while the
+checkpoint inside it belongs to the target chain. `targetCoin` is that second
+one, the target chain's explorer coin prefix, and it is what the pinned lookup
+and the `/verify` fetch use. Pass it whenever you do not pass `validators`. With
+no set, nothing pinned and no `targetCoin` there is nothing to resolve, so the
+call fails closed with `CHECKPOINT_QUORUM_FAILED` rather than guess a prefix from
+the chain name.
 
 Related helpers:
 
