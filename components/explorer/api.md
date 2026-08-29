@@ -1552,7 +1552,7 @@ Re-verifies the checkpoint at `blockIndex` server-side and returns everything a 
 | `checkpoint` | Raw checkpoint row (block_index, block_hash, ledger_hash, actions_hash, ...) |
 | `canonical` | Canonical signing payload (pipe-delimited string over checkpoint fields) |
 | `validators` | Array of validator pubkeys that signed this checkpoint |
-| `quorum` | Required signature count for 2f+1 consensus |
+| `quorum` | Required signature count, the majority-floored PBFT threshold `max(2f+1, ceil((N+1)/2))` |
 | `valid_sigs` | Count of signatures that verified successfully |
 | `verified` | `true` when `valid_sigs >= quorum` |
 

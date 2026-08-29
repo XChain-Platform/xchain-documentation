@@ -135,8 +135,8 @@ flowchart TD
 | `OraclePublisher.js` | `OraclePublisher` | `oracle_publish` capability publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
 | `EncoderClient.js` | `EncoderClient` | Minimal JSON-RPC client for talking to xchain-encoder (`get_utxos`, `create_tx`, `broadcast_tx`): used by `OraclePublisher` |
 | `HubDbBroadcaster.js` | `HubDbBroadcaster` | WebSocket subscriber registry; broadcasts `row:inserted` events from `PriceAggregator`, `StateCheckpointEngine`, `CrossChainDexEngine`, and `CrossChainCallEngine` to all connected indexers' `HubDbSync` clients |
-| `StateCheckpointEngine.js` | `StateCheckpointEngine` | Quorum-signed per-chain ledger/actions/contract hash checkpoints: cadence-leader reads each chain's block-hash triple, collects XCHK_SIGN from peers, finalizes at 2f+1 signatures, writes to `state_checkpoints`, streams via `HubDbBroadcaster`, emits `checkpoint:finalized` |
-| `StateAnchorPublisher.js` | `StateAnchorPublisher` | Per-chain publisher-election anchor: listens for `checkpoint:finalized`, batches `cross_chain_matches` archive, and commits checkpoints + archive on-chain via the DOGE ANCHOR action on `ANCHOR_INTERVAL_MS` cadence |
+| `StateCheckpointEngine.js` | `StateCheckpointEngine` | Quorum-signed per-chain ledger/actions/contract hash checkpoints: cadence-leader reads each chain's block-hash triple, collects XCHK_SIGN from peers, finalizes at the majority-floored quorum `max(2f+1, ceil((N+1)/2))`, writes to `state_checkpoints`, streams via `HubDbBroadcaster`, emits `checkpoint:finalized` |
+| `StateAnchorPublisher.js` | `StateAnchorPublisher` | Checkpoint-bundle anchor publisher: listens for `checkpoint:finalized`, batches `cross_chain_matches` archive, and commits every checkpointed chain in ONE DOGE [ANCHOR v7](../../protocol/actions/anchor.md) action per network per publishing cycle (one section per chain, one publisher election per bundle), plus the archive, on the `ANCHOR_INTERVAL_MS` cadence |
 | `FullNodeChallengeRound.js` | `FullNodeChallengeRound` | Challenge-response rounds that verify `full_node` capability claimants. The elected leader issues a block-hash challenge; each claimant broadcasts its computed answer (`XNODE_ANSWER`); the leader proposes the pass list (`XNODE_SIGN_REQ`); verifiers independently recompute and co-sign (`XNODE_SIGN`); results are finalized on-chain via `XNODE_DONE`. Pass rate feeds into the full-node reward tier. |
 | `AttestationPublisher.js` | `AttestationPublisher` | Subscribes to `AttestationConsensus` `request:finalized` events and ships the on-chain ATTEST v1 (response) wire payload via an operator-provided hook. Writes a durable JSONL write-ahead log before any broadcast; the leader broadcasts immediately, followers step in after `failoverWindowBlocks` blocks using a rank-staggered backoff. |
 | `AttestationRound.js` | `AttestationRound` | Event-driven per-request lifecycle for the external attestation framework. Polls the indexer for new ATTEST v0 (request) rows, selects the responsible validator set via SHA-256 ordering at `block_index`, fetches the payload via the provider module, and gossips `ATTEST_PROPOSE` for `AttestationConsensus` to drive to quorum. |
@@ -260,7 +260,7 @@ All types below ride the envelope above; only the `data` payload differs. Every 
 | `ATTEST_PROPOSE` / `ATTEST_PREPARE` / `ATTEST_COMMIT` | `AttestationConsensus` | PBFT-style consensus over external attestation responses. |
 | `XCHAIN_ATTEST_PROPOSE` / `XCHAIN_ATTEST_PREPARE` / `XCHAIN_ATTEST_COMMIT` | `CrossChainEngine` | Consensus over cross-chain action confirmations. |
 | `XCALL_RELAY_PROPOSE` / `XCALL_RELAY_PREPARE` / `XCALL_RELAY_COMMIT` / `XCALL_RELAY_VIEW_CHANGE` / `XCALL_RELAY_NEW_VIEW` / `XCALL_RELAY_FINAL_SYNC` | `CrossChainCallEngine` | PBFT consensus to quorum-sign cross-chain contract call relay rows (`cross_chain_calls`). Reuses the DEX consensus engine with parameterized message types. |
-| `XCHK_SIGN_REQ` / `XCHK_SIGN` / `XCHK_FINALIZED` | `StateCheckpointEngine` | Collect 2f+1 validator signatures over per-chain ledger/actions/contract hash checkpoints. |
+| `XCHK_SIGN_REQ` / `XCHK_SIGN` / `XCHK_FINALIZED` | `StateCheckpointEngine` | Collect `max(2f+1, ceil((N+1)/2))` validator signatures over per-chain ledger/actions/contract hash checkpoints. |
 | `XANC_SIGN_REQ` / `XANC_SIGN` / `XANC_FINALIZED` / `XANC_BUNDLE_DONE` | `StateAnchorPublisher` | Co-sign the on-chain ANCHOR payload (checkpoint bundle + archive). `XANC_BUNDLE_DONE` carries the txid and the bundle's section list, back-filling `anchor_txid` on every peer's checkpoint rows to prevent duplicate anchoring. |
 | `XNODE_ANSWER` / `XNODE_SIGN_REQ` / `XNODE_SIGN` / `XNODE_DONE` | `FullNodeChallengeRound` | Full-node challenge-response protocol. Claimants broadcast their computed answer (`XNODE_ANSWER`); the elected leader proposes the pass list (`XNODE_SIGN_REQ`); eligible verifiers co-sign after recomputing independently (`XNODE_SIGN`); the leader finalizes and broadcasts results (`XNODE_DONE`). |
 
@@ -273,15 +273,15 @@ The consensus engine implements simplified PBFT for config writes:
 ```mermaid
 sequenceDiagram
     participant L as Leader
-    participant V as Validators (2f+1 required)
+    participant V as Validators (majority-floored quorum required)
     L->>V: PRE_PREPARE
     Note right of V: Leader proposes config write
     V-->>L: PREPARE
-    Note left of L: Validators acknowledge (collect 2f+1)
+    Note left of L: Validators acknowledge (collect the quorum)
     L->>V: COMMIT
     Note right of V: Leader broadcasts commit
     V-->>L: COMMIT
-    Note left of L: Validators confirm (collect 2f+1)
+    Note left of L: Validators confirm (collect the quorum)
     Note over L,V: Apply config to MariaDB
 ```
 
@@ -294,7 +294,7 @@ Leader for sequence `N` = `validatorSet[(N + view) % validatorCount]`, where val
 If the leader fails to drive consensus within `PBFT_TIMEOUT` (default 30s):
 
 1. Validators broadcast `PBFT_VIEW_CHANGE` for `view + 1`.
-2. Once 2f+1 view-change votes are collected, the new view is adopted.
+2. Once `max(2f+1, ceil((N+1)/2))` view-change votes are collected, the new view is adopted.
 3. The next leader (per the new view number) takes over.
 
 ### Quorum
@@ -316,8 +316,8 @@ flowchart TD
         S5["5. AGGREGATE<br>Round leader computes trimmed median:<br>→ sort submissions, discard top/bottom 15%<br>→ median of remaining values"]
         S6["6. SIGN<br>Each validator signs the canonical PRICE v0 payload<br>→ JSON.stringify({round, timestamp, sortedPairs})<br>→ Ed25519 via ValidatorIdentity"]
         S7["7. PROPOSE<br>Leader broadcasts ORACLE_PROPOSE (with sig)"]
-        S8["8. PREPARE<br>Validators verify and send ORACLE_PREPARE (with their sig)<br>→ sigs stored on pending.signatures Map<br>→ collect 2f+1 prepares"]
-        S9["9. COMMIT<br>Leader broadcasts ORACLE_COMMIT (with sig)<br>→ collect 2f+1 commits"]
+        S8["8. PREPARE<br>Validators verify and send ORACLE_PREPARE (with their sig)<br>→ sigs stored on pending.signatures Map<br>→ collect the majority-floored quorum of prepares"]
+        S9["9. COMMIT<br>Leader broadcasts ORACLE_COMMIT (with sig)<br>→ collect the majority-floored quorum of commits"]
         S10["10. FINALIZE<br>Store in price_snapshots (status='finalized')<br>→ reference_block = btcBlockHeight (not 0)<br>→ emit round:finalized event with collected sigs<br>→ RewardTracker distributes XCHAIN (pushes to BTC indexer)<br>→ SlashDetector checks for misbehavior<br>→ OraclePublisher queues for DOGE broadcast (if leader)"]
 
         S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9 --> S10
@@ -409,8 +409,8 @@ This resists manipulation: an attacker would need to control >30% of validators 
 flowchart TD
     S1["1. REQUEST<br>requestattestation(source_chain, source_action_index, dest_chain)"]
     S2["2. PROPOSE<br>Leader broadcasts XCHAIN_ATTEST_PROPOSE<br>→ includes attestation_id: '{source_chain}:{action_index}:{dest_chain}'"]
-    S3["3. PREPARE<br>Validators send XCHAIN_ATTEST_PREPARE<br>→ only validators supporting BOTH chains participate<br>→ collect 2f+1 from eligible validator subset"]
-    S4["4. COMMIT<br>Leader broadcasts XCHAIN_ATTEST_COMMIT<br>→ collect 2f+1 commits"]
+    S3["3. PREPARE<br>Validators send XCHAIN_ATTEST_PREPARE<br>→ only validators supporting BOTH chains participate<br>→ collect the majority-floored quorum from the eligible validator subset"]
+    S4["4. COMMIT<br>Leader broadcasts XCHAIN_ATTEST_COMMIT<br>→ collect the majority-floored quorum of commits"]
     S5["5. FINALIZE<br>Store in attestations table (status='attested')<br>→ emit attestation:finalized event<br>→ SwapTracker auto-progresses matching swaps"]
 
     S1 --> S2 --> S3 --> S4 --> S5
@@ -440,7 +440,7 @@ Validators declare which chains they support via the `chains` column. Only valid
 flowchart TD
     S1["1. REPORT<br>reportreorg(chain, reorg_height, timestamp, old_hash, new_hash)<br>→ old_hash/new_hash = the reporter's observed block hash at reorg_height before and after the reorg<br>→ receiving hub verifies new_hash against its OWN indexer (getblockhashes) before broadcasting"]
     S2["2. ALERT<br>Broadcast REORG_ALERT via gossip (carries the hash pair)"]
-    S3["3. CONSENSUS<br>PBFT round: XCHAIN_REORG_PREPARE / XCHAIN_REORG_COMMIT<br>→ the digest binds reorgId, chain, height, timestamp AND the hash pair, so a Byzantine leader cannot swap hashes per-follower<br>→ each hub co-signs ONLY after its own indexer serves new_hash at reorg_height, within height bounds (&le; own tip, &ge; tip - REORG_MAX_DEPTH) and on the federation network; otherwise it abstains<br>→ 2f+1 agreement = 2f+1 independent observations"]
+    S3["3. CONSENSUS<br>PBFT round: XCHAIN_REORG_PREPARE / XCHAIN_REORG_COMMIT<br>→ the digest binds reorgId, chain, height, timestamp AND the hash pair, so a Byzantine leader cannot swap hashes per-follower<br>→ each hub co-signs ONLY after its own indexer serves new_hash at reorg_height, within height bounds (&le; own tip, &ge; tip - REORG_MAX_DEPTH) and on the federation network; otherwise it abstains<br>→ quorum agreement = that many independent observations"]
     S4["4. ROLLBACK<br>Hub state cleanup:<br>→ DELETE attestations after reorg timestamp for affected chain<br>→ Mark price_snapshots as 'disputed'"]
     S5["5. NOTIFY<br>Store in reorg_attestations table<br>→ emit reorg:confirmed event"]
 

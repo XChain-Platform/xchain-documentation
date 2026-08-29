@@ -20,8 +20,9 @@ validator **reward pool**. XCHAIN exists on the **BTC chain only**.
   snapshot-holder airdrop below), and the remainder of the cap is minted publicly: once the mint
   window opens, anyone can `MINT` their share, 1,000 XCHAIN per mint, capped at 1,000 XCHAIN
   per address, with no closing date. `ISSUE` of XCHAIN stays GAS-only and BTC-only, so only the operator can
-  author the token's caps and window, but minting itself is public. The ratified allocation is
-  published in the white paper (§13.3).
+  author the token's caps and window, but minting itself is public. The allocation is published
+  in the white paper (§13.3), where it is the current pre-launch plan and **not yet final** until
+  the mainnet distribution runs.
 - **Rewards are paid, not minted.** Validator rewards are paid by **debiting a pre-funded reward
   pool address** (`config['ADDRESS']['REWARD']`) and crediting the validator. See
   [COLLECT](../protocol/actions/collect.md) and [GAS](../concepts/gas.md).

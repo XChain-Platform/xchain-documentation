@@ -15,7 +15,7 @@ archive, in a single action with two legs and four version-discriminated phases:
   payload exceeds the per-action data limit. Authenticated by its parent v1 (carries no
   signatures of its own).
 - **v6: Archive + publisher attestation.** Validator-broadcast. The v1 archive anchor plus the
-  elected archive leader's `PUBLISHER` pubkey and a second 2f+1 `oracle_publish` attestation
+  elected archive leader's `PUBLISHER` pubkey and a second `max(2f+1, ceil((N+1)/2))` `oracle_publish` attestation
   (the `XANCPUB` canonical) keyed on `MATCH_BATCH_SEQ`, binding which validator earns the fixed
   archive reward, gated by the `ARCHIVE_REWARD` flag-day. The indexer re-derives the archive
   reward from these bytes, retiring the last key-authenticated `pushvalidatorrewards` rail.
@@ -52,7 +52,7 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 ## Purpose
 
 1. **Verifiable state.** Light clients verify any indexer/explorer response against a
-   checkpoint signed by `2f+1` `oracle_publish` validators, without trusting a single operator.
+   checkpoint signed by a `max(2f+1, ceil((N+1)/2))` quorum of `oracle_publish` validators, without trusting a single operator.
 2. **Full-parse recoverability.** Cross-chain match records are the only consensus-relevant
    dataset not natively on-chain (they are mirror-delivered; see
    [Cross-Chain DEX](../cross-chain-dex.md)). The v1/v2 archive places the records themselves

@@ -98,7 +98,7 @@
       "type": "service",
       "group": "hub",
       "tech": "Node.js, MariaDB",
-      "description": "Config oracle and cross-chain coordinator. PBFT federation (2f+1), five stake-qualified capabilities, price-oracle rounds, attestation engine (http_get / llm providers), reorg-retraction co-signing, governance/slash, and StateAnchorPublisher (ANCHOR on DOGE)."
+      "description": "Config oracle and cross-chain coordinator. PBFT federation (majority-floored quorum max(2f+1, ceil((N+1)/2))), five stake-qualified capabilities, price-oracle rounds, attestation engine (http_get / llm providers), reorg-retraction co-signing, governance/slash, and StateAnchorPublisher (ANCHOR v7 bundle on DOGE)."
     },
     {
       "id": "hubdb",
@@ -662,7 +662,7 @@
           "n": 3,
           "node": "hub",
           "edge": "r13",
-          "action": "Hub federation reaches PBFT quorum (2f+1) on the call and tracks it in cross_chain_calls."
+          "action": "Hub federation reaches the cross_chain quorum on the call (stake-weighted at/above STAKE_WEIGHTED_QUORUM_ACTIVATION, otherwise the majority-floored signer count) and tracks it in cross_chain_calls."
         },
         {
           "n": 4,
@@ -729,7 +729,7 @@
           "n": 7,
           "node": "indexer",
           "edge": "r9",
-          "action": "Indexer validates 2f+1 signatures and fires the contract's callback EXECUTE; on deadline expiry it injects ATTEST v2 and refunds escrow."
+          "action": "Indexer validates the cross_chain quorum of signatures and fires the contract's callback EXECUTE; on deadline expiry it injects ATTEST v2 and refunds escrow."
         }
       ]
     },
@@ -809,19 +809,19 @@
     {
       "id": "f8",
       "name": "State anchoring (ANCHOR on DOGE)",
-      "description": "Quorum-signed per-chain state checkpoints are anchored on Dogecoin for chain-parse recoverability.",
+      "description": "Quorum-signed per-chain state checkpoints are anchored on Dogecoin as one ANCHOR v7 bundle per network, for chain-parse recoverability.",
       "steps": [
         {
           "n": 1,
           "node": "hub",
           "edge": "r13",
-          "action": "StateAnchorPublisher elects a publisher by hash ordering and assembles quorum-signed per-chain checkpoints plus the compressed cross-chain match archive."
+          "action": "StateAnchorPublisher runs one publisher election per bundle by hash ordering and assembles every checkpointed chain's quorum-signed checkpoint as its own bundle section, plus the compressed cross-chain match archive."
         },
         {
           "n": 2,
           "node": "hub",
           "edge": "r14",
-          "action": "ANCHOR v0/v1/v2 is built and submitted through the DOGE encoder (hub signer wallet)."
+          "action": "ONE ANCHOR v7 checkpoint bundle per network per publishing cycle is built and submitted through the DOGE encoder from the elected publisher's own DOGE wallet."
         },
         {
           "n": 3,
