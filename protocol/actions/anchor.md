@@ -30,17 +30,29 @@ archive, in a single action with two legs and three version-discriminated phases
 `ANCHOR_ACTIVATION` is a frozen consensus constant, one mined-height value per network, keyed
 on the anchor's own DOGE `BLOCK_INDEX`:
 
-| Network | `ANCHOR_ACTIVATION` |
-| --- | --- |
-| mainnet | 0 |
-| testnet | 67858600 |
-| regtest | 0 |
+| Network | `ANCHOR_ACTIVATION` | Why |
+| --- | --- | --- |
+| mainnet | 6360000 | above the chain tip: the restarted set has not activated on mainnet yet |
+| testnet | 67858600 | 24 blocks above the last pre-restart anchor at 67858576 |
+| regtest | 0 | stacks are rebuilt from genesis, so there is no pre-restart history |
+
+Mainnet's height is deliberately ahead of the tip. The restarted wire set is not live there, and the
+height is a flag day an operator arms on purpose rather than one that silently already passed.
+Testnet's sits just above the last anchor it published under the old set and is already past, so
+that window is open and needs no publisher-side guard.
 
 The gate runs before format dispatch: an `ANCHOR` of **any** version mined below its network's
 activation height is `invalid: ANCHOR before activation`. At or above the activation height,
 only versions 0, 1 and 2 exist (this document); any other version byte is
 `invalid: VERSION (unknown)`. See [Notes](#notes) for how this reads on the versions this
 restart retires.
+
+A network with pre-restart history must **not** pin 0. The retired wires reused the same version
+bytes under different meanings, so with the gate disabled they fall through to the table above and
+are read as shapes they are not: the old per-chain version 0 would be reported as a checkpoint
+bundle carrying SPV roots and a publisher attestation, and the old tail-less version 1 as an
+archive head with a publisher tail. Both claims would be false. Mainnet carries 56 such rows and
+testnet 11, which is why each gets a height above its own history rather than 0.
 
 ```mermaid
 flowchart TD
