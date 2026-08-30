@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The ANCHOR version set restarts at v0 (checkpoint bundle), v1 (archive head, publisher attestation always appended) and v2 (continuation), gated by a new per-network `ANCHOR_ACTIVATION` height below which any version is invalid.
 - The ANCHOR action document specifies v7, the checkpoint bundle: one anchor per network per cycle carrying every chain as its own section.
 - ANCHOR versions 0, 3, 4 and 5 are removed from the action document and the reward-type sites; v7 replaces them and those version numbers are retired.
 - The anchor publish reward is now one `anchor_bundle` row per bundle instead of one `anchor_<chain>` row per chain, across the COLLECT, hub and indexer reference pages.

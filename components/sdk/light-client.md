@@ -205,8 +205,8 @@ or `QUORUM_FAILED@h`).
 ## DOGE-anchor cold start
 
 A client with no prior trust root can bootstrap from the on-chain ANCHOR: read
-the latest v7 ANCHOR off Dogecoin, confirm it is buried under a chosen
-proof-of-work depth, and adopt its quorum-signed checkpoint. A v7 anchor is a
+the latest v0 ANCHOR off Dogecoin, confirm it is buried under a chosen
+proof-of-work depth, and adopt its quorum-signed checkpoint. A v0 anchor is a
 bundle carrying one section per checkpointed chain, so a single anchor can cold
 start any of them; `targetChain` picks the section you want and the call is
 otherwise unchanged. Trust still bottoms out at the federation quorum (the PoW
@@ -244,7 +244,7 @@ the chain name.
 
 Related helpers:
 
-- `parseAnchorV7(wire)` parses a v7 ANCHOR wire string into
+- `parseAnchorV0(wire)` parses a v0 ANCHOR wire string into
   `{ version, network, snapshot_block, section_count, sections, publisher,
   publisher_attestations }`. Each entry in `sections` is one chain's checkpoint,
   in the wire's chain-ascending order.

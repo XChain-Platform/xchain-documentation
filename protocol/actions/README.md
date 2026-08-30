@@ -71,7 +71,7 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 |---|---|
 | [`PRICE`](./price.md) | Publishes oracle price data on-chain (v0: validator COIN/FIAT snapshots, v1: user TOKEN/FIAT oracles) |
 | [`ATTEST`](./attest.md) | External-data attestation lifecycle: v0=request (VM-emitted), v1=response (validator-broadcast), v2=expire (system-synthesized) |
-| [`ANCHOR`](./anchor.md) | Validator-broadcast, DOGE-only: the quorum-signed checkpoint bundle (v7, one anchor per network per cycle carrying every chain as a section, with SPV light-client roots and a publisher attestation), plus the cross-chain match archive (v1/v2, and v6 with publisher attestation appended) for full-parse recoverability |
+| [`ANCHOR`](./anchor.md) | Validator-broadcast, DOGE-only: the quorum-signed checkpoint bundle (v0, one anchor per network per cycle carrying every chain as a section, with SPV light-client roots and a publisher attestation), plus the cross-chain match archive (v1, publisher attestation always appended; v2 continuation chunks) for full-parse recoverability |
 
 ### Betting
 
