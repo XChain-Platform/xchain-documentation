@@ -81,8 +81,13 @@ A validator only *qualifies* for a capability once its on-chain stake to the
 pubkey meets that capability's `MIN_STAKE`, **and** the local self-test for that
 capability passes (which needs the config block in `capabilities.json`). A
 qualified-but-not-ready validator is still counted in quorum `N`, so a
-misconfigured node that skips rounds will accrue non-participation slashing; keep `capabilities.json` correct, or list capabilities you don't serve under
-`DISABLED_CAPABILITIES`.
+misconfigured node that skips rounds raises the threshold for everyone without
+ever answering. Nothing on-chain penalises that: SLASH burns on equivocation
+proofs only, and the hub-local `SLASH_MISSED_ROUNDS_THRESHOLD` lane sets a
+`suspended` status no quorum read consults. Where ROLLCALL is active, a source
+absent for K consecutive rolled epochs is evicted by deactivation (its stake
+refunds after the cooldown; it is not burned). Keep `capabilities.json`
+correct, or list capabilities you don't serve under `DISABLED_CAPABILITIES`.
 
 ## Docker
 
@@ -386,7 +391,7 @@ The P2P layer deduplicates messages using a TTL cache (default: 60 seconds). Thi
 - Check that `SEED_NODES` contains reachable peer addresses
 - Set `ORACLE_EPOCH_START` (Unix ms); the hub refuses to start validator mode without it
 
-### Validator qualifies but never participates (and gets slashed)
+### Validator qualifies but never participates
 
 - This means the capability **self-test** is failing. Provide `HUB_CAPABILITY_CONFIG` with the per-capability config blocks (`price.sources`, `cross_chain.chains[*].rpc`, `oracle_publish.doge_address`/`doge_wallet`). Startup logs each failing self-test with the reason.
 - Confirm `CAPABILITIES.<cap>.MIN_STAKE` is set for every capability you intend to serve, without a configured threshold the hub treats the capability as **not qualified** (fail-closed; it no longer defaults to a 0 threshold).

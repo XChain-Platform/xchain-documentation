@@ -1,0 +1,80 @@
+{
+  "$schema_note": "FROZEN ROLLCALL canonical + WIRE vectors. The signed preimage is the EQUIV-wrapped canonical; the wire payload is the byte-for-byte broadcast form of a ROLLCALL action on DOGE. Three independent implementations must agree on these bytes: the xchain-hub PRODUCER (RollcallRound signs the canonical), the xchain-indexer DOGE PARSER (src/actions/rollcall.js rebuilds the canonical from the carried fields and verifies each signature), and the xchain-indexer BTC CLOSE (rebuilds the same canonical from its OWN ledger_hash and re-verifies). A drift between any two silently drops real presence proofs and evicts live validators, with no build or test failure unless these vectors are asserted on every side. The signatures below are REAL Ed25519 signatures over the canonical, from the fixed seeds named in signers[].seed, so a verifier vector fails on a wrong canonical rather than merely on a wrong shape.",
+  "authority": "xchain-documentation/protocol/test-vectors/rollcall_canonical.json is authoritative. Do not fork.",
+  "canonical": {
+    "form": "EQUIV|XROLLCALL|<EPOCH_HEIGHT>|<VIEW>||<network>|<EPOCH_HEIGHT>|<ledger_hash>",
+    "notes": [
+      "ROUND_ID is the BTC EPOCH_HEIGHT in decimal, unpadded. VIEW is always 0.",
+      "<network> is the bare lowercase network name.",
+      "ledger_hash is the BTC indexer ledger_hash AT EPOCH_HEIGHT, lowercase hex.",
+      "Epoch 0 is a REAL epoch on regtest (ROLLCALL_ACTIVATION.regtest = 0); a falsy check on the height is a bug."
+    ],
+    "network": "regtest",
+    "epoch_height": 30,
+    "ledger_hash": "4a7f1e93c25b8d0617ae42f9308c5b7de1409263a8f5c07be3d4192c6f8ab5e1",
+    "expected": "EQUIV|XROLLCALL|30|0||regtest|30|4a7f1e93c25b8d0617ae42f9308c5b7de1409263a8f5c07be3d4192c6f8ab5e1"
+  },
+  "signers": [
+    {
+      "seed": "1111111111111111111111111111111111111111111111111111111111111111",
+      "pubkey": "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737",
+      "sig": "1380ec0c2145823c5b5fa44286619a13798e81a248683f2abc051c9e3203c1b027168228ca32fc9c96c5032369b8d15d949973a53b02b3b3616377d7cec60c09"
+    },
+    {
+      "seed": "2222222222222222222222222222222222222222222222222222222222222222",
+      "pubkey": "a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f0",
+      "sig": "27ecb168845a3712dfe3acc3cd91a5caa535f1125b38805ee858d38ac0ea69336b08b890aee838f89dfe3062df992ee77ffcaf622fe67d75196b060ba2a7ff01"
+    },
+    {
+      "seed": "3333333333333333333333333333333333333333333333333333333333333333",
+      "pubkey": "17cb79fb2b4120f2b1ec65e4198d6e08b28e813feb01e4a400839b85e18080ce",
+      "sig": "493b91c3e4d70604473f75e008f735172f64a71dafb9edde408c8e60a323df2df55d0063ee883ae99296a2a113f04b9ed6490c9b4f8f2af81a942170bceb4d08"
+    }
+  ],
+  "wire": [
+    {
+      "name": "three signers, publisher is the first signer",
+      "publisher": "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737",
+      "sig_count": 3,
+      "expected": "ROLLCALL|0|30|4a7f1e93c25b8d0617ae42f9308c5b7de1409263a8f5c07be3d4192c6f8ab5e1|d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737|3|d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737|1380ec0c2145823c5b5fa44286619a13798e81a248683f2abc051c9e3203c1b027168228ca32fc9c96c5032369b8d15d949973a53b02b3b3616377d7cec60c09|a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f0|27ecb168845a3712dfe3acc3cd91a5caa535f1125b38805ee858d38ac0ea69336b08b890aee838f89dfe3062df992ee77ffcaf622fe67d75196b060ba2a7ff01|17cb79fb2b4120f2b1ec65e4198d6e08b28e813feb01e4a400839b85e18080ce|493b91c3e4d70604473f75e008f735172f64a71dafb9edde408c8e60a323df2df55d0063ee883ae99296a2a113f04b9ed6490c9b4f8f2af81a942170bceb4d08",
+      "bytes": 727
+    },
+    {
+      "name": "one-signature self-publish; publisher is the lone signer",
+      "publisher": "a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f0",
+      "sig_count": 1,
+      "expected": "ROLLCALL|0|30|4a7f1e93c25b8d0617ae42f9308c5b7de1409263a8f5c07be3d4192c6f8ab5e1|a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f0|1|a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f0|27ecb168845a3712dfe3acc3cd91a5caa535f1125b38805ee858d38ac0ea69336b08b890aee838f89dfe3062df992ee77ffcaf622fe67d75196b060ba2a7ff01",
+      "bytes": 339
+    }
+  ],
+  "size_budget": {
+    "max_data_bytes": 8189,
+    "header_bytes_7_digit_epoch": 152,
+    "bytes_per_pair": 194,
+    "max_pairs_per_action": 41,
+    "why": "A federation larger than max_pairs_per_action is rolled in several actions per epoch; the union rule makes that free."
+  },
+  "invalid": [
+    {
+      "name": "signature over a DIFFERENT ledger_hash must not verify",
+      "canonical": "EQUIV|XROLLCALL|30|0||regtest|30|0000000000000000000000000000000000000000000000000000000000000000",
+      "pubkey": "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737",
+      "sig": "1380ec0c2145823c5b5fa44286619a13798e81a248683f2abc051c9e3203c1b027168228ca32fc9c96c5032369b8d15d949973a53b02b3b3616377d7cec60c09",
+      "verifies": false
+    },
+    {
+      "name": "signature over a DIFFERENT network must not verify",
+      "canonical": "EQUIV|XROLLCALL|30|0||testnet|30|4a7f1e93c25b8d0617ae42f9308c5b7de1409263a8f5c07be3d4192c6f8ab5e1",
+      "pubkey": "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737",
+      "sig": "1380ec0c2145823c5b5fa44286619a13798e81a248683f2abc051c9e3203c1b027168228ca32fc9c96c5032369b8d15d949973a53b02b3b3616377d7cec60c09",
+      "verifies": false
+    },
+    {
+      "name": "signature over a DIFFERENT epoch must not verify",
+      "canonical": "EQUIV|XROLLCALL|60|0||regtest|60|4a7f1e93c25b8d0617ae42f9308c5b7de1409263a8f5c07be3d4192c6f8ab5e1",
+      "pubkey": "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737",
+      "sig": "1380ec0c2145823c5b5fa44286619a13798e81a248683f2abc051c9e3203c1b027168228ca32fc9c96c5032369b8d15d949973a53b02b3b3616377d7cec60c09",
+      "verifies": false
+    }
+  ]
+}

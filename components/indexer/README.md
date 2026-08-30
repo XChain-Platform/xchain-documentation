@@ -21,7 +21,7 @@ Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, S
 - **Staking**: capability staking (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT) is BTC-only; contract-targeted staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) works on any chain
 - **Virtual Machine**: DEPLOY, EXECUTE, DEPOSIT, WITHDRAW with isolated-vm sandbox and gas metering
 - **Unified Gas Fee Schedule**: gas-based fee system for VM and staking actions, replaces per-action flat fees post-activation
-- **Protocol versioning**: actions are gated by the indexer's own protocol version (21 at `0.1.0`, 15 at `0.2.0`, all with zero activation heights); block-height and timestamp flag-days gate behaviour changes to already-live actions, per network
+- **Protocol versioning**: actions are gated by the indexer's own protocol version (21 at `0.1.0`, 16 at `0.2.0`, all with zero activation heights); block-height and timestamp flag-days gate behaviour changes to already-live actions, per network
 - **Action mapping**: creates address↔ticker↔action_index cross-references for fast lookups
 - **Circuit-breaker DB connections**: automatic failure detection and recovery for database connectivity
 - **Watchdog timeout**: configurable per-block processing timeout detects deadlocks

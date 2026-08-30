@@ -285,7 +285,7 @@ A mismatch is a fatal violation: the transaction rolls back and the indexer halt
 
 ## 6. The ACTION Set
 
-The protocol defines 36 named ACTIONs across ten categories. Of these, 31 are user-submittable (all except ANCHOR, ATTEST, NODEPROOF, SLASH, and XCALL); the remaining five are validator-broadcast or VM-emitted actions described where relevant, along with system-synthesized actions (order/swap matching and expiry, betting market close and expiry, cross-chain settlement, XCALL relay, and so on). Thirty-five of the 36 are decoded from a wire transaction; XCALL alone is mirror-injected into the destination chain's index instead. All user ACTIONs are available on every supported chain unless noted. A `^`-prefixed ticker field passes a numeric token id instead of a name.
+The protocol defines 37 named ACTIONs across ten categories. Of these, 31 are user-submittable (all except ANCHOR, ATTEST, NODEPROOF, SLASH, and XCALL); the remaining five are validator-broadcast or VM-emitted actions described where relevant, along with system-synthesized actions (order/swap matching and expiry, betting market close and expiry, cross-chain settlement, XCALL relay, and so on). Thirty-five of the 36 are decoded from a wire transaction; XCALL alone is mirror-injected into the destination chain's index instead. All user ACTIONs are available on every supported chain unless noted. A `^`-prefixed ticker field passes a numeric token id instead of a name.
 
 ### 6.1 Token lifecycle
 

@@ -53,7 +53,7 @@ Validators with `attestation` serve `ATTEST` v0 (request) actions emitted by VM 
 
 ### Block-boundary snapshots
 
-Every PBFT engine (config, oracle, attestation, cross-chain) locks its quorum at a specific `block_index` via `CapabilitySnapshot.getSnapshot(capability, block_index)`. This queries the indexer's `getcapabilityvalidators` RPC (60s cache) so every hub in the federation sees the same qualified set even as stake drifts mid-round. Self-tests are local to each hub; a failed self-test means the validator skips the round but is still counted in N (laggards get slashed for non-participation).
+Every PBFT engine (config, oracle, attestation, cross-chain) locks its quorum at a specific `block_index` via `CapabilitySnapshot.getSnapshot(capability, block_index)`. This queries the indexer's `getcapabilityvalidators` RPC (60s cache) so every hub in the federation sees the same qualified set even as stake drifts mid-round. Self-tests are local to each hub; a failed self-test means the validator skips the round but is still counted in N. Nothing on-chain penalises a laggard: SLASH burns on equivocation proofs only, and the hub-local suspension lane is not a stake effect. Where ROLLCALL is active, a source absent for K consecutive rolled epochs is evicted from the capability set by deactivation, so N shrinks the way it does for any UNSTAKE.
 
 ## Staking and Governance
 
@@ -61,7 +61,9 @@ All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain a
 
 | Property | Value |
 |---|---|
-| Slashing | Stake can be slashed for: price deviation >5%, repeated deviations (3+ in 24h), non-participation (30+ missed rounds), attestation divergence on `byte_equality` providers. Adjudicated via governance vote. |
+| Slashing (on-chain) | Stake is burned only on a permissionless SLASH proof of **equivocation**: two conflicting signatures over the same engine, round and view. Verified deterministically on every BTC indexer, no governance vote. |
+| Suspension (hub-local) | Price deviation >5%, repeated deviations (3+ in 24h), non-participation (30+ missed rounds), attestation divergence on `byte_equality` providers. Adjudicated via governance vote; sets `validators.status='suspended'` and excludes the validator from PBFT rounds. **On-chain stake is untouched**, and no quorum read consults this status. |
+| Eviction (on-chain, where ROLLCALL is active) | A source absent for K consecutive rolled epochs is deactivated, leaving the capability set through the ordinary stake predicate. Its stake refunds after the cooldown; nothing is burned. |
 | Activation delay | 6 BTC blocks (~1 hour): protects against ≤5-block reorgs |
 | Deactivation delay | 6 BTC blocks on UNSTAKE (same reorg safety) |
 

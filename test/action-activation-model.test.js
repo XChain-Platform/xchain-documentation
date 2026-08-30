@@ -100,7 +100,7 @@ describe('ACTION activation model', () => {
         assert.deepEqual(Object.keys(byVersion).sort(), ['0.1.0', '0.2.0'],
             'actions are now registered at versions beyond 0.1.0/0.2.0: ' + Object.keys(byVersion).join(', '));
         assert.equal(byVersion['0.1.0'].length, 21, 'v0.1.0 action count changed; update the docs');
-        assert.equal(byVersion['0.2.0'].length, 15, 'v0.2.0 action count changed; update the docs');
+        assert.equal(byVersion['0.2.0'].length, 16, 'v0.2.0 action count changed; update the docs');
         assert.ok(byVersion['0.1.0'].includes('BET'),
             'BET moved off 0.1.0; concepts/actions.md and components/indexer/actions.md name it as a 0.1.0 action');
     });
