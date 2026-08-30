@@ -73,9 +73,9 @@ date in prose, this one included: a flag-day value is the current setting of a c
 repinned before, and prose cannot notice its source moving. Pages name the gate and link there.
 
 [`constants.js`](constants.js) in this repository is the canonical source for the **validator-era
-(Cohort B)** and **state-commitment (Cohort C)** gates below, and for the **encoding-recognition**
-gate ([below](#encoding-recognition-decoder-carried)), which sits outside all three cohorts because it
-is evaluated in the decoder rather than the indexer. Each consuming service carries a
+(Cohort B)** and **state-commitment (Cohort C)** gates below, and for the five **decoder-carried**
+gates ([below](#decoder-carried-gates)), which sit outside all three cohorts because they are
+evaluated in the decoder rather than the indexer. Each consuming service carries a
 **byte-identical twin** of the maps it needs, and a cross-repo conformance gate fails CI if a twin
 drifts. Cohort A (contract-era) values are not carried in `constants.js` at all: they are
 service-carried in `xchain-indexer/protocol_changes.js` and the `xchain-vm` gate constants (see the
@@ -95,7 +95,7 @@ re-runs an action handler, a deploy validator, or the VM.
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
 | `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) |
 | `xchain-hub` | the nine validator-era gate modules it consumes (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical, retraction signing, attestation relay, price signature tally). The tenth Cohort B gate, attestation admission, is indexer-only |
-| `xchain-decoder` | `ENVELOPE_RECOGNITION_ACTIVATION`, the one activation map consumed in the decoder's own parse path |
+| `xchain-decoder` | the five activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` (per-chain local height) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
 
 Because the values are byte-identical everywhere, a heterogeneous fleet and any from-genesis replay
@@ -120,9 +120,14 @@ shorthand for "a BTC height per rule, in two batches" rather than a single share
 whole cohort.
 
 The cohort is its **armed** rules. `constants.js` also carries validator-era maps that are inert:
-`SNAPSHOT_BURIAL_ACTIVATION`, `ANCHOR_REWARD_DERIVE_ACTIVATION` and `ATTEST_BROADCAST_FEE_ACTIVATION`
-each hold `null` on mainnet, which is the encoding of "never" and the fail-closed default until an
-operator ratifies a height. They are not counted above and carry no flag day yet.
+`SNAPSHOT_BURIAL_ACTIVATION`, `ANCHOR_REWARD_DERIVE_ACTIVATION`, `ATTEST_BROADCAST_FEE_ACTIVATION`
+and `ATTEST_REQUEST_CAP_ACTIVATION` (the per-block attestation admission ceiling, a sibling of the
+attestation-admission gate in the cohort table above) each hold `null` on mainnet, which is the
+encoding of "never" and the fail-closed default until an operator ratifies a height. They are not
+counted above and carry no flag day yet. The enumeration is the **height-keyed validator-era** maps
+specifically: the block-time [decoder-carried gates](#decoder-carried-gates) also read `null` as
+disarmed, and `PRICE_PAIR_WIDEN_ACTIVATION` encodes the same "not yet" as a far-future sentinel
+instant rather than as `null`.
 
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
@@ -195,16 +200,33 @@ contract-era timestamp, so it belongs with **Cohort A**; it is registered as a
 standalone twin-style module rather than a `protocol_changes.addChange` entry to keep it self-contained
 next to the query it gates.
 
-## Encoding recognition (decoder-carried)
+## Decoder-carried gates
 
-One gate does not belong to any cohort, and the difference is worth stating because everything above
-describes the **indexer's** `isEnabled` check. `ENVELOPE_RECOGNITION_ACTIVATION` is evaluated in the
-**decoder**, while it parses a transaction, and it governs what counts as an action-bearing
-transaction in the first place. It is canonical in [`constants.js`](constants.js).
+**Five gates belong to no cohort**, and the difference is worth stating because everything above
+describes the **indexer's** `isEnabled` check. These five are evaluated in the **decoder**, while it
+parses a block, so they decide what the indexer is ever shown: which transactions count as
+action-bearing, and which native-coin outputs are persisted at all. All five are canonical in
+[`constants.js`](constants.js) and vendored byte-equal into
+`xchain-decoder/src/protocol/constants.js`; four are keyed on block time and one on per-chain local
+height.
 
 | Gate | Keyed on | Thresholds | Straggler | Lives in |
 |---|---|---|---|---|
+| **Oracle-fee output capture** (`ORACLE_FEE_OUTPUT_ACTIVATION`, persists the native-coin output paying a DISPENSER's `ORACLE_ADDRESS` so the indexer's `validateOracleFee` can see the fee that was actually paid) | block time | mainnet **armed**, at the coordinated [contract-era flag day](./flag-days.md#contract-era-flag-day) the indexer's `FIX_OUTPUT_FANOUT` rides, which it must never precede; testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
+| **Oracle-fee set-membership capture** (`ORACLE_FEE_SET_CAPTURE_ACTIVATION`, resolves a DISPENSER v2 edit/refill oracle-fee output by set membership over every open Mode B dispenser of the paying source) | block time | mainnet **disarmed** (`null`, awaiting an operator-ratified instant); testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
+| **Dispenser expiry realignment** (`DISPENSER_EXPIRY_REALIGN_ACTIVATION`, soft-expires open dispensers *after* the block's transaction loop, where the indexer's measurement point already is) | block time | mainnet **disarmed** (`null`, awaiting an operator-ratified instant); testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
+| **BATCH sub-command output capture** (`BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION`, decides which native-coin outputs to persist from a BATCH's sub-commands instead of only its top-level ACTION name, so a batched COINPAY or Mode B DISPENSER stops spending a coin and settling nothing) | block time | mainnet **armed**, at the same instant the indexer's `BATCH_ISSUANCE_LIMITS` carries; testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
 | **Taproot envelope recognition** (`ENVELOPE_RECOGNITION_ACTIVATION`, and with it every [envelope consensus rule](./taproot-envelope.md): end-indexed witness parsing, annex refusal, input-0 binding, mixed-carrier and multi-envelope rejection) | per-chain **local height** | `BTC:mainnet` 960850, `LTC:mainnet` 3153500 (both crossed 2026-08-03), `DOGE` **null on every network**; testnet and regtest genesis-active (0) | forks | `xchain-decoder/src/XChainDecoder.js`, mirrored in `xchain-encoder/src/CryptoNetworks.js` |
+
+**Neither armed decoder gate appears by name on [Flag-Day Values](./flag-days.md).** That page is
+generated from the indexer's registry and the activation modules beside it, so a gate declared only
+in this repository's `constants.js` cannot reach it. Each is nonetheless pinned to an instant that
+page does publish under its indexer sibling's name: oracle-fee output capture rides the coordinated
+[contract-era flag day](./flag-days.md#contract-era-flag-day) that `FIX_OUTPUT_FANOUT` rides, and
+BATCH sub-command output capture rides the instant listed for `BATCH_ISSUANCE_LIMITS`. Look either
+gate up by its sibling until the generator learns to scan these maps, and read the deploy deadline in
+its `constants.js` comment: every decoder on mainnet must be running the armed value before its
+instant, or the fleet splits.
 
 The **encoder** carries a byte-identical twin of this map, which is unusual enough to explain: no
 other activation gate is consulted by a transaction *builder*. The encoder refuses to build an

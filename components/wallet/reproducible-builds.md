@@ -98,7 +98,7 @@ git clone https://github.com/XChain-Platform/xchain-wallet.git
 cd xchain-wallet
 
 # Run reproduction against a specific tag.
-bash packages/desktop/scripts/reproduce.sh v0.58.0
+bash packages/desktop/scripts/reproduce.sh v0.338.0
 ```
 
 That emits two files:
@@ -108,11 +108,11 @@ That emits two files:
 
 ```bash
 # Fetch the official manifest for the tag, then diff. Only the AppImage
-# and .deb are comparable here; the official manifest also covers macOS,
-# Windows, web, and the Snap Store package, none of which this protocol
+# and .deb are comparable here; the official manifest also covers the
+# macOS zip and dmg artifacts (arm64 and x64), none of which this protocol
 # reproduces. The filter below is what keeps those out of the comparison,
 # so widening it turns a clean verification into a false alarm.
-curl -fsSL -o official.txt "https://downloads.xchain.io/wallet/desktop/RELEASE_HASHES/v0.58.0.txt"
+curl -fsSL -o official.txt "https://downloads.xchain.io/wallet/RELEASE_HASHES/v0.338.0.txt"
 diff <(grep -v '^#' official.txt | grep -E '\.(AppImage|deb)$' | sort) \
      <(grep -v '^#' RELEASE_HASHES.txt | sort)
 ```

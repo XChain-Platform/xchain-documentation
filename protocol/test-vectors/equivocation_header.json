@@ -5,6 +5,7 @@
     "XCALL": "XCALL",
     "ATTEST": "XATTEST",
     "ORACLE": "XORACLE",
+    "ORACLE_BATCH": "XORACLEB",
     "CHECKPOINT": "XCHECKPOINT",
     "CONFIG": "XCONFIG",
     "NODEPROOF": "XNODEPROOF"
@@ -46,6 +47,22 @@
       "view": "0",
       "content": "",
       "expected": "EQUIV|XORACLE|round-7|0||"
+    },
+    {
+      "name": "PRICE batch: composite anchor|first|last round id survives verbatim",
+      "engineTag": "XORACLEB",
+      "roundId": "963000|1200|1205",
+      "view": "0",
+      "content": "{\"first_round\":1200,\"last_round\":1205}",
+      "expected": "EQUIV|XORACLEB|963000|1200|1205|0||{\"first_round\":1200,\"last_round\":1205}"
+    },
+    {
+      "name": "PRICE batch: a different split at the same anchor is a DIFFERENT key, not equivocation",
+      "engineTag": "XORACLEB",
+      "roundId": "963000|1200|1202",
+      "view": "0",
+      "content": "{\"first_round\":1200,\"last_round\":1202}",
+      "expected": "EQUIV|XORACLEB|963000|1200|1202|0||{\"first_round\":1200,\"last_round\":1202}"
     }
   ]
 }

@@ -88,6 +88,34 @@ Both lists reference named lists you define on-chain using the LIST action. You 
 
 ---
 
+## Programmable Policy (Controllers)
+
+Allow and block lists answer "who may hold this token." If your rules need to go further than a list of addresses, you can bind your token to a **controller**: a contract you deploy on-chain that gets the final say over specific kinds of action.
+
+Before a bound action settles, the network runs the controller's guard. The guard can let the action through, deny it outright, or, on a sale, attach a split that routes part of the seller's proceeds to addresses it names. That last one is how enforced royalties, marketplace fees and revenue share are expressed; there is no separate royalty setting.
+
+You choose which kinds of action a controller gates:
+
+- **transfer**: sends of the token
+- **trade**: creating an order, a swap, or a dispenser
+- **burn**: destroying supply
+- **mint**: creating new supply
+- **stake**: staking the token into a contract
+- **ownership**: handing over the token's ownership record
+
+There is also **all**, a catch-all you can bind on its own or underneath the specific classes. Exactly one guard ever runs for any action: the most specific binding wins, and `all` is the fallback for any class you have not bound directly. Binding `all` is therefore a single action that gates everything, which is what makes it a "freeze this token entirely" or "compliance-gate everything" policy.
+
+Four things to know before you bind one:
+
+- **It is opt-in.** A token with no binding behaves exactly as it always has, with no added fee and no added overhead.
+- **It fails closed.** If the guard denies, errors, or runs out of gas, the action does not happen and anything the guard did is rolled back.
+- **The actor pays for it.** Whoever broadcasts the action pays the guard's gas, up to a bounded ceiling.
+- **Only you can bind or drop one**, and dropping is subject to a cooldown you commit to at bind time: the binding keeps applying until that many blocks have passed.
+
+See [Controller-Bound Tokens](../protocol/controller-bound-tokens.md) for the full mechanics.
+
+---
+
 ## Building Trust: Locking Parameters
 
 One of the most powerful features in XChain is the ability to **lock** a parameter permanently. Once locked, that parameter can never be changed. Not by you, not by anyone.
@@ -107,6 +135,8 @@ Parameters you can lock include:
 - **Callback settings** (`LOCK_CALLBACK`): proves the recall terms cannot be altered after the fact
 
 Locking is a one-way door. Think carefully before locking anything. Once it is done, there is no going back. Not even for you.
+
+One thing the lock flags do not cover is a **controller binding**. There is no `LOCK_CONTROLLER`, so a binding cannot be frozen the way a max supply can, and one can be added to a token after it has been issued. The drop-cooldown you commit to at bind time is the only friction on changing or removing one. Anyone weighing up a token's guarantees should read its bindings alongside its locks.
 
 ---
 
@@ -144,6 +174,7 @@ Once your token exists, you can:
 - **Pay dividends** to all holders proportionally
 - **Sleep** it temporarily to pause all trading
 - **Callback** (recall) tokens from all holders if you configured a callback at creation
+- **Bind a controller** to hand enforcement of transfers, trades, mints, burns, staking, or ownership changes to a contract you deploy, and drop it later subject to the cooldown you set
 
 Your token lives on the blockchain permanently. Even if every XChain node went offline, the token records remain embedded in Bitcoin, Litecoin, or Dogecoin transactions forever.
 

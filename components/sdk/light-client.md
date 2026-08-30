@@ -205,16 +205,19 @@ or `QUORUM_FAILED@h`).
 ## DOGE-anchor cold start
 
 A client with no prior trust root can bootstrap from the on-chain ANCHOR: read
-the latest v3 ANCHOR off Dogecoin, confirm it is buried under a chosen
-proof-of-work depth, and adopt its quorum-signed checkpoint. Trust still bottoms
-out at the federation quorum (the PoW only hardens delivery and timing); the SDK
-has no Dogecoin backend, so the caller supplies the confirmation depth from its
-own source.
+the latest v7 ANCHOR off Dogecoin, confirm it is buried under a chosen
+proof-of-work depth, and adopt its quorum-signed checkpoint. A v7 anchor is a
+bundle carrying one section per checkpointed chain, so a single anchor can cold
+start any of them; `targetChain` picks the section you want and the call is
+otherwise unchanged. Trust still bottoms out at the federation quorum (the PoW
+only hardens delivery and timing); the SDK has no Dogecoin backend, so the caller
+supplies the confirmation depth from its own source.
 
 ```js
 const anchored = await sdk.light.fetchAnchoredCheckpoint({
     explorerUrl, dogeCoin: 'DOGE', targetChain: 'BTC',
-    validators,                       // the federation set to verify the anchor's quorum
+    targetCoin: 'BTC',                // the target chain's coin prefix, for the trust ladder
+    validators,                       // optional: the federation set, tier 1 of the ladder
     minDepth: 60,                     // required DOGE confirmations
     dogeTipHeight                     // from the caller's own DOGE source
 });
@@ -228,9 +231,32 @@ if (anchored.verified) {
 }
 ```
 
-Related helpers: `parseAnchorV3(wire)` (a v3 ANCHOR wire string to a checkpoint
-shape), `anchorToCheckpoint(row)` (normalize an explorer `/api/anchors` row), and
-`verifyAnchoredCheckpoint({ checkpoint, validators, confirmations, minDepth })`.
+The signer set follows the same [trust roots](#trust-roots) ladder as every other
+network call: an explicit `validators`, then the pinned launch set, then the
+explorer's `/verify` endpoint. The ladder needs a coin prefix, and this call has
+two chains in play: `dogeCoin` is the chain the anchor sits on, while the
+checkpoint inside it belongs to the target chain. `targetCoin` is that second
+one, the target chain's explorer coin prefix, and it is what the pinned lookup
+and the `/verify` fetch use. Pass it whenever you do not pass `validators`. With
+no set, nothing pinned and no `targetCoin` there is nothing to resolve, so the
+call fails closed with `CHECKPOINT_QUORUM_FAILED` rather than guess a prefix from
+the chain name.
+
+Related helpers:
+
+- `parseAnchorV7(wire)` parses a v7 ANCHOR wire string into
+  `{ version, network, snapshot_block, section_count, sections, publisher,
+  publisher_attestations }`. Each entry in `sections` is one chain's checkpoint,
+  in the wire's chain-ascending order.
+- `anchorBundleSection(bundleOrWire, chain)` returns that one chain's normalized
+  checkpoint from a parsed bundle or a raw wire string, or `null` when the bundle
+  does not carry that chain. A bundle legitimately omits a chain whose newest
+  checkpoint was already anchored, so `null` means "not in this anchor, look at
+  the next one", not "invalid".
+- `anchorToCheckpoint(row)` normalizes an explorer `/api/anchors` row. The
+  explorer serves one row per section, so this is unchanged by bundling.
+- `verifyAnchoredCheckpoint({ checkpoint, validators, confirmations, minDepth })`
+  verifies one checkpoint's quorum and burial depth.
 
 ---
 

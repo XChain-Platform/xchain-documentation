@@ -34,7 +34,7 @@ On startup, the hub:
    - Governance engine
    - Reward tracker (pushes rewards to BTC indexer) and slash detector
    - `StateCheckpointEngine` (quorum-signs per-chain ledger/actions/contract hash checkpoints; streams to hub DB subscribers)
-   - `StateAnchorPublisher` (per-chain publisher election; commits checkpoints + match archive on-chain via DOGE ANCHOR action on `ANCHOR_INTERVAL_MS` cadence)
+   - `StateAnchorPublisher` (one publisher election per bundle; commits every chain's checkpoint in one DOGE ANCHOR v7 action per network, plus the match archive, on the `ANCHOR_INTERVAL_MS` cadence)
 
 ## Operating Modes
 
@@ -401,7 +401,7 @@ The P2P layer deduplicates messages using a TTL cache (default: 60 seconds). Thi
 
 ### Cross-chain attestations stuck at pending
 
-- Verify enough validators support both chains in the chain pair (quorum requires 2f+1)
+- Verify enough validators support both chains in the chain pair (quorum requires `max(2f+1, ceil((N+1)/2))`)
 - Check confirmation thresholds: BTC requires 6, LTC requires 12, DOGE requires 60 (defaults; overridable via `XCHAIN_CONFIRMATIONS_<COIN>`)
 - Ensure `PBFT_TIMEOUT` is sufficient for consensus rounds to complete
 

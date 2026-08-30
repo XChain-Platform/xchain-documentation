@@ -29,7 +29,7 @@ A verdict for epoch height 1008, listing 2 passing validators, signed by 3 eligi
 
 ```
 NODEPROOF|0|7b8d2a...f91|2016|1|ff00aa...|2|ff00aa...|sig4ddd...|bb11cc...|sig5eee...
-A verdict for epoch height 2016 with 1 passing validator, signed by 2 verifiers (meeting 2f+1 quorum from 2 eligible)
+A verdict for epoch height 2016 with 1 passing validator, signed by 2 verifiers (meeting the `floor(2 * V / 3) + 1` quorum from 2 eligible)
 ```
 
 ## Rules

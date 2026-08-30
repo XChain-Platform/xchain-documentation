@@ -13,7 +13,7 @@ This guide covers the two main ways to trade on XChain: the **order book** and *
 
 The XChain DEX is an order-matching system embedded in the blockchain protocol itself. When you place a buy or sell order, that order is recorded on-chain. When a matching order appears, the exchange happens automatically. No human, company, or intermediary involved.
 
-Think of it like a stock exchange that runs itself, where the rulebook is the protocol and the record-keeping is the blockchain. Nobody can manipulate the order of trades, cancel your order without your permission, or freeze your funds.
+Think of it like a stock exchange that runs itself, where the rulebook is the protocol and the record-keeping is the blockchain. No operator can manipulate the order of trades, cancel your order without your permission, or take what you have escrowed. The rules that can stand between you and a trade are the token's own: a token bound to a controller can have that contract refuse your listing or route part of your sale proceeds elsewhere. That binding is published on-chain, so you can check it before you buy the token. See [Fees](#fees) below and [Controller-Bound Tokens](../protocol/controller-bound-tokens.md).
 
 ---
 
@@ -117,6 +117,8 @@ DEX listings are priced by **how long the listing lives**, not by how early you 
 That listing fee is what creating or editing a listing costs: placing an order and creating a dispenser are charged on the duration schedule above, priced in XCHAIN. **Cancelling is free.** Taking an order or a dispenser off the book carries no protocol fee at all, so you are never charged for withdrawing a listing. You still pay the ordinary miner transaction fee on the underlying chain for any action you broadcast.
 
 **Listings that hand over ownership cost extra.** A listing that escrows a token's **ownership** instead of a balance (the ownership dispenser described above, and the equivalent order or swap) also pays a flat **ownership-escrow premium of 50,000 gas, 0.5 XCHAIN at the current gas price**. It is charged on top of any duration fee, and it applies inside the 90-day window too, so an ownership listing is never free. The premium is charged when the listing is created; editing an existing ownership listing does not pay it again, and cancelling is still free. It is the same amount on Bitcoin, Litecoin, and Dogecoin.
+
+**Controller-bound tokens can take a share of the seller's proceeds.** If a token binds a `trade`-class controller, that contract's guard runs when the listing is created and may attach a split that routes part of the **seller's** proceeds to addresses it names. This is how enforced royalties, marketplace fees and revenue share work on XChain. The split is fixed when the listing is created, is capped by a protocol limit that the token's own contract can tighten further, and comes out of what the seller receives; the buyer still pays the quoted price. The same guard can also refuse the listing outright, so a listing on a controller-bound token is not guaranteed to be accepted. Your escrowed tokens are unaffected either way: the split applies to the proceeds you are paid, not to the balance you put up. See [Proceeds split](../protocol/controller-bound-tokens.md#proceeds-split-royalty-fee-payout_legs).
 
 Check the current fee schedule through the XChain Explorer or your wallet software for the latest amounts.
 

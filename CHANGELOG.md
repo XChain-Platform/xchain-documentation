@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The ANCHOR action document specifies v7, the checkpoint bundle: one anchor per network per cycle carrying every chain as its own section.
+- ANCHOR versions 0, 3, 4 and 5 are removed from the action document and the reward-type sites; v7 replaces them and those version numbers are retired.
+- The anchor publish reward is now one `anchor_bundle` row per bundle instead of one `anchor_<chain>` row per chain, across the COLLECT, hub and indexer reference pages.
+- `getanchorstatus` documents `anchorsPublished` as a count of bundles, and adds the `sectionsAnchored` and `bundlesOversize` fields.
+- The `anchor_actions` table is documented as keyed on `(action_index, section_index)`, one row per bundle section.
+- The frozen ANCHOR canonical vectors carry the v7 case, and the v0, v3, v4 and v5 cases are dropped.
+- The light-client guide documents `parseAnchorV7` and `anchorBundleSection` in place of `parseAnchorV3`, and explains that a bundle omitting a chain is normal.
+- The hub configuration reference documents the anchor startup flush, the confirmed-inputs rule and the two confirmation-watchdog settings.
+- The explorer REST endpoint counts in the component map are re-derived after the token holders route was added to both namespaces.
 - The ATTEST v3 rules document the relay-identity exactly-once gate the reference indexer enforces.
 - The utxo-tracker configuration reference documents the derived bulk-sync RAM budget alongside the other memory-budget figures.
 - The decoder configuration reference documents the mempool response cache duration.
@@ -15,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The open-mint terms now carry a 1,000 XCHAIN per-address cap in the white paper, overview and genesis runbook, enforced by the distribution-figures test.
 - The regtest guide now documents creating XCHAIN and minting gas on a fresh chain, replacing the incorrect claim that a pre-funded GAS address exists, and explains seeding oracle prices for native-coin fees.
 - Intro pages, FAQ, use cases, concepts and component pages now lead with the chain-agnostic claim and time-stamp Bitcoin, Litecoin, and Dogecoin as the live-today roster, enforced by a new chain-positioning test.
-- White paper §13.3 now publishes the final genesis figures (100,000,000 cap, the seven-leg distribution, snapshot pins and open-mint terms) instead of deferring them.
+- White paper §13.3 now publishes the genesis figures (100,000,000 cap, the seven-leg distribution, snapshot pins and open-mint terms) instead of deferring them, carrying the pre-launch "not yet final" qualifier.
 - Overview, GAS, COLLECT and the genesis runbook no longer claim supply is created only by public mints, which held only while the distribution was unpublished.
 
 ### Added

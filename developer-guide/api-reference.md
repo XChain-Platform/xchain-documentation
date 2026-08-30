@@ -50,7 +50,7 @@ into an LLM:
 |---|---|---|
 | Explorer | OpenAPI 3.1 | `GET https://explorer.xchain.io/openapi.json` |
 | Encoder | OpenRPC 1.3.2 | `GET https://encoder.xchain.io/{COIN}/openrpc.json` |
-| Hub | OpenRPC 1.3.2 | `GET https://hub.xchain.io/{COIN}/openrpc.json` |
+| Hub | OpenRPC 1.3.2 | `GET https://hub.xchain.io/openrpc.json` |
 
 Load the OpenAPI document into Swagger UI, Redoc, or an OpenAPI client generator; load the
 OpenRPC documents into an OpenRPC playground or generator. An LLM-friendly digest of the full

@@ -147,7 +147,7 @@ watcher.start(10000);
 
 Gate access to content, features, or services based on whether a user holds a specific token. This pattern covers balance checks, wallet ownership proof, session management, real-time invalidation, and on-chain gating via smart contracts.
 
-> **SDK v1.5.0+:** The XChain SDK now has built-in wallet verification methods (`sdk.generateChallenge()`, `sdk.signMessage()`, `sdk.verifyOwnership()`) that handle challenge generation, message signing, and signature verification. See the [Wallet & Auth Reference](../components/sdk/wallet.md) for the full API and the [SDK Examples](../components/sdk/examples.md#challenge-response-wallet-verification) for end-to-end code. The patterns below show both the raw `bitcoinjs-message` approach and the SDK approach.
+> **Built-in wallet verification:** The XChain SDK has built-in wallet verification methods (`sdk.generateChallenge()`, `sdk.signMessage()`, `sdk.verifyOwnership()`) that handle challenge generation, message signing, and signature verification. See the [Wallet & Auth Reference](../components/sdk/wallet.md) for the full API and the [SDK Examples](../components/sdk/examples.md#challenge-response-wallet-verification) for end-to-end code. The patterns below show both the raw `bitcoinjs-message` approach and the SDK approach.
 
 ```mermaid
 flowchart TD
