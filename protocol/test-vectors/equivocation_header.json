@@ -8,7 +8,8 @@
     "ORACLE_BATCH": "XORACLEB",
     "CHECKPOINT": "XCHECKPOINT",
     "CONFIG": "XCONFIG",
-    "NODEPROOF": "XNODEPROOF"
+    "NODEPROOF": "XNODEPROOF",
+    "ROLLCALL": "XROLLCALL"
   },
   "equivKey": [
     { "name": "basic", "engineTag": "XDEX", "roundId": "r1", "view": "0", "expected": "XDEX|r1|0" },
@@ -63,6 +64,22 @@
       "view": "0",
       "content": "{\"first_round\":1200,\"last_round\":1202}",
       "expected": "EQUIV|XORACLEB|963000|1200|1202|0||{\"first_round\":1200,\"last_round\":1202}"
+    },
+    {
+      "name": "ROLLCALL: the epoch height is the round id, view is always 0",
+      "engineTag": "XROLLCALL",
+      "roundId": "151200",
+      "view": "0",
+      "content": "testnet|151200|3b1f8c0e5a47d29e6b04f7a1c8d35e92074b6af18c2d9e35017a4bc6d8e2f309",
+      "expected": "EQUIV|XROLLCALL|151200|0||testnet|151200|3b1f8c0e5a47d29e6b04f7a1c8d35e92074b6af18c2d9e35017a4bc6d8e2f309"
+    },
+    {
+      "name": "ROLLCALL: regtest epoch 0 is a real epoch, not a falsy skip",
+      "engineTag": "XROLLCALL",
+      "roundId": "0",
+      "view": "0",
+      "content": "regtest|0|0000000000000000000000000000000000000000000000000000000000000000",
+      "expected": "EQUIV|XROLLCALL|0|0||regtest|0|0000000000000000000000000000000000000000000000000000000000000000"
     }
   ]
 }
