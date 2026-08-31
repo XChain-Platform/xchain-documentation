@@ -546,10 +546,15 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // roll call is inert on DOGE and on BTC alike and no second DOGE-height flag day exists.
 // INERT on mainnet (null = never active) until the operator pins a height with the mainnet
 // federation; the null placeholder follows SNAPSHOT_BURIAL_ACTIVATION.mainnet.
+// INERT on regtest too, by operator ruling 2026-08-31: arming a network commits every BTC indexer
+// on it to a wired DOGE peer, because the epoch close cannot decide a non-empty responsible set
+// without one and halts rather than read silence as absence. A single-coin BTC regtest venue has
+// no DOGE peer and can never have one, so a hardcoded regtest height wedged every such venue at
+// its first close. A venue that runs both chains opts in instead.
 const ROLLCALL_ACTIVATION = {
     mainnet: null,        // INERT placeholder: the operator owns this height
     testnet: 151200,      // 1008 x 150 = 144 x 1050; tip was 150400 on 2026-08-30, ~5.5 days out
-    regtest: 0,
+    regtest: null,      // INERT: a BTC-only regtest venue has no DOGE peer to prove a close
 };
 
 // ROLLCALL_INTERVAL_BLOCKS: epoch cadence in BTC blocks. Weekly on the live networks (1008 BTC
