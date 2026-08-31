@@ -45,7 +45,7 @@ EQUIV|XROLLCALL|<EPOCH_HEIGHT>|0||<network>|<EPOCH_HEIGHT>|<ledger_hash(EPOCH_HE
 ```
 
 - `<network>` is the bare lowercase network name (`mainnet` | `testnet` | `regtest`).
-- Heights are decimal and unpadded. Epoch `0` is a real epoch on regtest, not a falsy skip.
+- Heights are decimal and unpadded. Epoch `0` is a real epoch wherever a network is armed from genesis, not a falsy skip.
 - `ledger_hash` is the BTC indexer's stored per-block hash at `EPOCH_HEIGHT`, read exactly as NODEPROOF reads its own epoch hash.
 
 Binding the message to that hash is what makes it a **liveness** proof rather than a token: it cannot be signed before the epoch block is mined, so a valid signature shows the key was operating, with a synced view of the BTC chain, inside the epoch's accept window. A pre-signed stack of future heartbeats, the trivial defeat of an unbound canonical, is impossible.
@@ -99,7 +99,7 @@ All eight values are **consensus** and frozen in `protocol/constants.js`, with b
 
 | Constant | mainnet | testnet | regtest | Unit |
 |---|---|---|---|---|
-| `ROLLCALL_ACTIVATION` | `null` (inert) | 151200 | 0 | BTC height |
+| `ROLLCALL_ACTIVATION` | `null` (inert) | 151200 | `null` (inert) | BTC height |
 | `ROLLCALL_INTERVAL_BLOCKS` | 1008 | 1008 | 30 | BTC blocks |
 | `ROLLCALL_ACCEPT_WINDOW_BLOCKS` | 144 | 144 | 12 | BTC blocks |
 | `ROLLCALL_PROOF_DELAY_BLOCKS` | 36 | 36 | 2 | BTC blocks |
