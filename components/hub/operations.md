@@ -56,26 +56,30 @@ With `P2P_VALIDATOR_ADDR` set, the hub joins the P2P validator network. All conf
 `xchain-node` automates the validator setup so you don't hand-assemble env vars or keys:
 
 ```bash
-# 1. Generate a signing key + starter capability config (offline, no stack needed)
-xchain-node validator init \
-  --seed-nodes seed1.example:10001,seed2.example:10001 \
-  --p2p-addr <your-public-host>:10001 \
-  --oracle-epoch-start <shared-federation-unix-ms> \
-  --capabilities price,cross_chain,oracle_publish,attestation
+# 1. Generate the signing key, the stake wallet, the DOGE publisher wallet and
+#    the capability config (offline, no stack needed). Prints the PUBKEY and
+#    the two addresses to fund. Seed nodes and the testnet oracle epoch default.
+xchain-node validator init --network testnet --p2p-addr <your-public-host>:10002
 
-# It prints your PUBKEY. Stake XCHAIN to that pubkey (STAKE v1) to meet each
-# capability's MIN_STAKE threshold.
+# 2. Fund the stake address (testnet BTC, for fees) and the DOGE address
+#    (testnet DOGE, spent when this hub publishes price rounds and anchors).
 
-# 2. Edit the generated config/validator/capabilities.json. Set real
-#    cross_chain RPC endpoints and oracle_publish DOGE address/wallet.
+# 3. Stake: mints XCHAIN on testnet if short, then STAKE v1 to the pubkey.
+xchain-node validator stake --broadcast
 
-# 3. Install/start the hub; it now boots in validator mode with your key +
-#    capability config mounted automatically.
+# 4. Decide cross_chain in config/validator/hub-caps/capabilities.json: a BTC
+#    RPC endpoint, or list it under DISABLED_CAPABILITIES. oracle_publish is
+#    already pointed at the generated DOGE wallet and signer.
+
+# 5. Install/start the hub; it boots in validator mode with your key,
+#    capability config and DOGE signer mounted automatically.
 xchain-node install master xchain-hub
 
 # Check what you configured at any time:
 xchain-node validator status
 ```
+
+The complete walkthrough is [Run a Validator](../../operations/run-a-validator.md).
 
 A validator only *qualifies* for a capability once its on-chain stake to the
 pubkey meets that capability's `MIN_STAKE`, **and** the local self-test for that

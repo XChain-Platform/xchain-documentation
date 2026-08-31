@@ -99,6 +99,9 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `cross_chain_call_executions` | Records the system-injected XEXEC action that executed a cross-chain call on this chain. One row per `call_id` (idempotency) |
 | `cross_chain_call_callbacks` | Records the system-injected callback EXECUTE delivered to the source contract after a cross-chain call result is processed. One row per `call_id` (idempotency) |
 | `full_node_verifications` | Validated full-node possession-proof records. One row per (epoch, passing validator) from a NODEPROOF v0 verdict. Presence within `PROOF_WINDOW_BLOCKS` of a block gates the full-node reward tranche |
+| `rollcalls` | ROLLCALL epoch closes, BTC side. One row per epoch that reached its close block: `epoch_height` (PK), `snapshot_block` (where the responsible set was resolved), `close_block`, and `rolled` (0 = the epoch counted for nobody, recorded so the K-streak knows which epochs to skip) |
+| `rollcall_signers` | Signatures collected from ROLLCALL actions on the Dogecoin side: `(epoch_height, pubkey)` PK, `sig`, the `ledger_hash` as carried (the BTC close discards a mismatch), `publisher`, `action_index`, and the DOGE `block_index` |
+| `rollcall_absences` | Responsible-set members that did not sign a rolled epoch: `(epoch_height, source_id)` PK, `close_block`, and `evicted` (1 = this absence completed a K-streak and evicted the source at that close) |
 | `gated_files` | FILE v1 token-gated metadata: `gate_ticker`, `encryption_method`, `key_hash` (groups pack members), and `raw_data` (ciphertext bytes) |
 | `pubkeys` | Address-to-public-key mapping, populated from the decoder at index time. Keyed by `address_id` |
 | `icons` | Token icon cache: source URL, fetch/generation status, and generated PNG hash. Keyed by `token_id`; managed by the icon-fetch pipeline, not by block processing |
