@@ -9,6 +9,7 @@ This section covers everything needed to deploy, configure, monitor, and maintai
 |---|---|
 | [Deployment](./deployment.md) | How to deploy the full platform stack from scratch |
 | [xchain-node CLI Manual](../components/node/operations.md) | Every xchain-node command, option, and parameter |
+| [Run a Validator](./run-a-validator.md) | From an empty machine to a staked, peered validator: keys, funding, stake, start, verify |
 | [XCHAIN Genesis](./xchain-genesis.md) | One-time fixed-supply XCHAIN issuance and validator reward-pool funding |
 | [Docker](./docker.md) | Docker Compose configuration and container management |
 | [Configuration](./configuration.md) | All configuration options across each service |

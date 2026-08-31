@@ -183,28 +183,72 @@ Verifies the SHA-256 hash before extraction. Aborts cleanly on hash mismatch.
 
 ## Validator Setup
 
-The `validator` command has two subcommands for onboarding a node into the XChain federation. Both are offline operations: they write only to the local config directory and never contact Docker or MariaDB. This means they can be run before any stack is installed, and the Docker precheck is intentionally skipped for them.
+The `validator` command onboards a node into the XChain federation. `init` and `status` are offline operations: they write only to the local config directory and never contact Docker or MariaDB, so they can be run before any stack is installed (the Docker precheck is intentionally skipped for them). `stake` talks to the public explorer and encoder for the network. The end-to-end walkthrough is [Run a Validator](../../operations/run-a-validator.md).
 
 ### `validator init`
 
 ```bash
-xchain-node validator init [options]
+xchain-node validator init --network testnet --p2p-addr <host>:10002 [options]
 ```
 
-Generates an Ed25519 signing key and writes the validator configuration files (`validator.json`, `signing_key.hex`, `capabilities.json`) under the `config/validator/` directory. These files are injected as environment variables into the hub container the next time it is installed or started, causing the hub to run in full validator mode (P2P + PBFT + oracle).
+Generates three keys and writes the validator configuration under `config/validator/` (git-ignored):
+
+| File | Contents | Mode |
+|---|---|---|
+| `signing.key` | Ed25519 signing seed; its public key is what XCHAIN is staked to | 0600 |
+| `validator.json` | Network, P2P address and port, seed nodes, oracle epoch, enabled capabilities, pubkey | 0644 |
+| `wallets.env` | The stake wallet (a BTC key on the chosen network: pays fees, mints and holds the STAKE) and the DOGE publisher wallet (pays for price rounds and anchors); addresses, public keys and WIFs | 0600 |
+| `signer/signer.js`, `signer/.env` | The `HUB_SIGNER_MODULE` the hub loads to sign DOGE publishes, and its config (network, address, encoder URL, WIF). Mounted read-only into the hub container | 0644 / 0600 |
+| `hub-caps/capabilities.json` | `MIN_STAKE` floors and per-capability self-test blocks, with `oracle_publish` already pointed at the DOGE wallet | 0644 |
+
+It prints the pubkey and the two addresses to fund. The values are injected into the hub container the next time it is installed or started, so the hub runs in full validator mode (P2P + PBFT + oracle) with the signer mounted.
 
 Options:
 
 | Option | Description |
 |---|---|
+| `--network <name>` | Federation to join: `testnet` or `mainnet`. Picks the P2P port, the seed nodes, the wallets' coin networks and (testnet) the oracle epoch |
 | `--p2p-addr <addr>` | This validator's public address in `host:port` form |
-| `--p2p-port <port>` | P2P listen port (default 10001) |
-| `--seed-nodes <list>` | Comma-separated peer addresses in `host:port,host:port` form |
-| `--oracle-epoch-start <ms>` | Shared oracle epoch start (unix ms); must match the federation |
-| `--capabilities <list>` | Comma-separated capability names to advertise |
-| `--force` | Overwrite an existing validator config (generates a NEW key) |
+| `--p2p-port <port>` | P2P listen port: 10002 testnet, 10001 mainnet (default 10001). Implies `--network` when that is not given |
+| `--seed-nodes <list>` | Comma-separated peer addresses; default is the five `validator01-05.xchain.io` seeds on the chosen port |
+| `--oracle-epoch-start <ms>` | Shared oracle epoch start (unix ms); defaults to the known federation value on testnet, required on mainnet |
+| `--capabilities <list>` | Comma-separated capability names to advertise (default all four) |
+| `--import-stake-key` | Use your own BTC stake key: prompts for the WIF with echo off. `XCHAIN_NODE_STAKE_WIF` in the environment is the non-interactive form |
+| `--import-doge-key` | Use your own DOGE publisher key: prompts for the WIF with echo off. `XCHAIN_NODE_DOGE_WIF` is the non-interactive form |
+| `--no-wallets` | Skip wallet generation; you run your own signer via `XCHAIN_NODE_HUB_SIGNER_DIR` and fill `oracle_publish` by hand |
+| `--force` | Overwrite an existing validator config (generates a NEW signing key). Existing wallets are kept |
+| `--force-wallets` | Also replace existing wallets; the old addresses and any coin at them are abandoned |
 
-Running `validator init` more than once without `--force` is a no-op: it prints the existing pubkey and exits. Use `--force` only if you need to rotate to a new key.
+Running `validator init` again on an initialized validator **repairs rather than replaces**: it prints the existing pubkey and wallet addresses, and fills in anything a validator from an older version is missing (the hub API key, the coin wallets and signer, the recorded network) without touching the signing key. That matters because rotating the signing key means re-staking and waiting out the activation delay again, which no working validator should have to do to pick up a new file. `--force` is the explicit way to rotate the key; wallets survive even that, and only `--force-wallets` replaces them.
+
+A WIF is never accepted on the command line. An imported key must belong to the chosen network (a mainnet WIF on `--network testnet` is refused).
+
+### `validator stake`
+
+```bash
+xchain-node validator stake [--broadcast] [--amount <xchain>] [--no-wait] [--fee-per-kb <coin>] [--timeout <minutes>]
+```
+
+Puts the signing key on chain from the stake wallet. Reads the address's coin and XCHAIN balances and the XCHAIN token's mint caps from the public explorer, then:
+
+1. On testnet, mints whatever XCHAIN the address is short, in cap-sized transactions (the caps are read live, not assumed). Mainnet never mints.
+2. Broadcasts `STAKE v1` for `--amount` (default 25000, which clears every capability floor) naming this validator's pubkey.
+
+Without `--broadcast` it prints the plan and sends nothing, which doubles as the funding check.
+
+Every action is sent **back to back into one block**. The indexer resolves a STAKE's balance from every ledger entry with a lower action index, so the mints only have to sit earlier in the *same* block, not in an earlier one. Ordering inside the block is guaranteed by construction: each action is funded from the previous action's own outputs, and consensus forbids a child transaction from preceding its parent. If that chain cannot be formed (no spendable output appears from the previous action), the command says so and waits for the mints to be indexed before staking, rather than broadcasting a STAKE a miner could place ahead of its own funding. `--serialize` restores one action per block.
+
+Only the final action waits for the indexer (default `--timeout` 120 minutes, accepting fractional values); `--no-wait` returns as soon as the STAKE is broadcast. It refuses when the address has no coin for fees, when the pubkey already carries a valid stake, and when the WIF does not control the address recorded in `wallets.env`.
+
+### `validator unstake`
+
+```bash
+xchain-node validator unstake [--broadcast] [--no-wait] [--fee-per-kb <coin>] [--timeout <minutes>]
+```
+
+Withdraws this validator's stake and leaves the active set. Reads the active stake for this pubkey from the chain, reports it, and broadcasts `UNSTAKE v0`. Without `--broadcast` it prints the plan and sends nothing. It does nothing when the pubkey carries no valid stake, and refuses outright when the validator set cannot be read, rather than treating an unreadable set as "nothing staked".
+
+The stake keeps counting toward every capability for 6 more blocks after the unstake is indexed (the same `ACTIVATION_DELAY_BLOCKS` reorg protection that gates joining), then drops out of the active set. This matters operationally: membership is chain-derived, so a staked validator that is not running still raises the quorum every other validator must meet.
 
 ### `validator status`
 
@@ -212,7 +256,7 @@ Running `validator init` more than once without `--force` is a no-op: it prints 
 xchain-node validator status
 ```
 
-Reads the persisted validator configuration and prints the public key, configured peers, and capabilities. If no validator has been initialized it prints a hint to run `validator init`.
+Reads the persisted validator configuration and prints the public key, network, P2P address, seed nodes, oracle epoch, capabilities, the live capability-config path, and both wallet addresses with the signer directory in use. It never prints a key. If no validator has been initialized it prints a hint to run `validator init`.
 
 ## Telemetry
 
