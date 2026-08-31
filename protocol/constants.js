@@ -462,6 +462,29 @@ const ARCHIVE_REWARD_ACTIVATION = {
     regtest: 0,
 };
 
+// ANCHOR_ACTIVATION: the DOGE height (per network) at/above which the ANCHOR wire set restarts at
+// version 0 (v0 = the per-network checkpoint bundle, v1 = the archive head with its publisher tail,
+// v2 = the archive continuation chunk). Every ANCHOR mined BELOW this height, of any version, is
+// invalid ('invalid: ANCHOR before activation'); at/above it only versions 0/1/2 parse and every
+// other version byte is 'invalid: VERSION (unknown)'. Keyed on the action's OWN DOGE block_index
+// (data['BLOCK_INDEX'] at parse time, anchor_actions.block_index_doge), never on SNAPSHOT_BLOCK or
+// the checkpointed height: the row being judged is the anchor itself. Mainnet 6360000 sits ABOVE
+// the chain tip on purpose: the restarted wire set has NOT activated on mainnet yet, and the height
+// is a flag day the operator arms deliberately rather than one that silently already passed.
+// Testnet 67858600 is 24 blocks above its last pre-restart anchor (67858576) and is already past.
+// Neither is 0, because both carry pre-restart history (mainnet 56 rows, testnet 11, measured
+// 2026-08-30): at 0 the gate can never fire, so the retired wires fall through to the restarted
+// version table and are read as shapes they are not. The old per-chain version 0 would report as a
+// checkpoint bundle carrying SPV roots and a publisher attestation, and the old tail-less version 1
+// as an archive head with a publisher tail; on mainnet those rows carry state_root NULL 36/36 and
+// no publisher_attestations field at all 56/56. Regtest is 0: its stacks are rebuilt from genesis.
+// Operator rulings 2026-08-30.
+const ANCHOR_ACTIVATION = {
+    mainnet: 6360000,
+    testnet: 67858600,
+    regtest: 0,
+};
+
 // ARCHIVE_REWARD_AMOUNT: the frozen archive-publish reward, signed into the archive XANCPUB
 // attestation by the hub and re-derived by the indexer (never from the wire). Kept equal to the
 // hub's historical default (ANCHOR_REWARD_PER_PUBLISH). Changing it is itself a flag-day.
@@ -504,6 +527,67 @@ const ANCHOR_REWARD_DERIVE_ACTIVATION = {
 // it is a hashed value frozen with the map above; changing it needs its own flag-day. Kept
 // byte-identical to xchain-{hub,indexer}/src/anchor_reward_activation.js.
 const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
+
+// ROLLCALL (validator liveness eviction). A roll call is a signed proof of presence bound to a
+// BTC epoch block's ledger_hash: hubs sign, an elected leader lands the signatures on DOGECOIN
+// as a ROLLCALL action, and the BTC indexer -- the only place the membership predicate runs --
+// closes each epoch by proving that DOGE action the way the anchor rail already proves anchors.
+// A source absent for K consecutive ROLLED epochs is evicted by a synthetic UNSTAKE, so its
+// stake deactivates and refunds after the cooldown. Nothing is burned: absence is not an offense.
+//
+// All eight values are CONSENSUS. They decide which epochs exist, which signatures count, and at
+// what BTC height an eviction and a COLLECT-spendable reward materialise, so none may be read
+// from the coin registry, env, or coins.resolveConfirmations() -- the argument
+// anchor_reward_activation.js makes for its own maturity and burial depths. Kept byte-identical
+// to xchain-{indexer,hub}/src/rollcall_activation.js by the cross-service regression suite.
+//
+// Keyed on the carried BTC EPOCH_HEIGHT on BOTH chains (the snapshot_block convention of
+// STAKE_WEIGHTED_QUORUM_ACTIVATION), never on either chain's local height, so a pre-activation
+// roll call is inert on DOGE and on BTC alike and no second DOGE-height flag day exists.
+// INERT on mainnet (null = never active) until the operator pins a height with the mainnet
+// federation; the null placeholder follows SNAPSHOT_BURIAL_ACTIVATION.mainnet.
+// INERT on regtest too, by operator ruling 2026-08-31: arming a network commits every BTC indexer
+// on it to a wired DOGE peer, because the epoch close cannot decide a non-empty responsible set
+// without one and halts rather than read silence as absence. A single-coin BTC regtest venue has
+// no DOGE peer and can never have one, so a hardcoded regtest height wedged every such venue at
+// its first close. A venue that runs both chains opts in instead.
+const ROLLCALL_ACTIVATION = {
+    mainnet: null,        // INERT placeholder: the operator owns this height
+    testnet: 151200,      // 1008 x 150 = 144 x 1050; tip was 150400 on 2026-08-30, ~5.5 days out
+    regtest: null,      // INERT: a BTC-only regtest venue has no DOGE peer to prove a close
+};
+
+// ROLLCALL_INTERVAL_BLOCKS: epoch cadence in BTC blocks. Weekly on the live networks (1008 BTC
+// blocks) per the 2026-08-30 ruling; regtest uses 30 so an acceptance run does not mine 2 x 1008.
+const ROLLCALL_INTERVAL_BLOCKS = { mainnet: 1008, testnet: 1008, regtest: 30 };
+
+// ROLLCALL_ACCEPT_WINDOW_BLOCKS: how long after the epoch block a signature may still land, in
+// BTC blocks. The window endpoint's BTC header stamp is what cuts the DOGE chain (see below).
+const ROLLCALL_ACCEPT_WINDOW_BLOCKS = { mainnet: 144, testnet: 144, regtest: 12 };
+
+// ROLLCALL_PROOF_DELAY_BLOCKS: BTC blocks after the window closes before the epoch closes, giving
+// the DOGE side time to bury. MUST be >= 1: blocks.block_time for a block is written by
+// createBlock AFTER that block's own processing, so the window endpoint must be a strictly
+// earlier block than the close or the close reads a timestamp that does not exist yet.
+const ROLLCALL_PROOF_DELAY_BLOCKS = { mainnet: 36, testnet: 36, regtest: 2 };
+
+// ROLLCALL_DOGE_MATURITY: DOGE blocks past the window cut before a DOGE indexer's answer is
+// admissible, the anchor rail's own burial depth. Bounds the residual: a DOGE reorg deeper than
+// this that removes a counted signature after the BTC close cannot be undone from BTC.
+const ROLLCALL_DOGE_MATURITY = { mainnet: 60, testnet: 60, regtest: 2 };
+
+// ROLLCALL_EVICT_MISSES (K): consecutive rolled epochs a source must be absent for to be evicted.
+// K=2 weekly means an outage shorter than ~6 days can never evict, and 2-3 weeks idle always does.
+const ROLLCALL_EVICT_MISSES = 2;
+
+// ROLLCALL_STREAK_LOOKBACK (2K): how many rolled epochs back the K-streak may reach. Bounds an old
+// absence so a source that leaves for months and returns starts clean.
+const ROLLCALL_STREAK_LOOKBACK = 4;
+
+// ROLLCALL_REWARD_AMOUNT: the frozen rollcall-publish reward, minted on the BTC side to the
+// ELECTED LEADER only (never to whoever published first, which would be a fee-bidding race no hub
+// can bump). Parity with ANCHOR_REWARD_AMOUNT per the 2026-08-30 ruling; never from the wire.
+const ROLLCALL_REWARD_AMOUNT = '10.00000000';
 
 // RETRACTION_SIGNING_ACTIVATION (quorum-class retraction co-signing): the BTC-anchored
 // snapshot_block era at/above which a mirror REFUSES an unsigned quorum-class retraction
@@ -1088,8 +1172,17 @@ module.exports = {
     ANCHOR_REWARD_AMOUNT,
     ARCHIVE_REWARD_ACTIVATION,
     ARCHIVE_REWARD_AMOUNT,
+    ANCHOR_ACTIVATION,
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
+    ROLLCALL_ACTIVATION,
+    ROLLCALL_INTERVAL_BLOCKS,
+    ROLLCALL_ACCEPT_WINDOW_BLOCKS,
+    ROLLCALL_PROOF_DELAY_BLOCKS,
+    ROLLCALL_DOGE_MATURITY,
+    ROLLCALL_EVICT_MISSES,
+    ROLLCALL_STREAK_LOOKBACK,
+    ROLLCALL_REWARD_AMOUNT,
     RETRACTION_SIGNING_ACTIVATION,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     ATTEST_ADMISSION_ACTIVATION,

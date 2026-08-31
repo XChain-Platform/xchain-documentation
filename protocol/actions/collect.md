@@ -53,7 +53,7 @@ Rewards accumulate from multiple validator activities, all stored in the indexer
 | `oracle_base` | Validator with `price` capability | Active-regime label (used when `FULLNODE.REWARD_SHARE` > 0): the base tranche of the per-round budget, split equally across all qualified signers; replaces `oracle_round` once the full-node reward tier is activated |
 | `oracle_full_node` | Validator with `price` and `full_node` capabilities | Active-regime only: the full-node tranche of the per-round budget, split equally across verified full-node sources that signed the round and met the trailing `MIN_PASS_RATE_BPS` participation threshold |
 | `attest_fee` | Validator with `attestation` capability | Share of the request fee for a fulfilled ATTEST request |
-| `anchor_bundle` | Validator with `oracle_publish` capability | Publishing an ANCHOR v7 checkpoint bundle: one reward per bundle, however many chains it carries |
+| `anchor_bundle` | Validator with `oracle_publish` capability | Publishing an ANCHOR v0 checkpoint bundle: one reward per bundle, however many chains it carries |
 | `anchor_archive` | Validator with `oracle_publish` capability | Publishing an ANCHOR v1 archive batch |
 
 ## Reward Population Path

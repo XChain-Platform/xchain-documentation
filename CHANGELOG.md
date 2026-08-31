@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- ROLLCALL, a validator liveness action published on Dogecoin, is documented: wire format, EQUIV canonical, the rules each chain judges, the accept window and its cut, and the eviction rule.
+- Eight frozen ROLLCALL consensus constants are declared in `protocol/constants.js`, with mainnet shipping inert at `null`.
+- `XROLLCALL` joins `ENGINE_TAGS` with header vectors; it is namespacing only and deliberately not a SLASH family.
+- `rollcall_canonical.json` freezes the canonical and wire bytes with real Ed25519 signatures, including negative cases for a wrong ledger hash, network or epoch.
+- The indexer configuration page states that the existing DOGE wiring becomes required a second time from `ROLLCALL_ACTIVATION`, and that a BTC indexer without it defers every block.
+
 ### Changed
+- The four texts promising a non-participation slash are corrected: an absent validator is counted in `N` and nothing on-chain penalises it; where ROLLCALL is active it is evicted by deactivation, never burned.
+- The hub decentralization table separates on-chain slashing, which is equivocation only, from hub-local suspension, which leaves stake untouched.
+- ACTION counts move to 37 named and 36 wire-decoded across the docs; user-submittable stays 31.
+- The ANCHOR version set restarts at v0 (checkpoint bundle), v1 (archive head, publisher attestation always appended) and v2 (continuation), gated by a new per-network `ANCHOR_ACTIVATION` height below which any version is invalid.
 - The ANCHOR action document specifies v7, the checkpoint bundle: one anchor per network per cycle carrying every chain as its own section.
 - ANCHOR versions 0, 3, 4 and 5 are removed from the action document and the reward-type sites; v7 replaces them and those version numbers are retired.
 - The anchor publish reward is now one `anchor_bundle` row per bundle instead of one `anchor_<chain>` row per chain, across the COLLECT, hub and indexer reference pages.

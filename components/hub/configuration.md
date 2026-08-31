@@ -325,9 +325,11 @@ the full derivation is in
 - **`ANCHOR_CHUNK_MAX_BYTES` = 6000** reserves head room under the protocol's
   8192-byte `MAX_ACTION_DATA_LENGTH` ceiling, because chunk 0 shares its action
   with the checkpoint prefix (~322 bytes) and the signature lists (194 bytes per
-  `(PUBKEY, SIG)` pair, doubled on a v6). What is left is about nine signature
-  pairs on a v1, or 4+4 on a v6, so **lower this as the federation grows**: a
-  5+5 v6 quorum needs ~5860 or less, a 7+7 quorum ~5080. Exceeding the ceiling
+  `(PUBKEY, SIG)` pair; a v1 head always carries the publisher tail, another
+  194 bytes per attesting signer). What is left is about nine signature
+  pairs on a v1 with no attestations, or 4+4 at full quorum, so **lower this
+  as the federation grows**: a 5+5 v1 quorum needs ~5860 or less, a 7+7
+  quorum ~5080. Exceeding the ceiling
   is silent, since the decoder simply drops the action.
 - **`ANCHOR_MATCH_BATCH_SIZE` = 200** is an early-flush latency trigger and
   **`ANCHOR_MAX_BATCH` = 1000** is the per-cycle DOGE spend bound. Archive rows

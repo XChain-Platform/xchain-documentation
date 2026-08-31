@@ -20,14 +20,14 @@
  * the SDK's own ACTIONS and SESSIONS pages, which claimed the SDK supported 30
  * action types while documenting all 31 of them on the same page.
  *
- * The trap this guard is built around: 35 and 36 are BOTH correct, for
+ * The trap this guard is built around: 36 and 37 are BOTH correct, for
  * different sets, and a sweep that flattens them makes the docs worse.
  *
- *   36  named ACTIONs         every spec in protocol/actions/
- *   35  wire-decoded ACTIONs  the above minus XCALL, which is mirror-injected
+ *   37  named ACTIONs         every spec in protocol/actions/
+ *   36  wire-decoded ACTIONs  the above minus XCALL, which is mirror-injected
  *                             into the destination chain's index rather than
  *                             decoded from a transaction
- *   31  user-submittable      the above minus the four validator/system
+ *   31  user-submittable      the above minus the five validator/system
  *                             actions; equals the SDK's builder methods
  *
  * WHAT IT CHECKS:
@@ -51,7 +51,7 @@ const SPECS = path.join(ROOT, 'protocol', 'actions');
 /** Actions that exist but are never decoded from a wire transaction. */
 const MIRROR_INJECTED = ['XCALL'];
 /** Actions written by validators or synthesized, so never user-submittable. */
-const NOT_USER_SUBMITTABLE = ['ANCHOR', 'ATTEST', 'NODEPROOF', 'SLASH'];
+const NOT_USER_SUBMITTABLE = ['ANCHOR', 'ATTEST', 'NODEPROOF', 'ROLLCALL', 'SLASH'];
 
 function namedActions() {
   return fs.readdirSync(SPECS)
@@ -81,11 +81,11 @@ function namedActions() {
  * handlers), which is what the old "51 handler files" tally was counting.
  */
 /*
- * The wire-decoded count (36 minus XCALL) is correct only where the text is
+ * The wire-decoded count (37 minus XCALL) is correct only where the text is
  * genuinely talking about what comes off a transaction. Everywhere else a 35 is
  * a pre-XCALL leftover, which is what it was on four pages in the 07-29 sweep.
  * So this count is allowed only where somebody has said why, rather than being
- * a default. A page that means "every ACTION" should say 36.
+ * a default. A page that means "every ACTION" should say 37.
  *
  * Registered per CLAIM and per occurrence count, not per file. A file-level
  * allowlist would let a NEW bare 35 slip into any page that already had a
@@ -95,38 +95,39 @@ function namedActions() {
  * itself an error, so a claim that gets deleted takes its entry with it.
  */
 const WIRE_SCOPED = [
-  { file: 'components/decoder/configuration.md', claim: '35 ACTION names', count: 1,
+  { file: 'components/decoder/configuration.md', claim: '36 ACTION names', count: 1,
     why: 'the decoder only ever sees the wire-decoded names' },
-  { file: 'concepts/actions.md', claim: '35 ACTION types', count: 1,
+  { file: 'concepts/actions.md', claim: '36 ACTION types', count: 1,
     why: 'defines the wire-decoded set, and says so on the same line' },
-  { file: 'concepts/actions.md', claim: '35 wire-decoded ACTION types', count: 1,
+  { file: 'concepts/actions.md', claim: '36 wire-decoded ACTION types', count: 1,
     why: 'explains XCALL sitting outside that set' },
-  { file: 'getting-started/what-is-xchain.md', claim: '35 ACTION commands', count: 1,
+  { file: 'getting-started/what-is-xchain.md', claim: '36 ACTION commands', count: 1,
     why: 'the page presents the wire-decoded set and documents XCALL separately' },
-  { file: 'getting-started/what-is-xchain.md', claim: '35 ACTIONs', count: 2,
-    why: 'the section heading, and the four validator/system actions within that set' },
-  { file: 'getting-started/what-is-xchain.md', claim: '35 actions', count: 2,
-    why: 'chain parity, and the 31-of-35 developer-invocable split' },
-  { file: 'getting-started/what-is-xchain.md', claim: '35 wire-decoded ACTIONs', count: 1,
+  { file: 'getting-started/what-is-xchain.md', claim: '36 ACTIONs', count: 2,
+    why: 'the section heading, and the five validator/system actions within that set' },
+  { file: 'getting-started/what-is-xchain.md', claim: '36 actions', count: 2,
+    why: 'chain parity, and the 31-of-36 developer-invocable split' },
+  { file: 'getting-started/what-is-xchain.md', claim: '36 wire-decoded ACTIONs', count: 1,
     why: 'names the scope explicitly where XCALL is introduced' },
 ];
 
 const SCOPED = [
-  { file: 'components/e2e-test/architecture.md', claim: '72 action', count: 1,
-    why: 'test files, several per action; ls xchain-e2e-test/test/actions/*.test.js on 2026-08-19 '
-       + 'after batchCostWeighting.test.js landed' },
-  { file: 'components/e2e-test/architecture.md', claim: '29 ACTION names', count: 1,
-    why: 'ACTION names those 69 files cover, one entry per name with versions folded in; '
+  { file: 'components/e2e-test/architecture.md', claim: '75 action', count: 1,
+    why: 'test files, several per action; git ls-files xchain-e2e-test/test/actions on 2026-08-30 '
+       + 'after the three ROLLCALL acceptance harnesses landed. Count the COMMITTED tree: an '
+       + 'untracked suite from another lane inflates a filesystem scan, and the gate gates the commit' },
+  { file: 'components/e2e-test/architecture.md', claim: '30 ACTION names', count: 1,
+    why: 'ACTION names those 75 files cover, one entry per name with versions folded in; '
        + 'regenerated by xchain-e2e-test/scripts/count-action-suites.js' },
-  { file: 'components/e2e-test/README.md', claim: '29 ACTION', count: 1,
+  { file: 'components/e2e-test/README.md', claim: '30 ACTION', count: 1,
     why: 'test suites counted one per ACTION name with versions folded in, not the '
-       + 'ACTION set; the bullet enumerates all 29 and states the rule, and '
+       + 'ACTION set; the bullet enumerates all 30 and states the rule, and '
        + 'xchain-e2e-test/test/unit/scripts/actionSuiteCount.test.js re-derives it from the tree' },
   { file: 'components/indexer/architecture.md', claim: '48 action', count: 1,
     why: 'handler classes in xchain-indexer src/actions.js, not the ACTION set; '
        + 'requires, instantiations and dispatch cases all counted 48 on 2026-08-06' },
   { file: 'components/indexer/actions.md', claim: '21 actions', count: 1,
-    why: 'the subset registered at protocol version 1.0.0; 21 + 15 = 36 on the same page' },
+    why: 'the subset registered at protocol version 1.0.0; 21 + 16 = 37 on the same page' },
   { file: 'components/vm/architecture.md', claim: '19 action types', count: 1,
     why: 'emit-API types the VM can construct; verified against gateway-emit.js 2026-07-29' },
   { file: 'components/wallet/ux.md', claim: '5 actions', count: 1,
@@ -140,7 +141,7 @@ const SCOPED = [
 // Two things matter in this regex. The thousands separator, because without it
 // "1,000 actions" parses as 0 and the exemption for it never matches. And the
 // ORDER of the noun alternatives: they are longest-first, because `ACTIONs?`
-// placed first would match inside "35 ACTION names" and every claim would
+// placed first would match inside "36 ACTION names" and every claim would
 // report as the uninformative "35 ACTION".
 const CLAIM = /\b(\d{1,3}(?:,\d{3})*)\s+(?:standard |named |core |on-chain |protocol |wire-decoded |different |registered )?(?:ACTION commands?|ACTION definitions?|ACTION types?|ACTION names?|action types?|ACTIONs?|actions?)\b/g;
 

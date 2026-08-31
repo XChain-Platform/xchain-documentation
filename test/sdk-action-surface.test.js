@@ -47,7 +47,7 @@ const SDK_SESSION = path.join(SDK, 'walletSession.js');
 const haveSdk = fs.existsSync(SDK_MAIN) && fs.existsSync(SDK_SESSION);
 
 /** Actions that exist but are never user-submittable, so never in the SDK. */
-const NOT_INVOCABLE = ['ANCHOR', 'ATTEST', 'NODEPROOF', 'SLASH', 'XCALL'];
+const NOT_INVOCABLE = ['ANCHOR', 'ATTEST', 'NODEPROOF', 'ROLLCALL', 'SLASH', 'XCALL'];
 
 const NAMED = fs.readdirSync(SPECS)
   .filter((f) => f.endsWith('.md') && f !== 'README.md')

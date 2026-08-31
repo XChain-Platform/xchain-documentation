@@ -4,45 +4,71 @@
 # XChain Platform Action - ANCHOR
 
 On-chain commitment of federation-signed state, checkpoints and the cross-chain match
-archive, in a single action with two legs and four version-discriminated phases:
+archive, in a single action with two legs and three version-discriminated phases:
 
-- **v1: Checkpoint + match archive.** Validator-broadcast. One chain's quorum-signed state
-  checkpoint (the per-block `ledger`/`actions`/`contract` hash triple) plus a compressed batch
-  of full `cross_chain_matches` records (including their validator signatures and the
-  `capability_snapshots` rows needed to re-verify them), making cross-chain match data
-  recoverable from chain parse alone.
+- **v0: Checkpoint bundle.** Validator-broadcast. ONE anchor per network per publishing cycle,
+  carrying every checkpointed chain as its own **section**: the chain's hash triple, its SPV
+  light-client roots and its own quorum signature list, followed by a single `PUBLISHER`
+  attestation tail covering the whole bundle. v0 is the only checkpoint wire the hub emits.
+- **v1: Archive head + publisher attestation.** Validator-broadcast. One chain's quorum-signed
+  state checkpoint (the per-block `ledger`/`actions`/`contract` hash triple) plus a compressed
+  batch of full `cross_chain_matches` records (including their validator signatures and the
+  `capability_snapshots` rows needed to re-verify them), plus the elected archive leader's
+  `PUBLISHER` pubkey and a `max(2f+1, ceil((N+1)/2))` `oracle_publish` attestation (the
+  `XANCPUB` canonical) keyed on `MATCH_BATCH_SEQ`, binding which validator earns the archive
+  reward. The `PUBLISHER` tail is **always appended**; `ATTEST_SIG_COUNT` MAY be 0 when the
+  attestation round degrades, in which case the checkpoint and archive still index `valid`, no
+  publisher attestations are stored, and no `anchor_archive` reward is derived. The indexer
+  derives the reward straight from these bytes, retiring the last key-authenticated
+  `pushvalidatorrewards` rail.
 - **v2: Archive continuation.** Validator-broadcast. Carries overflow chunks when a v1 archive
   payload exceeds the per-action data limit. Authenticated by its parent v1 (carries no
   signatures of its own).
-- **v6: Archive + publisher attestation.** Validator-broadcast. The v1 archive anchor plus the
-  elected archive leader's `PUBLISHER` pubkey and a second `max(2f+1, ceil((N+1)/2))` `oracle_publish` attestation
-  (the `XANCPUB` canonical) keyed on `MATCH_BATCH_SEQ`, binding which validator earns the fixed
-  archive reward, gated by the `ARCHIVE_REWARD` flag-day. The indexer re-derives the archive
-  reward from these bytes, retiring the last key-authenticated `pushvalidatorrewards` rail.
-  Post-flag-day the archive leader emits v6 in place of v1; a degraded federation falls back to
-  a legacy v1 so the archive still lands (no reward).
-- **v7: Checkpoint bundle.** Validator-broadcast. ONE anchor per network per publishing cycle,
-  carrying every checkpointed chain as its own **section**: the chain's hash triple, its SPV
-  light-client roots and its own quorum signature list, followed by a single `PUBLISHER`
-  attestation tail covering the whole bundle. v7 is the only checkpoint wire the hub emits.
+
+## Activation
+
+`ANCHOR_ACTIVATION` is a frozen consensus constant, one mined-height value per network, keyed
+on the anchor's own DOGE `BLOCK_INDEX`:
+
+| Network | `ANCHOR_ACTIVATION` | Why |
+| --- | --- | --- |
+| mainnet | 6360000 | above the chain tip: the restarted set has not activated on mainnet yet |
+| testnet | 67858600 | 24 blocks above the last pre-restart anchor at 67858576 |
+| regtest | 0 | stacks are rebuilt from genesis, so there is no pre-restart history |
+
+Mainnet's height is deliberately ahead of the tip. The restarted wire set is not live there, and the
+height is a flag day an operator arms on purpose rather than one that silently already passed.
+Testnet's sits just above the last anchor it published under the old set and is already past, so
+that window is open and needs no publisher-side guard.
+
+The gate runs before format dispatch: an `ANCHOR` of **any** version mined below its network's
+activation height is `invalid: ANCHOR before activation`. At or above the activation height,
+only versions 0, 1 and 2 exist (this document); any other version byte is
+`invalid: VERSION (unknown)`. See [Notes](#notes) for how this reads on the versions this
+restart retires.
+
+A network with pre-restart history must **not** pin 0. The retired wires reused the same version
+bytes under different meanings, so with the gate disabled they fall through to the table above and
+are read as shapes they are not: the old per-chain version 0 would be reported as a checkpoint
+bundle carrying SPV roots and a publisher attestation, and the old tail-less version 1 as an
+archive head with a publisher tail. Both claims would be false. Mainnet carries 56 such rows and
+testnet 11, which is why each gets a height above its own history rather than 0.
 
 ```mermaid
 flowchart TD
     subgraph CP["Checkpoint leg"]
-      v7["v7: Checkpoint bundle<br>(one per network per cycle,<br>one section per chain,<br>one publisher attestation)"]
+      v0["v0: Checkpoint bundle<br>(one per network per cycle,<br>one section per chain,<br>one publisher attestation)"]
     end
     subgraph AR["Archive leg"]
-      v1["v1: Checkpoint + match archive"]
+      v1["v1: Archive head + publisher attestation<br>(tail always appended, ATTEST_SIG_COUNT may be 0)"]
       v2["v2: Archive continuation<br>(overflow chunks, authenticated by parent v1)"]
-      v6["v6: v1 archive + publisher attestation"]
       v1 -->|"overflow chunks"| v2
-      v1 -->|"add publisher attestation"| v6
     end
 ```
 
 `ANCHOR` is valid **only on the anchor chain; DOGE** (all networks). Indexers on other chains
-reject it. BTC and LTC state is still covered: each v1/v6 names the `CHAIN` it checkpoints, and
-a v7 carries one section per chain, so one cheap chain carries the commitments for all three.
+reject it. BTC and LTC state is still covered: a v1 names the `CHAIN` it checkpoints, and
+a v0 carries one section per chain, so one cheap chain carries the commitments for all three.
 
 ANCHOR supersedes the hub's legacy raw `XDEXANCHOR` payload (which was not a protocol action and
 was invisible to the decoder). The `XDEXANCHOR` publisher (`CrossChainDexAnchor`) was removed
@@ -62,56 +88,46 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 ## PARAMS
 | Name                  | Type    | Versions | Description                                                            |
 | --------------------- | ------- | -------- | ---------------------------------------------------------------------- |
-| `VERSION`             | Integer | all      | Format version (1=checkpoint+archive, 2=continuation, 6=v1+publisher, 7=checkpoint bundle) |
-| `NETWORK`             | String  | 1, 6, 7  | `mainnet` \| `testnet` \| `regtest`. On a v7 it is carried once, in the header, and applies to every section |
-| `SNAPSHOT_BLOCK`      | Integer | 1, 6, 7  | BTC block selecting the `oracle_publish` validator set. On a v7 it is the bundle's election and attestation block: the MAX of the sections' `SECTION_SNAPSHOT_BLOCK` |
-| `SECTION_COUNT`       | Integer | 7        | Number of per-chain checkpoint sections that follow; at least 1        |
-| `CHAIN`               | String  | 1, 6, 7  | Chain being checkpointed: `BTC` \| `LTC` \| `DOGE`. One per v7 section |
-| `BLOCK_INDEX`         | Integer | 1, 6, 7  | Checkpointed block height on `CHAIN`                                   |
-| `BLOCK_HASH`          | String  | 1, 6, 7  | 64-hex block hash of `CHAIN` at `BLOCK_INDEX`                          |
-| `LEDGER_HASH`         | String  | 1, 6, 7  | 64-hex chained ledger hash (`blocks.ledger_hash` at `BLOCK_INDEX`)     |
-| `ACTIONS_HASH`        | String  | 1, 6, 7  | 64-hex chained actions hash                                            |
-| `CONTRACT_HASH`       | String  | 1, 6, 7  | 64-hex chained contract hash                                           |
-| `CHECKPOINT_SEQ`      | Integer | 1, 6, 7  | Monotonic checkpoint counter per (`CHAIN`,`NETWORK`)                   |
-| `SECTION_SNAPSHOT_BLOCK` | Integer | 7   | The section's own BTC snapshot block, the one its signatures verify against. Usually equal to the bundle `SNAPSHOT_BLOCK`; lower when a lagging chain rides at an older checkpoint |
-| `STATE_ROOT`          | String  | 7        | 64-hex SPV state root (SMT over balances+stakes) at `BLOCK_INDEX`      |
-| `STATE_ROOT_VERSION`  | Integer | 7        | Merkle scheme version the `STATE_ROOT` was computed under              |
-| `BLOCK_MERKLE_ROOT`   | String  | 7        | 64-hex SPV per-block content Merkle root at `BLOCK_INDEX`              |
-| `BLOCK_MERKLE_VERSION`| Integer | 7        | Merkle scheme version the `BLOCK_MERKLE_ROOT` was computed under       |
-| `MATCH_BATCH_SEQ`     | Integer | 1, 2, 6  | Monotonic archive-batch counter (ties v2 chunks to their v1/v6)        |
-| `MATCH_COUNT`         | Integer | 1, 6     | Number of match records in this archive batch                         |
-| `BATCH_CRC32`         | String  | 1, 6     | 8-hex CRC32 of the **uncompressed** archive JSON bytes                 |
-| `ARCHIVE_B64`         | String  | 1, 6     | base64url of `gzip(archive JSON)`: chunk 0 when the batch is chunked  |
-| `CHUNK_INDEX`         | Integer | 2        | 1-based continuation index (the v1/v6 head itself carries chunk 0)     |
-| `TOTAL_CHUNKS`        | Integer | 1, 2, 6  | Total chunks in the batch (1 = unchunked, archive-head-only)           |
+| `VERSION`             | Integer | all      | Format version (0=checkpoint bundle, 1=archive head + publisher, 2=continuation) |
+| `NETWORK`             | String  | 0, 1     | `mainnet` \| `testnet` \| `regtest`. On a v0 it is carried once, in the header, and applies to every section |
+| `SNAPSHOT_BLOCK`      | Integer | 0, 1     | BTC block selecting the `oracle_publish` validator set. On a v0 it is the bundle's election and attestation block: the MAX of the sections' `SECTION_SNAPSHOT_BLOCK` |
+| `SECTION_COUNT`       | Integer | 0        | Number of per-chain checkpoint sections that follow; at least 1        |
+| `CHAIN`               | String  | 0, 1     | Chain being checkpointed: `BTC` \| `LTC` \| `DOGE`. One per v0 section |
+| `BLOCK_INDEX`         | Integer | 0, 1     | Checkpointed block height on `CHAIN`                                   |
+| `BLOCK_HASH`          | String  | 0, 1     | 64-hex block hash of `CHAIN` at `BLOCK_INDEX`                          |
+| `LEDGER_HASH`         | String  | 0, 1     | 64-hex chained ledger hash (`blocks.ledger_hash` at `BLOCK_INDEX`)     |
+| `ACTIONS_HASH`        | String  | 0, 1     | 64-hex chained actions hash                                            |
+| `CONTRACT_HASH`       | String  | 0, 1     | 64-hex chained contract hash                                           |
+| `CHECKPOINT_SEQ`      | Integer | 0, 1     | Monotonic checkpoint counter per (`CHAIN`,`NETWORK`)                   |
+| `SECTION_SNAPSHOT_BLOCK` | Integer | 0   | The section's own BTC snapshot block, the one its signatures verify against. Usually equal to the bundle `SNAPSHOT_BLOCK`; lower when a lagging chain rides at an older checkpoint |
+| `STATE_ROOT`          | String  | 0        | 64-hex SPV state root (SMT over balances+stakes) at `BLOCK_INDEX`      |
+| `STATE_ROOT_VERSION`  | Integer | 0        | Merkle scheme version the `STATE_ROOT` was computed under              |
+| `BLOCK_MERKLE_ROOT`   | String  | 0        | 64-hex SPV per-block content Merkle root at `BLOCK_INDEX`              |
+| `BLOCK_MERKLE_VERSION`| Integer | 0        | Merkle scheme version the `BLOCK_MERKLE_ROOT` was computed under       |
+| `MATCH_BATCH_SEQ`     | Integer | 1, 2     | Monotonic archive-batch counter (ties v2 chunks to their v1)           |
+| `MATCH_COUNT`         | Integer | 1        | Number of match records in this archive batch                         |
+| `BATCH_CRC32`         | String  | 1        | 8-hex CRC32 of the **uncompressed** archive JSON bytes                 |
+| `ARCHIVE_B64`         | String  | 1        | base64url of `gzip(archive JSON)`: chunk 0 when the batch is chunked  |
+| `CHUNK_INDEX`         | Integer | 2        | 1-based continuation index (the v1 head itself carries chunk 0)        |
+| `TOTAL_CHUNKS`        | Integer | 1, 2     | Total chunks in the batch (1 = unchunked, archive-head-only)           |
 | `ARCHIVE_B64_CHUNK`   | String  | 2        | This continuation's slice of the base64url payload                    |
-| `SIG_COUNT`           | Integer | 1, 6, 7  | Number of (pubkey, sig) pairs that follow; on a v7 it is per section   |
-| `PUBKEY_n`            | String  | 1, 6, 7  | 64-hex Ed25519 pubkey, in the `oracle_publish` set at the signature's snapshot block |
-| `SIG_n`               | String  | 1, 6, 7  | 128-hex Ed25519 signature over the canonical checkpoint message    |
-| `PUBLISHER`           | String  | 6, 7     | 64-hex Ed25519 pubkey of the elected publisher that earns the anchor reward |
-| `ATTEST_SIG_COUNT`    | Integer | 6, 7     | Number of (pubkey, sig) attestation pairs that follow                  |
-| `APUBKEY_n`           | String  | 6, 7     | 64-hex pubkey in the `oracle_publish` set at `SNAPSHOT_BLOCK` (attestation signer) |
-| `ASIG_n`              | String  | 6, 7     | 128-hex Ed25519 signature over the `XANCPUB` canonical                 |
+| `SIG_COUNT`           | Integer | 0, 1     | Number of (pubkey, sig) pairs that follow; on a v0 it is per section   |
+| `PUBKEY_n`            | String  | 0, 1     | 64-hex Ed25519 pubkey, in the `oracle_publish` set at the signature's snapshot block |
+| `SIG_n`               | String  | 0, 1     | 128-hex Ed25519 signature over the canonical checkpoint message    |
+| `PUBLISHER`           | String  | 0, 1     | 64-hex Ed25519 pubkey of the elected publisher that earns the anchor reward |
+| `ATTEST_SIG_COUNT`    | Integer | 0, 1     | Number of (pubkey, sig) attestation pairs that follow; on a v1 this MAY be 0 when the attestation round degraded |
+| `APUBKEY_n`           | String  | 0, 1     | 64-hex pubkey in the `oracle_publish` set at `SNAPSHOT_BLOCK` (attestation signer) |
+| `ASIG_n`              | String  | 0, 1     | 128-hex Ed25519 signature over the `XANCPUB` canonical                 |
 
 ## Formats
 
-### Version `1`: Checkpoint + match archive (validator-broadcast)
-- `ANCHOR|1|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|MATCH_BATCH_SEQ|MATCH_COUNT|BATCH_CRC32|TOTAL_CHUNKS|ARCHIVE_B64|SIG_COUNT|PUBKEY1|SIG1|...`
-
-### Version `2`: Archive continuation (validator-broadcast; no signatures)
-- `ANCHOR|2|MATCH_BATCH_SEQ|CHUNK_INDEX|TOTAL_CHUNKS|ARCHIVE_B64_CHUNK`
-
-### Version `6`: Checkpoint + match archive + publisher attestation (validator-broadcast)
-- `ANCHOR|6|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|MATCH_BATCH_SEQ|MATCH_COUNT|BATCH_CRC32|TOTAL_CHUNKS|ARCHIVE_B64|SIG_COUNT|PUBKEY1|SIG1|...|PUBLISHER|ATTEST_SIG_COUNT|APUBKEY1|ASIG1|...`
-- The v1 archive anchor with the `PUBLISHER` + attestation list appended **after** the wrapper signature list (never inserted mid-string). Emitted in place of v1 at/above the `ARCHIVE_REWARD` flag-day. Continuation chunks stay v2, tied by `MATCH_BATCH_SEQ` exactly as for a v1 head.
-
-### Version `7`: Checkpoint bundle (validator-broadcast)
-- `ANCHOR|7|NETWORK|SNAPSHOT_BLOCK|SECTION_COUNT|CHAIN|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SECTION_SNAPSHOT_BLOCK|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION|SIG_COUNT|PUBKEY1|SIG1|...|PUBLISHER|ATTEST_SIG_COUNT|APUBKEY1|ASIG1|...`
+### Version `0`: Checkpoint bundle (validator-broadcast)
+- `ANCHOR|0|NETWORK|SNAPSHOT_BLOCK|SECTION_COUNT|CHAIN|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SECTION_SNAPSHOT_BLOCK|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION|SIG_COUNT|PUBKEY1|SIG1|...|PUBLISHER|ATTEST_SIG_COUNT|APUBKEY1|ASIG1|...`
 
 Read as a header, `SECTION_COUNT` repeats of one section, and one publisher tail:
 
 ```
-ANCHOR|7|NETWORK|SNAPSHOT_BLOCK|SECTION_COUNT
+ANCHOR|0|NETWORK|SNAPSHOT_BLOCK|SECTION_COUNT
       |CHAIN|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SECTION_SNAPSHOT_BLOCK
        |STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION
        |SIG_COUNT|PUBKEY|SIG|...                        (repeated SECTION_COUNT times)
@@ -142,16 +158,33 @@ ANCHOR|7|NETWORK|SNAPSHOT_BLOCK|SECTION_COUNT
   fit, each with its own election; a single section that cannot fit even with an empty
   attestation tail is refused loudly and counted, never sent truncated.
 
+### Version `1`: Checkpoint + match archive + publisher attestation (validator-broadcast)
+- `ANCHOR|1|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|MATCH_BATCH_SEQ|MATCH_COUNT|BATCH_CRC32|TOTAL_CHUNKS|ARCHIVE_B64|SIG_COUNT|PUBKEY1|SIG1|...|PUBLISHER|ATTEST_SIG_COUNT|APUBKEY1|ASIG1|...`
+- The `PUBLISHER` + attestation list is appended **after** the wrapper signature list (never
+  inserted mid-string), and is **always present**: every v1 carries a `PUBLISHER` and an
+  `ATTEST_SIG_COUNT`, which MAY be 0 when the attestation round degraded. A count-0 v1 is
+  `valid`, stores no publisher attestations, and derives no `anchor_archive` reward; every other
+  archive rule (integrity, `MATCH_BATCH_SEQ` monotonicity, v2 tie) is unaffected by the count.
+  Continuation chunks stay v2, tied by `MATCH_BATCH_SEQ` exactly as for any v1 head.
+
+### Version `2`: Archive continuation (validator-broadcast; no signatures)
+- `ANCHOR|2|MATCH_BATCH_SEQ|CHUNK_INDEX|TOTAL_CHUNKS|ARCHIVE_B64_CHUNK`
+
 ## Examples
 
 ```
-ANCHOR|7|mainnet|900120|3|BTC|900123|00000000...|3f9a...|b81c...|44d0...|900123|900120|9ab1...|1|77cc...|1|3|a1b2...|c3d4...|e5f6...|0718...|292a...|3b4c...|DOGE|5401230|9f2c...|...|LTC|3102277|1c88...|...|f0e1...|3|a1b2...|55aa...|e5f6...|66bb...|292a...|77cc...
+ANCHOR|0|mainnet|900120|3|BTC|900123|00000000...|3f9a...|b81c...|44d0...|900123|900120|9ab1...|1|77cc...|1|3|a1b2...|c3d4...|e5f6...|0718...|292a...|3b4c...|DOGE|5401230|9f2c...|...|LTC|3102277|1c88...|...|f0e1...|3|a1b2...|55aa...|e5f6...|66bb...|292a...|77cc...
 One bundle for mainnet at snapshot block 900120: three sections (BTC, DOGE, LTC in chain order), each with its own roots and 3-of-N signatures, then one publisher attestation tail
 ```
 
 ```
-ANCHOR|1|BTC|mainnet|900123|00000000...|3f9a...|b81c...|44d0...|418|900120|42|17|9c4e1b22|1|H4sIAAAA...|3|a1b2...|c3d4...|...
-Checkpoint plus archive batch 42 (17 match records, single chunk)
+ANCHOR|1|BTC|mainnet|900123|00000000...|3f9a...|b81c...|44d0...|418|900120|42|17|9c4e1b22|1|H4sIAAAA...|3|a1b2...|c3d4...|...|8899...|2|aa11...|bb22...|cc33...|dd44...
+Checkpoint plus archive batch 42 (17 match records, single chunk), publisher tail with a 2-of-N attestation
+```
+
+```
+ANCHOR|1|BTC|mainnet|900123|00000000...|3f9a...|b81c...|44d0...|418|900120|43|9|7a1e2c0b|1|H4sIAAAA...|3|a1b2...|c3d4...|...|8899...|0
+Same shape, but the attestation round degraded: PUBLISHER is still present, ATTEST_SIG_COUNT is 0, no anchor_archive reward is derived
 ```
 
 ```
@@ -159,7 +192,7 @@ ANCHOR|2|42|1|3|AAAB7Rxe...
 Continuation chunk 1 of 3 for archive batch 42
 ```
 
-## Canonical signing message (v1 / v7 sections)
+## Canonical signing message (v1 / v0 sections)
 Each `SIG_n` covers the UTF-8 bytes of:
 
 ```
@@ -172,7 +205,7 @@ and for v1, with the archive structure appended:
 XCHECKPOINT|...|SNAPSHOT_BLOCK|MATCH_BATCH_SEQ|MATCH_COUNT|BATCH_CRC32|TOTAL_CHUNKS
 ```
 
-and for a v7 section, with the SPV light-client roots appended (the bytes the federation signs, so the roots are covered by the quorum, not merely transported):
+and for a v0 section, with the SPV light-client roots appended (the bytes the federation signs, so the roots are covered by the quorum, not merely transported):
 
 ```
 XCHECKPOINT|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SECTION_SNAPSHOT_BLOCK|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION
@@ -187,12 +220,12 @@ uppercase/lowercase exactly as on the wire; numerics are decimal with no leading
 are lowercase hex. A signature counts only if its pubkey is in the `oracle_publish` capability
 snapshot at `SNAPSHOT_BLOCK` **and** the Ed25519 signature verifies.
 
-The v6 wrapper signatures cover the SAME archive canonical as v1, and each v7 section's
-signatures cover that section's own checkpoint canonical; the publisher attestation below is a
-SEPARATE signature list in both cases.
+The v1 wrapper signatures cover the archive canonical, and each v0 section's signatures cover
+that section's own checkpoint canonical; the publisher attestation below is a SEPARATE
+signature list in both cases.
 
-## Publisher-attestation canonical (`XANCPUB`, v6 / v7)
-Each `ASIG_n` on a v7 covers the UTF-8 bytes of the bundle reward tuple:
+## Publisher-attestation canonical (`XANCPUB`, v0 / v1)
+Each `ASIG_n` on a v0 covers the UTF-8 bytes of the bundle reward tuple:
 
 ```
 XANCPUB|anchor_bundle|SNAPSHOT_BLOCK|SNAPSHOT_BLOCK|PUBLISHER|ANCHOR_REWARD_AMOUNT
@@ -215,7 +248,7 @@ falsely slashable):
 EQUIV|XCHECKPOINT|XANCPUB|bundle|NETWORK|SNAPSHOT_BLOCK|0||XANCPUB|anchor_bundle|SNAPSHOT_BLOCK|SNAPSHOT_BLOCK|PUBLISHER|ANCHOR_REWARD_AMOUNT
 ```
 
-The v6 archive attestation uses the same shape keyed on the archive batch, with the
+The v1 archive attestation uses the same shape keyed on the archive batch, with the
 frozen `ARCHIVE_REWARD_AMOUNT` (`10.00000000`, from the same twin module) and an
 `XANCPUB|archive|...` round id disjoint from the bundle round id (the two attestation families
 can never equivocation-collide):
@@ -287,26 +320,30 @@ exact bytes):
 
 ### All versions
 - Valid **only where `COIN = DOGE`**, indexers on other chains mark the action invalid.
+- Mined below the network's `ANCHOR_ACTIVATION` height (see [Activation](#activation)), an
+  anchor of ANY version is `invalid: ANCHOR before activation`. At or above it, a version byte
+  other than 0, 1 or 2 is `invalid: VERSION (unknown)`.
 - No XCHAIN fee and no native-coin protocol fee (validator protocol action, same fee treatment
   as `PRICE` v0). The publisher pays only the DOGE miner fee.
 
-### Version 1 / 6 / 7
+### Version 0 / 1
 - `CHAIN` must be one of `BTC`/`LTC`/`DOGE`; `NETWORK` must equal the indexer's own network.
 - Each `PUBKEY_n` is checked against the `oracle_publish` capability snapshot at its signature's
   snapshot block (a BTC height; non-BTC indexers resolve it from the hub-mirrored
   `capability_snapshots` table, exactly as cross-chain settlement resolves `cross_chain`). For a
-  v7 section that block is the section's own `SECTION_SNAPSHOT_BLOCK`.
+  v0 section that block is the section's own `SECTION_SNAPSHOT_BLOCK`.
 - Each `SIG_n` must Ed25519-verify against the canonical message.
 - Valid signatures must reach `max(2f+1, ceil((N+1)/2))` of the snapshot set; PBFT `2f+1`
   floored at a simple majority, so N=3 requires 2 (single-validator sets require 1).
 - `CHECKPOINT_SEQ` must be ≥ any previously accepted seq for (`CHAIN`,`NETWORK`), replays of
   older checkpoints are recorded but flagged `stale`, never `valid`. Equal-seq records are
   accepted: an exact replay is signature-bound to identical content (harmless duplicate). The
-  same ≥ rule applies to `MATCH_BATCH_SEQ` on v1/v6. The checkpoint replay watermark counts
-  v1/v6/v7 together, per chain.
+  same ≥ rule applies to `MATCH_BATCH_SEQ` on v1. The checkpoint replay watermark counts
+  v0/v1 together, per chain.
 
-### Version 7 only
-- No flag-day. A v7 is valid at every height on every network; it is the checkpoint wire.
+### Version 0 only
+- No flag-day above activation. A v0 at or above `ANCHOR_ACTIVATION` is valid at every height;
+  it is the checkpoint wire.
 - `SECTION_COUNT` must be at least 1 and must equal the number of sections actually present.
   Sections must be `CHAIN`-ascending with no duplicate chain, and each section's `(PUBKEY, SIG)`
   pairs must be `PUBKEY`-ascending.
@@ -335,24 +372,26 @@ exact bytes):
 - The trusted, unauthenticated `pushvalidatorrewards` reward push is retired for `anchor_bundle`:
   every indexer DERIVES the reward from these bytes instead.
 
-### Version 6 only
-- Valid only at/above the `ARCHIVE_REWARD` flag-day (gated on `SNAPSHOT_BLOCK`); a v6 below it is
-  invalid. Post-flag-day the archive leader emits v6 in place of v1.
-- All v1 rules apply unchanged (archive integrity, `MATCH_BATCH_SEQ` monotonicity, v2 chunk tie).
-- `PUBLISHER` + attestation verification follows the v7 rules verbatim, over the archive
-  `XANCPUB` canonical. The credited row is keyed `(MATCH_BATCH_SEQ, anchor_archive)`, amount =
-  the frozen `ARCHIVE_REWARD_AMOUNT`, never the wire. A failed, short, or forged attestation
-  never invalidates the archive anchor; only the reward is skipped.
-- The `pushvalidatorrewards` push is retired for `anchor_archive` at/above the flag-day: every
-  indexer DERIVES the archive reward from these bytes instead (closing the last
-  insider-with-key forge surface).
-
 ### Version 1 only
 - `MATCH_COUNT` must equal `matches.length` after decompression (when `TOTAL_CHUNKS` = 1;
   otherwise checked at reassembly).
 - `BATCH_CRC32` must match the CRC32 of the uncompressed JSON (checked at reassembly when
   chunked).
 - `MATCH_BATCH_SEQ` must be ≥ any previously accepted batch seq for the network.
+- `PUBLISHER` is always present, and the attestation list (`APUBKEY_n`/`ASIG_n`) follows the v0
+  rules verbatim, over the archive `XANCPUB` canonical: a SECOND quorum against the
+  `oracle_publish` snapshot at `SNAPSHOT_BLOCK`. `ATTEST_SIG_COUNT` MAY be 0, which means the
+  attestation round degraded, not that the anchor is malformed: the checkpoint and archive still
+  index `valid`, and only the reward is skipped.
+- When the attestation quorum is met, the credited row is keyed
+  `(MATCH_BATCH_SEQ, anchor_archive)`, amount = the frozen `ARCHIVE_REWARD_AMOUNT`, never the
+  wire. Reward derivation is additionally gated by the `ARCHIVE_REWARD_ACTIVATION` flag-day
+  (per network, on `SNAPSHOT_BLOCK`): below it, a v1 stores its checkpoint and archive as
+  `valid` exactly as above it does, but never derives an `anchor_archive` reward even with a
+  full attestation. A failed, short, forged, or below-flag-day attestation never invalidates the
+  archive anchor; only the reward is skipped.
+- The `pushvalidatorrewards` push is retired for `anchor_archive`: every indexer DERIVES the
+  archive reward from these bytes instead (closing the last insider-with-key forge surface).
 
 ### Version 2 only
 - `MATCH_BATCH_SEQ` must reference a previously indexed v1 with `TOTAL_CHUNKS` > 1 (out-of-order
@@ -382,10 +421,10 @@ A publisher publishing one head per seq sees no difference between the two rules
 
 ## Effects
 - Persists into `anchor_actions`, keyed `(action_index, section_index)` and rolled back on
-  reorg like any data table. A v1/v2/v6 is one row at `section_index` 0; a v7 writes one row
+  reorg like any data table. A v1/v2 is one row at `section_index` 0; a v0 writes one row
   per section, all sharing the bundle's `action_index`, each carrying its own chain, block
   index, checkpoint seq, roots and signatures, so every per-chain reader is unchanged.
-- A `valid` v1/v7 records the checkpoint; the indexer's mirrored `state_checkpoints` copy is
+- A `valid` v0/v1 records the checkpoint; the indexer's mirrored `state_checkpoints` copy is
   the live source for verification APIs, while `anchor_actions` is the permanent on-chain
   record.
 - **No ledger effect.** ANCHOR never credits, debits, escrows, or alters token state. A bad or
@@ -397,19 +436,22 @@ A publisher publishing one head per seq sees no difference between the two rules
   pending checkpoints for a network are grouped into ONE bundle, which elects a single
   publisher from the `oracle_publish` capability snapshot at the bundle's `SNAPSHOT_BLOCK`,
   ordered by `SHA256(XANCV7|NETWORK|SNAPSHOT_BLOCK ‖ pubkey)` ascending (the attestation
-  responsible-set idiom). One validator therefore pays for the whole cycle, instead of a
-  different one winning each chain. Rank 0 publishes from its own funded DOGE wallet; each
-  further rank unlocks after `ANCHOR_ELECTION_TOLERANCE_BLOCKS` more BTC blocks elapse without
-  a publish (deterministic failover ladder; a gossiped `XANC_BUNDLE_DONE` back-fill carries the
-  txid and the section list, so peers stamp every section and nobody re-anchors a cycle someone
-  already paid for). The v1/v2 archive round elects a single leader the same way, keyed per
-  election block. A single-validator federation degenerates to today's serialized single-wallet
-  behavior.
+  responsible-set idiom; the internal round-id tag stays `XANCV7` even though the wire's
+  checkpoint-bundle version byte is now `0`, because the tag is not on chain and permuting it
+  would reorder every hub's failover rank mid-rollout). One validator therefore pays for the
+  whole cycle, instead of a different one winning each chain. Rank 0 publishes from its own
+  funded DOGE wallet; each further rank unlocks after `ANCHOR_ELECTION_TOLERANCE_BLOCKS` more
+  BTC blocks elapse without a publish (deterministic failover ladder; a gossiped
+  `XANC_BUNDLE_DONE` back-fill carries the txid and the section list, so peers stamp every
+  section and nobody re-anchors a cycle someone already paid for). The v1/v2 archive round
+  elects a single leader the same way (its own internal round-id tag stays `XANCV1`), keyed
+  per election block. A single-validator federation degenerates to today's serialized
+  single-wallet behavior.
 
 ```mermaid
 flowchart TD
     A["Pending checkpoints for one network<br>(all chains, this cycle)"] --> B["Elect ONE publisher: oracle_publish snapshot at the bundle's snapshot_block,<br>ordered by SHA256(XANCV7 key ‖ pubkey) ascending"]
-    B --> C["Rank 0 publishes one v7 bundle<br>from its own funded DOGE wallet"]
+    B --> C["Rank 0 publishes one v0 bundle<br>from its own funded DOGE wallet"]
     B -.->|"same election, keyed per election block"| I["v1/v2 archive round<br>elects a single leader"]
     C --> D{"XANC_BUNDLE_DONE gossiped<br>before next rank unlocks?"}
     D -->|"yes"| E["Peers stand down and stamp<br>every section, no re-anchor"]
@@ -424,7 +466,7 @@ flowchart TD
   (default 10) on the `validator_rewards` rail, collectable on BTC via `COLLECT` like
   oracle-round rewards. One bundle earns one reward however many chains it carries.
 - P2SH encoding via the standard encoder pipeline.
-- Default cadence: one v7 bundle per network plus pending v1/v2 archive batches per anchor
+- Default cadence: one v0 bundle per network plus pending v1/v2 archive batches per anchor
   interval (`ANCHOR_INTERVAL_MS`, default daily), or early when `ANCHOR_MATCH_BATCH_SIZE`
   matches are pending. Checkpoint *signing* happens more often (hourly, mirror-only, no chain
   writes); the anchor commits the latest signed checkpoint of every chain at publish time.
@@ -444,19 +486,20 @@ The arithmetic is pinned by `xchain-hub/test/unit/StateAnchorPublisher.constant-
 **`ANCHOR_CHUNK_MAX_BYTES` (6000).** The hard ceiling is `MAX_ACTION_DATA_LENGTH` = 8192
 compiled bytes (`protocol/constants.js`). The decoder is the arbiter and *silently drops* any
 action above it, so an oversize anchor is lost on every node rather than rejected loudly. Chunk
-0 never travels alone: it sits inside the v1/v6 head beside the checkpoint prefix (four 64-hex
+0 never travels alone: it sits inside the v1 head beside the checkpoint prefix (four 64-hex
 hashes plus the chain/network/seq/index fields, about 322 bytes at mainnet heights) and the
-signature lists, which cost 194 bytes per `(PUBKEY, SIG)` pair. A v6 adds roughly 67 bytes for
-`PUBLISHER` + `ATTEST_SIG_COUNT` and another 194 bytes per attesting signer. So `8192 - 6000 -
-322` leaves about 1870 bytes of head budget, which is about nine signature pairs on a v1, or
-four wrapper plus four attestation pairs on a v6. That reserve is the reason for 6000 rather
-than a figure nearer 8000. It constrains chunk 0 only (a v2 continuation carries about 30 bytes
-of overhead and could hold far more), but a single uniform slice keeps the splitter trivial.
-**This is the knob to lower as the federation grows:** a v6 with a 5+5 quorum needs
-`ANCHOR_CHUNK_MAX_BYTES` at or below about 5860, a 7+7 quorum about 5080. Raising it saves v2
-transactions but overflows the head first, and the encoder rejects the oversize v1/v6.
+signature lists, which cost 194 bytes per `(PUBKEY, SIG)` pair. The v1 head always carries the
+`PUBLISHER` + `ATTEST_SIG_COUNT` tail, roughly 67 bytes plus another 194 bytes per attesting
+signer (the attestation count may be 0 when the round degrades). So `8192 - 6000 - 322` leaves
+about 1870 bytes of head budget, which is about nine signature pairs on a v1 with no
+attestations, or four wrapper plus four attestation pairs at full quorum. That reserve is the
+reason for 6000 rather than a figure nearer 8000. It constrains chunk 0 only (a v2 continuation
+carries about 30 bytes of overhead and could hold far more), but a single uniform slice keeps
+the splitter trivial. **This is the knob to lower as the federation grows:** a v1 with a 5+5
+quorum needs `ANCHOR_CHUNK_MAX_BYTES` at or below about 5860, a 7+7 quorum about 5080. Raising
+it saves v2 transactions but overflows the head first, and the encoder rejects the oversize v1.
 
-**The v7 bundle budget (8189 bytes).** Not a knob: it is the same 8192-byte ceiling minus the
+**The v0 bundle budget (8189 bytes).** Not a knob: it is the same 8192-byte ceiling minus the
 3-byte OP_RETURN push prefix the encoder adds, so the wire text IS the compiled size. A section
 costs about 375 bytes of header and roots plus 194 bytes per `(PUBKEY, SIG)` pair, and the
 publisher tail about 67 bytes plus 194 per attesting pair. At equal signer counts in sections
@@ -507,7 +550,7 @@ which is anti-spam only.
    `capability_snapshots` (latest-status-wins), and restores archived `rewards[]` rows into
    the **BTC indexer DB's `validator_rewards`** (seeding the id maps is safe pre-reindex,
    they are append-only get-or-create).
-   A v7 bundle rebuilds one `state_checkpoints` row per section, so a single anchor restores
+   A v0 bundle rebuilds one `state_checkpoints` row per section, so a single anchor restores
    every chain's checkpoint for that cycle.
 3. Reindex BTC/LTC/DOGE from genesis against the recovered tables, cross-chain settlements,
    XCALL injections, `oracle_round`/`attest_fee` rewards, and historical COLLECT claims all
@@ -540,9 +583,18 @@ default-on) to confirm every archived validator set is backed by real on-chain s
   block the ANCHOR lands in.
 - Checkpoints for a reorged height are simply re-signed and re-anchored for the canonical
   chain; the superseding record has a higher `CHECKPOINT_SEQ`.
-- Versions 0, 3, 4 and 5 were the earlier one-chain-per-anchor checkpoint wires. v7 replaces
-  all four. They are removed from the protocol rather than deprecated: no publisher emits them
-  and no indexer parses them. Those version numbers are retired and are never re-used.
+- **Retired version history.** The original one-chain-per-anchor checkpoint wires were versions
+  0, 3, 4 and 5; version 7 later replaced all four as the single checkpoint-bundle wire, with
+  version 6 as its archive-attestation counterpart to the original tail-less version 1. That
+  whole version set (0, 1 without a tail, 3, 4, 5, 6, 7) is retired by the `ANCHOR_ACTIVATION`
+  rule above, not by an unknown-version rejection: every one of those anchors was mined below
+  its network's activation height, so it indexes `invalid: ANCHOR before activation` regardless
+  of which of those version bytes it carries. The version set then restarts clean at the
+  activation height with this document's 0 (checkpoint bundle), 1 (archive head, tail always
+  appended) and 2 (continuation, unchanged); a version-0 wire mined below activation is never
+  confused with the new checkpoint-bundle format, because it fails on height before format
+  dispatch ever runs. No publisher emits the retired wires and no indexer parses them as
+  anything but a pre-activation record; these version numbers are not reused for anything else.
 
 ---
 
