@@ -10,6 +10,7 @@ This section is the entry point for everyone new to XChain, whether you want to 
 | [What is XChain?](./what-is-xchain.md) | Non-technical platform introduction |
 | [Developer Quickstart](./quickstart-developer.md) | SDK install → first token in 5 minutes |
 | [Node Operator Quickstart](./quickstart-node-operator.md) | Install and run the full platform stack |
+| [Validator Quickstart](./quickstart-validator.md) | Five steps to a staked, running validator |
 | [Running a Validator](./running-a-validator.md) | The two validator tiers, stake floors, and rewards |
 | [Key Terms](./key-terms.md) | Glossary of XChain terminology |
 
@@ -21,7 +22,7 @@ This section is the entry point for everyone new to XChain, whether you want to 
 
 **"I want to run an XChain node"** → [Node Operator Quickstart](./quickstart-node-operator.md), then keep the [xchain-node CLI Manual](../components/node/operations.md) handy
 
-**"I want to be a validator"** → [Running a Validator](./running-a-validator.md), which covers both tiers, including the lightweight one that needs no coin node
+**"I want to be a validator"** → [Validator Quickstart](./quickstart-validator.md) for the five setup steps, or [Running a Validator](./running-a-validator.md) for the two tiers and how rewards work
 
 **"I want to understand the protocol deeply"** → [Core Concepts](../concepts/) → [Architecture](../architecture/) → [Protocol Spec](../protocol/)
 
