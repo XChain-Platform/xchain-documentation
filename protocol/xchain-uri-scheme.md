@@ -148,14 +148,15 @@ Open the wallet's contract EXECUTE form for the named chain with the call target
 | `contract` | Yes | The deployed contract's `action_index` (the `EXECUTE` action's `CONTRACT_ACTION_INDEX`). A URI without it is unroutable and treated as unrecognized. |
 | `method` | No | Method name to invoke. Pre-fills the form; the user can change it before signing. |
 | `params` | No | Positional arguments as a single pipe-delimited string, percent-encoded (`a\|b` → `a%7Cb`). Elements must not themselves contain `\|` or `;` (the same rule as `EXECUTE`'s `PARAMS` wire field). Parameter names/types, when the contract declares them, are display metadata only; see [Contract ABI](contract-abi.md). |
-| `gas` | No | Gas-limit override for the call; the wallet's default applies if omitted. |
+
+There is no gas parameter: a top-level `EXECUTE` has no gas-limit field on the wire and always runs under the protocol's gas ceiling. Wallets should ignore a `gas` query parameter if a link carries one.
 
 #### Examples
 
 | URI | Meaning |
 | :--- | :--- |
 | `xchain:TBTC/execute?contract=500&method=fund` | Open the EXECUTE form on Bitcoin testnet targeting contract 500, method `fund` pre-selected. |
-| `xchain:RBTC/execute?contract=362&method=release&params=alice%7C42&gas=75000` | Regtest contract 362, `release("alice","42")` pre-filled with a 75000 gas limit. |
+| `xchain:RBTC/execute?contract=362&method=release&params=alice%7C42` | Regtest contract 362, `release("alice","42")` pre-filled. |
 
 ## Compatibility
 
