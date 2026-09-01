@@ -251,9 +251,9 @@ it as an incident rather than an upgrade.
 | Task | Command |
 |---|---|
 | Install the latest release | `xchain-node install` |
-| Install an exact release | `xchain-node install v0.9.0` |
+| Install an exact release | `xchain-node install v0.12.1` |
 | Track a branch (unreleased) | `xchain-node install develop` |
-| Verify a tag | `git tag -v v0.9.0` |
+| Verify a tag | `git tag -v v0.12.1` |
 | Verify the assets | `gpg --verify SHA256SUMS.asc SHA256SUMS && sha256sum -c SHA256SUMS` |
 
 `install` with no ref resolves the latest published release and installs every

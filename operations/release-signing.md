@@ -45,7 +45,7 @@ under, so a tarball's version is the component's own, not always the train's.
 
 ```sh
 # 1. the tag: who cut this release
-git tag -v v0.9.0
+git tag -v v0.12.1
 
 # 2. the digest file: this asset set is the one they published
 gpg --verify SHA256SUMS.asc SHA256SUMS
@@ -61,7 +61,7 @@ Order matters. A hash that matches an unverified digest file proves nothing,
 because whoever supplied the file could have supplied the hashes. Step 2 is what
 makes step 3 mean something.
 
-`xchain-node install v0.9.0` runs the same chain for you: it verifies
+`xchain-node install v0.12.1` runs the same chain for you: it verifies
 `SHA256SUMS.asc` against a copy of this key shipped inside the repository, checks
 the manifest against the signed digests, and refuses the install when the
 signature is missing, tampered with, or made by any other key. Set

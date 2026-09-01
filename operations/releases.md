@@ -198,7 +198,7 @@ changelog below a marker line and are not comparable to platform versions.
 ## Installing a specific train
 
 ```
-xchain-node install v0.10.0
+xchain-node install v0.12.1
 ```
 
 A pinned install resolves every component to the exact commit recorded in that
