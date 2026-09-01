@@ -108,7 +108,7 @@ Regression tests are a curated subset of tests across all disciplines, organized
 
 ## Platform Test Coverage
 
-The XChain Platform maintains roughly **33,000 tests** across its fifteen test-bearing repositories, with the dedicated `xchain-e2e-test` service providing both full-stack integration testing across all services and comprehensive self-validation of its own test infrastructure.
+The XChain Platform maintains roughly **32,500 tests** across its fourteen test-bearing repositories, with the dedicated `xchain-e2e-test` service providing both full-stack integration testing across all services and comprehensive self-validation of its own test infrastructure.
 
 ### By Component
 
@@ -129,7 +129,6 @@ Counts below were measured on 2026-07-27 by enumerating every test each reposito
 | [xchain-decoder](../components/decoder/) | 1,333 | Unit, Integration, E2E, Fuzz, Chaos, Security, Smoke, Benchmarks, Mutation, Regression |
 | [xchain-utxo-tracker](../components/utxo-tracker/) | 1,015 | Unit, Integration, E2E, Boundary, Fuzz, Chaos, Mutation, Security, Smoke, Performance, Regression |
 | [xchain-regtest-miner](../components/regtest-miner/) | 1,007 | Unit, Integration, E2E, Boundary, Fuzz, Chaos, Mutation, Security, Smoke, Performance, Regression |
-| xchain-dashboard | 547 | Unit, Integration, Security, Monitor, CI-status |
 | [xchain-contracts](../components/contracts/) | 269 | Template execution under the real VM, pattern lint-gate, policy generator, dependency advisories |
 
 The `xchain-e2e-test` total is given as a floor rather than an exact figure: its suites read chain and service configuration at load time, so the tree cannot be enumerated without a live regtest stack. 1,700+ counts the test declarations in the source.

@@ -15,7 +15,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Litecoin, and
 | [**Core Concepts**](./concepts/) | Metalayer, tokens, ACTIONs, encoding, cross-chain, gas, security | Everyone |
 | [**Architecture**](./architecture/) | Data pipeline, component map, database design | Developers |
 | [**Supported Blockchains**](./blockchains.md) | Supported chains, adding new blockchains, private deployments | Developers / Operators |
-| [**Components**](./components/) | Detailed docs for each of the 15 components | Developers |
+| [**Components**](./components/) | Detailed docs for each of the 14 components | Developers |
 | [**Developer Guide**](./developer-guide/) | Tutorials: build tokens, dispensers, query data, integrate, testing | Developers |
 | [**AI & Agents**](./ai-agents/) | Building AI agents: reading, transacting via MCP, bounded agent wallets, charging agents for data | Developers |
 | [**User Guide**](./user-guide/) | Capabilities, use cases, FAQ. No code required | Non-technical |
@@ -41,7 +41,6 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Litecoin, and
 | [**xchain-wallet**](https://github.com/XChain-Platform/xchain-wallet/) | Reference self-custodial multi-chain wallet: browser, Chrome extension, and Electron desktop from a single codebase; software + Trezor + Ledger + remote + multisig signers; full DEX, messaging, contracts, staking, and `window.xchain` dApp bridge |
 | [**xchain-regtest-miner**](https://github.com/XChain-Platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-Platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
-| **xchain-dashboard** (internal) | Operator console: service monitoring, CI status, host metrics; source is not publicly distributed |
 ## Legal
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** with a commercial license available for proprietary use.

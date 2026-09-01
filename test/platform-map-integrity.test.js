@@ -135,15 +135,21 @@ describe('platform-map covers the LikeC4 topology model', { skip: !fs.existsSync
     const ALIAS = { enduser: 'user' };
     const mapId = (id) => ALIAS[id] || id;
 
+    // Internal-only tooling in the topology model that is deliberately not
+    // published in the public platform map.
+    const UNPUBLISHED = new Set(['dashboard']);
+
     // Elements: "name = kind 'Label'" declarations inside model { }.
     const model = src.slice(src.indexOf('model {'), src.indexOf('views {'));
     const elements = [...model.matchAll(/^\s*(\w+)\s*=\s*(?:actor|platform|service|library|database|external)\s+'/gm)]
         .map((m) => m[1])
-        .filter((id) => id !== 'xchain'); // the enclosing platform boundary, not a component
+        .filter((id) => id !== 'xchain') // the enclosing platform boundary, not a component
+        .filter((id) => !UNPUBLISHED.has(id));
 
     // Relationships: "a -> b" and "a -[kind]-> b".
     const rels = [...model.matchAll(/^\s*(\w+)\s*-(?:\[\w+\]-)?>\s*(\w+)/gm)]
-        .map((m) => [m[1], m[2]]);
+        .map((m) => [m[1], m[2]])
+        .filter(([a, b]) => !UNPUBLISHED.has(a) && !UNPUBLISHED.has(b));
 
     test('parses a non-trivial model (guards against silent regex rot)', () => {
         assert.ok(elements.length >= 15, `only ${elements.length} elements parsed`);
