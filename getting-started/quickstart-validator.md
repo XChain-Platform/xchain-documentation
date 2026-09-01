@@ -43,6 +43,13 @@ npm install
 npm link
 ```
 
+> **Why `develop` and not a release tag.** `validator init`, `stake` and
+> `unstake` are newer than the latest release, so the released tag does not carry
+> them yet and cloning the default branch gives you a CLI without the commands
+> this page uses. The stack you install below is a different thing and IS pinned
+> to the release. This line goes back to a tag once those commands ship.
+
+
 Run all the commands below from `~/xchain-node`.
 
 ## Step 2: create your validator identity
@@ -84,8 +91,8 @@ printed your pubkey; `xchain-node validator status` re-prints it).
 ## Step 5: start your validator
 
 ```bash
-xchain-node install master all bitcoin testnet   # your own view of the chain
-xchain-node install master xchain-hub            # the validator itself
+xchain-node install v0.12.1 all bitcoin testnet   # your own view of the chain
+xchain-node install v0.12.1 xchain-hub            # the validator itself
 ```
 
 The first command installs a self-contained Bitcoin testnet stack (a
