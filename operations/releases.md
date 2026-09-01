@@ -9,6 +9,46 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.12.2
+
+Released 2026-09-01. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.12.2)
+
+A patch train that moves the carrier alone. `xchain-node` goes to 0.12.2; every
+other component keeps the tag it already carries.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.12.2 |
+| xchain-hub | 0.12.0 |
+| xchain-indexer | 0.12.1 |
+| xchain-explorer | 0.12.0 |
+| xchain-decoder | 0.12.0 |
+| xchain-encoder | 0.12.0 |
+| xchain-sync | 0.12.0 |
+| xchain-utxo-tracker | 0.12.0 |
+| xchain-vm | 0.12.0 |
+| xchain-sdk | 0.12.0 |
+| xchain-contracts | 0.12.0 |
+| xchain-e2e-test | 0.12.0 |
+| xchain-regtest-miner | 0.12.0 |
+
+It exists because v0.12.1 shipped without the validator commands this
+documentation describes. Someone following the validator quickstart installed the
+release, ran `validator stake`, and was told there was no such command. The
+documentation was accurate; the release was missing the feature.
+
+`validator init`, `stake` and `unstake` now generate the identity and both
+funding wallets, then mint, stake and withdraw against the public network, so an
+operator can join before installing any stack. Alongside them: an unrecognised
+service name is refused with the list of valid ones rather than silently
+expanding to every service on every coin and network; a coin image builds from a
+context that holds its Dockerfile and no longer writes live credentials into the
+tracked config template; and a mutating command waits out a busy lock instead of
+losing the run.
+
+Everything in this train is state-neutral. Nothing changes what state is derived
+from existing bytes, so it ships without an activation point.
+
 ## v0.12.1
 
 Released 2026-08-31. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.12.1)

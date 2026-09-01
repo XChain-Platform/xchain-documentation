@@ -37,7 +37,7 @@ qualifies for that level automatically.
 ## Step 1: install the CLI
 
 ```bash
-git clone -b develop https://github.com/XChain-Platform/xchain-node.git ~/xchain-node
+git clone -b v0.12.2 https://github.com/XChain-Platform/xchain-node.git ~/xchain-node
 cd ~/xchain-node
 npm install
 npm link
@@ -84,8 +84,8 @@ printed your pubkey; `xchain-node validator status` re-prints it).
 ## Step 5: start your validator
 
 ```bash
-xchain-node install master all bitcoin testnet   # your own view of the chain
-xchain-node install master xchain-hub            # the validator itself
+xchain-node install v0.12.2 all bitcoin testnet   # your own view of the chain
+xchain-node install v0.12.2 xchain-hub            # the validator itself
 ```
 
 The first command installs a self-contained Bitcoin testnet stack (a

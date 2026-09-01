@@ -109,7 +109,7 @@ xchain-node bootstrap create xchain-indexer bitcoin mainnet
 For a major upgrade, rehearse on a regtest install and run the end-to-end suite before touching mainnet:
 
 ```bash
-xchain-node install master all bitcoin regtest
+xchain-node install v0.12.2 all bitcoin regtest
 xchain-node e2etest bitcoin
 ```
 
