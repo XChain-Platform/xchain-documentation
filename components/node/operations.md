@@ -77,6 +77,8 @@ The coupling is one-directional, so `reset xchain-indexer` on its own stays avai
 | `e2etest` | `e2etest <chain> [testName] [--grep <pattern>] [--script <npmScript>]` | Run the xchain-e2e-test suite on a regtest network; filter with `--grep`, or run an alternate suite with `--script` |
 | `rollback` | `rollback <block_index> <service> <chain> <network>` | Rollback to a specific block (placeholder. Not yet implemented) |
 | `validator init` | `validator init [options]` | Generate a validator signing key + config so the hub runs in validator mode |
+| `validator stake` | `validator stake [--broadcast] [--amount <xchain>] [--no-wait] [--fee-per-kb <coin>] [--timeout <minutes>]` | Put the signing key on chain from the stake wallet, minting XCHAIN on testnet as needed |
+| `validator unstake` | `validator unstake [--broadcast] [--no-wait] [--fee-per-kb <coin>] [--timeout <minutes>]` | Withdraw this validator's stake and leave the active set |
 | `validator status` | `validator status` | Show this node's validator configuration (pubkey, peers, capabilities) |
 
 ## Global Options
