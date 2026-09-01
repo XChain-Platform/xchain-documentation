@@ -259,9 +259,9 @@ See [Regtest Development](../developer-guide/regtest-development.md) for setup i
 | JSON-RPC microservice | `npm run api` in xchain-sdk | Any language via HTTP |
 | Browser bundle | `dist/xchain_sdk.min.js` | Client-side web apps |
 
-### All 31 Developer-Invocable Actions Are Covered
+### All 31 User-Submittable Actions Are Covered
 
-The SDK covers all 31 developer-invocable actions. Thirty of them have convenience methods: `sdk.issue()`, `sdk.mint()`, `sdk.send()`, `sdk.sweep()`, `sdk.airdrop()`, `sdk.dividend()`, `sdk.order()`, `sdk.coinpay()`, `sdk.dispenser()`, `sdk.swap()`, `sdk.broadcast()`, `sdk.message()`, `sdk.file()`, `sdk.address()`, `sdk.link()`, `sdk.list()`, `sdk.sleep()`, `sdk.callback()`, `sdk.destroy()`, `sdk.price()`, `sdk.bet()`, `sdk.stake()`, `sdk.unstake()`, `sdk.delegate()`, `sdk.collect()`, `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()`, `sdk.vote()`. `sdk.transfer()` is an alias for `sdk.send()`. The thirty-first, BATCH, has no convenience method: `sdk.batch()` returns a builder for composing BATCH actions. The 4 remaining actions (ANCHOR, ATTEST, NODEPROOF, SLASH) are validator or system-emitted and are not user-broadcast; see [concepts/ACTIONS.md](../concepts/actions.md) for the full taxonomy.
+The SDK covers all 31 user-submittable actions. Thirty of them have convenience methods: `sdk.issue()`, `sdk.mint()`, `sdk.send()`, `sdk.sweep()`, `sdk.airdrop()`, `sdk.dividend()`, `sdk.order()`, `sdk.coinpay()`, `sdk.dispenser()`, `sdk.swap()`, `sdk.broadcast()`, `sdk.message()`, `sdk.file()`, `sdk.address()`, `sdk.link()`, `sdk.list()`, `sdk.sleep()`, `sdk.callback()`, `sdk.destroy()`, `sdk.price()`, `sdk.bet()`, `sdk.stake()`, `sdk.unstake()`, `sdk.delegate()`, `sdk.collect()`, `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()`, `sdk.vote()`. `sdk.transfer()` is an alias for `sdk.send()`. The thirty-first, BATCH, has no convenience method: `sdk.batch()` returns a builder for composing BATCH actions. The 6 remaining actions (ANCHOR, ATTEST, NODEPROOF, ROLLCALL, SLASH, and XCALL) are validator-broadcast, VM-emitted, or permissionless-proof actions and are not user-submittable; see [concepts/ACTIONS.md](../concepts/actions.md) for the full taxonomy.
 
 ---
 

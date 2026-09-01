@@ -25,9 +25,9 @@ docker info
 
 Blockchain data can be substantial. Budget accordingly before starting a mainnet sync:
 
-| Chain | Approx. blockchain size (mainnet, as of 2025) |
+| Chain | Approx. blockchain size (mainnet, as of 2026) |
 |---|---|
-| Bitcoin (BTC) | ~650 GB |
+| Bitcoin (BTC) | ~700 GB |
 | Litecoin (LTC) | ~100 GB |
 | Dogecoin (DOGE) | ~100 GB |
 
@@ -75,7 +75,7 @@ xchain-node install v0.12.2 all bitcoin mainnet
 
 Arguments: `install <ref> <service> [chain] [network]`
 
-- `ref`: what to install. Use a published release tag such as `v0.12.1`: that resolves the release manifest and pins every component to the exact commit that was tagged, signed and tested together, which is the only form that gives you a reproducible stack. A branch name (`master`, `develop`) is also accepted and installs whatever that branch happens to point at right now, which is for development, not for running a node.
+- `ref`: what to install. Use a published release tag such as `v0.12.2`: that resolves the release manifest and pins every component to the exact commit that was tagged, signed and tested together, which is the only form that gives you a reproducible stack. A branch name (`master`, `develop`) is also accepted and installs whatever that branch happens to point at right now, which is for development, not for running a node.
 - `service`: `all`, or a specific service name such as `xchain-decoder`.
 - `chain`: `bitcoin`, `litecoin`, `dogecoin`, or `all`.
 - `network`: `mainnet`, `testnet`, or `regtest`.

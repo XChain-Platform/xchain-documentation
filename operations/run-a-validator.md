@@ -351,11 +351,14 @@ xchain-node validator unstake --broadcast  # withdraw it
 It reads your active stake from the chain, refuses if there is nothing to
 withdraw, and broadcasts `UNSTAKE` from the stake address.
 
-**Standing down is not instant.** The stake keeps counting toward every
-capability for **6 more blocks** after the unstake is indexed, then drops out
-of the active set and your XCHAIN becomes spendable again. That delay is the
-same reorg protection that applies when you join, so plan for it rather than
-assuming you have left the moment the transaction lands.
+**Standing down is not instant, and there are two clocks.** The stake keeps
+counting toward every capability for **6 more blocks** after the unstake is
+indexed, then drops out of the active set; that delay is the same reorg
+protection that applies when you join. Your XCHAIN is on the longer clock: it
+stays locked for a cooldown of **1000 blocks** (roughly 7 days on Bitcoin)
+from the block the unstake lands in, and the cooldown sweep credits it back
+only then. Plan around both rather than assuming you have left, or can spend,
+the moment the transaction lands.
 
 Stop the hub with `xchain-node stop xchain-hub` any time after that. Keep the
 keys until the unstake has settled.
