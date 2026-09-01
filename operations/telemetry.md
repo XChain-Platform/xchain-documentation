@@ -62,7 +62,7 @@ Any one of these disables telemetry. They are checked in this order:
 
 1. **Per command / permanently**: pass `--no-telemetry` on any command:
    ```bash
-   xchain-node --no-telemetry install master all
+   xchain-node --no-telemetry install v0.12.1 all
    ```
    Once you opt out this way, it stays off on future runs (the choice is remembered).
 2. **Environment variable**: set `XCHAIN_NODE_NO_TELEMETRY=1` in your shell or service

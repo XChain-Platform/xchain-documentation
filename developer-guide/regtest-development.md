@@ -23,7 +23,7 @@ Regtest is a fully local, self-contained blockchain environment where you contro
 
 ```bash
 # Install the regtest stack (downloads images, creates containers, starts everything)
-xchain-node install master all bitcoin regtest
+xchain-node install v0.12.1 all bitcoin regtest
 
 # Start all services
 xchain-node start all bitcoin regtest
@@ -77,7 +77,7 @@ echo 'EXPLORER_TIP_MAX_AGE_S_RBTC=0' >> config/bitcoin-regtest
 
 # container environment is fixed when the container is created, so a plain
 # restart is not enough
-xchain-node install master xchain-explorer bitcoin regtest
+xchain-node install v0.12.1 xchain-explorer bitcoin regtest
 ```
 
 Running the explorer straight from its repo instead, put the same line in its `.env`.
@@ -257,7 +257,7 @@ xchain-node stop all bitcoin regtest
 xchain-node uninstall all bitcoin regtest
 
 # Reinstall fresh
-xchain-node install master all bitcoin regtest
+xchain-node install v0.12.1 all bitcoin regtest
 xchain-node start all bitcoin regtest
 ```
 
