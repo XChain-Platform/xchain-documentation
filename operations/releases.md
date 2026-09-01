@@ -9,6 +9,92 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.12.1
+
+Released 2026-08-31. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.12.1)
+
+The platform's first patch train, cut the same day as v0.12.0. It moves one
+component, `xchain-indexer`; the other eleven stay at the v0.12.0 tags they
+already carry. A component's version is the platform version at which it last
+changed, so a gap in the table below means that component did not change in this
+release, not that it was skipped.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.12.1 |
+| xchain-hub | 0.12.0 |
+| xchain-indexer | 0.12.1 |
+| xchain-explorer | 0.12.0 |
+| xchain-decoder | 0.12.0 |
+| xchain-encoder | 0.12.0 |
+| xchain-sync | 0.12.0 |
+| xchain-utxo-tracker | 0.12.0 |
+| xchain-vm | 0.12.0 |
+| xchain-sdk | 0.12.0 |
+| xchain-contracts | 0.12.0 |
+| xchain-e2e-test | 0.12.0 |
+| xchain-regtest-miner | 0.12.0 |
+
+A reward whose anchor was attested before a version restart is now judged on the
+anchor bytes as written. Proof admission had dropped the legacy wire versions, so
+such a reward could never be proven: it read as an eternal unknown and the chain
+halted, correctly refusing to commit on absent evidence but with no way forward,
+because nothing re-admits those bytes once the fleet is uniform. Admission now
+carries the legacy versions and binds each to the reward family it was renumbered
+from.
+
+**This is also the replay fix.** The v0.12.0 build cannot replay a chain carrying
+such a reward from genesis, because it halts at the first one before reaching the
+tip.
+
+Forgeries on legacy bytes stay excluded: at or above the anchor activation height
+a legacy byte parses deterministically invalid, and every node drops it as
+evidence identically. The change ships ungated, because the previous build does
+not derive different state here, it derives none. The halt rolls back the whole
+block transaction, so a node on the older code cannot commit a conflicting
+verdict, only stop.
+
+## v0.12.0
+
+Released 2026-08-31. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.12.0)
+
+Fourth release train. Every component changed in this train, and every component
+carries `0.12.0` in its own `package.json` at its tag.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.12.0 |
+| xchain-hub | 0.12.0 |
+| xchain-indexer | 0.12.0 |
+| xchain-explorer | 0.12.0 |
+| xchain-decoder | 0.12.0 |
+| xchain-encoder | 0.12.0 |
+| xchain-sync | 0.12.0 |
+| xchain-utxo-tracker | 0.12.0 |
+| xchain-vm | 0.12.0 |
+| xchain-sdk | 0.12.0 |
+| xchain-contracts | 0.12.0 |
+| xchain-e2e-test | 0.12.0 |
+| xchain-regtest-miner | 0.12.0 |
+
+Notable in this train: hubs sign each ROLLCALL epoch, gossip the signatures, and
+an elected publisher lands the roll call on chain, with a source that is absent
+across consecutive rolled epochs deactivated by a synthetic unstake and a rolled
+back close restoring what it changed; anchors publish one bundle per network per
+cycle instead of one anchor per chain, and a bundle the attestation round could
+not attest is deferred rather than published unattested; refused cross-chain
+calls and refused anchors are recorded as events rather than dropped silently,
+and a stalled checkpoint cadence is recorded rather than passing as one tick in
+sixty; the database connector moves to 3.5.3, closing three high-severity
+advisories against the pinned 3.5.2, including one that reached a service through
+a stale bundled copy while the top-level dependency already read clean; and token
+balances with decimal places display at their true scale in the wallet.
+
+**ROLLCALL is inert on regtest.** Arming a network commits every Bitcoin indexer
+on it to a wired Dogecoin peer, because an epoch close cannot decide a non-empty
+responsible set without one and correctly halts rather than read silence as
+absence. A single-coin regtest venue has no such peer and can never have one.
+
 ## v0.11.0
 
 Released 2026-08-26. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.11.0)
