@@ -172,7 +172,17 @@ Then publish:
 - the release notes: resolved component set, aggregated changelog, and for a
   MAJOR train the activation point
 - the assets: manifest, source tarballs, `SHA256SUMS`, `SHA256SUMS.asc`
+- **a GitHub Release in every other repo that carries the train tag**, each a
+  short pointer at node's Release rather than a copy of it
 - the mirrored release page in the documentation
+
+That per-repo bullet is not a formality. A repository page presents Releases as
+the newest published version, so a component whose tag never got one tells every
+visitor that the project last shipped whatever version did. Tags do not correct
+that impression, because most people never open the tag list. Publish one per
+repo and confirm it per repo: node's Release is the one everyone checks, so
+checking it and assuming the rest followed is how a train ships with thirteen
+component repos still advertising an old version.
 
 Build the tarballs during the ceremony rather than relying on GitHub's
 auto-generated archives. Those are produced on demand and are not guaranteed to
