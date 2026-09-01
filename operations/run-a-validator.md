@@ -23,7 +23,7 @@ fund the two addresses          testnet BTC to the stake address, testnet DOGE t
 xchain-node validator stake     mints XCHAIN on testnet, then broadcasts STAKE (one command)
         |
         v
-xchain-node install v0.12.2 xchain-hub     starts the validator; peers admit it once the stake activates
+xchain-node install v0.12.3 xchain-hub     starts the validator; peers admit it once the stake activates
 ```
 
 ## Prerequisites
@@ -38,7 +38,7 @@ xchain-node install v0.12.2 xchain-hub     starts the validator; peers admit it 
 `xchain-node` installs from source:
 
 ```bash
-git clone -b v0.12.2 https://github.com/XChain-Platform/xchain-node.git ~/xchain-node
+git clone -b v0.12.3 https://github.com/XChain-Platform/xchain-node.git ~/xchain-node
 cd ~/xchain-node
 npm install
 npm link
@@ -231,7 +231,7 @@ validator set, your own stake, the current tip. Pick one:
 heavy lifting):
 
 ```bash
-xchain-node install v0.12.2 all bitcoin testnet
+xchain-node install v0.12.3 all bitcoin testnet
 ```
 
 When the BTC stack is on the same host, the hub finds its indexer through the
@@ -277,7 +277,7 @@ other than `capabilities.json`.
 
 ```bash
 cd ~/xchain-node
-xchain-node install v0.12.2 xchain-hub
+xchain-node install v0.12.3 xchain-hub
 ```
 
 The installer provisions everything the hub needs: Docker networks, a MariaDB

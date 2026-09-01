@@ -9,6 +9,48 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.12.3
+
+Released 2026-09-01. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.12.3)
+
+A patch train for the validator onboarding path. `xchain-node` goes to 0.12.3
+and `xchain-hub` to 0.12.3; every other component keeps the tag it already
+carries.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.12.3 |
+| xchain-hub | 0.12.3 |
+| xchain-indexer | 0.12.1 |
+| xchain-explorer | 0.12.0 |
+| xchain-decoder | 0.12.0 |
+| xchain-encoder | 0.12.0 |
+| xchain-sync | 0.12.0 |
+| xchain-utxo-tracker | 0.12.0 |
+| xchain-vm | 0.12.0 |
+| xchain-sdk | 0.12.0 |
+| xchain-contracts | 0.12.0 |
+| xchain-e2e-test | 0.12.0 |
+| xchain-regtest-miner | 0.12.0 |
+
+Both fixes address the same window: the time between broadcasting a STAKE and
+that stake activating, which is when a new validator is most likely to conclude
+something is broken.
+
+A hub rejected a peer that was not in the effective signer set by reporting an
+invalid signature, because the membership check shared its return path with the
+signature check. An operator whose stake had not activated yet was told their
+signature was bad, which sends them hunting a key problem that does not exist. A
+membership miss now says so, and a hub running in validator mode reports whether
+its own key is in the set rather than leaving the only evidence in the logs of
+the peers dropping it.
+
+`validator unstake` said the escrowed XCHAIN became spendable when the stake
+left the active set. Leaving the set takes 6 blocks on Bitcoin; the coins are
+released by the staking cooldown, 1000 blocks, about a week later. Both clocks
+are now printed, by `stake` as well as `unstake`, and both are read per chain
+from the coin registry rather than assumed to be Bitcoin.
+
 ## v0.12.2
 
 Released 2026-09-01. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.12.2)
