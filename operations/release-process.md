@@ -172,7 +172,17 @@ Then publish:
 - the release notes: resolved component set, aggregated changelog, and for a
   MAJOR train the activation point
 - the assets: manifest, source tarballs, `SHA256SUMS`, `SHA256SUMS.asc`
+- **a GitHub Release in every other repo that carries the train tag**, each a
+  short pointer at node's Release rather than a copy of it
 - the mirrored release page in the documentation
+
+That per-repo bullet is not a formality. A repository page presents Releases as
+the newest published version, so a component whose tag never got one tells every
+visitor that the project last shipped whatever version did. Tags do not correct
+that impression, because most people never open the tag list. Publish one per
+repo and confirm it per repo: node's Release is the one everyone checks, so
+checking it and assuming the rest followed is how a train ships with thirteen
+component repos still advertising an old version.
 
 Build the tarballs during the ceremony rather than relying on GitHub's
 auto-generated archives. Those are produced on demand and are not guaranteed to
@@ -251,9 +261,9 @@ it as an incident rather than an upgrade.
 | Task | Command |
 |---|---|
 | Install the latest release | `xchain-node install` |
-| Install an exact release | `xchain-node install v0.9.0` |
+| Install an exact release | `xchain-node install v0.12.1` |
 | Track a branch (unreleased) | `xchain-node install develop` |
-| Verify a tag | `git tag -v v0.9.0` |
+| Verify a tag | `git tag -v v0.12.1` |
 | Verify the assets | `gpg --verify SHA256SUMS.asc SHA256SUMS && sha256sum -c SHA256SUMS` |
 
 `install` with no ref resolves the latest published release and installs every
