@@ -34,7 +34,7 @@ On startup, the hub:
    - Governance engine
    - Reward tracker (pushes rewards to BTC indexer) and slash detector
    - `StateCheckpointEngine` (quorum-signs per-chain ledger/actions/contract hash checkpoints; streams to hub DB subscribers)
-   - `StateAnchorPublisher` (one publisher election per bundle; commits every chain's checkpoint in one DOGE ANCHOR v7 action per network, plus the match archive, on the `ANCHOR_INTERVAL_MS` cadence)
+   - `StateAnchorPublisher` (one publisher election per bundle; commits every chain's checkpoint in one DOGE ANCHOR v0 action per network, plus the match archive, on the `ANCHOR_INTERVAL_MS` cadence)
 
 ## Operating Modes
 

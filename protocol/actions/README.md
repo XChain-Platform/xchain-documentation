@@ -99,6 +99,7 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | ACTION | Description |
 |---|---|
 | [`NODEPROOF`](./nodeproof.md) | Quorum-signed verdict recording which validators passed a periodic coin full-node possession challenge, proving they run real nodes rather than mirroring replicas |
+| [`ROLLCALL`](./rollcall.md) | Validator liveness roll call on Dogecoin: Ed25519 signatures bound to a BTC epoch block's ledger hash prove each key was live that epoch; repeated absence evicts the staker by deactivation, never a burn |
 | [`SLASH`](./slash.md) | Permissionless equivocation proof: burns a capability validator's entire bond when they signed two conflicting values for the same consensus slot |
 
 ### Virtual Machine (VM)
