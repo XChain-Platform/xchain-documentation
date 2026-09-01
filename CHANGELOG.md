@@ -48,11 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - The smart-contract development guide counted 13 shipped `xchain-contracts` templates and omitted `counterpartyBridge`; it now counts 14 and lists it, matching what `npx xchain-contracts list` reports.
 
+### Removed
+- The operator-dashboard pages and every listing of it (components index, README table, platform map, test counts); it is internal operator tooling, not part of the public platform.
+
 ## [0.12.1] - 2026-08-13
 
 ### Added
 - `components/wallet/release/mobile/android-play.md`: the Play content-rating (IARC) questionnaire, answered from the surfaces the store build ships and cross-referenced to the data-safety form it has to agree with.
-- `components/dashboard/`: README, architecture, configuration and operations pages for the operator console, now a public AGPL repository.
+- `components/dashboard/`: README, architecture, configuration and operations pages for the operator console.
 - `architecture/platform-map.md` (+ `platform-map-app.html` / `platform-map.json`): interactive platform map with selectable end-to-end flows, embedded in a sidebar-listed doc page, plus the same graph as machine-readable JSON for AI agents, guarded by a new integrity/parity test.
 
 ### Fixed

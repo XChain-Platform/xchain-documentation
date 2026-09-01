@@ -164,14 +164,6 @@
       "description": "Installer/operator CLI: provisions coin nodes (SHA-256 pinned binaries) and every platform service as Docker containers. Ed25519-signed bootstraps, go-live and skew guards, telemetry (opt-out), interactive TUI."
     },
     {
-      "id": "dashboard",
-      "label": "xchain-dashboard",
-      "type": "service",
-      "group": "serve",
-      "tech": "Node.js, Express",
-      "description": "Ops dashboard host: auth/users/audit, plugin loader, bundled network-monitor (push-agent ingest) and CI-status plugins."
-    },
-    {
       "id": "e2e",
       "label": "xchain-e2e-test",
       "type": "service",
@@ -381,13 +373,6 @@
       "kind": "rpc"
     },
     {
-      "id": "r26",
-      "source": "dashboard",
-      "target": "indexerdb",
-      "label": "reads ops data",
-      "kind": "read"
-    },
-    {
       "id": "r27",
       "source": "e2e",
       "target": "encoder",
@@ -577,7 +562,7 @@
           "n": 6,
           "node": "indexerdb",
           "edge": "r11",
-          "action": "Explorer, dashboard and sync all consume the canonical state."
+          "action": "Explorer and sync both consume the canonical state."
         },
         {
           "n": 7,

@@ -254,7 +254,6 @@
     { "id": "sdk", "label": "xchain-sdk", "type": "library", "group": "clients", "tech": "Node.js (npm: library + JSON-RPC server)", "description": "Developer SDK generating all 31 user ACTION types with ticker compaction and a MuSig2 co-signer toolkit. Discovers endpoints via hub getallconfigs with an https downgrade guard; defaults to public .xchain.io hosts off-regtest." },
     { "id": "wallet", "label": "xchain-wallet", "type": "service", "group": "clients", "tech": "JS monorepo: web SPA, MV3 extension, Electron", "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device." },
     { "id": "node", "label": "xchain-node", "type": "service", "group": "clients", "tech": "Node.js, Docker, Commander CLI", "description": "Installer/operator CLI: provisions coin nodes (SHA-256 pinned binaries) and every platform service as Docker containers. Ed25519-signed bootstraps, go-live and skew guards, telemetry (opt-out), interactive TUI." },
-    { "id": "dashboard", "label": "xchain-dashboard", "type": "service", "group": "serve", "tech": "Node.js, Express", "description": "Ops dashboard host: auth/users/audit, plugin loader, bundled network-monitor (push-agent ingest) and CI-status plugins." },
     { "id": "e2e", "label": "xchain-e2e-test", "type": "service", "group": "clients", "tech": "Mocha", "description": "Full-stack end-to-end suite: broadcasts real transactions on regtest through service connectors (Blockchain, Encoder, Indexer, Hub, UtxoTracker, RegtestMiner), 30+ waitFor* DB pollers, BTC/LTC/DOGE parity corpus, perf gates." },
     { "id": "contracts", "label": "xchain-contracts", "type": "library", "group": "clients", "tech": "Node.js, mocha (tooling only)", "description": "Smart-contract template library (amm, escrow, vesting, crowdsale, treasury, priceBet, stableVault, urlOracle, cardDispenser) plus a policy-driven controller-guard generator. Deployed as base64 DEPLOY actions; tested against xchain-vm." },
     { "id": "docs", "label": "xchain-documentation", "type": "service", "group": "content", "tech": "Markdown", "description": "Protocol reference: per-ACTION specs, gas/fee schedule, Token Information Standard schema, architecture, operator and user guides." },
@@ -286,7 +285,6 @@
     { "id": "r23", "source": "wallet", "target": "explorer", "label": "balances / history / action decode", "kind": "rpc" },
     { "id": "r24", "source": "node", "target": "coinnode", "label": "provisions + runs containers", "kind": "rpc" },
     { "id": "r25", "source": "node", "target": "hub", "label": "pushes config (updateconfig)", "kind": "rpc" },
-    { "id": "r26", "source": "dashboard", "target": "indexerdb", "label": "reads ops data", "kind": "read" },
     { "id": "r27", "source": "e2e", "target": "encoder", "label": "broadcasts real test transactions", "kind": "rpc" },
     { "id": "r28", "source": "e2e", "target": "miner", "label": "mines blocks on demand", "kind": "rpc" },
     { "id": "r29", "source": "e2e", "target": "indexerdb", "label": "waitFor* state polling", "kind": "read" },
@@ -328,7 +326,7 @@
         { "n": 3, "node": "decoderdb", "edge": "r7", "action": "Indexer picks up new decoded rows (and detects decoder-side reorg rollbacks)." },
         { "n": 4, "node": "indexer", "edge": "r9", "action": "DEPLOY/EXECUTE actions run inside xchain-vm isolates with gas metering." },
         { "n": 5, "node": "vm", "edge": "r8", "action": "State changes and emitted actions are folded into the block result and written." },
-        { "n": 6, "node": "indexerdb", "edge": "r11", "action": "Explorer, dashboard and sync all consume the canonical state." },
+        { "n": 6, "node": "indexerdb", "edge": "r11", "action": "Explorer and sync both consume the canonical state." },
         { "n": 7, "node": "explorer", "action": "REST / JSON-RPC / WebSocket clients see the confirmed block." }
       ]
     },
@@ -467,7 +465,6 @@
     explorer:  { x: 1520, y: 285 },
     sync:      { x: 1520, y: 520 },
     replicas:  { x: 1520, y: 655 },
-    dashboard: { x: 1520, y: 795 },
     websites:  { x: 790,  y: 880 },
     docs:      { x: 990,  y: 880 }
   };
