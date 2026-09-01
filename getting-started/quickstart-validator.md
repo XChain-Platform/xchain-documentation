@@ -37,18 +37,11 @@ qualifies for that level automatically.
 ## Step 1: install the CLI
 
 ```bash
-git clone -b develop https://github.com/XChain-Platform/xchain-node.git ~/xchain-node
+git clone -b v0.12.2 https://github.com/XChain-Platform/xchain-node.git ~/xchain-node
 cd ~/xchain-node
 npm install
 npm link
 ```
-
-> **Why `develop` and not a release tag.** `validator init`, `stake` and
-> `unstake` are newer than the latest release, so the released tag does not carry
-> them yet and cloning the default branch gives you a CLI without the commands
-> this page uses. The stack you install below is a different thing and IS pinned
-> to the release. This line goes back to a tag once those commands ship.
-
 
 Run all the commands below from `~/xchain-node`.
 
@@ -91,8 +84,8 @@ printed your pubkey; `xchain-node validator status` re-prints it).
 ## Step 5: start your validator
 
 ```bash
-xchain-node install v0.12.1 all bitcoin testnet   # your own view of the chain
-xchain-node install v0.12.1 xchain-hub            # the validator itself
+xchain-node install v0.12.2 all bitcoin testnet   # your own view of the chain
+xchain-node install v0.12.2 xchain-hub            # the validator itself
 ```
 
 The first command installs a self-contained Bitcoin testnet stack (a
