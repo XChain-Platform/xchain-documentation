@@ -70,12 +70,12 @@ xchain-node --help
 The `install` command clones the target service from GitHub, builds its Docker image, and registers it with the hub. The `all` keyword installs every service for a given chain and network in the correct dependency order.
 
 ```bash
-xchain-node install v0.12.2 all bitcoin mainnet
+xchain-node install v0.12.3 all bitcoin mainnet
 ```
 
 Arguments: `install <ref> <service> [chain] [network]`
 
-- `ref`: what to install. Use a published release tag such as `v0.12.2`: that resolves the release manifest and pins every component to the exact commit that was tagged, signed and tested together, which is the only form that gives you a reproducible stack. A branch name (`master`, `develop`) is also accepted and installs whatever that branch happens to point at right now, which is for development, not for running a node.
+- `ref`: what to install. Use a published release tag such as `v0.12.3`: that resolves the release manifest and pins every component to the exact commit that was tagged, signed and tested together, which is the only form that gives you a reproducible stack. A branch name (`master`, `develop`) is also accepted and installs whatever that branch happens to point at right now, which is for development, not for running a node.
 - `service`: `all`, or a specific service name such as `xchain-decoder`.
 - `chain`: `bitcoin`, `litecoin`, `dogecoin`, or `all`.
 - `network`: `mainnet`, `testnet`, or `regtest`.
@@ -115,9 +115,9 @@ A full mainnet deployment runs one coin node, decoder, indexer, encoder, and UTX
 Install each chain in sequence:
 
 ```bash
-xchain-node install v0.12.2 all bitcoin mainnet
-xchain-node install v0.12.2 all litecoin mainnet
-xchain-node install v0.12.2 all dogecoin mainnet
+xchain-node install v0.12.3 all bitcoin mainnet
+xchain-node install v0.12.3 all litecoin mainnet
+xchain-node install v0.12.3 all dogecoin mainnet
 ```
 
 Minimum recommended resources for the full three-chain stack:
@@ -134,7 +134,7 @@ Minimum recommended resources for the full three-chain stack:
 If only one chain is needed, install only that chain:
 
 ```bash
-xchain-node install v0.12.2 all litecoin mainnet
+xchain-node install v0.12.3 all litecoin mainnet
 ```
 
 This reduces resource requirements proportionally. A single-chain LTC or DOGE deployment can run comfortably on a 4-core, 8 GB RAM machine with 250 GB of disk.
@@ -144,7 +144,7 @@ This reduces resource requirements proportionally. A single-chain LTC or DOGE de
 Regtest uses local blockchain simulation with no real network sync. This is the fastest way to bring up a fully working stack for development or testing.
 
 ```bash
-xchain-node install v0.12.2 all bitcoin regtest
+xchain-node install v0.12.3 all bitcoin regtest
 xchain-node start all bitcoin regtest
 ```
 
@@ -153,7 +153,7 @@ Regtest also installs `xchain-regtest-miner`, which automatically mines blocks w
 To skip bootstrap archive downloads and force a full parse from block 0:
 
 ```bash
-xchain-node --no-bootstrap install v0.12.2 all bitcoin regtest
+xchain-node --no-bootstrap install v0.12.3 all bitcoin regtest
 ```
 
 ### Private Deployment (Regtest as Production)
