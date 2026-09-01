@@ -18,14 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The four texts promising a non-participation slash are corrected: an absent validator is counted in `N` and nothing on-chain penalises it; where ROLLCALL is active it is evicted by deactivation, never burned.
 - The hub decentralization table separates on-chain slashing, which is equivocation only, from hub-local suspension, which leaves stake untouched.
 - ACTION counts move to 37 named and 36 wire-decoded across the docs; user-submittable stays 31.
-- The ANCHOR version set restarts at v0 (checkpoint bundle), v1 (archive head, publisher attestation always appended) and v2 (continuation), gated by a new per-network `ANCHOR_ACTIVATION` height below which any version is invalid.
-- The ANCHOR action document specifies v7, the checkpoint bundle: one anchor per network per cycle carrying every chain as its own section.
-- ANCHOR versions 0, 3, 4 and 5 are removed from the action document and the reward-type sites; v7 replaces them and those version numbers are retired.
+- The ANCHOR version set restarts at v0 (checkpoint bundle), v1 (archive head, publisher attestation always appended) and v2 (continuation), gated by a new per-network `ANCHOR_ACTIVATION` height below which any version is invalid; the checkpoint bundle carries one anchor per network per cycle with every chain as its own section, and the pre-restart version numbers are retired.
 - The anchor publish reward is now one `anchor_bundle` row per bundle instead of one `anchor_<chain>` row per chain, across the COLLECT, hub and indexer reference pages.
 - `getanchorstatus` documents `anchorsPublished` as a count of bundles, and adds the `sectionsAnchored` and `bundlesOversize` fields.
 - The `anchor_actions` table is documented as keyed on `(action_index, section_index)`, one row per bundle section.
-- The frozen ANCHOR canonical vectors carry the v7 case, and the v0, v3, v4 and v5 cases are dropped.
-- The light-client guide documents `parseAnchorV7` and `anchorBundleSection` in place of `parseAnchorV3`, and explains that a bundle omitting a chain is normal.
+- The frozen ANCHOR canonical vectors carry the restarted v0 case, and the pre-restart version cases are dropped.
+- The light-client guide documents `parseAnchorV0` and `anchorBundleSection` in place of `parseAnchorV3`, and explains that a bundle omitting a chain is normal.
 - The hub configuration reference documents the anchor startup flush, the confirmed-inputs rule and the two confirmation-watchdog settings.
 - The explorer REST endpoint counts in the component map are re-derived after the token holders route was added to both namespaces.
 - The ATTEST v3 rules document the relay-identity exactly-once gate the reference indexer enforces.
