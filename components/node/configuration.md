@@ -147,9 +147,27 @@ These configure a hub acting as the telemetry **collector**, and are forwarded i
 | `XCHAIN_NODE_LOCK_DIR` | Directory holding `command.lock`. Defaults to the same per-user directory as `credentials.json`. Test and ops override. |
 | `XCHAIN_NODE_LOCK_WAIT_MS` | How long a non-mutating command waits for a lock-holding mutator before giving up. Bounded on purpose: a read-only command pauses and then errors clearly rather than provisioning concurrently and corrupting the stack. Default `15000`. |
 | `XCHAIN_NODE_MUTATING_LOCK_WAIT_MS` | How long a **mutating** command waits for a lock holder before refusing. Default `0`, which keeps the interactive contract: run a deploy while another one holds the lock and you are told immediately, rather than left watching a silent prompt. Set it on an unattended caller so a scheduled run waits out a deploy instead of losing its work. A publish cron is the case this exists for: `bootstrap create` is a mutating command, so at `0` it fails the instant any `update` is running, and the whole run is reported as a create failure even though the machinery was fine and was correctly deferring. |
+| `HUB_NETWORK` | Which network a validator-mode hub joins (`mainnet`, `testnet`, `regtest`). The hub REFUSES TO BOOT without it, so `validator init` writes the network you initialised with into the generated config. Set it in the host env only to override that. |
+| `EXPLORER_URL` | Base URL `validator stake` reads balances, UTXOs, stake state and mint policy from. Defaults to the public explorer, so staking works before you run any stack of your own. Point it at your own explorer to stake against a private deployment. |
+| `DOGE_ADDRESS` | The Dogecoin address the validator publishes price rounds and anchors from. Written by `validator init` from the wallet it generates; host env wins, so an operator running their own publisher is not overridden. Public value. |
+| `DOGE_PUBKEY_HEX` | Public key for that same publisher address, wired into the hub alongside it. Written by `validator init`; host env wins. Public value. |
+| `DOGE_ENCODER_URL` | Encoder the publisher submits its DOGE transactions through. Defaults to the public encoder for the network you initialised. Public value. |
 | `XCHAIN_NODE_AUTOHEAL_STATE_DIR` | Directory holding autoheal state. Defaults to the same per-user directory as `credentials.json`. Test and ops override. |
 | `GITHUB_TOKEN` / `GH_TOKEN` | Personal access token for GitHub downloads. Raises the anonymous API rate limit and is required to reach private module repositories. `GITHUB_TOKEN` is checked first. Treat as a credential: supply it from the environment, never a checked-in file. |
 | `BTC_INDEXER_API_URL` | BTC indexer JSON-RPC URL used as the block-height anchor for the validator-mode price oracle (`hub.getlatestblock`). Read from the host environment so a hub that is **not** co-located with a BTC indexer (the master hub box, where the BTC stack lives elsewhere) can point at a reachable one. Empty by default, in which case the hub falls back to its local resolution. |
+
+The four below are read by the **DOGE signer** the hub mounts read-only, not by
+`xchain-node` itself. They live in that signer directory's own `.env`, which is
+why `DOGE_WIF` is the one credential here: it stays in the mounted directory and
+is never written into the service config. The signer fails at load time rather
+than starting unable to sign, because the hub treats a configured-but-broken
+signer as fatal.
+
+| Variable | Purpose |
+|---|---|
+| `DOGE_NETWORK` | Network the signer signs for. Must match the hub's. |
+| `DOGE_WIF` | **Credential.** Private key for the publisher address. Lives only in the mounted signer directory, mode 0600. Never put it in a service config or a base config file. |
+| `DOGE_FEE_PER_KB` | Fee rate in DOGE per kB for published transactions. Unset means the encoder's estimate. |
 
 ### Bootstrap
 
