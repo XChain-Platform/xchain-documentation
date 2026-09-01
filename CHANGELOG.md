@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The indexer configuration page states that the existing DOGE wiring becomes required a second time from `ROLLCALL_ACTIVATION`, and that a BTC indexer without it defers every block.
 
 ### Changed
+- The white paper is bumped to version 1.4, dated 2026-08-31, for the announcement.
+- White paper §6 reconciles its action counts with the corpus: ROLLCALL joins the non-user-submittable list and thirty-six of the 37 actions are wire-decoded.
+- The white paper describes ROLLCALL in §6.6 and replaces §11.1's governance-adjudicated non-participation claim with roll-call eviction.
+- The white paper's stale tenses are corrected: the BATCH mainnet activation is in the past, the source repositories are public, and the per-version Node failure modes defer to the docs.
 - The four texts promising a non-participation slash are corrected: an absent validator is counted in `N` and nothing on-chain penalises it; where ROLLCALL is active it is evicted by deactivation, never burned.
 - The hub decentralization table separates on-chain slashing, which is equivocation only, from hub-local suspension, which leaves stake untouched.
 - ACTION counts move to 37 named and 36 wire-decoded across the docs; user-submittable stays 31.
