@@ -67,7 +67,7 @@ flowchart TD
     subgraph E2E["xchain-e2e-test"]
         CH["cryptoHelper<br>BIP39/BIP32<br>wallet mgmt"]
         TH["transactionHelper<br>PSBT/P2SH"]
-        AH["action helpers (49 modules)<br>message construction"]
+        AH["action helpers (50 modules)<br>message construction"]
         SC["Service Connectors (src/)<br>BlockchainConnector, XChainEncoderConnector<br>XChainUtxoTrackerConn, XChainDecoderConnector<br>XChainIndexerConnector, XChainExplorerConnector<br>XChainHubConnector, RegtestMinerConnector<br>Database (MariaDB)"]
         CH --> SC
         TH --> SC
@@ -184,6 +184,7 @@ npm run test:chaos
 | [Architecture](architecture.md) | Connector classes, bootstrap sequence, polling pattern, UTXO cache, P2SH flow |
 | [Configuration](configuration.md) | Environment variables, hub discovery fallback, Docker setup |
 | [Operations](operations.md) | Running tests, Docker execution, CI integration, troubleshooting |
+| [Staking Venue Policy](staking-venue-policy.md) | Fixture-stake teardown, the leak check, and how a dedicated staking venue declares itself |
 
 ## Related
 
