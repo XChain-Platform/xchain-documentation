@@ -1496,7 +1496,7 @@ curl "http://localhost:8080/RDOGE/api/anchors/800000/block"
 
 The explorer exposes quorum-signed state checkpoints for light-client verification. Checkpoint data is read from the hub-mirrored `state_checkpoints` table.
 
-On nodes that maintain their own checkpoint mirror (self-sync mode, see the Configuration page), these endpoints return HTTP 503 with code `MIRROR_NOT_BOOTSTRAPPED` until the mirror's first snapshot download completes, and afterwards include two extra response fields: `mirror_bootstrapped` (always `true` once serving) and `mirror_lag_seconds` (how far the mirror trails the hub's feed). Operators can additionally opt into HTTP 503 `MIRROR_STALE` on excessive lag. Nodes reading an externally-maintained hub schema return neither the extra fields nor the 503s.
+On nodes that maintain their own checkpoint mirror (self-sync mode, see the Configuration page), these endpoints return HTTP 503 with code `MIRROR_NOT_BOOTSTRAPPED` until the mirror's first snapshot download completes, and afterwards include two extra response fields: `mirror_bootstrapped` (always `true` once serving) and `mirror_lag_seconds` (how far the mirror trails the hub's feed). Operators can additionally opt into HTTP 503 `MIRROR_STALE` on excessive lag. A node configured for self-sync with no hub endpoint to sync from returns HTTP 503 `MIRROR_NOT_CONFIGURED` on these endpoints, since nothing updates its mirror. Nodes reading an externally-maintained hub schema return neither the extra fields nor the 503s.
 
 ### Hub-Mirror Status
 
