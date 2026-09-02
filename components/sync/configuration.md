@@ -102,6 +102,7 @@ In client mode, the service connects to remote sync servers and replicates their
 | `VALIDATOR_ID` | No | system hostname | Stable identifier for this validator, sent with `POST /validator-heartbeat`. Set it explicitly; the hostname fallback changes if the host is renamed or recreated. |
 | `SYNC_RATE_LIMIT_RPM` | No | `500` | API requests per minute per IP |
 | `HUB_API_KEY` | No | None | API key sent to the hub as `x-api-key` during chain discovery (`getallconfigs`). Required whenever the hub runs keyed, which is always in validator mode. Treat as a credential. |
+| `HUB_CONFIG_SECRETS_API_KEY` | No | None | API key sent as `x-api-key` on hub reads that return credentials (`getallconfigs` with `include_secrets`, which is how this client receives its replication sources' database passwords). Takes precedence over `HUB_API_KEY`; unset, `HUB_API_KEY` covers both tiers. Treat as a credential. |
 | `MAX_CONCURRENT_SNAPSHOTS` | No | pool size minus 2 | Maximum snapshot streams served concurrently per database, so a snapshot stampede cannot starve the block poller of its last connection. Clamped to `[1, poolSize - 1]`. On saturation the server answers `503` with `Retry-After` rather than queueing. |
 | `STATE_TREE_METRIC_INTERVAL_MS` | No | `14400000` (4 h) | Interval for the state-tree orphan-statistics sweep. Set to `0` to disable. Decoder replicas are skipped (they have no `state_tree_*` tables). |
 | `STATE_TREE_METRIC_MAX_NODES` | No | `2000000` | Node ceiling for a single state-tree metric pass, bounding the cost of the sweep on a large tree. |

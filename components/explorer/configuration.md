@@ -31,6 +31,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `MEMPOOL_COUNT_CACHE_MS` | No | `15000` | TTL (ms) of the mempool-count cache. |
 | `PRICE_CACHE_MS` | No | `60000` | TTL (ms) of the oracle-price cache. |
 | `FEE_CACHE_MS` | No | `60000` | TTL (ms) of the fee-schedule cache. |
+| `EXPLORER_TIP_MEMO_MS` | No | `1000` | How long (ms) a coin's chain-tip lookup is memoized. The tip is the generation key for the cached list results (`getBalances`/`getHolders`/`getTokens`), so this bounds the tip probe to one index-max query per coin per window rather than one per request. A probe that fails returns null and the caller skips the cache for that request. |
 | `EXPLORER_WALLET_URL` | No | `https://wallet.xchain.io` | Wallet handoff target for the contract page's Write Contract card. Set it to an **empty string** to disable the card entirely; the default applies only when the variable is unset, never when it is set to `''`. |
 | `ENCODER_URL` | No | None | Encoder base URL used for the UI's fee estimate. Unset returns a conservative `{low:1, medium:2, high:3}` fallback rather than an error. |
 | `UTXO_TRACKER_URL_<COIN>` | No | None | Per-coin UTXO-tracker base URL, used to fill the address page's balance and UTXO panel from the tracker's `GET /info/<address>`. `COIN` is the route code (`BTC`, `TBTC`, `RDOGE`, …). |
@@ -81,6 +82,7 @@ See [WEBSOCKET.md](websocket.md) for the full WebSocket API reference.
 |---|---|---|---|
 | `HUB_API_URL` | No | None | Hub base URL(s), comma-separated. Used by two features: the self-synced checkpoint mirror (`database.checkpoint.self_sync`, where `database.checkpoint.hub_url` takes precedence when present) and the JSON-RPC reads that back the validator-capabilities and governance pages. Works in `NO_HUB` mode too, so a standalone node can still point these reads at a hub. |
 | `HUB_API_KEY` | No | None | API key for the hub's `/hub-db` mirror feed, when the hub operator has configured one. |
+| `HUB_CONFIG_SECRETS_API_KEY` | No | None | API key sent as `x-api-key` on hub reads that return credentials (`getallconfigs` with `include_secrets`, which is how the explorer receives its database passwords). Takes precedence over `HUB_API_KEY`; unset, `HUB_API_KEY` authorizes both the bulk and the credential tier. Treat as a credential. |
 | `EXPLORER_HUB_CACHE_MS` | No | `15000` | How long (ms) validator-capabilities and governance rows fetched from the hub are cached before re-fetching. |
 | `EXPLORER_HUB_CACHE_STALE_MAX_MS` | No | `600000` | How long (ms) previously-fetched rows may still be served while the hub is unreachable. Past this, the pages fail rather than serve very old data. |
 | `MIRROR_MAX_LAG_S` | No | None | For self-synced mirrors: log a warning when the mirror lags the hub by more than this many seconds. Responses always carry `mirror_lag_seconds` so clients can judge freshness themselves. |
