@@ -112,9 +112,9 @@ const WIRE_SCOPED = [
 ];
 
 const SCOPED = [
-  { file: 'components/e2e-test/architecture.md', claim: '75 action', count: 1,
-    why: 'test files, several per action; git ls-files xchain-e2e-test/test/actions on 2026-08-30 '
-       + 'after the three ROLLCALL acceptance harnesses landed. Count the COMMITTED tree: an '
+  { file: 'components/e2e-test/architecture.md', claim: '76 action', count: 1,
+    why: 'test files, several per action; git ls-files xchain-e2e-test/test/actions on 2026-09-02 '
+       + 'after the attestation widening drive landed. Count the COMMITTED tree: an '
        + 'untracked suite from another lane inflates a filesystem scan, and the gate gates the commit' },
   { file: 'components/e2e-test/architecture.md', claim: '30 ACTION names', count: 1,
     why: 'ACTION names those 75 files cover, one entry per name with versions folded in; '
