@@ -59,6 +59,15 @@ npm run test:mutate:dry-run       # Validate Stryker config
 npm run mutate:report             # Generate mutation report
 ```
 
+### Shared Venues and Fixture Stakes
+
+A fixture `STAKE` joins the venue's real capability sets. The suite books every
+stake it creates and gives it back in the root teardown, then reports whether
+the run left the `oracle_publish` set larger than it found it. On a venue other
+runs share, set `E2E_STAKE_TEARDOWN_STRICT=1` so a leak fails the run instead of
+only being logged; on a venue that exists to hold a seeded federation, set
+`E2E_STAKE_TEARDOWN=off`. See [Staking Venue Policy](staking-venue-policy.md).
+
 ## CI Integration
 
 ### Recommended Pipeline

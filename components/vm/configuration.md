@@ -70,6 +70,28 @@ Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`r
 | Code size | `maxCodeSize` | 65,536 bytes | Maximum contract source code size (enforced at both deploy and execute) |
 | Block cache size | `maxBlockCacheSize` | 1,000 entries | Maximum compiled script entries cached per block |
 
+### Consensus Wall-Clock Budget
+
+Wall-clock time is the one limit in the table above that is **not** a node setting. Gas is the deterministic meter, but gas does not bound wall time: a contract can spend seconds of real time inside a single native operation while its `gasUsed` stays low, and for those shapes the wall-clock net, not the gas ceiling, is what ends the execution.
+
+Both the status and the `gasUsed` that come out of a timeout are consensus-visible (`gasUsed` drives the fee debit and feeds the per-block contract checkpoint). So if each node picked that net for itself, two correctly running validators would commit different bytes for the same block: the node with the tighter budget returns `timeout: wall-clock safety net triggered` with `gasUsed` clamped to the gas ceiling, while the node with the looser budget commits the execution's real state changes and its real `gasUsed`. That is a chain split produced by a configuration file rather than by a rule.
+
+The rule that removes it:
+
+> One consensus contract execution runs against `CONSENSUS_MAX_WALL_MS`, a protocol constant of 30,000 ms, on every node. The node's own `limits.maxCpuTimeMs` does not bind a consensus execution.
+
+Activation is **network-aware**, matching the VM's sibling gates:
+
+| Network | When the consensus budget binds |
+|---|---|
+| `testnet`, `regtest` | Always, from genesis. A pre-launch network has no pre-activation history to preserve. |
+| `mainnet` | From the contract-era flag day, whose block time is listed on [Flag Days](../../protocol/flag-days.md). |
+| Unknown or unset | Same threshold as mainnet, and a block time that is not a finite number resolves to pre-activation. The conservative default keeps replay byte-identical in malformed or test contexts. |
+
+Below the gate the node's `maxCpuTimeMs` is used verbatim, so historical blocks replay byte-identically and non-consensus callers (benches, fuzzing, the toolkit simulator) keep their own tighter budgets.
+
+The constant is pinned **at** the value the documented default configuration already used, 30,000 ms, so no execution on a default-configured node changes outcome at the gate. The bound closes a fork surface; it does not re-price the ceiling. Tightening it later is a consensus tightening and needs its own flag day, re-goldened determinism baselines, and an atomic fleet deploy. Lowering `maxCpuTimeMs` on a live indexer does not tighten what a consensus execution is allowed to spend, and raising it does not loosen it.
+
 ### Additional Internal Limits
 
 These limits are hardcoded in the VM and not configurable:

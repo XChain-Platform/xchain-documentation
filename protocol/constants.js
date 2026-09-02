@@ -720,6 +720,71 @@ const ATTEST_RELAY_ACTIVATION = {
     regtest: 0,
 };
 
+// ATTEST_RESPONSIBLE_WIDENING_ACTIVATION (attestation Phase 4 liveness, spec §8.2): the flag-day
+// at/above which a request's responsible set WIDENS by one slot per window once the round has
+// visibly failed to finalize, instead of staying pinned to the REDUNDANCY validators the hash
+// order picked at admission.
+//
+// THE HOLE IT CLOSES. The responsible set is drawn from on-chain STAKE alone
+// (getcapabilityvalidators filters on stake and MIN_STAKE, with no liveness input), because the
+// set has to be derivable identically by every hub and every indexer from chain state. A
+// validator that is staked and serving nothing therefore keeps its slot forever, and every
+// request whose hash order lands on it needs `redundancy` signatures from a set that can only
+// produce `redundancy - 1`. The round cannot finalize, every retry dies on the consensus round
+// timeout, and the request burns its whole deadline window and expires with zero responses.
+// Measured on BTC testnet4 2026-09-02: request 77f37a86..., redundancy 3, responsible set of 3
+// with one member that has never connected to the federation. Leader rotation does not help,
+// because it moves who goes FIRST, never who may SIGN.
+//
+// WHY IT CANNOT KEY ON LIVENESS. Hubs disagree about who is reachable, so any rule of the form
+// "skip a member that looks silent" forks the set. The ladder is therefore a pure function of
+// chain height, exactly like the leader-rotation and model-fallback ladders it sits beside: the
+// set widens on a schedule whether or not anyone is actually down, and a healthy round finalizes
+// long before the first widen step is reached.
+//
+// WHAT IT DOES NOT RELAX. `redundancy` VALID signatures are still required to finalize, so the
+// independent-replication count the request asked for is unchanged. Widening only grows the pool
+// of validators permitted to supply them, and only after the assigned set has demonstrably
+// failed for WIDEN_START_STEP windows.
+//
+// MONOTONICITY, which is what makes the two sides safe to evaluate at different heights. The hub
+// derives its step from the indexer tip it polled; the indexer derives the v1 verify filter's
+// step from the block the RESPONSE landed in, which is always at or above that tip. So the
+// indexer's set is always a SUPERSET of the one the signing hub used, and a signature authorized
+// at proposal time can never be rejected at validation time.
+//
+// The gate is evaluated on the REQUEST's own block, not the response's, so a request admitted
+// below the height never widens and one admitted above always may: the rule for a given request
+// is fixed the moment it is admitted and cannot change mid-window.
+//
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/attest_responsible_widening_activation.js
+// by the activation-constants parity suite.
+const ATTEST_RESPONSIBLE_WIDENING_ACTIVATION = {
+    mainnet: null,        // INERT: operator-owned height, unratified
+    testnet: 150780,      // ARMED 2026-09-02. Tip was 150760 at 17:08Z running 20 min/block, so ~20 blocks (~6.5h). Sized to OUR fleet's deploy wave, not to the community's, and the SAFETY comes from deploy ORDER rather than from this margin: only an upgraded hub can PRODUCE a widened ATTEST v1, so indexers upgraded before hubs leaves no divergence window even if the height arrives mid-deploy.
+    regtest: 0,           // ARMED at genesis so the e2e venue exercises the ladder
+};
+
+// The ladder's own constants. FROZEN, and deliberately NOT the hub's operator-tunable
+// ATTESTATION_CONFIRMATIONS / ATTESTATION_LEADER_ROTATION_BLOCKS: those two shape only which hub
+// goes first, which no validator checks, whereas these shape WHO MAY SIGN, which every indexer
+// checks. Sourcing them from per-hub config would let one operator's tuning fork the set.
+//
+// PROPORTIONAL TO THE REQUEST'S OWN WINDOW, not a fixed block count. A fixed window sized to sit
+// after leader rotation's cap of 3 never fires at all inside a short deadline: the case this
+// exists for (deadlineBlocks 10, confirmations 3) leaves 7 serviceable blocks and rotation alone
+// consumes every one of them. So the serviceable span is divided into `maxSlots + 1` equal
+// segments, one per widening level, exactly as attestation_escalation.modelIndex divides the same
+// span across approved models.
+//
+// maxSlots 2 bounds how far the pool can grow: enough to absorb two dead members of a set, small
+// enough that the deterministic assignment stays the dominant property. The first segment is
+// always the unwidened set, so a healthy round never sees a widened set at all.
+const ATTEST_RESPONSIBLE_WIDENING = {
+    confirmations: 3,
+    maxSlots:      2,
+};
+
 // ATTEST_BROADCAST_FEE_ACTIVATION (attestation Phase 3 economics, spec §11 leader broadcast-fee
 // reimbursement): the flag-day at/above which a FULFILLED ATTEST settle carves a broadcast-fee
 // reimbursement out of the v0 fee escrow and pays it to the lowest-hash member of the request's
@@ -1191,6 +1256,8 @@ module.exports = {
     ATTEST_RELAY_ACTIVATION,
     ATTEST_BROADCAST_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_CAP,
+    ATTEST_RESPONSIBLE_WIDENING_ACTIVATION,
+    ATTEST_RESPONSIBLE_WIDENING,
     ORACLE_FEE_OUTPUT_ACTIVATION,
     ORACLE_FEE_SET_CAPTURE_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,

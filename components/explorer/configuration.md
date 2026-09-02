@@ -31,6 +31,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `MEMPOOL_COUNT_CACHE_MS` | No | `15000` | TTL (ms) of the mempool-count cache. |
 | `PRICE_CACHE_MS` | No | `60000` | TTL (ms) of the oracle-price cache. |
 | `FEE_CACHE_MS` | No | `60000` | TTL (ms) of the fee-schedule cache. |
+| `EXPLORER_TIP_MEMO_MS` | No | `1000` | How long (ms) a coin's chain-tip lookup is memoized. The tip is the generation key for the cached list results (`getBalances`/`getHolders`/`getTokens`), so this bounds the tip probe to one index-max query per coin per window rather than one per request. A probe that fails returns null and the caller skips the cache for that request. |
 | `EXPLORER_WALLET_URL` | No | `https://wallet.xchain.io` | Wallet handoff target for the contract page's Write Contract card. Set it to an **empty string** to disable the card entirely; the default applies only when the variable is unset, never when it is set to `''`. |
 | `ENCODER_URL` | No | None | Encoder base URL used for the UI's fee estimate. Unset returns a conservative `{low:1, medium:2, high:3}` fallback rather than an error. |
 | `UTXO_TRACKER_URL_<COIN>` | No | None | Per-coin UTXO-tracker base URL, used to fill the address page's balance and UTXO panel from the tracker's `GET /info/<address>`. `COIN` is the route code (`BTC`, `TBTC`, `RDOGE`, …). |
@@ -79,8 +80,9 @@ See [WEBSOCKET.md](websocket.md) for the full WebSocket API reference.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `HUB_API_URL` | No | None | Hub base URL(s), comma-separated. Used by two features: the self-synced checkpoint mirror (`database.checkpoint.self_sync`) and the JSON-RPC reads that back the validator-capabilities and governance pages. Works in `NO_HUB` mode too, so a standalone node can still point these reads at a hub. |
+| `HUB_API_URL` | No | None | Hub base URL(s), comma-separated. Used by two features: the self-synced checkpoint mirror (`database.checkpoint.self_sync`, where `database.checkpoint.hub_url` takes precedence when present) and the JSON-RPC reads that back the validator-capabilities and governance pages. Works in `NO_HUB` mode too, so a standalone node can still point these reads at a hub. |
 | `HUB_API_KEY` | No | None | API key for the hub's `/hub-db` mirror feed, when the hub operator has configured one. |
+| `HUB_CONFIG_SECRETS_API_KEY` | No | None | API key sent as `x-api-key` on hub reads that return credentials (`getallconfigs` with `include_secrets`, which is how the explorer receives its database passwords). Takes precedence over `HUB_API_KEY`; unset, `HUB_API_KEY` authorizes both the bulk and the credential tier. Treat as a credential. |
 | `EXPLORER_HUB_CACHE_MS` | No | `15000` | How long (ms) validator-capabilities and governance rows fetched from the hub are cached before re-fetching. |
 | `EXPLORER_HUB_CACHE_STALE_MAX_MS` | No | `600000` | How long (ms) previously-fetched rows may still be served while the hub is unreachable. Past this, the pages fail rather than serve very old data. |
 | `MIRROR_MAX_LAG_S` | No | None | For self-synced mirrors: log a warning when the mirror lags the hub by more than this many seconds. Responses always carry `mirror_lag_seconds` so clients can judge freshness themselves. |
@@ -235,16 +237,17 @@ A few tables the explorer serves (state checkpoints, capability snapshots, cross
     "user": "xchain_reader",
     "pass": "your_password",
     "name": "XChain_Hub_Mirror",
-    "self_sync": true
+    "self_sync": true,
+    "hub_url": "http://hub-host:10000"
 }
 ```
 
 There are two ways to provision that schema:
 
-- **Self-synced (recommended):** set `"self_sync": true` and configure `HUB_API_URL`. The explorer creates the schema and its tables itself, downloads a snapshot from the hub, and then follows the hub's live feed. No hub database needs to exist on the explorer's server.
+- **Self-synced (recommended):** set `"self_sync": true` and give the explorer a hub endpoint, either `"hub_url"` in this same block or the `HUB_API_URL` environment variable (`hub_url` wins). The explorer creates the schema and its tables itself, downloads a snapshot from the hub, and then follows the hub's live feed. No hub database needs to exist on the explorer's server. Installs driven by xchain-node fill `hub_url` in automatically, so the flag and the endpoint always arrive together.
 - **Externally maintained:** omit `self_sync` and point `name` at a real hub database on the same server (single-server deployments where the hub already runs locally).
 
-Without a checkpoint block for a serving coin, the explorer refuses to start (see `ALLOW_NO_COLOCATED_HUB_DB`).
+Without a checkpoint block for a serving coin, the explorer refuses to start (see `ALLOW_NO_COLOCATED_HUB_DB`). It also refuses to start on `self_sync` with no hub endpoint at all: nothing would write the mirror, so every hub-mirrored read would serve whatever rows the schema last held. `ALLOW_NO_COLOCATED_HUB_DB=1` downgrades that to a warning, and the hub-mirrored endpoints then return HTTP 503 with code `MIRROR_NOT_CONFIGURED` per request rather than serving stale rows.
 
 In self-sync mode the affected endpoints return HTTP 503 with code `MIRROR_NOT_BOOTSTRAPPED` until the first snapshot download completes, and afterwards include `mirror_bootstrapped` and `mirror_lag_seconds` fields so clients can judge freshness. `GET /{COIN}/api/hub-mirror/status` reports the mirror's state. One detail to know: the `anchor_txid` audit field on cross-chain matches is filled in by the hub after anchor publication; the hub re-broadcasts the stamped row on the mirror feed, so a self-synced mirror picks it up shortly after the anchor lands (a mirror that was offline at that moment catches up on its next bootstrap). The legacy `batch_root` field only exists on rows stamped by a retired publisher and arrives with the snapshot. All trade-relevant fields arrive immediately.
 

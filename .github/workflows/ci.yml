@@ -16,9 +16,22 @@ name: CI
 # A drift in any of those is a wrong answer given to an implementer, and until
 # now nothing ran on a push to catch it.
 #
-# Hermetic: no sibling checkouts, no services, no secrets. Verified on a
-# pristine clone (clean clone + npm ci + npm test): 79 passing, 0 failing,
-# 2 skipped, exit 0.
+# Hermetic: no sibling checkouts, no services, no secrets.
+#
+# The hermeticity has a cost worth naming rather than rediscovering:
+# a test that needs a SIBLING repo cannot run here, and node:test prints a skip
+# as a pass. test/schema-table-coverage.test.js is the one that bit: its
+# cross-repo half resolves xchain-decoder/-indexer/-hub beside this checkout,
+# skipped on every run here, and three ROLLCALL tables reached a published
+# database.md undocumented with this workflow green the whole way.
+#
+# So a cross-repo invariant does not get to live only in this suite. The rules
+# moved to lib/schema-table-coverage.js, whose hermetic tests DO run here, and
+# the invariant itself is enforced from the platform checkout, where the
+# siblings exist, by XChain-Platform/bin/check-schema-table-doc-coverage.js on
+# every ci-all sweep and every push. Same fix already made for the env-var
+# coverage gate. Before adding a test that reads a sibling repo, give it a
+# trigger that runs where the sibling is.
 
 # Least privilege for the default GITHUB_TOKEN: every job here only reads the repo.
 permissions:

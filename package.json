@@ -1,7 +1,7 @@
 {
   "name": "xchain-documentation",
   "description": "XChain Platform protocol specification, architecture guides, and developer documentation",
-  "version": "0.12.1",
+  "version": "0.14.0",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
