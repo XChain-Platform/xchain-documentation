@@ -254,6 +254,7 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 | `ORACLE_PUBLISHED_ROUNDS_RETENTION_ROUNDS` | No | `12960` | Number of recent rounds of published-round markers to keep, roughly 90 days at the default round interval. Set to `0` to disable pruning and keep every marker. Only confirmed markers are ever pruned: a marker for a round whose on-chain state is still unknown is a quarantine record an operator reconciles by hand, so those are always retained. |
 | `ORACLE_ALLOW_UNVERIFIED_PAIRS` | Regtest only | `false` | Set to `true` to co-sign a proposed pair this hub can verify against nothing (no live local aggregate and no finalized history). It stands down a Byzantine-leader defense, so it is honored **only on regtest**: on mainnet, testnet, and a standalone hub with no `HUB_NETWORK`, it is ignored (and logged) and unverifiable-pair co-sign stays fail-closed. A real federation always has a second fetcher, so the hatch has no legitimate use there. |
 | `ORACLE_MAX_PRICE_AGE_SECONDS` | Regtest only | _(coin registry, per pair)_ | Maximum age of an oracle price before it is treated as stale. Resolution order is `p2pConfig` → this variable → the per-pair value pinned in the coin registry. The bound is consensus-pinned: it is content-hashed into `CONSENSUS_CONFIG_PIN`, and the indexer reads only the pinned bundle with no override path of its own. So the override is honored **only on regtest**; on mainnet, testnet, and standalone it is ignored (and logged) in favour of the pinned bound. Honoring it elsewhere would detach this hub's fee quotes, and the `oracleMaxPriceAgeSeconds` it reports over `getoraclesubmissions`, from the bound they claim to mirror: quoting rounds the fleet's fee gate rejects, or refusing rounds it accepts. To change the staleness gate for real, change the pinned coin bundle. |
+| `ORACLE_ROUND_ABANDON_GRACE_MS` | No | `15000` | Extra slack, on top of a round's own timer ladder (`ORACLE_LEADER_TIMEOUT_MS` + a fixed fallback grace + `ORACLE_FINALIZATION_TIMEOUT`), before this hub's round-abandonment watchdog gives up on a round it opened and never saw finalized. When the watchdog fires, the hub records a locally-skipped row for that round so its own absence of a snapshot is a stated fact rather than a silent hole, which is what lets hub-to-hub round-presence comparison (`getoracleroundpresence`) tell "the whole federation lost this round" apart from "only this hub never saw it". Raising it gives a round already running late more time before it is written off; it never widens the ladder those other timeouts define. |
 
 ### Oracle Publishing
 
@@ -269,6 +270,7 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 | `ORACLE_PUBLISH_CONFIRM_STALE_MS` | No | `1800000` | How long a published transaction may stay unconfirmed before it is logged as stale. Detection only: nothing is re-broadcast and no fee is bumped, because a transaction still sitting in a mempool may yet confirm and re-sending would pay twice for the same rounds. |
 | `ORACLE_PUBLISH_ALLOW_UNCONFIRMED_INPUTS` | No | `false` | Whether a published batch may be funded from this hub's own unconfirmed change. Off by default: miners judge a transaction by its whole ancestor package, so one cheap early transaction holds down every batch chained behind it, however much the newest one pays. Leaving it off means a hub with no confirmed output defers the window instead, which is recoverable. Turn it on only for a venue that mines on demand, such as regtest, where waiting for a confirmation would stall the harness. |
 | `ORACLE_BATCH_WINDOW_ROUNDS` | No | `6` | How many finalized rounds one published action carries. A round does not ride its own transaction: it is buffered, and the whole window leaves together under a single quorum signature set. Hubs configured differently elect different leaders and may publish overlapping windows, which is harmless (ingest is idempotent) but wasteful, so keep this equal across a federation. |
+| `ORACLE_BATCH_LANDING_RESERVE_MS` | No | `300000` | Estimated time from a window closing to its published batch being readable on-chain: assembly, the co-signing round, broadcast, and one DOGE confirmation plus indexing. Measured at roughly 180s on public testnet; the default is that with headroom. Subtracted, together with `ORACLE_BATCH_GRACE_MS`, from the fee-price staleness bound when deriving the largest `ORACLE_BATCH_WINDOW_ROUNDS` that still keeps the freshest priced snapshot inside that bound; raising it shrinks the derived window ceiling. |
 | `ORACLE_BATCH_GRACE_MS` | No | `300000` | How long after a window closes the elected leader waits before assembling it, giving late-finalizing peers time to agree on its contents. Armed once per window and never extended, so a trickle of stragglers cannot postpone a window indefinitely. |
 | `ORACLE_BATCH_SIGN_TIMEOUT_MS` | No | `60000` | How long the leader waits for a signing quorum on an assembled window. No quorum means no publication for that window: it stays buffered and a later leader can propose it again. |
 | `ORACLE_BATCH_BUFFER_MAX_ROUNDS` | No | `4032` | Upper bound on buffered rounds, so a hub that never leads a window cannot grow its buffer without limit. Reached only if publication has been failing for a long time; the oldest rounds are dropped first. |
@@ -278,6 +280,7 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 | `DOGE_ENCODER_URL` | No | _(from config table)_ | Encoder URL used to build DOGE publish transactions. |
 | `DOGE_ENCODER_API_KEY` | No | _(from config table)_ | API key presented to that encoder when it runs keyed. Treat as a credential. |
 | `DOGE_LOW_BALANCE_THRESHOLD` | No | `10` | DOGE balance below which the publisher warns that it is running out of funds. |
+| `ORACLE_BATCH_CATCHUP_INTERVAL_MS` | No | `3600000` (1 hour) | How often a recurring sweep re-proposes closed batch windows that are still buffered and unpublished (a signing round that failed to reach quorum, for example). Deliberately slow: the refusal it recovers from is either a peer being down or content drift that the leader repairs from `price_snapshots` before re-proposing, and a faster retry would only add a signing round per window per interval across the federation without fixing either cause sooner. |
 
 ### Rewards and Slashing
 
@@ -561,6 +564,15 @@ Regtest-only genesis overrides, ignored on mainnet and testnet, which always use
 |---|---|---|---|
 | `GOV_VOTING_PERIOD` | No | `604800000` | Governance voting period in milliseconds (default: 7 days) |
 | `GOVERNANCE_TALLY_INTERVAL` | No | `60000` | Interval between governance tally sweeps |
+
+### Diagnostic Scripts (`bin/`)
+
+Read-only operator tools; neither broadcasts nor writes anything and neither is read by the running hub process itself.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `HUB_RPC_URL` | No | `http://127.0.0.1:4000` | Hub JSON-RPC base URL `bin/stake-share-drill.js` queries (`getstakeshare`) when no `--hub` flag is given. The drill reports how much more third-party stake the federation can absorb before the stake-weighted quorum commit gate stops being reachable, and what a stake of a given size would do to that margin; used to size a top-up before putting real stake on the network. |
+| `HUB_RPC_URLS` | No | _(empty; `--hubs` required instead)_ | Comma-separated hub JSON-RPC URLs `bin/oracle-round-presence.js` polls (`getoracleroundpresence`) when no `--hubs` flag is given. Asks every named hub about the same round range and reports whether the federation agrees on which rounds happened, so a round that finalized on some validators and not others shows up as a named divergence instead of looking like ordinary absence. At least two URLs are required; comparing one hub to itself is refused. |
 
 ## Database Schema
 

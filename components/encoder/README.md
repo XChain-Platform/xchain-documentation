@@ -157,6 +157,7 @@ npm run api
 | `ENCODER_MAX_CONCURRENT_PROBES` | No | `16` | Concurrency cap for cheap probe requests (`GET /status`, `GET /openrpc.json`), which get their own gate so a monitoring flood cannot consume the budget real work needs. Over the cap a probe is refused immediately with `429` and `Retry-After: 1` rather than queued; `0` disables the cap |
 | `ENCODER_MAX_CONCURRENT_REQUESTS` | No | `50` | Concurrency cap for everything that is not a probe. Same immediate-`429` behaviour, and `0` likewise disables it |
 | `CORS_ORIGIN` | No | Disabled | CORS origin (`*` to allow all) |
+| `ENCODER_MAINTENANCE_FILE` | No | `/tmp/xchain-encoder-maintenance.json` | Path, inside the encoder container, to the maintenance-window sentinel that `GET /status` reads before reporting an unreachable UTXO tracker. When xchain-node's bootstrap stops the tracker for a scheduled publish, it drops a small JSON file here declaring the outage planned; `/status` then folds that in as context alongside the unchanged readiness fields, so the public status board can show "Maintenance" instead of "Degraded" without ever making an unready encoder read ready. Must be set to the same path as xchain-node's `XCHAIN_NODE_ENCODER_MAINTENANCE_FILE`, since that variable is what writes and removes the file this one points at |
 
 ## Testing
 
