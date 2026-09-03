@@ -251,8 +251,8 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 | `ORACLE_FINALIZED_MAX` | No | `10000` | Cap on retained finalized-round records held in memory. |
 | `ORACLE_SUBMISSIONS_RETENTION_ROUNDS` | No | _(unset)_ | Number of past rounds of raw price submissions to retain. Unset keeps the built-in retention. |
 | `ORACLE_PUBLISHED_ROUNDS_RETENTION_ROUNDS` | No | `12960` | Number of recent rounds of published-round markers to keep, roughly 90 days at the default round interval. Set to `0` to disable pruning and keep every marker. Only confirmed markers are ever pruned: a marker for a round whose on-chain state is still unknown is a quarantine record an operator reconciles by hand, so those are always retained. |
-| `ORACLE_ALLOW_UNVERIFIED_PAIRS` | No | `false` | Set to `true` to accept price pairs that have not been verified. Loosens a fail-closed check; intended for bring-up, not production. |
-| `ORACLE_MAX_PRICE_AGE_SECONDS` | No | _(coin registry, per pair)_ | Maximum age of an oracle price before it is treated as stale. Resolution order is `p2pConfig` → this variable → the per-pair value pinned in the coin registry. The registry value is never a hardcoded literal, so a coordinated release that changes the pin cannot silently diverge the hub's advisory from the indexer's gate. Setting this per-host overrides that pin: do it deliberately, and match it across the federation. |
+| `ORACLE_ALLOW_UNVERIFIED_PAIRS` | Regtest only | `false` | Set to `true` to co-sign a proposed pair this hub can verify against nothing (no live local aggregate and no finalized history). It stands down a Byzantine-leader defense, so it is honored **only on regtest**: on mainnet, testnet, and a standalone hub with no `HUB_NETWORK`, it is ignored (and logged) and unverifiable-pair co-sign stays fail-closed. A real federation always has a second fetcher, so the hatch has no legitimate use there. |
+| `ORACLE_MAX_PRICE_AGE_SECONDS` | Regtest only | _(coin registry, per pair)_ | Maximum age of an oracle price before it is treated as stale. Resolution order is `p2pConfig` → this variable → the per-pair value pinned in the coin registry. The bound is consensus-pinned: it is content-hashed into `CONSENSUS_CONFIG_PIN`, and the indexer reads only the pinned bundle with no override path of its own. So the override is honored **only on regtest**; on mainnet, testnet, and standalone it is ignored (and logged) in favour of the pinned bound. Honoring it elsewhere would detach this hub's fee quotes, and the `oracleMaxPriceAgeSeconds` it reports over `getoraclesubmissions`, from the bound they claim to mirror: quoting rounds the fleet's fee gate rejects, or refusing rounds it accepts. To change the staleness gate for real, change the pinned coin bundle. |
 
 ### Oracle Publishing
 
@@ -465,10 +465,25 @@ The XCHAIN/USD price is derived from platform-realized fills rather than an exte
 | `XCHAIN_PRICE_INDEXER_DB_USER` | No | None | Database user |
 | `XCHAIN_PRICE_INDEXER_DB_SECRET` | No | None | Database password. Deprecated name `XCHAIN_PRICE_INDEXER_DB_PASS` is still read; see Secret variable naming above. Treat as a credential: supply it from the deployment environment, never a checked-in file. |
 | `XCHAIN_PRICE_INDEXER_DB_COIN` | No | `BTC` | Chain whose fills the price is derived from |
-| `XCHAIN_PRICE_WINDOW_BLOCKS` | No | _(built-in)_ | Rolling window, in blocks, over which fills are aggregated |
-| `XCHAIN_PRICE_MIN_BTC_VOLUME` | No | _(built-in)_ | Minimum BTC-notional volume in the window before a derived price is considered valid |
-| `XCHAIN_PRICE_CONFIRMATION_BUFFER` | No | _(built-in)_ | Confirmations a fill needs before it counts toward the derived price |
-| `XCHAIN_PRICE_BOOTSTRAP_SATS` | No | `1000` | Bootstrap XCHAIN price in SATOSHIS, used before enough on-platform volume exists to derive one. Converted to USD at round time with the consensus BTC/USD, so it is never a USD pin. Consensus-critical: a per-operator value forks fee acceptance |
+
+The four derivation parameters below are **consensus-uniform**, not per-operator
+tuning. Every validator has to compute the same window over the same fills, so a
+hub honoring a local override would produce a different XCHAIN/BTC leg, land
+outside the co-sign deviation band, and expose itself to slashing. They are
+therefore **honored on regtest only**: on mainnet and testnet the hub logs a
+`set but IGNORED` warning and uses the consensus-pinned value regardless of what
+the environment says, and so does a standalone hub with no `HUB_NETWORK`.
+Retuning them for real is a coordinated flag-day change to the pinned values,
+never an operator environment variable. The per-operator
+`XCHAIN_PRICE_INDEXER_DB_*` source settings above are not gated this way: those
+are per-validator by design.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `XCHAIN_PRICE_WINDOW_BLOCKS` | Regtest only | _(built-in)_ | Rolling window, in blocks, over which fills are aggregated. Ignored (and logged) off regtest. |
+| `XCHAIN_PRICE_MIN_BTC_VOLUME` | Regtest only | _(built-in, supersession disabled)_ | Minimum BTC-notional volume in the window before a derived price supersedes the carry-forward. `0` means any realized volume supersedes, which is what an e2e drill sets to prove the derived branch at all. Ignored (and logged) off regtest. |
+| `XCHAIN_PRICE_CONFIRMATION_BUFFER` | Regtest only | _(built-in)_ | Confirmations a fill needs before it counts toward the derived price. Ignored (and logged) off regtest. |
+| `XCHAIN_PRICE_BOOTSTRAP_SATS` | Regtest only | `1000` | Bootstrap XCHAIN price in SATOSHIS, used before enough on-platform volume exists to derive one. Converted to USD at round time with the consensus BTC/USD, so it is never a USD pin. Ignored (and logged) off regtest: a per-operator value would fork fee acceptance. |
 
 ### LLM Attestation Provider
 
