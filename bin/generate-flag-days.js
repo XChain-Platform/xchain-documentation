@@ -469,6 +469,36 @@ function collectTestnetArms(indexerSrc = INDEXER_SRC) {
 }
 
 /**
+ * TESTNET slots parked on an UNARMED sentinel (>= SENTINEL_FLOOR), as `{ gate, time }`
+ * sorted by name.
+ *
+ * These are the OTHER way the "testnet is genesis-active" invariant can be false, and
+ * they were impossible until the public testnet launch of 2026-09-01 made testnet a
+ * live ledger: a consensus change registered after it cannot arm testnet at genesis
+ * without re-deciding history that outside nodes have already committed, so it parks on
+ * the sentinel until an operator names an instant. Leaving them unmentioned would let
+ * the page assert that a testnet stack "has always run the post-activation behavior" for
+ * a rule testnet has never run at all. Read from the same two declaration shapes as the
+ * armed parse.
+ */
+function collectTestnetUnarmed(indexerSrc = INDEXER_SRC) {
+    const scannable = withoutComments(
+        fs.readFileSync(path.join(indexerSrc, 'protocol_changes.js'), 'utf8'),
+    );
+    const found = new Map();
+    const add = (gate, time) => {
+        if (!Number.isFinite(time) || time < SENTINEL_FLOOR) return;
+        if (!found.has(gate)) found.set(gate, { gate, time });
+    };
+    let match;
+    const constRe = /const\s+([A-Z][A-Z0-9_]*)_TESTNET_TIME\s*=\s*(\d+)\s*;/g;
+    while ((match = constRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
+    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*[A-Za-z0-9_]+\s*,\s*(\d+)/g;
+    while ((match = callRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
+    return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
+}
+
+/**
  * The coordinated contract-era flag day: the timestamp the most gates ride.
  * Derived rather than named, because naming it here would reintroduce exactly
  * the hardcoded value this generator exists to remove. Cohort A is 30+ gates
@@ -490,7 +520,7 @@ function coordinatedFlagDay(gates) {
     return { time: ranked[0][0], count: ranked[0][1] };
 }
 
-function render(gates, testnetArms = []) {
+function render(gates, testnetArms = [], testnetUnarmed = []) {
     const anchor = coordinatedFlagDay(gates);
     const others = gates.filter((g) => g.time !== anchor.time);
 
@@ -528,6 +558,19 @@ function render(gates, testnetArms = []) {
           + 'comment in \`protocol_changes.js\`. The values on this page are otherwise '
           + 'mainnet values only.';
 
+    // The other way a gate can be off the genesis-active invariant: parked on the UNARMED
+    // sentinel on testnet, so testnet has never run that rule and is waiting on an
+    // operator to name an instant. Prose for the same reason an arm is.
+    const unarmedNote = testnetUnarmed.length === 0
+        ? ''
+        : `\n\n**${testnetUnarmed.length === 1 ? 'One gate is UNARMED on testnet' : `${testnetUnarmed.length} gates are UNARMED on testnet`}** `
+          + `(${testnetUnarmed.map((g) => `\`${g.gate}\``).join(', ')}): testnet carries the `
+          + 'sentinel rather than `0`, so a testnet stack has **never** run the '
+          + 'post-activation behavior and will not until an operator arms it. A consensus '
+          + 'change registered after the public testnet launch cannot be genesis-active '
+          + 'there without re-deciding history that outside nodes have already committed. '
+          + 'Each names its reason in its registration comment in `protocol_changes.js`.';
+
     return `<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025-2026 Dankest, LLC -->
 <!-- GENERATED FILE. Do not edit: run \`node bin/generate-flag-days.js\`. -->
@@ -562,7 +605,7 @@ ${outliers}
 
 **Testnet and regtest are genesis-active** for the time-keyed gates: they carry
 threshold \`0\`, so a testnet or regtest stack has always run the
-post-activation behavior. ${testnetNote}
+post-activation behavior. ${testnetNote}${unarmedNote}
 
 ## Mainnet time-keyed gates
 
@@ -578,7 +621,7 @@ here; they are inventoried on
 }
 
 function generate(indexerSrc = INDEXER_SRC) {
-    return render(collectGates(indexerSrc), collectTestnetArms(indexerSrc));
+    return render(collectGates(indexerSrc), collectTestnetArms(indexerSrc), collectTestnetUnarmed(indexerSrc));
 }
 
 if (require.main === module) {
@@ -598,6 +641,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-    collectGates, collectTestnetArms, coordinatedFlagDay, render, generate, utcInstant, utcDate,
+    collectGates, collectTestnetArms, collectTestnetUnarmed, coordinatedFlagDay, render, generate, utcInstant, utcDate,
     DOC_ROOT, INDEXER_SRC, REGISTRY, OUTPUT, TIMESTAMP_FLOOR, SENTINEL_FLOOR,
 };
