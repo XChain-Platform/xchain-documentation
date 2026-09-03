@@ -631,6 +631,10 @@ Calculates the native coin fee amount for a given action. The conversion uses tw
 | `OWNERSHIP_ESCROW` | 50,000 | Ownership escrow deposit |
 | `AIRDROP_PER_RECIPIENT` | 100 | Per recipient in an airdrop |
 | `DIVIDEND_PER_RECIPIENT` | 100 | Per recipient in a dividend distribution |
+| `SWEEP_BASE` | 5,000 | Base cost for a sweep, charged whatever it moves |
+| `SWEEP_PER_ITEM` | 100 | Per swept balance, closed escrow, or transferred ownership |
+| `CALLBACK_BASE` | 5,000 | Base cost for a callback, charged whatever it pays out |
+| `CALLBACK_PER_RECIPIENT` | 100 | Per recipient paid by a callback |
 | `VM_EXECUTE_BASE` | 1,000 | Base cost for a VM contract execution |
 | `VM_DEPLOY_BASE` | 100,000 | Base cost for a VM contract deployment |
 | `VM_DEPLOY_PER_BYTE` | 10 | Per byte of contract source code |

@@ -28,7 +28,8 @@ This example calls back the JDOG token to the token owner address
 - All `TICK` supply holders will receive `CALLBACK_AMOUNT` of `CALLBACK_TICK` per `UNIT`
 
 ## Notes
-- `CALLBACK` requires a fee based on number of database hits. The fee may be paid in `XCHAIN` (deducted from the sender's balance) or in native coin via a qualified coin output in the same transaction.
+- `CALLBACK` requires a fee. The fee may be paid in `XCHAIN` (deducted from the sender's balance) or in native coin via a qualified coin output in the same transaction; on Litecoin and Dogecoin the native-coin output is the only accepted form.
+- The fee is priced on the unified gas schedule as `CALLBACK_BASE` plus `CALLBACK_PER_RECIPIENT` for each holder paid, from the `UNIFIED_FEES_SWEEP_CALLBACK` gate; before it, the fee was a flat charge per database hit. The base exists so the smallest callback still buys a native-coin fee output above the chain's dust threshold. See [Flag-Day Values](../flag-days.md) for where the gate stands on each network, and the hub's [gas schedule](../../components/hub/api.md) for the values.
 - `UNIT` - A specific unit of measure (1 or 1.0)
 - `CALLBACKS` respect `CALLBACK_TICK` `ALLOW_LIST` and `BLOCK_LIST` and will only distribute `CALLBACK_TICK` to authorized holders
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
