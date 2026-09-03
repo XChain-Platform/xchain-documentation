@@ -464,6 +464,7 @@ Records detected validator misbehavior for governance review. The hub detects vi
 | `anchor_published_archives` | The same at-most-once marker for the ANCHOR archive publish, held per network rather than per batch because a crashed round always rebuilds under a fresh `batch_seq` (hub-local, not mirrored) |
 | `capability_snapshots` | Per-block capability validator sets locked at BTC-anchored block boundaries |
 | `anchor_reward_attestations` | Quorum-attested ANCHOR publisher rewards; mirrored to indexers |
+| `attestation_responses` | Finalized ATTEST responses, written once a round reaches quorum and mirrored to indexers, so a response no longer costs a validator an on-chain transaction. Insert-only; every hub holding the artifact writes its own row, so the id is hub-local |
 
 ### `anchor_reward_attestations`
 
