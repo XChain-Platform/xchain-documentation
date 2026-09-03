@@ -651,10 +651,14 @@ const ATTEST_ADMISSION_ACTIVATION = {
 // same for a free HTTP GET as for a paid model. On a fee-bearing network economics bound the
 // shape; on testnet neither the coin nor XCHAIN is scarce, so the bound must be consensus.
 //
-// REJECTION, not deferral: unlike the three sibling per-block caps (XCALL_MAX_CALLS_PER_BLOCK,
+// REFUSAL, not deferral: unlike the three sibling per-block caps (XCALL_MAX_CALLS_PER_BLOCK,
 // ATTEST_MAX_EXPIRIES_PER_BLOCK, CROSS_SETTLE_MAX_PER_BLOCK) this caps admission of an action
 // already in the block rather than a pass the indexer schedules, so there is no next block to
-// carry overflow into. Over-cap requests go 'rejected' (terminal at creation, fee never escrowed).
+// carry overflow into. An ATTEST v0 exists only as a VM emission and a failed emission validation
+// fails its enclosing EXECUTE, so the refusal lands as a REVERTED EXECUTE: the over-cap request,
+// the under-cap requests the same EXECUTE already emitted, and its state writes all roll back
+// together, and no ATTEST v0 row is ever stored 'rejected'. The only durable trace is the cap's
+// message on contract_executions.error_message. Driven on BTC regtest 2026-09-02.
 //
 // Counted deterministically from the attests table at (block_index = this block, action_index <
 // this action, request_status <> 'rejected'): a total order every node replays identically.
