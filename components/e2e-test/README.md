@@ -67,7 +67,7 @@ flowchart TD
     subgraph E2E["xchain-e2e-test"]
         CH["cryptoHelper<br>BIP39/BIP32<br>wallet mgmt"]
         TH["transactionHelper<br>PSBT/P2SH"]
-        AH["action helpers (49 modules)<br>message construction"]
+        AH["action helpers (51 modules)<br>message construction"]
         SC["Service Connectors (src/)<br>BlockchainConnector, XChainEncoderConnector<br>XChainUtxoTrackerConn, XChainDecoderConnector<br>XChainIndexerConnector, XChainExplorerConnector<br>XChainHubConnector, RegtestMinerConnector<br>Database (MariaDB)"]
         CH --> SC
         TH --> SC
