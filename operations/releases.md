@@ -9,6 +9,61 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.14.0
+
+Released 2026-09-02. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.14.0)
+
+A consensus train. `xchain-node`, `xchain-hub` and `xchain-indexer` move to
+0.14.0; the other ten components keep the tags they already carry. There is no
+v0.13.0: that number was skipped deliberately, and nothing in the platform
+resolves a train by counting upward, so a gap in the sequence is not a missing
+release.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.14.0 |
+| xchain-hub | 0.14.0 |
+| xchain-indexer | 0.14.0 |
+| xchain-explorer | 0.12.0 |
+| xchain-decoder | 0.12.0 |
+| xchain-encoder | 0.12.0 |
+| xchain-sync | 0.12.0 |
+| xchain-utxo-tracker | 0.12.0 |
+| xchain-vm | 0.12.0 |
+| xchain-sdk | 0.12.0 |
+| xchain-contracts | 0.12.0 |
+| xchain-e2e-test | 0.12.0 |
+| xchain-regtest-miner | 0.12.0 |
+
+An attestation request drew its responsible set from on-chain stake alone, with
+nothing in the calculation about whether a validator was answering. A validator
+that was staked and served nothing kept its slot forever, and a set holding one
+such member could never gather the signatures finalization needs. Every
+attestation request on Bitcoin testnet was expiring with zero responses. A
+stalled request now widens its responsible set as its own window elapses, the
+hub signs from the widened set and the indexer accepts from it, and the fee
+split for a fulfilled request follows the same set. The widening ladder is fixed
+by consensus rather than configured per hub, because it decides who is allowed
+to sign.
+
+Alongside it: validators gossip a digest of the consensus rules they are
+applying on the heartbeat and warn when a peer, or the node itself, is on
+different flag-day heights, and the indexer publishes the same digest on its
+health endpoint so it can be compared against the federation it follows.
+`install <ref> xchain-hub` no longer fails with HTTP 401 on a host the runbook
+provisioned, because the CLI now sends the hub API key that `validator init`
+generated. The checkpoint config block ships `hub_url` beside `self_sync`, so a
+fresh install resolves its checkpoint peer and every installed coin gets a
+checkpoint block. `xchain-node rollback` prints the recovery path and exits
+instead of hanging in its precheck.
+
+**This train changes state derived from existing bytes.** Responsible-set
+widening activates on Bitcoin testnet at block 150780, and from genesis on
+regtest. Mainnet has not ratified it and the rule is inert there. Below the
+height, and on an unratified network, behaviour is byte for byte unchanged, but
+once a widened response lands, an indexer or hub on the old rules judges it
+differently: update every indexer and hub.
+
 ## v0.12.3
 
 Released 2026-09-01. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.12.3)
@@ -280,7 +335,7 @@ changelog below a marker line and are not comparable to platform versions.
 ## Installing a specific train
 
 ```
-xchain-node install v0.12.1
+xchain-node install v0.14.0
 ```
 
 A pinned install resolves every component to the exact commit recorded in that
