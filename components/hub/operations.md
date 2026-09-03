@@ -190,7 +190,25 @@ flowchart TD
 
 ### Rate Limiting
 
-The API is rate-limited to 100 requests per minute per IP (configurable via `HUB_RATE_LIMIT_RPM`). Exceeding the limit returns HTTP 429. Behind a reverse proxy, the limiter keys on `X-Forwarded-For` (Express `trust proxy` defaults to loopback; override with `HUB_TRUST_PROXY`).
+The API is rate-limited to 100 requests per minute per IP (configurable via `HUB_RATE_LIMIT_RPM`). Behind a reverse proxy, the limiter keys on `X-Forwarded-For` (Express `trust proxy` defaults to loopback; override with `HUB_TRUST_PROXY`).
+
+Exceeding the limit returns HTTP 429 with a JSON-RPC error body, so a client parsing the response reads the reason rather than a parse failure:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 41,
+  "error": {
+    "code": -32029,
+    "message": "hub rate limit exceeded: 100 requests per 60s per IP (HUB_RATE_LIMIT_RPM); retry after 60s",
+    "data": { "limit": 100, "windowMs": 60000, "retryAfterSeconds": 60, "policy": "per-ip", "env": "HUB_RATE_LIMIT_RPM" }
+  }
+}
+```
+
+The response also carries `Retry-After` and the `RateLimit-*` headers, so a client that cannot read the body still learns the limit and the wait.
+
+Callers on loopback or a private range (RFC1918, IPv6 unique-local and link-local) skip the limit by default. That exemption is what lets a node's own indexer rebuild price history from the chain without a raised limit: it pushes one price batch per batch-bearing block as fast as it reads blocks, which is far past 100/min, and it reaches the hub over the container bridge rather than the internet. The check runs on the client IP Express resolves after `trust proxy`, so a public caller arriving through a private-IP reverse proxy is still limited. Set `HUB_RATE_LIMIT_EXEMPT_LOCAL=false` to enforce the cap on every caller.
 
 ### Public Deployment Behind a Reverse Proxy
 
