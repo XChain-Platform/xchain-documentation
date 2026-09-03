@@ -535,26 +535,45 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // A source absent for K consecutive ROLLED epochs is evicted by a synthetic UNSTAKE, so its
 // stake deactivates and refunds after the cooldown. Nothing is burned: absence is not an offense.
 //
-// All eight values are CONSENSUS. They decide which epochs exist, which signatures count, and at
-// what BTC height an eviction and a COLLECT-spendable reward materialise, so none may be read
-// from the coin registry, env, or coins.resolveConfirmations() -- the argument
-// anchor_reward_activation.js makes for its own maturity and burial depths. Kept byte-identical
-// to xchain-{indexer,hub}/src/rollcall_activation.js by the cross-service regression suite.
+// All eight values are CONSENSUS on a SHARED-LEDGER network. They decide which epochs exist, which
+// signatures count, and at what BTC height an eviction and a COLLECT-spendable reward materialise,
+// so on mainnet and testnet none may be read from the coin registry, env, or
+// coins.resolveConfirmations() -- the argument anchor_reward_activation.js makes for its own
+// maturity and burial depths. By operator ruling 2026-09-01 that rule is SCOPED to networks with a
+// shared ledger: a regtest chain is private, no two regtest venues validate the same blocks, and
+// refusing a venue-pinned height only left the AT1-AT10 acceptance suite with nowhere to run. Kept
+// byte-identical to xchain-{indexer,hub}/src/rollcall_activation.js by the cross-service suite.
 //
 // Keyed on the carried BTC EPOCH_HEIGHT on BOTH chains (the snapshot_block convention of
 // STAKE_WEIGHTED_QUORUM_ACTIVATION), never on either chain's local height, so a pre-activation
 // roll call is inert on DOGE and on BTC alike and no second DOGE-height flag day exists.
 // INERT on mainnet (null = never active) until the operator pins a height with the mainnet
 // federation; the null placeholder follows SNAPSHOT_BURIAL_ACTIVATION.mainnet.
-// INERT on regtest too, by operator ruling 2026-08-31: arming a network commits every BTC indexer
-// on it to a wired DOGE peer, because the epoch close cannot decide a non-empty responsible set
-// without one and halts rather than read silence as absence. A single-coin BTC regtest venue has
-// no DOGE peer and can never have one, so a hardcoded regtest height wedged every such venue at
-// its first close. A venue that runs both chains opts in instead.
+// REGTEST ARMS AT 0, but only when the venue OPTS IN with XC_ROLLCALL_REGTEST_ACTIVATION, and the
+// 2026-08-31 finding is why the default stays inert: arming a network commits every BTC indexer on
+// it to a wired DOGE peer, because the epoch close cannot decide a non-empty responsible set
+// without one and defers rather than read silence as absence. A single-coin BTC regtest venue has
+// no DOGE peer, so a hardcoded regtest height wedged every such venue at its first close. A venue
+// that runs both chains opts in; a BTC-only venue is left alone.
+const ROLLCALL_REGTEST_ARMED_HEIGHT = 0;
+const ROLLCALL_REGTEST_ENV = 'XC_ROLLCALL_REGTEST_ACTIVATION';
+function resolveRegtestActivation(env){
+    let raw = (env || {})[ROLLCALL_REGTEST_ENV];
+    if(raw === undefined || raw === null) return null;
+    let s = String(raw).trim().toLowerCase();
+    if(s === '' || s === 'off' || s === 'inert' || s === 'false' || s === 'no' || s === 'none') return null;
+    if(s === 'armed' || s === 'genesis' || s === 'on' || s === 'true' || s === 'yes')
+        return ROLLCALL_REGTEST_ARMED_HEIGHT;
+    if(/^\d+$/.test(s)){
+        let h = parseInt(s, 10);
+        if(Number.isFinite(h) && h >= 0) return h;
+    }
+    return null;   // fail CLOSED; the service copies also warn on stderr
+}
 const ROLLCALL_ACTIVATION = {
     mainnet: null,        // INERT placeholder: the operator owns this height
     testnet: 151200,      // 1008 x 150 = 144 x 1050; tip was 150400 on 2026-08-30, ~5.5 days out
-    regtest: null,      // INERT: a BTC-only regtest venue has no DOGE peer to prove a close
+    regtest: resolveRegtestActivation(process.env),   // ARMS AT 0 when the venue sets XC_ROLLCALL_REGTEST_ACTIVATION
 };
 
 // ROLLCALL_INTERVAL_BLOCKS: epoch cadence in BTC blocks. Weekly on the live networks (1008 BTC
@@ -1277,6 +1296,8 @@ module.exports = {
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
     ROLLCALL_ACTIVATION,
+    ROLLCALL_REGTEST_ARMED_HEIGHT,
+    ROLLCALL_REGTEST_ENV,
     ROLLCALL_INTERVAL_BLOCKS,
     ROLLCALL_ACCEPT_WINDOW_BLOCKS,
     ROLLCALL_PROOF_DELAY_BLOCKS,

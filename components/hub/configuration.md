@@ -558,6 +558,9 @@ Regtest-only genesis overrides, ignored on mainnet and testnet, which always use
 | `XCHAIN_GENESIS_BLOCK` | Regtest only | per-coin | Genesis block height for a regtest chain. |
 | `XCHAIN_GENESIS_LEDGER_HASH` | Regtest only | per-coin | Genesis ledger-hash pin for a regtest chain. |
 | `XCHAIN_GENESIS_DUMP_HASH` | Regtest only | per-coin | Genesis dump-hash pin for a regtest chain. |
+| `XC_ROLLCALL_REGTEST_ACTIVATION` | Regtest only | unset (inert) | Arms ROLLCALL on a private regtest venue, so this hub signs roll calls and elects publishers there. `armed` (or `genesis`/`on`/`true`/`yes`) activates at BTC height `0`; a bare non-negative integer activates at that height; `off`/`inert`/`false` and anything unrecognised leave it inert. Read once at startup, so a change needs a restart. Ignored on mainnet and testnet, whose heights are fixed in source and unreachable from the environment. |
+
+ROLLCALL arming is a **venue-wide** setting: set `XC_ROLLCALL_REGTEST_ACTIVATION` identically on every hub and every BTC indexer in the venue, and wire the indexers' `DOGE_INDEXER_API_URL`. Regtest ships inert because arming a network commits every BTC indexer on it to a wired DOGE peer, and a single-coin BTC venue would defer forever at its first epoch close. A venue that arms its hubs and forgets an indexer surfaces as a consensus-rules digest mismatch rather than as silent disagreement about which epochs exist.
 
 ### Fee Destination Override
 

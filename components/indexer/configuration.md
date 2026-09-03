@@ -77,6 +77,12 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 
 **The same DOGE wiring is what ROLLCALL runs on, and it becomes required a second time.** From `ROLLCALL_ACTIVATION` onward, every **BTC** indexer closes each roll-call epoch by asking its DOGE indexer for the epoch's signers (`getrollcallsigners`, a federation-read method served off the committed view). It reuses `DOGE_INDEXER_API_URL` → `DOGE_INDEXER_URL` → config, the `DOGE_INDEXER_API_KEY` header, and `ANCHOR_PROOF_TIMEOUT_MS`; there is no separate env knob for it.
 
+| Variable | Description | Default |
+|---|---|---|
+| `XC_ROLLCALL_REGTEST_ACTIVATION` | **Regtest only.** Arms ROLLCALL on this private venue. `armed` (or `genesis`/`on`/`true`/`yes`) activates at BTC height `0`; a bare non-negative integer activates at that height, for a venue whose epochs should begin above an already-indexed prefix; `off`/`inert`/`false` and anything unrecognised leave it inert, and an unrecognised value is logged. Read **once at startup**, so a change needs a restart. mainnet and testnet are fixed in source and cannot be moved from the environment. | _(unset: inert)_ |
+
+Regtest ships inert on purpose: arming a network commits every BTC indexer on it to a wired DOGE peer, so a hardcoded height wedged every single-coin BTC venue at its first close. Set this on **every** BTC indexer and hub in a two-chain acceptance venue, alongside `DOGE_INDEXER_API_URL`. A venue that arms its hubs and forgets its indexer shows up as a consensus-rules digest mismatch, because `ROLLCALL_ACTIVATION` is one of the shared gates that digest covers.
+
 A BTC indexer with no DOGE wiring **defers every block** from the first epoch close onward, with `stallReason = 'rollcall_proof_unavailable'`, rather than judging absences it cannot prove. The same deferral covers an unreachable or malformed answer, a DOGE tip that has not yet buried the window cut by `ROLLCALL_DOGE_MATURITY`, and a DOGE indexer whose vendored action-manifest hash differs from this indexer's own. That last case is what turns a DOGE indexer running a decoder too old to know `ROLLCALL` from a silent evict-the-federation bug into a loud, safe stall: wire the DOGE indexers and deploy their decoder **before** `ROLLCALL_ACTIVATION` is reached.
 
 ### Hub push queue and mirror
