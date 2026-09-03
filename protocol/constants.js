@@ -789,6 +789,38 @@ const ATTEST_RESPONSIBLE_WIDENING = {
     maxSlots:      2,
 };
 
+// ATTEST_RESPONSE_MIRROR_ACTIVATION (attestation response mirror): the flag-day at/above which a
+// finalized attestation response stops being an on-chain ATTEST v1 transaction that a validator
+// broadcasts and pays a Bitcoin fee for, and instead rides the hub mirror the way PRICE rounds do.
+// Below the height an attestation costs TWO on-chain transactions (the v0 request inside the
+// EXECUTE the user already paid for, plus the validator-paid v1 response) and the contract callback
+// fires only when the v1 mines. At or above it the responsible set's finalized artifact is written
+// to the hub's attestation_responses table, gossiped to the whole federation, streamed to every
+// indexer through the hub mirror, and applied at a block that is a pure function of the SIGNED
+// effective_time and the indexer's own chain state. The full history still reaches the chain in
+// periodic ATTEST v5/v6 batches, so a node replaying the chain alone re-derives every callback.
+//
+// The gate is evaluated on the REQUEST's own BTC block, not the response's, exactly like
+// ATTEST_RESPONSIBLE_WIDENING_ACTIVATION and ATTEST_ADMISSION_ACTIVATION: the rule for a given
+// request is fixed the moment it is admitted, so no request can be admitted under one regime and
+// answered under the other while the fleet crosses the height. The same height selects the
+// CANONICAL the responsible set signs (the mirror-era canonical appends the signed effective_time),
+// so the two eras never share a signature. A relayed request (a v0 admitted on LTC or DOGE) is
+// served on BTC as its ATTEST v3 materialization and the v3's BTC block keys the gate.
+//
+// Unlike the widening ladder, deploy ORDER cannot cover a straddle here: an upgraded hub stops
+// broadcasting v1 entirely, so an indexer that has not upgraded would simply never see the
+// response. The height is therefore armed past a SYNCHRONIZED fleet window (hubs, indexers and
+// explorer together, the HUB_SCHEMA_VERSION 4->5 flip) with no request straddling it.
+//
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/attest_response_mirror_activation.js
+// by the activation-constants parity suite.
+const ATTEST_RESPONSE_MIRROR_ACTIVATION = {
+    mainnet: null,        // INERT: operator-owned height, unratified. The legacy on-chain response path runs byte for byte.
+    testnet: null,        // UNARMED: operator-armed after the regtest milestone is REACHED and the synchronized schema-5 fleet window closes.
+    regtest: 0,           // ARMED at genesis so the e2e mirror venue exercises the mirror path
+};
+
 // ATTEST_BROADCAST_FEE_ACTIVATION (attestation Phase 3 economics, spec §11 leader broadcast-fee
 // reimbursement): the flag-day at/above which a FULFILLED ATTEST settle carves a broadcast-fee
 // reimbursement out of the v0 fee escrow and pays it to the lowest-hash member of the request's
@@ -1262,6 +1294,7 @@ module.exports = {
     ATTEST_BROADCAST_FEE_CAP,
     ATTEST_RESPONSIBLE_WIDENING_ACTIVATION,
     ATTEST_RESPONSIBLE_WIDENING,
+    ATTEST_RESPONSE_MIRROR_ACTIVATION,
     ORACLE_FEE_OUTPUT_ACTIVATION,
     ORACLE_FEE_SET_CAPTURE_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
