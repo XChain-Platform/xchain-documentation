@@ -162,12 +162,12 @@ For users who keep keys on an offline device:
 
 ## Onboarding & recovery
 
-- **Create**: fresh BIP39 12-word mnemonic by default (24 words selectable), optional 25th-word passphrase, password-derived vault encryption
-- **Import**: BIP39 (12 / 15 / 18 / 21 / 24 words), Counterwallet legacy, or single WIF
+- **Create**: fresh BIP39 12-word mnemonic by default (24 words selectable), optional 25th-word passphrase captured once and stored encrypted alongside the mnemonic, password-derived vault encryption
+- **Import**: BIP39 (12 / 15 / 18 / 21 / 24 words) with an optional passphrase, Counterwallet legacy, or single WIF. A recovery phrase carries no record of whether a passphrase was used, so importing without the original passphrase opens a different, empty wallet with no warning
 - **Migrate to BIP39**: one-way migration from Counterwallet legacy mnemonic; fresh BIP39 phrase, opt-in sweep flow to move balances
 - **Discover used addresses**: gap-limit scan that populates already-used receive addresses on import
 - **Dry-run restore**: verify a mnemonic + passphrase pair against the first N derived addresses without committing to a fresh wallet
-- **Backup file**: full vault export, re-wrapped under a backup-specific KDF
+- **Backup file**: full vault export, including the encrypted passphrase where one is set, re-wrapped under a backup-specific KDF
 - **Add address**: `AddAddressModal` batch-generates 1-25 addresses (Coin + Type picker), sequentially; hardware wallets prompt the device per address
 - **View private key**: per-address WIF export; gated by a warning in an unlocked session (no password re-entry); requires unlock when the wallet is locked
 

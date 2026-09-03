@@ -324,9 +324,9 @@ function collectSiblingGates(indexerSrc, add) {
  * Refuses a registry that declares a gate in a style the two regexes above
  * cannot read.
  *
- * WHY THIS IS LOUD RATHER THAN LENIENT. An unrecognised declaration used to be
- * skipped in silence, and the generator then rewrote protocol/flag-days.md to
- * agree with the loss, so the page shipped one row short with the whole suite
+ * WHY THIS IS LOUD RATHER THAN LENIENT. An unrecognised declaration left
+ * unread would be skipped in silence, and the generator would then rewrite protocol/flag-days.md to
+ * agree with the loss, so the page would ship one row short with the whole suite
  * green: test/flag-day-literals.test.js can only anchor gate names that already
  * exist, which is no help for the gate somebody adds tomorrow.
  *

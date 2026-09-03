@@ -96,7 +96,7 @@ The first-run experience is one of:
 - **Restore from backup file**: re-wrap an exported vault under a fresh device password.
 - **Counterwallet migration**: accept the legacy 12-word format, then optionally migrate to BIP39 from Settings later.
 
-Optional 25th-word passphrase is offered on both Create and Import. The passphrase materially changes derived addresses; the wallet shows a pre-derivation preview to let the user confirm they've entered the correct passphrase.
+Optional 25th-word passphrase is offered on both Create and Import, captured once. The wallet stores it encrypted alongside the mnemonic, under the wallet's own password-derived key, exactly the way the recovery phrase itself is stored; after this one-time capture, the wallet password is the only secret the user ever types on that device. The passphrase materially changes derived addresses, so on Import the wallet shows a pre-derivation preview to let the user confirm they've entered the correct passphrase. Because a recovery phrase carries no record of whether a passphrase was originally used, importing without it does not fail, it silently opens a different, empty wallet; the pre-derivation preview is the only check against this. Restoring the wallet on any other device still requires both the recovery phrase and this passphrase: Reveal Recovery Phrase shows both, and an exported backup file carries both and re-keys them under the restoring device's password.
 
 ## Lock / unlock / auto-lock
 
@@ -105,6 +105,7 @@ Optional 25th-word passphrase is offered on both Create and Import. The passphra
 - **Foreground auto-lock**: configurable timeout in Settings. Default: 5 minutes idle. Lock fires on tab/window blur for the popup; on idle-detection for the desktop and full-screen views.
 - **Browser-close lock**: extension session-key namespace clears automatically. Web shell drops in-memory keys when the tab unloads.
 - **OS keychain auto-unlock**: desktop only, opt-in. Stores the session master key in the OS keychain (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux). Disabled by default; enabled via Settings → Security.
+- **Legacy passphrase capture**: a wallet created before passphrase storage shipped has no stored passphrase yet. On the first unlock after upgrading, the wallet asks for it once, explains that it will be stored, and checks it against the wallet's own addresses before saving it encrypted; it never asks again after that. Until this one-time step completes, the wallet is listed but cannot sign.
 
 ## Home
 
