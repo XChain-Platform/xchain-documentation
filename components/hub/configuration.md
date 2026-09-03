@@ -426,6 +426,23 @@ Controls `StateCheckpointEngine`, which produces the quorum-signed per-block sta
 | `CHECKPOINT_ROUND_TIMEOUT_MS` | No | `60000` | Timeout for one checkpoint signing round. |
 | `CHECKPOINT_COSIGN_TOLERANCE_BLOCKS` | No | `144` | Fail-closed co-sign gate: a `SIGN_REQ` whose `snapshot_block` deviates from this hub's own BTC tip by more than this many blocks is declined. The default is roughly a day of BTC blocks. |
 | `CHECKPOINT_STALL_LOG_MS` | No | `3600000` (1 h) | Throttle for the "cadence stalled" log line. The eligibility poll runs far more often than the checkpoint cadence, so the reason is logged at most this often and the counter carries the true rate. |
+| `CHECKPOINT_FROZEN_TIP_TICKS` | No | `60` | Consecutive not-my-slot eligibility ticks that see the same BTC tip before the tick is metered as a cadence stall naming the frozen block. A frozen tip pins the rotation slot to one constant, so every hub whose rank is not that constant returns forever with no stall counted; at the default 60 s poll this is about an hour, longer than any normal inter-block gap. Non-positive values fall back to `60`. |
+
+### Roll Call
+
+Controls `RollcallRound`, which signs the per-epoch ledger-hash roll call and elects the hub that publishes it on DOGE. Epoch cadence and the accept window are consensus constants and are not configurable; these knobs cover only this hub's own timing, participation and rails.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `ROLLCALL_ENABLED` | No | `true` | Set to `false` to stop this hub signing roll calls and standing for publisher election. |
+| `ROLLCALL_POLL_MS` | No | `30000` | Interval between roll-call epoch polls. |
+| `DOGE_INDEXER_URL` | No | _(from config table)_ | DOGE indexer JSON-RPC URL the round reads to learn what is already on chain for the epoch. `DOGE_INDEXER_API_URL` takes precedence when both are set. |
+| `DOGE_INDEXER_API_KEY` | No | _(from config table)_ | API key presented to that DOGE indexer. Treat as a credential. |
+| `ROLLCALL_SPEND_LOG_PATH` | No | `./data/rollcall-publish.spend.jsonl` | JSONL spend audit for the fee-bearing publish. The intent line is written and fsynced BEFORE the DOGE moves and the broadcast is gated on it, so a crash mid-flight still leaves a trace that DOGE may have been spent. |
+| `ROLLCALL_SIGN_LOG_PATH` | No | `./data/rollcall-signatures.jsonl` | Durable store of the signatures this hub has emitted. A restart inside the accept window re-emits the same signature for an epoch rather than minting a second one. |
+| `ROLLCALL_PUBLISH_DELAY_BLOCKS` | No | `12` (regtest `1`) | Blocks after the accept window closes before the elected publisher broadcasts, so late gossiped signatures still make the published set. Non-numeric values fall back to the default rather than disabling the gate. |
+| `ROLLCALL_ELECTION_TOLERANCE_BLOCKS` | No | `36` (regtest `3`) | Blocks the elected publisher is given before the next hub in the election ladder may take over. Separate from `ANCHOR_ELECTION_TOLERANCE_BLOCKS` on purpose: the two ladders climb against different anchors. |
+| `ROLLCALL_SELF_PUBLISH_BLOCKS` | No | `100` (regtest `9`) | Blocks after which any hub still holding an unpublished epoch publishes it itself, whatever the ladder says. |
 
 ### Full-Node Challenge
 
