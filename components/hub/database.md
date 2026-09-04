@@ -318,6 +318,7 @@ PBFT-finalized XCALL dispatch and result records. Each XCALL produces two rows i
 | Table | Purpose |
 |---|---|
 | `attest_published_requests` | Durable at-most-once broadcast marker for ATTEST v1 response publishes |
+| `attest_published_batches` | Durable at-most-once broadcast marker for the periodic ATTEST v5/v6 response batch, one row per window |
 | `attestation_fetch_cache` | Per-request cache of a validator's own provider-fetch outcome, so a retry doesn't pay for the same fetch twice |
 
 These tables back the External Attestation Framework: validators fetch data from a governance-approved provider for an ATTEST v0 request, gossip their proposal to PBFT-style quorum, and the elected leader publishes the finalized ATTEST v1 response on-chain. They are unrelated to the `attestations` table under Cross-Chain Tables, which records cross-chain *action* confirmations rather than external-data attestations.
@@ -334,6 +335,16 @@ The restart-surviving half of the at-most-once guard around `AttestationPublishe
 | `sent_at` | `TIMESTAMP NULL` | When the broadcast completed; authoritative at-most-once marker. NULL means intent only |
 
 **Primary key:** `(request_id)`. **Key:** `idx_sent (sent_at)`
+
+### `attest_published_batches`
+
+The same at-most-once guard as `attest_published_requests`, one level up: it marks the periodic batch that carries a window of finalized responses, rather than a single response. It is a table and not the publisher's buffer file on purpose, because the batch is a money-bearing broadcast on the operator's one Dogecoin wallet, and the buffer lives on the very disk whose exhaustion makes a post-broadcast rewrite fail. A restart reads this back before publishing anything, so a crash between the send and its marker costs an operator check rather than a second fee.
+
+Keyed on `(network, window_start)` rather than on a batch identifier, because the window is the unit of coverage and the batch key is derived from the window bounds, so keying on one is keying on the other. The window is one hour, aligned to the unix hour, and frozen as a protocol constant: those bounds are what the batch key derives from and what the quorum signs, so two hubs on different cadences do not simply publish on two schedules, they propose batches no peer can co-sign. Every window publishes, an empty one as a `row_count` of zero, which is what lets a chain-only node prove coverage by finding a head for each window instead of trusting that a quiet hour held nothing.
+
+`status` carries the whole state machine. `intent` is written before the send and means the outcome is unknown; a restart that finds one quarantines that window for an operator rather than republishing, since the transaction may sit in a mempool this hub cannot see. `sent` means this hub has paid for the window. `deadletter` means the content cannot become a batch at all, over the row cap or a body the wire refuses, so the sweep stops retrying it and the content goes to the publisher's append-only dead-letter file. `landed` means a batch was parsed back off Dogecoin, and it is authoritative for the whole federation: any hub's batch covers the window, so hubs that never published one stop considering it. A window with no row is simply unpublished, which is where a window whose signing round found no quorum is deliberately left, since its rows remain in `attestation_responses` and a later attempt rebuilds byte-identical content from them.
+
+**Primary key:** `(network, window_start)`. **Key:** `idx_attest_batch_window (network, status, window_start)`
 
 ### `attestation_fetch_cache`
 
