@@ -152,8 +152,8 @@
       "label": "xchain-wallet",
       "type": "service",
       "group": "clients",
-      "tech": "JS monorepo: web SPA, MV3 extension, Electron",
-      "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device."
+      "tech": "JS monorepo: web SPA, MV3 extension, Electron, Capacitor mobile",
+      "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, mobile (Capacitor; Android shipped, iOS later), plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device."
     },
     {
       "id": "node",

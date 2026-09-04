@@ -253,9 +253,16 @@ a token binds a controller contract (via `ISSUE` v6) whose `guard` the indexer r
 the token is listed for sale. The guard returns a basis-point split (`payoutLegs`) that
 the indexer records on the order and applies to the seller's proceeds at each DEX match;
 the creator's cut plus the seller's remainder, conserved exactly. Because the indexer is
-the only settlement path and the same controller can also gate plain `SEND`s, the rule
-**cannot be routed around**: yet it needs no custody: the token stays natively held and
-natively tradeable. The binding is opt-in per token, not imposed platform-wide.
+the only settlement path and the same controller can also gate plain `SEND`s, the guard
+**cannot be bypassed**, and it needs no custody: the token stays natively held and natively
+tradeable. The binding is opt-in per token, not imposed platform-wide.
+
+**The split itself covers `ORDER` and `SWAP` sales only.** A `DISPENSER` sale runs the guard
+at create as a *veto* and takes no cut: legs returned there are discarded, and no split is
+applied at dispense (see
+[Proceeds split](./controller-bound-tokens.md#proceeds-split-royalty-fee-payout_legs)). So a
+royalty guard that only *returns legs* is routed around by vending through a dispenser;
+enforcing the cut means also denying the dispenser listing from inside the guard.
 
 Creators who prefer a custody model can instead implement royalties in an ordinary
 **marketplace contract** that takes custody via [`DEPOSIT`](./actions/deposit.md)/[`WITHDRAW`](./actions/withdraw.md)

@@ -403,8 +403,9 @@ const STATE_COMMITMENT_ACTIVATION = {
 // which the quorum-signed checkpoint canonical (and the on-chain ANCHOR) COMMIT the additive
 // `state_root` + `block_merkle_root` (with their version bytes) that STATE_COMMITMENT_ACTIVATION made
 // the indexer compute in Phase 1. Post-flag-day the checkpoint canonical string gains
-// `|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION` and a new ANCHOR v3 carries
-// the roots on DOGE; pre-flag-day both keep their old shape and the roots are absent. Consensus-relevant
+// `|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION` and each section of the ANCHOR
+// checkpoint bundle (v0) carries the roots on DOGE; pre-flag-day both keep their old shape and the roots
+// are absent. (The restarted wire set is v0/v1/v2, see ANCHOR_ACTIVATION below.) Consensus-relevant
 // for signature verification (the signed preimage changes), so it must deploy hub + ALL indexers + the
 // SDK/explorer verifiers atomically.
 //
@@ -427,10 +428,12 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 // ANCHOR_REWARD_ACTIVATION (anchor-reward re-derivation): the flag-day at/above which the validator
 // anchor reward stops being TRUSTED from the hub's `pushvalidatorrewards` JSON-RPC and is instead
 // DERIVED by every indexer from the on-chain ANCHOR bytes. Post-flag-day the hub emits a publisher-
-// bearing ANCHOR (v4 rootless / v5 root-bearing) carrying the elected publisher pubkey plus a 2f+1
-// `oracle_publish` attestation (XANCPUB) over the reward tuple; the indexer verifies that quorum and
-// credits the publisher with ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire).
-// Below the flag-day the old push path stands and v4/v5 anchors are rejected. Consensus-relevant (the
+// bearing ANCHOR checkpoint bundle (v0 of the restarted wire set, whose sections carry the SPV roots)
+// carrying the elected publisher pubkey plus a 2f+1 `oracle_publish` attestation (XANCPUB) over the
+// `anchor_bundle` reward tuple; the indexer verifies that quorum and credits the publisher with
+// ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire). Below the flag-day the old
+// push path stands and the PUBLISHER tail an anchor carries earns no derived credit.
+// Consensus-relevant (the
 // credited reward becomes a COLLECT-spendable per-block ledger row), so it must deploy hub + ALL
 // indexers atomically. Like CHECKPOINT_COMMITMENT_ACTIVATION / STAKE_WEIGHTED_QUORUM_ACTIVATION it gates
 // on the BTC-anchored `snapshot_block` carried by every ANCHOR canonical. Kept byte-identical to the
@@ -449,12 +452,13 @@ const ANCHOR_REWARD_AMOUNT = '10.00000000';
 
 // ARCHIVE_REWARD_ACTIVATION (archive-reward re-derivation): the flag-day at/above which the
 // anchor_archive reward stops riding the key-authenticated `pushvalidatorrewards` rail and is instead
-// DERIVED by every indexer from the on-chain ANCHOR v6 bytes (the v1 archive anchor plus the same
-// PUBLISHER + 2f+1 XANCPUB attestation tail as v4/v5, attested over an 'anchor_archive' canonical
-// keyed on MATCH_BATCH_SEQ). This retires the last insider-with-key reward-forge surface the
-// per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the legacy v1 + push path stands
-// and v6 anchors are rejected. Consensus-relevant, same deploy rules and snapshot_block gating as
-// ANCHOR_REWARD_ACTIVATION; kept byte-identical to the local copies in
+// DERIVED by every indexer from the on-chain ANCHOR archive-head bytes (v1 of the restarted wire set,
+// carrying the same PUBLISHER + 2f+1 XANCPUB attestation tail the v0 bundle carries, attested over an
+// 'anchor_archive' canonical keyed on MATCH_BATCH_SEQ). This retires the last insider-with-key
+// reward-forge surface the per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the push path
+// stands and an archive head's PUBLISHER tail earns no derived credit. Consensus-relevant, same
+// deploy rules and snapshot_block gating as ANCHOR_REWARD_ACTIVATION; kept byte-identical to the
+// local copies in
 // xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
 const ARCHIVE_REWARD_ACTIVATION = {
     mainnet: 963000,      // ARMED 2026-07-16, RE-PINNED 2026-08-12 off 969500 onto the shared pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
@@ -502,7 +506,7 @@ const ARCHIVE_REWARD_AMOUNT = '10.00000000';
 // block_index = snapshot_block. Consensus-relevant (COLLECT-spendable), same snapshot_block gating
 // and atomic-deploy rules as ANCHOR_REWARD_ACTIVATION. It CANNOT ride the 961000/963000 boundaries
 // (already live on testnet/regtest, so no coordinated flip window; and one gate must cover both
-// the v4/v5 and v6 families). Kept byte-identical to the local copies in
+// the `anchor_bundle` and `anchor_archive` reward families). Kept byte-identical to the local copies in
 // xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
 // INERT on mainnet (null = never active) until the operator ratifies a coordinated BTC
 // snapshot_block; testnet and regtest are active from genesis. Testnet was armed at 0 by the

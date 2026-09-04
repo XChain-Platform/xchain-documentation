@@ -27,7 +27,7 @@ Until additional maintainers join, the lead owns every area below. The table is 
 | Area | What it covers |
 |---|---|
 | Protocol spec | `protocol/` ACTION definitions, encoding formats, DB naming conventions, Token Information Standard, error codes, URI scheme, and JSON schemas |
-| Component docs | `components/` documentation for each of the 15 documented xchain-* components |
+| Component docs | `components/` documentation for each of the 14 documented xchain-* components |
 | Developer guide | `developer-guide/` tutorials, integration examples, and query references |
 | Getting started | `getting-started/` platform intro, quickstarts, and glossary |
 | Concepts | `concepts/` metalayer model, tokens, ACTIONs, encoding, cross-chain, gas, and security overviews |
@@ -35,7 +35,7 @@ Until additional maintainers join, the lead owns every area below. The table is 
 | User guide | `user-guide/` capabilities, use cases, and FAQ for non-technical readers |
 | AI and agents | `ai-agents/` guides for building AI agents on the platform |
 | Operations | `operations/` deployment, monitoring, upgrades, and troubleshooting |
-| Overview and whitepaper | `OVERVIEW.md`, `WHITEPAPER.md`, `BLOCKCHAINS.md` |
+| Overview and whitepaper | `overview.md`, `whitepaper.md`, `blockchains.md` |
 | Legal and project files | `legal/`, `LICENSE.md`, `NOTICE.md`, `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `MAINTAINERS.md` |
 
 ---

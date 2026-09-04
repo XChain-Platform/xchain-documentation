@@ -82,7 +82,7 @@ If you are unsure, send the report anyway and we will tell you whether it falls 
 
 ## Versions covered
 
-We ship security fixes against the latest revision on `master`. The current version is recorded in `CHANGELOG.md` and the badge in `README.md`.
+We ship security fixes against the latest revision on `master`. The current version is recorded in `CHANGELOG.md` and in `package.json`.
 
 ---
 

@@ -30,9 +30,9 @@ xchain-documentation/
 ├── protocol/             37 ACTION definitions, Token Information Standard, schemas
 ├── operations/           deployment, Docker, monitoring, upgrades, troubleshooting
 ├── legal/                licensing, commercial license, trademark, contributor agreement
-├── BLOCKCHAINS.md        supported chains, adding new blockchains
-├── OVERVIEW.md           platform overview
-├── WHITEPAPER.md         technical whitepaper
+├── blockchains.md        supported chains, adding new blockchains
+├── overview.md           platform overview
+├── whitepaper.md         technical whitepaper
 ├── CHANGELOG.md          authoritative version history
 └── README.md             entry point and section map
 ```
@@ -53,13 +53,24 @@ git clone https://github.com/XChain-Platform/xchain-documentation.git
 cd xchain-documentation
 ```
 
-There is no `npm install` or build step needed for editorial contributions.
+There is no build step. There is a check suite, and it gates your PR, so install
+once before you run it:
+
+```bash
+npm install
+```
+
+That pulls a single devDependency (`mathjs`), used by the arithmetic gates.
 
 ---
 
 ## Making changes
 
-This repository contains Markdown files only. There is no source code to compile and no test suite to run.
+This repository is almost entirely Markdown, with `protocol/constants.js` and a `lib/` helper alongside it. There is nothing to compile, but there is a suite of gates under `test/` that check the prose against the platform's real behavior: internal links and heading anchors, documented environment variables, ACTION counts, protocol constants, and the arithmetic of the genesis allocation table. They decide whether a PR can merge, so run them before you open one:
+
+```bash
+npm test
+```
 
 ### Types of contribution
 
@@ -137,9 +148,10 @@ Match the existing log style: a concise subject line, then a short body explaini
 
 Before opening a PR:
 
-1. Confirm `git status` is clean apart from intended changes (no editor backup files, no `.env`).
-2. Update `CHANGELOG.md` with a terse entry for your change.
-3. Open the PR with a clear title and a description of what changed and why. For spec changes, link to the issue where maintainer sign-off was obtained.
+1. Run `npm test` and confirm it is green. These are the same gates that run on the PR.
+2. Confirm `git status` is clean apart from intended changes (no editor backup files, no `.env`).
+3. Update `CHANGELOG.md` with a terse entry for your change.
+4. Open the PR with a clear title and a description of what changed and why. For spec changes, link to the issue where maintainer sign-off was obtained.
 
 For non-security bugs or editorial issues, open an issue at <https://github.com/XChain-Platform/xchain-documentation/issues/new>. For security bugs, see [`SECURITY.md`](./SECURITY.md).
 

@@ -326,7 +326,7 @@ See [`../components/vm/`](../components/vm/) for full documentation.
 
 | | |
 |---|---|
-| **Purpose** | Self-custodial multi-chain reference wallet; browser SPA, Chrome MV3 extension, and Electron desktop app |
+| **Purpose** | Self-custodial multi-chain reference wallet; browser SPA, Chrome MV3 extension, Electron desktop app, and Capacitor mobile app (Android shipped, iOS later) |
 | **Inputs** | User interaction; xchain-sdk for action construction; xchain-explorer for balance and history queries; xchain-hub for config and fee data |
 | **Outputs** | Signed transactions broadcast to coin nodes via the encoder; read-only views of balances, tokens, actions, and markets |
 | **Storage** | Client-side only (browser localStorage / extension storage / Electron local store); no server-side state |
@@ -336,7 +336,7 @@ Key technical details:
 
 - Built on xchain-sdk; all action construction goes through the SDK's 31 developer-invocable ACTION methods.
 - Supports every chain the platform runs on, today Bitcoin, Litecoin, and Dogecoin (mainnet, testnet, regtest), from the same codebase.
-- Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), and an Electron desktop application.
+- Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), an Electron desktop application, and a Capacitor mobile app wrapping the same web build (Android shipped, iOS later).
 - Private keys never leave the client; signing happens locally before broadcast.
 - Targets non-technical end users; UI language is intentionally plain (e.g., "About" not "Token Spec").
 

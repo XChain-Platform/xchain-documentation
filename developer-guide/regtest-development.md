@@ -42,7 +42,7 @@ After `install`, all the following services are running locally:
 | Bitcoin node (regtest) | 18443 | Coin node |
 | xchain-decoder | 3002 | Polls node, writes to Decoder DB |
 | xchain-indexer | 3004 | Processes actions, writes to Indexer DB |
-| xchain-explorer | 8080 | REST API + web UI |
+| xchain-explorer | 18080 | REST API + web UI (host port `EXPLORER_PORT_HTTP`; 8080 is the container-internal port) |
 | xchain-encoder | 3003 | PSBT builder |
 | xchain-hub | 10000 | Config oracle |
 | xchain-utxo-tracker | 3001 | UTXO/balance queries |
@@ -173,7 +173,7 @@ const sdk = new XChainSDK({
 // Or hardcode each service
 const sdk = new XChainSDK({
   encoderUrl: 'http://localhost:3003',
-  explorerUrl: 'http://localhost:8080',
+  explorerUrl: 'http://localhost:18080',
 });
 ```
 
@@ -220,9 +220,9 @@ SELECT * FROM actions ORDER BY action_index DESC LIMIT 20;
 If the indexer has data but the explorer doesn't, the explorer may have a query bug. Hit the endpoint directly:
 
 ```bash
-curl http://localhost:8080/BTC/api/token/MYTOKEN
-curl http://localhost:8080/BTC/api/balances/YOUR_ADDRESS
-curl http://localhost:8080/BTC/api/history/MYTOKEN/token
+curl http://localhost:18080/BTC/api/token/MYTOKEN
+curl http://localhost:18080/BTC/api/balances/YOUR_ADDRESS
+curl http://localhost:18080/BTC/api/history/MYTOKEN/token
 ```
 
 If the explorer answers `503 COIN_DATA_STALE` for every endpoint on a coin, the query is fine and the chain has simply gone quiet: see [Keeping an Idle Chain Available](#keeping-an-idle-chain-available).

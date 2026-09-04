@@ -30,6 +30,8 @@ simultaneously on Bitcoin, Litecoin, and Dogecoin.
 
 4 gates do not ride it and carry a date of its own: `BATCH_ISSUANCE_LIMITS` at 2026-08-16 00:00:00 UTC, `CONTRACT_DELEGATION_MATERIALIZE` at 2026-09-15 00:00:00 UTC, `DISPENSER_ORACLE_PER_TOKEN_PRICE` at 2026-09-15 00:00:00 UTC, `CROSS_CHAIN_ROYALTY` at 2027-01-01 00:00:00 UTC. Each carries the reason it is armed separately in its registration comment, in the file the **Declared in** column names below. For how a gate is evaluated and what happens to a node that misses one, see [Protocol Activation](./protocol-activation.md).
 
+**7 gates are UNARMED on mainnet** (`BATCH_COST_WEIGHTING`, `BATCH_ROOT_SUB_INDEX`, `CROSS_SETTLE_CAP`, `EMISSION_ISSUANCE_LIMITS`, `ISSUE_INHERITED_MINT_WINDOW`, `UNCAPPED_MAX_SUPPLY_ZERO`, `UNIFIED_FEES_SWEEP_CALLBACK`): each parks the sentinel rather than an instant, so mainnet has **never** run the post-activation behavior and will not until an operator names a date. They carry no row in the table below, because publishing the sentinel as a flag day would put a commitment on this page that nobody made. Each names its reason in its registration comment in `protocol_changes.js`. This note covers the registry only; a sibling `*_activation.js` module can park a mainnet sentinel too, and those are not enumerated here.
+
 **Testnet and regtest are genesis-active** for the time-keyed gates: they carry
 threshold `0`, so a testnet or regtest stack has always run the
 post-activation behavior. One gate is the exception: `ISSUE_INHERITED_MINT_WINDOW` arms testnet at `1787961600` (2026-08-29 00:00:00 UTC). The reason it cannot be genesis-active there is written in its registration comment in `protocol_changes.js`. The values on this page are otherwise mainnet values only.

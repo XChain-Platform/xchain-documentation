@@ -38,7 +38,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Litecoin, and
 | [**xchain-vm**](https://github.com/XChain-Platform/xchain-vm/) | Sandboxed JavaScript virtual machine for on-chain smart contracts with gas metering, deterministic execution, and reorg-safe state |
 | [**xchain-contracts**](https://github.com/XChain-Platform/xchain-contracts/) | MIT-licensed template library: audited example smart contracts, reusable patterns, a no-code policy generator, and a CLI, deployed via the ordinary `DEPLOY` action |
 | [**xchain-sdk**](https://github.com/XChain-Platform/xchain-sdk/) | Developer SDK: builders for all 31 developer-invocable actions, 100+ explorer query methods, smart contract support, live WebSocket events, batch builder, PSBT generation |
-| [**xchain-wallet**](https://github.com/XChain-Platform/xchain-wallet/) | Reference self-custodial multi-chain wallet: browser, Chrome extension, and Electron desktop from a single codebase; software + Trezor + Ledger + remote + multisig signers; full DEX, messaging, contracts, staking, and `window.xchain` dApp bridge |
+| [**xchain-wallet**](https://github.com/XChain-Platform/xchain-wallet/) | Reference self-custodial multi-chain wallet: browser, Chrome extension, Electron desktop, and Capacitor mobile (Android shipped, iOS later) from a single codebase; software + Trezor + Ledger + remote + multisig signers; full DEX, messaging, contracts, staking, and `window.xchain` dApp bridge |
 | [**xchain-regtest-miner**](https://github.com/XChain-Platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-Platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
 ## Legal
@@ -56,7 +56,7 @@ Any redistribution or modification must include the attribution notice specified
 
 **Copyright &copy; 2025-2026 Dankest, LLC**
 
-**Based on XChain Platform by Dankest, LLC &ndash; https://dankest.llc**
+**Based on XChain Platform by Dankest, LLC - https://dankest.llc**
 
 Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later)
 with a commercial license available for proprietary use.

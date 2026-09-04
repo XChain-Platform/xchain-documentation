@@ -165,7 +165,7 @@ Adjust the coin-level consensus params if the chain's economics differ.
 
 Chain-specific parsing quirks (for example Litecoin's HogEx flag, Dogecoin's
 AuxPoW header) are handled in the decoder/encoder, not in the coin file; see
-`BLOCKCHAINS.md` and the decoder component docs if your chain needs
+`blockchains.md` and the decoder component docs if your chain needs
 pre-processing before bitcoinjs-lib can parse its transactions.
 
 ### 2. Register it

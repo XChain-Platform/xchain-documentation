@@ -44,6 +44,12 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value f
 | **Ownership-escrow premium** | 50,000 | 0.5 | ORDER/SWAP/DISPENSER **create** that gives ownership; flat, charged on top of the expiration fee and not covered by the free period |
 | **AIRDROP** | 100/recipient | 0.001/recipient | 1,000 recipients = 1 XCHAIN |
 | **DIVIDEND** | 100/recipient | 0.001/recipient | Same as AIRDROP |
+| **SWEEP base** (`SWEEP_BASE`) | 5,000 | 0.05 | Flat, charged once per SWEEP. Sized so the smallest sweep still buys a native-coin fee output above the chain's dust threshold. Priced this way from the `UNIFIED_FEES_SWEEP_CALLBACK` gate; see [Flag-Day Values](../protocol/flag-days.md) for where that gate stands on each network, and [SWEEP](../protocol/actions/sweep.md) for what the earlier pricing was |
+| **SWEEP per item** (`SWEEP_PER_ITEM`) | 100/item | 0.001/item | One item is one swept balance, one closed order/swap/dispenser escrow, or one transferred ownership. Same gate as the base |
+| **CALLBACK base** (`CALLBACK_BASE`) | 5,000 | 0.05 | Flat, charged once per CALLBACK, same dust-threshold reasoning and same gate as `SWEEP_BASE` |
+| **CALLBACK per recipient** (`CALLBACK_PER_RECIPIENT`) | 100/recipient | 0.001/recipient | AIRDROP/DIVIDEND per-recipient parity. Same gate as the base |
+| **BET feed creation** (`BET_FEED_PER_DAY`) | 550/day | ~0.0055/day | Duration-metered on the feed's full life, with the same 90-day free period as the expiration fee, but under its own schedule key so the two families can be repriced independently. Genesis-active on every chain and network |
+| **BET place** (`BET_PER_CREDIT`) | 100/bet | 0.001/bet | Pre-funds the bet's single terminal credit at place time, which is what makes the system-injected expiry pass free. Resolve and cancel are free by design |
 
 ### VM Fees
 
@@ -62,6 +68,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value f
 | **Cross-chain call request** | 2,000 | 0.02 | Additional fee on top of action emission for `emit.crossExecute()`; the federation relay work. The call also pre-pays its remote `gasLimit` plus the cross-chain callback ceiling, with no refund of unused remote gas |
 | **Cross-chain callback ceiling** | 20,000 | 0.2 | Fixed gas ceiling the result/expiry callback runs against on the source chain, pre-paid at `emit.crossExecute()` time |
 | **Computation** | 1/instruction | None | Metered by isolated-vm; one charge per control-flow point |
+| **Controller-guard ceiling** (`VM_GUARD_GAS_CEILING`) | 200,000 | 2.0 | Fixed ceiling the controller guard runs against, reserved and billed against `SOURCE` from the `CONTROLLER_GUARD` flag day. Consensus-critical: it is committed into the ledger and contract hashes, so an indexer whose schedule omits or mistypes it throws at the guard-fee site rather than billing a phantom default |
 
 > **Indexed `for` loops are charged twice per iteration.** The gas meter injects a control-flow charge at the top of the loop body and a second charge into the update expression, so a `for` loop of N iterations costs `2 × N` computation gas. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost 1 per iteration. Account for the doubled cost when budgeting a gas ceiling for contracts that use indexed `for` loops.
 

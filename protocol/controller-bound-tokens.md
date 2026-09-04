@@ -172,20 +172,49 @@ positional, all-string input params (read via `xchain.getInputParam(i)`):
 
 | i | Param | Notes |
 |---|---|---|
-| 0 | `action_type` | the guard invocation point (see the [class table](#action-classes)). For `SWEEP_OWNERSHIP` there is one run per swept ownership deed, `from` = owner/SOURCE, `to` = DESTINATION. No guard runs at match or dispense: see [Proceeds split](#proceeds-split-royalty-fee-payout_legs). |
-| 1 | `from` | the address giving up / sending the token (`''` if n/a) |
-| 2 | `to` | the address receiving the token (`''` if n/a) |
+| 0 | `action_type` | the guard invocation point (see the [class table](#action-classes) and the per-`action_type` table below). No guard runs at match or dispense: see [Proceeds split](#proceeds-split-royalty-fee-payout_legs). |
+| 1 | `from` | the address the guarded action is charged to: the sender, seller, burner, minter or staker. **Not** always "the address giving up the token": on `MINT` nothing is given up and `from` is the minter |
+| 2 | `to` | the counterparty address, `''` where the invocation point passes none. Its meaning is per-`action_type`; read it out of the table below rather than inferring it |
 | 3 | `tick` | the controlled token |
 | 4 | `amount` | token amount moving (or order/dispenser quantity) |
-| 5 | `price` | proceeds amount for a sale (`''` for a plain `SEND`) |
-| 6 | `proceeds_tick` | proceeds tick for a sale (`''` for a plain `SEND`) |
+| 5 | `price` | proceeds amount for a sale (`''` outside the `trade`-class creates) |
+| 6 | `proceeds_tick` | proceeds tick for a sale (`''` outside the `trade`-class creates) |
+
+### Invocation points (per `action_type`)
+
+`from` / `to` / `amount` are **not** uniform across invocation points, and a guard that infers
+them from the generic descriptions above will misread at least three of them. The values the
+indexer actually passes:
+
+| `action_type` | Class | `from` | `to` | `amount` | `price` / `proceeds_tick` |
+|---|---|---|---|---|---|
+| `SEND` | `transfer` | sender | recipient | amount sent | `''` |
+| `AIRDROP` | `transfer` | distributor | `''` (fans out) | total leaving the sender | `''` |
+| `DIVIDEND` | `transfer` | distributor | `''` (fans out) | total leaving the sender | `''` |
+| `SWEEP` | `transfer` | swept address | **sweep `DESTINATION`** | that tick's swept balance | `''` |
+| `SWEEP_OWNERSHIP` | `ownership` | owner / `SOURCE` | sweep `DESTINATION` | `''` | `''` |
+| `ORDER_CREATE` | `trade` | seller | `''` (no buyer yet) | `GIVE_AMOUNT`, `''` on an ownership give | `GET_AMOUNT` / `GET_TICK` |
+| `SWAP_CREATE` | `trade` | seller | `''` (no buyer yet) | `GIVE_AMOUNT`, `''` on an ownership give | `GET_AMOUNT` / `GET_TICK` |
+| `DISPENSER_CREATE` | `trade` | dispenser opener | `''` (no buyer yet) | `GIVE_ESCROW`, `''` on an ownership give | `GET_AMOUNT` / `GET_TICK` |
+| `DESTROY` | `burn` | burner | `''` | amount burned | `''` |
+| `MINT` | `mint` | **minter**, not a giver | `DESTINATION`, **falling back to the minter** when the `MINT` names none | amount minted | `''` |
+| `STAKE` | `stake` | staker | `''` **always**: the target contract taking custody is not passed | amount staked | `''` |
+
+Two of these bite guards written against the generic wording:
+
+- A **mint-allowlist** guard ("only these addresses may receive newly minted supply") must
+  treat `to` as the minter on a `MINT` with no `DESTINATION`; it never sees `''` there.
+- A **stake** guard ("only this contract may hold my token") cannot read the custody target
+  from `to`, because no target is passed. Today a `stake` binding is an allow/deny on staking
+  the token at all, not on which contract receives it.
 
 Decision semantics:
 
 - **Return normally ⇒ ALLOW.** The guard's state changes and emitted actions are committed
   atomically with the native action.
-- **A `trade`-class create guard may return `{ payoutLegs: [{ to, bps }, …] }`** to set a
-  basis-point split of the sale's proceeds (see [Proceeds split](#proceeds-split-royalty-fee-payout_legs)).
+- **An `ORDER_CREATE` / `SWAP_CREATE` guard may return `{ payoutLegs: [{ to, bps }, …] }`** to
+  set a basis-point split of the sale's proceeds (see [Proceeds split](#proceeds-split-royalty-fee-payout_legs)).
+  `DISPENSER_CREATE` is **veto-only**: legs returned there are discarded, not rejected.
 - **`revert(reason)` / out-of-gas / runtime error / missing `guard` method ⇒ DENY**
   (fail-closed). The native action is marked `invalid: controller (<reason>)` and everything
   the guard did is rolled back.
@@ -204,9 +233,9 @@ sources any actions the guard emits).
 
 ## Proceeds split (royalty / fee `payout_legs`)
 
-A `trade`-class guard sets an optional **basis-point split of a sale's proceeds** by
-returning `{ payoutLegs: [ { to: <address>, bps: <int> }, … ] }` from its `guard` at
-**create** time. The split is declarative data carried on the order or swap row. **No guard
+An `ORDER_CREATE` / `SWAP_CREATE` guard sets an optional **basis-point split of a sale's
+proceeds** by returning `{ payoutLegs: [ { to: <address>, bps: <int> }, … ] }` from its `guard`
+at **create** time. The split is declarative data carried on the order or swap row. **No guard
 runs at match**, which keeps the system-triggered fill path deterministic and gas-free.
 
 This one primitive is how XChain expresses royalties, marketplace fees, and revenue share.
@@ -226,10 +255,20 @@ There is no royalty-specific mechanism; "royalty" is simply the most common use 
    DEX settlement math is unchanged; an order with no legs yields a single full credit to the
    seller, so the call is unconditional.
 
-**Scope.** The split applies to **on-ledger** proceeds (the `GET_TICK` the seller receives).
-Native-coin (COINPay) proceeds are off-ledger and out of scope for the split; a `trade` guard
-can still `revert` to forbid such a listing. `GIVE_OWNERSHIP` sales transfer ownership rather
-than a balance, so no proceeds split applies to that leg.
+**Scope.** The split applies to **on-ledger** proceeds (the `GET_TICK` the seller receives) of
+an `ORDER` or `SWAP` fill. Native-coin (COINPay) proceeds are off-ledger and out of scope for
+the split; a `trade` guard can still `revert` to forbid such a listing. `GIVE_OWNERSHIP` sales
+transfer ownership rather than a balance, so no proceeds split applies to that leg.
+
+> ⚠️ **Dispensers take no split, whatever the guard returns.** `DISPENSER_CREATE` runs the
+> `trade` guard as a **veto only**: the indexer consumes the deny and the metered guard fee and
+> **discards any `payoutLegs` the guard returns**, silently, without denying the listing. No
+> split is applied at dispense either: the dispense path credits the buyer the `GIVE_TICK` and
+> runs no guard and no `applyProceedsSplit`. So a royalty policy that only *returns legs* is
+> routed around by vending the token through a dispenser instead of listing it. A guard that
+> means to enforce a cut must `revert` on `action_type === 'DISPENSER_CREATE'` (or on the
+> dispenser price it will not be paid a share of). This is a known engine gap, not a design
+> rule: it is recorded as a `KNOWN GAP` at the call site in the indexer's `dispenser.js`.
 
 ### Cross-chain sales (`CROSS_CHAIN_ROYALTY`)
 
@@ -301,9 +340,11 @@ after the rest of Cohort A.
 
 Bulk moves of a controlled token route through the `transfer` class exactly like `SEND`, but
 the guard gates the **aggregate outbound move, sender-side only**: one guard run per
-controlled tick with `from = SOURCE`, `to = ''`, and `amount` = the total leaving the sender.
-The guard is **never invoked per-recipient**. This is a deliberate protocol decision, not a
-gap:
+controlled tick with `from = SOURCE` and `amount` = the total leaving the sender. `to` is
+**not** uniform across the three: `AIRDROP` and `DIVIDEND` fan out to many recipients and pass
+`to = ''`, while a `SWEEP` has exactly one destination and passes `to = DESTINATION` (see the
+[invocation points](#invocation-points-per-action_type) table). The guard is **never invoked
+per-recipient**. This is a deliberate protocol decision, not a gap:
 
 - **Deterministic, bounded VM work.** A drop can have thousands of recipients; one guard run
   per tick keeps guard gas independent of recipient count and keeps the ceiling reservation
@@ -328,11 +369,14 @@ restriction that the recipient's balance is subject to on its next outbound move
   the account's recourse is the same transfer-restriction model.
 
 **Guidance for guard authors:** treat `AIRDROP` / `DIVIDEND` / `SWEEP` invocations as
-sender-side aggregate checks (`from` is the distributor, `to` is empty, `amount` is the
-total). Do not attempt per-recipient allowlisting inside the bulk guard; there is no
-per-recipient invocation to hook. If your policy requires per-recipient control, either deny
-the aggregate (forcing individual guarded `SEND`s) or enforce holder eligibility in the
-`transfer` guard on subsequent moves.
+sender-side aggregate checks (`from` is the distributor, `amount` is the total). Branch on
+`action_type`, **never** on `to === ''`: `to` is empty on `AIRDROP` and `DIVIDEND` but carries
+the sweep destination on `SWEEP`, so an aggregate-vs-direct test written against an empty `to`
+takes the wrong branch on every sweep of a controlled token, and a future bulk action that
+names a destination would break it again. Do not attempt per-recipient allowlisting inside the
+bulk guard; there is no per-recipient invocation to hook. If your policy requires per-recipient
+control, either deny the aggregate (forcing individual guarded `SEND`s) or enforce holder
+eligibility in the `transfer` guard on subsequent moves.
 
 **SWEEP has two legs, gated by two classes.** `SWEEP` *balance* moves are gated by the
 `transfer` class as above. `SWEEP` **ownership** transfers are gated separately by the
@@ -470,10 +514,20 @@ holds; a balanced transfer or an escrow settlement is supply-neutral.
 
 ## Activation and availability
 
-Controller-bound tokens ride the `CONTROLLER_GUARD` protocol flag-day. Below it, `ISSUE` v6
-and `ADDRESS` v1 bindings are not accepted and no guard runs; a token or account is exactly as
-it was before the feature existed. The cross-chain proceeds-split behavior additionally rides
-the `CROSS_CHAIN_ROYALTY` flag-day described [above](#cross-chain-sales-cross_chain_royalty).
+Controller-bound tokens ride the `CONTROLLER_GUARD` protocol flag-day, and the flag-day scopes
+**guard execution only**. Below it no guard runs: no allow/deny VM run, no `payout_legs`
+written, and no guard `contract_executions` row, so a node that carries the controller layer
+and one that does not settle every guarded action identically.
+
+**Binding is not gated by the flag-day.** `ISSUE` v6 and `ADDRESS` v1 bindings are accepted,
+validated and recorded below it, accumulating in the append-only `token_controllers` /
+`address_controllers` logs exactly as they do above it. Every binding already on file therefore
+**begins gating at activation**, with no further action from the issuer or the account holder.
+Plan a pre-activation bind and the flag-day together: the guard is inert before it, the binding
+is not erased by it.
+
+The cross-chain proceeds-split behavior additionally rides the `CROSS_CHAIN_ROYALTY` flag-day
+described [above](#cross-chain-sales-cross_chain_royalty).
 
 Because a guard's decision and side effects are consensus-relevant, the VM engine and the
 indexer must deploy **atomically** across the fleet: every validator must run the same guard

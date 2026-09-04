@@ -120,14 +120,26 @@ shorthand for "a BTC height per rule, in two batches" rather than a single share
 whole cohort.
 
 The cohort is its **armed** rules. `constants.js` also carries validator-era maps that are inert:
-`SNAPSHOT_BURIAL_ACTIVATION`, `ANCHOR_REWARD_DERIVE_ACTIVATION`, `ATTEST_BROADCAST_FEE_ACTIVATION`
-and `ATTEST_REQUEST_CAP_ACTIVATION` (the per-block attestation admission ceiling, a sibling of the
-attestation-admission gate in the cohort table above) each hold `null` on mainnet, which is the
+`SNAPSHOT_BURIAL_ACTIVATION`, `ANCHOR_REWARD_DERIVE_ACTIVATION`, `ATTEST_BROADCAST_FEE_ACTIVATION`,
+`ATTEST_REQUEST_CAP_ACTIVATION` (the per-block attestation admission ceiling, a sibling of the
+attestation-admission gate in the cohort table above), `ROLLCALL_ACTIVATION` (keyed on the BTC
+`EPOCH_HEIGHT` a ROLLCALL carries), `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` and
+`ATTEST_RESPONSE_MIRROR_ACTIVATION` each hold `null` on mainnet, which is the
 encoding of "never" and the fail-closed default until an operator ratifies a height. They are not
-counted above and carry no flag day yet. The enumeration is the **height-keyed validator-era** maps
+counted above and carry no flag day yet. `ATTEST_RESPONSE_MIRROR_ACTIVATION` is the one of them that
+is unarmed on **testnet** too, so only regtest exercises the hub response-mirror path today; the
+testnet exceptions listed below are exceptions among the *armed* cohort rules and do not cover it.
+The enumeration is the **height-keyed validator-era** maps
 specifically: the block-time [decoder-carried gates](#decoder-carried-gates) also read `null` as
 disarmed, and `PRICE_PAIR_WIDEN_ACTIVATION` encodes the same "not yet" as a far-future sentinel
 instant rather than as `null`.
+
+`ANCHOR_ACTIVATION` is height-keyed and **armed on both live networks**, but sits outside the three
+cohorts: it is keyed on the anchor's own DOGE mined height (`DOGE:mainnet` 6360000, `DOGE:testnet`
+67858600, regtest 0), not on a shared instant, a BTC anchor, or each chain's own local height. At or
+above it the restarted ANCHOR wire set parses (versions 0, 1 and 2 only); below it an ANCHOR of any
+version is `invalid: ANCHOR before activation`. Mainnet's height sits above the DOGE tip on purpose,
+so the restarted wire set has not activated there yet. Stragglers **fork**.
 
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed

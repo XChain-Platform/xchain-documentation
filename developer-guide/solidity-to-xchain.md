@@ -140,11 +140,13 @@ by the protocol on every transfer and cannot be bypassed by any marketplace.
 // guard contract: the indexer calls guard(...) before a guarded action settles
 module.exports = {
     guard: function (xchain) {
-        var actionType = xchain.getInputParam(0);   // e.g. 'transfer'
-        var to         = xchain.getInputParam(2);
-        // deny transfers to a blocked address
-        if (xchain.state.get('blocked:' + to) === '1') xchain.revert('recipient blocked');
-        // (optional) return a royalty split via payoutLegs for 'trade'
+        var actionType = xchain.getInputParam(0);   // the invocation point: 'SEND', 'SWEEP', ...
+        var to         = xchain.getInputParam(2);   // '' on AIRDROP/DIVIDEND and the trade creates
+        // deny transfers to a blocked address. `to` is populated only on SEND, SWEEP,
+        // SWEEP_OWNERSHIP and MINT, so branch on actionType: see the invocation-points table
+        // in the controller-bound-tokens spec.
+        if (to !== '' && xchain.state.get('blocked:' + to) === '1') xchain.revert('recipient blocked');
+        // (optional) return a royalty split via payoutLegs from ORDER_CREATE / SWAP_CREATE
     }
 };
 // bound with ISSUE v6: CONTROLLER = <guard contract index>, ACTION_CLASS = 'transfer' (or 'all')

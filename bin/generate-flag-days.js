@@ -332,7 +332,8 @@ function collectSiblingGates(indexerSrc, add) {
  *
  * WHY THE CALL ARM IS VALUE-GATED. Most of the registry is not on this page at
  * all: roughly forty gates carry mainnet_time 0, several carry block heights,
- * and one parks the 9999999999 sentinel. Failing on unreadable SYNTAX alone
+ * and seven park the 9999999999 sentinel (see `collectMainnetUnarmed`, which
+ * names them on the page rather than dropping them). Failing on unreadable SYNTAX alone
  * therefore fires hardest on declarations that could never have contributed a
  * row, and the evidence that was meant to exclude that (regenerate today's
  * registry, see nothing throw) cannot see it: every call in today's registry is
@@ -499,6 +500,38 @@ function collectTestnetUnarmed(indexerSrc = INDEXER_SRC) {
 }
 
 /**
+ * MAINNET slots parked on an UNARMED sentinel (>= SENTINEL_FLOOR), as `{ gate, time }`
+ * sorted by name.
+ *
+ * `collectGates` drops these deliberately: publishing 9999999999 as a flag day would put
+ * a fake commitment on a page implementers plan fleet upgrades from. Dropping them with
+ * no trace is the other failure, and it is the one that shipped: a gate absent from the
+ * table reads as a gate that does not exist, so `sweep.md` could send a reader here "for
+ * where the gate stands on each network" and the page would not say. Naming them without
+ * an instant keeps both properties.
+ *
+ * Scoped to `protocol_changes.js`, exactly like the testnet twin above. A sibling
+ * `*_activation.js` module can also park a mainnet sentinel, and this scan does not reach
+ * it; the note it feeds says so rather than claiming a completeness it does not have.
+ */
+function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
+    const scannable = withoutComments(
+        fs.readFileSync(path.join(indexerSrc, 'protocol_changes.js'), 'utf8'),
+    );
+    const found = new Map();
+    const add = (gate, time) => {
+        if (!Number.isFinite(time) || time < SENTINEL_FLOOR) return;
+        if (!found.has(gate)) found.set(gate, { gate, time });
+    };
+    let match;
+    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*(\d+)/g;
+    while ((match = callRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
+    const constRe = /const\s+([A-Z][A-Z0-9_]*)_MAINNET_TIME\s*=\s*(\d+)\s*;/g;
+    while ((match = constRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
+    return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
+}
+
+/**
  * The coordinated contract-era flag day: the timestamp the most gates ride.
  * Derived rather than named, because naming it here would reintroduce exactly
  * the hardcoded value this generator exists to remove. Cohort A is 30+ gates
@@ -520,7 +553,7 @@ function coordinatedFlagDay(gates) {
     return { time: ranked[0][0], count: ranked[0][1] };
 }
 
-function render(gates, testnetArms = [], testnetUnarmed = []) {
+function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = []) {
     const anchor = coordinatedFlagDay(gates);
     const others = gates.filter((g) => g.time !== anchor.time);
 
@@ -571,6 +604,22 @@ function render(gates, testnetArms = [], testnetUnarmed = []) {
           + 'there without re-deciding history that outside nodes have already committed. '
           + 'Each names its reason in its registration comment in `protocol_changes.js`.';
 
+    // The symmetric mainnet note. Without it a sentinel-parked gate leaves no trace on the
+    // page at all, so the table below reads as the whole registry and the testnet sentence
+    // above reads as if mainnet were armed. Names, never instants: the sentinel is not a
+    // date anybody scheduled.
+    const mainnetUnarmedNote = mainnetUnarmed.length === 0
+        ? ''
+        : `\n\n**${mainnetUnarmed.length === 1 ? 'One gate is UNARMED on mainnet' : `${mainnetUnarmed.length} gates are UNARMED on mainnet`}** `
+          + `(${mainnetUnarmed.map((g) => `\`${g.gate}\``).join(', ')}): each parks the sentinel `
+          + 'rather than an instant, so mainnet has **never** run the post-activation behavior '
+          + 'and will not until an operator names a date. They carry no row in the table below, '
+          + 'because publishing the sentinel as a flag day would put a commitment on this page '
+          + 'that nobody made. Each names its reason in its registration comment in '
+          + '`protocol_changes.js`. This note covers the registry only; a sibling '
+          + '`*_activation.js` module can park a mainnet sentinel too, and those are not '
+          + 'enumerated here.';
+
     return `<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025-2026 Dankest, LLC -->
 <!-- GENERATED FILE. Do not edit: run \`node bin/generate-flag-days.js\`. -->
@@ -601,7 +650,7 @@ simultaneously on Bitcoin, Litecoin, and Dogecoin.
 | **UTC instant** | ${utcInstant(anchor.time)} |
 | **Gates riding it** | ${anchor.count} |
 
-${outliers}
+${outliers}${mainnetUnarmedNote}
 
 **Testnet and regtest are genesis-active** for the time-keyed gates: they carry
 threshold \`0\`, so a testnet or regtest stack has always run the
@@ -621,7 +670,8 @@ here; they are inventoried on
 }
 
 function generate(indexerSrc = INDEXER_SRC) {
-    return render(collectGates(indexerSrc), collectTestnetArms(indexerSrc), collectTestnetUnarmed(indexerSrc));
+    return render(collectGates(indexerSrc), collectTestnetArms(indexerSrc),
+                  collectTestnetUnarmed(indexerSrc), collectMainnetUnarmed(indexerSrc));
 }
 
 if (require.main === module) {
@@ -641,6 +691,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-    collectGates, collectTestnetArms, collectTestnetUnarmed, coordinatedFlagDay, render, generate, utcInstant, utcDate,
+    collectGates, collectTestnetArms, collectTestnetUnarmed, collectMainnetUnarmed, coordinatedFlagDay, render, generate, utcInstant, utcDate,
     DOC_ROOT, INDEXER_SRC, REGISTRY, OUTPUT, TIMESTAMP_FLOOR, SENTINEL_FLOOR,
 };
