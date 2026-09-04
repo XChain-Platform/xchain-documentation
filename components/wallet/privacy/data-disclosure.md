@@ -81,11 +81,11 @@ Ledger hardware wallets use WebHID over USB and make no network request at all. 
 
 **The wallet does not collect user data, and it is a plain fact rather than an argument.** The same answer lands on all three store forms.
 
-It was blocked here for a day on a premise that measurement dissolved. The earlier record said the explorer, encoder and hub hosts each logged the client IP alongside a request line carrying the wallet address, retained 14 days. That was read off the Apache format string (`combined` starts with `%h`) rather than off the logs. `%h` is whoever opened the TCP connection, and behind a reverse proxy that is the proxy.
+It was blocked here for a day on a premise that measurement dissolved. The earlier record said the wallet's API hosts each logged the client IP alongside a request line carrying the wallet address, retained 14 days. That was read off the Apache format string (`combined` starts with `%h`) rather than off the logs. `%h` is whoever opened the TCP connection, and behind a reverse proxy that is the proxy.
 
 Measured on the live hosts on 2026-08-02:
 
-- All three hosts are Cloudflare-proxied, and at that measurement none of them loaded a real-client-IP module or configured `CF-Connecting-IP` handling. (That has since changed for a narrower purpose; see the current posture below.)
+- Every API host the wallet talks to is Cloudflare-proxied, and at that measurement none of them loaded a real-client-IP module or configured `CF-Connecting-IP` handling. (That has since changed for a narrower purpose; see the current posture below.)
 - So the logged source is a Cloudflare edge address, not a visitor's: explorer **844 of 846** distinct sources inside Cloudflare's published ranges, encoder **119 of 120**, hub **162 of 162**.
 - **No wallet user IP is retained, so there is no IP-to-address linkage to disclose.**
 - Only `explorer.xchain.io` carried wallet addresses in its request lines (857 of 7,520 that day). `encoder.xchain.io` takes them in POST bodies, which `combined` does not log; `hub.xchain.io` carries none.
@@ -93,7 +93,7 @@ Measured on the live hosts on 2026-08-02:
 
 Cloudflare still sees and logs the visitor IP at its edge under its own policy. That is disclosed as a third-party contact, and it is not our retention.
 
-**Current posture, and why the sentence above still holds.** The explorer, encoder and hub hosts now load Apache's real-client-IP module (`mod_remoteip`, reading `CF-Connecting-IP` from Cloudflare's published ranges) for one purpose: so each host's per-visitor rate limiter can tell one visitor from another instead of throttling everyone who shares a Cloudflare exit address. The module was enabled together with a change to those hosts' access-log format, whose client column is the connection peer rather than the resolved visitor, so the logged source is still the Cloudflare edge address and no visitor IP is written to disk. The visitor's address exists only in the rate limiters' in-memory counters for the current 60-second window and is never stored or exported.
+**Current posture, and why the sentence above still holds.** The wallet's API hosts now load Apache's real-client-IP module (`mod_remoteip`, reading `CF-Connecting-IP` from Cloudflare's published ranges) for one purpose: so each host's per-visitor rate limiter can tell one visitor from another instead of throttling everyone who shares a Cloudflare exit address. The module was enabled together with a change to those hosts' access-log format, whose client column is the connection peer rather than the resolved visitor, so the logged source is still the Cloudflare edge address and no visitor IP is written to disk. The visitor's address exists only in the rate limiters' in-memory counters for the current 60-second window and is never stored or exported.
 
 **What would make this false again**, and both are things a sensible administrator might do for good reasons: changing those hosts' access-log format back to one whose client column is the resolved visitor (`%h` or `%a`; with the module loaded, that would start recording real client addresses), or moving the explorer access log back under the default rotation (which would silently restore the longer retention). [The data-collection record](data-collection.md) is where those two are re-measured; do it before every submission.
 
