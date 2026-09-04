@@ -5,9 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.15.0] - 2026-09-04
 
 ### Added
+- The ATTEST response-mirror activation height, its two hub overrides, the attestation batch publisher settings, the round cadence knobs and the indexer's three hub-mirror grace windows are documented, with the `attestation_responses` mirror table.
+- A two-chain regtest venue can opt in to roll-call activation, and the roll-call, frozen-tip and config-oracle variables are documented for the hub and indexer.
+- Flag-day gates parked on the unarmed testnet sentinel are reported.
+- The v0.14.0 release train is recorded on the releases page.
 - ROLLCALL, a validator liveness action published on Dogecoin, is documented: wire format, EQUIV canonical, the rules each chain judges, the accept window and its cut, and the eviction rule.
 - Eight frozen ROLLCALL consensus constants are declared in `protocol/constants.js`, with mainnet shipping inert at `null`.
 - `XROLLCALL` joins `ENGINE_TAGS` with header vectors; it is namespacing only and deliberately not a SLASH family.
