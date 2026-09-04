@@ -159,7 +159,7 @@ These configure a hub acting as the telemetry **collector**, and are forwarded i
 | `XCHAIN_NODE_DOGE_WIF` | **Credential.** Private key for the DOGE publisher wallet, read by `validator init --import-doge-key`, with the same prompt fallback and the same reason. |
 | `XCHAIN_NODE_AUTOHEAL_STATE_DIR` | Directory holding autoheal state. Defaults to the same per-user directory as `credentials.json`. Test and ops override. |
 | `GITHUB_TOKEN` / `GH_TOKEN` | Personal access token for GitHub downloads. Raises the anonymous API rate limit and is required to reach private module repositories. `GITHUB_TOKEN` is checked first. Treat as a credential: supply it from the environment, never a checked-in file. |
-| `BTC_INDEXER_API_URL` | BTC indexer JSON-RPC URL used as the block-height anchor for the validator-mode price oracle (`hub.getlatestblock`). Read from the host environment so a hub that is **not** co-located with a BTC indexer (the master hub box, where the BTC stack lives elsewhere) can point at a reachable one. Empty by default, in which case the hub falls back to its local resolution. |
+| `BTC_INDEXER_API_URL` | BTC indexer JSON-RPC URL used as the block-height anchor for the validator-mode price oracle (`hub.getlatestblock`). Read from the host environment so a hub that is **not** co-located with a BTC indexer can point at a reachable one. Empty by default, in which case the hub falls back to its local resolution. |
 
 The four below are read by the **DOGE signer** the hub mounts read-only, not by
 `xchain-node` itself. They live in that signer directory's own `.env`, which is
@@ -240,9 +240,9 @@ These env vars override where xchain-node stores its filesystem state on the hos
 >
 > `XCHAIN_NODE_BLOCKS_DIR` avoids this trap entirely: xchain-node starts the daemon with `-blocksdir=/blocks`, which the daemon honours on every network, so all per-network subdirectories land inside the mounted path (`/blocks/testnet3/blocks/`, `/blocks/regtest/blocks/`, …). A single host bind therefore covers mainnet, testnet, and regtest uniformly. See [Disk Management](../../operations/disk-management.md) for the full disk-offload guide.
 
-### Recommended setup for OVH RISE-3 chain-node boxes
+### Recommended setup for a chain-node host with a small root volume
 
-On the RISE-3 archetype (small `/` partition, large `/misc` SATA mirror), set these before installing:
+On a host with a small `/` partition and a large secondary volume (mounted at `/misc` in this example), set these before installing:
 
 ```bash
 export XCHAIN_NODE_DATA_DIR=/misc/xchain-node-data

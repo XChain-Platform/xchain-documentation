@@ -232,7 +232,7 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 |---|---|---|---|
 | `BTC_INDEXER_URL` | No | _(from config table)_ | BTC indexer JSON-RPC URL used by the full-node challenge round. |
 | `BTC_INDEXER_API_KEY` | No | _(from config table)_ | API key presented to that indexer's fail-closed federation-read gate. Treat as a credential. |
-| `BTC_INDEXER_API_URL` | No | None | BTC indexer JSON-RPC URL for the validator-mode price oracle's block-height anchor (`getlatestblock`). Set it when the hub is **not** co-located with a BTC indexer, e.g. a master hub box whose BTC stack lives elsewhere. Empty falls back to local resolution. `xchain-node` forwards this from the host environment. |
+| `BTC_INDEXER_API_URL` | No | None | BTC indexer JSON-RPC URL for the validator-mode price oracle's block-height anchor (`getlatestblock`). Set it when the hub is **not** co-located with a BTC indexer and must reach one over the network. Empty falls back to local resolution. `xchain-node` forwards this from the host environment. |
 | `MAX_INDEXER_LAG_BLOCKS` | No | `200` | Maximum blocks the BTC indexer may lag before its tip is treated as untrustworthy and ignored, degrading gracefully instead of locking in a stale validator set. |
 | `MAX_TIP_AGE_S` | No | `2 × ORACLE_ROUND_INTERVAL` (seconds) | Maximum age of the indexer-pushed BTC tip before it is considered stale. |
 | `INDEXER_COIN_CHECK` | No | enabled | Set to `0` to disable the per-coin indexer reachability check. |

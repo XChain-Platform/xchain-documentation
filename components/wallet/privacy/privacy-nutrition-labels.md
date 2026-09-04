@@ -28,7 +28,7 @@ Three things that appear on the Android form or in the privacy policy are delibe
 
 Apple's definition of "collect" is transmitting data off the device and keeping it longer than needed to service the request in real time.
 
-All three first-party hosts (`explorer.xchain.io`, `encoder.xchain.io`, `hub.xchain.io`) sit behind Cloudflare, which means the address our own servers log is Cloudflare's, not the visitor's: measured across a full day of traffic, the overwhelming majority of distinct source addresses in each log fell inside Cloudflare's published ranges. **No wallet user IP is retained**, so nothing links an address to a person.
+The wallet's first-party API hosts sit behind Cloudflare, which means the address our own servers log is Cloudflare's, not the visitor's: measured across a full day of traffic, the overwhelming majority of distinct source addresses in each log fell inside Cloudflare's published ranges. **No wallet user IP is retained**, so nothing links an address to a person.
 
 Only `explorer.xchain.io` carries wallet addresses in its request lines, and that log has one-day retention. `encoder.xchain.io` takes addresses in request bodies, which are not logged, and `hub.xchain.io` carries none.
 
