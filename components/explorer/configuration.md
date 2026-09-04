@@ -327,19 +327,19 @@ The explorer uses `express-rate-limit` middleware:
 | Setting | Value |
 |---|---|
 | Window | 60 seconds |
-| Max requests per window | 500 (override via `EXPLORER_RATE_LIMIT_RPM`) |
+| Max requests per window | 1080 (override via `EXPLORER_RATE_LIMIT_RPM`) |
 | Scope | Per IP address |
 | Response on limit | HTTP 429 Too Many Requests |
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `EXPLORER_RATE_LIMIT_RPM` | No | `500` | Maximum requests per IP per 60-second window. Image requests (`.png`, `.jpg`, `.jpeg`, `.gif`, `.ico`, `.svg`, `.webp`), `/icon/` paths, and `/images` paths are excluded from the limit. |
-| `EXPLORER_ACTION_PROOF_RATE_LIMIT_RPM` | No | `60` | Separate, tighter limit for `/{COIN}/api/proof/action/{idx}` |
+| `EXPLORER_RATE_LIMIT_RPM` | No | `1080` | Maximum requests per IP per 60-second window, derived from the measured five-address wallet profile's worst minute with retries and 3x headroom. Image requests (`.png`, `.jpg`, `.jpeg`, `.gif`, `.ico`, `.svg`, `.webp`), `/icon/` paths, and `/images` paths are excluded from the limit. |
+| `EXPLORER_ACTION_PROOF_RATE_LIMIT_RPM` | No | `90` | Separate, tighter limit for `/{COIN}/api/proof/action/{idx}` and its balance, contract-state and locked-balance siblings, derived from the measured wallet profile's proof jobs with retries and 3x headroom. |
 | `EXPLORER_VALIDATOR_SET_PROOF_RATE_LIMIT_RPM` | No | `30` | Separate, tighter limit for `/BTC/api/proof/validator-set` |
 | `EXPLORER_PREFLIGHT_POST_RATE_LIMIT_RPM` | No | `60` | Separate limit for `POST /{COIN}/api/preflight`, the only unauthenticated route that accepts a large body. The limiter runs before the body parser, so a limited caller is refused without the server reading the payload. |
 | `EXPLORER_FEE_QUOTE_RATE_LIMIT_RPM` | No | `120` | Separate limit for the fee lookups `/{COIN}/api/feequote`, `/{COIN}/api/oraclefeequote` and `/{COIN}/api/feeschedule`. One tier looser than the proof routes because a quote is a lookup rather than a cryptographic recompute. |
 | `EXPLORER_CHECKPOINT_LIST_RATE_LIMIT_RPM` | No | `120` | Separate limit for `/{COIN}/api/checkpoints`, which lists stored checkpoints. |
-| `EXPLORER_CHECKPOINT_VERIFY_RATE_LIMIT_RPM` | No | `60` | Separate, tighter limit for `/{COIN}/api/checkpoint/{blockIndex}/verify`, which recomputes a checkpoint rather than reading one. |
+| `EXPLORER_CHECKPOINT_VERIFY_RATE_LIMIT_RPM` | No | `90` | Separate, tighter limit for `/{COIN}/api/checkpoint/{blockIndex}/verify`, which recomputes a checkpoint rather than reading one, derived from the measured wallet profile's one verify per proof job with retries and 3x headroom. |
 | `WS_TRUST_PROXY_HOPS` | No | `1` | Proxy hop count used to resolve the real client address for the WebSocket per-IP cap. The upgrade is handled on the raw HTTP server, where Express's `trust proxy` does not apply, so the hop count must be passed explicitly or the cap keys on a spoofable `X-Forwarded-For`. Keep it aligned with the HTTP side. |
 
 Rate limiting applies to all non-image endpoints (API, Explorer, and HTML).
