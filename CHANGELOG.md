@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `XROLLCALL` joins `ENGINE_TAGS` with header vectors; it is namespacing only and deliberately not a SLASH family.
 - `rollcall_canonical.json` freezes the canonical and wire bytes with real Ed25519 signatures, including negative cases for a wrong ledger hash, network or epoch.
 - The indexer configuration page states that the existing DOGE wiring becomes required a second time from `ROLLCALL_ACTIVATION`, and that a BTC indexer without it defers every block.
+- ATTEST's hub-mirror response path is documented: the mirror-era signed canonical, deterministic callback timing with no broadcast transaction, the v5/v6 batch format, and the escrow-split change once broadcasting stops.
 
 ### Changed
 - The white paper is bumped to version 1.4, dated 2026-08-31, for the announcement.

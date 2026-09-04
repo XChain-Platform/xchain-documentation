@@ -2,14 +2,14 @@
 <!-- Copyright © 2025–2026 Dankest, LLC -->
 
 # XChain Platform Action - ATTEST
-This action covers the external-data attestation lifecycle in five version-discriminated phases: v0 (VM-emitted request), v1 (validator-broadcast response), v2 (system-synthesized expiry), and the two cross-chain relay legs v3 (a request materialized onto BTC) and v4 (the response relayed back to the origin chain).
+This action covers the external-data attestation lifecycle. A request is v0 (VM-emitted). Below a network's response-mirror activation height, the answer is v1, a validator-broadcast transaction. At or above that height, a finalized response does not arrive as its own on-chain transaction: it is agreed by the validator network and delivered to every indexer through the hub, and only shows up on chain afterward, batched together with other responses, as v5 (batch head) and v6 (batch continuation). See Response delivery, below, for how the two paths work and which one a given request uses. Two more versions round out the lifecycle: v2 (system-synthesized expiry) and the cross-chain relay legs v3 (a request materialized onto BTC) and v4 (the response relayed back to the origin chain).
 
 All `attestation` capability stake lives on BTC, so a request emitted by an LTC or DOGE contract has no responsible set where it landed and cannot be fulfilled there. v3 materializes such a request onto BTC, giving it a real BTC `block_index`; from that point the ordinary v0/v1 machinery services it. v4 carries the outcome back so the origin chain fires the contract callback. Both legs are gated (see the Formats section) and inert until then.
 
 ## PARAMS
 | Name                   | Type    | Description                                                                                     |
 | ---------------------- | ------- | ----------------------------------------------------------------------------------------------- |
-| `VERSION`              | Integer | Format version (0=request, 1=response, 2=expire, 3=relay request, 4=relay response)             |
+| `VERSION`              | Integer | Format version (0=request, 1=response, 2=expire, 3=relay request, 4=relay response, 5=batch head, 6=batch continuation) |
 | `ORIGIN_CHAIN`         | String  | Chain a relayed request was emitted on (`LTC` or `DOGE`); v3 only                              |
 | `ORIGIN_ACTION_INDEX`  | Integer | The origin chain's v0 `action_index`: the relay correlation key, and together with `ORIGIN_CHAIN` the exactly-once relay identity on BTC; v3 only |
 | `HOME_RESPONSE_ACTION_INDEX` | Integer | The BTC v1 `action_index` whose outcome is being relayed; v4 only                        |
@@ -29,6 +29,16 @@ All `attestation` capability stake lives on BTC, so a request emitted by an LTC 
 | `SIG_COUNT`            | Integer | Number of (pubkey, sig) pairs that follow; v1 only                                              |
 | `PUBKEY_n`             | String  | 64-hex Ed25519 pubkey, qualified for `attestation` at the request block; v1 only               |
 | `SIG_n`                | String  | 128-hex Ed25519 signature over the canonical message; v1 only                                  |
+| `BATCH_KEY`            | String  | 64-hex SHA-256 over `ATTESTBATCH:NETWORK:WINDOW_START:WINDOW_END` (colon-delimited); the batch's own identifier, and the key a v6 wire cites to find its head; v5 and v6 |
+| `WINDOW_START`         | Integer | Start of the batch's time window, unix seconds; v5 only                                         |
+| `WINDOW_END`           | Integer | End of the batch's time window, unix seconds; v5 only                                           |
+| `ROW_COUNT`            | Integer | Number of responses carried in the batch (0 for an empty window); v5 only                       |
+| `BTC_BLOCK_HEIGHT`     | Integer | BTC block height the batch's validator signer set is checked against; v5 only                   |
+| `BATCH_CRC32`          | String  | 8-hex CRC32 checksum of the batch's uncompressed contents, checked after reassembly; v5 and v6   |
+| `TOTAL_CHUNKS`         | Integer | Total number of wires (the head plus its continuations) the batch is split across; v5 and v6     |
+| `BODY_B64`             | String  | Base64 of the batch's compressed contents, or the head's share of them when the batch continues into v6 wires; v5 only |
+| `CHUNK_INDEX`          | Integer | This continuation's position among the batch's wires (the head is position 0); v6 only          |
+| `BODY_B64_CHUNK`       | String  | Base64 continuation of the compressed contents begun in the head; v6 only                       |
 
 ## Formats
 
@@ -50,6 +60,14 @@ The trailing `FEE_TICK|FEE_AMOUNT` pair is optional. A feeless request omits the
 - `ATTEST|4|REQUEST_ID|HOME_RESPONSE_ACTION_INDEX|RESPONSE_PAYLOAD|STATUS|META|SNAPSHOT_BLOCK|SIG_COUNT|PUBKEY1|SIG1|...`
 
 Both relay versions activate at `ATTEST_RELAY_ACTIVATION` (BTC 963000 on mainnet, genesis on testnet and regtest). Below the height they are rejected as an unknown VERSION and persist nothing. Every indexer and hub must be deployed before that height.
+
+### Version `5` - Batch head (system-published, Dogecoin only)
+- `ATTEST|5|BATCH_KEY|NETWORK|WINDOW_START|WINDOW_END|ROW_COUNT|BTC_BLOCK_HEIGHT|BATCH_CRC32|TOTAL_CHUNKS|BODY_B64`
+
+### Version `6` - Batch continuation (system-published, Dogecoin only)
+- `ATTEST|6|BATCH_KEY|CHUNK_INDEX|TOTAL_CHUNKS|BATCH_CRC32|BODY_B64_CHUNK`
+
+Both are published once every wall-clock hour on Dogecoin, never user-broadcast, and exist so a node with no connection to the validator network can still reconstruct the complete history of attestation responses from the chain alone (see Response delivery, below). A batch head, plus as many continuations as it needs, carries every response the validator network finalized in that hour, compressed and split so each wire fits inside a single action; an hour that produced no responses still publishes a head with `ROW_COUNT=0`, so every hour's coverage is provable even when nothing happened. A batch is capped at 256 responses and 1,048,576 bytes (1 MiB) of uncompressed content; a window that would need more than that is refused outright, loudly, rather than silently dropped or truncated.
 
 ## Examples
 ```
@@ -102,6 +120,7 @@ Below the activation neither rule applies and the legacy per-key ranking runs un
 - A valid `FEE_AMOUNT > 0` debits `FEE_PAYER` and writes an escrow row at the v0 `action_index`. Absent or zero value means feeless with no ledger movement.
 
 ### Version 1 (response)
+- Checked before anything else: if the request is at or above its network's response-mirror activation height, an on-chain v1 is rejected outright with `invalid: ATTEST v1 after mirror activation`. Such a request is answered only through the hub mirror (see Response delivery, below); a v1 transaction reaching the chain for it is stale or hostile.
 - Indexer rejects if `REQUEST_ID` does not match a `pending` row from a prior v0.
 - `PROVIDER_ID` must equal the request's provider.
 - Indexer's `BLOCK_INDEX` must be no greater than the request's `DEADLINE_BLOCK`.
@@ -131,6 +150,18 @@ Below the activation neither rule applies and the legacy per-key ranking runs un
 - The signature list must meet the same `cross_chain` quorum as v3, over the relay-response canonical.
 - On acceptance the request goes `fulfilled` (`ok`) or `errored` (`expired`), its v0 fee escrow settles, and the contract callback is injected with the identical argument shape a locally serviced attestation produces.
 
+### Version 5 (batch head, Dogecoin only)
+- Accepted only on Dogecoin; system-published only, never user-broadcast.
+- `BATCH_KEY` must equal the SHA-256 of `ATTESTBATCH:NETWORK:WINDOW_START:WINDOW_END`; a head whose key does not match its own declared window is rejected.
+- `WINDOW_START` must not exceed `WINDOW_END`, and `ROW_COUNT` must not exceed 256.
+- `TOTAL_CHUNKS` is the number of wires (this head plus its continuations) the batch is split across; once every continuation arrives, the reassembled and decompressed contents must decode to exactly `ROW_COUNT` responses matching the header fields exactly, or the whole batch is invalid with no partial acceptance.
+- The Dogecoin indexer checks the batch's own quorum signature, covering the whole window, against the validator capability snapshot at `BTC_BLOCK_HEIGHT`; it does not separately re-check each carried response's own signatures there. Those are checked, using the same rule a live response is checked against (see Canonical signing message, mirror era, below), once the responses reach Bitcoin, the chain that actually applies them, through the same delivery path a live response takes.
+
+### Version 6 (batch continuation, Dogecoin only)
+- Accepted only on Dogecoin; system-published only, never user-broadcast.
+- Belongs to the head sharing its `BATCH_KEY`; `CHUNK_INDEX` numbers its position among the batch's wires (the head itself is position 0), and `TOTAL_CHUNKS` must match the head's.
+- A batch missing any of its declared continuations cannot be reassembled; it stays incomplete until the missing wire arrives, rather than being rejected outright.
+
 ## Canonical signing messages (v3/v4)
 The relay legs sign pipe-joined field lists, with free-form payloads folded in as SHA-256 digests so the signed bytes stay bounded:
 
@@ -150,12 +181,21 @@ request_id || provider_id || sha256(response_payload) || status || meta
 
 Where `sha256(response_payload)` is the lowercase hex digest of the raw response bytes (after base64-decoding the wire field).
 
+### Canonical signing message (v1, mirror era)
+At or above the response-mirror activation height, the signed message carries one more field, separated from the rest by a `|`: the effective time at which the response becomes bindable.
+
+```
+request_id || provider_id || sha256(response_payload) || status || meta | effective_time
+```
+
+The round's leader proposes the effective time a short margin ahead of the moment of agreement; every other signer checks the proposed time against its own clock before it signs, so a leader proposing an implausible time simply fails to collect a valid quorum. Below the activation height the signed message is the five-field concatenation above with no separator and no effective time, unchanged. Because the two messages are built differently, a signature valid for one can never be mistaken for a signature under the other, so a request cannot be admitted under one era and answered under the other.
+
 ## Lifecycle
 1. VM EXECUTE emits ATTEST v0; indexer stores a v0 row in the consolidated `attests` table (`version=0`) with `request_status='pending'`.
 2. Validators staked for the `attestation` capability detect the request via the hub's `AttestationRound` polling.
 3. Top-`REDUNDANCY` validators (deterministic leader sort by `SHA-256(request_id || pubkey)`) fetch via the provider and gossip `ATTEST_PROPOSE`.
-4. Leader publishes ATTEST v1 on-chain with `REDUNDANCY` Ed25519 signatures.
-5. On a terminal v1 the indexer flips the request to `fulfilled` (`STATUS=ok`) or `errored` (a genuinely terminal failure such as `expired`) and injects a system EXECUTE invoking the callback. A retryable v1 (`STATUS` of `no_quorum`, `timeout`, or `provider_error`) is recorded but leaves `request_status='pending'`, so the responsible set can attempt another round before the deadline; no callback fires yet.
+4. What happens next depends on the request's own response-mirror activation height (see Response delivery, below). Below it, the leader publishes ATTEST v1 on-chain with `REDUNDANCY` Ed25519 signatures, paying the broadcast cost itself. At or above it, nobody broadcasts a transaction: the finalized response is written into the validator network's shared database, passed on to every hub, and delivered to every indexer that way.
+5. On a terminal response, whether it arrived as an on-chain v1 or through the mirror, the indexer flips the request to `fulfilled` (`STATUS=ok`) or `errored` (a genuinely terminal failure such as `expired`) and injects a system EXECUTE invoking the callback. A retryable v1 (`STATUS` of `no_quorum`, `timeout`, or `provider_error`) is recorded but leaves `request_status='pending'`, so the responsible set can attempt another round before the deadline; no callback fires yet.
 6. If `DEADLINE_BLOCK` passes while still `pending` (no terminal v1, or only retryable rounds), the indexer's per-block expiry pipeline synthesizes ATTEST v2 (flips status to `expired`, fires the callback with `status='expired'`).
 
 ```mermaid
@@ -192,8 +232,21 @@ stateDiagram-v2
     note right of pending: retryable v1, no_quorum, timeout, or provider_error, leaves request_status pending
 ```
 
+### Response delivery: on-chain versus the hub mirror
+
+Each network has its own response-mirror activation height, `ATTEST_RESPONSE_MIRROR_ACTIVATION` in `protocol/constants.js`, checked against the request's own block: mainnet is `null` (inactive; every mainnet request today uses the on-chain path above), testnet is `null` until the operator arms it, and regtest is `0` (active from genesis, so every regtest request already uses the mirror).
+
+Steps 1 through 3 above are unchanged either way: the request is emitted the same way, and the same top-`REDUNDANCY` validators still agree on the answer together. What changes is what happens with that agreed answer.
+
+Below the activation height, the leader broadcasts it on-chain as an ATTEST v1 transaction, paying the broadcast cost, and the callback fires once that transaction mines.
+
+At or above the activation height, nobody broadcasts a transaction for the response. Instead, the agreed answer, together with a signed effective time the leader picks a short margin ahead of the moment of agreement, is written into the validator network's shared database and passed on to every hub in the federation, so every indexer receives it regardless of which hub it is connected to. Each indexer then applies the response on its own, deterministically, at the first block whose own clock has reached the response's signed effective time, as long as that block is still at or before the request's deadline; a response that would not become due until after the deadline never applies; the deadline's own expiry (v2) closes that request instead. The applied response is recorded exactly like an on-chain one, a v1 row with the agreed body and the verifying signatures, except that it carries no transaction: it is generated by the indexer itself, the same way a request's expiry (v2) is. Because delivery already happened through the mirror, an ATTEST v1 that reaches the chain for a request at or above the height is rejected as `invalid: ATTEST v1 after mirror activation`.
+
+The full history of mirror-delivered responses still reaches the chain: periodically, every finalized response is republished on Dogecoin as one of the batches described under Version 5 and Version 6 above, so a node with no connection to the validator network can still reconstruct every response and replay every callback from the chain alone.
+
 ## Effects on v1 with valid signatures
-- Persists a v1 row into the `attests` table (`version=1`) with the agreed body and the verified federation sigs inlined as a JSON array in `validator_signatures` (always, including retryable rounds, for audit). A v0 request and its v1 response(s) are separate rows correlated by `request_id`.
+- At or above the response-mirror activation height, only a terminal `ok` response is ever delivered this way: a retryable round stays in the validator network's own records rather than becoming a row here, and `expired` is already handled locally by v2. Such a response is generated by the indexer itself from the mirror-delivered response rather than parsed from a broadcast transaction (see Response delivery, above), but is otherwise persisted exactly as below.
+- Persists a v1 row into the `attests` table (`version=1`) with the agreed body and the verified federation sigs inlined as a JSON array in `validator_signatures` (always, including retryable rounds on the on-chain path, for audit). A v0 request and its v1 response(s) are separate rows correlated by `request_id`.
 - Terminal statuses flip the matching v0 `attests` row: `fulfilled` (`STATUS=ok`) or `errored` (a terminal failure such as `expired`).
 - Retryable statuses (`no_quorum`, `timeout`, `provider_error`) leave `request_status='pending'` untouched so a later round can still reach quorum before the deadline (or the v2 expiry path takes over). No status flip and no callback for these.
 - On a terminal status only, synthesizes an EXECUTE injecting the callback with params `[request_id, provider_id, status, response_payload, ...original_callback_params]`.
@@ -221,6 +274,8 @@ When a v0 request carries `FEE_AMOUNT > 0`, the fee is escrowed from `FEE_PAYER`
 | v1 retryable (`no_quorum` / `timeout` / `provider_error`) | No movement: escrow stays locked, request stays `pending`. |
 | v2 expiry (synthesized) | Release escrow and refund `FEE_PAYER`. |
 
+At and above the response-mirror activation height, nobody broadcasts a transaction for the response, so there is nothing to reimburse: the full escrow above is split across the responsible-set pubkeys with nothing carved out first. Below the height, on networks where a reimbursement for the leader's on-chain broadcast cost is active, that reimbursement is paid to the responsible set's lowest-hash member before the remaining escrow is split among the whole set; where no such reimbursement is active the full escrow already splits the same way as above the height.
+
 `validator_rewards` rows are paid out to stakers via `COLLECT` (the same path as protocol rewards, hence the XCHAIN-only constraint, since that chain has no per-row tick column). A reorg mid-fulfillment rolls back the release and reward rows generically (credits/debits/escrows by `action_index`, rewards by `block_index`) and resets `request_status` to `pending`; the earlier v0 escrow row survives.
 
 ## Notes
@@ -228,6 +283,8 @@ When a v0 request carries `FEE_AMOUNT > 0`, the fee is escrowed from `FEE_PAYER`
 - The positional label in the indexer's internal format string for v0 is `CALLBACK_PARAMS_JSON` (so named to signal that the field carries a JSON array). The data object key used throughout the handler and the stored column name is `CALLBACK_PARAMS`. The name in this PARAMS table (`CALLBACK_PARAMS`) is the canonical user-facing name and matches the stored key; the `_JSON` suffix in the format string is an implementor hint, not a separate field.
 - Storage is consolidated into a single `attests` table: v0 (request) and v1 (response) rows are version-discriminated and correlated by `request_id`, mirroring how `messages` holds every MESSAGE variant in one table. v2 (expire) writes no row, it only flips the v0 row's `request_status`. Validator sigs live inline as a JSON array in the response row's `validator_signatures` column; per-validator accountability tallies live in `attest_validator_stats`.
 - The optional `FEE_TICK`/`FEE_AMOUNT` request fee is live. The separate `gas_escrow` (callback-gas) field remains stubbed at `'0'`; real callback-gas escrow is Phase 3 economic work, independent of the request fee.
+- Publishing a v5/v6 batch pays no reward of its own; it is a durability measure, not a service the protocol compensates separately.
+- Which path answers a given request (on-chain broadcast or the hub mirror) is fixed for that request the moment it is admitted, by `ATTEST_RESPONSE_MIRROR_ACTIVATION` in [`protocol/constants.js`](../constants.js) checked against the request's own block, so a request is never admitted under one rule and answered under the other.
 - See [`EXECUTE.md`](./execute.md) for the system-synthesized EXECUTE that delivers attestation callbacks and for the cross-contract call mechanics that share the same emission and savepoint patterns.
 
 ---
