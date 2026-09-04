@@ -179,7 +179,7 @@ xchain-e2e-test/
 │   ├── cryptoHelper.js           # BIP39/BIP32 wallet management
 │   ├── transactionHelper.js      # PSBT construction, signing, broadcast
 │   ├── actions/                  # 79 action test files (live, ordered), covering 31 ACTION names
-│   ├── helpers/                  # 51 modules (action helpers + federation/fee/utility helpers)
+│   ├── helpers/                  # 52 modules (action helpers + federation/fee/utility helpers)
 │   ├── unit/                     # 350+ unit tests (stubbed, no services)
 │   ├── integration/              # 150+ integration tests (stubbed I/O)
 │   │   ├── fixtures/             # mockMariadb, services, dbRows, hub
