@@ -119,6 +119,9 @@ These variables are read by xchain-node itself at startup. They control runtime 
 | `XCHAIN_NODE_TELEMETRY_URL` | Override the telemetry collector endpoint (default: `https://hub.xchain.io/telemetry`). Useful for self-hosted collectors or test environments. |
 | `HUB_API_KEY` | API key xchain-node sends as `x-api-key` when talking to the hub, and forwards into the generated service `.env` files. Required whenever the hub runs keyed. Treat as a credential. |
 | `FEE_DESTINATION` | Native-coin fee destination forwarded into the generated service `.env` files. **Honoured on testnet and regtest only**, and only when the more specific `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` is unset; on mainnet the bundled coin registry always wins, because fee acceptance is consensus and must not depend on an operator's environment. |
+| `HUB_SYNC_PRICE_GRACE_S` | Seconds of grace the indexer allows on the hub mirror's `price_snapshots` watermark before its barrier holds a block. Forwarded into the indexer's generated `.env`. On regtest xchain-node defaults it to `0`, because a single-operator venue has no second writer to wait for; a value set in the host environment always wins. |
+| `HUB_SYNC_ORACLE_GRACE_S` | The same grace for the `oracle_prices` stream. Same regtest default of `0` and the same precedence. |
+| `HUB_SYNC_ATTEST_RESPONSE_GRACE_S` | The same grace for the `attestation_responses` stream, which gates the attestation response mirror's barrier. Same regtest default of `0` and the same precedence. |
 
 ### Telemetry collector
 
