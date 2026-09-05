@@ -93,7 +93,7 @@ re-runs an action handler, a deploy validator, or the VM.
 | Service | Carries |
 |---|---|
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
-| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) |
+| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the mainnet-unarmed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([Unarmed VM gates](#unarmed-vm-gates-service-carried)) |
 | `xchain-hub` | the nine validator-era gate modules it consumes (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical, retraction signing, attestation relay, price signature tally). The tenth Cohort B gate, attestation admission, is indexer-only |
 | `xchain-decoder` | the five activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` (per-chain local height) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
@@ -181,7 +181,8 @@ gate has a second copy it is byte-identical, and that pair is the drift guard; a
 has no second copy, see [above](#where-the-values-live)). They are listed here so the flag-day
 inventory stays complete pending consolidation into the canonical file, and because
 [Flag-Day Values](./flag-days.md) covers only the time-keyed thresholds: every height-keyed one is
-inventoried on this page.
+inventoried on this page, the armed ones in this table and the mainnet-unarmed VM pair under
+[Unarmed VM gates](#unarmed-vm-gates-service-carried).
 
 | Gate | Keyed on | Mainnet threshold | Straggler | Lives in |
 |---|---|---|---|---|
@@ -211,6 +212,21 @@ The DISPENSE cancelling-dispenser match gate is a block-time forking rule keyed 
 contract-era timestamp, so it belongs with **Cohort A**; it is registered as a
 standalone twin-style module rather than a `protocol_changes.addChange` entry to keep it self-contained
 next to the query it gates.
+
+## Unarmed VM gates (service-carried)
+
+Two further height-keyed consensus gates live in `xchain-vm` with a byte-identical indexer twin, and
+neither is armed on mainnet: every mainnet entry holds `null`, the explicit unarmed sentinel, so
+mainnet behaviour is byte-identical to the legacy path and stays so until an operator ratifies
+per-coin train heights in BOTH copies. Testnet and regtest run both from genesis. They are listed
+here rather than in the armed table above so the height-keyed inventory on this page stays complete
+while their mainnet heights are still owed; arming either one is a flag day under the
+[notice policy](./upgrade-notice-policy.md).
+
+| Gate | Keyed on | Mainnet | Straggler | Lives in |
+|---|---|---|---|---|
+| **Execute-time source lint** (`EXEC_LINT_ACTIVATION`, re-runs the deploy syntax validation against a contract's stored source at execute time and fails the execution deterministically when that source no longer passes the bans active for the block; the check is metered as gas, so it moves `gasUsed`) | per-chain local height | **unarmed** (`null` for BTC, LTC and DOGE, awaiting operator-ratified per-coin heights); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`EXEC_LINT_ACTIVATION`, resolver `isExecLintActive`); twin `xchain-indexer/src/vm_exec_lint_activation.js`, pinned to byte equality by the consensus-params suites in both repos. A height armed on one side only forks the fleet |
+| **Deploy-lint global-alias refinement** (`LINT_GLOBAL_ALIAS_ACTIVATION`, makes the banned-global deploy rules resolve sloppy-mode `this` and the `globalThis` self-reference chain as reads of the same global object, which moves DEPLOY verdicts on error-severity `CONSENSUS_RULES`) | per-chain local height | **unarmed** (`null` for BTC, LTC and DOGE, awaiting operator-ratified per-coin heights); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`LINT_GLOBAL_ALIAS_ACTIVATION`, resolver `isLintGlobalAliasActive`); twin `xchain-indexer/src/vm_lint_global_alias_activation.js`, pinned the same way |
 
 ## Decoder-carried gates
 

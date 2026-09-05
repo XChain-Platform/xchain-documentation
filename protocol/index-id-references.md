@@ -12,9 +12,9 @@ it shrinks transactions and lowers fees.
 | Ticker | `JDOG` | `^1234` (the `index_tickers` id) |
 | Address | `1ExampleAddressXXXXXXXXXXXXXXXXXXX` | `^57` (the `index_addresses` id) |
 
-The caret form is accepted anywhere the full value is accepted, EXCEPT a brand-new
-value being defined for the first time (an `ISSUE` defining `TICK`, or any field that
-introduces an address the network has not seen). A new value has no id yet, so it must
+The caret form is accepted in every field listed below as resolved on input, EXCEPT a
+brand-new value being defined for the first time (an `ISSUE` defining `TICK`, or any field
+that introduces an address the network has not seen). A new value has no id yet, so it must
 be written in full.
 
 ## Canonical form
@@ -38,13 +38,40 @@ precision.
 
 ## Where it applies
 
+Two different questions are answered here: which fields RECEIVE an index id when an action
+introduces a new value, and in which fields a `^<id>` written on the wire is RESOLVED on
+input. The first set is the consensus surface; the second is what a client may send.
+
 **Ticker fields:** `TICK`, `GIVE_TICK`, `GET_TICK`, `DIVIDEND_TICK`, `CALLBACK_TICK`.
 
-**Address fields:** the destination/transfer/get-address style fields of an action:
+**Address fields that receive an index id:** the destination/transfer/get-address style
+fields of an action:
 `SEND.DESTINATION`, `MINT.DESTINATION`, `MESSAGE.DESTINATION`, `SWEEP.DESTINATION`,
 `ISSUE.TRANSFER`, `ISSUE.TRANSFER_SUPPLY`, `DISPENSER.GET_ADDRESS`,
 `DISPENSER.ORACLE_ADDRESS`, `ORDER.GET_ADDRESS`, `SWAP.GET_ADDRESS`,
 `DEPLOY.SLASH_DESTINATION`, and `LIST.ITEM` when the list `TYPE` is address.
+
+**Address fields where a `^<id>` is resolved on input:** `MINT.DESTINATION`,
+`MESSAGE.DESTINATION`, `SWEEP.DESTINATION`, `ISSUE.TRANSFER`, `ISSUE.TRANSFER_SUPPLY`,
+`DISPENSER.GET_ADDRESS`, `DISPENSER.ORACLE_ADDRESS`, `ORDER.GET_ADDRESS`,
+`SWAP.GET_ADDRESS` and `DEPLOY.SLASH_DESTINATION`. Each of these handlers resolves the
+reference before its address format check.
+
+Two id-receiving fields are NOT resolved on input. A `^<id>` written there is judged by
+the plain address format check, so the action is rejected on chain with the fee spent:
+
+- `SEND.DESTINATION`: rejected as `invalid: DESTINATION (format)`. Write every `SEND`
+  destination in full, whether the send has one recipient or many.
+- `LIST.ITEM` when the list `TYPE` is address: rejected as `invalid: ADDRESS (format)`.
+  Write every address list item in full.
+
+Two resolved-on-input fields must still be written in full by clients:
+`DISPENSER.GET_ADDRESS` and `DISPENSER.ORACLE_ADDRESS`. The indexer resolves a `^<id>` in
+either, but the decoder keys dispense detection on `GET_ADDRESS` and oracle-fee
+recognition on `ORACLE_ADDRESS` straight out of the payload, and it cannot resolve an id
+reference because its address id space differs from the indexer's, so a compacted value
+produces a dispenser that never dispenses or a create rejected as unpaid. See
+[DISPENSER](./actions/dispenser.md).
 
 Explicitly NOT address references (never compactable as `^<id>`):
 
@@ -61,9 +88,12 @@ from chain data alone, so the same `^<id>` resolves to the same entity on every 
 1. Across actions, assignment follows `action_index`, which is total and reorg-handled.
    A `BATCH` sub-action has its own `action_index`, so one action is the assignment unit.
 2. Within one action, the `SOURCE` address is registered first, then the new addresses
-   the action introduces are registered in byte-sorted (binary) order of their VALUE.
-   Ordering by value, not by field position, keeps the assignment stable across client
-   and indexer code changes.
+   the action introduces in its single-value fields are registered in byte-sorted (binary)
+   order of their VALUE. Ordering by value, not by field position, keeps the assignment
+   stable across client and indexer code changes. The multi-value fields
+   (`SEND.DESTINATION` recipients and `LIST.ITEM` entries) sit outside that pre-pass:
+   their handler interns them in a fixed order that is identical on every node, so they
+   receive deterministic ids as well.
 3. Ids are assigned by an explicit dense counter (the surviving `MAX(id) + 1`), never by
    a database auto-increment (which does not rewind on delete).
 
@@ -73,8 +103,9 @@ reproduces the exact same ids. This is what makes `^<id>` safe to put on the wir
 id can never name two different entities across two honest nodes that reach the same tip
 by different reorg paths.
 
-This assignment rule is a frozen wire rule. The set of fields above and the
-value-sorted order are part of consensus; changing either is a wire-format change.
+This assignment rule is a frozen wire rule. The set of id-receiving fields above, the
+value-sorted order for the single-value fields and the handler order for the multi-value
+fields are part of consensus; changing any of them is a wire-format change.
 
 ## SDK behavior
 
@@ -83,7 +114,10 @@ automatically (opt out with `{ compactTickers: false }` / `{ compactAddresses: f
 It only ever emits a `^<id>` for a value it has already resolved to an existing id via the
 explorer, and it falls back to the full value whenever an id cannot be resolved, so a
 client never emits an id the indexer would not recognize. Multi-recipient (array) and
-type-gated list fields are left in full form by the SDK.
+type-gated list fields are left in full form by the SDK, which the rules above require:
+the indexer resolves no `^<id>` in `SEND.DESTINATION` or `LIST.ITEM`. The SDK also leaves
+`DISPENSER.GET_ADDRESS` and `DISPENSER.ORACLE_ADDRESS` in full form, for the decoder
+reason above, even though the indexer would resolve a reference there.
 
 ---
 

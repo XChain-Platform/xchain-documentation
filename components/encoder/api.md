@@ -47,7 +47,8 @@ Errors follow JSON-RPC 2.0, returning an `error` object with a numeric `code` an
 | Code | Meaning |
 |---|---|
 | `-32602` | Invalid params: a parameter failed validation (TypeError or RangeError) |
-| `-32603` | Internal error: encoder failure (for example insufficient UTXOs or an unsupported network) |
+| `-32603` | Internal error: an unexpected encoder or node failure (for example an unsupported network, a node RPC failure, or a UTXO tracker failure on `get_utxos`) |
+| `-32010` | Operational error on `create_tx` and `create_envelope_cancel_tx`: an expected, caller-actionable condition such as insufficient funds, no UTXOs, a missing change address, or an unavailable UTXO tracker. `error.data.reason` carries a stable code; the reason set is in [Error Codes](../../protocol/error-codes.md#encoder-operational-reasons) |
 | `-32001` | Unauthorized: missing or incorrect `x-api-key` header |
 | `-32029` | Rate limited: too many requests |
 

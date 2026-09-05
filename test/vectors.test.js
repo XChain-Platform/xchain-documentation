@@ -27,6 +27,7 @@ const { test, describe } = require('node:test');
 const constants = require('../protocol/constants.js');
 const swq = require('../protocol/reference-impl/stake_weighted_quorum.js');
 const eqh = require('../protocol/reference-impl/equivocation_header.js');
+const srb = require('../protocol/reference-impl/snapshot_reorg_buffer.js');
 
 const swqVectors = require('../protocol/test-vectors/stake_weighted_quorum.json');
 const eqhVectors = require('../protocol/test-vectors/equivocation_header.json');
@@ -38,6 +39,14 @@ describe('constants.js <-> reference-impl activation parity (consensus-critical)
 
     test('EQUIV_HEADER_ACTIVATION matches between constants.js and the reference impl', () => {
         assert.deepEqual(eqh.EQUIV_HEADER_ACTIVATION, constants.EQUIV_HEADER_ACTIVATION);
+    });
+
+    test('SNAPSHOT_BURIAL_ACTIVATION matches between constants.js and the reference impl', () => {
+        assert.deepEqual(srb.SNAPSHOT_BURIAL_ACTIVATION, constants.SNAPSHOT_BURIAL_ACTIVATION);
+    });
+
+    test('CANONICAL_REORG_BUFFER matches between constants.js and the reference impl', () => {
+        assert.equal(srb.CANONICAL_REORG_BUFFER, constants.CANONICAL_REORG_BUFFER);
     });
 });
 
@@ -110,4 +119,5 @@ describe('reference-impl/equivocation_header.js (EQUIV_HEADER / WI-2 bump 2)', (
 describe('activation predicates (KNOWN GAP: no normative vectors exist yet)', () => {
     test('isStakeWeightedQuorumActive: no vectors for the mainnet 960999/961000 boundary, NaN snapshotBlock, or an unknown network', { skip: true }, () => {});
     test('isEquivHeaderActive: no vectors for the mainnet 960999/961000 boundary, NaN snapshotBlock, or an unknown network', { skip: true }, () => {});
+    test('isSnapshotBurialActive / buriedSnapshotBlock: no vectors for the inert mainnet threshold, the empty-ish height guard, or the clamp to 0', { skip: true }, () => {});
 });

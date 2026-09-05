@@ -341,15 +341,17 @@ function collectSiblingGates(indexerSrc, add) {
  * when its mainnet_time slot holds a literal inside the time-keyed window, which
  * is exactly the condition under which a row went missing.
  *
- * An identifier in that slot stays quiet on the same principle: no text scan can
- * tell `PRICE_PAIR_SENTINEL` from a live timestamp, and guessing is what turns a
- * build gate into noise. The constant arm needs no such test, because
+ * An identifier in that slot is resolved when it names one of the registry's own
+ * `const NAME_MAINNET_TIME = <digits>;` declarations (see `registryCalls`), and
+ * the GATE NAME the call registers is what reaches the page: the constant's
+ * prefix is not a gate key, and the two can differ (`CROSS_SETTLE_CAP_MAINNET_TIME`
+ * arms `CROSS_SETTLE_PER_BLOCK_CAP`). Any other identifier stays quiet: no text
+ * scan can tell `PRICE_PAIR_SENTINEL` from a live timestamp, and guessing is what
+ * turns a build gate into noise. The constant arm needs no such test, because
  * `NAME_MAINNET_TIME` says in its own name that it is a time.
  *
- * A call is also fine when its gate was collected some other way: the two cohort
- * constants are declared as `const NAME_MAINNET_TIME` and then passed to
- * `addChange` by identifier, so the call itself is unreadable and nothing is
- * lost by it.
+ * A call is also fine when its gate was collected some other way, which is how a
+ * constant no call consumes still reaches the page under its own prefix.
  */
 function assertEveryDeclarationParsed(rawRegistry, parsedCalls, parsedConstLines, parsedNames) {
     const unparsed = [];
@@ -379,6 +381,50 @@ function assertEveryDeclarationParsed(rawRegistry, parsedCalls, parsedConstLines
             + 'of those shapes or widen the parse in bin/generate-flag-days.js deliberately.',
         );
     }
+}
+
+/**
+ * The registry's `const NAME_MAINNET_TIME = <digits>;` and
+ * `const NAME_TESTNET_TIME = <digits>;` declarations as an identifier -> value
+ * map, read from the comment-stripped text.
+ */
+function registryConstants(scannable) {
+    const values = new Map();
+    for (const m of scannable.matchAll(/const\s+([A-Z][A-Z0-9_]*_(?:MAINNET|TESTNET)_TIME)\s*=\s*(\d+)\s*;/g)) {
+        values.set(m[1], Number(m[2]));
+    }
+    return values;
+}
+
+/**
+ * Every single-quoted `addChange('GATE', 'version', mainnet_time, testnet_time, ...)`
+ * call in the comment-stripped registry, as `{ index, gate, mainnet, testnet }`.
+ *
+ * A time slot holding a digit literal reads as that number. A slot holding an
+ * identifier reads as the value of the registry constant it names, so the GATE
+ * NAME the call registers is what the collectors publish; the constant's prefix
+ * is not a gate key `isEnabled` accepts, and the two differ for
+ * `CROSS_SETTLE_CAP_MAINNET_TIME` (arms `CROSS_SETTLE_PER_BLOCK_CAP`) and
+ * `BATCH_ROOT_SUB_INDEX_MAINNET_TIME` (arms `BATCH_SUBCOMMAND_ROOT_DISCRIMINATOR`).
+ * Any other identifier resolves to null and stays quiet. `consumed` names the
+ * constants some call resolved, so the constant pass in each collector leaves
+ * those to the call and publishes a prefix only for a constant no call reads.
+ */
+function registryCalls(scannable) {
+    const constants = registryConstants(scannable);
+    const consumed = new Set();
+    const slot = (arg) => {
+        if (arg === undefined) return null;
+        if (/^\d+$/.test(arg)) return Number(arg);
+        if (constants.has(arg)) { consumed.add(arg); return constants.get(arg); }
+        return null;
+    };
+    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*([A-Za-z0-9_]+)(?:\s*,\s*([A-Za-z0-9_]+))?/g;
+    const calls = [];
+    for (const m of scannable.matchAll(callRe)) {
+        calls.push({ index: m.index, gate: m[1], mainnet: slot(m[2]), testnet: slot(m[3]) });
+    }
+    return { calls, consumed };
 }
 
 /**
@@ -415,20 +461,24 @@ function collectGates(indexerSrc = INDEXER_SRC) {
     // text the check quotes in its error message.
     const scannable = withoutComments(registry);
 
-    // addChange('NAME', 'version', mainnet_time, ...)
-    const changeRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'([0-9.]+)'\s*,\s*(\d+)/g;
-    let match;
-    while ((match = changeRe.exec(scannable)) !== null) {
-        parsedCalls.add(match.index);
-        parsedNames.add(match[1]);
-        add(match[1], Number(match[3]), 'protocol_changes.js');
+    // addChange('NAME', 'version', mainnet_time, ...), the time slot a digit
+    // literal or a registry constant passed by name (see registryCalls).
+    const { calls, consumed } = registryCalls(scannable);
+    for (const call of calls) {
+        parsedCalls.add(call.index);
+        parsedNames.add(call.gate);
+        if (call.mainnet !== null) add(call.gate, call.mainnet, 'protocol_changes.js');
     }
 
     // const NAME_MAINNET_TIME = 1786060800;  (gates the registry declares as a
-    // shared constant because a second repo has to stay byte-identical to it)
+    // shared constant because a second repo has to stay byte-identical to it).
+    // A constant some call consumes is published under that call's gate name
+    // above; only a constant no call reads is published under its own prefix.
     const constRe = /const\s+([A-Z][A-Z0-9_]*)_MAINNET_TIME\s*=\s*(\d+)\s*;/g;
+    let match;
     while ((match = constRe.exec(scannable)) !== null) {
         parsedConstLines.add(lineAt(scannable, match.index));
+        if (consumed.has(match[1] + '_MAINNET_TIME')) continue;
         parsedNames.add(match[1]);
         add(match[1], Number(match[2]), 'protocol_changes.js');
     }
@@ -461,11 +511,13 @@ function collectTestnetArms(indexerSrc = INDEXER_SRC) {
         if (!Number.isFinite(time) || time < TIMESTAMP_FLOOR || time >= SENTINEL_FLOOR) return;
         if (!found.has(gate)) found.set(gate, { gate, time });
     };
+    const { calls, consumed } = registryCalls(scannable);
+    for (const call of calls) if (call.testnet !== null) add(call.gate, call.testnet);
     let match;
     const constRe = /const\s+([A-Z][A-Z0-9_]*)_TESTNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
-    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*[A-Za-z0-9_]+\s*,\s*([1-9]\d*)/g;
-    while ((match = callRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
+    while ((match = constRe.exec(scannable)) !== null) {
+        if (!consumed.has(match[1] + '_TESTNET_TIME')) add(match[1], Number(match[2]));
+    }
     return [...found.values()].sort((a, b) => (a.time - b.time) || a.gate.localeCompare(b.gate));
 }
 
@@ -491,11 +543,13 @@ function collectTestnetUnarmed(indexerSrc = INDEXER_SRC) {
         if (!Number.isFinite(time) || time < SENTINEL_FLOOR) return;
         if (!found.has(gate)) found.set(gate, { gate, time });
     };
+    const { calls, consumed } = registryCalls(scannable);
+    for (const call of calls) if (call.testnet !== null) add(call.gate, call.testnet);
     let match;
     const constRe = /const\s+([A-Z][A-Z0-9_]*)_TESTNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
-    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*[A-Za-z0-9_]+\s*,\s*(\d+)/g;
-    while ((match = callRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
+    while ((match = constRe.exec(scannable)) !== null) {
+        if (!consumed.has(match[1] + '_TESTNET_TIME')) add(match[1], Number(match[2]));
+    }
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 
@@ -523,11 +577,13 @@ function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
         if (!Number.isFinite(time) || time < SENTINEL_FLOOR) return;
         if (!found.has(gate)) found.set(gate, { gate, time });
     };
+    const { calls, consumed } = registryCalls(scannable);
+    for (const call of calls) if (call.mainnet !== null) add(call.gate, call.mainnet);
     let match;
-    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*(\d+)/g;
-    while ((match = callRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
     const constRe = /const\s+([A-Z][A-Z0-9_]*)_MAINNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
+    while ((match = constRe.exec(scannable)) !== null) {
+        if (!consumed.has(match[1] + '_MAINNET_TIME')) add(match[1], Number(match[2]));
+    }
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 

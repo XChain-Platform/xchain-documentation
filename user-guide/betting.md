@@ -100,7 +100,7 @@ Anyone can create a market. You do not need permission, a licence from us, or a 
 You set:
 
 - a **question** and a list of **outcomes** (between 2 and 16). Both are permanent
-- the **token** wagers are made in. Betting is token-only; you cannot wager the coin itself
+- the **token** wagers are made in. Betting is token-only; you cannot wager the coin itself, and you cannot use a controller-bound token: a token whose `trade` class (or the catch-all `all`) is bound to a contract is rejected when the market is created, because betting it would route around the controller's veto and its royalty legs. See [Controller-Bound Tokens](../protocol/controller-bound-tokens.md)
 - your **fee**, from 0% to 10% of the pot
 - the **deadline**, when betting closes
 - the **resolve window**, how long you have after the deadline to publish the result. The default is 14 days, and you may set anything from 1 hour to 1 year; a market asking for a window outside that range is rejected
