@@ -234,7 +234,8 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 | `BTC_INDEXER_API_KEY` | No | _(from config table)_ | API key presented to that indexer's fail-closed federation-read gate. Treat as a credential. |
 | `BTC_INDEXER_API_URL` | No | None | BTC indexer JSON-RPC URL for the validator-mode price oracle's block-height anchor (`getlatestblock`). Set it when the hub is **not** co-located with a BTC indexer and must reach one over the network. Empty falls back to local resolution. `xchain-node` forwards this from the host environment. |
 | `MAX_INDEXER_LAG_BLOCKS` | No | `200` | Maximum blocks the BTC indexer may lag before its tip is treated as untrustworthy and ignored, degrading gracefully instead of locking in a stale validator set. |
-| `MAX_TIP_AGE_S` | No | `2 × ORACLE_ROUND_INTERVAL` (seconds) | Maximum age of the indexer-pushed BTC tip before it is considered stale. |
+| `MAX_TIP_AGE_S` | No | `2 × ORACLE_ROUND_INTERVAL` (seconds) | Maximum age of the indexer-pushed BTC tip before it is considered stale. Rejecting it costs one HTTP call: the hub falls through to a direct `getlatestblock`. |
+| `MAX_DIRECT_TIP_AGE_S` | No | `7200` (seconds) | Age at which the hub stops trusting a direct `getlatestblock` height that has **not** advanced past the pushed tip just rejected, and reports no BTC tip at all. Separate from `MAX_TIP_AGE_S` on purpose: this gate is terminal, so its bound is sized so an ordinary long block gap on a healthy chain never trips it. A height that beats the pushed tip is always accepted, whatever the tip's age. |
 | `INDEXER_COIN_CHECK` | No | enabled | Set to `0` to disable the per-coin indexer reachability check. |
 
 ### Oracle
