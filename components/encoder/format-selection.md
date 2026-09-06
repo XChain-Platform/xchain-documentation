@@ -45,6 +45,8 @@ The payload is embedded in one or more redeem scripts. Payloads larger than a si
 
 Both transactions must be broadcast in order. The decoder reads the spend transaction's scriptSig(s) to reassemble the payload. See [Encoding](../../concepts/encoding.md) for the canonical chunking model.
 
+**Degenerate-final-chunk rebalance.** No chunk may be a single byte in `0x01`-`0x10` or `0x81`: a script encoder turns such a byte into the bare opcode `OP_1`-`OP_16` / `OP_1NEGATE`, and the decoder, which requires a data push, skips that output and reassembles a corrupted payload. When the split would produce such a final chunk, the encoder rebalances the last two chunks to `(n-1, 2)` bytes. The rule applies identically to P2WSH and to the Taproot envelope's 520-byte pushes, where it is [normative](../../protocol/taproot-envelope.md#no-payload-push-may-canonicalize-to-a-bare-opcode).
+
 P2SH is the auto-selected format for any payload above the 76-byte OP_RETURN limit: larger ISSUE operations, BATCH commands that combine multiple actions, or any action with additional fields.
 
 ### P2WSH: up to 8,192 bytes

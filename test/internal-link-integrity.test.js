@@ -82,6 +82,52 @@ for (const f of FILES) {
 const LINK = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 const rel  = (p) => path.relative(DOC_ROOT, p);
 
+// Raw HTML links. The pages that use <table> for the on-chain format specs
+// carry their cross-references as <a href="..."> rather than as markdown, and
+// LINK cannot see those: two dead ./actions/FILE.md hrefs sat on the normative
+// action-resolution table while this suite reported green.
+const HTML_LINK = /(?:href|src)\s*=\s*"([^"]+)"/g;
+
+// Pull the relative in-repo targets out of one page's HTML attributes. Fenced
+// blocks and inline code spans are skipped: `<script src="dist/...">` inside an
+// ```html example is a snippet the reader pastes elsewhere, not a link this
+// repo has to resolve.
+function htmlTargets(text) {
+    const out = [];
+    let fenced = false;
+    for (const line of text.split('\n')) {
+        if (/^\s*(```|~~~)/.test(line)) { fenced = !fenced; continue; }
+        if (fenced) continue;
+        const prose = line.replace(/`[^`]*`/g, '');
+        HTML_LINK.lastIndex = 0;
+        let m;
+        while ((m = HTML_LINK.exec(prose)) !== null) {
+            const target = m[1];
+            if (/^(https?:|mailto:|#|\/\/|data:)/.test(target)) continue;
+            const file = target.split('#')[0];
+            if (file) out.push(target);
+        }
+    }
+    return out;
+}
+
+// Case-exact resolution. fs.existsSync answers on the DEVELOPER's filesystem,
+// which is case-insensitive on macOS, so ./actions/FILE.md "exists" locally and
+// 404s on the case-sensitive host that serves the site. Compare each segment
+// against the real directory entries instead of asking the filesystem.
+function existsCaseExact(abs) {
+    const relative = path.relative(DOC_ROOT, abs);
+    if (relative === '' || relative.startsWith('..')) return false;
+    let dir = DOC_ROOT;
+    for (const segment of relative.split(path.sep)) {
+        let entries;
+        try { entries = fs.readdirSync(dir); } catch { return false; }
+        if (!entries.includes(segment)) return false;
+        dir = path.join(dir, segment);
+    }
+    return true;
+}
+
 describe('internal link integrity', () => {
 
     // A link that climbs out of this repo resolves on a developer's monorepo
@@ -130,6 +176,45 @@ describe('internal link integrity', () => {
             }
         }
         assert.deepEqual(broken, [], 'links pointing at files that do not exist:\n  ' + broken.join('\n  '));
+    });
+
+    // The scanner and the resolver, exercised on fixtures rather than on the
+    // tree. A regex that matched nothing and a resolver that answered "yes" to
+    // everything would leave the scan below green forever, and neither failure
+    // is visible from a passing run over real files.
+    test('the HTML scanner and the case-exact resolver can both say no', () => {
+        assert.deepEqual(
+            htmlTargets('<a href="./actions/file.md">FILE</a> <a href="https://x.io">x</a> ' +
+                        '<a href="#anchor">a</a> <img src="../img/logo.png">'),
+            ['./actions/file.md', '../img/logo.png'],
+            'the attribute scanner must see relative href and src and skip absolute ones');
+
+        assert.deepEqual(
+            htmlTargets('```html\n<script src="dist/bundle.js"></script>\n```\n' +
+                        'inline `<img src="dist/bundle.js">` too\n'),
+            [],
+            'a snippet the reader pastes into their own page is not a link this repo resolves');
+
+        assert.equal(existsCaseExact(path.join(DOC_ROOT, 'protocol/actions/file.md')), true);
+        assert.equal(existsCaseExact(path.join(DOC_ROOT, 'protocol/actions/FILE.md')), false,
+            'a case-mismatched target must be rejected even where the local filesystem is ' +
+            'case-insensitive; the host serving the site is not');
+        assert.equal(existsCaseExact(path.join(DOC_ROOT, 'protocol/actions/nope.md')), false);
+    });
+
+    test('every relative HTML href/src resolves, case included', () => {
+        const broken = [];
+        for (const f of FILES) {
+            for (const target of htmlTargets(fs.readFileSync(f, 'utf8'))) {
+                const abs = path.resolve(path.dirname(f), target.split('#')[0]);
+                if (!abs.startsWith(DOC_ROOT + path.sep)) { broken.push(`${rel(f)} -> ${target} (escapes the repo)`); continue; }
+                if (!existsCaseExact(abs)) broken.push(`${rel(f)} -> ${target}`);
+            }
+        }
+        assert.deepEqual(broken, [],
+            'raw HTML links pointing at files that do not exist under that exact spelling. ' +
+            'The docs host is case-sensitive, so ./actions/FILE.md is a 404 even though ' +
+            'protocol/actions/file.md is right there:\n  ' + broken.join('\n  '));
     });
 
     test('every #fragment matches a heading in its target file', () => {

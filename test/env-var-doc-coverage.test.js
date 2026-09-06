@@ -267,6 +267,114 @@ describe('scanSource', () => {
     });
 });
 
+// Read a fallback that wraps onto the next line: a site recorded with
+// `default: null` is dropped by comparableDefault and never compared against a
+// doc row, so a wrong documented default passes this gate in silence.
+//
+// Stop at the statement boundary all the same: several repos in this fleet are
+// written WITHOUT semicolons, and a walk with no boundary takes the next
+// statement's `|| 'x'` as this read's default. A wrong default is worse than a
+// missing one, because it makes the gate accuse a correct doc row.
+describe('scanSource across line boundaries', () => {
+    test('a `||` default on the next line is read, and the line is the READ line', () => {
+        const found = scanSource([
+            'const SENTINEL_PATH = process.env.SENTINEL',
+            "    || '/tmp/sentinel.json'",
+        ].join('\n'));
+        assert.equal(found.get('SENTINEL')[0].default.value, '/tmp/sentinel.json');
+        assert.equal(found.get('SENTINEL')[0].line, 1);
+    });
+
+    // xchain-node/src/services/EncoderMaintenanceWindow.js:46-47, verbatim.
+    test('the semicolon-less wrapped read in xchain-node is no longer exempt', () => {
+        const found = scanSource([
+            'const SENTINEL_PATH = process.env.XCHAIN_NODE_ENCODER_MAINTENANCE_FILE',
+            "    || '/tmp/xchain-encoder-maintenance.json'",
+        ].join('\n'));
+        assert.equal(
+            found.get('XCHAIN_NODE_ENCODER_MAINTENANCE_FILE')[0].default.value,
+            '/tmp/xchain-encoder-maintenance.json'
+        );
+    });
+
+    // xchain-hub/src/StateCheckpointEngine.js:190-191, verbatim: the chain
+    // continues through a non-literal `cfg.X` on the wrapped line.
+    test('a wrapped chain inside parseInt reaches the literal past a cfg lookup', () => {
+        const found = scanSource([
+            'this._frozenTipTicks = parseInt(process.env.CHECKPOINT_FROZEN_TIP_TICKS',
+            "    || cfg.CHECKPOINT_FROZEN_TIP_TICKS || '60');",
+        ].join('\n'));
+        const site = found.get('CHECKPOINT_FROZEN_TIP_TICKS')[0];
+        assert.equal(site.default.value, '60');
+        assert.equal(site.default.numeric, true);
+        assert.equal(site.line, 1);
+    });
+
+    // xchain-hub/src/AttestationBatchPublisher.js:175-176: the `||` itself ends
+    // the line, so the operand is read off the NEXT one.
+    test('a `||` at end of line reaches its operand on the next line', () => {
+        const found = scanSource([
+            'this.signTimeoutMs = parseInt(process.env.ORACLE_BATCH_SIGN_TIMEOUT_MS ||',
+            "                              cfg.ORACLE_BATCH_SIGN_TIMEOUT_MS || '15000', 10);",
+        ].join('\n'));
+        assert.equal(found.get('ORACLE_BATCH_SIGN_TIMEOUT_MS')[0].default.value, '15000');
+    });
+
+    test('a `??` default on the next line is read', () => {
+        const found = scanSource('const n = parseInt(process.env.TICKS\n    ?? 42);');
+        assert.equal(found.get('TICKS')[0].default.value, '42');
+    });
+
+    // FAILURE PATH. Without a statement boundary this reports `bar` as FOO's
+    // default and the gate then accuses whatever the doc row correctly says.
+    test('a bare semicolon-less read does not steal the next statement fallback', () => {
+        const found = scanSource([
+            'const a = process.env.FOO',
+            "const b = c || 'bar'",
+        ].join('\n'));
+        assert.equal(found.get('FOO')[0].default, null);
+        assert.equal(found.get('FOO')[0].line, 1);
+    });
+
+    test('a bare read does not reach across a blank line either', () => {
+        const found = scanSource([
+            'const a = process.env.FOO',
+            '',
+            "module.exports = { a, fallback: 'bar' }",
+        ].join('\n'));
+        assert.equal(found.get('FOO')[0].default, null);
+    });
+
+    test('a wrapped bracket read is found and reports the line it starts on', () => {
+        const found = scanSource("const a = 1;\nconst b = process.env[\n    'GAMMA'\n];");
+        assert.deepEqual([...found.keys()], ['GAMMA']);
+        assert.equal(found.get('GAMMA')[0].line, 2);
+    });
+
+    test('a numeric coercion closing on its own line still reaches the outside fallback', () => {
+        const found = scanSource([
+            'const n = parseInt(process.env.DELTA',
+            ') || 900;',
+        ].join('\n'));
+        assert.equal(found.get('DELTA')[0].default.value, '900');
+    });
+
+    test('line numbers stay right for many reads spread down a file', () => {
+        const found = scanSource([
+            'const a = process.env.ONE;',
+            '',
+            '// a comment',
+            'const b = process.env.TWO;',
+            'function f() {',
+            '    return process.env.THREE;',
+            '}',
+        ].join('\n'));
+        assert.equal(found.get('ONE')[0].line, 1);
+        assert.equal(found.get('TWO')[0].line, 4);
+        assert.equal(found.get('THREE')[0].line, 6);
+    });
+});
+
 // These are the reads the scanner cannot name, so the coverage check
 // cannot fail on them; the ratchet below is what keeps the set from growing.
 describe('scanComputedReads (the blind spot the gate cannot see into)', () => {
@@ -630,6 +738,31 @@ describe('doc matching', () => {
     test('a wrong documented default is rejected, and a prefix does not count', () => {
         assert.equal(defaultDocumented(['| `NODE_RPC_TIMEOUT` | timeout | `30000` |'], '3000'), false);
         assert.equal(defaultDocumented(['| `NODE_RPC_TIMEOUT` | timeout | `30000` |'], '60000'), false);
+    });
+
+    // The prefix test above is a BACKTICKED TABLE CELL, where a closing
+    // delimiter has to follow the digits, so it never exercised the unquoted
+    // prose form -- and that is the form the boundary let through. A row saying
+    // "defaults to 30.5 seconds" credited a code default of 30: the checker
+    // called a drifted row correct, which is the direction this library exists
+    // to stop.
+    test('a decimal in prose is not satisfied by its integer part', () => {
+        assert.equal(defaultDocumented(['`REVIEW_TIMEOUT` defaults to 30.5 seconds.'], '30'), false);
+        assert.equal(defaultDocumented(['`REVIEW_TIMEOUT` defaults to 1.55 seconds.'], '1.5'), false);
+    });
+
+    test('a thousands separator in prose is not satisfied by the leading group', () => {
+        assert.equal(defaultDocumented(['`X_TIMEOUT` defaults to 30,000 ms.'], '30'), false);
+    });
+
+    // The other half, and the reason the guard refuses `.`/`,` only before a
+    // DIGIT: a row ends its sentence and separates its clauses far more often
+    // than it carries a separator, and failing those would redden correct rows
+    // across the whole doc set.
+    test('an ordinary sentence period or comma after the value still asserts it', () => {
+        assert.equal(defaultDocumented(['`X_TIMEOUT` defaults to 30.'], '30'), true);
+        assert.equal(defaultDocumented(['`X_TIMEOUT` defaults to 30, and the hub clamps it.'], '30'), true);
+        assert.equal(defaultDocumented(['`X_TIMEOUT` defaults to `30`.'], '30'), true);
     });
 
     test('a string default is matched and a wrong one is rejected', () => {

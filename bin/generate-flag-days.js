@@ -409,20 +409,63 @@ function registryConstants(scannable) {
  * Any other identifier resolves to null and stays quiet. `consumed` names the
  * constants some call resolved, so the constant pass in each collector leaves
  * those to the call and publishes a prefix only for a constant no call reads.
+ *
+ * THE SLOT PATTERN READS THE WHOLE ARGUMENT, to its `,` or `)`, and never a
+ * leading run of it. Capturing `([A-Za-z0-9_]+)` asserted no terminator, so two
+ * shapes went wrong in the two directions this generator exists to prevent:
+ * `1_786_060_800` matched whole, failed the digits test, resolved to null, and
+ * the gate left the page in silence; `1786060800 + 86400` matched only its
+ * PREFIX and published an instant a day early. Neither reached
+ * `assertEveryDeclarationParsed`, because `collectGates` records the call in
+ * `parsedCalls` and its gate in `parsedNames` whether or not the slot resolved,
+ * and the check skips on exactly those two sets. Both were reproduced against
+ * fixtures before this was written; the live registry carries neither shape
+ * today, so this closes a latent hole rather than correcting a published row.
+ *
+ * REFUSAL LIVES HERE rather than in the completeness check, because
+ * `collectTestnetArms`, `collectTestnetUnarmed` and `collectMainnetUnarmed`
+ * read the same calls and have no completeness check behind them: a shape this
+ * parse cannot read has to be loud on every arm or it is loud on one.
  */
 function registryCalls(scannable) {
     const constants = registryConstants(scannable);
     const consumed = new Set();
-    const slot = (arg) => {
+    const slot = (arg, gate, index) => {
         if (arg === undefined) return null;
-        if (/^\d+$/.test(arg)) return Number(arg);
-        if (constants.has(arg)) { consumed.add(arg); return constants.get(arg); }
-        return null;
+        const text = arg.trim();
+        if (text === '') return null;
+
+        // A decimal literal, separators and all. Written as the separator
+        // grammar rather than a `_`-strip so `_1786060800` stays an identifier:
+        // stripping first reads a leading-underscore NAME as a number.
+        if (/^\d(?:_?\d)*$/.test(text)) return Number(text.replace(/_/g, ''));
+
+        // An identifier: the registry constant's value when the const pass saw
+        // it, and otherwise quiet by design, because no text scan can tell a
+        // parked sentinel from a live timestamp behind a name.
+        if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(text)) {
+            if (constants.has(text)) { consumed.add(text); return constants.get(text); }
+            return null;
+        }
+
+        throw new Error(
+            `protocol_changes.js line ${lineAt(scannable, index)}: the ${gate} gate passes a time slot `
+            + `this generator cannot read (\`${text}\`), so protocol/flag-days.md would publish an `
+            + 'inventory that calls itself complete and is not.\n\n'
+            + 'A time slot reads as a decimal literal (`1786060800`, separators allowed) or as the name '
+            + 'of a `const NAME_MAINNET_TIME = <digits>;` the registry declares. Write the slot in one of '
+            + 'those shapes or widen the parse in bin/generate-flag-days.js deliberately.',
+        );
     };
-    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*([A-Za-z0-9_]+)(?:\s*,\s*([A-Za-z0-9_]+))?/g;
+    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*([^,)]+)(?:\s*,\s*([^,)]+))?/g;
     const calls = [];
     for (const m of scannable.matchAll(callRe)) {
-        calls.push({ index: m.index, gate: m[1], mainnet: slot(m[2]), testnet: slot(m[3]) });
+        calls.push({
+            index: m.index,
+            gate: m[1],
+            mainnet: slot(m[2], m[1], m.index),
+            testnet: slot(m[3], m[1], m.index),
+        });
     }
     return { calls, consumed };
 }

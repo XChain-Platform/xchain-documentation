@@ -265,7 +265,9 @@ Related helpers:
 For callers that fetch proofs themselves, the pure (no-network) verifiers are
 exposed: `verifyBalanceProof(proof, trustedStateRoot, chain, network)`,
 `verifyActionProof(proof, trustedBlockMerkleRoot)`,
-`verifyValidatorSetProof(proof, trustedStateRoot)`, and the trustless quorum
+`verifyValidatorSetProof(proof, trustedStateRoot)`,
+`verifyContractStateProof(proof, trustedStateRoot, chain, network, expected)`,
+and the trustless quorum
 helper `verifyCheckpointWithProvenSet(checkpoint, provenOraclePublish)`. The
 network wrapper `verifyValidatorSet({ explorerUrl, btcCoin, snapshotBlock,
 trustedStateRoot })` fetches and verifies the `oracle_publish` (and
@@ -286,9 +288,11 @@ pinned checkpoint is present. `getPinnedCheckpoint(coin)` returns `null` today.
 
 ## Not yet supported
 
-- **Contract state.** `verifyContractState` is reserved: the contract key-value
-  sub-tree is committed empty in `state_root_version` 1 and lands behind a later
-  version bump.
+- **Contract state on mainnet.** `verifyContractStateProof` ships and verifies
+  proofs today, but the `contract_state_root` sub-tree is armed only on BTC
+  regtest and the BTC, LTC and DOGE testnets. On mainnet the slot stays unarmed
+  pending its flag day, so the explorer answers a typed 409
+  `CONTRACT_STATE_NOT_COMMITTED` and there is no mainnet proof to verify yet.
 
 ---
 

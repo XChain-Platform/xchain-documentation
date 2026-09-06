@@ -491,7 +491,7 @@ Hub-authored, append-only record of who earned each ANCHOR publish reward. One r
 | `snapshot_block` | `BIGINT UNSIGNED NOT NULL` | BTC block selecting the `oracle_publish` set, and the reward's `block_index` |
 | `publisher` | `VARCHAR(64) NOT NULL` | Elected publisher pubkey credited with the reward (lowercase hex) |
 | `reward_amount` | `VARCHAR(32) NOT NULL` | **Audit only.** The indexer credits the frozen constant, never this wire value |
-| `publisher_attestations` | `TEXT NOT NULL` | JSON `[{pubkey,sig}]`, the majority-floored `max(2f+1, ceil((N+1)/2))` quorum over the reward canonical (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
+| `publisher_attestations` | `TEXT NOT NULL` | JSON `[{pubkey,sig}]`, meeting the `oracle_publish` quorum over the reward canonical at the bundle's snapshot block: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
 | `created_at` | `TIMESTAMP` | Insert time |
 
 **Keys:** unique `(chain, network, reward_type, round_reference, snapshot_block, publisher)`, `(network, snapshot_block)`
@@ -518,7 +518,7 @@ Quorum-signed block-level hash checkpoints for each chain. Rows are append-only;
 | `state_root_version` | `TINYINT UNSIGNED` | `merkle.js STATE_ROOT_VERSION` the state root was computed under; NULL before flag-day |
 | `block_merkle_root` | `CHAR(64)` | SPV per-block content Merkle root; NULL before flag-day |
 | `block_merkle_version` | `TINYINT UNSIGNED` | `merkle.js BLOCK_MERKLE_VERSION`; NULL before flag-day |
-| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` (the majority-floored `max(2f+1, ceil((N+1)/2))` quorum of signatures over the XCHECKPOINT canonical, validated per [ANCHOR](../../protocol/actions/anchor.md)) |
+| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` signatures over the XCHECKPOINT canonical, meeting the `oracle_publish` quorum at the checkpoint's snapshot block: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
 | `anchor_txid` | `VARCHAR(64)` | DOGE ANCHOR txid once published on-chain (hub-side audit only) |
 | `created_at` | `TIMESTAMP NOT NULL` | Record creation time |
 

@@ -82,10 +82,10 @@ service-carried in `xchain-indexer/protocol_changes.js` and the `xchain-vm` gate
 table below), byte-guarded against each other rather than against this file, pending a future
 consolidation.
 
-Eleven later consensus gates are armed but **not yet folded into `constants.js`**: they currently live
+Twelve later consensus gates are armed but **not yet folded into `constants.js`**: they currently live
 only as service-carried modules (see [Additional armed gates](#additional-armed-gates-service-carried)
 below). Until they are consolidated here, `constants.js` is not the complete inventory, and each of
-those eleven is guarded against whatever twin it has rather than against this file. Several are
+those twelve is guarded against whatever twin it has rather than against this file. Several are
 **indexer-only** by design: a gate on the execution path (which actions or deploys validate) has no
 `xchain-sync` twin at all, because `BlockHasher` replicates already-materialized rows and never
 re-runs an action handler, a deploy validator, or the VM.
@@ -108,9 +108,22 @@ coordinated fleet rollout retire a whole batch at once.
 
 | Cohort | Keyed on | Rules | Straggler behavior |
 |---|---|---|---|
-| **A (contract era)** | one shared **time** (all three chains) | base64 DEPLOY encoding, VM async ban, VM binary-alloc metering, VM deploy-linter hardening, VM state-key NUL-reject, VM state-key type normalization, VM metering eval-order fix, VM call-spread metering, controller guards, VM balance/token-info surface, issuance-fee exemption, unstake-cooldown completion, cross-chain royalty create-side, XCALL undeliverable-result retirement | **forks** |
+| **A (contract era)** | one shared **time** (all three chains) | base64 DEPLOY encoding, VM async ban, VM binary-alloc metering, VM deploy-linter hardening, VM state-key NUL-reject, VM state-key type normalization, VM metering eval-order fix, VM call-spread metering, VM consensus wall-clock budget, controller guards, VM balance/token-info surface, issuance-fee exemption, unstake-cooldown completion, cross-chain royalty create-side, XCALL undeliverable-result retirement | **forks** |
 | **B (validator era)** | a **BTC height** (not always the same height across every Cohort B rule; see below) | checkpoint commitment, equivocation header, stake-weighted quorum, anchor reward, cross-chain royalty canonical, attestation admission, archive reward, retraction signing, attestation relay, price signature tally | **forks** |
 | **C (state commitment)** | per-chain **local height** | light-client state commitment (state root + block-merkle root) and its state-hash classes (e.g. token-supply, poll-finalize) | **halts, recoverable** |
+
+Almost every Cohort A leg turns a rule on. One instead pins a **number**: at the contract-era
+instant the wall-clock net around a single contract execution becomes
+`CONSENSUS_MAX_WALL_MS`, **30,000 ms**, the same on every node. Before it the net is the node's
+own `limits.maxCpuTimeMs`, which is not a consensus value, so two differently configured
+validators could return a different status and a different `gasUsed` for the same execution and
+an operator's config file could fork the fleet. The bound mints no activation constant of its
+own: it rides the binary-alloc metering instant already in this cohort, pinned AT the fleet's
+documented default so nothing a default-configured node ever executed changes outcome across
+the boundary. Tightening the value later is a different change and would need a flag day of its
+own. Enforcement detail is on
+[VM Configuration](../components/vm/configuration.md#resource-limits); the constant lives in
+`xchain-vm/src/consensus-wall-clock.js` and the activation beside it in `xchain-vm/src/index.js`.
 
 The ten Cohort B rules arm in two batches. Six share mainnet BTC height 961000: checkpoint
 commitment, equivocation header, stake-weighted quorum, anchor reward, cross-chain royalty canonical,
@@ -175,7 +188,7 @@ gates that carry a date of their own (`BATCH_ISSUANCE_LIMITS`, `CONTRACT_DELEGAT
 
 ## Additional armed gates (service-carried)
 
-These eleven consensus gates are **armed** on mainnet but are not yet mirrored into
+These twelve consensus gates are **armed** on mainnet but are not yet mirrored into
 [`constants.js`](constants.js); each currently lives only in the service module named below (where a
 gate has a second copy it is byte-identical, and that pair is the drift guard; an execution-path gate
 has no second copy, see [above](#where-the-values-live)). They are listed here so the flag-day
@@ -195,14 +208,15 @@ inventoried on this page, the armed ones in this table and the mainnet-unarmed V
 | **List-edit resolution** (`LIST_EDIT_RESOLUTION_ACTIVATION`, resolves a list to its newest valid edit; `getList` gates BET place, ORDER/SWAP match, DISPENSE, DIVIDEND, CALLBACK and AIRDROP, so action acceptance changes) | per-chain local height | `BTC:mainnet` 963000, `LTC:mainnet` 3162000, `DOGE:mainnet` 6338000 | forks | `xchain-indexer` / `xchain-explorer` `src/list_edit_resolution_activation.js` |
 | **Caret-ref strict** (`CARET_REF_STRICT_ACTIVATION`, makes an unresolvable address reference a hard reject at three sites that previously failed open, which moves the block's credits and debits) | per-chain local height | `BTC:mainnet` 963000, `LTC:mainnet` 3162000, `DOGE:mainnet` 6338000 (kept value-equal to list-edit resolution) | forks | `xchain-indexer/src/caret_ref_strict_activation.js` |
 | **Oracle stale-round visibility** (`ORACLE_STALE_ROUND_VISIBILITY_ACTIVATION`, keeps a stale tip round in the `getPrice()` view with its price withheld instead of dropping the round outright, so a contract can tell an oracle stall apart from an oracle that never ran; VM-visible, so it changes `contract_hash`) | per-chain local height | `BTC:mainnet` 966500, `LTC:mainnet` 3175500, `DOGE:mainnet` 6370000 (pinned ahead of the tip the first release carrying the gate deploys at, so the flag day has no retroactive window; it does NOT share the list-edit resolution boundary, which rides an earlier release) | forks | `xchain-indexer/src/oracle_stale_round_visibility_activation.js` |
+| **Ledger amount precision** (`LEDGER_AMOUNT_PRECISION_ACTIVATION`, quantizes every ledger write at 18 dp, the finest precision a tick can be issued with, instead of the written tick's own `decimals`; `db.createLedgerChangeRecord` takes the scale from `ledgerWriteScale` and applies it as `bcadd(amount, 0, decimals)`, so the persisted amounts and the balances projected from them both move) | per-chain local height | `BTC:mainnet` 966500, `LTC:mainnet` 3175500, `DOGE:mainnet` 6370000 (pinned to the same boundary as oracle stale-round visibility so both arm in one fleet deploy, and above each chain's tip at pinning so the flag day has no retroactive window) | forks | `xchain-indexer/src/ledger_amount_precision_activation.js` (indexer-only: the rule sits on the ledger write path, which `xchain-sync` never re-runs, so it has no twin and no twin drift guard) |
 | **State-key collation** (`STATE_KEY_COLLATION_ACTIVATION`) | per-chain local height | `BTC:mainnet` 962500, `LTC:mainnet` 3160000, `DOGE:mainnet` 6335000 (armed 2026-07-10, ~10 days past Cohort-B) | halts, recoverable | `xchain-indexer` / `xchain-sync` `src/state_key_collation_activation.js` |
 | **DISPENSE cancelling-dispenser match** (`DISPENSE_CANCELLING_MATCH_ACTIVATION`, corrects the `db.findMatchingDispensers` latest-status correlation on the native-coin DISPENSE trigger path) | block time | the coordinated 2.0.0 [contract-era flag day](./flag-days.md#contract-era-flag-day); deploy all indexers before it | forks | `xchain-indexer/src/dispense_cancelling_match_activation.js` |
 
 The SWQ source cap, slash-burns and slash-oracle-round gates are BTC-height forking rules that belong
 with **Cohort B**; state-key collation is a per-chain additive gate that behaves like **Cohort C**
-(halts, recoverable). The six remaining per-chain gates (VM deploy-lint Pkg 3, oracle snapshot-age
+(halts, recoverable). The seven remaining per-chain gates (VM deploy-lint Pkg 3, oracle snapshot-age
 causality, dispenser freshness, list-edit resolution, caret-ref strict, oracle stale-round
-visibility) are the reason this section
+visibility, ledger amount precision) are the reason this section
 exists rather than a cohort row: they are **keyed** like Cohort C, on each chain's own `block_index`,
 but they **fork** like Cohort A and B, because each changes an acceptance or deploy verdict rather
 than adding a commitment. Below its threshold each one runs its legacy path byte-identically, which

@@ -122,7 +122,8 @@ model: the root of trust is the stake-weighted validator quorum, plus DOGE proof
 the cold-start anchor, not host-chain-PoW SPV of XChain itself. The path is active on testnet
 and regtest, gated off on mainnet pending a flag-day; the reference wallet is already wired in
 as its first consumer, verifying balances and action history against the checkpoint locally;
-locked-balance and contract-state proofs are deferred to a later version. Until you run a node or verify a checkpoint, a lightweight
+locked-balance and contract-state proofs ship with the same path, armed on regtest and the three
+testnets and unarmed on mainnet with the rest of it. Until you run a node or verify a checkpoint, a lightweight
 wallet trusts the explorer it queries, so treat third-party API data as trusted-source unless
 you verify it against your own node.
 

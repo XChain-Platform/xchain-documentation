@@ -22,12 +22,39 @@ An unrevealed commit is not an action. It is an ordinary P2TR output, indistingu
 OP_FALSE OP_IF
   <"XCHN">            // 4-byte magic, cleartext
   <format byte>       // 0x00 = this version, cleartext
-  <payload push 1..n> // the payload, in 520-byte elements, in order
+  <payload push 1..n> // the payload, in 520-byte elements, in order,
+                      // no element a single byte in 0x01-0x10 or 0x81
 OP_ENDIF
 <internal pubkey> OP_CHECKSIG
 ```
 
 The `OP_FALSE OP_IF` branch never executes, so the payload is invisible to script evaluation while still being committed to by the transaction.
+
+#### No payload push may canonicalize to a bare opcode
+
+Every payload element must be a genuine data **push**. A one-byte element whose
+value is in `0x01`-`0x10` or is `0x81` is not: a minimal script encoder emits it as
+the bare opcode `OP_1`-`OP_16` / `OP_1NEGATE`, and a decompiler hands that back as
+an opcode rather than as data. So an encoder splitting a payload into 520-byte
+elements MUST **rebalance** whenever the final element would be one such byte,
+which happens exactly when the payload length is `≡ 1 (mod 520)` and its last byte
+falls in that range: the final two pushes become `(n-1, 2)` bytes instead of
+`(n, 1)`. Reassembly is plain concatenation, so moving one byte across that
+boundary leaves the payload byte-identical.
+
+This rule is **recognition-affecting**, and therefore belongs with the consensus
+rules below rather than with encoder style. An envelope containing an element that
+canonicalizes to a bare opcode is **not an envelope**: the payload walk stops at
+that element, the following `OP_ENDIF` check fails, and the reveal is invisible
+rather than invalid. An encoder that followed "520-byte elements" literally would
+therefore burn a commit and a reveal on an action that never exists, with no error
+anywhere.
+
+The same rebalance applies to the P2SH/P2WSH chunk lanes, whose 476-byte chunks
+have the identical degenerate-final-chunk case. The rule is pinned by the
+`chunk_rebalance` vector in
+[`test-vectors/taproot_envelope.json`](./test-vectors/taproot_envelope.json)
+(`push_lengths` `[520, 519, 2]`).
 
 The magic and format byte are **cleartext by design**. Recognition has to be free pattern-matching: if identifying an envelope required deobfuscation, every unrelated `OP_FALSE OP_IF` inscription on the chain would cost an indexer an RPC round trip and a cipher attempt.
 
@@ -44,6 +71,7 @@ These are consensus-relevant: every implementation must agree, or the fleet fork
 - The envelope input must be **input 0**. Anywhere else, it is not an action.
 - **Two or more envelope inputs** in one transaction: not an action.
 - An envelope **mixed with any other carrier** (an `XCHN` OP_RETURN, a chunk marker, MULTISIGN outputs): not an action. Deterministic refusal, not a preference between carriers.
+- **Every payload element must be a data push, never a bare opcode.** A one-byte element in `0x01`-`0x10` or `0x81` canonicalizes to `OP_1`-`OP_16` / `OP_1NEGATE` and breaks the pattern, so the reveal is not an envelope. Encoders avoid producing that shape by rebalancing the final two pushes to `(n-1, 2)`; see [No payload push may canonicalize to a bare opcode](#no-payload-push-may-canonicalize-to-a-bare-opcode).
 - The reassembled payload has its own ceiling, `ENVELOPE_MAX_PAYLOAD` (390,000 bytes), measured **before** parse and **excluding** the envelope's own push framing. The ceiling is sized against transaction **weight**, not chosen as a round byte count. A payload filling the larger cap this constant carried before 2026-07-31 compiles to a reveal of 402,789 WU, over Bitcoin Core's `MAX_STANDARD_TX_WEIGHT` of 400,000 WU: the encoder builds it, the validator accepts it, and no node relays it. The current value leaves 7,050 WU of margin under the worst reveal shape, so an implementer sizing a cap of their own should derive it from weight rather than copy a byte count. Note this measures a different quantity from `MAX_ACTION_DATA_LENGTH`, which is framing-inclusive and still governs every legacy lane.
 
 ## Source attribution

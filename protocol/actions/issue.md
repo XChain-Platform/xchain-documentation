@@ -25,16 +25,16 @@ This action creates or updates a `TICK`.
 | `LOCK_DESCRIPTION` | String | Lock `TICK` against `DESCRIPTION` changes                                                  |
 | `LOCK_SLEEP`       | String | Lock `TICK` against `SLEEP` command                                                        |
 | `LOCK_CALLBACK`    | String | Lock `TICK` against `CALLBACK` command                                                     |
-| `CALLBACK_BLOCK`   | String | Enable `CALLBACK` command after `CALLBACK_BLOCK`                                           |
+| `CALLBACK_BLOCK`   | String | Enable `CALLBACK` command at or after `CALLBACK_BLOCK`                                     |
 | `CALLBACK_TICK`    | String | `TICK` that users get when `CALLBACK` command is used                                      |
 | `CALLBACK_AMOUNT`  | String | `CALLBACK_TICK` amount that users get when `CALLBACK` command is used                      |
 | `ALLOW_LIST`       | String | `ACTION_INDEX` of a `LIST` of addresses allowed to interact with this token                |
 | `BLOCK_LIST`       | String | `ACTION_INDEX` of a `LIST` of addresses NOT allowed to interact with this token            |
 | `MINT_ADDRESS_MAX` | String | Maximum amount of supply any address can mint via `MINT` transactions                      |
-| `MINT_START_BLOCK` | String | `BLOCK_INDEX` when `MINT` transactions are allowed (begin mint)                            |
-| `MINT_STOP_BLOCK`  | String | `BLOCK_INDEX` when `MINT` transactions are NOT allowed (end mint)                          |
+| `MINT_START_BLOCK` | String | First `BLOCK_INDEX` at which `MINT` transactions are allowed (begin mint, inclusive)       |
+| `MINT_STOP_BLOCK`  | String | Last `BLOCK_INDEX` at which `MINT` transactions are allowed (end mint, inclusive)          |
 | `CONTROLLER`       | String | `ACTION_INDEX` of a deployed contract whose `guard` gates one `ACTION_CLASS` of this token (see [Controller-Bound Tokens](../controller-bound-tokens.md)) |
-| `ACTION_CLASS`     | String | Which class the binding gates: `transfer`, `trade`, `burn`, `mint`, `stake`, or the catch-all `all` (fallback for any class with no specific binding; most-specific-wins) |
+| `ACTION_CLASS`     | String | Which class the binding gates: `transfer`, `trade`, `burn`, `mint`, `stake`, `ownership`, or the catch-all `all` (fallback for any class with no specific binding; most-specific-wins) |
 | `COOLDOWN_BLOCKS`  | String | Drop-cooldown committed at bind time: blocks of friction before a later `UNBIND` takes effect |
 | `UNBIND`           | String | `1` drops the live binding for `ACTION_CLASS`; `0` binds                                    |
 | `MEMO`             | String | An optional memo to include                                                                |

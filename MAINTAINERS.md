@@ -63,7 +63,7 @@ If you cannot reach the relevant area maintainer within a reasonable window:
 | Situation | Escalate to |
 |---|---|
 | Active security incident | `security@dankest.llc` (per `SECURITY.md`) |
-| A documented consensus rule, encoding, or validation requirement that is unsafe or ambiguous | Open a public issue tagged `security` AND email `security@dankest.llc` |
+| A documented consensus rule, encoding, or validation requirement that is unsafe or ambiguous | GitHub Private Vulnerability Reporting, or `security@dankest.llc`; do not open a public issue (per `SECURITY.md`) |
 | Code-of-conduct concern | `conduct@dankest.llc` (per `CODE_OF_CONDUCT.md`) |
 | PR has been open without review for 14+ days | Comment `@J-Dog` on the PR; if no response within 7 more days, open an issue tagged `governance` with the PR link |
 

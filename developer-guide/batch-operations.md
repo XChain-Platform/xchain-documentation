@@ -103,7 +103,7 @@ Two limits to plan around:
 
 You can also issue against the same child ticker more than once in one batch, which lets you create it, mint into it, lock it and hand it over as a single sequence.
 
-*These rules are live on testnet and regtest today. On mainnet they are not yet switched on; until they are, mainnet allows one ISSUE per batch whether or not its ticker has a dot.*
+*These rules are live on testnet and regtest from genesis, and on mainnet since the `2026-08-16T00:00:00Z` activation. Mainnet blocks below that instant keep the older behavior: one ISSUE per batch, dotted ticker or not.*
 
 ---
 
@@ -169,17 +169,23 @@ const action = sdk.batch()
 | Child ISSUEs are unlimited | An ISSUE whose ticker contains a dot (`JDOG.1`) does not use the top-level slot |
 | Max 250 commands per batch | Counted over the whole semicolon-separated list, empty entries included, so a trailing `;` costs a slot |
 | Weighted cost budget | Once cost weighting activates, command weights must sum to at most the budget; see [Command Weights](#command-weights) |
-| Max one MINT per batch | Only one MINT action allowed |
+| Max one MINT per distinct token | Several MINTs in one batch are fine as long as they name different tokens; two MINTs of the same token are not |
 | No nested BATCH | BATCH cannot contain another BATCH |
 | Max one FILE per batch | A BATCH can include at most one FILE action (one raw data payload per transaction) |
 | No DEPLOY | The DEPLOY action is not permitted inside a BATCH by the SDK builder |
 | Fees add up | Every command pays its own protocol fee; one command's worth of fee funds one command |
 
 ```js
-// This would fail: two MINTs in one batch
+// Fine: two MINTs of two DIFFERENT tokens
+const valid = sdk.batch()
+  .mint({ tick: 'TOKEN_A', amount: '100' })
+  .mint({ tick: 'TOKEN_B', amount: '200' })
+  .build();
+
+// This would fail: two MINTs of the SAME token
 const invalid = sdk.batch()
   .mint({ tick: 'TOKEN_A', amount: '100' })
-  .mint({ tick: 'TOKEN_B', amount: '200' }) // second MINT -- batch will be invalid
+  .mint({ tick: 'TOKEN_A', amount: '200' }) // same token twice -- batch will be invalid
   .build();
 ```
 
@@ -189,7 +195,7 @@ Most failures affect one command. These reject the batch as a single record, bef
 
 - an unknown BATCH format version
 - a command naming an action the protocol does not recognize, which includes an empty command from a stray `;`
-- more than one MINT, or more than one top-level ISSUE
+- more than one MINT of the same token, or more than one top-level ISSUE
 - a nested BATCH
 - more than 250 commands
 - a sending address that is asleep
@@ -215,10 +221,10 @@ What that means in practice:
 - Weights mix arithmetically. Two `EXECUTE`s (60) plus one `AIRDROP` (25) leave a budget of 165 for ordinary sub-commands in the same batch.
 - A full batch of VM sub-commands is 8 (8 x 30 = 240); a full batch of fan-out sub-commands is 10 (10 x 25 = 250).
 - A chunked contract deployment (a format-4 `DEPLOY` chunk carrier) weighs the default 1 rather than the VM weight: carrying code bytes is a data write, not a contract run, so uploading a large contract in chunks stays cheap.
-- The per-action caps above do not move: one `MINT`, one top-level `ISSUE` and at most one `DEPLOY` per batch at the protocol level (the SDK builder does not compose a `DEPLOY` at all), weighted or not.
+- The per-action caps above do not move: one `MINT` per distinct token, one top-level `ISSUE` and at most one `DEPLOY` per batch at the protocol level (the SDK builder does not compose a `DEPLOY` at all), weighted or not.
 - The count cap is still checked first, and every weight is at least 1, so more than 250 commands always busts the budget too.
 
-*Like the other batch limits, the weighted budget is live on testnet and regtest and not yet switched on for mainnet.*
+*Unlike the batch limits above, which armed on mainnet at the `2026-08-16T00:00:00Z` activation, the weighted budget is live on testnet and regtest only; it is not yet switched on for mainnet.*
 
 ---
 

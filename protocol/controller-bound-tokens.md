@@ -62,8 +62,20 @@ is committed:
 4. **`revert`, error, or run out of gas** and the action is denied: it is recorded
    `invalid: controller (<reason>)`, and everything the guard did is rolled back.
 
-Exactly one guard runs per action (there is no stacking). To layer several policies, put
-them inside one controller's `guard`.
+Exactly one guard runs **per subject and action class** (there is no stacking): within one
+subject, the specific binding overrides the catch-all `all` and only that one guard runs. A
+single native action can still invoke **several** guards, because it has several subjects and
+may have several legs. A direct `SEND` runs the token's `transfer` guard, then the `SOURCE`
+account's outbound `transfer` guard, then the `DESTINATION` account's inbound one (see
+[Account controllers](#account-address-controllers)); bulk actions (`AIRDROP` / `DIVIDEND` /
+`SWEEP`) repeat the applicable guards per tick or leg. Each run is metered separately against
+`GAS_SCHEDULE.VM_GUARD_GAS_CEILING` and the reservations are cumulative (see [Gas](#gas)), so
+budget `GAS` for every guard an action can invoke, not for one.
+
+To layer several policies on the *same* subject and class, put them inside that controller's
+`guard`. Note that a controller does not re-enter its own guard for the moves that guard
+emits, even when it also governs the moved subject: see
+[Reentrancy and determinism](#reentrancy-and-determinism).
 
 ```mermaid
 sequenceDiagram
@@ -142,7 +154,9 @@ A seventh value, `all`, is **bindable but never routable** (see below).
 
 `all` is a class you may **bind** a controller to, but no action ever **routes** to it
 directly. Instead, `all` is the **fallback** when an action's specific class has no binding.
-Resolution is **most-specific-wins**, and **exactly one guard ever runs**:
+Resolution is **most-specific-wins**, and for one subject and one action class **exactly one
+guard runs** (every other subject the same action involves resolves its own guard
+independently):
 
 1. Resolve the effective controller for the action's specific class (e.g. `transfer`).
 2. If there is none, fall back to the effective `all` controller.
@@ -359,10 +373,15 @@ per-recipient**. This is a deliberate protocol decision, not a gap:
 account needs to control who may *hold* or *receive* it, express that as a `transfer`
 restriction that the recipient's balance is subject to on its next outbound move:
 
-- **Token-level:** the token's `transfer` guard gates every subsequent `SEND` or listing of
-  the token, so an unwanted airdropped balance is inert; it cannot move or trade without
-  passing the guard. An allowlist or compliance guard therefore does not need per-recipient
-  drop gating; unapproved holders simply cannot do anything with the drop.
+- **Token-level:** the token's `transfer` guard gates every subsequent `SEND` of the drop, but
+  it does **not** gate listings. `ORDER` / `SWAP` / `DISPENSER` creates route to the
+  [`trade` class](#action-classes), and resolution falls back only to `all`, never to
+  `transfer`; no guard runs at match or dispense either. A `transfer`-only binding therefore
+  leaves an unwanted airdropped balance listable and sellable. To make such a balance inert,
+  bind `all`, or bind `trade` alongside `transfer`. An allowlist or compliance guard still does
+  not need per-recipient drop gating, but it must cover the `trade` class as well as
+  `transfer`; a `transfer`-only binding stops unapproved holders from sending the drop, not
+  from selling it.
 - **Account-level:** an inbound `ADDRESS` `transfer` binding (see
   [Account controllers](#account-address-controllers)) lets an account refuse direct
   unsolicited `SEND`s. Bulk drops, like DEX and dispenser deliveries, are not gated inbound;
@@ -481,9 +500,20 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
 
 - The guard runs as an ordinary deterministic VM execution, so every validator produces the
   identical decision and side effects.
-- A guard whose `emit.send` moves **another** controlled token triggers that token's guard one
-  level deeper. Guard depth is capped by `VM_MAX_CALL_DEPTH` (4); exceeding it denies the
-  originating action. This reuses the existing cross-contract call-depth machinery.
+- **No guard-of-guard, and the exemption is keyed on the CONTROLLER, not on the token.** A
+  guard's `emit.send` triggers a nested guard only when the moved subject resolves to a
+  *different* controller contract. The skip test compares the emitting contract against the
+  controller that would run, so a controller that also governs the moved subject never
+  re-enters its own guard for it, and no guard fee is charged for that move. Where a
+  different controller does resolve, guard depth is capped by `VM_MAX_CALL_DEPTH` (4);
+  exceeding it denies the originating action. This reuses the existing cross-contract
+  call-depth machinery.
+- **Consequence for shared controllers.** Because the exemption keys on controller identity,
+  one controller bound to several tokens (or to a token and an account) will not see its own
+  guard re-run for any of those subjects within a single action: the policy it enforces on a
+  user-submitted action does **not** re-apply to the moves the same guard emits. A policy that
+  must also constrain the guard's own emissions has to enforce that inline, in the same
+  `guard` body.
 - Guard state changes and emissions are wrapped in a dedicated DB savepoint
   (`controller_guard_<actionIndex>_<controller>_<seq>`); any emission failure rolls the whole
   guard back and denies, the same atomicity model as [`EXECUTE`](./actions/execute.md).

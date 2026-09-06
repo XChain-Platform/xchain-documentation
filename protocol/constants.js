@@ -244,10 +244,11 @@ const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
 // cross-service regression suite (protocol-constant-claims.test.js) asserts
 // both copies and every prose claim equal this value.
 //
-// Gated by BATCH_ISSUANCE_LIMITS in the indexer's protocol_changes.js:
-// active from genesis on testnet/regtest, not yet armed on mainnet (see
-// protocol/actions/batch.md). Before that instant mainnet enforces no
-// command cap at all; this constant is the value the gate gives it.
+// Gated by BATCH_ISSUANCE_LIMITS in the indexer's protocol_changes.js: active
+// from genesis on testnet/regtest, and armed on mainnet since 1786838400
+// (2026-08-16T00:00:00Z) - see protocol/actions/batch.md. Below that instant
+// mainnet history enforces no command cap at all; this constant is the value
+// the gate gives it.
 const BATCH_COMMAND_LIMIT = 250;
 
 // ── BATCH weighted cost budget (BATCH_COST_WEIGHTING) ───────────────────────

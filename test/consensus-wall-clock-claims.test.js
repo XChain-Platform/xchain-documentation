@@ -60,6 +60,10 @@ const readVm  = (file) => fs.readFileSync(file, 'utf8');
 const CONFIG_PAGE    = 'components/vm/configuration.md';
 const OPERATIONS_PAGE = 'components/vm/operations.md';
 const FLAG_DAYS_PAGE = 'protocol/flag-days.md';
+// The authoritative activation inventory. It is in this guard for the same
+// reason the two VM pages are: the bound is a Cohort A consensus quantity, and
+// a reader who only reads the registry must find it there too.
+const ACTIVATION_PAGE = 'protocol/protocol-activation.md';
 
 // Pull `const NAME = <integer>;` out of a VM source file.
 function sourceConstant(src, name, where) {
@@ -86,7 +90,7 @@ test('the wall-clock budget the VM pages quote is the constant xchain-vm declare
             'xchain-vm/src/consensus-wall-clock.js');
         const printed  = `${declared.toLocaleString('en-US')} ms`;
 
-        for (const page of [CONFIG_PAGE, OPERATIONS_PAGE]) {
+        for (const page of [CONFIG_PAGE, OPERATIONS_PAGE, ACTIVATION_PAGE]) {
             const doc = readDoc(page);
             assert.ok(doc.includes('CONSENSUS_MAX_WALL_MS'),
                 `${page} does not name CONSENSUS_MAX_WALL_MS; the consensus wall-clock `

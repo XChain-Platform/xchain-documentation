@@ -18,7 +18,7 @@ A pure function library. Takes contract code + state + inputs + block context. R
 - **19 emittable action types**: SEND, DESTROY, ISSUE, MINT, ORDER, DISPENSER, DIVIDEND, AIRDROP, CALLBACK, FILE, LIST, COINPAY, SWEEP, LINK, BROADCAST, MESSAGE, VOTE, plus `emit.execute` (cross-contract call) and `emit.crossExecute` (cross-chain call via XCALL)
 - **External attestation gateway**: `xchain.attestation.request(...)` and `getResponse(...)`. Contracts ask an HTTPS endpoint or an approved LLM, and the validator network writes a signed answer back on-chain that re-enters the contract through a callback. See [Smart Contracts; Attestation Framework](../../concepts/smart-contracts.md#asking-the-outside-world-the-attestation-framework).
 - **Contract-targeted staking gateway**: `xchain.contract.getStake`, `getTotalStaked`, `getStakers`, `slash`. Any contract can declare itself stakeable at deploy time and slash its own stakers per its own rules. See [Smart Contracts; Stakeable Contracts](../../concepts/smart-contracts.md#stakeable-contracts).
-- **Deterministic math**: `xchain.math.*` wraps mathjs bignumber with string I/O, no floating-point at the gateway boundary
+- **Deterministic math**: `xchain.math.*` wraps mathjs bignumber, taking string amounts in and returning string arithmetic results (`compare` returns -1/0/1 and the `gt`/`gte`/`lt`/`lte`/`eq`/`isZero` predicates return booleans), no floating-point at the gateway boundary
 - **Contract state management**: key-value store with dirty tracking, key count, key size, and value size limits
 - **Deploy-time validation**: V8 syntax check, acorn metering pass, reserved identifier detection, float warnings
 - **Per-block compilation cache**: V8 cached compilation data reused for hot contracts within a block

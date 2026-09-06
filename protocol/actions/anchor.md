@@ -14,7 +14,7 @@ archive, in a single action with two legs and three version-discriminated phases
   state checkpoint (the per-block `ledger`/`actions`/`contract` hash triple) plus a compressed
   batch of full `cross_chain_matches` records (including their validator signatures and the
   `capability_snapshots` rows needed to re-verify them), plus the elected archive leader's
-  `PUBLISHER` pubkey and a `max(2f+1, ceil((N+1)/2))` `oracle_publish` attestation (the
+  `PUBLISHER` pubkey and a quorate `oracle_publish` attestation (the
   `XANCPUB` canonical) keyed on `MATCH_BATCH_SEQ`, binding which validator earns the archive
   reward. The `PUBLISHER` tail is **always appended**; `ATTEST_SIG_COUNT` MAY be 0 when the
   attestation round degrades, in which case the checkpoint and archive still index `valid`, no
@@ -78,7 +78,9 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 ## Purpose
 
 1. **Verifiable state.** Light clients verify any indexer/explorer response against a
-   checkpoint signed by a `max(2f+1, ceil((N+1)/2))` quorum of `oracle_publish` validators, without trusting a single operator.
+   checkpoint signed by a quorum of `oracle_publish` validators (stake-weighted and
+   source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy
+   `max(2f+1, ceil((N+1)/2))` signer count), without trusting a single operator.
 2. **Full-parse recoverability.** Cross-chain match records are the only consensus-relevant
    dataset not natively on-chain (they are mirror-delivered; see
    [Cross-Chain DEX](../cross-chain-dex.md)). The v1/v2 archive places the records themselves
@@ -155,8 +157,10 @@ ANCHOR|0|NETWORK|SNAPSHOT_BLOCK|SECTION_COUNT
 - **One publisher tail per bundle**, whatever the section count.
 - **Byte budget: 8189 bytes** of wire text (`MAX_ACTION_DATA_LENGTH` 8192 minus the 3-byte
   push prefix). A cycle that would exceed it is split chain-ascending into as many bundles as
-  fit, each with its own election; a single section that cannot fit even with an empty
-  attestation tail is refused loudly and counted, never sent truncated.
+  fit, each with its own election; a single section that cannot fit alongside the
+  attestation tail its bundle will carry is refused loudly and counted, never sent
+  truncated. The assembled payload is measured once more before broadcast, so an
+  under-estimated tail is refused here rather than dropped by the decoder.
 
 ### Version `1`: Checkpoint + match archive + publisher attestation (validator-broadcast)
 - `ANCHOR|1|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRACT_HASH|CHECKPOINT_SEQ|SNAPSHOT_BLOCK|MATCH_BATCH_SEQ|MATCH_COUNT|BATCH_CRC32|TOTAL_CHUNKS|ARCHIVE_B64|SIG_COUNT|PUBKEY1|SIG1|...|PUBLISHER|ATTEST_SIG_COUNT|APUBKEY1|ASIG1|...`
@@ -333,8 +337,20 @@ exact bytes):
   `capability_snapshots` table, exactly as cross-chain settlement resolves `cross_chain`). For a
   v0 section that block is the section's own `SECTION_SNAPSHOT_BLOCK`.
 - Each `SIG_n` must Ed25519-verify against the canonical message.
-- Valid signatures must reach `max(2f+1, ceil((N+1)/2))` of the snapshot set; PBFT `2f+1`
-  floored at a simple majority, so N=3 requires 2 (single-validator sets require 1).
+- Valid signatures must reach the snapshot set's federation quorum, and which rule that is
+  depends on the section's own snapshot block:
+  - **At or above `STAKE_WEIGHTED_QUORUM_ACTIVATION`** the quorum is STAKE-WEIGHTED and
+    SOURCE-DEDUPLICATED. Each valid signer's pubkey resolves to its stake source in the
+    snapshot; sources are counted at most once however many of their keys sign, and their
+    summed stake `tally` must satisfy `3 x tally > 2 x S`, where `S` is the total stake of the
+    snapshot set summed over distinct sources. A source whose snapshot weight is missing fails
+    closed. Three equally weighted sources therefore need all three signatures; two are not
+    enough. The predicate is `meetsStakeThreshold` in
+    [`protocol/reference-impl/stake_weighted_quorum.js`](../reference-impl/stake_weighted_quorum.js).
+  - **Below activation** the quorum is the legacy signer COUNT `max(2f+1, ceil((N+1)/2))`,
+    `f = floor((N-1)/3)`: PBFT `2f+1` floored at a simple majority, so N=3 requires 2 and
+    single-validator sets require 1. The floor is what stops bare `2f+1` degenerating to a
+    quorum of 1 at N=3.
 - `CHECKPOINT_SEQ` must be ≥ any previously accepted seq for (`CHAIN`,`NETWORK`), replays of
   older checkpoints are recorded but flagged `stale`, never `valid`. Equal-seq records are
   accepted: an exact replay is signature-bound to identical content (harmless duplicate). The
@@ -360,8 +376,9 @@ exact bytes):
   chain.
 - `PUBLISHER` must be 64-hex. The attestation list (`APUBKEY_n`/`ASIG_n`) is verified as a SECOND
   quorum over the `XANCPUB` canonical against the `oracle_publish` snapshot at the bundle's
-  `SNAPSHOT_BLOCK`, reaching the same `max(2f+1, ceil((N+1)/2))` (stake-weighted at/above
-  `STAKE_WEIGHTED_QUORUM`) threshold.
+  `SNAPSHOT_BLOCK`, reaching the same threshold as the section quorum above: stake-weighted and
+  source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy
+  `max(2f+1, ceil((N+1)/2))` signer count.
 - **One reward per bundle**, not one per section: a COLLECT-spendable `validator_rewards` row
   keyed `(SNAPSHOT_BLOCK, anchor_bundle)`, amount = the frozen `ANCHOR_REWARD_AMOUNT`, never the
   wire, credited **only** when every section's quorum passed, the attestation quorum is met, and

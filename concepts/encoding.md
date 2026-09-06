@@ -52,6 +52,8 @@ OP_RETURN is the preferred format for short ACTIONs (simple sends, mints, basic 
 
 The two-transaction pattern means the ACTION is not visible until the spend transaction is mined. The fund transaction just looks like a payment to a script hash.
 
+**No chunk may be a single byte in `0x01`-`0x10` or `0x81`.** A script encoder canonicalizes such a byte into the bare opcode `OP_1`-`OP_16` / `OP_1NEGATE`, and the decoder's redeem-script gate takes only a data push at position 0, so that output is skipped and the reassembled payload is silently corrupted. When the split would leave a final chunk of exactly one such byte, the encoder **rebalances** the last two chunks to `(n-1, 2)` bytes. Reassembly is plain concatenation, so the payload is unchanged. The same rule governs the Taproot envelope's 520-byte pushes; see [Taproot envelope: no payload push may canonicalize to a bare opcode](../protocol/taproot-envelope.md#no-payload-push-may-canonicalize-to-a-bare-opcode).
+
 ### P2WSH (Pay-to-Witness-Script-Hash)
 
 **Capacity**: up to 8,192 bytes of data  

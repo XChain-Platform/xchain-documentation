@@ -64,7 +64,7 @@ This document walks every primary route the wallet exposes. All routes live in `
 | Attach content | `AttachContentForm.jsx` | Attach a file (with optional title) to a token as on-chain content; polls for confirmation |
 | Contract staked positions | `ContractStakedPositions.jsx` | Lists the wallet's active stakes against deployed contracts |
 | Stake on contract | `ContractStakeForm.jsx` | STAKE-to-contract form; BTC-only at launch; scoped to a specific contract by action index |
-| Bind controller | `ControllerBindForm.jsx` | CONTROLLERBIND action form; sets per-class policy rules (transfer, trade, burn, mint, stake) on a token |
+| Bind controller | `ControllerBindForm.jsx` | CONTROLLERBIND action form; sets per-class policy rules (transfer, trade, burn, mint, stake, ownership, all) on a token |
 | Manage token | `ManageToken.jsx` | Owner hub for a token: metadata, holders panel, supply, and links to admin sub-forms |
 | Market activity | `MarketActivity.jsx` | Live market feed; opens on the XCHAIN token by default; tap the token header to switch markets |
 | Menu | `MenuRoute.jsx` | Full-screen pancake menu opened from the shared app header; links to all top-level sections |

@@ -23,7 +23,7 @@ This example calls back the JDOG token to the token owner address
 ```
 
 ## Rules
-- `TICK` can only be called back after `CALLBACK_BLOCK`
+- `TICK` can only be called back at or after `CALLBACK_BLOCK` (the window opens *at* that height)
 - All `TICK` supply will be returned to `TICK` owner address
 - All `TICK` supply holders will receive `CALLBACK_AMOUNT` of `CALLBACK_TICK` per `UNIT`
 

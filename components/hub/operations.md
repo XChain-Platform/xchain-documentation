@@ -428,7 +428,7 @@ The P2P layer deduplicates messages using a TTL cache (default: 60 seconds). Thi
 
 ### Cross-chain attestations stuck at pending
 
-- Verify enough validators support both chains in the chain pair (quorum requires `max(2f+1, ceil((N+1)/2))`)
+- Verify enough validators support both chains in the chain pair to reach quorum. At/above `STAKE_WEIGHTED_QUORUM_ACTIVATION` that is a source-deduped stake threshold (`3 x tally > 2 x S`), not a head count, so counting validators is not enough on its own; below it, the legacy `max(2f+1, ceil((N+1)/2))` count applies. See [decentralization: Quorum](decentralization.md#quorum)
 - Check confirmation thresholds: BTC requires 6, LTC requires 12, DOGE requires 60 (defaults; overridable via `XCHAIN_CONFIRMATIONS_<COIN>`)
 - Ensure `PBFT_TIMEOUT` is sufficient for consensus rounds to complete
 

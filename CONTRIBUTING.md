@@ -91,7 +91,7 @@ Before writing the PR:
 3. **Describe the consensus impact.** Explain whether the change is additive (no existing behavior changes), clarifying (no behavior changes, but removes ambiguity), or consensus-breaking (a compliant implementation would behave differently after the change).
 4. **Consensus-breaking changes need sign-off from implementing service maintainers** before the PR merges. This means the teams responsible for `xchain-decoder`, `xchain-indexer`, and any other service the spec governs. Tag them in the issue.
 
-Once the issue has consensus, open the PR against `master`. Keep one logical change per PR; don't batch unrelated spec edits.
+Once the issue has consensus, open the PR against `develop`. GitHub preselects `master` as the base, so change it before you submit. Keep one logical change per PR; don't batch unrelated spec edits.
 
 ---
 
@@ -137,7 +137,7 @@ All byte-level encoding examples and on-chain data samples in the spec must matc
 
 Match the existing log style: a concise subject line, then a short body explaining what changed and why.
 
-- Branch off `master` and keep history linear (rebase, don't merge).
+- Branch off `develop` and keep history linear (rebase, don't merge). `develop` is where work lands; `master` only ever receives release merges (see [`operations/release-process.md`](./operations/release-process.md)).
 - One logical change per commit; don't batch unrelated edits.
 - **No `Co-Authored-By` trailers.** This is a project policy.
 - **Never `--no-verify`.** If a hook fails, fix the cause; don't bypass it.

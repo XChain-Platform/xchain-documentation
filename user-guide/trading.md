@@ -35,15 +35,19 @@ Matching happens as orders are processed by the indexer. You do not need to be o
 
 ### Order Expiration
 
-Orders do not stay open forever. When you place an order, you set an expiration. After that time (set as a date/time), any unfilled portion of your order is automatically cancelled and your escrowed tokens are returned. This prevents stale orders from clogging the exchange.
+Orders do not stay open forever. When you place an order, you set an expiration. After that time (set as a date/time), any unfilled portion of your order is automatically cancelled and your escrowed tokens are returned, on the same timing as a cancellation you make yourself (see below). This prevents stale orders from clogging the exchange.
 
 ### Cancelling an Order
 
-You can cancel any of your open orders at any time before they are filled. When you cancel, your escrowed tokens are immediately returned to your available balance. You do not need anyone's permission to cancel your own order.
+You can cancel any of your open orders at any time before they are filled. You do not need anyone's permission to cancel your own order.
+
+Cancelling stops any further matching straight away. When your order is priced in tokens on both sides, or has matched nothing that still owes you a coin payment, your escrowed tokens go back to your available balance in the same transaction that cancels the order.
+
+Coin payments are the one exception. When a buyer takes your order and pays in bitcoin, litecoin or dogecoin, that payment is not made in the transaction that matched you; the buyer owes it, and the protocol tracks the debt until it is paid or its deadline passes. Cancelling while such a payment is still outstanding closes the order to new matches now, and releases what is left in escrow once that payment settles or lapses. The same is true when the order reaches its expiration instead of being cancelled.
 
 ### Safety During a Trade
 
-Your tokens are never at risk during an open order. They sit in protocol-level escrow. Not on a company's server, not in a wallet someone else controls. The protocol guarantees they can only be released in two ways: to a matching buyer, or back to you upon cancellation or expiration. There is no third outcome.
+Your tokens are never at risk during an open order. They sit in protocol-level escrow. Not on a company's server, not in a wallet someone else controls. The protocol guarantees there are only two addresses they can ever reach: a matching buyer's, or your own on cancellation or expiration. Nobody else can be paid out of that escrow. What can vary is the timing of the return, not the destination: if a buyer still owes you a coin payment, the release waits for that payment to settle or lapse, as described above.
 
 ---
 
@@ -91,9 +95,9 @@ Think of a dispenser like a coin-operated machine at a store. You set it up once
 
 You can edit an active dispenser to add more tokens to it (a refill), change its expiration, or update its allow and block lists. A refill resets the dispense count to zero, so the dispenser can serve another 1,000 dispenses; you get 5 refills (the 6th is rejected), for a lifetime ceiling of 6 fills, or 6,000 dispenses. Its **price and the amount dispensed per purchase are fixed when you create it and cannot be changed**; if you need a different price, cancel the dispenser and create a new one.
 
-You can cancel a dispenser at any time, and any tokens still in it are returned to your balance.
+You can cancel a dispenser at any time, and any tokens still in it are returned to your balance. Cancelling does not close the dispenser on the spot: it enters a one-hour closing window first, so that a buyer whose payment was already on its way is still served rather than left paying into a machine that has gone. Your leftover tokens come back when that window ends.
 
-**Every dispenser expires.** You set an expiration when you create it; if you do not choose one, a default of 90 days is applied. When that deadline passes, the dispenser closes automatically and any tokens still in it are returned to your balance, exactly as if you had cancelled it. A dispenser is never open indefinitely, so extend the expiration by editing the dispenser if you want it to keep selling.
+**Every dispenser expires.** You set an expiration when you create it; if you do not choose one, a default of 90 days is applied. When that deadline passes, the dispenser closes automatically and any tokens still in it are returned to your balance. Expiry needs no closing window, so unlike a cancellation the return is immediate. A dispenser is never open indefinitely, so extend the expiration by editing the dispenser if you want it to keep selling.
 
 ---
 

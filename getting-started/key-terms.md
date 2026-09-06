@@ -91,7 +91,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **mintSupply**: The amount of supply issued straight to the issuing address at ISSUE time (default 0), not the amount a public MINT produces.
 
-**SLEEP**: An ACTION that suspends another action (such as a dispenser or order) from a start block until an end block, temporarily deactivating it without cancelling it.
+**SLEEP**: An ACTION that pauses actions on the broadcasting address, or on a TICK that address owns, until a chosen resume block. Nothing is cancelled, and it does not prevent dispenser dispenses, order matches, or swap matches.
 
 **SWEEP**: An ACTION that transfers the entire token balance of the broadcasting address to a destination address in a single operation.
 
@@ -137,7 +137,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **KEY_HASH**: The hex `sha256` of a gated file's symmetric key. Stored on the `FILE` action so holders can verify the key they receive in a `MESSAGE` handoff matches the file they're decrypting. Also serves as the implicit pack identifier: two or more gated FILEs sharing the same `KEY_HASH` are pack members and unlock together.
 
-**Key Handoff**: The act of delivering a gated file's symmetric key to a token holder via an ECIES-encrypted `MESSAGE`. Sent by the issuer at publish time (to themselves, for recoverability) and by the current holder to every new holder as part of every transfer (`BATCH(SEND, MESSAGE)`).
+**Key Handoff**: The act of delivering a gated file's symmetric key to a token holder via an ECIES-encrypted `MESSAGE`. Sent by the issuer at publish time (to themselves, for recoverability) and by the current holder to a new holder as part of a direct transfer (`BATCH(SEND, MESSAGE)`), which is the only path the protocol requires it on. A buyer credited by DEX settlement, a dispense, an airdrop or a dividend receives the tokens without a key.
 
 **MESSAGE**: An ACTION that stores a short arbitrary message permanently on the blockchain. Supports plaintext, ECDH session, AES pre-shared, and ECIES (encrypted to a recipient address's pubkey). ECIES MESSAGEs carry [token-gated content](../protocol/token-gated-content.md) key handoffs.
 

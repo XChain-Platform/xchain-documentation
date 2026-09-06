@@ -51,7 +51,12 @@ This example creates a new list from an existing list (4321) and removes 2 addre
 ```
 
 ## Rules
-- In order for a `LIST` to be considered `valid`, all `TICK` or `ADDRESS`  must be valid
+- Each `ITEM` is judged on its own. An item that fails its type check (an unknown `TICK`,
+  or an `ADDRESS` the format check rejects) is recorded `invalid` and left OUT of the
+  list's item set; it does not fail the action. A `LIST` is `valid` or not on its fixed
+  fields alone (`VERSION`, `TYPE`/`EDIT`, `LIST_ACTION_INDEX`, `MEMO`, and a `SOURCE`
+  that is not sleeping), so a `LIST` whose every item was rejected still publishes, as an
+  empty list. Read the resulting membership back rather than assuming what you sent
 - A `TICK` list contains only `TICK` items
 - A `ADDRESS` list contains only `ADDRESS` items
 

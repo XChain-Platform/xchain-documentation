@@ -71,7 +71,9 @@ const listAction = sdk.list({
     'bc1qallowedaddress2...',
   ],
 });
-// Returns: "LIST|0|2|bc1qallowedaddress1...|bc1qallowedaddress2..."
+// Action string: "LIST|0|2||bc1qallowedaddress1...|bc1qallowedaddress2..."
+// The empty segment after the type is the optional MEMO, which on LIST comes
+// BEFORE the variadic items; without it the first address is read as the memo.
 
 // Encode to PSBT
 const listPsbt = await sdk.encoder.createPSBT({

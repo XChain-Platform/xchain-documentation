@@ -94,7 +94,7 @@ Configure address-level preferences for fee routing and memo requirements.
 | Param | Type | Required | Description |
 |---|---|---|---|
 | controller | integer | Conditional | ACTION_INDEX of the deployed guard contract. Required when `unbind` is `0`. Ignored on unbind. |
-| actionClass | string | Yes | The action class to gate or release: `transfer`, `trade`, `burn`, `mint`, or `stake` |
+| actionClass | string | Yes | The action class to gate or release: `transfer`, `trade`, `burn`, `mint`, `stake`, `ownership`, or the catch-all `all` |
 | cooldownBlocks | integer | No | Number of blocks that must pass after an unbind request before the binding is dropped (committed at bind; `0` = no cooldown) |
 | unbind | integer | Yes | `0` = bind the action class to the controller, `1` = unbind it |
 | memo | string | No | Optional note |
@@ -165,11 +165,11 @@ Combine multiple action commands into a single transaction.
 - BATCH cannot contain nested BATCH actions.
 - BATCH cannot contain DEPLOY actions.
 - At most **one FILE** action per BATCH (one rawData payload per transaction).
-- At most **one MINT** action per BATCH.
+- At most **one MINT** action per distinct `tick` per BATCH. Minting several different tokens in one BATCH is allowed; minting the same token twice is not. The SDK compares tick STRINGS, which the chain's resolved-id rule makes a conservative approximation, so the builder refuses a BATCH mixing a `^<id>` MINT tick with a named one rather than guess whether they are one token.
 - At most **one top-level ISSUE** action per BATCH. A child issuance, whose `tick` contains a `.` (for example `JDOG.1`), does not use that slot, so one BATCH can register a parent plus any number of its children. A `^<id>` tick is never treated as a child.
 - At most **250 commands** per BATCH, counted over the raw semicolon-separated list including empty entries.
 - Sub-commands are **not atomic**: each is validated and settled on its own, so a command that fails does not undo the ones before it. Protocol fees are charged per command and accumulate across the batch.
-- The child-issuance exemption, the 250-command cap and cumulative fee accounting are active on testnet and regtest, and activate on mainnet at `2026-08-16T00:00:00Z`.
+- The child-issuance exemption, the per-distinct-token MINT rule, the 250-command cap and cumulative fee accounting are active on testnet and regtest, and have been active on mainnet since `2026-08-16T00:00:00Z`.
 - See [BATCH.md](./batch.md) for the fluent builder interface (`sdk.batch()`).
 
 ```js
@@ -623,7 +623,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 |---|---|---|---|
 | tick | string | Yes | Token whose action class is being bound or unbound |
 | controller | integer | Conditional | ACTION_INDEX of the deployed guard contract. Required when `unbind` is `0`. Ignored on unbind. |
-| actionClass | string | Yes | The action class to gate or release: `transfer`, `trade`, `burn`, `mint`, or `stake` |
+| actionClass | string | Yes | The action class to gate or release: `transfer`, `trade`, `burn`, `mint`, `stake`, `ownership`, or the catch-all `all` |
 | cooldownBlocks | integer | No | Number of blocks that must pass after an unbind request before the binding is dropped (committed at bind; `0` = no cooldown) |
 | unbind | integer | Yes | `0` = bind the action class to the controller, `1` = unbind it |
 | memo | string | No | Optional note |
@@ -1494,12 +1494,12 @@ await sdk.collect({});
 - BATCH cannot contain nested BATCH actions.
 - BATCH cannot contain DEPLOY actions.
 - At most **one FILE** per BATCH (one rawData payload per transaction).
-- At most **one MINT** per BATCH.
+- At most **one MINT** per distinct `tick` per BATCH; several MINTs of different tokens are allowed, two MINTs of the same token are not.
 - At most **one top-level ISSUE** per BATCH; child issuances (a `tick` containing a `.`, such as `JDOG.1`) are exempt and uncapped, while a `^<id>` tick is never treated as a child.
 - At most **250 commands** per BATCH, counted over the raw semicolon-separated list including empty entries.
 - Commands settle independently, not atomically, and each pays its own protocol fee.
 
-The child-issuance exemption, the command cap and cumulative fee accounting are active on testnet and regtest, and activate on mainnet at `2026-08-16T00:00:00Z`.
+The child-issuance exemption, the per-distinct-token MINT rule, the command cap and cumulative fee accounting are active on testnet and regtest, and have been active on mainnet since `2026-08-16T00:00:00Z`.
 
 ### Encoding size limits
 

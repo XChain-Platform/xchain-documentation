@@ -249,7 +249,7 @@ After the activation block, fees for VM and staking actions are calculated using
 |---|---|---|
 | `GAS_PRICE` | Base XCHAIN cost per unit of gas | `0.00001` |
 | `GAS_SCHEDULE` | Object mapping action types to their gas cost in gas units | `{ DEPLOY: 100000, EXECUTE: 10000, STAKE: 5000, ... }` |
-| `UNIFIED_EXPIRATION_FEE_FREE_DAYS` | Free listing duration under the unified schedule (replaces `EXPIRATION_FEE_FREE_DAYS` post-activation) | `365` |
+| `UNIFIED_EXPIRATION_FEE_FREE_DAYS` | Free listing duration under the unified schedule (replaces `EXPIRATION_FEE_FREE_DAYS` post-activation) | `90` (3 months) |
 | `FEE_PAYMENT_MODE` | Reserved key indicating intended fee denomination per chain (`'xchain'` on BTC, `'native'` on LTC/DOGE). **Not currently read at runtime**: see note below. | `'xchain'` (BTC) |
 
 > **Note on `FEE_PAYMENT_MODE`:** This key is currently informational only and is **not** read by the fee-processing code. Fee payment mode is detected implicitly at runtime by `detectFeePaymentMode()` in `src/utility.js`, which derives the mode from the transaction itself: if a native-coin fee output to the configured fee destination is present it returns `'native'`; if absent it returns `'xchain'` on BTC (XCHAIN balance deduction is allowed as a fallback) and `'rejected'` on LTC/DOGE (native coin is the only accepted fee on those chains). The `FEE_PAYMENT_MODE` config value is reserved for a future change that makes this detection explicit/config-driven; until then its value must mirror the implicit per-chain behavior to avoid surprising a later refactor.

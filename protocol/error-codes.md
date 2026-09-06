@@ -93,8 +93,13 @@ JSON-RPC 2.0 error objects:
 | `-32603` | Internal error (node RPC failure, encoder failure) | all | Yes: with backoff |
 | `-32000` | Server error | all | Yes: with backoff |
 | `-32001` | Unauthorized: missing/invalid API key (`x-api-key` for encoder/hub, `Authorization: Bearer` for SDK API) | all | No: fix credentials |
-| `-32029` | Too many requests (rate limit) | encoder | Yes: back off |
+| `-32029` | Too many requests (rate limit) | encoder, hub | Yes: back off |
+| `-32005` | Too many requests (rate limit) on the **SDK API only**, which does not use `-32029`. Served as HTTP `429` with a `Retry-After` header carrying the seconds until the caller's window resets; the message names the limit and the window | SDK API | Yes: wait out `Retry-After`, then back off |
 | `-32010` | Operational error: an expected, caller-actionable condition (`create_tx`, `create_envelope_cancel_tx`). `error.data.reason` carries a stable code from the table below; branch on it, never on `message` | encoder | Depends on `reason` (see below) |
+
+Rate limiting is the one condition with two codes. A client that talks to more than one of
+these services must treat `-32029` and `-32005` as the same condition, or key retry on the
+HTTP `429` and the `Retry-After` header, which every one of them sets.
 
 ### Encoder operational reasons
 

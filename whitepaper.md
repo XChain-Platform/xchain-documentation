@@ -292,7 +292,7 @@ The protocol defines 37 named ACTIONs across ten categories. Of these, 31 are us
 - **ISSUE** creates a token or updates one you own. v0 is full creation (supply, decimals, mint window, lists, callback terms, locks); v1-v5 are targeted edits (description; mint params; lock flags; callback params; access lists); v6 binds or unbinds a controller contract that guards a class of the token's actions (§7.8). `DECIMALS` is immutable once supply exists. Non-fungible and edition tokens use these same fields (§5.3).
 - **MINT** mints supply within the token's rules. Permissionless within an open mint window; the owner may mint beyond `MAX_MINT`; nothing may exceed `MAX_SUPPLY`.
 - **DESTROY** permanently burns the holder's balance. v0 single; v1/v2 multi-token batches.
-- **CALLBACK** lets the owner force-recall all outstanding supply after `CALLBACK_BLOCK`, paying holders the defined compensation token. Fee scales with holder count.
+- **CALLBACK** lets the owner force-recall all outstanding supply at or after `CALLBACK_BLOCK`, paying holders the defined compensation token. Fee scales with holder count.
 - **SLEEP** pauses an address (v0) or a token (v1) until a resume block. Dispenser dispenses, order matches, and swap matches are exempt; a token-level SLEEP can itself be batched (pause, operate, unpause).
 
 ### 6.2 Transfers
@@ -405,7 +405,7 @@ Emitted actions are queued during execution and applied **only after the VM retu
 
 ### 7.8 Controller-bound tokens: settlement-time guards *(contract-era flag day)*
 
-Sections 7.1-7.7 describe contracts that users call. The controller mechanism is the inverse: **the protocol calls a contract**. A token (via `ISSUE` v6) or an account (via `ADDRESS` v1, self-signed) may bind a deployed contract as its **controller** for one action class (`transfer`, `trade`, `mint`, `burn`, `stake`, `ownership`, or the `all` fallback; resolution is most-specific-wins and exactly one guard ever runs). Once bound, the indexer invokes the controller's `guard` method after an action of that class passes normal validation and **before it settles**, inside the same atomic scope. The guard is an ordinary deterministic VM execution: it may read and write its own state, emit actions, return normally to allow, or `revert` to deny; a revert, error, missing method, or out-of-gas **fails closed**, rolling back everything the guard did and recording the action invalid. Because the indexer is the only settlement path, a bound rule is unavoidable: there is no marketplace or side venue where it can be sidestepped, which is the property goodwill-based royalty schemes on other platforms never achieved.
+Sections 7.1-7.7 describe contracts that users call. The controller mechanism is the inverse: **the protocol calls a contract**. A token (via `ISSUE` v6) or an account (via `ADDRESS` v1, self-signed) may bind a deployed contract as its **controller** for one action class (`transfer`, `trade`, `mint`, `burn`, `stake`, `ownership`, or the `all` fallback; resolution is most-specific-wins, so exactly one guard runs per subject and action class, and a single action can still invoke several: the token's guard plus the sender's and the recipient's account guards, each metered separately). Once bound, the indexer invokes the controller's `guard` method after an action of that class passes normal validation and **before it settles**, inside the same atomic scope. The guard is an ordinary deterministic VM execution: it may read and write its own state, emit actions, return normally to allow, or `revert` to deny; a revert, error, missing method, or out-of-gas **fails closed**, rolling back everything the guard did and recording the action invalid. Because the indexer is the only settlement path, a bound rule is unavoidable: there is no marketplace or side venue where it can be sidestepped, which is the property goodwill-based royalty schemes on other platforms never achieved.
 
 ```mermaid
 flowchart TD
@@ -539,7 +539,7 @@ The hub is a decentralized validator network: a WebSocket P2P flood-fill gossip 
 
 ### 10.2 PBFT consensus
 
-All consensus domains use a simplified three-phase PBFT (pre-prepare, prepare, commit). The fault-tolerance floor is a count quorum of `max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)`; the majority term keeps a small federation from collapsing to a single signer (for `N=3`, quorum is 2, not 1). Leaders are chosen by deterministic round-robin over the pubkey-sorted set; a leader that stalls past the timeout triggers a view change to the next leader once enough view-change votes accumulate. The consensus **sequence number** is persisted so validators resume correctly after restart (the view number and pending proposals are in-memory and reset on restart). With no peers connected, a single instance executes operations directly (degenerate single-node mode).
+All consensus domains use a simplified three-phase PBFT (pre-prepare, prepare, commit). The quorum rule is activation-gated on the round's BTC-anchored snapshot block: at or above `STAKE_WEIGHTED_QUORUM_ACTIVATION` it is a source-deduplicated STAKE threshold, where the distinct stake sources behind the voting validators must satisfy `3 x tally > 2 x S` against the snapshot's total stake, so three equally weighted sources need all three votes; below activation it is the legacy count quorum `max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)`, whose majority term keeps a small federation from collapsing to a single signer (for `N=3`, quorum is 2, not 1). Leaders are chosen by deterministic round-robin over the pubkey-sorted set; a leader that stalls past the timeout triggers a view change to the next leader once enough view-change votes accumulate. The consensus **sequence number** is persisted so validators resume correctly after restart (the view number and pending proposals are in-memory and reset on restart). With no peers connected, a single instance executes operations directly (degenerate single-node mode).
 
 ```mermaid
 sequenceDiagram
@@ -743,8 +743,8 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 | Cross-chain attestation/XCALL confirmations (default) | BTC 6 / LTC 12 / DOGE 60 |
 | Cross-chain DEX matching source-confirmation depth (default) | 1, per-chain operator-tunable (§9.2) |
 | Controller action classes | transfer / trade / mint / burn / stake / ownership, plus `all` fallback (§7.8) |
-| PBFT count quorum | `max(2f+1, ceil((N+1)/2))`, `f = floor((N-1)/3)` |
-| Stake-weighted quorum (gated on the validator-era batch, §10.2) | combined signer stake > 2/3 of total active stake |
+| PBFT count quorum (below `STAKE_WEIGHTED_QUORUM_ACTIVATION` only) | `max(2f+1, ceil((N+1)/2))`, `f = floor((N-1)/3)` |
+| Stake-weighted quorum (at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`; gated on the validator-era batch, §10.2) | combined signer stake, deduplicated by stake SOURCE, > 2/3 of total active stake |
 | Trimmed-median trim | top/bottom 15% |
 | Governance | 7-day vote, 50% quorum, two-thirds approval, 14-day re-proposal cooldown |
 | utxo-tracker reorg undo window | BTC 12 / LTC 48 / DOGE 120 blocks (default, env-overridable) |

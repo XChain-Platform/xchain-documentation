@@ -54,7 +54,10 @@ The roster is a **`TICK`-type `LIST`**, bound to the project by a **`LINK`** fro
 project's current owner:
 
 1. `ISSUE` the project tick (once).
-2. `LIST|0|1|TOKEN1|TOKEN2|…`, publish the roster as a tick list.
+2. `LIST|0|1||TOKEN1|TOKEN2|…`, publish the roster as a tick list. The empty third
+   segment is the optional `MEMO`, which on [`LIST`](./actions/list.md) sits BEFORE the
+   variadic items instead of trailing them. Spend the slot even when there is no memo:
+   drop it and `TOKEN1` is read as the memo, so the first token never joins the roster.
 3. `LINK|0|<COIN>|<LIST action index>|<COIN>|<project ISSUE action index>|…`:
 attest the roster. `LINK` validation already enforces that, when the link target
    resolves to a local `ISSUE`, **the `SOURCE` must be the tick's current owner** and
@@ -65,8 +68,9 @@ attest the roster. `LINK` validation already enforces that, when the link target
 
 `LIST` actions are immutable; an update publishes a **new** list and re-attests it:
 
-1. `LIST|1|<EDIT>|<previous LIST action index>|ITEM…`, derive a new list from the
-   previous one (`EDIT` 1 = add items, 2 = remove items). The indexer materializes the
+1. `LIST|1|<EDIT>|<previous LIST action index>||ITEM…`, derive a new list from the
+   previous one (`EDIT` 1 = add items, 2 = remove items). The empty fourth segment is
+   the same `MEMO` slot as above, one position later. The indexer materializes the
    full resulting item set under the new `LIST`'s `ACTION_INDEX`.
 2. `LINK` the new list to the project's `ISSUE` as above.
 
@@ -96,7 +100,7 @@ Notes on the rule:
 
 ```mermaid
 flowchart TD
-    Issue["ISSUE the project tick, once"] --> List["LIST|0|1|TOKEN1|TOKEN2|...<br>publish the roster as a tick list"]
+    Issue["ISSUE the project tick, once"] --> List["LIST|0|1||TOKEN1|TOKEN2|...<br>publish the roster as a tick list"]
     List --> Link["LINK: COIN1 = the LIST action index,<br>COIN2 = the project ISSUE action index"]
     Link --> Check{"SOURCE is the tick's current owner,<br>ownership not escrowed,<br>both sides on the project's own chain?"}
     Check -->|"no"| Ignored["LINK carries no authority, ignored by clients"]

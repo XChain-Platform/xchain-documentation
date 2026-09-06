@@ -187,7 +187,7 @@ The `ProofServer` class (`src/proofServer.js`) serves read-only Merkle proofs fo
 GET /{COIN}/api/proof/balance/:address/:tick    - SMT balance inclusion / non-inclusion proof
 GET /{COIN}/api/proof/action/:actionIndex       - Per-block fixed-Merkle inclusion proof
 GET /{COIN}/api/proof/validator-set             - Stake-weight SMT proofs (BTC-only)
-GET /{COIN}/api/proof/contract-state/:idx/:key  - Reserved; returns 501 in state_root_version 1
+GET /{COIN}/api/proof/contract-state/:idx/:key  - Contract-state SMT proof; 409 where the slot is unarmed
 GET /{COIN}/api/checkpoints/range               - Forward-ordered checkpoint slice for light-client sync
 ```
 

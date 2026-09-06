@@ -134,7 +134,9 @@ await sdk.issue({ TICK: 'MTK', MAX_SUPPLY: '1000000', DECIMALS: '8' }, encoder);
 
 Need a transfer hook (allowlist, royalty, freeze)? That is a **controller-bound
 token**: deploy a guard contract and bind it at issue time, so the rule is enforced
-by the protocol on every transfer and cannot be bypassed by any marketplace.
+by the protocol on every action of the bound class, with no marketplace able to route
+around it. Bind `all` when the rule must also cover sales: a `transfer` binding gates
+`SEND`s only, while `ORDER` / `SWAP` / `DISPENSER` creates route to the `trade` class.
 
 ```javascript
 // guard contract: the indexer calls guard(...) before a guarded action settles
@@ -149,7 +151,9 @@ module.exports = {
         // (optional) return a royalty split via payoutLegs from ORDER_CREATE / SWAP_CREATE
     }
 };
-// bound with ISSUE v6: CONTROLLER = <guard contract index>, ACTION_CLASS = 'transfer' (or 'all')
+// bound with ISSUE v6: CONTROLLER = <guard contract index>, ACTION_CLASS = 'all'
+// ('transfer' gates SENDs only; listings route to the 'trade' class, so a royalty or
+//  compliance rule that must cover sales needs 'all', or 'trade' bound alongside 'transfer')
 ```
 
 ## Worked example 2: Ownable counter, side by side

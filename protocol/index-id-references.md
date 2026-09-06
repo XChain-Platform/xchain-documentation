@@ -58,12 +58,20 @@ fields of an action:
 reference before its address format check.
 
 Two id-receiving fields are NOT resolved on input. A `^<id>` written there is judged by
-the plain address format check, so the action is rejected on chain with the fee spent:
+the plain address format check, which it always fails, and the transaction fee is spent
+either way. What the failure costs differs, because each field is scored at its own
+granularity, not at the action's:
 
-- `SEND.DESTINATION`: rejected as `invalid: DESTINATION (format)`. Write every `SEND`
-  destination in full, whether the send has one recipient or many.
-- `LIST.ITEM` when the list `TYPE` is address: rejected as `invalid: ADDRESS (format)`.
-  Write every address list item in full.
+- `SEND.DESTINATION`: the **leg** carrying the reference is recorded
+  `invalid: DESTINATION (format)` and moves nothing. Each leg of a multi-recipient
+  `SEND` is validated on its own, so the remaining legs still settle; a single-recipient
+  `SEND` has one leg, so there the whole send fails. Write every `SEND` destination in
+  full, whether the send has one recipient or many.
+- `LIST.ITEM` when the list `TYPE` is address: the **item** is recorded
+  `invalid: ADDRESS (format)` and left out of the materialized item set, while the `LIST`
+  action itself stays `valid` and publishes the rest. So a roster or allow-list that
+  carries a reference silently ships short rather than failing loudly. Write every
+  address list item in full.
 
 Two resolved-on-input fields must still be written in full by clients:
 `DISPENSER.GET_ADDRESS` and `DISPENSER.ORACLE_ADDRESS`. The indexer resolves a `^<id>` in
