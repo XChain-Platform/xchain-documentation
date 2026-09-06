@@ -87,6 +87,7 @@ The SDK reads these environment variables at construction time. A `.env` file in
 | `EXPLORER_PORT` | Port of the xchain-explorer server. | Explorer client |
 | `ENCODER_URL` | Hostname or IP of the xchain-encoder server. | Encoder client |
 | `ENCODER_PORT` | Port of the xchain-encoder server. | Encoder client |
+| `ENCODER_API_KEY` | API key sent as a header to the xchain-encoder service; also usable as the `encoderApiKey` client option. With no pinned `encoderUrl`, a hub overlay can repoint the client, and the key then goes to whatever encoder host the hub named. Treat as a credential. | Encoder client |
 | `HUB_API_HOST` | Hostname or IP of the xchain-hub server. | Hub connector |
 | `HUB_PORT` | Port of the xchain-hub server. | Hub connector |
 | `HUB_URL` | Full hub base URL used by the interactive REPL (`npm run repl`), as an alternative to `HUB_API_HOST` + `HUB_PORT`. | REPL |

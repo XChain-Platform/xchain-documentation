@@ -314,6 +314,8 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_MAX_BATCH` | No | `1000` | Maximum `cross_chain_matches` rows drained into one publish cycle. |
 | `ANCHOR_CHUNK_MAX_BYTES` | No | `6000` | Maximum payload bytes per ANCHOR archive chunk. |
 | `ANCHOR_ROUND_TIMEOUT_MS` | No | `120000` | Timeout for one ANCHOR signing round. |
+| `ANCHOR_RATELIMIT_MAX_WAIT_MS` | No | `60000` | Caps a single honoured `Retry-After` wait when the encoder rate-limits an anchor chunk upload. |
+| `ANCHOR_RATELIMIT_MAX_WAITS` | No | `3` | Caps how many rate-limit waits one broadcast may take before the anchor defers to a later flush instead of stalling the current one. |
 | `ANCHOR_AMBIGUOUS_POLL_ATTEMPTS` | No | `3` | Re-polls before an ambiguous publish result (broadcast may or may not have landed) is resolved. |
 | `ANCHOR_AMBIGUOUS_POLL_MS` | No | `5000` | Delay between those re-polls. |
 | `ANCHOR_ANNOUNCE_RETRY_MS` | No | `300000` | Delay between retries of the anchor announcement (5 minutes). |
@@ -525,6 +527,7 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | `LLM_MAX_BUDGET_USD` | No | _(built-in cap)_ | Spend ceiling in USD for LLM attestation calls. A kill-switch against runaway cost. |
 | `CLAUDE_BIN` | No | `claude` | Path to the Claude CLI binary the provider spawns. Override when it is not on `PATH`. |
 | `LLM_SPEND_LOG_PATH` | No | `./data/llm-spend.jsonl` | File the provider appends each spend record to, written before the call so the audit trail cannot be lost to a crash mid-request. |
+| `LLM_SPEND_LOG_FALLBACK_PATH` | No | `llm-spend.jsonl` inside the OS temp directory | Where a per-dispatch LLM spend audit line is written when the primary sink (`LLM_SPEND_LOG_PATH`) cannot be written. The aggregate spend-state file cannot stand in for it: that file carries a rolling window of costs and no per-dispatch identity, so an operator reconciling a vendor invoice against it cannot tell which call was which. |
 
 > **Cost note.** Each on-chain checkpoint anchor spends real DOGE on three transactions (BTC + LTC + DOGE checkpoints all broadcast on the DOGE chain). State recovery (`recovery.js`) only needs the **latest** anchored checkpoint per chain, so anchoring every intermediate `checkpoint_seq` is optional. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`), `ANCHOR_CHECKPOINT_EVERY_N=2` halves anchor spend (on-chain recovery point then trails the tip by up to ~2 checkpoint intervals). `checkpoint_seq` is consensus data, so the gate is deterministic across every hub.
 
