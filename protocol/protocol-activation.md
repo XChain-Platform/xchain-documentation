@@ -139,9 +139,9 @@ attestation-admission gate in the cohort table above), `ROLLCALL_ACTIVATION` (ke
 `EPOCH_HEIGHT` a ROLLCALL carries), `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` and
 `ATTEST_RESPONSE_MIRROR_ACTIVATION` each hold `null` on mainnet, which is the
 encoding of "never" and the fail-closed default until an operator ratifies a height. They are not
-counted above and carry no flag day yet. `ATTEST_RESPONSE_MIRROR_ACTIVATION` is the one of them that
-is unarmed on **testnet** too, so only regtest exercises the hub response-mirror path today; the
-testnet exceptions listed below are exceptions among the *armed* cohort rules and do not cover it.
+counted above and carry no mainnet flag day yet. `ATTEST_RESPONSE_MIRROR_ACTIVATION` was the one of
+them unarmed on **testnet** as well; it was ratified there at block 151324 in the v0.15.0 train, so
+testnet exercises the hub response-mirror path alongside regtest from that height on.
 The enumeration is the **height-keyed validator-era** maps
 specifically: the block-time [decoder-carried gates](#decoder-carried-gates) also read `null` as
 disarmed, and `PRICE_PAIR_WIDEN_ACTIVATION` encodes the same "not yet" as a far-future sentinel
