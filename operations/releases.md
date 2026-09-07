@@ -9,6 +9,52 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.15.2
+
+Released 2026-09-07. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.2)
+
+A patch train. `xchain-node`, `xchain-hub`, `xchain-explorer` and `xchain-sync` move to
+0.15.2; `xchain-sdk` stays at 0.15.1 and the other eight components keep the tags
+they shipped under in v0.15.0.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.15.2 |
+| xchain-hub | 0.15.2 |
+| xchain-explorer | 0.15.2 |
+| xchain-sync | 0.15.2 |
+| xchain-sdk | 0.15.1 |
+| xchain-indexer | 0.15.0 |
+| xchain-decoder | 0.15.0 |
+| xchain-encoder | 0.15.0 |
+| xchain-utxo-tracker | 0.15.0 |
+| xchain-vm | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-e2e-test | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+The hub that publishes each hour of finalized attestation responses as one
+signed batch on Dogecoin sized its signer set at a BTC height it read only from
+the chain-tip row a Bitcoin indexer pushes to it, so a validator with no indexer
+pushing to it deferred every window and refused every co-signature, and a
+federation sharing one Bitcoin indexer could never reach the batch quorum. The
+batch publisher now anchors on the pushed chain tip where one exists and on the
+tip the attestation round already observes on every request poll otherwise; a
+follower bounds a proposed anchor against whichever it holds, and the hub
+reports which source its last anchor came from.
+
+The explorer custom-content frame on a token page reported a height that could
+never be below its own viewport and the page applied it plus a margin, so the
+two echoed each other for as long as the page stayed open. The report is now
+applied exactly, an echo is ignored, the frame has a ceiling and a per-load
+resize cap, and `media-src` is declared so external video and audio load.
+
+A sync replica asked the origin only for lookup rows above the highest id it
+already held, so a row missing below that mark was never fetched again, and the
+completeness sweep raw-counted an append-only log whose ids both sides assign
+independently. A lookup table the sweep finds short is now re-paged from zero,
+and the log is left out of the comparison while every index table stays strict.
+
 ## v0.15.1
 
 Released 2026-09-07. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.1)
