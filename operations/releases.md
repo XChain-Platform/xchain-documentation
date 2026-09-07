@@ -9,6 +9,51 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.15.1
+
+Released 2026-09-07. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.1)
+
+A patch train. `xchain-node`, `xchain-explorer` and `xchain-sdk` move to 0.15.1;
+the other ten components keep the tags they shipped under in v0.15.0.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.15.1 |
+| xchain-explorer | 0.15.1 |
+| xchain-sdk | 0.15.1 |
+| xchain-hub | 0.15.0 |
+| xchain-indexer | 0.15.0 |
+| xchain-decoder | 0.15.0 |
+| xchain-encoder | 0.15.0 |
+| xchain-sync | 0.15.0 |
+| xchain-utxo-tracker | 0.15.0 |
+| xchain-vm | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-e2e-test | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+An explorer whose indexed tip had aged past its freshness threshold refused
+every data route for that chain, dropped the chain from the status endpoint's
+available set, and answered an error frame on the WebSocket replay and snapshot
+paths. An indexer running behind a healthy chain therefore made the whole
+network look down: pages went blank and wallets lost the chain, while the
+history sat readable in a database that was working.
+
+A chain that is behind is now served and said to be behind. Every data response
+carries freshness headers, and a stale one carries a freshness object in its
+body; the status endpoint keeps the chain listed and reports the verdict beside
+the last indexed block, its age and why indexing trails; the WebSocket frames
+carry a stale marker; and the pages render their tables under a banner naming
+the last confirmed block, how old it is, and whether indexing is catching up,
+waiting on a block dated ahead of the server's clock, or paused for repair.
+`EXPLORER_STALE_FAIL_CLOSED=1` restores the previous refusal for an operator who
+prefers it.
+
+The SDK reads the same marker: `sdk.freshness()` reports it, `sdk.assertFresh()`
+raises on a stale tip, and `submitAction({ strictFreshness: true })` refuses
+before anything is signed. Reads never refuse, so a wallet keeps working through
+an indexer stall and shows the delay instead of an outage.
+
 ## v0.15.0
 
 Released 2026-09-07. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.0)
