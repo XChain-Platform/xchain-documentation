@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The zero-confirmation attestation flip (serve at the tip, the stage-2 widening ladder with headroom, applier fall-through, signer-based fee split) and its activation height, with conformance vectors for the widened set.
 - ROLLCALL v1 with the gates list, its canonical, the gates activation height, the `rollcall_gates` table and the rules-aware attestation capability set, with the v1 canonical and wire vectors.
 
+### Fixed
+- The e2e component's published action-test-file count tracks the tree at 80.
+
 ## [0.15.0] - 2026-09-07
 
 ### Added
