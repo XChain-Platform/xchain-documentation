@@ -61,7 +61,7 @@ Yes. You can publish a file (or a whole pack of files) to the blockchain encrypt
 
 ### Can I sell my token's issuer rights?
 
-Yes. A token has two separate things attached to it: the *balances* (who holds how many tokens) and the *ownership* (who can update the token's settings, mint new supply, change the description, etc.). You can sell ownership on its own (keeping or distributing the balances any way you like) using a standard order, swap, or dispenser with the "give ownership" flag set. The transfer is atomic with the trade: the seller receives the payment and the buyer receives the issuer role in a single blockchain transaction, with no off-chain trust between them.
+Yes. A token has two separate things attached to it: the *balances* (who holds how many tokens) and the *ownership* (who can update the token's settings, mint new supply, change the description, etc.). You can sell ownership on its own (keeping or distributing the balances any way you like) using a standard order, swap, or dispenser with the "give ownership" flag set. On a sale that settles on one chain, the transfer is atomic with the trade: the seller receives the payment and the buyer receives the issuer role in a single blockchain transaction, with no off-chain trust between them. A swap across two chains cannot work that way, because no single transaction exists on both chains; each chain hands over its own side once it sees the signed match, so the same residual risk applies as to any cross-chain trade. See the [Cross-Chain guide](./cross-chain.md#residual-risk).
 
 ### What are sub-tokens?
 
@@ -93,7 +93,7 @@ Yes. When you place a sell order or set up a swap, your tokens are moved into pr
 
 ### Can I cancel an order once it is placed?
 
-Yes. You can cancel any of your open orders at any time before they are filled. When you cancel, your escrowed tokens are immediately returned to your available balance. You do not need anyone's permission to cancel your own order.
+Yes. You can cancel any of your open orders at any time before they are filled, and you do not need anyone's permission to cancel your own order. Cancelling stops further matching straight away, and your escrowed tokens go back to your available balance in the same transaction, unless a buyer who matched you still owes a coin payment on it: that escrow is released when the payment settles or its deadline passes. See [Cancelling an Order](./trading.md#cancelling-an-order).
 
 ---
 

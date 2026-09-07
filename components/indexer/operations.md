@@ -205,6 +205,8 @@ Full native-coin fee schedule plus current oracle prices. Called internally by t
 
 **Response:** Fee schedule map (action → `{ base_sats, per_byte_sats }`) and current coin/XCHAIN oracle prices used for USD-pegged fee calculation.
 
+The response also carries `priceSource`: `{ hubDb, database }`, saying which database those prices were read from. `hubDb` is `true` when `HUB_DB_HOST` and `HUB_DB_NAME` are both set and the indexer therefore routes price lookups through its hub connection, `false` when it reads its own database. `database` names that database on testnet and regtest and is `null` on mainnet. Anything that writes prices for a node to read (test fixtures, a seeding tool) should follow this field rather than infer the answer from its own environment: the setting lives on the indexer alone, and writing to the other database fails every priced action with `no current oracle price` while both databases look healthy.
+
 ---
 
 ### `getactionconfirmations`

@@ -17,6 +17,12 @@ XChain Platform is dual-licensed:
 - **A commercial license** from Dankest, LLC, for use without the AGPL's
   source-disclosure requirements.
 
+One first-party component is carved out of that dual license: the
+`xchain-contracts` template library is licensed under the **MIT License**,
+because it exists to be copied into user contracts. Its terms are in that
+repository's own `LICENSE` file and are not affected by the AGPL's
+source-disclosure requirements.
+
 For commercial licensing, contact **legal@dankest.llc**.
 
 ## Attribution
@@ -30,7 +36,7 @@ attribution, per the AGPL and the project's trademark policy:
 
 "XChain" and the XChain logo are trademarks of Dankest, LLC. The software
 license does not grant any rights to these marks. See the Trademark Policy:
-<https://docs.xchain.io/legal/TRADEMARK.html>
+<https://docs.xchain.io/legal/trademark>
 
 ## Third-Party Components
 

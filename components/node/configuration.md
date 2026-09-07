@@ -119,6 +119,9 @@ These variables are read by xchain-node itself at startup. They control runtime 
 | `XCHAIN_NODE_TELEMETRY_URL` | Override the telemetry collector endpoint (default: `https://hub.xchain.io/telemetry`). Useful for self-hosted collectors or test environments. |
 | `HUB_API_KEY` | API key xchain-node sends as `x-api-key` when talking to the hub, and forwards into the generated service `.env` files. Required whenever the hub runs keyed. Treat as a credential. |
 | `FEE_DESTINATION` | Native-coin fee destination forwarded into the generated service `.env` files. **Honoured on testnet and regtest only**, and only when the more specific `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` is unset; on mainnet the bundled coin registry always wins, because fee acceptance is consensus and must not depend on an operator's environment. |
+| `HUB_SYNC_PRICE_GRACE_S` | Seconds of grace the indexer allows on the hub mirror's `price_snapshots` watermark before its barrier holds a block. Forwarded into the indexer's generated `.env`. On regtest xchain-node defaults it to `0`, because a single-operator venue has no second writer to wait for; a value set in the host environment always wins. |
+| `HUB_SYNC_ORACLE_GRACE_S` | The same grace for the `oracle_prices` stream. Same regtest default of `0` and the same precedence. |
+| `HUB_SYNC_ATTEST_RESPONSE_GRACE_S` | The same grace for the `attestation_responses` stream, which gates the attestation response mirror's barrier. Same regtest default of `0` and the same precedence. |
 
 ### Telemetry collector
 
@@ -156,7 +159,7 @@ These configure a hub acting as the telemetry **collector**, and are forwarded i
 | `XCHAIN_NODE_DOGE_WIF` | **Credential.** Private key for the DOGE publisher wallet, read by `validator init --import-doge-key`, with the same prompt fallback and the same reason. |
 | `XCHAIN_NODE_AUTOHEAL_STATE_DIR` | Directory holding autoheal state. Defaults to the same per-user directory as `credentials.json`. Test and ops override. |
 | `GITHUB_TOKEN` / `GH_TOKEN` | Personal access token for GitHub downloads. Raises the anonymous API rate limit and is required to reach private module repositories. `GITHUB_TOKEN` is checked first. Treat as a credential: supply it from the environment, never a checked-in file. |
-| `BTC_INDEXER_API_URL` | BTC indexer JSON-RPC URL used as the block-height anchor for the validator-mode price oracle (`hub.getlatestblock`). Read from the host environment so a hub that is **not** co-located with a BTC indexer (the master hub box, where the BTC stack lives elsewhere) can point at a reachable one. Empty by default, in which case the hub falls back to its local resolution. |
+| `BTC_INDEXER_API_URL` | BTC indexer JSON-RPC URL used as the block-height anchor for the validator-mode price oracle (`hub.getlatestblock`). Read from the host environment so a hub that is **not** co-located with a BTC indexer can point at a reachable one. Empty by default, in which case the hub falls back to its local resolution. |
 
 The four below are read by the **DOGE signer** the hub mounts read-only, not by
 `xchain-node` itself. They live in that signer directory's own `.env`, which is
@@ -181,6 +184,8 @@ signer as fatal.
 | `XCHAIN_NODE_FORCE_BOOTSTRAP` | Set to `1` to restore a published bootstrap even when the service's data directory is already populated. Normally a populated service is left alone, because the restore wipes that directory. Use this when a restore failed on the install that would have taken it: the service then starts syncing from scratch, which makes it look populated to every later run, so the one chance at a bootstrap is otherwise spent on the attempt that failed. The end-of-install summary names this flag whenever a restore did not happen. |
 | `XCHAIN_NODE_BOOTSTRAP_MAX_LAG_BLOCKS` | Maximum blocks a bootstrap source may trail the chain tip and still be accepted (default `100`). |
 | `XCHAIN_NODE_BOOTSTRAP_SKIP_HEALTH_GATE` | Set to `1`/`true`/`yes` to skip the bootstrap source health gate entirely. The gate exists to stop a stale or unhealthy source becoming a published archive; skip it only deliberately. |
+| `XCHAIN_NODE_ENCODER_MAINTENANCE_FILE` | Path, inside the coin's encoder container, that `BootstrapService` writes a JSON sentinel into (via `docker exec`, no bind mount or container recreate needed) around the UTXO tracker stop/restart a bootstrap publish performs, and removes again once the publish ends. Default `/tmp/xchain-encoder-maintenance.json`. Declares the resulting encoder outage as planned maintenance rather than a fault, so the public status board shows "Maintenance" instead of "Degraded" for the run. Must be set to the same value as the encoder's own `ENCODER_MAINTENANCE_FILE`, since that is the path the encoder reads back. |
+| `XCHAIN_NODE_REINDEX_LEDGER_DIR` | Test/ops override for the directory holding the bootstrap-reindex ledger (`bootstrap-reindex.json`). Default matches `CredentialsService`'s per-user directory, `~/.xchain-node`. `reset` records, per `(module, coin, network)` combo, when it last wiped and rebuilt that combo's data; `bootstrap create`'s scheduler compares that timestamp against the combo's last successful publish and pulls the combo into its plan as due whenever the reindex is newer, even when the normal schedule or tracker opt-in would otherwise have skipped it. Kept outside `XCHAIN_NODE_DATA_DIR` on purpose: a marker stored under the data dir would be erased by the very reset it exists to record, and would not be on the path a publisher staging bootstraps to a different data dir would read. |
 
 ### Go-live gate
 
@@ -194,6 +199,17 @@ signer as fatal.
 | `EXPLORER_CHECKPOINT_SELF_SYNC` | _(unset)_ | Opt in to a self-synced checkpoint mirror for the explorer. When set, the generated explorer config gains a `checkpoint` database descriptor whose host, port, user and password are taken from the indexer's own, plus a `<INDEXER_DB_NAME>_HubMirror` schema the explorer provisions and keeps current from the hub. Leave unset where `database.checkpoint` is pointed at a real hub schema by hand |
 | `HUB_API_URL` | derived from the hub container name and port | Base REST URL the explorer's mirror writer uses to pull hub-mirrored tables. Distinct from `HUB_API_HOST`/`HUB_PORT`, which feed the ordinary config poll rather than the mirror. Emitted only when `EXPLORER_CHECKPOINT_SELF_SYNC` is set |
 | `EXPLORER_VM_QUERY_ENABLED` | _(unset)_ | Passed through verbatim to the explorer to enable contract read-method simulation. The reader tests for the exact string `true`, so the value is not coerced |
+| `EXPLORER_RATE_LIMIT_RPM` | _(unset; explorer defaults to `1080`)_ | Passed through to the explorer: requests per minute per IP across its whole API. A private venue reached through one tunnel or proxy is a SINGLE IP to this limiter, so every browser and every automated run on that host shares one budget; a browser-driven test suite alone sustains several hundred a minute. Left unset, the explorer's public-facing default applies. |
+| `EXPLORER_FEE_QUOTE_RATE_LIMIT_RPM` | _(unset; explorer defaults to `120`)_ | Passed through to the explorer: the tighter limit on `/{COIN}/api/feequote`, `/oraclefeequote` and `/feeschedule`. Raise it alongside the one above on a venue whose only client is a test suite composing fee-bearing actions back to back. |
+| `EXPLORER_PREFLIGHT_POST_RATE_LIMIT_RPM` | _(unset; explorer defaults to `60`)_ | Passed through to the explorer: the limit on `POST /{COIN}/api/preflight`, the one unauthenticated route that accepts a large body. |
+| `EXPLORER_TIP_MAX_AGE_S` | _(unset; explorer defaults to `21600`)_ | Passed through to the explorer: the age in seconds past which a coin's newest indexed block counts as stale, after which the explorer refuses reads for that coin with `503 COIN_DATA_STALE` and drops it from `/{COIN}/api/status`'s `available` map. `0` disables the gate. **A regtest chain advances only when someone mines it**, so an idle one crosses the six-hour default while its lag is zero; set this to `0` on a venue that serves nothing but regtest coins. The explorer's own per-coin `EXPLORER_TIP_MAX_AGE_S_<COIN>` form is not carried through here - set it on the explorer directly if you need to exempt one chain rather than all of them. |
+| `ENCODER_TRUST_PROXY` | _(unset; encoder defaults to `loopback, uniquelocal`)_ | Passed through to the encoder: the fronting proxy's address as the encoder sees it, e.g. the services host's egress address, so it recovers the real client IP from `X-Forwarded-For` instead of keying its per-IP limiter on the proxy's own address for every visitor. Accepts the Express `trust proxy` forms: `false`, a hop count, or an address/CIDR list. |
+| `ENCODER_RATE_LIMIT_RPM` | _(unset; encoder defaults to `60`)_ | Passed through to the encoder: requests per minute per IP. A host value wins over the regtest-only `99999` this project sets by default, so an operator override still survives an `update`/`recreate` on a regtest venue. |
+| `EXPLORER_CHECKPOINT_LIST_RATE_LIMIT_RPM` | _(unset; explorer defaults to `120`)_ | Passed through to the explorer: the limit on the checkpoint-list route. |
+| `EXPLORER_CHECKPOINT_VERIFY_RATE_LIMIT_RPM` | _(unset; explorer defaults to `90`)_ | Passed through to the explorer: the limit on the checkpoint-verify route. |
+| `EXPLORER_ACTION_PROOF_RATE_LIMIT_RPM` | _(unset; explorer defaults to `90`)_ | Passed through to the explorer: the limit on the action-proof route. |
+| `EXPLORER_VALIDATOR_SET_PROOF_RATE_LIMIT_RPM` | _(unset; explorer defaults to `30`)_ | Passed through to the explorer: the limit on the validator-set-proof route. |
+| `EXPLORER_VM_QUERY_RATE_LIMIT_RPM` | _(unset; explorer defaults to `20`)_ | Passed through to the explorer: the limit on the VM-query route (`contract.html` read simulation). |
 
 > **Note on `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD`:** this is a credential value. Pass it via your deployment environment or secrets manager; do not store it in config files checked into version control.
 
@@ -224,9 +240,9 @@ These env vars override where xchain-node stores its filesystem state on the hos
 >
 > `XCHAIN_NODE_BLOCKS_DIR` avoids this trap entirely: xchain-node starts the daemon with `-blocksdir=/blocks`, which the daemon honours on every network, so all per-network subdirectories land inside the mounted path (`/blocks/testnet3/blocks/`, `/blocks/regtest/blocks/`, …). A single host bind therefore covers mainnet, testnet, and regtest uniformly. See [Disk Management](../../operations/disk-management.md) for the full disk-offload guide.
 
-### Recommended setup for OVH RISE-3 chain-node boxes
+### Recommended setup for a chain-node host with a small root volume
 
-On the RISE-3 archetype (small `/` partition, large `/misc` SATA mirror), set these before installing:
+On a host with a small `/` partition and a large secondary volume (mounted at `/misc` in this example), set these before installing:
 
 ```bash
 export XCHAIN_NODE_DATA_DIR=/misc/xchain-node-data

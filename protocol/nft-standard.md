@@ -226,7 +226,7 @@ answerable from chain state:
 
 ## Distribution and trading
 
-All existing rails apply to NFT-pattern tokens with no special cases:
+All existing rails apply to NFT-pattern tokens, with one exception noted under Trading below:
 
 - **Drops:** `MINT` fair-mint windows (`MAX_MINT`, `MINT_ADDRESS_MAX`,
   `MINT_START_BLOCK`/`MINT_STOP_BLOCK`), [`AIRDROP`](./actions/airdrop.md) to holder
@@ -235,7 +235,12 @@ All existing rails apply to NFT-pattern tokens with no special cases:
 - **Trading:** [`ORDER`](./actions/order.md) (token/token or token/native-coin pairs,
   including cross-chain orders settled by the validator federation) and
   [`SWAP`](./actions/swap.md). Indivisibility is enforced throughout; a fractional
-  amount of a 0-decimals token is invalid in every path.
+  amount of a 0-decimals token is invalid in every path. The one exception to
+  "no special cases": below the `CROSS_CHAIN_ROYALTY` flag-day a **cross-chain**
+  ORDER or SWAP whose controller guard returns `payoutLegs` is denied at create
+  (`royalty not enforceable cross-chain`), because the proceeds settle on a chain
+  that never runs the guard. Same-chain listings and unbound tokens are unaffected.
+  See [Cross-chain sales](./controller-bound-tokens.md#cross-chain-sales-cross_chain_royalty).
 - **Issuer-rights sales:** `GIVE_OWNERSHIP`/`GET_OWNERSHIP` on ORDER/SWAP/DISPENSER
   sell the token's *ownership record* (the right to link files, edit unlocked fields,
   issue children under a parent), distinct from holding its supply. Ownership trades
@@ -253,9 +258,28 @@ a token binds a controller contract (via `ISSUE` v6) whose `guard` the indexer r
 the token is listed for sale. The guard returns a basis-point split (`payoutLegs`) that
 the indexer records on the order and applies to the seller's proceeds at each DEX match;
 the creator's cut plus the seller's remainder, conserved exactly. Because the indexer is
-the only settlement path and the same controller can also gate plain `SEND`s, the rule
-**cannot be routed around**: yet it needs no custody: the token stays natively held and
-natively tradeable. The binding is opt-in per token, not imposed platform-wide.
+the only settlement path, **no marketplace or side venue can route around a bound guard**:
+it runs on every action of the class it is bound to, and it needs no custody, so the token
+stays natively held and natively tradeable. The binding is opt-in per token, not imposed
+platform-wide. Two limits keep that from being an absolute: a binding covers only the
+classes it is bound to, so gating listings *and* plain `SEND`s means binding `all`, or
+binding `trade` alongside `transfer`; and a controller's own guard emissions are exempt from
+its own guard, keyed on controller identity rather than token identity (see
+[Reentrancy and determinism](./controller-bound-tokens.md#reentrancy-and-determinism)).
+
+**The split itself covers `ORDER` and `SWAP` sales only.** A `DISPENSER` sale runs the guard
+at create as a *veto* and takes no cut: legs returned there are discarded, and no split is
+applied at dispense (see
+[Proceeds split](./controller-bound-tokens.md#proceeds-split-royalty-fee-payout_legs)). So a
+royalty guard that only *returns legs* is routed around by vending through a dispenser;
+enforcing the cut means also denying the dispenser listing from inside the guard.
+
+**Cross-chain listings are denied while the split cannot be enforced.** Below the
+`CROSS_CHAIN_ROYALTY` flag-day, an ORDER or SWAP listing on a cross-chain pair whose guard
+returns legs is rejected at create rather than settled without the cut. At and above the
+flag-day the legs ride the validator-signed match and are applied on the proceeds chain,
+and every leg address must re-encode to `GET_COIN` at create. See
+[Cross-chain sales](./controller-bound-tokens.md#cross-chain-sales-cross_chain_royalty).
 
 Creators who prefer a custody model can instead implement royalties in an ordinary
 **marketplace contract** that takes custody via [`DEPOSIT`](./actions/deposit.md)/[`WITHDRAW`](./actions/withdraw.md)

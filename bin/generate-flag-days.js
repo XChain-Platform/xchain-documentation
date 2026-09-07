@@ -324,15 +324,16 @@ function collectSiblingGates(indexerSrc, add) {
  * Refuses a registry that declares a gate in a style the two regexes above
  * cannot read.
  *
- * WHY THIS IS LOUD RATHER THAN LENIENT. An unrecognised declaration used to be
- * skipped in silence, and the generator then rewrote protocol/flag-days.md to
- * agree with the loss, so the page shipped one row short with the whole suite
+ * WHY THIS IS LOUD RATHER THAN LENIENT. An unrecognised declaration left
+ * unread would be skipped in silence, and the generator would then rewrite protocol/flag-days.md to
+ * agree with the loss, so the page would ship one row short with the whole suite
  * green: test/flag-day-literals.test.js can only anchor gate names that already
  * exist, which is no help for the gate somebody adds tomorrow.
  *
  * WHY THE CALL ARM IS VALUE-GATED. Most of the registry is not on this page at
  * all: roughly forty gates carry mainnet_time 0, several carry block heights,
- * and one parks the 9999999999 sentinel. Failing on unreadable SYNTAX alone
+ * and seven park the 9999999999 sentinel (see `collectMainnetUnarmed`, which
+ * names them on the page rather than dropping them). Failing on unreadable SYNTAX alone
  * therefore fires hardest on declarations that could never have contributed a
  * row, and the evidence that was meant to exclude that (regenerate today's
  * registry, see nothing throw) cannot see it: every call in today's registry is
@@ -340,15 +341,17 @@ function collectSiblingGates(indexerSrc, add) {
  * when its mainnet_time slot holds a literal inside the time-keyed window, which
  * is exactly the condition under which a row went missing.
  *
- * An identifier in that slot stays quiet on the same principle: no text scan can
- * tell `PRICE_PAIR_SENTINEL` from a live timestamp, and guessing is what turns a
- * build gate into noise. The constant arm needs no such test, because
+ * An identifier in that slot is resolved when it names one of the registry's own
+ * `const NAME_MAINNET_TIME = <digits>;` declarations (see `registryCalls`), and
+ * the GATE NAME the call registers is what reaches the page: the constant's
+ * prefix is not a gate key, and the two can differ (`CROSS_SETTLE_CAP_MAINNET_TIME`
+ * arms `CROSS_SETTLE_PER_BLOCK_CAP`). Any other identifier stays quiet: no text
+ * scan can tell `PRICE_PAIR_SENTINEL` from a live timestamp, and guessing is what
+ * turns a build gate into noise. The constant arm needs no such test, because
  * `NAME_MAINNET_TIME` says in its own name that it is a time.
  *
- * A call is also fine when its gate was collected some other way: the two cohort
- * constants are declared as `const NAME_MAINNET_TIME` and then passed to
- * `addChange` by identifier, so the call itself is unreadable and nothing is
- * lost by it.
+ * A call is also fine when its gate was collected some other way, which is how a
+ * constant no call consumes still reaches the page under its own prefix.
  */
 function assertEveryDeclarationParsed(rawRegistry, parsedCalls, parsedConstLines, parsedNames) {
     const unparsed = [];
@@ -378,6 +381,93 @@ function assertEveryDeclarationParsed(rawRegistry, parsedCalls, parsedConstLines
             + 'of those shapes or widen the parse in bin/generate-flag-days.js deliberately.',
         );
     }
+}
+
+/**
+ * The registry's `const NAME_MAINNET_TIME = <digits>;` and
+ * `const NAME_TESTNET_TIME = <digits>;` declarations as an identifier -> value
+ * map, read from the comment-stripped text.
+ */
+function registryConstants(scannable) {
+    const values = new Map();
+    for (const m of scannable.matchAll(/const\s+([A-Z][A-Z0-9_]*_(?:MAINNET|TESTNET)_TIME)\s*=\s*(\d+)\s*;/g)) {
+        values.set(m[1], Number(m[2]));
+    }
+    return values;
+}
+
+/**
+ * Every single-quoted `addChange('GATE', 'version', mainnet_time, testnet_time, ...)`
+ * call in the comment-stripped registry, as `{ index, gate, mainnet, testnet }`.
+ *
+ * A time slot holding a digit literal reads as that number. A slot holding an
+ * identifier reads as the value of the registry constant it names, so the GATE
+ * NAME the call registers is what the collectors publish; the constant's prefix
+ * is not a gate key `isEnabled` accepts, and the two differ for
+ * `CROSS_SETTLE_CAP_MAINNET_TIME` (arms `CROSS_SETTLE_PER_BLOCK_CAP`) and
+ * `BATCH_ROOT_SUB_INDEX_MAINNET_TIME` (arms `BATCH_SUBCOMMAND_ROOT_DISCRIMINATOR`).
+ * Any other identifier resolves to null and stays quiet. `consumed` names the
+ * constants some call resolved, so the constant pass in each collector leaves
+ * those to the call and publishes a prefix only for a constant no call reads.
+ *
+ * THE SLOT PATTERN READS THE WHOLE ARGUMENT, to its `,` or `)`, and never a
+ * leading run of it. Capturing `([A-Za-z0-9_]+)` asserted no terminator, so two
+ * shapes went wrong in the two directions this generator exists to prevent:
+ * `1_786_060_800` matched whole, failed the digits test, resolved to null, and
+ * the gate left the page in silence; `1786060800 + 86400` matched only its
+ * PREFIX and published an instant a day early. Neither reached
+ * `assertEveryDeclarationParsed`, because `collectGates` records the call in
+ * `parsedCalls` and its gate in `parsedNames` whether or not the slot resolved,
+ * and the check skips on exactly those two sets. Both were reproduced against
+ * fixtures before this was written; the live registry carries neither shape
+ * today, so this closes a latent hole rather than correcting a published row.
+ *
+ * REFUSAL LIVES HERE rather than in the completeness check, because
+ * `collectTestnetArms`, `collectTestnetUnarmed` and `collectMainnetUnarmed`
+ * read the same calls and have no completeness check behind them: a shape this
+ * parse cannot read has to be loud on every arm or it is loud on one.
+ */
+function registryCalls(scannable) {
+    const constants = registryConstants(scannable);
+    const consumed = new Set();
+    const slot = (arg, gate, index) => {
+        if (arg === undefined) return null;
+        const text = arg.trim();
+        if (text === '') return null;
+
+        // A decimal literal, separators and all. Written as the separator
+        // grammar rather than a `_`-strip so `_1786060800` stays an identifier:
+        // stripping first reads a leading-underscore NAME as a number.
+        if (/^\d(?:_?\d)*$/.test(text)) return Number(text.replace(/_/g, ''));
+
+        // An identifier: the registry constant's value when the const pass saw
+        // it, and otherwise quiet by design, because no text scan can tell a
+        // parked sentinel from a live timestamp behind a name.
+        if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(text)) {
+            if (constants.has(text)) { consumed.add(text); return constants.get(text); }
+            return null;
+        }
+
+        throw new Error(
+            `protocol_changes.js line ${lineAt(scannable, index)}: the ${gate} gate passes a time slot `
+            + `this generator cannot read (\`${text}\`), so protocol/flag-days.md would publish an `
+            + 'inventory that calls itself complete and is not.\n\n'
+            + 'A time slot reads as a decimal literal (`1786060800`, separators allowed) or as the name '
+            + 'of a `const NAME_MAINNET_TIME = <digits>;` the registry declares. Write the slot in one of '
+            + 'those shapes or widen the parse in bin/generate-flag-days.js deliberately.',
+        );
+    };
+    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*([^,)]+)(?:\s*,\s*([^,)]+))?/g;
+    const calls = [];
+    for (const m of scannable.matchAll(callRe)) {
+        calls.push({
+            index: m.index,
+            gate: m[1],
+            mainnet: slot(m[2], m[1], m.index),
+            testnet: slot(m[3], m[1], m.index),
+        });
+    }
+    return { calls, consumed };
 }
 
 /**
@@ -414,20 +504,24 @@ function collectGates(indexerSrc = INDEXER_SRC) {
     // text the check quotes in its error message.
     const scannable = withoutComments(registry);
 
-    // addChange('NAME', 'version', mainnet_time, ...)
-    const changeRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'([0-9.]+)'\s*,\s*(\d+)/g;
-    let match;
-    while ((match = changeRe.exec(scannable)) !== null) {
-        parsedCalls.add(match.index);
-        parsedNames.add(match[1]);
-        add(match[1], Number(match[3]), 'protocol_changes.js');
+    // addChange('NAME', 'version', mainnet_time, ...), the time slot a digit
+    // literal or a registry constant passed by name (see registryCalls).
+    const { calls, consumed } = registryCalls(scannable);
+    for (const call of calls) {
+        parsedCalls.add(call.index);
+        parsedNames.add(call.gate);
+        if (call.mainnet !== null) add(call.gate, call.mainnet, 'protocol_changes.js');
     }
 
     // const NAME_MAINNET_TIME = 1786060800;  (gates the registry declares as a
-    // shared constant because a second repo has to stay byte-identical to it)
+    // shared constant because a second repo has to stay byte-identical to it).
+    // A constant some call consumes is published under that call's gate name
+    // above; only a constant no call reads is published under its own prefix.
     const constRe = /const\s+([A-Z][A-Z0-9_]*)_MAINNET_TIME\s*=\s*(\d+)\s*;/g;
+    let match;
     while ((match = constRe.exec(scannable)) !== null) {
         parsedConstLines.add(lineAt(scannable, match.index));
+        if (consumed.has(match[1] + '_MAINNET_TIME')) continue;
         parsedNames.add(match[1]);
         add(match[1], Number(match[2]), 'protocol_changes.js');
     }
@@ -460,12 +554,80 @@ function collectTestnetArms(indexerSrc = INDEXER_SRC) {
         if (!Number.isFinite(time) || time < TIMESTAMP_FLOOR || time >= SENTINEL_FLOOR) return;
         if (!found.has(gate)) found.set(gate, { gate, time });
     };
+    const { calls, consumed } = registryCalls(scannable);
+    for (const call of calls) if (call.testnet !== null) add(call.gate, call.testnet);
     let match;
     const constRe = /const\s+([A-Z][A-Z0-9_]*)_TESTNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
-    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*[A-Za-z0-9_]+\s*,\s*([1-9]\d*)/g;
-    while ((match = callRe.exec(scannable)) !== null) add(match[1], Number(match[2]));
+    while ((match = constRe.exec(scannable)) !== null) {
+        if (!consumed.has(match[1] + '_TESTNET_TIME')) add(match[1], Number(match[2]));
+    }
     return [...found.values()].sort((a, b) => (a.time - b.time) || a.gate.localeCompare(b.gate));
+}
+
+/**
+ * TESTNET slots parked on an UNARMED sentinel (>= SENTINEL_FLOOR), as `{ gate, time }`
+ * sorted by name.
+ *
+ * These are the OTHER way the "testnet is genesis-active" invariant can be false, and
+ * they were impossible until the public testnet launch of 2026-09-01 made testnet a
+ * live ledger: a consensus change registered after it cannot arm testnet at genesis
+ * without re-deciding history that outside nodes have already committed, so it parks on
+ * the sentinel until an operator names an instant. Leaving them unmentioned would let
+ * the page assert that a testnet stack "has always run the post-activation behavior" for
+ * a rule testnet has never run at all. Read from the same two declaration shapes as the
+ * armed parse.
+ */
+function collectTestnetUnarmed(indexerSrc = INDEXER_SRC) {
+    const scannable = withoutComments(
+        fs.readFileSync(path.join(indexerSrc, 'protocol_changes.js'), 'utf8'),
+    );
+    const found = new Map();
+    const add = (gate, time) => {
+        if (!Number.isFinite(time) || time < SENTINEL_FLOOR) return;
+        if (!found.has(gate)) found.set(gate, { gate, time });
+    };
+    const { calls, consumed } = registryCalls(scannable);
+    for (const call of calls) if (call.testnet !== null) add(call.gate, call.testnet);
+    let match;
+    const constRe = /const\s+([A-Z][A-Z0-9_]*)_TESTNET_TIME\s*=\s*(\d+)\s*;/g;
+    while ((match = constRe.exec(scannable)) !== null) {
+        if (!consumed.has(match[1] + '_TESTNET_TIME')) add(match[1], Number(match[2]));
+    }
+    return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
+}
+
+/**
+ * MAINNET slots parked on an UNARMED sentinel (>= SENTINEL_FLOOR), as `{ gate, time }`
+ * sorted by name.
+ *
+ * `collectGates` drops these deliberately: publishing 9999999999 as a flag day would put
+ * a fake commitment on a page implementers plan fleet upgrades from. Dropping them with
+ * no trace is the other failure, and it is the one that shipped: a gate absent from the
+ * table reads as a gate that does not exist, so `sweep.md` could send a reader here "for
+ * where the gate stands on each network" and the page would not say. Naming them without
+ * an instant keeps both properties.
+ *
+ * Scoped to `protocol_changes.js`, exactly like the testnet twin above. A sibling
+ * `*_activation.js` module can also park a mainnet sentinel, and this scan does not reach
+ * it; the note it feeds says so rather than claiming a completeness it does not have.
+ */
+function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
+    const scannable = withoutComments(
+        fs.readFileSync(path.join(indexerSrc, 'protocol_changes.js'), 'utf8'),
+    );
+    const found = new Map();
+    const add = (gate, time) => {
+        if (!Number.isFinite(time) || time < SENTINEL_FLOOR) return;
+        if (!found.has(gate)) found.set(gate, { gate, time });
+    };
+    const { calls, consumed } = registryCalls(scannable);
+    for (const call of calls) if (call.mainnet !== null) add(call.gate, call.mainnet);
+    let match;
+    const constRe = /const\s+([A-Z][A-Z0-9_]*)_MAINNET_TIME\s*=\s*(\d+)\s*;/g;
+    while ((match = constRe.exec(scannable)) !== null) {
+        if (!consumed.has(match[1] + '_MAINNET_TIME')) add(match[1], Number(match[2]));
+    }
+    return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 
 /**
@@ -490,7 +652,7 @@ function coordinatedFlagDay(gates) {
     return { time: ranked[0][0], count: ranked[0][1] };
 }
 
-function render(gates, testnetArms = []) {
+function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = []) {
     const anchor = coordinatedFlagDay(gates);
     const others = gates.filter((g) => g.time !== anchor.time);
 
@@ -528,6 +690,35 @@ function render(gates, testnetArms = []) {
           + 'comment in \`protocol_changes.js\`. The values on this page are otherwise '
           + 'mainnet values only.';
 
+    // The other way a gate can be off the genesis-active invariant: parked on the UNARMED
+    // sentinel on testnet, so testnet has never run that rule and is waiting on an
+    // operator to name an instant. Prose for the same reason an arm is.
+    const unarmedNote = testnetUnarmed.length === 0
+        ? ''
+        : `\n\n**${testnetUnarmed.length === 1 ? 'One gate is UNARMED on testnet' : `${testnetUnarmed.length} gates are UNARMED on testnet`}** `
+          + `(${testnetUnarmed.map((g) => `\`${g.gate}\``).join(', ')}): testnet carries the `
+          + 'sentinel rather than `0`, so a testnet stack has **never** run the '
+          + 'post-activation behavior and will not until an operator arms it. A consensus '
+          + 'change registered after the public testnet launch cannot be genesis-active '
+          + 'there without re-deciding history that outside nodes have already committed. '
+          + 'Each names its reason in its registration comment in `protocol_changes.js`.';
+
+    // The symmetric mainnet note. Without it a sentinel-parked gate leaves no trace on the
+    // page at all, so the table below reads as the whole registry and the testnet sentence
+    // above reads as if mainnet were armed. Names, never instants: the sentinel is not a
+    // date anybody scheduled.
+    const mainnetUnarmedNote = mainnetUnarmed.length === 0
+        ? ''
+        : `\n\n**${mainnetUnarmed.length === 1 ? 'One gate is UNARMED on mainnet' : `${mainnetUnarmed.length} gates are UNARMED on mainnet`}** `
+          + `(${mainnetUnarmed.map((g) => `\`${g.gate}\``).join(', ')}): each parks the sentinel `
+          + 'rather than an instant, so mainnet has **never** run the post-activation behavior '
+          + 'and will not until an operator names a date. They carry no row in the table below, '
+          + 'because publishing the sentinel as a flag day would put a commitment on this page '
+          + 'that nobody made. Each names its reason in its registration comment in '
+          + '`protocol_changes.js`. This note covers the registry only; a sibling '
+          + '`*_activation.js` module can park a mainnet sentinel too, and those are not '
+          + 'enumerated here.';
+
     return `<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025-2026 Dankest, LLC -->
 <!-- GENERATED FILE. Do not edit: run \`node bin/generate-flag-days.js\`. -->
@@ -558,11 +749,11 @@ simultaneously on Bitcoin, Litecoin, and Dogecoin.
 | **UTC instant** | ${utcInstant(anchor.time)} |
 | **Gates riding it** | ${anchor.count} |
 
-${outliers}
+${outliers}${mainnetUnarmedNote}
 
 **Testnet and regtest are genesis-active** for the time-keyed gates: they carry
 threshold \`0\`, so a testnet or regtest stack has always run the
-post-activation behavior. ${testnetNote}
+post-activation behavior. ${testnetNote}${unarmedNote}
 
 ## Mainnet time-keyed gates
 
@@ -578,7 +769,8 @@ here; they are inventoried on
 }
 
 function generate(indexerSrc = INDEXER_SRC) {
-    return render(collectGates(indexerSrc), collectTestnetArms(indexerSrc));
+    return render(collectGates(indexerSrc), collectTestnetArms(indexerSrc),
+                  collectTestnetUnarmed(indexerSrc), collectMainnetUnarmed(indexerSrc));
 }
 
 if (require.main === module) {
@@ -598,6 +790,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-    collectGates, collectTestnetArms, coordinatedFlagDay, render, generate, utcInstant, utcDate,
+    collectGates, collectTestnetArms, collectTestnetUnarmed, collectMainnetUnarmed, coordinatedFlagDay, render, generate, utcInstant, utcDate,
     DOC_ROOT, INDEXER_SRC, REGISTRY, OUTPUT, TIMESTAMP_FLOOR, SENTINEL_FLOOR,
 };

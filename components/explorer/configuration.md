@@ -71,7 +71,12 @@ See [WEBSOCKET.md](websocket.md) for the full WebSocket API reference.
 | `HUB_RETRY_ATTEMPTS` | No | `4` | Attempts per hub config fetch, with exponential backoff. After a power cycle the hub and its MariaDB can take several seconds to come up; a single-pass fetch loses that race and leaves the explorer with no config. `ping()` opts out so liveness checks stay fast. |
 | `HUB_RETRY_DELAY_MS` | No | `2000` | Base backoff between hub config retry attempts. Tests set `0`. |
 | `HUB_DB_SYNC_POLL_INTERVAL` | No | `30000` | Interval in milliseconds between hub-mirror table sync polls. |
+| `HUB_DB_SYNC_HTTP_DEADLINE` | No | `120000` | Total wall-clock budget in milliseconds for one hub-mirror snapshot GET. The request's own `timeout` option is an idle-socket timer that resets on every byte received, so a hub drip-feeding a body would otherwise hold the request, and the whole mirror bootstrap, open indefinitely; this is set to four times that idle timer so a large snapshot page has room to stream and only a wedged request reaches the ceiling. |
 | `HUB_SYNC_WATERMARK_INTERVAL_MS` | No | `10000` | Interval in milliseconds at which the hub-mirror sync persists its progress watermark. |
+| `HUB_SYNC_BARRIER_HOLD_CEILING_S` | No | `900` (15 min) | Seconds a caller may hold at a mirror-completeness barrier before the mirror client is willing to force a resync of its own accord (`requestResync`): tearing down and reconnecting its hub-DB WebSocket, or re-kicking its bootstrap directly in poll mode. `0` disables the forced resync. The explorer's own mirror manager does not currently call `requestResync` anywhere, so setting this here has no observable effect in the explorer today; the mirror client (`hub_db_sync.js`) is a vendored twin of the indexer's, where the block loop does call it against a completeness barrier the explorer has no equivalent of. |
+| `HUB_SYNC_BATCH_APPLY` | No | `true` | Set to `false` to disable batched multi-row upserts when applying `price_snapshots` rows during a hub-mirror bootstrap drain, falling back to applying rows one at a time. Throughput only. |
+| `HUB_SYNC_BATCH_APPLY_ROWS` | No | `500` | Number of buffered `price_snapshots` rows a hub-mirror bootstrap drain collects before flushing them as one multi-row upsert statement. Values below `2` fall back to the default. |
+| `HUB_SYNC_BOOTSTRAP_PROGRESS_MS` | No | `15000` (15s) | Minimum interval between the "bootstrapping &lt;table&gt;: N row(s) fetched..." progress lines a hub-mirror table drain logs while its mirror is bootstrapping, so a cold start shows the drain moving rather than only its final result. `0` silences the periodic line entirely (the drain still logs when it starts and finishes). |
 | `MIRROR_DB_PASS` | No | None | Password for the hub-mirror schema migration tool, read only by `bin/migrate-hub-mirror.js` and never by the running explorer. Passed in the environment specifically so it stays off the command line: `MIRROR_DB_PASS=… node bin/migrate-hub-mirror.js --host … --user … --schema …`. Treat as a credential. |
 | `CONFIG_CACHE_FILE` | No | `<appdir>/tmp/config-cache.json` | Path to the on-disk last-known-good hub config cache. The explorer writes here after each successful hub fetch and reads it on startup when the hub is unreachable, so it comes up serving the last known coin set rather than zero coins. Override to a mounted volume path to survive container recreation. |
 | `NO_HUB` | No | None | Set to `1` (or `true`/`yes`) to enable standalone mode: the hub is not contacted and all coin/network + database config is read from `src/config.json` (or `NODE_CONFIG`). Use on single-server deployments where the hub publishes docker-internal DB hosts that are not reachable from the explorer process. |
@@ -323,19 +328,19 @@ The explorer uses `express-rate-limit` middleware:
 | Setting | Value |
 |---|---|
 | Window | 60 seconds |
-| Max requests per window | 500 (override via `EXPLORER_RATE_LIMIT_RPM`) |
+| Max requests per window | 1080 (override via `EXPLORER_RATE_LIMIT_RPM`) |
 | Scope | Per IP address |
 | Response on limit | HTTP 429 Too Many Requests |
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `EXPLORER_RATE_LIMIT_RPM` | No | `500` | Maximum requests per IP per 60-second window. Image requests (`.png`, `.jpg`, `.jpeg`, `.gif`, `.ico`, `.svg`, `.webp`), `/icon/` paths, and `/images` paths are excluded from the limit. |
-| `EXPLORER_ACTION_PROOF_RATE_LIMIT_RPM` | No | `60` | Separate, tighter limit for `/{COIN}/api/proof/action/{idx}` |
+| `EXPLORER_RATE_LIMIT_RPM` | No | `1080` | Maximum requests per IP per 60-second window, derived from the measured five-address wallet profile's worst minute with retries and 3x headroom. Image requests (`.png`, `.jpg`, `.jpeg`, `.gif`, `.ico`, `.svg`, `.webp`), `/icon/` paths, and `/images` paths are excluded from the limit. |
+| `EXPLORER_ACTION_PROOF_RATE_LIMIT_RPM` | No | `90` | Separate, tighter limit for `/{COIN}/api/proof/action/{idx}` and its balance, contract-state and locked-balance siblings, derived from the measured wallet profile's proof jobs with retries and 3x headroom. |
 | `EXPLORER_VALIDATOR_SET_PROOF_RATE_LIMIT_RPM` | No | `30` | Separate, tighter limit for `/BTC/api/proof/validator-set` |
 | `EXPLORER_PREFLIGHT_POST_RATE_LIMIT_RPM` | No | `60` | Separate limit for `POST /{COIN}/api/preflight`, the only unauthenticated route that accepts a large body. The limiter runs before the body parser, so a limited caller is refused without the server reading the payload. |
 | `EXPLORER_FEE_QUOTE_RATE_LIMIT_RPM` | No | `120` | Separate limit for the fee lookups `/{COIN}/api/feequote`, `/{COIN}/api/oraclefeequote` and `/{COIN}/api/feeschedule`. One tier looser than the proof routes because a quote is a lookup rather than a cryptographic recompute. |
 | `EXPLORER_CHECKPOINT_LIST_RATE_LIMIT_RPM` | No | `120` | Separate limit for `/{COIN}/api/checkpoints`, which lists stored checkpoints. |
-| `EXPLORER_CHECKPOINT_VERIFY_RATE_LIMIT_RPM` | No | `60` | Separate, tighter limit for `/{COIN}/api/checkpoint/{blockIndex}/verify`, which recomputes a checkpoint rather than reading one. |
+| `EXPLORER_CHECKPOINT_VERIFY_RATE_LIMIT_RPM` | No | `90` | Separate, tighter limit for `/{COIN}/api/checkpoint/{blockIndex}/verify`, which recomputes a checkpoint rather than reading one, derived from the measured wallet profile's one verify per proof job with retries and 3x headroom. |
 | `WS_TRUST_PROXY_HOPS` | No | `1` | Proxy hop count used to resolve the real client address for the WebSocket per-IP cap. The upgrade is handled on the raw HTTP server, where Express's `trust proxy` does not apply, so the hop count must be passed explicitly or the cap keys on a spoofable `X-Forwarded-For`. Keep it aligned with the HTTP side. |
 
 Rate limiting applies to all non-image endpoints (API, Explorer, and HTML).

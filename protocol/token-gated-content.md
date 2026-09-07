@@ -14,7 +14,7 @@ This is the platform's first cryptographically secure publishing capability. It 
 - **Publish a single encrypted file** that anyone running an XChain node can see on-chain but only token holders can decrypt and read.
 - **Publish a multi-file pack** that unlocks atomically, owning the token decrypts every file in the pack with a single key.
 - **Set a minimum holding** with `GATE_MIN_AMOUNT`, so content unlocks at a balance rather than at the first satoshi of the token. Holders below the threshold receive no key until a transfer takes them over it.
-- **Sell the token freely** on the built-in DEX. Whoever buys the token automatically receives the decryption key as part of the transfer transaction.
+- **Sell the token freely** on the built-in DEX. The automatic key handoff is enforced on the direct `SEND` path only: `send.js` requires a `MESSAGE` v2 to the recipient in the same transaction when the post-send balance reaches a pack's threshold. DEX settlement (ORDER match, SWAP, DISPENSE) and every other credit path (`AIRDROP`, `DIVIDEND`, ownership transfer) run no such check, so a buyer acquires the token there without the key and needs it delivered afterwards in a direct send.
 - **Walk away after publishing.** No server to keep running, no key escrow service to maintain. The encrypted content and the key handoff machinery live entirely on the blockchain.
 
 ---
@@ -32,7 +32,7 @@ The token issuer composes one or more on-chain transactions that publish the enc
 
 ### Single file
 
-1. Issuer generates a random 256-bit symmetric key `K` and computes `KEY_HASH = sha256(K)` (hex).
+1. Issuer generates a random 256-bit symmetric key `K` and computes `KEY_HASH = sha256(K)` (lowercase hex; see [`FILE`](./actions/file.md) for the case rule, which is tolerant on chain and canonicalized at record time).
 2. Issuer **compresses the plaintext, then encrypts it** with AES-256-GCM under `K`. Output ciphertext is `[12-byte nonce][16-byte GCM authentication tag][ciphertext]`. The order is not a preference: GCM ciphertext is incompressible, so encrypting first throws the saving away entirely. When the compressed form is kept, the `FILE` action's `COMPRESSION` field is set to `1` and means **inflate after decrypt** (see [Compression ordering](#compression-ordering) below).
 3. Issuer constructs `BATCH(FILE, MESSAGE-to-self)`:
    - `FILE|0|NAME|TYPE|TITLE|MEMO|GATE_TICKER|1|KEY_HASH|GATE_MIN_AMOUNT|COMPRESSION` (where `1` = AES-256-GCM in the `ENCRYPTION_METHOD` field) with the ciphertext as the action's `rawData` (transported via P2WSH per [Transaction Encoding](../concepts/encoding.md)). `GATE_MIN_AMOUNT` is optional and may be omitted entirely; the eight-field form is unchanged and still valid, so every historical `FILE` reads identically.
@@ -180,6 +180,7 @@ A JSON wrapper with `KEY_HASH`-keyed base64 entries costs ~154 plaintext bytes f
 These are the protocol-level rules the indexer enforces. See the individual action specs for the canonical statement.
 
 - **Gated `FILE` publishing.** When `GATE_TICKER` is non-empty, the SOURCE address must be the issuer of the gated token (i.e. the OWNER returned by the token's current `ISSUE`). Otherwise the FILE is rejected. This prevents third parties from gating arbitrary content to popular tickers as spam.
+- **Gated `FILE` while ownership is escrowed.** A gated `FILE` is also rejected while the gate token's ownership sits in escrow, which an issuer who has listed the token for sale will hit even though they are still the OWNER. `FILE` is one of the actions the escrow blocks; the full list is in [`ORDER`](./actions/order.md#token-ownership-sales), and [`FILE`](./actions/file.md) states it locally.
 - **`SEND` of a gated token.** Defined above. The indexer checks for a structurally valid sibling `MESSAGE`; it does not decrypt or validate the payload contents (it can't; the payload is encrypted to the recipient). The wallet at unlock time verifies key correctness via the `KEY_HASH` check.
 
 ---
@@ -188,7 +189,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 
 - **Album drops / track packs.** Issuer mints a token, publishes a multi-file pack of FLAC stems plus liner notes PDF. Buyers of the token unlock everything atomically the moment the transfer confirms.
 - **Sealed bundles.** A creator can guarantee that no one has seen any file in the pack (not even the indexer operators or block explorers) until a holder unlocks. Useful for time-locked reveals, lottery / raffle distributions, surprise drops.
-- **Paid downloads.** Issuer sells the token via DISPENSER or ORDER. Anyone who buys gets the decryption key in the same transaction. No payment gateway, no checkout server.
+- **Paid downloads.** Issuer sells the token via DISPENSER or ORDER. No payment gateway, no checkout server. Neither settlement path carries the key, so the seller follows the sale with a direct `SEND` that includes the key handoff, or sells by direct send in the first place.
 - **Holder-only resources.** Brand guidelines, board minutes, premium research: published once on-chain, accessible only to holders, durable as long as the chain exists.
 - **Whitepapers and supporting docs.** Sealed at issuance, opens to holders, persists forever.
 

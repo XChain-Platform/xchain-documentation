@@ -1551,10 +1551,20 @@ Re-verifies the checkpoint at `blockIndex` server-side and returns everything a 
 |---|---|
 | `checkpoint` | Raw checkpoint row (block_index, block_hash, ledger_hash, actions_hash, ...) |
 | `canonical` | Canonical signing payload (pipe-delimited string over checkpoint fields) |
-| `validators` | Array of validator pubkeys that signed this checkpoint |
-| `quorum` | Required signature count, the majority-floored PBFT threshold `max(2f+1, ceil((N+1)/2))` |
+| `validators` | The `oracle_publish` snapshot set at the checkpoint's `snapshot_block`, as `{ pubkey, weight, source }` objects (not a list of the pubkeys that signed). `weight` is the source's snapshot stake as a decimal string, or `null` when the mirror row carries no amount, which a re-deriving client must treat as fail-closed rather than as zero |
+| `is_weighted` | `true` when the checkpoint's `snapshot_block` is at or above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, so the stake-weighted quorum rule applies instead of the count rule |
+| `quorum` | The legacy count threshold `max(2f+1, ceil((N+1)/2))` over the snapshot set. It decides the verdict only while `is_weighted` is `false`; it is still reported when `is_weighted` is `true`, where it is informational |
 | `valid_sigs` | Count of signatures that verified successfully |
-| `verified` | `true` when `valid_sigs >= quorum` |
+| `verified` | The server's verdict. When `is_weighted` is `false`: `valid_sigs >= quorum`. When `is_weighted` is `true`: the SOURCE-DEDUPLICATED stake predicate over the valid signers, `3 x tally > 2 x S` (see [ANCHOR: Version 0/1](../../protocol/actions/anchor.md#version-0-1)). Either way it is also `false` when `commitment_missing` is `true` |
+| `commitment_missing` | `true` when a post-flag-day checkpoint row is missing a commitment field, so the verdict is STRUCTURAL rather than a signature shortfall |
+| `snapshot_available` | `false` when this explorer holds no `oracle_publish` snapshot for the checkpoint's `snapshot_block`. The signatures may still be valid; the client can verify them elsewhere |
+| `signatures_unparseable` | `true` when the stored `validator_signatures` blob could not be parsed |
+
+**A light client must not verify a checkpoint as `valid_sigs >= quorum`.** That is the
+pre-activation rule only. At or above `STAKE_WEIGHTED_QUORUM_ACTIVATION` a count-based
+verifier accepts signature sets that carry under two thirds of the stake, which the
+network rejects. Read `is_weighted` and apply the matching rule, using the `weight` and
+`source` fields on `validators`.
 
 Returns HTTP 404 with `{ "error": "No checkpoint at this height", "code": "CHECKPOINT_NOT_FOUND" }` when no checkpoint exists at the requested height.
 
@@ -1721,11 +1731,39 @@ GET /BTC/api/proof/validator-set?height={snapshotBlock}[&capabilities=oracle_pub
 
 ### Contract-State Proof
 
+Returns an SMT inclusion / non-inclusion proof for one contract key against the committed `contract_state_root` sub-root, plus the sub-root path that binds it into the checkpoint's `state_root`.
+
 ```
-GET /{COIN}/api/proof/contract-state/{contractIndex}/{key}
+GET /{COIN}/api/proof/contract-state/{contractIndex}/{key}[?height={H}]
 ```
 
-**Status: Not yet implemented.** The contract state root is committed as EMPTY in `state_root_version` 1 (spec D1). This endpoint returns HTTP 501 with code `UNSUPPORTED_VERSION` until a future protocol version activates contract-state commitments.
+**Parameters:**
+
+| Parameter | Location | Description |
+|---|---|---|
+| `contractIndex` | path | The contract index number |
+| `key` | path | The contract state key, percent-encoded; may not contain a NUL byte and is capped at 1024 bytes |
+| `height` | query | Optional; the proof binds to the first checkpoint at or above this height |
+
+A key with no value at the checkpoint height returns `leaf_value: null` (non-inclusion proof) and `state_value: null`. A tombstoned key is indistinguishable from an absent one, exactly as it is in the commitment.
+
+**Error codes:**
+
+| HTTP | Code | Meaning |
+|---|---|---|
+| 400 | `INVALID_CONTRACT_INDEX` | `contractIndex` is not a non-negative integer |
+| 400 | `MISSING_PARAMETER` | No state key was supplied |
+| 400 | `INVALID_KEY_NUL` | The state key contains a NUL byte |
+| 400 | `KEY_TOO_LONG` | The state key exceeds 1024 UTF-8 bytes |
+| 400 | `INVALID_HEIGHT` | `height` is not a non-negative integer |
+| 404 | `UNKNOWN_COIN` | Coin prefix not configured on this explorer |
+| 404 | `NO_CHECKPOINT` | No signed checkpoint at or above the requested height |
+| 409 | `CHECKPOINT_PRE_COMMITMENT` | Checkpoint predates the state-commitment activation (no committed roots) |
+| 409 | `CONTRACT_STATE_NOT_COMMITTED` | The `contract_state_root` slot is not committed at this height, so absence cannot be proven |
+| 501 | `NO_STATE_TREE` | Server does not hold the state tree; point a full indexer DB at this instance |
+| 500 | `PROOF_STATE_ROOT_MISMATCH` | Server state tree disagrees with the signed checkpoint |
+
+**Availability.** The route is registered and served on every explorer instance. It returns a proof only where the `contract_state_root` slot is armed for that chain and height, and the typed 409 `CONTRACT_STATE_NOT_COMMITTED` below it. The slot is armed on BTC regtest and from genesis on the BTC, LTC and DOGE testnets; mainnet is deliberately unarmed pending its flag day, so a mainnet request gets the typed 409 rather than a proof.
 
 ---
 
@@ -2094,7 +2132,7 @@ Content-Type: application/json
 | `GET /{COIN}/api/proof/balance/{address}/{tick}` | SMT balance inclusion/non-inclusion proof |
 | `GET /{COIN}/api/proof/action/{actionIndex}` | Block-content inclusion proof for an action |
 | `GET /BTC/api/proof/validator-set` | Stake-weighted validator-set proof (BTC-only) |
-| `GET /{COIN}/api/proof/contract-state/{idx}/{key}` | Contract-state proof (reserved; HTTP 501 in v1) |
+| `GET /{COIN}/api/proof/contract-state/{idx}/{key}` | Contract-state SMT inclusion/non-inclusion proof (409 where the slot is unarmed) |
 | `GET /{COIN}/api/feequote` | Native-coin fee pre-flight quote |
 | `GET /{COIN}/api/feeschedule` | Native-coin fee schedule |
 | `GET /{COIN}/api/preflight` | Validity-first action pre-flight, independent of fee support |

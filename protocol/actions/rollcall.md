@@ -99,7 +99,7 @@ All eight values are **consensus** and frozen in `protocol/constants.js`, with b
 
 | Constant | mainnet | testnet | regtest | Unit |
 |---|---|---|---|---|
-| `ROLLCALL_ACTIVATION` | `null` (inert) | 151200 | `null` (inert) | BTC height |
+| `ROLLCALL_ACTIVATION` | `null` (inert) | 151200 | `null` (inert), arms at `0` on opt-in | BTC height |
 | `ROLLCALL_INTERVAL_BLOCKS` | 1008 | 1008 | 30 | BTC blocks |
 | `ROLLCALL_ACCEPT_WINDOW_BLOCKS` | 144 | 144 | 12 | BTC blocks |
 | `ROLLCALL_PROOF_DELAY_BLOCKS` | 36 | 36 | 2 | BTC blocks |
@@ -109,6 +109,8 @@ All eight values are **consensus** and frozen in `protocol/constants.js`, with b
 | `ROLLCALL_REWARD_AMOUNT` | `10.00000000` | `10.00000000` | `10.00000000` | XCHAIN |
 
 Every gate keys on the carried BTC `EPOCH_HEIGHT`, never on either chain's local height. Mainnet ships inert: the operator pins that height with the mainnet federation.
+
+**Regtest is the one network whose height a venue pins for itself.** Every other value here is fixed in source and unreadable from the environment, because on a shared ledger a tunable consensus input is a fork waiting to happen. A regtest chain is private, so no two venues validate the same blocks and nothing a venue pins can fork anybody. It still ships inert, because arming a network commits every BTC indexer on it to a wired DOGE peer, and a single-coin BTC venue would defer forever at its first close. A two-chain venue opts in by setting `XC_ROLLCALL_REGTEST_ACTIVATION=armed` on every BTC indexer and hub it runs, which arms the network at height `0`; the same variable also takes a bare height for a venue whose epochs should begin above an already-indexed prefix. Anything unrecognised leaves the venue inert. Because `ROLLCALL_ACTIVATION` is one of the shared gates in the consensus-rules digest, a venue that arms its hubs and forgets its indexer reports a rules mismatch rather than disagreeing silently about which epochs exist.
 
 ## Size and broadcast
 `MAX_DATA_BYTES` is 8189 and chain-agnostic. At a 7-digit epoch height the header costs 152 bytes and each signer pair 194, giving **41 pairs per action**; a federation larger than 41 is rolled in several actions per epoch, which the union rule makes free. A one-signature self-publish is 344 bytes. Those figures are measured, not derived: `protocol/test-vectors/rollcall_canonical.json` carries the exact byte counts alongside real signatures.

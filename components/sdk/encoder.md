@@ -54,6 +54,13 @@ The encoder supports five encoding strategies: four script-output lanes and the 
 | `MULTISIGN` | 60 bytes per chunk | Data spread across fake public keys in a multisig output. Requires `compressedPubKey`. Rarely used directly. |
 | `TAPROOT` | 390,000 bytes of payload total, pushed in 520-byte elements | The [Taproot envelope](../../protocol/taproot-envelope.md): one `createTx` call returns the commit and reveal PSBTs together, not the `p2shHash` two-call flow. It replaces the 8,192-byte ceiling with its own `ENVELOPE_MAX_PAYLOAD` of 390,000 bytes. Bitcoin and Litecoin only (Dogecoin has no SegWit), and only at or above that chain's envelope recognition height. Requires `compressedPubKey`, which becomes the envelope's internal key, and a signer that can produce a BIP341 script-path signature. |
 
+On the chunked lanes (`P2SH`, `P2WSH`, `TAPROOT`) no chunk or push may be a single
+byte in `0x01`-`0x10` or `0x81`, because a script encoder canonicalizes such a byte
+into a bare opcode and the decoder then refuses the output (on `TAPROOT`, the whole
+reveal). The encoder handles this for you by rebalancing the final two chunks to
+`(n-1, 2)` bytes; an integrator building the scripts directly must do the same. See
+[Taproot envelope: no payload push may canonicalize to a bare opcode](../../protocol/taproot-envelope.md#no-payload-push-may-canonicalize-to-a-bare-opcode).
+
 ---
 
 ## Auto-Selection

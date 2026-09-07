@@ -94,6 +94,8 @@ Because the two chains settle their legs independently, there is one edge case t
 
 Any token that exists on one supported chain can potentially be swapped for any token on another supported chain, as long as there is a willing counterparty. Today that means trades between Bitcoin, Litecoin, and Dogecoin tokens.
 
+There is one exception for now. A token bound to a controller contract that takes a cut of each sale (a royalty or fee split) cannot be listed cross-chain: the proceeds settle on the counterparty's chain, which does not run the contract, so the cut could not be collected there. Rather than let the sale go through and quietly drop the cut, the protocol refuses the listing when it is created, with the error `invalid: royalty not enforceable cross-chain`. Tokens with no such binding are unaffected, and so are same-chain sales of a bound token. The restriction lifts on mainnet at the `CROSS_CHAIN_ROYALTY` flag day, whose date is listed in [Flag Days](../protocol/flag-days.md), and is already lifted on testnet and regtest. See [Cross-chain sales](../protocol/controller-bound-tokens.md#cross-chain-sales-cross_chain_royalty) and [Flag Days](../protocol/flag-days.md).
+
 As XChain adds support for more Bitcoin-compatible blockchains, the number of available cross-chain trading pairs grows automatically. Every new chain that joins the platform opens up swap routes with every existing chain.
 
 ---

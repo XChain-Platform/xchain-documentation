@@ -198,6 +198,86 @@ test('a drifted _MAINNET_TIME constant is refused, not skipped', () => {
     assert.throws(() => gen.collectGates(dir), /FOO_MAINNET_TIME/);
 });
 
+/*  ------------------------------------------------------------------
+ *  The call's TIME ARGUMENT, read whole
+ *  ------------------------------------------------------------------
+ *
+ *  The slot capture asserted no argument terminator, so it failed in both
+ *  directions at once and neither reached the completeness check: a
+ *  separator-bearing literal matched whole, failed the digits test and left the
+ *  page in silence, while an arithmetic slot matched only its PREFIX and
+ *  published an instant a day early. Every call fixture above passes a bare
+ *  digit literal, which is exactly the one shape that cannot show either.
+ */
+
+test('a separator-bearing mainnet slot publishes its gate instead of vanishing', () => {
+    const dir = fixtureRegistry(
+        "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + "this.addChange('SEPARATED', '1.0.0', 1_786_060_800, 0, 0, 0, 0, 0);\n",
+    );
+    const gates = gen.collectGates(dir);
+    assert.deepStrictEqual(gates.map((g) => g.gate).sort(), ['REAL', 'SEPARATED']);
+    assert.strictEqual(gates.find((g) => g.gate === 'SEPARATED').time, 1786060800,
+        'the separators must be stripped, not read as part of a name');
+});
+
+test('a separator-bearing testnet slot reaches collectTestnetArms', () => {
+    const dir = fixtureRegistry(
+        "this.addChange('SEPARATED', '1.0.0', 9999999999, 1_787_961_600, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(
+        gen.collectTestnetArms(dir).map((g) => [g.gate, g.time]),
+        [['SEPARATED', 1787961600]],
+    );
+});
+
+test('an arithmetic mainnet slot is refused, not published at its prefix', () => {
+    // The dangerous direction: the old capture stopped at the space and
+    // published 1786060800 for a gate that arms a day later, on the page
+    // implementers plan fleet upgrades from.
+    const dir = fixtureRegistry(
+        "this.addChange('EXPR', '1.0.0', 1786060800 + 86400, 0, 0, 0, 0, 0);\n",
+    );
+    assert.throws(() => gen.collectGates(dir), /EXPR/);
+    assert.throws(() => gen.collectGates(dir), /1786060800 \+ 86400/);
+});
+
+test('an arithmetic slot is refused on the arms that have no completeness check', () => {
+    // collectTestnetArms/Unarmed and collectMainnetUnarmed read the same calls
+    // and never reach assertEveryDeclarationParsed, so refusing from the parse
+    // itself is what makes them loud too.
+    const dir = fixtureRegistry(
+        "this.addChange('EXPR', '1.0.0', 9999999999, 1787961600 + 86400, 0, 0, 0, 0);\n",
+    );
+    assert.throws(() => gen.collectTestnetArms(dir), /EXPR/);
+    assert.throws(() => gen.collectMainnetUnarmed(dir), /EXPR/);
+});
+
+test('a leading-underscore name in a time slot stays a name, not a number', () => {
+    // Stripping separators before testing for digits reads `_1786060800` as a
+    // number; it is an identifier, and an identifier no const pass saw is quiet.
+    const dir = fixtureRegistry(
+        "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + "this.addChange('NAMED', '1.0.0', _1786060800, 0, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+});
+
+test('a bare digit slot and a constant by name still read exactly as before', () => {
+    // The widened capture must not change the two shapes the live registry
+    // actually uses; `unchanged` from the generator is the fleet-scale version
+    // of this, and this is the one that runs without a sibling checkout.
+    const dir = fixtureRegistry(
+        'const REAL_MAINNET_TIME = 1786060800;\n'
+        + "this.addChange('REAL', '2.0.0', REAL_MAINNET_TIME, 0, 0, 0, 0, 0);\n"
+        + "this.addChange('PLAIN', '1.0.0', 1787961600, 0, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(
+        gen.collectGates(dir).map((g) => [g.gate, g.time]),
+        [['REAL', 1786060800], ['PLAIN', 1787961600]],
+    );
+});
+
 test('the check is structural: a legitimately value-filtered gate does not throw', () => {
     // A block-height threshold and the unarmed sentinel are both READ and then
     // dropped by the value filter. That is correct, and must not read as an
@@ -211,14 +291,59 @@ test('the check is structural: a legitimately value-filtered gate does not throw
 });
 
 test('a call passing a collected constant by name does not throw', () => {
-    // The registry's own shape for the two cohort constants: declared as a
-    // const, then handed to addChange by identifier. The call is unreadable to
-    // changeRe, and nothing is lost, because the const pass already has it.
+    // The registry's own shape for the cohort constants: declared as a const,
+    // then handed to addChange by identifier. The call resolves the identifier
+    // through the constant map, and the gate appears exactly once.
     const dir = fixtureRegistry(
         'const REAL_MAINNET_TIME = 1786060800;\n'
         + "this.addChange('REAL', '2.0.0', REAL_MAINNET_TIME, 0, 0, 0, 0, 0);\n",
     );
     assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+});
+
+test('a constant passed by name publishes the gate the call registers, not the constant prefix', () => {
+    // The registry's two diverging pairs have this shape: the constant prefix
+    // is not a gate key isEnabled accepts, so publishing it names a gate that
+    // does not exist and hides the one that does.
+    const dir = fixtureRegistry(
+        'const FOO_CAP_MAINNET_TIME = 1786060800;\n'
+        + "this.addChange('FOO_PER_BLOCK_CAP', '2.0.0', FOO_CAP_MAINNET_TIME, 0, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['FOO_PER_BLOCK_CAP'],
+        'the armed table must carry the addChange gate name and never the constant prefix FOO_CAP');
+});
+
+test('an unarmed sentinel passed by name is listed under the gate name', () => {
+    const dir = fixtureRegistry(
+        'const FOO_CAP_MAINNET_TIME = 9999999999;\n'
+        + "this.addChange('FOO_PER_BLOCK_CAP', '2.0.0', FOO_CAP_MAINNET_TIME, 0, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['FOO_PER_BLOCK_CAP'],
+        'the unarmed note must name FOO_PER_BLOCK_CAP, the key an operator arms, not FOO_CAP');
+});
+
+test('a testnet constant passed by name is listed under the gate name', () => {
+    const dir = fixtureRegistry(
+        'const FOO_CAP_TESTNET_TIME = 9999999999;\n'
+        + 'const BAR_WINDOW_TESTNET_TIME = 1787961600;\n'
+        + "this.addChange('FOO_PER_BLOCK_CAP', '2.0.0', 9999999999, FOO_CAP_TESTNET_TIME, 0, 0, 0, 0);\n"
+        + "this.addChange('BAR_INHERITED_WINDOW', '2.0.0', 9999999999,\n"
+        + '    BAR_WINDOW_TESTNET_TIME, 0, 0, 0, 0);\n',
+    );
+    assert.deepStrictEqual(gen.collectTestnetUnarmed(dir).map((g) => g.gate), ['FOO_PER_BLOCK_CAP']);
+    assert.deepStrictEqual(gen.collectTestnetArms(dir).map((g) => g.gate), ['BAR_INHERITED_WINDOW'],
+        'a call broken across two lines still resolves its testnet slot');
+});
+
+test('a constant no call consumes still reaches the page under its own prefix', () => {
+    // A shared constant declared for a second repo and consumed by no addChange
+    // call in the registry is published under its prefix, the only name it has.
+    const dir = fixtureRegistry(
+        'const LONE_MAINNET_TIME = 1786060800;\n'
+        + 'const PARKED_MAINNET_TIME = 9999999999;\n',
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['LONE']);
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['PARKED']);
 });
 
 test('a commented-out declaration is not mistaken for a live one', () => {

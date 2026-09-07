@@ -38,7 +38,8 @@ Run on a clean profile (extension: fresh install / cleared storage; web: incogni
 - ⬜ Once accepted, the license gate does not reappear on subsequent launches.
 - ⬜ Create wallet, 12-word selection: recovery phrase displayed, copy works, verify-quiz mismatch surfaces the offending word.
 - ⬜ Create wallet, 24-word selection: same as above; verify-quiz scales position count.
-- ⬜ BIP39 passphrase advanced toggle: matched-pair input, permanent-loss warning visible, threaded into vault.
+- ⬜ BIP39 passphrase advanced toggle: matched-pair input, permanent-loss warning visible, captured once and stored encrypted in the vault alongside the mnemonic.
+- ⬜ Import without the original passphrase: no error, the wallet silently opens a different, empty wallet; the pre-derivation preview is the only signal something is off.
 - ⬜ Import recovery phrase: typed input, drag-drop `.txt`, scan QR (where a camera is available).
 - ⬜ Import encrypted backup: file picker and paste both work; backup password unlocks the file.
 - ⬜ Try-before-commit demo mode: entry button works; demo banner mounts; "Exit demo & wipe" clears the wallet.
@@ -109,6 +110,7 @@ Run on a clean profile (extension: fresh install / cleared storage; web: incogni
 - ⬜ Caps-lock warning appears when caps is active in the password field.
 - ⬜ Privacy blur engages on window blur (extension and desktop).
 - ⬜ Biometric unlock works on supported devices (WebAuthn PRF).
+- ⬜ Legacy wallet passphrase capture: unlock a wallet created before passphrase storage shipped. It prompts for the passphrase once, states it will be stored, verifies it against the wallet's own addresses, then stores it and never prompts again. A wrong passphrase is rejected and the wallet stays unable to sign; until capture succeeds the wallet is listed but cannot sign.
 - ⬜ Panic mode arms: sign attempts reject and a 24-hour countdown is visible in Settings.
 - ⬜ Duress passphrase silently arms panic mode and shows a decoy wallet.
 
@@ -117,8 +119,9 @@ Run on a clean profile (extension: fresh install / cleared storage; web: incogni
 ## Backup and recovery
 
 - ⬜ Encrypted backup export: file downloads with the wallet's backup extension; size is greater than zero.
-- ⬜ Reveal seed phrase: password gate, tap-to-reveal, words match what was created.
-- ⬜ Dry-run restore: paste mnemonic, preview accounts/addresses without writing.
+- ⬜ Restore a backup file on a different device: the restoring device's password re-keys both the mnemonic and, where one was set, the passphrase; the restored wallet signs identically to the original.
+- ⬜ Reveal recovery phrase: password gate, tap-to-reveal, words match what was created; if a passphrase was set it is shown alongside the phrase.
+- ⬜ Dry-run restore: paste mnemonic and passphrase (where one was used), preview accounts/addresses without writing; confirm that omitting the passphrase does not error, it previews a different, empty wallet.
 - ⬜ Publish labels now (software wallets only).
 - ⬜ Backup-reminder card surfaces on Home for an unverified wallet; "Back up now" routes to the right place.
 

@@ -91,7 +91,7 @@ Two string keys are also used as checkpoints:
 
 **H key (output hint)**: Maps an outpoint (txHash8 + index) back to its scriptHash. When processing an input that spends an output, the tracker reads the H hint to find the scriptHash, then deletes the corresponding O record. Without H, the tracker would need to scan all O records to find the one being spent.
 
-**K/M keys (deleted archives)**: When a UTXO is spent, the O and H records are deleted, but copies are saved as K and M records keyed by blockHash. If a reorg rolls back that block, the K/M records are restored to O/H. After `DEFAULT_UNDO_BLOCKS` (BTC: 12, LTC: 48, DOGE: 120) subsequent blocks, the K/M records are purged.
+**K/M keys (deleted archives)**: When a UTXO is spent, the O and H records are deleted, but copies are saved as K and M records keyed by blockHash. If a reorg rolls back that block, the K/M records are restored to O/H. After `DEFAULT_UNDO_BLOCKS` (BTC: 12, LTC: 120, DOGE: 120) subsequent blocks, the K/M records are purged.
 
 **txHash8 truncation**: Transaction hashes are truncated to 8 bytes in index keys (T, I, O, H, J, K, M, W). The full 32-byte hash is stored in O values for API responses. 8-byte truncation provides sufficient uniqueness for index lookups while halving key sizes.
 

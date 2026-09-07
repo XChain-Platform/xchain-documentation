@@ -631,6 +631,10 @@ Calculates the native coin fee amount for a given action. The conversion uses tw
 | `OWNERSHIP_ESCROW` | 50,000 | Ownership escrow deposit |
 | `AIRDROP_PER_RECIPIENT` | 100 | Per recipient in an airdrop |
 | `DIVIDEND_PER_RECIPIENT` | 100 | Per recipient in a dividend distribution |
+| `SWEEP_BASE` | 5,000 | Base cost for a sweep, charged whatever it moves |
+| `SWEEP_PER_ITEM` | 100 | Per swept balance, closed escrow, or transferred ownership |
+| `CALLBACK_BASE` | 5,000 | Base cost for a callback, charged whatever it pays out |
+| `CALLBACK_PER_RECIPIENT` | 100 | Per recipient paid by a callback |
 | `VM_EXECUTE_BASE` | 1,000 | Base cost for a VM contract execution |
 | `VM_DEPLOY_BASE` | 100,000 | Base cost for a VM contract deployment |
 | `VM_DEPLOY_PER_BYTE` | 10 | Per byte of contract source code |
@@ -1150,7 +1154,7 @@ ANCHOR publisher status (read, no auth): cumulative anchor counts plus the last-
 }
 ```
 
-`anchorsPublished` counts published **bundles**, one per network per cycle, not one per chain. `sectionsAnchored` counts the per-chain checkpoint sections inside them, so a healthy three-chain federation advances it by three for every bundle. `bundlesOversize` counts cycles refused because a single checkpoint section could not fit the 8189-byte wire budget even with an empty attestation tail; it should stay at 0, and a non-zero value means the federation has outgrown the budget and the anchor for that cycle was not sent.
+`anchorsPublished` counts published **bundles**, one per network per cycle, not one per chain. `sectionsAnchored` counts the per-chain checkpoint sections inside them, so a healthy three-chain federation advances it by three for every bundle. `bundlesOversize` counts refusals against the 8189-byte wire budget: a single checkpoint section that cannot fit alongside the attestation tail its bundle will carry, or an assembled payload measured over the budget just before broadcast. It should stay at 0, and a non-zero value means the federation has outgrown the budget and the anchor for that cycle was not sent.
 
 `dogeBalance`/`dogeBalanceAt` are `null` until the first publish cycle reads the wallet (or when no DOGE pipeline is configured).
 

@@ -113,7 +113,19 @@ var total = parseFloat(a) + parseFloat(b);
 var total = xchain.math.add(a, b);
 ```
 
-All `xchain.math` operations accept and return **strings**. This ensures no precision loss.
+Every `xchain.math` operation **accepts** strings, and the return type depends on
+what the operation is:
+
+| Operations | Returns |
+|---|---|
+| `add`, `subtract`, `multiply`, `divide`, `mod`, `min`, `max`, `abs`, `sqrt`, `pow`, `log`, `log2`, `log10` | a decimal **string** in fixed notation (no precision loss, no scientific notation) |
+| `compare` | a **number**: `-1`, `0` or `1` |
+| `gt`, `gte`, `lt`, `lte`, `eq`, `isZero` | a **boolean** |
+
+So arithmetic keeps its result in string form, which is what avoids precision
+loss, while the predicates are usable directly in `if` and
+`xchain.require(...)`. Do not compare a predicate against a string
+(`xchain.math.gt(a, b) === 'true'` is always false).
 
 ## State Management
 

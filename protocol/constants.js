@@ -244,10 +244,11 @@ const MAX_DEPLOYCHUNK_PART_BYTES = 7800;
 // cross-service regression suite (protocol-constant-claims.test.js) asserts
 // both copies and every prose claim equal this value.
 //
-// Gated by BATCH_ISSUANCE_LIMITS in the indexer's protocol_changes.js:
-// active from genesis on testnet/regtest, not yet armed on mainnet (see
-// protocol/actions/batch.md). Before that instant mainnet enforces no
-// command cap at all; this constant is the value the gate gives it.
+// Gated by BATCH_ISSUANCE_LIMITS in the indexer's protocol_changes.js: active
+// from genesis on testnet/regtest, and armed on mainnet since 1786838400
+// (2026-08-16T00:00:00Z) - see protocol/actions/batch.md. Below that instant
+// mainnet history enforces no command cap at all; this constant is the value
+// the gate gives it.
 const BATCH_COMMAND_LIMIT = 250;
 
 // ── BATCH weighted cost budget (BATCH_COST_WEIGHTING) ───────────────────────
@@ -403,8 +404,9 @@ const STATE_COMMITMENT_ACTIVATION = {
 // which the quorum-signed checkpoint canonical (and the on-chain ANCHOR) COMMIT the additive
 // `state_root` + `block_merkle_root` (with their version bytes) that STATE_COMMITMENT_ACTIVATION made
 // the indexer compute in Phase 1. Post-flag-day the checkpoint canonical string gains
-// `|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION` and a new ANCHOR v3 carries
-// the roots on DOGE; pre-flag-day both keep their old shape and the roots are absent. Consensus-relevant
+// `|STATE_ROOT|STATE_ROOT_VERSION|BLOCK_MERKLE_ROOT|BLOCK_MERKLE_VERSION` and each section of the ANCHOR
+// checkpoint bundle (v0) carries the roots on DOGE; pre-flag-day both keep their old shape and the roots
+// are absent. (The restarted wire set is v0/v1/v2, see ANCHOR_ACTIVATION below.) Consensus-relevant
 // for signature verification (the signed preimage changes), so it must deploy hub + ALL indexers + the
 // SDK/explorer verifiers atomically.
 //
@@ -427,10 +429,12 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 // ANCHOR_REWARD_ACTIVATION (anchor-reward re-derivation): the flag-day at/above which the validator
 // anchor reward stops being TRUSTED from the hub's `pushvalidatorrewards` JSON-RPC and is instead
 // DERIVED by every indexer from the on-chain ANCHOR bytes. Post-flag-day the hub emits a publisher-
-// bearing ANCHOR (v4 rootless / v5 root-bearing) carrying the elected publisher pubkey plus a 2f+1
-// `oracle_publish` attestation (XANCPUB) over the reward tuple; the indexer verifies that quorum and
-// credits the publisher with ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire).
-// Below the flag-day the old push path stands and v4/v5 anchors are rejected. Consensus-relevant (the
+// bearing ANCHOR checkpoint bundle (v0 of the restarted wire set, whose sections carry the SPV roots)
+// carrying the elected publisher pubkey plus a 2f+1 `oracle_publish` attestation (XANCPUB) over the
+// `anchor_bundle` reward tuple; the indexer verifies that quorum and credits the publisher with
+// ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire). Below the flag-day the old
+// push path stands and the PUBLISHER tail an anchor carries earns no derived credit.
+// Consensus-relevant (the
 // credited reward becomes a COLLECT-spendable per-block ledger row), so it must deploy hub + ALL
 // indexers atomically. Like CHECKPOINT_COMMITMENT_ACTIVATION / STAKE_WEIGHTED_QUORUM_ACTIVATION it gates
 // on the BTC-anchored `snapshot_block` carried by every ANCHOR canonical. Kept byte-identical to the
@@ -449,12 +453,13 @@ const ANCHOR_REWARD_AMOUNT = '10.00000000';
 
 // ARCHIVE_REWARD_ACTIVATION (archive-reward re-derivation): the flag-day at/above which the
 // anchor_archive reward stops riding the key-authenticated `pushvalidatorrewards` rail and is instead
-// DERIVED by every indexer from the on-chain ANCHOR v6 bytes (the v1 archive anchor plus the same
-// PUBLISHER + 2f+1 XANCPUB attestation tail as v4/v5, attested over an 'anchor_archive' canonical
-// keyed on MATCH_BATCH_SEQ). This retires the last insider-with-key reward-forge surface the
-// per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the legacy v1 + push path stands
-// and v6 anchors are rejected. Consensus-relevant, same deploy rules and snapshot_block gating as
-// ANCHOR_REWARD_ACTIVATION; kept byte-identical to the local copies in
+// DERIVED by every indexer from the on-chain ANCHOR archive-head bytes (v1 of the restarted wire set,
+// carrying the same PUBLISHER + 2f+1 XANCPUB attestation tail the v0 bundle carries, attested over an
+// 'anchor_archive' canonical keyed on MATCH_BATCH_SEQ). This retires the last insider-with-key
+// reward-forge surface the per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the push path
+// stands and an archive head's PUBLISHER tail earns no derived credit. Consensus-relevant, same
+// deploy rules and snapshot_block gating as ANCHOR_REWARD_ACTIVATION; kept byte-identical to the
+// local copies in
 // xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
 const ARCHIVE_REWARD_ACTIVATION = {
     mainnet: 963000,      // ARMED 2026-07-16, RE-PINNED 2026-08-12 off 969500 onto the shared pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
@@ -502,7 +507,7 @@ const ARCHIVE_REWARD_AMOUNT = '10.00000000';
 // block_index = snapshot_block. Consensus-relevant (COLLECT-spendable), same snapshot_block gating
 // and atomic-deploy rules as ANCHOR_REWARD_ACTIVATION. It CANNOT ride the 961000/963000 boundaries
 // (already live on testnet/regtest, so no coordinated flip window; and one gate must cover both
-// the v4/v5 and v6 families). Kept byte-identical to the local copies in
+// the `anchor_bundle` and `anchor_archive` reward families). Kept byte-identical to the local copies in
 // xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
 // INERT on mainnet (null = never active) until the operator ratifies a coordinated BTC
 // snapshot_block; testnet and regtest are active from genesis. Testnet was armed at 0 by the
@@ -535,26 +540,45 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // A source absent for K consecutive ROLLED epochs is evicted by a synthetic UNSTAKE, so its
 // stake deactivates and refunds after the cooldown. Nothing is burned: absence is not an offense.
 //
-// All eight values are CONSENSUS. They decide which epochs exist, which signatures count, and at
-// what BTC height an eviction and a COLLECT-spendable reward materialise, so none may be read
-// from the coin registry, env, or coins.resolveConfirmations() -- the argument
-// anchor_reward_activation.js makes for its own maturity and burial depths. Kept byte-identical
-// to xchain-{indexer,hub}/src/rollcall_activation.js by the cross-service regression suite.
+// All eight values are CONSENSUS on a SHARED-LEDGER network. They decide which epochs exist, which
+// signatures count, and at what BTC height an eviction and a COLLECT-spendable reward materialise,
+// so on mainnet and testnet none may be read from the coin registry, env, or
+// coins.resolveConfirmations() -- the argument anchor_reward_activation.js makes for its own
+// maturity and burial depths. By operator ruling 2026-09-01 that rule is SCOPED to networks with a
+// shared ledger: a regtest chain is private, no two regtest venues validate the same blocks, and
+// refusing a venue-pinned height only left the AT1-AT10 acceptance suite with nowhere to run. Kept
+// byte-identical to xchain-{indexer,hub}/src/rollcall_activation.js by the cross-service suite.
 //
 // Keyed on the carried BTC EPOCH_HEIGHT on BOTH chains (the snapshot_block convention of
 // STAKE_WEIGHTED_QUORUM_ACTIVATION), never on either chain's local height, so a pre-activation
 // roll call is inert on DOGE and on BTC alike and no second DOGE-height flag day exists.
 // INERT on mainnet (null = never active) until the operator pins a height with the mainnet
 // federation; the null placeholder follows SNAPSHOT_BURIAL_ACTIVATION.mainnet.
-// INERT on regtest too, by operator ruling 2026-08-31: arming a network commits every BTC indexer
-// on it to a wired DOGE peer, because the epoch close cannot decide a non-empty responsible set
-// without one and halts rather than read silence as absence. A single-coin BTC regtest venue has
-// no DOGE peer and can never have one, so a hardcoded regtest height wedged every such venue at
-// its first close. A venue that runs both chains opts in instead.
+// REGTEST ARMS AT 0, but only when the venue OPTS IN with XC_ROLLCALL_REGTEST_ACTIVATION, and the
+// 2026-08-31 finding is why the default stays inert: arming a network commits every BTC indexer on
+// it to a wired DOGE peer, because the epoch close cannot decide a non-empty responsible set
+// without one and defers rather than read silence as absence. A single-coin BTC regtest venue has
+// no DOGE peer, so a hardcoded regtest height wedged every such venue at its first close. A venue
+// that runs both chains opts in; a BTC-only venue is left alone.
+const ROLLCALL_REGTEST_ARMED_HEIGHT = 0;
+const ROLLCALL_REGTEST_ENV = 'XC_ROLLCALL_REGTEST_ACTIVATION';
+function resolveRegtestActivation(env){
+    let raw = (env || {})[ROLLCALL_REGTEST_ENV];
+    if(raw === undefined || raw === null) return null;
+    let s = String(raw).trim().toLowerCase();
+    if(s === '' || s === 'off' || s === 'inert' || s === 'false' || s === 'no' || s === 'none') return null;
+    if(s === 'armed' || s === 'genesis' || s === 'on' || s === 'true' || s === 'yes')
+        return ROLLCALL_REGTEST_ARMED_HEIGHT;
+    if(/^\d+$/.test(s)){
+        let h = parseInt(s, 10);
+        if(Number.isFinite(h) && h >= 0) return h;
+    }
+    return null;   // fail CLOSED; the service copies also warn on stderr
+}
 const ROLLCALL_ACTIVATION = {
     mainnet: null,        // INERT placeholder: the operator owns this height
     testnet: 151200,      // 1008 x 150 = 144 x 1050; tip was 150400 on 2026-08-30, ~5.5 days out
-    regtest: null,      // INERT: a BTC-only regtest venue has no DOGE peer to prove a close
+    regtest: resolveRegtestActivation(process.env),   // ARMS AT 0 when the venue sets XC_ROLLCALL_REGTEST_ACTIVATION
 };
 
 // ROLLCALL_INTERVAL_BLOCKS: epoch cadence in BTC blocks. Weekly on the live networks (1008 BTC
@@ -651,10 +675,14 @@ const ATTEST_ADMISSION_ACTIVATION = {
 // same for a free HTTP GET as for a paid model. On a fee-bearing network economics bound the
 // shape; on testnet neither the coin nor XCHAIN is scarce, so the bound must be consensus.
 //
-// REJECTION, not deferral: unlike the three sibling per-block caps (XCALL_MAX_CALLS_PER_BLOCK,
+// REFUSAL, not deferral: unlike the three sibling per-block caps (XCALL_MAX_CALLS_PER_BLOCK,
 // ATTEST_MAX_EXPIRIES_PER_BLOCK, CROSS_SETTLE_MAX_PER_BLOCK) this caps admission of an action
 // already in the block rather than a pass the indexer schedules, so there is no next block to
-// carry overflow into. Over-cap requests go 'rejected' (terminal at creation, fee never escrowed).
+// carry overflow into. An ATTEST v0 exists only as a VM emission and a failed emission validation
+// fails its enclosing EXECUTE, so the refusal lands as a REVERTED EXECUTE: the over-cap request,
+// the under-cap requests the same EXECUTE already emitted, and its state writes all roll back
+// together, and no ATTEST v0 row is ever stored 'rejected'. The only durable trace is the cap's
+// message on contract_executions.error_message. Driven on BTC regtest 2026-09-02.
 //
 // Counted deterministically from the attests table at (block_index = this block, action_index <
 // this action, request_status <> 'rejected'): a total order every node replays identically.
@@ -783,6 +811,38 @@ const ATTEST_RESPONSIBLE_WIDENING_ACTIVATION = {
 const ATTEST_RESPONSIBLE_WIDENING = {
     confirmations: 3,
     maxSlots:      2,
+};
+
+// ATTEST_RESPONSE_MIRROR_ACTIVATION (attestation response mirror): the flag-day at/above which a
+// finalized attestation response stops being an on-chain ATTEST v1 transaction that a validator
+// broadcasts and pays a Bitcoin fee for, and instead rides the hub mirror the way PRICE rounds do.
+// Below the height an attestation costs TWO on-chain transactions (the v0 request inside the
+// EXECUTE the user already paid for, plus the validator-paid v1 response) and the contract callback
+// fires only when the v1 mines. At or above it the responsible set's finalized artifact is written
+// to the hub's attestation_responses table, gossiped to the whole federation, streamed to every
+// indexer through the hub mirror, and applied at a block that is a pure function of the SIGNED
+// effective_time and the indexer's own chain state. The full history still reaches the chain in
+// periodic ATTEST v5/v6 batches, so a node replaying the chain alone re-derives every callback.
+//
+// The gate is evaluated on the REQUEST's own BTC block, not the response's, exactly like
+// ATTEST_RESPONSIBLE_WIDENING_ACTIVATION and ATTEST_ADMISSION_ACTIVATION: the rule for a given
+// request is fixed the moment it is admitted, so no request can be admitted under one regime and
+// answered under the other while the fleet crosses the height. The same height selects the
+// CANONICAL the responsible set signs (the mirror-era canonical appends the signed effective_time),
+// so the two eras never share a signature. A relayed request (a v0 admitted on LTC or DOGE) is
+// served on BTC as its ATTEST v3 materialization and the v3's BTC block keys the gate.
+//
+// Unlike the widening ladder, deploy ORDER cannot cover a straddle here: an upgraded hub stops
+// broadcasting v1 entirely, so an indexer that has not upgraded would simply never see the
+// response. The height is therefore armed past a SYNCHRONIZED fleet window (hubs, indexers and
+// explorer together, the HUB_SCHEMA_VERSION 4->5 flip) with no request straddling it.
+//
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/attest_response_mirror_activation.js
+// by the activation-constants parity suite.
+const ATTEST_RESPONSE_MIRROR_ACTIVATION = {
+    mainnet: null,        // INERT: operator-owned height, unratified. The legacy on-chain response path runs byte for byte.
+    testnet: 151324,      // ARMED 2026-09-07 at the chain tip on the operator ruling: exercising the mirror on testnet is the point of this train, so it activates on deploy rather than waiting on a future height.
+    regtest: 0,           // ARMED at genesis so the e2e mirror venue exercises the mirror path
 };
 
 // ATTEST_BROADCAST_FEE_ACTIVATION (attestation Phase 3 economics, spec §11 leader broadcast-fee
@@ -954,6 +1014,59 @@ const DISPENSER_EXPIRY_REALIGN_ACTIVATION = {
     // pre-launch ruling that every feature must be ACTIVE on testnet. This gate fixes a defect
     // that spends a payer native coin and gives nothing back, so a public testnet WILL hit it.
     // Safe at 0 because testnet decoder/indexer state is REBUILT from the chain before launch.
+    testnet: 0,
+    regtest: 0,
+};
+
+// DISPENSER_CANCEL_GRACE_ACTIVATION (dispenser cancellation grace capture): the flag-day
+// at/above which the DECODER keeps a just-expired dispenser in the block loop's payment
+// CAPTURE SET for a grace window past its expiration. Keyed on BLOCK TIME with the same >=
+// semantics as DISPENSER_EXPIRY_REALIGN_ACTIVATION, because dispensers settle on BTC, LTC
+// and DOGE, whose heights diverge.
+//
+// WHY IT EXISTS: the indexer keeps a CANCELLED dispenser fillable past its own expiration.
+// It excludes `cancelling` rows from its expiration pass (xchain-indexer/src/db.js
+// getExpiredItems, `s2.status='open'`), keeps them matchable through
+// `status IN ('open','cancelling')` in findMatchingDispensers, and closes only at the
+// cancel's block time plus DISPENSER_CLOSE_DELAY (3600s). The decoder mirrors no cancel at
+// all, by design, so it soft-expires that dispenser at its raw expiration and drops the
+// address from the capture set. Cancel a funded dispenser shortly before its expiration and
+// a window opens: the indexer still settles fills, the decoder captures no output, and the
+// buyer's native coin reaches the seller with no DISPENSE record and no inventory release.
+//
+// At/above the gate the CAPTURE SET alone widens: a row whose expiration is no older than
+// the grace window stays an eligible payment destination even once the soft-expire has
+// stamped it. The soft-expire itself, the expiry MARK, the extend mirror, the oracle-address
+// resolution and the hard purge all keep their current timing, which confines the change to
+// the over-capture direction the decoder's advisory contract (xchain-decoder/src/db.js,
+// above extendOpenDispenserExpirationBySource) calls safe. Delaying the MARK instead reaches
+// the legacy single-pick oracle resolution, whose ORDER BY ... LIMIT 1 then ranks a dead row
+// first and captures nothing at all: the under-capture direction, a second money-bearing
+// defect rather than a fix. Widen the capture set, never the mark.
+//
+// CONSENSUS-AFFECTING: it changes the set of outputs persisted to transaction_outputs, so an
+// ungated widening breaks from-genesis byte-identity and forks validators. The unwidened
+// capture set therefore stays live BELOW the gate, and a re-decode of pre-flag-day history
+// reproduces exactly what the fleet wrote.
+//
+// null means DISARMED (never active), the fail-closed default: mainnet keeps the unwidened
+// capture set until that network's maintainers ratify an instant, chosen with the fleet's
+// upgrade state in hand, because arming it too early forks the chain and arming it in the
+// past rewrites agreed history.
+//
+// DEPLOY DEADLINE, once an instant is armed: EVERY decoder on that network MUST be running
+// the armed value before the instant, or the fleet splits on the first block whose header
+// time passes a cancelled dispenser's expiration.
+//
+// Vendored byte-equal into xchain-decoder/src/protocol/constants.js; the conformance suite
+// keeps the two copies in lockstep.
+const DISPENSER_CANCEL_GRACE_ACTIVATION = {
+    mainnet: null,        // DISARMED: awaiting the operator's ratified per-network instant
+    // ARMED AT GENESIS (instant 0 = always in force), matching the sibling
+    // DISPENSER_EXPIRY_REALIGN_ACTIVATION under the pre-launch ruling that every feature must
+    // be ACTIVE on testnet. This gate closes a defect that spends a payer's native coin and
+    // gives nothing back, so a public testnet WILL hit it. Safe at 0 because testnet
+    // decoder/indexer state is REBUILT from the chain before launch.
     testnet: 0,
     regtest: 0,
 };
@@ -1241,6 +1354,8 @@ module.exports = {
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
     ROLLCALL_ACTIVATION,
+    ROLLCALL_REGTEST_ARMED_HEIGHT,
+    ROLLCALL_REGTEST_ENV,
     ROLLCALL_INTERVAL_BLOCKS,
     ROLLCALL_ACCEPT_WINDOW_BLOCKS,
     ROLLCALL_PROOF_DELAY_BLOCKS,
@@ -1258,9 +1373,11 @@ module.exports = {
     ATTEST_BROADCAST_FEE_CAP,
     ATTEST_RESPONSIBLE_WIDENING_ACTIVATION,
     ATTEST_RESPONSIBLE_WIDENING,
+    ATTEST_RESPONSE_MIRROR_ACTIVATION,
     ORACLE_FEE_OUTPUT_ACTIVATION,
     ORACLE_FEE_SET_CAPTURE_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
+    DISPENSER_CANCEL_GRACE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
     ENVELOPE_RECOGNITION_ACTIVATION,
     COMPRESSION_CODE_DEFLATE_RAW,

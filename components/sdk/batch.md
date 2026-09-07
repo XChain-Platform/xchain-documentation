@@ -149,13 +149,13 @@ The BATCH protocol enforces the following rules. Violations throw `SDKValidation
 | No nested BATCH actions | `BATCH_CONSTRAINT` | BATCH inside BATCH is not allowed by the protocol |
 | No DEPLOY actions | `BATCH_CONSTRAINT` | DEPLOY payloads are too large for BATCH |
 | At most 1 FILE action | `BATCH_CONSTRAINT` | One rawData payload per transaction; `details.count` contains the actual count |
-| At most 1 MINT action | `BATCH_CONSTRAINT` | `details.count` contains the actual count |
+| At most 1 MINT action per distinct `tick` | `BATCH_CONSTRAINT` | MINTs of different tokens are allowed; two MINTs of the same token are not. `details.count` contains the actual count. The builder compares tick STRINGS, so it refuses a BATCH mixing a `^<id>` MINT tick with a named one rather than guess whether the two name one token |
 | At most 1 top-level ISSUE action | `BATCH_CONSTRAINT` | Child issuances (a dotted `tick` such as `JDOG.1`) are exempt and uncapped; a `^<id>` tick is never treated as a child. `details.count` contains the actual count |
 | At most 250 commands | `BATCH_CONSTRAINT` | Counted over the raw semicolon-separated list, empty entries included; `details.limit` carries the cap |
 
 All sub-actions are also fully validated by the Validator before the BATCH is built. A bad field value in any sub-action will throw the corresponding `SDKValidationError` before `.build()` returns.
 
-**On-chain, a BATCH is not atomic.** These constraints are compose-time guards, and passing them does not mean every command will settle. The indexer validates and settles each command on its own, so a command that fails on chain is recorded invalid by itself while its siblings stand. Protocol fees are charged per command and accumulate across the batch, so fund the sending address for the whole set. The child-issuance exemption and the 250-command cap are active on testnet and regtest, and activate on mainnet at `2026-08-16T00:00:00Z`.
+**On-chain, a BATCH is not atomic.** These constraints are compose-time guards, and passing them does not mean every command will settle. The indexer validates and settles each command on its own, so a command that fails on chain is recorded invalid by itself while its siblings stand. Protocol fees are charged per command and accumulate across the batch, so fund the sending address for the whole set. The child-issuance exemption, the per-distinct-token MINT rule and the 250-command cap are active on testnet and regtest, and have been active on mainnet since `2026-08-16T00:00:00Z`.
 
 ---
 
@@ -194,13 +194,13 @@ const { SDKValidationError } = require('@xchain/sdk/src/errors');
 try {
     await sdk.batch()
         .mint({ tick: 'BTC.TOKEN', amount: 100 })
-        .mint({ tick: 'BTC.TOKEN', amount: 200 }) // second MINT (violates constraint)
+        .mint({ tick: 'BTC.TOKEN', amount: 200 }) // second MINT of the SAME tick (violates constraint)
         .build();
 
 } catch (err) {
     if (err instanceof SDKValidationError && err.code === 'BATCH_CONSTRAINT') {
         console.error('Batch constraint violated:', err.message);
-        // "BATCH can contain at most 1 MINT action"
+        // "BATCH can contain at most 1 MINT action per distinct TICK"
         console.error('Actual count:', err.details.count); // 2
     }
 }

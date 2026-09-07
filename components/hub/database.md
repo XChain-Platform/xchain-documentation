@@ -318,6 +318,7 @@ PBFT-finalized XCALL dispatch and result records. Each XCALL produces two rows i
 | Table | Purpose |
 |---|---|
 | `attest_published_requests` | Durable at-most-once broadcast marker for ATTEST v1 response publishes |
+| `attest_published_batches` | Durable at-most-once broadcast marker for the periodic ATTEST v5/v6 response batch, one row per window |
 | `attestation_fetch_cache` | Per-request cache of a validator's own provider-fetch outcome, so a retry doesn't pay for the same fetch twice |
 
 These tables back the External Attestation Framework: validators fetch data from a governance-approved provider for an ATTEST v0 request, gossip their proposal to PBFT-style quorum, and the elected leader publishes the finalized ATTEST v1 response on-chain. They are unrelated to the `attestations` table under Cross-Chain Tables, which records cross-chain *action* confirmations rather than external-data attestations.
@@ -334,6 +335,16 @@ The restart-surviving half of the at-most-once guard around `AttestationPublishe
 | `sent_at` | `TIMESTAMP NULL` | When the broadcast completed; authoritative at-most-once marker. NULL means intent only |
 
 **Primary key:** `(request_id)`. **Key:** `idx_sent (sent_at)`
+
+### `attest_published_batches`
+
+The same at-most-once guard as `attest_published_requests`, one level up: it marks the periodic batch that carries a window of finalized responses, rather than a single response. It is a table and not the publisher's buffer file on purpose, because the batch is a money-bearing broadcast on the operator's one Dogecoin wallet, and the buffer lives on the very disk whose exhaustion makes a post-broadcast rewrite fail. A restart reads this back before publishing anything, so a crash between the send and its marker costs an operator check rather than a second fee.
+
+Keyed on `(network, window_start)` rather than on a batch identifier, because the window is the unit of coverage and the batch key is derived from the window bounds, so keying on one is keying on the other. The window is one hour, aligned to the unix hour, and frozen as a protocol constant: those bounds are what the batch key derives from and what the quorum signs, so two hubs on different cadences do not simply publish on two schedules, they propose batches no peer can co-sign. Every window publishes, an empty one as a `row_count` of zero, which is what lets a chain-only node prove coverage by finding a head for each window instead of trusting that a quiet hour held nothing. That hour is deliberately not tied to the PRICE batch window, which is a COUNT OF ROUNDS (`ORACLE_BATCH_WINDOW_ROUNDS`, defaulted from a staleness ceiling and settable by an operator) rather than a span of time. The two are different units on purpose: an hour is something a node holding nothing but the chain can enumerate, while a round count moves whenever price staleness is retuned, so tying attestation coverage to it would make that proof shift for reasons that have nothing to do with attestation.
+
+`status` carries the whole state machine. `intent` is written before the send and means the outcome is unknown; a restart that finds one quarantines that window for an operator rather than republishing, since the transaction may sit in a mempool this hub cannot see. `sent` means this hub has paid for the window. `deadletter` means the content cannot become a batch at all, over the row cap or a body the wire refuses, so the sweep stops retrying it and the content goes to the publisher's append-only dead-letter file. `landed` means a batch was parsed back off Dogecoin, and it is authoritative for the whole federation: any hub's batch covers the window, so hubs that never published one stop considering it. A window with no row is simply unpublished, which is where a window whose signing round found no quorum is deliberately left, since its rows remain in `attestation_responses` and a later attempt rebuilds byte-identical content from them.
+
+**Primary key:** `(network, window_start)`. **Key:** `idx_attest_batch_window (network, status, window_start)`
 
 ### `attestation_fetch_cache`
 
@@ -464,6 +475,7 @@ Records detected validator misbehavior for governance review. The hub detects vi
 | `anchor_published_archives` | The same at-most-once marker for the ANCHOR archive publish, held per network rather than per batch because a crashed round always rebuilds under a fresh `batch_seq` (hub-local, not mirrored) |
 | `capability_snapshots` | Per-block capability validator sets locked at BTC-anchored block boundaries |
 | `anchor_reward_attestations` | Quorum-attested ANCHOR publisher rewards; mirrored to indexers |
+| `attestation_responses` | Finalized ATTEST responses, written once a round reaches quorum and mirrored to indexers, so a response no longer costs a validator an on-chain transaction. Insert-only; every hub holding the artifact writes its own row, so the id is hub-local |
 
 ### `anchor_reward_attestations`
 
@@ -479,7 +491,7 @@ Hub-authored, append-only record of who earned each ANCHOR publish reward. One r
 | `snapshot_block` | `BIGINT UNSIGNED NOT NULL` | BTC block selecting the `oracle_publish` set, and the reward's `block_index` |
 | `publisher` | `VARCHAR(64) NOT NULL` | Elected publisher pubkey credited with the reward (lowercase hex) |
 | `reward_amount` | `VARCHAR(32) NOT NULL` | **Audit only.** The indexer credits the frozen constant, never this wire value |
-| `publisher_attestations` | `TEXT NOT NULL` | JSON `[{pubkey,sig}]`, the majority-floored `max(2f+1, ceil((N+1)/2))` quorum over the reward canonical (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
+| `publisher_attestations` | `TEXT NOT NULL` | JSON `[{pubkey,sig}]`, meeting the `oracle_publish` quorum over the reward canonical at the bundle's snapshot block: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
 | `created_at` | `TIMESTAMP` | Insert time |
 
 **Keys:** unique `(chain, network, reward_type, round_reference, snapshot_block, publisher)`, `(network, snapshot_block)`
@@ -506,7 +518,7 @@ Quorum-signed block-level hash checkpoints for each chain. Rows are append-only;
 | `state_root_version` | `TINYINT UNSIGNED` | `merkle.js STATE_ROOT_VERSION` the state root was computed under; NULL before flag-day |
 | `block_merkle_root` | `CHAR(64)` | SPV per-block content Merkle root; NULL before flag-day |
 | `block_merkle_version` | `TINYINT UNSIGNED` | `merkle.js BLOCK_MERKLE_VERSION`; NULL before flag-day |
-| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` (the majority-floored `max(2f+1, ceil((N+1)/2))` quorum of signatures over the XCHECKPOINT canonical, validated per [ANCHOR](../../protocol/actions/anchor.md)) |
+| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` signatures over the XCHECKPOINT canonical, meeting the `oracle_publish` quorum at the checkpoint's snapshot block: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
 | `anchor_txid` | `VARCHAR(64)` | DOGE ANCHOR txid once published on-chain (hub-side audit only) |
 | `created_at` | `TIMESTAMP NOT NULL` | Record creation time |
 

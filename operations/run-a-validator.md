@@ -170,11 +170,14 @@ hub logs a low-balance warning.
 > **Stake only when you intend to run the hub, and stand down if you stop.**
 > Membership is derived from on-chain stake alone, so a validator that has
 > staked but is not running still counts toward every capability's validator
-> count `N` while contributing nothing. Because the quorum is
-> `max(2*floor((N-1)/3)+1, ceil((N+1)/2))`, adding an absent validator can
-> *raise* the threshold everyone else has to meet: going from 5 validators to
-> 6 moves quorum from 3 to 4. It also puts you in publisher elections you
-> cannot answer. If you are going to be down for more than a short while,
+> count `N` while contributing nothing. Adding an absent validator *raises* the
+> threshold everyone else has to meet, under either quorum rule. At or above
+> `STAKE_WEIGHTED_QUORUM_ACTIVATION` the absent validator's stake still counts
+> in the denominator `S` of `3 x tally > 2 x S`, so the validators who do sign
+> must carry more stake between them. Below activation the count quorum
+> `max(2*floor((N-1)/3)+1, ceil((N+1)/2))` moves from 3 to 4 as the set goes
+> from 5 validators to 6. It also puts you in publisher elections you cannot
+> answer. If you are going to be down for more than a short while,
 > [unstake](#removing-yourself).
 
 One stake of **25000 XCHAIN** clears every capability floor at once:

@@ -45,7 +45,7 @@ When you create a token, you configure a set of properties that define how it be
 
 ### Supply
 
-**Max Supply** is the ceiling on how many tokens can ever exist. Once that ceiling is reached through minting, no more can be created. Think of it like a gold mine with a finite amount of gold; once it is dug out, there is no more.
+**Max Supply** is the ceiling on how many tokens can be outstanding at one time. Every mint is checked against the current supply plus the amount being minted, so while supply sits at the ceiling, further minting is refused. Destroying tokens lowers the current supply and frees that much headroom again, so a max supply is not a limit on how much can be issued over a token's lifetime. Think of it as a tank with a fixed capacity rather than a mine with a finite amount of ore: draining it makes room to refill. To close issuance for good, lock the minting paths (see Locking below) rather than relying on the ceiling alone.
 
 Setting a max supply of zero means the supply is unlimited, which is appropriate for some use cases (like reward points that grow over time) but not others (like collectibles where scarcity matters).
 
@@ -65,7 +65,7 @@ A short text description of your token. This appears in explorers and wallets. K
 
 **Minting** is the act of creating new tokens and adding them to circulation. You set the rules for how minting works at creation time.
 
-- **Mint Supply**: How much supply is issued straight to you at the moment you create the token, up to Max Supply. For example, if mint supply is 100, creating the token credits you 100 tokens. This is your own issued supply, not the amount a public mint produces; editing the token issues that much again unless you lock it.
+- **Mint Supply**: How much supply is issued straight to you at the moment you create the token, up to Max Supply. For example, if mint supply is 100, creating the token credits you 100 tokens. This is your own issued supply, not the amount a public mint produces. It is issued once, when the token is created: editing the description, or changing any other setting on its own, mints nothing further. You issue more only by sending a mint-settings edit that fills in Mint Supply again, which credits you that amount a second time, still capped by Max Supply. Set Lock Mint Supply to close that path for good.
 - **Max Mint**: The largest amount of supply any single mint transaction may create. It caps how much one mint produces, not how many mints can happen; left unset (`0`) there is no per-transaction cap and Max Supply is the only ceiling.
 - **Mint Start Block / Mint Stop Block**: You can schedule a minting window. Before the start block, minting is not allowed. After the stop block, minting closes. This is how you run a timed token launch; a window opens, people mint during it, and it closes automatically.
 - **Per-Address Limit**: You can cap the total amount a single address is allowed to mint, added up across every mint that address makes. This prevents one person from minting everything in a public launch.
@@ -103,7 +103,9 @@ You choose which kinds of action a controller gates:
 - **stake**: staking the token into a contract
 - **ownership**: handing over the token's ownership record
 
-There is also **all**, a catch-all you can bind on its own or underneath the specific classes. Exactly one guard ever runs for any action: the most specific binding wins, and `all` is the fallback for any class you have not bound directly. Binding `all` is therefore a single action that gates everything, which is what makes it a "freeze this token entirely" or "compliance-gate everything" policy.
+There is also **all**, a catch-all you can bind on its own or underneath the specific classes. Your token runs at most one guard per action: the most specific binding wins, and `all` is the fallback for any class you have not bound directly. Binding `all` is therefore a single action that gates everything, which is what makes it a "freeze this token entirely" or "compliance-gate everything" policy.
+
+One thing that surprises people: "one guard per token" is not "one guard per action". The sender's and the recipient's own accounts can each have a controller bound too, and a single `SEND` runs all of them in turn: your token's guard, then the sender's, then the recipient's. Each one costs gas, so the sender needs enough `GAS` for every guard the action can invoke, not just for yours.
 
 Four things to know before you bind one:
 
@@ -122,17 +124,19 @@ One of the most powerful features in XChain is the ability to **lock** a paramet
 
 Why would you want to lock your own token? Because it builds trust.
 
-Imagine you are launching a collectible token and you tell buyers "only 10,000 will ever exist." That is a promise. If you lock the max supply, it becomes a verifiable, unbreakable guarantee written into the blockchain itself. Buyers do not have to trust your word; they can verify the lock themselves.
+Imagine you are launching a collectible token and you tell buyers "no more than 10,000 will ever be held at once." That is a promise. If you lock the max supply, the ceiling becomes a verifiable, unbreakable guarantee written into the blockchain itself: nobody, you included, can raise it later. Buyers do not have to trust your word; they can verify the lock themselves. Locking the ceiling does not by itself stop new tokens being minted into headroom that earlier burns opened up, so a promise about the total ever issued needs the mint locks below as well.
 
 Parameters you can lock include:
 
-- **LOCK_MAX_SUPPLY**: the `MAX_SUPPLY` ceiling can never be raised, proving the total cannot be inflated beyond what is set now
-- **LOCK_MINT**: no one can ever run the MINT command against this token again, so no new supply can ever be created
+- **LOCK_MAX_SUPPLY**: the `MAX_SUPPLY` ceiling can never be raised, proving the amount outstanding at any one time cannot be inflated beyond what is set now
+- **LOCK_MINT**: no one can ever run the `MINT` command against this token again. That closes public minting only; as the issuer you can still create supply with `MINT_SUPPLY` on a re-issue unless `LOCK_MINT_SUPPLY` is also set
 - **LOCK_MINT_SUPPLY**: the token is frozen against you issuing any further supply to yourself via `MINT_SUPPLY`; public minting is unaffected
 - **LOCK_MAX_MINT**: the `MAX_MINT` per-transaction amount cap is frozen permanently and can never be edited again
 - **LOCK_DESCRIPTION**: proves the token's description cannot be swapped out
 - **LOCK_SLEEP**: the token can never be paused by the SLEEP command; useful for tokens that must always be tradeable
 - **Callback settings** (`LOCK_CALLBACK`): proves the recall terms cannot be altered after the fact
+
+No single flag forecloses all supply creation. Set **LOCK_MINT** and **LOCK_MINT_SUPPLY** together to close both issuance paths, and add **LOCK_MAX_SUPPLY** if you also want the ceiling itself frozen.
 
 Locking is a one-way door. Think carefully before locking anything. Once it is done, there is no going back. Not even for you.
 

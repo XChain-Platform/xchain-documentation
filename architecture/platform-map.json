@@ -98,7 +98,7 @@
       "type": "service",
       "group": "hub",
       "tech": "Node.js, MariaDB",
-      "description": "Config oracle and cross-chain coordinator. PBFT federation (majority-floored quorum max(2f+1, ceil((N+1)/2))), five stake-qualified capabilities, price-oracle rounds, attestation engine (http_get / llm providers), reorg-retraction co-signing, governance/slash, and StateAnchorPublisher (ANCHOR v7 bundle on DOGE)."
+      "description": "Config oracle and cross-chain coordinator. PBFT federation (stake-weighted source-deduped quorum at/above STAKE_WEIGHTED_QUORUM_ACTIVATION, majority-floored count max(2f+1, ceil((N+1)/2)) below it), five stake-qualified capabilities, price-oracle rounds, attestation engine (http_get / llm providers), reorg-retraction co-signing, governance/slash, and StateAnchorPublisher (ANCHOR v7 bundle on DOGE)."
     },
     {
       "id": "hubdb",
@@ -152,8 +152,8 @@
       "label": "xchain-wallet",
       "type": "service",
       "group": "clients",
-      "tech": "JS monorepo: web SPA, MV3 extension, Electron",
-      "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device."
+      "tech": "JS monorepo: web SPA, MV3 extension, Electron, Capacitor mobile",
+      "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, mobile (Capacitor; Android shipped, iOS later), plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device."
     },
     {
       "id": "node",

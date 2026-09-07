@@ -77,6 +77,7 @@ flowchart TD
 - Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `DESTINATION` (^57 = `ADDRESS_ID` 57); see [Index ID References](../index-id-references.md)
 - `DISPENSERS=1` closure is delayed by the standard dispenser-close window (1 hour). Escrow routing to `DESTINATION` happens at close time, not at sweep time.
 - An offer's escrow is always routed by the offer-close path; `DESTINATION` becomes the new escrow recipient regardless of the `OWNERSHIPS` setting.
+- `SWEEP` charges a protocol fee, payable in `XCHAIN` from `SOURCE`'s balance or as a native-coin output in the same transaction; on Litecoin and Dogecoin the native-coin output is the only accepted form. The fee is priced on the unified gas schedule as `SWEEP_BASE` plus `SWEEP_PER_ITEM` for each swept balance, closed escrow, and transferred ownership, from the `UNIFIED_FEES_SWEEP_CALLBACK` gate; before it, the fee was a flat charge per database hit. The base exists so even a sweep that moves almost nothing still buys a native-coin fee output above the chain's dust threshold. See [Flag-Day Values](../flag-days.md) for where the gate stands on each network, and the hub's [gas schedule](../../components/hub/api.md) for the values.
 
 ---
 

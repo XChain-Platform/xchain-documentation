@@ -174,7 +174,13 @@ Every figure in a **Gas** column below is in gas units, charged against the call
 | `xchain.math.log2(a)` | Base-2 logarithm |
 | `xchain.math.log10(a)` | Base-10 logarithm |
 
-All math inputs and outputs are **strings**. This ensures deterministic precision using bignumber arithmetic. Native JavaScript arithmetic operators (`+`, `-`, `*`, `/`) use floating-point and may produce non-deterministic results across V8 versions.
+All math inputs are **strings**, and every arithmetic result comes back as a
+string too. This ensures deterministic precision using bignumber arithmetic. The
+comparisons are the exception the table above states: `compare` returns a number
+(`-1`, `0` or `1`) and `gt`/`gte`/`lt`/`lte`/`eq`/`isZero` return booleans, so
+they can be used directly in a condition. Native JavaScript arithmetic operators
+(`+`, `-`, `*`, `/`) use floating-point and may produce non-deterministic results
+across V8 versions.
 
 ### Control Flow (0 gas)
 | Method | Description |
@@ -235,7 +241,7 @@ The VM guarantees identical results on every indexer node replaying the same blo
 - **Sandboxed V8 isolates**: contracts run in `isolated-vm` with a separate heap. No access to the host process, filesystem, or network.
 - **Non-deterministic APIs stripped**: `Date`, `Math.random`, `setTimeout`, `setInterval`, `process`, `require`, `eval`, `Function`, `fetch`, `WeakRef`, `FinalizationRegistry`, `Proxy`, `SharedArrayBuffer`, `Atomics`, `queueMicrotask` are all removed. A deterministic `Math` subset (floor, ceil, round, abs, min, max, sign, trunc, plus constants PI and E) is preserved and frozen. The transcendentals (`sqrt`, `pow`, `log`, `log2`, `log10`) are **also stripped** from the native `Math`; IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures. Contracts access deterministic bignumber equivalents via `xchain.math.sqrt/pow/log/log2/log10` instead; the native `Math.*` forms are rejected at deploy time.
 - **AST-based gas metering**: contract source is parsed with acorn, `__gas()` calls are injected at control flow points, and the source is regenerated. Gas charges are based on code structure, not wall-clock time.
-- **String-only math**: all token amounts pass through `xchain.math.*` which wraps `mathjs` bignumber with string I/O. No floating-point at the gateway boundary.
+- **Bignumber math**: all token amounts pass through `xchain.math.*`, which wraps `mathjs` bignumber and takes string amounts in and returns string arithmetic results (the comparisons return a number or a boolean instead). No floating-point at the gateway boundary.
 - **Synchronous execution**: all isolated-vm APIs are synchronous. No event loop interleaving during contract execution.
 
 ### Snapshot Semantics

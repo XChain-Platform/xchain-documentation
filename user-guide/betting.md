@@ -100,7 +100,7 @@ Anyone can create a market. You do not need permission, a licence from us, or a 
 You set:
 
 - a **question** and a list of **outcomes** (between 2 and 16). Both are permanent
-- the **token** wagers are made in. Betting is token-only; you cannot wager the coin itself
+- the **token** wagers are made in. Betting is token-only; you cannot wager the coin itself, and you cannot use a controller-bound token: a token whose `trade` class (or the catch-all `all`) is bound to a contract is rejected when the market is created, because betting it would route around the controller's veto and its royalty legs. See [Controller-Bound Tokens](../protocol/controller-bound-tokens.md)
 - your **fee**, from 0% to 10% of the pot
 - the **deadline**, when betting closes
 - the **resolve window**, how long you have after the deadline to publish the result. The default is 14 days, and you may set anything from 1 hour to 1 year; a market asking for a window outside that range is rejected
@@ -127,7 +127,7 @@ The market fee is priced by **how long the market lives**, counted all the way t
 | 1 year | 1.5125 XCHAIN |
 | 2 years (the maximum) | 3.52 XCHAIN |
 
-Those prices are always denominated in XCHAIN, but XCHAIN is not always what pays them. On **Litecoin and Dogecoin, paying in the native coin is the only option**: a market created, or a bet placed, without a native-coin fee output is rejected. On **Bitcoin** you may instead have the fee deducted from an XCHAIN balance, if you hold one and prefer that.
+Those prices are always denominated in XCHAIN, but XCHAIN is not always what pays them. On **Litecoin and Dogecoin, paying in the native coin is the only option**: an action that owes a fee is rejected if it carries no native-coin fee output. That applies to every bet you place, and to any market whose life runs past the free window; a market inside the free window owes nothing and needs no fee output at all. On **Bitcoin** you may instead have the fee deducted from an XCHAIN balance, if you hold one and prefer that.
 
 Placing a bet costs the bettor a small fee, priced in XCHAIN and paid the same way as above. **Resolving is free**, no matter how many bets are on the book, so a busy market never costs you more to settle honestly. **Cancelling is free** too.
 

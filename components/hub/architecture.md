@@ -135,7 +135,7 @@ flowchart TD
 | `OraclePublisher.js` | `OraclePublisher` | `oracle_publish` capability publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
 | `EncoderClient.js` | `EncoderClient` | Minimal JSON-RPC client for talking to xchain-encoder (`get_utxos`, `create_tx`, `broadcast_tx`): used by `OraclePublisher` |
 | `HubDbBroadcaster.js` | `HubDbBroadcaster` | WebSocket subscriber registry; broadcasts `row:inserted` events from `PriceAggregator`, `StateCheckpointEngine`, `CrossChainDexEngine`, and `CrossChainCallEngine` to all connected indexers' `HubDbSync` clients |
-| `StateCheckpointEngine.js` | `StateCheckpointEngine` | Quorum-signed per-chain ledger/actions/contract hash checkpoints: cadence-leader reads each chain's block-hash triple, collects XCHK_SIGN from peers, finalizes at the majority-floored quorum `max(2f+1, ceil((N+1)/2))`, writes to `state_checkpoints`, streams via `HubDbBroadcaster`, emits `checkpoint:finalized` |
+| `StateCheckpointEngine.js` | `StateCheckpointEngine` | Quorum-signed per-chain ledger/actions/contract hash checkpoints: cadence-leader reads each chain's block-hash triple, collects XCHK_SIGN from peers, finalizes at the federation quorum for the checkpoint's snapshot block (stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the majority-floored count `max(2f+1, ceil((N+1)/2))`; see [Quorum](#quorum)), writes to `state_checkpoints`, streams via `HubDbBroadcaster`, emits `checkpoint:finalized` |
 | `StateAnchorPublisher.js` | `StateAnchorPublisher` | Checkpoint-bundle anchor publisher: listens for `checkpoint:finalized`, batches `cross_chain_matches` archive, and commits every checkpointed chain in ONE DOGE [ANCHOR v0](../../protocol/actions/anchor.md) action per network per publishing cycle (one section per chain, one publisher election per bundle), plus the archive, on the `ANCHOR_INTERVAL_MS` cadence |
 | `FullNodeChallengeRound.js` | `FullNodeChallengeRound` | Challenge-response rounds that verify `full_node` capability claimants. The elected leader issues a block-hash challenge; each claimant broadcasts its computed answer (`XNODE_ANSWER`); the leader proposes the pass list (`XNODE_SIGN_REQ`); verifiers independently recompute and co-sign (`XNODE_SIGN`); results are finalized on-chain via `XNODE_DONE`. Pass rate feeds into the full-node reward tier. |
 | `AttestationPublisher.js` | `AttestationPublisher` | Subscribes to `AttestationConsensus` `request:finalized` events and ships the on-chain ATTEST v1 (response) wire payload via an operator-provided hook. Writes a durable JSONL write-ahead log before any broadcast; the leader broadcasts immediately, followers step in after `failoverWindowBlocks` blocks using a rank-staggered backoff. |
@@ -260,7 +260,7 @@ All types below ride the envelope above; only the `data` payload differs. Every 
 | `ATTEST_PROPOSE` / `ATTEST_PREPARE` / `ATTEST_COMMIT` | `AttestationConsensus` | PBFT-style consensus over external attestation responses. |
 | `XCHAIN_ATTEST_PROPOSE` / `XCHAIN_ATTEST_PREPARE` / `XCHAIN_ATTEST_COMMIT` | `CrossChainEngine` | Consensus over cross-chain action confirmations. |
 | `XCALL_RELAY_PROPOSE` / `XCALL_RELAY_PREPARE` / `XCALL_RELAY_COMMIT` / `XCALL_RELAY_VIEW_CHANGE` / `XCALL_RELAY_NEW_VIEW` / `XCALL_RELAY_FINAL_SYNC` | `CrossChainCallEngine` | PBFT consensus to quorum-sign cross-chain contract call relay rows (`cross_chain_calls`). Reuses the DEX consensus engine with parameterized message types. |
-| `XCHK_SIGN_REQ` / `XCHK_SIGN` / `XCHK_FINALIZED` | `StateCheckpointEngine` | Collect `max(2f+1, ceil((N+1)/2))` validator signatures over per-chain ledger/actions/contract hash checkpoints. |
+| `XCHK_SIGN_REQ` / `XCHK_SIGN` / `XCHK_FINALIZED` | `StateCheckpointEngine` | Collect a quorum of validator signatures over per-chain ledger/actions/contract hash checkpoints (see [Quorum](#quorum)). |
 | `XANC_SIGN_REQ` / `XANC_SIGN` / `XANC_FINALIZED` / `XANC_BUNDLE_DONE` | `StateAnchorPublisher` | Co-sign the on-chain ANCHOR payload (checkpoint bundle + archive). `XANC_BUNDLE_DONE` carries the txid and the bundle's section list, back-filling `anchor_txid` on every peer's checkpoint rows to prevent duplicate anchoring. |
 | `XNODE_ANSWER` / `XNODE_SIGN_REQ` / `XNODE_SIGN` / `XNODE_DONE` | `FullNodeChallengeRound` | Full-node challenge-response protocol. Claimants broadcast their computed answer (`XNODE_ANSWER`); the elected leader proposes the pass list (`XNODE_SIGN_REQ`); eligible verifiers co-sign after recomputing independently (`XNODE_SIGN`); the leader finalizes and broadcasts results (`XNODE_DONE`). |
 
@@ -294,15 +294,27 @@ Leader for sequence `N` = `validatorSet[(N + view) % validatorCount]`, where val
 If the leader fails to drive consensus within `PBFT_TIMEOUT` (default 30s):
 
 1. Validators broadcast `PBFT_VIEW_CHANGE` for `view + 1`.
-2. Once `max(2f+1, ceil((N+1)/2))` view-change votes are collected, the new view is adopted.
+2. Once the view-change votes reach quorum (below), the new view is adopted.
 3. The next leader (per the new view number) takes over.
 
 ### Quorum
 
-`max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)`, tolerates `f` Byzantine validators
-out of `N` total. The simple-majority floor matters for small federations: bare `2f+1`
-degenerates to a quorum of 1 at N=3 (f=0), which would let a single validator finalize
-alone. With the floor, N=3 requires 2 votes and N=2 requires both.
+The quorum rule is activation-gated, keyed on the round's BTC-anchored snapshot block and
+network. `PREPARE`, `COMMIT` and `PBFT_VIEW_CHANGE` all use the same predicate
+(`Consensus._quorumMet`), as do the checkpoint and cross-chain engines.
+
+**At or above `STAKE_WEIGHTED_QUORUM_ACTIVATION`:** stake-weighted and source-deduplicated.
+Each voting validator's signing pubkey resolves to its stake source in the federation
+snapshot, each source counts at most once however many of its keys vote, and the summed
+stake must satisfy `3 x tally > 2 x S`, where `S` is the snapshot's total stake over
+distinct sources. Three equally weighted sources therefore need all three votes. See
+[`protocol/reference-impl/stake_weighted_quorum.js`](../../protocol/reference-impl/stake_weighted_quorum.js).
+
+**Below activation:** the legacy signer COUNT `max(2f+1, ceil((N+1)/2))` where
+`f = floor((N-1)/3)`, tolerating `f` Byzantine validators out of `N` total. The
+simple-majority floor matters for small federations: bare `2f+1` degenerates to a quorum
+of 1 at N=3 (f=0), which would let a single validator finalize alone. With the floor,
+N=3 requires 2 votes and N=2 requires both.
 
 ## Oracle Pipeline
 

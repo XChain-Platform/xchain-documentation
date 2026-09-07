@@ -85,10 +85,10 @@ See [`../components/indexer/`](../components/indexer/) for full documentation.
 
 Key technical details:
 
-- 299 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, holders, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, contract emissions, vote delegations, validator capabilities and slashing, chain reorgs, anchor reward attestations, per-block commitments, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-08-28:
-  - 171 `/{COIN}/api/...` and 112 `/{COIN}/explorer/...` patterns in the dispatch table built by `setupUrls()`, matched by the catch-all handler rather than registered with Express individually.
+- 302 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, holders, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, contract emissions, vote delegations, validator capabilities and slashing, chain reorgs, anchor reward attestations, per-block commitments, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-08-28:
+  - 174 `/{COIN}/api/...` and 112 `/{COIN}/explorer/...` patterns in the dispatch table built by `setupUrls()`, matched by the catch-all handler rather than registered with Express individually.
   - 16 hand-registered `/{COIN}/api/...` routes that bypass the dispatch table: raw file download, fee quote, oracle fee quote, preflight (registered twice, GET and POST, because the largest legal action does not fit a query string), fee schedule, checkpoint list, checkpoint range, checkpoint verify, hub-mirror status, the five Merkle proof endpoints (balance, locked balance, action, validator set, contract state), and the POST contract-call query endpoint.
-  - Outside those two namespaces the same server also registers 114 HTML page routes plus `/openapi.json`, `/icon`, `/relay`, and the static asset mounts.
+  - Outside those two namespaces the same server also registers 117 HTML page routes plus `/openapi.json`, `/icon`, `/relay`, and the static asset mounts.
 - JSON-RPC 2.0 interface compatible with Counterparty-style tooling.
 - Bootstrap-based web UI with Highcharts for order book and market price visualization.
 - Reads configuration from xchain-hub every 60 seconds (fee schedules, supported parameters, fiat pricing).
@@ -218,7 +218,7 @@ Key technical details:
 
 - Operates in two modes: standalone (simple config oracle) and validator mode (full PBFT consensus, P2P gossip, oracle, cross-chain attestation, governance).
 - Supports multi-instance deployment, multiple hub instances against shared MariaDB, with consumer fallback via `HUB_VALIDATORS`.
-- Config writes go through PBFT consensus in validator mode (PRE_PREPARE → PREPARE → COMMIT with a `max(2f+1, ceil((N+1)/2))` quorum).
+- Config writes go through PBFT consensus in validator mode (PRE_PREPARE → PREPARE → COMMIT, reaching a federation quorum that is stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION` and the legacy `max(2f+1, ceil((N+1)/2))` signer count below it).
 - Decentralized price oracle: validators fetch from CoinGecko and Kraken (CoinMarketCap optional, requires API key), aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
 - Cross-chain attestation engine with per-chain-pair validator subsets and confirmation thresholds (BTC: 6, LTC: 12, DOGE: 60; env-tunable via `XCHAIN_CONFIRMATIONS_<COIN>`).
 - SWAP lifecycle tracking: initiated → attested → executed → settled.
@@ -326,7 +326,7 @@ See [`../components/vm/`](../components/vm/) for full documentation.
 
 | | |
 |---|---|
-| **Purpose** | Self-custodial multi-chain reference wallet; browser SPA, Chrome MV3 extension, and Electron desktop app |
+| **Purpose** | Self-custodial multi-chain reference wallet; browser SPA, Chrome MV3 extension, Electron desktop app, and Capacitor mobile app (Android shipped, iOS later) |
 | **Inputs** | User interaction; xchain-sdk for action construction; xchain-explorer for balance and history queries; xchain-hub for config and fee data |
 | **Outputs** | Signed transactions broadcast to coin nodes via the encoder; read-only views of balances, tokens, actions, and markets |
 | **Storage** | Client-side only (browser localStorage / extension storage / Electron local store); no server-side state |
@@ -336,7 +336,7 @@ Key technical details:
 
 - Built on xchain-sdk; all action construction goes through the SDK's 31 developer-invocable ACTION methods.
 - Supports every chain the platform runs on, today Bitcoin, Litecoin, and Dogecoin (mainnet, testnet, regtest), from the same codebase.
-- Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), and an Electron desktop application.
+- Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), an Electron desktop application, and a Capacitor mobile app wrapping the same web build (Android shipped, iOS later).
 - Private keys never leave the client; signing happens locally before broadcast.
 - Targets non-technical end users; UI language is intentionally plain (e.g., "About" not "Token Spec").
 

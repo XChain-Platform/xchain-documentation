@@ -106,7 +106,7 @@ For production deployments, use certificates from a trusted CA. For development 
 The explorer applies rate limiting to all endpoints:
 
 - **Window:** 60 seconds  
-- **Max requests:** 500 per window per IP (configurable via `EXPLORER_RATE_LIMIT_RPM`)  
+- **Max requests:** 1080 per window per IP (configurable via `EXPLORER_RATE_LIMIT_RPM`; derived from the measured wallet profile with 3x headroom)  
 - **Response on limit:** HTTP 429 Too Many Requests
 
 Rate limiting is applied via `express-rate-limit` middleware before any route handling.

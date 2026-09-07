@@ -134,20 +134,26 @@ await sdk.issue({ TICK: 'MTK', MAX_SUPPLY: '1000000', DECIMALS: '8' }, encoder);
 
 Need a transfer hook (allowlist, royalty, freeze)? That is a **controller-bound
 token**: deploy a guard contract and bind it at issue time, so the rule is enforced
-by the protocol on every transfer and cannot be bypassed by any marketplace.
+by the protocol on every action of the bound class, with no marketplace able to route
+around it. Bind `all` when the rule must also cover sales: a `transfer` binding gates
+`SEND`s only, while `ORDER` / `SWAP` / `DISPENSER` creates route to the `trade` class.
 
 ```javascript
 // guard contract: the indexer calls guard(...) before a guarded action settles
 module.exports = {
     guard: function (xchain) {
-        var actionType = xchain.getInputParam(0);   // e.g. 'transfer'
-        var to         = xchain.getInputParam(2);
-        // deny transfers to a blocked address
-        if (xchain.state.get('blocked:' + to) === '1') xchain.revert('recipient blocked');
-        // (optional) return a royalty split via payoutLegs for 'trade'
+        var actionType = xchain.getInputParam(0);   // the invocation point: 'SEND', 'SWEEP', ...
+        var to         = xchain.getInputParam(2);   // '' on AIRDROP/DIVIDEND and the trade creates
+        // deny transfers to a blocked address. `to` is populated only on SEND, SWEEP,
+        // SWEEP_OWNERSHIP and MINT, so branch on actionType: see the invocation-points table
+        // in the controller-bound-tokens spec.
+        if (to !== '' && xchain.state.get('blocked:' + to) === '1') xchain.revert('recipient blocked');
+        // (optional) return a royalty split via payoutLegs from ORDER_CREATE / SWAP_CREATE
     }
 };
-// bound with ISSUE v6: CONTROLLER = <guard contract index>, ACTION_CLASS = 'transfer' (or 'all')
+// bound with ISSUE v6: CONTROLLER = <guard contract index>, ACTION_CLASS = 'all'
+// ('transfer' gates SENDs only; listings route to the 'trade' class, so a royalty or
+//  compliance rule that must cover sales needs 'all', or 'trade' bound alongside 'transfer')
 ```
 
 ## Worked example 2: Ownable counter, side by side

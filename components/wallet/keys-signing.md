@@ -60,16 +60,18 @@ flowchart TD
     S5 --> DONE
 ```
 
-Vault contents include the encrypted seed, derivation roots, accounts, addresses, contacts, connected-sites, multisig configs, in-flight signing sessions, queued broadcasts, registered signers, and settings. See [Architecture; Vault and state model](architecture.md) for the full collection list.
+Vault contents include the encrypted seed, the encrypted passphrase (where one is set), derivation roots, accounts, addresses, contacts, connected-sites, multisig configs, in-flight signing sessions, queued broadcasts, registered signers, and settings. See [Architecture; Vault and state model](architecture.md) for the full collection list.
 
 ## Mnemonic handling
 
 Two mnemonic formats are supported on import:
 
-- **BIP39**: 12, 15, 18, 21, or 24 words, validated against the BIP39 wordlist by `@scure/bip39`. Generation defaults to 12 words (128-bit entropy); a caller may request 24 words (256-bit) by passing a higher `strengthBits` value. Optional 25th-word passphrase is offered on the create flow and on import.
+- **BIP39**: 12, 15, 18, 21, or 24 words, validated against the BIP39 wordlist by `@scure/bip39`. Generation defaults to 12 words (128-bit entropy); a caller may request 24 words (256-bit) by passing a higher `strengthBits` value. Optional 25th-word passphrase is offered on the create flow and on import, captured once: the wallet stores it encrypted under the same vault key as the seed and decrypts it alongside the seed at unlock, feeding it into derivation. After this one-time capture it is never re-entered on that device, except to restore the wallet on another one.
 - **Counterwallet legacy**: 12 words from a non-standard wordlist. Implemented in-house at `core/src/crypto/counterwallet.js` + `counterwallet-wordlist.js` because the wordlist isn't published in any standardized package.
 
-Both flows derive a BIP32 seed and store the encrypted seed in the vault. The plaintext mnemonic is shown to the user during create + view-private-key flows, both gated behind explicit confirmation, and is never persisted in plaintext.
+Both flows derive a BIP32 seed and store the encrypted seed in the vault. The plaintext mnemonic is shown to the user during create + view-private-key flows, both gated behind explicit confirmation, and is never persisted in plaintext. The passphrase, where one is set, follows the same rule: shown once at capture, and stored and handled only in encrypted form afterward.
+
+**Passphrase capture for existing wallets**: a wallet created before passphrase storage shipped has no encrypted passphrase in the vault yet. On the first unlock after upgrading, the wallet asks for the passphrase once, explains that it will be stored, and verifies it by re-deriving the wallet's own addresses and checking them against the addresses already in the vault. Once verified, the passphrase is stored encrypted the same way a newly created wallet's is, and the wallet does not ask again. Until this capture completes, the wallet is listed but cannot sign.
 
 Migration: a Counterwallet-imported wallet can be migrated to BIP39 on demand via the `MigrateToBip39` route. The wallet generates a fresh 24-word BIP39 mnemonic, derives the same chain/account roots, and offers a sweep flow to move balances from the legacy derivation to the new one. The migration is opt-in and reversible (the legacy mnemonic continues to control the legacy addresses).
 
@@ -176,12 +178,14 @@ A dedicated `MultisigSigner` class is planned (§17.5) but not yet implemented. 
 The wallet ships three backup paths:
 
 - **View private key**: per-address WIF export; gated by a "Before you continue" warning in an unlocked session (no password re-entry when already unlocked); a locked wallet must be unlocked first; surfaced in the `ViewPrivateKey` route
-- **Backup file**: full vault export as an encrypted blob; `core/src/crypto/backup.js` re-wraps the vault with a backup-specific KDF
+- **Backup file**: full vault export as an encrypted blob, including the encrypted passphrase where one is set; `core/src/crypto/backup.js` re-wraps the vault with a backup-specific KDF, re-keying both the seed and the passphrase under the restoring device's password
 - **Mnemonic + passphrase**: the canonical recovery path; recreating the wallet on any compatible client recovers identical addresses
 
-The `dryRunRestore` flow (`core/src/flows/dryRunRestore.js`) lets a user verify they have the right mnemonic + passphrase combination without committing to a fresh wallet; the wallet derives the first N addresses and shows them alongside any on-chain history. If the addresses look right, the user confirms; otherwise they go back to retry the mnemonic.
+The `dryRunRestore` flow (`core/src/flows/dryRunRestore.js`) lets a user verify they have the right mnemonic + passphrase combination without committing to a fresh wallet; the wallet derives the first N addresses and shows them alongside any on-chain history. If the addresses look right, the user confirms; otherwise they go back to retry the mnemonic. A recovery phrase carries no record of whether a passphrase was originally used, so an import that omits it does not fail: it silently derives a different, valid-looking, empty wallet. This preview is the only check against that.
 
 `importSingleWif` and `importWif` cover the case where a user has only a single private key (e.g., recovered from a paper wallet or another wallet) and wants the XChain wallet to manage it. These flows create a single-address, no-mnemonic wallet that supports all wallet operations except HD-derived receive-address generation.
+
+**What the stored passphrase protects**: because the passphrase is encrypted under the same key as the seed, it protects a recovery phrase that leaks on its own (written down, photographed, or typed into the wrong site): the phrase alone does not reach the funds. It does not protect against someone who has both the device and the wallet's unlock password; that person unlocks the same wallet the owner does. It is not a decoy or plausible-deniability mechanism: there is no hidden or fake wallet behind it.
 
 ## Label sync
 

@@ -87,7 +87,8 @@ curl -X POST https://encoder.xchain.io/BTC/ \
 | Hub | `x-api-key` required for write and admin methods; read methods are open | Per-instance, configurable |
 
 JSON-RPC errors follow the 2.0 convention with a numeric `code`: `-32602` invalid params,
-`-32603` internal error, `-32001` unauthorized, `-32029` rate limited. The full registry is
+`-32603` internal error, `-32001` unauthorized, `-32029` rate limited, and on the encoder
+`-32010` operational error (branch on `error.data.reason`). The full registry is
 documented at [Error Codes](../protocol/error-codes.md).
 
 ## See also

@@ -159,3 +159,38 @@ test('the betting guide states the enforced refund-window bounds and per-market 
         assert.ok(readDoc('protocol/actions/bet.md').includes(String(cap)),
             `protocol/actions/bet.md no longer states the ${cap} bet cap it is the reference for`);
     });
+
+test('the unified free-listing window every fee page quotes matches the coin configs',
+    { skip: !haveCoins && 'sibling xchain-indexer not present in this checkout' }, () => {
+        const free = new Map();
+        for (const [coin, file] of COIN_JS) {
+            const src = fs.readFileSync(file, 'utf8');
+            free.set(coin, scheduleValue(src, 'UNIFIED_EXPIRATION_FEE_FREE_DAYS',
+                                         `xchain-indexer/src/coins/${coin}.js`));
+        }
+
+        // Every page states one figure for all three chains, so assert the
+        // premise before the number.
+        assert.deepStrictEqual([...new Set(free.values())], [free.get('BTC')],
+            `UNIFIED_EXPIRATION_FEE_FREE_DAYS differs per chain (${JSON.stringify([...free])}), but the fee `
+            + 'pages and the indexer constants table each state a single free window. Split the prose per chain.');
+
+        const days = free.get('BTC');
+
+        // The constants table quotes the value as an example, and a wrong cell
+        // there reads as an authoritative override of the prose: it said 365
+        // against a 90 the rest of the corpus already had right.
+        const row = readDoc('components/indexer/configuration.md').split('\n')
+            .find((l) => l.startsWith('|') && l.includes('UNIFIED_EXPIRATION_FEE_FREE_DAYS'));
+        assert.ok(row,
+            'components/indexer/configuration.md no longer has a UNIFIED_EXPIRATION_FEE_FREE_DAYS table row');
+        assert.ok(new RegExp('`' + days + '`').test(row),
+            'components/indexer/configuration.md quotes a free window the coin configs do not define '
+            + `(they define ${days}): ${row.trim()}`);
+
+        // And the two reader-facing pages that spell the window out in prose.
+        for (const rel of ['concepts/gas.md', 'user-guide/trading.md']) {
+            assert.ok(new RegExp('first \\*{0,2}' + days + ' days').test(readDoc(rel)),
+                `${rel} does not state the ${days}-day free listing window the indexer enforces`);
+        }
+    });

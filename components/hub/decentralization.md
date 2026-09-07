@@ -41,7 +41,7 @@ Validators with the `price` capability independently fetch cryptocurrency prices
 
 ### `cross_chain`: Cross-Chain Validators
 
-Validators with the `cross_chain` capability attest to cross-chain swap actions. Rather than running full decoder and indexer stacks for every chain, they use **xchain-sync** to replicate indexer + decoder databases, keeping them lightweight. Consensus is calculated per chain-pair; only validators supporting both chains in a swap participate in attestation, using a PBFT-derived consensus requiring `max(2f+1, ceil((N+1)/2))` agreement (simple-majority floor; see Quorum below).
+Validators with the `cross_chain` capability attest to cross-chain swap actions. Rather than running full decoder and indexer stacks for every chain, they use **xchain-sync** to replicate indexer + decoder databases, keeping them lightweight. Consensus is calculated per chain-pair; only validators supporting both chains in a swap participate in attestation, using a PBFT-derived consensus requiring quorum agreement over that pair's validator set (stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the majority-floored count; see [Quorum](#quorum) below).
 
 ### `oracle_publish`: PRICE v0 Broadcasters
 
@@ -116,11 +116,15 @@ flowchart TD
     B -->|gossip| C
 ```
 
-Each validator runs the full hub stack. Communication happens via WebSocket-based P2P gossip with Ed25519-signed messages. All consensus decisions require `max(2f+1, ceil((N+1)/2))` agreement; the simple-majority floor prevents a single validator from finalizing alone at small federation sizes (N=3 requires 2 votes; N=2 requires both).
+Each validator runs the full hub stack. Communication happens via WebSocket-based P2P gossip with Ed25519-signed messages. All consensus decisions require quorum agreement, and which quorum rule applies is activation-gated (below).
 
 ### Quorum
 
-`max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)`, tolerates `f` Byzantine validators out of `N` total. The simple-majority floor matters for small federations: bare `2f+1` degenerates to a quorum of 1 at N=3 (f=0), which would let a single validator finalize alone. With the floor, N=3 requires 2 votes and N=2 requires both.
+The rule is keyed on the round's BTC-anchored snapshot block and network, so every hub and every indexer flips on the same anchor.
+
+**At or above `STAKE_WEIGHTED_QUORUM_ACTIVATION`:** stake-weighted and source-deduplicated. Each voting validator's pubkey resolves to its stake source in the federation snapshot, each source counts at most once however many of its keys vote, and the summed stake must satisfy `3 x tally > 2 x S`, where `S` is the snapshot's total stake over distinct sources. Three equally weighted sources therefore need all three votes. See [`protocol/reference-impl/stake_weighted_quorum.js`](../../protocol/reference-impl/stake_weighted_quorum.js).
+
+**Below activation:** the legacy signer count `max(2f+1, ceil((N+1)/2))` where `f = floor((N-1)/3)`, tolerating `f` Byzantine validators out of `N` total. The simple-majority floor matters for small federations: bare `2f+1` degenerates to a quorum of 1 at N=3 (f=0), which would let a single validator finalize alone. With the floor, N=3 requires 2 votes and N=2 requires both.
 
 ## Related
 

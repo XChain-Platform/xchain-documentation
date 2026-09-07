@@ -26,7 +26,7 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 **imported WIF** - A single private key imported into an existing HD wallet. The key sits alongside derived keys but is not recoverable from the mnemonic; it must be backed up separately.
 
-**BIP39 passphrase** - An optional "25th word" added to the mnemonic when deriving the seed. Different passphrases produce different wallets from the same mnemonic. Permanent: forgetting the passphrase permanently locks the wallet.
+**BIP39 passphrase** - An optional "25th word" added to the mnemonic when deriving the seed. Different passphrases produce different wallets from the same mnemonic. Captured once, at wallet creation or import, and stored encrypted alongside the mnemonic under the wallet's own password, so it is not re-entered at each unlock; restoring the wallet on a different device still requires it, together with the recovery phrase. Permanent: forgetting the passphrase permanently locks the wallet.
 
 **signer** - An object that produces a signature for a transaction or message. Concrete kinds: software (mnemonic + password unlock), Trezor (over Trezor Connect), Ledger (over WebHID), and remote/multisig composites. Selected per address.
 

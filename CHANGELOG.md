@@ -5,23 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.0] - 2026-09-02
+## [0.15.0] - 2026-09-07
 
 ### Added
-- Documented the attestation responsible-set widening flag day and its activation heights.
-
-### Activation
-- Attestation responsible-set widening activates on Bitcoin testnet at block 150780 and on regtest from genesis. Mainnet is unratified and the rule is inert there. Below the height, and on an unratified network, behaviour is byte-for-byte unchanged.
-- This train changes state derived from existing bytes, so nodes on either side of the height disagree once a widened response lands. Upgrade every indexer and hub before the height.
-
-## [Unreleased]
-
-### Added
+- The ATTEST response-mirror activation height, its two hub overrides, the attestation batch publisher settings, the round cadence knobs and the indexer's three hub-mirror grace windows are documented, with the `attestation_responses` mirror table.
+- A two-chain regtest venue can opt in to roll-call activation, and the roll-call, frozen-tip and config-oracle variables are documented for the hub and indexer.
+- Flag-day gates parked on the unarmed testnet sentinel are reported.
+- The v0.14.0 release train is recorded on the releases page.
 - ROLLCALL, a validator liveness action published on Dogecoin, is documented: wire format, EQUIV canonical, the rules each chain judges, the accept window and its cut, and the eviction rule.
 - Eight frozen ROLLCALL consensus constants are declared in `protocol/constants.js`, with mainnet shipping inert at `null`.
 - `XROLLCALL` joins `ENGINE_TAGS` with header vectors; it is namespacing only and deliberately not a SLASH family.
 - `rollcall_canonical.json` freezes the canonical and wire bytes with real Ed25519 signatures, including negative cases for a wrong ledger hash, network or epoch.
 - The indexer configuration page states that the existing DOGE wiring becomes required a second time from `ROLLCALL_ACTIVATION`, and that a BTC indexer without it defers every block.
+- ATTEST's hub-mirror response path is documented: the mirror-era signed canonical, deterministic callback timing with no broadcast transaction, the v5/v6 batch format, and the escrow-split change once broadcasting stops.
 
 ### Changed
 - The white paper is bumped to version 1.4, dated 2026-08-31, for the announcement.
@@ -59,6 +55,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - The operator-dashboard pages and every listing of it (components index, README table, platform map, test counts); it is internal operator tooling, not part of the public platform.
+
+### Activation
+- The ATTEST response mirror activates on Bitcoin testnet at block 151324 and on regtest from genesis. Mainnet is unratified and the legacy on-chain response path runs there byte for byte.
+- ROLLCALL activates on Bitcoin testnet at block 151200, which the chain has already passed, so it is live from the moment a node updates. Mainnet is unratified.
+- Both change state derived from existing bytes on testnet, so an updated node and one still on 0.14.0 judge a mirrored response differently once one lands. Update every indexer and hub together.
+
+## [0.14.0] - 2026-09-02
+
+### Added
+- Documented the attestation responsible-set widening flag day and its activation heights.
+
+### Activation
+- Attestation responsible-set widening activates on Bitcoin testnet at block 150780 and on regtest from genesis. Mainnet is unratified and the rule is inert there. Below the height, and on an unratified network, behaviour is byte-for-byte unchanged.
+- This train changes state derived from existing bytes, so nodes on either side of the height disagree once a widened response lands. Upgrade every indexer and hub before the height.
 
 ## [0.12.1] - 2026-08-13
 

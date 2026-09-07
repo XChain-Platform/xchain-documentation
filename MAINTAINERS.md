@@ -27,7 +27,7 @@ Until additional maintainers join, the lead owns every area below. The table is 
 | Area | What it covers |
 |---|---|
 | Protocol spec | `protocol/` ACTION definitions, encoding formats, DB naming conventions, Token Information Standard, error codes, URI scheme, and JSON schemas |
-| Component docs | `components/` documentation for each of the 15 documented xchain-* components |
+| Component docs | `components/` documentation for each of the 14 documented xchain-* components |
 | Developer guide | `developer-guide/` tutorials, integration examples, and query references |
 | Getting started | `getting-started/` platform intro, quickstarts, and glossary |
 | Concepts | `concepts/` metalayer model, tokens, ACTIONs, encoding, cross-chain, gas, and security overviews |
@@ -35,7 +35,7 @@ Until additional maintainers join, the lead owns every area below. The table is 
 | User guide | `user-guide/` capabilities, use cases, and FAQ for non-technical readers |
 | AI and agents | `ai-agents/` guides for building AI agents on the platform |
 | Operations | `operations/` deployment, monitoring, upgrades, and troubleshooting |
-| Overview and whitepaper | `OVERVIEW.md`, `WHITEPAPER.md`, `BLOCKCHAINS.md` |
+| Overview and whitepaper | `overview.md`, `whitepaper.md`, `blockchains.md` |
 | Legal and project files | `legal/`, `LICENSE.md`, `NOTICE.md`, `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `MAINTAINERS.md` |
 
 ---
@@ -63,7 +63,7 @@ If you cannot reach the relevant area maintainer within a reasonable window:
 | Situation | Escalate to |
 |---|---|
 | Active security incident | `security@dankest.llc` (per `SECURITY.md`) |
-| A documented consensus rule, encoding, or validation requirement that is unsafe or ambiguous | Open a public issue tagged `security` AND email `security@dankest.llc` |
+| A documented consensus rule, encoding, or validation requirement that is unsafe or ambiguous | GitHub Private Vulnerability Reporting, or `security@dankest.llc`; do not open a public issue (per `SECURITY.md`) |
 | Code-of-conduct concern | `conduct@dankest.llc` (per `CODE_OF_CONDUCT.md`) |
 | PR has been open without review for 14+ days | Comment `@J-Dog` on the PR; if no response within 7 more days, open an issue tagged `governance` with the PR link |
 

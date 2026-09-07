@@ -160,16 +160,16 @@ XChain actions involved: SWAP.
 
 ### Token Ownership Trading
 
-A token has two separate things attached to it: the *balances* (who holds how much) and the *ownership* (who can update the token's settings, mint new supply, change the description, etc.). Until recently, only balances could be traded. Now you can sell ownership of an entire token on the DEX, atomically, with no off-chain trust.
+A token has two separate things attached to it: the *balances* (who holds how much) and the *ownership* (who can update the token's settings, mint new supply, change the description, etc.). Until recently, only balances could be traded. Now you can sell ownership of an entire token on the DEX, with no off-chain trust; on a sale that settles on one chain, payment and handover are the same transaction.
 
 **What this enables:**
 
 - **Selling a finished project.** A creator who built a token, distributed it to holders, and now wants to step away can sell the issuer role outright. The buyer takes over future updates, the seller cashes out.
-- **Selling a gated content archive.** Combined with [token-gated publishing](#token-gated-encrypted-content-and-packs), the issuer can sell the entire archive (keys, future republish rights, and everything) to a buyer in a single trade.
+- **Selling a gated content archive.** Combined with [token-gated publishing](#token-gated-encrypted-content-and-packs), the issuer can sell the right to republish and to manage the token in a single trade. The decryption keys are not part of that trade: an ownership sale moves the issuer record, not the key material, so hand the keys over yourself in a direct send to the buyer to complete the handover.
 - **Brand or sub-token portfolios.** Sell a parent token together with the right to issue its sub-tokens, transferring an entire token namespace as one asset.
 - **Auctioning a launched token.** Set up a dispenser that hands out the ownership role at a fixed price. The first buyer to send the asking amount becomes the new issuer.
 
-Ownership transfer is atomic with the trade; there is no moment where the seller has the payment but the buyer doesn't yet have ownership.
+On a single-chain sale, ownership transfer is atomic with the trade; there is no moment where the seller has the payment but the buyer doesn't yet have ownership. A swap across two chains cannot be settled by one transaction, so each chain hands over its own side against the signed match and the usual cross-chain residual risk applies. See [Residual risk](./cross-chain.md#residual-risk).
 
 XChain actions involved: ORDER, SWAP, or DISPENSER (each with the `GIVE_OWNERSHIP` / `GET_OWNERSHIP` flag).
 
