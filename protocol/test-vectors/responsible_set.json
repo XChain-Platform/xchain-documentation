@@ -1,5 +1,5 @@
 {
-  "_description": "Canonical conformance vectors for the attestation responsible-set selection rule (_computeResponsibleSet). This rule is implemented independently in xchain-hub (AttestationRound._computeResponsibleSet, AttestationPublisher._computeResponsible) and xchain-indexer (actions/attest._computeResponsibleSet, plus rollback._responsibleSet for the reorg recompute); they MUST produce identical ordered output for the same inputs or attestation quorum evaluation forks (the hub signs with set S_hub, the indexer filters verified signatures against S_idx, and any divergence silently expires every affected request). Unlike the stake_weighted_quorum primitive this rule is not a single vendored file, so there is no byte-identity guard; each repo's conformance test instead runs these behaviour vectors against its own copy. Rule: (1) when weighted, drop every validator whose staking source's aggregate `weight` is below `minStake`, the request provider's block-anchored min_stake_xchain floor, treating an unusable weight or an unusable floor as NOT clearing it; (2) for each surviving validator compute SHA256(request_id || lowercased-pubkey) and sort ascending by the hex hash string; (3) when weighted, dedupe by staking source keeping the lowest-hash key per source and always keeping null-source keys; (4) take the first max(1, redundancy) pubkeys. Steps 1 and 3 apply ONLY at/above the STAKE_WEIGHTED_QUORUM activation, which is the only path carrying per-source weight; below it `minStake` is ignored entirely and the legacy per-key selection runs. This file is the single source of truth; do not fork it. Any change to either implementation must update these vectors and stay green in both repos.",
+  "_description": "Canonical conformance vectors for the attestation responsible-set selection rule (_computeResponsibleSet). This rule is implemented independently in xchain-hub (AttestationRound._computeResponsibleSet, AttestationPublisher._computeResponsible) and xchain-indexer (actions/attest._computeResponsibleSet, plus rollback._responsibleSet for the reorg recompute); they MUST produce identical ordered output for the same inputs or attestation quorum evaluation forks (the hub signs with set S_hub, the indexer filters verified signatures against S_idx, and any divergence silently expires every affected request). Unlike the stake_weighted_quorum primitive this rule is not a single vendored file, so there is no byte-identity guard; each repo's conformance test instead runs these behaviour vectors against its own copy. Rule: (1) when weighted, drop every validator whose staking source's aggregate `weight` is below `minStake`, the request provider's block-anchored min_stake_xchain floor, treating an unusable weight or an unusable floor as NOT clearing it; (2) for each surviving validator compute SHA256(request_id || lowercased-pubkey) and sort ascending by the hex hash string; (3) when weighted, dedupe by staking source keeping the lowest-hash key per source and always keeping null-source keys; (4) take the first max(1, redundancy) pubkeys. Steps 1 and 3 apply ONLY at/above the STAKE_WEIGHTED_QUORUM activation, which is the only path carrying per-source weight; below it `minStake` is ignored entirely and the legacy per-key selection runs. This file is the single source of truth; do not fork it. Any change to either implementation must update these vectors and stay green in both repos. HEADROOM (ATTEST_RESPONSIBLE_WIDENING_V2, spec attest-zero-confirmation-flip.md §4.1): _computeResponsibleSet also takes an optional `widen` argument that adds directly to the take-count in step 4 (`slice(0, max(1, redundancy) + widen)`), so a call with `redundancy: N, widen: W` is byte-identical to one with `redundancy: N + W, widen: 0`. Neither conformance harness threads a `widen` argument through today, so the headroom vectors below encode the widened take-count directly in `redundancy` and carry a `widen` field purely as documentation of the base/headroom split; a `_note` on each spells out the equivalence.",
   "computeResponsibleSet": [
     {
       "name": "unweighted hash-order, redundancy 3",
@@ -161,6 +161,60 @@
       "weighted": true,
       "minStake": "25000",
       "expected": ["m3", "m4"]
+    },
+    {
+      "name": "headroom widen 1 slices redundancy+1",
+      "_note": "Base case is 'unweighted hash-order, redundancy 3' above (same validators and requestId), whose expected is [k3, k5, k4]. widen 1 on top of that base redundancy 3 takes one more slot from the same hash-ordered slice (widen only APPENDS: an earlier set is a prefix of every later one), so redundancy is written here as 3 + 1 = 4 per the widen/redundancy equivalence in _description.",
+      "validators": [
+        { "pubkey": "K1", "source": "s1" },
+        { "pubkey": "K2", "source": "s2" },
+        { "pubkey": "K3", "source": "s3" },
+        { "pubkey": "K4", "source": "s4" },
+        { "pubkey": "K5", "source": "s5" }
+      ],
+      "requestId": "req-alpha-0001",
+      "redundancy": 4,
+      "widen": 1,
+      "weighted": false,
+      "minStake": null,
+      "expected": ["k3", "k5", "k4", "k2"]
+    },
+    {
+      "name": "headroom widen 3 slices redundancy+3",
+      "_note": "Base redundancy 3 plus widen 3 takes the top 6 of 8 candidates, unclamped (8 > 6), so all three widening steps are visible in the expected order rather than being cut short by an undersized set.",
+      "validators": [
+        { "pubkey": "L1", "source": "t1" },
+        { "pubkey": "L2", "source": "t2" },
+        { "pubkey": "L3", "source": "t3" },
+        { "pubkey": "L4", "source": "t4" },
+        { "pubkey": "L5", "source": "t5" },
+        { "pubkey": "L6", "source": "t6" },
+        { "pubkey": "L7", "source": "t7" },
+        { "pubkey": "L8", "source": "t8" }
+      ],
+      "requestId": "req-nu-0013",
+      "redundancy": 6,
+      "widen": 3,
+      "weighted": false,
+      "minStake": null,
+      "expected": ["l4", "l2", "l7", "l6", "l3", "l8"]
+    },
+    {
+      "name": "weighted source dedupe with widen 1",
+      "_note": "Five validators over four sources (N1/N2 share sA); full hash order is n5,n2,n4,n3,n1 and dedupe drops n1 (n2 sorted ahead of n1 on the shared source sA). Base redundancy 3 gives [n5, n2, n4]; widen 1 (redundancy 4) reaches one more DISTINCT source (n3) rather than recovering the deduped n1, because dedupe removes a source's extra key from the candidate pool before the take-count slice ever runs, not from the final N slice.",
+      "validators": [
+        { "pubkey": "N1", "source": "sA", "weight": "10000" },
+        { "pubkey": "N2", "source": "sA", "weight": "10000" },
+        { "pubkey": "N3", "source": "sB", "weight": "10000" },
+        { "pubkey": "N4", "source": "sC", "weight": "10000" },
+        { "pubkey": "N5", "source": "sD", "weight": "10000" }
+      ],
+      "requestId": "req-xi-0014",
+      "redundancy": 4,
+      "widen": 1,
+      "weighted": true,
+      "minStake": "10000",
+      "expected": ["n5", "n2", "n4", "n3"]
     }
   ]
 }

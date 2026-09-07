@@ -581,6 +581,43 @@ const ROLLCALL_ACTIVATION = {
     regtest: resolveRegtestActivation(process.env),   // ARMS AT 0 when the venue sets XC_ROLLCALL_REGTEST_ACTIVATION
 };
 
+// ROLLCALL_GATES_ACTIVATION: the EPOCH height at/above which the roll-call is published as ROLLCALL
+// v1, carrying a GATES field (the comma-joined, sorted `<module>.<EXPORT>` keys of every shared
+// consensus gate the publisher's build knows), the canonical appends sha256(GATES), and the epoch
+// close records one rollcall_gates row per verified signer of a ROLLED epoch. The attestation
+// capability set then drops, for a request at block H, any validator whose most recent recorded
+// list is NOT a superset of the gates active at H; a validator with no recorded list is never
+// dropped (liveness eviction owns the never-rolled case). Keyed on rules, never on a release
+// version: a release that changes no gate changes nothing here.
+//
+// Its own height, not ATTEST_ZERO_CONF_ACTIVATION's, because it changes a different canonical on a
+// different cadence. Signers sign over the PUBLISHER's list, so a fleet mid-roll across an epoch
+// fails to roll that epoch: roll between epochs, never across one, and size the testnet height to a
+// roll that lands between them. Regtest is env-derived on the ROLLCALL precedent and ships inert:
+// a venue that arms the ROLLCALL rail opts in here separately with XC_ROLLCALL_GATES_REGTEST_ACTIVATION.
+// The mainnet and testnet heights are kept value-identical to the local copies in
+// xchain-{hub,indexer}/src/rollcall_gates_activation.js by the parity suite; regtest is not.
+const ROLLCALL_GATES_REGTEST_ARMED_HEIGHT = 0;
+const ROLLCALL_GATES_REGTEST_ENV = 'XC_ROLLCALL_GATES_REGTEST_ACTIVATION';
+function resolveRegtestGatesActivation(env){
+    let raw = (env || {})[ROLLCALL_GATES_REGTEST_ENV];
+    if(raw === undefined || raw === null) return null;
+    let s = String(raw).trim().toLowerCase();
+    if(s === '' || s === 'off' || s === 'inert' || s === 'false' || s === 'no' || s === 'none') return null;
+    if(s === 'armed' || s === 'genesis' || s === 'on' || s === 'true' || s === 'yes')
+        return ROLLCALL_GATES_REGTEST_ARMED_HEIGHT;
+    if(/^\d+$/.test(s)){
+        let h = parseInt(s, 10);
+        if(Number.isFinite(h) && h >= 0) return h;
+    }
+    return null;   // fail CLOSED; the service copies also warn on stderr
+}
+const ROLLCALL_GATES_ACTIVATION = {
+    mainnet: null,        // INERT placeholder: the operator owns this height
+    testnet: null,        // INERT until the operator sizes it to a fleet roll that lands BETWEEN epochs
+    regtest: resolveRegtestGatesActivation(process.env),   // ARMS AT 0 when the venue sets XC_ROLLCALL_GATES_REGTEST_ACTIVATION
+};
+
 // ROLLCALL_INTERVAL_BLOCKS: epoch cadence in BTC blocks. Weekly on the live networks (1008 BTC
 // blocks) per the 2026-08-30 ruling; regtest uses 30 so an acceptance run does not mine 2 x 1008.
 const ROLLCALL_INTERVAL_BLOCKS = { mainnet: 1008, testnet: 1008, regtest: 30 };
@@ -843,6 +880,46 @@ const ATTEST_RESPONSE_MIRROR_ACTIVATION = {
     mainnet: null,        // INERT: operator-owned height, unratified. The legacy on-chain response path runs byte for byte.
     testnet: 151324,      // ARMED 2026-09-07 at the chain tip on the operator ruling: exercising the mirror on testnet is the point of this train, so it activates on deploy rather than waiting on a future height.
     regtest: 0,           // ARMED at genesis so the e2e mirror venue exercises the mirror path
+};
+
+// ATTEST_ZERO_CONF_ACTIVATION (the zero-confirmation flip): the flag-day at/above which, keyed on
+// the REQUEST's own BTC block, (A) a hub serves the request at the tip it was mined at instead of
+// waiting ATTESTATION_CONFIRMATIONS blocks, (B) the frozen widening ladder runs its second stage
+// (ATTEST_RESPONSIBLE_WIDENING_V2: starts at the request block, one headroom slot from step 0), and
+// (C) the applier falls through an inert candidate mirror row to the next one. One height for all
+// three because each is consensus-adjacent: A feeds the leader slot and model index every hub in a
+// round must agree on, B shapes who may sign, C decides which row binds. The responsible set is
+// still resolved CANONICAL_REORG_BUFFER blocks below the request on both sides; the wait only ever
+// protected the hub's own provider spend against a reorged request.
+//
+// ORDERING: wherever this is non-null it must be >= both ATTEST_RESPONSE_MIRROR_ACTIVATION and
+// ATTEST_RESPONSIBLE_WIDENING_ACTIVATION, and both must be non-null there (the hub refuses boot
+// otherwise off regtest; the indexer's parity suite asserts it). Testnet is sized after the INDEXER
+// wave is confirmed complete, because change C is indexer-only and an old indexer strands a request a
+// new one binds. Floor on testnet: 151324.
+//
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/attest_zero_conf_activation.js
+// by the activation-constants parity suite.
+const ATTEST_ZERO_CONF_ACTIVATION = {
+    mainnet: null,        // INERT: operator-owned height, unratified. Ratified only after the mirror arms there.
+    testnet: null,        // INERT until the operator sizes it; floor 151324 (ATTEST_RESPONSE_MIRROR_ACTIVATION.testnet), sized after the indexer wave.
+    regtest: 0,           // ARMED at genesis so the e2e mirror venue exercises the flip
+};
+
+// ATTEST_RESPONSIBLE_WIDENING_V2: the widening ladder's second stage, selected by
+// ATTEST_ZERO_CONF_ACTIVATION on the request block. startOffset 0 starts the ladder AT the request
+// block (named startOffset, not confirmations, because it is a ladder-start offset and the hub's
+// ATTESTATION_CONFIRMATIONS is a different knob). headroom 1 grants one extra slot from step 0, so a
+// set holding one member that can never sign finalizes inside the first segment with no clock at
+// all. maxSlots 2 is kept, so the pool can reach redundancy + 3. Headroom widens who may EARN, never
+// who is CHARGED: the persisted assignment and the missed_count charge stay on the unwidened slice.
+//
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/attest_responsible_widening_activation.js
+// by the activation-constants parity suite.
+const ATTEST_RESPONSIBLE_WIDENING_V2 = {
+    startOffset: 0,
+    headroom:    1,
+    maxSlots:    2,
 };
 
 // ATTEST_BROADCAST_FEE_ACTIVATION (attestation Phase 3 economics, spec §11 leader broadcast-fee
@@ -1356,6 +1433,9 @@ module.exports = {
     ROLLCALL_ACTIVATION,
     ROLLCALL_REGTEST_ARMED_HEIGHT,
     ROLLCALL_REGTEST_ENV,
+    ROLLCALL_GATES_ACTIVATION,
+    ROLLCALL_GATES_REGTEST_ARMED_HEIGHT,
+    ROLLCALL_GATES_REGTEST_ENV,
     ROLLCALL_INTERVAL_BLOCKS,
     ROLLCALL_ACCEPT_WINDOW_BLOCKS,
     ROLLCALL_PROOF_DELAY_BLOCKS,
@@ -1374,6 +1454,8 @@ module.exports = {
     ATTEST_RESPONSIBLE_WIDENING_ACTIVATION,
     ATTEST_RESPONSIBLE_WIDENING,
     ATTEST_RESPONSE_MIRROR_ACTIVATION,
+    ATTEST_ZERO_CONF_ACTIVATION,
+    ATTEST_RESPONSIBLE_WIDENING_V2,
     ORACLE_FEE_OUTPUT_ACTIVATION,
     ORACLE_FEE_SET_CAPTURE_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,

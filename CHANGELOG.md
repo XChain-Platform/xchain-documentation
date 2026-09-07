@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- The zero-confirmation attestation flip (serve at the tip, the stage-2 widening ladder with headroom, applier fall-through, signer-based fee split) and its activation height, with conformance vectors for the widened set.
+- ROLLCALL v1 with the gates list, its canonical, the gates activation height, the `rollcall_gates` table and the rules-aware attestation capability set, with the v1 canonical and wire vectors.
+
 ## [0.15.0] - 2026-09-07
 
 ### Added
