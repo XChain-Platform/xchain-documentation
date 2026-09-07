@@ -56,6 +56,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - The operator-dashboard pages and every listing of it (components index, README table, platform map, test counts); it is internal operator tooling, not part of the public platform.
 
+### Activation
+- The ATTEST response mirror activates on Bitcoin testnet at block 151324 and on regtest from genesis. Mainnet is unratified and the legacy on-chain response path runs there byte for byte.
+- ROLLCALL activates on Bitcoin testnet at block 151200, which the chain has already passed, so it is live from the moment a node updates. Mainnet is unratified.
+- Both change state derived from existing bytes on testnet, so an updated node and one still on 0.14.0 judge a mirrored response differently once one lands. Update every indexer and hub together.
+
 ## [0.14.0] - 2026-09-02
 
 ### Added

@@ -15,10 +15,11 @@ Released 2026-09-07. [Release notes and artifacts](https://github.com/XChain-Pla
 
 A full train: every one of the thirteen components moves to 0.15.0, the first
 time since v0.12.0 that the whole set has moved together. The train carries two
-new consensus mechanisms, both shipped inert on the live networks: ATTEST
+new consensus mechanisms, both armed on Bitcoin testnet: ATTEST
 responses delivered over the hub mirror, and ROLLCALL, a validator liveness
-action published on Dogecoin. Each activates only on regtest, from genesis, so
-this is a minor train with no activation height to plan around.
+action published on Dogecoin. Both are armed on Bitcoin testnet at heights the
+chain has already passed, so both are live there as soon as a node updates, and
+both remain unratified on mainnet.
 
 | Component | Version |
 |---|---|
@@ -69,12 +70,13 @@ chain daemon gracefully on update, forces a bootstrap republish after a
 reindex, and no longer mints a fresh hub API key on a repeated
 `validator init`.
 
-**Nothing changes on the live networks at this height.** The response mirror
-and ROLLCALL are armed on regtest only; on testnet and mainnet both stay on the
-unarmed sentinel, so an updated node and one still on v0.14.0 judge every block
-identically. Arming testnet is its own later train with its own flag day. Hubs
-and indexers do exchange a wider mirror schema on this train, so update a hub
-and the indexers that follow it together.
+**This train changes state derived from existing bytes on testnet.** The response mirror
+and ROLLCALL are armed on Bitcoin testnet, at blocks 151324 and 151200, both of
+which the chain has already passed, so each is live as soon as a node updates.
+Mainnet is unratified for both, and its behaviour is byte for byte unchanged.
+On testnet, a node on this train and one still on v0.14.0 will judge a mirrored
+response differently once one lands, so update every hub and the indexers that
+follow it together rather than one at a time.
 
 ## v0.14.0
 
