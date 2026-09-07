@@ -9,6 +9,73 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.15.0
+
+Released 2026-09-07. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.0)
+
+A full train: every one of the thirteen components moves to 0.15.0, the first
+time since v0.12.0 that the whole set has moved together. The train carries two
+new consensus mechanisms, both shipped inert on the live networks: ATTEST
+responses delivered over the hub mirror, and ROLLCALL, a validator liveness
+action published on Dogecoin. Each activates only on regtest, from genesis, so
+this is a minor train with no activation height to plan around.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.15.0 |
+| xchain-hub | 0.15.0 |
+| xchain-indexer | 0.15.0 |
+| xchain-explorer | 0.15.0 |
+| xchain-decoder | 0.15.0 |
+| xchain-encoder | 0.15.0 |
+| xchain-sync | 0.15.0 |
+| xchain-utxo-tracker | 0.15.0 |
+| xchain-vm | 0.15.0 |
+| xchain-sdk | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-e2e-test | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+An ATTEST response used to be a Bitcoin transaction each responding validator
+paid for. On this train a response is written to a hub mirror table, gossiped to
+every hub, verified before it is stored, and applied by the indexer at the block
+its signed effective time predicts, with a per-block cap. Each hour the
+finalized responses are published as one signed ATTEST batch on Dogecoin, and
+the indexer reassembles chunked batches per author. The response body is capped
+before anyone signs it, the effective time is inside the signed canonical, and
+`getattestationresponsibleset` answers which validators a request drew. A
+federated hub sizes quorum from the federation rather than from its own
+validator set.
+
+ROLLCALL lets the network measure validator liveness on chain: validators
+answer a per-epoch roll call on Dogecoin, and a validator absent from enough
+consecutive rolled epochs is deactivated, with no governance action and no
+penalty: its stake refunds after the ordinary cooldown and it may re-enter. The
+wire format, canonical bytes and consensus constants are documented on this
+site.
+
+Elsewhere on the train: a reorg no longer aborts on the roll-call tables; a
+mirror hold that outlasts its ceiling forces a resync and is reported on the
+indexer health endpoint; a hub rate-limit reply holds the push queue instead of
+burning attempts; a price window that closed while the hub was down is
+published on restart; SWEEP and CALLBACK are priced on the unified fee
+schedule; the SDK completes the XCALL surface and hardens its MuSig2 session
+guards, and its MCP tool surface ships as a second package on the same version;
+the explorer sizes its serving limits to the measured wallet profile; the
+rollback path in the sync layer restores contract stake correctly and scopes an
+orphaned archive chunk to its own publisher; the VM moves to a prebuilt
+isolated-vm so an install no longer needs a compiler; and the node CLI stops a
+chain daemon gracefully on update, forces a bootstrap republish after a
+reindex, and no longer mints a fresh hub API key on a repeated
+`validator init`.
+
+**Nothing changes on the live networks at this height.** The response mirror
+and ROLLCALL are armed on regtest only; on testnet and mainnet both stay on the
+unarmed sentinel, so an updated node and one still on v0.14.0 judge every block
+identically. Arming testnet is its own later train with its own flag day. Hubs
+and indexers do exchange a wider mirror schema on this train, so update a hub
+and the indexers that follow it together.
+
 ## v0.14.0
 
 Released 2026-09-02. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.14.0)
