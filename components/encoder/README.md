@@ -139,7 +139,7 @@ npm run api
 | `NODE_USER` | Yes | None | RPC username |
 | `NODE_PASSWORD` | Yes | None | RPC password |
 | `ENCODER_API_PORT` | No | `3003` | JSON-RPC API port |
-| `DUST_AMOUNT` | No | Network default | Minimum output value in satoshis |
+| `DUST_AMOUNT` | No | Coin default | Floor in base units on every value output the encoder authors (funding legs, data outputs, change). It can only raise the floor: the coin's consensus dust threshold and its relay-policy soft-dust floor (Dogecoin: 0.01 DOGE, below which each output adds the whole limit to the required relay fee) apply regardless |
 | `UTXO_TRACKER_URL` | No | None | xchain-utxo-tracker service host |
 | `UTXO_TRACKER_API_PORT` | No | None | xchain-utxo-tracker service port |
 | `MAX_FEE_RATE_KB` | No | Uncapped | Absolute maximum fee rate in sat/kB |

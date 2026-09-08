@@ -9,6 +9,43 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.15.4
+
+Released 2026-09-08. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.4)
+
+A patch train. `xchain-node` and `xchain-encoder` move to 0.15.4; `xchain-indexer`,
+`xchain-sync`, `xchain-sdk` and `xchain-explorer` stay at 0.15.3, `xchain-hub` at
+0.15.2, and the other six components keep the tags they shipped under in v0.15.0.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.15.4 |
+| xchain-encoder | 0.15.4 |
+| xchain-indexer | 0.15.3 |
+| xchain-sync | 0.15.3 |
+| xchain-sdk | 0.15.3 |
+| xchain-explorer | 0.15.3 |
+| xchain-hub | 0.15.2 |
+| xchain-decoder | 0.15.0 |
+| xchain-utxo-tracker | 0.15.0 |
+| xchain-vm | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-e2e-test | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+Dogecoin relays an output below its 0.01 DOGE soft dust limit only when the
+whole limit is added to the transaction fee, once per such output. The encoder
+sized the funding legs of a two-transaction P2SH action off the 0.001 DOGE hard
+limit, so at a low fee estimate every leg fell into that band: the funding
+transaction owed far more relay fee than it paid, peers refused to relay it, and
+the reveal that spends the legs, including every PRICE and ATTEST wire a
+validator publishes on Dogecoin, waited unconfirmed behind it. Every output the
+encoder authors on Dogecoin now floors at the soft limit, the fee floor and the
+fee caps keep the consensus dust threshold, a caller may raise the floor but not
+lower it, and the documented `DUST_AMOUNT` setting is honoured as an operator
+floor. Dogecoin operators should update their encoder; other chains are
+unaffected.
+
 ## v0.15.3
 
 Released 2026-09-08. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.3)
