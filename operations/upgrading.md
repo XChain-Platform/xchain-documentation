@@ -157,7 +157,7 @@ flowchart TD
 ```
 
 1. **xchain-hub** first. Verify its `/health` endpoint and logs before proceeding.
-2. **xchain-sync**, then **xchain-decoder** (if changed).
+2. **xchain-sync**, then **xchain-decoder** (if changed). A sync server that runs from a git checkout instead of a container (a host-native unit serving a database replica to downstream clients) is pinned to the same release in this step: fetch the tags, check out the release tag, reinstall dependencies from the lockfile, restart the unit, then confirm `/health` reports healthy and the per-schema `ledger_hash` in `/status` matches the origin at equal `block_height`. A follower left on an older release keeps serving, but it cannot publish tables that release does not know, so downstream clients see them as missing until it is rolled.
 3. **xchain-indexer**: canary one chain first. Update a single indexer, confirm it resumes and its block height keeps pace with the decoder for at least 10 blocks, then roll the remaining indexers one at a time.
 4. **xchain-explorer** and **xchain-encoder** (stateless tier).
 5. **xchain-utxo-tracker** (if changed).
