@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Testnet activation heights sized in the canon: ATTEST_ZERO_CONF_ACTIVATION 151800 and ROLLCALL_GATES_ACTIVATION 152208.
 ### Added
+- The explorer API reference documents the two batch POST routes (`/api/balances`, `/api/coinpay_obligations`), the explorer and node configuration pages carry `EXPLORER_BATCH_RATE_LIMIT_RPM`, and the SDK explorer page documents `getBalancesBatch` and `getCoinpayObligationsBatch`.
 - The deployment guide's bootstrap section states that a restore assumes a coin node at or past the archive's height, documents the install-time comparison and its four outcomes (`WAITING FOR NODE`, refused, unknown, ok), and the validator guide's mainnet section gives the two orderings that avoid the wait on a slow host.
 - The validator operations guide marks the `full_node` floor as a tier that is not active yet and links the explanation.
 - The deployment guide gains a "Memory on a multi-chain host" section (the tracker's derived container limit, the recreate-after-adding-a-chain rule, why other services stay unlimited), cross-linked from the tracker configuration page and the node's `XCHAIN_NODE_MODULE_MEMORY_MB_<SERVICE>` variable.

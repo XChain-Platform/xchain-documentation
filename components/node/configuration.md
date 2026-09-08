@@ -214,6 +214,7 @@ signer as fatal.
 | `EXPLORER_ACTION_PROOF_RATE_LIMIT_RPM` | _(unset; explorer defaults to `90`)_ | Passed through to the explorer: the limit on the action-proof route. |
 | `EXPLORER_VALIDATOR_SET_PROOF_RATE_LIMIT_RPM` | _(unset; explorer defaults to `30`)_ | Passed through to the explorer: the limit on the validator-set-proof route. |
 | `EXPLORER_VM_QUERY_RATE_LIMIT_RPM` | _(unset; explorer defaults to `20`)_ | Passed through to the explorer: the limit on the VM-query route (`contract.html` read simulation). |
+| `EXPLORER_BATCH_RATE_LIMIT_RPM` | _(unset; explorer defaults to `72`)_ | Passed through to the explorer: the shared limit on the two batch routes, `POST /{COIN}/api/balances` and `POST /{COIN}/api/coinpay_obligations`. |
 
 > **Note on `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD`:** this is a credential value. Pass it via your deployment environment or secrets manager; do not store it in config files checked into version control.
 

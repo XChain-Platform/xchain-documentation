@@ -354,6 +354,57 @@ GET /{COIN}/api/address/{address}
 
 ---
 
+### Get Balances (batch)
+
+Runs Get Balances and Get Address for up to 20 addresses in one request. A wallet polling several addresses across a chain sends one request per chain here instead of two per address.
+
+```
+POST /{COIN}/api/balances
+```
+
+**Body:**
+| Field | Type | Description |
+|---|---|---|
+| `addresses` | array of strings | 1 to 20 addresses; duplicate entries are collapsed, order preserved |
+
+**Query parameters:** Same paging as `GET /balances/{address}` (`page`/`limit`/`start`/`length`/`sortorder`), forwarded to every inner balances read.
+
+**Response:**
+```json
+{
+    "bc1qexampleaddress1": {
+        "balances": [ ... ],
+        "address": { ... },
+        "error": null
+    },
+    "bc1qexampleaddress2": {
+        "balances": null,
+        "address": null,
+        "error": { "code": "COIN_DATA_STALE", "error": "...", "status": 503 }
+    }
+}
+```
+
+One entry per requested address, keyed by the address string. `balances` is the Get Balances response body, `address` is the Get Address response body; when the per-address read for either one failed, both fields are `null` and `error` names the failure (`code`, `error`, `status`). A coin this instance does not serve answers the same `503` as the per-address reads.
+
+**Errors:**
+| Status | Code | Cause |
+|---|---|---|
+| 400 | `INVALID_ADDRESSES` | Body missing, empty, not an array, or containing a non-string entry |
+| 400 | `INVALID_ADDRESS` | One entry is not a well-formed address (the entry is named in the error) |
+| 400 | `TOO_MANY_ADDRESSES` | More than 20 addresses requested |
+
+**Rate limit:** `EXPLORER_BATCH_RATE_LIMIT_RPM` (see [Configuration](configuration.md)). Shared with the COINPay obligations batch endpoint below.
+
+**Example:**
+```bash
+curl -X POST http://localhost:8080/BTC/api/balances \
+    -H 'Content-Type: application/json' \
+    -d '{"addresses": ["bc1qexampleaddress1", "bc1qexampleaddress2"]}'
+```
+
+---
+
 ### Get Holders
 
 Returns a ranked list of all holders for a given token.
@@ -742,6 +793,41 @@ GET /{COIN}/api/coinpay_obligations/{query}/{type}
 | `address` | COINPay obligations where this address is the payer or payee |
 
 **Response includes:** payer address, payee address, coin, coin amount, expiration timestamp, status (pending_coinpay/fulfilled/expired).
+
+---
+
+### COINPay obligations (batch)
+
+Runs `GET /coinpay_obligations/{address}/address` for up to 20 addresses in one request, the same reasoning as Get Balances (batch) above: a wallet polling several addresses across a chain sends one request instead of one per address.
+
+```
+POST /{COIN}/api/coinpay_obligations
+```
+
+**Body:** Same rules as Get Balances (batch): `addresses`, 1 to 20 entries, duplicates collapsed.
+
+**Response:**
+```json
+{
+    "bc1qexampleaddress1": {
+        "coinpay_obligations": [ ... ],
+        "error": null
+    }
+}
+```
+
+One entry per requested address, keyed by the address string. `coinpay_obligations` is the `GET /coinpay_obligations/{address}/address` response body; `null` with `error` set (`code`, `error`, `status`) when that address's read failed. A coin this instance does not serve answers the same `503` as the per-address reads.
+
+**Errors:** Same `INVALID_ADDRESSES`, `INVALID_ADDRESS` and `TOO_MANY_ADDRESSES` codes as Get Balances (batch).
+
+**Rate limit:** `EXPLORER_BATCH_RATE_LIMIT_RPM` (see [Configuration](configuration.md)). Shared with the balances batch endpoint above.
+
+**Example:**
+```bash
+curl -X POST http://localhost:8080/BTC/api/coinpay_obligations \
+    -H 'Content-Type: application/json' \
+    -d '{"addresses": ["bc1qexampleaddress1", "bc1qexampleaddress2"]}'
+```
 
 ---
 
@@ -2110,6 +2196,8 @@ Content-Type: application/json
 | `GET /{COIN}/api/action/{index}` | Action details by action_index |
 | `GET /{COIN}/api/address/{address}` | Address summary |
 | `GET /{COIN}/api/balances/{address}` | All token balances for an address |
+| `POST /{COIN}/api/balances` | Balances and address summary for up to 20 addresses in one request |
+| `POST /{COIN}/api/coinpay_obligations` | COINPay obligations for up to 20 addresses in one request |
 | `GET /{COIN}/api/block/{index}` | Block summary by height |
 | `GET /{COIN}/api/holders/{tick}` | All holders of a token |
 | `GET /{COIN}/api/token/{tick}` | Token metadata and supply |

@@ -72,6 +72,15 @@ Returns all token balances held by an address.
 - **Endpoint:** `GET /{COIN}/api/balances/{address}`  
 - **`opts`:** pagination supported
 
+#### `getBalancesBatch(addresses, opts?)`
+Returns balances and address summary for up to 20 addresses in one request: a wallet polling several addresses across a chain sends one request instead of two per address.
+
+- **Endpoint:** `POST /{COIN}/api/balances`
+- **`addresses`:** non-empty array of at most 20 address strings; a bad argument throws `SDKExplorerError` with code `INVALID_ADDRESSES` before any request is sent
+- **Resolves to:** an object keyed by address, each entry `{ balances, address, error }` (see [api.md](../explorer/api.md#get-balances-batch))
+- **`opts`:** pagination supported, forwarded to every inner read
+- An explorer that does not serve this route is reported as `SDKExplorerError` with code `EXPLORER_BATCH_UNSUPPORTED` (an older explorer answers the POST with a JSON-RPC error object at HTTP 200, which the SDK names rather than returns) or `EXPLORER_HTTP_404` (a deployment that refuses unknown POSTs outright); either is the signal to fall back to the per-address reads
+
 #### `getAddress(address, opts?)`
 Returns address summary information (total activity, first/last seen, etc.).
 
@@ -222,6 +231,15 @@ These methods follow the same `(query, type, opts?)` signature and return event 
 | `getSwapEdits(query, type, opts?)` | `/swap_edits/` | SWAP edit (v2) records |
 | `getSwapExpires(query, type, opts?)` | `/swap_expires/` | Expired SWAP records |
 | `getSwapMatches(query?, type?, opts?)` | `/swap_matches/` | Completed auto-matched swap pairs; `type` defaults to `block` |
+
+#### `getCoinpayObligationsBatch(addresses, opts?)`
+Returns COINPay obligations for up to 20 addresses in one request, the batched form of `getCoinpayObligations(address, 'address', opts?)`.
+
+- **Endpoint:** `POST /{COIN}/api/coinpay_obligations`
+- **`addresses`:** same rules as `getBalancesBatch` (non-empty array, at most 20 entries, `SDKExplorerError` code `INVALID_ADDRESSES` for a bad argument before any request)
+- **Resolves to:** an object keyed by address, each entry `{ coinpay_obligations, error }` (see [api.md](../explorer/api.md#coinpay-obligations-batch))
+- **`opts`:** pagination supported, forwarded to every inner read
+- Same `EXPLORER_BATCH_UNSUPPORTED` / `EXPLORER_HTTP_404` behaviour as `getBalancesBatch` against an explorer that does not serve this route
 
 #### Paginated action list
 
