@@ -139,6 +139,20 @@ xchain-node install all litecoin mainnet
 
 This reduces resource requirements proportionally. A single-chain LTC or DOGE deployment can run comfortably on a 4-core, 8 GB RAM machine with 250 GB of disk.
 
+### Memory on a multi-chain host
+
+The utxo-tracker is the service that decides how much memory a chain costs. It sizes three allocations from the memory it may use: a LevelDB block cache (a quarter of its budget), a heap-flush threshold (an eighth) and, during the initial bulk sync, an external-sort budget (half). Inside a container that budget is the container's memory limit when one is set, and the whole host when none is.
+
+`xchain-node` sets that limit for every tracker it creates: half the host RAM, divided by the number of trackers installed on the host, floored at 1024 MB and ceilinged at 16384 MB. On a 16 GB host running three chains each tracker gets 2730 MB, which derives a 682 MB cache, a 341 MB heap-flush threshold and a 1365 MB bulk-sync budget; the other half of the host is left for the chain daemons (a synced bitcoind alone holds 3 to 4 GB), MariaDB, the decoders, the indexers, the hub and the explorer.
+
+Three things follow from the formula:
+
+- **The limit is computed when the container is created.** Adding a chain to a host does not shrink the trackers that already exist; run `xchain-node recreate xchain-utxo-tracker all all` after installing a new chain so every tracker is re-sized for the new count.
+- **A host that cannot afford the floor is told.** When half the host divided by the tracker count falls under 1024 MB, each tracker still gets 1024 MB and `install` prints a warning that the host is oversubscribed; run fewer chains there.
+- **Only the tracker is limited by default.** The decoder, indexer and hub do not size themselves to a cgroup limit, so a limit on them turns a transient spike (a large mempool batch, a deep reorg) into an OOM kill and a restart loop. Cap one explicitly with `XCHAIN_NODE_MODULE_MEMORY_MB_<SERVICE>` only after measuring it.
+
+To override the derivation for a tracker, either set the container limit (`XCHAIN_NODE_MODULE_MEMORY_MB_XCHAIN_UTXO_TRACKER=4096` before `recreate`; the tracker re-derives its slices from the new limit) or set the slices themselves in the tracker's environment (`LEVELDB_CACHE_BYTES`, `HEAP_FLUSH_THRESHOLD_MB`, `BULK_SYNC_RAM_BUDGET`), documented on the [utxo-tracker configuration](../components/utxo-tracker/configuration.md#memory-budget) page. Setting a slice larger than the container limit allows is the one combination to avoid: the kernel enforces the limit, not the tracker.
+
 ### Regtest Deployment (Development / Testing)
 
 Regtest uses local blockchain simulation with no real network sync. This is the fastest way to bring up a fully working stack for development or testing.
