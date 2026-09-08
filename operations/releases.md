@@ -9,6 +9,41 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.15.5
+
+Released 2026-09-08. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.5)
+
+A patch train. `xchain-node` and `xchain-indexer` move to 0.15.5; `xchain-encoder`
+stays at 0.15.4, `xchain-sync`, `xchain-sdk` and `xchain-explorer` at 0.15.3,
+`xchain-hub` at 0.15.2, and the other six components keep the tags they shipped
+under in v0.15.0.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.15.5 |
+| xchain-indexer | 0.15.5 |
+| xchain-encoder | 0.15.4 |
+| xchain-sync | 0.15.3 |
+| xchain-sdk | 0.15.3 |
+| xchain-explorer | 0.15.3 |
+| xchain-hub | 0.15.2 |
+| xchain-decoder | 0.15.0 |
+| xchain-utxo-tracker | 0.15.0 |
+| xchain-vm | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-e2e-test | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+The testnet activation of order-independent chunked DEPLOY assembly, shipped
+in v0.15.3 for 2026-09-10T00:00:00Z, moves earlier to 2026-09-08T12:00:00Z.
+Every testnet indexer was already running v0.15.3, and a fresh indexer parsing
+the Bitcoin testnet chain from its genesis under that release reproduced the
+running network block for block, so the two-day buffer the original date left
+for operators to update was not needed. Testnet indexer operators must run
+v0.15.5 before that instant; a node still on v0.15.3 would activate the rule
+at the old instant and diverge from the network in between. Mainnet and
+regtest are unchanged. No other component moves.
+
 ## v0.15.4
 
 Released 2026-09-08. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.4)
