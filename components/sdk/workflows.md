@@ -208,9 +208,35 @@ const result2 = await sdk.deployContract(
 );
 ```
 
-**Returns:** `{ deploy, chunks, deposits }` where `deploy` is the final (assembling) DEPLOY submit result, `chunks` is an array of submit results for each DEPLOY v4 carrier (empty for single-shot), and `deposits` is an array of DEPOSIT submit results.
+**Returns:** `{ deploy, chunks, deposits, contractActionIndex }` where `deploy` is the final (assembling) DEPLOY submit result, `chunks` is an array of submit results for each DEPLOY v4 carrier (empty for single-shot), `deposits` is an array of DEPOSIT submit results, and `contractActionIndex` is the deployed contract's own action_index.
 
 **Note:** Deposits require the indexer to confirm the assembling DEPLOY first so the `action_index` is available. Pass `waitForIndexer: true` in `opts` when deposits are included.
+
+**Resolving the contract after a chunked deploy:** a chunk group deploys at whichever piece completes it, which is not always the assembling DEPLOY itself. If the group's carriers were already on chain when the assembler landed, the assembler completes its own group and `contractActionIndex` is the assembler's index; if the group instead completes later (a reordering reorg, or carriers still in flight when the assembler was submitted), the contract lives at that later carrier's index instead. `deployContract` resolves this automatically after the assembling leg by calling `resolveDeployedContract` and uses the answer for both `contractActionIndex` and any requested deposits, so callers never need to compute it themselves.
+
+---
+
+## resolveDeployedContract
+
+Resolve the contract a chunked DEPLOY produced, by polling the explorer's action detail for the assembling DEPLOY until it reports either a deployed contract or a terminal failure. Public and safely re-callable, which is what a client resuming a deploy after a reorg needs (for example after rebroadcasting an assembler whose group may already have completed elsewhere).
+
+```js
+const contractActionIndex = await sdk.workflows.resolveDeployedContract(
+    assemblerActionIndex,
+    { timeout: 120000, pollInterval: 2000 }   // both optional; these are the defaults
+);
+```
+
+**Parameters:**
+| Parameter | Type | Description |
+|---|---|---|
+| `assemblerActionIndex` | number | The action_index of the assembling DEPLOY (v2 or v3) to resolve |
+| `opts.timeout` | number | Milliseconds to poll before giving up. Default `120000` |
+| `opts.pollInterval` | number | Milliseconds between reads. Default `2000` |
+
+**Resolves** with the deployed contract's action_index once the explorer reports a non-null `deployed_contract_index` for the assembler.
+
+**Rejects** when the group settles without deploying a contract (a hash mismatch or a fee failure on the completing carrier), once the explorer's `assembly_status` for the assembler stops matching `/^pending/`. The thrown error carries the reported status as `err.status` and the assembler's action_index as `err.actionIndex`.
 
 ---
 

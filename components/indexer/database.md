@@ -231,14 +231,16 @@ After processing, the indexer pushes validated PRICE actions to `xchain-hub` whi
 
 | Table | Purpose |
 |---|---|
-| `contracts` | Deployed contract records: `action_index` (PK), `source_id` (owner), `code` (MEDIUMTEXT, decoded JS), `code_hash` (SHA-256), `api_version` (default 1), `status_id`, `block_index` |
+| `contracts` | Deployed contract records: `action_index` (PK), `source_id` (owner), `code` (MEDIUMTEXT, decoded JS), `code_hash` (SHA-256), `api_version` (default 1), `status_id`, `block_index`. Indexed on `(source_id, code_hash)` in addition to the individual columns, for the pending-assembler lookup below |
 | `contract_state` | Append-only key-value state; each row is one state write keyed by `contract_index` + `state_key`. Latest value per key found via `MAX(id)` subquery. `state_value` of NULL means deleted. Index: `(contract_index, state_key, id DESC)`. Rollback: `DELETE WHERE block_index >= ?` |
-| `contract_executions` | EXECUTE/constructor call records: `action_index` (PK), `contract_index`, `caller_id`, `method_name`, `input_params`, `gas_used`, `gas_limit`, `status_id`, `error_message`, `emitted_count`, `block_index` |
+| `contract_executions` | EXECUTE/constructor call records: `action_index` (PK), `contract_index`, `caller_id`, `method_name`, `input_params`, `gas_used`, `gas_limit`, `status_id`, `error_message`, `emitted_count`, `block_index`, `assembler_action_index` (indexed; the pending chunked-DEPLOY assembler this constructor row consumed, NULL for an inline or self-completed deploy), `fee_payment_mode` (1 = native, 2 = XCHAIN; the mode the assembler paid its base fee in, read when the group completes) |
 | `contract_emissions` | Actions emitted by contract executions: `execution_index` (FK to contract_executions), `emitted_action` (e.g., 'SEND'), `action_index` (the emitted action's own index in the `actions` table), `position` (order within execution) |
 | `deposits` | DEPOSIT records: `contract_index`, `source_id`, `tick_id`, `amount`, `status_id`, `block_index`, `action_index` (PK) |
 | `withdrawals` | WITHDRAWAL records: `contract_index`, `source_id`, `tick_id`, `amount`, `status_id`, `block_index`, `action_index` (PK) |
 
 **Note:** Contract token balances are tracked via the standard `balances` table using the contract's derived address (`C:<CHAIN>:<action_index>` in `index_addresses`). There is no separate `contract_balances` table. DEPOSIT creates credits/debits between the depositor and the derived address; WITHDRAW does the reverse.
+
+**Deferred assembly of chunked DEPLOY groups.** Gated by the `DEPLOY_DEFERRED_ASSEMBLY` flag day (see [Flag Days](../../protocol/flag-days.md)). Below the flag, an assembling DEPLOY (v2/v3) must land after every carrier of its chunk group or it is permanently `invalid: CODE_HASH (no chunks)`. At and above the flag, an assembling DEPLOY that lands early instead goes `pending: CODE_HASH (awaiting chunks)`: its `contracts` and constructor `contract_executions` rows are written at its own action_index exactly as an invalid assembler's are, the base fee is charged, and the status is never mutated afterward. Whichever action then completes the group (the assembler itself, or a later carrier) runs the deployment at that action's own index, and writes `assembler_action_index` on its constructor row pointing back at the pending assembler. A second assembler landing while one is already pending for the same `(source_id, code_hash)` group is `invalid: CODE_HASH (duplicate pending)`. Only the two new `contract_executions` columns record this; no new table, and neither column enters a block-hash preimage.
 
 ### Mapping Tables (Cross-References)
 

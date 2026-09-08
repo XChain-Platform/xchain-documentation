@@ -34,9 +34,9 @@ simultaneously on Bitcoin, Litecoin, and Dogecoin.
 
 **Testnet and regtest are genesis-active** for the time-keyed gates: they carry
 threshold `0`, so a testnet or regtest stack has always run the
-post-activation behavior. One gate is the exception: `ISSUE_INHERITED_MINT_WINDOW` arms testnet at `1787961600` (2026-08-29 00:00:00 UTC). The reason it cannot be genesis-active there is written in its registration comment in `protocol_changes.js`. The values on this page are otherwise mainnet values only.
+post-activation behavior. 2 gates are the exception: `ISSUE_INHERITED_MINT_WINDOW` arms testnet at `1787961600` (2026-08-29 00:00:00 UTC), `DEPLOY_DEFERRED_ASSEMBLY` arms testnet at `1788868800` (2026-09-08 12:00:00 UTC). The reason it cannot be genesis-active there is written in its registration comment in `protocol_changes.js`. The values on this page are otherwise mainnet values only.
 
-**2 gates are UNARMED on testnet** (`DEPLOY_DEFERRED_ASSEMBLY`, `UNIFIED_FEES_SWEEP_CALLBACK`): testnet carries the sentinel rather than `0`, so a testnet stack has **never** run the post-activation behavior and will not until an operator arms it. A consensus change registered after the public testnet launch cannot be genesis-active there without re-deciding history that outside nodes have already committed. Each names its reason in its registration comment in `protocol_changes.js`.
+**One gate is UNARMED on testnet** (`UNIFIED_FEES_SWEEP_CALLBACK`): testnet carries the sentinel rather than `0`, so a testnet stack has **never** run the post-activation behavior and will not until an operator arms it. A consensus change registered after the public testnet launch cannot be genesis-active there without re-deciding history that outside nodes have already committed. Each names its reason in its registration comment in `protocol_changes.js`.
 
 ## Mainnet time-keyed gates
 

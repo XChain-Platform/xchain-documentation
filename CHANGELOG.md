@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- The DEPLOY action page documents deferred chunked assembly: the action that completes a chunk group deploys it at its own index, an early assembler waits as `pending`, and the carriers-first ordering is kept as a pre-activation note; the flag-day page shows `DEPLOY_DEFERRED_ASSEMBLY` armed on testnet.
+- The indexer, explorer and SDK component pages document the deferred-assembly columns and status strings, the explorer's `deployed_contract_index` and `assembly_status` fields, and `workflows.resolveDeployedContract`.
 - `components/indexer/operations.md` documents the `getpricebatches` federation read.
 - The zero-confirmation attestation flip (serve at the tip, the stage-2 widening ladder with headroom, applier fall-through, signer-based fee split) and its activation height, with conformance vectors for the widened set.
 - ROLLCALL v1 with the gates list, its canonical, the gates activation height, the `rollcall_gates` table and the rules-aware attestation capability set, with the v1 canonical and wire vectors.

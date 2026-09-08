@@ -50,6 +50,8 @@ A single DEPLOY action on the script-output lanes (`OP_RETURN`, `MULTISIGN`, `P2
 1. **Carrier phase (DEPLOY v4):** the base64 source is split into ordered slices of up to 7,800 bytes each (max 16 slices). Each slice is broadcast as a DEPLOY v4 carrier action and waited on individually so all carriers have lower action indexes than the assembling action.
 2. **Assemble phase (DEPLOY v2 or v3):** a final DEPLOY v2 (or v3 for staking contracts) carries only the `CODE_HASH` (SHA-256 of the UTF-8 source). The indexer locates the carriers by code hash, concatenates the slices in order, verifies the hash, and runs the normal deploy flow.
 
+`deployContract` submits carriers before the assembler, so a group normally completes at the assembling action. If a reorg lands the pieces out of order, an assembler that arrives before its carriers is not rejected: it goes `pending: CODE_HASH (awaiting chunks)`, and the group deploys at whichever action completes it once the remaining carriers land. Either way the contract's index is not always the assembler's own, so `deployContract` resolves it through the explorer after the assembling leg and returns it as `result.contractActionIndex`; see [WORKFLOWS.md; deployContract / resolveDeployedContract](workflows.md#deploycontract) for the resolution details.
+
 ```js
 // sdk.deployContract handles the path selection automatically.
 // Pass raw 'code' (not a pre-encoded base64 string).
@@ -58,9 +60,10 @@ let result = await sdk.deployContract(
     { code: contractSource, gasLimit: 200000, constructorParams: ['arg1'] },
     [{ tick: 'MYTOKEN', quantity: '1000' }]   // optional initial deposits
 );
-// result.chunks  - array of carrier submitResults (empty for single-shot)
-// result.deploy  - the assemble (or single-shot) submitResult
-// result.deposits - deposit submitResults
+// result.chunks              - array of carrier submitResults (empty for single-shot)
+// result.deploy              - the assemble (or single-shot) submitResult
+// result.deposits            - deposit submitResults
+// result.contractActionIndex - the deployed contract's own action_index
 ```
 
 Contracts larger than 64 KB (base64-encoded source requiring more than 16 slices) are rejected at the planning stage with an error before any transaction is submitted.
