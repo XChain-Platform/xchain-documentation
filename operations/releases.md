@@ -9,6 +9,96 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.15.3
+
+Released 2026-09-08. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.3)
+
+A patch train. `xchain-node`, `xchain-indexer`, `xchain-sync`, `xchain-sdk` and
+`xchain-explorer` move to 0.15.3; `xchain-hub` stays at 0.15.2 and the other seven
+components keep the tags they shipped under in v0.15.0.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.15.3 |
+| xchain-indexer | 0.15.3 |
+| xchain-sync | 0.15.3 |
+| xchain-sdk | 0.15.3 |
+| xchain-explorer | 0.15.3 |
+| xchain-hub | 0.15.2 |
+| xchain-decoder | 0.15.0 |
+| xchain-encoder | 0.15.0 |
+| xchain-utxo-tracker | 0.15.0 |
+| xchain-vm | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-e2e-test | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+A contract whose source does not fit one transaction is deployed as chunk
+carriers plus an assembling DEPLOY, and the indexer assembled it only at the
+assembler's position from carriers already confirmed below it, so a group whose
+pieces confirmed out of order, including a correctly sequenced one that a reorg
+re-packed, failed permanently and burned its fee. A chunk group now deploys
+exactly once, in the block where its last piece confirms, whatever order the
+pieces arrived in: an assembling DEPLOY that lands early is held pending with
+its base fee paid, and the contract takes the index and address of the piece
+that completed it. The explorer's DEPLOY detail reports which action deployed
+the contract and whether the assembly is still pending, the SDK's deploy
+workflow resolves the contract through that field, and the sync follower's
+schema version moves with the two new execution columns. The rule is active from
+genesis on mainnet and regtest, and on testnet from 2026-09-10 00:00 UTC; every
+testnet indexer must run this release before that instant.
+
+A hub deciding whether it still owed the chain a price batch could only guess,
+so windows the chain already carried were re-proposed every hour. The indexer
+now answers which oracle rounds in a range already ride a valid PRICE batch, so
+a hub can skip re-publishing them.
+
+## v0.15.2
+
+Released 2026-09-07. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.2)
+
+A patch train. `xchain-node`, `xchain-hub`, `xchain-explorer` and `xchain-sync` move to
+0.15.2; `xchain-sdk` stays at 0.15.1 and the other eight components keep the tags
+they shipped under in v0.15.0.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.15.2 |
+| xchain-hub | 0.15.2 |
+| xchain-explorer | 0.15.2 |
+| xchain-sync | 0.15.2 |
+| xchain-sdk | 0.15.1 |
+| xchain-indexer | 0.15.0 |
+| xchain-decoder | 0.15.0 |
+| xchain-encoder | 0.15.0 |
+| xchain-utxo-tracker | 0.15.0 |
+| xchain-vm | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-e2e-test | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+The hub that publishes each hour of finalized attestation responses as one
+signed batch on Dogecoin sized its signer set at a BTC height it read only from
+the chain-tip row a Bitcoin indexer pushes to it, so a validator with no indexer
+pushing to it deferred every window and refused every co-signature, and a
+federation sharing one Bitcoin indexer could never reach the batch quorum. The
+batch publisher now anchors on the pushed chain tip where one exists and on the
+tip the attestation round already observes on every request poll otherwise; a
+follower bounds a proposed anchor against whichever it holds, and the hub
+reports which source its last anchor came from.
+
+The explorer custom-content frame on a token page reported a height that could
+never be below its own viewport and the page applied it plus a margin, so the
+two echoed each other for as long as the page stayed open. The report is now
+applied exactly, an echo is ignored, the frame has a ceiling and a per-load
+resize cap, and `media-src` is declared so external video and audio load.
+
+A sync replica asked the origin only for lookup rows above the highest id it
+already held, so a row missing below that mark was never fetched again, and the
+completeness sweep raw-counted an append-only log whose ids both sides assign
+independently. A lookup table the sweep finds short is now re-paged from zero,
+and the log is left out of the comparison while every index table stays strict.
+
 ## v0.15.1
 
 Released 2026-09-07. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.1)
