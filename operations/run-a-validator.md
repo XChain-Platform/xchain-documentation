@@ -190,10 +190,16 @@ One stake of **25000 XCHAIN** clears every capability floor at once:
 | `oracle_publish` (price rounds and anchors) | 500 |
 | `price` | 1000 |
 | `attestation` | 1000 |
-| `full_node` | 2000 |
+| `full_node` | 2000 (tier not active yet, see below) |
 | `cross_chain` | 5000 |
 | `http_get` attestation provider | 10000 |
 | `llm` attestation provider | 25000 |
+
+`full_node` is listed for completeness: the tier ships inert (reward share zero,
+no initial verifier set) and cannot be earned on any network until its
+activation flag day. Clearing its floor changes nothing today, and there is
+nothing for an operator to configure for it. See
+[Rewards, and the one thing that is not live yet](../getting-started/running-a-validator.md#rewards-and-the-one-thing-that-is-not-live-yet).
 
 On testnet, XCHAIN is a faucet token anyone can mint (10000 per transaction,
 50000 per address). You do not have to do that by hand:

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Testnet activation heights sized in the canon: ATTEST_ZERO_CONF_ACTIVATION 151800 and ROLLCALL_GATES_ACTIVATION 152208.
 ### Added
+- The validator operations guide marks the `full_node` floor as a tier that is not active yet and links the explanation.
 - The deployment guide gains a "Memory on a multi-chain host" section (the tracker's derived container limit, the recreate-after-adding-a-chain rule, why other services stay unlimited), cross-linked from the tracker configuration page and the node's `XCHAIN_NODE_MODULE_MEMORY_MB_<SERVICE>` variable.
 - The DEPLOY action page documents deferred chunked assembly: the action that completes a chunk group deploys it at its own index, an early assembler waits as `pending`, and the carriers-first ordering is kept as a pre-activation note; the flag-day page shows `DEPLOY_DEFERRED_ASSEMBLY` armed on testnet.
 - The indexer, explorer and SDK component pages document the deferred-assembly columns and status strings, the explorer's `deployed_contract_index` and `assembly_status` fields, and `workflows.resolveDeployedContract`.
