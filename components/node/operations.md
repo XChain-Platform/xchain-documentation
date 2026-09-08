@@ -68,6 +68,7 @@ The coupling is one-directional, so `reset xchain-indexer` on its own stays avai
 |---|---|---|
 | `exec` | `exec <service> <chain> <network> <command>` | Execute a command inside a running container |
 | `shell` | `shell <service> <chain> <network>` | Open an interactive shell in a container |
+| `clear-reorg-halt` | `clear-reorg-halt <chain> <network> --reason <text> [--force] [--dry-run]` | Clear the decoder's durable REORG_HALT marker after it verifies its database is intact; the reason is recorded in the decoder's `events` table. See the decoder [Troubleshooting](../decoder/operations.md#decoder-halted-after-a-deep-reorg-reorg_halt) page for the checks |
 
 ### Advanced Operations
 
