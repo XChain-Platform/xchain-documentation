@@ -9,6 +9,49 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.16.0
+
+Released 2026-09-08. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.16.0)
+
+A minor train. `xchain-node`, `xchain-hub`, `xchain-indexer`, `xchain-sync`,
+`xchain-explorer`, `xchain-decoder`, `xchain-encoder`, `xchain-utxo-tracker`,
+`xchain-sdk` and `xchain-e2e-test` move to 0.16.0; `xchain-vm`, `xchain-contracts`
+and `xchain-regtest-miner` keep the tags they shipped under in v0.15.0.
+`xchain-documentation` is tagged v0.16.0 with the train.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.16.0 |
+| xchain-hub | 0.16.0 |
+| xchain-indexer | 0.16.0 |
+| xchain-sync | 0.16.0 |
+| xchain-explorer | 0.16.0 |
+| xchain-decoder | 0.16.0 |
+| xchain-encoder | 0.16.0 |
+| xchain-utxo-tracker | 0.16.0 |
+| xchain-sdk | 0.16.0 |
+| xchain-e2e-test | 0.16.0 |
+| xchain-vm | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+Two consensus rails arm on Bitcoin testnet by height, both ahead of the chain
+at cut time: zero-confirmation ATTEST service from block 151800 (a hub serves a
+request in the block it is mined in, with a headroom slot in the responsible
+set, applier fall-through and a signer-based fee split) and ROLLCALL v1
+consensus gates from block 152208 (a roll call carries the gates its build
+knows, and attestation work is routed only to validators on current rules).
+Mainnet is unratified and unchanged. Every testnet indexer must run this
+release before 151800 and every hub before the first epoch close at or above
+152208; indexers roll before hubs, inside one epoch.
+
+The node CLI moves itself and every installed service to the latest release
+with one command (`xchain-node update`), the decoder and utxo-tracker wait on
+a coin node still in initial block download instead of reading it as a reorg,
+bootstrap archives carry their end height, rate limiters log what they refuse,
+and the SDK honours `Retry-After` on a 429. The sync follower's schema version
+is 9.
+
 ## v0.15.5
 
 Released 2026-09-08. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.15.5)
