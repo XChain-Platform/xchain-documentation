@@ -614,7 +614,7 @@ function resolveRegtestGatesActivation(env){
 }
 const ROLLCALL_GATES_ACTIVATION = {
     mainnet: null,        // INERT placeholder: the operator owns this height
-    testnet: null,        // INERT until the operator sizes it to a fleet roll that lands BETWEEN epochs
+    testnet: 152208,      // SIZED 2026-09-08: the first epoch boundary (151200 + 1008) after the v0.16.0 roll, which lands between the 151200 and 152208 closes
     regtest: resolveRegtestGatesActivation(process.env),   // ARMS AT 0 when the venue sets XC_ROLLCALL_GATES_REGTEST_ACTIVATION
 };
 
@@ -902,7 +902,7 @@ const ATTEST_RESPONSE_MIRROR_ACTIVATION = {
 // by the activation-constants parity suite.
 const ATTEST_ZERO_CONF_ACTIVATION = {
     mainnet: null,        // INERT: operator-owned height, unratified. Ratified only after the mirror arms there.
-    testnet: null,        // INERT until the operator sizes it; floor 151324 (ATTEST_RESPONSE_MIRROR_ACTIVATION.testnet), sized after the indexer wave.
+    testnet: 151800,      // SIZED 2026-09-08 (tip 151483 at 07:32Z, about 5 blocks/h): above the 151324 mirror floor and past the v0.16.0 indexer-then-hub roll; keyed on the request block.
     regtest: 0,           // ARMED at genesis so the e2e mirror venue exercises the flip
 };
 

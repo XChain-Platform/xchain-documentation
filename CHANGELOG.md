@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Testnet activation heights sized in the canon: ATTEST_ZERO_CONF_ACTIVATION 151800 and ROLLCALL_GATES_ACTIVATION 152208.
 ### Added
 - The DEPLOY action page documents deferred chunked assembly: the action that completes a chunk group deploys it at its own index, an early assembler waits as `pending`, and the carriers-first ordering is kept as a pre-activation note; the flag-day page shows `DEPLOY_DEFERRED_ASSEMBLY` armed on testnet.
 - The indexer, explorer and SDK component pages document the deferred-assembly columns and status strings, the explorer's `deployed_contract_index` and `assembly_status` fields, and `workflows.resolveDeployedContract`.
