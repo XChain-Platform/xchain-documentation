@@ -70,12 +70,12 @@ xchain-node --help
 The `install` command clones the target service from GitHub, builds its Docker image, and registers it with the hub. The `all` keyword installs every service for a given chain and network in the correct dependency order.
 
 ```bash
-xchain-node install v0.12.3 all bitcoin mainnet
+xchain-node install all bitcoin mainnet
 ```
 
-Arguments: `install <ref> <service> [chain] [network]`
+Arguments: `install [ref] [service] [chain] [network]`
 
-- `ref`: what to install. Use a published release tag such as `v0.12.3`: that resolves the release manifest and pins every component to the exact commit that was tagged, signed and tested together, which is the only form that gives you a reproducible stack. A branch name (`master`, `develop`) is also accepted and installs whatever that branch happens to point at right now, which is for development, not for running a node.
+- `ref`: what to install. Omit it for the latest published release: that resolves the release manifest and pins every component to the exact commit that was tagged, signed and tested together, which is the only form that gives you a reproducible stack. A release tag such as `v0.15.2` installs that release instead. A branch name (`master`, `develop`) is also accepted and installs whatever that branch happens to point at right now, which is for development, not for running a node. Later, `xchain-node update all` moves the node (CLI included) to the newest release; see [Upgrading](./upgrading.md).
 - `service`: `all`, or a specific service name such as `xchain-decoder`.
 - `chain`: `bitcoin`, `litecoin`, `dogecoin`, or `all`.
 - `network`: `mainnet`, `testnet`, or `regtest`.
@@ -115,9 +115,9 @@ A full mainnet deployment runs one coin node, decoder, indexer, encoder, and UTX
 Install each chain in sequence:
 
 ```bash
-xchain-node install v0.12.3 all bitcoin mainnet
-xchain-node install v0.12.3 all litecoin mainnet
-xchain-node install v0.12.3 all dogecoin mainnet
+xchain-node install all bitcoin mainnet
+xchain-node install all litecoin mainnet
+xchain-node install all dogecoin mainnet
 ```
 
 Minimum recommended resources for the full three-chain stack:
@@ -134,17 +134,31 @@ Minimum recommended resources for the full three-chain stack:
 If only one chain is needed, install only that chain:
 
 ```bash
-xchain-node install v0.12.3 all litecoin mainnet
+xchain-node install all litecoin mainnet
 ```
 
 This reduces resource requirements proportionally. A single-chain LTC or DOGE deployment can run comfortably on a 4-core, 8 GB RAM machine with 250 GB of disk.
+
+### Memory on a multi-chain host
+
+The utxo-tracker is the service that decides how much memory a chain costs. It sizes three allocations from the memory it may use: a LevelDB block cache (a quarter of its budget), a heap-flush threshold (an eighth) and, during the initial bulk sync, an external-sort budget (half). Inside a container that budget is the container's memory limit when one is set, and the whole host when none is.
+
+`xchain-node` sets that limit for every tracker it creates: half the host RAM, divided by the number of trackers installed on the host, floored at 1024 MB and ceilinged at 16384 MB. On a 16 GB host running three chains each tracker gets 2730 MB, which derives a 682 MB cache, a 341 MB heap-flush threshold and a 1365 MB bulk-sync budget; the other half of the host is left for the chain daemons (a synced bitcoind alone holds 3 to 4 GB), MariaDB, the decoders, the indexers, the hub and the explorer.
+
+Three things follow from the formula:
+
+- **The limit is computed when the container is created.** Adding a chain to a host does not shrink the trackers that already exist; run `xchain-node recreate xchain-utxo-tracker all all` after installing a new chain so every tracker is re-sized for the new count.
+- **A host that cannot afford the floor is told.** When half the host divided by the tracker count falls under 1024 MB, each tracker still gets 1024 MB and `install` prints a warning that the host is oversubscribed; run fewer chains there.
+- **Only the tracker is limited by default.** The decoder, indexer and hub do not size themselves to a cgroup limit, so a limit on them turns a transient spike (a large mempool batch, a deep reorg) into an OOM kill and a restart loop. Cap one explicitly with `XCHAIN_NODE_MODULE_MEMORY_MB_<SERVICE>` only after measuring it.
+
+To override the derivation for a tracker, either set the container limit (`XCHAIN_NODE_MODULE_MEMORY_MB_XCHAIN_UTXO_TRACKER=4096` before `recreate`; the tracker re-derives its slices from the new limit) or set the slices themselves in the tracker's environment (`LEVELDB_CACHE_BYTES`, `HEAP_FLUSH_THRESHOLD_MB`, `BULK_SYNC_RAM_BUDGET`), documented on the [utxo-tracker configuration](../components/utxo-tracker/configuration.md#memory-budget) page. Setting a slice larger than the container limit allows is the one combination to avoid: the kernel enforces the limit, not the tracker.
 
 ### Regtest Deployment (Development / Testing)
 
 Regtest uses local blockchain simulation with no real network sync. This is the fastest way to bring up a fully working stack for development or testing.
 
 ```bash
-xchain-node install v0.12.3 all bitcoin regtest
+xchain-node install all bitcoin regtest
 xchain-node start all bitcoin regtest
 ```
 
@@ -153,7 +167,7 @@ Regtest also installs `xchain-regtest-miner`, which automatically mines blocks w
 To skip bootstrap archive downloads and force a full parse from block 0:
 
 ```bash
-xchain-node --no-bootstrap install v0.12.3 all bitcoin regtest
+xchain-node --no-bootstrap install all bitcoin regtest
 ```
 
 ### Private Deployment (Regtest as Production)
@@ -166,23 +180,34 @@ Some operators run a private XChain instance on a permissioned regtest network. 
 
 After starting a mainnet coin node for the first time, it must download and verify the entire blockchain. This can take anywhere from several hours (LTC, DOGE) to multiple days (BTC) depending on disk I/O speed and network bandwidth.
 
-The decoder waits for the coin node to report `verificationprogress >= 0.99` before it begins processing blocks. You can monitor coin node sync progress by checking the decoder logs:
+The decoder and the UTXO tracker follow the coin node's tip. While the node reports `initialblockdownload: true` with its tip below the height a service already holds, the service waits instead of treating the lower tip as a reorg, and `xchain-node ps` shows it as `WAITING FOR NODE` with the two heights under the table. You can watch the wait and the node's progress in the service logs:
 
 ```bash
 xchain-node logs xchain-decoder bitcoin mainnet
 ```
 
-The decoder will log when it begins processing blocks after the coin node finishes syncing.
+The service logs when it resumes after the node passes it.
 
 ### Bootstrap Archives (Optional)
 
-xchain-node can restore a pre-built LevelDB snapshot for the UTXO tracker to avoid rescanning the entire blockchain. This is controlled by the `bootstrap` command:
+On a fresh install, xchain-node downloads the published bootstrap archive for each of the decoder, the indexer and the UTXO tracker and restores it, so the service starts at the archive's height instead of parsing from its start block. The same restore can be run by hand:
 
 ```bash
 xchain-node bootstrap restore xchain-utxo-tracker bitcoin mainnet
 ```
 
 Use `--no-bootstrap` on install to skip this entirely and do a full parse.
+
+**A bootstrap assumes a coin node at or past the archive's height.** On a mainnet host whose node is still syncing from zero, a restored service sits thousands of blocks above the node for hours or days. Each archive carries the height it ends at, and the install compares it with the node's tip before restoring:
+
+- the node is at or past the archive: restored, nothing to do;
+- the node is below the archive and the service waits out a catching-up node (decoder and tracker from v0.16.0, and the indexer, which follows the decoder): restored, reported as `WAITING FOR NODE` in the install summary and in `ps`, and the service continues on its own once the node passes the archive height;
+- the node is below the archive and the service image predates that wait: the restore is refused and the service parses forward from its start block as the node catches up. The summary says so. To take the restore later, wait for the node to pass the archive height and re-run install with `XCHAIN_NODE_FORCE_BOOTSTRAP=1`, or install with `--no-bootstrap` to stop it trying;
+- the archive carries no height (published before the member existed) or the node cannot be asked yet: restored as before, with a note saying the comparison was not possible.
+
+`XCHAIN_NODE_SKIP_NODE_TIP_GUARD=1` skips the comparison; it is warned loudly, like the other skip gates.
+
+Two orderings avoid the wait entirely on a slow host: let the coin node finish its initial sync before installing the services, or install with `--no-bootstrap` and let the services parse forward behind the node.
 
 #### Bootstrap signatures
 

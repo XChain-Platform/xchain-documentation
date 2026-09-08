@@ -122,6 +122,12 @@ Detailed health status including decoder state.
 | `blockLag` | `integer\|null` | Alias for `lag` (convenience copy) |
 | `lag_blocks` | `integer\|null` | Live lag computed from internal decoder state; `null` when either height is still unknown (before the first `getBlockchainInfo`, or nothing processed yet) rather than a misleading `0`. May differ slightly from `lag` during rapid catch-up |
 | `node_height_stale` | `boolean` | Present and `true` when the last successful node-tip poll is more than two refresh intervals old (node outage): `node_height` is then frozen, so a zero `lag` does not mean caught-up |
+| `reorg_halted` | `boolean` | `true` while the database carries a live durable REORG_HALT marker (see [Decoder halted after a deep reorg](#decoder-halted-after-a-deep-reorg-reorg_halt)). The decoder keeps parsing and `status` stays `"healthy"`; the next reorg will stop it |
+| `reorg_halt_reason` | `string\|null` | Why the halt was written |
+| `reorg_halted_at` | `string\|null` | When the halt was written (ISO 8601) |
+| `reorg_halt_cleared_at` | `string\|null` | When an operator cleared the last halt with `clear-reorg-halt`; `null` while a halt is live or none was recorded |
+| `reorg_halt_cleared_reason` | `string\|null` | The reason the operator recorded with that clear |
+| `reorg_halt_checked_at` | `integer\|null` | Epoch ms of the last marker probe (cached for one minute) |
 | `rpc_errors` | `integer` | Combined RPC error count from the decoder and its `BlockchainConnector` |
 | `parse_errors` | `integer` | Number of transactions quarantined due to parse failures |
 | `error` | `string\|null` | Error message if the decoder crashed, otherwise `null` |
@@ -210,6 +216,15 @@ Chain reorganizations are detected automatically during the block polling loop:
 
 The indexer monitors the decoder's `blocks` table and independently handles reorg rollback of its own state.
 
+Two cases are deliberately not treated as a reorg:
+
+- **The node is still catching up.** While `getblockchaininfo` reports `initialblockdownload: true` and the node's tip sits below the decoder's stored tip, the decoder waits (one warning, then a poll every 5 seconds) instead of rolling back. A node that has not yet validated blocks the decoder already holds is not a rolled-back node; once it passes the stored tip, the normal hash compare decides.
+- **The gap is deeper than the safe-depth window.** When the node's tip sits more than `DISPENSER_EXPIRE_SAFE_DEPTH` (126) blocks below the stored tip, the decoder refuses before deleting anything and keeps polling. Nothing is rolled back and no halt marker is written, so no resync is owed; either the node catches up on its own or the operator acts on a real rollback.
+
+### Deep reorg halt (REORG_HALT)
+
+Soft-expired dispensers are hard-purged once they are `DISPENSER_EXPIRE_SAFE_DEPTH` blocks deep. A rollback that crosses that window could not resurrect them, so the decoder stops the rollback at the ceiling and writes a durable marker: a row in the `events` table with `code = 'REORG_HALT'`. The decoder keeps parsing forward and reports `reorg_halted: true` on `health`, `GET /status` and `GET /live`; the next reorg refuses to roll back and stops the process. The marker survives restarts and is only ever superseded, never deleted. See [Troubleshooting](#decoder-halted-after-a-deep-reorg-reorg_halt) for recovery.
+
 ## Mempool Tracking
 
 Mempool tracking activates when the decoder is synced (within 3 blocks of the tip):
@@ -250,6 +265,37 @@ Mempool tracking pauses if the decoder falls more than 3 blocks behind the tip, 
 - Check coin node connectivity (the decoder logs RPC timeout warnings)
 - Verify MariaDB is accessible and the connection pool isn't exhausted
 - Check for reorg loops, if the chain is continuously reorganizing, the decoder may repeatedly delete and re-parse the same block
+
+### Decoder halted after a deep reorg (REORG_HALT)
+
+Symptoms: the log printed `LATENT REORG_HALT MARKER PRESENT` once at startup, `health` reports `reorg_halted: true`, or `xchain-node ps` shows `running REORG_HALT` on the decoder. The decoder still parses forward; it will stop at the next reorg.
+
+Confirm it (this is the decoder's own marker; the `sync_halt` table in the same database belongs to xchain-sync and is a different signal):
+
+```sql
+SELECT id, time, code, data FROM events
+ WHERE code IN ('REORG_HALT', 'REORG_HALT_CLEARED')
+ ORDER BY id DESC LIMIT 5;
+```
+
+The newest row decides: a `REORG_HALT` newer than every `REORG_HALT_CLEARED` is live.
+
+Two recoveries:
+
+1. **Full resync from a known-good snapshot.** Always correct. Required when the database has held dispenser state that a purge may have dropped.
+2. **Audited clear**, when the database is known to be intact:
+
+   ```bash
+   xchain-node clear-reorg-halt <chain> <network> --reason "<why this database is known good>"
+   # standalone, inside the decoder's environment:
+   npm run clear-reorg-halt -- --reason "<why this database is known good>"
+   ```
+
+   The clear checks that every rolled-back block above the tip has been re-parsed (cannot be forced; wait for the decoder to catch up) and that the database holds no dispenser rows and never decoded a `DISPENSER` action (so the purge could not have lost anything). A database that has held dispensers is refused unless you pass `--force` after comparing its `dispensers` table against a known-good replica; the clear is then recorded as forced. `--dry-run` reports the verdict without writing.
+
+   The clear writes a `REORG_HALT_CLEARED` event carrying the reason, the check results and the halt it supersedes. The halt row stays for the audit trail, `health` reports `reorg_halted: false` with `reorg_halt_cleared_at` set on its next probe, and the bootstrap health gate accepts the database again.
+
+Never delete the `REORG_HALT` row by hand: that erases the evidence the clear records and leaves nothing for the next operator to read.
 
 ### Database name rejected
 

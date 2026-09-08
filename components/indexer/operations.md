@@ -245,6 +245,44 @@ When `exists` is `false`, `confirmations` is `0` and `action`/`block_index` are 
 
 ---
 
+### `getpricebatches`
+
+Which oracle rounds in a closed range already ride a valid `PRICE` batch on this chain. The hub's batch publisher calls it before re-proposing a buffered window, because a validator cannot answer from its own tables: its snapshots keep the per-round proof for rounds it finalized itself, and its published-round markers cover only the batches it broadcast. Only valid, version-0 batch rows are counted; an invalid wire does not carry its rounds for a replaying node, so the publisher is right to fill that window. Federation read (`x-api-key`), like `getactionconfirmations`.
+
+**Request:**
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "getpricebatches",
+    "params": { "first_round": 21, "last_round": 1568, "limit": 500 },
+    "id": 1
+}
+```
+
+`limit` is optional (default 500, ceiling 1000).
+
+**Response:**
+```json
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "block_index": 67875698,
+        "first_round": 21,
+        "last_round": 1568,
+        "batches": [
+            { "action_index": 10,  "first_round": 49, "last_round": 53, "round_count": 5 },
+            { "action_index": 270, "first_round": 52, "last_round": 53, "round_count": 2 }
+        ],
+        "truncated": false
+    },
+    "id": 1
+}
+```
+
+Batches are ordered by `first_round`, then `action_index`, and may overlap (a window published under a different split is still a valid carrier of its rounds). `truncated` is `true` when the page filled: the range past the last returned batch is unanswered, not empty, and the caller pages by asking again from there.
+
+---
+
 Administrative methods such as `reparse` and `rollback` are not exposed via the JSON-RPC API; reorg recovery runs automatically via the internal `Rollback` class.
 
 ## Resilience and Recovery

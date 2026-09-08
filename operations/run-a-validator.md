@@ -23,7 +23,7 @@ fund the two addresses          testnet BTC to the stake address, testnet DOGE t
 xchain-node validator stake     mints XCHAIN on testnet, then broadcasts STAKE (one command)
         |
         v
-xchain-node install v0.12.3 xchain-hub     starts the validator; peers admit it once the stake activates
+xchain-node install xchain-hub     starts the validator; peers admit it once the stake activates
 ```
 
 ## Prerequisites
@@ -38,12 +38,14 @@ xchain-node install v0.12.3 xchain-hub     starts the validator; peers admit it 
 `xchain-node` installs from source:
 
 ```bash
-git clone -b v0.12.3 https://github.com/XChain-Platform/xchain-node.git ~/xchain-node
+git clone https://github.com/XChain-Platform/xchain-node.git ~/xchain-node
 cd ~/xchain-node
 npm install
 npm link
 ```
 
+The clone lands on the latest release. Later, `xchain-node update all` moves
+the CLI and the validator together (see [Upgrading](#upgrading) below).
 
 
 Everything below assumes you run commands from `~/xchain-node`. The CLI reads
@@ -133,9 +135,10 @@ Existing wallets are **kept** across `validator init --force` (which only
 rotates the signing key). Replacing them is a separate, explicit
 `--force-wallets`, because a replaced address abandons whatever coin was at it.
 
-Re-running `validator init` on a validator you already set up is safe and is
-how you upgrade: it prints your pubkey and addresses, fills in anything a
-newer version added, and never touches your signing key or your stake.
+Re-running `validator init` on a validator you already set up is safe: it
+prints your pubkey and addresses, fills in anything a newer version added,
+and never touches your signing key or your stake. `xchain-node update all`
+does this for you after moving the code (see [Upgrading](#upgrading)).
 
 ## Step 3: fund the two addresses
 
@@ -187,10 +190,16 @@ One stake of **25000 XCHAIN** clears every capability floor at once:
 | `oracle_publish` (price rounds and anchors) | 500 |
 | `price` | 1000 |
 | `attestation` | 1000 |
-| `full_node` | 2000 |
+| `full_node` | 2000 (tier not active yet, see below) |
 | `cross_chain` | 5000 |
 | `http_get` attestation provider | 10000 |
 | `llm` attestation provider | 25000 |
+
+`full_node` is listed for completeness: the tier ships inert (reward share zero,
+no initial verifier set) and cannot be earned on any network until its
+activation flag day. Clearing its floor changes nothing today, and there is
+nothing for an operator to configure for it. See
+[Rewards, and the one thing that is not live yet](../getting-started/running-a-validator.md#rewards-and-the-one-thing-that-is-not-live-yet).
 
 On testnet, XCHAIN is a faucet token anyone can mint (10000 per transaction,
 50000 per address). You do not have to do that by hand:
@@ -234,7 +243,7 @@ validator set, your own stake, the current tip. Pick one:
 heavy lifting):
 
 ```bash
-xchain-node install v0.12.3 all bitcoin testnet
+xchain-node install all bitcoin testnet
 ```
 
 When the BTC stack is on the same host, the hub finds its indexer through the
@@ -280,7 +289,7 @@ other than `capabilities.json`.
 
 ```bash
 cd ~/xchain-node
-xchain-node install v0.12.3 xchain-hub
+xchain-node install xchain-hub
 ```
 
 The installer provisions everything the hub needs: Docker networks, a MariaDB
@@ -328,16 +337,57 @@ stake activating. You do not need to tell anyone.
 | Hub exits with `Missing/invalid required environment variable: HUB_NETWORK` | Validator initialized without a network (very old init, or a non-standard port) | Re-run `validator init --network testnet`, or set `HUB_NETWORK=testnet` in `.env` |
 | Hub logs `Stake-amount poll disabled (no BTC indexer URL...)` | Step 5 not done | Install the BTC stack or set `BTC_INDEXER_API_URL` |
 | Hub logs 401s from the indexer | Keyed indexer, no key | Set `BTC_INDEXER_API_KEY` |
-| `install ... xchain-hub` starts the hub, then fails `There was a problem trying to update a config in the xchain-hub module (... HTTP 401 ...)` | xchain-node releases up to v0.12.3 sent their own config push without the API key `validator init` generated in `config/hub.local`; the hub is up and correctly refused the keyless push | Upgrade xchain-node, or copy the `HUB_API_KEY=...` line from `config/hub.local` into `~/xchain-node/.env` and re-run the command |
+| `install ... xchain-hub` starts the hub, then fails `There was a problem trying to update a config in the xchain-hub module (... HTTP 401 ...)` | xchain-node releases up to v0.12.3 sent their own config push without the API key `validator init` generated in `config/hub.local`; the hub is up and correctly refused the keyless push | Upgrade xchain-node (see [Upgrading](#upgrading)), or copy the `HUB_API_KEY=...` line from `config/hub.local` into `~/xchain-node/.env` and re-run the command |
 | `oracle_publish` self-test fails `doge_address not configured` | `capabilities.json` was edited or predates the wallets | Re-run `validator init` (it fills the placeholders and keeps everything else) |
 | Hub refuses to boot: `HUB_SIGNER_MODULE failed to load` | The signer directory is missing or its `.env` is incomplete | `xchain-node validator status` shows the signer path; re-run `validator init` to regenerate it |
 | Staked and the hub is up, but you never appear in `validator_capabilities` | That table is gossiped from your hub to its peers, not read from the chain | Check the hub log for peer connections and for self-test failures; a capability that fails its self-test is never advertised |
 | Qualified but never publishing | DOGE wallet empty | Top it up (step 3) |
 | ROLLCALL signed but never appears on Dogecoin | Hand-built signer module has no `broadcast` export | Add `broadcast(payload)` to the module, or use the CLI-generated signer; `validator status` shows which you have |
 
+## Upgrading
+
+```bash
+cd ~/xchain-node
+xchain-node update all
+```
+
+One command moves the CLI to the latest release (fetching and verifying the
+signed tag, then re-running itself on the new code), then the hub, then any
+Bitcoin stack from step 5, each pinned to what the release recorded. Your
+signing key, stake, wallets and `hub-caps/capabilities.json` are never
+touched; anything a newer version added to the validator config is filled in
+the way `validator init` would fill it. Every other command prints a notice
+when a newer release exists.
+
+Do it promptly. A validator on an old release cannot sign what its peers
+sign: a round that draws it stalls until the responsible set widens past it,
+and a validator absent from enough roll calls is evicted from the capability
+set (`protocol/actions/rollcall.md`).
+
+If your CLI predates v0.16.0 it does not know how to move itself; bring it
+forward once by hand, then use `update all` from then on:
+
+```bash
+cd ~/xchain-node
+git fetch --tags origin && git checkout v0.16.0 && npm install
+xchain-node update all
+```
+
+To pin a validator to an exact release, or move back within a major version,
+name it: `xchain-node update all v0.15.2`. `xchain-node ps` shows what is
+running. See [Upgrading](./upgrading.md) for the full picture.
+
 ## Mainnet differences
 
 - `--network mainnet`, P2P port **10001**.
+- The BTC coin node syncs mainnet from zero, which takes days on a small host,
+  while the bootstrap restore puts the decoder and tracker at the archive's
+  height in minutes. The services wait for the node to pass that height
+  (`xchain-node ps` shows `WAITING FOR NODE`), and the install refuses the
+  restore for a service image that cannot wait. To avoid the wait, let the coin
+  node finish its initial sync before `install all bitcoin mainnet`, or install
+  with `--no-bootstrap` and let the services parse forward behind the node. See
+  [Bootstrap Archives](./deployment.md#bootstrap-archives-optional).
 - XCHAIN is not mintable; acquire it and send it to the stake address, then
   `validator stake` skips the mint step.
 - The oracle epoch has no built-in default yet; pass `--oracle-epoch-start`

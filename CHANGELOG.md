@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-09-08
+
+- Testnet activation heights sized in the canon: ATTEST_ZERO_CONF_ACTIVATION 151800 and ROLLCALL_GATES_ACTIVATION 152208.
+### Added
+- The deployment guide's bootstrap section states that a restore assumes a coin node at or past the archive's height, documents the install-time comparison and its four outcomes (`WAITING FOR NODE`, refused, unknown, ok), and the validator guide's mainnet section gives the two orderings that avoid the wait on a slow host.
+- The validator operations guide marks the `full_node` floor as a tier that is not active yet and links the explanation.
+- The deployment guide gains a "Memory on a multi-chain host" section (the tracker's derived container limit, the recreate-after-adding-a-chain rule, why other services stay unlimited), cross-linked from the tracker configuration page and the node's `XCHAIN_NODE_MODULE_MEMORY_MB_<SERVICE>` variable.
+- The DEPLOY action page documents deferred chunked assembly: the action that completes a chunk group deploys it at its own index, an early assembler waits as `pending`, and the carriers-first ordering is kept as a pre-activation note; the flag-day page shows `DEPLOY_DEFERRED_ASSEMBLY` armed on testnet.
+- The indexer, explorer and SDK component pages document the deferred-assembly columns and status strings, the explorer's `deployed_contract_index` and `assembly_status` fields, and `workflows.resolveDeployedContract`.
+- The decoder operations page documents the REORG_HALT marker, its health fields, the two cases a node tip below the stored tip is not treated as a reorg, and the audited `clear-reorg-halt` recovery; the node command table lists the command.
+- `components/indexer/operations.md` documents the `getpricebatches` federation read.
+- The zero-confirmation attestation flip (serve at the tip, the stage-2 widening ladder with headroom, applier fall-through, signer-based fee split) and its activation height, with conformance vectors for the widened set.
+- ROLLCALL v1 with the gates list, its canonical, the gates activation height, the `rollcall_gates` table and the rules-aware attestation capability set, with the v1 canonical and wire vectors.
+
+### Fixed
+- The e2e component's published action-test-file count tracks the tree at 80.
+- The attestation mirror roster is declared as a dedicated staking venue, so its seeded stakes are not read as teardown debt.
+
 ## [0.15.0] - 2026-09-07
 
 ### Added

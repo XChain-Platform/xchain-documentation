@@ -492,6 +492,8 @@ GET /{COIN}/api/action/{actionIndex}
 
 **Response:** Full action detail including the action type, all fields, transaction info, block info, and all ledger entries (credits, debits, escrows, fees) associated with this action.
 
+A DEPLOY v2/v3 (the assembling half of a chunked deploy) additionally carries `deployed_contract_index` and `assembly_status`: the index is `null` while the group is still pending, the assembler's own action_index when it completed the group itself, or the completing carrier's action_index otherwise; `assembly_status` is `valid` when the index is set, a terminal `invalid: ...` when the group settled without deploying, or the assembler's own `pending: CODE_HASH (awaiting chunks)` while still waiting on chunks. A DEPLOY v4 (chunk carrier) that completed a group carries `deployed_contract_index` equal to its own action_index, plus the deploy-card fields (`api_version`, `cooldown_blocks`, `slash_destination`, `assembler_action_index`, `contract_status`). A response whose `status` (or `assembly_status`) starts with `pending:` is never served from cache, so polling it always sees the latest state.
+
 **Example:**
 ```bash
 curl http://localhost:8080/BTC/api/action/42

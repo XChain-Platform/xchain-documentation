@@ -13,6 +13,7 @@ Eviction is a **deactivation, not a burn**. An absent validator committed no off
 | `EPOCH_HEIGHT` | Integer | **BTC** height of the roll-call epoch; a multiple of `ROLLCALL_INTERVAL_BLOCKS`, at or above `ROLLCALL_ACTIVATION` |
 | `LEDGER_HASH`  | String  | 64-hex `ledger_hash` of the BTC block at `EPOCH_HEIGHT`, carried so a DOGE indexer (which has no BTC view) can rebuild the canonical and verify signatures |
 | `PUBLISHER`    | String  | 64-hex Ed25519 signing key the publish reward attaches to                                      |
+| `GATES`        | String  | Comma-joined, sorted list of `<module>.<EXPORT>` consensus-gate keys the publisher's build knows; v1 only, at or above `ROLLCALL_GATES_ACTIVATION` |
 | `SIG_COUNT`    | Integer | Exact number of `PUBKEY`/`SIG` pairs that follow                                               |
 | `PUBKEY_i`     | String  | 64-hex Ed25519 signing key of a present validator                                              |
 | `SIG_i`        | String  | 128-hex Ed25519 signature by `PUBKEY_i` over the canonical                                     |
@@ -23,6 +24,11 @@ Eviction is a **deactivation, not a burn**. An absent validator committed no off
 - `VERSION|EPOCH_HEIGHT|LEDGER_HASH|PUBLISHER|SIG_COUNT|PUBKEY_1|SIG_1|...|PUBKEY_n|SIG_n`
 
 Every fixed field precedes the variable block, so the format string is a single prefix.
+
+### Version `1` - Roll call with known gates (validator-broadcast, DOGE only)
+- `1|EPOCH_HEIGHT|LEDGER_HASH|PUBLISHER|GATES|SIG_COUNT|PUBKEY_1|SIG_1|...|PUBKEY_n|SIG_n`
+
+Published for epochs at or above `ROLLCALL_GATES_ACTIVATION`, carried on the `EPOCH_HEIGHT` this action's fields already key everything else on. `GATES` inserts one field ahead of `SIG_COUNT`, otherwise identical in shape to v0. Every signer signs over the PUBLISHER's own `GATES` list (see Canonical signed message, below), so a signer whose build knows a different list verifies against nothing and is recorded absent for that epoch; two consecutive absent epochs evict a source the same as any other absence (see Rules (BTC indexer): epoch close, below). A fleet mid-roll across an epoch therefore fails to roll that epoch cleanly: roll between epochs, never across one.
 
 ## Examples
 A three-signer roll call for regtest epoch 30:
@@ -35,6 +41,12 @@ A validator that a publisher left out may land its own one-signature roll call:
 
 ```
 ROLLCALL|0|30|<ledger_hash>|<own_pk>|1|<own_pk>|<own_sig>
+```
+
+The same three-signer call, above `ROLLCALL_GATES_ACTIVATION`, naming two gates the publisher's build knows:
+
+```
+ROLLCALL|1|30|<ledger_hash>|<publisher_pk>|attest_zero_conf_activation.ATTEST_ZERO_CONF_ACTIVATION,rollcall_gates_activation.ROLLCALL_GATES_ACTIVATION|3|<pk_1>|<sig_1>|<pk_2>|<sig_2>|<pk_3>|<sig_3>
 ```
 
 ## Canonical signed message
@@ -51,6 +63,15 @@ EQUIV|XROLLCALL|<EPOCH_HEIGHT>|0||<network>|<EPOCH_HEIGHT>|<ledger_hash(EPOCH_HE
 Binding the message to that hash is what makes it a **liveness** proof rather than a token: it cannot be signed before the epoch block is mined, so a valid signature shows the key was operating, with a synced view of the BTC chain, inside the epoch's accept window. A pre-signed stack of future heartbeats, the trivial defeat of an unbound canonical, is impossible.
 
 `XROLLCALL` joins `ENGINE_TAGS` for **namespacing only**. It is deliberately absent from SLASH's `ENGINE_CAPABILITY` map, so a roll call is never a slashable family: several valid ROLLCALLs per epoch are expected, and each carries signatures over the same canonical, so two of them are never conflicting content for one key.
+
+### Canonical signed message (v1, gates-aware)
+At or above `ROLLCALL_GATES_ACTIVATION` the canonical carries one more field, inside the same EQUIV envelope, `TAG` and `ROUND_ID` as v0:
+
+```
+EQUIV|XROLLCALL|<EPOCH_HEIGHT>|0||<network>|<EPOCH_HEIGHT>|<ledger_hash(EPOCH_HEIGHT)>|<gates_hash>
+```
+
+`<gates_hash>` is the lowercase hex `sha256` of the wire `GATES` field, the comma-joined, sorted list exactly as published, never re-derived from a signer's own build. Below `ROLLCALL_GATES_ACTIVATION` the signed message is the v0 form above, unchanged: no separator and no gates hash. Because the two messages are built differently, a v0 signature can never verify as a v1 one or vice versa, so an epoch cannot be rolled with one signer set read under one era's canonical and another under the other's.
 
 ## Rules (DOGE indexer)
 The DOGE indexer has no BTC view: no stake rows, no BTC ledger hashes, no responsible set. It decides **structure only**. Validation, in order, each failure recorded as `invalid: <reason>`:
@@ -83,6 +104,13 @@ The close for epoch `E` runs at `C = E + ROLLCALL_ACCEPT_WINDOW_BLOCKS + ROLLCAL
 
 The membership predicate itself does not change. The stamp is the whole effect: the source leaves through the predicate's existing terms, and the validator set shrinks exactly the way it shrinks for any UNSTAKE.
 
+## Gates: what a v1 roll teaches the attestation capability set
+For a ROLLED epoch at or above `ROLLCALL_GATES_ACTIVATION`, the close additionally records every verified v1 signer's `GATES` list, keyed by pubkey (19 `<module>.<EXPORT>` keys at this revision, the same shared consensus-gate set the hub and indexer's own rules digest hashes). An unrolled epoch, or a v0-only rolled epoch, records nothing here.
+
+The `attestation` capability set then drops a validator whose most recently recorded list is not a superset of the gates active at the request's own block: a validator that has never rolled a v1, or whose recorded list has fallen behind a gate armed since it last rolled, is still served, since it has simply never proven what it knows; only a validator that positively named a list missing a gate now active is dropped. A pubkey with no recorded list at all is never dropped by this rule, since liveness eviction (above) already owns the never-rolled case.
+
+Because every signer signs over the PUBLISHER's own list, this is also why a fleet must roll between epochs, never across one: a validator that upgrades ahead of the publisher and expects a wider list recorded is instead recorded absent for that epoch, at risk of eviction, which is the opposite of what upgrading first was meant to buy it.
+
 ## The accept window and its cut
 The window is a **height cut**, not a per-block time filter, so every honest node computes the same one from replicated chain data:
 
@@ -114,6 +142,8 @@ Every gate keys on the carried BTC `EPOCH_HEIGHT`, never on either chain's local
 
 ## Size and broadcast
 `MAX_DATA_BYTES` is 8189 and chain-agnostic. At a 7-digit epoch height the header costs 152 bytes and each signer pair 194, giving **41 pairs per action**; a federation larger than 41 is rolled in several actions per epoch, which the union rule makes free. A one-signature self-publish is 344 bytes. Those figures are measured, not derived: `protocol/test-vectors/rollcall_canonical.json` carries the exact byte counts alongside real signatures.
+
+Above `ROLLCALL_GATES_ACTIVATION` the `GATES` field grows the header by the size of the publisher's own gate list, so the pair cap shrinks to fit: `floor((8189 - header_bytes - GATES_bytes - 1) / 194)`, where `header_bytes` is the same fixed-field cost the v0 figure above measures, `GATES_bytes` is the length of the comma-joined list on the wire, and the trailing `- 1` is the separator ahead of the variable pair block. The exact byte length of `GATES` grows with every consensus gate this train and later ones add, so the resulting pair-per-action count is measured and pinned by the implementation, not carried here as a fixed number. A federation larger than that per-action count still rolls in several actions per epoch, exactly as v0 does.
 
 Every roll call exceeds the 76-byte `OP_RETURN` cap, and Dogecoin does not support SegWit, so P2SH is the only multi-chunk lane there: broadcast rides the chunked **two-phase** P2SH path. A signer module must therefore export `broadcast(payload)`; the built-in pipeline completes only phase 1 and fails closed on P2SH. A hand-built module exporting only `walletSign` can sign roll calls but never publish one.
 

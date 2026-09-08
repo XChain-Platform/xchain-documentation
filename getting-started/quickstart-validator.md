@@ -37,11 +37,14 @@ qualifies for that level automatically.
 ## Step 1: install the CLI
 
 ```bash
-git clone -b v0.12.3 https://github.com/XChain-Platform/xchain-node.git ~/xchain-node
+git clone https://github.com/XChain-Platform/xchain-node.git ~/xchain-node
 cd ~/xchain-node
 npm install
 npm link
 ```
+
+The clone lands on the latest release. From then on `xchain-node update all`
+keeps both the CLI and your validator current.
 
 Run all the commands below from `~/xchain-node`.
 
@@ -84,8 +87,8 @@ printed your pubkey; `xchain-node validator status` re-prints it).
 ## Step 5: start your validator
 
 ```bash
-xchain-node install v0.12.3 all bitcoin testnet   # your own view of the chain
-xchain-node install v0.12.3 xchain-hub            # the validator itself
+xchain-node install all bitcoin testnet   # your own view of the chain
+xchain-node install xchain-hub            # the validator itself
 ```
 
 The first command installs a self-contained Bitcoin testnet stack (a
@@ -117,6 +120,20 @@ xchain-node logs xchain-hub      # what it is doing
 - **Keep a little DOGE in the publisher wallet.** Publishing prices and
   anchors spends it. `validator status` shows your remaining runway, and the
   hub warns you when it runs low.
+
+## Upgrading
+
+```bash
+cd ~/xchain-node
+xchain-node update all
+```
+
+That moves the CLI and the validator to the latest release, hub first, and
+keeps your keys, stake and capability config. Run it whenever a command
+prints that a newer release is available; a validator on an old release can
+slow the attestation rounds it is drawn into, and one absent from enough
+roll calls is evicted. If your CLI predates v0.16.0, bring it forward once by
+hand first: `git fetch --tags origin && git checkout v0.16.0 && npm install`.
 
 ## Standing down
 

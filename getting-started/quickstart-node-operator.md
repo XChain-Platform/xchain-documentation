@@ -38,14 +38,16 @@ The installer sets up Docker containers for all XChain services. Specify the cha
 
 ```bash
 # Install everything for Bitcoin mainnet
-xchain-node install v0.12.3 all bitcoin mainnet
+xchain-node install all bitcoin mainnet
 
 # Or for Dogecoin testnet
-xchain-node install v0.12.3 all dogecoin testnet
+xchain-node install all dogecoin testnet
 
 # Or for a local regtest environment (recommended for first-time setup)
-xchain-node install v0.12.3 all bitcoin regtest
+xchain-node install all bitcoin regtest
 ```
+
+With no version named, `install` resolves the latest published release and pins every service to the exact commits that release recorded. Name one (`xchain-node install v0.15.2 all bitcoin mainnet`) to install that release instead.
 
 The installer:
 - Verifies Docker is accessible and creates runtime directories
@@ -176,7 +178,7 @@ xchain-node monitor all bitcoin mainnet
 # Open a shell inside a container
 xchain-node shell xchain-indexer bitcoin mainnet
 
-# Update everything you have installed (all services, all chains, all networks)
+# Update the CLI and everything you have installed (all services, all chains, all networks) to the latest release
 xchain-node update all
 ```
 
@@ -196,7 +198,7 @@ xchain-node bootstrap restore xchain-indexer bitcoin mainnet
 To skip bootstrap and force a full parse from genesis:
 
 ```bash
-xchain-node install v0.12.3 all bitcoin mainnet --no-bootstrap
+xchain-node install all bitcoin mainnet --no-bootstrap
 ```
 
 ---
