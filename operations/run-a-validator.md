@@ -380,6 +380,14 @@ running. See [Upgrading](./upgrading.md) for the full picture.
 ## Mainnet differences
 
 - `--network mainnet`, P2P port **10001**.
+- The BTC coin node syncs mainnet from zero, which takes days on a small host,
+  while the bootstrap restore puts the decoder and tracker at the archive's
+  height in minutes. The services wait for the node to pass that height
+  (`xchain-node ps` shows `WAITING FOR NODE`), and the install refuses the
+  restore for a service image that cannot wait. To avoid the wait, let the coin
+  node finish its initial sync before `install all bitcoin mainnet`, or install
+  with `--no-bootstrap` and let the services parse forward behind the node. See
+  [Bootstrap Archives](./deployment.md#bootstrap-archives-optional).
 - XCHAIN is not mintable; acquire it and send it to the stake address, then
   `validator stake` skips the mint step.
 - The oracle epoch has no built-in default yet; pass `--oracle-epoch-start`

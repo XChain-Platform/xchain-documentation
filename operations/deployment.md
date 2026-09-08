@@ -180,23 +180,34 @@ Some operators run a private XChain instance on a permissioned regtest network. 
 
 After starting a mainnet coin node for the first time, it must download and verify the entire blockchain. This can take anywhere from several hours (LTC, DOGE) to multiple days (BTC) depending on disk I/O speed and network bandwidth.
 
-The decoder waits for the coin node to report `verificationprogress >= 0.99` before it begins processing blocks. You can monitor coin node sync progress by checking the decoder logs:
+The decoder and the UTXO tracker follow the coin node's tip. While the node reports `initialblockdownload: true` with its tip below the height a service already holds, the service waits instead of treating the lower tip as a reorg, and `xchain-node ps` shows it as `WAITING FOR NODE` with the two heights under the table. You can watch the wait and the node's progress in the service logs:
 
 ```bash
 xchain-node logs xchain-decoder bitcoin mainnet
 ```
 
-The decoder will log when it begins processing blocks after the coin node finishes syncing.
+The service logs when it resumes after the node passes it.
 
 ### Bootstrap Archives (Optional)
 
-xchain-node can restore a pre-built LevelDB snapshot for the UTXO tracker to avoid rescanning the entire blockchain. This is controlled by the `bootstrap` command:
+On a fresh install, xchain-node downloads the published bootstrap archive for each of the decoder, the indexer and the UTXO tracker and restores it, so the service starts at the archive's height instead of parsing from its start block. The same restore can be run by hand:
 
 ```bash
 xchain-node bootstrap restore xchain-utxo-tracker bitcoin mainnet
 ```
 
 Use `--no-bootstrap` on install to skip this entirely and do a full parse.
+
+**A bootstrap assumes a coin node at or past the archive's height.** On a mainnet host whose node is still syncing from zero, a restored service sits thousands of blocks above the node for hours or days. Each archive carries the height it ends at, and the install compares it with the node's tip before restoring:
+
+- the node is at or past the archive: restored, nothing to do;
+- the node is below the archive and the service waits out a catching-up node (decoder and tracker from v0.16.0, and the indexer, which follows the decoder): restored, reported as `WAITING FOR NODE` in the install summary and in `ps`, and the service continues on its own once the node passes the archive height;
+- the node is below the archive and the service image predates that wait: the restore is refused and the service parses forward from its start block as the node catches up. The summary says so. To take the restore later, wait for the node to pass the archive height and re-run install with `XCHAIN_NODE_FORCE_BOOTSTRAP=1`, or install with `--no-bootstrap` to stop it trying;
+- the archive carries no height (published before the member existed) or the node cannot be asked yet: restored as before, with a note saying the comparison was not possible.
+
+`XCHAIN_NODE_SKIP_NODE_TIP_GUARD=1` skips the comparison; it is warned loudly, like the other skip gates.
+
+Two orderings avoid the wait entirely on a slow host: let the coin node finish its initial sync before installing the services, or install with `--no-bootstrap` and let the services parse forward behind the node.
 
 #### Bootstrap signatures
 
