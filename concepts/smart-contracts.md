@@ -64,20 +64,50 @@ Every deployed contract receives a **derived address** in the format `C:<CHAIN>:
 - Cannot collide with real blockchain addresses (no valid base58 address starts with `C:`)
 - Globally unique across chains: `C:BTC:500` and `C:DOGE:500` are distinct
 
+## Contract Identity
+
+A derived address is precise and unreadable. `C:BTC:500` tells you nothing about what the contract does, which is a poor thing to see in a wallet history right before you deposit into it. So a contract also declares, in its own code, who it is:
+
+```javascript
+meta: {
+    name:        'Escrow',
+    description: 'Two-party escrow with an arbiter',
+    version:     '1.0.0'
+}
+```
+
+The indexer reads that block once, at deploy, and records it. From then on every surface that shows the contract shows the same three things together:
+
+**Escrow v1.0.0 · C:BTC:500**
+
+A wallet history row, an explorer contract page, a list of your deployments: the name and version to read, the address to act on. The explorer also searches on the name and the description, so a contract can be found by what it is rather than only by its index. A contract with no recorded identity, which means anything deployed before the rule took effect, shows as "Unnamed contract" beside its address.
+
+`name` and `description` are **required**: at/after the `CONTRACT_META_REQUIRED` flag day a deploy without them is rejected outright, the same way a malformed permissions manifest is. `version` is optional and is the author's own version string for their contract, which is how a developer tells "Escrow v1.0.0" from "Escrow v2.0.0" in a list of three deploys that would otherwise be three indistinguishable numbers.
+
+**Names are not unique, and never will be.** Nothing reserves a name, nothing stops two people from deploying "Escrow", and nothing stops somebody from naming their contract after yours. There is no registry and no verification: the name is a **label the author chose**, and the derived address is the identity. That is why every surface prints the address alongside the name rather than instead of it, and why a name should never be what an integration matches on. The same caution applies to a description, which is likewise self-declared and unverified.
+
 ## Contract Format
 
 **Single-function contract:**
 ```javascript
-module.exports = function(xchain) {
+function contract(xchain) {
     // All methods share this single entry point
     var amount = xchain.getInputParam(0);
     xchain.emit.send({ destination: xchain.getSourceAddress(), tick: 'TOKEN', quantity: amount });
-};
+}
+// A function export carries its identity as a property.
+contract.meta = { name: 'Payout', description: 'Sends the caller the requested quantity of TOKEN.', version: '1.0.0' };
+module.exports = contract;
 ```
 
 **Multi-method contract (recommended):**
 ```javascript
 module.exports = {
+    meta: {
+        name:        'Counter',
+        description: 'A shared counter anyone can increment and read.',
+        version:     '1.0.0'
+    },
     initialize: function(xchain) {
         xchain.state.set('owner', xchain.getSourceAddress());
         xchain.state.set('counter', '0');
@@ -96,7 +126,7 @@ module.exports = {
 
 When `EXECUTE` is called with `method: 'increment'`, the VM loads the contract, finds the named method on the exported object, and calls it with the `xchain` gateway as the sole argument.
 
-A contract may additionally export a static `abi` object next to its methods, describing them (one-line summaries, named/typed parameters, read-only flags) for wallets and explorers. It is display metadata only, never read by the VM or the indexer; see [Contract ABI](../protocol/contract-abi.md).
+A contract may additionally export a static `abi` object next to its methods, describing them (one-line summaries, named/typed parameters, read-only flags) for wallets and explorers. It is display metadata only, never read by the VM or the indexer; see [Contract ABI](../protocol/contract-abi.md). Do not confuse it with `meta` above: `meta` says what the contract *is* and is required by consensus, while `abi` says what its *methods* look like and is advisory.
 
 ## The xchain Gateway
 
@@ -330,6 +360,11 @@ Higher redundancy doesn't change the API the contract sees; the callback signatu
 
 ```javascript
 module.exports = {
+    meta: {
+        name:        'Truth Oracle',
+        description: 'Asks a panel of validators to judge whether a statement is true, and records the verdict.',
+        version:     '1.0.0'
+    },
     askIsTrue: function(xchain) {
         var statement = xchain.getInputParam(0);   // e.g. "the sky is blue"
 

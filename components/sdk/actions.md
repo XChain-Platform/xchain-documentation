@@ -273,6 +273,7 @@ Deploy a smart contract to the XChain VM. The contract source code is base64-enc
 
 **Notes:**
 - Contract source must be valid JavaScript and under 64KB.
+- Contract source must export a **contract identity manifest** (`meta.name` and `meta.description`, with an optional `meta.version`) at/after the `CONTRACT_META_REQUIRED` flag day; the SDK's pre-flight refuses a nameless source client-side, before any fee. See [Contract identity](../../developer-guide/smart-contract-development.md#contract-identity).
 - The SDK validates base64 encoding, code size, and gas limit before serialization.
 - DEPLOY payloads typically exceed the 76-byte OP_RETURN limit, use P2SH or P2WSH encoding, or TAPROOT on chains that have Taproot.
 - DEPLOY actions **cannot** appear inside a BATCH.
@@ -280,8 +281,8 @@ Deploy a smart contract to the XChain VM. The contract source code is base64-enc
 - For contracts over ~6KB, use the chunked deploy pattern: send multiple v4 carrier actions first, then a v2/v3 assemble action referencing the `codeHash`.
 
 ```js
-// Deploy a contract from raw source code
-await sdk.deploy({ code: 'module.exports = { greet: function() { return "hello"; } }', gasLimit: 200000 })
+// Deploy a contract from raw source code. `meta` is required at the flag day.
+await sdk.deploy({ code: 'module.exports = { meta: { name: "Greeter", description: "Returns a greeting.", version: "1.0.0" }, greet: function() { return "hello"; } }', gasLimit: 200000 })
 
 // Deploy with constructor parameters
 await sdk.deploy({

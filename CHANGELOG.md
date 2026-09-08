@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Testnet activation heights sized in the canon: ATTEST_ZERO_CONF_ACTIVATION 151800 and ROLLCALL_GATES_ACTIVATION 152208.
 ### Added
+- The contract identity manifest (`meta`) is documented across the protocol, developer-guide, concepts, component and AI-agent pages: the seven `CONTRACT_MANIFEST` verdicts, the text grammar, the `readManifest` report fields, the four `contracts.meta_*` columns, the explorer's contract search type, and the measured gas cost of the block.
 - The explorer API reference documents the two batch POST routes (`/api/balances`, `/api/coinpay_obligations`), the explorer and node configuration pages carry `EXPLORER_BATCH_RATE_LIMIT_RPM`, and the SDK explorer page documents `getBalancesBatch` and `getCoinpayObligationsBatch`.
 - The deployment guide's bootstrap section states that a restore assumes a coin node at or past the archive's height, documents the install-time comparison and its four outcomes (`WAITING FOR NODE`, refused, unknown, ok), and the validator guide's mainnet section gives the two orderings that avoid the wait on a slow host.
 - The validator operations guide marks the `full_node` floor as a tier that is not active yet and links the explanation.

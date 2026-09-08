@@ -66,6 +66,7 @@ Charged at emit time, entirely from the caller's budget:
 Unused target-side gas is not refunded in v1. The callback runs against the fixed `VM_XCALL_CALLBACK` ceiling.
 
 ## Notes
+- Both ends of a cross-chain call are ordinary deployed contracts, so both must export a conforming identity manifest (`meta.name` and `meta.description`) at/after the `CONTRACT_META_REQUIRED` activation or their DEPLOY is rejected and there is nothing to call. `meta` is read only at DEPLOY: it is not part of the XCALL wire format, is never relayed, and no `XCALL` rule reads it. See [DEPLOY](./deploy.md#contract-identity-manifest-meta-required-at-the-flag-day)
 - There is no on-chain Version `1`. The result comes back as a quorum-signed hub-mirror row (`cross_chain_calls`, phase `result`), and the callback is delivered as a system-injected `EXECUTE`, the same pattern used for attestation callbacks (see [`EXECUTE`](./execute.md) and [`ATTEST`](./attest.md))
 - Both relay legs travel as immutable `cross_chain_calls` rows (`UNIQUE(call_id, phase)`), signed by the `cross_chain` capability set and verified by every indexer against the mirrored capability snapshot at the row's `snapshot_block` before any effect is applied. That `snapshot_block` also selects the quorum rule: stake-weighted (source-deduped) at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count (see [Cross-chain calls: trust model](../cross-chain-calls.md#trust-model)). The canonical signing strings are:
   ```

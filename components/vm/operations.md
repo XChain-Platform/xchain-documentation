@@ -90,6 +90,32 @@ flowchart TD
     DECIDE -->|failure| FAILURE
 ```
 
+### Manifest Read (Deploy-Time)
+
+Beside `validateSyntax` and `execute`, the indexer calls `vm.readManifest(code, opts)` once per DEPLOY. It instantiates the module's top level inside a gas-metered isolate (no state, oracle, or balances) and reports what the exported object declares, **without dispatching any method**, so it works for a contract that exports no constructor. It resolves `{ success, manifest, error }`; on a module-level throw, `success` is `false`.
+
+The VM **reports; it never judges**. Every verdict lives host-side in the indexer's `actions/deploy.js`, which is why the report is deliberately raw and typed:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `permissions` | array or null | The declared emission allowlist, or null when it is not an array |
+| `permissionsType` | string | The `typeof` the export carried, so the host can tell "absent" from "wrong type" |
+| `maxTakeBps` | number or null | The declared royalty cap, or null when it is not a number |
+| `maxTakeBpsType` | string | As above |
+| `hasInitialize` | boolean | Whether a callable constructor is exported |
+| `metaType` | string | What `meta` was: `'undefined'`, `'null'`, `'array'`, `'object'`, `'function'`, `'string'`, `'number'`, `'boolean'`, `'bigint'` or `'symbol'` |
+| `metaJson` | string or null | `JSON.stringify(meta)`, computed **inside the isolate**. Non-null only when `metaType` is `'object'`, the serialisation succeeded, the result is at most 4096 UTF-16 code units, and it starts with `{` |
+| `metaError` | boolean | The serialisation threw (a circular reference, a `BigInt`, a throwing getter or `toJSON`), returned `undefined`, or produced a value that serialises to a **non-object** |
+| `metaOversize` | boolean | The serialisation succeeded and exceeded 4096 code units |
+
+`meta` is the one field also read off a **function** export (`f.meta = { ... }`), so a function-style contract stays deployable; `permissions`, `maxTakeBps` and `hasInitialize` are read only off an object export, exactly as before.
+
+**Why the serialisation and the cap live inside the isolate.** The host only ever sees this report after `JSON.parse`, and the whole report is truncated before parsing, so it cannot recover the isolate's own bytes for `meta`. A programmatically built multi-megabyte `meta` would otherwise turn the report unparseable and skip every check. Bounding it in the wrapper keeps the report parseable whatever the contract does. For the same reason nothing in the meta block may throw: a throw would escape the wrapper and report the whole manifest as unread, silently moving the existing `permissions` and `maxTakeBps` verdicts for any contract whose meta read misbehaves.
+
+The `metaError` cases are worth reading literally: a value that **serialises to a non-object** is rejected even though `typeof` said `'object'`. Note that the usual example, a `Date`, cannot arise inside the isolate at all, because `Date` is one of the stripped globals; the case is reached through a `toJSON` that returns a primitive, or a boxed primitive object.
+
+The seven verdict strings the indexer derives from this report, and the text grammar it applies to the three named fields, are in [DEPLOY](../../protocol/actions/deploy.md#contract-identity-manifest-meta-required-at-the-flag-day).
+
 ## Error Classification
 
 The VM classifies execution failures into six categories:

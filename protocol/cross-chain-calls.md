@@ -175,6 +175,11 @@ than a UI flow:
    callbackMethod, ... })` against the target's DEPLOY action index on Y.
 3. Mine both deploys, then EXECUTE the source method from any wallet.
 
+Both contracts must also export a conforming identity manifest (`meta.name` and
+`meta.description`) at/after the `CONTRACT_META_REQUIRED` activation, or their
+DEPLOY is rejected before any of the above happens and there is nothing to call.
+See [DEPLOY](actions/deploy.md#contract-identity-manifest-meta-required-at-the-flag-day).
+
 The verifiable request-side half ends there: the EXECUTE indexes valid on X
 and X's indexer records an emitted XCALL v0. Everything past that point
 (dispatch, XEXEC injection on Y, the result callback) is federation work and

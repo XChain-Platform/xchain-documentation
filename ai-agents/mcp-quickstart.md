@@ -105,3 +105,26 @@ sequenceDiagram
 ```
 
 Notes: `confirmAbove` is rejected in the MCP policy file, there is no human in this loop, use hard caps. Fund the agent's address like a spending account, not a vault.
+
+## An agent-authored contract must name itself
+
+If your agent writes contract source (to deploy, or to hand a human for deployment), the source **must** carry a contract identity manifest, or the DEPLOY is rejected at consensus at/after the `CONTRACT_META_REQUIRED` flag day:
+
+```js
+module.exports = {
+    meta: {
+        name:        'Storefront Escrow',                       // required, 1..64 bytes
+        description: 'Holds a buyer payment until delivery is attested.',  // required, 1..512 bytes
+        version:     '1.0.0'                                    // optional, 1..32 bytes
+    },
+    // ... methods
+};
+```
+
+Three things an agent gets wrong here that a human usually does not:
+
+- **Write string literals, not expressions.** A computed name (`'Escrow ' + xchain.getBlockHeight()`) is legal and deterministic, but the pre-flight checks cannot read it, so the agent loses the client-side refusal that would otherwise catch the mistake before a fee is paid, and no one reading the source can tell what the chain recorded.
+- **Describe the contract, not the request.** The description is what a human sees in a wallet before they deposit. "Holds a buyer payment until delivery is attested" is useful; "contract generated for user request 4471" is not.
+- **The name is not an identifier.** Names are not unique and nothing reserves them, so an agent must never look a contract up by name, and must never treat a matching name as proof it found the right contract. The derived address `C:<CHAIN>:<index>` is the identity, and `get_contract` is keyed on the deploy action index.
+
+Text is validated on bytes: no control, zero-width or bidi code points anywhere, no leading or trailing whitespace, and nothing is silently repaired. The full grammar is in [DEPLOY](../protocol/actions/deploy.md#contract-identity-manifest-meta-required-at-the-flag-day); the authoring guidance is in [Contract identity](../developer-guide/smart-contract-development.md#contract-identity).

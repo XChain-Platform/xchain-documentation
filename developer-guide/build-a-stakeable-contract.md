@@ -41,6 +41,15 @@ Here is a small example: a contract whose `getSecret` method reports whether a g
 
 ```js
 module.exports = {
+    // Contract identity. `name` and `description` are required at/after the
+    // CONTRACT_META_REQUIRED flag day, so a deploy without them is rejected at
+    // consensus. Keep them string literals; bump `version` on any source edit.
+    meta: {
+        name:        'Staked Secret',
+        description: 'Reveals a secret to callers whose signing pubkey holds at least 100 MYTOKEN staked against this contract, and lets an admin slash a misbehaving staker.',
+        version:     '1.0.0'
+    },
+
     // The constructor MUST be named `initialize`, not `init`; the VM's
     // constructor dispatch looks for that exact method name. Like every
     // other method it is invoked as `initialize(xchain)`, so constructor
@@ -112,7 +121,9 @@ Use the SDK's `deployStakeableContract` workflow. This is `DEPLOY v1` under the 
 const XChainSDK = require('@dankest-llc/xchain-sdk');
 const sdk = new XChainSDK({ hubUrl: 'http://localhost:10000' });
 
-const contractSource = `module.exports = { /* ... the code from Step 2 ... */ };`;
+// The source must carry the `meta` block from Step 2: the SDK's pre-flight
+// refuses a nameless deploy client-side, before it builds a transaction.
+const contractSource = `module.exports = { meta: { /* ... */ }, /* ... the code from Step 2 ... */ };`;
 
 const result = await sdk.workflows.deployStakeableContract(
     AUTHOR_WIF,

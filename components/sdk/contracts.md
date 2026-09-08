@@ -39,6 +39,17 @@ let result = await sdk.deploy({
 
 DEPLOY payloads are almost always larger than 76 bytes of user data (the OP_RETURN limit; 80 bytes total per output), so OP_RETURN encoding will be rejected. Use P2SH or P2WSH, or the TAPROOT envelope on chains that have Taproot.
 
+**The source must carry a contract identity manifest.** At/after the `CONTRACT_META_REQUIRED` flag day a contract that exports no conforming `meta.name` and `meta.description` is rejected at consensus, so the SDK pre-flight refuses it client-side, before a transaction is built and before a fee is paid, with the exact string the chain would have written:
+
+```js
+module.exports = {
+    meta: { name: 'Escrow', description: 'Two-party escrow with an arbiter', version: '1.0.0' },
+    // ... your methods
+};
+```
+
+The refusal is static (see [`getExportedMeta`](#sdkcontractsgetexportedmetasourcecode) below), so it fires only on a shape it can prove wrong; a computed `meta` is advised about, never blocked. See [Contract identity](../../developer-guide/smart-contract-development.md#contract-identity).
+
 #### Chunked DEPLOY for large contracts
 
 A single DEPLOY action on the script-output lanes (`OP_RETURN`, `MULTISIGN`, `P2SH`, `P2WSH`) can carry at most 8,192 bytes of compiled action data. Contracts whose base64-encoded source exceeds that ceiling (roughly 6 KB of raw source) require the chunked deploy workflow. Use `sdk.deployContract(wif, deployParams, deposits?, opts?)` rather than `sdk.deploy()` directly: it calls `chunkHelper.planDeploy()` to decide which path to take.
@@ -183,8 +194,8 @@ The `sdk.contracts` namespace provides tools for contract authors. These are pur
 Base64-encode UTF-8 contract source for DEPLOY payloads.
 
 ```js
-let b64 = sdk.contracts.encode('module.exports = {}');
-// 'bW9kdWxlLmV4cG9ydHMgPSB7fQ=='
+let b64 = sdk.contracts.encode("module.exports = { meta: { name: 'Noop', description: 'Does nothing.', version: '1.0.0' } }");
+// 'bW9kdWxlLmV4cG9ydHMgPSB7IG1ldGE6IHsgbmFtZTogJ05vb3AnLCBkZXNjcmlwdGlvbjogJ0RvZXMgbm90aGluZy4nLCB2ZXJzaW9uOiAnMS4wLjAnIH0gfQ=='
 ```
 
 ### `sdk.contracts.decode(b64String)`
@@ -193,7 +204,7 @@ Decode base64 back to UTF-8 source for inspection.
 
 ```js
 let source = sdk.contracts.decode(b64);
-// 'module.exports = {}'
+// "module.exports = { meta: { name: 'Noop', description: 'Does nothing.', version: '1.0.0' } }"
 ```
 
 ### `sdk.contracts.validate(sourceCode)`
@@ -220,6 +231,38 @@ let result = sdk.contracts.validate(sourceCode);
 **Note:** This covers all acorn-detectable checks but not the V8 compile step (step 1 in the indexer). A passing `validate()` result is a strong pre-flight signal, not a deployment guarantee.
 
 **Requires:** `acorn`, `acorn-walk`, and `astring` packages (hard dependencies; installed with the SDK).
+
+### `sdk.contracts.getExportedMeta(sourceCode)`
+
+Static read of a contract's exported identity manifest, by the same acorn walk that reads exported method names. It never executes the contract and never throws. It returns exactly one of three shapes:
+
+```js
+sdk.contracts.getExportedMeta(source);
+// { status: 'present', name, description, version, computed: [], nonStringLiteral: [], line }
+//     a `meta` object literal was found. Each field is its string literal, or null when the
+//     key is absent or its value is not a string literal. `computed` names the keys whose
+//     value is an expression rather than a literal.
+// { status: 'absent' }
+//     a literal export shape was found and it carries no `meta`. This is the one result that
+//     PROVES the chain will answer 'meta required'.
+// { status: 'undecidable' }
+//     no literal export shape was found (a factory, an `exports.foo` surface, a non-literal
+//     `meta`, a spread or a computed key), or the source did not parse. The chain evaluates
+//     `meta` at deploy; the SDK does not guess.
+```
+
+It reads a function export's identity too, so `f.meta = { ... }; module.exports = f;` is `present`, not `absent`.
+
+### `sdk.contracts.checkExportedMeta(sourceCode)`
+
+The pre-flight verdict built on the read above, and what every SDK deploy seam calls:
+
+```js
+sdk.contracts.checkExportedMeta(source);
+// { error: null | '<the exact consensus string>', advisories: [ '...' ] }
+```
+
+`error` is non-null **only** for a shape the static read proves wrong: no `meta` at all, or a string literal that fails the byte grammar. Everything the walk cannot see becomes an advisory instead, so the SDK never refuses a deploy the chain would have accepted. This is why string literals are recommended: a computed `meta.name` is legal on chain but downgrades your pre-flight to a warning.
 
 ### `sdk.contracts.checkFloatUsage(sourceCode)`
 
@@ -258,8 +301,8 @@ The SDK provides these explorer methods for querying VM data:
 
 | Method | Description |
 |--------|-------------|
-| `sdk.getContract(actionIndex)` | Contract metadata (address, owner, status, deploy block) |
-| `sdk.getContracts(query?, type?, opts?)` | List contracts, optionally filtered |
+| `sdk.getContract(actionIndex)` | Contract metadata (address, owner, status, deploy block, and the recorded identity: `meta_name`, `meta_description`, `meta_version`, plus `meta` as the parsed manifest object) |
+| `sdk.getContracts(query?, type?, opts?)` | List contracts, optionally filtered; `type: 'name'` searches the recorded name and description |
 | `sdk.getContractState(actionIndex, key?)` | Contract state (all keys or one key) |
 | `sdk.getContractBalance(actionIndex, tick?)` | Contract token balances |
 | `sdk.getExecution(actionIndex)` | Single execution result |

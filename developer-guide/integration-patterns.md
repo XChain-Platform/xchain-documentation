@@ -345,6 +345,14 @@ For use cases where the gating logic itself must be trustless and on-chain (not 
 // Contract: on-chain token gate
 // Deployed via the DEPLOY action
 module.exports = {
+  // Contract identity, read at deploy and recorded on chain. `name` and
+  // `description` are required at/after the CONTRACT_META_REQUIRED flag day.
+  meta: {
+    name:        'Token Gate',
+    description: 'Releases registered content hashes to callers holding a configured minimum balance of a token.',
+    version:     '1.0.0'
+  },
+
   initialize: function(xchain) {
     xchain.state.set('owner', xchain.getSourceAddress());
     // requiredTick and minimumAmount are set via configure()
