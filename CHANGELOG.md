@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - The e2e component's published action-test-file count tracks the tree at 80.
+- The attestation mirror roster is declared as a dedicated staking venue, so its seeded stakes are not read as teardown debt.
 
 ## [0.15.0] - 2026-09-07
 

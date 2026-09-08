@@ -53,6 +53,7 @@ declaration, not a default.
 | Venue | Seeded by | Why it keeps its stakes |
 |---|---|---|
 | ROLLCALL acceptance federation (BTC regtest) | `npm run venue:seed-rollcall` | The four-source federation IS the venue. The acceptance suites drive it across many runs, and the sources' weights are the quorum arithmetic those suites assert. |
+| Attestation mirror roster (BTC regtest) | `npm run venue:seed-attestation` | `mirrorDrillFixture` ADOPTS the seated roster and stakes nothing, so the roster has to outlive the run that made it. It is seeded from `_knownSignerSeeds()`, which makes every seated key one the harness can sign for; a key it cannot sign for stalls any round that draws it. Seeds an EMPTY set only: staking into a set that already exists dilutes it rather than replacing it. |
 
 `npm run venue:seed-rollcall` sets `E2E_STAKE_TEARDOWN=off` itself. Note that
 the acceptance suites run against that venue with teardown **on**: the ledger
