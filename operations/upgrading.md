@@ -9,22 +9,40 @@ Upgrading an XChain node is one command:
 xchain-node update all
 ```
 
-This updates every XChain service you have installed, across every chain and every network, in the correct order. There is no checklist to follow and nothing to back up first: services resume from where they left off.
+This moves the node to the latest published release: the `xchain-node` CLI itself first, then every XChain service you have installed, across every chain and every network, in the correct order. There is no checklist to follow and nothing to back up first: services resume from where they left off.
 
-Three things make this safe:
+What makes this safe:
 
-- **Only installed services are touched.** `update all` expands to every service/chain/network combination and then skips anything that is not actually installed on this machine. You never have to enumerate what you are running.
-- **The hub is updated first, automatically.** Every xchain-node command starts with a pre-check that keeps the shared xchain-hub current, and a service whose new version requires a newer hub is refused before anything is torn down. A partial upgrade cannot leave mismatched versions running.
+- **"Latest" means a release, never a branch tip.** A release names an exact, signed set of component versions (see [Releases](./releases.md)). `update all` resolves the newest one and pins every service to the commit that release recorded. If the release cannot be looked up (offline, rate-limited), the update stops with nothing changed rather than guessing.
+- **The CLI updates itself first.** The CLI carries the release manifest, so it moves to the target release before anything else: it fetches the tag, verifies the tag's signature against the release key shipped in the repo, checks it out, installs its dependencies and re-runs the command with the new code. A CLI with local edits to tracked files is refused, with the files named, so nothing of yours is overwritten.
+- **The hub is updated first, then everything that depends on it.** `update all` covers the hub, the sync client, the explorer and the per-chain services, in that order. A service whose new version requires a newer hub is refused before anything is torn down, so a partial upgrade cannot leave mismatched versions running.
+- **Only installed services are touched.** `update all` expands to every service, chain and network and skips anything that is not installed on this machine. A coin daemon that already runs the pinned version is left running rather than restarted.
 - **Services resume automatically.** The decoder, indexer, and UTXO tracker pick up from the last processed block after a restart. A routine update loses no data.
+
+Every other command prints a one-line notice when a newer release exists than the one your CLI runs, so you learn about a release the next time you touch the node.
+
+---
+
+## Nodes installed with an older CLI
+
+The self-updating `update all` shipped in the CLI at v0.16.0. A CLI older than that does not know how to move itself and does not treat a bare `update all` as "latest release". Bring it forward once by hand, from the directory you cloned it into:
+
+```bash
+cd ~/xchain-node
+git fetch --tags origin && git checkout v0.16.0 && npm install
+xchain-node update all
+```
+
+From then on `xchain-node update all` is the whole procedure.
 
 ---
 
 ## Granular Control
 
-`update` takes the same `service` / `chain` / `network` arguments as every other command (in any order), so you can narrow the scope as far as one service on one network when you want to:
+`update` takes the same `service` / `chain` / `network` arguments as every other command (in any order), plus one optional ref, so you can narrow the scope as far as one service on one network, or pin the run to an exact release:
 
 ```bash
-# Everything you have installed, everywhere
+# Everything you have installed, everywhere, to the latest release
 xchain-node update all
 
 # Everything for one chain and network
@@ -33,9 +51,16 @@ xchain-node update all bitcoin mainnet
 # One service on one chain and network
 xchain-node update xchain-indexer bitcoin mainnet
 
-# One service, from a specific branch
+# Everything, to one exact release (also how you move back within a major version)
+xchain-node update all v0.15.2
+
+# One service, from a specific branch (developers; unreleased, unpinned)
 xchain-node update xchain-indexer bitcoin regtest develop
 ```
+
+A node installed from a branch (`install develop`) is a tracking node: a bare `update all` takes it to that branch's newest commits and says so. Name a release to move it onto releases.
+
+The environment variable `XCHAIN_NODE_NO_SELF_UPDATE=1` updates the services only and leaves the CLI where it is, for a checkout you manage yourself.
 
 See the [xchain-node CLI Manual](../components/node/operations.md) for the full command reference.
 
@@ -43,15 +68,13 @@ See the [xchain-node CLI Manual](../components/node/operations.md) for the full 
 
 ## What `update` Does
 
-For each installed service in scope, xchain-node stops the container, pulls the latest code for the service's branch, rebuilds the Docker image, and restarts the service with its existing configuration.
+For each installed service in scope, xchain-node stops the container, checks out the code the release pins for that service (verifying the checked-out commit against the signed release manifest), rebuilds the Docker image, and restarts the service with its existing configuration.
 
 To see which version each service is running, use:
 
 ```bash
 xchain-node ps
 ```
-
-xchain-node also checks for new versions before every command and notes in its output when a newer release is available.
 
 ---
 
@@ -84,10 +107,10 @@ Protocol activations (new ACTION types, new field formats) are compiled into the
 
 ## Rollback
 
-To return to a previous version, re-install the service from the previous release tag:
+To return to a previous release, update to it by name. Moving backward is supported within a major version only:
 
 ```bash
-xchain-node install v1.2.3 xchain-indexer bitcoin mainnet
+xchain-node update all v0.15.1
 ```
 
 If a database ends up in a bad state, restore it from a bootstrap snapshot rather than repairing it by hand. Every indexer computes identical data from the chain, so a bootstrap is always a valid restore point:
@@ -109,7 +132,7 @@ xchain-node bootstrap create xchain-indexer bitcoin mainnet
 For a major upgrade, rehearse on a regtest install and run the end-to-end suite before touching mainnet:
 
 ```bash
-xchain-node install v0.12.3 all bitcoin regtest
+xchain-node install all bitcoin regtest
 xchain-node e2etest bitcoin
 ```
 

@@ -30,9 +30,9 @@ Arguments are order-independent: `xchain-node start bitcoin mainnet xchain-encod
 
 | Command | Syntax | Description |
 |---|---|---|
-| `install` | `install <branch> <service> [chain] [network]` | Clone service repo, build Docker image, create and start container |
+| `install` | `install [ref] [service] [chain] [network]` | Clone service repo, build Docker image, create and start container. No ref: the latest release, every component pinned; `vX.Y.Z`: that release; a branch name: an unreleased tracking install |
 | `uninstall` | `uninstall <service> [chain] [network]` | Stop, kill, and remove container; delete module state entry and module directory |
-| `update` | `update <service> [chain] [network] [branch]` | Stop container, pull new code, rebuild image, start with same configuration |
+| `update` | `update [service] [chain] [network] [ref]` | Move to a release: the CLI itself first (signed tag verified, then re-run on the new code), then the hub, sync, explorer and the per-chain services, each stopped, re-cloned at the pinned commit, rebuilt and restarted with the same configuration. No ref: the latest release on a release node, newer commits on a branch node; `vX.Y.Z`: that release; a branch name: that branch. `update` alone means `update all` |
 | `start` | `start <service> [chain] [network]` | Start stopped container(s) by looking up container IDs from the module state table |
 | `stop` | `stop <service> [chain] [network]` | Stop running container(s) |
 | `restart` | `restart <service> [chain] [network]` | Restart container(s) |
