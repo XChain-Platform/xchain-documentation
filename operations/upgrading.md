@@ -35,6 +35,8 @@ xchain-node update all
 
 From then on `xchain-node update all` is the whole procedure.
 
+Do the checkout **before** running any `update` from the old CLI, and do not run `update node` from it. An `update` runs the CLI you have, and a CLI older than v0.15.0 replaces a coin node container with a force-remove: the daemon is killed, not stopped, and a killed daemon loses whatever chainstate it had not flushed and re-validates from its last flushed block when it comes back, which on a mainnet node with a large `dbcache` means hours. Since v0.15.0 the node is stopped with a flush budget first (600 seconds by default, `XCHAIN_NODE_STOP_TIMEOUT_SECONDS` to change it), the update prints how long the daemon took to stop, and a stop that ran out of budget is reported as a kill. The checkout move puts that CLI in charge before anything is stopped.
+
 ---
 
 ## Granular Control

@@ -134,6 +134,9 @@ prints that a newer release is available; a validator on an old release can
 slow the attestation rounds it is drawn into, and one absent from enough
 roll calls is evicted. If your CLI predates v0.16.0, bring it forward once by
 hand first: `git fetch --tags origin && git checkout v0.16.0 && npm install`.
+Do that before any `update` from the old CLI: one older than v0.15.0 kills a
+coin node instead of stopping it, and a killed mainnet daemon re-validates for
+hours when it comes back.
 
 ## Standing down
 

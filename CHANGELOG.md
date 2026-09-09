@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- The node configuration page documents `XCHAIN_NODE_STOP_TIMEOUT_SECONDS`, the flush budget a coin node daemon gets before docker kills it on update.
+- The deployment guide describes the `NODE UNREACHABLE` state `ps` prints for a decoder or tracker whose coin node is not answering, and how it differs from `WAITING FOR NODE`.
+
 ### Changed
+- The upgrading, validator and quickstart guides say why the one-time CLI checkout comes before any `update` from an older CLI: a CLI before v0.15.0 kills a coin node instead of stopping it.
+- The validator guide's mainnet section notes that `install all` creates the coin node before the services that poll it.
 - The upgrading guide's multi-host step 2 covers host-native sync servers: pin the checkout to the release tag, restart, and confirm health and ledger-hash parity with the origin.
 - The DISPENSER effective-oracle-price rule is stated as a validity condition independent of escrow, with its activation status named, and the oracle usage fee lists the ownership dispenser among the cases owing no fee output.
 

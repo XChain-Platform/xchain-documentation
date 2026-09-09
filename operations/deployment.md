@@ -188,6 +188,8 @@ xchain-node logs xchain-decoder bitcoin mainnet
 
 The service logs when it resumes after the node passes it.
 
+The wait only starts once the node has answered. A node mid-sync on slow hardware can time out every RPC call for days first, and from outside that looks the same: a healthy, idle container. The container healthcheck deliberately stays green (a restart cannot fix an outage upstream of the service), so `ps` reads the service's own health surface and shows `NODE UNREACHABLE` with how long it has been since the node last answered, or that it never has, and the service's health payload carries `node_last_ok_at` and `node_unreachable`. If you see it, check that the coin node container is running and answering RPC, and read its logs; the service needs no restart.
+
 ### Bootstrap Archives (Optional)
 
 On a fresh install, xchain-node downloads the published bootstrap archive for each of the decoder, the indexer and the UTXO tracker and restores it, so the service starts at the archive's height instead of parsing from its start block. The same restore can be run by hand:
