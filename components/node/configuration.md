@@ -153,7 +153,7 @@ These configure a hub acting as the telemetry **collector**, and are forwarded i
 | `XCHAIN_NODE_LOCK_DIR` | Directory holding `command.lock`. Defaults to the same per-user directory as `credentials.json`. Test and ops override. |
 | `XCHAIN_NODE_LOCK_WAIT_MS` | How long a non-mutating command waits for a lock-holding mutator before giving up. Bounded on purpose: a read-only command pauses and then errors clearly rather than provisioning concurrently and corrupting the stack. Default `15000`. |
 | `XCHAIN_NODE_MUTATING_LOCK_WAIT_MS` | How long a **mutating** command waits for a lock holder before refusing. Default `0`, which keeps the interactive contract: run a deploy while another one holds the lock and you are told immediately, rather than left watching a silent prompt. Set it on an unattended caller so a scheduled run waits out a deploy instead of losing its work. A publish cron is the case this exists for: `bootstrap create` is a mutating command, so at `0` it fails the instant any `update` is running, and the whole run is reported as a create failure even though the machinery was fine and was correctly deferring. |
-| `HUB_NETWORK` | Which network a validator-mode hub joins (`mainnet`, `testnet`, `regtest`). The hub REFUSES TO BOOT without it, so `validator init` writes the network you initialised with into the generated config. Set it in the host env only to override that. |
+| `HUB_NETWORK` | Which network the hub judges on (`mainnet`, `testnet`, `regtest`). A validator-mode hub REFUSES TO BOOT without it, so `validator init` writes the network you initialised with into the generated config. On a standalone (non-validator) install it is derived instead: the network every coin stack of this deployment runs on, or the network the running `install` names on a first install. A deployment spanning two networks cannot be derived from, so the hub is left without one and says so; set this variable to settle it. Host env always wins. |
 | `EXPLORER_URL` | Base URL `validator stake` reads balances, UTXOs, stake state and mint policy from. Defaults to the public explorer, so staking works before you run any stack of your own. Point it at your own explorer to stake against a private deployment. |
 | `DOGE_ADDRESS` | The Dogecoin address the validator publishes price rounds and anchors from. Written by `validator init` from the wallet it generates; host env wins, so an operator running their own publisher is not overridden. Public value. |
 | `DOGE_PUBKEY_HEX` | Public key for that same publisher address, wired into the hub alongside it. Written by `validator init`; host env wins. Public value. |
@@ -162,7 +162,7 @@ These configure a hub acting as the telemetry **collector**, and are forwarded i
 | `XCHAIN_NODE_DOGE_WIF` | **Credential.** Private key for the DOGE publisher wallet, read by `validator init --import-doge-key`, with the same prompt fallback and the same reason. |
 | `XCHAIN_NODE_AUTOHEAL_STATE_DIR` | Directory holding autoheal state. Defaults to the same per-user directory as `credentials.json`. Test and ops override. |
 | `GITHUB_TOKEN` / `GH_TOKEN` | Personal access token for GitHub downloads. Raises the anonymous API rate limit and is required to reach private module repositories. `GITHUB_TOKEN` is checked first. Treat as a credential: supply it from the environment, never a checked-in file. |
-| `BTC_INDEXER_API_URL` | BTC indexer JSON-RPC URL used as the block-height anchor for the validator-mode price oracle (`hub.getlatestblock`). Read from the host environment so a hub that is **not** co-located with a BTC indexer can point at a reachable one. Empty by default, in which case the hub falls back to its local resolution. |
+| `BTC_INDEXER_API_URL` | BTC indexer JSON-RPC URL. It anchors the validator-mode price oracle (`hub.getlatestblock`) and, on every hub, the capability-snapshot reads that decide whether an on-chain PRICE batch carries enough signer stake. Read from the host environment so a hub that is **not** co-located with a BTC indexer can point at a reachable one. Left unset, the install composes the co-located bitcoin indexer for the hub's own network when this deployment runs one; with none to compose the install warns and the hub falls back to its local resolution. |
 
 The four below are read by the **DOGE signer** the hub mounts read-only, not by
 `xchain-node` itself. They live in that signer directory's own `.env`, which is
@@ -176,6 +176,26 @@ signer as fatal.
 | `DOGE_NETWORK` | Network the signer signs for. Must match the hub's. |
 | `DOGE_WIF` | **Credential.** Private key for the publisher address. Lives only in the mounted signer directory, mode 0600. Never put it in a service config or a base config file. |
 | `DOGE_FEE_PER_KB` | Fee rate in DOGE per kB for published transactions. Unset means the encoder's estimate. |
+
+### Validating on-chain PRICE on a node that is not a validator
+
+Every `xchain-node` install points its coin indexers at the hub container on the
+same host (`HUB_API_URL`), and that hub is what judges the PRICE batches the
+indexer reads off the chain. It needs two things before it can judge one:
+
+- **its network**, because the batch rules (signature wrapping, the quorum mode,
+  the accepted pair names) are keyed on it. Derived as described above, or set
+  `HUB_NETWORK` yourself;
+- **a reachable BTC indexer**, because the signer stake behind a batch is read
+  from capability snapshots anchored on Bitcoin. A node that runs a
+  `bitcoin` stack on the same network already has one; any other node points
+  `BTC_INDEXER_API_URL` at a BTC indexer it can reach.
+
+With either missing the hub cannot obtain a signer set, so the indexer records
+every on-chain PRICE batch as invalid for insufficient signer stake, logs it once
+per block and writes nothing. Nothing else breaks and nothing retries, so the
+symptom is a price mirror that never fills. The install prints a warning for each
+condition; both are worth fixing before the node is expected to price fees.
 
 ### Bootstrap
 
