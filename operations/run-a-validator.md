@@ -373,6 +373,11 @@ git fetch --tags origin && git checkout v0.16.0 && npm install
 xchain-node update all
 ```
 
+Do the checkout before any `update` from the old CLI. A CLI older than
+v0.15.0 kills a coin node instead of stopping it, and a killed mainnet daemon
+re-validates for hours when it comes back; the newer CLI stops it with a flush
+budget first. See [Upgrading](./upgrading.md#nodes-installed-with-an-older-cli).
+
 To pin a validator to an exact release, or move back within a major version,
 name it: `xchain-node update all v0.15.2`. `xchain-node ps` shows what is
 running. See [Upgrading](./upgrading.md) for the full picture.
@@ -384,9 +389,11 @@ running. See [Upgrading](./upgrading.md) for the full picture.
   while the bootstrap restore puts the decoder and tracker at the archive's
   height in minutes. The services wait for the node to pass that height
   (`xchain-node ps` shows `WAITING FOR NODE`), and the install refuses the
-  restore for a service image that cannot wait. To avoid the wait, let the coin
-  node finish its initial sync before `install all bitcoin mainnet`, or install
-  with `--no-bootstrap` and let the services parse forward behind the node. See
+  restore for a service image that cannot wait. `install all` creates the coin
+  node first, so its sync starts before the archives download. To avoid the
+  wait, let the coin node finish its initial sync before
+  `install all bitcoin mainnet`, or install with `--no-bootstrap` and let the
+  services parse forward behind the node. See
   [Bootstrap Archives](./deployment.md#bootstrap-archives-optional).
 - XCHAIN is not mintable; acquire it and send it to the stake address, then
   `validator stake` skips the mint step.
