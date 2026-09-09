@@ -9,6 +9,39 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.16.1
+
+Released 2026-09-09. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.16.1)
+
+A patch train. `xchain-node` and `xchain-indexer` move to 0.16.1; every other
+component keeps the tag it shipped under in v0.16.0 (or v0.15.0 for `xchain-vm`,
+`xchain-contracts` and `xchain-regtest-miner`). `xchain-documentation` is tagged
+v0.16.1 with the train.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.16.1 |
+| xchain-hub | 0.16.0 |
+| xchain-indexer | 0.16.1 |
+| xchain-sync | 0.16.0 |
+| xchain-explorer | 0.16.0 |
+| xchain-decoder | 0.16.0 |
+| xchain-encoder | 0.16.0 |
+| xchain-utxo-tracker | 0.16.0 |
+| xchain-sdk | 0.16.0 |
+| xchain-e2e-test | 0.16.0 |
+| xchain-vm | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+State-neutral indexer fix: the anchor row writer now binds every value to fit
+its column, so a rejected ANCHOR wire (a pre-activation legacy version or a
+malformed head) is recorded instead of failing its INSERT forever. On v0.16.0 a
+node syncing DOGE testnet from genesis stopped at the first legacy anchor
+(height 67856088); on v0.16.1 the same replay reaches the tip with a block hash
+chain identical to the long-running nodes. No activation height moves and no
+derived state changes, so the update needs no coordination window.
+
 ## v0.16.0
 
 Released 2026-09-08. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.16.0)
