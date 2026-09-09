@@ -361,13 +361,14 @@ const EQUIV_HEADER_ACTIVATION = {
 // verifier families that re-derive the set from on-chain state (indexer attest.js, indexer
 // recovery.js, sdk light.js) resolved a different set than the signer whenever a validator's
 // stake activated or deactivated inside (H - 6, H]. Burying changes ACCEPTANCE, so it is
-// flag-day gated: INERT on mainnet/testnet (null = never active) until the operator ratifies a
-// coordinated BTC snapshot_block AND rules on artifacts already signed under the current
-// reading; regtest active from genesis. Kept byte-identical to the local copies in
+// flag-day gated and armed at genesis on every network. Mainnet was ruled on 2026-09-09: the
+// indexed mainnet history is ISSUE and ANCHOR only (0 validators, 0 stakes, 0 quorum-signed
+// artifacts measured), so burying reinterprets nothing there and a from-genesis replay is the
+// witness. Kept byte-identical to the local copies in
 // xchain-{hub,indexer,sdk}/src/snapshot_reorg_buffer.js by the cross-service regression suite.
 const CANONICAL_REORG_BUFFER = 6;
 const SNAPSHOT_BURIAL_ACTIVATION = {
-    mainnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (ISSUE and ANCHOR only, measured 2026-09-09)
     // ARMED AT GENESIS, operator-ratified 2026-08-18 (pre-launch: every feature active on
     // testnet). Safe because testnet indexer state is REBUILT from the chain before launch and
     // testnet carries no quorum-signed artifacts to reinterpret (0 validators, 0 stakes, 0
@@ -509,13 +510,14 @@ const ARCHIVE_REWARD_AMOUNT = '10.00000000';
 // (already live on testnet/regtest, so no coordinated flip window; and one gate must cover both
 // the `anchor_bundle` and `anchor_archive` reward families). Kept byte-identical to the local copies in
 // xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
-// INERT on mainnet (null = never active) until the operator ratifies a coordinated BTC
-// snapshot_block; testnet and regtest are active from genesis. Testnet was armed at 0 by the
-// 2026-08-11 operator ruling: it was re-genesised with no pre-flag history, so there is no
-// legacy set to diverge from and no mid-upgrade window to protect, and it is where the
-// relocated derive path gets exercised before mainnet ratifies a height.
+// Active from genesis on every network. Testnet was armed at 0 by the 2026-08-11 operator
+// ruling: it was re-genesised with no pre-flag history, so there is no legacy set to diverge
+// from and no mid-upgrade window to protect, and it is where the relocated derive path gets
+// exercised first. Mainnet was armed at 0 by the 2026-09-09 ruling: 0 anchor reward
+// attestations and 0 validator_rewards rows exist on any mainnet chain (measured 2026-09-09),
+// so no derived reward is reinterpreted, and a from-genesis replay is the witness.
 const ANCHOR_REWARD_DERIVE_ACTIVATION = {
-    mainnet: null,        // INERT placeholder: operator-ratify a BTC snapshot_block before arming
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (ISSUE and ANCHOR only, measured 2026-09-09)
     testnet: 0,           // ARMED at genesis 2026-08-14 per the 2026-08-11 operator ruling
     regtest: 0,
 };
@@ -576,7 +578,7 @@ function resolveRegtestActivation(env){
     return null;   // fail CLOSED; the service copies also warn on stderr
 }
 const ROLLCALL_ACTIVATION = {
-    mainnet: null,        // INERT placeholder: the operator owns this height
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 validators, 0 roll-calls, measured 2026-09-09)
     testnet: 151200,      // 1008 x 150 = 144 x 1050; tip was 150400 on 2026-08-30, ~5.5 days out
     regtest: resolveRegtestActivation(process.env),   // ARMS AT 0 when the venue sets XC_ROLLCALL_REGTEST_ACTIVATION
 };
@@ -731,14 +733,14 @@ const ATTEST_ADMISSION_ACTIVATION = {
 // BTC, LTC and DOGE testnet alike (/{TBTC,TLTC,TDOGE}/api/attestations, checked 2026-08-18), so no
 // block of any of them can have exceeded a cap of 10 and arming from genesis reinterprets nothing.
 // testnet 0 is operator-ratified (2026-08-18) so the public testnet launches with the cap in force.
-// regtest is armed at genesis (rebuilt from scratch). mainnet stays operator-owned and UNRATIFIED,
-// and a null height reads as INERT, so mainnet runs the legacy uncapped path byte for byte until a
-// height is pinned; mainnet HAS real attestation history, so pinning one there needs its own
-// measurement rather than this result.
+// regtest is armed at genesis (rebuilt from scratch). mainnet was armed at genesis by the
+// 2026-09-09 ruling on its own measurement: the explorer reports 0 attestation rows ever recorded
+// on BTC, LTC and DOGE mainnet (measured 2026-09-09), so no mainnet block can have exceeded the
+// cap and arming from genesis reinterprets nothing.
 // Kept value-identical to the local copy in xchain-indexer/src/attest_request_cap_activation.js
 // by the activation-constants parity suite.
 const ATTEST_REQUEST_CAP_ACTIVATION = {
-    mainnet: null,        // INERT: operator-owned height, unratified
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 attestations, measured 2026-09-09)
     testnet: 0,           // ARMED at genesis (operator-ratified 2026-08-18; zero historical attestations, so nothing is reinterpreted)
     regtest: 0,           // ARMED at genesis so the e2e venue exercises the cap
 };
@@ -825,7 +827,7 @@ const ATTEST_RELAY_ACTIVATION = {
 // Kept value-identical to the local copies in xchain-{hub,indexer}/src/attest_responsible_widening_activation.js
 // by the activation-constants parity suite.
 const ATTEST_RESPONSIBLE_WIDENING_ACTIVATION = {
-    mainnet: null,        // INERT: operator-owned height, unratified
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 attestations, measured 2026-09-09)
     testnet: 150780,      // ARMED 2026-09-02. Tip was 150760 at 17:08Z running 20 min/block, so ~20 blocks (~6.5h). Sized to OUR fleet's deploy wave, not to the community's, and the SAFETY comes from deploy ORDER rather than from this margin: only an upgraded hub can PRODUCE a widened ATTEST v1, so indexers upgraded before hubs leaves no divergence window even if the height arrives mid-deploy.
     regtest: 0,           // ARMED at genesis so the e2e venue exercises the ladder
 };
@@ -946,10 +948,11 @@ const ATTEST_RESPONSIBLE_WIDENING_V2 = {
 // feature must be ACTIVE on testnet. Safe by MEASUREMENT, not assumption: this gate only changes how
 // a fulfilled ATTEST settle splits its escrow, and the live explorer reports `total: 0` attestation
 // rows EVER recorded on BTC, LTC and DOGE testnet alike (/{TBTC,TLTC,TDOGE}/api/attestations, checked
-// 2026-08-18), so no settle exists to reinterpret. Mainnet HAS attestation history and stays
-// operator-owned; pinning a height there needs its own measurement rather than this result.
+// 2026-08-18), so no settle exists to reinterpret. Mainnet was measured the same way on
+// 2026-09-09 (0 attestation rows on BTC, LTC and DOGE mainnet) and armed at genesis by that
+// day's ruling.
 const ATTEST_BROADCAST_FEE_ACTIVATION = {
-    mainnet: null,        // INERT placeholder: the operator owns this height (pinned 2026-08-11, unratified)
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 attestations, measured 2026-09-09)
     testnet: 0,           // ARMED at genesis (operator-ratified 2026-08-18; zero historical attestation settles, so nothing is reinterpreted)
     regtest: 0,           // ARMED at genesis on regtest so the e2e venue exercises the carve-out
 };
@@ -1023,11 +1026,11 @@ const ORACLE_FEE_OUTPUT_ACTIVATION = {
 // single-pick therefore stays live BELOW the gate, and a re-decode of pre-flag-day history
 // reproduces exactly what the fleet wrote live.
 //
-// null means DISARMED (never active), the fail-closed default: mainnet and testnet keep the
-// legacy single-pick until that network's maintainers ratify an instant, chosen with the
-// fleet's upgrade state in hand, because arming it too early forks the chain and arming it in
-// the past rewrites agreed history. regtest holds no agreed history (its chains are recreated
-// per run), so it is genesis-on and exercises the set path in the regtest venues.
+// null would mean DISARMED (never active), the fail-closed default no network sits at any
+// more. Mainnet was armed by the 2026-09-09 ruling at its base gate's own instant, the earliest
+// the ordering above permits: mainnet holds no dispenser (measured 2026-09-09), so no capture is
+// reinterpreted and a from-genesis replay is the witness. regtest holds no agreed history (its
+// chains are recreated per run), so it is genesis-on and exercises the set path in the venues.
 //
 // DEPLOY DEADLINE, once an instant is armed: EVERY decoder on that network MUST be running the
 // armed value before the instant, or the fleet splits on the first refill of a source holding
@@ -1037,7 +1040,7 @@ const ORACLE_FEE_OUTPUT_ACTIVATION = {
 // keeps the two copies in lockstep and refuses a value that precedes
 // ORACLE_FEE_OUTPUT_ACTIVATION.
 const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
-    mainnet: null,        // DISARMED: awaiting the operator's ratified per-network instant
+    mainnet: 1786060800,  // ARMED by the 2026-09-09 ruling at its base gate's own instant, the earliest the ordering above permits; identity on the indexed mainnet history (0 dispensers, measured 2026-09-09)
     // ARMED AT GENESIS (instant 0 = always in force), operator-ratified 2026-08-18 under the
     // pre-launch ruling that every feature must be ACTIVE on testnet. This gate fixes a defect
     // that spends a payer native coin and gives nothing back, so a public testnet WILL hit it.
@@ -1073,11 +1076,11 @@ const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
 // The legacy block-start soft-expire therefore stays live BELOW the gate, and a re-decode of
 // pre-flag-day history reproduces exactly what the fleet wrote live.
 //
-// null means DISARMED (never active), the fail-closed default: mainnet and testnet keep the
-// legacy block-start expiry until that network's maintainers ratify an instant, chosen with the
-// fleet's upgrade state in hand, because arming it too early forks the chain and arming it in
-// the past rewrites agreed history. regtest holds no agreed history (its chains are recreated
-// per run), so it is genesis-on and exercises the realigned path in the regtest venues.
+// null would mean DISARMED (never active), the fail-closed default no network sits at any
+// more. Mainnet was armed at genesis by the 2026-09-09 ruling: mainnet holds no dispenser
+// (measured 2026-09-09), so no expiry is reinterpreted and a from-genesis replay is the witness.
+// regtest holds no agreed history (its chains are recreated per run), so it is genesis-on and
+// exercises the realigned path in the regtest venues.
 //
 // DEPLOY DEADLINE, once an instant is armed: EVERY decoder on that network MUST be running the
 // armed value before the instant, or the fleet splits on the first block whose header time
@@ -1086,7 +1089,7 @@ const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
 // Vendored byte-equal into xchain-decoder/src/protocol/constants.js; the conformance suite
 // keeps the two copies in lockstep.
 const DISPENSER_EXPIRY_REALIGN_ACTIVATION = {
-    mainnet: null,        // DISARMED: awaiting the operator's ratified per-network instant
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 dispensers, 0 dispenses, measured 2026-09-09)
     // ARMED AT GENESIS (instant 0 = always in force), operator-ratified 2026-08-18 under the
     // pre-launch ruling that every feature must be ACTIVE on testnet. This gate fixes a defect
     // that spends a payer native coin and gives nothing back, so a public testnet WILL hit it.
@@ -1126,10 +1129,10 @@ const DISPENSER_EXPIRY_REALIGN_ACTIVATION = {
 // capture set therefore stays live BELOW the gate, and a re-decode of pre-flag-day history
 // reproduces exactly what the fleet wrote.
 //
-// null means DISARMED (never active), the fail-closed default: mainnet keeps the unwidened
-// capture set until that network's maintainers ratify an instant, chosen with the fleet's
-// upgrade state in hand, because arming it too early forks the chain and arming it in the
-// past rewrites agreed history.
+// null would mean DISARMED (never active), the fail-closed default no network sits at any
+// more. Mainnet was armed at genesis by the 2026-09-09 ruling: mainnet holds no dispenser
+// (measured 2026-09-09), so no capture is reinterpreted and a from-genesis replay is the
+// witness.
 //
 // DEPLOY DEADLINE, once an instant is armed: EVERY decoder on that network MUST be running
 // the armed value before the instant, or the fleet splits on the first block whose header
@@ -1138,7 +1141,7 @@ const DISPENSER_EXPIRY_REALIGN_ACTIVATION = {
 // Vendored byte-equal into xchain-decoder/src/protocol/constants.js; the conformance suite
 // keeps the two copies in lockstep.
 const DISPENSER_CANCEL_GRACE_ACTIVATION = {
-    mainnet: null,        // DISARMED: awaiting the operator's ratified per-network instant
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 dispensers, 0 dispenses, measured 2026-09-09)
     // ARMED AT GENESIS (instant 0 = always in force), matching the sibling
     // DISPENSER_EXPIRY_REALIGN_ACTIVATION under the pre-launch ruling that every feature must
     // be ACTIVE on testnet. This gate closes a defect that spends a payer's native coin and
@@ -1301,16 +1304,15 @@ const COMPRESSION_MAX_INPUT_BYTES = 16 * 1024 * 1024;
 const PRICE_PAIR_TICKER_MAX_LEGACY = 5;
 const PRICE_PAIR_TICKER_MAX_WIDE   = 6;
 
-// UNARMED on mainnet. 9999999999 is a far-future sentinel (year 2286), NOT a
-// scheduled flag-day: the pre-launch instant this gate arms at is an
-// open operator decision. The usual contract-era stamp 1786060800 (2026-08-07) is
-// NOT usable here because it falls AFTER the early-September launch target, which
-// would leave LTC/DOGE native-coin fees unpayable straight through launch. Arming
-// is a one-line edit here plus the byte-equal edit in the vendored copies.
+// ARMED at genesis on every network. Mainnet was ruled on 2026-09-09: no PRICE action has
+// ever been indexed on any mainnet chain (measured 2026-09-09), so the widened ticker bound
+// reinterprets nothing and a from-genesis replay is the witness. Arming at 0 rather than at
+// a launch instant is what keeps LTC/DOGE native-coin fees payable from the first mainnet
+// block that carries one. The vendored copies carry the byte-equal edit.
 // testnet/regtest are genesis-on so the widened format is in force in the suites
 // and on every test venue today.
 const PRICE_PAIR_WIDEN_ACTIVATION = {
-    mainnet: 9999999999,  // UNARMED sentinel, pending an open operator decision
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 PRICE actions, measured 2026-09-09)
     testnet: 0,
     regtest: 0,
 };

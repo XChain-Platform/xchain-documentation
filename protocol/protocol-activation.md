@@ -93,7 +93,7 @@ re-runs an action handler, a deploy validator, or the VM.
 | Service | Carries |
 |---|---|
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
-| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the mainnet-unarmed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([Unarmed VM gates](#unarmed-vm-gates-service-carried)) |
+| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([VM gates](#vm-gates-service-carried)) |
 | `xchain-hub` | the nine validator-era gate modules it consumes (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical, retraction signing, attestation relay, price signature tally). The tenth Cohort B gate, attestation admission, is indexer-only |
 | `xchain-decoder` | the five activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` (per-chain local height) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
@@ -195,7 +195,7 @@ has no second copy, see [above](#where-the-values-live)). They are listed here s
 inventory stays complete pending consolidation into the canonical file, and because
 [Flag-Day Values](./flag-days.md) covers only the time-keyed thresholds: every height-keyed one is
 inventoried on this page, the armed ones in this table and the mainnet-unarmed VM pair under
-[Unarmed VM gates](#unarmed-vm-gates-service-carried).
+[VM gates](#vm-gates-service-carried).
 
 | Gate | Keyed on | Mainnet threshold | Straggler | Lives in |
 |---|---|---|---|---|
@@ -227,20 +227,20 @@ contract-era timestamp, so it belongs with **Cohort A**; it is registered as a
 standalone twin-style module rather than a `protocol_changes.addChange` entry to keep it self-contained
 next to the query it gates.
 
-## Unarmed VM gates (service-carried)
+## VM gates (service-carried)
 
-Two further height-keyed consensus gates live in `xchain-vm` with a byte-identical indexer twin, and
-neither is armed on mainnet: every mainnet entry holds `null`, the explicit unarmed sentinel, so
-mainnet behaviour is byte-identical to the legacy path and stays so until an operator ratifies
-per-coin train heights in BOTH copies. Testnet and regtest run both from genesis. They are listed
-here rather than in the armed table above so the height-keyed inventory on this page stays complete
-while their mainnet heights are still owed; arming either one is a flag day under the
-[notice policy](./upgrade-notice-policy.md).
+Two further height-keyed consensus gates live in `xchain-vm` with a byte-identical indexer twin.
+Both are active from genesis on every network: mainnet was armed at 0 on 2026-09-09 under the
+[mainnet genesis arm](#the-mainnet-genesis-arm) (no contract has ever been deployed or executed on
+mainnet, so there is no verdict to reinterpret), and testnet and regtest have run both from genesis
+since they were built. They are listed here rather than in the armed table above because they are
+registered in the VM rather than in the indexer's registry; a future change to either height in
+BOTH copies is a flag day under the [notice policy](./upgrade-notice-policy.md).
 
 | Gate | Keyed on | Mainnet | Straggler | Lives in |
 |---|---|---|---|---|
-| **Execute-time source lint** (`EXEC_LINT_ACTIVATION`, re-runs the deploy syntax validation against a contract's stored source at execute time and fails the execution deterministically when that source no longer passes the bans active for the block; the check is metered as gas, so it moves `gasUsed`) | per-chain local height | **unarmed** (`null` for BTC, LTC and DOGE, awaiting operator-ratified per-coin heights); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`EXEC_LINT_ACTIVATION`, resolver `isExecLintActive`); twin `xchain-indexer/src/vm_exec_lint_activation.js`, pinned to byte equality by the consensus-params suites in both repos. A height armed on one side only forks the fleet |
-| **Deploy-lint global-alias refinement** (`LINT_GLOBAL_ALIAS_ACTIVATION`, makes the banned-global deploy rules resolve sloppy-mode `this` and the `globalThis` self-reference chain as reads of the same global object, which moves DEPLOY verdicts on error-severity `CONSENSUS_RULES`) | per-chain local height | **unarmed** (`null` for BTC, LTC and DOGE, awaiting operator-ratified per-coin heights); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`LINT_GLOBAL_ALIAS_ACTIVATION`, resolver `isLintGlobalAliasActive`); twin `xchain-indexer/src/vm_lint_global_alias_activation.js`, pinned the same way |
+| **Execute-time source lint** (`EXEC_LINT_ACTIVATION`, re-runs the deploy syntax validation against a contract's stored source at execute time and fails the execution deterministically when that source no longer passes the bans active for the block; the check is metered as gas, so it moves `gasUsed`) | per-chain local height | **armed at genesis** (0 for BTC, LTC and DOGE, ruled 2026-09-09); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`EXEC_LINT_ACTIVATION`, resolver `isExecLintActive`); twin `xchain-indexer/src/vm_exec_lint_activation.js`, pinned to byte equality by the consensus-params suites in both repos. A height armed on one side only forks the fleet |
+| **Deploy-lint global-alias refinement** (`LINT_GLOBAL_ALIAS_ACTIVATION`, makes the banned-global deploy rules resolve sloppy-mode `this` and the `globalThis` self-reference chain as reads of the same global object, which moves DEPLOY verdicts on error-severity `CONSENSUS_RULES`) | per-chain local height | **armed at genesis** (0 for BTC, LTC and DOGE, ruled 2026-09-09); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`LINT_GLOBAL_ALIAS_ACTIVATION`, resolver `isLintGlobalAliasActive`); twin `xchain-indexer/src/vm_lint_global_alias_activation.js`, pinned the same way |
 
 ## Decoder-carried gates
 
@@ -255,8 +255,8 @@ height.
 | Gate | Keyed on | Thresholds | Straggler | Lives in |
 |---|---|---|---|---|
 | **Oracle-fee output capture** (`ORACLE_FEE_OUTPUT_ACTIVATION`, persists the native-coin output paying a DISPENSER's `ORACLE_ADDRESS` so the indexer's `validateOracleFee` can see the fee that was actually paid) | block time | mainnet **armed**, at the coordinated [contract-era flag day](./flag-days.md#contract-era-flag-day) the indexer's `FIX_OUTPUT_FANOUT` rides, which it must never precede; testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
-| **Oracle-fee set-membership capture** (`ORACLE_FEE_SET_CAPTURE_ACTIVATION`, resolves a DISPENSER v2 edit/refill oracle-fee output by set membership over every open Mode B dispenser of the paying source) | block time | mainnet **disarmed** (`null`, awaiting an operator-ratified instant); testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
-| **Dispenser expiry realignment** (`DISPENSER_EXPIRY_REALIGN_ACTIVATION`, soft-expires open dispensers *after* the block's transaction loop, where the indexer's measurement point already is) | block time | mainnet **disarmed** (`null`, awaiting an operator-ratified instant); testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
+| **Oracle-fee set-membership capture** (`ORACLE_FEE_SET_CAPTURE_ACTIVATION`, resolves a DISPENSER v2 edit/refill oracle-fee output by set membership over every open Mode B dispenser of the paying source) | block time | mainnet **armed** at the same contract-era instant as the oracle-fee output capture above, which it may never precede (ruled 2026-09-09 under the [mainnet genesis arm](#the-mainnet-genesis-arm); identity on mainnet history, which holds no dispenser); testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
+| **Dispenser expiry realignment** (`DISPENSER_EXPIRY_REALIGN_ACTIVATION`, soft-expires open dispensers *after* the block's transaction loop, where the indexer's measurement point already is) | block time | mainnet **armed at genesis** (0, ruled 2026-09-09 under the [mainnet genesis arm](#the-mainnet-genesis-arm)); testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
 | **BATCH sub-command output capture** (`BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION`, decides which native-coin outputs to persist from a BATCH's sub-commands instead of only its top-level ACTION name, so a batched COINPAY or Mode B DISPENSER stops spending a coin and settling nothing) | block time | mainnet **armed**, at the same instant the indexer's `BATCH_ISSUANCE_LIMITS` carries; testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
 | **Taproot envelope recognition** (`ENVELOPE_RECOGNITION_ACTIVATION`, and with it every [envelope consensus rule](./taproot-envelope.md): end-indexed witness parsing, annex refusal, input-0 binding, mixed-carrier and multi-envelope rejection) | per-chain **local height** | `BTC:mainnet` 960850, `LTC:mainnet` 3153500 (both crossed 2026-08-03), `DOGE` **null on every network**; testnet and regtest genesis-active (0) | forks | `xchain-decoder/src/XChainDecoder.js`, mirrored in `xchain-encoder/src/CryptoNetworks.js` |
 
@@ -297,6 +297,48 @@ fleet upgrades to legs-in-canonical. Its match-canonical partner is a Cohort-B g
 armed months earlier at BTC anchor 961000), preserving the canonical-first ordering. So Cohort A is
 "one shared time" in its keying *mechanism* (wall-clock time, synchronized across all three chains), but
 the royalty create-side carries a later time *value* than the rest of the cohort.
+
+## The mainnet genesis arm
+
+On 2026-09-09 the operator ruled that every mainnet consensus gate that is **identity on the indexed
+mainnet history** arms at genesis (`0`) in one commit set, and this section records the rule and the
+measurement it rests on so a later audit does not re-open the inventory gate by gate.
+
+**The measurement.** Read on 2026-09-09 from the mainnet indexer replicas: the entire indexed mainnet
+history is ISSUE actions (the genesis name import plus later ISSUEs on Bitcoin and Dogecoin) and 56
+Dogecoin ANCHOR actions. Litecoin mainnet has never carried an XChain action. There are zero of every
+other action type (BATCH, EXECUTE, DEPLOY, STAKE, SLASH, SWEEP, CALLBACK, DISPENSER, DISPENSE, MINT,
+SEND, PRICE), zero dispensers, zero stakes, zero validators, zero attestations and zero contracts.
+
+**The rule.** A gate whose rule touches only action types, tables or artifacts that do not exist in
+that history cannot change any verdict a from-genesis replay reaches, so arming it at `0` is
+state-neutral: no coordinated flag day, no arming window, no straggler to halt. A gate that CAN
+reinterpret the history keeps a future instant under the [notice policy](./upgrade-notice-policy.md).
+Exactly one gate is in the second class: `UNCAPPED_MAX_SUPPLY_ZERO`, because `MAX_SUPPLY = 0` is on
+essentially every imported name, so it arms at the mainnet launch instant and at nothing earlier.
+
+**What the arm covers, and what it deliberately leaves.** Every registry gate and activation map that
+was unarmed on mainnet before the ruling now reads `0` in its mainnet position in every repository
+that declares it, with four named exceptions: `UNCAPPED_MAX_SUPPLY_ZERO` (launch instant, above);
+`ATTEST_RESPONSE_MIRROR_ACTIVATION` (stays `null` until its quorum defect is closed);
+`ORACLE_FEE_SET_CAPTURE_ACTIVATION` (arms at its base gate's own contract-era instant, the earliest
+its ordering permits, which is identity all the same); and the staged SPV commitments
+(`STATE_SUBTREE`, `ESCROW_LOCKED_LEAF`), whose mainnet key is absent by design until their shadow
+window has run. `CROSS_CHAIN_ROYALTY` was already armed and is unchanged.
+
+**The witness.** The claim is proved, not argued: the same OLD-versus-ON from-genesis replay harness
+the batch cost-weighting flag day was accepted on is run once per mainnet chain with the whole set
+armed, and must report the consensus hash chain identical end to end on Bitcoin and Dogecoin
+(Litecoin is vacuous). Any gate that reddens the witness leaves the genesis set and joins
+`UNCAPPED_MAX_SUPPLY_ZERO` on a future instant. The two places the witness is expected to look hardest
+are `EMISSION_ISSUANCE_LIMITS` (identity unless the genesis import ever put two ISSUEs in one
+transaction) and the archive preimage gates (they read the 56 anchors).
+
+**Testnet is not retroactive.** Three of the same gates were also inert on the public testnet, and
+testnet has real history since its launch, so they do not take `0` there: `UNIFIED_FEES_SWEEP_CALLBACK`
+takes a future instant and the two archive gates (`ARCHIVE_INVALID_HEIGHT_KEY`,
+`ARCHIVE_ROLLBACK_AUTHOR_SCOPE`) take future per-chain heights, all sized to the release that carries
+them and published on [Flag-Day Values](./flag-days.md).
 
 ## Straggler behavior
 
