@@ -9,6 +9,41 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.16.2
+
+Released 2026-09-09. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.16.2)
+
+A patch train. `xchain-node` and `xchain-hub` move to 0.16.2. `xchain-indexer`
+keeps the 0.16.1 it shipped under in the previous train, and everything else
+keeps the tag it shipped under in v0.16.0 (or v0.15.0 for `xchain-vm`,
+`xchain-contracts` and `xchain-regtest-miner`). `xchain-documentation` is tagged
+v0.16.2 with the train.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.16.2 |
+| xchain-hub | 0.16.2 |
+| xchain-indexer | 0.16.1 |
+| xchain-sync | 0.16.0 |
+| xchain-explorer | 0.16.0 |
+| xchain-decoder | 0.16.0 |
+| xchain-encoder | 0.16.0 |
+| xchain-utxo-tracker | 0.16.0 |
+| xchain-sdk | 0.16.0 |
+| xchain-e2e-test | 0.16.0 |
+| xchain-vm | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+State-neutral hub fix: the hub image installs the llm attestation provider's
+CLI. A validator configured for the spawn transport, which is what a hub with a
+provider config directory resolves to, could not run the binary at all on
+v0.16.0, so every llm attestation request it was drawn for answered
+`provider_error` and the round expired with no response. An operator running llm
+attestations needs this release on every validator that serves them; nothing
+else changes, no activation height moves, and a validator that serves no llm
+provider is unaffected.
+
 ## v0.16.1
 
 Released 2026-09-09. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.16.1)
