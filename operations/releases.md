@@ -9,6 +9,45 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.16.3
+
+Released 2026-09-09. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.16.3)
+
+A patch train. `xchain-node` and `xchain-hub` move to 0.16.3. `xchain-indexer`
+keeps the 0.16.1 it shipped under in v0.16.1, and everything else keeps the tag
+it shipped under in v0.16.0 (or v0.15.0 for `xchain-vm`, `xchain-contracts` and
+`xchain-regtest-miner`). `xchain-documentation` is tagged v0.16.3 with the train.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.16.3 |
+| xchain-hub | 0.16.3 |
+| xchain-indexer | 0.16.1 |
+| xchain-sync | 0.16.0 |
+| xchain-explorer | 0.16.0 |
+| xchain-decoder | 0.16.0 |
+| xchain-encoder | 0.16.0 |
+| xchain-utxo-tracker | 0.16.0 |
+| xchain-sdk | 0.16.0 |
+| xchain-e2e-test | 0.16.0 |
+| xchain-vm | 0.15.0 |
+| xchain-contracts | 0.15.0 |
+| xchain-regtest-miner | 0.15.0 |
+
+Two state-neutral hub fixes to the oracle, and one log-level change. Every
+silent oracle round exit (a scheduler round-number gap across a clock step, a
+restart between submission and finalization, a bare seat return past the
+gates) now leaves a structured `round_lost` record and a skipped row, so a
+round with no snapshot row is explained instead of vanishing. A PRICE catch-up
+sweep wire may spend the change of a wire the same publish pass already
+broadcast, bounded by the new
+[`ORACLE_PUBLISH_SELF_CHAIN_MAX_DEPTH`](../components/hub/configuration.md)
+setting (default 4), the encoder UTXO cap and readable confirmation depth, so a
+publisher with a buffered backlog no longer fails on dust once its confirmed
+outputs are spent. The pushed-tip line past `MAX_TIP_AGE_S` logs at info and
+names the Bitcoin block gap. No activation height moves and no derived state
+changes.
+
 ## v0.16.2
 
 Released 2026-09-09. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.16.2)
