@@ -124,6 +124,8 @@ These variables are read by xchain-node itself at startup. They control runtime 
 | `HUB_SYNC_PRICE_GRACE_S` | Seconds of grace the indexer allows on the hub mirror's `price_snapshots` watermark before its barrier holds a block. Forwarded into the indexer's generated `.env`. On regtest xchain-node defaults it to `0`, because a single-operator venue has no second writer to wait for; a value set in the host environment always wins. |
 | `HUB_SYNC_ORACLE_GRACE_S` | The same grace for the `oracle_prices` stream. Same regtest default of `0` and the same precedence. |
 | `HUB_SYNC_ATTEST_RESPONSE_GRACE_S` | The same grace for the `attestation_responses` stream, which gates the attestation response mirror's barrier. Same regtest default of `0` and the same precedence. |
+| `LEVELDB_CACHE_BYTES` | Forwarded into the utxo-tracker container's generated `.env` when set and non-empty on the host at `install` or `update`; unset leaves the tracker's own default in place. The tracker reads it as its LevelDB block-cache size (see `components/utxo-tracker/configuration.md`). No default of its own here: xchain-node only passes the value through. |
+| `LEVELDB_WRITE_BUFFER_BYTES` | Forwarded into the utxo-tracker container's generated `.env` on the same terms as `LEVELDB_CACHE_BYTES`; the tracker reads it as its LevelDB write-buffer size. No default of its own here. |
 
 ### Telemetry collector
 
