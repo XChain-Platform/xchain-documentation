@@ -4,8 +4,8 @@
 
 # XChain Wallet privacy policy
 
-**Publisher:** Dankest, LLC
-**Applies to:** XChain Wallet in every form we ship: the web wallet, the browser extension, the desktop app for Windows, macOS and Linux, and the Android and iOS apps.
+**Publisher:** Dankest, LLC  
+**Applies to:** XChain Wallet in every form we ship: the web wallet, the browser extension, the desktop app for Windows, macOS and Linux, and the Android and iOS apps.  
 **Last updated:** 2 August 2026
 
 ---
