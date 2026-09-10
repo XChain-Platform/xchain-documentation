@@ -343,6 +343,7 @@ stake activating. You do not need to tell anyone.
 | Staked and the hub is up, but you never appear in `validator_capabilities` | That table is gossiped from your hub to its peers, not read from the chain | Check the hub log for peer connections and for self-test failures; a capability that fails its self-test is never advertised |
 | Qualified but never publishing | DOGE wallet empty | Top it up (step 3) |
 | ROLLCALL signed but never appears on Dogecoin | Hand-built signer module has no `broadcast` export | Add `broadcast(payload)` to the module, or use the CLI-generated signer; `validator status` shows which you have |
+| `bitcoin-cli stop` (or `dogecoin-cli stop`) inside the container, and the daemon is back two seconds later | The container's `unless-stopped` restart policy restarts a daemon that exits, and cannot tell a clean exit from a crash | Stop it from outside: `xchain-node stop node bitcoin mainnet`, which gives the daemon its flush budget. See [Stopping](../components/node/operations.md#stopping) |
 
 ## Upgrading
 
