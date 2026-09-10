@@ -153,6 +153,31 @@ Three things follow from the formula:
 
 To override the derivation for a tracker, either set the container limit (`XCHAIN_NODE_MODULE_MEMORY_MB_XCHAIN_UTXO_TRACKER=4096` before `recreate`; the tracker re-derives its slices from the new limit) or set the slices themselves in the tracker's environment (`LEVELDB_CACHE_BYTES`, `HEAP_FLUSH_THRESHOLD_MB`, `BULK_SYNC_RAM_BUDGET`), documented on the [utxo-tracker configuration](../components/utxo-tracker/configuration.md#memory-budget) page. Setting a slice larger than the container limit allows is the one combination to avoid: the kernel enforces the limit, not the tracker.
 
+### Disk I/O on a multi-chain host
+
+On a host with a single disk, every chain's coin node, decoder, indexer, encoder and UTXO tracker read and write that same disk, and it is often the first resource to saturate, not CPU or RAM. A chain that has already finished its initial block download does not go quiet: its services keep polling the coin node and the database on a fixed cadence, and the UTXO tracker's LevelDB store serves those polls as cold reads, so a synced chain's idle services can still hold the disk at high iowait and starve another chain's initial block download of the throughput it needs.
+
+Measure the effect without stopping anything by sampling each container's block I/O twice, five minutes apart:
+
+```bash
+docker stats --no-stream --format '{{.Name}}\t{{.BlockIO}}'
+```
+
+The container whose BlockIO grew the most between the two samples is the current writer; if a synced chain's services show meaningful growth while idle, they are competing with whatever chain is still in initial block download.
+
+On a single-disk host, prefer one of these in order:
+
+- **Sync one chain at a time.** Install and let each chain finish its initial block download before installing the next; this avoids the contention entirely.  
+- **If chains must overlap, stop the synced chain's services for the other chain's initial block download**, then start them again once it catches up:
+
+```bash
+xchain-node stop all bitcoin mainnet
+# ... let dogecoin finish its initial block download ...
+xchain-node start all bitcoin mainnet
+```
+
+See [Stopping](../components/node/operations.md#stopping) for the stop and start forms, the per-service stop timeouts, and why stopping a coin daemon from inside its container does not work.
+
 ### Regtest Deployment (Development / Testing)
 
 Regtest uses local blockchain simulation with no real network sync. This is the fastest way to bring up a fully working stack for development or testing.
