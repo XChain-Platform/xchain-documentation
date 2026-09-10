@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- The node operations page explains how to stop a coin daemon or a service, the stop budget each gets, and why a `bitcoin-cli stop` inside the container is undone by the restart policy.
+- The node, decoder and utxo-tracker configuration pages document `XCHAIN_NODE_MODULE_STOP_TIMEOUT_SECONDS_<SERVICE>` and `SHUTDOWN_TIMEOUT_MS`.
 - The node configuration page documents `XCHAIN_NODE_STOP_TIMEOUT_SECONDS`, the flush budget a coin node daemon gets before docker kills it on update.
 - The deployment guide describes the `NODE UNREACHABLE` state `ps` prints for a decoder or tracker whose coin node is not answering, and how it differs from `WAITING FOR NODE`.
 

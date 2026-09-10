@@ -156,6 +156,16 @@ Key Docker operations:
 
 Use `xchain-node stop` to stop containers. Module state entries are preserved, and containers can be restarted later with `xchain-node start`.
 
+```bash
+xchain-node stop node dogecoin mainnet            # the coin daemon
+xchain-node stop xchain-decoder dogecoin mainnet  # one service
+xchain-node stop all dogecoin mainnet             # everything on that chain
+```
+
+Every stop is a SIGTERM followed by a budget in which the process may finish what it is doing, and docker kills it only when the budget runs out. The coin daemon gets `XCHAIN_NODE_STOP_TIMEOUT_SECONDS` (default 600) because it flushes its chainstate only on a clean exit; the decoder and utxo-tracker get 120 seconds, because each breaks its loop at a block boundary; every other service gets 30. `update`, `recreate` and `uninstall` stop a container the same way before replacing or removing it, and the command prints how long the process took or a warning when it was killed. The budget is also stamped on the container as `--stop-timeout`, so a plain `docker stop` or `docker restart` on the container honours it without `-t`. A container created by a CLI that predates its budget (v0.15.0 for the daemon; the services gained theirs after v0.16.3) carries no stamp and is killed by docker after ten seconds under a plain `docker stop`; `update` or `recreate` replaces it with a stamped one.
+
+Do not stop a coin daemon from inside its container (`bitcoin-cli stop`, `dogecoin-cli stop`). The daemon exits cleanly, and about two seconds later docker's `unless-stopped` restart policy starts it again, so `docker ps` shows a healthy container and the stop looks as if it failed. The policy exists so a crashed daemon comes back, and it cannot tell a clean exit from a crash; only `docker stop` (which `xchain-node stop` issues) marks the container as deliberately stopped.
+
 Use `xchain-node uninstall` to fully remove containers, images, and module state entries.
 
 ## Multi-Pane Monitoring
