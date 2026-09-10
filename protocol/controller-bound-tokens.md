@@ -425,7 +425,7 @@ VERSION|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO
 - The guard runs with the same [ABI](#the-guard-abi), gas rules, and determinism guarantees;
   the subject is the account and `tick` is the token in motion.
 
-**What it gates today:** both sides of a direct `SEND`. A `transfer` address binding is
+**What it gates today:** both sides of a direct `SEND`. A `transfer` address binding is  
 **symmetric**: it runs whether the account is the **`SOURCE`** (an *outbound* self-gate:
 self-imposed spending controls such as velocity limits, allowlists, or compliance) or the
 **`DESTINATION`** (an *inbound* gate: refuse an unsolicited incoming transfer). The guard

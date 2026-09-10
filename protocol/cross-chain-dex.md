@@ -29,7 +29,7 @@ and settled by the **xchain-hub validator federation**:
 3. **Finalize + sign**; the federation reaches consensus and signs a single **match record**
    with a `cross_chain`-capability quorum of validator signatures. The quorum rule is
    activation-gated, see [Trust model](#trust-model).
-4. **Deliver**; the signed match is written to the hub's `cross_chain_matches` table and
+4. **Deliver**; the signed match is written to the hub's `cross_chain_matches` table and  
    **streamed to every indexer over the existing hub-DB mirror**: the same channel that already
    carries `price_snapshots`/`oracle_prices`. **There is no per-trade on-chain transaction.**
 5. **Settle**; each indexer reads the match from its local mirror, **verifies the signatures**,

@@ -3,7 +3,7 @@
 
 # Project Registry Standard
 
-A project registry is the chain-native way for a project to declare which tokens are
+A project registry is the chain-native way for a project to declare which tokens are  
 **officially part of it**: the curated-directory model where independently-named
 community tokens are blessed by a project curator, and explorers/wallets render a
 prominent "official" indicator on member tokens. Like the
