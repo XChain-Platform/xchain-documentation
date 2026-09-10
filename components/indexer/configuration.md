@@ -191,6 +191,22 @@ documented for the A7 harness above (its namespace default is
 | `LAP_FIRST_BLOCK` | **Harness only.** First block of the replayed range, set by the parent for its side-processes | `100` |
 | `LAP_LAST_BLOCK` | **Harness only.** Last block of the replayed range, set by the parent for its side-processes | `250` |
 
+### Genesis-arm replay witness
+
+Read only by `bin/verify-genesis-arm-replay-equivalence.js` (the from-genesis
+OLD-vs-ON replay witness for the mainnet genesis arm, which replays a mainnet
+corpus through the pre-arm tree and the armed tree and compares the consensus
+hash chain); never by the indexer service itself. It shares the `TEST_DB_*`
+variables documented for the A7 harness above (its namespace default is
+`ga_witness_replay_<coin>`), and it sets `GENESIS_DUMP_PATH` to a file that does
+not exist for its side-processes so genesis is derived through the action
+pipeline rather than imported.
+
+| Variable | Description | Example |
+|---|---|---|
+| `GA_SIDE_ROOT` | **Harness only.** Materialized tree the forked side-process replays from (the HEAD archive, or the HEAD archive with the arm commit reverted) | `/tmp/xchain-ga-witness-btc/indexer-old` |
+| `GA_SIDE_KEY` | **Harness only.** Side label the side-process reports under and prefixes its progress lines with: `OLD` or `ON` | `ON` |
+
 ### BATCH cost-measurement harness
 
 Read only by `bin/measure-batch-execute-cost.js`, which measures the block-loop
