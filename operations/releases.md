@@ -9,6 +9,51 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.17.0
+
+Released 2026-09-10. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.17.0)
+
+A minor train, and a full one: every component moves to 0.17.0, `xchain-documentation`
+included. It was cut to roll the testnet validator hubs, so the attestation and oracle
+work is the substance of it.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.17.0 |
+| xchain-hub | 0.17.0 |
+| xchain-indexer | 0.17.0 |
+| xchain-sync | 0.17.0 |
+| xchain-explorer | 0.17.0 |
+| xchain-decoder | 0.17.0 |
+| xchain-encoder | 0.17.0 |
+| xchain-utxo-tracker | 0.17.0 |
+| xchain-sdk | 0.17.0 |
+| xchain-e2e-test | 0.17.0 |
+| xchain-vm | 0.17.0 |
+| xchain-contracts | 0.17.0 |
+| xchain-regtest-miner | 0.17.0 |
+
+A judge_model attestation round could not finalize on the live testnet fleet, for three
+reasons that are all fixed here: leader rotation froze on a slot that never proposes and
+now steps over one it has proven silent, gated on the request's own block index (testnet
+BTC 152400, mainnet unratified, regtest genesis); a leader stamped the round's
+`effective_time` at proposal and now stamps it when the winner is established; and the
+batch publisher retries a head wire the encoder refused before it was sent. The oracle
+clamp reference becomes a function of the round being judged rather than of each hub's own
+timer, which changes what a hub clamps to and asks for a single-pass hub roll rather than
+a rolling one. Contract identity becomes a consensus-required export: a contract declares
+`meta.name` and `meta.description`, the indexer stores and full-text indexes it, and the
+explorer shows and searches it. It is required at mainnet genesis and arms on testnet at
+2026-09-13 00:00:00Z, so every testnet indexer must run this release before that
+instant. The VM size-meters destructuring rest patterns and refuses the four
+unmeterable rest positions under a new `banned-rest` rule, moving the VM consensus
+epoch to 4, armed at genesis off mainnet and on 2027-01-01 on mainnet. Twenty-six mainnet
+activation maps and six mainnet time constants are armed at genesis under the 2026-09-09
+identity ruling, proven by a from-genesis replay witness that reproduced byte-identical
+state on Bitcoin and Dogecoin mainnet. The archive invalid-height key repair arms on
+testnet at BTC 155000, LTC 4896000 and DOGE 67915000, and `xchain-sync` must be live
+before the indexer half.
+
 ## v0.16.3
 
 Released 2026-09-09. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.16.3)

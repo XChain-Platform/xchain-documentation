@@ -7,17 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-09-10
+
 ### Added
 - The node operations page explains how to stop a coin daemon or a service, the stop budget each gets, and why a `bitcoin-cli stop` inside the container is undone by the restart policy.
 - The node, decoder and utxo-tracker configuration pages document `XCHAIN_NODE_MODULE_STOP_TIMEOUT_SECONDS_<SERVICE>` and `SHUTDOWN_TIMEOUT_MS`.
 - The node configuration page documents `XCHAIN_NODE_STOP_TIMEOUT_SECONDS`, the flush budget a coin node daemon gets before docker kills it on update.
 - The deployment guide describes the `NODE UNREACHABLE` state `ps` prints for a decoder or tracker whose coin node is not answering, and how it differs from `WAITING FOR NODE`.
+- The hub mirror page documents the watermark stall detector and its two windows.
+- The hub configuration page documents the three oracle catch-up backlog and retirement variables, `ORACLE_PUBLISH_SELF_CHAIN_MAX_DEPTH`, and the attestation batch head-refusal retry bound.
+- The indexer page documents the genesis-arm replay witness harness variables.
+- The deployment guide names the shared disk as the multi-chain bottleneck.
 
 ### Changed
 - The upgrading, validator and quickstart guides say why the one-time CLI checkout comes before any `update` from an older CLI: a CLI before v0.15.0 kills a coin node instead of stopping it.
 - The validator guide's mainnet section notes that `install all` creates the coin node before the services that poll it.
 - The upgrading guide's multi-host step 2 covers host-native sync servers: pin the checkout to the release tag, restart, and confirm health and ledger-hash parity with the origin.
 - The DISPENSER effective-oracle-price rule is stated as a validity condition independent of escrow, with its activation status named, and the oracle usage fee lists the ownership dispenser among the cases owing no fee output.
+- The protocol constants are armed at mainnet genesis under the 2026-09-09 ruling.
+- The flag-day page is regenerated: CONTRACT_META_REQUIRED arms on testnet at 2026-09-13T00:00:00Z, and REST_PATTERN_METER gets the mainnet row it had been missing.
 
 ## [0.16.0] - 2026-09-08
 
