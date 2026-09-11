@@ -449,7 +449,7 @@ so by the time you promote, that clock is usually already running.
 
 ### Phase 5: production, staged
 
-Promote to production at a staged rollout percentage rather than at 100%, and
+Promote to production at a staged rollout percentage rather than at 100%, and  
 **know where the halt lever is before you start**: halting a staged rollout is
 the only Play-side incident control that exists once a release is live.
 

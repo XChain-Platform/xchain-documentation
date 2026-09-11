@@ -5,10 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.17.0] - 2026-09-10
+
+### Added
+- The node operations page explains how to stop a coin daemon or a service, the stop budget each gets, and why a `bitcoin-cli stop` inside the container is undone by the restart policy.
+- The node, decoder and utxo-tracker configuration pages document `XCHAIN_NODE_MODULE_STOP_TIMEOUT_SECONDS_<SERVICE>` and `SHUTDOWN_TIMEOUT_MS`.
+- The node configuration page documents `XCHAIN_NODE_STOP_TIMEOUT_SECONDS`, the flush budget a coin node daemon gets before docker kills it on update.
+- The deployment guide describes the `NODE UNREACHABLE` state `ps` prints for a decoder or tracker whose coin node is not answering, and how it differs from `WAITING FOR NODE`.
+- The hub mirror page documents the watermark stall detector and its two windows.
+- The hub configuration page documents the three oracle catch-up backlog and retirement variables, `ORACLE_PUBLISH_SELF_CHAIN_MAX_DEPTH`, and the attestation batch head-refusal retry bound.
+- The indexer page documents the genesis-arm replay witness harness variables.
+- The deployment guide names the shared disk as the multi-chain bottleneck.
+
+### Changed
+- The upgrading, validator and quickstart guides say why the one-time CLI checkout comes before any `update` from an older CLI: a CLI before v0.15.0 kills a coin node instead of stopping it.
+- The validator guide's mainnet section notes that `install all` creates the coin node before the services that poll it.
+- The upgrading guide's multi-host step 2 covers host-native sync servers: pin the checkout to the release tag, restart, and confirm health and ledger-hash parity with the origin.
+- The DISPENSER effective-oracle-price rule is stated as a validity condition independent of escrow, with its activation status named, and the oracle usage fee lists the ownership dispenser among the cases owing no fee output.
+- The protocol constants are armed at mainnet genesis under the 2026-09-09 ruling.
+- The flag-day page is regenerated: CONTRACT_META_REQUIRED arms on testnet at 2026-09-13T00:00:00Z, and REST_PATTERN_METER gets the mainnet row it had been missing.
+
 ## [0.16.0] - 2026-09-08
 
 - Testnet activation heights sized in the canon: ATTEST_ZERO_CONF_ACTIVATION 151800 and ROLLCALL_GATES_ACTIVATION 152208.
 ### Added
+- The contract identity manifest (`meta`) is documented across the protocol, developer-guide, concepts, component and AI-agent pages: the seven `CONTRACT_MANIFEST` verdicts, the text grammar, the `readManifest` report fields, the four `contracts.meta_*` columns, the explorer's contract search type, and the measured gas cost of the block.
+- The explorer API reference documents the two batch POST routes (`/api/balances`, `/api/coinpay_obligations`), the explorer and node configuration pages carry `EXPLORER_BATCH_RATE_LIMIT_RPM`, and the SDK explorer page documents `getBalancesBatch` and `getCoinpayObligationsBatch`.
 - The deployment guide's bootstrap section states that a restore assumes a coin node at or past the archive's height, documents the install-time comparison and its four outcomes (`WAITING FOR NODE`, refused, unknown, ok), and the validator guide's mainnet section gives the two orderings that avoid the wait on a slow host.
 - The validator operations guide marks the `full_node` floor as a tier that is not active yet and links the explanation.
 - The deployment guide gains a "Memory on a multi-chain host" section (the tracker's derived container limit, the recreate-after-adding-a-chain rule, why other services stay unlimited), cross-linked from the tracker configuration page and the node's `XCHAIN_NODE_MODULE_MEMORY_MB_<SERVICE>` variable.

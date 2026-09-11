@@ -343,6 +343,7 @@ stake activating. You do not need to tell anyone.
 | Staked and the hub is up, but you never appear in `validator_capabilities` | That table is gossiped from your hub to its peers, not read from the chain | Check the hub log for peer connections and for self-test failures; a capability that fails its self-test is never advertised |
 | Qualified but never publishing | DOGE wallet empty | Top it up (step 3) |
 | ROLLCALL signed but never appears on Dogecoin | Hand-built signer module has no `broadcast` export | Add `broadcast(payload)` to the module, or use the CLI-generated signer; `validator status` shows which you have |
+| `bitcoin-cli stop` (or `dogecoin-cli stop`) inside the container, and the daemon is back two seconds later | The container's `unless-stopped` restart policy restarts a daemon that exits, and cannot tell a clean exit from a crash | Stop it from outside: `xchain-node stop node bitcoin mainnet`, which gives the daemon its flush budget. See [Stopping](../components/node/operations.md#stopping) |
 
 ## Upgrading
 
@@ -373,6 +374,11 @@ git fetch --tags origin && git checkout v0.16.0 && npm install
 xchain-node update all
 ```
 
+Do the checkout before any `update` from the old CLI. A CLI older than
+v0.15.0 kills a coin node instead of stopping it, and a killed mainnet daemon
+re-validates for hours when it comes back; the newer CLI stops it with a flush
+budget first. See [Upgrading](./upgrading.md#nodes-installed-with-an-older-cli).
+
 To pin a validator to an exact release, or move back within a major version,
 name it: `xchain-node update all v0.15.2`. `xchain-node ps` shows what is
 running. See [Upgrading](./upgrading.md) for the full picture.
@@ -384,9 +390,11 @@ running. See [Upgrading](./upgrading.md) for the full picture.
   while the bootstrap restore puts the decoder and tracker at the archive's
   height in minutes. The services wait for the node to pass that height
   (`xchain-node ps` shows `WAITING FOR NODE`), and the install refuses the
-  restore for a service image that cannot wait. To avoid the wait, let the coin
-  node finish its initial sync before `install all bitcoin mainnet`, or install
-  with `--no-bootstrap` and let the services parse forward behind the node. See
+  restore for a service image that cannot wait. `install all` creates the coin
+  node first, so its sync starts before the archives download. To avoid the
+  wait, let the coin node finish its initial sync before
+  `install all bitcoin mainnet`, or install with `--no-bootstrap` and let the
+  services parse forward behind the node. See
   [Bootstrap Archives](./deployment.md#bootstrap-archives-optional).
 - XCHAIN is not mintable; acquire it and send it to the stake address, then
   `validator stake` skips the mint step.

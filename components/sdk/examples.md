@@ -863,6 +863,13 @@ sdk.ws.on('SNAPSHOT', (msg) => {
 // Read contract source code
 const contractSource = `
 module.exports = {
+    // Required at/after the CONTRACT_META_REQUIRED flag day: a deploy without a
+    // conforming name and description is rejected at consensus.
+    meta: {
+        name:        'Greeter',
+        description: 'Returns a greeting for the name it is given.',
+        version:     '1.0.0'
+    },
     greet: function(xchain) {
         let name = xchain.getInputParam(0) || 'world';
         return 'Hello, ' + name + '!';
@@ -872,7 +879,11 @@ module.exports = {
 
 // Validate the contract source before deploying
 let check = sdk.contracts.validate(contractSource);
-if (!check.valid) {
+// And check the identity manifest: this is the one the chain rejects a deploy over.
+let identity = sdk.contracts.checkExportedMeta(contractSource);
+if (identity.error) {
+    console.error('Contract identity:', identity.error);
+} else if (!check.valid) {
     console.error('Contract validation failed:', check.error);
 } else {
     // Deploy (auto base64-encodes the source code)
@@ -970,7 +981,7 @@ let history = await amm.getExecutions();   // execution history
 
 ```js
 // Base64 encode/decode
-let b64 = sdk.contracts.encode('module.exports = {}');
+let b64 = sdk.contracts.encode("module.exports = { meta: { name: 'Noop', description: 'Does nothing.', version: '1.0.0' } }");
 let source = sdk.contracts.decode(b64);
 
 // Check code size
@@ -983,6 +994,14 @@ let validation = sdk.contracts.validate(contractSource);
 if (!validation.valid) {
     console.log('Error:', validation.error);
 }
+
+// Contract identity: what the chain will record, and whether it will accept it
+let meta = sdk.contracts.getExportedMeta(contractSource);
+console.log(meta.status, meta.name, meta.version);   // 'present' 'Greeter' '1.0.0'
+
+let identityCheck = sdk.contracts.checkExportedMeta(contractSource);
+if (identityCheck.error) console.log('Refused:', identityCheck.error);
+identityCheck.advisories.forEach((a) => console.log('Advisory:', a));
 if (validation.warnings) {
     for (let w of validation.warnings) console.log('Warning:', w);
 }

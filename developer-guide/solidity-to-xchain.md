@@ -59,6 +59,11 @@ via `getInputParam(i)`.
 // SPDX-License-Identifier: MIT
 /** @param {import('xchain-vm/src/gateway').XChainGateway} xchain */
 module.exports = {
+    meta: {                                    // contract identity, required at the flag day
+        name:        'Owner Ping',
+        description: 'Records the block height at which the stored owner last pinged.',
+        version:     '1.0.0'
+    },
     initialize: function (xchain) {            // constructor
         var owner = xchain.getInputParam(0);   // params are strings
         xchain.require(owner, 'owner required');
@@ -80,6 +85,7 @@ build step and nothing to install (contracts stay single-file and import-free).
 
 | Solidity | XChain | Notes |
 |---|---|---|
+| `contract Foo { ... }` (the contract name) | `meta.name` | a **label**, not an identity: names are not unique, and the derived address `C:CHAIN:index` is what identifies the contract. Required at the flag day, with `meta.description`; see [Contract identity](smart-contract-development.md#contract-identity) |
 | `constructor` | `initialize(xchain)` | runs once at deploy |
 | `function f() public` | `f: function (xchain) { ... }` | invoked by name via `EXECUTE` |
 | function arguments | `xchain.getInputParam(i)`, `getInputParamCount()` | all params are strings |
@@ -141,6 +147,11 @@ around it. Bind `all` when the rule must also cover sales: a `transfer` binding 
 ```javascript
 // guard contract: the indexer calls guard(...) before a guarded action settles
 module.exports = {
+    meta: {
+        name:        'Blocklist Guard',
+        description: 'Controller guard that denies transfers to any address marked blocked in contract state.',
+        version:     '1.0.0'
+    },
     guard: function (xchain) {
         var actionType = xchain.getInputParam(0);   // the invocation point: 'SEND', 'SWEEP', ...
         var to         = xchain.getInputParam(2);   // '' on AIRDROP/DIVIDEND and the trade creates
@@ -172,6 +183,11 @@ XChain:
 
 ```javascript
 module.exports = {
+    meta: {
+        name:        'Counter',
+        description: 'A counter the deploying owner alone may increment.',
+        version:     '1.0.0'
+    },
     initialize: function (xchain) {
         xchain.state.set('owner', xchain.getSourceAddress());
         xchain.state.set('count', '0');
@@ -201,6 +217,11 @@ source of truth rather than assuming the pair moved together.
 // caller submits, in ONE transaction:
 //   BATCH( DEPOSIT(thisContract, 'MTK', '100'), EXECUTE(thisContract, 'onDeposit', []) )
 module.exports = {
+    meta: {
+        name:        'Deposit Book',
+        description: 'Credits a depositor in contract state after a BATCHed DEPOSIT, reading its own balance as the source of truth.',
+        version:     '1.0.0'
+    },
     onDeposit: function (xchain) {
         var tick = 'MTK';
         var held = xchain.getBalance(xchain.getContractAddress(), tick) || '0';

@@ -35,6 +35,8 @@ xchain-node update all
 
 From then on `xchain-node update all` is the whole procedure.
 
+Do the checkout **before** running any `update` from the old CLI, and do not run `update node` from it. An `update` runs the CLI you have, and a CLI older than v0.15.0 replaces a coin node container with a force-remove: the daemon is killed, not stopped, and a killed daemon loses whatever chainstate it had not flushed and re-validates from its last flushed block when it comes back, which on a mainnet node with a large `dbcache` means hours. Since v0.15.0 the node is stopped with a flush budget first (600 seconds by default, `XCHAIN_NODE_STOP_TIMEOUT_SECONDS` to change it), the update prints how long the daemon took to stop, and a stop that ran out of budget is reported as a kill. The checkout move puts that CLI in charge before anything is stopped.
+
 ---
 
 ## Granular Control
@@ -157,7 +159,7 @@ flowchart TD
 ```
 
 1. **xchain-hub** first. Verify its `/health` endpoint and logs before proceeding.
-2. **xchain-sync**, then **xchain-decoder** (if changed).
+2. **xchain-sync**, then **xchain-decoder** (if changed). A sync server that runs from a git checkout instead of a container (a host-native unit serving a database replica to downstream clients) is pinned to the same release in this step: fetch the tags, check out the release tag, reinstall dependencies from the lockfile, restart the unit, then confirm `/health` reports healthy and the per-schema `ledger_hash` in `/status` matches the origin at equal `block_height`. A follower left on an older release keeps serving, but it cannot publish tables that release does not know, so downstream clients see them as missing until it is rolled.
 3. **xchain-indexer**: canary one chain first. Update a single indexer, confirm it resumes and its block height keeps pace with the decoder for at least 10 blocks, then roll the remaining indexers one at a time.
 4. **xchain-explorer** and **xchain-encoder** (stateless tier).
 5. **xchain-utxo-tracker** (if changed).

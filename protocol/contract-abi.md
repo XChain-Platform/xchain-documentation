@@ -28,6 +28,12 @@ without executing contract code:
 
 ```js
 module.exports = {
+    meta: {
+        name:        'Escrow',
+        description: 'Two-party escrow with an arbiter',
+        version:     '1.0.0'
+    },
+
     abi: { version: 1, methods: {
         fund:   { summary: 'Deposit the escrow amount', params: [ { name: 'tick', type: 'tick' }, { name: 'amount', type: 'amount' } ] },
         status: { summary: 'Read escrow status', params: [], view: true }
@@ -40,7 +46,7 @@ module.exports = {
 
 | Field | Meaning |
 |---|---|
-| `version` | Numeric literal, currently `1`. Readers ignore the whole block if missing or non-numeric. |
+| `version` | Numeric literal, currently `1`. The **ABI schema version**, not the contract's own version; see the section below. Readers ignore the whole block if missing or non-numeric. |
 | `methods` | Object literal keyed by method name. Methods absent from the map simply have no metadata. |
 | `methods.<m>.summary` | Optional one-line description (string literal). |
 | `methods.<m>.params` | Optional array of `{ name, type }` object literals, in wire order. Defaults to `[]` (a no-argument method). |
@@ -61,6 +67,29 @@ positional pipe-delimited strings.
 | `tick` | Token ticker |
 | `bool` | The string `true` or `false` |
 | `json` | JSON-encoded payload |
+
+## Relationship to the identity manifest (`meta`)
+
+`meta` and `abi` sit side by side on the export object and answer different
+questions: `meta` says **what this contract is** (its name, its one-line
+description, its own version), and `abi` says **what its methods look like**.
+They also have different rule strengths, which is why they are separate keys
+rather than one block. `meta` is read at deploy time by the VM and judged by
+consensus: at/after the `CONTRACT_META_REQUIRED` activation a missing or
+malformed `meta` rejects the DEPLOY outright, and the accepted values are
+extracted into indexed columns the explorer searches. `abi` is never read at
+deploy time at all, is parsed statically off the source by readers, and is
+ignored wholesale when malformed. See
+[DEPLOY](actions/deploy.md#contract-identity-manifest-meta-required-at-the-flag-day)
+for the `meta` verdicts and grammar.
+
+**`abi.version` and `meta.version` are different things.** `abi.version` is
+the numeric schema version of the ABI block itself (currently `1`) and moves
+only when this document's format changes. `meta.version` is a string the
+author chooses for their own contract (`'1.0.0'`), is validated only as text,
+and means nothing to consensus beyond being stored and displayed. A contract
+carrying `abi: { version: 1 }` and `meta: { version: '2.3.0' }` is entirely
+ordinary.
 
 ## Reader behavior (fail-closed)
 

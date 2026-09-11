@@ -158,6 +158,11 @@ STAKE|3|200.00000000|abc...64hex...|42|XCHAIN
 //   - any caller can check whether `pubkey` has at least 100 XCHAIN staked
 //   - only the contract itself can slash via xchain.contract.slash
 module.exports = {
+    meta: {
+        name:        'Stake Gate',
+        description: 'Reads whether a signing pubkey holds at least 100 XCHAIN staked, and slashes on misbehavior.',
+        version:     '1.0.0'
+    },
     isStaked: function(xchain) {
         let pubkey = xchain.getInputParam(0)
         return xchain.math.gte(xchain.contract.getStake(pubkey, 'XCHAIN'), '100') ? 'yes' : 'no'

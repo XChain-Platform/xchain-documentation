@@ -73,7 +73,13 @@ function readDispatchTable(source) {
         }
     }
     assert.notEqual(close, -1, 'the urls literal in setupUrls() is unbalanced');
-    return new Function('return (' + source.slice(open, close + 1) + ')')();
+    // The literal's `static` bucket reads the explorer's mount list module by
+    // name, so the evaluation is given that one binding (the real module when
+    // the sibling checkout carries it, an empty list otherwise); the counts this
+    // gate checks live in the `api` and `explorer` buckets, which are inline.
+    const mountsPath = path.join(path.dirname(EXPLORER_SOURCE), 'staticMounts.js');
+    const staticMounts = fs.existsSync(mountsPath) ? require(mountsPath) : { STATIC_DIRECTORIES: [] };
+    return new Function('staticMounts', 'return (' + source.slice(open, close + 1) + ')')(staticMounts);
 }
 
 // Hand-registered REST routes: this.app.get/post/put/delete whose path sits in

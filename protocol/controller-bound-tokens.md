@@ -425,7 +425,7 @@ VERSION|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO
 - The guard runs with the same [ABI](#the-guard-abi), gas rules, and determinism guarantees;
   the subject is the account and `tick` is the token in motion.
 
-**What it gates today:** both sides of a direct `SEND`. A `transfer` address binding is
+**What it gates today:** both sides of a direct `SEND`. A `transfer` address binding is  
 **symmetric**: it runs whether the account is the **`SOURCE`** (an *outbound* self-gate:
 self-imposed spending controls such as velocity limits, allowlists, or compliance) or the
 **`DESTINATION`** (an *inbound* gate: refuse an unsolicited incoming transfer). The guard
@@ -447,6 +447,11 @@ alongside its methods:
 
 ```js
 module.exports = {
+    meta: {                           // the identity manifest, REQUIRED at CONTRACT_META_REQUIRED
+        name:        'Royalty Guard',
+        description: 'Controller guard that allows SEND and ISSUE and caps its take at 2.5%',
+        version:     '1.0.0'
+    },
     permissions: ['SEND', 'ISSUE'],   // the ONLY action types this contract may emit
     maxTakeBps: 250,                  // a tighter royalty cap than the global default
     guard: function () { /* … */ }
@@ -476,6 +481,13 @@ A **malformed manifest** (`permissions` not an array of action-type strings, or 
 not an integer in range) **rejects the `DEPLOY`** (`invalid: CONTRACT_MANIFEST (…)`) rather
 than silently degrading to unrestricted. The decision is deterministic and hashes into the
 contract's status, so every validator agrees.
+
+The same export object also carries the **identity manifest** `meta`, read on the same
+deterministic instantiation. At/after the `CONTRACT_META_REQUIRED` activation a guard contract
+without a conforming `meta.name` and `meta.description` is rejected with its own
+`invalid: CONTRACT_MANIFEST (…)` string; that verdict is judged **after** the `permissions`
+and `maxTakeBps` verdicts above, so a contract malformed on both still reports the permissions
+string. See [DEPLOY](actions/deploy.md#contract-identity-manifest-meta-required-at-the-flag-day).
 
 ---
 

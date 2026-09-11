@@ -39,19 +39,67 @@ The templates are worked examples of the custody model below; the patterns are t
 
 Contracts are plain JavaScript files that export either a function or an object with named methods. Every method receives the `xchain` gateway object as its sole argument.
 
+### Contract identity
+
+Every contract must say what it is. At/after the [`CONTRACT_META_REQUIRED` flag day](../protocol/flag-days.md) a DEPLOY whose contract exports no conforming `meta.name` and `meta.description` is **rejected at consensus**, so this block is the first thing you write:
+
+```javascript
+module.exports = {
+    meta: {
+        name:        'Escrow',                              // REQUIRED, 1..64 bytes
+        description: 'Two-party escrow with an arbiter',    // REQUIRED, 1..512 bytes
+        version:     '1.0.0'                                // optional, 1..32 bytes
+    },
+    // ... your methods
+};
+```
+
+A contract that exports a bare function attaches the same object as a property, and the chain reads it from there:
+
+```javascript
+function contract(xchain) {
+    return 'ok';
+}
+contract.meta = { name: 'Ping', description: 'Returns ok', version: '1.0.0' };
+module.exports = contract;
+```
+
+**The name is a label, the address is the identity.** Names are **not unique** and never will be: nothing stops two authors, or you twice, from deploying "Escrow". What identifies a contract is its derived address `C:<CHAIN>:<ACTION_INDEX>`, and every surface that prints a name prints the address with it. Use `version` to tell your own iterations apart (`'1.0.0'`, `'1.1.0'`, `'2.0.0'`), and bump it whenever you edit the source.
+
+**Use string literals.** `meta` is read by evaluating your module's top level once at deploy, so a computed name is legal and deterministic:
+
+```javascript
+meta: { name: 'Escrow ' + xchain.getBlockHeight(), description: '...' }   // legal, but don't
+```
+
+Every node reads it under the same block context, so every node records the same string. Three things argue against it anyway: the value is not a function of your source bytes, so nobody reading the code can tell what the chain recorded; the SDK and foundry pre-flight checks parse the source statically and cannot see a computed value, so they downgrade to a warning and you lose the "refused before you paid a fee" safety net; and `xchain.getBlockHash()` is **`undefined`** during the manifest read (only the height, the timestamp and the contract address are supplied), so a name built from it records the literal text `undefined` forever. Write a literal.
+
+**What may go in `meta`.** Unknown keys are allowed and ignored by consensus, and they are stored verbatim, so `author`, `url` or anything else you want to carry can ride along and be displayed later without another flag day. The whole `meta` object, serialised, must stay under 4096 characters.
+
+**The rules, in one list.** `name` and `description` are required strings; `version` is optional but is validated whenever the key is present, so `version: ''` and `version: 3` are rejected rather than dropped. All three are capped in UTF-8 **bytes** (64 / 512 / 32), must be well-formed text with no control, zero-width or bidi code points, and must not begin or end with whitespace. `description` is the only field a line break may appear inside. Nothing is repaired for you: a value that does not conform rejects the deploy, with a verdict naming the field. The full grammar and the seven verdict strings are in [DEPLOY](../protocol/actions/deploy.md#contract-identity-manifest-meta-required-at-the-flag-day).
+
+**What it costs.** `meta` is source, and source is metered: a deploy pays `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`, so the block you add is priced at `VM_DEPLOY_PER_BYTE` per byte, on every deploy, forever. Measured over the 14 templates in the [`xchain-contracts`](https://github.com/XChain-Platform/xchain-contracts) library, the shipped block (the `meta` property plus the three-line comment above it) adds **568 to 675 bytes of source, median 605**, which is **760 to 900 bytes on the wire** once the source is base64-encoded into the DEPLOY action. The property on its own, with no comment, is 321 to 428 bytes (median 358). Against templates of 5 KB to 30 KB that is roughly 2% to 4% of the deploy fee; against a one-line contract it is most of it. A tight description is cheaper than a long one, and it is the line a user reads before they deposit into your contract, so spend the bytes on being clear rather than on being brief.
+
 ### Minimal Contract
 
 ```javascript
-module.exports = function(xchain) {
+function contract(xchain) {
     xchain.log('hello from contract');
     return 'hello';
-};
+}
+contract.meta = { name: 'Hello', description: 'Logs a greeting and returns it.', version: '1.0.0' };
+module.exports = contract;
 ```
 
 ### Multi-Method Contract
 
 ```javascript
 module.exports = {
+    meta: {
+        name:        'Owner Vault',
+        description: 'Tracks a running deposit total and lets the deploying owner withdraw tokens.',
+        version:     '1.0.0'
+    },
     initialize: function(xchain) {
         xchain.state.set('owner', xchain.getSourceAddress());
         xchain.state.set('total', '0');
@@ -226,6 +274,10 @@ Checks 7-8 are live today on testnet/regtest (the Pkg 3 sandbox gate is uncondit
 
 A non-blocking **float warning** is also generated if decimal number literals are detected in the code. This warning appears in the execution record but does not prevent deployment.
 
+Past those syntax checks the indexer instantiates the module's top level and judges the manifest it finds, which is where a `permissions`, `maxTakeBps` or `meta` problem is caught. At/after the `CONTRACT_META_REQUIRED` flag day that includes the identity rule: a contract with no conforming `meta.name` and `meta.description` is `invalid: CONTRACT_MANIFEST (...)`, and so is a contract whose **module top level throws** (which deploys `valid` below the flag day and then fails at its first EXECUTE). Like the syntax checks, a rejected deploy is charged no gas fee, but it still costs you a transaction and a confirmation, so pre-flight locally.
+
+
+
 ### Validate Before You Deploy
 
 You don't have to spend a transaction to find out whether your contract passes these checks. The same rules run as a pre-flight linter in the SDK and on the command line, so you catch problems at write time and in CI instead of on-chain.
@@ -242,6 +294,7 @@ if (!result.valid) console.error(result.errors);
 
 Beyond the deploy-time rules above, the linter adds **logic-level** checks. None of them change what the chain accepts at deploy; they're author-facing signal to catch footguns early:
 
+- **`contract-meta`**: a source whose export object provably carries no `meta`, or whose literal `meta.name` / `meta.description` fails the byte grammar, is refused **before** the transaction is built, with the same consensus string the chain would have answered. The check is a static read of the source, so a *computed* `meta` field is undecidable and downgrades to an advisory rather than blocking (see [Contract identity](#contract-identity) for why literals are worth it). The foundry's `runGate` carries the same rule under the same id.
 - **`crossCallable` integrity**: a *non-array* `crossCallable` makes **every** cross-chain call to your contract fail at runtime (`XCALL_NOT_CALLABLE`). This is reported as a linter **error**: it fails `xchain-lint` and, by default, `sdk.deploy` (`{ lint: 'block' }`), even though the chain itself accepts the contract. A `crossCallable` entry that names no exported method is a **warning** (likely a typo; that method stays uncallable cross-chain).
 - **Warnings** (advisory, never block): structurally unbounded loops, bulk allocations, a `state.get(...)` result dereferenced without a null guard, and methods that read call inputs without any `require()` validation.
 
@@ -326,6 +379,11 @@ Define a method that consumes the result. It receives the request id, the provid
 
 ```javascript
 module.exports = {
+    meta: {
+        name:        'LLM Oracle',
+        description: 'Asks the validator network an LLM question and records the verdict it returns.',
+        version:     '1.0.0'
+    },
     askLlm: function(xchain) {
         xchain.attestation.request(
             'llm',
@@ -435,6 +493,12 @@ Slash costs `VM_EMISSION` (500) gas.
 ```javascript
 // Deploy with: COOLDOWN_BLOCKS=50, SLASH_DESTINATION=BURN
 module.exports = {
+    meta: {
+        name:        'Bonded Service',
+        description: 'Qualifies a signing pubkey by its stake against this contract, and lets the owner slash it.',
+        version:     '1.0.0'
+    },
+
     // Anyone can check: does this pubkey hold at least 100 XCHAIN against this contract?
     isQualified: function(xchain) {
         var pubkey = xchain.getInputParam(0);
@@ -541,6 +605,11 @@ A contract is **not callable cross-chain unless it opts in** by exporting an all
 
 ```javascript
 module.exports = {
+    meta: {
+        name:        'Arrival Handler',
+        description: 'Accepts one cross-chain method call and authenticates the calling contract by its address.',
+        version:     '1.0.0'
+    },
     crossCallable: ['onArrival'],          // only these methods accept cross-chain calls
     onArrival: function(xchain) {
         // xchain.getSourceAddress() is the CALLING contract's address on ITS chain,
@@ -562,22 +631,28 @@ This allowlist is the security boundary: the federation's signed dispatch can on
 
 Protocol details: `protocol/Cross_Chain_Calls.md` and `protocol/actions/XCALL.md`.
 
-## Declaring a permissions manifest
+## Declaring the manifest
 
-A contract can **bound what it is allowed to do** by exporting a manifest. The indexer reads it once at deploy time and enforces it for the life of the contract; a useful trust signal for anyone depositing into or binding a token to your contract.
+The indexer instantiates your module's top level once at deploy time, reads the declarations it finds there, and holds them for the life of the contract. Two of them matter: **who you are** (`meta`, see [Contract identity](#contract-identity) above) and **what you are allowed to do** (`permissions` and `maxTakeBps`). Both are a useful trust signal for anyone depositing into or binding a token to your contract.
 
 ```javascript
 module.exports = {
+    meta: {                           // who this contract is; REQUIRED at the flag day
+        name:        'Royalty Guard',
+        description: 'Controller guard that only ever emits SEND and ISSUE and caps its take at 2.5%.',
+        version:     '1.0.0'
+    },
     permissions: ['SEND', 'ISSUE'],   // this contract will ONLY ever emit these action types
     maxTakeBps: 250,                  // and never take more than 2.5% as a controller royalty
     // ... your methods (initialize, guard, etc.)
 };
 ```
 
+- **`meta`** is your contract's identity: a required `name` and `description` and an optional `version`. It is the only one of the three that is **required**; the other two default to "unrestricted". Full rules in [Contract identity](#contract-identity).
 - **`permissions`** is an allowlist of the action types your contract may emit: from its constructor, an `EXECUTE`, or a controller `guard`. Emit anything outside it and that action is denied (fail-closed). Omit it to stay unrestricted; set `[]` to promise the contract emits nothing. (This is the contract-wide companion to `crossCallable`, which gates *incoming* cross-chain calls.)
 - **`maxTakeBps`** caps the royalty/fee a `guard` of yours can take from a sale to `min(global cap, maxTakeBps)`. Omit it to use the global cap.
 
-Declare only what you actually use; an honest, tight manifest is what reviewers and wallets surface to users. A malformed manifest (wrong types / out of range) **rejects the deploy**, and the manifest is immutable afterward. See `protocol/actions/DEPLOY.md` and `protocol/Controller_Bound_Tokens.md`.
+Declare only what you actually use; an honest, tight manifest is what reviewers and wallets surface to users. A malformed manifest **rejects the deploy** in every case (`permissions` or `maxTakeBps` with the wrong type or out of range, and, at/after the flag day, a missing or malformed `meta`), and the manifest is immutable afterward because the code is. The `permissions` and `maxTakeBps` verdicts are judged **before** the `meta` verdict, so a contract wrong on both tells you about `permissions` first. See [DEPLOY](../protocol/actions/deploy.md) and [Controller-Bound Tokens](../protocol/controller-bound-tokens.md).
 
 ## Limitations
 
@@ -591,6 +666,11 @@ Declare only what you actually use; an honest, tight manifest is what reviewers 
 
 ```javascript
 module.exports = {
+    meta: {
+        name:        'Token Vesting',
+        description: 'Releases a token allocation to one beneficiary linearly over a fixed number of blocks.',
+        version:     '1.0.0'
+    },
     initialize: function(xchain) {
         xchain.state.set('beneficiary', xchain.getInputParam(0));
         xchain.state.set('token', xchain.getInputParam(1));

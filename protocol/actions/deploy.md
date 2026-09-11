@@ -125,8 +125,74 @@ flowchart TD
   - `maxTakeBps`: an integer in `[0, 10000]` that tightens this contract's controller royalty cap to `min(CONTROLLER_MAX_TAKE_BPS, maxTakeBps)`. Absent means the global cap applies. See [Controller-Bound Tokens](../controller-bound-tokens.md#permissions-manifest).
 - A malformed manifest (`permissions` not an array of strings, or `maxTakeBps` not an integer in range) rejects the deployment with `invalid: CONTRACT_MANIFEST (<reason>)`. The manifest is immutable after deployment (the code is immutable).
 
+### Contract identity manifest (`meta`, required at the flag day)
+
+A contract is addressed only by its derived `C:<CHAIN>:<ACTION_INDEX>`, which tells a reader nothing. At/after the `CONTRACT_META_REQUIRED` activation (see [Flag-Day Values](../flag-days.md)) a contract must carry its own human-readable identity in its exports, or the DEPLOY is rejected:
+
+```js
+module.exports = {
+    meta: {
+        name:        'Escrow',                           // REQUIRED, 1..64 bytes
+        description: 'Two-party escrow with an arbiter', // REQUIRED, 1..512 bytes
+        version:     '1.0.0'                             // optional, 1..32 bytes
+    },
+    permissions: ['SEND'],
+    initialize(xchain) { /* ... */ },
+    release(xchain)    { /* ... */ }
+};
+```
+
+A function-style contract attaches the same object as a property, and the manifest read takes it from there too:
+
+```js
+function contract(xchain) { /* ... */ }
+contract.meta = { name: 'Ping', description: 'Returns ok', version: '1.0.0' };
+module.exports = contract;
+```
+
+- The indexer reads `meta` on the same deterministic module instantiation that reads the permissions manifest: no method runs, and the value is read once, at deploy, under the deploy's own block context. The evaluated value is what is stored and shown.
+- Unknown keys inside `meta` are **allowed and ignored** by consensus. They are stored verbatim alongside the named fields, so a display field can be added later without another flag day. `author` and `url` are not named fields today; put them in `meta` and they ride along.
+- The name is a **label, not an identity**. Names are not unique and never will be: the derived address stays the identity, and every surface that prints a name prints the address with it.
+- A contract deployed before the activation, or one whose `meta` was absent or malformed below it, simply has no recorded identity; the explorer shows it as "Unnamed contract".
+- The stored identity is immutable after deployment, because the code is.
+
+#### Verdicts
+
+Evaluated strictly top to bottom, first failure wins, and **after** the `permissions` and `maxTakeBps` verdicts above: a contract malformed on both keeps reporting the permissions string.
+
+| # | Condition | Verdict |
+|---|-----------|---------|
+| 1 | the manifest read failed: the module top level threw, or it hit the CPU or memory limit during the read, or the report was unparseable | `invalid: CONTRACT_MANIFEST (manifest read failed)` |
+| 2 | no `meta` export | `invalid: CONTRACT_MANIFEST (meta required)` |
+| 3 | `meta` is not a plain object (`null`, an array, a function, a primitive), or it could not be serialised (circular, `BigInt`, a throwing getter or `toJSON`), or it serialises to a value that is not an object | `invalid: CONTRACT_MANIFEST (meta must be a plain object)` |
+| 4 | the serialised `meta` exceeds 4096 characters | `invalid: CONTRACT_MANIFEST (meta exceeds 4096 characters)` |
+| 5 | `name` missing, not a string, or failing the text grammar below at 64 bytes | `invalid: CONTRACT_MANIFEST (meta.name must be a string of 1..64 bytes, printable, trimmed)` |
+| 6 | `description` missing, not a string, or failing the text grammar at 512 bytes | `invalid: CONTRACT_MANIFEST (meta.description must be a string of 1..512 bytes, printable, trimmed)` |
+| 7 | the `version` key is present and its value is not a string, or fails the text grammar at 32 bytes | `invalid: CONTRACT_MANIFEST (meta.version must be a string of 1..32 bytes, printable, trimmed)` |
+
+`version` is optional, but it is validated whenever the **key exists**, so `version: ''` and `version: 3` are rejected rather than silently dropped. The 4096-character total cap is measured on `JSON.stringify(meta)` inside the VM isolate, in UTF-16 code units, before the report crosses back to the indexer; the per-field caps are measured host-side in UTF-8 bytes, so a 5000-byte `name` trips row 5 rather than row 4.
+
+#### Text grammar
+
+One grammar, applied identically to `name`, `description` and `version`. A value that does not conform is **rejected, never repaired**: the bytes a node stores are always the author's bytes.
+
+- The value must be a string containing no unpaired surrogates.
+- Its UTF-8 length must be `1..maxBytes` inclusive for that field. Bytes, like every other size gate on this path.
+- No code point anywhere in the banned set: C0 controls `U+0000`-`U+001F`, `DEL` and the C1 controls `U+007F`-`U+009F`, the zero-width characters `U+200B`-`U+200D`, `U+2060` and `U+FEFF`, and the bidi controls `U+200E`, `U+200F`, `U+202A`-`U+202E`, `U+2066`-`U+2069`. `U+000A` is admitted **inside** `description` only, which is the one field a line break can legitimately appear in.
+- "Trimmed" means the first and last code point are not whitespace, against an explicit set (`U+0020`, `U+00A0`, `U+1680`, `U+2000`-`U+200A`, `U+2028`, `U+2029`, `U+202F`, `U+205F`, `U+3000`, plus `U+000A` for `description`). An explicit set rather than `String.prototype.trim()`, whose whitespace table follows the running engine's Unicode version; a consensus verdict cannot move with the host's Node build.
+
+Rendering is a separate concern: wallets and explorers still harden the text they display, because homoglyphs and mixed scripts are not a byte rule's job.
+
+#### What the flag day changes
+
+- Below the activation the verdicts above are not applied and every historic DEPLOY keeps its recorded status byte for byte, so a from-genesis replay is unaffected. A conforming `meta` found below the activation is still extracted and stored, so a pre-activation contract that already names itself displays its name for free.
+- **A contract whose module top level throws changes verdict.** It deploys `valid` today and fails at its first EXECUTE; at/after the activation it is `invalid: CONTRACT_MANIFEST (manifest read failed)`. A required field cannot live inside a branch a sender can skip, which is why the meta verdict is evaluated outside the manifest-read success guard the permissions verdict sits in.
+- A `CONTRACT_MANIFEST` verdict pre-empts the fee and sleeping verdicts, exactly as the permissions verdict already does.
+- A chunked deploy (v2/v3/v4) is judged **once, at the completing piece**, on the assembled source. A pending assembler writes no contract and is never judged on `meta`; a meta rejection at the completing piece still consumes the assembler.
+- Every deploy pays for the bytes. `meta` is source like any other source, priced into `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)` forever. Measured over the 14 library templates the shipped block costs 568 to 675 bytes of source (median 605); see [Smart Contract Development](../../developer-guide/smart-contract-development.md#contract-identity) for the sizing.
+
 ### ABI (optional)
-- A contract may also export a static `abi` object describing its methods (names, typed params, one-line summaries, read-only flags) for wallets and explorers. Unlike the permissions manifest, the `abi` is **never read or validated at deploy time**: it is advisory display metadata parsed off-chain from the source, participates in no consensus rule, and a malformed `abi` neither rejects nor affects the deployment. See [Contract ABI](../contract-abi.md).
+- A contract may also export a static `abi` object describing its methods (names, typed params, one-line summaries, read-only flags) for wallets and explorers. Unlike the permissions manifest and the identity manifest, the `abi` is **never read or validated at deploy time**: it is advisory display metadata parsed off-chain from the source, participates in no consensus rule, and a malformed `abi` neither rejects nor affects the deployment. See [Contract ABI](../contract-abi.md).
 
 ### Chunk carrier rules (v4)
 - Available on all chains
@@ -180,6 +246,7 @@ The activation is keyed on block time (a single coordinated flag-day), not block
 - The deployed contract is assigned an action index derived from the transaction that contains this action
 - `CODE_ENCODING` (v0/v1) is base64-encoded UTF-8 at/after the `DEPLOY_BASE64_CODE` activation (hex before it); decode the active format with `Buffer.from(field, 'base64'|'hex').toString('utf8')`
 - The `contracts` table stores the decoded plain-text JavaScript, not the base64 encoding
+- The `contracts` table's `meta_name`, `meta_description`, `meta_version` and `meta_json` fields hold the identity manifest extracted at deploy time; all four are left null unless the deploy is `valid` and its `meta` conforms
 - The `contracts` table's `api_version` field (currently frozen at 1) records which gateway API version the contract targets; it is assigned by the indexer at deploy time, not a field a deployer sets in the DEPLOY action wire format
 - Use `EXECUTE` to call methods on a deployed contract
 - Use `DEPOSIT` and `WITHDRAW` to transfer token balances into and out of the contract's derived address

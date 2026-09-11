@@ -135,7 +135,7 @@ Finalized price data after PBFT consensus. Cross-chain unified view, populated b
 | `source_action_index` | `BIGINT` | Action index of the PRICE v0 tx on source_chain (NULL for hub-finalized) |
 | `created_at` | `TIMESTAMP` | Record creation time |
 
-**Unique key:** `(round_number, coin_pair)`
+**Unique key:** `(round_number, coin_pair)`  
 **Keys:** `(coin_pair, reference_block)`, `(coin_pair, block_timestamp)`, `(status)`, `(source_chain)`
 
 ### `oracle_prices`
@@ -158,7 +158,7 @@ User TOKEN/FIAT oracle prices published via PRICE v1. Cross-chain aggregated by 
 | `action_index` | `BIGINT UNSIGNED NOT NULL` | action_index of the PRICE v1 tx on source_chain |
 | `created_at` | `TIMESTAMP` | Record creation time |
 
-**Unique key:** `(source_chain, action_index)` (dedup)
+**Unique key:** `(source_chain, action_index)` (dedup)  
 **Keys:** `(source_address, coin, tick, fiat)`, `(coin, tick, fiat, effective_at)`, `(source_chain)`
 
 ### `oracle_published_rounds`

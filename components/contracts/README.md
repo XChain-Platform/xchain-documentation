@@ -37,6 +37,8 @@ Unlike the rest of the platform, this repository is **MIT-licensed** rather than
 | `urlOracle` | Reading off-chain HTTP data without breaking determinism: the ATTEST request/callback round-trip. |
 | `counterpartyBridge` | A one-way burn-to-mint migration for a single Counterparty asset: an attested burn to an unspendable Counterparty address is what unlocks the matching XChain mint, so value cannot be claimed here and sold there. |
 
+Every one of the 14 ships a **contract identity manifest** as the first key of its export object: `meta.name`, a one-sentence `meta.description`, and `meta.version` starting at `'1.0.0'`. Consensus requires the first two at/after the `CONTRACT_META_REQUIRED` flag day, so a template without them would not deploy; the library's `gate-wiring` test enforces the block on every template, and the repository's CONTRIBUTING rule is that any edit to a template's source bumps its `meta.version`. Fork a template and the identity comes with it: change the name and the description to describe **your** contract, because the values are what the chain records and what a depositor reads before they fund it. The policy generator emits the same block, so a generated guard is deploy-ready without hand-editing. See [Contract identity](../../developer-guide/smart-contract-development.md#contract-identity).
+
 These templates deliberately do **not** reimplement native protocol actions. XChain already has native `ORDER`/`SWAP` (an orderbook DEX), `DISPENSER`, `DIVIDEND`, `ISSUE`, and `BET` (parimutuel betting markets); use those directly. Templates exist for what native actions cannot do: custody with custom release rules, multi-step state machines, and the oracle, attestation, and cross-chain primitives.
 
 ## The CLI

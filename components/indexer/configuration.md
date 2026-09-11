@@ -76,6 +76,8 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `DOGE_INDEXER_API_KEY` | API key sent as `x-api-key` with that read (`getanchorconfirmations` is a federation-read method on the DOGE indexer). | _(unset)_ |
 | `ANCHOR_PROOF_TIMEOUT_MS` | Per-request timeout for the DOGE anchor proof read, and for the ROLLCALL signer read below. A timeout is treated as "cannot tell", which defers the block; it is never read as "not mined". | `15000` |
 | `HUB_SYNC_BARRIER_HOLD_CEILING_S` | How long the block loop may sit deferring at a hub-mirror-completeness barrier before the mirror forces itself to resync: tearing down and reconnecting its hub-DB WebSocket (or, in poll mode, re-kicking the bootstrap directly). A mirror's stream watermark only advances while its bootstrap drain is flagged complete, and nothing else re-arms that flag once a drain has stalled, so a socket can sit open and heartbeating while the mirror certifies nothing, indefinitely; this bounds that wait by a re-drive instead of leaving it unbounded. Purely operational: it opens no barrier and commits no block early, a genuinely-behind mirror keeps deferring after the resync, and the forced resync is rate-limited to once per ceiling window. Seconds; `0` disables it (no forced resync). | `900` (15 min) |
+| `HUB_SYNC_WATERMARK_STALL_S` | How long the hub mirror's stream watermark may stay frozen while the hub's own heartbeat tip runs ahead of it before the mirror forces a fresh subscribe-then-bootstrap. This is the mirror's own bound, distinct from `HUB_SYNC_BARRIER_HOLD_CEILING_S`, which the block loop drives and only while a block is deferring: heartbeats keep arriving during such a stall, so the transport watchdog stays satisfied while the mirror certifies nothing. Suppressed where a frozen watermark is correct: poll mode, an outstanding hub schema-version mismatch, and a mirror that has not yet certified a first watermark. Operational only: it opens no barrier and commits no block early. Seconds; `0` disables the detector. | `180` |
+| `HUB_SYNC_WATERMARK_STALL_EXIT_S` | How long after that forced resync the watermark still has to stay frozen before the process logs a named fatal and exits non-zero so its supervisor restarts it (the indexer wires the exit; the explorer's vendored copy logs and re-drives). Sized above a full re-bootstrap drain, so an ordinary slow drain finishes and moves the watermark inside the window; any real advance cancels it. Seconds; `0` keeps the forced resync but never exits. | `300` |
 
 **The same DOGE wiring is what ROLLCALL runs on, and it becomes required a second time.** From `ROLLCALL_ACTIVATION` onward, every **BTC** indexer closes each roll-call epoch by asking its DOGE indexer for the epoch's signers (`getrollcallsigners`, a federation-read method served off the committed view). It reuses `DOGE_INDEXER_API_URL` → `DOGE_INDEXER_URL` → config, the `DOGE_INDEXER_API_KEY` header, and `ANCHOR_PROOF_TIMEOUT_MS`; there is no separate env knob for it.
 
@@ -190,6 +192,22 @@ documented for the A7 harness above (its namespace default is
 | `LAP_SIDE_GATE` | **Harness only.** Side-process gate mode: `legacy` replays the pre-flag code (no flag module to move, its absence is reported as data), `off` moves the registered heights to the unarmed sentinel so the flag reads disabled across the replayed range, and `on` arms it from genesis | `off` |
 | `LAP_FIRST_BLOCK` | **Harness only.** First block of the replayed range, set by the parent for its side-processes | `100` |
 | `LAP_LAST_BLOCK` | **Harness only.** Last block of the replayed range, set by the parent for its side-processes | `250` |
+
+### Genesis-arm replay witness
+
+Read only by `bin/verify-genesis-arm-replay-equivalence.js` (the from-genesis
+OLD-vs-ON replay witness for the mainnet genesis arm, which replays a mainnet
+corpus through the pre-arm tree and the armed tree and compares the consensus
+hash chain); never by the indexer service itself. It shares the `TEST_DB_*`
+variables documented for the A7 harness above (its namespace default is
+`ga_witness_replay_<coin>`), and it sets `GENESIS_DUMP_PATH` to a file that does
+not exist for its side-processes so genesis is derived through the action
+pipeline rather than imported.
+
+| Variable | Description | Example |
+|---|---|---|
+| `GA_SIDE_ROOT` | **Harness only.** Materialized tree the forked side-process replays from (the HEAD archive, or the HEAD archive with the arm commit reverted) | `/tmp/xchain-ga-witness-btc/indexer-old` |
+| `GA_SIDE_KEY` | **Harness only.** Side label the side-process reports under and prefixes its progress lines with: `OLD` or `ON` | `ON` |
 
 ### BATCH cost-measurement harness
 
