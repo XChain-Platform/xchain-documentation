@@ -1395,6 +1395,39 @@ const PRICE_MAX = 10_000_000_000;
 // the ±band boundary). 0.05 = 5%.
 const ORACLE_DEVIATION_THRESHOLD = 0.05;
 
+// Platform-train consensus activation, keyed by PLATFORM VERSION then network to a
+// BTC block height. This is the train gate, not a per-feature flag day: a MAJOR
+// train (or a consensus-classified hotfix) adds exactly ONE row here and every
+// consensus change the train carries branches on the rule set that row names, so a
+// train's changes cannot half-activate. A MINOR or PATCH train adds no row and the
+// resolution rule below keeps the fleet on the previous entry with no ceremony change.
+//
+// The clock is the BTC height per network, the same clock the cross-cutting feature
+// gates use. It is deliberately not a wall-clock date: protocol time off mainnet is
+// median-time-past, and a date gate on a chain whose difficulty can stall for hours
+// arms at an hour nobody chose.
+//
+// Regtest is 0 on every row. Regtest stacks are rebuilt from genesis, so a fresh
+// stack exercises the new rule set end to end rather than the migration.
+//
+// Mainnet is armed ABOVE the tip on purpose, by the same discipline the anchor gate
+// records. A MAJOR train may be cut and deployed with its mainnet height set to a
+// value the chain has not reached; the fleet then runs the new binary under the OLD
+// rules until that height, which is the whole point of the rolling-upgrade window.
+// A height at or below the BTC tip it was computed from is a fork shipped as a
+// release, and the release-completeness gate refuses it.
+//
+// Each row carries the ruling date, the tip its heights were computed from and the
+// window, per the comment discipline the feature gates already follow. Nothing here
+// is edited outside a train cut: re-arming an already published height is a new
+// train, not an edit.
+const TRAIN_ACTIVATION = {
+    // The launch rule set and the floor. Zero on every network because there is no
+    // earlier rule set to migrate from: the launch binary IS the first rule set, and
+    // a floor above genesis would leave the pre-floor range resolving to nothing.
+    '1.0.0': { mainnet: 0, testnet: 0, regtest: 0 },
+};
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     ENVELOPE_MAX_PAYLOAD,
@@ -1475,4 +1508,5 @@ module.exports = {
     GAS_TICK,
     PRICE_MAX,
     ORACLE_DEVIATION_THRESHOLD,
+    TRAIN_ACTIVATION,
 };
