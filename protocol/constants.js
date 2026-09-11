@@ -1360,6 +1360,38 @@ const PRICE_SIG_TALLY_ACTIVATION = {
     regtest: 0,
 };
 
+// PRICE_FEE_BATCH_LANDED_ACTIVATION: native-coin fee pricing reads only price rounds
+// whose PRICE batch has LANDED on chain at or before the block being priced.
+//
+// Without the bound, getLatestPrice selects the newest finalized round the node
+// HOLDS. A hub-connected node's oracle mirror holds a round the moment consensus
+// finalizes it, one batch window before the batch carrying it is mined; a node that
+// reads only the chain cannot hold that round until the batch lands in a block it has
+// processed. Both nodes are honest and they price the same fee-bearing action against
+// different rounds, so a price move past the fee tolerance inside the landing latency
+// produces opposite verdicts on the same action. At/after the height every node bounds
+// the selection on the landing block's own clock (price_snapshots.batch_block_time),
+// which is comparable on every chain, and the two node kinds converge on the newest
+// round the chain itself could have shown them.
+//
+// Keyed on the PROCESSING chain's own block_index, because fee validation runs per
+// chain against that chain's blocks. The bound is ADDED to the existing selection,
+// never swapped for it, so arming can only narrow which rounds are selectable.
+//
+// UNARMED on every network. It makes the freshest selectable round one batch window
+// old, which fits inside the pinned price staleness bound only while the batch cadence
+// ceiling holds, so each network arms at a coordinated future height once that is
+// proven against its own publisher; a regtest stack publishes no batch at all, so its
+// seeded rounds carry no landing clock and arming there would leave every USD-priced
+// action unpriceable. Kept value-identical to the local copy in
+// xchain-indexer/src/price_fee_batch_landed_activation.js by the activation-constants
+// parity suite.
+const PRICE_FEE_BATCH_LANDED_ACTIVATION = {
+    mainnet: null,
+    testnet: null,
+    regtest: null,
+};
+
 // VALID_FIAT_CODES: the accepted FIAT_CODE allow-list for PRICE actions. The indexer's
 // config['FIATS'] keys (xchain-indexer/src/config.js) are the on-chain arbiter; this list
 // mirrors them in the indexer's insertion order. The SDK validator (VALID_FIAT_CODES) must
@@ -1504,6 +1536,7 @@ module.exports = {
     PRICE_PAIR_TICKER_MAX_WIDE,
     PRICE_PAIR_WIDEN_ACTIVATION,
     PRICE_SIG_TALLY_ACTIVATION,
+    PRICE_FEE_BATCH_LANDED_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
     PRICE_MAX,
