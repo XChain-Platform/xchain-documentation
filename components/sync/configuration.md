@@ -18,7 +18,8 @@ These variables are required regardless of whether the service runs in server or
 | `HUB_PORT` | Yes | `10000` | Port of the local xchain-hub instance |
 | `HUB_REPOLL_INTERVAL` | No | `300000` | Milliseconds between hub re-polls for chain discovery (5 minutes) |
 | `CORS_ORIGIN` | No | `false` | Allowed CORS origin. Set to a specific origin string to enable cross-origin requests. Disabled when not set. |
-| `SYNC_API_KEY` | No | None | API key for Bearer token authentication on REST and WebSocket endpoints. Disabled when not set. |
+| `SYNC_API_KEY` | No | None | INBOUND API key, guarding this process's own REST and WebSocket endpoints. Every route is refused without it, `/health` included. Disabled when not set. |
+| `SYNC_UPSTREAM_KEY` | No | None | OUTBOUND credential, presented as a Bearer token to the source servers this client replicates from, on every REST call and the WebSocket handshake. Deliberately separate from `SYNC_API_KEY`, which is never sent upstream. Leave unset when the source tier is unkeyed; a client must hold this before its source is given a `SYNC_API_KEY`, or replication stops. |
 | `HUB_PROTOCOL` | No | `http` | Protocol for hub connection: `http` or `https` |
 | `TRUST_PROXY` | No | `false` | Trust `x-forwarded-for` header for IP-based rate limiting (enable only behind a reverse proxy) |
 | `MAX_HUB_WAIT_MS` | No | `300000` | Maximum milliseconds to wait for the hub to become reachable at startup before the process exits non-zero (5 minutes). The supervisor then restarts the container. |
