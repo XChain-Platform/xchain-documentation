@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Published `STAKE_KEY_REUSE_ACTIVATION`, the canonical per-chain height at which a retired STAKE v1 signing key becomes reusable.
 - The sync configuration page documents `REPLICA_GAP_ALERT_SWEEPS` and `REPLICA_GAP_ALERT_REPEAT_MS`, the persistent replica-gap escalation tunables.
 
 ## [0.17.0] - 2026-09-10

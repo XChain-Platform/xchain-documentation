@@ -1460,6 +1460,44 @@ const TRAIN_ACTIVATION = {
     '1.0.0': { mainnet: 0, testnet: 0, regtest: 0 },
 };
 
+// STAKE v1 signing-key REUSE flag day, keyed on the processing chain's OWN
+// block_index, per network AND coin. Canonical authority for the local copy in
+// xchain-indexer/src/stake_key_reuse_activation.js, which carries the full rationale;
+// the indexer's activation-constant parity suite holds the two value-identical, and a
+// one-sided edit forks STAKE v1 admission at the boundary.
+//
+// Below a chain's height, STAKE v1 refuses any SIGNING_PUBKEY that has EVER held a
+// valid stakes row, which permanently burns a key that unstaked voluntarily or that
+// ROLLCALL evicted, because neither deletes the row (both stamp deactivation_block).
+// At and above it the key is admissible once EVERY row it has held is deactivated AND
+// past cooldown (deactivation_block + COOLDOWN_BLOCKS <= the block being parsed);
+// a row that is active, pending activation, or still inside cooldown keeps refusing.
+// Voluntary unstake and eviction are treated alike.
+//
+// Height-keyed, not date-keyed: the activation delay and the cooldown this rule
+// reasons about are both counted in the processing chain's own blocks, and the
+// per-coin COOLDOWN_BLOCKS differ (BTC 1000, LTC 4032, DOGE 10080).
+//
+// Mainnet is the inert null: the instant is operator-owned and is sized above the
+// fleet's deploy tip on the train that arms it, never at or below a height already
+// passed (a passed height re-grades history for a from-genesis replay and not for a
+// long-running node, and the two diverge at the first hash comparison). Regtest is
+// genesis-active so the e2e venue exercises the armed rule. Testnet is armed ahead
+// per coin, at the tip measured 2026-09-11 plus 21 days of that chain's blocks
+// rounded up, rather than at genesis: testnet carries live public staking history and
+// a genesis arming there would re-grade STAKE v1 actions already in it.
+const STAKE_KEY_REUSE_ACTIVATION = {
+    'BTC:mainnet':  null,         // INERT: operator-owned, sized above the deploy tip on the arming train
+    'LTC:mainnet':  null,         // INERT: capability STAKE is BTC-only; carried for shape
+    'DOGE:mainnet': null,         // INERT: capability STAKE is BTC-only; carried for shape
+    mainnet:        null,         // INERT: a coin with no entry above inherits the unarmed posture
+    'BTC:testnet':  156000,       // SIZED 2026-09-11: chain_tip 151,991 + 3,024 (21d @144/day) = 155,015, rounded up
+    'LTC:testnet':  4897000,      // SIZED 2026-09-11: chain_tip 4,883,971 + 12,096 (21d @576/day) = 4,896,067, rounded up
+    'DOGE:testnet': 67920000,     // SIZED 2026-09-11: chain_tip 67,887,900 + 30,240 (21d @1440/day) = 67,918,140, rounded up
+    testnet:        null,         // INERT: a testnet coin with no entry above stays on the legacy refusal
+    regtest:        0,            // genesis-active so the e2e venue exercises the armed rule
+};
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     ENVELOPE_MAX_PAYLOAD,
@@ -1542,4 +1580,5 @@ module.exports = {
     PRICE_MAX,
     ORACLE_DEVIATION_THRESHOLD,
     TRAIN_ACTIVATION,
+    STAKE_KEY_REUSE_ACTIVATION,
 };
