@@ -155,7 +155,12 @@ WARN.
 
 `XCHAIN_BRIDGE_ACTIVATION` is a standalone height-keyed module, the same shape as every other
 flag day: regtest active from genesis, testnet and mainnet held at the platform's sentinel until
-armed. Roll order is the **reverse** of the cross-chain DEX precedent: indexers and readers
+armed. It is keyed `'<COIN>:<network>'`, with the bare network key as the fallback for a chain
+that has no slot of its own. The bridge arms on three chains at once and their heights are not
+comparable (a BTC testnet tip is around 152,000 while a DOGE testnet tip is around 67,900,000),
+so one number per network would be already passed on two chains and out of reach on the third;
+each chain therefore gets its own instant, sized at the train that arms it. Roll order is the
+**reverse** of the cross-chain DEX precedent: indexers and readers
 first, the hub last, because a hub rolled ahead of the fleet stamps a schema version every
 mirror closed against an un-upgraded indexer would fail. See
 [Flag-Day Values](./flag-days.md) for where the height stands on each network.

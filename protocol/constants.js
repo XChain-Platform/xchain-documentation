@@ -1563,26 +1563,39 @@ const SWEEP_ZERO_LEG_ACTIVATION = {
     regtest:        0,            // genesis-active so the e2e venue exercises the armed rule
 };
 
-// XCHAIN bridge flag day, keyed on the block_index of the chain being parsed. Canonical
-// authority for the local copy in xchain-indexer/src/xchain_bridge_activation.js, which
-// carries the full rationale; the indexer's activation-constant parity suite holds the two
-// value-identical, and a one-sided edit forks the bridge at the boundary.
+// XCHAIN bridge flag day, keyed '<COIN>:<network>' on the block_index of the chain being
+// parsed, with the bare network key as the fallback. Canonical authority for the local copy
+// in xchain-indexer/src/xchain_bridge_activation.js, which carries the full rationale; the
+// indexer's activation-constant parity suite holds the two value-identical, and a one-sided
+// edit forks the bridge at the boundary.
 //
-// At and above a network's height, XBRIDGE v0 (lock on the origin chain) and v1 (burn on a
+// At and above a chain's height, XBRIDGE v0 (lock on the origin chain) and v1 (burn on a
 // destination chain) are legal and the federation signs transfer records that the
 // mirror-injected v2 settle leg applies. Below it a broadcast v0 or v1 is
 // 'invalid: XBRIDGE before activation' and no v2 is injected, so pre-activation block
 // hashes are unchanged on every chain.
 //
-// Mainnet is the house sentinel: bridge milestone 1 is a hub-trusted mint (a compromised
-// hub supplies both the transfer record and the roster that verifies it), so nothing arms
-// on mainnet before the ANCHOR-checkpoint cross-check of the lock is built. Testnet holds
-// at the sentinel until the train that arms it sizes a dated instant above the fleet's
-// deploy tip. Regtest is genesis-active so the e2e venue exercises the armed rule.
+// PER COIN, not one height per network: the bridge arms on three chains at once, and their
+// tips differ by orders of magnitude (TBTC about 152,110, TLTC about 4,884,193, TDOGE about
+// 67,889,993 measured 2026-09-12), so one testnet number is already passed on two of them at
+// boot and unreachable on the third.
+//
+// Mainnet is the house sentinel on every key: bridge milestone 1 is a hub-trusted mint (a
+// compromised hub supplies both the transfer record and the roster that verifies it), so
+// nothing arms on mainnet before the ANCHOR-checkpoint cross-check of the lock is built.
+// Testnet holds at the sentinel on every key until the train that arms it sizes one dated
+// instant per chain above that chain's own deploy tip. Regtest is genesis-active so the e2e
+// venue exercises the armed rule.
 const XCHAIN_BRIDGE_ACTIVATION = {
-    mainnet: 9999999999,
-    testnet: 9999999999,
-    regtest: 0,
+    'BTC:mainnet':  9999999999,
+    'LTC:mainnet':  9999999999,
+    'DOGE:mainnet': 9999999999,
+    mainnet:        9999999999,   // fallback for a coin with no entry above
+    'BTC:testnet':  9999999999,   // the arming train sizes this at the measured TBTC tip
+    'LTC:testnet':  9999999999,   // the arming train sizes this at the measured TLTC tip
+    'DOGE:testnet': 9999999999,   // the arming train sizes this at the measured TDOGE tip
+    testnet:        9999999999,   // fallback: a testnet coin with no entry above stays dark
+    regtest:        0,            // genesis-active so the e2e rail exercises the armed rule
 };
 
 // General token-bridge flag day (XBRIDGE v3/v4/v5 and ISSUE format 7), keyed the same way.
