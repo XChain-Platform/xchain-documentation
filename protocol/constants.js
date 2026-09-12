@@ -1709,6 +1709,205 @@ const RESERVED_FUTURE_ROOTS = Object.freeze([
     'BASE', 'DASH', 'HBAR', 'HOOD', 'HYPE', 'NEAR',
 ]);
 
+// ---------------------------------------------------------------------------
+// The time-keyed mirror barrier family: admission by height
+// ---------------------------------------------------------------------------
+//
+// Eleven barrier hold points in the indexer block loop are keyed on the block's own
+// protocol timestamp, and ten of them hold the whole block loop for that stamp's full
+// distance plus their grace. Bitcoin consensus accepts a block stamped up to 7200 s
+// ahead, so a perfectly VALID block stalls a hub-connected indexer for over two hours
+// while /status reports the healthy 'future_block_wait' verdict throughout.
+//
+// The reason no grace can fix this is a theorem, not a tuning problem. A mirrored row
+// binds at block B when its signed effective_time <= t(B), and a producer may mint such
+// a row at any wall-clock instant up to t(B) - RELAY_MIN_FUTURE_S. So the SET of rows
+// binding at B is not determined until wall clock reaches that instant, and any correct
+// barrier under that binding rule must wait for it whatever its grace is.
+//
+// So the binding rule changes: every mirrored row carries a signed ADMISSION HEIGHT per
+// chain that reads it, a row is readable at B on chain C only when admit_blocks[C] <= B,
+// and each barrier certifies completeness by comparing a per-table per-chain HEIGHT
+// watermark against B rather than a clock against t(B). Heights do not move with stamps,
+// so a block stamped 7200 s ahead is height B like any other.
+//
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/mirror_admission_activation.js
+// by the activation-constants parity suite.
+
+// ADMIT_MARGIN_BLOCKS: how far ahead of the producer's observed admission tip a row is
+// stamped, in BLOCKS of each chain in its map. This is not a new number: producers already
+// size their forward margin as DEFAULT_RELAY_MARGIN_BLOCKS (4) blocks of the gating chain
+// and then CONVERT it to seconds. On the admission axis the conversion is simply deleted,
+// which is why an unknown chain needs no nominal block interval here at all.
+//
+// A default plus three overrides, never a six-key map:
+//   attest responses       1, because their 120 s forward margin was chosen to be as SHORT
+//                             as the propagation window allows and converting it back to
+//                             blocks would silently lengthen it.
+//   oracle prices          1, same reason; effective_at stays the ECONOMIC filter and the
+//                             24 h lock window, while admission is what the barrier certifies.
+//   anchor-reward attests  144, the existing ANCHOR_REWARD_MIRROR_MATURITY, already frozen
+//                             fleet-wide. No producer change: this rail's admission height
+//                             already exists.
+const ADMIT_MARGIN_BLOCKS = Object.freeze({
+    default:                      4,
+    attestation_responses:        1,
+    oracle_prices:                1,
+    anchor_reward_attestations:   ANCHOR_REWARD_MIRROR_MATURITY,
+});
+
+// ADMIT_MIN_FUTURE_BLOCKS: a follower refuses any proposal whose admission height for a
+// chain is not strictly ahead of that chain's own tip. A row may never be admissible at a
+// block that already exists, or a producer could backdate a row into a block its peers
+// have already committed.
+const ADMIT_MIN_FUTURE_BLOCKS = 1;
+
+// ADMIT_MAX_FUTURE_BLOCKS: the follower's upper bound, PER CHAIN, sized so each chain's
+// height window spans the same 3600 s the existing absolute effective_time ceiling already
+// allows: ceil(3600 / nominal block interval), with an unknown chain taking BTC's.
+//
+// A flat block count here would be a silent tightening. Six blocks is an hour on BTC but
+// six minutes on DOGE, so a flat [tip + 1, tip + 6] would collapse the federation's
+// clock-skew tolerance from 3600 s to 360 s on DOGE and start refusing honest rows between
+// hubs whose tips differ by three blocks.
+//
+// The absolute TIME bounds on effective_time are NOT retired by this. A follower refuses on
+// BOTH axes, so a hub with a broken clock and a hub with a wrong tip are each caught by the
+// axis that can actually see them.
+const ADMIT_MAX_FUTURE_BLOCKS = Object.freeze({
+    BTC:      6,      // 600 s nominal
+    LTC:     24,      // 150 s nominal
+    DOGE:    60,      //  60 s nominal
+    default:  6,      // an unrecognised chain takes BTC's interval, as blockIntervalS already does
+});
+
+const MIRROR_ADMISSION_REGTEST_ENV = 'XC_MIRROR_ADMISSION_ACTIVATION';
+const MIRROR_ADMISSION_REGTEST_ARMED_HEIGHT = 0;
+
+/**
+ * Resolve the regtest admission activation from the environment, in the ROLLCALL shape.
+ *
+ * The armed form resolves to 0 so a drill block sits ABOVE the armed node's threshold and
+ * BELOW an inert node's null, which is the only per-process arming seam the codebase has and
+ * is what lets BF5 put an armed and an inert indexer on ONE venue and show them binding the
+ * same row at different blocks. Fails closed: anything unrecognised leaves regtest INERT and
+ * says so, rather than stamping NaN into a height comparison.
+ *
+ * @param {object} env the process environment, or a stand-in
+ * @returns {number|null}
+ */
+function resolveMirrorAdmissionRegtest(env){
+    let raw = (env || {})[MIRROR_ADMISSION_REGTEST_ENV];
+    if(raw === undefined || raw === null) return null;
+    let s = String(raw).trim().toLowerCase();
+    if(s === '' || s === 'off' || s === 'inert' || s === 'false' || s === 'no' || s === 'none') return null;
+    if(s === 'armed' || s === 'genesis' || s === 'on' || s === 'true' || s === 'yes')
+        return MIRROR_ADMISSION_REGTEST_ARMED_HEIGHT;
+    if(/^\d+$/.test(s)){
+        let h = parseInt(s, 10);
+        if(Number.isFinite(h) && h >= 0) return h;
+    }
+    console.error('MIRROR ADMISSION: ignoring ' + MIRROR_ADMISSION_REGTEST_ENV + '=' +
+                  JSON.stringify(String(raw)) + '; regtest stays INERT. Expected a non-negative ' +
+                  'height, "armed", or "off".');
+    return null;
+}
+
+// MIRROR_ADMISSION_ACTIVATION (the PRODUCER map): the height at/above which a hub stamps an
+// admission map into the signed canonical and refuses to finalize a row it cannot stamp.
+// MIRROR_ADMISSION_CONSUMER_ACTIVATION (the CONSUMER map): the height at/above which an
+// indexer reads that map instead of binding on effective_time <= t(B).
+//
+// TWO maps, one module, with an ordering rule that is the whole point: every producer height
+// is sized strictly BELOW its consumer height, so no row is ever produced legacy and read
+// modern. Get that backwards and a consumer above its height reads an admission column that
+// the producer below its own height never wrote, and binds nothing.
+//
+// Keyed by (coin, network), not by network alone. A single per-network height cannot arm a
+// family that binds on every chain: one number is an LTC height on an LTC indexer and a BTC
+// height on a BTC indexer, so the two legs of one cross-chain match would cross the flag day
+// at unrelated instants. The 'COIN:network' key shape is established precedent, not new.
+//
+// FAIL-CLOSED on every read: a null threshold, a non-finite height or an unknown key reads
+// INERT, and INERT is today's behaviour byte for byte. Every read MUST go through a
+// Number.isFinite guard; a bare `height >= MAP[key]` arms a null key at height 0, because
+// `0 >= null` is true in JavaScript.
+//
+// Mainnet is null under the 2026-08-29 write hold. Testnet is sized at the release cut from
+// the measured tip plus the roll window plus slack, per key, because testnet carries live
+// public ledgers and the height is the whole protection. The v7 HUB_SCHEMA_VERSION roll
+// completes BEFORE any network's activation height: the heights map rides frames that carry
+// no schema_version, so a v7 indexer above the activation against a v6 hub would see no
+// heights at all and defer forever under the fail-closed rule.
+const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
+    'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
+    'LTC:mainnet':  null,
+    'DOGE:mainnet': null,
+    'BTC:testnet':  null,   // SIZED AT THE CUT: tip + roll window + slack, strictly below the consumer height
+    'LTC:testnet':  null,
+    'DOGE:testnet': null,
+    'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
+    'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
+    'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
+});
+
+const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
+    'BTC:mainnet':  null,
+    'LTC:mainnet':  null,
+    'DOGE:mainnet': null,
+    'BTC:testnet':  null,   // SIZED AT THE CUT, strictly ABOVE the producer height for the same key
+    'LTC:testnet':  null,
+    'DOGE:testnet': null,
+    'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
+    'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
+    'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
+});
+
+// ---------------------------------------------------------------------------
+// The anchor-attest barrier's maturity horizon (the family's parent item)
+// ---------------------------------------------------------------------------
+//
+// The anchor-attest member is the one place the family's height rule is measurably WORSE
+// than the clock it replaces, because the hub cannot advance that rail's height watermark
+// past a snapshot whose deferred reward-attest entry is still queued, and that queue's TTL
+// is 6 h. So this member keeps its own maturity-horizon bound BESIDE the height rule rather
+// than being superseded by it, and the min() below is what guarantees the barrier can only
+// ever open EARLIER than it does today, never later.
+//
+// The derive pass at block B reads exactly the rows with snapshot_block <= B - 144. Every
+// such row was written no later than time(snapshot_block) + the hub's arrival lag, so a
+// watermark at or past horizonTime + ANCHOR_ATTEST_ARRIVAL_MARGIN_S certifies the node holds
+// every row that pass will read, which is the completeness property in full.
+//
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/anchor_reward_activation.js
+// by the activation-constants parity suite.
+
+// ANCHOR_ATTEST_ARRIVAL_MARGIN_S: sized against the hub's whole MEASURED write-lag envelope,
+// not the DOGE burial alone. The envelope is about 15 h: up to 6 BTC blocks of checkpoint age
+// at flush (about 1 h), the publisher's deferred-write queue TTL of 6 h, a receiver hub's
+// re-proof through that SAME queue for up to 6 h more, and about 2 h of raw-stamp skew on the
+// networks that are off median-time-past.
+//
+// 64800 s covers that envelope with 3 h of headroom and still opens 6 h before a nominal
+// 144-block span, so a +2 h stamp is absorbed entirely. The earlier 21600 s figure was sized
+// on the DOGE burial alone and sits BELOW the publisher's own queue TTL, so it was re-put and
+// corrected by measurement. A 144-block stretch shorter than 18 h is a three-sigma event and
+// falls back to today's wait through the min(), which is the right way for a fail-closed gate
+// to fail.
+const ANCHOR_ATTEST_ARRIVAL_MARGIN_S = 64800;   // 18 h
+
+// ANCHOR_ATTEST_BARRIER_ACTIVATION: per NETWORK, not per (coin, network), because this member
+// is BTC-only by its call-site guard and a second key would be dead weight. Nothing hashed
+// moves across this height: two nodes on either side derive the identical set at the identical
+// height and differ only in WHEN they get there. The height exists because a rolling deploy
+// would otherwise leave the early-opening node alone in carrying a weaker completeness
+// guarantee, and one map removes that window.
+const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
+    mainnet: null,        // INERT under the 2026-08-29 mainnet write hold
+    testnet: null,        // SIZED AT THE CUT from the measured tip plus the roll window
+    regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
+});
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     ENVELOPE_MAX_PAYLOAD,
@@ -1749,6 +1948,16 @@ module.exports = {
     ANCHOR_ACTIVATION,
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
+    ADMIT_MARGIN_BLOCKS,
+    ADMIT_MIN_FUTURE_BLOCKS,
+    ADMIT_MAX_FUTURE_BLOCKS,
+    MIRROR_ADMISSION_ACTIVATION,
+    MIRROR_ADMISSION_CONSUMER_ACTIVATION,
+    MIRROR_ADMISSION_REGTEST_ENV,
+    MIRROR_ADMISSION_REGTEST_ARMED_HEIGHT,
+    resolveMirrorAdmissionRegtest,
+    ANCHOR_ATTEST_ARRIVAL_MARGIN_S,
+    ANCHOR_ATTEST_BARRIER_ACTIVATION,
     ROLLCALL_ACTIVATION,
     ROLLCALL_REGTEST_ARMED_HEIGHT,
     ROLLCALL_REGTEST_ENV,

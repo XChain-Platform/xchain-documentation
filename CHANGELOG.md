@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Published `ADMIT_MARGIN_BLOCKS`, `ADMIT_MIN_FUTURE_BLOCKS` and `ADMIT_MAX_FUTURE_BLOCKS`, the canonical admission-height margins that let a mirror barrier bind rows by block height instead of by the block's timestamp.
+- Published `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION`, the paired producer and consumer flag-day maps keyed by coin and network, inert everywhere pending their sizing at the cut.
+- Published `ANCHOR_ATTEST_ARRIVAL_MARGIN_S` (64800 s) and `ANCHOR_ATTEST_BARRIER_ACTIVATION`, the maturity-horizon bound that keeps the anchor-attest barrier opening no later than it does today.
+
 ### Fixed
 - CI checks out xchain-indexer beside this repo so the flag-day literals suite runs on GitHub instead of skipping, and the env-var coverage fleet floor applies only when every sibling is present.
 
