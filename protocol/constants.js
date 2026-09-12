@@ -1498,6 +1498,39 @@ const STAKE_KEY_REUSE_ACTIVATION = {
     regtest:        0,            // genesis-active so the e2e venue exercises the armed rule
 };
 
+// SWEEP zero-amount leg flag day, keyed on the processing chain's OWN block_index,
+// per network AND coin. Canonical authority for the local copy in
+// xchain-indexer/src/sweep_zero_leg_activation.js, which carries the full rationale;
+// the indexer's activation-constant parity suite holds the two value-identical, and a
+// one-sided edit forks the per-block ledger hash at the boundary.
+//
+// Below a chain's height a SWEEP whose held balance of a tick is exactly 0 writes a
+// zero-amount debit and credit leg for that tick, rows that land in the hashed
+// credits and debits tables and that testnet history already carries. At and above
+// it the tick writes no leg. Every unevaluable case (inert null, unknown network,
+// unusable height) keeps writing the legs, which is the deployed behaviour.
+//
+// Height-keyed, not date-keyed: a SWEEP settles in the processing chain's own block
+// and the ledger hash it lands in is that chain's.
+//
+// Mainnet is the inert null: the instant is operator-owned and is sized above the
+// fleet's deploy tip on the train that arms it. Regtest is genesis-active so the e2e
+// venue exercises the armed rule. Testnet is armed per coin at the SAME heights as
+// STAKE_KEY_REUSE_ACTIVATION on purpose, both gates shipping on one train so the fleet
+// rehearses one crossing per coin; the heights sit 21 days of blocks above the tips
+// re-measured 2026-09-11 (BTC 151,994, LTC 4,883,984, DOGE 67,888,041), rounded up.
+const SWEEP_ZERO_LEG_ACTIVATION = {
+    'BTC:mainnet':  null,         // INERT: operator-owned, sized above the deploy tip on the arming train
+    'LTC:mainnet':  null,         // INERT: operator-owned, sized above the deploy tip on the arming train
+    'DOGE:mainnet': null,         // INERT: operator-owned, sized above the deploy tip on the arming train
+    mainnet:        null,         // INERT: a coin with no entry above inherits the unarmed posture
+    'BTC:testnet':  156000,       // SIZED 2026-09-11: chain_tip 151,994 + 3,024 (21d @144/day) = 155,018, rounded up; shared with STAKE_KEY_REUSE_ACTIVATION
+    'LTC:testnet':  4897000,      // SIZED 2026-09-11: chain_tip 4,883,984 + 12,096 (21d @576/day) = 4,896,080, rounded up; shared with STAKE_KEY_REUSE_ACTIVATION
+    'DOGE:testnet': 67920000,     // SIZED 2026-09-11: chain_tip 67,888,041 + 30,240 (21d @1440/day) = 67,918,281, rounded up; shared with STAKE_KEY_REUSE_ACTIVATION
+    testnet:        null,         // INERT: a testnet coin with no entry above keeps writing the legs
+    regtest:        0,            // genesis-active so the e2e venue exercises the armed rule
+};
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     ENVELOPE_MAX_PAYLOAD,
@@ -1581,4 +1614,5 @@ module.exports = {
     ORACLE_DEVIATION_THRESHOLD,
     TRAIN_ACTIVATION,
     STAKE_KEY_REUSE_ACTIVATION,
+    SWEEP_ZERO_LEG_ACTIVATION,
 };
