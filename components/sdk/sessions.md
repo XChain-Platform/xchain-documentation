@@ -50,7 +50,7 @@ await session.order({
 
 ### Available Action Methods
 
-Thirty of the 31 action types are available as convenience methods. `BATCH` is
+Thirty of the 32 action types are available as convenience methods. `BATCH` is
 the exception: it is composed with the SDK's batch builder
 (`sdk.batch().send({...}).mint({...}).build()`) rather than by a session method.
 

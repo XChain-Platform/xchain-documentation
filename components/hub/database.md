@@ -183,6 +183,8 @@ The durable at-most-once marker for PRICE v0 round broadcasts, written by `Oracl
 | `reorg_attestations` | Confirmed blockchain reorg events |
 | `cross_chain_matches` | PBFT-finalized DEX order match records (dispatch to indexers via hub-DB mirror) |
 | `cross_chain_calls` | PBFT-finalized XCALL dispatch and result records (relay to indexers via hub-DB mirror) |
+| `bridge_transfers` | PBFT-finalized bridge transfer records: one signed row per confirmed lock or burn, carrying `tick`, `decimals` and `amount`, from which the destination indexer injects the XBRIDGE settle leg (mirror to indexers) |
+| `policy_snapshots` | PBFT-finalized per-token policy snapshots (allow list, block list, tick sleep) a destination chain materializes onto a bridged copy. Append-only, latest-wins by `policy_seq`, on the `state_checkpoints` terms (mirror to indexers) |
 
 ### `attestations`
 

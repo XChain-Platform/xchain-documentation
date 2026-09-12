@@ -3,7 +3,7 @@
 
 # Gas and Fees
 
-XChain uses a unified gas-based fee system. All protocol fees are expressed in **gas units**, converted to XCHAIN via a single GAS_PRICE parameter, and paid in either native coin (BTC/LTC/DOGE) via oracle price conversion or XCHAIN balance deduction (BTC only).
+XChain uses a unified gas-based fee system. All protocol fees are expressed in **gas units**, converted to XCHAIN via a single GAS_PRICE parameter, and paid in either native coin (BTC/LTC/DOGE) via oracle price conversion or XCHAIN balance deduction (BTC only for now; the [token bridge](./token-bridge.md) gives XCHAIN a shadow balance on LTC and DOGE, but fee payment by debiting it is a later milestone, not live yet).
 
 ## Fee Conversion Paths
 
@@ -13,7 +13,7 @@ flowchart LR
     GC["gas cost"] --> GP["GAS_PRICE"] --> XA["XCHAIN amount"] --> XU["XCHAIN/USD oracle"] --> USD["USD"] --> UC["USD/coin oracle"] --> NC["native coin"]
 ```
 
-**XCHAIN balance payment (BTC only):**
+**XCHAIN balance payment (BTC only for now):**
 ```mermaid
 flowchart LR
     GC2["gas cost"] --> GP2["GAS_PRICE"] --> XA2["XCHAIN amount"] --> DB["debit from user's<br>XCHAIN balance"]
@@ -126,7 +126,7 @@ Fees can be paid two ways. **Native-coin fees** (BTC/LTC/DOGE) are collected at 
 
 ## The XCHAIN Token
 
-XCHAIN is a standard XChain token issued via ISSUE on the **BTC chain only**. It does not exist natively on LTC or DOGE. The XCHAIN ticker is reserved on all chains to prevent unauthorized issuance.
+XCHAIN is a standard XChain token issued via ISSUE on the **BTC chain only**; it is never natively issued on LTC or DOGE, and the ticker is reserved (case-folded) on all chains to prevent unauthorized issuance. The [token bridge](./token-bridge.md) gives XCHAIN a real, provably-backed **shadow balance** on LTC and DOGE (lock on BTC into a protocol-owned escrow, mint a matching amount on the other chain), so XCHAIN can be held and spent there today, but supply, the mint cap and the price reference all still live on BTC alone; a foreign chain's supply is a shadow of the BTC escrow, never a second, independent mint, and XCHAIN-balance fee payment on LTC/DOGE (as opposed to native-coin fee payment, which works everywhere) is a later milestone. See [Cross-Chain Bridge](../protocol/xchain-bridge.md) for the full mechanism.
 
 **Fixed supply, zero pre-mint.** XCHAIN has a permanent `MAX_SUPPLY` cap of 100,000,000 (8 decimals) set at genesis, but supply starts at zero: the genesis `ISSUE` carries no `MINT_SUPPLY`. Every unit is minted, either as a pinned genesis distribution credit or by a public mint, up to the cap; once the open mint is exhausted, no further XCHAIN can ever be created, by anyone, including the issuing address. Supply only ever decreases after that, via the burn bucket above. The genesis allocation itself is in the [white paper](../whitepaper.md#133-genesis-and-fair-launch).
 

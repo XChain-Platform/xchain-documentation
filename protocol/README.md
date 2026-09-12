@@ -19,6 +19,8 @@ This section is the canonical reference for the XChain Protocol; ACTION command 
 | [Contract-Targeted Staking](./contract-staking.md) | Design and VM API for staking any token against a smart contract with contract-decided slashing |
 | [Cross-Chain Contract Calls](./cross-chain-calls.md) | XCALL: a contract on one chain calls a contract on another, verified by federation capability signatures |
 | [Cross-Chain DEX](./cross-chain-dex.md) | Network-scoped mirror settlement: trading a token on one chain against a token on another |
+| [Cross-Chain Bridge](./xchain-bridge.md) | XBRIDGE: lock-and-mint / burn-and-release for XCHAIN across chains, with a protocol-owned escrow and a signed transfer record |
+| [Token Bridge](./token-bridge.md) | The same bridge mechanism opened to any issuer's token, origin-rooted naming, and policy inheritance for allow/block lists and sleep |
 | [x402 Payments](./x402-payments.md) | HTTP 402 payment interop: machine-payable web resources settled with XChain actions |
 | [Attestation Providers](./providers/) | Provider specs for the attestation framework (`http_get`, `llm`) |
 | [Error Codes](./error-codes.md) | Stable machine-readable error-code registry |

@@ -3,7 +3,7 @@
 
 # XChain Platform SDK: ACTION Reference
 
-Complete reference for all 31 ACTION types supported by the XChain Platform SDK.
+Complete reference for all 32 ACTION types supported by the XChain Platform SDK.
 
 ---
 
@@ -1237,6 +1237,51 @@ await sdk.bet(sdk.betting.resolveMarketParams({ feedActionIndex: 1234, outcome: 
 For signed and broadcast round trips use the workflow recipes `sdk.workflows.openMarket` / `placeBet` / `resolveMarket` / `cancelMarket` (see [WORKFLOWS.md](./workflows.md)), or `session.bet(params)` on a wallet session. Read markets back with `sdk.explorer.getBetFeeds` / `getBetFeed` / `getBets` / `getOracleStats`, and follow one live with `sdk.ws.subscribeBetFeed(index)`.
 
 See also: [`../actions/BET.md`](../../protocol/actions/bet.md)
+
+---
+
+### XBRIDGE
+
+Cross-chain lock/burn/settle: moves XCHAIN or a bridged token between chains against a protocol-owned escrow. `sdk.xbridge(params)` is the raw wrapper; the version is taken from `params.version` (0 lock XCHAIN, 1 burn XCHAIN, 3 lock a general token, 4 burn a bridged token). Versions 2 and 5 are the settle legs, system-injected by the indexer from a finalized transfer, and a broadcast one is refused with `invalid: XBRIDGE v2 is system-injected` / `invalid: XBRIDGE v5 is system-injected`.
+
+**Format Versions:** v0 (lock XCHAIN, BTC only), v1 (burn XCHAIN, never on BTC), v3 (lock a token, its origin chain only), v4 (burn a bridged token)
+
+**Format v0:** `XBRIDGE|0|DEST_COIN|DEST_ADDRESS|AMOUNT|MEMO`  
+**Format v1:** `XBRIDGE|1|BTC_ADDRESS|AMOUNT|MEMO`  
+**Format v3:** `XBRIDGE|3|TICK|DEST_COIN|DEST_ADDRESS|AMOUNT|MEMO`  
+**Format v4:** `XBRIDGE|4|TICK|ORIGIN_ADDRESS|AMOUNT|MEMO`
+
+**Params:**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| version | integer | Yes | `0`, `1`, `3`, or `4` (see Format Versions above) |
+| destCoin | string | v0, v3 | Destination coin, a supported coin other than the source chain |
+| destAddress | string | v0, v3 | Destination address on `destCoin`, validated coin-and-network aware |
+| btcAddress | string | v1 | Destination BTC address, BTC-network validated |
+| tick | string | v3, v4 | v3: a native (undotted, non-gas) tick on this chain to lock. v4: a bridged row on this chain (`<ORIGIN>.<NAME>`) to burn |
+| originAddress | string | v4 | Destination address on the bridged tick's origin chain, validated against that chain |
+| amount | string | v0, v1, v3, v4 | Positive decimal, at most the token's decimals, at most the source's balance |
+| memo | string | No | Optional note |
+
+**Notes:**
+- This is the raw builder; it does not validate the destination address against the coin and network it lands on before broadcast, because a lock is one-way and unrecoverable. Use the coin-aware recipes below instead of calling `sdk.xbridge()` directly wherever the destination comes from user input.
+- A bridged tick is named under its origin chain's root, `<ORIGIN>.<NAME>` (`BTC.PEPECASH`, `DOGE.FUFU`); v3's `TICK` is always the native, undotted name on the chain the lock is broadcast on.
+
+```js
+// Lock 500 XCHAIN on BTC into the DOGE escrow (raw wrapper)
+await sdk.xbridge({ version: 0, destCoin: 'DOGE', destAddress: 'D8bFJYQ6JZ4tSjzZbXqXYh2vN3xKzQpump', amount: '500' })
+
+// The coin-aware recipes validate the destination first and pin the version:
+await sdk.workflows.bridgeLock(wif, { destCoin: 'DOGE', destAddress: 'D8bFJYQ6JZ4tSjzZbXqXYh2vN3xKzQpump', amount: '500' })
+await sdk.workflows.bridgeBurn(wif, { btcAddress: '1ExampleAddressXXXXXXXXXXXXXXXXXXX', amount: '200' })
+await sdk.workflows.bridgeTokenLock(wif, { tick: 'PEPECASH', destCoin: 'DOGE', destAddress: 'D8bFJYQ6JZ4tSjzZbXqXYh2vN3xKzQpump', amount: '1000' })
+await sdk.workflows.bridgeTokenBurn(wif, { tick: 'BTC.PEPECASH', originAddress: '1ExampleAddressXXXXXXXXXXXXXXXXXXX', amount: '250' })
+```
+
+Read the escrow-versus-supply invariant and in-flight transfers over the indexer's `getpendingbridgetransfers` / `getbridgetransfer` and the hub's `getbridgeinvariant` (see [Cross-Chain Bridge](../../protocol/xchain-bridge.md#reads)).
+
+See also: [`../actions/XBRIDGE.md`](../../protocol/actions/xbridge.md)
 
 ---
 

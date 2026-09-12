@@ -57,6 +57,12 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | [`DISPENSER`](./dispenser.md) | Creates a vending machine that dispenses tokens when triggered by a send |
 | [`SWAP`](./swap.md) | Creates a cross-chain token swap offer between supported blockchains |
 
+### Cross-Chain Bridge
+
+| ACTION | Description |
+|---|---|
+| [`XBRIDGE`](./xbridge.md) | Lock-and-mint / burn-and-release across chains: v0/v1/v2 move XCHAIN itself, v3/v4/v5 generalize the same lifecycle to any bridgeable token under its origin chain's root |
+
 ### Data and Communication
 
 | ACTION | Description |
@@ -150,7 +156,7 @@ Every ACTION includes a `VERSION` parameter as its first field. This determines 
 
 ### TICK
 
-A `TICK` is a token ticker name (1-250 characters). Tickers are case-sensitive and can contain letters, numbers, and symbols. The names `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved by the protocol.
+A `TICK` is a token ticker name (1-250 characters). Tickers are case-sensitive and can contain letters, numbers, and symbols. The names `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved by the protocol, case-folded (`btc`, `Btc`, ... are reserved too) so no case variant can be squatted; see [`ISSUE`](./issue.md) and [Token Bridge](../token-bridge.md) for why: a bridged token is always named under its origin chain's coin root (`BTC.PEPECASH`). Behind `TICK_NAMESPACE_ACTIVATION`, a new top-level tick under four characters is also refused (`invalid: TICK (length)`, creation only, existing tickers unaffected), and a fixed list of chain codes XChain expects to integrate later (`RESERVED_FUTURE_ROOTS`) is reserved the same way, so their roots are free the day each chain actually arrives.
 
 ### ACTION_INDEX
 

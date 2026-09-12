@@ -55,7 +55,7 @@ Invalid ACTIONs are recorded as failed; they are not silently ignored. This make
 
 ## The ACTION Set
 
-The platform defines 37 named ACTIONs; 36 ACTION types are decoded from the wire. Of those 36, 31 are user-submittable (available via the SDK) across ten categories; the remaining 5 (ANCHOR, ATTEST, NODEPROOF, ROLLCALL, SLASH) are validator-broadcast or system-synthesized and are not SDK-invocable. XCALL is a related but separate case: it is mirror-injected into the destination chain's index rather than decoded from a wire transaction, so it is not counted among the 36 wire-decoded ACTION types, though it is documented below alongside the validator/system actions since it is also not user-submittable. Every ACTION is gated by the **indexer's protocol version**, not by a block height: 21 are registered at version `0.1.0` and 16 at `0.2.0`, and all 37 carry an activation block and timestamp of `0` on every network. ROLLCALL is the one action that additionally carries a per-network height gate, and that gate lives in `rollcall_activation.js` rather than in the protocol-version registry. An indexer processes an action once its own version is at least the registered one. Block-height and timestamp flag-days do exist, but they gate *changes in behaviour* to already-live actions (fee rules, validation tightening, hash-preimage ordering), not the arrival of the actions themselves. See [Protocol Activation](../protocol/protocol-activation.md).
+The platform defines 38 named ACTIONs; 36 ACTION types are decoded from the wire. Of those 36, 31 are user-submittable (available via the SDK) across ten categories; the remaining 5 (ANCHOR, ATTEST, NODEPROOF, ROLLCALL, SLASH) are validator-broadcast or system-synthesized and are not SDK-invocable. XCALL is a related but separate case: it is mirror-injected into the destination chain's index rather than decoded from a wire transaction, so it is not counted among the 36 wire-decoded ACTION types, though it is documented below alongside the validator/system actions since it is also not user-submittable. XBRIDGE is the newest addition and sits outside that 36/31 split the same way: it decodes from the wire for its user-broadcast versions but its settle versions are system-injected, so it is counted separately (see the Cross-Chain section below). Every ACTION is gated by the **indexer's protocol version**, not by a block height: 21 are registered at version `0.1.0` and 17 at `0.2.0`, and all 38 carry an activation block and timestamp of `0` on every network. ROLLCALL and XBRIDGE additionally carry a per-network height gate on top of the version gate above; those gates live in `rollcall_activation.js`, `xchain_bridge_activation.js` and `token_bridge_activation.js` rather than in the protocol-version registry. An indexer processes an action once its own version is at least the registered one. Block-height and timestamp flag-days do exist, but they gate *changes in behaviour* to already-live actions (fee rules, validation tightening, hash-preimage ordering), not the arrival of the actions themselves. See [Protocol Activation](../protocol/protocol-activation.md).
 
 ### Token Lifecycle
 
@@ -84,6 +84,12 @@ The platform defines 37 named ACTIONs; 36 ACTION types are decoded from the wire
 | `COINPAY` | Fulfills a native coin payment obligation created by an ORDER_MATCH. The transaction includes both the action data and a native coin output paying the seller. |
 | `DISPENSER` | Create a vending machine that sells tokens at a fixed rate in exchange for coin payments. Closes when it is depleted, cancelled, or reaches its `EXPIRATION` (90 days by default), returning any tokens still escrowed to the creating address. |
 | `SWAP` | Initiate or fulfill a cross-chain atomic token swap, coordinated by the hub. |
+
+### Cross-Chain Bridge
+
+| ACTION | What it does |
+|---|---|
+| `XBRIDGE` | Move a token between chains by lock-and-mint / burn-and-release against a protocol-owned escrow. v0/v1 lock and burn XCHAIN; v3/v4 generalize the same lifecycle to any bridgeable token; v2/v5 are system-injected settle legs, never user-broadcast. Gated by `XCHAIN_BRIDGE_ACTIVATION` (v0-v2) and `TOKEN_BRIDGE_ACTIVATION` (v3-v5). See [Cross-Chain Bridge](../protocol/xchain-bridge.md) and [Token Bridge](../protocol/token-bridge.md). |
 
 ### Data
 

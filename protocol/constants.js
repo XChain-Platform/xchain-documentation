@@ -197,6 +197,38 @@ const ATTEST_MAX_EXPIRIES_PER_BLOCK = 25;
 // mainnet block settles the full effective backlog, exactly as it always has.
 const CROSS_SETTLE_MAX_PER_BLOCK = 25;
 
+// ── Cross-chain bridge (protocol/xchain-bridge.md) ──────────────────────────
+// Finalized bridge transfer records the XBRIDGE settle pass applies per DESTINATION
+// CHAIN per block. Overflow carries forward in (snapshot_block, transfer_id) order
+// and is never dropped, the XCALL and CROSS_SETTLE discipline.
+//
+// UNGATED, unlike CROSS_SETTLE_MAX_PER_BLOCK above: that cap re-sliced history a
+// chain had already indexed and therefore needed its own flag day, while this one
+// ships inside XCHAIN_BRIDGE_ACTIVATION, below which no chain has ever applied an
+// XBRIDGE settle leg. There is no history for it to reinterpret.
+//
+// Canonical authority for xchain-indexer/src/protocol/constants.js.
+const XBRIDGE_MAX_PER_BLOCK = 25;
+
+// ── Token-policy inheritance (protocol/token-bridge.md) ─────────────────────
+// Finalized policy snapshots applied per block per chain, at the head of the
+// XBRIDGE pass and before any in-leg at that block. Lower than the transfer cap
+// because one snapshot is up to six injected actions, each rewriting a full list
+// membership, where one transfer is a single credit. Overflow carries forward in
+// (snapshot_block, snapshot_id) order across ticks and policy_seq within a tick.
+const XPOLICY_MAX_PER_BLOCK = 5;
+
+// Ceiling on the membership of a list a bridged token may carry. No cap existed
+// before: LIST items are variadic, the only bound was MAX_ACTION_DATA_LENGTH on one
+// action, and every edit persists a complete membership, so a list grew without
+// limit across edits. Every snapshot carries the FULL membership and every
+// destination rewrites it on apply, so the origin's list length is write
+// amplification on every chain holding a copy.
+//
+// Refused at ISSUE format 7 opt-in and declined at the hub's signing step; never a
+// hash input, so a later flag day can raise it.
+const XPOLICY_MAX_MEMBERS = 10000;
+
 // ── Token-gated content (PC-29) ─────────────────────────────────────────────
 // Fixed fractional scale for comparing FILE.GATE_MIN_AMOUNT thresholds against a
 // holder's balance. The wallet scales both sides to this many fractional digits
@@ -1531,6 +1563,139 @@ const SWEEP_ZERO_LEG_ACTIVATION = {
     regtest:        0,            // genesis-active so the e2e venue exercises the armed rule
 };
 
+// XCHAIN bridge flag day, keyed on the block_index of the chain being parsed. Canonical
+// authority for the local copy in xchain-indexer/src/xchain_bridge_activation.js, which
+// carries the full rationale; the indexer's activation-constant parity suite holds the two
+// value-identical, and a one-sided edit forks the bridge at the boundary.
+//
+// At and above a network's height, XBRIDGE v0 (lock on the origin chain) and v1 (burn on a
+// destination chain) are legal and the federation signs transfer records that the
+// mirror-injected v2 settle leg applies. Below it a broadcast v0 or v1 is
+// 'invalid: XBRIDGE before activation' and no v2 is injected, so pre-activation block
+// hashes are unchanged on every chain.
+//
+// Mainnet is the house sentinel: bridge milestone 1 is a hub-trusted mint (a compromised
+// hub supplies both the transfer record and the roster that verifies it), so nothing arms
+// on mainnet before the ANCHOR-checkpoint cross-check of the lock is built. Testnet holds
+// at the sentinel until the train that arms it sizes a dated instant above the fleet's
+// deploy tip. Regtest is genesis-active so the e2e venue exercises the armed rule.
+const XCHAIN_BRIDGE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// General token-bridge flag day (XBRIDGE v3/v4/v5 and ISSUE format 7), keyed the same way.
+// Canonical authority for xchain-indexer/src/token_bridge_activation.js.
+//
+// ORDERING INVARIANT, asserted by the indexer's parity suite over this map:
+// TOKEN_BRIDGE_ACTIVATION >= XCHAIN_BRIDGE_ACTIVATION per network. The general formats ride
+// the same hub engine, the same mirrored transfer table and the same settle pass as
+// XCHAIN's, so a train that armed v3 without the XCHAIN bridge behind it would admit locks
+// that nothing can ever finalize and that no burn can ever return.
+//
+// Testnet is NOT armed alongside the XCHAIN bridge: no third-party token can be offered on
+// a hub-trusted mint, so this gate waits on the checkpoint cross-check landing on that
+// network. Regtest is genesis-active.
+const TOKEN_BRIDGE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// Token-policy inheritance flag day, keyed the same way. Canonical authority for
+// xchain-indexer/src/token_policy_activation.js, which carries the full rationale.
+//
+// At and above a network's height a token's origin-row policy binds every bridged copy:
+// the milestone-1 mutual exclusion in ISSUE lifts, LIST address items validate against any
+// supported coin at this network (and db.isAddressSleeping judges a foreign-format address
+// instead of skipping it), the hub signs XPOLICY snapshots, and the destination applies them
+// as the bridged row's own lists and sleep state. Below it every milestone-1 verdict stands
+// and no snapshot is signed, so pre-activation block hashes are unchanged on every chain.
+//
+// TWO ORDERING INVARIANTS, asserted by the indexer's parity suite over this map:
+//   TOKEN_POLICY_INHERITANCE_ACTIVATION >= TOKEN_BRIDGE_ACTIVATION per network. Inheritance
+//   has nothing to inherit onto until bridged copies can exist.
+//   TOKEN_POLICY_INHERITANCE_ACTIVATION >= LIST_EDIT_RESOLUTION_ACTIVATION per chain and
+//   network (that map is indexer-local: BTC 963000, LTC 3162000, DOGE 6338000 on mainnet,
+//   0 on testnet and regtest). The snapshot read resolves a list AS OF origin_block by
+//   walking the edit chain; below that gate the legacy create-index read runs, and the
+//   membership the federation signs would not be the membership the chain enforced.
+//
+// Both public networks hold at the house sentinel until the train that arms them sizes a
+// dated instant. Regtest is genesis-active.
+const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// LIST owner-check flag day, keyed on the block_index of the chain being parsed.
+// Canonical authority for xchain-indexer/src/list_owner_activation.js.
+//
+// At and above a network's height a LIST format 1 whose source is not the address that
+// created the list it names is 'invalid: LIST_ACTION_INDEX (not owner)'. Below it the edit
+// is judged exactly as it always has been.
+//
+// It is a flag day rather than an unconditional fix because the check RE-VERDICTS indexed
+// history: third-party edits are valid today and list_items is a hashed DERIVED table, so
+// refusing them on replay would move block hashes on a live chain. The replay corpus being
+// hash-identical below the height is the hard gate on this change.
+const LIST_OWNER_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// Tick-namespace flag day (R8), keyed on the block_index of the chain being
+// parsed. Canonical authority for xchain-indexer/src/tick_namespace_activation.js, which
+// carries the full rationale.
+//
+// At and above a network's height two rules bind in the ISSUE handler, beside the reserved
+// guard: a top-level ISSUE that would CREATE a tick shorter than four characters is
+// 'invalid: TICK (length)' (creation only, so every short token already issued keeps its
+// owner and its admin surface), and every ticker in RESERVED_FUTURE_ROOTS below is
+// 'invalid: TICK (reserved)'. Together they hold the root of a chain XChain integrates
+// later free on every ledger that exists by then.
+//
+// Its OWN height rather than TOKEN_BRIDGE_ACTIVATION's: the bridge arms only after the base
+// spec's D2 checkpoint cross-check, and the namespace has to close before anyone squats.
+// Activation-keyed rather than unconditional because the reserved and length checks run
+// ahead of the fee and budget checks, so a mined ISSUE of a listed name that is refused
+// today on fee would flip its verdict string on replay.
+//
+// Both public networks hold at the house sentinel until the train that arms them sizes a
+// dated instant; mainnet additionally waits on a replica measurement of zero mined ISSUEs
+// of a short or listed name, valid or invalid. Regtest is genesis-active.
+const TICK_NAMESPACE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// Chain tickers held free for chains XChain has not integrated yet, refused as
+// 'invalid: TICK (reserved)' at and above TICK_NAMESPACE_ACTIVATION. Canonical authority
+// for xchain-indexer/src/reservedRoots.js; the indexer's activation-constant parity suite
+// holds the two list-identical, ORDER INCLUDED.
+//
+// Chains only: no tokens that live on someone else's chain, and no spelled-out names.
+// Reserving a root reserves its whole ROOT.* subtree through the subasset parent gate, so
+// one entry per chain is the entire cost. When a chain is integrated its ticker moves from
+// here to the coin registry; both refuse identically, so nothing re-verdicts on the move.
+//
+// The first 47 were measured free on every live chain and in both genesis manifests on
+// 2026-09-11 (120 names, 720 explorer probes); the last 6 are squatted in the mainnet
+// genesis manifests and leave through a separate manifest edit, so for those this guard
+// blocks only NEW issuance.
+const RESERVED_FUTURE_ROOTS = Object.freeze([
+    'ADA', 'ALGO', 'APT', 'ARB', 'ATOM', 'AVAX', 'BCH', 'BNB', 'BSV', 'BTG',
+    'CRO', 'DGB', 'DOT', 'EOS', 'ETC', 'ETH', 'FIL', 'FIRO', 'GRS', 'ICP',
+    'INJ', 'KAS', 'MNT', 'NEO', 'NMC', 'OP', 'POL', 'PPC', 'RVN', 'SEI',
+    'SOL', 'STX', 'SUI', 'TIA', 'TON', 'TRX', 'VET', 'VTC', 'XCP', 'XDP',
+    'XEC', 'XLM', 'XMR', 'XRP', 'XTZ', 'ZEC', 'ZK',
+    'BASE', 'DASH', 'HBAR', 'HOOD', 'HYPE', 'NEAR',
+]);
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     ENVELOPE_MAX_PAYLOAD,
@@ -1554,6 +1719,9 @@ module.exports = {
     XCALL_RESULT_ORPHAN_GRACE_SECONDS,
     ATTEST_MAX_EXPIRIES_PER_BLOCK,
     CROSS_SETTLE_MAX_PER_BLOCK,
+    XBRIDGE_MAX_PER_BLOCK,
+    XPOLICY_MAX_PER_BLOCK,
+    XPOLICY_MAX_MEMBERS,
     THRESHOLD_SCALE,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
     EQUIV_HEADER_ACTIVATION,
@@ -1615,4 +1783,10 @@ module.exports = {
     TRAIN_ACTIVATION,
     STAKE_KEY_REUSE_ACTIVATION,
     SWEEP_ZERO_LEG_ACTIVATION,
+    XCHAIN_BRIDGE_ACTIVATION,
+    TOKEN_BRIDGE_ACTIVATION,
+    TOKEN_POLICY_INHERITANCE_ACTIVATION,
+    LIST_OWNER_ACTIVATION,
+    TICK_NAMESPACE_ACTIVATION,
+    RESERVED_FUTURE_ROOTS,
 };

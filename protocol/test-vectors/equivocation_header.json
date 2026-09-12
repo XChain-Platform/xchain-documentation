@@ -9,7 +9,9 @@
     "CHECKPOINT": "XCHECKPOINT",
     "CONFIG": "XCONFIG",
     "NODEPROOF": "XNODEPROOF",
-    "ROLLCALL": "XROLLCALL"
+    "ROLLCALL": "XROLLCALL",
+    "BRIDGE": "XBRIDGE",
+    "POLICY": "XPOLICY"
   },
   "equivKey": [
     { "name": "basic", "engineTag": "XDEX", "roundId": "r1", "view": "0", "expected": "XDEX|r1|0" },
@@ -80,6 +82,22 @@
       "view": "0",
       "content": "regtest|0|0000000000000000000000000000000000000000000000000000000000000000",
       "expected": "EQUIV|XROLLCALL|0|0||regtest|0|0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "BRIDGE: transfer_id is the round id, the finalizing view is the view, and the pipe-separated transfer canonical survives the || boundary",
+      "engineTag": "XBRIDGE",
+      "roundId": "3b1f8c0e5a47d29e6b04f7a1c8d35e92074b6af18c2d9e35017a4bc6d8e2f309",
+      "view": "3",
+      "content": "XBRIDGE|3b1f8c0e5a47d29e6b04f7a1c8d35e92074b6af18c2d9e35017a4bc6d8e2f309|151200|XCHAIN|8|BTC|4211|bcrt1qsourceaddress|DOGE|ndestinationaddress|12.50000000|1757620800|regtest",
+      "expected": "EQUIV|XBRIDGE|3b1f8c0e5a47d29e6b04f7a1c8d35e92074b6af18c2d9e35017a4bc6d8e2f309|3||XBRIDGE|3b1f8c0e5a47d29e6b04f7a1c8d35e92074b6af18c2d9e35017a4bc6d8e2f309|151200|XCHAIN|8|BTC|4211|bcrt1qsourceaddress|DOGE|ndestinationaddress|12.50000000|1757620800|regtest"
+    },
+    {
+      "name": "POLICY: snapshot_id is the round id, and a policy snapshot under its own tag never collides with a transfer at the same view",
+      "engineTag": "XPOLICY",
+      "roundId": "5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
+      "view": "3",
+      "content": "XPOLICY|5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d|151200|BTC|FUFU|1|151140|0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9|1757620800|regtest",
+      "expected": "EQUIV|XPOLICY|5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d|3||XPOLICY|5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d|151200|BTC|FUFU|1|151140|0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9|1757620800|regtest"
     }
   ]
 }

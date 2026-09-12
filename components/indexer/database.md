@@ -76,6 +76,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `order_matches` | ORDER match (trade execution) records |
 | `order_statuses` | ORDER status change history |
 | `sends` | SEND transfer records |
+| `xbridges` | XBRIDGE action records: one row per broadcast lock/burn (v0=lock XCHAIN, v1=burn XCHAIN, v3=lock a token, v4=burn a bridged copy), valid or refused. The system-injected settle legs (v2/v5) write no row here; see `bridge_settlements` |
 | `sleeps` | SLEEP action records |
 | `swaps` | SWAP (cross-chain) records |
 | `swap_cancels` | SWAP cancellation records |
@@ -98,6 +99,9 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `cross_chain_calls` | Hub-mirrored cross-chain contract call rows (XCALL dispatch + result phases). Populated by `hub_db_sync` |
 | `cross_chain_call_executions` | Records the system-injected XEXEC action that executed a cross-chain call on this chain. One row per `call_id` (idempotency) |
 | `cross_chain_call_callbacks` | Records the system-injected callback EXECUTE delivered to the source contract after a cross-chain call result is processed. One row per `call_id` (idempotency) |
+| `bridge_transfers` | Hub-mirrored bridge transfer rows. Populated by `hub_db_sync`; carries the source leg (chain, action_index, address), the destination (chain, address), the signed `tick`, `decimals` and `amount`, and the `validator_signatures` the `cross_chain` quorum signed. The XBRIDGE pass injects the settle leg from a finalized row |
+| `bridge_settlements` | Settlement records for applied bridge legs on this chain. One row per `(transfer_id, kind)`, where `kind` separates a transfer settle from an applied policy snapshot; used for idempotency so a leg is never applied twice. Rolled back by `action_index` |
+| `policy_snapshots` | Hub-mirrored per-token policy snapshots (allow list, block list, tick sleep) for a bridged copy. Populated by `hub_db_sync`; append-only, latest-wins by `policy_seq`, on the same terms as `state_checkpoints`. Membership arrays are transport and are verified against the signed `policy_hash` on apply |
 | `full_node_verifications` | Validated full-node possession-proof records. One row per (epoch, passing validator) from a NODEPROOF v0 verdict. Presence within `PROOF_WINDOW_BLOCKS` of a block gates the full-node reward tranche |
 | `rollcalls` | ROLLCALL epoch closes, BTC side. One row per epoch that reached its close block: `epoch_height` (PK), `snapshot_block` (where the responsible set was resolved), `close_block`, and `rolled` (0 = the epoch counted for nobody, recorded so the K-streak knows which epochs to skip) |
 | `rollcall_signers` | Signatures collected from ROLLCALL actions on the Dogecoin side: `(epoch_height, pubkey)` PK, `sig`, the `ledger_hash` as carried (the BTC close discards a mismatch), `publisher`, `action_index`, and the DOGE `block_index` |

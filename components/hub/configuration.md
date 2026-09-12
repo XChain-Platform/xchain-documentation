@@ -564,8 +564,11 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | `XCHAIN_ATTEST_FINALIZED_MAX` | No | `10000` | Cap on retained finalized cross-chain attestation records held in memory |
 | `XCHAIN_ATTEST_STORE_RETRIES` | No | `4` | Attempts made when persisting a cross-chain attestation record. The INSERT is idempotent (`ON DUPLICATE KEY UPDATE`), so a retry after a partial failure is safe. |
 | `XCHAIN_ATTEST_STORE_RETRY_MS` | No | `100` | Base backoff (ms) between those attempts. |
+| `XBRIDGE_POLL_MS` | No | `15000` | Poll cadence of the cross-chain bridge engine (`CrossChainBridgeEngine`), which signs `bridge_transfers` and `policy_snapshots` rows. |
+| `<COIN>_INDEXER_URL` | No | _(from config table)_ | Per-coin indexer JSON-RPC URL the cross-chain bridge engine polls for confirmed transfer and policy legs (e.g. `BTC_INDEXER_URL`). Shared knob name with the other per-coin indexer reads on this page; falls back to the config table, then an empty string. |
+| `<COIN>_INDEXER_API_KEY` | No | _(from config table)_ | API key presented to that indexer by the cross-chain bridge engine. Treat as a credential. |
 
-**Regtest-only seams.** Both engines honour these only when the hub's network is `regtest`, and read them as `NaN`/false everywhere else, so a stray environment variable or config row can never reach the signed snapshot anchor or seed a validator on mainnet or testnet. They deliberately share names between the DEX and XCALL engines so a no-BTC regtest stack is configured once.
+**Regtest-only seams.** All three engines honour these only when the hub's network is `regtest`, and read them as `NaN`/false everywhere else, so a stray environment variable or config row can never reach the signed snapshot anchor or seed a validator on mainnet or testnet. They deliberately share names between the DEX, XCALL and bridge engines so a no-BTC regtest stack is configured once.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
