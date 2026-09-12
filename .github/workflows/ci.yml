@@ -16,9 +16,10 @@ name: CI
 # A drift in any of those is a wrong answer given to an implementer, and until
 # now nothing ran on a push to catch it.
 #
-# Hermetic: no sibling checkouts, no services, no secrets.
+# No services, no secrets, and exactly one sibling checkout (xchain-indexer,
+# read as text by the flag-day literals suite; see that step).
 #
-# The hermeticity has a cost worth naming rather than rediscovering:
+# The near-hermeticity has a cost worth naming rather than rediscovering:
 # a test that needs a SIBLING repo cannot run here, and node:test prints a skip
 # as a pass. test/schema-table-coverage.test.js is the one that bit: its
 # cross-repo half resolves xchain-decoder/-indexer/-hub beside this checkout,
@@ -62,6 +63,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: xchain-documentation
+
+      # test/flag-day-literals.test.js reads xchain-indexer/src/protocol_changes.js
+      # as a SIBLING checkout (../xchain-indexer relative to this repo's root,
+      # per bin/generate-flag-days.js) and quietly SKIPS its drift and
+      # completeness checks when that sibling is absent, which is exactly what
+      # every push here had been doing: the generated protocol/flag-days.md page
+      # could rot against the indexer's registry with this workflow green the
+      # whole way. Checked out beside xchain-documentation, not nested, so the
+      # generator's '../xchain-indexer' resolution finds it.
+      #
+      # Ref: the release branch on a release head (a PR from release/*), the
+      # pushed/targeted branch otherwise. Matches the ref logic xchain-e2e-test's
+      # CI already uses for the same sibling. The indexer repo is public, so the
+      # default token reads it and this repo keeps holding no secrets.
+      #
+      # Only ONE sibling is checked out. The suites that read a sibling skip the
+      # ones that are absent, and the env-var coverage suite applies its fleet
+      # floor only when every sibling is present, so a partial set is judged on
+      # what is here rather than accused of a broken scanner.
+      - name: Check out xchain-indexer (flag-day registry read by the literals suite)
+        uses: actions/checkout@v4
+        with:
+          repository: XChain-Platform/xchain-indexer
+          ref: ${{ startsWith(github.head_ref, 'release/') && github.head_ref || (github.ref == 'refs/heads/master' && 'master' || 'develop') }}
+          path: xchain-indexer
 
       # Node 22 exactly: the platform's suites require it, and on some repos an
       # off-version run degrades into silent skips rather than failing.
@@ -73,8 +101,14 @@ jobs:
       # mathjs is a devDependency here, pinned to the same exact 15.2.0 the
       # indexer, explorer, sdk and hub carry, because the reference
       # implementation must compute quorum weights the way the fleet does.
+      # Only this tree needs installing: the flag-day generator READS the
+      # indexer's registry as text (see the file-header note in
+      # bin/generate-flag-days.js) rather than requiring it, so the sibling
+      # checkout above needs no install of its own.
       - name: Install dependencies
+        working-directory: xchain-documentation
         run: if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
       - name: Documentation conformance suite
+        working-directory: xchain-documentation
         run: npm test

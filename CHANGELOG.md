@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- CI checks out xchain-indexer beside this repo so the flag-day literals suite runs on GitHub instead of skipping, and the env-var coverage fleet floor applies only when every sibling is present.
+
 ## [0.18.0] - 2026-09-11
 
 ### Added

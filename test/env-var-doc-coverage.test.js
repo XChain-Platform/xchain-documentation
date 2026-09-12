@@ -1039,12 +1039,22 @@ describe('environment-variable documentation coverage', { skip: siblingsMissing 
         assert.deepEqual(unreadable, [], `checked out but not a git repo, so not gated: ${unreadable.join(', ')}`);
     });
 
-    test('the survey actually found something to check', () => {
-        // A refactor that breaks the scanner must not read as a clean bill of
-        // health. The services read hundreds of variables between them.
-        const total = cov.totalReads(survey);
-        assert.ok(total > 300, `only ${total} env reads found across ${readable.length} components; the scanner is probably broken`);
-    });
+    // The floor is a FLEET figure: the services read hundreds of variables
+    // between them, so a full platform checkout that surveys under 300 has a
+    // broken scanner, not a quiet fleet. A partial checkout (GitHub CI checks
+    // out only the siblings a suite names, one today) cannot be held to it:
+    // the indexer alone reads about a hundred, and the per-component checks
+    // below plus the empty-scan check still judge every sibling present. The
+    // floor itself is enforced where the whole fleet is, in the platform
+    // checkout, the same way the schema-table coverage invariant is.
+    const fleetMissing = cov.COMPONENTS.filter((c) => !readable.includes(c));
+    test('the survey actually found something to check',
+        { skip: fleetMissing.length ? `fleet floor needs every sibling; absent: ${fleetMissing.join(', ')}` : false }, () => {
+            // A refactor that breaks the scanner must not read as a clean bill of
+            // health.
+            const total = cov.totalReads(survey);
+            assert.ok(total > 300, `only ${total} env reads found across ${readable.length} components; the scanner is probably broken`);
+        });
 
     test('every surveyed component contributed source files', () => {
         // The fleet floor above is not enough on its own: the hub is about a
