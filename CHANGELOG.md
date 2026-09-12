@@ -7,10 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-09-11
+
 ### Added
 - Published `SWEEP_ZERO_LEG_ACTIVATION`, the canonical per-chain height at which a SWEEP stops writing zero-amount legs for a held tick with nothing to move.
 - Published `STAKE_KEY_REUSE_ACTIVATION`, the canonical per-chain height at which a retired STAKE v1 signing key becomes reusable.
 - The sync configuration page documents `REPLICA_GAP_ALERT_SWEEPS` and `REPLICA_GAP_ALERT_REPEAT_MS`, the persistent replica-gap escalation tunables.
+- Published `TRAIN_ACTIVATION`, the platform-train consensus activation map keyed by platform version and network, seeded with the 1.0.0 floor.
+- Published `PRICE_FEE_BATCH_LANDED_ACTIVATION`, the landed-batch bound for native fee pricing, unarmed on every network.
+- The hub configuration page documents `ATTESTATION_FETCH_TIMEOUT` (default 20000 ms) and `ATTESTATION_PROPOSER_SEEN_MAX`.
+- The sync configuration page documents the outbound `SYNC_UPSTREAM_KEY` credential and the rollout order it depends on.
+- The encoder reference documents `FEE_ESTIMATE_SANITY_CEILING` and its per-chain defaults.
+
+### Changed
+- The SDK websocket page matches the producer roster, adding the mempool, expiry, bet, attestation and xcall event types.
+- The explorer API page describes the merged `hub_status` on the validators endpoint.
 
 ## [0.17.0] - 2026-09-10
 
