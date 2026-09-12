@@ -9,6 +9,54 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.18.0
+
+Released 2026-09-11. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.18.0)
+
+A minor train across thirteen components: every code component except `xchain-contracts`
+moves to 0.18.0, `xchain-documentation` included. It lands the platform-train consensus
+activation carrier on the fleet ahead of the first major train and carries the six
+oracle and ledger rules that took their own per-network activation since v0.17.0.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.18.0 |
+| xchain-hub | 0.18.0 |
+| xchain-indexer | 0.18.0 |
+| xchain-sync | 0.18.0 |
+| xchain-explorer | 0.18.0 |
+| xchain-decoder | 0.18.0 |
+| xchain-encoder | 0.18.0 |
+| xchain-utxo-tracker | 0.18.0 |
+| xchain-sdk | 0.18.0 |
+| xchain-e2e-test | 0.18.0 |
+| xchain-vm | 0.18.0 |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.18.0 |
+
+`TRAIN_ACTIVATION` now exists in the canonical constants and is vendored byte-identical
+into the indexer and the sync follower; the indexer evaluates it before every block and
+halts with a durable marker when its signed manifest requires a rule set the build does
+not carry, publishing the verdict on health as `train_activation`. This train adds no row
+and no manifest block, so the fleet keeps resolving the 1.0.0 rule set. Six rules take
+their own activation: amounts must denote the number the ledger credits
+(`AMOUNT_REPRESENTABILITY_ACTIVATION`, unarmed off regtest); an on-chain PRICE is bounded
+to the range the hub accepts (`PRICE_ZERO_VALIDITY_ACTIVATION`, testnet from the start
+of October 2026 UTC on block time, mainnet unarmed); native-coin fee pricing gains a landed-batch bound
+carried by a new `batch_block_time` on price snapshots (`PRICE_FEE_BATCH_LANDED_ACTIVATION`,
+unarmed everywhere, hub half rolls first); a shapeless UTXO-tracker first-seen answer fails
+the DISPENSER freshness check closed (`DISPENSER_FRESHNESS_SHAPE_ACTIVATION`, genesis off
+mainnet); a retired STAKE v1 key may stake again once every row it held is cooled
+(`STAKE_KEY_REUSE_ACTIVATION`, testnet BTC 156000, LTC 4897000, DOGE 67920000, sized
+2026-09-11 at the tips plus 21 days; mainnet unarmed); and a SWEEP writes no zero-amount
+leg for a tick it holds at zero (`SWEEP_ZERO_LEG_ACTIVATION`, the same testnet heights,
+mainnet unarmed). Every testnet indexer must run this
+release before October 2026 UTC begins and before the earliest stake-key height crosses. The
+indexer halts at boot when the live `validator_rewards` key omits `round_qualifier`, and
+that manual migration is now a deploy precondition. Markets against the native coin keep
+their rows across reorgs in the indexer, the explorer and the sync follower. Every service
+image stops baking a `.env` file into the build.
+
 ## v0.17.0
 
 Released 2026-09-10. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.17.0)

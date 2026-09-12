@@ -114,9 +114,21 @@ const unsub = sdk.onAddress('1abc...', (event) => {
 }, { snapshot: true });
 ```
 
-Events delivered: `NEW_ACTION`, `ADDRESS_UPDATE`, `ORDER_MATCH`, `COINPAY_REQUIRED`, `COINPAY_FULFILLED`, `COINPAY_EXPIRED`, `SWAP_MATCH`, `DISPENSE`
+Events delivered: `NEW_ACTION`, `ADDRESS_UPDATE`, `MEMPOOL_ACTION`, `MEMPOOL_REMOVED`, `ORDER_MATCH`, `ORDER_EXPIRED`, `COINPAY_REQUIRED`, `COINPAY_FULFILLED`, `COINPAY_EXPIRED`, `SWAP_MATCH`, `SWAP_EXPIRED`, `DISPENSE`, `DISPENSER_CLOSED`, `DISPENSER_EXPIRED`, `BET`, `BET_EXPIRED`, `BET_CLOSED`, `ATTESTATION_REQUEST`, `ATTESTATION_RESPONSE`, `XCALL_COMPLETED`, `XCALL_EXPIRED`
 
 **Options:** `{ types?: string[], statuses?: string[], snapshot?: boolean }` (**`statuses` is not supported**: never honored by the server; do not rely on it)
+
+### sdk.onMempoolAction(address, callback)
+
+Watch an address for UNCONFIRMED (pre-validation) transactions only: `MEMPOOL_ACTION` when the decoder first sees one, `MEMPOOL_REMOVED` when it leaves the mempool. Shares `onAddress`'s subscription (same channel, same `{ address }` params), so watching both confirmed and unconfirmed events for one address costs a single explorer subscription slot, not two.
+
+```javascript
+sdk.onMempoolAction('1abc...', (event) => {
+    console.log(event.type, ':', event.data.tx_hash);
+});
+```
+
+`MEMPOOL_REMOVED` cannot distinguish "confirmed" from "evicted"; reconcile against the confirmed `NEW_ACTION` feed rather than treating a removal as a result. `first_seen` is unix SECONDS and may be null.
 
 ### sdk.onToken(tick, callback)
 
@@ -158,6 +170,45 @@ dispenser's, so a page following more than one dispenser correlates on
 `dispenser_action_index`. `DISPENSER_UPDATE` and the subscribe snapshot carry no
 `dispenser_action_index` at all: on those frames `data.action_index` already IS
 the dispenser you subscribed to.
+
+### sdk.onBetFeed(feedActionIndex, callback)
+
+Watch one betting market by its feed ACTION_INDEX: bets placed, the deadline latch, resolution, cancellation, and expiry. Sends a snapshot on subscribe.
+
+```javascript
+sdk.onBetFeed(1234, (event) => {
+    if (event.type === 'BET' && event.data.action_format === 2) { /* a stake was placed */ }
+    if (event.type === 'BET' && event.data.action_format === 3) { /* the market paid out */ }
+    if (event.type === 'BET_CLOSED') { /* deadline latch: stop accepting stakes */ }
+    if (event.type === 'BET_EXPIRED') { /* refund pass: every stake refunded */ }
+});
+```
+
+Events delivered: `BET` (branch on `data.action_format`: 0 create, 1 cancel, 2 stake placed, 3 payout decision), `BET_EXPIRED`, `BET_CLOSED`. Every event is keyed on the MARKET via `data.feed_action_index`, not on the individual bet's own `action_index`.
+
+### sdk.onXcall(callId, callback)
+
+Watch one cross-chain call by its 64-character hex `call_id` for its terminal phases. Sends a snapshot on subscribe. The id is lower-cased before it is sent, because the explorer normalizes case at subscribe time.
+
+```javascript
+sdk.onXcall('a1b2c3...', (event) => {
+    console.log(event.type, ':', event.data.call_id);
+});
+```
+
+Events delivered: `XCALL_COMPLETED`, `XCALL_EXPIRED`.
+
+### sdk.onAttestation(callback)
+
+Watch the global attestation stream: both request and response phases of oracle attestation traffic. No entity key and no snapshot; it is a stream, not an entity with current state.
+
+```javascript
+sdk.onAttestation((event) => {
+    console.log(event.type, ':', event.data);
+});
+```
+
+Events delivered: `ATTESTATION_REQUEST`, `ATTESTATION_RESPONSE`.
 
 ### sdk.onCoinpayRequired(address, callback)
 
@@ -300,7 +351,7 @@ new XChainSDK({
 
 ## Lifecycle Hooks
 
-The WebSocket client supports four hooks, configured via the `hooks` constructor option:
+The WebSocket client supports five hooks, configured via the `hooks` constructor option:
 
 | Hook | Fires When |
 |---|---|
@@ -308,6 +359,7 @@ The WebSocket client supports four hooks, configured via the `hooks` constructor
 | `onWsDisconnect` | WebSocket connection closed |
 | `onWsMessage` | Any message received from server |
 | `onWsReconnect` | Before a reconnection attempt |
+| `onWsSchemaMismatch` | The server's frame carries a newer `schema_version` than this SDK build understands (fires once per connection; parsing continues) |
 
 ```javascript
 const sdk = new XChainSDK({

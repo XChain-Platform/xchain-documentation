@@ -1360,6 +1360,38 @@ const PRICE_SIG_TALLY_ACTIVATION = {
     regtest: 0,
 };
 
+// PRICE_FEE_BATCH_LANDED_ACTIVATION: native-coin fee pricing reads only price rounds
+// whose PRICE batch has LANDED on chain at or before the block being priced.
+//
+// Without the bound, getLatestPrice selects the newest finalized round the node
+// HOLDS. A hub-connected node's oracle mirror holds a round the moment consensus
+// finalizes it, one batch window before the batch carrying it is mined; a node that
+// reads only the chain cannot hold that round until the batch lands in a block it has
+// processed. Both nodes are honest and they price the same fee-bearing action against
+// different rounds, so a price move past the fee tolerance inside the landing latency
+// produces opposite verdicts on the same action. At/after the height every node bounds
+// the selection on the landing block's own clock (price_snapshots.batch_block_time),
+// which is comparable on every chain, and the two node kinds converge on the newest
+// round the chain itself could have shown them.
+//
+// Keyed on the PROCESSING chain's own block_index, because fee validation runs per
+// chain against that chain's blocks. The bound is ADDED to the existing selection,
+// never swapped for it, so arming can only narrow which rounds are selectable.
+//
+// UNARMED on every network. It makes the freshest selectable round one batch window
+// old, which fits inside the pinned price staleness bound only while the batch cadence
+// ceiling holds, so each network arms at a coordinated future height once that is
+// proven against its own publisher; a regtest stack publishes no batch at all, so its
+// seeded rounds carry no landing clock and arming there would leave every USD-priced
+// action unpriceable. Kept value-identical to the local copy in
+// xchain-indexer/src/price_fee_batch_landed_activation.js by the activation-constants
+// parity suite.
+const PRICE_FEE_BATCH_LANDED_ACTIVATION = {
+    mainnet: null,
+    testnet: null,
+    regtest: null,
+};
+
 // VALID_FIAT_CODES: the accepted FIAT_CODE allow-list for PRICE actions. The indexer's
 // config['FIATS'] keys (xchain-indexer/src/config.js) are the on-chain arbiter; this list
 // mirrors them in the indexer's insertion order. The SDK validator (VALID_FIAT_CODES) must
@@ -1394,6 +1426,110 @@ const PRICE_MAX = 10_000_000_000;
 // could yield different accept/withhold decisions (a liveness divergence on
 // the ±band boundary). 0.05 = 5%.
 const ORACLE_DEVIATION_THRESHOLD = 0.05;
+
+// Platform-train consensus activation, keyed by PLATFORM VERSION then network to a
+// BTC block height. This is the train gate, not a per-feature flag day: a MAJOR
+// train (or a consensus-classified hotfix) adds exactly ONE row here and every
+// consensus change the train carries branches on the rule set that row names, so a
+// train's changes cannot half-activate. A MINOR or PATCH train adds no row and the
+// resolution rule below keeps the fleet on the previous entry with no ceremony change.
+//
+// The clock is the BTC height per network, the same clock the cross-cutting feature
+// gates use. It is deliberately not a wall-clock date: protocol time off mainnet is
+// median-time-past, and a date gate on a chain whose difficulty can stall for hours
+// arms at an hour nobody chose.
+//
+// Regtest is 0 on every row. Regtest stacks are rebuilt from genesis, so a fresh
+// stack exercises the new rule set end to end rather than the migration.
+//
+// Mainnet is armed ABOVE the tip on purpose, by the same discipline the anchor gate
+// records. A MAJOR train may be cut and deployed with its mainnet height set to a
+// value the chain has not reached; the fleet then runs the new binary under the OLD
+// rules until that height, which is the whole point of the rolling-upgrade window.
+// A height at or below the BTC tip it was computed from is a fork shipped as a
+// release, and the release-completeness gate refuses it.
+//
+// Each row carries the ruling date, the tip its heights were computed from and the
+// window, per the comment discipline the feature gates already follow. Nothing here
+// is edited outside a train cut: re-arming an already published height is a new
+// train, not an edit.
+const TRAIN_ACTIVATION = {
+    // The launch rule set and the floor. Zero on every network because there is no
+    // earlier rule set to migrate from: the launch binary IS the first rule set, and
+    // a floor above genesis would leave the pre-floor range resolving to nothing.
+    '1.0.0': { mainnet: 0, testnet: 0, regtest: 0 },
+};
+
+// STAKE v1 signing-key REUSE flag day, keyed on the processing chain's OWN
+// block_index, per network AND coin. Canonical authority for the local copy in
+// xchain-indexer/src/stake_key_reuse_activation.js, which carries the full rationale;
+// the indexer's activation-constant parity suite holds the two value-identical, and a
+// one-sided edit forks STAKE v1 admission at the boundary.
+//
+// Below a chain's height, STAKE v1 refuses any SIGNING_PUBKEY that has EVER held a
+// valid stakes row, which permanently burns a key that unstaked voluntarily or that
+// ROLLCALL evicted, because neither deletes the row (both stamp deactivation_block).
+// At and above it the key is admissible once EVERY row it has held is deactivated AND
+// past cooldown (deactivation_block + COOLDOWN_BLOCKS <= the block being parsed);
+// a row that is active, pending activation, or still inside cooldown keeps refusing.
+// Voluntary unstake and eviction are treated alike.
+//
+// Height-keyed, not date-keyed: the activation delay and the cooldown this rule
+// reasons about are both counted in the processing chain's own blocks, and the
+// per-coin COOLDOWN_BLOCKS differ (BTC 1000, LTC 4032, DOGE 10080).
+//
+// Mainnet is the inert null: the instant is operator-owned and is sized above the
+// fleet's deploy tip on the train that arms it, never at or below a height already
+// passed (a passed height re-grades history for a from-genesis replay and not for a
+// long-running node, and the two diverge at the first hash comparison). Regtest is
+// genesis-active so the e2e venue exercises the armed rule. Testnet is armed ahead
+// per coin, at the tip measured 2026-09-11 plus 21 days of that chain's blocks
+// rounded up, rather than at genesis: testnet carries live public staking history and
+// a genesis arming there would re-grade STAKE v1 actions already in it.
+const STAKE_KEY_REUSE_ACTIVATION = {
+    'BTC:mainnet':  null,         // INERT: operator-owned, sized above the deploy tip on the arming train
+    'LTC:mainnet':  null,         // INERT: capability STAKE is BTC-only; carried for shape
+    'DOGE:mainnet': null,         // INERT: capability STAKE is BTC-only; carried for shape
+    mainnet:        null,         // INERT: a coin with no entry above inherits the unarmed posture
+    'BTC:testnet':  156000,       // SIZED 2026-09-11: chain_tip 151,991 + 3,024 (21d @144/day) = 155,015, rounded up
+    'LTC:testnet':  4897000,      // SIZED 2026-09-11: chain_tip 4,883,971 + 12,096 (21d @576/day) = 4,896,067, rounded up
+    'DOGE:testnet': 67920000,     // SIZED 2026-09-11: chain_tip 67,887,900 + 30,240 (21d @1440/day) = 67,918,140, rounded up
+    testnet:        null,         // INERT: a testnet coin with no entry above stays on the legacy refusal
+    regtest:        0,            // genesis-active so the e2e venue exercises the armed rule
+};
+
+// SWEEP zero-amount leg flag day, keyed on the processing chain's OWN block_index,
+// per network AND coin. Canonical authority for the local copy in
+// xchain-indexer/src/sweep_zero_leg_activation.js, which carries the full rationale;
+// the indexer's activation-constant parity suite holds the two value-identical, and a
+// one-sided edit forks the per-block ledger hash at the boundary.
+//
+// Below a chain's height a SWEEP whose held balance of a tick is exactly 0 writes a
+// zero-amount debit and credit leg for that tick, rows that land in the hashed
+// credits and debits tables and that testnet history already carries. At and above
+// it the tick writes no leg. Every unevaluable case (inert null, unknown network,
+// unusable height) keeps writing the legs, which is the deployed behaviour.
+//
+// Height-keyed, not date-keyed: a SWEEP settles in the processing chain's own block
+// and the ledger hash it lands in is that chain's.
+//
+// Mainnet is the inert null: the instant is operator-owned and is sized above the
+// fleet's deploy tip on the train that arms it. Regtest is genesis-active so the e2e
+// venue exercises the armed rule. Testnet is armed per coin at the SAME heights as
+// STAKE_KEY_REUSE_ACTIVATION on purpose, both gates shipping on one train so the fleet
+// rehearses one crossing per coin; the heights sit 21 days of blocks above the tips
+// re-measured 2026-09-11 (BTC 151,994, LTC 4,883,984, DOGE 67,888,041), rounded up.
+const SWEEP_ZERO_LEG_ACTIVATION = {
+    'BTC:mainnet':  null,         // INERT: operator-owned, sized above the deploy tip on the arming train
+    'LTC:mainnet':  null,         // INERT: operator-owned, sized above the deploy tip on the arming train
+    'DOGE:mainnet': null,         // INERT: operator-owned, sized above the deploy tip on the arming train
+    mainnet:        null,         // INERT: a coin with no entry above inherits the unarmed posture
+    'BTC:testnet':  156000,       // SIZED 2026-09-11: chain_tip 151,994 + 3,024 (21d @144/day) = 155,018, rounded up; shared with STAKE_KEY_REUSE_ACTIVATION
+    'LTC:testnet':  4897000,      // SIZED 2026-09-11: chain_tip 4,883,984 + 12,096 (21d @576/day) = 4,896,080, rounded up; shared with STAKE_KEY_REUSE_ACTIVATION
+    'DOGE:testnet': 67920000,     // SIZED 2026-09-11: chain_tip 67,888,041 + 30,240 (21d @1440/day) = 67,918,281, rounded up; shared with STAKE_KEY_REUSE_ACTIVATION
+    testnet:        null,         // INERT: a testnet coin with no entry above keeps writing the legs
+    regtest:        0,            // genesis-active so the e2e venue exercises the armed rule
+};
 
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
@@ -1471,8 +1607,12 @@ module.exports = {
     PRICE_PAIR_TICKER_MAX_WIDE,
     PRICE_PAIR_WIDEN_ACTIVATION,
     PRICE_SIG_TALLY_ACTIVATION,
+    PRICE_FEE_BATCH_LANDED_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
     PRICE_MAX,
     ORACLE_DEVIATION_THRESHOLD,
+    TRAIN_ACTIVATION,
+    STAKE_KEY_REUSE_ACTIVATION,
+    SWEEP_ZERO_LEG_ACTIVATION,
 };
