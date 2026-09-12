@@ -124,6 +124,7 @@ See [Multisig](multisig.md) for the full state machine. The wallet supports:
 ## Cross-chain flows
 
 - **Cross-chain swap**: `CrossChainSwapForm.jsx`. SWAP action across chains (BTC ↔ LTC ↔ DOGE) coordinated by `xchain-hub`.
+- **Cross-chain order**: `CrossChainOrderForm.jsx`. ORDER with `GIVE_COIN` and `GET_COIN` on different chains, escrowed on the give chain, matched by the validator federation with partial fills and settled through CROSS_SETTLE; token-only on both sides, with the receive address resolved on the get chain.
 - **Cross-chain templates**: `CrossChainTemplates.jsx`. Pre-built parallel-composer presets like "issue token on BTC + seed dispenser on LTC atomically".
 - **Parallel composer**: `ParallelComposer.jsx`. Custom multi-chain action sequence with per-chain SDK instances and atomic-or-rollback semantics where the protocol allows.
 - **Per-chain SDK registry**: `core/src/sdk/SDKRegistry.js`. The wallet keeps a registered SDK instance per chain so cross-chain flows can call into multiple chains in one user-confirmed step.
