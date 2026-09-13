@@ -91,15 +91,19 @@ const skipNoIndexer = !haveIndexer && 'sibling xchain-indexer not present in thi
 
 test('the source facts the supply wording rests on still hold', { skip: skipNoIndexer }, () => {
     const mint = readSrc('actions/mint.js');
-    const db = readSrc('db.js');
+    // getTokenSupply moved out of the monolithic src/db.js into the credits mixin when
+    // the database layer was split. Read that one mixin rather than the whole src/db/
+    // tree: a match anywhere in 59 files would not prove the ledger formula still lives
+    // in the function the guide's "outstanding at one time" wording rests on.
+    const credits = readSrc('db/credits.js');
     const destroy = readSrc('actions/destroy.js');
 
     assert.match(mint, /bcadd\(data\['SUPPLY'\],data\['AMOUNT'\]/,
         'mint.js no longer compares SUPPLY + AMOUNT against the ceiling; the guide\'s '
         + '"outstanding at one time" wording may need to change back');
     assert.match(mint, /MAX_SUPPLY/, 'mint.js no longer names MAX_SUPPLY');
-    assert.match(db, /bcadd\(this\.util\.bcsub\(credits, debits, exact\), escrows, decimals\)/,
-        'db.js getTokenSupply no longer computes supply as credits - debits + escrows, '
+    assert.match(credits, /bcadd\(this\.util\.bcsub\(credits, debits, exact\), escrows, decimals\)/,
+        'db/credits.js getTokenSupply no longer computes supply as credits - debits + escrows, '
         + 'so burning may no longer return mint headroom');
     assert.match(destroy, /debits\.push\(\[destroy\['TICK'\], destroy\['AMOUNT'\], destroy\['SOURCE'\]\]\)/,
         'destroy.js no longer debits the burned amount, so DESTROY may no longer lower supply');
