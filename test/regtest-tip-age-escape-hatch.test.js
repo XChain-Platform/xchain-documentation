@@ -37,9 +37,21 @@
  *      the built-in regtest default the operator turned down, this goes red
  *      and the decision gets re-made deliberately instead of by patch.
  *
+ * WHERE THE EXPLORER HALF LIVES. The explorer's db.js was split into a
+ * composition root plus per-family reader modules. The tip-age constant and
+ * `tipMaxAgeSeconds` both live in `src/db/readers/health.js`, and db.js mixes
+ * that module into Database.prototype, so each source assertion reads the one
+ * file its behaviour lives in, and db.js is pinned only for the fact that it
+ * still composes health.js (otherwise the regex would guard an orphan). Never
+ * widen these to a glob over `src/db/`: a glob matches wherever the text
+ * happens to appear, not where the method Database actually runs is defined.
+ *
  * xchain-explorer is a sibling repo in the monorepo checkout, not a dependency
- * of xchain-documentation. When it is absent (docs repo cloned on its own) the
- * source-derived assertions skip and the prose assertions still run.
+ * of xchain-documentation. When the REPO is absent (docs repo cloned on its
+ * own) the source-derived assertions skip and the prose assertions still run.
+ * When the repo is present but a file this gate reads has moved, the gate
+ * FAILS: keying the skip on the file rather than the repo is how a later move
+ * would silently unpin it.
  *
  ********************************************************************/
 
@@ -50,11 +62,23 @@ const path = require('node:path');
 
 const DEV_DOC = path.resolve(__dirname, '../developer-guide/regtest-development.md');
 const CFG_DOC = path.resolve(__dirname, '../components/explorer/configuration.md');
-const DB_SRC  = path.resolve(__dirname, '../../xchain-explorer/src/db.js');
+const EXPLORER   = path.resolve(__dirname, '../../xchain-explorer');
+const DB_SRC     = path.join(EXPLORER, 'src/db.js');
+const HEALTH_SRC = path.join(EXPLORER, 'src/db/readers/health.js');
 
 const devDoc = fs.readFileSync(DEV_DOC, 'utf8');
 const cfgDoc = fs.readFileSync(CFG_DOC, 'utf8');
-const haveDb = fs.existsSync(DB_SRC);
+const haveExplorer = fs.existsSync(path.join(EXPLORER, 'package.json'));
+const noExplorer   = !haveExplorer && 'xchain-explorer not present in this checkout';
+
+// Reads an explorer source file this gate is pinned to, failing with the path
+// named when it is gone: with the repo present, a missing file means the code
+// moved and this pin has to follow it, never that the assertion may skip.
+function readExplorerSource(file) {
+    assert.ok(fs.existsSync(file),
+        path.relative(EXPLORER, file) + ' is gone from xchain-explorer; repoint this gate at the file the behaviour moved to');
+    return fs.readFileSync(file, 'utf8');
+}
 
 // The body of `tipMaxAgeSeconds`, from its signature to the closing brace of
 // the method, by brace depth. Read as source text rather than by calling it:
@@ -94,15 +118,36 @@ describe('regtest tip-age escape hatch is documented for dev setups', () => {
             'the configuration page no longer shows the per-coin gate disabled for dev/regtest');
     });
 
-    test('the documented default matches the explorer default', { skip: !haveDb && 'xchain-explorer not present in this checkout' }, () => {
-        const m = /TIP_MAX_AGE_DEFAULT_S\s*=\s*(\d+)/.exec(fs.readFileSync(DB_SRC, 'utf8'));
+    test('the explorer db.js still composes the health readers this gate reads', { skip: noExplorer }, () => {
+        assert.match(readExplorerSource(DB_SRC), /require\(\s*['"]\.\/db\/readers\/health(\.js)?['"]\s*\)/,
+            'xchain-explorer src/db.js no longer requires ./db/readers/health.js, so the tip-age assertions below read a file Database does not use');
+    });
+
+    test('the documented default matches the explorer default', { skip: noExplorer }, () => {
+        const m = /TIP_MAX_AGE_DEFAULT_S\s*=\s*(\d+)/.exec(readExplorerSource(HEALTH_SRC));
         assert.ok(m, 'xchain-explorer no longer defines TIP_MAX_AGE_DEFAULT_S');
         assert.match(devDoc, new RegExp('\\b' + m[1] + '\\b'),
             'the regtest guide states a tip-age default other than the explorer\'s ' + m[1] + 's');
     });
 
-    test('no built-in regtest exemption was added to the explorer', { skip: !haveDb && 'xchain-explorer not present in this checkout' }, () => {
-        const body = tipMaxAgeSource(fs.readFileSync(DB_SRC, 'utf8'));
+    // The guide documents a per-coin knob and a global one. If the method stops
+    // reading either, the page describes an escape hatch that no longer opens,
+    // and a developer on an idle regtest stack is back to 503s with no recourse.
+    test('the explorer still reads both documented knobs, per-coin before global', { skip: noExplorer }, () => {
+        const code = tipMaxAgeSource(readExplorerSource(HEALTH_SRC))
+            .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+        const perCoin = code.search(/['"]EXPLORER_TIP_MAX_AGE_S_['"]\s*\+/);
+        const global  = code.search(/\bEXPLORER_TIP_MAX_AGE_S\b(?!_)/);
+        assert.notEqual(perCoin, -1,
+            'tipMaxAgeSeconds no longer reads the per-coin EXPLORER_TIP_MAX_AGE_S_<COIN> knob the regtest guide documents');
+        assert.notEqual(global, -1,
+            'tipMaxAgeSeconds no longer reads the global EXPLORER_TIP_MAX_AGE_S knob the regtest guide documents');
+        assert.ok(perCoin < global,
+            'tipMaxAgeSeconds reads the global knob before the per-coin one, so a per-coin 0 no longer overrides it');
+    });
+
+    test('no built-in regtest exemption was added to the explorer', { skip: noExplorer }, () => {
+        const body = tipMaxAgeSource(readExplorerSource(HEALTH_SRC));
         // Comments explain the regtest case, and should: it is the reason the
         // hatch exists. Only executable text is searched for a network name.
         const code = body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
