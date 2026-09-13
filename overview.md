@@ -11,7 +11,7 @@ A short, plain-language introduction to the platform. For the full protocol spec
 
 ## In one paragraph
 
-XChain is a token platform that turns the world's most secure blockchains into programmable, multi-chain token networks: without bridges, sidechains, or a new chain to trust. It embeds a complete protocol (tokens, a built-in exchange, cross-chain swaps, smart contracts, cross-chain contract calls, and on-chain data) directly inside ordinary blockchain transactions, so every token inherits the host chain's proof-of-work security wholesale. It is chain-agnostic by design, live in production today on Bitcoin, Litecoin, and Dogecoin, and built to extend across many blockchains. The product exists, runs, and has settled cross-chain trades end-to-end.
+XChain is a token platform that turns the world's most secure blockchains into programmable, multi-chain token networks: no third-party bridge, no sidechain, and no new chain to trust. It embeds a complete protocol (tokens, a built-in exchange, cross-chain swaps, smart contracts, cross-chain contract calls, a native cross-chain token bridge, and on-chain data) directly inside ordinary blockchain transactions, so every token inherits the host chain's proof-of-work security wholesale. It is chain-agnostic by design, live in production today on Bitcoin, Litecoin, and Dogecoin, and built to extend across many blockchains. The product exists, runs, and has settled cross-chain trades end-to-end.
 
 ## The problem
 
@@ -39,7 +39,7 @@ Three things are genuinely hard to replicate:
 
 **AI- and web-callable contracts.** XChain contracts can ask the outside world a question (an HTTPS fetch, or a prompt to an approved AI model) and get a *verified* answer back on-chain. A validator network fetches the answer independently, agrees on the result, and writes it so the outcome is reproducible by anyone replaying the chain. This makes a long-promised class of applications finally practical: AI-judged contests and moderation, parametric insurance, prediction markets settled from real sources, data-reactive treasuries.
 
-**Bridgeless multi-chain.** Because XChain never wraps or locks tokens, there's no bridge to attack. Cross-chain swaps are coordinated (never custodied) by a stake-weighted Byzantine-fault-tolerant validator network; tokens stay on their home chains and only ownership changes, and the same rail carries cross-chain contract calls. Cross-chain settlement already works in production.
+**No third-party bridge.** XChain never wraps a token or hands it to an outside chain. Cross-chain swaps are coordinated (never custodied) by a stake-weighted Byzantine-fault-tolerant validator network; tokens stay on their home chains and only ownership changes, and the same rail carries cross-chain contract calls. The one exception is XCHAIN, the platform's own fee token: XBRIDGE moves it between supported chains by locking on its own chain and crediting the destination, with no outside contract ever holding the balance. Cross-chain settlement already works in production.
 
 Reinforcing these: token-gated encrypted content that unlocks client-side with no key server, a staking primitive that lets any token back any contract on any chain, a fully transparent ledger anyone can replay from genesis, and a light-client path that lets an app verify a balance against quorum-signed checkpoints without trusting any single server.
 

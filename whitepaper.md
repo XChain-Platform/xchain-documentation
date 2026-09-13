@@ -15,7 +15,7 @@
 
 ## Abstract
 
-XChain is a token-and-settlement **metalayer** for UTXO blockchains. It embeds a complete digital-asset protocol (tokens, a native decentralized exchange, trustless cross-chain swaps, on-chain data and messaging, and a deterministic smart-contract virtual machine) inside ordinary transactions on an unmodified base chain, so that every asset and every state transition is secured directly by the host chain's existing proof-of-work consensus. There are no sidechains, no bridges, and no new consensus layer to trust.
+XChain is a token-and-settlement **metalayer** for UTXO blockchains. It embeds a complete digital-asset protocol (tokens, a native decentralized exchange, trustless cross-chain swaps, a cross-chain token bridge, on-chain data and messaging, and a deterministic smart-contract virtual machine) inside ordinary transactions on an unmodified base chain, so that every asset and every state transition is secured directly by the host chain's existing proof-of-work consensus. There is no sidechain and no new consensus layer to trust; cross-chain trading settles without a bridge, and the one bridge the platform runs moves only its own fee token between chains.
 
 The protocol is chain-agnostic by construction. It is deployed and running on **Bitcoin, Litecoin, and Dogecoin**, on mainnet as well as testnet, with the XCHAIN distribution and the protocol freeze still ahead of it (§13.3, §16); adding any further UTXO chain is a configuration change rather than a protocol change, and the platform is designed to extend toward a broad set of blockchains over time. The same protocol, the same ACTION set, and the same tooling operate identically across every supported chain.
 
@@ -37,7 +37,7 @@ XChain takes the opposite path. It is a **metalayer**: a protocol layered *above
 
 Three commitments run through every layer of the system.
 
-**Inherited security.** XChain introduces no new chain, no new consensus for transaction ordering, and no bridge. Finality, ordering, and double-spend resistance come entirely from the host chain. The validator network described in §10 exists only for configuration, price data, cross-chain coordination, and attestation, never for ordering or settling token state.
+**Inherited security.** XChain introduces no new chain and no new consensus for transaction ordering; finality, ordering, and double-spend resistance come entirely from the host chain, and no bridge sits in that path. The validator network described in §10 exists for configuration, price data, cross-chain coordination, attestation, and the lock-and-mint bridge that moves the platform's own fee token between chains; none of that authority extends to ordering or settling base-layer token state on any host chain.
 
 **Determinism.** Every node that processes the same base-chain data computes byte-identical state. There is no randomness, no wall-clock-dependent branching, and no un-replayable external input anywhere in state processing. This is the property that makes the system independently verifiable: anyone can run the software, replay the chain from genesis, and confirm every balance for themselves.
 

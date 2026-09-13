@@ -161,7 +161,7 @@ availability depends on where it is hosted; it is not part of the verifiable on-
 
 | XChain is a strong fit for… | Look elsewhere if you need… |
 |---|---|
-| Tokens secured directly by Bitcoin-family proof-of-work, no bridge | Confidential balances or private transfers |
+| Tokens secured directly by Bitcoin-family proof-of-work, no third-party bridge | Confidential balances or private transfers |
 | A transparent, auditable, fully-replayable asset ledger | Sub-second / real-time settlement |
 | A native DEX and trustless cross-chain swaps among BTC/LTC/DOGE | Deep synchronous DeFi composability (EVM-style) |
 | Contracts that react to real-world data or AI judgments | Interop with Ethereum/Solana assets and liquidity |
