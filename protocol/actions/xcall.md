@@ -73,7 +73,11 @@ Unused target-side gas is not refunded in v1. The callback runs against the fixe
   Dispatch: XCALL|DISPATCH|call_id|snapshot_block|network|source_chain|source_action_index|source_contract_index|target_chain|target_contract_index|method|sha256(params_json)|gas_limit|cross_hops|effective_time
   Result:   XCALL|RESULT|call_id|snapshot_block|network|target_chain|result_status|sha256(return_payload_b64)|effective_time
   ```
-  Variable-length fields enter as a `sha256` digest so the canonical string stays fixed-arity and `|`-safe
+  Variable-length fields enter as a `sha256` digest so the canonical string stays fixed-arity and `|`-safe. At/above `EQUIV_HEADER_ACTIVATION` (resolved on the row's `snapshot_block`, so every chain and the hub flip on the same BTC anchor) each string above is wrapped in the uniform equivocation header with `TAG=XCALL`, `VIEW = finalizing_view` (`0` when null) and a phase-specific `ROUND_ID = sha256('XCALLROUND|<phase>|' + call_id)`, `<phase>` being `dispatch` or `result`, so the two legs of one `call_id` never share a round key:
+  ```
+  EQUIV|XCALL|<round_id>|<finalizing_view>||<the canonical string above>
+  ```
+  Below the flag-day the bare bytes are signed. Signing the bare form at/above activation produces signatures every indexer drops during quorum verification (see [Protocol Activation](../protocol-activation.md))
 - Target-side execution (`XEXEC`) is an internal action: a depth-0 `EXECUTE` under `gasCeiling = GAS_LIMIT`, with a synthetic chain/network-namespaced `TX_HASH`, the `crossCallable` allowlist enforced, and its own savepoint. A failed run rolls its state back and that failure becomes the relayed result. It is idempotent and reorg-safe via `cross_chain_call_executions`
 - Lifecycle (source-chain request status): a request starts `pending`. The federation waits for source-chain confirmation depth, then signs the dispatch row; the target chain verifies signatures and injects `XEXEC` at the first block at or after `effective_time`, then the federation waits for target-chain depth and signs the result row. The request becomes `completed` when a verified result arrives, or `expired` once `DEADLINE_BLOCKS` passes with no result
 

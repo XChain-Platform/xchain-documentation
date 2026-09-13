@@ -76,9 +76,9 @@ Because SegWit witness data is discounted when calculating transaction weight, P
 
 ### Multisig
 
-Payload capacity: **approximately 61 bytes per key**
+Payload capacity: **60 bytes per multisig output** (two 32-byte key slots carry the payload)
 
-The payload is split across the public key positions of a bare multisig output (`OP_m ... OP_n OP_CHECKMULTISIG`). This is a single-transaction format. The decoder reads the fake public keys from the output to extract the payload.
+The payload is split across the public key positions of a bare multisig output (`OP_m ... OP_n OP_CHECKMULTISIG`). Each output carries one 64-byte chunk, a 4-byte magic prefix plus 60 bytes of data, spread over two fake 32-byte public keys, so capacity does not grow with additional key slots. This is a single-transaction format. The decoder reads the fake public keys from the output to extract the payload.
 
 Multisig encoding is an alternative for payloads that exceed OP_RETURN's 76-byte user-data limit but where the caller prefers a single-transaction flow. The encoder handles splitting and padding automatically.
 

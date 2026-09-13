@@ -774,6 +774,22 @@ describe('doc matching', () => {
         assert.equal(defaultDocumented(['| `SYNC_MODE` | proxied by a webserver |'], 'server'), false);
     });
 
+    // The shipped row, not a synthetic one. An allowed-values description names
+    // the rival value by construction, so a mention of `server` anywhere on the
+    // row must not credit a Default cell that has drifted to `client`.
+    test('an allowed-values description does not credit a drifted string default', () => {
+        const correct = '| `SYNC_MODE` | Yes | `server` | Operating mode: `server` or `client` |';
+        const drifted = '| `SYNC_MODE` | Yes | `client` | Operating mode: `server` or `client` |';
+        assert.equal(defaultDocumented([correct], 'server'), true);
+        assert.equal(defaultDocumented([drifted], 'server'), false);
+    });
+
+    test('a string default mentioned only mid-sentence is not an assertion', () => {
+        const row = '| `NETWORK` | the REPL falls back to `bitcoin-regtest` when it is unset | REPL |';
+        assert.equal(defaultDocumented([row], 'bitcoin-regtest'), false);
+        assert.equal(defaultDocumented(['`NETWORK` defaults to `bitcoin-regtest` when unset.'], 'bitcoin-regtest'), true);
+    });
+
     test('a dotted string default matches literally, not as a wildcard', () => {
         assert.equal(defaultDocumented(['| `DB_HOST` | host | `127.0.0.1` |'], '127.0.0.1'), true);
         assert.equal(defaultDocumented(['| `DB_HOST` | host | `127a0b0c1` |'], '127.0.0.1'), false);

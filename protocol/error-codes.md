@@ -73,6 +73,12 @@ Errors are JSON objects:
 | `VM_QUERY_DISABLED` | 503 | Contract simulation is disabled on this explorer | No: use another instance |
 | `VM_QUERY_VM_DRIFT` | 503 | Contract simulation is disabled because the deployed VM is not the canonical one | No: operator action |
 | `VM_MODULE_UNAVAILABLE` | 503 | Contract simulation: the VM module is not available on this host | No: use another instance |
+| `INVALID_ADDRESSES` | 400 | Batch address routes (`POST /{COIN}/api/balances`, `POST /{COIN}/api/coinpay_obligations`): the body's `addresses` field is missing, not an array, empty, or holds a non-string entry, and nothing is read. The SDK's client-side pre-flight throws the same code before a request is sent (see [SDK explorer methods](../components/sdk/explorer.md)) | No: fix the request |
+| `TOO_MANY_ADDRESSES` | 400 | Batch address routes: more than 20 addresses in one body, counted before duplicates are collapsed, so a body of repeats is refused rather than quietly served | No: send at most 20 per request |
+| `INVALID_ADDRESS` | 400 | Batch address routes: one entry is not a well-formed address; the offending entry is echoed (truncated) in the `error` text. Unrelated to the SDK library's own `INVALID_ADDRESS` typed error, which is a separate surface (see [SDK errors](../components/sdk/errors.md)) | No |
+| `READ_FAILED` | 200 (per-address) | Batch address routes only: the fallback code inside a per-address `error` object when the inner read failed without supplying a code of its own. The whole-request status is still 200; branch on the entry's own `status` field | Depends on the entry's `status` |
+
+The batch address routes fail at two layers, and a client has to read both. A whole-request refusal carries an HTTP 400 with one of the three codes above, or the coin gate's 503 (`COIN_NOT_AVAILABLE` / `COIN_DATA_STALE`), which answers the entire batch rather than being buried per address. Otherwise the response is HTTP 200 and each address may carry an `error` object of `{ code, error, status }`, where `code` is whatever the inner read returned, or `READ_FAILED` when it returned none. A 200 therefore does not mean every address succeeded.
 
 Errors on the Explorer WebSocket channel (`INVALID_CHANNEL`, `INVALID_TYPE`, `INVALID_ACTION`, `INVALID_PARAMS`, `SUBSCRIPTION_LIMIT`) are a separate surface with its own message shape; they are documented in [Explorer WebSocket](../components/explorer/websocket.md), not here.
 

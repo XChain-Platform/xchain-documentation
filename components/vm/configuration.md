@@ -100,10 +100,12 @@ These limits are hardcoded in the VM and not configurable:
 |---|---|---|
 | Log entries per execution | 100 | `collector.js` |
 | Log entry size | 1,024 bytes UTF-8 (truncated with `...(truncated)` marker) | `collector.js` |
-| Return value size | 65,536 bytes (truncated) | `index.js` |
+| Return value size | 65,536 UTF-16 code units (truncated) | `index.js` |
 | Recursion depth (`__DEPTH_LIMIT`) | 512, or 256 once the Package 3 sandbox gate is active (unconditional on testnet/regtest; per-coin heights on mainnet) | `index.js` |
 | Throwaway isolate memory | 8 MB | `isolate.js`, `syntax.js` |
 | Binary expression metering depth | 10 | `metering.js` |
+
+The return-value cap is measured in UTF-16 code units, with `String.length` over the serialized value, not in UTF-8 bytes: a non-ASCII return at the cap can occupy up to roughly 196,608 UTF-8 bytes, so size a return against code units rather than the encoded size. Truncation is a UTF-16 `substring`, so a value cut in the middle of a surrogate pair ends with an unpaired surrogate. The log-entry limit directly above is genuinely byte-measured and is the contrasting case.
 
 ## Bounded Execution Summary
 

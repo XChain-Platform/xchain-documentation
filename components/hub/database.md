@@ -454,7 +454,7 @@ Tracks XCHAIN rewards earned by validators for participating in oracle rounds. R
 
 ### `slash_proposals`
 
-Records detected validator misbehavior for governance review. The hub detects violations but does not execute slashing directly, actual slashing occurs via the indexer's staking contract.
+Records detected validator misbehavior for governance review. The offenses recorded here (`price_deviation`, `repeated_deviation`, `non_participation`, attestation divergence) are hub-local: a governance vote can suspend the validator, and on-chain stake is untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which is a separate on-chain path this table does not feed.
 
 | Column | Type | Description |
 |---|---|---|

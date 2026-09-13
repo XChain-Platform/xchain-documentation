@@ -7,14 +7,24 @@ The Token Information Standard (TIS) defines standardized formats to associate i
 
 ## JSON Specifications
 
-### v1.1.0 (current)
+### v1.1.1 (current)
+- [Token Information Standard JSON Schema](./json/token-information-standard-v1.1.1-schema.json)
+- [Token Information Standard JSON Example](./json/token-information-standard-v1.1.1-example.json)
+
+v1.1.1 relaxes a single constraint over v1.1.0 and adds no field. An entry in `images`,
+`audio`, `video` or `files` requires `type` plus at least one of `data` or `data_ref`,
+where v1.1.0 required `data` outright and so rejected the fully on-chain form this
+standard recommends below. Relaxing a constraint cannot invalidate a document, so every
+v1.1.0 and v1.0.0 document is also valid under v1.1.1.
+
+### v1.1.0
 - [Token Information Standard JSON Schema](./json/token-information-standard-v1.1.0-schema.json)
 - [Token Information Standard JSON Example](./json/token-information-standard-v1.1.0-example.json)
 
-v1.1.0 is additive over v1.0.0. It declares the token-gating fields (`packs`, `title`,
-`data_ref`, `locked`, `pack_id`) that clients already emit and read, adds no required
-field, and forbids nothing v1.0.0 allowed, so every document valid under v1.0.0 is also
-valid under v1.1.0.
+Frozen as published. It is additive over v1.0.0: it declares the token-gating fields
+(`packs`, `title`, `data_ref`, `locked`, `pack_id`) that clients already emit and read,
+adds no required field, and forbids nothing v1.0.0 allowed. Its four media definitions
+require `["type", "data"]`, which is the constraint v1.1.1 relaxes.
 
 ### v1.0.0
 - [Token Information Standard JSON Schema](./json/token-information-standard-v1.0.0-schema.json)
@@ -26,8 +36,8 @@ generator run against it drops them.
 
 #### JSON Field Definitions
 
-The tables below describe **v1.1.0**. Rows marked *(since v1.1.0)* are absent from the
-v1.0.0 schema.
+The tables below describe **v1.1.1**, which declares the same fields as v1.1.0. Rows
+marked *(since v1.1.0)* are absent from the v1.0.0 schema.
 
 | Field       | Type   | Description
 | :---        | :---   | :---
@@ -56,7 +66,7 @@ Entries inside the `files`, `audio`, `video`, and `images` arrays can carry the 
 | data        | String  | URL to the file (off-chain). Used for non-gated content.
 | data_ref    | String  | *(since v1.1.0)* Reference to an on-chain [`FILE`](./actions/file.md) action by `ACTION_INDEX`: `action:<index>` (same chain as the token) or `action:<COIN>:<index>` (sibling chain: base coin ticker `BTC`/`LTC`/`DOGE`, network tier implied by the token's network, same convention as [`LINK`](./actions/link.md)'s `COIN1`/`COIN2`). Lets cheap chains carry the bytes for tokens on expensive ones: e.g. a BTC token whose artwork FILE lives on DOGE. When both `data` and `data_ref` are present, clients prefer `data_ref`.
 | name        | String  | Filename
-| type        | String  | MIME type
+| type        | String  | Entry classification, drawn from the vocabulary of the array the entry sits in, and NOT a MIME type. `images`: display role, one of `icon`, `standard`, `large`, `hires`, paired with `size` so clients can pick a token icon. `audio`: container, one of `m4a`, `mp3`, `wav`. `video`: container, one of `mp4`, `mov`, `wmv`. `files`: free-form category such as `doc`, `pdf`, `xls`, `other`. The schema pins the first three lists as enums and leaves the `files` vocabulary open. The media type of the bytes comes from elsewhere: a `data_ref` entry inherits it from the referenced [`FILE`](./actions/file.md) action's `TYPE`, and a `data` URL from the server's `Content-Type`.
 | title       | String  | *(since v1.1.0)* Display title
 | locked      | Boolean | *(since v1.1.0)* `true` if the file is encrypted and gated. Clients use this to render locked/unlocked states without first fetching the FILE action.
 | pack_id     | String  | *(since v1.1.0)* (Optional) Pack identifier grouping files that share an unlock key. References the top-level `packs` map for display name and description. Does not need to be present for unlocking to work; the protocol groups by `KEY_HASH` directly.

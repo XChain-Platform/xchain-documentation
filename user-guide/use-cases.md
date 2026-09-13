@@ -11,7 +11,7 @@ XChain is a general-purpose token protocol. It does not prescribe what tokens ar
 
 ### Limited-Edition Collectible Tokens
 
-Create a token with a fixed, locked supply (say, exactly 100 units) and distribute them to collectors. Because the max supply is locked on-chain, no one (including you) can ever create more. Buyers can verify the scarcity themselves without trusting your promises.
+Create a token with a fixed, locked supply (say, exactly 100 units) and distribute them to collectors. Locking the max supply on-chain (`LOCK_MAX_SUPPLY`) caps how many can be held at once and freezes that ceiling, but it does not on its own close issuance: burning tokens frees headroom under the cap, and both minting paths stay open. To make "no one, including you, can ever create more" literally true, also set `LOCK_MINT` (which closes the public `MINT` command) and `LOCK_MINT_SUPPLY` (which closes the issuer's own `MINT_SUPPLY` on a re-issue). With all three set, buyers can verify the scarcity themselves without trusting your promises.
 
 XChain actions involved: ISSUE (to create and lock the supply), SEND (to distribute to collectors).
 
@@ -61,13 +61,13 @@ XChain actions involved: ISSUE, LIST, SEND.
 
 ### Revenue Sharing and Dividends
 
-If your token has multiple holders and you want to pay them proportionally (like distributing profits to shareholders) the DIVIDEND action does this automatically. You specify the token representing shares, the payment token (which could be XCHAIN or any other token), and the amount per unit. Every holder receives their proportional cut in a single transaction.
+If your token has multiple holders and you want to pay them proportionally (like distributing profits to shareholders) the DIVIDEND action does this automatically. You specify the token representing shares, the payment token (which could be XCHAIN or any other token), and the amount per unit. Every eligible holder receives their proportional cut in a single transaction. Three groups are left out: the paying address does not pay a dividend to itself; each share is rounded **down** to the payment token's smallest unit, so a holder whose share rounds to zero receives nothing; and if the payment token carries an allow list or a block list, only addresses that pass it are paid. Holders who are left out do not count toward the per-recipient fee. See [DIVIDEND](../protocol/actions/dividend.md) for the exact rules.
 
 XChain actions involved: ISSUE (to create the share token), DIVIDEND (to make distributions), SEND (for ongoing transfers).
 
 ### Public Distribution Tokens with Minting Windows
 
-Set up a token with a defined minting window (a start block and a stop block) during which the public can mint the token themselves. Each minter chooses how much to mint in a given transaction, bounded by the caps you set on the token: an optional per-transaction cap (`MAX_MINT`), an optional per-address cap (`MINT_ADDRESS_MAX`), and the token's overall `MAX_SUPPLY`. This is a permissionless, on-chain distribution mechanism: anyone can mint directly from the blockchain during the window, with no intermediary and no allocation list. MINT carries no payment field and moves no funds to the issuer; it only creates the new supply and credits it to the minter. After the window closes or `MAX_SUPPLY` is reached, no more tokens can be created.
+Set up a token with a defined minting window (a start block and a stop block) during which the public can mint the token themselves. Each minter chooses how much to mint in a given transaction, bounded by the caps you set on the token: an optional per-transaction cap (`MAX_MINT`), an optional per-address cap (`MINT_ADDRESS_MAX`), and the token's overall `MAX_SUPPLY`. This is a permissionless, on-chain distribution mechanism: anyone can mint directly from the blockchain during the window, with no intermediary and no allocation list. MINT carries no payment field and moves no funds to the issuer; it only creates the new supply and credits it to the minter. After the window closes or `MAX_SUPPLY` is reached, the public can mint no more for now. That is not a permanent close: burning tokens frees headroom under the cap, and as the issuer you can still add supply with `MINT_SUPPLY` on a re-issue unless `LOCK_MINT_SUPPLY` is set. Setting `LOCK_MINT` and `LOCK_MINT_SUPPLY` together is what closes both issuance paths for good.
 
 XChain actions involved: ISSUE (with mint window configuration), MINT (by the public during the window).
 

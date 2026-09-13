@@ -193,9 +193,61 @@ test('an addChange call the parse cannot read is refused, not skipped', () => {
     );
 });
 
+// The exemplar moved when the const grammar was widened to the slot parser's.
+// `1_786_060_800` is a readable decimal literal now, so the unreadable case has
+// to be a shape the literal grammar genuinely refuses. The intent this test
+// pins, that a declaration the generator cannot read is REFUSED rather than
+// dropped, is unchanged.
 test('a drifted _MAINNET_TIME constant is refused, not skipped', () => {
-    const dir = fixtureRegistry('const FOO_MAINNET_TIME = 1_786_060_800;\n');
+    const dir = fixtureRegistry('const FOO_MAINNET_TIME = 0x6A7B8C9D;\n');
     assert.throws(() => gen.collectGates(dir), /FOO_MAINNET_TIME/);
+});
+
+/*  ------------------------------------------------------------------
+ *  The CONSTANT DECLARATION, read by the same literal grammar as a slot
+ *  ------------------------------------------------------------------
+ *
+ *  The const scanners demanded bare digits while the slot parser accepted
+ *  separators, so `const FOO_TESTNET_TIME = 1_789_257_600;` consumed by an
+ *  addChange call resolved to null and its gate dropped out of the testnet
+ *  table in silence, extending the page's "genesis-active off mainnet" claim
+ *  over a gate that arms on a date of its own. Nothing threw: the completeness
+ *  guard scans MAINNET declarations only, and three of the four collectors
+ *  never reach it.
+ */
+
+test('a separator-bearing testnet constant consumed by a call still publishes its gate', () => {
+    const dir = fixtureRegistry(
+        'const FOO_TESTNET_TIME = 1_787_961_600;\n'
+        + "this.addChange('FOO', '1.0.0', 9999999999, FOO_TESTNET_TIME, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(
+        gen.collectTestnetArms(dir).map((g) => [g.gate, g.time]),
+        [['FOO', 1787961600]],
+    );
+});
+
+test('a separator-bearing testnet constant no call consumes publishes under its prefix', () => {
+    const dir = fixtureRegistry('const FOO_TESTNET_TIME = 1_787_961_600;\n');
+    assert.deepStrictEqual(
+        gen.collectTestnetArms(dir).map((g) => [g.gate, g.time]),
+        [['FOO', 1787961600]],
+    );
+});
+
+test('a separator-bearing mainnet constant reaches collectGates', () => {
+    const dir = fixtureRegistry('const FOO_MAINNET_TIME = 1_786_060_800;\n');
+    assert.deepStrictEqual(
+        gen.collectGates(dir).map((g) => [g.gate, g.time]),
+        [['FOO', 1786060800]],
+    );
+});
+
+test('an unreadable _TESTNET_TIME declaration is loud on every arm', () => {
+    const dir = fixtureRegistry('const FOO_TESTNET_TIME = 1787961600 + 86400;\n');
+    for (const arm of ['collectGates', 'collectTestnetArms', 'collectTestnetUnarmed', 'collectMainnetUnarmed']) {
+        assert.throws(() => gen[arm](dir), /FOO_TESTNET_TIME/, `${arm} dropped the declaration in silence`);
+    }
 });
 
 /*  ------------------------------------------------------------------

@@ -93,7 +93,7 @@ re-runs an action handler, a deploy validator, or the VM.
 | Service | Carries |
 |---|---|
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
-| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([VM gates](#vm-gates-service-carried)) |
+| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([VM gates](#vm-gates-service-carried)) |
 | `xchain-hub` | the nine validator-era gate modules it consumes (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical, retraction signing, attestation relay, price signature tally). The tenth Cohort B gate, attestation admission, is indexer-only |
 | `xchain-decoder` | the five activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` (per-chain local height) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
@@ -108,7 +108,7 @@ coordinated fleet rollout retire a whole batch at once.
 
 | Cohort | Keyed on | Rules | Straggler behavior |
 |---|---|---|---|
-| **A (contract era)** | one shared **time** (all three chains) | base64 DEPLOY encoding, VM async ban, VM binary-alloc metering, VM deploy-linter hardening, VM state-key NUL-reject, VM state-key type normalization, VM metering eval-order fix, VM call-spread metering, VM consensus wall-clock budget, controller guards, VM balance/token-info surface, issuance-fee exemption, unstake-cooldown completion, cross-chain royalty create-side, XCALL undeliverable-result retirement | **forks** |
+| **A (contract era)** | one shared **time** (all three chains) | base64 DEPLOY encoding, VM async ban, VM binary-alloc metering, VM deploy-linter hardening, VM state-key NUL-reject, VM state-key type normalization, VM metering eval-order fix, VM call-spread metering, VM consensus wall-clock budget, controller guards, VM balance/token-info surface, issuance-fee exemption, unstake-cooldown completion, cross-chain royalty create-side, XCALL undeliverable-result retirement, VM slash token-delimiter guard, VM slash amount-precision widening, VM math-output metering, VM emission prototype-key strip, VM non-finite gas clamp | **forks** |
 | **B (validator era)** | a **BTC height** (not always the same height across every Cohort B rule; see below) | checkpoint commitment, equivocation header, stake-weighted quorum, anchor reward, cross-chain royalty canonical, attestation admission, archive reward, retraction signing, attestation relay, price signature tally | **forks** |
 | **C (state commitment)** | per-chain **local height** | light-client state commitment (state root + block-merkle root) and its state-hash classes (e.g. token-supply, poll-finalize) | **halts, recoverable** |
 
@@ -125,6 +125,38 @@ own. Enforcement detail is on
 [VM Configuration](../components/vm/configuration.md#resource-limits); the constant lives in
 `xchain-vm/src/consensus-wall-clock.js` and the activation beside it in `xchain-vm/src/index.js`.
 
+### Cohort A riders that mint no constant
+
+The wall-clock bound is not the only rule of that shape. Five further VM rules key on the same
+shared contract-era instant and mint no activation constant of their own, so anything that
+inventories gates by constant name cannot see them. They ride
+`BINARY_ALLOC_GATE_BLOCK_TIME` (`xchain-vm/src/index.js`, the binary-alloc metering leg already in
+this cohort; the value is on [Flag-Day Values](./flag-days.md#contract-era-flag-day)) rather than
+minting one, which is deliberate: a new constant would move the frozen six-gate consensus pin and
+the cross-repo `CONTROLLER_GUARD` equality check that goes with it. They fork like the rest of
+Cohort A, so a straggler node that has not upgraded reaches a different verdict.
+
+| Rider | Resolved in | Enforced in | What changes at the instant |
+|---|---|---|---|
+| **contract.slash token delimiter guard** (`isSlashTokenDelimGuardActive`) | `xchain-vm/src/index.js` | `xchain-vm/src/gateway.js`, on `readOnlyData.slashTokenDelimGuardOn` | A `contract.slash` whose `token` carries a `\|` stops emitting and throws, closing the one emit path that never rejected a character the indexer may pipe-join |
+| **contract.slash amount-precision widening** (`isSlashAmountPrecisionActive`) | `xchain-vm/src/index.js` | `xchain-vm/src/gateway.js`, which swaps an 8-fractional-digit amount pattern for an 18-digit one | A slash amount carrying 9 to 18 fractional digits stops throwing and emits. The ceiling is `MAX_SLASH_AMOUNT_DECIMALS` 18, which must equal the indexer's `MAX_TOKEN_DECIMALS`: STAKE v3 admits a stake at the token's own decimals and the slash arithmetic computes the deduction at that precision, so the narrower pattern made an exact partial slash of a 9-to-18-decimal token impossible |
+| **Math-output metering** (F-MO, the `mathOutputMeterOn` predicate) | `xchain-vm/src/index.js` | the gateway's math hook | An oversized `pow()` or format result is charged gas, which moves `gasUsed` |
+| **Emission prototype-key strip** (F-PS, the `emissionDeepStrip` predicate) | `xchain-vm/src/index.js` | `EmissionCollector` | Prototype-shaped own keys are stripped recursively rather than only at the top level, which can drop a key from a pathological emitted param and so moves that emission's hash |
+| **Non-finite gas clamp** (F-NR, the `nonFiniteFailClosed` predicate) | `xchain-vm/src/index.js` | the sandbox gas reference | A non-finite metering size resolves to `Number.MAX_SAFE_INTEGER` and yields a ceiling-clamped `out_of_gas` instead of collapsing to 1 gas, which moves the hashed status and `gasUsed` |
+
+The two `contract.slash` riders are **network-aware** and resolve exactly like the state-key gates:
+`testnet` and `regtest` are active from genesis, and any other network (including an unrecognized
+one, read conservatively as mainnet) activates at the shared instant, with a non-finite block time
+reading as pre-activation. The three inline riders are **not** network-aware: they compare block
+time alone, so they activate at the shared instant on every network, and a non-finite block time
+likewise reads as pre-activation.
+
+No mainnet verdict is reinterpreted by any of the five. The shared instant has already passed, and
+mainnet has carried no DEPLOY, EXECUTE or SLASH action and no contract at all (see
+[The mainnet genesis arm](#the-mainnet-genesis-arm)), so the riders are live on arrival rather than
+live and diverging. Changing any of these predicates later is a different change and would need a
+flag day of its own under the [notice policy](./upgrade-notice-policy.md).
+
 The ten Cohort B rules arm in two batches. Six share mainnet BTC height 961000: checkpoint
 commitment, equivocation header, stake-weighted quorum, anchor reward, cross-chain royalty canonical,
 and attestation admission. The other four share 963000, one deploy-train boundary later: archive
@@ -132,20 +164,24 @@ reward, retraction signing, attestation relay, and price signature tally. So "on
 shorthand for "a BTC height per rule, in two batches" rather than a single shared value across the
 whole cohort.
 
-The cohort is its **armed** rules. `constants.js` also carries validator-era maps that are inert:
-`SNAPSHOT_BURIAL_ACTIVATION`, `ANCHOR_REWARD_DERIVE_ACTIVATION`, `ATTEST_BROADCAST_FEE_ACTIVATION`,
+The cohort is its **armed** rules. `constants.js` also carries validator-era maps that sit outside
+it. Six of them are **armed at genesis** (`0`) on mainnet under the
+[mainnet genesis arm](#the-mainnet-genesis-arm): `SNAPSHOT_BURIAL_ACTIVATION`,
+`ANCHOR_REWARD_DERIVE_ACTIVATION`, `ATTEST_BROADCAST_FEE_ACTIVATION`,
 `ATTEST_REQUEST_CAP_ACTIVATION` (the per-block attestation admission ceiling, a sibling of the
 attestation-admission gate in the cohort table above), `ROLLCALL_ACTIVATION` (keyed on the BTC
-`EPOCH_HEIGHT` a ROLLCALL carries), `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` and
-`ATTEST_RESPONSE_MIRROR_ACTIVATION` each hold `null` on mainnet, which is the
-encoding of "never" and the fail-closed default until an operator ratifies a height. They are not
-counted above and carry no mainnet flag day yet. `ATTEST_RESPONSE_MIRROR_ACTIVATION` was the one of
-them unarmed on **testnet** as well; it was ratified there at block 151324 in the v0.15.0 train, so
+`EPOCH_HEIGHT` a ROLLCALL carries) and `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION`. Arming them at `0`
+was state-neutral on the indexed mainnet history, which holds no validator, roll call or
+attestation, so none of them needed a mainnet flag day; they are still not counted in the cohort
+table above. `ATTEST_RESPONSE_MIRROR_ACTIVATION` is the one of the seven that still holds `null` on
+mainnet, which is the encoding of "never" and the fail-closed default until an operator ratifies a
+height; the 2026-09-09 ruling holds it back until its quorum defect is closed. It was also the one
+of them unarmed on **testnet**; it was ratified there at block 151324 in the v0.15.0 train, so
 testnet exercises the hub response-mirror path alongside regtest from that height on.
 The enumeration is the **height-keyed validator-era** maps
 specifically: the block-time [decoder-carried gates](#decoder-carried-gates) also read `null` as
-disarmed, and `PRICE_PAIR_WIDEN_ACTIVATION` encodes the same "not yet" as a far-future sentinel
-instant rather than as `null`.
+disarmed, and a block-time map can encode the same "not yet" as a far-future sentinel instant
+rather than as `null`.
 
 `ANCHOR_ACTIVATION` is height-keyed and **armed on both live networks**, but sits outside the three
 cohorts: it is keyed on the anchor's own DOGE mined height (`DOGE:mainnet` 6360000, `DOGE:testnet`
@@ -156,13 +192,21 @@ so the restarted wire set has not activated there yet. Stragglers **fork**.
 
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
-(Cohort B) gates genesis-active as well, with **three** exceptions:
+(Cohort B) gates genesis-active as well, with exceptions in every cohort:
 
-- **`ISSUE_INHERITED_MINT_WINDOW` (Cohort A) arms testnet at its own future instant, not from
-  genesis** (value on [Flag-Day Values](./flag-days.md)): the ISSUE mint-window
-  re-parameterization fix is a validity loosening, and testnet already held a recorded rejection
-  under the pre-fix rule, so a genesis-active arm would fork an already-synced testnet node
-  against a fresh reindex. It is the only Cohort A rule not genesis-active on testnet.
+- **Four Cohort A rules arm testnet at their own future instants, not from genesis** (values on
+  [Flag-Day Values](./flag-days.md), which derives them from the registry and is the one place they
+  are written down). In each case testnet already carries history the rule would reinterpret, so a
+  genesis-active arm would fork an already-synced testnet node against a fresh reindex:
+  - `ISSUE_INHERITED_MINT_WINDOW`, because the ISSUE mint-window re-parameterization fix is a
+    validity loosening and testnet already held a recorded rejection under the pre-fix rule.
+  - `DEPLOY_DEFERRED_ASSEMBLY`, because testnet holds a recorded out-of-order assembler group that
+    a genesis-active arm would re-decide.
+  - `CONTRACT_META_REQUIRED`, because testnet already holds deployed contracts that export no
+    meta-shaped object, so a genesis-active arm would flip every one of them from its recorded
+    verdict.
+  - `UNIFIED_FEES_SWEEP_CALLBACK`, because the public testnet has carried real SWEEP and CALLBACK
+    traffic since launch, so a genesis-active arm would re-price fees already committed there.
 - **Cohort C (state commitment) is armed at future _per-chain_ heights on testnet, not from genesis**
   (`STATE_COMMITMENT_ACTIVATION`: `BTC:testnet 145000`, `LTC:testnet 4805000`,
   `DOGE:testnet 67000000`), because it gates on each chain's own local block height rather than a
@@ -173,8 +217,11 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
   checkpoint. It is the only Cohort B rule not genesis-active on testnet; the other nine carry
   `testnet: 0`.
 
-Mainnet is genesis-active for nothing: every cohort is armed at a real, non-zero threshold. Several
-of those have since been crossed. Cohort C's mainnet heights are past (`BTC:mainnet` 958500 and
+No **cohort** rule is genesis-active on mainnet: every cohort gate is armed at a real, non-zero
+threshold. Gates outside the three cohorts are a separate question, and several of them do read `0`
+there under [the mainnet genesis arm](#the-mainnet-genesis-arm): the validator-era maps above and
+`DISPENSER_EXPIRY_REALIGN_ACTIVATION` in the decoder-carried table. Several of the cohort thresholds
+have since been crossed. Cohort C's mainnet heights are past (`BTC:mainnet` 958500 and
 `LTC:mainnet` 3143000 both sit below the envelope heights that crossed 2026-08-03), the main Cohort B
 anchor 961000 went by with them, and the shared Cohort A instant has passed as well. A crossed value
 stays in the tree for the same reason the envelope map does: below its threshold each gate still runs

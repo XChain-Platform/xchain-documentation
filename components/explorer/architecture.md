@@ -15,6 +15,7 @@ flowchart TD
     EXPLORER["xchain-explorer"]
     OUT["REST API / JSON-RPC / Web UI"]
     HUB["xchain-hub"]
+    MIRRORDB[("Hub mirror DB (MariaDB, explorer-owned)")]
 
     NODE -->|"JSON-RPC polling"| DECODER
     DECODER --> DECDB
@@ -23,9 +24,14 @@ flowchart TD
     IDXDB -->|"SQL reads (read-only)"| EXPLORER
     EXPLORER --> OUT
     HUB -->|"config discovery, 60s refresh"| EXPLORER
+    HUB -->|"snapshot + live feed (self_sync)"| EXPLORER
+    EXPLORER -->|"schema DDL + row writes"| MIRRORDB
+    MIRRORDB -->|"SQL reads"| EXPLORER
 ```
 
-The explorer sits at the end of the data pipeline. It reads indexed state from the Indexer database (read-only access) and presents it through three interfaces: a REST API, a JSON-RPC 2.0 endpoint, and a web block explorer. It also connects to the Decoder database for raw transaction data lookups. The explorer never writes to any database.
+The explorer sits at the end of the data pipeline. It reads indexed state from the Indexer database (read-only access) and presents it through three interfaces: a REST API, a JSON-RPC 2.0 endpoint, and a web block explorer. It also connects to the Decoder database for raw transaction data lookups.
+
+The explorer writes nothing to the Indexer or Decoder databases during normal serving, with one optional exception: with the icon downloader enabled it writes the indexer-owned `icons` table, which requires INSERT and UPDATE grants there. It does own and write one schema of its own, the hub mirror. With `"self_sync": true` the explorer creates that schema and its tables, bootstraps them from a hub snapshot, and keeps them current from the hub's live feed, so its mirror database user needs DDL and write privileges. See [Configuration](configuration.md) for how the mirror is provisioned.
 
 ## Internal Components
 

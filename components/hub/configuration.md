@@ -304,8 +304,8 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `ORACLE_REWARD_PER_ROUND` | No | `"10.00000000"` | XCHAIN distributed per finalized oracle round |
-| `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation threshold (5%) for slash detection |
-| `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Consecutive missed rounds before non-participation slash |
+| `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation (5%) at which the hub records a `price_deviation` offense. Hub-local: governance can suspend the validator, on-chain stake is untouched |
+| `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Missed rounds at which the hub records a `non_participation` offense. Hub-local: governance can set `validators.status='suspended'`, on-chain stake is untouched. Only a permissionless SLASH proof of equivocation burns stake (see [Decentralization](decentralization.md)) |
 | `REWARD_PUSH_MAX_ATTEMPTS` | No | `3` | Attempts `RewardTracker` makes when pushing a validator-reward record to the indexer before giving up and recording the failure. The push was previously fire-and-forget, so a dropped push lost the reward record silently. |
 | `REWARD_PUSH_RETRY_DELAY_MS` | No | `2000` | Delay (ms) between those attempts. |
 
@@ -320,7 +320,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_CHUNK_RETRY_MS` | No | `2500` | Delay before retrying a failed archive chunk upload (ms) |
 | `ANCHOR_ELECTION_TOLERANCE_BLOCKS` | No | `36` | BTC blocks a non-leader hub waits before the next eligible rank may take over |
 | `ANCHOR_REWARD_PER_PUBLISH` | No | `"10.00000000"` | XCHAIN distributed to the elected ANCHOR publisher per successful publish cycle |
-| `ANCHOR_CHECKPOINT_EVERY_N` | No | `1` | Anchor only every Nth `checkpoint_seq` on-chain (per chain). Decouples on-chain ANCHOR spend from checkpoint production cadence: skipped (off-multiple) seqs remain in the off-chain hub-DB mirror and are still verifiable via the explorer. `1` anchors every checkpoint (original behaviour). |
+| `ANCHOR_CHECKPOINT_EVERY_N` | No | `1` | Anchor only every Nth checkpoint **ordinal** on-chain, gating the whole round (one bundle covers every chain). Eligibility is `FLOOR(checkpoint_seq / CHECKPOINT_INTERVAL_BLOCKS) % N`, not `checkpoint_seq % N`: the cadence latch advances the seq by exactly one interval per round, so a raw-seq test is a residue class pinned by the seed rather than a 1-in-N sample, and for any N sharing a factor with the interval the federation would anchor every round or never anchor at all. Both this and `CHECKPOINT_INTERVAL_BLOCKS` must be fleet-uniform; `checkpoint_seq` is consensus data, so the predicate is deterministic across every hub. It decouples on-chain ANCHOR spend from checkpoint production cadence, it is not a cadence control (`ANCHOR_INTERVAL_MS` is): skipped (off-multiple) ordinals remain in the off-chain hub-DB mirror and are still verifiable via the explorer. `1` anchors every checkpoint (original behaviour). |
 | `ANCHOR_ENABLED` | No | `true` | Set to `false` to stop this hub publishing ANCHORs. |
 | `ANCHOR_MAX_BATCH` | No | `1000` | Maximum `cross_chain_matches` rows drained into one publish cycle. |
 | `ANCHOR_CHUNK_MAX_BYTES` | No | `6000` | Maximum payload bytes per ANCHOR archive chunk. |
@@ -513,7 +513,8 @@ The XCHAIN/USD price is derived from platform-realized fills rather than an exte
 The four derivation parameters below are **consensus-uniform**, not per-operator
 tuning. Every validator has to compute the same window over the same fills, so a
 hub honoring a local override would produce a different XCHAIN/BTC leg, land
-outside the co-sign deviation band, and expose itself to slashing. They are
+outside the co-sign deviation band, and expose itself to a recorded
+`price_deviation` offense and hub-local suspension. They are
 therefore **honored on regtest only**: on mainnet and testnet the hub logs a
 `set but IGNORED` warning and uses the consensus-pinned value regardless of what
 the environment says, and so does a standalone hub with no `HUB_NETWORK`.
@@ -541,7 +542,7 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | `LLM_SPEND_LOG_PATH` | No | `./data/llm-spend.jsonl` | File the provider appends each spend record to, written before the call so the audit trail cannot be lost to a crash mid-request. |
 | `LLM_SPEND_LOG_FALLBACK_PATH` | No | `llm-spend.jsonl` inside the OS temp directory | Where a per-dispatch LLM spend audit line is written when the primary sink (`LLM_SPEND_LOG_PATH`) cannot be written. The aggregate spend-state file cannot stand in for it: that file carries a rolling window of costs and no per-dispatch identity, so an operator reconciling a vendor invoice against it cannot tell which call was which. |
 
-> **Cost note.** Each on-chain checkpoint anchor spends real DOGE on three transactions (BTC + LTC + DOGE checkpoints all broadcast on the DOGE chain). State recovery (`recovery.js`) only needs the **latest** anchored checkpoint per chain, so anchoring every intermediate `checkpoint_seq` is optional. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`), `ANCHOR_CHECKPOINT_EVERY_N=2` halves anchor spend (on-chain recovery point then trails the tip by up to ~2 checkpoint intervals). `checkpoint_seq` is consensus data, so the gate is deterministic across every hub.
+> **Cost note.** Each on-chain checkpoint anchor spends real DOGE on **one bundle per network**, not one transaction per chain: a single ANCHOR v0 carries BTC, LTC and DOGE as sections of the same payload, broadcast on the DOGE chain over the P2SH lane's funding plus reveal pair. The cost therefore scales with encoded payload bytes at the venue's fee rate rather than with the number of chains checkpointed. State recovery (`recovery.js`) only needs the **latest** anchored checkpoint per chain, so anchoring every intermediate `checkpoint_seq` is optional. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`), `ANCHOR_CHECKPOINT_EVERY_N=2` halves anchor spend (on-chain recovery point then trails the tip by up to ~2 checkpoint intervals). `checkpoint_seq` is consensus data, so the gate is deterministic across every hub.
 
 ### Operator Signer
 

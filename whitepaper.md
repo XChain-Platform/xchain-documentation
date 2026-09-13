@@ -98,7 +98,7 @@ XChain is a pipeline of independent services, each runnable separately and most 
 | **utxo-tracker** | Indexes every transaction output from a coin node; serves address balances and spendable UTXOs | LevelDB |
 | **encoder** | Stateless; turns an ACTION string plus UTXOs plus pubkey into an unsigned PSBT | none |
 | **decoder** | Polls a coin node, extracts and de-obfuscates XChain transactions from blocks, writes raw decoded data | MariaDB (decoder DB) |
-| **indexer** | Reads the decoder DB, validates and applies ACTION logic, runs the VM, maintains the ledger | MariaDB (indexer DB) |
+| **indexer** | Reads the decoder DB and a local read-only hub mirror, validates and applies ACTION logic, runs the VM, maintains the ledger | MariaDB (indexer DB, plus the local hub mirror) |
 | **explorer** | Stateless REST plus JSON-RPC plus WebSocket plus web UI over the indexer DB | none |
 | **hub** | Decentralized config oracle, price oracle, cross-chain coordinator, attestation engine, governance | MariaDB (hub DB) |
 | **sync** | Replicates the decoder and indexer DBs to validators via REST snapshots and WebSocket streaming | none |
@@ -139,9 +139,9 @@ The pipeline is strictly unidirectional: raw data enters at the decoder, is prom
 
 The separation of *extraction* (decoder) from *interpretation* (indexer) is deliberate and yields three properties the protocol depends on:
 
-- **Replay.** The indexer DB is a pure function of the decoder DB. Destroy it and re-run the indexer against the same decoder DB and you obtain bit-for-bit identical state.
-- **Independent verification.** Multiple indexers reading the same decoder DB converge to identical state, including identical per-block integrity hashes (§5.5).
-- **Auditability.** Any balance traces through ledger entries to an exact block and action; the decoder DB itself is reproducible from the raw chain, so the entire indexer state is ultimately derivable from the blockchain alone.
+- **Replay.** The indexer DB is a pure function of the decoder DB and the local hub-mirror tables the indexer reads during block processing. Destroy it and re-run the indexer against the same decoder DB and an equivalent hub mirror and you obtain bit-for-bit identical state.
+- **Independent verification.** Multiple indexers reading the same decoder DB and the same hub-mirrored rows converge to identical state, including identical per-block integrity hashes (§5.5).
+- **Auditability.** Any balance traces through ledger entries to an exact block and action; the decoder DB itself is reproducible from the raw chain and the hub-mirrored rows are chain-derived as well (PRICE actions, plus validator stake and reward tables synced from BTC indexer state, aggregated across chains by the hub), so the entire indexer state is ultimately derivable from the chains.
 
 ---
 
@@ -172,7 +172,7 @@ The encoder measures the obfuscated payload and selects a format that fits. The 
 | Format | Per-output data capacity | Txs | Mechanism | Notes |
 |---|---|---|---|---|
 | **OP_RETURN** | 80 bytes total (incl. 4-byte prefix) | 1 | Data in a provably-unspendable output | No UTXO bloat; the common case |
-| **Bare multisig** | 60 data bytes per key slot | 1 | Payload packed into fake pubkey slots of an `m-of-n` multisig | Single-tx flow for medium payloads; leaves a spendable (dust) output |
+| **Bare multisig** | 60 data bytes per output (two 32-byte key slots) | 1 | Payload packed into fake pubkey slots of an `m-of-n` multisig | Single-tx flow for medium payloads; leaves a spendable (dust) output |
 | **P2SH** | 476 bytes per chunk, many outputs | 2 | Fund a script hash, then reveal the redeem script in the spend's scriptSig | Fund must reach mempool before the spend is valid |
 | **P2WSH** | 476 bytes per chunk, many outputs | 2 | Fund a witness script hash, then reveal the witness script | SegWit witness discount makes this the most fee-efficient chunked format |
 | **Taproot envelope** | up to 390,000 bytes in one witness | 2 | Commit to a P2TR output whose script tree holds one data leaf; reveal it through the script path | BTC and LTC only (DOGE has no SegWit); the large-payload carrier |

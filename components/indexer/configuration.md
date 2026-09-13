@@ -21,8 +21,8 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `INDEXER_DB_NAME` | Indexer database name | `XChain_BTC_Mainnet_Indexer` |
 | `INDEXER_DB_USER` | Indexer database username | `xchain` |
 | `INDEXER_DB_PASS` | Indexer database password | `secretpassword` |
-| `INDEXER_COIN` | Blockchain to index | `BTC`, `LTC`, or `DOGE` |
-| `INDEXER_NETWORK` | Network to index | `mainnet`, `testnet`, or `regtest` |
+| `INDEXER_COIN` | Blockchain to index. The service requires it; the measurement script `bin/measure-batch-execute-cost.js` defaults to `BTC` when it is unset. | `BTC`, `LTC`, or `DOGE` |
+| `INDEXER_NETWORK` | Network to index. The service requires it; the measurement script `bin/measure-batch-execute-cost.js` defaults to `regtest` when it is unset. | `mainnet`, `testnet`, or `regtest` |
 
 ### Optional Variables
 

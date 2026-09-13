@@ -1164,6 +1164,8 @@ ANCHOR publisher status (read, no auth): cumulative anchor counts plus the last-
 
 > **Note:** this method is implemented on `xchain-indexer`, not the hub. The hub's `RewardTracker` calls it to persist anchor-publish reward rows into the indexer's `validator_rewards` table.
 
+> **Retired for new anchor rewards.** At or above `ANCHOR_REWARD_ACTIVATION` (for `anchor_bundle`) and `ARCHIVE_REWARD_ACTIVATION` (for `anchor_archive`) every indexer DERIVES the reward from the on-chain ANCHOR bytes, so this push no longer establishes those rows; it remains documented because it is how pre-flag-day rows arrived, and those rows are not re-derivable from a chain parse. See [ANCHOR](../../protocol/actions/anchor.md).
+
 Accepted `reward_type` values must match `^anchor_[A-Za-z_]+$` (the live types are `anchor_bundle` for a checkpoint bundle and `anchor_archive` for a match-archive batch). The indexer **rejects** `oracle_round` and `attest_fee` because those are derived deterministically during block processing, accepting a push for them would open a replay-divergence window.
 
 **Request** (from hub → indexer):

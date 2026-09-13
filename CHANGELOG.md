@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The SDK websocket page matches the producer roster, adding the mempool, expiry, bet, attestation and xcall event types.
 - The explorer API page describes the merged `hub_status` on the validators endpoint.
 
+### Fixed
+- Corrected the bare-multisig capacity figure: 60 bytes per output (two 32-byte key slots), not ~61 bytes per key.
+- The indexer determinism and replay claims now name the local Hub DB mirror they read during block processing.
+- The explorer pages state the hub-mirror schema the explorer creates and writes under `self_sync`, instead of claiming it never writes to any database.
+- The hub configuration, architecture and database pages distinguish hub-local suspension from equivocation slashing: missed rounds and price deviation leave on-chain stake untouched.
+- Published Token Information Standard v1.1.1, which relaxes the media requirement to `type` plus at least one of `data` or `data_ref` so the fully on-chain form the standard recommends validates; v1.1.0 and v1.0.0 stay frozen as published.
+- The TIS media `type` row states the per-array vocabulary the schema enums pin (`images` display role, `audio` and `video` containers, `files` category) instead of calling it a MIME type.
+- The gated-pack publishing steps require one `FILE` per transaction: a `BATCH` hands one `rawData` payload to every sub-command, so a second `FILE` is recorded valid carrying the first file's ciphertext.
+
 ## [0.17.0] - 2026-09-10
 
 ### Added

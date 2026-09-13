@@ -80,14 +80,14 @@ Configure address-level preferences for fee routing and memo requirements.
 
 | Param | Type | Required | Description |
 |---|---|---|---|
-| feePreference | integer | No | Fee routing: `1` = destroy, `2` = protocol, `3` = community |
+| feePreference | integer | No | Fee routing: `0` = default disposition, `1` = destroy, `2` = protocol |
 | requireMemo | integer | No | Whether to require a memo on incoming sends (`0` or `1`) |
 | dispenserPreference | integer | No | Who may open dispensers targeting this address: `1` = owner only (default), `2` = anyone |
 | memo | string | No | Optional note |
 
 **Notes (v0):**
 - All fields are optional; omitting all fields is valid (no-op update).
-- `feePreference` must be `1`, `2`, or `3` if provided.
+- `feePreference` must be `0`, `1`, or `2` if provided; consensus rejects any other value. The shipped SDK validator still enforces the retired `{1, 2, 3}` set, so it refuses a valid `0` and admits a `3` the indexer marks invalid: until that is corrected, emit `1` or `2`, which both surfaces accept.
 
 **Params (controller bind/unbind (v1):)**
 
@@ -1359,7 +1359,7 @@ Must be **`1`** (ECIES), **`2`** (ECDH), or **`3`** (AES).
 
 ### FEE_PREFERENCE (ADDRESS)
 
-Must be **`1`** (destroy), **`2`** (protocol), or **`3`** (community).
+Must be **`0`** (default disposition), **`1`** (destroy), or **`2`** (protocol). There is no community bucket; a `3` indexes invalid. The shipped SDK validator still carries the retired `{1, 2, 3}` set, so `0` is rejected client-side and `3` passes client-side validation only to fail at the indexer.
 
 ### LIST TYPE
 

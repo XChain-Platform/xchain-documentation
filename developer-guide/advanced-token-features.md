@@ -462,7 +462,8 @@ const selfMessage = sdk.message({
 });
 
 // Broadcast each FILE in its own transaction; the self-MESSAGE can ride with the last one.
-// (Files are too large to fit many in one BATCH; broadcast one at a time.)
+// (A transaction carries one rawData payload, so a BATCH holds at most one FILE
+//  whatever the file size; batching two would give both the same ciphertext.)
 ```
 
 ### Transferring a Gated Token

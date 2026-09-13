@@ -129,7 +129,7 @@ flowchart TD
 | `SwapTracker.js` | `SwapTracker` | Cross-chain SWAP lifecycle tracking: initiated → attested → executed → settled |
 | `ReorgHandler.js` | `ReorgHandler` | Blockchain reorg detection, PBFT consensus, and hub state rollback |
 | `Governance.js` | `Governance` | Off-chain PBFT voting for parameter changes |
-| `RewardTracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants; pushes rewards to BTC indexer for `COLLECT` |
+| `RewardTracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants; pushed anchor rewards to the BTC indexer for `COLLECT` below the anchor-reward flag-days, a rail retired at or above them in favour of indexer-side derivation from the ANCHOR bytes |
 | `SlashDetector.js` | `SlashDetector` | Validator misbehavior detection: price deviation, non-participation |
 | `PriceAggregator.js` | `PriceAggregator` | Receives validated PRICE v0/v1 actions from indexers, deduplicates by `round_number` (v0) or `(source, action_index)` (v1), writes to `price_snapshots`/`oracle_prices`. EventEmitter: emits `row:inserted` for hub DB sync. |
 | `OraclePublisher.js` | `OraclePublisher` | `oracle_publish` capability publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
@@ -499,7 +499,7 @@ Three offense types are monitored:
 | `repeated_deviation` | 3+ in 24 hours | Three or more deviations within a rolling 24-hour window |
 | `non_participation` | 30+ missed rounds | `SLASH_MISSED_ROUNDS_THRESHOLD` consecutive rounds without a submission |
 
-Detection is recorded in the `slash_proposals` table. Actual stake slashing is executed by the indexer, not the hub.
+Detection is recorded in the `slash_proposals` table for governance review. All three offenses are hub-local: the strongest outcome of a governance vote is `validators.status='suspended'`, which excludes the validator from PBFT rounds and leaves on-chain stake untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which no offense in this table produces. See [Decentralization](decentralization.md) for the three penalty lanes.
 
 ---
 

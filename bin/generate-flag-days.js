@@ -377,22 +377,79 @@ function assertEveryDeclarationParsed(rawRegistry, parsedCalls, parsedConstLines
             + 'would publish an inventory that calls itself complete and is not:\n  '
             + unparsed.join('\n  ')
             + "\n\ncollectGates reads addChange('NAME', 'version', <digits>, ...) with single quotes and a "
-            + 'literal time, and const NAME_MAINNET_TIME = <digits>;. Either write the declaration in one '
-            + 'of those shapes or widen the parse in bin/generate-flag-days.js deliberately.',
+            + 'literal time, and const NAME_MAINNET_TIME = <digits>;. A decimal literal may carry `_` '
+            + 'separators in either position. Either write the declaration in one of those shapes or '
+            + 'widen the parse in bin/generate-flag-days.js deliberately.',
         );
     }
 }
 
+// A decimal literal, separators and all: the SAME grammar the time-slot parser
+// in `registryCalls` uses. The two were written apart, digits-only here and
+// separator-aware there, and that asymmetry is what made a separator-formatted
+// declaration unreadable to the const pass while the identical value in a call
+// argument read fine.
+const TIME_LITERAL = /^\d(?:_?\d)*$/;
+
+// The head of a time-constant declaration. The initializer is read separately,
+// up to its `;`, so an unreadable shape is REFUSED rather than left unmatched:
+// a regex that demands digits simply does not match a hex or arithmetic
+// initializer, and a declaration nothing matched is a declaration nothing can
+// report.
+const TIME_DECL_HEAD = /const\s+([A-Z][A-Z0-9_]*)_(MAINNET|TESTNET)_TIME\s*=/g;
+
 /**
- * The registry's `const NAME_MAINNET_TIME = <digits>;` and
- * `const NAME_TESTNET_TIME = <digits>;` declarations as an identifier -> value
- * map, read from the comment-stripped text.
+ * The registry's `const NAME_MAINNET_TIME = <literal>;` and
+ * `const NAME_TESTNET_TIME = <literal>;` declarations, read from the
+ * comment-stripped text as `{ name, prefix, network, value, line }`.
+ *
+ * ONE SCANNER, and it REFUSES what it cannot read. Both properties are load
+ * bearing. A bare-digit regex per collector and per constant map means widening
+ * one leaves four un-widened, and a declaration none of them matches vanishes
+ * in silence: a `const FOO_TESTNET_TIME = 1_789_257_600;`
+ * consumed by an addChange call resolved to null, the gate dropped out of the
+ * testnet-exceptions table, and the page then extended its "genesis-active off
+ * mainnet" claim over a gate that arms on a date of its own. The completeness
+ * guard could not catch it either: it scans MAINNET declarations only, and
+ * `collectTestnetArms`, `collectTestnetUnarmed` and `collectMainnetUnarmed`
+ * never reach it at all.
+ *
+ * Refusal lives here for the reason `registryCalls` gives for its own: this
+ * runs inside `registryCalls`, which every collector calls, so an unreadable
+ * declaration is loud on every arm or it is loud on one. The name says it is a
+ * time, so there is no sentinel-versus-timestamp ambiguity to respect.
+ */
+function declaredTimeConstants(scannable) {
+    const out = [];
+    TIME_DECL_HEAD.lastIndex = 0;
+    for (const m of scannable.matchAll(TIME_DECL_HEAD)) {
+        const name = `${m[1]}_${m[2]}_TIME`;
+        const line = lineAt(scannable, m.index);
+        const rest = scannable.slice(m.index + m[0].length);
+        const end  = rest.indexOf(';');
+        const text = (end === -1 ? rest : rest.slice(0, end)).trim();
+
+        if (end === -1 || !TIME_LITERAL.test(text)) {
+            throw new Error(
+                `protocol_changes.js line ${line}: ${name} is declared with an initializer this `
+                + `generator cannot read (\`${text.split('\n')[0].slice(0, 60)}\`), so `
+                + 'protocol/flag-days.md would publish an inventory that calls itself complete and is '
+                + 'not.\n\nA time constant reads as a decimal literal on one line (`1786060800`, '
+                + '`_` separators allowed). Write the declaration in that shape or widen the parse in '
+                + 'bin/generate-flag-days.js deliberately.',
+            );
+        }
+        out.push({ name, prefix: m[1], network: m[2], value: Number(text.replace(/_/g, '')), line });
+    }
+    return out;
+}
+
+/**
+ * The same declarations as an identifier -> value map, for the slot parser.
  */
 function registryConstants(scannable) {
     const values = new Map();
-    for (const m of scannable.matchAll(/const\s+([A-Z][A-Z0-9_]*_(?:MAINNET|TESTNET)_TIME)\s*=\s*(\d+)\s*;/g)) {
-        values.set(m[1], Number(m[2]));
-    }
+    for (const d of declaredTimeConstants(scannable)) values.set(d.name, d.value);
     return values;
 }
 
@@ -517,13 +574,12 @@ function collectGates(indexerSrc = INDEXER_SRC) {
     // shared constant because a second repo has to stay byte-identical to it).
     // A constant some call consumes is published under that call's gate name
     // above; only a constant no call reads is published under its own prefix.
-    const constRe = /const\s+([A-Z][A-Z0-9_]*)_MAINNET_TIME\s*=\s*(\d+)\s*;/g;
-    let match;
-    while ((match = constRe.exec(scannable)) !== null) {
-        parsedConstLines.add(lineAt(scannable, match.index));
-        if (consumed.has(match[1] + '_MAINNET_TIME')) continue;
-        parsedNames.add(match[1]);
-        add(match[1], Number(match[2]), 'protocol_changes.js');
+    for (const d of declaredTimeConstants(scannable)) {
+        if (d.network !== 'MAINNET') continue;
+        parsedConstLines.add(d.line);
+        if (consumed.has(d.name)) continue;
+        parsedNames.add(d.prefix);
+        add(d.prefix, d.value, 'protocol_changes.js');
     }
 
     assertEveryDeclarationParsed(registry, parsedCalls, parsedConstLines, parsedNames);
@@ -556,10 +612,8 @@ function collectTestnetArms(indexerSrc = INDEXER_SRC) {
     };
     const { calls, consumed } = registryCalls(scannable);
     for (const call of calls) if (call.testnet !== null) add(call.gate, call.testnet);
-    let match;
-    const constRe = /const\s+([A-Z][A-Z0-9_]*)_TESTNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(scannable)) !== null) {
-        if (!consumed.has(match[1] + '_TESTNET_TIME')) add(match[1], Number(match[2]));
+    for (const d of declaredTimeConstants(scannable)) {
+        if (d.network === 'TESTNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
     return [...found.values()].sort((a, b) => (a.time - b.time) || a.gate.localeCompare(b.gate));
 }
@@ -588,10 +642,8 @@ function collectTestnetUnarmed(indexerSrc = INDEXER_SRC) {
     };
     const { calls, consumed } = registryCalls(scannable);
     for (const call of calls) if (call.testnet !== null) add(call.gate, call.testnet);
-    let match;
-    const constRe = /const\s+([A-Z][A-Z0-9_]*)_TESTNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(scannable)) !== null) {
-        if (!consumed.has(match[1] + '_TESTNET_TIME')) add(match[1], Number(match[2]));
+    for (const d of declaredTimeConstants(scannable)) {
+        if (d.network === 'TESTNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
@@ -622,10 +674,8 @@ function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
     };
     const { calls, consumed } = registryCalls(scannable);
     for (const call of calls) if (call.mainnet !== null) add(call.gate, call.mainnet);
-    let match;
-    const constRe = /const\s+([A-Z][A-Z0-9_]*)_MAINNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(scannable)) !== null) {
-        if (!consumed.has(match[1] + '_MAINNET_TIME')) add(match[1], Number(match[2]));
+    for (const d of declaredTimeConstants(scannable)) {
+        if (d.network === 'MAINNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }

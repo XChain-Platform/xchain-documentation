@@ -90,7 +90,7 @@ The indexer's API also exposes a write endpoint that the hub calls:
 
 | Method | Sent By | Purpose |
 |---|---|---|
-| `pushvalidatorrewards` | hub `RewardTracker` | Pushes `anchor_bundle` and `anchor_archive` reward rows from the hub to the indexer. `oracle_round` / `oracle_base` / `oracle_full_node` and `attest_fee` rewards are rejected by this endpoint; they are derived deterministically by the indexer during block processing and do not need to be replicated. |
+| `pushvalidatorrewards` | hub `RewardTracker` | Pushes `anchor_bundle` and `anchor_archive` reward rows from the hub to the indexer. **Retired for new anchor rewards:** at or above `ANCHOR_REWARD_ACTIVATION` (for `anchor_bundle`) and `ARCHIVE_REWARD_ACTIVATION` (for `anchor_archive`) the indexer derives the reward from the on-chain ANCHOR bytes instead, so the endpoint carries pre-flag-day history only. `oracle_round` / `oracle_base` / `oracle_full_node` and `attest_fee` rewards are rejected by this endpoint; they are derived deterministically by the indexer during block processing and do not need to be replicated. |
 
 ## VM Runtime Module
 

@@ -120,9 +120,11 @@ Fees can be paid two ways. **Native-coin fees** (BTC/LTC/DOGE) are collected at 
 
 | Bucket | `FEE_PREFERENCE` | Purpose |
 |---|---|---|
+| Default disposition | `0` | Same effect as omitting the field: treated as protocol development |
 | Destroy (burn) | `1` | Permanently removes XCHAIN from supply (deflationary) |
 | Protocol Development | `2` (default) | Funds ongoing platform development |
-| Community Development | `3` | Community grants, ecosystem growth |
+
+The accepted set is `{0, 1, 2}`, following the indexer's `validValues` for the field. A community-development bucket (`3`) has been discussed but is not accepted by consensus, so an ADDRESS action carrying a `3` indexes invalid; see [ADDRESS](../protocol/actions/address.md).
 
 ## The XCHAIN Token
 

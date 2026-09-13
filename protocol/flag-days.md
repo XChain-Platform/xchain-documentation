@@ -28,7 +28,7 @@ simultaneously on Bitcoin, Litecoin, and Dogecoin.
 | **UTC instant** | 2026-08-07 00:00:00 UTC |
 | **Gates riding it** | 37 |
 
-5 gates do not ride it and carry a date of its own: `BATCH_ISSUANCE_LIMITS` at 2026-08-16 00:00:00 UTC, `CONTRACT_DELEGATION_MATERIALIZE` at 2026-09-15 00:00:00 UTC, `DISPENSER_ORACLE_PER_TOKEN_PRICE` at 2026-09-15 00:00:00 UTC, `CROSS_CHAIN_ROYALTY` at 2027-01-01 00:00:00 UTC, `REST_PATTERN_METER` at 2027-01-01 00:00:00 UTC. Each carries the reason it is armed separately in its registration comment, in the file the **Declared in** column names below. For how a gate is evaluated and what happens to a node that misses one, see [Protocol Activation](./protocol-activation.md).
+6 gates do not ride it and carry a date of its own: `BATCH_ISSUANCE_LIMITS` at 2026-08-16 00:00:00 UTC, `CONTRACT_DELEGATION_MATERIALIZE` at 2026-09-15 00:00:00 UTC, `DISPENSER_ORACLE_PER_TOKEN_PRICE` at 2026-09-15 00:00:00 UTC, `CONTROLLER_GUARD_LEGS_STRICT` at 2027-01-01 00:00:00 UTC, `CROSS_CHAIN_ROYALTY` at 2027-01-01 00:00:00 UTC, `REST_PATTERN_METER` at 2027-01-01 00:00:00 UTC. Each carries the reason it is armed separately in its registration comment, in the file the **Declared in** column names below. For how a gate is evaluated and what happens to a node that misses one, see [Protocol Activation](./protocol-activation.md).
 
 **One gate is UNARMED on mainnet** (`UNCAPPED_MAX_SUPPLY_ZERO`): each parks the sentinel rather than an instant, so mainnet has **never** run the post-activation behavior and will not until an operator names a date. They carry no row in the table below, because publishing the sentinel as a flag day would put a commitment on this page that nobody made. Each names its reason in its registration comment in `protocol_changes.js`. This note covers the registry only; a sibling `*_activation.js` module can park a mainnet sentinel too, and those are not enumerated here.
 
@@ -80,6 +80,7 @@ post-activation behavior. 4 gates are the exception: `ISSUE_INHERITED_MINT_WINDO
 | `BATCH_ISSUANCE_LIMITS` | `1786838400` | 2026-08-16 00:00:00 UTC | own date | `protocol_changes.js` |
 | `CONTRACT_DELEGATION_MATERIALIZE` | `1789430400` | 2026-09-15 00:00:00 UTC | own date | `protocol_changes.js` |
 | `DISPENSER_ORACLE_PER_TOKEN_PRICE` | `1789430400` | 2026-09-15 00:00:00 UTC | own date | `protocol_changes.js` |
+| `CONTROLLER_GUARD_LEGS_STRICT` | `1798761600` | 2027-01-01 00:00:00 UTC | own date | `protocol_changes.js` |
 | `CROSS_CHAIN_ROYALTY` | `1798761600` | 2027-01-01 00:00:00 UTC | own date | `protocol_changes.js` |
 | `REST_PATTERN_METER` | `1798761600` | 2027-01-01 00:00:00 UTC | own date | `protocol_changes.js` |
 

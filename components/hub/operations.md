@@ -32,7 +32,7 @@ On startup, the hub:
    - Cross-chain attestation engine
    - Reorg handler
    - Governance engine
-   - Reward tracker (pushes rewards to BTC indexer) and slash detector
+   - Reward tracker (pushed anchor rewards to the BTC indexer below the anchor-reward flag-days; at or above them each indexer derives them from the ANCHOR bytes) and slash detector
    - `StateCheckpointEngine` (quorum-signs per-chain ledger/actions/contract hash checkpoints; streams to hub DB subscribers)
    - `StateAnchorPublisher` (one publisher election per bundle; commits every chain's checkpoint in one DOGE ANCHOR v0 action per network, plus the match archive, on the `ANCHOR_INTERVAL_MS` cadence)
 
@@ -445,7 +445,7 @@ The ANCHOR publisher logs `StateAnchorPublisher: DOGE balance low` and skips pub
 
 - Check the DOGE wallet balance at the address configured in `capabilities.json` under `oracle_publish.doge_address`.
 - Refill the wallet to resume publishing. Once funded, either wait for the next `ANCHOR_INTERVAL_MS` cycle or force an immediate flush with `anchorflush` (see above).
-- **Cost / runway.** Each anchor *round* broadcasts one transaction per chain (BTC + LTC + DOGE checkpoints, all on the DOGE chain) at ~0.4 DOGE/tx ≈ ~1.2 DOGE/round, plus the archive transaction(s) when there is cross-chain activity. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`) that is ~1.2 DOGE/day. To cut spend, raise `ANCHOR_CHECKPOINT_EVERY_N` (see CONFIGURATION.md → ANCHOR Publishing): `=2` anchors every other checkpoint → ~0.6 DOGE/day. Size a comfortable refill at roughly `daily_cost × desired_days` (e.g. ~60 DOGE ≈ 100 days at `EVERY_N=2`).
+- **Cost / runway.** Each anchor *round* broadcasts **one checkpoint bundle per network**, not one transaction per chain: a single ANCHOR v0 carries BTC, LTC and DOGE as sections of the same payload (see [ANCHOR](../../protocol/actions/anchor.md)), and it rides the P2SH lane, so the bundle is a funding transaction plus a reveal transaction. Pending cross-chain matches add the v1 archive head and its v2 continuation chunks on top, and on a busy cycle the archive leg dominates. Fees are **byte-driven**: they scale with the encoded payload at the venue's current fee rate, not with the number of chains, so bundling the three per-chain anchors that this layout replaced saved per-transaction overhead only, not a multiple. Get your own number rather than trusting a constant: read the fee actually paid by one cycle's anchor transactions on your venue, multiply by cycles per day (`ANCHOR_INTERVAL_MS`), then size a refill at roughly `daily_cost × desired_days` with enough margin to stay clear of the low-balance threshold, since the publisher skips publishing entirely while the wallet sits below it. To cut spend, raise `ANCHOR_CHECKPOINT_EVERY_N` (see CONFIGURATION.md → ANCHOR Publishing): it gates the whole round, so `=2` roughly halves checkpoint-leg spend at the price of an on-chain recovery point that trails the tip by up to two checkpoint intervals.
 - **Restarts are free** as of the cadence-latch fix; a hub restart restores the checkpoint cadence latch from the last persisted checkpoint and no longer fires an extra (DOGE-spending) off-schedule anchor. Look for `StateCheckpointEngine: cadence latch restored at snapshot block N` in startup logs to confirm.
 
 ### Consumers not discovering hub

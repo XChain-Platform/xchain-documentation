@@ -27,8 +27,16 @@
  *      the images/audio/video/files definitions).
  *   2. Every character bound the prose states equals the schema's maxLength.
  *   3. The worked example parses and uses no key the schema does not declare.
- *   4. v1.0.0 stays frozen: still stamped 1.0.0 and still without the gating
- *      fields, so drift is never "fixed" by rewriting a published version.
+ *   4. v1.0.0 and v1.1.0 stay frozen: each still stamped with its own version,
+ *      v1.0.0 still without the gating fields and v1.1.0 still carrying the
+ *      `["type", "data"]` media requirement v1.1.1 relaxed, so drift is never
+ *      "fixed" by rewriting a published version.
+ *   5. A media entry carrying only `data_ref` satisfies the CURRENT schema's
+ *      media requirement, and an entry carrying neither `data` nor `data_ref`
+ *      still fails it. The pair runs the requirement rather than asserting it:
+ *      v1.1.0 required `data` outright and so rejected the fully on-chain form
+ *      the prose recommends, and a one-sided check would have passed on the
+ *      relaxed schema and on a schema that required nothing at all.
  *
  * FLOORS, BECAUSE A PARSER THAT MATCHES NOTHING READS AS GREEN. A markdown
  * table lint that silently stops matching passes forever. The row floors below
@@ -47,7 +55,7 @@ const DOC_ROOT = path.join(__dirname, '..');
 const SPEC     = path.join(DOC_ROOT, 'protocol/token-information-standard.md');
 const JSON_DIR = path.join(DOC_ROOT, 'protocol/json');
 
-const CURRENT = '1.1.0';
+const CURRENT = '1.1.1';
 const MEDIA   = ['images', 'audio', 'video', 'files'];
 
 // A row is `| field | Type | Description`. The header and the `| :--- |`
@@ -203,6 +211,52 @@ describe('TIS field table / schema coverage', () => {
             for (const field of ['title', 'data_ref', 'locked', 'pack_id'])
                 assert.equal(field in published.definitions[def].properties, false,
                     `v1.0.0 ${def}.${field} appeared; publish v${CURRENT} instead`);
+    });
+
+    test('v1.1.0 stays frozen at what it published', () => {
+        const published = readJson('token-information-standard-v1.1.0-schema.json');
+        assert.equal(published.version, '1.1.0');
+        for (const def of MEDIA)
+            assert.deepEqual(published.definitions[def].required, ['type', 'data'],
+                `v1.1.0 ${def}.required moved; a published version is superseded, never edited`);
+    });
+
+    test('a data_ref-only media entry satisfies the current schema, and an entry with neither does not', () => {
+        // Runs the requirement the way a validator does: every name in `required`
+        // must be present, and when the definition carries an `anyOf` of required
+        // clauses at least one branch must also be satisfied.
+        const satisfies = (def, entry) => {
+            for (const name of def.required || [])
+                if (!(name in entry)) return false;
+            if (!Array.isArray(def.anyOf)) return true;
+            return def.anyOf.some((branch) =>
+                (branch.required || []).every((name) => name in entry));
+        };
+
+        const frozen = readJson('token-information-standard-v1.1.0-schema.json');
+        for (const name of MEDIA) {
+            const def  = schema.definitions[name];
+            const type = (def.properties.type.enum || ['other'])[0];
+
+            assert.equal(satisfies(def, { type, data_ref: 'action:12345' }), true,
+                `v${CURRENT} ${name} rejects a data_ref-only entry, which is the fully ` +
+                'on-chain form this standard recommends');
+            assert.equal(satisfies(def, { type, data: 'https://domain.com/f' }), true,
+                `v${CURRENT} ${name} rejects a data-only entry, which every published ` +
+                'document uses');
+            assert.equal(satisfies(def, { type }), false,
+                `v${CURRENT} ${name} accepts an entry carrying neither data nor data_ref, ` +
+                'so the requirement is gone rather than relaxed');
+            assert.equal(satisfies(def, { data_ref: 'action:12345' }), false,
+                `v${CURRENT} ${name} accepts an entry with no type`);
+
+            // The negative control for the checker itself: the same data_ref-only
+            // entry must still fail against the frozen v1.1.0 definition, which is
+            // the defect v1.1.1 exists to fix.
+            assert.equal(satisfies(frozen.definitions[name], { type, data_ref: 'action:12345' }), false,
+                `v1.1.0 ${name} accepts a data_ref-only entry, so this checker cannot ` +
+                'tell the relaxed schema from the frozen one');
+        }
     });
 
     test(`the current schema and example are stamped v${CURRENT}`, () => {

@@ -144,7 +144,7 @@ The indexer uses database savepoints to ensure these guarantees extend to the pe
 
 ## Syntax Validation (Deploy-Time)
 
-Before a contract is deployed, `vm.validateSyntax(code)` runs the following checks in order. The V8 syntax check blocks a deploy via a separate early return and is not itself a `lint-core.CONSENSUS_RULES` member; checks 2-8 below are all deploy-blocking consensus rules (`invalid-type`, `unsupported-syntax`, `reserved-identifier`, `banned-math`, `banned-literal`, `banned-async`, `banned-generator`, `banned-wasm`), and all must pass or the DEPLOY action is rejected:
+Before a contract is deployed, `vm.validateSyntax(code)` runs the following checks in order. The V8 syntax check blocks a deploy via a separate early return and is not itself a `lint-core.CONSENSUS_RULES` member; checks 2-9 below are all deploy-blocking consensus rules (`invalid-type`, `unsupported-syntax`, `reserved-identifier`, `banned-math`, `banned-literal`, `banned-async`, `banned-generator`, `banned-rest`, `banned-wasm`), and all must pass or the DEPLOY action is rejected:
 
 1. **V8 syntax check**: compiles the code in a throwaway 8 MB isolate to catch syntax errors (the only step requiring `isolated-vm`)
 2. **Acorn metering pass**: runs `meterCode()` to ensure acorn can parse the source (effective ES2020 ceiling)
@@ -153,7 +153,8 @@ Before a contract is deployed, `vm.validateSyntax(code)` runs the following chec
 5. **Banned literal check**: rejects BigInt literals (e.g. `10n`) and RegExp literals (e.g. `/foo/`). BigInt arithmetic is unmetered native computation; catastrophic RegExp backtracking is unmetered and can burn heavy CPU for near-zero gas.
 6. **Banned async check** (consensus-gated): rejects `async` functions, `await` expressions, and `Promise` references after the `VM_BANNED_ASYNC` flag-day. The CONTRACT_WRAPPER invokes exports synchronously; an async export returns a pending Promise whose post-`await` effects depend on isolated-vm's version-dependent microtask-drain timing, which is outside the consensus-runtime pin and can diverge across validators. Under `VM_LINT_HARDENING` this also rejects dynamic `import(...)` (it evaluates to a Promise).
 7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): rejects `function*`, generator methods, and any `yield`; live from genesis on testnet/regtest.
-8. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest.
+8. **Banned rest-pattern check** (consensus-gated, its own [`REST_PATTERN_METER`](../../protocol/flag-days.md) gate, not the Pkg 3 one): rejects a rest pattern in the four positions the metering transform cannot charge, because it charges a rest destructure by wrapping the source expression and these have none: a rest parameter in a function parameter list, a nested rest inside a destructuring pattern, a catch-clause rest, and a rest in a `for-of`/`for-in` loop head. Live from genesis on testnet/regtest, and on mainnet at/after that gate's block time; the `xchain-lint` CLI and the SDK linter enforce it today by default.
+9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest.
 
 ```mermaid
 flowchart TD
@@ -165,7 +166,8 @@ flowchart TD
     S5{"5. Banned literal check"}
     S6{"6. Banned async check (VM_BANNED_ASYNC flag-day)"}
     S7{"7. Banned generator check (live from genesis, testnet/regtest)"}
-    S8{"8. Banned WebAssembly check (live from genesis, testnet/regtest)"}
+    S8{"8. Banned rest-pattern check (REST_PATTERN_METER gate)"}
+    S9{"9. Banned WebAssembly check (live from genesis, testnet/regtest)"}
     ACCEPT["DEPLOY accepted"]
     REJECT["DEPLOY rejected"]
 
@@ -184,8 +186,10 @@ flowchart TD
     S6 -->|"clean, or flag-day not active"| S7
     S7 -->|"generator or yield found"| REJECT
     S7 -->|"clean"| S8
-    S8 -->|"WebAssembly reference found"| REJECT
-    S8 -->|"clean"| ACCEPT
+    S8 -->|"unmeterable rest pattern found, gate active"| REJECT
+    S8 -->|"clean, or gate not active"| S9
+    S9 -->|"WebAssembly reference found"| REJECT
+    S9 -->|"clean"| ACCEPT
 ```
 
 `vm.checkFloatWarnings(code)` additionally scans for non-integer number literals and returns warnings (non-blocking).
