@@ -14,7 +14,7 @@
  *
  * WHY. Inline DEPLOY v0/v1 contract code is base64 at and after the
  * DEPLOY_BASE64_CODE activation and hex before it. The indexer round-trips the
- * field and rejects non-canonical base64 (xchain-indexer/src/actions/deploy.js),
+ * field and rejects non-canonical base64 (xchain-indexer/src/actions/deploy/index.js),
  * and protocol_changes enables the branch from genesis on testnet and regtest,
  * so a hex worked example has never run on the networks a developer tries
  * first. Mainnet passed the flag day on 2026-08-07.

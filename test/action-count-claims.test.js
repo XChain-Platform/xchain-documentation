@@ -118,7 +118,7 @@ const SCOPED = [
        + 'scan, and the gate gates the commit. count-action-suites.js scans the working tree, so '
        + 'its file tally runs ahead of this number whenever a lane holds unlanded suites' },
   { file: 'components/indexer/architecture.md', claim: '48 action', count: 1,
-    why: 'handler classes in xchain-indexer src/actions.js, not the ACTION set; '
+    why: 'handler classes in xchain-indexer src/actions/index.js, not the ACTION set; '
        + 'requires, instantiations and dispatch cases all counted 48 on 2026-08-06' },
   { file: 'components/indexer/actions.md', claim: '21 actions', count: 1,
     why: 'the subset registered at protocol version 1.0.0; 21 + 16 = 37 on the same page' },

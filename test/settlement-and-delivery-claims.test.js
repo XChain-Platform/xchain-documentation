@@ -196,7 +196,7 @@ test('the ownership-sale and key-handoff source facts still hold', { skip: skipN
         'transferTokenOwnership now emits a MESSAGE. If an ownership sale delivers key '
         + 'material, use-cases.md\'s archive bullet must change back.');
 
-    const crossSettle = readSrc('actions/cross_settle.js');
+    const crossSettle = readSrc('actions/cross_settle/index.js');
     assert.match(crossSettle, /transferTokenOwnership\(/,
         'cross_settle.js no longer settles an ownership leg locally, which is the fact behind '
         + 'the "each chain hands over its own side" wording');
