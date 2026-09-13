@@ -224,6 +224,11 @@ Caps on the live-update channel indexers subscribe to. See [API](api.md#get-hub-
 | `WS_BACKPRESSURE_LIMIT` | No | `50` | Buffered messages a slow subscriber may accumulate before its connection is dropped |
 | `WS_WATERMARK_INTERVAL_MS` | No | `10000` | Interval between `watermark` heartbeats, which let a subscriber tell "the mirror is behind" apart from "no rows are being produced" |
 | `WS_WATERMARK_LATE_FACTOR` | No | `2` | Multiple of `WS_WATERMARK_INTERVAL_MS` after which a heartbeat gap counts as late and is logged; `getWatermarkStats()` exposes the tally on `/health`. A value below `1` would mark an exactly-on-time tick late, so anything under `1` falls back to the default rather than raising permanent false alarms |
+| `XDEX_ROUND_TIMEOUT_MS` | No | `120000` | The single-round timeout of the cross-chain consensus rail (matches, calls, bridge transfers and policy snapshots), in milliseconds. The admission watermark reads it to size that rail's default terminal bound. A zero, negative or non-numeric value falls back to the default. |
+| `XDEX_ROUND_MAX_LIFETIME_MS` | No | `4 × XDEX_ROUND_TIMEOUT_MS` | The terminal bound of a cross-chain round, in milliseconds. A view change re-arms the single-round timeout on a round that is still open, so the watermark trails by this lifetime rather than by one timeout. Widen it together with the rail's rounds. |
+| `ADMISSION_ORACLE_INGEST_WINDOW_MS` | No | `600000` | How far the hub's ingest of on-chain `PRICE` v1 rows may trail the chain it reads before the admission watermark stops waiting for it, in milliseconds. The oracle price table has no consensus round, so this is its only bound. |
+| `HUB_ADMISSION_RELAY` | No | _(unset)_ | Set to `1` or `true` on a relay hub that serves a mirrored copy of another hub's database. A relay observes no rounds, so it claims no admission height of its own: it republishes its upstream's entry verbatim or none, and its indexers defer fail-closed. |
+| `ADMISSION_WATERMARK_SAMPLE_MS` | No | `30000` | How often the hub samples the admission height watermark it publishes on these frames, in milliseconds. Sampling starts only once a hub source is attached. |
 
 ### Indexer tip freshness
 
@@ -237,6 +242,7 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 | `MAX_INDEXER_LAG_BLOCKS` | No | `200` | Maximum blocks the BTC indexer may lag before its tip is treated as untrustworthy and ignored, degrading gracefully instead of locking in a stale validator set. |
 | `MAX_TIP_AGE_S` | No | `2 × ORACLE_ROUND_INTERVAL` (seconds) | Maximum age of the indexer-pushed BTC tip before it is considered stale. Rejecting it costs one HTTP call: the hub falls through to a direct `getlatestblock`. |
 | `MAX_DIRECT_TIP_AGE_S` | No | `7200` (seconds) | Age at which the hub stops trusting a direct `getlatestblock` height that has **not** advanced past the pushed tip just rejected, and reports no BTC tip at all. Separate from `MAX_TIP_AGE_S` on purpose: this gate is terminal, so its bound is sized so an ordinary long block gap on a healthy chain never trips it. A height that beats the pushed tip is always accepted, whatever the tip's age. |
+| `ADMISSION_TIP_MAX_AGE_S` | No | `6 × the chain's block interval` (seconds) | How long a chain's decoder tip may stay at one height before the hub treats it as stalled when resolving an admission height. The default is a block count, so it scales with each chain: about an hour on BTC, 15 minutes on LTC and 6 minutes on DOGE. A zero, negative or non-numeric value uses the default. |
 | `INDEXER_COIN_CHECK` | No | enabled | Set to `0` to disable the per-coin indexer reachability check. |
 
 ### Oracle
