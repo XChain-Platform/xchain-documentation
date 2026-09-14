@@ -122,12 +122,14 @@ Detailed health status including decoder state.
 | `blockLag` | `integer\|null` | Alias for `lag` (convenience copy) |
 | `lag_blocks` | `integer\|null` | Live lag computed from internal decoder state; `null` when either height is still unknown (before the first `getBlockchainInfo`, or nothing processed yet) rather than a misleading `0`. May differ slightly from `lag` during rapid catch-up |
 | `node_height_stale` | `boolean` | Present and `true` when the last successful node-tip poll is more than two refresh intervals old (node outage): `node_height` is then frozen, so a zero `lag` does not mean caught-up |
-| `reorg_halted` | `boolean` | `true` while the database carries a live durable REORG_HALT marker (see [Decoder halted after a deep reorg](#decoder-halted-after-a-deep-reorg-reorg_halt)). The decoder keeps parsing and `status` stays `"healthy"`; the next reorg will stop it |
+| `reorg_halted` | `boolean` | `true` while the database carries a live durable REORG_HALT marker (see [Decoder halted after a deep reorg](#decoder-halted-after-a-deep-reorg-reorg_halt)). The decoder keeps parsing and `status` stays `"healthy"`; the next reorg parks it (see `reorg_halt_parked`) |
 | `reorg_halt_reason` | `string\|null` | Why the halt was written |
 | `reorg_halted_at` | `string\|null` | When the halt was written (ISO 8601) |
 | `reorg_halt_cleared_at` | `string\|null` | When an operator cleared the last halt with `clear-reorg-halt`; `null` while a halt is live or none was recorded |
 | `reorg_halt_cleared_reason` | `string\|null` | The reason the operator recorded with that clear |
 | `reorg_halt_checked_at` | `integer\|null` | Epoch ms of the last marker probe (cached for one minute) |
+| `reorg_halt_parked` | `boolean` | `true` once the parse loop has stopped on the halt and is waiting for the clear. `false` on a decoder that carries the marker but is still parsing forward, which is the only thing that separates the two |
+| `reorg_halt_parked_at` | `string\|null` | When the parse loop parked (ISO 8601); `null` when it is not parked |
 | `rpc_errors` | `integer` | Combined RPC error count from the decoder and its `BlockchainConnector` |
 | `parse_errors` | `integer` | Number of transactions quarantined due to parse failures |
 | `error` | `string\|null` | Error message if the decoder crashed, otherwise `null` |
@@ -268,7 +270,9 @@ Mempool tracking pauses if the decoder falls more than 3 blocks behind the tip, 
 
 ### Decoder halted after a deep reorg (REORG_HALT)
 
-Symptoms: the log printed `LATENT REORG_HALT MARKER PRESENT` once at startup, `health` reports `reorg_halted: true`, or `xchain-node ps` shows `running REORG_HALT` on the decoder. The decoder still parses forward; it will stop at the next reorg.
+Symptoms: the log printed `LATENT REORG_HALT MARKER PRESENT` once at startup, `health` reports `reorg_halted: true`, or `xchain-node ps` shows `running REORG_HALT` on the decoder. The decoder still parses forward; the next reorg parks it.
+
+A halted decoder stays up. When a reorg reaches the marker the parse loop parks instead of exiting: the container keeps running at a stable restart count, the API keeps answering, and `health`, `/status` and `/live` report `reorg_halt_parked: true` beside `reorg_halted: true`, which is what tells a parked decoder apart from one still parsing forward on a dormant marker. `xchain-node ps` shows `REORG_HALT` against that steady count rather than a climbing one. The parked loop re-reads the marker every 60 seconds, so once the audited clear below lands, the decoder logs one line and resumes parsing from its stored tip on its own, with no restart.
 
 Confirm it (this is the decoder's own marker; the `sync_halt` table in the same database belongs to xchain-sync and is a different signal):
 

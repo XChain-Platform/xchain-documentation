@@ -151,6 +151,16 @@ Three things follow from the formula:
 - **A host that cannot afford the floor is told.** When half the host divided by the tracker count falls under 1024 MB, each tracker still gets 1024 MB and `install` prints a warning that the host is oversubscribed; run fewer chains there.
 - **Only the tracker is limited by default.** The decoder, indexer and hub do not size themselves to a cgroup limit, so a limit on them turns a transient spike (a large mempool batch, a deep reorg) into an OOM kill and a restart loop. Cap one explicitly with `XCHAIN_NODE_MODULE_MEMORY_MB_<SERVICE>` only after measuring it.
 
+**Confirm the limit landed.** A kernel without the memory cgroup controller does not refuse `--memory`. Docker takes the flag, prints `WARNING: Your kernel does not support memory limit capabilities or the cgroup is not mounted. Limitation discarded.`, exits successfully, and creates the container with no limit at all. Two reads say whether that happened. Ask Docker what the container got:
+
+```bash
+docker inspect -f '{{.HostConfig.Memory}}' xchain-node-dogecoin-mainnet-xchain-utxo-tracker
+```
+
+A non-zero byte count is the limit in force; `0` means the tracker is running on the whole host. The tracker's own boot line agrees: `docker logs` on it prints `memory budget NNNNMB (cgroup limit)` when a limit binds, and `(host memory)` when none does. `xchain-node` performs this check itself after every create and warns when the limit did not stick, but the two commands above confirm it at any time.
+
+Raspberry Pi OS ships with the memory cgroup controller off, which is the usual cause. Append `cgroup_enable=memory cgroup_memory=1` to the single line in `/boot/firmware/cmdline.txt`, reboot, then run `xchain-node recreate xchain-utxo-tracker all all` so every tracker is created again with its limit. On any other host, run `docker info` and look for `No memory limit support` among its warnings.
+
 To override the derivation for a tracker, either set the container limit (`XCHAIN_NODE_MODULE_MEMORY_MB_XCHAIN_UTXO_TRACKER=4096` before `recreate`; the tracker re-derives its slices from the new limit) or set the slices themselves in the tracker's environment (`LEVELDB_CACHE_BYTES`, `HEAP_FLUSH_THRESHOLD_MB`, `BULK_SYNC_RAM_BUDGET`), documented on the [utxo-tracker configuration](../components/utxo-tracker/configuration.md#memory-budget) page. Setting a slice larger than the container limit allows is the one combination to avoid: the kernel enforces the limit, not the tracker.
 
 ### Disk I/O on a multi-chain host
