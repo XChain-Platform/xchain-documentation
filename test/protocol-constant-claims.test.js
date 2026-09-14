@@ -246,7 +246,7 @@ test('prose command counts for the BATCH cap match the canonical value', () => {
  * protocol/constants.js is this repo's canonical copy, but the number that
  * actually runs lives in two sibling repos, each with its own literal:
  * xchain-indexer/src/actions/batch.js (`this.commandLimit`) and
- * xchain-sdk/src/batchLimits.js (`BATCH_COMMAND_LIMIT`). Prose drifting from
+ * xchain-sdk/src/protocol/batch_limits.js (`BATCH_COMMAND_LIMIT`). Prose drifting from
  * this file is the smaller failure mode; code drifting from this file, or
  * the two services drifting from each other, is the one that actually
  * breaks something on chain.
@@ -259,7 +259,7 @@ test('prose command counts for the BATCH cap match the canonical value', () => {
  * in this directory uses.
  */
 const INDEXER_BATCH = path.resolve(ROOT, '../xchain-indexer/src/actions/batch.js');
-const SDK_BATCH_LIMITS = path.resolve(ROOT, '../xchain-sdk/src/batchLimits.js');
+const SDK_BATCH_LIMITS = path.resolve(ROOT, '../xchain-sdk/src/protocol/batch_limits.js');
 const haveIndexerBatch = fs.existsSync(INDEXER_BATCH);
 const haveSdkBatchLimits = fs.existsSync(SDK_BATCH_LIMITS);
 
@@ -294,7 +294,7 @@ test('xchain-sdk BATCH_COMMAND_LIMIT matches the canonical value',
   { skip: !haveSdkBatchLimits && 'sibling xchain-sdk not present in this checkout' }, () => {
     const src = fs.readFileSync(SDK_BATCH_LIMITS, 'utf8');
     const m = /const\s+BATCH_COMMAND_LIMIT\s*=\s*(\d+)\s*;/.exec(src);
-    assert.ok(m, 'BATCH_COMMAND_LIMIT declaration not found in xchain-sdk/src/batchLimits.js; '
+    assert.ok(m, 'BATCH_COMMAND_LIMIT declaration not found in xchain-sdk/src/protocol/batch_limits.js; '
       + 'the declaration shape changed, re-point this regex');
     assert.strictEqual(Number(m[1]), CONSTANTS.BATCH_COMMAND_LIMIT,
       `xchain-sdk's BATCH_COMMAND_LIMIT is ${m[1]}, but protocol/constants.js BATCH_COMMAND_LIMIT `
@@ -308,7 +308,7 @@ test('xchain-sdk BATCH_COMMAND_LIMIT matches the canonical value',
  * and the numbers again live in three places: protocol/constants.js
  * (BATCH_WEIGHT_BUDGET and BATCH_COMMAND_WEIGHTS, canonical),
  * xchain-indexer/src/actions/batch.js (`this.weightBudget` and the
- * `this.commandWeights[...]` assignments) and xchain-sdk/src/batchLimits.js
+ * `this.commandWeights[...]` assignments) and xchain-sdk/src/protocol/batch_limits.js
  * (`BATCH_WEIGHT_BUDGET` and the `BATCH_COMMAND_WEIGHTS` literal). These are
  * consensus values: a budget that drifts moves batch verdicts, and a weight
  * table that drifts moves them per action, either of which forks the SDK's
@@ -330,7 +330,7 @@ test('xchain-sdk BATCH_WEIGHT_BUDGET matches the canonical value',
   { skip: !haveSdkBatchLimits && 'sibling xchain-sdk not present in this checkout' }, () => {
     const src = fs.readFileSync(SDK_BATCH_LIMITS, 'utf8');
     const m = /const\s+BATCH_WEIGHT_BUDGET\s*=\s*(\d+)\s*;/.exec(src);
-    assert.ok(m, 'BATCH_WEIGHT_BUDGET declaration not found in xchain-sdk/src/batchLimits.js; '
+    assert.ok(m, 'BATCH_WEIGHT_BUDGET declaration not found in xchain-sdk/src/protocol/batch_limits.js; '
       + 'the declaration shape changed, re-point this regex');
     assert.strictEqual(Number(m[1]), CONSTANTS.BATCH_WEIGHT_BUDGET,
       `xchain-sdk's BATCH_WEIGHT_BUDGET is ${m[1]}, but protocol/constants.js BATCH_WEIGHT_BUDGET `
@@ -357,7 +357,7 @@ test('xchain-sdk BATCH_COMMAND_WEIGHTS matches the canonical table',
   { skip: !haveSdkBatchLimits && 'sibling xchain-sdk not present in this checkout' }, () => {
     const src = fs.readFileSync(SDK_BATCH_LIMITS, 'utf8');
     const block = /const\s+BATCH_COMMAND_WEIGHTS\s*=\s*Object\.freeze\(\{([^}]*)\}\)/.exec(src);
-    assert.ok(block, 'BATCH_COMMAND_WEIGHTS literal not found in xchain-sdk/src/batchLimits.js; '
+    assert.ok(block, 'BATCH_COMMAND_WEIGHTS literal not found in xchain-sdk/src/protocol/batch_limits.js; '
       + 'the declaration shape changed, re-point this regex');
     const table = {};
     const entry = /([A-Z]+)\s*:\s*(\d+)/g;

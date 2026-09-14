@@ -43,7 +43,7 @@ const ROOT = path.join(__dirname, '..');
 const SPECS = path.join(ROOT, 'protocol', 'actions');
 const SDK = path.join(ROOT, '..', 'xchain-sdk', 'src');
 const SDK_MAIN = path.join(SDK, 'XChainSDK.js');
-const SDK_SESSION = path.join(SDK, 'walletSession.js');
+const SDK_SESSION = path.join(SDK, 'utils', 'wallet_session.js');
 const haveSdk = fs.existsSync(SDK_MAIN) && fs.existsSync(SDK_SESSION);
 
 /** Actions that exist but are never user-submittable, so never in the SDK. */

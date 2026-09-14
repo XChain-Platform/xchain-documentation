@@ -256,7 +256,7 @@ Thrown by `AgentSession.submit()` when a declarative spending policy check fails
 
 ### SDKX402Error
 
-Thrown by the `X402Gateway` and `X402Client` during HTTP 402 payment flows. See `src/x402.js`.
+Thrown by the `X402Gateway` and `X402Client` during HTTP 402 payment flows. See `src/utils/x402.js`.
 
 | Code | Description |
 |------|-------------|
