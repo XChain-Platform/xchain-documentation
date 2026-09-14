@@ -7,7 +7,7 @@
 
 xchain-node uses a two-layer configuration system to generate environment variables for each managed service:
 
-1. **Hardcoded defaults**: defined in `ConfigService.js` for each module type (40+ variables per coin-specific service)
+1. **Hardcoded defaults**: defined in `config_service.js` for each module type (40+ variables per coin-specific service)
 2. **Config file overrides**: read from `config/{coin}-{network}` files in `KEY=VALUE` format
 
 Config files are plain text with one variable per line. Values containing `=` (such as base64 tokens or passwords) are handled correctly; only the first `=` on each line is treated as the separator. Blank lines and lines without `=` are skipped.
@@ -286,10 +286,10 @@ Without these overrides the small `/` partition fills the moment a bootstrap is 
 
 | Constant | Value | Location | Description |
 |---|---|---|---|
-| `NODE_PREFIX` | `xchain-node` | constants.js | Prefix for all Docker container and network names |
-| `SEP` | `-` | constants.js | Separator for Docker naming (`xchain-node-bitcoin-mainnet`) |
-| `DB_SEP` | `_` | constants.js | Separator for database naming (`xchain_decoder_bitcoin_mainnet`) |
-| `DB_NAME` | `xchain_node` | CredentialsService.js | MariaDB database name used to store module state |
+| `NODE_PREFIX` | `xchain-node` | config/index.js | Prefix for all Docker container and network names |
+| `SEP` | `-` | config/index.js | Separator for Docker naming (`xchain-node-bitcoin-mainnet`) |
+| `DB_SEP` | `_` | config/index.js | Separator for database naming (`xchain_decoder_bitcoin_mainnet`) |
+| `DB_NAME` | `xchain_node` | credentials_service.js | MariaDB database name used to store module state |
 
 ### NODE_PREFIX Validation
 

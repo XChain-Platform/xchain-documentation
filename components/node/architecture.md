@@ -37,7 +37,7 @@ Each coin/network combination (e.g., bitcoin/regtest) gets its own Docker networ
 flowchart TD
     subgraph NODEBOX["xchain-node"]
         CLI["cli.js<br>Commander<br>21 commands"]
-        MODOPS["moduleOperations.js<br>installModules / startModules /<br>stopModules / restartModules /<br>uninstallModules / resetModules"]
+        MODOPS["module_operations.js<br>installModules / startModules /<br>stopModules / restartModules /<br>uninstallModules / resetModules"]
         PRECHECK["precheck.js<br>Docker check<br>Dir creation<br>MariaDB open<br>Version fetch"]
         MODSVC["ModuleService<br>cloneGit()<br>buildAndUp()<br>uninstallModule()"]
         CONFIGSVC["ConfigService"]
@@ -70,28 +70,28 @@ flowchart TD
 | `src/cli.js` | Commander.js CLI definitions (21 commands, global options, preAction hook) |
 | `src/precheck.js` | Pre-command validation (Docker, directories, MariaDB connection, versions, networks) |
 | `src/state.js` | Singleton state (MariaDB pool instance, cached modules, verbose flag) |
-| `src/MariaDbStore.js` | MariaDB-backed store for module to container ID persistence; persists mappings in the `xchain_node.modules` table inside the shared `xchain-node-database` container (the same container that managed services use for their decoder/indexer databases) |
-| `src/config/constants.js` | Enums (Coin, Network, XChainService), paths, git URLs |
-| `src/services/ConfigService.js` | Path/naming helpers, config generation, arg parsing, port validation |
-| `src/services/DockerService.js` | Docker CLI wrappers (network, build, run, start, stop, exec, logs, monitor) |
-| `src/services/ModuleService.js` | Git clone, Docker build/run, install/uninstall/update flows |
-| `src/services/DatabaseService.js` | MariaDB container setup, user/password management, database creation |
-| `src/services/StatusService.js` | Container status queries, version display, formatted table output |
-| `src/services/VersionService.js` | Local/remote/container version checking via GitHub API |
-| `src/services/NodeService.js` | Crypto node download and Docker image building |
-| `src/services/HubService.js` | Hub installation, update, and JSON-RPC configuration |
-| `src/services/ExplorerService.js` | Explorer installation and configuration |
-| `src/services/BootstrapService.js` | Bootstrap snapshot create/restore with SHA-256 verification; creates Ed25519 signatures on `bootstrap create` when `XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY` is set, and enforces signature verification on restore (fail-closed by default) |
-| `src/services/TelemetryService.js` | Anonymous usage telemetry: collects install ID, version, running services, and OS info; sends to the hub collector; default-on with opt-out via `--no-telemetry`, `XCHAIN_NODE_NO_TELEMETRY=1`, or a persisted preference |
-| `src/services/CredentialsService.js` | Persists per-OS-user MariaDB credentials in `~/.xchain-node/credentials.json`; stores both the bundled-DB password and optional external-DB connection details |
-| `src/services/DiscoveryService.js` | Auto-discovers existing xchain-node Docker containers and re-registers them in the MariaDB modules table (`sync` command); classifies containers by naming convention to recover state after a database loss |
-| `src/services/ValidatorService.js` | Validator-mode onboarding: generates Ed25519 signing keys and writes validator config files (`validator init`); reads and displays persisted validator settings (`validator status`); injects resulting env vars into the hub container |
-| `src/operations/moduleOperations.js` | Bulk operations (install/start/stop/restart/reset/exec/logs/monitor) |
-| `src/HubConnector.js` | JSON-RPC 2.0 client for xchain-hub |
-| `src/ExplorerConnector.js` | JSON-RPC 2.0 client for xchain-explorer |
-| `src/TelemetryConnector.js` | HTTP client that posts telemetry pings to the central hub collector; URL overrideable via `XCHAIN_NODE_TELEMETRY_URL` |
+| `src/db/modules.js` | MariaDB-backed store for module to container ID persistence; persists mappings in the `xchain_node.modules` table inside the shared `xchain-node-database` container (the same container that managed services use for their decoder/indexer databases) |
+| `src/config/index.js` | Enums (Coin, Network, XChainService), paths, git URLs |
+| `src/services/config_service.js` | Path/naming helpers, config generation, arg parsing, port validation |
+| `src/services/docker_service.js` | Docker CLI wrappers (network, build, run, start, stop, exec, logs, monitor) |
+| `src/services/module_service.js` | Git clone, Docker build/run, install/uninstall/update flows |
+| `src/services/database_service.js` | MariaDB container setup, user/password management, database creation |
+| `src/services/status_service.js` | Container status queries, version display, formatted table output |
+| `src/services/version_service.js` | Local/remote/container version checking via GitHub API |
+| `src/services/node_service.js` | Crypto node download and Docker image building |
+| `src/services/hub_service.js` | Hub installation, update, and JSON-RPC configuration |
+| `src/services/explorer_service.js` | Explorer installation and configuration |
+| `src/services/bootstrap_service.js` | Bootstrap snapshot create/restore with SHA-256 verification; creates Ed25519 signatures on `bootstrap create` when `XCHAIN_NODE_BOOTSTRAP_SIGNING_KEY` is set, and enforces signature verification on restore (fail-closed by default) |
+| `src/services/telemetry_service.js` | Anonymous usage telemetry: collects install ID, version, running services, and OS info; sends to the hub collector; default-on with opt-out via `--no-telemetry`, `XCHAIN_NODE_NO_TELEMETRY=1`, or a persisted preference |
+| `src/services/credentials_service.js` | Persists per-OS-user MariaDB credentials in `~/.xchain-node/credentials.json`; stores both the bundled-DB password and optional external-DB connection details |
+| `src/services/discovery_service.js` | Auto-discovers existing xchain-node Docker containers and re-registers them in the MariaDB modules table (`sync` command); classifies containers by naming convention to recover state after a database loss |
+| `src/services/validator_service.js` | Validator-mode onboarding: generates Ed25519 signing keys and writes validator config files (`validator init`); reads and displays persisted validator settings (`validator status`); injects resulting env vars into the hub container |
+| `src/operations/module_operations.js` | Bulk operations (install/start/stop/restart/reset/exec/logs/monitor) |
+| `src/services/hub_connector.js` | JSON-RPC 2.0 client for xchain-hub |
+| `src/services/explorer_connector.js` | JSON-RPC 2.0 client for xchain-explorer |
+| `src/services/telemetry_connector.js` | HTTP client that posts telemetry pings to the central hub collector; URL overrideable via `XCHAIN_NODE_TELEMETRY_URL` |
 
-| `src/GitHubDownloader.js` | GitHub release download with SHA-256 hash verification |
+| `src/services/github_downloader.js` | GitHub release download with SHA-256 hash verification |
 | `src/utils/helpers.js` | Utilities (sleep, stringToCoin, decompressTarGz) |
 
 ## Precheck Workflow

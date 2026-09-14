@@ -285,7 +285,7 @@ describe('scanSource across line boundaries', () => {
         assert.equal(found.get('SENTINEL')[0].line, 1);
     });
 
-    // xchain-node/src/services/EncoderMaintenanceWindow.js:46-47, verbatim.
+    // xchain-node/src/services/encoder_maintenance_window.js:46-47, verbatim.
     test('the semicolon-less wrapped read in xchain-node is no longer exempt', () => {
         const found = scanSource([
             'const SENTINEL_PATH = process.env.XCHAIN_NODE_ENCODER_MAINTENANCE_FILE',
