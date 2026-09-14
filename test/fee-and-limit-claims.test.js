@@ -52,6 +52,21 @@ const COIN_JS   = ['BTC', 'LTC', 'DOGE'].map((c) => [c, path.join(INDEXER, 'coin
 const haveConfig = fs.existsSync(CONFIG_JS);
 const haveCoins  = COIN_JS.every(([, p]) => fs.existsSync(p));
 
+/* Those two flags skip the source half for a bare clone. A run that declared the sibling
+ * supplied (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set, with
+ * xchain-indexer in .ci-siblings) fails here instead, so a dropped checkout cannot leave
+ * every fee and limit claim uncompared while the file still reports green. */
+if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !(haveConfig && haveCoins)) {
+    test('the sibling xchain-indexer sources the fee and limit claims read are present', () => {
+        const missing = [!haveConfig && CONFIG_JS]
+            .concat(COIN_JS.filter(([, p]) => !fs.existsSync(p)).map(([, p]) => p))
+            .filter(Boolean);
+        assert.fail(`XCHAIN_REQUIRE_SIBLINGS=1 but ${missing.length} xchain-indexer source(s) are `
+            + `not readable:\n  ${missing.join('\n  ')}\nCheck the sibling out beside this repo `
+            + 'rather than letting the fee and limit claims pass by skipping.');
+    });
+}
+
 const readDoc  = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const normalize = (s) => s.replace(/[\s`]/g, '');
 

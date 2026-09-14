@@ -57,6 +57,17 @@ const INDEXER  = path.resolve(path.join(__dirname, '..'), '../xchain-indexer/src
 const haveIndexer = fs.existsSync(path.join(INDEXER, 'actions', 'order.js'));
 const skipNoIndexer = !haveIndexer && 'sibling xchain-indexer not present in this checkout';
 
+/* The skip above is for a bare clone. A run that declared the sibling supplied
+ * (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set, with xchain-indexer
+ * in .ci-siblings) fails here instead, so a dropped checkout cannot leave the source half
+ * uncompared while the file still reports green. */
+if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !haveIndexer) {
+    test('the sibling xchain-indexer checkout the source half reads is present', () => {
+        assert.fail(`XCHAIN_REQUIRE_SIBLINGS=1 but xchain-indexer is not checked out at ${INDEXER}. `
+            + 'Check it out beside this repo rather than letting the source assertions skip.');
+    });
+}
+
 const readSrc = (rel) => fs.readFileSync(path.join(INDEXER, rel), 'utf8');
 const readDoc = (rel) => fs.readFileSync(path.join(DOC_ROOT, rel), 'utf8');
 

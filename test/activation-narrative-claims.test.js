@@ -60,6 +60,18 @@ const PAGE = fs.readFileSync(path.join(DOC_ROOT, PAGE_REL), 'utf8');
 const CONSTANTS = require(path.join(DOC_ROOT, 'protocol', 'constants.js'));
 const HAS_INDEXER = fs.existsSync(gen.REGISTRY);
 
+/* A bare clone skips the registry half below. A run that declared the sibling supplied
+ * (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set, with xchain-indexer
+ * in .ci-siblings) fails here instead: there an absent registry means a dropped checkout,
+ * and the page's testnet claims would go unchecked while the file still reported green. */
+if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !HAS_INDEXER) {
+    test('the sibling xchain-indexer registry this file reads is present', () => {
+        assert.fail(`XCHAIN_REQUIRE_SIBLINGS=1 but the activation registry is not readable at `
+            + `${gen.REGISTRY}. Check xchain-indexer out beside this repo rather than letting the `
+            + 'testnet-arm claims pass by skipping.');
+    });
+}
+
 /** Every exported map with a `mainnet` slot, by name. */
 const MAPS = new Map(
     Object.entries(CONSTANTS).filter(

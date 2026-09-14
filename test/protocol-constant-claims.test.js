@@ -263,6 +263,22 @@ const SDK_BATCH_LIMITS = path.resolve(ROOT, '../xchain-sdk/src/batchLimits.js');
 const haveIndexerBatch = fs.existsSync(INDEXER_BATCH);
 const haveSdkBatchLimits = fs.existsSync(SDK_BATCH_LIMITS);
 
+/* The two skips below are for a bare clone. A run that declared the siblings supplied
+ * (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set, with both repos in
+ * .ci-siblings) fails here instead: the number that actually runs on chain lives in those
+ * two files, and skipping leaves the drift they exist to catch unchecked but green. */
+for (const [repo, present, where] of [
+    ['xchain-indexer', haveIndexerBatch, INDEXER_BATCH],
+    ['xchain-sdk', haveSdkBatchLimits, SDK_BATCH_LIMITS],
+]) {
+    if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !present) {
+        test(`the sibling ${repo} source the cross-repo drift check reads is present`, () => {
+            assert.fail(`XCHAIN_REQUIRE_SIBLINGS=1 but ${where} is not readable. Check ${repo} out `
+                + 'beside this repo rather than letting the batch-limit drift check skip.');
+        });
+    }
+}
+
 test('xchain-indexer commandLimit matches the canonical BATCH_COMMAND_LIMIT',
   { skip: !haveIndexerBatch && 'sibling xchain-indexer not present in this checkout' }, () => {
     const src = fs.readFileSync(INDEXER_BATCH, 'utf8');
