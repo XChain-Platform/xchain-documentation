@@ -205,6 +205,31 @@ A value that does not match its expected shape (a non-numeric kit id, a
 license other than `free`/`pro`) is ignored with a warning rather than passed
 through to the browser.
 
+### Metrics and Log Shipping
+
+The shared observability module adds a Prometheus scrape endpoint and a
+structured log shim. Both are off unless set here: with no variables the
+explorer registers no extra route, starts no timer, and opens no socket. The
+log shim is installed before the explorer's first log line, so these variables
+also shape startup output.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `METRICS_ENABLED` | No | off | Serve the Prometheus scrape endpoint. |
+| `METRICS_PATH` | No | `/metrics` | Scrape path. |
+| `METRICS_TOKEN` | No | None | Require `Authorization: Bearer <token>` on the scrape. Set this (or keep the path behind the fronting proxy) on any internet-reachable box. |
+| `METRICS_HTTP` | No | `true` when metrics are on | Per-request counters and a latency histogram. Set `0` for endpoint-only. |
+| `LOG_FORMAT` | No | `text` | `json` emits one NDJSON record per log line. |
+| `LOG_LEVEL` | No | `info` | `debug`, `info`, `warn`, or `error`. |
+| `LOG_SHIP_ENABLED` | No | off | POST batched NDJSON to a collector. Needs `LOG_SHIP_URL` too; either alone stays off. |
+| `LOG_SHIP_URL` | No | None | Collector endpoint (http/https). |
+| `LOG_SHIP_TOKEN` | No | None | Bearer token for the collector. Never logged or echoed. |
+| `LOG_SHIP_BATCH_SIZE` | No | `100` | Lines per POST. |
+| `LOG_SHIP_INTERVAL_MS` | No | `5000` | Flush interval. |
+| `LOG_SHIP_MAX_BUFFER` | No | `5000` | Bounded buffer; the oldest lines are dropped and counted, never grown without limit. |
+| `LOG_SHIP_TIMEOUT_MS` | No | `5000` | Per-batch POST timeout. |
+| `XCHAIN_LOG_PATCH` | No | None | Set `0` to leave the global console unpatched, so no structured log shim is installed. The test bootstrap sets it so suites see the stock console. |
+
 ## Local Configuration File
 
 The `src/config.json` file provides database connection details when xchain-hub is not available. Structure:

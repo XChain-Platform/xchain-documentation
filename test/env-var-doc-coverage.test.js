@@ -399,6 +399,96 @@ describe('scanComputedReads (the blind spot the gate cannot see into)', () => {
     });
 });
 
+// The explorer reads configuration through config.js's `env` view, a live
+// Proxy over process.env. Before the scanner knew the view, every read moved
+// behind it left the survey, so its doc row could vanish with the gate green.
+describe('reads through the explorer config view', () => {
+    const VIEW_SOURCE = [
+        "const a = env.ALPHA || 1;",
+        "const b = env['BETA'] || 'x';",
+        "const c = parseInt(this.configInfo.env.GAMMA, 10) || 15000;",
+        "const d = this.configInfo.env['DELTA'];",
+        "const e = configInfo.env.EPSILON === '1';",
+    ].join('\n');
+
+    test('every view shape is a named read, with its line and default', () => {
+        const found = scanSource(VIEW_SOURCE, { configView: true });
+        assert.deepEqual([...found.keys()], ['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'EPSILON']);
+        assert.deepEqual([...found.values()].map((s) => s[0].line), [1, 2, 3, 4, 5]);
+        assert.equal(found.get('ALPHA')[0].default.value, '1');
+        assert.equal(found.get('BETA')[0].default.value, 'x');
+        assert.equal(found.get('GAMMA')[0].default.value, '15000');
+    });
+
+    test('without the option the view is invisible, which is every component but the explorer', () => {
+        assert.equal(scanSource(VIEW_SOURCE).size, 0);
+        assert.deepEqual(cov.scanComputedReads('const t = this.configInfo.env[prefix + "_MS"];'), []);
+        assert.deepEqual([...cov.CONFIG_VIEW_COMPONENTS], ['explorer']);
+    });
+
+    test('process.env is counted once, and other objects named env are not the view', () => {
+        const found = scanSource([
+            "const a = process.env.ALPHA;",
+            "const b = options.env.BETA;",
+            "const c = cfg.env['GAMMA'];",
+            "const d = env.hasOwnProperty('X');",
+            "env.DELTA = 'set, not read';",
+            "if (env.EPSILON == null) {}",
+        ].join('\n'), { configView: true });
+        assert.deepEqual([...found.keys()], ['ALPHA', 'EPSILON']);
+        assert.equal(found.get('ALPHA').length, 1);
+    });
+
+    test('a computed read through the view counts; a literal key or a write into an env object does not', () => {
+        const lines = cov.scanComputedReads([
+            "const ttl = parseInt(this.configInfo.env[envPrefix + '_MS'], 10) || 15000;",
+            "const k = env[key];",
+            "const lit = env['LITERAL'];",
+            "env[tokens[i].value.slice(0, eq)] = tokens[i].value.slice(eq + 1);",
+            "const p = process.env[k];",
+            "const wrapped = configInfo.env[",
+            "    prefix + '_MAX'",
+            "];",
+        ].join('\n'), { configView: true });
+        assert.deepEqual(lines, [1, 2, 5, 6]);
+    });
+
+    test('the survey applies the view to the explorer and to no other component', () => {
+        const GIT_ID = [
+            '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid',
+            '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null',
+        ];
+        const git = (dir, ...args) =>
+            execFileSync('git', ['-C', dir, ...GIT_ID, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'envvar-view-'));
+        const docRoot = path.join(root, 'xchain-documentation');
+        for (const component of ['explorer', 'hub']) {
+            const repo = path.join(root, `xchain-${component}`);
+            fs.mkdirSync(path.join(repo, 'src'), { recursive: true });
+            fs.writeFileSync(path.join(repo, 'package.json'), JSON.stringify({ name: `xchain-${component}` }));
+            fs.writeFileSync(path.join(repo, 'src', 'reader.js'),
+                "const a = this.configInfo.env.VIEW_KEY;\nconst b = this.configInfo.env[prefix + '_MS'];\n");
+            git(repo, 'init', '-q', '-b', 'main');
+            git(repo, 'add', '-A');
+            git(repo, 'commit', '-q', '-m', component);
+            fs.mkdirSync(path.join(docRoot, 'components', component), { recursive: true });
+            fs.writeFileSync(path.join(docRoot, 'components', component, 'configuration.md'), 'nothing documented\n');
+        }
+        const survey = cov.buildSurvey({
+            platformRoot:  root,
+            docRoot,
+            serviceReader: cov.committedTreeReader('HEAD'),
+            docReader:     cov.workingTreeReader(),
+            components:    ['explorer', 'hub'],
+        });
+        assert.deepEqual([...survey.get('explorer').vars.keys()], ['VIEW_KEY']);
+        assert.equal(survey.get('explorer').computed.length, 1);
+        assert.match(cov.checkUndocumented('explorer', survey.get('explorer'))[0], /^VIEW_KEY \(read at src\/reader\.js:1\)/);
+        assert.equal(survey.get('hub').vars.size, 0);
+        assert.equal(survey.get('hub').computed.length, 0);
+    });
+});
+
 describe('checkComputedReads (the blind-spot ratchet)', () => {
     const entryWith = (n) => ({
         vars: new Map(), docLines: [], docProse: [], sourceFiles: 1,
