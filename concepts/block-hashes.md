@@ -73,7 +73,7 @@ data = {
 hash = SHA256(JSON.stringify(data))
 ```
 
-The `hash_version` field is mandatory in every preimage. An implementor that omits it will compute a different SHA-256 digest and will never match a canonical indexer, even if all other fields are identical. The current value of `BLOCK_HASH_VERSION` is `1` (defined in `xchain-indexer/src/db.js` and mirrored in `xchain-sync/src/client/block_hasher.js`).
+The `hash_version` field is mandatory in every preimage. An implementor that omits it will compute a different SHA-256 digest and will never match a canonical indexer, even if all other fields are identical. The current value of `BLOCK_HASH_VERSION` is `1` (defined in `xchain-indexer/src/db/shared.js` and mirrored in `xchain-sync/src/client/block_hasher.js`).
 
 ### Hash Chaining
 

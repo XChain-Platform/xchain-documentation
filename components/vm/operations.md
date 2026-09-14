@@ -40,8 +40,8 @@ The VM is instantiated once in the indexer's `actions.js` and shared across all 
 
 1. **Startup:** Indexer creates `new XChainVM({ gasSchedule, gasCeiling, limits })` from its configuration
 2. **Per block:** Indexer calls `vm.beginBlock()` before processing transactions, `vm.endBlock()` after
-3. **DEPLOY action:** `deploy.js` calls `vm.validateSyntax(code)` to validate contract source, then `vm.execute()` to run the constructor
-4. **EXECUTE action:** `execute.js` calls `vm.execute()` with the contract code, current state, method name, parameters, and block context
+3. **DEPLOY action:** `deploy/index.js` calls `vm.validateSyntax(code)` to validate contract source, then `vm.execute()` to run the constructor
+4. **EXECUTE action:** `execute/index.js` calls `vm.execute()` with the contract code, current state, method name, parameters, and block context
 5. **Result processing:** The indexer applies `stateChanges` and `stateDeletes` to the database, processes `emittedActions` through standard action handlers, and records `gasUsed` for fee charging
 
 ```mermaid
@@ -56,11 +56,11 @@ sequenceDiagram
     Indexer->>VM: vm.beginBlock()
     Indexer->>VM: vm.endBlock()
 
-    Note over Indexer: DEPLOY action (deploy.js)
+    Note over Indexer: DEPLOY action (deploy/index.js)
     Indexer->>VM: vm.validateSyntax(code)
     Indexer->>VM: vm.execute() (run constructor)
 
-    Note over Indexer: EXECUTE action (execute.js)
+    Note over Indexer: EXECUTE action (execute/index.js)
     Indexer->>VM: vm.execute(code, state, method, params, block context)
 
     Note over Indexer: Result processing
@@ -71,7 +71,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    INDEXER["Indexer (execute.js)"]
+    INDEXER["Indexer (execute/index.js)"]
     LOAD["Loads contract code + state from DB"]
     BUILD["Builds balances, tokenInfo,<br>oracleData, crossChainData"]
     EXEC["vm.execute({ code, state, method,<br>params, caller, ... })"]
@@ -94,7 +94,7 @@ flowchart TD
 
 Beside `validateSyntax` and `execute`, the indexer calls `vm.readManifest(code, opts)` once per DEPLOY. It instantiates the module's top level inside a gas-metered isolate (no state, oracle, or balances) and reports what the exported object declares, **without dispatching any method**, so it works for a contract that exports no constructor. It resolves `{ success, manifest, error }`; on a module-level throw, `success` is `false`.
 
-The VM **reports; it never judges**. Every verdict lives host-side in the indexer's `actions/deploy.js`, which is why the report is deliberately raw and typed:
+The VM **reports; it never judges**. Every verdict lives host-side in the indexer's `actions/deploy/index.js`, which is why the report is deliberately raw and typed:
 
 | Field | Type | Meaning |
 |---|---|---|

@@ -65,7 +65,7 @@ xchain-utxo-tracker  xchain-sdk  xchain-sync  xchain-node
 ```
 
 Each consumer keeps a thin adapter (for example
-`xchain-indexer/src/configs/BTC.js`, `xchain-decoder/src/chain/crypto_networks.js`) that reads
+`xchain-indexer/src/coins/BTC.js`, `xchain-decoder/src/chain/crypto_networks.js`) that reads
 the vendored canonical file and returns that service's existing shape, so nothing
 downstream of the adapter changes when you add a coin. A CI drift guard
 (`sync-coins.sh --check`, wired into `bin/ci-all.sh`) fails the build if any

@@ -268,7 +268,7 @@ EQUIV|XCHECKPOINT|XANCPUB|archive|NETWORK|MATCH_BATCH_SEQ|SNAPSHOT_BLOCK|0||XANC
 ```
 
 These bytes are byte-identical across the hub producer (`StateAnchorPublisher._attestationCanonical`),
-the indexer verifier (`actions/anchor.js` `_rewardCanonical`) and this spec; a divergence forks the
+the indexer verifier (`actions/anchor/index.js` `_rewardCanonical`) and this spec; a divergence forks the
 derived reward row. An `ASIG_n` counts only if its pubkey is in the SAME `oracle_publish` snapshot at
 `SNAPSHOT_BLOCK` used for the root quorum **and** the Ed25519 signature verifies.
 
@@ -559,7 +559,7 @@ which is anti-spam only.
 ## Recovery procedure (full-parse)
 1. Sync DOGE through the decoder/indexer from genesis: `anchor_actions` populates from the
    chain alone.
-2. Run `xchain-indexer/src/recovery.js --skip-stake-verification --i-understand-unverified`:
+2. Run `xchain-indexer/bin/recovery.js --skip-stake-verification --i-understand-unverified`:
    reassembles
    chunked batches by `MATCH_BATCH_SEQ`, gunzips, verifies `BATCH_CRC32`, verifies each
    archived match's/call's `validator_signatures` against the archived

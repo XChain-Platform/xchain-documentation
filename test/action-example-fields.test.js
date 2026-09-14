@@ -34,7 +34,7 @@
  *     declared count. DEPLOY is precise about it: v0/v2 take CONSTRUCTOR_PARAMS
  *     as a rest field while v1/v3 do not, because COOLDOWN_BLOCKS +
  *     SLASH_DESTINATION trail the constructor args, and the doc marks exactly
- *     v0/v2 (matching deploy.js).
+ *     v0/v2 (matching deploy/index.js).
  *   - Some formats end in a bare `...` meaning "the preceding group repeats"
  *     (ANCHOR/ATTEST signature pairs, PRICE pair lists). Also unbounded.
  *   - BATCH is not pipe-counted at all: `VERSION|COMMAND;COMMAND` embeds whole

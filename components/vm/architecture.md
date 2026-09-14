@@ -20,7 +20,7 @@ flowchart TD
     STATE["state.js -> stateChanges, stateDeletes"]
     COLLECTOR["collector.js -> emittedActions, logs"]
     GASRESULT["gas.js -> gasUsed"]
-    RETURN["Return to indexer (execute.js)"]
+    RETURN["Return to indexer (execute/index.js)"]
 
     SRC --> ACORN --> METER --> ASTR --> ISOLATE
     ISOLATE --> SANDBOX

@@ -33,7 +33,7 @@ validator **reward pool**. XCHAIN exists on the **BTC chain only**.
 ## How genesis creates the token
 
 The token is **not** created by an operator-broadcast transaction. When an indexer parses the
-pinned genesis block, `src/genesis.js` injects a synthetic GAS-signed `ISSUE` as the first
+pinned genesis block, `src/chain/genesis.js` injects a synthetic GAS-signed `ISSUE` as the first
 genesis action:
 
 | Parameter | Value | Why |

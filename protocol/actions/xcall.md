@@ -95,7 +95,7 @@ Unused target-side gas is not refunded in v1. The callback runs against the fixe
       Completed --> [*]
       Expired --> [*]
   ```
-- Recoverability: the Version `0` request is reproducible from a pure chain parse, and both relay phases are included in the ANCHOR v1 archive and rebuilt and signature-verified by `xchain-indexer/src/recovery.js`, so a from-genesis reindex re-derives identical injected executions and callbacks
+- Recoverability: the Version `0` request is reproducible from a pure chain parse, and both relay phases are included in the ANCHOR v1 archive and rebuilt and signature-verified by `xchain-indexer/bin/recovery.js`, so a from-genesis reindex re-derives identical injected executions and callbacks
 
 ---
 

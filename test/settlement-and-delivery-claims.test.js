@@ -209,7 +209,7 @@ test('the ownership-sale and key-handoff source facts still hold', { skip: skipN
 
     const crossSettle = readSrc('actions/cross_settle/index.js');
     assert.match(crossSettle, /transferTokenOwnership\(/,
-        'cross_settle.js no longer settles an ownership leg locally, which is the fact behind '
+        'cross_settle/index.js no longer settles an ownership leg locally, which is the fact behind '
         + 'the "each chain hands over its own side" wording');
 });
 
@@ -219,7 +219,7 @@ test('the guide scopes ownership-sale atomicity to a single chain', () => {
     assert.match(answer, /settles on one chain|single-chain/,
         'faq.md again claims an issuer-rights sale settles in a single blockchain transaction '
         + 'without scoping it to one chain. A cross-chain swap settles each leg separately '
-        + '(cross_settle.js).');
+        + '(cross_settle/index.js).');
     assert.match(answer, /cross-chain\.md#residual-risk/,
         'faq.md no longer points at the cross-chain residual-risk section');
 

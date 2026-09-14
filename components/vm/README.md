@@ -7,7 +7,7 @@ The `xchain-vm` module is a standalone JavaScript library that executes smart co
 
 ## What is xchain-vm
 
-A pure function library. Takes contract code + state + inputs + block context. Returns new state + emitted actions + gas used. It has no awareness of the indexer, database, blockchain, or network. The indexer's `execute.js` handler is the bridge between the VM and the platform.
+A pure function library. Takes contract code + state + inputs + block context. Returns new state + emitted actions + gas used. It has no awareness of the indexer, database, blockchain, or network. The indexer's `execute/index.js` handler is the bridge between the VM and the platform.
 
 ## Features
 

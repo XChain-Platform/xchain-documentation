@@ -165,7 +165,7 @@ Virtual Machine actions are available on **all chains** (BTC, LTC, DOGE). DEPLOY
 
 | Action | Purpose | Key Validations |
 |---|---|---|
-| [**ANCHOR**](../../protocol/actions/anchor.md) | Commit quorum-signed state checkpoints and a compressed archive of cross-chain match rows on-chain. DOGE-only, validator-broadcast action. | Valid only on the DOGE chain (all networks). No protocol fee. On parse, the indexer writes to `anchor_actions` and records checkpoint hashes. The archived data makes all platform state recoverable from a full chain re-parse. See `src/actions/anchor.js` and `protocol/actions/ANCHOR.md`. |
+| [**ANCHOR**](../../protocol/actions/anchor.md) | Commit quorum-signed state checkpoints and a compressed archive of cross-chain match rows on-chain. DOGE-only, validator-broadcast action. | Valid only on the DOGE chain (all networks). No protocol fee. On parse, the indexer writes to `anchor_actions` and records checkpoint hashes. The archived data makes all platform state recoverable from a full chain re-parse. See `src/actions/anchor/index.js` and `protocol/actions/ANCHOR.md`. |
 
 ## Attestation & Validator Actions
 
