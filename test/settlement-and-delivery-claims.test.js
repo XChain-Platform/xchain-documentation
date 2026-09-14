@@ -50,12 +50,12 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
-const { readModuleSource } = require('../lib/indexer-source.js'); // an entry plus every part it was split into
+const { moduleExists, readModuleSource } = require('../lib/indexer-source.js'); // an entry plus every part it was split into
 
 const DOC_ROOT = process.env.XCHAIN_DOCS_ROOT || path.join(__dirname, '..');
 const INDEXER  = path.resolve(path.join(__dirname, '..'), '../xchain-indexer/src');
 
-const haveIndexer = fs.existsSync(path.join(INDEXER, 'actions', 'order.js'));
+const haveIndexer = moduleExists(path.join(INDEXER, 'actions', 'order.js'));
 const skipNoIndexer = !haveIndexer && 'sibling xchain-indexer not present in this checkout';
 
 /* The skip above is for a bare clone. A run that declared the sibling supplied
@@ -195,7 +195,7 @@ test('the ownership-sale and key-handoff source facts still hold', { skip: skipN
 
     const others = ['actions/order_match.js', 'actions/dispense.js', 'actions/cross_settle/index.js'];
     for(const rel of others){
-        assert.ok(fs.existsSync(path.join(INDEXER, rel)),
+        assert.ok(moduleExists(path.join(INDEXER, rel)),
             `${rel} is missing from the sibling indexer checkout. A moved or renamed settlement `
             + 'handler must be repointed here, not silently dropped from the set this test checks.');
         assert.ok(!/requires key handoff message/.test(readSrc(rel)),

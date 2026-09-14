@@ -59,14 +59,14 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
-const { readModuleSource } = require('../lib/indexer-source.js'); // an entry plus every part it was split into
+const { moduleExists, readModuleSource } = require('../lib/indexer-source.js'); // an entry plus every part it was split into
 
 const DOC_ROOT = process.env.XCHAIN_DOCS_ROOT || path.join(__dirname, '..');
 const INDEXER  = path.resolve(path.join(__dirname, '..'), '../xchain-indexer/src');
 const GUIDE    = path.join(DOC_ROOT, 'user-guide', 'creating-tokens.md');
 const USECASES = path.join(DOC_ROOT, 'user-guide', 'use-cases.md');
 
-const haveIndexer = fs.existsSync(path.join(INDEXER, 'actions', 'mint.js'));
+const haveIndexer = moduleExists(path.join(INDEXER, 'actions', 'mint.js'));
 const readSrc = (rel) => readModuleSource(path.join(INDEXER, rel));
 const guide = fs.readFileSync(GUIDE, 'utf8');
 const useCases = fs.readFileSync(USECASES, 'utf8');

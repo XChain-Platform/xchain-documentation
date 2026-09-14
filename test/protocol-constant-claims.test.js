@@ -53,6 +53,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
+// an entry plus every part it was split into, at whichever spelling the sibling checkout uses
+const { moduleEntry, moduleExists, readModuleSource } = require('../lib/indexer-source.js');
 
 const ROOT = path.join(__dirname, '..');
 const CONSTANTS = require(path.join(ROOT, 'protocol', 'constants.js'));
@@ -258,7 +260,7 @@ test('prose command counts for the BATCH cap match the canonical value', () => {
  * sibling checkout is absent, the same convention every other cross-repo test
  * in this directory uses.
  */
-const INDEXER_BATCH = path.resolve(ROOT, '../xchain-indexer/src/actions/batch.js');
+const INDEXER_BATCH = moduleEntry(path.resolve(ROOT, '../xchain-indexer/src/actions/batch.js'));
 
 /* The limits are read as SOURCE TEXT and matched with a regex, so the file this
  * resolves to has to be the one that declares them. The SDK's layout pass moved
@@ -285,7 +287,7 @@ function resolveSdkSource(pinned, premove) {
 const SDK_BATCH = resolveSdkSource('../xchain-sdk/src/protocol/batch_limits.js',
                                    '../xchain-sdk/src/batchLimits.js');
 const SDK_BATCH_LIMITS = SDK_BATCH ? SDK_BATCH.rel : '../xchain-sdk/src/protocol/batch_limits.js';
-const haveIndexerBatch = fs.existsSync(INDEXER_BATCH);
+const haveIndexerBatch = moduleExists(INDEXER_BATCH);
 const haveSdkBatchLimits = SDK_BATCH !== null;
 
 /* The two skips below are for a bare clone. A run that declared the siblings supplied
@@ -322,7 +324,7 @@ for (const [repo, present, where] of [
 
 test('xchain-indexer commandLimit matches the canonical BATCH_COMMAND_LIMIT',
   { skip: !haveIndexerBatch && 'sibling xchain-indexer not present in this checkout' }, () => {
-    const src = fs.readFileSync(INDEXER_BATCH, 'utf8');
+    const src = readModuleSource(INDEXER_BATCH);
     const m = /this\.commandLimit\s*=\s*(\d+)\s*;/.exec(src);
     assert.ok(m, 'this.commandLimit assignment not found in xchain-indexer/src/actions/batch.js; '
       + 'the declaration shape changed, re-point this regex');
@@ -358,7 +360,7 @@ test('xchain-sdk BATCH_COMMAND_LIMIT matches the canonical value',
  */
 test('xchain-indexer weightBudget matches the canonical BATCH_WEIGHT_BUDGET',
   { skip: !haveIndexerBatch && 'sibling xchain-indexer not present in this checkout' }, () => {
-    const src = fs.readFileSync(INDEXER_BATCH, 'utf8');
+    const src = readModuleSource(INDEXER_BATCH);
     const m = /this\.weightBudget\s*=\s*(\d+)\s*;/.exec(src);
     assert.ok(m, 'this.weightBudget assignment not found in xchain-indexer/src/actions/batch.js; '
       + 'the declaration shape changed, re-point this regex');
@@ -380,7 +382,7 @@ test('xchain-sdk BATCH_WEIGHT_BUDGET matches the canonical value',
 
 test('xchain-indexer commandWeights matches the canonical BATCH_COMMAND_WEIGHTS',
   { skip: !haveIndexerBatch && 'sibling xchain-indexer not present in this checkout' }, () => {
-    const src = fs.readFileSync(INDEXER_BATCH, 'utf8');
+    const src = readModuleSource(INDEXER_BATCH);
     const table = {};
     const entry = /this\.commandWeights\[['"]([A-Z]+)['"]\]\s*=\s*(\d+)\s*;/g;
     let m;

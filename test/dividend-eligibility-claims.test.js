@@ -43,11 +43,13 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
+// an entry plus every part it was split into, at whichever spelling the sibling checkout uses
+const { moduleEntry, moduleExists, readModuleSource } = require('../lib/indexer-source.js');
 
 const DOC_ROOT = process.env.XCHAIN_DOCS_ROOT || path.join(__dirname, '..');
 const INDEXER  = path.resolve(path.join(__dirname, '..'), '../xchain-indexer/src');
 
-const haveIndexer = fs.existsSync(path.join(INDEXER, 'actions', 'dividend.js'));
+const haveIndexer = moduleExists(path.join(INDEXER, 'actions', 'dividend.js'));
 const skipNoIndexer = !haveIndexer && 'sibling xchain-indexer not present in this checkout';
 
 /* The skip above is for a bare clone. A run that declared the sibling supplied
@@ -60,7 +62,7 @@ if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !haveIndexer) {
             + 'Check it out beside this repo rather than letting the source assertions skip.');
     });
 }
-const readSrc = (rel) => fs.readFileSync(path.join(INDEXER, rel), 'utf8');
+const readSrc = (rel) => readModuleSource(path.join(INDEXER, rel));
 const readDoc = (rel) => fs.readFileSync(path.join(DOC_ROOT, rel), 'utf8');
 
 const useCases = readDoc('user-guide/use-cases.md');
