@@ -38,13 +38,14 @@
  *      and the decision gets re-made deliberately instead of by patch.
  *
  * WHERE THE EXPLORER HALF LIVES. The explorer's db.js was split into a
- * composition root plus per-family reader modules. The tip-age constant and
- * `tipMaxAgeSeconds` both live in `src/db/readers/health.js`, and db.js mixes
- * that module into Database.prototype, so each source assertion reads the one
- * file its behaviour lives in, and db.js is pinned only for the fact that it
- * still composes health.js (otherwise the regex would guard an orphan). Never
- * widen these to a glob over `src/db/`: a glob matches wherever the text
- * happens to appear, not where the method Database actually runs is defined.
+ * composition root, now `src/db/index.js`, plus per-family reader modules. The
+ * tip-age constant and `tipMaxAgeSeconds` both live in `src/db/readers/health.js`,
+ * and src/db/index.js mixes that module into Database.prototype, so each source
+ * assertion reads the one file its behaviour lives in, and src/db/index.js is
+ * pinned only for the fact that it still composes health.js (otherwise the
+ * regex would guard an orphan). Never widen these to a glob over `src/db/`: a
+ * glob matches wherever the text happens to appear, not where the method
+ * Database actually runs is defined.
  *
  * xchain-explorer is a sibling repo in the monorepo checkout, not a dependency
  * of xchain-documentation. When the REPO is absent (docs repo cloned on its
@@ -63,7 +64,7 @@ const path = require('node:path');
 const DEV_DOC = path.resolve(__dirname, '../developer-guide/regtest-development.md');
 const CFG_DOC = path.resolve(__dirname, '../components/explorer/configuration.md');
 const EXPLORER   = path.resolve(__dirname, '../../xchain-explorer');
-const DB_SRC     = path.join(EXPLORER, 'src/db.js');
+const DB_SRC     = path.join(EXPLORER, 'src/db/index.js');
 const HEALTH_SRC = path.join(EXPLORER, 'src/db/readers/health.js');
 
 const devDoc = fs.readFileSync(DEV_DOC, 'utf8');
@@ -118,9 +119,9 @@ describe('regtest tip-age escape hatch is documented for dev setups', () => {
             'the configuration page no longer shows the per-coin gate disabled for dev/regtest');
     });
 
-    test('the explorer db.js still composes the health readers this gate reads', { skip: noExplorer }, () => {
-        assert.match(readExplorerSource(DB_SRC), /require\(\s*['"]\.\/db\/readers\/health(\.js)?['"]\s*\)/,
-            'xchain-explorer src/db.js no longer requires ./db/readers/health.js, so the tip-age assertions below read a file Database does not use');
+    test('the explorer composition root still composes the health readers this gate reads', { skip: noExplorer }, () => {
+        assert.match(readExplorerSource(DB_SRC), /require\(\s*['"]\.\/readers\/health(\.js)?['"]\s*\)/,
+            'xchain-explorer src/db/index.js no longer requires ./readers/health.js, so the tip-age assertions below read a file Database does not use');
     });
 
     test('the documented default matches the explorer default', { skip: noExplorer }, () => {
