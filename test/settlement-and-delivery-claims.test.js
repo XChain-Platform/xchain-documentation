@@ -192,10 +192,11 @@ test('the ownership-sale and key-handoff source facts still hold', { skip: skipN
         'send.js no longer enforces the key-handoff MESSAGE, so the guide\'s '
         + '"only a direct send carries the key" wording is no longer accurate');
 
-    const others = ['actions/order_match.js', 'actions/dispense.js', 'actions/cross_settle.js']
-        .filter((rel) => fs.existsSync(path.join(INDEXER, rel)));
-    assert.ok(others.length > 0, 'none of the DEX settlement handlers were found to check');
+    const others = ['actions/order_match.js', 'actions/dispense.js', 'actions/cross_settle/index.js'];
     for(const rel of others){
+        assert.ok(fs.existsSync(path.join(INDEXER, rel)),
+            `${rel} is missing from the sibling indexer checkout. A moved or renamed settlement `
+            + 'handler must be repointed here, not silently dropped from the set this test checks.');
         assert.ok(!/requires key handoff message/.test(readSrc(rel)),
             `${rel} now enforces a key handoff. If a settlement path delivers the key, the `
             + 'guide\'s "a buyer on the DEX gets no key" wording must change.');
