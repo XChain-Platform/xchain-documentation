@@ -269,7 +269,7 @@ Several tables require special handling beyond a simple bulk delete:
 - **`contract_stakes`, `contract_unstakes`, `stakes`, `unstakes`, `delegations`, `contract_delegations`**: In-place `deactivation_block` stamps written by orphaned UNSTAKE/DELEGATE-revoke actions are reset before the bulk delete. Similarly, in-place `amount` reductions from orphaned SLASH executions are restored from the corresponding `*_slash_debits` rows before those rows are deleted, and in-place `signing_pubkey_id` rotations from an orphaned DELEGATE v1 materialization are restored from `contract_delegation_rotations`.
 - **`attests` (v0 rows), `xcalls` (v0 rows)**: Request-status flips (`fulfilled`/`errored`/`expired` and `completed`/`expired`) written as in-place UPDATEs on surviving rows are reset to `pending` before the bulk delete, keyed on `resolved_block >= reorgBlock`.
 - **`price_snapshots`, `oracle_prices`**: Not deleted by the generic loops; deleted separately by `reference_block`/`(source_chain, action_index)` respectively.
-- **`attest_validator_stats`**: A cross-attestation aggregate with no `action_index` or `block_index` FK; recomputed from surviving response and expired-request rows via `_recomputeAttestationValidatorStats`.
+- **`attest_validator_stats`**: A cross-attestation aggregate with no `action_index` or `block_index` FK; recomputed from surviving response and expired-request rows via `recomputeAttestationValidatorStats`.
 - **`state_checkpoints`, `capability_snapshots`**: Intentionally NOT deleted on reorg. Both use append-only / supersede-by-seq semantics so stale rows are harmless; hub-driven convergence closes any divergence window.
 
 ---
