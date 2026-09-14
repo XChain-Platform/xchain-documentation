@@ -48,7 +48,7 @@ const path   = require('node:path');
 const ROOT   = path.resolve(__dirname, '..');
 const VM_SRC = path.resolve(ROOT, '../xchain-vm/src');
 
-const WALL_CLOCK_JS = path.join(VM_SRC, 'consensus-wall-clock.js');
+const WALL_CLOCK_JS = path.join(VM_SRC, 'consensus_wall_clock.js');
 const VM_INDEX_JS   = path.join(VM_SRC, 'index.js');
 
 const haveVm = fs.existsSync(WALL_CLOCK_JS) && fs.existsSync(VM_INDEX_JS);
@@ -87,7 +87,7 @@ function activationBody(src) {
 test('the wall-clock budget the VM pages quote is the constant xchain-vm declares',
     { skip: !haveVm && noVm }, () => {
         const declared = sourceConstant(readVm(WALL_CLOCK_JS), 'CONSENSUS_MAX_WALL_MS',
-            'xchain-vm/src/consensus-wall-clock.js');
+            'xchain-vm/src/consensus_wall_clock.js');
         const printed  = `${declared.toLocaleString('en-US')} ms`;
 
         for (const page of [CONFIG_PAGE, OPERATIONS_PAGE, ACTIVATION_PAGE]) {
@@ -167,7 +167,7 @@ test('the flag day the VM rides is the contract-era instant the generated page p
 test('the CPU-time knob is documented as non-binding for consensus executions',
     { skip: !haveVm && noVm }, () => {
         const index = readVm(VM_INDEX_JS);
-        assert.match(index, /_wallClockBudgetMs/,
+        assert.match(index, /wallClockBudgetMs/,
             'the per-execution budget resolver is gone from xchain-vm/src/index.js; the '
             + 'docs describe a resolved budget rather than the raw knob');
 
