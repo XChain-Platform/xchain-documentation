@@ -453,6 +453,55 @@ describe('reads through the explorer config view', () => {
         assert.deepEqual(lines, [1, 2, 5, 6]);
     });
 
+    // The feature directories hold the view through a read-time accessor, since
+    // config.js loads modules that load them back.
+    const ACCESSOR_SOURCE = [
+        "const configEnv = () => require('../config.js').env;",
+        "this.maxAttempts = Number(configEnv().RETRY_ATTEMPTS) || 4;",
+        "const url = configEnv()['UPSTREAM_URL'] || '';",
+        "const direct = require('./config.js').env.DIRECT_KEY || 'on';",
+        "const bracket = require('../../config.js').env['BRACKET_KEY'];",
+        "if (configEnv().FLAG == null) {}",
+    ].join('\n');
+
+    test('reads through a config accessor or straight off the module are named reads, with defaults', () => {
+        const found = scanSource(ACCESSOR_SOURCE, { configView: true });
+        assert.deepEqual([...found.keys()], ['RETRY_ATTEMPTS', 'UPSTREAM_URL', 'DIRECT_KEY', 'BRACKET_KEY', 'FLAG']);
+        assert.deepEqual([...found.values()].map((s) => s[0].line), [2, 3, 4, 5, 6]);
+        assert.equal(found.get('RETRY_ATTEMPTS')[0].default.value, '4');
+        assert.equal(found.get('UPSTREAM_URL')[0].default.value, '');
+        assert.equal(found.get('DIRECT_KEY')[0].default.value, 'on');
+        assert.equal(scanSource(ACCESSOR_SOURCE).size, 0);
+    });
+
+    test('an accessor counts only when this file binds it to the config view', () => {
+        assert.deepEqual(cov.configViewAccessors("const configEnv = () => require('../config.js').env;"), ['configEnv']);
+        const found = scanSource([
+            "const hubEnv = () => require('../hub.js').env;",
+            "const cfg = () => require('../config.js').env.NOT_AN_ACCESSOR;",
+            "const a = configEnv().UNBOUND;",
+            "const b = hubEnv().OTHER_MODULE;",
+            "const c = cfg().VIA_NON_ACCESSOR;",
+            "const d = process.env.ONCE || require('../config.js').env.ONCE;",
+        ].join('\n'), { configView: true });
+        assert.deepEqual([...found.keys()], ['NOT_AN_ACCESSOR', 'ONCE']);
+        assert.equal(found.get('ONCE').length, 2, 'process.env and the view are two reads, each counted once');
+    });
+
+    test('through an accessor, a write or a lower-case member is not a read, and a computed key counts', () => {
+        const source = [
+            "const configEnv = () => require('../config.js').env;",
+            "configEnv().WRITTEN = 'set';",
+            "const own = configEnv().hasOwnProperty('X');",
+            "const k = configEnv()[prefix + '_MS'];",
+            "const lit = configEnv()['LITERAL'];",
+            "const m = require('../config.js').env[key];",
+        ].join('\n');
+        assert.deepEqual([...scanSource(source, { configView: true }).keys()], ['LITERAL']);
+        assert.deepEqual(cov.scanComputedReads(source, { configView: true }), [4, 6]);
+        assert.deepEqual(cov.scanComputedReads(source), []);
+    });
+
     test('the survey applies the view to the explorer and to no other component', () => {
         const GIT_ID = [
             '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid',
