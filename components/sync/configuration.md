@@ -79,7 +79,7 @@ In client mode, the service connects to remote sync servers and replicates their
 | `COMPLETENESS_CHECK_INTERVAL` | No | `3600000` | **Advisory only; never halts.** How often, in milliseconds, a live client re-runs the replica-completeness sweep against its primary source: the per-table row counts the source publishes on `/status`, compared against its own, which is the only check that sees a follower missing rows the consensus hashes cannot cover. `0` disables it. Runs only when the replica and the source are at the same height, because a shortfall while behind is ordinary lag. Deliberately slow by default: the sweep makes the source run a `COUNT(*)` per replicated table. |
 | `REPLICA_GAP_ALERT_SWEEPS` | No | `2` | How many consecutive equal-height completeness sweeps a table must stay short before the client escalates it from the ordinary per-sweep shortfall line to the distinct, rate-limited `REPLICA_GAP_PERSISTENT` alert and records the gap in sync state for monitors. Clamped to at least `1`. Read from the client config first, then the environment. |
 | `REPLICA_GAP_ALERT_REPEAT_MS` | No | `21600000` (6 h) | Minimum interval, in milliseconds, between repeats of the `REPLICA_GAP_PERSISTENT` alert for a gap that is neither closing nor growing. A gap that grows re-alerts immediately regardless of this window; a gap that closes clears its state. `0` repeats on every sweep. Read from the client config first, then the environment. |
-| `VERIFY_CHECKPOINT_QUORUM` | No | `false` | **Default OFF.** When `true`, anchors the replica's independently recomputed `state_root` to the federation quorum: the client fetches the source's signed checkpoint, verifies its Ed25519 signatures against the pinned validator set in `pinnedValidators.js`, and halts if the quorum fails or the checkpoint's `state_root` disagrees with the replica's own computed root. Inert without a pinned set configured for the chain/network. |
+| `VERIFY_CHECKPOINT_QUORUM` | No | `false` | **Default OFF.** When `true`, anchors the replica's independently recomputed `state_root` to the federation quorum: the client fetches the source's signed checkpoint, verifies its Ed25519 signatures against the pinned validator set in `client/pinned_validators.js`, and halts if the quorum fails or the checkpoint's `state_root` disagrees with the replica's own computed root. Inert without a pinned set configured for the chain/network. |
 | `CHECKPOINT_VERIFY_INTERVAL` | No | `50` | How often to probe the `/latest` checkpoint, measured in applied blocks. Only used when `VERIFY_CHECKPOINT_QUORUM=true`. |
 | `REPLICA_DB_HOST` | Yes | None | MariaDB hostname for local replica databases. This variable, and the three below, are also honored in server mode as an opt-in override; see [Server Mode](#server-mode) above. |
 | `REPLICA_DB_PORT` | No | `3306` | MariaDB port |
@@ -216,7 +216,7 @@ The transparency log table (`sync_meta`) is not created for decoder replicas.
 
 ## Connection Pool Configuration
 
-Each chain/network/dbType gets its own MariaDB connection pool (from `db.js`, sized by `poolSizing.js`). Pool sizes are **per dbType**, because the two dbTypes carry very different loads: the indexer pool absorbs the poller's ~113-query-per-block fan-out plus any in-flight snapshot streams, while the decoder pool replicates 8 narrow tables.
+Each chain/network/dbType gets its own MariaDB connection pool (from `db/index.js`, sized by `db/pool_sizing.js`). Pool sizes are **per dbType**, because the two dbTypes carry very different loads: the indexer pool absorbs the poller's ~113-query-per-block fan-out plus any in-flight snapshot streams, while the decoder pool replicates 8 narrow tables.
 
 | Parameter | indexer | decoder | Description |
 |---|---|---|---|
@@ -234,7 +234,7 @@ Resolution order for every knob above: `<NAME>_<DBTYPE>`, then the flat `<NAME>`
 
 Sizing budget: a source serving 3 chains x 2 dbTypes opens 6 pools, so the defaults cost 3 x (12 + 6) = 54 connections.
 
-Measured on a regtest indexer schema with `test/perf/pool-fanout-load.js` (113 queries/block, 5 ms per query, median of 8 blocks): pool 3 = 213 ms/block, pool 5 = 129 ms, pool 12 = 55 ms, pool 20 = 34 ms. Run that script inside a container that already holds the DB credentials to re-measure on your own hardware before raising a pool.
+Measured on a regtest indexer schema with `test/perf/helpers/pool_fanout_load.js` (113 queries/block, 5 ms per query, median of 8 blocks): pool 3 = 213 ms/block, pool 5 = 129 ms, pool 12 = 55 ms, pool 20 = 34 ms. Run that script inside a container that already holds the DB credentials to re-measure on your own hardware before raising a pool.
 
 ## Circuit Breaker
 
