@@ -34,7 +34,7 @@ The VM maintains **1,250+ total tests** across unit, E2E, security, fuzz, chaos,
 
 ## Integration with the Indexer
 
-The VM is instantiated once in the indexer's `actions.js` and shared across all action handlers for the lifetime of the indexer process.
+The VM is instantiated once in the indexer's `src/actions/index.js` and shared across all action handlers for the lifetime of the indexer process.
 
 ### Lifecycle
 
