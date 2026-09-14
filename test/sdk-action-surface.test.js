@@ -31,8 +31,9 @@
  *   2. components/sdk/actions.md names exactly the SDK-invocable set, and
  *      never the five that are not invocable, so nobody goes looking for a
  *      builder that does not exist.
- *   3. The sessions.md convenience table lists exactly the action types
- *      walletSession.js actually exposes.
+ *   3. The sessions.md convenience table lists exactly the action types the
+ *      SDK's wallet-session module actually exposes, whichever side of the
+ *      SDK's layout move the sibling checkout sits on.
  */
 const test = require('node:test');
 const assert = require('node:assert');
@@ -42,9 +43,34 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 const SPECS = path.join(ROOT, 'protocol', 'actions');
 const SDK = path.join(ROOT, '..', 'xchain-sdk', 'src');
+
+/* The session surface is read as SOURCE TEXT and matched with a regex, so the file
+ * this resolves to has to be the one that declares the methods. The SDK's layout pass
+ * moved walletSession.js to utils/wallet_session.js and left a one-line re-export at
+ * the old path, which keeps require() working but carries none of the declarations,
+ * and a sibling checkout can sit on either side of that move. Follow a bare re-export
+ * to its target and fall back to the pre-move spelling, then report the path that was
+ * READ: pinning one spelling makes this guard fail against a stub on one side of the
+ * move and skip silently on the other, and neither reading checks the docs. */
+function resolveSdkSource(pinned, premove) {
+  const read = (rel) => {
+    const abs = path.join(SDK, rel);
+    if (!fs.existsSync(abs)) return null;
+    const body = fs.readFileSync(abs, 'utf8');
+    const reexport = body.match(/^module\.exports\s*=\s*require\('([^']+)'\);\s*$/m);
+    const code = body.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '').trim();
+    if (!reexport || code !== reexport[0].trim()) return { rel, body };
+    const target = path.join(path.dirname(rel), reexport[1]);
+    const abs2 = path.join(SDK, target);
+    return fs.existsSync(abs2) ? { rel: target, body: fs.readFileSync(abs2, 'utf8') } : null;
+  };
+  return read(pinned) || read(premove);
+}
+
 const SDK_MAIN = path.join(SDK, 'XChainSDK.js');
-const SDK_SESSION = path.join(SDK, 'utils', 'wallet_session.js');
-const haveSdk = fs.existsSync(SDK_MAIN) && fs.existsSync(SDK_SESSION);
+const SESSION = resolveSdkSource('utils/wallet_session.js', 'walletSession.js');
+const SESSION_PATH = SESSION ? `xchain-sdk/src/${SESSION.rel}` : 'xchain-sdk/src/utils/wallet_session.js';
+const haveSdk = fs.existsSync(SDK_MAIN) && SESSION !== null;
 
 /** Actions that exist but are never user-submittable, so never in the SDK. */
 const NOT_INVOCABLE = ['ANCHOR', 'ATTEST', 'NODEPROOF', 'ROLLCALL', 'SLASH', 'XCALL'];
@@ -66,6 +92,19 @@ function doc(rel) {
 /** Actions named anywhere in a document. */
 function named(text) {
   return NAMED.filter((n) => new RegExp(`\\b${n}\\b`).test(text)).sort();
+}
+
+/* The skip below is for a bare clone. A run that declared the sibling supplied
+ * (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set) fails here
+ * instead: the surface these pages describe lives in that checkout, and skipping
+ * leaves the drift this file exists to catch unchecked but green. */
+if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !haveSdk) {
+  test('the xchain-sdk source the action-surface guard reads is present', () => {
+    assert.fail('XCHAIN_REQUIRE_SIBLINGS=1 but the SDK action surface is not readable: '
+      + `${SDK_MAIN} and a module declaring the session methods (tried `
+      + `${SESSION_PATH} and xchain-sdk/src/walletSession.js, following a bare re-export). `
+      + 'Check xchain-sdk out beside this repo rather than letting this guard skip.');
+  });
 }
 
 test('concepts/actions.md names every action that has a spec', () => {
@@ -94,7 +133,7 @@ test('the SDK reference covers exactly the invocable set',
 
 test('the session convenience table lists exactly the session methods',
   { skip: !haveSdk && 'xchain-sdk not present in this checkout' }, () => {
-    const sessionActions = methodsFor(fs.readFileSync(SDK_SESSION, 'utf8'));
+    const sessionActions = methodsFor(SESSION.body);
 
     // Only the convenience-method table, not the whole page: the prose below it
     // discusses BATCH and the version-pinned variants by name on purpose.
@@ -108,7 +147,7 @@ test('the session convenience table lists exactly the session methods',
     const absent = listed.filter((n) => NAMED.includes(n) && !sessionActions.includes(n));
 
     assert.deepStrictEqual(missing, [],
-      'walletSession.js exposes these action types and the table omits them: ' + missing.join(', '));
+      `${SESSION_PATH} exposes these action types and the table omits them: ` + missing.join(', '));
     assert.deepStrictEqual(absent, [],
-      'the table offers action methods the session does not have: ' + absent.join(', '));
+      `the table offers action methods ${SESSION_PATH} does not have: ` + absent.join(', '));
   });

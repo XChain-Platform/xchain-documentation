@@ -48,11 +48,31 @@ const path   = require('node:path');
 const ROOT   = path.resolve(__dirname, '..');
 const VM_SRC = path.resolve(ROOT, '../xchain-vm/src');
 
-const WALL_CLOCK_JS = path.join(VM_SRC, 'consensus_wall_clock.js');
+// The VM's layout pass renamed src/consensus-wall-clock.js to
+// src/consensus_wall_clock.js and left nothing at the old path, so a sibling
+// checkout sits on one side of that move or the other. Pinning one spelling
+// skips every assertion in this file against the other side while the run still
+// reports green, so try the post-move spelling and fall back to the pre-move one.
+const WALL_CLOCK_JS = [path.join(VM_SRC, 'consensus_wall_clock.js'),
+                       path.join(VM_SRC, 'consensus-wall-clock.js')]
+    .find((p) => fs.existsSync(p)) || path.join(VM_SRC, 'consensus_wall_clock.js');
 const VM_INDEX_JS   = path.join(VM_SRC, 'index.js');
 
 const haveVm = fs.existsSync(WALL_CLOCK_JS) && fs.existsSync(VM_INDEX_JS);
 const noVm   = 'sibling xchain-vm not present in this checkout';
+
+/* The skips below are for a bare clone. A run that declared the sibling supplied
+ * (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set) fails here
+ * instead: the rule these pages describe lives in that checkout, and skipping
+ * leaves the drift this file exists to catch unchecked but green. */
+if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !haveVm) {
+    test('the sibling xchain-vm source the wall-clock drift check reads is present', () => {
+        assert.fail('XCHAIN_REQUIRE_SIBLINGS=1 but the VM wall-clock source is not readable: tried '
+            + `${path.join(VM_SRC, 'consensus_wall_clock.js')} and `
+            + `${path.join(VM_SRC, 'consensus-wall-clock.js')} beside ${VM_INDEX_JS}. `
+            + 'Check xchain-vm out beside this repo rather than letting this guard skip.');
+    });
+}
 
 const readDoc = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const readVm  = (file) => fs.readFileSync(file, 'utf8');
@@ -87,7 +107,7 @@ function activationBody(src) {
 test('the wall-clock budget the VM pages quote is the constant xchain-vm declares',
     { skip: !haveVm && noVm }, () => {
         const declared = sourceConstant(readVm(WALL_CLOCK_JS), 'CONSENSUS_MAX_WALL_MS',
-            'xchain-vm/src/consensus_wall_clock.js');
+            WALL_CLOCK_JS);
         const printed  = `${declared.toLocaleString('en-US')} ms`;
 
         for (const page of [CONFIG_PAGE, OPERATIONS_PAGE, ACTIVATION_PAGE]) {
@@ -107,7 +127,7 @@ test('the enforcing VM re-exports the same constant the budget module declares',
         const index     = readVm(VM_INDEX_JS);
 
         assert.match(wallClock, /module\.exports\s*=\s*\{[\s\S]*CONSENSUS_MAX_WALL_MS/,
-            'consensus-wall-clock.js no longer exports CONSENSUS_MAX_WALL_MS; the docs '
+            `${WALL_CLOCK_JS} no longer exports CONSENSUS_MAX_WALL_MS; the docs `
             + 'present it as a readable protocol constant');
         assert.match(index, /module\.exports\.CONSENSUS_MAX_WALL_MS\s*=\s*CONSENSUS_MAX_WALL_MS;/,
             'xchain-vm/src/index.js no longer re-exports CONSENSUS_MAX_WALL_MS');
