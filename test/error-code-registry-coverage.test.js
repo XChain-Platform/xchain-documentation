@@ -61,7 +61,13 @@ const DOCUMENTED_ELSEWHERE = Object.create(null);
 const haveExplorer = fs.existsSync(path.join(EXPLORER, 'package.json'));
 const noExplorer   = 'sibling xchain-explorer not present in this checkout';
 
-// Every SCREAMING_SNAKE string literal on a line that also carries `code:`.
+// The observability logger's first argument is an EVENT name, not a response
+// code; a log line also carrying the Node errno as `code: err.code` would
+// otherwise read that event name as a REST code the registry owes a row.
+const LOGGER_EVENT = /\blog\.(?:trace|debug|info|warn|error|fatal)\(\s*'[A-Z][A-Z0-9_]*'/g;
+
+// Every SCREAMING_SNAKE string literal on a line that also carries `code:`,
+// minus a logger event name leading that line's log call.
 function emittedCodes() {
     const found = new Map();
     for (const file of SOURCES) {
@@ -72,7 +78,8 @@ function emittedCodes() {
         const lines = fs.readFileSync(file, 'utf8').split('\n');
         lines.forEach((line, i) => {
             if (!line.includes('code:')) return;
-            for (const quoted of line.match(/'([A-Z][A-Z0-9_]{2,})'/g) || []) {
+            const emitted = line.replace(LOGGER_EVENT, '');
+            for (const quoted of emitted.match(/'([A-Z][A-Z0-9_]{2,})'/g) || []) {
                 const code = quoted.slice(1, -1);
                 if (!found.has(code))
                     found.set(code, `${path.basename(file)}:${i + 1}`);
