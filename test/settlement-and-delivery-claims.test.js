@@ -50,6 +50,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
+const { readModuleSource } = require('../lib/indexer-source.js'); // an entry plus every part it was split into
 
 const DOC_ROOT = process.env.XCHAIN_DOCS_ROOT || path.join(__dirname, '..');
 const INDEXER  = path.resolve(path.join(__dirname, '..'), '../xchain-indexer/src');
@@ -68,7 +69,7 @@ if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !haveIndexer) {
     });
 }
 
-const readSrc = (rel) => fs.readFileSync(path.join(INDEXER, rel), 'utf8');
+const readSrc = (rel) => readModuleSource(path.join(INDEXER, rel));
 const readDoc = (rel) => fs.readFileSync(path.join(DOC_ROOT, rel), 'utf8');
 
 const creating  = readDoc('user-guide/creating-tokens.md');
