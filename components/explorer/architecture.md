@@ -72,9 +72,9 @@ flowchart TD
 | `src/stake_weighted_quorum.js` | None | Consensus-critical source-deduplicated stake predicate (3 x tally > 2 x total stake) used by every settlement gate and the checkpoint verifier; the 2f+1 signer count is the separate pre-activation rule, not this one; vendored byte-identically across all consensus-bearing services |
 | `src/icons/downloader.js` | `IconDownloader` | In-process worker that downloads, resizes, and caches token icons from the indexer's `icons` table |
 | `src/icons/resolver.js` | `IconResolver` | Pure icon URL resolution logic; mirrors the priority chain used in the web UI's `xchain.js` so server and browser select the same source |
-| `src/configs/BTC.js` | None | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |
-| `src/configs/LTC.js` | None | Litecoin-specific configuration |
-| `src/configs/DOGE.js` | None | Dogecoin-specific configuration |
+| `src/coin-config/BTC.js` | None | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |
+| `src/coin-config/LTC.js` | None | Litecoin-specific configuration |
+| `src/coin-config/DOGE.js` | None | Dogecoin-specific configuration |
 | `src/config.json` | None | Local database connection configuration (fallback when hub is unavailable) |
 
 ### Static Content (`src/content/`)

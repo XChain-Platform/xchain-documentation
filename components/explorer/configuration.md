@@ -308,13 +308,13 @@ config.onConfigChanged(() => {
 
 ## Coin-Specific Configuration
 
-Each supported blockchain has a configuration file in `src/configs/`:
+Each supported blockchain has a configuration file in `src/coin-config/`:
 
 | File | Chain |
 |---|---|
-| `src/configs/BTC.js` | Bitcoin |
-| `src/configs/LTC.js` | Litecoin |
-| `src/configs/DOGE.js` | Dogecoin |
+| `src/coin-config/BTC.js` | Bitcoin |
+| `src/coin-config/LTC.js` | Litecoin |
+| `src/coin-config/DOGE.js` | Dogecoin |
 
 These files export a `getConfig(network)` function returning:
 
