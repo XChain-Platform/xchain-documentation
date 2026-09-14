@@ -39,7 +39,7 @@ flowchart LR
         direction TB
         SA_API["api.js<br>Express + JSON-RPC"]
         SA_HUB["XChainHub<br>(orchestrator)"]
-        SA_DB["db.js<br>MariaDB pool + circuit breaker"]
+        SA_DB["db/index.js<br>MariaDB pool + circuit breaker"]
         SA_NOTE["Config writes go directly to MariaDB.<br>No P2P, no consensus."]
         SA_API --> SA_HUB --> SA_DB
         SA_DB -.-> SA_NOTE
@@ -58,7 +58,7 @@ flowchart LR
         VA_REWARD["RewardTracker"]
         VA_SLASH["SlashDetector"]
         VA_SWAP["SwapTracker"]
-        VA_DB["db.js<br>MariaDB pool + circuit breaker"]
+        VA_DB["db/index.js<br>MariaDB pool + circuit breaker"]
 
         VA_API --> VA_HUB --> VA_PEER
         VA_PEER --> VA_CONS --> VA_GOV
@@ -118,7 +118,7 @@ flowchart TD
 |---|---|---|
 | `api.js` | None | Entry point: Express app, JSON-RPC routes, env var validation, starts XChainHub |
 | `XChainHub.js` | `XChainHub` | Orchestrator: wires all subsystems, exposes JSON-RPC method handlers |
-| `db.js` | `Database` | MariaDB connection pool with circuit breaker and exponential backoff |
+| `db/index.js` | `Database` | MariaDB connection pool with circuit breaker and exponential backoff |
 | `peers/manager.js` | `PeerManager` | WebSocket P2P gossip layer: peer connections, message signing, heartbeats |
 | `consensus/pbft.js` | `Consensus` | PBFT consensus for config writes: PRE_PREPARE → PREPARE → COMMIT |
 | `validators/identity.js` | `ValidatorIdentity` | Ed25519 key management: signing, verification, key generation |
@@ -229,7 +229,7 @@ JSON.stringify({ id, type, sender, timestamp, data })
 
 A verifier must reconstruct this exact string to check the signature. The signing key is the sender's Ed25519 validator key; the verifier looks up `sender` in the validator registry to obtain the 64-hex-char public key. When `REQUIRE_SIGNATURES=true`, unsigned messages and messages from unknown senders are rejected; otherwise they are accepted (bootstrap mode).
 
-**Inbound processing order** (in `_handleInbound`): JSON parse → reject non-object/array values → validate `type`/`id`/`sender`/`timestamp` → self-connection guard (drop messages whose `sender` is this node) → dedup against `seenIds` → per-peer rate limit → signature verification → emit `message` (and type-specific events) → relay to all peers except the source connection and the original `sender`.
+**Inbound processing order** (in `PeerManager.handleInbound`): JSON parse → reject non-object/array values → validate `type`/`id`/`sender`/`timestamp` → self-connection guard (drop messages whose `sender` is this node) → dedup against `seenIds` → per-peer rate limit → signature verification → emit `message` (and type-specific events) → relay to all peers except the source connection and the original `sender`.
 
 ### Message Types
 
@@ -301,7 +301,7 @@ If the leader fails to drive consensus within `PBFT_TIMEOUT` (default 30s):
 
 The quorum rule is activation-gated, keyed on the round's BTC-anchored snapshot block and
 network. `PREPARE`, `COMMIT` and `PBFT_VIEW_CHANGE` all use the same predicate
-(`Consensus._quorumMet`), as do the checkpoint and cross-chain engines.
+(`Consensus.quorumMet`), as do the checkpoint and cross-chain engines.
 
 **At or above `STAKE_WEIGHTED_QUORUM_ACTIVATION`:** stake-weighted and source-deduplicated.
 Each voting validator's signing pubkey resolves to its stake source in the federation
