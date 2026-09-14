@@ -50,10 +50,10 @@ flowchart TD
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server, REST + JSON-RPC endpoints, env var loading, bootstrap/restore tasks |
 | `src/XChainUtxoTracker.js` | `XChainUtxoTracker` | Main orchestrator: block polling loop, reorg detection, two-pass transaction processing, balance queries, mempool updates |
-| `src/LevelUpDb.js` | `LevelUpStore` | LevelDB abstraction: binary key encoding/decoding, batch transactions, range scans, all 12 prefix type operations |
-| `src/BlockchainConnector.js` | `BlockchainConnector` | HTTP JSON-RPC client for coin node: block fetching, batch requests, mempool queries, connection pooling (25 sockets) |
-| `src/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parser: standard Bitcoin blocks, AuxPoW header stripping for Dogecoin/Litecoin HogEx |
-| `src/CryptoNetworks.js` | `CryptoNetworks` | Network parameter lookup: maps network names to bitcoinjs-lib network objects for 9 network variants |
+| `src/store/level_up_db.js` | `LevelUpStore` | LevelDB abstraction: binary key encoding/decoding, batch transactions, range scans, all 12 prefix type operations |
+| `src/chain/blockchain_connector.js` | `BlockchainConnector` | HTTP JSON-RPC client for coin node: block fetching, batch requests, mempool queries, connection pooling (25 sockets) |
+| `src/chain/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parser: standard Bitcoin blocks, AuxPoW header stripping for Dogecoin/Litecoin HogEx |
+| `src/chain/crypto_networks.js` | `CryptoNetworks` | Network parameter lookup: maps network names to bitcoinjs-lib network objects for 9 network variants |
 | `src/util.js` | None | Utility functions: timing, hex/uint8 conversion, formatting |
 | `src/bufferutils.js` | `BufferReader`, `BufferWriter` | Binary buffer reading/writing: UInt8/16/32/64LE, VarInt, slices |
 | `src/db.js` | `Database` | Legacy MariaDB abstraction (connection pool, parameterized queries); not used by the main LevelDB pipeline but retained for compatibility |
