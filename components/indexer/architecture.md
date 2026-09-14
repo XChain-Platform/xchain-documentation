@@ -156,7 +156,7 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 | `src/stake_weighted_quorum.js` | None | Consensus-critical stake-weighted quorum predicate (WI-1). Vendored byte-identically across hub, indexer, explorer, sync, and SDK |
 | `bin/recovery.js` | None | CLI for rebuilding the cross-chain match mirror from on-chain ANCHOR archive data, with no surviving hub database |
 | `src/equivocation_header.js` | None | Builds EQUIV-header canonicals for the WI-2 equivocation slashing protocol, one per engine tag |
-| `src/migrate.js` | None | Applies incremental SQL migrations from `src/sql/migrations/` at startup |
+| `src/migration/migrate.js` | None | Operator-initiated CLI that applies pending SQL migrations from `src/sql/migrations/`, including the `manual`-tagged ones startup skips (startup auto-applies only `auto`-tagged migrations). A bare run applies every pending migration; `--file <name.sql>` scopes the run to named files. There is no `--help` and no dry-run flag |
 | `xchain-vm` (external) | `XChainVM` | Standalone module: V8 isolate sandbox, AST-based gas metering, gateway API; loaded by `src/actions/index.js`, called by DEPLOY and EXECUTE handlers |
 
 ## Action Handlers (`src/actions/*.js`)
