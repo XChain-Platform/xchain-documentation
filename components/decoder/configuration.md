@@ -138,7 +138,7 @@ The decoder begins parsing from a preconfigured block height per network to skip
 | `dogecoin-testnet` | 64,800,000 |
 | `dogecoin-regtest` | 0 |
 
-> **DOGE testnet note:** the DOGE testnet mines min-difficulty blocks roughly every 20 seconds, so the chain runs tens of millions of blocks ahead of the other networks. The start block was re-pinned near the chain tip on 2026-06-19 to avoid indexing millions of pre-launch blocks. See `src/CryptoNetworks.js` for the comment.
+> **DOGE testnet note:** the DOGE testnet mines min-difficulty blocks roughly every 20 seconds, so the chain runs tens of millions of blocks ahead of the other networks. The start block was re-pinned near the chain tip on 2026-06-19 to avoid indexing millions of pre-launch blocks. See `src/chain/crypto_networks.js` for the comment.
 
 ## Valid ACTION Names
 
