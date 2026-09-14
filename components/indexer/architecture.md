@@ -136,11 +136,11 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 | `src/api.js` | None | Entry point: Express server + JSON-RPC, env var validation, indexer startup |
 | `src/XChainIndexer.js` | `XChainIndexer` | Main orchestrator: block polling loop, reorg detection, block processing pipeline |
 | `src/actions/index.js` | `Actions` | Loads all 48 action handler classes (one per routable ACTION string, including the `UNKNOWN` fallback), routes transactions to the correct handler. The internal `deploy_chunk` sub-handler is loaded by `deploy/index.js`, not here |
-| `src/db.js` | `Database` | MariaDB connection pool management, all SQL queries, table creation, sanity checks |
+| `src/db/index.js` | `Database` | MariaDB connection pool management, table creation, sanity checks; the SQL queries live in the per-table modules under `src/db/` |
 | `src/config.js` | None | Merges environment variables with coin-specific config into a single config object |
-| `src/configs/BTC.js` | None | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |
-| `src/configs/LTC.js` | None | Litecoin-specific configuration |
-| `src/configs/DOGE.js` | None | Dogecoin-specific configuration |
+| `src/coins/BTC.js` | None | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |
+| `src/coins/LTC.js` | None | Litecoin-specific configuration |
+| `src/coins/DOGE.js` | None | Dogecoin-specific configuration |
 | `src/utility.js` | `Utility` | BigNumber math, timer functions, expiration/cancellation processing, ledger operations, cross-chain settlement injection |
 | `src/chain/mapper.js` | `Mapper` | Creates action_index ↔ address/tick cross-reference mappings |
 | `src/rollback.js` | `Rollback` | Handles blockchain reorganizations: deletes affected records, recalculates balances |
@@ -154,10 +154,10 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 | `src/stateHash.js` | None | Builds the `state_hash` preimage covering in-place mutations (deactivation stamps, slash debits, status flips, cooldown maturities) that the three standard block hashes cannot see |
 | `src/stateCommitment.js` | None | Computes per-block `state_tree_roots` (balances SMT + stakes SMT + state root + block Merkle root) and writes them to the DB |
 | `src/stake_weighted_quorum.js` | None | Consensus-critical stake-weighted quorum predicate (WI-1). Vendored byte-identically across hub, indexer, explorer, sync, and SDK |
-| `src/recovery.js` | None | CLI for rebuilding the cross-chain match mirror from on-chain ANCHOR archive data, with no surviving hub database |
+| `bin/recovery.js` | None | CLI for rebuilding the cross-chain match mirror from on-chain ANCHOR archive data, with no surviving hub database |
 | `src/equivocation_header.js` | None | Builds EQUIV-header canonicals for the WI-2 equivocation slashing protocol, one per engine tag |
 | `src/migrate.js` | None | Applies incremental SQL migrations from `src/sql/migrations/` at startup |
-| `xchain-vm` (external) | `XChainVM` | Standalone module: V8 isolate sandbox, AST-based gas metering, gateway API; loaded by `actions.js`, called by DEPLOY and EXECUTE handlers |
+| `xchain-vm` (external) | `XChainVM` | Standalone module: V8 isolate sandbox, AST-based gas metering, gateway API; loaded by `src/actions/index.js`, called by DEPLOY and EXECUTE handlers |
 
 ## Action Handlers (`src/actions/*.js`)
 

@@ -250,7 +250,7 @@ missing hub DB only logs a warning.
 
 ## Coin-Specific Configuration
 
-Each supported blockchain has a configuration file at `src/configs/<COIN>.js` (BTC.js, LTC.js, DOGE.js) that defines:
+Each supported blockchain has a configuration file at `src/coins/<COIN>.js` (BTC.js, LTC.js, DOGE.js) that defines:
 
 | Parameter | Description | Example (BTC) |
 |---|---|---|
