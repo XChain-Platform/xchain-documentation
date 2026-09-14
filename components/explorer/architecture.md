@@ -62,16 +62,16 @@ flowchart TD
 | `src/db.js` | `Database` | All SQL queries (~9,400 lines), connection pool management, pagination, caching |
 | `src/config.js` | None | Configuration loading from hub or local config.json, 60-second auto-sync, coin/network discovery |
 | `src/utility.js` | `Utility` | BigNumber math, timer functions, sanitization (escapeLike, sanitizeInt), type checking |
-| `src/XChainHubConnector.js` | `XChainHubConnector` | JSON-RPC client for xchain-hub (ping, getAllConfig) |
-| `src/XChainDecoderConnector.js` | `XChainDecoderConnector` | JSON-RPC client for xchain-decoder's health endpoint; lets `/api/status` expose per-coin chain-tip lag without polling decoder ports separately |
-| `src/XChainIndexerConnector.js` | `XChainIndexerConnector` | JSON-RPC client for xchain-indexer; proxies read-only `feequote` and `feeschedule` endpoints so fee logic stays single-sourced in the indexer |
-| `src/proofServer.js` | `ProofServer` | SPV light-client proof server (spec §8.1): builds Merkle balance/state proofs from the indexer's `state_tree_nodes` table for client-side verification against quorum-signed checkpoint roots |
+| `src/connectors/hub.js` | `XChainHubConnector` | JSON-RPC client for xchain-hub (ping, getAllConfig) |
+| `src/connectors/decoder.js` | `XChainDecoderConnector` | JSON-RPC client for xchain-decoder's health endpoint; lets `/api/status` expose per-coin chain-tip lag without polling decoder ports separately |
+| `src/connectors/indexer.js` | `XChainIndexerConnector` | JSON-RPC client for xchain-indexer; proxies read-only `feequote` and `feeschedule` endpoints so fee logic stays single-sourced in the indexer |
+| `src/http/proof_server.js` | `ProofServer` | SPV light-client proof server (spec §8.1): builds Merkle balance/state proofs from the indexer's `state_tree_nodes` table for client-side verification against quorum-signed checkpoint roots |
 | `src/merkle.js` | None | Consensus-critical, DB-free Merkle primitives for the additive state commitment, per-block content root, and top-level state root; shared byte-identically with xchain-indexer and xchain-sdk |
 | `src/checkpoint_commitment_activation.js` | None | Flag-day gate (SPV Phase 2, spec §6.1/§6.3): determines at which BTC block the signed checkpoint canonical gains `state_root` and `block_merkle_root` fields; consensus-critical, vendored across hub/indexer/explorer |
 | `src/equivocation_header.js` | None | Consensus-critical equivocation header (`EQUIV|ENGINE|ROUND|VIEW||content`) that prefixes every PBFT canonical at/above its activation height; vendored byte-identically across all consensus-bearing services |
 | `src/stake_weighted_quorum.js` | None | Consensus-critical source-deduplicated stake predicate (3 x tally > 2 x total stake) used by every settlement gate and the checkpoint verifier; the 2f+1 signer count is the separate pre-activation rule, not this one; vendored byte-identically across all consensus-bearing services |
-| `src/IconDownloader.js` | `IconDownloader` | In-process worker that downloads, resizes, and caches token icons from the indexer's `icons` table |
-| `src/IconResolver.js` | `IconResolver` | Pure icon URL resolution logic; mirrors the priority chain used in the web UI's `xchain.js` so server and browser select the same source |
+| `src/icons/downloader.js` | `IconDownloader` | In-process worker that downloads, resizes, and caches token icons from the indexer's `icons` table |
+| `src/icons/resolver.js` | `IconResolver` | Pure icon URL resolution logic; mirrors the priority chain used in the web UI's `xchain.js` so server and browser select the same source |
 | `src/configs/BTC.js` | None | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |
 | `src/configs/LTC.js` | None | Litecoin-specific configuration |
 | `src/configs/DOGE.js` | None | Dogecoin-specific configuration |
@@ -187,7 +187,7 @@ Two pagination modes are supported:
 
 ## SPV Light-Client Proof Server
 
-The `ProofServer` class (`src/proofServer.js`) serves read-only Merkle proofs for the SPV light-client protocol (Phase 3, spec §8.1). It is instantiated by `XChainExplorer` on startup and handles four proof endpoint families:
+The `ProofServer` class (`src/http/proof_server.js`) serves read-only Merkle proofs for the SPV light-client protocol (Phase 3, spec §8.1). It is instantiated by `XChainExplorer` on startup and handles four proof endpoint families:
 
 ```
 GET /{COIN}/api/proof/balance/:address/:tick    - SMT balance inclusion / non-inclusion proof
@@ -209,10 +209,10 @@ The explorer provides a real-time event streaming API via WebSockets. Four modul
 
 ```
 src/ws/
-├── WebSocketServer.js    # Connection handling, upgrade, WELCOME, message routing
-├── ChannelManager.js     # Subscription tracking with filters (types, ticks, etc.; statuses accepted, never confirmed active)
-├── ChangeDetector.js     # Polls DB for new blocks/actions, emits lifecycle events
-└── Broadcaster.js        # Routes events to subscribed clients through filter pipeline
+├── websocket_server.js   # Connection handling, upgrade, WELCOME, message routing
+├── channel_manager.js    # Subscription tracking with filters (types, ticks, etc.; statuses accepted, never confirmed active)
+├── change_detector.js    # Polls DB for new blocks/actions, emits lifecycle events
+└── broadcaster.js        # Routes events to subscribed clients through filter pipeline
 ```
 
 **Data flow:**

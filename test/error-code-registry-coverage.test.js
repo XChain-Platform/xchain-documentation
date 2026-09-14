@@ -31,8 +31,11 @@
  * registry page's own closing note.
  *
  * xchain-explorer is a sibling repo in the monorepo checkout, not a dependency
- * of xchain-documentation. When it is absent (docs repo cloned on its own) the
- * source-derived assertion skips.
+ * of xchain-documentation. When the REPO is absent (docs repo cloned on its
+ * own) the source-derived assertion skips. When the repo is present but one of
+ * the emit sites below has moved, the gate FAILS naming the missing path:
+ * keying the skip on the files rather than the repo is how a move would
+ * silently unpin the whole registry check.
  *
  ********************************************************************/
 
@@ -42,11 +45,12 @@ const fs   = require('node:fs');
 const path = require('node:path');
 
 const ROOT          = path.resolve(__dirname, '..');
-const EXPLORER_SRC  = path.resolve(ROOT, '../xchain-explorer/src');
+const EXPLORER      = path.resolve(ROOT, '../xchain-explorer');
+const EXPLORER_SRC  = path.join(EXPLORER, 'src');
 const REGISTRY_PAGE = path.join(ROOT, 'protocol/error-codes.md');
 
 // REST-side emit sites. src/ws/ is deliberately absent (separate surface).
-const SOURCES = ['XChainExplorer.js', 'api.js', 'concurrencyGate.js']
+const SOURCES = ['XChainExplorer.js', 'api.js', 'http/concurrency_gate.js']
     .map((file) => path.join(EXPLORER_SRC, file));
 
 // Codes documented elsewhere on purpose. Each entry names where it lives, so a
@@ -54,13 +58,17 @@ const SOURCES = ['XChainExplorer.js', 'api.js', 'concurrencyGate.js']
 // test. Loosening the collection regex is not the way to make this pass.
 const DOCUMENTED_ELSEWHERE = Object.create(null);
 
-const haveExplorer = SOURCES.every((file) => fs.existsSync(file));
+const haveExplorer = fs.existsSync(path.join(EXPLORER, 'package.json'));
 const noExplorer   = 'sibling xchain-explorer not present in this checkout';
 
 // Every SCREAMING_SNAKE string literal on a line that also carries `code:`.
 function emittedCodes() {
     const found = new Map();
     for (const file of SOURCES) {
+        // With the repo present, a missing emit site means the code moved and
+        // this list has to follow it, never that the check may skip.
+        assert.ok(fs.existsSync(file),
+            path.relative(EXPLORER, file) + ' is gone from xchain-explorer; repoint SOURCES at the file the emit site moved to');
         const lines = fs.readFileSync(file, 'utf8').split('\n');
         lines.forEach((line, i) => {
             if (!line.includes('code:')) return;
