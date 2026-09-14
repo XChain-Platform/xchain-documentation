@@ -1,0 +1,41 @@
+# Repos the documentation suite needs checked out BESIDE it on the CI venue.
+#
+# Declaring a sibling here is what makes its cross-repo guards actually run. An
+# UNdeclared sibling is not a neutral omission: every guard written against it
+# resolves with existsSync, calls this.skip(), and the gate still prints PASS,
+# so the run reports green having exercised none of them. Measured 2026-09-13,
+# with no roster the venue ran 397 passing / 60 skipped; with every repo below
+# beside it the same tree runs 485 tests, and the only skips left are the three
+# placeholder vector gaps in test/vectors.test.js and the LikeC4 topology model,
+# which lives in the platform workspace rather than in any sibling repo.
+#
+# ci-dispatch.sh ships each of these at the pushed branch (falling back to its
+# origin/master, then local HEAD) and REFUSES the push if one is not a checkout
+# beside this repo, so a declared sibling can never be silently absent.
+
+# The activation registry behind the generated flag-day page, the action
+# activation model, XBRIDGE registration, supply/settlement/dividend source
+# facts, fee and batch limits, and the schema-table coverage of database.md.
+xchain-indexer
+# The consensus wall-clock budget the VM pages quote.
+xchain-vm
+# Endpoint counts, the ExplorerStatus schema, the REST error-code registry,
+# contract-state proof availability and the regtest tip-age escape hatch.
+xchain-explorer
+# The multisign capacity figure the corpus pages publish.
+xchain-encoder
+# The SDK action surface and the canonical batch limits.
+xchain-sdk
+# The signer surface and release-key fingerprint channel one (SECURITY.md).
+xchain-wallet
+# The docs-site slug rule and release-key fingerprint channel two.
+xchain-websites
+# Schema-table coverage of the decoder and hub database pages.
+xchain-decoder
+xchain-hub
+# The environment-variable coverage fleet floor, which applies only when every
+# service component it scans is present (lib/env-var-doc-coverage.js COMPONENTS).
+xchain-node
+xchain-regtest-miner
+xchain-sync
+xchain-utxo-tracker

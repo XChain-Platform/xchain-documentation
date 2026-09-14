@@ -263,13 +263,11 @@ There is no royalty-specific mechanism; "royalty" is simply the most common use 
    legs as JSON on `orders.payout_legs` / `swaps.payout_legs`. A malformed or over-cap set
    **denies** the listing (fail-closed). No `payoutLegs` ⇒ NULL (an ordinary order).
 
-   Two of those denials arrive with the `CONTROLLER_GUARD_LEGS_STRICT` gate (see
-   [Flag-Day Values](./flag-days.md#mainnet-time-keyed-gates)). Below it, a supplied
-   `payoutLegs` that is not an ARRAY was read as "no legs" and the listing was created with
-   NULL legs, and a fractional `bps` was accepted at its truncated value; at and above it,
-   each denies with the usual `controller (bad payout leg)` reason and the cap is measured
-   against the raw `bps`. An empty array and an absent `payoutLegs` keep their meaning on
-   both sides of the gate.
+   Two shapes are read leniently rather than denied, and no activation gate changes that
+   today (none is registered in [Flag-Day Values](./flag-days.md)): a supplied `payoutLegs`
+   that is not an ARRAY is read as "no legs" and the listing is created with NULL legs, and
+   a fractional `bps` is accepted at its truncated integer value, which is also the value
+   the cap is measured against. An empty array means the same as an absent `payoutLegs`.
 2. **At match**: `Utility.applyProceedsSplit(tick, proceeds, seller, legs, decimals, cap)`
    splits each filled order's proceeds, **seller-remainder first, then each leg**, crediting
    `floor(proceeds × bps / 10000)` (at token precision) to each `to` and the exact remainder
