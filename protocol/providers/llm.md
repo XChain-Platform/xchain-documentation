@@ -83,7 +83,7 @@ flowchart TD
 
 ## Auth & Transport (operator-managed)
 
-Each validator's hub picks a transport per `xchain-hub/src/lib/hub-credentials.js`. Both transports return `{ body, meta: <model> }`; the choice is invisible to contracts and to other validators (only response bytes feed PBFT).
+Each validator's hub picks a transport per `xchain-hub/src/lib/hub_credentials.js`. Both transports return `{ body, meta: <model> }`; the choice is invisible to contracts and to other validators (only response bytes feed PBFT).
 
 | Transport       | Auth source                                                                                         | Cost model                       | Determinism                                                                          |
 | --------------- | --------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------ |
@@ -137,7 +137,7 @@ Validators on `claude_spawn` amortize their subscription across requests they se
 
 ## References
 
-- Provider def: `xchain-hub/src/ProviderRegistry.js` (DEFAULTS.llm)
+- Provider def: `xchain-hub/src/validators/provider_registry.js` (DEFAULTS.llm)
 - Provider module: `xchain-hub/src/providers/llm.js`
-- Auth resolver: `xchain-hub/src/lib/hub-credentials.js`
-- CLI wrapper: `xchain-hub/src/lib/claude-spawn.js`
+- Auth resolver: `xchain-hub/src/lib/hub_credentials.js`
+- CLI wrapper: `xchain-hub/src/lib/claude_spawn.js`

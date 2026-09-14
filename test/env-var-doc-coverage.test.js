@@ -297,7 +297,7 @@ describe('scanSource across line boundaries', () => {
         );
     });
 
-    // xchain-hub/src/StateCheckpointEngine.js:190-191, verbatim: the chain
+    // xchain-hub/src/anchor/checkpoint_engine.js:190-191, verbatim: the chain
     // continues through a non-literal `cfg.X` on the wrapped line.
     test('a wrapped chain inside parseInt reaches the literal past a cfg lookup', () => {
         const found = scanSource([
@@ -310,7 +310,7 @@ describe('scanSource across line boundaries', () => {
         assert.equal(site.line, 1);
     });
 
-    // xchain-hub/src/AttestationBatchPublisher.js:175-176: the `||` itself ends
+    // xchain-hub/src/attestation/batch_publisher.js:175-176: the `||` itself ends
     // the line, so the operand is read off the NEXT one.
     test('a `||` at end of line reaches its operand on the next line', () => {
         const found = scanSource([

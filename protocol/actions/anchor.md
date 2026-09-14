@@ -498,7 +498,7 @@ flowchart TD
 None of these is consensus data: they are per-hub operator knobs, and two hubs running
 different values still produce mutually verifiable anchors. What follows is the derivation of
 each magnitude, so a tuner can tell what is load-bearing from what is merely a round number.
-The arithmetic is pinned by `xchain-hub/test/unit/StateAnchorPublisher.constant-derivations.test.js`.
+The arithmetic is pinned by `xchain-hub/test/unit/state_anchor_publisher_constant_derivations.test.js`.
 
 **`ANCHOR_CHUNK_MAX_BYTES` (6000).** The hard ceiling is `MAX_ACTION_DATA_LENGTH` = 8192
 compiled bytes (`protocol/constants.js`). The decoder is the arbiter and *silently drops* any

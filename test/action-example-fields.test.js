@@ -341,7 +341,7 @@ describe('DISPENSER v0 examples match the declared format', () => {
     test('does not claim a first oracle price is effective immediately', () => {
         // dispenser.md and price.md contradicted each other and the code:
         // dispenser.md said the first price for a feed took effect immediately
-        // and only updates were delayed, while PriceAggregator.js applies a flat
+        // and only updates were delayed, while oracle/price_aggregator.js applies a flat
         // +86400 to EVERY publish (verified live: three rows, first publishes
         // included, all delay_seconds = 86400). price.md already documented the
         // uniform rule and the consensus reason for it. Someone following the old
