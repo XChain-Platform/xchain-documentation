@@ -201,7 +201,7 @@ chain on regtest first and pin mainnet at its launch.
 
 ### 4. Freeze the hash in the unit test
 
-Add `FOO` to `GOLDEN_HASH` in `xchain-hub/test/unit/coins.test.js`. This freeze
+Add `FOO` to `GOLDEN_HASH` in `xchain-hub/test/unit/coins/coins.test.js`. This freeze
 vector means any later accidental change to a consensus value fails the test
 loudly; updating a value is then a deliberate act (change the value, the golden
 hash, and the matching pin in one commit).
