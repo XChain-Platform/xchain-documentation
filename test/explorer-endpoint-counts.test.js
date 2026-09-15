@@ -56,6 +56,31 @@ const path = require('node:path');
 const COMPONENT_MAP  = path.resolve(__dirname, '../architecture/component-map.md');
 const EXPLORER        = path.resolve(__dirname, '../../xchain-explorer');
 const EXPLORER_SOURCE = path.join(EXPLORER, 'src/XChainExplorer.js');
+// The three route-table modules setupUrls() now builds its object from, in the
+// order it declares them. The explorer's own identity tool joins the same three
+// in the same order (bin/explorer-identity.js routeTableSource), which is what
+// keeps this gate and the explorer's route digest reading one surface.
+const ROUTE_TABLES = ['static_and_html', 'api_methods', 'explorer_feeds']
+    .map((name) => path.join(EXPLORER, 'src/explorer/routes', name + '.js'));
+
+// The dispatch table's declaration text, wherever it lives: the entry file while
+// setupUrls() held the literal, the joined route modules once they carry it.
+const ROUTES_INDEX = path.join(EXPLORER, 'src/explorer/routes/index.js');
+
+// The dispatch table itself. The explorer builds it in src/explorer/routes/,
+// which exports routeTables() returning a fresh object with the same keys in
+// the same order setupUrls() declared, so this gate loads it rather than
+// re-parsing a literal out of source text. The text path stays for a checkout
+// from before that move.
+function dispatchTable() {
+    if (fs.existsSync(ROUTES_INDEX)) {
+        const { routeTables } = require(requireExplorerFile(ROUTES_INDEX));
+        assert.equal(typeof routeTables, 'function',
+            'src/explorer/routes/index.js no longer exports routeTables(); this gate needs updating');
+        return routeTables();
+    }
+    return readDispatchTable(fs.readFileSync(requireExplorerFile(EXPLORER_SOURCE), 'utf8'));
+}
 const STATIC_MOUNTS   = path.join(EXPLORER, 'src/http/static_mounts.js');
 
 const doc = fs.readFileSync(COMPONENT_MAP, 'utf8');
@@ -74,8 +99,11 @@ function requireExplorerFile(file) {
 // evaluate it. Returns { html, api, explorer, static } exactly as the running
 // explorer sees it, duplicate keys already collapsed.
 function readDispatchTable(source) {
-    const anchor = source.indexOf('let urls = {');
-    assert.notEqual(anchor, -1, 'setupUrls() no longer declares `let urls = {`; this gate needs updating');
+    // `let urls = {` while the literal sat in setupUrls(), `urls : {` once the
+    // tables became modules that declare the same object under the same name.
+    let anchor = source.indexOf('urls : {');
+    if (anchor === -1) anchor = source.indexOf('let urls = {');
+    assert.notEqual(anchor, -1, 'neither setupUrls() nor the route-table modules declare the urls object; this gate needs updating');
     const open = source.indexOf('{', anchor);
     let depth = 0;
     let close = -1;
@@ -140,7 +168,7 @@ describe('explorer REST endpoint counts in component-map.md', () => {
     });
 
     test('the dispatch-table counts match xchain-explorer source', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
-        const urls = readDispatchTable(fs.readFileSync(requireExplorerFile(EXPLORER_SOURCE), 'utf8'));
+        const urls = dispatchTable();
         const api  = Object.keys(urls.api);
         const expl = Object.keys(urls.explorer);
 
@@ -174,7 +202,7 @@ describe('explorer REST endpoint counts in component-map.md', () => {
 
     test('the surfaces the doc calls out by name are really registered', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
         const source = fs.readFileSync(requireExplorerFile(EXPLORER_SOURCE), 'utf8');
-        const urls   = readDispatchTable(source);
+        const urls   = dispatchTable();
         const hand   = readHandRegisteredApiRoutes(source).join('\n');
 
         // The three surfaces added after the stale 2026-06-20 count, named in the

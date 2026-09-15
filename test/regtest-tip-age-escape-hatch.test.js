@@ -78,7 +78,15 @@ const noExplorer   = !haveExplorer && 'xchain-explorer not present in this check
 function readExplorerSource(file) {
     assert.ok(fs.existsSync(file),
         path.relative(EXPLORER, file) + ' is gone from xchain-explorer; repoint this gate at the file the behaviour moved to');
-    return fs.readFileSync(file, 'utf8');
+    // A reader family is an entry file plus a sibling directory of parts named
+    // after it, so the behaviour this gate pins can sit in either. Read both,
+    // in sorted path order, the way the explorer's own source-text helper does.
+    const parts = file.replace(/\.js$/, '');
+    let text = fs.readFileSync(file, 'utf8');
+    if (fs.existsSync(parts) && fs.statSync(parts).isDirectory())
+        for (const name of fs.readdirSync(parts).sort())
+            if (name.endsWith('.js')) text += '\n' + fs.readFileSync(path.join(parts, name), 'utf8');
+    return text;
 }
 
 // The body of `tipMaxAgeSeconds`, from its signature to the closing brace of

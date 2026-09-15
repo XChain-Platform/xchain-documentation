@@ -53,6 +53,30 @@ const REGISTRY_PAGE = path.join(ROOT, 'protocol/error-codes.md');
 const SOURCES = ['XChainExplorer.js', 'api.js', 'http/concurrency_gate.js']
     .map((file) => path.join(EXPLORER_SRC, file));
 
+// An entry file whose long methods were split keeps its path and gains a
+// sibling directory of parts, so an emit site can sit in either. The explorer
+// names those directories after the entry, except for its two top-level entries
+// (XChainExplorer.js to src/explorer/, api.js to src/http/api_boot/), which is
+// the same alias map the explorer's own source-text helper carries.
+const PART_DIRS = {
+    'XChainExplorer.js':          path.join(EXPLORER_SRC, 'explorer'),
+    'api.js':                     path.join(EXPLORER_SRC, 'http/api_boot'),
+    'http/concurrency_gate.js':   path.join(EXPLORER_SRC, 'http/concurrency_gate'),
+};
+
+// Every .js file under a directory, sorted, so the emit sites are read in a
+// stable order however deep the split goes.
+function jsFilesUnder(dir) {
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return [];
+    const out = [];
+    for (const name of fs.readdirSync(dir).sort()) {
+        const abs = path.join(dir, name);
+        if (fs.statSync(abs).isDirectory()) out.push(...jsFilesUnder(abs));
+        else if (name.endsWith('.js')) out.push(abs);
+    }
+    return out;
+}
+
 // Codes documented elsewhere on purpose. Each entry names where it lives, so a
 // future addition is a documentation decision rather than a way to quiet the
 // test. Loosening the collection regex is not the way to make this pass.
@@ -70,7 +94,12 @@ const LOGGER_EVENT = /\blog\.(?:trace|debug|info|warn|error|fatal)\(\s*'[A-Z][A-
 // minus a logger event name leading that line's log call.
 function emittedCodes() {
     const found = new Map();
-    for (const file of SOURCES) {
+    const files = SOURCES.slice();
+    for (const [entry, dir] of Object.entries(PART_DIRS)) {
+        if (!SOURCES.includes(path.join(EXPLORER_SRC, entry))) continue;
+        files.push(...jsFilesUnder(dir));
+    }
+    for (const file of files) {
         // With the repo present, a missing emit site means the code moved and
         // this list has to follow it, never that the check may skip.
         assert.ok(fs.existsSync(file),
