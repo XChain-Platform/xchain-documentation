@@ -269,7 +269,7 @@ Each supported blockchain has a configuration file at `src/coins/<COIN>.js` (BTC
 
 ## Unified Gas Fee Schedule
 
-After the activation block, fees for VM and staking actions are calculated using a gas-based schedule rather than the legacy flat fee constants. The following parameters are defined in each coin config file (`src/configs/<COIN>.js`) and are only applied to blocks at or after the activation height:
+After the activation block, fees for VM and staking actions are calculated using a gas-based schedule rather than the legacy flat fee constants. The following parameters are defined in each coin config file (`src/coins/<COIN>.js`) and are only applied to blocks at or after the activation height:
 
 | Parameter | Description | Example (BTC) |
 |---|---|---|

@@ -78,7 +78,7 @@ gates ([below](#decoder-carried-gates)), which sit outside all three cohorts bec
 evaluated in the decoder rather than the indexer. Each consuming service carries a
 **byte-identical twin** of the maps it needs, and a cross-repo conformance gate fails CI if a twin
 drifts. Cohort A (contract-era) values are not carried in `constants.js` at all: they are
-service-carried in `xchain-indexer/protocol_changes.js` and the `xchain-vm` gate constants (see the
+service-carried in `xchain-indexer/src/protocol_changes.js` and the `xchain-vm` gate constants (see the
 table below), byte-guarded against each other rather than against this file, pending a future
 consolidation.
 

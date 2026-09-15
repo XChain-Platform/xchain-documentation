@@ -286,9 +286,9 @@ Without these overrides the small `/` partition fills the moment a bootstrap is 
 
 | Constant | Value | Location | Description |
 |---|---|---|---|
-| `NODE_PREFIX` | `xchain-node` | config/index.js | Prefix for all Docker container and network names |
-| `SEP` | `-` | config/index.js | Separator for Docker naming (`xchain-node-bitcoin-mainnet`) |
-| `DB_SEP` | `_` | config/index.js | Separator for database naming (`xchain_decoder_bitcoin_mainnet`) |
+| `NODE_PREFIX` | `xchain-node` | src/config/index.js | Prefix for all Docker container and network names |
+| `SEP` | `-` | src/config/index.js | Separator for Docker naming (`xchain-node-bitcoin-mainnet`) |
+| `DB_SEP` | `_` | src/config/index.js | Separator for database naming (`xchain_decoder_bitcoin_mainnet`) |
 | `DB_NAME` | `xchain_node` | credentials_service.js | MariaDB database name used to store module state |
 
 ### NODE_PREFIX Validation

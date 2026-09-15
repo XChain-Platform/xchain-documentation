@@ -54,10 +54,8 @@ flowchart TD
 | `src/chain/blockchain_connector.js` | `BlockchainConnector` | HTTP JSON-RPC client for coin node: block fetching, batch requests, mempool queries, connection pooling (25 sockets) |
 | `src/chain/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parser: standard Bitcoin blocks, AuxPoW header stripping for Dogecoin/Litecoin HogEx |
 | `src/chain/crypto_networks.js` | `CryptoNetworks` | Network parameter lookup: maps network names to bitcoinjs-lib network objects for 9 network variants |
-| `src/util.js` | None | Utility functions: timing, hex/uint8 conversion, formatting |
-| `src/bufferutils.js` | `BufferReader`, `BufferWriter` | Binary buffer reading/writing: UInt8/16/32/64LE, VarInt, slices |
-| `src/db.js` | `Database` | Legacy MariaDB abstraction (connection pool, parameterized queries); not used by the main LevelDB pipeline but retained for compatibility |
-| `src/fm.js` | `FileManager` | File manager: reads and writes block/transaction/input/output flat-file exports used by offline processing workflows |
+| `src/common/util.js` | None | Utility functions: timing, hex/uint8 conversion, formatting |
+| `src/chain/bufferutils.js` | `BufferReader`, `BufferWriter` | Binary buffer reading/writing: UInt8/16/32/64LE, VarInt, slices |
 | `src/bulk-sync/` | (multiple) | Bulk-sync pipeline: offline parallel parse and load for initial database population on an empty DB (orchestrator, parse worker, merger, writers, loader, validator, and supporting utilities) |
 
 ## LevelDB Key Schema

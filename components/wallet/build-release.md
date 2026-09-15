@@ -121,7 +121,7 @@ The CWS submission packet covers:
 - Post-approval automation roadmap
 - Edge / Firefox variants
 
-CWS submission is one of the three remaining user-driven items before v1.0.0 GA. The submitter (Dankest, LLC) hosts the privacy policy at a public URL: `packages/extension/PRIVACY_POLICY.md` is authored to be hosted as-is on either GitHub Pages or `https://dankest.llc/xchain-wallet/privacy`.
+CWS submission is one of the three remaining user-driven items before v1.0.0 GA. The submitter (Dankest, LLC) hosts the privacy policy at a public URL: the [privacy policy](privacy/privacy-policy.md) is authored to be hosted as-is on either GitHub Pages or `https://dankest.llc/xchain-wallet/privacy`.
 
 ## Release artifact list
 
