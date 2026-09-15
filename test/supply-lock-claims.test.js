@@ -59,14 +59,14 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
-const { moduleExists, readModuleSource } = require('../lib/indexer-source.js'); // an entry plus every part it was split into
+const { readModuleSource } = require('../lib/indexer-source.js'); // an entry plus every part it was split into
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT = process.env.XCHAIN_DOCS_ROOT || path.join(__dirname, '..');
 const INDEXER  = path.resolve(path.join(__dirname, '..'), '../xchain-indexer/src');
 const GUIDE    = path.join(DOC_ROOT, 'user-guide', 'creating-tokens.md');
 const USECASES = path.join(DOC_ROOT, 'user-guide', 'use-cases.md');
 
-const haveIndexer = moduleExists(path.join(INDEXER, 'actions', 'mint.js'));
 const readSrc = (rel) => readModuleSource(path.join(INDEXER, rel));
 const guide = fs.readFileSync(GUIDE, 'utf8');
 const useCases = fs.readFileSync(USECASES, 'utf8');
@@ -88,18 +88,13 @@ const lockSection   = section(guide, '## Building Trust: Locking Parameters');
 const lockMintBullet = lockSection.split('\n').find((l) => l.startsWith('- **LOCK_MINT**:'));
 const lockCallbackBullet = lockSection.split('\n').find((l) => l.includes('LOCK_CALLBACK'));
 
-const skipNoIndexer = !haveIndexer && 'sibling xchain-indexer not present in this checkout';
-
-/* The skip above is for a bare clone. A run that declared the sibling supplied
+/* Skips by name on a bare clone. A run that declared the sibling supplied
  * (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set, with xchain-indexer
- * in .ci-siblings) fails here instead, so a dropped checkout cannot leave the source half
- * uncompared while the file still reports green. */
-if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !haveIndexer) {
-    test('the sibling xchain-indexer checkout the source half reads is present', () => {
-        assert.fail(`XCHAIN_REQUIRE_SIBLINGS=1 but xchain-indexer is not checked out at ${INDEXER}. `
-            + 'Check it out beside this repo rather than letting the source assertions skip.');
-    });
-}
+ * in .ci-siblings) throws in the helper instead, so a dropped checkout cannot leave the
+ * source half uncompared while the file still reports green. Both spellings of the entry
+ * are tried, since the indexer's split convention moves `mint.js` to `mint/index.js`. */
+const skipNoIndexer = sibling('xchain-indexer',
+    [[path.join(INDEXER, 'actions', 'mint.js'), path.join(INDEXER, 'actions', 'mint', 'index.js')]]).skip;
 
 test('the source facts the supply wording rests on still hold', { skip: skipNoIndexer }, () => {
     const mint = readSrc('actions/mint.js');

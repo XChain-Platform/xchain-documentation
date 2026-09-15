@@ -51,6 +51,7 @@ const fs   = require('node:fs');
 const path = require('node:path');
 
 const cov = require('../lib/schema-table-coverage.js');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT      = path.join(__dirname, '..');
 const PLATFORM_ROOT = path.resolve(DOC_ROOT, '..');
@@ -136,10 +137,13 @@ describe('schema table coverage', () => {
         const { doc, repo } = component;
         const sqlDir  = path.resolve(PLATFORM_ROOT, repo, cov.SQL_ROOT);
         const dbDoc   = path.join(DOC_ROOT, cov.docPathFor(doc));
-        const havePair = fs.existsSync(sqlDir) && fs.existsSync(dbDoc);
+        // The sibling half skips by name on a bare clone and throws under
+        // XCHAIN_REQUIRE_SIBLINGS=1; the doc half is this repo's own page.
+        const noSibling = sibling(repo, [sqlDir]).skip;
+        const noDoc     = !fs.existsSync(dbDoc) && `${path.relative(DOC_ROOT, dbDoc)} is missing from this repo`;
 
         test(`${doc}: every table in src/sql is named in database.md`,
-            { skip: !havePair && `${repo} not present in this checkout` }, () => {
+            { skip: noSibling || noDoc }, () => {
 
             const reader = cov.workingTreeReader();
             const survey = cov.buildSurvey({

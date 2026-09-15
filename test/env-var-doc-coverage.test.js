@@ -55,6 +55,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const cov = require('../lib/env-var-doc-coverage.js');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const {
     ENV_READ, extractDefault, scanSource, docLinesFor, defaultDocumented, isSourcePath,
@@ -1169,6 +1170,10 @@ describe('checkStaleKnownGaps (the waiver ratchet)', () => {
  *  The gate itself
  *  ------------------------------------------------------------------ */
 
+// Every gated component is a declared sibling (.ci-siblings), so under
+// XCHAIN_REQUIRE_SIBLINGS=1 an absent or hollow one throws here by name instead
+// of dropping out of the survey and shrinking the floor while the gate reads green.
+for (const c of cov.COMPONENTS) sibling(`xchain-${c}`);
 const present = cov.presentComponents(PLATFORM_ROOT);
 
 // Reading a sibling at HEAD needs its object database. A service checked out

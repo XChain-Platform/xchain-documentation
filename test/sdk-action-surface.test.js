@@ -39,6 +39,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const ROOT = path.join(__dirname, '..');
 const SPECS = path.join(ROOT, 'protocol', 'actions');
@@ -70,7 +71,6 @@ function resolveSdkSource(pinned, premove) {
 const SDK_MAIN = path.join(SDK, 'XChainSDK.js');
 const SESSION = resolveSdkSource('utils/wallet_session.js', 'walletSession.js');
 const SESSION_PATH = SESSION ? `xchain-sdk/src/${SESSION.rel}` : 'xchain-sdk/src/utils/wallet_session.js';
-const haveSdk = fs.existsSync(SDK_MAIN) && SESSION !== null;
 
 /** Actions that exist but are never user-submittable, so never in the SDK. */
 const NOT_INVOCABLE = ['ANCHOR', 'ATTEST', 'NODEPROOF', 'ROLLCALL', 'SLASH', 'XCALL'];
@@ -94,18 +94,14 @@ function named(text) {
   return NAMED.filter((n) => new RegExp(`\\b${n}\\b`).test(text)).sort();
 }
 
-/* The skip below is for a bare clone. A run that declared the sibling supplied
- * (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set) fails here
- * instead: the surface these pages describe lives in that checkout, and skipping
- * leaves the drift this file exists to catch unchecked but green. */
-if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !haveSdk) {
-  test('the xchain-sdk source the action-surface guard reads is present', () => {
-    assert.fail('XCHAIN_REQUIRE_SIBLINGS=1 but the SDK action surface is not readable: '
-      + `${SDK_MAIN} and a module declaring the session methods (tried `
-      + `${SESSION_PATH} and xchain-sdk/src/walletSession.js, following a bare re-export). `
-      + 'Check xchain-sdk out beside this repo rather than letting this guard skip.');
-  });
-}
+/* The skips below are for a bare clone, by name. A run that declared the sibling
+ * supplied (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set) throws in
+ * the helper instead, naming the entry and both session spellings tried: the surface
+ * these pages describe lives in that checkout, and skipping leaves the drift this file
+ * exists to catch unchecked but green. */
+const noSdk = sibling('xchain-sdk', [SDK_MAIN].concat(SESSION ? [] : [[
+  path.join(SDK, 'utils/wallet_session.js'), path.join(SDK, 'walletSession.js'),
+]])).skip;
 
 test('concepts/actions.md names every action that has a spec', () => {
   const missing = NAMED.filter((n) => !named(doc('concepts/actions.md')).includes(n));
@@ -114,7 +110,7 @@ test('concepts/actions.md names every action that has a spec', () => {
 });
 
 test('the SDK reference covers exactly the invocable set',
-  { skip: !haveSdk && 'xchain-sdk not present in this checkout' }, () => {
+  { skip: noSdk }, () => {
     const invocable = methodsFor(fs.readFileSync(SDK_MAIN, 'utf8'));
     assert.deepStrictEqual(invocable, NAMED.filter((n) => !NOT_INVOCABLE.includes(n)),
       'the SDK builder methods no longer match "every action except ' + NOT_INVOCABLE.join(', ')
@@ -132,7 +128,7 @@ test('the SDK reference covers exactly the invocable set',
   });
 
 test('the session convenience table lists exactly the session methods',
-  { skip: !haveSdk && 'xchain-sdk not present in this checkout' }, () => {
+  { skip: noSdk }, () => {
     const sessionActions = methodsFor(SESSION.body);
 
     // Only the convenience-method table, not the whole page: the prose below it

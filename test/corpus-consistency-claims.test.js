@@ -58,12 +58,13 @@ const assert = require('node:assert/strict');
 const test   = require('node:test');
 const fs     = require('node:fs');
 const path   = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const ROOT        = path.resolve(__dirname, '..');
 const ENCODER_SRC = path.resolve(ROOT, '../xchain-encoder/src/XChainEncoder.js');
 
-const haveEncoder = fs.existsSync(ENCODER_SRC);
-const noEncoder   = 'sibling xchain-encoder not present in this checkout';
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the encoder source is unreadable.
+const noEncoder   = sibling('xchain-encoder', [ENCODER_SRC]).skip;
 
 const readDoc = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
@@ -107,7 +108,7 @@ test('no page states multisig payload capacity on a per-key basis', () => {
 });
 
 test('the capacity the pages publish equals what xchain-encoder computes',
-    { skip: !haveEncoder && noEncoder }, () => {
+    { skip: noEncoder }, () => {
         const bytes = multisignDataBytes(fs.readFileSync(ENCODER_SRC, 'utf8'));
         assert.equal(bytes, 60,
             'the encoder no longer yields 60 data bytes per MULTISIGN chunk; '

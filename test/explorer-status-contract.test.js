@@ -42,12 +42,14 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const API_DOC = path.resolve(__dirname, '../components/explorer/api.md');
 const SCHEMA  = path.resolve(__dirname, '../../xchain-explorer/src/content/json/xchain-platform-api.json');
 
 const doc         = fs.readFileSync(API_DOC, 'utf8');
-const haveSchema  = fs.existsSync(SCHEMA);
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the schema is unreadable.
+const noSchema    = sibling('xchain-explorer', [SCHEMA]).skip;
 
 // The "Get Status" section only: a field name mentioned under some other
 // endpoint must not count as documented here.
@@ -71,7 +73,7 @@ function documentedFields(section) {
 describe('explorer /status contract in components/explorer/api.md', () => {
     const section = statusSection(doc);
 
-    test('documents every field the published ExplorerStatus schema declares', { skip: !haveSchema && 'xchain-explorer not present in this checkout' }, () => {
+    test('documents every field the published ExplorerStatus schema declares', { skip: noSchema }, () => {
         const spec     = JSON.parse(fs.readFileSync(SCHEMA, 'utf8'));
         const declared = Object.keys(spec.components.schemas.ExplorerStatus.properties);
         const rows     = documentedFields(section);

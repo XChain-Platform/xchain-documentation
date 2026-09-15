@@ -53,24 +53,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const gen = require('../bin/generate-flag-days.js');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT = path.join(__dirname, '..');
 const PAGE_REL = 'protocol/protocol-activation.md';
 const PAGE = fs.readFileSync(path.join(DOC_ROOT, PAGE_REL), 'utf8');
 const CONSTANTS = require(path.join(DOC_ROOT, 'protocol', 'constants.js'));
-const HAS_INDEXER = fs.existsSync(gen.REGISTRY);
-
-/* A bare clone skips the registry half below. A run that declared the sibling supplied
- * (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set, with xchain-indexer
- * in .ci-siblings) fails here instead: there an absent registry means a dropped checkout,
- * and the page's testnet claims would go unchecked while the file still reported green. */
-if (process.env.XCHAIN_REQUIRE_SIBLINGS === '1' && !HAS_INDEXER) {
-    test('the sibling xchain-indexer registry this file reads is present', () => {
-        assert.fail(`XCHAIN_REQUIRE_SIBLINGS=1 but the activation registry is not readable at `
-            + `${gen.REGISTRY}. Check xchain-indexer out beside this repo rather than letting the `
-            + 'testnet-arm claims pass by skipping.');
-    });
-}
+/* A bare clone skips the registry half below by name. A run that declared the sibling
+ * supplied (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set, with
+ * xchain-indexer in .ci-siblings) throws in the helper instead: there an absent registry
+ * means a dropped checkout, and the page's testnet claims would go unchecked while the
+ * file still reported green. */
+const noIndexer = sibling('xchain-indexer', [gen.REGISTRY]).skip;
 
 /** Every exported map with a `mainnet` slot, by name. */
 const MAPS = new Map(
@@ -172,7 +166,7 @@ function exceptionsSection() {
 }
 
 test('every nonzero testnet arm is named in the page\'s exception list', {
-    skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout',
+    skip: noIndexer,
 }, () => {
     const arms = gen.collectTestnetArms();
     assert.ok(

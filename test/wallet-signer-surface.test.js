@@ -46,12 +46,14 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT   = path.join(__dirname, '..');
 const WALLET     = path.resolve(DOC_ROOT, '../xchain-wallet');
 const SIGNER_SRC = path.join(WALLET, 'packages/core/src/signers/Signer.js');
 const ARCH_DOC   = path.join(DOC_ROOT, 'components/wallet/architecture.md');
-const haveWallet = fs.existsSync(SIGNER_SRC);
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the signer is unreadable.
+const noWallet   = sibling('xchain-wallet', [SIGNER_SRC]).skip;
 
 // A member-position `name(` and a member-position `if (` are the same shape, so
 // shape alone cannot tell them apart. Refuse the keywords that can legally sit
@@ -106,7 +108,7 @@ function concreteSignerClasses() {
 describe('wallet signer surface', () => {
 
     test('every Signer base-class method is listed in architecture.md',
-        { skip: !haveWallet && 'xchain-wallet not present in this checkout' }, () => {
+        { skip: noWallet }, () => {
         const doc     = fs.readFileSync(ARCH_DOC, 'utf8');
         const methods = signerMethods();
 
@@ -121,7 +123,7 @@ describe('wallet signer surface', () => {
     });
 
     test('no doc presents a signer class that does not exist',
-        { skip: !haveWallet && 'xchain-wallet not present in this checkout' }, () => {
+        { skip: noWallet }, () => {
 
         const real = concreteSignerClasses();
         assert.ok(real.size >= 4, 'found only ' + real.size + ' signer classes; the scan is probably broken');
@@ -169,7 +171,7 @@ describe('wallet signer surface', () => {
     });
 
     test('every spelled-out concrete-signer count matches the code',
-        { skip: !haveWallet && 'xchain-wallet not present in this checkout' }, () => {
+        { skip: noWallet }, () => {
 
         // Count from source only: the extension's built bundles re-declare the
         // same classes, and a dist copy is not a fifth signer.

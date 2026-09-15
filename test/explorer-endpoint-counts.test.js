@@ -52,6 +52,7 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const COMPONENT_MAP  = path.resolve(__dirname, '../architecture/component-map.md');
 const EXPLORER        = path.resolve(__dirname, '../../xchain-explorer');
@@ -106,7 +107,9 @@ const STATIC_MOUNTS   = path.join(EXPLORER, 'src/http/static_mounts.js');
 const EXPLORER_STAGES = path.join(EXPLORER, 'src/explorer');
 
 const doc = fs.readFileSync(COMPONENT_MAP, 'utf8');
-const haveExplorer = fs.existsSync(path.join(EXPLORER, 'package.json'));
+// Repo presence only: a pinned file gone from a PRESENT explorer fails inside the test by
+// name (readSource below). Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1.
+const noExplorer = sibling('xchain-explorer').skip;
 
 // Reads an explorer source file this gate is pinned to, failing with the path
 // named when it is gone: with the repo present, a missing file means the code
@@ -189,7 +192,7 @@ describe('explorer REST endpoint counts in component-map.md', () => {
             'the breakdown ' + api + ' + ' + expl + ' + ' + hand + ' does not sum to the stated total ' + total);
     });
 
-    test('the dispatch-table counts match xchain-explorer source', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
+    test('the dispatch-table counts match xchain-explorer source', { skip: noExplorer }, () => {
         const urls = dispatchTable();
         const api  = Object.keys(urls.api);
         const expl = Object.keys(urls.explorer);
@@ -214,7 +217,7 @@ describe('explorer REST endpoint counts in component-map.md', () => {
             ' HTML page routes, not the documented ' + docHtml);
     });
 
-    test('the hand-registered /api route count matches xchain-explorer source', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
+    test('the hand-registered /api route count matches xchain-explorer source', { skip: noExplorer }, () => {
         const routes  = readHandRegisteredApiRoutes(explorerClassSource());
         const docHand = documentedFigure('hand-registered');
         assert.equal(routes.length, docHand,
@@ -222,7 +225,7 @@ describe('explorer REST endpoint counts in component-map.md', () => {
             routes.join('\n  '));
     });
 
-    test('the surfaces the doc calls out by name are really registered', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
+    test('the surfaces the doc calls out by name are really registered', { skip: noExplorer }, () => {
         const source = explorerClassSource();
         const urls   = dispatchTable();
         const hand   = readHandRegisteredApiRoutes(source).join('\n');

@@ -56,10 +56,12 @@ const os = require('node:os');
 const path = require('node:path');
 
 const gen = require('../bin/generate-flag-days.js');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT = path.join(__dirname, '..');
 const GENERATED = path.join(DOC_ROOT, 'protocol', 'flag-days.md');
-const HAS_INDEXER = fs.existsSync(gen.REGISTRY);
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the registry is unreadable.
+const noIndexer = sibling('xchain-indexer', [gen.REGISTRY]).skip;
 
 /**
  * Flag-day dates the platform has retired. Pinned literally, which is the
@@ -104,7 +106,7 @@ function proseLines() {
     return out;
 }
 
-test('the generated flag-day page matches the indexer registry', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+test('the generated flag-day page matches the indexer registry', { skip: noIndexer }, () => {
     assert.ok(fs.existsSync(GENERATED), 'protocol/flag-days.md is missing. Run node bin/generate-flag-days.js');
     assert.strictEqual(
         fs.readFileSync(GENERATED, 'utf8'),
@@ -115,7 +117,7 @@ test('the generated flag-day page matches the indexer registry', { skip: HAS_IND
     );
 });
 
-test('all three gate-collection paths still find their gates', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+test('all three gate-collection paths still find their gates', { skip: noIndexer }, () => {
     // collectGates reads the registry with two independent regexes and then
     // scans the sibling `*_activation.js` modules, and the check above cannot
     // tell you when one of the three stops matching: it compares the COMMITTED
@@ -562,11 +564,11 @@ test('the legitimately quiet sibling shapes do not throw', () => {
     assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
 });
 
-test('the real registry parses clean, so the check is not merely strict', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+test('the real registry parses clean, so the check is not merely strict', { skip: noIndexer }, () => {
     assert.ok(gen.collectGates().length > 0);
 });
 
-test('the generated page is the only place a live flag-day value appears', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+test('the generated page is the only place a live flag-day value appears', { skip: noIndexer }, () => {
     const gates = gen.collectGates();
     const liveDates = new Set(gates.map((g) => gen.utcDate(g.time)));
     const liveStamps = new Set(gates.map((g) => String(g.time)));
@@ -606,7 +608,7 @@ test('no retired flag-day value survives anywhere in the prose', () => {
         + bad.join('\n'));
 });
 
-test('every retired value is genuinely retired in the current registry', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+test('every retired value is genuinely retired in the current registry', { skip: noIndexer }, () => {
     const live = new Set(gen.collectGates().map((g) => String(g.time)));
     for (const stamp of RETIRED_TIMESTAMPS) {
         assert.ok(!live.has(stamp),

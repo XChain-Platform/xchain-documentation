@@ -45,6 +45,7 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT = path.join(__dirname, '..');
 const RECIPE   = path.join(DOC_ROOT, 'components/wallet/release/verify-release.md');
@@ -230,12 +231,14 @@ describe('release key fingerprint cross-references', () => {
     describe('the channels are documents that publish a fingerprint', () => {
         const wallet   = path.resolve(DOC_ROOT, '../xchain-wallet/SECURITY.md');
         const website  = path.resolve(DOC_ROOT, '../xchain-websites/xchain.io/security/index.html');
+        // Each channel skips by name on a bare clone and throws under XCHAIN_REQUIRE_SIBLINGS=1.
+        const noWallet  = sibling('xchain-wallet', [wallet]).skip;
+        const noWebsite = sibling('xchain-websites', [website]).skip;
 
         // Pending the key ceremony neither channel carries a VALUE yet, so
         // what is checked is the named slot plus its stated empty state. A
         // channel with no slot at all is the defect this guard exists for.
-        test('channel one: SECURITY.md in xchain-wallet', (t) => {
-            if (!fs.existsSync(wallet)) return t.skip('sibling xchain-wallet not checked out');
+        test('channel one: SECURITY.md in xchain-wallet', { skip: noWallet }, () => {
             const src = read(wallet);
             assert.ok(
                 FINGERPRINT_VALUE.test(src) || /PGP fingerprint:/i.test(src),
@@ -248,8 +251,7 @@ describe('release key fingerprint cross-references', () => {
             );
         });
 
-        test('channel two: https://xchain.io/security', (t) => {
-            if (!fs.existsSync(website)) return t.skip('sibling xchain-websites not checked out');
+        test('channel two: https://xchain.io/security', { skip: noWebsite }, () => {
             const src = read(website);
             assert.ok(
                 /id="release-key-fingerprint"/.test(src),

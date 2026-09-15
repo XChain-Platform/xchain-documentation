@@ -20,15 +20,17 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT = path.join(__dirname, '..');
 const REGISTRY = path.resolve(DOC_ROOT, '../xchain-indexer/src/protocol_changes.js');
-const haveRegistry = fs.existsSync(REGISTRY);
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the registry is unreadable.
+const indexer = sibling('xchain-indexer', [REGISTRY]);
 
 describe('XBRIDGE action registration (L9b follow-on)', () => {
 
     test('protocol_changes.js registers XBRIDGE at all-zero columns',
-        { skip: !haveRegistry && 'xchain-indexer not present in this checkout' }, () => {
+        { skip: indexer.skip }, () => {
             const src = fs.readFileSync(REGISTRY, 'utf8');
             const m = src.match(/this\.addChange\(\s*'XBRIDGE'\s*,\s*'([\d.]+)'\s*,([^)]*)\)/);
             assert.ok(m, 'XBRIDGE is not registered in protocol_changes.js');

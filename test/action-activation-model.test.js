@@ -46,10 +46,12 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT = path.join(__dirname, '..');
 const REGISTRY = path.resolve(DOC_ROOT, '../xchain-indexer/src/protocol_changes.js');
-const haveRegistry = fs.existsSync(REGISTRY);
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the registry is unreadable.
+const indexer = sibling('xchain-indexer', [REGISTRY]);
 
 // The 36 documented ACTIONs: one page per action under protocol/actions/.
 const ACTIONS = fs.readdirSync(path.join(DOC_ROOT, 'protocol/actions'))
@@ -76,13 +78,13 @@ function readRegistry() {
 
 describe('ACTION activation model', () => {
 
-    test('every ACTION is registered', { skip: !haveRegistry && 'xchain-indexer not present in this checkout' }, () => {
+    test('every ACTION is registered', { skip: indexer.skip }, () => {
         const names = new Set(readRegistry().map((r) => r.name));
         const missing = ACTIONS.filter((a) => !names.has(a));
         assert.deepEqual(missing, [], 'documented actions absent from protocol_changes.js: ' + missing.join(', '));
     });
 
-    test('no ACTION carries a non-zero activation time or height', { skip: !haveRegistry && 'xchain-indexer not present in this checkout' }, () => {
+    test('no ACTION carries a non-zero activation time or height', { skip: indexer.skip }, () => {
         const gated = readRegistry()
             .filter((r) => ACTIONS.includes(r.name))
             .filter((r) => r.thresholds.some((t) => t !== '0'))
@@ -92,7 +94,7 @@ describe('ACTION activation model', () => {
             'version alone gates them:\n  ' + gated.join('\n  '));
     });
 
-    test('the documented 21/17 version split matches the registry', { skip: !haveRegistry && 'xchain-indexer not present in this checkout' }, () => {
+    test('the documented 21/17 version split matches the registry', { skip: indexer.skip }, () => {
         const acts = readRegistry().filter((r) => ACTIONS.includes(r.name));
         const byVersion = {};
         for (const a of acts) (byVersion[a.version] = byVersion[a.version] || []).push(a.name);

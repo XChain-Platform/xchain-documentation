@@ -49,11 +49,13 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT   = path.resolve(__dirname, '..');
 const ACTIVATION = path.resolve(__dirname, '../../xchain-explorer/src/state_subtree_activation.js');
 
-const haveExplorer = fs.existsSync(ACTIVATION);
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the armed map is unreadable.
+const explorer = sibling('xchain-explorer', [ACTIVATION]);
 
 // Every tracked .md page except history and vendored trees.
 function docPages(dir, out) {
@@ -86,7 +88,7 @@ function staleLines(file) {
 }
 
 describe('contract-state proof availability in documentation', () => {
-    test('no page calls the endpoint unimplemented while the slot is armed somewhere', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
+    test('no page calls the endpoint unimplemented while the slot is armed somewhere', { skip: explorer.skip }, () => {
         const { STATE_SUBTREE_ACTIVATION } = require(ACTIVATION);
         const armed = Object.keys(STATE_SUBTREE_ACTIVATION.contract_state_root || {});
         if (armed.length === 0) return; // pre-arming: the stale sentences are true

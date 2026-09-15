@@ -43,6 +43,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const ROOT          = path.resolve(__dirname, '..');
 const EXPLORER      = path.resolve(ROOT, '../xchain-explorer');
@@ -82,8 +83,9 @@ function jsFilesUnder(dir) {
 // test. Loosening the collection regex is not the way to make this pass.
 const DOCUMENTED_ELSEWHERE = Object.create(null);
 
-const haveExplorer = fs.existsSync(path.join(EXPLORER, 'package.json'));
-const noExplorer   = 'sibling xchain-explorer not present in this checkout';
+// Repo presence only: a pinned file gone from a PRESENT explorer fails inside the test by
+// name (readSource below). Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1.
+const noExplorer   = sibling('xchain-explorer').skip;
 
 // The observability logger's first argument is an EVENT name, not a response
 // code; a log line also carrying the Node errno as `code: err.code` would
@@ -118,7 +120,7 @@ function emittedCodes() {
     return found;
 }
 
-test('every explorer REST error code has a registry row', { skip: haveExplorer ? false : noExplorer }, () => {
+test('every explorer REST error code has a registry row', { skip: noExplorer }, () => {
     const registry = fs.readFileSync(REGISTRY_PAGE, 'utf8');
     const emitted  = emittedCodes();
 

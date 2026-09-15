@@ -60,6 +60,7 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DEV_DOC = path.resolve(__dirname, '../developer-guide/regtest-development.md');
 const CFG_DOC = path.resolve(__dirname, '../components/explorer/configuration.md');
@@ -69,8 +70,9 @@ const HEALTH_SRC = path.join(EXPLORER, 'src/db/readers/health.js');
 
 const devDoc = fs.readFileSync(DEV_DOC, 'utf8');
 const cfgDoc = fs.readFileSync(CFG_DOC, 'utf8');
-const haveExplorer = fs.existsSync(path.join(EXPLORER, 'package.json'));
-const noExplorer   = !haveExplorer && 'xchain-explorer not present in this checkout';
+// Repo presence only: a pinned file gone from a PRESENT explorer fails inside the test by
+// name (readSource below). Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1.
+const noExplorer   = sibling('xchain-explorer').skip;
 
 // Reads an explorer source file this gate is pinned to, failing with the path
 // named when it is gone: with the repo present, a missing file means the code
