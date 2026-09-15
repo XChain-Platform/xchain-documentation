@@ -60,23 +60,40 @@ const fs     = require('node:fs');
 const path   = require('node:path');
 const { sibling } = require('./helpers/sibling_checkout.js');
 
-const ROOT        = path.resolve(__dirname, '..');
-const ENCODER_SRC = path.resolve(ROOT, '../xchain-encoder/src/XChainEncoder.js');
+const ROOT              = path.resolve(__dirname, '..');
+const ENCODER_SRC       = path.resolve(ROOT, '../xchain-encoder/src/XChainEncoder.js');
+const ENCODER_CONSTANTS = path.resolve(ROOT, '../xchain-encoder/src/XChainEncoder/constants.js');
 
-// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the encoder source is unreadable.
-const noEncoder   = sibling('xchain-encoder', [ENCODER_SRC]).skip;
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the
+// sibling checkout itself is absent or hollow. Which file inside it declares
+// MULTISIGN_SIZE is not a skip condition (see multisignDataBytes): a repo that
+// is checked out but declares the constant nowhere is a hard failure, not a skip.
+const noEncoder   = sibling('xchain-encoder', []).skip;
 
 const readDoc = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
 // MULTISIGN_SIZE minus the magic word and the five single-byte script fields
 // the encoder subtracts at prepareData time. Kept as arithmetic over the
 // declared constant so a change to the constant moves this guard by itself.
-function multisignDataBytes(src) {
-    const m = /^const MULTISIGN_SIZE\s*=\s*(\d+)/m.exec(src);
-    assert.ok(m, 'MULTISIGN_SIZE declaration not found in xchain-encoder/src/'
-        + 'XChainEncoder.js; the declaration shape changed, re-point this regex');
-    const MAGIC_LEN = 4;
-    return Number(m[1]) - MAGIC_LEN - 5;
+//
+// Reads src/XChainEncoder/constants.js first (the per-feature split) and
+// falls back to the monolithic src/XChainEncoder.js (the pre-split layout),
+// so this guard survives either shape of the encoder checkout. Fails loudly
+// naming both paths when neither declares the constant, rather than skipping:
+// an unreadable sibling is a skip, but a readable one with the declaration
+// gone from both known homes is a corpus-guard defect that must not go quiet.
+function multisignDataBytes() {
+    for (const src of [ENCODER_CONSTANTS, ENCODER_SRC]) {
+        if (!fs.existsSync(src)) continue;
+        const m = /^const MULTISIGN_SIZE\s*=\s*(\d+)/m.exec(fs.readFileSync(src, 'utf8'));
+        if (m) {
+            const MAGIC_LEN = 4;
+            return Number(m[1]) - MAGIC_LEN - 5;
+        }
+    }
+    assert.fail('MULTISIGN_SIZE declaration not found in xchain-encoder/src/XChainEncoder/'
+        + 'constants.js or xchain-encoder/src/XChainEncoder.js; the declaration shape '
+        + 'changed, re-point this regex');
 }
 
 /* ---------------------------------------------------------------- claim 1 */
@@ -109,7 +126,7 @@ test('no page states multisig payload capacity on a per-key basis', () => {
 
 test('the capacity the pages publish equals what xchain-encoder computes',
     { skip: noEncoder }, () => {
-        const bytes = multisignDataBytes(fs.readFileSync(ENCODER_SRC, 'utf8'));
+        const bytes = multisignDataBytes();
         assert.equal(bytes, 60,
             'the encoder no longer yields 60 data bytes per MULTISIGN chunk; '
             + 'sweep the capacity figure through ' + CAPACITY_PAGES.join(', '));
