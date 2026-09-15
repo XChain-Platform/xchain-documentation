@@ -103,6 +103,24 @@ The coupling is one-directional, so `reset xchain-indexer` on its own stays avai
 
 When `all` is used, the command expands to every valid combination. Regtest-only services (`xchain-regtest-miner`, `xchain-e2e-test`) are automatically excluded from mainnet and testnet expansions.
 
+## Exit status
+
+`xchain-node` reports the outcome of a command in its exit status, so a wrapper script or a cron entry can act on it without parsing output.
+
+| Exit status | Meaning |
+|---|---|
+| `0` | The command completed. For `update`, every requested service is on the requested release. |
+| `1` | The command failed. `update` prints `update failed: <reason>` on stderr first, including the case where no requested service matched an installed container. |
+
+**Read the status without a pipe.** `$?` is the status of the LAST command in a pipeline, so `xchain-node update all | grep -v WARN; echo $?` prints grep's status, not xchain-node's, and a failed update reads as `0`. Two lines show it:
+
+```bash
+( echo out; false ) | grep -v zzz >/dev/null; echo $?   # prints 0: grep's status
+( echo out; false ); echo $?                             # prints 1: the command's own
+```
+
+Either read the status with no pipe in the way, or run `set -o pipefail` first, which makes a pipeline's status the last non-zero status of any command in it.
+
 ## Installation Workflow
 
 When `xchain-node install master all bitcoin regtest` is executed:

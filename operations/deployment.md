@@ -159,13 +159,15 @@ docker inspect -f '{{.HostConfig.Memory}}' xchain-node-dogecoin-mainnet-xchain-u
 
 A non-zero byte count is the limit in force; `0` means the tracker is running on the whole host. The tracker's own boot line agrees: `docker logs` on it prints `memory budget NNNNMB (cgroup limit)` when a limit binds, and `(host memory)` when none does. `xchain-node` performs this check itself after every create and warns when the limit did not stick, but the two commands above confirm it at any time.
 
-Raspberry Pi OS ships with the memory cgroup controller off, which is the usual cause. Append `cgroup_enable=memory cgroup_memory=1` to the single line in `/boot/firmware/cmdline.txt`, reboot, then run `xchain-node recreate xchain-utxo-tracker all all` so every tracker is created again with its limit. On any other host, run `docker info` and look for `No memory limit support` among its warnings.
+Raspberry Pi OS ships with the memory cgroup controller off, which is the usual cause. Append `cgroup_enable=memory cgroup_memory=1` to the single line in `/boot/firmware/cmdline.txt`, reboot, then run `xchain-node recreate xchain-utxo-tracker all all` so every tracker is created again with its limit. On a Raspberry Pi 5 the disable comes from the firmware, which injects `cgroup_disable=memory` ahead of whatever `cmdline.txt` holds: the file never carries it, so there is nothing to remove, and after the fix `cat /proc/cmdline` still shows `cgroup_disable=memory` followed by your appended parameters. That is the working state, not a failed one: the kernel takes the last setting on the line, so the appended enable wins. Judge the fix by `docker inspect` returning a non-zero limit and the tracker's boot line reading `(cgroup limit)`, never by grepping the kernel command line for the disable. On any other host, run `docker info` and look for `No memory limit support` among its warnings.
+
+The limit is what leaves the host its page cache. On a four-chain Pi 5 the same tracker's heap-flush threshold went from 2027 MB, sized against the whole host, to 256 MB under a 2 GB cap, and host memory available went from 3793 MB to 7669 MB with nothing else changed. The section below is why that page cache matters.
 
 To override the derivation for a tracker, either set the container limit (`XCHAIN_NODE_MODULE_MEMORY_MB_XCHAIN_UTXO_TRACKER=4096` before `recreate`; the tracker re-derives its slices from the new limit) or set the slices themselves in the tracker's environment (`LEVELDB_CACHE_BYTES`, `HEAP_FLUSH_THRESHOLD_MB`, `BULK_SYNC_RAM_BUDGET`), documented on the [utxo-tracker configuration](../components/utxo-tracker/configuration.md#memory-budget) page. Setting a slice larger than the container limit allows is the one combination to avoid: the kernel enforces the limit, not the tracker.
 
 ### Disk I/O on a multi-chain host
 
-On a host with a single disk, every chain's coin node, decoder, indexer, encoder and UTXO tracker read and write that same disk, and it is often the first resource to saturate, not CPU or RAM. A chain that has already finished its initial block download does not go quiet: its services keep polling the coin node and the database on a fixed cadence, and the UTXO tracker's LevelDB store serves those polls as cold reads, so a synced chain's idle services can still hold the disk at high iowait and starve another chain's initial block download of the throughput it needs.
+On a host with a single disk, every chain's coin node, decoder, indexer, encoder and UTXO tracker read and write that same disk, and it is often the first resource to saturate, not CPU or RAM. The mechanism is the page cache, not an idle writer. A synced chain's services are quiet at idle: measured over fourteen minutes on a four-chain host, their block I/O counters did not move and iowait sat at 0.3, with the tracker parsing the mempool every minute. What the tracker does on every mempool pass is read index blocks from its LevelDB store, and on a mainnet Bitcoin tracker that store is around 92,000 table files (176 GiB at the 2 MB default file size) while LevelDB keeps index blocks resident for only its default 1,000 open files. Every other lookup goes to the page cache, and while the page cache holds them the passes cost no disk reads at all. When another process evicts the page cache, which a coin node in initial block download with a large `dbcache` does, every mempool pass re-reads those index blocks off the device at its full bandwidth (41.8 GB in five minutes on one Pi 5), and that is what starves the second chain's initial block download.
 
 Measure the effect without stopping anything by sampling each container's block I/O twice, five minutes apart:
 
@@ -173,12 +175,13 @@ Measure the effect without stopping anything by sampling each container's block 
 docker stats --no-stream --format '{{.Name}}\t{{.BlockIO}}'
 ```
 
-The container whose BlockIO grew the most between the two samples is the current writer; if a synced chain's services show meaningful growth while idle, they are competing with whatever chain is still in initial block download.
+The container whose BlockIO grew the most between the two samples is the current reader or writer. A synced chain's tracker whose BlockIO grows by gigabytes while idle is not busy; it has lost its page cache and is re-reading its index from the disk, which is the signature to look for.
 
-On a single-disk host, prefer one of these in order:
+On a single-disk host, prefer these in order:
 
-- **Sync one chain at a time.** Install and let each chain finish its initial block download before installing the next; this avoids the contention entirely.  
-- **If chains must overlap, stop the synced chain's services for the other chain's initial block download**, then start them again once it catches up:
+- **Cap the trackers so the host keeps its page cache.** The memory limit in the section above is what stops a tracker from sizing its own caches against the whole host; with the limit in force the page cache survives and the idle re-reads stop. Confirm the limit landed before going further down this list.  
+- **Sync one chain at a time.** Install and let each chain finish its initial block download before installing the next, so no initial block download evicts a synced tracker's index while it runs.  
+- **Only if the cap and the ordering are not enough, stop the synced chain's services for the other chain's initial block download**, then start them again once it catches up:
 
 ```bash
 xchain-node stop all bitcoin mainnet
