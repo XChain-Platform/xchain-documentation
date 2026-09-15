@@ -81,7 +81,29 @@ function dispatchTable() {
     }
     return readDispatchTable(fs.readFileSync(requireExplorerFile(EXPLORER_SOURCE), 'utf8'));
 }
+
+// The class entry's text followed by every .js module under src/explorer/, in
+// path order, as one string for the route-registration scans.
+function explorerClassSource() {
+    const files = [requireExplorerFile(EXPLORER_SOURCE)];
+    if (fs.existsSync(EXPLORER_STAGES)) {
+        const walk = (dir) => {
+            for (const name of fs.readdirSync(dir).sort()) {
+                const full = path.join(dir, name);
+                if (fs.statSync(full).isDirectory()) walk(full);
+                else if (name.endsWith('.js')) files.push(full);
+            }
+        };
+        walk(EXPLORER_STAGES);
+    }
+    return files.map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+}
 const STATIC_MOUNTS   = path.join(EXPLORER, 'src/http/static_mounts.js');
+// The hand-registered routes live in the class entry or in the stage modules
+// it delegates to under src/explorer/ (mount.js today), so this gate reads the
+// entry plus every module in that tree; a text read pinned to one file would
+// count zero the moment the registrations moved and never fail.
+const EXPLORER_STAGES = path.join(EXPLORER, 'src/explorer');
 
 const doc = fs.readFileSync(COMPONENT_MAP, 'utf8');
 const haveExplorer = fs.existsSync(path.join(EXPLORER, 'package.json'));
@@ -193,7 +215,7 @@ describe('explorer REST endpoint counts in component-map.md', () => {
     });
 
     test('the hand-registered /api route count matches xchain-explorer source', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
-        const routes  = readHandRegisteredApiRoutes(fs.readFileSync(requireExplorerFile(EXPLORER_SOURCE), 'utf8'));
+        const routes  = readHandRegisteredApiRoutes(explorerClassSource());
         const docHand = documentedFigure('hand-registered');
         assert.equal(routes.length, docHand,
             'the explorer hand-registers ' + routes.length + ' /api routes, not the documented ' + docHand + ':\n  ' +
@@ -201,7 +223,7 @@ describe('explorer REST endpoint counts in component-map.md', () => {
     });
 
     test('the surfaces the doc calls out by name are really registered', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
-        const source = fs.readFileSync(requireExplorerFile(EXPLORER_SOURCE), 'utf8');
+        const source = explorerClassSource();
         const urls   = dispatchTable();
         const hand   = readHandRegisteredApiRoutes(source).join('\n');
 
