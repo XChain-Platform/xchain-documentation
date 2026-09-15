@@ -40,6 +40,8 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 const { sibling } = require('./helpers/sibling_checkout.js');
+// an entry plus every part it was split into, the platform's split convention
+const { readModuleSource } = require('../lib/indexer-source.js');
 
 const ROOT = path.join(__dirname, '..');
 const SPECS = path.join(ROOT, 'protocol', 'actions');
@@ -52,7 +54,12 @@ const SDK = path.join(ROOT, '..', 'xchain-sdk', 'src');
  * and a sibling checkout can sit on either side of that move. Follow a bare re-export
  * to its target and fall back to the pre-move spelling, then report the path that was
  * READ: pinning one spelling makes this guard fail against a stub on one side of the
- * move and skip silently on the other, and neither reading checks the docs. */
+ * move and skip silently on the other, and neither reading checks the docs.
+ *
+ * The declarations are then read as the ENTRY PLUS ITS PARTS: the SDK's structure pass
+ * moved the per-action shortcuts out of utils/wallet_session.js into
+ * utils/wallet_session/action_shortcuts.js, and reading the entry alone reported every
+ * session method as missing while the docs and the code still agreed. */
 function resolveSdkSource(pinned, premove) {
   const read = (rel) => {
     const abs = path.join(SDK, rel);
@@ -60,10 +67,10 @@ function resolveSdkSource(pinned, premove) {
     const body = fs.readFileSync(abs, 'utf8');
     const reexport = body.match(/^module\.exports\s*=\s*require\('([^']+)'\);\s*$/m);
     const code = body.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '').trim();
-    if (!reexport || code !== reexport[0].trim()) return { rel, body };
+    if (!reexport || code !== reexport[0].trim()) return { rel, body: readModuleSource(abs) };
     const target = path.join(path.dirname(rel), reexport[1]);
     const abs2 = path.join(SDK, target);
-    return fs.existsSync(abs2) ? { rel: target, body: fs.readFileSync(abs2, 'utf8') } : null;
+    return fs.existsSync(abs2) ? { rel: target, body: readModuleSource(abs2) } : null;
   };
   return read(pinned) || read(premove);
 }
