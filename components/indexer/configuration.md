@@ -44,7 +44,7 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `DB_CONNECT_TIMEOUT` | MariaDB connection timeout in milliseconds | `10000` |
 | `DB_ACQUIRE_TIMEOUT` | Time to wait for a free pooled connection, in milliseconds | `10000` |
 | `DB_QUERY_TIMEOUT` | MariaDB query execution timeout in milliseconds | `30000` |
-| `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; the operator path (`node src/migration/migrate.js`) fails closed regardless. | _(unset, non-fatal)_ |
+| `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; the operator path (`node src/db/migration/migrate.js`) fails closed regardless. | _(unset, non-fatal)_ |
 | `SHUTDOWN_TIMEOUT_MS` | Hard-exit budget for the SIGTERM/SIGINT drain, in milliseconds. On `docker stop` the indexer stops reporting itself running on `/status`, lets the block loop break at its next block boundary (never mid-transaction), drains the API listener, closes its database pools and exits 0; if that has not finished within the budget it logs the overrun and exits 1 instead of lingering until docker's SIGKILL. The default sits under docker's 10 s stop grace because `xchain-node` issues a bare `docker stop`; raise it for a chain whose blocks take longer to apply. A non-numeric or non-positive value keeps the default. | `8000` |
 
 ### Migration compatibility harness
