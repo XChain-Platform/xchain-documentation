@@ -51,7 +51,8 @@ flowchart TD
 | `src/api.js` | None | Entry point: Express server, REST + JSON-RPC endpoints, env var loading, bootstrap/restore tasks |
 | `src/XChainUtxoTracker.js` | `XChainUtxoTracker` | Main orchestrator: block polling loop, reorg detection, two-pass transaction processing, balance queries, mempool updates |
 | `src/store/level_up_db.js` | `LevelUpStore` | LevelDB abstraction: binary key encoding/decoding, batch transactions, range scans, all 12 prefix type operations |
-| `src/chain/blockchain_connector.js` | `BlockchainConnector` | HTTP JSON-RPC client for coin node: block fetching, batch requests, mempool queries, connection pooling (25 sockets) |
+| `src/chain/blockchain_connector.js` | `BlockchainConnector` | HTTP JSON-RPC facade: wires transport, batch fetching, block queries, mempool tracking, AuxPoW codec, RPC helpers, and connection pooling |
+| `src/chain/blockchain_connector/` | (multiple) | Part modules: auxpow_codec (AuxPoW header encoding and decoding), batch_fetch (parallel block and hash fetching), block_queries (blockchain info and block data retrieval), rpc_helpers (RPC error handling and node health tracking), transport_and_mempool (HTTP client and mempool synchronization), constants (logging configuration) |
 | `src/chain/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parser: standard Bitcoin blocks, AuxPoW header stripping for Dogecoin/Litecoin HogEx |
 | `src/chain/crypto_networks.js` | `CryptoNetworks` | Network parameter lookup: maps network names to bitcoinjs-lib network objects for 9 network variants |
 | `src/common/util.js` | None | Utility functions: timing, hex/uint8 conversion, formatting |
