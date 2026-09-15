@@ -295,11 +295,13 @@ Two recoveries:
    npm run clear-reorg-halt -- --reason "<why this database is known good>"
    ```
 
-   The clear checks that every rolled-back block above the tip has been re-parsed (cannot be forced; wait for the decoder to catch up) and that the database holds no dispenser rows and never decoded a `DISPENSER` action (so the purge could not have lost anything). A database that has held dispensers is refused unless you pass `--force` after comparing its `dispensers` table against a known-good replica; the clear is then recorded as forced. `--dry-run` reports the verdict without writing.
+   The clear checks that every rolled-back block above the tip has been re-parsed (cannot be forced; wait for the decoder to catch up) and that the database holds no dispenser rows and never decoded a `DISPENSER` action (so the purge could not have lost anything). A database that has held dispensers is refused unless you pass `--force` after comparing its `dispensers` table against a known-good replica; the clear is then recorded as forced. `--dry-run` reports the verdict without writing and needs no `--reason`, so run it first to see what a clear would do.
 
    The clear writes a `REORG_HALT_CLEARED` event carrying the reason, the check results and the halt it supersedes. The halt row stays for the audit trail, `health` reports `reorg_halted: false` with `reorg_halt_cleared_at` set on its next probe, and the bootstrap health gate accepts the database again.
 
 Never delete the `REORG_HALT` row by hand: that erases the evidence the clear records and leaves nothing for the next operator to read.
+
+One marker is rarely alone: a deep reorg on one chain often coincides with halts on the other decoders of the same box. After finding one, run `xchain-node ps` and check every decoder it lists for `REORG_HALT` before moving on.
 
 ### Database name rejected
 
