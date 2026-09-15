@@ -96,6 +96,26 @@ bootstrap restore does the heavy lifting). The second boots the validator
 with your keys and capabilities wired in. On a fresh machine it asks once for
 a database root password.
 
+**One more wire, and it matters on testnet today.** ROLLCALL is already
+active on testnet: your BTC indexer must prove each epoch's roll-call
+signers from a Dogecoin indexer before it can close the epoch, and your hub
+separately needs the same read before it publishes. With neither set, your
+BTC indexer silently defers every block from the first epoch close onward
+and your hub publishes nothing, and a validator stuck like that for two
+epochs in a row is evicted. Unless you run your own Dogecoin indexer, add
+this to `~/xchain-node/.env`:
+
+```
+DOGE_INDEXER_API_URL=https://explorer.xchain.io/TDOGE/api/    # mainnet: /DOGE/api/
+DOGE_INDEXER_API_KEY=<the federation read key issued with your other per-coin keys>
+```
+
+That read is served off the explorer's own replicated indexer database, so a
+replica running behind just makes the epoch close wait longer, never judge
+the roll call on stale data. See ["Wire the Dogecoin
+read"](../operations/run-a-validator.md#step-5-give-the-hub-a-btc-indexer)
+for the full detail.
+
 That's it. Peers admit your validator within about 30 seconds of your stake
 going live. You do not need to tell anyone.
 

@@ -259,6 +259,35 @@ BTC_INDEXER_API_KEY=<its API key, if it has one>
 The validator reads are on the indexer's gated list, so a keyed indexer 401s
 without the key. The hub names that case in its log.
 
+### Wire the Dogecoin read (required on testnet today)
+
+ROLLCALL is already active on testnet, and it is armed at genesis on mainnet.
+From the epoch it activates, both your BTC indexer and your hub need to read
+a **Dogecoin** indexer over JSON-RPC: the BTC indexer proves each epoch's
+roll-call signers from Dogecoin before it will close that epoch
+(`getrollcallsigners`), and the hub separately asks the same indexer what
+already landed before it publishes. Neither failure is loud in the obvious
+place. With no DOGE indexer configured, your BTC indexer **defers every
+block** from the first epoch close onward (`stallReason:
+rollcall_proof_unavailable` on `/status`, and the log line `ROLLCALL PROOF
+UNAVAILABLE ... DOGE indexer not configured`), and your hub publishes nothing
+for its roll-call rounds while logging nothing about why. A validator stuck
+in that state is recorded absent and **evicted after two consecutive
+absences**, even while `xchain-node ps` and the hub log otherwise look fine.
+
+Unless you are running your own Dogecoin testnet or mainnet indexer, point at
+the public explorer's replicated read, in `~/xchain-node/.env`:
+
+```
+DOGE_INDEXER_API_URL=https://explorer.xchain.io/TDOGE/api/    # mainnet: /DOGE/api/
+DOGE_INDEXER_API_KEY=<the federation read key issued with your other per-coin keys>
+```
+
+That answer comes from the explorer's own replica of the Dogecoin chain, so a
+replica that has fallen behind makes your epoch close wait longer rather than
+judge the roll call on stale data. If you run a Dogecoin indexer of your own
+on the same network, point at it instead.
+
 ## Step 6: decide your capabilities
 
 `config/validator/hub-caps/capabilities.json` is ready to go for `price`,
@@ -343,6 +372,8 @@ stake activating. You do not need to tell anyone.
 | Staked and the hub is up, but you never appear in `validator_capabilities` | That table is gossiped from your hub to its peers, not read from the chain | Check the hub log for peer connections and for self-test failures; a capability that fails its self-test is never advertised |
 | Qualified but never publishing | DOGE wallet empty | Top it up (step 3) |
 | ROLLCALL signed but never appears on Dogecoin | Hand-built signer module has no `broadcast` export | Add `broadcast(payload)` to the module, or use the CLI-generated signer; `validator status` shows which you have |
+| BTC indexer logs `ROLLCALL PROOF UNAVAILABLE ... DOGE indexer not configured`, and it never closes past the first epoch | No `DOGE_INDEXER_API_URL` set | Wire it (see "Wire the Dogecoin read" in step 5) |
+| Everything looks fine (`ps`, indexer, decoder all healthy), but your validator is later reported absent or evicted | Hub has no `DOGE_INDEXER_API_URL` either, so it silently publishes nothing for roll-call rounds | Wire it on the hub as well (see "Wire the Dogecoin read" in step 5) |
 | `bitcoin-cli stop` (or `dogecoin-cli stop`) inside the container, and the daemon is back two seconds later | The container's `unless-stopped` restart policy restarts a daemon that exits, and cannot tell a clean exit from a crash | Stop it from outside: `xchain-node stop node bitcoin mainnet`, which gives the daemon its flush budget. See [Stopping](../components/node/operations.md#stopping) |
 
 ## Upgrading

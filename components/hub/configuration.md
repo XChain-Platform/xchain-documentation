@@ -473,6 +473,8 @@ Controls `RollcallRound`, which signs the per-epoch ledger-hash roll call and el
 | `ROLLCALL_ELECTION_TOLERANCE_BLOCKS` | No | `36` (regtest `3`) | Blocks the elected publisher is given before the next hub in the election ladder may take over. Separate from `ANCHOR_ELECTION_TOLERANCE_BLOCKS` on purpose: the two ladders climb against different anchors. |
 | `ROLLCALL_SELF_PUBLISH_BLOCKS` | No | `100` (regtest `9`) | Blocks after which any hub still holding an unpublished epoch publishes it itself, whatever the ladder says. |
 
+**Without `DOGE_INDEXER_URL` / `DOGE_INDEXER_API_URL` this hub cannot tell a signature it holds from one already on chain, so it publishes nothing and logs nothing.** That failure is silent: the round leader still sees this hub's own oracle submissions arrive, but no roll call ever lands with this hub's pair in it, and a validator left in that state for two consecutive rolled epochs is evicted. A validator with no Dogecoin indexer of its own points these at the public explorer's replicated read: `DOGE_INDEXER_API_URL=https://explorer.xchain.io/TDOGE/api/` on testnet, `https://explorer.xchain.io/DOGE/api/` on mainnet, with `DOGE_INDEXER_API_KEY` set to the federation read key issued alongside this validator's other per-coin keys. That answer comes from the explorer's own replica, so a replica that has fallen behind makes the round wait longer rather than publish against stale data.
+
 ### Full-Node Challenge
 
 Controls `FullNodeChallengeRound`, the periodic possession challenge proving a validator runs a real coin full node rather than mirroring the decoder and indexer databases. Feeds the full-node verified reward tier and the on-chain `NODEPROOF` action.

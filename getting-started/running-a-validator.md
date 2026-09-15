@@ -31,6 +31,17 @@ Every validator, either tier, needs three things:
 2. **A signing identity.** An Ed25519 keypair the hub generates and holds.
 3. **A running hub.** The `xchain-hub` service, reachable by its peers.
 
+On a network where ROLLCALL is active (already the case on testnet, and
+armed from genesis on mainnet), a fourth thing is required of every
+validator's hub, whichever tier it runs: a JSON-RPC read against a
+**Dogecoin** indexer, so the hub can tell what roll-call signatures already
+landed before it publishes. Without it a hub publishes nothing for its
+roll-call rounds and logs nothing about why, and a validator left unable to
+sign roll calls for two consecutive epochs is evicted. See ["Wire the
+Dogecoin read"](../operations/run-a-validator.md#step-5-give-the-hub-a-btc-indexer)
+for how to point at the public explorer's read if you do not run a Dogecoin
+indexer of your own.
+
 Note what is *not* on that list: a coin node. The protocol assigns no tiers by decree. Capabilities qualify automatically when your total effective stake clears each capability's floor, and most capabilities never touch a coin node at all. `price` needs a price feed. `attestation` needs a reachable model provider. `cross_chain` verifies source actions against indexer APIs. `oracle_publish` needs a broadcast wallet.
 
 Only one capability requires a coin node, and it is the one named after it.
