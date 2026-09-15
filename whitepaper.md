@@ -279,7 +279,7 @@ All database writes for a block commit inside one MariaDB transaction: the whole
 token_supply == SUM(credits) - SUM(debits)
 ```
 
-A mismatch is a fatal violation: the transaction rolls back and the indexer halts rather than persist inconsistent state. On a host-chain reorganization, the decoder detects the divergent block hash, records the fork point, and the indexer rolls back all affected tables atomically (deleting rows at or above the fork's first action index), recomputes balances from the remaining ledger, and re-indexes the canonical fork. The utxo-tracker keeps a per-chain reorg undo window (default BTC 12, LTC 48, DOGE 120 blocks, env-overridable) for the same purpose.
+A mismatch is a fatal violation: the transaction rolls back and the indexer halts rather than persist inconsistent state. On a host-chain reorganization, the decoder detects the divergent block hash, records the fork point, and the indexer rolls back all affected tables atomically (deleting rows at or above the fork's first action index), recomputes balances from the remaining ledger, and re-indexes the canonical fork. The utxo-tracker keeps a per-chain, per-network reorg undo window (mainnet/regtest default BTC 12, LTC 120, DOGE 120 blocks; testnet 120 for every coin; env-overridable) for the same purpose.
 
 ---
 
@@ -747,7 +747,7 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 | Stake-weighted quorum (at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`; gated on the validator-era batch, §10.2) | combined signer stake, deduplicated by stake SOURCE, > 2/3 of total active stake |
 | Trimmed-median trim | top/bottom 15% |
 | Governance | 7-day vote, 50% quorum, two-thirds approval, 14-day re-proposal cooldown |
-| utxo-tracker reorg undo window | BTC 12 / LTC 48 / DOGE 120 blocks (default, env-overridable) |
+| utxo-tracker reorg undo window | mainnet/regtest BTC 12 / LTC 120 / DOGE 120; testnet 120 for every coin (default, env-overridable) |
 | Capability stake activation / cooldown | ~6 BTC blocks / 1,000 blocks (governance-set) |
 | XCHAIN supply | 100,000,000 (8 decimals), capped at genesis, zero pre-mint, BTC-chain only |
 | XCHAIN genesis distribution (§13.3; **pre-launch, not final**) | 30% holder airdrop / 25% open mint / 20% treasury / 10% liquidity / 9.7% validators / 5.3% reward pool / 0% team |

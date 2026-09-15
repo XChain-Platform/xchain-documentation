@@ -152,7 +152,7 @@ Stores the full UTXO set of the monitored coin node. Key schema uses single-char
 | `O` | Output records (txid:vout → value, scriptPubKey) |
 | `H` / `J` | Address hints (scriptPubKey hash → txids) |
 
-Writes are batched in groups of up to 200 blocks (flush may trigger earlier under heap pressure). A per-chain undo window (BTC: 12 / LTC: 48 / DOGE: 120 blocks) is retained to support reorg rollback.
+Writes are batched in groups of up to 200 blocks (flush may trigger earlier under heap pressure). A per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: 120 blocks for every coin) is retained to support reorg rollback.
 
 ### xchain-hub
 

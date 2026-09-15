@@ -35,9 +35,9 @@ BULK_SYNC_RAM_BUDGET=768
 | `UTXO_MAX_PAGE_LIMIT` | Maximum page size a caller may request via `?limit=`. Caps a single request so a caller cannot trigger an OOM by requesting one giant page. Independent of `UTXO_MAX_ADDRESS_OUTPUTS`. | `10000` |
 | `UTXO_MAX_ADDRESS_OUTPUTS` | Hard ceiling on outputs materialized for a single-address unbounded query; above this limit `/utxos` and `get_balance` return HTTP 413: callers must page via `?limit=&after=` | `500000` |
 | `CORS_ORIGIN` | Allowed CORS origins: either one origin, or a comma-separated allowlist matched per origin, for example `capacitor://localhost,https://localhost,https://explorer.xchain.io`. Browser shells need the list form because each surface sends a different origin. Entries are trimmed and blank ones dropped, so an empty or all-blank value disables CORS (no CORS header) exactly as leaving it unset does. `*` means "any origin" only when it is the entire value; inside a list it stays a literal entry no browser sends, so `*,https://x` grants `https://x` and nothing more. | `""` (disabled) |
-| `XCHAIN_UNDO_BLOCKS_BTC` | Override the BTC reorg recovery window (blocks) | `12` |
-| `XCHAIN_UNDO_BLOCKS_LTC` | Override the LTC reorg recovery window (blocks) | `48` |
-| `XCHAIN_UNDO_BLOCKS_DOGE` | Override the DOGE reorg recovery window (blocks) | `120` |
+| `XCHAIN_UNDO_BLOCKS_BTC` | Override the BTC reorg recovery window (blocks). The default is per network: 12 on mainnet and regtest, 120 on testnet (a testnet's minimum-difficulty rule forks far deeper than block time predicts; bitcoin testnet outran 12 on 2026-09-15). One key per coin is enough because a tracker process serves exactly one network. Values above 126 (the decoder's `DISPENSER_EXPIRE_SAFE_DEPTH`) are honoured but logged as splitting the tracker's and decoder's reorg windows. | `12` mainnet/regtest, `120` testnet |
+| `XCHAIN_UNDO_BLOCKS_LTC` | Override the LTC reorg recovery window (blocks). 120 on every network since litecoin testnet outran the previous 48 on 2026-09-01. | `120` |
+| `XCHAIN_UNDO_BLOCKS_DOGE` | Override the DOGE reorg recovery window (blocks). 120 on every network. | `120` |
 | `UTXO_TRACKER_RATE_LIMIT_RPM` | API requests per minute per IP | `500` |
 | `UTXO_TRACKER_NODE_RPC_STALE_MS` | Staleness window for the tracker`s last usable node-tip read, after which `health` reports the node RPC stale. Five times the loop`s `BLOCKCHAIN_INFO_REFRESH_MS` (30s), so a slow or skipped poll never trips it and only a sustained outage does. | `150000` |
 | `UTXO_MAX_RPC_BATCH` | Maximum calls accepted in one inbound JSON-RPC batch (array body). The router runs `Promise.all` over every element, so without this cap a single unauthenticated ~100kb POST fans out into thousands of concurrent read scans and node RPCs. Mirrors the decoder and encoder batch guards. | `20` |
@@ -126,7 +126,8 @@ These values are defined in `src/XChainUtxoTracker.js` and are not configurable 
 | `DB_TRANSACTION_BLOCKS_QUANTITY` | `200` | Number of blocks per LevelDB batch commit |
 | `PREFETCH_SIZE` | `10` | Number of blocks pre-fetched concurrently |
 | `ETA_WINDOW_BLOCKS` | `1000` | Rolling window size for sync ETA calculation |
-| `DEFAULT_UNDO_BLOCKS` | BTC: `12` / LTC: `120` / DOGE: `120` | Per-chain K/M archive retention window; override per coin via `XCHAIN_UNDO_BLOCKS_BTC`, `XCHAIN_UNDO_BLOCKS_LTC`, `XCHAIN_UNDO_BLOCKS_DOGE` |
+| `DEFAULT_UNDO_BLOCKS` | mainnet BTC: `12` / LTC: `120` / DOGE: `120`; testnet `120` for every coin; regtest same as mainnet | Per-coin, per-network K/M archive retention window (`src/chain/undo_blocks.js`, keyed `<COIN>_<NET>`); override per coin via `XCHAIN_UNDO_BLOCKS_BTC`, `XCHAIN_UNDO_BLOCKS_LTC`, `XCHAIN_UNDO_BLOCKS_DOGE` |
+| `MAX_SAFE_UNDO_BLOCKS` | `126` | Ceiling any resolved window is checked against; equals the decoder's `DISPENSER_EXPIRE_SAFE_DEPTH` and the two move in lockstep |
 
 ### Storage
 
