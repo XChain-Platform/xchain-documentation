@@ -143,7 +143,7 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 | `src/coins/DOGE.js` | None | Dogecoin-specific configuration |
 | `src/utility.js` | `Utility` | BigNumber math, timer functions, expiration/cancellation processing, ledger operations, cross-chain settlement injection |
 | `src/chain/mapper.js` | `Mapper` | Creates action_index ↔ address/tick cross-reference mappings |
-| `src/rollback.js` | `Rollback` | Handles blockchain reorganizations: deletes affected records, recalculates balances |
+| `src/rollback/index.js` | `Rollback` | Handles blockchain reorganizations: deletes affected records, recalculates balances |
 | `src/protocol_changes.js` | `ProtocolChanges` | Defines supported actions and their activation rules (version, block, timestamp) |
 | `src/api/health.js` | None | Assembles the `health` JSON-RPC response payload; separate from `api.js` so it can be unit-tested without a database |
 | `src/hub/hub_client.js` | `HubClient` | Lightweight JSON-RPC client for pushing chain tip, PRICE rounds, and price retractions to `xchain-hub`; uses Node built-in `http`/`https` |
