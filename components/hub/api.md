@@ -380,7 +380,7 @@ Pushes a chain tip update from an indexer. The hub uses this to anchor oracle ro
 {"status":"success"}
 ```
 
-Stored in the `configs` table as `(coin, mainnet, chain_tips, block_height|block_time)`. Read by `OracleRound._executeRound()` at the start of each PBFT round.
+Stored in the `configs` table as `(coin, mainnet, chain_tips, block_height|block_time)`. Read by `OracleRound.executeRound()` at the start of each PBFT round.
 
 ### `pushpriceround` (write: requires API key)
 

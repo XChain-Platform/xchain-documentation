@@ -267,7 +267,7 @@ and at/above the `EQUIV_HEADER` flag-day:
 EQUIV|XCHECKPOINT|XANCPUB|archive|NETWORK|MATCH_BATCH_SEQ|SNAPSHOT_BLOCK|0||XANCPUB|anchor_archive|MATCH_BATCH_SEQ|SNAPSHOT_BLOCK|PUBLISHER|ARCHIVE_REWARD_AMOUNT
 ```
 
-These bytes are byte-identical across the hub producer (`StateAnchorPublisher._attestationCanonical`),
+These bytes are byte-identical across the hub producer (`StateAnchorPublisher.attestationCanonical`),
 the indexer verifier (`actions/anchor/index.js` `rewardCanonical`) and this spec; a divergence forks the
 derived reward row. An `ASIG_n` counts only if its pubkey is in the SAME `oracle_publish` snapshot at
 `SNAPSHOT_BLOCK` used for the root quorum **and** the Ed25519 signature verifies.
