@@ -9,6 +9,51 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.19.0
+
+Released 2026-09-16. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.19.0)
+
+The first major train, across thirteen components: every code component except
+`xchain-contracts` moves to 0.19.0, `xchain-documentation` included. It carries the XBRIDGE
+cross-chain bridge (the action handler, the federation settle pass and a per-chain flag day),
+the platform code-structure passes that landed on every repository since v0.18.0, the barrier
+family's canon constants (inert), and the September rollcall and tracker fixes. Because the
+bridge changes what a node derives from a block, the manifest is classified major and carries
+a `trainActivation` block arming the 0.19.0 rule set on testnet at Bitcoin height 152787.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.19.0 |
+| xchain-hub | 0.19.0 |
+| xchain-indexer | 0.19.0 |
+| xchain-sync | 0.19.0 |
+| xchain-explorer | 0.19.0 |
+| xchain-decoder | 0.19.0 |
+| xchain-encoder | 0.19.0 |
+| xchain-utxo-tracker | 0.19.0 |
+| xchain-sdk | 0.19.0 |
+| xchain-e2e-test | 0.19.0 |
+| xchain-vm | 0.19.0 |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.19.0 |
+
+**Every testnet node must run v0.19.0 before Bitcoin testnet height 152787**, the train
+boundary: a v0.18.0 indexer or sync follower that reaches it halts with a durable marker
+instead of applying the block under the old rules, and below it the new binary runs the old
+rules, which is the rolling-upgrade window. XBRIDGE arms per chain on testnet at BTC 152929,
+LTC 4887898 and DOGE 67902062 (`XCHAIN_BRIDGE_ACTIVATION`), the destinations first and the
+Bitcoin origin last so no lock is admitted that no destination will credit; mainnet stays at
+the sentinel on every row, as do token-bridge ISSUE and policy inheritance on every network.
+XBRIDGE moves an XChain token between Bitcoin, Litecoin and Dogecoin as one supply: the
+origin chain locks the balance in a protocol escrow address, the validator federation signs
+the transfer record through the hub, and the destination credits it as an ordinary protocol
+action, with a source-chain reorg retracting the transfer instead of minting. The
+code-structure passes changed layout, not behaviour: the indexer's consensus identity was
+pinned before the pass and measured byte-identical after it, a from-genesis regtest reindex
+replayed the pinned state hash, and the full bitcoin end-to-end matrix on the release branch
+registered its suites at the last green pre-pass baseline. The hub moves its schema version
+to 6 and rolls first; the indexer's `xchainRequiresHub` reads 0.19.0.
+
 ## v0.18.0
 
 Released 2026-09-11. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.18.0)
