@@ -168,6 +168,16 @@ The check exists because a deployed explorer's bundled VM can go stale silently:
 
 The in-process check is coarser than a byte comparison, because a running process has no canonical copy to compare against. The full comparison is `bin/check-explorer-vm-drift.sh <host>` in the platform checkout: read-only over SSH, it hashes the deployed VM tree against canonical and reads the flag out of the running process. Run it before enabling the flag on a public explorer, and enable only once it reports `OK`.
 
+### Activation Registry (regtest arming)
+
+The explorer carries a byte-identical copy of the shared activation rows the indexer, hub, sync and SDK carry (`src/consensus/gate_registry/`), and that copy arms its regtest entries from the same three variables by the same grammar (`src/consensus/gate_registry/regtest_env.js`). The explorer drives no roll call and admits no mirror row itself; honouring the levers keeps its reading of a row identical to the venue's, so a consensus-identity comparison across the venue's processes does not diverge on the explorer.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `XC_ROLLCALL_REGTEST_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the `regtest` entry of `ROLLCALL_ACTIVATION` in the explorer's copy of the activation registry. `armed` (or `genesis`/`on`/`true`/`yes`) arms at BTC height `0`; a bare non-negative integer arms at that height; `off`/`inert`/`false`/`no`/`none` and unset leave it inert, and anything else is refused with a process warning and stays inert. Applied when a row is read, from the environment as it stands then. mainnet and testnet are fixed in source and cannot be moved from the environment. Never set outside a regtest venue. |
+| `XC_ROLLCALL_GATES_REGTEST_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the `regtest` entry of `ROLLCALL_GATES_ACTIVATION` (ROLLCALL v1, the consensus-gate list roll calls carry) in the explorer's registry copy. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; set identically on every hub, indexer and explorer process in the venue. mainnet and testnet are fixed in source. Never set outside a regtest venue. |
+| `XC_MIRROR_ADMISSION_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the per-coin `regtest` entries of `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` (the mirror-admission heights) and the `regtest` entry of `ANCHOR_ATTEST_BARRIER_ACTIVATION` in the explorer's registry copy, one variable for the whole barrier family. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; the armed form arms at height `0`. mainnet and testnet are fixed in source. Never set outside a regtest venue. |
+
 ### SSL/TLS
 
 | Variable | Required | Default | Description |
