@@ -32,6 +32,19 @@
  *   Node specifier (`+.js`, `/index.js`), then the split convention this
  *   platform uses (`name.js` moved to `name/index.js`).
  *
+ * WHAT the venue decides. The bare form is classified against the top-level
+ * entries of the component's checkout, so a component whose sibling is absent
+ * yields no bare references at all, not a skip per reference. GitHub CI checks
+ * out ONE sibling (xchain-indexer, see .github/workflows/ci.yml) and so finds
+ * the repo-qualified corpus plus the indexer pages' bare paths, about a quarter
+ * of what the platform checkout finds: measured 2026-09-16, 133 against 466.
+ * The corpus floor therefore has two parts: the repo-qualified half, which
+ * needs no sibling and is judged everywhere, and the whole-corpus floor, which
+ * is judged where every declared component sibling is present and otherwise
+ * skips NAMING the absent trees (the env-var coverage suite gates its fleet
+ * floor the same way). Under XCHAIN_REQUIRE_SIBLINGS=1 an absent declared
+ * sibling throws before either floor is read.
+ *
  * WHAT is left alone, each for a reason a reader can check:
  *   - HTML comments: the `<!-- ported from ... -->` stamps record where a page
  *     came from, and the source file was deleted by that port;
@@ -135,7 +148,10 @@ function insideUrl(line, index) {
  * @param {string|null} ctx.sectionRepo  xchain-<name> for a components/<name>/ page
  * @param {(repo: string) => Set<string>} ctx.topsOf  top-level entries of a repo's tree
  * @param {Set<string>} ctx.known  repo names a reference may name
- * @returns {Array<{repo: string, rel: string, line: number|null, candidates: string[]}>}
+ * @returns {Array<{repo: string, rel: string, line: number|null, candidates: string[], form: 'explicit'|'bare'}>}
+ *   `form` says which grammar matched: 'explicit' needs no sibling tree to be
+ *   classified, 'bare' needs the section repo's top-level entries, so the two
+ *   are floored apart (see the corpus test).
  */
 function referencesIn(rawLine, ctx) {
     const line = rawLine.replace(/<!--.*?-->/g, (m) => ' '.repeat(m.length));
@@ -147,7 +163,7 @@ function referencesIn(rawLine, ctx) {
         const rel = cleanRel(rawRel);
         if (!ctx.known.has(repo) || !rel || isPlaceholder(rel) || runsIntoSlot(line, m)) continue;
         if (insideUrl(line, m.index + lead.length)) continue;
-        out.push({ repo, rel, line: ln ? Number(ln) : null, candidates: [repo] });
+        out.push({ repo, rel, line: ln ? Number(ln) : null, candidates: [repo], form: 'explicit' });
     }
     if (!ctx.sectionRepo) return out;
     const sectionTops = ctx.topsOf(ctx.sectionRepo);
@@ -167,7 +183,7 @@ function referencesIn(rawLine, ctx) {
             if (new RegExp(`\\b${word}\\b`, 'i').test(line) && ctx.topsOf(repo).has(top)) candidates.push(repo);
         }
         if (/\bplatform\b/i.test(line)) candidates.push('.');
-        out.push({ repo: ctx.sectionRepo, rel, line: ln ? Number(ln) : null, candidates });
+        out.push({ repo: ctx.sectionRepo, rel, line: ln ? Number(ln) : null, candidates, form: 'bare' });
     }
     return out;
 }
@@ -284,7 +300,7 @@ describe('sibling path reference classification', () => {
 
     test('a repo-qualified path is a reference to that repo, with its line number', () => {
         assert.deepEqual(referencesIn('see `xchain-indexer/src/migration/migrate.js:12` for the loop', ctx),
-            [{ repo: 'xchain-indexer', rel: 'src/migration/migrate.js', line: 12, candidates: ['xchain-indexer'] }]);
+            [{ repo: 'xchain-indexer', rel: 'src/migration/migrate.js', line: 12, candidates: ['xchain-indexer'], form: 'explicit' }]);
     });
 
     test('a repo the roster and the components tree do not know is not a reference', () => {
@@ -302,9 +318,17 @@ describe('sibling path reference classification', () => {
     test('a bare path counts only on a component page and only under a top-level entry of that repo', () => {
         assert.deepEqual(referencesIn('run `node src/migrate.js` then', ctx), []);
         assert.deepEqual(referencesIn('run `node src/migrate.js` then', onIndexerPage),
-            [{ repo: 'xchain-indexer', rel: 'src/migrate.js', line: null, candidates: ['xchain-indexer'] }]);
+            [{ repo: 'xchain-indexer', rel: 'src/migrate.js', line: null, candidates: ['xchain-indexer'], form: 'bare' }]);
         assert.deepEqual(referencesIn('GET api/v1/blocks', onIndexerPage), []);
         assert.deepEqual(referencesIn('a/b in prose', onIndexerPage), []);
+    });
+
+    test('a bare path on a page whose sibling tree is absent cannot be classified, an explicit one still is', () => {
+        // The venue effect the corpus floor is built around: no tree, no
+        // top-level entries, so the bare grammar has nothing to match against.
+        const onAbsentSiblingPage = { ...ctx, sectionRepo: 'xchain-sync' };
+        assert.deepEqual(referencesIn('run `node src/migrate.js` then', onAbsentSiblingPage), []);
+        assert.equal(referencesIn('see xchain-indexer/src/a.js', onAbsentSiblingPage).length, 1);
     });
 
     test('a line that names another component may resolve there, and "platform" adds the platform root', () => {
@@ -355,13 +379,29 @@ describe('sibling path resolution', () => {
  * ------------------------------------------------------------------ */
 
 describe('every sibling source path the documentation cites exists', () => {
-    test('the scan found the corpus', () => {
-        // Measured 2026-09-15: 133 repo-qualified and 369 bare references. A
-        // scan reading far under that has lost the corpus or the classifier,
-        // and must not pass as "nothing to check".
-        assert.ok(REFS.length >= 300, `only ${REFS.length} references found; the scanner is probably broken`);
-        assert.ok(BY_REPO.size >= 8, `references to only ${BY_REPO.size} repos found`);
+    test('the scan found the repo-qualified corpus', () => {
+        // The explicit grammar needs only the roster and the components tree,
+        // both in this repo, so it is judged on every venue. Measured
+        // 2026-09-16: 133 references. A scan reading far under that has lost
+        // the corpus or the classifier and must not pass as "nothing to check".
+        const explicit = REFS.filter((r) => r.form === 'explicit').length;
+        assert.ok(explicit >= 80, `only ${explicit} repo-qualified references found; the scanner is probably broken`);
     });
+
+    // The bare grammar reads each component's checkout, so the whole-corpus
+    // floor is a full-checkout figure. A venue missing a declared component
+    // sibling (GitHub CI checks out xchain-indexer alone) cannot be held to it
+    // and is told which trees it lacks rather than accused of a broken
+    // scanner. Undeclared component repos (none of the ci venues ship them)
+    // do not gate the floor; their pages' references are a bonus where present.
+    const absentTrees = COMPONENT_REPOS.filter((repo) => DECLARED.has(repo) && !sibling(repo, [], { required: false }).have);
+    test('the scan found the whole corpus',
+        { skip: absentTrees.length ? `whole-corpus floor needs every declared component sibling; absent: ${absentTrees.join(', ')}` : false }, () => {
+            // Measured 2026-09-16 in the platform checkout: 466 references
+            // (133 repo-qualified and 333 bare) into 15 repos.
+            assert.ok(REFS.length >= 300, `only ${REFS.length} references found; the scanner is probably broken`);
+            assert.ok(BY_REPO.size >= 8, `references to only ${BY_REPO.size} repos found`);
+        });
 
     for (const repo of [...BY_REPO.keys()].sort()) {
         const refs = BY_REPO.get(repo);
