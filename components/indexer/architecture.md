@@ -90,7 +90,7 @@ The indexer's API also exposes a write endpoint that the hub calls:
 
 | Method | Sent By | Purpose |
 |---|---|---|
-| `pushvalidatorrewards` | hub `RewardTracker` | Pushes `anchor_bundle` and `anchor_archive` reward rows from the hub to the indexer. `oracle_round` / `oracle_base` / `oracle_full_node` and `attest_fee` rewards are rejected by this endpoint; they are derived deterministically by the indexer during block processing and do not need to be replicated. |
+| `pushvalidatorrewards` | hub `RewardTracker` | Pushes `anchor_bundle` and `anchor_archive` reward rows from the hub to the indexer. **Retired for new anchor rewards:** at or above `ANCHOR_REWARD_ACTIVATION` (for `anchor_bundle`) and `ARCHIVE_REWARD_ACTIVATION` (for `anchor_archive`) the indexer derives the reward from the on-chain ANCHOR bytes instead, so the endpoint carries pre-flag-day history only. `oracle_round` / `oracle_base` / `oracle_full_node` and `attest_fee` rewards are rejected by this endpoint; they are derived deterministically by the indexer during block processing and do not need to be replicated. |
 
 ## VM Runtime Module
 
@@ -109,7 +109,7 @@ flowchart TD
     end
 ```
 
-The indexer's `execute.js` handler bridges the VM and the database:
+The indexer's `execute/index.js` handler bridges the VM and the database:
 1. Loads contract code and state from the DB
 2. Calls `vm.execute()`, receives results
 3. Writes state changes via `createContractState()` (append-only)
@@ -135,29 +135,29 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server + JSON-RPC, env var validation, indexer startup |
 | `src/XChainIndexer.js` | `XChainIndexer` | Main orchestrator: block polling loop, reorg detection, block processing pipeline |
-| `src/actions.js` | `Actions` | Loads all 48 action handler classes (one per routable ACTION string, including the `UNKNOWN` fallback), routes transactions to the correct handler. The internal `deploy_chunk` sub-handler is loaded by `deploy.js`, not here |
-| `src/db.js` | `Database` | MariaDB connection pool management, all SQL queries, table creation, sanity checks |
+| `src/actions/index.js` | `Actions` | Loads all 48 action handler classes (one per routable ACTION string, including the `UNKNOWN` fallback), routes transactions to the correct handler. The internal `deploy_chunk` sub-handler is loaded by `deploy/index.js`, not here |
+| `src/db/index.js` | `Database` | MariaDB connection pool management, table creation, sanity checks; the SQL queries live in the per-table modules under `src/db/` |
 | `src/config.js` | None | Merges environment variables with coin-specific config into a single config object |
-| `src/configs/BTC.js` | None | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |
-| `src/configs/LTC.js` | None | Litecoin-specific configuration |
-| `src/configs/DOGE.js` | None | Dogecoin-specific configuration |
+| `src/coins/BTC.js` | None | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |
+| `src/coins/LTC.js` | None | Litecoin-specific configuration |
+| `src/coins/DOGE.js` | None | Dogecoin-specific configuration |
 | `src/utility.js` | `Utility` | BigNumber math, timer functions, expiration/cancellation processing, ledger operations, cross-chain settlement injection |
-| `src/mapper.js` | `Mapper` | Creates action_index ↔ address/tick cross-reference mappings |
-| `src/rollback.js` | `Rollback` | Handles blockchain reorganizations: deletes affected records, recalculates balances |
+| `src/chain/mapper.js` | `Mapper` | Creates action_index ↔ address/tick cross-reference mappings |
+| `src/rollback/index.js` | `Rollback` | Handles blockchain reorganizations: deletes affected records, recalculates balances |
 | `src/protocol_changes.js` | `ProtocolChanges` | Defines supported actions and their activation rules (version, block, timestamp) |
-| `src/health.js` | None | Assembles the `health` JSON-RPC response payload; separate from `api.js` so it can be unit-tested without a database |
-| `src/hub_client.js` | `HubClient` | Lightweight JSON-RPC client for pushing chain tip, PRICE rounds, and price retractions to `xchain-hub`; uses Node built-in `http`/`https` |
-| `src/hub_db_sync.js` | `HubDbSync` | Bootstraps and live-syncs the local hub DB mirror (price snapshots, oracle prices, capability snapshots, cross-chain matches) via REST snapshot + WebSocket |
-| `src/hub_push_queue.js` | `HubPushQueue` | Durable retry queue for PRICE pushes to the hub; backs the `pending_hub_pushes` table |
-| `src/ed25519.js` | None | Ed25519 signature verification using Node built-in crypto; mirrors `xchain-hub/src/ValidatorIdentity.js` format |
-| `src/merkle.js` | None | Consensus-critical SPV light-client Merkle primitives: additive state SMT, per-block content root, fixed top-level state root. Vendored byte-identically into `xchain-sync` |
+| `src/api/health.js` | None | Assembles the `health` JSON-RPC response payload; separate from `api.js` so it can be unit-tested without a database |
+| `src/hub/hub_client.js` | `HubClient` | Lightweight JSON-RPC client for pushing chain tip, PRICE rounds, and price retractions to `xchain-hub`; uses Node built-in `http`/`https` |
+| `src/hub/hub_db_sync.js` | `HubDbSync` | Bootstraps and live-syncs the local hub DB mirror (price snapshots, oracle prices, capability snapshots, cross-chain matches) via REST snapshot + WebSocket |
+| `src/hub/hub_push_queue.js` | `HubPushQueue` | Durable retry queue for PRICE pushes to the hub; backs the `pending_hub_pushes` table |
+| `src/consensus/ed25519.js` | None | Ed25519 signature verification using Node built-in crypto; mirrors `xchain-hub/src/validators/identity.js` format |
+| `src/consensus/merkle.js` | None | Consensus-critical SPV light-client Merkle primitives: additive state SMT, per-block content root, fixed top-level state root. Vendored byte-identically into `xchain-sync` |
 | `src/stateHash.js` | None | Builds the `state_hash` preimage covering in-place mutations (deactivation stamps, slash debits, status flips, cooldown maturities) that the three standard block hashes cannot see |
-| `src/stateCommitment.js` | None | Computes per-block `state_tree_roots` (balances SMT + stakes SMT + state root + block Merkle root) and writes them to the DB |
+| `src/state_commitment/index.js` | None | Computes per-block `state_tree_roots` (balances SMT + stakes SMT + state root + block Merkle root) and writes them to the DB |
 | `src/stake_weighted_quorum.js` | None | Consensus-critical stake-weighted quorum predicate (WI-1). Vendored byte-identically across hub, indexer, explorer, sync, and SDK |
-| `src/recovery.js` | None | CLI for rebuilding the cross-chain match mirror from on-chain ANCHOR archive data, with no surviving hub database |
+| `bin/recovery.js` | None | CLI for rebuilding the cross-chain match mirror from on-chain ANCHOR archive data, with no surviving hub database |
 | `src/equivocation_header.js` | None | Builds EQUIV-header canonicals for the WI-2 equivocation slashing protocol, one per engine tag |
-| `src/migrate.js` | None | Applies incremental SQL migrations from `src/sql/migrations/` at startup |
-| `xchain-vm` (external) | `XChainVM` | Standalone module: V8 isolate sandbox, AST-based gas metering, gateway API; loaded by `actions.js`, called by DEPLOY and EXECUTE handlers |
+| `src/db/migration/migrate.js` | None | Operator-initiated CLI that applies pending SQL migrations from `src/sql/migrations/`, including the `manual`-tagged ones startup skips (startup auto-applies only `auto`-tagged migrations). A bare run applies every pending migration; `--file <name.sql>` scopes the run to named files. There is no `--help` and no dry-run flag |
+| `xchain-vm` (external) | `XChainVM` | Standalone module: V8 isolate sandbox, AST-based gas metering, gateway API; loaded by `src/actions/index.js`, called by DEPLOY and EXECUTE handlers |
 
 ## Action Handlers (`src/actions/*.js`)
 
@@ -178,7 +178,7 @@ Actions with automatic lifecycle events have companion handlers:
 | `DISPENSER` | `dispenser_close.js`, `dispenser_expire.js`, `dispense.js` |
 | `ORDER` | `order_expire.js`, `order_match.js` |
 | `SWAP` | `swap_expire.js`, `swap_match.js` |
-| `SWAP` / `ORDER` (cross-chain legs) | `cross_settle.js` (system-injected per hub-mirrored match; no on-chain transaction) |
+| `SWAP` / `ORDER` (cross-chain legs) | `cross_settle/index.js` (system-injected per hub-mirrored match; no on-chain transaction) |
 
 Action aliases provide backward compatibility and shorthand:
 

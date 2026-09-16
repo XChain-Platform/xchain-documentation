@@ -18,6 +18,15 @@ The clock starts when the release carrying the new activation values is tagged a
 announcement is published; it ends at the earliest activation moment in the release
 (first chain to cross an armed height, or the armed timestamp).
 
+## Testnet
+
+The floors above govern mainnet only. On testnet, a consensus activation value is armed at
+each chain's current tip, read at the moment the release is cut, with no forward margin; the
+value goes live the instant the fleet is running the release. Testnet exists to build and test
+ahead of mainnet, so there is no notice window to wait out there. Accepted caveat: an action
+mined between the cut and the roll grades differently under a fresh replay than under the
+still-running fleet, since nothing on testnet can encode the new value before the roll.
+
 ## Rules
 
 1. An activation value may be **deferred** (moved later) at any time before it is crossed by

@@ -42,6 +42,7 @@ const assert = require('node:assert/strict');
 const test   = require('node:test');
 const fs     = require('node:fs');
 const path   = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const ROOT    = path.resolve(__dirname, '..');
 const INDEXER = path.resolve(ROOT, '../xchain-indexer/src');
@@ -49,8 +50,13 @@ const INDEXER = path.resolve(ROOT, '../xchain-indexer/src');
 const CONFIG_JS = path.join(INDEXER, 'config.js');
 const COIN_JS   = ['BTC', 'LTC', 'DOGE'].map((c) => [c, path.join(INDEXER, 'coins', `${c}.js`)]);
 
-const haveConfig = fs.existsSync(CONFIG_JS);
-const haveCoins  = COIN_JS.every(([, p]) => fs.existsSync(p));
+/* Two skips cover the source half for a bare clone, one per source the claims read. A run
+ * that declared the sibling supplied (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the
+ * venue set, with xchain-indexer in .ci-siblings) throws in the helper instead, naming every
+ * path not readable, so a dropped checkout cannot leave a fee or limit claim uncompared while
+ * the file still reports green. */
+const noConfig = sibling('xchain-indexer', [CONFIG_JS]).skip;
+const noCoins  = sibling('xchain-indexer', COIN_JS.map(([, p]) => p)).skip;
 
 const readDoc  = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const normalize = (s) => s.replace(/[\s`]/g, '');
@@ -71,7 +77,7 @@ function scheduleValue(src, name, where) {
 }
 
 test('the ownership-escrow premium the fee docs quote matches the gas schedule',
-    { skip: !haveCoins && 'sibling xchain-indexer not present in this checkout' }, () => {
+    { skip: noCoins }, () => {
         const escrow = new Map();
         const price  = new Map();
         for (const [coin, file] of COIN_JS) {
@@ -118,7 +124,7 @@ const TICK_SET_PAGES = [
 ];
 
 test('every page restating the ticker character set matches TICK_CHARACTERS',
-    { skip: !haveConfig && 'sibling xchain-indexer not present in this checkout' }, () => {
+    { skip: noConfig }, () => {
         const chars = configValue(fs.readFileSync(CONFIG_JS, 'utf8'), 'TICK_CHARACTERS');
         const tail  = chars.slice(chars.indexOf('0123456789') + '0123456789'.length);
         assert.ok(tail.length > 4,
@@ -134,7 +140,7 @@ test('every page restating the ticker character set matches TICK_CHARACTERS',
     });
 
 test('the betting guide states the enforced refund-window bounds and per-market bet cap',
-    { skip: !haveConfig && 'sibling xchain-indexer not present in this checkout' }, () => {
+    { skip: noConfig }, () => {
         const src = fs.readFileSync(CONFIG_JS, 'utf8');
         const min = Number(configValue(src, 'MIN_BET_REFUND_WINDOW'));
         const max = Number(configValue(src, 'MAX_BET_REFUND_WINDOW'));
@@ -161,7 +167,7 @@ test('the betting guide states the enforced refund-window bounds and per-market 
     });
 
 test('the unified free-listing window every fee page quotes matches the coin configs',
-    { skip: !haveCoins && 'sibling xchain-indexer not present in this checkout' }, () => {
+    { skip: noCoins }, () => {
         const free = new Map();
         for (const [coin, file] of COIN_JS) {
             const src = fs.readFileSync(file, 'utf8');

@@ -145,6 +145,7 @@ two endpoints return `503` (clients then fall back to paying the protocol fee in
 | `INDEXER_API_TIMEOUT_MS` | No | `5000` | Per-request timeout for the indexer proxy calls |
 | `EXPLORER_FEEQUOTE_BUSY_RETRY_MS` | No | `6000` | Wall-clock budget for re-asking `/{COIN}/api/feequote` while the indexer answers `busy: true, retryable: true` (it is processing a block). This hop absorbs the overlap because the wallet reads the endpoint on every fee-bearing compose and has no retry of its own. Only a retryable busy answer is re-asked; a verdict never is. |
 | `EXPLORER_INDEXER_API_KEY` | No | None | API key presented to the indexer's fail-closed federation-read gate. When the peer indexer sets `INDEXER_API_KEY`, gated methods such as `getstakeweightsbycapability` return `401` without this, which is what a hardened indexer needs in order to still serve the explorer's validator-set proof. |
+| `EXPLORER_FEDERATION_READ_KEY` | No | None (federation reads refused) | Key a caller must present as `x-api-key` to use the five federation reads the explorer serves off its replicated indexer databases on `POST /{COIN}/api/`: `getrollcallsigners`, `getanchoraction`, `getanchorconfirmations`, `getarchiveanchor` and `getpricebatches`. A validator without its own Dogecoin indexer sets `DOGE_INDEXER_API_URL` to this explorer and `DOGE_INDEXER_API_KEY` to this key. Unset, those methods answer `-32001 Unauthorized` to everyone; every other route is unaffected. |
 | `DECODER_API_TIMEOUT_MS` | No | `2500` | Per-request timeout for decoder health calls. Tighter than the indexer timeout on purpose: health aggregation runs on the `/api/status` hot path, so a stalled decoder must not hold the whole status response. |
 
 ### Contract simulation (Read Contract card)
@@ -166,6 +167,16 @@ Setting `EXPLORER_VM_QUERY_ENABLED=true` is not sufficient on its own. Before it
 The check exists because a deployed explorer's bundled VM can go stale silently: the vendored copy is staged by the rollout, not by the git checkout, and its version string moves by a patch while its bytes move by a hundred kilobytes. Simulating in a stale VM would answer contract calls with results the indexers do not agree with, on the same service that serves contract-state proofs, so the endpoint fails closed instead.
 
 The in-process check is coarser than a byte comparison, because a running process has no canonical copy to compare against. The full comparison is `bin/check-explorer-vm-drift.sh <host>` in the platform checkout: read-only over SSH, it hashes the deployed VM tree against canonical and reads the flag out of the running process. Run it before enabling the flag on a public explorer, and enable only once it reports `OK`.
+
+### Activation Registry (regtest arming)
+
+The explorer carries a byte-identical copy of the shared activation rows the indexer, hub, sync and SDK carry (`src/consensus/gate_registry/`), and that copy arms its regtest entries from the same three variables by the same grammar (`src/consensus/gate_registry/regtest_env.js`). The explorer drives no roll call and admits no mirror row itself; honouring the levers keeps its reading of a row identical to the venue's, so a consensus-identity comparison across the venue's processes does not diverge on the explorer.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `XC_ROLLCALL_REGTEST_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the `regtest` entry of `ROLLCALL_ACTIVATION` in the explorer's copy of the activation registry. `armed` (or `genesis`/`on`/`true`/`yes`) arms at BTC height `0`; a bare non-negative integer arms at that height; `off`/`inert`/`false`/`no`/`none` and unset leave it inert, and anything else is refused with a process warning and stays inert. Applied when a row is read, from the environment as it stands then. mainnet and testnet are fixed in source and cannot be moved from the environment. Never set outside a regtest venue. |
+| `XC_ROLLCALL_GATES_REGTEST_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the `regtest` entry of `ROLLCALL_GATES_ACTIVATION` (ROLLCALL v1, the consensus-gate list roll calls carry) in the explorer's registry copy. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; set identically on every hub, indexer and explorer process in the venue. mainnet and testnet are fixed in source. Never set outside a regtest venue. |
+| `XC_MIRROR_ADMISSION_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the per-coin `regtest` entries of `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` (the mirror-admission heights) and the `regtest` entry of `ANCHOR_ATTEST_BARRIER_ACTIVATION` in the explorer's registry copy, one variable for the whole barrier family. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; the armed form arms at height `0`. mainnet and testnet are fixed in source. Never set outside a regtest venue. |
 
 ### SSL/TLS
 
@@ -204,6 +215,31 @@ explorer itself, so only the generic Font Awesome glyphs are absent.
 A value that does not match its expected shape (a non-numeric kit id, a
 license other than `free`/`pro`) is ignored with a warning rather than passed
 through to the browser.
+
+### Metrics and Log Shipping
+
+The shared observability module adds a Prometheus scrape endpoint and a
+structured log shim. Both are off unless set here: with no variables the
+explorer registers no extra route, starts no timer, and opens no socket. The
+log shim is installed before the explorer's first log line, so these variables
+also shape startup output.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `METRICS_ENABLED` | No | off | Serve the Prometheus scrape endpoint. |
+| `METRICS_PATH` | No | `/metrics` | Scrape path. |
+| `METRICS_TOKEN` | No | None | Require `Authorization: Bearer <token>` on the scrape. Set this (or keep the path behind the fronting proxy) on any internet-reachable box. |
+| `METRICS_HTTP` | No | `true` when metrics are on | Per-request counters and a latency histogram. Set `0` for endpoint-only. |
+| `LOG_FORMAT` | No | `text` | `json` emits one NDJSON record per log line. |
+| `LOG_LEVEL` | No | `info` | `debug`, `info`, `warn`, or `error`. |
+| `LOG_SHIP_ENABLED` | No | off | POST batched NDJSON to a collector. Needs `LOG_SHIP_URL` too; either alone stays off. |
+| `LOG_SHIP_URL` | No | None | Collector endpoint (http/https). |
+| `LOG_SHIP_TOKEN` | No | None | Bearer token for the collector. Never logged or echoed. |
+| `LOG_SHIP_BATCH_SIZE` | No | `100` | Lines per POST. |
+| `LOG_SHIP_INTERVAL_MS` | No | `5000` | Flush interval. |
+| `LOG_SHIP_MAX_BUFFER` | No | `5000` | Bounded buffer; the oldest lines are dropped and counted, never grown without limit. |
+| `LOG_SHIP_TIMEOUT_MS` | No | `5000` | Per-batch POST timeout. |
+| `XCHAIN_LOG_PATCH` | No | None | Set `0` to leave the global console unpatched, so no structured log shim is installed. The test bootstrap sets it so suites see the stock console. |
 
 ## Local Configuration File
 
@@ -283,13 +319,13 @@ config.onConfigChanged(() => {
 
 ## Coin-Specific Configuration
 
-Each supported blockchain has a configuration file in `src/configs/`:
+Each supported blockchain has a configuration file in `src/coin-config/`:
 
 | File | Chain |
 |---|---|
-| `src/configs/BTC.js` | Bitcoin |
-| `src/configs/LTC.js` | Litecoin |
-| `src/configs/DOGE.js` | Dogecoin |
+| `src/coin-config/BTC.js` | Bitcoin |
+| `src/coin-config/LTC.js` | Litecoin |
+| `src/coin-config/DOGE.js` | Dogecoin |
 
 These files export a `getConfig(network)` function returning:
 

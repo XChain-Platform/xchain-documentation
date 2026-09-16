@@ -159,7 +159,7 @@ Both are subject to Chrome's ~10 MB per-extension quota. The wallet's typical st
 
 ## Privacy policy + CWS
 
-`packages/extension/PRIVACY_POLICY.md` is the public-facing policy hosted alongside the CWS listing. It covers:
+The [privacy policy](privacy/privacy-policy.md) is the public-facing policy hosted alongside the CWS listing. It covers:
 
 - What's stored on-device (encrypted vault, addresses, contacts, dApp grants, queued PSBTs)
 - What leaves the device (user-configured RPC endpoints; optional vendor hardware-bridge calls)

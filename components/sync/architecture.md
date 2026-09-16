@@ -89,39 +89,39 @@ flowchart TD
 |---|---|---|
 | `api.js` | None | Entry point: Express app, REST routes, WebSocket upgrade, starts SyncService |
 | `config.js` | `getConfig()` | Reads environment variables and returns a config object |
-| `db.js` | `Database` | MariaDB connection pool with circuit breaker; one instance per chain/network |
-| `middleware.js` | `authMiddleware` | API key authentication middleware for REST and WebSocket endpoints |
-| `validation.js` | None | Input validation: SQL identifiers, DDL whitelisting, WebSocket event schemas |
-| `utility.js` | `Utility` | `sleep()`, `getDataHash()` (SHA256), `isNull()`, timer helpers |
-| `sqlUtil.js` | `splitSqlStatements` | Splits `.sql` files on `;`, stripping line comments to avoid false splits |
-| `HubClient.js` | `HubClient` | JSON-RPC client for xchain-hub; `getallconfigs()` to discover indexer and decoder DB connections |
+| `db/index.js` | `Database` | MariaDB connection pool with circuit breaker; one instance per chain/network |
+| `http/middleware.js` | `authMiddleware` | API key authentication middleware for REST and WebSocket endpoints |
+| `util/validation.js` | None | Input validation: SQL identifiers, DDL whitelisting, WebSocket event schemas |
+| `util/index.js` | `Utility` | `sleep()`, `getDataHash()` (SHA256), `isNull()`, timer helpers |
+| `db/sql_util.js` | `splitSqlStatements` | Splits `.sql` files on `;`, stripping line comments to avoid false splits |
+| `hub/client.js` | `HubClient` | JSON-RPC client for xchain-hub; `getallconfigs()` to discover indexer and decoder DB connections |
 | `SyncService.js` | `SyncService` | Orchestrator: hub discovery, DB pool creation, server/client mode branching |
-| `ServerPoller.js` | `ServerPoller` | Polls one indexer DB for new blocks; builds block payloads; emits events |
-| `BlockBroadcaster.js` | `BlockBroadcaster` | Manages WebSocket subscriptions per chain/network; broadcasts block/reorg events |
-| `SnapshotBuilder.js` | `SnapshotBuilder` | Builds full and incremental JSON snapshots with gzip streaming |
-| `TransparencyLog.js` | `TransparencyLog` | Writes append-only per-block hash records to `sync_meta` table; every write is a no-op when `REPLICA_DB_READONLY=1` (see Configuration) |
-| `replicatedTables.js` | `getTopology()` | Single source of truth for the block/tx/action-scoped table sets that replicate per dbType; shared by ServerPoller and the row-count completeness check |
-| `updatedRows.js` | `collectUpdatedRows` | Collects in-place mutations to surviving (earlier-block) rows for a block window; the source side of the "updated rows" replication channel |
-| `cooldownCredits.js` | `collectMaturedCooldownCredits` | Collects backdated cooldown-refund credits that the action-scoped join cannot reach; source side |
-| `wireCodec.js` | `encodeRow`, `decodeValue` | Binary-safe row serialization: tags BLOB/Buffer column values with a `__xbin__` sentinel so they survive JSON round-trip intact |
-| `BlockHasher.js` | `BlockHasher` | Independently recomputes a block's consensus hashes (ledger/actions/contract) from the replicated rows; the source of VERIFY_RECOMPUTE |
+| `server/poller.js` | `ServerPoller` | Polls one indexer DB for new blocks; builds block payloads; emits events |
+| `server/block_broadcaster.js` | `BlockBroadcaster` | Manages WebSocket subscriptions per chain/network; broadcasts block/reorg events |
+| `server/snapshot_builder.js` | `SnapshotBuilder` | Builds full and incremental JSON snapshots with gzip streaming |
+| `server/transparency_log.js` | `TransparencyLog` | Writes append-only per-block hash records to `sync_meta` table; every write is a no-op when `REPLICA_DB_READONLY=1` (see Configuration) |
+| `schema/replicated_tables.js` | `getTopology()` | Single source of truth for the block/tx/action-scoped table sets that replicate per dbType; shared by ServerPoller and the row-count completeness check |
+| `server/updated_rows.js` | `collectUpdatedRows` | Collects in-place mutations to surviving (earlier-block) rows for a block window; the source side of the "updated rows" replication channel |
+| `server/cooldown_credits.js` | `collectMaturedCooldownCredits` | Collects backdated cooldown-refund credits that the action-scoped join cannot reach; source side |
+| `util/wire_codec.js` | `encodeRow`, `decodeValue` | Binary-safe row serialization: tags BLOB/Buffer column values with a `__xbin__` sentinel so they survive JSON round-trip intact |
+| `client/block_hasher.js` | `BlockHasher` | Independently recomputes a block's consensus hashes (ledger/actions/contract) from the replicated rows; the source of VERIFY_RECOMPUTE |
 | `stateHash.js` | `buildStateHashData` | Builds the canonical preimage for the fourth per-block replication-integrity hash (`state_hash`), covering in-place mutations and backdated credits not captured by the three consensus hashes |
 | `stateCommitment.js` | `computeFollowerRoots` | Follower twin of the indexer's SPV state-commitment engine; recomputes per-block SMT roots (balances, stakes, state) for VERIFY_STATE_COMMITMENT |
 | `merkle.js` | None | Consensus-critical SPV Merkle primitives (SHA-256 SMT, block Merkle root, state root); byte-aligned with the indexer twin |
-| `MerkleTree.js` | `MerkleTree` | Binary SHA-256 Merkle tree used by TransparencyLog for epoch proof construction |
-| `balance-helpers.js` | None | Shared SQL helpers for rebuilding the `balances` aggregate after a block apply or rollback |
+| `server/merkle_tree.js` | `MerkleTree` | Binary SHA-256 Merkle tree used by TransparencyLog for epoch proof construction |
+| `db/balance_helpers.js` | None | Shared SQL helpers for rebuilding the `balances` aggregate after a block apply or rollback |
 | `checkpoint.js` | None | Client-side verifier for quorum-signed state checkpoints (SPV spec §6.1/§6.3) |
 | `stake_weighted_quorum.js` | None | Canonical stake-weighted quorum predicate; vendored byte-identically from xchain-documentation |
-| `pinnedValidators.js` | None | Out-of-band pinned validator sets used by VERIFY_CHECKPOINT_QUORUM to anchor checkpoint signatures |
+| `client/pinned_validators.js` | None | Out-of-band pinned validator sets used by VERIFY_CHECKPOINT_QUORUM to anchor checkpoint signatures |
 | `consensus-constants.js` | None | Frozen per-chain consensus constants (e.g. `ACTIVATION_DELAY_BLOCKS`) shared across modules |
-| `schema-version.js` | None | Snapshot schema version constant used to detect incompatible snapshot formats |
+| `schema/version.js` | None | Snapshot schema version constant used to detect incompatible snapshot formats |
 | `state_commitment_activation.js` | `isStateCommitmentActive` | Flag-day gate: returns whether the SPV state-commitment feature is active for a given block and network |
 | `checkpoint_commitment_activation.js` | None | Flag-day gate for quorum-signed checkpoint commitment (SPV spec §6.1/§6.3 Phase 2) |
 | `equivocation_header.js` | None | Consensus-critical implementation of the uniform signed equivocation header (WI-2 bump 2) |
-| `ClientSync.js` | `ClientSync` | Client-mode orchestrator: bootstrap, catch-up, live sync loop per chain/network |
-| `ClientApplier.js` | `ClientApplier` | Applies block payloads and snapshots to local replica DB via INSERT IGNORE |
-| `ClientRollback.js` | `ClientRollback` | Rollback logic mirroring indexer's Rollback.js table lists |
-| `HashVerifier.js` | `HashVerifier` | Cross-source hash comparison and hash chain continuity verification |
+| `client/sync.js` | `ClientSync` | Client-mode orchestrator: bootstrap, catch-up, live sync loop per chain/network |
+| `client/applier.js` | `ClientApplier` | Applies block payloads and snapshots to local replica DB via INSERT IGNORE |
+| `client/rollback.js` | `ClientRollback` | Rollback logic mirroring indexer's Rollback.js table lists |
+| `client/hash_verifier.js` | `HashVerifier` | Cross-source hash comparison and hash chain continuity verification |
 
 ## Hub Discovery Flow
 

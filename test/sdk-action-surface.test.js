@@ -31,20 +31,53 @@
  *   2. components/sdk/actions.md names exactly the SDK-invocable set, and
  *      never the five that are not invocable, so nobody goes looking for a
  *      builder that does not exist.
- *   3. The sessions.md convenience table lists exactly the action types
- *      walletSession.js actually exposes.
+ *   3. The sessions.md convenience table lists exactly the action types the
+ *      SDK's wallet-session module actually exposes, whichever side of the
+ *      SDK's layout move the sibling checkout sits on.
  */
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
+// an entry plus every part it was split into, the platform's split convention
+const { readModuleSource } = require('../lib/indexer-source.js');
 
 const ROOT = path.join(__dirname, '..');
 const SPECS = path.join(ROOT, 'protocol', 'actions');
 const SDK = path.join(ROOT, '..', 'xchain-sdk', 'src');
+
+/* The session surface is read as SOURCE TEXT and matched with a regex, so the file
+ * this resolves to has to be the one that declares the methods. The SDK's layout pass
+ * moved walletSession.js to utils/wallet_session.js and left a one-line re-export at
+ * the old path, which keeps require() working but carries none of the declarations,
+ * and a sibling checkout can sit on either side of that move. Follow a bare re-export
+ * to its target and fall back to the pre-move spelling, then report the path that was
+ * READ: pinning one spelling makes this guard fail against a stub on one side of the
+ * move and skip silently on the other, and neither reading checks the docs.
+ *
+ * The declarations are then read as the ENTRY PLUS ITS PARTS: the SDK's structure pass
+ * moved the per-action shortcuts out of utils/wallet_session.js into
+ * utils/wallet_session/action_shortcuts.js, and reading the entry alone reported every
+ * session method as missing while the docs and the code still agreed. */
+function resolveSdkSource(pinned, premove) {
+  const read = (rel) => {
+    const abs = path.join(SDK, rel);
+    if (!fs.existsSync(abs)) return null;
+    const body = fs.readFileSync(abs, 'utf8');
+    const reexport = body.match(/^module\.exports\s*=\s*require\('([^']+)'\);\s*$/m);
+    const code = body.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '').trim();
+    if (!reexport || code !== reexport[0].trim()) return { rel, body: readModuleSource(abs) };
+    const target = path.join(path.dirname(rel), reexport[1]);
+    const abs2 = path.join(SDK, target);
+    return fs.existsSync(abs2) ? { rel: target, body: readModuleSource(abs2) } : null;
+  };
+  return read(pinned) || read(premove);
+}
+
 const SDK_MAIN = path.join(SDK, 'XChainSDK.js');
-const SDK_SESSION = path.join(SDK, 'walletSession.js');
-const haveSdk = fs.existsSync(SDK_MAIN) && fs.existsSync(SDK_SESSION);
+const SESSION = resolveSdkSource('utils/wallet_session.js', 'walletSession.js');
+const SESSION_PATH = SESSION ? `xchain-sdk/src/${SESSION.rel}` : 'xchain-sdk/src/utils/wallet_session.js';
 
 /** Actions that exist but are never user-submittable, so never in the SDK. */
 const NOT_INVOCABLE = ['ANCHOR', 'ATTEST', 'NODEPROOF', 'ROLLCALL', 'SLASH', 'XCALL'];
@@ -68,6 +101,15 @@ function named(text) {
   return NAMED.filter((n) => new RegExp(`\\b${n}\\b`).test(text)).sort();
 }
 
+/* The skips below are for a bare clone, by name. A run that declared the sibling
+ * supplied (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set) throws in
+ * the helper instead, naming the entry and both session spellings tried: the surface
+ * these pages describe lives in that checkout, and skipping leaves the drift this file
+ * exists to catch unchecked but green. */
+const noSdk = sibling('xchain-sdk', [SDK_MAIN].concat(SESSION ? [] : [[
+  path.join(SDK, 'utils/wallet_session.js'), path.join(SDK, 'walletSession.js'),
+]])).skip;
+
 test('concepts/actions.md names every action that has a spec', () => {
   const missing = NAMED.filter((n) => !named(doc('concepts/actions.md')).includes(n));
   assert.deepStrictEqual(missing, [],
@@ -75,8 +117,14 @@ test('concepts/actions.md names every action that has a spec', () => {
 });
 
 test('the SDK reference covers exactly the invocable set',
-  { skip: !haveSdk && 'xchain-sdk not present in this checkout' }, () => {
-    const invocable = methodsFor(fs.readFileSync(SDK_MAIN, 'utf8'));
+  { skip: noSdk }, () => {
+    // Same entry-plus-parts reading as SESSION above: the SDK's structure pass moved
+    // the action shorthands (send, deploy, batch, ...) out of XChainSDK.js into
+    // src/XChainSDK/*.js parts that installMethods() attaches to the prototype, so
+    // the entry alone no longer declares them. readModuleSource follows the platform's
+    // split convention (entry first, then every part under a same-named directory) and
+    // reads the entry alone, unchanged, on a tree that was never split.
+    const invocable = methodsFor(readModuleSource(SDK_MAIN));
     assert.deepStrictEqual(invocable, NAMED.filter((n) => !NOT_INVOCABLE.includes(n)),
       'the SDK builder methods no longer match "every action except ' + NOT_INVOCABLE.join(', ')
       + '". Re-derive the split before touching the docs.');
@@ -93,8 +141,8 @@ test('the SDK reference covers exactly the invocable set',
   });
 
 test('the session convenience table lists exactly the session methods',
-  { skip: !haveSdk && 'xchain-sdk not present in this checkout' }, () => {
-    const sessionActions = methodsFor(fs.readFileSync(SDK_SESSION, 'utf8'));
+  { skip: noSdk }, () => {
+    const sessionActions = methodsFor(SESSION.body);
 
     // Only the convenience-method table, not the whole page: the prose below it
     // discusses BATCH and the version-pinned variants by name on purpose.
@@ -108,7 +156,7 @@ test('the session convenience table lists exactly the session methods',
     const absent = listed.filter((n) => NAMED.includes(n) && !sessionActions.includes(n));
 
     assert.deepStrictEqual(missing, [],
-      'walletSession.js exposes these action types and the table omits them: ' + missing.join(', '));
+      `${SESSION_PATH} exposes these action types and the table omits them: ` + missing.join(', '));
     assert.deepStrictEqual(absent, [],
-      'the table offers action methods the session does not have: ' + absent.join(', '));
+      `the table offers action methods ${SESSION_PATH} does not have: ` + absent.join(', '));
   });

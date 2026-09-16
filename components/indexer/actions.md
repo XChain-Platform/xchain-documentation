@@ -16,9 +16,9 @@ An action is only processed if:
 2. The current block time is >= the action's activation timestamp for the active network
 3. The current block height is >= the action's activation block for the active network
 
-21 actions are registered at version `0.1.0` (ADDRESS, AIRDROP, BATCH, BET, BROADCAST, CALLBACK, COINPAY, DESTROY, DISPENSER, DIVIDEND, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, SEND, SLEEP, SWAP, SWEEP) and the other 16 at `0.2.0` (the Virtual Machine, Hub Staking, Oracle, Governance, and Validator categories). The two derived rows DISPENSE and COINPAY_EXPIRE are also registered at `0.1.0`.
+21 actions are registered at version `0.1.0` (ADDRESS, AIRDROP, BATCH, BET, BROADCAST, CALLBACK, COINPAY, DESTROY, DISPENSER, DIVIDEND, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, SEND, SLEEP, SWAP, SWEEP) and the other 17 at `0.2.0` (the Virtual Machine, Hub Staking, Oracle, Governance, Cross-Chain Bridge, and Validator categories). The two derived rows DISPENSE and COINPAY_EXPIRE are also registered at `0.1.0`.
 
-**All 37 actions carry an activation block and timestamp of `0` on every network**, so what gates them is condition 1 above, the indexer's own version, not a height. Non-zero activation values are used by the ~34 *behaviour* changes registered alongside the actions (`ISSUANCE_FEE`, `CONTROLLER_GUARD`, `VM_BANNED_ASYNC`, `CROSS_CHAIN_ROYALTY`, and so on): those are the block-height and timestamp flag-days, and they change how an already-live action behaves rather than introducing a new one. Future protocol upgrades can do either.
+**All 38 actions carry an activation block and timestamp of `0` on every network**, so what gates them is condition 1 above, the indexer's own version, not a height. Non-zero activation values are used by the ~34 *behaviour* changes registered alongside the actions (`ISSUANCE_FEE`, `CONTROLLER_GUARD`, `VM_BANNED_ASYNC`, `CROSS_CHAIN_ROYALTY`, and so on): those are the block-height and timestamp flag-days, and they change how an already-live action behaves rather than introducing a new one. Future protocol upgrades can do either.
 
 ## Token Lifecycle Actions
 
@@ -135,7 +135,7 @@ Two staking systems share the same four action names. **Capability staking** (ST
 | **STAKE** | Lock tokens against a signing pubkey. v1 = new capability stake (XCHAIN), v2 = top-up of existing capability stake (XCHAIN), v3 = contract-targeted stake (any token, targets a stakeable contract: see DEPLOY v1) | VERSION valid (1/2/3), AMOUNT positive, SIGNING_PUBKEY is 64-char hex Ed25519. v1/v2: aggregate per-pubkey active stake auto-qualifies the pubkey for each of five capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`) based on governance `min_stake[capability]`. v3: target contract must be stakeable; row keyed by `(target, pubkey, tick, source)`. |
 | **UNSTAKE** | Release staked tokens. v0 = full-pubkey capability unstake. v1 = release a single contract-targeted row keyed by `(target, pubkey, tick)`. | Pubkey has active stake of matching type; sets `deactivation_block`. v1 cooldown is per-contract (set at DEPLOY v1 time); v0 uses the global `STAKING.COOLDOWN_BLOCKS`. |
 | **DELEGATE** | Manage the signing key for a stake. v0 = capability rotate, v1 = contract rotate, v2 = capability revoke, v3 = contract revoke. | Active stake/delegation of matching type exists. For rotates, new pubkey valid and unused. Takes effect after the activation delay: 6 blocks for capability rotate/revoke (v0/v2); the per-chain delay (6 blocks on BTC, 24 on LTC, 60 on DOGE) for contract rotate/revoke (v1/v3). |
-| **COLLECT** | Collect accumulated rewards | Address has unclaimed rewards > 0. `oracle_round` / `oracle_base` / `oracle_full_node` and `attest_fee` rewards are derived by the indexer during block processing; `anchor_bundle` and `anchor_archive` rewards are pushed from `xchain-hub` via `pushvalidatorrewards`. |
+| **COLLECT** | Collect accumulated rewards | Address has unclaimed rewards > 0. `oracle_round` / `oracle_base` / `oracle_full_node` and `attest_fee` rewards are derived by the indexer during block processing; `anchor_bundle` and `anchor_archive` rewards are derived by the indexer from the on-chain ANCHOR bytes at or above their own flag-days (`ANCHOR_REWARD_ACTIVATION` / `ARCHIVE_REWARD_ACTIVATION`); below those heights they were pushed from `xchain-hub` via `pushvalidatorrewards`, which is retired for new anchor rewards. |
 
 ### `oracle_publish` capability (formerly "Tier 3")
 
@@ -165,7 +165,7 @@ Virtual Machine actions are available on **all chains** (BTC, LTC, DOGE). DEPLOY
 
 | Action | Purpose | Key Validations |
 |---|---|---|
-| [**ANCHOR**](../../protocol/actions/anchor.md) | Commit quorum-signed state checkpoints and a compressed archive of cross-chain match rows on-chain. DOGE-only, validator-broadcast action. | Valid only on the DOGE chain (all networks). No protocol fee. On parse, the indexer writes to `anchor_actions` and records checkpoint hashes. The archived data makes all platform state recoverable from a full chain re-parse. See `src/actions/anchor.js` and `protocol/actions/ANCHOR.md`. |
+| [**ANCHOR**](../../protocol/actions/anchor.md) | Commit quorum-signed state checkpoints and a compressed archive of cross-chain match rows on-chain. DOGE-only, validator-broadcast action. | Valid only on the DOGE chain (all networks). No protocol fee. On parse, the indexer writes to `anchor_actions` and records checkpoint hashes. The archived data makes all platform state recoverable from a full chain re-parse. See `src/actions/anchor/index.js` and `protocol/actions/ANCHOR.md`. |
 
 ## Attestation & Validator Actions
 

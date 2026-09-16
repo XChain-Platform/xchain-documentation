@@ -43,8 +43,8 @@ flowchart TD
 |---|---|---|
 | `src/api.js` | ~212 | Environment validation, Express server, JSON-RPC routing, miner lifecycle |
 | `src/XChainRegtestMiner.js` | ~589 | Mining loop, wallet management, fillMempool, timer control |
-| `src/BlockchainConnector.js` | ~489 | JSON-RPC 2.0 client wrapping 15 Bitcoin Core methods with retry logic |
-| `src/CryptoNetworks.js` | ~132 | Coin-specific bitcoinjs-lib network params (BTC/LTC/DOGE, all networks) |
+| `src/rpc/blockchain_connector.js` | ~489 | JSON-RPC 2.0 client wrapping 15 Bitcoin Core methods with retry logic |
+| `src/networks/crypto_networks.js` | ~132 | Coin-specific bitcoinjs-lib network params (BTC/LTC/DOGE, all networks) |
 
 ## Mining Loop
 

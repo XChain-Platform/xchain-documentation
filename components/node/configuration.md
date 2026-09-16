@@ -7,7 +7,7 @@
 
 xchain-node uses a two-layer configuration system to generate environment variables for each managed service:
 
-1. **Hardcoded defaults**: defined in `ConfigService.js` for each module type (40+ variables per coin-specific service)
+1. **Hardcoded defaults**: defined in `config_service.js` for each module type (40+ variables per coin-specific service)
 2. **Config file overrides**: read from `config/{coin}-{network}` files in `KEY=VALUE` format
 
 Config files are plain text with one variable per line. Values containing `=` (such as base64 tokens or passwords) are handled correctly; only the first `=` on each line is treated as the separator. Blank lines and lines without `=` are skipped.
@@ -115,7 +115,7 @@ These variables are read by xchain-node itself at startup. They control runtime 
 | `XCHAIN_NODE_EXTERNAL_DB_PORT` | Port of the external MariaDB when `XCHAIN_NODE_EXTERNAL_DB=1` (default: `3306`). |
 | `XCHAIN_NODE_EXTERNAL_DB_ROOT_USER` | Root username for the external MariaDB when `XCHAIN_NODE_EXTERNAL_DB=1` (default: `root`). Used during database and user provisioning. |
 | `XCHAIN_NODE_EXTERNAL_DB_ROOT_PASSWORD` | MariaDB root password for the host-native (non-Docker) database, used alongside `XCHAIN_NODE_EXTERNAL_DB=1`. Avoids an interactive password prompt in headless installs. Supply alongside `XCHAIN_NODE_EXTERNAL_DB_HOST`, `XCHAIN_NODE_EXTERNAL_DB_PORT`, and `XCHAIN_NODE_EXTERNAL_DB_ROOT_USER`. |
-| `XCHAIN_NODE_MODULE_MEMORY_MB_<SERVICE>` | Explicit container memory limit in MB for one service, e.g. `XCHAIN_NODE_MODULE_MEMORY_MB_XCHAIN_UTXO_TRACKER=4096` or `XCHAIN_NODE_MODULE_MEMORY_MB_XCHAIN_DECODER=1536` (the service name upper-cased with `-` as `_`). Applied as `--memory` and an equal `--memory-swap` at the next `install`, `update` or `recreate`. `0` disables the derived tracker limit. Without it, only the utxo-tracker is limited, to half the host RAM divided by the number of installed trackers (floor 1024 MB, ceiling 16384 MB); other services run unlimited because they do not size themselves to a cgroup limit. See [Memory on a multi-chain host](../../operations/deployment.md#memory-on-a-multi-chain-host). |
+| `XCHAIN_NODE_MODULE_MEMORY_MB_<SERVICE>` | Explicit container memory limit in MB for one service, e.g. `XCHAIN_NODE_MODULE_MEMORY_MB_XCHAIN_UTXO_TRACKER=4096` or `XCHAIN_NODE_MODULE_MEMORY_MB_XCHAIN_DECODER=1536` (the service name upper-cased with `-` as `_`). Applied as `--memory` and an equal `--memory-swap` at the next `install`, `update` or `recreate`. `0` disables the derived tracker limit. Without it, only the utxo-tracker is limited, to half the host RAM divided by the number of installed trackers (floor 1024 MB, ceiling 16384 MB); other services run unlimited because they do not size themselves to a cgroup limit. A host whose kernel has no memory cgroup controller accepts the flag and discards it, so confirm the limit landed after the create; [Memory on a multi-chain host](../../operations/deployment.md#memory-on-a-multi-chain-host) has the check and the Raspberry Pi OS fix. |
 | `XCHAIN_NODE_STOP_TIMEOUT_SECONDS` | Seconds a coin node daemon is given to exit cleanly before docker kills it, on `update` and `recreate` and as the container's own `--stop-timeout` (default: `600`). A daemon flushes its chainstate only on a clean exit; a killed one re-validates from its last flushed block when it returns. Raise it on a host where a large `dbcache` flushes slowly (a Pi writing to a USB SSD). The update prints how long the daemon took and warns when the budget ran out. Applied at the next `update` or `recreate`. |
 | `XCHAIN_NODE_MODULE_STOP_TIMEOUT_SECONDS_<SERVICE>` | Seconds one service container is given to exit cleanly before docker kills it, e.g. `XCHAIN_NODE_MODULE_STOP_TIMEOUT_SECONDS_XCHAIN_DECODER=300` (the service name upper-cased with `-` as `_`). Used by `stop`, `update`, `recreate` and `uninstall` and stamped on the container as `--stop-timeout`. Defaults: 120 for `xchain-decoder` and `xchain-utxo-tracker`, which break their loops at a block boundary, 30 for every other service. The coin daemon keeps `XCHAIN_NODE_STOP_TIMEOUT_SECONDS`. Applied at the next `update` or `recreate`. See [Stopping](operations.md#stopping). |
 | `XCHAIN_NODE_NO_TELEMETRY` | Set to `1` to disable anonymous usage telemetry. Opt-out is also available via the `--no-telemetry` CLI flag or a persisted preference in `~/.xchain-node/telemetry.json`. |
@@ -255,6 +255,7 @@ These env vars override where xchain-node stores its filesystem state on the hos
 | `XCHAIN_NODE_CONFIG_DIR` | `<repo>/config` | Generated per-service `.env` files. Small. |
 | `XCHAIN_NODE_BLOCKS_DIR` | (unset → inside data volume) | Optional host path for the coin node's `blocks/` directory. If set, mounted as `/blocks` into the docker container so chain data can live on a separate disk from the rest of the node state. |
 | `XCHAIN_NODE_ALLOW_DEGRADED_EXPLORER` | (unset → install fails) | Accepted values `1`, `true`, `yes`, case-insensitive. An `install` that creates a coin stack waits for the explorer to start serving coin data and fails when it never does; an install that adds no coin stack does not wait. Set this to continue anyway, accepting a stack whose explorer answers but serves no coins. Intended for callers that knowingly want the rest of the stack without a converged explorer; leave it unset on any node meant to serve reads. |
+| `XCHAIN_NODE_ALLOW_NO_DOGE_READ` | (unset → deploy refused) | Any value other than empty, `0`, `false` or `no` enables it. `install`, `update` and `recreate` refuse a bitcoin `xchain-indexer`, or a validator-mode `xchain-hub`, on a network whose roll call is armed when neither `DOGE_INDEXER_API_URL` nor `DOGE_INDEXER_URL` is set, because that indexer defers every block from the first epoch close and that hub publishes no roll call. Set this to deploy anyway with a warning, for a single-coin regtest venue that runs no roll call; never on a validator. |
 
 > **⚠️ Testnet / regtest write to a network-prefixed subdirectory.** Dogecoind and litecoind place block data under a per-network subdirectory of the datadir on every network except mainnet:
 >
@@ -286,10 +287,10 @@ Without these overrides the small `/` partition fills the moment a bootstrap is 
 
 | Constant | Value | Location | Description |
 |---|---|---|---|
-| `NODE_PREFIX` | `xchain-node` | constants.js | Prefix for all Docker container and network names |
-| `SEP` | `-` | constants.js | Separator for Docker naming (`xchain-node-bitcoin-mainnet`) |
-| `DB_SEP` | `_` | constants.js | Separator for database naming (`xchain_decoder_bitcoin_mainnet`) |
-| `DB_NAME` | `xchain_node` | CredentialsService.js | MariaDB database name used to store module state |
+| `NODE_PREFIX` | `xchain-node` | src/config/index.js | Prefix for all Docker container and network names |
+| `SEP` | `-` | src/config/index.js | Separator for Docker naming (`xchain-node-bitcoin-mainnet`) |
+| `DB_SEP` | `_` | src/config/index.js | Separator for database naming (`xchain_decoder_bitcoin_mainnet`) |
+| `DB_NAME` | `xchain_node` | credentials_service.js | MariaDB database name used to store module state |
 
 ### NODE_PREFIX Validation
 

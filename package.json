@@ -1,7 +1,7 @@
 {
   "name": "xchain-documentation",
   "description": "XChain Platform protocol specification, architecture guides, and developer documentation",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
@@ -12,7 +12,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "test": "node --test --test-force-exit --test-timeout=120000",
+    "test": "node --test --test-timeout=120000 --test-reporter=tap --test-reporter-destination=stdout --test-reporter=./bin/complete_run_reporter.js --test-reporter-destination=stderr",
     "ci": "npm test"
   },
   "devDependencies": {

@@ -27,17 +27,25 @@
  * else in the tree carries a value that can rot.
  *
  * WHERE THE VALUES COME FROM. `xchain-indexer/src/protocol_changes.js` is the
- * registry: `addChange(name, version, mainnet_time, ...)` plus the handful of
- * gates declared as `const NAME_MAINNET_TIME`. Three more time-keyed gates ship
- * as standalone sibling modules in the same directory (they are registered next
- * to the query they gate rather than in the registry), so those are read too;
- * leaving them out would publish an inventory that calls itself complete and is
- * not.
+ * registry's entry, and its rows live in the part files under
+ * `src/protocol_changes/`: the time table as array rows
+ * `['NAME', 'X.Y.Z', mainnet_time, ...]` in `changes_*.js` (the older
+ * `addChange(name, version, mainnet_time, ...)` call shape is still read, for
+ * a tree that predates the split), plus the handful of gates declared as
+ * `const NAME_MAINNET_TIME` in `flag_times*.js`. Three more time-keyed gates
+ * ship as standalone sibling modules in `src/` (they are registered next to
+ * the query they gate rather than in the registry), so those are read too;
+ * leaving them out would publish an inventory that calls itself complete and
+ * is not.
  *
- * THE SOURCE IS READ AS TEXT, NOT REQUIRED. `require('protocol_changes.js')`
- * pulls in the indexer's config and database layer, and this must run in a
- * documentation checkout with neither. Other tooling in this monorepo reads
- * source files as text for the same reason.
+ * THE SOURCE IS READ AS TEXT, NOT REQUIRED. What this page asserts about the
+ * registry is asserted about its LITERALS: a retired row parked in a comment
+ * must not be published, a separator-formatted or arithmetic time slot must be
+ * refused rather than guessed at, and a declaration in a shape the parse does
+ * not know must be loud. A required module has already resolved all of that
+ * away, so the fixtures under test/flag-day-literals.test.js could not drive
+ * it. The entry plus every part is read as one text (lib/indexer-source.js),
+ * and every refusal names the part file and line it came from.
  *
  * A standalone documentation clone has no sibling indexer. The generated page
  * is COMMITTED, so such a clone still reads correct values; only regeneration
@@ -52,11 +60,30 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { locatedModuleSource } = require('../lib/indexer-source.js');
+const { stripComments } = require('../lib/env-var-doc-coverage.js');
 
 const DOC_ROOT = path.resolve(__dirname, '..');
 const INDEXER_SRC = path.resolve(DOC_ROOT, '../xchain-indexer/src');
 const REGISTRY = path.join(INDEXER_SRC, 'protocol_changes.js');
 const OUTPUT = path.join(DOC_ROOT, 'protocol', 'flag-days.md');
+
+// The registry's own files as ONE text, comments blanked, with the map back to
+// the part file and line an offset came from. Every registry pass below reads
+// this rather than the entry alone, because the rows moved into the parts and
+// a pass that read the entry would find no row and publish an empty page.
+function registrySources(indexerSrc) {
+    const source = locatedModuleSource(path.join(indexerSrc, 'protocol_changes.js'));
+    const rel = (file) => path.relative(indexerSrc, file);
+    return {
+        raw: source.text,
+        // Blanked FILE BY FILE and re-joined the same way, so an unterminated
+        // shape in one part cannot blank the next and every offset still maps.
+        scannable: source.parts.map((p) => withoutComments(p.text)).join('\n'),
+        fileAt: (index) => rel(source.where(index).file),
+        where: (index) => { const at = source.where(index); return `${rel(at.file)} line ${at.line}`; },
+    };
+}
 
 /**
  * Lower bound for "this number is a Unix timestamp, not a block height".
@@ -90,108 +117,15 @@ function lineAt(text, index) {
     return text.slice(0, index).split('\n').length;
 }
 
-// The characters after which a `/` cannot be dividing a finished operand, so
-// it opens a regex literal. Kept byte-identical to the twin in
-// lib/env-var-doc-coverage.js.
-const REGEX_POSITION_AFTER = new Set(['(', ',', '=', ':', '[', '!', '&', '|', '?', '{', '}', ';', '+', '-', '*', '%', '<', '>', '~', '^']);
-const REGEX_POSITION_KEYWORDS = new Set(['return', 'typeof', 'case', 'in', 'of', 'new', 'delete', 'void', 'do', 'else', 'yield', 'await']);
-
-/**
- * The index just past the regex literal starting at `i`, or -1 when there is
- * no literal here to read.
- *
- * FAIL-SAFE BY CONSTRUCTION. Both ambiguous cases return -1, which leaves the
- * caller doing exactly what it did before this existed: a `/` that follows a
- * finished operand (so it divides), and a literal with no unescaped closing
- * `/` before the newline (so the line is not the shape it looked like). Only
- * an unambiguous literal takes the branch, so the walk is a strict superset of
- * the previous behaviour rather than a new guess.
- *
- * RESIDUAL LIMIT, and it is deliberate: `}` and `{` are read as regex position
- * even though a division can legally follow a block, and a division after
- * `)` or `]` is always read as division even though no regex can follow those.
- * Both readings are wrong only for source that does not exist here (measured
- * 2026-08-20 across all 696 production files in the 11 gated components: zero
- * change to the env-read survey and zero change to the computed-read ratchet).
- *
- * `[...]` classes are honoured, because a `/` inside one does not close.
- */
-function regexLiteralEnd(text, i) {
-    let k = i - 1;
-    while (k >= 0 && (text[k] === ' ' || text[k] === '\t')) k--;
-    if (k >= 0 && text[k] !== '\n' && !REGEX_POSITION_AFTER.has(text[k])) {
-        if (!/[A-Za-z0-9_$]/.test(text[k])) return -1;
-        let start = k;
-        while (start >= 0 && /[A-Za-z0-9_$]/.test(text[start])) start--;
-        if (!REGEX_POSITION_KEYWORDS.has(text.slice(start + 1, k + 1))) return -1;
-    }
-
-    let j = i + 1;
-    let inClass = false;
-    while (j < text.length) {
-        const c = text[j];
-        if (c === '\n') return -1;
-        if (c === '\\') { j += 2; continue; }
-        if (inClass) { if (c === ']') inClass = false; j++; continue; }
-        if (c === '[') { inClass = true; j++; continue; }
-        if (c === '/') return j + 1;
-        j++;
-    }
-    return -1;
-}
-
-/**
- * Blanks every comment body, keeping length and newlines so offsets and line
- * numbers still line up with the raw text.
- *
- * The completeness scan below reads this rather than the source, because dead
- * code inside a block comment is not a declaration: a leading-token test only
- * recognises the slash-slash and star shapes, so a commented-out call whose own
- * line starts with `this.` read as live and failed the build over nothing.
- *
- * A REGEX LITERAL IS COPIED WHOLE for the same reason a string is: the `//`
- * inside `text.replace(/\/\//, '-')` starts no comment, and blanking from it
- * drops every declaration later on that line. See `regexLiteralEnd` for the
- * two shapes still read as division rather than as a literal.
- */
-function withoutComments(text) {
-    let out = '';
-    let i = 0;
-    const blank = (s) => s.replace(/[^\n]/g, ' ');
-
-    while (i < text.length) {
-        const two = text.slice(i, i + 2);
-        if (two === '//') {
-            const end = text.indexOf('\n', i);
-            const stop = end === -1 ? text.length : end;
-            out += blank(text.slice(i, stop)); i = stop; continue;
-        }
-        if (two === '/*') {
-            const end = text.indexOf('*/', i + 2);
-            const stop = end === -1 ? text.length : end + 2;
-            out += blank(text.slice(i, stop)); i = stop; continue;
-        }
-        if (text[i] === '/') {
-            // Copy the regex literal whole: the `//` inside one starts no
-            // comment. Runs AFTER the two branches above, never before them,
-            // because `//` is how JavaScript itself spells a comment rather
-            // than an empty literal: testing this first reads every ordinary
-            // comment line as a zero-length regex, leaves the body live, and
-            // any apostrophe in it then opens a string that eats the file.
-            const end = regexLiteralEnd(text, i);
-            if (end !== -1) { out += text.slice(i, end); i = end; continue; }
-        }
-        const ch = text[i];
-        if (ch === "'" || ch === '"' || ch === '`') {
-            // Copy the string whole: a `//` inside one starts no comment.
-            let j = i + 1;
-            while (j < text.length && text[j] !== ch) j += text[j] === '\\' ? 2 : 1;
-            out += text.slice(i, Math.min(j + 1, text.length)); i = j + 1; continue;
-        }
-        out += ch; i++;
-    }
-    return out;
-}
+// The comment stripper is the one lib/env-var-doc-coverage.js owns: it was
+// ported from here and the two had to stay byte-identical, so this file now
+// reads the one copy instead of carrying a twin. It blanks every comment body,
+// keeping length and newlines, so offsets and line numbers still line up with
+// the raw text; a regex literal and a string are copied whole, because the
+// `//` inside either starts no comment. The completeness scan reads this
+// rather than the source, because dead code inside a block comment is not a
+// declaration.
+const withoutComments = stripComments;
 
 /**
  * The mainnet_time argument of a call, when it is a literal this page covers.
@@ -200,10 +134,12 @@ function withoutComments(text) {
  * identifier, or a call shape with too few arguments. Null means "not a row
  * this page would have carried", which is what makes the check below quiet
  * about declarations that were never its business.
+ *
+ * `open` is the index of the `(` of a call or the `[` of an array row; the
+ * arguments are read the same way from either.
  */
-function mainnetTimeLiteral(text, callIndex) {
-    const open = text.indexOf('(', callIndex);
-    if (open === -1) return null;
+function mainnetTimeLiteral(text, open) {
+    if (text[open] !== '(' && text[open] !== '[') return null;
 
     const args = [];
     let depth = 0;
@@ -296,15 +232,7 @@ function collectSiblingGates(indexerSrc, add) {
         const text = withoutComments(fs.readFileSync(path.join(indexerSrc, name), 'utf8'));
         for (const decl of text.matchAll(SIBLING_MAP)) {
             const body = objectBody(text, decl.index + decl[0].length - 1);
-            if (body === null) continue;
-            for (const slot of body.matchAll(SIBLING_MAINNET_SLOT)) {
-                const read = readMainnetSlot(slot[2]);
-                const where = `${name}: ${decl[1]}.${slot[1]} = ${slot[2].trim() || '(nothing this scan can read)'}`;
-                if (read.kind === 'unreadable') unreadable.push(where);
-                else if (read.kind !== 'number') continue;
-                else if (slot[1] === 'mainnet') add(decl[1], read.time, name);
-                else if (read.time >= TIMESTAMP_FLOOR && read.time < SENTINEL_FLOOR) unreadable.push(`${where} is a block TIME, so this page would carry it`);
-            }
+            if (body !== null) collectMapSlots(body, decl[1], name, name, add, unreadable);
         }
     }
 
@@ -316,6 +244,59 @@ function collectSiblingGates(indexerSrc, add) {
             + '\n\nThe sibling scan reads `mainnet: <digits>` inside a `const NAME = { ... }` map and stays '
             + 'quiet for `null` and for an identifier it cannot resolve. Either write the threshold in that '
             + 'shape or widen the parse in bin/generate-flag-days.js deliberately.',
+        );
+    }
+}
+
+/**
+ * Every mainnet slot of one activation map body, into `add` as `(gate, time,
+ * source)`, or into `unreadable` under `label` when the scan refuses it. The
+ * one reader behind the sibling scan and the gate-row pass: the map is the
+ * same shape in a `const NAME = {` declaration and in an `addGate` row.
+ */
+function collectMapSlots(body, gate, source, label, add, unreadable) {
+    for (const slot of body.matchAll(SIBLING_MAINNET_SLOT)) {
+        const read = readMainnetSlot(slot[2]);
+        const where = `${label}: ${gate}.${slot[1]} = ${slot[2].trim() || '(nothing this scan can read)'}`;
+        if (read.kind === 'unreadable') unreadable.push(where);
+        else if (read.kind !== 'number') continue;
+        else if (slot[1] === 'mainnet') add(gate, read.time, source);
+        else if (read.time >= TIMESTAMP_FLOOR && read.time < SENTINEL_FLOOR) unreadable.push(`${where} is a block TIME, so this page would carry it`);
+    }
+}
+
+/** An `addGate('<stem>.<NAME>', '<unit>', {` row with an object-literal table. */
+const GATE_ROW = /addGate\(\s*'([A-Za-z0-9_/]+)\.([A-Z][A-Z0-9_]*)'\s*,\s*'([a-z]+)'\s*,\s*\{/g;
+
+/**
+ * Every time-keyed gate the registry's `addGate(key, unit, table)` rows declare.
+ *
+ * These are the maps the sibling scan above found in `*_activation.js` before W3:
+ * the registry owns every activation table now and each module reads its own
+ * back from it, so the row is where the threshold and its registration comment
+ * live. The gate keeps the name the sibling scan published, the key's export
+ * half (`DISPENSER_CAPS_ACTIVATION`), so a table that moved into a row keeps
+ * its row on the page. Only `'time'` rows are read: the unit says what the
+ * value scan had to infer from the number's size, and a height row is not this
+ * page's subject whatever its mainnet slot holds. The slots go through the
+ * sibling scan's reader, so the same shapes are quiet and the same are loud.
+ */
+function collectGateRows(sources, add) {
+    const unreadable = [];
+    for (const row of sources.scannable.matchAll(GATE_ROW)) {
+        if (row[3] !== 'time') continue;
+        const body = objectBody(sources.scannable, row.index + row[0].length - 1);
+        if (body === null) continue;
+        collectMapSlots(body, row[2], sources.fileAt(row.index), sources.where(row.index), add, unreadable);
+    }
+    if (unreadable.length > 0) {
+        throw new Error(
+            'a registry addGate row declares a mainnet threshold this generator cannot read, so '
+            + 'protocol/flag-days.md would publish an inventory that calls itself complete and is not:\n  '
+            + unreadable.join('\n  ')
+            + "\n\nThe gate-row pass reads `mainnet: <digits>` inside an addGate('<stem>.<NAME>', 'time', { ... }) "
+            + 'table and stays quiet for `null` and for an identifier it cannot resolve. Either write the '
+            + 'threshold in that shape or widen the parse in bin/generate-flag-days.js deliberately.',
         );
     }
 }
@@ -352,53 +333,125 @@ function collectSiblingGates(indexerSrc, add) {
  *
  * A call is also fine when its gate was collected some other way, which is how a
  * constant no call consumes still reaches the page under its own prefix.
+ *
+ * The array row `['NAME', 'X.Y.Z', mainnet_time, ...]` is the same declaration
+ * in the part files' shape, and is checked by the same arm: the row's `[` is
+ * where a call's `(` is, and the arguments read identically from either.
  */
-function assertEveryDeclarationParsed(rawRegistry, parsedCalls, parsedConstLines, parsedNames) {
+function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, parsedNames) {
     const unparsed = [];
-    const registry = withoutComments(rawRegistry);
+    const registry = sources.scannable;
 
-    for (const m of registry.matchAll(/addChange\s*\(\s*(['"])([A-Za-z0-9_]+)\1/g)) {
+    for (const m of registry.matchAll(/(?:addChange\s*\(|\[)\s*(['"])([A-Za-z0-9_]+)\1\s*,\s*(['"])[0-9.]+\3\s*,/g)) {
         if (parsedCalls.has(m.index)) continue;
         if (parsedNames.has(m[2])) continue;
-        const time = mainnetTimeLiteral(registry, m.index);
+        const time = mainnetTimeLiteral(registry, m.index + m[0].search(/[([]/));
         if (time === null) continue;
-        unparsed.push(`line ${lineAt(registry, m.index)}: addChange call for ${m[2]} at mainnet_time ${time}`);
+        unparsed.push(`${sources.where(m.index)}: declaration of ${m[2]} at mainnet_time ${time}`);
     }
 
     for (const m of registry.matchAll(/const\s+[A-Z][A-Z0-9_]*_MAINNET_TIME\s*=/g)) {
         const line = lineAt(registry, m.index);
         if (parsedConstLines.has(line)) continue;
-        unparsed.push(`line ${line}: ${rawRegistry.split('\n')[line - 1].trim()}`);
+        unparsed.push(`${sources.where(m.index)}: ${sources.raw.split('\n')[line - 1].trim()}`);
     }
 
     if (unparsed.length > 0) {
         throw new Error(
-            'protocol_changes.js declares gates this generator cannot read, so protocol/flag-days.md '
+            'the protocol_changes registry declares gates this generator cannot read, so protocol/flag-days.md '
             + 'would publish an inventory that calls itself complete and is not:\n  '
             + unparsed.join('\n  ')
-            + "\n\ncollectGates reads addChange('NAME', 'version', <digits>, ...) with single quotes and a "
-            + 'literal time, and const NAME_MAINNET_TIME = <digits>;. Either write the declaration in one '
-            + 'of those shapes or widen the parse in bin/generate-flag-days.js deliberately.',
+            + "\n\ncollectGates reads addChange('NAME', 'version', <digits>, ...) or the part-file row "
+            + "['NAME', 'version', <digits>, ...] with single quotes and a literal time, and "
+            + 'const NAME_MAINNET_TIME = <digits>;. A decimal literal may carry `_` separators in either '
+            + 'position. Either write the declaration in one of those shapes or widen the parse in '
+            + 'bin/generate-flag-days.js deliberately.',
         );
     }
 }
 
+// A decimal literal, separators and all: the SAME grammar the time-slot parser
+// in `registryCalls` uses. The two were written apart, digits-only here and
+// separator-aware there, and that asymmetry is what made a separator-formatted
+// declaration unreadable to the const pass while the identical value in a call
+// argument read fine.
+const TIME_LITERAL = /^\d(?:_?\d)*$/;
+
+// The head of a time-constant declaration. The initializer is read separately,
+// up to its `;`, so an unreadable shape is REFUSED rather than left unmatched:
+// a regex that demands digits simply does not match a hex or arithmetic
+// initializer, and a declaration nothing matched is a declaration nothing can
+// report.
+const TIME_DECL_HEAD = /const\s+([A-Z][A-Z0-9_]*)_(MAINNET|TESTNET)_TIME\s*=/g;
+
 /**
- * The registry's `const NAME_MAINNET_TIME = <digits>;` and
- * `const NAME_TESTNET_TIME = <digits>;` declarations as an identifier -> value
- * map, read from the comment-stripped text.
+ * The registry's `const NAME_MAINNET_TIME = <literal>;` and
+ * `const NAME_TESTNET_TIME = <literal>;` declarations, read from the
+ * comment-stripped text as `{ name, prefix, network, value, line }`.
+ *
+ * ONE SCANNER, and it REFUSES what it cannot read. Both properties are load
+ * bearing. A bare-digit regex per collector and per constant map means widening
+ * one leaves four un-widened, and a declaration none of them matches vanishes
+ * in silence: a `const FOO_TESTNET_TIME = 1_789_257_600;`
+ * consumed by an addChange call resolved to null, the gate dropped out of the
+ * testnet-exceptions table, and the page then extended its "genesis-active off
+ * mainnet" claim over a gate that arms on a date of its own. The completeness
+ * guard could not catch it either: it scans MAINNET declarations only, and
+ * `collectTestnetArms`, `collectTestnetUnarmed` and `collectMainnetUnarmed`
+ * never reach it at all.
+ *
+ * Refusal lives here for the reason `registryCalls` gives for its own: this
+ * runs inside `registryCalls`, which every collector calls, so an unreadable
+ * declaration is loud on every arm or it is loud on one. The name says it is a
+ * time, so there is no sentinel-versus-timestamp ambiguity to respect.
  */
-function registryConstants(scannable) {
-    const values = new Map();
-    for (const m of scannable.matchAll(/const\s+([A-Z][A-Z0-9_]*_(?:MAINNET|TESTNET)_TIME)\s*=\s*(\d+)\s*;/g)) {
-        values.set(m[1], Number(m[2]));
+function declaredTimeConstants(sources) {
+    const out = [];
+    const scannable = sources.scannable;
+    TIME_DECL_HEAD.lastIndex = 0;
+    for (const m of scannable.matchAll(TIME_DECL_HEAD)) {
+        const name = `${m[1]}_${m[2]}_TIME`;
+        const line = lineAt(scannable, m.index);
+        const rest = scannable.slice(m.index + m[0].length);
+        const end  = rest.indexOf(';');
+        const text = (end === -1 ? rest : rest.slice(0, end)).trim();
+
+        if (end === -1 || !TIME_LITERAL.test(text)) {
+            throw new Error(
+                `${sources.where(m.index)}: ${name} is declared with an initializer this `
+                + `generator cannot read (\`${text.split('\n')[0].slice(0, 60)}\`), so `
+                + 'protocol/flag-days.md would publish an inventory that calls itself complete and is '
+                + 'not.\n\nA time constant reads as a decimal literal on one line (`1786060800`, '
+                + '`_` separators allowed). Write the declaration in that shape or widen the parse in '
+                + 'bin/generate-flag-days.js deliberately.',
+            );
+        }
+        out.push({ name, prefix: m[1], network: m[2], value: Number(text.replace(/_/g, '')), line, index: m.index });
     }
+    return out;
+}
+
+/**
+ * The same declarations as an identifier -> value map, for the slot parser.
+ */
+function registryConstants(sources) {
+    const values = new Map();
+    for (const d of declaredTimeConstants(sources)) values.set(d.name, d.value);
     return values;
 }
 
 /**
  * Every single-quoted `addChange('GATE', 'version', mainnet_time, testnet_time, ...)`
- * call in the comment-stripped registry, as `{ index, gate, mainnet, testnet }`.
+ * call and every single-quoted part-file row `['GATE', 'version', mainnet_time,
+ * testnet_time, ...]` in the comment-stripped registry, as
+ * `{ index, gate, mainnet, testnet }`.
+ *
+ * THE ROW IS THE CALL WITHOUT ITS NAME. The part files hold the time table as
+ * array literals that core.applyChanges() spreads into addChange(), argument
+ * for argument, so the two shapes carry the same slots in the same order and
+ * one pattern reads both. The constants a slot names are declared in
+ * `flag_times*.js` and consumed in `changes_*.js`; they resolve across the
+ * parts because the const pass runs over the whole joined text first.
  *
  * A time slot holding a digit literal reads as that number. A slot holding an
  * identifier reads as the value of the registry constant it names, so the GATE
@@ -427,8 +480,9 @@ function registryConstants(scannable) {
  * read the same calls and have no completeness check behind them: a shape this
  * parse cannot read has to be loud on every arm or it is loud on one.
  */
-function registryCalls(scannable) {
-    const constants = registryConstants(scannable);
+function registryCalls(sources) {
+    const scannable = sources.scannable;
+    const constants = registryConstants(sources);
     const consumed = new Set();
     const slot = (arg, gate, index) => {
         if (arg === undefined) return null;
@@ -449,7 +503,7 @@ function registryCalls(scannable) {
         }
 
         throw new Error(
-            `protocol_changes.js line ${lineAt(scannable, index)}: the ${gate} gate passes a time slot `
+            `${sources.where(index)}: the ${gate} gate passes a time slot `
             + `this generator cannot read (\`${text}\`), so protocol/flag-days.md would publish an `
             + 'inventory that calls itself complete and is not.\n\n'
             + 'A time slot reads as a decimal literal (`1786060800`, separators allowed) or as the name '
@@ -457,7 +511,7 @@ function registryCalls(scannable) {
             + 'those shapes or widen the parse in bin/generate-flag-days.js deliberately.',
         );
     };
-    const callRe = /addChange\(\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*([^,)]+)(?:\s*,\s*([^,)]+))?/g;
+    const callRe = /(?:addChange\(|\[)\s*'([A-Z0-9_]+)'\s*,\s*'[0-9.]+'\s*,\s*([^,)\]]+)(?:\s*,\s*([^,)\]]+))?/g;
     const calls = [];
     for (const m of scannable.matchAll(callRe)) {
         calls.push({
@@ -492,45 +546,43 @@ function collectGates(indexerSrc = INDEXER_SRC) {
     const parsedConstLines = new Set();
     const parsedNames = new Set();
 
-    const registry = fs.readFileSync(path.join(indexerSrc, 'protocol_changes.js'), 'utf8');
+    // COLLECT FROM THE COMMENT-STRIPPED COPY (registrySources blanks it). Dead
+    // code inside a comment is not a declaration, so a retired gate parked in
+    // one was collected, published as a row, and counted toward the
+    // coordinated flag day: the generator inventing a gate the indexer does not
+    // arm, on the page implementers plan fleet upgrades from.
+    const sources = registrySources(indexerSrc);
 
-    // COLLECT FROM THE COMMENT-STRIPPED COPY, which the completeness check below
-    // already did and the two collectors did not. Dead code inside a comment is
-    // not a declaration, so a retired gate parked in one used to be collected,
-    // published as a row, and counted toward the coordinated flag day: the
-    // generator inventing a gate the indexer does not arm, on the page
-    // implementers plan fleet upgrades from. `withoutComments` preserves every
-    // offset and newline, so the bookkeeping below still lines up with the raw
-    // text the check quotes in its error message.
-    const scannable = withoutComments(registry);
-
-    // addChange('NAME', 'version', mainnet_time, ...), the time slot a digit
-    // literal or a registry constant passed by name (see registryCalls).
-    const { calls, consumed } = registryCalls(scannable);
+    // addChange('NAME', 'version', mainnet_time, ...) or the part-file row
+    // ['NAME', 'version', mainnet_time, ...], the time slot a digit literal or
+    // a registry constant passed by name (see registryCalls). "Declared in"
+    // names the part the row sits in, where its registration comment is.
+    const { calls, consumed } = registryCalls(sources);
     for (const call of calls) {
         parsedCalls.add(call.index);
         parsedNames.add(call.gate);
-        if (call.mainnet !== null) add(call.gate, call.mainnet, 'protocol_changes.js');
+        if (call.mainnet !== null) add(call.gate, call.mainnet, sources.fileAt(call.index));
     }
 
     // const NAME_MAINNET_TIME = 1786060800;  (gates the registry declares as a
     // shared constant because a second repo has to stay byte-identical to it).
     // A constant some call consumes is published under that call's gate name
     // above; only a constant no call reads is published under its own prefix.
-    const constRe = /const\s+([A-Z][A-Z0-9_]*)_MAINNET_TIME\s*=\s*(\d+)\s*;/g;
-    let match;
-    while ((match = constRe.exec(scannable)) !== null) {
-        parsedConstLines.add(lineAt(scannable, match.index));
-        if (consumed.has(match[1] + '_MAINNET_TIME')) continue;
-        parsedNames.add(match[1]);
-        add(match[1], Number(match[2]), 'protocol_changes.js');
+    for (const d of declaredTimeConstants(sources)) {
+        if (d.network !== 'MAINNET') continue;
+        parsedConstLines.add(d.line);
+        if (consumed.has(d.name)) continue;
+        parsedNames.add(d.prefix);
+        add(d.prefix, d.value, sources.fileAt(d.index));
     }
 
-    assertEveryDeclarationParsed(registry, parsedCalls, parsedConstLines, parsedNames);
+    assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, parsedNames);
 
-    // Sibling `*_activation.js` modules: a mainnet threshold above the
-    // timestamp floor is a time-keyed gate; below it, a block height, which
-    // this page does not cover.
+    // The registry's addGate('<stem>.<NAME>', 'time', { mainnet: ... }) rows,
+    // then the sibling `*_activation.js` modules for a tree that still declares
+    // a map of its own: a mainnet threshold above the timestamp floor is a
+    // time-keyed gate; below it, a block height, which this page does not cover.
+    collectGateRows(sources, add);
     collectSiblingGates(indexerSrc, add);
 
     return [...found.values()].sort((a, b) => (a.time - b.time) || a.gate.localeCompare(b.gate));
@@ -546,20 +598,16 @@ function collectGates(indexerSrc = INDEXER_SRC) {
  * testnet_time slot (the fourth argument) in an addChange call.
  */
 function collectTestnetArms(indexerSrc = INDEXER_SRC) {
-    const scannable = withoutComments(
-        fs.readFileSync(path.join(indexerSrc, 'protocol_changes.js'), 'utf8'),
-    );
+    const sources = registrySources(indexerSrc);
     const found = new Map();
     const add = (gate, time) => {
         if (!Number.isFinite(time) || time < TIMESTAMP_FLOOR || time >= SENTINEL_FLOOR) return;
         if (!found.has(gate)) found.set(gate, { gate, time });
     };
-    const { calls, consumed } = registryCalls(scannable);
+    const { calls, consumed } = registryCalls(sources);
     for (const call of calls) if (call.testnet !== null) add(call.gate, call.testnet);
-    let match;
-    const constRe = /const\s+([A-Z][A-Z0-9_]*)_TESTNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(scannable)) !== null) {
-        if (!consumed.has(match[1] + '_TESTNET_TIME')) add(match[1], Number(match[2]));
+    for (const d of declaredTimeConstants(sources)) {
+        if (d.network === 'TESTNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
     return [...found.values()].sort((a, b) => (a.time - b.time) || a.gate.localeCompare(b.gate));
 }
@@ -578,20 +626,16 @@ function collectTestnetArms(indexerSrc = INDEXER_SRC) {
  * armed parse.
  */
 function collectTestnetUnarmed(indexerSrc = INDEXER_SRC) {
-    const scannable = withoutComments(
-        fs.readFileSync(path.join(indexerSrc, 'protocol_changes.js'), 'utf8'),
-    );
+    const sources = registrySources(indexerSrc);
     const found = new Map();
     const add = (gate, time) => {
         if (!Number.isFinite(time) || time < SENTINEL_FLOOR) return;
         if (!found.has(gate)) found.set(gate, { gate, time });
     };
-    const { calls, consumed } = registryCalls(scannable);
+    const { calls, consumed } = registryCalls(sources);
     for (const call of calls) if (call.testnet !== null) add(call.gate, call.testnet);
-    let match;
-    const constRe = /const\s+([A-Z][A-Z0-9_]*)_TESTNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(scannable)) !== null) {
-        if (!consumed.has(match[1] + '_TESTNET_TIME')) add(match[1], Number(match[2]));
+    for (const d of declaredTimeConstants(sources)) {
+        if (d.network === 'TESTNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
@@ -607,25 +651,21 @@ function collectTestnetUnarmed(indexerSrc = INDEXER_SRC) {
  * where the gate stands on each network" and the page would not say. Naming them without
  * an instant keeps both properties.
  *
- * Scoped to `protocol_changes.js`, exactly like the testnet twin above. A sibling
+ * Scoped to the registry's own files, exactly like the testnet twin above. A sibling
  * `*_activation.js` module can also park a mainnet sentinel, and this scan does not reach
  * it; the note it feeds says so rather than claiming a completeness it does not have.
  */
 function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
-    const scannable = withoutComments(
-        fs.readFileSync(path.join(indexerSrc, 'protocol_changes.js'), 'utf8'),
-    );
+    const sources = registrySources(indexerSrc);
     const found = new Map();
     const add = (gate, time) => {
         if (!Number.isFinite(time) || time < SENTINEL_FLOOR) return;
         if (!found.has(gate)) found.set(gate, { gate, time });
     };
-    const { calls, consumed } = registryCalls(scannable);
+    const { calls, consumed } = registryCalls(sources);
     for (const call of calls) if (call.mainnet !== null) add(call.gate, call.mainnet);
-    let match;
-    const constRe = /const\s+([A-Z][A-Z0-9_]*)_MAINNET_TIME\s*=\s*(\d+)\s*;/g;
-    while ((match = constRe.exec(scannable)) !== null) {
-        if (!consumed.has(match[1] + '_MAINNET_TIME')) add(match[1], Number(match[2]));
+    for (const d of declaredTimeConstants(sources)) {
+        if (d.network === 'MAINNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
@@ -687,7 +727,7 @@ function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = [
         : `${testnetArms.length === 1 ? 'One gate is the exception' : `${testnetArms.length} gates are the exception`}: `
           + testnetArms.map((g) => `\`${g.gate}\` arms testnet at \`${g.time}\` (${utcInstant(g.time)})`).join(', ')
           + '. The reason it cannot be genesis-active there is written in its registration '
-          + 'comment in \`protocol_changes.js\`. The values on this page are otherwise '
+          + 'comment under \`xchain-indexer/src/protocol_changes/\`. The values on this page are otherwise '
           + 'mainnet values only.';
 
     // The other way a gate can be off the genesis-active invariant: parked on the UNARMED
@@ -701,7 +741,7 @@ function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = [
           + 'post-activation behavior and will not until an operator arms it. A consensus '
           + 'change registered after the public testnet launch cannot be genesis-active '
           + 'there without re-deciding history that outside nodes have already committed. '
-          + 'Each names its reason in its registration comment in `protocol_changes.js`.';
+          + 'Each names its reason in its registration comment under `xchain-indexer/src/protocol_changes/`.';
 
     // The symmetric mainnet note. Without it a sentinel-parked gate leaves no trace on the
     // page at all, so the table below reads as the whole registry and the testnet sentence
@@ -714,8 +754,8 @@ function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = [
           + 'rather than an instant, so mainnet has **never** run the post-activation behavior '
           + 'and will not until an operator names a date. They carry no row in the table below, '
           + 'because publishing the sentinel as a flag day would put a commitment on this page '
-          + 'that nobody made. Each names its reason in its registration comment in '
-          + '`protocol_changes.js`. This note covers the registry only; a sibling '
+          + 'that nobody made. Each names its reason in its registration comment under '
+          + '`xchain-indexer/src/protocol_changes/`. This note covers the registry only; a sibling '
           + '`*_activation.js` module can park a mainnet sentinel too, and those are not '
           + 'enumerated here.';
 
@@ -725,9 +765,9 @@ function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = [
 
 # Flag-Day Values
 
-**This page is generated** from \`xchain-indexer/src/protocol_changes.js\` and the
-time-keyed activation modules beside it. Do not edit it by hand: run
-\`node bin/generate-flag-days.js\` from the repository root and commit the result.
+**This page is generated** from \`xchain-indexer/src/protocol_changes.js\`, its part files
+under \`src/protocol_changes/\`, and the time-keyed activation modules beside them. Do not
+edit it by hand: run \`node bin/generate-flag-days.js\` from the repository root and commit the result.
 
 Every other page in this documentation set names the **gate** and links here
 instead of quoting a date, because a flag-day value is not a fact about the

@@ -42,7 +42,15 @@ Two different questions are answered here: which fields RECEIVE an index id when
 introduces a new value, and in which fields a `^<id>` written on the wire is RESOLVED on
 input. The first set is the consensus surface; the second is what a client may send.
 
-**Ticker fields:** `TICK`, `GIVE_TICK`, `GET_TICK`, `DIVIDEND_TICK`, `CALLBACK_TICK`.
+**Ticker fields:** `TICK`, `GIVE_TICK`, `GET_TICK`, `DIVIDEND_TICK`, `CALLBACK_TICK`, and
+`LIST.ITEM` when the list `TYPE` is ticker. The ticker-typed list item carries two
+qualifications the five single-value fields do not. A `^<id>` written there is only ever
+RESOLVED, never minted: the reference has to match a block-stamped ticker row of an
+existing token, and an item that matches none is recorded `invalid: TICK (unknown)` and
+left out of the materialized item set while the `LIST` action itself stays `valid`. And
+the reference SDK does not compact it, so a client that wants the shorter form writes
+`^<tickid>` itself.
+See [LIST](./actions/list.md).
 
 **Address fields that receive an index id:** the destination/transfer/get-address style
 fields of an action:
@@ -122,8 +130,12 @@ automatically (opt out with `{ compactTickers: false }` / `{ compactAddresses: f
 It only ever emits a `^<id>` for a value it has already resolved to an existing id via the
 explorer, and it falls back to the full value whenever an id cannot be resolved, so a
 client never emits an id the indexer would not recognize. Multi-recipient (array) and
-type-gated list fields are left in full form by the SDK, which the rules above require:
-the indexer resolves no `^<id>` in `SEND.DESTINATION` or `LIST.ITEM`. The SDK also leaves
+type-gated list fields are left in full form by the SDK. For `SEND.DESTINATION`, and for
+`LIST.ITEM` when the list `TYPE` is address, the rules above require it: the indexer
+resolves no `^<id>` there. For `LIST.ITEM` when the list `TYPE` is ticker the SDK is being
+conservative rather than obeying a protocol limit, because the indexer does resolve a
+`^<tickid>` item and stores it under the resolved ticker id; that compaction is left to
+the client. The SDK also leaves
 `DISPENSER.GET_ADDRESS` and `DISPENSER.ORACLE_ADDRESS` in full form, for the decoder
 reason above, even though the indexer would resolve a reference there.
 

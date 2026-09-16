@@ -39,7 +39,7 @@ flowchart LR
         direction TB
         SA_API["api.js<br>Express + JSON-RPC"]
         SA_HUB["XChainHub<br>(orchestrator)"]
-        SA_DB["db.js<br>MariaDB pool + circuit breaker"]
+        SA_DB["db/index.js<br>MariaDB pool + circuit breaker"]
         SA_NOTE["Config writes go directly to MariaDB.<br>No P2P, no consensus."]
         SA_API --> SA_HUB --> SA_DB
         SA_DB -.-> SA_NOTE
@@ -58,7 +58,7 @@ flowchart LR
         VA_REWARD["RewardTracker"]
         VA_SLASH["SlashDetector"]
         VA_SWAP["SwapTracker"]
-        VA_DB["db.js<br>MariaDB pool + circuit breaker"]
+        VA_DB["db/index.js<br>MariaDB pool + circuit breaker"]
 
         VA_API --> VA_HUB --> VA_PEER
         VA_PEER --> VA_CONS --> VA_GOV
@@ -118,34 +118,34 @@ flowchart TD
 |---|---|---|
 | `api.js` | None | Entry point: Express app, JSON-RPC routes, env var validation, starts XChainHub |
 | `XChainHub.js` | `XChainHub` | Orchestrator: wires all subsystems, exposes JSON-RPC method handlers |
-| `db.js` | `Database` | MariaDB connection pool with circuit breaker and exponential backoff |
-| `PeerManager.js` | `PeerManager` | WebSocket P2P gossip layer: peer connections, message signing, heartbeats |
-| `Consensus.js` | `Consensus` | PBFT consensus for config writes: PRE_PREPARE → PREPARE → COMMIT |
-| `ValidatorIdentity.js` | `ValidatorIdentity` | Ed25519 key management: signing, verification, key generation |
-| `OracleRound.js` | `OracleRound` | Oracle round lifecycle: timer, price fetching, submission broadcast |
-| `OracleConsensus.js` | `OracleConsensus` | PBFT consensus for price finalization: trimmed median, propose/prepare/commit |
-| `PriceFetcher.js` | `PriceFetcher` | External price API client: CoinGecko and Kraken (both keyless, always active) plus CoinMarketCap (optional, when `COINMARKETCAP_API_KEY` is set) |
-| `CrossChainEngine.js` | `CrossChainEngine` | PBFT attestation for cross-chain actions with per-chain-pair validators |
-| `SwapTracker.js` | `SwapTracker` | Cross-chain SWAP lifecycle tracking: initiated → attested → executed → settled |
-| `ReorgHandler.js` | `ReorgHandler` | Blockchain reorg detection, PBFT consensus, and hub state rollback |
-| `Governance.js` | `Governance` | Off-chain PBFT voting for parameter changes |
-| `RewardTracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants; pushes rewards to BTC indexer for `COLLECT` |
-| `SlashDetector.js` | `SlashDetector` | Validator misbehavior detection: price deviation, non-participation |
-| `PriceAggregator.js` | `PriceAggregator` | Receives validated PRICE v0/v1 actions from indexers, deduplicates by `round_number` (v0) or `(source, action_index)` (v1), writes to `price_snapshots`/`oracle_prices`. EventEmitter: emits `row:inserted` for hub DB sync. |
-| `OraclePublisher.js` | `OraclePublisher` | `oracle_publish` capability publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
-| `EncoderClient.js` | `EncoderClient` | Minimal JSON-RPC client for talking to xchain-encoder (`get_utxos`, `create_tx`, `broadcast_tx`): used by `OraclePublisher` |
-| `HubDbBroadcaster.js` | `HubDbBroadcaster` | WebSocket subscriber registry; broadcasts `row:inserted` events from `PriceAggregator`, `StateCheckpointEngine`, `CrossChainDexEngine`, and `CrossChainCallEngine` to all connected indexers' `HubDbSync` clients |
-| `StateCheckpointEngine.js` | `StateCheckpointEngine` | Quorum-signed per-chain ledger/actions/contract hash checkpoints: cadence-leader reads each chain's block-hash triple, collects XCHK_SIGN from peers, finalizes at the federation quorum for the checkpoint's snapshot block (stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the majority-floored count `max(2f+1, ceil((N+1)/2))`; see [Quorum](#quorum)), writes to `state_checkpoints`, streams via `HubDbBroadcaster`, emits `checkpoint:finalized` |
-| `StateAnchorPublisher.js` | `StateAnchorPublisher` | Checkpoint-bundle anchor publisher: listens for `checkpoint:finalized`, batches `cross_chain_matches` archive, and commits every checkpointed chain in ONE DOGE [ANCHOR v0](../../protocol/actions/anchor.md) action per network per publishing cycle (one section per chain, one publisher election per bundle), plus the archive, on the `ANCHOR_INTERVAL_MS` cadence |
-| `FullNodeChallengeRound.js` | `FullNodeChallengeRound` | Challenge-response rounds that verify `full_node` capability claimants. The elected leader issues a block-hash challenge; each claimant broadcasts its computed answer (`XNODE_ANSWER`); the leader proposes the pass list (`XNODE_SIGN_REQ`); verifiers independently recompute and co-sign (`XNODE_SIGN`); results are finalized on-chain via `XNODE_DONE`. Pass rate feeds into the full-node reward tier. |
-| `AttestationPublisher.js` | `AttestationPublisher` | Subscribes to `AttestationConsensus` `request:finalized` events and ships the on-chain ATTEST v1 (response) wire payload via an operator-provided hook. Writes a durable JSONL write-ahead log before any broadcast; the leader broadcasts immediately, followers step in after `failoverWindowBlocks` blocks using a rank-staggered backoff. |
-| `AttestationRound.js` | `AttestationRound` | Event-driven per-request lifecycle for the external attestation framework. Polls the indexer for new ATTEST v0 (request) rows, selects the responsible validator set via SHA-256 ordering at `block_index`, fetches the payload via the provider module, and gossips `ATTEST_PROPOSE` for `AttestationConsensus` to drive to quorum. |
-| `AttestationSpotChecker.js` | `AttestationSpotChecker` | Spot-checker for synthetic ATTEST v0 requests injected to verify validator honesty. When `AttestationConsensus` finalizes a round, compares the published response against the expected pattern using a provider's `judge_model` comparator. Repeated failures within a 24-hour window trigger a slash proposal via `SlashDetector`. |
-| `CapabilityRegistry.js` | `CapabilityRegistry` | Tracks per-validator capability state in the `validator_capabilities` table. A capability is active when all three conditions hold: `qualified` (stake >= configured `MIN_STAKE`), `self_test_ok` (local self-test passed), and `enabled` (operator has not opted out). Hot-reloads the capability config file on change. |
-| `CapabilitySnapshot.js` | `CapabilitySnapshot` | Locks the validator set for a capability at a block boundary so every hub in the federation computes the same PBFT quorum for a given round. Queries the BTC indexer at the target `blockIndex`; stake state at a given block is on-chain-deterministic, making the snapshot cross-hub identical. Self-test and enabled flags are excluded (those are local per hub). |
-| `CrossChainDexEngine.js` | `CrossChainDexEngine` | Matches cross-chain ORDER/SWAP offers across chain-isolated indexer order books. Polls each chain's `getopencrosschainorders` RPC, pairs compatible offers, drives PBFT finalization via `CrossChainDexConsensus`, writes validator-signed match rows to `cross_chain_matches`, and broadcasts them to indexers via `HubDbBroadcaster`. |
-| `CrossChainDexConsensus.js` | `CrossChainDexConsensus` | PBFT consensus engine for cross-chain DEX match finalization. Each peer independently re-derives and validates the canonical match before co-signing. Drives a 3-phase PBFT round (PROPOSE, PREPARE, COMMIT) with VIEW_CHANGE / NEW_VIEW leader failover. Reused as the base engine for `CrossChainCallEngine` with parameterized message types. |
-| `ProviderRegistry.js` | `ProviderRegistry` | Hub-authoritative registry of governance-approved attestation providers. Loads provider definitions from the `configs` table under `module='ATTESTATION_PROVIDER'`; falls back to a built-in `http_get` default so a fresh hub works without prior governance configuration. Hot-reloads on `governance proposal:passed` events. |
+| `db/index.js` | `Database` | MariaDB connection pool with circuit breaker and exponential backoff |
+| `peers/manager.js` | `PeerManager` | WebSocket P2P gossip layer: peer connections, message signing, heartbeats |
+| `consensus/pbft.js` | `Consensus` | PBFT consensus for config writes: PRE_PREPARE → PREPARE → COMMIT |
+| `validators/identity.js` | `ValidatorIdentity` | Ed25519 key management: signing, verification, key generation |
+| `oracle/round.js` | `OracleRound` | Oracle round lifecycle: timer, price fetching, submission broadcast |
+| `oracle/consensus.js` | `OracleConsensus` | PBFT consensus for price finalization: trimmed median, propose/prepare/commit |
+| `oracle/price_fetcher.js` | `PriceFetcher` | External price API client: CoinGecko and Kraken (both keyless, always active) plus CoinMarketCap (optional, when `COINMARKETCAP_API_KEY` is set) |
+| `cross_chain/engine.js` | `CrossChainEngine` | PBFT attestation for cross-chain actions with per-chain-pair validators |
+| `cross_chain/swap_tracker.js` | `SwapTracker` | Cross-chain SWAP lifecycle tracking: initiated → attested → executed → settled |
+| `anchor/reorg_handler.js` | `ReorgHandler` | Blockchain reorg detection, PBFT consensus, and hub state rollback |
+| `validators/governance.js` | `Governance` | Off-chain PBFT voting for parameter changes |
+| `anchor/reward_tracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants; pushed anchor rewards to the BTC indexer for `COLLECT` below the anchor-reward flag-days, a rail retired at or above them in favour of indexer-side derivation from the ANCHOR bytes |
+| `validators/slash_detector.js` | `SlashDetector` | Validator misbehavior detection: price deviation, non-participation |
+| `oracle/price_aggregator.js` | `PriceAggregator` | Receives validated PRICE v0/v1 actions from indexers, deduplicates by `round_number` (v0) or `(source, action_index)` (v1), writes to `price_snapshots`/`oracle_prices`. EventEmitter: emits `row:inserted` for hub DB sync. |
+| `oracle/publisher.js` | `OraclePublisher` | `oracle_publish` capability publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
+| `peers/encoder_client.js` | `EncoderClient` | Minimal JSON-RPC client for talking to xchain-encoder (`get_utxos`, `create_tx`, `broadcast_tx`): used by `OraclePublisher` |
+| `peers/hub_db_broadcaster.js` | `HubDbBroadcaster` | WebSocket subscriber registry; broadcasts `row:inserted` events from `PriceAggregator`, `StateCheckpointEngine`, `CrossChainDexEngine`, and `CrossChainCallEngine` to all connected indexers' `HubDbSync` clients |
+| `anchor/checkpoint_engine.js` | `StateCheckpointEngine` | Quorum-signed per-chain ledger/actions/contract hash checkpoints: cadence-leader reads each chain's block-hash triple, collects XCHK_SIGN from peers, finalizes at the federation quorum for the checkpoint's snapshot block (stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the majority-floored count `max(2f+1, ceil((N+1)/2))`; see [Quorum](#quorum)), writes to `state_checkpoints`, streams via `HubDbBroadcaster`, emits `checkpoint:finalized` |
+| `anchor/publisher.js` | `StateAnchorPublisher` | Checkpoint-bundle anchor publisher: listens for `checkpoint:finalized`, batches `cross_chain_matches` archive, and commits every checkpointed chain in ONE DOGE [ANCHOR v0](../../protocol/actions/anchor.md) action per network per publishing cycle (one section per chain, one publisher election per bundle), plus the archive, on the `ANCHOR_INTERVAL_MS` cadence |
+| `consensus/full_node_challenge_round.js` | `FullNodeChallengeRound` | Challenge-response rounds that verify `full_node` capability claimants. The elected leader issues a block-hash challenge; each claimant broadcasts its computed answer (`XNODE_ANSWER`); the leader proposes the pass list (`XNODE_SIGN_REQ`); verifiers independently recompute and co-sign (`XNODE_SIGN`); results are finalized on-chain via `XNODE_DONE`. Pass rate feeds into the full-node reward tier. |
+| `attestation/publisher.js` | `AttestationPublisher` | Subscribes to `AttestationConsensus` `request:finalized` events and ships the on-chain ATTEST v1 (response) wire payload via an operator-provided hook. Writes a durable JSONL write-ahead log before any broadcast; the leader broadcasts immediately, followers step in after `failoverWindowBlocks` blocks using a rank-staggered backoff. |
+| `attestation/round.js` | `AttestationRound` | Event-driven per-request lifecycle for the external attestation framework. Polls the indexer for new ATTEST v0 (request) rows, selects the responsible validator set via SHA-256 ordering at `block_index`, fetches the payload via the provider module, and gossips `ATTEST_PROPOSE` for `AttestationConsensus` to drive to quorum. |
+| `attestation/spot_checker.js` | `AttestationSpotChecker` | Spot-checker for synthetic ATTEST v0 requests injected to verify validator honesty. When `AttestationConsensus` finalizes a round, compares the published response against the expected pattern using a provider's `judge_model` comparator. Repeated failures within a 24-hour window trigger a slash proposal via `SlashDetector`. |
+| `validators/capability_registry.js` | `CapabilityRegistry` | Tracks per-validator capability state in the `validator_capabilities` table. A capability is active when all three conditions hold: `qualified` (stake >= configured `MIN_STAKE`), `self_test_ok` (local self-test passed), and `enabled` (operator has not opted out). Hot-reloads the capability config file on change. |
+| `validators/capability_snapshot.js` | `CapabilitySnapshot` | Locks the validator set for a capability at a block boundary so every hub in the federation computes the same PBFT quorum for a given round. Queries the BTC indexer at the target `blockIndex`; stake state at a given block is on-chain-deterministic, making the snapshot cross-hub identical. Self-test and enabled flags are excluded (those are local per hub). |
+| `cross_chain/dex_engine.js` | `CrossChainDexEngine` | Matches cross-chain ORDER/SWAP offers across chain-isolated indexer order books. Polls each chain's `getopencrosschainorders` RPC, pairs compatible offers, drives PBFT finalization via `CrossChainDexConsensus`, writes validator-signed match rows to `cross_chain_matches`, and broadcasts them to indexers via `HubDbBroadcaster`. |
+| `cross_chain/dex_consensus.js` | `CrossChainDexConsensus` | PBFT consensus engine for cross-chain DEX match finalization. Each peer independently re-derives and validates the canonical match before co-signing. Drives a 3-phase PBFT round (PROPOSE, PREPARE, COMMIT) with VIEW_CHANGE / NEW_VIEW leader failover. Reused as the base engine for `CrossChainCallEngine` with parameterized message types. |
+| `validators/provider_registry.js` | `ProviderRegistry` | Hub-authoritative registry of governance-approved attestation providers. Loads provider definitions from the `configs` table under `module='ATTESTATION_PROVIDER'`; falls back to a built-in `http_get` default so a fresh hub works without prior governance configuration. Hot-reloads on `governance proposal:passed` events. |
 | `constants.js` | None | Shared protocol/consensus constants for the oracle price pipeline. Exports `PRICE_MAX` (the per-pair price ceiling enforced during ingestion and aggregation) and `ORACLE_DEVIATION_THRESHOLD` (used by `OracleConsensus`). |
 | `bcmath.js` | None | Big-number helpers for cross-chain DEX partial-fill matching. A faithful port of the bignumber utilities in `xchain-indexer` (mathjs bignumber, `bcmul` at precision 18, `bcsub` at precision 64) so hub match quantities stay byte-identical to the indexer's local fill math. |
 | `stake_weighted_quorum.js` | None | Consensus-critical stake-weighted quorum predicate (WI-1). Vendored byte-identically from `xchain-documentation/protocol/reference-impl/` into the hub and every service that tallies PBFT votes or verifies settlement gates. A CI gate (ConsensusPrimitiveConformance) asserts byte-identity across all repos. |
@@ -229,7 +229,7 @@ JSON.stringify({ id, type, sender, timestamp, data })
 
 A verifier must reconstruct this exact string to check the signature. The signing key is the sender's Ed25519 validator key; the verifier looks up `sender` in the validator registry to obtain the 64-hex-char public key. When `REQUIRE_SIGNATURES=true`, unsigned messages and messages from unknown senders are rejected; otherwise they are accepted (bootstrap mode).
 
-**Inbound processing order** (in `_handleInbound`): JSON parse → reject non-object/array values → validate `type`/`id`/`sender`/`timestamp` → self-connection guard (drop messages whose `sender` is this node) → dedup against `seenIds` → per-peer rate limit → signature verification → emit `message` (and type-specific events) → relay to all peers except the source connection and the original `sender`.
+**Inbound processing order** (in `PeerManager.handleInbound`): JSON parse → reject non-object/array values → validate `type`/`id`/`sender`/`timestamp` → self-connection guard (drop messages whose `sender` is this node) → dedup against `seenIds` → per-peer rate limit → signature verification → emit `message` (and type-specific events) → relay to all peers except the source connection and the original `sender`.
 
 ### Message Types
 
@@ -301,7 +301,7 @@ If the leader fails to drive consensus within `PBFT_TIMEOUT` (default 30s):
 
 The quorum rule is activation-gated, keyed on the round's BTC-anchored snapshot block and
 network. `PREPARE`, `COMMIT` and `PBFT_VIEW_CHANGE` all use the same predicate
-(`Consensus._quorumMet`), as do the checkpoint and cross-chain engines.
+(`Consensus.quorumMet`), as do the checkpoint and cross-chain engines.
 
 **At or above `STAKE_WEIGHTED_QUORUM_ACTIVATION`:** stake-weighted and source-deduplicated.
 Each voting validator's signing pubkey resolves to its stake source in the federation
@@ -499,7 +499,7 @@ Three offense types are monitored:
 | `repeated_deviation` | 3+ in 24 hours | Three or more deviations within a rolling 24-hour window |
 | `non_participation` | 30+ missed rounds | `SLASH_MISSED_ROUNDS_THRESHOLD` consecutive rounds without a submission |
 
-Detection is recorded in the `slash_proposals` table. Actual stake slashing is executed by the indexer, not the hub.
+Detection is recorded in the `slash_proposals` table for governance review. All three offenses are hub-local: the strongest outcome of a governance vote is `validators.status='suspended'`, which excludes the validator from PBFT rounds and leaves on-chain stake untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which no offense in this table produces. See [Decentralization](decentralization.md) for the three penalty lanes.
 
 ---
 

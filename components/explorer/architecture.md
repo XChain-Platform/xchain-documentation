@@ -15,6 +15,7 @@ flowchart TD
     EXPLORER["xchain-explorer"]
     OUT["REST API / JSON-RPC / Web UI"]
     HUB["xchain-hub"]
+    MIRRORDB[("Hub mirror DB (MariaDB, explorer-owned)")]
 
     NODE -->|"JSON-RPC polling"| DECODER
     DECODER --> DECDB
@@ -23,9 +24,14 @@ flowchart TD
     IDXDB -->|"SQL reads (read-only)"| EXPLORER
     EXPLORER --> OUT
     HUB -->|"config discovery, 60s refresh"| EXPLORER
+    HUB -->|"snapshot + live feed (self_sync)"| EXPLORER
+    EXPLORER -->|"schema DDL + row writes"| MIRRORDB
+    MIRRORDB -->|"SQL reads"| EXPLORER
 ```
 
-The explorer sits at the end of the data pipeline. It reads indexed state from the Indexer database (read-only access) and presents it through three interfaces: a REST API, a JSON-RPC 2.0 endpoint, and a web block explorer. It also connects to the Decoder database for raw transaction data lookups. The explorer never writes to any database.
+The explorer sits at the end of the data pipeline. It reads indexed state from the Indexer database (read-only access) and presents it through three interfaces: a REST API, a JSON-RPC 2.0 endpoint, and a web block explorer. It also connects to the Decoder database for raw transaction data lookups.
+
+The explorer writes nothing to the Indexer or Decoder databases during normal serving, with one optional exception: with the icon downloader enabled it writes the indexer-owned `icons` table, which requires INSERT and UPDATE grants there. It does own and write one schema of its own, the hub mirror. With `"self_sync": true` the explorer creates that schema and its tables, bootstraps them from a hub snapshot, and keeps them current from the hub's live feed, so its mirror database user needs DDL and write privileges. See [Configuration](configuration.md) for how the mirror is provisioned.
 
 ## Internal Components
 
@@ -55,20 +61,20 @@ flowchart TD
 | `src/XChainExplorer.js` | `XChainExplorer` | Main orchestrator: URL routing (130+ routes), request processing, response formatting, icon/relay handlers, SPV proof endpoint dispatch |
 | `src/db.js` | `Database` | All SQL queries (~9,400 lines), connection pool management, pagination, caching |
 | `src/config.js` | None | Configuration loading from hub or local config.json, 60-second auto-sync, coin/network discovery |
-| `src/utility.js` | `Utility` | BigNumber math, timer functions, sanitization (escapeLike, sanitizeInt), type checking |
-| `src/XChainHubConnector.js` | `XChainHubConnector` | JSON-RPC client for xchain-hub (ping, getAllConfig) |
-| `src/XChainDecoderConnector.js` | `XChainDecoderConnector` | JSON-RPC client for xchain-decoder's health endpoint; lets `/api/status` expose per-coin chain-tip lag without polling decoder ports separately |
-| `src/XChainIndexerConnector.js` | `XChainIndexerConnector` | JSON-RPC client for xchain-indexer; proxies read-only `feequote` and `feeschedule` endpoints so fee logic stays single-sourced in the indexer |
-| `src/proofServer.js` | `ProofServer` | SPV light-client proof server (spec §8.1): builds Merkle balance/state proofs from the indexer's `state_tree_nodes` table for client-side verification against quorum-signed checkpoint roots |
-| `src/merkle.js` | None | Consensus-critical, DB-free Merkle primitives for the additive state commitment, per-block content root, and top-level state root; shared byte-identically with xchain-indexer and xchain-sdk |
+| `src/lib/utility.js` | `Utility` | BigNumber math, timer functions, sanitization (escapeLike, sanitizeInt), type checking |
+| `src/connectors/hub.js` | `XChainHubConnector` | JSON-RPC client for xchain-hub (ping, getAllConfig) |
+| `src/connectors/decoder.js` | `XChainDecoderConnector` | JSON-RPC client for xchain-decoder's health endpoint; lets `/api/status` expose per-coin chain-tip lag without polling decoder ports separately |
+| `src/connectors/indexer.js` | `XChainIndexerConnector` | JSON-RPC client for xchain-indexer; proxies read-only `feequote` and `feeschedule` endpoints so fee logic stays single-sourced in the indexer |
+| `src/http/proof_server.js` | `ProofServer` | SPV light-client proof server (spec §8.1): builds Merkle balance/state proofs from the indexer's `state_tree_nodes` table for client-side verification against quorum-signed checkpoint roots |
+| `src/consensus/merkle.js` | None | Consensus-critical, DB-free Merkle primitives for the additive state commitment, per-block content root, and top-level state root; shared byte-identically with xchain-indexer and xchain-sdk |
 | `src/checkpoint_commitment_activation.js` | None | Flag-day gate (SPV Phase 2, spec §6.1/§6.3): determines at which BTC block the signed checkpoint canonical gains `state_root` and `block_merkle_root` fields; consensus-critical, vendored across hub/indexer/explorer |
 | `src/equivocation_header.js` | None | Consensus-critical equivocation header (`EQUIV|ENGINE|ROUND|VIEW||content`) that prefixes every PBFT canonical at/above its activation height; vendored byte-identically across all consensus-bearing services |
 | `src/stake_weighted_quorum.js` | None | Consensus-critical source-deduplicated stake predicate (3 x tally > 2 x total stake) used by every settlement gate and the checkpoint verifier; the 2f+1 signer count is the separate pre-activation rule, not this one; vendored byte-identically across all consensus-bearing services |
-| `src/IconDownloader.js` | `IconDownloader` | In-process worker that downloads, resizes, and caches token icons from the indexer's `icons` table |
-| `src/IconResolver.js` | `IconResolver` | Pure icon URL resolution logic; mirrors the priority chain used in the web UI's `xchain.js` so server and browser select the same source |
-| `src/configs/BTC.js` | None | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |
-| `src/configs/LTC.js` | None | Litecoin-specific configuration |
-| `src/configs/DOGE.js` | None | Dogecoin-specific configuration |
+| `src/icons/downloader.js` | `IconDownloader` | In-process worker that downloads, resizes, and caches token icons from the indexer's `icons` table |
+| `src/icons/resolver.js` | `IconResolver` | Pure icon URL resolution logic; mirrors the priority chain used in the web UI's `xchain.js` so server and browser select the same source |
+| `src/coin-config/BTC.js` | None | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |
+| `src/coin-config/LTC.js` | None | Litecoin-specific configuration |
+| `src/coin-config/DOGE.js` | None | Dogecoin-specific configuration |
 | `src/config.json` | None | Local database connection configuration (fallback when hub is unavailable) |
 
 ### Static Content (`src/content/`)
@@ -181,7 +187,7 @@ Two pagination modes are supported:
 
 ## SPV Light-Client Proof Server
 
-The `ProofServer` class (`src/proofServer.js`) serves read-only Merkle proofs for the SPV light-client protocol (Phase 3, spec §8.1). It is instantiated by `XChainExplorer` on startup and handles four proof endpoint families:
+The `ProofServer` class (`src/http/proof_server.js`) serves read-only Merkle proofs for the SPV light-client protocol (Phase 3, spec §8.1). It is instantiated by `XChainExplorer` on startup and handles four proof endpoint families:
 
 ```
 GET /{COIN}/api/proof/balance/:address/:tick    - SMT balance inclusion / non-inclusion proof
@@ -193,7 +199,7 @@ GET /{COIN}/api/checkpoints/range               - Forward-ordered checkpoint sli
 
 All proofs are derived from the indexer DB's `state_tree_nodes` and `state_tree_roots` tables, which are NOT replicated by `xchain-sync`. The proof server checks that its local tree assembles to the same root as the signed checkpoint before returning any proof; if they disagree (server bug or divergence), it returns an error rather than a proof the client cannot verify.
 
-The cryptographic primitives used are in `src/merkle.js`, which is vendored byte-identically across `xchain-indexer`, `xchain-explorer`, and `xchain-sdk` so that a proof produced here verifies under `merkle.verifyCompressedSmtProof` (balance/validator) or `merkle.verifyFixedMerkleProof` (action) in the SDK.
+The cryptographic primitives used are in `src/consensus/merkle.js`, which is vendored byte-identically across `xchain-indexer`, `xchain-explorer`, and `xchain-sdk` so that a proof produced here verifies under `merkle.verifyCompressedSmtProof` (balance/validator) or `merkle.verifyFixedMerkleProof` (action) in the SDK.
 
 See [API.md](api.md) for the full request/response shapes and error codes.
 
@@ -203,10 +209,10 @@ The explorer provides a real-time event streaming API via WebSockets. Four modul
 
 ```
 src/ws/
-├── WebSocketServer.js    # Connection handling, upgrade, WELCOME, message routing
-├── ChannelManager.js     # Subscription tracking with filters (types, ticks, etc.; statuses accepted, never confirmed active)
-├── ChangeDetector.js     # Polls DB for new blocks/actions, emits lifecycle events
-└── Broadcaster.js        # Routes events to subscribed clients through filter pipeline
+├── websocket_server.js   # Connection handling, upgrade, WELCOME, message routing
+├── channel_manager.js    # Subscription tracking with filters (types, ticks, etc.; statuses accepted, never confirmed active)
+├── change_detector.js    # Polls DB for new blocks/actions, emits lifecycle events
+└── broadcaster.js        # Routes events to subscribed clients through filter pipeline
 ```
 
 **Data flow:**

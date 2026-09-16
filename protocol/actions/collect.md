@@ -61,7 +61,7 @@ Rewards accumulate from multiple validator activities, all stored in the indexer
 Reward rows reach the indexer's `validator_rewards` table on two rails:
 
 - **Derived (replayable):** `oracle_round` / `oracle_base` / `oracle_full_node` and `attest_fee` are computed by the indexer itself during block processing, as deterministic functions of on-chain actions. The oracle reward type used depends on whether the full-node reward tier is active (`FULLNODE.REWARD_SHARE` > 0): when inactive the full per-round budget is credited as `oracle_round`; when active it is split into an `oracle_base` tranche (all qualified signers) and an `oracle_full_node` tranche (verified full-node sources that met the participation threshold). `attest_fee` splits a fulfilled request's fee across its responsible set. A reindex reproduces these rows exactly.
-- **Pushed (archived):** `anchor_bundle` / `anchor_archive` are recorded by the hub federation when an anchor publishes and pushed via the `pushvalidatorrewards` JSON-RPC endpoint (which rejects any non-anchor type). Because a chain parse cannot re-derive them, they ride the ANCHOR v1 archive and are restored by full-parse recovery (see [ANCHOR](anchor.md).
+- **Derived at or above the reward flag-day, pushed below it:** `anchor_bundle` and `anchor_archive` each have their own boundary, `ANCHOR_REWARD_ACTIVATION` and `ARCHIVE_REWARD_ACTIVATION` in `protocol/constants.js` (mainnet 961000 and 963000; both genesis-active on testnet and regtest). At or above its own flag-day the type's reward is DERIVED by every indexer from the on-chain ANCHOR bytes, the elected `PUBLISHER` plus a quorate `XANCPUB` attestation, crediting the frozen reward amount and never an amount from the wire, so a chain parse reproduces the row exactly. Below it the hub federation recorded the reward when the anchor published and pushed it via the `pushvalidatorrewards` JSON-RPC endpoint (which rejects any non-anchor type); those historical rows a chain parse cannot re-derive, so they ride the ANCHOR v1 archive and are restored by full-parse recovery (see [ANCHOR](anchor.md)).
 
 `COLLECT` queries the indexer's `validator_rewards` table directly. No hub round-trip during transaction processing.
 
@@ -80,8 +80,9 @@ If the pool cannot cover the full pending reward, the `COLLECT` is rejected with
 ```mermaid
 flowchart TD
     D1["Indexer computes oracle_round / oracle_base /<br>oracle_full_node / attest_fee during block processing"]
-    P1["Hub federation records anchor_bundle / anchor_archive<br>reward on publish"]
-    P2["Pushed via pushvalidatorrewards JSON-RPC"]
+    D2["Indexer derives anchor_bundle / anchor_archive<br>from the on-chain ANCHOR bytes<br>(at or above that type's reward flag-day)"]
+    P1["Hub federation recorded anchor_bundle / anchor_archive<br>reward on publish (below the flag-day)"]
+    P2["Pushed via pushvalidatorrewards JSON-RPC<br>(retired path, pre-flag-day history only)"]
     VR[("validator_rewards table")]
     C1["COLLECT sums unclaimed rewards<br>at or before its own block"]
     C2{"Reward pool holds<br>enough XCHAIN?"}
@@ -89,6 +90,7 @@ flowchart TD
     C4["Rejected: insufficient reward pool<br>(reward stays unclaimed, collectible later)"]
 
     D1 -->|"derived, replayable"| VR
+    D2 -->|"derived, replayable"| VR
     P1 --> P2
     P2 -->|"pushed, archived via ANCHOR v1"| VR
     VR --> C1

@@ -39,9 +39,9 @@ Each shell wraps the core in a small amount of host-specific glue:
 | `@xchain-wallet/web` | Vite SPA + `hostBridge.js` | IndexedDB | in-memory only |
 | `@xchain-wallet/extension` | service worker + content script + injected provider + popup + approval window | `chrome.storage.local` | `chrome.storage.session` |
 | `@xchain-wallet/desktop` | Electron main / preload / renderer | encrypted file via main process | OS keychain (optional) |
-| `@xchain-wallet/mobile` | Capacitor WebView wrapping the built `@xchain-wallet/web` SPA verbatim, no UI or glue of its own | IndexedDB (same as web) | in-memory only (same as web) |
+| `@xchain-wallet/mobile` | Capacitor WebView over the built `@xchain-wallet/web` SPA, plus native glue of its own: the `XChainVault` plugin and a biometric sidecar on both Android and iOS | app-private file written by the native vault plugin, encrypted under an OS-keystore key (Android Keystore / iOS Keychain, device-bound and excluded from backups) | in-memory only (same as web) |
 
-Every route renders the same React tree across shells; only the host bridge differs. Mobile is a wrapper, not a port: it packages the web shell's own build, so it inherits the web shell's bridge, vault, and session behavior unchanged.
+Every route renders the same React tree across shells; only the host bridge differs. Mobile packages the web shell's own build and inherits its bridge and its in-memory session behavior, but it does **not** inherit the web vault. WebView storage is evictable, and in an installed app whose backup posture is deliberately off it would hold the only copy of the vault in existence, so the web build detects the native shell at boot and swaps its IndexedDB and `localStorage` backends for the `XChainVault` plugin that ships in `@xchain-wallet/mobile` (`packages/web/src/storage/backends.js`, `CapacitorStorageBackend.js`). A native shell whose plugin failed to register is a blocking error, never a silent fallback to WebView storage.
 
 ## Package boundaries
 
@@ -51,7 +51,7 @@ flowchart TD
     WEB["@xchain-wallet/web<br>Vite SPA<br>hostBridge.js<br>sdkFactory.js"]
     EXT["@xchain-wallet/extension<br>background + content + popup +<br>approval + inject"]
     DESKTOP["@xchain-wallet/desktop<br>Electron main +<br>preload + renderer"]
-    MOBILE["@xchain-wallet/mobile<br>Capacitor (Android/iOS)<br>wraps the web shell's build"]
+    MOBILE["@xchain-wallet/mobile<br>Capacitor (Android/iOS)<br>hosts the web shell's build +<br>native XChainVault plugin"]
     SDK["xchain-sdk (sibling repo)<br>actions + encoder +<br>explorer + hub + ws"]
 
     CORE --> WEB
@@ -78,9 +78,9 @@ Sibling packages alongside the four shells:
 Each of the three shells that build against core directly (web, extension, desktop) registers *two* host functions with it:
 
 1. **SDK factory**: `core/src/sdk/SDKRegistry` calls a host-supplied factory to mint per-chain SDK instances. Web/desktop instantiate `xchain-sdk` directly; the extension instantiates the SDK in the service worker and routes calls from popup / approval / full-screen via `MessageHost`.
-2. **Storage backend**: `core/src/storage/backend.js` selects between IndexedDB (web), `chrome.storage.local` (extension), and a file-backed adapter (desktop main process). Vault encryption / decryption is identical across all three.
+2. **Storage backend**: the host selects between IndexedDB (web), `chrome.storage.local` (extension), a file-backed adapter (desktop main process), and the native `XChainVault` plugin (mobile). Vault encryption / decryption is identical across all of them: what changes is where the ciphertext lands.
 
-Mobile registers neither: it has no seam of its own, since it packages the web shell's already-built SDK factory and IndexedDB storage backend verbatim.
+Mobile registers one of the two. It reuses the web shell's already-built SDK factory unchanged, so it has no SDK seam of its own; but it does register a storage backend, because the web build resolves that seam at boot (`packages/web/src/storage/backends.js`) and picks the Capacitor backends over IndexedDB whenever the native vault plugin is present. The kdfParams record and the pre-unlock guard record (lockout ladder, duress hash, panic freeze) move into native slots with it, for the same reason the blob does.
 
 ## Signal flow
 
@@ -128,7 +128,7 @@ flowchart TD
     CLICK --> FLOW --> SEND --> CREATE --> SIGN --> BROADCAST --> WAIT
 ```
 
-The path is the same in the web shell (signer runs in the page), the extension (signer runs in the service worker), and the desktop app (signer runs in the main process). Mobile follows the web shell's path exactly, since it runs the same build in a Capacitor WebView. Differences live entirely behind the SDK factory + storage backend seams.
+The path is the same in the web shell (signer runs in the page), the extension (signer runs in the service worker), and the desktop app (signer runs in the main process). Mobile runs the web shell's build in a Capacitor WebView, so the signing path is the web shell's; its storage reads and writes go out through the native vault plugin instead of IndexedDB. Differences live entirely behind the SDK factory + storage backend seams.
 
 ## Vault and state model
 
@@ -153,11 +153,13 @@ Master key derivation: password → Argon2id (calibrated per device, floor 64 Mi
 
 Each shell maps this same logical schema onto a different physical store:
 
-| Logical store | Web | Extension | Desktop |
-|---|---|---|---|
-| Vault (encrypted seed, accounts, addresses, contacts, settings, connected sites) | IndexedDB | `chrome.storage.local` | Electron `userData` (encrypted file) |
-| Session (master key after unlock) | in-memory only | `chrome.storage.session` (cleared on browser close) | OS keychain (with consent) or in-memory |
-| Ephemeral metadata (toast state, demo flag, last-view) | `localStorage` | `localStorage` | `localStorage` |
+| Logical store | Web | Extension | Desktop | Mobile |
+|---|---|---|---|---|
+| Vault (encrypted seed, accounts, addresses, contacts, settings, connected sites) | IndexedDB | `chrome.storage.local` | Electron `userData` (encrypted file) | app-private file via the native `XChainVault` plugin, under an OS-keystore key (Android Keystore / iOS Keychain) |
+| Session (master key after unlock) | in-memory only | `chrome.storage.session` (cleared on browser close) | OS keychain (with consent) or in-memory | in-memory only |
+| Ephemeral metadata (toast state, demo flag, last-view) | `localStorage` | `localStorage` | `localStorage` | `localStorage` (WebView) |
+
+The mobile column is not the web column: the vault blob, the kdfParams record and the pre-unlock guard record all sit in native slots rather than in WebView storage. Only genuinely ephemeral UI state is left in the WebView's own `localStorage`, where losing it costs nothing.
 
 ## Schema migrations
 

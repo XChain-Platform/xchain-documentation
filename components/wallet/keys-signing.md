@@ -7,7 +7,7 @@ This document covers everything between the user's password and a broadcast tran
 
 ## Master key derivation
 
-The user's password is never persisted. On unlock it's stretched through **Argon2id** to a 32-byte master key:
+The user's password is not persisted, with one opt-in exception covered under [Biometric unlock](#biometric-unlock-password-wrap) below. On unlock it's stretched through **Argon2id** to a 32-byte master key:
 
 | Parameter | Value |
 |---|---|
@@ -23,10 +23,24 @@ Calibration: on first wallet creation the wallet runs Argon2id with the floor pa
 After derivation the master key:
 
 - Decrypts the vault blob via AES-256-GCM
-- Is cached for the session (`chrome.storage.session` on the extension, OS keychain on desktop if enabled, in-memory only on web)
+- Is cached for the session (`chrome.storage.session` on the extension, OS keychain on desktop if enabled, in-memory only on web and mobile)
 - Is zeroed when the wallet locks
 
 The password itself is zeroed immediately after derivation.
+
+## Biometric unlock (password wrap)
+
+Biometric unlock is opt-in, off by default, and can only be enabled from inside an already-unlocked wallet. Enabling it persists an encrypted copy of the **password**, and the choice of the password over the master key is deliberate: each wallet record's seed is encrypted under the password (`SignerPool.populate` → `unlockWalletRecord`), so a provider that cached only the master key would open the vault document and show balances, then fail at the first signature. The password stays the KDF root; biometrics only shorten the path back to it.
+
+Core owns the seam (`core/src/flows/biometricUnlock.js`) and a shell hands its provider in at boot, so the shared unlock UI works unchanged everywhere. Three providers ship today:
+
+| Shell | Mechanism | Where the wrap lives | Binding |
+|---|---|---|---|
+| Browser-based (web, extension, desktop) | WebAuthn with the PRF extension, deriving a 32-byte AES-GCM key from the platform authenticator | `localStorage`, beside the credential ID | PRF salt randomized per registration; registration refuses anything without `userVerification: 'required'`; unsupported PRF hides the affordance rather than downgrading it |
+| Android | `BiometricPrompt` over an `AndroidKeyStore` AES-256-GCM key | `biometric.wrap`, an app-private sidecar file outside the vault blob | Authentication required per use, Class-3 biometrics only, invalidated by new biometric enrollment |
+| iOS | Face ID / Touch ID over a Keychain item | iOS Keychain | Biometry-current-set access control, `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`, non-synchronizable, so it cannot reach iCloud Keychain or another device |
+
+The wrap sits outside the vault on every shell because it has to be readable before the vault opens. Disabling biometric unlock wipes the credential reference and the ciphertext, and losing the wrap (a new fingerprint enrolled, a cleared credential) simply returns the user to typing the password.
 
 ## Vault encryption
 

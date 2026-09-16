@@ -33,9 +33,13 @@
  *   4. The docs do not reintroduce the "actions activate at block heights"
  *      phrasing.
  *
- * The registry is parsed rather than required: protocol_changes.js is a class
- * that wants a live indexer to construct, and the addChange(...) calls are
- * literal enough to read directly.
+ * The registry is REQUIRED, not parsed. Its rows live in the part files under
+ * src/protocol_changes/ as array literals the entry assembles, and the entry
+ * pulls in nothing past the canonicaliser (crypto), so the class builds its
+ * table here from the same rows the indexer runs on. It wants an indexer for
+ * its config and database, and every row is parsed before either is touched,
+ * so a bare stub is enough to read the table. A text scan would have to know
+ * the row shape, and this file asserts values, not literals.
  *
  * xchain-indexer is a sibling repo, not a dependency. Source-derived
  * assertions skip when it is absent; the prose check always runs.
@@ -46,10 +50,12 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT = path.join(__dirname, '..');
 const REGISTRY = path.resolve(DOC_ROOT, '../xchain-indexer/src/protocol_changes.js');
-const haveRegistry = fs.existsSync(REGISTRY);
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the registry is unreadable.
+const indexer = sibling('xchain-indexer', [REGISTRY]);
 
 // The 36 documented ACTIONs: one page per action under protocol/actions/.
 const ACTIONS = fs.readdirSync(path.join(DOC_ROOT, 'protocol/actions'))
@@ -58,31 +64,29 @@ const ACTIONS = fs.readdirSync(path.join(DOC_ROOT, 'protocol/actions'))
     // uppercase protocol identifier, so derive the identifier from the file.
     .map((f) => f.replace(/\.md$/, '').toUpperCase());
 
+/** Every registered change as `{ name, version, thresholds }`, thresholds in addChange order as strings. */
 function readRegistry() {
-    const src = fs.readFileSync(REGISTRY, 'utf8');
-    const re  = /this\.addChange\(\s*'([A-Z_]+)'\s*,\s*'([\d.]+)'\s*,([^)]*)\)/g;
-    const out = [];
-    let m;
-    while ((m = re.exec(src)) !== null) {
-        out.push({
-            name: m[1],
-            version: m[2],
-            thresholds: m[3].split(',').map((s) => s.trim()).filter((s) => s !== ''),
-        });
-    }
-    assert.ok(out.length > 50, 'parsed only ' + out.length + ' addChange calls; the registry format changed');
+    const ProtocolChanges = require(REGISTRY);
+    const stub = { config: {}, util: { throwError(message) { throw new Error(message); } } };
+    const out = Object.entries(new ProtocolChanges(stub).changes).map(([name, c]) => ({
+        name,
+        version: `${c.version_major}.${c.version_minor}.${c.version_revision}`,
+        thresholds: [c.mainnet_time, c.testnet_time, c.regtest_time, c.mainnet_block, c.testnet_block, c.regtest_block]
+            .map(String),
+    }));
+    assert.ok(out.length > 50, 'the registry built only ' + out.length + ' changes; the part files under src/protocol_changes/ changed shape');
     return out;
 }
 
 describe('ACTION activation model', () => {
 
-    test('every ACTION is registered', { skip: !haveRegistry && 'xchain-indexer not present in this checkout' }, () => {
+    test('every ACTION is registered', { skip: indexer.skip }, () => {
         const names = new Set(readRegistry().map((r) => r.name));
         const missing = ACTIONS.filter((a) => !names.has(a));
         assert.deepEqual(missing, [], 'documented actions absent from protocol_changes.js: ' + missing.join(', '));
     });
 
-    test('no ACTION carries a non-zero activation time or height', { skip: !haveRegistry && 'xchain-indexer not present in this checkout' }, () => {
+    test('no ACTION carries a non-zero activation time or height', { skip: indexer.skip }, () => {
         const gated = readRegistry()
             .filter((r) => ACTIONS.includes(r.name))
             .filter((r) => r.thresholds.some((t) => t !== '0'))
@@ -92,7 +96,7 @@ describe('ACTION activation model', () => {
             'version alone gates them:\n  ' + gated.join('\n  '));
     });
 
-    test('the documented 21/15 version split matches the registry', { skip: !haveRegistry && 'xchain-indexer not present in this checkout' }, () => {
+    test('the documented 21/17 version split matches the registry', { skip: indexer.skip }, () => {
         const acts = readRegistry().filter((r) => ACTIONS.includes(r.name));
         const byVersion = {};
         for (const a of acts) (byVersion[a.version] = byVersion[a.version] || []).push(a.name);
@@ -100,7 +104,7 @@ describe('ACTION activation model', () => {
         assert.deepEqual(Object.keys(byVersion).sort(), ['0.1.0', '0.2.0'],
             'actions are now registered at versions beyond 0.1.0/0.2.0: ' + Object.keys(byVersion).join(', '));
         assert.equal(byVersion['0.1.0'].length, 21, 'v0.1.0 action count changed; update the docs');
-        assert.equal(byVersion['0.2.0'].length, 16, 'v0.2.0 action count changed; update the docs');
+        assert.equal(byVersion['0.2.0'].length, 17, 'v0.2.0 action count changed; update the docs');
         assert.ok(byVersion['0.1.0'].includes('BET'),
             'BET moved off 0.1.0; concepts/actions.md and components/indexer/actions.md name it as a 0.1.0 action');
     });

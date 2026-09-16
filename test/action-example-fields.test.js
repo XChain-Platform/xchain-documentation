@@ -34,7 +34,7 @@
  *     declared count. DEPLOY is precise about it: v0/v2 take CONSTRUCTOR_PARAMS
  *     as a rest field while v1/v3 do not, because COOLDOWN_BLOCKS +
  *     SLASH_DESTINATION trail the constructor args, and the doc marks exactly
- *     v0/v2 (matching deploy.js).
+ *     v0/v2 (matching deploy/index.js).
  *   - Some formats end in a bare `...` meaning "the preceding group repeats"
  *     (ANCHOR/ATTEST signature pairs, PRICE pair lists). Also unbounded.
  *   - BATCH is not pipe-counted at all: `VERSION|COMMAND;COMMAND` embeds whole
@@ -341,7 +341,7 @@ describe('DISPENSER v0 examples match the declared format', () => {
     test('does not claim a first oracle price is effective immediately', () => {
         // dispenser.md and price.md contradicted each other and the code:
         // dispenser.md said the first price for a feed took effect immediately
-        // and only updates were delayed, while PriceAggregator.js applies a flat
+        // and only updates were delayed, while oracle/price_aggregator.js applies a flat
         // +86400 to EVERY publish (verified live: three rows, first publishes
         // included, all delay_seconds = 86400). price.md already documented the
         // uniform rule and the consensus reason for it. Someone following the old

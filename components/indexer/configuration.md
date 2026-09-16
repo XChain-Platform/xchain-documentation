@@ -21,8 +21,8 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `INDEXER_DB_NAME` | Indexer database name | `XChain_BTC_Mainnet_Indexer` |
 | `INDEXER_DB_USER` | Indexer database username | `xchain` |
 | `INDEXER_DB_PASS` | Indexer database password | `secretpassword` |
-| `INDEXER_COIN` | Blockchain to index | `BTC`, `LTC`, or `DOGE` |
-| `INDEXER_NETWORK` | Network to index | `mainnet`, `testnet`, or `regtest` |
+| `INDEXER_COIN` | Blockchain to index. The service requires it; the measurement script `bin/measure-batch-execute-cost.js` defaults to `BTC` when it is unset. | `BTC`, `LTC`, or `DOGE` |
+| `INDEXER_NETWORK` | Network to index. The service requires it; the measurement script `bin/measure-batch-execute-cost.js` defaults to `regtest` when it is unset. | `mainnet`, `testnet`, or `regtest` |
 
 ### Optional Variables
 
@@ -44,7 +44,8 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `DB_CONNECT_TIMEOUT` | MariaDB connection timeout in milliseconds | `10000` |
 | `DB_ACQUIRE_TIMEOUT` | Time to wait for a free pooled connection, in milliseconds | `10000` |
 | `DB_QUERY_TIMEOUT` | MariaDB query execution timeout in milliseconds | `30000` |
-| `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; the operator path (`node src/migrate.js`) fails closed regardless. | _(unset, non-fatal)_ |
+| `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; the operator path (`node src/db/migration/migrate.js`) fails closed regardless. | _(unset, non-fatal)_ |
+| `SHUTDOWN_TIMEOUT_MS` | Hard-exit budget for the SIGTERM/SIGINT drain, in milliseconds. On `docker stop` the indexer stops reporting itself running on `/status`, lets the block loop break at its next block boundary (never mid-transaction), drains the API listener, closes its database pools and exits 0; if that has not finished within the budget it logs the overrun and exits 1 instead of lingering until docker's SIGKILL. The default sits under docker's 10 s stop grace because `xchain-node` issues a bare `docker stop`; raise it for a chain whose blocks take longer to apply. A non-numeric or non-positive value keeps the default. | `8000` |
 
 ### Migration compatibility harness
 
@@ -75,6 +76,9 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `DOGE_INDEXER_URL` | DOGE indexer JSON-RPC URL the BTC indexer uses to re-prove that a mirrored anchor reward's DOGE anchor was actually mined (`getanchorconfirmations`), before crediting it. `DOGE_INDEXER_API_URL` takes precedence when both are set. Required on a BTC indexer once the anchor-reward derive flag-day is armed: unset, no reward can be proven and the block defers. | _(unset)_ |
 | `DOGE_INDEXER_API_KEY` | API key sent as `x-api-key` with that read (`getanchorconfirmations` is a federation-read method on the DOGE indexer). | _(unset)_ |
 | `ANCHOR_PROOF_TIMEOUT_MS` | Per-request timeout for the DOGE anchor proof read, and for the ROLLCALL signer read below. A timeout is treated as "cannot tell", which defers the block; it is never read as "not mined". | `15000` |
+| `<COIN>_INDEXER_URL` | Origin-chain indexer JSON-RPC URL the bridge settle pass uses to fetch the escrow checkpoint proof for an incoming transfer (`getbridgeescrowproof`), one per origin coin: `BTC_INDEXER_URL` on a DOGE or LTC indexer that receives XCHAIN, and so on. `<COIN>_INDEXER_API_URL` takes precedence when both are set, then the config key of the same name. Unset, no proof can be fetched and the settle leg stalls on the proof barrier; it is never applied unproven. | _(unset)_ |
+| `<COIN>_INDEXER_API_KEY` | API key sent as `x-api-key` with that proof read. Falls back to the config key of the same name. | _(unset)_ |
+| `BRIDGE_PROOF_TIMEOUT_MS` | Per-request timeout for the escrow proof read. A timeout is treated as "cannot tell", which stalls the settle leg on the proof barrier; it is never read as "no proof". | `15000` |
 | `HUB_SYNC_BARRIER_HOLD_CEILING_S` | How long the block loop may sit deferring at a hub-mirror-completeness barrier before the mirror forces itself to resync: tearing down and reconnecting its hub-DB WebSocket (or, in poll mode, re-kicking the bootstrap directly). A mirror's stream watermark only advances while its bootstrap drain is flagged complete, and nothing else re-arms that flag once a drain has stalled, so a socket can sit open and heartbeating while the mirror certifies nothing, indefinitely; this bounds that wait by a re-drive instead of leaving it unbounded. Purely operational: it opens no barrier and commits no block early, a genuinely-behind mirror keeps deferring after the resync, and the forced resync is rate-limited to once per ceiling window. Seconds; `0` disables it (no forced resync). | `900` (15 min) |
 | `HUB_SYNC_WATERMARK_STALL_S` | How long the hub mirror's stream watermark may stay frozen while the hub's own heartbeat tip runs ahead of it before the mirror forces a fresh subscribe-then-bootstrap. This is the mirror's own bound, distinct from `HUB_SYNC_BARRIER_HOLD_CEILING_S`, which the block loop drives and only while a block is deferring: heartbeats keep arriving during such a stall, so the transport watchdog stays satisfied while the mirror certifies nothing. Suppressed where a frozen watermark is correct: poll mode, an outstanding hub schema-version mismatch, and a mirror that has not yet certified a first watermark. Operational only: it opens no barrier and commits no block early. Seconds; `0` disables the detector. | `180` |
 | `HUB_SYNC_WATERMARK_STALL_EXIT_S` | How long after that forced resync the watermark still has to stay frozen before the process logs a named fatal and exits non-zero so its supervisor restarts it (the indexer wires the exit; the explorer's vendored copy logs and re-drives). Sized above a full re-bootstrap drain, so an ordinary slow drain finishes and moves the watermark inside the window; any real advance cancels it. Seconds; `0` keeps the forced resync but never exits. | `300` |
@@ -84,11 +88,14 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | Variable | Description | Default |
 |---|---|---|
 | `XC_ROLLCALL_GATES_REGTEST_ACTIVATION` | **Regtest only.** Arms ROLLCALL v1 on this private venue: from the armed epoch height on, roll calls must carry the publisher's consensus-gate list, the epoch close records each verified signer's list in `rollcall_gates`, and the attestation capability set drops a validator whose recorded list lacks a rule active at the request block. Same grammar as `XC_ROLLCALL_REGTEST_ACTIVATION`; read **once at startup**; set identically on every hub and BTC indexer in the venue. mainnet and testnet are fixed in source. | _(unset: inert)_ |
+| `XC_MIRROR_ADMISSION_ACTIVATION` | **Regtest only.** Arms the per-coin `regtest` entries of `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` (the mirror-admission heights) and the `regtest` entry of `ANCHOR_ATTEST_BARRIER_ACTIVATION` in the indexer's activation registry (`src/protocol_changes/shared_rows.js`), one variable for the whole barrier family. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; the armed form arms at height `0`. Applied when a row is read, from the environment as it stands then; set identically on every hub, indexer, sync and explorer process in the venue. mainnet and testnet are fixed in source. | _(unset: inert)_ |
 | `XC_ROLLCALL_REGTEST_ACTIVATION` | **Regtest only.** Arms ROLLCALL on this private venue. `armed` (or `genesis`/`on`/`true`/`yes`) activates at BTC height `0`; a bare non-negative integer activates at that height, for a venue whose epochs should begin above an already-indexed prefix; `off`/`inert`/`false` and anything unrecognised leave it inert, and an unrecognised value is logged. Read **once at startup**, so a change needs a restart. mainnet and testnet are fixed in source and cannot be moved from the environment. | _(unset: inert)_ |
 
 Regtest ships inert on purpose: arming a network commits every BTC indexer on it to a wired DOGE peer, so a hardcoded height wedged every single-coin BTC venue at its first close. Set this on **every** BTC indexer and hub in a two-chain acceptance venue, alongside `DOGE_INDEXER_API_URL`. A venue that arms its hubs and forgets its indexer shows up as a consensus-rules digest mismatch, because `ROLLCALL_ACTIVATION` is one of the shared gates that digest covers.
 
-A BTC indexer with no DOGE wiring **defers every block** from the first epoch close onward, with `stallReason = 'rollcall_proof_unavailable'`, rather than judging absences it cannot prove. The same deferral covers an unreachable or malformed answer, a DOGE tip that has not yet buried the window cut by `ROLLCALL_DOGE_MATURITY`, and a DOGE indexer whose vendored action-manifest hash differs from this indexer's own. That last case is what turns a DOGE indexer running a decoder too old to know `ROLLCALL` from a silent evict-the-federation bug into a loud, safe stall: wire the DOGE indexers and deploy their decoder **before** `ROLLCALL_ACTIVATION` is reached.
+`bin/consensus-identity.js`'s `selectedPinBlock()` also reads both names, from the `armed_regtest_venue.env` block of `bin/pins/at1-consensus-identity.json`, to pick between the armed and bare-checkout consensus-identity pin for comparison; that block must be kept in step with whatever the venue actually arms.
+
+A BTC indexer with no DOGE wiring **defers every block** from the first epoch close onward (epoch height + 144 + 36), with `stallReason = 'rollcall_proof_unavailable'`, rather than judging absences it cannot prove. The same deferral covers an unreachable or malformed answer, a DOGE tip that has not yet buried the window cut by `ROLLCALL_DOGE_MATURITY`, and a DOGE indexer whose vendored action-manifest hash differs from this indexer's own. That last case is what turns a DOGE indexer running a decoder too old to know `ROLLCALL` from a silent evict-the-federation bug into a loud, safe stall: wire the DOGE indexers and deploy their decoder **before** `ROLLCALL_ACTIVATION` is reached. A validator with no Dogecoin indexer of its own points `DOGE_INDEXER_API_URL` at the public explorer instead: `https://explorer.xchain.io/TDOGE/api/` on testnet, `https://explorer.xchain.io/DOGE/api/` on mainnet, with `DOGE_INDEXER_API_KEY` set to the federation read key issued alongside the validator's other per-coin keys. That answer comes from the explorer's own replicated indexer database, so a replica that has fallen behind makes the epoch close wait longer rather than judge the roll call on stale data.
 
 ### Hub push queue and mirror
 
@@ -220,6 +227,16 @@ baseline; never by the indexer service itself. The harness also reads the
 |---|---|---|
 | `XCHAIN_DECODER_SQL_PATH` | **Harness only.** Path to the decoder's SQL schema directory, used to build the scratch decoder database the measured blocks are read from. The harness refuses to run when it is unset rather than measuring against a schema it guessed at | `/path/to/xchain-decoder/src/sql` |
 
+### Diagnostic Scripts (`bin/`)
+
+Read-only operator tools; neither broadcasts nor writes anything and neither is read by the running indexer process itself.
+
+| Variable | Description | Default |
+|---|---|---|
+| `XCHAIN_INDEXER_DIR` | Sibling-checkout override `bin/lib/carrier_logic_pin.js`'s `siblingDir()` resolves for cross-repo carrier-logic comparison; the `repo_guards` twin test points it at a second checkout with `XCHAIN_REQUIRE_SIBLINGS=1`. Never read by the running indexer process. | `../xchain-indexer` |
+| `XCHAIN_SYNC_DIR` | Sibling-checkout override for the `xchain-sync` tree the same `siblingDir()` resolves when the pin tool compares against sync's copy; read by literal name so the coverage gate can see it. Never read by the running indexer process. | `../xchain-sync` |
+| `XCHAIN_HUB_DIR` | Sibling-checkout override for the `xchain-hub` tree the same `siblingDir()` resolves when the pin tool compares against the hub's copy; read by literal name so the coverage gate can see it. Never read by the running indexer process. | `../xchain-hub` |
+
 ## Hub DB Price Source
 
 Native-coin fee validation and FIAT settlement read the oracle tables (`price_snapshots`,
@@ -247,7 +264,7 @@ missing hub DB only logs a warning.
 
 ## Coin-Specific Configuration
 
-Each supported blockchain has a configuration file at `src/configs/<COIN>.js` (BTC.js, LTC.js, DOGE.js) that defines:
+Each supported blockchain has a configuration file at `src/coins/<COIN>.js` (BTC.js, LTC.js, DOGE.js) that defines:
 
 | Parameter | Description | Example (BTC) |
 |---|---|---|
@@ -265,7 +282,7 @@ Each supported blockchain has a configuration file at `src/configs/<COIN>.js` (B
 
 ## Unified Gas Fee Schedule
 
-After the activation block, fees for VM and staking actions are calculated using a gas-based schedule rather than the legacy flat fee constants. The following parameters are defined in each coin config file (`src/configs/<COIN>.js`) and are only applied to blocks at or after the activation height:
+After the activation block, fees for VM and staking actions are calculated using a gas-based schedule rather than the legacy flat fee constants. The following parameters are defined in each coin config file (`src/coins/<COIN>.js`) and are only applied to blocks at or after the activation height:
 
 | Parameter | Description | Example (BTC) |
 |---|---|---|

@@ -267,8 +267,8 @@ and at/above the `EQUIV_HEADER` flag-day:
 EQUIV|XCHECKPOINT|XANCPUB|archive|NETWORK|MATCH_BATCH_SEQ|SNAPSHOT_BLOCK|0||XANCPUB|anchor_archive|MATCH_BATCH_SEQ|SNAPSHOT_BLOCK|PUBLISHER|ARCHIVE_REWARD_AMOUNT
 ```
 
-These bytes are byte-identical across the hub producer (`StateAnchorPublisher._attestationCanonical`),
-the indexer verifier (`actions/anchor.js` `_rewardCanonical`) and this spec; a divergence forks the
+These bytes are byte-identical across the hub producer (`StateAnchorPublisher.attestationCanonical`),
+the indexer verifier (`actions/anchor/index.js` `rewardCanonical`) and this spec; a divergence forks the
 derived reward row. An `ASIG_n` counts only if its pubkey is in the SAME `oracle_publish` snapshot at
 `SNAPSHOT_BLOCK` used for the root quorum **and** the Ed25519 signature verifies.
 
@@ -498,7 +498,7 @@ flowchart TD
 None of these is consensus data: they are per-hub operator knobs, and two hubs running
 different values still produce mutually verifiable anchors. What follows is the derivation of
 each magnitude, so a tuner can tell what is load-bearing from what is merely a round number.
-The arithmetic is pinned by `xchain-hub/test/unit/StateAnchorPublisher.constant-derivations.test.js`.
+The arithmetic is pinned by `xchain-hub/test/unit/anchor/publisher/state_anchor_publisher_constant_derivations.test.js`.
 
 **`ANCHOR_CHUNK_MAX_BYTES` (6000).** The hard ceiling is `MAX_ACTION_DATA_LENGTH` = 8192
 compiled bytes (`protocol/constants.js`). The decoder is the arbiter and *silently drops* any
@@ -559,7 +559,7 @@ which is anti-spam only.
 ## Recovery procedure (full-parse)
 1. Sync DOGE through the decoder/indexer from genesis: `anchor_actions` populates from the
    chain alone.
-2. Run `xchain-indexer/src/recovery.js --skip-stake-verification --i-understand-unverified`:
+2. Run `xchain-indexer/bin/recovery.js --skip-stake-verification --i-understand-unverified`:
    reassembles
    chunked batches by `MATCH_BATCH_SEQ`, gunzips, verifies `BATCH_CRC32`, verifies each
    archived match's/call's `validator_signatures` against the archived

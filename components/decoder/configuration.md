@@ -42,6 +42,7 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; CI and operators running `node src/migrate.js` get the strict path anyway. | _(unset, non-fatal)_ |
 | `COIN` | Cosmetic label only, reported in the `/status` response. The decoder takes its chain identity from the node it is pointed at, so it has no coin setting of its own; the label stays empty unless a deploy sets one. | _(unset, empty label)_ |
 | `DECODER_POLL_SILENT_MS` | How long the block loop may go without completing a single iteration before `/live` reports unhealthy (503) and the container restart policy recycles the process. Measures the loop, not the chain: the stall window `DECODER_STALL_ALERT_MS` (default `900000` ms, documented under Operations) asks whether the chain is advancing, and a caught-up decoder advances nothing for hours while being perfectly healthy, so only an iteration count separates "idle" from "the loop is gone". Defaults to twice the stall window, because every normal path through the loop, the node-outage retry included, returns to the loop top far inside it. | `1800000` (30 minutes) |
+| `XCHAIN_INDEXER_DIR` | Path override for the sibling `xchain-indexer` checkout that `bin/sync-batch-limits.js` reads to regenerate the vendored BATCH limit tables (`src/protocol/indexer_batch_limits.js`) from the indexer's own `src/actions/batch.js` and `src/protocol_changes.js`. A maintenance-tool setting only; the decoder service itself never reads it. | `../../xchain-indexer` relative to `bin/` (the sibling checkout layout) |
 
 The `AUX_POW` variable should be set to any truthy value when running against Dogecoin nodes. It enables the `getBlockWithoutAuxPow()` code path that strips merge-mining headers before parsing.
 
@@ -138,7 +139,7 @@ The decoder begins parsing from a preconfigured block height per network to skip
 | `dogecoin-testnet` | 64,800,000 |
 | `dogecoin-regtest` | 0 |
 
-> **DOGE testnet note:** the DOGE testnet mines min-difficulty blocks roughly every 20 seconds, so the chain runs tens of millions of blocks ahead of the other networks. The start block was re-pinned near the chain tip on 2026-06-19 to avoid indexing millions of pre-launch blocks. See `src/CryptoNetworks.js` for the comment.
+> **DOGE testnet note:** the DOGE testnet mines min-difficulty blocks roughly every 20 seconds, so the chain runs tens of millions of blocks ahead of the other networks. The start block was re-pinned near the chain tip on 2026-06-19 to avoid indexing millions of pre-launch blocks. See `src/chain/crypto_networks.js` for the comment.
 
 ## Valid ACTION Names
 

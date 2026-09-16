@@ -181,7 +181,7 @@ xchain://<chainId>/<tick>?amount=&to=&memo=&kind=receive
 
 Where `<chainId>` is the descriptor id (e.g. `bitcoin-mainnet`). Wallets MUST accept this form for backwards compatibility but SHOULD NOT generate new QRs in this format. The coin-code opaque form is preferred for new QRs because it's shorter, uses the platform-wide short identifier, and surfaces the action explicitly.
 
-The full descriptor-to-coin-code mapping (source: `xchain-sdk/src/networks.js`):
+The full descriptor-to-coin-code mapping (source: `xchain-sdk/src/protocol/networks.js`):
 
 | `<chainId>` descriptor | Coin code |
 | :--- | :--- |

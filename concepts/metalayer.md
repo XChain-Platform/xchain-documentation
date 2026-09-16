@@ -23,7 +23,7 @@ The two layers are completely independent. XChain transactions are valid Bitcoin
 
 ## Comparison to Other Approaches
 
-**Sidechains** create a separate blockchain with its own consensus, linked to the main chain via a bridge. Funds must be locked on the main chain to mint equivalent assets on the sidechain. Security depends on the bridge; a critical failure point. XChain has no bridge and no separate chain.
+**Sidechains** create a separate blockchain with its own consensus, linked to the main chain via a bridge. Funds must be locked on the main chain to mint equivalent assets on the sidechain. Security depends on the bridge; a critical failure point. XChain has no separate chain, so its metalayer needs no bridge to function; the one bridge it does run, XBRIDGE, moves only the platform's own XCHAIN token between chains and never creates a second chain to secure.
 
 **Layer 2 rollups** batch off-chain transactions and periodically commit state roots to the main chain. State exists primarily off-chain; the main chain only sees summary commitments. XChain does the opposite; every action is on-chain, and the main chain is the only source of truth.
 

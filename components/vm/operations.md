@@ -34,14 +34,14 @@ The VM maintains **1,250+ total tests** across unit, E2E, security, fuzz, chaos,
 
 ## Integration with the Indexer
 
-The VM is instantiated once in the indexer's `actions.js` and shared across all action handlers for the lifetime of the indexer process.
+The VM is instantiated once in the indexer's `src/actions/index.js` and shared across all action handlers for the lifetime of the indexer process.
 
 ### Lifecycle
 
 1. **Startup:** Indexer creates `new XChainVM({ gasSchedule, gasCeiling, limits })` from its configuration
 2. **Per block:** Indexer calls `vm.beginBlock()` before processing transactions, `vm.endBlock()` after
-3. **DEPLOY action:** `deploy.js` calls `vm.validateSyntax(code)` to validate contract source, then `vm.execute()` to run the constructor
-4. **EXECUTE action:** `execute.js` calls `vm.execute()` with the contract code, current state, method name, parameters, and block context
+3. **DEPLOY action:** `deploy/index.js` calls `vm.validateSyntax(code)` to validate contract source, then `vm.execute()` to run the constructor
+4. **EXECUTE action:** `execute/index.js` calls `vm.execute()` with the contract code, current state, method name, parameters, and block context
 5. **Result processing:** The indexer applies `stateChanges` and `stateDeletes` to the database, processes `emittedActions` through standard action handlers, and records `gasUsed` for fee charging
 
 ```mermaid
@@ -56,11 +56,11 @@ sequenceDiagram
     Indexer->>VM: vm.beginBlock()
     Indexer->>VM: vm.endBlock()
 
-    Note over Indexer: DEPLOY action (deploy.js)
+    Note over Indexer: DEPLOY action (deploy/index.js)
     Indexer->>VM: vm.validateSyntax(code)
     Indexer->>VM: vm.execute() (run constructor)
 
-    Note over Indexer: EXECUTE action (execute.js)
+    Note over Indexer: EXECUTE action (execute/index.js)
     Indexer->>VM: vm.execute(code, state, method, params, block context)
 
     Note over Indexer: Result processing
@@ -71,7 +71,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    INDEXER["Indexer (execute.js)"]
+    INDEXER["Indexer (execute/index.js)"]
     LOAD["Loads contract code + state from DB"]
     BUILD["Builds balances, tokenInfo,<br>oracleData, crossChainData"]
     EXEC["vm.execute({ code, state, method,<br>params, caller, ... })"]
@@ -94,7 +94,7 @@ flowchart TD
 
 Beside `validateSyntax` and `execute`, the indexer calls `vm.readManifest(code, opts)` once per DEPLOY. It instantiates the module's top level inside a gas-metered isolate (no state, oracle, or balances) and reports what the exported object declares, **without dispatching any method**, so it works for a contract that exports no constructor. It resolves `{ success, manifest, error }`; on a module-level throw, `success` is `false`.
 
-The VM **reports; it never judges**. Every verdict lives host-side in the indexer's `actions/deploy.js`, which is why the report is deliberately raw and typed:
+The VM **reports; it never judges**. Every verdict lives host-side in the indexer's `actions/deploy/index.js`, which is why the report is deliberately raw and typed:
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -144,7 +144,7 @@ The indexer uses database savepoints to ensure these guarantees extend to the pe
 
 ## Syntax Validation (Deploy-Time)
 
-Before a contract is deployed, `vm.validateSyntax(code)` runs the following checks in order. The V8 syntax check blocks a deploy via a separate early return and is not itself a `lint-core.CONSENSUS_RULES` member; checks 2-8 below are all deploy-blocking consensus rules (`invalid-type`, `unsupported-syntax`, `reserved-identifier`, `banned-math`, `banned-literal`, `banned-async`, `banned-generator`, `banned-wasm`), and all must pass or the DEPLOY action is rejected:
+Before a contract is deployed, `vm.validateSyntax(code)` runs the following checks in order. The V8 syntax check blocks a deploy via a separate early return and is not itself a `lint-core.CONSENSUS_RULES` member; checks 2-9 below are all deploy-blocking consensus rules (`invalid-type`, `unsupported-syntax`, `reserved-identifier`, `banned-math`, `banned-literal`, `banned-async`, `banned-generator`, `banned-rest`, `banned-wasm`), and all must pass or the DEPLOY action is rejected:
 
 1. **V8 syntax check**: compiles the code in a throwaway 8 MB isolate to catch syntax errors (the only step requiring `isolated-vm`)
 2. **Acorn metering pass**: runs `meterCode()` to ensure acorn can parse the source (effective ES2020 ceiling)
@@ -153,7 +153,8 @@ Before a contract is deployed, `vm.validateSyntax(code)` runs the following chec
 5. **Banned literal check**: rejects BigInt literals (e.g. `10n`) and RegExp literals (e.g. `/foo/`). BigInt arithmetic is unmetered native computation; catastrophic RegExp backtracking is unmetered and can burn heavy CPU for near-zero gas.
 6. **Banned async check** (consensus-gated): rejects `async` functions, `await` expressions, and `Promise` references after the `VM_BANNED_ASYNC` flag-day. The CONTRACT_WRAPPER invokes exports synchronously; an async export returns a pending Promise whose post-`await` effects depend on isolated-vm's version-dependent microtask-drain timing, which is outside the consensus-runtime pin and can diverge across validators. Under `VM_LINT_HARDENING` this also rejects dynamic `import(...)` (it evaluates to a Promise).
 7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): rejects `function*`, generator methods, and any `yield`; live from genesis on testnet/regtest.
-8. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest.
+8. **Banned rest-pattern check** (consensus-gated, its own [`REST_PATTERN_METER`](../../protocol/flag-days.md) gate, not the Pkg 3 one): rejects a rest pattern in the four positions the metering transform cannot charge, because it charges a rest destructure by wrapping the source expression and these have none: a rest parameter in a function parameter list, a nested rest inside a destructuring pattern, a catch-clause rest, and a rest in a `for-of`/`for-in` loop head. Live from genesis on testnet/regtest, and on mainnet at/after that gate's block time; the `xchain-lint` CLI and the SDK linter enforce it today by default.
+9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest.
 
 ```mermaid
 flowchart TD
@@ -165,7 +166,8 @@ flowchart TD
     S5{"5. Banned literal check"}
     S6{"6. Banned async check (VM_BANNED_ASYNC flag-day)"}
     S7{"7. Banned generator check (live from genesis, testnet/regtest)"}
-    S8{"8. Banned WebAssembly check (live from genesis, testnet/regtest)"}
+    S8{"8. Banned rest-pattern check (REST_PATTERN_METER gate)"}
+    S9{"9. Banned WebAssembly check (live from genesis, testnet/regtest)"}
     ACCEPT["DEPLOY accepted"]
     REJECT["DEPLOY rejected"]
 
@@ -184,8 +186,10 @@ flowchart TD
     S6 -->|"clean, or flag-day not active"| S7
     S7 -->|"generator or yield found"| REJECT
     S7 -->|"clean"| S8
-    S8 -->|"WebAssembly reference found"| REJECT
-    S8 -->|"clean"| ACCEPT
+    S8 -->|"unmeterable rest pattern found, gate active"| REJECT
+    S8 -->|"clean, or gate not active"| S9
+    S9 -->|"WebAssembly reference found"| REJECT
+    S9 -->|"clean"| ACCEPT
 ```
 
 `vm.checkFloatWarnings(code)` additionally scans for non-integer number literals and returns warnings (non-blocking).

@@ -73,7 +73,7 @@ This means contract token movements are covered by the standard sanity check (`t
 - **VM actions**: DEPLOY and EXECUTE charge gas via the unified gas schedule: `gas_cost × gas_price` XCHAIN per operation (post-activation blocks)
 - **Staking actions**: STAKE, UNSTAKE, DELEGATE (rotate + revoke), and COLLECT are metered under the same unified gas schedule (post-activation blocks)
 
-The GAS address (defined per-chain, per-network in `src/configs/<COIN>.js`) is the only address authorized to issue the `XCHAIN` token. It is exempt from the reserved ticker restriction that prevents other addresses from using protocol-reserved names.
+The GAS address (defined per-chain, per-network in `src/coins/<COIN>.js`) is the only address authorized to issue the `XCHAIN` token. It is exempt from the reserved ticker restriction that prevents other addresses from using protocol-reserved names.
 
 ## Fee Distribution
 

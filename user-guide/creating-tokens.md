@@ -47,7 +47,7 @@ When you create a token, you configure a set of properties that define how it be
 
 **Max Supply** is the ceiling on how many tokens can be outstanding at one time. Every mint is checked against the current supply plus the amount being minted, so while supply sits at the ceiling, further minting is refused. Destroying tokens lowers the current supply and frees that much headroom again, so a max supply is not a limit on how much can be issued over a token's lifetime. Think of it as a tank with a fixed capacity rather than a mine with a finite amount of ore: draining it makes room to refill. To close issuance for good, lock the minting paths (see Locking below) rather than relying on the ceiling alone.
 
-Setting a max supply of zero means the supply is unlimited, which is appropriate for some use cases (like reward points that grow over time) but not others (like collectibles where scarcity matters).
+Setting a max supply of zero is the protocol's "uncapped" sentinel: no ceiling at all, which is appropriate for some use cases (like reward points that grow over time) but not others (like collectibles where scarcity matters). That reading is in force on testnet and regtest today. On mainnet it switches on at the network's launch instant and not before, so a mainnet token created now with a max supply of zero refuses every mint and every positive mint supply, and can never issue anything. Until then, give a mainnet token a positive ceiling; you can raise it later unless you set `LOCK_MAX_SUPPLY`. See [Protocol Activation](../protocol/protocol-activation.md) for how the switch-on works.
 
 ### Decimals
 
@@ -134,7 +134,7 @@ Parameters you can lock include:
 - **LOCK_MAX_MINT**: the `MAX_MINT` per-transaction amount cap is frozen permanently and can never be edited again
 - **LOCK_DESCRIPTION**: proves the token's description cannot be swapped out
 - **LOCK_SLEEP**: the token can never be paused by the SLEEP command; useful for tokens that must always be tradeable
-- **Callback settings** (`LOCK_CALLBACK`): proves the recall terms cannot be altered after the fact
+- **LOCK_CALLBACK**: the `CALLBACK` command can never be run against this token again. It does not preserve the recall terms for later use; it makes recall impossible. Do not set it if you may ever need to recall, revoke or settle the token
 
 No single flag forecloses all supply creation. Set **LOCK_MINT** and **LOCK_MINT_SUPPLY** together to close both issuance paths, and add **LOCK_MAX_SUPPLY** if you also want the ceiling itself frozen.
 
@@ -175,7 +175,7 @@ Once your token exists, you can:
 - **Update** any parameters you did not lock
 - **List** it on the built-in exchange (see the Trading guide)
 - **Airdrop** it to a list of addresses at once
-- **Pay dividends** to all holders proportionally
+- **Pay dividends** to eligible holders proportionally (see [DIVIDEND](../protocol/actions/dividend.md) for who is left out)
 - **Sleep** it temporarily to pause all trading
 - **Callback** (recall) tokens from all holders if you configured a callback at creation
 - **Bind a controller** to hand enforcement of transfers, trades, mints, burns, staking, or ownership changes to a contract you deploy, and drop it later subject to the cooldown you set

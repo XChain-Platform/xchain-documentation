@@ -29,7 +29,7 @@ flowchart TD
 
 In practice, XChain works by embedding small pieces of data inside ordinary blockchain transactions. Those data packets are invisible to Bitcoin itself, they're just part of a normal transaction. But XChain's software layer reads those packets, interprets them as commands, and maintains its own database of token balances, orders, and state.
 
-**Nothing about Bitcoin, Litecoin, or Dogecoin is changed.** XChain tokens exist on the actual blockchain, secured by the same proof-of-work consensus that secures every other Bitcoin transaction. There are no sidechains and no bridges: your token balances need no separate validators and no new consensus mechanism to trust. (A staked validator federation does provide the optional cross-chain, oracle, and attestation services described later; those services never sit between you and your base-layer token records.)
+**Nothing about Bitcoin, Litecoin, or Dogecoin is changed.** XChain tokens exist on the actual blockchain, secured by the same proof-of-work consensus that secures every other Bitcoin transaction. There is no sidechain and no third-party bridge: your token balances need no separate validators and no new consensus mechanism to trust. (A staked validator federation does provide the optional cross-chain, oracle, and attestation services described later, including XBRIDGE, the protocol action that moves the platform's own XCHAIN token between chains; those services never sit between you and your base-layer token records.)
 
 ---
 
@@ -121,11 +121,11 @@ XCALL, the platform's cross-chain contract call, works differently: it's emitted
 
 There are a lot of blockchain protocols out there. Here's what sets XChain apart.
 
-### No Sidechains, No Bridges
+### No Sidechains, No Third-Party Bridge
 
-Many blockchain token systems work by "locking" assets on one chain and "mirroring" them on another; a process that requires bridges. Bridges are one of the most attacked surfaces in all of crypto; billions of dollars have been lost to bridge exploits.
+Many blockchain token systems work by "locking" assets on one chain and "mirroring" them on another; a process that requires a bridge. Bridges are one of the most attacked surfaces in all of crypto; billions of dollars have been lost to bridge exploits.
 
-XChain doesn't use bridges. When you hold an XChain token on Bitcoin, that token record literally exists inside a Bitcoin transaction. There's nothing to bridge, nothing to lock and unlock, no separate chain to trust.
+XChain has no third-party bridge. Your token record literally exists inside a Bitcoin transaction, with no separate chain to trust. Moving a token between supported chains is a protocol action, XBRIDGE: the balance is locked or burned on its own chain in an ordinary transaction and credited on the destination by the validator federation, with no wrapped asset and no custodian. Everything stays on chains you already trust.
 
 ### No New Consensus
 

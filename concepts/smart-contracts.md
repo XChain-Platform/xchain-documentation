@@ -152,7 +152,7 @@ Every figure in a **Gas** column below is in gas units, charged against the call
 | Method | Returns |
 |---|---|
 | `xchain.getBalance(address, tick)` | Balance of address for token, or null |
-| `xchain.getTokenInfo(tick)` | Token metadata, or null |
+| `xchain.getTokenInfo(tick)` | Token metadata, or null. Keys are UPPERCASE (`TICK`, `TICK_ID`, `DECIMALS`, `SUPPLY`, `OWNER`, `MAX_SUPPLY`, the `LOCK_*` flags), and `DECIMALS` and `TICK_ID` are integers rather than strings. A lowercase read such as `info.decimals` is `undefined`, which quantising helpers answer with the integer part instead of an error, so spell the keys exactly |
 | `xchain.getPollResult(pollIndex)` | Frozen tally of a resolved [VOTE](../protocol/actions/vote.md) poll (`status` is `finalized` or `failed_quorum`), or null. A poll is readable only from the block after the one it resolved in, so it never reads as decided inside its own finalization block |
 
 ### Contract State (metered)

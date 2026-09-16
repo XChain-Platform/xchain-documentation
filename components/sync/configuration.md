@@ -26,6 +26,10 @@ These variables are required regardless of whether the service runs in server or
 | `MERKLE_EPOCH_SIZE` | No | `100` | Number of blocks per Merkle epoch in the transparency log. Changing this after a log already exists will make existing epoch roots inconsistent; only set at initial deploy. |
 | `TRANSPARENCY_RATE_LIMIT` | No | `10` | Maximum transparency-proof endpoint requests per minute per IP. |
 | `SYNC_META_RETENTION_BLOCKS` | No | `0` (off) | Transparency-log retention window in blocks. `0` or unset keeps the full log, so every historical inclusion proof stays serveable. A positive value prunes `sync_meta` rows older than the window at epoch boundaries, which bounds table growth and gives up proofs below the window. Committed Merkle roots (`merkle_epochs`) are kept either way. See [Indexer: Data Retention and Pruning](../indexer/data-retention.md). |
+| `XC_ROLLCALL_REGTEST_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the `regtest` entry of `ROLLCALL_ACTIVATION` in sync's copy of the activation registry (`src/consensus/gate_registry.js`), so the copy reads the row as the venue's armed indexers and hubs do. `armed` (or `genesis`/`on`/`true`/`yes`) arms at BTC height `0`; a bare non-negative integer arms at that height; `off`/`inert`/`false`/`no`/`none` and unset leave it inert, and anything else is refused with a process warning and stays inert. Applied when a row is read, from the environment as it stands then. mainnet and testnet are fixed in source and cannot be moved from the environment. Never set outside a regtest venue. |
+| `XC_ROLLCALL_GATES_REGTEST_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the `regtest` entry of `ROLLCALL_GATES_ACTIVATION` (ROLLCALL v1, the consensus-gate list roll calls carry) in sync's registry copy. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; set identically on every hub, indexer and sync process in the venue. mainnet and testnet are fixed in source. Never set outside a regtest venue. |
+| `XC_MIRROR_ADMISSION_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the per-coin `regtest` entries of `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` (the mirror-admission heights) and the `regtest` entry of `ANCHOR_ATTEST_BARRIER_ACTIVATION` in sync's registry copy, one variable for the whole barrier family. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; the armed form arms at height `0`. mainnet and testnet are fixed in source. Never set outside a regtest venue. |
+| `SYNC_META_RETENTION_INTERVAL_MS` | No | `3600000` (1 hour) | How often, in client mode, the retention sweep that enforces `SYNC_META_RETENTION_BLOCKS` runs. A clock rather than a per-block hook, because bulk snapshot catch-up applies many blocks at once and would skip epoch-boundary events if the sweep only ran per block. No timer runs at all when the retention window is `0`. Server mode ignores this variable; it prunes at epoch boundaries instead. |
 
 ### Server Mode
 
@@ -56,6 +60,7 @@ Setting `REPLICA_DB_HOST` overrides that default: the server instead connects to
 | `SYNC_REPLICA_MAX_LAG_S` | No | `120` | Replication freshness ceiling, in seconds, when the server's own database is a native SQL replica. Above this many seconds behind its source, `/status` reports `replica_stale: true` instead of certifying the served heights as current. Reading it needs the `SLAVE MONITOR` grant on MariaDB, or `REPLICATION CLIENT` on MySQL, for the server's database user; without that grant, or with the replication threads stopped, the status reads unknown and is reported stale rather than fresh. A database that is not a replica at all is unaffected. |
 | `REPLICA_DB_READONLY` | No | `false` | Makes the transparency log serve-only, for a server process whose database is itself a replica (for example, kept current by MariaDB binlog replication) that this process must never write to. When `true` (also accepts `1`), the four `TransparencyLog` write entry points (`recordBlock`, `commitEpoch`, `pruneFrom`, `recommitEpoch`) and the startup gap-repair scan (`ServerPoller.backfillGaps`) all become no-ops. Every read path, proofs, epoch roots, the paginated log, and the `/transparency/*` endpoints, is unaffected. See [Operations: read-only-replica deployment](operations.md#read-only-replica-deployment) for the full pattern. |
 | `SYNC_REPLICA_CONNECTION` | No | _(unset)_ | Name of the replication connection carrying the served schemas, on a multi-source replica. Unset reduces across every connection, worst-case: the server reads as stale if any connection is stopped, and reports the laggiest one. Naming a connection measures that stream alone, so an unrelated lagging connection cannot drag the reading; if the named connection is not present on the server, the status reads unknown and is reported stale rather than fresh. |
+| `SYNC_STATUS_MAX_AGE_MS` | No | `180000` (3 min) | How long a cached status measurement stays valid, in milliseconds, before its freshness verdict expires. The server's status cache is overwritten only on a successful poll, so a hung query or a stopped poller leaves the last healthy status in place and every reader (the periodic status broadcast, new-subscriber snapshots, the validator-lag view, REST `/status`) keeps re-serving it even though transport liveness looks fine. Past this age the served heights are kept but no longer certified fresh. Uses the same 3-missed-heartbeat budget as `CLIENT_SOURCE_STALE_MS` on the client side. |
 
 ### Client Mode
 
@@ -77,7 +82,7 @@ In client mode, the service connects to remote sync servers and replicates their
 | `COMPLETENESS_CHECK_INTERVAL` | No | `3600000` | **Advisory only; never halts.** How often, in milliseconds, a live client re-runs the replica-completeness sweep against its primary source: the per-table row counts the source publishes on `/status`, compared against its own, which is the only check that sees a follower missing rows the consensus hashes cannot cover. `0` disables it. Runs only when the replica and the source are at the same height, because a shortfall while behind is ordinary lag. Deliberately slow by default: the sweep makes the source run a `COUNT(*)` per replicated table. |
 | `REPLICA_GAP_ALERT_SWEEPS` | No | `2` | How many consecutive equal-height completeness sweeps a table must stay short before the client escalates it from the ordinary per-sweep shortfall line to the distinct, rate-limited `REPLICA_GAP_PERSISTENT` alert and records the gap in sync state for monitors. Clamped to at least `1`. Read from the client config first, then the environment. |
 | `REPLICA_GAP_ALERT_REPEAT_MS` | No | `21600000` (6 h) | Minimum interval, in milliseconds, between repeats of the `REPLICA_GAP_PERSISTENT` alert for a gap that is neither closing nor growing. A gap that grows re-alerts immediately regardless of this window; a gap that closes clears its state. `0` repeats on every sweep. Read from the client config first, then the environment. |
-| `VERIFY_CHECKPOINT_QUORUM` | No | `false` | **Default OFF.** When `true`, anchors the replica's independently recomputed `state_root` to the federation quorum: the client fetches the source's signed checkpoint, verifies its Ed25519 signatures against the pinned validator set in `pinnedValidators.js`, and halts if the quorum fails or the checkpoint's `state_root` disagrees with the replica's own computed root. Inert without a pinned set configured for the chain/network. |
+| `VERIFY_CHECKPOINT_QUORUM` | No | `false` | **Default OFF.** When `true`, anchors the replica's independently recomputed `state_root` to the federation quorum: the client fetches the source's signed checkpoint, verifies its Ed25519 signatures against the pinned validator set in `client/pinned_validators.js`, and halts if the quorum fails or the checkpoint's `state_root` disagrees with the replica's own computed root. Inert without a pinned set configured for the chain/network. |
 | `CHECKPOINT_VERIFY_INTERVAL` | No | `50` | How often to probe the `/latest` checkpoint, measured in applied blocks. Only used when `VERIFY_CHECKPOINT_QUORUM=true`. |
 | `REPLICA_DB_HOST` | Yes | None | MariaDB hostname for local replica databases. This variable, and the three below, are also honored in server mode as an opt-in override; see [Server Mode](#server-mode) above. |
 | `REPLICA_DB_PORT` | No | `3306` | MariaDB port |
@@ -110,6 +115,16 @@ In client mode, the service connects to remote sync servers and replicates their
 | `STATE_TREE_METRIC_INTERVAL_MS` | No | `14400000` (4 h) | Interval for the state-tree orphan-statistics sweep. Set to `0` to disable. Decoder replicas are skipped (they have no `state_tree_*` tables). |
 | `STATE_TREE_METRIC_MAX_NODES` | No | `2000000` | Node ceiling for a single state-tree metric pass, bounding the cost of the sweep on a large tree. |
 | `SYNC_QUERY_METRIC_INTERVAL_MS` | No | `900000` (15 m) | Interval between `[METRIC] sync_action_scoped_queries_per_block` lines, which record how many action-scoped queries a block payload cost and how many of them returned rows. The per-table read loop grows with every replicated table added, so this is how the trend against poll cadence stays observable. Set to `0` to disable. Indexer pollers only (a decoder has no action-scoped tables). |
+
+### Diagnostic Scripts (`bin/`)
+
+Read-only operator tools; neither broadcasts nor writes anything and neither is read by the running sync process itself.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `XCHAIN_SYNC_DIR` | No | `../xchain-sync` | Sibling-checkout override `bin/lib/carrier_logic_pin.js`'s `siblingDir()` resolves for cross-repo carrier-logic comparison; the `repo_guards` twin test points it at a second checkout with `XCHAIN_REQUIRE_SIBLINGS=1`. Never read by the running sync process. |
+| `XCHAIN_INDEXER_DIR` | No | `../xchain-indexer` | Sibling-checkout override for the `xchain-indexer` tree the same `siblingDir()` resolves when the pin tool compares against the indexer's canonical copy; read by literal name so the coverage gate can see it. Never read by the running sync process. |
+| `XCHAIN_HUB_DIR` | No | `../xchain-hub` | Sibling-checkout override for the `xchain-hub` tree the same `siblingDir()` resolves when the pin tool compares against the hub's copy; read by literal name so the coverage gate can see it. Never read by the running sync process. |
 
 ## Hub Discovery
 
@@ -214,7 +229,7 @@ The transparency log table (`sync_meta`) is not created for decoder replicas.
 
 ## Connection Pool Configuration
 
-Each chain/network/dbType gets its own MariaDB connection pool (from `db.js`, sized by `poolSizing.js`). Pool sizes are **per dbType**, because the two dbTypes carry very different loads: the indexer pool absorbs the poller's ~113-query-per-block fan-out plus any in-flight snapshot streams, while the decoder pool replicates 8 narrow tables.
+Each chain/network/dbType gets its own MariaDB connection pool (from `db/index.js`, sized by `db/pool_sizing.js`). Pool sizes are **per dbType**, because the two dbTypes carry very different loads: the indexer pool absorbs the poller's ~113-query-per-block fan-out plus any in-flight snapshot streams, while the decoder pool replicates 8 narrow tables.
 
 | Parameter | indexer | decoder | Description |
 |---|---|---|---|
@@ -232,7 +247,7 @@ Resolution order for every knob above: `<NAME>_<DBTYPE>`, then the flat `<NAME>`
 
 Sizing budget: a source serving 3 chains x 2 dbTypes opens 6 pools, so the defaults cost 3 x (12 + 6) = 54 connections.
 
-Measured on a regtest indexer schema with `test/perf/pool-fanout-load.js` (113 queries/block, 5 ms per query, median of 8 blocks): pool 3 = 213 ms/block, pool 5 = 129 ms, pool 12 = 55 ms, pool 20 = 34 ms. Run that script inside a container that already holds the DB credentials to re-measure on your own hardware before raising a pool.
+Measured on a regtest indexer schema with `test/perf/helpers/pool_fanout_load.js` (113 queries/block, 5 ms per query, median of 8 blocks): pool 3 = 213 ms/block, pool 5 = 129 ms, pool 12 = 55 ms, pool 20 = 34 ms. Run that script inside a container that already holds the DB credentials to re-measure on your own hardware before raising a pool.
 
 ## Circuit Breaker
 

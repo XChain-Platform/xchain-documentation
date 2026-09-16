@@ -38,7 +38,7 @@ On each polling cycle (every 5 seconds), the indexer checks the Decoder DB `even
 
 ### UTXO Tracker
 
-The UTXO tracker maintains a per-chain undo history (BTC: 12 blocks, LTC: 48 blocks, DOGE: 120 blocks, overridable via XCHAIN_UNDO_BLOCKS_<COIN>) in its LevelDB store. On detecting a chain tip change from the coin node, it rolls back blocks one at a time until its tip matches the node, then re-indexes forward.
+The UTXO tracker maintains a per-chain, per-network undo history in its LevelDB store (mainnet and regtest: BTC 12 blocks, LTC 120 blocks, DOGE 120 blocks; testnet: 120 blocks for every coin; overridable via XCHAIN_UNDO_BLOCKS_<COIN>). On detecting a chain tip change from the coin node, it rolls back blocks one at a time until its tip matches the node, then re-indexes forward.
 
 ---
 
@@ -70,7 +70,7 @@ The `index_addresses` table is intentionally left untouched: it is an append-onl
 
 ### UTXO Tracker Rollback
 
-The UTXO tracker keeps a per-chain undo window in its undo log (BTC: 12 blocks, LTC: 48 blocks, DOGE: 120 blocks; overridable via XCHAIN_UNDO_BLOCKS_<COIN>). Blocks are removed from LevelDB in reverse order until the local tip matches the coin node. A reorg deeper than the configured window would require a full re-sync from scratch; this is extremely rare on any mainnet chain.
+The UTXO tracker keeps a per-chain, per-network undo window in its undo log (mainnet and regtest: BTC 12 blocks, LTC 120 blocks, DOGE 120 blocks; testnet: 120 blocks for every coin; overridable via XCHAIN_UNDO_BLOCKS_<COIN>). Blocks are removed from LevelDB in reverse order until the local tip matches the coin node. A reorg deeper than the configured window would require a full re-sync from scratch; this is extremely rare on any mainnet chain.
 
 ```mermaid
 flowchart TD
@@ -130,7 +130,15 @@ Users should not take action based on data from blocks within the last few confi
 
 A deep reorg (more than a few blocks) is extremely rare on mainnet but can occur on testnet or regtest. The XChain decoder and indexer handle deep reorgs using the same mechanism as shallow ones, there is no hard limit on rollback depth for the MariaDB-backed services.
 
-The UTXO tracker's per-chain undo window (BTC: 12 / LTC: 48 / DOGE: 120 blocks, overridable via XCHAIN_UNDO_BLOCKS_<COIN>) is the only component with a depth limit. A reorg deeper than the configured window requires stopping the UTXO tracker, deleting its LevelDB data, and re-syncing from scratch or from a bootstrap archive.
+The UTXO tracker's per-chain, per-network undo window is the only component with a depth limit:
+
+| Network | BTC | LTC | DOGE |
+|---|---|---|---|
+| mainnet | 12 | 120 | 120 |
+| testnet | 120 | 120 | 120 |
+| regtest | 12 | 120 | 120 |
+
+Overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`. A reorg deeper than the configured window requires stopping the UTXO tracker, deleting its LevelDB data, and re-syncing from scratch or from a bootstrap archive.
 
 ---
 

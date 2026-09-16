@@ -143,7 +143,7 @@ The signer set used for the quorum check is resolved in this order:
    never consulted for the set.
 2. **Pinned launch set** (spec D4). With no `validators` and no
    `trustedCheckpoint`, the SDK consults its baked-in per-coin registry
-   (`src/pinnedCheckpoints.js`). When an entry is pinned, the quorum is checked
+   (`src/protocol/pinned_checkpoints.js`). When an entry is pinned, the quorum is checked
    against it and the explorer's `/verify` endpoint is **never** called. See
    [Pre-launch inertness](#pre-launch-inertness).
 3. **Explorer convenience set** (weakest). With nothing pinned, the SDK fetches
@@ -278,7 +278,7 @@ block forward-following uses.
 
 ## Pre-launch inertness
 
-The pinned registry (`src/pinnedCheckpoints.js`) ships `null` for every real coin
+The pinned registry (`src/protocol/pinned_checkpoints.js`) ships `null` for every real coin
 until launch values are filled in. Until then `sdk.light` behaves exactly as
 before the registry existed: with no `validators` and no `trustedCheckpoint`, it
 uses the explorer convenience set. Rotation-following is likewise inert until a

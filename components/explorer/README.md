@@ -5,7 +5,7 @@
 
 ## What is xchain-explorer
 
-xchain-explorer is the query and presentation layer of the XChain Platform. It reads from the Indexer database and exposes over 200 REST API endpoints, a JSON-RPC 2.0 interface, and a Bootstrap-based web block explorer, all from a single long-lived Node.js/Express process. The explorer never writes to any database.
+xchain-explorer is the query and presentation layer of the XChain Platform. It reads from the Indexer database and exposes over 200 REST API endpoints, a JSON-RPC 2.0 interface, and a Bootstrap-based web block explorer, all from a single long-lived Node.js/Express process. The explorer never writes to the Indexer or Decoder databases during normal serving, but it does own and write one schema of its own, the hub mirror (see [Configuration](configuration.md)).
 
 The explorer is the primary integration point for wallets, exchanges, dApps, and any application that needs to query XChain state. Developers interact with the platform through the explorer's REST API (directly or via the xchain-sdk), making this the most externally-facing component of the stack.
 
@@ -14,7 +14,7 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 - **Three interfaces**: REST API, JSON-RPC 2.0, and a web block explorer served from the same process
 - **200+ REST endpoints**: tokens, balances, transactions, market data, DEX state, addresses, blocks, files, messages, and more
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin today, on mainnet, testnet, and regtest (9 networks)
-- **Read-only**: the explorer never writes to the Indexer database
+- **Read-only against indexed state**: the explorer issues no writes to the Indexer or Decoder databases, except the optional icon downloader, which writes the indexer-owned `icons` table and so needs INSERT and UPDATE grants there. It owns and writes its own hub-mirror schema: with `"self_sync": true` it creates that schema and its tables, bootstraps them from a hub snapshot, and follows the hub's live feed, so its mirror database user needs DDL and write privileges
 - **Config discovery**: fetches configuration from xchain-hub on startup and refreshes every 60 seconds
 - **SSL/TLS support**: serves both HTTP and HTTPS with configurable certificates
 - **Rate limiting**: configurable request rate limiting (default 500 requests per minute)

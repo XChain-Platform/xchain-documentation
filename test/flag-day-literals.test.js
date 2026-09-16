@@ -56,10 +56,12 @@ const os = require('node:os');
 const path = require('node:path');
 
 const gen = require('../bin/generate-flag-days.js');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT = path.join(__dirname, '..');
 const GENERATED = path.join(DOC_ROOT, 'protocol', 'flag-days.md');
-const HAS_INDEXER = fs.existsSync(gen.REGISTRY);
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the registry is unreadable.
+const noIndexer = sibling('xchain-indexer', [gen.REGISTRY]).skip;
 
 /**
  * Flag-day dates the platform has retired. Pinned literally, which is the
@@ -104,7 +106,7 @@ function proseLines() {
     return out;
 }
 
-test('the generated flag-day page matches the indexer registry', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+test('the generated flag-day page matches the indexer registry', { skip: noIndexer }, () => {
     assert.ok(fs.existsSync(GENERATED), 'protocol/flag-days.md is missing. Run node bin/generate-flag-days.js');
     assert.strictEqual(
         fs.readFileSync(GENERATED, 'utf8'),
@@ -115,7 +117,7 @@ test('the generated flag-day page matches the indexer registry', { skip: HAS_IND
     );
 });
 
-test('all three gate-collection paths still find their gates', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+test('all three gate-collection paths still find their gates', { skip: noIndexer }, () => {
     // collectGates reads the registry with two independent regexes and then
     // scans the sibling `*_activation.js` modules, and the check above cannot
     // tell you when one of the three stops matching: it compares the COMMITTED
@@ -193,9 +195,61 @@ test('an addChange call the parse cannot read is refused, not skipped', () => {
     );
 });
 
+// The exemplar moved when the const grammar was widened to the slot parser's.
+// `1_786_060_800` is a readable decimal literal now, so the unreadable case has
+// to be a shape the literal grammar genuinely refuses. The intent this test
+// pins, that a declaration the generator cannot read is REFUSED rather than
+// dropped, is unchanged.
 test('a drifted _MAINNET_TIME constant is refused, not skipped', () => {
-    const dir = fixtureRegistry('const FOO_MAINNET_TIME = 1_786_060_800;\n');
+    const dir = fixtureRegistry('const FOO_MAINNET_TIME = 0x6A7B8C9D;\n');
     assert.throws(() => gen.collectGates(dir), /FOO_MAINNET_TIME/);
+});
+
+/*  ------------------------------------------------------------------
+ *  The CONSTANT DECLARATION, read by the same literal grammar as a slot
+ *  ------------------------------------------------------------------
+ *
+ *  The const scanners demanded bare digits while the slot parser accepted
+ *  separators, so `const FOO_TESTNET_TIME = 1_789_257_600;` consumed by an
+ *  addChange call resolved to null and its gate dropped out of the testnet
+ *  table in silence, extending the page's "genesis-active off mainnet" claim
+ *  over a gate that arms on a date of its own. Nothing threw: the completeness
+ *  guard scans MAINNET declarations only, and three of the four collectors
+ *  never reach it.
+ */
+
+test('a separator-bearing testnet constant consumed by a call still publishes its gate', () => {
+    const dir = fixtureRegistry(
+        'const FOO_TESTNET_TIME = 1_787_961_600;\n'
+        + "this.addChange('FOO', '1.0.0', 9999999999, FOO_TESTNET_TIME, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(
+        gen.collectTestnetArms(dir).map((g) => [g.gate, g.time]),
+        [['FOO', 1787961600]],
+    );
+});
+
+test('a separator-bearing testnet constant no call consumes publishes under its prefix', () => {
+    const dir = fixtureRegistry('const FOO_TESTNET_TIME = 1_787_961_600;\n');
+    assert.deepStrictEqual(
+        gen.collectTestnetArms(dir).map((g) => [g.gate, g.time]),
+        [['FOO', 1787961600]],
+    );
+});
+
+test('a separator-bearing mainnet constant reaches collectGates', () => {
+    const dir = fixtureRegistry('const FOO_MAINNET_TIME = 1_786_060_800;\n');
+    assert.deepStrictEqual(
+        gen.collectGates(dir).map((g) => [g.gate, g.time]),
+        [['FOO', 1786060800]],
+    );
+});
+
+test('an unreadable _TESTNET_TIME declaration is loud on every arm', () => {
+    const dir = fixtureRegistry('const FOO_TESTNET_TIME = 1787961600 + 86400;\n');
+    for (const arm of ['collectGates', 'collectTestnetArms', 'collectTestnetUnarmed', 'collectMainnetUnarmed']) {
+        assert.throws(() => gen[arm](dir), /FOO_TESTNET_TIME/, `${arm} dropped the declaration in silence`);
+    }
 });
 
 /*  ------------------------------------------------------------------
@@ -510,11 +564,11 @@ test('the legitimately quiet sibling shapes do not throw', () => {
     assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
 });
 
-test('the real registry parses clean, so the check is not merely strict', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+test('the real registry parses clean, so the check is not merely strict', { skip: noIndexer }, () => {
     assert.ok(gen.collectGates().length > 0);
 });
 
-test('the generated page is the only place a live flag-day value appears', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+test('the generated page is the only place a live flag-day value appears', { skip: noIndexer }, () => {
     const gates = gen.collectGates();
     const liveDates = new Set(gates.map((g) => gen.utcDate(g.time)));
     const liveStamps = new Set(gates.map((g) => String(g.time)));
@@ -554,7 +608,7 @@ test('no retired flag-day value survives anywhere in the prose', () => {
         + bad.join('\n'));
 });
 
-test('every retired value is genuinely retired in the current registry', { skip: HAS_INDEXER ? false : 'no sibling xchain-indexer checkout' }, () => {
+test('every retired value is genuinely retired in the current registry', { skip: noIndexer }, () => {
     const live = new Set(gen.collectGates().map((g) => String(g.time)));
     for (const stamp of RETIRED_TIMESTAMPS) {
         assert.ok(!live.has(stamp),

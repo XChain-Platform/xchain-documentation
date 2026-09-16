@@ -117,10 +117,17 @@ const { doc, json } = sdk.nft.tisDocument({
     imageCoin:        null,                 // optional; base coin ticker when artwork
                                             //   is on a sibling chain (e.g. 'DOGE')
     imageUrl:         null,                 // optional; off-chain URL (data_ref preferred)
-    imageType:        'image/png',          // optional; artwork MIME type
+    imageType:        'image/png',          // optional; written verbatim to images[].type
     imageName:        'artwork.png'         // optional; artwork filename
 });
 ```
+
+`imageType` is written to the entry's `type` unchanged. In the [Token Information
+Standard](../../protocol/token-information-standard.md) that field is a display
+role, one of `icon`, `standard`, `large` or `hires`, so a MIME value such as
+`image/png` is rejected by every published TIS schema and is skipped by the
+explorer's icon selection. Pass a role token instead; the artwork's media type
+comes from the referenced `FILE` action, not from this field.
 
 **`doc` shape:**
 

@@ -44,9 +44,12 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT   = path.join(__dirname, '..');
 const SITE_BUILD = path.resolve(DOC_ROOT, '../xchain-websites/docs.xchain.io/build/docs.build.js');
+// Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the site build is unreadable.
+const noSite     = sibling('xchain-websites', [SITE_BUILD]).skip;
 
 // Must match the site's markdown-it-anchor slugify. Punctuation is removed,
 // not replaced; runs of whitespace collapse to one hyphen.
@@ -275,7 +278,7 @@ describe('internal link integrity', () => {
 
     // Without this, the copy above could drift from the renderer and quietly
     // start validating against a rule the site does not use.
-    test('the slug rule still matches the docs site', { skip: !fs.existsSync(SITE_BUILD) && 'xchain-websites not present in this checkout' }, () => {
+    test('the slug rule still matches the docs site', { skip: noSite }, () => {
         const source = fs.readFileSync(SITE_BUILD, 'utf8');
         const m = /slugify:\s*\(s\)\s*=>\s*([^\n]+?)\s*\}\)/.exec(source);
         assert.ok(m, 'could not find the slugify option in docs.build.js; this gate needs updating');

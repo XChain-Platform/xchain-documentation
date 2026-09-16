@@ -93,7 +93,7 @@ ordinary.
 
 ## Reader behavior (fail-closed)
 
-Reference readers: `contract-introspect.js` in xchain-explorer (served as the
+Reference readers: `contract/introspect.js` in xchain-explorer (served as the
 `abi` field on `GET /{COIN}/api/contract/{idx}`) and
 `ContractUtils.parseAbi()` in xchain-sdk. Both apply the same rules:
 

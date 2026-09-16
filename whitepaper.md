@@ -15,7 +15,7 @@
 
 ## Abstract
 
-XChain is a token-and-settlement **metalayer** for UTXO blockchains. It embeds a complete digital-asset protocol (tokens, a native decentralized exchange, trustless cross-chain swaps, on-chain data and messaging, and a deterministic smart-contract virtual machine) inside ordinary transactions on an unmodified base chain, so that every asset and every state transition is secured directly by the host chain's existing proof-of-work consensus. There are no sidechains, no bridges, and no new consensus layer to trust.
+XChain is a token-and-settlement **metalayer** for UTXO blockchains. It embeds a complete digital-asset protocol (tokens, a native decentralized exchange, trustless cross-chain swaps, a cross-chain token bridge, on-chain data and messaging, and a deterministic smart-contract virtual machine) inside ordinary transactions on an unmodified base chain, so that every asset and every state transition is secured directly by the host chain's existing proof-of-work consensus. There is no sidechain and no new consensus layer to trust; cross-chain trading settles without a bridge, and the one bridge the platform runs moves only its own fee token between chains.
 
 The protocol is chain-agnostic by construction. It is deployed and running on **Bitcoin, Litecoin, and Dogecoin**, on mainnet as well as testnet, with the XCHAIN distribution and the protocol freeze still ahead of it (§13.3, §16); adding any further UTXO chain is a configuration change rather than a protocol change, and the platform is designed to extend toward a broad set of blockchains over time. The same protocol, the same ACTION set, and the same tooling operate identically across every supported chain.
 
@@ -37,7 +37,7 @@ XChain takes the opposite path. It is a **metalayer**: a protocol layered *above
 
 Three commitments run through every layer of the system.
 
-**Inherited security.** XChain introduces no new chain, no new consensus for transaction ordering, and no bridge. Finality, ordering, and double-spend resistance come entirely from the host chain. The validator network described in §10 exists only for configuration, price data, cross-chain coordination, and attestation, never for ordering or settling token state.
+**Inherited security.** XChain introduces no new chain and no new consensus for transaction ordering; finality, ordering, and double-spend resistance come entirely from the host chain, and no bridge sits in that path. The validator network described in §10 exists for configuration, price data, cross-chain coordination, attestation, and the lock-and-mint bridge that moves the platform's own fee token between chains; none of that authority extends to ordering or settling base-layer token state on any host chain.
 
 **Determinism.** Every node that processes the same base-chain data computes byte-identical state. There is no randomness, no wall-clock-dependent branching, and no un-replayable external input anywhere in state processing. This is the property that makes the system independently verifiable: anyone can run the software, replay the chain from genesis, and confirm every balance for themselves.
 
@@ -98,7 +98,7 @@ XChain is a pipeline of independent services, each runnable separately and most 
 | **utxo-tracker** | Indexes every transaction output from a coin node; serves address balances and spendable UTXOs | LevelDB |
 | **encoder** | Stateless; turns an ACTION string plus UTXOs plus pubkey into an unsigned PSBT | none |
 | **decoder** | Polls a coin node, extracts and de-obfuscates XChain transactions from blocks, writes raw decoded data | MariaDB (decoder DB) |
-| **indexer** | Reads the decoder DB, validates and applies ACTION logic, runs the VM, maintains the ledger | MariaDB (indexer DB) |
+| **indexer** | Reads the decoder DB and a local read-only hub mirror, validates and applies ACTION logic, runs the VM, maintains the ledger | MariaDB (indexer DB, plus the local hub mirror) |
 | **explorer** | Stateless REST plus JSON-RPC plus WebSocket plus web UI over the indexer DB | none |
 | **hub** | Decentralized config oracle, price oracle, cross-chain coordinator, attestation engine, governance | MariaDB (hub DB) |
 | **sync** | Replicates the decoder and indexer DBs to validators via REST snapshots and WebSocket streaming | none |
@@ -139,9 +139,9 @@ The pipeline is strictly unidirectional: raw data enters at the decoder, is prom
 
 The separation of *extraction* (decoder) from *interpretation* (indexer) is deliberate and yields three properties the protocol depends on:
 
-- **Replay.** The indexer DB is a pure function of the decoder DB. Destroy it and re-run the indexer against the same decoder DB and you obtain bit-for-bit identical state.
-- **Independent verification.** Multiple indexers reading the same decoder DB converge to identical state, including identical per-block integrity hashes (§5.5).
-- **Auditability.** Any balance traces through ledger entries to an exact block and action; the decoder DB itself is reproducible from the raw chain, so the entire indexer state is ultimately derivable from the blockchain alone.
+- **Replay.** The indexer DB is a pure function of the decoder DB and the local hub-mirror tables the indexer reads during block processing. Destroy it and re-run the indexer against the same decoder DB and an equivalent hub mirror and you obtain bit-for-bit identical state.
+- **Independent verification.** Multiple indexers reading the same decoder DB and the same hub-mirrored rows converge to identical state, including identical per-block integrity hashes (§5.5).
+- **Auditability.** Any balance traces through ledger entries to an exact block and action; the decoder DB itself is reproducible from the raw chain and the hub-mirrored rows are chain-derived as well (PRICE actions, plus validator stake and reward tables synced from BTC indexer state, aggregated across chains by the hub), so the entire indexer state is ultimately derivable from the chains.
 
 ---
 
@@ -172,7 +172,7 @@ The encoder measures the obfuscated payload and selects a format that fits. The 
 | Format | Per-output data capacity | Txs | Mechanism | Notes |
 |---|---|---|---|---|
 | **OP_RETURN** | 80 bytes total (incl. 4-byte prefix) | 1 | Data in a provably-unspendable output | No UTXO bloat; the common case |
-| **Bare multisig** | 60 data bytes per key slot | 1 | Payload packed into fake pubkey slots of an `m-of-n` multisig | Single-tx flow for medium payloads; leaves a spendable (dust) output |
+| **Bare multisig** | 60 data bytes per output (two 32-byte key slots) | 1 | Payload packed into fake pubkey slots of an `m-of-n` multisig | Single-tx flow for medium payloads; leaves a spendable (dust) output |
 | **P2SH** | 476 bytes per chunk, many outputs | 2 | Fund a script hash, then reveal the redeem script in the spend's scriptSig | Fund must reach mempool before the spend is valid |
 | **P2WSH** | 476 bytes per chunk, many outputs | 2 | Fund a witness script hash, then reveal the witness script | SegWit witness discount makes this the most fee-efficient chunked format |
 | **Taproot envelope** | up to 390,000 bytes in one witness | 2 | Commit to a P2TR output whose script tree holds one data leaf; reveal it through the script path | BTC and LTC only (DOGE has no SegWit); the large-payload carrier |
@@ -279,13 +279,13 @@ All database writes for a block commit inside one MariaDB transaction: the whole
 token_supply == SUM(credits) - SUM(debits)
 ```
 
-A mismatch is a fatal violation: the transaction rolls back and the indexer halts rather than persist inconsistent state. On a host-chain reorganization, the decoder detects the divergent block hash, records the fork point, and the indexer rolls back all affected tables atomically (deleting rows at or above the fork's first action index), recomputes balances from the remaining ledger, and re-indexes the canonical fork. The utxo-tracker keeps a per-chain reorg undo window (default BTC 12, LTC 48, DOGE 120 blocks, env-overridable) for the same purpose.
+A mismatch is a fatal violation: the transaction rolls back and the indexer halts rather than persist inconsistent state. On a host-chain reorganization, the decoder detects the divergent block hash, records the fork point, and the indexer rolls back all affected tables atomically (deleting rows at or above the fork's first action index), recomputes balances from the remaining ledger, and re-indexes the canonical fork. The utxo-tracker keeps a per-chain, per-network reorg undo window (mainnet/regtest default BTC 12, LTC 120, DOGE 120 blocks; testnet 120 for every coin; env-overridable) for the same purpose.
 
 ---
 
 ## 6. The ACTION Set
 
-The protocol defines 37 named ACTIONs across ten categories. Of these, 31 are user-submittable (all except ANCHOR, ATTEST, NODEPROOF, ROLLCALL, SLASH, and XCALL); the remaining six are validator-broadcast, VM-emitted, or permissionless-proof actions described where relevant, along with system-synthesized actions (order/swap matching and expiry, betting market close and expiry, cross-chain settlement, XCALL relay, and so on). Thirty-six of the 37 are decoded from a wire transaction; XCALL alone is mirror-injected into the destination chain's index instead. All user ACTIONs are available on every supported chain unless noted. A `^`-prefixed ticker field passes a numeric token id instead of a name.
+The protocol defines 38 named ACTIONs across ten categories. Of these, 32 are user-submittable (all except ANCHOR, ATTEST, NODEPROOF, ROLLCALL, SLASH, and XCALL); the remaining six are validator-broadcast, VM-emitted, or permissionless-proof actions described where relevant, along with system-synthesized actions (order/swap matching and expiry, betting market close and expiry, cross-chain settlement, XCALL relay, and so on). Thirty-seven of the 38 are decoded from a wire transaction; XCALL alone is mirror-injected into the destination chain's index instead. All user ACTIONs are available on every supported chain unless noted. A `^`-prefixed ticker field passes a numeric token id instead of a name.
 
 ### 6.1 Token lifecycle
 
@@ -747,7 +747,7 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 | Stake-weighted quorum (at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`; gated on the validator-era batch, §10.2) | combined signer stake, deduplicated by stake SOURCE, > 2/3 of total active stake |
 | Trimmed-median trim | top/bottom 15% |
 | Governance | 7-day vote, 50% quorum, two-thirds approval, 14-day re-proposal cooldown |
-| utxo-tracker reorg undo window | BTC 12 / LTC 48 / DOGE 120 blocks (default, env-overridable) |
+| utxo-tracker reorg undo window | mainnet/regtest BTC 12 / LTC 120 / DOGE 120; testnet 120 for every coin (default, env-overridable) |
 | Capability stake activation / cooldown | ~6 BTC blocks / 1,000 blocks (governance-set) |
 | XCHAIN supply | 100,000,000 (8 decimals), capped at genesis, zero pre-mint, BTC-chain only |
 | XCHAIN genesis distribution (§13.3; **pre-launch, not final**) | 30% holder airdrop / 25% open mint / 20% treasury / 10% liquidity / 9.7% validators / 5.3% reward pool / 0% team |

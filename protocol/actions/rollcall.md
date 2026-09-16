@@ -77,7 +77,7 @@ EQUIV|XROLLCALL|<EPOCH_HEIGHT>|0||<network>|<EPOCH_HEIGHT>|<ledger_hash(EPOCH_HE
 The DOGE indexer has no BTC view: no stake rows, no BTC ledger hashes, no responsible set. It decides **structure only**. Validation, in order, each failure recorded as `invalid: <reason>`:
 
 1. The indexer's own coin must be `DOGE`, else `invalid: ROLLCALL only valid on DOGE`.
-2. `ROLLCALL_ACTIVATION[network]` must be finite and `EPOCH_HEIGHT >=` it, else `invalid: VERSION (unknown)`. A non-finite gate (mainnet's `null`) means inert. The value compared is the carried **BTC** `EPOCH_HEIGHT`, the same number the BTC close gates on, so a pre-activation roll call is inert on both chains and no DOGE-height flag day exists.
+2. `ROLLCALL_ACTIVATION[network]` must be finite and `EPOCH_HEIGHT >=` it, else `invalid: VERSION (unknown)`. A non-finite gate means inert; mainnet reads `0` (armed at genesis under the 2026-09-09 ruling) and an un-opted-in regtest venue is the `null` case. The value compared is the carried **BTC** `EPOCH_HEIGHT`, the same number the BTC close gates on, so a pre-activation roll call is inert on both chains and no DOGE-height flag day exists.
 3. `EPOCH_HEIGHT % ROLLCALL_INTERVAL_BLOCKS[network] == 0`, else `invalid: EPOCH_HEIGHT`. No staleness or accept-window check here: those compare BTC heights and belong to the BTC close.
 4. `LEDGER_HASH` and `PUBLISHER` must be 64 hex (lowercased before use), else `invalid: LEDGER_HASH` / `invalid: PUBLISHER`.
 5. Every `SIG_i` must verify over the canonical rebuilt from `(network, EPOCH_HEIGHT, LEDGER_HASH)`, with no duplicate pubkey. Dedupe in wire order, and mark a key seen only **after** its signature verifies, so a garbage pair before a valid one cannot suppress the valid one. A roll call with zero valid pairs is `invalid: SIG_COUNT`.
@@ -127,7 +127,7 @@ All eight values are **consensus** and frozen in `protocol/constants.js`, with b
 
 | Constant | mainnet | testnet | regtest | Unit |
 |---|---|---|---|---|
-| `ROLLCALL_ACTIVATION` | `null` (inert) | 151200 | `null` (inert), arms at `0` on opt-in | BTC height |
+| `ROLLCALL_ACTIVATION` | 0 (armed at genesis) | 151200 | `null` (inert), arms at `0` on opt-in | BTC height |
 | `ROLLCALL_INTERVAL_BLOCKS` | 1008 | 1008 | 30 | BTC blocks |
 | `ROLLCALL_ACCEPT_WINDOW_BLOCKS` | 144 | 144 | 12 | BTC blocks |
 | `ROLLCALL_PROOF_DELAY_BLOCKS` | 36 | 36 | 2 | BTC blocks |
@@ -136,7 +136,7 @@ All eight values are **consensus** and frozen in `protocol/constants.js`, with b
 | `ROLLCALL_STREAK_LOOKBACK` | 4 | 4 | 4 | rolled epochs |
 | `ROLLCALL_REWARD_AMOUNT` | `10.00000000` | `10.00000000` | `10.00000000` | XCHAIN |
 
-Every gate keys on the carried BTC `EPOCH_HEIGHT`, never on either chain's local height. Mainnet ships inert: the operator pins that height with the mainnet federation.
+Every gate keys on the carried BTC `EPOCH_HEIGHT`, never on either chain's local height. Mainnet is armed at genesis (`0`) under the 2026-09-09 ruling: the indexed mainnet history holds zero validators and zero roll calls, so arming from block 0 reinterprets nothing.
 
 **Regtest is the one network whose height a venue pins for itself.** Every other value here is fixed in source and unreadable from the environment, because on a shared ledger a tunable consensus input is a fork waiting to happen. A regtest chain is private, so no two venues validate the same blocks and nothing a venue pins can fork anybody. It still ships inert, because arming a network commits every BTC indexer on it to a wired DOGE peer, and a single-coin BTC venue would defer forever at its first close. A two-chain venue opts in by setting `XC_ROLLCALL_REGTEST_ACTIVATION=armed` on every BTC indexer and hub it runs, which arms the network at height `0`; the same variable also takes a bare height for a venue whose epochs should begin above an already-indexed prefix. Anything unrecognised leaves the venue inert. Because `ROLLCALL_ACTIVATION` is one of the shared gates in the consensus-rules digest, a venue that arms its hubs and forgets its indexer reports a rules mismatch rather than disagreeing silently about which epochs exist.
 

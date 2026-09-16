@@ -50,14 +50,21 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
+const { moduleExists, readModuleSource } = require('../lib/indexer-source.js'); // an entry plus every part it was split into
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT = process.env.XCHAIN_DOCS_ROOT || path.join(__dirname, '..');
 const INDEXER  = path.resolve(path.join(__dirname, '..'), '../xchain-indexer/src');
 
-const haveIndexer = fs.existsSync(path.join(INDEXER, 'actions', 'order.js'));
-const skipNoIndexer = !haveIndexer && 'sibling xchain-indexer not present in this checkout';
+/* Skips by name on a bare clone. A run that declared the sibling supplied
+ * (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set, with xchain-indexer
+ * in .ci-siblings) throws in the helper instead, so a dropped checkout cannot leave the
+ * source half uncompared while the file still reports green. Both spellings of the entry
+ * are tried, since the indexer's split convention moves `order.js` to `order/index.js`. */
+const skipNoIndexer = sibling('xchain-indexer',
+    [[path.join(INDEXER, 'actions', 'order.js'), path.join(INDEXER, 'actions', 'order', 'index.js')]]).skip;
 
-const readSrc = (rel) => fs.readFileSync(path.join(INDEXER, rel), 'utf8');
+const readSrc = (rel) => readModuleSource(path.join(INDEXER, rel));
 const readDoc = (rel) => fs.readFileSync(path.join(DOC_ROOT, rel), 'utf8');
 
 const creating  = readDoc('user-guide/creating-tokens.md');
@@ -181,10 +188,11 @@ test('the ownership-sale and key-handoff source facts still hold', { skip: skipN
         'send.js no longer enforces the key-handoff MESSAGE, so the guide\'s '
         + '"only a direct send carries the key" wording is no longer accurate');
 
-    const others = ['actions/order_match.js', 'actions/dispense.js', 'actions/cross_settle.js']
-        .filter((rel) => fs.existsSync(path.join(INDEXER, rel)));
-    assert.ok(others.length > 0, 'none of the DEX settlement handlers were found to check');
+    const others = ['actions/order_match.js', 'actions/dispense.js', 'actions/cross_settle/index.js'];
     for(const rel of others){
+        assert.ok(moduleExists(path.join(INDEXER, rel)),
+            `${rel} is missing from the sibling indexer checkout. A moved or renamed settlement `
+            + 'handler must be repointed here, not silently dropped from the set this test checks.');
         assert.ok(!/requires key handoff message/.test(readSrc(rel)),
             `${rel} now enforces a key handoff. If a settlement path delivers the key, the `
             + 'guide\'s "a buyer on the DEX gets no key" wording must change.');
@@ -196,9 +204,9 @@ test('the ownership-sale and key-handoff source facts still hold', { skip: skipN
         'transferTokenOwnership now emits a MESSAGE. If an ownership sale delivers key '
         + 'material, use-cases.md\'s archive bullet must change back.');
 
-    const crossSettle = readSrc('actions/cross_settle.js');
+    const crossSettle = readSrc('actions/cross_settle/index.js');
     assert.match(crossSettle, /transferTokenOwnership\(/,
-        'cross_settle.js no longer settles an ownership leg locally, which is the fact behind '
+        'cross_settle/index.js no longer settles an ownership leg locally, which is the fact behind '
         + 'the "each chain hands over its own side" wording');
 });
 
@@ -208,7 +216,7 @@ test('the guide scopes ownership-sale atomicity to a single chain', () => {
     assert.match(answer, /settles on one chain|single-chain/,
         'faq.md again claims an issuer-rights sale settles in a single blockchain transaction '
         + 'without scoping it to one chain. A cross-chain swap settles each leg separately '
-        + '(cross_settle.js).');
+        + '(cross_settle/index.js).');
     assert.match(answer, /cross-chain\.md#residual-risk/,
         'faq.md no longer points at the cross-chain residual-risk section');
 

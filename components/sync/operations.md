@@ -781,7 +781,7 @@ Set `SYNC_EXCLUDE=COIN:network:dbType` (comma-separated, e.g. `DOGE:testnet:inde
 
 By default, `VERIFY_STATE_COMMITMENT=true` recomputes the per-block SPV state-commitment roots (balances and block Merkle root) from the replica and compares them to the source. If the replica was built from a truncated bootstrap, the root recompute will always diverge; disable it with `VERIFY_STATE_COMMITMENT=false` on those replicas.
 
-`VERIFY_CHECKPOINT_QUORUM=true` anchors the replica's computed `state_root` to a quorum-signed checkpoint instead of trusting the source's claim alone. This is the only mechanism that closes the single-source trust gap that `VERIFY_STATE_COMMITMENT` (which still trusts the same source for the claimed root) cannot close. It requires a pinned validator set in `src/pinnedValidators.js` and a `CHECKPOINT_VERIFY_INTERVAL` probe interval (default: every 50 applied blocks).
+`VERIFY_CHECKPOINT_QUORUM=true` anchors the replica's computed `state_root` to a quorum-signed checkpoint instead of trusting the source's claim alone. This is the only mechanism that closes the single-source trust gap that `VERIFY_STATE_COMMITMENT` (which still trusts the same source for the claimed root) cannot close. It requires a pinned validator set in `src/client/pinned_validators.js` and a `CHECKPOINT_VERIFY_INTERVAL` probe interval (default: every 50 applied blocks).
 
 `INDEX_MAP_PARITY_CHECK=true` enables an advisory index-address map consistency check. It never halts replication; mismatches are logged and counted only. Requires an index on `index_addresses.block_index` before enabling on a high-volume chain.
 

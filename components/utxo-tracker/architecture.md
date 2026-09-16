@@ -50,14 +50,13 @@ flowchart TD
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server, REST + JSON-RPC endpoints, env var loading, bootstrap/restore tasks |
 | `src/XChainUtxoTracker.js` | `XChainUtxoTracker` | Main orchestrator: block polling loop, reorg detection, two-pass transaction processing, balance queries, mempool updates |
-| `src/LevelUpDb.js` | `LevelUpStore` | LevelDB abstraction: binary key encoding/decoding, batch transactions, range scans, all 12 prefix type operations |
-| `src/BlockchainConnector.js` | `BlockchainConnector` | HTTP JSON-RPC client for coin node: block fetching, batch requests, mempool queries, connection pooling (25 sockets) |
-| `src/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parser: standard Bitcoin blocks, AuxPoW header stripping for Dogecoin/Litecoin HogEx |
-| `src/CryptoNetworks.js` | `CryptoNetworks` | Network parameter lookup: maps network names to bitcoinjs-lib network objects for 9 network variants |
-| `src/util.js` | None | Utility functions: timing, hex/uint8 conversion, formatting |
-| `src/bufferutils.js` | `BufferReader`, `BufferWriter` | Binary buffer reading/writing: UInt8/16/32/64LE, VarInt, slices |
-| `src/db.js` | `Database` | Legacy MariaDB abstraction (connection pool, parameterized queries); not used by the main LevelDB pipeline but retained for compatibility |
-| `src/fm.js` | `FileManager` | File manager: reads and writes block/transaction/input/output flat-file exports used by offline processing workflows |
+| `src/store/level_up_db.js` | `LevelUpStore` | LevelDB abstraction: binary key encoding/decoding, batch transactions, range scans, all 12 prefix type operations |
+| `src/chain/blockchain_connector.js` | `BlockchainConnector` | HTTP JSON-RPC facade: wires transport, batch fetching, block queries, mempool tracking, AuxPoW codec, RPC helpers, and connection pooling |
+| `src/chain/blockchain_connector/` | (multiple) | Part modules: auxpow_codec (AuxPoW header encoding and decoding), batch_fetch (parallel block and hash fetching), block_queries (blockchain info and block data retrieval), rpc_helpers (RPC error handling and node health tracking), transport_and_mempool (HTTP client and mempool synchronization), constants (logging configuration) |
+| `src/chain/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parser: standard Bitcoin blocks, AuxPoW header stripping for Dogecoin/Litecoin HogEx |
+| `src/chain/crypto_networks.js` | `CryptoNetworks` | Network parameter lookup: maps network names to bitcoinjs-lib network objects for 9 network variants |
+| `src/common/util.js` | None | Utility functions: timing, hex/uint8 conversion, formatting |
+| `src/chain/bufferutils.js` | `BufferReader`, `BufferWriter` | Binary buffer reading/writing: UInt8/16/32/64LE, VarInt, slices |
 | `src/bulk-sync/` | (multiple) | Bulk-sync pipeline: offline parallel parse and load for initial database population on an empty DB (orchestrator, parse worker, merger, writers, loader, validator, and supporting utilities) |
 
 ## LevelDB Key Schema
@@ -91,7 +90,7 @@ Two string keys are also used as checkpoints:
 
 **H key (output hint)**: Maps an outpoint (txHash8 + index) back to its scriptHash. When processing an input that spends an output, the tracker reads the H hint to find the scriptHash, then deletes the corresponding O record. Without H, the tracker would need to scan all O records to find the one being spent.
 
-**K/M keys (deleted archives)**: When a UTXO is spent, the O and H records are deleted, but copies are saved as K and M records keyed by blockHash. If a reorg rolls back that block, the K/M records are restored to O/H. After `DEFAULT_UNDO_BLOCKS` (BTC: 12, LTC: 120, DOGE: 120) subsequent blocks, the K/M records are purged.
+**K/M keys (deleted archives)**: When a UTXO is spent, the O and H records are deleted, but copies are saved as K and M records keyed by blockHash. If a reorg rolls back that block, the K/M records are restored to O/H. After `DEFAULT_UNDO_BLOCKS` subsequent blocks (mainnet and regtest: BTC 12, LTC 120, DOGE 120; testnet: 120 for every coin), the K/M records are purged.
 
 **txHash8 truncation**: Transaction hashes are truncated to 8 bytes in index keys (T, I, O, H, J, K, M, W). The full 32-byte hash is stored in O values for API responses. 8-byte truncation provides sufficient uniqueness for index lookups while halving key sizes.
 
@@ -172,7 +171,7 @@ flowchart TD
     DETECT --> WALK --> FORK --> ROLLBACK --> RESET --> RESUME
 ```
 
-The undo window is determined per chain: BTC 12 blocks, LTC 48 blocks, DOGE 120 blocks (overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`). Reorgs exceeding the configured window throw an error and require a full re-index.
+The undo window is determined per chain and per network (mainnet and regtest: BTC 12 blocks, LTC 120 blocks, DOGE 120 blocks; testnet: 120 blocks for every coin; overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`). Reorgs exceeding the configured window throw an error and require a full re-index.
 
 ## Mempool Tracking
 

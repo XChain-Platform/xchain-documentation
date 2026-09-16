@@ -3,7 +3,7 @@
 
 # XChain Platform Hub: Database Schema
 
-The hub uses a single MariaDB database (e.g., `XChain_Hub`) for all state. The database and all tables are auto-created on first startup. SQL schema files live in `src/sql/*.sql` and are loaded by `db.js`.
+The hub uses a single MariaDB database (e.g., `XChain_Hub`) for all state. The database and all tables are auto-created on first startup. SQL schema files live in `src/sql/*.sql` and are loaded by `src/db/index.js`.
 
 ## Config Tables
 
@@ -183,6 +183,8 @@ The durable at-most-once marker for PRICE v0 round broadcasts, written by `Oracl
 | `reorg_attestations` | Confirmed blockchain reorg events |
 | `cross_chain_matches` | PBFT-finalized DEX order match records (dispatch to indexers via hub-DB mirror) |
 | `cross_chain_calls` | PBFT-finalized XCALL dispatch and result records (relay to indexers via hub-DB mirror) |
+| `bridge_transfers` | PBFT-finalized bridge transfer records: one signed row per confirmed lock or burn, carrying `tick`, `decimals` and `amount`, from which the destination indexer injects the XBRIDGE settle leg (mirror to indexers) |
+| `policy_snapshots` | PBFT-finalized per-token policy snapshots (allow list, block list, tick sleep) a destination chain materializes onto a bridged copy. Append-only, latest-wins by `policy_seq`, on the `state_checkpoints` terms (mirror to indexers) |
 
 ### `attestations`
 
@@ -452,7 +454,7 @@ Tracks XCHAIN rewards earned by validators for participating in oracle rounds. R
 
 ### `slash_proposals`
 
-Records detected validator misbehavior for governance review. The hub detects violations but does not execute slashing directly, actual slashing occurs via the indexer's staking contract.
+Records detected validator misbehavior for governance review. The offenses recorded here (`price_deviation`, `repeated_deviation`, `non_participation`, attestation divergence) are hub-local: a governance vote can suspend the validator, and on-chain stake is untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which is a separate on-chain path this table does not feed.
 
 | Column | Type | Description |
 |---|---|---|

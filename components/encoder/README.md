@@ -76,9 +76,9 @@ Because SegWit witness data is discounted when calculating transaction weight, P
 
 ### Multisig
 
-Payload capacity: **approximately 61 bytes per key**
+Payload capacity: **60 bytes per multisig output** (two 32-byte key slots carry the payload)
 
-The payload is split across the public key positions of a bare multisig output (`OP_m ... OP_n OP_CHECKMULTISIG`). This is a single-transaction format. The decoder reads the fake public keys from the output to extract the payload.
+The payload is split across the public key positions of a bare multisig output (`OP_m ... OP_n OP_CHECKMULTISIG`). Each output carries one 64-byte chunk, a 4-byte magic prefix plus 60 bytes of data, spread over two fake 32-byte public keys, so capacity does not grow with additional key slots. This is a single-transaction format. The decoder reads the fake public keys from the output to extract the payload.
 
 Multisig encoding is an alternative for payloads that exceed OP_RETURN's 76-byte user-data limit but where the caller prefers a single-transaction flow. The encoder handles splitting and padding automatically.
 
@@ -159,6 +159,8 @@ npm run api
 | `ENCODER_MAX_CONCURRENT_REQUESTS` | No | `50` | Concurrency cap for everything that is not a probe. Same immediate-`429` behaviour, and `0` likewise disables it |
 | `CORS_ORIGIN` | No | Disabled | CORS origin (`*` to allow all) |
 | `ENCODER_MAINTENANCE_FILE` | No | `/tmp/xchain-encoder-maintenance.json` | Path, inside the encoder container, to the maintenance-window sentinel that `GET /status` reads before reporting an unreachable UTXO tracker. When xchain-node's bootstrap stops the tracker for a scheduled publish, it drops a small JSON file here declaring the outage planned; `/status` then folds that in as context alongside the unchanged readiness fields, so the public status board can show "Maintenance" instead of "Degraded" without ever making an unready encoder read ready. Must be set to the same path as xchain-node's `XCHAIN_NODE_ENCODER_MAINTENANCE_FILE`, since that variable is what writes and removes the file this one points at |
+| `ENCODER_REPLICAS` | No | `1` (unset) | Deploy-manifest declaration of the horizontal replica count, checked at boot. Any value above `1` is refused: the UTXO outpoint-reservation double-spend guard, the recent-build duplicate refusal and the rate limiter are all in-process, so two replicas could build PSBTs spending the same UTXO or journal one byte-identical transaction as two successes. Unset or empty passes as the default single-replica deploy |
+| `ENCODER_INSTANCE_LOCK_FILE` | No | `<tmpdir>/xchain-encoder-<ENCODER_API_PORT>.lock` | Path to the same-host PID lockfile the encoder takes exclusively at boot, so two encoder processes accidentally started on one host fail fast instead of racing UTXO selections. Does not see replicas on other hosts or containers; `ENCODER_REPLICAS` is the cross-host declaration |
 
 ## Testing
 

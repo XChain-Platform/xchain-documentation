@@ -3,7 +3,7 @@
 
 # Security & Threat Model
 
-This document names what the wallet defends against, what it deliberately doesn't, and which mitigations ship today. It tracks the in-repo `docs/Threat_Model.md` and the §12 + §14 sections of the wallet specification.
+This document names what the wallet defends against, what it deliberately doesn't, and which mitigations ship today. It tracks the [threat model](threat-model.md) and the §12 + §14 sections of the wallet specification.
 
 ## Protected assets
 
@@ -11,9 +11,9 @@ This document names what the wallet defends against, what it deliberately doesn'
 |---|---|---|
 | BIP39 seed phrase | Only in the user's possession (paper / hardware). Encrypted at rest in the vault. | Full loss of funds across every chain the wallet derives |
 | Wallet master key | Derived from password via Argon2id; held in memory while unlocked | Decryption of the persisted vault → access to all private keys |
-| Vault blob | `chrome.storage.local` (extension), IndexedDB (web), or encrypted file (desktop). AES-256-GCM with the master key | Offline access to the ciphertext. Still requires the password to decrypt |
-| Session master key | `chrome.storage.session` (extension), OS keychain (desktop, optional), or in-memory (web). Cleared on browser close / tab close | Skips the Argon2id cost of re-unlocking. Not the raw password |
-| User password | Never persisted. In memory only during unlock / sign, zeroed after use | Full access to every locked vault on the device |
+| Vault blob | `chrome.storage.local` (extension), IndexedDB (web), encrypted file (desktop), or an app-private file under an OS-keystore key via the native vault plugin (mobile). AES-256-GCM with the master key | Offline access to the ciphertext. Still requires the password to decrypt |
+| Session master key | `chrome.storage.session` (extension), OS keychain (desktop, optional), or in-memory (web and mobile). Cleared on browser close / tab close | Skips the Argon2id cost of re-unlocking. Not the raw password |
+| User password | In memory only during unlock / sign, zeroed after use. Persisted in one case and one only: with biometric unlock enabled, an encrypted copy is kept, released only after a successful biometric check (see **Biometric password wrap** below) | Full access to every locked vault on the device |
 | Connected-site grants | Persisted in the vault's `connectedSites` collection | Silent approval of dApp requests the user previously granted |
 
 ## In scope
@@ -29,6 +29,7 @@ This document names what the wallet defends against, what it deliberately doesn'
 - **Offline attacker with the encrypted blob.** Wallet is password-locked with Argon2id (calibrated to ≥ 750 ms per derivation on the device, floor 64 MiB × 3 iterations × 1 parallelism). Without the password, the blob is AES-256-GCM-protected.
 - **Tampering with the ciphertext.** AES-GCM tag mismatch surfaces as an unlock failure. An attacker who modifies the blob cannot produce a valid plaintext that opens.
 - **Key recovery from `chrome.storage.session`.** Session key is the derived master key (32 bytes), not the password. On browser close, the session namespace is cleared by Chrome. Attackers with runtime access to the session have already won; the line isn't held there.
+- **Biometric password wrap.** Biometric unlock is opt-in and off until the user turns it on after a normal password unlock; with it off, no copy of the password is persisted anywhere. Turning it on persists exactly one encrypted copy of the *password* (never the master key: each wallet record's seed is encrypted under the password, so a master-key-only cache would open the vault and then fail at the first signature). What protects that copy depends on the shell. Browser-based shells use the default WebAuthn provider with the PRF extension: a 32-byte AES-GCM key is derived from the platform authenticator, the ciphertext sits in `localStorage` beside the credential ID, the PRF salt is randomized per registration, and registration refuses any credential without `userVerification: 'required'`; where PRF is unavailable the affordance is hidden rather than downgraded. Android wraps the copy under an `AndroidKeyStore` AES-256-GCM key that requires authentication per use against a Class-3 `BiometricPrompt` and is invalidated by new biometric enrollment, with the ciphertext in a `biometric.wrap` sidecar file rather than inside the vault blob, since it has to be readable before the vault opens. iOS keeps it in the Keychain behind a biometry-current-set access control, `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` and non-synchronizable, so it can neither reach iCloud Keychain nor leave the device. Losing the wrap costs the user nothing beyond typing the password again, and disabling biometric unlock wipes both the credential reference and the ciphertext.
 
 ### Network threats
 
@@ -61,7 +62,7 @@ The wallet is the first consumer of the platform's light client (`sdk.light`). I
 
 - **Zero-day browser sandbox escapes.** If the browser is compromised, so is the wallet. Users with extreme threat models should use air-gapped PSBT-QR flows (see [URI Schemes](uri-schemes.md)) or hardware wallets.
 - **Vendor firmware bugs.** Hardware-signer firmware (Trezor, Ledger) is out-of-scope for the wallet's audit; the wallet trusts the vendor's signed firmware.
-- **Supply-chain attacks on vendored deps.** Mitigated by `pnpm audit --prod --audit-level=high` in CI + the per-dep review in `docs/DEPENDENCIES.md`. Reproducible builds (Level-2, see [Reproducible Builds](reproducible-builds.md)) narrow the blast radius; a verifier can prove the published artifact came from public source.
+- **Supply-chain attacks on vendored deps.** Mitigated by `pnpm audit --prod --audit-level=high` in CI + the per-dep review in [Dependencies](dependencies.md). Reproducible builds (Level-2, see [Reproducible Builds](reproducible-builds.md)) narrow the blast radius; a verifier can prove the published artifact came from public source.
 - **Physical access to an unlocked device.** No wallet can defend against this. Mitigations: foreground auto-lock (configurable in Settings) and manual lock action.
 - **Raw-password attacks.** Outside the wallet's design; Argon2id raises the cost, the user's password choice does the rest.
 - **Blockchain consensus.** The wallet trusts the platform's encoding / decoding logic and the underlying coin nodes' chain selection. For displayed balances and actions it no longer trusts a single indexer: those are SPV-verified against checkpoints signed by a stake-weighted quorum of the federation (see [Proof verification](#proof-verification-spv)), so trust there bottoms out at the federation quorum rather than one server. The platform's correctness is audited separately.

@@ -37,6 +37,9 @@ This action creates or updates a `TICK`.
 | `ACTION_CLASS`     | String | Which class the binding gates: `transfer`, `trade`, `burn`, `mint`, `stake`, `ownership`, or the catch-all `all` (fallback for any class with no specific binding; most-specific-wins) |
 | `COOLDOWN_BLOCKS`  | String | Drop-cooldown committed at bind time: blocks of friction before a later `UNBIND` takes effect |
 | `UNBIND`           | String | `1` drops the live binding for `ACTION_CLASS`; `0` binds                                    |
+| `BRIDGE_CHAINS`    | String | Comma list of destination coins this `TICK` may bridge to via [`XBRIDGE`](./xbridge.md), or `-` for none; empty means unchanged |
+| `MIN_DEPTH`        | String | Confirmation depth the federation must honour for this `TICK`'s bridge locks, raise-only over the platform default; empty means unchanged |
+| `LOCK_BRIDGE`      | String | `1` permanently locks `BRIDGE_CHAINS` and `MIN_DEPTH`                                       |
 | `MEMO`             | String | An optional memo to include                                                                |
 
 ## Formats
@@ -61,6 +64,9 @@ This action creates or updates a `TICK`.
 
 ### Version `6` - Bind/unbind a `CONTROLLER` for one `ACTION_CLASS`
 - `VERSION|TICK|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO`
+
+### Version `7` - Bridge opt-in
+- `VERSION|TICK|BRIDGE_CHAINS|MIN_DEPTH|LOCK_BRIDGE|MEMO`
 
 ## Examples
 ```
@@ -121,6 +127,10 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
 - `MAX_SUPPLY` max value is 1,000,000,000,000,000,000,000 (1 Sextillion)
 - `MAX_SUPPLY` can not be set below existing supply
 - `LOCK_MAX_SUPPLY` can only be set to `1` when the token's `MAX_SUPPLY` is set (`MIN_TOKEN_SUPPLY` or greater), declared in the same `ISSUE` or already on the token record. Minted supply is NOT required: a fair-mint token may declare its `MAX_SUPPLY` and permanently lock it at issuance, before any supply exists. Setting `LOCK_MAX_SUPPLY` with no `MAX_SUPPLY` declared is invalid.
+- On any chain other than BTC, a broadcast `ISSUE` of the `XCHAIN` (GAS) tick is refused with `invalid: TICK (BTC-only)`, from every source including the GAS address, on every network including regtest; the reserved-tick check is case-folded (`btc`, `BTC`, `Btc`, ... are all reserved everywhere), closing a gap where an exact-case check let a mismatched-case ticker through. System-injected creation of the tick (the [`XBRIDGE`](./xbridge.md) v2/v5 settle leg creating a chain's first shadow row) is exempt from this refusal: it is not a broadcast `ISSUE`. See [Cross-Chain Bridge](../xchain-bridge.md) and [Token Bridge](../token-bridge.md).
+- **Reserving room for chains XChain integrates later.** Behind `TICK_NAMESPACE_ACTIVATION`, two further rules protect the short and chain-code namespace before a squatter can take it: a top-level `ISSUE` that would CREATE a brand-new tick shorter than four characters is refused with `invalid: TICK (length)` (editing or re-issuing an existing tick, including the `^id` form, is unaffected, so anything issued before the flag keeps its owner and supply); and a fixed list of future chain codes (`RESERVED_FUTURE_ROOTS`, e.g. `ETH`, `SOL`, `AVAX`, ...; see [Flag-Day Values](../flag-days.md) for the exact list) is reserved the same way `BTC`, `LTC` and `DOGE` already are, refused with `invalid: TICK (reserved)`. Both rules apply to top-level creation only; a subasset such as `ABCD.X` is unaffected by the length floor. Below the activation the handler is unchanged.
+- **Format `7` refusals**, in addition to the field checks above: a destination not in `COINS` other than this chain is `invalid: BRIDGE_CHAINS`; a format `7` on a row with `LOCK_BRIDGE` already set is `invalid: BRIDGE_CHAINS (locked)`; a non-empty `BRIDGE_CHAINS` naming a native tick that contains a dot is `invalid: TICK (subassets are not bridgeable yet)`; a non-empty `BRIDGE_CHAINS` on a token carrying a live `ALLOW_LIST`, `BLOCK_LIST` or controller binding is `invalid: TICK (policy-bound tokens are not bridgeable yet)`; a non-empty `BRIDGE_CHAINS` whose `ALLOW_LIST` or `BLOCK_LIST` membership exceeds `XPOLICY_MAX_MEMBERS` (10,000) is `invalid: TICK (policy list exceeds XPOLICY_MAX_MEMBERS)`. Behind `TOKEN_POLICY_INHERITANCE_ACTIVATION` the policy-bound refusal lifts (see [Token Bridge](../token-bridge.md#policy-inheritance)); the controller refusal and the membership ceiling never lift on their own.
+- **Formats `5` and `6` on a bridged token.** While a row's `BRIDGE_CHAINS` is non-empty or its `bridged` bit is set (the bit is set by the first applied bridge lock and never cleared), a format `5` (list edit) or format `6` (controller bind/unbind), and a format `0` re-issue carrying a non-empty `ALLOW_LIST` or `BLOCK_LIST`, are refused with `invalid: TICK (bridged tokens cannot be policy-bound yet)`. Emptying `BRIDGE_CHAINS` afterward does not reopen the door while bridged copies are outstanding. Behind `TOKEN_POLICY_INHERITANCE_ACTIVATION`, formats `5` and a listed format `0` on a bridged token apply and propagate to every bridged copy (see [Token Bridge](../token-bridge.md#policy-inheritance)); a controller bind (format `6`) on a bridged token stays refused either way.
 
 ## Notes
 - `ISSUE` `TICK` with `MAX_SUPPLY` and `MINT_SUPPLY` set to any non `0` value, to mint supply until `MAX_SUPPLY` is reached (owner can mint beyond `MAX_MINT`)

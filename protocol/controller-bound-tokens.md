@@ -262,6 +262,12 @@ There is no royalty-specific mechanism; "royalty" is simply the most common use 
    tightened by the contract's [permissions manifest](#permissions-manifest)) and stores the
    legs as JSON on `orders.payout_legs` / `swaps.payout_legs`. A malformed or over-cap set
    **denies** the listing (fail-closed). No `payoutLegs` ⇒ NULL (an ordinary order).
+
+   Two shapes are read leniently rather than denied, and no activation gate changes that
+   today (none is registered in [Flag-Day Values](./flag-days.md)): a supplied `payoutLegs`
+   that is not an ARRAY is read as "no legs" and the listing is created with NULL legs, and
+   a fractional `bps` is accepted at its truncated integer value, which is also the value
+   the cap is measured against. An empty array means the same as an absent `payoutLegs`.
 2. **At match**: `Utility.applyProceedsSplit(tick, proceeds, seller, legs, decimals, cap)`
    splits each filled order's proceeds, **seller-remainder first, then each leg**, crediting
    `floor(proceeds × bps / 10000)` (at token precision) to each `to` and the exact remainder

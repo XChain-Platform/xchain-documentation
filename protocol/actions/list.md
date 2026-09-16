@@ -59,6 +59,8 @@ This example creates a new list from an existing list (4321) and removes 2 addre
   empty list. Read the resulting membership back rather than assuming what you sent
 - A `TICK` list contains only `TICK` items
 - A `ADDRESS` list contains only `ADDRESS` items
+- An `ADDRESS` item validates against this chain's own coin and network by default. Behind `TOKEN_POLICY_INHERITANCE_ACTIVATION`, an item that is a valid address of ANY coin the platform runs (BTC, LTC, DOGE, at this network) is admitted, not only this chain's own coin; this widens which items an `ADDRESS` list can hold, it never narrows one. See [Token Bridge](../token-bridge.md#policy-inheritance) for why: a bridged token's allow/block list is enforced identically on every chain it has a copy on, so the list has to be able to name a holder on any of them. Below the flag, an item of another chain's address format fails its type check like any other malformed `ADDRESS` and is recorded `invalid`, per the rule above.
+- A `LIST` edit (`VERSION 1`) whose `LIST_ACTION_INDEX` names a list created by a chain's own `ADDRESS.BRIDGE_<COIN>` role address is refused with `invalid: LIST_ACTION_INDEX (bridge-owned)`. Those lists exist only once a bridged token's policy has been carried to this chain (see [Token Bridge](../token-bridge.md#policy-inheritance)); no user key owns them, and only the platform's own injected edits, carrying the finalized policy snapshot's membership, may ever change one.
 
 ## Notes
 - Format version `0` allows for creating a list of `TYPE`

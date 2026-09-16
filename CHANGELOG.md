@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-09-16
+
+### Added
+- Published `ADMIT_MARGIN_BLOCKS`, `ADMIT_MIN_FUTURE_BLOCKS` and `ADMIT_MAX_FUTURE_BLOCKS`, the canonical admission-height margins that let a mirror barrier bind rows by block height instead of by the block's timestamp.
+- Published `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION`, the paired producer and consumer flag-day maps keyed by coin and network, inert everywhere pending their sizing at the cut.
+- Published `ANCHOR_ATTEST_ARRIVAL_MARGIN_S` (64800 s) and `ANCHOR_ATTEST_BARRIER_ACTIVATION`, the maturity-horizon bound that keeps the anchor-attest barrier opening no later than it does today.
+- The XBRIDGE action and the cross-chain bridge protocol are documented.
+- The bridge settle pass's origin-indexer reads are documented and the computed-read baseline is raised for the coin-keyed lookups.
+- The four bridge helper modules are counted in the e2e architecture and README pages.
+- Published the `TRAIN_ACTIVATION` 0.19.0 row and the per-chain testnet bridge heights this train arms.
+
+### Changed
+- The bridge activation is documented as keyed per chain.
+- Testnet activations are documented as arming at the tip read at the cut.
+- The wallet's cross-chain order form is documented.
+- Restructured under the platform code-structure standard (feature directories, snake_case files, split test suites, restored comments).
+
+### Fixed
+- CI checks out xchain-indexer beside this repo so the flag-day literals suite runs on GitHub instead of skipping, and the env-var coverage fleet floor applies only when every sibling is present.
+- The node and explorer configuration pages document `XCHAIN_NODE_ALLOW_NO_DOGE_READ` and `EXPLORER_FEDERATION_READ_KEY`.
+- The undo-window and halted-state pages state the per-network table (every testnet 120 blocks) and the halt's `/status` fields and reset path, replacing the stale LTC value.
+- The Pi 5 firmware's `cgroup_disable=memory` clause, the page-cache disk model and the node operations exit-status section are documented.
+
 ## [0.18.0] - 2026-09-11
 
 ### Added
@@ -22,6 +45,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The SDK websocket page matches the producer roster, adding the mempool, expiry, bet, attestation and xcall event types.
 - The explorer API page describes the merged `hub_status` on the validators endpoint.
+
+### Fixed
+- Corrected the bare-multisig capacity figure: 60 bytes per output (two 32-byte key slots), not ~61 bytes per key.
+- The indexer determinism and replay claims now name the local Hub DB mirror they read during block processing.
+- The explorer pages state the hub-mirror schema the explorer creates and writes under `self_sync`, instead of claiming it never writes to any database.
+- The hub configuration, architecture and database pages distinguish hub-local suspension from equivocation slashing: missed rounds and price deviation leave on-chain stake untouched.
+- Published Token Information Standard v1.1.1, which relaxes the media requirement to `type` plus at least one of `data` or `data_ref` so the fully on-chain form the standard recommends validates; v1.1.0 and v1.0.0 stay frozen as published.
+- The TIS media `type` row states the per-array vocabulary the schema enums pin (`images` display role, `audio` and `video` containers, `files` category) instead of calling it a MIME type.
+- The gated-pack publishing steps require one `FILE` per transaction: a `BATCH` hands one `rawData` payload to every sub-command, so a second `FILE` is recorded valid carrying the first file's ciphertext.
 
 ## [0.17.0] - 2026-09-10
 

@@ -55,6 +55,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const cov = require('../lib/env-var-doc-coverage.js');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const {
     ENV_READ, extractDefault, scanSource, docLinesFor, defaultDocumented, isSourcePath,
@@ -285,7 +286,7 @@ describe('scanSource across line boundaries', () => {
         assert.equal(found.get('SENTINEL')[0].line, 1);
     });
 
-    // xchain-node/src/services/EncoderMaintenanceWindow.js:46-47, verbatim.
+    // xchain-node/src/services/encoder_maintenance_window.js:46-47, verbatim.
     test('the semicolon-less wrapped read in xchain-node is no longer exempt', () => {
         const found = scanSource([
             'const SENTINEL_PATH = process.env.XCHAIN_NODE_ENCODER_MAINTENANCE_FILE',
@@ -297,7 +298,7 @@ describe('scanSource across line boundaries', () => {
         );
     });
 
-    // xchain-hub/src/StateCheckpointEngine.js:190-191, verbatim: the chain
+    // xchain-hub/src/anchor/checkpoint_engine.js:190-191, verbatim: the chain
     // continues through a non-literal `cfg.X` on the wrapped line.
     test('a wrapped chain inside parseInt reaches the literal past a cfg lookup', () => {
         const found = scanSource([
@@ -310,7 +311,7 @@ describe('scanSource across line boundaries', () => {
         assert.equal(site.line, 1);
     });
 
-    // xchain-hub/src/AttestationBatchPublisher.js:175-176: the `||` itself ends
+    // xchain-hub/src/attestation/batch_publisher.js:175-176: the `||` itself ends
     // the line, so the operand is read off the NEXT one.
     test('a `||` at end of line reaches its operand on the next line', () => {
         const found = scanSource([
@@ -396,6 +397,145 @@ describe('scanComputedReads (the blind spot the gate cannot see into)', () => {
 
     test('a computed read after a //-bearing string on the same line still counts', () => {
         assert.deepEqual(cov.scanComputedReads("const a = 'http://x'; const b = process.env[k];"), [1]);
+    });
+});
+
+// The explorer reads configuration through config.js's `env` view, a live
+// Proxy over process.env. Before the scanner knew the view, every read moved
+// behind it left the survey, so its doc row could vanish with the gate green.
+describe('reads through the explorer config view', () => {
+    const VIEW_SOURCE = [
+        "const a = env.ALPHA || 1;",
+        "const b = env['BETA'] || 'x';",
+        "const c = parseInt(this.configInfo.env.GAMMA, 10) || 15000;",
+        "const d = this.configInfo.env['DELTA'];",
+        "const e = configInfo.env.EPSILON === '1';",
+    ].join('\n');
+
+    test('every view shape is a named read, with its line and default', () => {
+        const found = scanSource(VIEW_SOURCE, { configView: true });
+        assert.deepEqual([...found.keys()], ['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'EPSILON']);
+        assert.deepEqual([...found.values()].map((s) => s[0].line), [1, 2, 3, 4, 5]);
+        assert.equal(found.get('ALPHA')[0].default.value, '1');
+        assert.equal(found.get('BETA')[0].default.value, 'x');
+        assert.equal(found.get('GAMMA')[0].default.value, '15000');
+    });
+
+    test('without the option the view is invisible, which is every component but the explorer', () => {
+        assert.equal(scanSource(VIEW_SOURCE).size, 0);
+        assert.deepEqual(cov.scanComputedReads('const t = this.configInfo.env[prefix + "_MS"];'), []);
+        assert.deepEqual([...cov.CONFIG_VIEW_COMPONENTS], ['explorer']);
+    });
+
+    test('process.env is counted once, and other objects named env are not the view', () => {
+        const found = scanSource([
+            "const a = process.env.ALPHA;",
+            "const b = options.env.BETA;",
+            "const c = cfg.env['GAMMA'];",
+            "const d = env.hasOwnProperty('X');",
+            "env.DELTA = 'set, not read';",
+            "if (env.EPSILON == null) {}",
+        ].join('\n'), { configView: true });
+        assert.deepEqual([...found.keys()], ['ALPHA', 'EPSILON']);
+        assert.equal(found.get('ALPHA').length, 1);
+    });
+
+    test('a computed read through the view counts; a literal key or a write into an env object does not', () => {
+        const lines = cov.scanComputedReads([
+            "const ttl = parseInt(this.configInfo.env[envPrefix + '_MS'], 10) || 15000;",
+            "const k = env[key];",
+            "const lit = env['LITERAL'];",
+            "env[tokens[i].value.slice(0, eq)] = tokens[i].value.slice(eq + 1);",
+            "const p = process.env[k];",
+            "const wrapped = configInfo.env[",
+            "    prefix + '_MAX'",
+            "];",
+        ].join('\n'), { configView: true });
+        assert.deepEqual(lines, [1, 2, 5, 6]);
+    });
+
+    // The feature directories hold the view through a read-time accessor, since
+    // config.js loads modules that load them back.
+    const ACCESSOR_SOURCE = [
+        "const configEnv = () => require('../config.js').env;",
+        "this.maxAttempts = Number(configEnv().RETRY_ATTEMPTS) || 4;",
+        "const url = configEnv()['UPSTREAM_URL'] || '';",
+        "const direct = require('./config.js').env.DIRECT_KEY || 'on';",
+        "const bracket = require('../../config.js').env['BRACKET_KEY'];",
+        "if (configEnv().FLAG == null) {}",
+    ].join('\n');
+
+    test('reads through a config accessor or straight off the module are named reads, with defaults', () => {
+        const found = scanSource(ACCESSOR_SOURCE, { configView: true });
+        assert.deepEqual([...found.keys()], ['RETRY_ATTEMPTS', 'UPSTREAM_URL', 'DIRECT_KEY', 'BRACKET_KEY', 'FLAG']);
+        assert.deepEqual([...found.values()].map((s) => s[0].line), [2, 3, 4, 5, 6]);
+        assert.equal(found.get('RETRY_ATTEMPTS')[0].default.value, '4');
+        assert.equal(found.get('UPSTREAM_URL')[0].default.value, '');
+        assert.equal(found.get('DIRECT_KEY')[0].default.value, 'on');
+        assert.equal(scanSource(ACCESSOR_SOURCE).size, 0);
+    });
+
+    test('an accessor counts only when this file binds it to the config view', () => {
+        assert.deepEqual(cov.configViewAccessors("const configEnv = () => require('../config.js').env;"), ['configEnv']);
+        const found = scanSource([
+            "const hubEnv = () => require('../hub.js').env;",
+            "const cfg = () => require('../config.js').env.NOT_AN_ACCESSOR;",
+            "const a = configEnv().UNBOUND;",
+            "const b = hubEnv().OTHER_MODULE;",
+            "const c = cfg().VIA_NON_ACCESSOR;",
+            "const d = process.env.ONCE || require('../config.js').env.ONCE;",
+        ].join('\n'), { configView: true });
+        assert.deepEqual([...found.keys()], ['NOT_AN_ACCESSOR', 'ONCE']);
+        assert.equal(found.get('ONCE').length, 2, 'process.env and the view are two reads, each counted once');
+    });
+
+    test('through an accessor, a write or a lower-case member is not a read, and a computed key counts', () => {
+        const source = [
+            "const configEnv = () => require('../config.js').env;",
+            "configEnv().WRITTEN = 'set';",
+            "const own = configEnv().hasOwnProperty('X');",
+            "const k = configEnv()[prefix + '_MS'];",
+            "const lit = configEnv()['LITERAL'];",
+            "const m = require('../config.js').env[key];",
+        ].join('\n');
+        assert.deepEqual([...scanSource(source, { configView: true }).keys()], ['LITERAL']);
+        assert.deepEqual(cov.scanComputedReads(source, { configView: true }), [4, 6]);
+        assert.deepEqual(cov.scanComputedReads(source), []);
+    });
+
+    test('the survey applies the view to the explorer and to no other component', () => {
+        const GIT_ID = [
+            '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid',
+            '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null',
+        ];
+        const git = (dir, ...args) =>
+            execFileSync('git', ['-C', dir, ...GIT_ID, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'envvar-view-'));
+        const docRoot = path.join(root, 'xchain-documentation');
+        for (const component of ['explorer', 'hub']) {
+            const repo = path.join(root, `xchain-${component}`);
+            fs.mkdirSync(path.join(repo, 'src'), { recursive: true });
+            fs.writeFileSync(path.join(repo, 'package.json'), JSON.stringify({ name: `xchain-${component}` }));
+            fs.writeFileSync(path.join(repo, 'src', 'reader.js'),
+                "const a = this.configInfo.env.VIEW_KEY;\nconst b = this.configInfo.env[prefix + '_MS'];\n");
+            git(repo, 'init', '-q', '-b', 'main');
+            git(repo, 'add', '-A');
+            git(repo, 'commit', '-q', '-m', component);
+            fs.mkdirSync(path.join(docRoot, 'components', component), { recursive: true });
+            fs.writeFileSync(path.join(docRoot, 'components', component, 'configuration.md'), 'nothing documented\n');
+        }
+        const survey = cov.buildSurvey({
+            platformRoot:  root,
+            docRoot,
+            serviceReader: cov.committedTreeReader('HEAD'),
+            docReader:     cov.workingTreeReader(),
+            components:    ['explorer', 'hub'],
+        });
+        assert.deepEqual([...survey.get('explorer').vars.keys()], ['VIEW_KEY']);
+        assert.equal(survey.get('explorer').computed.length, 1);
+        assert.match(cov.checkUndocumented('explorer', survey.get('explorer'))[0], /^VIEW_KEY \(read at src\/reader\.js:1\)/);
+        assert.equal(survey.get('hub').vars.size, 0);
+        assert.equal(survey.get('hub').computed.length, 0);
     });
 });
 
@@ -774,6 +914,22 @@ describe('doc matching', () => {
         assert.equal(defaultDocumented(['| `SYNC_MODE` | proxied by a webserver |'], 'server'), false);
     });
 
+    // The shipped row, not a synthetic one. An allowed-values description names
+    // the rival value by construction, so a mention of `server` anywhere on the
+    // row must not credit a Default cell that has drifted to `client`.
+    test('an allowed-values description does not credit a drifted string default', () => {
+        const correct = '| `SYNC_MODE` | Yes | `server` | Operating mode: `server` or `client` |';
+        const drifted = '| `SYNC_MODE` | Yes | `client` | Operating mode: `server` or `client` |';
+        assert.equal(defaultDocumented([correct], 'server'), true);
+        assert.equal(defaultDocumented([drifted], 'server'), false);
+    });
+
+    test('a string default mentioned only mid-sentence is not an assertion', () => {
+        const row = '| `NETWORK` | the REPL falls back to `bitcoin-regtest` when it is unset | REPL |';
+        assert.equal(defaultDocumented([row], 'bitcoin-regtest'), false);
+        assert.equal(defaultDocumented(['`NETWORK` defaults to `bitcoin-regtest` when unset.'], 'bitcoin-regtest'), true);
+    });
+
     test('a dotted string default matches literally, not as a wildcard', () => {
         assert.equal(defaultDocumented(['| `DB_HOST` | host | `127.0.0.1` |'], '127.0.0.1'), true);
         assert.equal(defaultDocumented(['| `DB_HOST` | host | `127a0b0c1` |'], '127.0.0.1'), false);
@@ -1014,6 +1170,10 @@ describe('checkStaleKnownGaps (the waiver ratchet)', () => {
  *  The gate itself
  *  ------------------------------------------------------------------ */
 
+// Every gated component is a declared sibling (.ci-siblings), so under
+// XCHAIN_REQUIRE_SIBLINGS=1 an absent or hollow one throws here by name instead
+// of dropping out of the survey and shrinking the floor while the gate reads green.
+for (const c of cov.COMPONENTS) sibling(`xchain-${c}`);
 const present = cov.presentComponents(PLATFORM_ROOT);
 
 // Reading a sibling at HEAD needs its object database. A service checked out
@@ -1039,12 +1199,22 @@ describe('environment-variable documentation coverage', { skip: siblingsMissing 
         assert.deepEqual(unreadable, [], `checked out but not a git repo, so not gated: ${unreadable.join(', ')}`);
     });
 
-    test('the survey actually found something to check', () => {
-        // A refactor that breaks the scanner must not read as a clean bill of
-        // health. The services read hundreds of variables between them.
-        const total = cov.totalReads(survey);
-        assert.ok(total > 300, `only ${total} env reads found across ${readable.length} components; the scanner is probably broken`);
-    });
+    // The floor is a FLEET figure: the services read hundreds of variables
+    // between them, so a full platform checkout that surveys under 300 has a
+    // broken scanner, not a quiet fleet. A partial checkout (GitHub CI checks
+    // out only the siblings a suite names, one today) cannot be held to it:
+    // the indexer alone reads about a hundred, and the per-component checks
+    // below plus the empty-scan check still judge every sibling present. The
+    // floor itself is enforced where the whole fleet is, in the platform
+    // checkout, the same way the schema-table coverage invariant is.
+    const fleetMissing = cov.COMPONENTS.filter((c) => !readable.includes(c));
+    test('the survey actually found something to check',
+        { skip: fleetMissing.length ? `fleet floor needs every sibling; absent: ${fleetMissing.join(', ')}` : false }, () => {
+            // A refactor that breaks the scanner must not read as a clean bill of
+            // health.
+            const total = cov.totalReads(survey);
+            assert.ok(total > 300, `only ${total} env reads found across ${readable.length} components; the scanner is probably broken`);
+        });
 
     test('every surveyed component contributed source files', () => {
         // The fleet floor above is not enough on its own: the hub is about a

@@ -69,7 +69,7 @@ The tracker exposes both REST and JSON-RPC interfaces.
 | `GET` | `/firstseen/:address` | Returns the block height at which the address first appeared (`{"height": N}`) |
 | `GET` | `/balance/:address` | Returns the confirmed balance as a number (in coin units, not satoshis) |
 | `GET` | `/info/:address` | Returns comprehensive balance info (confirmed, pending, received, UTXO counts) |
-| `GET` | `/status` | Lightweight health probe for Docker HEALTHCHECK and uptime monitors: `{status, db, committed_height}`, HTTP 503 when the LevelDB store is unreachable. Point health checks here; a plain GET against the JSON-RPC root always answers 200 (method-not-found body) even when the DB is down. |
+| `GET` | `/status` | Lightweight health probe for Docker HEALTHCHECK and uptime monitors: `{status, db, committed_height}`, HTTP 503 when the LevelDB store is unreachable or the tracker has halted on an unrecoverable reorg (`status: "halted"` plus `halt_reason`; see "Reorg exceeds the undo window" under Troubleshooting). Point health checks here; a plain GET against the JSON-RPC root always answers 200 (method-not-found body) even when the DB is down. |
 
 #### GET /utxos/:address
 
@@ -188,7 +188,7 @@ When a blockchain reorganization is detected:
 1. The tracker walks back from its tip until it finds a block hash matching the coin node
 2. Each rolled-back block's outputs are restored from K/M archive records
 3. Normal forward indexing resumes from the fork point
-4. Reorgs deeper than the chain's undo window (BTC: 12, LTC: 48, DOGE: 120) require a full re-index
+4. Reorgs deeper than the network's undo window (see the table under "Reorg exceeds the undo window" below) halt the tracker; the only exit is a rebuild
 
 ### Mempool Error Handling
 
@@ -213,7 +213,27 @@ LevelDB only allows one process to open a database at a time. If the tracker cra
 Large blocks (e.g., BRC-20 inscription blocks) can contain tens of thousands of transactions. The tracker may appear stalled but is processing normally. Check the console output for progress updates. If the process runs out of memory, increase `--max-old-space-size`.
 
 **Reorg exceeds the undo window**
-The tracker throws an error and stops if a reorg exceeds the chain's undo window (BTC: 12 blocks, LTC: 48 blocks, DOGE: 120 blocks). This is rare on mainnet but can occur on testnet/regtest. The solution is to delete the LevelDB database and re-index from scratch.
+The tracker can only roll back as many blocks as its undo window holds, and the window is sized per coin AND per network (`src/chain/undo_blocks.js`):
+
+| Network | BTC | LTC | DOGE |
+|---|---|---|---|
+| mainnet | 12 | 120 | 120 |
+| testnet | 120 | 120 | 120 |
+| regtest | 12 | 120 | 120 |
+
+Mainnet windows are block-time-scaled (about two hours of headroom). Every testnet sits at 120 because a testnet's minimum-difficulty rule lets a lone miner extend a private branch regardless of network difficulty, so forks run far deeper than block time predicts: litecoin testnet outran a 48-block window on 2026-09-01 and bitcoin testnet outran mainnet's 12 on 2026-09-15. `XCHAIN_UNDO_BLOCKS_<COIN>` overrides the resolved value for the process's own network; 126 is the ceiling (the decoder's `DISPENSER_EXPIRE_SAFE_DEPTH`), and a larger override is honoured but logged as splitting the two components' reorg windows.
+
+When a fork is deeper than the window the tracker does NOT exit. It halts in place: the polling loop stops, the process stays up, `GET /status` answers HTTP 503 with `{"status": "halted", "halt_reason": "...", "halted_at": ..., "halted_height": ...}`, and `get_sync_status` carries `halted: true` and `halt_reason`. The halt is a memory flag, but the state behind it is on disk (the undo window has been walked down, partly or to zero), so a restart or a `recreate` reproduces the same halt within seconds: the log shows `verifyReorg: reorg depth exceeds the recovery window (UNDO_BLOCKS=N)`, or on a window already drained to zero `Can't delete a block from 'last blocks': list is empty`. Both log lines end with the remedy.
+
+The remedy is a rebuild; the index cannot be walked back onto the node's chain. Under xchain-node:
+
+```bash
+xchain-node reset xchain-utxo-tracker <coin> <network>   # e.g. bitcoin testnet
+```
+
+`reset` drops the tracker's data volume and the next start takes the bulk-sync path (`runBulkSyncIfEmpty()`, see "Startup Sequence" above). Standalone: stop the tracker, empty its data directory (`/data/xchain-utxo-tracker` in the container image), and start it again.
+
+Do not "recover" by restoring the bootstrap you came from: if that bootstrap's tip is the drifted fork, the restore lands on the same block and halts again at the same height. Only restore a bootstrap taken after the fork resolved.
 
 ### Data inconsistency
 

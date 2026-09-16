@@ -40,8 +40,11 @@
  * the enclosing method also touches `this.app` and cannot run standalone.
  *
  * xchain-explorer is a sibling repo in the monorepo checkout, not a dependency
- * of xchain-documentation. When it is absent (docs repo cloned on its own) the
- * source-derived assertions skip and only the doc's internal arithmetic runs.
+ * of xchain-documentation. When the REPO is absent (docs repo cloned on its
+ * own) the source-derived assertions skip and only the doc's internal arithmetic
+ * runs. When the repo is present but a file this gate reads has moved, the gate
+ * FAILS naming the missing path, because a skip or an empty stand-in keyed on
+ * the file is how a move would silently unpin it.
  *
  ********************************************************************/
 
@@ -49,19 +52,83 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const COMPONENT_MAP  = path.resolve(__dirname, '../architecture/component-map.md');
-const EXPLORER_SOURCE = path.resolve(__dirname, '../../xchain-explorer/src/XChainExplorer.js');
+const EXPLORER        = path.resolve(__dirname, '../../xchain-explorer');
+const EXPLORER_SOURCE = path.join(EXPLORER, 'src/XChainExplorer.js');
+// The three route-table modules setupUrls() now builds its object from, in the
+// order it declares them. The explorer's own identity tool joins the same three
+// in the same order (bin/explorer-identity.js routeTableSource), which is what
+// keeps this gate and the explorer's route digest reading one surface.
+const ROUTE_TABLES = ['static_and_html', 'api_methods', 'explorer_feeds']
+    .map((name) => path.join(EXPLORER, 'src/explorer/routes', name + '.js'));
+
+// The dispatch table's declaration text, wherever it lives: the entry file while
+// setupUrls() held the literal, the joined route modules once they carry it.
+const ROUTES_INDEX = path.join(EXPLORER, 'src/explorer/routes/index.js');
+
+// The dispatch table itself. The explorer builds it in src/explorer/routes/,
+// which exports routeTables() returning a fresh object with the same keys in
+// the same order setupUrls() declared, so this gate loads it rather than
+// re-parsing a literal out of source text. The text path stays for a checkout
+// from before that move.
+function dispatchTable() {
+    if (fs.existsSync(ROUTES_INDEX)) {
+        const { routeTables } = require(requireExplorerFile(ROUTES_INDEX));
+        assert.equal(typeof routeTables, 'function',
+            'src/explorer/routes/index.js no longer exports routeTables(); this gate needs updating');
+        return routeTables();
+    }
+    return readDispatchTable(fs.readFileSync(requireExplorerFile(EXPLORER_SOURCE), 'utf8'));
+}
+
+// The class entry's text followed by every .js module under src/explorer/, in
+// path order, as one string for the route-registration scans.
+function explorerClassSource() {
+    const files = [requireExplorerFile(EXPLORER_SOURCE)];
+    if (fs.existsSync(EXPLORER_STAGES)) {
+        const walk = (dir) => {
+            for (const name of fs.readdirSync(dir).sort()) {
+                const full = path.join(dir, name);
+                if (fs.statSync(full).isDirectory()) walk(full);
+                else if (name.endsWith('.js')) files.push(full);
+            }
+        };
+        walk(EXPLORER_STAGES);
+    }
+    return files.map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+}
+const STATIC_MOUNTS   = path.join(EXPLORER, 'src/http/static_mounts.js');
+// The hand-registered routes live in the class entry or in the stage modules
+// it delegates to under src/explorer/ (mount.js today), so this gate reads the
+// entry plus every module in that tree; a text read pinned to one file would
+// count zero the moment the registrations moved and never fail.
+const EXPLORER_STAGES = path.join(EXPLORER, 'src/explorer');
 
 const doc = fs.readFileSync(COMPONENT_MAP, 'utf8');
-const haveExplorer = fs.existsSync(EXPLORER_SOURCE);
+// Repo presence only: a pinned file gone from a PRESENT explorer fails inside the test by
+// name (readSource below). Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1.
+const noExplorer = sibling('xchain-explorer').skip;
+
+// Reads an explorer source file this gate is pinned to, failing with the path
+// named when it is gone: with the repo present, a missing file means the code
+// moved and this pin has to follow it, never that the assertion may skip.
+function requireExplorerFile(file) {
+    assert.ok(fs.existsSync(file),
+        path.relative(EXPLORER, file) + ' is gone from xchain-explorer; repoint this gate at the file the behaviour moved to');
+    return file;
+}
 
 // Pull the `let urls = { ... }` literal out of setupUrls() by brace matching and
 // evaluate it. Returns { html, api, explorer, static } exactly as the running
 // explorer sees it, duplicate keys already collapsed.
 function readDispatchTable(source) {
-    const anchor = source.indexOf('let urls = {');
-    assert.notEqual(anchor, -1, 'setupUrls() no longer declares `let urls = {`; this gate needs updating');
+    // `let urls = {` while the literal sat in setupUrls(), `urls : {` once the
+    // tables became modules that declare the same object under the same name.
+    let anchor = source.indexOf('urls : {');
+    if (anchor === -1) anchor = source.indexOf('let urls = {');
+    assert.notEqual(anchor, -1, 'neither setupUrls() nor the route-table modules declare the urls object; this gate needs updating');
     const open = source.indexOf('{', anchor);
     let depth = 0;
     let close = -1;
@@ -74,11 +141,10 @@ function readDispatchTable(source) {
     }
     assert.notEqual(close, -1, 'the urls literal in setupUrls() is unbalanced');
     // The literal's `static` bucket reads the explorer's mount list module by
-    // name, so the evaluation is given that one binding (the real module when
-    // the sibling checkout carries it, an empty list otherwise); the counts this
-    // gate checks live in the `api` and `explorer` buckets, which are inline.
-    const mountsPath = path.join(path.dirname(EXPLORER_SOURCE), 'staticMounts.js');
-    const staticMounts = fs.existsSync(mountsPath) ? require(mountsPath) : { STATIC_DIRECTORIES: [] };
+    // its local binding name `staticMounts`, so the evaluation is given that one
+    // binding, loaded from the real module; the counts this gate checks live in
+    // the `api` and `explorer` buckets, which are inline.
+    const staticMounts = require(requireExplorerFile(STATIC_MOUNTS));
     return new Function('staticMounts', 'return (' + source.slice(open, close + 1) + ')')(staticMounts);
 }
 
@@ -126,8 +192,8 @@ describe('explorer REST endpoint counts in component-map.md', () => {
             'the breakdown ' + api + ' + ' + expl + ' + ' + hand + ' does not sum to the stated total ' + total);
     });
 
-    test('the dispatch-table counts match xchain-explorer source', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
-        const urls = readDispatchTable(fs.readFileSync(EXPLORER_SOURCE, 'utf8'));
+    test('the dispatch-table counts match xchain-explorer source', { skip: noExplorer }, () => {
+        const urls = dispatchTable();
         const api  = Object.keys(urls.api);
         const expl = Object.keys(urls.explorer);
 
@@ -151,17 +217,17 @@ describe('explorer REST endpoint counts in component-map.md', () => {
             ' HTML page routes, not the documented ' + docHtml);
     });
 
-    test('the hand-registered /api route count matches xchain-explorer source', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
-        const routes  = readHandRegisteredApiRoutes(fs.readFileSync(EXPLORER_SOURCE, 'utf8'));
+    test('the hand-registered /api route count matches xchain-explorer source', { skip: noExplorer }, () => {
+        const routes  = readHandRegisteredApiRoutes(explorerClassSource());
         const docHand = documentedFigure('hand-registered');
         assert.equal(routes.length, docHand,
             'the explorer hand-registers ' + routes.length + ' /api routes, not the documented ' + docHand + ':\n  ' +
             routes.join('\n  '));
     });
 
-    test('the surfaces the doc calls out by name are really registered', { skip: !haveExplorer && 'xchain-explorer not present in this checkout' }, () => {
-        const source = fs.readFileSync(EXPLORER_SOURCE, 'utf8');
-        const urls   = readDispatchTable(source);
+    test('the surfaces the doc calls out by name are really registered', { skip: noExplorer }, () => {
+        const source = explorerClassSource();
+        const urls   = dispatchTable();
         const hand   = readHandRegisteredApiRoutes(source).join('\n');
 
         // The three surfaces added after the stale 2026-06-20 count, named in the

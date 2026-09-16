@@ -47,7 +47,7 @@ The publisher is part of the key because token ownership transfers. A former iss
 
 1. Issuer generates one `K` and `KEY_HASH`.
 2. Issuer encrypts each file plaintext under `K`. Each file gets a fresh 12-byte nonce, but they all share `K`.
-3. Issuer publishes a `FILE|0|...` action per file (one `rawData` per transaction; small files can be combined in a single `BATCH`).
+3. Issuer publishes one `FILE|0|...` action per file, each in its own transaction. A transaction carries exactly one `rawData` payload and a `BATCH` hands that same payload to every sub-command, so a `BATCH` holds at most one `FILE` whatever the file sizes are; a second `FILE` batched beside the first is recorded valid carrying the FIRST file's ciphertext, permanently. To publish a pack in one transaction, combine the files into a single archive and publish that archive as one `FILE`.
 4. After (or alongside) the last file, issuer publishes a self-`MESSAGE` whose binary payload contains the single shared `K`.
 
 Because every file in the pack shares the same `K`, one 32-byte entry in the handoff unlocks every file in the pack regardless of how many there are.

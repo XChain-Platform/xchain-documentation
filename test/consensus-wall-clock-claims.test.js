@@ -44,15 +44,30 @@ const assert = require('node:assert/strict');
 const test   = require('node:test');
 const fs     = require('node:fs');
 const path   = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const ROOT   = path.resolve(__dirname, '..');
 const VM_SRC = path.resolve(ROOT, '../xchain-vm/src');
 
-const WALL_CLOCK_JS = path.join(VM_SRC, 'consensus-wall-clock.js');
+// The VM's layout pass renamed src/consensus-wall-clock.js to
+// src/consensus_wall_clock.js and left nothing at the old path, so a sibling
+// checkout sits on one side of that move or the other. Pinning one spelling
+// skips every assertion in this file against the other side while the run still
+// reports green, so try the post-move spelling and fall back to the pre-move one.
+const WALL_CLOCK_JS = [path.join(VM_SRC, 'consensus_wall_clock.js'),
+                       path.join(VM_SRC, 'consensus-wall-clock.js')]
+    .find((p) => fs.existsSync(p)) || path.join(VM_SRC, 'consensus_wall_clock.js');
 const VM_INDEX_JS   = path.join(VM_SRC, 'index.js');
 
-const haveVm = fs.existsSync(WALL_CLOCK_JS) && fs.existsSync(VM_INDEX_JS);
-const noVm   = 'sibling xchain-vm not present in this checkout';
+/* The skips below are for a bare clone, by name. A run that declared the sibling
+ * supplied (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set) throws in
+ * the helper instead, naming both spellings tried: the rule these pages describe lives
+ * in that checkout, and skipping leaves the drift this file exists to catch unchecked
+ * but green. */
+const noVm = sibling('xchain-vm', [
+    [path.join(VM_SRC, 'consensus_wall_clock.js'), path.join(VM_SRC, 'consensus-wall-clock.js')],
+    VM_INDEX_JS,
+]).skip;
 
 const readDoc = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const readVm  = (file) => fs.readFileSync(file, 'utf8');
@@ -85,9 +100,9 @@ function activationBody(src) {
 }
 
 test('the wall-clock budget the VM pages quote is the constant xchain-vm declares',
-    { skip: !haveVm && noVm }, () => {
+    { skip: noVm }, () => {
         const declared = sourceConstant(readVm(WALL_CLOCK_JS), 'CONSENSUS_MAX_WALL_MS',
-            'xchain-vm/src/consensus-wall-clock.js');
+            WALL_CLOCK_JS);
         const printed  = `${declared.toLocaleString('en-US')} ms`;
 
         for (const page of [CONFIG_PAGE, OPERATIONS_PAGE, ACTIVATION_PAGE]) {
@@ -102,19 +117,19 @@ test('the wall-clock budget the VM pages quote is the constant xchain-vm declare
     });
 
 test('the enforcing VM re-exports the same constant the budget module declares',
-    { skip: !haveVm && noVm }, () => {
+    { skip: noVm }, () => {
         const wallClock = readVm(WALL_CLOCK_JS);
         const index     = readVm(VM_INDEX_JS);
 
         assert.match(wallClock, /module\.exports\s*=\s*\{[\s\S]*CONSENSUS_MAX_WALL_MS/,
-            'consensus-wall-clock.js no longer exports CONSENSUS_MAX_WALL_MS; the docs '
+            `${WALL_CLOCK_JS} no longer exports CONSENSUS_MAX_WALL_MS; the docs `
             + 'present it as a readable protocol constant');
         assert.match(index, /module\.exports\.CONSENSUS_MAX_WALL_MS\s*=\s*CONSENSUS_MAX_WALL_MS;/,
             'xchain-vm/src/index.js no longer re-exports CONSENSUS_MAX_WALL_MS');
     });
 
 test('the activation the VM configuration page describes is the one the VM resolves',
-    { skip: !haveVm && noVm }, () => {
+    { skip: noVm }, () => {
         const body = activationBody(readVm(VM_INDEX_JS));
 
         // Pre-launch networks: unconditional, no flag-day comparison in that arm.
@@ -146,7 +161,7 @@ test('the activation the VM configuration page describes is the one the VM resol
     });
 
 test('the flag day the VM rides is the contract-era instant the generated page publishes',
-    { skip: !haveVm && noVm }, () => {
+    { skip: noVm }, () => {
         const gate = sourceConstant(readVm(VM_INDEX_JS), 'BINARY_ALLOC_GATE_BLOCK_TIME',
             'xchain-vm/src/index.js');
         const flagDays = readDoc(FLAG_DAYS_PAGE);
@@ -165,9 +180,9 @@ test('the flag day the VM rides is the contract-era instant the generated page p
     });
 
 test('the CPU-time knob is documented as non-binding for consensus executions',
-    { skip: !haveVm && noVm }, () => {
+    { skip: noVm }, () => {
         const index = readVm(VM_INDEX_JS);
-        assert.match(index, /_wallClockBudgetMs/,
+        assert.match(index, /wallClockBudgetMs/,
             'the per-execution budget resolver is gone from xchain-vm/src/index.js; the '
             + 'docs describe a resolved budget rather than the raw knob');
 

@@ -35,14 +35,14 @@ The SDK calls the encoder's JSON-RPC API, passing the ACTION string, the sender'
 
 1. **Selects a format**. With `encoding` omitted the choice is by payload length alone (`OP_RETURN`, else `P2SH`); the other lanes are requested explicitly, or via `encoding: AUTO`, which picks the cheapest lane the network and signer support:
    - `OP_RETURN`: up to 80 bytes per output (76 bytes user data + 4-byte XCHN prefix), single transaction
-   - `multisig`: up to ~61 bytes per key, single transaction
+   - `multisig`: 60 bytes per output (two 32-byte key slots carry one chunk), single transaction
    - `P2SH`: 476 bytes per chunk, split across as many outputs as needed up to the 8,192-byte compiled-payload ceiling, two-transaction pattern
    - `P2WSH`: the same 476-byte chunking up to the 8,192-byte compiled-payload ceiling, two-transaction pattern
    - `TAPROOT`: the envelope, up to 390,000 payload bytes in one tapscript witness, commit/reveal pair returned together; segwit chains only, and requested explicitly or via `encoding: AUTO` rather than reached by the size fallback
 
-2. **Obfuscates the payload** using AES-128-CTR. The key is the first 16 hex characters of the first input's txid; the IV is the next 16. This is deterministic (any observer with the txid can reverse it) but it filters casual blockchain scanners.
+2. **Prepends the magic prefix** `XCHN` (4 bytes) to the ACTION string, so the decoder can identify an XChain payload once it has deobfuscated the output. The marker sits inside the obfuscated bytes, never ahead of them.
 
-3. **Prepends the magic prefix** `XCHN` (4 bytes) after obfuscation, so the decoder can identify XChain payloads.
+3. **Obfuscates the prefixed payload** using AES-128-CTR. The key is the first 16 hex characters of the first input's txid; the IV is the next 16. This is deterministic (any observer with the txid can reverse it) but it filters casual blockchain scanners.
 
 4. **Returns an unsigned PSBT** (Partially Signed Bitcoin Transaction). For two-transaction formats, the encoder returns both PSBTs in sequence: a funding transaction and a reveal transaction.
 
@@ -102,7 +102,7 @@ The indexer polls the Decoder DB every 5 seconds. When it finds a new decoded ac
 
 7. **Detects reorgs** by monitoring the Decoder DB for block hash changes. On reorg, the indexer rolls back across 80+ tables in a single transaction.
 
-The indexer is deterministic: given the same Decoder DB contents, it will always produce the same Indexer DB state. There is no external I/O during block processing.
+The indexer is deterministic: given the same Decoder DB contents and the same local Hub DB mirror rows, it will always produce the same Indexer DB state. There is no network I/O during block processing; the hub-mirrored cross-chain tables are read locally over SQL, never fetched from the hub mid-block.
 
 ---
 
@@ -198,7 +198,7 @@ Each seam in the pipeline uses polling rather than push notifications or a messa
 
 - **Simplicity**: no broker infrastructure (Kafka, RabbitMQ, Redis Pub/Sub) to deploy, monitor, or tune. Each service can be started, stopped, or restarted independently without affecting others.
 - **Auditability**: the Decoder DB is a complete, queryable record of every raw ACTION the decoder has ever seen. The Indexer DB is a complete record of every validated state transition. Both are inspectable with standard SQL tools.
-- **Determinism**: because the indexer only reads from the Decoder DB and applies deterministic logic, running it again from scratch against the same Decoder DB always produces identical output.
+- **Determinism**: because the indexer reads only local databases, the Decoder DB and the Hub DB mirror, and applies deterministic logic, running it again from scratch against the same Decoder DB and an equivalent mirror always produces identical output.
 
 The cost is latency: a transaction confirmed in a block will not appear in the explorer until the decoder poll finds the block (~seconds), the indexer poll picks up the decoded row (~5 seconds), and the explorer serves the next query. In practice this is 10–30 seconds of additional latency beyond block confirmation, which is acceptable for a protocol where block times are measured in minutes.
 
@@ -218,13 +218,13 @@ In regtest, all services point to `Regtest` network databases (`XChain_BTC_Regte
 
 ## Determinism
 
-The indexer's output is fully determined by its input (the Decoder DB) and its code. There is no randomness, no external API calls during block processing, and no dependency on wall-clock time beyond block heights. This means:
+The indexer's output is fully determined by its inputs and its code. Those inputs are the Decoder DB and the local Hub DB mirror, the read-only copy of the cross-chain tables described in [Database Design](database-design.md); block processing consults the mirror for fee validation, FIAT dispenser settlement, and VM oracle queries. There is no randomness, no external API calls during block processing (the mirror is a local SQL read, not a hub round-trip), and no dependency on wall-clock time beyond block heights. This means:
 
-- **Replay**: destroy the Indexer DB, run the indexer from block 0 against the existing Decoder DB, and the result is bit-for-bit identical.
-- **Verification**: multiple independent indexer instances reading the same Decoder DB will converge to the same state.
+- **Replay**: destroy the Indexer DB, run the indexer from block 0 against the existing Decoder DB and an equivalent Hub DB mirror, and the result is bit-for-bit identical.
+- **Verification**: multiple independent indexer instances reading the same Decoder DB and the same hub-mirrored rows will converge to the same state.
 - **Auditability**: a disputed balance or token state can be traced back through ledger entries to the exact action and block that caused it.
 
-The Decoder DB itself is rebuilt from the blockchain: destroy the Decoder DB, run the decoder from block 0, and it re-derives the same rows from on-chain data. Together, the two-stage pipeline means the full indexer state is reproducible from the raw blockchain alone.
+Both inputs are themselves chain-derived. The Decoder DB is rebuilt from the blockchain: destroy it, run the decoder from block 0, and it re-derives the same rows from on-chain data. The hub-mirrored rows are chain-derived too: prices arrive as PRICE v0 and v1 actions, and the validator infrastructure tables (`stakes`, `delegations`, `validator_rewards`) are synced from BTC indexer state, both aggregated across chains by the hub, with the mirror rebuilt from the hub's snapshot ([Database Design](database-design.md)). So the full indexer state is reproducible from the chains, though not from one chain's Decoder DB in isolation.
 
 ---
 

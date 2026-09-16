@@ -177,7 +177,7 @@ closes that gap: the federation periodically publishes, on **DOGE only**:
 
 This **does not gate settlement** (settlement remains mirror-driven and verifies the
 `cross_chain` quorum as above); it guarantees that a full parse of the three chains, with no surviving hub
-database, can rebuild the match set via the recovery tool (`xchain-indexer/src/recovery.js`) and
+database, can rebuild the match set via the recovery tool (`xchain-indexer/bin/recovery.js`) and
 re-derive identical state. A match retracted after being archived is re-published in a later
 batch with `status=retracted`; recovery applies latest-status-wins by `batch_seq`.
 

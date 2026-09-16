@@ -51,7 +51,7 @@ See [`../components/decoder/`](../components/decoder/) for full documentation.
 | | |
 |---|---|
 | **Purpose** | Reads decoded ACTIONs from the Decoder DB, validates them, executes business logic, writes final state |
-| **Inputs** | Decoder MariaDB (SQL polling every 5 seconds); local Hub DB (cross-chain price data); inbound JSON-RPC `pushvalidatorrewards` from xchain-hub |
+| **Inputs** | Decoder MariaDB (SQL polling every 5 seconds); local Hub DB (cross-chain price data); inbound JSON-RPC `pushvalidatorrewards` from xchain-hub (retired for new anchor rewards, which each indexer now derives from the on-chain ANCHOR bytes) |
 | **Outputs** | Indexer MariaDB (`XChain_{CHAIN}_{NETWORK}_Indexer`); outbound JSON-RPC pushes to xchain-hub (`pushchaintip`, `pushpriceround`, `pushoracleprice`) |
 | **Storage** | Three database connections: Decoder DB (read), Indexer DB (read/write, 100+ tables), local Hub DB (read, synced from xchain-hub) |
 | **Communication** | Outbound SQL reads from Decoder DB and local Hub DB; outbound HTTP/WebSocket to xchain-hub; inbound JSON-RPC API for hub pushes |
@@ -78,10 +78,10 @@ See [`../components/indexer/`](../components/indexer/) for full documentation.
 | | |
 |---|---|
 | **Purpose** | Serves REST endpoints, JSON-RPC 2.0, and a web UI over the Indexer DB |
-| **Inputs** | Indexer MariaDB (direct SQL reads); xchain-hub (config sync every 60s) |
+| **Inputs** | Indexer MariaDB (direct SQL reads); Decoder MariaDB (raw transaction lookups); xchain-hub (config sync every 60s, plus the hub-mirror snapshot and live feed under `self_sync`) |
 | **Outputs** | HTTP responses (REST, JSON-RPC, HTML) |
-| **Storage** | None (stateless read layer) |
-| **Communication** | Inbound HTTP from clients; outbound SQL to Indexer DB; outbound JSON-RPC to xchain-hub |
+| **Storage** | A hub-mirror schema it owns (created and written under `"self_sync": true`); otherwise a read layer over indexed state |
+| **Communication** | Inbound HTTP from clients; outbound SQL to Indexer and Decoder DBs; DDL and row writes to its own hub-mirror DB; outbound JSON-RPC to xchain-hub |
 
 Key technical details:
 
@@ -143,7 +143,7 @@ These services support the construction and submission of XChain transactions.
 
 Key technical details:
 
-- With `encoding` omitted, selects between `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx) and `P2SH` (476 bytes/chunk, 2 tx) by payload size. `MULTISIGN` (~61 bytes/key, 1 tx), `P2WSH` (476 bytes/chunk up to the 8,192-byte compiled-payload ceiling, 2 tx) and `TAPROOT` (the envelope, up to 390,000 bytes in one tapscript witness, 2 tx, segwit chains only) are never reached by that size fallback; they are used only when explicitly requested, or when `encoding: AUTO` opts into smallest-footprint selection.
+- With `encoding` omitted, selects between `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx) and `P2SH` (476 bytes/chunk, 2 tx) by payload size. `MULTISIGN` (60 bytes/output, 1 tx), `P2WSH` (476 bytes/chunk up to the 8,192-byte compiled-payload ceiling, 2 tx) and `TAPROOT` (the envelope, up to 390,000 bytes in one tapscript witness, 2 tx, segwit chains only) are never reached by that size fallback; they are used only when explicitly requested, or when `encoding: AUTO` opts into smallest-footprint selection.
 - P2SH and P2WSH use a two-transaction pattern: fund tx commits funds to a script; reveal tx spends it, embedding the data in the unlocking script. TAPROOT uses a commit/reveal pair returned together from one call.
 - Obfuscates payloads with AES-128-CTR. Key and IV are derived from the first input's txid, deterministic and reversible by any party with the txid.
 - Available as a Node.js JSON-RPC service and as a browser bundle via webpack.
@@ -167,7 +167,7 @@ Key technical details:
 
 - LevelDB key schema uses single-character prefixes: `B`=block, `T`=transaction, `I`=input, `O`=output, `H`/`J`=address hints.
 - Processes blocks in batches of up to 200 (flush may trigger earlier under heap pressure), writing each batch atomically to LevelDB.
-- Maintains a per-chain undo window (BTC: 12 / LTC: 48 / DOGE: 120 blocks, overridable via XCHAIN_UNDO_BLOCKS_<COIN>) to support chain reorganization rollback.
+- Maintains a per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: 120 blocks for every coin; overridable via XCHAIN_UNDO_BLOCKS_<COIN>) to support chain reorganization rollback.
 - Tracks the mempool for real-time unconfirmed UTXO state.
 - Supports bootstrap from tar archives to avoid re-indexing from genesis.
 - Outputs are indexed by scriptPubKey hash, enabling efficient address lookups.
@@ -189,7 +189,7 @@ See [`../components/utxo-tracker/`](../components/utxo-tracker/) for full docume
 
 Key technical details:
 
-- Exposes 31 action construction methods (one per developer-invocable ACTION type) and 118 explorer query wrappers.
+- Exposes 32 action construction methods (one per developer-invocable ACTION type) and 118 explorer query wrappers.
 - Batch builder allows multiple actions to be combined into a single `BATCH` action string.
 - Discovers service endpoints via xchain-hub.
 - Implements retry with exponential backoff and connection pooling for all outbound calls.

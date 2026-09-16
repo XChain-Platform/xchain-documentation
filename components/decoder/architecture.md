@@ -53,10 +53,10 @@ flowchart TD
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server + JSON-RPC, env var loading, signal handlers (SIGTERM/SIGINT) |
 | `src/XChainDecoder.js` | `XChainDecoder` | Main orchestrator: block polling loop, transaction parsing, deobfuscation, mempool updates, reorg detection |
-| `src/BlockchainConnector.js` | `BlockchainConnector` | JSON-RPC client for coin node: getblock, getrawtransaction, getrawmempool, retry with backoff |
+| `src/chain/blockchain_connector.js` | `BlockchainConnector` | JSON-RPC client for coin node: getblock, getrawtransaction, getrawmempool, retry with backoff |
 | `src/db.js` | `Database` | MariaDB connection pool, table creation, block/tx/dispenser inserts, mempool management, reorg rollback |
-| `src/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parsing via bitcoinjs-lib with coin-specific fixes (Litecoin MWEB, Dogecoin AuxPoW) |
-| `src/CryptoNetworks.js` | `CryptoNetworks` | Network configuration: bitcoinjs-lib network objects and start block indexes for all 9 chain/network combinations |
+| `src/chain/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parsing via bitcoinjs-lib with coin-specific fixes (Litecoin MWEB, Dogecoin AuxPoW) |
+| `src/chain/crypto_networks.js` | `CryptoNetworks` | Network configuration: bitcoinjs-lib network objects and start block indexes for all 9 chain/network combinations |
 | `src/util.js` | None | Utility functions: sleep, SHA256, hex conversion, timer |
 | `src/sql/*.sql` | None | Table creation SQL for all 9 database tables |
 

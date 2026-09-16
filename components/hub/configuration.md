@@ -224,6 +224,11 @@ Caps on the live-update channel indexers subscribe to. See [API](api.md#get-hub-
 | `WS_BACKPRESSURE_LIMIT` | No | `50` | Buffered messages a slow subscriber may accumulate before its connection is dropped |
 | `WS_WATERMARK_INTERVAL_MS` | No | `10000` | Interval between `watermark` heartbeats, which let a subscriber tell "the mirror is behind" apart from "no rows are being produced" |
 | `WS_WATERMARK_LATE_FACTOR` | No | `2` | Multiple of `WS_WATERMARK_INTERVAL_MS` after which a heartbeat gap counts as late and is logged; `getWatermarkStats()` exposes the tally on `/health`. A value below `1` would mark an exactly-on-time tick late, so anything under `1` falls back to the default rather than raising permanent false alarms |
+| `XDEX_ROUND_TIMEOUT_MS` | No | `120000` | The single-round timeout of the cross-chain consensus rail (matches, calls, bridge transfers and policy snapshots), in milliseconds. The admission watermark reads it to size that rail's default terminal bound. A zero, negative or non-numeric value falls back to the default. |
+| `XDEX_ROUND_MAX_LIFETIME_MS` | No | `4 × XDEX_ROUND_TIMEOUT_MS` | The terminal bound of a cross-chain round, in milliseconds. A view change re-arms the single-round timeout on a round that is still open, so the watermark trails by this lifetime rather than by one timeout. Widen it together with the rail's rounds. |
+| `ADMISSION_ORACLE_INGEST_WINDOW_MS` | No | `600000` | How far the hub's ingest of on-chain `PRICE` v1 rows may trail the chain it reads before the admission watermark stops waiting for it, in milliseconds. The oracle price table has no consensus round, so this is its only bound. |
+| `HUB_ADMISSION_RELAY` | No | _(unset)_ | Set to `1` or `true` on a relay hub that serves a mirrored copy of another hub's database. A relay observes no rounds, so it claims no admission height of its own: it republishes its upstream's entry verbatim or none, and its indexers defer fail-closed. |
+| `ADMISSION_WATERMARK_SAMPLE_MS` | No | `30000` | How often the hub samples the admission height watermark it publishes on these frames, in milliseconds. Sampling starts only once a hub source is attached. |
 
 ### Indexer tip freshness
 
@@ -237,6 +242,7 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 | `MAX_INDEXER_LAG_BLOCKS` | No | `200` | Maximum blocks the BTC indexer may lag before its tip is treated as untrustworthy and ignored, degrading gracefully instead of locking in a stale validator set. |
 | `MAX_TIP_AGE_S` | No | `2 × ORACLE_ROUND_INTERVAL` (seconds) | Maximum age of the indexer-pushed BTC tip before it is considered stale. Rejecting it costs one HTTP call: the hub falls through to a direct `getlatestblock`. |
 | `MAX_DIRECT_TIP_AGE_S` | No | `7200` (seconds) | Age at which the hub stops trusting a direct `getlatestblock` height that has **not** advanced past the pushed tip just rejected, and reports no BTC tip at all. Separate from `MAX_TIP_AGE_S` on purpose: this gate is terminal, so its bound is sized so an ordinary long block gap on a healthy chain never trips it. A height that beats the pushed tip is always accepted, whatever the tip's age. |
+| `ADMISSION_TIP_MAX_AGE_S` | No | `6 × the chain's block interval` (seconds) | How long a chain's decoder tip may stay at one height before the hub treats it as stalled when resolving an admission height. The default is a block count, so it scales with each chain: about an hour on BTC, 15 minutes on LTC and 6 minutes on DOGE. A zero, negative or non-numeric value uses the default. |
 | `INDEXER_COIN_CHECK` | No | enabled | Set to `0` to disable the per-coin indexer reachability check. |
 
 ### Oracle
@@ -304,8 +310,8 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `ORACLE_REWARD_PER_ROUND` | No | `"10.00000000"` | XCHAIN distributed per finalized oracle round |
-| `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation threshold (5%) for slash detection |
-| `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Consecutive missed rounds before non-participation slash |
+| `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation (5%) at which the hub records a `price_deviation` offense. Hub-local: governance can suspend the validator, on-chain stake is untouched |
+| `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Missed rounds at which the hub records a `non_participation` offense. Hub-local: governance can set `validators.status='suspended'`, on-chain stake is untouched. Only a permissionless SLASH proof of equivocation burns stake (see [Decentralization](decentralization.md)) |
 | `REWARD_PUSH_MAX_ATTEMPTS` | No | `3` | Attempts `RewardTracker` makes when pushing a validator-reward record to the indexer before giving up and recording the failure. The push was previously fire-and-forget, so a dropped push lost the reward record silently. |
 | `REWARD_PUSH_RETRY_DELAY_MS` | No | `2000` | Delay (ms) between those attempts. |
 
@@ -320,7 +326,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_CHUNK_RETRY_MS` | No | `2500` | Delay before retrying a failed archive chunk upload (ms) |
 | `ANCHOR_ELECTION_TOLERANCE_BLOCKS` | No | `36` | BTC blocks a non-leader hub waits before the next eligible rank may take over |
 | `ANCHOR_REWARD_PER_PUBLISH` | No | `"10.00000000"` | XCHAIN distributed to the elected ANCHOR publisher per successful publish cycle |
-| `ANCHOR_CHECKPOINT_EVERY_N` | No | `1` | Anchor only every Nth `checkpoint_seq` on-chain (per chain). Decouples on-chain ANCHOR spend from checkpoint production cadence: skipped (off-multiple) seqs remain in the off-chain hub-DB mirror and are still verifiable via the explorer. `1` anchors every checkpoint (original behaviour). |
+| `ANCHOR_CHECKPOINT_EVERY_N` | No | `1` | Anchor only every Nth checkpoint **ordinal** on-chain, gating the whole round (one bundle covers every chain). Eligibility is `FLOOR(checkpoint_seq / CHECKPOINT_INTERVAL_BLOCKS) % N`, not `checkpoint_seq % N`: the cadence latch advances the seq by exactly one interval per round, so a raw-seq test is a residue class pinned by the seed rather than a 1-in-N sample, and for any N sharing a factor with the interval the federation would anchor every round or never anchor at all. Both this and `CHECKPOINT_INTERVAL_BLOCKS` must be fleet-uniform; `checkpoint_seq` is consensus data, so the predicate is deterministic across every hub. It decouples on-chain ANCHOR spend from checkpoint production cadence, it is not a cadence control (`ANCHOR_INTERVAL_MS` is): skipped (off-multiple) ordinals remain in the off-chain hub-DB mirror and are still verifiable via the explorer. `1` anchors every checkpoint (original behaviour). |
 | `ANCHOR_ENABLED` | No | `true` | Set to `false` to stop this hub publishing ANCHORs. |
 | `ANCHOR_MAX_BATCH` | No | `1000` | Maximum `cross_chain_matches` rows drained into one publish cycle. |
 | `ANCHOR_CHUNK_MAX_BYTES` | No | `6000` | Maximum payload bytes per ANCHOR archive chunk. |
@@ -467,6 +473,8 @@ Controls `RollcallRound`, which signs the per-epoch ledger-hash roll call and el
 | `ROLLCALL_ELECTION_TOLERANCE_BLOCKS` | No | `36` (regtest `3`) | Blocks the elected publisher is given before the next hub in the election ladder may take over. Separate from `ANCHOR_ELECTION_TOLERANCE_BLOCKS` on purpose: the two ladders climb against different anchors. |
 | `ROLLCALL_SELF_PUBLISH_BLOCKS` | No | `100` (regtest `9`) | Blocks after which any hub still holding an unpublished epoch publishes it itself, whatever the ladder says. |
 
+**Without `DOGE_INDEXER_URL` / `DOGE_INDEXER_API_URL` this hub cannot tell a signature it holds from one already on chain, so it publishes nothing and logs nothing.** That failure is silent: the round leader still sees this hub's own oracle submissions arrive, but no roll call ever lands with this hub's pair in it, and a validator left in that state for two consecutive rolled epochs is evicted. A validator with no Dogecoin indexer of its own points these at the public explorer's replicated read: `DOGE_INDEXER_API_URL=https://explorer.xchain.io/TDOGE/api/` on testnet, `https://explorer.xchain.io/DOGE/api/` on mainnet, with `DOGE_INDEXER_API_KEY` set to the federation read key issued alongside this validator's other per-coin keys. That answer comes from the explorer's own replica, so a replica that has fallen behind makes the round wait longer rather than publish against stale data.
+
 ### Full-Node Challenge
 
 Controls `FullNodeChallengeRound`, the periodic possession challenge proving a validator runs a real coin full node rather than mirroring the decoder and indexer databases. Feeds the full-node verified reward tier and the on-chain `NODEPROOF` action.
@@ -513,7 +521,8 @@ The XCHAIN/USD price is derived from platform-realized fills rather than an exte
 The four derivation parameters below are **consensus-uniform**, not per-operator
 tuning. Every validator has to compute the same window over the same fills, so a
 hub honoring a local override would produce a different XCHAIN/BTC leg, land
-outside the co-sign deviation band, and expose itself to slashing. They are
+outside the co-sign deviation band, and expose itself to a recorded
+`price_deviation` offense and hub-local suspension. They are
 therefore **honored on regtest only**: on mainnet and testnet the hub logs a
 `set but IGNORED` warning and uses the consensus-pinned value regardless of what
 the environment says, and so does a standalone hub with no `HUB_NETWORK`.
@@ -541,13 +550,13 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | `LLM_SPEND_LOG_PATH` | No | `./data/llm-spend.jsonl` | File the provider appends each spend record to, written before the call so the audit trail cannot be lost to a crash mid-request. |
 | `LLM_SPEND_LOG_FALLBACK_PATH` | No | `llm-spend.jsonl` inside the OS temp directory | Where a per-dispatch LLM spend audit line is written when the primary sink (`LLM_SPEND_LOG_PATH`) cannot be written. The aggregate spend-state file cannot stand in for it: that file carries a rolling window of costs and no per-dispatch identity, so an operator reconciling a vendor invoice against it cannot tell which call was which. |
 
-> **Cost note.** Each on-chain checkpoint anchor spends real DOGE on three transactions (BTC + LTC + DOGE checkpoints all broadcast on the DOGE chain). State recovery (`recovery.js`) only needs the **latest** anchored checkpoint per chain, so anchoring every intermediate `checkpoint_seq` is optional. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`), `ANCHOR_CHECKPOINT_EVERY_N=2` halves anchor spend (on-chain recovery point then trails the tip by up to ~2 checkpoint intervals). `checkpoint_seq` is consensus data, so the gate is deterministic across every hub.
+> **Cost note.** Each on-chain checkpoint anchor spends real DOGE on **one bundle per network**, not one transaction per chain: a single ANCHOR v0 carries BTC, LTC and DOGE as sections of the same payload, broadcast on the DOGE chain over the P2SH lane's funding plus reveal pair. The cost therefore scales with encoded payload bytes at the venue's fee rate rather than with the number of chains checkpointed. State recovery (`recovery.js`) only needs the **latest** anchored checkpoint per chain, so anchoring every intermediate `checkpoint_seq` is optional. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`), `ANCHOR_CHECKPOINT_EVERY_N=2` halves anchor spend (on-chain recovery point then trails the tip by up to ~2 checkpoint intervals). `checkpoint_seq` is consensus data, so the gate is deterministic across every hub.
 
 ### Operator Signer
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `HUB_SIGNER_MODULE` | No | None | Path to a CommonJS module exporting `walletSign(psbtHex) → Promise<txHex>`. Used by `OraclePublisher` and `AttestationPublisher` to sign DOGE transactions; `StateAnchorPublisher` borrows the same hooks via `_resolveSigner()`. Optional: without it the publishers stay idle. Set-but-unloadable throws at startup (fail loudly). Falls back to `setWalletSignHook` / `setBroadcastHook` if the module is not provided. |
+| `HUB_SIGNER_MODULE` | No | None | Path to a CommonJS module exporting `walletSign(psbtHex) → Promise<txHex>`. Used by `OraclePublisher` and `AttestationPublisher` to sign DOGE transactions; `StateAnchorPublisher` borrows the same hooks via `resolveSigner()`. Optional: without it the publishers stay idle. Set-but-unloadable throws at startup (fail loudly). Falls back to `setWalletSignHook` / `setBroadcastHook` if the module is not provided. |
 
 ### Cross-Chain
 
@@ -564,8 +573,11 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | `XCHAIN_ATTEST_FINALIZED_MAX` | No | `10000` | Cap on retained finalized cross-chain attestation records held in memory |
 | `XCHAIN_ATTEST_STORE_RETRIES` | No | `4` | Attempts made when persisting a cross-chain attestation record. The INSERT is idempotent (`ON DUPLICATE KEY UPDATE`), so a retry after a partial failure is safe. |
 | `XCHAIN_ATTEST_STORE_RETRY_MS` | No | `100` | Base backoff (ms) between those attempts. |
+| `XBRIDGE_POLL_MS` | No | `15000` | Poll cadence of the cross-chain bridge engine (`CrossChainBridgeEngine`), which signs `bridge_transfers` and `policy_snapshots` rows. |
+| `<COIN>_INDEXER_URL` | No | _(from config table)_ | Per-coin indexer JSON-RPC URL the cross-chain bridge engine polls for confirmed transfer and policy legs (e.g. `BTC_INDEXER_URL`). Shared knob name with the other per-coin indexer reads on this page; falls back to the config table, then an empty string. |
+| `<COIN>_INDEXER_API_KEY` | No | _(from config table)_ | API key presented to that indexer by the cross-chain bridge engine. Treat as a credential. |
 
-**Regtest-only seams.** Both engines honour these only when the hub's network is `regtest`, and read them as `NaN`/false everywhere else, so a stray environment variable or config row can never reach the signed snapshot anchor or seed a validator on mainnet or testnet. They deliberately share names between the DEX and XCALL engines so a no-BTC regtest stack is configured once.
+**Regtest-only seams.** All three engines honour these only when the hub's network is `regtest`, and read them as `NaN`/false everywhere else, so a stray environment variable or config row can never reach the signed snapshot anchor or seed a validator on mainnet or testnet. They deliberately share names between the DEX, XCALL and bridge engines so a no-BTC regtest stack is configured once.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
@@ -584,6 +596,7 @@ Regtest-only genesis overrides, ignored on mainnet and testnet, which always use
 | `XC_ROLLCALL_REGTEST_ACTIVATION` | Regtest only | unset (inert) | Arms ROLLCALL on a private regtest venue, so this hub signs roll calls and elects publishers there. `armed` (or `genesis`/`on`/`true`/`yes`) activates at BTC height `0`; a bare non-negative integer activates at that height; `off`/`inert`/`false` and anything unrecognised leave it inert. Read once at startup, so a change needs a restart. Ignored on mainnet and testnet, whose heights are fixed in source and unreachable from the environment. |
 
 | `XC_ROLLCALL_GATES_REGTEST_ACTIVATION` | Regtest only | unset (inert) | Arms ROLLCALL v1 on a private regtest venue: from the armed epoch height on, this hub publishes roll calls that carry the consensus gates its build knows, and the attestation capability set drops a validator whose recorded list lacks a rule active at the request block. Same grammar as `XC_ROLLCALL_REGTEST_ACTIVATION` (`armed` at height `0`, a bare integer at that height, anything else inert), read once at startup, and separate from the roll-call rail so a rail-armed venue can still drive v0 roll calls as its control. Ignored on mainnet and testnet, whose heights are fixed in source. |
+| `XC_MIRROR_ADMISSION_ACTIVATION` | Regtest only | unset (inert) | Arms the per-coin `regtest` entries of `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` (the mirror-admission heights) and the `regtest` entry of `ANCHOR_ATTEST_BARRIER_ACTIVATION` in the hub's activation registry, one variable for the whole barrier family. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; the armed form arms at height `0`. Applied when a row is read, from the environment as it stands then; set identically on every hub, indexer, sync and explorer process in the venue. Ignored on mainnet and testnet, whose heights are fixed in source. |
 
 ROLLCALL arming is a **venue-wide** setting: set `XC_ROLLCALL_REGTEST_ACTIVATION` (and, when the gates rail is wanted, `XC_ROLLCALL_GATES_REGTEST_ACTIVATION`) identically on every hub and every BTC indexer in the venue, and wire the indexers' `DOGE_INDEXER_API_URL`. Regtest ships inert because arming a network commits every BTC indexer on it to a wired DOGE peer, and a single-coin BTC venue would defer forever at its first epoch close. A venue that arms its hubs and forgets an indexer surfaces as a consensus-rules digest mismatch rather than as silent disagreement about which epochs exist.
 
@@ -619,6 +632,9 @@ Read-only operator tools; neither broadcasts nor writes anything and neither is 
 |---|---|---|---|
 | `HUB_RPC_URL` | No | `http://127.0.0.1:4000` | Hub JSON-RPC base URL `bin/stake-share-drill.js` queries (`getstakeshare`) when no `--hub` flag is given. The drill reports how much more third-party stake the federation can absorb before the stake-weighted quorum commit gate stops being reachable, and what a stake of a given size would do to that margin; used to size a top-up before putting real stake on the network. |
 | `HUB_RPC_URLS` | No | _(empty; `--hubs` required instead)_ | Comma-separated hub JSON-RPC URLs `bin/oracle-round-presence.js` polls (`getoracleroundpresence`) when no `--hubs` flag is given. Asks every named hub about the same round range and reports whether the federation agrees on which rounds happened, so a round that finalized on some validators and not others shows up as a named divergence instead of looking like ordinary absence. At least two URLs are required; comparing one hub to itself is refused. |
+| `XCHAIN_HUB_DIR` | No | `../xchain-hub` | Sibling-checkout override `bin/lib/carrier_logic_pin.js`'s `siblingDir()` resolves for cross-repo carrier-logic comparison; the `repo_guards` twin test points it at a second checkout with `XCHAIN_REQUIRE_SIBLINGS=1`. Never read by the running hub process. |
+| `XCHAIN_INDEXER_DIR` | No | `../xchain-indexer` | Sibling-checkout override for the `xchain-indexer` tree the same `siblingDir()` resolves when the pin tool compares against the indexer's canonical copy; read by literal name so the coverage gate can see it. Never read by the running hub process. |
+| `XCHAIN_SYNC_DIR` | No | `../xchain-sync` | Sibling-checkout override for the `xchain-sync` tree the same `siblingDir()` resolves when the pin tool compares against sync's copy; read by literal name so the coverage gate can see it. Never read by the running hub process. |
 
 ## Database Schema
 
