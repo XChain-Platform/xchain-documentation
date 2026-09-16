@@ -1490,6 +1490,16 @@ const TRAIN_ACTIVATION = {
     // earlier rule set to migrate from: the launch binary IS the first rule set, and
     // a floor above genesis would leave the pre-floor range resolving to nothing.
     '1.0.0': { mainnet: 0, testnet: 0, regtest: 0 },
+    // The XCHAIN bridge rule set, armed at the v0.19.0 cut. Mainnet holds the house
+    // sentinel: the mainnet arm is the next milestone and nothing arms there before the
+    // checkpoint cross-check lands, so no mainnet node ever reaches this boundary.
+    // Testnet: SIZED 2026-09-16 11:53Z from chain_tip TBTC 152,676 + 40 blocks, which is
+    // ceil(6 h / 548.6 s per block measured over the preceding 99 blocks), about 6.1 h.
+    // That is the rolling-upgrade window the fleet roll must finish inside (4x the 90
+    // minute roll budget), and every testnet bridge height below sits above it on the
+    // same BTC clock, so a node lacking this rule set halts before it can grade a
+    // bridge action.
+    '0.19.0': { mainnet: 9999999999, testnet: 152716, regtest: 0 },
 };
 
 // STAKE v1 signing-key REUSE flag day, keyed on the processing chain's OWN
@@ -1583,17 +1593,23 @@ const SWEEP_ZERO_LEG_ACTIVATION = {
 // Mainnet is the house sentinel on every key: bridge milestone 1 is a hub-trusted mint (a
 // compromised hub supplies both the transfer record and the roster that verifies it), so
 // nothing arms on mainnet before the ANCHOR-checkpoint cross-check of the lock is built.
-// Testnet holds at the sentinel on every key until the train that arms it sizes one dated
-// instant per chain above that chain's own deploy tip. Regtest is genesis-active so the e2e
-// venue exercises the armed rule.
+// Testnet is SIZED AT THE v0.19.0 CUT, one dated instant per chain, from the three chain tips
+// and their last-99-block cadences read in one sitting (2026-09-16 11:53Z: TBTC 152,676 at
+// 548.6 s per block, TLTC 4,887,525 at 128.3 s, TDOGE 67,900,097 at 27.3 s). The two
+// destinations arm ceil(6 h / cadence) blocks above their tips and BTC, the origin of the v0
+// lock, arms ceil(18 h / cadence) above its tip and so last in wall clock, because the lock
+// handler never checks the destination's own activation; the 3x gap is the band a destination
+// cadence can slow by before that ordering breaks. All three sit above the TRAIN_ACTIVATION
+// 0.19.0 testnet boundary on the BTC clock. Regtest is genesis-active so the e2e venue
+// exercises the armed rule.
 const XCHAIN_BRIDGE_ACTIVATION = {
     'BTC:mainnet':  9999999999,
     'LTC:mainnet':  9999999999,
     'DOGE:mainnet': 9999999999,
     mainnet:        9999999999,   // fallback for a coin with no entry above
-    'BTC:testnet':  9999999999,   // the arming train sizes this at the measured TBTC tip
-    'LTC:testnet':  9999999999,   // the arming train sizes this at the measured TLTC tip
-    'DOGE:testnet': 9999999999,   // the arming train sizes this at the measured TDOGE tip
+    'BTC:testnet':  152795,       // SIZED 2026-09-16: chain_tip 152,676 + 119 (18 h at 548.6 s/blk), about 18.1 h, the origin, last
+    'LTC:testnet':  4887694,      // SIZED 2026-09-16: chain_tip 4,887,525 + 169 (6 h at 128.3 s/blk), about 6.0 h
+    'DOGE:testnet': 67900889,     // SIZED 2026-09-16: chain_tip 67,900,097 + 792 (6 h at 27.3 s/blk), about 6.0 h
     testnet:        9999999999,   // fallback: a testnet coin with no entry above stays dark
     regtest:        0,            // genesis-active so the e2e rail exercises the armed rule
 };
