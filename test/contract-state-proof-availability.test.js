@@ -52,7 +52,7 @@ const path = require('node:path');
 const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT   = path.resolve(__dirname, '..');
-const ACTIVATION = path.resolve(__dirname, '../../xchain-explorer/src/state_subtree_activation.js');
+const ACTIVATION = path.resolve(__dirname, '../../xchain-explorer/src/consensus/gates/state_subtree_gate.js');
 
 // Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the armed map is unreadable.
 const explorer = sibling('xchain-explorer', [ACTIVATION]);

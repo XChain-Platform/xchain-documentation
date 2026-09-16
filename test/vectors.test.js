@@ -25,9 +25,9 @@ const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');
 
 const constants = require('../protocol/constants.js');
-const swq = require('../protocol/reference-impl/stake_weighted_quorum.js');
-const eqh = require('../protocol/reference-impl/equivocation_header.js');
-const srb = require('../protocol/reference-impl/snapshot_reorg_buffer.js');
+const swq = require('../protocol/reference-impl/consensus/stake_weighted_quorum.js');
+const eqh = require('../protocol/reference-impl/consensus/equivocation_header.js');
+const srb = require('../protocol/reference-impl/consensus/snapshot_reorg_buffer.js');
 
 const swqVectors = require('../protocol/test-vectors/stake_weighted_quorum.json');
 const eqhVectors = require('../protocol/test-vectors/equivocation_header.json');

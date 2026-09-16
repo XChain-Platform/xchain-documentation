@@ -96,7 +96,7 @@ const TIMESTAMP_FLOOR = 1_000_000_000;
 
 /**
  * Upper bound past which a value is an UNARMED sentinel rather than a date
- * anybody scheduled. `price_pair_activation.js` parks 9999999999 (year 2286)
+ * anybody scheduled. `consensus/gates/price_pair_gate.js` parks 9999999999 (year 2286)
  * exactly so no operator reads it as a plan. Publishing it as a flag day would
  * put a fake commitment on a page implementers read.
  */
@@ -166,7 +166,7 @@ function mainnetTimeLiteral(text, open) {
  * or null when the braces never close.
  *
  * Brace-counted rather than matched, because an activation map nests:
- * `state_subtree_activation.js` keys three per-slot maps inside one const.
+ * `consensus/gates/state_subtree_gate.js` keys three per-slot maps inside one const.
  */
 function objectBody(text, open) {
     let depth = 0;
@@ -203,12 +203,15 @@ function readMainnetSlot(raw) {
 
 /**
  * Every time-keyed gate the sibling `*_activation.js` modules declare, and the
- * slots this scan refuses to guess at.
+ * slots this scan refuses to guess at. Since W5 the indexer keeps no top-level
+ * `*_activation.js` (every map is a registry row and the logic modules sit under
+ * `src/consensus/gates/`), so the scan finds nothing there; it stays as the
+ * pre-W3 fallback the registry arm supersedes.
  *
  * READ WITH THE REGISTRY ARM'S RIGOR, which it once lacked in three ways. It
  * scanned raw text, so a retired map parked in a block comment was published as
  * a live row; it took the FIRST `mainnet:` per file, so the second map in a
- * multi-map module could never enter the page (`anchor_reward_activation.js`
+ * multi-map module could never enter the page (the anchor-reward module
  * alone declares three); and it named the gate after the FILE, which cannot
  * name more than one map. Comments are stripped, every map is scanned, and each
  * gate is named by its enclosing const.

@@ -308,7 +308,7 @@ Each voting validator's signing pubkey resolves to its stake source in the feder
 snapshot, each source counts at most once however many of its keys vote, and the summed
 stake must satisfy `3 x tally > 2 x S`, where `S` is the snapshot's total stake over
 distinct sources. Three equally weighted sources therefore need all three votes. See
-[`protocol/reference-impl/stake_weighted_quorum.js`](../../protocol/reference-impl/stake_weighted_quorum.js).
+[`protocol/reference-impl/consensus/stake_weighted_quorum.js`](../../protocol/reference-impl/consensus/stake_weighted_quorum.js).
 
 **Below activation:** the legacy signer COUNT `max(2f+1, ceil((N+1)/2))` where
 `f = floor((N-1)/3)`, tolerating `f` Byzantine validators out of `N` total. The

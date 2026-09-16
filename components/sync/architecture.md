@@ -105,19 +105,19 @@ flowchart TD
 | `server/cooldown_credits.js` | `collectMaturedCooldownCredits` | Collects backdated cooldown-refund credits that the action-scoped join cannot reach; source side |
 | `util/wire_codec.js` | `encodeRow`, `decodeValue` | Binary-safe row serialization: tags BLOB/Buffer column values with a `__xbin__` sentinel so they survive JSON round-trip intact |
 | `client/block_hasher.js` | `BlockHasher` | Independently recomputes a block's consensus hashes (ledger/actions/contract) from the replicated rows; the source of VERIFY_RECOMPUTE |
-| `stateHash.js` | `buildStateHashData` | Builds the canonical preimage for the fourth per-block replication-integrity hash (`state_hash`), covering in-place mutations and backdated credits not captured by the three consensus hashes |
+| `consensus/state_hash.js` | `buildStateHashData` | Builds the canonical preimage for the fourth per-block replication-integrity hash (`state_hash`), covering in-place mutations and backdated credits not captured by the three consensus hashes |
 | `stateCommitment.js` | `computeFollowerRoots` | Follower twin of the indexer's SPV state-commitment engine; recomputes per-block SMT roots (balances, stakes, state) for VERIFY_STATE_COMMITMENT |
 | `merkle.js` | None | Consensus-critical SPV Merkle primitives (SHA-256 SMT, block Merkle root, state root); byte-aligned with the indexer twin |
 | `server/merkle_tree.js` | `MerkleTree` | Binary SHA-256 Merkle tree used by TransparencyLog for epoch proof construction |
 | `db/balance_helpers.js` | None | Shared SQL helpers for rebuilding the `balances` aggregate after a block apply or rollback |
 | `checkpoint.js` | None | Client-side verifier for quorum-signed state checkpoints (SPV spec §6.1/§6.3) |
-| `stake_weighted_quorum.js` | None | Canonical stake-weighted quorum predicate; vendored byte-identically from xchain-documentation |
+| `consensus/stake_weighted_quorum.js` | None | Canonical stake-weighted quorum predicate; vendored byte-identically from xchain-documentation |
 | `client/pinned_validators.js` | None | Out-of-band pinned validator sets used by VERIFY_CHECKPOINT_QUORUM to anchor checkpoint signatures |
 | `consensus-constants.js` | None | Frozen per-chain consensus constants (e.g. `ACTIVATION_DELAY_BLOCKS`) shared across modules |
 | `schema/version.js` | None | Snapshot schema version constant used to detect incompatible snapshot formats |
-| `state_commitment_activation.js` | `isStateCommitmentActive` | Flag-day gate: returns whether the SPV state-commitment feature is active for a given block and network |
-| `checkpoint_commitment_activation.js` | None | Flag-day gate for quorum-signed checkpoint commitment (SPV spec §6.1/§6.3 Phase 2) |
-| `equivocation_header.js` | None | Consensus-critical implementation of the uniform signed equivocation header (WI-2 bump 2) |
+| `consensus/gates/state_commitment_gate.js` | `isStateCommitmentActive` | Flag-day gate: returns whether the SPV state-commitment feature is active for a given block and network |
+| `consensus/gate_registry/` (row `checkpoint_commitment_activation.CHECKPOINT_COMMITMENT_ACTIVATION`) | None | Flag-day gate for quorum-signed checkpoint commitment (SPV spec §6.1/§6.3 Phase 2) |
+| `consensus/equivocation_header.js` | None | Consensus-critical implementation of the uniform signed equivocation header (WI-2 bump 2) |
 | `client/sync.js` | `ClientSync` | Client-mode orchestrator: bootstrap, catch-up, live sync loop per chain/network |
 | `client/applier.js` | `ClientApplier` | Applies block payloads and snapshots to local replica DB via INSERT IGNORE |
 | `client/rollback.js` | `ClientRollback` | Rollback logic mirroring indexer's Rollback.js table lists |
@@ -203,7 +203,7 @@ Each hash includes `block_index` and `previous_hash` (from the prior block's cor
 
 A fourth per-block field, `state_hash`, covers the in-place mutations and backdated cooldown-refund credits that the three consensus hashes structurally cannot reach. Those hashes scope rows by `actions.block_index = B` (new, immutable rows only). They cannot see a mutation the indexer applies to a surviving row from an earlier block, nor a refund credit that reuses an earlier action_index. A follower that silently fails to apply one of those mutations therefore diverges with no mismatch on the three hashes to flag it.
 
-`state_hash` is computed by `stateHash.js` and stored in `blocks.state_hash_id`. `ServerPoller` reads it via the `getBlockHashRow` JOIN on `state_hash_id` and attaches it as a top-level field on every indexer block payload. It is NOT written to `sync_meta`, NOT included in Merkle leaves, and NOT part of the hub-signed checkpoint; it is a replication-integrity field only.
+`state_hash` is computed by `consensus/state_hash.js` and stored in `blocks.state_hash_id`. `ServerPoller` reads it via the `getBlockHashRow` JOIN on `state_hash_id` and attaches it as a top-level field on every indexer block payload. It is NOT written to `sync_meta`, NOT included in Merkle leaves, and NOT part of the hub-signed checkpoint; it is a replication-integrity field only.
 
 On the client side, when `VERIFY_STATE_HASH=true` (the default), `ClientSync` recomputes `state_hash` from the replica's rows at apply time and halts durably on mismatch. A `NULL` `state_hash` (block indexed before the feature shipped) is skipped, so enabling this check can never false-halt against a back-level source.
 

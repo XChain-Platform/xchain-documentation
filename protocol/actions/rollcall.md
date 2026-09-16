@@ -123,7 +123,7 @@ The window is a **height cut**, not a per-block time filter, so every honest nod
 Miner timestamp slack (~2 hours either way, on either chain) moves the edge. It cuts both ways and a wider window can only *reduce* evictions, so the residual is bounded and named: a signature landed in the last couple of hours of the window on a back-dated DOGE block may fall outside the cut. Publishers stay clear of the edge by self-publishing well before it.
 
 ## Activation and constants
-All eight values are **consensus** and frozen in `protocol/constants.js`, with byte-identical copies in `xchain-{indexer,hub}/src/rollcall_activation.js`. None may be read from the coin registry or from env.
+All eight values are **consensus** and frozen in `protocol/constants.js`, with byte-identical copies in `xchain-{indexer,hub}/src/consensus/gates/rollcall_gate.js`. None may be read from the coin registry or from env.
 
 | Constant | mainnet | testnet | regtest | Unit |
 |---|---|---|---|---|

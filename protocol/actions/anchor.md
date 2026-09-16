@@ -346,7 +346,7 @@ exact bytes):
     snapshot set summed over distinct sources. A source whose snapshot weight is missing fails
     closed. Three equally weighted sources therefore need all three signatures; two are not
     enough. The predicate is `meetsStakeThreshold` in
-    [`protocol/reference-impl/stake_weighted_quorum.js`](../reference-impl/stake_weighted_quorum.js).
+    [`protocol/reference-impl/consensus/stake_weighted_quorum.js`](../reference-impl/consensus/stake_weighted_quorum.js).
   - **Below activation** the quorum is the legacy signer COUNT `max(2f+1, ceil((N+1)/2))`,
     `f = floor((N-1)/3)`: PBFT `2f+1` floored at a simple majority, so N=3 requires 2 and
     single-validator sets require 1. The floor is what stops bare `2f+1` degenerating to a
