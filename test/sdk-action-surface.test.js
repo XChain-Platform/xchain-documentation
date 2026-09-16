@@ -118,7 +118,13 @@ test('concepts/actions.md names every action that has a spec', () => {
 
 test('the SDK reference covers exactly the invocable set',
   { skip: noSdk }, () => {
-    const invocable = methodsFor(fs.readFileSync(SDK_MAIN, 'utf8'));
+    // Same entry-plus-parts reading as SESSION above: the SDK's structure pass moved
+    // the action shorthands (send, deploy, batch, ...) out of XChainSDK.js into
+    // src/XChainSDK/*.js parts that installMethods() attaches to the prototype, so
+    // the entry alone no longer declares them. readModuleSource follows the platform's
+    // split convention (entry first, then every part under a same-named directory) and
+    // reads the entry alone, unchanged, on a tree that was never split.
+    const invocable = methodsFor(readModuleSource(SDK_MAIN));
     assert.deepStrictEqual(invocable, NAMED.filter((n) => !NOT_INVOCABLE.includes(n)),
       'the SDK builder methods no longer match "every action except ' + NOT_INVOCABLE.join(', ')
       + '". Re-derive the split before touching the docs.');
