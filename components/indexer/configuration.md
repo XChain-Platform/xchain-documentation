@@ -92,6 +92,8 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 
 Regtest ships inert on purpose: arming a network commits every BTC indexer on it to a wired DOGE peer, so a hardcoded height wedged every single-coin BTC venue at its first close. Set this on **every** BTC indexer and hub in a two-chain acceptance venue, alongside `DOGE_INDEXER_API_URL`. A venue that arms its hubs and forgets its indexer shows up as a consensus-rules digest mismatch, because `ROLLCALL_ACTIVATION` is one of the shared gates that digest covers.
 
+`bin/consensus-identity.js`'s `selectedPinBlock()` also reads both names, from the `armed_regtest_venue.env` block of `bin/pins/at1-consensus-identity.json`, to pick between the armed and bare-checkout consensus-identity pin for comparison; that block must be kept in step with whatever the venue actually arms.
+
 A BTC indexer with no DOGE wiring **defers every block** from the first epoch close onward (epoch height + 144 + 36), with `stallReason = 'rollcall_proof_unavailable'`, rather than judging absences it cannot prove. The same deferral covers an unreachable or malformed answer, a DOGE tip that has not yet buried the window cut by `ROLLCALL_DOGE_MATURITY`, and a DOGE indexer whose vendored action-manifest hash differs from this indexer's own. That last case is what turns a DOGE indexer running a decoder too old to know `ROLLCALL` from a silent evict-the-federation bug into a loud, safe stall: wire the DOGE indexers and deploy their decoder **before** `ROLLCALL_ACTIVATION` is reached. A validator with no Dogecoin indexer of its own points `DOGE_INDEXER_API_URL` at the public explorer instead: `https://explorer.xchain.io/TDOGE/api/` on testnet, `https://explorer.xchain.io/DOGE/api/` on mainnet, with `DOGE_INDEXER_API_KEY` set to the federation read key issued alongside the validator's other per-coin keys. That answer comes from the explorer's own replicated indexer database, so a replica that has fallen behind makes the epoch close wait longer rather than judge the roll call on stale data.
 
 ### Hub push queue and mirror
@@ -223,6 +225,14 @@ baseline; never by the indexer service itself. The harness also reads the
 | Variable | Description | Example |
 |---|---|---|
 | `XCHAIN_DECODER_SQL_PATH` | **Harness only.** Path to the decoder's SQL schema directory, used to build the scratch decoder database the measured blocks are read from. The harness refuses to run when it is unset rather than measuring against a schema it guessed at | `/path/to/xchain-decoder/src/sql` |
+
+### Diagnostic Scripts (`bin/`)
+
+Read-only operator tools; neither broadcasts nor writes anything and neither is read by the running indexer process itself.
+
+| Variable | Description | Default |
+|---|---|---|
+| `XCHAIN_INDEXER_DIR` | Sibling-checkout override `bin/lib/carrier_logic_pin.js`'s `siblingDir()` resolves for cross-repo carrier-logic comparison; the `repo_guards` twin test points it at a second checkout with `XCHAIN_REQUIRE_SIBLINGS=1`. Never read by the running indexer process. | `../xchain-indexer` |
 
 ## Hub DB Price Source
 

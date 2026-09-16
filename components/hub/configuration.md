@@ -631,6 +631,7 @@ Read-only operator tools; neither broadcasts nor writes anything and neither is 
 |---|---|---|---|
 | `HUB_RPC_URL` | No | `http://127.0.0.1:4000` | Hub JSON-RPC base URL `bin/stake-share-drill.js` queries (`getstakeshare`) when no `--hub` flag is given. The drill reports how much more third-party stake the federation can absorb before the stake-weighted quorum commit gate stops being reachable, and what a stake of a given size would do to that margin; used to size a top-up before putting real stake on the network. |
 | `HUB_RPC_URLS` | No | _(empty; `--hubs` required instead)_ | Comma-separated hub JSON-RPC URLs `bin/oracle-round-presence.js` polls (`getoracleroundpresence`) when no `--hubs` flag is given. Asks every named hub about the same round range and reports whether the federation agrees on which rounds happened, so a round that finalized on some validators and not others shows up as a named divergence instead of looking like ordinary absence. At least two URLs are required; comparing one hub to itself is refused. |
+| `XCHAIN_HUB_DIR` | No | `../xchain-hub` | Sibling-checkout override `bin/lib/carrier_logic_pin.js`'s `siblingDir()` resolves for cross-repo carrier-logic comparison; the `repo_guards` twin test points it at a second checkout with `XCHAIN_REQUIRE_SIBLINGS=1`. Never read by the running hub process. |
 
 ## Database Schema
 

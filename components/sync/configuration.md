@@ -113,6 +113,14 @@ In client mode, the service connects to remote sync servers and replicates their
 | `STATE_TREE_METRIC_MAX_NODES` | No | `2000000` | Node ceiling for a single state-tree metric pass, bounding the cost of the sweep on a large tree. |
 | `SYNC_QUERY_METRIC_INTERVAL_MS` | No | `900000` (15 m) | Interval between `[METRIC] sync_action_scoped_queries_per_block` lines, which record how many action-scoped queries a block payload cost and how many of them returned rows. The per-table read loop grows with every replicated table added, so this is how the trend against poll cadence stays observable. Set to `0` to disable. Indexer pollers only (a decoder has no action-scoped tables). |
 
+### Diagnostic Scripts (`bin/`)
+
+Read-only operator tools; neither broadcasts nor writes anything and neither is read by the running sync process itself.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `XCHAIN_SYNC_DIR` | No | `../xchain-sync` | Sibling-checkout override `bin/lib/carrier_logic_pin.js`'s `siblingDir()` resolves for cross-repo carrier-logic comparison; the `repo_guards` twin test points it at a second checkout with `XCHAIN_REQUIRE_SIBLINGS=1`. Never read by the running sync process. |
+
 ## Hub Discovery
 
 The service calls the local xchain-hub's `getallconfigs` JSON-RPC method at startup and every 5 minutes thereafter. The hub returns an envelope `{ configs, seq, watermark }`, where `configs` holds the nested configuration tree:
