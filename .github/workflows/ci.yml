@@ -75,10 +75,33 @@ jobs:
       # whole way. Checked out beside xchain-documentation, not nested, so the
       # generator's '../xchain-indexer' resolution finds it.
       #
-      # Ref: the release branch on a release head (a PR from release/*), the
-      # pushed/targeted branch otherwise. Matches the ref logic xchain-e2e-test's
-      # CI already uses for the same sibling. The indexer repo is public, so the
-      # default token reads it and this repo keeps holding no secrets.
+      # Ref, in the order the expression tries them:
+      #   1. a release head (a PR from release/*) reads that same release branch,
+      #      so a train is judged against the code it is shipping;
+      #   2. anything aimed at master reads the indexer's master, whether it
+      #      arrives as a pull request (github.base_ref) or as the merge landing
+      #      on the branch itself (github.ref);
+      #   3. everything else reads develop.
+      #
+      # Case 2 needs BOTH halves. On a pull_request event github.ref is
+      # refs/pull/<n>/merge, never refs/heads/master, so the old expression's
+      # single github.ref test resolved DEVELOP for a PR whose base is master,
+      # and a master-bound PR was graded against unreleased code. That is a wrong
+      # verdict rather than a flaky one: the corpus on master documents the
+      # RELEASED platform, so a page there cites the file layout the release tag
+      # carries. PR 44 (the v0.19.1 mirror) failed on exactly that: it cites
+      # xchain-indexer/src/stateHash.js, stake_weighted_quorum.js and
+      # equivocation_header.js, which exist at indexer master and moved under
+      # src/consensus/ on indexer develop.
+      #
+      # github.base_ref is the empty string on a push event, so it is inert
+      # there and case 2 still falls through to the github.ref test. Asserted for
+      # all four cases by test/ci-sibling-ref-expression.test.js, which evaluates
+      # this literal expression rather than a copy of it.
+      #
+      # Matches the ref logic xchain-e2e-test's CI already uses for the same
+      # sibling. The indexer repo is public, so the default token reads it and
+      # this repo keeps holding no secrets.
       #
       # Only ONE sibling is checked out. The suites that read a sibling skip the
       # ones that are absent, and the env-var coverage suite applies its fleet
@@ -88,7 +111,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: XChain-Platform/xchain-indexer
-          ref: ${{ startsWith(github.head_ref, 'release/') && github.head_ref || (github.ref == 'refs/heads/master' && 'master' || 'develop') }}
+          ref: ${{ startsWith(github.head_ref, 'release/') && github.head_ref || ((github.base_ref == 'master' || github.ref == 'refs/heads/master') && 'master' || 'develop') }}
           path: xchain-indexer
 
       # Node 22 exactly: the platform's suites require it, and on some repos an
