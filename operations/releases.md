@@ -9,6 +9,43 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.19.1
+
+Released 2026-09-16. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.19.1)
+
+A patch train. `xchain-sync` and `xchain-node` move to 0.19.1; every other
+component keeps its v0.19.0 pin (or v0.17.0 for `xchain-contracts`).
+`xchain-documentation` is not tagged with this train; this page is updated
+directly on master.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.19.1 |
+| xchain-hub | 0.19.0 |
+| xchain-indexer | 0.19.0 |
+| xchain-sync | 0.19.1 |
+| xchain-explorer | 0.19.0 |
+| xchain-decoder | 0.19.0 |
+| xchain-encoder | 0.19.0 |
+| xchain-utxo-tracker | 0.19.0 |
+| xchain-sdk | 0.19.0 |
+| xchain-e2e-test | 0.19.0 |
+| xchain-vm | 0.19.0 |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.19.0 |
+
+Two boot-time fixes, both state-neutral. `xchain-sync` moved its database class
+into `src/db/` in the code-structure pass and left the DDL directory lookup
+pointed at the old location, so the service died at boot with ENOENT resolving
+`src/sql/`; the lookup is restored. `xchain-node` moved its bootstrap service
+into `src/services/bootstrap_service/` in the same pass and left the pinned
+bootstrap signing public key path pointed at the old location, so a
+signed-bootstrap restore refused as unsigned and fell back to syncing from
+genesis instead of verifying; the path is restored, and the release manifest
+repins `xchain-sync` to v0.19.1 alongside it. No activation height moves: the
+`trainActivation` block still arms rule set 0.19.0 on testnet at Bitcoin height
+152787, and mainnet stays at the sentinel.
+
 ## v0.19.0
 
 Released 2026-09-16. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.19.0)
