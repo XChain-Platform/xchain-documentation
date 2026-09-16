@@ -33,9 +33,13 @@
  *   4. The docs do not reintroduce the "actions activate at block heights"
  *      phrasing.
  *
- * The registry is parsed rather than required: protocol_changes.js is a class
- * that wants a live indexer to construct, and the addChange(...) calls are
- * literal enough to read directly.
+ * The registry is REQUIRED, not parsed. Its rows live in the part files under
+ * src/protocol_changes/ as array literals the entry assembles, and the entry
+ * pulls in nothing past the canonicaliser (crypto), so the class builds its
+ * table here from the same rows the indexer runs on. It wants an indexer for
+ * its config and database, and every row is parsed before either is touched,
+ * so a bare stub is enough to read the table. A text scan would have to know
+ * the row shape, and this file asserts values, not literals.
  *
  * xchain-indexer is a sibling repo, not a dependency. Source-derived
  * assertions skip when it is absent; the prose check always runs.
@@ -60,19 +64,17 @@ const ACTIONS = fs.readdirSync(path.join(DOC_ROOT, 'protocol/actions'))
     // uppercase protocol identifier, so derive the identifier from the file.
     .map((f) => f.replace(/\.md$/, '').toUpperCase());
 
+/** Every registered change as `{ name, version, thresholds }`, thresholds in addChange order as strings. */
 function readRegistry() {
-    const src = fs.readFileSync(REGISTRY, 'utf8');
-    const re  = /this\.addChange\(\s*'([A-Z_]+)'\s*,\s*'([\d.]+)'\s*,([^)]*)\)/g;
-    const out = [];
-    let m;
-    while ((m = re.exec(src)) !== null) {
-        out.push({
-            name: m[1],
-            version: m[2],
-            thresholds: m[3].split(',').map((s) => s.trim()).filter((s) => s !== ''),
-        });
-    }
-    assert.ok(out.length > 50, 'parsed only ' + out.length + ' addChange calls; the registry format changed');
+    const ProtocolChanges = require(REGISTRY);
+    const stub = { config: {}, util: { throwError(message) { throw new Error(message); } } };
+    const out = Object.entries(new ProtocolChanges(stub).changes).map(([name, c]) => ({
+        name,
+        version: `${c.version_major}.${c.version_minor}.${c.version_revision}`,
+        thresholds: [c.mainnet_time, c.testnet_time, c.regtest_time, c.mainnet_block, c.testnet_block, c.regtest_block]
+            .map(String),
+    }));
+    assert.ok(out.length > 50, 'the registry built only ' + out.length + ' changes; the part files under src/protocol_changes/ changed shape');
     return out;
 }
 

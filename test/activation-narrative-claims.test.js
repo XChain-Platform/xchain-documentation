@@ -179,7 +179,7 @@ test('every nonzero testnet arm is named in the page\'s exception list', {
     for (const { gate } of arms) {
         assert.ok(
             section.includes(`\`${gate}\``),
-            `${gate} arms testnet at an instant of its own in xchain-indexer/src/protocol_changes.js, `
+            `${gate} arms testnet at an instant of its own in the xchain-indexer protocol_changes registry, `
             + `but ${PAGE_REL} does not name it in the testnet-exceptions list. A new testnet arm `
             + 'was pinned and the activation narrative needs rewording: name the gate and link to '
             + 'Flag-Day Values, and do not write the instant into the prose '

@@ -31,10 +31,15 @@ describe('XBRIDGE action registration (L9b follow-on)', () => {
 
     test('protocol_changes.js registers XBRIDGE at all-zero columns',
         { skip: indexer.skip }, () => {
-            const src = fs.readFileSync(REGISTRY, 'utf8');
-            const m = src.match(/this\.addChange\(\s*'XBRIDGE'\s*,\s*'([\d.]+)'\s*,([^)]*)\)/);
-            assert.ok(m, 'XBRIDGE is not registered in protocol_changes.js');
-            const thresholds = m[2].split(',').map((s) => s.trim()).filter((s) => s !== '');
+            // Read through the class, not a text scan: the row is an array
+            // literal in a part file under src/protocol_changes/ now, and this
+            // guard asserts the columns' VALUES, which the class already parsed.
+            const ProtocolChanges = require(REGISTRY);
+            const stub = { config: {}, util: { throwError(message) { throw new Error(message); } } };
+            const row = new ProtocolChanges(stub).changes.XBRIDGE;
+            assert.ok(row, 'XBRIDGE is not registered in the protocol_changes registry');
+            const thresholds = [row.mainnet_time, row.testnet_time, row.regtest_time,
+                row.mainnet_block, row.testnet_block, row.regtest_block].map(String);
             assert.deepEqual(thresholds, ['0', '0', '0', '0', '0', '0'],
                 'XBRIDGE must be registered at all-zero columns like every other ACTION; ' +
                 'its real height gates are XCHAIN_BRIDGE_ACTIVATION / TOKEN_BRIDGE_ACTIVATION, ' +
