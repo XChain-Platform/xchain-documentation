@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- `TOKEN_BRIDGE_ACTIVATION` and `TOKEN_POLICY_INHERITANCE_ACTIVATION` are keyed by coin and network and arm testnet at BTC 153160, LTC 4888478 and DOGE 67906525.
+- `TOKEN_BRIDGE_ACTIVATION`, `TOKEN_POLICY_INHERITANCE_ACTIVATION` and `TICK_NAMESPACE_ACTIVATION` are keyed by coin and network and arm testnet at BTC 153160, LTC 4888478 and DOGE 67906525.
+- Mirrored rows carry per-chain admission heights so a future-dated block no longer stalls indexer processing while the mirror proves completeness by height.
 
 ## [0.19.0] - 2026-09-16
 
