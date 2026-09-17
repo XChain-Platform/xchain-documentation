@@ -1504,6 +1504,20 @@ const TRAIN_ACTIVATION = {
     // bridge height below sits above it on the same BTC clock, so a node lacking this rule
     // set halts before it can grade a bridge action.
     '0.19.0': { mainnet: 9999999999, testnet: 152787, regtest: 0 },
+    // The mirror-admission rule set, armed at the v0.20.0 cut: the producer and consumer
+    // admission maps and the anchor-attest barrier replace the effective_time binding, so a
+    // node without them grades an admission-stamped row under the rule it replaced. Mainnet
+    // holds the house sentinel because the whole family is null on mainnet under the
+    // 2026-08-29 write hold. Testnet: SIZED 2026-09-17 22:45Z, chain_tip TBTC 152,891 + 225
+    // blocks, which is ceil(36 h / 576.7 s per block), about 36.0 h. The cadence is measured
+    // over a trailing window as long as the lead being sized (53 h here), never the last 99
+    // blocks: a 99-block window on a testnet difficulty burst is noise, and it is what pulled
+    // the LTC leg of this family two days off its BTC counterpart a day after the first cut.
+    // That lead is the rolling-upgrade window the fleet roll must finish inside (24x the 90
+    // minute roll budget), and every testnet mirror-admission height sits above it on the same
+    // BTC clock (the BTC producer at 153,222 is 106 blocks and about 17.0 h further up), so a
+    // node lacking this rule set halts before it can grade an admission-stamped row.
+    '0.20.0': { mainnet: 9999999999, testnet: 153116, regtest: 0 },
 };
 
 // STAKE v1 signing-key REUSE flag day, keyed on the processing chain's OWN
@@ -1865,6 +1879,21 @@ function resolveMirrorAdmissionRegtest(env){
 // read in one sitting, read-only, off the public explorer's status and block pages: TBTC
 // 152,756 at 498.7 s per block, TLTC 4,887,745 at 146.6 s, TDOGE 67,901,335 at 24.5 s.
 //
+// LTC AND DOGE RE-CUT 2026-09-17 22:45Z onto the same BTC instant, same method, because that
+// 99-block window is not an estimator. LTC testnet then ran at about 82 s per block against
+// the 146.6 s assumed, which pulled its producer boundary to 3.2 h out while BTC's stayed
+// 53.0 h out, and DOGE's drifted 7.5 h early. Two legs of one cross-chain match would have
+// crossed the flag day about two days apart, which is the failure the same-instant rule below
+// exists to prevent. BTC is NOT re-cut: its height is keyed to an epoch close and the re-size
+// trigger below has not fired. Re-cut tips and cadences: TBTC 152,891 at 576.7 s per block,
+// TLTC 4,889,190 at 82.5 s, TDOGE 67,904,912 at 27.7 s.
+//
+// CADENCE WINDOW. Measure each chain over a TRAILING WALL-CLOCK WINDOW at least as long as the
+// lead being sized, never over a fixed block count. At the 2026-09-17 re-cut one LTC tip read
+// 8.0 s per block over the last 99 blocks, 43.5 s over 12 h, 82.5 s over 53 h and 111.7 s over
+// 168 h; only the window that spans the lead answers the question being asked, and a short
+// window sampled during a testnet difficulty burst is noise that ships as a consensus constant.
+//
 // The BTC PRODUCER height is the first roll-call epoch close at least 24 h above that tip
 // (151,200 + 2 x 1008 = 153,216), plus one CANONICAL_REORG_BUFFER of 6. The epoch close is what
 // makes the roll legal: a GATES membership change rolls BETWEEN epoch closes and never across
@@ -1879,18 +1908,30 @@ function resolveMirrorAdmissionRegtest(env){
 // instants. Each CONSUMER height is its own producer plus 6 h on the same chain, which is the
 // ordering rule above in its only safe direction.
 //
-// RE-SIZE RULE. The v0.19.0 cut's first sizing was overrun by the chain while the train waited
-// on its e2e matrix and had to be re-cut from a fresh tip. If the carrying train has not rolled
-// the fleet by TBTC 153,211 (this producer height less the 11 blocks a 90-minute roll takes at
-// the measured cadence), re-measure all three tips and re-cut every testnet key here and in both
-// registry twins from the NEXT epoch close, rather than shipping a height the chain has passed.
+// RE-SIZE RULE, PER CHAIN and not BTC alone. The v0.19.0 cut's first sizing was overrun by the
+// chain while the train waited on its e2e matrix and had to be re-cut from a fresh tip, and the
+// v0.20.0 sizing was overrun on LTC by a cadence that nearly halved while BTC's slowed. Before
+// the carrying train rolls, re-measure all three tips and project each producer height forward
+// at its own window cadence. Re-cut when EITHER holds:
+//   1. The fleet has not rolled by TBTC 153,211 (this producer height less the 11 blocks a
+//      90-minute roll takes at the measured cadence). Re-cut every testnet key here and in both
+//      registry twins from the NEXT epoch close, rather than shipping a height the chain passed.
+//   2. Any chain's projected crossing sits more than 6 h from the BTC producer's. Re-cut that
+//      chain onto the BTC instant. Six hours is the consumer gap below and so the entire
+//      ordering margin this family has, in BOTH directions: a leg that crosses early leaves its
+//      consumer reading an admission column the other chain's producer has not written yet, and
+//      a leg that crosses late leaves the other chain's consumer reading one this leg's producer
+//      has not written yet. Both bind nothing.
+// Trigger 1 is mechanical, a height comparison. Trigger 2 is a measurement, and LTC testnet's
+// cadence varies by more than 2x across windows, so it is re-checked at the cut AND again
+// immediately before the roll, not once.
 const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
     'BTC:testnet':  153222,      // epoch close 153,216 + 6 buried; tip 152,756 + 466 at 498.7 s/blk, about 64.5 h
-    'LTC:testnet':  4889331,     // the same instant: tip 4,887,745 + 1586 at 146.6 s/blk
-    'DOGE:testnet': 67910821,    // the same instant: tip 67,901,335 + 9486 at 24.5 s/blk
+    'LTC:testnet':  4891504,     // RE-CUT 2026-09-17 22:45Z onto that instant: tip 4,889,190 + 2314 at 82.5 s/blk
+    'DOGE:testnet': 67911796,    // RE-CUT 2026-09-17 22:45Z onto that instant: tip 67,904,912 + 6884 at 27.7 s/blk
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -1901,8 +1942,8 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
     'BTC:testnet':  153266,      // its producer + 44 blocks, about 6 h: strictly above, never equal
-    'LTC:testnet':  4889479,     // its producer + 148 blocks, about 6 h
-    'DOGE:testnet': 67911703,    // its producer + 882 blocks, about 6 h
+    'LTC:testnet':  4891766,     // its producer + 262 blocks, about 6 h at 82.5 s/blk
+    'DOGE:testnet': 67912575,    // its producer + 779 blocks, about 6 h at 27.7 s/blk
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
