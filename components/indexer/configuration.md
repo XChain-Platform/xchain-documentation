@@ -216,6 +216,26 @@ pipeline rather than imported.
 | `GA_SIDE_ROOT` | **Harness only.** Materialized tree the forked side-process replays from (the HEAD archive, or the HEAD archive with the arm commit reverted) | `/tmp/xchain-ga-witness-btc/indexer-old` |
 | `GA_SIDE_KEY` | **Harness only.** Side label the side-process reports under and prefixes its progress lines with: `OLD` or `ON` | `ON` |
 
+### Mirror-admission replay witness
+
+Read only by `bin/verify-mirror-admission-replay-equivalence.js` (the
+below-the-flag replay witness for the mirror-admission barrier family, which
+replays one decoder corpus with the lever OFF, armed at the boundary height and
+armed at genesis, and compares the consensus hash chain); never by the indexer
+service itself. It takes its database coordinates from `--db-host`, `--db-port`
+and `--db-user` or from the `TEST_DB_*` variables documented for the A7 harness
+above, and it never falls back to `.env`. The password comes from the variable
+NAMED by `--db-pass-env` (for example `MA_DB_PASS`), or from `TEST_DB_PASS` when
+that option is absent, so it never reaches a process list. For each side-process
+the parent sets `INDEXER_COIN`, `INDEXER_NETWORK`, `TEST_DECODER_DB`,
+`TEST_INDEXER_DB` and `XC_MIRROR_ADMISSION_ACTIVATION` (unset, the boundary
+height, or `0`), and the side-process reads the lever back to prove the era it
+actually resolved.
+
+| Variable | Description | Example |
+|---|---|---|
+| `MA_SIDE_KEY` | **Harness only.** Side label the side-process reports its hash chain under, set by the parent for its side-processes: `off`, `boundary` or `on` | `boundary` |
+
 ### BATCH cost-measurement harness
 
 Read only by `bin/measure-batch-execute-cost.js`, which measures the block-loop
