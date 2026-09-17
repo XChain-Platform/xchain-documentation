@@ -1860,13 +1860,37 @@ function resolveMirrorAdmissionRegtest(env){
 // completes BEFORE any network's activation height: the heights map rides frames that carry
 // no schema_version, so a v7 indexer above the activation against a v6 hub would see no
 // heights at all and defer forever under the fail-closed rule.
+//
+// TESTNET SIZED 2026-09-16 20:41Z, from the three chain tips and their last-99-block cadences
+// read in one sitting, read-only, off the public explorer's status and block pages: TBTC
+// 152,756 at 498.7 s per block, TLTC 4,887,745 at 146.6 s, TDOGE 67,901,335 at 24.5 s.
+//
+// The BTC PRODUCER height is the first roll-call epoch close at least 24 h above that tip
+// (151,200 + 2 x 1008 = 153,216), plus one CANONICAL_REORG_BUFFER of 6. The epoch close is what
+// makes the roll legal: a GATES membership change rolls BETWEEN epoch closes and never across
+// one, and this places the whole roll, the v7 schema roll included, inside epoch
+// [152208, 153216). The extra 6 keeps the rule change off the close block itself, so no hub
+// grades that epoch's roll call while its own gate set is changing. The result is a 466-block,
+// about 64.5 h lead, which covers the 90-minute roll budget many times over.
+//
+// LTC and DOGE take the SAME WALL-CLOCK INSTANT converted at their own measured cadence, never
+// one shared number: a single height is an LTC height on an LTC indexer and a BTC height on a
+// BTC indexer, so the two legs of one cross-chain match would cross the flag day at unrelated
+// instants. Each CONSUMER height is its own producer plus 6 h on the same chain, which is the
+// ordering rule above in its only safe direction.
+//
+// RE-SIZE RULE. The v0.19.0 cut's first sizing was overrun by the chain while the train waited
+// on its e2e matrix and had to be re-cut from a fresh tip. If the carrying train has not rolled
+// the fleet by TBTC 153,211 (this producer height less the 11 blocks a 90-minute roll takes at
+// the measured cadence), re-measure all three tips and re-cut every testnet key here and in both
+// registry twins from the NEXT epoch close, rather than shipping a height the chain has passed.
 const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  null,   // SIZED AT THE CUT: tip + roll window + slack, strictly below the consumer height
-    'LTC:testnet':  null,
-    'DOGE:testnet': null,
+    'BTC:testnet':  153222,      // epoch close 153,216 + 6 buried; tip 152,756 + 466 at 498.7 s/blk, about 64.5 h
+    'LTC:testnet':  4889331,     // the same instant: tip 4,887,745 + 1586 at 146.6 s/blk
+    'DOGE:testnet': 67910821,    // the same instant: tip 67,901,335 + 9486 at 24.5 s/blk
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -1876,9 +1900,9 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  null,   // SIZED AT THE CUT, strictly ABOVE the producer height for the same key
-    'LTC:testnet':  null,
-    'DOGE:testnet': null,
+    'BTC:testnet':  153266,      // its producer + 44 blocks, about 6 h: strictly above, never equal
+    'LTC:testnet':  4889479,     // its producer + 148 blocks, about 6 h
+    'DOGE:testnet': 67911703,    // its producer + 882 blocks, about 6 h
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -1925,7 +1949,11 @@ const ANCHOR_ATTEST_ARRIVAL_MARGIN_S = 64800;   // 18 h
 // guarantee, and one map removes that window.
 const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     mainnet: null,        // INERT under the 2026-08-29 mainnet write hold
-    testnet: null,        // SIZED AT THE CUT from the measured tip plus the roll window
+    // SIZED 2026-09-16 20:41Z on the BTC clock, the same instant as the family's BTC CONSUMER
+    // height, so the one member that keeps BOTH completeness certificates gains them together
+    // instead of carrying a lone extra rule for 6 h. Above the same roll and the same epoch
+    // close; the measurement, the formula and the re-size rule are with the maps above.
+    testnet: 153266,
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
 
