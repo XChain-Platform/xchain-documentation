@@ -1623,51 +1623,18 @@ const XCHAIN_BRIDGE_ACTIVATION = {
 // Canonical authority for the registry row token_bridge_activation.TOKEN_BRIDGE_ACTIVATION.
 //
 // ORDERING INVARIANT, asserted by the indexer's parity suite over this map:
-// TOKEN_BRIDGE_ACTIVATION >= XCHAIN_BRIDGE_ACTIVATION per chain key. The general formats ride
+// TOKEN_BRIDGE_ACTIVATION >= XCHAIN_BRIDGE_ACTIVATION per network. The general formats ride
 // the same hub engine, the same mirrored transfer table and the same settle pass as
 // XCHAIN's, so a train that armed v3 without the XCHAIN bridge behind it would admit locks
 // that nothing can ever finalize and that no burn can ever return.
 //
-// KEYED '<COIN>:<network>' since the v0.20.0 arming train, with the bare network key as the
-// fallback. That invariant is per chain key and XCHAIN_BRIDGE_ACTIVATION is three different
-// testnet heights on three chains whose tips differ by orders of magnitude, so a single
-// testnet number here is either unreachable on two of them or already passed on two.
-//
-// Mainnet holds the house sentinel on every key: milestone 1 is a hub-trusted mint, no
-// third-party token can be offered on that basis, and nothing arms on mainnet before the
-// checkpoint cross-check lands there. Regtest is genesis-active.
-//
-// THE TESTNET SIZING, v0.20.0 cut. Tips and cadences read in ONE sitting at
-// 2026-09-17 02:42:30Z from the public explorer status endpoint and its per-block
-// timestamps, cadence measured over the 99 blocks below each tip:
-//
-//   chain   tip          cadence     lead     blocks   height
-//   TBTC    152,780      487.2 s     51.3 h   +380     153160
-//   TLTC    4,887,866    184.2 s     31.3 h   +612     4888478
-//   TDOGE   67,902,163    25.8 s     31.3 h   +4362    67906525
-//
-// Each lead runs from the earliest plausible v0.20.0 fleet-roll completion, 2026-09-18
-// 00:00Z or 21.3 h after that read, plus the cut kit's own lead after it: 10 h for the two
-// destinations and 30 h for BTC. BTC is the ORIGIN of the v3 lock and so arms LAST in wall
-// clock, because the lock handler never checks the destination's own activation; a
-// destination arming later would admit a lock nothing can mint, and the 3x gap is the band
-// a destination cadence can slow by before that ordering breaks. Nothing is rounded, in
-// either direction: rounding a destination height up can push its instant past the
-// origin's. Every slot clears its own XCHAIN_BRIDGE_ACTIVATION slot (152929 / 4887898 /
-// 67902062) and must also sit above the v0.20.0 TRAIN_ACTIVATION testnet boundary on the
-// BTC clock, which the cut kit sizes and which has to land below the LTC and DOGE instants
-// here. A cut that slips past those instants re-sizes them from fresh tips, as the v0.19.0
-// cut re-sized its own.
+// Testnet is NOT armed alongside the XCHAIN bridge: no third-party token can be offered on
+// a hub-trusted mint, so this gate waits on the checkpoint cross-check landing on that
+// network. Regtest is genesis-active.
 const TOKEN_BRIDGE_ACTIVATION = {
-    'BTC:mainnet':  9999999999,
-    'LTC:mainnet':  9999999999,
-    'DOGE:mainnet': 9999999999,
-    mainnet:        9999999999,   // fallback for a coin with no entry above
-    'BTC:testnet':  153160,       // SIZED 2026-09-17 02:42Z: chain_tip 152,780 + 380 (51.3 h at 487.2 s/blk), the origin, last
-    'LTC:testnet':  4888478,      // SIZED 2026-09-17 02:42Z: chain_tip 4,887,866 + 612 (31.3 h at 184.2 s/blk)
-    'DOGE:testnet': 67906525,     // SIZED 2026-09-17 02:42Z: chain_tip 67,902,163 + 4362 (31.3 h at 25.8 s/blk)
-    testnet:        9999999999,   // fallback: a testnet coin with no entry above stays dark
-    regtest:        0,            // genesis-active so the e2e rail exercises the armed rule
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
 };
 
 // Token-policy inheritance flag day, keyed the same way. Canonical authority for the registry
@@ -1681,7 +1648,7 @@ const TOKEN_BRIDGE_ACTIVATION = {
 // and no snapshot is signed, so pre-activation block hashes are unchanged on every chain.
 //
 // TWO ORDERING INVARIANTS, asserted by the indexer's parity suite over this map:
-//   TOKEN_POLICY_INHERITANCE_ACTIVATION >= TOKEN_BRIDGE_ACTIVATION per chain key. Inheritance
+//   TOKEN_POLICY_INHERITANCE_ACTIVATION >= TOKEN_BRIDGE_ACTIVATION per network. Inheritance
 //   has nothing to inherit onto until bridged copies can exist.
 //   TOKEN_POLICY_INHERITANCE_ACTIVATION >= LIST_EDIT_RESOLUTION_ACTIVATION per chain and
 //   network (that map is indexer-local: BTC 963000, LTC 3162000, DOGE 6338000 on mainnet,
@@ -1689,29 +1656,12 @@ const TOKEN_BRIDGE_ACTIVATION = {
 //   walking the edit chain; below that gate the legacy create-index read runs, and the
 //   membership the federation signs would not be the membership the chain enforced.
 //
-// KEYED '<COIN>:<network>' since the v0.20.0 arming train, tracking the token bridge's own
-// re-keying: the first invariant is per chain key and the bridge is three testnet heights,
-// so a single testnet number here could satisfy at most one of the three chains.
-//
-// Mainnet holds the house sentinel on every key until the checkpoint cross-check lands
-// there. Regtest is genesis-active.
-//
-// Testnet is armed AT THE SAME HEIGHT as the token bridge on each chain, not above it. Both
-// flag days ship on the v0.20.0 train and the milestone-2 code is already in the binary, so
-// a gap between them would buy nothing and cost something real: between the two heights
-// bridged copies could exist with no policy to inherit and no in-leg barrier holding a v5
-// credit until the tick has one, which is the unpoliced window the barrier exists to close.
-// Equality satisfies the first invariant, which is `>=`.
+// Both public networks hold at the house sentinel until the train that arms them sizes a
+// dated instant. Regtest is genesis-active.
 const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
-    'BTC:mainnet':  9999999999,
-    'LTC:mainnet':  9999999999,
-    'DOGE:mainnet': 9999999999,
-    mainnet:        9999999999,   // fallback for a coin with no entry above
-    'BTC:testnet':  153160,       // == TOKEN_BRIDGE_ACTIVATION BTC:testnet, sized 2026-09-17 02:42Z
-    'LTC:testnet':  4888478,      // == TOKEN_BRIDGE_ACTIVATION LTC:testnet
-    'DOGE:testnet': 67906525,     // == TOKEN_BRIDGE_ACTIVATION DOGE:testnet
-    testnet:        9999999999,   // fallback: a testnet coin with no entry above stays dark
-    regtest:        0,            // genesis-active so the e2e rail exercises the armed rule
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
 };
 
 // LIST owner-check flag day, keyed on the block_index of the chain being parsed.
@@ -1735,7 +1685,7 @@ const LIST_OWNER_ACTIVATION = {
 // parsed. Canonical authority for the registry row tick_namespace_activation.TICK_NAMESPACE_ACTIVATION, which
 // carries the full rationale.
 //
-// At and above a chain's height two rules bind in the ISSUE handler, beside the reserved
+// At and above a network's height two rules bind in the ISSUE handler, beside the reserved
 // guard: a top-level ISSUE that would CREATE a tick shorter than four characters is
 // 'invalid: TICK (length)' (creation only, so every short token already issued keeps its
 // owner and its admin surface), and every ticker in RESERVED_FUTURE_ROOTS below is
@@ -1748,29 +1698,13 @@ const LIST_OWNER_ACTIVATION = {
 // ahead of the fee and budget checks, so a mined ISSUE of a listed name that is refused
 // today on fee would flip its verdict string on replay.
 //
-// ORDERING INVARIANT, asserted by the indexer's parity suite over this map:
-// TICK_NAMESPACE_ACTIVATION <= TOKEN_BRIDGE_ACTIVATION per chain key, so the bridge never
-// roots a foreign asset on a chain whose matching root is still on sale.
-//
-// KEYED '<COIN>:<network>' since the v0.20.0 arming train, with the bare network key as the
-// fallback, because TOKEN_BRIDGE_ACTIVATION is. A single testnet number at or below BTC's
-// 153160 would sit millions of blocks under the TLTC and TDOGE tips and re-verdict every
-// short or reserved ISSUE already mined on those two chains.
-//
-// Testnet arms AT the token bridge height on each chain (153160 / 4888478 / 67906525). The
-// tips read 2026-09-17 03:08:30Z were 152,781 / 4,887,868 / 67,902,208, so every slot is
-// above its chain's tip and no mined ISSUE changes verdict; and each slot keeps the post-roll
-// lead the bridge was sized with, which an earlier height would give up for a few hours of
-// earlier closure the invariant does not ask for. Mainnet holds the house sentinel until a
-// replica measurement of zero mined ISSUEs of a short or listed name, valid or invalid.
-// Regtest is genesis-active.
+// Both public networks hold at the house sentinel until the train that arms them sizes a
+// dated instant; mainnet additionally waits on a replica measurement of zero mined ISSUEs
+// of a short or listed name, valid or invalid. Regtest is genesis-active.
 const TICK_NAMESPACE_ACTIVATION = {
-    mainnet:        9999999999,
-    'BTC:testnet':  153160,       // == TOKEN_BRIDGE_ACTIVATION BTC:testnet, sized 2026-09-17 02:42Z
-    'LTC:testnet':  4888478,      // == TOKEN_BRIDGE_ACTIVATION LTC:testnet
-    'DOGE:testnet': 67906525,     // == TOKEN_BRIDGE_ACTIVATION DOGE:testnet
-    testnet:        9999999999,   // fallback: a testnet coin with no entry above stays dark
-    regtest:        0,
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
 };
 
 // Chain tickers held free for chains XChain has not integrated yet, refused as
