@@ -1888,6 +1888,23 @@ function resolveMirrorAdmissionRegtest(env){
 // trigger below has not fired. Re-cut tips and cadences: TBTC 152,891 at 576.7 s per block,
 // TLTC 4,889,190 at 82.5 s, TDOGE 67,904,912 at 27.7 s.
 //
+// DOGE RE-CUT AGAIN and LTC SET INERT 2026-09-18 01:32Z, from tips TBTC 152,899, TLTC 4,890,630,
+// TDOGE 67,905,268, each cadence measured over a trailing window at least as long as the lead:
+// TBTC 574 to 600 s per block, TDOGE 27.38 s. BTC is again NOT re-cut, for the same reason: its
+// height is an epoch close and only trigger 2 fired. DOGE re-centres on the fresh tip.
+//
+// LTC HAS NO SAFE HEIGHT TODAY, and that is why its two keys are null rather than a number. The
+// method converts a FIXED wall-clock lead through a cadence, so the tolerable cadence error is
+// 6 h / 52.4 h, about +/-11.5%, and it shrinks as the lead grows. TLTC moved across three
+// non-overlapping regimes in 48 h, 151.9 then 50.5 then 7.0 s per block, a 21x spread, and it
+// entered the fastest of them 3.1 h before this sizing. Sized at the burst LTC is 45 days late if
+// the burst ends; sized at the canon's own window it is 45 hours early if the burst holds. Early
+// is the dangerous direction: an LTC consumer arms above an admission column no BTC producer has
+// written. So LTC takes the fail-closed value defined above, which is INERT and is today's
+// behaviour byte for byte, and it is sized again in v0.21.0 off a settled cadence. The BTC
+// instant cannot be moved earlier to shrink the error: the previous epoch close, 152,208, is
+// already below the tip.
+//
 // CADENCE WINDOW. Measure each chain over a TRAILING WALL-CLOCK WINDOW at least as long as the
 // lead being sized, never over a fixed block count. At the 2026-09-17 re-cut one LTC tip read
 // 8.0 s per block over the last 99 blocks, 43.5 s over 12 h, 82.5 s over 53 h and 111.7 s over
@@ -1930,8 +1947,8 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
     'BTC:testnet':  153222,      // epoch close 153,216 + 6 buried; tip 152,756 + 466 at 498.7 s/blk, about 64.5 h
-    'LTC:testnet':  4891504,     // RE-CUT 2026-09-17 22:45Z onto that instant: tip 4,889,190 + 2314 at 82.5 s/blk
-    'DOGE:testnet': 67911796,    // RE-CUT 2026-09-17 22:45Z onto that instant: tip 67,904,912 + 6884 at 27.7 s/blk
+    'LTC:testnet':  null,        // INERT 2026-09-18 01:32Z: no LTC height is in band under both a 21x burst and the target cadence; arms in v0.21.0
+    'DOGE:testnet': 67912153,    // RE-CUT 2026-09-18 01:32Z onto that instant: tip 67,905,268 + 6885 at 27.38 s/blk
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -1942,8 +1959,8 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
     'BTC:testnet':  153266,      // its producer + 44 blocks, about 6 h: strictly above, never equal
-    'LTC:testnet':  4891766,     // its producer + 262 blocks, about 6 h at 82.5 s/blk
-    'DOGE:testnet': 67912575,    // its producer + 779 blocks, about 6 h at 27.7 s/blk
+    'LTC:testnet':  null,        // INERT with its producer: a null consumer over a null producer is the fail-closed pair
+    'DOGE:testnet': 67912942,    // its producer + 789 blocks, about 6 h at 27.38 s/blk
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
