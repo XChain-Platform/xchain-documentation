@@ -102,7 +102,7 @@ The three consensus hashes cover only rows whose `block_index` equals the curren
 
 ### What It Covers
 
-The state hash preimage (built in `xchain-indexer/src/stateHash.js`, mirrored verbatim in `xchain-sync/src/stateHash.js`) includes, for each block:
+The state hash preimage (built in `xchain-indexer/src/consensus/state_hash.js`, mirrored verbatim in `xchain-sync/src/consensus/state_hash.js`) includes, for each block:
 
 | Row class | Tables | Trigger |
 |---|---|---|

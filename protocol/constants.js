@@ -372,7 +372,7 @@ const STAKE_WEIGHTED_QUORUM_ACTIVATION = {
 // `EQUIV|<ENGINE_TAG>|<ROUND_ID>|<VIEW>||<CONTENT>`. This is consensus-breaking (it changes the
 // signed preimage of every settlement/checkpoint/price/attestation signature + the config-change
 // PBFT canonical), so it is gated, kept byte-identical to the local copies in
-// xchain-{hub,indexer,sdk,explorer,sync}/src/equivocation_header.js by the
+// xchain-{hub,indexer,sdk,explorer,sync}/src/consensus/equivocation_header.js by the
 // cross-service regression suite, and must deploy hub + ALL indexers atomically. Its sole
 // consumer is the SLASH v0 equivocation-slashing action, which is only constructible from
 // post-flag-day (header-carrying) messages. Same ARMED height and deploy-by convention as
@@ -397,7 +397,7 @@ const EQUIV_HEADER_ACTIVATION = {
 // indexed mainnet history is ISSUE and ANCHOR only (0 validators, 0 stakes, 0 quorum-signed
 // artifacts measured), so burying reinterprets nothing there and a from-genesis replay is the
 // witness. Kept byte-identical to the local copies in
-// xchain-{hub,indexer,sdk}/src/snapshot_reorg_buffer.js by the cross-service regression suite.
+// xchain-{hub,indexer,sdk}/src/consensus/snapshot_reorg_buffer.js by the cross-service regression suite.
 const CANONICAL_REORG_BUFFER = 6;
 const SNAPSHOT_BURIAL_ACTIVATION = {
     mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (ISSUE and ANCHOR only, measured 2026-09-09)
@@ -416,8 +416,8 @@ const SNAPSHOT_BURIAL_ACTIVATION = {
 // the xchain-sync follower recomputes and HALTS on if they diverge. UNLIKE the two maps above,
 // this gates on the chain's OWN local block_index (each chain starts committing its own per-block
 // root at its own height); the Phase 2 checkpoint/ANCHOR extension that SIGNS these roots gates on
-// snapshot_block. Kept byte-identical to the local copies in xchain-indexer/src/
-// state_commitment_activation.js + xchain-sync/src/state_commitment_activation.js (and xchain-hub
+// snapshot_block. Kept byte-identical to the local copies in xchain-indexer/src/consensus/gates/
+// state_commitment_gate.js + xchain-sync/src/consensus/gates/state_commitment_gate.js (and xchain-hub
 // at Phase 2) by the cross-service regression suite. ARMED MID-CHAIN 2026-07-07 with per-chain
 // '<COIN>:<network>' keys (one shared height cannot fit BTC ~957k and DOGE ~6.28M at once; bare
 // network key remains for regtest; coin-less mainnet/testnet lookups stay inert). Same heights
@@ -448,9 +448,10 @@ const STATE_COMMITMENT_ACTIVATION = {
 // checkpoint canonical, exactly like STAKE_WEIGHTED_QUORUM_ACTIVATION / EQUIV_HEADER_ACTIVATION, so the
 // hub and the BTC/LTC/DOGE indexers all flip the SIGNED shape on the same anchor. The operator MUST pick
 // a snapshot_block at/after which every checkpointed chain is already past its own STATE_COMMITMENT
-// flag-day (else the engine would have no roots to sign). Kept byte-identical to the local copies in
-// xchain-{hub,indexer,sdk,explorer,sync}/src/checkpoint_commitment_activation.js (sync consumes it at
-// checkpoint.js to decide whether to expect the roots) by the cross-service regression suite. Same
+// flag-day (else the engine would have no roots to sign). Kept equal to the registry row
+// checkpoint_commitment_activation.CHECKPOINT_COMMITMENT_ACTIVATION every repo's registry parts carry
+// (sync reads it at checkpoint.js to decide whether to expect the roots) by the cross-service
+// regression suite. Same
 // ARMED height and deploy-by convention as the maps above: mainnet is armed to 961000
 // (2026-07-07; BTC anchor ~2026-08-04), not a disabled placeholder.
 const CHECKPOINT_COMMITMENT_ACTIVATION = {
@@ -471,7 +472,7 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 // credited reward becomes a COLLECT-spendable per-block ledger row), so it must deploy hub + ALL
 // indexers atomically. Like CHECKPOINT_COMMITMENT_ACTIVATION / STAKE_WEIGHTED_QUORUM_ACTIVATION it gates
 // on the BTC-anchored `snapshot_block` carried by every ANCHOR canonical. Kept byte-identical to the
-// local copies in xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression
+// local copies in xchain-{hub,indexer}/src/consensus/gates/anchor_reward_gate.js by the cross-service regression
 // suite. Same ARMED height and deploy-by convention as the maps above: mainnet is armed to 961000
 // (2026-07-07; BTC anchor ~2026-08-04), not a disabled placeholder.
 const ANCHOR_REWARD_ACTIVATION = {
@@ -493,7 +494,7 @@ const ANCHOR_REWARD_AMOUNT = '10.00000000';
 // stands and an archive head's PUBLISHER tail earns no derived credit. Consensus-relevant, same
 // deploy rules and snapshot_block gating as ANCHOR_REWARD_ACTIVATION; kept byte-identical to the
 // local copies in
-// xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
+// xchain-{hub,indexer}/src/consensus/gates/anchor_reward_gate.js by the cross-service regression suite.
 const ARCHIVE_REWARD_ACTIVATION = {
     mainnet: 963000,      // ARMED 2026-07-16, RE-PINNED 2026-08-12 off 969500 onto the shared pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
     testnet: 0,
@@ -541,7 +542,7 @@ const ARCHIVE_REWARD_AMOUNT = '10.00000000';
 // and atomic-deploy rules as ANCHOR_REWARD_ACTIVATION. It CANNOT ride the 961000/963000 boundaries
 // (already live on testnet/regtest, so no coordinated flip window; and one gate must cover both
 // the `anchor_bundle` and `anchor_archive` reward families). Kept byte-identical to the local copies in
-// xchain-{hub,indexer}/src/anchor_reward_activation.js by the cross-service regression suite.
+// xchain-{hub,indexer}/src/consensus/gates/anchor_reward_gate.js by the cross-service regression suite.
 // Active from genesis on every network. Testnet was armed at 0 by the 2026-08-11 operator
 // ruling: it was re-genesised with no pre-flag history, so there is no legacy set to diverge
 // from and no mid-upgrade window to protect, and it is where the relocated derive path gets
@@ -564,7 +565,7 @@ const ANCHOR_REWARD_DERIVE_ACTIVATION = {
 // node whose attestation mirror is not provably caught up defers the block rather than
 // deriving a partial set. It moves the block a COLLECT-spendable reward materializes at, so
 // it is a hashed value frozen with the map above; changing it needs its own flag-day. Kept
-// byte-identical to xchain-{hub,indexer}/src/anchor_reward_activation.js.
+// byte-identical to xchain-{hub,indexer}/src/consensus/gates/anchor_reward_gate.js.
 const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 
 // ROLLCALL (validator liveness eviction). A roll call is a signed proof of presence bound to a
@@ -581,7 +582,7 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // maturity and burial depths. By operator ruling 2026-09-01 that rule is SCOPED to networks with a
 // shared ledger: a regtest chain is private, no two regtest venues validate the same blocks, and
 // refusing a venue-pinned height only left the AT1-AT10 acceptance suite with nowhere to run. Kept
-// byte-identical to xchain-{indexer,hub}/src/rollcall_activation.js by the cross-service suite.
+// byte-identical to xchain-{indexer,hub}/src/consensus/gates/rollcall_gate.js by the cross-service suite.
 //
 // Keyed on the carried BTC EPOCH_HEIGHT on BOTH chains (the snapshot_block convention of
 // STAKE_WEIGHTED_QUORUM_ACTIVATION), never on either chain's local height, so a pre-activation
@@ -630,7 +631,7 @@ const ROLLCALL_ACTIVATION = {
 // roll that lands between them. Regtest is env-derived on the ROLLCALL precedent and ships inert:
 // a venue that arms the ROLLCALL rail opts in here separately with XC_ROLLCALL_GATES_REGTEST_ACTIVATION.
 // The mainnet and testnet heights are kept value-identical to the local copies in
-// xchain-{hub,indexer}/src/rollcall_gates_activation.js by the parity suite; regtest is not.
+// xchain-{hub,indexer}/src/consensus/gates/rollcall_gates_gate.js by the parity suite; regtest is not.
 const ROLLCALL_GATES_REGTEST_ARMED_HEIGHT = 0;
 const ROLLCALL_GATES_REGTEST_ENV = 'XC_ROLLCALL_GATES_REGTEST_ACTIVATION';
 function resolveRegtestGatesActivation(env){
@@ -707,8 +708,8 @@ const RETRACTION_SIGNING_ACTIVATION = {
 // gated separately by the CROSS_CHAIN_ROYALTY entry in the indexer's protocol_changes.js; the
 // operator MUST flip this canonical gate first or together with it, NEVER create-side first
 // (create-side ON with canonical OFF would put the legs in unsigned mirror fields, the exact
-// tamper hole the legs-in-canonical design closes). Kept byte-identical to the local copies in
-// xchain-{hub,indexer}/src/cross_chain_royalty_activation.js by the cross-service regression
+// tamper hole the legs-in-canonical design closes). Kept equal to the registry row
+// cross_chain_royalty_activation.CROSS_CHAIN_ROYALTY_ACTIVATION by the cross-service regression
 // suite. Same ARMED height and deploy-by convention as the maps above: mainnet is armed to
 // 961000 (2026-07-07; BTC anchor ~2026-08-04), not a disabled placeholder.
 const CROSS_CHAIN_ROYALTY_ACTIVATION = {
@@ -728,7 +729,7 @@ const CROSS_CHAIN_ROYALTY_ACTIVATION = {
 // the legacy accept-then-expire behavior is preserved verbatim. Keyed on the request's own
 // block_index + network like STAKE_WEIGHTED_QUORUM_ACTIVATION (the shrink this closes comes
 // from that gate's source-dedupe), and armed to the SAME anchor so both rules flip together.
-// Kept value-identical to the local copy in xchain-indexer/src/attest_admission_activation.js
+// Kept value-identical to the registry row attest_admission_activation.ATTEST_ADMISSION_ACTIVATION
 // by the activation-constants parity suite.
 const ATTEST_ADMISSION_ACTIVATION = {
     mainnet: 961000,      // ARMED: BTC anchor ~2026-08-04 (same anchor as STAKE_WEIGHTED_QUORUM); deploy ALL indexers before this height
@@ -769,7 +770,7 @@ const ATTEST_ADMISSION_ACTIVATION = {
 // 2026-09-09 ruling on its own measurement: the explorer reports 0 attestation rows ever recorded
 // on BTC, LTC and DOGE mainnet (measured 2026-09-09), so no mainnet block can have exceeded the
 // cap and arming from genesis reinterprets nothing.
-// Kept value-identical to the local copy in xchain-indexer/src/attest_request_cap_activation.js
+// Kept value-identical to the local copy in xchain-indexer/src/actions/attest/attest_request_cap_gate.js
 // by the activation-constants parity suite.
 const ATTEST_REQUEST_CAP_ACTIVATION = {
     mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 attestations, measured 2026-09-09)
@@ -811,8 +812,8 @@ const ATTEST_REQUEST_CAPS = {
 // they expire on their own deadline (the pre-Phase-5 outcome); BTC-first leaves no origin request
 // to relay.
 //
-// Armed on the shared mainnet cohort anchor. Kept value-identical to the local copies in
-// xchain-{hub,indexer}/src/attest_relay_activation.js by the activation-constants parity suite.
+// Armed on the shared mainnet cohort anchor. Kept value-identical to the registry row
+// attest_relay_activation.ATTEST_RELAY_ACTIVATION by the activation-constants parity suite.
 const ATTEST_RELAY_ACTIVATION = {
     mainnet: 963000,      // ARMED 2026-07-30 on the shared BTC anchor, RE-PINNED 2026-08-12 off 969500 with the rest of that cohort; deploy every indexer + hub before this height
     testnet: 0,
@@ -856,7 +857,7 @@ const ATTEST_RELAY_ACTIVATION = {
 // below the height never widens and one admitted above always may: the rule for a given request
 // is fixed the moment it is admitted and cannot change mid-window.
 //
-// Kept value-identical to the local copies in xchain-{hub,indexer}/src/attest_responsible_widening_activation.js
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/consensus/gates/attest_responsible_widening_gate.js
 // by the activation-constants parity suite.
 const ATTEST_RESPONSIBLE_WIDENING_ACTIVATION = {
     mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 attestations, measured 2026-09-09)
@@ -908,7 +909,7 @@ const ATTEST_RESPONSIBLE_WIDENING = {
 // response. The height is therefore armed past a SYNCHRONIZED fleet window (hubs, indexers and
 // explorer together, the HUB_SCHEMA_VERSION 4->5 flip) with no request straddling it.
 //
-// Kept value-identical to the local copies in xchain-{hub,indexer}/src/attest_response_mirror_activation.js
+// Kept value-identical to the registry row attest_response_mirror_activation.ATTEST_RESPONSE_MIRROR_ACTIVATION
 // by the activation-constants parity suite.
 const ATTEST_RESPONSE_MIRROR_ACTIVATION = {
     mainnet: null,        // INERT: operator-owned height, unratified. The legacy on-chain response path runs byte for byte.
@@ -932,7 +933,8 @@ const ATTEST_RESPONSE_MIRROR_ACTIVATION = {
 // wave is confirmed complete, because change C is indexer-only and an old indexer strands a request a
 // new one binds. Floor on testnet: 151324.
 //
-// Kept value-identical to the local copies in xchain-{hub,indexer}/src/attest_zero_conf_activation.js
+// Kept value-identical to the registry row attest_zero_conf_activation.ATTEST_ZERO_CONF_ACTIVATION
+// (the hub's src/attestation/attest_zero_conf_gate.js reads it)
 // by the activation-constants parity suite.
 const ATTEST_ZERO_CONF_ACTIVATION = {
     mainnet: null,        // INERT: operator-owned height, unratified. Ratified only after the mirror arms there.
@@ -948,7 +950,7 @@ const ATTEST_ZERO_CONF_ACTIVATION = {
 // all. maxSlots 2 is kept, so the pool can reach redundancy + 3. Headroom widens who may EARN, never
 // who is CHARGED: the persisted assignment and the missed_count charge stay on the unwidened slice.
 //
-// Kept value-identical to the local copies in xchain-{hub,indexer}/src/attest_responsible_widening_activation.js
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/consensus/gates/attest_responsible_widening_gate.js
 // by the activation-constants parity suite.
 const ATTEST_RESPONSIBLE_WIDENING_V2 = {
     startOffset: 0,
@@ -974,7 +976,7 @@ const ATTEST_RESPONSIBLE_WIDENING_V2 = {
 // UNALLOCATED. The four sub-decisions (denomination, broadcaster identity, height, amount bound)
 // were pinned by the operator on 2026-08-11 with the HEIGHT explicitly reserved to the operator,
 // so the implementation ships inert. Nearby cohort anchors in use are 961000, 962500 and 969500.
-// Kept value-identical to xchain-indexer/src/attest_broadcast_fee_activation.js by the
+// Kept value-identical to xchain-indexer/src/actions/attest/attest_broadcast_fee_gate.js by the
 // activation-constants parity suite.
 // TESTNET ARMED AT 0, operator-ratified 2026-08-18 under the standing ruling that every platform
 // feature must be ACTIVE on testnet. Safe by MEASUREMENT, not assumption: this gate only changes how
@@ -1384,7 +1386,7 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
 // whose height has already passed. Deploy every indexer AND every hub before
 // this height; they are peers here, not producer and consumer, so a split fleet
 // has the hub finalizing rounds the chain rejects. Kept value-identical to the
-// local copies in xchain-{indexer,hub}/src/price_sig_tally_activation.js by the
+// registry row price_sig_tally_activation.PRICE_SIG_TALLY_ACTIVATION by the
 // activation-constants parity suite.
 const PRICE_SIG_TALLY_ACTIVATION = {
     mainnet: 963000,      // ARMED, RE-PINNED 2026-08-12 off 969500 onto the train boundary shared with RETRACTION_SIGNING; deploy ALL indexers + hubs before this height
@@ -1415,8 +1417,8 @@ const PRICE_SIG_TALLY_ACTIVATION = {
 // ceiling holds, so each network arms at a coordinated future height once that is
 // proven against its own publisher; a regtest stack publishes no batch at all, so its
 // seeded rounds carry no landing clock and arming there would leave every USD-priced
-// action unpriceable. Kept value-identical to the local copy in
-// xchain-indexer/src/price_fee_batch_landed_activation.js by the activation-constants
+// action unpriceable. Kept value-identical to the registry row
+// price_fee_batch_landed_activation.PRICE_FEE_BATCH_LANDED_ACTIVATION by the activation-constants
 // parity suite.
 const PRICE_FEE_BATCH_LANDED_ACTIVATION = {
     mainnet: null,
@@ -1502,11 +1504,25 @@ const TRAIN_ACTIVATION = {
     // bridge height below sits above it on the same BTC clock, so a node lacking this rule
     // set halts before it can grade a bridge action.
     '0.19.0': { mainnet: 9999999999, testnet: 152787, regtest: 0 },
+    // The mirror-admission rule set, armed at the v0.20.0 cut: the producer and consumer
+    // admission maps and the anchor-attest barrier replace the effective_time binding, so a
+    // node without them grades an admission-stamped row under the rule it replaced. Mainnet
+    // holds the house sentinel because the whole family is null on mainnet under the
+    // 2026-08-29 write hold. Testnet: SIZED 2026-09-17 22:45Z, chain_tip TBTC 152,891 + 225
+    // blocks, which is ceil(36 h / 576.7 s per block), about 36.0 h. The cadence is measured
+    // over a trailing window as long as the lead being sized (53 h here), never the last 99
+    // blocks: a 99-block window on a testnet difficulty burst is noise, and it is what pulled
+    // the LTC leg of this family two days off its BTC counterpart a day after the first cut.
+    // That lead is the rolling-upgrade window the fleet roll must finish inside (24x the 90
+    // minute roll budget), and every testnet mirror-admission height sits above it on the same
+    // BTC clock (the BTC producer at 153,222 is 106 blocks and about 17.0 h further up), so a
+    // node lacking this rule set halts before it can grade an admission-stamped row.
+    '0.20.0': { mainnet: 9999999999, testnet: 153116, regtest: 0 },
 };
 
 // STAKE v1 signing-key REUSE flag day, keyed on the processing chain's OWN
-// block_index, per network AND coin. Canonical authority for the local copy in
-// xchain-indexer/src/stake_key_reuse_activation.js, which carries the full rationale;
+// block_index, per network AND coin. Canonical authority for the registry row
+// stake_key_reuse_activation.STAKE_KEY_REUSE_ACTIVATION, which carries the full rationale;
 // the indexer's activation-constant parity suite holds the two value-identical, and a
 // one-sided edit forks STAKE v1 admission at the boundary.
 //
@@ -1543,8 +1559,8 @@ const STAKE_KEY_REUSE_ACTIVATION = {
 };
 
 // SWEEP zero-amount leg flag day, keyed on the processing chain's OWN block_index,
-// per network AND coin. Canonical authority for the local copy in
-// xchain-indexer/src/sweep_zero_leg_activation.js, which carries the full rationale;
+// per network AND coin. Canonical authority for the registry row
+// sweep_zero_leg_activation.SWEEP_ZERO_LEG_ACTIVATION, which carries the full rationale;
 // the indexer's activation-constant parity suite holds the two value-identical, and a
 // one-sided edit forks the per-block ledger hash at the boundary.
 //
@@ -1576,8 +1592,8 @@ const SWEEP_ZERO_LEG_ACTIVATION = {
 };
 
 // XCHAIN bridge flag day, keyed '<COIN>:<network>' on the block_index of the chain being
-// parsed, with the bare network key as the fallback. Canonical authority for the local copy
-// in xchain-indexer/src/xchain_bridge_activation.js, which carries the full rationale; the
+// parsed, with the bare network key as the fallback. Canonical authority for the registry
+// row xchain_bridge_activation.XCHAIN_BRIDGE_ACTIVATION, which carries the full rationale; the
 // indexer's activation-constant parity suite holds the two value-identical, and a one-sided
 // edit forks the bridge at the boundary.
 //
@@ -1618,7 +1634,7 @@ const XCHAIN_BRIDGE_ACTIVATION = {
 };
 
 // General token-bridge flag day (XBRIDGE v3/v4/v5 and ISSUE format 7), keyed the same way.
-// Canonical authority for xchain-indexer/src/token_bridge_activation.js.
+// Canonical authority for the registry row token_bridge_activation.TOKEN_BRIDGE_ACTIVATION.
 //
 // ORDERING INVARIANT, asserted by the indexer's parity suite over this map:
 // TOKEN_BRIDGE_ACTIVATION >= XCHAIN_BRIDGE_ACTIVATION per network. The general formats ride
@@ -1635,8 +1651,8 @@ const TOKEN_BRIDGE_ACTIVATION = {
     regtest: 0,
 };
 
-// Token-policy inheritance flag day, keyed the same way. Canonical authority for
-// xchain-indexer/src/token_policy_activation.js, which carries the full rationale.
+// Token-policy inheritance flag day, keyed the same way. Canonical authority for the registry
+// row token_policy_activation.TOKEN_POLICY_INHERITANCE_ACTIVATION, which carries the full rationale.
 //
 // At and above a network's height a token's origin-row policy binds every bridged copy:
 // the milestone-1 mutual exclusion in ISSUE lifts, LIST address items validate against any
@@ -1663,7 +1679,7 @@ const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
 };
 
 // LIST owner-check flag day, keyed on the block_index of the chain being parsed.
-// Canonical authority for xchain-indexer/src/list_owner_activation.js.
+// Canonical authority for the registry row list_owner_activation.LIST_OWNER_ACTIVATION.
 //
 // At and above a network's height a LIST format 1 whose source is not the address that
 // created the list it names is 'invalid: LIST_ACTION_INDEX (not owner)'. Below it the edit
@@ -1680,7 +1696,7 @@ const LIST_OWNER_ACTIVATION = {
 };
 
 // Tick-namespace flag day (R8), keyed on the block_index of the chain being
-// parsed. Canonical authority for xchain-indexer/src/tick_namespace_activation.js, which
+// parsed. Canonical authority for the registry row tick_namespace_activation.TICK_NAMESPACE_ACTIVATION, which
 // carries the full rationale.
 //
 // At and above a network's height two rules bind in the ISSUE handler, beside the reserved
@@ -1750,7 +1766,7 @@ const RESERVED_FUTURE_ROOTS = Object.freeze([
 // watermark against B rather than a clock against t(B). Heights do not move with stamps,
 // so a block stamped 7200 s ahead is height B like any other.
 //
-// Kept value-identical to the local copies in xchain-{hub,indexer}/src/mirror_admission_activation.js
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/consensus/gates/mirror_admission_gate.js
 // by the activation-constants parity suite.
 
 // ADMIT_MARGIN_BLOCKS: how far ahead of the producer's observed admission tip a row is
@@ -1858,13 +1874,64 @@ function resolveMirrorAdmissionRegtest(env){
 // completes BEFORE any network's activation height: the heights map rides frames that carry
 // no schema_version, so a v7 indexer above the activation against a v6 hub would see no
 // heights at all and defer forever under the fail-closed rule.
+//
+// TESTNET SIZED 2026-09-16 20:41Z, from the three chain tips and their last-99-block cadences
+// read in one sitting, read-only, off the public explorer's status and block pages: TBTC
+// 152,756 at 498.7 s per block, TLTC 4,887,745 at 146.6 s, TDOGE 67,901,335 at 24.5 s.
+//
+// LTC AND DOGE RE-CUT 2026-09-17 22:45Z onto the same BTC instant, same method, because that
+// 99-block window is not an estimator. LTC testnet then ran at about 82 s per block against
+// the 146.6 s assumed, which pulled its producer boundary to 3.2 h out while BTC's stayed
+// 53.0 h out, and DOGE's drifted 7.5 h early. Two legs of one cross-chain match would have
+// crossed the flag day about two days apart, which is the failure the same-instant rule below
+// exists to prevent. BTC is NOT re-cut: its height is keyed to an epoch close and the re-size
+// trigger below has not fired. Re-cut tips and cadences: TBTC 152,891 at 576.7 s per block,
+// TLTC 4,889,190 at 82.5 s, TDOGE 67,904,912 at 27.7 s.
+//
+// CADENCE WINDOW. Measure each chain over a TRAILING WALL-CLOCK WINDOW at least as long as the
+// lead being sized, never over a fixed block count. At the 2026-09-17 re-cut one LTC tip read
+// 8.0 s per block over the last 99 blocks, 43.5 s over 12 h, 82.5 s over 53 h and 111.7 s over
+// 168 h; only the window that spans the lead answers the question being asked, and a short
+// window sampled during a testnet difficulty burst is noise that ships as a consensus constant.
+//
+// The BTC PRODUCER height is the first roll-call epoch close at least 24 h above that tip
+// (151,200 + 2 x 1008 = 153,216), plus one CANONICAL_REORG_BUFFER of 6. The epoch close is what
+// makes the roll legal: a GATES membership change rolls BETWEEN epoch closes and never across
+// one, and this places the whole roll, the v7 schema roll included, inside epoch
+// [152208, 153216). The extra 6 keeps the rule change off the close block itself, so no hub
+// grades that epoch's roll call while its own gate set is changing. The result is a 466-block,
+// about 64.5 h lead, which covers the 90-minute roll budget many times over.
+//
+// LTC and DOGE take the SAME WALL-CLOCK INSTANT converted at their own measured cadence, never
+// one shared number: a single height is an LTC height on an LTC indexer and a BTC height on a
+// BTC indexer, so the two legs of one cross-chain match would cross the flag day at unrelated
+// instants. Each CONSUMER height is its own producer plus 6 h on the same chain, which is the
+// ordering rule above in its only safe direction.
+//
+// RE-SIZE RULE, PER CHAIN and not BTC alone. The v0.19.0 cut's first sizing was overrun by the
+// chain while the train waited on its e2e matrix and had to be re-cut from a fresh tip, and the
+// v0.20.0 sizing was overrun on LTC by a cadence that nearly halved while BTC's slowed. Before
+// the carrying train rolls, re-measure all three tips and project each producer height forward
+// at its own window cadence. Re-cut when EITHER holds:
+//   1. The fleet has not rolled by TBTC 153,211 (this producer height less the 11 blocks a
+//      90-minute roll takes at the measured cadence). Re-cut every testnet key here and in both
+//      registry twins from the NEXT epoch close, rather than shipping a height the chain passed.
+//   2. Any chain's projected crossing sits more than 6 h from the BTC producer's. Re-cut that
+//      chain onto the BTC instant. Six hours is the consumer gap below and so the entire
+//      ordering margin this family has, in BOTH directions: a leg that crosses early leaves its
+//      consumer reading an admission column the other chain's producer has not written yet, and
+//      a leg that crosses late leaves the other chain's consumer reading one this leg's producer
+//      has not written yet. Both bind nothing.
+// Trigger 1 is mechanical, a height comparison. Trigger 2 is a measurement, and LTC testnet's
+// cadence varies by more than 2x across windows, so it is re-checked at the cut AND again
+// immediately before the roll, not once.
 const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  null,   // SIZED AT THE CUT: tip + roll window + slack, strictly below the consumer height
-    'LTC:testnet':  null,
-    'DOGE:testnet': null,
+    'BTC:testnet':  153222,      // epoch close 153,216 + 6 buried; tip 152,756 + 466 at 498.7 s/blk, about 64.5 h
+    'LTC:testnet':  4891504,     // RE-CUT 2026-09-17 22:45Z onto that instant: tip 4,889,190 + 2314 at 82.5 s/blk
+    'DOGE:testnet': 67911796,    // RE-CUT 2026-09-17 22:45Z onto that instant: tip 67,904,912 + 6884 at 27.7 s/blk
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -1874,9 +1941,9 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  null,   // SIZED AT THE CUT, strictly ABOVE the producer height for the same key
-    'LTC:testnet':  null,
-    'DOGE:testnet': null,
+    'BTC:testnet':  153266,      // its producer + 44 blocks, about 6 h: strictly above, never equal
+    'LTC:testnet':  4891766,     // its producer + 262 blocks, about 6 h at 82.5 s/blk
+    'DOGE:testnet': 67912575,    // its producer + 779 blocks, about 6 h at 27.7 s/blk
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -1898,7 +1965,7 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
 // watermark at or past horizonTime + ANCHOR_ATTEST_ARRIVAL_MARGIN_S certifies the node holds
 // every row that pass will read, which is the completeness property in full.
 //
-// Kept value-identical to the local copies in xchain-{hub,indexer}/src/anchor_reward_activation.js
+// Kept value-identical to the local copies in xchain-{hub,indexer}/src/consensus/gates/anchor_reward_gate.js
 // by the activation-constants parity suite.
 
 // ANCHOR_ATTEST_ARRIVAL_MARGIN_S: sized against the hub's whole MEASURED write-lag envelope,
@@ -1923,7 +1990,11 @@ const ANCHOR_ATTEST_ARRIVAL_MARGIN_S = 64800;   // 18 h
 // guarantee, and one map removes that window.
 const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     mainnet: null,        // INERT under the 2026-08-29 mainnet write hold
-    testnet: null,        // SIZED AT THE CUT from the measured tip plus the roll window
+    // SIZED 2026-09-16 20:41Z on the BTC clock, the same instant as the family's BTC CONSUMER
+    // height, so the one member that keeps BOTH completeness certificates gains them together
+    // instead of carrying a lone extra rule for 6 h. Above the same roll and the same epoch
+    // close; the measurement, the formula and the re-size rule are with the maps above.
+    testnet: 153266,
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
 

@@ -345,7 +345,7 @@ the funds on both chains. Regtest note: BTC/LTC/DOGE regtest share base58 prefix
 re-encoding is a no-op there; address-level tests must use mainnet parameters.
 
 The canonical format flip is keyed on the BTC-anchored `snapshot_block`
-(`cross_chain_royalty_activation.js`, a hub/indexer twin module), while the create-side
+(the activation-registry row `cross_chain_royalty_activation.CROSS_CHAIN_ROYALTY_ACTIVATION`, carried by the hub and indexer registry parts), while the create-side
 acceptance rule is keyed on the local block (`protocol_changes.js`). Operators must
 coordinate the two: flip the canonical gate first or together with the create-side gate,
 never create-side first. Both mainnet values are armed: the canonical flip is set to

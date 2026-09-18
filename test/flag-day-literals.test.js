@@ -140,24 +140,23 @@ test('all three gate-collection paths still find their gates', { skip: noIndexer
         'DEPLOY_BASE64_CODE is absent from collectGates(): the addChange(...) parse in '
         + 'bin/generate-flag-days.js stopped matching, so protocol/flag-days.md is short a row.');
 
-    // Sibling `const NAME_ACTIVATION = { mainnet: ... }` path
-    // (collectSiblingGates). The two anchors above read one named file; this
-    // path reads a DIRECTORY listing filtered on the `_activation.js` suffix,
-    // so a module renamed off that suffix, moved out of src/, or restyled into
-    // one of the shapes the scan is deliberately quiet about (`mainnet:
-    // SOME_CONSTANT`, a bare `null`) drops its row with nothing loud. The
-    // fixture tests below prove the scan's logic against a throwaway tree and
-    // by construction cannot see that drift in the real one. Today this path
-    // alone sources three published rows.
+    // Registry-row path (the `addGate(...)` parts). This gate once rode the
+    // sibling `const NAME_ACTIVATION = { mainnet: ... }` scan (collectSiblingGates),
+    // which reads a DIRECTORY listing filtered on the `_activation.js` suffix; since
+    // W5 the indexer keeps no such file and the map is a registry row, so the row
+    // reaches the page through the registry arm alone. A row the arm stops
+    // reading drops out with nothing loud; the fixture tests below prove the
+    // scan's logic against a throwaway tree and by construction cannot see that
+    // drift in the real one.
     assert.ok(byName.has('DISPENSER_CAPS_ACTIVATION'),
-        'DISPENSER_CAPS_ACTIVATION is absent from collectGates(): the sibling `*_activation.js` '
-        + 'scan in bin/generate-flag-days.js stopped reaching its module, so protocol/flag-days.md '
-        + 'is short a row. It is declared only in xchain-indexer/src/dispenser_caps_activation.js.');
+        'DISPENSER_CAPS_ACTIVATION is absent from collectGates(): the registry arm in '
+        + 'bin/generate-flag-days.js stopped reading its row, so protocol/flag-days.md '
+        + 'is short a row. It is declared only as the registry row dispenser_caps_activation.DISPENSER_CAPS_ACTIVATION.');
 
     // All four ride the coordinated instant. Asserted as equality against a
     // value read from the registry, never as a literal: a repin is legitimate
     // and must not have to edit this file. The sibling gate belongs in this
-    // list on its own module's authority: dispenser_caps_activation.js pins
+    // list on its own row's authority: the dispenser_caps_activation row pins
     // mainnet to "the coordinated 2.0.0 contract-era flag-day" in the comment
     // above the map.
     const anchor = gen.coordinatedFlagDay(gen.collectGates()).time;
