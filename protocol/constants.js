@@ -1930,7 +1930,7 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
     'BTC:testnet':  153222,      // epoch close 153,216 + 6 buried; tip 152,756 + 466 at 498.7 s/blk, about 64.5 h
-    'LTC:testnet':  4891504,     // RE-CUT 2026-09-17 22:45Z onto that instant: tip 4,889,190 + 2314 at 82.5 s/blk
+    'LTC:testnet':  null,        // dq4 (a), 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
     'DOGE:testnet': 67911796,    // RE-CUT 2026-09-17 22:45Z onto that instant: tip 67,904,912 + 6884 at 27.7 s/blk
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
@@ -1942,7 +1942,7 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
     'BTC:testnet':  153266,      // its producer + 44 blocks, about 6 h: strictly above, never equal
-    'LTC:testnet':  4891766,     // its producer + 262 blocks, about 6 h at 82.5 s/blk
+    'LTC:testnet':  null,        // dq4 (a), 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
     'DOGE:testnet': 67912575,    // its producer + 779 blocks, about 6 h at 27.7 s/blk
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
