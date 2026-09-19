@@ -9,6 +9,58 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.20.0
+
+Released 2026-09-18. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.20.0)
+
+A thirteen-component train: every code component except `xchain-contracts` moves to 0.20.0,
+`xchain-documentation` included. It activates the time-keyed mirror barrier family on testnet.
+Mirrored consensus rows now carry the block height at which each chain admits them, and that
+height replaces wall-clock arrival as the ordering fact above the flag day, so a future-dated
+block cannot hold an indexer behind an unbounded time barrier. The hub emits the fields on live
+messages and bootstrap pages, the indexer enforces the same rule in live processing and in
+replay, and the hub mirror schema moves from 6 to 7. Because the barriers change what a node
+derives from a block, the manifest is classified major and carries a `trainActivation` block
+arming the 0.20.0 rule set on testnet at Bitcoin height 153116.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.20.0 |
+| xchain-hub | 0.20.0 |
+| xchain-indexer | 0.20.0 |
+| xchain-sync | 0.20.0 |
+| xchain-explorer | 0.20.0 |
+| xchain-decoder | 0.20.0 |
+| xchain-encoder | 0.20.0 |
+| xchain-utxo-tracker | 0.20.0 |
+| xchain-sdk | 0.20.0 |
+| xchain-e2e-test | 0.20.0 |
+| xchain-vm | 0.20.0 |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.20.0 |
+
+**Every testnet node must run v0.20.0 before Bitcoin testnet height 153116**, the train
+boundary: a node without this rule set halts at that boundary instead of processing a block
+under the older rules, and below it the new binary runs the old rules, which is the
+rolling-upgrade window. The barrier family arms per chain on testnet in two stages. The mirror
+admission producer (`MIRROR_ADMISSION_ACTIVATION`) arms at BTC 153222, LTC 4891504 and DOGE
+67911796; the consumer (`MIRROR_ADMISSION_CONSUMER_ACTIVATION`) arms later at BTC 153266, LTC
+4891766 and DOGE 67912575, so writers publish admission metadata before readers require it. The
+anchor-attestation completeness barrier (`ANCHOR_ATTEST_BARRIER_ACTIVATION`) arms at the Bitcoin
+consumer height, 153266, and uses the same bounded view of admitted rows. Mainnet stays unarmed
+on every row, as do token-bridge ISSUE and policy inheritance on every network.
+
+Roll the hub first and apply the admission-height migration before rolling mirror readers: seven
+mirror tables gain admission-height columns, including the lifecycle and attestation data the
+barrier checks read, and hub bootstrap pages carry the same columns as the live stream.
+Bootstrap traffic gains its own per-IP rate-limit bucket and boot-marker scans stop at the
+catch-up horizon. Activation modules, registry rows, fingerprints and identity pins move to one
+consolidated layout across the indexer, hub, sync, explorer, SDK and documentation. The replay
+witness rejects empty corpora, runs production block passes through the indexer's database
+wrapper, and compares equivalence by natural keys and reachable state-tree roots, so the mirror
+barrier can be checked against the state a live indexer actually commits. A BTC-sourced bridge
+transfer can no longer be anchored below the block that mined its lock.
+
 ## v0.19.1
 
 Released 2026-09-16. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.19.1)
