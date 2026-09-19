@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-09-17
+
+### Added
+- Published the mirror-admission and anchor-attestation activation heights for the barrier family.
+
 ### Changed
-- Mirrored rows carry per-chain admission heights so a future-dated block no longer stalls indexer processing while the mirror proves completeness by height.
+- Mirrored rows carry per-chain admission heights so a future-dated block no longer stalls indexer processing.
+- Canonical activation modules and their vendored barrier rows now share the consolidated consensus layout.
+- Release documentation mirrors v0.19.0 and v0.19.1, and CI resolves master-bound siblings from master.
+- Configuration documentation covers `MA_SIDE_KEY` and `HUB_SNAPSHOT_RATE_LIMIT_RPM`.
+- The indexer computed-read baseline advances to 8.
 
 ## [0.19.0] - 2026-09-16
 
