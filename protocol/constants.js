@@ -1083,6 +1083,20 @@ const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
     regtest: 0,
 };
 
+// AMOUNT_REPRESENTABILITY_ACTIVATION: the block-time boundary at/above which an
+// amount must be a plain unsigned decimal numeral whose integer part fits the
+// ledger's DECIMAL(60,18) capacity. Below it the legacy text-shape validator is
+// preserved so replay does not re-grade committed actions.
+//
+// Mainnet is held under the standing write hold. Testnet is also unarmed because
+// it has live history and needs a measured old-vs-on replay witness before this
+// stricter rule can be scheduled. Regtest is genesis-active so replay exercises it.
+const AMOUNT_REPRESENTABILITY_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // DISPENSER_EXPIRY_REALIGN_ACTIVATION (dispenser soft-expire measurement point): the flag-day
 // at/above which the DECODER soft-expires open dispensers AFTER the block's transaction loop
 // instead of before it, putting its measurement point where the INDEXER's already is. Keyed on
@@ -1183,6 +1197,23 @@ const DISPENSER_CANCEL_GRACE_ACTIVATION = {
     // decoder/indexer state is REBUILT from the chain before launch.
     testnet: 0,
     regtest: 0,
+};
+
+// DISPENSER_FRESHNESS_SHAPE_ACTIVATION: the processing chain's own height
+// at/above which a non-null get_first_seen result with the wrong shape is fatal
+// instead of degrading to the legacy fail-open null.
+//
+// Each mainnet chain remains operator-owned and must be armed below its existing
+// freshness boundary. The bare mainnet entry keeps unknown coins inert. Testnet
+// is genesis-active because the tracker path is unreachable there, while regtest
+// is genesis-active so the strict path is exercised.
+const DISPENSER_FRESHNESS_SHAPE_ACTIVATION = {
+    'BTC:mainnet':  null,
+    'LTC:mainnet':  null,
+    'DOGE:mainnet': null,
+    mainnet:        null,
+    testnet:        0,
+    regtest:        0,
 };
 
 // BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION (payment-output capture through a BATCH): the
@@ -1424,6 +1455,27 @@ const PRICE_FEE_BATCH_LANDED_ACTIVATION = {
     mainnet: null,
     testnet: null,
     regtest: null,
+};
+
+// PRICE_ZERO_VALIDITY_ACTIVATION: the action block-time boundary at/above which
+// PRICE values must lie strictly inside (0, PRICE_MAX), matching the hub's bound.
+// Mainnet remains operator-owned. Public testnet uses a future instant so existing
+// history is not re-graded, and regtest is genesis-active for venue coverage.
+const PRICE_ZERO_VALIDITY_ACTIVATION = {
+    mainnet: null,
+    testnet: 1790812800,
+    regtest: 0,
+};
+
+// PRICE_BATCHING_FLOOR_ACTIVATION: the earliest block time for which price sync
+// barriers apply. A positive floor may only be armed at or below the network's
+// first finalized price round; 0 preserves the existing barrier on every block.
+// Mainnet has no rail start yet, testnet still needs that measured first-round
+// timestamp, and regtest deliberately keeps no pre-batch era for seeded rounds.
+const PRICE_BATCHING_FLOOR_ACTIVATION = {
+    mainnet: 0,
+    testnet: 0,
+    regtest: 0,
 };
 
 // VALID_FIAT_CODES: the accepted FIAT_CODE allow-list for PRICE actions. The indexer's
@@ -2082,8 +2134,10 @@ module.exports = {
     ATTEST_RESPONSIBLE_WIDENING_V2,
     ORACLE_FEE_OUTPUT_ACTIVATION,
     ORACLE_FEE_SET_CAPTURE_ACTIVATION,
+    AMOUNT_REPRESENTABILITY_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
     DISPENSER_CANCEL_GRACE_ACTIVATION,
+    DISPENSER_FRESHNESS_SHAPE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
     ENVELOPE_RECOGNITION_ACTIVATION,
     COMPRESSION_CODE_DEFLATE_RAW,
@@ -2094,6 +2148,8 @@ module.exports = {
     PRICE_PAIR_WIDEN_ACTIVATION,
     PRICE_SIG_TALLY_ACTIVATION,
     PRICE_FEE_BATCH_LANDED_ACTIVATION,
+    PRICE_ZERO_VALIDITY_ACTIVATION,
+    PRICE_BATCHING_FLOOR_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
     PRICE_MAX,

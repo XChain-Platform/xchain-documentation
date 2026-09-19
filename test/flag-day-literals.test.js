@@ -117,6 +117,38 @@ test('the generated flag-day page matches the indexer registry', { skip: noIndex
     );
 });
 
+test('the canonical activation-map index names every newly published gate', () => {
+    const names = gen.collectCanonicalActivationMaps();
+    for (const name of [
+        'AMOUNT_REPRESENTABILITY_ACTIVATION',
+        'DISPENSER_FRESHNESS_SHAPE_ACTIVATION',
+        'PRICE_ZERO_VALIDITY_ACTIVATION',
+        'PRICE_BATCHING_FLOOR_ACTIVATION',
+    ]) {
+        assert.ok(names.includes(name), `${name} is missing from the canonical activation-map index`);
+    }
+});
+
+test('every newly published activation map is value-identical to the indexer registry', { skip: noIndexer }, () => {
+    const canonical = require('../protocol/constants.js');
+    const registry = require(gen.REGISTRY);
+    const rows = {
+        AMOUNT_REPRESENTABILITY_ACTIVATION:
+            'amount_representability_activation.AMOUNT_REPRESENTABILITY_ACTIVATION',
+        DISPENSER_FRESHNESS_SHAPE_ACTIVATION:
+            'dispenser_freshness_shape_activation.DISPENSER_FRESHNESS_SHAPE_ACTIVATION',
+        PRICE_ZERO_VALIDITY_ACTIVATION:
+            'price_zero_validity_activation.PRICE_ZERO_VALIDITY_ACTIVATION',
+        PRICE_BATCHING_FLOOR_ACTIVATION:
+            'price_batching_floor_activation.PRICE_BATCHING_FLOOR_ACTIVATION',
+    };
+
+    for (const [name, key] of Object.entries(rows)) {
+        assert.deepStrictEqual(canonical[name], registry.get(key),
+            `${name} has drifted from the indexer activation registry`);
+    }
+});
+
 test('all three gate-collection paths still find their gates', { skip: noIndexer }, () => {
     // collectGates reads the registry with two independent regexes and then
     // scans the sibling `*_activation.js` modules, and the check above cannot
