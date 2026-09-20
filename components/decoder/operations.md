@@ -198,7 +198,7 @@ The decoder ships with a migration system that tracks and applies schema changes
 To apply pending manual migrations:
 
 ```bash
-node src/migrate.js
+node src/db/migrate.js
 # or: npm run migrate
 ```
 
