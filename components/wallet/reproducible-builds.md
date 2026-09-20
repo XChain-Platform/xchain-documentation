@@ -32,7 +32,7 @@ Reproducibility breaks down into two enforceable halves:
 
 The audit catches regressions automatically on every commit. The run-twice verification catches subtler drift, such as a build-tool version bump that quietly loses determinism, but it requires a clean Docker host to run. Splitting the work this way makes both halves independently checkable.
 
-## Non-determinism sources addressed across every shell
+## Non-determinism sources addressed across desktop, extension, and web
 
 - **`pnpm install --frozen-lockfile`** rejects builds against an out-of-sync lockfile. Any dependency-tree change requires a lockfile update and commit before a release tag is cut.
 - **Pinned Node version**, declared in the toolchain configuration and honored by every reproduction container. Tooling outside the container (a verifier's own local Node or pnpm) does not affect the build.
@@ -43,6 +43,12 @@ The audit catches regressions automatically on every commit. The run-twice verif
 - **The release lane builds inside that same container**, running the same reproduce script a verifier runs rather than building on the bare CI runner. This is what extends the guarantee to compiled files. The desktop bundle carries a native addon for elliptic-curve maths, compiled from source by the dependency install, so a release built outside the container would compile it against the runner's C compiler and system libraries while the verifier compiled it against the image's. Every other file would still match, and that one, plus the archive header that records its hash, would not.
 
 Each shell's section below covers what is specific to it on top of this shared floor.
+
+## iOS
+
+iOS does not carry the run-twice artifact reproduction claim made for the other release targets. Two exports of the same `.xcarchive` have different SHA-256 hashes, so `RELEASE_HASHES.txt` identifies only the submitted export and is not reproducible evidence of a uniquely determined IPA. After submission, Apple re-signs, thins, and FairPlay-encrypts the delivery for each device.
+
+For those reasons, run-twice IPA reproduction must not be extended to iOS. The narrower possibility of reproducing the pre-export archive has not yet been established: archive reproducibility remains unproven.
 
 ## Verifying from an arm64 machine
 
