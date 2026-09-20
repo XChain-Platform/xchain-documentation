@@ -236,6 +236,24 @@ actually resolved.
 |---|---|---|
 | `MA_SIDE_KEY` | **Harness only.** Side label the side-process reports its hash chain under, set by the parent for its side-processes: `off`, `boundary` or `on` | `boundary` |
 
+### List-owner replay witness
+
+Read only by `bin/verify-list-owner-replay-equivalence.js` (the below-the-flag
+replay witness for `LIST_OWNER_ACTIVATION`, which replays one mainnet or testnet
+corpus through a LEGACY tree with the general list-owner check removed and the
+OFF tree with its natural inert gate, and compares the resolved four-hash chain
+at every block; regtest is refused because its gate is active from height zero);
+never by the indexer service itself. Database credentials are loaded by dotenv
+from the project `.env` and read through `src/config.js`, never from argv. For
+each side-process the parent sets `INDEXER_COIN`, `INDEXER_NETWORK`,
+`TEST_DECODER_DB`, `TEST_INDEXER_DB` and the `TEST_DB_*` coordinates documented
+for the A7 harness above.
+
+| Variable | Description | Example |
+|---|---|---|
+| `LO_SIDE_ROOT` | **Harness only.** Materialized tree the forked side-process replays from (the LEGACY tree or the OFF tree under the harness workdir) | `/tmp/xchain-lo-witness-btc/off` |
+| `LO_SIDE_KEY` | **Harness only.** Side label the side-process reports its hash chain under, set by the parent for its side-processes: `legacy` or `off` | `off` |
+
 ### BATCH cost-measurement harness
 
 Read only by `bin/measure-batch-execute-cost.js`, which measures the block-loop
