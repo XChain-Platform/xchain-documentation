@@ -866,9 +866,11 @@ printf %s "<the walkthrough text>" | wc -c
 > and a QR code. "Send" builds a transaction and asks for confirmation before
 > broadcasting anything.
 
-If a future review does need funded balances, use a wallet on a public test
-network and never a funded mainnet wallet, and rotate it after the review
-cycle. Nothing in the current submission needs one.
+If a future review needs funded balances, run
+`node tools/release/verify-demo-endpoints.mjs`; fund only TBTC when the gate
+reports it fundable, confirm the balance appears in the app, never use a funded
+mainnet wallet, and rotate the test wallet after review. The current submission
+needs no funded wallet.
 
 ### Graphics
 
