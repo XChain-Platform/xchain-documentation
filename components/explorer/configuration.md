@@ -243,7 +243,7 @@ also shape startup output.
 
 ## Local Configuration File
 
-The `src/config.json` file provides database connection details when xchain-hub is not available. Structure:
+The `src/config.json` file provides database connection details when xchain-hub is not available. It is operator-created runtime state and is intentionally gitignored because it contains database credentials, so a source-only checkout will not include it. Copy the tracked `src/config.json.example` template to `src/config.json`, keep the populated file out of Git, and use this structure:
 
 ```json
 {
@@ -268,7 +268,7 @@ The `src/config.json` file provides database connection details when xchain-hub 
 
 Each coin/network entry specifies both the Indexer database (primary data source) and the Decoder database (for raw transaction lookups).
 
-An example template is provided at `src/config.json.example`.
+The tracked template remains at `src/config.json.example`; only the populated `src/config.json` is expected to be absent from Git.
 
 ## Checkpoint Schema (Hub-Mirror Tables)
 
