@@ -288,6 +288,32 @@ replica that has fallen behind makes your epoch close wait longer rather than
 judge the roll call on stale data. If you run a Dogecoin indexer of your own
 on the same network, point at it instead.
 
+### Wire each bridge destination to its origin indexer
+
+Bridge crediting has a separate directional read from the DOGE-specific
+ROLLCALL read above. Every destination indexer crediting a bridged transfer
+must have the origin chain's indexer API URL configured as
+`<COIN>_INDEXER_URL` or `<COIN>_INDEXER_API_URL`. The `_API_URL` name takes
+precedence. Configure both directions when transfers can travel both ways.
+For example, the DOGE indexer receiving from BTC needs `BTC_INDEXER_API_URL`,
+and the BTC indexer receiving from DOGE needs `DOGE_INDEXER_API_URL`:
+
+```
+# On the DOGE destination indexer
+BTC_INDEXER_API_URL=http://<btc-indexer-host>:3004
+BTC_INDEXER_API_KEY=<its API key, if it has one>
+
+# On the BTC destination indexer
+DOGE_INDEXER_API_URL=http://<doge-indexer-host>:3004
+DOGE_INDEXER_API_KEY=<its API key, if it has one>
+```
+
+Without either URL, that destination holds silently at the bridge proof
+barrier until the default 900-second (15-minute) hold ceiling; reaching the
+ceiling can re-drive the wait but never credits an unproven transfer. Apply
+this rule to every origin and destination pair in any two-stack deployment,
+not only to BTC and DOGE.
+
 ## Step 6: decide your capabilities
 
 `config/validator/hub-caps/capabilities.json` is ready to go for `price`,
