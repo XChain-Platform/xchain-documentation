@@ -53,6 +53,7 @@ discoverable here even when it has no mainnet date for the table below.
 - `PRICE_BATCHING_FLOOR_ACTIVATION`
 - `PRICE_FEE_BATCH_LANDED_ACTIVATION`
 - `PRICE_PAIR_WIDEN_ACTIVATION`
+- `PRICE_SCALE_ACTIVATION`
 - `PRICE_SIG_TALLY_ACTIVATION`
 - `PRICE_ZERO_VALIDITY_ACTIVATION`
 - `RETRACTION_SIGNING_ACTIVATION`
@@ -68,6 +69,7 @@ discoverable here even when it has no mainnet date for the table below.
 - `TOKEN_POLICY_INHERITANCE_ACTIVATION`
 - `TRAIN_ACTIVATION`
 - `XCHAIN_BRIDGE_ACTIVATION`
+- `XCHAIN_PRICE_ACTIVATION`
 
 ## Contract-era flag day
 
