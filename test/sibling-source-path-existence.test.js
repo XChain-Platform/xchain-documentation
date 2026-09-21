@@ -348,6 +348,9 @@ describe('sibling path resolution', () => {
         fs.mkdirSync(path.join(root, 'src', 'batch'), { recursive: true });
         fs.writeFileSync(path.join(root, 'src', 'batch', 'index.js'), 'a\nb\nc\n');
         fs.writeFileSync(path.join(root, 'toolkit.js'), '');
+        fs.writeFileSync(path.join(root, 'package.json'), '{}\n');
+        fs.writeFileSync(path.join(root, '.gitignore'), 'src/config.json\n');
+        execFileSync('git', ['init', '-q', root]);
     });
     test.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
@@ -371,6 +374,14 @@ describe('sibling path resolution', () => {
         assert.equal(r.ok, false);
         assert.match(r.why, /src\/gone\.js/);
         assert.match(r.why, /src\/gone\/index\.js/);
+    });
+
+    test('a missing gitignored runtime file is expected absent, not a dead source citation', () => {
+        const roots = () => root;
+        const ignored = checkReference({ rel: 'src/config.json', line: null, candidates: ['x'] }, roots);
+        const untracked = checkReference({ rel: 'src/missing.json', line: null, candidates: ['x'] }, roots);
+        assert.deepEqual(ignored, { ok: true, why: 'gitignored in the sibling' });
+        assert.equal(untracked.ok, false, 'an arbitrary missing file must still fail');
     });
 });
 
