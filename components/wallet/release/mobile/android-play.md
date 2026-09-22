@@ -535,6 +535,25 @@ poll returns to `verified`. If the verdict does not move in both
 directions, the emulator is not actually reaching the live file and the
 earlier `verified` reading should not be trusted either.
 
+#### Acceptance test 4: observed Play delivery
+
+On 2026-09-21, XChain Wallet was installed from the Play internal testing
+track on the Play-enabled `xc36play` AVD. The installed package reported
+`versionCode=3360050`. Its signer SHA-256 was
+`AA:98:35:05:24:F7:AA:5C:8B:A4:F0:33:5B:D8:6B:5E:42:3B:BB:41:DD:4F:48:73:16:ED:25:27:81:7F:58:80`,
+matching the current classical app-signing certificate in Play Console, not
+the upload key or the retired app-signing certificate.
+
+With the network available,
+`adb shell pm get-app-links io.xchain.wallet.android` reported
+`xchain.io: verified`. After Wi-Fi and mobile data were disabled, resetting the
+link state and requesting re-verification changed the same domain to
+`xchain.io: 1024`. Restoring the network, resetting, and re-verifying changed it
+back to `xchain.io: verified`. The offline failure and online recovery
+falsified the reading both ways: the `verified` result depended on the
+domain-verification agent fetching the live association file for this
+Play-signed install.
+
 The same venue works for either signing key under test: sideload the direct
 APK to check its own certificate, or install a Play-delivered build to
 check the Play signing key currently pinned above. It also serves as the
