@@ -68,6 +68,10 @@ somewhere off this machine now.** There is no recovery if they are lost.
 - Send **0.02 testnet DOGE** to the second address, from any Dogecoin
   testnet faucet.
 
+The BTC testnet4 funding above supports validator setup. Contract deploys on
+BTC testnet4 cannot be mined at current miner block sizes; use
+LTC or DOGE testnet for contract deployment and testing.
+
 ## Step 4: stake
 
 ```bash

@@ -21,6 +21,8 @@ Each chain supports three network types:
 | **Testnet** | Public test network: free test coins, mirrors mainnet behavior |
 | **Regtest** | Local regression testing network: instant block generation, fully controlled environment |
 
+> **BTC testnet4 contract limitation:** Contract deploys on BTC testnet4 cannot be mined at current miner block sizes. Use LTC or DOGE testnet for contract deployment and testing.
+
 ## Chain-Specific Differences
 
 The same protocol specification applies across all chains. Chain-specific differences are limited to:
