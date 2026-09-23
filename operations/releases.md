@@ -21,7 +21,10 @@ block cannot hold an indexer behind an unbounded time barrier. The hub emits the
 messages and bootstrap pages, the indexer enforces the same rule in live processing and in
 replay, and the hub mirror schema moves from 6 to 7. Because the barriers change what a node
 derives from a block, the manifest is classified major and carries a `trainActivation` block
-arming the 0.20.0 rule set on testnet at Bitcoin height 153116.
+that armed the 0.20.0 rule set on testnet at Bitcoin height 153116 at cut. Testnet's live tip
+outran that boundary twice before the fleet rolled to it, so an in-flight v0.20.1 patch has
+re-slid it (see below); v0.20.0 itself, its manifest and every non-height behavior described
+here, is unchanged.
 
 | Component | Version |
 |---|---|
@@ -39,16 +42,25 @@ arming the 0.20.0 rule set on testnet at Bitcoin height 153116.
 | xchain-contracts | 0.17.0 (unchanged) |
 | xchain-regtest-miner | 0.20.0 |
 
-**Every testnet node must run v0.20.0 before Bitcoin testnet height 153116**, the train
-boundary: a node without this rule set halts at that boundary instead of processing a block
-under the older rules, and below it the new binary runs the old rules, which is the
-rolling-upgrade window. The barrier family arms per chain on testnet in two stages. The mirror
-admission producer (`MIRROR_ADMISSION_ACTIVATION`) arms at BTC 153222, LTC 4891504 and DOGE
-67911796; the consumer (`MIRROR_ADMISSION_CONSUMER_ACTIVATION`) arms later at BTC 153266, LTC
-4891766 and DOGE 67912575, so writers publish admission metadata before readers require it. The
-anchor-attestation completeness barrier (`ANCHOR_ATTEST_BARRIER_ACTIVATION`) arms at the Bitcoin
-consumer height, 153266, and uses the same bounded view of admitted rows. Mainnet stays unarmed
-on every row, as do token-bridge ISSUE and policy inheritance on every network.
+**At v0.20.0's 2026-09-18 cut, every testnet node had to run it before Bitcoin testnet height
+153116**, the train boundary: a node without this rule set halts at that boundary instead of
+processing a block under the older rules, and below it the new binary runs the old rules, which
+is the rolling-upgrade window. The barrier family armed per chain on testnet in two stages. The
+mirror admission producer (`MIRROR_ADMISSION_ACTIVATION`) armed at BTC 153222, LTC 4891504 and
+DOGE 67911796; the consumer (`MIRROR_ADMISSION_CONSUMER_ACTIVATION`) armed later at BTC 153266,
+LTC 4891766 and DOGE 67912575, so writers publish admission metadata before readers require it.
+The anchor-attestation completeness barrier (`ANCHOR_ATTEST_BARRIER_ACTIVATION`) armed at the
+Bitcoin consumer height, 153266, and used the same bounded view of admitted rows.
+
+**v0.20.1 arms (currently in flight, not yet released): train boundary Bitcoin testnet height
+154074**, re-slid twice (2026-09-19, then again 2026-09-23 to a 40-hour margin at each coin's
+measured cadence) after the live testnet tip outran the boundary v0.20.0 shipped, before the
+fleet ever rolled to it. The mirror admission producer now arms at BTC 154234 and DOGE 67942777;
+the consumer now arms later at BTC 154291 and DOGE 67944741. LTC:testnet, which v0.20.0 shipped
+at producer 4891504 / consumer 4891766, ships null under both re-slides (dq4 (a), 2026-09-18) and
+arms on a later train instead. The anchor-attestation completeness barrier now arms at the
+Bitcoin consumer height, 154291. Mainnet stays unarmed on every row in both v0.20.0 and v0.20.1,
+as do token-bridge ISSUE and policy inheritance on every network.
 
 Roll the hub first and apply the admission-height migration before rolling mirror readers: seven
 mirror tables gain admission-height columns, including the lifecycle and attestation data the
