@@ -1594,13 +1594,13 @@ const TRAIN_ACTIVATION = {
     // minute roll budget), and every testnet mirror-admission height sits above it on the same
     // BTC clock, so a node lacking this rule set halts before it can grade an admission-stamped
     // row.
-    // RE-SLID 2026-09-19 for the v0.20.1 patch train: margin is 24 h measured from the freeze,
-    // converted at each coin's own measured cadence, not five days. Chain_tip TBTC 153,110 + 111
-    // blocks, ceil(24 h / 781.078553 s per block, least-squares bound over the trailing 114-block
-    // window, about 25.2 h span, at least as long as the lead). The mirror-admission family
-    // below re-slides onto the same instant plus its own 17 h and 6 h offsets. LTC stays null
-    // under dq4 (a) and is untouched by this reslide.
-    '0.20.0': { mainnet: 9999999999, testnet: 153221, regtest: 0 },
+    // RE-SLID 2026-09-23 for the v0.20.1 patch train, after the live tips overran the
+    // 2026-09-19 slide before the freeze: margin is 40 h to the nearest armed height, converted
+    // at each coin's fastest defensible cadence. Chain_tip TBTC 153,698 at 2026-09-23T15:55Z
+    // + 376 blocks, ceil(40 h / 383.04 s per block, the least-squares bound). The
+    // mirror-admission family below re-slides onto the same instant plus its own 17 h and 6 h
+    // offsets. LTC stays null under dq4 (a) and is untouched by this reslide.
+    '0.20.0': { mainnet: 9999999999, testnet: 154074, regtest: 0 },
 };
 
 // STAKE v1 signing-key REUSE flag day, keyed on the processing chain's OWN
@@ -2012,9 +2012,9 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  153300,      // RE-SLID 2026-09-19: train 153,221 + 79 blocks (17 h at 781.078553 s/blk), the v0.20.1 patch reslide
+    'BTC:testnet':  154234,      // RE-SLID 2026-09-23: train 154,074 + 160 blocks (17 h at 383.04 s/blk), the v0.20.1 patch reslide
     'LTC:testnet':  null,        // dq4 (a), 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
-    'DOGE:testnet': 67916857,    // RE-SLID 2026-09-19: tip 67,911,061 + 5796 blocks (41 h at 25.469118 s/blk, the same instant as the BTC producer), the v0.20.1 patch reslide
+    'DOGE:testnet': 67942777,    // RE-SLID 2026-09-23: tip 67,924,122 at 15:55Z + 18655 blocks (57 h at 11 s/blk median, the same instant as the BTC producer), the v0.20.1 patch reslide
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2024,9 +2024,9 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  153328,      // RE-SLID 2026-09-19: its producer + 28 blocks (6 h at 781.078553 s/blk), strictly above, never equal
+    'BTC:testnet':  154291,      // RE-SLID 2026-09-23: its producer + 57 blocks (6 h at 383.04 s/blk), strictly above, never equal
     'LTC:testnet':  null,        // dq4 (a), 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
-    'DOGE:testnet': 67917706,    // RE-SLID 2026-09-19: its producer + 849 blocks (6 h at 25.469118 s/blk)
+    'DOGE:testnet': 67944741,    // RE-SLID 2026-09-23: its producer + 1964 blocks (6 h at 11 s/blk median)
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2073,11 +2073,11 @@ const ANCHOR_ATTEST_ARRIVAL_MARGIN_S = 64800;   // 18 h
 // guarantee, and one map removes that window.
 const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     mainnet: null,        // INERT under the 2026-08-29 mainnet write hold
-    // SIZED 2026-09-16 20:41Z, RE-SLID 2026-09-19 on the BTC clock, the same instant as the
-    // family's BTC CONSUMER height, so the one member that keeps BOTH completeness certificates
-    // gains them together instead of carrying a lone extra rule for 6 h. The measurement, the
-    // formula and the re-size rule are with the maps above.
-    testnet: 153328,
+    // SIZED 2026-09-16 20:41Z, RE-SLID 2026-09-19 and 2026-09-23 on the BTC clock, the same
+    // instant as the family's BTC CONSUMER height, so the one member that keeps BOTH
+    // completeness certificates gains them together instead of carrying a lone extra rule for
+    // 6 h. The measurement, the formula and the re-size rule are with the maps above.
+    testnet: 154291,
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
 
