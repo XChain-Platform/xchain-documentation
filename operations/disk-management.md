@@ -24,6 +24,10 @@ behaviour, inherited by both forks:
 | LTC testnet | `testnet4/blocks/` |
 | DOGE / LTC regtest | `regtest/blocks/` |
 
+The `testnet4/` path above is Litecoin's testnet directory. BTC testnet4 is a
+separate network, where contract deploys cannot be mined at current miner block
+sizes. Use LTC or DOGE testnet for contract deployment and testing.
+
 Any disk-offload approach has to account for the network subdirectory. The two
 safe options below do; the anti-pattern does not.
 

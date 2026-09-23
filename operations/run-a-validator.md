@@ -156,6 +156,10 @@ So a first-time stake from zero (three mints plus the stake) runs about
 XCHAIN action on testnet is a Bitcoin transaction, so this is also the balance
 to top up if you ever want to change your stake.
 
+This BTC testnet4 path is suitable for validator setup, but contract deploys on
+BTC testnet4 cannot be mined at current miner block sizes. Use
+LTC or DOGE testnet for contract deployment and testing.
+
 **DOGE address** (TDOGE): send testnet dogecoin. This is the wallet your hub
 **spends from** when it is the elected publisher for a price round or a state
 anchor, which is what the `oracle_publish` capability means. Qualifying for
