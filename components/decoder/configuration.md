@@ -143,7 +143,7 @@ The decoder begins parsing from a preconfigured block height per network to skip
 
 ## Valid ACTION Names
 
-The decoder accepts only these 36 ACTION names after deobfuscation. Transactions with unrecognized action names are logged and skipped:
+The decoder accepts only these 37 ACTION names after deobfuscation. Transactions with unrecognized action names are logged and skipped:
 
 ```
 ADDRESS, AIRDROP, ANCHOR, ATTEST,
@@ -151,8 +151,10 @@ BATCH, BET, BROADCAST, CALLBACK, COINPAY, COLLECT,
 DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER,
 DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT,
 NODEPROOF, ORDER, PRICE, ROLLCALL, SEND, SLASH, SLEEP, STAKE, SWAP,
-SWEEP, UNSTAKE, VOTE, WITHDRAW
+SWEEP, UNSTAKE, VOTE, WITHDRAW, XBRIDGE
 ```
+
+XBRIDGE arrives on the wire only in its user-broadcast versions (0, 1, 3, 4). Its settle versions (2, 5) are mirror-injected by the indexer and refused when broadcast, so they share the one name. XCALL is never wire-decoded and is not on this list.
 
 ---
 

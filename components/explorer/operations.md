@@ -6,7 +6,7 @@
 
 ## Prerequisites
 
-- **Node.js** 22 (22.x LTS), pinned in `.nvmrc`. Node 24 cannot build the native `isolated-vm` module that this component's vendored `xchain-vm` dependency pulls in.
+- **Node.js** 22 (22.x LTS), pinned in `.nvmrc`. Node 24 is outside the consensus runtime this component's vendored `xchain-vm` pins (Node ABI 127, which `checkConsensusRuntime()` enforces); `isolated-vm` itself installs there from a prebuilt binding.
 - **MariaDB** server with an existing Indexer database (populated by xchain-indexer)
 - **xchain-hub** (optional), for centralized config discovery
 - **SSL certificates** (optional), for HTTPS

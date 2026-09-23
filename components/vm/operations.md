@@ -5,8 +5,8 @@
 
 ## Prerequisites
 
-- **Node.js** v22 exactly: `isolated-vm` requires Node 22 to build (Node 24 breaks native compilation; below Node 22 tests silently skip rather than fail, producing false greens)
-- **Native build tools** for `isolated-vm` compilation: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` (Debian/Ubuntu)
+- **Node.js** v22 exactly: `src/consensus_runtime.js` pins the Node ABI to 127, so Node 24 fails `checkConsensusRuntime()` (below Node 22 tests silently skip rather than fail, producing false greens)
+- **Native build tools** only where `isolated-vm` has no prebuilt binding (it ships them for linux x64/arm64 glibc and musl, darwin-arm64 and win32-x64) and npm falls back to a source build: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` (Debian/Ubuntu)
 - The VM is a library dependency of `xchain-indexer`; it is not run as a standalone process
 
 ## Installation
@@ -16,7 +16,7 @@ cd xchain-vm
 npm install
 ```
 
-If `isolated-vm` fails to compile, ensure the native build prerequisites are installed. The module requires C++ compilation against the system's V8 headers.
+`npm install` resolves a prebuilt `isolated-vm` binding for the running Node ABI. If it falls back to a source build and that fails, install the native build prerequisites above.
 
 ## Running Tests
 
@@ -198,7 +198,7 @@ flowchart TD
 
 ### isolated-vm won't compile
 
-**Symptoms:** `npm install` fails with C++ compilation errors.
+**Symptoms:** `npm install` fails with C++ compilation errors. This happens only where no prebuilt binding matches the platform, so npm falls back to a source build.
 
 **Fix:** Install native build tools:
 ```bash

@@ -7,7 +7,7 @@ This guide walks you through creating your first XChain token using the SDK. You
 
 ## Prerequisites
 
-- **Node.js** 22 (22.x LTS); Node 18 fails on the `mariadb` ESM package (`ERR_REQUIRE_ESM`); Node 24 cannot build `isolated-vm`. Node 22 is required.
+- **Node.js** 22 (22.x LTS); Node 18 fails on the `mariadb` ESM package (`ERR_REQUIRE_ESM`); Node 24 fails the Node ABI 127 consensus-runtime pin in `xchain-vm`. Node 22 is required.
 - A running XChain platform (either local via [regtest](../developer-guide/regtest-development.md) or a public node)
 - A Bitcoin/Litecoin/Dogecoin wallet with a funded address (for mainnet/testnet), or use regtest for free development
 
@@ -259,9 +259,9 @@ See [Regtest Development](../developer-guide/regtest-development.md) for setup i
 | JSON-RPC microservice | `npm run api` in xchain-sdk | Any language via HTTP |
 | Browser bundle | `dist/xchain_sdk.min.js` | Client-side web apps |
 
-### All 31 User-Submittable Actions Are Covered
+### All 32 User-Submittable Actions Are Covered
 
-The SDK covers all 31 user-submittable actions. Thirty of them have convenience methods: `sdk.issue()`, `sdk.mint()`, `sdk.send()`, `sdk.sweep()`, `sdk.airdrop()`, `sdk.dividend()`, `sdk.order()`, `sdk.coinpay()`, `sdk.dispenser()`, `sdk.swap()`, `sdk.broadcast()`, `sdk.message()`, `sdk.file()`, `sdk.address()`, `sdk.link()`, `sdk.list()`, `sdk.sleep()`, `sdk.callback()`, `sdk.destroy()`, `sdk.price()`, `sdk.bet()`, `sdk.stake()`, `sdk.unstake()`, `sdk.delegate()`, `sdk.collect()`, `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()`, `sdk.vote()`. `sdk.transfer()` is an alias for `sdk.send()`. The thirty-first, BATCH, has no convenience method: `sdk.batch()` returns a builder for composing BATCH actions. The 6 remaining actions (ANCHOR, ATTEST, NODEPROOF, ROLLCALL, SLASH, and XCALL) are validator-broadcast, VM-emitted, or permissionless-proof actions and are not user-submittable; see [concepts/ACTIONS.md](../concepts/actions.md) for the full taxonomy.
+The SDK covers all 32 user-submittable actions. Thirty-one of them have convenience methods: `sdk.issue()`, `sdk.mint()`, `sdk.send()`, `sdk.sweep()`, `sdk.airdrop()`, `sdk.dividend()`, `sdk.order()`, `sdk.coinpay()`, `sdk.dispenser()`, `sdk.swap()`, `sdk.broadcast()`, `sdk.message()`, `sdk.file()`, `sdk.address()`, `sdk.link()`, `sdk.list()`, `sdk.sleep()`, `sdk.callback()`, `sdk.destroy()`, `sdk.price()`, `sdk.bet()`, `sdk.stake()`, `sdk.unstake()`, `sdk.delegate()`, `sdk.collect()`, `sdk.deploy()`, `sdk.execute()`, `sdk.deposit()`, `sdk.withdraw()`, `sdk.vote()`, `sdk.xbridge()`. `sdk.transfer()` is an alias for `sdk.send()`. The thirty-second, BATCH, has no convenience method: `sdk.batch()` returns a builder for composing BATCH actions. The 6 remaining actions (ANCHOR, ATTEST, NODEPROOF, ROLLCALL, SLASH, and XCALL) are validator-broadcast, VM-emitted, or permissionless-proof actions and are not user-submittable; see [concepts/ACTIONS.md](../concepts/actions.md) for the full taxonomy.
 
 ---
 

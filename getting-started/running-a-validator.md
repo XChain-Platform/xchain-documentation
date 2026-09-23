@@ -14,7 +14,8 @@ There are two ways to run one, and the cheaper one is a first-class citizen rath
 | Runs a coin node (`bitcoind` and friends) | No | Yes |
 | Runs its own decoder + indexer | No, replicates them | Yes |
 | Gets chain data from | `xchain-sync` replication | Its own node, decoded locally |
-| Can claim `price`, `attestation`, `cross_chain`, `oracle_publish` | Yes | Yes |
+| Can claim `price`, `attestation`, `oracle_publish` | Yes | Yes |
+| Can claim `cross_chain` | No (its self-test needs a BTC coin-node RPC) | Yes |
 | Can claim `full_node` | No | Yes |
 | Base oracle reward | Yes | Yes |
 | Full-node reward tranche | No | Yes, once armed |
@@ -44,7 +45,7 @@ indexer of your own.
 
 Note what is *not* on that list: a coin node. The protocol assigns no tiers by decree. Capabilities qualify automatically when your total effective stake clears each capability's floor, and most capabilities never touch a coin node at all. `price` needs a price feed. `attestation` needs a reachable model provider. `cross_chain` verifies source actions against indexer APIs. `oracle_publish` needs a broadcast wallet.
 
-Only one capability requires a coin node, and it is the one named after it.
+Two capabilities require a coin node. `full_node` is named after it. `cross_chain` matches against the BTC indexer, but the hub's self-test for it requires `cross_chain.chains.BTC.rpc`, the same setting the hub reads as its BTC coin-node RPC for `full_node`. A validator without the BTC stack lists `cross_chain` under `DISABLED_CAPABILITIES` (see [Step 6](../operations/run-a-validator.md#step-6-decide-your-capabilities)).
 
 ## Capabilities and their stake floors
 
@@ -56,7 +57,7 @@ Capabilities are not applied for. Any key whose total effective stake clears a f
 | `price` | 1,000 | Signs price rounds | No |
 | `attestation` | 1,000 | Attests to off-chain facts | No |
 | `full_node` | 2,000 | Proves possession of the chain | **Yes** |
-| `cross_chain` | 5,000 | Matches actions across chains | No |
+| `cross_chain` | 5,000 | Matches actions across chains | **Yes** (its self-test RPC) |
 
 ## How the two tiers get their chain data
 

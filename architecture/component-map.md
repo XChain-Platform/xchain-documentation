@@ -314,7 +314,7 @@ Key technical details:
 - Non-deterministic globals (`Date`, `Math.random`, `fetch`, `eval`, etc.) are stripped before any contract code runs; `Math` is replaced by a frozen deterministic subset.
 - Gas is metered by AST instrumentation (acorn parse + astring regenerate) rather than wall-clock time, so cost is a deterministic function of code structure.
 - A per-block compilation cache (keyed by contract index plus code hash, bounded to 1,000 entries) avoids recompiling the same contract across multiple calls in a block.
-- Requires Node.js 22 exactly; `isolated-vm` does not build on Node.js 24.
+- Requires Node.js 22 exactly: `xchain-vm` pins the consensus runtime to Node ABI 127, so Node.js 24 fails `checkConsensusRuntime()` even though `isolated-vm` installs there from a prebuilt binding.
 
 See [`../components/vm/`](../components/vm/) for full documentation.
 
@@ -334,7 +334,7 @@ See [`../components/vm/`](../components/vm/) for full documentation.
 
 Key technical details:
 
-- Built on xchain-sdk; all action construction goes through the SDK's 31 developer-invocable ACTION methods.
+- Built on xchain-sdk; all action construction goes through the SDK's 32 developer-invocable ACTION methods.
 - Supports every chain the platform runs on, today Bitcoin, Litecoin, and Dogecoin (mainnet, testnet, regtest), from the same codebase.
 - Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), an Electron desktop application, and a Capacitor mobile app wrapping the same web build (Android shipped, iOS later).
 - Private keys never leave the client; signing happens locally before broadcast.

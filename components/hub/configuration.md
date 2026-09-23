@@ -178,7 +178,9 @@ and **hot-reloads** on file change. It supplies two things:
 - Per-capability self-test config blocks, checked locally so the hub only
   participates when it can actually serve:
   - `price`: `{ "sources": [...], "fiats": [...] }`
-  - `cross_chain`: `{ "chains": { "BTC": { "rpc": "..." }, ... } }`
+  - `cross_chain`: `{ "chains": { "BTC": { "rpc": "..." }, ... } }`. The `rpc` value is the
+    chain's coin-node RPC, and the `full_node` self-test reads the same BTC entry; matching
+    itself resolves the chain's indexer through `<COIN>_INDEXER_API_URL`
   - `oracle_publish`: `{ "doge_address": "...", "doge_wallet": "..." }`
   - `attestation`: `{ "providers": { "<id>": false } }` (omit a key to enable it)
 - `DISABLED_CAPABILITIES`: array of capabilities to opt out of even when qualified.

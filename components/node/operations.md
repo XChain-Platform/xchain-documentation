@@ -9,7 +9,7 @@ If you are setting up a node for the first time, start with the [Node Operator Q
 
 ## Prerequisites
 
-- **Node.js** 22 (22.x LTS), the runtime every component repo pins in its `.nvmrc`. Node 24 cannot build the native `isolated-vm` module that the modules this CLI installs (indexer, explorer) depend on; Node 18 and earlier fail on the ESM-only `mariadb` driver.
+- **Node.js** 22 (22.x LTS), the runtime every component repo pins in its `.nvmrc`. Node 24 is outside the consensus runtime the `xchain-vm` inside the modules this CLI installs (indexer, explorer) pins (Node ABI 127, which `checkConsensusRuntime()` enforces); Node 18 and earlier fail on the ESM-only `mariadb` driver.
 - **Docker** installed and running (`docker --version` and `docker ps` must both succeed)
 - **npm** for dependency installation
 
