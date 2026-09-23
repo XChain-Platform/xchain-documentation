@@ -84,7 +84,7 @@ Returns all unspent outputs for an address, including both confirmed and mempool
     "value": "100000000",
     "height": 119,
     "confirmations": 13,
-    "amount": 1,
+    "amount": "1.00000000",
     "scriptPubKey": "76a914...7988ac"
   }
 ]
