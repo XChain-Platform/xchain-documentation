@@ -57,7 +57,7 @@ Bitcoin consumer height, 153266, and used the same bounded view of admitted rows
 measured cadence) after the live testnet tip outran the boundary v0.20.0 shipped, before the
 fleet ever rolled to it. The mirror admission producer now arms at BTC 154234 and DOGE 67942777;
 the consumer now arms later at BTC 154291 and DOGE 67944741. LTC:testnet, which v0.20.0 shipped
-at producer 4891504 / consumer 4891766, ships null under both re-slides (dq4 (a), 2026-09-18) and
+at producer 4891504 / consumer 4891766, ships null under both re-slides (disabled for v0.20.1, 2026-09-18) and
 arms on a later train instead. The anchor-attestation completeness barrier now arms at the
 Bitcoin consumer height, 154291. Mainnet stays unarmed on every row in both v0.20.0 and v0.20.1,
 as do token-bridge ISSUE and policy inheritance on every network.

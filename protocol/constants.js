@@ -1599,7 +1599,8 @@ const TRAIN_ACTIVATION = {
     // at each coin's fastest defensible cadence. Chain_tip TBTC 153,698 at 2026-09-23T15:55Z
     // + 376 blocks, ceil(40 h / 383.04 s per block, the least-squares bound). The
     // mirror-admission family below re-slides onto the same instant plus its own 17 h and 6 h
-    // offsets. LTC stays null under dq4 (a) and is untouched by this reslide.
+    // offsets. LTC:testnet mirror admission ships disabled on this train and is
+    // untouched by this reslide; it arms on a later train.
     '0.20.0': { mainnet: 9999999999, testnet: 154074, regtest: 0 },
 };
 
@@ -2013,7 +2014,7 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
     'BTC:testnet':  154234,      // RE-SLID 2026-09-23: train 154,074 + 160 blocks (17 h at 383.04 s/blk), the v0.20.1 patch reslide
-    'LTC:testnet':  null,        // dq4 (a), 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
+    'LTC:testnet':  null,        // disabled for v0.20.1, 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
     'DOGE:testnet': 67942777,    // RE-SLID 2026-09-23: tip 67,924,122 at 15:55Z + 18655 blocks (57 h at 11 s/blk median, the same instant as the BTC producer), the v0.20.1 patch reslide
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
@@ -2025,7 +2026,7 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
     'BTC:testnet':  154291,      // RE-SLID 2026-09-23: its producer + 57 blocks (6 h at 383.04 s/blk), strictly above, never equal
-    'LTC:testnet':  null,        // dq4 (a), 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
+    'LTC:testnet':  null,        // disabled for v0.20.1, 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
     'DOGE:testnet': 67944741,    // RE-SLID 2026-09-23: its producer + 1964 blocks (6 h at 11 s/blk median)
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
