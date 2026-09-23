@@ -3,7 +3,7 @@
 
 # Legal
 
-XChain Platform is **open source**, dual-licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later) with a separate **commercial license** for proprietary use.
+XChain Platform is **open source**, dual-licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later) with a separate **commercial license** for proprietary use. The one carve-out is the `xchain-contracts` template library, which is **MIT-licensed** because it exists to be copied into user contracts (see [NOTICE](../NOTICE.md)).
 
 | Document | What it covers |
 |---|---|

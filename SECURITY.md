@@ -25,7 +25,7 @@ Email **security@dankest.llc** with:
 - A concrete scenario: which implementer behavior the spec permits or encourages, and why that behavior is insecure.
 - Any proposed corrected text you'd like considered.
 
-For sensitive reports, encrypt the email body to our PGP key. Its fingerprint is published at <https://xchain.io/security>, which is currently the only place a public reader can read it, and the key itself is served beside it. If you would rather make first contact before sending anything sensitive, the email channel is fine for that and we will coordinate an encrypted exchange before you share details.
+For sensitive reports, the GitHub advisory channel above is the confidential path we recommend: it is private until we publish it and needs no key exchange. If you would rather use email, send a first message without the sensitive details and we will coordinate an encrypted exchange before you share them. We do not publish a PGP key for this address. The keys published at <https://xchain.io/security> and in [operations/release-signing.md](./operations/release-signing.md) are release signing keys, there so you can verify that a download is genuine; do not encrypt a report to them.
 
 We do not currently offer a paid bug bounty. We do offer public credit in release notes and the advisory itself, unless you prefer to remain anonymous.
 
@@ -86,4 +86,4 @@ We ship security fixes against the latest revision on `master`. The current vers
 
 ---
 
-Last reviewed: 2026-06-16.
+Last reviewed: 2026-09-22.

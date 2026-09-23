@@ -10,6 +10,8 @@ XChain Platform is dual-licensed:
 
 You may use XChain Platform under **either** license. This page explains when you need the commercial one.
 
+The `xchain-contracts` template library is carved out of that dual license: it is **MIT-licensed**, because it exists to be copied into user contracts (see [NOTICE](../NOTICE.md)).
+
 ---
 
 ## Do I need a commercial license?
@@ -19,6 +21,7 @@ You may use XChain Platform under **either** license. This page explains when yo
 - You use XChain for personal, hobby, research, or educational purposes.
 - You run XChain **unmodified**, for any purpose, including inside a company.
 - You modify XChain and you are willing to **release your modified source code** to everyone who interacts with it over a network, under the AGPL.
+- You copy a template from the MIT-licensed `xchain-contracts` library into your own contract, closed-source or not.
 
 **You DO need a commercial license** if:
 

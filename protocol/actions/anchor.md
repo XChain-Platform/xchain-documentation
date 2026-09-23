@@ -217,6 +217,8 @@ XCHECKPOINT|CHAIN|NETWORK|BLOCK_INDEX|BLOCK_HASH|LEDGER_HASH|ACTIONS_HASH|CONTRA
 
 `NETWORK` here is the bundle header's network and `SECTION_SNAPSHOT_BLOCK` the section's own snapshot block, so a section's signed bytes are byte-identical to the checkpoint canonical the hub `StateCheckpointEngine` signs and the SDK / explorer verifiers reconstruct (the publisher reuses the checkpoint row's signatures verbatim, it does not re-sign anything to build a bundle).
 
+That identity holds at or above `CHECKPOINT_COMMITMENT_ACTIVATION`, evaluated on the header network at `SECTION_SNAPSHOT_BLOCK` (see [flag days](../flag-days.md)). Below it the hub and the SDK / explorer verifiers omit the root suffix while the indexer rebuilds every v0 section with it, so no bundle may carry a v0 section whose own snapshot block sits below that height. Such a section fails signature verification rather than being accepted, and because the bundle verdict is all-or-nothing it takes the whole bundle with it; the verifier never adopts roots the quorum did not sign.
+
 `ARCHIVE_B64` is **not** part of the signed bytes; the blob is bound to the signed structure by
 `BATCH_CRC32`, computed over the uncompressed JSON. (CRC over uncompressed bytes keeps
 verification independent of the zlib version that produced the gzip stream.) Chain/network are

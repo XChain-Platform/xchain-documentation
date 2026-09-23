@@ -24,7 +24,9 @@
  *
  *   1. Every row of the two TIS field tables is declared in the CURRENT schema
  *      (top-level rows as top-level properties; file-entry rows in all four of
- *      the images/audio/video/files definitions).
+ *      the images/audio/video/files definitions, or only in the one a leading
+ *      `*(images only)*` marker names), and every property the schema declares
+ *      has a row, so a field cannot drift out of the tables in either direction.
  *   2. Every character bound the prose states equals the schema's maxLength.
  *   3. The worked example parses and uses no key the schema does not declare.
  *   4. v1.0.0 and v1.1.0 stay frozen: each still stamped with its own version,
@@ -84,6 +86,13 @@ function statedBound(description) {
     return m ? Number(m[1]) : null;
 }
 
+// A leading `*(images only)*` narrows a file-entry row to that one media
+// definition; an unmarked row applies to all four.
+function rowScope(row) {
+    const m = /^\*\((\w+) only\)\*/.exec(row.description);
+    return m ? [m[1]] : MEDIA;
+}
+
 function readJson(name) {
     return JSON.parse(fs.readFileSync(path.join(JSON_DIR, name), 'utf8'));
 }
@@ -127,6 +136,20 @@ describe('TIS field table / schema coverage', () => {
         assert.equal(statedBound('A link. 255 characters max.'), 255);
         assert.equal(statedBound('A link. 100 characters max.'), 100);
         assert.equal(statedBound('The TICK of the token'), null);
+
+        const [scoped, plain, since] = fieldRows([
+            '#### Scope',
+            '',
+            '| Field | Type   | Description',
+            '| :---  | :---   | :---',
+            '| size  | String | *(images only)* Pixels.',
+            '| hash  | String | A hash.',
+            '| title | String | *(since v1.1.0)* A title.',
+            '',
+        ].join('\n'), '#### Scope');
+        assert.deepEqual(rowScope(scoped), ['images'], 'the images-only marker was not read');
+        assert.deepEqual(rowScope(plain), MEDIA, 'an unmarked row covers all four arrays');
+        assert.deepEqual(rowScope(since), MEDIA, 'a since-version marker is not a scope');
     });
 
     test('both field tables were actually read', () => {
@@ -134,7 +157,7 @@ describe('TIS field table / schema coverage', () => {
             `only ${TOP_ROWS.length} top-level field rows parsed out of ` +
             'protocol/token-information-standard.md; the table format changed and this gate ' +
             'is no longer reading it');
-        assert.ok(ENTRY_ROWS.length >= 5,
+        assert.ok(ENTRY_ROWS.length >= 9,
             `only ${ENTRY_ROWS.length} file-entry field rows parsed; the table format changed`);
     });
 
@@ -147,17 +170,43 @@ describe('TIS field table / schema coverage', () => {
             undeclared.join('\n  '));
     });
 
-    test(`every documented file-entry field is declared in all four media definitions`, () => {
+    test('every documented file-entry field is declared in each media definition its row covers', () => {
         const undeclared = [];
-        for (const def of MEDIA) {
-            const props = schema.definitions[def].properties;
-            for (const row of ENTRY_ROWS)
-                if (!(row.name in props)) undeclared.push(`${def}.${row.name}`);
+        for (const row of ENTRY_ROWS) {
+            const scope = rowScope(row);
+            for (const def of MEDIA) {
+                const declared = row.name in schema.definitions[def].properties;
+                if (scope.includes(def) && !declared) undeclared.push(`${def}.${row.name}`);
+                if (!scope.includes(def) && declared)
+                    undeclared.push(`${def}.${row.name} is declared, but the row is marked ${scope} only`);
+            }
+            for (const def of scope)
+                if (!MEDIA.includes(def)) undeclared.push(`${row.name}: scope "${def}" is no media array`);
         }
         assert.deepEqual(undeclared, [],
-            'the file-entry table says it applies to files, audio, video and images alike, so a ' +
-            'field missing from any one of them is a contract that differs by array:\n  ' +
-            undeclared.join('\n  '));
+            'an unmarked file-entry row applies to files, audio, video and images alike, and a ' +
+            'marked one to its named array alone, so a mismatch is a contract that differs by ' +
+            'array:\n  ' + undeclared.join('\n  '));
+    });
+
+    test(`every v${CURRENT} top-level property has a row in the field table`, () => {
+        const documented = new Set(TOP_ROWS.map((r) => r.name));
+        const missing = Object.keys(schema.properties).filter((n) => !documented.has(n));
+        assert.deepEqual(missing, [],
+            'schema properties an implementer reading the field table never sees:\n  ' +
+            missing.join('\n  '));
+    });
+
+    test(`every v${CURRENT} media property has a file-entry row covering its array`, () => {
+        const missing = [];
+        for (const def of MEDIA)
+            for (const name of Object.keys(schema.definitions[def].properties))
+                if (!ENTRY_ROWS.some((r) => r.name === name && rowScope(r).includes(def)))
+                    missing.push(`${def}.${name}`);
+        assert.deepEqual(missing, [],
+            'media-entry properties the schema declares and the file-entry table omits, so a ' +
+            'third party implementing from the table neither emits nor reads them:\n  ' +
+            missing.join('\n  '));
     });
 
     test('every character bound the prose states matches the schema maxLength', () => {
@@ -168,6 +217,15 @@ describe('TIS field table / schema coverage', () => {
             const declared = (schema.properties[row.name] || {}).maxLength;
             if (declared !== stated)
                 drifted.push(`${row.name}: prose says ${stated}, schema says ${declared}`);
+        }
+        for (const row of ENTRY_ROWS) {
+            const stated = statedBound(row.description);
+            if (stated === null) continue;
+            for (const def of rowScope(row)) {
+                const declared = ((schema.definitions[def] || {}).properties || {})[row.name];
+                if ((declared || {}).maxLength !== stated)
+                    drifted.push(`${def}.${row.name}: prose says ${stated}, schema says ${(declared || {}).maxLength}`);
+            }
         }
         assert.deepEqual(drifted, [],
             'a publisher truncating to the documented bound and a validator enforcing the ' +

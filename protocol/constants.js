@@ -1278,8 +1278,10 @@ const BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION = {
 // at/above which the decoder recognizes Taproot-envelope reveals as
 // action-bearing transactions, per host chain and network. Recognition (and
 // the §3.8 mixed-carrier/multi-envelope rejections, which activate at the same
-// height) is fleet-deterministic: every decoder for a chain+network MUST flip
-// at the same height or the fleet forks on the first envelope. Keyed on each
+// height, except the payload-free carrier case, which waits for
+// ENVELOPE_CARRIER_RECOGNITION_ACTIVATION below) is fleet-deterministic: every
+// decoder for a chain+network MUST flip at the same height or the fleet forks
+// on the first envelope. Keyed on each
 // chain's OWN local block height (like STATE_COMMITMENT_ACTIVATION) because
 // recognition happens while parsing that chain's blocks. DOGE has no segwit,
 // hence no envelope: its entry is null (never active) and must stay null.
@@ -1299,6 +1301,29 @@ const BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION = {
 const ENVELOPE_RECOGNITION_ACTIVATION = {
     BTC:  { mainnet: 960850, testnet: 0, regtest: 0 },
     LTC:  { mainnet: 3153500, testnet: 0, regtest: 0 },
+    DOGE: { mainnet: null, testnet: null, regtest: null },
+};
+
+// ENVELOPE_CARRIER_RECOGNITION_ACTIVATION (spec §3.8): the LOCAL block height
+// at/above which the decoder counts a RECOGNIZED but payload-free carrier as a
+// mixed carrier. Below it, arbitration infers a co-present carrier from the
+// payload bytes it contributes (or a chunk marker), so an XCHN OP_RETURN that
+// deobfuscates to exactly the magic and nothing after it adds zero bytes and
+// the envelope is still accepted as an action. Its own height, separate from
+// ENVELOPE_RECOGNITION_ACTIVATION, because that gate is already armed on BTC
+// and LTC mainnet: changing what §3.8 refuses is a second recognition change
+// that every decoder must flip at the same height, and below it the decoder
+// behaves exactly as shipped, so replay of indexed history is byte-identical.
+// Mainnet is deliberately unpinned (null = never active); pinning it is an
+// operator deploy-train decision. testnet/regtest are genesis-active, and DOGE
+// is null everywhere (no envelope). Once pinned, every decoder on that
+// chain+network MUST run the value before its height or the fleet forks on
+// the first envelope beside a marker-only XCHN OP_RETURN; verify by reading
+// the armed map out of each RUNNING container. Vendored byte-equal into
+// xchain-decoder/src/protocol/constants.js.
+const ENVELOPE_CARRIER_RECOGNITION_ACTIVATION = {
+    BTC:  { mainnet: null, testnet: 0, regtest: 0 },
+    LTC:  { mainnet: null, testnet: 0, regtest: 0 },
     DOGE: { mainnet: null, testnet: null, regtest: null },
 };
 
@@ -2140,6 +2165,7 @@ module.exports = {
     DISPENSER_FRESHNESS_SHAPE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
     ENVELOPE_RECOGNITION_ACTIVATION,
+    ENVELOPE_CARRIER_RECOGNITION_ACTIVATION,
     COMPRESSION_CODE_DEFLATE_RAW,
     COMPRESSION_MAX_RATIO,
     COMPRESSION_MAX_INPUT_BYTES,
