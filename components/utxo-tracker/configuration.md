@@ -24,7 +24,7 @@ BULK_SYNC_RAM_BUDGET=768
 | `NODE_USER` | Coin node RPC username | `rpc` |
 | `NODE_PASSWORD` | Coin node RPC password | `rpc` |
 | `UTXO_TRACKER_API_PORT` | API server listening port | `3001` |
-| `SHUTDOWN_TIMEOUT_MS` | Hard-exit budget for the SIGTERM drain, in milliseconds. On `docker stop` the tracker stops its block loop at the next block boundary, closes the API listener and the LevelDB store, and exits 0; if that has not finished within the budget it exits 1 instead of lingering until docker's SIGKILL. Sized under the 120 s stop budget `xchain-node` gives a tracker. | `100000` |
+| `SHUTDOWN_TIMEOUT_MS` | Hard-exit budget for the SIGTERM drain, in milliseconds. On `docker stop` the tracker stops its block loop at the next block boundary, closes the API listener and the LevelDB store, and exits 0; if that has not finished within the budget it exits 1 instead of lingering until docker's SIGKILL. `xchain-node` sets it when it creates the container, to the tracker's stop budget less 20 s (`100000` from the default 120 s), unless the module config sets it; see `XCHAIN_NODE_MODULE_STOP_TIMEOUT_SECONDS_<SERVICE>` in the [node configuration](../node/configuration.md). | `100000` |
 
 ### Optional Variables
 
