@@ -57,7 +57,7 @@ flowchart TD
 | `src/chain/crypto_networks.js` | `CryptoNetworks` | Network parameter lookup: maps network names to bitcoinjs-lib network objects for 9 network variants |
 | `src/common/util.js` | None | Utility functions: timing, hex/uint8 conversion, formatting |
 | `src/chain/bufferutils.js` | `BufferReader`, `BufferWriter` | Binary buffer reading/writing: UInt8/16/32/64LE, VarInt, slices |
-| `src/bulk-sync/` | (multiple) | Bulk-sync pipeline: offline parallel parse and load for initial database population on an empty DB (orchestrator, parse worker, merger, writers, loader, validator, and supporting utilities) |
+| `src/bulk_sync/` | (multiple) | Bulk-sync pipeline: offline parallel parse and load for initial database population on an empty DB (orchestrator, parse worker, merger, writers, loader, validator, and supporting utilities) |
 
 ## LevelDB Key Schema
 
