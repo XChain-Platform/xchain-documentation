@@ -52,6 +52,15 @@ the reference SDK does not compact it, so a client that wants the shorter form w
 `^<tickid>` itself.
 See [LIST](./actions/list.md).
 
+`FILE.GATE_TICKER` is also resolved on input, but clients must write it in full. The
+indexer checks it through the same ticker lookup as the fields above, so a `^<tickid>`
+resolves and the `FILE` is accepted, but the value is then stored verbatim as the file's
+gate, and the `SEND` key-handoff rule finds a token's gated packs by comparing that stored
+value to the `SEND`'s `TICK` as exact text. A compacted gate is therefore missed by every
+`SEND` that writes the ticker name: no handoff is required for it, so the file is accepted
+but not gated. The reference SDK keeps its existence check on this field and never
+compacts it. See [FILE](./actions/file.md).
+
 **Address fields that receive an index id:** the destination/transfer/get-address style
 fields of an action:
 `SEND.DESTINATION`, `MINT.DESTINATION`, `MESSAGE.DESTINATION`, `SWEEP.DESTINATION`,

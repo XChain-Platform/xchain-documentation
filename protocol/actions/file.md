@@ -61,6 +61,7 @@ This example uploads an encrypted ZIP gated by the PEPECREATURE token. `ENCRYPTI
 - When `GATE_TICKER` is non-empty, `rawData` is the ciphertext: `[12-byte nonce][16-byte GCM authentication tag][ciphertext]`.
 - `GATE_MIN_AMOUNT`, when present, must be a decimal amount strictly greater than zero (every zero form is invalid), at most 40 characters, digits with at most one `.`, no leading zeros unless the integer part is exactly `0`, a non-empty fractional part whenever a `.` is present, and no more decimal places than min(the gate token's divisibility, 18). A present-but-invalid value makes the FILE invalid rather than being ignored: a FILE is immutable, so a dropped threshold would leave the publisher believing one was in force while the chain recorded none.
 - `GATE_MIN_AMOUNT` is only meaningful with a `GATE_TICKER`; on a non-gated FILE it is invalid, since there is no balance to weigh it against.
+- `GATE_TICKER` takes the ticker name; see [Index ID References](../index-id-references.md). **Never compact `GATE_TICKER` to `^<tickid>`: write the ticker in full.** A caret resolves during validation, so the FILE is accepted, but the value is stored verbatim and the `SEND` key-handoff rule matches it against each `SEND`'s `TICK` as exact text, so a `SEND` that writes the ticker name never triggers the handoff and the file is in effect not gated.
 
 ## Cost and storage
 

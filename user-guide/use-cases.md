@@ -17,7 +17,7 @@ XChain actions involved: ISSUE (to create and lock the supply), SEND (to distrib
 
 ### Community and Fan Club Tokens
 
-Issue a token to represent membership in a community, fan club, or organization. Members who hold the token can be granted access to events, content, or voting rights. You can update who qualifies at any time by adjusting the allow list, or lock the membership rules permanently for a more formal structure.
+Issue a token to represent membership in a community, fan club, or organization. Members who hold the token can be granted access to events, content, or voting rights. You can update who qualifies at any time by adjusting the allow list. No lock flag covers the lists, so the membership rules stay editable for the life of the token.
 
 XChain actions involved: ISSUE, LIST (to define eligible members), SEND (to distribute memberships).
 

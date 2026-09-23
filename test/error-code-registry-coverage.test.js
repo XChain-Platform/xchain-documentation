@@ -23,9 +23,14 @@
  * This test re-derives the emitted set from the explorer source on every run and
  * fails naming any code that has no registry row.
  *
- * Collection is by `code:` line rather than by a bare literal scan, so the
- * ternary fallback form (`code: cond ? x : 'READ_FAILED'`) is caught alongside
- * the plain `code: 'X'` form. Only the three REST-side sources are read:
+ * Collection is by emit shape rather than by a bare literal scan. Three shapes
+ * are read: a `code:` line, so the ternary fallback form
+ * (`code: cond ? x : 'READ_FAILED'`) is caught alongside the plain `code: 'X'`
+ * form; a status-map row (`CODE: [409, 'message']`), which the proof routes
+ * declare and then send by reference as `code: code`; and a positional helper
+ * call (`error(res, 503, 'message', 'CODE')`), which the bridge panel routes
+ * use. A new emit shape needs its own rule here, or its codes go unchecked.
+ * Only the three REST-side sources are read:
  * src/ws/ carries the WebSocket channel codes, which are a separate surface
  * documented in components/explorer/websocket.md and explicitly excluded by the
  * registry page's own closing note.
@@ -92,8 +97,17 @@ const noExplorer   = sibling('xchain-explorer').skip;
 // otherwise read that event name as a REST code the registry owes a row.
 const LOGGER_EVENT = /\blog\.(?:trace|debug|info|warn|error|fatal)\(\s*'[A-Z][A-Z0-9_]*'/g;
 
-// Every SCREAMING_SNAKE string literal on a line that also carries `code:`,
-// minus a logger event name leading that line's log call.
+// Key of a `CODE: [status, 'message']` status-map row, wherever it sits on the line
+// (the first key shares its line with `let map = {`). The three-digit status keeps
+// non-code constants such as `ROLES: ['EXPLORER']` out.
+const STATUS_MAP_KEY = /\b([A-Z][A-Z0-9_]{2,})\s*:\s*\[\s*[0-9]{3}\s*,/g;
+
+// A positional error helper called as `helper(res, status, message, 'CODE')`.
+const STATUS_HELPER_CALL = /\(\s*res\s*,\s*[0-9]{3}\s*,/;
+
+// Every SCREAMING_SNAKE string literal on a line that carries `code:` or a
+// positional helper call, plus every status-map key, minus a logger event name
+// leading that line's log call.
 function emittedCodes() {
     const found = new Map();
     const files = SOURCES.slice();
@@ -108,13 +122,13 @@ function emittedCodes() {
             path.relative(EXPLORER, file) + ' is gone from xchain-explorer; repoint SOURCES at the file the emit site moved to');
         const lines = fs.readFileSync(file, 'utf8').split('\n');
         lines.forEach((line, i) => {
-            if (!line.includes('code:')) return;
+            const where   = `${path.basename(file)}:${i + 1}`;
+            const record  = (code) => { if (!found.has(code)) found.set(code, where); };
             const emitted = line.replace(LOGGER_EVENT, '');
-            for (const quoted of emitted.match(/'([A-Z][A-Z0-9_]{2,})'/g) || []) {
-                const code = quoted.slice(1, -1);
-                if (!found.has(code))
-                    found.set(code, `${path.basename(file)}:${i + 1}`);
-            }
+            for (const m of emitted.matchAll(STATUS_MAP_KEY)) record(m[1]);
+            if (!line.includes('code:') && !STATUS_HELPER_CALL.test(line)) return;
+            for (const quoted of emitted.match(/'([A-Z][A-Z0-9_]{2,})'/g) || [])
+                record(quoted.slice(1, -1));
         });
     }
     return found;

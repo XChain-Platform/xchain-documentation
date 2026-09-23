@@ -38,17 +38,19 @@ This allows an issuer to, for example, open a mint window by setting `MINT_START
 
 ## Locking Parameters
 
-Any parameter can be **locked**, once locked, it cannot be changed by any subsequent `ISSUE`, even from the token owner. Locks are permanent and irreversible.
+Several parameters can be **locked**: once a lock is set, what it covers cannot be changed again, even by the token owner, and the lock itself can never be unset. Locks are permanent and irreversible.
 
-Locks are applied by including a lock flag in the `ISSUE` ACTION. Separate locks exist for:
+Locks are applied by including a lock flag in the `ISSUE` ACTION. The lock flags are:
 
-- Supply locks (max supply, mint supply, max mint)
-- Description lock
-- Allow list / block list locks
-- Callback lock
-- Owner transfer lock (prevents ownership from ever being transferred)
+- Supply locks: `LOCK_MAX_SUPPLY` (the ceiling), `LOCK_MAX_MINT` (the per-mint cap), `LOCK_MINT` (the public `MINT` command) and `LOCK_MINT_SUPPLY` (the issuer's own `MINT_SUPPLY`)
+- `LOCK_DESCRIPTION`
+- `LOCK_SLEEP` (the owner can never pause the token with `SLEEP`)
+- `LOCK_CALLBACK` (the token can never be recalled)
+- `LOCK_BRIDGE` (the token's bridge settings)
 
-Locking is a trust mechanism. A token with a locked max supply provably cannot be inflated. A token with a locked allow list provably cannot have its access rules changed. Users and integrations can rely on locked parameters without trusting the issuer.
+There is no lock for a token's allow list or block list, for a controller binding, or against transferring ownership, so none of these can be frozen the way a locked parameter is.
+
+Locking is a trust mechanism. A token with a locked max supply provably cannot have its ceiling raised. Users and integrations can rely on locked parameters without trusting the issuer; for anything without a lock, they are still relying on the owner.
 
 ## Supply Management
 

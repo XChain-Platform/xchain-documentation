@@ -89,7 +89,7 @@ Yes. The SWAP action allows cross-chain exchanges: you can trade a token on Bitc
 
 ### Are my tokens safe while a trade is in progress?
 
-Yes. When you place a sell order or set up a swap, your tokens are moved into protocol-level escrow. This is not a company holding your tokens; it is the protocol itself locking them against your order. They can only be released in two ways: to the counterparty when the trade completes, or back to you when the order expires or you cancel it. There is no third party who can access or misappropriate them.
+Yes. When you place a sell order or set up a swap, your tokens are moved into protocol-level escrow. This is not a company holding your tokens; it is the protocol itself locking them against your order. They are released only by the protocol's settlement rules: to the counterparty when the trade completes, or back to you when the order expires or you cancel it. The one addition is a royalty or fee split: when you buy a token bound to a `trade`-class controller, part of your escrowed payment goes to the addresses its listing's split names, fixed when that listing was created, and the seller gets the rest. Beyond that, no company, operator or other third party can access or misappropriate them. See [Safety During a Trade](./trading.md#safety-during-a-trade).
 
 ### Can I cancel an order once it is placed?
 

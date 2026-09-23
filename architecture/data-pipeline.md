@@ -208,7 +208,7 @@ The cost is latency: a transaction confirmed in a block will not appear in the e
 
 In a local development environment, the full pipeline runs identically but with two additions:
 
-- **xchain-regtest-miner** polls the coin node's mempool every 1 second. When it detects pending transactions, it waits up to 30 seconds (resetting to 5 seconds on each new arrival) and then calls `generatetoaddress` to mine a block. This means developers do not have to manually mine blocks.
+- **xchain-regtest-miner** polls the coin node's mempool every 100 ms. When it detects pending transactions, it waits up to 30 seconds (resetting to 5 seconds on each new arrival) and then calls `generatetoaddress` to mine a block. This means developers do not have to manually mine blocks.
 
 - **xchain-e2e-test** drives the entire stack using a Mocha test suite. Tests construct actions via BIP39/BIP32 wallets, broadcast them, wait for the pipeline to process them, and assert the resulting explorer state. Tests run in order and share state across the suite; each test builds on the blockchain and indexer state left by the previous one.
 

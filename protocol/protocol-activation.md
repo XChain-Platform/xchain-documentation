@@ -338,7 +338,7 @@ Three further properties of this gate differ from the cohorts above:
   constant stays in the tree now that both mainnet heights have passed: it is history, not a control.
 
 Within **Cohort A**, the **cross-chain royalty create-side** gate is the one rule that does not share
-the single contract-era timestamp: it is deliberately armed one quarter later (both values are on
+the single contract-era timestamp: it is deliberately armed on its own, later date (both values are on
 [Flag-Day Values](./flag-days.md)), so the deny window between the two dates is the safe interim while the
 fleet upgrades to legs-in-canonical. Its match-canonical partner is a Cohort-B gate (`CROSS_CHAIN_ROYALTY_ACTIVATION`,
 armed months earlier at BTC anchor 961000), preserving the canonical-first ordering. So Cohort A is

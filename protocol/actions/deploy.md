@@ -78,7 +78,9 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
   5. Banned literal check, rejects `BigInt` and `RegExp` literals
   6. Banned async check (consensus-gated), rejects `async`/`await`/`Promise` references after the `VM_BANNED_ASYNC` flag-day
   7. Banned generator check (consensus-gated), rejects `function*`, generator methods, and `yield`; live from genesis on testnet/regtest
-  8. Banned WebAssembly check (consensus-gated), rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest
+  8. Banned rest-pattern check (consensus-gated on its own [`REST_PATTERN_METER`](../flag-days.md) gate), rejects a rest pattern the gas meter cannot charge: a rest parameter, a nested rest inside a destructuring pattern, a catch-clause rest, and a rest in a `for-of`/`for-in` loop head; live from genesis on testnet/regtest
+  9. Banned WebAssembly check (consensus-gated), rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest
+- Checks 4, 6 and 9 also reject the global-object-qualified spellings (`globalThis.Math.pow`, `this.Promise`, `globalThis.globalThis.WebAssembly`); see [Global-object spellings](../../components/vm/operations.md#global-object-spellings)
 - If syntax validation fails, the deployment is rejected with `invalid: CODE_ENCODING (<reason>)` and no gas is charged
 
 ```mermaid
@@ -97,7 +99,9 @@ flowchart TD
     Async -->|"fail"| Reject
     Async -->|"pass"| Generator{"7. Banned generator check, function*, generator methods, yield"}
     Generator -->|"fail"| Reject
-    Generator -->|"pass"| Wasm{"8. Banned WebAssembly check, global WebAssembly reference"}
+    Generator -->|"pass"| Rest{"8. Banned rest-pattern check, unmeterable rest positions, REST_PATTERN_METER gate"}
+    Rest -->|"fail"| Reject
+    Rest -->|"pass"| Wasm{"9. Banned WebAssembly check, global WebAssembly reference"}
     Wasm -->|"fail"| Reject
     Wasm -->|"pass"| Charge["Gas charged, deployment proceeds"]
 ```

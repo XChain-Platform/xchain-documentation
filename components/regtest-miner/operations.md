@@ -21,7 +21,7 @@ On startup, the miner:
 2. Connects to the coin node via JSON-RPC
 3. Creates or loads the `xchain_regtest_wallet` wallet
 4. Mines 101 bootstrap blocks if the chain is fresh (coinbase maturity)
-5. Begins the 1-second mempool polling loop
+5. Begins the 100 ms mempool polling loop
 6. Starts the Express JSON-RPC API server on `REGTEST_MINER_API_PORT`
 
 ## Docker
@@ -29,7 +29,7 @@ On startup, the miner:
 When managed by xchain-node, the regtest miner runs as a Docker container:
 
 - **Image**: Alpine Node 22 with non-root user
-- **Healthcheck**: JSON-RPC `ping` call
+- **Healthcheck**: JSON-RPC `health` call, which answers 503 when the miner is stalled (`ping` always answers 200)
 - **Security headers**: Helmet (CSP, X-Frame-Options, etc.)
 - **CORS**: Enabled for cross-origin access
 
@@ -45,7 +45,7 @@ The miner exposes a JSON-RPC 2.0 API via Express for test orchestration. All met
 
 ### Authentication
 
-By default the API is open (no auth), matching the encoder/hub opt-in pattern. Setting the `MINER_API_KEY` environment variable requires a matching `X-API-Key` header on every request; a missing or wrong key returns HTTP 401. The read-only health methods `ping` and `status` always bypass the key gate, so Docker healthchecks and uptime monitors keep working on keyed deployments.
+By default the API is open (no auth), matching the encoder/hub opt-in pattern. Setting the `MINER_API_KEY` environment variable requires a matching `X-API-Key` header on every request; a missing or wrong key returns HTTP 401. The read-only health methods `ping`, `status` and `health` always bypass the key gate, so Docker healthchecks and uptime monitors keep working on keyed deployments. Only read-only methods belong in this exempt set.
 
 Note that the miner refuses to start when `NETWORK` is `mainnet` (only `regtest` and `testnet` are accepted): `send_funds` would otherwise expose a default-unauthenticated way to spend the node wallet.
 
@@ -270,7 +270,7 @@ Mine a specific number of empty blocks immediately, regardless of mempool state.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `count` | number | Yes | Number of blocks to mine (must be a positive integer) |
+| `count` | number | Yes | Number of blocks to mine (a positive integer, at most 10000; a larger value is rejected with an error) |
 
 **Response:**
 
@@ -316,7 +316,7 @@ Remove a block from the invalid set so the node can re-evaluate chain selection.
 
 ### Exponential Backoff
 
-When the coin node is unreachable (ECONNREFUSED, timeout, DNS failure), the miner retries with capped exponential backoff from 1 second to 30 seconds. The attempt counter resets on the first successful call.
+When the coin node is unreachable (ECONNREFUSED, timeout, DNS failure), the miner retries with capped exponential backoff from 200 ms to 30 seconds. The attempt counter resets on the first successful call.
 
 ### Pinned Wallet Fee Rate
 

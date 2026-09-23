@@ -48,7 +48,7 @@ flowchart TD
 
 ## Mining Loop
 
-The miner's core loop runs every 1 second (`CHECK_BLOCK_DELAY_MS`):
+The miner's core loop runs every 100 ms (`CHECK_BLOCK_DELAY_MS`):
 
 1. Poll `getrawmempool` to check for unconfirmed transactions
 2. If new transactions are detected (mempool length increased):
@@ -61,7 +61,7 @@ The loop skips mempool polling when `keepMining` is `false`, allowing external c
 
 ```mermaid
 flowchart TD
-    SLEEP["Sleep<br>1 second"]
+    SLEEP["Sleep<br>100 ms"]
     CHECK["Check keepMining flag"]
     POLL["getrawmempool"]
     NEWTX{"New txs detected?"}

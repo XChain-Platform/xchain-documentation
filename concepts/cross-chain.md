@@ -120,7 +120,7 @@ Adding a new Bitcoin-compatible chain to XChain requires only a configuration fi
 
 ---
 
-*See also: [Actions](./actions.md) | [Security Model](./security-model.md) | [SWAP spec](../protocol/actions/swap.md) | [LINK spec](../protocol/actions/link.md) | [Cross-Chain Contract Calls](../protocol/cross-chain-calls.md)*
+*See also: [Actions](./actions.md) | [Security Model](./security-model.md) | [Token Bridge](./token-bridge.md) for moving a token itself between chains | [SWAP spec](../protocol/actions/swap.md) | [LINK spec](../protocol/actions/link.md) | [Cross-Chain Contract Calls](../protocol/cross-chain-calls.md)*
 
 ---
 

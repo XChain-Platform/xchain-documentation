@@ -69,8 +69,8 @@ may have several legs. A direct `SEND` runs the token's `transfer` guard, then t
 account's outbound `transfer` guard, then the `DESTINATION` account's inbound one (see
 [Account controllers](#account-address-controllers)); bulk actions (`AIRDROP` / `DIVIDEND` /
 `SWEEP`) repeat the applicable guards per tick or leg. Each run is metered separately against
-`GAS_SCHEDULE.VM_GUARD_GAS_CEILING` and the reservations are cumulative (see [Gas](#gas)), so
-budget `GAS` for every guard an action can invoke, not for one.
+`GAS_SCHEDULE.VM_GUARD_GAS_CEILING` and, on BTC, the reservations are cumulative (see
+[Gas](#gas)), so budget `GAS` for every guard an action can invoke, not for one.
 
 To layer several policies on the *same* subject and class, put them inside that controller's
 `guard`. Note that a controller does not re-enter its own guard for the moves that guard
@@ -122,6 +122,17 @@ Rules:
   `(token, class)` is the latest event at or below the current block: a `bind` gates; an
   `unbind` gates only until its cooldown elapses. There is no `LOCK_CONTROLLER` flag; the
   drop-cooldown is the only friction on changing a binding.
+- **Bindings and [bridging](./token-bridge.md#issuer-opt-in) exclude each other.** A token that
+  is bridgeable (a live `BRIDGE_CHAINS`) or has ever bridged (the sticky `BRIDGED` bit) cannot
+  use `ISSUE` v6 at all, bind or unbind:
+  `invalid: TICK (bridged tokens cannot be policy-bound yet)`. Clearing `BRIDGE_CHAINS` with
+  `-` reopens binding only for a token that never actually bridged. In the other direction, a
+  token with any effective binding (including one still inside its drop-cooldown) cannot opt
+  into bridging: `invalid: TICK (policy-bound tokens are not bridgeable yet)`. So the order is
+  a choice: bind first and the token forfeits bridging until every binding is fully dropped;
+  bridge first and it forfeits controllers. Unlike allow/block lists and sleep, this half of
+  the exclusion does not lift at policy inheritance, because a controller names a contract on
+  this chain's VM (see [What does not generalize](./token-bridge.md#what-does-not-generalize)).
 - A token with no binding for a class behaves exactly as before (one NULL check, zero overhead).
 
 ```mermaid
@@ -137,7 +148,8 @@ stateDiagram-v2
 
 An action is always **routed** to exactly one of six concrete classes by a static map from
 the action name. The class is never derived from user-supplied data, so a future action
-cannot accidentally fall into a controlled class.
+cannot accidentally fall into a controlled class. A few actions refuse a bound token without
+running any guard; see [Actions refused outright](#actions-refused-outright-on-a-bound-token).
 
 | Class | Gates | Guard `action_type` |
 |---|---|---|
@@ -176,6 +188,21 @@ override); a second `all` bind while one is live is rejected, exactly like any o
 Cooldown and unbind semantics are identical for `all` (it is just another `action_class`
 value with its own append-only events). `all` participates in resolution only; routing is
 unchanged.
+
+### Actions refused outright on a bound token
+
+The class table lists the actions that run a guard. A few actions never invoke the guard ABI;
+instead they refuse a bound token while a qualifying binding is effective, whatever the
+controller would have decided:
+
+| Action | Refused when | Verdict |
+|---|---|---|
+| [`BET`](./actions/bet.md) v0 (create a market) | `TICK` has an effective `trade` binding, or failing that an `all` binding (the same most-specific-wins resolution the `ORDER` guard uses) | `invalid: TICK (controller-bound)` |
+| [`ISSUE`](./actions/issue.md) v7 (bridge opt-in) | `TICK` has any effective binding | `invalid: TICK (policy-bound tokens are not bridgeable yet)` |
+
+So binding `trade` or `all` also makes a token un-bettable (a market would otherwise route the
+token around the `trade` veto and royalty legs), and any binding blocks bridging; the reverse
+direction of the bridge rule is under [Binding a controller](#binding-a-controller-issue-v6).
 
 ---
 
@@ -288,7 +315,8 @@ transfer ownership rather than a balance, so no proceeds split applies to that l
 > routed around by vending the token through a dispenser instead of listing it. A guard that
 > means to enforce a cut must `revert` on `action_type === 'DISPENSER_CREATE'` (or on the
 > dispenser price it will not be paid a share of). This is a known engine gap, not a design
-> rule: it is recorded as a `KNOWN GAP` at the call site in the indexer's `dispenser.js`.
+> rule: it is recorded as a `KNOWN GAP` at the call site in
+> `xchain-indexer/src/actions/dispenser/controller_guard.js`.
 
 ### Cross-chain sales (`CROSS_CHAIN_ROYALTY`)
 
@@ -350,9 +378,10 @@ acceptance rule is keyed on the local block (`protocol_changes.js`). Operators m
 coordinate the two: flip the canonical gate first or together with the create-side gate,
 never create-side first. Both mainnet values are armed: the canonical flip is set to
 `snapshot_block` height `961000` (BTC anchor ~2026-08-04; hub and every indexer must deploy
-before that height), and the create-side acceptance gate (`CROSS_CHAIN_ROYALTY`) is keyed on a
-block time listed on [Flag-Day Values](./flag-days.md#mainnet-time-keyed-gates), one quarter
-after the rest of Cohort A.
+before that height), and the create-side acceptance gate (`CROSS_CHAIN_ROYALTY`) is keyed on
+its own, later block time, listed on
+[Flag-Day Values](./flag-days.md#mainnet-time-keyed-gates) under its own date rather than the
+Cohort A instant.
 
 ---
 
@@ -437,9 +466,10 @@ self-imposed spending controls such as velocity limits, allowlists, or complianc
 **`DESTINATION`** (an *inbound* gate: refuse an unsolicited incoming transfer). The guard
 distinguishes direction from its `from` / `to` (`from === subject` ⇒ outbound). The
 enforcement order is: the token's own `transfer` guard, then the source's outbound `transfer`
-guard, then the destination's inbound `transfer` guard. `SOURCE` pays the guard gas, and the
-reservations are cumulative so `GAS` can never be driven negative. DEX and dispenser
-deliveries are *solicited pulls*, not direct sends, so they are never gated this way.
+guard, then the destination's inbound `transfer` guard. `SOURCE` pays the guard gas, and on
+BTC the reservations are cumulative so `GAS` can never be driven negative (see [Gas](#gas)).
+DEX and dispenser deliveries are *solicited pulls*, not direct sends, so they are never gated
+this way.
 
 Where a token controller makes the rules travel with the *asset*, an address controller makes
 them travel with the *account*.
@@ -503,10 +533,17 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
 `fee = gasBilled × GAS_PRICE`:
 
 - The guard runs against a bounded ceiling, `GAS_SCHEDULE.VM_GUARD_GAS_CEILING`
-  (default 200,000).
-- `SOURCE` must hold the **full ceiling fee** as a reservation before the guard runs (this
-  mirrors the cross-contract-call gas reservation); insufficient `XCHAIN` rejects the action
-  before any VM work. The actual metered fee (≤ reservation) is what is charged.
+  (default 200,000), on every chain.
+- On BTC, `SOURCE` must hold the **full ceiling fee** as a reservation before the guard runs
+  (this mirrors the cross-contract-call gas reservation); insufficient `XCHAIN` rejects the
+  action with `insufficient funds (guard gas)` before any VM work. The actual metered fee
+  (≤ reservation) is what is charged.
+- **The reservation is BTC-only today.** It is keyed on the chain, not on whether an `XCHAIN`
+  token row exists there, so on LTC and DOGE no reservation is taken and
+  `insufficient funds (guard gas)` is never the verdict, including after the
+  [XChain bridge](./xchain-bridge.md#the-xchain-token-off-btc) creates an `XCHAIN` row on
+  that chain. Extending the reservation to every chain would be a separate, future flag-day
+  change.
 - **v1 charges guard gas on ALLOW only.** A denied action records no ledger change (preserving
   the ledger/balance invariant). The denial-spam vector is bounded by the real on-chain
   transaction cost of each attempt; charge-on-deny is a possible later refinement.
@@ -594,6 +631,8 @@ For the current protocol activation heights, see [Protocol Activation](./protoco
 - [`MINT`](./actions/mint.md), [`STAKE`](./actions/stake.md), [`SWEEP`](./actions/sweep.md),
   [`DESTROY`](./actions/destroy.md), [`ORDER`](./actions/order.md), [`SWAP`](./actions/swap.md),
   [`DISPENSER`](./actions/dispenser.md): the guarded actions.
+- [`BET`](./actions/bet.md): market creation refuses a `trade`- or `all`-bound token.
+- [Token Bridge](./token-bridge.md): the bridge/controller mutual exclusion.
 - [`DEPLOY`](./actions/deploy.md) and [Contract ABI](./contract-abi.md): deploying a controller
   and declaring its manifest.
 - [Smart Contracts](../concepts/smart-contracts.md): the VM the guard runs in.

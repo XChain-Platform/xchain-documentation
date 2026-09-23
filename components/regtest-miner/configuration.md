@@ -22,11 +22,11 @@ All configuration is via environment variables (loaded from `.env` by dotenv). T
 
 | Variable | Description |
 |---|---|
-| `MINER_API_KEY` | When set, every JSON-RPC request must carry a matching `X-API-Key` header (401 otherwise). `ping` and `status` are exempt so healthchecks keep working. Unset by default (no auth), mirroring the encoder/hub opt-in pattern. |
+| `MINER_API_KEY` | When set, every JSON-RPC request must carry a matching `X-API-Key` header (401 otherwise). The read-only methods `ping`, `status` and `health` are exempt so healthchecks keep working; the bundled Docker healthcheck posts `health` with no key. Only read-only methods belong in this exempt set. Unset by default (no auth), mirroring the encoder/hub opt-in pattern. |
 | `MINER_STALL_ERROR_THRESHOLD` | Consecutive failed mining cycles before the `health` probe reports the miner stalled. Defaults to `5`. A deliberate pause is never counted as a stall. |
 | `MINER_WALLET_GRACE_MS` | Cold-start grace period before a wallet that never became ready is reported as a stall by the `health` probe. Defaults to `60000` (60 seconds). |
-| `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for all JSON-RPC calls to the coin node (sets `axios.defaults.timeout` at startup). Defaults to `60000`, which is **not** the decoder's default for the same variable name (`30000`); if you export it globally for a whole stack, both services pick up your value. |
-| `IDLE_MINE_INTERVAL_MS` | Mine one empty block whenever the mempool has been empty this long. Unset or `0` (the default) keeps the mining loop purely mempool-driven, which means an idle chain never advances a block and anything gated on HEIGHT stalls: stake activation delays, confirmation depth, time-locked expiries. Set it on venues whose tests wait out a height window with no transactions in flight. Same bounds as the mining timers (1,000 to 3,600,000 ms); changeable at runtime with `set_idle_mine_interval`. |
+| `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for all JSON-RPC calls to the coin node (sets `axios.defaults.timeout` at startup). Defaults to `60000`, and a value that is not a plain non-negative integer falls back to it (`0` disables the timeout). That default is **not** the decoder's default for the same variable name (`30000`); if you export it globally for a whole stack, both services pick up your value. |
+| `IDLE_MINE_INTERVAL_MS` | Mine one empty block whenever the mempool has been empty this long. Defaults to `60000` when unset, so a rebooted chain with an empty mempool still advances height on its own. `0` keeps the mining loop purely mempool-driven, which means an idle chain never advances a block and anything gated on HEIGHT stalls: stake activation delays, confirmation depth, time-locked expiries. Set `0` on venues whose tests count blocks (reorg or confirmation-depth assertions), since each heartbeat block is a real block. Same bounds as the mining timers (1,000 to 3,600,000 ms); changeable at runtime with `set_idle_mine_interval`. |
 
 ### Validation Rules
 
@@ -40,15 +40,18 @@ All configuration is via environment variables (loaded from `.env` by dotenv). T
 
 | Constant | Value | Description |
 |---|---|---|
-| `CHECK_BLOCK_DELAY_MS` | 1000 | Mempool polling interval (1 second) |
+| `CHECK_BLOCK_DELAY_MS` | 100 | Mempool polling interval (100 ms) |
 | `DEFAULT_MAX_TIME_TO_MINE_TXS` | 30000 | Max time before mining after first tx (30 seconds) |
 | `DEFAULT_ADDED_TIME_TO_MINE_TXS` | 5000 | Extension time on each new tx (5 seconds) |
 | `MIN_MINING_TIME` | 1000 | Minimum allowed timer value via API (1 second) |
 | `MAX_MINING_TIME` | 3600000 | Maximum allowed timer value via API (1 hour) |
 | `MAX_FILL_MEMPOOL_QUANTITY` | 50000 | Maximum transactions for `fill_mempool` |
+| `MAX_GENERATE_BLOCKS` | 10000 | Maximum blocks per `generate_blocks` call (a larger `count` is rejected) |
 | `MAX_SEND_RETRIES` | 50 | Maximum retry attempts for funding in fillMempool |
 | `OUTPUTS_QUANTITY_PER_TX` | 2500 | Maximum outputs per PSBT in fillMempool |
 | `MAX_BACKOFF_MS` | 30000 | Maximum exponential backoff delay (30 seconds) |
+
+The 100 ms poll is deliberately independent of the 1-second `MIN_MINING_TIME` floor: it lets the loop notice an expired timer within about 100 ms instead of up to a full second late. Moving one value does not imply moving the other.
 
 ### Timer Behavior
 
@@ -64,8 +67,10 @@ Both timers can be reconfigured at runtime via the `set_mining_time` JSON-RPC me
 When the coin node is unreachable, the miner retries with exponential backoff:
 
 ```
-delay = min(1000 * 2^attempts, MAX_BACKOFF_MS)
+delay = min(CHECK_BLOCK_DELAY_MS * 2^attempts, MAX_BACKOFF_MS)
 ```
+
+`attempts` counts consecutive failures including the current one, so the first retry waits 200 ms and the delay doubles up to the 30-second ceiling.
 
 The attempt counter resets to zero on the first successful RPC call.
 

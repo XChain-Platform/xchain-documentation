@@ -259,7 +259,7 @@ See [`../components/node/`](../components/node/) for full documentation.
 | | |
 |---|---|
 | **Purpose** | Auto-mines mempool transactions for regtest development environments |
-| **Inputs** | Coin node JSON-RPC (mempool polling every 1 second) |
+| **Inputs** | Coin node JSON-RPC (mempool polling every 100 ms) |
 | **Outputs** | Mined blocks via `generatetoaddress` |
 | **Storage** | None |
 | **Communication** | Outbound JSON-RPC to coin node; inbound JSON-RPC control API |
