@@ -284,10 +284,11 @@ the public explorer's replicated read, in `~/xchain-node/.env`:
 
 ```
 DOGE_INDEXER_API_URL=https://explorer.xchain.io/TDOGE/api/    # mainnet: /DOGE/api/
-DOGE_INDEXER_API_KEY=<the federation read key issued with your other per-coin keys>
 ```
 
-That answer comes from the explorer's own replica of the Dogecoin chain, so a
+No key is needed: the explorer answers these reads to anyone, like the rest of
+its API, and `DOGE_INDEXER_API_KEY` stays unset. That answer comes from the
+explorer's own replica of the Dogecoin chain, so a
 replica that has fallen behind makes your epoch close wait longer rather than
 judge the roll call on stale data. If you run a Dogecoin indexer of your own
 on the same network, point at it instead.
