@@ -1407,6 +1407,36 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
     regtest: 0,
 };
 
+// Per-network activation TIME, keyed on the action's own block time.
+//
+// ARMED at genesis on every network, mainnet by the 2026-09-09 ruling on the measurement
+// the header records (0 PRICE actions ever indexed on any mainnet chain).
+const PRICE_SCALE_ACTIVATION = {
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 PRICE actions, measured 2026-09-09)
+    testnet: 0,
+    regtest: 0,
+};
+
+// Per-network activation TIME, Unix seconds, matching the unit the wire-format gate
+// uses so the two are directly comparable.
+//
+// ARMED at genesis on mainnet by the 2026-09-09 ruling, together with
+// PRICE_PAIR_WIDEN_ACTIVATION and at the same instant, which satisfies the
+// at-or-after ordering the header states. No PRICE action has ever been indexed on any
+// mainnet chain (measured 2026-09-09), so composing the derived pair from block 0
+// reinterprets no signed round, and the from-genesis OLD-vs-ON replay is the witness.
+// Arming at 0 rather than at the contract-era stamp 1786060800 (2026-08-07) is what
+// keeps LTC/DOGE native-coin fees payable from the first mainnet block onward.
+//
+// testnet/regtest are genesis-on, so the pair is composed on every test venue and
+// in the suites today. §8 notes testnet is EXPECTED to be steerable (free public
+// MINT plus open venues), so monitoring must not alert on testnet price excursions.
+const XCHAIN_PRICE_ACTIVATION = {
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 PRICE actions, measured 2026-09-09)
+    testnet: 0,
+    regtest: 0,
+};
+
 // ── PRICE v0 signature-tally ordering ─────────────────────────────────────────
 //
 // The PRICE v0 tally keeps at most one signature per pubkey. Below this gate the
@@ -2173,6 +2203,8 @@ module.exports = {
     PRICE_PAIR_TICKER_MAX_LEGACY,
     PRICE_PAIR_TICKER_MAX_WIDE,
     PRICE_PAIR_WIDEN_ACTIVATION,
+    PRICE_SCALE_ACTIVATION,
+    XCHAIN_PRICE_ACTIVATION,
     PRICE_SIG_TALLY_ACTIVATION,
     PRICE_FEE_BATCH_LANDED_ACTIVATION,
     PRICE_ZERO_VALIDITY_ACTIVATION,
