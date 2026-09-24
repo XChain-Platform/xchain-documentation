@@ -568,6 +568,62 @@ const ANCHOR_REWARD_DERIVE_ACTIVATION = {
 // byte-identical to xchain-{hub,indexer}/src/consensus/gates/anchor_reward_gate.js.
 const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 
+// ANCHOR_FOLD_ACTIVATION (ANCHOR v3, archive fold): the DOGE height (per network) at/above
+// which the ANCHOR wire set gains a fourth version. v3 carries the same per-chain checkpoint
+// sections as v0 plus, optionally, one archive section bound to one of those sections by an
+// explicit WRAPPER_SECTION_INDEX, so a network emits ONE anchor transaction per cycle instead
+// of a separate v0 bundle and v1/v2 archive pair. v0, v1 and v2 freeze byte-for-byte and stay
+// parseable forever; this gate only ever ADDS the new version, never narrows an existing one.
+// Below the height a version-3 anchor is 'invalid: VERSION (unknown)', exactly like any
+// version this restart never shipped. See protocol/actions/anchor.md.
+//
+// Consensus-relevant (it changes which version bytes parse and moves the archive leg's signed
+// bytes onto whichever chain section's WRAPPER_SECTION_INDEX names), so it must deploy hub +
+// ALL indexers atomically, like every sibling ANCHOR gate. Keyed on the anchor's OWN DOGE
+// block_index, the ANCHOR_ACTIVATION convention, never on SNAPSHOT_BLOCK.
+//
+// null on every network: this row (claude/specs/anchor-v0-archive-fold.md, L026-1) is
+// documentation and frozen vectors only. The indexer parse, the hub one-round publisher fold
+// and the sdk light-client v3 support are separate, later build rows (L026-2 through L026-8);
+// arming this height before any of them ship would gate a version byte nothing can produce or
+// parse yet. The operator arms a concrete height only once the fleet carries the fold end to
+// end, per the spec's own deferred-post-launch Goal: "No testnet or mainnet wire change is in
+// scope here; the flag day that arms ANCHOR_FOLD_ACTIVATION on a live federation is a separate,
+// later, operator-armed item." Regtest stays null rather than the usual genesis-0, for the same
+// reason: a fresh regtest stack that armed the fold today would mine a version byte no local
+// indexer build can parse.
+const ANCHOR_FOLD_ACTIVATION = {
+    mainnet: null,
+    testnet: null,
+    regtest: null,
+};
+
+// ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION: the flag-day at/above which a folded v3
+// anchor's archive verdict is SECTION-SCOPED. `setAnchorArchiveStatus` stamps only the archive
+// row (`match_batch_seq IS NOT NULL AND version <> 2`) instead of the whole action, so a late
+// chunk CRC failure on the archive leg can never retroactively invalidate checkpoint sections
+// light clients already consumed. This moves a consensus-hashed preimage
+// (`xchain-indexer/src/consensus/state_hash.js` and its byte-identical twin
+// `xchain-sync/src/consensus/state_hash.js` both gate the class-6 state-hash preimage on the
+// archive-head predicate), so it is its own height rather than riding ANCHOR_FOLD_ACTIVATION's:
+// the fold shape (D1) and the verdict scope (D2) are two separate operator rulings, and nothing
+// about the fold requires the section-scoped verdict to arm the moment the wire does.
+//
+// ARMED ONLY WITH THE FOLD in practice: a section-scoped verdict has no folded action to scope
+// before v3 exists, so on every network this value must equal ANCHOR_FOLD_ACTIVATION's where
+// that one is null, and be >= ANCHOR_FOLD_ACTIVATION's where it is a height.
+//
+// null on every network for the same reason ANCHOR_FOLD_ACTIVATION is null: the verdict-stamp
+// and repair paths it gates (xchain-indexer/src/actions/anchor/reassembly.js,
+// xchain-indexer/src/db/anchors/index.js, xchain-indexer/src/db/attests/batch_chunks.js, and the
+// xchain-sync twin) are later build rows (L026-4, L026-5). Ruled (a) 2026-09-22 (D2);
+// operator-armed once the fold ships. See protocol/actions/anchor.md.
+const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
+    mainnet: null,
+    testnet: null,
+    regtest: null,
+};
+
 // ROLLCALL (validator liveness eviction). A roll call is a signed proof of presence bound to a
 // BTC epoch block's ledger_hash: hubs sign, an elected leader lands the signatures on DOGECOIN
 // as a ROLLCALL action, and the BTC indexer -- the only place the membership predicate runs --
@@ -2152,6 +2208,8 @@ module.exports = {
     ANCHOR_ACTIVATION,
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
+    ANCHOR_FOLD_ACTIVATION,
+    ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION,
     ADMIT_MARGIN_BLOCKS,
     ADMIT_MIN_FUTURE_BLOCKS,
     ADMIT_MAX_FUTURE_BLOCKS,
