@@ -79,6 +79,7 @@ Tracks known peers in the gossip network for reconnection and discovery.
 |---|---|
 | `oracle_submissions` | Per-validator price submissions per round |
 | `price_snapshots` | Finalized oracle prices after PBFT consensus (cross-chain unified view) |
+| `archive_price_tombstones` | Keys a source-chain retraction deleted from `price_snapshots` after an ANCHOR archive had carried them, owed to the next archive (hub-local, not mirrored) |
 | `oracle_prices` | User TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window |
 | `price_ingest_watermarks` | Per-source-chain fence rejecting stale price pushes after a retraction |
 | `oracle_published_rounds` | At-most-once marker for PRICE v0 round broadcasts: intent is recorded before the send, completion after it |
@@ -133,10 +134,29 @@ Finalized price data after PBFT consensus. Cross-chain unified view, populated b
 | `status` | `ENUM('finalized','skipped','disputed')` | Round outcome |
 | `source_chain` | `VARCHAR(10) NOT NULL` | Chain that carried the PRICE v0 tx (audit/diagnostics, default: DOGE) |
 | `source_action_index` | `BIGINT` | Action index of the PRICE v0 tx on source_chain (NULL for hub-finalized) |
+| `batch_seq` | `BIGINT UNSIGNED` | ANCHOR v1 archive batch that carried this row; hub-side only, NULL = still owed to an archive |
+| `archived_status` | `VARCHAR(20)` | `status` the archive carried; hub-side only |
+| `archived_batch_block_time` | `BIGINT` | `batch_block_time` the archive carried; hub-side only |
+| `archived_proof_sha` | `CHAR(64)` | `SHA2(consensus_proof, 256)` the archive carried; hub-side only |
 | `created_at` | `TIMESTAMP` | Record creation time |
+
+The table is mutated in place (a skipped row upgrades, a v0 row takes a batch proof, `batch_block_time` is stamped late, a finalized row flips to disputed), so a stamped row is pending for the archive again whenever its status, `batch_block_time` or proof digest no longer equals what the archive carried.
 
 **Unique key:** `(round_number, coin_pair)`  
 **Keys:** `(coin_pair, reference_block)`, `(coin_pair, block_timestamp)`, `(status)`, `(source_chain)`
+
+### `archive_price_tombstones`
+
+Hub-side only record of the `(round_number, coin_pair)` keys a source-chain retraction deleted from `price_snapshots` after an ANCHOR archive had already carried them, so recovery can delete the key a replayed batch would otherwise resurrect. Filled immediately before the delete; never mirrored to indexers.
+
+| Column | Type | Description |
+|---|---|---|
+| `round_number` | `BIGINT NOT NULL` | Oracle round of the deleted row |
+| `coin_pair` | `VARCHAR(20) NOT NULL` | Price pair of the deleted row |
+| `batch_seq` | `BIGINT UNSIGNED` | ANCHOR v1 archive batch that carried the tombstone; NULL = still owed |
+| `created_at` | `TIMESTAMP` | Record creation time |
+
+**Primary key:** `(round_number, coin_pair)`
 
 ### `oracle_prices`
 
@@ -522,6 +542,7 @@ Quorum-signed block-level hash checkpoints for each chain. Rows are append-only;
 | `block_merkle_version` | `TINYINT UNSIGNED` | `merkle.js BLOCK_MERKLE_VERSION`; NULL before flag-day |
 | `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` signatures over the XCHECKPOINT canonical, meeting the `oracle_publish` quorum at the checkpoint's snapshot block: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
 | `anchor_txid` | `VARCHAR(64)` | DOGE ANCHOR txid once published on-chain (hub-side audit only) |
+| `batch_seq` | `BIGINT UNSIGNED` | ANCHOR v1 archive batch this checkpoint was published in; hub-side only, NULL = still owed to an archive. The table is append-only, so this column alone marks a published row |
 | `created_at` | `TIMESTAMP NOT NULL` | Record creation time |
 
 **Unique key:** `(chain, network, block_index, checkpoint_seq)`. **Keys:** `(chain, network, checkpoint_seq)`
