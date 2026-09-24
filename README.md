@@ -37,7 +37,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Litecoin, and
 | [**xchain-utxo-tracker**](https://github.com/XChain-Platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |
 | [**xchain-vm**](https://github.com/XChain-Platform/xchain-vm/) | Sandboxed JavaScript virtual machine for on-chain smart contracts with gas metering, deterministic execution, and reorg-safe state |
 | [**xchain-contracts**](https://github.com/XChain-Platform/xchain-contracts/) | MIT-licensed template library: audited example smart contracts, reusable patterns, a no-code policy generator, and a CLI, deployed via the ordinary `DEPLOY` action |
-| [**xchain-sdk**](https://github.com/XChain-Platform/xchain-sdk/) | Developer SDK: builders for all 31 developer-invocable actions, 100+ explorer query methods, smart contract support, live WebSocket events, batch builder, PSBT generation |
+| [**xchain-sdk**](https://github.com/XChain-Platform/xchain-sdk/) | Developer SDK: builders for all 32 developer-invocable actions, 100+ explorer query methods, smart contract support, live WebSocket events, batch builder, PSBT generation |
 | [**xchain-wallet**](https://github.com/XChain-Platform/xchain-wallet/) | Reference self-custodial multi-chain wallet: browser, Chrome extension, Electron desktop, and Capacitor mobile (Android shipped, iOS later) from a single codebase; software + Trezor + Ledger + remote + multisig signers; full DEX, messaging, contracts, staking, and `window.xchain` dApp bridge |
 | [**xchain-regtest-miner**](https://github.com/XChain-Platform/xchain-regtest-miner/) | Auto-mines blocks for regtest development environments |
 | [**xchain-e2e-test**](https://github.com/XChain-Platform/xchain-e2e-test/) | Full-stack Mocha test suite running against a live regtest deployment |
@@ -50,7 +50,7 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 | [**LICENSE**](./LICENSE.md) | Full license text |
 | [**NOTICE**](./NOTICE.md) | Required attribution, license summary, and third-party notices |
 
-Any redistribution or modification must include the attribution notice specified in [NOTICE.md](./NOTICE.md). You may run and modify XChain for free under the AGPL-3.0, including inside a for-profit company, provided you share any modifications under the AGPL; a commercial license from Dankest, LLC is required only to keep modifications private or to embed XChain in a closed-source product (see [legal/licensing.md](./legal/licensing.md) for details).
+Any redistribution or modification must include the attribution notice specified in [NOTICE.md](./NOTICE.md). You may run and modify XChain for free under the AGPL-3.0, including inside a for-profit company, provided you share any modifications under the AGPL; a commercial license from Dankest, LLC is required only to keep modifications private or to embed XChain in a closed-source product; the MIT-licensed `xchain-contracts` templates need neither (see [legal/licensing.md](./legal/licensing.md) for details).
 
 ---
 

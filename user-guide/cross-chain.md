@@ -5,7 +5,7 @@
 
 XChain runs on every supported chain simultaneously, today Bitcoin, Litecoin, and Dogecoin; but these are separate blockchains. A token created on Bitcoin exists on Bitcoin. A token created on Litecoin exists on Litecoin. Normally, trading between them would require a bridge, a centralized exchange, or a complex multi-step process involving trust in a third party.
 
-XChain solves this with **SWAP**; a cross-chain exchange that lets you trade tokens on one blockchain for tokens on another, without any intermediary holding your assets.
+XChain solves this with **SWAP**; a cross-chain exchange that lets you trade tokens on one blockchain for tokens on another, without any intermediary holding your assets. To move a token you already hold onto another chain without trading it, XChain also has a native bridge, covered in [Moving a Token to Another Chain](#moving-a-token-to-another-chain-xbridge).
 
 ---
 
@@ -13,7 +13,7 @@ XChain solves this with **SWAP**; a cross-chain exchange that lets you trade tok
 
 Imagine you hold a token on Bitcoin and want to trade it for a token on Litecoin. On a centralized exchange, you would deposit your Bitcoin token, trust the exchange to hold it, find a counterparty, execute the trade, and then withdraw your Litecoin token. At every step, you are trusting the exchange not to lose your funds, freeze your account, or disappear.
 
-With cross-chain bridges, you lock your asset on one chain and mint a representative version on another. The security of your asset depends entirely on the bridge's security; a single point of failure that has been exploited for billions of dollars across the industry.
+With cross-chain bridges, you lock your asset on one chain and mint a representative version on another. The security of your asset depends entirely on the bridge's security; a single point of failure that has been exploited for billions of dollars across the industry. XChain's own bridge uses the same lock-and-mint shape, so its section below states exactly what it trusts.
 
 XChain offers a different path.
 
@@ -37,7 +37,7 @@ Cross-chain swaps on XChain follow a straightforward flow:
 
 2. **Someone accepts.** A counterparty on the other chain sees your offer and agrees to the terms. They record their acceptance on their blockchain.
 
-3. **The match settles on each chain.** The hub records a match signed by a supermajority of validators, and only after each side's escrow has reached that chain's required confirmation depth. Each chain's indexer then independently checks those signatures before releasing the escrowed tokens to the counterparty, so the two legs settle separately rather than in one step. If no match is signed, both sides get their tokens back automatically at the deadline.
+3. **The match settles on each chain.** The hub records a match signed by a supermajority of validators, and only after each side's escrow has reached that chain's required confirmation depth. Each chain's indexer then independently checks those signatures before releasing the escrowed tokens to the counterparty, less any royalty or fee split the counterparty's listing carries (see [Available Pairs](#available-pairs)), so the two legs settle separately rather than in one step. If no match is signed, both sides get their tokens back automatically at the deadline.
 
 ```mermaid
 sequenceDiagram
@@ -113,7 +113,25 @@ Use SWAP when you want a precise exchange with a single counterparty. Use a cros
 
 The DEX order book is best when you are trading two tokens that both exist on the same blockchain. Swaps are for when the tokens you want to exchange live on different blockchains.
 
-You can combine both: use the order book to trade on a single chain, and use SWAP or cross-chain ORDER when you need to move value across chains.
+You can combine both: use the order book to trade on a single chain, and use SWAP or cross-chain ORDER when you need to move value across chains. To move a token you hold to another chain without trading it for anything, use the bridge below.
+
+---
+
+## Moving a Token to Another Chain (XBRIDGE)
+
+SWAP and ORDER exchange one token for a different token with a counterparty. The bridge does something else: it moves a token you already hold to another chain, as the same asset, with no counterparty and no trade.
+
+**How it works.** You lock the token on the chain it was issued on, in a protocol-owned escrow address that nobody holds a key for. Once the lock has the source chain's required confirmations (by default 6 on Bitcoin, 12 on Litecoin and 60 on Dogecoin), the hub's validator federation signs a record of the transfer, and the destination chain credits the same amount to the address you named. To come back, you burn the copy on the destination chain, and after that chain's confirmations the same amount is released from the escrow to the address you name on the origin chain. Every unit is either held in the escrow or circulating as exactly one copy, so the supply never doubles.
+
+In the wallet, **Move across chains** performs the move, and **Bridge settings** is where an issuer opts a token in.
+
+**What is live today.** Only XCHAIN can be bridged, between Bitcoin and Litecoin or Dogecoin, and only on testnet and regtest. The bridge is not active on mainnet. Bridging other tokens through the issuer opt-in is built but not yet switched on for testnet or mainnet. [Flag-Day Values](../protocol/flag-days.md) lists where each activation stands.
+
+**What it trusts.** The credit on the destination chain relies on the hub's validator federation: a compromised hub could supply both the transfer record and the validator roster that checks it, so this is a hub-trusted mint, not a trustless one. The bridge stays off on mainnet until each credit must also agree with a validator-signed checkpoint of the Bitcoin ledger.
+
+**Finality.** Once a credit has been applied on the destination chain, it cannot be undone or redirected. A lock reversed by a reorg before its credit is applied is withdrawn and never applied; the confirmation depth is what makes a deeper reorg expensive.
+
+See [Token Bridge](../concepts/token-bridge.md) for the general model and the issuer opt-in, [Cross-Chain Bridge](../protocol/xchain-bridge.md) for XCHAIN's own bridge and its trust model, and [XBRIDGE](../protocol/actions/xbridge.md) for the action itself.
 
 ---
 
@@ -152,7 +170,7 @@ sequenceDiagram
 - You want one chain's contract to trigger another chain's contract as part of a multi-chain application.
 - You are building cross-chain automation, oracles, or governance where the outcome of a call on one chain drives behavior on another.
 
-XCALL is a system-level mechanism used by contract authors, not an action end users submit directly. The DEX (SWAP and ORDER) remains the right tool for cross-chain token trading between addresses.
+XCALL is a system-level mechanism used by contract authors, not an action end users submit directly. The DEX (SWAP and ORDER) remains the right tool for cross-chain token trading between addresses, and the bridge for moving your own tokens between chains.
 
 ---
 

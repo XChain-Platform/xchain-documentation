@@ -84,7 +84,7 @@ You can restrict which addresses are allowed to interact with your token. The li
 
 Because the sending address is checked too, taking a holder off the allow list (or adding them to the block list) freezes the balance they already hold: they keep it, but they cannot move it until the lists change.
 
-Both lists reference named lists you define on-chain using the LIST action. You can update these lists at any time, unless you choose to lock them permanently.
+Both lists reference named lists you define on-chain using the LIST action. You can update these lists at any time, and there is no lock flag that freezes them: unlike a locked max supply, who may send or receive the token can always be changed later.
 
 ---
 
@@ -140,7 +140,7 @@ No single flag forecloses all supply creation. Set **LOCK_MINT** and **LOCK_MINT
 
 Locking is a one-way door. Think carefully before locking anything. Once it is done, there is no going back. Not even for you.
 
-One thing the lock flags do not cover is a **controller binding**. There is no `LOCK_CONTROLLER`, so a binding cannot be frozen the way a max supply can, and one can be added to a token after it has been issued. The drop-cooldown you commit to at bind time is the only friction on changing or removing one. Anyone weighing up a token's guarantees should read its bindings alongside its locks.
+Two things the lock flags do not cover. The first is a token's **allow and block lists**. There is no `LOCK_ALLOW_LIST` or `LOCK_BLOCK_LIST`, so the lists a token points at can be changed, and those lists edited, at any time; the rules on who may hold the token can never be made permanent the way a max supply can. The second is a **controller binding**. There is no `LOCK_CONTROLLER`, so a binding cannot be frozen either, and one can be added to a token after it has been issued. The drop-cooldown you commit to at bind time is the only friction on changing or removing one. Anyone weighing up a token's guarantees should read its lists and bindings alongside its locks.
 
 ---
 

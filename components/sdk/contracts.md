@@ -215,10 +215,11 @@ Checks for:
 - Code size limit (64 KB)
 - JavaScript syntax errors and unsupported syntax (ES2020 maximum, via acorn)
 - Reserved identifier usage (`__gas`, the allocator metering helpers, and the call-depth metering helpers `__depth_enter`/`__depth_exit`)
-- Banned transcendental Math calls (`Math.sqrt`, `Math.pow`, `Math.log`, etc.)
+- Banned transcendental Math calls (`Math.sqrt`, `Math.pow`, `Math.log`, etc.), including global-object-qualified spellings such as `globalThis.Math.pow` and `this.Math.pow`
 - Banned native-DoS literals (BigInt and RegExp literals)
 - Banned async surface (`async`, `await`, `Promise`)
 - Float literal warnings (advisory; does not block deployment)
+- Sandbox-removal warnings (advisory; do not block deployment): `banned-proto-method` for a call to a prototype method the sandbox removes (`.match()`, `.localeCompare()`, ...) and `banned-stripped-global` for a read of a global it deletes (`Date`, `fetch`, ...); both throw at runtime. See [Deploy-Time Validation](../../developer-guide/smart-contract-development.md#deploy-time-validation) for the full name lists.
 - Logic-level advisories: `crossCallable` integrity, unbounded loops, unchecked `state.get` dereferences, missing input validation
 
 ```js

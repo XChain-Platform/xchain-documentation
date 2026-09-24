@@ -35,6 +35,14 @@
  *      native-coin fee output is rejected. bet.js resolves the payment mode
  *      only when the computed fee is above zero, and a market inside the
  *      duration-fee free window computes to zero.
+ *   6. An open order's escrow was said to reach only two addresses, the
+ *      counterparty's or your own. order_match settles each side's released
+ *      escrow as the OTHER order's proceeds and applies that order's stored
+ *      royalty/fee legs to it, so a buyer of a controller-bound token pays
+ *      part of the escrowed price to the legs' addresses.
+ *   7. The cross-chain guide dismissed bridges and never named XBRIDGE. Its
+ *      bridge section says XCHAIN-only, off on mainnet, and hub-trusted, each
+ *      true only while the activation gates it cites stay where they are.
  *
  * WHAT IT CHECKS. Both halves of every claim: the SOURCE fact the corrected
  * wording rests on, read out of the sibling indexer, and the PROSE, which must
@@ -309,4 +317,59 @@ test('the betting guide ties the fee-output requirement to a fee being owed', ()
         + 'actually being owed');
     assert.match(betting, /free window owes nothing/,
         'betting.md no longer says a market inside the free window needs no fee output');
+});
+
+/* 7. A released escrow funds the counterparty's royalty/fee legs. */
+
+test('the escrow-destination source facts still hold', { skip: skipNoIndexer }, () => {
+    const match = readSrc('actions/order_match.js');
+
+    assert.match(match, /escrows\.push\(\[matchInfo\['GET_TICK'\],[^\n]*give_amount[^\n]*matchInfo\['GET_ADDRESS'\]\]\)/,
+        'order_match no longer releases the order\'s give-side escrow to the matching order');
+    assert.match(match, /applyProceedsSplit\(matchInfo\['GET_TICK'\],\s*give_amount,\s*matchInfo\['GET_ADDRESS'\],\s*matchInfo\['PAYOUT_LEGS'\]/,
+        'order_match no longer applies the matching order\'s PAYOUT_LEGS to the escrow it releases; '
+        + 'the guide\'s royalty-split destination wording may no longer be accurate');
+    assert.match(match, /applyProceedsSplit\(orderInfo\['GET_TICK'\],\s*get_amount,\s*orderInfo\['GET_ADDRESS'\],\s*orderInfo\['PAYOUT_LEGS'\]/,
+        'order_match no longer applies the order\'s PAYOUT_LEGS on the mirror side');
+});
+
+test('the guide names the royalty split as an escrow destination', () => {
+    const safety = section(trading, '### Safety During a Trade', 'trading.md');
+    const answer = section(faq, '### Are my tokens safe while a trade is in progress?', 'faq.md');
+    for(const [label, text] of [['trading.md "Safety During a Trade"', safety],
+                                ['faq.md "Are my tokens safe"', answer]]){
+        assert.ok(!/only two addresses|[Nn]obody else can be paid|only be released in two ways/.test(text),
+            `${label} again says an escrow reaches only the counterparty or you. order_match applies `
+            + 'the counterparty\'s stored PAYOUT_LEGS to the escrow it releases.');
+        assert.match(text, /royalty or fee split/,
+            `${label} no longer names the royalty or fee split as a destination of the escrow`);
+    }
+});
+
+/* 8. The bridge section's availability and trust wording. */
+
+test('the bridge availability source facts still hold', { skip: skipNoIndexer }, () => {
+    const changes = readSrc('protocol_changes.js');
+    const xchainGate = changes.match(/addGate\('xchain_bridge_activation\.XCHAIN_BRIDGE_ACTIVATION'[\s\S]*?\}\);/);
+    const tokenGate  = changes.match(/addGate\('token_bridge_activation\.TOKEN_BRIDGE_ACTIVATION'[\s\S]*?\}\);/);
+
+    assert.ok(xchainGate && tokenGate, 'protocol_changes no longer declares both bridge gates via addGate');
+    for(const key of ['BTC:mainnet', 'LTC:mainnet', 'DOGE:mainnet']){
+        assert.match(xchainGate[0], new RegExp(`'${key}':\\s*9999999999`),
+            `XCHAIN_BRIDGE_ACTIVATION ${key} is no longer the sentinel. cross-chain.md says the `
+            + 'bridge is not active on mainnet and must change in the same commit.');
+    }
+    assert.match(tokenGate[0], /testnet:\s*9999999999/,
+        'TOKEN_BRIDGE_ACTIVATION is armed on testnet. cross-chain.md says bridging other tokens '
+        + 'is not yet switched on for testnet and must change in the same commit.');
+});
+
+test('the cross-chain guide covers the bridge with its scope and trust stated', () => {
+    const bridge = section(crossChain, '## Moving a Token to Another Chain (XBRIDGE)', 'cross-chain.md');
+    assert.match(bridge, /not active on mainnet/,
+        'cross-chain.md bridge section no longer says the bridge is off on mainnet');
+    assert.match(bridge, /hub-trusted mint/,
+        'cross-chain.md bridge section no longer states the hub-trusted mint assumption');
+    assert.match(bridge, /cannot be undone or redirected/,
+        'cross-chain.md bridge section no longer says an applied credit is final');
 });

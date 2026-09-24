@@ -86,7 +86,7 @@ A finalized match is symmetric and describes both legs:
 | `network` | `mainnet`/`testnet`/`regtest`; signed into the canonical so a match can only settle on the network it was matched on |
 | `a_chain,a_action_index,a_kind,a_tick,a_amount,a_filled_before,a_ownership,a_payout_addr` | order A (canonical-lower side); payout = A's receive address on B's chain |
 | `b_*` | order B |
-| `a_payout_legs`/`b_payout_legs` | each order's controller-guard royalty split (JSON `[{to,bps}]` in that order's OWN chain encoding; NULL = none). Applied to the released proceeds at settlement, re-encoded to the local chain; signed into the canonical at/above the `CROSS_CHAIN_ROYALTY` flag-day (see `Controller_Bound_Tokens.md` §Cross-chain sales) |
+| `a_payout_legs`/`b_payout_legs` | each order's controller-guard royalty split (JSON `[{to,bps}]` in that order's OWN chain encoding; NULL = none). Applied to the released proceeds at settlement, re-encoded to the local chain; signed into the canonical at/above the `CROSS_CHAIN_ROYALTY` flag-day (see [Controller-Bound Tokens](./controller-bound-tokens.md#cross-chain-sales-cross_chain_royalty)) |
 | `effective_time` | wall-clock instant indexers apply at (the only shared clock across chains) |
 | `validator_signatures` | JSON `[{pubkey,sig}]` over the canonical match, meeting the `cross_chain` quorum at `snapshot_block` (see [Trust model](#trust-model)) |
 | `status` | `finalized` / `retracted` |

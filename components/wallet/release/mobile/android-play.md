@@ -503,6 +503,12 @@ itself does not exist before API 31) and the Play Store present. A plain
 matter how long you wait or how many times you re-verify - and that reads
 exactly like a failure when it is really an absent verdict, never taken.
 
+**The LG K51 (API 30) is not an App Links test venue.** Its `pm` carries no
+domain-verification verdict to read, so it cannot prove whether App Links are
+verified. Use AVD `xc36play` for that coverage. Keep the handset in the release
+matrix only for the two hardware-only checks it can still settle: biometric
+unlock and real-camera QR scanning.
+
 A `google_apis_playstore` image carries both, and building one is four
 commands. Both SDK tools need `JAVA_HOME` set first (on this Mac,
 `/opt/homebrew/opt/openjdk@21`), or they fail with "Unable to locate a Java
@@ -866,9 +872,11 @@ printf %s "<the walkthrough text>" | wc -c
 > and a QR code. "Send" builds a transaction and asks for confirmation before
 > broadcasting anything.
 
-If a future review does need funded balances, use a wallet on a public test
-network and never a funded mainnet wallet, and rotate it after the review
-cycle. Nothing in the current submission needs one.
+If a future review needs funded balances, run
+`node tools/release/verify-demo-endpoints.mjs`; fund only TBTC when the gate
+reports it fundable, confirm the balance appears in the app, never use a funded
+mainnet wallet, and rotate the test wallet after review. The current submission
+needs no funded wallet.
 
 ### Graphics
 

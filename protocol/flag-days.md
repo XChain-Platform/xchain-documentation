@@ -5,8 +5,9 @@
 # Flag-Day Values
 
 **This page is generated** from `xchain-indexer/src/protocol_changes.js`, its part files
-under `src/protocol_changes/`, and the time-keyed activation modules beside them. Do not
-edit it by hand: run `node bin/generate-flag-days.js` from the repository root and commit the result.
+under `src/protocol_changes/`, the time-keyed activation modules beside them, and
+`protocol/constants.js`. Do not edit it by hand: run `node bin/generate-flag-days.js`
+from the repository root and commit the result.
 
 Every other page in this documentation set names the **gate** and links here
 instead of quoting a date, because a flag-day value is not a fact about the
@@ -16,6 +17,58 @@ before. One generated page moves on a repin; a dozen sentences do not.
 For what a flag day is, how `isEnabled` evaluates it, which cohort a gate
 belongs to, and what happens to a node that misses one, see
 [Protocol Activation](./protocol-activation.md).
+
+## Canonical activation maps
+
+These names are exported by [`protocol/constants.js`](./constants.js). The index includes
+scheduled, inert, genesis-active, time-keyed, and height-keyed maps so a gate remains
+discoverable here even when it has no mainnet date for the table below.
+
+- `AMOUNT_REPRESENTABILITY_ACTIVATION`
+- `ANCHOR_ACTIVATION`
+- `ANCHOR_ATTEST_BARRIER_ACTIVATION`
+- `ANCHOR_REWARD_ACTIVATION`
+- `ANCHOR_REWARD_DERIVE_ACTIVATION`
+- `ARCHIVE_REWARD_ACTIVATION`
+- `ATTEST_ADMISSION_ACTIVATION`
+- `ATTEST_BROADCAST_FEE_ACTIVATION`
+- `ATTEST_RELAY_ACTIVATION`
+- `ATTEST_REQUEST_CAP_ACTIVATION`
+- `ATTEST_RESPONSE_MIRROR_ACTIVATION`
+- `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION`
+- `ATTEST_ZERO_CONF_ACTIVATION`
+- `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION`
+- `CHECKPOINT_COMMITMENT_ACTIVATION`
+- `CROSS_CHAIN_ROYALTY_ACTIVATION`
+- `DISPENSER_CANCEL_GRACE_ACTIVATION`
+- `DISPENSER_EXPIRY_REALIGN_ACTIVATION`
+- `DISPENSER_FRESHNESS_SHAPE_ACTIVATION`
+- `ENVELOPE_CARRIER_RECOGNITION_ACTIVATION`
+- `ENVELOPE_RECOGNITION_ACTIVATION`
+- `EQUIV_HEADER_ACTIVATION`
+- `LIST_OWNER_ACTIVATION`
+- `MIRROR_ADMISSION_ACTIVATION`
+- `MIRROR_ADMISSION_CONSUMER_ACTIVATION`
+- `ORACLE_FEE_OUTPUT_ACTIVATION`
+- `ORACLE_FEE_SET_CAPTURE_ACTIVATION`
+- `PRICE_BATCHING_FLOOR_ACTIVATION`
+- `PRICE_FEE_BATCH_LANDED_ACTIVATION`
+- `PRICE_PAIR_WIDEN_ACTIVATION`
+- `PRICE_SIG_TALLY_ACTIVATION`
+- `PRICE_ZERO_VALIDITY_ACTIVATION`
+- `RETRACTION_SIGNING_ACTIVATION`
+- `ROLLCALL_ACTIVATION`
+- `ROLLCALL_GATES_ACTIVATION`
+- `SNAPSHOT_BURIAL_ACTIVATION`
+- `STAKE_KEY_REUSE_ACTIVATION`
+- `STAKE_WEIGHTED_QUORUM_ACTIVATION`
+- `STATE_COMMITMENT_ACTIVATION`
+- `SWEEP_ZERO_LEG_ACTIVATION`
+- `TICK_NAMESPACE_ACTIVATION`
+- `TOKEN_BRIDGE_ACTIVATION`
+- `TOKEN_POLICY_INHERITANCE_ACTIVATION`
+- `TRAIN_ACTIVATION`
+- `XCHAIN_BRIDGE_ACTIVATION`
 
 ## Contract-era flag day
 

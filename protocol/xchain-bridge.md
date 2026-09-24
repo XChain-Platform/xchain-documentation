@@ -133,9 +133,11 @@ distributing XCHAIN to another chain is an ordinary treasury operation on the br
 (mint on BTC, lock to an operator-held address on the destination, `AIRDROP` there), not a
 protocol-level concern.
 
-Once the row exists, handlers that resolve XCHAIN unconditionally (guard-gas reservations, fee
-mode detection) start seeing it where they previously saw nothing; see
-[Gas and Fees](../concepts/gas.md) for the fee side of that boundary.
+Once the row exists, handlers that resolve XCHAIN unconditionally (fee mode detection) start
+seeing a row that did not exist until the first credit; see [Gas and Fees](../concepts/gas.md)
+for the fee side of that boundary. The controller-guard gas reservation is not one of them: it is keyed on
+the chain, so it stays BTC-only and the new row moves no guard verdict (see
+[Controller-Bound Tokens](./controller-bound-tokens.md#gas)).
 
 ## Reads
 

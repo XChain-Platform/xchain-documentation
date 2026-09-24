@@ -27,7 +27,7 @@
     "control_block_hex": "c079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
   },
   "envelope_chunking": {
-    "description": "1,246-byte compiled payload split into 520-byte pushes, in order; reassembly by concatenation is byte-identical.",
+    "description": "1,253-byte compiled payload split into 520-byte pushes, in order; reassembly by concatenation is byte-identical.",
     "payload_generation": "action \"FILE|0|chunks.bin|application/octet-stream|||||||\" + 1200 rawData bytes where byte[i] = (i*7+13) & 0xff",
     "compiled_payload_sha256": "ae00e58a01ed2978a7c0226399cb944f3736874114103f62b8471aced34308a0",
     "compiled_payload_length": 1253,
@@ -114,8 +114,13 @@
     },
     {
       "name": "mixed_carrier_envelope_plus_op_return",
-      "description": "A tx containing an envelope reveal input AND an OP_RETURN XCHN payload is NOT a valid action (spec §3.8, height-gated: below the recognition flag height it replays exactly as the fleet indexed it, i.e. as the OP_RETURN action).",
+      "description": "A tx containing an envelope reveal input AND an OP_RETURN XCHN payload is NOT a valid action (spec §3.8, height-gated: below the recognition flag height it replays exactly as the fleet indexed it, i.e. as the OP_RETURN action). The OP_RETURN here carries payload bytes after the magic; the marker-only shape is the next vector, under its own height.",
       "expect": "no_action_post_flag__shipped_behavior_pre_flag"
+    },
+    {
+      "name": "mixed_carrier_envelope_plus_marker_only_op_return",
+      "description": "Envelope reveal input plus an XCHN OP_RETURN that deobfuscates to exactly the magic and nothing after it. The OP_RETURN contributes zero payload bytes, so from the recognition height up to ENVELOPE_CARRIER_RECOGNITION_ACTIVATION the envelope is still accepted as the action; at and above the carrier height the tx is NOT a valid action (spec §3.8). Carrier height: unpinned on every mainnet, genesis-active on BTC/LTC testnet and regtest.",
+      "expect": "no_action_post_carrier_flag__envelope_action_pre_carrier_flag"
     },
     {
       "name": "mixed_carrier_envelope_plus_chunk_marker",

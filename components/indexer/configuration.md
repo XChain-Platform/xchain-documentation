@@ -45,7 +45,7 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `DB_ACQUIRE_TIMEOUT` | Time to wait for a free pooled connection, in milliseconds | `10000` |
 | `DB_QUERY_TIMEOUT` | MariaDB query execution timeout in milliseconds | `30000` |
 | `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; the operator path (`node src/db/migration/migrate.js`) fails closed regardless. | _(unset, non-fatal)_ |
-| `SHUTDOWN_TIMEOUT_MS` | Hard-exit budget for the SIGTERM/SIGINT drain, in milliseconds. On `docker stop` the indexer stops reporting itself running on `/status`, lets the block loop break at its next block boundary (never mid-transaction), drains the API listener, closes its database pools and exits 0; if that has not finished within the budget it logs the overrun and exits 1 instead of lingering until docker's SIGKILL. The default sits under docker's 10 s stop grace because `xchain-node` issues a bare `docker stop`; raise it for a chain whose blocks take longer to apply. A non-numeric or non-positive value keeps the default. | `8000` |
+| `SHUTDOWN_TIMEOUT_MS` | Hard-exit budget for the SIGTERM/SIGINT drain, in milliseconds. On `docker stop` the indexer stops reporting itself running on `/status`, lets the block loop break at its next block boundary (never mid-transaction), drains the API listener, closes its database pools and exits 0; if that has not finished within the budget it logs the overrun and exits 1 instead of lingering until docker's SIGKILL. Sized under the 30 s stop budget `xchain-node` gives the indexer, and under the ten seconds docker allows a container created before that budget existed; raise it, keeping it under the stop budget, for a chain whose blocks take longer to apply. When `XCHAIN_NODE_MODULE_STOP_TIMEOUT_SECONDS_XCHAIN_INDEXER` overrides that budget, `xchain-node` sets this to the budget less 20 s (half the budget below 40 s) unless the module config sets it. A non-numeric or non-positive value keeps the default. | `8000` |
 
 ### Migration compatibility harness
 
@@ -83,12 +83,14 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `HUB_SYNC_WATERMARK_STALL_S` | How long the hub mirror's stream watermark may stay frozen while the hub's own heartbeat tip runs ahead of it before the mirror forces a fresh subscribe-then-bootstrap. This is the mirror's own bound, distinct from `HUB_SYNC_BARRIER_HOLD_CEILING_S`, which the block loop drives and only while a block is deferring: heartbeats keep arriving during such a stall, so the transport watchdog stays satisfied while the mirror certifies nothing. Suppressed where a frozen watermark is correct: poll mode, an outstanding hub schema-version mismatch, and a mirror that has not yet certified a first watermark. Operational only: it opens no barrier and commits no block early. Seconds; `0` disables the detector. | `180` |
 | `HUB_SYNC_WATERMARK_STALL_EXIT_S` | How long after that forced resync the watermark still has to stay frozen before the process logs a named fatal and exits non-zero so its supervisor restarts it (the indexer wires the exit; the explorer's vendored copy logs and re-drives). Sized above a full re-bootstrap drain, so an ordinary slow drain finishes and moves the watermark inside the window; any real advance cancels it. Seconds; `0` keeps the forced resync but never exits. | `300` |
 
+**Bridge proof wiring is directional and required for every two-stack deployment.** Every destination indexer crediting a bridged transfer must have the origin chain's indexer API URL configured as `<COIN>_INDEXER_URL` or `<COIN>_INDEXER_API_URL`. Configure each direction independently: for example, a DOGE indexer crediting a transfer from BTC needs the BTC indexer URL, while a BTC indexer crediting a transfer from DOGE needs the DOGE indexer URL. Without either URL, that destination holds silently at the bridge proof barrier until the default 900-second (15-minute) hold ceiling; reaching the ceiling can re-drive the wait but never credits an unproven transfer. This is separate from the DOGE-specific ROLLCALL read below, even when both reads use the same DOGE URL.
+
 **The same DOGE wiring is what ROLLCALL runs on, and it becomes required a second time.** From `ROLLCALL_ACTIVATION` onward, every **BTC** indexer closes each roll-call epoch by asking its DOGE indexer for the epoch's signers (`getrollcallsigners`, a federation-read method served off the committed view). It reuses `DOGE_INDEXER_API_URL` → `DOGE_INDEXER_URL` → config, the `DOGE_INDEXER_API_KEY` header, and `ANCHOR_PROOF_TIMEOUT_MS`; there is no separate env knob for it.
 
 | Variable | Description | Default |
 |---|---|---|
 | `XC_ROLLCALL_GATES_REGTEST_ACTIVATION` | **Regtest only.** Arms ROLLCALL v1 on this private venue: from the armed epoch height on, roll calls must carry the publisher's consensus-gate list, the epoch close records each verified signer's list in `rollcall_gates`, and the attestation capability set drops a validator whose recorded list lacks a rule active at the request block. Same grammar as `XC_ROLLCALL_REGTEST_ACTIVATION`; read **once at startup**; set identically on every hub and BTC indexer in the venue. mainnet and testnet are fixed in source. | _(unset: inert)_ |
-| `XC_MIRROR_ADMISSION_ACTIVATION` | **Regtest only.** Arms the per-coin `regtest` entries of `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` (the mirror-admission heights) and the `regtest` entry of `ANCHOR_ATTEST_BARRIER_ACTIVATION` in the indexer's activation registry (`src/protocol_changes/shared_rows.js`), one variable for the whole barrier family. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; the armed form arms at height `0`. Applied when a row is read, from the environment as it stands then; set identically on every hub, indexer, sync and explorer process in the venue. mainnet and testnet are fixed in source. | _(unset: inert)_ |
+| `XC_MIRROR_ADMISSION_ACTIVATION` | **Regtest only.** Arms the per-coin `regtest` entries of `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` (the mirror-admission heights) and the `regtest` entry of `ANCHOR_ATTEST_BARRIER_ACTIVATION` in the indexer's activation registry (`src/protocol_changes/shared_rows.js`), one variable for the whole barrier family. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; the armed form arms at height `0`. The indexer's gate modules snapshot these activation maps when they are loaded, so set the variable before startup and restart the indexer after changing it. Set it identically on every hub, indexer, sync and explorer process in the venue. mainnet and testnet are fixed in source. | _(unset: inert)_ |
 | `XC_ROLLCALL_REGTEST_ACTIVATION` | **Regtest only.** Arms ROLLCALL on this private venue. `armed` (or `genesis`/`on`/`true`/`yes`) activates at BTC height `0`; a bare non-negative integer activates at that height, for a venue whose epochs should begin above an already-indexed prefix; `off`/`inert`/`false` and anything unrecognised leave it inert, and an unrecognised value is logged. Read **once at startup**, so a change needs a restart. mainnet and testnet are fixed in source and cannot be moved from the environment. | _(unset: inert)_ |
 
 Regtest ships inert on purpose: arming a network commits every BTC indexer on it to a wired DOGE peer, so a hardcoded height wedged every single-coin BTC venue at its first close. Set this on **every** BTC indexer and hub in a two-chain acceptance venue, alongside `DOGE_INDEXER_API_URL`. A venue that arms its hubs and forgets its indexer shows up as a consensus-rules digest mismatch, because `ROLLCALL_ACTIVATION` is one of the shared gates that digest covers.
@@ -235,6 +237,24 @@ actually resolved.
 | Variable | Description | Example |
 |---|---|---|
 | `MA_SIDE_KEY` | **Harness only.** Side label the side-process reports its hash chain under, set by the parent for its side-processes: `off`, `boundary` or `on` | `boundary` |
+
+### List-owner replay witness
+
+Read only by `bin/verify-list-owner-replay-equivalence.js` (the below-the-flag
+replay witness for `LIST_OWNER_ACTIVATION`, which replays one mainnet or testnet
+corpus through a LEGACY tree with the general list-owner check removed and the
+OFF tree with its natural inert gate, and compares the resolved four-hash chain
+at every block; regtest is refused because its gate is active from height zero);
+never by the indexer service itself. Database credentials are loaded by dotenv
+from the project `.env` and read through `src/config.js`, never from argv. For
+each side-process the parent sets `INDEXER_COIN`, `INDEXER_NETWORK`,
+`TEST_DECODER_DB`, `TEST_INDEXER_DB` and the `TEST_DB_*` coordinates documented
+for the A7 harness above.
+
+| Variable | Description | Example |
+|---|---|---|
+| `LO_SIDE_ROOT` | **Harness only.** Materialized tree the forked side-process replays from (the LEGACY tree or the OFF tree under the harness workdir) | `/tmp/xchain-lo-witness-btc/off` |
+| `LO_SIDE_KEY` | **Harness only.** Side label the side-process reports its hash chain under, set by the parent for its side-processes: `legacy` or `off` | `off` |
 
 ### BATCH cost-measurement harness
 

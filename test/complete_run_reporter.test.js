@@ -1,8 +1,20 @@
+/*********************************************************************
+ *
+ * Copyright © 2026 Dankest, LLC
+ * Based on XChain Platform by Dankest, LLC - https://dankest.llc
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * This file is part of XChain Platform. Licensed under the GNU Affero
+ * General Public License v3.0 or later; see LICENSE.md.
+ *
+ **********************************************************************
+ *
+ * A run in which a file's child exited 0 before its event stream was whole
+ * must not grade green: proved over synthetic streams and by driving a real
+ * runner over a throwaway file that exits mid-suite.
+ */
 'use strict';
-
-// A run in which a file's child exited 0 before its event stream was whole
-// must not grade green: proved over synthetic streams and by driving a real
-// runner over a throwaway file that exits mid-suite.
 
 const assert = require('node:assert/strict');
 const { test, describe } = require('node:test');

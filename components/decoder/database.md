@@ -177,7 +177,7 @@ The decoder applies schema changes via a tracked migration system. Two paths exi
 - **Manual (operator):** migrations tagged `mode=manual` (destructive column-type changes, data backfills, dedup-then-unique) run only when an operator explicitly invokes:
 
   ```bash
-  node src/migrate.js
+  node src/db/migrate.js
   # or: npm run migrate
   ```
 

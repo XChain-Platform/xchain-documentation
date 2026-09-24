@@ -11,7 +11,8 @@
  *
  **********************************************************************
  *
- * Generates protocol/flag-days.md from the indexer's activation registry.
+ * Generates protocol/flag-days.md from the indexer's activation registry and
+ * the documentation canon's published activation maps.
  *
  * WHY. Five doc pages and the whitepaper quoted the coordinated
  * contract-era flag-day as a literal DATE. A flag-day date is not a fact about
@@ -67,6 +68,7 @@ const DOC_ROOT = path.resolve(__dirname, '..');
 const INDEXER_SRC = path.resolve(DOC_ROOT, '../xchain-indexer/src');
 const REGISTRY = path.join(INDEXER_SRC, 'protocol_changes.js');
 const OUTPUT = path.join(DOC_ROOT, 'protocol', 'flag-days.md');
+const CANONICAL_CONSTANTS = path.join(DOC_ROOT, 'protocol', 'constants.js');
 
 // The registry's own files as ONE text, comments blanked, with the map back to
 // the part file and line an offset came from. Every registry pass below reads
@@ -673,6 +675,15 @@ function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 
+/** Every activation map the documentation canon publishes, sorted for stable output. */
+function collectCanonicalActivationMaps(constantsPath = CANONICAL_CONSTANTS) {
+    const resolved = require.resolve(constantsPath);
+    delete require.cache[resolved];
+    return Object.keys(require(resolved))
+        .filter((name) => name.endsWith('_ACTIVATION'))
+        .sort();
+}
+
 /**
  * The coordinated contract-era flag day: the timestamp the most gates ride.
  * Derived rather than named, because naming it here would reintroduce exactly
@@ -695,7 +706,7 @@ function coordinatedFlagDay(gates) {
     return { time: ranked[0][0], count: ranked[0][1] };
 }
 
-function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = []) {
+function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = [], canonicalActivationMaps = []) {
     const anchor = coordinatedFlagDay(gates);
     const others = gates.filter((g) => g.time !== anchor.time);
 
@@ -703,6 +714,7 @@ function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = [
         const note = g.time === anchor.time ? 'contract-era flag day' : 'own date';
         return `| \`${g.gate}\` | \`${g.time}\` | ${utcInstant(g.time)} | ${note} | \`${g.source}\` |`;
     });
+    const canonicalRows = canonicalActivationMaps.map((name) => `- \`${name}\``);
 
     const outliers = others.length === 0
         ? 'Every mainnet time-keyed gate rides the coordinated instant; none carries a date of its own.'
@@ -769,8 +781,9 @@ function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = [
 # Flag-Day Values
 
 **This page is generated** from \`xchain-indexer/src/protocol_changes.js\`, its part files
-under \`src/protocol_changes/\`, and the time-keyed activation modules beside them. Do not
-edit it by hand: run \`node bin/generate-flag-days.js\` from the repository root and commit the result.
+under \`src/protocol_changes/\`, the time-keyed activation modules beside them, and
+\`protocol/constants.js\`. Do not edit it by hand: run \`node bin/generate-flag-days.js\`
+from the repository root and commit the result.
 
 Every other page in this documentation set names the **gate** and links here
 instead of quoting a date, because a flag-day value is not a fact about the
@@ -780,6 +793,14 @@ before. One generated page moves on a repin; a dozen sentences do not.
 For what a flag day is, how \`isEnabled\` evaluates it, which cohort a gate
 belongs to, and what happens to a node that misses one, see
 [Protocol Activation](./protocol-activation.md).
+
+## Canonical activation maps
+
+These names are exported by [\`protocol/constants.js\`](./constants.js). The index includes
+scheduled, inert, genesis-active, time-keyed, and height-keyed maps so a gate remains
+discoverable here even when it has no mainnet date for the table below.
+
+${canonicalRows.join('\n')}
 
 ## Contract-era flag day
 
@@ -813,7 +834,8 @@ here; they are inventoried on
 
 function generate(indexerSrc = INDEXER_SRC) {
     return render(collectGates(indexerSrc), collectTestnetArms(indexerSrc),
-                  collectTestnetUnarmed(indexerSrc), collectMainnetUnarmed(indexerSrc));
+                  collectTestnetUnarmed(indexerSrc), collectMainnetUnarmed(indexerSrc),
+                  collectCanonicalActivationMaps());
 }
 
 if (require.main === module) {
@@ -833,6 +855,7 @@ if (require.main === module) {
 }
 
 module.exports = {
-    collectGates, collectTestnetArms, collectTestnetUnarmed, collectMainnetUnarmed, coordinatedFlagDay, render, generate, utcInstant, utcDate,
-    DOC_ROOT, INDEXER_SRC, REGISTRY, OUTPUT, TIMESTAMP_FLOOR, SENTINEL_FLOOR,
+    collectGates, collectTestnetArms, collectTestnetUnarmed, collectMainnetUnarmed,
+    collectCanonicalActivationMaps, coordinatedFlagDay, render, generate, utcInstant, utcDate,
+    DOC_ROOT, INDEXER_SRC, REGISTRY, OUTPUT, CANONICAL_CONSTANTS, TIMESTAMP_FLOOR, SENTINEL_FLOOR,
 };

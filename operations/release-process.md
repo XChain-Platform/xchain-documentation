@@ -10,16 +10,22 @@ This is the runbook. It assumes you are the person driving the release.
 
 ## The shape of it
 
-XChain Platform ships as a **release train**: nine components that move together
+XChain Platform ships as a **release train**: thirteen components that move together
 under one version number, so that "XChain 0.9.0" names an exact, reproducible set
 of software rather than a rough era.
 
 | | |
 |---|---|
-| **Train members** | `xchain-vm`, `xchain-decoder`, `xchain-indexer`, `xchain-hub`, `xchain-sync`, `xchain-node`, `xchain-encoder`, `xchain-utxo-tracker`, `xchain-explorer` |
+| **Train members** | `xchain-vm`, `xchain-decoder`, `xchain-indexer`, `xchain-hub`, `xchain-sync`, `xchain-node`, `xchain-encoder`, `xchain-utxo-tracker`, `xchain-explorer`, `xchain-sdk`, `xchain-e2e-test`, `xchain-regtest-miner`, `xchain-contracts` |
 | **Version scheme** | one stream, `MAJOR.MINOR.PATCH`, shared by every member |
 | **Where work lands** | the `develop` branch of each repo |
 | **Where releases live** | the `master` branch, which only ever receives release merges |
+
+The members are the components the release manifest in `xchain-node` names, plus
+`xchain-node` itself. The repos a given cut freezes, merges and tags are those
+members minus any the train leaves unchanged (see Sparse lockstep below), plus
+`xchain-documentation`, which is tagged with the train but carries no component
+version of its own.
 
 ### Sparse lockstep
 

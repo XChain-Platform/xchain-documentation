@@ -211,8 +211,8 @@ const COMMAND_QUANTITY = /\b(\d{1,3}(?:,\d{3})+|\d+)\s*-?\s*commands?\b/gi;
 const COMMAND_SCOPED = [
   { file: 'components/node/architecture.md', count: 21, times: 2,
     why: 'the xchain-node Commander CLI verb count, nothing to do with BATCH' },
-  { file: 'getting-started/what-is-xchain.md', count: 35, times: 1,
-    why: 'the size of the ACTION set, nothing to do with BATCH' },
+  { file: 'getting-started/what-is-xchain.md', count: 37, times: 1,
+    why: 'the size of the wire-decoded ACTION set, nothing to do with BATCH' },
 ];
 
 test('prose command counts for the BATCH cap match the canonical value', () => {

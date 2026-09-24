@@ -98,7 +98,7 @@
       "type": "service",
       "group": "hub",
       "tech": "Node.js, MariaDB",
-      "description": "Config oracle and cross-chain coordinator. PBFT federation (stake-weighted source-deduped quorum at/above STAKE_WEIGHTED_QUORUM_ACTIVATION, majority-floored count max(2f+1, ceil((N+1)/2)) below it), five stake-qualified capabilities, price-oracle rounds, attestation engine (http_get / llm providers), reorg-retraction co-signing, governance/slash, and StateAnchorPublisher (ANCHOR v7 bundle on DOGE)."
+      "description": "Config oracle and cross-chain coordinator. PBFT federation (stake-weighted source-deduped quorum at/above STAKE_WEIGHTED_QUORUM_ACTIVATION, majority-floored count max(2f+1, ceil((N+1)/2)) below it), five stake-qualified capabilities, price-oracle rounds, attestation engine (http_get / llm providers), reorg-retraction co-signing, governance/slash, and StateAnchorPublisher (ANCHOR v0 bundle on DOGE)."
     },
     {
       "id": "hubdb",
@@ -794,7 +794,7 @@
     {
       "id": "f8",
       "name": "State anchoring (ANCHOR on DOGE)",
-      "description": "Quorum-signed per-chain state checkpoints are anchored on Dogecoin as one ANCHOR v7 bundle per network, for chain-parse recoverability.",
+      "description": "Quorum-signed per-chain state checkpoints are anchored on Dogecoin as one ANCHOR v0 bundle per network, for chain-parse recoverability.",
       "steps": [
         {
           "n": 1,
@@ -806,7 +806,7 @@
           "n": 2,
           "node": "hub",
           "edge": "r14",
-          "action": "ONE ANCHOR v7 checkpoint bundle per network per publishing cycle is built and submitted through the DOGE encoder from the elected publisher's own DOGE wallet."
+          "action": "ONE ANCHOR v0 checkpoint bundle per network per publishing cycle is built and submitted through the DOGE encoder from the elected publisher's own DOGE wallet."
         },
         {
           "n": 3,

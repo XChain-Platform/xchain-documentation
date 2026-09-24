@@ -37,6 +37,10 @@
  *      so the flag does not preserve a usable recall, it removes recall
  *      entirely. It was the only lock in the list not phrased as a
  *      prohibition, which is how the consequence went unstated.
+ *   5. The allow and block lists were described as lockable ("unless you
+ *      choose to lock them permanently"). The ISSUE lock set has no list
+ *      entry, format 5 carries no lock field, and the edit rules guard no
+ *      list, so the membership gate stays editable for a token's whole life.
  *
  * WHAT IT CHECKS. Both sides, because either one alone is a half guard:
  *
@@ -218,4 +222,33 @@ test('the LOCK_CALLBACK bullet is phrased as a prohibition, not an assurance', (
     assert.match(lockCallbackBullet, /never|impossible/i,
         'the LOCK_CALLBACK bullet does not tell the issuer that recall becomes impossible, '
         + 'which is the irreversible consequence of setting it');
+});
+
+test('the source facts the no-list-lock wording rests on still hold', { skip: skipNoIndexer }, () => {
+    const issue = readSrc('actions/issue.js');
+    const lockSet = issue.match(/this\.fieldList\['LOCK'\]\s*=\s*\[([^\]]*)\]/);
+
+    assert.ok(lockSet, 'issue.js no longer declares fieldList[\'LOCK\'], so the lock set cannot be read');
+    assert.doesNotMatch(lockSet[1], /LIST/,
+        'the ISSUE lock set now names a list lock. If ALLOW_LIST/BLOCK_LIST can be frozen, the '
+        + 'guide\'s "no lock flag covers the lists" wording is no longer accurate');
+    assert.match(issue, /this\.formats\[5\]\s*=\s*'VERSION\|TICK\|ALLOW_LIST\|BLOCK_LIST\|MEMO'/,
+        'ISSUE format 5 no longer carries only the two lists; re-check whether a list lock was added');
+    assert.doesNotMatch(issue, /'invalid: (ALLOW|BLOCK)_LIST \(locked\)'/,
+        'issue.js now refuses a locked list edit, so the lists can be frozen after all');
+});
+
+test('the guide does not promise a lock on the allow and block lists', () => {
+    const accessSection = section(guide, '## Access Control');
+    for(const [page, text, phrase] of [
+        ['creating-tokens.md', accessSection, 'lock them permanently'],
+        ['use-cases.md', useCases, 'lock the membership rules permanently'],
+    ]){
+        assert.ok(!text.includes(phrase),
+            `user-guide/${page} states "${phrase}". No lock flag covers ALLOW_LIST or BLOCK_LIST: `
+            + 'the ISSUE lock set has no list entry and the edit rules guard no list.');
+    }
+    assert.match(lockSection, /allow and block lists/i,
+        'creating-tokens.md "## Building Trust: Locking Parameters" no longer names the lists '
+        + 'among what the lock flags do not cover, which is where a reader looks for it');
 });

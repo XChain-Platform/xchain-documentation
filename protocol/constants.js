@@ -1083,6 +1083,20 @@ const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
     regtest: 0,
 };
 
+// AMOUNT_REPRESENTABILITY_ACTIVATION: the block-time boundary at/above which an
+// amount must be a plain unsigned decimal numeral whose integer part fits the
+// ledger's DECIMAL(60,18) capacity. Below it the legacy text-shape validator is
+// preserved so replay does not re-grade committed actions.
+//
+// Mainnet is held under the standing write hold. Testnet is also unarmed because
+// it has live history and needs a measured old-vs-on replay witness before this
+// stricter rule can be scheduled. Regtest is genesis-active so replay exercises it.
+const AMOUNT_REPRESENTABILITY_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // DISPENSER_EXPIRY_REALIGN_ACTIVATION (dispenser soft-expire measurement point): the flag-day
 // at/above which the DECODER soft-expires open dispensers AFTER the block's transaction loop
 // instead of before it, putting its measurement point where the INDEXER's already is. Keyed on
@@ -1185,6 +1199,23 @@ const DISPENSER_CANCEL_GRACE_ACTIVATION = {
     regtest: 0,
 };
 
+// DISPENSER_FRESHNESS_SHAPE_ACTIVATION: the processing chain's own height
+// at/above which a non-null get_first_seen result with the wrong shape is fatal
+// instead of degrading to the legacy fail-open null.
+//
+// Each mainnet chain remains operator-owned and must be armed below its existing
+// freshness boundary. The bare mainnet entry keeps unknown coins inert. Testnet
+// is genesis-active because the tracker path is unreachable there, while regtest
+// is genesis-active so the strict path is exercised.
+const DISPENSER_FRESHNESS_SHAPE_ACTIVATION = {
+    'BTC:mainnet':  null,
+    'LTC:mainnet':  null,
+    'DOGE:mainnet': null,
+    mainnet:        null,
+    testnet:        0,
+    regtest:        0,
+};
+
 // BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION (payment-output capture through a BATCH): the
 // flag-day at/above which the DECODER decides which native-coin outputs to persist by looking
 // at a BATCH's SUB-COMMANDS instead of only at the top-level ACTION name. Keyed on BLOCK TIME
@@ -1247,8 +1278,10 @@ const BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION = {
 // at/above which the decoder recognizes Taproot-envelope reveals as
 // action-bearing transactions, per host chain and network. Recognition (and
 // the §3.8 mixed-carrier/multi-envelope rejections, which activate at the same
-// height) is fleet-deterministic: every decoder for a chain+network MUST flip
-// at the same height or the fleet forks on the first envelope. Keyed on each
+// height, except the payload-free carrier case, which waits for
+// ENVELOPE_CARRIER_RECOGNITION_ACTIVATION below) is fleet-deterministic: every
+// decoder for a chain+network MUST flip at the same height or the fleet forks
+// on the first envelope. Keyed on each
 // chain's OWN local block height (like STATE_COMMITMENT_ACTIVATION) because
 // recognition happens while parsing that chain's blocks. DOGE has no segwit,
 // hence no envelope: its entry is null (never active) and must stay null.
@@ -1268,6 +1301,29 @@ const BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION = {
 const ENVELOPE_RECOGNITION_ACTIVATION = {
     BTC:  { mainnet: 960850, testnet: 0, regtest: 0 },
     LTC:  { mainnet: 3153500, testnet: 0, regtest: 0 },
+    DOGE: { mainnet: null, testnet: null, regtest: null },
+};
+
+// ENVELOPE_CARRIER_RECOGNITION_ACTIVATION (spec §3.8): the LOCAL block height
+// at/above which the decoder counts a RECOGNIZED but payload-free carrier as a
+// mixed carrier. Below it, arbitration infers a co-present carrier from the
+// payload bytes it contributes (or a chunk marker), so an XCHN OP_RETURN that
+// deobfuscates to exactly the magic and nothing after it adds zero bytes and
+// the envelope is still accepted as an action. Its own height, separate from
+// ENVELOPE_RECOGNITION_ACTIVATION, because that gate is already armed on BTC
+// and LTC mainnet: changing what §3.8 refuses is a second recognition change
+// that every decoder must flip at the same height, and below it the decoder
+// behaves exactly as shipped, so replay of indexed history is byte-identical.
+// Mainnet is deliberately unpinned (null = never active); pinning it is an
+// operator deploy-train decision. testnet/regtest are genesis-active, and DOGE
+// is null everywhere (no envelope). Once pinned, every decoder on that
+// chain+network MUST run the value before its height or the fleet forks on
+// the first envelope beside a marker-only XCHN OP_RETURN; verify by reading
+// the armed map out of each RUNNING container. Vendored byte-equal into
+// xchain-decoder/src/protocol/constants.js.
+const ENVELOPE_CARRIER_RECOGNITION_ACTIVATION = {
+    BTC:  { mainnet: null, testnet: 0, regtest: 0 },
+    LTC:  { mainnet: null, testnet: 0, regtest: 0 },
     DOGE: { mainnet: null, testnet: null, regtest: null },
 };
 
@@ -1426,6 +1482,27 @@ const PRICE_FEE_BATCH_LANDED_ACTIVATION = {
     regtest: null,
 };
 
+// PRICE_ZERO_VALIDITY_ACTIVATION: the action block-time boundary at/above which
+// PRICE values must lie strictly inside (0, PRICE_MAX), matching the hub's bound.
+// Mainnet remains operator-owned. Public testnet uses a future instant so existing
+// history is not re-graded, and regtest is genesis-active for venue coverage.
+const PRICE_ZERO_VALIDITY_ACTIVATION = {
+    mainnet: null,
+    testnet: 1790812800,
+    regtest: 0,
+};
+
+// PRICE_BATCHING_FLOOR_ACTIVATION: the earliest block time for which price sync
+// barriers apply. A positive floor may only be armed at or below the network's
+// first finalized price round; 0 preserves the existing barrier on every block.
+// Mainnet has no rail start yet, testnet still needs that measured first-round
+// timestamp, and regtest deliberately keeps no pre-batch era for seeded rounds.
+const PRICE_BATCHING_FLOOR_ACTIVATION = {
+    mainnet: 0,
+    testnet: 0,
+    regtest: 0,
+};
+
 // VALID_FIAT_CODES: the accepted FIAT_CODE allow-list for PRICE actions. The indexer's
 // config['FIATS'] keys (xchain-indexer/src/config.js) are the on-chain arbiter; this list
 // mirrors them in the indexer's insertion order. The SDK validator (VALID_FIAT_CODES) must
@@ -1515,9 +1592,16 @@ const TRAIN_ACTIVATION = {
     // the LTC leg of this family two days off its BTC counterpart a day after the first cut.
     // That lead is the rolling-upgrade window the fleet roll must finish inside (24x the 90
     // minute roll budget), and every testnet mirror-admission height sits above it on the same
-    // BTC clock (the BTC producer at 153,222 is 106 blocks and about 17.0 h further up), so a
-    // node lacking this rule set halts before it can grade an admission-stamped row.
-    '0.20.0': { mainnet: 9999999999, testnet: 153116, regtest: 0 },
+    // BTC clock, so a node lacking this rule set halts before it can grade an admission-stamped
+    // row.
+    // RE-SLID 2026-09-23 for the v0.20.1 patch train, after the live tips overran the
+    // 2026-09-19 slide before the freeze: margin is 40 h to the nearest armed height, converted
+    // at each coin's fastest defensible cadence. Chain_tip TBTC 153,698 at 2026-09-23T15:55Z
+    // + 376 blocks, ceil(40 h / 383.04 s per block, the least-squares bound). The
+    // mirror-admission family below re-slides onto the same instant plus its own 17 h and 6 h
+    // offsets. LTC:testnet mirror admission ships disabled on this train and is
+    // untouched by this reslide; it arms on a later train.
+    '0.20.0': { mainnet: 9999999999, testnet: 154074, regtest: 0 },
 };
 
 // STAKE v1 signing-key REUSE flag day, keyed on the processing chain's OWN
@@ -1929,9 +2013,9 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  153222,      // epoch close 153,216 + 6 buried; tip 152,756 + 466 at 498.7 s/blk, about 64.5 h
-    'LTC:testnet':  4891504,     // RE-CUT 2026-09-17 22:45Z onto that instant: tip 4,889,190 + 2314 at 82.5 s/blk
-    'DOGE:testnet': 67911796,    // RE-CUT 2026-09-17 22:45Z onto that instant: tip 67,904,912 + 6884 at 27.7 s/blk
+    'BTC:testnet':  154234,      // RE-SLID 2026-09-23: train 154,074 + 160 blocks (17 h at the 383.04 s/blk bound, 25.6 h at the 575.89 s/blk 84 h trailing mean), the v0.20.1 patch reslide
+    'LTC:testnet':  null,        // disabled for v0.20.1, 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
+    'DOGE:testnet': 67936053,    // RE-SLID 2026-09-23: tip 67,924,397 at 17:48Z + 11656 blocks (83.8 h at 25.89 s/blk, the 84 h trailing mean, the same instant as the BTC producer), the v0.20.1 patch reslide
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -1941,9 +2025,9 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  153266,      // its producer + 44 blocks, about 6 h: strictly above, never equal
-    'LTC:testnet':  4891766,     // its producer + 262 blocks, about 6 h at 82.5 s/blk
-    'DOGE:testnet': 67912575,    // its producer + 779 blocks, about 6 h at 27.7 s/blk
+    'BTC:testnet':  154291,      // RE-SLID 2026-09-23: its producer + 57 blocks (6 h at the 383.04 s/blk bound, 9.1 h at the 575.89 s/blk 84 h trailing mean), strictly above, never equal
+    'LTC:testnet':  null,        // disabled for v0.20.1, 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
+    'DOGE:testnet': 67936888,    // RE-SLID 2026-09-23: its producer + 835 blocks (6 h at 25.89 s/blk, the 84 h trailing mean), strictly above, never equal
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -1990,11 +2074,11 @@ const ANCHOR_ATTEST_ARRIVAL_MARGIN_S = 64800;   // 18 h
 // guarantee, and one map removes that window.
 const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     mainnet: null,        // INERT under the 2026-08-29 mainnet write hold
-    // SIZED 2026-09-16 20:41Z on the BTC clock, the same instant as the family's BTC CONSUMER
-    // height, so the one member that keeps BOTH completeness certificates gains them together
-    // instead of carrying a lone extra rule for 6 h. Above the same roll and the same epoch
-    // close; the measurement, the formula and the re-size rule are with the maps above.
-    testnet: 153266,
+    // SIZED 2026-09-16 20:41Z, RE-SLID 2026-09-19 and 2026-09-23 on the BTC clock, the same
+    // instant as the family's BTC CONSUMER height, so the one member that keeps BOTH
+    // completeness certificates gains them together instead of carrying a lone extra rule for
+    // 6 h. The measurement, the formula and the re-size rule are with the maps above.
+    testnet: 154291,
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
 
@@ -2076,10 +2160,13 @@ module.exports = {
     ATTEST_RESPONSIBLE_WIDENING_V2,
     ORACLE_FEE_OUTPUT_ACTIVATION,
     ORACLE_FEE_SET_CAPTURE_ACTIVATION,
+    AMOUNT_REPRESENTABILITY_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
     DISPENSER_CANCEL_GRACE_ACTIVATION,
+    DISPENSER_FRESHNESS_SHAPE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
     ENVELOPE_RECOGNITION_ACTIVATION,
+    ENVELOPE_CARRIER_RECOGNITION_ACTIVATION,
     COMPRESSION_CODE_DEFLATE_RAW,
     COMPRESSION_MAX_RATIO,
     COMPRESSION_MAX_INPUT_BYTES,
@@ -2088,6 +2175,8 @@ module.exports = {
     PRICE_PAIR_WIDEN_ACTIVATION,
     PRICE_SIG_TALLY_ACTIVATION,
     PRICE_FEE_BATCH_LANDED_ACTIVATION,
+    PRICE_ZERO_VALIDITY_ACTIVATION,
+    PRICE_BATCHING_FLOOR_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
     PRICE_MAX,

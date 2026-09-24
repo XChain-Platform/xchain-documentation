@@ -38,7 +38,7 @@ cd xchain-vm
 npm install
 ```
 
-`isolated-vm` requires native C++ compilation. On Debian/Ubuntu: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev`.
+`isolated-vm` installs from a prebuilt binding on linux x64/arm64 (glibc and musl), darwin-arm64 and win32-x64, so no compiler is needed there. Elsewhere npm falls back to a source build, which needs `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` on Debian/Ubuntu.
 
 ## Quick Start
 

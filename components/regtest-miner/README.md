@@ -5,7 +5,7 @@
 
 ## What is xchain-regtest-miner
 
-xchain-regtest-miner is an auto-mining service for XChain Platform regtest development environments. In regtest mode, Bitcoin-family coin nodes (bitcoind, litecoind, dogecoind) do not mine blocks automatically, developers must mine manually via `generatetoaddress` or script the calls themselves. The regtest miner eliminates this friction by polling the mempool every second and mining blocks automatically whenever transactions are detected.
+xchain-regtest-miner is an auto-mining service for XChain Platform regtest development environments. In regtest mode, Bitcoin-family coin nodes (bitcoind, litecoind, dogecoind) do not mine blocks automatically, developers must mine manually via `generatetoaddress` or script the calls themselves. The regtest miner eliminates this friction by polling the mempool every 100 ms and mining blocks automatically whenever transactions are detected.
 
 The miner uses an adaptive dual-timer system: when the first unconfirmed transaction appears, a 30-second max timer starts; each additional transaction resets a 5-second extension timer. Mining triggers when either timer expires. This batching strategy groups related transactions (such as a P2SH fund transaction and its corresponding spend) into the same block, which is important for correct platform behavior since some XChain encoding formats require both transactions to be confirmed together.
 
@@ -17,12 +17,12 @@ This service is testing infrastructure. It must not be run against mainnet or te
 - **Automatic wallet management**: creates, loads, and funds a regtest wallet on startup; mines 101 bootstrap blocks on a fresh chain for coinbase maturity
 - **JSON-RPC control API**: 9 endpoints for health checks, status reporting, fund transfers, mempool stress testing, mining pause/resume, timer configuration, and block generation
 - **Mempool stress testing**: `fill_mempool` constructs and broadcasts thousands of raw Bitcoin transactions using BIP32/BIP39 key derivation and PSBT signing for load testing
-- **Exponential backoff**: automatic retry with capped exponential backoff (1s to 30s) on RPC connection failures, with counter reset on success
+- **Exponential backoff**: automatic retry with capped exponential backoff (200 ms to 30s) on RPC connection failures, with counter reset on success
 - **Graceful shutdown**: SIGTERM handler allows the current mining loop iteration to complete before exiting
 - **Input validation**: rejects invalid addresses, amounts, timer values, and transaction quantities before any RPC call is made
 - **Error sanitization**: RPC credentials are never exposed in error messages or console output
 - **Concurrent call protection**: `fillMempool` mutex prevents overlapping stress test runs, with automatic `keepMining` flag restoration in a finally block
-- **Docker-ready**: Alpine Node 22 image with non-root user, healthcheck via JSON-RPC ping, and hardened security headers (Helmet, CORS)
+- **Docker-ready**: Alpine Node 22 image with non-root user, healthcheck via JSON-RPC `health` (503 when the miner is stalled), and hardened security headers (Helmet, CORS)
 - **1,007 tests** (measured 2026-07-27): unit, integration, e2e, smoke, boundary, security, fuzz, chaos, performance, mutation, and regression testing
 
 ## Documentation
@@ -66,7 +66,7 @@ On startup, the miner:
 1. Validates all 6 required environment variables
 2. Creates or loads the `xchain_regtest_wallet` wallet
 3. Mines 101 bootstrap blocks if the chain is fresh (coinbase maturity)
-4. Begins the 1-second mempool polling loop
+4. Begins the 100 ms mempool polling loop
 5. Starts the Express JSON-RPC API server
 
 ## Scripts

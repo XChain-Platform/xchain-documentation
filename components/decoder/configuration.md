@@ -32,14 +32,14 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `GETMEMPOOL_CACHE_MS` | How long the `getmempool` JSON-RPC response is cached, in milliseconds. That method reads the database, so without a cache a burst of unauthenticated requests contends with the block loop; the window is read once and sliced per request, and the underlying snapshot only changes every 60 seconds. | `5000` |
 | `FEE_DESTINATION` | Native-coin protocol fee destination override for this coin+network. The decoder persists outputs paying the resolved address to `transaction_outputs` so the indexer can validate native-coin fee payments. By default the address comes from the bundled coin registry (`src/coins`, pinned per coin/network), so capture is on for a stock install. This variable overrides the default on testnet/regtest only; on mainnet it is ignored with a warning, because fee acceptance is consensus and must not depend on operator environment. | _(coin registry)_ |
 | `DB_QUERY_TIMEOUT` | MariaDB query timeout in milliseconds (passed to the connection pool `queryTimeout` option) | `30000` |
-| `SHUTDOWN_TIMEOUT_MS` | Hard-exit budget for the SIGTERM drain, in milliseconds. On `docker stop` the decoder marks itself not-running, lets the parse loop break at its next block boundary, closes the API listener and both database pools, and exits 0; if that has not finished within the budget it exits 1 instead of lingering until docker's SIGKILL. Sized under the 120 s stop budget `xchain-node` gives a decoder. | `100000` |
+| `SHUTDOWN_TIMEOUT_MS` | Hard-exit budget for the SIGTERM drain, in milliseconds. On `docker stop` the decoder marks itself not-running, lets the parse loop break at its next block boundary, closes the API listener and both database pools, and exits 0; if that has not finished within the budget it exits 1 instead of lingering until docker's SIGKILL. `xchain-node` sets it when it creates the container, to the decoder's stop budget less 20 s (`100000` from the default 120 s), unless the module config sets it; see `XCHAIN_NODE_MODULE_STOP_TIMEOUT_SECONDS_<SERVICE>` in the [node configuration](../node/configuration.md). | `100000` |
 | `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for all JSON-RPC calls to the coin node (sets `axios.defaults.timeout` at startup) | `30000` |
 | `NODE_URL_FALLBACK` | Comma-separated list of additional coin-node endpoints. The connector rotates round-robin to the next endpoint after `NODE_FAILOVER_THRESHOLD` consecutive connection-level failures, so a recovered primary is retried again if the fallback also dies. Each fallback reuses `NODE_PORT`. | _(unset, single endpoint)_ |
 | `NODE_FAILOVER_THRESHOLD` | Consecutive connection-level failures before rotating to the next endpoint in `NODE_URL_FALLBACK`. Floored at 1. | `3` |
 | `RPC_TIMEOUT_RETRY_DELAY_MS` | Backoff in milliseconds between timeout (`ECONNABORTED`) retries in the block-path RPC methods. Each attempt has already burned the full RPC timeout before aborting, so an instant re-fire stacks retries onto a node that is timing out because it is overloaded. Set to `0` to disable (tests do). | `500` |
 | `DECODER_RPC_CONCURRENCY` | Maximum concurrent outbound JSON-RPC calls to the coin node. Floored at 1. | `50` |
 | `DECODER_RPC_MAX_BATCH` | Maximum number of calls permitted in one inbound JSON-RPC batch. The router runs `Promise.all` over a batch while the rate limiter counts the batch as a single request, so this bound is what stops one array from fanning out into thousands of concurrent handlers. | `20` |
-| `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; CI and operators running `node src/migrate.js` get the strict path anyway. | _(unset, non-fatal)_ |
+| `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; CI and operators running `node src/db/migrate.js` get the strict path anyway. | _(unset, non-fatal)_ |
 | `COIN` | Cosmetic label only, reported in the `/status` response. The decoder takes its chain identity from the node it is pointed at, so it has no coin setting of its own; the label stays empty unless a deploy sets one. | _(unset, empty label)_ |
 | `DECODER_POLL_SILENT_MS` | How long the block loop may go without completing a single iteration before `/live` reports unhealthy (503) and the container restart policy recycles the process. Measures the loop, not the chain: the stall window `DECODER_STALL_ALERT_MS` (default `900000` ms, documented under Operations) asks whether the chain is advancing, and a caught-up decoder advances nothing for hours while being perfectly healthy, so only an iteration count separates "idle" from "the loop is gone". Defaults to twice the stall window, because every normal path through the loop, the node-outage retry included, returns to the loop top far inside it. | `1800000` (30 minutes) |
 | `XCHAIN_INDEXER_DIR` | Path override for the sibling `xchain-indexer` checkout that `bin/sync-batch-limits.js` reads to regenerate the vendored BATCH limit tables (`src/protocol/indexer_batch_limits.js`) from the indexer's own `src/actions/batch.js` and `src/protocol_changes.js`. A maintenance-tool setting only; the decoder service itself never reads it. | `../../xchain-indexer` relative to `bin/` (the sibling checkout layout) |
@@ -143,7 +143,7 @@ The decoder begins parsing from a preconfigured block height per network to skip
 
 ## Valid ACTION Names
 
-The decoder accepts only these 36 ACTION names after deobfuscation. Transactions with unrecognized action names are logged and skipped:
+The decoder accepts only these 37 ACTION names after deobfuscation. Transactions with unrecognized action names are logged and skipped:
 
 ```
 ADDRESS, AIRDROP, ANCHOR, ATTEST,
@@ -151,8 +151,10 @@ BATCH, BET, BROADCAST, CALLBACK, COINPAY, COLLECT,
 DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER,
 DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT,
 NODEPROOF, ORDER, PRICE, ROLLCALL, SEND, SLASH, SLEEP, STAKE, SWAP,
-SWEEP, UNSTAKE, VOTE, WITHDRAW
+SWEEP, UNSTAKE, VOTE, WITHDRAW, XBRIDGE
 ```
+
+XBRIDGE arrives on the wire only in its user-broadcast versions (0, 1, 3, 4). Its settle versions (2, 5) are mirror-injected by the indexer and refused when broadcast, so they share the one name. XCALL is never wire-decoded and is not on this list.
 
 ---
 

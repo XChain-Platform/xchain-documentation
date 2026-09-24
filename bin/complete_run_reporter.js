@@ -1,8 +1,20 @@
+/*********************************************************************
+ *
+ * Copyright © 2026 Dankest, LLC
+ * Based on XChain Platform by Dankest, LLC - https://dankest.llc
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * This file is part of XChain Platform. Licensed under the GNU Affero
+ * General Public License v3.0 or later; see LICENSE.md.
+ *
+ **********************************************************************
+ *
+ * Refuses a node --test run in which a file's child exited before its event
+ * stream was whole: the runner trusts exit codes alone, so a lost stream tail
+ * otherwise grades green with the tests in it never counted. Node 22.10+.
+ */
 'use strict';
-
-// Refuses a node --test run in which a file's child exited before its event
-// stream was whole: the runner trusts exit codes alone, so a lost stream tail
-// otherwise grades green with the tests in it never counted. Node 22.10+.
 
 const fs = require('node:fs');
 const path = require('node:path');

@@ -59,13 +59,17 @@ marked *(since v1.1.0)* are absent from the v1.0.0 schema.
 
 #### File Entry Fields
 
-Entries inside the `files`, `audio`, `video`, and `images` arrays can carry the following fields:
+Entries inside the `files`, `audio`, `video`, and `images` arrays can carry the following fields.
+A row marked *(images only)* is declared on `images` entries alone; every other row applies to
+all four arrays.
 
 | Field       | Type    | Description
 | :---        | :---    | :---
 | data        | String  | URL to the file (off-chain). Used for non-gated content.
 | data_ref    | String  | *(since v1.1.0)* Reference to an on-chain [`FILE`](./actions/file.md) action by `ACTION_INDEX`: `action:<index>` (same chain as the token) or `action:<COIN>:<index>` (sibling chain: base coin ticker `BTC`/`LTC`/`DOGE`, network tier implied by the token's network, same convention as [`LINK`](./actions/link.md)'s `COIN1`/`COIN2`). Lets cheap chains carry the bytes for tokens on expensive ones: e.g. a BTC token whose artwork FILE lives on DOGE. When both `data` and `data_ref` are present, clients prefer `data_ref`.
 | name        | String  | Filename
+| hash        | String  | (Optional) A sha256 hash of the file. 64 characters max.
+| size        | String  | *(images only)* (Optional) The image's pixel dimensions, such as `48x48`, or `svg` for an SVG image. Read together with `type` to pick a token icon.
 | type        | String  | Entry classification, drawn from the vocabulary of the array the entry sits in, and NOT a MIME type. `images`: display role, one of `icon`, `standard`, `large`, `hires`, paired with `size` so clients can pick a token icon. `audio`: container, one of `m4a`, `mp3`, `wav`. `video`: container, one of `mp4`, `mov`, `wmv`. `files`: free-form category such as `doc`, `pdf`, `xls`, `other`. The schema pins the first three lists as enums and leaves the `files` vocabulary open. The media type of the bytes comes from elsewhere: a `data_ref` entry inherits it from the referenced [`FILE`](./actions/file.md) action's `TYPE`, and a `data` URL from the server's `Content-Type`.
 | title       | String  | *(since v1.1.0)* Display title
 | locked      | Boolean | *(since v1.1.0)* `true` if the file is encrypted and gated. Clients use this to render locked/unlocked states without first fetching the FILE action.

@@ -29,6 +29,7 @@ Errors are JSON objects:
 | `RELAY_DENIED` | 403 | `/relay` refuses private/loopback/metadata destinations (SSRF guard) | No |
 | `UNKNOWN_COIN` | 404 | The `{COIN}` prefix is not served by this explorer | No: check `/{COIN}/api/status` |
 | `NOT_FOUND` | 404 | No row for that lookup | No |
+| `ACTION_NOT_YET_INDEXED` | 404 | The action index lies above what this explorer's indexer has committed so far; the body carries `indexed_through` and the response a `Retry-After` header | Yes: the indexer is catching up; honor `Retry-After` |
 | `CHECKPOINT_NOT_FOUND` | 404 | No quorum-signed checkpoint at that height | Maybe: checkpoints lag the tip |
 | `RATE_LIMITED` | 429 | Per-IP request budget exhausted (default 500/min) | Yes: back off; honor `RateLimit-*` headers |
 | `SERVER_ERROR` | 500 | Unexpected internal failure | Yes: with backoff |
@@ -53,6 +54,7 @@ Errors are JSON objects:
 | `CHECKPOINT_PRE_COMMITMENT` | 409 | The checkpoint predates the state-commitment flag day, so it carries no committed roots to prove against | No: choose a later height |
 | `ACTION_BLOCK_NOT_CHECKPOINTED` | 409 | The action's block is not checkpointed yet, so there is no signed `block_merkle_root` to bind the proof to | Yes: after a checkpoint covers the block |
 | `SNAPSHOT_NOT_YET_CHECKPOINTED` | 409 | No BTC checkpoint exists at the snapshot height yet (validator-set proof) | Yes: after the chain advances |
+| `STAKE_SNAPSHOT_TRUNCATED` | 409 | The indexer marked a capability's stake snapshot at this height truncated (the qualifying validator set overflowed its query cap), so the stake total would be under-counted and no proof is served (validator-set proof) | No: the same height keeps answering this until operators raise the indexer's query cap |
 | `CONTRACT_STATE_NOT_COMMITTED` | 409 | `contract_state_root` is not committed at this height, so absence cannot be proven | No: choose a later height |
 | `ESCROW_LEAF_NOT_COMMITTED` | 409 | The locked-balance leaf is not committed at this height, so absence cannot be proven | No: choose a later height |
 | `STATE_TOO_LARGE` | 413 | Contract simulation: the contract's state exceeds the simulation limits | No |
@@ -63,6 +65,7 @@ Errors are JSON objects:
 | `PROOF_STATE_ROOT_MISMATCH` | 500 | The committed `state_root` does not match this server's local state tree | No: the operator must investigate |
 | `ACTION_LEAF_NOT_FOUND` | 500 | The action row is not present in its block's leaf set (action proof) | No: the operator must investigate |
 | `PROOF_BLOCK_MERKLE_MISMATCH` | 500 | The committed `block_merkle_root` does not match this server's local block tree (action proof) | No: the operator must investigate |
+| `STAKE_SNAPSHOT_MALFORMED` | 500 | A capability's stake snapshot at this height cannot yield a stake total (a validator with a blank or missing source, or a missing, non-numeric or negative weight), so no proof is served (validator-set proof) | No: the operator must investigate |
 | `NO_STATE_TREE` | 501 | This server does not hold the state tree (proof routes need a full indexer database) | No: use another instance |
 | `INDEXER_UNAVAILABLE` | 502 | The indexer API behind a validator-set proof is unreachable | Yes: with backoff |
 | `INDEXER_AUTH_REQUIRED` | 503 | The indexer API behind a validator-set proof requires a key this explorer does not carry | No: operator configuration |
@@ -73,6 +76,9 @@ Errors are JSON objects:
 | `VM_QUERY_DISABLED` | 503 | Contract simulation is disabled on this explorer | No: use another instance |
 | `VM_QUERY_VM_DRIFT` | 503 | Contract simulation is disabled because the deployed VM is not the canonical one | No: operator action |
 | `VM_MODULE_UNAVAILABLE` | 503 | Contract simulation: the VM module is not available on this host | No: use another instance |
+| `INVALID_TICK` | 400 | Bridge panel routes (`GET /{COIN}/api/bridge-invariant/{tick}`, `GET /{COIN}/api/bridge-transfers/{tick}`): the `tick` path segment is empty, longer than 250 characters, or contains a control character | No: fix the request |
+| `BRIDGE_INVARIANT_UNAVAILABLE` | 503 | `GET /{COIN}/api/bridge-invariant/{tick}`: this explorer has no hub endpoint, or the hub's bridge-invariant read failed or returned nothing | Maybe: a failed hub read may be transient; an explorer without a hub endpoint answers this every time |
+| `BRIDGE_TRANSFERS_UNAVAILABLE` | 503 | `GET /{COIN}/api/bridge-transfers/{tick}`: this explorer holds no hub-mirror source for the coin, or the bridge-transfer read failed | Maybe: a failed read may be transient; a coin with no mirror source answers this every time |
 | `INVALID_ADDRESSES` | 400 | Batch address routes (`POST /{COIN}/api/balances`, `POST /{COIN}/api/coinpay_obligations`): the body's `addresses` field is missing, not an array, empty, or holds a non-string entry, and nothing is read. The SDK's client-side pre-flight throws the same code before a request is sent (see [SDK explorer methods](../components/sdk/explorer.md)) | No: fix the request |
 | `TOO_MANY_ADDRESSES` | 400 | Batch address routes: more than 20 addresses in one body, counted before duplicates are collapsed, so a body of repeats is refused rather than quietly served | No: send at most 20 per request |
 | `INVALID_ADDRESS` | 400 | Batch address routes: one entry is not a well-formed address; the offending entry is echoed (truncated) in the `error` text. Unrelated to the SDK library's own `INVALID_ADDRESS` typed error, which is a separate surface (see [SDK errors](../components/sdk/errors.md)) | No |

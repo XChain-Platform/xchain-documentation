@@ -5,8 +5,8 @@
 
 ## Prerequisites
 
-- **Node.js** v22 exactly: `isolated-vm` requires Node 22 to build (Node 24 breaks native compilation; below Node 22 tests silently skip rather than fail, producing false greens)
-- **Native build tools** for `isolated-vm` compilation: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` (Debian/Ubuntu)
+- **Node.js** v22 exactly: `src/consensus_runtime.js` pins the Node ABI to 127, so Node 24 fails `checkConsensusRuntime()` (below Node 22 tests silently skip rather than fail, producing false greens)
+- **Native build tools** only where `isolated-vm` has no prebuilt binding (it ships them for linux x64/arm64 glibc and musl, darwin-arm64 and win32-x64) and npm falls back to a source build: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` (Debian/Ubuntu)
 - The VM is a library dependency of `xchain-indexer`; it is not run as a standalone process
 
 ## Installation
@@ -16,7 +16,7 @@ cd xchain-vm
 npm install
 ```
 
-If `isolated-vm` fails to compile, ensure the native build prerequisites are installed. The module requires C++ compilation against the system's V8 headers.
+`npm install` resolves a prebuilt `isolated-vm` binding for the running Node ABI. If it falls back to a source build and that fails, install the native build prerequisites above.
 
 ## Running Tests
 
@@ -149,12 +149,12 @@ Before a contract is deployed, `vm.validateSyntax(code)` runs the following chec
 1. **V8 syntax check**: compiles the code in a throwaway 8 MB isolate to catch syntax errors (the only step requiring `isolated-vm`)
 2. **Acorn metering pass**: runs `meterCode()` to ensure acorn can parse the source (effective ES2020 ceiling)
 3. **Reserved identifier check**: rejects code containing `__gas`, the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); referencing these could bypass or forge size/depth metering. Under `VM_LINT_HARDENING` this also covers the `CONTRACT_WRAPPER`'s injected control bindings (`__contractCode`, `__methodName`, `__isCrossCall`, `__readManifest`).
-4. **Banned transcendental Math check**: rejects calls to `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` in both dotted (`Math.pow`) and computed-string (`Math['pow']`) forms. These five are IEEE 754 transcendentals whose results differ by up to 1 ULP across CPU architectures, producing divergent state hashes on a heterogeneous validator fleet. Under `VM_LINT_HARDENING` the ban widens to the complement of the deterministic SafeMath whitelist (`floor`, `ceil`, `round`, `abs`, `min`, `max`, `sign`, `trunc`, `PI`, `E`), plus the `**`/`**=` exponentiation operator. Use `xchain.math.*` (mathjs bignumber) instead.
+4. **Banned transcendental Math check**: rejects calls to `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` in dotted (`Math.pow`), computed-string (`Math['pow']`) and global-object-qualified (`globalThis.Math.pow`, `this.Math.pow`; see [Global-object spellings](#global-object-spellings)) forms. These five are IEEE 754 transcendentals whose results differ by up to 1 ULP across CPU architectures, producing divergent state hashes on a heterogeneous validator fleet. Under `VM_LINT_HARDENING` the ban widens to the complement of the deterministic SafeMath whitelist (`floor`, `ceil`, `round`, `abs`, `min`, `max`, `sign`, `trunc`, `PI`, `E`), plus the `**`/`**=` exponentiation operator. Use `xchain.math.*` (mathjs bignumber) instead.
 5. **Banned literal check**: rejects BigInt literals (e.g. `10n`) and RegExp literals (e.g. `/foo/`). BigInt arithmetic is unmetered native computation; catastrophic RegExp backtracking is unmetered and can burn heavy CPU for near-zero gas.
-6. **Banned async check** (consensus-gated): rejects `async` functions, `await` expressions, and `Promise` references after the `VM_BANNED_ASYNC` flag-day. The CONTRACT_WRAPPER invokes exports synchronously; an async export returns a pending Promise whose post-`await` effects depend on isolated-vm's version-dependent microtask-drain timing, which is outside the consensus-runtime pin and can diverge across validators. Under `VM_LINT_HARDENING` this also rejects dynamic `import(...)` (it evaluates to a Promise).
+6. **Banned async check** (consensus-gated): rejects `async` functions, `await` expressions, and `Promise` references (bare or [global-object-qualified](#global-object-spellings)) after the `VM_BANNED_ASYNC` flag-day. The CONTRACT_WRAPPER invokes exports synchronously; an async export returns a pending Promise whose post-`await` effects depend on isolated-vm's version-dependent microtask-drain timing, which is outside the consensus-runtime pin and can diverge across validators. Under `VM_LINT_HARDENING` this also rejects dynamic `import(...)` (it evaluates to a Promise).
 7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): rejects `function*`, generator methods, and any `yield`; live from genesis on testnet/regtest.
 8. **Banned rest-pattern check** (consensus-gated, its own [`REST_PATTERN_METER`](../../protocol/flag-days.md) gate, not the Pkg 3 one): rejects a rest pattern in the four positions the metering transform cannot charge, because it charges a rest destructure by wrapping the source expression and these have none: a rest parameter in a function parameter list, a nested rest inside a destructuring pattern, a catch-clause rest, and a rest in a `for-of`/`for-in` loop head. Live from genesis on testnet/regtest, and on mainnet at/after that gate's block time; the `xchain-lint` CLI and the SDK linter enforce it today by default.
-9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest.
+9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`, bare or [global-object-qualified](#global-object-spellings); live from genesis on testnet/regtest.
 
 ```mermaid
 flowchart TD
@@ -192,13 +192,17 @@ flowchart TD
     S9 -->|"clean"| ACCEPT
 ```
 
-`vm.checkFloatWarnings(code)` additionally scans for non-integer number literals and returns warnings (non-blocking).
+`vm.checkFloatWarnings(code)` additionally scans for non-integer number literals and returns warnings (non-blocking). `lintSource` also returns two advisory warning families that never affect the verdict above: `banned-proto-method` (a call to a prototype method the sandbox neuters, such as `.match()` or `.localeCompare()`, which throws `TypeError` at runtime) and `banned-stripped-global` (a read of a global the sandbox deletes, such as `Date` or `fetch`, which throws `ReferenceError` at runtime); see [Deploy-Time Validation](../../developer-guide/smart-contract-development.md#deploy-time-validation).
+
+### Global-object spellings
+
+Checks 4, 6 and 9 match a banned global read through the global object as well as by its bare name: `globalThis.Math.pow(...)`, `globalThis['Promise']` and `` globalThis[`WebAssembly`] `` are rejected exactly like `Math.pow(...)`, `Promise` and `WebAssembly`. Under the [`LINT_GLOBAL_ALIAS_ACTIVATION`](../../protocol/protocol-activation.md#vm-gates-service-carried) gate (`enforceLintGlobalAlias`), two more spellings count as the global object: sloppy-mode `this` (`this.Math.pow(2, 3)`, `this.Promise`) and the self-reference chain at any depth (`globalThis.globalThis.Math.log(x)`). That gate is armed at genesis on BTC, LTC and DOGE mainnet and on testnet and regtest, so every such spelling is rejected at deploy on every network. The `this` match fails closed: a `this.Promise` inside a method of the contract's own object is rejected too, so give such a property a different name.
 
 ## Troubleshooting
 
 ### isolated-vm won't compile
 
-**Symptoms:** `npm install` fails with C++ compilation errors.
+**Symptoms:** `npm install` fails with C++ compilation errors. This happens only where no prebuilt binding matches the platform, so npm falls back to a source build.
 
 **Fix:** Install native build tools:
 ```bash

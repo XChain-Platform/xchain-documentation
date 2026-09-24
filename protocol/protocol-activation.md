@@ -73,7 +73,7 @@ date in prose, this one included: a flag-day value is the current setting of a c
 repinned before, and prose cannot notice its source moving. Pages name the gate and link there.
 
 [`constants.js`](constants.js) in this repository is the canonical source for the **validator-era
-(Cohort B)** and **state-commitment (Cohort C)** gates below, and for the five **decoder-carried**
+(Cohort B)** and **state-commitment (Cohort C)** gates below, and for the six **decoder-carried**
 gates ([below](#decoder-carried-gates)), which sit outside all three cohorts because they are
 evaluated in the decoder rather than the indexer. Each consuming service carries a
 **byte-identical twin** of the maps it needs, and a cross-repo conformance gate fails CI if a twin
@@ -95,7 +95,7 @@ re-runs an action handler, a deploy validator, or the VM.
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
 | `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([VM gates](#vm-gates-service-carried)) |
 | `xchain-hub` | the nine validator-era gate modules it consumes (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical, retraction signing, attestation relay, price signature tally). The tenth Cohort B gate, attestation admission, is indexer-only |
-| `xchain-decoder` | the five activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` (per-chain local height) |
+| `xchain-decoder` | the six activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` and `ENVELOPE_CARRIER_RECOGNITION_ACTIVATION` (per-chain local height) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
 
 Because the values are byte-identical everywhere, a heterogeneous fleet and any from-genesis replay
@@ -291,12 +291,12 @@ BOTH copies is a flag day under the [notice policy](./upgrade-notice-policy.md).
 
 ## Decoder-carried gates
 
-**Five gates belong to no cohort**, and the difference is worth stating because everything above
-describes the **indexer's** `isEnabled` check. These five are evaluated in the **decoder**, while it
+**Six gates belong to no cohort**, and the difference is worth stating because everything above
+describes the **indexer's** `isEnabled` check. These six are evaluated in the **decoder**, while it
 parses a block, so they decide what the indexer is ever shown: which transactions count as
-action-bearing, and which native-coin outputs are persisted at all. All five are canonical in
+action-bearing, and which native-coin outputs are persisted at all. All six are canonical in
 [`constants.js`](constants.js) and vendored byte-equal into
-`xchain-decoder/src/protocol/constants.js`; four are keyed on block time and one on per-chain local
+`xchain-decoder/src/protocol/constants.js`; four are keyed on block time and two on per-chain local
 height.
 
 | Gate | Keyed on | Thresholds | Straggler | Lives in |
@@ -306,6 +306,7 @@ height.
 | **Dispenser expiry realignment** (`DISPENSER_EXPIRY_REALIGN_ACTIVATION`, soft-expires open dispensers *after* the block's transaction loop, where the indexer's measurement point already is) | block time | mainnet **armed at genesis** (0, ruled 2026-09-09 under the [mainnet genesis arm](#the-mainnet-genesis-arm)); testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
 | **BATCH sub-command output capture** (`BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION`, decides which native-coin outputs to persist from a BATCH's sub-commands instead of only its top-level ACTION name, so a batched COINPAY or Mode B DISPENSER stops spending a coin and settling nothing) | block time | mainnet **armed**, at the same instant the indexer's `BATCH_ISSUANCE_LIMITS` carries; testnet and regtest genesis-active (0) | forks | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
 | **Taproot envelope recognition** (`ENVELOPE_RECOGNITION_ACTIVATION`, and with it every [envelope consensus rule](./taproot-envelope.md): end-indexed witness parsing, annex refusal, input-0 binding, mixed-carrier and multi-envelope rejection) | per-chain **local height** | `BTC:mainnet` 960850, `LTC:mainnet` 3153500 (both crossed 2026-08-03), `DOGE` **null on every network**; testnet and regtest genesis-active (0) | forks | `xchain-decoder/src/XChainDecoder.js`, mirrored in `xchain-encoder/src/build/crypto_networks.js` |
+| **Taproot envelope carrier recognition** (`ENVELOPE_CARRIER_RECOGNITION_ACTIVATION`, makes the [mixed-carrier rule](./taproot-envelope.md#rules-that-decide-whether-an-envelope-is-an-action) count a recognized carrier that contributes no payload, such as an `XCHN` OP_RETURN carrying only the magic; below it such a carrier does not block the envelope) | per-chain **local height** | mainnet **null on every chain** (unpinned; pinning is a deploy-train decision), `DOGE` **null on every network**; BTC and LTC testnet and regtest genesis-active (0) | forks, once pinned | `protocol/constants.js`, vendored into `xchain-decoder/src/protocol/constants.js` |
 
 **Neither armed decoder gate appears by name on [Flag-Day Values](./flag-days.md).** That page is
 generated from the indexer's registry and the activation modules beside it, so a gate declared only
@@ -338,7 +339,7 @@ Three further properties of this gate differ from the cohorts above:
   constant stays in the tree now that both mainnet heights have passed: it is history, not a control.
 
 Within **Cohort A**, the **cross-chain royalty create-side** gate is the one rule that does not share
-the single contract-era timestamp: it is deliberately armed one quarter later (both values are on
+the single contract-era timestamp: it is deliberately armed on its own, later date (both values are on
 [Flag-Day Values](./flag-days.md)), so the deny window between the two dates is the safe interim while the
 fleet upgrades to legs-in-canonical. Its match-canonical partner is a Cohort-B gate (`CROSS_CHAIN_ROYALTY_ACTIVATION`,
 armed months earlier at BTC anchor 961000), preserving the canonical-first ordering. So Cohort A is

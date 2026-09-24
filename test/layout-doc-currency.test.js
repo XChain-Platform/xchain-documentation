@@ -135,7 +135,7 @@ function markdownFiles() {
  * its exemption with it. Empty today, and that is a fact about the repo rather
  * than a shortcut: every digit-form component claim currently counts the
  * documented set. Release-train and library counts are spelled out in words
- * ("nine components", "five component libraries"), which the digit-form regex
+ * ("thirteen components", "five component libraries"), which the digit-form regex
  * below does not reach, and they count release scope rather than the docs set.
  */
 const SCOPED = [];

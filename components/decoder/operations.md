@@ -198,7 +198,7 @@ The decoder ships with a migration system that tracks and applies schema changes
 To apply pending manual migrations:
 
 ```bash
-node src/migrate.js
+node src/db/migrate.js
 # or: npm run migrate
 ```
 
@@ -295,7 +295,9 @@ Two recoveries:
    npm run clear-reorg-halt -- --reason "<why this database is known good>"
    ```
 
-   The clear checks that every rolled-back block above the tip has been re-parsed (cannot be forced; wait for the decoder to catch up) and that the database holds no dispenser rows and never decoded a `DISPENSER` action (so the purge could not have lost anything). A database that has held dispensers is refused unless you pass `--force` after comparing its `dispensers` table against a known-good replica; the clear is then recorded as forced. `--dry-run` reports the verdict without writing and needs no `--reason`, so run it first to see what a clear would do.
+   The clear checks that every rolled-back block above the tip has been re-parsed (cannot be forced) and that the database holds no dispenser rows and never decoded a `DISPENSER` action (so the purge could not have lost anything). A database that has held dispensers is refused unless you pass `--force` after comparing its `dispensers` table against a known-good replica; the clear is then recorded as forced. `--dry-run` reports the verdict without writing and needs no `--reason`, so run it first to see what a clear would do.
+
+   When the re-parse check refuses, `reorg_halt_parked` decides what to do next. A decoder still parsing forward on a dormant marker (`reorg_halt_parked: false`) re-parses the range on its own: wait for it to pass the halt height and run the clear again. A parked decoder (`reorg_halt_parked: true`) parses nothing and never re-parses the range, so the clear cannot pass and recovery 1, a full resync, is the path.
 
    The clear writes a `REORG_HALT_CLEARED` event carrying the reason, the check results and the halt it supersedes. The halt row stays for the audit trail, `health` reports `reorg_halted: false` with `reorg_halt_cleared_at` set on its next probe, and the bootstrap health gate accepts the database again.
 

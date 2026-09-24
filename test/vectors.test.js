@@ -31,6 +31,14 @@ const srb = require('../protocol/reference-impl/consensus/snapshot_reorg_buffer.
 
 const swqVectors = require('../protocol/test-vectors/stake_weighted_quorum.json');
 const eqhVectors = require('../protocol/test-vectors/equivocation_header.json');
+const activationVectors = require('../protocol/test-vectors/activation_predicates.json');
+
+function decodeSnapshotBlock(value) {
+    if (!value || typeof value !== 'object') return value;
+    if (value.special === 'nan') return Number.NaN;
+    if (value.special === 'undefined') return undefined;
+    throw new Error('unknown snapshotBlock vector encoding: ' + JSON.stringify(value));
+}
 
 describe('constants.js <-> reference-impl activation parity (consensus-critical)', () => {
     test('STAKE_WEIGHTED_QUORUM_ACTIVATION matches between constants.js and the reference impl', () => {
@@ -110,14 +118,25 @@ describe('reference-impl/equivocation_header.js (EQUIV_HEADER / WI-2 bump 2)', (
     });
 });
 
-// The two activation predicates have zero vectors today. A vector authored from
-// the implementation under test would only prove the implementation equals
-// itself, so synthesizing one here is deliberately out of scope; these named,
-// skipped placeholders keep the gap visible in every test run instead of letting
-// it disappear silently. See the observability/verification-gate review pass
-// (2026-07-09) that added this harness for the full rationale.
-describe('activation predicates (KNOWN GAP: no normative vectors exist yet)', () => {
-    test('isStakeWeightedQuorumActive: no vectors for the mainnet 960999/961000 boundary, NaN snapshotBlock, or an unknown network', { skip: true }, () => {});
-    test('isEquivHeaderActive: no vectors for the mainnet 960999/961000 boundary, NaN snapshotBlock, or an unknown network', { skip: true }, () => {});
-    test('isSnapshotBurialActive / buriedSnapshotBlock: no vectors for the inert mainnet threshold, the empty-ish height guard, or the clamp to 0', { skip: true }, () => {});
+describe('activation predicates (canonical boundary vectors)', () => {
+    test('isStakeWeightedQuorumActive: mainnet boundary, NaN snapshotBlock, and unknown network', () => {
+        for (const v of activationVectors.isStakeWeightedQuorumActive) {
+            assert.equal(swq.isStakeWeightedQuorumActive(decodeSnapshotBlock(v.snapshotBlock), v.network), v.expected, v.name);
+        }
+    });
+
+    test('isEquivHeaderActive: mainnet boundary, NaN snapshotBlock, and unknown network', () => {
+        for (const v of activationVectors.isEquivHeaderActive) {
+            assert.equal(eqh.isEquivHeaderActive(decodeSnapshotBlock(v.snapshotBlock), v.network), v.expected, v.name);
+        }
+    });
+
+    test('isSnapshotBurialActive / buriedSnapshotBlock: genesis boundary, empty-ish height guard, and clamp to 0', () => {
+        for (const v of activationVectors.snapshotBurial) {
+            const snapshotBlock = decodeSnapshotBlock(v.snapshotBlock);
+            const expectedBuried = decodeSnapshotBlock(v.buriedSnapshotBlock);
+            assert.equal(srb.isSnapshotBurialActive(snapshotBlock, v.network), v.active, v.name + ': activation');
+            assert.deepEqual(srb.buriedSnapshotBlock(snapshotBlock, v.network), expectedBuried, v.name + ': buried height');
+        }
+    });
 });

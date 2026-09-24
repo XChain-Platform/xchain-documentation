@@ -1811,6 +1811,8 @@ GET /BTC/api/proof/validator-set?height={snapshotBlock}[&capabilities=oracle_pub
 | 400 | `STAKES_BTC_ONLY` | Must call on a BTC coin prefix |
 | 409 | `SNAPSHOT_NOT_YET_CHECKPOINTED` | No BTC checkpoint at this height yet |
 | 409 | `CHECKPOINT_PRE_COMMITMENT` | Checkpoint predates state-commitment activation |
+| 409 | `STAKE_SNAPSHOT_TRUNCATED` | The indexer truncated a capability's stake snapshot at its query cap; no proof is served until operators raise the cap |
+| 500 | `STAKE_SNAPSHOT_MALFORMED` | A capability's stake snapshot cannot yield a stake total (blank or missing source, or a bad weight) |
 | 501 | `NO_STATE_TREE` | Server does not hold the state tree |
 | 501 | `INDEXER_NOT_CONFIGURED` | No indexer API URL configured for this coin/network |
 | 502 | `INDEXER_UNAVAILABLE` | Indexer API did not respond |

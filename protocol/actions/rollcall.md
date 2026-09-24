@@ -105,7 +105,7 @@ The close for epoch `E` runs at `C = E + ROLLCALL_ACCEPT_WINDOW_BLOCKS + ROLLCAL
 The membership predicate itself does not change. The stamp is the whole effect: the source leaves through the predicate's existing terms, and the validator set shrinks exactly the way it shrinks for any UNSTAKE.
 
 ## Gates: what a v1 roll teaches the attestation capability set
-For a ROLLED epoch at or above `ROLLCALL_GATES_ACTIVATION`, the close additionally records every verified v1 signer's `GATES` list, keyed by pubkey (19 `<module>.<EXPORT>` keys at this revision, the same shared consensus-gate set the hub and indexer's own rules digest hashes). An unrolled epoch, or a v0-only rolled epoch, records nothing here.
+For a ROLLED epoch at or above `ROLLCALL_GATES_ACTIVATION`, the close additionally records every verified v1 signer's `GATES` list, keyed by pubkey (33 `<module>.<EXPORT>` keys as measured 2026-09-22, the same shared consensus-gate set the hub and indexer's own rules digest hashes; the set grows every time a gate is appended to it, so the count is a dated measurement, not a constant). An unrolled epoch, or a v0-only rolled epoch, records nothing here.
 
 The `attestation` capability set then drops a validator whose most recently recorded list is not a superset of the gates active at the request's own block: a validator that has never rolled a v1, or whose recorded list has fallen behind a gate armed since it last rolled, is still served, since it has simply never proven what it knows; only a validator that positively named a list missing a gate now active is dropped. A pubkey with no recorded list at all is never dropped by this rule, since liveness eviction (above) already owns the never-rolled case.
 

@@ -20,14 +20,14 @@
  * the SDK's own ACTIONS and SESSIONS pages, which claimed the SDK supported 30
  * action types while documenting all 31 of them on the same page.
  *
- * The trap this guard is built around: 36 and 37 are BOTH correct, for
+ * The trap this guard is built around: 37 and 38 are BOTH correct, for
  * different sets, and a sweep that flattens them makes the docs worse.
  *
- *   37  named ACTIONs         every spec in protocol/actions/
- *   36  wire-decoded ACTIONs  the above minus XCALL, which is mirror-injected
+ *   38  named ACTIONs         every spec in protocol/actions/
+ *   37  wire-decoded ACTIONs  the above minus XCALL, which is mirror-injected
  *                             into the destination chain's index rather than
  *                             decoded from a transaction
- *   31  user-submittable      the above minus the five validator/system
+ *   32  user-submittable      the above minus the five validator/system
  *                             actions; equals the SDK's builder methods
  *
  * WHAT IT CHECKS:
@@ -81,11 +81,16 @@ function namedActions() {
  * handlers), which is what the old "51 handler files" tally was counting.
  */
 /*
- * The wire-decoded count (37 minus XCALL) is correct only where the text is
- * genuinely talking about what comes off a transaction. Everywhere else a 35 is
- * a pre-XCALL leftover, which is what it was on four pages in the 07-29 sweep.
- * So this count is allowed only where somebody has said why, rather than being
- * a default. A page that means "every ACTION" should say 37.
+ * The wire-decoded count (named minus XCALL) is correct only where the text is
+ * genuinely talking about what comes off a transaction. Everywhere else it is
+ * usually a leftover from before the newest ACTION, which is what it was on four
+ * pages in the 07-29 sweep. So this count is allowed only where somebody has
+ * said why, rather than being a default. A page that means "every ACTION" should
+ * use the named count.
+ *
+ * Each claim's leading number must equal the derived wire count, so a
+ * registered sentence goes red when a new ACTION moves that count instead of
+ * blessing the old number by exact string.
  *
  * Registered per CLAIM and per occurrence count, not per file. A file-level
  * allowlist would let a NEW bare 35 slip into any page that already had a
@@ -95,19 +100,19 @@ function namedActions() {
  * itself an error, so a claim that gets deleted takes its entry with it.
  */
 const WIRE_SCOPED = [
-  { file: 'components/decoder/configuration.md', claim: '36 ACTION names', count: 1,
+  { file: 'components/decoder/configuration.md', claim: '37 ACTION names', count: 1,
     why: 'the decoder only ever sees the wire-decoded names' },
-  { file: 'concepts/actions.md', claim: '36 ACTION types', count: 1,
+  { file: 'concepts/actions.md', claim: '37 ACTION types', count: 1,
     why: 'defines the wire-decoded set, and says so on the same line' },
-  { file: 'concepts/actions.md', claim: '36 wire-decoded ACTION types', count: 1,
+  { file: 'concepts/actions.md', claim: '37 wire-decoded ACTION types', count: 1,
     why: 'explains XCALL sitting outside that set' },
-  { file: 'getting-started/what-is-xchain.md', claim: '36 ACTION commands', count: 1,
+  { file: 'getting-started/what-is-xchain.md', claim: '37 ACTION commands', count: 1,
     why: 'the page presents the wire-decoded set and documents XCALL separately' },
-  { file: 'getting-started/what-is-xchain.md', claim: '36 ACTIONs', count: 2,
+  { file: 'getting-started/what-is-xchain.md', claim: '37 ACTIONs', count: 2,
     why: 'the section heading, and the five validator/system actions within that set' },
-  { file: 'getting-started/what-is-xchain.md', claim: '36 actions', count: 2,
-    why: 'chain parity, and the 31-of-36 developer-invocable split' },
-  { file: 'getting-started/what-is-xchain.md', claim: '36 wire-decoded ACTIONs', count: 1,
+  { file: 'getting-started/what-is-xchain.md', claim: '37 actions', count: 2,
+    why: 'chain parity, and the 32-of-37 developer-invocable split' },
+  { file: 'getting-started/what-is-xchain.md', claim: '37 wire-decoded ACTIONs', count: 1,
     why: 'names the scope explicitly where XCALL is introduced' },
 ];
 
@@ -121,7 +126,7 @@ const SCOPED = [
     why: 'handler classes in xchain-indexer src/actions/index.js, not the ACTION set; '
        + 'requires, instantiations and dispatch cases all counted 48 on 2026-08-06' },
   { file: 'components/indexer/actions.md', claim: '21 actions', count: 1,
-    why: 'the subset registered at protocol version 1.0.0; 21 + 16 = 37 on the same page' },
+    why: 'the subset registered at protocol version 0.1.0; 21 + 17 = 38 on the same page' },
   { file: 'components/vm/architecture.md', claim: '19 action types', count: 1,
     why: 'emit-API types the VM can construct; verified against gateway-emit.js 2026-07-29' },
   { file: 'components/wallet/ux.md', claim: '5 actions', count: 1,
@@ -137,7 +142,7 @@ const SCOPED = [
 // ORDER of the noun alternatives: they are longest-first, because `ACTIONs?`
 // placed first would match inside "36 ACTION names" and every claim would
 // report as the uninformative "35 ACTION".
-const CLAIM = /\b(\d{1,3}(?:,\d{3})*)\s+(?:standard |named |core |on-chain |protocol |wire-decoded |different |registered )?(?:ACTION commands?|ACTION definitions?|ACTION types?|ACTION names?|action types?|ACTIONs?|actions?)\b/g;
+const CLAIM = /\b(\d{1,3}(?:,\d{3})*)\s+(?:standard |named |core |on-chain |protocol |wire-decoded |different |registered |developer-invocable |user-submittable |user-encodable |supported )?(?:ACTION commands?|ACTION definitions?|ACTION types?|ACTION names?|action types?|ACTIONs?|actions?)\b/g;
 
 function markdownFiles() {
   const out = [];
@@ -166,6 +171,12 @@ test('every ACTION count in the prose refers to a set that exists', () => {
   const wire = named - MIRROR_INJECTED.length;
   const submittable = wire - NOT_USER_SUBMITTABLE.length;
   const allowed = new Set([named, submittable]);
+  // Pin every wire-scoped claim to the derived wire count, never to a typed number.
+  const offCount = WIRE_SCOPED.filter((s) => Number(s.claim.match(/^\d+/)[0]) !== wire)
+    .map((s) => `${s.file}|${s.claim}`);
+  assert.deepStrictEqual(offCount, [],
+    `WIRE_SCOPED claims must carry the wire-decoded count ${wire}; update the prose and the entry:\n`
+    + offCount.join('\n'));
   // Each registered wire-decoded claim is spent as it is matched, so an extra
   // occurrence of an otherwise-legitimate sentence is still caught.
   const budget = new Map([...WIRE_SCOPED, ...SCOPED].map((s) => [`${s.file}|${s.claim}`, s.count]));
