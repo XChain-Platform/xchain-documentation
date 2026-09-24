@@ -10,15 +10,15 @@
  *
  **********************************************************************
  *
- * ANCHOR v3 (archive fold) documentation gate. claude/specs/anchor-v0-archive-fold.md,
- * build row L026-1: the fold's indexer/hub/sdk code is later, separate rows, so this
+ * ANCHOR v3 (archive fold) documentation gate. The fold's indexer, hub, and sdk code
+ * ships separately, so this
  * suite proves the DOCUMENTATION HALF is self-consistent and falsifiable on its own -
  * the two new activation constants, the frozen v3 vector set, and the v3 grammar written
  * into protocol/actions/anchor.md, including the ARCHIVE_COUNT 0-or-1 rule and the
  * explicit WRAPPER_SECTION_INDEX binding. It reference-parses the wire strings itself
  * (mirroring the style of test/vectors.test.js and test/action-example-fields.test.js)
  * rather than only pattern-matching prose, so a broken field order or a wrong 0-or-1
- * bound fails here before any later row's real parser is even written.
+ * bound fails here before the production parser is written.
  *
  ********************************************************************/
 
@@ -64,20 +64,20 @@ describe('ANCHOR_FOLD_ACTIVATION / ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION
         }
     });
 
-    test('this row ships both inert (null) on every network: the fold code has not landed yet', () => {
-        // L026-2 through L026-8 (indexer parse, hub publisher fold, sdk light client) are
-        // separate, later build rows. Arming either height before any of them ship would
+    test('both gates are inert (null) on every network until the fold code lands', () => {
+        // The indexer parse, hub publisher fold, and sdk light client ship separately.
+        // Arming either height before all of them ship would
         // gate a version byte, or a verdict-scope rule, nothing in the fleet can act on.
         for (const net of NETWORKS) {
-            assert.equal(constants.ANCHOR_FOLD_ACTIVATION[net], null, `ANCHOR_FOLD_ACTIVATION.${net} must be null in this row`);
+            assert.equal(constants.ANCHOR_FOLD_ACTIVATION[net], null, `ANCHOR_FOLD_ACTIVATION.${net} must be null`);
             assert.equal(constants.ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION[net], null,
-                `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION.${net} must be null in this row`);
+                `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION.${net} must be null`);
         }
     });
 
     test('the verdict gate is armed only with (never ahead of) the fold gate, per network', () => {
-        // D2's "section-scoped verdict has no folded action to scope before v3 exists"
-        // invariant: where the fold is inert the verdict gate must be inert too, and
+        // A section-scoped verdict has no folded action to scope before v3 exists. Where
+        // the fold is inert the verdict gate must be inert too, and
         // wherever both are armed the verdict height must not precede the fold height.
         for (const net of NETWORKS) {
             const fold = constants.ANCHOR_FOLD_ACTIVATION[net];
@@ -262,7 +262,7 @@ function parseV0(wire) {
     };
 }
 
-/** The v3 reference parser this row's Formats grammar describes: SECTION_COUNT chain
+/** The v3 reference parser the documented Formats grammar describes: SECTION_COUNT chain
  *  sections (v0-shaped), then ARCHIVE_COUNT (0 or 1 only), then the archive fields
  *  bound by WRAPPER_SECTION_INDEX iff ARCHIVE_COUNT is 1, then one publisher tail. */
 function parseV3(wire) {

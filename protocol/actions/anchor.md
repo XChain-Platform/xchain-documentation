@@ -67,10 +67,9 @@ publishing v0 bundles and v1/v2 archive batches exactly as before.
 
 `ANCHOR_FOLD_ACTIVATION` is `null` (never active) on every network today. This document and the
 frozen v3 test vectors ship ahead of the code that produces or parses v3 (the indexer parse, the
-hub's one-round publisher fold, and the sdk light-client support are separate, later build rows),
+hub's one-round publisher fold, and the sdk light-client support ship separately),
 so arming a height now would gate a version byte nothing in the fleet can produce or verify yet.
-The operator arms a concrete height only once the fold ships end to end; see
-`claude/specs/anchor-v0-archive-fold.md` (in the platform monorepo, outside this documentation repo).
+The operator arms a concrete height only once the fold ships end to end.
 
 `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` is the companion gate for the v3 archive
 section's verdict scope (see [Version 3 only](#version-3-only) below): also `null` on every

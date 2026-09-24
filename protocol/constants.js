@@ -582,9 +582,8 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // ALL indexers atomically, like every sibling ANCHOR gate. Keyed on the anchor's OWN DOGE
 // block_index, the ANCHOR_ACTIVATION convention, never on SNAPSHOT_BLOCK.
 //
-// null on every network: this row (claude/specs/anchor-v0-archive-fold.md, L026-1) is
-// documentation and frozen vectors only. The indexer parse, the hub one-round publisher fold
-// and the sdk light-client v3 support are separate, later build rows (L026-2 through L026-8);
+// null on every network: only the documentation and frozen vectors are available today. The
+// indexer parse, hub one-round publisher fold, and sdk light-client v3 support ship separately;
 // arming this height before any of them ship would gate a version byte nothing can produce or
 // parse yet. The operator arms a concrete height only once the fleet carries the fold end to
 // end, per the spec's own deferred-post-launch Goal: "No testnet or mainnet wire change is in
@@ -606,7 +605,7 @@ const ANCHOR_FOLD_ACTIVATION = {
 // (`xchain-indexer/src/consensus/state_hash.js` and its byte-identical twin
 // `xchain-sync/src/consensus/state_hash.js` both gate the class-6 state-hash preimage on the
 // archive-head predicate), so it is its own height rather than riding ANCHOR_FOLD_ACTIVATION's:
-// the fold shape (D1) and the verdict scope (D2) are two separate operator rulings, and nothing
+// the fold shape and verdict scope are activated separately, and nothing
 // about the fold requires the section-scoped verdict to arm the moment the wire does.
 //
 // ARMED ONLY WITH THE FOLD in practice: a section-scoped verdict has no folded action to scope
@@ -616,8 +615,8 @@ const ANCHOR_FOLD_ACTIVATION = {
 // null on every network for the same reason ANCHOR_FOLD_ACTIVATION is null: the verdict-stamp
 // and repair paths it gates (xchain-indexer/src/actions/anchor/reassembly.js,
 // xchain-indexer/src/db/anchors/index.js, xchain-indexer/src/db/attests/batch_chunks.js, and the
-// xchain-sync twin) are later build rows (L026-4, L026-5). Ruled (a) 2026-09-22 (D2);
-// operator-armed once the fold ships. See protocol/actions/anchor.md.
+// xchain-sync twin) ship separately. This gate is operator-armed once the fold ships. See
+// protocol/actions/anchor.md.
 const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
     mainnet: null,
     testnet: null,
