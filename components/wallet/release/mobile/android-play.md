@@ -51,6 +51,12 @@ from outside:
 node tools/release/verify-demo-endpoints.mjs
 ```
 
+For an absent explorer chain, the verifier now reports
+`not configured on this deployment at all` or, when the chain is configured
+but stale, `WITHDRAWN from the served set`. These are different diagnoses, but
+both remain gate failures: a reviewer cannot obtain a visible balance from
+either state.
+
 The failure this catches is a functionality rejection: an edge that answers
 anything non-browser with a 403 leaves a reviewer looking at a wallet that
 cannot load a balance.
