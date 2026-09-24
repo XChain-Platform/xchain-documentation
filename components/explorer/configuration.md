@@ -22,6 +22,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 |---|---|---|---|
 | `EXPLORER_API_PORT_HTTP` | No | `8080` | HTTP server port |
 | `EXPLORER_API_PORT_HTTPS` | No | `8081` | HTTPS server port |
+| `EXPLORER_DEFAULT_THEME` | No | `classic` | Theme served to a visitor who has not picked one: a directory name under `src/content/themes` (`classic`, `skin-demo`). An unknown name falls back to `classic`. |
 | `API_HOST` | No | `127.0.0.1` | Bind address for the API server |
 | `DEBUG` | No | None | Enable debug output when set to any truthy value |
 | `EXPLORER_FORCE_HTTPS` | No | None | Explicitly enable (`1`) or disable (`0`) the HTTPS-hardening headers (HSTS and `upgrade-insecure-requests`). By default they are active only when `NODE_ENV=production`, so plain-HTTP dev/regtest deploys are not broken. Set to `1` when running behind a TLS-terminating proxy without `NODE_ENV=production`. |
