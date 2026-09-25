@@ -123,7 +123,7 @@ documented default so nothing a default-configured node ever executed changes ou
 the boundary. Tightening the value later is a different change and would need a flag day of its
 own. Enforcement detail is on
 [VM Configuration](../components/vm/configuration.md#resource-limits); the constant lives in
-`xchain-vm/src/consensus_wall_clock.js` and the activation beside it in `xchain-vm/src/index.js`.
+`xchain-vm/src/consensus-wall-clock.js` and the activation beside it in `xchain-vm/src/index.js`.
 
 ### Cohort A riders that mint no constant
 

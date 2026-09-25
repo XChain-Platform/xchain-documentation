@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** v22 exactly: `src/consensus_runtime.js` pins the Node ABI to 127, so Node 24 fails `checkConsensusRuntime()` (below Node 22 tests silently skip rather than fail, producing false greens)
+- **Node.js** v22 exactly: `src/consensus-runtime.js` pins the Node ABI to 127, so Node 24 fails `checkConsensusRuntime()` (below Node 22 tests silently skip rather than fail, producing false greens)
 - **Native build tools** only where `isolated-vm` has no prebuilt binding (it ships them for linux x64/arm64 glibc and musl, darwin-arm64 and win32-x64) and npm falls back to a source build: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` (Debian/Ubuntu)
 - The VM is a library dependency of `xchain-indexer`; it is not run as a standalone process
 
