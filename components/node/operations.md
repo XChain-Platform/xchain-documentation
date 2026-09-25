@@ -222,7 +222,7 @@ The `validator` command onboards a node into the XChain federation. `init` and `
 xchain-node validator init --network testnet --p2p-addr <host>:10002 [options]
 ```
 
-Generates three keys and writes the validator configuration under `config/validator/` (git-ignored):
+Generates three keys and writes the validator configuration into the git-ignored `validator/` directory inside the node config directory:
 
 | File | Contents | Mode |
 |---|---|---|
