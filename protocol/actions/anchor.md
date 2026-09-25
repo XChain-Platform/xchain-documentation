@@ -395,6 +395,11 @@ exact bytes):
   "matches": [ { ...full cross_chain_matches row... } ],
   "calls": [ { ...cross_chain_calls relay row... } ],
   "rewards": [ { "validator_pubkey": "...", "source": "1Stake...", "round_number": 900120, "reward_type": "anchor_bundle", "amount": "10.00000000", "block_index": 900120 } ],
+  "bridge_transfers": [ { ...full bridge_transfers row... } ],
+  "policy_snapshots": [ { ...full policy_snapshots row... } ],
+  "state_checkpoints": [ { ...full state_checkpoints row... } ],
+  "price_snapshots": [ { ...full price_snapshots row... } ],
+  "price_tombstones": [ { "round_number": 900120, "coin_pair": "BTC/USD" } ],
   "capability_snapshots": [ { "snapshot_block": 900120, "capability": "cross_chain", "signing_pubkey": "...", "amount": "..." } ]
 }
 ```
@@ -404,14 +409,44 @@ exact bytes):
   `effective_time`, `validator_signatures` (the raw JSON string, verbatim), and `status`
   (`finalized` or `retracted`). Hub-side audit columns (`batch_root`, `anchor_txid`) are
   excluded.
-- `capability_snapshots[]` carries the `cross_chain` snapshot rows for every distinct
-  `snapshot_block` referenced by `matches[]` (to re-verify match signatures) **plus** the
-  `oracle_publish` rows at the wrapper checkpoint's `SNAPSHOT_BLOCK` (to re-verify the v1
-  anchor's own signatures). They are included because historical `min_stake` governance values
-  are not on-chain, archiving the snapshot rows makes signature re-verification
-  self-contained during recovery. Recovery additionally cross-checks archived pubkeys against
-  on-chain BTC stakes (a fabricated snapshot row cannot survive, staking is on-chain), so the
-  chain remains the root of trust.
+- `bridge_transfers[]` is sorted by `transfer_id` ascending.
+  Fixed row key order: `id, transfer_id, snapshot_block, network, src_chain, src_action_index, src_address, dest_chain, dest_address, tick, decimals, amount, effective_time, admit_block_btc, admit_block_ltc, admit_block_doge, finalizing_view, validator_signatures, status`.
+- `policy_snapshots[]` is sorted by `snapshot_id` ascending.
+  Fixed row key order: `id, snapshot_id, snapshot_block, network, origin_chain, tick, policy_seq, origin_block, policy_hash, allow_list, block_list, sleeping, effective_time, admit_block_btc, admit_block_ltc, admit_block_doge, finalizing_view, validator_signatures, status`.
+  A follower and recovery recompute `policy_hash` from `allow_list`, `block_list` and `sleeping`;
+  the recomputed hash, archived hash and signed canonical must agree.
+- `state_checkpoints[]` is sorted by `(chain, network, checkpoint_seq)` ascending.
+  Fixed row key order: `id, chain, network, block_index, block_hash, ledger_hash, actions_hash, contract_hash, checkpoint_seq, snapshot_block, state_root, state_root_version, block_merkle_root, block_merkle_version, validator_signatures`.
+- `price_snapshots[]` is sorted by `(round_number, coin_pair)` ascending.
+  Fixed row key order: `id, round_number, coin_pair, price, reference_block, reference_chain, block_timestamp, validator_count, consensus_round, consensus_proof, status, source_chain, source_action_index, batch_block_time, admit_block_btc, admit_block_ltc, admit_block_doge`.
+  Before co-signing, a hub signature-verifies each group whose `consensus_proof` is a non-empty
+  signature array against the archived `price` capability group at `reference_block`. For an
+  object-form batch proof or an empty proof array, the hub instead requires every row to
+  byte-match a row it holds. Recovery signature-verifies both non-empty signature-array groups
+  and object-form batch proofs; a batch proof is checked over its complete signed round range
+  against the `price` group at its `btc_block_height`. An empty-array `skipped` row has no
+  per-row signatures to verify, so recovery shape-checks it and relies on the archive wrapper
+  quorum. A `disputed` row follows the rule for the proof shape it carries.
+- `price_tombstones[]` is sorted by `(round_number, coin_pair)` ascending.
+  Fixed row key order: `round_number, coin_pair`. A tombstone deletes that key during recovery;
+  a later archive may restore it with a republished round.
+- The five keys above are additive, appear after `rewards` and before `capability_snapshots` in
+  exactly the order shown, and are emitted only when non-empty. Recovery treats any missing key
+  as an empty list, preserving the exact bytes and meaning of archives published before the keys
+  existed.
+- Archived rows exclude `push_generation`, `btc_chain_id`, `created_at`,
+  `state_checkpoints.anchor_txid` and every hub-side archive bookkeeping column. Integer columns
+  are JSON numbers; nullable canonical fields remain either their stored value or `null`.
+- `capability_snapshots[]` carries the complete capability group for every referenced block:
+  `cross_chain` for each match, bridge transfer and policy snapshot `snapshot_block`;
+  `oracle_publish` for each state checkpoint `snapshot_block` and the wrapper checkpoint's
+  `SNAPSHOT_BLOCK`; and `price` for each non-empty signature-array price round's
+  `reference_block` and each object-form batch proof's `btc_block_height`.
+  Completeness is checked before a hub co-signs. The rows are included because historical
+  `min_stake` governance values are not on-chain, so archiving them makes signature
+  re-verification self-contained during recovery. Recovery additionally cross-checks archived
+  pubkeys against on-chain BTC stakes (a fabricated snapshot row cannot survive, staking is
+  on-chain), so the chain remains the root of trust.
 - `rewards[]` carries the **anchor-publish reward rows** (`reward_type` `anchor_bundle` /
   `anchor_archive` only) that have not yet ridden an archive. These are the one
   `validator_rewards` rail a chain parse cannot re-derive (`oracle_round` and `attest_fee`
@@ -427,7 +462,7 @@ exact bytes):
 - All amounts are decimal strings (full precision, as stored).
 - A match **retracted after it was archived** is re-published in a later batch with
   `status:"retracted"`. Recovery applies latest-status-wins ordered by `batch_seq`.
-- `calls` and `rewards` are additive keys, archives published before each existed simply
+- `calls` and `rewards` are also additive keys: archives published before each existed simply
   omit them, and recovery treats a missing key as an empty list.
 
 ## Rules
@@ -732,16 +767,21 @@ which is anti-spam only.
 2. Run `xchain-indexer/bin/recovery.js --skip-stake-verification --i-understand-unverified`:
    reassembles
    chunked batches by `MATCH_BATCH_SEQ`, gunzips, verifies `BATCH_CRC32`, verifies each
-   archived match's/call's `validator_signatures` against the archived
-   `capability_snapshots`, rebuilds `cross_chain_matches` + `cross_chain_calls` +
-   `capability_snapshots` (latest-status-wins), and restores archived `rewards[]` rows into
+   archived row's signatures against the archived `capability_snapshots`, and rebuilds these seven
+   quorum-class hub-mirror tables: `cross_chain_matches`, `cross_chain_calls`,
+   `capability_snapshots`, `bridge_transfers`, `policy_snapshots`, `state_checkpoints`, and
+   `price_snapshots`. Latest-status-wins applies where rows can change, and `price_tombstones[]`
+   removes retracted price keys. Recovery also restores archived `rewards[]` rows into
    the **BTC indexer DB's `validator_rewards`** (seeding the id maps is safe pre-reindex,
    they are append-only get-or-create).
-   A v0 bundle rebuilds one `state_checkpoints` row per section, so a single anchor restores
-   every chain's checkpoint for that cycle.
-3. Reindex BTC/LTC/DOGE from genesis against the recovered tables, cross-chain settlements,
-   XCALL injections, `oracle_round`/`attest_fee` rewards, and historical COLLECT claims all
-   re-derive identically; final `blocks` hash triples must match the anchored checkpoints.
+   Recovery rebuilds `state_checkpoints` from the archive's `state_checkpoints[]`, which carries
+   every archived row rather than only the stride-eligible rows selected for v0 sections. The v0
+   sections themselves remain on chain in `anchor_actions`.
+3. Reindex BTC/LTC/DOGE from genesis against the recovered tables. The reindex derives
+   `bridge_settlements` and `xbridges` from the rebuilt hub-mirror rows rather than recovery
+   writing those derived tables directly. Cross-chain settlements, XCALL injections,
+   `oracle_round`/`attest_fee` rewards, and historical COLLECT claims all re-derive identically;
+   final `blocks` hash triples must match the anchored checkpoints.
 
 ```mermaid
 flowchart TD
