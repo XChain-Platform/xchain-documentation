@@ -222,17 +222,22 @@ pipeline rather than imported.
 
 Read only by `bin/verify-mirror-admission-replay-equivalence.js` (the
 below-the-flag replay witness for the mirror-admission barrier family, which
-replays one decoder corpus with the lever OFF, armed at the boundary height and
-armed at genesis, and compares the consensus hash chain); never by the indexer
-service itself. It takes its database coordinates from `--db-host`, `--db-port`
-and `--db-user` or from the `TEST_DB_*` variables documented for the A7 harness
-above, and it never falls back to `.env`. The password comes from the variable
-NAMED by `--db-pass-env` (for example `MA_DB_PASS`), or from `TEST_DB_PASS` when
-that option is absent, so it never reaches a process list. For each side-process
-the parent sets `INDEXER_COIN`, `INDEXER_NETWORK`, `TEST_DECODER_DB`,
-`TEST_INDEXER_DB` and `XC_MIRROR_ADMISSION_ACTIVATION` (unset, the boundary
-height, or `0`), and the side-process reads the lever back to prove the era it
-actually resolved.
+replays one two-schema corpus with the lever OFF, armed at the boundary height
+and armed at genesis, and compares the consensus hash chain); never by the
+indexer service itself. The corpus consists of the schema named by the required
+`--decoder-db <schema>` option and a hub-mirror schema named by the required
+`--mirror-db <schema>` option. The mirror schema must be on the same database
+server; every replay side copies its hub-mirror rows before processing blocks,
+and the harness refuses a run without it so a decoder-only corpus cannot produce
+a vacuous result. The harness takes its database coordinates from `--db-host`,
+`--db-port` and `--db-user` or from the `TEST_DB_*` variables documented for the
+A7 harness above, and it never falls back to `.env`. The password comes from the
+variable NAMED by `--db-pass-env` (for example `MA_DB_PASS`), or from
+`TEST_DB_PASS` when that option is absent, so it never reaches a process list.
+For each side-process the parent sets `INDEXER_COIN`, `INDEXER_NETWORK`,
+`TEST_DECODER_DB`, `TEST_INDEXER_DB` and
+`XC_MIRROR_ADMISSION_ACTIVATION` (unset, the boundary height, or `0`), and the
+side-process reads the lever back to prove the era it actually resolved.
 
 | Variable | Description | Example |
 |---|---|---|
