@@ -45,7 +45,11 @@ here, is unchanged.
 **At v0.20.0's 2026-09-18 cut, every testnet node had to run it before Bitcoin testnet height
 153116**, the train boundary: a node without this rule set halts at that boundary instead of
 processing a block under the older rules, and below it the new binary runs the old rules, which
-is the rolling-upgrade window. The barrier family armed per chain on testnet in two stages. The
+is the rolling-upgrade window. LTC and DOGE followers have no BTC clock in their pre-apply path.
+If a signed manifest names a rule set they do not implement, they halt before applying the first
+local-chain block they see after learning that manifest; they do not wait for the named Bitcoin
+height. A follower that implements the required rule set remains clear with or without that
+clock. The barrier family armed per chain on testnet in two stages. The
 mirror admission producer (`MIRROR_ADMISSION_ACTIVATION`) armed at BTC 153222, LTC 4891504 and
 DOGE 67911796; the consumer (`MIRROR_ADMISSION_CONSUMER_ACTIVATION`) armed later at BTC 153266,
 LTC 4891766 and DOGE 67912575, so writers publish admission metadata before readers require it.
