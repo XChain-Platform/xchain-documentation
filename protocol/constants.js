@@ -1816,6 +1816,9 @@ const XCHAIN_BRIDGE_ACTIVATION = {
 // network. Regtest is genesis-active.
 const TOKEN_BRIDGE_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1843,6 +1846,9 @@ const TOKEN_BRIDGE_ACTIVATION = {
 // dated instant. Regtest is genesis-active.
 const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1886,6 +1892,9 @@ const LIST_OWNER_ACTIVATION = {
 // of a short or listed name, valid or invalid. Regtest is genesis-active.
 const TICK_NAMESPACE_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
     testnet: 9999999999,
     regtest: 0,
 };
