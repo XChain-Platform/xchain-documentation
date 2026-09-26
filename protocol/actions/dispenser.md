@@ -108,9 +108,13 @@ stateDiagram-v2
     open --> open: valid payment, DISPENSE (not the final one)
     open --> ownership_dispensed: single-shot ownership dispenser's one DISPENSE
     ownership_dispensed --> [*]: ownership transfers atomically to payer
-    open --> cancelling: DISPENSER v1 cancel (by GET_ADDRESS or SOURCE),<br>or 1000-dispense fill limit reached
-    cancelling --> closed: 1-hour close delay elapses<br>(FIAT payments confirming during the window still processed)
-    closed --> [*]: escrow returned to whichever of GET_ADDRESS/SOURCE closed it,<br>or refunded to SOURCE if closed by the fill limit
+    open --> cancelling: DISPENSER v1 cancel (by GET_ADDRESS or SOURCE)
+    cancelling --> cancelled: 1-hour close delay elapses<br>(FIAT payments confirming during the window still processed)
+    cancelled --> [*]: escrow returned to whichever of GET_ADDRESS/SOURCE closed it
+    open --> empty: DISPENSE leaves less than one GIVE_AMOUNT in escrow,<br>closed in the same block (no close delay)
+    empty --> [*]: any remainder refunded to SOURCE
+    open --> max_dispenses_reached: DISPENSE reaches the 1000-dispense fill limit,<br>closed in the same block (no close delay)
+    max_dispenses_reached --> [*]: remaining escrow refunded to SOURCE
     open --> expired: EXPIRATION reached, no canceller
     expired --> [*]: escrow returned to SOURCE
     open --> swept: SWEEP DISPENSERS=1
@@ -289,7 +293,9 @@ On **mainnet** the fee output is recognized from the coordinated [contract-era f
 - If a payment is stuck in the mempool for longer than 24 hours, no matching price snapshot will be found and the dispense will be invalid
 
 ### Dispenser Close Window
-Dispensers have a 1-hour close delay (`DISPENSER_CLOSE_DELAY`). When a dispenser is cancelled or runs out of tokens, it enters a "cancelling" state for 1 hour before fully closing. FIAT dispense payments that confirm during this window are still processed normally; the dispenser honors pending dispenses until the close window elapses.
+Dispensers have a 1-hour close delay (`DISPENSER_CLOSE_DELAY`) when they are cancelled. A cancelled dispenser enters a "cancelling" state for 1 hour before it closes with status `cancelled`. FIAT dispense payments that confirm during this window are still processed normally; the dispenser honors pending dispenses until the close window elapses.
+
+A dispenser that sells out has no close window. The dispense that leaves less than one `GIVE_AMOUNT` in escrow closes it in the same block with status `empty`, and any remainder is refunded to `SOURCE`. The dispense that reaches the 1,000-dispense fill limit closes it the same way with status `max_dispenses_reached`. Refill (Version 2) and cancel (Version 1) both require status `open`, so neither applies to a closed dispenser; to sell again, the original `SOURCE` opens a new dispenser on the same address (origin standing, see Rules).
 
 ---
 
