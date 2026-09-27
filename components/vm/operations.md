@@ -198,6 +198,8 @@ flowchart TD
 
 Checks 4, 6 and 9 match a banned global read through the global object as well as by its bare name: `globalThis.Math.pow(...)`, `globalThis['Promise']` and `` globalThis[`WebAssembly`] `` are rejected exactly like `Math.pow(...)`, `Promise` and `WebAssembly`. Under the [`LINT_GLOBAL_ALIAS_ACTIVATION`](../../protocol/protocol-activation.md#vm-gates-service-carried) gate (`enforceLintGlobalAlias`), two more spellings count as the global object: sloppy-mode `this` (`this.Math.pow(2, 3)`, `this.Promise`) and the self-reference chain at any depth (`globalThis.globalThis.Math.log(x)`). That gate is armed at genesis on BTC, LTC and DOGE mainnet and on testnet and regtest, so every such spelling is rejected at deploy on every network. The `this` match fails closed: a `this.Promise` inside a method of the contract's own object is rejected too, so give such a property a different name.
 
+Under the [`LINT_OPTIONAL_CHAIN_ACTIVATION`](../../protocol/protocol-activation.md#vm-gates-service-carried) gate (`enforceLintOptionalChain`), checks 4, 6 and 9 also see through a parenthesized optional chain, so `(globalThis?.globalThis).Promise`, `(this?.globalThis)?.WebAssembly` and `(globalThis?.Math).pow(2, 3)` are rejected exactly like their plain spellings. Below the gate, those three spellings lint clean as they always have. An unparenthesized `globalThis?.Promise` is already rejected on every network and does not depend on the gate. The gate is unarmed on mainnet and testnet and genesis-active on regtest, so the contract simulator's deploy gate and the execute-time lint read the same network arming and never enforce it early.
+
 ## Troubleshooting
 
 ### isolated-vm won't compile

@@ -25,10 +25,14 @@ same chain or field.
 |---|---|---|
 | `amount_representability_activation` | `AMOUNT_REPRESENTABILITY_ACTIVATION` | time |
 | `anchor_activation` | `ANCHOR_ACTIVATION` | height |
+| `anchor_bundle_order_activation` | `ANCHOR_BUNDLE_ORDER_ACTIVATION` | height |
+| `anchor_fold_activation` | `ANCHOR_FOLD_ACTIVATION` | height |
 | `anchor_reward_activation` | `ANCHOR_REWARD_ACTIVATION` and related anchor/archive reward gates | height |
 | `archive_batch_author_activation` | `ARCHIVE_BATCH_AUTHOR_ACTIVATION` | height |
 | `archive_head_unverified_gate_activation` | `ARCHIVE_HEAD_UNVERIFIED_GATE_ACTIVATION` | height |
+| `archive_match_count_activation` | `ARCHIVE_MATCH_COUNT_ACTIVATION` | height |
 | `archive_rollback_author_scope_activation` | `ARCHIVE_ROLLBACK_AUTHOR_SCOPE_ACTIVATION` | height |
+| `archive_section_verdict_activation` | `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` | height |
 | `attest_admission_activation` | `ATTEST_ADMISSION_ACTIVATION` | height |
 | `attest_broadcast_fee_activation` | `ATTEST_BROADCAST_FEE_ACTIVATION` | height |
 | `attest_relay_activation` | `ATTEST_RELAY_ACTIVATION` | height |
@@ -37,6 +41,7 @@ same chain or field.
 | `attest_response_mirror_activation` | `ATTEST_RESPONSE_MIRROR_ACTIVATION` | height |
 | `attest_responsible_widening_activation` | `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` | height |
 | `attest_zero_conf_activation` | `ATTEST_ZERO_CONF_ACTIVATION` | height |
+| `bridge_policy_detach_activation` | `BRIDGE_POLICY_DETACH` | height |
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
 | `consolidation_leg_amount_activation` | `CONSOLIDATION_LEG_AMOUNT_ACTIVATION` | time |
@@ -94,6 +99,7 @@ same chain or field.
 | `vm_deploy_lint_pkg3_activation` | `VM_DEPLOY_LINT_PKG3_ACTIVATION` | height |
 | `vm_exec_lint_activation` | `VM_EXEC_LINT_ACTIVATION` | height |
 | `vm_lint_global_alias_activation` | `VM_LINT_GLOBAL_ALIAS_ACTIVATION` | height |
+| `vm_lint_optional_chain_activation` | `VM_LINT_OPTIONAL_CHAIN_ACTIVATION` | height |
 | `xchain_bridge_activation` | `XCHAIN_BRIDGE_ACTIVATION` | height |
 
 ## Maintenance rule
