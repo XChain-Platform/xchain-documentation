@@ -540,8 +540,13 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
   every indexer DERIVES the reward from these bytes instead.
 
 ### Version 1 only
-- `MATCH_COUNT` must equal `matches.length` after decompression (when `TOTAL_CHUNKS` = 1;
-  otherwise checked at reassembly).
+- From `ARCHIVE_MATCH_COUNT_ACTIVATION`, evaluated against the v1 head's DOGE block height,
+  `MATCH_COUNT` must equal the decompressed archive's `matches.length`; see
+  [Flag-Day Values](../flag-days.md). For a single-chunk head the comparison runs immediately
+  after the CRC check, and a mismatch is `invalid: MATCH_COUNT (archive mismatch)`. For a
+  multi-chunk archive the comparison runs after successful reassembly, and a mismatch marks the
+  reassembled batch `invalid_archive`. Below the gate, historical heads retain the earlier
+  CRC-only archive check.
 - `BATCH_CRC32` must match the CRC32 of the uncompressed JSON (checked at reassembly when
   chunked).
 - `MATCH_BATCH_SEQ` must be ≥ any previously accepted batch seq for the network.
