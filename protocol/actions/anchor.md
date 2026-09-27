@@ -65,15 +65,16 @@ above it, versions 0, 1 and 2 are still valid: the fold adds a wire, it does not
 unfolded ones, so a publisher mid-rollout (or a network that never arms the fold) keeps
 publishing v0 bundles and v1/v2 archive batches exactly as before.
 
-`ANCHOR_FOLD_ACTIVATION` is `null` (never active) on every network today. This document and the
-frozen v3 test vectors ship ahead of the code that produces or parses v3 (the indexer parse, the
-hub's one-round publisher fold, and the sdk light-client support ship separately),
-so arming a height now would gate a version byte nothing in the fleet can produce or verify yet.
-The operator arms a concrete height only once the fold ships end to end.
+`ANCHOR_FOLD_ACTIVATION` uses the house UNARMED sentinel on mainnet and testnet: it is ruled and
+unscheduled, and stays inert until the year 2286. Its regtest entry is `null` by default.
+`XC_ANCHOR_FOLD_REGTEST_ACTIVATION` can arm that entry at DOGE height zero or a selected height
+for a private venue without scheduling either public network.
 
 `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` is the companion gate for the v3 archive
-section's verdict scope (see [Version 3 only](#version-3-only) below): also `null` on every
-network today, and armed only together with the fold, never ahead of it.
+section's verdict scope (see [Version 3 only](#version-3-only) below). It uses the same UNARMED
+sentinel on mainnet and testnet and is `null` on regtest by default. The same
+`XC_ANCHOR_FOLD_REGTEST_ACTIVATION` setting arms both regtest gates at the same height, because
+the section-scoped verdict is armed only with the fold.
 
 A network with pre-restart history must **not** pin 0. The retired wires reused the same version
 bytes under different meanings, so with the gate disabled they fall through to the table above and

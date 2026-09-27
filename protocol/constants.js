@@ -590,18 +590,11 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // ALL indexers atomically, like every sibling ANCHOR gate. Keyed on the anchor's OWN DOGE
 // block_index, the ANCHOR_ACTIVATION convention, never on SNAPSHOT_BLOCK.
 //
-// null on every network: only the documentation and frozen vectors are available today. The
-// indexer parse, hub one-round publisher fold, and sdk light-client v3 support ship separately;
-// arming this height before any of them ship would gate a version byte nothing can produce or
-// parse yet. The operator arms a concrete height only once the fleet carries the fold end to
-// end, per the spec's own deferred-post-launch Goal: "No testnet or mainnet wire change is in
-// scope here; the flag day that arms ANCHOR_FOLD_ACTIVATION on a live federation is a separate,
-// later, operator-armed item." Regtest stays null rather than the usual genesis-0, for the same
-// reason: a fresh regtest stack that armed the fold today would mine a version byte no local
-// indexer build can parse.
+// Mainnet and testnet use the house UNARMED sentinel: ruled and unscheduled, inert until 2286.
+// Regtest stays null unless XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms both fold gates together.
 const ANCHOR_FOLD_ACTIVATION = {
-    mainnet: null,
-    testnet: null,
+    mainnet: 9999999999,
+    testnet: 9999999999,
     regtest: null,
 };
 
@@ -612,22 +605,16 @@ const ANCHOR_FOLD_ACTIVATION = {
 // light clients already consumed. This moves a consensus-hashed preimage
 // (`xchain-indexer/src/consensus/state_hash.js` and its byte-identical twin
 // `xchain-sync/src/consensus/state_hash.js` both gate the class-6 state-hash preimage on the
-// archive-head predicate), so it is its own height rather than riding ANCHOR_FOLD_ACTIVATION's:
-// the fold shape and verdict scope are activated separately, and nothing
-// about the fold requires the section-scoped verdict to arm the moment the wire does.
+// archive-head predicate), so it remains an explicit map even though it arms with the fold.
 //
 // ARMED ONLY WITH THE FOLD in practice: a section-scoped verdict has no folded action to scope
-// before v3 exists, so on every network this value must equal ANCHOR_FOLD_ACTIVATION's where
-// that one is null, and be >= ANCHOR_FOLD_ACTIVATION's where it is a height.
+// before v3 exists, so its value must equal ANCHOR_FOLD_ACTIVATION on every network.
 //
-// null on every network for the same reason ANCHOR_FOLD_ACTIVATION is null: the verdict-stamp
-// and repair paths it gates (xchain-indexer/src/actions/anchor/reassembly.js,
-// xchain-indexer/src/db/anchors/index.js, xchain-indexer/src/db/attests/batch_chunks.js, and the
-// xchain-sync twin) ship separately. This gate is operator-armed once the fold ships. See
-// protocol/actions/anchor.md.
+// Mainnet and testnet use the house UNARMED sentinel: ruled and unscheduled, inert until 2286.
+// XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms this regtest entry with the fold, never ahead of it.
 const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
-    mainnet: null,
-    testnet: null,
+    mainnet: 9999999999,
+    testnet: 9999999999,
     regtest: null,
 };
 
