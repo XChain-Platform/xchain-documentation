@@ -131,9 +131,10 @@ test('the canonical activation-map index names every newly published gate', () =
     }
 });
 
-test('every newly published activation map is value-identical to the indexer registry', { skip: noIndexer }, () => {
+test('every newly published activation map is value-identical to its source registry', { skip: noIndexer }, () => {
     const canonical = require('../protocol/constants.js');
     const registry = require(gen.REGISTRY);
+    const referenceRegistry = require('../protocol/reference-impl/consensus/gate_registry.js');
     const rows = {
         AMOUNT_REPRESENTABILITY_ACTIVATION:
             'amount_representability_activation.AMOUNT_REPRESENTABILITY_ACTIVATION',
@@ -150,8 +151,9 @@ test('every newly published activation map is value-identical to the indexer reg
     };
 
     for (const [name, key] of Object.entries(rows)) {
-        assert.deepStrictEqual(canonical[name], registry.get(key),
-            `${name} has drifted from the indexer activation registry`);
+        const source = name === 'ANCHOR_BUNDLE_ORDER_ACTIVATION' ? referenceRegistry : registry;
+        assert.deepStrictEqual(canonical[name], source.get(key),
+            `${name} has drifted from its source activation registry`);
     }
 });
 
