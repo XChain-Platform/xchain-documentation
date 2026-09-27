@@ -324,18 +324,21 @@ next to the query it gates.
 
 ## VM gates (service-carried)
 
-Two further height-keyed consensus gates live in `xchain-vm` with a byte-identical indexer twin.
-Both are active from genesis on every network: mainnet was armed at 0 on 2026-09-09 under the
+Three further height-keyed consensus gates live in `xchain-vm` with a byte-identical indexer twin.
+The execute-time lint and global-alias gates are active from genesis on every network: mainnet was
+armed at 0 on 2026-09-09 under the
 [mainnet genesis arm](#the-mainnet-genesis-arm) (no contract has ever been deployed or executed on
 mainnet, so there is no verdict to reinterpret), and testnet and regtest have run both from genesis
-since they were built. They are listed here rather than in the armed table above because they are
-registered in the VM rather than in the indexer's registry; a future change to either height in
+since they were built. The optional-chain gate is the exception and is not yet armed on mainnet or
+testnet. They are listed here rather than in the armed table above because they are
+registered in the VM rather than in the indexer's registry; a future change to any height in
 BOTH copies is a flag day under the [notice policy](./upgrade-notice-policy.md).
 
 | Gate | Keyed on | Mainnet | Straggler | Lives in |
 |---|---|---|---|---|
 | **Execute-time source lint** (`EXEC_LINT_ACTIVATION`, re-runs the deploy syntax validation against a contract's stored source at execute time and fails the execution deterministically when that source no longer passes the bans active for the block; the check is metered as gas, so it moves `gasUsed`) | per-chain local height | **armed at genesis** (0 for BTC, LTC and DOGE, ruled 2026-09-09); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`EXEC_LINT_ACTIVATION`, resolver `isExecLintActive`); twin registry row `vm_exec_lint_activation.VM_EXEC_LINT_ACTIVATION` in `xchain-indexer/src/protocol_changes/gates_3.js`, pinned to byte equality by the consensus-params suites in both repos. A height armed on one side only forks the fleet |
 | **Deploy-lint global-alias refinement** (`LINT_GLOBAL_ALIAS_ACTIVATION`, makes the banned-global deploy rules resolve sloppy-mode `this` and the `globalThis` self-reference chain as reads of the same global object, which moves DEPLOY verdicts on error-severity `CONSENSUS_RULES`) | per-chain local height | **armed at genesis** (0 for BTC, LTC and DOGE, ruled 2026-09-09); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`LINT_GLOBAL_ALIAS_ACTIVATION`, resolver `isLintGlobalAliasActive`); twin registry row `vm_lint_global_alias_activation.VM_LINT_GLOBAL_ALIAS_ACTIVATION` in `xchain-indexer/src/protocol_changes/gates_3.js`, pinned the same way |
+| **Deploy-lint optional-chain look-through** (`LINT_OPTIONAL_CHAIN_ACTIVATION`, makes the banned-global and Math-object deploy rules look through a parenthesized optional chain such as `(globalThis?.globalThis).Promise` or `(globalThis?.Math).pow(2, 3)`, which moves DEPLOY verdicts on error-severity `CONSENSUS_RULES`) | per-chain local height | **unarmed** on BTC, LTC and DOGE mainnet by ruling; unarmed on testnet until the operator arms measured heights; regtest genesis-active | forks | `xchain-vm/src/index/lint_optional_chain_heights.js` (`LINT_OPTIONAL_CHAIN_ACTIVATION`, resolver `isLintOptionalChainActive`); twin registry row `vm_lint_optional_chain_heights.VM_LINT_OPTIONAL_CHAIN_ACTIVATION` in `xchain-indexer/src/protocol_changes/gates_4.js`, pinned to its VM twin by the indexer's consensus suites |
 
 ## Decoder-carried gates
 
