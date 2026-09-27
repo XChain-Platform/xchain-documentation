@@ -20,6 +20,7 @@ function assertAnchorBundleOrderRule(markdown) {
     const rules = versionZero(markdown);
     assert.match(rules, /`ANCHOR_BUNDLE_ORDER_ACTIVATION`/);
     assert.match(rules, /\[Flag-Day Values\]\(\.\.\/flag-days\.md#canonical-activation-maps\)/);
+    assert.doesNotMatch(rules, /\b(?:20\d{2}-\d{2}-\d{2}|1\d{9})\b/);
     assert.match(rules, /ANCHOR's own DOGE block height/);
     assert.match(rules, /sections MUST be `CHAIN`-ascending/);
     assert.match(rules, /pairs MUST be\s+`PUBKEY`-ascending/);
@@ -44,5 +45,11 @@ test('the page guard fails when any required rule marker is removed', () => {
         'SECTION i PUBKEY (not ascending) at index k',
     ]) {
         assert.throws(() => assertAnchorBundleOrderRule(PAGE.replace(marker, 'removed')));
+    }
+});
+
+test('the page guard fails when the rule quotes a flag-day instant', () => {
+    for (const instant of ['2099-01-01', '1999999999']) {
+        assert.throws(() => assertAnchorBundleOrderRule(PAGE.replace('Below the gate', `${instant} Below the gate`)));
     }
 });
