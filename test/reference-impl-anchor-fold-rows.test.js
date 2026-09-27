@@ -11,8 +11,8 @@
  **********************************************************************
  *
  * Pin the anchor fold's two registry rows as one SHARED-block unit. The
- * pair check rejects a partial copy immediately, while the guarded cases
- * become strict value, arming and activity pins once both rows arrive.
+ * pair check rejects a partial copy immediately, while the remaining cases
+ * pin their values, arming behavior and public-network activity.
  *
  * Run: node --test test/reference-impl-anchor-fold-rows.test.js   (Node 22)
  */
@@ -51,12 +51,7 @@ describe('reference registry anchor fold rows', () => {
         );
     });
 
-    test('keeps both activation maps inert by default', (t) => {
-        // Wait for this repo's SHARED-block twin to carry the pair.
-        if (present.length !== 2) {
-            t.skip('the anchor fold registry rows are not present yet');
-            return;
-        }
+    test('keeps both activation maps inert by default', () => {
         withEnv(undefined, () => {
             for (const key of KEYS) {
                 assert.deepEqual(registry.get(key), {
@@ -68,23 +63,13 @@ describe('reference registry anchor fold rows', () => {
         });
     });
 
-    test('arms both regtest entries from the shared venue variable', (t) => {
-        // Wait for this repo's SHARED-block twin to carry the pair.
-        if (present.length !== 2) {
-            t.skip('the anchor fold registry rows are not present yet');
-            return;
-        }
+    test('arms both regtest entries from the shared venue variable', () => {
         withEnv('armed', () => {
             for (const key of KEYS) assert.equal(registry.get(key).regtest, 0);
         });
     });
 
-    test('stays inactive below the sentinel on public networks', (t) => {
-        // Wait for this repo's SHARED-block twin to carry the pair.
-        if (present.length !== 2) {
-            t.skip('the anchor fold registry rows are not present yet');
-            return;
-        }
+    test('stays inactive below the sentinel on public networks', () => {
         withEnv(undefined, () => {
             for (const key of KEYS) {
                 assert.equal(registry.activeAt(key, 'mainnet', null, 99999999, null), false);
