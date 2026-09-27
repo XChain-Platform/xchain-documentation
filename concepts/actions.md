@@ -133,7 +133,7 @@ This section contains 2 entries: `PRICE` (user-submittable) and `ATTEST` (includ
 | `DEPLOY` | Deploy a JavaScript smart contract. The code is validated, a derived address (`C:<CHAIN>:<action_index>`) is created, and an optional constructor runs. v1 adds optional `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` fields that declare the contract as stakeable. |
 | `EXECUTE` | Call a method on a deployed contract. The contract runs in a sandboxed V8 isolate and can emit platform ACTIONs (SEND, MINT, ATTEST, etc.) that are processed through the normal handlers. |
 | `DEPOSIT` | Transfer tokens from the sender to a contract's derived address. Credits the contract in the standard ledger. |
-| `WITHDRAW` | Return tokens from a contract's derived address to the contract owner. Owner-only. |
+| `WITHDRAW` | Return tokens from a contract's derived address to the contract owner. Owner-only, and only for a contract that opted in (`meta.ownerWithdraw: true`) or predates the `OWNER_WITHDRAW_OPT_IN` flag day. |
 
 ### Governance
 
