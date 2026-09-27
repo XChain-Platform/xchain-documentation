@@ -98,7 +98,8 @@ module.exports = {
     meta: {
         name:        'Owner Vault',
         description: 'Tracks a running deposit total and lets the deploying owner withdraw tokens.',
-        version:     '1.0.0'
+        version:     '1.0.0',
+        ownerWithdraw: true   // opts this contract in to the platform WITHDRAW action for its owner
     },
     initialize: function(xchain) {
         xchain.state.set('owner', xchain.getSourceAddress());
@@ -127,6 +128,12 @@ module.exports = {
     }
 };
 ```
+
+### Choosing whether to opt into owner WITHDRAW
+
+The platform's `WITHDRAW` action lets a contract's owner pull tokens straight out of the contract's derived address, with no contract code involved: it is a ledger move, not a call. From the `OWNER_WITHDRAW_OPT_IN` flag day (see [Flag-Day Values](../protocol/flag-days.md)), that path is closed by default and only opens when the contract's own `meta` declares `ownerWithdraw: true` (see [DEPLOY](../protocol/actions/deploy.md#contract-identity-manifest-meta-required-at-the-flag-day)).
+
+Set `ownerWithdraw: true` for a contract the deployer is meant to be able to sweep, such as a personal vault, a faucet, or anything else whose custody is understood to be the owner's own funds. **Leave it unset for anything holding other people's tokens** (pools, escrows, vaults with multiple depositors, sales, staking contracts): those contracts should return tokens only through their own logic (an `emitted` `SEND` a method decides to make), never through an owner-side ledger pull that bypasses that logic entirely.
 
 ### Constructor
 
