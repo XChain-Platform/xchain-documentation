@@ -33,7 +33,9 @@ Withdraw 250 of the token with TICK_ID 99 from contract 12345
 - The contract identified by `CONTRACT_ACTION_INDEX` must exist
 - Only the contract owner (the address that broadcast the original `DEPLOY` action) may withdraw
 - The contract's derived address (`C:<CHAIN>:<CONTRACT_ACTION_INDEX>`) must hold a sufficient balance of `TICK` to cover `QUANTITY`
-- No gas fee is charged; the on-chain transaction cost is sufficient
+- From the [`CONTROLLER_CUSTODY_GUARD` flag day](../flag-days.md), a withdrawal runs the token's `transfer` or `all` controller guard and then the withdrawer's own address controller guard. The guarded move is from the contract custody address `C:<CHAIN>:<index>` to the withdrawer (`SOURCE`), where `<index>` is `CONTRACT_ACTION_INDEX`. This applies to balances deposited before the flag day, and a denial leaves the balance in custody. See the [controller guard model](../controller-bound-tokens.md).
+- The metered guard gas for both runs is paid by `SOURCE` in `GAS` and burned. The action fails with `insufficient funds (guard gas)` when `SOURCE` cannot cover the reservation.
+- An unbound token moved by an unbound address runs neither guard and pays no guard gas.
 - `QUANTITY` must be a positive value with valid decimal format for the token
 
 ## Notes
