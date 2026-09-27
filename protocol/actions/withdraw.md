@@ -32,6 +32,7 @@ Withdraw 250 of the token with TICK_ID 99 from contract 12345
 - Available on all chains
 - The contract identified by `CONTRACT_ACTION_INDEX` must exist
 - Only the contract owner (the address that broadcast the original `DEPLOY` action) may withdraw
+- From the [`OWNER_WITHDRAW_OPT_IN` flag day](../flag-days.md), judged after the owner check: for a contract whose `DEPLOY` lands at or after the activation, WITHDRAW is valid only when the contract's exported meta declares `ownerWithdraw: true`; anything else (the key absent, `false`, or any non-`true` value) fails with `invalid: CONTRACT_ACTION_INDEX (owner withdraw not enabled)`. A contract deployed before the activation keeps the pre-flag-day behavior: the owner may withdraw regardless of meta. See [contract identity manifest](deploy.md#contract-identity-manifest-meta-required-at-the-flag-day).
 - The contract's derived address (`C:<CHAIN>:<CONTRACT_ACTION_INDEX>`) must hold a sufficient balance of `TICK` to cover `QUANTITY`
 - From the [`CONTROLLER_CUSTODY_GUARD` flag day](../flag-days.md), a withdrawal runs the token's `transfer` or `all` controller guard and then the withdrawer's own address controller guard. The guarded move is from the contract custody address `C:<CHAIN>:<index>` to the withdrawer (`SOURCE`), where `<index>` is `CONTRACT_ACTION_INDEX`. This applies to balances deposited before the flag day, and a denial leaves the balance in custody. See the [controller guard model](../controller-bound-tokens.md).
 - The metered guard gas for both runs is paid by `SOURCE` in `GAS` and burned. The action fails with `insufficient funds (guard gas)` when `SOURCE` cannot cover the reservation.
@@ -44,7 +45,7 @@ Withdraw 250 of the token with TICK_ID 99 from contract 12345
 - Use `DEPOSIT` to add tokens to a contract's derived address
 - Use `^` (caret) as a prefix when passing `TICK_ID` for the `TICK` field (e.g. `^1234` = `TICK_ID` 1234)
 - Contracts may also return tokens to users via emitted SEND actions triggered by `EXECUTE`; `WITHDRAW` is specifically for owner-initiated withdrawals
-- WITHDRAW does not require the contract to be active, owners can recover tokens from disabled contracts
+- WITHDRAW does not require the contract to be active; a disabled contract's owner can still recover tokens this way, but only when the contract is opted in (`meta.ownerWithdraw: true`) or was deployed before the `OWNER_WITHDRAW_OPT_IN` activation. A disabled contract that never opted in has no owner-side recovery path; its tokens leave only through the contract's own emitted SENDs, if its code still triggers any while disabled.
 
 ---
 

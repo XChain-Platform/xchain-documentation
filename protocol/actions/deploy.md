@@ -156,6 +156,7 @@ module.exports = contract;
 
 - The indexer reads `meta` on the same deterministic module instantiation that reads the permissions manifest: no method runs, and the value is read once, at deploy, under the deploy's own block context. The evaluated value is what is stored and shown.
 - Unknown keys inside `meta` are **allowed and ignored** by consensus. They are stored verbatim alongside the named fields, so a display field can be added later without another flag day. `author` and `url` are not named fields today; put them in `meta` and they ride along.
+- `ownerWithdraw` is the one `meta` key consensus reads back, rather than only storing and displaying: from the [`OWNER_WITHDRAW_OPT_IN` flag day](../flag-days.md), a `WITHDRAW` against a contract deployed at or after that activation is valid only when the stored `meta_json` carries `ownerWithdraw` as exactly the boolean `true`. The key absent (the default), `false`, a truthy non-boolean such as `'true'` or `1`, and a `meta_json` that is null or failed to parse all mean the same thing: no owner withdrawal. See [WITHDRAW](withdraw.md#rules).
 - The name is a **label, not an identity**. Names are not unique and never will be: the derived address stays the identity, and every surface that prints a name prints the address with it.
 - A contract deployed before the activation, or one whose `meta` was absent or malformed below it, simply has no recorded identity; the explorer shows it as "Unnamed contract".
 - The stored identity is immutable after deployment, because the code is.
