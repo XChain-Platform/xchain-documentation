@@ -218,6 +218,9 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
     inert until the operator arms it.
   - `CONTROLLER_CUSTODY_GUARD`, which runs controller guards on DEPOSIT and WITHDRAW custody legs,
     remains inert until the operator arms it.
+  - `JSON_STRINGIFY_HOOK`, which gates hook-aware depth guarding for values transformed by
+    `JSON.stringify`, remains inert until the operator arms it; its status is on
+    [Flag-Day Values](./flag-days.md).
 - **Cohort C (state commitment) is armed at future _per-chain_ heights on testnet, not from genesis**
   (`STATE_COMMITMENT_ACTIVATION`: `BTC:testnet 145000`, `LTC:testnet 4805000`,
   `DOGE:testnet 67000000`), because it gates on each chain's own local block height rather than a
