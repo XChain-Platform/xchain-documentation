@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The protocol activation guide documents the unarmed testnet gate for hook-aware JSON stringify depth guarding.
 - The flag-day generator reads a time constant initialised with the UNARMED sentinel, so the published page lists the parked broadcast-fee-length and JSON-stringify-hook gates.
 
 ## [0.20.1] - 2026-09-23

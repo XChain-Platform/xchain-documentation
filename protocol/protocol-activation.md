@@ -200,11 +200,11 @@ Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest s
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
 (Cohort B) gates genesis-active as well, with exceptions in every cohort:
 
-- **Five Cohort A rules are not genesis-active on testnet** (values and current status on
+- **Six Cohort A rules are not genesis-active on testnet** (values and current status on
   [Flag-Day Values](./flag-days.md), which derives them from the registry and is the one place they
   are written down). Testnet already carries history these rules would reinterpret, so a
   genesis-active arm would fork an already-synced testnet node against a fresh reindex. Four have
-  their own future instants, and one remains inert until the operator arms it:
+  their own future instants, and two remain inert until the operator arms them:
   - `ISSUE_INHERITED_MINT_WINDOW`, because the ISSUE mint-window re-parameterization fix is a
     validity loosening and testnet already held a recorded rejection under the pre-fix rule.
   - `DEPLOY_DEFERRED_ASSEMBLY`, because testnet holds a recorded out-of-order assembler group that
@@ -216,6 +216,9 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
     traffic since launch, so a genesis-active arm would re-price fees already committed there.
   - `BROADCAST_FEE_LENGTH`, which rejects a fee wider than the 11-character storage column, remains
     inert until the operator arms it.
+  - `JSON_STRINGIFY_HOOK`, which gates hook-aware depth guarding for values transformed by
+    `JSON.stringify`, remains inert until the operator arms it; its status is on
+    [Flag-Day Values](./flag-days.md).
 - **Cohort C (state commitment) is armed at future _per-chain_ heights on testnet, not from genesis**
   (`STATE_COMMITMENT_ACTIVATION`: `BTC:testnet 145000`, `LTC:testnet 4805000`,
   `DOGE:testnet 67000000`), because it gates on each chain's own local block height rather than a
