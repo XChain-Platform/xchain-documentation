@@ -200,11 +200,11 @@ Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest s
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
 (Cohort B) gates genesis-active as well, with exceptions in every cohort:
 
-- **Six Cohort A rules are not genesis-active on testnet** (values and current status on
+- **Seven Cohort A rules are not genesis-active on testnet** (values and current status on
   [Flag-Day Values](./flag-days.md), which derives them from the registry and is the one place they
   are written down). Testnet already carries history these rules would reinterpret, so a
   genesis-active arm would fork an already-synced testnet node against a fresh reindex. Four have
-  their own future instants, and two remain inert until the operator arms them:
+  their own future instants, and three remain inert until the operator arms them:
   - `ISSUE_INHERITED_MINT_WINDOW`, because the ISSUE mint-window re-parameterization fix is a
     validity loosening and testnet already held a recorded rejection under the pre-fix rule.
   - `DEPLOY_DEFERRED_ASSEMBLY`, because testnet holds a recorded out-of-order assembler group that
