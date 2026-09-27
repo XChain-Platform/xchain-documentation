@@ -64,14 +64,13 @@ describe('ANCHOR_FOLD_ACTIVATION / ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION
         }
     });
 
-    test('both gates are inert (null) on every network until the fold code lands', () => {
-        // The indexer parse, hub publisher fold, and sdk light client ship separately.
-        // Arming either height before all of them ship would
-        // gate a version byte, or a verdict-scope rule, nothing in the fleet can act on.
-        for (const net of NETWORKS) {
-            assert.equal(constants.ANCHOR_FOLD_ACTIVATION[net], null, `ANCHOR_FOLD_ACTIVATION.${net} must be null`);
-            assert.equal(constants.ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION[net], null,
-                `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION.${net} must be null`);
+    test('both gates use the public-network sentinel and stay null on regtest', () => {
+        for (const mapName of ['ANCHOR_FOLD_ACTIVATION', 'ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION']) {
+            const map = constants[mapName];
+            for (const net of ['mainnet', 'testnet']) {
+                assert.equal(map[net], 9999999999, `${mapName}.${net} must use the UNARMED sentinel`);
+            }
+            assert.equal(map.regtest, null, `${mapName}.regtest must remain null by default`);
         }
     });
 
