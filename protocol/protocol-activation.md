@@ -242,8 +242,10 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
   - `CONTRACT_META_REQUIRED`, because testnet already holds deployed contracts that export no
     meta-shaped object, so a genesis-active arm would flip every one of them from its recorded
     verdict.
-  - `OWNER_WITHDRAW_OPT_IN`, because testnet already holds contracts deployed without an owner
-    withdrawal opt-in, so a genesis-active arm would remove their recorded recovery path on replay.
+  - `OWNER_WITHDRAW_OPT_IN`, because the rule keys on a contract's DEPLOY block, so a contract
+    deployed and withdrawn from before the fleet roll would grade differently under a
+    genesis-active arm than it did on a node that indexed it live; its status is on
+    [Flag-Day Values](./flag-days.md).
   - `UNIFIED_FEES_SWEEP_CALLBACK`, because the public testnet has carried real SWEEP and CALLBACK
     traffic since launch, so a genesis-active arm would re-price fees already committed there.
   - `BROADCAST_FEE_LENGTH`, which rejects a fee wider than the 11-character storage column, remains
