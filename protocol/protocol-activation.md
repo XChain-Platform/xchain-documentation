@@ -215,8 +215,8 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
 - **Eight Cohort A rules are not genesis-active on testnet** (values and current status on
   [Flag-Day Values](./flag-days.md), which derives them from the registry and is the one place they
   are written down). Testnet already carries history these rules would reinterpret, so a
-  genesis-active arm would fork an already-synced testnet node against a fresh reindex. Five carry
-  their own nonzero future instants, and three remain inert until the operator arms them:
+  genesis-active arm would fork an already-synced testnet node against a fresh reindex. Five have
+  their own future instants, and three remain inert until the operator arms them:
   - `ISSUE_INHERITED_MINT_WINDOW`, because the ISSUE mint-window re-parameterization fix is a
     validity loosening and testnet already held a recorded rejection under the pre-fix rule.
   - `DEPLOY_DEFERRED_ASSEMBLY`, because testnet holds a recorded out-of-order assembler group that
@@ -227,7 +227,7 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
   - `OWNER_WITHDRAW_OPT_IN`, because the rule keys on a contract's DEPLOY block, so a contract
     deployed and withdrawn from before the fleet roll would grade differently under a
     genesis-active arm than it did on a node that indexed it live; its status is on
-    [Flag-Day Values](./flag-days.md), while earlier testnet deployments retain their recovery path.
+    [Flag-Day Values](./flag-days.md).
   - `UNIFIED_FEES_SWEEP_CALLBACK`, because the public testnet has carried real SWEEP and CALLBACK
     traffic since launch, so a genesis-active arm would re-price fees already committed there.
   - `BROADCAST_FEE_LENGTH`, which rejects a fee wider than the 11-character storage column, remains
