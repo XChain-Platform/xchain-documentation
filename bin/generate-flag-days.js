@@ -78,6 +78,7 @@ function registrySources(indexerSrc) {
     const source = locatedModuleSource(path.join(indexerSrc, 'protocol_changes.js'));
     const rel = (file) => path.relative(indexerSrc, file);
     return {
+        indexerSrc,
         raw: source.text,
         // Blanked FILE BY FILE and re-joined the same way, so an unterminated
         // shape in one part cannot blank the next and every offset still maps.
@@ -387,6 +388,26 @@ const TIME_LITERAL = /^\d(?:_?\d)*$/;
 // a regex that demands digits simply does not match a hex or arithmetic
 // initializer, and a declaration nothing matched is a declaration nothing can
 // report.
+// The house sentinel a time constant may name instead of a literal. Its value
+// is whatever core.js declares, so the page never carries a second copy.
+const UNARMED_DECL = /(?:^|\n)\s*const\s+UNARMED\s*=\s*([^;\n]*);/;
+
+function unarmedValue(sources, where, name) {
+    const file = path.join(sources.indexerSrc, 'protocol_changes', 'core.js');
+    const decl = fs.existsSync(file) ? UNARMED_DECL.exec(withoutComments(fs.readFileSync(file, 'utf8'))) : null;
+    const text = decl ? decl[1].trim() : '';
+    if (!TIME_LITERAL.test(text)) {
+        throw new Error(
+            `${where}: ${name} is declared as UNARMED, but protocol_changes/core.js does not declare `
+            + 'UNARMED as a decimal literal, so the sentinel cannot be resolved and '
+            + 'protocol/flag-days.md would publish an inventory that calls itself complete and is not.\n\n'
+            + 'Restore `const UNARMED = <digits>;` in core.js or widen the parse in '
+            + 'bin/generate-flag-days.js deliberately.',
+        );
+    }
+    return Number(text.replace(/_/g, ''));
+}
+
 const TIME_DECL_HEAD = /const\s+([A-Z][A-Z0-9_]*)_(MAINNET|TESTNET)_TIME\s*=/g;
 
 /**
@@ -420,6 +441,12 @@ function declaredTimeConstants(sources) {
         const rest = scannable.slice(m.index + m[0].length);
         const end  = rest.indexOf(';');
         const text = (end === -1 ? rest : rest.slice(0, end)).trim();
+
+        if (end !== -1 && text === 'UNARMED') {
+            const value = unarmedValue(sources, sources.where(m.index), name);
+            out.push({ name, prefix: m[1], network: m[2], value, line, index: m.index });
+            continue;
+        }
 
         if (end === -1 || !TIME_LITERAL.test(text)) {
             throw new Error(
