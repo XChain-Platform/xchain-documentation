@@ -21,8 +21,6 @@ const DOC_ROOT = path.join(__dirname, '..');
 const DATABASE_MD = path.join(DOC_ROOT, 'components', 'hub', 'database.md');
 const CONFIGURATION_MD = path.join(DOC_ROOT, 'components', 'hub', 'configuration.md');
 
-// Type cell of a `| Column | Type | Description |` row, backticks stripped.
-// Returns null for a non-table line or a row too short to hold a Type cell.
 function typeCell(line) {
     const trimmed = line.trim();
     if (!trimmed.startsWith('|')) return null;
@@ -31,17 +29,21 @@ function typeCell(line) {
     return cells[2].replace(/^`|`$/g, '');
 }
 
-// Every Type cell across a file's lines that starts with `prefix`.
 function typeCellsStartingWith(content, prefix) {
     return content.split('\n').map(typeCell).filter((c) => c && c.startsWith(prefix));
 }
 
-// Line numbers (1-based) whose Type cell starts with TIMESTAMP.
+function tableCells(line) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|')) return [];
+    return trimmed.split('|').slice(1, -1).map((cell) => cell.trim());
+}
+
 function timestampCellViolations(content, label) {
     const bad = [];
     content.split('\n').forEach((line, i) => {
-        const cell = typeCell(line);
-        if (cell && cell.startsWith('TIMESTAMP')) bad.push(`${label}:${i + 1} types a column TIMESTAMP`);
+        const hasTimestamp = tableCells(line).some((cell) => /^`?TIMESTAMP\b/.test(cell));
+        if (hasTimestamp) bad.push(`${label}:${i + 1} has a cell starting with TIMESTAMP`);
     });
     return bad;
 }
@@ -72,6 +74,6 @@ test('the cell checker catches a TIMESTAMP type cell, backtick or not, and ignor
         + '| `intent_at` | `DATETIME DEFAULT CURRENT_TIMESTAMP` | before the send |\n';
     assert.deepStrictEqual(
         timestampCellViolations(sample, 'sample'),
-        ['sample:1 types a column TIMESTAMP', 'sample:2 types a column TIMESTAMP'],
+        ['sample:1 has a cell starting with TIMESTAMP', 'sample:2 has a cell starting with TIMESTAMP'],
     );
 });
