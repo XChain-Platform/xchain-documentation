@@ -625,10 +625,10 @@ described [above](#cross-chain-sales-cross_chain_royalty).
 
 From the [`CONTROLLER_CUSTODY_GUARD` flag day](./flag-days.md), a `DEPOSIT` into or
 `WITHDRAW` out of contract custody runs the token's `transfer` or fallback `all` guard, then
-the `SOURCE` account's own `transfer` address guard. `SOURCE` pays the metered guard gas for
-both runs, and the reservations are cumulative. There is no grandfathering: a withdrawal of
-a balance deposited before the flag day is still gated, and a denial leaves that balance in
-custody.
+the depositor's own `transfer` address guard for a `DEPOSIT` or the withdrawer's own
+`transfer` address guard for a `WITHDRAW`. `SOURCE` pays the metered guard gas for both runs,
+and the reservations are cumulative. There is no grandfathering: a withdrawal of a balance
+deposited before the flag day is still gated, and a denial leaves that balance in custody.
 
 Because a guard's decision and side effects are consensus-relevant, the VM engine and the
 indexer must deploy **atomically** across the fleet: every validator must run the same guard
