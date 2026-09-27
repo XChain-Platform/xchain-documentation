@@ -113,7 +113,7 @@ Most of this runs by itself at startup, nothing for you to do:
 Three migrations are `mode=manual` because they restate a `NOT NULL` constraint, so they run once, by hand, after you upgrade:
 
 - Indexer: `2026-09-27-datetime-anchor-reward-attestations.sql` and `2026-09-27-datetime-not-null-columns.sql`, with `node src/db/migration/migrate.js`.
-- Decoder: `2026-09-27-mempool-first-seen-datetime.sql`, with `npm run migrate` (skipped where the column is already `DATETIME`).
+- Decoder: `2026-09-27-mempool-first-seen-datetime.sql`, with `npm run migrate -- --file 2026-09-27-mempool-first-seen-datetime.sql` (skipped where the column is already `DATETIME`).
 
 Every one of these migrations, automatic and manual alike, is idempotent, and none of them need to run in any particular order. Rehearse them on regtest first, as [above](#testing-upgrades-on-regtest-first).
 

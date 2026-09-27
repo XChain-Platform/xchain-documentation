@@ -36,35 +36,57 @@ const FILE_MODES = {
     },
 };
 
-const COMMANDS = ['node src/db/migration/migrate.js', 'npm run migrate'];
+const COMMANDS = ['node src/db/migration/migrate.js', 'npm run migrate -- --file'];
+const COMPONENTS_BY_MODE = {
+    auto: ['hub', 'indexer', 'sync', 'decoder'],
+    manual: ['indexer', 'decoder'],
+};
 
-/** Text of the named heading up to the next heading of level 1-3, or end of string. */
+/** Extract the named heading through the next heading of level 1-3 or the end. */
 function extractSubsection(markdown, heading = HEADING) {
-    const start = markdown.indexOf(heading);
+    const lines = markdown.split('\n');
+    const start = lines.indexOf(heading);
     if (start === -1) throw new Error(`heading not found: ${heading}`);
-    const rest = markdown.slice(start + heading.length);
-    const next = rest.search(/\n#{1,3}\s/);
-    return heading + (next === -1 ? rest : rest.slice(0, next));
+    const next = lines.findIndex((line, index) => index > start && /^#{1,3}\s/.test(line));
+    return lines.slice(start, next === -1 ? undefined : next).join('\n');
 }
 
-/** Throws naming the first required string missing from the subsection text. */
+/** Throw with the first required string missing from the subsection text. */
 function checkSubsection(text) {
-    const filenames = Object.values(FILE_MODES).flatMap((modes) => Object.keys(modes));
-    const required = ['v0.21.0', 'UTC', '2038', 'manual', ...filenames, ...COMMANDS];
+    const autoStart = text.indexOf('Most of this runs by itself at startup');
+    const manualStart = text.indexOf('Three migrations are `mode=manual`');
+    if (autoStart === -1) throw new Error('upgrading.md time-column subsection is missing "automatic"');
+    if (manualStart === -1) throw new Error('upgrading.md time-column subsection is missing "manual"');
+    if (manualStart <= autoStart) throw new Error('manual migrations must follow automatic migrations');
+    const byMode = { auto: text.slice(autoStart, manualStart), manual: text.slice(manualStart) };
+    const required = ['v0.21.0', 'UTC', '2038', 'manual', ...COMMANDS];
     for (const item of required) {
         if (!text.includes(item)) throw new Error(`upgrading.md time-column subsection is missing "${item}"`);
+    }
+    for (const [mode, components] of Object.entries(COMPONENTS_BY_MODE)) {
+        for (const component of components) {
+            if (!byMode[mode].toLowerCase().includes(component)) {
+                throw new Error(`${mode} migrations are missing component "${component}"`);
+            }
+        }
+    }
+    for (const [repo, modes] of Object.entries(FILE_MODES)) {
+        for (const [file, mode] of Object.entries(modes)) {
+            if (!byMode[mode].includes(file)) throw new Error(`${repo} ${mode} migrations are missing "${file}"`);
+        }
     }
 }
 
 describe('upgrading.md: time columns move from TIMESTAMP to DATETIME', () => {
-    const markdown = fs.readFileSync(UPGRADING, 'utf8');
-    const subsection = extractSubsection(markdown);
+    const markdown = process.env.XCHAIN_UPGRADING_MARKDOWN || fs.readFileSync(UPGRADING, 'utf8');
 
-    test('names the release, UTC, 2038, every migration, both commands, and manual', () => {
+    test('uses the exact heading and names every required migration detail', () => {
+        const subsection = extractSubsection(markdown);
         assert.doesNotThrow(() => checkSubsection(subsection));
     });
 
     test('the checker throws when a manual migration file is dropped from the text', () => {
+        const subsection = extractSubsection(markdown);
         const dropped = subsection.replace('2026-09-27-datetime-not-null-columns.sql', '');
         assert.throws(() => checkSubsection(dropped), /datetime-not-null-columns\.sql/);
     });
