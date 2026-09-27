@@ -10,9 +10,10 @@ const { test } = require('node:test');
 
 const PAGE = fs.readFileSync(path.resolve(__dirname, '../protocol/protocol-activation.md'), 'utf8');
 const MARKERS = [
+    'xchain-vm/src/index/lint_optional_chain_heights.js',
     'LINT_OPTIONAL_CHAIN_ACTIVATION',
     'isLintOptionalChainActive',
-    'vm_lint_optional_chain_activation.VM_LINT_OPTIONAL_CHAIN_ACTIVATION',
+    'vm_lint_optional_chain_heights.VM_LINT_OPTIONAL_CHAIN_ACTIVATION',
 ];
 
 function vmGatesSection(markdown) {
