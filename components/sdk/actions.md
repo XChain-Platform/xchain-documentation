@@ -1109,8 +1109,8 @@ Withdraw tokens from a deployed contract's custody back to the contract owner.
 | quantity | string | Yes | Amount to withdraw (positive number) |
 
 **Notes:**
-- Only the contract owner (the address that broadcast the DEPLOY) can withdraw.
-- Withdrawals work even if the contract is disabled.
+- Only the contract owner (the address that broadcast the DEPLOY) can withdraw, and (from the `OWNER_WITHDRAW_OPT_IN` flag day) only when the contract's meta declares `ownerWithdraw: true`, or it was deployed before that activation.
+- Withdrawals work even if the contract is disabled, subject to the same opt-in.
 
 ```js
 await sdk.withdraw({ contractActionIndex: 12345, tick: 'MYTOKEN', quantity: '500' })

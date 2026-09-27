@@ -282,9 +282,12 @@ and every leg address must re-encode to `GET_COIN` at create. See
 [Cross-chain sales](./controller-bound-tokens.md#cross-chain-sales-cross_chain_royalty).
 
 Creators who prefer a custody model can instead implement royalties in an ordinary
-**marketplace contract** that takes custody via [`DEPOSIT`](./actions/deposit.md)/[`WITHDRAW`](./actions/withdraw.md)
-and enforces any fee split in contract logic; opt-in per collection, at the cost of the
-contract holding the token.
+**marketplace contract** that takes custody via [`DEPOSIT`](./actions/deposit.md) and pays out
+the split itself, on sale, via its own `EXECUTE`-triggered emitted `SEND`s; opt-in per
+collection, at the cost of the contract holding the token. Such a contract should leave
+`meta.ownerWithdraw` unset: it holds other people's listed tokens, and the owner-only
+[`WITHDRAW`](./actions/withdraw.md) action runs no contract code at all, so opting in would let
+the deployer pull a listed token straight out of custody, bypassing the fee split entirely.
 
 ---
 
