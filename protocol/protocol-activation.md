@@ -208,6 +208,24 @@ and `FEE` with no leading zero and within the length caps `PRICE_V1_VALUE_MAX_LE
 testnet until the operator arms it, while regtest is genesis-active. Its status is on
 [Flag-Day Values](./flag-days.md).
 
+`ANCHOR_FOLD_ACTIVATION` gates [ANCHOR](./actions/anchor.md) version 3, the folded bundle that
+carries every checkpointed chain section plus at most one archive section in one transaction. It
+is keyed on the anchor's own DOGE mined height like `ANCHOR_ACTIVATION` and always sits at or above
+it. Below the gate, version 3 is `invalid: VERSION (unknown)`; at or above it, versions 0, 1 and 2
+stay valid. At the gate, `anchor_archive` stops being minted as a reward. The fold gate uses the
+house UNARMED sentinel on mainnet and testnet, its regtest entry is null by default, and
+`XC_ANCHOR_FOLD_REGTEST_ACTIVATION` arms it for a private regtest venue.
+
+`ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` is the fold's companion gate. At or above it, a
+folded action's own archive failure stamps only the archive row instead of the whole action; the
+same regtest variable arms both gates at the same height.
+
+`BRIDGE_POLICY_DETACH` gates the destination half of a bridged policy list detach, described under
+[policy inheritance](./token-bridge.md#policy-inheritance). It is read at the destination chain's
+own block height. At or above it, a bridged copy whose origin issuer detached its allow or block
+list gets that list detached too; below it, the copy's list stays attached. It stays unarmed on
+mainnet and testnet until the operator arms it, while regtest is genesis-active.
+
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
 (Cohort B) gates genesis-active as well, with exceptions in every cohort:
