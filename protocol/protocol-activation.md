@@ -202,6 +202,12 @@ while regtest is genesis-active. The map is indexed on
 [Flag-Day Values](./flag-days.md#canonical-activation-maps) without presenting the inert sentinel as
 an activation instant.
 
+`PRICE_V1_CANONICAL_ACTIVATION` gates the [PRICE](./actions/price.md) v1 canonical form: a `VALUE`
+and `FEE` with no leading zero and within the length caps `PRICE_V1_VALUE_MAX_LENGTH` and
+`PRICE_V1_FEE_MAX_LENGTH`, keyed on the action's own block time. It remains inert on mainnet and
+testnet until the operator arms it, while regtest is genesis-active. Its status is on
+[Flag-Day Values](./flag-days.md).
+
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
 (Cohort B) gates genesis-active as well, with exceptions in every cohort:
