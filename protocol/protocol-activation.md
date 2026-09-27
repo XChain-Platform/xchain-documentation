@@ -196,6 +196,12 @@ regtest is genesis-active. The map is indexed on
 [Flag-Day Values](./flag-days.md#canonical-activation-maps) without presenting the inert sentinel as
 an activation instant.
 
+`ANCHOR_BUNDLE_ORDER_ACTIVATION` gates validation that ANCHOR bundle CHAIN sections and PUBKEY pairs
+are in ascending byte order. It remains inert on mainnet and testnet until the operator arms it,
+while regtest is genesis-active. The map is indexed on
+[Flag-Day Values](./flag-days.md#canonical-activation-maps) without presenting the inert sentinel as
+an activation instant.
+
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
 (Cohort B) gates genesis-active as well, with exceptions in every cohort:
