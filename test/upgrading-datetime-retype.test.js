@@ -50,7 +50,7 @@ function extractSubsection(markdown, heading = HEADING) {
 /** Throws naming the first required string missing from the subsection text. */
 function checkSubsection(text) {
     const filenames = Object.values(FILE_MODES).flatMap((modes) => Object.keys(modes));
-    const required = ['UTC', '2038', 'manual', ...filenames, ...COMMANDS];
+    const required = ['v0.21.0', 'UTC', '2038', 'manual', ...filenames, ...COMMANDS];
     for (const item of required) {
         if (!text.includes(item)) throw new Error(`upgrading.md time-column subsection is missing "${item}"`);
     }
@@ -60,7 +60,7 @@ describe('upgrading.md: time columns move from TIMESTAMP to DATETIME', () => {
     const markdown = fs.readFileSync(UPGRADING, 'utf8');
     const subsection = extractSubsection(markdown);
 
-    test('names UTC, 2038, every dated migration file, both commands, and manual', () => {
+    test('names the release, UTC, 2038, every migration, both commands, and manual', () => {
         assert.doesNotThrow(() => checkSubsection(subsection));
     });
 

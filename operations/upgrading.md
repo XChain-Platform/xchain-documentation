@@ -101,7 +101,7 @@ In the rare case a release needs a column-level migration, the release notes wil
 
 ### Time columns move from TIMESTAMP to DATETIME
 
-MariaDB's `TIMESTAMP` type stops working after the year 2038, so this release retypes every time column across the pipeline to `DATETIME`. The hub, indexer, decoder and sync connection pools all pin the session time zone to `UTC`, so a stored instant reads the same before and after the retype.
+MariaDB's `TIMESTAMP` type stops working after the year 2038, so v0.21.0 retypes every time column across the pipeline to `DATETIME`. The hub, indexer, decoder and sync connection pools all pin the session time zone to `UTC`, so a stored instant reads the same before and after the retype.
 
 Most of this runs by itself at startup, nothing for you to do:
 
