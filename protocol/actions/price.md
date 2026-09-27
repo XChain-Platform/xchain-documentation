@@ -107,6 +107,14 @@ The same batch, deflate-compressed and base64-encoded; the publisher emits which
 - A DOGE transaction can publish a price for a BTC token (cross-chain oracle)
 - Dispensers on any chain may reference any oracle regardless of publishing chain
 
+#### VALUE and FEE Canonical Form
+- From `PRICE_V1_CANONICAL_ACTIVATION`, keyed on the action's own `block_time`, the canonical checks below run after the unchanged legacy checks. See [Flag-Day Values](../flag-days.md) for the gate status.
+- `VALUE` must have no leading zero: its integer part is `0` or starts with a nonzero digit, followed by an optional point and 1 to 8 decimal digits, the same pattern as `PRICE_VALUE_RE_CANONICAL`. It must also be at most 19 characters (`PRICE_V1_VALUE_MAX_LENGTH`), or the action is `invalid: VALUE (format)`.
+- The 19-character `VALUE` limit is the grammar bound: 10 integer digits below the hub's exclusive price ceiling, a point, and 8 decimal digits.
+- `FEE`, when present, must have no leading zero: its integer part is `0` or starts with a nonzero digit, followed by an optional point and 1 to 18 decimal digits. It must also be at most 20 characters (`PRICE_V1_FEE_MAX_LENGTH`), or the action is `invalid: FEE (format)`.
+- The 20-character `FEE` limit is the grammar bound: an integer part of `0` or `1`, a point, and 18 decimal digits.
+- Below the gate, only the legacy checks apply. `VALUE` is digits with an optional point and 1 to 8 decimal digits and must be above zero. `FEE` is digits with an optional point and 1 to 18 decimal digits and must be within 0 to 1. A zero-padded value of any length is valid.
+
 #### Price Lock Window
 - **Every** PRICE v1 broadcast for a `(SOURCE, COIN, TICK, FIAT)` combination (the first one included) takes effect **86400 seconds (24 hours)** after `block_time`
 - For updates, the delay prevents oracle front-running attacks on dispensers: without it, an oracle operator could see an incoming dispenser payment and rush a price update to manipulate the exchange rate
