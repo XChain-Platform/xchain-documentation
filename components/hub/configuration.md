@@ -722,7 +722,7 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 | `module` | VARCHAR(64) | Service name (xchain-decoder, xchain-indexer, etc.) |
 | `param_name` | VARCHAR(32) | Parameter name (host, port, db_host, db_port, name, user, pass, service_port) |
 | `param_value` | TEXT | Parameter value |
-| `updated_at` | TIMESTAMP | Last update timestamp |
+| `updated_at` | DATETIME | Last update timestamp |
 
 Config is served as a nested object: `{ coin: { network: { module: { param: value } } } }`.
 
