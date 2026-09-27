@@ -524,6 +524,14 @@ const ANCHOR_ACTIVATION = {
     regtest: 0,
 };
 
+// Gates validation that an archive head's MATCH_COUNT equals its archive member count.
+// Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
+const ARCHIVE_MATCH_COUNT_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // ARCHIVE_REWARD_AMOUNT: the frozen archive-publish reward, signed into the archive XANCPUB
 // attestation by the hub and re-derived by the indexer (never from the wire). Kept equal to the
 // hub's historical default (ANCHOR_REWARD_PER_PUBLISH). Changing it is itself a flag-day.
@@ -2201,6 +2209,7 @@ module.exports = {
     ARCHIVE_REWARD_ACTIVATION,
     ARCHIVE_REWARD_AMOUNT,
     ANCHOR_ACTIVATION,
+    ARCHIVE_MATCH_COUNT_ACTIVATION,
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
     ANCHOR_FOLD_ACTIVATION,

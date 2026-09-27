@@ -53,6 +53,7 @@ This example publishes a new value on the feed created in the previous example w
 
 
 ## Rules
+- At and above `BROADCAST_FEE_LENGTH`, `FEE` is limited to 11 characters; a longer value is refused with `invalid: FEE (length)`. Below the gate, a longer `FEE` is accepted and stored truncated to its first 11 characters. See [Flag-Day Values](../flag-days.md) for the gate's status on each network.
 
 ## Notes
 - `CAST` `ACTION` can be used for shorter reference to `BROADCAST` `ACTION`
