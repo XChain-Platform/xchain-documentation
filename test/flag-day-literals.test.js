@@ -125,6 +125,7 @@ test('the canonical activation-map index names every newly published gate', () =
         'PRICE_ZERO_VALIDITY_ACTIVATION',
         'PRICE_BATCHING_FLOOR_ACTIVATION',
         'ARCHIVE_MATCH_COUNT_ACTIVATION',
+        'ANCHOR_BUNDLE_ORDER_ACTIVATION',
     ]) {
         assert.ok(names.includes(name), `${name} is missing from the canonical activation-map index`);
     }
@@ -144,6 +145,8 @@ test('every newly published activation map is value-identical to the indexer reg
             'price_batching_floor_activation.PRICE_BATCHING_FLOOR_ACTIVATION',
         ARCHIVE_MATCH_COUNT_ACTIVATION:
             'archive_match_count_activation.ARCHIVE_MATCH_COUNT_ACTIVATION',
+        ANCHOR_BUNDLE_ORDER_ACTIVATION:
+            'anchor_bundle_order_activation.ANCHOR_BUNDLE_ORDER_ACTIVATION',
     };
 
     for (const [name, key] of Object.entries(rows)) {
