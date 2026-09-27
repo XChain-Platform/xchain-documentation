@@ -212,11 +212,11 @@ Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest s
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
 (Cohort B) gates genesis-active as well, with exceptions in every cohort:
 
-- **Seven Cohort A rules are not genesis-active on testnet** (values and current status on
+- **Eight Cohort A rules are not genesis-active on testnet** (values and current status on
   [Flag-Day Values](./flag-days.md), which derives them from the registry and is the one place they
   are written down). Testnet already carries history these rules would reinterpret, so a
-  genesis-active arm would fork an already-synced testnet node against a fresh reindex. Four have
-  their own future instants, and three remain inert until the operator arms them:
+  genesis-active arm would fork an already-synced testnet node against a fresh reindex. Five carry
+  nonzero instants, and three remain inert until the operator arms them:
   - `ISSUE_INHERITED_MINT_WINDOW`, because the ISSUE mint-window re-parameterization fix is a
     validity loosening and testnet already held a recorded rejection under the pre-fix rule.
   - `DEPLOY_DEFERRED_ASSEMBLY`, because testnet holds a recorded out-of-order assembler group that
@@ -224,6 +224,9 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
   - `CONTRACT_META_REQUIRED`, because testnet already holds deployed contracts that export no
     meta-shaped object, so a genesis-active arm would flip every one of them from its recorded
     verdict.
+  - `OWNER_WITHDRAW_OPT_IN`, because the rule changes whether the owner of a newly deployed
+    contract must explicitly opt in before withdrawing, while earlier testnet deployments retain
+    their recovery path.
   - `UNIFIED_FEES_SWEEP_CALLBACK`, because the public testnet has carried real SWEEP and CALLBACK
     traffic since launch, so a genesis-active arm would re-price fees already committed there.
   - `BROADCAST_FEE_LENGTH`, which rejects a fee wider than the 11-character storage column, remains
@@ -309,7 +312,7 @@ armed at 0 on 2026-09-09 under the
 mainnet, so there is no verdict to reinterpret), and testnet and regtest have run both from genesis
 since they were built. The optional-chain gate is the exception and is not yet armed on mainnet or
 testnet. They are listed here rather than in the armed table above because they are
-registered in the VM rather than in the indexer's registry; a future change to either height in
+registered in the VM rather than in the indexer's registry; a future change to any height in
 BOTH copies is a flag day under the [notice policy](./upgrade-notice-policy.md).
 
 | Gate | Keyed on | Mainnet | Straggler | Lives in |
