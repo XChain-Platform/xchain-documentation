@@ -28,11 +28,11 @@ test('documents the controller custody guard flag day', () => {
     assert.match(page, /\bCONTROLLER_CUSTODY_GUARD\b/);
 });
 
-test('matches every indexer controller route to the invocation table',
-    { skip: indexer.skip }, () => {
-        const invocations = parseInvocationTable(page);
-        for (const [action, actionClass] of Object.entries(indexer.classes)) {
-            assert.equal(invocations[action], actionClass,
-                `${action} must be documented as ${actionClass}`);
-        }
-    });
+test('matches every indexer controller route to the invocation table', () => {
+    assert.equal(indexer.skip, false, indexer.skip);
+    const invocations = parseInvocationTable(page);
+    for (const [action, actionClass] of Object.entries(indexer.classes)) {
+        assert.equal(invocations[action], actionClass,
+            `${action} must be documented as ${actionClass}`);
+    }
+});
