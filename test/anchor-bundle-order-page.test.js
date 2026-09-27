@@ -19,7 +19,7 @@ function versionZero(markdown) {
 function assertAnchorBundleOrderRule(markdown) {
     const rules = versionZero(markdown);
     assert.match(rules, /`ANCHOR_BUNDLE_ORDER_ACTIVATION`/);
-    assert.match(rules, /\[Flag-Day Values\]\(\.\.\/flag-days\.md\)/);
+    assert.match(rules, /\[Flag-Day Values\]\(\.\.\/flag-days\.md#canonical-activation-maps\)/);
     assert.match(rules, /ANCHOR's own DOGE block height/);
     assert.match(rules, /sections MUST be `CHAIN`-ascending/);
     assert.match(rules, /pairs MUST be\s+`PUBKEY`-ascending/);
@@ -35,7 +35,7 @@ test('Version 0 documents the gated bundle order rule', () => {
 test('the page guard fails when any required rule marker is removed', () => {
     for (const marker of [
         'ANCHOR_BUNDLE_ORDER_ACTIVATION',
-        '[Flag-Day Values](../flag-days.md)',
+        '[Flag-Day Values](../flag-days.md#canonical-activation-maps)',
         "ANCHOR's own DOGE block height",
         'sections MUST be `CHAIN`-ascending',
         'pairs MUST be',
