@@ -86,6 +86,7 @@ Holds unconfirmed XChain transactions. Rows are created when a transaction enter
 | `amount` | `BIGINT` | Amount in satoshis |
 | `fee` | `BIGINT` | Fee in satoshis |
 | `data` | `MEDIUMTEXT` | Decoded ACTION string |
+| `first_seen` | `DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP` | Time this node first saw the transaction, written in UTC. Node-local observation time: never replicated and never read by consensus. |
 
 **Indexes:** `tx_hash` (unique), `source`, `destination`
 
@@ -181,7 +182,7 @@ The decoder applies schema changes via a tracked migration system. Two paths exi
   # or: npm run migrate
   ```
 
-Each migration is recorded in the `schema_migrations` table (created automatically) and is applied at most once regardless of how many times the command is run. An advisory lock prevents concurrent migration runs. Migration files live in `src/sql/migrations/` and are applied in filename sort order.
+Each migration is recorded in the `schema_migrations` table (created automatically) and is applied at most once regardless of how many times the command is run. An advisory lock prevents concurrent migration runs. Migration files live in `src/sql/migrations/` and are applied in filename sort order. The decoder's connection pool pins the session time zone to UTC, and the ledger's own `schema_migrations.applied_at` column is `DATETIME`, retyped at startup with no operator step.
 
 Notable applied migrations:
 
@@ -193,6 +194,8 @@ Notable applied migrations:
 | `2026-06-15-events-data-mediumtext.sql` | auto | Widens `events.data` from `TEXT` to `MEDIUMTEXT` |
 | `2026-06-15-mempool-raw-strings.sql` | manual | Drops and recreates `mempool_transactions` with raw `VARCHAR` columns instead of FK integer IDs |
 | `2026-06-17-pubkeys-add-monotonic-id.sql` | auto | Adds `id BIGINT UNSIGNED AUTO_INCREMENT UNIQUE` to `pubkeys` for stable replication paging |
+| `2026-08-22-mempool-first-seen.sql` | auto | Adds `mempool_transactions.first_seen` |
+| `2026-09-27-mempool-first-seen-datetime.sql` | manual | Retypes `first_seen` from `TIMESTAMP` to `DATETIME`, keeping the stored UTC instant. Skipped where the column is already `DATETIME`. Run once with `npm run migrate`. |
 
 ## Data Flow
 
