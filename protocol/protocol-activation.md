@@ -190,14 +190,21 @@ above it the restarted ANCHOR wire set parses (versions 0, 1 and 2 only); below 
 version is `invalid: ANCHOR before activation`. Mainnet's height sits above the DOGE tip on purpose,
 so the restarted wire set has not activated there yet. Stragglers **fork**.
 
+`ARCHIVE_MATCH_COUNT_ACTIVATION` gates validation that an archive head's `MATCH_COUNT` equals its
+archive member count. It remains inert on mainnet and testnet until the operator arms it, while
+regtest is genesis-active. The map is indexed on
+[Flag-Day Values](./flag-days.md#canonical-activation-maps) without presenting the inert sentinel as
+an activation instant.
+
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
 (Cohort B) gates genesis-active as well, with exceptions in every cohort:
 
-- **Four Cohort A rules arm testnet at their own future instants, not from genesis** (values on
+- **Five Cohort A rules are not genesis-active on testnet** (values and current status on
   [Flag-Day Values](./flag-days.md), which derives them from the registry and is the one place they
-  are written down). In each case testnet already carries history the rule would reinterpret, so a
-  genesis-active arm would fork an already-synced testnet node against a fresh reindex:
+  are written down). Testnet already carries history these rules would reinterpret, so a
+  genesis-active arm would fork an already-synced testnet node against a fresh reindex. Four have
+  their own future instants, and one remains inert until the operator arms it:
   - `ISSUE_INHERITED_MINT_WINDOW`, because the ISSUE mint-window re-parameterization fix is a
     validity loosening and testnet already held a recorded rejection under the pre-fix rule.
   - `DEPLOY_DEFERRED_ASSEMBLY`, because testnet holds a recorded out-of-order assembler group that
@@ -207,6 +214,8 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
     verdict.
   - `UNIFIED_FEES_SWEEP_CALLBACK`, because the public testnet has carried real SWEEP and CALLBACK
     traffic since launch, so a genesis-active arm would re-price fees already committed there.
+  - `BROADCAST_FEE_LENGTH`, which rejects a fee wider than the 11-character storage column, remains
+    inert until the operator arms it.
 - **Cohort C (state commitment) is armed at future _per-chain_ heights on testnet, not from genesis**
   (`STATE_COMMITMENT_ACTIVATION`: `BTC:testnet 145000`, `LTC:testnet 4805000`,
   `DOGE:testnet 67000000`), because it gates on each chain's own local block height rather than a
