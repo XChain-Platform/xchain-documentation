@@ -283,6 +283,7 @@ Read-only operator tools; neither broadcasts nor writes anything and neither is 
 | `XCHAIN_INDEXER_DIR` | Sibling-checkout override `bin/lib/carrier_logic_pin.js`'s `siblingDir()` resolves for cross-repo carrier-logic comparison; the `repo_guards` twin test points it at a second checkout with `XCHAIN_REQUIRE_SIBLINGS=1`. Never read by the running indexer process. | `../xchain-indexer` |
 | `XCHAIN_SYNC_DIR` | Sibling-checkout override for the `xchain-sync` tree the same `siblingDir()` resolves when the pin tool compares against sync's copy; read by literal name so the coverage gate can see it. Never read by the running indexer process. | `../xchain-sync` |
 | `XCHAIN_HUB_DIR` | Sibling-checkout override for the `xchain-hub` tree the same `siblingDir()` resolves when the pin tool compares against the hub's copy; read by literal name so the coverage gate can see it. Never read by the running indexer process. | `../xchain-hub` |
+| `PROM_CI_BASE_SHA` | Diff base commit for `bin/ci_fast_select.js`'s fast CI test selection: the CI venue's gate exports the target ref's value before the push, and the selector diffs `HEAD` against it to pick which test groups to run. Falls back to `git merge-base HEAD origin/develop` when unset or when the value is not a resolvable commit. Never read by the running indexer process. | _(unset: falls back to the merge-base with `origin/develop`)_ |
 
 ## Hub DB Price Source
 
