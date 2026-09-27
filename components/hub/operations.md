@@ -354,6 +354,22 @@ curl -X POST http://localhost:10000 \
 
 The pause is **runtime state, not configuration**: it does not survive a hub restart. To disable an effector durably, use its `*_ENABLED` variable (`ORACLE_PUBLISH_ENABLED`, `ATTEST_ENABLED`, `ANCHOR_ENABLED`, `FULLNODE_ENABLED`) in [CONFIGURATION.md](configuration.md).
 
+## Oracle Metrics
+
+These series are served on the metrics endpoint only when [`METRICS_ENABLED`](./configuration.md#metrics-and-log-shipping) is set.
+
+| Series | Type | Labels | What it tells you |
+|---|---|---|---|
+| `xchain_oracle_last_finalized_round_timestamp_seconds` | Gauge | None | Unix time of the last oracle round this hub saw finalized; stops advancing when rounds stop reaching quorum. |
+| `xchain_oracle_current_round` | Gauge | None | Oracle round number the round timer last opened; flat means the round loop itself is wedged. |
+| `xchain_oracle_consecutive_skipped_rounds` | Gauge | None | Trailing streak of oracle rounds that did not finalize. |
+| `xchain_oracle_round_timeouts_total` | Counter | None | Oracle rounds evicted before reaching commit quorum, leader and follower seats alike. |
+| `xchain_oracle_single_source_rounds_total` | Counter | None | Oracle rounds finalized with one uncorrelated price source on a normally-multi-source pair. |
+| `xchain_oracle_price_source_live` | Gauge | `source` | `1` when that upstream returned at least one usable price on this hub's last fetch and `0` when it did not; absent before the first fetch. |
+| `xchain_oracle_price_source_bound_rejects_total` | Counter | `source` | Upstream values dropped on the ingest bound. |
+
+Single-source warning lines now name the live and dead upstreams (for example, `live: coingecko; dead: kraken, coinbase`) and the pairs that went single-source with their submitters, so an operator can tell which source dropped.
+
 ## Resilience and Recovery
 
 ### Database Connection Recovery
