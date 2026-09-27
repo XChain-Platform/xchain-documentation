@@ -156,6 +156,13 @@ shape that matters to a reader of this page:
   the *previous* policy for that window; nothing is retroactive.
   `getappliedpolicy(tick)` (indexer, open read) shows exactly what a given chain has applied and
   as of which origin block.
+- **Detaching a list.** When the origin issuer detaches its allow or block list (an
+  [`ISSUE`](./actions/issue.md) format `5` carrying `0` in that field), the next signed snapshot
+  carries that list as null. From the destination's `BRIDGE_POLICY_DETACH` activation, read at
+  the destination chain's own block height (values on [Flag-Day Values](./flag-days.md)), each
+  copy's matching list is detached the same way, by an injected `ISSUE` format `5` with `0`;
+  below it, a null list leaves the copy's list attached as before.
+  A null list is never materialized as an empty list, which would deny every address.
 - **A membership ceiling.** A token whose `ALLOW_LIST` or `BLOCK_LIST` exceeds
   `XPOLICY_MAX_MEMBERS` (10,000 addresses) cannot opt into bridging in the first place
   (`invalid: TICK (policy list exceeds XPOLICY_MAX_MEMBERS)`, [`ISSUE` format
