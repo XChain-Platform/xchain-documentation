@@ -80,7 +80,7 @@ XChain includes a built-in **virtual machine** that brings smart contract capabi
 - **DEPLOY** uploads a smart contract to the blockchain. Contracts are written in JavaScript, base64-encoded, and stored permanently on-chain. Once deployed, a contract has its own address-like identity (referenced by its action_index) and can hold token balances.
 - **EXECUTE** calls a method on a deployed contract. The contract runs in a sandboxed V8 isolate with gas metering; every computation costs gas, preventing infinite loops and resource abuse. Contract state is stored on-chain and is fully deterministic: every node that processes the same transactions arrives at the same result.
 - **DEPOSIT** transfers tokens from a user's balance into a contract's custody. This is how contracts receive funds to work with: escrow, liquidity pools, staking, or any other mechanism the contract implements.
-- **WITHDRAW** transfers tokens from a contract's custody back to a user. The contract's code decides when and how withdrawals are allowed.
+- **WITHDRAW** lets the contract's owner pull tokens directly out of its custody, as a ledger move that runs no contract code. A contract must opt in (`meta.ownerWithdraw: true`) for this to work, unless it was deployed before the `OWNER_WITHDRAW_OPT_IN` activation; contracts holding other people's funds instead return tokens through their own logic, as an emitted `SEND`.
 
 Smart contracts on XChain are deterministic and reorg-safe: if the blockchain reorganizes, contract state rolls back automatically. There are no separate validators or consensus; the same indexer that processes token transfers also executes contract code.
 

@@ -40,7 +40,7 @@ Deposit 500 of the token with TICK_ID 99 into contract 12345
 ## Notes
 - Deposited tokens are credited to the contract's **derived address** (`C:<CHAIN>:<CONTRACT_ACTION_INDEX>`) in the standard ledger; a debit is created for SOURCE and a credit for the derived address
 - The contract's balance is tracked in the standard `balances` table, the same as any other address. There is no separate custody table.
-- Use `WITHDRAW` to return tokens from the contract back to the contract owner. Only the contract deployer (the address that originally broadcast the `DEPLOY`) may call `WITHDRAW`; no other address can withdraw from the contract.
+- Use `WITHDRAW` to return tokens from the contract back to the contract owner. Only the contract deployer (the address that originally broadcast the `DEPLOY`) may call `WITHDRAW`; no other address can withdraw from the contract. From the [`OWNER_WITHDRAW_OPT_IN` flag day](../flag-days.md), a deployer's call still needs the contract's meta to declare `ownerWithdraw: true` (or a DEPLOY from before the activation); see [WITHDRAW](withdraw.md#rules) before depositing into a contract that does not opt in.
 - Use `^` (caret) as a prefix when passing `TICK_ID` for the `TICK` field (e.g. `^1234` = `TICK_ID` 1234)
 - Contracts may use deposited balances in method logic triggered via `EXECUTE`, emitted actions spend from the derived address
 
