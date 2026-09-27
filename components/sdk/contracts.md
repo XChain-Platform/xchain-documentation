@@ -148,7 +148,9 @@ let result = await sdk.withdraw({
 }, { pubkey: 'yourPubkey' });
 ```
 
-Only the address that broadcast the original DEPLOY can withdraw.
+Only the address that broadcast the original DEPLOY can withdraw, and (from the
+`OWNER_WITHDRAW_OPT_IN` flag day) only when the contract's meta declares
+`ownerWithdraw: true`, or it was deployed before that activation.
 
 ---
 
