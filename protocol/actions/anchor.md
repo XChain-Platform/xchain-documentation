@@ -508,11 +508,14 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
   checkpoint replay watermark counts v0/v1/v3 together, per chain.
 
 ### Version 0 only
-- No flag-day above activation. A v0 at or above `ANCHOR_ACTIVATION` is valid at every height;
-  it is the checkpoint wire.
 - `SECTION_COUNT` must be at least 1 and must equal the number of sections actually present.
-  Sections must be `CHAIN`-ascending with no duplicate chain, and each section's `(PUBKEY, SIG)`
-  pairs must be `PUBKEY`-ascending.
+- From `ANCHOR_BUNDLE_ORDER_ACTIVATION`, evaluated against the ANCHOR's own DOGE block height,
+  sections MUST be `CHAIN`-ascending and each section's `(PUBKEY, SIG)` pairs MUST be
+  `PUBKEY`-ascending; see [Flag-Day Values](../flag-days.md). Equal adjacent values satisfy the
+  ordering comparison, so ties are allowed, although a repeated chain still fails the separate
+  duplicate-chain rule. A descending chain fails as `SECTION i CHAIN (not ascending)`, and a
+  descending pubkey fails as `SECTION i PUBKEY (not ascending) at index k`. Below the gate,
+  historical bundles retain the earlier order acceptance.
 - `SNAPSHOT_BLOCK` must equal the MAX of the sections' `SECTION_SNAPSHOT_BLOCK`.
 - Every section must carry roots: `STATE_ROOT` and `BLOCK_MERKLE_ROOT` must be 64-hex and the
   two version bytes must be integers. Both roots are inside the signed canonical, so a swapped
