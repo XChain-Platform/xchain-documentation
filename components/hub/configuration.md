@@ -734,6 +734,7 @@ Config is served as a nested object: `{ coin: { network: { module: { param: valu
 | `connectTimeout` | `10000` | Connection timeout (ms); override with `DB_CONNECT_TIMEOUT` |
 | `acquireTimeout` | `10000` | Time to wait for a free pooled connection (ms); override with `DB_ACQUIRE_TIMEOUT` |
 | `queryTimeout` | `30000` | Query execution timeout (ms); override with `DB_QUERY_TIMEOUT` |
+| migration statement timeout | `3600000` | Per-statement limit (ms) the hub sets for each boot-time column retype, restoring the pool value afterwards; override with `MIGRATE_QUERY_TIMEOUT` (a non-numeric or negative value falls back to the default) |
 | `idleTimeout` | `60000` | Idle connection timeout (ms) |
 
 `DB_CONNECT_TIMEOUT`, `DB_ACQUIRE_TIMEOUT`, and `DB_QUERY_TIMEOUT` are read by the indexer's pool with the same names and the same defaults.
