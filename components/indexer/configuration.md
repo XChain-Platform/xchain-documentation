@@ -285,6 +285,8 @@ Read-only operator tools; neither broadcasts nor writes anything and neither is 
 | `XCHAIN_SYNC_DIR` | Sibling-checkout override for the `xchain-sync` tree the same `siblingDir()` resolves when the pin tool compares against sync's copy; read by literal name so the coverage gate can see it. Never read by the running indexer process. | `../xchain-sync` |
 | `XCHAIN_HUB_DIR` | Sibling-checkout override for the `xchain-hub` tree the same `siblingDir()` resolves when the pin tool compares against the hub's copy; read by literal name so the coverage gate can see it. Never read by the running indexer process. | `../xchain-hub` |
 | `PROM_CI_BASE_SHA` | Diff base commit for `bin/ci_fast_select.js`'s fast CI test selection: the CI venue's gate exports the target ref's value before the push, and the selector diffs `HEAD` against it to pick which test groups to run. Falls back to `git merge-base HEAD origin/develop` when unset or when the value is not a resolvable commit. Never read by the running indexer process. | _(unset: falls back to the merge-base with `origin/develop`)_ |
+| `CI_SHARDS` | Process count `bin/ci_shard.js` splits the `ci` chain's main mocha step across in the siblings STRICT tier; `1` runs the step unsharded as before. A value that is not a positive integer falls back to the default. Never read by the running indexer process. | half the CPU cores, at most 4 |
+| `PATH` | Read by `bin/ci_shard.js` only to put the package's `node_modules/.bin` in front of it for the chain steps it runs, as `npm run` does. Never read by the running indexer process. | the caller's `PATH` |
 
 ## Hub DB Price Source
 
