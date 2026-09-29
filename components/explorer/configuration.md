@@ -25,6 +25,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `EXPLORER_DEFAULT_THEME` | No | `classic` | Theme served to a visitor who has not picked one: a directory name under `src/content/themes` (`classic`, `skin-demo`). An unknown name falls back to `classic`. |
 | `API_HOST` | No | `127.0.0.1` | Bind address for the API server |
 | `DEBUG` | No | None | Enable debug output when set to any truthy value |
+| `PROM_CI_BASE_SHA` | No | _(unset: falls back to the merge-base with `origin/develop`)_ | Diff base commit for `bin/ci_fast_select.js`'s fast CI test selection: the CI venue's gate exports the target ref's value before the push, and the selector diffs `HEAD` against it to pick which test groups to run. Falls back to `git merge-base HEAD origin/develop` when unset or when the value is not a resolvable commit. Never read by the running explorer process. |
 | `EXPLORER_FORCE_HTTPS` | No | None | Explicitly enable (`1`) or disable (`0`) the HTTPS-hardening headers (HSTS and `upgrade-insecure-requests`). By default they are active only when `NODE_ENV=production`, so plain-HTTP dev/regtest deploys are not broken. Set to `1` when running behind a TLS-terminating proxy without `NODE_ENV=production`. |
 | `EXPLORER_HOLDERS_CACHE_MS` | No | `15000` | TTL (ms) of the per-tick holders-query result cache. `getHolders` requires an unindexable full-table filesort, so results are cached briefly to bound repeated-query cost. |
 | `EXPLORER_HOLDERS_CACHE_MAX` | No | `500` | Maximum number of distinct holders-query results kept in the cache. |
