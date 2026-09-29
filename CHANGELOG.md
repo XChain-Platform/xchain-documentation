@@ -14,12 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Published the ANCHOR v3 archive fold grammar, activation rules, and frozen vectors.
 - Clarified controller custody routing and its activation guard.
 - Documented LTC and DOGE follower halt timing for mirror operators.
-- Armed the testnet release train at BTC 155452.
-- Armed testnet mirror admission producers at BTC 155453, LTC 4907632 and DOGE 67968273.
-- Armed testnet mirror admission consumers at BTC 155499, LTC 4907862 and DOGE 67969217.
-- Armed the testnet anchor attestation barrier at BTC 155499.
-- Armed testnet token bridges at BTC 155453, LTC 4907632 and DOGE 67968273.
-- Armed testnet token policy inheritance at BTC 155453, LTC 4907632 and DOGE 67968273.
+- Armed the testnet release train at BTC 154566.
+- Armed testnet mirror admission producers at BTC 154567, LTC 4903068 and DOGE 67949959.
+- Armed testnet mirror admission consumers at BTC 154614, LTC 4903291 and DOGE 67950901.
+- Armed the testnet anchor attestation barrier at BTC 154614.
+- Armed testnet token bridges at BTC 154567, LTC 4903068 and DOGE 67949959.
+- Armed testnet token policy inheritance at BTC 154567, LTC 4903068 and DOGE 67949959.
 
 ### Changed
 - The protocol activation page lists the xchain-vm REST_PATTERN_METER gate and counts five own-date time-keyed gates.

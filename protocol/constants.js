@@ -1691,7 +1691,7 @@ const TRAIN_ACTIVATION = {
     // offsets. LTC:testnet mirror admission ships disabled on this train and is
     // untouched by this reslide; it arms on a later train.
     '0.20.0': { mainnet: 9999999999, testnet: 154074, regtest: 0 },
-    '0.21.0': { mainnet: 9999999999, testnet: 155452, regtest: 0 },
+    '0.21.0': { mainnet: 9999999999, testnet: 154566, regtest: 0 },
 };
 
 // STAKE v1 signing-key REUSE flag day, keyed on the processing chain's OWN
@@ -1821,9 +1821,9 @@ const XCHAIN_BRIDGE_ACTIVATION = {
 // network. Regtest is genesis-active.
 const TOKEN_BRIDGE_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67949959, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1851,9 +1851,9 @@ const TOKEN_BRIDGE_ACTIVATION = {
 // dated instant. Regtest is genesis-active.
 const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67949959, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1897,9 +1897,9 @@ const LIST_OWNER_ACTIVATION = {
 // of a short or listed name, valid or invalid. Regtest is genesis-active.
 const TICK_NAMESPACE_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67949959, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -2112,9 +2112,9 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  155453, // set by the v0.21.0 freeze height plan
-    'LTC:testnet':  4907632, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67968273, // set by the v0.21.0 freeze height plan
+    'BTC:testnet':  154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet':  4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67949959, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2124,9 +2124,9 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  155499, // set by the v0.21.0 freeze height plan
-    'LTC:testnet':  4907862, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67969217, // set by the v0.21.0 freeze height plan
+    'BTC:testnet':  154614, // set by the v0.21.0 freeze height plan
+    'LTC:testnet':  4903291, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67950901, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2177,7 +2177,7 @@ const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     // instant as the family's BTC CONSUMER height, so the one member that keeps BOTH
     // completeness certificates gains them together instead of carrying a lone extra rule for
     // 6 h. The measurement, the formula and the re-size rule are with the maps above.
-    testnet: 155499, // set by the v0.21.0 freeze height plan
+    testnet: 154614, // set by the v0.21.0 freeze height plan
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
 
