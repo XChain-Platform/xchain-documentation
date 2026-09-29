@@ -10,14 +10,21 @@
  *
  **********************************************************************
  *
- * Conformance harness for the canonical consensus primitives this repo is the
- * source of record for. protocol/reference-impl/*.js is vendored byte-identically
- * into xchain-hub, xchain-indexer, xchain-explorer, xchain-sdk, and xchain-sync;
- * protocol/test-vectors/*.json is the shared corpus each of those repos' own
- * ConsensusPrimitiveConformance suite runs against its local copy. Until this
- * test existed, nothing in THIS repo ran the vectors against the canonical
- * source itself, and nothing asserted the two per-network activation maps here
- * matched constants.js. Both are ARMED for mainnet at height 961000.
+ * Conformance harness for this repo's vendored copies of the consensus
+ * primitives. protocol/reference-impl/consensus/*.js is NOT the source of record:
+ * xchain-indexer/src/consensus/ is canonical for stake_weighted_quorum.js,
+ * equivocation_header.js and snapshot_reorg_buffer.js (xchain-hub for
+ * gate_registry/core.js), and the platform's twin reconciler copies them here
+ * byte for byte, so a change is made in the canonical repo, never in this copy.
+ * stake_weighted_quorum.js and equivocation_header.js also ride into xchain-hub,
+ * xchain-sync, xchain-explorer and xchain-sdk; snapshot_reorg_buffer.js only
+ * into xchain-hub and xchain-sdk. protocol/test-vectors/*.json IS canonical
+ * here: the shared corpus each consumer's conformance suite runs against its
+ * local copy while byte-comparing that copy with this one. This test runs the
+ * vectors against this repo's copy and asserts constants.js agrees with it on
+ * STAKE_WEIGHTED_QUORUM_ACTIVATION, EQUIV_HEADER_ACTIVATION,
+ * SNAPSHOT_BURIAL_ACTIVATION and CANONICAL_REORG_BUFFER; constants.js holds
+ * their per-network heights.
  *
  ********************************************************************/
 
@@ -58,7 +65,7 @@ describe('constants.js <-> reference-impl activation parity (consensus-critical)
     });
 });
 
-describe('reference-impl/stake_weighted_quorum.js (STAKE_WEIGHTED_QUORUM / WI-1)', () => {
+describe('reference-impl/consensus/stake_weighted_quorum.js (STAKE_WEIGHTED_QUORUM / WI-1)', () => {
     describe('meetsStakeThreshold', () => {
         for (const v of swqVectors.meetsStakeThreshold) {
             test(v.name, () => {
@@ -88,7 +95,7 @@ describe('reference-impl/stake_weighted_quorum.js (STAKE_WEIGHTED_QUORUM / WI-1)
     });
 });
 
-describe('reference-impl/equivocation_header.js (EQUIV_HEADER / WI-2 bump 2)', () => {
+describe('reference-impl/consensus/equivocation_header.js (EQUIV_HEADER / WI-2 bump 2)', () => {
     test('ENGINE_TAGS matches the canonical vector table', () => {
         assert.deepEqual(eqh.ENGINE_TAGS, eqhVectors.engineTags);
     });

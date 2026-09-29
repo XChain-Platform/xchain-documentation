@@ -106,12 +106,6 @@ const WIRE_SCOPED = [
     why: 'defines the wire-decoded set, and says so on the same line' },
   { file: 'concepts/actions.md', claim: '37 wire-decoded ACTION types', count: 1,
     why: 'explains XCALL sitting outside that set' },
-  { file: 'getting-started/what-is-xchain.md', claim: '37 ACTION commands', count: 1,
-    why: 'the page presents the wire-decoded set and documents XCALL separately' },
-  { file: 'getting-started/what-is-xchain.md', claim: '37 ACTIONs', count: 2,
-    why: 'the section heading, and the five validator/system actions within that set' },
-  { file: 'getting-started/what-is-xchain.md', claim: '37 actions', count: 2,
-    why: 'chain parity, and the 32-of-37 developer-invocable split' },
   { file: 'getting-started/what-is-xchain.md', claim: '37 wire-decoded ACTIONs', count: 1,
     why: 'names the scope explicitly where XCALL is introduced' },
 ];

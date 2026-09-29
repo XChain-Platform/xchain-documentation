@@ -1,5 +1,5 @@
 {
-  "_description": "Canonical conformance vectors for the equivocation header builder (EQUIV_HEADER / WI-2 bump 2). Each service (xchain-hub, xchain-indexer, xchain-explorer, xchain-sdk, xchain-sync) keeps a hand-maintained copy of equivocation_header.js. The signed preimage is EQUIV|<ENGINE_TAG>|<ROUND_ID>|<VIEW>||<CONTENT>; both the key and the content may themselves contain '|', so the '||' is the only key/content boundary. A divergence in these bytes forks the chain. Each repo's conformance test runs these vectors against its local copy. Single source of truth; do not fork.",
+  "_description": "Canonical conformance vectors for the equivocation header builder (EQUIV_HEADER / WI-2 bump 2). The builder's canonical source is xchain-indexer/src/consensus/equivocation_header.js; the platform's twin reconciler vendors byte-identical copies into xchain-hub, xchain-explorer, xchain-sdk, xchain-sync and this repo's protocol/reference-impl/consensus/equivocation_header.js. The signed preimage is EQUIV|<ENGINE_TAG>|<ROUND_ID>|<VIEW>||<CONTENT>; both the key and the content may themselves contain '|', so the '||' is the only key/content boundary. A divergence in these bytes forks the chain. Each repo's conformance test runs these vectors against its local copy. Single source of truth; do not fork.",
   "engineTags": {
     "DEX": "XDEX",
     "XCALL": "XCALL",

@@ -69,6 +69,7 @@ Errors are JSON objects:
 | `NO_STATE_TREE` | 501 | This server does not hold the state tree (proof routes need a full indexer database) | No: use another instance |
 | `INDEXER_UNAVAILABLE` | 502 | The indexer API behind a validator-set proof is unreachable | Yes: with backoff |
 | `INDEXER_AUTH_REQUIRED` | 503 | The indexer API behind a validator-set proof requires a key this explorer does not carry | No: operator configuration |
+| `INDEXER_STAKE_WEIGHTS_UNAVAILABLE` | 502 | The indexer could not supply a capability's stake set at this height (lagging, not ready, or the stake lookup failed), so no validator-set proof is served. The internal error carries a `:<capability>` suffix that the response code drops | Yes: with backoff |
 | `COIN_DATA_STALE` | 503 | Indexed data for this coin is stale beyond its maximum tip age and is refused rather than served as current. Distinct from `COIN_NOT_AVAILABLE`: a client retrying `COIN_NOT_AVAILABLE` is misconfigured, one retrying `COIN_DATA_STALE` is waiting out an outage | Yes: with backoff |
 | `MIRROR_NOT_CONFIGURED` | 503 | Hub-mirror self-sync is configured for this coin but no hub endpoint is set, so consensus data is refused rather than served stale | No: operator configuration |
 | `MIRROR_NOT_BOOTSTRAPPED` | 503 | The hub mirror has not completed its initial bootstrap, so consensus data is unavailable rather than served empty | Yes: with backoff |

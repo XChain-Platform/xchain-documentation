@@ -50,9 +50,21 @@ await session.order({
 
 ### Available Action Methods
 
-Thirty of the 32 action types are available as convenience methods. `BATCH` is
-the exception: it is composed with the SDK's batch builder
-(`sdk.batch().send({...}).mint({...}).build()`) rather than by a session method.
+Thirty of the 32 user-submittable action types have a session convenience method.
+There are two exceptions:
+
+- **`BATCH`** is composed with the SDK's batch builder
+  (`sdk.batch().send({...}).mint({...}).build()`) rather than by a session method.
+- **`XBRIDGE`** has no session shortcut. Use the bridge recipes
+  (`sdk.workflows.bridgeLock()`, `sdk.workflows.bridgeBurn()`,
+  `sdk.workflows.bridgeTokenLock()`, `sdk.workflows.bridgeTokenBurn()`), which
+  check the destination address against the chain the value lands on before
+  broadcasting, because a bridge lock cannot be undone. For a raw submit, use
+  `session.submit()` below. See [XBRIDGE](actions.md#xbridge).
+
+The SDK object itself also carries the raw builder `sdk.xbridge()`, which is why the
+[Developer Quickstart](../../getting-started/quickstart-developer.md) counts 31
+convenience methods on `sdk` against 30 on a session.
 
 | Category | Methods |
 |---|---|

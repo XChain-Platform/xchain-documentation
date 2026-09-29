@@ -29,13 +29,13 @@ flowchart TD
 
 In practice, XChain works by embedding small pieces of data inside ordinary blockchain transactions. Those data packets are invisible to Bitcoin itself, they're just part of a normal transaction. But XChain's software layer reads those packets, interprets them as commands, and maintains its own database of token balances, orders, and state.
 
-**Nothing about Bitcoin, Litecoin, or Dogecoin is changed.** XChain tokens exist on the actual blockchain, secured by the same proof-of-work consensus that secures every other Bitcoin transaction. There is no sidechain and no third-party bridge: your token balances need no separate validators and no new consensus mechanism to trust. (A staked validator federation does provide the optional cross-chain, oracle, and attestation services described later, including XBRIDGE, the protocol action that moves the platform's own XCHAIN token between chains; those services never sit between you and your base-layer token records.)
+**Nothing about Bitcoin, Litecoin, or Dogecoin is changed.** XChain tokens exist on the actual blockchain, secured by the same proof-of-work consensus that secures every other Bitcoin transaction. There is no sidechain and no third-party bridge: your token balances need no separate validators and no new consensus mechanism to trust. (A staked validator federation does provide the optional cross-chain, oracle, and attestation services described later, including XBRIDGE, the protocol action that moves a token between chains. Those services never sit between you and your base-layer token records, with one exception: a balance XBRIDGE credits on another chain rests on the federation's signature, as [described below](#no-sidechains-no-third-party-bridge).)
 
 ---
 
 ## What Can You Do with XChain?
 
-XChain is built around 37 commands (called **ACTIONs**) that cover the full lifecycle of a digital asset ecosystem.
+XChain is built around 38 commands (called **ACTIONs**) that cover the full lifecycle of a digital asset ecosystem.
 
 ### Create and Manage Tokens
 
@@ -105,7 +105,7 @@ XChain supports **staking** for hub validation. Validators stake XCHAIN tokens t
 
 ### Validator and System Actions
 
-Five of the 37 ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not accessible through the SDK, but they appear on-chain and in the explorer, so it is worth knowing what they do.
+Five of the 38 ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not accessible through the SDK, but they appear on-chain and in the explorer, so it is worth knowing what they do.
 
 - **ANCHOR** is written by validators to commit a quorum-signed state checkpoint to the anchor chain (Dogecoin on all networks). It records the per-block ledger, action, and contract hash triple so light clients can verify indexer state against a threshold of validator signatures without trusting any single operator. Later versions of ANCHOR also archive cross-chain match records and SPV light-client roots, making the full platform state reconstructible from chain data alone.
 - **ATTEST** is written by validators when they answer a smart contract's request for outside-world data (an HTTP call, an LLM query, etc.). Validators fetch the answer independently, reach quorum, and broadcast the signed response back on-chain; a system-synthesized expiry version is written by the indexer if the deadline passes before quorum is reached.
@@ -113,7 +113,7 @@ Five of the 37 ACTIONs are written by the validator federation or synthesized by
 - **ROLLCALL** is a liveness roll call published on Dogecoin. Validators sign a message bound to a Bitcoin epoch block's ledger hash, which cannot be signed before that block is mined, so a signature proves the validator was actually running at the time. Any number of roll calls may land per epoch from anyone and the present set is their union, so no publisher can leave a rival out. The Bitcoin indexer closes each epoch and evicts a validator that has been absent for two consecutive epochs: its stake is deactivated and refunded after the normal cooldown, never burned, because being offline is not an offense.
 - **SLASH** is submitted by anyone who catches a validator signing two conflicting values for the same consensus slot (equivocation). When the proof is valid, the offending validator's entire capability bond is burned automatically. The submitter receives a governance-configured bounty.
 
-XCALL, the platform's cross-chain contract call, works differently: it's emitted by the VM when a smart contract calls `emit.crossExecute(...)` to invoke a contract on a different chain, then mirror-injected into the destination chain's index by the validator federation rather than decoded from a wire transaction, so it isn't counted among the 37 wire-decoded ACTIONs above. The validator federation relays the call and delivers the result back through a callback on the originating chain; a system-synthesized version is written by the indexer if the deadline passes before a result arrives.
+XCALL, the platform's cross-chain contract call, works differently: it's emitted by the VM when a smart contract calls `emit.crossExecute(...)` to invoke a contract on a different chain, then mirror-injected into the destination chain's index by the validator federation rather than decoded from a wire transaction, so it is one of the 38 ACTIONs but not one of the 37 wire-decoded ACTIONs. The validator federation relays the call and delivers the result back through a callback on the originating chain; a system-synthesized version is written by the indexer if the deadline passes before a result arrives.
 
 ---
 
@@ -125,15 +125,15 @@ There are a lot of blockchain protocols out there. Here's what sets XChain apart
 
 Many blockchain token systems work by "locking" assets on one chain and "mirroring" them on another; a process that requires a bridge. Bridges are one of the most attacked surfaces in all of crypto; billions of dollars have been lost to bridge exploits.
 
-XChain has no third-party bridge. Your token record literally exists inside a Bitcoin transaction, with no separate chain to trust. Moving a token between supported chains is a protocol action, XBRIDGE: the balance is locked or burned on its own chain in an ordinary transaction and credited on the destination by the validator federation, with no wrapped asset and no custodian. Everything stays on chains you already trust.
+XChain has no third-party bridge. Your token record literally exists inside a Bitcoin transaction, with no separate chain to trust. Moving a token between supported chains is a protocol action, XBRIDGE: the balance is locked in a protocol escrow address that nobody holds a key for (or, on the way back, burned) on its own chain in an ordinary transaction, and the same amount is credited on the destination, with no wrapped asset. That credit is authorized by the hub's validator federation, so it is a hub-trusted mint, not a trustless one: a compromised hub could supply both the transfer record and the validator roster that checks it. On the public networks, only XCHAIN, the platform's own fee token, can be bridged today, and only on testnet: the bridge is not active on mainnet, and bridging other tokens is built but not yet switched on. See the [bridge trust model](../protocol/xchain-bridge.md#trust-model) and [Token Bridge](../concepts/token-bridge.md).
 
 ### No New Consensus
 
-A lot of layer-2 and sidechain systems require you to trust a separate set of validators to hold your balance. XChain does not: no separate validators secure your token balances. The security of your XChain tokens comes directly from Bitcoin's (or Litecoin's or Dogecoin's) proof-of-work consensus; the same mechanism that has secured those chains for over a decade. A staked validator federation exists only to provide the optional cross-chain, oracle, attestation, and anchoring services (see the Validator and System Actions section above); it quorum-signs those service records but never custodies or gates your base-layer token balances.
+A lot of layer-2 and sidechain systems require you to trust a separate set of validators to hold your balance. XChain does not: no separate validators secure your token balances. The security of your XChain tokens comes directly from Bitcoin's (or Litecoin's or Dogecoin's) proof-of-work consensus; the same mechanism that has secured those chains for over a decade. A staked validator federation exists only to provide the optional cross-chain, oracle, attestation, and anchoring services (see the Validator and System Actions section above); it quorum-signs those service records but never custodies your base-layer token balances. The one place its signature decides a balance is XBRIDGE, where it authorizes the destination credit and the release from escrow on the way back (the hub-trusted mint described above).
 
 ### Multi-Chain by Design
 
-XChain runs natively on every supported chain simultaneously, which today means Bitcoin, Litecoin, and Dogecoin. A token on one chain is distinct from a token on another chain; they have separate ledgers. But the XChain software supports all three chains with the same protocol, the same 37 actions, and the same tooling. A single deployment of the platform can index and serve data for all three chains at once.
+XChain runs natively on every supported chain simultaneously, which today means Bitcoin, Litecoin, and Dogecoin. A token on one chain is distinct from a token on another chain; they have separate ledgers. But the XChain software supports all three chains with the same protocol, the same 38 actions, and the same tooling. A single deployment of the platform can index and serve data for all three chains at once.
 
 ### AI-Callable Smart Contracts
 
@@ -145,15 +145,15 @@ The XChain platform is open source software. Anyone can run their own XChain nod
 
 ---
 
-## The 37 ACTIONs: The Building Blocks
+## The 38 ACTIONs: The Building Blocks
 
-Every operation on XChain is expressed as one of 37 ACTION commands. Think of them as the vocabulary of the protocol; a complete set of verbs for working with digital assets.
+Every operation on XChain is expressed as one of 38 ACTION commands. Think of them as the vocabulary of the protocol; a complete set of verbs for working with digital assets.
 
 | Category | ACTIONs |
 |---|---|
 | Token lifecycle | ISSUE, MINT, DESTROY, CALLBACK, SLEEP |
 | Transfers | SEND, SWEEP, AIRDROP, DIVIDEND |
-| Cross-chain | XBRIDGE |
+| Cross-chain | XBRIDGE, XCALL |
 | Trading | ORDER, COINPAY, DISPENSER, SWAP |
 | Smart contracts | DEPLOY, EXECUTE, DEPOSIT, WITHDRAW |
 | Outside-world data | PRICE, ATTEST |
@@ -182,7 +182,7 @@ XCHAIN is itself just a token on XChain, issued via `ISSUE` by a designated addr
 
 ### Developers Building Token Platforms
 
-XChain provides a complete SDK (`xchain-sdk`) with methods for all 32 of the 37 actions that are developer-invocable, 100+ explorer queries, smart contract deployment and execution, a batch builder, live WebSocket event streaming, and PSBT generation. If you want to build a token platform, a DEX, an NFT marketplace, a DeFi protocol with smart contracts, or any application involving digital assets on Bitcoin-family chains, XChain gives you the full stack.
+XChain provides a complete SDK (`xchain-sdk`) with methods for all 32 of the 38 actions that are developer-invocable, 100+ explorer queries, smart contract deployment and execution, a batch builder, live WebSocket event streaming, and PSBT generation. If you want to build a token platform, a DEX, an NFT marketplace, a DeFi protocol with smart contracts, or any application involving digital assets on Bitcoin-family chains, XChain gives you the full stack.
 
 ### Organizations Wanting Private Deployments
 

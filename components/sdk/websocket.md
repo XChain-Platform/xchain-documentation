@@ -306,13 +306,22 @@ market receives stakes placed by strangers on it and nothing from any other.
 
 ## Reconnection and Catch-Up
 
-The client automatically reconnects on disconnect with exponential backoff. On reconnect, it replays all subscriptions with `since_action_index` set to the last received action index, so no events are missed.
+The client automatically reconnects on disconnect with exponential backoff. On reconnect, it replays every subscription. Those that carry actions (`actions` and `address`) carry `since_action_index` set to the last action index received before the disconnect; the `WELCOME` of the new connection does not move that cursor. The explorer runs one catch-up per connection, so the client sends these one at a time, each after the previous one's `CATCH_UP_COMPLETE`, and continues a replay the server truncated at its row cap from where it stopped.
 
-Catch-up events have `catch_up: true` in the envelope. After replay, a `CATCH_UP_COMPLETE` event is emitted.
+Catch-up events have `catch_up: true` in the envelope. After each replay, a `CATCH_UP_COMPLETE` event is emitted.
 
 ```javascript
 ws.on('CATCH_UP_COMPLETE', (msg) => {
     console.log('Caught up:', msg.data.events_replayed, 'events replayed');
+});
+```
+
+When a catch-up is refused (for example `CATCH_UP_TOO_OLD`, when the cursor is further behind than the explorer's catch-up depth limit) or goes unanswered for 30 seconds, the client emits `resync_required` and moves on to the next subscription. The missed actions were not replayed, so backfill them over REST:
+
+```javascript
+ws.on('resync_required', (msg) => {
+    // msg.data: { code, message, channels, since_action_index }
+    reloadFromRest(msg.data.channels, msg.data.since_action_index);
 });
 ```
 
@@ -325,9 +334,12 @@ sequenceDiagram
     Client->>Client: reconnect with exponential backoff
     Client->>Server: reconnect
 
-    Client->>Server: replay subscriptions, since_action_index = last received index
+    Server-->>Client: WELCOME, current tip (cursor unchanged)
+    Client->>Server: replay first action subscription, since_action_index = last received index
     Server-->>Client: catch-up events, catch_up true
     Server-->>Client: CATCH_UP_COMPLETE, events_replayed
+    Client->>Server: replay next action subscription, same since_action_index
+    Server-->>Client: catch-up events, then CATCH_UP_COMPLETE
 ```
 
 Reconnection uses the same retry configuration as the explorer/encoder clients:

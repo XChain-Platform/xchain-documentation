@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The protocol activation page lists the xchain-vm REST_PATTERN_METER gate and counts five own-date time-keyed gates.
 - The PRICE v1 price action page, BROADCAST fee-length page, ARCHIVE match-count page, and ANCHOR bundle-order page document their consensus-bound flag-day rules.
 - Documented the PRICE v1 canonical activation, synchronized its reference implementation gate and grammar bounds with the indexer registry, and published its inert mainnet and testnet status with genesis-active regtest behavior.
 - The protocol activation guide documents the unarmed testnet gate for hook-aware JSON stringify depth guarding.

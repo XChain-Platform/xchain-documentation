@@ -268,7 +268,8 @@ its own guard, keyed on controller identity rather than token identity (see
 [Reentrancy and determinism](./controller-bound-tokens.md#reentrancy-and-determinism)).
 
 **The split itself covers `ORDER` and `SWAP` sales only.** A `DISPENSER` sale runs the guard
-at create as a *veto* and takes no cut: legs returned there are discarded, and no split is
+at create as a *veto* and takes no cut: legs returned there are still validated (a malformed
+or over-cap set denies the listing) and a valid set is then discarded, and no split is
 applied at dispense (see
 [Proceeds split](./controller-bound-tokens.md#proceeds-split-royalty-fee-payout_legs)). So a
 royalty guard that only *returns legs* is routed around by vending through a dispenser;

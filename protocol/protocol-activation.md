@@ -93,7 +93,7 @@ re-runs an action handler, a deploy validator, or the VM.
 | Service | Carries |
 |---|---|
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
-| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([VM gates](#vm-gates-service-carried)) |
+| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus the own-date `REST_PATTERN_METER_GATE_BLOCK_TIME` (destructuring rest-pattern metering and the deploy rejection of rest positions the meter cannot reach; it does not ride the contract-era instant, its value is on [Flag-Day Values](./flag-days.md), and its indexer twin is `REST_PATTERN_METER`) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([VM gates](#vm-gates-service-carried)) |
 | `xchain-hub` | the nine validator-era gate modules it consumes (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical, retraction signing, attestation relay, price signature tally). The tenth Cohort B gate, attestation admission, is indexer-only |
 | `xchain-decoder` | the six activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` and `ENVELOPE_CARRIER_RECOGNITION_ACTIVATION` (per-chain local height) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
@@ -138,8 +138,8 @@ Cohort A, so a straggler node that has not upgraded reaches a different verdict.
 
 | Rider | Resolved in | Enforced in | What changes at the instant |
 |---|---|---|---|
-| **contract.slash token delimiter guard** (`isSlashTokenDelimGuardActive`) | `xchain-vm/src/index.js` | `xchain-vm/src/gateway.js`, on `readOnlyData.slashTokenDelimGuardOn` | A `contract.slash` whose `token` carries a `\|` stops emitting and throws, closing the one emit path that never rejected a character the indexer may pipe-join |
-| **contract.slash amount-precision widening** (`isSlashAmountPrecisionActive`) | `xchain-vm/src/index.js` | `xchain-vm/src/gateway.js`, which swaps an 8-fractional-digit amount pattern for an 18-digit one | A slash amount carrying 9 to 18 fractional digits stops throwing and emits. The ceiling is `MAX_SLASH_AMOUNT_DECIMALS` 18, which must equal the indexer's `MAX_TOKEN_DECIMALS`: STAKE v3 admits a stake at the token's own decimals and the slash arithmetic computes the deduction at that precision, so the narrower pattern made an exact partial slash of a 9-to-18-decimal token impossible |
+| **contract.slash token delimiter guard** (`isSlashTokenDelimGuardActive`) | `xchain-vm/src/index.js` | `xchain-vm/src/gateway/contract_stake.js`, on `readOnlyData.slashTokenDelimGuardOn` | A `contract.slash` whose `token` carries a `\|` stops emitting and throws, closing the one emit path that never rejected a character the indexer may pipe-join |
+| **contract.slash amount-precision widening** (`isSlashAmountPrecisionActive`) | `xchain-vm/src/index.js` | `xchain-vm/src/gateway/contract_stake.js`, which swaps an 8-fractional-digit amount pattern for an 18-digit one | A slash amount carrying 9 to 18 fractional digits stops throwing and emits. The ceiling is `MAX_SLASH_AMOUNT_DECIMALS` 18, which must equal the indexer's `MAX_TOKEN_DECIMALS`: STAKE v3 admits a stake at the token's own decimals and the slash arithmetic computes the deduction at that precision, so the narrower pattern made an exact partial slash of a 9-to-18-decimal token impossible |
 | **Math-output metering** (F-MO, the `mathOutputMeterOn` predicate) | `xchain-vm/src/index.js` | the gateway's math hook | An oversized `pow()` or format result is charged gas, which moves `gasUsed` |
 | **Emission prototype-key strip** (F-PS, the `emissionDeepStrip` predicate) | `xchain-vm/src/index.js` | `EmissionCollector` | Prototype-shaped own keys are stripped recursively rather than only at the top level, which can drop a key from a pathological emitted param and so moves that emission's hash |
 | **Non-finite gas clamp** (F-NR, the `nonFiniteFailClosed` predicate) | `xchain-vm/src/index.js` | the sandbox gas reference | A non-finite metering size resolves to `Number.MAX_SAFE_INTEGER` and yields a ceiling-clamped `out_of_gas` instead of collapsing to 1 gas, which moves the hashed status and `gasUsed` |
@@ -279,7 +279,11 @@ Cohort B batch, the later per-chain gates under
 [Additional armed gates](#additional-armed-gates-service-carried) below, and the four time-keyed
 gates that carry a date of their own (`BATCH_ISSUANCE_LIMITS`, `CONTRACT_DELEGATION_MATERIALIZE`,
 `DISPENSER_ORACLE_PER_TOKEN_PRICE`, `CROSS_CHAIN_ROYALTY`), whose instants are on
-[Flag-Day Values](./flag-days.md).
+[Flag-Day Values](./flag-days.md). Five time-keyed gates now carry a date of their own rather than
+the shared contract-era instant: those four plus `REST_PATTERN_METER` (the `xchain-vm`
+`REST_PATTERN_METER_GATE_BLOCK_TIME` destructuring rest-pattern meter and its indexer twin), which
+landed after that snapshot. [Flag-Day Values](./flag-days.md) lists each instant and is the source for
+which of the five have passed.
 
 ## Additional armed gates (service-carried)
 

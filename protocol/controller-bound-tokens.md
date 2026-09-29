@@ -260,7 +260,12 @@ Decision semantics:
   atomically with the native action.
 - **An `ORDER_CREATE` / `SWAP_CREATE` guard may return `{ payoutLegs: [{ to, bps }, …] }`** to
   set a basis-point split of the sale's proceeds (see [Proceeds split](#proceeds-split-royalty-fee-payout_legs)).
-  `DISPENSER_CREATE` is **veto-only**: legs returned there are discarded, not rejected.
+  Legs returned at any other invocation point, `DISPENSER_CREATE` included, are never applied,
+  but they are **validated first** by the same rules and effective cap: a malformed leg or an
+  over-cap total **denies** the action (`invalid: controller (bad payout leg)` /
+  `invalid: controller (payout exceeds cap)`), and only a valid set is discarded. A guard body
+  shared across invocation points should return `payoutLegs` only when `action_type` is
+  `ORDER_CREATE` or `SWAP_CREATE`.
 - **`revert(reason)` / out-of-gas / runtime error / missing `guard` method ⇒ DENY**
   (fail-closed). The native action is marked `invalid: controller (<reason>)` and everything
   the guard did is rolled back.
@@ -293,7 +298,9 @@ There is no royalty-specific mechanism; "royalty" is simply the most common use 
    `min(CONTROLLER_MAX_TAKE_BPS, contract maxTakeBps)`; global default `10000`, optionally
    tightened by the contract's [permissions manifest](#permissions-manifest)) and stores the
    legs as JSON on `orders.payout_legs` / `swaps.payout_legs`. A malformed or over-cap set
-   **denies** the listing (fail-closed). No `payoutLegs` ⇒ NULL (an ordinary order).
+   **denies** the listing (fail-closed). No `payoutLegs` ⇒ NULL (an ordinary order). The same
+   validation, including the lenient shapes below, runs at every other guard invocation
+   point, where a bad set denies the action and a valid set is discarded unapplied.
 
    Two shapes are read leniently rather than denied, and no activation gate changes that
    today (none is registered in [Flag-Day Values](./flag-days.md)): a supplied `payoutLegs`
@@ -314,7 +321,9 @@ transfer ownership rather than a balance, so no proceeds split applies to that l
 
 > ⚠️ **Dispensers take no split, whatever the guard returns.** `DISPENSER_CREATE` runs the
 > `trade` guard as a **veto only**: the indexer consumes the deny and the metered guard fee and
-> **discards any `payoutLegs` the guard returns**, silently, without denying the listing. No
+> never applies any `payoutLegs` the guard returns. It still **validates** them exactly as at
+> `ORDER_CREATE` / `SWAP_CREATE`, so a malformed or over-cap set **denies** the listing, and
+> only a valid set is discarded, silently, without denying it. No
 > split is applied at dispense either: the dispense path credits the buyer the `GIVE_TICK` and
 > runs no guard and no `applyProceedsSplit`. So a royalty policy that only *returns legs* is
 > routed around by vending the token through a dispenser instead of listing it. A guard that
@@ -345,7 +354,7 @@ When the flag is on:
 2. **In the match**, the hub copies each order's stored legs onto the `cross_chain_matches`
    row (`a_payout_legs` / `b_payout_legs`), and the legs are part of the **validator-signed
    XMATCH canonical** (a `cross_chain` quorum of signatures: stake-weighted at/above
-   `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count), so a
+   `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy `max(2f+1, ceil((N+1)/2))` signer count), so a
    colluding hub cannot strip a
    royalty: a stripped or rewritten legs field breaks the signatures and the match never
    settles.

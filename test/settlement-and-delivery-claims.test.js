@@ -43,6 +43,10 @@
  *   7. The cross-chain guide dismissed bridges and never named XBRIDGE. Its
  *      bridge section says XCHAIN-only, off on mainnet, and hub-trusted, each
  *      true only while the activation gates it cites stay where they are.
+ *   8. The intro page said XBRIDGE had no custodian and that the federation
+ *      never gates a balance, and three pages stated XCHAIN-only as a property
+ *      of XBRIDGE. The credit is a hub-trusted mint and v3 to v5 bridge any
+ *      opted-in token once TOKEN_BRIDGE_ACTIVATION arms.
  *
  * WHAT IT CHECKS. Both halves of every claim: the SOURCE fact the corrected
  * wording rests on, read out of the sibling indexer, and the PROSE, which must
@@ -360,8 +364,9 @@ test('the bridge availability source facts still hold', { skip: skipNoIndexer },
             + 'bridge is not active on mainnet and must change in the same commit.');
     }
     assert.match(tokenGate[0], /testnet:\s*9999999999/,
-        'TOKEN_BRIDGE_ACTIVATION is armed on testnet. cross-chain.md says bridging other tokens '
-        + 'is not yet switched on for testnet and must change in the same commit.');
+        'TOKEN_BRIDGE_ACTIVATION is armed on testnet. cross-chain.md, what-is-xchain.md, '
+        + 'concepts/metalayer.md and overview.md say bridging other tokens is not yet switched on '
+        + 'and must change in the same commit.');
 });
 
 test('the cross-chain guide covers the bridge with its scope and trust stated', () => {
@@ -372,4 +377,58 @@ test('the cross-chain guide covers the bridge with its scope and trust stated', 
         'cross-chain.md bridge section no longer states the hub-trusted mint assumption');
     assert.match(bridge, /cannot be undone or redirected/,
         'cross-chain.md bridge section no longer says an applied credit is final');
+});
+
+test('the intro pages state the bridge trust model instead of denying it', () => {
+    const intro = readDoc('getting-started/what-is-xchain.md');
+    const noBridge = section(intro, '### No Sidechains, No Third-Party Bridge', 'what-is-xchain.md');
+    const noConsensus = section(intro, '### No New Consensus', 'what-is-xchain.md');
+    assert.ok(!/no wrapped asset and no custodian|chains you already trust/.test(noBridge),
+        'what-is-xchain.md again says XBRIDGE has no custodian and trusts only the base chains; '
+        + 'the destination credit is a hub-trusted mint (protocol/xchain-bridge.md#trust-model)');
+    assert.match(noBridge, /hub-trusted mint/,
+        'what-is-xchain.md bridge paragraph no longer names the hub-trusted mint');
+    assert.match(noBridge, /xchain-bridge\.md#trust-model/,
+        'what-is-xchain.md bridge paragraph no longer links the bridge trust model');
+    assert.match(noBridge, /not active on mainnet/,
+        'what-is-xchain.md bridge paragraph no longer says the bridge is off on mainnet');
+    assert.ok(!/never custodies or gates/.test(noConsensus),
+        'what-is-xchain.md again says the federation never gates a balance; it authorizes every XBRIDGE credit');
+    const overview = readDoc('overview.md');
+    const bullet = overview.split('\n').find((l) => l.startsWith('**No third-party bridge.**')) || '';
+    assert.match(bullet, /hub-trusted mint/,
+        'overview.md "No third-party bridge" bullet no longer says the XBRIDGE credit is a hub-trusted mint');
+});
+
+test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XBRIDGE', () => {
+    const pages = [
+        ['concepts/metalayer.md', /^\*\*Sidechains\*\*/],
+        ['overview.md', /^\*\*No third-party bridge\.\*\*/],
+    ];
+    for(const [rel, lead] of pages){
+        const para = readDoc(rel).split('\n').find((l) => lead.test(l)) || '';
+        assert.notStrictEqual(para, '', `${rel} no longer has the paragraph that describes XBRIDGE's scope`);
+        assert.ok(!/moves only the platform's own XCHAIN|The one exception is XCHAIN/.test(para),
+            `${rel} again states XBRIDGE as XCHAIN-only; XBRIDGE v3 to v5 bridge any opted-in token `
+            + 'behind TOKEN_BRIDGE_ACTIVATION (protocol/actions/xbridge.md)');
+        assert.match(para, /not yet switched on/,
+            `${rel} no longer says bridging other tokens is built but not yet switched on`);
+    }
+});
+
+test('the overview keeps XBRIDGE off mainnet while its mainnet gate is the sentinel', () => {
+    const overview = readDoc('overview.md');
+    const pending = /not active on mainnet|awaits mainnet activation/;
+    const intro = section(overview, '## In one paragraph', 'overview.md');
+    assert.match(intro, /token bridge that runs on testnet and regtest and awaits mainnet activation/,
+        'overview.md "In one paragraph" lists the token bridge among live-in-production features without its mainnet caveat');
+    const bullet = overview.split('\n').find((l) => l.startsWith('**No third-party bridge.**')) || '';
+    assert.match(bullet, pending,
+        'overview.md "No third-party bridge" bullet no longer says XBRIDGE is off on mainnet');
+    assert.ok(!/not active on mainnet\.\s*Cross-chain settlement already works in production/.test(bullet),
+        'overview.md again ends the XBRIDGE sentence with the production claim, which belongs to swap settlement');
+    const going = section(overview, '## Where it\'s going', 'overview.md');
+    assert.match(going, /XBRIDGE[^.]*awaits mainnet activation/,
+        'overview.md "Where it\'s going" no longer names XBRIDGE among the features awaiting mainnet activation '
+        + '(a bare "bridge" match is not enough: this section already says "bridge risk")');
 });

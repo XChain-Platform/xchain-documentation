@@ -299,10 +299,11 @@ const BATCH_COMMAND_LIMIT = 250;
 // the cross-service regression suite (protocol-constant-claims.test.js)
 // holds all three copies and every prose claim equal to this value.
 //
-// Active from genesis on testnet/regtest, not yet armed on mainnet. The gate
-// must activate at or after BATCH_ISSUANCE_LIMITS: the budget check replaces
-// that gate's count cap in the same first position and reuses its
-// classification of sub-commands.
+// Armed at genesis (0) on every network, mainnet by the 2026-09-09 genesis arm.
+// The budget check replaces BATCH_ISSUANCE_LIMITS's count cap in the same first
+// position and reuses its classification of sub-commands, so the indexer reads
+// it only where that gate is active: the effective mainnet activation is
+// 2026-08-16T00:00:00Z, even though this gate's own mainnet value sits below it.
 const BATCH_WEIGHT_BUDGET = 250;
 
 // Per-action COST WEIGHTS for the budget above. An action absent from this
@@ -645,8 +646,8 @@ const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
 // Keyed on the carried BTC EPOCH_HEIGHT on BOTH chains (the snapshot_block convention of
 // STAKE_WEIGHTED_QUORUM_ACTIVATION), never on either chain's local height, so a pre-activation
 // roll call is inert on DOGE and on BTC alike and no second DOGE-height flag day exists.
-// INERT on mainnet (null = never active) until the operator pins a height with the mainnet
-// federation; the null placeholder follows SNAPSHOT_BURIAL_ACTIVATION.mainnet.
+// ARMED on mainnet at genesis (0) by the 2026-09-09 ruling: the indexed mainnet history carries
+// 0 validators and 0 roll-calls (measured 2026-09-09), so arming reinterprets nothing there.
 // REGTEST ARMS AT 0, but only when the venue OPTS IN with XC_ROLLCALL_REGTEST_ACTIVATION, and the
 // 2026-08-31 finding is why the default stays inert: arming a network commits every BTC indexer on
 // it to a wired DOGE peer, because the epoch close cannot decide a non-empty responsible set
