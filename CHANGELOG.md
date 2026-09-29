@@ -15,11 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clarified controller custody routing and its activation guard.
 - Documented LTC and DOGE follower halt timing for mirror operators.
 - Armed the testnet release train at BTC 154566.
-- Armed testnet mirror admission producers at BTC 154567, LTC 4903068 and DOGE 67949959.
-- Armed testnet mirror admission consumers at BTC 154614, LTC 4903291 and DOGE 67950901.
+- Armed testnet mirror admission producers at BTC 154567, LTC 4903068 and DOGE 67951140.
+- Armed testnet mirror admission consumers at BTC 154614, LTC 4903291 and DOGE 67952082.
 - Armed the testnet anchor attestation barrier at BTC 154614.
-- Armed testnet token bridges at BTC 154567, LTC 4903068 and DOGE 67949959.
-- Armed testnet token policy inheritance at BTC 154567, LTC 4903068 and DOGE 67949959.
+- Armed testnet token bridges at BTC 154567, LTC 4903068 and DOGE 67951140.
+- Armed testnet token policy inheritance at BTC 154567, LTC 4903068 and DOGE 67951140.
 
 ### Changed
 - The protocol activation page lists the xchain-vm REST_PATTERN_METER gate and counts five own-date time-keyed gates.

@@ -1823,7 +1823,7 @@ const TOKEN_BRIDGE_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
     'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67949959, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1853,7 +1853,7 @@ const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
     'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67949959, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1899,7 +1899,7 @@ const TICK_NAMESPACE_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
     'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67949959, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -2114,7 +2114,7 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'DOGE:mainnet': null,
     'BTC:testnet':  154567, // set by the v0.21.0 freeze height plan
     'LTC:testnet':  4903068, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67949959, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2126,7 +2126,7 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'DOGE:mainnet': null,
     'BTC:testnet':  154614, // set by the v0.21.0 freeze height plan
     'LTC:testnet':  4903291, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67950901, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67952082, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
