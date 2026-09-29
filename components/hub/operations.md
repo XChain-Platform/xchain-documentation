@@ -366,6 +366,7 @@ These series are served on the metrics endpoint only when [`METRICS_ENABLED`](./
 | `xchain_oracle_round_timeouts_total` | Counter | None | Oracle rounds evicted before reaching commit quorum, leader and follower seats alike. |
 | `xchain_oracle_single_source_rounds_total` | Counter | None | Oracle rounds finalized with one uncorrelated price source on a normally-multi-source pair. |
 | `xchain_oracle_price_source_live` | Gauge | `source` | `1` when that upstream returned at least one usable price on this hub's last fetch and `0` when it did not; absent before the first fetch. |
+| `xchain_oracle_price_source_fetch_attempts_total` | Counter | `source` | Cumulative fetch dispatches per upstream this hub attempted this round, live or dead; the dispatch evidence behind the liveness gauge. |
 | `xchain_oracle_price_source_bound_rejects_total` | Counter | `source` | Upstream values dropped on the ingest bound. |
 
 Single-source warning lines now name the live and dead upstreams (for example, `live: coingecko; dead: kraken, coinbase`) and the pairs that went single-source with their submitters, so an operator can tell which source dropped.
