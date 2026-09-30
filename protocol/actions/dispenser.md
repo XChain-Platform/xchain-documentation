@@ -101,6 +101,8 @@ Token-priced ownership dispenser: first matcher who delivers 10,000,000 PEPECASH
 - If a dispenser is closed by the dispenser `SOURCE`, tokens escrowed in the dispenser are returned to `SOURCE`
 - If a dispenser is closed via `SWEEP` (`DISPENSERS=1`), remaining escrowed tokens (or the escrowed ownership record, if `GIVE_OWNERSHIP=1`) are credited to the SWEEP `DESTINATION` (see [`SWEEP`](./sweep.md))
 - If a dispenser closes due to `EXPIRATION` (no canceller), tokens escrowed in the dispenser are returned to `SOURCE`
+- A dispenser's own `GET_ADDRESS` must be on its `ALLOW_LIST`; if it is not, the indexer rejects the dispense as `invalid: GET_ADDRESS (dispenser allow list)` and no tokens are dispensed (see `xchain-indexer/src/actions/dispense/pricing.js`)
+- Behind `DISPENSER_SETTLEMENT_PRICE_ACTIVATION`, a dispenser priced by a user oracle (PRICE v1) sells only while that oracle has published a price in the last 24 hours, so the oracle must republish at least every 24 hours. This activation is live on regtest and is not yet armed on mainnet or any testnet (see `xchain-indexer/src/protocol_changes/gates_4.js`)
 
 ```mermaid
 stateDiagram-v2
