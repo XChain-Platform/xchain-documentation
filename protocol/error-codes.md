@@ -35,7 +35,7 @@ Errors are JSON objects:
 | `SERVER_ERROR` | 500 | Unexpected internal failure | Yes: with backoff |
 | `UPSTREAM_ERROR` | 502 | The colocated indexer fee service failed | Yes: with backoff |
 | `COIN_NOT_AVAILABLE` | 503 | Coin supported but not configured for data requests here | No: use another instance |
-| `INDEXER_NOT_CONFIGURED` | 501 | Fee quote/schedule needs an indexer API this instance lacks | No: use another instance |
+| `INDEXER_NOT_CONFIGURED` | 501 | The route needs an indexer API this instance lacks for the coin/network: native and oracle fee quote, fee schedule, action pre-flight, and validator-set proof | No: use another instance |
 | `SERVICE_UNAVAILABLE` | 503 | The endpoint cannot serve this request | No |
 | `INVALID_PARAMETER` | 400 | A query or body parameter is malformed, repeated, over-long, or outside its allowed values; the generic 400 when no narrower code below applies | No: fix the request |
 | `INVALID_ACTION` | 400 | The `action` parameter names no known action (fee quote and preflight routes) | No |

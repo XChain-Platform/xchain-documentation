@@ -525,7 +525,7 @@ See also: [`../actions/FILE.md`](../../protocol/actions/file.md)
 
 Create or update a token. Multiple update sub-formats allow targeted edits without re-specifying the full token definition.
 
-**Format Versions:** v0 (full create), v1 (description update), v2 (mint params update), v3 (lock update), v4 (callback update), v5 (list update), v6 (controller bind/unbind)
+**Format Versions:** v0 (full create), v1 (description update), v2 (mint params update), v3 (lock update), v4 (callback update), v5 (list update), v6 (controller bind/unbind), v7 (bridge opt-in)
 
 **Format v0 (create):** `ISSUE|VERSION|TICK|MAX_SUPPLY|MAX_MINT|DECIMALS|DESCRIPTION|MINT_SUPPLY|TRANSFER|TRANSFER_SUPPLY|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|ALLOW_LIST|BLOCK_LIST|MINT_ADDRESS_MAX|MINT_START_BLOCK|MINT_STOP_BLOCK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`  
 **Format v1 (description):** `ISSUE|VERSION|TICK|DESCRIPTION|MEMO`  
@@ -533,7 +533,8 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 **Format v3 (locks):** `ISSUE|VERSION|TICK|LOCK_MAX_SUPPLY|LOCK_MAX_MINT|LOCK_DESCRIPTION|LOCK_SLEEP|LOCK_CALLBACK|LOCK_MINT|LOCK_MINT_SUPPLY|MEMO`  
 **Format v4 (callback):** `ISSUE|VERSION|TICK|CALLBACK_BLOCK|CALLBACK_TICK|CALLBACK_AMOUNT|MEMO`  
 **Format v5 (lists):** `ISSUE|VERSION|TICK|ALLOW_LIST|BLOCK_LIST|MEMO`  
-**Format v6 (controller bind/unbind):** `ISSUE|VERSION|TICK|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO`
+**Format v6 (controller bind/unbind):** `ISSUE|VERSION|TICK|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO`  
+**Format v7 (bridge opt-in):** `ISSUE|VERSION|TICK|BRIDGE_CHAINS|MIN_DEPTH|LOCK_BRIDGE|MEMO`
 
 **Params (full create (v0):)**
 
@@ -633,6 +634,18 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 - Only the token issuer (the address that broadcast the original ISSUE v0) may submit ISSUE v6.
 - The indexer enforces contract existence and cooldown; the SDK validates field format only.
 - Use `sdk.controller.bindToken()` and `sdk.controller.unbindToken()` to build params cleanly.
+
+**Params (bridge opt-in (v7):)**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| tick | string | Yes | Token whose [XBRIDGE](../../protocol/actions/xbridge.md) bridgeability is being set |
+| bridgeChains | string | No | Comma list of destination coins this token may bridge to, or `-` for none. Omit to leave unchanged; an empty string never clears the list. |
+| minDepth | integer | No | Confirmation depth the federation must honour for this token's bridge locks, raise-only over the platform default. Omit to leave unchanged. |
+| lockBridge | integer | No | `1` permanently freezes `bridgeChains` and `minDepth` |
+| memo | string | No | Optional note |
+
+See [ISSUE format 7](../../protocol/actions/issue.md) and [the token bridge](../../protocol/token-bridge.md) for the owner-only rule and refusal verdicts.
 
 ```js
 // Full create

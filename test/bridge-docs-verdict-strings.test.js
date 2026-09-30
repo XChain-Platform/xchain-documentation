@@ -98,6 +98,15 @@ test('ISSUE format 7 (bridge opt-in) params are documented', () => {
   );
 });
 
+test('the SDK reference pages list ISSUE format 7 beside the protocol page', () => {
+  // Pin the SDK restatements so they track every protocol ISSUE format.
+  const format = 'BRIDGE_CHAINS|MIN_DEPTH|LOCK_BRIDGE';
+  assert.ok(read('components/sdk/actions.md').includes(format), 'components/sdk/actions.md is missing the ISSUE v7 format');
+  const selection = read('components/sdk/format-selection.md');
+  assert.match(selection, /`ISSUE` has eight format versions/, 'format-selection.md ISSUE version count is stale');
+  assert.match(selection, /^\| ISSUE \|(?:[^|]*\|){7} Bridge opt-in \|$/m, 'format-selection.md Quick Reference lacks the ISSUE v7 column');
+});
+
 test('R8 tick-namespace reservation is documented in issue.md and the action index', () => {
   for (const file of ['protocol/actions/issue.md', 'protocol/actions/README.md']) {
     const text = read(file);

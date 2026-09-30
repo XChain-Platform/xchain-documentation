@@ -93,7 +93,7 @@ re-runs an action handler, a deploy validator, or the VM.
 | Service | Carries |
 |---|---|
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
-| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus the own-date `REST_PATTERN_METER_GATE_BLOCK_TIME` (destructuring rest-pattern metering and the deploy rejection of rest positions the meter cannot reach; it does not ride the contract-era instant, its value is on [Flag-Day Values](./flag-days.md), and its indexer twin is `REST_PATTERN_METER`) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([VM gates](#vm-gates-service-carried)) |
+| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus the own-date `REST_PATTERN_METER_GATE_BLOCK_TIME` (destructuring rest-pattern metering and the deploy rejection of rest positions the meter cannot reach; it does not ride the contract-era instant, its value is on [Flag-Day Values](./flag-days.md), and its indexer twin is `REST_PATTERN_METER`) plus `JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME` (hook-aware depth guarding for values transformed by `JSON.stringify`; it keys on its own flag day and stays inert until the operator arms it, its status is on [Flag-Day Values](./flag-days.md), and its indexer twin is `JSON_STRINGIFY_HOOK`) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus four per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION`, and the mainnet-unarmed `LINT_OPTIONAL_CHAIN_ACTIVATION` ([VM gates](#vm-gates-service-carried)) |
 | `xchain-hub` | the nine validator-era gate modules it consumes (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical, retraction signing, attestation relay, price signature tally). The tenth Cohort B gate, attestation admission, is indexer-only |
 | `xchain-decoder` | the six activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` and `ENVELOPE_CARRIER_RECOGNITION_ACTIVATION` (per-chain local height) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
@@ -293,8 +293,9 @@ gate has a second copy it is byte-identical, and that pair is the drift guard; a
 has no second copy, see [above](#where-the-values-live)). They are listed here so the flag-day
 inventory stays complete pending consolidation into the canonical file, and because
 [Flag-Day Values](./flag-days.md) covers only the time-keyed thresholds: every height-keyed one is
-inventoried on this page, the armed ones in this table and the mainnet-unarmed VM pair under
-[VM gates](#vm-gates-service-carried).
+inventoried on this page, the armed ones in this table and the three VM-carried ones under
+[VM gates](#vm-gates-service-carried), two of them armed at genesis on mainnet and the
+optional-chain gate still unarmed.
 
 | Gate | Keyed on | Mainnet threshold | Straggler | Lives in |
 |---|---|---|---|---|
@@ -393,13 +394,15 @@ Three further properties of this gate differ from the cohorts above:
   indexed it live. This is what keeps a from-genesis replay matching history, and it is why the
   constant stays in the tree now that both mainnet heights have passed: it is history, not a control.
 
-Within **Cohort A**, the **cross-chain royalty create-side** gate is the one rule that does not share
-the single contract-era timestamp: it is deliberately armed on its own, later date (both values are on
-[Flag-Day Values](./flag-days.md)), so the deny window between the two dates is the safe interim while the
+Within **Cohort A**, the **cross-chain royalty create-side** gate does not share the single
+contract-era timestamp: like the other time-keyed gates that carry a date of their own (listed above
+and on [Flag-Day Values](./flag-days.md), with every instant), it is deliberately armed on its own, later
+date, so the deny window between the contract-era instant and that date is the safe interim while the
 fleet upgrades to legs-in-canonical. Its match-canonical partner is a Cohort-B gate (`CROSS_CHAIN_ROYALTY_ACTIVATION`,
 armed months earlier at BTC anchor 961000), preserving the canonical-first ordering. So Cohort A is
 "one shared time" in its keying *mechanism* (wall-clock time, synchronized across all three chains), but
-the royalty create-side carries a later time *value* than the rest of the cohort.
+the royalty create-side, like the other own-date gates, carries its own time *value* rather than the
+shared instant.
 
 ## The mainnet genesis arm
 

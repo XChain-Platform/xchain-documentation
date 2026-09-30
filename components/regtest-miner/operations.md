@@ -115,6 +115,40 @@ Return the current mining loop state for operator diagnostics and CI health chec
 | `last_mine_at` | number or null | Unix timestamp in milliseconds (`Date.now()`) of the most recent successful block mine; `null` if no block has been mined yet in this session |
 | `consecutive_errors` | number | Running count of consecutive RPC failures (either `getrawmempool` or `generatetoaddress`). Resets to 0 on the next successful RPC call. Useful for alerting: a non-zero value means the miner is retrying with exponential backoff. |
 
+### `health`
+
+Readiness probe read by the container healthcheck. Unlike `ping`, it answers HTTP 503 when mining is stalled: past the cold-start grace window, a wallet that never became ready, a loop that never started, or a run of consecutive errors or failed mines at the stall threshold. A deliberate pause is never a stall.
+
+**Request:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "health",
+    "id": 3
+}
+```
+
+**Response:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "status": "success",
+        "reason": "ok",
+        "wallet_ready": true,
+        "consecutive_errors": 0,
+        "mine_failures": 0,
+        "mining_paused": false,
+        "mining_started": true
+    },
+    "id": 3
+}
+```
+
+`status` is `degraded` when unhealthy, and `reason` is one of `starting`, `ok`, `paused`, `wallet_not_ready`, `not_started`, `consecutive_errors` or `mine_failures`.
+
 ### `send_funds`
 
 Send regtest coins to a specified address.
@@ -225,6 +259,27 @@ Reset timers to defaults (30,000 / 5,000 ms).
     "id": 8
 }
 ```
+
+### `set_mock_time`
+
+Pin the coin node's clock (`setmocktime`) so the next `generate_blocks` stamps its block at that time. Used to make time-based expiries fire at a deterministic block. Refused on mainnet.
+
+**Request:**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "set_mock_time",
+    "params": { "timestamp": 1718900000 },
+    "id": 8
+}
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `timestamp` | number | Yes | Unix time in seconds, non-negative. `0` releases the mock clock. |
+
+Returns `"ok"` once the node confirms the pin; any failure returns an `error` object.
 
 ### `set_idle_mine_interval`
 

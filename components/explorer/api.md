@@ -1871,7 +1871,7 @@ POST /{COIN}/api/preflight   {"action":"BATCH","params":"...","source":"...","fe
 GET /{COIN}/api/oraclefeequote?oracleAddress=...&giveTick=...&fiatCode=USD&giveEscrow=1000
 ```
 
-Proxied to the colocated indexer's `feequote` / `feeschedule` / `preflight` / `oraclefeequote` JSON-RPC. Returns `503` when no `INDEXER_API_URL` is configured. See [CONFIGURATION.md](configuration.md) for `INDEXER_API_URL_<COIN>_<NETWORK>`.
+Proxied to the colocated indexer's `feequote` / `feeschedule` / `preflight` / `oraclefeequote` JSON-RPC. Returns `501` with code `INDEXER_NOT_CONFIGURED` when no `INDEXER_API_URL` is configured. See [CONFIGURATION.md](configuration.md) for `INDEXER_API_URL_<COIN>_<NETWORK>`.
 
 `preflight` answers "would the indexer accept this action?" independently of native-fee support, returning `{ supported, valid, status, error, guardInert, feeExempt, denied, xchainFee, feeMode, feeTick, feeTokenBalance, feeAffordable, blockIndex, blockTime }`. `xchainFee` is the protocol fee the action would owe as an XCHAIN-denominated decimal string, taken from the same dry-run that produced the verdict, so a confirm screen can disclose the fee without a second call to `feequote` (it is `null` when the run staged no fee record, and absent when no verdict was produced). Sizing a native-coin fee output still needs `feequote`, which prices that fee against the oracle.
 

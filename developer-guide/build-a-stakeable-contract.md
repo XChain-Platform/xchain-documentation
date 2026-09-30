@@ -218,7 +218,7 @@ A few things to know about slashing:
 
 ## Step 6: Unstake
 
-When a staker wants their tokens back, they call `UNSTAKE v1`. This **begins** the cooldown; the tokens are not returned immediately.
+When a staker wants their tokens back, they call `UNSTAKE v1`. This **begins** the cooldown; the tokens are not returned immediately. The example below unstakes the whole stake; the action also takes an optional trailing `AMOUNT` to unstake only part of it, leaving the residual staked (see [Partial Unstake](../protocol/actions/unstake.md#partial-unstake-optional-amount)).
 
 ```js
 await stakerSession.unstakeFromContract({

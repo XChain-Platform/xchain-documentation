@@ -15,7 +15,7 @@ This service is testing infrastructure. It must not be run against mainnet or te
 
 - **Adaptive dual-timer mining**: 30-second max timer with 5-second extension on each new transaction, configurable at runtime via JSON-RPC
 - **Automatic wallet management**: creates, loads, and funds a regtest wallet on startup; mines 101 bootstrap blocks on a fresh chain for coinbase maturity
-- **JSON-RPC control API**: 9 endpoints for health checks, status reporting, fund transfers, mempool stress testing, mining pause/resume, timer configuration, and block generation
+- **JSON-RPC control API**: 14 methods for health checks, status reporting, fund transfers, mempool stress testing, mining pause/resume, timer configuration, idle-chain mining, a mock node clock, block generation, and deterministic reorg testing (listed in [Operations](operations.md#json-rpc-api))
 - **Mempool stress testing**: `fill_mempool` constructs and broadcasts thousands of raw Bitcoin transactions using BIP32/BIP39 key derivation and PSBT signing for load testing
 - **Exponential backoff**: automatic retry with capped exponential backoff (200 ms to 30s) on RPC connection failures, with counter reset on success
 - **Graceful shutdown**: SIGTERM handler allows the current mining loop iteration to complete before exiting

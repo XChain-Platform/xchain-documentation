@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Cross-repo drift lint for three consensus numbers the guides restate in prose.
+ * Cross-repo drift lint for four consensus numbers the guides restate in prose.
  *
  * Each of these was found stated wrongly or not at all, and each is a number a
  * user pays or hits:
@@ -24,6 +24,8 @@
  *     legal when neither the indexer nor the SDK regex accepts one.
  *   - MIN/MAX_BET_REFUND_WINDOW and MAX_BETS_PER_FEED, both enforced and both
  *     absent from the betting guide.
+ *   - XBRIDGE_BASE, the flat bridge lock/burn fee, absent from the page that
+ *     calls itself the complete fee schedule.
  *
  * The values live in sibling repos, not in this one, so they are read as source
  * and parsed with a regex, the same convention protocol-constant-claims.test.js
@@ -110,6 +112,23 @@ test('the ownership-escrow premium the fee docs quote matches the gas schedule',
                 `${rel} does not carry the ${xchStr} XCHAIN figure ${gasStr} gas works out to at `
                 + `GAS_PRICE ${price.get('BTC')}`);
         }
+    });
+
+// Check the XBRIDGE_BASE row itself (5,000 and 0.05 also sit on the SWEEP and CALLBACK rows).
+test('the complete fee schedule prices XBRIDGE_BASE at the gas schedule value',
+    { skip: noCoins }, () => {
+        const vals = COIN_JS.map(([coin, file]) => {
+            const src = fs.readFileSync(file, 'utf8');
+            const where = `xchain-indexer/src/coins/${coin}.js`;
+            return `${scheduleValue(src, 'XBRIDGE_BASE', where)}@${scheduleValue(src, 'GAS_PRICE', where)}`;
+        });
+        assert.equal(new Set(vals).size, 1, `XBRIDGE_BASE or GAS_PRICE differs per chain: ${vals}`);
+        const [gas, price] = vals[0].split('@').map(Number);
+        const row = readDoc('concepts/gas.md').split('\n').find((l) => l.includes('`XBRIDGE_BASE`'));
+        assert.ok(row, 'concepts/gas.md Complete Fee Schedule has no XBRIDGE_BASE row');
+        const cells = row.split('|').map((c) => c.trim());
+        assert.equal(cells[2], gas.toLocaleString('en-US'), `XBRIDGE_BASE row gas: ${row}`);
+        assert.equal(cells[3], String(Number((gas * price).toFixed(8))), `XBRIDGE_BASE row XCHAIN: ${row}`);
     });
 
 // Every page that restates the ticker character set, and must therefore restate

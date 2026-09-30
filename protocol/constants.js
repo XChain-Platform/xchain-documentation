@@ -1810,7 +1810,7 @@ const XCHAIN_BRIDGE_ACTIVATION = {
 // Canonical authority for the registry row token_bridge_activation.TOKEN_BRIDGE_ACTIVATION.
 //
 // ORDERING INVARIANT, asserted by the indexer's parity suite over this map:
-// TOKEN_BRIDGE_ACTIVATION >= XCHAIN_BRIDGE_ACTIVATION per network. The general formats ride
+// TOKEN_BRIDGE_ACTIVATION >= XCHAIN_BRIDGE_ACTIVATION per chain and network. The general formats ride
 // the same hub engine, the same mirrored transfer table and the same settle pass as
 // XCHAIN's, so a train that armed v3 without the XCHAIN bridge behind it would admit locks
 // that nothing can ever finalize and that no burn can ever return.

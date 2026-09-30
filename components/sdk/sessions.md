@@ -86,7 +86,7 @@ convenience methods on `sdk` against 30 on a session.
 Three convenience methods handle protocol-version-pinned variants that differ from the base staking and deploy actions:
 
 - **`session.stakeToContract(params)`** submits a `STAKE VERSION=3` action targeting a specific deployed contract. Required params: `AMOUNT`, `SIGNING_PUBKEY`, `TARGET_CONTRACT_INDEX`, `TICK`.
-- **`session.unstakeFromContract(params)`** submits an `UNSTAKE VERSION=1` action to withdraw stake from a contract. Required params: `SIGNING_PUBKEY`, `TARGET_CONTRACT_INDEX`, `TICK`.
+- **`session.unstakeFromContract(params)`** submits an `UNSTAKE VERSION=1` action to withdraw stake from a contract. Required params: `SIGNING_PUBKEY`, `TARGET_CONTRACT_INDEX`, `TICK`. Optional: `AMOUNT` for a [partial unstake](../../protocol/actions/unstake.md#partial-unstake-optional-amount); omit it for a full unstake.
 - **`session.delegateForContract(params)`** submits a `DELEGATE VERSION=1` action to delegate stake within a contract. Required params: `SIGNING_PUBKEY`, `TARGET_CONTRACT_INDEX`, `TICK`.
 - **`session.deployChunk(params)`** submits a `DEPLOY VERSION=4` carrier for one base64 code slice of a chunked contract deploy (contracts larger than the OP_RETURN limit). Use `sdk.deployContract()` for the high-level chunked deploy workflow; `deployChunk` is the per-slice primitive.
 
