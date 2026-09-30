@@ -111,9 +111,9 @@ this to `~/xchain-node/.env`:
 
 ```
 DOGE_INDEXER_API_URL=https://explorer.xchain.io/TDOGE/api/    # mainnet: /DOGE/api/
-DOGE_INDEXER_API_KEY=<the federation read key issued with your other per-coin keys>
 ```
 
+No key: the explorer answers these reads to anyone, like the rest of its API.
 That read is served off the explorer's own replicated indexer database, so a
 replica running behind just makes the epoch close wait longer, never judge
 the roll call on stale data. See ["Wire the Dogecoin

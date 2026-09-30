@@ -27,9 +27,13 @@ discoverable here even when it has no mainnet date for the table below.
 - `AMOUNT_REPRESENTABILITY_ACTIVATION`
 - `ANCHOR_ACTIVATION`
 - `ANCHOR_ATTEST_BARRIER_ACTIVATION`
+- `ANCHOR_BUNDLE_ORDER_ACTIVATION`
+- `ANCHOR_FOLD_ACTIVATION`
 - `ANCHOR_REWARD_ACTIVATION`
 - `ANCHOR_REWARD_DERIVE_ACTIVATION`
+- `ARCHIVE_MATCH_COUNT_ACTIVATION`
 - `ARCHIVE_REWARD_ACTIVATION`
+- `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION`
 - `ATTEST_ADMISSION_ACTIVATION`
 - `ATTEST_BROADCAST_FEE_ACTIVATION`
 - `ATTEST_RELAY_ACTIVATION`
@@ -54,6 +58,7 @@ discoverable here even when it has no mainnet date for the table below.
 - `PRICE_BATCHING_FLOOR_ACTIVATION`
 - `PRICE_FEE_BATCH_LANDED_ACTIVATION`
 - `PRICE_PAIR_WIDEN_ACTIVATION`
+- `PRICE_SCALE_ACTIVATION`
 - `PRICE_SIG_TALLY_ACTIVATION`
 - `PRICE_ZERO_VALIDITY_ACTIVATION`
 - `RETRACTION_SIGNING_ACTIVATION`
@@ -69,6 +74,7 @@ discoverable here even when it has no mainnet date for the table below.
 - `TOKEN_POLICY_INHERITANCE_ACTIVATION`
 - `TRAIN_ACTIVATION`
 - `XCHAIN_BRIDGE_ACTIVATION`
+- `XCHAIN_PRICE_ACTIVATION`
 
 ## Contract-era flag day
 
@@ -83,11 +89,13 @@ simultaneously on Bitcoin, Litecoin, and Dogecoin.
 
 5 gates do not ride it and carry a date of its own: `BATCH_ISSUANCE_LIMITS` at 2026-08-16 00:00:00 UTC, `CONTRACT_DELEGATION_MATERIALIZE` at 2026-09-15 00:00:00 UTC, `DISPENSER_ORACLE_PER_TOKEN_PRICE` at 2026-09-15 00:00:00 UTC, `CROSS_CHAIN_ROYALTY` at 2027-01-01 00:00:00 UTC, `REST_PATTERN_METER` at 2027-01-01 00:00:00 UTC. Each carries the reason it is armed separately in its registration comment, in the file the **Declared in** column names below. For how a gate is evaluated and what happens to a node that misses one, see [Protocol Activation](./protocol-activation.md).
 
-**One gate is UNARMED on mainnet** (`UNCAPPED_MAX_SUPPLY_ZERO`): each parks the sentinel rather than an instant, so mainnet has **never** run the post-activation behavior and will not until an operator names a date. They carry no row in the table below, because publishing the sentinel as a flag day would put a commitment on this page that nobody made. Each names its reason in its registration comment under `xchain-indexer/src/protocol_changes/`. This note covers the registry only; a sibling `*_activation.js` module can park a mainnet sentinel too, and those are not enumerated here.
+**5 gates are UNARMED on mainnet** (`BROADCAST_FEE_LENGTH`, `CONTROLLER_CUSTODY_GUARD`, `JSON_STRINGIFY_HOOK`, `OWNER_WITHDRAW_OPT_IN`, `UNCAPPED_MAX_SUPPLY_ZERO`): each parks the sentinel rather than an instant, so mainnet has **never** run the post-activation behavior and will not until an operator names a date. They carry no row in the table below, because publishing the sentinel as a flag day would put a commitment on this page that nobody made. Each names its reason in its registration comment under `xchain-indexer/src/protocol_changes/`. This note covers the registry only; a sibling `*_activation.js` module can park a mainnet sentinel too, and those are not enumerated here.
 
 **Testnet and regtest are genesis-active** for the time-keyed gates: they carry
 threshold `0`, so a testnet or regtest stack has always run the
-post-activation behavior. 4 gates are the exception: `ISSUE_INHERITED_MINT_WINDOW` arms testnet at `1787961600` (2026-08-29 00:00:00 UTC), `DEPLOY_DEFERRED_ASSEMBLY` arms testnet at `1788868800` (2026-09-08 12:00:00 UTC), `CONTRACT_META_REQUIRED` arms testnet at `1789257600` (2026-09-13 00:00:00 UTC), `UNIFIED_FEES_SWEEP_CALLBACK` arms testnet at `1790812800` (2026-10-01 00:00:00 UTC). The reason it cannot be genesis-active there is written in its registration comment under `xchain-indexer/src/protocol_changes/`. The values on this page are otherwise mainnet values only.
+post-activation behavior. 5 gates are the exception: `ISSUE_INHERITED_MINT_WINDOW` arms testnet at `1787961600` (2026-08-29 00:00:00 UTC), `DEPLOY_DEFERRED_ASSEMBLY` arms testnet at `1788868800` (2026-09-08 12:00:00 UTC), `CONTRACT_META_REQUIRED` arms testnet at `1789257600` (2026-09-13 00:00:00 UTC), `OWNER_WITHDRAW_OPT_IN` arms testnet at `1790492400` (2026-09-27 07:00:00 UTC), `UNIFIED_FEES_SWEEP_CALLBACK` arms testnet at `1790812800` (2026-10-01 00:00:00 UTC). The reason it cannot be genesis-active there is written in its registration comment under `xchain-indexer/src/protocol_changes/`. The values on this page are otherwise mainnet values only.
+
+**3 gates are UNARMED on testnet** (`BROADCAST_FEE_LENGTH`, `CONTROLLER_CUSTODY_GUARD`, `JSON_STRINGIFY_HOOK`): testnet carries the sentinel rather than `0`, so a testnet stack has **never** run the post-activation behavior and will not until an operator arms it. A consensus change registered after the public testnet launch cannot be genesis-active there without re-deciding history that outside nodes have already committed. Each names its reason in its registration comment under `xchain-indexer/src/protocol_changes/`.
 
 ## Mainnet time-keyed gates
 

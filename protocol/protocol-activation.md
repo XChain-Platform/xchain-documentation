@@ -93,7 +93,7 @@ re-runs an action handler, a deploy validator, or the VM.
 | Service | Carries |
 |---|---|
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
-| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([VM gates](#vm-gates-service-carried)) |
+| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus the own-date `REST_PATTERN_METER_GATE_BLOCK_TIME` (destructuring rest-pattern metering and the deploy rejection of rest positions the meter cannot reach; it does not ride the contract-era instant, its value is on [Flag-Day Values](./flag-days.md), and its indexer twin is `REST_PATTERN_METER`) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus three per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), and the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION` ([VM gates](#vm-gates-service-carried)) |
 | `xchain-hub` | the nine validator-era gate modules it consumes (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical, retraction signing, attestation relay, price signature tally). The tenth Cohort B gate, attestation admission, is indexer-only |
 | `xchain-decoder` | the six activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` and `ENVELOPE_CARRIER_RECOGNITION_ACTIVATION` (per-chain local height) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
@@ -123,7 +123,7 @@ documented default so nothing a default-configured node ever executed changes ou
 the boundary. Tightening the value later is a different change and would need a flag day of its
 own. Enforcement detail is on
 [VM Configuration](../components/vm/configuration.md#resource-limits); the constant lives in
-`xchain-vm/src/consensus_wall_clock.js` and the activation beside it in `xchain-vm/src/index.js`.
+`xchain-vm/src/consensus-wall-clock.js` and the activation beside it in `xchain-vm/src/index.js`.
 
 ### Cohort A riders that mint no constant
 
@@ -138,8 +138,8 @@ Cohort A, so a straggler node that has not upgraded reaches a different verdict.
 
 | Rider | Resolved in | Enforced in | What changes at the instant |
 |---|---|---|---|
-| **contract.slash token delimiter guard** (`isSlashTokenDelimGuardActive`) | `xchain-vm/src/index.js` | `xchain-vm/src/gateway.js`, on `readOnlyData.slashTokenDelimGuardOn` | A `contract.slash` whose `token` carries a `\|` stops emitting and throws, closing the one emit path that never rejected a character the indexer may pipe-join |
-| **contract.slash amount-precision widening** (`isSlashAmountPrecisionActive`) | `xchain-vm/src/index.js` | `xchain-vm/src/gateway.js`, which swaps an 8-fractional-digit amount pattern for an 18-digit one | A slash amount carrying 9 to 18 fractional digits stops throwing and emits. The ceiling is `MAX_SLASH_AMOUNT_DECIMALS` 18, which must equal the indexer's `MAX_TOKEN_DECIMALS`: STAKE v3 admits a stake at the token's own decimals and the slash arithmetic computes the deduction at that precision, so the narrower pattern made an exact partial slash of a 9-to-18-decimal token impossible |
+| **contract.slash token delimiter guard** (`isSlashTokenDelimGuardActive`) | `xchain-vm/src/index.js` | `xchain-vm/src/gateway/contract_stake.js`, on `readOnlyData.slashTokenDelimGuardOn` | A `contract.slash` whose `token` carries a `\|` stops emitting and throws, closing the one emit path that never rejected a character the indexer may pipe-join |
+| **contract.slash amount-precision widening** (`isSlashAmountPrecisionActive`) | `xchain-vm/src/index.js` | `xchain-vm/src/gateway/contract_stake.js`, which swaps an 8-fractional-digit amount pattern for an 18-digit one | A slash amount carrying 9 to 18 fractional digits stops throwing and emits. The ceiling is `MAX_SLASH_AMOUNT_DECIMALS` 18, which must equal the indexer's `MAX_TOKEN_DECIMALS`: STAKE v3 admits a stake at the token's own decimals and the slash arithmetic computes the deduction at that precision, so the narrower pattern made an exact partial slash of a 9-to-18-decimal token impossible |
 | **Math-output metering** (F-MO, the `mathOutputMeterOn` predicate) | `xchain-vm/src/index.js` | the gateway's math hook | An oversized `pow()` or format result is charged gas, which moves `gasUsed` |
 | **Emission prototype-key strip** (F-PS, the `emissionDeepStrip` predicate) | `xchain-vm/src/index.js` | `EmissionCollector` | Prototype-shaped own keys are stripped recursively rather than only at the top level, which can drop a key from a pathological emitted param and so moves that emission's hash |
 | **Non-finite gas clamp** (F-NR, the `nonFiniteFailClosed` predicate) | `xchain-vm/src/index.js` | the sandbox gas reference | A non-finite metering size resolves to `Number.MAX_SAFE_INTEGER` and yields a ceiling-clamped `out_of_gas` instead of collapsing to 1 gas, which moves the hashed status and `gasUsed` |
@@ -190,14 +190,51 @@ above it the restarted ANCHOR wire set parses (versions 0, 1 and 2 only); below 
 version is `invalid: ANCHOR before activation`. Mainnet's height sits above the DOGE tip on purpose,
 so the restarted wire set has not activated there yet. Stragglers **fork**.
 
+`ARCHIVE_MATCH_COUNT_ACTIVATION` gates validation that an archive head's `MATCH_COUNT` equals its
+archive member count. It remains inert on mainnet and testnet until the operator arms it, while
+regtest is genesis-active. The map is indexed on
+[Flag-Day Values](./flag-days.md#canonical-activation-maps) without presenting the inert sentinel as
+an activation instant.
+
+`ANCHOR_BUNDLE_ORDER_ACTIVATION` gates validation that ANCHOR bundle CHAIN sections and PUBKEY pairs
+are in ascending byte order. It remains inert on mainnet and testnet until the operator arms it,
+while regtest is genesis-active. The map is indexed on
+[Flag-Day Values](./flag-days.md#canonical-activation-maps) without presenting the inert sentinel as
+an activation instant.
+
+`PRICE_V1_CANONICAL_ACTIVATION` gates the [PRICE](./actions/price.md) v1 canonical form: a `VALUE`
+and `FEE` with no leading zero and within the length caps `PRICE_V1_VALUE_MAX_LENGTH` and
+`PRICE_V1_FEE_MAX_LENGTH`, keyed on the action's own block time. It remains inert on mainnet and
+testnet until the operator arms it, while regtest is genesis-active. Its status is on
+[Flag-Day Values](./flag-days.md).
+
+`ANCHOR_FOLD_ACTIVATION` gates [ANCHOR](./actions/anchor.md) version 3, the folded bundle that
+carries every checkpointed chain section plus at most one archive section in one transaction. It
+is keyed on the anchor's own DOGE mined height like `ANCHOR_ACTIVATION` and always sits at or above
+it. Below the gate, version 3 is `invalid: VERSION (unknown)`; at or above it, versions 0, 1 and 2
+stay valid. At the gate, `anchor_archive` stops being minted as a reward. The fold gate uses the
+house UNARMED sentinel on mainnet and testnet, its regtest entry is null by default, and
+`XC_ANCHOR_FOLD_REGTEST_ACTIVATION` arms it for a private regtest venue.
+
+`ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` is the fold's companion gate. At or above it, a
+folded action's own archive failure stamps only the archive row instead of the whole action; the
+same regtest variable arms both gates at the same height.
+
+`BRIDGE_POLICY_DETACH` gates the destination half of a bridged policy list detach, described under
+[policy inheritance](./token-bridge.md#policy-inheritance). It is read at the destination chain's
+own block height. At or above it, a bridged copy whose origin issuer detached its allow or block
+list gets that list detached too; below it, the copy's list stays attached. It stays unarmed on
+mainnet and testnet until the operator arms it, while regtest is genesis-active.
+
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
 (Cohort B) gates genesis-active as well, with exceptions in every cohort:
 
-- **Four Cohort A rules arm testnet at their own future instants, not from genesis** (values on
+- **Eight Cohort A rules are not genesis-active on testnet** (values and current status on
   [Flag-Day Values](./flag-days.md), which derives them from the registry and is the one place they
-  are written down). In each case testnet already carries history the rule would reinterpret, so a
-  genesis-active arm would fork an already-synced testnet node against a fresh reindex:
+  are written down). Testnet already carries history these rules would reinterpret, so a
+  genesis-active arm would fork an already-synced testnet node against a fresh reindex. Five have
+  their own future instants, and three remain inert until the operator arms them:
   - `ISSUE_INHERITED_MINT_WINDOW`, because the ISSUE mint-window re-parameterization fix is a
     validity loosening and testnet already held a recorded rejection under the pre-fix rule.
   - `DEPLOY_DEFERRED_ASSEMBLY`, because testnet holds a recorded out-of-order assembler group that
@@ -205,8 +242,19 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
   - `CONTRACT_META_REQUIRED`, because testnet already holds deployed contracts that export no
     meta-shaped object, so a genesis-active arm would flip every one of them from its recorded
     verdict.
+  - `OWNER_WITHDRAW_OPT_IN`, because the rule keys on a contract's DEPLOY block, so a contract
+    deployed and withdrawn from before the fleet roll would grade differently under a
+    genesis-active arm than it did on a node that indexed it live; its status is on
+    [Flag-Day Values](./flag-days.md).
   - `UNIFIED_FEES_SWEEP_CALLBACK`, because the public testnet has carried real SWEEP and CALLBACK
     traffic since launch, so a genesis-active arm would re-price fees already committed there.
+  - `BROADCAST_FEE_LENGTH`, which rejects a fee wider than the 11-character storage column, remains
+    inert until the operator arms it.
+  - `CONTROLLER_CUSTODY_GUARD`, which runs controller guards on DEPOSIT and WITHDRAW custody legs,
+    remains inert until the operator arms it.
+  - `JSON_STRINGIFY_HOOK`, which gates hook-aware depth guarding for values transformed by
+    `JSON.stringify`, remains inert until the operator arms it; its status is on
+    [Flag-Day Values](./flag-days.md).
 - **Cohort C (state commitment) is armed at future _per-chain_ heights on testnet, not from genesis**
   (`STATE_COMMITMENT_ACTIVATION`: `BTC:testnet 145000`, `LTC:testnet 4805000`,
   `DOGE:testnet 67000000`), because it gates on each chain's own local block height rather than a
@@ -231,7 +279,11 @@ Cohort B batch, the later per-chain gates under
 [Additional armed gates](#additional-armed-gates-service-carried) below, and the four time-keyed
 gates that carry a date of their own (`BATCH_ISSUANCE_LIMITS`, `CONTRACT_DELEGATION_MATERIALIZE`,
 `DISPENSER_ORACLE_PER_TOKEN_PRICE`, `CROSS_CHAIN_ROYALTY`), whose instants are on
-[Flag-Day Values](./flag-days.md).
+[Flag-Day Values](./flag-days.md). Five time-keyed gates now carry a date of their own rather than
+the shared contract-era instant: those four plus `REST_PATTERN_METER` (the `xchain-vm`
+`REST_PATTERN_METER_GATE_BLOCK_TIME` destructuring rest-pattern meter and its indexer twin), which
+landed after that snapshot. [Flag-Day Values](./flag-days.md) lists each instant and is the source for
+which of the five have passed.
 
 ## Additional armed gates (service-carried)
 
@@ -276,18 +328,21 @@ next to the query it gates.
 
 ## VM gates (service-carried)
 
-Two further height-keyed consensus gates live in `xchain-vm` with a byte-identical indexer twin.
-Both are active from genesis on every network: mainnet was armed at 0 on 2026-09-09 under the
+Three further height-keyed consensus gates live in `xchain-vm` with a byte-identical indexer twin.
+The execute-time lint and global-alias gates are active from genesis on every network: mainnet was
+armed at 0 on 2026-09-09 under the
 [mainnet genesis arm](#the-mainnet-genesis-arm) (no contract has ever been deployed or executed on
 mainnet, so there is no verdict to reinterpret), and testnet and regtest have run both from genesis
-since they were built. They are listed here rather than in the armed table above because they are
-registered in the VM rather than in the indexer's registry; a future change to either height in
+since they were built. The optional-chain gate is the exception and is not yet armed on mainnet or
+testnet. They are listed here rather than in the armed table above because they are
+registered in the VM rather than in the indexer's registry; a future change to any height in
 BOTH copies is a flag day under the [notice policy](./upgrade-notice-policy.md).
 
 | Gate | Keyed on | Mainnet | Straggler | Lives in |
 |---|---|---|---|---|
 | **Execute-time source lint** (`EXEC_LINT_ACTIVATION`, re-runs the deploy syntax validation against a contract's stored source at execute time and fails the execution deterministically when that source no longer passes the bans active for the block; the check is metered as gas, so it moves `gasUsed`) | per-chain local height | **armed at genesis** (0 for BTC, LTC and DOGE, ruled 2026-09-09); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`EXEC_LINT_ACTIVATION`, resolver `isExecLintActive`); twin registry row `vm_exec_lint_activation.VM_EXEC_LINT_ACTIVATION` in `xchain-indexer/src/protocol_changes/gates_3.js`, pinned to byte equality by the consensus-params suites in both repos. A height armed on one side only forks the fleet |
 | **Deploy-lint global-alias refinement** (`LINT_GLOBAL_ALIAS_ACTIVATION`, makes the banned-global deploy rules resolve sloppy-mode `this` and the `globalThis` self-reference chain as reads of the same global object, which moves DEPLOY verdicts on error-severity `CONSENSUS_RULES`) | per-chain local height | **armed at genesis** (0 for BTC, LTC and DOGE, ruled 2026-09-09); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`LINT_GLOBAL_ALIAS_ACTIVATION`, resolver `isLintGlobalAliasActive`); twin registry row `vm_lint_global_alias_activation.VM_LINT_GLOBAL_ALIAS_ACTIVATION` in `xchain-indexer/src/protocol_changes/gates_3.js`, pinned the same way |
+| **Deploy-lint optional-chain look-through** (`LINT_OPTIONAL_CHAIN_ACTIVATION`, makes the banned-global and Math-object deploy rules look through a parenthesized optional chain such as `(globalThis?.globalThis).Promise` or `(globalThis?.Math).pow(2, 3)`, which moves DEPLOY verdicts on error-severity `CONSENSUS_RULES`) | per-chain local height | **unarmed** on BTC, LTC and DOGE mainnet by ruling; unarmed on testnet until the operator arms measured heights; regtest genesis-active | forks | `xchain-vm/src/index/lint_optional_chain_heights.js` (`LINT_OPTIONAL_CHAIN_ACTIVATION`, resolver `isLintOptionalChainActive`); twin registry row `vm_lint_optional_chain_heights.VM_LINT_OPTIONAL_CHAIN_ACTIVATION` in `xchain-indexer/src/protocol_changes/gates_4.js`, pinned to its VM twin by the indexer's consensus suites |
 
 ## Decoder-carried gates
 

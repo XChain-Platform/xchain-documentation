@@ -48,6 +48,8 @@ BULK_SYNC_RAM_BUDGET=768
 | `UTXO_TRACKER_BOOTSTRAP_PUBKEY` | Path to the bootstrap signing public key used to verify an archive`s signature, overriding the key pinned at `src/config/bootstrap_signing_pubkey.pem`. Swapping it moves the trust root off the pinned key, so treat it as a trust decision, not a path setting. | _(the pinned `src/config/bootstrap_signing_pubkey.pem`)_ |
 | `LEVELDB_CACHE_BYTES` | LevelDB block-cache size in bytes. This is native memory, outside the V8 heap, and during a chain backfill it is the largest single contributor to the tracker's resident size. Set it only to override the derived default below. | a quarter of the memory budget, between 128 MiB and 4 GiB |
 | `LEVELDB_WRITE_BUFFER_BYTES` | LevelDB write-buffer size in bytes | `67108864` (64 MiB) |
+| `LEVELDB_MAX_OPEN_FILES` | Ceiling on the store's open file descriptors. Defaults match the underlying classic-level engine's own, so an unset knob changes nothing; a working set larger than maxOpenFiles times maxFileSize churns descriptors instead of holding them open. | `1000` |
+| `LEVELDB_MAX_FILE_SIZE_BYTES` | Ceiling on a single on-disk table file's size, in bytes, before the store rolls to a new one. Defaults match the underlying engine's own. | `2097152` (2 MiB) |
 | `HEAP_FLUSH_THRESHOLD_MB` | Heap size, in MB, at which a partially-staged block batch is flushed early instead of accumulating to the full 200-block batch. Guards against a dense run of blocks pushing the V8 heap past its ceiling mid-parse. | an eighth of the memory budget, between 256 MB and 2048 MB |
 | `NODE_RPC_TIMEOUT` | HTTP timeout in milliseconds for JSON-RPC calls to the coin node | `30000` |
 | `DEBUG_TRACE` | Set to `1`/`true` for verbose tracker tracing on stdout. Debug only. | _(unset)_ |

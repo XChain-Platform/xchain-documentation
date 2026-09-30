@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** v22 exactly: `src/consensus_runtime.js` pins the Node ABI to 127, so Node 24 fails `checkConsensusRuntime()` (below Node 22 tests silently skip rather than fail, producing false greens)
+- **Node.js** v22 exactly: `src/consensus-runtime.js` pins the Node ABI to 127, so Node 24 fails `checkConsensusRuntime()` (below Node 22 tests silently skip rather than fail, producing false greens)
 - **Native build tools** only where `isolated-vm` has no prebuilt binding (it ships them for linux x64/arm64 glibc and musl, darwin-arm64 and win32-x64) and npm falls back to a source build: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` (Debian/Ubuntu)
 - The VM is a library dependency of `xchain-indexer`; it is not run as a standalone process
 
@@ -197,6 +197,8 @@ flowchart TD
 ### Global-object spellings
 
 Checks 4, 6 and 9 match a banned global read through the global object as well as by its bare name: `globalThis.Math.pow(...)`, `globalThis['Promise']` and `` globalThis[`WebAssembly`] `` are rejected exactly like `Math.pow(...)`, `Promise` and `WebAssembly`. Under the [`LINT_GLOBAL_ALIAS_ACTIVATION`](../../protocol/protocol-activation.md#vm-gates-service-carried) gate (`enforceLintGlobalAlias`), two more spellings count as the global object: sloppy-mode `this` (`this.Math.pow(2, 3)`, `this.Promise`) and the self-reference chain at any depth (`globalThis.globalThis.Math.log(x)`). That gate is armed at genesis on BTC, LTC and DOGE mainnet and on testnet and regtest, so every such spelling is rejected at deploy on every network. The `this` match fails closed: a `this.Promise` inside a method of the contract's own object is rejected too, so give such a property a different name.
+
+Under the [`LINT_OPTIONAL_CHAIN_ACTIVATION`](../../protocol/protocol-activation.md#vm-gates-service-carried) gate (`enforceLintOptionalChain`), checks 4, 6 and 9 also see through a parenthesized optional chain, so `(globalThis?.globalThis).Promise`, `(this?.globalThis)?.WebAssembly` and `(globalThis?.Math).pow(2, 3)` are rejected exactly like their plain spellings. Below the gate, those three spellings lint clean as they always have. An unparenthesized `globalThis?.Promise` is already rejected on every network and does not depend on the gate. The gate is unarmed on mainnet and testnet and genesis-active on regtest, so the contract simulator's deploy gate and the execute-time lint read the same network arming and never enforce it early.
 
 ## Troubleshooting
 

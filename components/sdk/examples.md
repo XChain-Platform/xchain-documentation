@@ -940,7 +940,8 @@ console.log(result.actionString);  // DEPOSIT|0|12345|MYTOKEN|1000
 ## Withdraw Tokens from a Contract
 
 ```js
-// Withdraw tokens (must be contract owner)
+// Withdraw tokens (must be contract owner, and the contract must have opted in
+// with meta.ownerWithdraw: true, or predate the OWNER_WITHDRAW_OPT_IN flag day)
 let result = await sdk.withdraw({
     contractActionIndex: 12345,
     tick: 'MYTOKEN',

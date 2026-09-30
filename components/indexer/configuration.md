@@ -44,6 +44,7 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `DB_CONNECT_TIMEOUT` | MariaDB connection timeout in milliseconds | `10000` |
 | `DB_ACQUIRE_TIMEOUT` | Time to wait for a free pooled connection, in milliseconds | `10000` |
 | `DB_QUERY_TIMEOUT` | MariaDB query execution timeout in milliseconds | `30000` |
+| `MIGRATE_QUERY_TIMEOUT` | Per-statement limit in milliseconds the migration runner sets for each applied migration file, restoring the pool value afterwards; a scoped run with nothing to apply sets nothing. A non-numeric or negative value keeps the default. | `3600000` |
 | `MIGRATION_STRICT_CHECKSUM` | Set to `1` to make a schema-checksum mismatch fail closed at startup instead of logging and continuing. Off by default so a diverged schema does not cause a surprise fleet-wide boot failure; the operator path (`node src/db/migration/migrate.js`) fails closed regardless. | _(unset, non-fatal)_ |
 | `SHUTDOWN_TIMEOUT_MS` | Hard-exit budget for the SIGTERM/SIGINT drain, in milliseconds. On `docker stop` the indexer stops reporting itself running on `/status`, lets the block loop break at its next block boundary (never mid-transaction), drains the API listener, closes its database pools and exits 0; if that has not finished within the budget it logs the overrun and exits 1 instead of lingering until docker's SIGKILL. Sized under the 30 s stop budget `xchain-node` gives the indexer, and under the ten seconds docker allows a container created before that budget existed; raise it, keeping it under the stop budget, for a chain whose blocks take longer to apply. When `XCHAIN_NODE_MODULE_STOP_TIMEOUT_SECONDS_XCHAIN_INDEXER` overrides that budget, `xchain-node` sets this to the budget less 20 s (half the budget below 40 s) unless the module config sets it. A non-numeric or non-positive value keeps the default. | `8000` |
 
@@ -91,13 +92,14 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 |---|---|---|
 | `XC_ROLLCALL_GATES_REGTEST_ACTIVATION` | **Regtest only.** Arms ROLLCALL v1 on this private venue: from the armed epoch height on, roll calls must carry the publisher's consensus-gate list, the epoch close records each verified signer's list in `rollcall_gates`, and the attestation capability set drops a validator whose recorded list lacks a rule active at the request block. Same grammar as `XC_ROLLCALL_REGTEST_ACTIVATION`; read **once at startup**; set identically on every hub and BTC indexer in the venue. mainnet and testnet are fixed in source. | _(unset: inert)_ |
 | `XC_MIRROR_ADMISSION_ACTIVATION` | **Regtest only.** Arms the per-coin `regtest` entries of `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` (the mirror-admission heights) and the `regtest` entry of `ANCHOR_ATTEST_BARRIER_ACTIVATION` in the indexer's activation registry (`src/protocol_changes/shared_rows.js`), one variable for the whole barrier family. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; the armed form arms at height `0`. The indexer's gate modules snapshot these activation maps when they are loaded, so set the variable before startup and restart the indexer after changing it. Set it identically on every hub, indexer, sync and explorer process in the venue. mainnet and testnet are fixed in source. | _(unset: inert)_ |
+| `XC_ANCHOR_FOLD_REGTEST_ACTIVATION` | **Regtest only.** Arms the `regtest` entries of both `ANCHOR_FOLD_ACTIVATION` and `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` in the indexer's activation registry, because the section-scoped verdict is armed only with the fold. `armed`, `genesis` or `on` arms at DOGE height `0`; a non-negative integer arms at that height. Unset or `off` leaves both gates inert; anything else is refused with a warning and leaves them inert. | _(unset: inert)_ |
 | `XC_ROLLCALL_REGTEST_ACTIVATION` | **Regtest only.** Arms ROLLCALL on this private venue. `armed` (or `genesis`/`on`/`true`/`yes`) activates at BTC height `0`; a bare non-negative integer activates at that height, for a venue whose epochs should begin above an already-indexed prefix; `off`/`inert`/`false` and anything unrecognised leave it inert, and an unrecognised value is logged. Read **once at startup**, so a change needs a restart. mainnet and testnet are fixed in source and cannot be moved from the environment. | _(unset: inert)_ |
 
 Regtest ships inert on purpose: arming a network commits every BTC indexer on it to a wired DOGE peer, so a hardcoded height wedged every single-coin BTC venue at its first close. Set this on **every** BTC indexer and hub in a two-chain acceptance venue, alongside `DOGE_INDEXER_API_URL`. A venue that arms its hubs and forgets its indexer shows up as a consensus-rules digest mismatch, because `ROLLCALL_ACTIVATION` is one of the shared gates that digest covers.
 
 `bin/consensus-identity.js`'s `selectedPinBlock()` also reads both names, from the `armed_regtest_venue.env` block of `bin/pins/at1-consensus-identity.json`, to pick between the armed and bare-checkout consensus-identity pin for comparison; that block must be kept in step with whatever the venue actually arms.
 
-A BTC indexer with no DOGE wiring **defers every block** from the first epoch close onward (epoch height + 144 + 36), with `stallReason = 'rollcall_proof_unavailable'`, rather than judging absences it cannot prove. The same deferral covers an unreachable or malformed answer, a DOGE tip that has not yet buried the window cut by `ROLLCALL_DOGE_MATURITY`, and a DOGE indexer whose vendored action-manifest hash differs from this indexer's own. That last case is what turns a DOGE indexer running a decoder too old to know `ROLLCALL` from a silent evict-the-federation bug into a loud, safe stall: wire the DOGE indexers and deploy their decoder **before** `ROLLCALL_ACTIVATION` is reached. A validator with no Dogecoin indexer of its own points `DOGE_INDEXER_API_URL` at the public explorer instead: `https://explorer.xchain.io/TDOGE/api/` on testnet, `https://explorer.xchain.io/DOGE/api/` on mainnet, with `DOGE_INDEXER_API_KEY` set to the federation read key issued alongside the validator's other per-coin keys. That answer comes from the explorer's own replicated indexer database, so a replica that has fallen behind makes the epoch close wait longer rather than judge the roll call on stale data.
+A BTC indexer with no DOGE wiring **defers every block** from the first epoch close onward (epoch height + 144 + 36), with `stallReason = 'rollcall_proof_unavailable'`, rather than judging absences it cannot prove. The same deferral covers an unreachable or malformed answer, a DOGE tip that has not yet buried the window cut by `ROLLCALL_DOGE_MATURITY`, and a DOGE indexer whose vendored action-manifest hash differs from this indexer's own. That last case is what turns a DOGE indexer running a decoder too old to know `ROLLCALL` from a silent evict-the-federation bug into a loud, safe stall: wire the DOGE indexers and deploy their decoder **before** `ROLLCALL_ACTIVATION` is reached. A validator with no Dogecoin indexer of its own points `DOGE_INDEXER_API_URL` at the public explorer instead: `https://explorer.xchain.io/TDOGE/api/` on testnet, `https://explorer.xchain.io/DOGE/api/` on mainnet, with no `DOGE_INDEXER_API_KEY` (the explorer answers these reads to anyone, like the rest of its API). That answer comes from the explorer's own replicated indexer database, so a replica that has fallen behind makes the epoch close wait longer rather than judge the roll call on stale data.
 
 ### Hub push queue and mirror
 
@@ -158,6 +160,7 @@ decides how much XCHAIN each snapshot holder mints and which synthetic transacti
 carries the credit. Arming the leg is an edit to that bundle plus a
 `xchain-hub/bin/sync-coins.sh` re-vendoring wave, never a per-node export.
 | `CROSS_CHAIN_ROYALTY_REGTEST_TIME` | **Regtest only.** Override the cross-chain royalty activation time so the OFF/deny path stays drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
+| `CONTROLLER_CUSTODY_GUARD_REGTEST_TIME` | **Regtest only.** Override the controller custody guard activation time so the pre-activation bypass and the guarded path stay drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
 
 ### A7 replay-equivalence harness
 
@@ -222,17 +225,22 @@ pipeline rather than imported.
 
 Read only by `bin/verify-mirror-admission-replay-equivalence.js` (the
 below-the-flag replay witness for the mirror-admission barrier family, which
-replays one decoder corpus with the lever OFF, armed at the boundary height and
-armed at genesis, and compares the consensus hash chain); never by the indexer
-service itself. It takes its database coordinates from `--db-host`, `--db-port`
-and `--db-user` or from the `TEST_DB_*` variables documented for the A7 harness
-above, and it never falls back to `.env`. The password comes from the variable
-NAMED by `--db-pass-env` (for example `MA_DB_PASS`), or from `TEST_DB_PASS` when
-that option is absent, so it never reaches a process list. For each side-process
-the parent sets `INDEXER_COIN`, `INDEXER_NETWORK`, `TEST_DECODER_DB`,
-`TEST_INDEXER_DB` and `XC_MIRROR_ADMISSION_ACTIVATION` (unset, the boundary
-height, or `0`), and the side-process reads the lever back to prove the era it
-actually resolved.
+replays one two-schema corpus with the lever OFF, armed at the boundary height
+and armed at genesis, and compares the consensus hash chain); never by the
+indexer service itself. The corpus consists of the schema named by the required
+`--decoder-db <schema>` option and a hub-mirror schema named by the required
+`--mirror-db <schema>` option. The mirror schema must be on the same database
+server; every replay side copies its hub-mirror rows before processing blocks,
+and the harness refuses a run without it so a decoder-only corpus cannot produce
+a vacuous result. The harness takes its database coordinates from `--db-host`,
+`--db-port` and `--db-user` or from the `TEST_DB_*` variables documented for the
+A7 harness above, and it never falls back to `.env`. The password comes from the
+variable NAMED by `--db-pass-env` (for example `MA_DB_PASS`), or from
+`TEST_DB_PASS` when that option is absent, so it never reaches a process list.
+For each side-process the parent sets `INDEXER_COIN`, `INDEXER_NETWORK`,
+`TEST_DECODER_DB`, `TEST_INDEXER_DB` and
+`XC_MIRROR_ADMISSION_ACTIVATION` (unset, the boundary height, or `0`), and the
+side-process reads the lever back to prove the era it actually resolved.
 
 | Variable | Description | Example |
 |---|---|---|
@@ -276,6 +284,9 @@ Read-only operator tools; neither broadcasts nor writes anything and neither is 
 | `XCHAIN_INDEXER_DIR` | Sibling-checkout override `bin/lib/carrier_logic_pin.js`'s `siblingDir()` resolves for cross-repo carrier-logic comparison; the `repo_guards` twin test points it at a second checkout with `XCHAIN_REQUIRE_SIBLINGS=1`. Never read by the running indexer process. | `../xchain-indexer` |
 | `XCHAIN_SYNC_DIR` | Sibling-checkout override for the `xchain-sync` tree the same `siblingDir()` resolves when the pin tool compares against sync's copy; read by literal name so the coverage gate can see it. Never read by the running indexer process. | `../xchain-sync` |
 | `XCHAIN_HUB_DIR` | Sibling-checkout override for the `xchain-hub` tree the same `siblingDir()` resolves when the pin tool compares against the hub's copy; read by literal name so the coverage gate can see it. Never read by the running indexer process. | `../xchain-hub` |
+| `PROM_CI_BASE_SHA` | Diff base commit for `bin/ci_fast_select.js`'s fast CI test selection: the CI venue's gate exports the target ref's value before the push, and the selector diffs `HEAD` against it to pick which test groups to run. Falls back to `git merge-base HEAD origin/develop` when unset or when the value is not a resolvable commit. Never read by the running indexer process. | _(unset: falls back to the merge-base with `origin/develop`)_ |
+| `CI_SHARDS` | Process count `bin/ci_shard.js` splits the `ci` chain's main mocha step across in the siblings STRICT tier; `1` runs the step unsharded as before. A value that is not a positive integer falls back to the default. Never read by the running indexer process. | half the CPU cores, at most 4 |
+| `PATH` | Read by `bin/ci_shard.js` only to put the package's `node_modules/.bin` in front of it for the chain steps it runs, as `npm run` does. Never read by the running indexer process. | the caller's `PATH` |
 
 ## Hub DB Price Source
 

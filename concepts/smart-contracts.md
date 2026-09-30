@@ -193,8 +193,8 @@ Every figure in a **Gas** column below is in gas units, charged against the call
 | `xchain.math.multiply(a, b)` | Multiplication |
 | `xchain.math.divide(a, b)` | Division (reverts on div by zero) |
 | `xchain.math.mod(a, b)` | Modulo |
-| `xchain.math.compare(a, b)` | Returns -1, 0, or 1 |
-| `xchain.math.gt/gte/lt/lte/eq(a, b)` | Comparison (returns boolean) |
+| `xchain.math.compare(a, b)` | Returns -1, 0, or 1; values within a relative tolerance compare as equal (see below) |
+| `xchain.math.gt/gte/lt/lte/eq(a, b)` | Comparison (returns boolean), with the same tolerance as `compare` |
 | `xchain.math.min/max(a, b)` | Minimum / maximum |
 | `xchain.math.abs(a)` | Absolute value |
 | `xchain.math.isZero(a)` | Check if zero (boolean) |
@@ -211,6 +211,17 @@ comparisons are the exception the table above states: `compare` returns a number
 they can be used directly in a condition. Native JavaScript arithmetic operators
 (`+`, `-`, `*`, `/`) use floating-point and may produce non-deterministic results
 across V8 versions.
+
+The comparisons are deterministic but not exact. `compare`, `gt`, `gte`, `lt`,
+`lte`, `eq`, `min` and `max` treat two values as equal when they differ by at most
+`max(1e-12 × the larger magnitude, 1e-15)`, so `gte('999999.99999999', '1000000')`
+is `true`. The arithmetic methods are exact, and so is `isZero`. That tolerance is
+harmless for a positivity check against `'0'`, but a custody, cap or payment guard
+must compare exactly, or a contract can accept a deposit a few base units short of
+what it later pays out. Use the `isAtLeastExact` helper from the contract pattern
+library (`xchain-contracts/patterns/validation.js`), which decides by the sign of
+the exact `subtract`: `a >= b` is `isAtLeastExact(xchain, a, b)` and `a <= b` is
+`isAtLeastExact(xchain, b, a)`.
 
 ### Control Flow (0 gas)
 | Method | Description |

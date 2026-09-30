@@ -299,10 +299,11 @@ const BATCH_COMMAND_LIMIT = 250;
 // the cross-service regression suite (protocol-constant-claims.test.js)
 // holds all three copies and every prose claim equal to this value.
 //
-// Active from genesis on testnet/regtest, not yet armed on mainnet. The gate
-// must activate at or after BATCH_ISSUANCE_LIMITS: the budget check replaces
-// that gate's count cap in the same first position and reuses its
-// classification of sub-commands.
+// Armed at genesis (0) on every network, mainnet by the 2026-09-09 genesis arm.
+// The budget check replaces BATCH_ISSUANCE_LIMITS's count cap in the same first
+// position and reuses its classification of sub-commands, so the indexer reads
+// it only where that gate is active: the effective mainnet activation is
+// 2026-08-16T00:00:00Z, even though this gate's own mainnet value sits below it.
 const BATCH_WEIGHT_BUDGET = 250;
 
 // Per-action COST WEIGHTS for the budget above. An action absent from this
@@ -524,6 +525,22 @@ const ANCHOR_ACTIVATION = {
     regtest: 0,
 };
 
+// Gates validation that an archive head's MATCH_COUNT equals its archive member count.
+// Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
+const ARCHIVE_MATCH_COUNT_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// Gates validation of CHAIN sections and PUBKEY pairs in ascending byte order.
+// Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
+const ANCHOR_BUNDLE_ORDER_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // ARCHIVE_REWARD_AMOUNT: the frozen archive-publish reward, signed into the archive XANCPUB
 // attestation by the hub and re-derived by the indexer (never from the wire). Kept equal to the
 // hub's historical default (ANCHOR_REWARD_PER_PUBLISH). Changing it is itself a flag-day.
@@ -568,6 +585,48 @@ const ANCHOR_REWARD_DERIVE_ACTIVATION = {
 // byte-identical to xchain-{hub,indexer}/src/consensus/gates/anchor_reward_gate.js.
 const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 
+// ANCHOR_FOLD_ACTIVATION (ANCHOR v3, archive fold): the DOGE height (per network) at/above
+// which the ANCHOR wire set gains a fourth version. v3 carries the same per-chain checkpoint
+// sections as v0 plus, optionally, one archive section bound to one of those sections by an
+// explicit WRAPPER_SECTION_INDEX, so a network emits ONE anchor transaction per cycle instead
+// of a separate v0 bundle and v1/v2 archive pair. v0, v1 and v2 freeze byte-for-byte and stay
+// parseable forever; this gate only ever ADDS the new version, never narrows an existing one.
+// Below the height a version-3 anchor is 'invalid: VERSION (unknown)', exactly like any
+// version this restart never shipped. See protocol/actions/anchor.md.
+//
+// Consensus-relevant (it changes which version bytes parse and moves the archive leg's signed
+// bytes onto whichever chain section's WRAPPER_SECTION_INDEX names), so it must deploy hub +
+// ALL indexers atomically, like every sibling ANCHOR gate. Keyed on the anchor's OWN DOGE
+// block_index, the ANCHOR_ACTIVATION convention, never on SNAPSHOT_BLOCK.
+//
+// Mainnet and testnet use the house UNARMED sentinel: ruled and unscheduled, inert until 2286.
+// Regtest stays null unless XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms both fold gates together.
+const ANCHOR_FOLD_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: null,
+};
+
+// ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION: the flag-day at/above which a folded v3
+// anchor's archive verdict is SECTION-SCOPED. `setAnchorArchiveStatus` stamps only the archive
+// row (`match_batch_seq IS NOT NULL AND version <> 2`) instead of the whole action, so a late
+// chunk CRC failure on the archive leg can never retroactively invalidate checkpoint sections
+// light clients already consumed. This moves a consensus-hashed preimage
+// (`xchain-indexer/src/consensus/state_hash.js` and its byte-identical twin
+// `xchain-sync/src/consensus/state_hash.js` both gate the class-6 state-hash preimage on the
+// archive-head predicate), so it remains an explicit map even though it arms with the fold.
+//
+// ARMED ONLY WITH THE FOLD in practice: a section-scoped verdict has no folded action to scope
+// before v3 exists, so its value must equal ANCHOR_FOLD_ACTIVATION on every network.
+//
+// Mainnet and testnet use the house UNARMED sentinel: ruled and unscheduled, inert until 2286.
+// XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms this regtest entry with the fold, never ahead of it.
+const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: null,
+};
+
 // ROLLCALL (validator liveness eviction). A roll call is a signed proof of presence bound to a
 // BTC epoch block's ledger_hash: hubs sign, an elected leader lands the signatures on DOGECOIN
 // as a ROLLCALL action, and the BTC indexer -- the only place the membership predicate runs --
@@ -587,8 +646,8 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // Keyed on the carried BTC EPOCH_HEIGHT on BOTH chains (the snapshot_block convention of
 // STAKE_WEIGHTED_QUORUM_ACTIVATION), never on either chain's local height, so a pre-activation
 // roll call is inert on DOGE and on BTC alike and no second DOGE-height flag day exists.
-// INERT on mainnet (null = never active) until the operator pins a height with the mainnet
-// federation; the null placeholder follows SNAPSHOT_BURIAL_ACTIVATION.mainnet.
+// ARMED on mainnet at genesis (0) by the 2026-09-09 ruling: the indexed mainnet history carries
+// 0 validators and 0 roll-calls (measured 2026-09-09), so arming reinterprets nothing there.
 // REGTEST ARMS AT 0, but only when the venue OPTS IN with XC_ROLLCALL_REGTEST_ACTIVATION, and the
 // 2026-08-31 finding is why the default stays inert: arming a network commits every BTC indexer on
 // it to a wired DOGE peer, because the epoch close cannot decide a non-empty responsible set
@@ -1407,6 +1466,36 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
     regtest: 0,
 };
 
+// Per-network activation TIME, keyed on the action's own block time.
+//
+// ARMED at genesis on every network, mainnet by the 2026-09-09 ruling on the measurement
+// the header records (0 PRICE actions ever indexed on any mainnet chain).
+const PRICE_SCALE_ACTIVATION = {
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 PRICE actions, measured 2026-09-09)
+    testnet: 0,
+    regtest: 0,
+};
+
+// Per-network activation TIME, Unix seconds, matching the unit the wire-format gate
+// uses so the two are directly comparable.
+//
+// ARMED at genesis on mainnet by the 2026-09-09 ruling, together with
+// PRICE_PAIR_WIDEN_ACTIVATION and at the same instant, which satisfies the
+// at-or-after ordering the header states. No PRICE action has ever been indexed on any
+// mainnet chain (measured 2026-09-09), so composing the derived pair from block 0
+// reinterprets no signed round, and the from-genesis OLD-vs-ON replay is the witness.
+// Arming at 0 rather than at the contract-era stamp 1786060800 (2026-08-07) is what
+// keeps LTC/DOGE native-coin fees payable from the first mainnet block onward.
+//
+// testnet/regtest are genesis-on, so the pair is composed on every test venue and
+// in the suites today. §8 notes testnet is EXPECTED to be steerable (free public
+// MINT plus open venues), so monitoring must not alert on testnet price excursions.
+const XCHAIN_PRICE_ACTIVATION = {
+    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 PRICE actions, measured 2026-09-09)
+    testnet: 0,
+    regtest: 0,
+};
+
 // ── PRICE v0 signature-tally ordering ─────────────────────────────────────────
 //
 // The PRICE v0 tally keeps at most one signature per pubkey. Below this gate the
@@ -1602,6 +1691,7 @@ const TRAIN_ACTIVATION = {
     // offsets. LTC:testnet mirror admission ships disabled on this train and is
     // untouched by this reslide; it arms on a later train.
     '0.20.0': { mainnet: 9999999999, testnet: 154074, regtest: 0 },
+    '0.21.0': { mainnet: 9999999999, testnet: 154566, regtest: 0 },
 };
 
 // STAKE v1 signing-key REUSE flag day, keyed on the processing chain's OWN
@@ -1731,6 +1821,9 @@ const XCHAIN_BRIDGE_ACTIVATION = {
 // network. Regtest is genesis-active.
 const TOKEN_BRIDGE_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1758,6 +1851,9 @@ const TOKEN_BRIDGE_ACTIVATION = {
 // dated instant. Regtest is genesis-active.
 const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1801,6 +1897,9 @@ const LIST_OWNER_ACTIVATION = {
 // of a short or listed name, valid or invalid. Regtest is genesis-active.
 const TICK_NAMESPACE_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -2013,9 +2112,9 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  154234,      // RE-SLID 2026-09-23: train 154,074 + 160 blocks (17 h at the 383.04 s/blk bound, 25.6 h at the 575.89 s/blk 84 h trailing mean), the v0.20.1 patch reslide
-    'LTC:testnet':  null,        // disabled for v0.20.1, 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
-    'DOGE:testnet': 67936053,    // RE-SLID 2026-09-23: tip 67,924,397 at 17:48Z + 11656 blocks (83.8 h at 25.89 s/blk, the 84 h trailing mean, the same instant as the BTC producer), the v0.20.1 patch reslide
+    'BTC:testnet':  154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet':  4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2025,9 +2124,9 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  154291,      // RE-SLID 2026-09-23: its producer + 57 blocks (6 h at the 383.04 s/blk bound, 9.1 h at the 575.89 s/blk 84 h trailing mean), strictly above, never equal
-    'LTC:testnet':  null,        // disabled for v0.20.1, 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
-    'DOGE:testnet': 67936888,    // RE-SLID 2026-09-23: its producer + 835 blocks (6 h at 25.89 s/blk, the 84 h trailing mean), strictly above, never equal
+    'BTC:testnet':  154614, // set by the v0.21.0 freeze height plan
+    'LTC:testnet':  4903291, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67952082, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2078,7 +2177,7 @@ const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     // instant as the family's BTC CONSUMER height, so the one member that keeps BOTH
     // completeness certificates gains them together instead of carrying a lone extra rule for
     // 6 h. The measurement, the formula and the re-size rule are with the maps above.
-    testnet: 154291,
+    testnet: 154614, // set by the v0.21.0 freeze height plan
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
 
@@ -2120,8 +2219,12 @@ module.exports = {
     ARCHIVE_REWARD_ACTIVATION,
     ARCHIVE_REWARD_AMOUNT,
     ANCHOR_ACTIVATION,
+    ARCHIVE_MATCH_COUNT_ACTIVATION,
+    ANCHOR_BUNDLE_ORDER_ACTIVATION,
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
+    ANCHOR_FOLD_ACTIVATION,
+    ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION,
     ADMIT_MARGIN_BLOCKS,
     ADMIT_MIN_FUTURE_BLOCKS,
     ADMIT_MAX_FUTURE_BLOCKS,
@@ -2173,6 +2276,8 @@ module.exports = {
     PRICE_PAIR_TICKER_MAX_LEGACY,
     PRICE_PAIR_TICKER_MAX_WIDE,
     PRICE_PAIR_WIDEN_ACTIVATION,
+    PRICE_SCALE_ACTIVATION,
+    XCHAIN_PRICE_ACTIVATION,
     PRICE_SIG_TALLY_ACTIVATION,
     PRICE_FEE_BATCH_LANDED_ACTIVATION,
     PRICE_ZERO_VALIDITY_ACTIVATION,

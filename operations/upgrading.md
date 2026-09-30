@@ -99,6 +99,24 @@ Schema changes ship inside the service images. The decoder and indexer auto-crea
 
 In the rare case a release needs a column-level migration, the release notes will say so and include the migration file with instructions. Test those on regtest before applying them to mainnet.
 
+### Time columns move from TIMESTAMP to DATETIME
+
+MariaDB's `TIMESTAMP` type stops working after the year 2038, so v0.21.0 retypes every time column across the pipeline to `DATETIME`. The hub, indexer, decoder and sync connection pools all pin the session time zone to `UTC`, so a stored instant reads the same before and after the retype.
+
+Most of this runs by itself at startup, nothing for you to do:
+
+- The hub's in-place retype of its own time columns.
+- Sync's retype of its transparency-log tables, and of the follower-derived `state_tree_roots` table on a replica.
+- The indexer's `2026-09-27-datetime-bridge-policy.sql` and `2026-09-27-datetime-hub-mirrors.sql`.
+- The migration ledgers' own `applied_at` column, on both the indexer and the decoder.
+
+Three migrations are `mode=manual` because they restate a `NOT NULL` constraint, so they run once, by hand, after you upgrade:
+
+- Indexer: `2026-09-27-datetime-anchor-reward-attestations.sql` and `2026-09-27-datetime-not-null-columns.sql`, with `node src/db/migration/migrate.js`.
+- Decoder: `2026-09-27-mempool-first-seen-datetime.sql`, with `npm run migrate -- --file 2026-09-27-mempool-first-seen-datetime.sql` (skipped where the column is already `DATETIME`).
+
+Every one of these migrations, automatic and manual alike, is idempotent, and none of them need to run in any particular order. Rehearse them on regtest first, as [above](#testing-upgrades-on-regtest-first).
+
 ---
 
 ## Protocol Version Changes

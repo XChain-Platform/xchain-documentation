@@ -478,7 +478,7 @@ Controls `RollcallRound`, which signs the per-epoch ledger-hash roll call and el
 | `ROLLCALL_ELECTION_TOLERANCE_BLOCKS` | No | `36` (regtest `3`) | Blocks the elected publisher is given before the next hub in the election ladder may take over. Separate from `ANCHOR_ELECTION_TOLERANCE_BLOCKS` on purpose: the two ladders climb against different anchors. |
 | `ROLLCALL_SELF_PUBLISH_BLOCKS` | No | `100` (regtest `9`) | Blocks after which any hub still holding an unpublished epoch publishes it itself, whatever the ladder says. |
 
-**Without `DOGE_INDEXER_URL` / `DOGE_INDEXER_API_URL` this hub cannot tell a signature it holds from one already on chain, so it publishes nothing and logs nothing.** That failure is silent: the round leader still sees this hub's own oracle submissions arrive, but no roll call ever lands with this hub's pair in it, and a validator left in that state for two consecutive rolled epochs is evicted. A validator with no Dogecoin indexer of its own points these at the public explorer's replicated read: `DOGE_INDEXER_API_URL=https://explorer.xchain.io/TDOGE/api/` on testnet, `https://explorer.xchain.io/DOGE/api/` on mainnet, with `DOGE_INDEXER_API_KEY` set to the federation read key issued alongside this validator's other per-coin keys. That answer comes from the explorer's own replica, so a replica that has fallen behind makes the round wait longer rather than publish against stale data.
+**Without `DOGE_INDEXER_URL` / `DOGE_INDEXER_API_URL` this hub cannot tell a signature it holds from one already on chain, so it publishes nothing and logs nothing.** That failure is silent: the round leader still sees this hub's own oracle submissions arrive, but no roll call ever lands with this hub's pair in it, and a validator left in that state for two consecutive rolled epochs is evicted. A validator with no Dogecoin indexer of its own points these at the public explorer's replicated read: `DOGE_INDEXER_API_URL=https://explorer.xchain.io/TDOGE/api/` on testnet, `https://explorer.xchain.io/DOGE/api/` on mainnet, with no `DOGE_INDEXER_API_KEY` (the explorer answers these reads to anyone, like the rest of its API). That answer comes from the explorer's own replica, so a replica that has fallen behind makes the round wait longer rather than publish against stale data.
 
 ### Full-Node Challenge
 
@@ -602,6 +602,7 @@ Regtest-only genesis overrides, ignored on mainnet and testnet, which always use
 
 | `XC_ROLLCALL_GATES_REGTEST_ACTIVATION` | Regtest only | unset (inert) | Arms ROLLCALL v1 on a private regtest venue: from the armed epoch height on, this hub publishes roll calls that carry the consensus gates its build knows, and the attestation capability set drops a validator whose recorded list lacks a rule active at the request block. Same grammar as `XC_ROLLCALL_REGTEST_ACTIVATION` (`armed` at height `0`, a bare integer at that height, anything else inert), read once at startup, and separate from the roll-call rail so a rail-armed venue can still drive v0 roll calls as its control. Ignored on mainnet and testnet, whose heights are fixed in source. |
 | `XC_MIRROR_ADMISSION_ACTIVATION` | Regtest only | unset (inert) | Arms the per-coin `regtest` entries of `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` (the mirror-admission heights) and the `regtest` entry of `ANCHOR_ATTEST_BARRIER_ACTIVATION` in the hub's activation registry, one variable for the whole barrier family. Same grammar and inert default as `XC_ROLLCALL_REGTEST_ACTIVATION`; the armed form arms at height `0`. Applied when a row is read, from the environment as it stands then; set identically on every hub, indexer, sync and explorer process in the venue. Ignored on mainnet and testnet, whose heights are fixed in source. |
+| `XC_ANCHOR_FOLD_REGTEST_ACTIVATION` | Regtest only | unset (inert) | Arms the `regtest` entries of both `ANCHOR_FOLD_ACTIVATION` and `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` in the hub's activation registry, because the section-scoped verdict is armed only with the fold. `armed`, `genesis` or `on` arms at DOGE height `0`; a non-negative integer arms at that height. Unset or `off` leaves both gates inert; anything else is refused with a warning and leaves them inert. |
 
 ROLLCALL arming is a **venue-wide** setting: set `XC_ROLLCALL_REGTEST_ACTIVATION` (and, when the gates rail is wanted, `XC_ROLLCALL_GATES_REGTEST_ACTIVATION`) identically on every hub and every BTC indexer in the venue, and wire the indexers' `DOGE_INDEXER_API_URL`. Regtest ships inert because arming a network commits every BTC indexer on it to a wired DOGE peer, and a single-coin BTC venue would defer forever at its first epoch close. A venue that arms its hubs and forgets an indexer surfaces as a consensus-rules digest mismatch rather than as silent disagreement about which epochs exist.
 
@@ -721,7 +722,7 @@ Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
 | `module` | VARCHAR(64) | Service name (xchain-decoder, xchain-indexer, etc.) |
 | `param_name` | VARCHAR(32) | Parameter name (host, port, db_host, db_port, name, user, pass, service_port) |
 | `param_value` | TEXT | Parameter value |
-| `updated_at` | TIMESTAMP | Last update timestamp |
+| `updated_at` | DATETIME | Last update timestamp |
 
 Config is served as a nested object: `{ coin: { network: { module: { param: value } } } }`.
 
@@ -733,6 +734,7 @@ Config is served as a nested object: `{ coin: { network: { module: { param: valu
 | `connectTimeout` | `10000` | Connection timeout (ms); override with `DB_CONNECT_TIMEOUT` |
 | `acquireTimeout` | `10000` | Time to wait for a free pooled connection (ms); override with `DB_ACQUIRE_TIMEOUT` |
 | `queryTimeout` | `30000` | Query execution timeout (ms); override with `DB_QUERY_TIMEOUT` |
+| migration statement timeout | `3600000` | Per-statement limit (ms) the hub sets for each boot-time column retype, restoring the pool value afterwards; override with `MIGRATE_QUERY_TIMEOUT` (a non-numeric or negative value falls back to the default) |
 | `idleTimeout` | `60000` | Idle connection timeout (ms) |
 
 `DB_CONNECT_TIMEOUT`, `DB_ACQUIRE_TIMEOUT`, and `DB_QUERY_TIMEOUT` are read by the indexer's pool with the same names and the same defaults.

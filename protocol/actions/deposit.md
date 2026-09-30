@@ -32,13 +32,15 @@ Deposit 500 of the token with TICK_ID 99 into contract 12345
 - Available on all chains
 - The contract identified by `CONTRACT_ACTION_INDEX` must exist and be in an active state
 - `SOURCE` address must hold a sufficient balance of `TICK` to cover `QUANTITY`
-- No gas fee is charged; the on-chain transaction cost is sufficient
+- From the [`CONTROLLER_CUSTODY_GUARD` flag day](../flag-days.md), a deposit runs the token's `transfer` or `all` controller guard and then the depositor's own address controller guard. The guarded move is from the depositor (`SOURCE`) to the contract custody address `C:<CHAIN>:<index>`, where `<index>` is `CONTRACT_ACTION_INDEX`. See the [controller guard model](../controller-bound-tokens.md).
+- The metered guard gas for both runs is paid by `SOURCE` in `GAS` and burned. The action fails with `insufficient funds (guard gas)` when `SOURCE` cannot cover the reservation.
+- An unbound token moved by an unbound address runs neither guard and pays no guard gas.
 - `QUANTITY` must be a positive value with valid decimal format for the token
 
 ## Notes
 - Deposited tokens are credited to the contract's **derived address** (`C:<CHAIN>:<CONTRACT_ACTION_INDEX>`) in the standard ledger; a debit is created for SOURCE and a credit for the derived address
 - The contract's balance is tracked in the standard `balances` table, the same as any other address. There is no separate custody table.
-- Use `WITHDRAW` to return tokens from the contract back to the contract owner. Only the contract deployer (the address that originally broadcast the `DEPLOY`) may call `WITHDRAW`; no other address can withdraw from the contract.
+- Use `WITHDRAW` to return tokens from the contract back to the contract owner. Only the contract deployer (the address that originally broadcast the `DEPLOY`) may call `WITHDRAW`; no other address can withdraw from the contract. From the [`OWNER_WITHDRAW_OPT_IN` flag day](../flag-days.md), a deployer's call still needs the contract's meta to declare `ownerWithdraw: true` (or a DEPLOY from before the activation); see [WITHDRAW](withdraw.md#rules) before depositing into a contract that does not opt in.
 - Use `^` (caret) as a prefix when passing `TICK_ID` for the `TICK` field (e.g. `^1234` = `TICK_ID` 1234)
 - Contracts may use deposited balances in method logic triggered via `EXECUTE`, emitted actions spend from the derived address
 

@@ -5,6 +5,10 @@
 
 The hub uses a single MariaDB database (e.g., `XChain_Hub`) for all state. The database and all tables are auto-created on first startup. SQL schema files live in `src/sql/*.sql` and are loaded by `src/db/index.js`.
 
+## Time columns
+
+Every hub time column is `DATETIME`, which does not stop at the year 2038 as `TIMESTAMP` does. The hub's connection pool pins the session time zone to UTC, so every stored and returned time is a UTC literal. A hub upgraded from an older release retypes its existing `TIMESTAMP` columns in place at startup, idempotently, with no operator step.
+
 ## Config Tables
 
 | Table | Purpose |
@@ -24,7 +28,7 @@ Stores connection parameters (hosts, ports, credentials) for all XChain services
 | `module` | `VARCHAR(64) NOT NULL` | Service name (decoder, indexer, explorer, etc.) |
 | `param_name` | `VARCHAR(32) NOT NULL` | Parameter name (host, port, db_name, etc.) |
 | `param_value` | `TEXT` | Parameter value |
-| `updated_at` | `TIMESTAMP` | Last modification time |
+| `updated_at` | `DATETIME` | Last modification time |
 
 **Unique key:** `(coin, network, module, param_name)`
 
@@ -37,7 +41,7 @@ Persists PBFT state so validators resume at the correct sequence after restart.
 | `id` | `BIGINT AUTO_INCREMENT` | Primary key |
 | `key_name` | `VARCHAR(64) NOT NULL UNIQUE` | State key (e.g., `seq`, `view`) |
 | `value` | `TEXT NOT NULL` | State value |
-| `updated_at` | `TIMESTAMP` | Last modification time |
+| `updated_at` | `DATETIME` | Last modification time |
 
 ## Validator Tables
 
@@ -56,8 +60,8 @@ Registered validators participating in consensus, oracle rounds, and cross-chain
 | `signing_pubkey` | `CHAR(64) NOT NULL UNIQUE` | Ed25519 public key (hex) |
 | `addr` | `VARCHAR(255) NOT NULL` | Validator address |
 | `status` | `ENUM('active','suspended','removed')` | Current status (default: `active`) |
-| `created_at` | `TIMESTAMP` | Registration time |
-| `updated_at` | `TIMESTAMP` | Last modification time |
+| `created_at` | `DATETIME` | Registration time |
+| `updated_at` | `DATETIME` | Last modification time |
 
 ### `p2p_peers`
 
@@ -68,10 +72,10 @@ Tracks known peers in the gossip network for reconnection and discovery.
 | `id` | `BIGINT AUTO_INCREMENT` | Primary key |
 | `addr` | `VARCHAR(255) NOT NULL UNIQUE` | Peer address (host:port) |
 | `validator_id` | `VARCHAR(255) NOT NULL` | Associated validator identifier |
-| `last_seen_at` | `TIMESTAMP NULL` | Last successful communication |
+| `last_seen_at` | `DATETIME NULL` | Last successful communication |
 | `is_seed` | `TINYINT(1)` | Whether this is a seed node (default: 0) |
-| `created_at` | `TIMESTAMP` | First discovery time |
-| `updated_at` | `TIMESTAMP` | Last modification time |
+| `created_at` | `DATETIME` | First discovery time |
+| `updated_at` | `DATETIME` | Last modification time |
 
 ## Oracle Tables
 
@@ -79,6 +83,7 @@ Tracks known peers in the gossip network for reconnection and discovery.
 |---|---|
 | `oracle_submissions` | Per-validator price submissions per round |
 | `price_snapshots` | Finalized oracle prices after PBFT consensus (cross-chain unified view) |
+| `archive_price_tombstones` | Keys a source-chain retraction deleted from `price_snapshots` after an ANCHOR archive had carried them, owed to the next archive (hub-local, not mirrored) |
 | `oracle_prices` | User TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window |
 | `price_ingest_watermarks` | Per-source-chain fence rejecting stale price pushes after a retraction |
 | `oracle_published_rounds` | At-most-once marker for PRICE v0 round broadcasts: intent is recorded before the send, completion after it |
@@ -92,7 +97,7 @@ One row per source chain, recording how far the hub has processed that chain's p
 | `source_chain` | `VARCHAR(10) NOT NULL` | Primary key: `BTC`, `LTC`, or `DOGE` |
 | `retraction_generation` | `BIGINT NOT NULL` | Highest source-chain rollback generation whose retraction the hub has processed |
 | `from_action_index` | `BIGINT NOT NULL` | Lower bound of that generation's orphaned range |
-| `updated_at` | `TIMESTAMP` | Last update |
+| `updated_at` | `DATETIME` | Last update |
 
 A push is rejected at ingest when its `push_generation` is at or below `retraction_generation` **and** its `action_index` is at or above `from_action_index`, which is exactly the already-retracted range.
 
@@ -110,7 +115,7 @@ Raw price submissions from validators during each oracle round.
 | `validator_pubkey` | `CHAR(64) NOT NULL` | Submitting validator's pubkey |
 | `price` | `VARCHAR(40) NOT NULL` | Submitted price (8 decimal precision) |
 | `sources` | `INT NOT NULL` | Number of price sources used (default: 0) |
-| `submitted_at` | `TIMESTAMP` | Submission time |
+| `submitted_at` | `DATETIME` | Submission time |
 
 **Keys:** `(round_number, coin_pair)`, `(validator_pubkey)`
 
@@ -133,10 +138,29 @@ Finalized price data after PBFT consensus. Cross-chain unified view, populated b
 | `status` | `ENUM('finalized','skipped','disputed')` | Round outcome |
 | `source_chain` | `VARCHAR(10) NOT NULL` | Chain that carried the PRICE v0 tx (audit/diagnostics, default: DOGE) |
 | `source_action_index` | `BIGINT` | Action index of the PRICE v0 tx on source_chain (NULL for hub-finalized) |
-| `created_at` | `TIMESTAMP` | Record creation time |
+| `batch_seq` | `BIGINT UNSIGNED` | ANCHOR v1 archive batch that carried this row; hub-side only, NULL = still owed to an archive |
+| `archived_status` | `VARCHAR(20)` | `status` the archive carried; hub-side only |
+| `archived_batch_block_time` | `BIGINT` | `batch_block_time` the archive carried; hub-side only |
+| `archived_proof_sha` | `CHAR(64)` | `SHA2(consensus_proof, 256)` the archive carried; hub-side only |
+| `created_at` | `DATETIME` | Record creation time |
+
+The table is mutated in place (a skipped row upgrades, a v0 row takes a batch proof, `batch_block_time` is stamped late, a finalized row flips to disputed), so a stamped row is pending for the archive again whenever its status, `batch_block_time` or proof digest no longer equals what the archive carried.
 
 **Unique key:** `(round_number, coin_pair)`  
 **Keys:** `(coin_pair, reference_block)`, `(coin_pair, block_timestamp)`, `(status)`, `(source_chain)`
+
+### `archive_price_tombstones`
+
+Hub-side only record of the `(round_number, coin_pair)` keys a source-chain retraction deleted from `price_snapshots` after an ANCHOR archive had already carried them, so recovery can delete the key a replayed batch would otherwise resurrect. Filled immediately before the delete; never mirrored to indexers.
+
+| Column | Type | Description |
+|---|---|---|
+| `round_number` | `BIGINT NOT NULL` | Oracle round of the deleted row |
+| `coin_pair` | `VARCHAR(20) NOT NULL` | Price pair of the deleted row |
+| `batch_seq` | `BIGINT UNSIGNED` | ANCHOR v1 archive batch that carried the tombstone; NULL = still owed |
+| `created_at` | `DATETIME` | Record creation time |
+
+**Primary key:** `(round_number, coin_pair)`
 
 ### `oracle_prices`
 
@@ -156,7 +180,7 @@ User TOKEN/FIAT oracle prices published via PRICE v1. Cross-chain aggregated by 
 | `block_time` | `BIGINT UNSIGNED NOT NULL` | block_time of the publishing tx |
 | `effective_at` | `BIGINT UNSIGNED NOT NULL` | When this price takes effect (`block_time` for first broadcast, `block_time + 86400` for updates) |
 | `action_index` | `BIGINT UNSIGNED NOT NULL` | action_index of the PRICE v1 tx on source_chain |
-| `created_at` | `TIMESTAMP` | Record creation time |
+| `created_at` | `DATETIME` | Record creation time |
 
 **Unique key:** `(source_chain, action_index)` (dedup)  
 **Keys:** `(source_address, coin, tick, fiat)`, `(coin, tick, fiat, effective_at)`, `(source_chain)`
@@ -169,8 +193,8 @@ The durable at-most-once marker for PRICE v0 round broadcasts, written by `Oracl
 |---|---|---|
 | `round` | `BIGINT NOT NULL` | Primary key: PRICE v0 round id (one broadcast per round) |
 | `txid` | `VARCHAR(80)` | DOGE txid of the PRICE tx (NULL until confirmed, and may stay NULL if the broadcaster returns none) |
-| `intent_at` | `TIMESTAMP DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
-| `sent_at` | `TIMESTAMP NULL` | When the broadcast completed; NULL means intent only |
+| `intent_at` | `DATETIME DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
+| `sent_at` | `DATETIME NULL` | When the broadcast completed; NULL means intent only |
 
 **Key:** `idx_sent (sent_at)`
 
@@ -201,8 +225,8 @@ Cross-chain action attestations verified by PBFT consensus. Each attestation con
 | `status` | `ENUM('pending','attested','rejected','expired')` | Attestation status (default: `pending`) |
 | `validator_count` | `INT NOT NULL` | Number of validators in quorum (default: 0) |
 | `consensus_proof` | `TEXT` | Serialized consensus proof |
-| `created_at` | `TIMESTAMP` | Record creation time |
-| `updated_at` | `TIMESTAMP` | Last modification time |
+| `created_at` | `DATETIME` | Record creation time |
+| `updated_at` | `DATETIME` | Last modification time |
 
 **Keys:** `(source_chain, source_action_index)`, `(status)`
 
@@ -219,8 +243,8 @@ Tracks cross-chain SWAP lifecycle from initiation through settlement.
 | `dest_action_index` | `BIGINT` | Destination action index (set on execution) |
 | `attestation_id` | `VARCHAR(100)` | Linked attestation ID |
 | `status` | `ENUM('initiated','attested','executed','settled','failed')` | SWAP status (default: `initiated`) |
-| `created_at` | `TIMESTAMP` | Record creation time |
-| `updated_at` | `TIMESTAMP` | Last modification time |
+| `created_at` | `DATETIME` | Record creation time |
+| `updated_at` | `DATETIME` | Last modification time |
 
 **Unique key:** `(source_chain, source_action_index)`  
 **Keys:** `(status)`, `(attestation_id)`
@@ -240,7 +264,7 @@ Records confirmed blockchain reorganization events that have been acknowledged b
 | `validator_count` | `INT NOT NULL` | Number of validators in quorum (default: 0) |
 | `consensus_proof` | `TEXT` | Serialized consensus proof |
 | `status` | `ENUM('confirmed','rejected')` | Reorg acknowledgment status (default: `confirmed`) |
-| `created_at` | `TIMESTAMP` | Record creation time |
+| `created_at` | `DATETIME` | Record creation time |
 
 **Keys:** `(source_chain)`, `(status)`
 
@@ -272,13 +296,13 @@ PBFT-finalized DEX order match records. Each row represents a single fill betwee
 | `b_payout_addr` | `VARCHAR(255) NOT NULL` | Side B's receive address on side A's chain |
 | `effective_time` | `BIGINT UNSIGNED NOT NULL` | Wall-clock instant at which indexers apply this match (shared clock across chains) |
 | `finalizing_view` | `INT NOT NULL` | PBFT view the round finalized at (signed into the EQUIV canonical; default 0) |
-| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` over the canonical match, meeting the `cross_chain` quorum at `snapshot_block`: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count |
+| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` over the canonical match, meeting the `cross_chain` quorum at `snapshot_block`: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy `max(2f+1, ceil((N+1)/2))` signer count |
 | `status` | `VARCHAR(20) NOT NULL` | `finalized` or `retracted` (default `finalized`) |
 | `batch_root` | `VARCHAR(64)` | Retained for rows stamped by the retired XDEXANCHOR audit publisher |
 | `anchor_txid` | `VARCHAR(64)` | DOGE ANCHOR txid (ANCHOR v1 archive back-fill; legacy XDEXANCHOR rows too) |
 | `batch_seq` | `BIGINT UNSIGNED` | ANCHOR v1 archive batch this match was published in (hub-side only) |
 | `archived_status` | `VARCHAR(20)` | Match status at last archive publish (a later retraction re-archives the row) |
-| `created_at` | `TIMESTAMP NOT NULL` | Record creation time |
+| `created_at` | `DATETIME NOT NULL` | Record creation time |
 
 **Keys:** `(match_id)` unique, `(snapshot_block)`, `(a_chain, a_action_index)`, `(b_chain, b_action_index)`, `(effective_time)`, `(status)`
 
@@ -307,11 +331,11 @@ PBFT-finalized XCALL dispatch and result records. Each XCALL produces two rows i
 | `status` | `VARCHAR(20) NOT NULL` | Row lifecycle: `finalized` or `retracted` (default `finalized`) |
 | `result_status` | `VARCHAR(20)` | Result phase only: `ok`, `reverted`, `out_of_gas`, `no_contract`, `not_callable`, `payload_too_large`, or `error` |
 | `return_payload_b64` | `TEXT` | Result phase only; base64 return value (SHA-256'd into the canonical) |
-| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` Ed25519 signatures over the phase canonical, meeting the `cross_chain` quorum at `snapshot_block`: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count |
+| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` Ed25519 signatures over the phase canonical, meeting the `cross_chain` quorum at `snapshot_block`: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy `max(2f+1, ceil((N+1)/2))` signer count |
 | `batch_seq` | `BIGINT UNSIGNED` | ANCHOR archive batch this row was committed in (hub-side only) |
 | `archived_status` | `VARCHAR(20)` | Status at archive publish; a drift re-archives the row (hub-side only) |
 | `anchor_txid` | `VARCHAR(80)` | DOGE ANCHOR txid of the archiving transaction (hub-side audit; not mirrored) |
-| `created_at` | `TIMESTAMP NOT NULL` | Record creation time |
+| `created_at` | `DATETIME NOT NULL` | Record creation time |
 
 **Unique key:** `(call_id, phase)`. **Keys:** `(source_chain, source_action_index)`, `(target_chain, phase)`, `(effective_time)`, `(status)`, `(batch_seq)`
 
@@ -333,8 +357,8 @@ The restart-surviving half of the at-most-once guard around `AttestationPublishe
 |---|---|---|
 | `request_id` | `VARCHAR(80) NOT NULL` | ATTEST v1 request id; one response broadcast per request |
 | `txid` | `VARCHAR(80)` | BTC txid of the ATTEST response tx; NULL until confirmed, and may stay NULL if the broadcaster returns none |
-| `intent_at` | `TIMESTAMP DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
-| `sent_at` | `TIMESTAMP NULL` | When the broadcast completed; authoritative at-most-once marker. NULL means intent only |
+| `intent_at` | `DATETIME DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
+| `sent_at` | `DATETIME NULL` | When the broadcast completed; authoritative at-most-once marker. NULL means intent only |
 
 **Primary key:** `(request_id)`. **Key:** `idx_sent (sent_at)`
 
@@ -360,7 +384,7 @@ Caches the outcome of this validator's own fetch from an attestation provider fo
 | `body` | `LONGBLOB` | Provider response bytes (empty on `provider_error`) |
 | `meta` | `MEDIUMTEXT` | Provider meta string (empty on `provider_error`) |
 | `model` | `VARCHAR(128)` | Block-pinned fetch model id, for audit |
-| `created_at` | `TIMESTAMP DEFAULT CURRENT_TIMESTAMP` | Fetch completion time; rows age out with the retry window |
+| `created_at` | `DATETIME DEFAULT CURRENT_TIMESTAMP` | Fetch completion time; rows age out with the retry window |
 
 **Primary key:** `(request_id)`. **Key:** `idx_created (created_at)`
 
@@ -385,11 +409,11 @@ Off-chain governance proposals for modifying hub parameters. Proposals have a vo
 | `proposed_value` | `TEXT NOT NULL` | Proposed new value |
 | `rationale` | `TEXT` | Reason for the proposed change |
 | `status` | `ENUM('voting','passed','failed','expired')` | Proposal status (default: `voting`) |
-| `voting_start` | `TIMESTAMP NOT NULL` | Start of voting period |
-| `voting_end` | `TIMESTAMP NOT NULL` | End of voting period |
+| `voting_start` | `DATETIME NOT NULL` | Start of voting period |
+| `voting_end` | `DATETIME NOT NULL` | End of voting period |
 | `activation_block` | `BIGINT NULL DEFAULT NULL` | Block-anchored activation height for `CAPABILITY_<CAP>_MIN_STAKE` proposals; every hub resolves the threshold for block N as the latest `activation_block <= N`, keeping the capability validator set federation-deterministic. NULL for proposals predating this column or carrying no activation height. |
-| `applied_at` | `TIMESTAMP NULL` | When the change was applied (if passed) |
-| `created_at` | `TIMESTAMP` | Record creation time |
+| `applied_at` | `DATETIME NULL` | When the change was applied (if passed) |
+| `created_at` | `DATETIME` | Record creation time |
 
 **Keys:** `(parameter)`, `(status)`
 
@@ -404,7 +428,7 @@ Individual validator votes cast on governance proposals.
 | `voter_pubkey` | `CHAR(64) NOT NULL` | Voter's Ed25519 pubkey |
 | `vote` | `ENUM('approve','reject')` | Vote cast |
 | `signature` | `TEXT NOT NULL` | Ed25519 signature of the vote |
-| `created_at` | `TIMESTAMP` | When the vote was cast |
+| `created_at` | `DATETIME` | When the vote was cast |
 
 **Unique key:** `(proposal_id, voter_pubkey)`; one vote per validator per proposal
 
@@ -428,7 +452,7 @@ One row per (validator, spot-checked attestation request): `passed = 1` when the
 | `request_id` | `VARCHAR(128) NOT NULL` | The attestation request checked |
 | `block_index` | `BIGINT NOT NULL` | The request's creation block |
 | `passed` | `TINYINT(1) NOT NULL` | 1 if the response matched, 0 if it diverged |
-| `checked_at` | `TIMESTAMP` | Check time |
+| `checked_at` | `DATETIME` | Check time |
 
 **Keys:** unique `(validator_pubkey, request_id)`, `(validator_pubkey, passed)`, `(block_index)`
 
@@ -448,7 +472,7 @@ Tracks XCHAIN rewards earned by validators for participating in oracle rounds. R
 | `block_index` | `BIGINT NULL` | On-chain block index where the reward was settled (NULL for pending rewards) |
 | `batch_seq` | `BIGINT NULL` | ANCHOR archive batch associated with this reward (NULL when not yet archived) |
 | `claimed` | `TINYINT(1) NOT NULL` | Whether the reward has been claimed (default: 0) |
-| `created_at` | `TIMESTAMP` | Record creation time |
+| `created_at` | `DATETIME` | Record creation time |
 
 **Unique key:** `(validator_pubkey, round_number, reward_type)`. **Keys:** `(validator_pubkey)`, `(round_number)`, `(validator_pubkey, claimed)`, `(batch_seq)`
 
@@ -464,7 +488,7 @@ Records detected validator misbehavior for governance review. The offenses recor
 | `round_number` | `BIGINT` | Round where offense occurred |
 | `evidence` | `TEXT` | Serialized evidence details |
 | `status` | `ENUM('pending','approved','rejected','expired')` | Proposal status (default: `pending`) |
-| `created_at` | `TIMESTAMP` | Detection time |
+| `created_at` | `DATETIME` | Detection time |
 
 **Keys:** `(validator_pubkey)`, `(status)`
 
@@ -493,8 +517,8 @@ Hub-authored, append-only record of who earned each ANCHOR publish reward. One r
 | `snapshot_block` | `BIGINT UNSIGNED NOT NULL` | BTC block selecting the `oracle_publish` set, and the reward's `block_index` |
 | `publisher` | `VARCHAR(64) NOT NULL` | Elected publisher pubkey credited with the reward (lowercase hex) |
 | `reward_amount` | `VARCHAR(32) NOT NULL` | **Audit only.** The indexer credits the frozen constant, never this wire value |
-| `publisher_attestations` | `TEXT NOT NULL` | JSON `[{pubkey,sig}]`, meeting the `oracle_publish` quorum over the reward canonical at the bundle's snapshot block: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
-| `created_at` | `TIMESTAMP` | Insert time |
+| `publisher_attestations` | `TEXT NOT NULL` | JSON `[{pubkey,sig}]`, meeting the `oracle_publish` quorum over the reward canonical at the bundle's snapshot block: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy `max(2f+1, ceil((N+1)/2))` signer count (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
+| `created_at` | `DATETIME` | Insert time |
 
 **Keys:** unique `(chain, network, reward_type, round_reference, snapshot_block, publisher)`, `(network, snapshot_block)`
 
@@ -520,9 +544,10 @@ Quorum-signed block-level hash checkpoints for each chain. Rows are append-only;
 | `state_root_version` | `TINYINT UNSIGNED` | `merkle.js STATE_ROOT_VERSION` the state root was computed under; NULL before flag-day |
 | `block_merkle_root` | `CHAR(64)` | SPV per-block content Merkle root; NULL before flag-day |
 | `block_merkle_version` | `TINYINT UNSIGNED` | `merkle.js BLOCK_MERKLE_VERSION`; NULL before flag-day |
-| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` signatures over the XCHECKPOINT canonical, meeting the `oracle_publish` quorum at the checkpoint's snapshot block: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
+| `validator_signatures` | `TEXT NOT NULL` | JSON array of `{pubkey, sig}` signatures over the XCHECKPOINT canonical, meeting the `oracle_publish` quorum at the checkpoint's snapshot block: stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy `max(2f+1, ceil((N+1)/2))` signer count (validated per [ANCHOR](../../protocol/actions/anchor.md)) |
 | `anchor_txid` | `VARCHAR(64)` | DOGE ANCHOR txid once published on-chain (hub-side audit only) |
-| `created_at` | `TIMESTAMP NOT NULL` | Record creation time |
+| `batch_seq` | `BIGINT UNSIGNED` | ANCHOR v1 archive batch this checkpoint was published in; hub-side only, NULL = still owed to an archive. The table is append-only, so this column alone marks a published row |
+| `created_at` | `DATETIME NOT NULL` | Record creation time |
 
 **Unique key:** `(chain, network, block_index, checkpoint_seq)`. **Keys:** `(chain, network, checkpoint_seq)`
 
@@ -536,8 +561,8 @@ The restart-surviving half of the at-most-once guard around `StateAnchorPublishe
 | `network` | `VARCHAR(20) NOT NULL` | Network (mainnet, testnet, regtest) |
 | `checkpoint_seq` | `BIGINT UNSIGNED NOT NULL` | The `state_checkpoints.checkpoint_seq` this marker guards |
 | `txid` | `VARCHAR(64)` | DOGE txid once the broadcast returned one; NULL while intent-only |
-| `intent_at` | `TIMESTAMP DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
-| `sent_at` | `TIMESTAMP NULL` | When the broadcast returned a txid; NULL means intent only |
+| `intent_at` | `DATETIME DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
+| `sent_at` | `DATETIME NULL` | When the broadcast returned a txid; NULL means intent only |
 
 **Primary key:** `(chain, network, checkpoint_seq)`. **Key:** `idx_intent (intent_at)`
 
@@ -553,7 +578,7 @@ Records which validators qualified for each capability at a given BTC-anchored b
 | `signing_pubkey` | `VARCHAR(64) NOT NULL` | Ed25519 validator pubkey (64 hex chars) |
 | `amount` | `VARCHAR(250) NOT NULL` | Source aggregate active stake at the block (quorum weight under STAKE_WEIGHTED_QUORUM) |
 | `source` | `VARCHAR(255) NOT NULL` | Staking address (source) this key signs for; quorum weight is per-source, not per-key. Empty string on pre-activation rows. (default `''`) |
-| `created_at` | `TIMESTAMP NOT NULL` | Record creation time |
+| `created_at` | `DATETIME NOT NULL` | Record creation time |
 
 **Unique key:** `(snapshot_block, capability, signing_pubkey)`. **Keys:** `(capability, snapshot_block)`
 
@@ -575,11 +600,11 @@ Tracks the current qualification and self-test status of each capability for thi
 | `qualified` | `TINYINT(1) NOT NULL` | Stake amount meets `min_stake[capability]` (default 0) |
 | `self_test_ok` | `TINYINT(1) NOT NULL` | Latest `selfTest()` passed (default 0) |
 | `enabled` | `TINYINT(1) NOT NULL` | Operator has not opted out via `DISABLED_CAPABILITIES` (default 1) |
-| `self_test_at` | `TIMESTAMP NULL` | When the self-test was last run |
+| `self_test_at` | `DATETIME NULL` | When the self-test was last run |
 | `self_test_msg` | `VARCHAR(255)` | Failure reason from the most recent self-test (NULL on success) |
 | `qualified_at_block` | `BIGINT UNSIGNED NULL` | On-chain block where qualification was last computed |
-| `created_at` | `TIMESTAMP` | Record creation time |
-| `updated_at` | `TIMESTAMP` | Last modification time (auto-updated) |
+| `created_at` | `DATETIME` | Record creation time |
+| `updated_at` | `DATETIME` | Last modification time (auto-updated) |
 
 **Unique key:** `(signing_pubkey, capability)`. **Keys:** `(qualified, capability)`, `(self_test_ok, capability)`, `(enabled, capability)`
 
@@ -607,7 +632,7 @@ Stores anonymous telemetry events submitted by `xchain-node` installs. The conne
 | `docker_version` | `VARCHAR(32)` | Docker engine version (best-effort) |
 | `modules` | `JSON` | Array of `{module, coin, network, version, running}` objects |
 | `event` | `VARCHAR(24)` | Event type: `install`, `update`, `start`, or `heartbeat` |
-| `created_at` | `TIMESTAMP` | Record creation time |
+| `created_at` | `DATETIME` | Record creation time |
 
 **Keys:** `(install_id)`, `(country)`, `(ip_hash)`, `(created_at)`
 

@@ -43,7 +43,7 @@ Both relay legs resolve that quorum against the capability snapshot the row pins
 `snapshot_block`, and that height also decides **which** quorum rule applies: **stake-weighted
 (source-deduped) at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`**, where the summed stake of the
 qualified signers must exceed two thirds of the total staked amount and one staking source counts
-once however many of its keys sign; **otherwise the legacy `2f+1` signer count**. It is the same
+once however many of its keys sign; **otherwise the legacy `max(2f+1, ceil((N+1)/2))` signer count**. It is the same
 rule cross-chain DEX settlement and the ATTEST relay legs apply. Below, "the quorum" means
 whichever of the two the `snapshot_block` selects.
 

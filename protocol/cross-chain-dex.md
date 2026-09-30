@@ -48,7 +48,7 @@ sequenceDiagram
     Note over Chain: GIVE side escrowed locally on the posting chain
     Federation->>Chain: Discover, polls open cross-chain offers<br>(getopencrosschainorders)
     Federation->>Federation: Match, compatible pair found<br>(SWAP exact single-fill FCFS,<br>or ORDER price-time book, may partial-fill)
-    Federation->>Federation: Finalize, reaches consensus,<br>signs match record with a cross_chain quorum<br>(stake-weighted at/above activation, else 2f+1 count)
+    Federation->>Federation: Finalize, reaches consensus,<br>signs match record with a cross_chain quorum<br>(stake-weighted at/above activation, else max(2f+1, ceil((N+1)/2)) count)
     Federation->>Hub: Deliver, signed match written<br>and streamed to every indexer over the hub-DB mirror
     Hub->>Indexer: mirrored match record
     Indexer->>Indexer: Settle, verifies signatures,<br>releases leg's escrow to counterparty as CROSS_SETTLE
@@ -69,7 +69,7 @@ capability snapshot the match pins at its `snapshot_block`, which is the same lo
 hub tallied. Which quorum rule applies is decided by that `snapshot_block`: **stake-weighted
 (source-deduped) at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`**, where the summed stake of the
 qualified signers must exceed two thirds of the total staked amount and one staking source counts
-once no matter how many of its keys sign; **otherwise the legacy `2f+1` signer count**. This is the
+once no matter how many of its keys sign; **otherwise the legacy `max(2f+1, ceil((N+1)/2))` signer count**. This is the
 same rule the XCALL dispatch leg applies. The mirror is a *transport*, not a trusted authority: a
 corrupted or lagging mirror can **delay or withhold** a settlement (a liveness/DoS concern) but
 **cannot forge** one; the signatures won't verify. Trust rests on the `cross_chain` validator set,

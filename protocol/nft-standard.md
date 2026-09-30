@@ -268,7 +268,8 @@ its own guard, keyed on controller identity rather than token identity (see
 [Reentrancy and determinism](./controller-bound-tokens.md#reentrancy-and-determinism)).
 
 **The split itself covers `ORDER` and `SWAP` sales only.** A `DISPENSER` sale runs the guard
-at create as a *veto* and takes no cut: legs returned there are discarded, and no split is
+at create as a *veto* and takes no cut: legs returned there are still validated (a malformed
+or over-cap set denies the listing) and a valid set is then discarded, and no split is
 applied at dispense (see
 [Proceeds split](./controller-bound-tokens.md#proceeds-split-royalty-fee-payout_legs)). So a
 royalty guard that only *returns legs* is routed around by vending through a dispenser;
@@ -282,9 +283,12 @@ and every leg address must re-encode to `GET_COIN` at create. See
 [Cross-chain sales](./controller-bound-tokens.md#cross-chain-sales-cross_chain_royalty).
 
 Creators who prefer a custody model can instead implement royalties in an ordinary
-**marketplace contract** that takes custody via [`DEPOSIT`](./actions/deposit.md)/[`WITHDRAW`](./actions/withdraw.md)
-and enforces any fee split in contract logic; opt-in per collection, at the cost of the
-contract holding the token.
+**marketplace contract** that takes custody via [`DEPOSIT`](./actions/deposit.md) and pays out
+the split itself, on sale, via its own `EXECUTE`-triggered emitted `SEND`s; opt-in per
+collection, at the cost of the contract holding the token. Such a contract should leave
+`meta.ownerWithdraw` unset: it holds other people's listed tokens, and the owner-only
+[`WITHDRAW`](./actions/withdraw.md) action runs no contract code at all, so opting in would let
+the deployer pull a listed token straight out of custody, bypassing the fee split entirely.
 
 ---
 

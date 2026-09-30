@@ -126,7 +126,7 @@ jobs:
       - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "22.22.3"
 
       # mathjs is a devDependency here, pinned to the same exact 15.2.0 the
       # indexer, explorer, sdk and hub carry, because the reference

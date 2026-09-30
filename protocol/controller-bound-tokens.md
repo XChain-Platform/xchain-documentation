@@ -16,7 +16,10 @@ rules **unavoidable**. This is the enforced-royalty and enforced-compliance prop
 marketplace-goodwill royalties on other chains never achieved: there is no second venue
 where the rule can be sidestepped, because there is no second settlement path. The token
 stays natively held and natively tradeable through the built-in DEX rails; the controller
-only gates the actions that move, sell, mint, or burn it.
+only gates the actions that move, sell, mint, or burn it. For contract-custody legs, this
+claim applies from the [`CONTROLLER_CUSTODY_GUARD` flag day](./flag-days.md): before it,
+`DEPOSIT` and `WITHDRAW` do not run guards; from it, deposits into and withdrawals out of
+contract custody run the `transfer` guard.
 
 The feature is **opt-in and isolated**. A token or account with no binding behaves exactly
 as it did before (one NULL check, zero VM work, zero added fee). Nothing about an
@@ -28,8 +31,8 @@ uncontrolled token changes. A binding is added, and dropped, by its owner.
 
 - **Token controllers** gate actions on a bound `TICK`: transfers, trades, burns, mints,
   contract-targeted staking, and ownership deed-overs. Bound via [`ISSUE`](./actions/issue.md) v6.
-- **Address controllers** gate direct sends into or out of a bound account. Bound via
-  [`ADDRESS`](./actions/address.md) v1.
+- **Address controllers** gate direct sends and contract-custody moves involving a bound
+  account. Bound via [`ADDRESS`](./actions/address.md) v1.
 - **The guard is programmable.** It runs as a normal VM execution, so every validator
   reaches the identical decision and side effects.
 - **A `trade` guard can set a proceeds split** (`payoutLegs`), the generic primitive behind
@@ -153,7 +156,7 @@ running any guard; see [Actions refused outright](#actions-refused-outright-on-a
 
 | Class | Gates | Guard `action_type` |
 |---|---|---|
-| `transfer` | `SEND` (and the balance leg of bulk moves) | `SEND` |
+| `transfer` | `SEND`, [`DEPOSIT`](./actions/deposit.md), [`WITHDRAW`](./actions/withdraw.md) (and the balance leg of bulk moves) | `SEND` / `DEPOSIT` / `WITHDRAW` |
 | `trade` | [`ORDER`](./actions/order.md) / [`SWAP`](./actions/swap.md) / [`DISPENSER`](./actions/dispenser.md) create | `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` |
 | `burn` | [`DESTROY`](./actions/destroy.md) | `DESTROY` |
 | `mint` | [`MINT`](./actions/mint.md) supply creation | `MINT` |
@@ -233,6 +236,8 @@ indexer actually passes:
 | `AIRDROP` | `transfer` | distributor | `''` (fans out) | total leaving the sender | `''` |
 | `DIVIDEND` | `transfer` | distributor | `''` (fans out) | total leaving the sender | `''` |
 | `SWEEP` | `transfer` | swept address | **sweep `DESTINATION`** | that tick's swept balance | `''` |
+| `DEPOSIT` | `transfer` | depositor | `C:<CHAIN>:<index>` | amount moved | `''` |
+| `WITHDRAW` | `transfer` | `C:<CHAIN>:<index>` | withdrawer | amount moved | `''` |
 | `SWEEP_OWNERSHIP` | `ownership` | owner / `SOURCE` | sweep `DESTINATION` | `''` | `''` |
 | `ORDER_CREATE` | `trade` | seller | `''` (no buyer yet) | `GIVE_AMOUNT`, `''` on an ownership give | `GET_AMOUNT` / `GET_TICK` |
 | `SWAP_CREATE` | `trade` | seller | `''` (no buyer yet) | `GIVE_AMOUNT`, `''` on an ownership give | `GET_AMOUNT` / `GET_TICK` |
@@ -255,7 +260,12 @@ Decision semantics:
   atomically with the native action.
 - **An `ORDER_CREATE` / `SWAP_CREATE` guard may return `{ payoutLegs: [{ to, bps }, …] }`** to
   set a basis-point split of the sale's proceeds (see [Proceeds split](#proceeds-split-royalty-fee-payout_legs)).
-  `DISPENSER_CREATE` is **veto-only**: legs returned there are discarded, not rejected.
+  Legs returned at any other invocation point, `DISPENSER_CREATE` included, are never applied,
+  but they are **validated first** by the same rules and effective cap: a malformed leg or an
+  over-cap total **denies** the action (`invalid: controller (bad payout leg)` /
+  `invalid: controller (payout exceeds cap)`), and only a valid set is discarded. A guard body
+  shared across invocation points should return `payoutLegs` only when `action_type` is
+  `ORDER_CREATE` or `SWAP_CREATE`.
 - **`revert(reason)` / out-of-gas / runtime error / missing `guard` method ⇒ DENY**
   (fail-closed). The native action is marked `invalid: controller (<reason>)` and everything
   the guard did is rolled back.
@@ -288,7 +298,9 @@ There is no royalty-specific mechanism; "royalty" is simply the most common use 
    `min(CONTROLLER_MAX_TAKE_BPS, contract maxTakeBps)`; global default `10000`, optionally
    tightened by the contract's [permissions manifest](#permissions-manifest)) and stores the
    legs as JSON on `orders.payout_legs` / `swaps.payout_legs`. A malformed or over-cap set
-   **denies** the listing (fail-closed). No `payoutLegs` ⇒ NULL (an ordinary order).
+   **denies** the listing (fail-closed). No `payoutLegs` ⇒ NULL (an ordinary order). The same
+   validation, including the lenient shapes below, runs at every other guard invocation
+   point, where a bad set denies the action and a valid set is discarded unapplied.
 
    Two shapes are read leniently rather than denied, and no activation gate changes that
    today (none is registered in [Flag-Day Values](./flag-days.md)): a supplied `payoutLegs`
@@ -309,7 +321,9 @@ transfer ownership rather than a balance, so no proceeds split applies to that l
 
 > ⚠️ **Dispensers take no split, whatever the guard returns.** `DISPENSER_CREATE` runs the
 > `trade` guard as a **veto only**: the indexer consumes the deny and the metered guard fee and
-> **discards any `payoutLegs` the guard returns**, silently, without denying the listing. No
+> never applies any `payoutLegs` the guard returns. It still **validates** them exactly as at
+> `ORDER_CREATE` / `SWAP_CREATE`, so a malformed or over-cap set **denies** the listing, and
+> only a valid set is discarded, silently, without denying it. No
 > split is applied at dispense either: the dispense path credits the buyer the `GIVE_TICK` and
 > runs no guard and no `applyProceedsSplit`. So a royalty policy that only *returns legs* is
 > routed around by vending the token through a dispenser instead of listing it. A guard that
@@ -340,7 +354,7 @@ When the flag is on:
 2. **In the match**, the hub copies each order's stored legs onto the `cross_chain_matches`
    row (`a_payout_legs` / `b_payout_legs`), and the legs are part of the **validator-signed
    XMATCH canonical** (a `cross_chain` quorum of signatures: stake-weighted at/above
-   `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy 2f+1 signer count), so a
+   `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy `max(2f+1, ceil((N+1)/2))` signer count), so a
    colluding hub cannot strip a
    royalty: a stripped or rewritten legs field breaks the signatures and the match never
    settles.
@@ -460,16 +474,20 @@ VERSION|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO
 - The guard runs with the same [ABI](#the-guard-abi), gas rules, and determinism guarantees;
   the subject is the account and `tick` is the token in motion.
 
-**What it gates today:** both sides of a direct `SEND`. A `transfer` address binding is  
-**symmetric**: it runs whether the account is the **`SOURCE`** (an *outbound* self-gate:
+**What it gates today:** both sides of a direct `SEND`, plus the account's contract-custody
+moves. On direct sends, a `transfer` address binding is **symmetric**: it runs whether the
+account is the **`SOURCE`** (an *outbound* self-gate:
 self-imposed spending controls such as velocity limits, allowlists, or compliance) or the
 **`DESTINATION`** (an *inbound* gate: refuse an unsolicited incoming transfer). The guard
 distinguishes direction from its `from` / `to` (`from === subject` ⇒ outbound). The
 enforcement order is: the token's own `transfer` guard, then the source's outbound `transfer`
 guard, then the destination's inbound `transfer` guard. `SOURCE` pays the guard gas, and on
 BTC the reservations are cumulative so `GAS` can never be driven negative (see [Gas](#gas)).
-DEX and dispenser deliveries are *solicited pulls*, not direct sends, so they are never gated
-this way.
+A `transfer` address binding also gates that account's deposits into and withdrawals out of
+contract custody. These account guard runs follow the token guard, with cumulative gas, and
+a contract custody address never carries an address-controller binding, so no address guard
+runs for the custody endpoint itself. DEX and dispenser deliveries are *solicited pulls*, not
+direct sends, so they are never gated this way.
 
 Where a token controller makes the rules travel with the *asset*, an address controller makes
 them travel with the *account*.
@@ -613,6 +631,13 @@ is not erased by it.
 
 The cross-chain proceeds-split behavior additionally rides the `CROSS_CHAIN_ROYALTY` flag-day
 described [above](#cross-chain-sales-cross_chain_royalty).
+
+From the [`CONTROLLER_CUSTODY_GUARD` flag day](./flag-days.md), a `DEPOSIT` into or
+`WITHDRAW` out of contract custody runs the token's `transfer` or fallback `all` guard, then
+the depositor's own `transfer` address guard for a `DEPOSIT` or the withdrawer's own
+`transfer` address guard for a `WITHDRAW`. `SOURCE` pays the metered guard gas for both runs,
+and the reservations are cumulative. There is no grandfathering: a withdrawal of a balance
+deposited before the flag day is still gated, and a denial leaves that balance in custody.
 
 Because a guard's decision and side effects are consensus-relevant, the VM engine and the
 indexer must deploy **atomically** across the fleet: every validator must run the same guard

@@ -75,7 +75,7 @@ Sent automatically on connection. Provides server info, current state, limits, a
 }
 ```
 
-Use `latest_block_index` and `latest_action_index` to seed your local state for catch-up on reconnect.
+Use `latest_block_index` and `latest_action_index` to seed your local state for catch-up on reconnect when you hold no cursor yet; on a reconnect they report the current tip, so they must not move a cursor you already have (see [Reconnection and Catch-Up](#reconnection-and-catch-up)).
 
 ---
 
@@ -753,12 +753,15 @@ Response to client `ping`.
 
 ## Reconnection and Catch-Up
 
-1. Track `latest_action_index` from `WELCOME` and every event's `action_index`
+1. Track the highest `action_index` you have processed. Seed it from `WELCOME`'s `latest_action_index` only when you hold no cursor yet: on a reconnect, `WELCOME` reports the current tip, which is past the actions you missed, so letting it move your cursor skips them.
 2. On disconnect, reconnect with exponential backoff
-3. Resubscribe with `since_action_index` set to your last known value
-4. Process events with `catch_up: true` (these are replayed, not live)
-5. Wait for `CATCH_UP_COMPLETE` before treating events as live
-6. If `CATCH_UP_TOO_OLD` error, use the REST API to backfill
+3. Resubscribe with `since_action_index` set to your last known value, on the subscriptions that carry `NEW_ACTION` (`actions` and `address`). Other channels have nothing to replay and need no `since_action_index`.
+4. Send one `since_action_index` subscribe at a time, each with its own `id`, and wait for the `CATCH_UP_COMPLETE` or `error` frame that echoes that `id` before sending the next. The server runs one catch-up per connection and refuses an overlapping one with `CATCH_UP_IN_PROGRESS`; the subscription is still registered, but its missed actions are not replayed.
+5. Process events with `catch_up: true` (these are replayed, not live). Live frames can arrive during a replay, so do not advance your cursor past the replay from them until every catch-up has closed.
+6. If `CATCH_UP_COMPLETE` has `truncated: true`, the replay stopped at its row cap: send the same subscribe again with `since_action_index` set to that frame's `latest_action_index`, and repeat until a frame arrives with `truncated: false`
+7. If the catch-up is refused (`CATCH_UP_TOO_OLD`, or any other `error` carrying its `id`), use the REST API to backfill
+
+The SDK's WebSocket client and the explorer's bundled browser client both follow these steps, and each reports a refused or unanswered catch-up as a `resync_required` event.
 
 ```mermaid
 sequenceDiagram
@@ -772,9 +775,14 @@ sequenceDiagram
     S-->>C: live events
 
     Note over C,S: disconnect
-    C->>S: reconnect, resubscribe with since_action_index
+    C->>S: reconnect
+    S-->>C: WELCOME (tip, does not move the cursor)
+    C->>S: subscribe actions, since_action_index, id c1
     S-->>C: replayed events
-    S-->>C: CATCH_UP_COMPLETE
+    S-->>C: CATCH_UP_COMPLETE, id c1
+    C->>S: subscribe address, since_action_index, id c2
+    S-->>C: replayed events
+    S-->>C: CATCH_UP_COMPLETE, id c2
     S-->>C: live events
 ```
 

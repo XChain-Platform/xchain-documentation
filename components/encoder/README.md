@@ -23,7 +23,6 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 - **Replace-By-Fee**: optional RBF signaling via UTXO sequence number
 - **Custom outputs**: arbitrary address/value outputs for COINPay native coin payments and other use cases
 - **JSON-RPC API**: Express server with Helmet security headers, optional API key authentication, configurable rate limiting, and CORS
-- **Browser bundle**: Browserify build for client-side PSBT generation without routing private keys through a server
 
 ## Documentation
 
@@ -110,15 +109,6 @@ The encoder exposes a JSON-RPC API via Express with `express-json-rpc-router`.
 A machine-readable OpenRPC 1.3.2 spec for all JSON-RPC methods is served at `GET /openrpc.json`.
 
 See the **[API Reference](api.md)** for full per-method parameters, request and response examples, the UTXO object shape, and the JSON-RPC error codes.
-
-## Browser Bundle
-
-A Browserify build is available for client-side use. This allows web applications to construct PSBTs in the browser without routing the private key through a server. The bundle exposes `window.XChainEncoder` with the same encoding logic.
-
-```bash
-npm run build       # Production (minified) → dist/xchain_encoder.min.js
-npm run build:dev   # Development (unminified) → dist/xchain_encoder.min.js
-```
 
 ## Installation
 

@@ -124,14 +124,17 @@ test('the canonical activation-map index names every newly published gate', () =
         'DISPENSER_FRESHNESS_SHAPE_ACTIVATION',
         'PRICE_ZERO_VALIDITY_ACTIVATION',
         'PRICE_BATCHING_FLOOR_ACTIVATION',
+        'ARCHIVE_MATCH_COUNT_ACTIVATION',
+        'ANCHOR_BUNDLE_ORDER_ACTIVATION',
     ]) {
         assert.ok(names.includes(name), `${name} is missing from the canonical activation-map index`);
     }
 });
 
-test('every newly published activation map is value-identical to the indexer registry', { skip: noIndexer }, () => {
+test('every newly published activation map is value-identical to its source registry', { skip: noIndexer }, () => {
     const canonical = require('../protocol/constants.js');
     const registry = require(gen.REGISTRY);
+    const referenceRegistry = require('../protocol/reference-impl/consensus/gate_registry.js');
     const rows = {
         AMOUNT_REPRESENTABILITY_ACTIVATION:
             'amount_representability_activation.AMOUNT_REPRESENTABILITY_ACTIVATION',
@@ -141,11 +144,16 @@ test('every newly published activation map is value-identical to the indexer reg
             'price_zero_validity_activation.PRICE_ZERO_VALIDITY_ACTIVATION',
         PRICE_BATCHING_FLOOR_ACTIVATION:
             'price_batching_floor_activation.PRICE_BATCHING_FLOOR_ACTIVATION',
+        ARCHIVE_MATCH_COUNT_ACTIVATION:
+            'archive_match_count_activation.ARCHIVE_MATCH_COUNT_ACTIVATION',
+        ANCHOR_BUNDLE_ORDER_ACTIVATION:
+            'anchor_bundle_order_activation.ANCHOR_BUNDLE_ORDER_ACTIVATION',
     };
 
     for (const [name, key] of Object.entries(rows)) {
-        assert.deepStrictEqual(canonical[name], registry.get(key),
-            `${name} has drifted from the indexer activation registry`);
+        const source = name === 'ANCHOR_BUNDLE_ORDER_ACTIVATION' ? referenceRegistry : registry;
+        assert.deepStrictEqual(canonical[name], source.get(key),
+            `${name} has drifted from its source activation registry`);
     }
 });
 

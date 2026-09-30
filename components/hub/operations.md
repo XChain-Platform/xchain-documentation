@@ -354,6 +354,23 @@ curl -X POST http://localhost:10000 \
 
 The pause is **runtime state, not configuration**: it does not survive a hub restart. To disable an effector durably, use its `*_ENABLED` variable (`ORACLE_PUBLISH_ENABLED`, `ATTEST_ENABLED`, `ANCHOR_ENABLED`, `FULLNODE_ENABLED`) in [CONFIGURATION.md](configuration.md).
 
+## Oracle Metrics
+
+These series are served on the metrics endpoint only when [`METRICS_ENABLED`](./configuration.md#metrics-and-log-shipping) is set.
+
+| Series | Type | Labels | What it tells you |
+|---|---|---|---|
+| `xchain_oracle_last_finalized_round_timestamp_seconds` | Gauge | None | Unix time of the last oracle round this hub saw finalized; stops advancing when rounds stop reaching quorum. |
+| `xchain_oracle_current_round` | Gauge | None | Oracle round number the round timer last opened; flat means the round loop itself is wedged. |
+| `xchain_oracle_consecutive_skipped_rounds` | Gauge | None | Trailing streak of oracle rounds that did not finalize. |
+| `xchain_oracle_round_timeouts_total` | Counter | None | Oracle rounds evicted before reaching commit quorum, leader and follower seats alike. |
+| `xchain_oracle_single_source_rounds_total` | Counter | None | Oracle rounds finalized with one uncorrelated price source on a normally-multi-source pair. |
+| `xchain_oracle_price_source_live` | Gauge | `source` | `1` when that upstream returned at least one usable price on this hub's last fetch and `0` when it did not; absent before the first fetch. |
+| `xchain_oracle_price_source_fetch_attempts_total` | Counter | `source` | Cumulative fetch dispatches per upstream this hub attempted this round, live or dead; the dispatch evidence behind the liveness gauge. |
+| `xchain_oracle_price_source_bound_rejects_total` | Counter | `source` | Upstream values dropped on the ingest bound. |
+
+Single-source warning lines now name the live and dead upstreams (for example, `live: coingecko; dead: kraken, coinbase`) and the pairs that went single-source with their submitters, so an operator can tell which source dropped.
+
 ## Resilience and Recovery
 
 ### Database Connection Recovery
@@ -446,6 +463,7 @@ The ANCHOR publisher logs `StateAnchorPublisher: DOGE balance low` and skips pub
 - Check the DOGE wallet balance at the address configured in `capabilities.json` under `oracle_publish.doge_address`.
 - Refill the wallet to resume publishing. Once funded, either wait for the next `ANCHOR_INTERVAL_MS` cycle or force an immediate flush with `anchorflush` (see above).
 - **Cost / runway.** Each anchor *round* broadcasts **one checkpoint bundle per network**, not one transaction per chain: a single ANCHOR v0 carries BTC, LTC and DOGE as sections of the same payload (see [ANCHOR](../../protocol/actions/anchor.md)), and it rides the P2SH lane, so the bundle is a funding transaction plus a reveal transaction. Pending cross-chain matches add the v1 archive head and its v2 continuation chunks on top, and on a busy cycle the archive leg dominates. Fees are **byte-driven**: they scale with the encoded payload at the venue's current fee rate, not with the number of chains, so bundling the three per-chain anchors that this layout replaced saved per-transaction overhead only, not a multiple. Get your own number rather than trusting a constant: read the fee actually paid by one cycle's anchor transactions on your venue, multiply by cycles per day (`ANCHOR_INTERVAL_MS`), then size a refill at roughly `daily_cost × desired_days` with enough margin to stay clear of the low-balance threshold, since the publisher skips publishing entirely while the wallet sits below it. To cut spend, raise `ANCHOR_CHECKPOINT_EVERY_N` (see CONFIGURATION.md → ANCHOR Publishing): it gates the whole round, so `=2` roughly halves checkpoint-leg spend at the price of an on-chain recovery point that trails the tip by up to two checkpoint intervals.
+- **Folded publishing (`ANCHOR_FOLD_ACTIVATION`).** On a network where the fold is armed, the archive stops costing its own v1 and v2 transactions and rides the checkpoint bundle as a v3 archive section. The normal cycle emits one v3 transaction carrying every checkpointed section plus the archive. When the byte budget (`ANCHOR_BUNDLE_MAX_BYTES`) splits the bundle, every group still ships in the same cycle and the archive rides the first group with room for it. If no group has room, or the archive co-sign misses its sub-deadline, the cycle ships with `ARCHIVE_COUNT` 0 and the archive waits for a later cycle, while the checkpoint leg is never delayed. One `anchor_bundle` reward covers the whole action and `anchor_archive` is no longer minted. The gate is unarmed on mainnet and testnet. See [ANCHOR](../../protocol/actions/anchor.md#version-3-only).
 - **Restarts are free** as of the cadence-latch fix; a hub restart restores the checkpoint cadence latch from the last persisted checkpoint and no longer fires an extra (DOGE-spending) off-schedule anchor. Look for `StateCheckpointEngine: cadence latch restored at snapshot block N` in startup logs to confirm.
 
 ### Consumers not discovering hub

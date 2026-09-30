@@ -131,6 +131,8 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 
 ## Source Files
 
+The source-layout consolidation replaced the removed top-level `stateHash.js` module with the snake-case `src/consensus/state_hash.js` module listed below. Its `xchain-sync` counterpart has the same path and byte-identical contents.
+
 | File | Class | Role |
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server + JSON-RPC, env var validation, indexer startup |
@@ -151,7 +153,7 @@ The VM maintains a per-block cache of V8 compiled script data (`beginBlock()`/`e
 | `src/hub/hub_push_queue.js` | `HubPushQueue` | Durable retry queue for PRICE pushes to the hub; backs the `pending_hub_pushes` table |
 | `src/consensus/ed25519.js` | None | Ed25519 signature verification using Node built-in crypto; mirrors `xchain-hub/src/validators/identity.js` format |
 | `src/consensus/merkle.js` | None | Consensus-critical SPV light-client Merkle primitives: additive state SMT, per-block content root, fixed top-level state root. Vendored byte-identically into `xchain-sync` |
-| `src/consensus/state_hash.js` | None | Builds the `state_hash` preimage covering in-place mutations (deactivation stamps, slash debits, status flips, cooldown maturities) that the three standard block hashes cannot see |
+| `src/consensus/state_hash.js` | `buildStateHashData` | Builds the `state_hash` preimage covering in-place mutations (deactivation stamps, slash debits, status flips, cooldown maturities) that the three standard block hashes cannot see |
 | `src/state_commitment/index.js` | None | Computes per-block `state_tree_roots` (balances SMT + stakes SMT + state root + block Merkle root) and writes them to the DB |
 | `src/consensus/stake_weighted_quorum.js` | None | Consensus-critical stake-weighted quorum predicate (WI-1). Vendored byte-identically across hub, indexer, explorer, sync, and SDK |
 | `bin/recovery.js` | None | CLI for rebuilding the cross-chain match mirror from on-chain ANCHOR archive data, with no surviving hub database |

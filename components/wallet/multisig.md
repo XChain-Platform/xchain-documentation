@@ -5,7 +5,7 @@
 
 The wallet supports two multisig schemes:
 
-- **Classical n-of-m**: every cosigner produces a partial PSBT; coordinator finalizes by combining partials. Address is a P2SH / P2WSH multisig address. Supported on every chain.
+- **Classical n-of-m**: every cosigner produces a partial PSBT; coordinator finalizes by combining partials. Address is a P2SH / P2WSH multisig address. Bitcoin only at launch (SPEC §10.3); the Create multisig form offers only Bitcoin networks.
 - **MuSig2**: three-round protocol producing a single Schnorr signature indistinguishable on-chain from a single-signer transaction. Bitcoin only (Taproot / Schnorr requirement). Software-signer-only today.
 
 Both schemes share the same coordinator UI and the same per-address multi-config schema.
@@ -38,25 +38,29 @@ A single address can host more than one configuration (schema v2's per-address m
 
 `MultisigCreate.jsx` walks the user through:
 
-1. **Pick chain + address type**: classical n-of-m on any chain, or MuSig2 on BTC only
+1. **Pick network + address type**: classical n-of-m or MuSig2, Bitcoin only
 2. **Pick threshold**; the n in n-of-m (1 ≤ n ≤ m)
-3. **Add cosigners**; three sources:
-   - **Local**: derive a fresh address under the current wallet's mnemonic
-   - **Paired**: read the pubkey from a paired hardware or remote signer
-   - **Imported**: paste a cosigner's pubkey out-of-band
+3. **Add cosigners**; three origins:
+   - **Local**: one of this wallet's own addresses. Picking it fills in the pubkey, derivation path and master fingerprint from the unlocked session. At most one cosigner may be local, because local signing signs for exactly one key.
+   - **External xpub**: another wallet's key, pasted as its xpub, pubkey, master fingerprint and derivation path.
+   - **External hardware**: a hardware device that signs by file transfer; its fingerprint is typed from the device.
 4. **Confirm address**: wallet derives the multisig address from threshold + cosigners and shows it for verification
 5. **Persist**: config is saved to the vault's `multisigs[]` collection
+
+### Sharing this wallet as a cosigner
+
+The other party needs this wallet's key to add it to their own config. The collapsed **Share this wallet as a cosigner** panel on the Create multisig screen shows, for an address you pick, the account xpub, the address's pubkey, the master fingerprint and the derivation path, each with a copy button. Its labels match the fields of an **External xpub** cosigner, so the other party pastes each value into the field of the same name. The values are public keys and never include the seed.
 
 Address derivation uses BIP48 paths (`m / 48' / coin' / account' / script-type'`) for classical multisig and the appropriate Taproot-MuSig2 derivation for MuSig2 configurations. `DerivationPathCrossCheck.jsx` shows the path next to each cosigner so users can verify across wallets.
 
 ```mermaid
 flowchart TD
-    S1["1. Pick chain and address type, classical n-of-m any chain or MuSig2 BTC only"]
+    S1["1. Pick network and address type, classical n-of-m or MuSig2, Bitcoin only"]
     S2["2. Pick threshold, the n in n-of-m"]
     S3{"3. Add cosigners"}
-    LOCAL["Local, derive a fresh address under the current wallet's mnemonic"]
-    PAIRED["Paired, read the pubkey from a paired hardware or remote signer"]
-    IMPORTED["Imported, paste a cosigner's pubkey out-of-band"]
+    LOCAL["Local, one of this wallet's addresses, keys filled in, at most one"]
+    PAIRED["External xpub, paste another wallet's shared keys"]
+    IMPORTED["External hardware, sign by file transfer"]
     S4["4. Confirm address, derived from threshold and cosigners"]
     S5["5. Persist, config saved to the vault's multisigs collection"]
 

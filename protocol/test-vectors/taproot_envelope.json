@@ -147,6 +147,29 @@
       "name": "foreign_op_false_op_if",
       "description": "Ord-style inscriptions and arbitrary OP_FALSE OP_IF trees without the XCHN magic + format byte: no crash, no false positive, no RPC fetch (recognition is free pattern-matching, spec §3.2).",
       "expect": "not_recognized"
+    },
+    {
+      "name": "envelope_not_input_0",
+      "description": "The golden envelope (envelope_grammar script and control block) carried as the ONLY envelope, but in input 1, with input 0 an ordinary non-envelope spend and no other carrier in the tx. The envelope input must be input 0 (spec §3.8), so post-flag this is NOT a valid action: a deterministic refusal, never a fallback to reading the later input, and no commit fetch. Below the flag it replays as shipped, which for this tx is no action and no refusal.",
+      "envelope_input_index": 1,
+      "witness_stack_hex": [
+        "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "0063045843484e01004c5f3046494c457c307c676f6c64656e2e7478747c746578742f706c61696e7c476f6c64656e20766563746f727c7c7c7c7c7c2d58436861696e20746170726f6f7420656e76656c6f706520676f6c64656e20766563746f72207061796c6f6164682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+        "c079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+      ],
+      "expect": "no_action_post_flag__shipped_behavior_pre_flag"
+    },
+    {
+      "name": "bare_opcode_payload_element",
+      "description": "The annex_bearing_reveal script (without the annex) with a bare OP_7 (0x57) inserted as the last payload element before OP_ENDIF. Every payload element must be a data push, never a bare opcode (spec §3.8), so the reveal is not an envelope. Without the inserted byte the same script IS recognized.",
+      "envelope_script_hex": "0063045843484e0100291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c57682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+      "expect": "not_recognized"
+    },
+    {
+      "name": "nonminimal_one_byte_payload_push",
+      "description": "The same base script with an explicit one-byte push 01 07 inserted as the last payload element before OP_ENDIF. A one-byte element valued 0x01-0x10 or 0x81 canonicalizes to OP_1-OP_16 / OP_1NEGATE and is not a data push however it is framed, so this reveal is not an envelope either. An implementation that walks raw push opcodes would read 01 07 as data and diverge here.",
+      "envelope_script_hex": "0063045843484e0100291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c0107682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+      "expect": "not_recognized"
     }
   ]
 }

@@ -562,8 +562,23 @@ describe('checkComputedReads (the blind-spot ratchet)', () => {
         assert.match(problems[0], /set the baseline to/);
     });
 
-    test('a component the baseline does not cover is skipped, not accused', () => {
-        assert.deepEqual(cov.checkComputedReads(new Map([['not-a-component', entryWith(9)]])), []);
+    test('a component with no baseline entry fails, so a new component cannot join unmeasured', () => {
+        const problems = cov.checkComputedReads(new Map([['not-a-component', entryWith(9)]]));
+        assert.equal(problems.length, 1);
+        assert.match(problems[0], /^not-a-component: 9 computed env reads and no COMPUTED_READ_BASELINE entry/);
+    });
+
+    test('an entry with no computed list fails rather than reading as zero sites', () => {
+        const bare = { vars: new Map(), docLines: [], docProse: [], sourceFiles: 1 };
+        const problems = cov.checkComputedReads(new Map([['vm', bare]]));
+        assert.equal(cov.COMPUTED_READ_BASELINE.vm, 0, 'this case needs a zero-baseline component to be non-vacuous');
+        assert.equal(problems.length, 1);
+        assert.match(problems[0], /^vm: the survey entry carries no computed-read list/);
+    });
+
+    test('every gated component has a baseline entry and every entry names a gated component', () => {
+        assert.deepEqual(Object.keys(cov.COMPUTED_READ_BASELINE).sort(), [...cov.COMPONENTS].sort(),
+            'COMPUTED_READ_BASELINE keys must equal COMPONENTS: a missing key leaves a component unmeasured, a stale one guards nothing');
     });
 });
 

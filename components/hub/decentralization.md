@@ -31,7 +31,7 @@ The validator network uses a **capability model** rather than fixed tiers. A val
 | `cross_chain` | Attest to cross-chain swap actions per chain-pair | CrossChainEngine |
 | `oracle_publish` | Broadcast finalized PRICE v0 rounds on-chain (typically DOGE for low fees) | PRICE v0 publisher, formerly "Tier 3" |
 | `attestation` | Fetch external attestation requests via registered providers (`http_get`, `llm`) and PBFT-finalize the response | AttestationRound, AttestationConsensus |
-| `full_node` | Claim the full-node reward tier by passing block-hash challenge rounds issued by `FullNodeChallengeRound` | FullNodeChallengeRound |
+| `full_node` | Claim the full-node reward tier by passing the chain-derived possession challenges run by `FullNodeChallengeRound` (answer: the `scriptPubKey` of a seed-selected output in a buried block) | FullNodeChallengeRound |
 
 A single pubkey can hold any combination of capabilities, there is no overlap restriction. `min_stake[capability]` is governance-configurable; defaults are set by hub config. The historical model where the cross-chain tier required 5× the oracle stake is preserved by appropriate `min_stake` defaults but the protocol does not enforce a hierarchy.
 
@@ -81,7 +81,7 @@ All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain a
 | **Price data** | `price`-capable validators with trimmed median consensus; published on-chain by `oracle_publish`-capable validators |
 | **Cross-chain coordination** | `cross_chain`-capable validator attestation with per-chain-pair PBFT |
 | **External attestation** | `attestation`-capable validators fetch from registered providers (`http_get`, `llm`) and PBFT-finalize; result submitted on-chain as `ATTEST` v1 (response) |
-| **Full-node verification** | `full_node`-capable validators answer block-hash possession challenges issued by `FullNodeChallengeRound`; passing validators earn the full-node reward tranche (NODEPROOF) |
+| **Full-node verification** | `full_node`-capable validators answer chain-derived possession challenges (the `scriptPubKey` of a seed-selected output in a buried block) run by `FullNodeChallengeRound`; passing validators earn the full-node reward tranche (NODEPROOF) |
 | **Governance** | Off-chain PBFT voting with 7-day period, 2/3+ approval |
 
 ### Transport auth follows on-chain key rotation
