@@ -229,6 +229,11 @@ const XPOLICY_MAX_PER_BLOCK = 5;
 // hash input, so a later flag day can raise it.
 const XPOLICY_MAX_MEMBERS = 10000;
 
+// Shared-list shares, shared edits and merged unions may each resolve to at most this many
+// members. A union may name at most LIST_UNION_MAX_MEMBERS direct member lists.
+const LIST_SHARE_MAX_MEMBERS = 10000;
+const LIST_UNION_MAX_MEMBERS = 16;
+
 // ── Token-gated content (PC-29) ─────────────────────────────────────────────
 // Fixed fractional scale for comparing FILE.GATE_MIN_AMOUNT thresholds against a
 // holder's balance. The wallet scales both sides to this many fractional digits
@@ -1879,6 +1884,76 @@ const LIST_OWNER_ACTIVATION = {
     regtest: 0,
 };
 
+// LIST sharing flag days, keyed on the block_index of the chain being parsed unless noted.
+// Canonical authority for the registry row list_share_activation.LIST_SHARE_ACTIVATION.
+// At and above the height, LIST format 2, shared-edit fees and the shared-edit member cap bind.
+const LIST_SHARE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row
+// list_share_producer_activation.LIST_SHARE_PRODUCER_ACTIVATION. This per-network gate binds
+// hub leader polling, follower validation, archive legs and by-reference snapshots.
+const LIST_SHARE_PRODUCER_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row
+// list_share_consumer_activation.LIST_SHARE_CONSUMER_ACTIVATION. At and above the height, the
+// mirror barrier, apply pass and by-reference policy apply bind. Per COIN:network this gate
+// must be at or above MIRROR_ADMISSION_CONSUMER_ACTIVATION and
+// TOKEN_POLICY_INHERITANCE_ACTIVATION.
+const LIST_SHARE_CONSUMER_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row list_union_activation.LIST_UNION_ACTIVATION. At
+// and above the height, LIST type 3 binds. LIST_UNION_ACTIVATION must be at or above
+// LIST_SHARE_CONSUMER_ACTIVATION.
+const LIST_UNION_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row list_transfer_activation.LIST_TRANSFER_ACTIVATION.
+// At and above the height, LIST format 3 binds.
+const LIST_TRANSFER_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row
+// list_address_ref_activation.LIST_ADDRESS_REF_ACTIVATION. At and above the height, ^<id>
+// address items bind.
+const LIST_ADDRESS_REF_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    regtest: 0,
+};
+
 // Tick-namespace flag day (R8), keyed on the block_index of the chain being
 // parsed. Canonical authority for the registry row tick_namespace_activation.TICK_NAMESPACE_ACTIVATION, which
 // carries the full rationale.
@@ -2211,6 +2286,8 @@ module.exports = {
     XBRIDGE_MAX_PER_BLOCK,
     XPOLICY_MAX_PER_BLOCK,
     XPOLICY_MAX_MEMBERS,
+    LIST_SHARE_MAX_MEMBERS,
+    LIST_UNION_MAX_MEMBERS,
     THRESHOLD_SCALE,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
     EQUIV_HEADER_ACTIVATION,
@@ -2297,6 +2374,12 @@ module.exports = {
     TOKEN_BRIDGE_ACTIVATION,
     TOKEN_POLICY_INHERITANCE_ACTIVATION,
     LIST_OWNER_ACTIVATION,
+    LIST_SHARE_ACTIVATION,
+    LIST_SHARE_PRODUCER_ACTIVATION,
+    LIST_SHARE_CONSUMER_ACTIVATION,
+    LIST_UNION_ACTIVATION,
+    LIST_TRANSFER_ACTIVATION,
+    LIST_ADDRESS_REF_ACTIVATION,
     TICK_NAMESPACE_ACTIVATION,
     RESERVED_FUTURE_ROOTS,
 };
