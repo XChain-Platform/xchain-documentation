@@ -1691,6 +1691,7 @@ const TRAIN_ACTIVATION = {
     // offsets. LTC:testnet mirror admission ships disabled on this train and is
     // untouched by this reslide; it arms on a later train.
     '0.20.0': { mainnet: 9999999999, testnet: 154074, regtest: 0 },
+    '0.21.0': { mainnet: 9999999999, testnet: 154566, regtest: 0 },
 };
 
 // STAKE v1 signing-key REUSE flag day, keyed on the processing chain's OWN
@@ -1820,9 +1821,9 @@ const XCHAIN_BRIDGE_ACTIVATION = {
 // network. Regtest is genesis-active.
 const TOKEN_BRIDGE_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1850,9 +1851,9 @@ const TOKEN_BRIDGE_ACTIVATION = {
 // dated instant. Regtest is genesis-active.
 const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1896,9 +1897,9 @@ const LIST_OWNER_ACTIVATION = {
 // of a short or listed name, valid or invalid. Regtest is genesis-active.
 const TICK_NAMESPACE_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet': 4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     testnet: 9999999999,
     regtest: 0,
 };
@@ -2111,9 +2112,9 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  154234,      // RE-SLID 2026-09-23: train 154,074 + 160 blocks (17 h at the 383.04 s/blk bound, 25.6 h at the 575.89 s/blk 84 h trailing mean), the v0.20.1 patch reslide
-    'LTC:testnet':  null,        // disabled for v0.20.1, 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
-    'DOGE:testnet': 67936053,    // RE-SLID 2026-09-23: tip 67,924,397 at 17:48Z + 11656 blocks (83.8 h at 25.89 s/blk, the 84 h trailing mean, the same instant as the BTC producer), the v0.20.1 patch reslide
+    'BTC:testnet':  154567, // set by the v0.21.0 freeze height plan
+    'LTC:testnet':  4903068, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2123,9 +2124,9 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  154291,      // RE-SLID 2026-09-23: its producer + 57 blocks (6 h at the 383.04 s/blk bound, 9.1 h at the 575.89 s/blk 84 h trailing mean), strictly above, never equal
-    'LTC:testnet':  null,        // disabled for v0.20.1, 2026-09-18: LTC:testnet mirror admission ships null on this train; arms on a later train
-    'DOGE:testnet': 67936888,    // RE-SLID 2026-09-23: its producer + 835 blocks (6 h at 25.89 s/blk, the 84 h trailing mean), strictly above, never equal
+    'BTC:testnet':  154614, // set by the v0.21.0 freeze height plan
+    'LTC:testnet':  4903291, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67952082, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2176,7 +2177,7 @@ const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     // instant as the family's BTC CONSUMER height, so the one member that keeps BOTH
     // completeness certificates gains them together instead of carrying a lone extra rule for
     // 6 h. The measurement, the formula and the re-size rule are with the maps above.
-    testnet: 154291,
+    testnet: 154614, // set by the v0.21.0 freeze height plan
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
 
