@@ -1995,6 +1995,26 @@ const LIST_ADDRESS_REF_ACTIVATION = {
     regtest: 0,
 };
 
+// Canonical authority for the registry row
+// list_tick_coin_activation.LIST_TICK_COIN_ACTIVATION. At and above the height, coin-qualified
+// type-1 LIST items COIN:^<tickid> and COIN:TICK bind. The parser splits at the first colon
+// only and treats an item as qualified only when the case-folded prefix is BTC, LTC, DOGE or
+// a RESERVED_FUTURE_ROOTS entry; storage preserves the item's exact case. This gate also binds
+// AIRDROP's own-coin read and ISSUE's refusal to create a top-level ticker beginning with such
+// a root and colon.
+//
+// LS-81 asserts per COIN:network that wherever LIST_SHARE_CONSUMER_ACTIVATION is armed, this
+// gate is armed at or below it, because a mirror of a shared ticker list holds only
+// coin-qualified items.
+const LIST_TICK_COIN_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    regtest: 0,
+};
+
 // Tick-namespace flag day (R8), keyed on the block_index of the chain being
 // parsed. Canonical authority for the registry row tick_namespace_activation.TICK_NAMESPACE_ACTIVATION, which
 // carries the full rationale.
@@ -2425,6 +2445,7 @@ module.exports = {
     LIST_UNION_ACTIVATION,
     LIST_TRANSFER_ACTIVATION,
     LIST_ADDRESS_REF_ACTIVATION,
+    LIST_TICK_COIN_ACTIVATION,
     TICK_NAMESPACE_ACTIVATION,
     RESERVED_FUTURE_ROOTS,
 };
