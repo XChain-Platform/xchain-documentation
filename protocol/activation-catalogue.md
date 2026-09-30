@@ -67,11 +67,17 @@ same chain or field.
 |---|---|---|
 | `gated_handoff_ref_activation` | `GATED_HANDOFF_REF_ACTIVATION` | time |
 | `ledger_amount_precision_activation` | `LEDGER_AMOUNT_PRECISION_ACTIVATION` | height |
+| `list_address_ref_activation` | `LIST_ADDRESS_REF_ACTIVATION` | height |
 | `list_change_rematch_activation` | `LIST_CHANGE_REMATCH_ACTIVATION` | height |
 | `list_edit_remove_activation` | `LIST_EDIT_REMOVE_ACTIVATION` | time |
 | `list_edit_resolution_activation` | `LIST_EDIT_RESOLUTION_ACTIVATION` | height |
 | `list_owner_activation` | `LIST_OWNER_ACTIVATION` | height |
 | `list_reference_validity_activation` | `LIST_REFERENCE_REQUIRES_VALID_LIST` | height |
+| `list_share_activation` | `LIST_SHARE_ACTIVATION` | height |
+| `list_share_consumer_activation` | `LIST_SHARE_CONSUMER_ACTIVATION` | height |
+| `list_share_producer_activation` | `LIST_SHARE_PRODUCER_ACTIVATION` | height |
+| `list_transfer_activation` | `LIST_TRANSFER_ACTIVATION` | height |
+| `list_union_activation` | `LIST_UNION_ACTIVATION` | height |
 | `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
 | `mirror_admission_activation` | `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` | height |
 | `oracle_preload_causality_activation` | `ORACLE_PRELOAD_CAUSALITY_ACTIVATION` | height |
