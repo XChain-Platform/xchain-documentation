@@ -1627,6 +1627,47 @@ const PRICE_MAX = 10_000_000_000;
 // the ±band boundary). 0.05 = 5%.
 const ORACLE_DEVIATION_THRESHOLD = 0.05;
 
+// ORACLE_PRICE_AGE_HOURLY_ACTIVATION: canonical authority for registry row
+// oracle_price_age_hourly_activation.ORACLE_PRICE_AGE_HOURLY_ACTIVATION. At and
+// above a chain's height, the indexer accepts a price snapshot up to
+// ORACLE_MAX_PRICE_AGE_HOURLY_SECONDS old instead of the legacy
+// ORACLE_MAX_PRICE_AGE_SECONDS limit for fee pricing, fee views, attest
+// settlement and VM oracle data. No live network is armed; regtest is
+// genesis-active so tests exercise the hourly-age rule.
+const ORACLE_PRICE_AGE_HOURLY_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    regtest: 0,
+};
+
+// ORACLE_HOURLY_WINDOW_FIRST_ROUND: canonical authority for registry row
+// oracle_hourly_window_activation.ORACLE_HOURLY_WINDOW_FIRST_ROUND. This is the
+// first oracle round from which hubs group rounds into hourly windows. It is
+// keyed on the round number, not local time, so every hub switches at the same
+// round. Every armed value must be a multiple of ORACLE_HOURLY_WINDOW_ROUNDS.
+// No live network is armed; regtest starts at round zero so tests exercise the
+// hourly window from genesis.
+//
+// ORDERING INVARIANT, graded by OF-11: on each network, every COIN:network key
+// of ORACLE_PRICE_AGE_HOURLY_ACTIVATION crosses before the round named by
+// ORACLE_HOURLY_WINDOW_FIRST_ROUND finalizes.
+const ORACLE_HOURLY_WINDOW_FIRST_ROUND = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// Maximum accepted price age after ORACLE_PRICE_AGE_HOURLY_ACTIVATION: six
+// 600-second rounds plus 300 seconds of grace and 300 seconds of landing reserve
+// make 4200 seconds, with another 300 seconds of headroom.
+const ORACLE_MAX_PRICE_AGE_HOURLY_SECONDS = 4500;
+
+// Oracle rounds carried in one hourly PRICE wire after the hourly-window row.
+const ORACLE_HOURLY_WINDOW_ROUNDS = 6;
+
 // Platform-train consensus activation, keyed by PLATFORM VERSION then network to a
 // BTC block height. This is the train gate, not a per-feature flag day: a MAJOR
 // train (or a consensus-classified hotfix) adds exactly ONE row here and every
@@ -2290,6 +2331,10 @@ module.exports = {
     GAS_TICK,
     PRICE_MAX,
     ORACLE_DEVIATION_THRESHOLD,
+    ORACLE_PRICE_AGE_HOURLY_ACTIVATION,
+    ORACLE_HOURLY_WINDOW_FIRST_ROUND,
+    ORACLE_MAX_PRICE_AGE_HOURLY_SECONDS,
+    ORACLE_HOURLY_WINDOW_ROUNDS,
     TRAIN_ACTIVATION,
     STAKE_KEY_REUSE_ACTIVATION,
     SWEEP_ZERO_LEG_ACTIVATION,
