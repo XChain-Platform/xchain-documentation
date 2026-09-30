@@ -1858,7 +1858,8 @@ const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     regtest: 0,
 };
 
-// LIST owner-check flag day, keyed on the block_index of the chain being parsed.
+// LIST owner-check flag day, keyed on the block_index of the chain being parsed;
+// testnet arms per chain.
 // Canonical authority for the registry row list_owner_activation.LIST_OWNER_ACTIVATION.
 //
 // At and above a network's height a LIST format 1 whose source is not the address that
@@ -1872,6 +1873,9 @@ const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
 const LIST_OWNER_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
     regtest: 0,
 };
 
