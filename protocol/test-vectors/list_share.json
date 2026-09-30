@@ -1,0 +1,202 @@
+{
+  "_description": "Canonical shared-list byte vectors consumed by the xchain-hub LIST_SHARE module (LS-43-hub) and the xchain-indexer snapshot-id, mirror-apply and replay work (LS-29, LS-34 and LS-21). Snapshot ids are lowercase SHA-256 hex of XLISTSHARE|<network>|<home_chain>:<home_list_index>|<seq>|<snapshot_block>. Members hashes are lowercase SHA-256 hex of MEMBERS|<count>|<members...>, with members sorted in utf8_bin byte order. Canonical signed bytes contain the resulting members hash but never the full, added or removed member arrays. This file is authoritative for every implementation.",
+  "snapshotIds": [
+    {
+      "name": "DOGE address list version 1",
+      "network": "testnet",
+      "homeChain": "DOGE",
+      "homeListIndex": 880001,
+      "seq": 1,
+      "snapshotBlock": 160000,
+      "preimage": "XLISTSHARE|testnet|DOGE:880001|1|160000",
+      "expected": "c0e9a6b57adfc25378343388363aad10498fd201a36cd32dddb1ee35da265f21"
+    },
+    {
+      "name": "DOGE address list version 2",
+      "network": "testnet",
+      "homeChain": "DOGE",
+      "homeListIndex": 880001,
+      "seq": 2,
+      "snapshotBlock": 160000,
+      "preimage": "XLISTSHARE|testnet|DOGE:880001|2|160000",
+      "expected": "055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960"
+    }
+  ],
+  "membersHash": [
+    {
+      "name": "empty list",
+      "members": [],
+      "preimage": "MEMBERS|0",
+      "expected": "84905375bf10144fbd8e34ad160942f3f22f0b41fe14298acf4074de942cd32a"
+    },
+    {
+      "name": "one member",
+      "members": [
+        "bc1qmemberalpha"
+      ],
+      "preimage": "MEMBERS|1|bc1qmemberalpha",
+      "expected": "19f1ca1923569a2306db9e6d130332cb616e7a6a8097820835c1206ceb7f6f8f"
+    },
+    {
+      "name": "three members in utf8_bin order",
+      "members": [
+        "bc1qmemberalpha",
+        "ltc1qmemberbeta",
+        "nmembergamma"
+      ],
+      "preimage": "MEMBERS|3|bc1qmemberalpha|ltc1qmemberbeta|nmembergamma",
+      "expected": "1345d048696424e593d5818f3a46e2639abcaad1bc5b29b31d3d27ddf27c4fe1"
+    }
+  ],
+  "deltas": [
+    {
+      "name": "add to an empty list",
+      "prev": [],
+      "next": [
+        "bc1qmemberalpha"
+      ],
+      "added": [
+        "bc1qmemberalpha"
+      ],
+      "removed": []
+    },
+    {
+      "name": "remove one member",
+      "prev": [
+        "bc1qmemberalpha",
+        "ltc1qmemberbeta",
+        "nmembergamma"
+      ],
+      "next": [
+        "bc1qmemberalpha",
+        "nmembergamma"
+      ],
+      "added": [],
+      "removed": [
+        "ltc1qmemberbeta"
+      ]
+    },
+    {
+      "name": "remove and add in one version",
+      "prev": [
+        "bc1qmemberalpha",
+        "ltc1qmemberbeta"
+      ],
+      "next": [
+        "ltc1qmemberbeta",
+        "nmembergamma"
+      ],
+      "added": [
+        "nmembergamma"
+      ],
+      "removed": [
+        "bc1qmemberalpha"
+      ]
+    }
+  ],
+  "nonStrictDeltas": [
+    {
+      "name": "refuse an out-of-order added set",
+      "prev": [],
+      "added": [
+        "nmembergamma",
+        "bc1qmemberalpha"
+      ],
+      "removed": []
+    },
+    {
+      "name": "refuse overlapping added and removed sets",
+      "prev": [
+        "bc1qmemberalpha"
+      ],
+      "added": [
+        "ltc1qmemberbeta"
+      ],
+      "removed": [
+        "ltc1qmemberbeta"
+      ]
+    },
+    {
+      "name": "refuse an added member already present",
+      "prev": [
+        "bc1qmemberalpha",
+        "ltc1qmemberbeta"
+      ],
+      "added": [
+        "ltc1qmemberbeta"
+      ],
+      "removed": []
+    },
+    {
+      "name": "refuse a removed member that is absent",
+      "prev": [
+        "bc1qmemberalpha",
+        "ltc1qmemberbeta"
+      ],
+      "added": [],
+      "removed": [
+        "nmembergamma"
+      ]
+    }
+  ],
+  "canonicals": [
+    {
+      "name": "full version 1",
+      "snapshot_id": "c0e9a6b57adfc25378343388363aad10498fd201a36cd32dddb1ee35da265f21",
+      "snapshot_block": 160000,
+      "home_chain": "DOGE",
+      "home_list_index": 880001,
+      "list_type": 2,
+      "seq": 1,
+      "kind": "full",
+      "origin_block": 68000000,
+      "members": [
+        "bc1qmemberalpha",
+        "ltc1qmemberbeta"
+      ],
+      "members_hash": "ff0e5a860d907b646255b7ab798db5057319b71c20facd02b9856b9a956320cb",
+      "network": "testnet",
+      "admission": {
+        "LTC": 4905000,
+        "DOGE": 68000010,
+        "BTC": 160010
+      },
+      "admissionText": "BTC:160010,DOGE:68000010,LTC:4905000",
+      "view": 0,
+      "text": "XLISTSHARE|c0e9a6b57adfc25378343388363aad10498fd201a36cd32dddb1ee35da265f21|160000|DOGE|880001|2|1|full|68000000|ff0e5a860d907b646255b7ab798db5057319b71c20facd02b9856b9a956320cb|testnet|BTC:160010,DOGE:68000010,LTC:4905000",
+      "expected": "EQUIV|XLISTSHARE|c0e9a6b57adfc25378343388363aad10498fd201a36cd32dddb1ee35da265f21|0||XLISTSHARE|c0e9a6b57adfc25378343388363aad10498fd201a36cd32dddb1ee35da265f21|160000|DOGE|880001|2|1|full|68000000|ff0e5a860d907b646255b7ab798db5057319b71c20facd02b9856b9a956320cb|testnet|BTC:160010,DOGE:68000010,LTC:4905000"
+    },
+    {
+      "name": "delta version 2",
+      "snapshot_id": "055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960",
+      "snapshot_block": 160000,
+      "home_chain": "DOGE",
+      "home_list_index": 880001,
+      "list_type": 2,
+      "seq": 2,
+      "kind": "delta",
+      "origin_block": 68000001,
+      "prev": [
+        "bc1qmemberalpha",
+        "ltc1qmemberbeta"
+      ],
+      "added": [
+        "nmembergamma"
+      ],
+      "removed": [
+        "bc1qmemberalpha"
+      ],
+      "members_hash": "a41dc19b51cab71250065727ee8a910ebd528e549c8ff832e9de0901488ee82c",
+      "network": "testnet",
+      "admission": {
+        "LTC": 4905000,
+        "DOGE": 68000010,
+        "BTC": 160010
+      },
+      "admissionText": "BTC:160010,DOGE:68000010,LTC:4905000",
+      "view": 1,
+      "text": "XLISTSHARE|055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960|160000|DOGE|880001|2|2|delta|68000001|a41dc19b51cab71250065727ee8a910ebd528e549c8ff832e9de0901488ee82c|testnet|BTC:160010,DOGE:68000010,LTC:4905000",
+      "expected": "EQUIV|XLISTSHARE|055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960|1||XLISTSHARE|055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960|160000|DOGE|880001|2|2|delta|68000001|a41dc19b51cab71250065727ee8a910ebd528e549c8ff832e9de0901488ee82c|testnet|BTC:160010,DOGE:68000010,LTC:4905000"
+    }
+  ]
+}
