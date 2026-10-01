@@ -1642,9 +1642,9 @@ const ORACLE_DEVIATION_THRESHOLD = 0.05;
 const ORACLE_PRICE_AGE_HOURLY_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154778,
+    'LTC:testnet': 4905005,
+    'DOGE:testnet': 67956923,
     regtest: 0,
 };
 
@@ -1661,7 +1661,7 @@ const ORACLE_PRICE_AGE_HOURLY_ACTIVATION = {
 // ORACLE_HOURLY_WINDOW_FIRST_ROUND finalizes.
 const ORACLE_HOURLY_WINDOW_FIRST_ROUND = {
     mainnet: 9999999999,
-    testnet: 9999999999,
+    testnet: 5082,
     regtest: 0,
 };
 
@@ -1931,9 +1931,9 @@ const LIST_OWNER_ACTIVATION = {
 const LIST_SHARE_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
     regtest: 0,
 };
 
@@ -1942,7 +1942,7 @@ const LIST_SHARE_ACTIVATION = {
 // hub leader polling, follower validation, archive legs and by-reference snapshots.
 const LIST_SHARE_PRODUCER_ACTIVATION = {
     mainnet: 9999999999,
-    testnet: 9999999999,
+    testnet: 154777,
     regtest: 0,
 };
 
@@ -1954,9 +1954,9 @@ const LIST_SHARE_PRODUCER_ACTIVATION = {
 const LIST_SHARE_CONSUMER_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
     regtest: 0,
 };
 
@@ -1966,9 +1966,9 @@ const LIST_SHARE_CONSUMER_ACTIVATION = {
 const LIST_UNION_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
     regtest: 0,
 };
 
@@ -1977,9 +1977,9 @@ const LIST_UNION_ACTIVATION = {
 const LIST_TRANSFER_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
     regtest: 0,
 };
 
@@ -1989,9 +1989,9 @@ const LIST_TRANSFER_ACTIVATION = {
 const LIST_ADDRESS_REF_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
     regtest: 0,
 };
 
@@ -2009,9 +2009,9 @@ const LIST_ADDRESS_REF_ACTIVATION = {
 const LIST_TICK_COIN_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
     regtest: 0,
 };
 
@@ -2252,9 +2252,9 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  154567, // set by the v0.21.0 freeze height plan
+    'BTC:testnet':  154234, // set by the v0.21.0 freeze height plan
     'LTC:testnet':  4903068, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67936053, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2264,9 +2264,9 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  154614, // set by the v0.21.0 freeze height plan
+    'BTC:testnet':  154291, // set by the v0.21.0 freeze height plan
     'LTC:testnet':  4903291, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67952082, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67936888, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2317,7 +2317,7 @@ const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     // instant as the family's BTC CONSUMER height, so the one member that keeps BOTH
     // completeness certificates gains them together instead of carrying a lone extra rule for
     // 6 h. The measurement, the formula and the re-size rule are with the maps above.
-    testnet: 154614, // set by the v0.21.0 freeze height plan
+    testnet: 154291, // set by the v0.21.0 freeze height plan
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
 
