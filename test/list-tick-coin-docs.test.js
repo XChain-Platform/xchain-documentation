@@ -58,25 +58,39 @@ test('LIST documents coin-qualified names, ids, storage, and consumers', () => {
 });
 
 test('index references document coin-scoped resolution and SDK output', () => {
-    const required = [
+    const referenceRequirements = [
         '`COIN:TICK`',
         '`COIN:^<tickid>`',
         "resolved only by that coin's own chain",
-        "looking the id up on that coin's own explorer",
-        'every bare ticker item stay in full',
     ];
-    for (const text of required) {
+    for (const text of referenceRequirements) {
         assert.ok(
             docs.references.includes(text),
             `protocol/index-id-references.md must include ${text}`,
+        );
+    }
+
+    const sdkBehavior = docs.references.split('## SDK behavior')[1];
+    assert.ok(sdkBehavior, 'protocol/index-id-references.md must include SDK behavior');
+    const sdkRequirements = [
+        '`LIST_TICK_COIN_ACTIVATION`',
+        '`COIN:^<tickid>`',
+        "looking the id up on that coin's own explorer",
+        'This compaction applies only to coin-qualified name items:',
+        'the SDK still writes every bare ticker item in full',
+    ];
+    for (const text of sdkRequirements) {
+        assert.ok(
+            sdkBehavior.includes(text),
+            `protocol/index-id-references.md SDK behavior must include ${text}`,
         );
     }
 });
 
 test('ISSUE reserves coin-qualified roots without changing existing tickers or ids', () => {
     const required = [
-        '`RESERVED_FUTURE_ROOTS`',
-        '`invalid: TICK (reserved)`',
+        '`RESERVED_FUTURE_ROOTS` entry followed by a colon, is refused with '
+            + '`invalid: TICK (reserved)`',
         'Existing tickers and the `^id` form are unaffected',
     ];
     for (const text of required) {
