@@ -76,6 +76,7 @@ same chain or field.
 | `list_share_activation` | `LIST_SHARE_ACTIVATION` | height |
 | `list_share_consumer_activation` | `LIST_SHARE_CONSUMER_ACTIVATION` | height |
 | `list_share_producer_activation` | `LIST_SHARE_PRODUCER_ACTIVATION` | height |
+| `list_tick_coin_activation` | `LIST_TICK_COIN_ACTIVATION` | height |
 | `list_transfer_activation` | `LIST_TRANSFER_ACTIVATION` | height |
 | `list_union_activation` | `LIST_UNION_ACTIVATION` | height |
 | `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
