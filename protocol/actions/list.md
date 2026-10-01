@@ -8,7 +8,7 @@ This action creates a list of items for use in actions.
 | Name                | Type   | Description                       |
 | --------------      | ------ | ----------------------------------|
 | `VERSION`           | String | Format Version                    |
-| `TYPE`              | String | List type (1=TICK, 2=ADDRESS)     |
+| `TYPE`              | String | List type (1=TICK, 2=ADDRESS, 3=UNION) |
 | `MEMO`              | String | An optional memo to include       |
 | `ITEM`              | String | Any valid `TICK` or `ADDRESS`; at or above `LIST_TICK_COIN_ACTIVATION`, a `TICK` item may be `COIN:TICK` or `COIN:^<tickid>`; rest field, repeat for each item |
 | `EDIT`              | String | Edit action (1=ADD, 2=REMOVE)     |
@@ -58,6 +58,11 @@ This example creates a new list from an existing list (4321) and removes 2 addre
 ```
 
 ```
+LIST|0|3||1234|5678
+This example creates a union of lists 1234 and 5678
+```
+
+```
 LIST|2|1234|Shared compliance list
 This example permanently shares list 1234
 ```
@@ -94,6 +99,7 @@ On Bitcoin, at or above `LIST_TICK_COIN_ACTIVATION`, this creates a ticker list 
 - At or above `LIST_SHARE_ACTIVATION`, a format 1 edit that would take a shared list past `LIST_SHARE_MAX_MEMBERS` (10,000) members is refused with `invalid: ITEM (shared list exceeds LIST_SHARE_MAX_MEMBERS)`.
 - At or above `LIST_SHARE_ACTIVATION`, a SHARE (`VERSION 2`) pays the flat `LIST_SHARE` fee (100,000 gas), and a format 1 edit of a shared list pays `LIST_SHARED_EDIT_BASE` (5,000 gas) plus `LIST_SHARED_EDIT_PER_ITEM` (100 gas) for each item it actually adds or removes. Both fees are priced on the unified gas schedule. Creating a list, editing a list that is not shared, and a TRANSFER (`VERSION 3`) pay no fee; the platform's injected legs that maintain a bridge-owned list also pay no fee. As with `SWEEP`, the fee is paid in the fee token from `SOURCE`'s balance or as a native-coin output in the same transaction; on Litecoin and Dogecoin, the native-coin output is the only accepted form. A `LIST` that cannot pay is refused with `invalid: insufficient funds (FEE)` or `invalid: insufficient fee (native coin output required)`. Below `LIST_SHARE_ACTIVATION`, no `LIST` format charges a fee.
 - At or above `LIST_TRANSFER_ACTIVATION`, a TRANSFER (`VERSION 3`) is accepted only from the list's current owner; otherwise it is refused with `invalid: LIST_ACTION_INDEX (not owner)`. `DESTINATION` must be a full address or an address id written as `^<id>`, which is resolved on input. An id that names no address is refused with `invalid: DESTINATION (unresolvable ^id)`, and anything that is not an address is refused with `invalid: DESTINATION (format)`. Every later owner check reads the latest valid transfer's destination.
+- At or above `LIST_UNION_ACTIVATION`, a `TYPE` 3 create (`VERSION 0`) makes a union whose items are the `ACTION_INDEX`es of other lists. Each member must be a valid `TICK` or `ADDRESS` list, either local or a bridge-owned mirror, and all members must have one type: the type of the first valid item on a create, or the type the union was created with on an edit. A union is one level deep, and each item is stored as its list's root `ACTION_INDEX`, so the union follows that list's edits. An item that is not a canonical positive integer or names no valid list is recorded `invalid: LIST (unknown)`, another union is recorded `invalid: LIST (union)`, and a list of the other type is recorded `invalid: LIST (type)`; each invalid item is left out while the `LIST` stays `valid`. On a create and on an edit, more than `LIST_UNION_MAX_MEMBERS` (16) members is refused with `invalid: ITEM (union exceeds LIST_UNION_MAX_MEMBERS)`, and a merged membership above `LIST_SHARE_MAX_MEMBERS` (10,000) is refused with `invalid: ITEM (union exceeds LIST_SHARE_MAX_MEMBERS)`. A create with no valid member is refused with `invalid: ITEM (no member list)`. A format 1 edit of a union adds or removes member lists. Every reader of a union, including a token's allow or block list and `AIRDROP`, sees the distinct members of its member lists at the same block in byte order, and the union reads as its member type. Below `LIST_UNION_ACTIVATION`, a `TYPE` 3 create is refused with `invalid: TYPE (unknown)`.
 
 ## Notes
 - Format version `0` allows for creating a list of `TYPE`
