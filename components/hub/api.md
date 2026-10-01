@@ -536,6 +536,10 @@ Returns rows from the `cross_chain_calls` table after `since_id`. Same query par
 
 Returns rows from the `state_checkpoints` table after `since_id`. Same query parameters and response format as above.
 
+### `GET /hub-db/snapshot/list_snapshots`
+
+Returns the append-only, quorum-signed shared-list versions from the `list_snapshots` table after `since_id`. A higher `seq` supersedes a list's membership, and no older row is retracted. Takes the same `since_id` and `limit` query parameters as above. The envelope carries `heights`, `schema_version` and `btc_chain_id` beside `table`, `rows`, `count` and `watermark`.
+
 ### `GET /hub-db/subscribe` (WebSocket upgrade: requires `Authorization: Bearer <HUB_API_KEY>`)
 
 WebSocket channel for live updates across all six hub DB tables: `price_snapshots`, `oracle_prices`, `state_checkpoints`, `capability_snapshots`, `cross_chain_matches`, and `cross_chain_calls`.
@@ -635,6 +639,9 @@ Calculates the native coin fee amount for a given action. The conversion uses tw
 | `SWEEP_PER_ITEM` | 100 | Per swept balance, closed escrow, or transferred ownership |
 | `CALLBACK_BASE` | 5,000 | Base cost for a callback, charged whatever it pays out |
 | `CALLBACK_PER_RECIPIENT` | 100 | Per recipient paid by a callback |
+| `LIST_SHARE` | 100,000 | Sharing a list (LIST format 2) |
+| `LIST_SHARED_EDIT_BASE` | 5,000 | Base cost of an edit to a shared list |
+| `LIST_SHARED_EDIT_PER_ITEM` | 100 | Per item added to or removed from a shared list |
 | `VM_EXECUTE_BASE` | 1,000 | Base cost for a VM contract execution |
 | `VM_DEPLOY_BASE` | 100,000 | Base cost for a VM contract deployment |
 | `VM_DEPLOY_PER_BYTE` | 10 | Per byte of contract source code |
