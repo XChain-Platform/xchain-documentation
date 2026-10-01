@@ -588,6 +588,63 @@ Returns the per-capability minimum-stake thresholds live from the `CapabilityReg
 | `min_stake` | `string` | Governance-configured minimum aggregate XCHAIN stake required to qualify |
 | `disabled` | `boolean` | `true` when the operator has disabled this capability via `DISABLED_CAPABILITIES` |
 
+## Shared Lists (indexer endpoints)
+
+These methods live on `xchain-indexer` and are documented here because the hub's list share leader and followers call them on each chain's indexer.
+
+### `getlistat` (indexer endpoint)
+
+**Request** (to indexer):
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"getlistat",
+  "params":{"list_index":"12345","block":850010},
+  "id":1
+}
+```
+
+`list_index` must be a positive integer or its canonical decimal string, and `block` must be a non-negative integer.
+
+**Response:**
+```json
+{
+  "type":2,
+  "members":["1BTC...address","1Other...address"],
+  "hash":"4d5e6f..."
+}
+```
+
+The response gives the list's type, its members at the requested block, and their list membership hash, which is the hash carried as `members_hash` by a list version. A failed lookup instead returns `{ "error": "..." }` with `list_index must be a positive integer`, `block must be a non-negative integer`, `list not found`, `list reference rejected`, `failed to look up list`, or `indexer database not ready`.
+
+### `getsharedlists` (indexer endpoint)
+
+**Request** (to indexer):
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"getsharedlists",
+  "params":{"network":"mainnet"},
+  "id":1
+}
+```
+
+`network` must equal the indexer's own configured network; otherwise the method returns `{ "error": "network does not match this indexer" }`.
+
+**Response:**
+```json
+[
+  {
+    "root_index":12345,
+    "owner":"1BTC...address",
+    "share_block":850000,
+    "share_action_index":12399
+  }
+]
+```
+
+The response contains one entry per valid format 2 SHARE in share action order. `owner` is the destination of the latest valid TRANSFER, or the list's creator when it has not been transferred. Database unavailability and lookup failures return `{ "error": "indexer database not ready" }` and `{ "error": "failed to look up shared lists" }`, respectively.
+
 ## Fee Quotes
 
 ### `getfeequote`
