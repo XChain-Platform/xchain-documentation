@@ -164,11 +164,27 @@ shape that matters to a reader of this page:
   below it, a null list leaves the copy's list attached as before.
   A null list is never materialized as an empty list, which would deny every address.
 - **A membership ceiling.** A token whose `ALLOW_LIST` or `BLOCK_LIST` exceeds
-  `XPOLICY_MAX_MEMBERS` (10,000 addresses) cannot opt into bridging in the first place
+  `XPOLICY_MAX_MEMBERS` cannot opt into bridging in the first place
   (`invalid: TICK (policy list exceeds XPOLICY_MAX_MEMBERS)`, [`ISSUE` format
-  `7`](./actions/issue.md)); every snapshot and every destination materialization carries the
-  full membership, so this bounds both the mirror's transport size and the write amplification
-  on every chain holding a copy.
+  `7`](./actions/issue.md)). For lists that travel by membership, every snapshot and every
+  destination materialization carries the full membership, so this bounds both the mirror's
+  transport size and the write amplification on every chain holding a copy. A by-reference side
+  is not counted against `XPOLICY_MAX_MEMBERS`.
+- **A shared list travels by reference.** At or above `LIST_SHARE_PRODUCER_ACTIVATION`, which
+  the hubs read on the BTC snapshot plane, an allow or block list on a bridged token travels by
+  reference when it is a shared list (a list shared with a format `2` SHARE) or a chain's mirror
+  of one. `gettokenpolicy` answers that side as `<HOME>:<root>` (for example, `DOGE:2701`) and
+  repeats the value as `allow_list_ref` or `block_list_ref`. The signed policy snapshot carries
+  that reference as a JSON string in its `allow_list` or `block_list` in place of the members,
+  and `policy_hash` covers the reference instead of the membership. Editing the shared list
+  therefore creates no new policy snapshot, because the list itself travels as cross-chain list
+  versions. At or above `LIST_SHARE_CONSUMER_ACTIVATION`, read at the destination's own block
+  height, each chain binds its own mirror of the list, or the home list itself on the home chain,
+  with one injected [`ISSUE`](./actions/issue.md) format `5` pointer and no `LIST` leg. A reference
+  whose mirror does not exist yet waits with nothing applied. Below that gate, a snapshot carrying
+  a reference waits without holding up any other token's snapshots. A later full-copy snapshot
+  creates a fresh list on the copy rather than editing a shared list. A local or union list keeps
+  the full copy.
 - **Any-coin list items.** Because one list now has to be enforced identically on every chain a
   token has a copy on, a `LIST` of type `ADDRESS` accepts an address of *any* coin the platform
   runs, not only the chain it was broadcast on; see [`LIST`](./actions/list.md).
