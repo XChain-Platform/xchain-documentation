@@ -1661,7 +1661,7 @@ const ORACLE_PRICE_AGE_HOURLY_ACTIVATION = {
 // ORACLE_HOURLY_WINDOW_FIRST_ROUND finalizes.
 const ORACLE_HOURLY_WINDOW_FIRST_ROUND = {
     mainnet: 9999999999,
-    testnet: 5052,
+    testnet: 5064,
     regtest: 0,
 };
 
@@ -1931,9 +1931,9 @@ const LIST_OWNER_ACTIVATION = {
 const LIST_SHARE_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154750,
+    'LTC:testnet': 4904879,
+    'DOGE:testnet': 67956200,
     regtest: 0,
 };
 
@@ -1942,7 +1942,7 @@ const LIST_SHARE_ACTIVATION = {
 // hub leader polling, follower validation, archive legs and by-reference snapshots.
 const LIST_SHARE_PRODUCER_ACTIVATION = {
     mainnet: 9999999999,
-    testnet: 9999999999,
+    testnet: 154750,
     regtest: 0,
 };
 
@@ -1954,9 +1954,9 @@ const LIST_SHARE_PRODUCER_ACTIVATION = {
 const LIST_SHARE_CONSUMER_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154750,
+    'LTC:testnet': 4904879,
+    'DOGE:testnet': 67956200,
     regtest: 0,
 };
 
@@ -1966,9 +1966,9 @@ const LIST_SHARE_CONSUMER_ACTIVATION = {
 const LIST_UNION_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154750,
+    'LTC:testnet': 4904879,
+    'DOGE:testnet': 67956200,
     regtest: 0,
 };
 
@@ -1977,9 +1977,9 @@ const LIST_UNION_ACTIVATION = {
 const LIST_TRANSFER_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154750,
+    'LTC:testnet': 4904879,
+    'DOGE:testnet': 67956200,
     regtest: 0,
 };
 
@@ -1989,9 +1989,9 @@ const LIST_TRANSFER_ACTIVATION = {
 const LIST_ADDRESS_REF_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154750,
+    'LTC:testnet': 4904879,
+    'DOGE:testnet': 67956200,
     regtest: 0,
 };
 
@@ -2009,9 +2009,9 @@ const LIST_ADDRESS_REF_ACTIVATION = {
 const LIST_TICK_COIN_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 154750,
+    'LTC:testnet': 4904879,
+    'DOGE:testnet': 67956200,
     regtest: 0,
 };
 
