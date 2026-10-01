@@ -178,6 +178,26 @@ shape that matters to a reader of this page:
   cannot opt into bridging and a bridged token cannot bind one, under this activation or any
   later one, without a separate controller-portability build the platform does not carry today.
 
+## Cross-chain list versions
+
+A list shared with a format `2` [`SHARE`](./actions/list.md) reaches every other chain as a
+sequence of `list_snapshots` versions signed by the `cross_chain` quorum. There is at most one
+version per network, home chain, home list index and `seq`. Version `1` (`kind` `full`) carries
+every member; each later version (`kind` `delta`) carries only the members added and removed,
+together with the resulting `members_hash`.
+
+Each version carries a signed admission height for every consuming chain. A consuming chain
+applies one list's versions in `seq` order once its own block reaches that height, so every node
+of that chain applies a version at the same block. A missing version below a later due one, a
+version with no height for that chain, a failed quorum check, or a mirror whose members do not
+match the signed `members_hash` halts the consuming indexer instead of committing the block;
+skipping a version would fork. The hub's `ANCHOR` archive carries every version, so a node
+rebuilt from the archive applies the same sequence.
+
+`LIST_SHARE_PRODUCER_ACTIVATION` is read by the hubs on the BTC snapshot plane and binds the
+leader poll, follower validation and archive legs. `LIST_SHARE_CONSUMER_ACTIVATION` is read at
+each consuming chain's own block height and binds the apply pass.
+
 ## Reads and surfaces
 
 `getbridgeinvariant` (hub) takes an optional tick and, without one, returns the map keyed by
