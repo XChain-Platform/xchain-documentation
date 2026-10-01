@@ -64,6 +64,9 @@ attest the roster. `LINK` validation already enforces that, when the link target
    the tick's ownership must not be escrowed. Only the project's curator can bless a
    roster; nobody can fake a token *into* a project.
 
+At or above `LIST_TICK_COIN_ACTIVATION`, roster items may be coin-qualified as
+`COIN:TICK` or `COIN:^<tickid>`; a client shows only the tokens of the chain it reads.
+
 ### Updating
 
 `LIST` actions are immutable; an update publishes a **new** list and re-attests it:
