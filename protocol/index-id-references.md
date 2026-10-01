@@ -52,6 +52,18 @@ the reference SDK does not compact it, so a client that wants the shorter form w
 `^<tickid>` itself.
 See [LIST](./actions/list.md).
 
+At or above `LIST_TICK_COIN_ACTIVATION`, a ticker-typed `LIST.ITEM` may be
+coin-qualified as `COIN:TICK` or `COIN:^<tickid>`. The `COIN:^<tickid>` form names
+that coin's own ticker id and is resolved only by that coin's own chain. An item is
+coin-qualified only when the text before its first colon is BTC, LTC, or DOGE
+(case-folded), or a `RESERVED_FUTURE_ROOTS` entry; anything else, including `:PEPE`,
+is a bare ticker as before. An item qualified with the reading chain's own coin is
+checked like the bare item, so its `^<tickid>` resolves against that chain's
+block-stamped ticker rows, and is stored bare. Another coin's item is never resolved
+on this chain: it is checked for form only (`invalid: TICK (format)`) and stored as
+written with its root upper-cased. Below `LIST_TICK_COIN_ACTIVATION`, a colon item is
+an ordinary ticker name looked up as written.
+
 `FILE.GATE_TICKER` is also resolved on input, but clients must write it in full. The
 indexer checks it through the same ticker lookup as the fields above, so a `^<tickid>`
 resolves and the `FILE` is accepted, but the value is then stored verbatim as the file's
