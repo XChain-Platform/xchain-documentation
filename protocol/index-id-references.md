@@ -174,8 +174,9 @@ canonical reference. At or above `LIST_TICK_COIN_ACTIVATION`, on a ticker list (
 1), the SDK writes a coin-qualified item whose root is BTC, LTC or DOGE and whose rest
 is a well-formed name as `COIN:^<tickid>`, looking the id up on that coin's own explorer.
 When the lookup fails or returns no id, the SDK keeps the item as written. An item
-already in `COIN:^<tickid>` form and every bare ticker item stay in full. Below the gate,
-the SDK compacts no ticker list item. The SDK also leaves
+already in `COIN:^<tickid>` form stays in full. This compaction applies only to
+coin-qualified name items: the SDK still writes every bare ticker item in full. Below
+the gate, the SDK compacts no ticker list item. The SDK also leaves
 `DISPENSER.GET_ADDRESS` and `DISPENSER.ORACLE_ADDRESS` in full form, for the decoder
 reason above, even though the indexer would resolve a reference there.
 
