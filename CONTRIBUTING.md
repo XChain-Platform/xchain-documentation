@@ -152,6 +152,7 @@ Before opening a PR:
 2. Confirm `git status` is clean apart from intended changes (no editor backup files, no `.env`).
 3. Update `CHANGELOG.md` with a terse entry for your change.
 4. Open the PR with a clear title and a description of what changed and why. For spec changes, link to the issue where maintainer sign-off was obtained.
+5. Agree to the [Contributor License Agreement](./legal/cla.md) when the CLA Assistant bot links it on your first PR. Its `license/cla` check is required on protected branches, so a PR from a contributor who has not signed cannot be merged. One signature covers every XChain Platform repository.
 
 For non-security bugs or editorial issues, open an issue at <https://github.com/XChain-Platform/xchain-documentation/issues/new>. For security bugs, see [`SECURITY.md`](./SECURITY.md).
 

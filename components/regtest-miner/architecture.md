@@ -26,7 +26,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph MINER["xchain-regtest-miner"]
-        API["api.js<br>(Express)<br>JSON-RPC<br>9 methods"]
+        API["api.js<br>(Express)<br>JSON-RPC<br>14 methods"]
         RM["XChainRegtestMiner<br>- prepareWallet()<br>- start() loop<br>- fillMempool()<br>- setMiningTime()"]
         BC["BlockchainConnector<br>15 RPC methods<br>axios + Basic Auth"]
         API --> RM

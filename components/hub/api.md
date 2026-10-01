@@ -492,7 +492,9 @@ Public bootstrap endpoint for wallets and SDK clients: the chain descriptors (di
 
 ## Hub DB Sync (REST + WebSocket)
 
-The hub exposes a separate channel for replicating cross-chain infrastructure tables (`price_snapshots`, `oracle_prices`) to indexers' local hub DB copies. Used in geographically distributed deployments where indexers run on different hosts from the hub.
+The hub exposes a separate channel for replicating cross-chain infrastructure tables, including
+`price_snapshots`, `oracle_prices`, and `list_snapshots`, to indexers' local hub DB copies. It is
+used in geographically distributed deployments where indexers run separately from the hub.
 
 ### `GET /hub-db/snapshot/price_snapshots`
 
@@ -514,7 +516,10 @@ Returns rows from the `price_snapshots` table after `since_id` (paginated for in
 }
 ```
 
-All six snapshot endpoints return the same four-field envelope `{ table, rows, count, watermark }`. `watermark` is the Unix timestamp (seconds) at which the response was generated; indexers use it to detect a snapshot that predates a concurrent row they already saw via WebSocket.
+The six non-list snapshot endpoints return the same four-field envelope
+`{ table, rows, count, watermark }`. `watermark` is the Unix timestamp (seconds) at which the
+response was generated; indexers use it to detect a snapshot that predates a concurrent row they
+already saw via WebSocket. The `list_snapshots` route adds the fields documented below.
 
 ### `GET /hub-db/snapshot/oracle_prices`
 
@@ -535,6 +540,10 @@ Returns rows from the `cross_chain_calls` table after `since_id`. Same query par
 ### `GET /hub-db/snapshot/state_checkpoints`
 
 Returns rows from the `state_checkpoints` table after `since_id`. Same query parameters and response format as above.
+
+### `GET /hub-db/snapshot/list_snapshots`
+
+Returns the append-only, quorum-signed shared-list versions from the `list_snapshots` table after `since_id`. A higher `seq` supersedes a list's membership, and no older row is retracted. Takes the same `since_id` and `limit` query parameters as above. The envelope carries `heights`, `schema_version` and `btc_chain_id` beside `table`, `rows`, `count` and `watermark`.
 
 ### `GET /hub-db/subscribe` (WebSocket upgrade: requires `Authorization: Bearer <HUB_API_KEY>`)
 
@@ -583,6 +592,120 @@ Returns the per-capability minimum-stake thresholds live from the `CapabilityReg
 | `capability` | `string` | Capability name (`price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`) |
 | `min_stake` | `string` | Governance-configured minimum aggregate XCHAIN stake required to qualify |
 | `disabled` | `boolean` | `true` when the operator has disabled this capability via `DISABLED_CAPABILITIES` |
+
+## Shared Lists (indexer endpoints)
+
+These methods live on `xchain-indexer` and are documented here because the hub's list share leader and followers call them on each chain's indexer. Wallets and explorers can use `getsharedlist`, while the hub's bridge engine uses `gettokenpolicy`.
+
+### `getlistat` (indexer endpoint)
+
+**Request** (to indexer):
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"getlistat",
+  "params":{"list_index":"12345","block":850010},
+  "id":1
+}
+```
+
+`list_index` must be a positive integer or its canonical decimal string, and `block` must be a non-negative integer.
+
+**Response:**
+```json
+{
+  "type":2,
+  "members":["1BTC...address","1Other...address"],
+  "hash":"4d5e6f..."
+}
+```
+
+The response gives the list's type, its members at the requested block, and their list membership hash, which is the hash carried as `members_hash` by a list version. A failed lookup instead returns `{ "error": "..." }` with `list_index must be a positive integer`, `block must be a non-negative integer`, `list not found`, `list reference rejected`, `failed to look up list`, or `indexer database not ready`.
+
+### `getsharedlists` (indexer endpoint)
+
+**Request** (to indexer):
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"getsharedlists",
+  "params":{"network":"mainnet"},
+  "id":1
+}
+```
+
+`network` must equal the indexer's own configured network; otherwise the method returns `{ "error": "network does not match this indexer" }`.
+
+**Response:**
+```json
+[
+  {
+    "root_index":12345,
+    "owner":"1BTC...address",
+    "share_block":850000,
+    "share_action_index":12399
+  }
+]
+```
+
+The response contains one entry per valid format 2 SHARE in share action order. `owner` is the destination of the latest valid TRANSFER, or the list's creator when it has not been transferred. Database unavailability and lookup failures return `{ "error": "indexer database not ready" }` and `{ "error": "failed to look up shared lists" }`, respectively.
+
+### `getsharedlist` (indexer endpoint)
+
+**Request** (to indexer):
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"getsharedlist",
+  "params":{"home_chain":"BTC","list_index":"12345"},
+  "id":1
+}
+```
+
+This open read requires `home_chain` to be `BTC`, `LTC`, or `DOGE`. `list_index` must be a positive integer or its canonical decimal string.
+
+**Response:**
+```json
+{
+  "home_chain":"BTC",
+  "home_list_index":12345,
+  "local_list_index":12345,
+  "seq":null,
+  "origin_block":null,
+  "members":["1BTC...address","1Other...address"]
+}
+```
+
+The response identifies the home list and its local representation, with `members` in UTF-8 byte order. On the home chain, the list must be shared, `local_list_index` equals `home_list_index`, and `seq` and `origin_block` are null. On another chain, `local_list_index` identifies that chain's mirror list, `seq` is the number of list versions applied to it, and `origin_block` is the applied version's origin block, or null when its mirrored row is absent. Failures return `{ "error": "..." }` with `home_chain must be BTC, LTC or DOGE`, `list_index must be a positive integer`, `list is not shared`, `no mirror of <HOME> list <N> on this chain`, `failed to look up shared list`, or `indexer database not ready`.
+
+### `gettokenpolicy` (indexer endpoint)
+
+**Request** (to indexer):
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"gettokenpolicy",
+  "params":{"tick":"TOKEN","origin_block":850010,"snapshot_block":850020},
+  "id":1
+}
+```
+
+This open read requires `tick` and a non-negative integer `origin_block`. `snapshot_block` is optional; a non-negative integer selects the BTC snapshot-plane activation state used for by-reference policy resolution.
+
+**Response:**
+```json
+{
+  "allow_list":"BTC:12345",
+  "allow_list_ref":"BTC:12345",
+  "block_list":["1Blocked...address"],
+  "sleeping":false,
+  "policy_hash":"4d5e6f...",
+  "bridged":false,
+  "origin_block":850010
+}
+```
+
+The response contains `{ allow_list, block_list, sleeping, policy_hash, bridged, origin_block }`. When `snapshot_block` is a non-negative integer at which `LIST_SHARE_PRODUCER_ACTIVATION` is active on the BTC snapshot plane, each policy side bound to a shared list or a mirror of one contains a `<HOME>:<root>` string instead of its members, repeats that string as `allow_list_ref` or `block_list_ref`, and contributes the reference rather than the membership to `policy_hash`. Without `snapshot_block`, or below that gate, the response is unchanged and has no reference keys. Failures return `{ "error": "..." }` with `tick required`, `origin_block must be a non-negative integer`, `tick has no native row on this chain`, `failed to look up token policy`, or `indexer database not ready`.
 
 ## Fee Quotes
 
@@ -635,6 +758,9 @@ Calculates the native coin fee amount for a given action. The conversion uses tw
 | `SWEEP_PER_ITEM` | 100 | Per swept balance, closed escrow, or transferred ownership |
 | `CALLBACK_BASE` | 5,000 | Base cost for a callback, charged whatever it pays out |
 | `CALLBACK_PER_RECIPIENT` | 100 | Per recipient paid by a callback |
+| `LIST_SHARE` | 100,000 | Sharing a list (LIST format 2) |
+| `LIST_SHARED_EDIT_BASE` | 5,000 | Base cost of an edit to a shared list |
+| `LIST_SHARED_EDIT_PER_ITEM` | 100 | Per item added to or removed from a shared list |
 | `VM_EXECUTE_BASE` | 1,000 | Base cost for a VM contract execution |
 | `VM_DEPLOY_BASE` | 100,000 | Base cost for a VM contract deployment |
 | `VM_DEPLOY_PER_BYTE` | 10 | Per byte of contract source code |

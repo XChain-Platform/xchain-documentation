@@ -39,7 +39,7 @@ After `install`, all the following services are running locally:
 
 | Service | Default Port | Role |
 |---|---|---|
-| Bitcoin node (regtest) | 18443 | Coin node |
+| Bitcoin node (regtest) | 18444 | Coin node RPC (xchain-node's regtest `NODE_PORT`; upstream bitcoind uses 18443) |
 | xchain-decoder | 3002 | Polls node, writes to Decoder DB |
 | xchain-indexer | 3004 | Processes actions, writes to Indexer DB |
 | xchain-explorer | 18080 | REST API + web UI (host port `EXPLORER_PORT_HTTP`; 8080 is the container-internal port) |
@@ -47,6 +47,8 @@ After `install`, all the following services are running locally:
 | xchain-hub | 10000 | Config oracle |
 | xchain-utxo-tracker | 3001 | UTXO/balance queries |
 | xchain-regtest-miner | 3005 | Auto-miner + funding API |
+
+The coin node's RPC port is reachable on the stack's Docker network. xchain-node publishes it to the host only when `NODE_EXPOSED_PORT` is set in `config/bitcoin-regtest` (see [node configuration](../components/node/configuration.md)).
 
 ---
 
@@ -186,7 +188,7 @@ The `xchain-e2e-test` service contains a full Mocha test suite that exercises al
 ```bash
 cd /path/to/xchain-e2e-test
 npm install
-npm run api
+npm test
 ```
 
 The suite funds addresses, issues tokens, sends, creates dispensers, orders, and swaps, verifying each step via the explorer. Run it after any code change to catch regressions across the whole pipeline.
@@ -197,11 +199,14 @@ The suite funds addresses, issues tokens, sends, creates dispensers, orders, and
 
 ### Check the Decoder Database
 
-The decoder writes raw, unprocessed action records. If a transaction is on-chain but missing from the indexer, check the decoder first:
+The decoder writes one row per confirmed XChain transaction to `transactions`, with the decoded ACTION string in `transactions.data` (the Decoder DB has no `actions` table; that table belongs to the indexer). If a transaction is on-chain but missing from the indexer, check the decoder first:
 
 ```sql
 -- Connect to XChain_BTC_Regtest_Decoder
-SELECT * FROM actions ORDER BY block_index DESC LIMIT 20;
+SELECT t.tx_index, t.block_index, it.hash AS tx_hash, t.data
+FROM transactions t
+JOIN index_transactions it ON it.id = t.tx_hash_id
+ORDER BY t.tx_index DESC LIMIT 20;
 ```
 
 ### Check the Indexer Database

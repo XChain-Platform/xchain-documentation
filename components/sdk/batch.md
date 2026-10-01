@@ -189,7 +189,7 @@ let result = await sdk.batch()
 ### Error Handling: Constraint Violation
 
 ```js
-const { SDKValidationError } = require('@xchain/sdk/src/errors');
+const { SDKValidationError } = require('@dankest-llc/xchain-sdk');
 
 try {
     await sdk.batch()

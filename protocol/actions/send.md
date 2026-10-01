@@ -81,7 +81,7 @@ flowchart TD
 - Format version `3` allows for repeating `TICK`, `AMOUNT`, `DESTINATION`, and `MEMO` params to enable multiple transfers
 - Format version `0`, `1`, and `2` allow for a single optional `MEMO` field to be included as the last PARAM
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
-- Use `^` (caret) as prefix when passing an `ADDRESS_ID` for `DESTINATION` (^57 = `ADDRESS_ID` 57); see [Index ID References](../index-id-references.md)
+- Always write `DESTINATION` as a full address. `SEND.DESTINATION` is not resolved on input: a `^<id>` there fails the address format check, so that leg is recorded `invalid: DESTINATION (format)` and moves nothing while the transaction fee is still spent (the other legs of a multi-recipient send still settle); see [Index ID References](../index-id-references.md)
 
 ---
 

@@ -19,7 +19,7 @@ per-network threshold. `mixed` means the module contains more than one kind of r
 Follow the linked protocol activation guide before assuming that two height-keyed modules read the
 same chain or field.
 
-## A through D
+## A through E
 
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
@@ -42,6 +42,7 @@ same chain or field.
 | `attest_responsible_widening_activation` | `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` | height |
 | `attest_zero_conf_activation` | `ATTEST_ZERO_CONF_ACTIVATION` | height |
 | `bridge_policy_detach_activation` | `BRIDGE_POLICY_DETACH` | height |
+| `callback_compensation_activation` | `CALLBACK_COMPENSATES_EVERY_DEBITED_HOLDER` | height |
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
 | `consolidation_leg_amount_activation` | `CONSOLIDATION_LEG_AMOUNT_ACTIVATION` | time |
@@ -51,11 +52,14 @@ same chain or field.
 | `dispenser_amount_positivity_activation` | `DISPENSER_AMOUNT_POSITIVITY_ACTIVATION` | time |
 | `dispenser_caps_activation` | `DISPENSER_CAPS_ACTIVATION` | time |
 | `dispenser_freshness_activation` | `DISPENSER_FRESHNESS_ACTIVATION` | height |
+| `dispenser_freshness_proven_use_activation` | `DISPENSER_FRESHNESS_PROVEN_USE_ACTIVATION` | time |
 | `dispenser_freshness_shape_activation` | `DISPENSER_FRESHNESS_SHAPE_ACTIVATION` | height |
 | `dispenser_give_amount_activation` | `DISPENSER_GIVE_AMOUNT_ACTIVATION` | time |
 | `dispenser_oracle_price_activation` | `DISPENSER_ORACLE_PRICE_ACTIVATION` | time |
 | `dispenser_ownership_cancel_activation` | `DISPENSER_OWNERSHIP_CANCEL_ACTIVATION` | time |
 | `dispenser_send_amount_compare_activation` | `DISPENSER_SEND_AMOUNT_COMPARE_ACTIVATION` | height |
+| `dispenser_settlement_price_activation` | `DISPENSER_SETTLEMENT_PRICE_ACTIVATION` | time |
+| `empty_allow_list_denies_activation` | `EMPTY_ALLOW_LIST_DENIES` | height |
 
 ## G through P
 
@@ -63,12 +67,26 @@ same chain or field.
 |---|---|---|
 | `gated_handoff_ref_activation` | `GATED_HANDOFF_REF_ACTIVATION` | time |
 | `ledger_amount_precision_activation` | `LEDGER_AMOUNT_PRECISION_ACTIVATION` | height |
+| `list_address_ref_activation` | `LIST_ADDRESS_REF_ACTIVATION` | height |
+| `list_change_rematch_activation` | `LIST_CHANGE_REMATCH_ACTIVATION` | height |
+| `list_edit_remove_activation` | `LIST_EDIT_REMOVE_ACTIVATION` | time |
 | `list_edit_resolution_activation` | `LIST_EDIT_RESOLUTION_ACTIVATION` | height |
 | `list_owner_activation` | `LIST_OWNER_ACTIVATION` | height |
+| `list_reference_validity_activation` | `LIST_REFERENCE_REQUIRES_VALID_LIST` | height |
+| `list_share_activation` | `LIST_SHARE_ACTIVATION` | height |
+| `list_share_consumer_activation` | `LIST_SHARE_CONSUMER_ACTIVATION` | height |
+| `list_share_producer_activation` | `LIST_SHARE_PRODUCER_ACTIVATION` | height |
+| `list_tick_coin_activation` | `LIST_TICK_COIN_ACTIVATION` for coin-qualified ticker LIST items and the ISSUE colon-root refusal | height |
+| `list_transfer_activation` | `LIST_TRANSFER_ACTIVATION` | height |
+| `list_union_activation` | `LIST_UNION_ACTIVATION` | height |
+| `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
 | `mirror_admission_activation` | `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` | height |
+| `oracle_hourly_window_activation` | `ORACLE_HOURLY_WINDOW_FIRST_ROUND` | constant |
 | `oracle_preload_causality_activation` | `ORACLE_PRELOAD_CAUSALITY_ACTIVATION` | height |
+| `oracle_price_age_hourly_activation` | `ORACLE_PRICE_AGE_HOURLY_ACTIVATION` | height |
 | `oracle_snapshot_age_causality_activation` | `ORACLE_SNAPSHOT_AGE_CAUSALITY_ACTIVATION` | height |
 | `oracle_stale_round_visibility_activation` | `ORACLE_STALE_ROUND_VISIBILITY_ACTIVATION` | height |
+| `order_swap_payout_policy_activation` | `ORDER_SWAP_PAYOUT_POLICY_PER_TOKEN` | height |
 | `price_batching_floor_activation` | `PRICE_BATCHING_FLOOR_ACTIVATION` | time |
 | `price_fee_batch_landed_activation` | `PRICE_FEE_BATCH_LANDED_ACTIVATION` | height |
 | `price_pair_activation` | `PRICE_PAIR_WIDEN_ACTIVATION` | time |
@@ -90,6 +108,7 @@ same chain or field.
 | `state_commitment_activation` | `STATE_COMMITMENT_ACTIVATION` | height |
 | `state_key_collation_activation` | `STATE_KEY_COLLATION_ACTIVATION` | height |
 | `state_subtree_activation` | `STATE_SUBTREE_ACTIVATION` and `ESCROW_LOCKED_LEAF_ACTIVATION` | mixed |
+| `swap_edit_rematch_activation` | `SWAP_EDIT_REMATCH_ACTIVATION` | height |
 | `sweep_zero_leg_activation` | `SWEEP_ZERO_LEG_ACTIVATION` | height |
 | `swq_source_cap_activation` | `SWQ_SOURCE_CAP_ACTIVATION` | height |
 | `tick_namespace_activation` | `TICK_NAMESPACE_ACTIVATION` | height |
@@ -99,7 +118,8 @@ same chain or field.
 | `vm_deploy_lint_pkg3_activation` | `VM_DEPLOY_LINT_PKG3_ACTIVATION` | height |
 | `vm_exec_lint_activation` | `VM_EXEC_LINT_ACTIVATION` | height |
 | `vm_lint_global_alias_activation` | `VM_LINT_GLOBAL_ALIAS_ACTIVATION` | height |
-| `vm_lint_optional_chain_activation` | `VM_LINT_OPTIONAL_CHAIN_ACTIVATION` | height |
+| `vm_lint_optional_chain_heights` | `VM_LINT_OPTIONAL_CHAIN_ACTIVATION` | height |
+| `vote_callback_binding_activation` | `VOTE_CALLBACK_BINDING_REQUIRES_USABLE_METHOD` | height |
 | `xchain_bridge_activation` | `XCHAIN_BRIDGE_ACTIVATION` | height |
 
 ## Maintenance rule

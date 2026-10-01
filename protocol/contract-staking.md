@@ -16,7 +16,7 @@ Contract-targeted staking uses new versions of three existing actions; capabilit
 
 ```
 STAKE|3|AMOUNT|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK
-UNSTAKE|1|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK
+UNSTAKE|1|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK[|AMOUNT]
 DELEGATE|1|NEW_SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK
 DEPLOY|1|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTINATION
 ```
@@ -37,6 +37,8 @@ Activation delay is calibrated per chain for roughly **60 minutes of reorg prote
 ### UNSTAKE v1
 
 Initiates the cooldown for a specific `(target_contract_index, signing_pubkey, tick)` triple. The cooldown duration is the contract's own `cooldown_blocks` value (NOT the global 1000-block cooldown used by capability staking).
+
+The trailing `AMOUNT` is optional. Without it (or with an `AMOUNT` equal to the full staked balance), the whole triple enters cooldown. With a smaller `AMOUNT`, only that amount enters cooldown and the residual stays staked with no gap in stake weight. The field is gated by `PARTIAL_UNSTAKE_COLLECT`; see [Partial Unstake](actions/unstake.md#partial-unstake-optional-amount) for the activation and validation rules.
 
 Cooldown-locked balances **remain slashable** until they're released by the block-end sweep, withdrawing your stake is not a way to escape an imminent slash. Even in the final block of the cooldown (`cooldown_end_block = N`), a slash executing in block `N` reaches the locked balance before the sweep releases it (see [Cooldown release → Intra-block ordering](#intra-block-ordering-consensus-critical).
 
@@ -176,6 +178,9 @@ module.exports = {
 
 // Begin unstaking (cooldown_end_block = current + 50)
 UNSTAKE|1|abc...64hex...|42|XCHAIN
+
+// Or unstake only part of it: 50 XCHAIN enters cooldown, the remainder stays staked
+UNSTAKE|1|abc...64hex...|42|XCHAIN|50
 
 // Funds remain slashable during cooldown. 50 blocks later, the block-end sweep
 // credits the remaining (post-slash) amount back to the staker's source address.

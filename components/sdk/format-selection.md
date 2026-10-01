@@ -58,7 +58,7 @@ flowchart TD
 
 ## ISSUE Example: the Most Versions
 
-`ISSUE` has seven format versions, each targeting a distinct update operation:
+`ISSUE` has eight format versions, each targeting a distinct update operation:
 
 | Version | Format fields | Purpose |
 |---------|--------------|---------|
@@ -69,6 +69,7 @@ flowchart TD
 | 4 | `TICK, CALLBACK_BLOCK, CALLBACK_TICK, CALLBACK_AMOUNT, MEMO` | Callback parameter update |
 | 5 | `TICK, ALLOW_LIST, BLOCK_LIST, MEMO` | Allow/block list update |
 | 6 | `TICK, CONTROLLER, ACTION_CLASS, COOLDOWN_BLOCKS, UNBIND, MEMO` | Controller bind/unbind (programmable policy layer) |
+| 7 | `TICK, BRIDGE_CHAINS, MIN_DEPTH, LOCK_BRIDGE, MEMO` | Bridge opt-in (see [ISSUE format 7](../../protocol/actions/issue.md) and [XBRIDGE](../../protocol/actions/xbridge.md)) |
 
 **Practical examples:**
 
@@ -97,6 +98,11 @@ sdk.createAction({ action: 'ISSUE', params: {
 sdk.createAction({ action: 'ISSUE', params: {
     tick: 'MY.TOKEN', allowList: 12345, blockList: 67890
 }});
+
+// Provide tick + bridge fields → selects v7 ('-' clears the chain list; an omitted field is unchanged)
+sdk.createAction({ action: 'ISSUE', params: {
+    tick: 'MY.TOKEN', bridgeChains: 'LTC,DOGE'
+}});
 ```
 
 ---
@@ -105,24 +111,24 @@ sdk.createAction({ action: 'ISSUE', params: {
 
 Actions with a single format version (BATCH, CALLBACK, DIVIDEND, FILE, LINK, MINT, SWEEP) are omitted from this table; the selector always uses version 0 for those.
 
-| ACTION | v0 | v1 | v2 | v3 | v4 | v5 | v6 |
-|--------|----|----|----|----|----|----|-----|
-| SEND | Single tick, single destination | Single tick, two destinations | Two ticks, two destinations | Two ticks, two destinations + per-destination memo | None | None | None |
-| ISSUE | Full token creation | Description update | Mint parameter update | Lock flag update | Callback parameter update | Allow/block list update | Controller bind/unbind |
-| ADDRESS | Account preferences (fee preference, require-memo, dispenser preference) | Controller bind/unbind for the sending address | None | None | None | None | None |
-| DELEGATE | Add new signing pubkey (validator delegation) | Add signing pubkey scoped to a contract + tick | Revoke signing pubkey | Revoke signing pubkey scoped to a contract + tick | None | None | None |
-| DEPLOY | Inline code (rest constructor params) | Inline code with staking fields (cooldown, slash destination) | Chunked code by hash (rest constructor params) | Chunked code by hash with staking fields | Chunk carrier: one ordered base64 slice identified by code hash + chunk index | None | None |
-| SLEEP | Wake at block (address-wide) | Wake at block, tick-scoped | None | None | None | None | None |
-| STAKE | _(unused; no v0)_ | Stake with signing pubkey | Stake with signing pubkey (v2 wire; same fields as v1) | Contract-targeted stake: signing pubkey + target contract + tick | None | None | None |
-| UNSTAKE | Revoke signing pubkey (address-wide unstake) | Revoke signing pubkey scoped to a contract + tick | None | None | None | None | None |
-| ORDER | Full order (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None | None |
-| SWAP | Full swap (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None | None |
-| DISPENSER | Full dispenser (give/get/fiat/lists) | Cancel/close by index | Edit escrow/expiry/lists by index | None | None | None | None |
-| DESTROY | Single tick | Two ticks | Two ticks + per-tick memo | None | None | None | None |
-| AIRDROP | Single tick, list index | Two ticks, two list indexes | Single tick, two list indexes alternating | Two ticks, two list indexes, two memos | None | None | None |
-| BROADCAST | Message + value | Message + value + fee + memo | Message + fee + memo (no value) | Resolve prior broadcast by index | None | None | None |
-| MESSAGE | ECDH v0 (key exchange) | ECDH v1 (key exchange) | Encrypted message payload | Plaintext message | None | None | None |
-| LIST | Create list (type + item) | Edit existing list by index | None | None | None | None | None |
+| ACTION | v0 | v1 | v2 | v3 | v4 | v5 | v6 | v7 |
+|--------|----|----|----|----|----|----|-----|-----|
+| SEND | Single tick, single destination | Single tick, two destinations | Two ticks, two destinations | Two ticks, two destinations + per-destination memo | None | None | None | None |
+| ISSUE | Full token creation | Description update | Mint parameter update | Lock flag update | Callback parameter update | Allow/block list update | Controller bind/unbind | Bridge opt-in |
+| ADDRESS | Account preferences (fee preference, require-memo, dispenser preference) | Controller bind/unbind for the sending address | None | None | None | None | None | None |
+| DELEGATE | Add new signing pubkey (validator delegation) | Add signing pubkey scoped to a contract + tick | Revoke signing pubkey | Revoke signing pubkey scoped to a contract + tick | None | None | None | None |
+| DEPLOY | Inline code (rest constructor params) | Inline code with staking fields (cooldown, slash destination) | Chunked code by hash (rest constructor params) | Chunked code by hash with staking fields | Chunk carrier: one ordered base64 slice identified by code hash + chunk index | None | None | None |
+| SLEEP | Wake at block (address-wide) | Wake at block, tick-scoped | None | None | None | None | None | None |
+| STAKE | _(unused; no v0)_ | Stake with signing pubkey | Stake with signing pubkey (v2 wire; same fields as v1) | Contract-targeted stake: signing pubkey + target contract + tick | None | None | None | None |
+| UNSTAKE | Revoke signing pubkey (address-wide unstake) | Revoke signing pubkey scoped to a contract + tick | None | None | None | None | None | None |
+| ORDER | Full order (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None | None | None |
+| SWAP | Full swap (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None | None | None |
+| DISPENSER | Full dispenser (give/get/fiat/lists) | Cancel/close by index | Edit escrow/expiry/lists by index | None | None | None | None | None |
+| DESTROY | Single tick | Two ticks | Two ticks + per-tick memo | None | None | None | None | None |
+| AIRDROP | Single tick, list index | Two ticks, two list indexes | Single tick, two list indexes alternating | Two ticks, two list indexes, two memos | None | None | None | None |
+| BROADCAST | Message + value | Message + value + fee + memo | Message + fee + memo (no value) | Data feed update: new value + memo on an existing feed, by index | None | None | None | None |
+| MESSAGE | ECDH v0 (key exchange) | ECDH v1 (key exchange) | Encrypted message payload | Plaintext message | None | None | None | None |
+| LIST | Create list (type + item) | Edit existing list by index | None | None | None | None | None | None |
 
 **STAKE note:** STAKE has no v0. Versions 1 and 2 have the same field layout (`AMOUNT|SIGNING_PUBKEY`). v3 adds contract targeting. The selector picks the lowest-version that fits the provided fields, so v1 is chosen when no contract target is provided.
 
@@ -196,7 +202,7 @@ If none of the registered format versions can represent all the provided fields,
 `userFieldsNotInFormat` shows exactly which of your fields caused each version to be rejected. In the example above, `unknownField` is not defined in any SEND format, removing it or correcting its name will resolve the error.
 
 ```js
-const { SDKFormatError } = require('@xchain/sdk/src/errors');
+const { SDKFormatError } = require('@dankest-llc/xchain-sdk');
 
 try {
     await sdk.createAction({ action: 'SEND', params: { tick: 'BTC.TOKEN', unknownField: 'x' }});

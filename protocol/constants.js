@@ -229,6 +229,11 @@ const XPOLICY_MAX_PER_BLOCK = 5;
 // hash input, so a later flag day can raise it.
 const XPOLICY_MAX_MEMBERS = 10000;
 
+// Shared-list shares, shared edits and merged unions may each resolve to at most this many
+// members. A union may name at most LIST_UNION_MAX_MEMBERS direct member lists.
+const LIST_SHARE_MAX_MEMBERS = 10000;
+const LIST_UNION_MAX_MEMBERS = 16;
+
 // ── Token-gated content (PC-29) ─────────────────────────────────────────────
 // Fixed fractional scale for comparing FILE.GATE_MIN_AMOUNT thresholds against a
 // holder's balance. The wallet scales both sides to this many fractional digits
@@ -1627,6 +1632,47 @@ const PRICE_MAX = 10_000_000_000;
 // the ±band boundary). 0.05 = 5%.
 const ORACLE_DEVIATION_THRESHOLD = 0.05;
 
+// ORACLE_PRICE_AGE_HOURLY_ACTIVATION: canonical authority for registry row
+// oracle_price_age_hourly_activation.ORACLE_PRICE_AGE_HOURLY_ACTIVATION. At and
+// above a chain's height, the indexer accepts a price snapshot up to
+// ORACLE_MAX_PRICE_AGE_HOURLY_SECONDS old instead of the legacy
+// ORACLE_MAX_PRICE_AGE_SECONDS limit for fee pricing, fee views, attest
+// settlement and VM oracle data. No live network is armed; regtest is
+// genesis-active so tests exercise the hourly-age rule.
+const ORACLE_PRICE_AGE_HOURLY_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 154778,
+    'LTC:testnet': 4905005,
+    'DOGE:testnet': 67956923,
+    regtest: 0,
+};
+
+// ORACLE_HOURLY_WINDOW_FIRST_ROUND: canonical authority for registry row
+// oracle_hourly_window_activation.ORACLE_HOURLY_WINDOW_FIRST_ROUND. This is the
+// first oracle round from which hubs group rounds into hourly windows. It is
+// keyed on the round number, not local time, so every hub switches at the same
+// round. Every armed value must be a multiple of ORACLE_HOURLY_WINDOW_ROUNDS.
+// No live network is armed; regtest starts at round zero so tests exercise the
+// hourly window from genesis.
+//
+// ORDERING INVARIANT, graded by OF-11: on each network, every COIN:network key
+// of ORACLE_PRICE_AGE_HOURLY_ACTIVATION crosses before the round named by
+// ORACLE_HOURLY_WINDOW_FIRST_ROUND finalizes.
+const ORACLE_HOURLY_WINDOW_FIRST_ROUND = {
+    mainnet: 9999999999,
+    testnet: 5082,
+    regtest: 0,
+};
+
+// Maximum accepted price age after ORACLE_PRICE_AGE_HOURLY_ACTIVATION: six
+// 600-second rounds plus 300 seconds of grace and 300 seconds of landing reserve
+// make 4200 seconds, with another 300 seconds of headroom.
+const ORACLE_MAX_PRICE_AGE_HOURLY_SECONDS = 4500;
+
+// Oracle rounds carried in one hourly PRICE wire after the hourly-window row.
+const ORACLE_HOURLY_WINDOW_ROUNDS = 6;
+
 // Platform-train consensus activation, keyed by PLATFORM VERSION then network to a
 // BTC block height. This is the train gate, not a per-feature flag day: a MAJOR
 // train (or a consensus-classified hotfix) adds exactly ONE row here and every
@@ -1811,7 +1857,7 @@ const XCHAIN_BRIDGE_ACTIVATION = {
 // Canonical authority for the registry row token_bridge_activation.TOKEN_BRIDGE_ACTIVATION.
 //
 // ORDERING INVARIANT, asserted by the indexer's parity suite over this map:
-// TOKEN_BRIDGE_ACTIVATION >= XCHAIN_BRIDGE_ACTIVATION per network. The general formats ride
+// TOKEN_BRIDGE_ACTIVATION >= XCHAIN_BRIDGE_ACTIVATION per chain and network. The general formats ride
 // the same hub engine, the same mirrored transfer table and the same settle pass as
 // XCHAIN's, so a train that armed v3 without the XCHAIN bridge behind it would admit locks
 // that nothing can ever finalize and that no burn can ever return.
@@ -1858,7 +1904,8 @@ const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     regtest: 0,
 };
 
-// LIST owner-check flag day, keyed on the block_index of the chain being parsed.
+// LIST owner-check flag day, keyed on the block_index of the chain being parsed;
+// testnet arms per chain.
 // Canonical authority for the registry row list_owner_activation.LIST_OWNER_ACTIVATION.
 //
 // At and above a network's height a LIST format 1 whose source is not the address that
@@ -1872,6 +1919,99 @@ const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
 const LIST_OWNER_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    regtest: 0,
+};
+
+// LIST sharing flag days, keyed on the block_index of the chain being parsed unless noted.
+// Canonical authority for the registry row list_share_activation.LIST_SHARE_ACTIVATION.
+// At and above the height, LIST format 2, shared-edit fees and the shared-edit member cap bind.
+const LIST_SHARE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row
+// list_share_producer_activation.LIST_SHARE_PRODUCER_ACTIVATION. This per-network gate binds
+// hub leader polling, follower validation, archive legs and by-reference snapshots.
+const LIST_SHARE_PRODUCER_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 154777,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row
+// list_share_consumer_activation.LIST_SHARE_CONSUMER_ACTIVATION. At and above the height, the
+// mirror barrier, apply pass and by-reference policy apply bind. Per COIN:network this gate
+// must be at or above MIRROR_ADMISSION_CONSUMER_ACTIVATION and
+// TOKEN_POLICY_INHERITANCE_ACTIVATION.
+const LIST_SHARE_CONSUMER_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row list_union_activation.LIST_UNION_ACTIVATION. At
+// and above the height, LIST type 3 binds. LIST_UNION_ACTIVATION must be at or above
+// LIST_SHARE_CONSUMER_ACTIVATION.
+const LIST_UNION_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row list_transfer_activation.LIST_TRANSFER_ACTIVATION.
+// At and above the height, LIST format 3 binds.
+const LIST_TRANSFER_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row
+// list_address_ref_activation.LIST_ADDRESS_REF_ACTIVATION. At and above the height, ^<id>
+// address items bind.
+const LIST_ADDRESS_REF_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
+    regtest: 0,
+};
+
+// Canonical authority for the registry row
+// list_tick_coin_activation.LIST_TICK_COIN_ACTIVATION. At and above the height, coin-qualified
+// type-1 LIST items COIN:^<tickid> and COIN:TICK bind. The parser splits at the first colon
+// only and treats an item as qualified only when the case-folded prefix is BTC, LTC, DOGE or
+// a RESERVED_FUTURE_ROOTS entry; storage preserves the item's exact case. This gate also binds
+// AIRDROP's own-coin read and ISSUE's refusal to create a top-level ticker beginning with such
+// a root and colon.
+//
+// LS-81 asserts per COIN:network that wherever LIST_SHARE_CONSUMER_ACTIVATION is armed, this
+// gate is armed at or below it, because a mirror of a shared ticker list holds only
+// coin-qualified items.
+const LIST_TICK_COIN_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 154777,
+    'LTC:testnet': 4905004,
+    'DOGE:testnet': 67956922,
     regtest: 0,
 };
 
@@ -2112,9 +2252,9 @@ const MIRROR_ADMISSION_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,   // INERT under the 2026-08-29 mainnet write hold
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  154567, // set by the v0.21.0 freeze height plan
+    'BTC:testnet':  154234, // set by the v0.21.0 freeze height plan
     'LTC:testnet':  4903068, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67951140, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67936053, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2124,9 +2264,9 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'BTC:mainnet':  null,
     'LTC:mainnet':  null,
     'DOGE:mainnet': null,
-    'BTC:testnet':  154614, // set by the v0.21.0 freeze height plan
+    'BTC:testnet':  154291, // set by the v0.21.0 freeze height plan
     'LTC:testnet':  4903291, // set by the v0.21.0 freeze height plan
-    'DOGE:testnet': 67952082, // set by the v0.21.0 freeze height plan
+    'DOGE:testnet': 67936888, // set by the v0.21.0 freeze height plan
     'BTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'LTC:regtest':  resolveMirrorAdmissionRegtest(process.env),
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
@@ -2177,7 +2317,7 @@ const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     // instant as the family's BTC CONSUMER height, so the one member that keeps BOTH
     // completeness certificates gains them together instead of carrying a lone extra rule for
     // 6 h. The measurement, the formula and the re-size rule are with the maps above.
-    testnet: 154614, // set by the v0.21.0 freeze height plan
+    testnet: 154291, // set by the v0.21.0 freeze height plan
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
 
@@ -2207,6 +2347,8 @@ module.exports = {
     XBRIDGE_MAX_PER_BLOCK,
     XPOLICY_MAX_PER_BLOCK,
     XPOLICY_MAX_MEMBERS,
+    LIST_SHARE_MAX_MEMBERS,
+    LIST_UNION_MAX_MEMBERS,
     THRESHOLD_SCALE,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
     EQUIV_HEADER_ACTIVATION,
@@ -2286,6 +2428,10 @@ module.exports = {
     GAS_TICK,
     PRICE_MAX,
     ORACLE_DEVIATION_THRESHOLD,
+    ORACLE_PRICE_AGE_HOURLY_ACTIVATION,
+    ORACLE_HOURLY_WINDOW_FIRST_ROUND,
+    ORACLE_MAX_PRICE_AGE_HOURLY_SECONDS,
+    ORACLE_HOURLY_WINDOW_ROUNDS,
     TRAIN_ACTIVATION,
     STAKE_KEY_REUSE_ACTIVATION,
     SWEEP_ZERO_LEG_ACTIVATION,
@@ -2293,6 +2439,13 @@ module.exports = {
     TOKEN_BRIDGE_ACTIVATION,
     TOKEN_POLICY_INHERITANCE_ACTIVATION,
     LIST_OWNER_ACTIVATION,
+    LIST_SHARE_ACTIVATION,
+    LIST_SHARE_PRODUCER_ACTIVATION,
+    LIST_SHARE_CONSUMER_ACTIVATION,
+    LIST_UNION_ACTIVATION,
+    LIST_TRANSFER_ACTIVATION,
+    LIST_ADDRESS_REF_ACTIVATION,
+    LIST_TICK_COIN_ACTIVATION,
     TICK_NAMESPACE_ACTIVATION,
     RESERVED_FUTURE_ROOTS,
 };

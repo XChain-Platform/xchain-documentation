@@ -289,7 +289,7 @@ const {
     SDKContractError,
     SDKWalletError,
     SDKAuthError
-} = require('@xchain/sdk/src/errors');
+} = require('@dankest-llc/xchain-sdk');
 
 try {
     let result = await sdk.createAction({

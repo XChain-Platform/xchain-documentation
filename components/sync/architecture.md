@@ -111,7 +111,7 @@ flowchart TD
 | `server/merkle_tree.js` | `MerkleTree` | Binary SHA-256 Merkle tree used by TransparencyLog for epoch proof construction |
 | `db/balance_helpers.js` | None | Shared SQL helpers for rebuilding the `balances` aggregate after a block apply or rollback |
 | `checkpoint.js` | None | Client-side verifier for quorum-signed state checkpoints (SPV spec §6.1/§6.3) |
-| `consensus/stake_weighted_quorum.js` | None | Canonical stake-weighted quorum predicate; vendored byte-identically from xchain-documentation |
+| `consensus/stake_weighted_quorum.js` | None | Consensus-critical stake-weighted quorum predicate; vendored byte-identically from `xchain-indexer/src/consensus/stake_weighted_quorum.js`, the canonical source (the xchain-documentation reference-impl copy is another vendored copy). Edit the indexer copy only. |
 | `client/pinned_validators.js` | None | Out-of-band pinned validator sets used by VERIFY_CHECKPOINT_QUORUM to anchor checkpoint signatures |
 | `consensus-constants.js` | None | Frozen per-chain consensus constants (e.g. `ACTIVATION_DELAY_BLOCKS`) shared across modules |
 | `schema/version.js` | None | Snapshot schema version constant used to detect incompatible snapshot formats |
