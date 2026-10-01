@@ -165,15 +165,17 @@ The reference SDK compacts eligible single-value ticker and address fields to `^
 automatically (opt out with `{ compactTickers: false }` / `{ compactAddresses: false }`).
 It only ever emits a `^<id>` for a value it has already resolved to an existing id via the
 explorer, and it falls back to the full value whenever an id cannot be resolved, so a
-client never emits an id the indexer would not recognize. Multi-recipient (array) and
-type-gated list fields are left in full form by the SDK. For `SEND.DESTINATION`, and for
+client never emits an id the indexer would not recognize. Multi-recipient (array)
+fields are left in full form by the SDK. For `SEND.DESTINATION`, and for
 `LIST.ITEM` when the list `TYPE` is address below `LIST_ADDRESS_REF_ACTIVATION`, the
 rules above require it: the indexer resolves no `^<id>` in those cases. At or above the
 gate, the SDK still writes address list items in full even though the indexer resolves a
-canonical reference. For `LIST.ITEM` when the list `TYPE` is ticker the SDK is being
-conservative rather than obeying a protocol limit, because the indexer does resolve a
-`^<tickid>` item and stores it under the resolved ticker id; that compaction is left to
-the client. The SDK also leaves
+canonical reference. At or above `LIST_TICK_COIN_ACTIVATION`, on a ticker list (`TYPE`
+1), the SDK writes a coin-qualified item whose root is BTC, LTC or DOGE and whose rest
+is a well-formed name as `COIN:^<tickid>`, looking the id up on that coin's own explorer.
+When the lookup fails or returns no id, the SDK keeps the item as written. An item
+already in `COIN:^<tickid>` form and every bare ticker item stay in full. Below the gate,
+the SDK compacts no ticker list item. The SDK also leaves
 `DISPENSER.GET_ADDRESS` and `DISPENSER.ORACLE_ADDRESS` in full form, for the decoder
 reason above, even though the indexer would resolve a reference there.
 
