@@ -71,20 +71,35 @@ fields of an action:
 **Address fields where a `^<id>` is resolved on input:** `MINT.DESTINATION`,
 `MESSAGE.DESTINATION`, `SWEEP.DESTINATION`, `ISSUE.TRANSFER`, `ISSUE.TRANSFER_SUPPLY`,
 `DISPENSER.GET_ADDRESS`, `DISPENSER.ORACLE_ADDRESS`, `ORDER.GET_ADDRESS`,
-`SWAP.GET_ADDRESS` and `DEPLOY.SLASH_DESTINATION`. Each of these handlers resolves the
-reference before its address format check.
+`SWAP.GET_ADDRESS`, `DEPLOY.SLASH_DESTINATION`, `LIST.DESTINATION` for a format 3
+`TRANSFER` at or above `LIST_TRANSFER_ACTIVATION`, and `LIST.ITEM` when the list `TYPE`
+is address at or above `LIST_ADDRESS_REF_ACTIVATION`. Each of these handlers resolves
+the reference before its address format check.
 
-Two id-receiving fields are NOT resolved on input. A `^<id>` written there is judged by
-the plain address format check, which it always fails, and the transaction fee is spent
-either way. What the failure costs differs, because each field is scored at its own
-granularity, not at the action's:
+For a format 3 `TRANSFER`, `LIST.DESTINATION` is resolved before its address check. A
+reference that names no block-stamped address is
+`invalid: DESTINATION (unresolvable ^id)` at or above `CARET_REF_STRICT_ACTIVATION`;
+below that strict gate, the unresolved text instead falls through to
+`invalid: DESTINATION (format)`.
+
+At or above `LIST_ADDRESS_REF_ACTIVATION`, a type-2 `LIST.ITEM` written `^<id>` in the
+canonical form is resolved against the deterministic, block-stamped address set before
+the format check. One that resolves to nothing stays as written and is recorded
+`invalid: ADDRESS (format)`, while the `LIST` action itself stays `valid`.
+
+An address-typed `LIST.ITEM` is resolved at or above `LIST_ADDRESS_REF_ACTIVATION`; the
+two id-receiving cases below are NOT resolved on input. A `^<id>` written there is
+judged by the plain address format check, which it always fails, and the transaction fee
+is spent either way. What the failure costs differs, because each field is scored at
+its own granularity, not at the action's:
 
 - `SEND.DESTINATION`: the **leg** carrying the reference is recorded
   `invalid: DESTINATION (format)` and moves nothing. Each leg of a multi-recipient
   `SEND` is validated on its own, so the remaining legs still settle; a single-recipient
   `SEND` has one leg, so there the whole send fails. Write every `SEND` destination in
   full, whether the send has one recipient or many.
-- `LIST.ITEM` when the list `TYPE` is address: the **item** is recorded
+- Below `LIST_ADDRESS_REF_ACTIVATION`, `LIST.ITEM` when the list `TYPE` is address: the
+  **item** is recorded
   `invalid: ADDRESS (format)` and left out of the materialized item set, while the `LIST`
   action itself stays `valid` and publishes the rest. So a roster or allow-list that
   carries a reference silently ships short rather than failing loudly. Write every
@@ -140,8 +155,10 @@ It only ever emits a `^<id>` for a value it has already resolved to an existing 
 explorer, and it falls back to the full value whenever an id cannot be resolved, so a
 client never emits an id the indexer would not recognize. Multi-recipient (array) and
 type-gated list fields are left in full form by the SDK. For `SEND.DESTINATION`, and for
-`LIST.ITEM` when the list `TYPE` is address, the rules above require it: the indexer
-resolves no `^<id>` there. For `LIST.ITEM` when the list `TYPE` is ticker the SDK is being
+`LIST.ITEM` when the list `TYPE` is address below `LIST_ADDRESS_REF_ACTIVATION`, the
+rules above require it: the indexer resolves no `^<id>` in those cases. At or above the
+gate, the SDK still writes address list items in full even though the indexer resolves a
+canonical reference. For `LIST.ITEM` when the list `TYPE` is ticker the SDK is being
 conservative rather than obeying a protocol limit, because the indexer does resolve a
 `^<tickid>` item and stores it under the resolved ticker id; that compaction is left to
 the client. The SDK also leaves
