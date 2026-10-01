@@ -13,6 +13,7 @@ This action creates a list of items for use in actions.
 | `ITEM`              | String | Any valid `TICK` or `ADDRESS`; rest field, repeat for each item |
 | `EDIT`              | String | Edit action (1=ADD, 2=REMOVE)     |
 | `LIST_ACTION_INDEX` | String | `ACTION_INDEX` of existing `LIST` |
+| `DESTINATION`       | String | Address that receives ownership (format 3) |
 
 
 ## Formats
@@ -22,6 +23,12 @@ This action creates a list of items for use in actions.
 
 ### Version `1` 
 - `VERSION|EDIT|LIST_ACTION_INDEX|MEMO|...ITEM`
+
+### Version `2`
+- `VERSION|LIST_ACTION_INDEX|MEMO`
+
+### Version `3`
+- `VERSION|LIST_ACTION_INDEX|DESTINATION|MEMO`
 
 
 ## Examples
@@ -50,6 +57,21 @@ LIST|1|2|4321|Removed at their request|1ExampleAddressXXXXXXXXXXXXXXXXXXX|1FWDon
 This example creates a new list from an existing list (4321) and removes 2 addresses from the new list, with a memo
 ```
 
+```
+LIST|2|1234|Shared compliance list
+This example permanently shares list 1234
+```
+
+```
+LIST|3|1234|1ExampleAddressXXXXXXXXXXXXXXXXXXX|New list owner
+This example transfers ownership of list 1234 to a full address
+```
+
+```
+LIST|3|4321|^5678|Rotated list owner
+This example transfers ownership of list 4321 to the address identified by address id 5678
+```
+
 ## Rules
 - Each `ITEM` is judged on its own. An item that fails its type check (an unknown `TICK`,
   or an `ADDRESS` the format check rejects) is recorded `invalid` and left OUT of the
@@ -61,10 +83,15 @@ This example creates a new list from an existing list (4321) and removes 2 addre
 - A `ADDRESS` list contains only `ADDRESS` items
 - An `ADDRESS` item validates against this chain's own coin and network by default. Behind `TOKEN_POLICY_INHERITANCE_ACTIVATION`, an item that is a valid address of ANY coin the platform runs (BTC, LTC, DOGE, at this network) is admitted, not only this chain's own coin; this widens which items an `ADDRESS` list can hold, it never narrows one. See [Token Bridge](../token-bridge.md#policy-inheritance) for why: a bridged token's allow/block list is enforced identically on every chain it has a copy on, so the list has to be able to name a holder on any of them. Below the flag, an item of another chain's address format fails its type check like any other malformed `ADDRESS` and is recorded `invalid`, per the rule above.
 - A `LIST` edit (`VERSION 1`) whose `LIST_ACTION_INDEX` names a list created by a chain's own `ADDRESS.BRIDGE_<COIN>` role address is refused with `invalid: LIST_ACTION_INDEX (bridge-owned)`. Those lists exist only once a bridged token's policy has been carried to this chain (see [Token Bridge](../token-bridge.md#policy-inheritance)); no user key owns them, and only the platform's own injected edits, carrying the finalized policy snapshot's membership, may ever change one.
+- At or above `LIST_SHARE_ACTIVATION`, a SHARE (`VERSION 2`) is accepted only from the list's current owner; otherwise it is refused with `invalid: LIST_ACTION_INDEX (not owner)`. Only a TICK or ADDRESS list can be shared; any other list type is refused with `invalid: LIST_ACTION_INDEX (type)`. A list can be shared only once, and another SHARE is refused with `invalid: LIST_ACTION_INDEX (already shared)`. A list with more than `LIST_SHARE_MAX_MEMBERS` (10,000) members is refused with `invalid: LIST_ACTION_INDEX (list exceeds LIST_SHARE_MAX_MEMBERS)`. Sharing is permanent.
+- At or above `LIST_SHARE_ACTIVATION`, a format 1 edit that would take a shared list past `LIST_SHARE_MAX_MEMBERS` (10,000) members is refused with `invalid: ITEM (shared list exceeds LIST_SHARE_MAX_MEMBERS)`.
+- At or above `LIST_TRANSFER_ACTIVATION`, a TRANSFER (`VERSION 3`) is accepted only from the list's current owner; otherwise it is refused with `invalid: LIST_ACTION_INDEX (not owner)`. `DESTINATION` must be a full address or an address id written as `^<id>`, which is resolved on input. An id that names no address is refused with `invalid: DESTINATION (unresolvable ^id)`, and anything that is not an address is refused with `invalid: DESTINATION (format)`. Every later owner check reads the latest valid transfer's destination.
 
 ## Notes
 - Format version `0` allows for creating a list of `TYPE`
 - Format version `1` allows for creating a list from an existing list via `LIST_ACTION_INDEX` and `EDIT`
+- Format version `2` permanently shares an existing list via `LIST_ACTION_INDEX`
+- Format version `3` transfers ownership of an existing list to `DESTINATION`
 - `MEMO` is optional and sits BEFORE `ITEM`, unlike every other action, where it comes last. `ITEM` repeats, so a memo after it could not be told apart from one more item. A `LIST` with no memo still leaves the field empty (`LIST|0|1||JDOG`)
 - `ITEM` can be repeated many times in a `LIST` request
 - `ITEM` values should be unique
