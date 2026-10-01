@@ -10,7 +10,7 @@ This action creates a list of items for use in actions.
 | `VERSION`           | String | Format Version                    |
 | `TYPE`              | String | List type (1=TICK, 2=ADDRESS)     |
 | `MEMO`              | String | An optional memo to include       |
-| `ITEM`              | String | Any valid `TICK` or `ADDRESS`; rest field, repeat for each item |
+| `ITEM`              | String | Any valid `TICK` or `ADDRESS`; at or above `LIST_TICK_COIN_ACTIVATION`, a `TICK` item may be `COIN:TICK` or `COIN:^<tickid>`; rest field, repeat for each item |
 | `EDIT`              | String | Edit action (1=ADD, 2=REMOVE)     |
 | `LIST_ACTION_INDEX` | String | `ACTION_INDEX` of existing `LIST` |
 | `DESTINATION`       | String | Address that receives ownership (format 3) |
@@ -72,6 +72,11 @@ LIST|3|4321|^5678|Rotated list owner
 This example transfers ownership of list 4321 to the address identified by address id 5678
 ```
 
+```
+LIST|0|1||PEPE|BTC:^5|DOGE:WOW
+On Bitcoin, at or above `LIST_TICK_COIN_ACTIVATION`, this creates a ticker list holding the bare ticker PEPE, Bitcoin ticker id 5 written coin-qualified, and the Dogecoin ticker WOW
+```
+
 ## Rules
 - Each `ITEM` is judged on its own. An item that fails its type check (an unknown `TICK`,
   or an `ADDRESS` the format check rejects) is recorded `invalid` and left OUT of the
@@ -80,6 +85,7 @@ This example transfers ownership of list 4321 to the address identified by addre
   that is not sleeping), so a `LIST` whose every item was rejected still publishes, as an
   empty list. Read the resulting membership back rather than assuming what you sent
 - A `TICK` list contains only `TICK` items
+- At or above `LIST_TICK_COIN_ACTIVATION`, a `TICK` item may be written `COIN:TICK` or `COIN:^<tickid>` (that coin's own ticker id). It is coin-qualified only when the text before its first colon is BTC, LTC, or DOGE (case-folded), or an entry in `RESERVED_FUTURE_ROOTS`; anything else, including `:PEPE`, is a bare ticker as before. An item qualified with this chain's own coin is checked like the bare item and stored bare. Another coin's item is checked for form only and recorded `invalid: TICK (format)` if malformed; otherwise it is stored as written with its root upper-cased, and it matches nothing on a chain that does not hold that ticker. Every consumer, including AIRDROP and the project roster, reads only its own coin's items. A mirror of a shared ticker list stores every item as written, and the share record qualifies bare items with the home coin (`DOGE:PEPE`, or `DOGE:^<id>` when the name form passes 200 characters). Below `LIST_TICK_COIN_ACTIVATION`, a colon item is an ordinary ticker name looked up as written.
 - A `ADDRESS` list contains only `ADDRESS` items
 - An `ADDRESS` item validates against this chain's own coin and network by default. Behind `TOKEN_POLICY_INHERITANCE_ACTIVATION`, an item that is a valid address of ANY coin the platform runs (BTC, LTC, DOGE, at this network) is admitted, not only this chain's own coin; this widens which items an `ADDRESS` list can hold, it never narrows one. See [Token Bridge](../token-bridge.md#policy-inheritance) for why: a bridged token's allow/block list is enforced identically on every chain it has a copy on, so the list has to be able to name a holder on any of them. Below the flag, an item of another chain's address format fails its type check like any other malformed `ADDRESS` and is recorded `invalid`, per the rule above.
 - At or above `LIST_ADDRESS_REF_ACTIVATION`, an `ITEM` of an `ADDRESS` list (`TYPE` 2) written as `^<id>` in canonical form (a positive decimal id with no leading zero) is resolved against the deterministic, block-stamped address set before the format check. This applies to a create (`VERSION 0`) and to an add or remove edit (`VERSION 1`); the list stores and matches the resolved address, so a later edit may name the same member in full. An id that names no block-stamped address stays as written and is recorded `invalid: ADDRESS (format)`, while the `LIST` itself stays `valid`. A `TICK` list item is never resolved this way. Below `LIST_ADDRESS_REF_ACTIVATION`, a `^<id>` item is not resolved and is recorded `invalid: ADDRESS (format)` like any other malformed `ADDRESS`.
