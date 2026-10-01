@@ -492,7 +492,9 @@ Public bootstrap endpoint for wallets and SDK clients: the chain descriptors (di
 
 ## Hub DB Sync (REST + WebSocket)
 
-The hub exposes a separate channel for replicating cross-chain infrastructure tables (`price_snapshots`, `oracle_prices`) to indexers' local hub DB copies. Used in geographically distributed deployments where indexers run on different hosts from the hub.
+The hub exposes a separate channel for replicating cross-chain infrastructure tables, including
+`price_snapshots`, `oracle_prices`, and `list_snapshots`, to indexers' local hub DB copies. It is
+used in geographically distributed deployments where indexers run separately from the hub.
 
 ### `GET /hub-db/snapshot/price_snapshots`
 
@@ -514,7 +516,10 @@ Returns rows from the `price_snapshots` table after `since_id` (paginated for in
 }
 ```
 
-All six snapshot endpoints return the same four-field envelope `{ table, rows, count, watermark }`. `watermark` is the Unix timestamp (seconds) at which the response was generated; indexers use it to detect a snapshot that predates a concurrent row they already saw via WebSocket.
+The six non-list snapshot endpoints return the same four-field envelope
+`{ table, rows, count, watermark }`. `watermark` is the Unix timestamp (seconds) at which the
+response was generated; indexers use it to detect a snapshot that predates a concurrent row they
+already saw via WebSocket. The `list_snapshots` route adds the fields documented below.
 
 ### `GET /hub-db/snapshot/oracle_prices`
 
