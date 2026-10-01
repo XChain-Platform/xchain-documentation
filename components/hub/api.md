@@ -590,7 +590,7 @@ Returns the per-capability minimum-stake thresholds live from the `CapabilityReg
 
 ## Shared Lists (indexer endpoints)
 
-These methods live on `xchain-indexer` and are documented here because the hub's list share leader and followers call them on each chain's indexer.
+These methods live on `xchain-indexer` and are documented here because the hub's list share leader and followers call them on each chain's indexer. Wallets and explorers can use `getsharedlist`, while the hub's bridge engine uses `gettokenpolicy`.
 
 ### `getlistat` (indexer endpoint)
 
@@ -644,6 +644,63 @@ The response gives the list's type, its members at the requested block, and thei
 ```
 
 The response contains one entry per valid format 2 SHARE in share action order. `owner` is the destination of the latest valid TRANSFER, or the list's creator when it has not been transferred. Database unavailability and lookup failures return `{ "error": "indexer database not ready" }` and `{ "error": "failed to look up shared lists" }`, respectively.
+
+### `getsharedlist` (indexer endpoint)
+
+**Request** (to indexer):
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"getsharedlist",
+  "params":{"home_chain":"BTC","list_index":"12345"},
+  "id":1
+}
+```
+
+This open read requires `home_chain` to be `BTC`, `LTC`, or `DOGE`. `list_index` must be a positive integer or its canonical decimal string.
+
+**Response:**
+```json
+{
+  "home_chain":"BTC",
+  "home_list_index":12345,
+  "local_list_index":12345,
+  "seq":null,
+  "origin_block":null,
+  "members":["1BTC...address","1Other...address"]
+}
+```
+
+The response identifies the home list and its local representation, with `members` in UTF-8 byte order. On the home chain, the list must be shared, `local_list_index` equals `home_list_index`, and `seq` and `origin_block` are null. On another chain, `local_list_index` identifies that chain's mirror list, `seq` is the number of list versions applied to it, and `origin_block` is the applied version's origin block, or null when its mirrored row is absent. Failures return `{ "error": "..." }` with `home_chain must be BTC, LTC or DOGE`, `list_index must be a positive integer`, `list is not shared`, `no mirror of <HOME> list <N> on this chain`, `failed to look up shared list`, or `indexer database not ready`.
+
+### `gettokenpolicy` (indexer endpoint)
+
+**Request** (to indexer):
+```json
+{
+  "jsonrpc":"2.0",
+  "method":"gettokenpolicy",
+  "params":{"tick":"TOKEN","origin_block":850010,"snapshot_block":850020},
+  "id":1
+}
+```
+
+This open read requires `tick` and a non-negative integer `origin_block`. `snapshot_block` is optional; a non-negative integer selects the BTC snapshot-plane activation state used for by-reference policy resolution.
+
+**Response:**
+```json
+{
+  "allow_list":"BTC:12345",
+  "allow_list_ref":"BTC:12345",
+  "block_list":["1Blocked...address"],
+  "sleeping":false,
+  "policy_hash":"4d5e6f...",
+  "bridged":false,
+  "origin_block":850010
+}
+```
+
+The response contains `{ allow_list, block_list, sleeping, policy_hash, bridged, origin_block }`. When `snapshot_block` is a non-negative integer at which `LIST_SHARE_PRODUCER_ACTIVATION` is active on the BTC snapshot plane, each policy side bound to a shared list or a mirror of one contains a `<HOME>:<root>` string instead of its members, repeats that string as `allow_list_ref` or `block_list_ref`, and contributes the reference rather than the membership to `policy_hash`. Without `snapshot_block`, or below that gate, the response is unchanged and has no reference keys. Failures return `{ "error": "..." }` with `tick required`, `origin_block must be a non-negative integer`, `tick has no native row on this chain`, `failed to look up token policy`, or `indexer database not ready`.
 
 ## Fee Quotes
 
