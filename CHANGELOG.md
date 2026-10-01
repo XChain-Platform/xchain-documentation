@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.1] - 2026-10-01
+
+### Changed
+- Documented the PRICE v1 canonical form and activation behavior.
+- Published the ANCHOR v3 archive fold grammar, activation rules, and frozen vectors.
+- Clarified controller custody routing and its activation guard.
+- Documented LTC and DOGE follower halt timing for mirror operators.
+- Armed the testnet release train at BTC 154566.
+- Armed testnet mirror admission producers at BTC 154234, LTC 4903068 and DOGE 67936053.
+- Armed testnet mirror admission consumers at BTC 154291, LTC 4903291 and DOGE 67936888.
+- Armed the testnet anchor attestation barrier at BTC 154291.
+- Armed testnet token bridges at BTC 154567, LTC 4903068 and DOGE 67951140.
+- Armed testnet token policy inheritance at BTC 154567, LTC 4903068 and DOGE 67951140.
+
+### Added
+- Documented shared lists, union lists, list transfer and coin-qualified LIST tickers.
+- Documented hourly PRICE batches and the hourly price-age rule.
+
 ## [0.21.0] - 2026-09-29
 
 ### Changed
