@@ -67,6 +67,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `list_edits` | LIST modification records |
 | `list_items` | LIST member items |
 | `list_items_invalid` | Rejected LIST items |
+| `list_transfers` | LIST ownership transfers, one row per valid format 3 TRANSFER |
 | `messages` | MESSAGE records (plaintext and encrypted) |
 | `mints` | MINT supply creation records |
 | `orders` | ORDER (DEX) listing records |
