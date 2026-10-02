@@ -65,6 +65,7 @@ invalid. This list follows the code; do not emit `3`.
 Regardless of preference, a fresh address (never seen on chain) can have a dispenser opened on it by anyone, and the address's established origin (the `SOURCE` of a prior valid dispenser create on it) can always open additional dispensers; see the origin-standing rule in [`DISPENSER`](./dispenser.md).
 
 ## Rules
+- **Format `1` refusals** (controller bind/unbind) are the token-binding verdicts in [Bind and unbind rejections](../controller-bound-tokens.md#bind-and-unbind-rejections), less the `TICK` ones. A class whose unbind is still inside its `COOLDOWN_BLOCKS` cooldown refuses both a new bind (`invalid: ACTION_CLASS (already bound)`) and a second unbind (`invalid: ACTION_CLASS (already unbinding)`), so replacing a controller means unbind, wait out the cooldown, then bind.
 
 ## Notes
 - `ADDR` `ACTION` can be used for shorter reference to `ADDRESS` `ACTION`

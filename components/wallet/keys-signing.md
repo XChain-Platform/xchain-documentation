@@ -137,7 +137,9 @@ class Signer {
 }
 ```
 
-Methods that aren't supported by a particular signer return a typed deferral error (`UnsupportedSignerOperation`) with a message pointing the user at the software signer or the appropriate workaround. Sign screens render the deferral inline so the user understands *why* a sign attempt didn't proceed.
+### Unsupported operations
+
+A method a signer can't perform rejects: the async call throws, it never returns an error value. On `TrezorSigner` and `LedgerSigner` the two MuSig2 rounds reject with error code `HW_MUSIG2_UNSUPPORTED` on `err.code`; branch on that code, not on the message, which is plain-language copy the sign screen shows as written (the technical detail is in `err.cause`). Classical multisig on those signers (`signMultisigClassical`, `signMultisigPsbt`) rejects with a plain `Error` that carries no stable code, only a message pointing the user at the software signer. A signer that does not override a base-class method throws `AbstractMethodError`. Sign screens render the deferral inline so the user understands *why* a sign attempt didn't proceed.
 
 ## Concrete signers
 

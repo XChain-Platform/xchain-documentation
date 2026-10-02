@@ -140,9 +140,12 @@ stateDiagram-v2
 
 ## Monitoring
 
-The reward pool is finite between top-ups. Its drain rate is governed by the hub reward schedule
-(`ORACLE_REWARD_PER_ROUND` and the per-capability reward types in
-`xchain-indexer/src/api.js:pushvalidatorrewards`). **Watch the reward-pool balance** and top up
+The reward pool is finite between top-ups. It drains as validators `COLLECT` the rewards every
+indexer derives during block processing (see [COLLECT](../protocol/actions/collect.md#reward-sources)),
+not through any hub setting. The net drain is the fixed publish rewards, `ANCHOR_REWARD_AMOUNT`,
+`ARCHIVE_REWARD_AMOUNT` and `ROLLCALL_REWARD_AMOUNT` in `protocol/constants.js`; `attest_fee`
+rewards are paid out of the ATTEST request fee, which settles into the pool first. Those amounts
+are consensus constants that only a flag-day changes, so **watch the reward-pool balance** and top up
 before it depletes; otherwise validators see `COLLECT` rejections (they retry later, but rewards
 stall). A balance threshold alert/monitor is recommended.
 

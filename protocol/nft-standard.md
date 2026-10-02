@@ -279,7 +279,8 @@ enforcing the cut means also denying the dispenser listing from inside the guard
 `CROSS_CHAIN_ROYALTY` flag-day, an ORDER or SWAP listing on a cross-chain pair whose guard
 returns legs is rejected at create rather than settled without the cut. At and above the
 flag-day the legs ride the validator-signed match and are applied on the proceeds chain,
-and every leg address must re-encode to `GET_COIN` at create. See
+and every leg address must re-encode to `GET_COIN` at create; a leg that does not denies the
+listing (`royalty leg not payable on proceeds chain`). See
 [Cross-chain sales](./controller-bound-tokens.md#cross-chain-sales-cross_chain_royalty).
 
 Creators who prefer a custody model can instead implement royalties in an ordinary

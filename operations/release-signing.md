@@ -4,8 +4,9 @@ All XChain Platform release artifacts (tagged source archives, bootstrap
 archives, packaged binaries) are signed with the project release key.
 
 > **This is not the XChain Wallet release key.** The wallet ships its own
-> signing key, and its fingerprint is published on `SECURITY.md` in the
-> `xchain-wallet` repository and at `https://xchain.io/security`, not here.
+> signing key, and its fingerprint is published at `https://xchain.io/security`,
+> currently the only public channel for it, not here (see
+> [where the release key fingerprint is published](../components/wallet/release/verify-release.md#where-the-release-key-fingerprint-is-published)).
 > Verifying a wallet download against the key below will fail, and should:
 > see [Verify a release](../components/wallet/release/verify-release.md).
 

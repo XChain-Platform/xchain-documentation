@@ -142,10 +142,44 @@ Rules:
 stateDiagram-v2
     [*] --> Unbound
     Unbound --> Bound: ISSUE v6, UNBIND=0
+    Bound --> Bound: bind refused (already bound)
     Bound --> UnbindPending: ISSUE v6, UNBIND=1 (COOLDOWN_BLOCKS starts)
-    UnbindPending --> UnbindPending: still gates ACTION_CLASS until cooldown elapses
+    UnbindPending --> UnbindPending: still gates ACTION_CLASS, bind and unbind refused until cooldown elapses
     UnbindPending --> Unbound: COOLDOWN_BLOCKS elapses
 ```
+
+### Bind and unbind rejections
+
+Every bind/unbind refusal below is the `STATUS` of the `ISSUE` v6 or [`ADDRESS`](./actions/address.md)
+v1 row, byte for byte. `ADDRESS` v1 emits the same strings for an account binding, except the
+`TICK` ones, which only a token binding can hit.
+
+| Verdict | Bind / unbind | Format | When |
+|---|---|---|---|
+| `invalid: TICK (unknown)` | both | `ISSUE` v6 | `TICK` names no existing token. |
+| `invalid: CONTROLLER (unknown)` | both | both | `CONTROLLER` is set but no contract has that `ACTION_INDEX`. |
+| `invalid: CONTROLLER (not active)` | both | both | The `CONTROLLER` contract exists but its status is not `valid`. |
+| `invalid: ACTION_CLASS (unknown)` | both | both | `ACTION_CLASS` (case-insensitive) is not one of `transfer`, `trade`, `burn`, `mint`, `stake`, `ownership`, `all`. |
+| `invalid: CONTROLLER (null)` | bind | both | `UNBIND=0` with an empty `CONTROLLER`. |
+| `invalid: ACTION_CLASS (already bound)` | bind | both | Something still gates this exact class: a live bind, **or an unbind still inside its cooldown**. |
+| `invalid: COOLDOWN_BLOCKS (format)` | bind | both | `COOLDOWN_BLOCKS` is set but is not a non-negative integer. |
+| `invalid: ACTION_CLASS (not bound)` | unbind | both | Nothing gates this exact class (never bound, or an earlier unbind's cooldown has elapsed). |
+| `invalid: ACTION_CLASS (already unbinding)` | unbind | both | The class already has an unbind still inside its cooldown. |
+| `invalid: TICK (bridged tokens cannot be policy-bound yet)` | both | `ISSUE` v6 | The token is bridgeable or has bridged (see the bridging rule above). |
+
+"This exact class" means the class named in `ACTION_CLASS`, never the `all` fallback: an `all`
+binding does not make a specific class read as bound, which is what lets a specific bind
+override `all` (see [Precedence](#precedence-and-the-all-class)).
+
+**A pending unbind cannot be cancelled or replaced.** An unbind at block `U` against a bind
+that committed `COOLDOWN_BLOCKS = C` schedules the drop for block `U + C`. `C` is always the
+live bind's committed value; a `COOLDOWN_BLOCKS` sent with the unbind is ignored. Until block
+`U + C` the old controller keeps gating the class, and any bind or second unbind for that
+class is refused (`already bound` / `already unbinding`). So the only way to swap controllers
+is to unbind, wait until block `U + C`, then bind the new one, with the class gated by the old
+controller throughout. With `C = 0` the unbind takes effect at once and a bind is accepted in
+the same block. Choose `COOLDOWN_BLOCKS` knowing it is also the minimum time a controller swap
+takes.
 
 ### Action classes
 
@@ -181,7 +215,9 @@ So binding `all` gates **every** class with one binding (a "freeze this token en
 "compliance-gate everything" policy is one action, not six), and binding a specific class
 **on top of** `all` overrides the catch-all for that class only; the specific binding fully
 replaces `all` there. Binding a specific class while `all` is bound is allowed (it is the
-override); a second `all` bind while one is live is rejected, exactly like any other class.
+override); a second `all` bind while one is live, or while an `all` unbind is still inside its
+cooldown, is rejected, exactly like any other class (see
+[Bind and unbind rejections](#bind-and-unbind-rejections)).
 
 > ⚠️ **`all` means all classes, present AND future.** A token bound to `all` gates **every**
 > routed class, including `mint` (supply creation), `stake` (v3 contract-targeted staking),
@@ -343,13 +379,15 @@ cross-chain listing is decided by the `CROSS_CHAIN_ROYALTY` flag-day, layered on
 |---|---|---|
 | off | (n/a) | no legs produced (unchanged) |
 | on | **off** | **denied at create** (`royalty not enforceable cross-chain`, fail-closed) |
-| on | **on** | accepted; legs travel in the validator-signed match and are applied at settlement |
+| on | **on** | accepted when every leg re-encodes to `GET_COIN`; legs travel in the validator-signed match and are applied at settlement |
+| on | **on** | **denied at create** when any leg does not re-encode (`royalty leg not payable on proceeds chain`, fail-closed) |
 
 When the flag is on:
 
 1. **At create**, every leg `to` must re-encode to `GET_COIN`
    (`Utility.canReencodeAddress`); any non-portable leg (a contract address, or a segwit
-   address when `GET_COIN` has no bech32, e.g. DOGE) denies the listing. This makes the
+   address when `GET_COIN` has no bech32, e.g. DOGE) denies the listing
+   (`invalid: royalty leg not payable on proceeds chain`, fail-closed). This makes the
    settlement-time re-encode total: a trade that delivered can never hit an unpayable leg.
 2. **In the match**, the hub copies each order's stored legs onto the `cross_chain_matches`
    row (`a_payout_legs` / `b_payout_legs`), and the legs are part of the **validator-signed
@@ -470,7 +508,9 @@ VERSION|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO
 
 - The binding is **self-signed** (`SOURCE` is the account gating itself) and lives in the
   append-only `address_controllers` table, with the same per-class, cooldown/unbind,
-  fail-closed semantics as token bindings.
+  fail-closed semantics as token bindings, including the same
+  [rejection verdicts](#bind-and-unbind-rejections) (all but the `TICK` ones) and the rule that
+  a pending unbind cannot be cancelled or replaced until its cooldown elapses.
 - The guard runs with the same [ABI](#the-guard-abi), gas rules, and determinism guarantees;
   the subject is the account and `tick` is the token in motion.
 
@@ -588,8 +628,14 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
   must also constrain the guard's own emissions has to enforce that inline, in the same
   `guard` body.
 - Guard state changes and emissions are wrapped in a dedicated DB savepoint
-  (`controller_guard_<actionIndex>_<controller>_<seq>`); any emission failure rolls the whole
-  guard back and denies, the same atomicity model as [`EXECUTE`](./actions/execute.md).
+  (`controller_guard_<actionIndex>_<controller>_<seq>_<ordinal>`); any emission failure rolls
+  the whole guard back and denies, the same atomicity model as [`EXECUTE`](./actions/execute.md).
+  The trailing `<ordinal>` is a per-invocation counter that makes every guard's savepoint name
+  unique: several guards can run on one leg sharing its `<seq>`, and two can share a controller,
+  and because the database silently replaces a savepoint whose name is reused, a repeated name
+  would let an inner guard's release destroy an outer guard's rollback target. The name is
+  local to the database transaction (never hashed, replicated, or persisted), so the ordinal
+  carries no consensus weight and need not match across nodes.
 
 Every net ledger mutation a guard performs (a burn, or a mint) is reconciled into token supply
 in the same block, so the indexer's per-block ledger invariant (ledger == supply == balances)

@@ -1862,9 +1862,11 @@ const XCHAIN_BRIDGE_ACTIVATION = {
 // XCHAIN's, so a train that armed v3 without the XCHAIN bridge behind it would admit locks
 // that nothing can ever finalize and that no burn can ever return.
 //
-// Testnet is NOT armed alongside the XCHAIN bridge: no third-party token can be offered on
-// a hub-trusted mint, so this gate waits on the checkpoint cross-check landing on that
-// network. Regtest is genesis-active.
+// Mainnet and the bare testnet fallback stay at the sentinel. BTC, LTC and DOGE testnet are
+// armed at the v0.21.0 freeze heights, and every mint they settle is proven against the
+// origin's anchored checkpoint before any effect. The hub reads this map at BTC's slot
+// because snapshot_block is a BTC height, so an arming cut must size BTC to arm last in wall
+// clock. Regtest is genesis-active.
 const TOKEN_BRIDGE_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan

@@ -57,7 +57,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `WS_IDLE_TIMEOUT` | No | `300000` | Idle timeout for zero-subscription clients (ms) |
 | `WS_MAX_CONNECTIONS_PER_IP` | No | `5` | Max concurrent WebSocket connections per IP |
 | `WS_MAX_SUBSCRIPTIONS` | No | `25` | Max subscriptions per WebSocket connection |
-| `WS_MAX_BACKPRESSURE` | No | `65536` | Max buffered bytes before skipping messages for a slow client |
+| `WS_MAX_BACKPRESSURE` | No | `65536` | Max buffered bytes per client; a slow client above it is closed with code `4008` and catches up on reconnect |
 
 See [WEBSOCKET.md](websocket.md) for the full WebSocket API reference.
 

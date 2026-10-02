@@ -255,7 +255,8 @@ test('the guide does not claim a sale delivers the decryption keys', () => {
         + 'gets the key in the same transaction');
 });
 
-/* 5. Cross-chain royalty listings are denied below the flag day. */
+/* 5. Cross-chain royalty listings are denied below the flag day, and above it
+ *    when a leg cannot be paid on the proceeds chain. */
 
 test('the cross-chain royalty source facts still hold', { skip: skipNoIndexer }, () => {
     const swap = readSrc('actions/swap.js');
@@ -268,6 +269,9 @@ test('the cross-chain royalty source facts still hold', { skip: skipNoIndexer },
             + 'availability caveat is no longer accurate');
         assert.match(src, /isEnabled\('CROSS_CHAIN_ROYALTY'/,
             `${label} no longer gates that denial on CROSS_CHAIN_ROYALTY`);
+        assert.match(src, /royalty leg not payable on proceeds chain/,
+            `${label} no longer denies a non-portable leg above the flag day, so the verdict `
+            + 'the spec names for it is stale');
     }
     assert.match(changes, /'CROSS_CHAIN_ROYALTY'[^\n]*1798761600/,
         'CROSS_CHAIN_ROYALTY no longer activates on mainnet at 1798761600 (2027-01-01); the '
@@ -294,6 +298,17 @@ test('the NFT standard does not claim the rails have no special cases', () => {
         + 'royalty-bearing cross-chain listing is denied at create');
     assert.match(nft, /CROSS_CHAIN_ROYALTY/,
         'nft-standard.md no longer names the cross-chain royalty exception anywhere');
+    assert.match(nft, /royalty leg not payable on proceeds chain/,
+        'nft-standard.md no longer names the verdict a non-portable leg gets above the flag day');
+});
+
+test('the controller spec names both cross-chain royalty denials', () => {
+    const sales = section(readDoc('protocol/controller-bound-tokens.md'),
+        '### Cross-chain sales (`CROSS_CHAIN_ROYALTY`)', 'controller-bound-tokens.md');
+    assert.match(sales, /royalty not enforceable cross-chain/,
+        'the cross-chain sales section no longer names the below-flag-day denial');
+    assert.match(sales, /royalty leg not payable on proceeds chain/,
+        'the cross-chain sales section no longer names the non-portable-leg denial');
 });
 
 /* 6. A fee output is required only when a fee is actually owed. */

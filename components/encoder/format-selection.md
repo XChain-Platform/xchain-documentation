@@ -38,7 +38,7 @@ Multisig is appropriate when the payload is slightly too large for OP_RETURN and
 
 ### P2SH: up to 8,192 bytes (476-byte chunks)
 
-The payload is embedded in one or more redeem scripts. Payloads larger than a single 476-byte chunk are split across multiple P2SH outputs (fund-then-spend pairs), up to the shared 8,192-byte compiled-ACTION ceiling. Two transactions are required:
+The payload is embedded in one or more redeem scripts. Payloads larger than a single 476-byte chunk are split across multiple P2SH outputs (one fund tx creates them all, one spend tx reveals them all), up to the shared 8,192-byte compiled-ACTION ceiling. Two transactions are required:
 
 - **Fund tx**: locks funds to the P2SH output(s) (hash of each redeem script)
 - **Spend tx**: spends from the P2SH output(s), revealing each full redeem script in the scriptSig

@@ -6,7 +6,7 @@
 The wallet supports two multisig schemes:
 
 - **Classical n-of-m**: every cosigner produces a partial PSBT; coordinator finalizes by combining partials. Address is a P2SH / P2WSH multisig address. Bitcoin only at launch (SPEC §10.3); the Create multisig form offers only Bitcoin networks.
-- **MuSig2**: three-round protocol producing a single Schnorr signature indistinguishable on-chain from a single-signer transaction. Bitcoin only (Taproot / Schnorr requirement). Software-signer-only today.
+- **MuSig2**: two-round protocol per BIP327 (round 1 collects public nonces, round 2 collects partial signatures) producing a single Schnorr signature indistinguishable on-chain from a single-signer transaction. Bitcoin only (Taproot / Schnorr requirement). Software-signer-only today.
 
 Both schemes share the same coordinator UI and the same per-address multi-config schema.
 
@@ -151,11 +151,11 @@ All three transports use the same envelope format (see [URI Schemes) Multisig PS
 | Signer | Classical n-of-m | MuSig2 |
 |---|---|---|
 | Software | Full support | Full support |
-| Trezor | Vendor-API-heavy stub; surfaces `ESignerDeferred` with software-fallback message | Firmware-gated; not yet shipped |
-| Ledger | Vendor-API-heavy stub; surfaces `ESignerDeferred` with software-fallback message | Firmware-gated; not yet shipped |
+| Trezor | Vendor-API-heavy stub; rejects with a plain `Error` (no stable code) whose message points at the software signer | Firmware-gated; not yet shipped (rejects with `HW_MUSIG2_UNSUPPORTED`) |
+| Ledger | Vendor-API-heavy stub; rejects with a plain `Error` (no stable code) whose message points at the software signer | Firmware-gated; not yet shipped (rejects with `HW_MUSIG2_UNSUPPORTED`) |
 | Remote | Defers to whichever signer is on the other end of the channel | Same |
 
-The vendor deferrals are not refusals, they're a "this build doesn't speak this protocol on this device yet, fall back to the software signer". The hardware-signer multisig PSBT signing path is scaffolded for both Trezor and Ledger; finishing it is one of the queued post-GA items. MuSig2 on hardware is firmware-gated by the device vendors and lands when their firmware does.
+The vendor deferrals are not refusals, they're a "this build doesn't speak this protocol on this device yet, fall back to the software signer". [Keys & Signing: Unsupported operations](keys-signing.md#unsupported-operations) defines the error contract. The hardware-signer multisig PSBT signing path is scaffolded for both Trezor and Ledger; finishing it is one of the queued post-GA items. MuSig2 on hardware is firmware-gated by the device vendors and lands when their firmware does.
 
 ## Coordinator role
 
