@@ -79,6 +79,29 @@ describe('shared-list members hashes', () => {
     }
 });
 
+describe('shared-list meta hashes', () => {
+    for (const vector of vectors.metaHashes) {
+        test(vector.label, () => {
+            if (vector.nameBytes !== undefined) {
+                assert.equal(Buffer.byteLength(vector.name, 'utf8'), vector.nameBytes);
+            }
+            if (vector.descriptionBytes !== undefined) {
+                assert.equal(Buffer.byteLength(vector.description, 'utf8'), vector.descriptionBytes);
+            }
+            if (vector.name === null && vector.description === null) {
+                assert.equal(vector.preimage, '');
+                assert.equal(vector.expected, '');
+                return;
+            }
+
+            const preimage = ['LISTMETA', vector.name || '', vector.description || ''].join('|');
+            assert.equal(vector.preimage, preimage);
+            assert.match(vector.expected, /^[0-9a-f]{64}$/);
+            assert.equal(vector.expected, sha256(preimage));
+        });
+    }
+});
+
 describe('shared-list deltas', () => {
     for (const vector of vectors.deltas) {
         test(vector.name, () => {
@@ -153,6 +176,9 @@ describe('shared-list signed canonicals', () => {
                 vector.network,
                 vector.admissionText,
             ];
+            if (Object.hasOwn(vector, 'meta_hash')) {
+                fields.push(vector.meta_hash);
+            }
             assert.equal(vector.text, fields.join('|'));
             assert.equal(vector.text.split('|')[2], String(vector.snapshot_block));
             assert.equal(
