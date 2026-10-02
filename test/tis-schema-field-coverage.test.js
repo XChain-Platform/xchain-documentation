@@ -279,6 +279,27 @@ describe('TIS field table / schema coverage', () => {
                 `v1.1.0 ${def}.required moved; a published version is superseded, never edited`);
     });
 
+    test('the v1.0.0 compatibility prose keeps the caveat the open v1.0.0 objects force', () => {
+        // Source half: v1.0.0 leaves the root and media objects open, so an extra named
+        // like a gating field takes any type there, while v1.1.x declares a type for it.
+        const v100 = readJson('token-information-standard-v1.0.0-schema.json');
+        const open = [v100, ...MEDIA.map((def) => v100.definitions[def])]
+            .every((o) => o.additionalProperties === undefined || o.additionalProperties === true);
+        const typed = MEDIA.every((def) => schema.definitions[def].properties.locked.type === 'boolean')
+            && schema.properties.packs.type === 'object';
+        assert.ok(open, 'v1.0.0 closes its root or media objects, so the compatibility caveat below is no longer true');
+        assert.ok(typed, 'v1.1.x no longer types locked/packs, so the compatibility caveat below is no longer true');
+        const readme = fs.readFileSync(path.join(JSON_DIR, 'README.md'), 'utf8');
+        for (const [label, text] of [['token-information-standard.md', SPEC_TEXT], ['json/README.md', readme]]) {
+            const flat = text.replace(/\s+/g, ' ');
+            for (const claim of ['forbids nothing v1.0.0 allowed', 'every v1.1.0 and v1.0.0 document',
+                                 'so every v1.0.0 document is a valid v1.1.0 document'])
+                assert.ok(!flat.includes(claim),
+                    `${label} again says "${claim}"; a v1.0.0 document with "locked": "yes" is valid there and rejected by v1.1.x`);
+            assert.match(flat, /type or length/, `${label} no longer states which v1.0.0 documents v1.1.x rejects`);
+        }
+    });
+
     test('a data_ref-only media entry satisfies the current schema, and an entry with neither does not', () => {
         // Runs the requirement the way a validator does: every name in `required`
         // must be present, and when the definition carries an `anyOf` of required

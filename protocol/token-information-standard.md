@@ -15,7 +15,8 @@ v1.1.1 relaxes a single constraint over v1.1.0 and adds no field. An entry in `i
 `audio`, `video` or `files` requires `type` plus at least one of `data` or `data_ref`,
 where v1.1.0 required `data` outright and so rejected the fully on-chain form this
 standard recommends below. Relaxing a constraint cannot invalidate a document, so every
-v1.1.0 and v1.0.0 document is also valid under v1.1.1.
+v1.1.0 document is also valid under v1.1.1. A v1.0.0 document is valid under v1.1.1 on the
+same terms as under v1.1.0 (below).
 
 ### v1.1.0
 - [Token Information Standard JSON Schema](./json/token-information-standard-v1.1.0-schema.json)
@@ -23,8 +24,13 @@ v1.1.0 and v1.0.0 document is also valid under v1.1.1.
 
 Frozen as published. It is additive over v1.0.0: it declares the token-gating fields
 (`packs`, `title`, `data_ref`, `locked`, `pack_id`) that clients already emit and read,
-adds no required field, and forbids nothing v1.0.0 allowed. Its four media definitions
-require `["type", "data"]`, which is the constraint v1.1.1 relaxes.
+and adds no required field. Declaring them is still a tightening for one kind of document:
+v1.0.0 leaves the root object and the media entries open, so it accepts those five names as
+extras of any type and length, and v1.1.0 rejects a v1.0.0 document that used one of them
+with a type or length it now declares (for example `"locked": "yes"`, a numeric `pack_id`,
+a `data_ref` over 255 characters, or `"packs": []`). Every other v1.0.0 document stays
+valid. Its four media definitions require `["type", "data"]`, which is the constraint
+v1.1.1 relaxes.
 
 ### v1.0.0
 - [Token Information Standard JSON Schema](./json/token-information-standard-v1.0.0-schema.json)
