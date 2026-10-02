@@ -90,7 +90,7 @@ In client mode, the service connects to remote sync servers and replicates their
 | `REPLICA_DB_PORT` | No | `3306` | MariaDB port |
 | `REPLICA_DB_USER` | Yes | None | MariaDB username for replica databases |
 | `REPLICA_DB_PASS` | Yes | None | MariaDB password |
-| `MAX_ROLLBACK_DEPTH` | No | `100`, raised when unset to the UTXO tracker reorg window (120 for DOGE on every network, LTC mainnet and regtest, and BTC testnet; 5000 for LTC testnet) | Maximum rollback depth (in blocks) accepted from a single source; an explicit value is used as given |
+| `MAX_ROLLBACK_DEPTH` | No | `100` (raised when unset to the UTXO tracker reorg window: 120 for DOGE on every network, LTC mainnet and regtest, and BTC testnet; 5000 for LTC testnet) | Maximum rollback depth (in blocks) accepted from a single source; an explicit value is used as given |
 | `HASH_CONFIRM_STRICT` | No | `false` | When `true`, reject blocks if cross-source verification times out (instead of applying from primary) |
 | `HASH_CONFIRM_TIMEOUT` | No | `5000` | Milliseconds to wait for cross-source hash confirmation before timing out (5 seconds) |
 | `CLIENT_RECONNECT_DELAY` | No | `5000` | Milliseconds to wait before reconnecting after a WebSocket disconnect (5 seconds) |
