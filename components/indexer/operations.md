@@ -283,6 +283,51 @@ Batches are ordered by `first_round`, then `action_index`, and may overlap (a wi
 
 ---
 
+### `getattestbatches`
+
+Which closed attestation windows in an inclusive range already have a valid, complete `ATTEST` batch on this chain. The hub's attestation batch publisher calls it before publishing its pending windows so a batch learned by another indexer's push path is not published again. A result is a valid v5 head whose full batch is available: either the head is a single wire, or every v6 continuation has arrived and the batch has reassembled. Invalid heads and incomplete multi-wire batches are omitted. Federation read (`x-api-key`), like `getpricebatches`.
+
+**Request:**
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "getattestbatches",
+    "params": {
+        "window_start_from": 1704067200,
+        "window_start_to": 1704153600,
+        "limit": 500
+    },
+    "id": 1
+}
+```
+
+Both window-start bounds are inclusive. `limit` is optional (default 500, ceiling 1000).
+
+**Response:**
+```json
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "batches": [
+            {
+                "window_start": 1704067200,
+                "window_end": 1704070800,
+                "row_count": 12,
+                "action_index": 42,
+                "block_index": 67875698,
+                "tx_hash": "0123456789abcdef..."
+            }
+        ],
+        "truncated": false
+    },
+    "id": 1
+}
+```
+
+Batches are ordered by `window_start`, then `action_index`. An empty head with `row_count` 0 is returned when valid and complete. `truncated` is `true` when the page filled, so the caller must not treat the unanswered remainder of the range as empty.
+
+---
+
 Administrative methods such as `reparse` and `rollback` are not exposed via the JSON-RPC API; reorg recovery runs automatically via the internal `Rollback` class.
 
 ## Resilience and Recovery
