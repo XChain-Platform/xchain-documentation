@@ -1,5 +1,5 @@
 {
-  "_description": "Canonical shared-list byte vectors consumed by the xchain-hub LIST_SHARE module (LS-43-hub) and the xchain-indexer snapshot-id, mirror-apply and replay work (LS-29, LS-34 and LS-21). Snapshot ids are lowercase SHA-256 hex of XLISTSHARE|<network>|<home_chain>:<home_list_index>|<seq>|<snapshot_block>. Members hashes are lowercase SHA-256 hex of MEMBERS|<count>|<members...>, with members sorted in utf8_bin byte order. The metaHashes array gives lowercase SHA-256 hex of LISTMETA|<name>|<description>, except that both fields absent gives the empty string. The canonicals array preserves below-gate bytes and includes at-or-above-gate bytes with a trailing |<meta_hash> field. Canonical signed bytes contain the resulting members hash and gated meta hash but never the full, added or removed member arrays. This file is authoritative for every implementation.",
+  "_description": "Canonical shared-list byte vectors consumed by the xchain-hub LIST_SHARE module (LS-43-hub) and the xchain-indexer snapshot-id, mirror-apply and replay work (LS-29, LS-34 and LS-21). Snapshot ids are lowercase SHA-256 hex of XLISTSHARE|<network>|<home_chain>:<home_list_index>|<seq>|<snapshot_block>. Members hashes are lowercase SHA-256 hex of MEMBERS|<count>|<members...>, with members sorted in utf8_bin byte order. The metaHashes array gives lowercase SHA-256 hex of LISTMETA|<name>|<description>, except that both fields absent gives the empty string. The canonicals array preserves below-gate bytes and includes at-or-above-gate bytes with a trailing |<meta_hash> field. Canonical signed bytes contain the resulting members hash and gated meta hash but never the full, added or removed member arrays. This file is authoritative for every implementation. metaCanonicals holds the signed canonicals at and above LIST_META_ACTIVATION, which append |<meta_hash>; they stay out of canonicals so consumers that predate the meta field keep reading every canonicals entry.",
   "snapshotIds": [
     {
       "name": "DOGE address list version 1",
@@ -243,7 +243,9 @@
       "view": 1,
       "text": "XLISTSHARE|055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960|160000|DOGE|880001|2|2|delta|68000001|a41dc19b51cab71250065727ee8a910ebd528e549c8ff832e9de0901488ee82c|testnet|BTC:160010,DOGE:68000010,LTC:4905000",
       "expected": "EQUIV|XLISTSHARE|055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960|1||XLISTSHARE|055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960|160000|DOGE|880001|2|2|delta|68000001|a41dc19b51cab71250065727ee8a910ebd528e549c8ff832e9de0901488ee82c|testnet|BTC:160010,DOGE:68000010,LTC:4905000"
-    },
+    }
+  ],
+  "metaCanonicals": [
     {
       "name": "full version 1 at meta gate with metadata",
       "snapshot_id": "c0e9a6b57adfc25378343388363aad10498fd201a36cd32dddb1ee35da265f21",

@@ -140,7 +140,7 @@ describe('shared-list signed canonicals', () => {
         const namedMetaHash = vectors.metaHashes.find(vector => (
             vector.name !== null && vector.description !== null
         )).expected;
-        const gated = vectors.canonicals.filter(vector => (
+        const gated = vectors.metaCanonicals.filter(vector => (
             vector.snapshot_id === snapshotId && Object.hasOwn(vector, 'meta_hash')
         ));
         assert.deepEqual(
@@ -153,7 +153,12 @@ describe('shared-list signed canonicals', () => {
         }
     });
 
-    for (const vector of vectors.canonicals) {
+    test("meta-gated canonicals live only in metaCanonicals, so a consumer that predates the meta field reads every canonicals entry", () => {
+        assert.ok(vectors.canonicals.every(vector => !Object.hasOwn(vector, "meta_hash")));
+        assert.ok(vectors.metaCanonicals.every(vector => Object.hasOwn(vector, "meta_hash")));
+    });
+
+    for (const vector of [...vectors.canonicals, ...vectors.metaCanonicals]) {
         test(vector.name, () => {
             assert.equal(vector.snapshot_block, 160000);
             assert.equal(vector.network, 'testnet');
