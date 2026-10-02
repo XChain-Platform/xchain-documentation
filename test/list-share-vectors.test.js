@@ -79,6 +79,29 @@ describe('shared-list members hashes', () => {
     }
 });
 
+describe('shared-list meta hashes', () => {
+    for (const vector of vectors.metaHashes) {
+        test(vector.label, () => {
+            if (vector.nameBytes !== undefined) {
+                assert.equal(Buffer.byteLength(vector.name, 'utf8'), vector.nameBytes);
+            }
+            if (vector.descriptionBytes !== undefined) {
+                assert.equal(Buffer.byteLength(vector.description, 'utf8'), vector.descriptionBytes);
+            }
+            if (vector.name === null && vector.description === null) {
+                assert.equal(vector.preimage, '');
+                assert.equal(vector.expected, '');
+                return;
+            }
+
+            const preimage = ['LISTMETA', vector.name || '', vector.description || ''].join('|');
+            assert.equal(vector.preimage, preimage);
+            assert.match(vector.expected, /^[0-9a-f]{64}$/);
+            assert.equal(vector.expected, sha256(preimage));
+        });
+    }
+});
+
 describe('shared-list deltas', () => {
     for (const vector of vectors.deltas) {
         test(vector.name, () => {
@@ -105,6 +128,29 @@ describe('shared-list signed canonicals', () => {
     test('the canonical snapshot is in the EQUIV and mirror-admission eras', () => {
         assert(160000 >= constants.EQUIV_HEADER_ACTIVATION.testnet);
         assert(160000 >= constants.MIRROR_ADMISSION_ACTIVATION['BTC:testnet']);
+    });
+
+    test('the required meta-gated canonical pair is beside the below-gate bytes', () => {
+        const snapshotId = vectors.snapshotIds[0].expected;
+        const belowGate = vectors.canonicals.find(vector => (
+            vector.snapshot_id === snapshotId && !Object.hasOwn(vector, 'meta_hash')
+        ));
+        assert.ok(belowGate, 'missing below-gate canonical');
+
+        const namedMetaHash = vectors.metaHashes.find(vector => (
+            vector.name !== null && vector.description !== null
+        )).expected;
+        const gated = vectors.canonicals.filter(vector => (
+            vector.snapshot_id === snapshotId && Object.hasOwn(vector, 'meta_hash')
+        ));
+        assert.deepEqual(
+            gated.map(vector => vector.meta_hash).sort(),
+            ['', namedMetaHash].sort(),
+            'missing required canonical with a populated or empty meta hash',
+        );
+        for (const vector of gated) {
+            assert.equal(vector.text, belowGate.text + '|' + vector.meta_hash);
+        }
     });
 
     for (const vector of vectors.canonicals) {
@@ -153,6 +199,9 @@ describe('shared-list signed canonicals', () => {
                 vector.network,
                 vector.admissionText,
             ];
+            if (Object.hasOwn(vector, 'meta_hash')) {
+                fields.push(vector.meta_hash);
+            }
             assert.equal(vector.text, fields.join('|'));
             assert.equal(vector.text.split('|')[2], String(vector.snapshot_block));
             assert.equal(
