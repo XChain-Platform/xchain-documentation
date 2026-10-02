@@ -71,6 +71,7 @@ same chain or field.
 | `list_change_rematch_activation` | `LIST_CHANGE_REMATCH_ACTIVATION` | height |
 | `list_edit_remove_activation` | `LIST_EDIT_REMOVE_ACTIVATION` | time |
 | `list_edit_resolution_activation` | `LIST_EDIT_RESOLUTION_ACTIVATION` | height |
+| `list_meta_activation` | `LIST_META_ACTIVATION` | height |
 | `list_owner_activation` | `LIST_OWNER_ACTIVATION` | height |
 | `list_reference_validity_activation` | `LIST_REFERENCE_REQUIRES_VALID_LIST` | height |
 | `list_share_activation` | `LIST_SHARE_ACTIVATION` | height |
