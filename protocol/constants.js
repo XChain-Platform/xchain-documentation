@@ -232,6 +232,8 @@ const XPOLICY_MAX_MEMBERS = 10000;
 // Shared-list shares, shared edits and merged unions may each resolve to at most this many
 // members. A union may name at most LIST_UNION_MAX_MEMBERS direct member lists.
 const LIST_SHARE_MAX_MEMBERS = 10000;
+const LIST_META_NAME_MAX_BYTES = 64;
+const LIST_META_DESCRIPTION_MAX_BYTES = 512;
 const LIST_UNION_MAX_MEMBERS = 16;
 
 // ── Token-gated content (PC-29) ─────────────────────────────────────────────
@@ -1906,6 +1908,18 @@ const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     regtest: 0,
 };
 
+// LIST metadata flag day, keyed on the block_index of the chain being parsed.
+// Canonical authority for the registry row list_meta_activation.LIST_META_ACTIVATION.
+// At and above the height, LIST formats 4 and 5, injected metadata legs and their fee bind.
+const LIST_META_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    regtest: 0,
+};
+
 // LIST owner-check flag day, keyed on the block_index of the chain being parsed;
 // testnet arms per chain.
 // Canonical authority for the registry row list_owner_activation.LIST_OWNER_ACTIVATION.
@@ -2350,6 +2364,8 @@ module.exports = {
     XPOLICY_MAX_PER_BLOCK,
     XPOLICY_MAX_MEMBERS,
     LIST_SHARE_MAX_MEMBERS,
+    LIST_META_NAME_MAX_BYTES,
+    LIST_META_DESCRIPTION_MAX_BYTES,
     LIST_UNION_MAX_MEMBERS,
     THRESHOLD_SCALE,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
@@ -2440,6 +2456,7 @@ module.exports = {
     XCHAIN_BRIDGE_ACTIVATION,
     TOKEN_BRIDGE_ACTIVATION,
     TOKEN_POLICY_INHERITANCE_ACTIVATION,
+    LIST_META_ACTIVATION,
     LIST_OWNER_ACTIVATION,
     LIST_SHARE_ACTIVATION,
     LIST_SHARE_PRODUCER_ACTIVATION,
