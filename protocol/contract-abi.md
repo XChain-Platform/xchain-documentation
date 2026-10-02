@@ -93,9 +93,11 @@ ordinary.
 
 ## Reader behavior (fail-closed)
 
-Reference readers: `contract/introspect.js` in xchain-explorer (served as the
-`abi` field on `GET /{COIN}/api/contract/{idx}`) and
-`ContractUtils.parseAbi()` in xchain-sdk. Both apply the same rules:
+Reference readers: `src/contract/introspect.js` in xchain-explorer (rules
+implemented in `src/contract/abi_core.js`; served as the `abi` field on
+`GET /{COIN}/api/contract/{idx}`) and `ContractUtils.parseAbi()` in
+xchain-sdk (backed by its vendored copy `src/contract/abi-core.js`). Both
+apply the same rules:
 
 - A dynamic or structurally wrong `abi` / `version` / `methods` makes the
   whole block unreadable: readers return null and UIs fall back to the

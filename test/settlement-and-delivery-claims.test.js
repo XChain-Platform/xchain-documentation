@@ -378,10 +378,17 @@ test('the bridge availability source facts still hold', { skip: skipNoIndexer },
             `XCHAIN_BRIDGE_ACTIVATION ${key} is no longer the sentinel. cross-chain.md says the `
             + 'bridge is not active on mainnet and must change in the same commit.');
     }
-    assert.match(tokenGate[0], /testnet:\s*9999999999/,
-        'TOKEN_BRIDGE_ACTIVATION is armed on testnet. cross-chain.md, what-is-xchain.md, '
-        + 'concepts/metalayer.md and overview.md say bridging other tokens is not yet switched on '
-        + 'and must change in the same commit.');
+    // The four bridge pages say general-token bridging is armed on testnet per chain and
+    // not active on mainnet, so both halves are pinned on the per-chain keys the resolver
+    // reads first (the bare testnet key is only the fallback and stays the sentinel).
+    const pages = 'cross-chain.md, what-is-xchain.md, concepts/metalayer.md and overview.md';
+    assert.match(tokenGate[0], /\bmainnet:\s*9999999999/,
+        `TOKEN_BRIDGE_ACTIVATION mainnet is no longer the sentinel. ${pages} say it is not active on mainnet and must change in the same commit.`);
+    for(const key of ['BTC:testnet', 'LTC:testnet', 'DOGE:testnet']){
+        const height = tokenGate[0].match(new RegExp(`'${key}':\\s*(\\d+)`));
+        assert.ok(height && height[1] !== '9999999999',
+            `TOKEN_BRIDGE_ACTIVATION ${key} is no longer armed. ${pages} say general-token bridging is armed on testnet and must change in the same commit.`);
+    }
 });
 
 test('the cross-chain guide covers the bridge with its scope and trust stated', () => {
@@ -419,6 +426,8 @@ test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XB
     const pages = [
         ['concepts/metalayer.md', /^\*\*Sidechains\*\*/],
         ['overview.md', /^\*\*No third-party bridge\.\*\*/],
+        ['user-guide/cross-chain.md', /^\*\*What is live today\.\*\*/],
+        ['getting-started/what-is-xchain.md', /^XChain has no third-party bridge\./],
     ];
     for(const [rel, lead] of pages){
         const para = readDoc(rel).split('\n').find((l) => lead.test(l)) || '';
@@ -426,8 +435,12 @@ test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XB
         assert.ok(!/moves only the platform's own XCHAIN|The one exception is XCHAIN/.test(para),
             `${rel} again states XBRIDGE as XCHAIN-only; XBRIDGE v3 to v5 bridge any opted-in token `
             + 'behind TOKEN_BRIDGE_ACTIVATION (protocol/actions/xbridge.md)');
-        assert.match(para, /not yet switched on/,
-            `${rel} no longer says bridging other tokens is built but not yet switched on`);
+        assert.ok(!/not yet switched on/.test(para),
+            `${rel} again says bridging other tokens is not yet switched on; TOKEN_BRIDGE_ACTIVATION arms it per testnet chain`);
+        assert.match(para, /armed on testnet/,
+            `${rel} no longer says bridging other tokens is armed on testnet`);
+        assert.match(para, /not active on mainnet/,
+            `${rel} no longer says the bridge is not active on mainnet`);
     }
 });
 

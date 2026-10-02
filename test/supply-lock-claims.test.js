@@ -238,6 +238,23 @@ test('the source facts the no-list-lock wording rests on still hold', { skip: sk
         'issue.js now refuses a locked list edit, so the lists can be frozen after all');
 });
 
+test('every lock flag in the ISSUE lock set is listed on each docs lock list', { skip: skipNoIndexer }, () => {
+    // The issuer guide's list drifted once already: LOCK_BRIDGE joined fieldList['LOCK']
+    // and the guide and the SDK reference never named it.
+    const lockSet = readSrc('actions/issue.js').match(/this\.fieldList\['LOCK'\]\s*=\s*\[([^\]]*)\]/);
+    assert.ok(lockSet, 'issue.js no longer declares fieldList[\'LOCK\'], so the lock set cannot be read');
+    const names = lockSet[1].match(/LOCK_[A-Z_]+/g) || [];
+    assert.ok(names.length >= 8, `fieldList['LOCK'] parsed to ${names.length} names; the parse broke`);
+    const sdk = section(fs.readFileSync(path.join(DOC_ROOT, 'components/sdk/actions.md'), 'utf8'), '### Lock fields');
+    const concepts = section(fs.readFileSync(path.join(DOC_ROOT, 'concepts/tokens.md'), 'utf8'), '## Locking Parameters');
+    const missing = names.flatMap((n) => [
+        lockSection.split('\n').some((l) => l.startsWith(`- **${n}**:`)) || `creating-tokens.md: ${n}`,
+        sdk.includes(`\`${n}\``) || `components/sdk/actions.md: ${n}`,
+        concepts.includes(`\`${n}\``) || `concepts/tokens.md: ${n}`,
+    ]).filter((m) => m !== true);
+    assert.deepStrictEqual(missing, [], 'lock flags the indexer enforces that a docs lock list omits');
+});
+
 test('the guide does not promise a lock on the allow and block lists', () => {
     const accessSection = section(guide, '## Access Control');
     for(const [page, text, phrase] of [

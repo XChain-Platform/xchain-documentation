@@ -125,7 +125,7 @@ SWAP and ORDER exchange one token for a different token with a counterparty. The
 
 In the wallet, **Move across chains** performs the move, and **Bridge settings** is where an issuer opts a token in.
 
-**What is live today.** Only XCHAIN can be bridged, between Bitcoin and Litecoin or Dogecoin, and only on testnet and regtest. The bridge is not active on mainnet. Bridging other tokens through the issuer opt-in is built but not yet switched on for testnet or mainnet. [Flag-Day Values](../protocol/flag-days.md) lists where each activation stands.
+**What is live today.** XCHAIN can be bridged between Bitcoin and Litecoin or Dogecoin on testnet and regtest. Bridging other tokens through the issuer opt-in is active on regtest and armed on testnet behind `TOKEN_BRIDGE_ACTIVATION`, switching on for each testnet chain at that chain's own height. The bridge is not active on mainnet, for XCHAIN or for any other token. [Flag-Day Values](../protocol/flag-days.md) lists where each activation stands.
 
 **What it trusts.** The credit on the destination chain relies on the hub's validator federation: a compromised hub could supply both the transfer record and the validator roster that checks it, so this is a hub-trusted mint, not a trustless one. The bridge stays off on mainnet until each credit must also agree with a validator-signed checkpoint of the Bitcoin ledger.
 
