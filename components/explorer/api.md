@@ -1861,6 +1861,14 @@ A key with no value at the checkpoint height returns `leaf_value: null` (non-inc
 
 The following endpoints are registered and active. Detailed documentation is in the linked spec files.
 
+### Mirror Row Identifiers and Paging
+
+On list endpoints backed by hub-mirrored tables, each row's `id` is assigned by
+this explorer's local mirror. It is a stable paging cursor for repeated calls
+to the same explorer, but it is not a federation-wide row identity and must
+not be compared with an `id` returned by a hub or another explorer. Use the
+row's content key when correlating the same record across nodes.
+
 ### Native-Coin Fee (Explorer Proxy)
 
 ```

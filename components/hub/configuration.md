@@ -11,11 +11,12 @@
 Two variables degrade security when left empty. The hub starts and appears
 healthy either way, so the misconfiguration is easy to miss.
 
-**`HUB_API_KEY`: empty disables API authentication.** When `HUB_API_KEY` is
-set, authentication fails closed: mutating methods (`updateconfig`,
+**`HUB_API_KEY`: empty leaves write authentication disabled.** When
+`HUB_API_KEY` is set, authentication fails closed: mutating methods (`updateconfig`,
 `registervalidator`, `propose`, `vote`, `requestattestation`, `reportreorg`,
-`initiateswap`, the oracle/price push methods) and the hub-DB WebSocket
-upgrade return 401 unless the caller presents the configured key.
+`initiateswap`, the oracle/price push methods) return 401 unless the caller
+presents the configured key. Hub feed reads accept the narrower
+`HUB_FEED_API_KEY` when it is configured, as described below.
 
 When it is unset or empty, those paths are open, so the hub refuses to boot
 unless keyless operation is declared with `HUB_ALLOW_UNAUTHENTICATED=true`.
@@ -34,6 +35,13 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 Clients then send it on each request (the indexer reads the same value as
 `HUB_API_KEY`, the encoder-facing services as their own `*_ENCODER_API_KEY`,
 and so on).
+
+**`HUB_FEED_API_KEY`: empty keeps feed reads on the bulk key.** Set this to a
+separate read-only credential for hub-DB snapshots, WebSocket subscriptions,
+and `gethubs`. It grants no config reads and no push or other write method.
+`HUB_API_KEY` continues to authorize these feed reads for compatibility and
+remains the credential for ordinary pushes. Retraction pushes use
+`HUB_REORG_API_KEY` when that separate key is configured.
 
 **`SIGNING_PRIVKEY_SECRET`: empty means unsigned P2P messages and no
 federation identity.** `SIGNING_PRIVKEY_SECRET` is the Ed25519 private key (a
@@ -104,6 +112,8 @@ These variables are required regardless of operating mode.
 | `HUB_MAX_RPC_BATCH` | No | `20` | Maximum call objects in one JSON-RPC batch array. The rate limiter above charges one token per HTTP request while the dispatcher runs every element of the batch, so without this cap one request amplifies past the limit. Over the cap the hub answers `400` with JSON-RPC error `-32600`. Every hub connector sends a single call object, so the cap breaks no existing client. |
 | `HUB_TRUST_PROXY` | No | `loopback, uniquelocal` | Express `trust proxy` setting. A containerized hub behind a local reverse proxy works with the default. Set to `false` to disable, a hop count (e.g. `1`), or a CIDR list for other topologies. See [Express docs](https://expressjs.com/en/guide/behind-proxies.html). |
 | `HUB_ALLOW_UNAUTHENTICATED` | No | `false` | A hub in validator mode (`P2P_VALIDATOR_ADDR` set) with no `HUB_API_KEY` refuses to boot, because its write methods would let anyone drive consensus-affecting writes. Set to `true` to explicitly acknowledge running keyless (regtest/dev only). See OPERATIONS.md → Authentication. |
+| `HUB_FEED_API_KEY` | No | None | Read-only credential accepted for hub-DB snapshots, WebSocket subscriptions, and `gethubs`. It grants no config reads or writes. Unset keeps those reads on `HUB_API_KEY`; the bulk key remains valid for feed reads during rolling deployment. Treat as a credential. |
+| `HUB_PUBLIC_API_URL` | No | None | Public feed base URL this hub advertises to signer-set peers and returns through `gethubs`. It has no derived default because `P2P_VALIDATOR_ADDR` is a signing address, not necessarily a reachable URL. Omit it to keep this hub out of discovery results. |
 | `HUB_CONFIG_SECRETS_API_KEY` | No | None | Separate API key authorizing `getallconfigs` requests that ask for the unredacted config tree. Set it to split the credential tier off the bulk `HUB_API_KEY`; unset, `HUB_API_KEY` unlocks both, and a hub declared `HUB_ALLOW_UNAUTHENTICATED` serves them unauthenticated either way. Deploy xchain-explorer and xchain-sync before a hub that sets this, since a consumer that does not send the flag receives a redacted password. Treat as a credential. |
 
 ### Telemetry Collector
@@ -163,8 +173,29 @@ Validator mode is activated when `P2P_VALIDATOR_ADDR` is set. All P2P-dependent 
 | `P2P_DEDUP_PRUNE_INTERVAL` | No | `30000` | Interval (ms) at which the seen-message deduplication cache is pruned |
 | `P2P_WS_PING_INTERVAL` | No | `30000` | Interval (ms) for WebSocket ping/pong keepalive (dead-connection detection) |
 | `P2P_MAX_CONNECTIONS_PER_IP` | No | `3` | Maximum simultaneous inbound connections from a single IP (anti-DoS). Increase for co-located federations where multiple validators share one IP. |
-| `HUB_P2P_FEED_ENABLED` | No | `true` | Whether this hub also answers the read-only mirror feed on its P2P port, so an indexer can mirror hub state and report what landed on its chain without reaching the private API port. Only two request shapes are served there: a paged snapshot read, and the JSON-RPC endpoint restricted to the indexer push methods. Set to `false` to keep the port to validator gossip alone. The feed is refused outright when `HUB_API_KEY` is unset, because the snapshot reads are unauthenticated without it. |
+| `HUB_P2P_FEED_ENABLED` | No | `true` | Whether this hub also answers the mirror feed on its P2P port, so an indexer can mirror hub state and report what landed on its chain without reaching the private API port. The surface provides snapshot and subscription reads, `gethubs`, and the existing indexer push methods. Read requests accept `HUB_FEED_API_KEY` or the bulk `HUB_API_KEY`; pushes still require their bulk or reorg key. Set to `false` to keep the port to validator gossip alone. The feed is refused outright when neither feed key is configured, because its reads would otherwise be unauthenticated. |
 | `HUB_CAPABILITY_CONFIG` | No | None | Path to the capability config JSON (see below). Required for capability qualification + self-tests. |
+
+#### Hub discovery and peer catch-up
+
+`gethubs` is a read-only feed method. It returns
+`{ hubs: [ { api_url, signing_pubkey } ] }` for this hub and connected
+signer-set peers that advertise `HUB_PUBLIC_API_URL`. Indexers and explorers
+merge these addresses with their configured seeds after each certified drain.
+An empty result changes no candidates.
+
+On startup and whenever a peer link reconnects, a hub catches up each mirrored
+table from a connected signer-set peer. It pages that peer's snapshot, verifies
+each row with the table's normal signature or validation rules, and inserts
+accepted content under a new local `id`. A table becomes caught up only after
+a complete pass against a peer. If no peer is reachable, it remains not caught
+up and the hub logs that condition periodically.
+
+The hub-DB ready frame reports `caught_up: true` only when every mirrored table
+is caught up. While it is false, the hub holds its admission watermark at the
+floor persisted before the outage. Multi-hub consumers move to another
+candidate; pinned consumers wait and retry. A missing `caught_up` field from an
+older hub is treated as true for rolling compatibility.
 
 ### Capability Configuration
 
