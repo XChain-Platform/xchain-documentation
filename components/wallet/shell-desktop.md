@@ -13,7 +13,7 @@ The desktop shell uses Electron's main / renderer split (§9.3.2 of the spec) as
 flowchart BT
     RENDERER["Electron renderer<br>React app from @xchain-wallet/core<br>(same routes / components / flows<br>as web + extension)"]
     PRELOAD["preload.js<br>contextBridge.exposeInMainWorld(<br>'xchainWalletBridge',<br>exposes sendMessage(message)<br>)"]
-    MAIN["Electron main<br>Vault (encrypted file at rest)<br>SDKRegistry (per-chain SDK)<br>Signers (Software / HW / Remote)<br>ApprovalBroker<br>ConnectedSites"]
+    MAIN["Electron main<br>Vault (encrypted file at rest)<br>SDKRegistry (per-chain SDK)<br>Signers (Software / Remote)<br>HW signers via signer bridge<br>(live instances in renderer)<br>ApprovalBroker<br>ConnectedSites"]
 
     RENDERER -->|"window.xchainWalletBridge.sendMessage(...)"| PRELOAD
     PRELOAD -->|"ipcMain.handle('xchain-wallet:message', …)"| MAIN
@@ -66,14 +66,16 @@ The keychain integration is gated behind explicit user opt-in because keychain c
 
 ## Hardware signer transports
 
-Desktop has access to native USB / HID transports for hardware signers:
+Hardware pairing runs in the renderer over browser-standard transports; the desktop shell bundles no native USB or HID bindings:
 
 | Signer | Transport |
 |---|---|
-| Trezor | Trezor Connect over native messaging |
+| Trezor | Trezor's hosted Connect build (`connect.trezor.io`), loaded only inside an isolated bridge window (below) |
 | Ledger | `@ledgerhq/hw-transport-webhid` (works in Electron renderer too) |
 
-The desktop main process owns the signer instances; the renderer initiates pair / sign requests via the bridge. This keeps the renderer agnostic to which transport is in use.
+The renderer holds the live hardware signer instances (`renderer/signerBridge.js`) and starts pairing through `renderer/signerFactories/trezorFactory.js` and `ledgerFactory.js`. The main process reaches those signers over the preload-exposed `xchainWalletSignerBridge` IPC channel. Private keys stay on the device.
+
+**Trezor bridge window.** Trezor's hosted Connect script never runs in the main window. `trezorFactory.js` opens a separate bridge window, and `main/index.js` puts it on its own Electron session (partition `trezor-connect-isolated`) wired to `attachHidDenial` in `main/permissions.js`, so nothing running there can be granted a HID device. The bridge window has no preload and its own CSP: `default-src 'none'`, with only `https://connect.trezor.io` admitted for script, connect and frame sources, plus one nonce-admitted inline responder. It answers a fixed `postMessage` allowlist (`init`, `getFeatures`, `getAddress`, `getPublicKey`, `signTransaction`, `signMessage`). The main window's own CSP keeps `script-src 'self'`, `connect-src 'self'` and `frame-src 'none'`, so the renderer's code never fetches from Trezor's domain.
 
 ## Auto-updater
 
@@ -127,7 +129,9 @@ pnpm --filter @xchain-wallet/desktop reproduce      # rebuild and verify
 
 ## URI registration
 
-On first run the desktop app registers itself as the default handler for `bitcoin:`, `dogecoin:`, `litecoin:`, and `xchain:` URIs via `app.setAsDefaultProtocolClient`. Clicking such a URI in the OS launches the desktop app and surfaces the corresponding flow (Send pre-populated, multisig session resumption, sign-in challenge, etc.).
+On every launch the desktop app claims the `xchain:` scheme via `app.setAsDefaultProtocolClient`. The coin schemes (`bitcoin:`, `dogecoin:`, `litecoin:`) are declared at install time but claimed only after an opt-in, which is off by default and has no settings toggle yet, so the desktop app does not handle them today.
+
+Clicking an `xchain:` URI in the OS launches or focuses the desktop app and, once the wallet is unlocked, opens the matching form prefilled: Send for a payment link, Receive for a receive link, and the contract Execute form for an execute link that names a contract. A link clicked while the app was closed or locked is held until then. A link only ever prefills a form; the user still reviews and confirms it.
 
 The user can revoke the registration via OS-level "default app" settings; the wallet doesn't fight back.
 

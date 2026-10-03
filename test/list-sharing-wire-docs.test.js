@@ -107,17 +107,29 @@ test('new LIST examples parse at their declared arity', () => {
     assert.deepEqual(formats.get('0'), ['VERSION', 'TYPE', 'MEMO', '...ITEM']);
     assert.deepEqual(formats.get('2'), ['VERSION', 'LIST_ACTION_INDEX', 'MEMO']);
     assert.deepEqual(formats.get('3'), ['VERSION', 'LIST_ACTION_INDEX', 'DESTINATION', 'MEMO']);
+    assert.deepEqual(
+        formats.get('4'),
+        ['VERSION', 'TYPE', 'NAME', 'DESCRIPTION', 'MEMO', '...ITEM'],
+    );
+    assert.deepEqual(
+        formats.get('5'),
+        ['VERSION', 'LIST_ACTION_INDEX', 'NAME', 'DESCRIPTION', 'MEMO'],
+    );
 
     const examples = wireExamples(LIST);
     const unions = examples.filter((line) => line.startsWith('LIST|0|3|'));
     const shares = examples.filter((line) => line.startsWith('LIST|2|'));
     const transfers = examples.filter((line) => line.startsWith('LIST|3|'));
+    const metaCreates = examples.filter((line) => line.startsWith('LIST|4|'));
+    const metaSets = examples.filter((line) => line.startsWith('LIST|5|'));
 
     assert.equal(unions.length, 1, 'expected one type 3 union create example');
     assert.equal(shares.length, 1, 'expected one format 2 SHARE example');
     assert.equal(transfers.length, 2, 'expected two format 3 TRANSFER examples');
+    assert.equal(metaCreates.length, 2, 'expected two format 4 CREATE WITH META examples');
+    assert.equal(metaSets.length, 2, 'expected two format 5 SET META examples');
 
-    for (const line of [...unions, ...shares, ...transfers]) {
+    for (const line of [...unions, ...shares, ...transfers, ...metaCreates, ...metaSets]) {
         assertDeclaredArity(line, formats);
     }
 

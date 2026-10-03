@@ -36,6 +36,14 @@
  *      Check 2 catches a named vapour class but not a bare miscount: #3862 found
  *      keys-signing.md promising "five concrete signer implementations" while its
  *      own body listed four and called MultisigSigner planned.
+ *   4. Every error type or error code the wallet pages name exists as a literal
+ *      in the wallet source. keys-signing.md, multisig.md and testing.md named
+ *      `UnsupportedSignerOperation`, `ESignerDeferred` and `EActionUnsupported`,
+ *      none of which the code defines, so a reader had no identifier to match on.
+ *
+ * Checks 2 and 3 also read the top-level README.md, and check 2 catches the
+ * lowercase prose form ("multisig signers") the backtick match cannot see: the
+ * README's component table carried exactly that wording outside this gate.
  *
  * xchain-wallet is a sibling repo, not a dependency; the gate skips when it is
  * absent.
@@ -85,6 +93,40 @@ function signerMethods() {
     const names = [...body.matchAll(/^\s{4}(?:static\s+)?(?:async\s+)?([a-zA-Z][A-Za-z0-9_]*)\s*\(/gm)].map((m) => m[1]);
     return [...new Set(names)].filter((n) => n !== 'constructor' && !KEYWORDS.has(n));
 }
+
+// Every file under `dir` whose name matches `nameRe`, skipping dependencies and
+// dot directories; `recurse: false` reads the one directory only.
+function filesUnder(dir, nameRe, { recurse = true } = {}) {
+    const out = [];
+    const walk = (d) => {
+        let entries;
+        try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+        for (const e of entries) {
+            if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+            const p = path.join(d, e.name);
+            if (e.isDirectory()) { if (recurse) walk(p); continue; }
+            if (nameRe.test(e.name)) out.push(p);
+        }
+    };
+    walk(dir);
+    return out;
+}
+
+// The pages checks 2 and 3 grade: the wallet component tree plus the top-level
+// README, whose component table summarises the wallet's signers. Never the
+// whole doc root: hub pages name `OracleBatchSigner`, and CHANGELOG entries are
+// history that quotes the old wording on purpose.
+const signerClaimPages = () => [
+    ...filesUnder(path.join(DOC_ROOT, 'components/wallet'), /\.md$/),
+    path.join(DOC_ROOT, 'README.md'),
+];
+
+// A sentence that says its subject is not built yet excuses the names in it.
+const PLANNED = /\b(planned|not yet implemented|not implemented|future|proposed)\b/i;
+
+// Split on sentence boundaries, keeping enough context that "X is planned"
+// stays attached to X.
+const sentencesOf = (line) => line.split(/(?<=[.;])\s+/);
 
 // Every *Signer identifier that exists as a class anywhere in the wallet.
 function concreteSignerClasses() {
@@ -136,34 +178,30 @@ describe('wallet signer surface', () => {
         // planned but not implemented", so one planned mention excused every other
         // name on the line. That bullet is exactly where a vapour class would be
         // added, which made the check worthless precisely where it mattered.
-        const PLANNED = /\b(planned|not yet implemented|not implemented|future|proposed)\b/i;
         const offenders = [];
 
-        // Split on sentence boundaries, keeping enough context that "X is planned"
-        // stays attached to X.
-        const sentencesOf = (line) => line.split(/(?<=[.;])\s+/);
+        // The prose form of the same claim: "software + Ledger + multisig signers"
+        // names no class in backticks, so the class match alone reads it clean.
+        const PROSE_MULTISIG = /\bmultisig\s+signers?\b/i;
+        const proseGuarded = !real.has('MultisigSigner');
 
-        const walk = (dir) => {
-            for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-                if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
-                const p = path.join(dir, e.name);
-                if (e.isDirectory()) { walk(p); continue; }
-                if (!e.name.endsWith('.md')) continue;
-                const lines = fs.readFileSync(p, 'utf8').split('\n');
-                lines.forEach((line, i) => {
-                    for (const sentence of sentencesOf(line)) {
-                        const planned = PLANNED.test(sentence);
-                        for (const m of sentence.matchAll(/`([A-Za-z0-9_]*Signer)`/g)) {
-                            const name = m[1];
-                            if (name === 'Signer' || real.has(name)) continue;
-                            if (planned) continue;
-                            offenders.push(`${path.relative(DOC_ROOT, p)}:${i + 1}  ${name}`);
-                        }
+        for (const p of signerClaimPages()) {
+            const lines = fs.readFileSync(p, 'utf8').split('\n');
+            lines.forEach((line, i) => {
+                for (const sentence of sentencesOf(line)) {
+                    const planned = PLANNED.test(sentence);
+                    for (const m of sentence.matchAll(/`([A-Za-z0-9_]*Signer)`/g)) {
+                        const name = m[1];
+                        if (name === 'Signer' || real.has(name)) continue;
+                        if (planned) continue;
+                        offenders.push(`${path.relative(DOC_ROOT, p)}:${i + 1}  ${name}`);
                     }
-                });
-            }
-        };
-        walk(path.join(DOC_ROOT, 'components/wallet'));
+                    if (proseGuarded && !planned && PROSE_MULTISIG.test(sentence)) {
+                        offenders.push(`${path.relative(DOC_ROOT, p)}:${i + 1}  "multisig signer" in prose`);
+                    }
+                }
+            });
+        }
 
         assert.deepEqual(offenders, [],
             'signer classes named in the docs with no implementation, and not marked planned:\n  ' +
@@ -185,25 +223,60 @@ describe('wallet signer surface', () => {
         const COUNT_RE = /\b(one|two|three|four|five|six|seven|eight|\d+)\s+concrete\s+signers?\b/gi;
         const wrong = [];
 
-        const walk = (dir) => {
-            for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-                if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
-                const p = path.join(dir, e.name);
-                if (e.isDirectory()) { walk(p); continue; }
-                if (!e.name.endsWith('.md')) continue;
-                fs.readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
-                    for (const m of line.matchAll(COUNT_RE)) {
-                        const claimed = WORDS[m[1].toLowerCase()] ?? Number(m[1]);
-                        if (claimed === expected) continue;
-                        wrong.push(`${path.relative(DOC_ROOT, p)}:${i + 1}  claims ${claimed}, code has ${expected}`);
-                    }
-                });
-            }
-        };
-        walk(path.join(DOC_ROOT, 'components/wallet'));
+        for (const p of signerClaimPages()) {
+            fs.readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
+                for (const m of line.matchAll(COUNT_RE)) {
+                    const claimed = WORDS[m[1].toLowerCase()] ?? Number(m[1]);
+                    if (claimed === expected) continue;
+                    wrong.push(`${path.relative(DOC_ROOT, p)}:${i + 1}  claims ${claimed}, code has ${expected}`);
+                }
+            });
+        }
 
         assert.deepEqual(wrong, [],
             'concrete-signer counts that disagree with the wallet source (' +
             [...concrete].sort().join(', ') + '):\n  ' + wrong.join('\n  '));
+    });
+
+    test('every error type or code the wallet pages name exists in the wallet source',
+        { skip: noWallet }, () => {
+
+        const source = filesUnder(path.join(WALLET, 'packages'), /\.(js|jsx|ts)$/)
+            .filter((p) => !/[\\/](dist|build)[\\/]/.test(p))
+            .map((p) => fs.readFileSync(p, 'utf8'))
+            .join('\n');
+
+        // An E-prefixed PascalCase name (`ESignerDeferred`) reads as an error
+        // code wherever it sits. A PascalCase or SCREAMING_SNAKE name counts only
+        // in a sentence about errors, which keeps env vars and component names out.
+        const E_NAME  = /^E[A-Z][a-z]/;
+        const ID      = /`(E[A-Z][a-z][A-Za-z0-9]*|[A-Z][a-z0-9]+(?:[A-Z][a-z0-9]+)+|[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)`/g;
+        const ERR_CTX = /\b(errors?|deferral|deferred|rejects?|throws?)\b/i;
+
+        // Top-level wallet pages only: release/ runbooks quote third-party states
+        // (Android's `STATE_FIRST_VERIFIER_DEFINED`) the wallet never defines.
+        const resolved = new Set();
+        const missing  = [];
+        for (const p of filesUnder(path.join(DOC_ROOT, 'components/wallet'), /\.md$/, { recurse: false })) {
+            fs.readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
+                for (const sentence of sentencesOf(line)) {
+                    if (PLANNED.test(sentence)) continue;
+                    for (const m of sentence.matchAll(ID)) {
+                        const id = m[1];
+                        if (!E_NAME.test(id) && !ERR_CTX.test(sentence)) continue;
+                        if (source.includes(id)) { resolved.add(id); continue; }
+                        missing.push(`${path.relative(DOC_ROOT, p)}:${i + 1}  ${id}`);
+                    }
+                }
+            });
+        }
+
+        // Scan floor: a broken regex or an empty source read would pass on nothing.
+        assert.ok(resolved.has('HW_MUSIG2_UNSUPPORTED') && resolved.has('AbstractMethodError'),
+            'the scan no longer resolves HW_MUSIG2_UNSUPPORTED and AbstractMethodError; it is probably broken');
+
+        assert.deepEqual(missing, [],
+            'error identifiers named in the wallet docs that the wallet source never defines:\n  ' +
+            missing.join('\n  '));
     });
 });

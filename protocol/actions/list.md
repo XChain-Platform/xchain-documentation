@@ -9,6 +9,8 @@ This action creates, edits, shares, or transfers a list of items for use in acti
 | --------------      | ------ | ----------------------------------|
 | `VERSION`           | String | Format Version                    |
 | `TYPE`              | String | List type (1=TICK, 2=ADDRESS, 3=UNION) |
+| `NAME`              | String | An optional list name             |
+| `DESCRIPTION`       | String | An optional list description      |
 | `MEMO`              | String | An optional memo to include       |
 | `ITEM`              | String | Any valid `TICK` or `ADDRESS`, or for a `TYPE` 3 union the `ACTION_INDEX` of a member list; at or above `LIST_TICK_COIN_ACTIVATION`, a `TICK` item may be `COIN:TICK` or `COIN:^<tickid>`; rest field, repeat for each item |
 | `EDIT`              | String | Edit action (1=ADD, 2=REMOVE)     |
@@ -29,6 +31,12 @@ This action creates, edits, shares, or transfers a list of items for use in acti
 
 ### Version `3` - TRANSFER
 - `VERSION|LIST_ACTION_INDEX|DESTINATION|MEMO`
+
+### Version `4` - CREATE WITH META
+- `VERSION|TYPE|NAME|DESCRIPTION|MEMO|...ITEM`
+
+### Version `5` - SET META
+- `VERSION|LIST_ACTION_INDEX|NAME|DESCRIPTION|MEMO`
 
 
 ## Examples
@@ -82,13 +90,39 @@ LIST|0|1||PEPE|BTC:^5|DOGE:WOW
 On Bitcoin, at or above `LIST_TICK_COIN_ACTIVATION`, this creates a ticker list holding the bare ticker PEPE, Bitcoin ticker id 5 written coin-qualified, and the Dogecoin ticker WOW
 ```
 
+```
+LIST|4|2|OFAC SDN addresses|Addresses on the US Treasury SDN list, updated weekly||1Abc...|1Def...
+At or above `LIST_META_ACTIVATION`, this creates a named address list with a description and no memo
+```
+
+```
+LIST|4|1|Our official tokens|||JDOG|BRRR
+At or above `LIST_META_ACTIVATION`, this creates a named ticker list with no description or memo
+```
+
+```
+LIST|5|1234|Team wallets||
+At or above `LIST_META_ACTIVATION`, this changes list 1234's name, leaves its description unchanged, and includes no memo
+```
+
+```
+LIST|5|1234||-|Description removed
+At or above `LIST_META_ACTIVATION`, this leaves list 1234's name unchanged, clears its description, and includes a memo
+```
+
 ## Rules
 - Each `ITEM` is judged on its own. An item that fails its type check (an unknown `TICK`,
   or an `ADDRESS` the format check rejects) is recorded `invalid` and left OUT of the
   list's item set; it does not fail the action. A `LIST` is `valid` or not on its fixed
-  fields alone (`VERSION`, `TYPE`/`EDIT`, `LIST_ACTION_INDEX`, `MEMO`, and a `SOURCE`
+  fields alone (`VERSION`, `TYPE`/`EDIT`, `LIST_ACTION_INDEX`, `NAME`, `DESCRIPTION`, `MEMO`, and a `SOURCE`
   that is not sleeping), so a `LIST` whose every item was rejected still publishes, as an
   empty list. Read the resulting membership back rather than assuming what you sent
+- At or above `LIST_META_ACTIVATION`, format 4 creates a list with optional `NAME` and `DESCRIPTION` fields. It accepts every `TYPE` that format 0 accepts, with identical item rules. An empty field means the value is absent, and both fields may be empty. Format 5 sets metadata on an existing list: an empty field leaves that value unchanged, `-` clears it, and both fields empty is refused with `invalid: NAME (no change)`. A value of `-` in format 4 is refused with `invalid: NAME (format)` or `invalid: DESCRIPTION (format)`. Edits, SHARE, and TRANSFER do not change the name or description
+- At or above `LIST_META_ACTIVATION`, `NAME` must be 1 through 64 UTF-8 bytes and `DESCRIPTION` must be 1 through 512 UTF-8 bytes when present. Neither admits a line feed. Both use the contract metadata text grammar, including its banned control, zero-width, and bidirectional code points, lone-surrogate rejection, and trimmed-text rule
+- At or above `LIST_META_ACTIVATION`, fixed metadata fields are checked after `SOURCE` and `MEMO`, with `NAME` before `DESCRIPTION`; for each field, the first failure wins in this order: `pipe`, `semicolon`, `length`, then `format`. The verdicts are `invalid: NAME (pipe)`, `invalid: NAME (semicolon)`, `invalid: NAME (length)`, and `invalid: NAME (format)`, or the same four verdicts with `DESCRIPTION` in place of `NAME`. A bad fixed metadata field fails the whole action
+- At or above `LIST_META_ACTIVATION`, format 5 is accepted only from the list's current owner; otherwise it is refused with `invalid: LIST_ACTION_INDEX (not owner)`. A broadcast naming a bridge-owned list is refused with `invalid: LIST_ACTION_INDEX (bridge-owned)`. A TRANSFER hands the right to set metadata to the new owner
+- At or above `LIST_META_ACTIVATION`, formats 4 and 5 on a local list pay no fee. Format 5 on a shared list pays `LIST_SHARED_EDIT_BASE` (5,000 gas) and no per-item fee
+- At or above `LIST_META_ACTIVATION`, a shared list carries its full current name and description to every mirror as part of each signed version. A rename reaches each mirror with the next version at or above the consumer chain's activation height. Only injected version-apply legs may set mirror metadata; a broadcast format 5 naming a mirror is refused with `invalid: LIST_ACTION_INDEX (bridge-owned)`
 - A `TICK` list contains only `TICK` items
 - At or above `LIST_TICK_COIN_ACTIVATION`, a `TICK` item may be written `COIN:TICK` or `COIN:^<tickid>` (that coin's own ticker id). It is coin-qualified only when the text before its first colon is BTC, LTC, or DOGE (case-folded), or an entry in `RESERVED_FUTURE_ROOTS`; anything else, including `:PEPE`, is a bare ticker as before. An item qualified with this chain's own coin is checked like the bare item and stored bare. Another coin's item is checked for form only and recorded `invalid: TICK (format)` if malformed; otherwise it is stored as written with its root upper-cased, and it matches nothing on a chain that does not hold that ticker. Every consumer, including AIRDROP and the project roster, reads only its own coin's items. A mirror of a shared ticker list stores every item as written, and the share record qualifies bare items with the home coin (`DOGE:PEPE`, or `DOGE:^<id>` when the name form passes 200 characters). Below `LIST_TICK_COIN_ACTIVATION`, a colon item is an ordinary ticker name looked up as written.
 - A `ADDRESS` list contains only `ADDRESS` items
@@ -107,7 +141,9 @@ On Bitcoin, at or above `LIST_TICK_COIN_ACTIVATION`, this creates a ticker list 
 - Format version `1` allows for creating a list from an existing list via `LIST_ACTION_INDEX` and `EDIT`
 - Format version `2` permanently shares an existing list via `LIST_ACTION_INDEX`
 - Format version `3` transfers ownership of an existing list to `DESTINATION`
-- `MEMO` is optional and sits BEFORE `ITEM`, unlike every other action, where it comes last. `ITEM` repeats, so a memo after it could not be told apart from one more item. A `LIST` with no memo still leaves the field empty (`LIST|0|1||JDOG`)
+- Format version `4` creates a list with optional `NAME` and `DESCRIPTION`
+- Format version `5` sets `NAME` and `DESCRIPTION` on an existing list
+- `MEMO` is optional and sits BEFORE `ITEM` in formats 0, 1, and 4, unlike every other action, where it comes last. `ITEM` repeats, so a memo after it could not be told apart from one more item. A `LIST` with no memo still leaves the field empty (`LIST|0|1||JDOG`)
 - `ITEM` can be repeated many times in a `LIST` request
 - `ITEM` values should be unique
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` items (^1234 = `TICK_ID` 1234)

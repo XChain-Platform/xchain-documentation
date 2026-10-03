@@ -1342,7 +1342,7 @@ The numeric part after `^` must be a valid integer.
 
 ### Lock fields
 
-`LOCK_MAX_SUPPLY`, `LOCK_MAX_MINT`, `LOCK_DESCRIPTION`, `LOCK_SLEEP`, `LOCK_CALLBACK`, `LOCK_MINT`, `LOCK_MINT_SUPPLY`
+`LOCK_MAX_SUPPLY`, `LOCK_MAX_MINT`, `LOCK_DESCRIPTION`, `LOCK_SLEEP`, `LOCK_CALLBACK`, `LOCK_MINT`, `LOCK_MINT_SUPPLY`, `LOCK_BRIDGE` (ISSUE format 7 only)
 
 - Must be **`0`** or **`1`**.
 

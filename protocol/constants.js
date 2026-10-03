@@ -232,6 +232,8 @@ const XPOLICY_MAX_MEMBERS = 10000;
 // Shared-list shares, shared edits and merged unions may each resolve to at most this many
 // members. A union may name at most LIST_UNION_MAX_MEMBERS direct member lists.
 const LIST_SHARE_MAX_MEMBERS = 10000;
+const LIST_META_NAME_MAX_BYTES = 64;
+const LIST_META_DESCRIPTION_MAX_BYTES = 512;
 const LIST_UNION_MAX_MEMBERS = 16;
 
 // ── Token-gated content (PC-29) ─────────────────────────────────────────────
@@ -510,8 +512,9 @@ const ARCHIVE_REWARD_ACTIVATION = {
 // ANCHOR_ACTIVATION: the DOGE height (per network) at/above which the ANCHOR wire set restarts at
 // version 0 (v0 = the per-network checkpoint bundle, v1 = the archive head with its publisher tail,
 // v2 = the archive continuation chunk). Every ANCHOR mined BELOW this height, of any version, is
-// invalid ('invalid: ANCHOR before activation'); at/above it only versions 0/1/2 parse and every
-// other version byte is 'invalid: VERSION (unknown)'. Keyed on the action's OWN DOGE block_index
+// invalid ('invalid: ANCHOR before activation'); at/above it versions 0/1/2 parse, version 3 (the
+// archive fold) parses only once ANCHOR_FOLD_ACTIVATION is also active, and every other version
+// byte is 'invalid: VERSION (unknown)'. Keyed on the action's OWN DOGE block_index
 // (data['BLOCK_INDEX'] at parse time, anchor_actions.block_index_doge), never on SNAPSHOT_BLOCK or
 // the checkpointed height: the row being judged is the anchor itself. Mainnet 6360000 sits ABOVE
 // the chain tip on purpose: the restarted wire set has NOT activated on mainnet yet, and the height
@@ -534,6 +537,9 @@ const ANCHOR_ACTIVATION = {
 // Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
 const ARCHIVE_MATCH_COUNT_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 155001,
+    'LTC:testnet': 4906040,
+    'DOGE:testnet': 67962387,
     testnet: 9999999999,
     regtest: 0,
 };
@@ -542,6 +548,9 @@ const ARCHIVE_MATCH_COUNT_ACTIVATION = {
 // Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
 const ANCHOR_BUNDLE_ORDER_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 155001,
+    'LTC:testnet': 4906040,
+    'DOGE:testnet': 67962387,
     testnet: 9999999999,
     regtest: 0,
 };
@@ -608,6 +617,9 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // Regtest stays null unless XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms both fold gates together.
 const ANCHOR_FOLD_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 155001,
+    'LTC:testnet': 4906040,
+    'DOGE:testnet': 67962387,
     testnet: 9999999999,
     regtest: null,
 };
@@ -628,6 +640,9 @@ const ANCHOR_FOLD_ACTIVATION = {
 // XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms this regtest entry with the fold, never ahead of it.
 const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 155001,
+    'LTC:testnet': 4906040,
+    'DOGE:testnet': 67962387,
     testnet: 9999999999,
     regtest: null,
 };
@@ -1157,6 +1172,9 @@ const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
 // stricter rule can be scheduled. Regtest is genesis-active so replay exercises it.
 const AMOUNT_REPRESENTABILITY_ACTIVATION = {
     mainnet: 9999999999,
+    'BTC:testnet': 1791061097,
+    'LTC:testnet': 1791061097,
+    'DOGE:testnet': 1791061097,
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1572,6 +1590,9 @@ const PRICE_SIG_TALLY_ACTIVATION = {
 // parity suite.
 const PRICE_FEE_BATCH_LANDED_ACTIVATION = {
     mainnet: null,
+    'BTC:testnet': 155001,
+    'LTC:testnet': 4906040,
+    'DOGE:testnet': 67962387,
     testnet: null,
     regtest: null,
 };
@@ -1862,9 +1883,11 @@ const XCHAIN_BRIDGE_ACTIVATION = {
 // XCHAIN's, so a train that armed v3 without the XCHAIN bridge behind it would admit locks
 // that nothing can ever finalize and that no burn can ever return.
 //
-// Testnet is NOT armed alongside the XCHAIN bridge: no third-party token can be offered on
-// a hub-trusted mint, so this gate waits on the checkpoint cross-check landing on that
-// network. Regtest is genesis-active.
+// Mainnet and the bare testnet fallback stay at the sentinel. BTC, LTC and DOGE testnet are
+// armed at the v0.21.0 freeze heights, and every mint they settle is proven against the
+// origin's anchored checkpoint before any effect. The hub reads this map at BTC's slot
+// because snapshot_block is a BTC height, so an arming cut must size BTC to arm last in wall
+// clock. Regtest is genesis-active.
 const TOKEN_BRIDGE_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
@@ -1904,6 +1927,18 @@ const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     regtest: 0,
 };
 
+// LIST metadata flag day, keyed on the block_index of the chain being parsed.
+// Canonical authority for the registry row list_meta_activation.LIST_META_ACTIVATION.
+// At and above the height, LIST formats 4 and 5, injected metadata legs and their fee bind.
+const LIST_META_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 155001,
+    'LTC:testnet': 4906040,
+    'DOGE:testnet': 67962387,
+    regtest: 0,
+};
+
 // LIST owner-check flag day, keyed on the block_index of the chain being parsed;
 // testnet arms per chain.
 // Canonical authority for the registry row list_owner_activation.LIST_OWNER_ACTIVATION.
@@ -1919,9 +1954,9 @@ const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
 const LIST_OWNER_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 155001,
+    'LTC:testnet': 4906040,
+    'DOGE:testnet': 67962387,
     regtest: 0,
 };
 
@@ -2348,6 +2383,8 @@ module.exports = {
     XPOLICY_MAX_PER_BLOCK,
     XPOLICY_MAX_MEMBERS,
     LIST_SHARE_MAX_MEMBERS,
+    LIST_META_NAME_MAX_BYTES,
+    LIST_META_DESCRIPTION_MAX_BYTES,
     LIST_UNION_MAX_MEMBERS,
     THRESHOLD_SCALE,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
@@ -2438,6 +2475,7 @@ module.exports = {
     XCHAIN_BRIDGE_ACTIVATION,
     TOKEN_BRIDGE_ACTIVATION,
     TOKEN_POLICY_INHERITANCE_ACTIVATION,
+    LIST_META_ACTIVATION,
     LIST_OWNER_ACTIVATION,
     LIST_SHARE_ACTIVATION,
     LIST_SHARE_PRODUCER_ACTIVATION,

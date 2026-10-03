@@ -145,7 +145,7 @@ To close that gap, before any update installs on any platform, the wallet verifi
 
 ### Trezor Connect trust boundary
 
-The desktop app loads the Trezor Connect iframe from Trezor's own domain, declared explicitly in the renderer's Content Security Policy. Only that isolated iframe fetches from that domain; the renderer's own code never does. Trezor's own on-device display is the trust anchor for signing: even a fully compromised Connect iframe cannot get a transaction signed that the user did not physically approve on the hardware device itself.
+The desktop app loads Trezor's hosted Connect build only inside an isolated, preload-free bridge window: its own Electron session (`trezor-connect-isolated`) with HID access denied, and its own CSP that admits only Trezor's domain. The main renderer's CSP does not list Trezor's domain (`script-src 'self'`, `connect-src 'self'`, `frame-src 'none'`), and the renderer talks to the bridge window only over `postMessage`; see [Shell: Desktop](shell-desktop.md#hardware-signer-transports). Trezor's own on-device display is the trust anchor for signing: even a fully compromised Connect script cannot get a transaction signed that the user did not physically approve on the hardware device itself.
 
 ### Per-release checklist
 

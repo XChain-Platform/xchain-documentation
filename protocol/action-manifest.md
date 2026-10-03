@@ -26,13 +26,20 @@ The SDK guard asserts a third thing, one level below the action set: each
 `Formats[ACTION]` version set equals that action's `userEncodableVersions`
 array. Without it the role flags are action-level only, so a VERSION the
 indexer accepts solely from itself could be added to an authorable action's
-Formats and every guard stayed green. Two such versions exist today:
-`VOTE` v2 (finalize) is rejected from a user broadcast by
-`if(!data['IS_SYNTHETIC'])` in the indexer's `vote.js`, and `PRICE` v0 is the
-validator COIN/FIAT snapshot, valid only with a PBFT quorum of Ed25519
-signatures from price-capability stakes. Both are parsed by the indexer and
-absent from `userEncodableVersions`, so an SDK Format for either now fails CI
-instead of shipping a composer for transactions that die on arrival.
+Formats and every guard stayed green. Four such versions, across three
+actions, exist today. `VOTE` v2 (finalize) is rejected from a user broadcast
+by `if(!data['IS_SYNTHETIC'])` in the indexer's
+`xchain-indexer/src/actions/vote/index.js`. `PRICE` v0 is the validator
+COIN/FIAT snapshot, valid only with a PBFT quorum of Ed25519 signatures from
+price-capability stakes. `XBRIDGE` v2 and v5 are the mirror-injected settle
+legs the indexer synthesizes from a finalized `bridge_transfers` row and
+refuses on broadcast (`invalid: XBRIDGE v2 is system-injected` /
+`invalid: XBRIDGE v5 is system-injected`, in
+`xchain-indexer/src/actions/xbridge/verdicts.js`). All four are accepted by
+the indexer and absent from `userEncodableVersions`, which is why `VOTE`
+(`[0, 1, 3]`) and `XBRIDGE` (`[0, 1, 3, 4]`) carry gapped version lists, so
+an SDK Format for any of them now fails CI instead of shipping a composer for
+transactions that die on arrival.
 
 ## Schema
 

@@ -20,7 +20,7 @@ Four independent claims combine into a real verification:
 
 1. **Bit-for-bit reproducibility.** Rebuilding from a tagged commit produces the same pre-signing artifact bytes that the maintainer signed for that tag.
 2. **Hash integrity.** The SHA-256 of the artifact you downloaded matches the hash the maintainer published for that tag.
-3. **Signature authenticity.** The maintainer's release GPG key signed the hash manifest, and that key matches the fingerprint published through the [two independent channels](#where-the-release-key-fingerprint-is-published) named below.
+3. **Signature authenticity.** The maintainer's release GPG key signed the hash manifest, and that key matches the fingerprint published through the [channel](#where-the-release-key-fingerprint-is-published) named below.
 4. **Release identity.** The manifest says, inside the signed bytes, which release it describes. A genuine manifest from a different release passes claims 2 and 3 perfectly, so without this one you can be handed an older signed release and never know.
 
 You need all four to claim verification. Skipping signatures trusts the download host. Skipping hashes trusts the build environment. Skipping the identity check trusts that nobody swapped one signed release for another. Skipping reproducibility trusts that the maintainer's machine wasn't compromised between source and signing.
@@ -60,7 +60,7 @@ The design calls for a second, independent channel on a different host with a di
 
 | Key | Signs | Where its fingerprint lives |
 |---|---|---|
-| Wallet release key | `RELEASE_HASHES.txt`, the manifest this page verifies | the two channels above |
+| Wallet release key | `RELEASE_HASHES.txt`, the manifest this page verifies | the published channel above |
 | Tag-signing key | the git tag each wallet release is cut from | `tools/release/tag-signing-fingerprint.txt` in `xchain-wallet`; checked by our release pipeline, not by you |
 | `releases@xchain.io` platform key | XChain Platform artifacts (source and bootstrap archives, packaged binaries), **not** wallet releases | [Release Signing](../../../operations/release-signing.md) |
 
@@ -74,7 +74,7 @@ If a document says "the release key" without saying which one, take the fingerpr
 
 ## Step 1: import the maintainer's release key
 
-Take the fingerprint from the [two channels above](#where-the-release-key-fingerprint-is-published). Then get the key itself. **Where you get the key from matters far less than the fingerprint check that follows it**, which is the whole reason the fingerprint is published separately from the key: a key that fails that check is discarded no matter how official its source looked, and a key that passes it is the right key no matter how ordinary its source was.
+Take the fingerprint from the [published channel above](#where-the-release-key-fingerprint-is-published). Then get the key itself. **Where you get the key from matters far less than the fingerprint check that follows it**, which is the whole reason the fingerprint is published separately from the key: a key that fails that check is discarded no matter how official its source looked, and a key that passes it is the right key no matter how ordinary its source was.
 
 The key is served next to the fingerprint, so this works today:
 
@@ -130,7 +130,7 @@ If you took a manifest named plainly `RELEASE_HASHES.txt` from somewhere else, p
 gpg --verify RELEASE_HASHES.txt.asc RELEASE_HASHES.txt
 ```
 
-You want to see "Good signature from ..." and a key fingerprint that matches the one published through the [two channels](#where-the-release-key-fingerprint-is-published). A "WARNING: This key is not certified with a trusted signature" line is normal unless you've explicitly trust-signed the key locally; read the fingerprint regardless.
+You want to see "Good signature from ..." and a key fingerprint that matches the one at the [publication channel](#where-the-release-key-fingerprint-is-published). A "WARNING: This key is not certified with a trusted signature" line is normal unless you've explicitly trust-signed the key locally; read the fingerprint regardless.
 
 If verification fails: stop. Do not run the artifact. Report it through the disclosure channel on the [Security & Threat Model](../security.md) page: either the manifest or the signature (or both) was tampered with.
 
@@ -249,7 +249,7 @@ Per-release reproduce scripts for the extension `.zip` and the web SPA bundle ar
 A verified release means: the bytes you installed correspond to the source tree at a specific git tag, signed by the maintainer's release key. It does NOT mean:
 
 - **The source code itself is bug-free.** Read it, audit it, or rely on independent reviews.
-- **The maintainer's release key has not been compromised.** A rotation changes the fingerprint, so watch for it in the [two publication channels](#where-the-release-key-fingerprint-is-published) themselves, which is where a rotation lands, rather than only on the release page.
+- **The maintainer's release key has not been compromised.** A rotation changes the fingerprint, so watch for it in the [publication channel](#where-the-release-key-fingerprint-is-published) itself, which is where a rotation lands, rather than only on the release page.
 - **Upstream dependencies are safe.** The reproducible-build pipeline pins versions but does not audit them. The Electron framework (desktop) and Chromium (web) trust chains live upstream.
 - **Every locale, chain, or signer behaves correctly.** That is what testing and the [QA checklist](qa-checklist.md) cover.
 

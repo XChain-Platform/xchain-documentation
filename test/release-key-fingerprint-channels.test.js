@@ -38,6 +38,13 @@
  *      documents that publish a fingerprint (a value, or a named slot
  *      that states its own empty state while the ceremony is pending).
  *      Skipped in a standalone clone rather than faked.
+ *   5. While CHANNELS holds one entry, no release page counts the channels as
+ *      two: the recipe's own pointers, the QA checklist and the Chrome Web
+ *      Store runbook all said "two channels" beside a section saying one.
+ *   6. operations/release-signing.md's wallet-key note names every channel in
+ *      CHANNELS and, while that is one, does not offer the private SECURITY.md
+ *      copy as a place to read the wallet fingerprint. No other check read
+ *      that page.
  *
  ********************************************************************/
 
@@ -226,6 +233,49 @@ describe('release key fingerprint cross-references', () => {
             'the recipe carries a fingerprint value; that is a third copy for the key ceremony ' +
             `to keep in step, and the rails publishes through two channels by design:\n  ${offenders.join('\n  ')}`,
         );
+    });
+
+    test('no release page counts more channels than CHANNELS publishes', () => {
+        if (CHANNELS.length !== 1) return;
+        const PLURAL = /\btwo\b[^.]*\bchannels?\b|\bboth channels\b|\bchannels named in\b/i;
+        const release = path.join(DOC_ROOT, 'components/wallet/release');
+        // The recipe in full; the runbooks only where they talk about the key, so
+        // android-play.md's APK download "channels" stay out of scope.
+        const pages = [
+            { file: RECIPE, onLine: () => true },
+            { file: path.join(release, 'qa-checklist.md'), onLine: (l) => /fingerprint/i.test(l) },
+            { file: path.join(release, 'extension/chrome-web-store.md'), onLine: (l) => /fingerprint/i.test(l) },
+        ];
+        const bad = [];
+        for (const { file, onLine } of pages) {
+            for (const { n, line } of proseLines(read(file))) {
+                if (onLine(line) && PLURAL.test(line)) bad.push(`${path.relative(DOC_ROOT, file)}:${n}`);
+            }
+        }
+        assert.deepEqual(bad, [],
+            `one channel is published (CHANNELS), yet these lines count two:\n  ${bad.join('\n  ')}`);
+    });
+
+    test('release-signing.md points wallet readers only at published channels', () => {
+        const page = path.join(DOC_ROOT, 'operations/release-signing.md');
+        // The blockquote that sets the wallet key apart from the platform key; the
+        // platform key's own "Two places to read the fingerprint" section is a
+        // different key and is not graded here.
+        const lines = read(page).split('\n');
+        const start = lines.findIndex((l) => /^>.*XChain Wallet release key/i.test(l));
+        assert.notEqual(start, -1, 'release-signing.md no longer carries the wallet-key note; this check needs updating');
+        let end = start;
+        while (end + 1 < lines.length && /^>/.test(lines[end + 1])) end++;
+        const note = lines.slice(start, end + 1).join('\n');
+
+        for (const channel of CHANNELS) {
+            assert.ok(note.includes(channel), `the wallet-key note in release-signing.md does not name ${channel}`);
+        }
+        if (CHANNELS.length === 1) {
+            assert.ok(!note.includes('SECURITY.md'),
+                'the wallet-key note in release-signing.md offers SECURITY.md in the private xchain-wallet ' +
+                'repository as a place to read the fingerprint; that link 404s for every public reader');
+        }
     });
 
     describe('the channels are documents that publish a fingerprint', () => {

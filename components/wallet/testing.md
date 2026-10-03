@@ -107,7 +107,7 @@ What's not in Playwright today: real signing + broadcast (the web shell ships a 
 - `getAccounts` / `getBalances` / `getSupportedChains`
 - `signMessage` round-trip
 - `signPsbt` with input ownership resolution
-- `signAction` happy path + `EActionUnsupported` deferral
+- `signAction` happy path + `UNSUPPORTED_ACTION` deferral
 - `sendAction` happy path
 - `signIn` with challenge format + expiry validation
 - Per-origin permission policy enforcement (`always` / `ask` / `never`)
@@ -121,7 +121,8 @@ The headless suite catches regressions on every commit. The manual [test-dApp ru
 
 - Validate the factory's `displayName()` / `id()` / `firmwareVersion()` interface
 - Verify `trezorFormat.js` / `ledgerFormat.js` produce vendor-shaped PSBT inputs from XChain PSBTs
-- Verify the deferral envelopes for unsupported ops (MuSig2, etc.) match the bridge's `ESignerDeferred` error code
+
+The deferral errors for unsupported hardware operations ([Unsupported operations](keys-signing.md#unsupported-operations)) are asserted in the per-signer unit tests, `test/unit/signers-trezor/TrezorSigner.test.js` and `test/unit/signers-ledger/LedgerSigner.test.js` (the `HW_MUSIG2_UNSUPPORTED` code and the classical-multisig messages), and in `multisig-signer.smoke.js` below.
 
 Real-device coverage is manual and runs against the maintainer's test fleet before each release.
 

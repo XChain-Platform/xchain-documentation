@@ -1,5 +1,5 @@
 {
-  "_description": "Canonical shared-list byte vectors consumed by the xchain-hub LIST_SHARE module (LS-43-hub) and the xchain-indexer snapshot-id, mirror-apply and replay work (LS-29, LS-34 and LS-21). Snapshot ids are lowercase SHA-256 hex of XLISTSHARE|<network>|<home_chain>:<home_list_index>|<seq>|<snapshot_block>. Members hashes are lowercase SHA-256 hex of MEMBERS|<count>|<members...>, with members sorted in utf8_bin byte order. Canonical signed bytes contain the resulting members hash but never the full, added or removed member arrays. This file is authoritative for every implementation.",
+  "_description": "Canonical shared-list byte vectors consumed by the xchain-hub LIST_SHARE module (LS-43-hub) and the xchain-indexer snapshot-id, mirror-apply and replay work (LS-29, LS-34 and LS-21). Snapshot ids are lowercase SHA-256 hex of XLISTSHARE|<network>|<home_chain>:<home_list_index>|<seq>|<snapshot_block>. Members hashes are lowercase SHA-256 hex of MEMBERS|<count>|<members...>, with members sorted in utf8_bin byte order. The metaHashes array gives lowercase SHA-256 hex of LISTMETA|<name>|<description>, except that both fields absent gives the empty string. The canonicals array preserves below-gate bytes. Canonical signed bytes contain the resulting members hash but never the full, added or removed member arrays, and carry admission bytes only when MIRROR_ADMISSION_ACTIVATION is active. This file is authoritative for every implementation. metaCanonicals holds regtest signed canonicals at and above LIST_META_ACTIVATION, which append |<meta_hash>; they stay out of canonicals so consumers that predate the meta field keep reading every canonicals entry.",
   "snapshotIds": [
     {
       "name": "DOGE address list version 1",
@@ -139,6 +139,52 @@
       ]
     }
   ],
+  "metaHashes": [
+    {
+      "label": "both absent",
+      "name": null,
+      "description": null,
+      "preimage": "",
+      "expected": ""
+    },
+    {
+      "label": "name only",
+      "name": "Treasury wallets",
+      "description": null,
+      "preimage": "LISTMETA|Treasury wallets|",
+      "expected": "7e9841c7034b7a7862df9ef9c457586d62ded0452982cd9f4964752621f8b035"
+    },
+    {
+      "label": "description only",
+      "name": null,
+      "description": "Addresses monitored by the treasury team",
+      "preimage": "LISTMETA||Addresses monitored by the treasury team",
+      "expected": "076ab79c23a2743e4f56111e6b0e04e00d6ffad3653dc169cdd9dd616477c8d9"
+    },
+    {
+      "label": "name and description",
+      "name": "Treasury wallets",
+      "description": "Addresses monitored by the treasury team",
+      "preimage": "LISTMETA|Treasury wallets|Addresses monitored by the treasury team",
+      "expected": "b20e75bf2c4973efb5bd41d358a14312583a0b486fd7c332a017b93a2e4082a9"
+    },
+    {
+      "label": "64-byte multi-byte name",
+      "name": "界界界界界界界界界界界界界界界界界界界界界x",
+      "nameBytes": 64,
+      "description": null,
+      "preimage": "LISTMETA|界界界界界界界界界界界界界界界界界界界界界x|",
+      "expected": "608ef7d6cbd78d698be2de41cb714315840745a058d0022c5021a5e473ce2087"
+    },
+    {
+      "label": "512-byte description",
+      "name": null,
+      "description": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "descriptionBytes": 512,
+      "preimage": "LISTMETA||0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "expected": "9261df1aa98f150b3d1d51cc5c18abf201fe87d08b63bab54f2aebfbc0713d88"
+    }
+  ],
   "canonicals": [
     {
       "name": "full version 1",
@@ -197,6 +243,62 @@
       "view": 1,
       "text": "XLISTSHARE|055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960|160000|DOGE|880001|2|2|delta|68000001|a41dc19b51cab71250065727ee8a910ebd528e549c8ff832e9de0901488ee82c|testnet|BTC:160010,DOGE:68000010,LTC:4905000",
       "expected": "EQUIV|XLISTSHARE|055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960|1||XLISTSHARE|055917d98e999745af033e91678dce74c48a1868165d001cc9254db84ffce960|160000|DOGE|880001|2|2|delta|68000001|a41dc19b51cab71250065727ee8a910ebd528e549c8ff832e9de0901488ee82c|testnet|BTC:160010,DOGE:68000010,LTC:4905000"
+    }
+  ],
+  "metaCanonicals": [
+    {
+      "name": "full version 1 at meta gate with metadata",
+      "snapshot_id": "156db7f94a1dbb3cbe54be49d54f42ef2f7859820d767baa6fac3fdb3c31b2c4",
+      "snapshot_block": 160000,
+      "home_chain": "DOGE",
+      "home_list_index": 880001,
+      "list_type": 2,
+      "seq": 1,
+      "kind": "full",
+      "origin_block": 68000000,
+      "members": [
+        "bc1qmemberalpha",
+        "ltc1qmemberbeta"
+      ],
+      "members_hash": "ff0e5a860d907b646255b7ab798db5057319b71c20facd02b9856b9a956320cb",
+      "network": "regtest",
+      "admission": {
+        "LTC": 4905000,
+        "DOGE": 68000010,
+        "BTC": 160010
+      },
+      "admissionText": "BTC:160010,DOGE:68000010,LTC:4905000",
+      "meta_hash": "b20e75bf2c4973efb5bd41d358a14312583a0b486fd7c332a017b93a2e4082a9",
+      "view": 0,
+      "text": "XLISTSHARE|156db7f94a1dbb3cbe54be49d54f42ef2f7859820d767baa6fac3fdb3c31b2c4|160000|DOGE|880001|2|1|full|68000000|ff0e5a860d907b646255b7ab798db5057319b71c20facd02b9856b9a956320cb|regtest|b20e75bf2c4973efb5bd41d358a14312583a0b486fd7c332a017b93a2e4082a9",
+      "expected": "EQUIV|XLISTSHARE|156db7f94a1dbb3cbe54be49d54f42ef2f7859820d767baa6fac3fdb3c31b2c4|0||XLISTSHARE|156db7f94a1dbb3cbe54be49d54f42ef2f7859820d767baa6fac3fdb3c31b2c4|160000|DOGE|880001|2|1|full|68000000|ff0e5a860d907b646255b7ab798db5057319b71c20facd02b9856b9a956320cb|regtest|b20e75bf2c4973efb5bd41d358a14312583a0b486fd7c332a017b93a2e4082a9"
+    },
+    {
+      "name": "full version 1 at meta gate without metadata",
+      "snapshot_id": "156db7f94a1dbb3cbe54be49d54f42ef2f7859820d767baa6fac3fdb3c31b2c4",
+      "snapshot_block": 160000,
+      "home_chain": "DOGE",
+      "home_list_index": 880001,
+      "list_type": 2,
+      "seq": 1,
+      "kind": "full",
+      "origin_block": 68000000,
+      "members": [
+        "bc1qmemberalpha",
+        "ltc1qmemberbeta"
+      ],
+      "members_hash": "ff0e5a860d907b646255b7ab798db5057319b71c20facd02b9856b9a956320cb",
+      "network": "regtest",
+      "admission": {
+        "LTC": 4905000,
+        "DOGE": 68000010,
+        "BTC": 160010
+      },
+      "admissionText": "BTC:160010,DOGE:68000010,LTC:4905000",
+      "meta_hash": "",
+      "view": 0,
+      "text": "XLISTSHARE|156db7f94a1dbb3cbe54be49d54f42ef2f7859820d767baa6fac3fdb3c31b2c4|160000|DOGE|880001|2|1|full|68000000|ff0e5a860d907b646255b7ab798db5057319b71c20facd02b9856b9a956320cb|regtest|",
+      "expected": "EQUIV|XLISTSHARE|156db7f94a1dbb3cbe54be49d54f42ef2f7859820d767baa6fac3fdb3c31b2c4|0||XLISTSHARE|156db7f94a1dbb3cbe54be49d54f42ef2f7859820d767baa6fac3fdb3c31b2c4|160000|DOGE|880001|2|1|full|68000000|ff0e5a860d907b646255b7ab798db5057319b71c20facd02b9856b9a956320cb|regtest|"
     }
   ]
 }

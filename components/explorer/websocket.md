@@ -68,7 +68,7 @@ Sent automatically on connection. Provides server info, current state, limits, a
       "max_message_size": 1024,
       "max_connections_per_ip": 5
     },
-    "channels": ["blocks", "actions", "mempool", "network", "attestation", "address", "token", "market", "dispenser", "bet_feed"],
+    "channels": ["blocks", "actions", "mempool", "network", "attestation", "address", "token", "market", "dispenser", "bet_feed", "xcall"],
     "types": ["ORDER", "ORDER_MATCH", "ORDER_EXPIRE", "COINPAY", "..."],
     "features": ["snapshot", "once", "fields", "batch", "catch_up"]
   }
@@ -117,7 +117,7 @@ All client messages are JSON with an `action` field. An optional `id` field enab
 | `fields` | string[] | Only include these keys in the `data` payload. Envelope fields always included. |
 | `snapshot` | boolean | Send current entity state immediately on subscribe. |
 | `once` | boolean | Auto-unsubscribe after the first matching event. |
-| `since_action_index` | string | Replay missed events since this action_index (for catch-up on reconnect). Send the decimal string the server gave you; a JSON number is still accepted but rounds above 2^53 and can skip an action. The server compares it exactly. |
+| `since_action_index` | string | Replay the frames missed since this action_index (for catch-up on reconnect): each missed action's `NEW_ACTION` and the lifecycle events derived from it. See [CATCH_UP_COMPLETE](#catch_up_complete) for what a replay cannot rebuild. Send the decimal string the server gave you; a JSON number is still accepted but rounds above 2^53 and can skip an action. The server compares it exactly. |
 
 **Entity params (required for entity channels):**
 
@@ -128,16 +128,22 @@ All client messages are JSON with an `action` field. An optional `id` field enab
 | `market` | `"tick1": "PEPE", "tick2": "BTC"` | `"pairs": [["PEPE","BTC"], ["XCHAIN","BTC"]]` |
 | `dispenser` | `"action_index": "12345"` | `"action_indexes": [12345, 12346]` |
 | `bet_feed` | `"action_index": "12345"` | `"action_indexes": [12345, 12346]` |
+| `xcall` | `"call_id": "<64-hex>"` | `"call_ids": ["<64-hex>", ...]` |
+
+An `xcall` call id must be 64 hex characters; it is lower-cased at subscribe time, and a missing or malformed id is refused with `INVALID_CHANNEL`.
 
 ### unsubscribe
 
 ```json
 {
   "action": "unsubscribe",
+  "id": "unsub-1",
   "channels": ["address"],
   "params": { "address": "1abc..." }
 }
 ```
+
+The server confirms with one `UNSUBSCRIBED` frame (`reason: "client_request"`) per targeted entity; see [UNSUBSCRIBED](#unsubscribed).
 
 ### list_subscriptions
 
@@ -185,7 +191,8 @@ when the server reports a newer schema than it was built against.
 
 **Wire types under schema v2:** BigInt-backed fields (`action_index`,
 `block_index`, `block_time`, `latest_block_index`, `latest_action_index`,
-and other chain-index/amount fields) serialize as **decimal strings**, not
+the `NEW_BLOCK` counts `tx_count` and `action_count`, and other
+chain-index/amount fields) serialize as **decimal strings**, not
 JSON numbers, matching the REST API. Compare them as strings or parse with
 `BigInt(...)`; a numeric `===` against them will silently fail. `timestamp`
 and rate-limit metadata remain JSON numbers. The payload examples below show
@@ -204,8 +211,8 @@ Channel: `blocks`
     "block_index": "890123",
     "block_hash": "00000000...",
     "block_time": "1743638400",
-    "tx_count": 2341,
-    "action_count": 7
+    "tx_count": "2341",
+    "action_count": "7"
   }
 }
 ```
@@ -372,6 +379,44 @@ fetch.
 A coin whose indexer predates the BET tables answers "no bet_feeds table"; the explorer parks that
 coin's latch cursor on a cooldown and retries, treating the gap as a deploy-order fact rather than a
 permanent property of the chain.
+
+### XCall Events
+
+Channel: `xcall`, keyed by the call's 64-hex `call_id`, because that is the only name a cross-chain
+call has on both chains: its `action_index` differs per chain and the target chain has no request row.
+Both events also ride the `actions` channel and the `address` channel of the call's `source`.
+
+The two terminal phases, `XCALL_COMPLETED` and `XCALL_EXPIRED`, ride a cursor over
+`xcalls.resolved_block` rather than over `actions`: a completion is a direct status write with no
+action row behind it, and an expiry rides the same cursor so a subscriber cannot see one outcome and
+miss the other.
+
+```json
+{
+  "type": "XCALL_COMPLETED",
+  "data": {
+    "call_id": "9f2c...e41a",
+    "action_index": "45950",
+    "block_index": "962470",
+    "source": "1abc...",
+    "target_chain": "LTC",
+    "method": "transfer",
+    "contract_index": "45000",
+    "request_status": "completed",
+    "result_status": "ok",
+    "callback_action_index": "45990",
+    "deadline_block": "962600",
+    "tx_hash": null,
+    "action_format": null,
+    "synthetic": true
+  }
+}
+```
+
+`result_status` is the far chain's outcome and is `null` on `XCALL_EXPIRED`. `synthetic` is `true`
+for a completion (no causing transaction) and `false` for an expiry, which has an XCALL v2 action
+behind it. A coin whose indexer has no `xcalls` table is parked on a cooldown and retried, exactly as
+the `BET_CLOSED` cursor is.
 
 ### Order Lifecycle Events
 
@@ -644,6 +689,9 @@ Sent when subscribing with `snapshot: true`. Contains current state of the subsc
 }
 ```
 
+An `xcall` snapshot is `{ "channel": "xcall", "call_id": "...", ...the call's current lifecycle fields }`;
+for a `call_id` this chain has no row for, it carries only the two identity fields.
+
 #### CATCH_UP_COMPLETE
 
 Sent after all catch-up events have been replayed.
@@ -654,23 +702,58 @@ Sent after all catch-up events have been replayed.
   "data": {
     "events_replayed": 5,
     "latest_action_index": "45690",
-    "truncated": false
+    "truncated": false,
+    "not_replayed": ["BET_CLOSED", "XCALL_COMPLETED", "XCALL_EXPIRED"]
   }
 }
 ```
 
 Catch-up events have `"catch_up": true` in the envelope to distinguish them from live events.
+`events_replayed` counts every frame sent; `truncated` and `latest_action_index` count action rows.
+
+A replay rebuilds, for each missed action row and in live order, the `NEW_ACTION` and every
+lifecycle event the live feed derives from that row (`ORDER_MATCH`, `COINPAY_REQUIRED`,
+`COINPAY_FULFILLED`, `COINPAY_EXPIRED`, `ORDER_EXPIRED`, `SWAP_MATCH`, `SWAP_EXPIRED`, `DISPENSE`,
+`DISPENSER_CLOSED`, `DISPENSER_EXPIRED`, `BET`, `BET_EXPIRED`, `ATTESTATION_REQUEST`,
+`ATTESTATION_RESPONSE`), on each requested channel the live frame reached. It does not rebuild:
+
+| Not replayed | Why | Recover with |
+|---|---|---|
+| The types in `not_replayed` | Emitted by a status cursor of their own, not derived from an action row | `GET /{COIN}/api/bet_feed/{action_index}` and `GET /{COIN}/api/xcall/{callId}` ([REST API](api.md)) |
+| `ADDRESS_UPDATE` and the other entity-update frames | State, not events | Subscribe with `snapshot: true` |
+| `MEMPOOL_ACTION` / `MEMPOOL_REMOVED` | Unconfirmed and transient | The [REST mempool read](api.md#mempool) |
 
 #### UNSUBSCRIBED
 
-Sent when a `once: true` subscription fires.
+The server sends two forms. Both carry the bare channel name with the entity id fields (`address`,
+`tick`, `tick1` and `tick2`, `action_index`, or `call_id`) as siblings, matching `SUBSCRIBED`; a
+coin- or entity-prefixed `channel` string such as `"address:1abc..."` is never sent.
+
+`reason: "once"`: a `once: true` subscription was spent, by a live frame or a replayed one.
 
 ```json
 {
   "type": "UNSUBSCRIBED",
   "data": {
-    "channel": "address:1abc...",
+    "channel": "address",
+    "address": "1abc...",
     "reason": "once"
+  }
+}
+```
+
+`reason: "client_request"`: one frame per targeted entity in reply to an `unsubscribe`, echoing its
+`id`. `was_subscribed: false` means the request arrived but nothing was registered under that key.
+
+```json
+{
+  "type": "UNSUBSCRIBED",
+  "id": "unsub-1",
+  "data": {
+    "channel": "address",
+    "was_subscribed": true,
+    "reason": "client_request",
+    "address": "1abc..."
   }
 }
 ```
@@ -708,16 +791,25 @@ Response to client `ping`.
 |---|---|
 | `INVALID_ACTION` | Unrecognized client action or malformed JSON |
 | `INVALID_CHANNEL` | Unknown channel name or missing entity params |
-| `INVALID_CHAIN` | Unsupported coin prefix in connection URL |
+| `INVALID_PARAMS` | A malformed param: `fields` is not an array of strings, or `since_action_index` is not a non-negative integer |
 | `INVALID_TYPE` | Unknown action type in `types` filter |
 | `SUBSCRIPTION_LIMIT` | Exceeded max 25 subscriptions per connection |
 | `RATE_LIMITED` | Client sending more than 10 messages/sec |
 | `CATCH_UP_TOO_OLD` | `since_action_index` is more than 1,000 actions behind current |
 | `CATCH_UP_IN_PROGRESS` | A catch-up request is already running for this client |
+| `COIN_DATA_STALE` | The coin's indexed tip is older than its maximum age and the server is set to fail closed, so the snapshot or catch-up is refused rather than served as current |
+| `SNAPSHOT_QUEUE_FULL` | A snapshot fan-out is already running and this client's pending-snapshot queue (capped at its subscription limit) is full; retry the subscribe with `snapshot: true` once it completes |
+| `INTERNAL_ERROR` | The server threw while handling the message; the request `id` is echoed |
+
+An unsupported coin prefix in the connection URL never reaches this table: the upgrade itself is
+refused with HTTP 400, so no WebSocket and no `error` frame exist.
 
 ---
 
 ## Supported Action Types for `types` Filter
+
+A given server's authoritative list is the `types` array in its `WELCOME` frame. Any name outside it
+fails the entire subscribe request with `INVALID_TYPE`, so no channel in that request is subscribed.
 
 | Category | Values |
 |---|---|
@@ -731,11 +823,21 @@ Response to client `ping`.
 | VM | `DEPLOY`, `EXECUTE`, `DEPOSIT`, `WITHDRAW` |
 | Staking | `STAKE`, `UNSTAKE`, `DELEGATE`, `COLLECT` |
 | Attestation | `ATTEST` |
-| Federation / oracle | `PRICE`, `ANCHOR`, `XCALL`, `NODEPROOF` |
-| Order lifecycle | `ORDER_COMPLETED`, `ORDER_EXPIRED` |
+| Betting | `BET`, `BET_EXPIRE` |
+| Federation / oracle | `PRICE`, `ANCHOR`, `XCALL`, `NODEPROOF`, `ROLLCALL` |
+| Address, batching, bridge, governance | `ADDRESS`, `BATCH`, `CROSS_SETTLE`, `XBRIDGE`, `XEXEC`, `VOTE`, `SLASH` |
+| Settlement anchors | `XPOLICY`, `LIST_SHARE` |
+| Order lifecycle | `ORDER_EXPIRED` |
 | COINPay lifecycle | `COINPAY_REQUIRED`, `COINPAY_FULFILLED`, `COINPAY_EXPIRED` |
-| Swap lifecycle | `SWAP_COMPLETED`, `SWAP_EXPIRED` |
-| Dispenser lifecycle | `DISPENSER_CLOSED`, `DISPENSER_EXPIRED`, `DISPENSER_CANCELLED` |
+| Swap lifecycle | `SWAP_EXPIRED` |
+| Dispenser lifecycle | `DISPENSER_CLOSED`, `DISPENSER_EXPIRED` |
+| Bet lifecycle | `BET_EXPIRED`, `BET_CLOSED` |
+| XCall lifecycle | `XCALL_COMPLETED`, `XCALL_EXPIRED` |
+| Attestation lifecycle | `ATTESTATION_REQUEST`, `ATTESTATION_RESPONSE` |
+
+Settlement anchors are rows the indexer mints to anchor a bridge-policy or shared-list settlement
+record when the pass produced no action of its own. Their `NEW_ACTION` carries the ordinary `data`
+with `tx_hash` and `source` null and `destinations: []`.
 
 ---
 
@@ -754,8 +856,8 @@ Response to client `ping`.
 ## Reconnection and Catch-Up
 
 1. Track the highest `action_index` you have processed. Seed it from `WELCOME`'s `latest_action_index` only when you hold no cursor yet: on a reconnect, `WELCOME` reports the current tip, which is past the actions you missed, so letting it move your cursor skips them.
-2. On disconnect, reconnect with exponential backoff
-3. Resubscribe with `since_action_index` set to your last known value, on the subscriptions that carry `NEW_ACTION` (`actions` and `address`). Other channels have nothing to replay and need no `since_action_index`.
+2. On disconnect, reconnect with exponential backoff. A close with code `4008` (`backpressure`) means the server shed a connection that could not keep up and dropped a frame for it; handle it like any other disconnect, since your cursor still sits before the dropped frame and the catch-up replays it.
+3. Resubscribe with `since_action_index` set to your last known value, on the `actions` and `address` subscriptions. Their replay carries each missed action's `NEW_ACTION` and its lifecycle events. A `since_action_index` subscribe on any other channel alone closes at once with nothing replayed: the `actions` channel already carries every lifecycle frame the `dispenser`, `bet_feed`, `xcall` and `attestation` channels do, and entity state comes back with `snapshot: true`. Backfill the `not_replayed` types over REST (see [CATCH_UP_COMPLETE](#catch_up_complete)).
 4. Send one `since_action_index` subscribe at a time, each with its own `id`, and wait for the `CATCH_UP_COMPLETE` or `error` frame that echoes that `id` before sending the next. The server runs one catch-up per connection and refuses an overlapping one with `CATCH_UP_IN_PROGRESS`; the subscription is still registered, but its missed actions are not replayed.
 5. Process events with `catch_up: true` (these are replayed, not live). Live frames can arrive during a replay, so do not advance your cursor past the replay from them until every catch-up has closed.
 6. If `CATCH_UP_COMPLETE` has `truncated: true`, the replay stopped at its row cap: send the same subscribe again with `since_action_index` set to that frame's `latest_action_index`, and repeat until a frame arrives with `truncated: false`
@@ -800,4 +902,4 @@ See [CONFIGURATION.md](configuration.md) for the `WS_*` environment variables th
 | `WS_IDLE_TIMEOUT` | `300000` | Idle timeout for zero-subscription clients (ms) |
 | `WS_MAX_CONNECTIONS_PER_IP` | `5` | Max concurrent connections per IP |
 | `WS_MAX_SUBSCRIPTIONS` | `25` | Max subscriptions per connection |
-| `WS_MAX_BACKPRESSURE` | `65536` | Max buffered bytes before skipping a client |
+| `WS_MAX_BACKPRESSURE` | `65536` | Max buffered bytes per client. A frame the client wanted that finds it above this is dropped and the connection is closed with code `4008` (`backpressure`), so the client reconnects and catches up from before the drop |

@@ -16,7 +16,11 @@ const { describe, test } = require('node:test');
 
 const constants = require('../protocol/constants.js');
 const { buildEquivCanonical } = require('../protocol/reference-impl/consensus/equivocation_header.js');
+const gateRegistry = require('../protocol/reference-impl/consensus/gate_registry.js');
 const vectors = require('../protocol/test-vectors/list_share.json');
+
+const LIST_META_GATE_KEY = 'list_meta_activation.LIST_META_ACTIVATION';
+const MIRROR_ADMISSION_GATE_KEY = 'mirror_admission_activation.MIRROR_ADMISSION_ACTIVATION';
 
 const sha256 = value => crypto.createHash('sha256').update(value, 'utf8').digest('hex');
 const utf8BinCompare = (left, right) => Buffer.compare(Buffer.from(left, 'utf8'), Buffer.from(right, 'utf8'));
@@ -79,6 +83,29 @@ describe('shared-list members hashes', () => {
     }
 });
 
+describe('shared-list meta hashes', () => {
+    for (const vector of vectors.metaHashes) {
+        test(vector.label, () => {
+            if (vector.nameBytes !== undefined) {
+                assert.equal(Buffer.byteLength(vector.name, 'utf8'), vector.nameBytes);
+            }
+            if (vector.descriptionBytes !== undefined) {
+                assert.equal(Buffer.byteLength(vector.description, 'utf8'), vector.descriptionBytes);
+            }
+            if (vector.name === null && vector.description === null) {
+                assert.equal(vector.preimage, '');
+                assert.equal(vector.expected, '');
+                return;
+            }
+
+            const preimage = ['LISTMETA', vector.name || '', vector.description || ''].join('|');
+            assert.equal(vector.preimage, preimage);
+            assert.match(vector.expected, /^[0-9a-f]{64}$/);
+            assert.equal(vector.expected, sha256(preimage));
+        });
+    }
+});
+
 describe('shared-list deltas', () => {
     for (const vector of vectors.deltas) {
         test(vector.name, () => {
@@ -107,10 +134,52 @@ describe('shared-list signed canonicals', () => {
         assert(160000 >= constants.MIRROR_ADMISSION_ACTIVATION['BTC:testnet']);
     });
 
-    for (const vector of vectors.canonicals) {
+    test('the required meta-gated canonical pair is beside the below-gate bytes', () => {
+        const belowGate = vectors.canonicals.find(vector => vector.seq === 1);
+        assert.ok(belowGate, 'missing below-gate canonical');
+
+        const namedMetaHash = vectors.metaHashes.find(vector => (
+            vector.name !== null && vector.description !== null
+        )).expected;
+        const gated = vectors.metaCanonicals.filter(vector => Object.hasOwn(vector, 'meta_hash'));
+        assert.deepEqual(
+            gated.map(vector => vector.meta_hash).sort(),
+            ['', namedMetaHash].sort(),
+            'missing required canonical with a populated or empty meta hash',
+        );
+        for (const vector of gated) {
+            assert.equal(vector.home_chain, belowGate.home_chain);
+            assert.equal(vector.home_list_index, belowGate.home_list_index);
+            assert.equal(vector.seq, belowGate.seq);
+            assert.equal(vector.members_hash, belowGate.members_hash);
+            assert.ok(vector.text.endsWith('|' + vector.meta_hash));
+        }
+    });
+
+    test('metadata canonical rows are at or above the BTC snapshot gate', () => {
+        for (const vector of vectors.metaCanonicals) {
+            assert.equal(
+                gateRegistry.activeAt(
+                    LIST_META_GATE_KEY,
+                    vector.network,
+                    'BTC',
+                    vector.snapshot_block,
+                    null,
+                ),
+                true,
+                `${vector.name} is below LIST_META_ACTIVATION`,
+            );
+        }
+    });
+
+    test("meta-gated canonicals live only in metaCanonicals, so a consumer that predates the meta field reads every canonicals entry", () => {
+        assert.ok(vectors.canonicals.every(vector => !Object.hasOwn(vector, "meta_hash")));
+        assert.ok(vectors.metaCanonicals.every(vector => Object.hasOwn(vector, "meta_hash")));
+    });
+
+    for (const vector of [...vectors.canonicals, ...vectors.metaCanonicals]) {
         test(vector.name, () => {
             assert.equal(vector.snapshot_block, 160000);
-            assert.equal(vector.network, 'testnet');
             assert.equal(vector.admissionText, encodeAdmitBlocks(vector.admission));
 
             const snapshotPreimage = [
@@ -151,8 +220,19 @@ describe('shared-list signed canonicals', () => {
                 vector.origin_block,
                 vector.members_hash,
                 vector.network,
-                vector.admissionText,
             ];
+            if (gateRegistry.activeAt(
+                MIRROR_ADMISSION_GATE_KEY,
+                vector.network,
+                'BTC',
+                vector.snapshot_block,
+                null,
+            )) {
+                fields.push(vector.admissionText);
+            }
+            if (Object.hasOwn(vector, 'meta_hash')) {
+                fields.push(vector.meta_hash);
+            }
             assert.equal(vector.text, fields.join('|'));
             assert.equal(vector.text.split('|')[2], String(vector.snapshot_block));
             assert.equal(

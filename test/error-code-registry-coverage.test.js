@@ -30,10 +30,11 @@
  * declare and then send by reference as `code: code`; and a positional helper
  * call (`error(res, 503, 'message', 'CODE')`), which the bridge panel routes
  * use. A new emit shape needs its own rule here, or its codes go unchecked.
- * Only the three REST-side sources are read:
+ * Only the three REST-side sources are read for the registry:
  * src/ws/ carries the WebSocket channel codes, which are a separate surface
  * documented in components/explorer/websocket.md and explicitly excluded by the
- * registry page's own closing note.
+ * registry page's own closing note. The second test below holds that page's
+ * Error Codes table equal to the codes src/ws/ sends, in both directions.
  *
  * xchain-explorer is a sibling repo in the monorepo checkout, not a dependency
  * of xchain-documentation. When the REPO is absent (docs repo cloned on its
@@ -153,4 +154,35 @@ test('every explorer REST error code has a registry row', { skip: noExplorer }, 
         'protocol/error-codes.md calls itself the complete append-only registry, '
         + 'so every code the explorer emits needs a row there. Missing:\n  '
         + missing.join('\n  '));
+});
+
+// The WebSocket error codes: a `sendError(client, 'CODE'` call or a `code: 'CODE'`
+// result anywhere under src/ws/, read fresh each run.
+function emittedWsCodes() {
+    const wsDir = path.join(EXPLORER_SRC, 'ws');
+    assert.ok(fs.existsSync(wsDir), 'src/ws is gone from xchain-explorer; repoint the WebSocket check');
+    const found = new Map();
+    for (const file of jsFilesUnder(wsDir)) {
+        const text = fs.readFileSync(file, 'utf8');
+        for (const m of text.matchAll(/sendError\([^,]+,\s*'([A-Z][A-Z0-9_]{2,})'|code:\s*'([A-Z][A-Z0-9_]{2,})'/g)) {
+            const code = m[1] || m[2];
+            if (!found.has(code)) found.set(code, path.relative(EXPLORER, file));
+        }
+    }
+    return found;
+}
+
+test('the websocket.md Error Codes table matches the codes src/ws sends', { skip: noExplorer }, () => {
+    const page    = fs.readFileSync(path.join(ROOT, 'components/explorer/websocket.md'), 'utf8');
+    const start   = page.indexOf('\n## Error Codes\n');
+    assert.ok(start >= 0, 'components/explorer/websocket.md lost its "## Error Codes" section');
+    const table   = page.slice(start + '\n## Error Codes\n'.length).split(/\n(?:## |---\n)/)[0];
+    const rows    = [...table.matchAll(/^\| `([A-Z][A-Z0-9_]+)` \|/gm)].map((m) => m[1]);
+    const emitted = emittedWsCodes();
+
+    assert.ok(emitted.size >= 8, `collected only ${emitted.size} codes from src/ws; the emit shape changed`);
+    const missing  = [...emitted].filter(([code]) => !rows.includes(code)).map(([c, where]) => `${c} (${where})`);
+    const phantoms = rows.filter((code) => !emitted.has(code));
+    assert.deepEqual({ missing, phantoms }, { missing: [], phantoms: [] },
+        'websocket.md Error Codes must list exactly the codes the WebSocket server sends');
 });

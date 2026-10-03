@@ -47,8 +47,8 @@ OP_RETURN is the preferred format for short ACTIONs (simple sends, mints, basic 
 ### P2SH (Pay-to-Script-Hash)
 
 **Capacity**: up to 476 bytes per chunk; multiple chunks are supported, giving a total capacity up to the 8,192-byte decoder ceiling (see below)  
-**Transactions**: 2 per chunk (fund then spend), so large payloads require multiple fund/spend pairs  
-**Mechanism**: The ACTION data is embedded **raw** (no Layer-1 obfuscation) in a redeem script. A first transaction creates an output locked to the hash of that script (the "fund" transaction). A second transaction spends that output by revealing the full script (the "spend" transaction), and also carries a single obfuscated marker `OP_RETURN` output (`XCHN` magic plus a `p2sh` tag) so the decoder can recognize the transaction. The decoder reads the revealed script from the spending transaction input.
+**Transactions**: 2 in total, however many chunks: one fund transaction carrying one P2SH output per chunk, and one spend transaction that spends all of them  
+**Mechanism**: The ACTION data is embedded **raw** (no Layer-1 obfuscation) in a redeem script, one per chunk. A first transaction creates the outputs locked to the hash of each script (the "fund" transaction). A second transaction spends those outputs by revealing each full script (the "spend" transaction), and also carries a single obfuscated marker `OP_RETURN` output (`XCHN` magic plus a `p2sh` tag) so the decoder can recognize the transaction. The decoder reads the revealed scripts from the spending transaction's inputs.
 
 The two-transaction pattern means the ACTION is not visible until the spend transaction is mined. The fund transaction just looks like a payment to a script hash.
 
@@ -56,9 +56,9 @@ The two-transaction pattern means the ACTION is not visible until the spend tran
 
 ### P2WSH (Pay-to-Witness-Script-Hash)
 
-**Capacity**: up to 8,192 bytes of data  
-**Transactions**: 2 (fund then spend)  
-**Mechanism**: Identical in concept to P2SH but uses SegWit witness data for the reveal; the data chunk in the witness script is likewise embedded **raw**, with a single obfuscated marker `OP_RETURN` output (`XCHN` magic plus a `p2wsh` tag). The larger capacity comes from the witness discount applied to SegWit data, witness bytes cost one quarter of the weight of non-witness bytes for fee purposes. This makes P2WSH the preferred format for large payloads (file uploads, long broadcast messages, dense batch operations).
+**Capacity**: same as P2SH: up to 476 bytes per chunk, with multiple chunks up to the shared 8,192-byte decoder ceiling  
+**Transactions**: 2 in total, however many chunks (one fund, one spend)  
+**Mechanism**: Identical in concept to P2SH but uses SegWit witness data for the reveal; the data chunk in the witness script is likewise embedded **raw**, with a single obfuscated marker `OP_RETURN` output (`XCHN` magic plus a `p2wsh` tag). The witness discount does not raise capacity: P2WSH shares P2SH's chunking and ceiling. What it changes is cost, since witness bytes count at one quarter of the weight of non-witness bytes for fee purposes. That fee advantage makes P2WSH the preferred format for large payloads (file uploads, long broadcast messages, dense batch operations).
 
 **The 8,192-byte ceiling is a decoder-wide limit, not a P2WSH-specific one.** `MAX_ACTION_DATA_LENGTH` in `xchain-decoder/src/XChainDecoder.js` applies to every embedding format: OP_RETURN, multisig, P2SH (across all its chunks), and P2WSH alike. The cap is measured on the **compiled** on-chain push (the OP_PUSHDATA-prefixed buffer as it appears on chain, before `bitcoin.script.decompile` strips the push prefix), not on the decoded payload: the decoded ACTION string is 1-3 bytes shorter than the compiled push it came from. A decoded payload as small as ~8,190 bytes can still compile to more than 8,192 bytes and be silently dropped; encoders must budget for the push-prefix overhead, not just the decoded byte count.
 
@@ -89,7 +89,7 @@ There are two selection behaviours, and which one a caller gets depends on what 
 | > 76 bytes user data | P2SH |
 | Any size (manual selection) | P2WSH, Multisig or TAPROOT |
 
-P2SH splits larger payloads across multiple 476-byte chunk outputs (fund then spend pairs) up to the 8,192-byte ceiling. In practice, most common ACTIONs (SEND, MINT, ORDER, DISPENSER) fit in OP_RETURN. Larger ACTIONs (FILE, long BATCH, rich BROADCAST) use P2SH or P2WSH.
+P2SH splits larger payloads across multiple 476-byte chunk outputs, all created by one fund transaction and spent by one spend transaction, up to the 8,192-byte ceiling. In practice, most common ACTIONs (SEND, MINT, ORDER, DISPENSER) fit in OP_RETURN. Larger ACTIONs (FILE, long BATCH, rich BROADCAST) use P2SH or P2WSH.
 
 **Smallest-footprint (`encoding: "AUTO"`).** An explicit opt-in that picks the cheapest carrier the network and the caller's signer actually support:
 

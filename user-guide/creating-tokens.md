@@ -135,6 +135,7 @@ Parameters you can lock include:
 - **LOCK_DESCRIPTION**: proves the token's description cannot be swapped out
 - **LOCK_SLEEP**: the token can never be paused by the SLEEP command; useful for tokens that must always be tradeable
 - **LOCK_CALLBACK**: the `CALLBACK` command can never be run against this token again. It does not preserve the recall terms for later use; it makes recall impossible. Do not set it if you may ever need to recall, revoke or settle the token
+- **LOCK_BRIDGE**: the token's bridge settings can never be changed again, by you or by any later owner: no destination chain can be added to or removed from `BRIDGE_CHAINS`, and `MIN_DEPTH` can never be raised or lowered. It is set through the bridge opt-in ([ISSUE format 7](../protocol/actions/issue.md#version-7---bridge-opt-in)), not the ordinary lock edit. The opt-in is active on regtest, armed on testnet chain by chain behind `TOKEN_BRIDGE_ACTIVATION`, and not active on mainnet (see [Flag-Day Values](../protocol/flag-days.md))
 
 No single flag forecloses all supply creation. Set **LOCK_MINT** and **LOCK_MINT_SUPPLY** together to close both issuance paths, and add **LOCK_MAX_SUPPLY** if you also want the ceiling itself frozen.
 
@@ -178,6 +179,7 @@ Once your token exists, you can:
 - **Pay dividends** to eligible holders proportionally (see [DIVIDEND](../protocol/actions/dividend.md) for who is left out)
 - **Sleep** it temporarily to pause all trading
 - **Callback** (recall) tokens from all holders if you configured a callback at creation
+- **Opt into the bridge** to choose which chains the token may move to as the same asset, and optionally a deeper confirmation depth for each move (not active on mainnet; see [Moving a Token to Another Chain](./cross-chain.md#moving-a-token-to-another-chain-xbridge))
 - **Bind a controller** to hand enforcement of transfers, trades, mints, burns, staking, or ownership changes to a contract you deploy, and drop it later subject to the cooldown you set
 
 Your token lives on the blockchain permanently. Even if every XChain node went offline, the token records remain embedded in Bitcoin, Litecoin, or Dogecoin transactions forever.

@@ -101,7 +101,7 @@ flowchart TD
     subgraph VM["xchain-vm module"]
         ISOVM["isolated-vm<br>V8 Isolate (one per EXECUTE)<br>Sandbox: no Date, no random, no network"]
         GASMETER["AST-based Gas Meter<br>acorn parse → inject __gas() → astring regenerate<br>Charges per control flow point"]
-        GATEWAY["Gateway (xchain.*)<br>State, Emit, Math, Oracle, CrossChain via JSON bridge protocol<br>19 emittable action types"]
+        GATEWAY["Gateway (xchain.*)<br>State, Emit, Math, Oracle, CrossChain via JSON bridge protocol<br>21 emittable action types"]
         RESULT["Result: stateChanges, stateDeletes, emittedActions, gasUsed, returnValue, logs"]
 
         ISOVM --> RESULT

@@ -255,7 +255,8 @@ test('the guide does not claim a sale delivers the decryption keys', () => {
         + 'gets the key in the same transaction');
 });
 
-/* 5. Cross-chain royalty listings are denied below the flag day. */
+/* 5. Cross-chain royalty listings are denied below the flag day, and above it
+ *    when a leg cannot be paid on the proceeds chain. */
 
 test('the cross-chain royalty source facts still hold', { skip: skipNoIndexer }, () => {
     const swap = readSrc('actions/swap.js');
@@ -268,6 +269,9 @@ test('the cross-chain royalty source facts still hold', { skip: skipNoIndexer },
             + 'availability caveat is no longer accurate');
         assert.match(src, /isEnabled\('CROSS_CHAIN_ROYALTY'/,
             `${label} no longer gates that denial on CROSS_CHAIN_ROYALTY`);
+        assert.match(src, /royalty leg not payable on proceeds chain/,
+            `${label} no longer denies a non-portable leg above the flag day, so the verdict `
+            + 'the spec names for it is stale');
     }
     assert.match(changes, /'CROSS_CHAIN_ROYALTY'[^\n]*1798761600/,
         'CROSS_CHAIN_ROYALTY no longer activates on mainnet at 1798761600 (2027-01-01); the '
@@ -294,6 +298,17 @@ test('the NFT standard does not claim the rails have no special cases', () => {
         + 'royalty-bearing cross-chain listing is denied at create');
     assert.match(nft, /CROSS_CHAIN_ROYALTY/,
         'nft-standard.md no longer names the cross-chain royalty exception anywhere');
+    assert.match(nft, /royalty leg not payable on proceeds chain/,
+        'nft-standard.md no longer names the verdict a non-portable leg gets above the flag day');
+});
+
+test('the controller spec names both cross-chain royalty denials', () => {
+    const sales = section(readDoc('protocol/controller-bound-tokens.md'),
+        '### Cross-chain sales (`CROSS_CHAIN_ROYALTY`)', 'controller-bound-tokens.md');
+    assert.match(sales, /royalty not enforceable cross-chain/,
+        'the cross-chain sales section no longer names the below-flag-day denial');
+    assert.match(sales, /royalty leg not payable on proceeds chain/,
+        'the cross-chain sales section no longer names the non-portable-leg denial');
 });
 
 /* 6. A fee output is required only when a fee is actually owed. */
@@ -363,10 +378,17 @@ test('the bridge availability source facts still hold', { skip: skipNoIndexer },
             `XCHAIN_BRIDGE_ACTIVATION ${key} is no longer the sentinel. cross-chain.md says the `
             + 'bridge is not active on mainnet and must change in the same commit.');
     }
-    assert.match(tokenGate[0], /testnet:\s*9999999999/,
-        'TOKEN_BRIDGE_ACTIVATION is armed on testnet. cross-chain.md, what-is-xchain.md, '
-        + 'concepts/metalayer.md and overview.md say bridging other tokens is not yet switched on '
-        + 'and must change in the same commit.');
+    // The four bridge pages say general-token bridging is armed on testnet per chain and
+    // not active on mainnet, so both halves are pinned on the per-chain keys the resolver
+    // reads first (the bare testnet key is only the fallback and stays the sentinel).
+    const pages = 'cross-chain.md, what-is-xchain.md, concepts/metalayer.md and overview.md';
+    assert.match(tokenGate[0], /\bmainnet:\s*9999999999/,
+        `TOKEN_BRIDGE_ACTIVATION mainnet is no longer the sentinel. ${pages} say it is not active on mainnet and must change in the same commit.`);
+    for(const key of ['BTC:testnet', 'LTC:testnet', 'DOGE:testnet']){
+        const height = tokenGate[0].match(new RegExp(`'${key}':\\s*(\\d+)`));
+        assert.ok(height && height[1] !== '9999999999',
+            `TOKEN_BRIDGE_ACTIVATION ${key} is no longer armed. ${pages} say general-token bridging is armed on testnet and must change in the same commit.`);
+    }
 });
 
 test('the cross-chain guide covers the bridge with its scope and trust stated', () => {
@@ -404,6 +426,8 @@ test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XB
     const pages = [
         ['concepts/metalayer.md', /^\*\*Sidechains\*\*/],
         ['overview.md', /^\*\*No third-party bridge\.\*\*/],
+        ['user-guide/cross-chain.md', /^\*\*What is live today\.\*\*/],
+        ['getting-started/what-is-xchain.md', /^XChain has no third-party bridge\./],
     ];
     for(const [rel, lead] of pages){
         const para = readDoc(rel).split('\n').find((l) => lead.test(l)) || '';
@@ -411,8 +435,12 @@ test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XB
         assert.ok(!/moves only the platform's own XCHAIN|The one exception is XCHAIN/.test(para),
             `${rel} again states XBRIDGE as XCHAIN-only; XBRIDGE v3 to v5 bridge any opted-in token `
             + 'behind TOKEN_BRIDGE_ACTIVATION (protocol/actions/xbridge.md)');
-        assert.match(para, /not yet switched on/,
-            `${rel} no longer says bridging other tokens is built but not yet switched on`);
+        assert.ok(!/not yet switched on/.test(para),
+            `${rel} again says bridging other tokens is not yet switched on; TOKEN_BRIDGE_ACTIVATION arms it per testnet chain`);
+        assert.match(para, /armed on testnet/,
+            `${rel} no longer says bridging other tokens is armed on testnet`);
+        assert.match(para, /not active on mainnet/,
+            `${rel} no longer says the bridge is not active on mainnet`);
     }
 });
 

@@ -49,7 +49,7 @@ flowchart TD
 | `metering.js` | AST-based gas injection: parses source with acorn, injects `__gas()` at control flow points, regenerates with astring. Also provides `hasGasIdentifier()` for deploy-time validation |
 | `gas.js` | GasTracker class: validates gas schedule (non-negative integers), accumulates gas charges per operation, enforces ceiling, throws GasExhaustedError on overflow |
 | `gateway.js` | Builds the `xchain` gateway object: context accessors, state CRUD, ledger queries, oracle, cross-chain, **external attestation (`xchain.attestation.*`)**, **contract-targeted staking (`xchain.contract.*`)**, emit API, math, control flow, logging |
-| `gateway_emit.js` | Emit API builder: assembles the 19 action types (SEND through MESSAGE and VOTE, plus `execute` for cross-contract calls and `crossExecute` for cross-chain calls) and charges gas per emit. It keeps `crossExecute`, the id preimage builders and their golden vectors; the same-chain emits (`execute` and SEND through VOTE) live in `gateway_emit/same_chain.js` and the shared parameter checks in `gateway_emit/param_validation.js` |
+| `gateway-emit.js` | Emit API builder: assembles the 19 action types (SEND through MESSAGE and VOTE, plus `execute` for cross-contract calls and `crossExecute` for cross-chain calls) and charges gas per emit. It keeps `crossExecute`, the id preimage builders and their golden vectors; the same-chain emits (`execute` and SEND through VOTE) live in `gateway_emit/same_chain.js` and the shared parameter checks in `gateway_emit/param_validation.js` |
 | `math.js` | Deterministic math wrapping mathjs bignumber: all inputs are strings, arithmetic results are strings, `compare` returns a number (-1/0/1) and `gt`/`gte`/`lt`/`lte`/`eq`/`isZero` return booleans; wrapped in `safeMath` for ContractRevertError on failures |
 | `state.js` | StateManager: reads from initial snapshot, tracks writes/deletes in dirty map, enforces key count, key size, and value size limits, provides `getChanges()` for result collection |
 | `collector.js` | EmissionCollector: queues emitted actions (with emission cap), collects debug logs (100 entries, 1 KB UTF-8 each, with byte-aware truncation) |
@@ -157,6 +157,7 @@ The V8 isolate provides hardware-level isolation (separate heap, no shared objec
 - Network: `fetch`, `XMLHttpRequest`, `WebSocket`
 - Concurrency: `SharedArrayBuffer`, `Atomics`
 - Big integers: `BigInt` (super-linear native cost, unmeterable by the AST meter; use `xchain.math.*` instead; `BigInt` literals also rejected at deploy time)
+- WebAssembly: `WebAssembly` (consensus-gated: stripped at/after the Package 3 per-coin sandbox height gate, active from genesis on testnet/regtest; present on earlier blocks for replay fidelity. A wasm body carries no `__gas` instrumentation, so it would run unmetered native code; the `banned-wasm` deploy-lint rule also rejects references to the global)
 - Regex: `RegExp` (set to `undefined`; prevents catastrophic backtracking / ReDoS)
 - Locale/time: `Intl`, `Temporal`, `structuredClone`, `performance`
 - Eval/constructors: `eval`, `Function` (global reference set to `undefined`)
