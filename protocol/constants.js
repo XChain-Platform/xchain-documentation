@@ -537,9 +537,9 @@ const ANCHOR_ACTIVATION = {
 // Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
 const ARCHIVE_MATCH_COUNT_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 154939,
-    'LTC:testnet': 4905307,
-    'DOGE:testnet': 67960786,
+    'BTC:testnet': 154971,
+    'LTC:testnet': 4905844,
+    'DOGE:testnet': 67961578,
     testnet: 9999999999,
     regtest: 0,
 };
@@ -548,9 +548,9 @@ const ARCHIVE_MATCH_COUNT_ACTIVATION = {
 // Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
 const ANCHOR_BUNDLE_ORDER_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 154939,
-    'LTC:testnet': 4905307,
-    'DOGE:testnet': 67960786,
+    'BTC:testnet': 154971,
+    'LTC:testnet': 4905844,
+    'DOGE:testnet': 67961578,
     testnet: 9999999999,
     regtest: 0,
 };
@@ -617,9 +617,9 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // Regtest stays null unless XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms both fold gates together.
 const ANCHOR_FOLD_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 154939,
-    'LTC:testnet': 4905307,
-    'DOGE:testnet': 67960786,
+    'BTC:testnet': 154971,
+    'LTC:testnet': 4905844,
+    'DOGE:testnet': 67961578,
     testnet: 9999999999,
     regtest: null,
 };
@@ -640,9 +640,9 @@ const ANCHOR_FOLD_ACTIVATION = {
 // XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms this regtest entry with the fold, never ahead of it.
 const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 154939,
-    'LTC:testnet': 4905307,
-    'DOGE:testnet': 67960786,
+    'BTC:testnet': 154971,
+    'LTC:testnet': 4905844,
+    'DOGE:testnet': 67961578,
     testnet: 9999999999,
     regtest: null,
 };
@@ -1172,9 +1172,9 @@ const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
 // stricter rule can be scheduled. Regtest is genesis-active so replay exercises it.
 const AMOUNT_REPRESENTABILITY_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 1791019443,
-    'LTC:testnet': 1791019443,
-    'DOGE:testnet': 1791019443,
+    'BTC:testnet': 1791039938,
+    'LTC:testnet': 1791039938,
+    'DOGE:testnet': 1791039938,
     testnet: 9999999999,
     regtest: 0,
 };
@@ -1590,9 +1590,9 @@ const PRICE_SIG_TALLY_ACTIVATION = {
 // parity suite.
 const PRICE_FEE_BATCH_LANDED_ACTIVATION = {
     mainnet: null,
-    'BTC:testnet': 154939,
-    'LTC:testnet': 4905307,
-    'DOGE:testnet': 67960786,
+    'BTC:testnet': 154971,
+    'LTC:testnet': 4905844,
+    'DOGE:testnet': 67961578,
     testnet: null,
     regtest: null,
 };
@@ -1933,9 +1933,9 @@ const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
 const LIST_META_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 154939,
-    'LTC:testnet': 4905307,
-    'DOGE:testnet': 67960786,
+    'BTC:testnet': 154971,
+    'LTC:testnet': 4905844,
+    'DOGE:testnet': 67961578,
     regtest: 0,
 };
 
@@ -1954,9 +1954,9 @@ const LIST_META_ACTIVATION = {
 const LIST_OWNER_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 154939,
-    'LTC:testnet': 4905307,
-    'DOGE:testnet': 67960786,
+    'BTC:testnet': 154971,
+    'LTC:testnet': 4905844,
+    'DOGE:testnet': 67961578,
     regtest: 0,
 };
 
