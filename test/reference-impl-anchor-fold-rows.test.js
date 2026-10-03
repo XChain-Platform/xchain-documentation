@@ -51,7 +51,7 @@ describe('reference registry anchor fold rows', () => {
         );
     });
 
-    test('keeps both activation maps inert by default', (t) => {
+    test('keeps both activation maps inert on mainnet and armed at the v0.21.3 testnet heights', (t) => {
         // These cases wait for this repo's SHARED-block twin to carry the pair.
         if (present.length !== 2) {
             t.skip('anchor fold registry rows are not present yet');
@@ -61,6 +61,9 @@ describe('reference registry anchor fold rows', () => {
             for (const key of KEYS) {
                 assert.deepEqual(registry.get(key), {
                     mainnet: 9999999999,
+                    'BTC:testnet': 154939,
+                    'LTC:testnet': 4905307,
+                    'DOGE:testnet': 67960786,
                     testnet: 9999999999,
                     regtest: null,
                 });
