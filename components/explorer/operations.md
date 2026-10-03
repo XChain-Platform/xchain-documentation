@@ -280,6 +280,39 @@ This allows adding new coins or changing database credentials without restarting
 
 If the hub becomes unreachable during operation, the explorer continues using the last known good configuration.
 
+### Hub Mirror Selection and Failover
+
+Failover applies to each self-synced checkpoint mirror. Set `HUB_SEED_URLS` to
+a comma-separated list of hub feed base URLs, or set `hub_seed_urls` in that
+coin's `database.checkpoint` block. The per-chain selector shuffles the seeds,
+follows one while it is healthy, and adds addresses returned by the followed
+hub's `gethubs` call after a certified drain. A newly selected hub cannot serve
+mirrored data until its first full drain has certified.
+
+`HUB_SEED_URLS=default` expands to the built-in validator feed URLs for the
+configured network: port 10001 on mainnet and port 10002 on testnet. Regtest
+has no built-in hub addresses, so `default` is refused there. List every
+regtest hub explicitly.
+
+Leave the seed setting unset and configure only `database.checkpoint.hub_url`
+or `HUB_API_URL` to retain pinned mode. That mirror reconnects to the one URL
+and never moves. Configuration discovery remains on its separately configured
+hub URL and does not follow mirror selection.
+
+The mirror moves after `HUB_FAILOVER_RECONNECT_ATTEMPTS` consecutive connection
+failures, default `3`, or when a watermark stall survives one same-hub resync.
+The stall timers are `HUB_SYNC_WATERMARK_STALL_S`, default `180`, followed by
+`HUB_SYNC_WATERMARK_STALL_EXIT_S`, default `300`, for about 8 minutes total at
+the defaults. A ready frame with `caught_up: false` is not certified and the
+selector tries another candidate when one exists. `HUB_FAILOVER_MIN_DWELL_MS`,
+default `120000`, suppresses rapid moves between candidates.
+
+Set `HUB_FEED_API_KEY` to the read-only key for snapshots, subscriptions, and
+`gethubs`. It falls back to `HUB_API_KEY` when unset. The explorer itself is a
+read-only consumer and sends no reports. Indexers using the same hub set keep
+per-hub delivery state and send each queued report to every known hub, so an
+outage at one hub does not prevent delivery to the others.
+
 ## Troubleshooting
 
 ### Explorer won't start
