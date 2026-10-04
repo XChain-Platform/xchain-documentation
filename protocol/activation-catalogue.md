@@ -85,6 +85,7 @@ same chain or field.
 | `oracle_hourly_window_activation` | `ORACLE_HOURLY_WINDOW_FIRST_ROUND` | constant |
 | `oracle_preload_causality_activation` | `ORACLE_PRELOAD_CAUSALITY_ACTIVATION` | height |
 | `oracle_price_age_hourly_activation` | `ORACLE_PRICE_AGE_HOURLY_ACTIVATION` | height |
+| `oracle_round_time_activation` | `ORACLE_ROUND_TIME_ACTIVATION` | height |
 | `oracle_snapshot_age_causality_activation` | `ORACLE_SNAPSHOT_AGE_CAUSALITY_ACTIVATION` | height |
 | `oracle_stale_round_visibility_activation` | `ORACLE_STALE_ROUND_VISIBILITY_ACTIVATION` | height |
 | `order_swap_payout_policy_activation` | `ORDER_SWAP_PAYOUT_POLICY_PER_TOKEN` | height |
