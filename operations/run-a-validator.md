@@ -319,6 +319,8 @@ ceiling can re-drive the wait but never credits an unproven transfer. Apply
 this rule to every origin and destination pair in any two-stack deployment,
 not only to BTC and DOGE.
 
+To try a cross-chain trade between Bitcoin testnet and Litecoin testnet once your validator is running, follow [Testnet Cross-Chain Pair](./testnet-cross-chain-pair.md).
+
 ## Step 6: decide your capabilities
 
 `config/validator/hub-caps/capabilities.json` is ready to go for `price`,
