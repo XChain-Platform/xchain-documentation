@@ -1686,6 +1686,20 @@ const ORACLE_HOURLY_WINDOW_FIRST_ROUND = {
     regtest: 0,
 };
 
+// ORACLE_ROUND_TIME_ACTIVATION: canonical authority for registry row
+// oracle_round_time_activation.ORACLE_ROUND_TIME_ACTIVATION. At and above a
+// chain's height, the signed PRICE v0 timestamp is the nominal round start and
+// followers refuse any other timestamp. No live network is armed; regtest is
+// genesis-active so tests exercise the rule.
+const ORACLE_ROUND_TIME_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    'BTC:testnet': 155158,
+    'LTC:testnet': 4907593,
+    'DOGE:testnet': 67966647,
+    regtest: 0,
+};
+
 // Maximum accepted price age after ORACLE_PRICE_AGE_HOURLY_ACTIVATION: six
 // 600-second rounds plus 300 seconds of grace and 300 seconds of landing reserve
 // make 4200 seconds, with another 300 seconds of headroom.
@@ -2467,6 +2481,7 @@ module.exports = {
     ORACLE_DEVIATION_THRESHOLD,
     ORACLE_PRICE_AGE_HOURLY_ACTIVATION,
     ORACLE_HOURLY_WINDOW_FIRST_ROUND,
+    ORACLE_ROUND_TIME_ACTIVATION,
     ORACLE_MAX_PRICE_AGE_HOURLY_SECONDS,
     ORACLE_HOURLY_WINDOW_ROUNDS,
     TRAIN_ACTIVATION,

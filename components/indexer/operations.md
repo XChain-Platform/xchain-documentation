@@ -330,6 +330,49 @@ Batches are ordered by `window_start`, then `action_index`. An empty head with `
 
 Administrative methods such as `reparse` and `rollback` are not exposed via the JSON-RPC API; reorg recovery runs automatically via the internal `Rollback` class.
 
+## Hub Feed Selection and Failover
+
+Hub failover applies when `HUB_DB_SYNC_ENABLED=true`. Set `HUB_SEED_URLS` to a
+comma-separated list of hub feed base URLs. The selector shuffles the seeds,
+follows one while it is healthy, and adds the addresses returned by that hub's
+`gethubs` call after a certified drain. A move chooses another candidate from
+the shuffled set. The new hub cannot release a mirror barrier until its first
+full drain has certified.
+
+`HUB_SEED_URLS=default` expands to the built-in validator feed URLs for the
+configured `INDEXER_NETWORK`: port 10001 on mainnet and port 10002 on testnet.
+Regtest has no built-in hub addresses, so `default` is refused there. Supply
+explicit URLs for every regtest hub instead.
+
+Leave `HUB_SEED_URLS` unset and set `HUB_API_URL` to retain pinned mode. A pinned
+indexer always reconnects to that one URL and never moves. `HUB_CONFIG_URL` is
+also pinned and never follows feed selection, because `getallconfigs` belongs
+on the private configuration API. An indexer that reads a hub MariaDB directly
+instead of enabling hub DB sync remains pinned as well.
+
+The selector moves to another candidate for either of these reasons:
+
+- A connection fails `HUB_FAILOVER_RECONNECT_ATTEMPTS` consecutive times. The
+  default is `3`, which is about 15 seconds at the default reconnect cadence.
+- The stream watermark remains frozen for `HUB_SYNC_WATERMARK_STALL_S` seconds,
+  survives one same-hub resync, and remains frozen for another
+  `HUB_SYNC_WATERMARK_STALL_EXIT_S` seconds. The defaults are 180 and 300
+  seconds, respectively, so a quiet hub is left after about 8 minutes. A hub
+  whose ready frame says `caught_up: false` is not certified and is skipped
+  when another candidate is available.
+
+`HUB_FAILOVER_MIN_DWELL_MS` prevents rapid movement between hubs after a
+selection change. Its default is `120000` (2 minutes). Set the same failover
+and watermark values on peer indexers when predictable fleet-wide timing is
+important.
+
+Use `HUB_FEED_API_KEY` for the read-only snapshot, subscription, and `gethubs`
+feed. If it is unset, those reads fall back to `HUB_API_KEY`. Outbound reports
+continue to use `HUB_API_KEY`, with retraction reports using
+`HUB_REORG_API_KEY` when configured. The durable report queue tracks delivery
+per hub and sends every report to every known hub; one unavailable hub leaves
+only that hub's delivery pending.
+
 ## Resilience and Recovery
 
 ### Database Connection Recovery
