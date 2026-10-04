@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-10-04
+
+### Added
+- Documented HUB_SEED_URLS failover, pinned mode, move triggers, and multi-hub report delivery.
+- Documented HUB_FEED_API_KEY, public hub addresses, discovery, and peer catch-up readiness.
+
+### Changed
+- Expanded node configuration guidance for hub failover host settings.
+- Armed ORACLE_ROUND_TIME_ACTIVATION on BTC:testnet at 155158.
+- Armed ORACLE_ROUND_TIME_ACTIVATION on LTC:testnet at 4907593.
+- Armed ORACLE_ROUND_TIME_ACTIVATION on DOGE:testnet at 67966647.
+
 ## [0.21.3] - 2026-10-03
 
 ### Changed

@@ -1694,9 +1694,9 @@ const ORACLE_HOURLY_WINDOW_FIRST_ROUND = {
 const ORACLE_ROUND_TIME_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 155158,
+    'LTC:testnet': 4907593,
+    'DOGE:testnet': 67966647,
     regtest: 0,
 };
 
