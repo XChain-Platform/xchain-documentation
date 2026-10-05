@@ -91,6 +91,7 @@ same chain or field.
 | `order_swap_payout_policy_activation` | `ORDER_SWAP_PAYOUT_POLICY_PER_TOKEN` | height |
 | `price_batching_floor_activation` | `PRICE_BATCHING_FLOOR_ACTIVATION` | time |
 | `price_fee_batch_landed_activation` | `PRICE_FEE_BATCH_LANDED_ACTIVATION` | height |
+| `price_landed_strict_activation` | `PRICE_LANDED_STRICT_ACTIVATION` | height |
 | `price_pair_activation` | `PRICE_PAIR_WIDEN_ACTIVATION` | time |
 | `price_scale_activation` | `PRICE_SCALE_ACTIVATION` | time |
 | `price_sig_tally_activation` | `PRICE_SIG_TALLY_ACTIVATION` | height |
