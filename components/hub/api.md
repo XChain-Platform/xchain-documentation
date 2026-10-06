@@ -866,9 +866,23 @@ Attestation throughput counters for this hub's attestation rounds. Useful for mo
   "seen_count":120,
   "in_flight_count":2,
   "proposed_count":115,
-  "failed_count":3
+  "failed_count":3,
+  "fetch_count":115,
+  "fetch_cache_hit_count":4,
+  "finalized_skip_count":2,
+  "poll_rpc_error_count":0,
+  "last_successful_poll_age_ms":850,
+  "nonok_published_count":7,
+  "nonok_published_max":40000,
+  "nonok_evicted_while_pending_count":0,
+  "finalized_count":112,
+  "finalized_max":10000,
+  "finalized_evicted_while_pending_count":0,
+  "consensus_timeout_count":0
 }
 ```
+
+The ring and timeout fields appear only when the consensus engine is active on this hub.
 
 | Field | Type | Description |
 |---|---|---|
@@ -876,6 +890,18 @@ Attestation throughput counters for this hub's attestation rounds. Useful for mo
 | `in_flight_count` | integer | Requests seen but whose round has not yet resolved |
 | `proposed_count` | integer | Rounds that reached a proposal |
 | `failed_count` | integer | Rounds that ended in error |
+| `fetch_count` | integer | Provider fetches performed, monotonic for the process life |
+| `fetch_cache_hit_count` | integer | Requests served from the fetch cache |
+| `finalized_skip_count` | integer | Requests skipped because the round had already finalized |
+| `poll_rpc_error_count` | integer | Polls rejected by the indexer; rises while the feed is stalled |
+| `last_successful_poll_age_ms` | integer or null | Milliseconds since the last successful poll; `null` when none has succeeded since boot |
+| `nonok_published_count` | integer | Current occupancy of the non-ok publication-throttle ring |
+| `nonok_published_max` | integer | Ring capacity (`ATTESTATION_NONOK_PUBLISHED_MAX`) |
+| `nonok_evicted_while_pending_count` | integer | Ring entries evicted while their request was still pending; monotonic, alert on a rise (an undersized cap) |
+| `finalized_count` | integer | Current occupancy of the ok/finalized suppression ring |
+| `finalized_max` | integer | Ring capacity (`ATTESTATION_FINALIZED_MAX`) |
+| `finalized_evicted_while_pending_count` | integer | Finalized-ring entries evicted while still pending; monotonic, alert on a rise (duplicate rounds and re-spent fees) |
+| `consensus_timeout_count` | integer | Rounds torn down by the consensus timeout; monotonic, alert on a rise |
 
 ## Swap Tracking
 
