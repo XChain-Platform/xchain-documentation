@@ -49,19 +49,21 @@ Rewards accumulate from multiple validator activities, all stored in the indexer
 
 | Reward Type | Earned By | Trigger |
 |---|---|---|
-| `oracle_round` | Validator with `price` capability | Legacy label (used when `FULLNODE.REWARD_SHARE` is 0): signature included in the on-chain PRICE v0 action of a finalized price round; the full per-round budget is split equally across all qualified signers |
-| `oracle_base` | Validator with `price` capability | Active-regime label (used when `FULLNODE.REWARD_SHARE` > 0): the base tranche of the per-round budget, split equally across all qualified signers; replaces `oracle_round` once the full-node reward tier is activated |
-| `oracle_full_node` | Validator with `price` and `full_node` capabilities | Active-regime only: the full-node tranche of the per-round budget, split equally across verified full-node sources that signed the round and met the trailing `MIN_PASS_RATE_BPS` participation threshold |
+| `oracle_round` | Validator with `price` capability | Legacy label, no consensus rail mints it today (see Reward Population Path); when minted with `FULLNODE.REWARD_SHARE` at 0: signature included in the on-chain PRICE v0 action of a finalized price round; the full per-round budget is split equally across all qualified signers |
+| `oracle_base` | Validator with `price` capability | Active-regime label, not minted by any consensus rail today; when `FULLNODE.REWARD_SHARE` > 0: the base tranche of the per-round budget, split equally across all qualified signers; replaces `oracle_round` once the full-node reward tier is activated |
+| `oracle_full_node` | Validator with `price` and `full_node` capabilities | Active-regime only, not minted by any consensus rail today: the full-node tranche of the per-round budget, split equally across verified full-node sources that signed the round and met the trailing `MIN_PASS_RATE_BPS` participation threshold |
 | `attest_fee` | Validator with `attestation` capability | Share of the request fee for a fulfilled ATTEST request |
+| `rollcall_publish` | Validator elected as the roll-call publisher | The elected leader of a rolled ROLLCALL epoch receives the frozen `ROLLCALL_REWARD_AMOUNT`, minted by the BTC-side epoch close; an unrolled epoch mints none (see [ROLLCALL](rollcall.md)) |
 | `anchor_bundle` | Validator with `oracle_publish` capability | Publishing an ANCHOR v0 checkpoint bundle or, at or above that network's `ANCHOR_FOLD_ACTIVATION`, a v3 folded bundle: one reward per bundle whether or not an archive section rode along |
 | `anchor_archive` | Validator with `oracle_publish` capability | Publishing an ANCHOR v1 archive batch below that network's `ANCHOR_FOLD_ACTIVATION`; [retired at the fold](./anchor.md#version-3-only), so no v3, folded or not, mints one; rows below the fold height stay readable, and a network that never arms the fold keeps minting it through v1 |
 
 ## Reward Population Path
 
-Reward rows reach the indexer's `validator_rewards` table on two rails:
+Reward rows reach the indexer's `validator_rewards` table only by derivation during block processing; the hub push rail is retired:
 
-- **Derived (replayable):** `oracle_round` / `oracle_base` / `oracle_full_node` and `attest_fee` are computed by the indexer itself during block processing, as deterministic functions of on-chain actions. The oracle reward type used depends on whether the full-node reward tier is active (`FULLNODE.REWARD_SHARE` > 0): when inactive the full per-round budget is credited as `oracle_round`; when active it is split into an `oracle_base` tranche (all qualified signers) and an `oracle_full_node` tranche (verified full-node sources that met the participation threshold). `attest_fee` splits a fulfilled request's fee across its responsible set. A reindex reproduces these rows exactly.
-- **Derived at or above the reward flag-day, pushed below it:** `anchor_bundle` and `anchor_archive` each have their own boundary, `ANCHOR_REWARD_ACTIVATION` and `ARCHIVE_REWARD_ACTIVATION` in `protocol/constants.js` (mainnet 961000 and 963000; both genesis-active on testnet and regtest). At or above its own flag-day the type's reward is DERIVED by every indexer from the on-chain ANCHOR bytes, the elected `PUBLISHER` plus a quorate `XANCPUB` attestation, crediting the frozen reward amount and never an amount from the wire, so a chain parse reproduces the row exactly. Below it the hub federation recorded the reward when the anchor published and pushed it via the `pushvalidatorrewards` JSON-RPC endpoint (which rejects any non-anchor type); those historical rows a chain parse cannot re-derive, so they ride the ANCHOR v1 archive and are restored by full-parse recovery (see [ANCHOR](anchor.md)).
+- **Oracle labels:** `oracle_round`, `oracle_base` and `oracle_full_node` are the labels the split uses, but the indexer's PRICE v0 parse derives no reward rows today, so no consensus rail mints them. The hub keeps its own local ledger of per-round splits (`ORACLE_REWARD_PER_ROUND`) for visibility; it is not a COLLECT source.
+- **Derived (replayable):** `attest_fee` splits a fulfilled request's fee across its responsible set, and `rollcall_publish` is minted to the elected publisher at the ROLLCALL epoch close. A reindex reproduces these rows exactly.
+- **Anchor rewards, derived at or above the reward flag-day:** `anchor_bundle` and `anchor_archive` each have their own boundary, `ANCHOR_REWARD_ACTIVATION` and `ARCHIVE_REWARD_ACTIVATION` in `protocol/constants.js` (mainnet 961000 and 963000; both genesis-active on testnet and regtest). At or above its own flag-day the type's reward is DERIVED by every indexer from the on-chain ANCHOR bytes, the elected `PUBLISHER` plus a quorate `XANCPUB` attestation, crediting the frozen reward amount and never an amount from the wire, so a chain parse reproduces the row exactly. Below it the hub federation recorded the reward when the anchor published and pushed it via the `pushvalidatorrewards` JSON-RPC endpoint (now retired and answering method-not-found); those historical rows a chain parse cannot re-derive, so they ride the ANCHOR v1 archive and are restored by full-parse recovery (see [ANCHOR](anchor.md)).
 
 `COLLECT` queries the indexer's `validator_rewards` table directly. No hub round-trip during transaction processing.
 
@@ -79,10 +81,10 @@ If the pool cannot cover the full pending reward, the `COLLECT` is rejected with
 
 ```mermaid
 flowchart TD
-    D1["Indexer computes oracle_round / oracle_base /<br>oracle_full_node / attest_fee during block processing"]
+    D1["Indexer computes attest_fee / rollcall_publish<br>during block processing"]
     D2["Indexer derives anchor_bundle / anchor_archive<br>from the on-chain ANCHOR bytes<br>(at or above that type's reward flag-day)"]
     P1["Hub federation recorded anchor_bundle / anchor_archive<br>reward on publish (below the flag-day)"]
-    P2["Pushed via pushvalidatorrewards JSON-RPC<br>(retired path, pre-flag-day history only)"]
+    P2["Pushed via pushvalidatorrewards JSON-RPC<br>(retired, method removed; pre-flag-day history only)"]
     VR[("validator_rewards table")]
     C1["COLLECT sums unclaimed rewards<br>at or before its own block"]
     C2{"Reward pool holds<br>enough XCHAIN?"}
