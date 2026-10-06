@@ -345,14 +345,19 @@ and `BET_EXPIRE` (the system refund pass's minted action).
   "type": "BET",
   "data": {
     "action_index": "45900",
-    "feed_action_index": "45800",
+    "tx_hash": "9f2c...",
+    "block_index": "962400",
     "source": "1abc...",
-    "outcome": 1,
-    "amount": "250.00000000",
-    "tick": "PEPE"
+    "status": "valid",
+    "feed_action_index": "45800",
+    "action_format": 2
   }
 }
 ```
+
+`feed_action_index` is the parent market's `action_index` (null if it cannot be resolved).
+`action_format` is the discriminator the single `BET` type needs: 0 create, 1 cancel, 2 place a bet,
+3 resolve. It is null only for `BET_EXPIRE`, which its own type already identifies.
 
 One event on this channel has no action row behind it:
 
