@@ -345,15 +345,13 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `ORACLE_REWARD_PER_ROUND` | No | `"10.00000000"` | XCHAIN distributed per finalized oracle round |
+| `ORACLE_REWARD_PER_ROUND` | No | `"10.00000000"` | XCHAIN budget the hub splits equally among the validators that submitted a price in a finalized round, for its own local `validator_rewards` ledger only. It is not pushed to the indexer and does not change what the chain credits |
 | `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation (5%) at which the hub records a `price_deviation` offense. Hub-local: governance can suspend the validator, on-chain stake is untouched |
 | `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Missed rounds at which the hub records a `non_participation` offense. Hub-local: governance can set `validators.status='suspended'`, on-chain stake is untouched. Only a permissionless SLASH proof of equivocation burns stake (see [Decentralization](decentralization.md)) |
-| `REWARD_PUSH_MAX_ATTEMPTS` | No | `3` | Attempts `RewardTracker` makes when pushing a validator-reward record to the indexer before giving up and recording the failure. The push was previously fire-and-forget, so a dropped push lost the reward record silently. |
-| `REWARD_PUSH_RETRY_DELAY_MS` | No | `2000` | Delay (ms) between those attempts. |
 
 ### ANCHOR Publishing
 
-Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match archive on-chain via the DOGE ANCHOR action) and `RewardTracker` (anchor-publish reward amount).
+Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match archive on-chain via the DOGE ANCHOR action) and `RewardTracker` (hub-local ledger of anchor-publish rewards; the chain credits the frozen amounts from the ANCHOR bytes, not this ledger).
 
 | Variable | Required | Default | Description |
 |---|---|---|---|

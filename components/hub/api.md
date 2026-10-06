@@ -866,9 +866,23 @@ Attestation throughput counters for this hub's attestation rounds. Useful for mo
   "seen_count":120,
   "in_flight_count":2,
   "proposed_count":115,
-  "failed_count":3
+  "failed_count":3,
+  "fetch_count":115,
+  "fetch_cache_hit_count":4,
+  "finalized_skip_count":2,
+  "poll_rpc_error_count":0,
+  "last_successful_poll_age_ms":850,
+  "nonok_published_count":7,
+  "nonok_published_max":40000,
+  "nonok_evicted_while_pending_count":0,
+  "finalized_count":112,
+  "finalized_max":10000,
+  "finalized_evicted_while_pending_count":0,
+  "consensus_timeout_count":0
 }
 ```
+
+The ring and timeout fields appear only when the consensus engine is active on this hub.
 
 | Field | Type | Description |
 |---|---|---|
@@ -876,6 +890,18 @@ Attestation throughput counters for this hub's attestation rounds. Useful for mo
 | `in_flight_count` | integer | Requests seen but whose round has not yet resolved |
 | `proposed_count` | integer | Rounds that reached a proposal |
 | `failed_count` | integer | Rounds that ended in error |
+| `fetch_count` | integer | Provider fetches performed, monotonic for the process life |
+| `fetch_cache_hit_count` | integer | Requests served from the fetch cache |
+| `finalized_skip_count` | integer | Requests skipped because the round had already finalized |
+| `poll_rpc_error_count` | integer | Polls rejected by the indexer; rises while the feed is stalled |
+| `last_successful_poll_age_ms` | integer or null | Milliseconds since the last successful poll; `null` when none has succeeded since boot |
+| `nonok_published_count` | integer | Current occupancy of the non-ok publication-throttle ring |
+| `nonok_published_max` | integer | Ring capacity (`ATTESTATION_NONOK_PUBLISHED_MAX`) |
+| `nonok_evicted_while_pending_count` | integer | Ring entries evicted while their request was still pending; monotonic, alert on a rise (an undersized cap) |
+| `finalized_count` | integer | Current occupancy of the ok/finalized suppression ring |
+| `finalized_max` | integer | Ring capacity (`ATTESTATION_FINALIZED_MAX`) |
+| `finalized_evicted_while_pending_count` | integer | Finalized-ring entries evicted while still pending; monotonic, alert on a rise (duplicate rounds and re-spent fees) |
+| `consensus_timeout_count` | integer | Rounds torn down by the consensus timeout; monotonic, alert on a rise |
 
 ## Swap Tracking
 
@@ -1286,33 +1312,9 @@ ANCHOR publisher status (read, no auth): cumulative anchor counts plus the last-
 
 ## Rewards
 
-### `pushvalidatorrewards` (write: requires API key, indexer endpoint)
+### `pushvalidatorrewards` (retired)
 
-> **Note:** this method is implemented on `xchain-indexer`, not the hub. The hub's `RewardTracker` calls it to persist anchor-publish reward rows into the indexer's `validator_rewards` table.
-
-> **Retired for new anchor rewards.** At or above `ANCHOR_REWARD_ACTIVATION` (for `anchor_bundle`) and `ARCHIVE_REWARD_ACTIVATION` (for `anchor_archive`) every indexer DERIVES the reward from the on-chain ANCHOR bytes, so this push no longer establishes those rows; it remains documented because it is how pre-flag-day rows arrived, and those rows are not re-derivable from a chain parse. See [ANCHOR](../../protocol/actions/anchor.md).
-
-Accepted `reward_type` values must match `^anchor_[A-Za-z_]+$` (the live types are `anchor_bundle` for a checkpoint bundle and `anchor_archive` for a match-archive batch). The indexer **rejects** `oracle_round` and `attest_fee` because those are derived deterministically during block processing, accepting a push for them would open a replay-divergence window.
-
-**Request** (from hub → indexer):
-```json
-{
-  "jsonrpc":"2.0",
-  "method":"pushvalidatorrewards",
-  "params":{
-    "round":850010,
-    "reward_type":"anchor_bundle",
-    "block_index":850010,
-    "rewards":[{"pubkey":"a1b2c3...","amount":"10.00000000"}]
-  },
-  "id":1
-}
-```
-
-**Response:**
-```json
-{"status":"success","written":1,"skipped":0}
-```
+This method no longer exists on the hub or the indexer; a call answers JSON-RPC `-32601` (method not found). It was a key-authenticated indexer rail the hub's `RewardTracker` used to persist anchor-publish reward rows. Every reward that rail carried is now derived by every indexer from on-chain bytes, and the hub holds no caller for it. See [COLLECT](../../protocol/actions/collect.md#reward-population-path) and [ANCHOR](../../protocol/actions/anchor.md).
 
 ## Monitoring Stats
 
