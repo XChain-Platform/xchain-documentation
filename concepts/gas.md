@@ -27,7 +27,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value f
 
 | Parameter | Value | Notes |
 |---|---|---|
-| **GAS_PRICE** | 0.00001 XCHAIN/gas | Governance-adjustable. Single lever to scale all fees. |
+| **GAS_PRICE** | 0.00001 XCHAIN/gas | Pinned in the bundled coin registry. Single lever to scale all fees. |
 | **FEE_PAYMENT_MODE** | `xchain` or `native` (per chain) | Informational per-chain config. `xchain` = accepts both XCHAIN-balance and native-coin payment (BTC). `native` = native-coin payment only (LTC, DOGE). Readable by wallets and the SDK via `GET /{COIN}/api/feeschedule`. |
 
 **Anchor:** ISSUE = 100,000 gas = 1.0 XCHAIN at initial GAS_PRICE.
@@ -231,16 +231,16 @@ chokepoint and warns the user that a native-coin fee is forfeited if the transac
 > "not quotable" there means "not payable": that is why the two VM actions are priced statically
 > rather than refused.
 
-## Governance
+## Changing Fees
 
-All fee parameters are governance-adjustable via the hub's PBFT voting mechanism:
+Fee parameters are consensus-critical: they feed block-hashed state, so the indexer reads them only from the bundled per-chain registry and ignores any hub configuration row that disagrees (the hub logs it as inert). Live governance voting does not move them. A change ships as a coordinated release and activates fleet-wide at a flag-day height.
 
-| Parameter | Adjustment |
+| Parameter | Effect of a change |
 |---|---|
 | **GAS_PRICE** | Scales all fees proportionally |
 | **Individual gas costs** | Fine-tune specific action costs |
-| **Tolerance band** | Adjust fee validation window |
-| **Free period** | Adjust expiration fee free days |
+| **Tolerance band** | Adjusts the fee validation window |
+| **Free period** | Adjusts expiration fee free days |
 
 ---
 
