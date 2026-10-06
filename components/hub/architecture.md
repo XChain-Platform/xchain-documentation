@@ -129,7 +129,7 @@ flowchart TD
 | `cross_chain/swap_tracker.js` | `SwapTracker` | Cross-chain SWAP lifecycle tracking: initiated → attested → executed → settled |
 | `anchor/reorg_handler.js` | `ReorgHandler` | Blockchain reorg detection, PBFT consensus, and hub state rollback |
 | `validators/governance.js` | `Governance` | Off-chain PBFT voting for parameter changes |
-| `anchor/reward_tracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants; pushed anchor rewards to the BTC indexer for `COLLECT` below the anchor-reward flag-days, a rail retired at or above them in favour of indexer-side derivation from the ANCHOR bytes |
+| `anchor/reward_tracker.js` | `RewardTracker` | Per-round XCHAIN reward distribution to oracle participants and anchor-publish reward rows, kept in the hub-local `validator_rewards` ledger only; nothing is pushed to the indexer, which derives anchor rewards from the ANCHOR bytes |
 | `validators/slash_detector.js` | `SlashDetector` | Validator misbehavior detection: price deviation, non-participation |
 | `oracle/price_aggregator.js` | `PriceAggregator` | Receives validated PRICE v0/v1 actions from indexers, deduplicates by `round_number` (v0) or `(source, action_index)` (v1), writes to `price_snapshots`/`oracle_prices`. EventEmitter: emits `row:inserted` for hub DB sync. |
 | `oracle/publisher.js` | `OraclePublisher` | `oracle_publish` capability publisher: deterministic leader rotation, persistent JSONL queue, builds PRICE v0 wire format, broadcasts to DOGE via the encoder pipeline, monitors DOGE balance |
@@ -330,7 +330,7 @@ flowchart TD
         S7["7. PROPOSE<br>Leader broadcasts ORACLE_PROPOSE (with sig)"]
         S8["8. PREPARE<br>Validators verify and send ORACLE_PREPARE (with their sig)<br>→ sigs stored on pending.signatures Map<br>→ collect the majority-floored quorum of prepares"]
         S9["9. COMMIT<br>Leader broadcasts ORACLE_COMMIT (with sig)<br>→ collect the majority-floored quorum of commits"]
-        S10["10. FINALIZE<br>Store in price_snapshots (status='finalized')<br>→ reference_block = btcBlockHeight (not 0)<br>→ emit round:finalized event with collected sigs<br>→ RewardTracker distributes XCHAIN (pushes to BTC indexer)<br>→ SlashDetector checks for misbehavior<br>→ OraclePublisher queues for DOGE broadcast (if leader)"]
+        S10["10. FINALIZE<br>Store in price_snapshots (status='finalized')<br>→ reference_block = btcBlockHeight (not 0)<br>→ emit round:finalized event with collected sigs<br>→ RewardTracker records the per-round split in the hub-local ledger<br>→ SlashDetector checks for misbehavior<br>→ OraclePublisher queues for DOGE broadcast (if leader)"]
 
         S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9 --> S10
     end
