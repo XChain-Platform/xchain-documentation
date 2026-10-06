@@ -575,7 +575,7 @@ For a cross-chain action, only validators supporting *both* chains in the pair p
 
 ### 10.5 Governance
 
-Parameters are changed by off-chain PBFT-style governance voting over the gossip layer. Proposals run for a **7-day** voting period, require a minimum 50% participation quorum and **two-thirds** approval (measured against the full validator count), are bounded in how far they may move a parameter per change, and observe a **14-day** cooldown before a rejected parameter may be re-proposed. Votes are signed and uniquely constrained to one per validator per proposal (a validator may change its vote within the window). Fee parameters, oracle cadence, the provider set, and slashing thresholds are governance-controlled. (Capability minimum stakes are governance-controlled by design but guarded off pre-launch, because the indexer re-derives them from frozen per-chain config.)
+Parameters are changed by off-chain PBFT-style governance voting over the gossip layer. Proposals run for a **7-day** voting period, require a minimum 50% participation quorum and **two-thirds** approval (measured against the full validator count), are bounded in how far they may move a parameter per change, and observe a **14-day** cooldown before a rejected parameter may be re-proposed. Votes are signed and uniquely constrained to one per validator per proposal (a validator may change its vote within the window). Oracle cadence, the provider set, and slashing thresholds are governance-controlled; fee parameters are consensus-critical and change only through a coordinated activation, not a live vote. (Capability minimum stakes are governance-controlled by design but guarded off pre-launch, because the indexer re-derives them from frozen per-chain config.)
 
 ### 10.6 Trust model
 
@@ -711,7 +711,7 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 
 | Parameter | Current value |
 |---|---|
-| `GAS_PRICE` | 0.00001 XCHAIN/gas (governance-adjustable) |
+| `GAS_PRICE` | 0.00001 XCHAIN/gas (pinned in the coin registry; changed only by a coordinated activation) |
 | ISSUE | 100,000 gas (anchor = 1.0 XCHAIN) |
 | Sub-token ISSUE | 50,000 gas |
 | EXECUTE base | 1,000 gas |
