@@ -155,9 +155,9 @@ Derives keys from the unlocked vault and signs in the host process. The fastest 
 
 ### `TrezorSigner`
 
-Trezor Connect over WebUSB / WebHID. Supported on all current Trezor models.
+Trezor's hosted Connect build (`connect.trezor.io`), loaded at runtime rather than bundled. Available in the web wallet and the desktop app; the browser extension and the mobile apps ship no Trezor support. On desktop it runs only inside an isolated bridge window with no preload, and the desktop shell bundles no native USB or HID bindings. Supported on all current Trezor models.
 
-- **Pairing**: Trezor Connect popup; the wallet records the device's public key and a `displayName` in the signers store
+- **Pairing**: Trezor Connect popup (web) or the isolated bridge window (desktop); the wallet records the device's public key and a `displayName` in the signers store
 - **PSBT signing**: `trezorFormat.js` (`core/src/signers/trezorFormat.js`) adapts XChain PSBTs to Trezor's expected schema, with the OP_RETURN / P2SH / P2WSH / multisig encoding modes mapped to Trezor's `output_script_type` taxonomy
 - **Message signing**: Trezor's native message-sign flow
 - **Multisig**: classical n-of-m PSBT signing flow is scaffolded but vendor-API-heavy; current builds surface a deferral pointing the user at the software signer for full coverage. MuSig2 nonce wiring is firmware-gated and not yet shipped
