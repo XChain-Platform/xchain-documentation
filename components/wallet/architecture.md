@@ -184,10 +184,10 @@ Four concrete implementations:
 
 - **`SoftwareSigner`**: derives keys from the unlocked vault, signs in the host process
 - **`TrezorSigner`** (in `@xchain-wallet/signers-trezor`): Trezor's hosted Connect build, all current models, in the web and desktop shells only (the extension ships no Trezor support); `trezorFormat.js` adapts XChain PSBTs to Trezor's expected schema
-- **`LedgerSigner`** (in `@xchain-wallet/signers-ledger`): `@ledgerhq/hw-app-btc` with a shell-supplied transport (WebHID on web, extension and desktop; no native HID module is bundled); `ledgerFormat.js` adapts XChain PSBTs
+- **`LedgerSigner`** (in `@xchain-wallet/signers-ledger`): `@ledgerhq/hw-app-btc` with a shell-supplied transport (WebHID on web/extension, node-HID on desktop); `ledgerFormat.js` adapts XChain PSBTs
 - **`RemoteSigner`**: proxies signing calls over an injected transport to wherever the live hardware signer lives (for example, service worker to popup in the extension); `signerPortProtocol.js` defines the message envelope
 
-A dedicated `MultisigSigner` is planned but not yet implemented; the design is composite: it orchestrates n-of-m round-trips via PSBT-QR or paste-inbox transport, ultimately delegating to per-cosigner signers underneath, and today that orchestration lives in flows over the existing signers. Construction of hardware-backed signers differs per shell because transports are shell-specific (hosted Trezor Connect in an iframe popup on web and in an isolated bridge window on desktop, WebHID for Ledger on web, extension and desktop, and so on); `signerFactories/` holds that per-shell wiring.
+A dedicated `MultisigSigner` is planned but not yet implemented; the design is composite: it orchestrates n-of-m round-trips via PSBT-QR or paste-inbox transport, ultimately delegating to per-cosigner signers underneath, and today that orchestration lives in flows over the existing signers. Construction of hardware-backed signers differs per shell because transports are shell-specific (hosted Trezor Connect in an iframe popup on web and in an isolated bridge window on desktop, WebHID in the web shell and extension for Ledger, and so on); `signerFactories/` holds that per-shell wiring.
 
 Hardware signers expose vendor-specific deferral errors when a feature isn't yet supported in firmware (for example, MuSig2 nonce wiring on Trezor / Ledger), with a documented path to fall back to the software signer.
 
