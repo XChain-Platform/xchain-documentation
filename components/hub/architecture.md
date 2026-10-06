@@ -487,7 +487,7 @@ flowchart TD
 
 ### Rewards
 
-On each finalized oracle round, `ORACLE_REWARD_PER_ROUND` (default "10.00000000") XCHAIN is distributed equally among validators who submitted a price in that round. Rewards are recorded in the `validator_rewards` table with `claimed=0` and are collectable via a `COLLECT` action on the BTC chain (handled by the indexer, not the hub).
+On each finalized oracle round, `RewardTracker` splits `ORACLE_REWARD_PER_ROUND` (default "10.00000000") XCHAIN equally among the validators who submitted a price, floored to the 8-decimal grid, and records one `validator_rewards` row per validator in the hub database. This ledger is hub-local, for `getRewardHistory` and dashboards: nothing is pushed to the indexer (the `pushvalidatorrewards` rail is retired), and the setting does not change what the chain credits. The rewards a `COLLECT` can claim are the rows the indexer itself derives from on-chain actions (see [COLLECT](../../protocol/actions/collect.md#reward-sources)).
 
 ### Slash Detection
 
