@@ -7,25 +7,25 @@
 
 | File | Role |
 |---|---|
-| `src/BlockchainConnector.js` | JSON-RPC client for coin node (axios, Basic Auth). Methods: `getNetworkInfo`, `broadcastTx`, `waitForTx`, `getTransactionHex`, `getFeePerKilobyte`, plus reorg primitives (`invalidateBlock`, `reconsiderBlock`, `generateBlock`, etc.) |
+| `src/blockchain_connector.js` | JSON-RPC client for coin node (axios, Basic Auth). Methods: `getNetworkInfo`, `broadcastTx`, `waitForTx`, `getTransactionHex`, `getFeePerKilobyte`, plus reorg primitives (`invalidateBlock`, `reconsiderBlock`, `generateBlock`, etc.) |
 | `src/XChainUtxoTrackerConnector.js` | JSON-RPC client for UTXO tracker (axios). Methods: `ping`, `getSyncStatus`, `getQuiescentStatus`, `quiesce`, `getUtxosFromAddress`, `waitForUtxos` |
 | `src/XChainEncoderConnector.js` | JSON-RPC client for encoder (axios). Methods: `ping`, `createTx` (13 parameters) |
 | `src/XChainDecoderConnector.js` | JSON-RPC client for decoder (axios). Methods: `ping`, `health` |
 | `src/XChainIndexerConnector.js` | JSON-RPC client for indexer (axios). Methods: `ping`, `health`, `call`, `getCapabilityValidators`, `getStakeSourceByPubkey`, `waitForIndexedBlock` |
 | `src/XChainExplorerConnector.js` | JSON-RPC client for explorer (axios). Methods: `ping` |
 | `src/XChainHubConnector.js` | Multi-endpoint failover hub client (axios). Methods: `ping`, `getAllConfig`, `_call`. Static: `parseEndpoints` |
-| `src/RegtestMinerConnector.js` | JSON-RPC client for regtest miner (axios). Methods: `ping`, `sendFunds`, `setMiningTime`, `setDefaultMiningTime`, `pauseMining`, `resumeMining`, `generateBlocks` |
+| `src/regtest_miner_connector.js` | JSON-RPC client for regtest miner (axios). Methods: `ping`, `sendFunds`, `setMiningTime`, `setDefaultMiningTime`, `pauseMining`, `resumeMining`, `generateBlocks` |
 | `src/db.js` | MariaDB client with connection pooling and 44 `waitFor*`/`check*` polling methods |
-| `src/CryptoNetworks.js` | Static network config provider. Returns `bitcoinjs-lib` network objects for all 9 coin/network combinations |
-| `test/cryptoHelper.js` | BIP39/BIP32 wallet generation, address derivation, funded address creation |
-| `test/transactionHelper.js` | PSBT construction, signing, broadcast, P2SH two-step handling, UTXO verification cache |
-| `test/initialCheck.test.js` | Mocha root hooks (`beforeAll`/`afterAll`): bootstrap sequence, teardown, gas token creation |
-| `test/perf/perfCollector.js` | Global singleton for bootstrap phase timing and poll metric collection |
-| `test/reporters/performance-reporter.js` | Custom Mocha reporter capturing per-test timing, memory usage, and poll metrics |
+| `src/crypto_networks.js` | Static network config provider. Returns `bitcoinjs-lib` network objects for all 9 coin/network combinations |
+| `test/helpers/core/cryptoHelper` | BIP39/BIP32 wallet generation, address derivation, funded address creation |
+| `test/helpers/core/transactionHelper` | PSBT construction, signing, broadcast, P2SH two-step handling, UTXO verification cache |
+| `test/initial_check.test.js` | Mocha root hooks (`beforeAll`/`afterAll`): bootstrap sequence, teardown, gas token creation |
+| `test/perf/helpers/perfCollector` | Global singleton for bootstrap phase timing and poll metric collection |
+| `test/reporters/lib/performance_reporter.js` | Custom Mocha reporter capturing per-test timing, memory usage, and poll metrics |
 
 ## Bootstrap Sequence
 
-The `initialCheck.test.js` `beforeAll` hook executes five named phases, each instrumented via `perfCollector.phase()`:
+The `initial_check.test.js` `beforeAll` hook executes five named phases, each instrumented via `perfCollector.phase()`:
 
 ```mermaid
 flowchart TD
@@ -159,7 +159,7 @@ The `XChainHubConnector._call()` method implements multi-endpoint failover: it t
 
 ## Wallet Management
 
-`cryptoHelper.js` manages test wallets through a global cache (`global.wallets`):
+The `cryptoHelper` module manages test wallets through a global cache (`global.wallets`):
 
 | Operation | Behavior |
 |---|---|
@@ -175,9 +175,7 @@ The `XChainHubConnector._call()` method implements multi-endpoint failover: it t
 xchain-e2e-test/
 ├── src/                          # Service connector classes (10 files)
 ├── test/
-│   ├── initialCheck.test.js      # Mocha root hooks (beforeAll/afterAll)
-│   ├── cryptoHelper.js           # BIP39/BIP32 wallet management
-│   ├── transactionHelper.js      # PSBT construction, signing, broadcast
+│   ├── initial_check.test.js     # Mocha root hooks (beforeAll/afterAll)
 │   ├── actions/                  # 80 action test files (live, ordered), covering 32 ACTION names
 │   ├── helpers/                  # 62 modules (action helpers + federation/fee/utility helpers)
 │   ├── unit/                     # 350+ unit tests (stubbed, no services)
