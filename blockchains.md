@@ -28,7 +28,7 @@ Each chain supports three network types:
 The same protocol specification applies across all chains. Chain-specific differences are limited to:
 
 - **Fee amounts**: Issuance fees and DEX listing fees are configured independently per chain
-- **Special addresses**: Burn, gas, and donation addresses are unique per chain and per network
+- **Special addresses**: Each chain and network carries its own set of protocol role addresses (burn, gas, donation, and bridge escrow). Gas and donation addresses are distinct for every chain and network. The keyless burn and bridge-escrow literals can repeat where two networks share an address version byte (BTC and LTC testnet and regtest all use the same burn address), so an address alone does not tell you which network you are on; the ledgers stay separate because every chain and network runs its own services
 - **Block timing**: Each chain has different block intervals and confirmation characteristics
 - **Address formats**: Each chain uses its own address encoding (e.g., `1...` / `bc1...` for Bitcoin, `L...` / `ltc1...` for Litecoin, `D...` for Dogecoin)
 - **Transaction parsing**: Litecoin requires stripping the HogEx flag; Dogecoin requires stripping AuxPoW headers before parsing with bitcoinjs-lib

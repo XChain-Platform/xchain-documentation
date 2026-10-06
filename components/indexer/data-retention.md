@@ -7,14 +7,26 @@
 Several indexer tables grow without bound over time. This page documents the
 platform's retention and pruning policy: which tables are unbounded, what the
 indexer's built-in pruning scaffold does about the largest and most delicate
-one (the light-client state store), and how the hub's own audit tables are
-kept in check.
+one (the light-client state store), and how the hub's own audit and marker
+tables, the indexer's hub push queue, and the UTXO tracker's reorg-undo
+records are kept in check.
 
-Guiding rule: retention is **default-off and additive**. Turning it on is an
-operator decision per node. Nothing prunes data on an existing deployment
-unless a retention environment variable is set, and no schema is ever dropped
-or altered: pruning only issues `DELETE`s, never `DROP`/`ALTER`, and creates
-no tables.
+Retention comes in three kinds, and it matters which one you are looking at:
+
+- **Default-off history retention.** The indexer's state commitment store and
+  the sync service's `sync_meta` log keep everything unless an operator sets a
+  retention variable. Turning these on is an operator decision per node,
+  because pruning them gives up proofs over the pruned range.
+- **Default-on operational sweeps.** The hub's audit and at-most-once marker
+  tables and the indexer's failed hub-push rows are swept on a bounded window
+  out of the box. Each window has an environment variable to resize it, and
+  most also accept `0` to disable the sweep and keep every row (the tables
+  below say which).
+- **Always-on deterministic pruning.** The decoder's `dispensers` purge and the
+  UTXO tracker's undo window are keyed to block height and have no switch.
+
+In every case pruning removes rows (LevelDB keys in the UTXO tracker) and
+never issues `DROP`/`ALTER` or creates tables.
 
 ## The state commitment store
 
@@ -22,7 +34,9 @@ Two tables back the SPV light-client commitment (see
 [Database](database.md) for their full schema):
 
 - `state_tree_roots`: one row per block (`balances_root`, `stakes_root`,
-  `state_root`, `block_merkle_root`). Grows one row per block forever.
+  `contract_state_root`, `state_root`, `block_merkle_root`). Grows one row
+  per block forever. `contract_state_root` is `NULL` on every row where the
+  contract-state slot is not armed.
 - `state_tree_nodes`: the content-addressed, copy-on-write SMT internal-node
   store. Append-only during forward processing (identical subtrees dedupe by
   hash). A reorg leaves orphaned nodes behind: the rollback drops the
@@ -34,8 +48,8 @@ ongoing basis, but does not delete anything by default. The reason is subtle:
 a content-addressed node orphaned by a reorg is commonly **re-created** by the
 new canonical chain (the insert no-ops and the row keeps its id). Deleting
 such a node after it has been re-referenced would make the next incremental
-state-tree read a missing row as an empty subtree, and fork the
-`balances_root` across the network.
+state-tree read a missing row as an empty subtree, and fork the committed
+sub-root it belongs to (and so `state_root`) across the network.
 
 ### Two phases, in a load-bearing order
 
@@ -50,7 +64,13 @@ window is an operator choice.
 
 **Phase 2: orphan-node reclaim.** After phase 1, delete `state_tree_nodes`
 rows that are unreachable from every surviving root (the union of each
-retained row's `balances_root` and `stakes_root`). This is the reclamation
+retained row's `balances_root`, `stakes_root` and `contract_state_root`;
+rows where `contract_state_root` is `NULL` add nothing for it). Every armed
+slot of the state root's sub-tree list (`merkle.STATE_SUBTREES`) must be in
+that union: a sub-root missing from it lets reclaim delete nodes the tree
+still references, and the next incremental read treats them as an empty
+subtree and silently commits a forked root. Arming a new slot therefore means
+adding its column to the union too. This is the reclamation
 step, and it is only safe under one condition: the mark-and-delete pass must
 not interleave with forward block-root insertion. The indexer enforces this
 by holding the same database transaction lock that block processing uses for
@@ -66,8 +86,9 @@ nodes freshly orphaned by narrowing the root set are actually collectable.
 
 ### Configuration
 
-All of these are unset (off) by default; see [Configuration](configuration.md)
-for the indexer's full environment variable reference.
+All of these are off by default (retention unset, reclaim off); see
+[Configuration](configuration.md) for the indexer's full environment variable
+reference.
 
 | Variable | Default | Effect |
 |---|---|---|
@@ -82,22 +103,55 @@ explorer advertises. Start with phase-1 only, watch the orphan metric fall as
 roots age out, and only enable `STATE_NODE_RECLAIM` once the mutex-serialized
 reclaim has been exercised on a regtest venue.
 
-## Hub audit tables
+## Hub audit and marker tables
 
-The hub already prunes its two unbounded audit tables; recorded here for
-completeness so the platform's retention policy lives in one place.
+The hub sweeps its unbounded audit tables and its at-most-once publish marker
+tables by default; recorded here so the platform's retention policy lives in
+one place. [Hub Configuration](../hub/configuration.md) is the authority for
+each variable and its exact default.
 
-- `oracle_submissions`: diagnostic only (finalized values live in
-  `price_snapshots`). Pruned keyed on `round_number`, keeping
-  `ORACLE_SUBMISSIONS_RETENTION_ROUNDS` rounds (default 12,960).
-- `telemetry_pings`: pruned daily, dropping rows older than
-  `TELEMETRY_RETENTION_DAYS` (default 90), only when telemetry collection is
-  enabled.
+| Table | Variable | Default window | What is pruned |
+|---|---|---|---|
+| `oracle_submissions` | `ORACLE_SUBMISSIONS_RETENTION_ROUNDS` | 12,960 rounds | Raw price submissions, keyed on `round_number`. Diagnostic only: finalized values live in `price_snapshots`. `0` disables. |
+| `telemetry_pings` | `TELEMETRY_RETENTION_DAYS` | 90 days | Rows older than the window, swept daily, and only when telemetry collection is enabled. `0` does not disable it (it falls back to 90); turn telemetry collection off instead. |
+| `oracle_published_rounds` | `ORACLE_PUBLISHED_ROUNDS_RETENTION_ROUNDS` | 12,960 rounds (about 90 days) | Confirmed publish markers only. A marker whose on-chain state is unknown is a quarantine record an operator reconciles by hand, and is kept regardless of age. `0` disables. |
+| `attest_published_requests` | `ATTEST_PUBLISHED_REQUESTS_RETENTION_MS` | 7,776,000,000 ms (about 90 days) | Confirmed publish markers with no armed intent. Intent-only rows are quarantine records and are kept regardless of age. `0` disables. |
+| `anchor_published_checkpoints`, `anchor_published_archives` | `ANCHOR_MARKER_RETENTION_MS` | 7,776,000,000 ms (about 90 days) | Confirmed anchor broadcast markers only, with the cutoff floored at a multiple of `ANCHOR_INTENT_TTL_MS`. An intent-only row is the ambiguous-send record (the only durable trace that DOGE may already have paid) and is kept regardless of age. `0` disables. |
 
-Both follow the same shape as the indexer's state-store pruning: best-effort,
-keyed on an indexed column, and never allowed to crash the money-bearing
-service. See [Hub Configuration](../hub/configuration.md) for these
-variables.
+All of them follow the same shape as the indexer's state-store pruning:
+best-effort, and never allowed to crash the money-bearing service.
+
+The hub's anchored, federation-signed tables are not on this list and are
+never pruned: `state_checkpoints`, `anchor_reward_attestations`,
+`policy_snapshots` and `list_snapshots` are append-only records: a newer row
+supersedes an older one, and no sweep deletes them. See
+[Hub Database](../hub/database.md) for their schema.
+
+## Indexer hub push queue
+
+The indexer queues every push to the hub in `pending_hub_pushes` and retries
+failed rows with backoff. A row that exhausts its attempts becomes terminal
+and leaves the retry loop, so the queue sweeps terminal `failed` rows older
+than a window; without the sweep a long hub outage would grow the table with
+no ceiling. See [Configuration](configuration.md).
+
+| Variable | Default | Effect |
+|---|---|---|
+| `HUB_PUSH_FAILED_RETENTION_SECONDS` | `604800` (7 days) | How long a terminal row is kept. `0` keeps terminal rows forever. |
+| `HUB_PUSH_PRUNE_INTERVAL_MS` | `3600000` (1 hour) | How often the sweep runs. |
+
+## UTXO tracker undo window
+
+The UTXO tracker keeps reorg-undo records in LevelDB: the archived copies of
+spent outputs and their hints (`K`/`M` keys), the creation-block and
+block-to-script reverse indexes (`W`/`Z` keys), and the stored-block list
+(`N` keys). Once a block falls out of the undo window, those records for it
+are deleted, because a reorg can never reach that deep. The window is per
+chain and per network, overridable with `XCHAIN_UNDO_BLOCKS_<COIN>`; a reorg
+deeper than the window needs a full re-index. The first-seen index (`S` keys)
+is never pruned, because it backs a live query. See
+[UTXO Tracker Architecture](../utxo-tracker/architecture.md) for the key
+schema and the window sizes.
 
 ## Sync transparency log
 

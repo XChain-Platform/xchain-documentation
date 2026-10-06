@@ -34,6 +34,11 @@
  *   3. The sessions.md convenience table lists exactly the action types the
  *      SDK's wallet-session module actually exposes, whichever side of the
  *      SDK's layout move the sibling checkout sits on.
+ *   4. No JavaScript example anywhere in the docs calls a session method or a
+ *      root `sdk.` method the SDK source does not define, so a copied snippet
+ *      cannot die on "is not a function" (a stake-and-execute example once
+ *      called a session `batch` and a root `stakeToContract`, neither of which
+ *      exists).
  */
 const test = require('node:test');
 const assert = require('node:assert');
@@ -159,4 +164,49 @@ test('the session convenience table lists exactly the session methods',
       `${SESSION_PATH} exposes these action types and the table omits them: ` + missing.join(', '));
     assert.deepStrictEqual(absent, [],
       `the table offers action methods ${SESSION_PATH} does not have: ` + absent.join(', '));
+  });
+
+/** Every Markdown file in the docs tree, skipping dependencies and git metadata. */
+function markdownFiles(dir = ROOT) {
+  let out = [];
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (ent.name === 'node_modules' || ent.name.startsWith('.')) continue;
+    const full = path.join(dir, ent.name);
+    if (ent.isDirectory()) out = out.concat(markdownFiles(full));
+    else if (ent.name.endsWith('.md')) out.push(full);
+  }
+  return out;
+}
+
+/** Whether `source` declares `name` as a method, an object-literal member or an assigned property. */
+function defines(source, name) {
+  return new RegExp(`\\n\\s*(async\\s+)?${name}\\s*\\(|\\b${name}\\s*:|\\.${name}\\s*=`).test(source);
+}
+
+test('docs code examples call only session and sdk methods the SDK defines',
+  { skip: noSdk }, () => {
+    const rootSource = readModuleSource(SDK_MAIN);
+    const missing = [];
+    let calls = 0;
+    for (const file of markdownFiles()) {
+      const text = fs.readFileSync(file, 'utf8');
+      for (const block of text.matchAll(/```(?:js|javascript)\n([\s\S]*?)```/g)) {
+        // A receiver named like a session (session, stakerSession, adminSession) is a WalletSession.
+        for (const m of block[1].matchAll(/\b(\w*[sS]ession)\.(\w+)\(/g)) {
+          calls += 1;
+          if (!defines(SESSION.body, m[2])) missing.push(`${path.relative(ROOT, file)}: ${m[1]}.${m[2]}()`);
+        }
+        for (const m of block[1].matchAll(/\bsdk\.(\w+)\(/g)) {
+          calls += 1;
+          if (!defines(rootSource, m[1])) missing.push(`${path.relative(ROOT, file)}: sdk.${m[1]}()`);
+        }
+      }
+    }
+    // An unmatched corpus passes the loop above without reading a page, so floor the match count.
+    assert.ok(calls >= 50,
+      `only ${calls} session/sdk calls matched across the docs; the code-block parse in this test `
+      + 'stopped matching, and an empty match set would pass without checking anything.');
+    assert.deepStrictEqual([...new Set(missing)], [],
+      `these examples call methods that neither ${SESSION_PATH} nor xchain-sdk/src/XChainSDK.js `
+      + 'defines, so copying them throws "is not a function". Fix the example, not this test.');
   });

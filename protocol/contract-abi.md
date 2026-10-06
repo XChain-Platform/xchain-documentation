@@ -29,20 +29,24 @@ without executing contract code:
 ```js
 module.exports = {
     meta: {
-        name:        'Escrow',
-        description: 'Two-party escrow with an arbiter',
+        name:        'TokenSwap',
+        description: 'Illustrative two-token swap pool',
         version:     '1.0.0'
     },
 
     abi: { version: 1, methods: {
-        fund:   { summary: 'Deposit the escrow amount', params: [ { name: 'tick', type: 'tick' }, { name: 'amount', type: 'amount' } ] },
-        status: { summary: 'Read escrow status', params: [], view: true }
+        swap: { summary: 'Trade tokenIn for the other token (BATCH after a DEPOSIT)', params: [ { name: 'tokenIn', type: 'tick' }, { name: 'minOut', type: 'amount' } ] },
+        info: { summary: 'Read the pair and its reserves', params: [], view: true }
     } },
 
-    fund:   function (xchain) { /* ... */ },
-    status: function (xchain) { /* ... */ }
+    swap: function (xchain) { /* ... */ },
+    info: function (xchain) { /* ... */ }
 };
 ```
+
+The example is illustrative and reproduces no shipped template. For real
+declarations, read the templates in `xchain-contracts/` (the `swap` entry above
+follows the shipped AMM template, `xchain-contracts/amm/amm.js`).
 
 | Field | Meaning |
 |---|---|

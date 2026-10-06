@@ -154,7 +154,7 @@ The source-layout consolidation replaced the removed top-level `stateHash.js` mo
 | `src/consensus/ed25519.js` | None | Ed25519 signature verification using Node built-in crypto; mirrors `xchain-hub/src/validators/identity.js` format |
 | `src/consensus/merkle.js` | None | Consensus-critical SPV light-client Merkle primitives: additive state SMT, per-block content root, fixed top-level state root. Vendored byte-identically into `xchain-sync` |
 | `src/consensus/state_hash.js` | `buildStateHashData` | Builds the `state_hash` preimage covering in-place mutations (deactivation stamps, slash debits, status flips, cooldown maturities) that the three standard block hashes cannot see |
-| `src/state_commitment/index.js` | None | Computes per-block `state_tree_roots` (balances SMT + stakes SMT + state root + block Merkle root) and writes them to the DB |
+| `src/state_commitment/index.js` | None | Computes per-block `state_tree_roots` (balances SMT + stakes SMT + contract-state SMT where armed + state root + block Merkle root) and writes them to the DB |
 | `src/consensus/stake_weighted_quorum.js` | None | Consensus-critical stake-weighted quorum predicate (WI-1). Vendored byte-identically across hub, indexer, explorer, sync, and SDK |
 | `bin/recovery.js` | None | CLI for rebuilding the cross-chain match mirror from on-chain ANCHOR archive data, with no surviving hub database |
 | `src/consensus/equivocation_header.js` | None | Builds EQUIV-header canonicals for the WI-2 equivocation slashing protocol, one per engine tag |

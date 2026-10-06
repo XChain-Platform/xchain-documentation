@@ -179,11 +179,27 @@ This locks 250 MYTOKEN out of the staker's balance and writes a row in the `cont
 
 **Stake-and-execute pattern:** if the contract grants access on stake, a staker often wants to call a contract method right after staking. Use `BATCH v0` to bundle `STAKE v3 + EXECUTE v0` into one broadcast so both actions land together and in order. The batch saves a second broadcast; it does not shorten the activation delay, so a bundled EXECUTE still runs before the new stake is visible to the contract.
 
+Compose the two commands with the SDK's [batch builder](./batch-operations.md#the-batch-builder), then submit the resulting `BATCH` from the staker's session so it is paid for and signed by the staker's key. The builder has no `stakeToContract` shortcut, so add the STAKE with `.add('STAKE', ...)` and set `version: '3'` yourself; that is the version that targets a contract rather than validator capability staking.
+
 ```js
-await stakerSession.batch([
-    sdk.stakeToContract({ amount: '250', signingPubkey, targetContractIndex, tick: 'MYTOKEN' }),
-    sdk.execute({ contractActionIndex: targetContractIndex, method: 'getSecret', params: [STAKER_SIGNING_PUBKEY_HEX] }),
-]);
+const targetContractIndex = result.deploy.indexed.action_index;
+
+const batch = await sdk.batch()
+    .add('STAKE', {
+        version:             '3',                          // contract-targeted stake
+        amount:              '250',
+        signingPubkey:       STAKER_SIGNING_PUBKEY_HEX,
+        targetContractIndex,
+        tick:                'MYTOKEN'
+    })
+    .execute({
+        contractActionIndex: targetContractIndex,
+        method:              'getSecret',
+        params:              [STAKER_SIGNING_PUBKEY_HEX]
+    })
+    .build();
+
+await stakerSession.submit({ action: 'BATCH', params: { command: batch.fields.COMMAND } });
 ```
 
 (Note: the activation delay still applies; the stake isn't visible inside the contract until after the per-chain delay (6 blocks on BTC, 24 on LTC, 60 on DOGE) following BATCH confirmation. The EXECUTE will see `getStake(...) === '0'` if it runs in the same block as the STAKE.)

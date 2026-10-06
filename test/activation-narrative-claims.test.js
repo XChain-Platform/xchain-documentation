@@ -34,6 +34,9 @@
  *      registry is named in the page's testnet-exceptions list, and the page
  *      carries no "the only Cohort A rule not genesis-active on testnet"
  *      claim while more than one such arm exists.
+ *   3. Testnet inert claims. No bullet for a gate the registry arms on testnet
+ *      calls that gate inert, and the list claims gates "remain inert" only
+ *      while the registry really parks some testnet slot on the sentinel.
  *
  * WHY THE COUNT ASSERTIONS ARE HERE. A prose parse that stops matching returns
  * an empty set, and an empty set satisfies every "each of these must" loop
@@ -192,6 +195,59 @@ test('every nonzero testnet arm is named in the page\'s exception list', {
             /only Cohort A rule not genesis-active on testnet/,
             `${PAGE_REL} still claims one gate is the only Cohort A rule not genesis-active on `
             + `testnet, but the registry declares ${arms.length} nonzero testnet arms.`,
+        );
+    }
+});
+
+/** One gate's bullet in the exceptions list: its own line plus its indented continuation lines. */
+function gateBullet(section, gate) {
+    const lines = section.split('\n');
+    const start = lines.findIndex((l) => new RegExp(`^(\\s*)- \`${gate}\``).test(l));
+    if (start === -1) return null;
+    const indent = lines[start].match(/^(\s*)/)[1].length;
+    const out = [lines[start]];
+    for (let i = start + 1; i < lines.length; i++) {
+        const lead = lines[i].match(/^(\s*)/)[1].length;
+        // A sibling or parent bullet ends this one; deeper-indented text continues it.
+        if (/^\s*- /.test(lines[i]) && lead <= indent) break;
+        if (lines[i].trim() === '') break;
+        out.push(lines[i]);
+    }
+    return out.join(' ');
+}
+
+test('no testnet-armed gate is called inert in the exception list', {
+    skip: noIndexer,
+}, () => {
+    const arms = gen.collectTestnetArms();
+    assert.ok(
+        arms.length >= 1,
+        'collectTestnetArms() returned nothing, so the registry parse in bin/generate-flag-days.js '
+        + 'stopped matching; an empty set would satisfy the loop below without reading the page.',
+    );
+    const section = exceptionsSection();
+    let checked = 0;
+    for (const { gate } of arms) {
+        const bullet = gateBullet(section, gate);
+        if (bullet === null) continue;   // naming is the sibling test's job
+        checked += 1;
+        assert.doesNotMatch(
+            bullet, INERT,
+            `${PAGE_REL} calls ${gate} inert on testnet, but the xchain-indexer protocol_changes `
+            + 'registry arms it there at an instant of its own. Say it arms testnet at its own '
+            + 'instant and link to Flag-Day Values instead (do not write the instant into the prose).',
+        );
+    }
+    assert.ok(
+        checked >= 1,
+        `no testnet-arm gate matched a bullet in the ${PAGE_REL} exception list, so the bullet `
+        + 'parse in this guard stopped matching; an unmatched list passes every assertion above.',
+    );
+    if (/\bremains? inert\b/i.test(section)) {
+        assert.ok(
+            gen.collectTestnetUnarmed().length > 0,
+            `${PAGE_REL} says some testnet exceptions remain inert, but the registry parks no testnet `
+            + 'slot on the sentinel: every listed gate arms testnet at an instant of its own.',
         );
     }
 });

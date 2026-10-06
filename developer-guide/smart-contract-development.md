@@ -315,8 +315,12 @@ Beyond the deploy-time rules above, the linter adds **logic-level** checks. None
 ```bash
 node xchain-vm/bin/lint.js path/to/contract.js   # or: npx xchain-lint contract.js
   --json                                          # machine-readable report
-# exit 0 = clean · 1 = errors · 2 = usage / no readable input files · warnings print to stderr (exit 0)
+# exit 0 = clean (warnings print to stderr)
+# exit 1 = lint errors, an unreadable input file, or a host fault (the V8 isolate could not start)
+# exit 2 = usage error (no arguments, unknown flag, --help) or a file pattern that matched nothing
 ```
+
+Exit 1 does not by itself mean the contract is defective: a missing or unreadable file and a machine that cannot run the syntax check also exit 1. A CI script that needs to tell them apart should run with `--json` and check each result for `readError` or `hostFault` before treating it as a lint failure.
 
 The CLI runs the **full** validator including the V8 syntax check, so a clean result is a conservative preflight: it is a SUPERSET of the deploy gate, never exact parity. Author-facing gates default on and future or mainnet-gated rules are enforced immediately (see below), and a malformed `crossCallable` is a CLI error the chain itself accepts, so the CLI can refuse code a given chain, network and block would deploy. The `code-size` rule that rejects source over the 64KiB deploy cap before it even reaches the syntax gate lives in shared `lint-core`, not the CLI alone, so `sdk.validateContract` carries it too; the only check the SDK pre-flight cannot run is the V8 syntax step, which needs the VM's isolated runtime. Use the CLI as a local pre-commit / CI gate for contract source.
 
@@ -501,12 +505,19 @@ Slash costs `VM_EMISSION` (500) gas.
 ### Worked example: simple bonded service
 
 ```javascript
-// Deploy with: COOLDOWN_BLOCKS=50, SLASH_DESTINATION=BURN
+// Deploy with: COOLDOWN_BLOCKS=50, SLASH_DESTINATION=BURN, CONSTRUCTOR_PARAMS=<owner address>
 module.exports = {
     meta: {
         name:        'Bonded Service',
         description: 'Qualifies a signing pubkey by its stake against this contract, and lets the owner slash it.',
         version:     '1.0.0'
+    },
+
+    // Constructor: store the owner address passed as the first constructor
+    // param. punish compares the caller against it, so without this the
+    // owner check can never pass.
+    initialize: function(xchain) {
+        xchain.state.set('owner', xchain.getInputParam(0));
     },
 
     // Anyone can check: does this pubkey hold at least 100 XCHAIN against this contract?
