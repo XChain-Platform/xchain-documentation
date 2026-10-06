@@ -85,6 +85,36 @@ the leg can be rehearsed on a throwaway chain; those variables are ignored on ma
 testnet. The set-hash a run computes is printed as `GENESIS: airdrop set-hash <hex>`, which is
 how you read the value to pin in the first place.
 
+## Genesis row provenance
+
+Every action the genesis pass injects is synthetic: it has no on-chain transaction, no
+`raw_data`, no `source_pubkey` and no outputs, and its source is the GAS address. Each carries a
+deterministic `tx_hash` starting `GENESIS-`, so an explorer or an auditor can tell a genesis
+row from a real transaction by the prefix alone, and a reindex replays to identical action
+indexes and hashes. The synthetic hashes are fixed-width: a sha256 digest truncated to 48
+hex characters keeps each inside the 64-character unique prefix of the transaction hash index.
+
+| Prefix | Rows it marks | Digest input |
+|---|---|---|
+| `GENESIS-<COIN>-<family>-` | The XCHAIN gas token `ISSUE`, BTC mainnet only, built by the shared token-creation helper | `COIN\|family\|TICK`, pinned byte-for-byte by a replay test |
+| `GENESIS-<COIN>-P1-` | One `ISSUE` per snapshot name: the name reservation, owned by GAS (leaf names) | `COIN\|1\|TICK` |
+| `GENESIS-<COIN>-P2-` | The deferred ancestor transfer: a re-`ISSUE` from GAS with `TRANSFER` set to the snapshot owner | `COIN\|2\|TICK` |
+| `GENESIS-<COIN>-A-` | One airdrop credit per holder per bucket (an `ISSUE` format 2 carrying `MINT_SUPPLY` and `TRANSFER_SUPPLY`), only on a chain with the airdrop set armed | `COIN\|AIRDROP\|BUCKET\|ADDRESS` |
+
+`<COIN>` is `BTC` or `DOGE`. The action counts the indexer shows under the `GENESIS-BTC-` and
+`GENESIS-DOGE-` prefixes (124,160 BTC, 43,990 DOGE) are these rows and nothing else. They are
+not transfers, not mints by a user and not balances: the pass-1 and pass-2 rows are the
+Counterparty and Dogeparty asset-name ownership snapshots (the bundled
+`data/genesis/<COIN>-ledger.csv` manifest, pinned by `ledgerHash`), so the count tracks
+the snapshot's name count plus one pass-2 row for each ancestor name, and on BTC one more row
+for the gas token. No row in either set moves XCHAIN to anyone: the XCHAIN supply is
+still 0 after the name passes, and only `-A-` rows credit balances.
+
+To audit a row, filter on the prefix, recompute the digest from the input in the table, and
+compare it with the hash shown. The ledger manifest and the state dump are verified at startup
+against `ledgerHash` and `dumpHash`, so a node whose genesis rows differ from the federation's
+halts rather than indexing on.
+
 ## Step 1: Open the mint (launch)
 
 Minting is governed entirely by the token's own genesis parameters. To open the launch window,
