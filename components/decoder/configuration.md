@@ -108,12 +108,12 @@ These values are defined in source code. Most are fixed; the rows that name an e
 |---|---|---|---|
 | DB connection pool size | `10` | db.js | Maximum concurrent MariaDB connections |
 | `queryTimeout` default | `30000` | db.js | MariaDB query execution timeout in milliseconds (30 seconds); overridable via `DB_QUERY_TIMEOUT` env var |
-| RPC timeout (axios) | `30000` | BlockchainConnector.js | HTTP timeout for all JSON-RPC calls (30 seconds); overridable via `NODE_RPC_TIMEOUT` env var |
-| RPC max retries | `10` | BlockchainConnector.js | Maximum retry attempts for failed RPC calls |
-| RPC retry delay | `500` | BlockchainConnector.js | Delay between retries in `getRawTransaction`, and (via `backoffOnTimeout()`) between timeout retries in the block-path RPC methods. Overridable via `RPC_TIMEOUT_RETRY_DELAY_MS`. Non-timeout failures in the block-path methods still retry without a sleep. |
-| RPC concurrency | `50` | BlockchainConnector.js | Maximum concurrent outbound RPC calls; overridable via `DECODER_RPC_CONCURRENCY` |
-| Failover threshold | `3` | BlockchainConnector.js | Consecutive connection failures before rotating to the next `NODE_URL_FALLBACK` endpoint |
-| RPC 429 backoff | `5000` | BlockchainConnector.js | Delay on HTTP 429 rate limiting (5 seconds) |
+| RPC timeout (axios) | `30000` | blockchain_connector.js | HTTP timeout for all JSON-RPC calls (30 seconds); overridable via `NODE_RPC_TIMEOUT` env var |
+| RPC max retries | `10` | blockchain_connector.js | Maximum retry attempts for failed RPC calls |
+| RPC retry delay | `500` | blockchain_connector.js | Delay between retries in `getRawTransaction`, and (via `backoffOnTimeout()`) between timeout retries in the block-path RPC methods. Overridable via `RPC_TIMEOUT_RETRY_DELAY_MS`. Non-timeout failures in the block-path methods still retry without a sleep. |
+| RPC concurrency | `50` | blockchain_connector.js | Maximum concurrent outbound RPC calls; overridable via `DECODER_RPC_CONCURRENCY` |
+| Failover threshold | `3` | blockchain_connector.js | Consecutive connection failures before rotating to the next `NODE_URL_FALLBACK` endpoint |
+| RPC 429 backoff | `5000` | blockchain_connector.js | Delay on HTTP 429 rate limiting (5 seconds) |
 
 ### API Security
 
