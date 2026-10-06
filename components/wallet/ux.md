@@ -45,9 +45,10 @@ This document walks every primary route the wallet exposes. All routes live in `
 | Parallel composer | `ParallelComposer.jsx` | Custom multi-chain action sequence |
 | Stake | `StakeForm.jsx` | BTC STAKE form |
 | Staking action | `StakingActionForm.jsx` | UNSTAKE / COLLECT form |
-| Staking dashboard | `StakingDashboard.jsx` | Current stake + rewards + epoch view |
+| Staking list | `StakingList.jsx` | Validator stakes (Bitcoin) and contract stakes (every chain) in one list, with search and network filter |
+| Stake detail | `StakeDetail.jsx` | One stake: validator tabs Rewards / Delegation / Details; contract tabs Positions / Slashes / Details |
 | Delegation | `DelegationActionForm.jsx` | DELEGATE (rotate + revoke) form |
-| Operator dashboard | `OperatorDashboard.jsx` | Validator / operator view of delegations + uptime |
+| Operator dashboard | `OperatorDashboard.jsx` | Validator / operator view of delegated signing keys, performance metrics + uptime |
 | Deploy contract | `DeployContractForm.jsx` | DEPLOY form with source review + gas estimate |
 | Execute contract | `ExecuteContractForm.jsx` | EXECUTE method invocation |
 | Contract funds | `ContractFundsForm.jsx` | DEPOSIT / WITHDRAW form |
@@ -63,7 +64,7 @@ This document walks every primary route the wallet exposes. All routes live in `
 | Alerts | `AlertsRoute.jsx` | Notification tray: lists info / warning / critical alerts with optional action button per item |
 | Attach content | `AttachContentForm.jsx` | Attach a file (with optional title) to a token as on-chain content; polls for confirmation |
 | Contract staked positions | `ContractStakedPositions.jsx` | Lists the wallet's active stakes against deployed contracts |
-| Stake on contract | `ContractStakeForm.jsx` | STAKE-to-contract form; BTC-only at launch; scoped to a specific contract by action index |
+| Stake on contract | `ContractStakeForm.jsx` | Contract-targeted STAKE v3 / UNSTAKE v1 / DELEGATE v1 form, scoped to a specific contract by action index; opened from `ContractDetail.jsx` on any stakeable contract and takes its chain from that contract, so it works on every chain (the staking list's new-stake chooser still asks for a Bitcoin address at launch). Capability staking is the separate, Bitcoin-only `StakeForm.jsx` |
 | Bind controller | `ControllerBindForm.jsx` | CONTROLLERBIND action form; sets per-class policy rules (transfer, trade, burn, mint, stake, ownership, all) on a token |
 | Manage token | `ManageToken.jsx` | Owner hub for a token: metadata, holders panel, supply, and links to admin sub-forms |
 | Market activity | `MarketActivity.jsx` | Live market feed; opens on the XCHAIN token by default; tap the token header to switch markets |

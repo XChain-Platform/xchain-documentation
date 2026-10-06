@@ -66,11 +66,11 @@ All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain a
 | Eviction (on-chain, where ROLLCALL is active) | A source absent for K consecutive rolled epochs is deactivated, leaving the capability set through the ordinary stake predicate. Its stake refunds after the cooldown; nothing is burned. |
 | Activation delay | 6 BTC blocks (~1 hour): protects against ≤5-block reorgs |
 | Deactivation delay | 6 BTC blocks on UNSTAKE (same reorg safety) |
+| Cooldown | 1000 BTC blocks before staked XCHAIN returns to source (configurable via `STAKING.COOLDOWN_BLOCKS`) |
+| Delegation | DELEGATE manages signing keys, never stake: v0 adds a signing key that may sign for the broadcaster's own capability stake and v2 revokes one (contract stakes use v1 / v3). A delegated key is backed by the delegating address's active stake; staked amounts never move or change, and there is no third-party stake delegation. See [DELEGATE](../../protocol/actions/delegate.md). |
+| Rewards | Not weighted by stake: stake decides which capabilities a pubkey qualifies for, not the size of its share. The per-round oracle budget is split equally across the qualified signers of each finalized round (see [COLLECT reward sources](../../protocol/actions/collect.md#reward-sources)). A pubkey holding both `price` and `oracle_publish` earns both per-round (consensus + broadcast). |
 
 > **Note:** Capability staking above is BTC-only, so the activation/deactivation delays are stated in BTC blocks (~1 hour). Contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1/v3) runs on every chain and calibrates this delay per chain for equivalent ~60-min reorg protection (**6 blocks on BTC, 24 on LTC, 60 on DOGE**) since a flat 6 blocks would give DOGE only ~6 minutes. See `protocol/Contract_Staking.md`.
-| Cooldown | 1000 BTC blocks before staked XCHAIN returns to source (configurable via `STAKING.COOLDOWN_BLOCKS`) |
-| Delegation | Token holders can delegate stake to existing validators |
-| Rewards | Proportional to stake and participation per capability. A pubkey holding both `price` and `oracle_publish` earns both per-round (consensus + broadcast). |
 
 ## Decentralized Roles
 

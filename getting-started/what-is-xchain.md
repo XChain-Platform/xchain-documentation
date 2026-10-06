@@ -94,7 +94,7 @@ XChain supports **staking** for hub validation. Validators stake XCHAIN tokens t
 
 - **STAKE** locks XCHAIN tokens against a signing pubkey. Aggregate active stake per pubkey auto-qualifies it for each of five independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`) per governance-configurable `min_stake[capability]`. Same action covers new stakes (VERSION 1) and top-ups of an existing pubkey (VERSION 2).
 - **UNSTAKE** marks a pubkey's stake for withdrawal after the unbonding period
-- **DELEGATE** assigns staking power to another validator
+- **DELEGATE** adds or rotates the signing key that signs for your stake, without moving or changing the staked amount
 - **COLLECT** gathers earned staking rewards
 
 (DELEGATE versions 2 and 3 also remove a delegation without replacing it.)
