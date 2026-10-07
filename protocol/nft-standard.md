@@ -41,7 +41,7 @@ A token follows the NFT pattern when its `ISSUE` satisfies **both**:
 
 | Property | Field | Why it matters |
 |---|---|---|
-| Indivisible | `DECIMALS` = `0` (or empty; `0` is the default) | The consensus layer rejects fractional amounts of a 0-decimals token in every amount-bearing ACTION (`SEND`, `ORDER`, `SWAP`, `DISPENSER`, `DESTROY`, `AIRDROP`, `DIVIDEND`, `MINT`, …). `DECIMALS` cannot be changed once supply exists. |
+| Indivisible | `DECIMALS` = `0` (or empty; `0` is the default) | The consensus layer rejects a decimal-point fraction of a 0-decimals token in every amount-bearing ACTION (`SEND`, `ORDER`, `SWAP`, `DISPENSER`, `DESTROY`, `AIRDROP`, `DIVIDEND`, `MINT`, …). An exponent-notation fraction such as `1e-1` is rejected only at and above the `AMOUNT_REPRESENTABILITY` flag-day ([Distribution and trading](#distribution-and-trading)). `DECIMALS` cannot be changed once supply exists. |
 | Permanently capped | `LOCK_MAX_SUPPLY` = `1` | `MAX_SUPPLY` can never be raised. A 1-of-1 stays a 1-of-1; an edition of 100 stays 100. |
 
 - `MAX_SUPPLY` = `1` → a **unique** (1-of-1).
@@ -234,8 +234,13 @@ All existing rails apply to NFT-pattern tokens, with one exception noted under T
   token automatically).
 - **Trading:** [`ORDER`](./actions/order.md) (token/token or token/native-coin pairs,
   including cross-chain orders settled by the validator federation) and
-  [`SWAP`](./actions/swap.md). Indivisibility is enforced throughout; a fractional
-  amount of a 0-decimals token is invalid in every path. The one exception to
+  [`SWAP`](./actions/swap.md). Indivisibility is enforced at the amount check: a
+  decimal-point fraction such as `0.5` is invalid in every amount-bearing ACTION. An
+  exponent-notation spelling such as `1e-1` is rejected at and above the
+  `AMOUNT_REPRESENTABILITY` flag-day on a network (see [Flag-Day Values](./flag-days.md)).
+  Below it the amount check accepts that spelling, so on such a network the guarantee
+  covers decimal-point amounts only. This applies to every token, not only this
+  pattern. The one exception to
   "no special cases": below the `CROSS_CHAIN_ROYALTY` flag-day a **cross-chain**
   ORDER or SWAP whose controller guard returns `payoutLegs` is denied at create
   (`royalty not enforceable cross-chain`), because the proceeds settle on a chain

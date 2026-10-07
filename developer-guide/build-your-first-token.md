@@ -108,7 +108,7 @@ The ISSUE action creates a new token. Every field beyond `tick` is optional, omi
 
 ```js
 const issueAction = sdk.issue({
-  tick: 'MYTOKEN',        // ticker name, 1-250 chars, alphanumeric + special chars
+  tick: 'MYTOKEN',        // ticker name, 1-250 chars; a new top-level name needs 4+ once TICK_NAMESPACE_ACTIVATION is active (see ISSUE rules)
   maxSupply: '1000000',   // maximum tokens that can ever exist
   maxMint: '1000',        // max a single MINT can add (enables fair minting by anyone)
   decimals: 8,            // decimal places (0-18, cannot change after supply exists)
