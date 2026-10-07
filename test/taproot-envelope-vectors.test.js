@@ -18,6 +18,9 @@ const CHUNK = 520;
 const CHUNKING_RECIPE = 'action "FILE|0|chunks.bin|application/octet-stream|||||||" '
     + '+ 1200 rawData bytes where byte[i] = (i*7+13) & 0xff';
 
+const REBALANCE_RECIPE = 'action "FILE|0|rebalance.bin|application/octet-stream|||||||" '
+    + '+ 985 rawData bytes where byte[i] = (i*7+13) & 0xff for i < 984 and byte[984] = 0x07';
+
 const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
@@ -83,6 +86,13 @@ function assertChunkingVector(vectors) {
     assert.equal(tapleafHash(script), v.tapleaf_hash);
 }
 
+function rebalancePayload() {
+    const raw = Buffer.alloc(985);
+    for (let i = 0; i < raw.length; i++) raw[i] = (i * 7 + 13) & 0xff;
+    raw[984] = 0x07;
+    return compilePayload('FILE|0|rebalance.bin|application/octet-stream|||||||', raw);
+}
+
 // Apply the rule to any payload of the vector's length and final byte (the split depends on nothing else).
 function rebalanceLengths(length, finalByte) {
     const payload = Buffer.alloc(length, 0x41);
@@ -92,6 +102,13 @@ function rebalanceLengths(length, finalByte) {
 
 function assertRebalanceVector(vectors) {
     const v = vectors.chunk_rebalance;
+    assert.equal(v.payload_generation, REBALANCE_RECIPE, 'chunk_rebalance recipe changed; update the rebuild');
+    const payload = rebalancePayload();
+    assert.equal(payload.length, v.compiled_payload_length);
+    assert.equal('0x' + payload[payload.length - 1].toString(16).padStart(2, '0'), v.final_byte);
+    assert.equal(sha256(payload), v.compiled_payload_sha256);
+    assert.deepEqual(sliceEnvelope(payload).map((p) => p.length), v.push_lengths);
+    assert.equal(sha256(envelopeScript(payload, vectors.envelope_grammar.internal_pubkey_xonly)), v.envelope_script_sha256);
     assert.equal(v.compiled_payload_length % CHUNK, 1, 'chunk_rebalance no longer exercises the length = 1 (mod 520) case');
     assert.deepEqual(rebalanceLengths(v.compiled_payload_length, Number(v.final_byte)), v.push_lengths);
     const quoted = SPEC.match(/pinned by the\s+`chunk_rebalance` vector[\s\S]*?`push_lengths`\s+`\[([\d, ]+)\]`/);
@@ -131,6 +148,9 @@ test('the vector guards fail on a drifted hash, length or split', () => {
     const split = clone(VECTORS);
     split.chunk_rebalance.push_lengths = [520, 520, 1];
     assert.throws(() => assertRebalanceVector(split));
+    const hash = clone(VECTORS);
+    hash.chunk_rebalance.envelope_script_sha256 = hash.chunk_rebalance.envelope_script_sha256.replace(/^./, (c) => (c === '0' ? '1' : '0'));
+    assert.throws(() => assertRebalanceVector(hash));
     const outside = clone(VECTORS);
     outside.chunk_rebalance.final_byte = '0x11';
     assert.throws(() => assertRebalanceVector(outside));
