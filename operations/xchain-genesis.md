@@ -85,7 +85,7 @@ the leg can be rehearsed on a throwaway chain; those variables are ignored on ma
 testnet. The set-hash a run computes is printed as `GENESIS: airdrop set-hash <hex>`, which is
 how you read the value to pin in the first place.
 
-## Genesis row provenance: `GENESIS-` rows are synthetic genesis-allocation records, never broadcast on any chain
+## Genesis row provenance
 
 The reported mainnet histories contain 124,160 BTC actions and 43,990 DOGE actions. Of those,
 124,159 BTC rows and 43,934 DOGE rows carry a `GENESIS-` transaction hash. Those
@@ -184,8 +184,8 @@ stateDiagram-v2
 4. **Provenance documentation retained**: the row families, derivation counts and source pins
    are the minimum evidence behind the `Genesis row provenance` heading. A repository gate that
    searches only for that heading is a section-presence check and cannot validate the required
-   provenance claims. The heading retains the essential classification and broadcast status,
-   while this bounded content check also fails if the pinned inputs, row families, counts or
+   provenance claims. The heading identifies the section, while this bounded content check
+   fails if the classification, broadcast status, pinned inputs, row families, counts or
    hash-prefix claims are removed from the section:
 
    ```bash
@@ -195,10 +195,10 @@ stateDiagram-v2
      found { print; seen = 1 }
    ' operations/xchain-genesis.md)"
    for required in \
-     '## Genesis row provenance: `GENESIS-` rows are synthetic genesis-allocation records, never broadcast on any chain' \
+     '## Genesis row provenance' \
      '124,160 BTC actions and 43,990 DOGE actions' \
      '124,159 BTC rows and 43,934 DOGE rows carry a `GENESIS-` transaction hash' \
-     'synthetic genesis-allocation records, never broadcast on any chain' \
+     'synthetic genesis-allocation records, never '"broadcast on any chain" \
      'GENESIS-BTC-GAS-' \
      'GENESIS-<COIN>-P1-' \
      'GENESIS-<COIN>-P2-' \
