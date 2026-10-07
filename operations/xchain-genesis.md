@@ -176,8 +176,37 @@ stateDiagram-v2
    `invalid: MINT_START_BLOCK`; an `ISSUE` of XCHAIN from any non-GAS address fails.
 3. **Genesis pin verified**: indexer startup logs confirm the genesis `ledgerHash`/`dumpHash`
    match the pinned values; a mismatch is a fatal error, not a warning.
-4. **Pool funded**: the reward-pool address balance equals the seed allocation.
-5. **Reward lifecycle** (regtest e2e): stake → accrue a reward → `COLLECT` (pool drops by the
+4. **Provenance documentation retained**: the row families, derivation counts and source pins
+   are the minimum evidence behind the `Genesis row provenance` heading. From the documentation
+   repository root, this content check fails if the heading remains but that evidence is removed:
+
+   ```bash
+   provenance="$(awk '
+     /^## Genesis row provenance$/ { found = 1; next }
+     found && /^## / { exit }
+     found { print }
+   ' operations/xchain-genesis.md)"
+   for required in \
+     'GENESIS-BTC-GAS-' \
+     'GENESIS-<COIN>-P1-' \
+     'GENESIS-<COIN>-P2-' \
+     'GENESIS-<COIN>-A-' \
+     '| BTC | 121,716 | 2,442 | 1 | 124,159 |' \
+     '| DOGE | 42,704 | 1,230 | 0 | 43,934 |' \
+     'data/genesis/BTC-ledger.csv' \
+     'data/genesis/DOGE-ledger.csv' \
+     'data/genesis/BTC-mainnet-genesis-dump.ndjson.gz' \
+     'data/genesis/DOGE-mainnet-genesis-dump.ndjson.gz'
+   do
+     grep -Fq -- "$required" <<<"$provenance" || {
+       printf 'missing genesis provenance evidence: %s\n' "$required" >&2
+       exit 1
+     }
+   done
+   ```
+
+5. **Pool funded**: the reward-pool address balance equals the seed allocation.
+6. **Reward lifecycle** (regtest e2e): stake → accrue a reward → `COLLECT` (pool drops by the
    reward, validator rises by the same, total supply unchanged) → drain pool → `COLLECT`
    (`invalid: insufficient reward pool`) → top up → `COLLECT` (succeeds).
 
