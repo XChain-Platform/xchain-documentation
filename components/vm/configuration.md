@@ -49,7 +49,7 @@ The gas schedule defines the cost of each metered operation. These values are se
 | Cross-chain call request | `VM_XCALL_REQUEST` | 2000 | Additional fee on top of `VM_EMISSION` for `emit.crossExecute()`; the federation relay work. The call also pre-pays its remote `gasLimit` plus `VM_XCALL_CALLBACK`, with **no refund** of unused remote gas |
 | Cross-chain callback ceiling | `VM_XCALL_CALLBACK` | 20000 | Fixed gas ceiling the result/expiry callback runs against on the source chain, pre-paid at `emit.crossExecute()` time |
 
-Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`revert`, `require`), and logging (`log`, `isLogFull`, `getLogCount`) are gas-free. `oracle.getSnapshotAge()` is also gas-free.
+Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`revert`, `require`), and logging (`log`, `isLogFull`, `getLogCount`) are gas-free. `oracle.getSnapshotAge()` is also gas-free. Its value is consensus seconds at and after the snapshot-age seconds flag day (not yet pinned) and whole blocks before it, so a contract that compares it to a limit must state which unit the limit is in.
 
 > **Indexed `for` loops cost 2 × `VM_COMPUTATION` per iteration.** The metering transform injects a charge at the top of the loop body *and* a second charge into the update expression (`for (…; i++)` is rewritten as `for (…; (__gas(1), i++))`) so each iteration is metered twice. A `for` loop of N iterations therefore costs `2 × N × VM_COMPUTATION`. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost `1 × VM_COMPUTATION` per iteration. Budget gas ceilings for indexed `for` loops accordingly.
 
