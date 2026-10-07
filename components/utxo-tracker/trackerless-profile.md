@@ -92,7 +92,9 @@ There is one compatibility distinction at this boundary. `health` and `GET /stat
 
 ## Typed Errors
 
-Tracker-related `create_tx` failures are operational JSON-RPC errors with code `-32010`. The stable type is in `error.data.reason`; branch on that value rather than matching message text. Library callers receive the same string as `error.xchainCode`.
+On a running encoder, tracker-related `create_tx` failures are operational JSON-RPC errors with code `-32010`. The stable type is in `error.data.reason`; branch on that value rather than matching message text. Library callers receive the same string as `error.xchainCode`.
+
+`UTXO_TRACKER_NOT_CONFIGURED` is the startup exception: encoder construction raises it before the API begins listening, so it is not returned by `create_tx`. The remaining five reasons are runtime refusals.
 
 | `error.data.reason` | Condition | Usual response |
 |---|---|---|
