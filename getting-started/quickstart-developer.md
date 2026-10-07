@@ -53,7 +53,7 @@ Use `sdk.issue()` to define a new token. This builds the ACTION string; it doesn
 
 ```js
 const result = await sdk.issue({
-  tick:        'MYTOKEN',      // Token ticker (up to 250 chars, no | ; . / chars)
+  tick:        'MYTOKEN',      // Token ticker (1-250 chars, 4+ for a new top-level name once TICK_NAMESPACE_ACTIVATION is active; no | ; / \ chars)
   maxSupply:   '1000000',      // Maximum total supply
   decimals:    8,              // Decimal places (0–18)
   mintSupply:  '1000',         // Supply credited to you immediately at ISSUE (not a per-MINT amount)

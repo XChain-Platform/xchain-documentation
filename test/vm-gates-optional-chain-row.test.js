@@ -50,29 +50,55 @@ test('the VM gate guard fails when any required marker is removed', () => {
     }
 });
 
-// Name the gates the service row must list: every height map and every off-cohort time gate.
+// Name the gates the service row must list: every activation map and every off-cohort time gate.
+// A network-keyed map whose mainnet slot is a named _GATE_BLOCK_TIME constant is covered by it.
 function vmGateNames(sources) {
-    const text = sources.join('\n');
-    const maps = [...text.matchAll(/^const ([A-Z0-9_]+_ACTIVATION) = Object\.freeze\(/gm)].map((m) => m[1]);
-    const times = [...text.matchAll(/^const ([A-Z0-9_]+_GATE_BLOCK_TIME) = (\d+);/gm)];
+    const text = sources.map((s) => s.text).join('\n');
+    const core = sources.filter((s) => s.core).map((s) => s.text).join('\n');
+    const decls = /^const ([A-Z0-9_]+_ACTIVATION) = Object\.(?:freeze|seal)\(\{([\s\S]*?)\}\);/gm;
+    const perCoin = [];
+    const network = [];
+    for (const [, name, body] of text.matchAll(decls)) {
+        if (/'[A-Z]+:(?:mainnet|testnet|regtest)'/.test(body)) perCoin.push(name);
+        else if (!/^\s*mainnet:\s*[A-Z0-9_]+_GATE_BLOCK_TIME\s*,/m.test(body)) network.push(name);
+    }
+    const times = [...core.matchAll(/^const ([A-Z0-9_]+_GATE_BLOCK_TIME) = (\d+);/gm)];
     const cohort = times.find((m) => m[1] === 'BINARY_ALLOC_GATE_BLOCK_TIME');
     assert.ok(cohort, 'VM source no longer defines BINARY_ALLOC_GATE_BLOCK_TIME');
-    return { maps, own: times.filter((m) => m[2] !== cohort[2]).map((m) => m[1]) };
+    return { perCoin, network, own: times.filter((m) => m[2] !== cohort[2]).map((m) => m[1]) };
 }
 
 function assertVmServiceRow(markdown, sources) {
     const row = markdown.split('\n').find((line) => line.startsWith('| `xchain-vm` |'));
     assert.ok(row, 'protocol activation page is missing the xchain-vm service row');
-    const { maps, own } = vmGateNames(sources);
-    assert.ok(maps.length > 0 && own.length > 0, 'VM gate scan found nothing to check');
-    for (const name of [...maps, ...own]) assert.ok(row.includes(`\`${name}\``), `xchain-vm row omits ${name}`);
-    assert.match(row, new RegExp(`\\b${NUMBER_WORDS[maps.length]} per-coin height-keyed maps`));
+    const { perCoin, network, own } = vmGateNames(sources);
+    assert.ok(perCoin.length > 0 && network.length > 0 && own.length > 0, 'VM gate scan found nothing to check');
+    for (const name of [...perCoin, ...network, ...own]) {
+        assert.ok(row.includes(`\`${name}\``), `xchain-vm row omits ${name}`);
+    }
+    assert.match(row, new RegExp(`\\b${NUMBER_WORDS[perCoin.length]} per-coin height-keyed maps`));
+    assert.match(row, new RegExp(`\\b${NUMBER_WORDS[network.length]} network-keyed block-time maps`));
 }
 
+// Read every VM source except the vendored protocol constants and the simulator toolkit.
+// The gate-constant scan stays on src/index.js and src/index/ (the `core` files).
 function readVmSources(root) {
-    const dir = path.join(root, 'src/index');
-    const parts = fs.readdirSync(dir).filter((f) => f.endsWith('.js')).map((f) => path.join(dir, f));
-    return [path.join(root, 'src/index.js'), ...parts].map((f) => fs.readFileSync(f, 'utf8'));
+    const src = path.join(root, 'src');
+    const skip = new Set([path.join(src, 'protocol'), path.join(src, 'toolkit')]);
+    const index = path.join(src, 'index');
+    const files = [];
+    const walk = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) { if (!skip.has(full)) walk(full); }
+            else if (entry.name.endsWith('.js')) files.push(full);
+        }
+    };
+    walk(src);
+    return files.sort().map((f) => ({
+        text: fs.readFileSync(f, 'utf8'),
+        core: f === path.join(src, 'index.js') || path.dirname(f) === index,
+    }));
 }
 
 test('the xchain-vm service row names every VM-carried gate', { skip: vm.skip }, () => {
@@ -125,4 +151,10 @@ test('the service-row guard fails when a gate name or the map count drifts', { s
     assert.throws(() => assertVmServiceRow(dropped, sources), /omits JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME/);
     const miscounted = PAGE.replace('four per-coin height-keyed maps', 'three per-coin height-keyed maps');
     assert.throws(() => assertVmServiceRow(miscounted, sources), /per-coin height-keyed maps/);
+    for (const name of ['ACCESSOR_OWN_KEY_ACTIVATION', 'GAS_CEILING_SUCCESS_ACTIVATION', 'ITER_SET_METER_ACTIVATION']) {
+        const omitted = PAGE.replaceAll(`\`${name}\``, 'removed');
+        assert.throws(() => assertVmServiceRow(omitted, sources), new RegExp(`omits ${name}`));
+    }
+    const netMiscounted = PAGE.replace('three network-keyed block-time maps', 'two network-keyed block-time maps');
+    assert.throws(() => assertVmServiceRow(netMiscounted, sources), /network-keyed block-time maps/);
 });

@@ -157,7 +157,7 @@ ACTION|VERSION|PARAM1|PARAM2|...
 
 `VERSION` determines how the remaining fields are parsed, so a single ACTION name can serve multiple shapes over time. New versions add capability without invalidating old encodings. Multiple commands can be combined in one transaction with the `BATCH` action, which separates sub-commands by semicolons.
 
-Tickers (`TICK`) are 1-250 characters and case-sensitive; `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved. Memos are limited to 250 characters and may not contain `|` or `;`. The decoder canonicalizes a handful of legacy action aliases (`TRANSFER` to `SEND`, `ADDR` to `ADDRESS`, `DROP` to `AIRDROP`, `CAST` to `BROADCAST`, `MSG` to `MESSAGE`).
+Tickers (`TICK`) are 1-250 characters and case-sensitive; `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved. At or above the [`TICK_NAMESPACE_ACTIVATION`](./protocol/constants.js) flag day, a brand-new top-level ticker must be at least four characters and the codes of chains XChain may integrate later (`RESERVED_FUTURE_ROOTS`: `ETH`, `SOL`, ...) are reserved too; see [ISSUE](./protocol/actions/issue.md). Memos are limited to 250 characters and may not contain `|` or `;`. The decoder canonicalizes a handful of legacy action aliases (`TRANSFER` to `SEND`, `ADDR` to `ADDRESS`, `DROP` to `AIRDROP`, `CAST` to `BROADCAST`, `MSG` to `MESSAGE`).
 
 > Pre-launch, not final: an ACTION's field layout for a given VERSION may be edited in place for additive changes without incrementing the version. After protocol freeze, any wire-format change requires a new VERSION.
 
@@ -230,7 +230,7 @@ Tokens are created and updated by `ISSUE`. The principal fields:
 
 | Field | Meaning |
 |---|---|
-| `TICK` | Ticker, 1-250 chars, one per chain; first valid ISSUE establishes ownership |
+| `TICK` | Ticker, 1-250 chars (a new top-level ticker at least 4 behind `TICK_NAMESPACE_ACTIVATION`), one per chain; first valid ISSUE establishes ownership |
 | `MAX_SUPPLY` | Hard cap on circulating supply (up to 10^21 base units) |
 | `DECIMALS` | Precision 0-18; immutable once any supply exists |
 | `MINT_SUPPLY` / `MAX_MINT` | Supply minted immediately to the issuer at `ISSUE`; cap on the amount any single `MINT` may issue |
