@@ -61,6 +61,8 @@ This example sends 5 BRRR tokens to 1ExampleAddressXXXXXXXXXXXXXXXXXXX and 1 TES
 
   The requirement is CONDITIONAL where the gating files set an unlock threshold (`GATE_MIN_AMOUNT`). Each pack gating `TICK` (same publisher, `GATE_TICKER` and `KEY_HASH`) has an effective threshold equal to the MINIMUM `GATE_MIN_AMOUNT` across its files, and a pack with any threshold-less file is unconditional. A pack requires the handoff when it is unconditional, or when the DESTINATION's balance of `TICK` after this action (its pre-action balance plus everything this action sends it, totalled across all legs) reaches that threshold. The MESSAGE is required if at least one pack requires it; if every pack sits above the recipient's post-send balance, a plain `SEND` with no MESSAGE is valid and the recipient deliberately receives no key. See [Token-Gated Content](../token-gated-content.md).
 
+  The `GATE_TICKER = TICK` match depends on how `TICK` is written. At or above `SEND_CARET_PACK_KEY_ACTIVATION`, a `^<tickid>` `TICK` is resolved to the ticker name before the match. Below it (the gate is not yet armed on mainnet), `TICK` is matched as written, so a `SEND` that writes it as `^<tickid>` finds no gated `FILE` and owes no handoff. See [Index ID References](../index-id-references.md).
+
 ```mermaid
 flowchart TD
     Start["SEND action targets TICK, DESTINATION"] --> Gated{"TICK has an active gated FILE,<br>non-empty GATE_TICKER, not superseded?"}

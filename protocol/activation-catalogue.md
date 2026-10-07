@@ -104,6 +104,7 @@ same chain or field.
 | `retraction_signing_activation` | `RETRACTION_SIGNING_ACTIVATION` | height |
 | `rollcall_activation` | `ROLLCALL_ACTIVATION` | epoch |
 | `rollcall_gates_activation` | `ROLLCALL_GATES_ACTIVATION` | epoch |
+| `send_caret_pack_key_activation` | `SEND_CARET_PACK_KEY_ACTIVATION` | time |
 | `slash_grid_activation` | `SLASH_GRID_ACTIVATION` | height |
 | `slash_ledger_consolidation_activation` | `SLASH_LEDGER_CONSOLIDATION_ACTIVATION` | height |
 | `stake_key_reuse_activation` | `STAKE_KEY_REUSE_ACTIVATION` | height |

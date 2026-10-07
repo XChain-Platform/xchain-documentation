@@ -170,6 +170,18 @@
       "description": "The same base script with an explicit one-byte push 01 07 inserted as the last payload element before OP_ENDIF. A one-byte element valued 0x01-0x10 or 0x81 canonicalizes to OP_1-OP_16 / OP_1NEGATE and is not a data push however it is framed, so this reveal is not an envelope either. An implementation that walks raw push opcodes would read 01 07 as data and diverge here.",
       "envelope_script_hex": "0063045843484e0100291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c0107682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
       "expect": "not_recognized"
+    },
+    {
+      "name": "empty_payload_element",
+      "description": "The same base script with OP_0 (00), a zero-length element, inserted as the last payload element before OP_ENDIF. A zero-length element decompiles to the bare opcode OP_0, not to data, so the reveal is not an envelope. An implementation that treats an empty push as zero bytes of data would read the same payload and diverge here. The one-byte push 01 00 in the same position is ordinary data and IS recognized.",
+      "envelope_script_hex": "0063045843484e0100291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c00682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+      "expect": "not_recognized"
+    },
+    {
+      "name": "nonminimal_empty_payload_push",
+      "description": "The same base script with a non-minimal empty push 4c 00 (OP_PUSHDATA1, length 0) inserted as the last payload element before OP_ENDIF. Any empty push, however it is framed, canonicalizes to OP_0, so this reveal is not an envelope either.",
+      "envelope_script_hex": "0063045843484e0100291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c4c00682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+      "expect": "not_recognized"
     }
   ]
 }

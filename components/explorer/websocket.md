@@ -801,6 +801,7 @@ Response to client `ping`.
 | `SUBSCRIPTION_LIMIT` | Exceeded max 25 subscriptions per connection |
 | `RATE_LIMITED` | Client sending more than 10 messages/sec |
 | `CATCH_UP_TOO_OLD` | `since_action_index` is more than 1,000 actions behind current |
+| `CATCH_UP_AHEAD_OF_TIP` | `since_action_index` is above the server's latest `action_index` (a reorg lowered the tip, or this server is behind the one that issued your cursor), so nothing can be replayed from it; resync over REST |
 | `CATCH_UP_IN_PROGRESS` | A catch-up request is already running for this client |
 | `COIN_DATA_STALE` | The coin's indexed tip is older than its maximum age and the server is set to fail closed, so the snapshot or catch-up is refused rather than served as current |
 | `SNAPSHOT_QUEUE_FULL` | A snapshot fan-out is already running and this client's pending-snapshot queue (capped at its subscription limit) is full; retry the subscribe with `snapshot: true` once it completes |
@@ -866,7 +867,7 @@ with `tx_hash` and `source` null and `destinations: []`.
 4. Send one `since_action_index` subscribe at a time, each with its own `id`, and wait for the `CATCH_UP_COMPLETE` or `error` frame that echoes that `id` before sending the next. The server runs one catch-up per connection and refuses an overlapping one with `CATCH_UP_IN_PROGRESS`; the subscription is still registered, but its missed actions are not replayed.
 5. Process events with `catch_up: true` (these are replayed, not live). Live frames can arrive during a replay, so do not advance your cursor past the replay from them until every catch-up has closed.
 6. If `CATCH_UP_COMPLETE` has `truncated: true`, the replay stopped at its row cap: send the same subscribe again with `since_action_index` set to that frame's `latest_action_index`, and repeat until a frame arrives with `truncated: false`
-7. If the catch-up is refused (`CATCH_UP_TOO_OLD`, or any other `error` carrying its `id`), use the REST API to backfill
+7. If the catch-up is refused (`CATCH_UP_TOO_OLD`, `CATCH_UP_AHEAD_OF_TIP`, or any other `error` carrying its `id`), use the REST API to backfill
 
 The SDK's WebSocket client and the explorer's bundled browser client both follow these steps, and each reports a refused or unanswered catch-up as a `resync_required` event.
 
