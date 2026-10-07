@@ -87,9 +87,10 @@ how you read the value to pin in the first place.
 
 ## Genesis row provenance: hash-pinned BTC/DOGE inputs define deterministic GAS/P1/P2/A families (124,159 BTC; 43,934 DOGE rows)
 
-These rows are synthetic genesis-allocation records, never broadcast on any chain. Their
-`GENESIS-` transaction hashes identify indexer-created allocation history rather than on-chain
-transactions.
+The reported mainnet histories contain 124,160 BTC actions and 43,990 DOGE actions. Of those,
+124,159 BTC rows and 43,934 DOGE rows carry a `GENESIS-` transaction hash. Those
+GENESIS-prefixed rows are synthetic genesis-allocation records, never broadcast on any chain;
+they identify indexer-created allocation history rather than on-chain transactions.
 
 Every action the genesis pass injects is synthetic: it has no on-chain transaction, no
 `raw_data`, no `source_pubkey` and no outputs, and its source is the GAS address. Each carries a
@@ -181,11 +182,11 @@ stateDiagram-v2
 3. **Genesis pin verified**: indexer startup logs confirm the genesis `ledgerHash`/`dumpHash`
    match the pinned values; a mismatch is a fatal error, not a warning.
 4. **Provenance documentation retained**: the row families, derivation counts and source pins
-   are the minimum evidence behind the `Genesis row provenance` heading. A search for that
-   heading is only a section-presence check; because it cannot validate the section body, the
-   heading itself summarizes the pinned inputs, row families and counts. From the documentation
-   repository root, this bounded content check fails if either that summary or its supporting
-   evidence is removed:
+   are the minimum evidence behind the `Genesis row provenance` heading. A repository gate that
+   searches only for that heading is a section-presence check and cannot validate the required
+   provenance claims. The heading summarizes the pinned inputs, row families and counts, while
+   this bounded content check also fails if the synthetic, broadcast or hash-prefix claims are
+   removed from the section:
 
    ```bash
    provenance="$(awk '
@@ -195,9 +196,9 @@ stateDiagram-v2
    ' operations/xchain-genesis.md)"
    for required in \
      '## Genesis row provenance: hash-pinned BTC/DOGE inputs define deterministic GAS/P1/P2/A families (124,159 BTC; 43,934 DOGE rows)' \
-     'synthetic genesis-allocation records' \
-     'never broadcast on any chain' \
-     '`GENESIS-` transaction hashes' \
+     '124,160 BTC actions and 43,990 DOGE actions' \
+     '124,159 BTC rows and 43,934 DOGE rows carry a `GENESIS-` transaction hash' \
+     'synthetic genesis-allocation records, never broadcast on any chain' \
      'GENESIS-BTC-GAS-' \
      'GENESIS-<COIN>-P1-' \
      'GENESIS-<COIN>-P2-' \
