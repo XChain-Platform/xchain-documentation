@@ -85,7 +85,7 @@ the leg can be rehearsed on a throwaway chain; those variables are ignored on ma
 testnet. The set-hash a run computes is printed as `GENESIS: airdrop set-hash <hex>`, which is
 how you read the value to pin in the first place.
 
-## Genesis row provenance
+## Genesis row provenance: hash-pinned BTC/DOGE inputs define deterministic GAS/P1/P2/A families (124,159 BTC; 43,934 DOGE rows)
 
 Every action the genesis pass injects is synthetic: it has no on-chain transaction, no
 `raw_data`, no `source_pubkey` and no outputs, and its source is the GAS address. Each carries a
@@ -177,16 +177,20 @@ stateDiagram-v2
 3. **Genesis pin verified**: indexer startup logs confirm the genesis `ledgerHash`/`dumpHash`
    match the pinned values; a mismatch is a fatal error, not a warning.
 4. **Provenance documentation retained**: the row families, derivation counts and source pins
-   are the minimum evidence behind the `Genesis row provenance` heading. From the documentation
-   repository root, this content check fails if the heading remains but that evidence is removed:
+   are the minimum evidence behind the `Genesis row provenance` heading. A search for that
+   heading is only a section-presence check; because it cannot validate the section body, the
+   heading itself summarizes the pinned inputs, row families and counts. From the documentation
+   repository root, this bounded content check fails if either that summary or its supporting
+   evidence is removed:
 
    ```bash
    provenance="$(awk '
-     /^## Genesis row provenance$/ { found = 1; next }
-     found && /^## / { exit }
-     found { print }
+     /^## Genesis row provenance/ { found = 1 }
+     found && seen && /^## / { exit }
+     found { print; seen = 1 }
    ' operations/xchain-genesis.md)"
    for required in \
+     '## Genesis row provenance: hash-pinned BTC/DOGE inputs define deterministic GAS/P1/P2/A families (124,159 BTC; 43,934 DOGE rows)' \
      'GENESIS-BTC-GAS-' \
      'GENESIS-<COIN>-P1-' \
      'GENESIS-<COIN>-P2-' \
