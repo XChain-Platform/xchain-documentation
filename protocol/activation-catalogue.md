@@ -42,6 +42,7 @@ same chain or field.
 | `attest_responsible_widening_activation` | `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` | height |
 | `attest_zero_conf_activation` | `ATTEST_ZERO_CONF_ACTIVATION` | height |
 | `bridge_policy_detach_activation` | `BRIDGE_POLICY_DETACH` | height |
+| `bridge_policy_refusal_record_activation` | `BRIDGE_POLICY_REFUSAL_RECORD_ACTIVATION` | height |
 | `callback_compensation_activation` | `CALLBACK_COMPENSATES_EVERY_DEBITED_HOLDER` | height |
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
@@ -51,6 +52,7 @@ same chain or field.
 | `dispense_payment_tally_scale_activation` | `DISPENSE_PAYMENT_TALLY_SCALE_ACTIVATION` | time |
 | `dispenser_amount_positivity_activation` | `DISPENSER_AMOUNT_POSITIVITY_ACTIVATION` | time |
 | `dispenser_caps_activation` | `DISPENSER_CAPS_ACTIVATION` | time |
+| `dispenser_delay_protocol_time_activation` | `DISPENSER_DELAY_PROTOCOL_TIME_ACTIVATION` | height |
 | `dispenser_freshness_activation` | `DISPENSER_FRESHNESS_ACTIVATION` | height |
 | `dispenser_freshness_proven_use_activation` | `DISPENSER_FRESHNESS_PROVEN_USE_ACTIVATION` | time |
 | `dispenser_freshness_shape_activation` | `DISPENSER_FRESHNESS_SHAPE_ACTIVATION` | height |
@@ -97,6 +99,7 @@ same chain or field.
 | `price_scale_activation` | `PRICE_SCALE_ACTIVATION` | time |
 | `price_sig_tally_activation` | `PRICE_SIG_TALLY_ACTIVATION` | height |
 | `price_zero_validity_activation` | `PRICE_ZERO_VALIDITY_ACTIVATION` | time |
+| `price_wire_trailing_activation` | `PRICE_WIRE_TRAILING_ACTIVATION` | height |
 
 ## R through X
 
