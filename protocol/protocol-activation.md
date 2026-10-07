@@ -227,6 +227,12 @@ folded action's own archive failure stamps only the archive row instead of the w
 carries the fold's values on every network, so testnet is armed per chain at the same heights, and
 the same regtest variable arms both gates at the same height.
 
+`ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION` gates the state-hash class for the batch-completion stamp
+on a surviving version 5 attestation head. At or above it, a version 6 continuation that completes
+with a reassembly or quorum failure changes the state hash through the stamped head, so a follower
+that drops the stamp halts on the mismatch. The height map remains unarmed on mainnet and testnet;
+regtest is genesis-active.
+
 `BRIDGE_POLICY_DETACH` gates the destination half of a bridged policy list detach, described under
 [policy inheritance](./token-bridge.md#policy-inheritance). It is read at the destination chain's
 own block height. At or above it, a bridged copy whose origin issuer detached its allow or block
