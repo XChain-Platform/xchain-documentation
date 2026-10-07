@@ -191,40 +191,48 @@ version is `invalid: ANCHOR before activation`. Mainnet's height sits above the 
 so the restarted wire set has not activated there yet. Stragglers **fork**.
 
 `ARCHIVE_MATCH_COUNT_ACTIVATION` gates validation that an archive head's `MATCH_COUNT` equals its
-archive member count. It remains inert on mainnet and testnet until the operator arms it, while
-regtest is genesis-active. The map is indexed on
-[Flag-Day Values](./flag-days.md#canonical-activation-maps) without presenting the inert sentinel as
-an activation instant.
+archive member count. It remains inert on mainnet until the operator arms it. Testnet is armed per
+chain through the map's `BTC:testnet`, `LTC:testnet` and `DOGE:testnet` heights in
+[`constants.js`](./constants.js), and regtest is genesis-active. The map is indexed on
+[Flag-Day Values](./flag-days.md#canonical-activation-maps) without presenting the mainnet sentinel
+as an activation instant.
 
 `ANCHOR_BUNDLE_ORDER_ACTIVATION` gates validation that ANCHOR bundle CHAIN sections and PUBKEY pairs
-are in ascending byte order. It remains inert on mainnet and testnet until the operator arms it,
-while regtest is genesis-active. The map is indexed on
-[Flag-Day Values](./flag-days.md#canonical-activation-maps) without presenting the inert sentinel as
-an activation instant.
+are in ascending byte order. It remains inert on mainnet until the operator arms it. Testnet is
+armed per chain through the map's `BTC:testnet`, `LTC:testnet` and `DOGE:testnet` heights in
+[`constants.js`](./constants.js), and regtest is genesis-active. The map is indexed on
+[Flag-Day Values](./flag-days.md#canonical-activation-maps) without presenting the mainnet sentinel
+as an activation instant.
 
 `PRICE_V1_CANONICAL_ACTIVATION` gates the [PRICE](./actions/price.md) v1 canonical form: a `VALUE`
 and `FEE` with no leading zero and within the length caps `PRICE_V1_VALUE_MAX_LENGTH` and
-`PRICE_V1_FEE_MAX_LENGTH`, keyed on the action's own block time. It remains inert on mainnet and
-testnet until the operator arms it, while regtest is genesis-active. Its status is on
-[Flag-Day Values](./flag-days.md).
+`PRICE_V1_FEE_MAX_LENGTH`, keyed on the action's own block time. It remains inert on mainnet until
+the operator arms it, is armed on BTC, LTC and DOGE testnet at an instant of its own, and regtest
+is genesis-active. That testnet instant is in the registry row
+`price_scale_activation.PRICE_V1_CANONICAL_ACTIVATION`
+(`xchain-indexer/src/protocol_changes/shared_rows_2.js`). [Flag-Day Values](./flag-days.md) reads
+only the mainnet slot of a registry row like this one, so it lists the gate once mainnet is armed.
 
 `ANCHOR_FOLD_ACTIVATION` gates [ANCHOR](./actions/anchor.md) version 3, the folded bundle that
 carries every checkpointed chain section plus at most one archive section in one transaction. It
 is keyed on the anchor's own DOGE mined height like `ANCHOR_ACTIVATION` and always sits at or above
 it. Below the gate, version 3 is `invalid: VERSION (unknown)`; at or above it, versions 0, 1 and 2
 stay valid. At the gate, `anchor_archive` stops being minted as a reward. The fold gate uses the
-house UNARMED sentinel on mainnet and testnet, its regtest entry is null by default, and
-`XC_ANCHOR_FOLD_REGTEST_ACTIVATION` arms it for a private regtest venue.
+house UNARMED sentinel on mainnet. Testnet is armed per chain through the map's `BTC:testnet`,
+`LTC:testnet` and `DOGE:testnet` heights in [`constants.js`](./constants.js). Its regtest entry is
+null by default, and `XC_ANCHOR_FOLD_REGTEST_ACTIVATION` arms it for a private regtest venue.
 
 `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` is the fold's companion gate. At or above it, a
-folded action's own archive failure stamps only the archive row instead of the whole action; the
-same regtest variable arms both gates at the same height.
+folded action's own archive failure stamps only the archive row instead of the whole action. It
+carries the fold's values on every network, so testnet is armed per chain at the same heights, and
+the same regtest variable arms both gates at the same height.
 
 `BRIDGE_POLICY_DETACH` gates the destination half of a bridged policy list detach, described under
 [policy inheritance](./token-bridge.md#policy-inheritance). It is read at the destination chain's
 own block height. At or above it, a bridged copy whose origin issuer detached its allow or block
-list gets that list detached too; below it, the copy's list stays attached. It stays unarmed on
-mainnet and testnet until the operator arms it, while regtest is genesis-active.
+list gets that list detached too; below it, the copy's list stays attached. It is armed on testnet
+at each chain's own height (`BTC:testnet` 155001, `LTC:testnet` 4906040, `DOGE:testnet`
+67962387), stays unarmed on mainnet until the operator arms it, and regtest is genesis-active.
 
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
@@ -339,8 +347,8 @@ The execute-time lint and global-alias gates are active from genesis on every ne
 armed at 0 on 2026-09-09 under the
 [mainnet genesis arm](#the-mainnet-genesis-arm) (no contract has ever been deployed or executed on
 mainnet, so there is no verdict to reinterpret), and testnet and regtest have run both from genesis
-since they were built. The optional-chain gate is the exception and is not yet armed on mainnet or
-testnet. They are listed here rather than in the armed table above because they are
+since they were built. The optional-chain gate is the exception: it is unarmed on mainnet by ruling,
+armed on testnet at measured per-chain heights, and genesis-active on regtest. They are listed here rather than in the armed table above because they are
 registered in the VM rather than in the indexer's registry; a future change to any height in
 BOTH copies is a flag day under the [notice policy](./upgrade-notice-policy.md).
 
@@ -348,7 +356,7 @@ BOTH copies is a flag day under the [notice policy](./upgrade-notice-policy.md).
 |---|---|---|---|---|
 | **Execute-time source lint** (`EXEC_LINT_ACTIVATION`, re-runs the deploy syntax validation against a contract's stored source at execute time and fails the execution deterministically when that source no longer passes the bans active for the block; the check is metered as gas, so it moves `gasUsed`) | per-chain local height | **armed at genesis** (0 for BTC, LTC and DOGE, ruled 2026-09-09); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`EXEC_LINT_ACTIVATION`, resolver `isExecLintActive`); twin registry row `vm_exec_lint_activation.VM_EXEC_LINT_ACTIVATION` in `xchain-indexer/src/protocol_changes/gates_3.js`, pinned to byte equality by the consensus-params suites in both repos. A height armed on one side only forks the fleet |
 | **Deploy-lint global-alias refinement** (`LINT_GLOBAL_ALIAS_ACTIVATION`, makes the banned-global deploy rules resolve sloppy-mode `this` and the `globalThis` self-reference chain as reads of the same global object, which moves DEPLOY verdicts on error-severity `CONSENSUS_RULES`) | per-chain local height | **armed at genesis** (0 for BTC, LTC and DOGE, ruled 2026-09-09); testnet and regtest genesis-active | forks | `xchain-vm/src/index.js` (`LINT_GLOBAL_ALIAS_ACTIVATION`, resolver `isLintGlobalAliasActive`); twin registry row `vm_lint_global_alias_activation.VM_LINT_GLOBAL_ALIAS_ACTIVATION` in `xchain-indexer/src/protocol_changes/gates_3.js`, pinned the same way |
-| **Deploy-lint optional-chain look-through** (`LINT_OPTIONAL_CHAIN_ACTIVATION`, makes the banned-global and Math-object deploy rules look through a parenthesized optional chain such as `(globalThis?.globalThis).Promise` or `(globalThis?.Math).pow(2, 3)`, which moves DEPLOY verdicts on error-severity `CONSENSUS_RULES`) | per-chain local height | **unarmed** on BTC, LTC and DOGE mainnet by ruling; unarmed on testnet until the operator arms measured heights; regtest genesis-active | forks | `xchain-vm/src/index/lint_optional_chain_heights.js` (`LINT_OPTIONAL_CHAIN_ACTIVATION`, resolver `isLintOptionalChainActive`); twin registry row `vm_lint_optional_chain_heights.VM_LINT_OPTIONAL_CHAIN_ACTIVATION` in `xchain-indexer/src/protocol_changes/gates_4.js`, pinned to its VM twin by the indexer's consensus suites |
+| **Deploy-lint optional-chain look-through** (`LINT_OPTIONAL_CHAIN_ACTIVATION`, makes the banned-global and Math-object deploy rules look through a parenthesized optional chain such as `(globalThis?.globalThis).Promise` or `(globalThis?.Math).pow(2, 3)`, which moves DEPLOY verdicts on error-severity `CONSENSUS_RULES`) | per-chain local height | **unarmed** on BTC, LTC and DOGE mainnet by ruling; testnet armed at each chain's own height (`BTC:testnet` 155001, `LTC:testnet` 4906040, `DOGE:testnet` 67962387); regtest genesis-active | forks | `xchain-vm/src/index/lint_optional_chain_heights.js` (`LINT_OPTIONAL_CHAIN_ACTIVATION`, resolver `isLintOptionalChainActive`); twin registry row `vm_lint_optional_chain_heights.VM_LINT_OPTIONAL_CHAIN_ACTIVATION` in `xchain-indexer/src/protocol_changes/gates_4.js`, pinned to its VM twin by the indexer's consensus suites |
 
 ## Decoder-carried gates
 

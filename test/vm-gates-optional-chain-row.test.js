@@ -79,6 +79,46 @@ test('the xchain-vm service row names every VM-carried gate', { skip: vm.skip },
     assertVmServiceRow(PAGE, readVmSources(vm.root));
 });
 
+// Read every armed `'COIN:testnet': height` slot of the VM's optional-chain map.
+function optionalChainTestnetHeights(root) {
+    const source = fs.readFileSync(path.join(root, 'src/index/lint_optional_chain_heights.js'), 'utf8');
+    const map = source.match(/const LINT_OPTIONAL_CHAIN_ACTIVATION = Object\.freeze\(\{([\s\S]*?)\}\);/);
+    assert.ok(map, 'xchain-vm no longer declares LINT_OPTIONAL_CHAIN_ACTIVATION as a frozen map');
+    return [...map[1].matchAll(/'([A-Z]+):testnet':\s*(\d+)/g)].map((m) => ({ coin: m[1], height: m[2] }));
+}
+
+// Verify both pages quote each armed testnet height and never call testnet unarmed.
+function assertTestnetHeights(activationPage, operationsPage, heights) {
+    assert.ok(heights.length >= 3, `parsed ${heights.length} testnet heights; the VM map parse broke`);
+    const row = optionalChainRow(vmGatesSection(activationPage));
+    const spellings = operationsPage.match(/### Global-object spellings\n([\s\S]*?)(?=\n## )/)[1];
+    for (const { coin, height } of heights) {
+        const quoted = `\`${coin}:testnet\` ${height}`;
+        assert.ok(row.includes(quoted), `optional-chain row omits ${quoted}`);
+        assert.ok(spellings.includes(quoted), `operations.md Global-object spellings omits ${quoted}`);
+    }
+    for (const text of [row, vmGatesSection(activationPage), spellings]) {
+        assert.doesNotMatch(text, /unarmed on (?:mainnet and )?testnet|not yet armed on mainnet or\s+testnet/);
+    }
+}
+
+const OPERATIONS = fs.readFileSync(path.resolve(__dirname, '../components/vm/operations.md'), 'utf8');
+
+test('the optional-chain docs quote the VM map\'s armed testnet heights', { skip: vm.skip }, () => {
+    assertTestnetHeights(PAGE, OPERATIONS, optionalChainTestnetHeights(vm.root));
+});
+
+test('the testnet-height guard fails on a dropped height or an unarmed claim', { skip: vm.skip }, () => {
+    const heights = optionalChainTestnetHeights(vm.root);
+    const row = optionalChainRow(vmGatesSection(PAGE));
+    const dropped = PAGE.replace(row, row.replace(`\`${heights[0].coin}:testnet\` ${heights[0].height}`, 'removed'));
+    assert.throws(() => assertTestnetHeights(dropped, OPERATIONS, heights), /optional-chain row omits/);
+    const moved = heights.map((h, i) => (i === 1 ? { ...h, height: `${h.height}1` } : h));
+    assert.throws(() => assertTestnetHeights(PAGE, OPERATIONS, moved), /omits/);
+    const stale = OPERATIONS.replace('armed on testnet at each chain', 'unarmed on mainnet and testnet, at each chain');
+    assert.throws(() => assertTestnetHeights(PAGE, stale, heights), /doesNotMatch|match/i);
+});
+
 test('the service-row guard fails when a gate name or the map count drifts', { skip: vm.skip }, () => {
     const sources = readVmSources(vm.root);
     const dropped = PAGE.replaceAll('`JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME`', 'removed');

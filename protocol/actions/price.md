@@ -108,7 +108,7 @@ The same batch, deflate-compressed and base64-encoded; the publisher emits which
 - Dispensers on any chain may reference any oracle regardless of publishing chain
 
 #### VALUE and FEE Canonical Form
-- From `PRICE_V1_CANONICAL_ACTIVATION`, keyed on the action's own `block_time`, the canonical checks below run after the unchanged legacy checks. See [Flag-Day Values](../flag-days.md) for the gate status.
+- From `PRICE_V1_CANONICAL_ACTIVATION`, keyed on the action's own `block_time`, the canonical checks below run after the unchanged legacy checks. The gate is armed on BTC, LTC and DOGE testnet, inert on mainnet until the operator arms it, and genesis-active on regtest; [Protocol Activation](../protocol-activation.md#cohort-a-riders-that-mint-no-constant) names the registry row that holds its testnet instant, and [Flag-Day Values](../flag-days.md) lists its mainnet instant once one is set.
 - `VALUE` must have no leading zero: its integer part is `0` or starts with a nonzero digit, followed by an optional point and 1 to 8 decimal digits, the same pattern as `PRICE_VALUE_RE_CANONICAL`. It must also be at most 19 characters (`PRICE_V1_VALUE_MAX_LENGTH`), or the action is `invalid: VALUE (format)`.
 - The 19-character `VALUE` limit is the grammar bound: 10 integer digits below the hub's exclusive price ceiling, a point, and 8 decimal digits.
 - `FEE`, when present, must have no leading zero: its integer part is `0` or starts with a nonzero digit, followed by an optional point and 1 to 18 decimal digits. It must also be at most 20 characters (`PRICE_V1_FEE_MAX_LENGTH`), or the action is `invalid: FEE (format)`.
