@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Drift lint for four cross-page claims this corpus has already contradicted
+ * Drift lint for five cross-page claims this corpus has already contradicted
  * itself about. Each block below guards one of them.
  *
  * WHY, per claim:
@@ -46,6 +46,13 @@
  *      "non-participation slash" tells a validator operator their stake is at
  *      risk when it is not. This claim has drifted back once already after a
  *      partial correction, which is why it is pinned here.
+ *
+ *   5. Cross-chain DEX confirmation depth. A validator co-signs a DEX match
+ *      only once the give-side escrow is buried to that chain's depth, which
+ *      defaults per coin to BTC 6 / LTC 12 / DOGE 60 (the hub's coin files)
+ *      and may only be raised on mainnet and testnet. The whitepaper said the
+ *      default was a single confirmation, read off a fallback constant no
+ *      shipped coin reaches, and stated its reorg-risk argument against it.
  *
  * The capacity figure is read out of the sibling xchain-encoder checkout
  * rather than typed here, and SKIPS when that sibling is absent: the
@@ -242,3 +249,41 @@ test('decentralization.md still carries all three penalty lanes', () => {
     assert.match(page, /nothing is burned/,
         'the ROLLCALL eviction lane no longer states that nothing is burned');
 });
+
+/* ---------------------------------------------------------------- claim 5 */
+
+const DEX_COINS = ['BTC', 'LTC', 'DOGE'];
+const DEX_DOC_DEPTHS = { BTC: 6, LTC: 12, DOGE: 60 };
+const DEX_ROW = /^\|\s*Cross-chain DEX matching source-confirmation depth \(default\)\s*\|([^|\n]*)\|/m;
+const noHubCoins = sibling('xchain-hub', DEX_COINS.map((c) => `src/coins/${c}.js`)).skip;
+
+// Return the Appendix B value cell, failing loudly when the row is gone.
+function dexDepthCell() {
+    const m = DEX_ROW.exec(readDoc('whitepaper.md'));
+    assert.ok(m, 'whitepaper.md Appendix B no longer carries the cross-chain DEX '
+        + 'source-confirmation depth row; re-point DEX_ROW');
+    return m[1].trim();
+}
+
+test('the whitepaper states the per-coin DEX confirmation default, not one confirmation', () => {
+    assert.doesNotMatch(readDoc('whitepaper.md'), /single source confirmation/i,
+        'whitepaper.md says DEX matching defaults to a single source confirmation');
+    const cell = dexDepthCell();
+    assert.doesNotMatch(cell, /^1\b/, `Appendix B DEX depth still reads "${cell}"`);
+    for (const coin of DEX_COINS) {
+        assert.match(cell, new RegExp(`\\b${coin} ${DEX_DOC_DEPTHS[coin]}\\b`),
+            `Appendix B DEX depth "${cell}" does not name ${coin} ${DEX_DOC_DEPTHS[coin]}`);
+    }
+});
+
+test('the DEX depths the whitepaper publishes equal the hub coin files',
+    { skip: noHubCoins }, () => {
+        const cell = dexDepthCell();
+        for (const coin of DEX_COINS) {
+            const src = fs.readFileSync(path.join(sibling('xchain-hub').root, 'src/coins', `${coin}.js`), 'utf8');
+            const m = /^\s*confirmations:\s*(\d+)/m.exec(src);
+            assert.ok(m, `xchain-hub src/coins/${coin}.js declares no confirmations; re-point this regex`);
+            assert.match(cell, new RegExp(`\\b${coin} ${m[1]}\\b`),
+                `the hub's ${coin} default depth is ${m[1]}, but Appendix B reads "${cell}"`);
+        }
+    });

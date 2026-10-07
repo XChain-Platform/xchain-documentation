@@ -30,7 +30,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 - **Reward tracking**: per-round XCHAIN rewards distributed equally among participating oracle validators
 - **Offense detection** (`SlashDetector`): price deviation (>5%), repeated deviation (3+ in 24h), and non-participation (30+ missed rounds) monitoring. These are hub-local records; governance can suspend a validator, and on-chain stake is burned only by a SLASH proof of equivocation
 - **Multi-instance**: multiple hub instances against shared MariaDB with consumer fallback via `HUB_VALIDATORS`
-- **MariaDB storage**: 20 relational tables with connection pooling, circuit breaker, and exponential backoff
+- **MariaDB storage**: relational schema auto-created from `src/sql/` (see [Database](database.md)), with connection pooling, circuit breaker, and exponential backoff
 - **Single-node fallback**: all consensus-dependent operations fall back to direct execution when no peers are connected
 - **3,638 tests** (measured 2026-07-27): unit, integration, e2e, fuzz, chaos, boundary, smoke, regression, performance
 - **Docker-ready**: Dockerfile for containerized deployment via xchain-node
@@ -40,7 +40,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 | Document | Description |
 |---|---|
 | [Architecture](architecture.md) | Subsystem design, source files, P2P gossip, PBFT consensus, oracle pipeline, cross-chain engine |
-| [Configuration](configuration.md) | Environment variables, standalone vs validator mode, database schema, connection pool |
+| [Configuration](configuration.md) | Environment variables, standalone vs validator mode, connection pool |
 | [API](api.md) | JSON-RPC method reference: config, validators, oracle, attestations, swaps, reorgs, governance |
 | [Database](database.md) | Full schema reference: config, validators, oracle (price_snapshots, oracle_prices), attestations, governance |
 | [Operations](operations.md) | Running, Docker, validator key rotation, resilience, troubleshooting |

@@ -67,11 +67,25 @@ an ordinary ticker name looked up as written.
 `FILE.GATE_TICKER` is also resolved on input, but clients must write it in full. The
 indexer checks it through the same ticker lookup as the fields above, so a `^<tickid>`
 resolves and the `FILE` is accepted, but the value is then stored verbatim as the file's
-gate, and the `SEND` key-handoff rule finds a token's gated packs by comparing that stored
-value to the `SEND`'s `TICK` as exact text. A compacted gate is therefore missed by every
-`SEND` that writes the ticker name: no handoff is required for it, so the file is accepted
-but not gated. The reference SDK keeps its existence check on this field and never
-compacts it. See [FILE](./actions/file.md).
+gate. The `SEND` key-handoff rule finds a token's gated packs by comparing that stored
+value to a lookup key taken from the `SEND`'s `TICK`, and which key it uses depends on
+`SEND_CARET_PACK_KEY_ACTIVATION` (see [Activation Module Catalogue](./activation-catalogue.md)
+and [Flag-Day Values](./flag-days.md)):
+
+- **At or above the gate**, a `^<tickid>` `SEND` `TICK` is resolved to the ticker name
+  first, so a caret `SEND` and a named `SEND` look up the same packs. A compacted gate is
+  then missed by every `SEND`, whichever spelling it uses.
+- **Below the gate**, the lookup key is the `TICK` as written. A compacted gate is then
+  missed by every `SEND` that writes the ticker name, and a gate written in full is missed
+  by every `SEND` that writes `TICK` as `^<tickid>`.
+
+Either way, a missed pack requires no handoff: the `SEND` settles valid and the recipient
+receives the token without the key. The gate is active from genesis on testnet and regtest
+and is not yet armed on mainnet, so on mainnet a `SEND` of a gated token must write `TICK`
+in full for the handoff rule to apply. The reference SDK keeps its existence check on
+`GATE_TICKER` and never compacts it, but it does compact a `SEND`'s `TICK` by default, so
+build gated-token transfers with `compactTickers: false` on any network where the gate is
+not armed. See [FILE](./actions/file.md).
 
 **Address fields that receive an index id:** the destination/transfer/get-address style
 fields of an action:

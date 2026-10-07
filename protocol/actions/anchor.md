@@ -450,8 +450,9 @@ exact bytes):
   on-chain), so the chain remains the root of trust.
 - `rewards[]` carries the **anchor-publish reward rows** (`reward_type` `anchor_bundle` /
   `anchor_archive` only) that have not yet ridden an archive. These are the one
-  `validator_rewards` rail a chain parse cannot re-derive (`oracle_round` and `attest_fee`
-  rows are derived deterministically from PRICE/ATTEST actions and are **never archived**:
+  `validator_rewards` rail a chain parse cannot re-derive (`attest_fee` rows are derived
+  deterministically from ATTEST actions, no consensus rail mints `oracle_round` rows today
+  (see [COLLECT](collect.md#reward-population-path)), and neither type is ever **archived**:
   recovery rejects an archive that claims them). Reward rows carry no per-row signatures;
   every co-signing hub instead **re-derives** each field before signing: the pubkey must be in
   its own `oracle_publish` resolution at `block_index`, the amount must equal its configured
@@ -791,7 +792,8 @@ which is anti-spam only.
 3. Reindex BTC/LTC/DOGE from genesis against the recovered tables. The reindex derives
    `bridge_settlements` and `xbridges` from the rebuilt hub-mirror rows rather than recovery
    writing those derived tables directly. Cross-chain settlements, XCALL injections,
-   `oracle_round`/`attest_fee` rewards, and historical COLLECT claims all re-derive identically;
+   `attest_fee` rewards (no `oracle_round` rows are minted today), and historical COLLECT
+   claims all re-derive identically;
    final `blocks` hash triples must match the anchored checkpoints.
 
 ```mermaid

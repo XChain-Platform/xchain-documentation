@@ -470,6 +470,8 @@ const selfMessage = sdk.message({
 
 The protocol enforces a rule on SENDs of tokens with active gated content: every SEND must be paired with a MESSAGE v2 to the recipient carrying the key handoff. The wallet builds the BATCH; the indexer rejects the SEND if the matching MESSAGE is missing.
 
+The indexer finds the token's gated content from the SEND's `TICK`. Below `SEND_CARET_PACK_KEY_ACTIVATION` (not yet armed on mainnet; see [Index ID References](../protocol/index-id-references.md)), a SEND that writes `TICK` as `^<tickid>` matches no gated content, so it settles without the handoff and the recipient never receives the key. The SDK compacts `tick` to `^<tickid>` by default, so on a network where that gate is not armed, build gated-token transfers with an SDK constructed with `{ compactTickers: false }`.
+
 ```js
 const handoffPayload = sdk.gatedFile.serializeKeyPayload([key]);  // sender must already have key
 

@@ -84,13 +84,9 @@ After block processing completes, the indexer pushes data to the hub via `HubCli
 
 All push calls are best-effort, failures are logged but never block indexing.
 
-### Hub → Indexer Push Endpoint
+### Hub → Indexer Writes
 
-The indexer's API also exposes a write endpoint that the hub calls:
-
-| Method | Sent By | Purpose |
-|---|---|---|
-| `pushvalidatorrewards` | hub `RewardTracker` | Pushes `anchor_bundle` and `anchor_archive` reward rows from the hub to the indexer. **Retired for new anchor rewards:** at or above `ANCHOR_REWARD_ACTIVATION` (for `anchor_bundle`) and `ARCHIVE_REWARD_ACTIVATION` (for `anchor_archive`) the indexer derives the reward from the on-chain ANCHOR bytes instead, so the endpoint carries pre-flag-day history only. `oracle_round` / `oracle_base` / `oracle_full_node` and `attest_fee` rewards are rejected by this endpoint; they are derived deterministically by the indexer during block processing and do not need to be replicated. |
+The indexer's API exposes no write method for the hub to call: `WRITE_METHODS` in `src/api.js` is empty. The former `pushvalidatorrewards` rail, which the hub's `RewardTracker` once used to push `anchor_bundle` and `anchor_archive` reward rows, has been removed from both services, and a call answers JSON-RPC `-32601` (method not found). Reward rows now reach `validator_rewards` only by derivation during block processing; the rows that rail pushed below the reward flag-days are restored by ANCHOR full-parse recovery. See [COLLECT](../../protocol/actions/collect.md#reward-population-path) and the [hub API note](../hub/api.md#pushvalidatorrewards-retired).
 
 ## VM Runtime Module
 
