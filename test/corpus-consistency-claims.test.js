@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Drift lint for five cross-page claims this corpus has already contradicted
+ * Drift lint for six cross-page claims this corpus has already contradicted
  * itself about. Each block below guards one of them.
  *
  * WHY, per claim:
@@ -53,6 +53,12 @@
  *      and may only be raised on mainnet and testnet. The whitepaper said the
  *      default was a single confirmation, read off a fallback constant no
  *      shipped coin reaches, and stated its reorg-risk argument against it.
+ *
+ *   6. The cross-chain match archive. ANCHOR archives the signed match records
+ *      on DOGE so a full parse can rebuild them. The whitepaper's §9 still
+ *      described the retired Merkle-root-only audit anchor, which could verify
+ *      a surviving copy but never rebuild one, while its own action list sent
+ *      readers to §9 for the archive.
  *
  * The capacity figure is read out of the sibling xchain-encoder checkout
  * rather than typed here, and SKIPS when that sibling is absent: the
@@ -287,3 +293,32 @@ test('the DEX depths the whitepaper publishes equal the hub coin files',
                 `the hub's ${coin} default depth is ${m[1]}, but Appendix B reads "${cell}"`);
         }
     });
+
+/* ---------------------------------------------------------------- claim 6 */
+
+// Return whitepaper §9, failing loudly when either heading moves.
+function whitepaperSection9(markdown) {
+    const start = markdown.search(/^## 9\. /m);
+    const end = markdown.search(/^## 10\. /m);
+    assert.ok(start !== -1 && end > start, 'whitepaper.md §9 or §10 heading moved; re-point whitepaperSection9');
+    return markdown.slice(start, end);
+}
+
+function assertMatchArchiveClaim(markdown) {
+    const s9 = whitepaperSection9(markdown);
+    assert.doesNotMatch(s9, /Merkle-rooted audit anchor|XDEXANCHOR/i,
+        'whitepaper.md §9 describes the retired Merkle-root-only audit anchor');
+    assert.match(s9, /ANCHOR action/, 'whitepaper.md §9 no longer names the ANCHOR action');
+    assert.match(s9, /match archive/i, 'whitepaper.md §9 no longer describes the match archive');
+}
+
+test('whitepaper §9 describes the ANCHOR match archive, not the retired audit anchor', () => {
+    assertMatchArchiveClaim(readDoc('whitepaper.md'));
+});
+
+test('falsification: the retired audit-anchor sentence is caught in §9', () => {
+    const page = readDoc('whitepaper.md');
+    const stale = page.replace(/^## 10\. /m,
+        'An optional Merkle-rooted audit anchor may be published to a chain for transparency.\n\n## 10. ');
+    assert.throws(() => assertMatchArchiveClaim(stale));
+});

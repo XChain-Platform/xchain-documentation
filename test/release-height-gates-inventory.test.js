@@ -40,6 +40,45 @@ test('the release height-gate inventory names every gate and supporting page', (
     assertReleaseHeightGates(PAGE);
 });
 
+const { sibling } = require('./helpers/sibling_checkout.js');
+
+const GATES_4 = 'src/protocol_changes/gates_4.js';
+const indexer = sibling('xchain-indexer', [GATES_4]);
+
+// Read the per-coin testnet heights of the BRIDGE_POLICY_DETACH registry row.
+function bridgeDetachTestnetHeights(root) {
+    const source = fs.readFileSync(path.join(root, GATES_4), 'utf8');
+    const row = source.match(/addGate\('bridge_policy_detach_activation\.BRIDGE_POLICY_DETACH', 'height', \{([\s\S]*?)\}\);/);
+    assert.ok(row, 'xchain-indexer no longer registers the BRIDGE_POLICY_DETACH height row');
+    return [...row[1].matchAll(/'([A-Z]+):testnet':\s*(\d+)/g)].map((m) => ({ coin: m[1], height: m[2] }));
+}
+
+// Verify the BRIDGE_POLICY_DETACH paragraph quotes each armed testnet height and no unarmed-testnet claim.
+function assertBridgeDetachArming(markdown, heights) {
+    const paragraph = markdown.match(/^`BRIDGE_POLICY_DETACH` gates[\s\S]*?(?=\n\n)/m);
+    assert.ok(paragraph, 'the BRIDGE_POLICY_DETACH paragraph is missing');
+    const prose = paragraph[0].replace(/\s+/g, ' ');
+    for (const { coin, height } of heights) {
+        assert.ok(prose.includes(`\`${coin}:testnet\` ${height}`), `BRIDGE_POLICY_DETACH omits ${coin}:testnet ${height}`);
+    }
+    assert.doesNotMatch(prose, /unarmed on mainnet and testnet/);
+}
+
+test('the BRIDGE_POLICY_DETACH paragraph matches the registry\'s testnet arming', { skip: indexer.skip }, () => {
+    const heights = bridgeDetachTestnetHeights(indexer.root);
+    assert.ok(heights.length >= 3, `parsed ${heights.length} testnet heights; the registry parse broke`);
+    assertBridgeDetachArming(PAGE, heights);
+});
+
+test('the arming guard fails on a dropped height or the old unarmed wording', { skip: indexer.skip }, () => {
+    const heights = bridgeDetachTestnetHeights(indexer.root);
+    const paragraph = PAGE.match(/^`BRIDGE_POLICY_DETACH` gates[\s\S]*?(?=\n\n)/m)[0];
+    const dropped = PAGE.replace(paragraph, paragraph.replace(`\`${heights[0].coin}:testnet\` ${heights[0].height}`, 'removed'));
+    assert.throws(() => assertBridgeDetachArming(dropped, heights), /omits/);
+    const stale = PAGE.replace('It is armed on testnet', 'It stays unarmed on mainnet and testnet, armed on testnet');
+    assert.throws(() => assertBridgeDetachArming(stale, heights), /match/i);
+});
+
 test('the inventory guard fails when any required marker is removed', () => {
     for (const marker of [
         'ANCHOR_FOLD_ACTIVATION',

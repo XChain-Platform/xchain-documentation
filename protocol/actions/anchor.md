@@ -65,14 +65,17 @@ above it, versions 0, 1 and 2 are still valid: the fold adds a wire, it does not
 unfolded ones, so a publisher mid-rollout (or a network that never arms the fold) keeps
 publishing v0 bundles and v1/v2 archive batches exactly as before.
 
-`ANCHOR_FOLD_ACTIVATION` uses the house UNARMED sentinel on mainnet and testnet: it is ruled and
-unscheduled, and stays inert until the year 2286. Its regtest entry is `null` by default.
-`XC_ANCHOR_FOLD_REGTEST_ACTIVATION` can arm that entry at DOGE height zero or a selected height
-for a private venue without scheduling either public network.
+`ANCHOR_FOLD_ACTIVATION` uses the house UNARMED sentinel on mainnet: it is ruled and unscheduled
+there, and stays inert until the year 2286. Testnet is armed per chain through the map's
+`BTC:testnet`, `LTC:testnet` and `DOGE:testnet` heights in [`constants.js`](../constants.js); the
+bare `testnet` key is only the fallback for a chain with no key of its own. Its regtest entry is
+`null` by default. `XC_ANCHOR_FOLD_REGTEST_ACTIVATION` can arm that entry at DOGE height zero or a
+selected height for a private venue without scheduling either public network.
 
 `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` is the companion gate for the v3 archive
-section's verdict scope (see [Version 3 only](#version-3-only) below). It uses the same UNARMED
-sentinel on mainnet and testnet and is `null` on regtest by default. The same
+section's verdict scope (see [Version 3 only](#version-3-only) below). It carries the fold's values
+on every network, so testnet is armed per chain at the same heights. Mainnet holds the same
+UNARMED sentinel, and regtest is `null` by default. The same
 `XC_ANCHOR_FOLD_REGTEST_ACTIVATION` setting arms both regtest gates at the same height, because
 the section-scoped verdict is armed only with the fold.
 

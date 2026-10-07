@@ -28,7 +28,7 @@ function assertDetachRule(markdown) {
     for (const marker of [
         '**Detaching a list.**',
         'BRIDGE_POLICY_DETACH',
-        '[Flag-Day Values](./flag-days.md)',
+        '[Protocol Activation](./protocol-activation.md#cohort-a-riders-that-mint-no-constant)',
         'own block height',
         '[`ISSUE`](./actions/issue.md)',
         'never materialized',
@@ -44,7 +44,7 @@ test('the page guard fails when any required marker is removed', () => {
     for (const marker of [
         '**Detaching a list.**',
         'BRIDGE_POLICY_DETACH',
-        '[Flag-Day Values](./flag-days.md)',
+        '[Protocol Activation](./protocol-activation.md#cohort-a-riders-that-mint-no-constant)',
         'own block height',
         '[`ISSUE`](./actions/issue.md)',
         'never materialized',
