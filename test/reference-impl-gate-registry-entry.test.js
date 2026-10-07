@@ -81,25 +81,6 @@ function diff(actual, expected) {
     };
 }
 
-function withEnv(values, fn) {
-    const saved = new Map(Object.keys(values).map((name) => [name, {
-        had: Object.prototype.hasOwnProperty.call(process.env, name),
-        value: process.env[name],
-    }]));
-    try {
-        for (const [name, value] of Object.entries(values)) {
-            if (value === undefined) delete process.env[name];
-            else process.env[name] = value;
-        }
-        return fn();
-    } finally {
-        for (const [name, prior] of saved) {
-            if (prior.had) process.env[name] = prior.value;
-            else delete process.env[name];
-        }
-    }
-}
-
 function listsMarketRows(height, time) {
     const env = {
         [LISTS_MARKET_HEIGHT_ENV]: height,
