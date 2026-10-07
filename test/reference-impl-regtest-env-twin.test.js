@@ -35,8 +35,15 @@ test('the vendored shared-row queue matches the indexer canonical file', () => {
     assert.equal(sha256(VENDORED_SHARED_ROWS), sha256(CANONICAL_SHARED_ROWS));
 });
 
-for (let part = 1; part <= 5; part += 1) {
-    const name = `shared_rows_${part}.js`;
+const SHARED_ROWS_PARTS = [
+    "shared_rows_1.js",
+    "shared_rows_2.js",
+    "shared_rows_3.js",
+    "shared_rows_4.js",
+    "shared_rows_5.js",
+];
+
+for (const name of SHARED_ROWS_PARTS) {
     test(`the vendored ${name} matches the indexer canonical file`, () => {
         const vendored = path.join(path.dirname(VENDORED_SHARED_ROWS), name);
         const canonical = path.join(path.dirname(CANONICAL_SHARED_ROWS), name);
