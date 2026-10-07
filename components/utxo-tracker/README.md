@@ -37,6 +37,7 @@ In addition to confirmed block data, the tracker maintains a separate in-memory 
 | [Architecture](architecture.md) | Data pipeline position, internal components, LevelDB key schema, block processing loop, reorg handling, mempool tracking |
 | [Configuration](configuration.md) | Environment variables, internal constants, database paths |
 | [Operations](operations.md) | Running, Docker, REST and JSON-RPC API reference, resilience, troubleshooting |
+| [Remote Tracker Profile](trackerless-profile.md) | Fail-closed encoder contract for a tracker on another host: endpoints, freshness fields, typed errors, and wallet scope |
 
 ## Installation
 
