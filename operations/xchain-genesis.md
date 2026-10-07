@@ -87,6 +87,10 @@ how you read the value to pin in the first place.
 
 ## Genesis row provenance: hash-pinned BTC/DOGE inputs define deterministic GAS/P1/P2/A families (124,159 BTC; 43,934 DOGE rows)
 
+These rows are synthetic genesis-allocation records, never broadcast on any chain. Their
+`GENESIS-` transaction hashes identify indexer-created allocation history rather than on-chain
+transactions.
+
 Every action the genesis pass injects is synthetic: it has no on-chain transaction, no
 `raw_data`, no `source_pubkey` and no outputs, and its source is the GAS address. Each carries a
 deterministic `tx_hash` starting `GENESIS-`, so an explorer or an auditor can distinguish a
@@ -191,6 +195,9 @@ stateDiagram-v2
    ' operations/xchain-genesis.md)"
    for required in \
      '## Genesis row provenance: hash-pinned BTC/DOGE inputs define deterministic GAS/P1/P2/A families (124,159 BTC; 43,934 DOGE rows)' \
+     'synthetic genesis-allocation records' \
+     'never broadcast on any chain' \
+     '`GENESIS-` transaction hashes' \
      'GENESIS-BTC-GAS-' \
      'GENESIS-<COIN>-P1-' \
      'GENESIS-<COIN>-P2-' \
