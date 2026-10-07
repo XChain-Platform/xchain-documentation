@@ -89,31 +89,44 @@ how you read the value to pin in the first place.
 
 Every action the genesis pass injects is synthetic: it has no on-chain transaction, no
 `raw_data`, no `source_pubkey` and no outputs, and its source is the GAS address. Each carries a
-deterministic `tx_hash` starting `GENESIS-`, so an explorer or an auditor can tell a genesis
-row from a real transaction by the prefix alone, and a reindex replays to identical action
-indexes and hashes. The synthetic hashes are fixed-width: a sha256 digest truncated to 48
-hex characters keeps each inside the 64-character unique prefix of the transaction hash index.
+deterministic `tx_hash` starting `GENESIS-`, so an explorer or an auditor can distinguish a
+genesis row from a broadcast transaction by the prefix alone. The digest is sha256 truncated
+to 48 hex characters, which keeps the complete synthetic hash inside the transaction index's
+64-character unique prefix.
 
-| Prefix | Rows it marks | Digest input |
-|---|---|---|
-| `GENESIS-<COIN>-<family>-` | The XCHAIN gas token `ISSUE`, BTC mainnet only, built by the shared token-creation helper | `COIN\|family\|TICK`, pinned byte-for-byte by a replay test |
-| `GENESIS-<COIN>-P1-` | One `ISSUE` per snapshot name: the name reservation, owned by GAS (leaf names) | `COIN\|1\|TICK` |
-| `GENESIS-<COIN>-P2-` | The deferred ancestor transfer: a re-`ISSUE` from GAS with `TRANSFER` set to the snapshot owner | `COIN\|2\|TICK` |
-| `GENESIS-<COIN>-A-` | One airdrop credit per holder per bucket (an `ISSUE` format 2 carrying `MINT_SUPPLY` and `TRANSFER_SUPPLY`), only on a chain with the airdrop set armed | `COIN\|AIRDROP\|BUCKET\|ADDRESS` |
+The row constructors and their inputs are:
 
-`<COIN>` is `BTC` or `DOGE`. The action counts the indexer shows under the `GENESIS-BTC-` and
-`GENESIS-DOGE-` prefixes (124,160 BTC, 43,990 DOGE) are these rows and nothing else. They are
-not transfers, not mints by a user and not balances: the pass-1 and pass-2 rows are the
-Counterparty and Dogeparty asset-name ownership snapshots (the bundled
-`data/genesis/<COIN>-ledger.csv` manifest, pinned by `ledgerHash`), so the count tracks
-the snapshot's name count plus one pass-2 row for each ancestor name, and on BTC one more row
-for the gas token. No row in either set moves XCHAIN to anyone: the XCHAIN supply is
-still 0 after the name passes, and only `-A-` rows credit balances.
+| Prefix | Constructor | Row provenance | Digest input |
+|---|---|---|---|
+| `GENESIS-BTC-GAS-` | `injectGasToken()` via `injectProtocolToken()` | The one XCHAIN gas-token `ISSUE`, before the name passes | `BTC\|GAS\|XCHAIN` |
+| `GENESIS-<COIN>-P1-` | `runNamePasses()` via `issue(..., 1)` | One `ISSUE` for every name in the pinned Counterparty or Dogeparty manifest; non-GAS leaves transfer to their snapshot owner in this row, while ancestors remain GAS-owned temporarily | `COIN\|1\|TICK` |
+| `GENESIS-<COIN>-P2-` | `runNamePasses()` via `issue(..., 2)` | One deferred re-`ISSUE` for every non-GAS-owned ancestor name, in reverse manifest order, with `TRANSFER` set to its snapshot owner | `COIN\|2\|TICK` |
+| `GENESIS-<COIN>-A-` | `injectAirdrops()` via `creditIssue()` | One XCHAIN credit per holder and bucket, as an `ISSUE` format 2 carrying `MINT_SUPPLY` and `TRANSFER_SUPPLY`; absent unless the airdrop set is armed | `COIN\|AIRDROP\|BUCKET\|ADDRESS` |
 
-To audit a row, filter on the prefix, recompute the digest from the input in the table, and
-compare it with the hash shown. The ledger manifest and the state dump are verified at startup
-against `ledgerHash` and `dumpHash`, so a node whose genesis rows differ from the federation's
-halts rather than indexing on.
+`<COIN>` is `BTC` or `DOGE`. The shipped mainnet airdrop sets are empty, so no `-A-` rows are
+included in the current counts. The bundled manifests and genesis-dump metadata give the exact
+provenance of the existing synthetic rows:
+
+| Chain | Pass 1: manifest names | Pass 2: ancestor transfers | Gas-token row | `GENESIS-` total |
+|---|---:|---:|---:|---:|
+| BTC | 121,716 | 2,442 | 1 | 124,159 |
+| DOGE | 42,704 | 1,230 | 0 | 43,934 |
+
+These totals also correct a tempting misreading of the live action counts. The reported BTC
+total of **124,160** comprises the 124,159 genesis rows above plus one non-genesis `ISSUE`.
+The reported DOGE total of **43,990** comprises 43,934 genesis `ISSUE`s plus 56 non-genesis
+`ANCHOR`s. Therefore 124,160 and 43,990 are total indexed mainnet counts, not counts of rows
+carrying a `GENESIS-` hash.
+
+The authoritative inputs are `data/genesis/BTC-ledger.csv` and
+`data/genesis/DOGE-ledger.csv`, pinned by each chain's `ledgerHash`. The independently pinned
+`data/genesis/BTC-mainnet-genesis-dump.ndjson.gz` and
+`data/genesis/DOGE-mainnet-genesis-dump.ndjson.gz` metadata record 124,159 and 43,934 rows
+respectively in each of `actions`, `issues`, `transactions` and `index_transactions`. To audit
+a row, select its `GENESIS-` transaction hash, identify its family from the prefix, find the
+manifest tick or airdrop holder named by that family, and recompute the digest from the table
+above. A reindex must reproduce both the hash and action index; startup rejects a manifest or
+dump that differs from its `ledgerHash` or `dumpHash`.
 
 ## Step 1: Open the mint (launch)
 
