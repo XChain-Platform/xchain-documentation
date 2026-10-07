@@ -151,6 +151,7 @@ stateDiagram-v2
 - Dispenser `LIST` edits are delayed a set amount of time (1 hour)
 - Dispensers are limited to a maximum number of dispenses per fill (1,000, enforced). The dispense that reaches the limit still executes; the dispenser then auto-closes and any remaining escrow is refunded to the `SOURCE` owner
 - A refill (a Version 2 `DISPENSER_EDIT` that tops up `GIVE_ESCROW`) resets the dispense count to 0, so each fill allows another 1,000 dispenses. Refills are limited to 5 (the 6th is rejected), giving a lifetime ceiling of 6 fills x 1,000 dispenses
+- A dispenser selling a controller-bound `GIVE_TICK` runs the token's `trade` guard when it opens (`action_type` `DISPENSER_CREATE`). From the [`DISPENSER_REFILL` flag day](../flag-days.md), a refill that adds `GIVE_ESCROW` runs that guard too, with `action_type` `DISPENSER_REFILL`; before it, refills run no guard. See [invocation points](../controller-bound-tokens.md#invocation-points-per-action_type)
 - `FIAT_CODE` accepts the following 12 currencies:
   - `USD` = US Dollar
   - `CAD` = Canadian Dollar

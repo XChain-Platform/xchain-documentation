@@ -110,7 +110,7 @@ One thing that surprises people: "one guard per token" is not "one guard per act
 Four things to know before you bind one:
 
 - **It is opt-in.** A token with no binding behaves exactly as it always has, with no added fee and no added overhead.
-- **It fails closed.** If the guard denies, errors, or runs out of gas, the action does not happen and anything the guard did is rolled back.
+- **It fails closed.** If the guard denies, errors, or runs out of gas, the action does not happen and anything the guard did is rolled back. When one broadcast action runs several guards (a token guard and an account guard, say), work an earlier guard already allowed and committed is undone by a later guard's denial only from the `CONTROLLER_GUARD_LEG_SAVEPOINTS` flag day; see [Controller-Bound Tokens](../protocol/controller-bound-tokens.md#reentrancy-and-determinism).
 - **The actor pays for it.** Whoever broadcasts the action pays the guard's gas, up to a bounded ceiling.
 - **Only you can bind or drop one**, and dropping is subject to a cooldown you commit to at bind time: the binding keeps applying until that many blocks have passed.
 

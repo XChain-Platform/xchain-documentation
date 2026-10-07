@@ -345,7 +345,7 @@ sequenceDiagram
 
 The contract's first method (the one that called `request`) returns synchronously; its work in that block is done. The callback method runs in a separate EXECUTE later, when the answer is available. The callback runs as if the contract were calling itself: `xchain.getSourceAddress()` returns the contract's own derived address.
 
-The platform always invokes the callback exactly once per request: on success, on provider error, or on expiry. A contract never has to poll, never has to clean up stale requests, and never gets a "no answer" silently.
+Once the indexer admits a request, the platform invokes the callback exactly once: on success, on provider error, or on expiry. A contract never has to poll, never has to clean up stale requests, and never gets a "no answer" silently. A request that fails the indexer's validation (an unknown provider, a redundancy or deadline the provider does not allow, a payload over the provider's `max_request_bytes`) is never admitted: the emitting EXECUTE reverts with its state writes and sibling emissions, so no request exists and no callback fires.
 
 ### Providers
 
@@ -422,14 +422,14 @@ Each request may carry two distinct escrows:
 **(b) Optional paid-attestation fee (`feeTick` / `feeAmount`)**: an explicit fee a contract includes in the request (E1 feature, active now). Passing `feeAmount > 0` escrows that amount from the calling contract (`FEE_PAYER`) at request time. On `ok` the fee is split among the responsible validators. On expiry or provider error (service not rendered) the fee is **refunded in full to the caller**.
 
 Provider-level limits the contract should know about:
-- **`max_request_bytes`**: payload size cap (LLM: 8192, http_get: 2048). The VM enforces only a platform-wide 8192 ceiling; the indexer enforces the true per-provider cap, so an http_get payload between 2049 and 8192 bytes passes the VM but is rejected by the indexer and expires.
+- **`max_request_bytes`**: payload size cap (LLM: 8192, http_get: 2048). The VM enforces only a platform-wide 8192 ceiling; the indexer enforces the true per-provider cap, so an http_get payload between 2049 and 8192 bytes passes the VM but is rejected by the indexer as `invalid: REQUEST_PAYLOAD (exceeds provider max)`. It does not expire: the invalid request reverts the emitting EXECUTE, rolling back its state writes and sibling emissions, and no callback fires. Check the payload size against the provider's cap before calling `request`.
 - **`allowed_redundancy`**: which `[1, 3, 5]` values the provider supports.
 - **`deadline_window_blocks`**: how far in the future the deadline can be (per-provider cap; VM accepts [1, 100]).
 
 ### Limitations and Notes
 
 - **Asynchronous only.** A contract cannot block on a result; it must continue and react in the callback.
-- **One callback per request, eventually.** Either the response, or expiry. Never both, never silent.
+- **One callback per admitted request, eventually.** Either the response, or expiry. Never both, never silent. A request the indexer rejects at creation reverts the calling EXECUTE instead, so it has no callback.
 - **Body encoding on response.** `RESPONSE_PAYLOAD` travels **base64-encoded** on the wire in ATTEST v1. The indexer decodes it to UTF-8 for storage and delivers it to the callback as a UTF-8 string. Binary content round-trips correctly as long as it is valid UTF-8 after decoding; arbitrary binary is not a supported use case.
 - **`getResponse(requestId)` is read-only.** It returns the previously-stored response after the callback has already fired, useful for contracts that want to revisit a past answer from a different method.
 

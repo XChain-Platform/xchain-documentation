@@ -32,7 +32,7 @@ These three services form the backbone of the platform. Data flows from coin nod
 | **Inputs** | Coin node JSON-RPC (`getblockcount`, `getblockhash`, `getblock`, `getrawtransaction`) |
 | **Outputs** | Decoder MariaDB (`XChain_{CHAIN}_{NETWORK}_Decoder`) |
 | **Storage** | MariaDB (relational; blocks, transactions, decoded ACTION strings) |
-| **Communication** | Outbound JSON-RPC to coin node; no inbound API |
+| **Communication** | Outbound JSON-RPC to coin node; inbound JSON-RPC API on `DECODER_API_PORT` (default 3002, no API key: `ping`, `health`, `getlatestblock`, `getmempool`) plus HTTP `GET /status` and `GET /live` probes |
 
 Key technical details:
 
@@ -51,10 +51,10 @@ See [`../components/decoder/`](../components/decoder/) for full documentation.
 | | |
 |---|---|
 | **Purpose** | Reads decoded ACTIONs from the Decoder DB, validates them, executes business logic, writes final state |
-| **Inputs** | Decoder MariaDB (SQL polling every 5 seconds); local Hub DB (cross-chain price data); inbound JSON-RPC `pushvalidatorrewards` from xchain-hub (retired for new anchor rewards, which each indexer now derives from the on-chain ANCHOR bytes) |
+| **Inputs** | Decoder MariaDB (SQL polling every 5 seconds); local Hub DB (cross-chain price data) |
 | **Outputs** | Indexer MariaDB (`XChain_{CHAIN}_{NETWORK}_Indexer`); outbound JSON-RPC pushes to xchain-hub (`pushchaintip`, `pushpriceround`, `pushoracleprice`) |
 | **Storage** | Three database connections: Decoder DB (read), Indexer DB (read/write, 100+ tables), local Hub DB (read, synced from xchain-hub) |
-| **Communication** | Outbound SQL reads from Decoder DB and local Hub DB; outbound HTTP/WebSocket to xchain-hub; inbound JSON-RPC API for hub pushes |
+| **Communication** | Outbound SQL reads from Decoder DB and local Hub DB; outbound HTTP/WebSocket to xchain-hub; inbound JSON-RPC API with no write method (xchain-hub polls read methods such as `getownstake`, `getcapabilityvalidators` and `getpendingattestation_requests`) |
 
 Key technical details:
 
@@ -119,7 +119,9 @@ Key technical details:
 - Polls each indexer database for new blocks every 3 seconds (configurable). Builds a complete block payload from all affected tables and broadcasts to WebSocket subscribers.
 - Full snapshots are streamed as gzip-compressed JSON for bootstrapping new validators.
 - Incremental snapshots provide deltas since a given block height for catch-up after downtime.
-- Data integrity is verified using the indexer's existing per-block chained SHA256 hashes (ledger, actions, contracts). No additional Merkle tree implementation needed.
+- Indexer block payloads carry the indexer's three per-block chained SHA256 hashes (ledger, actions, contracts) plus a fourth, replication-only `state_hash` covering the in-place mutations and backdated refund credits those three cannot see; decoder payloads carry a single `block_hash`.
+- On apply, an indexer replica recomputes `state_hash` (`VERIFY_STATE_HASH`, default on) and the per-block SPV state-commitment roots (balances, block Merkle root) with sync's SHA-256 Merkle/SMT primitives (`VERIFY_STATE_COMMITMENT`, default on), and halts durably on a mismatch. Both checks still trust the source for the committed values, so they do not by themselves catch a single dishonest source.
+- Separately, server mode keeps a transparency log that groups indexer blocks into Merkle epochs (`MERKLE_EPOCH_SIZE`) and serves inclusion proofs and the latest root for external auditors.
 - Clients can sync from 2+ independent sources and cross-verify block hashes to detect tampered data.
 - Reorg detection mirrors the indexer's pattern: detects rollbacks in the source database and broadcasts reorg events. Clients roll back their local replicas using the same table lists as the indexer's `Rollback.js`.
 
@@ -136,17 +138,17 @@ These services support the construction and submission of XChain transactions.
 | | |
 |---|---|
 | **Purpose** | Converts an ACTION string + UTXOs + public key into an unsigned PSBT |
-| **Inputs** | JSON-RPC calls from SDK or callers (ACTION string, UTXOs, pubkey) |
+| **Inputs** | JSON-RPC calls from SDK or callers (ACTION string, pubkey, and optionally UTXOs, which are fetched from xchain-utxo-tracker when omitted) |
 | **Outputs** | Unsigned PSBT (one or two transactions depending on format) |
 | **Storage** | None (fully stateless) |
-| **Communication** | Inbound JSON-RPC; no outbound calls |
+| **Communication** | Inbound JSON-RPC from SDK/callers; outbound JSON-RPC to the coin node (`broadcast_tx`, `estimatesmartfee`-based fee estimation) and to xchain-utxo-tracker (UTXO lookups, sync-lag checks, `health` probes) |
 
 Key technical details:
 
 - With `encoding` omitted, selects between `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx) and `P2SH` (476 bytes/chunk, 2 tx) by payload size. `MULTISIGN` (60 bytes/output, 1 tx), `P2WSH` (476 bytes/chunk up to the 8,192-byte compiled-payload ceiling, 2 tx) and `TAPROOT` (the envelope, up to 390,000 bytes in one tapscript witness, 2 tx, segwit chains only) are never reached by that size fallback; they are used only when explicitly requested, or when `encoding: AUTO` opts into smallest-footprint selection.
 - P2SH and P2WSH use a two-transaction pattern: fund tx commits funds to a script; reveal tx spends it, embedding the data in the unlocking script. TAPROOT uses a commit/reveal pair returned together from one call.
 - Obfuscates payloads with AES-128-CTR. Key and IV are derived from the first input's txid, deterministic and reversible by any party with the txid.
-- The encoder itself has no per-chain specialization; coin node interaction happens at the caller level.
+- Calls the coin node directly over JSON-RPC (configured by the `NODE_*` variables) to broadcast and to estimate fees, and calls xchain-utxo-tracker for UTXO lookups; `create_tx` refuses tracker data that lags by more than `UTXO_TRACKER_MAX_LAG_BLOCKS`.
 
 See [`../components/encoder/`](../components/encoder/) for full documentation.
 

@@ -14,7 +14,7 @@ This is the platform's first cryptographically secure publishing capability. It 
 - **Publish a single encrypted file** that anyone running an XChain node can see on-chain but only token holders can decrypt and read.
 - **Publish a multi-file pack** that unlocks atomically, owning the token decrypts every file in the pack with a single key.
 - **Set a minimum holding** with `GATE_MIN_AMOUNT`, so content unlocks at a balance rather than at the first satoshi of the token. Holders below the threshold receive no key until a transfer takes them over it.
-- **Sell the token freely** on the built-in DEX. The automatic key handoff is enforced on the direct `SEND` path only: `send.js` requires a `MESSAGE` v2 to the recipient in the same transaction when the post-send balance reaches a pack's threshold. DEX settlement (ORDER match, SWAP, DISPENSE) and every other credit path (`AIRDROP`, `DIVIDEND`, ownership transfer) run no such check, so a buyer acquires the token there without the key and needs it delivered afterwards in a direct send.
+- **Sell the token freely** on the built-in DEX. The automatic key handoff is enforced on the direct `SEND` path only (and, below `SEND_CARET_PACK_KEY_ACTIVATION`, only for a `SEND` that writes `TICK` as the ticker name): `send.js` requires a `MESSAGE` v2 to the recipient in the same transaction when the post-send balance reaches a pack's threshold. DEX settlement (ORDER match, SWAP, DISPENSE) and every other credit path (`AIRDROP`, `DIVIDEND`, ownership transfer) run no such check, so a buyer acquires the token there without the key and needs it delivered afterwards in a direct send.
 - **Walk away after publishing.** No server to keep running, no key escrow service to maintain. The encrypted content and the key handoff machinery live entirely on the blockchain.
 
 ---
@@ -22,7 +22,7 @@ This is the platform's first cryptographically secure publishing capability. It 
 ## Trust model
 
 - **What it guarantees.** Until a holder unlocks, no party (including miners, indexer operators, and explorer hosts) can read the plaintext. The encryption is AES-256-GCM with a 256-bit random key. The key is delivered only via ECIES envelopes encrypted to the receiver's address public key.
-- **What it does not guarantee.** Once a holder decrypts, they have the bytes. Token gating is a *first-access* lock, not DRM; a holder can rehost the plaintext anywhere. Loss of the address private key means loss of access (same custody model as the token itself). And a malicious sender could refuse to attach the key handoff at transfer time; the protocol prevents the OMISSION by rejecting any gated `SEND` that owes a handoff and is not paired with a `MESSAGE` to the recipient, but it cannot inspect the ciphertext, so a sender can still attach a wrong key. Recipients detect that themselves by checking the delivered key against `KEY_HASH`.
+- **What it does not guarantee.** Once a holder decrypts, they have the bytes. Token gating is a *first-access* lock, not DRM; a holder can rehost the plaintext anywhere. Loss of the address private key means loss of access (same custody model as the token itself). And a malicious sender could refuse to attach the key handoff at transfer time; the protocol prevents the OMISSION by rejecting any gated `SEND` that owes a handoff and is not paired with a `MESSAGE` to the recipient (below `SEND_CARET_PACK_KEY_ACTIVATION`, which is not yet armed on mainnet, only a `SEND` that writes `TICK` as the ticker name is checked; see [Index ID References](./index-id-references.md)), but it cannot inspect the ciphertext, so a sender can still attach a wrong key. Recipients detect that themselves by checking the delivered key against `KEY_HASH`.
 
 ---
 
@@ -112,7 +112,7 @@ Format rules for the field: a decimal amount strictly greater than zero (every z
 
 ### What the handoff rule does and does not guarantee
 
-The rule enforces the **presence** of a key-handoff `MESSAGE`, not the correctness of what is inside it. Consensus cannot look inside the ciphertext, so an adversarial sender can satisfy the rule with garbage. Recipients verify the delivered key against the file's `KEY_HASH` client-side (step 5 of the unlock flow below) and ignore anything that does not match. The protocol guarantees a sender cannot *quietly omit* the handoff; it cannot guarantee the sender was honest.
+The rule enforces the **presence** of a key-handoff `MESSAGE`, not the correctness of what is inside it. Consensus cannot look inside the ciphertext, so an adversarial sender can satisfy the rule with garbage. Recipients verify the delivered key against the file's `KEY_HASH` client-side (step 5 of the unlock flow below) and ignore anything that does not match. The protocol guarantees a sender cannot *quietly omit* the handoff; it cannot guarantee the sender was honest. The omission guarantee covers a `SEND` whose `TICK` the pack lookup can match: below `SEND_CARET_PACK_KEY_ACTIVATION` (not yet armed on mainnet), a `SEND` that writes `TICK` as `^<tickid>` finds no pack and owes no handoff, as [Index ID References](./index-id-references.md) describes.
 
 ---
 

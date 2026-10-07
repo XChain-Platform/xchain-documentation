@@ -203,7 +203,7 @@ One stake of **25000 XCHAIN** clears every capability floor at once:
 no initial verifier set) and cannot be earned on any network until its
 activation flag day. Clearing its floor changes nothing today, and there is
 nothing for an operator to configure for it. See
-[Rewards, and the one thing that is not live yet](../getting-started/running-a-validator.md#rewards-and-the-one-thing-that-is-not-live-yet).
+[Rewards, and what is not live yet](../getting-started/running-a-validator.md#rewards-and-what-is-not-live-yet).
 
 On testnet, XCHAIN is a faucet token anyone can mint (10000 per transaction,
 50000 per address). You do not have to do that by hand:
