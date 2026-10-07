@@ -13,7 +13,7 @@
  * ACTION activation-model gate.
  *
  * WHY. Three separate pages told readers that the non-genesis ACTIONs
- * "activate at later block heights". They do not. Every one of the 36 actions
+ * "activate at later block heights". They do not. Every one of the 38 actions
  * in protocol_changes.js is registered with an activation time AND height of 0
  * on all three networks; what gates them is condition 1 of isEnabled(), the
  * indexer's own protocol version. Non-zero thresholds in that registry all
@@ -57,7 +57,7 @@ const REGISTRY = path.resolve(DOC_ROOT, '../xchain-indexer/src/protocol_changes.
 // Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the registry is unreadable.
 const indexer = sibling('xchain-indexer', [REGISTRY]);
 
-// The 36 documented ACTIONs: one page per action under protocol/actions/.
+// The 38 documented ACTIONs: one page per action under protocol/actions/.
 const ACTIONS = fs.readdirSync(path.join(DOC_ROOT, 'protocol/actions'))
     .filter((f) => f.endsWith('.md') && f !== 'README.md')
     // Filenames are lowercase-kebab (the naming standard); an ACTION name is the
@@ -128,6 +128,6 @@ describe('ACTION activation model', () => {
         walk(DOC_ROOT);
         assert.deepEqual(bad, [],
             'these pages say ACTIONs activate at block heights; they are gated by indexer version ' +
-            '(all 36 carry zero thresholds):\n  ' + bad.join('\n  '));
+            '(all 38 carry zero thresholds):\n  ' + bad.join('\n  '));
     });
 });

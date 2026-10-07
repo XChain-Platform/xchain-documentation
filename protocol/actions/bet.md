@@ -39,6 +39,9 @@ Betting is **parimutuel**: all wagers on a market go into one pot, and everyone 
 ### Version `3` - Resolve Market
 - `VERSION|FEED_ACTION_INDEX|OUTCOME|MEMO`
 
+### Version `4` - Edit Feed Lists
+- `VERSION|FEED_ACTION_INDEX|ALLOW_LIST|BLOCK_LIST|MEMO`
+
 ## Examples
 ```
 BET|0|Superbowl LX winner|Chiefs,49ers|PEPECASH|1.00|1770000000||||||Bet on the big game
@@ -70,6 +73,11 @@ BET|1|1234|Game postponed, refunding everyone
 This example cancels market 1234. Every open bet is refunded in full and the oracle collects no fee.
 ```
 
+```
+BET|4|1234||0|Open the market to everyone
+This example keeps market 1234's current allow list and detaches its block list. Only the market creator may edit the lists, and only while the market is open.
+```
+
 ## Rules
 
 ### Creating a Market (Version `0`)
@@ -84,7 +92,15 @@ This example cancels market 1234. Every open bet is refunded in full and the ora
 - `REFUND_WINDOW` is in seconds, from 3600 (1 hour) to 31536000 (1 year), and defaults to 1209600 (14 days) when empty
 - `MIN_AMOUNT`, when set, must be a valid amount at the token's `DECIMALS` and greater than zero
 - `ALLOW_LIST` and `BLOCK_LIST` each reference an existing `LIST` of type `2` (address list) by `ACTION_INDEX`. When both are set they must be different lists, a market listing the same list as both allowed and blocked is one nobody could ever bet on
-- The market's terms are **fixed at creation**. There is no edit format. To fix a mistake before anyone bets, cancel the market and create a new one
+- The market's outcomes, token, fee, deadline, refund window, minimum amount, details, and oracle are **fixed at creation**. Only its allow and block list references can be edited, using Version `4`
+
+### Editing Feed Lists (Version `4`)
+- Only the market's creator can edit its list references
+- The market must still be `open`. A closed, resolved, cancelled, or expired market cannot be edited
+- `ALLOW_LIST` and `BLOCK_LIST` are interpreted independently: an empty field retains the current list, `0` detaches it, and a positive `ACTION_INDEX` replaces it with that address list
+- At least one of `ALLOW_LIST` or `BLOCK_LIST` must be non-empty, so every edit changes or detaches a list reference rather than submitting a no-op
+- An edit affects only bets placed after the edit. It never re-evaluates, cancels, or otherwise changes an earlier bet
+- Version `4` is controlled by the height-keyed `BET_FEED_LIST_EDIT_ACTIVATION` gate. Below the gate, the format is invalid
 
 ### Placing a Bet (Version `2`)
 - The market must exist and still be open, and the block's timestamp must be earlier than `DEADLINE`
@@ -113,6 +129,7 @@ This example cancels market 1234. Every open bet is refunded in full and the ora
 stateDiagram-v2
     [*] --> open: BET|0 create
     open --> open: BET|2 place bets<br>(stake escrowed)
+    open --> open: BET|4 edit feed lists
     open --> closed: deadline reached
     closed --> resolved: BET|3 resolve<br>(winning outcome backed)
     closed --> resolved_void: BET|3 resolve<br>(no bet backed the winner)
@@ -253,8 +270,8 @@ The rest of the lifecycle:
 - **Resolving** is free, no matter how many bets are on the book. An oracle is
   never billed more for doing the right thing on a busy market
 - **Cancelling** is free
-- **Cancelling and recreating** pays the creation fee again. Markets cannot be
-  edited, so fixing a mistake means making a new market, and that is a new market
+- **Cancelling and recreating** pays the creation fee again. Only membership list
+  references can be edited, so fixing any other term means making a new market
 
 Wallets can quote the exact cost before you sign, using the SDK's
 `projectFeedCreateFee`.

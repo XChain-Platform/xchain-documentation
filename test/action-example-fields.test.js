@@ -23,7 +23,7 @@
  * FOUR TIERS, because one rule does not fit every action.
  *
  * A first cut asserted "every example carries the field count its format
- * declares" across all 36 action docs and failed 17 of them, none of it this
+ * declares" across all 38 action docs and failed 17 of them, none of it this
  * defect. Working out why produced the arity rules below.
  *
  *   - Trailing fields are omittable. ISSUE v0 declares 25 and its examples
