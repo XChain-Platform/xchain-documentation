@@ -1179,6 +1179,20 @@ describe('checkStaleKnownGaps (the waiver ratchet)', () => {
             delete cov.KNOWN_GAPS.decoder;
         }
     });
+
+    test('a key that is not a gated component is reported, not skipped', () => {
+        const populated = new Map([['decoder', entryOf([['ANYTHING', [{ file: 'src/a.js', line: 1, default: null }]]], [])]]);
+        try {
+            cov.KNOWN_GAPS.decodr = ['ANYTHING'];
+            for (const survey of [new Map(), populated]) {
+                const out = cov.checkStaleKnownGaps(survey);
+                assert.equal(out.length, 1, `expected one report, got ${JSON.stringify(out)}`);
+                assert.match(out[0], /^decodr: .*not in COMPONENTS/);
+            }
+        } finally {
+            delete cov.KNOWN_GAPS.decodr;
+        }
+    });
 });
 
 /*  ------------------------------------------------------------------

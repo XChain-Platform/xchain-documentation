@@ -534,7 +534,8 @@ const ANCHOR_ACTIVATION = {
 };
 
 // Gates validation that an archive head's MATCH_COUNT equals its archive member count.
-// Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
+// Mainnet stays inert until the operator arms the check; testnet is armed per chain by the
+// <COIN>:testnet keys (the bare testnet key is the fallback); regtest is genesis-active.
 const ARCHIVE_MATCH_COUNT_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 155001,
@@ -545,7 +546,8 @@ const ARCHIVE_MATCH_COUNT_ACTIVATION = {
 };
 
 // Gates validation of CHAIN sections and PUBKEY pairs in ascending byte order.
-// Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
+// Mainnet stays inert until the operator arms the check; testnet is armed per chain by the
+// <COIN>:testnet keys (the bare testnet key is the fallback); regtest is genesis-active.
 const ANCHOR_BUNDLE_ORDER_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 155001,
@@ -613,7 +615,8 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // ALL indexers atomically, like every sibling ANCHOR gate. Keyed on the anchor's OWN DOGE
 // block_index, the ANCHOR_ACTIVATION convention, never on SNAPSHOT_BLOCK.
 //
-// Mainnet and testnet use the house UNARMED sentinel: ruled and unscheduled, inert until 2286.
+// Mainnet uses the house UNARMED sentinel: ruled and unscheduled, inert until 2286. Testnet is
+// armed per chain by the <COIN>:testnet keys; the bare testnet key is only the fallback.
 // Regtest stays null unless XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms both fold gates together.
 const ANCHOR_FOLD_ACTIVATION = {
     mainnet: 9999999999,
@@ -636,7 +639,8 @@ const ANCHOR_FOLD_ACTIVATION = {
 // ARMED ONLY WITH THE FOLD in practice: a section-scoped verdict has no folded action to scope
 // before v3 exists, so its value must equal ANCHOR_FOLD_ACTIVATION on every network.
 //
-// Mainnet and testnet use the house UNARMED sentinel: ruled and unscheduled, inert until 2286.
+// Mainnet uses the house UNARMED sentinel: ruled and unscheduled, inert until 2286. Testnet is
+// armed per chain by the <COIN>:testnet keys; the bare testnet key is only the fallback.
 // XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms this regtest entry with the fold, never ahead of it.
 const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
     mainnet: 9999999999,
@@ -1167,9 +1171,9 @@ const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
 // ledger's DECIMAL(60,18) capacity. Below it the legacy text-shape validator is
 // preserved so replay does not re-grade committed actions.
 //
-// Mainnet is held under the standing write hold. Testnet is also unarmed because
-// it has live history and needs a measured old-vs-on replay witness before this
-// stricter rule can be scheduled. Regtest is genesis-active so replay exercises it.
+// Mainnet is held under the standing write hold. Testnet has live history, so it is
+// armed per coin at the COIN:testnet instants below rather than from genesis, and the
+// bare testnet key keeps the sentinel. Regtest is genesis-active so replay exercises it.
 const AMOUNT_REPRESENTABILITY_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 1791061097,
@@ -1580,12 +1584,12 @@ const PRICE_SIG_TALLY_ACTIVATION = {
 // chain against that chain's blocks. The bound is ADDED to the existing selection,
 // never swapped for it, so arming can only narrow which rounds are selectable.
 //
-// UNARMED on every network. It makes the freshest selectable round one batch window
-// old, which fits inside the pinned price staleness bound only while the batch cadence
-// ceiling holds, so each network arms at a coordinated future height once that is
-// proven against its own publisher; a regtest stack publishes no batch at all, so its
-// seeded rounds carry no landing clock and arming there would leave every USD-priced
-// action unpriceable. Kept value-identical to the registry row
+// Mainnet and regtest stay unarmed; testnet is armed per coin at the COIN:testnet heights
+// below. It makes the freshest selectable round one batch window old, which fits inside the
+// pinned price staleness bound only while the batch cadence ceiling holds, so each network
+// arms at a coordinated height once that is proven against its own publisher; a regtest
+// stack publishes no batch at all, so its seeded rounds carry no landing clock and arming
+// there would leave every USD-priced action unpriceable. Kept value-identical to the registry row
 // price_fee_batch_landed_activation.PRICE_FEE_BATCH_LANDED_ACTIVATION by the activation-constants
 // parity suite.
 const PRICE_FEE_BATCH_LANDED_ACTIVATION = {
@@ -1658,8 +1662,8 @@ const ORACLE_DEVIATION_THRESHOLD = 0.05;
 // above a chain's height, the indexer accepts a price snapshot up to
 // ORACLE_MAX_PRICE_AGE_HOURLY_SECONDS old instead of the legacy
 // ORACLE_MAX_PRICE_AGE_SECONDS limit for fee pricing, fee views, attest
-// settlement and VM oracle data. No live network is armed; regtest is
-// genesis-active so tests exercise the hourly-age rule.
+// settlement and VM oracle data. Mainnet is not armed, testnet is armed per coin at the
+// COIN:testnet heights below, and regtest is genesis-active so tests exercise the rule.
 const ORACLE_PRICE_AGE_HOURLY_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
@@ -1674,8 +1678,8 @@ const ORACLE_PRICE_AGE_HOURLY_ACTIVATION = {
 // first oracle round from which hubs group rounds into hourly windows. It is
 // keyed on the round number, not local time, so every hub switches at the same
 // round. Every armed value must be a multiple of ORACLE_HOURLY_WINDOW_ROUNDS.
-// No live network is armed; regtest starts at round zero so tests exercise the
-// hourly window from genesis.
+// Mainnet is not armed, testnet is armed at the round number below, and regtest starts
+// at round zero so tests exercise the hourly window from genesis.
 //
 // ORDERING INVARIANT, graded by OF-11: on each network, every COIN:network key
 // of ORACLE_PRICE_AGE_HOURLY_ACTIVATION crosses before the round named by
@@ -1689,8 +1693,8 @@ const ORACLE_HOURLY_WINDOW_FIRST_ROUND = {
 // ORACLE_ROUND_TIME_ACTIVATION: canonical authority for registry row
 // oracle_round_time_activation.ORACLE_ROUND_TIME_ACTIVATION. At and above a
 // chain's height, the signed PRICE v0 timestamp is the nominal round start and
-// followers refuse any other timestamp. No live network is armed; regtest is
-// genesis-active so tests exercise the rule.
+// followers refuse any other timestamp. Mainnet is not armed, testnet is armed per coin
+// at the COIN:testnet heights below, and regtest is genesis-active so tests exercise the rule.
 const ORACLE_ROUND_TIME_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
@@ -1930,8 +1934,8 @@ const TOKEN_BRIDGE_ACTIVATION = {
 //   walking the edit chain; below that gate the legacy create-index read runs, and the
 //   membership the federation signs would not be the membership the chain enforced.
 //
-// Both public networks hold at the house sentinel until the train that arms them sizes a
-// dated instant. Regtest is genesis-active.
+// Mainnet holds at the house sentinel until the train that arms it sizes a dated instant;
+// testnet is armed per coin at the COIN:testnet heights below. Regtest is genesis-active.
 const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
@@ -2081,9 +2085,9 @@ const LIST_TICK_COIN_ACTIVATION = {
 // ahead of the fee and budget checks, so a mined ISSUE of a listed name that is refused
 // today on fee would flip its verdict string on replay.
 //
-// Both public networks hold at the house sentinel until the train that arms them sizes a
-// dated instant; mainnet additionally waits on a replica measurement of zero mined ISSUEs
-// of a short or listed name, valid or invalid. Regtest is genesis-active.
+// Mainnet holds at the house sentinel until the train that arms it sizes a dated instant
+// and a replica measures zero mined ISSUEs of a short or listed name, valid or invalid;
+// testnet is armed per coin at the COIN:testnet heights below. Regtest is genesis-active.
 const TICK_NAMESPACE_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
