@@ -21,20 +21,14 @@ const CANONICAL = path.join(__dirname, '..', 'protocol', 'action-manifest.json')
 const WALLET_VENDOR = path.join('test', 'fixtures', 'action-manifest.json');
 const PLATFORM = process.env.XCHAIN_PLATFORM_ROOT || PLATFORM_ROOT;
 
-test('wallet vendored action manifest is byte-identical apart from the staged BET v4 addition', (t) => {
+test('wallet vendored action manifest is byte-identical to canonical', (t) => {
     const wallet = sibling('xchain-wallet', [WALLET_VENDOR], { platformRoot: PLATFORM });
     if (!wallet.have) return t.skip(wallet.skip);
 
     const vendor = path.join(wallet.root, WALLET_VENDOR);
-    const vendorText = fs.readFileSync(vendor, 'utf8');
-    const canonicalText = fs.readFileSync(CANONICAL, 'utf8');
-    const staged = vendorText.replace(
-        /(\"BET\":\s*\{[\s\S]*?\"userEncodableVersions\":\s*)\[0, 1, 2, 3\]/,
-        '$1[0, 1, 2, 3, 4]',
-    );
     assert.equal(
-        staged,
-        canonicalText,
+        fs.readFileSync(vendor, 'utf8'),
+        fs.readFileSync(CANONICAL, 'utf8'),
         'xchain-wallet/test/fixtures/action-manifest.json must be re-vendored from canonical',
     );
 });
