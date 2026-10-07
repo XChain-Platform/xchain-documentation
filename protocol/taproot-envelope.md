@@ -23,7 +23,8 @@ OP_FALSE OP_IF
   <"XCHN">            // 4-byte magic, cleartext
   <format byte>       // 0x00 = this version, cleartext
   <payload push 1..n> // the payload, in 520-byte elements, in order,
-                      // no element a single byte in 0x01-0x10 or 0x81
+                      // no element a single byte in 0x01-0x10 or 0x81,
+                      // and no element of zero length
 OP_ENDIF
 <internal pubkey> OP_CHECKSIG
 ```
@@ -41,6 +42,13 @@ which happens exactly when the payload length is `≡ 1 (mod 520)` and its last 
 falls in that range: the final two pushes become `(n-1, 2)` bytes instead of
 `(n, 1)`. Reassembly is plain concatenation, so moving one byte across that
 boundary leaves the payload byte-identical.
+
+A **zero-length** element is not a data push either. `OP_0` (`00`), and any empty
+push however it is framed (`4c00`, `4d0000`, `4e00000000`), decompiles to the bare
+opcode `OP_0`, so it breaks the pattern exactly as `OP_1`-`OP_16` do, even though
+plain concatenation would add nothing to the payload. This is about the element's
+length, not its value: a one-byte push of the byte `0x00` (`01 00`) is ordinary
+data, and the format byte itself is exactly that push.
 
 This rule is **recognition-affecting**, and therefore belongs with the consensus
 rules below rather than with encoder style. An envelope containing an element that
@@ -71,7 +79,7 @@ These are consensus-relevant: every implementation must agree, or the fleet fork
 - The envelope input must be **input 0**. Anywhere else, it is not an action.
 - **Two or more envelope inputs** in one transaction: not an action.
 - An envelope **mixed with any other carrier** (an `XCHN` OP_RETURN, a chunk marker, MULTISIGN outputs): not an action. Deterministic refusal, not a preference between carriers. Between the recognition height and the carrier height (`ENVELOPE_CARRIER_RECOGNITION_ACTIVATION`), a co-present carrier is detected by the payload bytes it contributes or by its chunk marker, so an `XCHN` OP_RETURN that deobfuscates to exactly the magic and nothing after it contributes nothing and does **not** block the envelope: the envelope is still the action. At and above the carrier height, any recognized carrier blocks the action whether or not it carries payload. The carrier height is unpinned (never active) on every mainnet, and genesis-active on testnet and regtest.
-- **Every payload element must be a data push, never a bare opcode.** A one-byte element in `0x01`-`0x10` or `0x81` canonicalizes to `OP_1`-`OP_16` / `OP_1NEGATE` and breaks the pattern, so the reveal is not an envelope. Encoders avoid producing that shape by rebalancing the final two pushes to `(n-1, 2)`; see [No payload push may canonicalize to a bare opcode](#no-payload-push-may-canonicalize-to-a-bare-opcode).
+- **Every payload element must be a data push, never a bare opcode.** A one-byte element in `0x01`-`0x10` or `0x81` canonicalizes to `OP_1`-`OP_16` / `OP_1NEGATE`, and a zero-length element (`OP_0`, or any empty push such as `4c00`) canonicalizes to `OP_0`; either breaks the pattern, so the reveal is not an envelope. Encoders avoid producing that shape by rebalancing the final two pushes to `(n-1, 2)`; see [No payload push may canonicalize to a bare opcode](#no-payload-push-may-canonicalize-to-a-bare-opcode).
 - The reassembled payload has its own ceiling, `ENVELOPE_MAX_PAYLOAD` (390,000 bytes), measured **before** parse and **excluding** the envelope's own push framing. The ceiling is sized against transaction **weight**, not chosen as a round byte count. A payload filling the larger cap this constant carried before 2026-07-31 compiles to a reveal of 402,789 WU, over Bitcoin Core's `MAX_STANDARD_TX_WEIGHT` of 400,000 WU: the encoder builds it, the validator accepts it, and no node relays it. The current value leaves 7,050 WU of margin under the worst reveal shape, so an implementer sizing a cap of their own should derive it from weight rather than copy a byte count. Note this measures a different quantity from `MAX_ACTION_DATA_LENGTH`, which is framing-inclusive and still governs every legacy lane.
 
 ## Source attribution

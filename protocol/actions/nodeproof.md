@@ -117,10 +117,10 @@ sequenceDiagram
 
 ## Bootstrap and Degradation
 
-With no seeded `GENESIS_VERIFIERS` and no verified nodes, no verdict can reach quorum, so the verified set is empty and the full-node tranche rolls back into the base tranche (see `PRICE`). Behavior is identical to pre-feature. The mechanism activates as the operator seeds genesis verifiers and independent full nodes join and get verified, at which point verified nodes (not just genesis) can vouch for new joiners.
+With no seeded `GENESIS_VERIFIERS` and no verified nodes, no verdict can reach quorum, so the verified set is empty and the full-node tranche rolls back into the base tranche (see [COLLECT](./collect.md#reward-sources)). Behavior is identical to pre-feature. The mechanism activates as the operator seeds genesis verifiers and independent full nodes join and get verified, at which point verified nodes (not just genesis) can vouch for new joiners.
 
 ## Notes
-- The verified set earns the full-node tranche of the oracle-round reward; light mirrors keep the base tranche only
+- The verified set earns the full-node tranche of the oracle-round reward; light mirrors keep the base tranche only. This is the designed split: no consensus rail mints an oracle-round reward today (see [COLLECT](./collect.md#reward-population-path))
 - The only thing that reaches the wire is the federation's signed verdict over who answered correctly, exactly the trust model of `ATTEST v1` (the indexer verifies signatures and schedule; the federation verifies the off-chain fact)
 - `PUBKEY` is the consensus token name for verifier public keys (consistent with ANCHOR, ATTEST, and PRICE)
 - See [`ATTEST`](./attest.md) for the signature-verification and responsible-set template this models on

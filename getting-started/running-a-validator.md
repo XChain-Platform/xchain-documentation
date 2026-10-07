@@ -17,8 +17,8 @@ There are two ways to run one, and the cheaper one is a first-class citizen rath
 | Can claim `price`, `attestation`, `oracle_publish` | Yes | Yes |
 | Can claim `cross_chain` | No (its self-test needs a BTC coin-node RPC) | Yes |
 | Can claim `full_node` | No | Yes |
-| Base oracle reward | Yes | Yes |
-| Full-node reward tranche | No | Yes, once armed |
+| Base oracle reward | Not minted yet (see Rewards below) | Not minted yet (see Rewards below) |
+| Full-node reward tranche | No | Not minted yet (see Rewards below) |
 | Penalised for being lightweight | **Never** | n/a |
 | Realistic hardware | A small board or a modest VPS | A machine with room for the chain |
 
@@ -85,9 +85,11 @@ For indexer replicas there is a further guard on by default: the client rebuilds
 
 The honest summary is that a lightweight validator today leans on the operator's sync tier, and that becomes less true with every independent validator that publishes one. If that bothers you, it is an argument for running the full tier, not an argument against the light one.
 
-## Rewards, and the one thing that is not live yet
+## Rewards, and what is not live yet
 
-Oracle round rewards split into two tranches:
+**Oracle round rewards are not minted by the chain today, on either tier.** The indexer's PRICE parse derives no reward rows, so no consensus rail mints an oracle reward and none is claimable with `COLLECT`. The hub keeps its own per-round ledger for dashboards, and that ledger is not a `COLLECT` source. What a validator can claim is the set of rewards [COLLECT](../protocol/actions/collect.md#reward-population-path) describes as minted.
+
+The oracle reward is designed to split into two tranches once a rail mints it:
 
 - **The base tranche** goes to every qualified signer of the round, lightweight or full.
 - **The full-node tranche** goes only to validators that have proven possession of a real chain copy.
