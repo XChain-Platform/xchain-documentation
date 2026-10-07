@@ -373,7 +373,7 @@ continue to use `HUB_API_KEY`, with retraction reports using
 per hub and sends every report to every known hub; one unavailable hub leaves
 only that hub's delivery pending.
 
-### Match barrier tip lag
+### Match barrier tip lag: 120-second grace and 60-second waits defer fresh tip blocks by about two minutes
 
 With `HUB_DB_SYNC_ENABLED=true`, the block loop holds each block behind the cross-chain match barrier until the local `cross_chain_matches` mirror has caught up to that block's time. The barrier opens when the mirror stream watermark passes the block time plus a grace margin. The grace is 120 seconds (`HUB_SYNC_WATERMARK_GRACE_S.match`), and each wait attempt is bounded by `HUB_PRICE_SYNC_TIMEOUT_MS` (default 60000 ms) before the block is deferred and retried.
 
