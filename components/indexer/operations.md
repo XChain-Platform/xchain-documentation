@@ -373,6 +373,16 @@ continue to use `HUB_API_KEY`, with retraction reports using
 per hub and sends every report to every known hub; one unavailable hub leaves
 only that hub's delivery pending.
 
+### Match barrier tip lag
+
+With `HUB_DB_SYNC_ENABLED=true`, the block loop holds each block behind the cross-chain match barrier until the local `cross_chain_matches` mirror has caught up to that block's time. The barrier opens when the mirror stream watermark passes the block time plus a grace margin. The grace is 120 seconds (`HUB_SYNC_WATERMARK_GRACE_S.match`), and each wait attempt is bounded by `HUB_PRICE_SYNC_TIMEOUT_MS` (default 60000 ms) before the block is deferred and retried.
+
+A block stamped at or near the current time, which is every block at the chain tip, therefore cannot clear the barrier until the watermark reaches its time plus the 120 second grace. Expect a node following the tip of a chain such as TBTC to commit each new block about two minutes after the block arrives, plus up to one 60 second timeout cycle when the watermark advances between attempts. This is normal. Catch-up and reindex runs are unaffected because the mirror is already far ahead of the old blocks and the barrier opens immediately.
+
+While a block waits, `/health` reports `stallReason: "match_sync_barrier"` and a `stallClearsAt` estimate of the instant the barrier can first clear. Deferral log lines read `Deferring block N (cross-chain match sync)`. A block that sits behind any mirror barrier for longer than `HUB_SYNC_BARRIER_HOLD_CEILING_S` (default 900 seconds) is reported under a distinct name and forces the mirror to reconnect and re-bootstrap. That ceiling is operational only and never opens a barrier early.
+
+The grace is a frozen protocol constant, not a tuning knob. Every node must settle matches at the same block, so a per-node value would fork settlement. `HUB_SYNC_MATCH_GRACE_S` is honored on regtest only, and any differing value is ignored with a startup warning on other networks. Do not shorten the lag by editing the constant on one node. A change to the margin is a fleet-wide protocol change.
+
 ## Resilience and Recovery
 
 ### Database Connection Recovery
