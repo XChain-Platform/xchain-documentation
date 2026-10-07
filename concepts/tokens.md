@@ -13,7 +13,7 @@ Key parameters set at issuance:
 
 | Parameter | Description |
 |---|---|
-| `TICK` | The ticker symbol. 1–250 characters. Case-insensitive in lookups, stored as-is. |
+| `TICK` | The ticker symbol. 1–250 characters. Case-insensitive in lookups, stored as-is. At or above `TICK_NAMESPACE_ACTIVATION`, a brand-new top-level tick must be at least four characters and the reserved future chain roots (`ETH`, `SOL`, ...) are refused; see [ISSUE](../protocol/actions/issue.md). |
 | `MAX_SUPPLY` | The ceiling on total supply. Can be up to 10^21 units. Once minted supply reaches this, no further minting is possible. |
 | `DECIMALS` | Decimal precision, 0–18. A token with `DECIMALS=8` and a balance of `100000000` displays as `1.00000000`. |
 | `MINT_SUPPLY` | Supply minted immediately to the issuing address at `ISSUE` (default 0), not the amount a public `MINT` produces. |

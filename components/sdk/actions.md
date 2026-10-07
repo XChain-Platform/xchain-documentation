@@ -540,7 +540,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 
 | Param | Type | Required | Description |
 |---|---|---|---|
-| tick | string | Yes | Token name (1–250 chars; see Validation Rules) |
+| tick | string | Yes | Token name (1–250 chars; a new top-level name at least 4 once `TICK_NAMESPACE_ACTIVATION` is active; see Validation Rules) |
 | maxSupply | string | No | Maximum total supply (0 to 1 sextillion) |
 | maxMint | string | No | Maximum per-mint amount |
 | decimals | integer | No | Decimal places (0–18) |
@@ -1310,6 +1310,8 @@ The SDK enforces these rules before serializing any action. Violations throw an 
 - Cannot contain `|` (field separator) or `;` (command separator).
 - Cannot contain `/` (directory separator) or `\` (reserved).
 - `.` is the parent/child separator for sub-tokens (e.g. `PARENT.CHILD`). It is allowed, but no segment may be empty: no leading, trailing, or consecutive dots.
+
+Two further creation-only rules bind at or above `TICK_NAMESPACE_ACTIVATION`: a new top-level tick shorter than four characters is refused (`invalid: TICK (length)`), and so is a reserved future chain root such as `ETH` or `SOL` (`invalid: TICK (reserved)`; the list is `RESERVED_FUTURE_ROOTS`). They depend on the chain height and on whether the tick already exists, so the SDK does not throw for them: preflight reports a `TICK_FORMAT` warning instead (see [ISSUE](../../protocol/actions/issue.md)).
 
 ### TICK references (everywhere except ISSUE)
 

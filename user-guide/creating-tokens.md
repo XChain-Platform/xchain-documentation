@@ -17,15 +17,15 @@ Once created, your token can be sent between addresses, traded on the built-in e
 
 ## Choosing a Token Name (Ticker)
 
-Every token has a **ticker**; a short name that identifies it, similar to a stock symbol. Tickers on XChain can be 1 to 250 characters long.
+Every token has a **ticker**; a short name that identifies it, similar to a stock symbol. Tickers on XChain can be 1 to 250 characters long. Once the tick-namespace rule (`TICK_NAMESPACE_ACTIVATION`) is active on your network, a brand-new top-level name must be at least four characters; sub-tokens such as `MYTOKEN.X` and names that already exist are not affected. The rule is active on regtest and armed on testnet, switching on for each testnet chain at that chain's own height; it is not active on mainnet yet. The heights are `TICK_NAMESPACE_ACTIVATION` in [protocol constants](../protocol/constants.js).
 
 A few things to know when choosing a name:
 
 - **Names are unique per blockchain.** If someone already created a token called `GOLD` on Bitcoin, you cannot create another `GOLD` on Bitcoin. You could, however, create `GOLD` on Litecoin, since each chain has its own independent namespace.
 - **First come, first served.** The first valid creation wins the name. There is no registration process or approval; it is simply a race to be first.
 - **Case does not matter for lookups.** `MYTOKEN`, `mytoken`, and `MyToken` all refer to the same ticker. The name is stored as you typed it, but searches are case-insensitive.
-- **Only certain characters are allowed.** A ticker may use letters (`a-z`, `A-Z`), digits (`0-9`), and the punctuation `~ ! @ # $ % ^ & * ( ) _ + - = { } [ ] : < > . ?`. Everything else is rejected, so a space, a comma, an apostrophe, a quotation mark, `|`, `;`, `/`, or `\` will fail; `MY TOKEN` and `GOLD,SILVER` are not valid names. A period (`.`) is allowed and is used to create sub-tokens (see below), but it cannot appear at the start or end of a name.
-- **Some names are reserved.** The tickers `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved for the platform itself and cannot be issued by anyone except the platform's designated accounts.
+- **Only certain characters are allowed.** A ticker may use letters (`a-z`, `A-Z`), digits (`0-9`), and the punctuation `~ ! @ # $ % ^ & * ( ) _ + - = { } [ ] : < > . ?`. Everything else is rejected, so a space, a comma, an apostrophe, a quotation mark, `|`, `;`, `/`, or `\` will fail; `MY TOKEN` and `GOLD,SILVER` are not valid names. A period (`.`) is allowed and is used to create sub-tokens (see below), but it cannot appear at the start or end of a name. A caret (`^`) is likewise allowed anywhere except as the first character: a leading `^` tells the protocol you mean an existing token by its numeric ticker ID (for example `^1234`), so a new name such as `^GOLD` is rejected.
+- **Some names are reserved.** The tickers `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved for the platform itself and cannot be issued by anyone except the platform's designated accounts. Once `TICK_NAMESPACE_ACTIVATION` is active, the ticker codes of chains XChain may support later (for example `ETH`, `SOL` and `AVAX`) are reserved the same way, and so is every sub-token beneath them; the full list is `RESERVED_FUTURE_ROOTS` in the [protocol constants](../protocol/constants.js). Once `LIST_TICK_COIN_ACTIVATION` is active, a new name that starts with a chain code (`BTC`, `LTC`, `DOGE` or one of the reserved codes) followed by a colon, such as `BTC:FOO`, is refused too. See [ISSUE](../protocol/actions/issue.md) for the exact rules.
 
 ---
 
