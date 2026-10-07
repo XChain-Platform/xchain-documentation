@@ -35,7 +35,30 @@ const PART_RE = /^shared_rows_\d+\.js$/;
 const REQUIRE_RE = /^require\('\.\/gate_registry\/(shared_rows_\d+\.js)'\);$/gm;
 const ADD_GATE_RE = /^addGate\('([^']+)'/gm;
 
+const LISTS_MARKET_HEIGHT_ENV = 'XC_LISTS_MARKET_REGTEST_ACTIVATION';
+const LISTS_MARKET_TIME_ENV = 'XC_LISTS_MARKET_REGTEST_TIME';
+const LISTS_MARKET_HEIGHT_KEYS = [
+    'list_owner_activation.LIST_OWNER_ACTIVATION',
+    'empty_allow_list_denies_activation.EMPTY_ALLOW_LIST_DENIES',
+    'swap_edit_rematch_activation.SWAP_EDIT_REMATCH_ACTIVATION',
+    'token_gate_list_at_block.TOKEN_GATE_LIST_AT_BLOCK',
+    'list_reference_validity_activation.LIST_REFERENCE_REQUIRES_VALID_LIST',
+    'list_head_follows_edit_chain.LIST_HEAD_FOLLOWS_EDIT_CHAIN',
+    'order_swap_maker_policy_admission.ORDER_SWAP_MAKER_POLICY_ADMISSION',
+    'order_swap_payout_policy_activation.ORDER_SWAP_PAYOUT_POLICY_PER_TOKEN',
+    'issue_policy_list_detach.ISSUE_POLICY_LIST_DETACH',
+    'bridge_policy_detach_activation.BRIDGE_POLICY_DETACH',
+    'callback_compensation_activation.CALLBACK_COMPENSATES_EVERY_DEBITED_HOLDER',
+];
+const LISTS_MARKET_TIME_KEYS = [
+    'dispenser_settlement_price_activation.DISPENSER_SETTLEMENT_PRICE_ACTIVATION',
+    'dispenser_freshness_proven_use_activation.DISPENSER_FRESHNESS_PROVEN_USE_ACTIVATION',
+    'list_edit_remove_activation.LIST_EDIT_REMOVE_ACTIVATION',
+];
+const LISTS_MARKET_KEYS = LISTS_MARKET_HEIGHT_KEYS.concat(LISTS_MARKET_TIME_KEYS);
+
 const entry = require(ENTRY_PATH);
+const sharedRows = require(path.join(PART_DIR, 'shared_rows.js'));
 
 /** Part files on disk, in name order. */
 function partFiles() {
@@ -56,6 +79,20 @@ function diff(actual, expected) {
         missing: expected.filter((k) => !a.has(k)),
         unexpected: actual.filter((k) => !e.has(k)),
     };
+}
+
+function listsMarketRows(height, time) {
+    const env = {
+        [LISTS_MARKET_HEIGHT_ENV]: height,
+        [LISTS_MARKET_TIME_ENV]: time,
+    };
+    let arm;
+    sharedRows.registerRows({
+        addGate() {},
+        setReadOverlay(fn) { arm = fn; },
+    }, env);
+    const committed = Object.freeze({ mainnet: 10, testnet: 20, regtest: 0 });
+    return new Map(LISTS_MARKET_KEYS.map((key) => [key, arm(key, committed)]));
 }
 
 describe('reference registry ENTRY assembly', () => {
@@ -119,6 +156,47 @@ describe('reference registry ENTRY reads', () => {
         } finally {
             if (had) process.env[envName] = saved;
             else delete process.env[envName];
+        }
+    });
+
+    test('the lists and market venue variables own exactly fourteen rows', () => {
+        const rules = Object.entries(sharedRows.REGTEST_ARMING);
+        assert.deepEqual(
+            rules.filter(([, rule]) => rule.env === LISTS_MARKET_HEIGHT_ENV).map(([key]) => key),
+            LISTS_MARKET_HEIGHT_KEYS,
+        );
+        assert.deepEqual(
+            rules.filter(([, rule]) => rule.env === LISTS_MARKET_TIME_ENV).map(([key]) => key),
+            LISTS_MARKET_TIME_KEYS,
+        );
+
+        const bare = listsMarketRows(undefined, undefined);
+        const heightArmed = listsMarketRows('41', undefined);
+        const timeArmed = listsMarketRows(undefined, '1790812800');
+
+        assert.deepEqual(
+            LISTS_MARKET_KEYS.filter((key) => heightArmed.get(key).regtest !== bare.get(key).regtest),
+            LISTS_MARKET_HEIGHT_KEYS,
+        );
+        assert.deepEqual(
+            LISTS_MARKET_KEYS.filter((key) => timeArmed.get(key).regtest !== bare.get(key).regtest),
+            LISTS_MARKET_TIME_KEYS,
+        );
+        for (const key of LISTS_MARKET_HEIGHT_KEYS) assert.equal(heightArmed.get(key).regtest, 41, key);
+        for (const key of LISTS_MARKET_TIME_KEYS) assert.equal(timeArmed.get(key).regtest, 1790812800, key);
+    });
+
+    test('disabled lists and market arming leaves committed and public-network values intact', () => {
+        const bare = listsMarketRows(undefined, undefined);
+        const disabled = listsMarketRows('off', 'off');
+        const armed = listsMarketRows('41', '1790812800');
+
+        for (const key of LISTS_MARKET_KEYS) {
+            assert.equal(bare.get(key).regtest, 0, `${key} committed regtest`);
+            assert.equal(disabled.get(key).regtest, 0, `${key} disabled regtest`);
+            for (const network of ['mainnet', 'testnet']) {
+                assert.equal(armed.get(key)[network], bare.get(key)[network], `${key} ${network}`);
+            }
         }
     });
 });
