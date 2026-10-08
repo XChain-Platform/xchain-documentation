@@ -54,6 +54,12 @@ and 16 at `0.2.0`, so an action becomes available as soon as the node runs new e
 non-zero threshold in the registry therefore belongs to a *behaviour* change applied to an
 already-live action, not to the arrival of an action.
 
+Format-specific behavior can have its own gate even when the ACTION name is already live. BET
+Version `4` uses the height-keyed `bet_feed_list_edit_activation.BET_FEED_LIST_EDIT_ACTIVATION` row:
+at or above the configured height, the creator of an open feed may edit its allow and block list
+references; below it, Version `4` is invalid. The row is introduced unarmed on every network and
+must be armed through the normal flag-day process before the format is accepted there.
+
 ### Time-keyed vs height-keyed
 
 - **Height-keyed** gates pin activation to a specific block on one chain. Use this when the change is
