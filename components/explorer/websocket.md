@@ -716,6 +716,21 @@ Sent after all catch-up events have been replayed.
 Catch-up events have `"catch_up": true` in the envelope to distinguish them from live events.
 `events_replayed` counts every frame sent; `truncated` and `latest_action_index` count action rows.
 
+The server freezes an inclusive replay ceiling separately for each resolved subscription key when
+that key becomes live. This ceiling is the key's live-start mark. The live detector advances the
+mark for a row immediately before emitting that row's `NEW_ACTION`, without yielding between those
+two operations. A concurrent subscribe therefore lands on exactly one side of the boundary: it
+either registers first and receives the row live above its frozen ceiling, or registers afterward
+and replays the row at or below its ceiling. The catch-up query never reads rows above that ceiling,
+even when they are committed before the query runs. As a result, a reconnecting client receives
+each matching `NEW_ACTION` exactly once per subscription key rather than once from replay and again
+from the live poll.
+
+The boundary does not make the entire row atomic. Lifecycle frames are derived after `NEW_ACTION`
+and that work can yield. A subscription that starts while the live detector is still deriving the
+boundary row can receive one of that row's lifecycle frames both from replay and from the in-flight
+live fan-out. Clients must tolerate and de-duplicate those residual lifecycle duplicates.
+
 A replay rebuilds, for each missed action row and in live order, the `NEW_ACTION` and every
 lifecycle event the live feed derives from that row (`ORDER_MATCH`, `COINPAY_REQUIRED`,
 `COINPAY_FULFILLED`, `COINPAY_EXPIRED`, `ORDER_EXPIRED`, `SWAP_MATCH`, `SWAP_EXPIRED`, `DISPENSE`,
@@ -862,10 +877,16 @@ with `tx_hash` and `source` null and `destinations: []`.
 ## Reconnection and Catch-Up
 
 1. Track the highest `action_index` you have processed. Seed it from `WELCOME`'s `latest_action_index` only when you hold no cursor yet: on a reconnect, `WELCOME` reports the current tip, which is past the actions you missed, so letting it move your cursor skips them.
-2. On disconnect, reconnect with exponential backoff. A close with code `4008` (`backpressure`) means the server shed a connection that could not keep up and dropped a frame for it; handle it like any other disconnect, since your cursor still sits before the dropped frame and the catch-up replays it.
+2. On disconnect, reconnect with exponential backoff. For action-derived frames, backpressure admission is decided once per action row, when the first frame that passes this client's subscriptions and filters is ready: at or below `WS_MAX_BACKPRESSURE` the server sends every wanted frame from that row, even if those sends take the buffer above the limit; above the limit it sends no frame from that row and closes with code `4008` (`backpressure`) after the row ends. Handle that close like any other disconnect: your cursor still sits before the rejected row, so catch-up replays the whole row rather than repairing a partial one.
 3. Resubscribe with `since_action_index` set to your last known value, on the `actions` and `address` subscriptions. Their replay carries each missed action's `NEW_ACTION` and its lifecycle events. A `since_action_index` subscribe on any other channel alone closes at once with nothing replayed: the `actions` channel already carries every lifecycle frame the `dispenser`, `bet_feed`, `xcall` and `attestation` channels do, and entity state comes back with `snapshot: true`. Backfill the `not_replayed` types over REST (see [CATCH_UP_COMPLETE](#catch_up_complete)).
 4. Send one `since_action_index` subscribe at a time, each with its own `id`, and wait for the `CATCH_UP_COMPLETE` or `error` frame that echoes that `id` before sending the next. The server runs one catch-up per connection and refuses an overlapping one with `CATCH_UP_IN_PROGRESS`; the subscription is still registered, but its missed actions are not replayed.
-5. Process events with `catch_up: true` (these are replayed, not live). Live frames can arrive during a replay, so do not advance your cursor past the replay from them until every catch-up has closed.
+5. Process events with `catch_up: true` as replayed frames. The server uses ordering option B: it
+   does not gate live delivery while replay is running. Replay preserves action-index order within
+   its own bounded result, but it can interleave with live frames whose action indexes are above the
+   replay ceiling. A higher live frame can therefore arrive before a lower replay frame. Stage or
+   reconcile those live frames by `action_index`, and do not advance the durable catch-up cursor
+   from them until every catch-up has closed. Also de-duplicate lifecycle frames for the replay's
+   boundary row as described under [CATCH_UP_COMPLETE](#catch_up_complete).
 6. If `CATCH_UP_COMPLETE` has `truncated: true`, the replay stopped at its row cap: send the same subscribe again with `since_action_index` set to that frame's `latest_action_index`, and repeat until a frame arrives with `truncated: false`
 7. If the catch-up is refused (`CATCH_UP_TOO_OLD`, `CATCH_UP_AHEAD_OF_TIP`, or any other `error` carrying its `id`), use the REST API to backfill
 
@@ -887,6 +908,8 @@ sequenceDiagram
     S-->>C: WELCOME (tip, does not move the cursor)
     C->>S: subscribe actions, since_action_index, id c1
     S-->>C: replayed events
+    S-->>C: higher live event may interleave
+    S-->>C: remaining replayed events
     S-->>C: CATCH_UP_COMPLETE, id c1
     C->>S: subscribe address, since_action_index, id c2
     S-->>C: replayed events
@@ -908,4 +931,4 @@ See [CONFIGURATION.md](configuration.md) for the `WS_*` environment variables th
 | `WS_IDLE_TIMEOUT` | `300000` | Idle timeout for zero-subscription clients (ms) |
 | `WS_MAX_CONNECTIONS_PER_IP` | `5` | Max concurrent connections per IP |
 | `WS_MAX_SUBSCRIPTIONS` | `25` | Max subscriptions per connection |
-| `WS_MAX_BACKPRESSURE` | `65536` | Max buffered bytes per client. A frame the client wanted that finds it above this is dropped and the connection is closed with code `4008` (`backpressure`), so the client reconnects and catches up from before the drop |
+| `WS_MAX_BACKPRESSURE` | `65536` | Max buffered bytes per client. Backpressure admission is decided once per action row at its first wanted frame: at or below the limit the whole wanted row is sent, while above it no frame from that row is sent and the connection closes with code `4008` (`backpressure`) after the row ends. Reconnect and catch up from the last processed action index. |
