@@ -903,6 +903,19 @@ const ATTEST_RELAY_ACTIVATION = {
     regtest: 0,
 };
 
+// Snapshot height at or above which a relayed response reserves two flat broadcast
+// allowances from its fee escrow before splitting the remainder. The gate evaluates
+// the BTC-anchored SNAPSHOT_BLOCK carried by the relay. Public networks stay unarmed
+// until an operator assigns heights; regtest exercises the carve from genesis.
+const ATTEST_RELAY_FEE_ACTIVATION = Object.freeze({
+    mainnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+});
+
 // ATTEST_RESPONSIBLE_WIDENING_ACTIVATION (attestation Phase 4 liveness, spec §8.2): the flag-day
 // at/above which a request's responsible set WIDENS by one slot per window once the round has
 // visibly failed to finalize, instead of staying pinned to the REDUNDANCY validators the hash
@@ -2451,6 +2464,7 @@ module.exports = {
     ATTEST_REQUEST_CAP_ACTIVATION,
     ATTEST_REQUEST_CAPS,
     ATTEST_RELAY_ACTIVATION,
+    ATTEST_RELAY_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_CAP,
     ATTEST_RESPONSIBLE_WIDENING_ACTIVATION,

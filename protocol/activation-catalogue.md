@@ -36,6 +36,7 @@ same chain or field.
 | `attest_admission_activation` | `ATTEST_ADMISSION_ACTIVATION` | height |
 | `attest_broadcast_fee_activation` | `ATTEST_BROADCAST_FEE_ACTIVATION` | height |
 | `attest_relay_activation` | `ATTEST_RELAY_ACTIVATION` | height |
+| `attest_relay_fee_activation` | `ATTEST_RELAY_FEE_ACTIVATION` | height |
 | `attest_relay_reject_slot_activation` | `ATTEST_RELAY_REJECT_SLOT_ACTIVATION` | time |
 | `attest_request_cap_activation` | `ATTEST_REQUEST_CAP_ACTIVATION` | height |
 | `attest_response_mirror_activation` | `ATTEST_RESPONSE_MIRROR_ACTIVATION` | height |
