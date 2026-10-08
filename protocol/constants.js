@@ -1980,11 +1980,11 @@ const LIST_META_ACTIVATION = {
 // is judged exactly as it always has been.
 //
 // It is a flag day rather than an unconditional fix because the check RE-VERDICTS indexed
-// history: third-party edits are valid today and list_items is a hashed DERIVED table, so
-// refusing them on replay would move block hashes on a live chain. The replay corpus being
-// hash-identical below the height is the hard gate on this change.
+// history: third-party edits are valid below the flag day and list_items is a hashed DERIVED
+// table, so refusing them on replay would move block hashes on a live chain. The replay corpus
+// being hash-identical below the height is the hard gate on this change.
 const LIST_OWNER_ACTIVATION = {
-    mainnet: 9999999999,
+    mainnet: 0,
     testnet: 9999999999,
     'BTC:testnet': 155001,
     'LTC:testnet': 4906040,
