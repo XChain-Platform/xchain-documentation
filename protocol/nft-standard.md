@@ -20,8 +20,9 @@ No new fields. No new indexer rules.
 
 ## What it lets a creator do
 
-- **Issue a unique 1-of-1** whose supply is consensus-guaranteed never to inflate and
-  never to split into fractions.
+- **Issue a unique 1-of-1** whose supply consensus keeps from inflating or splitting
+  into fractions. Both guarantees carry activation conditions, set out under
+  [Definition](#definition).
 - **Issue an edition of N identical prints** (same guarantees, supply N) optionally
   distributed through a public fair-mint window.
 - **Build a collection of distinct items** under one parent name, where the chain itself
@@ -42,7 +43,7 @@ A token follows the NFT pattern when its `ISSUE` satisfies **both**:
 | Property | Field | Why it matters |
 |---|---|---|
 | Indivisible | `DECIMALS` = `0` (or empty; `0` is the default) | The consensus layer rejects a decimal-point fraction of a 0-decimals token in every amount-bearing ACTION (`SEND`, `ORDER`, `SWAP`, `DISPENSER`, `DESTROY`, `AIRDROP`, `DIVIDEND`, `MINT`, …). An exponent-notation fraction such as `1e-1` is rejected only at and above the `AMOUNT_REPRESENTABILITY` flag-day ([Distribution and trading](#distribution-and-trading)). `DECIMALS` cannot be changed once supply exists. |
-| Permanently capped | `LOCK_MAX_SUPPLY` = `1` | `MAX_SUPPLY` can never be raised. A 1-of-1 stays a 1-of-1; an edition of 100 stays 100. |
+| Permanently capped | `LOCK_MAX_SUPPLY` = `1` | `MAX_SUPPLY` can never be raised. The lock freezes the cap, not minting: an owner re-`ISSUE` whose `MINT_SUPPLY` would take supply past the cap is refused only at and above the `ISSUE_MINT_SUPPLY_CUMULATIVE_CAP` flag-day ([Flag-Day Values](./flag-days.md)). Below it, only `LOCK_MINT_SUPPLY` = `1` stopped the owner minting past the cap. With the cumulative cap active (or `LOCK_MINT_SUPPLY` set from issuance), a 1-of-1 stays a 1-of-1 and an edition of 100 stays 100. |
 
 - `MAX_SUPPLY` = `1` → a **unique** (1-of-1).
 - `MAX_SUPPLY` = `N` → an **edition** of N identical prints (fungible within the
@@ -60,7 +61,9 @@ locked-supply tokens are currencies, not collectibles. The issuer disambiguates 
 the [Token Information Standard](./token-information-standard.md#nft-usage) by declaring
 a category of `{ "type": "main", "data": "NFT" }`; clients should treat the TIS
 category as the issuer's stated intent and the field rule above as the eligibility
-test.
+test. Classification alone does not prove the supply bound for a token whose history
+predates the `ISSUE_MINT_SUPPLY_CUMULATIVE_CAP` flag-day; the
+[collector checklist](#what-a-collector-should-verify) covers that case.
 
 ### Issuing
 
@@ -94,6 +97,14 @@ record. Minted supply is not required, so a fair-mint drop locks its cap at crea
 and satisfies the [classification rule](#classification-rule-for-clients) from its
 first block. The only rejected case is locking with no `MAX_SUPPLY` declared, which
 would permanently brick the tick at a cap of nothing.
+
+**Lock minting too, so the edition size never rests on a flag-day.** Also set
+`LOCK_MINT_SUPPLY=1` (and `LOCK_MINT=1` once a fair-mint drop has closed). The
+`LOCK_MINT_SUPPLY` refusal reads the token's existing record, so setting it in the
+creating `ISSUE` that carries `MINT_SUPPLY` still mints that supply. Afterwards no
+owner re-issue can mint again, whatever the network's `ISSUE_MINT_SUPPLY_CUMULATIVE_CAP`
+state. With `LOCK_MINT` set as well, units burned with `DESTROY` cannot be re-minted
+into the headroom they free.
 
 The SDK provides `sdk.nft.unique()`, `sdk.nft.edition()`, and `sdk.nft.collectionItem()`
 builders that set `DECIMALS=0` and `LOCK_MAX_SUPPLY=1` correctly, and `sdk.issueNft()`,
@@ -215,8 +226,9 @@ URL`;HASH`) and on-chain `data_ref` entries yields end-to-end immutable presenta
 Because "NFT" is a pattern rather than a flag, due diligence is a fixed checklist, all
 answerable from chain state:
 
-- ✅ `DECIMALS` is `0` and `LOCK_MAX_SUPPLY` is `1`; otherwise supply can inflate or split
+- ✅ `DECIMALS` is `0` and `LOCK_MAX_SUPPLY` is `1`; otherwise the cap can be raised or supply can split
 - ✅ Current `MAX_SUPPLY` and issued supply match the seller's claim (1-of-1 vs edition size)
+- ✅ Issued supply is at or below `MAX_SUPPLY`; for a token whose history predates the `ISSUE_MINT_SUPPLY_CUMULATIVE_CAP` flag-day, `LOCK_MINT_SUPPLY` is `1` or the supply history shows no owner re-mint past the cap
 - ✅ For a collection item: the child was issued while the parent was held by the expected creator (parent ownership history)
 - ✅ Linked content: the `LINK` SOURCE is the token's owner at link time; for on-chain art, the `FILE` bytes hash-match what's displayed
 - ✅ If immutable metadata matters: `LOCK_DESCRIPTION` is set and the TIS pointer is content-addressed

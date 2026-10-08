@@ -82,7 +82,7 @@ curl -X POST https://encoder.xchain.io/BTC/ \
 
 | Service | Auth | Rate limit |
 |---|---|---|
-| Explorer | None; all endpoints are read-only | `429` after 500 requests per 60s window |
+| Explorer | None; all endpoints are read-only | `429` after 1080 requests per IP per 60s window by default; proof, batch, preflight, fee-quote and checkpoint routes have tighter separate limits (see [Explorer rate limiting](../components/explorer/configuration.md#rate-limiting)) |
 | Encoder | Optional `x-api-key` (public instances run open) | Per-instance, configurable |
 | Hub | `x-api-key` required for write and admin methods; read methods are open | Per-instance, configurable |
 

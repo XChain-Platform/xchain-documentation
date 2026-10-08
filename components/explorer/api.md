@@ -77,7 +77,7 @@ All API endpoints return:
 |---|---|
 | `400` | Bad request or database query error |
 | `404` | Invalid endpoint path |
-| `429` | Rate limit exceeded (500 requests per 60s window) |
+| `429` | Rate limit exceeded (1080 requests per IP per 60s window by default; proof, batch, preflight, fee-quote and checkpoint routes have tighter limits, see [Rate Limiting](configuration.md#rate-limiting)) |
 | `503` | Coin not configured or database unavailable |
 
 ---

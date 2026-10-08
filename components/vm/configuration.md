@@ -30,7 +30,7 @@ const vm = new XChainVM({
 | `gasCeiling` | number | `1000000` | Maximum gas allowed per single contract execution |
 | `limits` | object | (see below) | Resource limits for isolate execution |
 
-The VM has no environment variables, configuration files, or runtime reconfiguration. All settings are fixed at construction time by the indexer. Being settable is not the same as being binding: `limits.maxCpuTimeMs` is accepted here but bounds only ungated (non-consensus) executions, because a consensus execution resolves its wall-clock budget from a protocol constant instead (see Resource Limits below).
+The VM has no environment variables, configuration files, or runtime reconfiguration. All settings are fixed at construction time by the indexer. Being settable is not the same as being binding: `limits.maxCpuTimeMs` is accepted here but bounds only ungated (non-consensus) executions, because a consensus execution resolves its wall-clock budget from a protocol constant instead (see Resource Limits below). `limits.maxStackDepth` is the opposite case: it is settable and it does bind consensus executions below the Package 3 sandbox gate, so every validator must leave it at its default. The constructor example above omits it, as the indexer does.
 
 ## Gas Schedule
 
@@ -60,6 +60,7 @@ Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`r
 | Gas ceiling | `gasCeiling` | 1,000,000 | Maximum gas per execution. Primary execution bound. |
 | Max call depth | `maxCallDepth` (`VM_MAX_CALL_DEPTH`) | 4 | Maximum call depth for `emit.execute` trees. A user-submitted EXECUTE is depth 0; each `emit.execute` hop adds 1. |
 | Min call gas | `minCallGas` (`VM_MIN_CALL_GAS`) | 5,000 | Minimum `gasLimit` per `emit.execute` call. Bounds call-tree fan-out: every call costs at least `VM_EMISSION + VM_MIN_CALL_GAS` out of the caller's budget. |
+| Max stack depth | `maxStackDepth` | 512 | Intra-contract recursion bound, injected into the isolate as `__DEPTH_LIMIT`. **Consensus-affecting: leave it at the default.** Below the Package 3 sandbox gate the VM uses this value as given, so a node built with a different value computes different outcomes. Once the gate is active (unconditional on testnet/regtest; per-coin heights on mainnet) the value is ignored and the bound is pinned to 256 (`MAX_STACK_DEPTH_MUSL`). The native-input depth guard is capped at 256 whatever this value is |
 | CPU timeout | `maxCpuTimeMs` | 30,000 ms | Wall-clock timeout for **ungated (non-consensus) executions only**: benches, fuzzing, the toolkit simulator, and pre-activation replay. A consensus execution ignores this knob (see the next row) |
 | Consensus wall-clock budget | `CONSENSUS_MAX_WALL_MS` | 30,000 ms | The wall-clock budget every consensus execution runs against. A protocol constant, not a node setting: it is unconditional on testnet and regtest, and on mainnet from the contract-era flag day (see [Flag Days](../../protocol/flag-days.md)). Lowering `maxCpuTimeMs` on a live indexer does not tighten it |
 | Memory | `maxMemory` | 8 MB | V8 isolate heap size limit. Exceeding triggers `out_of_memory` error. |
@@ -101,7 +102,6 @@ These limits are hardcoded in the VM and not configurable:
 | Log entries per execution | 100 | `collector.js` |
 | Log entry size | 1,024 bytes UTF-8 (truncated with `...(truncated)` marker) | `collector.js` |
 | Return value size | 65,536 UTF-16 code units (truncated) | `index.js` |
-| Recursion depth (`__DEPTH_LIMIT`) | 512, or 256 once the Package 3 sandbox gate is active (unconditional on testnet/regtest; per-coin heights on mainnet) | `index.js` |
 | Throwaway isolate memory | 8 MB | `isolate.js`, `syntax.js` |
 | Binary expression metering depth | 10 | `metering.js` |
 
