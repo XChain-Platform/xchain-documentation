@@ -42,11 +42,14 @@
  */
 const test = require('node:test');
 const assert = require('node:assert');
+const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const ROOT = path.join(__dirname, '..');
 const SPECS = path.join(ROOT, 'protocol', 'actions');
+const E2E = sibling('xchain-e2e-test');
 
 /** Actions that exist but are never decoded from a wire transaction. */
 const MIRROR_INJECTED = ['XCALL'];
@@ -157,6 +160,32 @@ test('the counts are derived from the spec directory, not from prose', () => {
   assert.ok(named.length > 0, 'protocol/actions/ must hold the ACTION specs');
   for (const a of [...MIRROR_INJECTED, ...NOT_USER_SUBMITTABLE]) {
     assert.ok(named.includes(a), `${a} is named in this test but has no spec in protocol/actions/`);
+  }
+});
+
+test('the published e2e helper-module counts match the committed tree', {
+  skip: E2E.skip,
+}, () => {
+  const modules = execFileSync(
+    'git', ['-C', E2E.root, 'ls-tree', '--name-only', 'origin/develop', 'test/helpers/'],
+    { encoding: 'utf8' },
+  ).trim().split('\n').filter((file) => file.endsWith('.js')).length;
+  const claims = [
+    {
+      file: 'components/e2e-test/README.md',
+      pattern: /action helpers \((\d+) modules\)/,
+    },
+    {
+      file: 'components/e2e-test/architecture.md',
+      pattern: /helpers\/\s+# (\d+) modules/,
+    },
+  ];
+
+  for (const { file, pattern } of claims) {
+    const claim = fs.readFileSync(path.join(ROOT, file), 'utf8').match(pattern);
+    assert.ok(claim, `${file} no longer publishes its e2e helper-module count`);
+    assert.strictEqual(Number(claim[1]), modules,
+      `${file} publishes ${claim[1]} e2e helper modules, but origin/develop has ${modules}`);
   }
 });
 
