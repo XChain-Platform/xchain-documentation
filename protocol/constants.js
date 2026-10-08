@@ -1285,6 +1285,20 @@ const DISPENSER_CANCEL_GRACE_ACTIVATION = {
     regtest: 0,
 };
 
+// DISPENSER_PURGE_GRACE_ACTIVATION: the block-time boundary at/above which the
+// decoder keeps a soft-expired dispenser until its cancellation grace period has
+// passed instead of hard-purging it at the raw expiration time. It is a separate
+// gate from DISPENSER_CANCEL_GRACE_ACTIVATION because capture eligibility and row
+// retention change independently.
+//
+// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
+// Regtest is genesis-active so the grace-aware purge path is exercised there.
+const DISPENSER_PURGE_GRACE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // DISPENSER_FRESHNESS_SHAPE_ACTIVATION: the processing chain's own height
 // at/above which a non-null get_first_seen result with the wrong shape is fatal
 // instead of degrading to the legacy fail-open null.
@@ -2463,6 +2477,7 @@ module.exports = {
     AMOUNT_REPRESENTABILITY_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
     DISPENSER_CANCEL_GRACE_ACTIVATION,
+    DISPENSER_PURGE_GRACE_ACTIVATION,
     DISPENSER_FRESHNESS_SHAPE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
     ENVELOPE_RECOGNITION_ACTIVATION,
