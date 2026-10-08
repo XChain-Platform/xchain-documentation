@@ -46,7 +46,8 @@
  *   8. The intro page said XBRIDGE had no custodian and that the federation
  *      never gates a balance, and three pages stated XCHAIN-only as a property
  *      of XBRIDGE. The credit is a hub-trusted mint and v3 to v5 bridge any
- *      opted-in token once TOKEN_BRIDGE_ACTIVATION arms.
+ *      opted-in token once TOKEN_BRIDGE_ACTIVATION arms. The scope page also
+ *      denied the federation ever settles a balance.
  *
  * WHAT IT CHECKS. Both halves of every claim: the SOURCE fact the corrected
  * wording rests on, read out of the sibling indexer, and the PROSE, which must
@@ -428,11 +429,13 @@ test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XB
         ['overview.md', /^\*\*No third-party bridge\.\*\*/],
         ['user-guide/cross-chain.md', /^\*\*What is live today\.\*\*/],
         ['getting-started/what-is-xchain.md', /^XChain has no third-party bridge\./],
+        ['whitepaper.md', /^XChain is a token-and-settlement \*\*metalayer\*\*/],
+        ['whitepaper.md', /^\*\*Inherited security\.\*\*/],
     ];
     for(const [rel, lead] of pages){
         const para = readDoc(rel).split('\n').find((l) => lead.test(l)) || '';
         assert.notStrictEqual(para, '', `${rel} no longer has the paragraph that describes XBRIDGE's scope`);
-        assert.ok(!/moves only the platform's own XCHAIN|The one exception is XCHAIN/.test(para),
+        assert.ok(!/moves only the platform's own XCHAIN|The one exception is XCHAIN|moves only its own fee token|moves the platform's own fee token/.test(para),
             `${rel} again states XBRIDGE as XCHAIN-only; XBRIDGE v3 to v5 bridge any opted-in token `
             + 'behind TOKEN_BRIDGE_ACTIVATION (protocol/actions/xbridge.md)');
         assert.ok(!/not yet switched on/.test(para),
@@ -459,4 +462,19 @@ test('the overview keeps XBRIDGE off mainnet while its mainnet gate is the senti
     assert.match(going, /XBRIDGE[^.]*awaits mainnet activation/,
         'overview.md "Where it\'s going" no longer names XBRIDGE among the features awaiting mainnet activation '
         + '(a bare "bridge" match is not enough: this section already says "bridge risk")');
+});
+
+test('the scope page states the XBRIDGE exception to the hub\'s role', () => {
+    const scope = readDoc('concepts/scope-and-non-goals.md');
+    assert.doesNotMatch(scope, /Never for ordering or\s+settlement of token state/,
+        'scope-and-non-goals.md again says the hub never settles token state; it authorizes every XBRIDGE credit');
+    assert.doesNotMatch(scope, /limited to swaps and references/,
+        'scope-and-non-goals.md again limits cross-chain functionality to swaps and references, omitting XBRIDGE and XCALL');
+    for (const [needle, what] of [
+        [/hub-trusted mint/, 'name the hub-trusted mint'],
+        [/not active on mainnet/, 'say the bridge is off on mainnet'],
+        [/xchain-bridge\.md#trust-model/, 'link the bridge trust model'],
+    ]) {
+        assert.match(scope, needle, `scope-and-non-goals.md no longer does ${what}`);
+    }
 });

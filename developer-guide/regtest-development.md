@@ -110,14 +110,14 @@ async function fundAddress(address, amount = 1.0) {
 await fundAddress('bc1qtestaddress...', 1.0);
 ```
 
-Then mine the funding transaction into a block:
+Then mine the funding transaction into a block. `generate_blocks` mines immediately and picks up the transactions waiting in the mempool; `continue_mining` only resumes the auto-miner after a pause and mines nothing itself:
 
 ```js
 async function mineBlock() {
   await fetch('http://localhost:3005', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ method: 'continue_mining', params: {} }),
+    body: JSON.stringify({ method: 'generate_blocks', params: { count: 1 } }),
   });
 }
 
@@ -225,9 +225,9 @@ SELECT * FROM actions ORDER BY action_index DESC LIMIT 20;
 If the indexer has data but the explorer doesn't, the explorer may have a query bug. Hit the endpoint directly:
 
 ```bash
-curl http://localhost:18080/BTC/api/token/MYTOKEN
-curl http://localhost:18080/BTC/api/balances/YOUR_ADDRESS
-curl http://localhost:18080/BTC/api/history/MYTOKEN/token
+curl http://localhost:18080/RBTC/api/token/MYTOKEN
+curl http://localhost:18080/RBTC/api/balances/YOUR_ADDRESS
+curl http://localhost:18080/RBTC/api/history/MYTOKEN/token
 ```
 
 If the explorer answers `503 COIN_DATA_STALE` for every endpoint on a coin, the query is fine and the chain has simply gone quiet: see [Keeping an Idle Chain Available](#keeping-an-idle-chain-available).

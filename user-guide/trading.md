@@ -87,7 +87,7 @@ Dispensers are ideal when you want a reliable, always-on way to sell tokens:
 - **No counterparty needed.** The transaction is automatic, buyer pays, protocol sends tokens.
 - **Always available.** Your dispenser works 24 hours a day, 7 days a week, without any action from you, up until the expiration you set for it.
 - **Price clarity.** The price you set when you create the dispenser cannot be changed afterwards. On a coin-priced or token-priced dispenser buyers know the exact amount to send before sending anything; on a dispenser priced in a traditional currency the price in that currency is what is fixed, and the coin amount tracks the exchange rate at the time of purchase.
-- **Self-limiting.** A dispenser closes on its own in two ways: when it hits 1,000 dispenses on its current fill (that last sale still goes through, then any tokens left in it are returned to you), and when it reaches its expiration. You can also cancel it manually at any time.
+- **Self-limiting.** A dispenser closes on its own in two ways: when it hits 1,000 dispenses on its current fill (that last sale still goes through, then any tokens left in it are returned to you, or, if it had already been cancelled from its dispenser address or swept, to that address or the sweep destination), and when it reaches its expiration. You can also cancel it manually at any time.
 
 Think of a dispenser like a coin-operated machine at a store. You set it up once, fill it with tokens, set the price, and let it run. Each customer inserts their coins and gets what they paid for: automatically, reliably, without needing a clerk.
 

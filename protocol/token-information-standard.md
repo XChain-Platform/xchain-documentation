@@ -7,10 +7,24 @@ The Token Information Standard (TIS) defines standardized formats to associate i
 
 ## JSON Specifications
 
-### v1.1.1 (current)
+### v1.1.2 (current)
+- [Token Information Standard JSON Schema](./json/token-information-standard-v1.1.2-schema.json)
+- [Token Information Standard JSON Example](./json/token-information-standard-v1.1.2-example.json)
+
+v1.1.2 adds and removes no field. It restates the `dns` entry requirement in keywords the
+declared draft-04 has: every entry requires `type`, `host` and `value`, and an `MX` entry
+also requires `priority`. v1.0.0 through v1.1.1 wrote that rule with `if`/`then`/`else`
+and `const`, which only exist from draft-06 and draft-07 on, so a validator honoring their
+draft-04 declaration skipped it and accepted any `dns` entry. A document whose `dns`
+entries meet the rule is valid under v1.1.2 on the same terms as under v1.1.1; a `dns`
+entry missing one of those fields, which a draft-04 validator let through before, is now
+rejected.
+
+### v1.1.1
 - [Token Information Standard JSON Schema](./json/token-information-standard-v1.1.1-schema.json)
 - [Token Information Standard JSON Example](./json/token-information-standard-v1.1.1-example.json)
 
+Frozen as published; its `dns` requirement is the draft-07 form v1.1.2 restates.
 v1.1.1 relaxes a single constraint over v1.1.0 and adds no field. An entry in `images`,
 `audio`, `video` or `files` requires `type` plus at least one of `data` or `data_ref`,
 where v1.1.0 required `data` outright and so rejected the fully on-chain form this
@@ -42,7 +56,7 @@ generator run against it drops them.
 
 #### JSON Field Definitions
 
-The tables below describe **v1.1.1**, which declares the same fields as v1.1.0. Rows
+The tables below describe **v1.1.2**, which declares the same fields as v1.1.0. Rows
 marked *(since v1.1.0)* are absent from the v1.0.0 schema.
 
 | Field       | Type   | Description

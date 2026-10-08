@@ -40,8 +40,8 @@ The VM is instantiated once in the indexer's `src/actions/index.js` and shared a
 
 1. **Startup:** Indexer creates `new XChainVM({ gasSchedule, gasCeiling, limits })` from its configuration
 2. **Per block:** Indexer calls `vm.beginBlock()` before processing transactions, `vm.endBlock()` after
-3. **DEPLOY action:** `deploy/index.js` calls `vm.validateSyntax(code)` to validate contract source, then `vm.execute()` to run the constructor
-4. **EXECUTE action:** `execute/index.js` calls `vm.execute()` with the contract code, current state, method name, parameters, and block context
+3. **DEPLOY action:** `deploy/lint.js` resolves the block's consensus lint flags (`resolveLintFlags`) and calls `vm.validateSyntax(code, lintFlags)` to validate contract source, then `deploy/constructor_run.js` calls `vm.execute()` to run the constructor
+4. **EXECUTE action:** `execute/run_vm.js` calls `vm.execute()` with the contract code, current state, method name, parameters, and block context; `execute/controller_guard.js` also calls `vm.execute()` to run a controller guard
 5. **Result processing:** The indexer applies `stateChanges` and `stateDeletes` to the database, processes `emittedActions` through standard action handlers, and records `gasUsed` for fee charging
 
 ```mermaid
@@ -56,11 +56,11 @@ sequenceDiagram
     Indexer->>VM: vm.beginBlock()
     Indexer->>VM: vm.endBlock()
 
-    Note over Indexer: DEPLOY action (deploy/index.js)
-    Indexer->>VM: vm.validateSyntax(code)
+    Note over Indexer: DEPLOY action (deploy/lint.js, deploy/constructor_run.js)
+    Indexer->>VM: vm.validateSyntax(code, lintFlags)
     Indexer->>VM: vm.execute() (run constructor)
 
-    Note over Indexer: EXECUTE action (execute/index.js)
+    Note over Indexer: EXECUTE action (execute/run_vm.js)
     Indexer->>VM: vm.execute(code, state, method, params, block context)
 
     Note over Indexer: Result processing
@@ -71,7 +71,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    INDEXER["Indexer (execute/index.js)"]
+    INDEXER["Indexer (execute/run_vm.js)"]
     LOAD["Loads contract code + state from DB"]
     BUILD["Builds balances, tokenInfo,<br>oracleData, crossChainData"]
     EXEC["vm.execute({ code, state, method,<br>params, caller, ... })"]
@@ -144,7 +144,7 @@ The indexer uses database savepoints to ensure these guarantees extend to the pe
 
 ## Syntax Validation (Deploy-Time)
 
-Before a contract is deployed, `vm.validateSyntax(code)` runs the following checks in order. The V8 syntax check blocks a deploy via a separate early return and is not itself a `lint-core.CONSENSUS_RULES` member; checks 2-9 below are all deploy-blocking consensus rules (`invalid-type`, `unsupported-syntax`, `reserved-identifier`, `banned-math`, `banned-literal`, `banned-async`, `banned-generator`, `banned-rest`, `banned-wasm`), and all must pass or the DEPLOY action is rejected:
+Before a contract is deployed, `vm.validateSyntax(code, opts)` runs the following checks in order. The indexer passes the per-block activation flags that `resolveLintFlags` in `deploy/lint.js` resolves for the DEPLOY's block. Any flag omitted from `opts` defaults on, which is the author-facing preflight behavior rather than the replay-safe deploy verdict, so a consensus caller must pass each gate it resolves. The V8 syntax check blocks a deploy via a separate early return and is not itself a `lint-core.CONSENSUS_RULES` member; checks 2-9 below are all deploy-blocking consensus rules (`invalid-type`, `unsupported-syntax`, `reserved-identifier`, `banned-math`, `banned-literal`, `banned-async`, `banned-generator`, `banned-rest`, `banned-wasm`), and all must pass or the DEPLOY action is rejected:
 
 1. **V8 syntax check**: compiles the code in a throwaway 8 MB isolate to catch syntax errors (the only step requiring `isolated-vm`)
 2. **Acorn metering pass**: runs `meterCode()` to ensure acorn can parse the source (effective ES2020 ceiling)

@@ -115,9 +115,11 @@ stateDiagram-v2
     cancelling --> cancelled: 1-hour close delay elapses<br>(FIAT payments confirming during the window still processed)
     cancelled --> [*]: escrow returned to whichever of GET_ADDRESS/SOURCE closed it
     open --> empty: DISPENSE leaves less than one GIVE_AMOUNT in escrow,<br>closed in the same block (no close delay)
-    empty --> [*]: any remainder refunded to SOURCE
+    cancelling --> empty: a payment in the close window leaves less than one GIVE_AMOUNT
+    empty --> [*]: any remainder to SOURCE if it was open,<br>else to the SWEEP DESTINATION or the recorded canceller
     open --> max_dispenses_reached: DISPENSE reaches the 1000-dispense fill limit,<br>closed in the same block (no close delay)
-    max_dispenses_reached --> [*]: remaining escrow refunded to SOURCE
+    cancelling --> max_dispenses_reached: a payment in the close window reaches the fill limit
+    max_dispenses_reached --> [*]: remaining escrow to SOURCE if it was open,<br>else to the SWEEP DESTINATION or the recorded canceller
     open --> expired: EXPIRATION reached, no canceller
     expired --> [*]: escrow returned to SOURCE
     open --> swept: SWEEP DISPENSERS=1
@@ -150,7 +152,7 @@ stateDiagram-v2
 ## Notes
 - Dispensers are closed and any escrowed funds returned after a set amount of time (1 hour)
 - Dispenser `LIST` edits are delayed a set amount of time (1 hour)
-- Dispensers are limited to a maximum number of dispenses per fill (1,000, enforced). The dispense that reaches the limit still executes; the dispenser then auto-closes and any remaining escrow is refunded to the `SOURCE` owner
+- Dispensers are limited to a maximum number of dispenses per fill (1,000, enforced). The dispense that reaches the limit still executes; the dispenser then auto-closes and any remaining escrow is routed like any close: to the SWEEP `DESTINATION` if a SWEEP had already put the dispenser into its close window, otherwise to the recorded canceller (`GET_ADDRESS` or `SOURCE`) if it was already cancelling, otherwise to `SOURCE` (see the cancel and sweep bullets under [Rules](#rules))
 - A refill (a Version 2 `DISPENSER_EDIT` that tops up `GIVE_ESCROW`) resets the dispense count to 0, so each fill allows another 1,000 dispenses. Refills are limited to 5 (the 6th is rejected), giving a lifetime ceiling of 6 fills x 1,000 dispenses
 - A dispenser selling a controller-bound `GIVE_TICK` runs the token's `trade` guard when it opens (`action_type` `DISPENSER_CREATE`). From the [`DISPENSER_REFILL` flag day](../flag-days.md), a refill that adds `GIVE_ESCROW` runs that guard too, with `action_type` `DISPENSER_REFILL`; before it, refills run no guard. See [invocation points](../controller-bound-tokens.md#invocation-points-per-action_type)
 - `FIAT_CODE` accepts the following 12 currencies:
@@ -299,7 +301,7 @@ On **mainnet** the fee output is recognized from the coordinated [contract-era f
 ### Dispenser Close Window
 Dispensers have a 1-hour close delay (`DISPENSER_CLOSE_DELAY`) when they are cancelled. A cancelled dispenser enters a "cancelling" state for 1 hour before it closes with status `cancelled`. FIAT dispense payments that confirm during this window are still processed normally; the dispenser honors pending dispenses until the close window elapses.
 
-A dispenser that sells out has no close window. The dispense that leaves less than one `GIVE_AMOUNT` in escrow closes it in the same block with status `empty`, and any remainder is refunded to `SOURCE`. The dispense that reaches the 1,000-dispense fill limit closes it the same way with status `max_dispenses_reached`. Refill (Version 2) and cancel (Version 1) both require status `open`, so neither applies to a closed dispenser; to sell again, the original `SOURCE` opens a new dispenser on the same address (origin standing, see Rules).
+A dispenser that sells out has no close window. The dispense that leaves less than one `GIVE_AMOUNT` in escrow closes it in the same block with status `empty`. Any remainder goes to `SOURCE` when the dispenser was open, or to the SWEEP `DESTINATION` or the recorded canceller when a payment empties it during its close window. The dispense that reaches the 1,000-dispense fill limit closes it the same way with status `max_dispenses_reached`. Refill (Version 2) and cancel (Version 1) both require status `open`, so neither applies to a closed dispenser; to sell again, the original `SOURCE` opens a new dispenser on the same address (origin standing, see Rules).
 
 ---
 

@@ -257,7 +257,7 @@ A WIF is never accepted on the command line. An imported key must belong to the 
 ### `validator stake`
 
 ```bash
-xchain-node validator stake [--broadcast] [--amount <xchain>] [--no-wait] [--fee-per-kb <coin>] [--timeout <minutes>]
+xchain-node validator stake [--broadcast] [--amount <xchain>] [--no-wait] [--serialize] [--fee-per-kb <coin>] [--timeout <minutes>]
 ```
 
 Puts the signing key on chain from the stake wallet. Reads the address's coin and XCHAIN balances and the XCHAIN token's mint caps from the public explorer, then:
@@ -266,6 +266,8 @@ Puts the signing key on chain from the stake wallet. Reads the address's coin an
 2. Broadcasts `STAKE v1` for `--amount` (default 25000, which clears every capability floor) naming this validator's pubkey.
 
 Without `--broadcast` it prints the plan and sends nothing, which doubles as the funding check.
+
+The plan also states the exit cost before any money moves. The staked XCHAIN stays escrowed for as long as the validator stays staked, and standing down later frees it only after a cooldown of 1000 blocks (`STAKING.COOLDOWN_BLOCKS`, roughly 7 days on Bitcoin), on top of the 6 blocks it takes to leave the active set. Do not stake XCHAIN you may need before then.
 
 Every action is sent **back to back into one block**. The indexer resolves a STAKE's balance from every ledger entry with a lower action index, so the mints only have to sit earlier in the *same* block, not in an earlier one. Ordering inside the block is guaranteed by construction: each action is funded from the previous action's own outputs, and consensus forbids a child transaction from preceding its parent. If that chain cannot be formed (no spendable output appears from the previous action), the command says so and waits for the mints to be indexed before staking, rather than broadcasting a STAKE a miner could place ahead of its own funding. `--serialize` restores one action per block.
 
@@ -279,7 +281,12 @@ xchain-node validator unstake [--broadcast] [--no-wait] [--fee-per-kb <coin>] [-
 
 Withdraws this validator's stake and leaves the active set. Reads the active stake for this pubkey from the chain, reports it, and broadcasts `UNSTAKE v0`. Without `--broadcast` it prints the plan and sends nothing. It does nothing when the pubkey carries no valid stake, and refuses outright when the validator set cannot be read, rather than treating an unreadable set as "nothing staked".
 
-The stake keeps counting toward every capability for 6 more blocks after the unstake is indexed (the same `ACTIVATION_DELAY_BLOCKS` reorg protection that gates joining), then drops out of the active set. This matters operationally: membership is chain-derived, so a staked validator that is not running still raises the quorum every other validator must meet.
+Two clocks start at the block the unstake lands in, and they are far apart:
+
+- **Active set.** The stake keeps counting toward every capability for 6 more blocks (`STAKING.ACTIVATION_DELAY_BLOCKS`, the same reorg protection that gates joining), then drops out of the active set.
+- **Cooldown.** The XCHAIN stays locked for 1000 blocks (`STAKING.COOLDOWN_BLOCKS`, roughly 7 days on Bitcoin) and is not spendable until the cooldown sweep credits it back at the end of that window.
+
+The command prints both clocks; plan around the cooldown, not the hour it takes to leave the set. Unstaking a validator you have stopped running matters operationally: membership is chain-derived, so a staked validator that is not running still raises the quorum every other validator must meet.
 
 ### `validator status`
 

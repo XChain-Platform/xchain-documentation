@@ -35,6 +35,8 @@
  *   1. The three counts are derived from protocol/actions/, not typed here.
  *   2. Every "<n> ACTIONs" style claim in the prose is one of those three, or
  *      is listed in SCOPED below with the reason it counts something else.
+ *   3. White paper section 6 gives every named ACTION its own bullet, so its
+ *      count cannot cover an action its list never describes (XBRIDGE did).
  *
  * WHAT IT DOES NOT CHECK: whether a given page picked the RIGHT one of the
  * three. That is a reading judgement. This catches the number that belongs to
@@ -235,4 +237,24 @@ test('every ACTION count in the prose refers to a set that exists', () => {
     + 'bare 35 is usually a pre-XCALL leftover. If a number measures something else entirely, add it '
     + 'to SCOPED with the reason rather than editing prose to fit the guard:\n'
     + bad.join('\n'));
+});
+
+/** Names that lead a bullet in white paper section 6 (`**DEPOSIT / WITHDRAW**` gives both). */
+function whitepaperSectionSixBullets() {
+  const paper = fs.readFileSync(path.join(ROOT, 'whitepaper.md'), 'utf8');
+  const start = paper.indexOf('## 6. The ACTION Set');
+  const end = paper.indexOf('\n## 7.', start);
+  assert.ok(start >= 0 && end > start, 'whitepaper.md no longer has a "## 6. The ACTION Set" section ending at "## 7."');
+  const names = new Set();
+  for (const m of paper.slice(start, end).matchAll(/^- \*\*([^*]+)\*\*/gm)) {
+    for (const word of m[1].split(/[^A-Z]+/)) if (word) names.add(word);
+  }
+  return names;
+}
+
+test('white paper section 6 gives every named ACTION its own bullet', () => {
+  const listed = whitepaperSectionSixBullets();
+  const missing = namedActions().filter((a) => !listed.has(a));
+  assert.deepStrictEqual(missing, [],
+    `whitepaper.md section 6 counts every spec in protocol/actions/ but has no bullet for: ${missing.join(', ')}`);
 });

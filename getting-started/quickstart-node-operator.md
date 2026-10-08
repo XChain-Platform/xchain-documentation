@@ -98,17 +98,21 @@ Once services are running, the XChain explorer web UI is available at:
 http://localhost:18080
 ```
 
-The JSON-RPC API is at:
+The REST API lives under each coin's route code (`BTC` for Bitcoin mainnet, `RBTC` for Bitcoin regtest; the full table is in the [API reference](../components/explorer/api.md#coin-prefixes)):
 
-```
-http://localhost:18080/api
+```bash
+curl http://localhost:18080/BTC/api/status
 ```
 
-The REST API is at:
+The JSON-RPC 2.0 endpoint is the root path, called with a POST:
 
+```bash
+curl -X POST http://localhost:18080/ \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"ping","params":{}}'
 ```
-http://localhost:18080/rest
-```
+
+`http://localhost:18080/api` is the browsable API documentation page, not an endpoint. See the [explorer API reference](../components/explorer/api.md) for every route.
 
 ---
 

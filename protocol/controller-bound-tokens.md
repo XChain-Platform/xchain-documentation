@@ -359,6 +359,11 @@ There is no royalty-specific mechanism; "royalty" is simply the most common use 
    validation, including the lenient shapes below, runs at every other guard invocation
    point, where a bad set denies the action and a valid set is discarded unapplied.
 
+   A valid address is a base58check (P2PKH or P2SH) or bech32 address for the token's own
+   chain and network (`Utility.isCryptoAddress`). A contract address (`C:<CHAIN>:<index>`)
+   never is one, so a contract-address leg denies as `invalid: controller (bad payout leg)`
+   at every invocation point, on a same-chain listing as well as a cross-chain one.
+
    Two shapes are read leniently rather than denied, and no activation gate changes that
    today (none is registered in [Flag-Day Values](./flag-days.md)): a supplied `payoutLegs`
    that is not an ARRAY is read as "no legs" and the listing is created with NULL legs, and
@@ -417,9 +422,10 @@ cross-chain listing is decided by the `CROSS_CHAIN_ROYALTY` flag-day, layered on
 When the flag is on:
 
 1. **At create**, every leg `to` must re-encode to `GET_COIN`
-   (`Utility.canReencodeAddress`); any non-portable leg (a contract address, or a segwit
-   address when `GET_COIN` has no bech32, e.g. DOGE) denies the listing
-   (`invalid: royalty leg not payable on proceeds chain`, fail-closed). This makes the
+   (`Utility.canReencodeAddress`); any non-portable leg (a segwit address when `GET_COIN`
+   has no bech32, e.g. DOGE) denies the listing
+   (`invalid: royalty leg not payable on proceeds chain`, fail-closed). A contract-address
+   leg never reaches this check: the leg validation above already denied it. This makes the
    settlement-time re-encode total: a trade that delivered can never hit an unpayable leg.
 2. **In the match**, the hub copies each order's stored legs onto the `cross_chain_matches`
    row (`a_payout_legs` / `b_payout_legs`), and the legs are part of the **validator-signed

@@ -784,10 +784,11 @@ const ROLLCALL_REWARD_AMOUNT = '10.00000000';
 
 // RETRACTION_SIGNING_ACTIVATION (quorum-class retraction co-signing): the BTC-anchored
 // snapshot_block era at/above which a mirror REFUSES an unsigned quorum-class retraction
-// broadcast. Vendored byte-equal into xchain-{indexer,hub,explorer}/src/
-// retraction_signing_activation.js; a one-sided edit lets the hub sign under one era rule
-// while a mirror enforces another, forking the fleet at the boundary. Canonical map of
-// record for those copies (armed 2026-07-16).
+// broadcast. Kept equal to the registry row
+// retraction_signing_activation.RETRACTION_SIGNING_ACTIVATION every repo's registry parts carry
+// by the indexer's flag-day placeholder guard suite; a one-sided edit lets the hub sign under
+// one era rule while a mirror enforces another, forking the fleet at the boundary (armed
+// 2026-07-16).
 const RETRACTION_SIGNING_ACTIVATION = {
     mainnet: 963000,      // ARMED 2026-07-16, RE-PINNED 2026-08-12 off 969500 onto the shared pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
     testnet: 0,

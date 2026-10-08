@@ -481,8 +481,8 @@ const amm = sdk.contract(12345);
 await amm.call('swap', ['TOKENA', '100'], { pubkey: 'yourPubkey' });
 
 // Check execution results
-let exec = await sdk.getExecution(actionIndex);
-if (!exec.success) console.log(exec.error);
+let exec = (await sdk.getExecution(actionIndex)).data[0];
+if (exec && exec.status !== 'valid') console.log(exec.error_message);
 ```
 
 See also: [`../actions/EXECUTE.md`](../../protocol/actions/execute.md)

@@ -268,7 +268,7 @@ See [`../components/node/`](../components/node/) for full documentation.
 Key technical details:
 
 - On detecting mempool transactions, waits up to 30 seconds (resetting to 5 seconds on each new arrival) before mining.
-- Inbound JSON-RPC control API: `ping`, `send_funds`, `fill_mempool`, `continue_mining`, `set_mining_time`.
+- Inbound JSON-RPC control API: funding (`send_funds`, `fill_mempool`), on-demand mining (`generate_blocks`), auto-mine control (`pause_mining`, `continue_mining`, `set_mining_time`), and the rest listed in the [regtest-miner API reference](../components/regtest-miner/operations.md).
 - Only used in regtest; not deployed in testnet or mainnet environments.
 
 See [`../components/regtest-miner/`](../components/regtest-miner/) for full documentation.

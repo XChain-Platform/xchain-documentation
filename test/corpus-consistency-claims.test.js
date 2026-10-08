@@ -60,6 +60,12 @@
  *      a surviving copy but never rebuild one, while its own action list sent
  *      readers to §9 for the archive.
  *
+ *   8. Whitepaper mainnet status notes. The ROLLCALL and attest broadcast-fee
+ *      notes still said mainnet ships inert after both gates were armed at
+ *      genesis, while rollcall.md and the validator guide said armed. A mainnet
+ *      validator trusting the whitepaper skips the DOGE read its BTC indexer
+ *      needs. The notes are checked against protocol/constants.js.
+ *
  * The capacity figure is read out of the sibling xchain-encoder checkout
  * rather than typed here, and SKIPS when that sibling is absent: the
  * convention fee-and-limit-claims.test.js and consensus-wall-clock-claims.js
@@ -368,4 +374,52 @@ test('falsification: frame-by-frame backpressure wording is caught', () => {
         /Backpressure admission is decided once per action row[^|\n]*/,
         'A frame the client wanted that finds it above this is dropped');
     assert.throws(() => assertRowAtomicBackpressureClaims(websocket, readDoc(WS_CONFIG_DOC)));
+});
+
+/* ---------------------------------------------------------------- claim 8 */
+
+const CONSTANTS = require(path.join(ROOT, 'protocol', 'constants.js'));
+
+// Pair each whitepaper status note, found by its line's anchor, with the gate it describes.
+const WHITEPAPER_GATE_NOTES = [
+    { anchor: /^- \*\*ROLLCALL\*\* is a validator-broadcast/, gate: 'ROLLCALL_ACTIVATION' },
+    { anchor: /broadcast fee be reimbursed from the request's escrow/, gate: 'ATTEST_BROADCAST_FEE_ACTIVATION' },
+];
+const INERT_NOTE = /ships inert|operator-owned|\binert\b/i;
+const GENESIS_NOTE = /armed at genesis on (?:mainnet|every network)/i;
+
+// Return the line holding the anchor, failing loudly when the anchor moved.
+function gateNoteLine(markdown, anchor) {
+    const line = markdown.split('\n').find((l) => anchor.test(l));
+    assert.ok(line, `whitepaper.md no longer has a line matching ${anchor}; re-point WHITEPAPER_GATE_NOTES`);
+    return line;
+}
+
+function assertWhitepaperGateNotes(markdown) {
+    for (const { anchor, gate } of WHITEPAPER_GATE_NOTES) {
+        const line = gateNoteLine(markdown, anchor);
+        const mainnet = CONSTANTS[gate].mainnet;
+        if (mainnet === 0) {
+            assert.doesNotMatch(line, INERT_NOTE,
+                `whitepaper.md calls ${gate} inert or operator-owned on mainnet, but protocol/constants.js `
+                + 'arms it at genesis there; fix the prose, not the constant');
+            assert.match(line, GENESIS_NOTE,
+                `whitepaper.md no longer says ${gate} is armed at genesis on mainnet`);
+        } else {
+            assert.doesNotMatch(line, GENESIS_NOTE,
+                `whitepaper.md says ${gate} is armed at genesis on mainnet, but protocol/constants.js `
+                + `ships mainnet: ${JSON.stringify(mainnet)}`);
+        }
+    }
+}
+
+test('the whitepaper mainnet status notes match the activation constants', () => {
+    assertWhitepaperGateNotes(readDoc('whitepaper.md'));
+});
+
+test('falsification: the pre-ruling inert ROLLCALL note is caught', () => {
+    const stale = readDoc('whitepaper.md').replace(/\*\(armed at genesis on mainnet since[^\n]*?\)\*/,
+        '*(pre-launch: armed on testnet; mainnet ships inert, its activation height operator-owned.)*');
+    assert.notEqual(stale, readDoc('whitepaper.md'), 'the ROLLCALL note moved; re-point this falsification');
+    assert.throws(() => assertWhitepaperGateNotes(stale));
 });

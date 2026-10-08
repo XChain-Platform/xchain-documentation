@@ -103,6 +103,7 @@ Detailed health status including decoder state.
         "lag_blocks": 1,
         "rpc_errors": 0,
         "parse_errors": 0,
+        "dispenser_purge_failures": 0,
         "error": null
     },
     "id": 1
@@ -132,6 +133,7 @@ Detailed health status including decoder state.
 | `reorg_halt_parked_at` | `string\|null` | When the parse loop parked (ISO 8601); `null` when it is not parked |
 | `rpc_errors` | `integer` | Combined RPC error count from the decoder and its `BlockchainConnector` |
 | `parse_errors` | `integer` | Number of transactions quarantined due to parse failures |
+| `dispenser_purge_failures` | `integer` | Post-commit expired-dispenser purges that failed since process start, also exported as `xchain_decoder_dispenser_purge_failures_total`. A failed purge keeps soft-expired rows longer and retries at the next commit; a count that keeps rising means the dispensers table is no longer being trimmed |
 | `error` | `string\|null` | Error message if the decoder crashed, otherwise `null` |
 
 ### `GET /status` (REST)

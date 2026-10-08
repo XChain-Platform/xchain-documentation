@@ -189,12 +189,14 @@ specifically: the block-time [decoder-carried gates](#decoder-carried-gates) als
 disarmed, and a block-time map can encode the same "not yet" as a far-future sentinel instant
 rather than as `null`.
 
-`ANCHOR_ACTIVATION` is height-keyed and **armed on both live networks**, but sits outside the three
-cohorts: it is keyed on the anchor's own DOGE mined height (`DOGE:mainnet` 6360000, `DOGE:testnet`
-67858600, regtest 0), not on a shared instant, a BTC anchor, or each chain's own local height. At or
-above it the restarted ANCHOR wire set parses (versions 0, 1 and 2 only); below it an ANCHOR of any
-version is `invalid: ANCHOR before activation`. Mainnet's height sits above the DOGE tip on purpose,
-so the restarted wire set has not activated there yet. Stragglers **fork**.
+`ANCHOR_ACTIVATION` is height-keyed and carries a ratified height on both live networks, but sits
+outside the three cohorts: it is keyed on the anchor's own DOGE mined height (`mainnet` 6360000,
+`testnet` 67858600, `regtest` 0), not on a shared instant, a BTC anchor, or each chain's own local
+height. Its keys are the bare network names, with no coin prefix, because DOGE is the height basis
+and not part of the key. At or above it the restarted ANCHOR wire set parses (versions 0, 1 and 2
+only); below it an ANCHOR of any version is `invalid: ANCHOR before activation`. Armed is not
+active: testnet's height is already past, while mainnet's sits above the DOGE tip on purpose, so the
+restarted wire set has not activated on mainnet yet. Stragglers **fork**.
 
 `ARCHIVE_MATCH_COUNT_ACTIVATION` gates validation that an archive head's `MATCH_COUNT` equals its
 archive member count. It remains inert on mainnet until the operator arms it. Testnet is armed per

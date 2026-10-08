@@ -127,7 +127,7 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `INPUT_RESERVED` | `options.exactInputs` names outpoints reserved by a transaction built inside the reservation window | `reserved` (outpoints) | No: broadcast that transaction and rebuild, or wait for the reservation to lapse |
 | `INPUT_SELECTION_RACE` | Input selection raced a concurrent reservation, so the obfuscation key is bound to an outpoint that is not the first input | `expectedFirstInput`, `actualFirstInput` | Yes: retry the request |
 | `UTXO_TRACKER_ERROR` | The UTXO tracker is unreachable or returned a malformed response | none | Yes: with backoff |
-| `UTXO_TRACKER_STALE` | The tracker's view lags the node past the configured threshold, or is ahead of the node (an orphaned view) | `lag`, `tracker_height`, `node_height` | Yes: with backoff |
+| `UTXO_TRACKER_STALE` | The tracker's view lags the node past the configured threshold, or is ahead of the node (an orphaned view), or the tracker reports `synced: false` (the remote tracker profile also refuses an absent `synced`) | `lag`, `tracker_height`, `node_height` | Yes: with backoff |
 | `UTXO_TRACKER_HALTED` | The tracker is halted (for example after an unrecoverable reorg) | `lag`, `tracker_height`, `node_height`, `halt_reason` | No: operator action |
 | `UTXO_TRACKER_NOT_READY` | The tracker has not reconverged its mempool, so an already-spent confirmed output cannot be filtered | `lag`, `tracker_height`, `node_height` | Yes: with backoff |
 | `ENVELOPE_RECOGNITION_UNKNOWN` | The node returned no chain height, so Taproot envelope recognition cannot be confirmed active | none | Yes: with backoff |
@@ -136,6 +136,8 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `ENVELOPE_CANCEL_OUTPOINT_RESERVED` | The commit outpoint the cancel would sweep is reserved by a different transaction built inside the reservation window | `outpoint` | No: broadcast that transaction and rebuild, or wait for the reservation to lapse. Replaying the same cancel is never refused |
 | `NODE_REJECTED` | `broadcast_tx`: the coin node refused the signed transaction (for example a double-spend, dust output, or fee below the relay floor) | `node_code` (the node's RPC error code) | No: rebuild and re-sign |
 | `TX_ALREADY_IN_CHAIN` | `broadcast_tx`: the coin node already knows the transaction, in its mempool or in a block | `node_code` (the node's RPC error code) | No: the transaction is already broadcast; track its txid |
+| `UTXO_TRACKER_UNREACHABLE` | Remote tracker profile only (`UTXO_TRACKER_PROFILE=remote`): the tracker's `get_sync_status` or `get_utxos` call failed (a transport fault, an error reply or a malformed result), and this profile has no fallback. The default profile reports the same failure as `UTXO_TRACKER_ERROR` | none | Yes: with backoff |
+| `UTXO_TRACKER_SYNC_MISSING` | Remote tracker profile only: the tracker returned an empty sync status, a `get_utxos` reply with no `sync` field, or a `sync` without a numeric `lag`, so the encoder refuses a view the tracker did not vouch for. The default profile builds in this case | none | No: operator action (upgrade or repair the tracker); a wallet may offer a manual retry |
 
 ## Where the specs live
 

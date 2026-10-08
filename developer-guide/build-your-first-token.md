@@ -90,7 +90,7 @@ console.log('LIST txid:', listTxid);
 await fetch('http://localhost:3005', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ method: 'continue_mining', params: {} }),
+  body: JSON.stringify({ method: 'generate_blocks', params: { count: 1 } }),
 });
 
 // Look up the ACTION_INDEX of the confirmed LIST
@@ -169,7 +169,7 @@ Mine it in regtest so it confirms:
 await fetch('http://localhost:3005', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ method: 'continue_mining', params: {} }),
+  body: JSON.stringify({ method: 'generate_blocks', params: { count: 1 } }),
 });
 ```
 
