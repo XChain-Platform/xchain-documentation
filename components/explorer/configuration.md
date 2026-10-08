@@ -57,7 +57,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `WS_IDLE_TIMEOUT` | No | `300000` | Idle timeout for zero-subscription clients (ms) |
 | `WS_MAX_CONNECTIONS_PER_IP` | No | `5` | Max concurrent WebSocket connections per IP |
 | `WS_MAX_SUBSCRIPTIONS` | No | `25` | Max subscriptions per WebSocket connection |
-| `WS_MAX_BACKPRESSURE` | No | `65536` | Max buffered bytes per client; a slow client above it is closed with code `4008` and catches up on reconnect |
+| `WS_MAX_BACKPRESSURE` | No | `65536` | Max buffered bytes per client. Backpressure admission is decided once per action row at its first wanted frame: at or below the limit the whole wanted row is sent, while above it no frame from that row is sent and the connection closes with code `4008` after the row ends. The client catches up from its last processed action index on reconnect. |
 
 See [WEBSOCKET.md](websocket.md) for the full WebSocket API reference.
 

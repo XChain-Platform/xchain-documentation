@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Drift lint for six cross-page claims this corpus has already contradicted
+ * Drift lint for cross-page claims this corpus has already contradicted
  * itself about. Each block below guards one of them.
  *
  * WHY, per claim:
@@ -321,4 +321,51 @@ test('falsification: the retired audit-anchor sentence is caught in §9', () => 
     const stale = page.replace(/^## 10\. /m,
         'An optional Merkle-rooted audit anchor may be published to a chain for transparency.\n\n## 10. ');
     assert.throws(() => assertMatchArchiveClaim(stale));
+});
+
+/* ---------------------------------------------------------------- claim 7 */
+
+const WS_DOC = 'components/explorer/websocket.md';
+const WS_CONFIG_DOC = 'components/explorer/configuration.md';
+
+function markdownSection(markdown, heading) {
+    const start = markdown.indexOf(heading);
+    assert.notEqual(start, -1, `${heading} section moved; re-point markdownSection`);
+    const next = markdown.indexOf('\n## ', start + heading.length);
+    return markdown.slice(start, next === -1 ? markdown.length : next);
+}
+
+function assertRowAtomicBackpressureClaims(websocket, configuration) {
+    const reconnect = markdownSection(websocket, '## Reconnection and Catch-Up');
+    const wsConfig = markdownSection(websocket, '## Configuration');
+
+    for (const [name, text] of [
+        ['websocket reconnect procedure', reconnect],
+        ['websocket configuration row', wsConfig],
+        ['explorer configuration row', configuration],
+    ]) {
+        assert.match(text, /decided once per action row/i,
+            `${name} no longer states the row-atomic admission boundary`);
+        assert.match(text, /at or below[^.]*whole wanted row|at or below[^.]*every wanted frame/i,
+            `${name} no longer states that an admitted row is delivered whole`);
+        assert.match(text, /above (?:the limit|it)[^.]*no frame from that row/i,
+            `${name} no longer states that a rejected row sends no frames`);
+        assert.match(text, /4008[^.]*after the row ends/i,
+            `${name} no longer defers the backpressure close to the row boundary`);
+    }
+
+    assert.doesNotMatch(websocket,
+        /A frame the client wanted that finds it above this is dropped/i,
+        'websocket.md restored the frame-by-frame backpressure claim');
+}
+
+test('explorer backpressure docs describe row-atomic action admission', () => {
+    assertRowAtomicBackpressureClaims(readDoc(WS_DOC), readDoc(WS_CONFIG_DOC));
+});
+
+test('falsification: frame-by-frame backpressure wording is caught', () => {
+    const websocket = readDoc(WS_DOC).replace(
+        /Backpressure admission is decided once per action row[^|\n]*/,
+        'A frame the client wanted that finds it above this is dropped');
+    assert.throws(() => assertRowAtomicBackpressureClaims(websocket, readDoc(WS_CONFIG_DOC)));
 });
