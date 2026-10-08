@@ -19,6 +19,8 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
+require('./action-manifest-wallet-parity.test');
+
 test('the canonical manifest exposes BET format 4', () => {
     const manifest = JSON.parse(read('protocol/action-manifest.json'));
     assert.deepEqual(manifest.actions.BET.userEncodableVersions, [0, 1, 2, 3, 4]);

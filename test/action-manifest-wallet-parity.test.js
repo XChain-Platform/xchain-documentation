@@ -26,9 +26,16 @@ test('wallet vendored action manifest is byte-identical to canonical', (t) => {
     if (!wallet.have) return t.skip(wallet.skip);
 
     const vendor = path.join(wallet.root, WALLET_VENDOR);
+    const vendorText = fs.readFileSync(vendor, 'utf8');
+    const canonicalText = fs.readFileSync(CANONICAL, 'utf8');
+    assert.deepEqual(
+        JSON.parse(vendorText).actions.BET.userEncodableVersions,
+        JSON.parse(canonicalText).actions.BET.userEncodableVersions,
+        'xchain-wallet BET versions must match the canonical manifest',
+    );
     assert.equal(
-        fs.readFileSync(vendor, 'utf8'),
-        fs.readFileSync(CANONICAL, 'utf8'),
+        vendorText,
+        canonicalText,
         'xchain-wallet/test/fixtures/action-manifest.json must be re-vendored from canonical',
     );
 });
