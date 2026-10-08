@@ -716,6 +716,21 @@ Sent after all catch-up events have been replayed.
 Catch-up events have `"catch_up": true` in the envelope to distinguish them from live events.
 `events_replayed` counts every frame sent; `truncated` and `latest_action_index` count action rows.
 
+The server freezes an inclusive replay ceiling separately for each resolved subscription key when
+that key becomes live. This ceiling is the key's live-start mark. The live detector advances the
+mark for a row immediately before emitting that row's `NEW_ACTION`, without yielding between those
+two operations. A concurrent subscribe therefore lands on exactly one side of the boundary: it
+either registers first and receives the row live above its frozen ceiling, or registers afterward
+and replays the row at or below its ceiling. The catch-up query never reads rows above that ceiling,
+even when they are committed before the query runs. As a result, a reconnecting client receives
+each matching `NEW_ACTION` exactly once per subscription key rather than once from replay and again
+from the live poll.
+
+The boundary does not make the entire row atomic. Lifecycle frames are derived after `NEW_ACTION`
+and that work can yield. A subscription that starts while the live detector is still deriving the
+boundary row can receive one of that row's lifecycle frames both from replay and from the in-flight
+live fan-out. Clients must tolerate and de-duplicate those residual lifecycle duplicates.
+
 A replay rebuilds, for each missed action row and in live order, the `NEW_ACTION` and every
 lifecycle event the live feed derives from that row (`ORDER_MATCH`, `COINPAY_REQUIRED`,
 `COINPAY_FULFILLED`, `COINPAY_EXPIRED`, `ORDER_EXPIRED`, `SWAP_MATCH`, `SWAP_EXPIRED`, `DISPENSE`,
@@ -865,7 +880,13 @@ with `tx_hash` and `source` null and `destinations: []`.
 2. On disconnect, reconnect with exponential backoff. A close with code `4008` (`backpressure`) means the server shed a connection that could not keep up and dropped a frame for it; handle it like any other disconnect, since your cursor still sits before the dropped frame and the catch-up replays it.
 3. Resubscribe with `since_action_index` set to your last known value, on the `actions` and `address` subscriptions. Their replay carries each missed action's `NEW_ACTION` and its lifecycle events. A `since_action_index` subscribe on any other channel alone closes at once with nothing replayed: the `actions` channel already carries every lifecycle frame the `dispenser`, `bet_feed`, `xcall` and `attestation` channels do, and entity state comes back with `snapshot: true`. Backfill the `not_replayed` types over REST (see [CATCH_UP_COMPLETE](#catch_up_complete)).
 4. Send one `since_action_index` subscribe at a time, each with its own `id`, and wait for the `CATCH_UP_COMPLETE` or `error` frame that echoes that `id` before sending the next. The server runs one catch-up per connection and refuses an overlapping one with `CATCH_UP_IN_PROGRESS`; the subscription is still registered, but its missed actions are not replayed.
-5. Process events with `catch_up: true` (these are replayed, not live). Live frames can arrive during a replay, so do not advance your cursor past the replay from them until every catch-up has closed.
+5. Process events with `catch_up: true` as replayed frames. The server uses ordering option B: it
+   does not gate live delivery while replay is running. Replay preserves action-index order within
+   its own bounded result, but it can interleave with live frames whose action indexes are above the
+   replay ceiling. A higher live frame can therefore arrive before a lower replay frame. Stage or
+   reconcile those live frames by `action_index`, and do not advance the durable catch-up cursor
+   from them until every catch-up has closed. Also de-duplicate lifecycle frames for the replay's
+   boundary row as described under [CATCH_UP_COMPLETE](#catch_up_complete).
 6. If `CATCH_UP_COMPLETE` has `truncated: true`, the replay stopped at its row cap: send the same subscribe again with `since_action_index` set to that frame's `latest_action_index`, and repeat until a frame arrives with `truncated: false`
 7. If the catch-up is refused (`CATCH_UP_TOO_OLD`, `CATCH_UP_AHEAD_OF_TIP`, or any other `error` carrying its `id`), use the REST API to backfill
 
@@ -887,6 +908,8 @@ sequenceDiagram
     S-->>C: WELCOME (tip, does not move the cursor)
     C->>S: subscribe actions, since_action_index, id c1
     S-->>C: replayed events
+    S-->>C: higher live event may interleave
+    S-->>C: remaining replayed events
     S-->>C: CATCH_UP_COMPLETE, id c1
     C->>S: subscribe address, since_action_index, id c2
     S-->>C: replayed events
