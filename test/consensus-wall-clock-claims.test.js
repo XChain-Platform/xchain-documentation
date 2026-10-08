@@ -57,7 +57,11 @@ const VM_SRC = path.resolve(ROOT, '../xchain-vm/src');
 const WALL_CLOCK_JS = [path.join(VM_SRC, 'consensus_wall_clock.js'),
                        path.join(VM_SRC, 'consensus-wall-clock.js')]
     .find((p) => fs.existsSync(p)) || path.join(VM_SRC, 'consensus_wall_clock.js');
-const VM_INDEX_JS   = path.join(VM_SRC, 'index.js');
+const VM_INDEX_JS = path.join(VM_SRC, 'index.js');
+const VM_ACTIVATIONS_JS = [path.join(VM_SRC, 'index/runtime/activations.js'), VM_INDEX_JS]
+    .find((p) => fs.existsSync(p)) || path.join(VM_SRC, 'index/runtime/activations.js');
+const VM_PUBLIC_EXPORTS_JS = [path.join(VM_SRC, 'index/runtime/public_exports.js'), VM_INDEX_JS]
+    .find((p) => fs.existsSync(p)) || path.join(VM_SRC, 'index/runtime/public_exports.js');
 
 /* The skips below are for a bare clone, by name. A run that declared the sibling
  * supplied (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set) throws in
@@ -67,6 +71,8 @@ const VM_INDEX_JS   = path.join(VM_SRC, 'index.js');
 const noVm = sibling('xchain-vm', [
     [path.join(VM_SRC, 'consensus_wall_clock.js'), path.join(VM_SRC, 'consensus-wall-clock.js')],
     VM_INDEX_JS,
+    VM_ACTIVATIONS_JS,
+    VM_PUBLIC_EXPORTS_JS,
 ]).skip;
 
 const readDoc = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -91,10 +97,10 @@ function sourceConstant(src, name, where) {
 // The whole body of the network-aware activation resolver, so the doc's
 // activation table is compared against the code that decides it and not
 // against a comment near it.
-function activationBody(src) {
+function activationBody(src, where) {
     const m = /function isConsensusWallClockActive\(network, blockTime\) \{([\s\S]*?)\n\}/
         .exec(src);
-    assert.ok(m, 'isConsensusWallClockActive not found in xchain-vm/src/index.js; '
+    assert.ok(m, `isConsensusWallClockActive not found in ${where}; `
         + 'the resolver was renamed or reshaped, re-point this regex');
     return m[1];
 }
@@ -119,18 +125,21 @@ test('the wall-clock budget the VM pages quote is the constant xchain-vm declare
 test('the enforcing VM re-exports the same constant the budget module declares',
     { skip: noVm }, () => {
         const wallClock = readVm(WALL_CLOCK_JS);
-        const index     = readVm(VM_INDEX_JS);
+        const publicExports = readVm(VM_PUBLIC_EXPORTS_JS);
 
         assert.match(wallClock, /module\.exports\s*=\s*\{[\s\S]*CONSENSUS_MAX_WALL_MS/,
             `${WALL_CLOCK_JS} no longer exports CONSENSUS_MAX_WALL_MS; the docs `
             + 'present it as a readable protocol constant');
-        assert.match(index, /module\.exports\.CONSENSUS_MAX_WALL_MS\s*=\s*CONSENSUS_MAX_WALL_MS;/,
-            'xchain-vm/src/index.js no longer re-exports CONSENSUS_MAX_WALL_MS');
+        const reExport = VM_PUBLIC_EXPORTS_JS === VM_INDEX_JS
+            ? /module\.exports\.CONSENSUS_MAX_WALL_MS\s*=\s*CONSENSUS_MAX_WALL_MS;/
+            : /target\.CONSENSUS_MAX_WALL_MS\s*=\s*CONSENSUS_MAX_WALL_MS;/;
+        assert.match(publicExports, reExport,
+            `${VM_PUBLIC_EXPORTS_JS} no longer re-exports CONSENSUS_MAX_WALL_MS`);
     });
 
 test('the activation the VM configuration page describes is the one the VM resolves',
     { skip: noVm }, () => {
-        const body = activationBody(readVm(VM_INDEX_JS));
+        const body = activationBody(readVm(VM_ACTIVATIONS_JS), VM_ACTIVATIONS_JS);
 
         // Pre-launch networks: unconditional, no flag-day comparison in that arm.
         assert.match(body, /network === 'testnet'/,
@@ -162,8 +171,8 @@ test('the activation the VM configuration page describes is the one the VM resol
 
 test('the flag day the VM rides is the contract-era instant the generated page publishes',
     { skip: noVm }, () => {
-        const gate = sourceConstant(readVm(VM_INDEX_JS), 'BINARY_ALLOC_GATE_BLOCK_TIME',
-            'xchain-vm/src/index.js');
+        const gate = sourceConstant(readVm(VM_ACTIVATIONS_JS), 'BINARY_ALLOC_GATE_BLOCK_TIME',
+            VM_ACTIVATIONS_JS);
         const flagDays = readDoc(FLAG_DAYS_PAGE);
 
         const m = /\*\*Mainnet block time\*\*\s*\|\s*`(\d+)`/.exec(flagDays);
