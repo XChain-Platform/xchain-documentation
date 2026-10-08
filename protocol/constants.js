@@ -2354,6 +2354,24 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
 });
 
+const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
+    DOGE: Object.freeze({
+        bridge_transfers:    14,
+        cross_chain_calls:   14,
+        cross_chain_matches: 14,
+        list_snapshots:      14,
+        policy_snapshots:    14,
+        price_snapshots:     16,
+    }),
+});
+
+const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
+    mainnet:        null,
+    'DOGE:mainnet': null,
+    'DOGE:testnet': 9999999999,
+    regtest:        0,
+});
+
 // ---------------------------------------------------------------------------
 // The anchor-attest barrier's maturity horizon (the family's parent item)
 // ---------------------------------------------------------------------------
@@ -2454,6 +2472,8 @@ module.exports = {
     ADMIT_MARGIN_BLOCKS,
     ADMIT_MIN_FUTURE_BLOCKS,
     ADMIT_MAX_FUTURE_BLOCKS,
+    ADMIT_CHAIN_MARGIN_BLOCKS,
+    ADMIT_CHAIN_MARGIN_ACTIVATION,
     MIRROR_ADMISSION_ACTIVATION,
     MIRROR_ADMISSION_CONSUMER_ACTIVATION,
     MIRROR_ADMISSION_REGTEST_ENV,

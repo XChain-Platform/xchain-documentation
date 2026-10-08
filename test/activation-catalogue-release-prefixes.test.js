@@ -55,6 +55,7 @@ const EXPECTED = [
         'height',
     ],
     ['market_list_source_activation', 'MARKET_LIST_SOURCE_ACTIVATION', 'G through P', 'height'],
+    ['mirror_admission_margin_activation', 'ADMIT_CHAIN_MARGIN_ACTIVATION', 'G through P', 'height'],
     [
         'order_swap_payout_policy_activation',
         'ORDER_SWAP_PAYOUT_POLICY_PER_TOKEN',
