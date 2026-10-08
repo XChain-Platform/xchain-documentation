@@ -81,11 +81,12 @@ function assertVmServiceRow(markdown, sources) {
 }
 
 // Read every VM source except the vendored protocol constants and the simulator toolkit.
-// The gate-constant scan stays on src/index.js and src/index/ (the `core` files).
+// The gate-constant scan stays on src/index.js, src/index/, and src/index/runtime/ (the `core` files).
 function readVmSources(root) {
     const src = path.join(root, 'src');
     const skip = new Set([path.join(src, 'protocol'), path.join(src, 'toolkit')]);
     const index = path.join(src, 'index');
+    const runtime = path.join(index, 'runtime');
     const files = [];
     const walk = (dir) => {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -97,7 +98,7 @@ function readVmSources(root) {
     walk(src);
     return files.sort().map((f) => ({
         text: fs.readFileSync(f, 'utf8'),
-        core: f === path.join(src, 'index.js') || path.dirname(f) === index,
+        core: f === path.join(src, 'index.js') || path.dirname(f) === index || f.startsWith(`${runtime}${path.sep}`),
     }));
 }
 
@@ -149,7 +150,7 @@ test('the service-row guard fails when a gate name or the map count drifts', { s
     const sources = readVmSources(vm.root);
     const dropped = PAGE.replaceAll('`JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME`', 'removed');
     assert.throws(() => assertVmServiceRow(dropped, sources), /omits JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME/);
-    const miscounted = PAGE.replace('four per-coin height-keyed maps', 'three per-coin height-keyed maps');
+    const miscounted = PAGE.replace('five per-coin height-keyed maps', 'four per-coin height-keyed maps');
     assert.throws(() => assertVmServiceRow(miscounted, sources), /per-coin height-keyed maps/);
     const netNames = ['ACCESSOR_OWN_KEY_ACTIVATION', 'GAS_CEILING_SUCCESS_ACTIVATION', 'ITER_SET_METER_ACTIVATION', 'APPLY_LENGTH_METER_ACTIVATION'];
     for (const name of netNames) {

@@ -46,7 +46,7 @@ transactions that die on arrival.
 ```jsonc
 {
   "flags":      { /* what each per-repo role flag means */ },
-  "categories": { /* human-readable grouping (wire-user / validator / mirror-injected / lifecycle / explorer-legacy-render) */ },
+  "categories": { /* human-readable grouping (wire-user / validator / mirror-injected / lifecycle / explorer-legacy-render / settlement-anchor) */ },
   "aliases":    { "TRANSFER": "SEND", ... },   // expanded to canonical before any gate
   "actions": {
     "SEND": { "category": "wire-user", "wireDecoded": true, "indexerHandled": true, "userEncodable": true, "userEncodableVersions": [0, 1, 2, 3], "explorerRender": true, "walletForm": true }
@@ -69,6 +69,8 @@ actions (`ANCHOR`/`ATTEST`/`NODEPROOF`/`ROLLCALL`/`SLASH`); the indexer adds mir
 handlers that are never decoded wire bytes; the explorer is the render superset
 (including legacy order/dispenser cancel+edit views). The manifest encodes these
 differences as flags rather than pretending all sets are equal.
+
+`XPOLICY` and `LIST_SHARE` form the `settlement-anchor` category: rows the indexer mints to anchor a bridge-policy or shared-list settlement record when the pass produced no action of its own. They carry only `explorerRender`, since they are never decoded from the wire, never dispatched to a handler and never authorable.
 
 Two things deliberately excluded: the indexer `protocol_changes` **feature-gate
 flags** (`VM_ACTIONS`, `CONTROLLER_GUARD`, `UNIFIED_FEES`, ...) which are not
