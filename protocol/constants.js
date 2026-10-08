@@ -1311,6 +1311,20 @@ const DISPENSER_PURGE_GRACE_ACTIVATION = {
     regtest: 0,
 };
 
+// DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION: the block-time boundary at/above
+// which decoder batch registration collapse keys each operating address on the
+// address id the dispensers table resolves, instead of its raw address spelling.
+// This keeps one registration for values that resolve to the same table key and
+// avoids a duplicate-key insert selecting a different dispenser by accident.
+//
+// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
+// Regtest is genesis-active so the address-id collapse path is exercised there.
+const DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // DISPENSER_FRESHNESS_SHAPE_ACTIVATION: the processing chain's own height
 // at/above which a non-null get_first_seen result with the wrong shape is fatal
 // instead of degrading to the legacy fail-open null.
@@ -2491,6 +2505,7 @@ module.exports = {
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
     DISPENSER_CANCEL_GRACE_ACTIVATION,
     DISPENSER_PURGE_GRACE_ACTIVATION,
+    DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION,
     DISPENSER_FRESHNESS_SHAPE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
     ENVELOPE_RECOGNITION_ACTIVATION,
