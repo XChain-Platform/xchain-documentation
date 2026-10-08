@@ -11,7 +11,7 @@ For environment setup, see [Regtest_Development.md](regtest-development.md).
 
 ## Prerequisites
 
-- Local regtest stack running (`xchain-node install v0.12.3 all bitcoin regtest`)
+- Local regtest stack running (`xchain-node install all bitcoin regtest`)
 - Node.js installed
 - `xchain-sdk` installed in your project
 
@@ -38,7 +38,7 @@ If you prefer to skip hub discovery and talk directly to each service:
 ```js
 const sdk = new XChainSDK({
   encoderUrl: 'http://localhost:3003',
-  explorerUrl: 'http://localhost:8080',
+  explorerUrl: 'http://localhost:18080',
 });
 ```
 

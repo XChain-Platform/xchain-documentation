@@ -341,7 +341,7 @@ The coin is configured (supported) but the database is not reachable. Check:
 
 ### Rate limiting issues
 
-If legitimate traffic is being rate limited (429 responses), the default limit is 500 requests per 60-second window per IP. For high-traffic deployments, consider running multiple explorer instances behind a load balancer, each with its own rate limit pool.
+If legitimate traffic is being rate limited (429 responses), the default app-wide limit is 1080 requests per 60-second window per IP (`EXPLORER_RATE_LIMIT_RPM`). A 429 on a proof, batch, preflight, fee-quote or checkpoint route may come from that route's own tighter limit; every variable is listed in [Rate Limiting](configuration.md#rate-limiting). For high-traffic deployments, consider running multiple explorer instances behind a load balancer, each with its own rate limit pool.
 
 ### SSL certificate errors
 

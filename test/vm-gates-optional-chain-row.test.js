@@ -151,10 +151,11 @@ test('the service-row guard fails when a gate name or the map count drifts', { s
     assert.throws(() => assertVmServiceRow(dropped, sources), /omits JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME/);
     const miscounted = PAGE.replace('four per-coin height-keyed maps', 'three per-coin height-keyed maps');
     assert.throws(() => assertVmServiceRow(miscounted, sources), /per-coin height-keyed maps/);
-    for (const name of ['ACCESSOR_OWN_KEY_ACTIVATION', 'GAS_CEILING_SUCCESS_ACTIVATION', 'ITER_SET_METER_ACTIVATION']) {
+    const netNames = ['ACCESSOR_OWN_KEY_ACTIVATION', 'GAS_CEILING_SUCCESS_ACTIVATION', 'ITER_SET_METER_ACTIVATION', 'APPLY_LENGTH_METER_ACTIVATION'];
+    for (const name of netNames) {
         const omitted = PAGE.replaceAll(`\`${name}\``, 'removed');
         assert.throws(() => assertVmServiceRow(omitted, sources), new RegExp(`omits ${name}`));
     }
-    const netMiscounted = PAGE.replace('three network-keyed block-time maps', 'two network-keyed block-time maps');
+    const netMiscounted = PAGE.replace('four network-keyed block-time maps', 'three network-keyed block-time maps');
     assert.throws(() => assertVmServiceRow(netMiscounted, sources), /network-keyed block-time maps/);
 });

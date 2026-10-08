@@ -31,7 +31,7 @@ Errors are JSON objects:
 | `NOT_FOUND` | 404 | No row for that lookup | No |
 | `ACTION_NOT_YET_INDEXED` | 404 | The action index lies above what this explorer's indexer has committed so far; the body carries `indexed_through` and the response a `Retry-After` header | Yes: the indexer is catching up; honor `Retry-After` |
 | `CHECKPOINT_NOT_FOUND` | 404 | No quorum-signed checkpoint at that height | Maybe: checkpoints lag the tip |
-| `RATE_LIMITED` | 429 | Per-IP request budget exhausted (default 500/min) | Yes: back off; honor `RateLimit-*` headers |
+| `RATE_LIMITED` | 429 | Per-IP request budget exhausted (app-wide default 1080/min; some routes have tighter limits, see [explorer rate limiting](../components/explorer/configuration.md#rate-limiting)) | Yes: back off; honor `RateLimit-*` headers |
 | `SERVER_ERROR` | 500 | Unexpected internal failure | Yes: with backoff |
 | `UPSTREAM_ERROR` | 502 | The colocated indexer fee service failed | Yes: with backoff |
 | `COIN_NOT_AVAILABLE` | 503 | Coin supported but not configured for data requests here | No: use another instance |

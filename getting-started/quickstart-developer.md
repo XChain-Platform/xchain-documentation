@@ -40,7 +40,7 @@ If you're not using a hub, you can provide service URLs directly:
 
 ```js
 const sdk = new XChainSDK({
-  explorerUrl: 'http://localhost:8080',
+  explorerUrl: 'http://localhost:18080',
   encoderUrl:  'http://localhost:3003',
 });
 ```

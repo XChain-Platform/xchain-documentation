@@ -75,3 +75,33 @@ test('UNARMED declared as a non-literal in core.js is refused', () => {
 test('against the real indexer BROADCAST_FEE_LENGTH is unarmed on mainnet', { skip: noIndexer }, () => {
     assert.ok(gen.collectMainnetUnarmed().some((g) => g.gate === 'BROADCAST_FEE_LENGTH'));
 });
+
+test('a part-file row with bare UNARMED slots is listed unarmed on both networks', () => {
+    const dir = fixtureRegistry("const ROWS = [['FOO', '1.0.0', UNARMED, UNARMED, 0, 0, 0, 0]];\n");
+    assert.deepStrictEqual(gen.collectGates(dir), []);
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => [g.gate, g.time]), [['FOO', 9999999999]]);
+    assert.deepStrictEqual(gen.collectTestnetUnarmed(dir).map((g) => [g.gate, g.time]), [['FOO', 9999999999]]);
+    assert.deepStrictEqual(gen.collectTestnetArms(dir), []);
+});
+
+test('an addChange call with a bare UNARMED mainnet slot is listed unarmed on mainnet only', () => {
+    const dir = fixtureRegistry("this.addChange('FOO', '1.0.0', UNARMED, 0, 0, 0, 0, 0);\n");
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['FOO']);
+    assert.deepStrictEqual(gen.collectTestnetUnarmed(dir), []);
+    assert.deepStrictEqual(gen.collectTestnetArms(dir), []);
+});
+
+test('a bare UNARMED slot with no declaration in core.js is refused', () => {
+    const dir = fixtureRegistry("this.addChange('FOO', '1.0.0', UNARMED, 0, 0, 0, 0, 0);\n", null);
+    assert.throws(() => gen.collectMainnetUnarmed(dir), /FOO.*UNARMED/s);
+});
+
+test('against the real indexer every bare-UNARMED registry row is unarmed on both networks', { skip: noIndexer }, () => {
+    const gates = ['SLASH_XANCPUB_PUBLISHER_PAIR', 'STAKE_SNAPSHOT_SLASH_WINDOW', 'SLASH_ATTEST_MULTIROUND_EXEMPT'];
+    const mainnet = gen.collectMainnetUnarmed().map((g) => g.gate);
+    const testnet = gen.collectTestnetUnarmed().map((g) => g.gate);
+    for (const gate of gates) {
+        assert.ok(mainnet.includes(gate), `${gate} missing from the mainnet unarmed list`);
+        assert.ok(testnet.includes(gate), `${gate} missing from the testnet unarmed list`);
+    }
+});
