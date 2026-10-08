@@ -2351,15 +2351,6 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
 });
 
-// ADMIT_CHAIN_MARGIN_BLOCKS: per-chain, per-table overrides of the admission margin for the
-// cross-chain tables whose producers stamp their rows long after the observed admission tip
-// has moved on. The margin is in blocks of the named chain and replaces the default of
-// ADMIT_MARGIN_BLOCKS for that table on that chain, so every value must sit strictly above
-// the default and at or below that chain's ADMIT_MAX_FUTURE_BLOCKS, or a follower would
-// refuse the row it is meant to admit.
-//
-// DOGE: the cross-chain tables take 14 blocks and price snapshots take 16, two blocks more
-// than the others.
 const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
     DOGE: Object.freeze({
         bridge_transfers:    14,
@@ -2371,11 +2362,6 @@ const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
     }),
 });
 
-// ADMIT_CHAIN_MARGIN_ACTIVATION: the height at/above which the per-chain margins above apply.
-// Keyed by network and by 'COIN:network' for the chain that carries them. Mainnet is null
-// under the write hold, regtest is armed from genesis, and DOGE testnet is parked at a
-// height no chain reaches until the release cut sizes it. Read through a Number.isFinite
-// guard like every other height map, because `0 >= null` is true in JavaScript.
 const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
     mainnet:        null,
     'DOGE:mainnet': null,

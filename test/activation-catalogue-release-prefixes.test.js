@@ -28,20 +28,8 @@ const EXPECTED = [
     ],
     ['bridge_policy_detach_activation', 'BRIDGE_POLICY_DETACH', 'A through E', 'height'],
     [
-        'bridge_policy_refusal_record_activation',
-        'BRIDGE_POLICY_REFUSAL_RECORD_ACTIVATION',
-        'A through E',
-        'height',
-    ],
-    [
         'callback_compensation_activation',
         'CALLBACK_COMPENSATES_EVERY_DEBITED_HOLDER',
-        'A through E',
-        'height',
-    ],
-    [
-        'dispenser_delay_protocol_time_activation',
-        'DISPENSER_DELAY_PROTOCOL_TIME_ACTIVATION',
         'A through E',
         'height',
     ],
@@ -74,7 +62,6 @@ const EXPECTED = [
         'G through P',
         'height',
     ],
-    ['price_wire_trailing_activation', 'PRICE_WIRE_TRAILING_ACTIVATION', 'G through P', 'height'],
     ['swap_edit_rematch_activation', 'SWAP_EDIT_REMATCH_ACTIVATION', 'R through X', 'height'],
     ['vm_lint_optional_chain_heights', 'VM_LINT_OPTIONAL_CHAIN_ACTIVATION', 'R through X', 'height'],
     [

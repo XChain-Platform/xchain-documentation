@@ -106,7 +106,6 @@ same chain or field.
 | `price_sig_tally_activation` | `PRICE_SIG_TALLY_ACTIVATION` | height |
 | `price_wire_trailing_activation` | `PRICE_WIRE_TRAILING_ACTIVATION` | height |
 | `price_zero_validity_activation` | `PRICE_ZERO_VALIDITY_ACTIVATION` | time |
-| `price_wire_trailing_activation` | `PRICE_WIRE_TRAILING_ACTIVATION` | height |
 
 ## R through X
 
