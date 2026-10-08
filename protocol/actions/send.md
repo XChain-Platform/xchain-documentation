@@ -57,7 +57,7 @@ This example sends 5 BRRR tokens to 1ExampleAddressXXXXXXXXXXXXXXXXXXX and 1 TES
 - `MEMO` characters **NOT** allowed are :
    - pipe `|` (used as field separator)
    - semicolon `;` (used as command separator)
-- **Token-gated transfer rule.** If `TICK` has at least one active gated [`FILE`](./file.md) (a `FILE` with a non-empty `GATE_TICKER = TICK` that has not been superseded), the `SEND` is only valid when it appears in the **same transaction** as a [`MESSAGE` v2](./message.md) (ECIES) addressed to the `DESTINATION`. Typically the sending wallet composes this as `BATCH(SEND, MESSAGE)`. If the sibling `MESSAGE` is missing, the `SEND` is rejected; sibling actions (if any) survive. The indexer enforces the structural presence of the MESSAGE; the wallet enforces the cryptographic correctness of the key payload at unlock time.
+- **Token-gated transfer rule.** If `TICK` has at least one active gated [`FILE`](./file.md) (a `FILE` with a non-empty `GATE_TICKER = TICK` that has not been superseded), the `SEND` is only valid when it appears in the **same transaction** as a [`MESSAGE` v2](./message.md) (ECIES) addressed to the `DESTINATION`. Typically the sending wallet composes this as `BATCH(SEND, MESSAGE)`. The rule is judged per leg, after legs to the same `DESTINATION` and `TICK` are consolidated: a leg whose `DESTINATION` has no sibling `MESSAGE` is recorded `invalid: gated token transfer requires key handoff message` and moves nothing, while the other legs of a multi-recipient send still settle and sibling actions (if any) survive. The indexer enforces the structural presence of the MESSAGE, checking only its `VERSION` `2` and matching `DESTINATION`, never the sibling `MESSAGE`'s own verdict; the wallet enforces the cryptographic correctness of the key payload at unlock time.
 
   The requirement is CONDITIONAL where the gating files set an unlock threshold (`GATE_MIN_AMOUNT`). Each pack gating `TICK` (same publisher, `GATE_TICKER` and `KEY_HASH`) has an effective threshold equal to the MINIMUM `GATE_MIN_AMOUNT` across its files, and a pack with any threshold-less file is unconditional. A pack requires the handoff when it is unconditional, or when the DESTINATION's balance of `TICK` after this action (its pre-action balance plus everything this action sends it, totalled across all legs) reaches that threshold. The MESSAGE is required if at least one pack requires it; if every pack sits above the recipient's post-send balance, a plain `SEND` with no MESSAGE is valid and the recipient deliberately receives no key. See [Token-Gated Content](../token-gated-content.md).
 
@@ -65,14 +65,14 @@ This example sends 5 BRRR tokens to 1ExampleAddressXXXXXXXXXXXXXXXXXXX and 1 TES
 
 ```mermaid
 flowchart TD
-    Start["SEND action targets TICK, DESTINATION"] --> Gated{"TICK has an active gated FILE,<br>non-empty GATE_TICKER, not superseded?"}
+    Start["Each consolidated SEND leg (TICK, DESTINATION)"] --> Gated{"TICK has an active gated FILE,<br>non-empty GATE_TICKER, not superseded?"}
     Gated -->|"no"| PlainOK["Plain SEND is valid, no MESSAGE needed"]
     Gated -->|"yes"| Threshold{"Any pack gating TICK is unconditional,<br>no GATE_MIN_AMOUNT,<br>or DESTINATION's post-send TICK balance<br>reaches that pack's effective threshold?"}
     Threshold -->|"no pack requires it"| PlainOK
     Threshold -->|"yes, at least one pack requires it"| NeedMsg["MESSAGE v2 (ECIES) to DESTINATION<br>required in the same transaction"]
     NeedMsg --> Present{"Sibling MESSAGE v2 present<br>in the same transaction?"}
-    Present -->|"yes"| Valid["SEND is valid"]
-    Present -->|"no"| Rejected["SEND is rejected, sibling actions survive"]
+    Present -->|"yes"| Valid["This leg is valid"]
+    Present -->|"no"| Rejected["This leg is rejected; other legs and sibling actions survive"]
 ```
 
 ## Notes

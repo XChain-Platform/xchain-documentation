@@ -362,8 +362,16 @@ There is no royalty-specific mechanism; "royalty" is simply the most common use 
    Two shapes are read leniently rather than denied, and no activation gate changes that
    today (none is registered in [Flag-Day Values](./flag-days.md)): a supplied `payoutLegs`
    that is not an ARRAY is read as "no legs" and the listing is created with NULL legs, and
-   a fractional `bps` is accepted at its truncated integer value, which is also the value
-   the cap is measured against. An empty array means the same as an absent `payoutLegs`.
+   a fractional `bps` written with a decimal point is accepted at its truncated integer
+   value, which is also the value the cap is measured against. An empty array means the
+   same as an absent `payoutLegs`.
+
+   The truncation is `parseInt` of the value's string form, not numeric truncation, so a
+   `bps` whose string form is not plain decimal digits is read by its leading digits. That
+   covers exponent notation (a JSON number below `1e-6` or at or above `1e21`, or a string
+   such as `"1e5"`) and prefixed strings: `5e-7` reads as `5`, `1e21` and `"1e5"` as `1`,
+   `"0x10"` as `16`, `"0b11"` as `0`. The value read is the one checked against the cap,
+   stored and applied, so return `bps` as a plain integer.
 2. **At match**: `Utility.applyProceedsSplit(tick, proceeds, seller, legs, decimals, cap)`
    splits each filled order's proceeds, **seller-remainder first, then each leg**, crediting
    `floor(proceeds × bps / 10000)` (at token precision) to each `to` and the exact remainder

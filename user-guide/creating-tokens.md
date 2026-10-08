@@ -128,7 +128,7 @@ Imagine you are launching a collectible token and you tell buyers "no more than 
 
 Parameters you can lock include:
 
-- **LOCK_MAX_SUPPLY**: the `MAX_SUPPLY` ceiling can never be raised, proving the amount outstanding at any one time cannot be inflated beyond what is set now
+- **LOCK_MAX_SUPPLY**: the `MAX_SUPPLY` ceiling can never be raised, proving the amount outstanding at any one time cannot be inflated beyond what is set now. For your own `MINT_SUPPLY` re-issues that holds only at and above the `ISSUE_MINT_SUPPLY_CUMULATIVE_CAP` flag-day (see [Flag-Day Values](../protocol/flag-days.md)); below it, only `LOCK_MINT_SUPPLY` stopped an owner minting past the cap
 - **LOCK_MINT**: no one can ever run the `MINT` command against this token again. That closes public minting only; as the issuer you can still create supply with `MINT_SUPPLY` on a re-issue unless `LOCK_MINT_SUPPLY` is also set
 - **LOCK_MINT_SUPPLY**: the token is frozen against you issuing any further supply to yourself via `MINT_SUPPLY`; public minting is unaffected
 - **LOCK_MAX_MINT**: the `MAX_MINT` per-transaction amount cap is frozen permanently and can never be edited again
