@@ -25,6 +25,7 @@ function assertReleaseHeightGates(markdown) {
     for (const marker of [
         'ANCHOR_FOLD_ACTIVATION',
         'ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION',
+        'BET_FEED_LIST_EDIT_ACTIVATION',
         'BRIDGE_POLICY_DETACH',
         'XC_ANCHOR_FOLD_REGTEST_ACTIVATION',
         './actions/anchor.md',
@@ -36,8 +37,23 @@ function assertReleaseHeightGates(markdown) {
     assert.doesNotMatch(inventory, /\b(?:20\d{2}-\d{2}-\d{2}|\d{10})\b/);
 }
 
+function assertBetFeedListEditGate(markdown) {
+    const paragraph = markdown.match(/^`BET_FEED_LIST_EDIT_ACTIVATION`[\s\S]*?(?=\n\n)/m);
+    assert.ok(paragraph, 'the BET_FEED_LIST_EDIT_ACTIVATION paragraph is missing');
+    const prose = paragraph[0].replace(/\s+/g, ' ');
+    for (const marker of ['per-chain height gate', 'allow-list', 'block-list', 'regtest']) {
+        assert.ok(prose.includes(marker), `BET feed-list edit gate paragraph is missing ${marker}`);
+    }
+    assert.doesNotMatch(prose, /\b(?:20\d{2}-\d{2}-\d{2}|\d+)\b/,
+        'BET feed-list edit gate paragraph quotes a date or height');
+}
+
 test('the release height-gate inventory names every gate and supporting page', () => {
     assertReleaseHeightGates(PAGE);
+});
+
+test('the BET feed-list edit paragraph names the gate without copying a threshold', () => {
+    assertBetFeedListEditGate(PAGE);
 });
 
 const { sibling } = require('./helpers/sibling_checkout.js');
@@ -83,6 +99,7 @@ test('the inventory guard fails when any required marker is removed', () => {
     for (const marker of [
         'ANCHOR_FOLD_ACTIVATION',
         'ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION',
+        'BET_FEED_LIST_EDIT_ACTIVATION',
         'BRIDGE_POLICY_DETACH',
         'XC_ANCHOR_FOLD_REGTEST_ACTIVATION',
         './actions/anchor.md',
@@ -91,4 +108,11 @@ test('the inventory guard fails when any required marker is removed', () => {
     ]) {
         assert.throws(() => assertReleaseHeightGates(PAGE.replace(marker, 'removed')));
     }
+});
+
+test('the BET feed-list edit guard fails when a numeric height is added', () => {
+    const changed = PAGE.replace('regtest exercises the gated path from genesis',
+        'regtest exercises the gated path from height 123');
+    assert.notEqual(changed, PAGE, 'falsification fixture did not add its height');
+    assert.throws(() => assertBetFeedListEditGate(changed), /quotes a date or height/);
 });
