@@ -106,7 +106,7 @@ test('the inventory guard fails when any required marker is removed', () => {
         './token-bridge.md',
         'own block height',
     ]) {
-        assert.throws(() => assertReleaseHeightGates(PAGE.replace(marker, 'removed')));
+        assert.throws(() => assertReleaseHeightGates(PAGE.replaceAll(marker, 'removed')));
     }
 });
 

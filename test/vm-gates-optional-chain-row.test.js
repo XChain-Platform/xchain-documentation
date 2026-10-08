@@ -150,7 +150,7 @@ test('the service-row guard fails when a gate name or the map count drifts', { s
     const sources = readVmSources(vm.root);
     const dropped = PAGE.replaceAll('`JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME`', 'removed');
     assert.throws(() => assertVmServiceRow(dropped, sources), /omits JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME/);
-    const miscounted = PAGE.replace('six per-coin height-keyed maps', 'five per-coin height-keyed maps');
+    const miscounted = PAGE.replace('seven per-coin height-keyed maps', 'six per-coin height-keyed maps');
     assert.throws(() => assertVmServiceRow(miscounted, sources), /per-coin height-keyed maps/);
     const netNames = ['ACCESSOR_OWN_KEY_ACTIVATION', 'GAS_CEILING_SUCCESS_ACTIVATION', 'ITER_SET_METER_ACTIVATION', 'APPLY_LENGTH_METER_ACTIVATION'];
     for (const name of netNames) {
