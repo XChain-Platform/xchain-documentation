@@ -627,6 +627,17 @@ const ANCHOR_FOLD_ACTIVATION = {
     regtest: null,
 };
 
+// Terminates legacy v1 anchor_archive rewards only where ANCHOR_FOLD_ACTIVATION is also active.
+// Public-network slots are unarmed; regtest exercises the term from genesis once the fold is armed.
+const ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION = {
+    mainnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION: the flag-day at/above which a folded v3
 // anchor's archive verdict is SECTION-SCOPED. `setAnchorArchiveStatus` stamps only the archive
 // row (`match_batch_seq IS NOT NULL AND version <> 2`) instead of the whole action, so a late
@@ -2447,6 +2458,7 @@ module.exports = {
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
     ANCHOR_FOLD_ACTIVATION,
+    ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION,
     ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION,
     ADMIT_MARGIN_BLOCKS,
     ADMIT_MIN_FUTURE_BLOCKS,

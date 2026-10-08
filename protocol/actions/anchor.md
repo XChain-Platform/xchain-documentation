@@ -79,6 +79,28 @@ UNARMED sentinel, and regtest is `null` by default. The same
 `XC_ANCHOR_FOLD_REGTEST_ACTIVATION` setting arms both regtest gates at the same height, because
 the section-scoped verdict is armed only with the fold.
 
+### Archive reward termination (`ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION`)
+
+The fold changes the publishing shape immediately, but an already attested v1
+`anchor_archive` reward can mature after that change. Its proof and mint therefore need a
+separate consensus boundary. `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` terminates that legacy
+reward family only when it **and** `ANCHOR_FOLD_ACTIVATION` are active. If either gate is
+inactive, v1 archive rewards retain their pre-fold behavior. The term never affects
+`anchor_bundle` rewards, and a v3 action never creates a separate `anchor_archive` reward.
+
+The conjunction is evaluated on both consensus planes that can admit the reward:
+
+- The BTC derive pass evaluates both gates at the reward's `SNAPSHOT_BLOCK`. Once both are
+  active there, a mirrored `anchor_archive` attestation cannot mint.
+- The DOGE proof binding evaluates both gates at the archive head's own DOGE
+  `BLOCK_INDEX`. Once both are active there, that head cannot prove an `anchor_archive`
+  reward tuple.
+
+Mainnet and every testnet chain slot use the house UNARMED sentinel for the term gate, so
+neither public network terminates legacy archive rewards until an operator arms it. Regtest
+is genesis-active at height 0, but the conjunction still requires the regtest fold gate to
+be armed. The current public-network state is listed on [Flag-Day Values](../flag-days.md).
+
 A network with pre-restart history must **not** pin 0. The retired wires reused the same version
 bytes under different meanings, so with the gate disabled they fall through to the table above and
 are read as shapes they are not: the old per-chain version 0 would be reported as a checkpoint
@@ -573,10 +595,6 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
   full attestation. A failed, short, forged, or below-flag-day attestation never invalidates the
   archive anchor; only the reward is skipped.
 
-  Once `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` is active, an otherwise eligible
-  `anchor_archive` reward row no longer derives when its `SNAPSHOT_BLOCK` is past the DOGE fold.
-  This termination affects only reward derivation; the v1 checkpoint and archive retain their
-  normal validity.
 - The `pushvalidatorrewards` push is retired for `anchor_archive`: every indexer DERIVES the
   archive reward from these bytes instead (closing the last insider-with-key forge surface).
 
@@ -649,12 +667,14 @@ A publisher publishing one head per seq sees no difference between the two rules
   [Publisher-attestation canonical](#publisher-attestation-canonical-xancpub-v0-v1)), reaching
   the same quorum threshold as the section quorum above; a credited row is keyed
   `(SNAPSHOT_BLOCK, anchor_bundle)`, exactly as for a v0, whether or not an archive section rode
-  along. **`anchor_archive` retires as a reward type at `ANCHOR_FOLD_ACTIVATION`**: no v3, folded
-  or not, ever mints an `anchor_archive` row, because one election now covers the whole action.
-  History below the fold height is unaffected and stays readable, and `ARCHIVE_REWARD_AMOUNT`
-  stays frozen for those pre-fold rows. A network that never arms the fold keeps minting
-  `anchor_archive` through v1 exactly as before; the retirement is per-network, keyed on that
-  network's own `ANCHOR_FOLD_ACTIVATION`.
+  along. **`anchor_archive` retires as a reward type at `ANCHOR_FOLD_ACTIVATION`** when
+  `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` is also active, but only where both gates are active on
+  the BTC snapshot and DOGE landing planes described in
+  [Archive reward termination](#archive-reward-termination-anchor_archive_fold_term_activation).
+  No v3, folded or not, ever mints an `anchor_archive` row, because one election now covers the
+  whole action. History below the active term boundary is unaffected and stays readable, and
+  `ARCHIVE_REWARD_AMOUNT` stays frozen for those legacy rows. A network that leaves either gate
+  unarmed keeps deriving and proving `anchor_archive` through v1 exactly as before.
 
 ## Effects
 - Persists into `anchor_actions`, keyed `(action_index, section_index)` and rolled back on
