@@ -91,7 +91,7 @@ Once a token has at least one active gated `FILE`, the indexer enforces a rule o
 
 The wallet sending the gated token composes `BATCH(SEND, MESSAGE)`. The MESSAGE carries the ECIES-encrypted key handoff payload re-encrypted to the recipient's address public key (resolved from on-chain transaction history per [`MESSAGE` v2 ECIES](./actions/message.md)).
 
-If the MESSAGE is required and missing, the indexer rejects the `SEND` only; the rest of the BATCH (if any) survives. This prevents a sender from delivering a gated token without the means to unlock it.
+The indexer applies this rule per leg of the `SEND`, after legs to the same `DESTINATION` and `TICK` are consolidated into one. Each `DESTINATION` that is owed the handoff needs its own `MESSAGE` v2, since one `MESSAGE` covers only the address it is addressed to. If the MESSAGE is required and missing for a leg, that leg is recorded `invalid: gated token transfer requires key handoff message` and moves nothing; the other legs of the same `SEND` (other recipients, other ticks) still settle, and the rest of the BATCH (if any) survives. This prevents a sender from delivering a gated token without the means to unlock it.
 
 The sending wallet must already hold the key, i.e. the sender must have previously unlocked the content. A wallet that has never decrypted the content has no key to re-encrypt to a new holder. The wallet should block the transfer at compose time with a clear message rather than producing an invalid transaction.
 
@@ -181,7 +181,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 
 - **Gated `FILE` publishing.** When `GATE_TICKER` is non-empty, the SOURCE address must be the issuer of the gated token (i.e. the OWNER returned by the token's current `ISSUE`). Otherwise the FILE is rejected. This prevents third parties from gating arbitrary content to popular tickers as spam.
 - **Gated `FILE` while ownership is escrowed.** A gated `FILE` is also rejected while the gate token's ownership sits in escrow, which an issuer who has listed the token for sale will hit even though they are still the OWNER. `FILE` is one of the actions the escrow blocks; the full list is in [`ORDER`](./actions/order.md#token-ownership-sales), and [`FILE`](./actions/file.md) states it locally.
-- **`SEND` of a gated token.** Defined above. The indexer checks for a structurally valid sibling `MESSAGE`; it does not decrypt or validate the payload contents (it can't; the payload is encrypted to the recipient). The wallet at unlock time verifies key correctness via the `KEY_HASH` check.
+- **`SEND` of a gated token.** Defined above. The indexer checks only for the presence of a sibling command in the same `BATCH` that parses as `MESSAGE` with `VERSION` `2` and whose `DESTINATION` equals the leg's `DESTINATION`. At or above `GATED_HANDOFF_REF_ACTIVATION` a `^<id>` reference in that `DESTINATION` is resolved first, and one that does not resolve matches nothing; below it the `DESTINATION` is compared as written. This is a presence check, not validation: the sibling's `COIN` and `ENCRYPTED_MESSAGE` are not inspected and the `MESSAGE`'s own verdict is not consulted, so the `SEND` leg can be valid even when that `MESSAGE` is itself rejected. The indexer does not decrypt the payload (it can't; the payload is encrypted to the recipient). The wallet at unlock time verifies key correctness via the `KEY_HASH` check.
 
 ---
 

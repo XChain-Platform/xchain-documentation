@@ -660,6 +660,7 @@ ROLLCALL arming is a **venue-wide** setting: set `XC_ROLLCALL_REGTEST_ACTIVATION
 |---|---|---|---|
 | `GOV_VOTING_PERIOD` | No | `604800000` | Governance voting period in milliseconds (default: 7 days) |
 | `GOVERNANCE_TALLY_INTERVAL` | No | `60000` | Interval between governance tally sweeps |
+| `GOVERNANCE_OVERDUE_MS` | No | `7200000` (2 hours) | Time after voting ends before a still-voting proposal is considered overdue (ms). |
 
 ### Diagnostic Scripts (`bin/`)
 

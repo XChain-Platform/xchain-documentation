@@ -377,7 +377,7 @@ The explorer uses `express-rate-limit` middleware:
 | Setting | Value |
 |---|---|
 | Window | 60 seconds |
-| Max requests per window | 1080 (override via `EXPLORER_RATE_LIMIT_RPM`) |
+| Max requests per window | 180 (override via `EXPLORER_RATE_LIMIT_RPM`) |
 | Scope | Per IP address |
 | Response on limit | HTTP 429 Too Many Requests |
 

@@ -164,7 +164,13 @@ The V8 isolate provides hardware-level isolation (separate heap, no shared objec
 - System: `console`, `process`, `require`, `importScripts`
 
 **Preserved:**
-- `Array`, `Object`, `String`, `Number`, `Boolean`, `JSON`, `Map`, `Set`, `Symbol`, `Error`, `parseInt`, `parseFloat`
+- `Array`, `Object` (with restricted statics, see below), `String`, `Number`, `Boolean`, `JSON`, `Map`, `Set`, `Symbol`, `Error`, `parseInt`, `parseFloat`
+
+**Restricted statics:**
+- `Object.defineProperty` and `Object.defineProperties` are set to `undefined`, so calling either throws `TypeError`.
+- `Object.create` accepts only its first argument. `Object.create(null)` and `Object.create(proto)` work; any call with a second argument, even `undefined`, throws `Error('Object.create with property descriptors is not allowed')`.
+- Reason: a descriptor can install a getter or setter that runs code on plain property access, outside gas metering. The harness keeps a private `defineProperty` reference that contract code cannot reach.
+- No deploy rule or lint warning flags these calls, so a contract that uses them deploys and then fails the first time the call runs.
 
 **Replaced:**
 - `Math`: replaced with a frozen deterministic subset: `floor`, `ceil`, `round`, `abs`, `min`, `max`, `sign`, `trunc`, plus constants `PI` and `E`. The object is frozen with `Object.freeze()` to prevent mutation.

@@ -116,7 +116,7 @@ http://localhost:18080/rest
 
 ```mermaid
 flowchart TD
-    A["xchain-node install v0.12.3 all CHAIN NETWORK"] --> B["Verify Docker, create runtime directories"]
+    A["xchain-node install all CHAIN NETWORK"] --> B["Verify Docker, create runtime directories"]
     B --> C["Install xchain-hub first<br>(shared coordination layer)"]
     C --> D["Clone service repos into modules/,<br>build Docker images, start containers"]
     D --> E["Download and verify crypto node binary (SHA-256)"]
@@ -129,11 +129,11 @@ A single `xchain-node` installation can run Bitcoin, Litecoin, and Dogecoin simu
 
 ```bash
 # Add Litecoin mainnet to an existing installation
-xchain-node install v0.12.3 all litecoin mainnet
+xchain-node install all litecoin mainnet
 xchain-node start all litecoin mainnet
 
 # Add Dogecoin mainnet
-xchain-node install v0.12.3 all dogecoin mainnet
+xchain-node install all dogecoin mainnet
 xchain-node start all dogecoin mainnet
 ```
 
@@ -149,7 +149,7 @@ Regtest is a local blockchain mode where:
 
 ```bash
 # Install regtest stack
-xchain-node install v0.12.3 all bitcoin regtest
+xchain-node install all bitcoin regtest
 xchain-node start all bitcoin regtest
 ```
 
