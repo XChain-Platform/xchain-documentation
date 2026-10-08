@@ -24,6 +24,7 @@ These names are exported by [`protocol/constants.js`](./constants.js). The index
 scheduled, inert, genesis-active, time-keyed, and height-keyed maps so a gate remains
 discoverable here even when it has no mainnet date for the table below.
 
+- `ADMIT_CHAIN_MARGIN_ACTIVATION`
 - `AMOUNT_REPRESENTABILITY_ACTIVATION`
 - `ANCHOR_ACTIVATION`
 - `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION`
