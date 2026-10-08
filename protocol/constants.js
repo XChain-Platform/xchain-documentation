@@ -903,10 +903,9 @@ const ATTEST_RELAY_ACTIVATION = {
     regtest: 0,
 };
 
-// Snapshot height at or above which a relayed response reserves two flat broadcast
-// allowances from its fee escrow before splitting the remainder. The gate evaluates
-// the BTC-anchored SNAPSHOT_BLOCK carried by the relay. Public networks stay unarmed
-// until an operator assigns heights; regtest exercises the carve from genesis.
+// BTC snapshot height at which a relayed response reserves two flat broadcast
+// allowances from fee escrow before splitting the remainder. Public networks use
+// the sentinel until armed; regtest activates at genesis.
 const ATTEST_RELAY_FEE_ACTIVATION = Object.freeze({
     mainnet: 9999999999,
     'BTC:testnet': 9999999999,
