@@ -170,7 +170,7 @@ which remains the shipped behavior.
 |---|---|---|
 | `SYNC_META_RETENTION_BLOCKS` | unset (`0`) | A positive integer turns on `sync_meta` retention and sets the window in blocks. Unset or `0` means keep the whole log. |
 
-Two properties make this safe to turn on:
+Three properties make this safe to turn on:
 
 - **Committed roots are never pruned.** Only the leaves go. The published
   root chain, and the `merkle_reorgs` audit trail that references it, survive
@@ -181,6 +181,12 @@ Two properties make this safe to turn on:
   that epoch's tree from the surviving subset and answer with a proof against
   a root that no longer matches the committed one, so the sweep refuses rather
   than cut through an epoch.
+- **The window never drops below the reorg reach.** A window smaller than the
+  deepest reorg the sync server follows (256 blocks, or 5022 on Litecoin
+  testnet) is raised to that depth, with a warning in the log, so a reorg never
+  lands in an epoch whose leaves are gone. If an epoch is ever reorged after its
+  leaves were pruned anyway, the server leaves it uncommitted rather than
+  publish a root over the surviving subset.
 
 What is given up is exactly the inclusion proofs: a block whose `sync_meta`
 row is pruned can no longer be served from

@@ -903,6 +903,18 @@ const ATTEST_RELAY_ACTIVATION = {
     regtest: 0,
 };
 
+// BTC snapshot height at which a relayed response reserves two flat broadcast
+// allowances from fee escrow before splitting the remainder. Public networks use
+// the sentinel until armed; regtest activates at genesis.
+const ATTEST_RELAY_FEE_ACTIVATION = Object.freeze({
+    mainnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+});
+
 // ATTEST_RESPONSIBLE_WIDENING_ACTIVATION (attestation Phase 4 liveness, spec §8.2): the flag-day
 // at/above which a request's responsible set WIDENS by one slot per window once the round has
 // visibly failed to finalize, instead of staying pinned to the REDUNDANCY validators the hash
@@ -1282,6 +1294,20 @@ const DISPENSER_CANCEL_GRACE_ACTIVATION = {
     // gives nothing back, so a public testnet WILL hit it. Safe at 0 because testnet
     // decoder/indexer state is REBUILT from the chain before launch.
     testnet: 0,
+    regtest: 0,
+};
+
+// DISPENSER_PURGE_GRACE_ACTIVATION: the block-time boundary at/above which the
+// decoder keeps a soft-expired dispenser until its cancellation grace period has
+// passed instead of hard-purging it at the raw expiration time. It is a separate
+// gate from DISPENSER_CANCEL_GRACE_ACTIVATION because capture eligibility and row
+// retention change independently.
+//
+// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
+// Regtest is genesis-active so the grace-aware purge path is exercised there.
+const DISPENSER_PURGE_GRACE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
     regtest: 0,
 };
 
@@ -1966,9 +1992,9 @@ const LIST_META_ACTIVATION = {
 // is judged exactly as it always has been.
 //
 // It is a flag day rather than an unconditional fix because the check RE-VERDICTS indexed
-// history: third-party edits are valid today and list_items is a hashed DERIVED table, so
-// refusing them on replay would move block hashes on a live chain. The replay corpus being
-// hash-identical below the height is the hard gate on this change.
+// history: third-party edits are valid below the flag day and list_items is a hashed DERIVED
+// table, so refusing them on replay would move block hashes on a live chain. The replay corpus
+// being hash-identical below the height is the hard gate on this change.
 const LIST_OWNER_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
@@ -2485,6 +2511,7 @@ module.exports = {
     ATTEST_REQUEST_CAP_ACTIVATION,
     ATTEST_REQUEST_CAPS,
     ATTEST_RELAY_ACTIVATION,
+    ATTEST_RELAY_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_CAP,
     ATTEST_RESPONSIBLE_WIDENING_ACTIVATION,
@@ -2497,6 +2524,7 @@ module.exports = {
     AMOUNT_REPRESENTABILITY_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
     DISPENSER_CANCEL_GRACE_ACTIVATION,
+    DISPENSER_PURGE_GRACE_ACTIVATION,
     DISPENSER_FRESHNESS_SHAPE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
     ENVELOPE_RECOGNITION_ACTIVATION,

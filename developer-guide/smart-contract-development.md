@@ -152,9 +152,12 @@ Contracts support **ES2020** syntax. This includes:
 - `async`/`await` syntax and `Promise` are **rejected at deploy** by the consensus-gated `banned-async` rule (enforced today by the `xchain-lint` CLI, the SDK, and testnet/regtest; on mainnet at/after the [`VM_BANNED_ASYNC` flag day](../protocol/flag-days.md#contract-era-flag-day)). Write contracts synchronously.
 
 **Not supported:**
-- ES2021+ features (class fields `#private`, `Object.hasOwn()`, top-level await)
+- ES2021+ syntax, which the ES2020 parser rejects at deploy: logical assignment (`??=`, `||=`, `&&=`), numeric separators (`1_000`), class fields (public and `#private`), and top-level `await`
 - `import`/`export` (use `module.exports`)
 - `require()`, `eval()`, `Function()` constructor
+- `Object.defineProperty()`, `Object.defineProperties()`, and `Object.create()` with a second (descriptor) argument: the sandbox removes them and no deploy check flags them, so the contract deploys but throws the first time the call runs. Assign properties directly instead; `Object.create(null)` and `Object.create(proto)` still work. See [Sandbox Security](../components/vm/architecture.md#sandbox-security).
+
+The ES2020 limit applies to syntax only. Built-in functions from later editions that the sandbox does not remove, such as `Object.hasOwn()`, parse and run normally.
 
 ## All Arithmetic Must Use xchain.math
 

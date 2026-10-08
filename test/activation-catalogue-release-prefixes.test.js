@@ -19,6 +19,7 @@ const EXPECTED = [
     ['anchor_bundle_order_activation', 'ANCHOR_BUNDLE_ORDER_ACTIVATION', 'A through E', 'height'],
     ['anchor_fold_activation', 'ANCHOR_FOLD_ACTIVATION', 'A through E', 'height'],
     ['archive_match_count_activation', 'ARCHIVE_MATCH_COUNT_ACTIVATION', 'A through E', 'height'],
+    ['attest_relay_fee_activation', 'ATTEST_RELAY_FEE_ACTIVATION', 'A through E', 'height'],
     [
         'archive_section_verdict_activation',
         'ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION',

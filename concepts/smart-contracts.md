@@ -241,7 +241,7 @@ the exact `subtract`: `a >= b` is `isAtLeastExact(xchain, a, b)` and `a <= b` is
 |---|---|---|
 | `xchain.oracle.getPrice(coinPair)` | 100 | Price data or null |
 | `xchain.oracle.getPriceAtRound(coinPair, round)` | 100 | Historical price or null |
-| `xchain.oracle.getSnapshotAge()` | 0 | Blocks since last snapshot (number) |
+| `xchain.oracle.getSnapshotAge()` | 0 | Age of the latest finalized snapshot (number). Consensus seconds at and after the snapshot-age seconds flag day (not yet pinned); whole blocks before it. `Number.MAX_SAFE_INTEGER` when no snapshot exists |
 
 ### Cross-Chain (100 gas each)
 | Method | Returns |

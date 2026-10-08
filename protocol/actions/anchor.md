@@ -572,6 +572,11 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
   `valid` exactly as above it does, but never derives an `anchor_archive` reward even with a
   full attestation. A failed, short, forged, or below-flag-day attestation never invalidates the
   archive anchor; only the reward is skipped.
+
+  Once `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` is active, an otherwise eligible
+  `anchor_archive` reward row no longer derives when its `SNAPSHOT_BLOCK` is past the DOGE fold.
+  This termination affects only reward derivation; the v1 checkpoint and archive retain their
+  normal validity.
 - The `pushvalidatorrewards` push is retired for `anchor_archive`: every indexer DERIVES the
   archive reward from these bytes instead (closing the last insider-with-key forge surface).
 
