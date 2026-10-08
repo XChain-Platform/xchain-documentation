@@ -469,13 +469,14 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 };
 
 // ANCHOR_REWARD_ACTIVATION (anchor-reward re-derivation): the flag-day at/above which the validator
-// anchor reward stops being TRUSTED from the hub's `pushvalidatorrewards` JSON-RPC and is instead
+// anchor reward stops being TRUSTED from the hub over a key-authenticated JSON-RPC (since retired)
+// and is instead
 // DERIVED by every indexer from the on-chain ANCHOR bytes. Post-flag-day the hub emits a publisher-
 // bearing ANCHOR checkpoint bundle (v0 of the restarted wire set, whose sections carry the SPV roots)
 // carrying the elected publisher pubkey plus a 2f+1 `oracle_publish` attestation (XANCPUB) over the
 // `anchor_bundle` reward tuple; the indexer verifies that quorum and credits the publisher with
-// ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire). Below the flag-day the old
-// push path stands and the PUBLISHER tail an anchor carries earns no derived credit.
+// ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire). Below the flag-day the
+// legacy anchor wire applies and the PUBLISHER tail an anchor carries earns no derived credit.
 // Consensus-relevant (the
 // credited reward becomes a COLLECT-spendable per-block ledger row), so it must deploy hub + ALL
 // indexers atomically. Like CHECKPOINT_COMMITMENT_ACTIVATION / STAKE_WEIGHTED_QUORUM_ACTIVATION it gates
@@ -494,12 +495,14 @@ const ANCHOR_REWARD_ACTIVATION = {
 const ANCHOR_REWARD_AMOUNT = '10.00000000';
 
 // ARCHIVE_REWARD_ACTIVATION (archive-reward re-derivation): the flag-day at/above which the
-// anchor_archive reward stops riding the key-authenticated `pushvalidatorrewards` rail and is instead
+// anchor_archive reward stops riding the key-authenticated hub JSON-RPC rail (since retired) and is
+// instead
 // DERIVED by every indexer from the on-chain ANCHOR archive-head bytes (v1 of the restarted wire set,
 // carrying the same PUBLISHER + 2f+1 XANCPUB attestation tail the v0 bundle carries, attested over an
 // 'anchor_archive' canonical keyed on MATCH_BATCH_SEQ). This retires the last insider-with-key
-// reward-forge surface the per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the push path
-// stands and an archive head's PUBLISHER tail earns no derived credit. Consensus-relevant, same
+// reward-forge surface the per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the legacy
+// tail-less archive wire applies and an archive head's PUBLISHER tail earns no derived credit.
+// Consensus-relevant, same
 // deploy rules and snapshot_block gating as ANCHOR_REWARD_ACTIVATION; kept byte-identical to the
 // local copies in
 // xchain-{hub,indexer}/src/consensus/gates/anchor_reward_gate.js by the cross-service regression suite.
