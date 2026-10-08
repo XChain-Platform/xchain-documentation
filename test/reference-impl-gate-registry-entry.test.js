@@ -29,6 +29,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const CONSENSUS = path.join(__dirname, '..', 'protocol', 'reference-impl', 'consensus');
+const CONSTANTS_PATH = path.join(__dirname, '..', 'protocol', 'constants.js');
 const ENTRY_PATH = path.join(CONSENSUS, 'gate_registry.js');
 const PART_DIR = path.join(CONSENSUS, 'gate_registry');
 const PART_RE = /^shared_rows_\d+\.js$/;
@@ -96,6 +97,16 @@ function listsMarketRows(height, time) {
 }
 
 describe('reference registry ENTRY assembly', () => {
+    test('reward activation comments do not describe the retired push rail as live', () => {
+        const sources = [
+            fs.readFileSync(CONSTANTS_PATH, 'utf8'),
+            fs.readFileSync(path.join(PART_DIR, 'shared_rows_1.js'), 'utf8'),
+        ];
+        for (const source of sources) {
+            assert.doesNotMatch(source, /pushvalidatorrewards|push path stands/);
+        }
+    });
+
     test('requires every part file on disk exactly once, and no part that is absent', () => {
         const parts = partFiles();
         assert.ok(parts.length >= 1, `no shared_rows_N.js found under ${PART_DIR}: the part scan broke`);
