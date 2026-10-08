@@ -234,6 +234,10 @@ list gets that list detached too; below it, the copy's list stays attached. It i
 at each chain's own height (`BTC:testnet` 155001, `LTC:testnet` 4906040, `DOGE:testnet`
 67962387), stays unarmed on mainnet until the operator arms it, and regtest is genesis-active.
 
+`BET_FEED_LIST_EDIT_ACTIVATION` is the per-chain height gate reserved for edits to an open BET
+feed's allow-list and block-list references. The production networks remain inert until a release
+arms them, while regtest exercises the gated path from genesis.
+
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
 (Cohort B) gates genesis-active as well, with exceptions in every cohort:
