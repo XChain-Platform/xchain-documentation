@@ -23,7 +23,7 @@ Regtest is a fully local, self-contained blockchain environment where you contro
 
 ```bash
 # Install the regtest stack (downloads images, creates containers, starts everything)
-xchain-node install v0.12.3 all bitcoin regtest
+xchain-node install all bitcoin regtest
 
 # Start all services
 xchain-node start all bitcoin regtest
@@ -69,22 +69,22 @@ Nothing is broken and nothing is lost. Mining one block clears it immediately. T
 | `EXPLORER_TIP_MAX_AGE_S_RBTC=0` | Disables the tip-age gate for that one coin. `RBTC` is the route code, so use `RLTC` or `RDOGE` for the other regtest chains. |
 | `EXPLORER_TIP_MAX_AGE_S=0` | Disables the gate for every coin this explorer serves. |
 
-Prefer the per-coin form. It leaves the gate working for anything else the same instance serves.
-
-On an `xchain-node` stack the setting goes in that coin/network's config file, one `KEY=VALUE` line, then recreate the explorer container so it picks the new environment up:
+On an `xchain-node` stack the explorer is a shared service, so xchain-node builds its environment from the host `.env` in your xchain-node checkout, not from any `config/<coin>-<network>` file. Only the global `EXPLORER_TIP_MAX_AGE_S` is passed through to it; the per-coin form is not (see [node configuration](../components/node/configuration.md)). Add the global line, then recreate the explorer container so it picks the new environment up:
 
 ```bash
 # from your xchain-node checkout
-echo 'EXPLORER_TIP_MAX_AGE_S_RBTC=0' >> config/bitcoin-regtest
+echo 'EXPLORER_TIP_MAX_AGE_S=0' >> .env
 
 # container environment is fixed when the container is created, so a plain
-# restart is not enough
-xchain-node install v0.12.3 xchain-explorer bitcoin regtest
+# restart is not enough; recreate reuses the installed image and version
+xchain-node recreate xchain-explorer
 ```
 
-Running the explorer straight from its repo instead, put the same line in its `.env`.
+That turns the gate off for every coin the shared explorer serves, which is fine on a dev box that serves only regtest. If the same explorer also serves live chains, mine a block when you come back to the stack instead, or run the explorer from its own repo.
 
-There is deliberately no built-in regtest exemption. The gate fails closed on purpose, and a rule keyed on a network name would let anything calling itself regtest re-open that hole silently. Disabling it stays an explicit operator setting, per coin, in a file you can read.
+Running the explorer straight from its repo, put the line in its `.env`. There the per-coin form works, so prefer it: it leaves the gate working for anything else the same instance serves.
+
+There is deliberately no built-in regtest exemption. The gate fails closed on purpose, and a rule keyed on a network name would let anything calling itself regtest re-open that hole silently. Disabling it stays an explicit operator setting, in a file you can read.
 
 ---
 
@@ -110,14 +110,14 @@ async function fundAddress(address, amount = 1.0) {
 await fundAddress('bc1qtestaddress...', 1.0);
 ```
 
-Then mine the funding transaction into a block:
+Then mine the funding transaction into a block. `generate_blocks` mines immediately and picks up the transactions waiting in the mempool; `continue_mining` only resumes the auto-miner after a pause and mines nothing itself:
 
 ```js
 async function mineBlock() {
   await fetch('http://localhost:3005', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ method: 'continue_mining', params: {} }),
+    body: JSON.stringify({ method: 'generate_blocks', params: { count: 1 } }),
   });
 }
 
@@ -225,9 +225,9 @@ SELECT * FROM actions ORDER BY action_index DESC LIMIT 20;
 If the indexer has data but the explorer doesn't, the explorer may have a query bug. Hit the endpoint directly:
 
 ```bash
-curl http://localhost:18080/BTC/api/token/MYTOKEN
-curl http://localhost:18080/BTC/api/balances/YOUR_ADDRESS
-curl http://localhost:18080/BTC/api/history/MYTOKEN/token
+curl http://localhost:18080/RBTC/api/token/MYTOKEN
+curl http://localhost:18080/RBTC/api/balances/YOUR_ADDRESS
+curl http://localhost:18080/RBTC/api/history/MYTOKEN/token
 ```
 
 If the explorer answers `503 COIN_DATA_STALE` for every endpoint on a coin, the query is fine and the chain has simply gone quiet: see [Keeping an Idle Chain Available](#keeping-an-idle-chain-available).
@@ -262,7 +262,7 @@ xchain-node stop all bitcoin regtest
 xchain-node uninstall all bitcoin regtest
 
 # Reinstall fresh
-xchain-node install v0.12.3 all bitcoin regtest
+xchain-node install all bitcoin regtest
 xchain-node start all bitcoin regtest
 ```
 

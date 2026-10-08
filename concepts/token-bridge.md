@@ -63,10 +63,13 @@ the settings can never be pulled out from under them, even by a future owner of 
   policy is the one exception that still does not travel: the contract only exists on the chain
   it was deployed on, so a controller-bound token still cannot bridge, and a bridged token
   still cannot bind one.
-- **Sleep is chain-local.** Pausing a token on its origin chain stops new locks from that
-  chain, but any copies already bridged elsewhere keep trading, and burning them back to the
-  origin still works. A holder relying on a token being "fully paused" everywhere should know
-  that, today, it is only paused where it was issued.
+- **A pause reaches bridged copies only once the network has turned this on.** Before then,
+  pausing a token on its origin chain stops new locks from that chain, but any copies already
+  bridged elsewhere keep trading, and burning them back to the origin still works. After it is
+  on, a pause on the origin reaches every bridged copy after the same short delay as a list
+  change, and a paused copy can then neither trade nor be burned back until the issuer lifts
+  the pause. See [Policy inheritance](../protocol/token-bridge.md#policy-inheritance) for how
+  each network's switch-over works.
 - **Subassets aren't bridgeable yet.** A token issued as a child of another token (a name with a
   dot in it, like `PARENT.CHILD`) cannot be bridged in this milestone; only plain, undotted
   tokens can.

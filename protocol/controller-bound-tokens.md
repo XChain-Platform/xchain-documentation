@@ -359,11 +359,24 @@ There is no royalty-specific mechanism; "royalty" is simply the most common use 
    validation, including the lenient shapes below, runs at every other guard invocation
    point, where a bad set denies the action and a valid set is discarded unapplied.
 
+   A valid address is a base58check (P2PKH or P2SH) or bech32 address for the token's own
+   chain and network (`Utility.isCryptoAddress`). A contract address (`C:<CHAIN>:<index>`)
+   never is one, so a contract-address leg denies as `invalid: controller (bad payout leg)`
+   at every invocation point, on a same-chain listing as well as a cross-chain one.
+
    Two shapes are read leniently rather than denied, and no activation gate changes that
    today (none is registered in [Flag-Day Values](./flag-days.md)): a supplied `payoutLegs`
    that is not an ARRAY is read as "no legs" and the listing is created with NULL legs, and
-   a fractional `bps` is accepted at its truncated integer value, which is also the value
-   the cap is measured against. An empty array means the same as an absent `payoutLegs`.
+   a fractional `bps` written with a decimal point is accepted at its truncated integer
+   value, which is also the value the cap is measured against. An empty array means the
+   same as an absent `payoutLegs`.
+
+   The truncation is `parseInt` of the value's string form, not numeric truncation, so a
+   `bps` whose string form is not plain decimal digits is read by its leading digits. That
+   covers exponent notation (a JSON number below `1e-6` or at or above `1e21`, or a string
+   such as `"1e5"`) and prefixed strings: `5e-7` reads as `5`, `1e21` and `"1e5"` as `1`,
+   `"0x10"` as `16`, `"0b11"` as `0`. The value read is the one checked against the cap,
+   stored and applied, so return `bps` as a plain integer.
 2. **At match**: `Utility.applyProceedsSplit(tick, proceeds, seller, legs, decimals, cap)`
    splits each filled order's proceeds, **seller-remainder first, then each leg**, crediting
    `floor(proceeds × bps / 10000)` (at token precision) to each `to` and the exact remainder
@@ -409,9 +422,10 @@ cross-chain listing is decided by the `CROSS_CHAIN_ROYALTY` flag-day, layered on
 When the flag is on:
 
 1. **At create**, every leg `to` must re-encode to `GET_COIN`
-   (`Utility.canReencodeAddress`); any non-portable leg (a contract address, or a segwit
-   address when `GET_COIN` has no bech32, e.g. DOGE) denies the listing
-   (`invalid: royalty leg not payable on proceeds chain`, fail-closed). This makes the
+   (`Utility.canReencodeAddress`); any non-portable leg (a segwit address when `GET_COIN`
+   has no bech32, e.g. DOGE) denies the listing
+   (`invalid: royalty leg not payable on proceeds chain`, fail-closed). A contract-address
+   leg never reaches this check: the leg validation above already denied it. This makes the
    settlement-time re-encode total: a trade that delivered can never hit an unpayable leg.
 2. **In the match**, the hub copies each order's stored legs onto the `cross_chain_matches`
    row (`a_payout_legs` / `b_payout_legs`), and the legs are part of the **validator-signed

@@ -31,7 +31,7 @@ Errors are JSON objects:
 | `NOT_FOUND` | 404 | No row for that lookup | No |
 | `ACTION_NOT_YET_INDEXED` | 404 | The action index lies above what this explorer's indexer has committed so far; the body carries `indexed_through` and the response a `Retry-After` header | Yes: the indexer is catching up; honor `Retry-After` |
 | `CHECKPOINT_NOT_FOUND` | 404 | No quorum-signed checkpoint at that height | Maybe: checkpoints lag the tip |
-| `RATE_LIMITED` | 429 | Per-IP request budget exhausted (default 500/min) | Yes: back off; honor `RateLimit-*` headers |
+| `RATE_LIMITED` | 429 | Per-IP request budget exhausted (app-wide default 1080/min; some routes have tighter limits, see [explorer rate limiting](../components/explorer/configuration.md#rate-limiting)) | Yes: back off; honor `RateLimit-*` headers |
 | `SERVER_ERROR` | 500 | Unexpected internal failure | Yes: with backoff |
 | `UPSTREAM_ERROR` | 502 | The colocated indexer fee service failed | Yes: with backoff |
 | `COIN_NOT_AVAILABLE` | 503 | Coin supported but not configured for data requests here | No: use another instance |
@@ -103,12 +103,12 @@ JSON-RPC 2.0 error objects:
 | `-32600` | Invalid request envelope | all | No |
 | `-32601` | Method not found | all | No |
 | `-32602` | Invalid params (validation failure) | all | No: fix params |
-| `-32603` | Internal error (node RPC failure, encoder failure) | all | Yes: with backoff |
+| `-32603` | Internal error (node transport failure, encoder failure). A coin-node verdict on a broadcast is `-32010`, not this code | all | Yes: with backoff |
 | `-32000` | Server error | all | Yes: with backoff |
 | `-32001` | Unauthorized: missing/invalid API key (`x-api-key` for encoder/hub, `Authorization: Bearer` for SDK API) | all | No: fix credentials |
 | `-32029` | Too many requests (rate limit) | encoder, hub | Yes: back off |
 | `-32005` | Too many requests (rate limit) on the **SDK API only**, which does not use `-32029`. Served as HTTP `429` with a `Retry-After` header carrying the seconds until the caller's window resets; the message names the limit and the window | SDK API | Yes: wait out `Retry-After`, then back off |
-| `-32010` | Operational error: an expected, caller-actionable condition (`create_tx`, `create_envelope_cancel_tx`). `error.data.reason` carries a stable code from the table below; branch on it, never on `message` | encoder | Depends on `reason` (see below) |
+| `-32010` | Operational error: an expected, caller-actionable condition (`create_tx`, `create_envelope_cancel_tx`, `broadcast_tx`). `error.data.reason` carries a stable code from the table below; branch on it, never on `message` | encoder | Depends on `reason` (see below) |
 
 Rate limiting is the one condition with two codes. A client that talks to more than one of
 these services must treat `-32029` and `-32005` as the same condition, or key retry on the
@@ -127,13 +127,17 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `INPUT_RESERVED` | `options.exactInputs` names outpoints reserved by a transaction built inside the reservation window | `reserved` (outpoints) | No: broadcast that transaction and rebuild, or wait for the reservation to lapse |
 | `INPUT_SELECTION_RACE` | Input selection raced a concurrent reservation, so the obfuscation key is bound to an outpoint that is not the first input | `expectedFirstInput`, `actualFirstInput` | Yes: retry the request |
 | `UTXO_TRACKER_ERROR` | The UTXO tracker is unreachable or returned a malformed response | none | Yes: with backoff |
-| `UTXO_TRACKER_STALE` | The tracker's view lags the node past the configured threshold, or is ahead of the node (an orphaned view) | `lag`, `tracker_height`, `node_height` | Yes: with backoff |
+| `UTXO_TRACKER_STALE` | The tracker's view lags the node past the configured threshold, or is ahead of the node (an orphaned view), or the tracker reports `synced: false` (the remote tracker profile also refuses an absent `synced`) | `lag`, `tracker_height`, `node_height` | Yes: with backoff |
 | `UTXO_TRACKER_HALTED` | The tracker is halted (for example after an unrecoverable reorg) | `lag`, `tracker_height`, `node_height`, `halt_reason` | No: operator action |
 | `UTXO_TRACKER_NOT_READY` | The tracker has not reconverged its mempool, so an already-spent confirmed output cannot be filtered | `lag`, `tracker_height`, `node_height` | Yes: with backoff |
 | `ENVELOPE_RECOGNITION_UNKNOWN` | The node returned no chain height, so Taproot envelope recognition cannot be confirmed active | none | Yes: with backoff |
 | `ENVELOPE_NOT_YET_ACTIVE` | Taproot envelope recognition is not active on this network yet, so the envelope is refused rather than built for decoders to ignore | `recognitionHeight`, `chainTip`, `blocksRemaining` | No: use P2WSH until the activation height |
 | `ENVELOPE_CANCEL_BELOW_DUST` | The envelope-cancel sweep output would fall below the dust floor | `commitValue`, `fee`, `sweepValue` | No: spend via the reveal or CPFP |
 | `ENVELOPE_CANCEL_OUTPOINT_RESERVED` | The commit outpoint the cancel would sweep is reserved by a different transaction built inside the reservation window | `outpoint` | No: broadcast that transaction and rebuild, or wait for the reservation to lapse. Replaying the same cancel is never refused |
+| `NODE_REJECTED` | `broadcast_tx`: the coin node refused the signed transaction (for example a double-spend, dust output, or fee below the relay floor) | `node_code` (the node's RPC error code) | No: rebuild and re-sign |
+| `TX_ALREADY_IN_CHAIN` | `broadcast_tx`: the coin node already knows the transaction, in its mempool or in a block | `node_code` (the node's RPC error code) | No: the transaction is already broadcast; track its txid |
+| `UTXO_TRACKER_UNREACHABLE` | Remote tracker profile only (`UTXO_TRACKER_PROFILE=remote`): the tracker's `get_sync_status` or `get_utxos` call failed (a transport fault, an error reply or a malformed result), and this profile has no fallback. The default profile reports the same failure as `UTXO_TRACKER_ERROR` | none | Yes: with backoff |
+| `UTXO_TRACKER_SYNC_MISSING` | Remote tracker profile only: the tracker returned an empty sync status, a `get_utxos` reply with no `sync` field, or a `sync` without a numeric `lag`, so the encoder refuses a view the tracker did not vouch for. The default profile builds in this case | none | No: operator action (upgrade or repair the tracker); a wallet may offer a manual retry |
 
 ## Where the specs live
 

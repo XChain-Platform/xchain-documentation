@@ -41,7 +41,7 @@ Yes, for any settings that have not been locked. You can update the description,
 
 ### What happens if I lock a parameter?
 
-Locking a parameter makes it permanent. No future update (not from you, not from anyone) can change that parameter. This is intentional: locking is how you make provable, unbreakable guarantees about your token. If you lock the max supply, it is mathematically impossible for more tokens to be created beyond that ceiling. If you are unsure whether to lock something, do not lock it yet. You can always lock later, but you cannot unlock.
+Locking a parameter makes it permanent. No future update (not from you, not from anyone) can change that parameter. This is intentional: locking is how you make provable, unbreakable guarantees about your token. If you lock the max supply, the ceiling can never be raised, so no more than that many tokens can be outstanding at any one time. That alone does not fix the total ever issued: burning tokens frees room under the ceiling, and both minting paths stay open until you also set `LOCK_MINT` (public minting) and `LOCK_MINT_SUPPLY` (your own re-issues). See [Building Trust: Locking Parameters](./creating-tokens.md#building-trust-locking-parameters). If you are unsure whether to lock something, do not lock it yet. You can always lock later, but you cannot unlock.
 
 ### Can someone steal my tokens?
 

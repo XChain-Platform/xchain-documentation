@@ -35,6 +35,8 @@
  *   1. The three counts are derived from protocol/actions/, not typed here.
  *   2. Every "<n> ACTIONs" style claim in the prose is one of those three, or
  *      is listed in SCOPED below with the reason it counts something else.
+ *   3. White paper section 6 gives every named ACTION its own bullet, so its
+ *      count cannot cover an action its list never describes (XBRIDGE did).
  *
  * WHAT IT DOES NOT CHECK: whether a given page picked the RIGHT one of the
  * three. That is a reading judgement. This catches the number that belongs to
@@ -42,11 +44,14 @@
  */
 const test = require('node:test');
 const assert = require('node:assert');
+const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const ROOT = path.join(__dirname, '..');
 const SPECS = path.join(ROOT, 'protocol', 'actions');
+const E2E = sibling('xchain-e2e-test');
 
 /** Actions that exist but are never decoded from a wire transaction. */
 const MIRROR_INJECTED = ['XCALL'];
@@ -160,6 +165,32 @@ test('the counts are derived from the spec directory, not from prose', () => {
   }
 });
 
+test('the published e2e helper-module counts match the committed tree', {
+  skip: E2E.skip,
+}, () => {
+  const modules = execFileSync(
+    'git', ['-C', E2E.root, 'ls-tree', '--name-only', 'origin/develop', 'test/helpers/'],
+    { encoding: 'utf8' },
+  ).trim().split('\n').filter((file) => file.endsWith('.js')).length;
+  const claims = [
+    {
+      file: 'components/e2e-test/README.md',
+      pattern: /action helpers \((\d+) modules\)/,
+    },
+    {
+      file: 'components/e2e-test/architecture.md',
+      pattern: /helpers\/\s+# (\d+) modules/,
+    },
+  ];
+
+  for (const { file, pattern } of claims) {
+    const claim = fs.readFileSync(path.join(ROOT, file), 'utf8').match(pattern);
+    assert.ok(claim, `${file} no longer publishes its e2e helper-module count`);
+    assert.strictEqual(Number(claim[1]), modules,
+      `${file} publishes ${claim[1]} e2e helper modules, but origin/develop has ${modules}`);
+  }
+});
+
 test('every ACTION count in the prose refers to a set that exists', () => {
   const named = namedActions().length;
   const wire = named - MIRROR_INJECTED.length;
@@ -206,4 +237,24 @@ test('every ACTION count in the prose refers to a set that exists', () => {
     + 'bare 35 is usually a pre-XCALL leftover. If a number measures something else entirely, add it '
     + 'to SCOPED with the reason rather than editing prose to fit the guard:\n'
     + bad.join('\n'));
+});
+
+/** Names that lead a bullet in white paper section 6 (`**DEPOSIT / WITHDRAW**` gives both). */
+function whitepaperSectionSixBullets() {
+  const paper = fs.readFileSync(path.join(ROOT, 'whitepaper.md'), 'utf8');
+  const start = paper.indexOf('## 6. The ACTION Set');
+  const end = paper.indexOf('\n## 7.', start);
+  assert.ok(start >= 0 && end > start, 'whitepaper.md no longer has a "## 6. The ACTION Set" section ending at "## 7."');
+  const names = new Set();
+  for (const m of paper.slice(start, end).matchAll(/^- \*\*([^*]+)\*\*/gm)) {
+    for (const word of m[1].split(/[^A-Z]+/)) if (word) names.add(word);
+  }
+  return names;
+}
+
+test('white paper section 6 gives every named ACTION its own bullet', () => {
+  const listed = whitepaperSectionSixBullets();
+  const missing = namedActions().filter((a) => !listed.has(a));
+  assert.deepStrictEqual(missing, [],
+    `whitepaper.md section 6 counts every spec in protocol/actions/ but has no bullet for: ${missing.join(', ')}`);
 });

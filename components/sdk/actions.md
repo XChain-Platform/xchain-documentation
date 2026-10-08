@@ -481,8 +481,8 @@ const amm = sdk.contract(12345);
 await amm.call('swap', ['TOKENA', '100'], { pubkey: 'yourPubkey' });
 
 // Check execution results
-let exec = await sdk.getExecution(actionIndex);
-if (!exec.success) console.log(exec.error);
+let exec = (await sdk.getExecution(actionIndex)).data[0];
+if (exec && exec.status !== 'valid') console.log(exec.error_message);
 ```
 
 See also: [`../actions/EXECUTE.md`](../../protocol/actions/execute.md)
@@ -1190,14 +1190,16 @@ See also: [`../actions/VOTE.md`](../../protocol/actions/vote.md)
 
 ### BET
 
-Parimutuel betting markets: create a market, place a bet, resolve it, or cancel it. `sdk.bet(params)` is the raw wrapper; the version is taken from `params.version` (0 create, 1 cancel, 2 place, 3 resolve). Build the params with the `sdk.betting.*` helpers, which pin the version explicitly: a resolve and a place-bet differ only by the presence of `AMOUNT`, so auto-selection is too sharp an edge to rely on here.
+Parimutuel betting markets: create a market, place a bet, resolve it, cancel it, or edit an open market's membership lists. `sdk.bet(params)` is the raw wrapper; the version is taken from `params.version` (0 create, 1 cancel, 2 place, 3 resolve, 4 edit lists). Build the params with the `sdk.betting.*` helpers, which pin the version explicitly: a resolve and a place-bet differ only by the presence of `AMOUNT`, so auto-selection is too sharp an edge to rely on here.
 
-**Format Versions:** v0 (create market), v1 (cancel market), v2 (place bet), v3 (resolve market)
+**Format Versions:** v0 (create market), v1 (cancel market), v2 (place bet), v3 (resolve market), v4 (edit feed lists)
 
 **Format v0:** `BET|0|LABEL|OUTCOMES|TICK|FEE|DEADLINE|REFUND_WINDOW|MIN_AMOUNT|ALLOW_LIST|BLOCK_LIST|DETAILS|MEMO`  
 **Format v1:** `BET|1|FEED_ACTION_INDEX|MEMO`  
 **Format v2:** `BET|2|FEED_ACTION_INDEX|OUTCOME|AMOUNT|MEMO`  
 **Format v3:** `BET|3|FEED_ACTION_INDEX|OUTCOME|MEMO`
+
+**Format v4:** `BET|4|FEED_ACTION_INDEX|ALLOW_LIST|BLOCK_LIST|MEMO`
 
 **Param builders (`sdk.betting.*`):**
 
@@ -1207,6 +1209,7 @@ Parimutuel betting markets: create a market, place a bet, resolve it, or cancel 
 | `placeBetParams({...})` | v2 | `feedActionIndex`, `outcome` (zero-based index, or a label when `outcomes` is passed), `amount`, optional `outcomes` (enables label lookup and range checking), `memo` |
 | `resolveMarketParams({...})` | v3 | `feedActionIndex`, `outcome`, optional `outcomes`, `memo` |
 | `cancelMarketParams({...})` | v1 | `feedActionIndex`, optional `memo` |
+| `editMarketListsParams({...})` | v4 | `feedActionIndex`, `allowList`, `blockList`, optional `memo`; an omitted list retains its current value, `0` detaches it, and a positive LIST action index replaces it |
 
 **Market definition helpers:**
 
@@ -1226,7 +1229,8 @@ Parimutuel betting markets: create a market, place a bet, resolve it, or cancel 
 - `OUTCOME` is a **zero-based index** into `OUTCOMES`, never a label, on the wire. Pass `outcomes` to a builder to use labels safely; a numeric value is always read as an index, because labels that look like numbers are legal.
 - Compose `DETAILS` through `createMarketParams` rather than encoding it yourself: a market whose `DETAILS.outcomes` disagrees with its `OUTCOMES` is rejected on-chain.
 - `DETAILS` is capped at 4096 **decoded** bytes. It rides the wire base64-encoded and shares one 8192-byte ACTION ceiling with every other field, so a create at the cap encodes as a multi-chunk `P2SH`/`P2WSH` payload (the SDK selects this automatically).
-- Markets are immutable from creation; there is no edit format. The pre-bet fix path is cancel and recreate.
+- Version 4 changes only an open market's allow and block list references. It is creator-only, and affects only bets placed after the edit. Every other market term remains immutable.
+- The SDK can compose Version 4 without consulting chain activation state. An indexer rejects it below `BET_FEED_LIST_EDIT_ACTIVATION`.
 - The market's creator may not bet on its own market, and bets are final once placed.
 
 ```js

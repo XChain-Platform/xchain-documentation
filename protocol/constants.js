@@ -469,13 +469,14 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 };
 
 // ANCHOR_REWARD_ACTIVATION (anchor-reward re-derivation): the flag-day at/above which the validator
-// anchor reward stops being TRUSTED from the hub's `pushvalidatorrewards` JSON-RPC and is instead
+// anchor reward stops being TRUSTED from the hub over a key-authenticated JSON-RPC (since retired)
+// and is instead
 // DERIVED by every indexer from the on-chain ANCHOR bytes. Post-flag-day the hub emits a publisher-
 // bearing ANCHOR checkpoint bundle (v0 of the restarted wire set, whose sections carry the SPV roots)
 // carrying the elected publisher pubkey plus a 2f+1 `oracle_publish` attestation (XANCPUB) over the
 // `anchor_bundle` reward tuple; the indexer verifies that quorum and credits the publisher with
-// ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire). Below the flag-day the old
-// push path stands and the PUBLISHER tail an anchor carries earns no derived credit.
+// ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire). Below the flag-day the
+// legacy anchor wire applies and the PUBLISHER tail an anchor carries earns no derived credit.
 // Consensus-relevant (the
 // credited reward becomes a COLLECT-spendable per-block ledger row), so it must deploy hub + ALL
 // indexers atomically. Like CHECKPOINT_COMMITMENT_ACTIVATION / STAKE_WEIGHTED_QUORUM_ACTIVATION it gates
@@ -494,12 +495,14 @@ const ANCHOR_REWARD_ACTIVATION = {
 const ANCHOR_REWARD_AMOUNT = '10.00000000';
 
 // ARCHIVE_REWARD_ACTIVATION (archive-reward re-derivation): the flag-day at/above which the
-// anchor_archive reward stops riding the key-authenticated `pushvalidatorrewards` rail and is instead
+// anchor_archive reward stops riding the key-authenticated hub JSON-RPC rail (since retired) and is
+// instead
 // DERIVED by every indexer from the on-chain ANCHOR archive-head bytes (v1 of the restarted wire set,
 // carrying the same PUBLISHER + 2f+1 XANCPUB attestation tail the v0 bundle carries, attested over an
 // 'anchor_archive' canonical keyed on MATCH_BATCH_SEQ). This retires the last insider-with-key
-// reward-forge surface the per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the push path
-// stands and an archive head's PUBLISHER tail earns no derived credit. Consensus-relevant, same
+// reward-forge surface the per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the legacy
+// tail-less archive wire applies and an archive head's PUBLISHER tail earns no derived credit.
+// Consensus-relevant, same
 // deploy rules and snapshot_block gating as ANCHOR_REWARD_ACTIVATION; kept byte-identical to the
 // local copies in
 // xchain-{hub,indexer}/src/consensus/gates/anchor_reward_gate.js by the cross-service regression suite.
@@ -625,6 +628,17 @@ const ANCHOR_FOLD_ACTIVATION = {
     'DOGE:testnet': 67962387,
     testnet: 9999999999,
     regtest: null,
+};
+
+// Terminates legacy v1 anchor_archive rewards only where ANCHOR_FOLD_ACTIVATION is also active.
+// Public-network slots are unarmed; regtest exercises the term from genesis once the fold is armed.
+const ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION = {
+    mainnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
 };
 
 // ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION: the flag-day at/above which a folded v3
@@ -770,10 +784,11 @@ const ROLLCALL_REWARD_AMOUNT = '10.00000000';
 
 // RETRACTION_SIGNING_ACTIVATION (quorum-class retraction co-signing): the BTC-anchored
 // snapshot_block era at/above which a mirror REFUSES an unsigned quorum-class retraction
-// broadcast. Vendored byte-equal into xchain-{indexer,hub,explorer}/src/
-// retraction_signing_activation.js; a one-sided edit lets the hub sign under one era rule
-// while a mirror enforces another, forking the fleet at the boundary. Canonical map of
-// record for those copies (armed 2026-07-16).
+// broadcast. Kept equal to the registry row
+// retraction_signing_activation.RETRACTION_SIGNING_ACTIVATION every repo's registry parts carry
+// by the indexer's flag-day placeholder guard suite; a one-sided edit lets the hub sign under
+// one era rule while a mirror enforces another, forking the fleet at the boundary (armed
+// 2026-07-16).
 const RETRACTION_SIGNING_ACTIVATION = {
     mainnet: 963000,      // ARMED 2026-07-16, RE-PINNED 2026-08-12 off 969500 onto the shared pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
     testnet: 0,
@@ -902,6 +917,18 @@ const ATTEST_RELAY_ACTIVATION = {
     testnet: 0,
     regtest: 0,
 };
+
+// BTC snapshot height at which a relayed response reserves two flat broadcast
+// allowances from fee escrow before splitting the remainder. Public networks use
+// the sentinel until armed; regtest activates at genesis.
+const ATTEST_RELAY_FEE_ACTIVATION = Object.freeze({
+    mainnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+});
 
 // ATTEST_RESPONSIBLE_WIDENING_ACTIVATION (attestation Phase 4 liveness, spec §8.2): the flag-day
 // at/above which a request's responsible set WIDENS by one slot per window once the round has
@@ -1282,6 +1309,34 @@ const DISPENSER_CANCEL_GRACE_ACTIVATION = {
     // gives nothing back, so a public testnet WILL hit it. Safe at 0 because testnet
     // decoder/indexer state is REBUILT from the chain before launch.
     testnet: 0,
+    regtest: 0,
+};
+
+// DISPENSER_PURGE_GRACE_ACTIVATION: the block-time boundary at/above which the
+// decoder keeps a soft-expired dispenser until its cancellation grace period has
+// passed instead of hard-purging it at the raw expiration time. It is a separate
+// gate from DISPENSER_CANCEL_GRACE_ACTIVATION because capture eligibility and row
+// retention change independently.
+//
+// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
+// Regtest is genesis-active so the grace-aware purge path is exercised there.
+const DISPENSER_PURGE_GRACE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION: the block-time boundary at/above
+// which decoder batch registration collapse keys each operating address on the
+// address id the dispensers table resolves, instead of its raw address spelling.
+// This keeps one registration for values that resolve to the same table key and
+// avoids a duplicate-key insert selecting a different dispenser by accident.
+//
+// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
+// Regtest is genesis-active so the address-id collapse path is exercised there.
+const DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
     regtest: 0,
 };
 
@@ -1966,9 +2021,9 @@ const LIST_META_ACTIVATION = {
 // is judged exactly as it always has been.
 //
 // It is a flag day rather than an unconditional fix because the check RE-VERDICTS indexed
-// history: third-party edits are valid today and list_items is a hashed DERIVED table, so
-// refusing them on replay would move block hashes on a live chain. The replay corpus being
-// hash-identical below the height is the hard gate on this change.
+// history: third-party edits are valid below the flag day and list_items is a hashed DERIVED
+// table, so refusing them on replay would move block hashes on a live chain. The replay corpus
+// being hash-identical below the height is the hard gate on this change.
 const LIST_OWNER_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
@@ -2325,6 +2380,24 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
 });
 
+const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
+    DOGE: Object.freeze({
+        bridge_transfers:    14,
+        cross_chain_calls:   14,
+        cross_chain_matches: 14,
+        list_snapshots:      14,
+        policy_snapshots:    14,
+        price_snapshots:     16,
+    }),
+});
+
+const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
+    mainnet:        null,
+    'DOGE:mainnet': null,
+    'DOGE:testnet': 9999999999,
+    regtest:        0,
+});
+
 // ---------------------------------------------------------------------------
 // The anchor-attest barrier's maturity horizon (the family's parent item)
 // ---------------------------------------------------------------------------
@@ -2421,10 +2494,13 @@ module.exports = {
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
     ANCHOR_FOLD_ACTIVATION,
+    ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION,
     ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION,
     ADMIT_MARGIN_BLOCKS,
     ADMIT_MIN_FUTURE_BLOCKS,
     ADMIT_MAX_FUTURE_BLOCKS,
+    ADMIT_CHAIN_MARGIN_BLOCKS,
+    ADMIT_CHAIN_MARGIN_ACTIVATION,
     MIRROR_ADMISSION_ACTIVATION,
     MIRROR_ADMISSION_CONSUMER_ACTIVATION,
     MIRROR_ADMISSION_REGTEST_ENV,
@@ -2451,6 +2527,7 @@ module.exports = {
     ATTEST_REQUEST_CAP_ACTIVATION,
     ATTEST_REQUEST_CAPS,
     ATTEST_RELAY_ACTIVATION,
+    ATTEST_RELAY_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_CAP,
     ATTEST_RESPONSIBLE_WIDENING_ACTIVATION,
@@ -2463,6 +2540,8 @@ module.exports = {
     AMOUNT_REPRESENTABILITY_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
     DISPENSER_CANCEL_GRACE_ACTIVATION,
+    DISPENSER_PURGE_GRACE_ACTIVATION,
+    DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION,
     DISPENSER_FRESHNESS_SHAPE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
     ENVELOPE_RECOGNITION_ACTIVATION,

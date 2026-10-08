@@ -25,8 +25,10 @@ same chain or field.
 |---|---|---|
 | `amount_representability_activation` | `AMOUNT_REPRESENTABILITY_ACTIVATION` | time |
 | `anchor_activation` | `ANCHOR_ACTIVATION` | height |
+| `anchor_archive_fold_term_activation` | `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` | height |
 | `anchor_bundle_order_activation` | `ANCHOR_BUNDLE_ORDER_ACTIVATION` | height |
 | `anchor_fold_activation` | `ANCHOR_FOLD_ACTIVATION` | height |
+| `anchor_preactivation_status_activation` | `ANCHOR_PREACTIVATION_STATUS_ACTIVATION` | height |
 | `anchor_reward_activation` | `ANCHOR_REWARD_ACTIVATION` and related anchor/archive reward gates | height |
 | `archive_batch_author_activation` | `ARCHIVE_BATCH_AUTHOR_ACTIVATION` | height |
 | `archive_head_unverified_gate_activation` | `ARCHIVE_HEAD_UNVERIFIED_GATE_ACTIVATION` | height |
@@ -36,21 +38,26 @@ same chain or field.
 | `attest_admission_activation` | `ATTEST_ADMISSION_ACTIVATION` | height |
 | `attest_broadcast_fee_activation` | `ATTEST_BROADCAST_FEE_ACTIVATION` | height |
 | `attest_relay_activation` | `ATTEST_RELAY_ACTIVATION` | height |
+| `attest_relay_fee_activation` | `ATTEST_RELAY_FEE_ACTIVATION` | height |
 | `attest_relay_reject_slot_activation` | `ATTEST_RELAY_REJECT_SLOT_ACTIVATION` | time |
 | `attest_request_cap_activation` | `ATTEST_REQUEST_CAP_ACTIVATION` | height |
 | `attest_response_mirror_activation` | `ATTEST_RESPONSE_MIRROR_ACTIVATION` | height |
 | `attest_responsible_widening_activation` | `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` | height |
 | `attest_zero_conf_activation` | `ATTEST_ZERO_CONF_ACTIVATION` | height |
+| `bet_feed_list_edit_activation` | `BET_FEED_LIST_EDIT_ACTIVATION` | height |
 | `bridge_policy_detach_activation` | `BRIDGE_POLICY_DETACH` | height |
+| `bridge_policy_refusal_record_activation` | `BRIDGE_POLICY_REFUSAL_RECORD_ACTIVATION` | height |
 | `callback_compensation_activation` | `CALLBACK_COMPENSATES_EVERY_DEBITED_HOLDER` | height |
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
 | `consolidation_leg_amount_activation` | `CONSOLIDATION_LEG_AMOUNT_ACTIVATION` | time |
+| `cross_chain_offer_list_export_activation` | `CROSS_CHAIN_OFFER_LIST_EXPORT` | height |
 | `cross_chain_royalty_activation` | `CROSS_CHAIN_ROYALTY_ACTIVATION` | height |
 | `dispense_cancelling_match_activation` | `DISPENSE_CANCELLING_MATCH_ACTIVATION` | time |
 | `dispense_payment_tally_scale_activation` | `DISPENSE_PAYMENT_TALLY_SCALE_ACTIVATION` | time |
 | `dispenser_amount_positivity_activation` | `DISPENSER_AMOUNT_POSITIVITY_ACTIVATION` | time |
 | `dispenser_caps_activation` | `DISPENSER_CAPS_ACTIVATION` | time |
+| `dispenser_delay_protocol_time_activation` | `DISPENSER_DELAY_PROTOCOL_TIME_ACTIVATION` | height |
 | `dispenser_freshness_activation` | `DISPENSER_FRESHNESS_ACTIVATION` | height |
 | `dispenser_freshness_proven_use_activation` | `DISPENSER_FRESHNESS_PROVEN_USE_ACTIVATION` | time |
 | `dispenser_freshness_shape_activation` | `DISPENSER_FRESHNESS_SHAPE_ACTIVATION` | height |
@@ -82,11 +89,13 @@ same chain or field.
 | `list_union_activation` | `LIST_UNION_ACTIVATION` | height |
 | `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
 | `mirror_admission_activation` | `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` | height |
+| `mirror_admission_margin_activation` | `ADMIT_CHAIN_MARGIN_ACTIVATION` | height |
 | `oracle_hourly_window_activation` | `ORACLE_HOURLY_WINDOW_FIRST_ROUND` | constant |
 | `oracle_preload_causality_activation` | `ORACLE_PRELOAD_CAUSALITY_ACTIVATION` | height |
 | `oracle_price_age_hourly_activation` | `ORACLE_PRICE_AGE_HOURLY_ACTIVATION` | height |
 | `oracle_round_time_activation` | `ORACLE_ROUND_TIME_ACTIVATION` | height |
 | `oracle_snapshot_age_causality_activation` | `ORACLE_SNAPSHOT_AGE_CAUSALITY_ACTIVATION` | height |
+| `oracle_snapshot_age_seconds_activation` | `ORACLE_SNAPSHOT_AGE_SECONDS_ACTIVATION` | height |
 | `oracle_stale_round_visibility_activation` | `ORACLE_STALE_ROUND_VISIBILITY_ACTIVATION` | height |
 | `order_swap_payout_policy_activation` | `ORDER_SWAP_PAYOUT_POLICY_PER_TOKEN` | height |
 | `price_batching_floor_activation` | `PRICE_BATCHING_FLOOR_ACTIVATION` | time |
@@ -95,6 +104,7 @@ same chain or field.
 | `price_pair_activation` | `PRICE_PAIR_WIDEN_ACTIVATION` | time |
 | `price_scale_activation` | `PRICE_SCALE_ACTIVATION` | time |
 | `price_sig_tally_activation` | `PRICE_SIG_TALLY_ACTIVATION` | height |
+| `price_wire_trailing_activation` | `PRICE_WIRE_TRAILING_ACTIVATION` | height |
 | `price_zero_validity_activation` | `PRICE_ZERO_VALIDITY_ACTIVATION` | time |
 
 ## R through X

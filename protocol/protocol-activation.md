@@ -54,6 +54,12 @@ and 16 at `0.2.0`, so an action becomes available as soon as the node runs new e
 non-zero threshold in the registry therefore belongs to a *behaviour* change applied to an
 already-live action, not to the arrival of an action.
 
+Format-specific behavior can have its own gate even when the ACTION name is already live. BET
+Version `4` uses the height-keyed `bet_feed_list_edit_activation.BET_FEED_LIST_EDIT_ACTIVATION` row:
+at or above the configured height, the creator of an open feed may edit its allow and block list
+references; below it, Version `4` is invalid. The row is introduced unarmed on every network and
+must be armed through the normal flag-day process before the format is accepted there.
+
 ### Time-keyed vs height-keyed
 
 - **Height-keyed** gates pin activation to a specific block on one chain. Use this when the change is
@@ -93,7 +99,7 @@ re-runs an action handler, a deploy validator, or the VM.
 | Service | Carries |
 |---|---|
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
-| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus the own-date `REST_PATTERN_METER_GATE_BLOCK_TIME` (destructuring rest-pattern metering and the deploy rejection of rest positions the meter cannot reach; it does not ride the contract-era instant, its value is on [Flag-Day Values](./flag-days.md), and its indexer twin is `REST_PATTERN_METER`) plus `JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME` (hook-aware depth guarding for values transformed by `JSON.stringify`; it keys on its own flag day and stays inert until the operator arms it, its status is on [Flag-Day Values](./flag-days.md), and its indexer twin is `JSON_STRINGIFY_HOOK`) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus four per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION`, and the mainnet-unarmed `LINT_OPTIONAL_CHAIN_ACTIVATION` ([VM gates](#vm-gates-service-carried)) plus three network-keyed block-time maps, all unarmed on mainnet: `ACCESSOR_OWN_KEY_ACTIVATION` in `readonly-accessors.js` (a readonly snapshot lookup resolves only own keys, so an inherited name such as `constructor` reads as absent; testnet and regtest run it from genesis, and its indexer twin is `READONLY_ACCESSOR_OWN_KEY`), `GAS_CEILING_SUCCESS_ACTIVATION` in `gas.js` (a run that reached the host as a success although a charge crossed the gas ceiling inside the isolate fails instead; it is a static on `GasTracker`, not a module export, and only regtest runs it, from genesis) and `ITER_SET_METER_ACTIVATION` in `index.js` (meters iterator helpers, String well-formedness, the Set algebra family and long-argument `Function.prototype.apply`; only regtest runs it, from genesis) |
+| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus the own-date `REST_PATTERN_METER_GATE_BLOCK_TIME` (destructuring rest-pattern metering and the deploy rejection of rest positions the meter cannot reach; it does not ride the contract-era instant, its value is on [Flag-Day Values](./flag-days.md), and its indexer twin is `REST_PATTERN_METER`) plus `JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME` (hook-aware depth guarding for values transformed by `JSON.stringify`; it keys on its own flag day and stays inert until the operator arms it, its status is on [Flag-Day Values](./flag-days.md), and its indexer twin is `JSON_STRINGIFY_HOOK`) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus seven per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION`, `LINT_BANNED_WITH_ACTIVATION` (inert until an operator arms it), the mainnet-unarmed `LINT_OPTIONAL_CHAIN_ACTIVATION` ([VM gates](#vm-gates-service-carried)), `BIGINT_SURFACE_STRIP_ACTIVATION` in `index/bigint_surface_strip_heights.js` (inert on mainnet and testnet until an operator arms it; regtest runs it from genesis), and `LINT_DESTRUCTURE_ACTIVATION` in `index/lint_destructure_heights.js` (the deploy linter's destructuring checks; inert on mainnet and testnet until an operator arms it; regtest runs it from genesis) plus four network-keyed block-time maps, all unarmed on mainnet: `ACCESSOR_OWN_KEY_ACTIVATION` in `readonly-accessors.js` (a readonly snapshot lookup resolves only own keys, so an inherited name such as `constructor` reads as absent; testnet and regtest run it from genesis, and its indexer twin is `READONLY_ACCESSOR_OWN_KEY`), `GAS_CEILING_SUCCESS_ACTIVATION` in `gas.js` (a run that reached the host as a success although a charge crossed the gas ceiling inside the isolate fails instead; it is a static on `GasTracker`, not a module export, and only regtest runs it, from genesis), `ITER_SET_METER_ACTIVATION` in `index.js` (meters iterator helpers, String well-formedness and the Set algebra family, and while active also turns on call-spread metering; only regtest runs it, from genesis) and `APPLY_LENGTH_METER_ACTIVATION` in `index/apply_length_meter.js` (charges long-argument `Function.prototype.apply` by argument count and `ArrayBuffer` `resize`, `transfer` and `transferToFixedLength` by their new byte length; only regtest runs it, from genesis, and its indexer twin is `APPLY_LENGTH_METER`) |
 | `xchain-hub` | the nine validator-era gate modules it consumes (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical, retraction signing, attestation relay, price signature tally). The tenth Cohort B gate, attestation admission, is indexer-only |
 | `xchain-decoder` | the six activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` and `ENVELOPE_CARRIER_RECOGNITION_ACTIVATION` (per-chain local height) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
@@ -183,12 +189,14 @@ specifically: the block-time [decoder-carried gates](#decoder-carried-gates) als
 disarmed, and a block-time map can encode the same "not yet" as a far-future sentinel instant
 rather than as `null`.
 
-`ANCHOR_ACTIVATION` is height-keyed and **armed on both live networks**, but sits outside the three
-cohorts: it is keyed on the anchor's own DOGE mined height (`DOGE:mainnet` 6360000, `DOGE:testnet`
-67858600, regtest 0), not on a shared instant, a BTC anchor, or each chain's own local height. At or
-above it the restarted ANCHOR wire set parses (versions 0, 1 and 2 only); below it an ANCHOR of any
-version is `invalid: ANCHOR before activation`. Mainnet's height sits above the DOGE tip on purpose,
-so the restarted wire set has not activated there yet. Stragglers **fork**.
+`ANCHOR_ACTIVATION` is height-keyed and carries a ratified height on both live networks, but sits
+outside the three cohorts: it is keyed on the anchor's own DOGE mined height (`mainnet` 6360000,
+`testnet` 67858600, `regtest` 0), not on a shared instant, a BTC anchor, or each chain's own local
+height. Its keys are the bare network names, with no coin prefix, because DOGE is the height basis
+and not part of the key. At or above it the restarted ANCHOR wire set parses (versions 0, 1 and 2
+only); below it an ANCHOR of any version is `invalid: ANCHOR before activation`. Armed is not
+active: testnet's height is already past, while mainnet's sits above the DOGE tip on purpose, so the
+restarted wire set has not activated on mainnet yet. Stragglers **fork**.
 
 `ARCHIVE_MATCH_COUNT_ACTIVATION` gates validation that an archive head's `MATCH_COUNT` equals its
 archive member count. It remains inert on mainnet until the operator arms it. Testnet is armed per
@@ -227,12 +235,22 @@ folded action's own archive failure stamps only the archive row instead of the w
 carries the fold's values on every network, so testnet is armed per chain at the same heights, and
 the same regtest variable arms both gates at the same height.
 
+`ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION` gates the state-hash class for the batch-completion stamp
+on a surviving version 5 attestation head. At or above it, a version 6 continuation that completes
+with a reassembly or quorum failure changes the state hash through the stamped head, so a follower
+that drops the stamp halts on the mismatch. The height map remains unarmed on mainnet and testnet;
+regtest is genesis-active.
+
 `BRIDGE_POLICY_DETACH` gates the destination half of a bridged policy list detach, described under
 [policy inheritance](./token-bridge.md#policy-inheritance). It is read at the destination chain's
 own block height. At or above it, a bridged copy whose origin issuer detached its allow or block
 list gets that list detached too; below it, the copy's list stays attached. It is armed on testnet
 at each chain's own height (`BTC:testnet` 155001, `LTC:testnet` 4906040, `DOGE:testnet`
 67962387), stays unarmed on mainnet until the operator arms it, and regtest is genesis-active.
+
+`BET_FEED_LIST_EDIT_ACTIVATION` is the per-chain height gate reserved for edits to an open BET
+feed's allow-list and block-list references. The production networks remain inert until a release
+arms them, while regtest exercises the gated path from genesis.
 
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
@@ -268,6 +286,15 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
 - **`DISPENSER_REFILL` is not genesis-active on testnet either**: it is unarmed there, as on
   mainnet, so a dispenser refill runs no controller guard on testnet until an operator arms it
   (see [Flag-Day Values](./flag-days.md)).
+- **Four more time-keyed rules are unarmed on testnet, as on mainnet**, so a testnet stack runs
+  none of them until an operator arms it (status on [Flag-Day Values](./flag-days.md)):
+  - `APPLY_LENGTH_METER`, the indexer twin of the VM's `APPLY_LENGTH_METER_ACTIVATION`, which
+    meters long-argument `Function.prototype.apply` and `ArrayBuffer` resize and transfer.
+  - `SLASH_XANCPUB_PUBLISHER_PAIR`, which judges an XANCPUB equivocation proof as a
+    publisher-only pair.
+  - `STAKE_SNAPSHOT_SLASH_WINDOW`, which caps a mid-UNSTAKE stake row in the VM stake snapshot at
+    what its open unstake rows still hold.
+  - `SLASH_ATTEST_MULTIROUND_EXEMPT`, which stops an XATTEST base-leg pair from being slashable.
 - **Cohort C (state commitment) is armed at future _per-chain_ heights on testnet, not from genesis**
   (`STATE_COMMITMENT_ACTIVATION`: `BTC:testnet 145000`, `LTC:testnet 4805000`,
   `DOGE:testnet 67000000`), because it gates on each chain's own local block height rather than a

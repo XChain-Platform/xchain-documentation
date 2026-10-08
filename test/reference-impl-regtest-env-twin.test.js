@@ -22,6 +22,14 @@ const VENDORED_SHARED_ROWS = path.join(
 const CANONICAL_SHARED_ROWS = path.resolve(
     GIT_COMMON_DIR, '..', '..', 'xchain-indexer', 'src', 'protocol_changes', 'shared_rows.js',
 );
+const SHARED_ROWS_PARTS = [
+    'shared_rows.js',
+    'shared_rows_1.js',
+    'shared_rows_2.js',
+    'shared_rows_3.js',
+    'shared_rows_4.js',
+    'shared_rows_5.js',
+];
 
 function sha256(file) {
     return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
@@ -31,9 +39,13 @@ test('the vendored regtest environment helper matches the indexer canonical file
     assert.equal(sha256(VENDORED), sha256(CANONICAL));
 });
 
-test('the vendored shared-row queue matches the indexer canonical file', () => {
-    assert.equal(sha256(VENDORED_SHARED_ROWS), sha256(CANONICAL_SHARED_ROWS));
-});
+for (const name of SHARED_ROWS_PARTS) {
+    test(`the vendored ${name} matches the indexer canonical file`, () => {
+        const vendored = path.join(path.dirname(VENDORED_SHARED_ROWS), name);
+        const canonical = path.join(path.dirname(CANONICAL_SHARED_ROWS), name);
+        assert.equal(sha256(vendored), sha256(canonical));
+    });
+}
 
 test('the vendored regtest environment helper exports regtestTimeOverride', () => {
     const { regtestTimeOverride } = require(VENDORED);

@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Drift lint for six cross-page claims this corpus has already contradicted
+ * Drift lint for cross-page claims this corpus has already contradicted
  * itself about. Each block below guards one of them.
  *
  * WHY, per claim:
@@ -59,6 +59,12 @@
  *      described the retired Merkle-root-only audit anchor, which could verify
  *      a surviving copy but never rebuild one, while its own action list sent
  *      readers to §9 for the archive.
+ *
+ *   8. Whitepaper mainnet status notes. The ROLLCALL and attest broadcast-fee
+ *      notes still said mainnet ships inert after both gates were armed at
+ *      genesis, while rollcall.md and the validator guide said armed. A mainnet
+ *      validator trusting the whitepaper skips the DOGE read its BTC indexer
+ *      needs. The notes are checked against protocol/constants.js.
  *
  * The capacity figure is read out of the sibling xchain-encoder checkout
  * rather than typed here, and SKIPS when that sibling is absent: the
@@ -321,4 +327,99 @@ test('falsification: the retired audit-anchor sentence is caught in §9', () => 
     const stale = page.replace(/^## 10\. /m,
         'An optional Merkle-rooted audit anchor may be published to a chain for transparency.\n\n## 10. ');
     assert.throws(() => assertMatchArchiveClaim(stale));
+});
+
+/* ---------------------------------------------------------------- claim 7 */
+
+const WS_DOC = 'components/explorer/websocket.md';
+const WS_CONFIG_DOC = 'components/explorer/configuration.md';
+
+function markdownSection(markdown, heading) {
+    const start = markdown.indexOf(heading);
+    assert.notEqual(start, -1, `${heading} section moved; re-point markdownSection`);
+    const next = markdown.indexOf('\n## ', start + heading.length);
+    return markdown.slice(start, next === -1 ? markdown.length : next);
+}
+
+function assertRowAtomicBackpressureClaims(websocket, configuration) {
+    const reconnect = markdownSection(websocket, '## Reconnection and Catch-Up');
+    const wsConfig = markdownSection(websocket, '## Configuration');
+
+    for (const [name, text] of [
+        ['websocket reconnect procedure', reconnect],
+        ['websocket configuration row', wsConfig],
+        ['explorer configuration row', configuration],
+    ]) {
+        assert.match(text, /decided once per action row/i,
+            `${name} no longer states the row-atomic admission boundary`);
+        assert.match(text, /at or below[^.]*whole wanted row|at or below[^.]*every wanted frame/i,
+            `${name} no longer states that an admitted row is delivered whole`);
+        assert.match(text, /above (?:the limit|it)[^.]*no frame from that row/i,
+            `${name} no longer states that a rejected row sends no frames`);
+        assert.match(text, /4008[^.]*after the row ends/i,
+            `${name} no longer defers the backpressure close to the row boundary`);
+    }
+
+    assert.doesNotMatch(websocket,
+        /A frame the client wanted that finds it above this is dropped/i,
+        'websocket.md restored the frame-by-frame backpressure claim');
+}
+
+test('explorer backpressure docs describe row-atomic action admission', () => {
+    assertRowAtomicBackpressureClaims(readDoc(WS_DOC), readDoc(WS_CONFIG_DOC));
+});
+
+test('falsification: frame-by-frame backpressure wording is caught', () => {
+    const websocket = readDoc(WS_DOC).replace(
+        /Backpressure admission is decided once per action row[^|\n]*/,
+        'A frame the client wanted that finds it above this is dropped');
+    assert.throws(() => assertRowAtomicBackpressureClaims(websocket, readDoc(WS_CONFIG_DOC)));
+});
+
+/* ---------------------------------------------------------------- claim 8 */
+
+const CONSTANTS = require(path.join(ROOT, 'protocol', 'constants.js'));
+
+// Pair each whitepaper status note, found by its line's anchor, with the gate it describes.
+const WHITEPAPER_GATE_NOTES = [
+    { anchor: /^- \*\*ROLLCALL\*\* is a validator-broadcast/, gate: 'ROLLCALL_ACTIVATION' },
+    { anchor: /broadcast fee be reimbursed from the request's escrow/, gate: 'ATTEST_BROADCAST_FEE_ACTIVATION' },
+];
+const INERT_NOTE = /ships inert|operator-owned|\binert\b/i;
+const GENESIS_NOTE = /armed at genesis on (?:mainnet|every network)/i;
+
+// Return the line holding the anchor, failing loudly when the anchor moved.
+function gateNoteLine(markdown, anchor) {
+    const line = markdown.split('\n').find((l) => anchor.test(l));
+    assert.ok(line, `whitepaper.md no longer has a line matching ${anchor}; re-point WHITEPAPER_GATE_NOTES`);
+    return line;
+}
+
+function assertWhitepaperGateNotes(markdown) {
+    for (const { anchor, gate } of WHITEPAPER_GATE_NOTES) {
+        const line = gateNoteLine(markdown, anchor);
+        const mainnet = CONSTANTS[gate].mainnet;
+        if (mainnet === 0) {
+            assert.doesNotMatch(line, INERT_NOTE,
+                `whitepaper.md calls ${gate} inert or operator-owned on mainnet, but protocol/constants.js `
+                + 'arms it at genesis there; fix the prose, not the constant');
+            assert.match(line, GENESIS_NOTE,
+                `whitepaper.md no longer says ${gate} is armed at genesis on mainnet`);
+        } else {
+            assert.doesNotMatch(line, GENESIS_NOTE,
+                `whitepaper.md says ${gate} is armed at genesis on mainnet, but protocol/constants.js `
+                + `ships mainnet: ${JSON.stringify(mainnet)}`);
+        }
+    }
+}
+
+test('the whitepaper mainnet status notes match the activation constants', () => {
+    assertWhitepaperGateNotes(readDoc('whitepaper.md'));
+});
+
+test('falsification: the pre-ruling inert ROLLCALL note is caught', () => {
+    const stale = readDoc('whitepaper.md').replace(/\*\(armed at genesis on mainnet since[^\n]*?\)\*/,
+        '*(pre-launch: armed on testnet; mainnet ships inert, its activation height operator-owned.)*');
+    assert.notEqual(stale, readDoc('whitepaper.md'), 'the ROLLCALL note moved; re-point this falsification');
+    assert.throws(() => assertWhitepaperGateNotes(stale));
 });

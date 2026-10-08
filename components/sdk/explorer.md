@@ -591,7 +591,7 @@ Get contract token balances (all ticks or a specific tick).
 - **Endpoint:** `GET /{COIN}/api/contract/{contractActionIndex}/balance` or `GET /{COIN}/api/contract/{contractActionIndex}/balance/{tick}`
 
 #### `getExecution(executionActionIndex)`
-Get a single execution result by its ACTION_INDEX.
+Get a single execution by its ACTION_INDEX. The explorer answers the list envelope `{ data, total }`, so read `data[0]`; it is absent until the execution is indexed. A row carries `action_index`, `contract_index`, `caller`, `method_name`, `input_params`, `gas_used`, `gas_limit`, `emitted_count`, `error_message` and `status`, where `status` is `valid` for a successful run.
 
 - **Endpoint:** `GET /{COIN}/api/execution/{executionActionIndex}`
 

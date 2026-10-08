@@ -304,11 +304,11 @@ The SDK provides these explorer methods for querying VM data:
 
 | Method | Description |
 |--------|-------------|
-| `sdk.getContract(actionIndex)` | Contract metadata (address, owner, status, deploy block, and the recorded identity: `meta_name`, `meta_description`, `meta_version`, plus `meta` as the parsed manifest object) |
+| `sdk.getContract(actionIndex)` | Contract record in snake_case (`action_index`, deployer `source`, `code_hash`, `status`, deploy `block_index`, and the recorded identity: `meta_name`, `meta_description`, `meta_version`, plus `meta` as the parsed manifest object) |
 | `sdk.getContracts(query?, type?, opts?)` | List contracts, optionally filtered; `type: 'name'` searches the recorded name and description |
-| `sdk.getContractState(actionIndex, key?)` | Contract state (all keys or one key) |
-| `sdk.getContractBalance(actionIndex, tick?)` | Contract token balances |
-| `sdk.getExecution(actionIndex)` | Single execution result |
+| `sdk.getContractState(actionIndex, key?)` | Contract state as `{ data, total }`; each row has `state_key` and `state_value` (JSON text) |
+| `sdk.getContractBalance(actionIndex, tick?)` | Contract token balances as `{ data, total }`; each row has `tick` and `amount` |
+| `sdk.getExecution(actionIndex)` | Single execution, inside `{ data, total }`: read `data[0]` |
 | `sdk.getExecutions(contractActionIndex?, opts?)` | Execution history |
 | `sdk.getDeposits(query, type, opts?)` | Deposit records |
 | `sdk.getWithdrawals(query, type, opts?)` | Withdrawal records |
@@ -327,13 +327,15 @@ These are **independent**. A transaction can confirm successfully but the contra
 To check whether a contract execution succeeded:
 
 ```js
-let exec = await sdk.getExecution(actionIndex);
-if (exec.success) {
-    console.log('Gas used:', exec.gasUsed);
-    console.log('Return value:', exec.returnValue);
+let res  = await sdk.getExecution(actionIndex);
+let exec = res.data[0];
+if (!exec) {
+    console.log('Not indexed yet');
+} else if (exec.status === 'valid') {
+    console.log('Gas used:', exec.gas_used);
 } else {
     // Possible errors: 'revert: ...', 'out_of_gas: ...', 'timeout: ...', 'error: ...'
-    console.log('Failed:', exec.error);
+    console.log('Failed:', exec.error_message);
 }
 ```
 

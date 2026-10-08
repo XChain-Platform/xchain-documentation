@@ -98,7 +98,8 @@ These values are defined in source code. Most are fixed; the rows that name an e
 
 | Constant | Value | Location | Description |
 |---|---|---|---|
-| `MAX_ACTION_DATA_LENGTH` | `8192` | XChainDecoder.js | Maximum **compiled** on-chain ACTION payload size in bytes (the script push measured before decompile strips the OP_PUSHDATA prefix; the decoded ACTION string is 1–3 bytes shorter). A tx is skipped when its compiled push exceeds 8192 bytes. |
+| `MAX_ACTION_DATA_LENGTH` | `8192` | protocol/constants/action_size.js | Maximum **compiled** on-chain ACTION payload size in bytes for the legacy lanes (OP_RETURN, multisig, P2SH, P2WSH): the script push measured before decompile strips the OP_PUSHDATA prefix, so the decoded ACTION string is 1–3 bytes shorter. When a payload exceeds its lane's ceiling the decoder logs an error, counts a parse error and drops the ACTION. The tx is still stored with an empty ACTION if it carries dispense or payment outputs, and is skipped only if it carries neither. |
+| `ENVELOPE_MAX_PAYLOAD` | `390000` | protocol/constants/action_size.js | The Taproot envelope's payload ceiling, which replaces `MAX_ACTION_DATA_LENGTH` for that lane only. Measured on the reassembled envelope payload before parse, excluding the envelope's own push framing; derived from the standard transaction weight limit (see [Encoding](../../concepts/encoding.md)). The same drop-the-ACTION, keep-the-tx-if-it-has-outputs rule applies. |
 | `SATOSHIS_DECIMALS` | `8` | db.js | Decimal places for satoshi-to-coin conversion |
 | `DB_TRANSACTION_BLOCKS_QUANTITY` | `1` | XChainDecoder.js | Blocks per database transaction |
 

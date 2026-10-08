@@ -912,11 +912,11 @@ let result = await sdk.execute({
 console.log(result.actionString);  // EXECUTE|0|12345|greet|Alice
 
 // After the transaction confirms, check execution results via explorer
-let exec = await sdk.getExecution(actionIndex);
-if (exec.success) {
-    console.log('Return value:', exec.returnValue);
-} else {
-    console.log('Execution failed:', exec.error);
+let exec = (await sdk.getExecution(actionIndex)).data[0];
+if (exec && exec.status === 'valid') {
+    console.log('Gas used:', exec.gas_used);
+} else if (exec) {
+    console.log('Execution failed:', exec.error_message);
 }
 ```
 

@@ -37,6 +37,8 @@
  *   3. Testnet inert claims. No bullet for a gate the registry arms on testnet
  *      calls that gate inert, and the list claims gates "remain inert" only
  *      while the registry really parks some testnet slot on the sentinel.
+ *   4. ANCHOR_ACTIVATION keys. The paragraph on that row spells its keys as
+ *      the bare network names the row carries, with matching heights.
  *
  * WHY THE COUNT ASSERTIONS ARE HERE. A prose parse that stops matching returns
  * an empty set, and an empty set satisfies every "each of these must" loop
@@ -248,6 +250,45 @@ test('no testnet-armed gate is called inert in the exception list', {
             gen.collectTestnetUnarmed().length > 0,
             `${PAGE_REL} says some testnet exceptions remain inert, but the registry parks no testnet `
             + 'slot on the sentinel: every listed gate arms testnet at an instant of its own.',
+        );
+    }
+});
+
+const ANCHOR_LEADIN = '`ANCHOR_ACTIVATION` is height-keyed';
+
+/** The ANCHOR_ACTIVATION paragraph, from its lead-in to the blank line that ends it. */
+function anchorParagraph() {
+    const start = PAGE.indexOf(ANCHOR_LEADIN);
+    assert.notStrictEqual(
+        start, -1,
+        `the ANCHOR_ACTIVATION paragraph ("${ANCHOR_LEADIN}") is gone from ${PAGE_REL}. If it was `
+        + 'reworded, retarget this guard; it cannot check a paragraph it cannot find.',
+    );
+    const rest = PAGE.slice(start);
+    const end = rest.indexOf('\n\n');
+    return (end === -1 ? rest : rest.slice(0, end)).replace(/\s+/g, ' ');
+}
+
+test('the ANCHOR_ACTIVATION paragraph spells the row\'s own network keys and heights', () => {
+    const para = anchorParagraph();
+    const row = CONSTANTS.ANCHOR_ACTIVATION;
+    // The row is keyed by bare network name; a coin prefix names a key the row does not have.
+    assert.doesNotMatch(
+        para, /`[A-Z]{3,4}:(mainnet|testnet|regtest)`/,
+        `${PAGE_REL} spells an ANCHOR_ACTIVATION key with a coin prefix, but protocol/constants.js `
+        + `keys the row by bare network name: ${JSON.stringify(row)}.`,
+    );
+    const pairs = [...para.matchAll(/`(mainnet|testnet|regtest)` (\d+)/g)];
+    assert.ok(
+        pairs.length >= 3,
+        `only ${pairs.length} network/height pairs matched in the ${PAGE_REL} ANCHOR_ACTIVATION `
+        + 'paragraph, so the pair parse in this guard stopped matching; an empty set passes the loop below.',
+    );
+    for (const [, net, height] of pairs) {
+        assert.strictEqual(
+            row[net], Number(height),
+            `${PAGE_REL} gives ANCHOR_ACTIVATION ${net} as ${height}, but protocol/constants.js ships `
+            + `${JSON.stringify(row[net])}. Correct the prose, never the constant.`,
         );
     }
 });
