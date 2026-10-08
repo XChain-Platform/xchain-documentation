@@ -89,6 +89,7 @@ same chain or field.
 | `list_union_activation` | `LIST_UNION_ACTIVATION` | height |
 | `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
 | `mirror_admission_activation` | `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` | height |
+| `mirror_admission_margin_activation` | `ADMIT_CHAIN_MARGIN_ACTIVATION` | height |
 | `oracle_hourly_window_activation` | `ORACLE_HOURLY_WINDOW_FIRST_ROUND` | constant |
 | `oracle_preload_causality_activation` | `ORACLE_PRELOAD_CAUSALITY_ACTIVATION` | height |
 | `oracle_price_age_hourly_activation` | `ORACLE_PRICE_AGE_HOURLY_ACTIVATION` | height |

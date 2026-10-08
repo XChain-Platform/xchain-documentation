@@ -630,6 +630,17 @@ const ANCHOR_FOLD_ACTIVATION = {
     regtest: null,
 };
 
+// Terminates legacy v1 anchor_archive rewards only where ANCHOR_FOLD_ACTIVATION is also active.
+// Public-network slots are unarmed; regtest exercises the term from genesis once the fold is armed.
+const ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION = {
+    mainnet: 9999999999,
+    'BTC:testnet': 9999999999,
+    'LTC:testnet': 9999999999,
+    'DOGE:testnet': 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION: the flag-day at/above which a folded v3
 // anchor's archive verdict is SECTION-SCOPED. `setAnchorArchiveStatus` stamps only the archive
 // row (`match_batch_seq IS NOT NULL AND version <> 2`) instead of the whole action, so a late
@@ -1309,6 +1320,20 @@ const DISPENSER_CANCEL_GRACE_ACTIVATION = {
 // Mainnet and testnet remain unarmed so existing history is not reinterpreted.
 // Regtest is genesis-active so the grace-aware purge path is exercised there.
 const DISPENSER_PURGE_GRACE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION: the block-time boundary at/above
+// which decoder batch registration collapse keys each operating address on the
+// address id the dispensers table resolves, instead of its raw address spelling.
+// This keeps one registration for values that resolve to the same table key and
+// avoids a duplicate-key insert selecting a different dispenser by accident.
+//
+// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
+// Regtest is genesis-active so the address-id collapse path is exercised there.
+const DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
     regtest: 0,
@@ -2354,6 +2379,24 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
 });
 
+const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
+    DOGE: Object.freeze({
+        bridge_transfers:    14,
+        cross_chain_calls:   14,
+        cross_chain_matches: 14,
+        list_snapshots:      14,
+        policy_snapshots:    14,
+        price_snapshots:     16,
+    }),
+});
+
+const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
+    mainnet:        null,
+    'DOGE:mainnet': null,
+    'DOGE:testnet': 9999999999,
+    regtest:        0,
+});
+
 // ---------------------------------------------------------------------------
 // The anchor-attest barrier's maturity horizon (the family's parent item)
 // ---------------------------------------------------------------------------
@@ -2450,10 +2493,13 @@ module.exports = {
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
     ANCHOR_FOLD_ACTIVATION,
+    ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION,
     ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION,
     ADMIT_MARGIN_BLOCKS,
     ADMIT_MIN_FUTURE_BLOCKS,
     ADMIT_MAX_FUTURE_BLOCKS,
+    ADMIT_CHAIN_MARGIN_BLOCKS,
+    ADMIT_CHAIN_MARGIN_ACTIVATION,
     MIRROR_ADMISSION_ACTIVATION,
     MIRROR_ADMISSION_CONSUMER_ACTIVATION,
     MIRROR_ADMISSION_REGTEST_ENV,
@@ -2494,6 +2540,7 @@ module.exports = {
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
     DISPENSER_CANCEL_GRACE_ACTIVATION,
     DISPENSER_PURGE_GRACE_ACTIVATION,
+    DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION,
     DISPENSER_FRESHNESS_SHAPE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
     ENVELOPE_RECOGNITION_ACTIVATION,

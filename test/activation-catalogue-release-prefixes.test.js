@@ -16,6 +16,12 @@ const REGISTRY_DIR = 'src/protocol_changes';
 const indexer = sibling('xchain-indexer', [REGISTRY_FILE, REGISTRY_DIR]);
 const TABLE_HEADINGS = ['A through E', 'G through P', 'R through X'];
 const EXPECTED = [
+    [
+        'anchor_archive_fold_term_activation',
+        'ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION',
+        'A through E',
+        'height',
+    ],
     ['anchor_bundle_order_activation', 'ANCHOR_BUNDLE_ORDER_ACTIVATION', 'A through E', 'height'],
     ['anchor_fold_activation', 'ANCHOR_FOLD_ACTIVATION', 'A through E', 'height'],
     ['archive_match_count_activation', 'ARCHIVE_MATCH_COUNT_ACTIVATION', 'A through E', 'height'],
@@ -55,6 +61,7 @@ const EXPECTED = [
         'height',
     ],
     ['market_list_source_activation', 'MARKET_LIST_SOURCE_ACTIVATION', 'G through P', 'height'],
+    ['mirror_admission_margin_activation', 'ADMIT_CHAIN_MARGIN_ACTIVATION', 'G through P', 'height'],
     [
         'order_swap_payout_policy_activation',
         'ORDER_SWAP_PAYOUT_POLICY_PER_TOKEN',
@@ -135,9 +142,12 @@ test('release activation prefixes have exact catalogue rows', () => {
 });
 
 test('a dropped release activation row fails catalogue parsing', () => {
-    const dropped = doc.replace(/^\| `anchor_fold_activation` .*\n/m, '');
+    const dropped = doc.replace(/^\| `anchor_archive_fold_term_activation` .*\n/m, '');
     assert.notEqual(dropped, doc, 'falsification fixture did not remove its row');
-    assert.throws(() => parseReleasePrefixes(dropped), /anchor_fold_activation must appear exactly once/);
+    assert.throws(
+        () => parseReleasePrefixes(dropped),
+        /anchor_archive_fold_term_activation must appear exactly once/,
+    );
 });
 
 test('every registry *_activation stem has a catalogue row', { skip: indexer.skip }, () => {
