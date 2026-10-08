@@ -1970,7 +1970,7 @@ const LIST_META_ACTIVATION = {
 // refusing them on replay would move block hashes on a live chain. The replay corpus being
 // hash-identical below the height is the hard gate on this change.
 const LIST_OWNER_ACTIVATION = {
-    mainnet: 9999999999,
+    mainnet: 0,
     testnet: 9999999999,
     'BTC:testnet': 155001,
     'LTC:testnet': 4906040,
