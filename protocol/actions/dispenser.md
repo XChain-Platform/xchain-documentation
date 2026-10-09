@@ -150,7 +150,7 @@ stateDiagram-v2
 - On `SWEEP`-closure: ownership is delivered to the SWEEP `DESTINATION`
 
 ## Notes
-- Dispensers are closed and any escrowed funds returned after a set amount of time (1 hour)
+- A cancelled dispenser is closed, and its escrowed funds returned, after a set close delay (1 hour; see [Dispenser Close Window](#dispenser-close-window)). Expiry, selling out and reaching the fill limit close a dispenser in the same block, with no close delay
 - Dispenser `LIST` edits are delayed a set amount of time (1 hour)
 - Dispensers are limited to a maximum number of dispenses per fill (1,000, enforced). The dispense that reaches the limit still executes; the dispenser then auto-closes and any remaining escrow is routed like any close: to the SWEEP `DESTINATION` if a SWEEP had already put the dispenser into its close window, otherwise to the recorded canceller (`GET_ADDRESS` or `SOURCE`) if it was already cancelling, otherwise to `SOURCE` (see the cancel and sweep bullets under [Rules](#rules))
 - A refill (a Version 2 `DISPENSER_EDIT` that tops up `GIVE_ESCROW`) resets the dispense count to 0, so each fill allows another 1,000 dispenses. Refills are limited to 5 (the 6th is rejected), giving a lifetime ceiling of 6 fills x 1,000 dispenses
@@ -169,7 +169,7 @@ stateDiagram-v2
   - `EUR` = Euro
   - `KRW` = South Korean Won
 - `FIAT_AMOUNT` format is `X.XX`
-- `EXPIRATION` begins the process of closing a dispenser after a set block delay
+- `EXPIRATION` is a Unix timestamp compared against block time, not a block count. In the first block whose block time is later than the effective `EXPIRATION` (set by the latest valid edit that carries one, else by the create), an open dispenser closes with status `expired` and its escrow returns to `SOURCE` in that same block, with no close delay
 - Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` field (^1234 = `TICK_ID` 1234)
 - Use `^` (caret) as prefix when passing an `ADDRESS_ID` for address fields (^57 = `ADDRESS_ID` 57); see [Index ID References](../index-id-references.md). **`GET_ADDRESS` and `ORACLE_ADDRESS` are the exceptions: write both in full.** The decoder keys dispense detection on `GET_ADDRESS` and oracle-fee recognition on `ORACLE_ADDRESS`, and it cannot resolve an id reference, so a compacted value produces a dispenser that never dispenses or a create rejected as unpaid
 

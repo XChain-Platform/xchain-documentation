@@ -67,8 +67,10 @@ The per-repo sets legitimately differ by role: the SDK omits validator-only
 actions (`ANCHOR`/`ATTEST`/`NODEPROOF`/`ROLLCALL`/`SLASH`); the indexer adds mirror-injected
 (`XCALL`/`XEXEC`/`CROSS_SETTLE`) and lifecycle (`*_MATCH`/`*_EXPIRE`/`DISPENSE`)
 handlers that are never decoded wire bytes; the explorer is the render superset
-(including legacy order/dispenser cancel+edit views). The manifest encodes these
+(including the order, swap and dispenser cancel and edit views). The manifest encodes these
 differences as flags rather than pretending all sets are equal.
+
+`ORDER_CANCEL`, `ORDER_EDIT`, `SWAP_CANCEL`, `SWAP_EDIT`, `DISPENSER_CANCEL` and `DISPENSER_EDIT` form the `explorer-legacy-render` category, whose key is older than its definition: these are live names, not legacy ones. The indexer writes each one by renaming its parent's actions row when a format 1 (cancel) or format 2 (edit) transaction settles, and its escrow attribution keys on them. They carry only `explorerRender`, because the wire transaction decodes and dispatches as the parent `ORDER`, `SWAP` or `DISPENSER`.
 
 `XPOLICY` and `LIST_SHARE` form the `settlement-anchor` category: rows the indexer mints to anchor a bridge-policy or shared-list settlement record when the pass produced no action of its own. They carry only `explorerRender`, since they are never decoded from the wire, never dispatched to a handler and never authorable.
 

@@ -177,7 +177,7 @@ xchain-e2e-test/
 ├── test/
 │   ├── initial_check.test.js     # Mocha root hooks (beforeAll/afterAll)
 │   ├── actions/                  # 80 action test files (live, ordered), covering 32 ACTION names
-│   ├── helpers/                  # 63 modules (action helpers + federation/fee/utility helpers)
+│   ├── helpers/                  # 64 modules (action helpers + federation/fee/utility helpers)
 │   ├── unit/                     # 350+ unit tests (stubbed, no services)
 │   ├── integration/              # 150+ integration tests (stubbed I/O)
 │   │   ├── fixtures/             # mockMariadb, services, dbRows, hub

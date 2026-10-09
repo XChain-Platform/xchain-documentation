@@ -37,7 +37,7 @@ A single pubkey can hold any combination of capabilities, there is no overlap re
 
 ### `price`: Price Oracles
 
-Validators with the `price` capability independently fetch cryptocurrency prices from multiple external sources (CoinGecko and Kraken are both keyless and always active; CoinMarketCap is optional when an API key is configured), submit them to the network, and reach consensus using a trimmed median algorithm (discard top/bottom 15%). This replaces centralized pricing with a manipulation-resistant oracle feed. Price rounds run on a configurable interval (default 10 minutes). Each round goes through: fetch → submit → collect → aggregate → PBFT finalize.
+Validators with the `price` capability independently fetch cryptocurrency prices from multiple external sources (CoinGecko, Kraken and Coinbase are all keyless and always active; CoinMarketCap is optional when an API key is configured), submit them to the network, and reach consensus using a trimmed median algorithm (discard top/bottom 15%). This replaces centralized pricing with a manipulation-resistant oracle feed. Price rounds run on a configurable interval (default 10 minutes). Each round goes through: fetch → submit → collect → aggregate → PBFT finalize.
 
 ### `cross_chain`: Cross-Chain Validators
 
@@ -106,7 +106,7 @@ A validator's P2P signing key is authorized by the **union** of the hub's local 
 
 ```mermaid
 flowchart TD
-    EXT["External APIs<br>(CoinGecko, Kraken, CMC)"]
+    EXT["External APIs<br>(CoinGecko, Kraken, Coinbase, CMC)"]
     A["Validator A<br>PriceFetcher → OracleRound<br>PeerManager ↔ Consensus<br>CrossChainEngine<br>ReorgHandler<br>Governance<br>RewardTracker<br>SlashDetector"]
     B["Validator B<br>(same stack)"]
     C["Validator C<br>(same stack)"]

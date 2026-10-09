@@ -99,14 +99,14 @@ XChain is a pipeline of independent services, each runnable separately and most 
 | **encoder** | Stateless; turns an ACTION string plus UTXOs plus pubkey into an unsigned PSBT | none |
 | **decoder** | Polls a coin node, extracts and de-obfuscates XChain transactions from blocks, writes raw decoded data | MariaDB (decoder DB) |
 | **indexer** | Reads the decoder DB and a local read-only hub mirror, validates and applies ACTION logic, runs the VM, maintains the ledger | MariaDB (indexer DB, plus the local hub mirror) |
-| **explorer** | Stateless REST plus JSON-RPC plus WebSocket plus web UI over the indexer DB | none |
+| **explorer** | REST plus JSON-RPC plus WebSocket plus web UI over the indexer DB | MariaDB (its own hub-mirror schema, written under `self_sync`) |
 | **hub** | Decentralized config oracle, price oracle, cross-chain coordinator, attestation engine, governance | MariaDB (hub DB) |
-| **sync** | Replicates the decoder and indexer DBs to validators via REST snapshots and WebSocket streaming | none |
+| **sync** | Replicates the decoder and indexer DBs to validators via REST snapshots and WebSocket streaming | MariaDB (one replica DB per chain/network, plus the `sync_meta` transparency log) |
 | **node** | Docker-based installer/manager for the whole stack | none |
 | **vm** | The contract engine; a library embedded inside the indexer | none |
 | **sdk / wallet / regtest-miner / e2e-test** | Developer SDK, reference client, regtest automation, integration tests | none |
 
-The hub runs as a single shared instance across all chains; the core pipeline services run per chain/network. (Sync replicates the indexer DB and most of the decoder DB; the transparency-log and mempool tables are excluded by design.)
+The hub, explorer and sync each run as a single shared instance across all chains; the utxo-tracker, encoder, decoder and indexer run per chain/network. (Sync replicates the indexer DB and most of the decoder DB; the transparency-log and mempool tables are excluded by design.)
 
 ### 3.2 The data pipeline
 
@@ -279,7 +279,7 @@ All database writes for a block commit inside one MariaDB transaction: the whole
 token_supply == SUM(credits) - SUM(debits)
 ```
 
-A mismatch is a fatal violation: the transaction rolls back and the indexer halts rather than persist inconsistent state. On a host-chain reorganization, the decoder detects the divergent block hash, records the fork point, and the indexer rolls back all affected tables atomically (deleting rows at or above the fork's first action index), recomputes balances from the remaining ledger, and re-indexes the canonical fork. The utxo-tracker keeps a per-chain, per-network reorg undo window (mainnet/regtest default BTC 12, LTC 120, DOGE 120 blocks; testnet 120 for every coin; env-overridable) for the same purpose.
+A mismatch is a fatal violation: the transaction rolls back and the indexer halts rather than persist inconsistent state. On a host-chain reorganization, the decoder detects the divergent block hash, records the fork point, and the indexer rolls back all affected tables atomically (deleting rows at or above the fork's first action index), recomputes balances from the remaining ledger, and re-indexes the canonical fork. The utxo-tracker keeps a per-chain, per-network reorg undo window (mainnet/regtest default BTC 12, LTC 120, DOGE 120 blocks; testnet BTC 120, LTC 5000, DOGE 120 blocks; env-overridable) for the same purpose.
 
 ---
 
@@ -321,7 +321,7 @@ The protocol defines 38 named ACTIONs across ten categories. Of these, 32 are us
 
 - **PRICE** publishes on-chain oracle prices. v0 is the validator COIN/FIAT snapshot (one round per BTC block, PBFT-signed); v1 is a permissionless user TOKEN/FIAT oracle with a 24-hour anti-front-running delay on updates.
 - **ATTEST** drives the attestation lifecycle (§8): v0 request (VM-emitted only), v1 validator response (multi-signed), v2 system-synthesized expiry, and v3/v4 the cross-chain relay pair that carries an LTC- or DOGE-emitted request to BTC, where all `attestation` stake lives, and its outcome back *(relay: gated at BTC height 963,000 on mainnet)*.
-- **ANCHOR** is a validator-broadcast, DOGE-only action that publishes quorum-signed state checkpoints and the cross-chain match archive used for full-parse recovery (§9), across three wire versions on two legs. The checkpoint leg is v0, the bundle: one anchor per network per cycle carrying every checkpointed chain as its own section, each section with the light-client roots of §14 and its own quorum signatures, followed by one attestation naming the elected publisher who earns the anchor reward. The archive leg is v1 (checkpoint plus archive batch, with that same publisher attestation always appended) and v2 (archive continuation), replacing the earlier trusted reward push with a derived, attested archive reward.
+- **ANCHOR** is a validator-broadcast, DOGE-only action that publishes quorum-signed state checkpoints and the cross-chain match archive used for full-parse recovery (§9), across four wire versions on two legs. The checkpoint leg is v0, the bundle: one anchor per network per cycle carrying every checkpointed chain as its own section, each section with the light-client roots of §14 and its own quorum signatures, followed by one attestation naming the elected publisher who earns the anchor reward. The archive leg is v1 (checkpoint plus archive batch, with that same publisher attestation always appended) and v2 (archive continuation), replacing the earlier trusted reward push with a derived, attested archive reward. v3, the fold, carries both legs in one action per cycle: the v0 checkpoint sections plus at most one archive section (whose overflow still rides v2 continuation chunks), under one publisher attestation, so a single `anchor_bundle` reward covers the whole action. v3 is valid only at or above `ANCHOR_FOLD_ACTIVATION`, and v0, v1 and v2 stay valid beside it *(fold: armed per chain on testnet; mainnet unscheduled)*.
 
 ### 6.6 Staking and validator proofs
 
@@ -748,7 +748,7 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 | Stake-weighted quorum (at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`; gated on the validator-era batch, §10.2) | combined signer stake, deduplicated by stake SOURCE, > 2/3 of total active stake |
 | Trimmed-median trim | top/bottom 15% |
 | Governance | 7-day vote, 50% quorum, two-thirds approval, 14-day re-proposal cooldown |
-| utxo-tracker reorg undo window | mainnet/regtest BTC 12 / LTC 120 / DOGE 120; testnet 120 for every coin (default, env-overridable) |
+| utxo-tracker reorg undo window | mainnet/regtest BTC 12 / LTC 120 / DOGE 120; testnet BTC 120 / LTC 5000 / DOGE 120 (default, env-overridable) |
 | Capability stake activation / cooldown | ~6 BTC blocks / 1,000 blocks (governance-set) |
 | XCHAIN supply | 100,000,000 (8 decimals), capped at genesis, zero pre-mint, BTC-chain only |
 | XCHAIN genesis distribution (§13.3; **pre-launch, not final**) | 30% holder airdrop / 25% open mint / 20% treasury / 10% liquidity / 9.7% validators / 5.3% reward pool / 0% team |

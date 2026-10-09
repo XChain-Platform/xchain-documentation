@@ -170,8 +170,9 @@ pre-validate an action and confirm the fee amount against the current oracle pri
 with a native-coin fee, so users never pay for an action that will fail.
 
 For a large action that the encoder splits across a P2SH commit + reveal transaction pair, place the
-native-coin fee output on the commit (first) transaction. The commit always confirms before the reveal
-(the reveal spends it), so the fee is fully received before the action is processed; the decoder
+native-coin fee output on the commit (first) transaction. The commit is never mined after the reveal
+(the reveal spends it, so the commit sits in an earlier block or earlier in the same block), so the
+fee is fully received before the action is processed; the decoder
 attributes the commit's fee output to the reveal action.
 
 ### Client pre-validation (sizing the fee + refusing doomed transactions)

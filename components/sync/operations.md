@@ -92,7 +92,7 @@ On first start with an empty database, the client downloads a full snapshot. Sub
 xchain-node install <branch> xchain-sync
 ```
 
-This creates a single container (`xchain-node-xchain-sync`) that is connected to all Docker networks for all installed chains, allowing it to reach the MariaDB instance and the hub.
+This creates a single container (`xchain-node-xchain-sync`) on the base `xchain-node` Docker network. It is not joined to the per-chain networks; it reaches the MariaDB instance and the hub on the base network, which both of them also join.
 
 ### Manual Docker Build
 

@@ -56,6 +56,7 @@ The action is refused **before anything is signed or broadcast**, with a typed `
 |------|---------|
 | `POLICY_ACTION_DENIED` | Action type not in `allowedActions` |
 | `POLICY_DESTINATION_DENIED` | Destination not in `allowedDestinations` |
+| `POLICY_UNRESOLVED_DESTINATION` | A MINT, MESSAGE or SWEEP destination arrived as an address index reference (`^<id>`), the SDK's default compaction of an already-indexed address, which `allowedDestinations` cannot match. It is refused rather than resolved; list the destination by address and submit with `compactAddresses` disabled. |
 | `POLICY_AMOUNT_EXCEEDED` | Single-action amount exceeds the per-action cap |
 | `POLICY_WINDOW_AMOUNT_EXCEEDED` | Rolling-window token total would breach the cap |
 | `POLICY_WINDOW_COUNT_EXCEEDED` | Rolling window already holds `maxActions` actions |

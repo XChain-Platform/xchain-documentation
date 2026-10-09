@@ -520,8 +520,8 @@ const ARCHIVE_REWARD_ACTIVATION = {
 // byte is 'invalid: VERSION (unknown)'. Keyed on the action's OWN DOGE block_index
 // (data['BLOCK_INDEX'] at parse time, anchor_actions.block_index_doge), never on SNAPSHOT_BLOCK or
 // the checkpointed height: the row being judged is the anchor itself. Mainnet 6360000 has
-// activated: the restarted wire set is live on mainnet, and the height was a flag day the operator
-// armed deliberately rather than one that silently already passed.
+// activated: the DOGE tip passed it near 2026-09-03 (tip 6371762 on 2026-09-12) with no arming
+// ruling, and the 2026-10-09 ruling accepts it as live with the value unchanged.
 // Testnet 67858600 is 24 blocks above its last pre-restart anchor (67858576) and is already past.
 // Neither is 0, because both carry pre-restart history (mainnet 56 rows, testnet 11, measured
 // 2026-08-30): at 0 the gate can never fire, so the retired wires fall through to the restarted
@@ -1782,10 +1782,11 @@ const ORACLE_HOURLY_WINDOW_ROUNDS = 6;
 // Regtest is 0 on every row. Regtest stacks are rebuilt from genesis, so a fresh
 // stack exercises the new rule set end to end rather than the migration.
 //
-// Mainnet is armed ABOVE the tip on purpose, by the same discipline the anchor gate
-// records. A MAJOR train may be cut and deployed with its mainnet height set to a
-// value the chain has not reached; the fleet then runs the new binary under the OLD
-// rules until that height, which is the whole point of the rolling-upgrade window.
+// Mainnet is armed ABOVE the tip on purpose: a height the operator arms deliberately,
+// never one that silently already passed. A MAJOR train may be cut and deployed with
+// its mainnet height set to a value the chain has not reached; the fleet then runs
+// the new binary under the OLD rules until that height, which is the whole point of
+// the rolling-upgrade window.
 // A height at or below the BTC tip it was computed from is a fork shipped as a
 // release, and the release-completeness gate refuses it.
 //

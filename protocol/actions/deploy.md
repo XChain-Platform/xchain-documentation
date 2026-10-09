@@ -80,6 +80,7 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
   7. Banned generator check (consensus-gated), rejects `function*`, generator methods, and `yield`; live from genesis on testnet/regtest
   8. Banned rest-pattern check (consensus-gated on its own [`REST_PATTERN_METER`](../flag-days.md) gate), rejects a rest pattern the gas meter cannot charge: a rest parameter, a nested rest inside a destructuring pattern, a catch-clause rest, and a rest in a `for-of`/`for-in` loop head; live from genesis on testnet/regtest
   9. Banned WebAssembly check (consensus-gated), rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest
+  10. Banned `with` statement check (consensus-gated on its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../protocol-activation.md#where-the-values-live) height gate), rejects any `with` statement, whose runtime identifier rebinding would get past the name-based checks and the gas meter; live from genesis on regtest, unarmed on mainnet and testnet until an operator arms a height
 - Checks 4, 6 and 9 also reject the global-object-qualified spellings (`globalThis.Math.pow`, `this.Promise`, `globalThis.globalThis.WebAssembly`); see [Global-object spellings](../../components/vm/operations.md#global-object-spellings)
 - If syntax validation fails, the deployment is rejected with `invalid: CODE_ENCODING (<reason>)` and no gas is charged
 
@@ -103,7 +104,9 @@ flowchart TD
     Rest -->|"fail"| Reject
     Rest -->|"pass"| Wasm{"9. Banned WebAssembly check, global WebAssembly reference"}
     Wasm -->|"fail"| Reject
-    Wasm -->|"pass"| Charge["Gas charged, deployment proceeds"]
+    Wasm -->|"pass"| WithStmt{"10. Banned with statement check, LINT_BANNED_WITH_ACTIVATION gate"}
+    WithStmt -->|"fail"| Reject
+    WithStmt -->|"pass"| Charge["Gas charged, deployment proceeds"]
 ```
 - A non-blocking float usage warning is generated if decimal number literals are detected (visible in the execution record)
 - A gas fee is charged at deployment: `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`

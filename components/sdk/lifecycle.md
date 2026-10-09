@@ -147,11 +147,11 @@ console.log(estimate.inputTotal);   // total input value
 console.log(estimate.outputTotal);  // total output value
 ```
 
-The returned `psbt` can be signed directly to avoid a second encode call:
+When `estimate.signable` is true, the returned `psbt` can be signed directly to avoid a second encode call. A TAPROOT envelope answer is priced but comes back with `psbt: null` and `signable: false`, because its commit is only safe to sign with the reveal and recovery record; submit it with `submitAction`.
 
 ```js
 const estimate = await sdk.estimateFees(actionData, encoderOpts);
-if (estimate.fee < maxAcceptableFee) {
+if (estimate.signable && estimate.fee < maxAcceptableFee) {
     const signed = sdk.signPsbt(estimate.psbt, wif);
     await sdk.broadcastTx(signed.txHex);
 }

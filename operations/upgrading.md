@@ -85,7 +85,7 @@ xchain-node ps
 | Service | Disruption during update |
 |---|---|
 | xchain-hub | Brief downtime; explorer retries config sync |
-| xchain-explorer | None that matters; stateless reads from DB |
+| xchain-explorer | None that matters; it serves reads from the indexer DB and holds no authoritative state (its hub-mirror schema is a copy of hub rows) |
 | xchain-encoder | None that matters; stateless |
 | xchain-decoder | Brief gap in mempool tracking during restart |
 | xchain-indexer | Resumes from last processed block automatically |
@@ -169,7 +169,7 @@ flowchart TD
     A["1. xchain-hub<br>verify /health endpoint and logs"] --> B["2. xchain-sync, then xchain-decoder (if changed)"]
     B --> C["3. xchain-indexer: canary one chain,<br>confirm it keeps pace with the decoder for 10 blocks"]
     C --> D["Roll remaining indexers one at a time"]
-    D --> E["4. xchain-explorer and xchain-encoder<br>(stateless tier)"]
+    D --> E["4. xchain-explorer and xchain-encoder<br>(no authoritative state)"]
     E --> F["5. xchain-utxo-tracker (if changed)"]
     F --> G{"Post-deploy smoke pass:<br>versions, heights converge, api/ping answers"}
     G -->|"Clean"| H["Upgrade complete"]
@@ -179,7 +179,7 @@ flowchart TD
 1. **xchain-hub** first. Verify its `/health` endpoint and logs before proceeding.
 2. **xchain-sync**, then **xchain-decoder** (if changed). A sync server that runs from a git checkout instead of a container (a host-native unit serving a database replica to downstream clients) is pinned to the same release in this step: fetch the tags, check out the release tag, reinstall dependencies from the lockfile, restart the unit, then confirm `/health` reports healthy and the per-schema `ledger_hash` in `/status` matches the origin at equal `block_height`. A follower left on an older release keeps serving, but it cannot publish tables that release does not know, so downstream clients see them as missing until it is rolled.
 3. **xchain-indexer**: canary one chain first. Update a single indexer, confirm it resumes and its block height keeps pace with the decoder for at least 10 blocks, then roll the remaining indexers one at a time.
-4. **xchain-explorer** and **xchain-encoder** (stateless tier).
+4. **xchain-explorer** and **xchain-encoder** (no authoritative state).
 5. **xchain-utxo-tracker** (if changed).
 
 After the last service, run a post-deploy smoke pass: `xchain-node ps` shows the expected versions everywhere, decoder and indexer heights converge, and the explorer answers `api/ping` (see [Verifying the Pipeline](./deployment.md#verifying-the-pipeline)). An upgrade is not complete until the smoke pass is clean.

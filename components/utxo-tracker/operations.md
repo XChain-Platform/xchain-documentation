@@ -218,10 +218,10 @@ The tracker can only roll back as many blocks as its undo window holds, and the 
 | Network | BTC | LTC | DOGE |
 |---|---|---|---|
 | mainnet | 12 | 120 | 120 |
-| testnet | 120 | 120 | 120 |
+| testnet | 120 | 5000 | 120 |
 | regtest | 12 | 120 | 120 |
 
-Mainnet windows are block-time-scaled (about two hours of headroom). Every testnet sits at 120 because a testnet's minimum-difficulty rule lets a lone miner extend a private branch regardless of network difficulty, so forks run far deeper than block time predicts: litecoin testnet outran a 48-block window on 2026-09-01 and bitcoin testnet outran mainnet's 12 on 2026-09-15. `XCHAIN_UNDO_BLOCKS_<COIN>` overrides the resolved value for the process's own network; 126 is the ceiling (the decoder's `DISPENSER_EXPIRE_SAFE_DEPTH`), and a larger override is honoured but logged as splitting the two components' reorg windows.
+Mainnet windows are block-time-scaled (about two hours of headroom). Testnets sit far above block-time scaling (120, and 5000 on litecoin testnet) because a testnet's minimum-difficulty rule lets a lone miner extend a private branch regardless of network difficulty, so forks run far deeper than block time predicts: litecoin testnet outran a 48-block window on 2026-09-01 and bitcoin testnet outran mainnet's 12 on 2026-09-15, and litecoin testnet's deep public-testnet forks need the 5000-block class. `XCHAIN_UNDO_BLOCKS_<COIN>` overrides the resolved value for the process's own network; the ceiling is the decoder's matching dispenser-expiry safe depth, 126 (`DISPENSER_EXPIRE_SAFE_DEPTH`) everywhere except litecoin testnet, where it is 5006, and a larger override is honoured but logged as splitting the two components' reorg windows.
 
 When a fork is deeper than the window the tracker does NOT exit. It halts in place: the polling loop stops, the process stays up, `GET /status` answers HTTP 503 with `{"status": "halted", "halt_reason": "...", "halted_at": ..., "halted_height": ...}`, and `get_sync_status` carries `halted: true` and `halt_reason`. The halt is a memory flag, but the state behind it is on disk (the undo window has been walked down, partly or to zero), so a restart or a `recreate` reproduces the same halt within seconds: the log shows `verifyReorg: reorg depth exceeds the recovery window (UNDO_BLOCKS=N)`, or on a window already drained to zero `Can't delete a block from 'last blocks': list is empty`. Both log lines end with the remedy.
 

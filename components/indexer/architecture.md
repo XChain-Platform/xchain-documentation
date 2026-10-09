@@ -30,7 +30,7 @@ flowchart TD
 
 The indexer sits between the decoder and the explorer. It reads raw decoded transaction data from the Decoder database (read-only), processes each transaction through the appropriate ACTION handler, and writes the resulting state to the Indexer database. The explorer then reads from the Indexer database to serve API queries.
 
-The indexer also maintains a third connection to a local Hub DB containing cross-chain infrastructure data (`price_snapshots`, `oracle_prices`, `validator_rewards`) synced from `xchain-hub`. This lets validateNativeCoinFee, FIAT dispenser settlement, and the VM's oracle gateway read price data without a hub round-trip during block processing.
+The indexer also maintains a third connection to a local Hub DB containing cross-chain infrastructure data (the price, cross-chain settlement and federation-state tables listed in [Database Design](../../architecture/database-design.md)) synced from `xchain-hub`. This lets validateNativeCoinFee, FIAT dispenser settlement, and the VM's oracle gateway read price data without a hub round-trip during block processing.
 
 After processing each block, the indexer pushes its chain tip to xchain-hub (so the hub can anchor oracle rounds to BTC block heights) and pushes any validated PRICE actions to the hub's `PriceAggregator` for cross-chain deduplication and aggregation.
 
@@ -68,7 +68,7 @@ flowchart TD
 |---|---|---|
 | Decoder DB | Read | Raw blockchain data, decoded txs (from coin node via JSON-RPC) |
 | Indexer DB | Read/Write | Chain-specific indexed state: actions, balances, tokens, the local `prices` action log |
-| Hub DB | Read | Local copy of cross-chain infrastructure tables (`price_snapshots`, `oracle_prices`, `validator_rewards`) synced from `xchain-hub` |
+| Hub DB | Read | Local copy of cross-chain infrastructure tables (`price_snapshots`, `oracle_prices`, the cross-chain settlement and federation-state tables) synced from `xchain-hub` |
 
 The indexer's `db.indexer` reference exposes the parent indexer to dependent code so utility functions like `validateNativeCoinFee()` and `reversePriceMatch()` can automatically prefer the hub DB connection (`db.indexer.hubDb`) when querying cross-chain price data.
 
@@ -145,7 +145,7 @@ The source-layout consolidation replaced the removed top-level `stateHash.js` mo
 | `src/protocol_changes.js` | `ProtocolChanges` | Defines supported actions and their activation rules (version, block, timestamp) |
 | `src/api/health.js` | None | Assembles the `health` JSON-RPC response payload; separate from `api.js` so it can be unit-tested without a database |
 | `src/hub/hub_client.js` | `HubClient` | Lightweight JSON-RPC client for pushing chain tip, PRICE rounds, and price retractions to `xchain-hub`; uses Node built-in `http`/`https` |
-| `src/hub/hub_db_sync.js` | `HubDbSync` | Bootstraps and live-syncs the local hub DB mirror (price snapshots, oracle prices, capability snapshots, cross-chain matches) via REST snapshot + WebSocket |
+| `src/hub/hub_db_sync.js` | `HubDbSync` | Bootstraps and live-syncs the local hub DB mirror (the tables in `MIRRORED_TABLES`: prices, cross-chain settlement and federation state) via REST snapshot + WebSocket |
 | `src/hub/hub_push_queue.js` | `HubPushQueue` | Durable retry queue for PRICE pushes to the hub; backs the `pending_hub_pushes` table |
 | `src/consensus/ed25519.js` | None | Ed25519 signature verification using Node built-in crypto; mirrors `xchain-hub/src/validators/identity.js` format |
 | `src/consensus/merkle.js` | None | Consensus-critical SPV light-client Merkle primitives: additive state SMT, per-block content root, fixed top-level state root. Vendored byte-identically into `xchain-sync` |

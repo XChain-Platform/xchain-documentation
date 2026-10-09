@@ -138,7 +138,7 @@ Detailed health status including decoder state.
 
 ### `GET /status` (REST)
 
-Returns HTTP 200 with `{status: "healthy", db, running}` when the decoder is running and MariaDB is reachable, or HTTP 503 otherwise. Distinct from the JSON-RPC `health` method so load balancers and uptime monitors can rely on the HTTP status code directly (a plain GET against the JSON-RPC root always answers 200). Point load balancers and uptime monitors here; point Docker HEALTHCHECKs at `GET /live`.
+Returns HTTP 200 with `{status: "healthy", db, running}` when the decoder is running and MariaDB is reachable, or HTTP 503 otherwise. The body also carries `lag` and `node_height_stale` (always a boolean here, `true` on a frozen node tip), so a consumer that falls back to this route can tell a zero lag from an unseen tip; neither field changes the HTTP code. Distinct from the JSON-RPC `health` method so load balancers and uptime monitors can rely on the HTTP status code directly (a plain GET against the JSON-RPC root always answers 200). Point load balancers and uptime monitors here; point Docker HEALTHCHECKs at `GET /live`.
 
 ### `GET /live` (REST)
 

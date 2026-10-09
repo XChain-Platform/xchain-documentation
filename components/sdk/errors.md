@@ -248,6 +248,7 @@ Thrown by `AgentSession.submit()` when a declarative spending policy check fails
 | `POLICY_INVALID` | Policy object is malformed at construction time (missing `allowedActions`, bad window hours, missing confirmation handler) |
 | `POLICY_ACTION_DENIED` | The action type is not in `allowedActions` |
 | `POLICY_DESTINATION_DENIED` | A destination address is not in `allowedDestinations` |
+| `POLICY_UNRESOLVED_DESTINATION` | A destination arrived as an address index reference (`^<id>`) that `allowedDestinations` cannot match; list the address and submit with `compactAddresses` disabled |
 | `POLICY_AMOUNT_EXCEEDED` | A single-action amount exceeds the per-action cap (`maxPerAction`) |
 | `POLICY_WINDOW_AMOUNT_EXCEEDED` | Adding this amount would breach the rolling-window token cap (`maxPerWindow.perTick`) |
 | `POLICY_WINDOW_COUNT_EXCEEDED` | The rolling window already holds `maxPerWindow.maxActions` actions |

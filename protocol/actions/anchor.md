@@ -44,8 +44,8 @@ on the anchor's own DOGE `BLOCK_INDEX`:
 | testnet | 67858600 | 24 blocks above the last pre-restart anchor at 67858576 |
 | regtest | 0 | stacks are rebuilt from genesis, so there is no pre-restart history |
 
-Mainnet's height has been reached. The restarted wire set is live there, and the height was a
-flag day an operator armed on purpose rather than one that silently already passed.
+Mainnet's height has been reached. The restarted wire set is live there: the DOGE tip passed the
+height near 2026-09-03 with no arming ruling, and the 2026-10-09 ruling accepts it as live.
 Testnet's sits just above the last anchor it published under the old set and is already past, so
 that window is open and needs no publisher-side guard.
 
@@ -862,7 +862,10 @@ default-on) to confirm every archived validator set is backed by real on-chain s
   appended) and 2 (continuation, unchanged); a version-0 wire mined below activation is never
   confused with the new checkpoint-bundle format, because it fails on height before format
   dispatch ever runs. No publisher emits the retired wires and no indexer parses them as
-  anything but a pre-activation record; these version numbers are not reused for anything else.
+  anything but a pre-activation record. Beyond the restarted 0 and 1, the only retired number
+  reused is 3, by the v3 fold: `ANCHOR_FOLD_ACTIVATION` always sits at or above
+  `ANCHOR_ACTIVATION`, so a retired version-3 wire still fails on height before format dispatch.
+  Retired 4 to 7 are not reused.
 
 ---
 

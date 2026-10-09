@@ -94,7 +94,7 @@ Key technical details:
 - Reads configuration from xchain-hub every 60 seconds (fee schedules, supported parameters, fiat pricing).
 - Approximately 9,400 lines of SQL query logic. All queries are parameterized; no ORM.
 - Supports SSL/TLS termination.
-- Runs as one instance per chain/network combination.
+- Runs as a single shared instance across all chains and networks; each request is routed to its coin's databases by the `/{COIN}/` prefix in the URL path.
 
 See [`../components/explorer/`](../components/explorer/) for full documentation.
 
@@ -168,7 +168,7 @@ Key technical details:
 
 - LevelDB key schema uses single-character prefixes: `B`=block, `T`=transaction, `I`=input, `O`=output, `H`/`J`=address hints.
 - Processes blocks in batches of up to 200 (flush may trigger earlier under heap pressure), writing each batch atomically to LevelDB.
-- Maintains a per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: 120 blocks for every coin; overridable via XCHAIN_UNDO_BLOCKS_<COIN>) to support chain reorganization rollback.
+- Maintains a per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: BTC 120 / LTC 5000 / DOGE 120 blocks; overridable via XCHAIN_UNDO_BLOCKS_<COIN>) to support chain reorganization rollback.
 - Tracks the mempool for real-time unconfirmed UTXO state.
 - Supports bootstrap from tar archives to avoid re-indexing from genesis.
 - Outputs are indexed by scriptPubKey hash, enabling efficient address lookups.
@@ -210,17 +210,17 @@ These services manage deployment, configuration, and testing.
 | | |
 |---|---|
 | **Purpose** | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, governance |
-| **Inputs** | JSON-RPC calls from all services; external price APIs (CoinGecko, Kraken; CoinMarketCap optional with API key); P2P gossip from other validators |
+| **Inputs** | JSON-RPC calls from all services; external price APIs (CoinGecko, Kraken, Coinbase; CoinMarketCap optional with API key); P2P gossip from other validators |
 | **Outputs** | Config values, service endpoints, oracle prices, fee quotes, cross-chain attestations, governance decisions |
 | **Storage** | MariaDB (configs, validators, consensus, price_snapshots, oracle_prices, oracle_submissions, attestations, swaps, reorgs, governance, validator_rewards, slashing) |
-| **Communication** | Inbound JSON-RPC from all services (incl. PRICE pushes from indexers); outbound HTTP for price fetching; WebSocket P2P gossip between validators; outbound WebSocket `/hub-db/subscribe` to indexers for hub DB sync |
+| **Communication** | Inbound JSON-RPC from all services (incl. PRICE pushes from indexers); outbound HTTP for price fetching; WebSocket P2P gossip between validators; inbound WebSocket `/hub-db/subscribe` from indexers (HubDbSync clients) for hub DB sync |
 
 Key technical details:
 
 - Operates in two modes: standalone (simple config oracle) and validator mode (full PBFT consensus, P2P gossip, oracle, cross-chain attestation, governance).
 - Supports multi-instance deployment, multiple hub instances against shared MariaDB, with consumer fallback via `HUB_VALIDATORS`.
 - Config writes go through PBFT consensus in validator mode (PRE_PREPARE → PREPARE → COMMIT, reaching a federation quorum that is stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION` and the legacy `max(2f+1, ceil((N+1)/2))` signer count below it).
-- Decentralized price oracle: validators fetch from CoinGecko and Kraken (CoinMarketCap optional, requires API key), aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
+- Decentralized price oracle: validators fetch from CoinGecko, Kraken and Coinbase (CoinMarketCap optional, requires API key), aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
 - Cross-chain attestation engine with per-chain-pair validator subsets and confirmation thresholds (BTC: 6, LTC: 12, DOGE: 60; env-tunable via `XCHAIN_CONFIRMATIONS_<COIN>`).
 - SWAP lifecycle tracking: initiated → attested → executed → settled.
 - Off-chain governance: 7-day voting period, 2/3+ approval, 50% quorum, parameter change bounds enforcement.
@@ -245,8 +245,8 @@ See [`../components/hub/`](../components/hub/) for full documentation.
 Key technical details:
 
 - Downloads and configures coin nodes (bitcoind, litecoind, dogecoind) alongside all platform services.
-- Creates Docker containers with a consistent naming scheme: `xchain-node-{service}-{coin}-{network}`.
-- All containers share a Docker bridge network, enabling DNS-based service discovery.
+- Creates Docker containers with a consistent naming scheme: per-chain services are `xchain-node-{coin}-{network}-{service}` (e.g. `xchain-node-bitcoin-mainnet-xchain-encoder`); shared services (database, hub, explorer, sync) are `xchain-node-{service}` (e.g. `xchain-node-xchain-hub`).
+- Each coin/network combination gets its own Docker bridge network (`xchain-node-{coin}-{network}`), giving DNS-based service discovery between that chain's containers. The database, hub and explorer are also connected to every coin/network network; sync stays on the base `xchain-node` network only. Each indexer also joins the networks of the other installed coins on the same network tier, for its cross-chain sibling reads.
 - Blessed TUI provides a real-time status dashboard in the terminal.
 - Supports create, start, stop, update, and monitor operations per container.
 - A single xchain-node installation can manage multiple chains and networks simultaneously.
@@ -388,7 +388,7 @@ flowchart TD
 
 ## Multi-Chain Deployment
 
-Each core pipeline service (decoder, indexer, explorer, utxo-tracker, encoder) runs as a separate instance per chain/network combination. xchain-hub runs as a single shared instance across all chains.
+Each core pipeline service (decoder, indexer, utxo-tracker, encoder) runs as a separate instance per chain/network combination. xchain-hub and xchain-explorer each run as a single shared instance across all chains.
 
 A full mainnet deployment across all three supported chains requires:
 
@@ -397,13 +397,13 @@ A full mainnet deployment across all three supported chains requires:
 | Coin nodes | 3 | One each for Bitcoin, Litecoin, Dogecoin |
 | xchain-decoder | 3 | One per coin |
 | xchain-indexer | 3 | One per coin |
-| xchain-explorer | 3 | One per coin |
+| xchain-explorer | 1 | Shared across all chains; routes by the coin prefix in the URL |
 | xchain-utxo-tracker | 3 | One per coin |
 | xchain-encoder | 3 | One per coin (or shared if stateless routing used) |
 | xchain-hub | 1+ | Shared across all chains; supports multi-instance for HA |
 | xchain-node | 1 | Manages all containers |
 
-Adding a new chain means adding one more set of pipeline instances (coin node + decoder + indexer + explorer + utxo-tracker + encoder) and registering them with the hub.
+Adding a new chain means adding one more set of pipeline instances (coin node + decoder + indexer + utxo-tracker + encoder) and registering them with the hub. The shared explorer serves the new coin without an extra instance.
 
 ---
 
@@ -417,7 +417,7 @@ Adding a new chain means adding one more set of pipeline instances (coin node + 
 - xchain-e2e-test (run on demand)
 
 **Full mainnet:**
-- 3 coin nodes + full pipeline set per coin + xchain-hub + xchain-node
+- 3 coin nodes + decoder, indexer, utxo-tracker and encoder per coin + one shared xchain-explorer + xchain-hub + xchain-node
 - No regtest-miner or e2e-test in production
 
 ---
