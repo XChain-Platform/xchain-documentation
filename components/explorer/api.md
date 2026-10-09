@@ -135,7 +135,9 @@ GET /{COIN}/api/status
         "replica_halted": { "BTC": false, "RBTC": null },
         "chain_tip": { "BTC": 893000, "RBTC": 41 },
         "chain_lag_blocks": { "BTC": 0, "RBTC": 0 },
-        "decoder_health": { "BTC": "healthy", "RBTC": "healthy" }
+        "decoder_health": { "BTC": "healthy", "RBTC": "healthy" },
+        "hub_consensus_hash_mismatch": false,
+        "hub_consensus_hash_mismatch_details": []
     }
 }
 ```
@@ -164,6 +166,8 @@ The example above shows the gate in action: `RBTC` has a frozen tip, so it is
 | `chain_tip` | Per-coin chain tip as reported by the decoder's own health endpoint (what the coin node sees) |
 | `chain_lag_blocks` | `chain_tip − decoder_tip` (how far the decoder trails the chain) |
 | `decoder_health` | Per-coin decoder health string: `"healthy"`, `"unhealthy"` (decoder up but reporting problems), `"node-stale"` (the decoder's cached coin-node height is frozen, so `chain_tip` and `chain_lag_blocks` are nulled), `"unreachable"` (decoder not responding), or `"unconfigured"` (no decoder endpoint resolves for this coin, from either the explorer's configuration or `DECODER_API_URL[_<COIN>_<NETWORK>]`; see [Configuration](configuration.md)) |
+| `hub_consensus_hash_mismatch` | Explorer-to-hub coin-configuration integrity verdict: `true`, `false`, or `null`. `true` means at least one consensus hash served by the hub differs from the explorer's bundled coin registry, `false` means every hash served for a bundled coin matches, and `null` means no verdict is available because the explorer has not received the hash map or the hub is too old to send it |
+| `hub_consensus_hash_mismatch_details` | One string per mismatch in `TICK/network: hub HASH vs bundled HASH` form. Empty when hashes match or no verdict is available |
 
 **Freshness gate.** The threshold behind `stale` is `EXPLORER_TIP_MAX_AGE_S`
 (6 hours by default), overridable per coin with `EXPLORER_TIP_MAX_AGE_S_<COIN>`
@@ -175,6 +179,14 @@ way by `EXPLORER_TIP_MAX_FUTURE_SKEW_S` (2 hours by default, per coin with
 only current data should read `available` rather than `supported`, and treat a
 coin's disappearance from `available` as a transient outage of this instance,
 not as the coin being unknown.
+
+**Hub consensus-hash signal.** The two `hub_consensus_hash_mismatch` fields are
+an advisory transport-integrity signal across all bundled coins and networks.
+Hub-served consensus values are never applied by the explorer; it continues to
+use its locally bundled registry and continues serving requests when the verdict
+is `true`. Treat `true` as an upgrade or deployment-drift alert, then use the
+detail strings to identify which side is lagging. Treat `null` as unknown, not
+as a match.
 
 ---
 

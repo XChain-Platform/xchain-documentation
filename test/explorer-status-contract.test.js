@@ -31,6 +31,8 @@
  *   3. The response example is a keyed map, not the array the page showed
  *      before, since a client written against the old example would index it
  *      wrongly.
+ *   4. The hub consensus-hash comparison fields carry their three-state
+ *      verdict and mismatch-detail semantics, including their advisory scope.
  *
  * xchain-explorer is a sibling repo in the monorepo checkout, not a dependency
  * of xchain-documentation. When it is absent (docs repo cloned on its own) the
@@ -104,5 +106,21 @@ describe('explorer /status contract in components/explorer/api.md', () => {
             'the response example shows supported/available as arrays; they are coin-keyed maps');
         assert.match(section, /"available":\s*\{/,
             'the response example no longer shows an `available` map');
+    });
+
+    test('documents the hub consensus-hash comparison fields and their scope', () => {
+        const fields = documentedFields(section);
+        assert.equal(fields.has('hub_consensus_hash_mismatch'), true,
+            'the field table omits hub_consensus_hash_mismatch');
+        assert.equal(fields.has('hub_consensus_hash_mismatch_details'), true,
+            'the field table omits hub_consensus_hash_mismatch_details');
+        assert.match(section, /`true`, `false`, or `null`/,
+            'the page does not state the mismatch verdict states');
+        assert.match(section, /advisory/i,
+            'the page does not state that the mismatch signal is advisory');
+        assert.match(section, /never applied/i,
+            'the page does not state that hub-served consensus values are never applied');
+        assert.match(section, /TICK\/network/,
+            'the page does not describe the mismatch detail identifier');
     });
 });
