@@ -21,7 +21,7 @@ const CANONICAL = path.join(__dirname, '..', 'protocol', 'action-manifest.json')
 const WALLET_VENDOR = path.join('test', 'fixtures', 'action-manifest.json');
 const PLATFORM = process.env.XCHAIN_PLATFORM_ROOT || PLATFORM_ROOT;
 
-test('wallet vendored action wiring matches canonical', (t) => {
+test('wallet vendored action manifest is byte-identical to canonical', (t) => {
     const wallet = sibling('xchain-wallet', [WALLET_VENDOR], { platformRoot: PLATFORM });
     if (!wallet.have) return t.skip(wallet.skip);
 
@@ -33,15 +33,9 @@ test('wallet vendored action wiring matches canonical', (t) => {
         JSON.parse(canonicalText).actions.BET.userEncodableVersions,
         'xchain-wallet BET versions must match the canonical manifest',
     );
-    assert.deepEqual(
-        {
-            aliases: JSON.parse(vendorText).aliases,
-            actions: JSON.parse(vendorText).actions,
-        },
-        {
-            aliases: JSON.parse(canonicalText).aliases,
-            actions: JSON.parse(canonicalText).actions,
-        },
-        'xchain-wallet action wiring must be re-vendored from canonical',
+    assert.equal(
+        vendorText,
+        canonicalText,
+        'xchain-wallet/test/fixtures/action-manifest.json must be re-vendored from canonical',
     );
 });
