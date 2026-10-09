@@ -294,7 +294,7 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 | `ORACLE_STALENESS_THRESHOLD_S` | No | `2 x ORACLE_ROUND_INTERVAL` | Seconds since the last finalized price snapshot before the `GET /health` endpoint reports `oracle_stale: true` (and returns HTTP 503). Defaults to twice the round interval; override for slow-start or custom round cadences. |
 | `ORACLE_EARLY_MSG_MAX_ROUNDS` | No | `256` | Cap on the number of distinct future consensus rounds the oracle buffers early messages for. Bounds memory against a peer flooding fabricated round numbers; messages for rounds beyond the cap are dropped. |
 | `COINGECKO_API_KEY` | No | None | CoinGecko API key (optional, improves rate limits) |
-| `COINMARKETCAP_API_KEY` | No | None | CoinMarketCap API key (enables a third price source; CoinGecko and Kraken are both keyless and always active) |
+| `COINMARKETCAP_API_KEY` | No | None | CoinMarketCap API key (enables a fourth price source; CoinGecko, Kraken and Coinbase are all keyless and always active) |
 | `PRICE_FETCH_TIMEOUT` | No | `10000` | HTTP timeout for external price API calls (ms) |
 | `ORACLE_LEADER_TIMEOUT_MS` | No | `30000` | How long a round waits on its leader before failover. Kept below the finalization window. |
 | `ORACLE_FINALIZED_MAX` | No | `10000` | Cap on retained finalized-round records held in memory. |

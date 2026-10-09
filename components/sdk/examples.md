@@ -1386,8 +1386,8 @@ console.log(`Encoding: ${estimate.encoding}`);
 console.log(`Input total: ${estimate.inputTotal}`);
 console.log(`Output total: ${estimate.outputTotal}`);
 
-// The returned PSBT can be signed directly to skip re-encoding
-if (estimate.fee < 5000) {
+// A signable PSBT can be signed directly to skip re-encoding (envelope pairs go through submitAction)
+if (estimate.signable && estimate.fee < 5000) {
     const signed = sdk.signPsbt(estimate.psbt, wif);
     await sdk.broadcastTx(signed.txHex);
 }

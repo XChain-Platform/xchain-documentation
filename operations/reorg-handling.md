@@ -38,7 +38,7 @@ On each polling cycle (every 5 seconds), the indexer checks the Decoder DB `even
 
 ### UTXO Tracker
 
-The UTXO tracker maintains a per-chain, per-network undo history in its LevelDB store (mainnet and regtest: BTC 12 blocks, LTC 120 blocks, DOGE 120 blocks; testnet: 120 blocks for every coin; overridable via XCHAIN_UNDO_BLOCKS_<COIN>). On detecting a chain tip change from the coin node, it rolls back blocks one at a time until its tip matches the node, then re-indexes forward.
+The UTXO tracker maintains a per-chain, per-network undo history in its LevelDB store (mainnet and regtest: BTC 12 blocks, LTC 120 blocks, DOGE 120 blocks; testnet: BTC 120 blocks, LTC 5000 blocks, DOGE 120 blocks; overridable via XCHAIN_UNDO_BLOCKS_<COIN>). On detecting a chain tip change from the coin node, it rolls back blocks one at a time until its tip matches the node, then re-indexes forward.
 
 ---
 
@@ -70,7 +70,7 @@ The `index_addresses` table is intentionally left untouched: it is an append-onl
 
 ### UTXO Tracker Rollback
 
-The UTXO tracker keeps a per-chain, per-network undo window in its undo log (mainnet and regtest: BTC 12 blocks, LTC 120 blocks, DOGE 120 blocks; testnet: 120 blocks for every coin; overridable via XCHAIN_UNDO_BLOCKS_<COIN>). Blocks are removed from LevelDB in reverse order until the local tip matches the coin node. A reorg deeper than the configured window would require a full re-sync from scratch; this is extremely rare on any mainnet chain.
+The UTXO tracker keeps a per-chain, per-network undo window in its undo log (mainnet and regtest: BTC 12 blocks, LTC 120 blocks, DOGE 120 blocks; testnet: BTC 120 blocks, LTC 5000 blocks, DOGE 120 blocks; overridable via XCHAIN_UNDO_BLOCKS_<COIN>). Blocks are removed from LevelDB in reverse order until the local tip matches the coin node. A reorg deeper than the configured window would require a full re-sync from scratch; this is extremely rare on any mainnet chain.
 
 ```mermaid
 flowchart TD
@@ -135,7 +135,7 @@ The UTXO tracker's per-chain, per-network undo window is the only component with
 | Network | BTC | LTC | DOGE |
 |---|---|---|---|
 | mainnet | 12 | 120 | 120 |
-| testnet | 120 | 120 | 120 |
+| testnet | 120 | 5000 | 120 |
 | regtest | 12 | 120 | 120 |
 
 Overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`. A reorg deeper than the configured window requires stopping the UTXO tracker, deleting its LevelDB data, and re-syncing from scratch or from a bootstrap archive.

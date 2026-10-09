@@ -15,7 +15,7 @@ flowchart TD
     EXPLORER["xchain-explorer"]
     SYNC["xchain-sync"]
     REPLICAS["Validator replicas"]
-    HUB["xchain-hub<br>- Config oracle (all services poll)<br>- Price oracle (CoinGecko, Kraken, CoinMarketCap)<br>- Cross-chain attestation<br>- SWAP lifecycle tracking<br>- Reorg propagation<br>- Governance"]
+    HUB["xchain-hub<br>- Config oracle (all services poll)<br>- Price oracle (CoinGecko, Kraken, Coinbase, CoinMarketCap)<br>- Cross-chain attestation<br>- SWAP lifecycle tracking<br>- Reorg propagation<br>- Governance"]
     P2P["P2P Validator Network"]
 
     NODE -->|JSON-RPC| DECODER
@@ -124,7 +124,7 @@ flowchart TD
 | `validators/identity.js` | `ValidatorIdentity` | Ed25519 key management: signing, verification, key generation |
 | `oracle/round.js` | `OracleRound` | Oracle round lifecycle: timer, price fetching, submission broadcast |
 | `oracle/consensus.js` | `OracleConsensus` | PBFT consensus for price finalization: trimmed median, propose/prepare/commit |
-| `oracle/price_fetcher.js` | `PriceFetcher` | External price API client: CoinGecko and Kraken (both keyless, always active) plus CoinMarketCap (optional, when `COINMARKETCAP_API_KEY` is set) |
+| `oracle/price_fetcher.js` | `PriceFetcher` | External price API client: CoinGecko, Kraken and Coinbase (all keyless, always active) plus CoinMarketCap (optional, when `COINMARKETCAP_API_KEY` is set) |
 | `cross_chain/engine.js` | `CrossChainEngine` | PBFT attestation for cross-chain actions with per-chain-pair validators |
 | `cross_chain/swap_tracker.js` | `SwapTracker` | Cross-chain SWAP lifecycle tracking: initiated → attested → executed → settled |
 | `anchor/reorg_handler.js` | `ReorgHandler` | Blockchain reorg detection, PBFT consensus, and hub state rollback |
@@ -322,7 +322,7 @@ N=3 requires 2 votes and N=2 requires both.
 flowchart TD
     subgraph ROUND["Every ORACLE_ROUND_INTERVAL (default 10 min)"]
         S1["1. CHAIN TIP<br>OracleRound reads BTC chain tip from configs table<br>→ currentBtcBlockHeight, currentBtcBlockTime"]
-        S2["2. FETCH<br>PriceFetcher queries CoinGecko + Kraken (keyless) + CoinMarketCap (if key set)<br>→ 3 coins x 12 fiats = 36 pairs per source<br>→ compute local median across sources"]
+        S2["2. FETCH<br>PriceFetcher queries CoinGecko + Kraken + Coinbase (keyless) + CoinMarketCap (if key set)<br>→ 3 coins x 12 fiats = 36 pairs per source<br>→ compute local median across sources"]
         S3["3. SUBMIT<br>Broadcast ORACLE_PRICE_SUBMIT via gossip<br>→ stored in oracle_submissions table"]
         S4["4. COLLECT<br>Wait ORACLE_SUBMISSION_WINDOW (default 3 min)<br>→ accumulate other validators' submissions"]
         S5["5. AGGREGATE<br>Round leader computes trimmed median:<br>→ sort submissions, discard top/bottom 15%<br>→ median of remaining values"]
@@ -356,12 +356,13 @@ flowchart TD
 | Source | Coverage | Requires API Key |
 |---|---|---|
 | CoinGecko | 3 coins x 12 fiats (single API call via `vs_currencies`) | Optional (rate limits apply without a key) |
-| Kraken | Subset of the 36 pairs that Kraken lists for these three coins (pairs not listed fall back to CoinGecko) | No (public ticker, always active) |
+| Kraken | The 17 of the 36 pairs that Kraken lists for these three coins (pairs it does not list are still priced by CoinGecko and Coinbase) | No (public ticker, always active) |
+| Coinbase | 3 coins x 12 fiats (one keyless `exchange-rates` call per coin, 3 per round) | No (public endpoint, always active) |
 | CoinMarketCap | 3 coins x 12 fiats (single API call via `convert`) | Yes (`COINMARKETCAP_API_KEY`) |
 
 Supported fiat currencies: USD, CAD, AUD, MXN, GBP, JPY, CNY, CHF, BRL, INR, EUR, KRW.
 
-CoinGecko and Kraken are both keyless, so every hub has two uncorrelated upstreams out of the box. CoinMarketCap is added as a third source only when `COINMARKETCAP_API_KEY` is configured. The local price for each pair is the median of values from all available sources.
+CoinGecko, Kraken and Coinbase are all keyless, so every hub has three uncorrelated upstreams out of the box, and CoinGecko and Coinbase each cover all 36 pairs. CoinMarketCap is added as a fourth source only when `COINMARKETCAP_API_KEY` is configured. The local price for each pair is the median of values from all available sources.
 
 ## Hub DB Sync Channel
 

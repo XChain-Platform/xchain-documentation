@@ -151,7 +151,7 @@ A reference glossary of XChain terminology, organized by category.
 
 These five ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not exposed in the SDK.
 
-**ANCHOR**: A validator-broadcast ACTION that commits a quorum-signed state checkpoint (per-block ledger, actions, and contract hash triple) to the anchor chain (DOGE on all networks). Later versions also archive cross-chain match records and SPV light-client roots on-chain. ANCHOR is what allows light clients to verify indexer state against a threshold of validator signatures without trusting a single operator.
+**ANCHOR**: A validator-broadcast ACTION that commits a quorum-signed state checkpoint (per-block ledger, actions, and contract hash triple) to the anchor chain (DOGE on all networks). The checkpoint bundle also carries each chain's SPV light-client roots, and the archive versions record the signed cross-chain match records on-chain. ANCHOR is what allows light clients to verify indexer state against a threshold of validator signatures without trusting a single operator.
 
 **ATTEST**: A lifecycle ACTION with three phases. Version 0 is VM-emitted when a smart contract calls `xchain.attestation.request(...)`, requesting an external data fetch (an HTTPS URL or an AI model prompt). Version 1 is validator-broadcast and carries the quorum-verified response plus validator signatures. Version 2 is system-synthesized by the indexer when the request deadline expires without a quorum response.
 

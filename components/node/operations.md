@@ -267,7 +267,7 @@ Puts the signing key on chain from the stake wallet. Reads the address's coin an
 
 Without `--broadcast` it prints the plan and sends nothing, which doubles as the funding check.
 
-The plan also states the exit cost before any money moves. The staked XCHAIN stays escrowed for as long as the validator stays staked, and standing down later frees it only after a cooldown of 1000 blocks (`STAKING.COOLDOWN_BLOCKS`, roughly 7 days on Bitcoin), on top of the 6 blocks it takes to leave the active set. Do not stake XCHAIN you may need before then.
+The plan also states the exit cost before any money moves. The staked XCHAIN stays escrowed for as long as the validator stays staked, and standing down later frees it only after a cooldown of 1000 blocks (`STAKING.COOLDOWN_BLOCKS`, roughly 7 days on Bitcoin), counted from the block the UNSTAKE lands in. The 6 blocks it takes to leave the active set start at that same block and run inside the cooldown, not before it. Do not stake XCHAIN you may need before then.
 
 Every action is sent **back to back into one block**. The indexer resolves a STAKE's balance from every ledger entry with a lower action index, so the mints only have to sit earlier in the *same* block, not in an earlier one. Ordering inside the block is guaranteed by construction: each action is funded from the previous action's own outputs, and consensus forbids a child transaction from preceding its parent. If that chain cannot be formed (no spendable output appears from the previous action), the command says so and waits for the mints to be indexed before staking, rather than broadcasting a STAKE a miner could place ahead of its own funding. `--serialize` restores one action per block.
 

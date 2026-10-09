@@ -7,7 +7,7 @@ XChain uses two database technologies; MariaDB for relational data (decoder, ind
 
 ## The Three-Database Model
 
-Each indexer maintains **three** database connections per chain/network: a Decoder DB (input), an Indexer DB (its own state), and a local Hub DB (synced from xchain-hub). These serve different purposes and are owned by different services.
+Each indexer maintains **three** database connections per chain/network: a Decoder DB (input), an Indexer DB (its own state), and a local Hub DB (synced from xchain-hub). These serve different purposes and are owned by different services. On an xchain-node install the Hub DB connection points at the Indexer DB itself (`HUB_DB_NAME` and `HUB_DB_USER` are set to the indexer's own), so the mirrored hub tables live inside the Indexer DB; a separate Hub DB is a layout the operator configures by overriding those variables.
 
 ```mermaid
 flowchart TD
@@ -17,7 +17,7 @@ flowchart TD
     INDEXER["xchain-indexer"]
     IDXDB[("Indexer MariaDB<br>XChain_{CHAIN}_{NETWORK}_Indexer")]
     EXPLORER["xchain-explorer"]
-    HUBDB[("Hub MariaDB<br>local copy, synced from<br>xchain-hub via WebSocket")]
+    HUBDB[("Hub mirror tables<br>in the Indexer DB by default,<br>synced from xchain-hub via WebSocket")]
     HUB["xchain-hub"]
 
     CHAIN -->|"raw bytes, JSON-RPC"| DECODER
@@ -30,10 +30,10 @@ flowchart TD
     INDEXER -->|"PRICE actions pushed by<br>indexers from all chains"| HUB
 ```
 
-**Separation principle:** The indexer DB contains only state derived from processing that chain's blocks. Cross-chain data synced from the hub lives in its own database. This means:
-- Wiping and re-indexing a chain does not affect hub data
+**Separation principle:** Ownership is separated by table. The indexer writes only state derived from processing that chain's blocks; `HubDbSync` writes only the mirrored hub tables; the indexer reads both. In the default xchain-node layout both sets of tables live in the Indexer DB. This means:
 - Re-syncing hub data does not affect indexed chain state
-- Clear ownership boundary: indexer writes to indexer DB, hub sync writes to hub DB, indexer reads from both
+- On a default install, wiping and re-indexing a chain drops the mirrored hub tables along with the indexer state. The authoritative rows on the hub are untouched, and the mirror rebuilds from the hub's REST snapshot when the indexer restarts; cross-chain settlement that needs mirrored rows waits until it has
+- A reset leaves the mirror intact only when `HUB_DB_NAME` (and, if needed, `HUB_DB_HOST`, `HUB_DB_USER`, `HUB_DB_PASS`) points at a separate database
 
 ### Decoder DB
 
@@ -57,18 +57,21 @@ The Hub DB is a local, read-only copy of cross-chain infrastructure tables synce
 
 - `price_snapshots`: deduplicated cross-chain validator COIN/FIAT prices (PRICE v0)
 - `oracle_prices`: cross-chain user TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window
-- Validator infrastructure: `stakes`, `delegations`, `validator_rewards` (synced from BTC indexer state)
+- Cross-chain settlement: `cross_chain_matches`, `cross_chain_calls`, `capability_snapshots`, `bridge_transfers`, `policy_snapshots`, `list_snapshots`
+- Federation state: `state_checkpoints`, `anchor_reward_attestations`, `attestation_responses`
+
+The staking tables (`stakes`, `delegations`, `validator_rewards`) are not mirrored: they are Indexer DB tables written during block processing.
 
 The indexer queries this database for cross-chain data during block processing. No hub round-trip required. The hub aggregates data from all chains' indexers and pushes new rows to all connected nodes' local hub DB copies.
 
 Two connectivity modes:
-- **Direct connection**: For single-host or trusted-network deployments, the indexer's hub DB connection points directly at the hub's MariaDB instance
-- **WebSocket sync**: For geographic distribution, the indexer runs `HubDbSync` which bootstraps via REST snapshot and subscribes to `/hub-db/subscribe` for live row updates (opt-in via `HUB_DB_SYNC_ENABLED=true`)
+- **WebSocket sync (installer default)**: the indexer runs `HubDbSync`, which bootstraps via REST snapshot and subscribes to `/hub-db/subscribe` for live row updates (`HUB_DB_SYNC_ENABLED=true`). xchain-node turns it on for every indexer on every network and points the mirror at the indexer's own database
+- **Separate hub database (operator override)**: the operator points the indexer's hub DB connection (`HUB_DB_HOST` / `HUB_DB_NAME` and credentials) at another database, such as a dedicated mirror database or the hub's own MariaDB instance on a trusted network. See [Hub DB Price Source](../components/indexer/configuration.md#hub-db-price-source) for the mainnet fail-closed check on the price source
 
 The separation serves several purposes:
 
 - **Separation of concerns**: the decoder focuses on extraction; the indexer focuses on validation; the hub manages cross-chain aggregation. Bugs in one do not compromise the others.
-- **Rebuildability**: each database can be rebuilt independently. Rebuild the Decoder DB from the blockchain; rebuild the Indexer DB from the Decoder DB; rebuild the local Hub DB from the hub's REST snapshot.
+- **Rebuildability**: each database can be rebuilt independently. Rebuild the Decoder DB from the blockchain; rebuild the Indexer DB from the Decoder DB; rebuild the local Hub DB from the hub's REST snapshot. On a default install the mirror lives in the Indexer DB, so rebuilding the Indexer DB also forces that mirror rebuild.
 - **Auditability**: the raw decoded ACTION string in the Decoder DB can always be compared against the indexer's interpretation of it, making disputes traceable.
 - **Cross-node determinism**: validator price data is anchored on-chain via PRICE v0 actions (with PBFT signatures) and aggregated by the hub. Two independent nodes reading the same blockchains arrive at identical state.
 
@@ -152,11 +155,11 @@ Stores the full UTXO set of the monitored coin node. Key schema uses single-char
 | `O` | Output records (txid:vout → value, scriptPubKey) |
 | `H` / `J` | Address hints (scriptPubKey hash → txids) |
 
-Writes are batched in groups of up to 200 blocks (flush may trigger earlier under heap pressure). A per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: 120 blocks for every coin) is retained to support reorg rollback.
+Writes are batched in groups of up to 200 blocks (flush may trigger earlier under heap pressure). A per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: BTC 120 / LTC 5000 / DOGE 120 blocks) is retained to support reorg rollback.
 
 ### xchain-hub
 
-The hub uses MariaDB (not LevelDB) with tables storing configuration, validator state, oracle data, cross-chain attestations, governance proposals, and more. The database name is configurable (default: `xchain_hub`). Config parameters are stored in the `configs` table with a `(coin, network, module, param_name)` unique key. Cross-chain price data is aggregated into `price_snapshots` (validator PRICE v0) and `oracle_prices` (user PRICE v1); these are also broadcast to connected indexers via the `/hub-db/subscribe` WebSocket channel.
+The hub uses MariaDB (not LevelDB) with tables storing configuration, validator state, oracle data, cross-chain attestations, governance proposals, and more. The database name comes from the required `HUB_DB_NAME` environment variable; there is no default, and the hub will not start without it (e.g. `XChain_Hub`, the name the xchain-node installer provisions). Config parameters are stored in the `configs` table with a `(coin, network, module, param_name)` unique key. Cross-chain price data is aggregated into `price_snapshots` (validator PRICE v0) and `oracle_prices` (user PRICE v1); these are also broadcast to connected indexers via the `/hub-db/subscribe` WebSocket channel.
 
 See [`../components/hub/CONFIGURATION.md`](../components/hub/configuration.md) for the full schema reference.
 

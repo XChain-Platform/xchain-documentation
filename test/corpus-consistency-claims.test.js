@@ -423,3 +423,69 @@ test('falsification: the pre-ruling inert ROLLCALL note is caught', () => {
     assert.notEqual(stale, readDoc('whitepaper.md'), 'the ROLLCALL note moved; re-point this falsification');
     assert.throws(() => assertWhitepaperGateNotes(stale));
 });
+
+/* ------------------------------------------------- hub DB sync direction */
+
+// The hub SERVES `GET /hub-db/subscribe`; each indexer's HubDbSync dials in to it.
+// A page saying the hub dials out to indexers misleads firewall and key setup.
+const HUB_DIALS_OUT = /outbound\s+WebSocket[^|;]*hub-db\/subscribe|hub-db\/subscribe`?\s+to\s+indexers/i;
+
+function hubDialsOutLines(markdown) {
+    return markdown.split('\n').filter((line) => HUB_DIALS_OUT.test(line)).map((line) => line.trim());
+}
+
+test('the component map has indexers subscribing to the hub, not the hub dialing out', () => {
+    const page = readDoc('architecture/component-map.md');
+    assert.deepEqual(hubDialsOutLines(page), [],
+        'indexers connect in to the hub\'s GET /hub-db/subscribe (components/hub/api.md)');
+    assert.match(page, /inbound\s+WebSocket\s+`\/hub-db\/subscribe`\s+from\s+indexers/i,
+        'component-map.md no longer states the /hub-db/subscribe direction');
+});
+
+test('falsification: the reversed /hub-db/subscribe direction is caught', () => {
+    const page = readDoc('architecture/component-map.md');
+    const stale = page.replace(/inbound WebSocket `\/hub-db\/subscribe` from indexers \(HubDbSync clients\)/,
+        'outbound WebSocket `/hub-db/subscribe` to indexers');
+    assert.notEqual(stale, page, 'the hub Communication row moved; re-point this falsification');
+    assert.equal(hubDialsOutLines(stale).length, 1);
+});
+
+/* ------------------------------- node networks and hub mirror provenance */
+
+// Sync is never attached to the per-chain networks (only database, hub and explorer are),
+// and capability snapshots are unsigned set membership derived from BTC stake state.
+const NETWORK_AND_PROVENANCE_OVERCLAIMS = [
+    ['architecture/component-map.md', /shared services are connected to every coin\/network network/i],
+    ['architecture/data-pipeline.md', /capability[^.]*\bare validator-signed records/i]
+];
+
+function overclaimsIn(pages) {
+    return NETWORK_AND_PROVENANCE_OVERCLAIMS
+        .filter(([rel, pattern]) => pattern.test(pages[rel]))
+        .map(([rel]) => rel);
+}
+
+function readOverclaimPages() {
+    return Object.fromEntries(NETWORK_AND_PROVENANCE_OVERCLAIMS.map(([rel]) => [rel, readDoc(rel)]));
+}
+
+test('the component map keeps sync off the per-chain networks and capability snapshots unsigned', () => {
+    const pages = readOverclaimPages();
+    assert.deepEqual(overclaimsIn(pages), []);
+    assert.match(pages['architecture/component-map.md'], /sync stays on the base `xchain-node` network/);
+    assert.match(pages['architecture/data-pipeline.md'], /capability snapshots are unsigned/);
+});
+
+test('falsification: the shared-network and signed-capability overclaims are caught', () => {
+    const pages = readOverclaimPages();
+    const stale = {
+        'architecture/component-map.md': pages['architecture/component-map.md'].replace(
+            /The database, hub and explorer are also connected to every coin\/network network; sync stays on the base `xchain-node` network only\./,
+            'Shared services are connected to every coin/network network.'),
+        'architecture/data-pipeline.md': pages['architecture/data-pipeline.md'].replace(
+            /are records the hub finalizes\. Most of them carry validator quorum signatures, while capability snapshots are unsigned validator-set membership derived from on-chain BTC stake state\./,
+            'are validator-signed records the hub finalizes.')
+    };
+    for (const rel of Object.keys(stale)) assert.notEqual(stale[rel], pages[rel], `${rel} moved; re-point this falsification`);
+    assert.deepEqual(overclaimsIn(stale), ['architecture/component-map.md', 'architecture/data-pipeline.md']);
+});

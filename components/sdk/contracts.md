@@ -77,14 +77,19 @@ let result = await sdk.deployContract(
 // result.contractActionIndex - the deployed contract's own action_index
 ```
 
-Contracts larger than 64 KB (base64-encoded source requiring more than 16 slices) are rejected at the planning stage with an error before any transaction is submitted.
+The 64 KB cap (65,536 bytes of UTF-8 source) and the 16-slice cap are separate checks:
+- **Lint pre-flight:** with the default `lint: 'block'`, `deployContract` refuses a source over 64 KB on its `code-size` error before planning, so no transaction is submitted.
+- **Planning:** `chunkHelper.planDeploy()` checks only the slice count. It throws for a source that needs more than 16 slices, which is above about 93.6 KB of raw source.
+- **The gap:** with `lint: 'warn'` or `lint: 'off'`, or when you call `sdk.planDeploy()` directly, a source between 64 KB and about 93.6 KB still plans. Its carriers are broadcast and paid for, and the indexer then rejects the assembled source as `invalid: CODE_ENCODING (exceeds max size)`. Keep the default lint mode for large contracts.
 
 ```mermaid
 flowchart TD
     START["sdk.deployContract(wif, deployParams, deposits, opts)"]
+    LINT{"Lint pre-flight (default lint: 'block')"}
+    LINT_BIG["Reject: source exceeds 64 KB, refused by the lint pre-flight before any transaction is submitted"]
     PLAN["chunkHelper.planDeploy()"]
     SIZE{"base64 source size?"}
-    TOO_BIG["Reject: exceeds 64 KB / 16 slices, rejected at planning, before any transaction is submitted"]
+    TOO_BIG["Reject: needs more than 16 slices (over about 93.6 KB raw), planDeploy throws before any transaction is submitted"]
     SINGLE["Single-shot path: sdk.deploy()"]
     SINGLE_EMIT["Emit DEPLOY v0 (no constructor) or v1 (with constructor)"]
     CHUNK_SPLIT["Split base64 source into ordered slices of up to 7,800 bytes each (max 16 slices)"]
@@ -93,7 +98,9 @@ flowchart TD
     INDEXER["Indexer locates carriers by code hash, concatenates slices in order, verifies hash, runs normal deploy flow"]
     DONE["Deploy complete"]
 
-    START --> PLAN
+    START --> LINT
+    LINT -->|"over 64 KB, lint: 'block'"| LINT_BIG
+    LINT -->|"passes, or lint: 'warn' or 'off'"| PLAN
     PLAN --> SIZE
     SIZE -->|"fits in one action, roughly 6 KB raw source"| SINGLE
     SINGLE --> SINGLE_EMIT
@@ -103,7 +110,7 @@ flowchart TD
     CARRIER --> ASSEMBLE
     ASSEMBLE --> INDEXER
     INDEXER --> DONE
-    SIZE -->|"exceeds 64 KB, more than 16 slices"| TOO_BIG
+    SIZE -->|"more than 16 slices"| TOO_BIG
 ```
 
 See [ACTIONS.md; DEPLOY](actions.md#deploy) for full parameter reference.

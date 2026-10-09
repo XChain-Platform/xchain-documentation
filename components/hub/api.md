@@ -547,7 +547,7 @@ Returns the append-only, quorum-signed shared-list versions from the `list_snaps
 
 ### `GET /hub-db/subscribe` (WebSocket upgrade: requires `Authorization: Bearer <HUB_API_KEY>`)
 
-WebSocket channel for live updates across all six hub DB tables: `price_snapshots`, `oracle_prices`, `state_checkpoints`, `capability_snapshots`, `cross_chain_matches`, and `cross_chain_calls`.
+WebSocket channel for live updates to the hub DB tables indexers mirror: the price, cross-chain settlement and federation-state tables listed in [Database Design](../../architecture/database-design.md#hub-db-local-copy). The hub also broadcasts `remote_token_snapshots` rows on this channel; indexers do not mirror that table.
 
 Indexers bootstrap by fetching the REST snapshots for each table (paginated by `since_id`), then subscribe to this WebSocket for live updates. Backpressure handling drops connections that exceed `WS_BACKPRESSURE_LIMIT` buffered messages. Unknown `type` values should be silently ignored for forward compatibility.
 
@@ -558,7 +558,7 @@ Indexers bootstrap by fetching the REST snapshots for each table (paginated by `
 {"type":"ready","max_ids":{"price_snapshots":42,"oracle_prices":17,"state_checkpoints":3,"capability_snapshots":8,"cross_chain_matches":5,"cross_chain_calls":2},"watermark":1712500000}
 ```
 
-**`row:inserted`**: sent for each new row inserted into any of the six tables.
+**`row:inserted`**: sent for each new row inserted into a mirrored table.
 ```json
 {"type":"row:inserted","table":"price_snapshots","row":{...}}
 ```

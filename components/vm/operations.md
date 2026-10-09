@@ -144,7 +144,7 @@ The indexer uses database savepoints to ensure these guarantees extend to the pe
 
 ## Syntax Validation (Deploy-Time)
 
-Before a contract is deployed, `vm.validateSyntax(code, opts)` runs the following checks in order. The indexer passes the per-block activation flags that `resolveLintFlags` in `deploy/lint.js` resolves for the DEPLOY's block. Any flag omitted from `opts` defaults on, which is the author-facing preflight behavior rather than the replay-safe deploy verdict, so a consensus caller must pass each gate it resolves. The V8 syntax check blocks a deploy via a separate early return and is not itself a `lint-core.CONSENSUS_RULES` member; checks 2-9 below are all deploy-blocking consensus rules (`invalid-type`, `unsupported-syntax`, `reserved-identifier`, `banned-math`, `banned-literal`, `banned-async`, `banned-generator`, `banned-rest`, `banned-wasm`), and all must pass or the DEPLOY action is rejected:
+Before a contract is deployed, `vm.validateSyntax(code, opts)` runs the following checks in order. The indexer passes the per-block activation flags that `resolveLintFlags` in `deploy/lint.js` resolves for the DEPLOY's block. Any flag omitted from `opts` defaults on, which is the author-facing preflight behavior rather than the replay-safe deploy verdict, so a consensus caller must pass each gate it resolves. The V8 syntax check blocks a deploy via a separate early return and is not itself a `lint-core.CONSENSUS_RULES` member; checks 2-10 below are all deploy-blocking consensus rules (`invalid-type`, `unsupported-syntax`, `reserved-identifier`, `banned-math`, `banned-literal`, `banned-async`, `banned-generator`, `banned-rest`, `banned-wasm`, `banned-with`), and all must pass or the DEPLOY action is rejected:
 
 1. **V8 syntax check**: compiles the code in a throwaway 8 MB isolate to catch syntax errors (the only step requiring `isolated-vm`)
 2. **Acorn metering pass**: runs `meterCode()` to ensure acorn can parse the source (effective ES2020 ceiling)
@@ -155,6 +155,7 @@ Before a contract is deployed, `vm.validateSyntax(code, opts)` runs the followin
 7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): rejects `function*`, generator methods, and any `yield`; live from genesis on testnet/regtest.
 8. **Banned rest-pattern check** (consensus-gated, its own [`REST_PATTERN_METER`](../../protocol/flag-days.md) gate, not the Pkg 3 one): rejects a rest pattern in the four positions the metering transform cannot charge, because it charges a rest destructure by wrapping the source expression and these have none: a rest parameter in a function parameter list, a nested rest inside a destructuring pattern, a catch-clause rest, and a rest in a `for-of`/`for-in` loop head. Live from genesis on testnet/regtest, and on mainnet at/after that gate's block time; the `xchain-lint` CLI and the SDK linter enforce it today by default.
 9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`, bare or [global-object-qualified](#global-object-spellings); live from genesis on testnet/regtest.
+10. **Banned `with` statement check** (consensus-gated, its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../../protocol/protocol-activation.md#where-the-values-live) height gate, `enforceBannedWith`, not the Pkg 3 one): rejects any `with` statement. A `with` block resolves free identifiers against an arbitrary object at runtime, which bypasses the identifier-based deploy bans and the metering rewrite; read the properties through the object instead. Live from genesis on regtest and unarmed on mainnet and testnet until an operator arms a height; the `xchain-lint` CLI and the SDK linter enforce it today by default.
 
 ```mermaid
 flowchart TD
@@ -168,6 +169,7 @@ flowchart TD
     S7{"7. Banned generator check (live from genesis, testnet/regtest)"}
     S8{"8. Banned rest-pattern check (REST_PATTERN_METER gate)"}
     S9{"9. Banned WebAssembly check (live from genesis, testnet/regtest)"}
+    S10{"10. Banned with statement check (LINT_BANNED_WITH_ACTIVATION gate)"}
     ACCEPT["DEPLOY accepted"]
     REJECT["DEPLOY rejected"]
 
@@ -189,7 +191,9 @@ flowchart TD
     S8 -->|"unmeterable rest pattern found, gate active"| REJECT
     S8 -->|"clean, or gate not active"| S9
     S9 -->|"WebAssembly reference found"| REJECT
-    S9 -->|"clean"| ACCEPT
+    S9 -->|"clean"| S10
+    S10 -->|"with statement found, gate active"| REJECT
+    S10 -->|"clean, or gate not active"| ACCEPT
 ```
 
 `vm.checkFloatWarnings(code)` additionally scans for non-integer number literals and returns warnings (non-blocking). `lintSource` also returns two advisory warning families that never affect the verdict above: `banned-proto-method` (a call to a prototype method the sandbox neuters, such as `.match()` or `.localeCompare()`, which throws `TypeError` at runtime) and `banned-stripped-global` (a read of a global the sandbox deletes, such as `Date` or `fetch`, which throws `ReferenceError` at runtime); see [Deploy-Time Validation](../../developer-guide/smart-contract-development.md#deploy-time-validation).

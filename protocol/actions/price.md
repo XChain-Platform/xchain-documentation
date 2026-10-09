@@ -227,7 +227,7 @@ This mirrors the PRICE Oracle Data Flow diagram in [architecture/Data_Pipeline.m
 
 ```mermaid
 flowchart TD
-    FETCH["price-capable validators fetch prices from<br>CoinGecko and Kraken (keyless, always active),<br>plus CoinMarketCap if a key is configured"]
+    FETCH["price-capable validators fetch prices from<br>CoinGecko, Kraken and Coinbase (keyless, always active),<br>plus CoinMarketCap if a key is configured"]
     PBFT["PBFT consensus<br>(2/3+ agree on prices per BTC block)"]
     SIGN["Each validator signs the canonical<br>PRICE v0 payload during prepare/commit"]
     PUBLISH["An oracle_publish-capable validator writes<br>PRICE v0 (with collected sigs) to a chain<br>(DOGE recommended)"]
@@ -262,7 +262,7 @@ Each indexer maintains three database connections:
 |----------|-----------|-------|----------|
 | Decoder DB | Read | Decoder | Raw blockchain data, decoded txs |
 | Indexer DB | Read/Write | Indexer | Chain-specific indexed state: actions, balances, tokens, plus the local `prices` action log |
-| Hub DB (local) | Read | Hub (synced via WebSocket) | Cross-chain infrastructure: `price_snapshots`, `oracle_prices`, `validator_rewards`, etc. |
+| Hub DB (local) | Read | Hub (synced via WebSocket) | Cross-chain infrastructure: `price_snapshots`, `oracle_prices`, cross-chain settlement and federation-state tables |
 
 The indexer's `prices` table is the raw on-chain action log (one row per PRICE tx). The hub's `price_snapshots` and `oracle_prices` tables are the deduplicated, cross-chain aggregated views that indexers actually query for price lookups.
 

@@ -137,6 +137,8 @@ The question, outcomes, token, fee, deadline, resolve window, minimum stake, des
 
 While a market is open, its oracle can replace or remove its allow and block list references. An edit applies only to bets placed after it; bets already in escrow keep their original admission result. Removing an allow list opens the market to addresses that were previously excluded, while removing a block list stops applying that deny list.
 
+**List editing is active on regtest only.** It rides the `BET_FEED_LIST_EDIT_ACTIVATION` gate, which is not active on mainnet or on any testnet yet. There, a list edit is rejected as invalid, the transaction fee is still spent, and the market's lists stay as they were. Until the gate is armed on your network, change a market's lists by cancelling it and creating a new one. [Protocol Activation](../protocol/protocol-activation.md) records where the gate stands.
+
 Once the market closes, its membership lists are fixed along with the rest of its terms. Changing a list after closure, or changing any other market term at any time, requires cancelling and creating a new market.
 
 ### Publishing the result
