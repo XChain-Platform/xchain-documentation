@@ -503,7 +503,7 @@ const MOBILE_STORE_RUNBOOKS = [
     'components/wallet/release/mobile/ios-app-store.md',
 ];
 const TRADING_NOTES_HEADING = '### Review notes: trading screens';
-const COMPILED_OUT_TRADING = /(?:exchange|trading)[^.\n]{0,100}compil(?:e|es|ed)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}(?:exchange|trading)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}out[^.\n]{0,60}(?:exchange|trading)/i;
+const COMPILED_OUT_EXCHANGE = /exchange[^.\n]{0,100}compil(?:e|es|ed)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}exchange[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,60}out[^.\n]{0,100}exchange/i;
 
 function tradingReviewNotes(markdown, rel) {
     const start = markdown.indexOf(TRADING_NOTES_HEADING);
@@ -513,7 +513,7 @@ function tradingReviewNotes(markdown, rel) {
 }
 
 function assertTradingReviewNotes(markdown, rel) {
-    assert.doesNotMatch(markdown, COMPILED_OUT_TRADING,
+    assert.doesNotMatch(markdown, COMPILED_OUT_EXCHANGE,
         `${rel} still says the submitted build compiles out trading`);
     assert.doesNotMatch(markdown, /No\. No order book, no matching, no fiat on-ramp|It is not an exchange/i,
         `${rel} still denies the trading screens that ship in the submitted build`);

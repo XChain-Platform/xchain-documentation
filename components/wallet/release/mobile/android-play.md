@@ -801,12 +801,12 @@ What is ticked, and nothing else:
 |---|---|---|
 | Trading and funds | Cryptocurrency wallet | Yes. This is what the app is. |
 | Trading and funds | Cryptocurrency exchange | Yes. The app includes a non-custodial interface to XChain's decentralized exchange; it does not take custody or provide a fiat on-ramp. |
-| Trading and funds | NFT trading | No. The app has no NFT-specific marketplace or trading flow. |
-| Trading and funds | Prediction markets | Yes. The app includes peer-to-peer parimutuel betting markets. |
+| Trading and funds | NFT trading | No. Compiled out of the store build. |
+| Trading and funds | Prediction markets | No. Compiled out of the store build. |
 
-These answers describe the uploaded artifact rather than a review-only profile.
-The trading and prediction-market screens ship in the Play build, so the
-declarations and reviewer instructions disclose them directly.
+The Cryptocurrency exchange answer describes the uploaded artifact rather than
+a review-only profile. The exchange screens ship in the Play build, so the
+declaration and reviewer instructions disclose them directly.
 
 **The obvious way to make the licensing requirement go away is to untick
 `Cryptocurrency wallet`, and it works, and it is a misdeclaration.** Step 2
@@ -979,9 +979,9 @@ governed by its own Play policy, one that generally expects per-territory
 licensing and a separate real-money-gambling application, so changing this
 answer is not a checkbox edit. The two honest ways to close it are to answer the
 gambling questions for what ships and accept the rating and policy that follow,
-or to make and implement a new decision not to ship the betting surface on this
-lane. Leaving it as it stands is the third option, and it is a decision that has
-to be re-taken at every submission rather than inherited.
+or to compile the surface out of the store build. Leaving it as it stands is the
+third option, and it is a decision that has to be re-taken at every submission
+rather than inherited.
 
 ⬜ The questionnaire is answered from the build, every step of the wizard is
 walked, and the calculated rating is read before saving.

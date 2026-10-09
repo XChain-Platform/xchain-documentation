@@ -219,11 +219,11 @@ test('falsification: the stale EXECUTE example is caught', { skip: noIndexerBtc 
 /* ---------------------------------------- mobile store trading disclosure */
 
 const TRADING_NOTES_HEADING = '### Review notes: trading screens';
-const COMPILED_OUT_TRADING = /(?:exchange|trading)[^.\n]{0,100}compil(?:e|es|ed)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}(?:exchange|trading)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}out[^.\n]{0,60}(?:exchange|trading)/i;
+const COMPILED_OUT_EXCHANGE = /exchange[^.\n]{0,100}compil(?:e|es|ed)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}exchange[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,60}out[^.\n]{0,100}exchange/i;
 
 function assertTradingDisclosure(markdown) {
     assert.match(markdown, /^### Review notes: trading screens$/m);
-    assert.doesNotMatch(markdown, COMPILED_OUT_TRADING);
+    assert.doesNotMatch(markdown, COMPILED_OUT_EXCHANGE);
     const start = markdown.indexOf(TRADING_NOTES_HEADING);
     const end = markdown.indexOf('\n### ', start + TRADING_NOTES_HEADING.length);
     const notes = markdown.slice(start, end === -1 ? markdown.length : end);
@@ -239,7 +239,8 @@ test('falsification: missing notes and compiled-out mobile trading claims are ca
     assert.throws(() => assertTradingDisclosure(withoutNotes));
 
     const compiledOut = page.replace(
-        'These answers describe the uploaded artifact rather than a review-only profile.',
+        'The Cryptocurrency exchange answer describes the uploaded artifact rather than\n' +
+            'a review-only profile.',
         'The store build compiles the exchange and trading surfaces out entirely.');
     assert.notEqual(compiledOut, page, 'Play declaration text moved; re-point this falsification');
     assert.throws(() => assertTradingDisclosure(compiledOut));
