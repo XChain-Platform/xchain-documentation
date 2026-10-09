@@ -343,9 +343,9 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 
 ### Rewards and Slashing
 
-The two slash-detection thresholds below are environment-owned controls. They
-are not governance-tunable: the hub refuses proposals that attempt to change
-either value.
+`SLASH_DEVIATION_THRESHOLD` and `SLASH_MISSED_ROUNDS_THRESHOLD` are both
+env-owned controls. For either variable, the hub refuses a governance proposal
+that attempts to change its value.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
