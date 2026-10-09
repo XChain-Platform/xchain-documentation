@@ -81,6 +81,12 @@ test('against the real indexer ITER_SET_METER is unarmed on production networks'
     assert.ok(gen.collectTestnetUnarmed().some((g) => g.gate === 'ITER_SET_METER'));
 });
 
+test('against the real indexer STAKE_SNAPSHOT_DECIMAL_STRINGS is unarmed on production networks',
+    { skip: noIndexer }, () => {
+        assert.ok(gen.collectMainnetUnarmed().some((g) => g.gate === 'STAKE_SNAPSHOT_DECIMAL_STRINGS'));
+        assert.ok(gen.collectTestnetUnarmed().some((g) => g.gate === 'STAKE_SNAPSHOT_DECIMAL_STRINGS'));
+    });
+
 test('a part-file row with bare UNARMED slots is listed unarmed on both networks', () => {
     const dir = fixtureRegistry("const ROWS = [['FOO', '1.0.0', UNARMED, UNARMED, 0, 0, 0, 0]];\n");
     assert.deepStrictEqual(gen.collectGates(dir), []);
