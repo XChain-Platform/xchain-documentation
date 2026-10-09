@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Documented the explorer status fields that report hub-to-bundled coin consensus-hash drift.
+
 ## [0.22.4] - 2026-10-05
 
 ### Changed
