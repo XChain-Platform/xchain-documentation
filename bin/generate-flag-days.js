@@ -307,6 +307,22 @@ function collectGateRows(sources, add) {
     }
 }
 
+function collectUnarmedGateRows(sources, network, add) {
+    const slot = new RegExp(`(?:^|[,\\s])${network}\\s*:\\s*([^,}\\n]*)`);
+    for (const row of sources.scannable.matchAll(GATE_ROW)) {
+        if (row[3] !== 'time') continue;
+        const body = objectBody(sources.scannable, row.index + row[0].length - 1);
+        if (body === null) continue;
+        const match = slot.exec(body);
+        if (match === null) continue;
+        const text = match[1].trim();
+        const value = text === 'UNARMED'
+            ? unarmedValue(sources, sources.where(row.index), row[2])
+            : (TIME_LITERAL.test(text) ? Number(text.replace(/_/g, '')) : null);
+        if (value !== null) add(row[2], value);
+    }
+}
+
 /**
  * Refuses a registry that declares a gate in a style the two regexes above
  * cannot read.
@@ -674,6 +690,7 @@ function collectTestnetUnarmed(indexerSrc = INDEXER_SRC) {
     for (const d of declaredTimeConstants(sources)) {
         if (d.network === 'TESTNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
+    collectUnarmedGateRows(sources, 'testnet', add);
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 
@@ -704,6 +721,7 @@ function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
     for (const d of declaredTimeConstants(sources)) {
         if (d.network === 'MAINNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
+    collectUnarmedGateRows(sources, 'mainnet', add);
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 
