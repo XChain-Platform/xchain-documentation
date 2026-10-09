@@ -93,7 +93,8 @@ test('an addChange call with a bare UNARMED mainnet slot is listed unarmed on ma
 
 test('an addGate time row parked on UNARMED is listed unarmed on both networks', () => {
     const dir = fixtureRegistry(
-        "addGate('foo_activation.FOO_ACTIVATION', 'time', { mainnet: UNARMED, testnet: UNARMED, regtest: 0 });\n",
+        "addGate('foo_activation.FOO_ACTIVATION', 'time', { mainnet: UNARMED, testnet: UNARMED, "
+        + "'BTC:testnet': UNARMED, 'LTC:testnet': UNARMED, 'DOGE:testnet': UNARMED, regtest: 0 });\n",
     );
     assert.deepStrictEqual(gen.collectGates(dir), []);
     assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['FOO_ACTIVATION']);
