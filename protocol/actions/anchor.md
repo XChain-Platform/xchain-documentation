@@ -46,7 +46,7 @@ on the anchor's own DOGE `BLOCK_INDEX`:
 
 Mainnet's height has been reached. The restarted wire set is live there, and the height was a
 flag day an operator armed on purpose rather than one that silently already passed.
-Testnet's sits just above the last anchor it published under the old set and is also past, so
+Testnet's sits just above the last anchor it published under the old set and is already past, so
 that window is open and needs no publisher-side guard.
 
 The gate runs before format dispatch: an `ANCHOR` of **any** version mined below its network's

@@ -522,7 +522,7 @@ const ARCHIVE_REWARD_ACTIVATION = {
 // the checkpointed height: the row being judged is the anchor itself. Mainnet 6360000 has
 // activated: the restarted wire set is live on mainnet, and the height was a flag day the operator
 // armed deliberately rather than one that silently already passed.
-// Testnet 67858600 is 24 blocks above its last pre-restart anchor (67858576) and is also past.
+// Testnet 67858600 is 24 blocks above its last pre-restart anchor (67858576) and is already past.
 // Neither is 0, because both carry pre-restart history (mainnet 56 rows, testnet 11, measured
 // 2026-08-30): at 0 the gate can never fire, so the retired wires fall through to the restarted
 // version table and are read as shapes they are not. The old per-chain version 0 would report as a
@@ -2253,8 +2253,8 @@ const MIRROR_ADMISSION_REGTEST_ARMED_HEIGHT = 0;
 /**
  * Resolve the regtest admission activation from the environment, in the ROLLCALL shape.
  *
- * The armed form resolves to 0 so a drill block lies above the armed node's threshold and
- * below an inert node's null, which is the only per-process arming seam the codebase has and
+ * The armed form resolves to 0 so a drill block sits ABOVE the armed node's threshold and
+ * BELOW an inert node's null, which is the only per-process arming seam the codebase has and
  * is what lets BF5 put an armed and an inert indexer on ONE venue and show them binding the
  * same row at different blocks. Fails closed: anything unrecognised leaves regtest INERT and
  * says so, rather than stamping NaN into a height comparison.
