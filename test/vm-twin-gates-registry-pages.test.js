@@ -7,33 +7,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { test } = require('node:test');
+const { SENTINEL_FLOOR } = require('../bin/generate-flag-days.js');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const ACTIVATION = fs.readFileSync(path.join(ROOT, 'protocol', 'protocol-activation.md'), 'utf8');
 const FLAG_DAYS = fs.readFileSync(path.join(ROOT, 'protocol', 'flag-days.md'), 'utf8');
-
-const TWIN_GATES = [
-    {
-        vm: 'ACCESSOR_OWN_KEY_ACTIVATION',
-        registry: 'READONLY_ACCESSOR_OWN_KEY',
-        unarmed: ['mainnet'],
-    },
-    {
-        vm: 'JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME',
-        registry: 'JSON_STRINGIFY_HOOK',
-        unarmed: ['mainnet'],
-    },
-    {
-        vm: 'APPLY_LENGTH_METER_ACTIVATION',
-        registry: 'APPLY_LENGTH_METER',
-        unarmed: ['mainnet', 'testnet'],
-    },
-    {
-        vm: 'ITER_SET_METER_ACTIVATION',
-        registry: 'ITER_SET_METER',
-        unarmed: ['mainnet', 'testnet'],
-    },
-];
+const vm = sibling('xchain-vm', ['src/index.js', 'src/index']);
 
 function vmServiceRow(markdown) {
     const row = markdown.split('\n').find((line) => line.startsWith('| `xchain-vm` |'));
@@ -41,63 +21,138 @@ function vmServiceRow(markdown) {
     return row;
 }
 
-function unarmedRoster(markdown, network) {
+function unarmedRosterMatch(markdown, network) {
     const match = new RegExp(
-        `\\*\\*(?:One gate is|\\d+ gates are) UNARMED on ${network}\\*\\* \\(([^)]*)\\):`,
+        `\\*\\*(One gate is|(\\d+) gates are) UNARMED on ${network}\\*\\* \\(([^)]*)\\):`,
     ).exec(markdown);
     assert.ok(match, `flag-days.md is missing its ${network} unarmed roster`);
-    return match[1];
+    return match;
 }
 
-function assertTwinRegistryPages(activation, flagDays) {
+function unarmedRoster(markdown, network) {
+    const match = unarmedRosterMatch(markdown, network);
+    const gates = [...match[3].matchAll(/`([A-Z0-9_]+)`/g)].map((entry) => entry[1]);
+    assert.equal(gates.length, match[1] === 'One gate is' ? 1 : Number(match[2]));
+    assert.equal(new Set(gates).size, gates.length, `${network} unarmed roster contains a duplicate`);
+    return new Set(gates);
+}
+
+function replaceUnarmedEntry(markdown, network, gate) {
+    const match = unarmedRosterMatch(markdown, network);
+    return markdown.slice(0, match.index)
+        + match[0].replace(`\`${gate}\``, '`REMOVED`')
+        + markdown.slice(match.index + match[0].length);
+}
+
+function readVmSources(root) {
+    const src = path.join(root, 'src');
+    const skip = new Set([path.join(src, 'protocol'), path.join(src, 'toolkit')]);
+    const files = [];
+    const walk = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) { if (!skip.has(full)) walk(full); }
+            else if (entry.name.endsWith('.js')) files.push(full);
+        }
+    };
+    walk(src);
+    return files.sort().map((file) => fs.readFileSync(file, 'utf8'));
+}
+
+function sealedNetworkTables(sources) {
+    const text = sources.join('\n');
+    const constants = new Map(
+        [...text.matchAll(/^const ([A-Z0-9_]+) = (null|\d+);/gm)]
+            .map((entry) => [entry[1], entry[2] === 'null' ? null : Number(entry[2])]),
+    );
+    const declarations = /^const ([A-Z0-9_]+_ACTIVATION) = Object\.seal\(\{([\s\S]*?)\}\);/gm;
+    return [...text.matchAll(declarations)].map((declaration) => {
+        const slots = new Map(
+            [...declaration[2].matchAll(/^\s*(mainnet|testnet|regtest):\s*([^,\n]+),/gm)]
+                .map((entry) => [entry[1], entry[2].trim()]),
+        );
+        assert.deepEqual([...slots.keys()], ['mainnet', 'testnet', 'regtest'],
+            `${declaration[1]} is not a sealed per-network activation table`);
+        const threshold = (network) => {
+            const value = slots.get(network);
+            if (value === 'null') return null;
+            if (/^\d+$/.test(value)) return Number(value);
+            assert.ok(constants.has(value), `${declaration[1]}.${network} uses unresolved ${value}`);
+            return constants.get(value);
+        };
+        const mainnetMarker = slots.get('mainnet');
+        return {
+            vm: declaration[1],
+            marker: /^[A-Z0-9_]+_GATE_BLOCK_TIME$/.test(mainnetMarker)
+                ? mainnetMarker : declaration[1],
+            registry: declaration[1].replace(/_ACTIVATION$/, ''),
+            thresholds: { mainnet: threshold('mainnet'), testnet: threshold('testnet') },
+        };
+    });
+}
+
+function assertTwinRegistryPages(activation, flagDays, tables) {
     const row = vmServiceRow(activation);
     const rosters = {
         mainnet: unarmedRoster(flagDays, 'mainnet'),
         testnet: unarmedRoster(flagDays, 'testnet'),
     };
 
-    for (const gate of TWIN_GATES) {
-        assert.ok(row.includes(`\`${gate.vm}\``), `xchain-vm row omits ${gate.vm}`);
+    assert.ok(tables.length > 0, 'xchain-vm has no sealed per-network activation tables');
+    for (const gate of tables) {
+        assert.ok(row.includes(`\`${gate.marker}\``), `xchain-vm row omits ${gate.vm}`);
         assert.ok(
             row.includes(`indexer twin is \`${gate.registry}\``),
             `xchain-vm row does not pair ${gate.vm} with ${gate.registry}`,
         );
-        for (const network of gate.unarmed) {
-            assert.ok(
-                rosters[network].includes(`\`${gate.registry}\``),
-                `${gate.registry} is missing from the ${network} unarmed roster`,
+        for (const network of ['mainnet', 'testnet']) {
+            const threshold = gate.thresholds[network];
+            const unarmed = threshold === null || threshold >= SENTINEL_FLOOR;
+            assert.equal(
+                rosters[network].has(gate.registry),
+                unarmed,
+                `${gate.registry} has the wrong ${network} unarmed-roster membership`,
             );
         }
     }
 }
 
-test('VM twin gates are named on the activation and generated registry pages', () => {
-    assertTwinRegistryPages(ACTIVATION, FLAG_DAYS);
+test('sealed VM network tables are named on the activation and generated registry pages', { skip: vm.skip }, () => {
+    assertTwinRegistryPages(ACTIVATION, FLAG_DAYS, sealedNetworkTables(readVmSources(vm.root)));
 });
 
-test('the registry-page guard fails when a VM gate, twin, or unarmed entry is removed', () => {
-    for (const gate of TWIN_GATES) {
+test('the registry-page guard fails when a sealed VM gate, twin, or roster entry is removed', { skip: vm.skip }, () => {
+    const sources = readVmSources(vm.root);
+    const tables = sealedNetworkTables(sources);
+    for (const gate of tables) {
         assert.throws(
-            () => assertTwinRegistryPages(ACTIVATION.replace(`\`${gate.vm}\``, '`removed`'), FLAG_DAYS),
+            () => assertTwinRegistryPages(
+                ACTIVATION.replace(`\`${gate.marker}\``, '`removed`'), FLAG_DAYS, tables,
+            ),
             new RegExp(`omits ${gate.vm}|does not pair ${gate.vm}`),
         );
         assert.throws(
             () => assertTwinRegistryPages(
                 ACTIVATION.replace(`indexer twin is \`${gate.registry}\``, 'indexer twin is `removed`'),
                 FLAG_DAYS,
+                tables,
             ),
             new RegExp(`does not pair ${gate.vm}`),
         );
-        for (const network of gate.unarmed) {
-            const roster = unarmedRoster(FLAG_DAYS, network);
-            const withoutGate = FLAG_DAYS.replace(
-                roster,
-                roster.replace(`\`${gate.registry}\``, '`removed`'),
-            );
+        for (const network of ['mainnet', 'testnet']) {
+            if (!unarmedRoster(FLAG_DAYS, network).has(gate.registry)) continue;
+            const withoutGate = replaceUnarmedEntry(FLAG_DAYS, network, gate.registry);
             assert.throws(
-                () => assertTwinRegistryPages(ACTIVATION, withoutGate),
-                new RegExp(`${gate.registry} is missing from the ${network}`),
+                () => assertTwinRegistryPages(ACTIVATION, withoutGate, tables),
+                new RegExp(`${gate.registry} has the wrong ${network}`),
             );
         }
     }
+    const future = sources.concat(
+        'const FUTURE_METER_ACTIVATION = Object.seal({\nmainnet: null,\ntestnet: null,\nregtest: 0,\n});',
+    );
+    assert.throws(
+        () => assertTwinRegistryPages(ACTIVATION, FLAG_DAYS, sealedNetworkTables(future)),
+        /omits FUTURE_METER_ACTIVATION/,
+    );
 });
