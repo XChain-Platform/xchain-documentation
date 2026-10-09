@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Drift lint for six more cross-page claims the corpus contradicted itself
+ * Drift lint for seven more cross-page claims the corpus contradicted itself
  * about. Each block pins the corrected wording and carries a falsification
  * that feeds the stale wording back in, so a guard that matches nothing
  * fails rather than passing quietly.
@@ -40,6 +40,11 @@
  *
  *   6. Indexer GAS_SCHEDULE example. The example keys and values must be
  *      real coin-file keys, or a developer prices EXECUTE ten times too high.
+ *
+ *   7. Mobile store trading disclosure. Both mobile store builds ship their
+ *      trading screens. Each runbook needs review text that states the custody,
+ *      matching and fiat boundaries, and must not restore the older claim that
+ *      the exchange was compiled out.
  *
  * Claims that read a sibling checkout SKIP when it is absent, the same
  * convention corpus-consistency-claims.test.js uses.
@@ -209,4 +214,33 @@ test('the GAS_SCHEDULE example matches the BTC coin file', { skip: noIndexerBtc 
 test('falsification: the stale EXECUTE example is caught', { skip: noIndexerBtc }, () => {
     const stale = '| `GAS_SCHEDULE` | x | `{ DEPLOY: 100000, EXECUTE: 10000, STAKE: 5000, ... }` |';
     assert.throws(() => assertGasExample(stale, btcCoinFile()));
+});
+
+/* ---------------------------------------- mobile store trading disclosure */
+
+const TRADING_NOTES_HEADING = '### Review notes: trading screens';
+const COMPILED_OUT_TRADING = /(?:exchange|trading)[^.\n]{0,100}compil(?:e|es|ed)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}(?:exchange|trading)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}out[^.\n]{0,60}(?:exchange|trading)/i;
+
+function assertTradingDisclosure(markdown) {
+    assert.match(markdown, /^### Review notes: trading screens$/m);
+    assert.doesNotMatch(markdown, COMPILED_OUT_TRADING);
+    const start = markdown.indexOf(TRADING_NOTES_HEADING);
+    const end = markdown.indexOf('\n### ', start + TRADING_NOTES_HEADING.length);
+    const notes = markdown.slice(start, end === -1 ? markdown.length : end);
+    assert.match(notes, /non-custodial decentralized exchange/i);
+    assert.match(notes, /Order matching happens in `xchain-indexer`, not in the app/i);
+    assert.match(notes, /no fiat purchase, sale, deposit, or withdrawal path/i);
+}
+
+test('falsification: missing notes and compiled-out mobile trading claims are caught', () => {
+    const page = readDoc('components/wallet/release/mobile/android-play.md');
+    const withoutNotes = page.replace(/^### Review notes: trading screens\n[\s\S]*?(?=^### Graphics$)/m, '');
+    assert.notEqual(withoutNotes, page, 'Android trading notes moved; re-point this falsification');
+    assert.throws(() => assertTradingDisclosure(withoutNotes));
+
+    const compiledOut = page.replace(
+        'These answers describe the uploaded artifact rather than a review-only profile.',
+        'The store build compiles the exchange and trading surfaces out entirely.');
+    assert.notEqual(compiledOut, page, 'Play declaration text moved; re-point this falsification');
+    assert.throws(() => assertTradingDisclosure(compiledOut));
 });
