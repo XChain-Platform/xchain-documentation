@@ -2253,8 +2253,8 @@ const MIRROR_ADMISSION_REGTEST_ARMED_HEIGHT = 0;
 /**
  * Resolve the regtest admission activation from the environment, in the ROLLCALL shape.
  *
- * The armed form resolves to 0 so a drill block lies above the armed node's threshold and
- * below an inert node's null, which is the only per-process arming seam the codebase has and
+ * The armed form resolves to 0 so a drill block sits ABOVE the armed node's threshold and
+ * BELOW an inert node's null, which is the only per-process arming seam the codebase has and
  * is what lets BF5 put an armed and an inert indexer on ONE venue and show them binding the
  * same row at different blocks. Fails closed: anything unrecognised leaves regtest INERT and
  * says so, rather than stamping NaN into a height comparison.
