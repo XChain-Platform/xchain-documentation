@@ -14,11 +14,26 @@ const ROOT = path.resolve(__dirname, '..');
 const ACTIVATION = fs.readFileSync(path.join(ROOT, 'protocol', 'protocol-activation.md'), 'utf8');
 const FLAG_DAYS = fs.readFileSync(path.join(ROOT, 'protocol', 'flag-days.md'), 'utf8');
 const vm = sibling('xchain-vm', ['src/index.js', 'src/index']);
+const REQUIRED_VM_TWINS = Object.freeze([
+    ['GAS_CEILING_SUCCESS_ACTIVATION', 'GAS_CEILING_SUCCESS'],
+    ['ITER_SET_METER_ACTIVATION', 'ITER_SET_METER'],
+]);
 
 function vmServiceRow(markdown) {
     const row = markdown.split('\n').find((line) => line.startsWith('| `xchain-vm` |'));
     assert.ok(row, 'protocol-activation.md is missing its xchain-vm service row');
     return row;
+}
+
+function assertRequiredVmTwins(markdown) {
+    const row = vmServiceRow(markdown);
+    for (const [vmGate, registryGate] of REQUIRED_VM_TWINS) {
+        assert.ok(row.includes(`\`${vmGate}\``), `xchain-vm row omits ${vmGate}`);
+        assert.ok(
+            row.includes(`indexer twin is \`${registryGate}\``),
+            `xchain-vm row does not pair ${vmGate} with ${registryGate}`,
+        );
+    }
 }
 
 function unarmedRosterMatch(markdown, network) {
@@ -119,9 +134,22 @@ function assertTwinRegistryPages(activation, flagDays, tables) {
     }
 }
 
-test('VM network tables, including GAS_CEILING_SUCCESS and ITER_SET_METER, are named on both registry pages',
-    { skip: vm.skip }, () => {
-        assertTwinRegistryPages(ACTIVATION, FLAG_DAYS, vmNetworkTables(readVmSources(vm.root)));
+test('required VM twins are named in the xchain-vm service row', () => {
+    assertRequiredVmTwins(ACTIVATION);
+});
+
+test('the required VM twin guard fails when a gate or twin is removed', () => {
+    for (const [vmGate, registryGate] of REQUIRED_VM_TWINS) {
+        assert.throws(() => assertRequiredVmTwins(ACTIVATION.replace(`\`${vmGate}\``, '`removed`')),
+            new RegExp(`omits ${vmGate}`));
+        assert.throws(() => assertRequiredVmTwins(
+            ACTIVATION.replace(`indexer twin is \`${registryGate}\``, 'indexer twin is `removed`'),
+        ), new RegExp(`does not pair ${vmGate}`));
+    }
+});
+
+test('VM network tables are named on both registry pages', { skip: vm.skip }, () => {
+    assertTwinRegistryPages(ACTIVATION, FLAG_DAYS, vmNetworkTables(readVmSources(vm.root)));
 });
 
 test('the registry-page guard fails when a VM gate, twin, or roster entry is removed', { skip: vm.skip }, () => {
