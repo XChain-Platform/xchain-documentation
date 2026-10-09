@@ -52,6 +52,7 @@ same chain or field.
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
 | `consolidation_leg_amount_activation` | `CONSOLIDATION_LEG_AMOUNT_ACTIVATION` | time |
 | `cross_chain_offer_list_export_activation` | `CROSS_CHAIN_OFFER_LIST_EXPORT` | height |
+| `cross_chain_remote_token_activation` | `CROSS_CHAIN_REMOTE_TOKEN_ACTIVATION` | height |
 | `cross_chain_royalty_activation` | `CROSS_CHAIN_ROYALTY_ACTIVATION` | height |
 | `dispense_cancelling_match_activation` | `DISPENSE_CANCELLING_MATCH_ACTIVATION` | time |
 | `dispense_payment_tally_scale_activation` | `DISPENSE_PAYMENT_TALLY_SCALE_ACTIVATION` | time |
