@@ -91,6 +91,25 @@ test('an addChange call with a bare UNARMED mainnet slot is listed unarmed on ma
     assert.deepStrictEqual(gen.collectTestnetArms(dir), []);
 });
 
+test('an addGate time row parked on UNARMED is listed unarmed on both networks', () => {
+    const dir = fixtureRegistry(
+        "addGate('foo_activation.FOO_ACTIVATION', 'time', { mainnet: UNARMED, testnet: UNARMED, regtest: 0 });\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(dir), []);
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['FOO_ACTIVATION']);
+    assert.deepStrictEqual(gen.collectTestnetUnarmed(dir).map((g) => g.gate), ['FOO_ACTIVATION']);
+});
+
+test('an addGate time row with a genesis testnet slot or a height unit is listed unarmed on mainnet only', () => {
+    const dir = fixtureRegistry(
+        "addGate('foo_activation.FOO_ACTIVATION', 'time', { mainnet: UNARMED, testnet: 0, regtest: 0 });\n"
+        + "addGate('bar_activation.BAR_ACTIVATION', 'height', { mainnet: UNARMED, testnet: UNARMED, regtest: 0 });\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(dir), []);
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['FOO_ACTIVATION']);
+    assert.deepStrictEqual(gen.collectTestnetUnarmed(dir), []);
+});
+
 test('a bare UNARMED slot with no declaration in core.js is refused', () => {
     const dir = fixtureRegistry("this.addChange('FOO', '1.0.0', UNARMED, 0, 0, 0, 0, 0);\n", null);
     assert.throws(() => gen.collectMainnetUnarmed(dir), /FOO.*UNARMED/s);
