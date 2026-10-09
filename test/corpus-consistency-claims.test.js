@@ -489,3 +489,33 @@ test('falsification: the shared-network and signed-capability overclaims are cau
     for (const rel of Object.keys(stale)) assert.notEqual(stale[rel], pages[rel], `${rel} moved; re-point this falsification`);
     assert.deepEqual(overclaimsIn(stale), ['architecture/component-map.md', 'architecture/data-pipeline.md']);
 });
+
+const DESKTOP_TRADING_REVIEW_PAGES = {
+    'components/wallet/release/desktop/mac-app-store.md': 'Mac App Store',
+    'components/wallet/release/desktop/microsoft-store.md': 'Microsoft Store',
+    'components/wallet/release/desktop/snap-store.md': 'Snap Store',
+};
+
+function tradingReviewNotes(markdown) {
+    const section = /^### Review notes: trading screens\n\n([\s\S]*?)(?=\n### |\n## |$)/m.exec(markdown);
+    assert.ok(section, 'the Review notes: trading screens section is missing');
+    return section[1];
+}
+
+function assertTradingReviewDefense(notes) {
+    assert.match(notes, /on-chain decentralized exchange/i);
+    assert.match(notes, /does not operate a custodial exchange or broker trades/i);
+    assert.match(notes, /wallet composes and signs the user's place-order and cancel-order protocol actions/i);
+    assert.match(notes, /matching happens in the XChain indexer/i);
+    assert.match(notes, /settlement happens on public blockchains/i);
+    assert.match(notes, /no publisher account, hosted balance, fiat on-ramp or card purchase/i);
+}
+
+test('desktop store review notes defend the trading screens that ship', () => {
+    for (const [rel, channel] of Object.entries(DESKTOP_TRADING_REVIEW_PAGES)) {
+        const notes = tradingReviewNotes(readDoc(rel));
+        assertTradingReviewDefense(notes);
+        assert.match(notes, new RegExp(`complete trading surface ships in the ${channel} build`, 'i'));
+        assert.doesNotMatch(notes, /trading screens? (?:are|is) (?:hidden|compiled out)/i);
+    }
+});
