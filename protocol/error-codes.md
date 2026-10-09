@@ -124,6 +124,7 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 |---|---|---|---|
 | `INSUFFICIENT_FUNDS` | The selected inputs cannot cover the outputs plus fee, or every candidate input is reserved by a transaction built inside the reservation window | `required`, `available`, `outputs`, `fee`; `reservedCandidates` when every candidate is reserved | No: fund the address, or broadcast the pending transaction and wait for its change |
 | `NO_UTXOS` | No UTXOs were provided and none were found for the address | none | No |
+| `NO_CONFIRMED_UTXO` | Input selection reached the maximum input count without enough value to fund the transaction | `selectedInputCount`, `maximum` | Yes: wait for a larger output to confirm, or consolidate the confirmed outputs |
 | `CHANGE_ADDRESS_REQUIRED` | The build would burn significant satoshis as fee; supply a change address | none | No: supply `change` |
 | `DUPLICATE_TRANSACTION` | A transaction with the same inputs and outputs (same txid) was built inside the reservation window | `txid` | No: broadcast the one already built, or change the inputs or outputs |
 | `INPUT_RESERVED` | `options.exactInputs` names outpoints reserved by a transaction built inside the reservation window | `reserved` (outpoints) | No: broadcast that transaction and rebuild, or wait for the reservation to lapse |
