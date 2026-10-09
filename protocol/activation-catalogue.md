@@ -115,6 +115,7 @@ same chain or field.
 | `rollcall_activation` | `ROLLCALL_ACTIVATION` | epoch |
 | `rollcall_gates_activation` | `ROLLCALL_GATES_ACTIVATION` | epoch |
 | `send_caret_pack_key_activation` | `SEND_CARET_PACK_KEY_ACTIVATION` | time |
+| `send_gated_total_tick_id_activation` | `SEND_GATED_TOTAL_TICK_ID_ACTIVATION` | time |
 | `slash_grid_activation` | `SLASH_GRID_ACTIVATION` | height |
 | `slash_ledger_consolidation_activation` | `SLASH_LEDGER_CONSOLIDATION_ACTIVATION` | height |
 | `stake_key_reuse_activation` | `STAKE_KEY_REUSE_ACTIVATION` | height |
@@ -132,6 +133,7 @@ same chain or field.
 | `vm_deploy_lint_pkg3_activation` | `VM_DEPLOY_LINT_PKG3_ACTIVATION` | height |
 | `vm_exec_lint_activation` | `VM_EXEC_LINT_ACTIVATION` | height |
 | `vm_lint_global_alias_activation` | `VM_LINT_GLOBAL_ALIAS_ACTIVATION` | height |
+| `vm_lint_nesting_depth_activation` | `VM_LINT_NESTING_DEPTH_ACTIVATION` | height |
 | `vm_lint_optional_chain_heights` | `VM_LINT_OPTIONAL_CHAIN_ACTIVATION` | height |
 | `vote_callback_binding_activation` | `VOTE_CALLBACK_BINDING_REQUIRES_USABLE_METHOD` | height |
 | `xchain_bridge_activation` | `XCHAIN_BRIDGE_ACTIVATION` | height |

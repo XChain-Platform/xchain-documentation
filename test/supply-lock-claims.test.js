@@ -177,9 +177,12 @@ test('the source facts the zero-max-supply wording rests on still hold', { skip:
     const changes = readSrc('protocol_changes.js');
     const mint = readSrc('actions/mint.js');
 
-    assert.match(changes, /UNCAPPED_MAX_SUPPLY_ZERO_MAINNET_TIME\s*=\s*9999999999/,
+    assert.match(changes, /const UNARMED = 9999999999;/,
+        'the indexer no longer defines UNARMED as the 9999999999 sentinel');
+    assert.match(changes,
+        /UNCAPPED_MAX_SUPPLY_ZERO_MAINNET_TIME\s*=\s*(?:UNARMED|9999999999)/,
         'protocol_changes.js no longer parks UNCAPPED_MAX_SUPPLY_ZERO_MAINNET_TIME on the '
-        + 'unarmed 9999999999 sentinel. If the operator has named the mainnet launch instant, '
+        + 'unarmed sentinel. If the operator has named the mainnet launch instant, '
         + 'the "### Supply" wording in user-guide/creating-tokens.md must be updated in the '
         + 'same commit and this assertion retired: zero max supply then means uncapped on '
         + 'mainnet too, and the guide must stop telling mainnet issuers to avoid it.');

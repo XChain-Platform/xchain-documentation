@@ -374,8 +374,10 @@ test('the bridge availability source facts still hold', { skip: skipNoIndexer },
     const tokenGate  = changes.match(/addGate\('token_bridge_activation\.TOKEN_BRIDGE_ACTIVATION'[\s\S]*?\}\);/);
 
     assert.ok(xchainGate && tokenGate, 'protocol_changes no longer declares both bridge gates via addGate');
+    assert.match(changes, /const UNARMED = 9999999999;/,
+        'the indexer no longer defines UNARMED as the 9999999999 sentinel');
     for(const key of ['BTC:mainnet', 'LTC:mainnet', 'DOGE:mainnet']){
-        assert.match(xchainGate[0], new RegExp(`'${key}':\\s*9999999999`),
+        assert.match(xchainGate[0], new RegExp(`'${key}':\\s*(?:UNARMED|9999999999)`),
             `XCHAIN_BRIDGE_ACTIVATION ${key} is no longer the sentinel. cross-chain.md says the `
             + 'bridge is not active on mainnet and must change in the same commit.');
     }
