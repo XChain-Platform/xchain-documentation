@@ -97,13 +97,15 @@ JSON-RPC 2.0 error objects:
 { "jsonrpc": "2.0", "id": 1, "error": { "code": -32602, "message": "..." } }
 ```
 
+The SDK treats every JSON-RPC body error as final: it does not automatically retry an error response. Callers own retries and may use the guidance below to decide whether and how to issue a new request. The `Retry?` column describes whether a caller-initiated retry may succeed, not SDK retry behavior.
+
 | Code | Meaning | Used by | Retry? |
 |---|---|---|---|
 | `-32700` | Parse error: invalid JSON | all | No |
 | `-32600` | Invalid request envelope | all | No |
 | `-32601` | Method not found | all | No |
 | `-32602` | Invalid params (validation failure) | all | No: fix params |
-| `-32603` | Internal error (node transport failure, encoder failure). A coin-node verdict on a broadcast is `-32010`, not this code | all | Yes: with backoff |
+| `-32603` | Internal error (node transport failure, encoder failure). A coin-node verdict on a broadcast is `-32010`, not this code | all | Caller may retry with backoff |
 | `-32000` | Server error | all | Yes: with backoff |
 | `-32001` | Unauthorized: missing/invalid API key (`x-api-key` for encoder/hub, `Authorization: Bearer` for SDK API) | all | No: fix credentials |
 | `-32029` | Too many requests (rate limit) | encoder, hub | Yes: back off |
@@ -125,18 +127,18 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `CHANGE_ADDRESS_REQUIRED` | The build would burn significant satoshis as fee; supply a change address | none | No: supply `change` |
 | `DUPLICATE_TRANSACTION` | A transaction with the same inputs and outputs (same txid) was built inside the reservation window | `txid` | No: broadcast the one already built, or change the inputs or outputs |
 | `INPUT_RESERVED` | `options.exactInputs` names outpoints reserved by a transaction built inside the reservation window | `reserved` (outpoints) | No: broadcast that transaction and rebuild, or wait for the reservation to lapse |
-| `INPUT_SELECTION_RACE` | Input selection raced a concurrent reservation, so the obfuscation key is bound to an outpoint that is not the first input | `expectedFirstInput`, `actualFirstInput` | Yes: retry the request |
-| `UTXO_TRACKER_ERROR` | The UTXO tracker is unreachable or returned a malformed response | none | Yes: with backoff |
-| `UTXO_TRACKER_STALE` | The tracker's view lags the node past the configured threshold, or is ahead of the node (an orphaned view), or the tracker reports `synced: false` (the remote tracker profile also refuses an absent `synced`) | `lag`, `tracker_height`, `node_height` | Yes: with backoff |
+| `INPUT_SELECTION_RACE` | Input selection raced a concurrent reservation, so the obfuscation key is bound to an outpoint that is not the first input | `expectedFirstInput`, `actualFirstInput` | Caller may retry the request |
+| `UTXO_TRACKER_ERROR` | The UTXO tracker is unreachable or returned a malformed response | none | Caller may retry with backoff |
+| `UTXO_TRACKER_STALE` | The tracker's view lags the node past the configured threshold, or is ahead of the node (an orphaned view), or the tracker reports `synced: false` (the remote tracker profile also refuses an absent `synced`) | `lag`, `tracker_height`, `node_height` | Caller may retry with backoff |
 | `UTXO_TRACKER_HALTED` | The tracker is halted (for example after an unrecoverable reorg) | `lag`, `tracker_height`, `node_height`, `halt_reason` | No: operator action |
-| `UTXO_TRACKER_NOT_READY` | The tracker has not reconverged its mempool, so an already-spent confirmed output cannot be filtered | `lag`, `tracker_height`, `node_height` | Yes: with backoff |
-| `ENVELOPE_RECOGNITION_UNKNOWN` | The node returned no chain height, so Taproot envelope recognition cannot be confirmed active | none | Yes: with backoff |
+| `UTXO_TRACKER_NOT_READY` | The tracker has not reconverged its mempool, so an already-spent confirmed output cannot be filtered | `lag`, `tracker_height`, `node_height` | Caller may retry with backoff |
+| `ENVELOPE_RECOGNITION_UNKNOWN` | The node returned no chain height, so Taproot envelope recognition cannot be confirmed active | none | Caller may retry with backoff |
 | `ENVELOPE_NOT_YET_ACTIVE` | Taproot envelope recognition is not active on this network yet, so the envelope is refused rather than built for decoders to ignore | `recognitionHeight`, `chainTip`, `blocksRemaining` | No: use P2WSH until the activation height |
 | `ENVELOPE_CANCEL_BELOW_DUST` | The envelope-cancel sweep output would fall below the dust floor | `commitValue`, `fee`, `sweepValue` | No: spend via the reveal or CPFP |
 | `ENVELOPE_CANCEL_OUTPOINT_RESERVED` | The commit outpoint the cancel would sweep is reserved by a different transaction built inside the reservation window | `outpoint` | No: broadcast that transaction and rebuild, or wait for the reservation to lapse. Replaying the same cancel is never refused |
 | `NODE_REJECTED` | `broadcast_tx`: the coin node refused the signed transaction (for example a double-spend, dust output, or fee below the relay floor) | `node_code` (the node's RPC error code) | No: rebuild and re-sign |
 | `TX_ALREADY_IN_CHAIN` | `broadcast_tx`: the coin node already knows the transaction, in its mempool or in a block | `node_code` (the node's RPC error code) | No: the transaction is already broadcast; track its txid |
-| `UTXO_TRACKER_UNREACHABLE` | Remote tracker profile only (`UTXO_TRACKER_PROFILE=remote`): the tracker's `get_sync_status` or `get_utxos` call failed (a transport fault, an error reply or a malformed result), and this profile has no fallback. The default profile reports the same failure as `UTXO_TRACKER_ERROR` | none | Yes: with backoff |
+| `UTXO_TRACKER_UNREACHABLE` | Remote tracker profile only (`UTXO_TRACKER_PROFILE=remote`): the tracker's `get_sync_status` or `get_utxos` call failed (a transport fault, an error reply or a malformed result), and this profile has no fallback. The default profile reports the same failure as `UTXO_TRACKER_ERROR` | none | Caller may retry with backoff |
 | `UTXO_TRACKER_SYNC_MISSING` | Remote tracker profile only: the tracker returned an empty sync status, a `get_utxos` reply with no `sync` field, or a `sync` without a numeric `lag`, so the encoder refuses a view the tracker did not vouch for. The default profile builds in this case | none | No: operator action (upgrade or repair the tracker); a wallet may offer a manual retry |
 
 ## Where the specs live

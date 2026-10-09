@@ -40,12 +40,12 @@ on the anchor's own DOGE `BLOCK_INDEX`:
 
 | Network | `ANCHOR_ACTIVATION` | Why |
 | --- | --- | --- |
-| mainnet | 6360000 | above the chain tip: the restarted set has not activated on mainnet yet |
+| mainnet | 6360000 | activated: the restarted set is live on mainnet |
 | testnet | 67858600 | 24 blocks above the last pre-restart anchor at 67858576 |
 | regtest | 0 | stacks are rebuilt from genesis, so there is no pre-restart history |
 
-Mainnet's height is deliberately ahead of the tip. The restarted wire set is not live there, and the
-height is a flag day an operator arms on purpose rather than one that silently already passed.
+Mainnet's height has been reached. The restarted wire set is live there, and the height was a
+flag day an operator armed on purpose rather than one that silently already passed.
 Testnet's sits just above the last anchor it published under the old set and is already past, so
 that window is open and needs no publisher-side guard.
 

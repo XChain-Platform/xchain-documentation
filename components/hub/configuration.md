@@ -343,11 +343,15 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 
 ### Rewards and Slashing
 
+`SLASH_DEVIATION_THRESHOLD` and `SLASH_MISSED_ROUNDS_THRESHOLD` are both
+env-owned controls. For either variable, the hub refuses a governance proposal
+that attempts to change its value.
+
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `ORACLE_REWARD_PER_ROUND` | No | `"10.00000000"` | XCHAIN budget the hub splits equally among the validators that submitted a price in a finalized round, for its own local `validator_rewards` ledger only. It is not pushed to the indexer and does not change what the chain credits |
-| `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation (5%) at which the hub records a `price_deviation` offense. Hub-local: governance can suspend the validator, on-chain stake is untouched |
-| `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Missed rounds at which the hub records a `non_participation` offense. Hub-local: governance can set `validators.status='suspended'`, on-chain stake is untouched. Only a permissionless SLASH proof of equivocation burns stake (see [Decentralization](decentralization.md)) |
+| `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation (5%) at which the hub records a `price_deviation` offense. `SLASH_DEVIATION_THRESHOLD` is env-owned; the hub refuses any governance proposal that attempts to change it. Hub-local: governance can suspend the validator, on-chain stake is untouched |
+| `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Missed rounds at which the hub records a `non_participation` offense. `SLASH_MISSED_ROUNDS_THRESHOLD` is env-owned; the hub refuses any governance proposal that attempts to change it. Hub-local: governance can set `validators.status='suspended'`, on-chain stake is untouched. Only a permissionless SLASH proof of equivocation burns stake (see [Decentralization](decentralization.md)) |
 
 ### ANCHOR Publishing
 
