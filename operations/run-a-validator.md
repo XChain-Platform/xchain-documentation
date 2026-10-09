@@ -337,11 +337,13 @@ math for everyone: the threshold rises with your stake, but you never answer.
 
 Nothing on-chain penalises that today. SLASH burns stake on equivocation
 proofs only, so an absent validator is not slashed; the hub-local
-`SLASH_MISSED_ROUNDS_THRESHOLD` lane can mark a validator `suspended` in a
-hub's own table, which no quorum read consults. On a network where ROLLCALL
-is active, a validator absent for K consecutive rolled epochs is **evicted**
-from the capability set: its stake is deactivated and refunded after the
-cooldown, not burned. See `protocol/actions/rollcall.md`.
+`SLASH_DEVIATION_THRESHOLD` and `SLASH_MISSED_ROUNDS_THRESHOLD` settings are
+env-owned, and governance proposals for either threshold are refused. The
+missed-rounds lane can mark a validator `suspended` in a hub's own table,
+which no quorum read consults. On a network where ROLLCALL is active, a
+validator absent for K consecutive rolled epochs is **evicted** from the
+capability set: its stake is deactivated and refunded after the cooldown, not
+burned. See `protocol/actions/rollcall.md`.
 
 Do not put anything else in `hub-caps/`; the whole directory is mounted into
 the hub and the installer refuses to build the mount if it holds any file
