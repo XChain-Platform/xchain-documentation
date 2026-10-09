@@ -108,6 +108,8 @@ The rule the indexer applies, in order:
 3. **A pack requires the handoff** when its effective threshold is unconditional, or when the post-send balance reaches it.
 4. **The `MESSAGE` is required if at least one pack requires it.** If every pack sits above the recipient's post-send balance, a plain `SEND` with no `MESSAGE` is valid and the recipient deliberately receives no key. They can be sent one later, or acquire more of the token and be handed the key on the transfer that crosses the threshold.
 
+Once the `SEND_GATED_TOTAL_TICK_ID` gate is active, the total in item 2 is summed per resolved `TICK_ID` for each `DESTINATION`, so legs that spell one tick differently, for example in letter case or as the `^<tickid>` form, count together toward the threshold. Before the gate, the total is summed per `TICK` as written, so spelling variants are measured apart. The gate changes only whether the handoff is owed, never which legs settle.
+
 Publishing a gated `FILE` against a token is restricted to that token's issuer, so an outsider cannot attach a pack (or a threshold) to someone else's token.
 
 Format rules for the field: a decimal amount strictly greater than zero (every zero form is rejected), at most 40 characters, digits and at most one `.`, no leading zeros unless the integer part is exactly `0`, a non-empty fractional part whenever a `.` is present, and no more decimal places than the gate token's own divisibility (capped at 18). A present-but-invalid value rejects the `FILE` rather than being ignored: a `FILE` is immutable, so silently dropping a malformed threshold would leave the publisher believing a threshold was in force while the chain recorded none.
