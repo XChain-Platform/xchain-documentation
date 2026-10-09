@@ -14,11 +14,26 @@ const ROOT = path.resolve(__dirname, '..');
 const ACTIVATION = fs.readFileSync(path.join(ROOT, 'protocol', 'protocol-activation.md'), 'utf8');
 const FLAG_DAYS = fs.readFileSync(path.join(ROOT, 'protocol', 'flag-days.md'), 'utf8');
 const vm = sibling('xchain-vm', ['src/index.js', 'src/index']);
+const REQUIRED_VM_TWINS = Object.freeze([
+    ['GAS_CEILING_SUCCESS_ACTIVATION', 'GAS_CEILING_SUCCESS'],
+    ['ITER_SET_METER_ACTIVATION', 'ITER_SET_METER'],
+]);
 
 function vmServiceRow(markdown) {
     const row = markdown.split('\n').find((line) => line.startsWith('| `xchain-vm` |'));
     assert.ok(row, 'protocol-activation.md is missing its xchain-vm service row');
     return row;
+}
+
+function assertRequiredVmTwins(markdown) {
+    const row = vmServiceRow(markdown);
+    for (const [vmGate, registryGate] of REQUIRED_VM_TWINS) {
+        assert.ok(row.includes(`\`${vmGate}\``), `xchain-vm row omits ${vmGate}`);
+        assert.ok(
+            row.includes(`indexer twin is \`${registryGate}\``),
+            `xchain-vm row does not pair ${vmGate} with ${registryGate}`,
+        );
+    }
 }
 
 function unarmedRosterMatch(markdown, network) {
@@ -59,20 +74,21 @@ function readVmSources(root) {
     return files.sort().map((file) => fs.readFileSync(file, 'utf8'));
 }
 
-function sealedNetworkTables(sources) {
+function vmNetworkTables(sources) {
     const text = sources.join('\n');
     const constants = new Map(
         [...text.matchAll(/^const ([A-Z0-9_]+) = (null|\d+);/gm)]
             .map((entry) => [entry[1], entry[2] === 'null' ? null : Number(entry[2])]),
     );
-    const declarations = /^const ([A-Z0-9_]+_ACTIVATION) = Object\.seal\(\{([\s\S]*?)\}\);/gm;
+    const declarations = /^const ([A-Z0-9_]+_ACTIVATION) = Object\.(?:freeze|seal)\(\{([\s\S]*?)\}\);/gm;
     return [...text.matchAll(declarations)].map((declaration) => {
         const slots = new Map(
             [...declaration[2].matchAll(/^\s*(mainnet|testnet|regtest):\s*([^,\n]+),/gm)]
                 .map((entry) => [entry[1], entry[2].trim()]),
         );
+        if (slots.size === 0) return null;
         assert.deepEqual([...slots.keys()], ['mainnet', 'testnet', 'regtest'],
-            `${declaration[1]} is not a sealed per-network activation table`);
+            `${declaration[1]} is not a per-network activation table`);
         const threshold = (network) => {
             const value = slots.get(network);
             if (value === 'null') return null;
@@ -85,10 +101,11 @@ function sealedNetworkTables(sources) {
             vm: declaration[1],
             marker: /^[A-Z0-9_]+_GATE_BLOCK_TIME$/.test(mainnetMarker)
                 ? mainnetMarker : declaration[1],
-            registry: declaration[1].replace(/_ACTIVATION$/, ''),
+            registry: declaration[1] === 'ACCESSOR_OWN_KEY_ACTIVATION'
+                ? 'READONLY_ACCESSOR_OWN_KEY' : declaration[1].replace(/_ACTIVATION$/, ''),
             thresholds: { mainnet: threshold('mainnet'), testnet: threshold('testnet') },
         };
-    });
+    }).filter(Boolean);
 }
 
 function assertTwinRegistryPages(activation, flagDays, tables) {
@@ -117,13 +134,27 @@ function assertTwinRegistryPages(activation, flagDays, tables) {
     }
 }
 
-test('sealed VM network tables, including ITER_SET_METER, are named on both registry pages', { skip: vm.skip }, () => {
-    assertTwinRegistryPages(ACTIVATION, FLAG_DAYS, sealedNetworkTables(readVmSources(vm.root)));
+test('required VM twins are named in the xchain-vm service row', () => {
+    assertRequiredVmTwins(ACTIVATION);
 });
 
-test('the registry-page guard fails when a sealed VM gate, twin, or roster entry is removed', { skip: vm.skip }, () => {
+test('the required VM twin guard fails when a gate or twin is removed', () => {
+    for (const [vmGate, registryGate] of REQUIRED_VM_TWINS) {
+        assert.throws(() => assertRequiredVmTwins(ACTIVATION.replace(`\`${vmGate}\``, '`removed`')),
+            new RegExp(`omits ${vmGate}`));
+        assert.throws(() => assertRequiredVmTwins(
+            ACTIVATION.replace(`indexer twin is \`${registryGate}\``, 'indexer twin is `removed`'),
+        ), new RegExp(`does not pair ${vmGate}`));
+    }
+});
+
+test('VM network tables are named on both registry pages', { skip: vm.skip }, () => {
+    assertTwinRegistryPages(ACTIVATION, FLAG_DAYS, vmNetworkTables(readVmSources(vm.root)));
+});
+
+test('the registry-page guard fails when a VM gate, twin, or roster entry is removed', { skip: vm.skip }, () => {
     const sources = readVmSources(vm.root);
-    const tables = sealedNetworkTables(sources);
+    const tables = vmNetworkTables(sources);
     for (const gate of tables) {
         assert.throws(
             () => assertTwinRegistryPages(
@@ -152,7 +183,7 @@ test('the registry-page guard fails when a sealed VM gate, twin, or roster entry
         'const FUTURE_METER_ACTIVATION = Object.seal({\nmainnet: null,\ntestnet: null,\nregtest: 0,\n});',
     );
     assert.throws(
-        () => assertTwinRegistryPages(ACTIVATION, FLAG_DAYS, sealedNetworkTables(future)),
+        () => assertTwinRegistryPages(ACTIVATION, FLAG_DAYS, vmNetworkTables(future)),
         /omits FUTURE_METER_ACTIVATION/,
     );
 });
