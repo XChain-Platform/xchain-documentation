@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Drift lint for six more cross-page claims the corpus contradicted itself
+ * Drift lint for seven more cross-page claims the corpus contradicted itself
  * about. Each block pins the corrected wording and carries a falsification
  * that feeds the stale wording back in, so a guard that matches nothing
  * fails rather than passing quietly.
@@ -40,6 +40,11 @@
  *
  *   6. Indexer GAS_SCHEDULE example. The example keys and values must be
  *      real coin-file keys, or a developer prices EXECUTE ten times too high.
+ *
+ *   7. Extension trading review notes. A reviewer seeing DEX screens needs an
+ *      explicit boundary between user-signed protocol transactions and a
+ *      custodial exchange. Reversing the custody or counterparty claims would
+ *      make the runbook submit a materially false description.
  *
  * Claims that read a sibling checkout SKIP when it is absent, the same
  * convention corpus-consistency-claims.test.js uses.
@@ -209,4 +214,34 @@ test('the GAS_SCHEDULE example matches the BTC coin file', { skip: noIndexerBtc 
 test('falsification: the stale EXECUTE example is caught', { skip: noIndexerBtc }, () => {
     const stale = '| `GAS_SCHEDULE` | x | `{ DEPLOY: 100000, EXECUTE: 10000, STAKE: 5000, ... }` |';
     assert.throws(() => assertGasExample(stale, btcCoinFile()));
+});
+
+/* ---------------------------------------------------------------- claim 7 */
+
+const TRADING_REVIEW_OVERCLAIM = new RegExp([
+    String.raw`(?:the )?(?:extension|wallet|Dankest, LLC) (?:holds|custodies) user funds`,
+    String.raw`(?:the )?(?:extension|wallet|Dankest, LLC) (?:acts|serves) as the counterparty`,
+    String.raw`operates a proprietary order-matching service`,
+].join('|'), 'i');
+
+function tradingReviewSection(markdown) {
+    const heading = '### Review notes: trading screens';
+    const start = markdown.indexOf(heading);
+    assert.notEqual(start, -1, 'Chrome Web Store runbook has no trading-screen review notes');
+    const rest = markdown.slice(start);
+    const next = rest.slice(heading.length).search(/\n#{1,3} /);
+    return next === -1 ? rest : rest.slice(0, heading.length + next);
+}
+
+test('the trading-screen review notes do not claim developer custody or execution', () => {
+    const notes = tradingReviewSection(
+        readDoc('components/wallet/release/extension/chrome-web-store.md'));
+    assert.deepEqual(offendingLines(notes, TRADING_REVIEW_OVERCLAIM), []);
+});
+
+test('falsification: a custodial trading-screen explanation is caught', () => {
+    const page = readDoc('components/wallet/release/extension/chrome-web-store.md');
+    const stale = page.replace('never holds user funds', 'the extension holds user funds');
+    assert.notEqual(stale, page, 'the custody sentence moved; re-point this falsification');
+    assert.equal(offendingLines(tradingReviewSection(stale), TRADING_REVIEW_OVERCLAIM).length, 1);
 });

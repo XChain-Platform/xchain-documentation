@@ -66,6 +66,11 @@
  *      validator trusting the whitepaper skips the DOGE read its BTC indexer
  *      needs. The notes are checked against protocol/constants.js.
  *
+ *   9. Extension trading review notes. The default Chrome build includes the
+ *      wallet's DEX and dispenser screens. Review collateral must explain that
+ *      those screens prepare user-signed protocol transactions without turning
+ *      the extension into a custodian, counterparty or fiat exchange.
+ *
  * The capacity figure is read out of the sibling xchain-encoder checkout
  * rather than typed here, and SKIPS when that sibling is absent: the
  * convention fee-and-limit-claims.test.js and consensus-wall-clock-claims.js
@@ -488,4 +493,31 @@ test('falsification: the shared-network and signed-capability overclaims are cau
     };
     for (const rel of Object.keys(stale)) assert.notEqual(stale[rel], pages[rel], `${rel} moved; re-point this falsification`);
     assert.deepEqual(overclaimsIn(stale), ['architecture/component-map.md', 'architecture/data-pipeline.md']);
+});
+
+/* ------------------------------------------- extension trading review notes */
+
+function tradingReviewNotes(markdown) {
+    const heading = '### Review notes: trading screens';
+    const start = markdown.indexOf(heading);
+    assert.notEqual(start, -1, 'Chrome Web Store runbook has no trading-screen review notes');
+    const rest = markdown.slice(start);
+    const next = rest.slice(heading.length).search(/\n#{1,3} /);
+    return next === -1 ? rest : rest.slice(0, heading.length + next);
+}
+
+function assertTradingReviewNotes(markdown) {
+    const notes = tradingReviewNotes(markdown);
+    assert.match(notes, /non-custodial software wallet/i);
+    assert.match(notes, /not a cryptocurrency exchange, broker, dealer, or custodian/i);
+    assert.match(notes, /never holds user funds/i);
+    assert.match(notes, /never acts as the counterparty/i);
+    assert.match(notes, /`ORDER`, `SWAP`, `DISPENSER`, or `COINPAY`/);
+    assert.match(notes, /before signing with a key that remains on the device/i);
+    assert.match(notes, /no fiat on-ramp/i);
+    assert.match(notes, /no off-chain customer balance/i);
+}
+
+test('the Chrome submission collateral explains its trading screens without claiming custody', () => {
+    assertTradingReviewNotes(readDoc('components/wallet/release/extension/chrome-web-store.md'));
 });
