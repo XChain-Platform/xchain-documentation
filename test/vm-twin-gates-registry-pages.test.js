@@ -117,7 +117,7 @@ function assertTwinRegistryPages(activation, flagDays, tables) {
     }
 }
 
-test('sealed VM network tables are named on the activation and generated registry pages', { skip: vm.skip }, () => {
+test('sealed VM network tables, including ITER_SET_METER, are named on both registry pages', { skip: vm.skip }, () => {
     assertTwinRegistryPages(ACTIVATION, FLAG_DAYS, sealedNetworkTables(readVmSources(vm.root)));
 });
 
