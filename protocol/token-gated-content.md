@@ -103,6 +103,8 @@ The rule the indexer applies, in order:
 
 1. **Threshold per pack, not per file.** A pack's effective threshold is the **minimum** `GATE_MIN_AMOUNT` across its files. Any file in the pack with no threshold makes the whole pack unconditional: the files share one key, so the weakest condition governs what that key unlocks.
 2. **Measured on the post-send balance.** The recipient's balance of the token *before* the transfer, plus the total this action sends them across all of its legs. The total, not a per-leg amount: otherwise one transaction could split 120 into two legs of 60 against a threshold of 100 and deliver an above-threshold balance with no key.
+
+   Once the `SEND_GATED_TOTAL_TICK_ID` gate is active, that total is summed per resolved `TICK_ID`, so spelling variants of one tick count together and cannot split it.
 3. **A pack requires the handoff** when its effective threshold is unconditional, or when the post-send balance reaches it.
 4. **The `MESSAGE` is required if at least one pack requires it.** If every pack sits above the recipient's post-send balance, a plain `SEND` with no `MESSAGE` is valid and the recipient deliberately receives no key. They can be sent one later, or acquire more of the token and be handed the key on the transfer that crosses the threshold.
 
