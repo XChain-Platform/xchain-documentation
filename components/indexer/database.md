@@ -48,6 +48,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `bet_statuses` | Per-wager settlement history (open, won, lost, refunded) |
 | `bet_cancels` | BET market cancellation records (format 1), which refund every open wager in full |
 | `bet_resolves` | BET market resolution records (format 3), the only path that pays the oracle its fee |
+| `bet_edits` | BET list edit records (format 4), each repointing a feed to new allow and block lists; the latest valid edit sets the effective lists |
 | `broadcasts` | BROADCAST messages and general-purpose data feeds. Betting markets are `bet_feeds`, not broadcasts |
 | `callbacks` | CALLBACK action records |
 | `coinpays` | COINPAY native-coin payments settling an ORDER_MATCH obligation: the amount paid, its `txid`/`vout`, and the obligation it discharges. When one transaction settles more than one obligation, each row's `coin_amount`/`vout` name the specific output that paid THAT obligation, not just the transaction's first output. Testnet and regtest already behave this way; mainnet activates the change at `2026-08-16T00:00:00Z` |
