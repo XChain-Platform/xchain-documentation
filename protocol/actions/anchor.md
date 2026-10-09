@@ -74,6 +74,13 @@ bare `testnet` key is only the fallback for a chain with no key of its own. Its 
 `null` by default. `XC_ANCHOR_FOLD_REGTEST_ACTIVATION` can arm that entry at DOGE height zero or a
 selected height for a private venue without scheduling either public network.
 
+`ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION` is the separate enforcement gate for the existing v3
+section-count rule. A v3 with `SECTION_COUNT` 0 is an empty fold and is never a legal v3 wire:
+at or above this gate it is `invalid: SECTION_COUNT (empty fold)`. Before activation, indexers
+retain the earlier acceptance behavior only for consensus replay compatibility; that behavior
+does not make a zero-section fold valid for publishers to emit. The reject gate is currently
+UNARMED on every network pending the historical empty-fold audit.
+
 `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` is the companion gate for the v3 archive
 section's verdict scope (see [Version 3 only](#version-3-only) below). It carries the fold's values
 on every network, so testnet is armed per chain at the same heights. Mainnet holds the same
@@ -149,7 +156,7 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 | `VERSION`             | Integer | all      | Format version (0=checkpoint bundle, 1=archive head + publisher, 2=continuation, 3=folded checkpoint + archive bundle) |
 | `NETWORK`             | String  | 0, 1, 3  | `mainnet` \| `testnet` \| `regtest`. On a v0/v3 it is carried once, in the header, and applies to every section |
 | `SNAPSHOT_BLOCK`      | Integer | 0, 1, 3  | BTC block selecting the `oracle_publish` validator set. On a v0/v3 it is the bundle's election and attestation block: the MAX of the sections' `SECTION_SNAPSHOT_BLOCK` |
-| `SECTION_COUNT`       | Integer | 0, 3     | Number of per-chain checkpoint sections that follow; at least 1        |
+| `SECTION_COUNT`       | Integer | 0, 3     | Number of per-chain checkpoint sections that follow; at least 1 in both versions, and 0 is never legal in v3 |
 | `CHAIN`               | String  | 0, 1, 3  | Chain being checkpointed: `BTC` \| `LTC` \| `DOGE`. One per v0/v3 section |
 | `BLOCK_INDEX`         | Integer | 0, 1, 3  | Checkpointed block height on `CHAIN`                                   |
 | `BLOCK_HASH`          | String  | 0, 1, 3  | 64-hex block hash of `CHAIN` at `BLOCK_INDEX`                          |
@@ -637,10 +644,14 @@ invalidates every legitimate chunk, and its address becomes the only one whose c
 A publisher publishing one head per seq sees no difference between the two rules.
 
 ### Version 3 only
-- `SECTION_COUNT` chain sections follow the v0 rules verbatim (`CHAIN`-ascending order, no
-  duplicate chain, `PUBKEY`-ascending pairs within a section, roots required, `SNAPSHOT_BLOCK`
-  equal to the MAX of the sections' `SECTION_SNAPSHOT_BLOCK`). A bad checkpoint section still
-  invalidates the whole action (`invalid: SECTION n <reason>`), exactly as for a v0.
+- **`SECTION_COUNT` must be at least 1.** Zero is never legal in v3: it describes an unsigned
+  empty fold rather than a checkpoint bundle. At or above
+  `ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION`, an empty fold is
+  `invalid: SECTION_COUNT (empty fold)`. Nonempty chain sections follow the v0 rules verbatim
+  (`CHAIN`-ascending order, no duplicate chain, `PUBKEY`-ascending pairs within a section, roots
+  required, `SNAPSHOT_BLOCK` equal to the MAX of the sections' `SECTION_SNAPSHOT_BLOCK`). A bad
+  checkpoint section still invalidates the whole action (`invalid: SECTION n <reason>`), exactly
+  as for a v0.
 - **`ARCHIVE_COUNT` must be 0 or 1.** Any other value, or a value that disagrees with whether an
   archive section is actually present on the wire, is `invalid: ARCHIVE_COUNT`. A v3 with
   `ARCHIVE_COUNT` 0 carries no archive fields at all and is a plain folded checkpoint bundle;
