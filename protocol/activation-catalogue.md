@@ -49,6 +49,7 @@ same chain or field.
 | `bet_feed_list_edit_activation` | `BET_FEED_LIST_EDIT_ACTIVATION` | height |
 | `bridge_policy_detach_activation` | `BRIDGE_POLICY_DETACH` | height |
 | `bridge_policy_refusal_record_activation` | `BRIDGE_POLICY_REFUSAL_RECORD_ACTIVATION` | height |
+| `bridge_row_fields_terminal_activation` | `BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION` | height |
 | `callback_compensation_activation` | `CALLBACK_COMPENSATES_EVERY_DEBITED_HOLDER` | height |
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
