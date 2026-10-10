@@ -50,6 +50,11 @@
  *      before unlock, but removing a wallet clears both records. The glossary
  *      and release checklist must state that boundary together.
  *
+ *   9. Extension trading review notes. A reviewer seeing DEX screens needs an
+ *      explicit boundary between user-signed protocol transactions and a
+ *      custodial exchange. Reversing the custody or counterparty claims would
+ *      make the runbook submit a materially false description.
+ *
  * Claims that read a sibling checkout SKIP when it is absent, the same
  * convention corpus-consistency-claims.test.js uses.
  *
@@ -302,4 +307,34 @@ test('falsification: incomplete wallet wipe claims are caught', () => {
     assert.notEqual(staleChecklist, checklist, 'the release QA wipe claim moved; re-point this falsification');
     assert.throws(() => assertWalletWipeClaims(staleGlossary, checklist));
     assert.throws(() => assertWalletWipeClaims(glossary, staleChecklist));
+});
+
+/* ---------------------------------------------------------------- claim 9 */
+
+const TRADING_REVIEW_OVERCLAIM = new RegExp([
+    String.raw`(?:the )?(?:extension|wallet|Dankest, LLC) (?:holds|custodies) user funds`,
+    String.raw`(?:the )?(?:extension|wallet|Dankest, LLC) (?:acts|serves) as the counterparty`,
+    String.raw`operates a proprietary order-matching service`,
+].join('|'), 'i');
+
+function tradingReviewSection(markdown) {
+    const heading = '### Review notes: trading screens';
+    const start = markdown.indexOf(heading);
+    assert.notEqual(start, -1, 'Chrome Web Store runbook has no trading-screen review notes');
+    const rest = markdown.slice(start);
+    const next = rest.slice(heading.length).search(/\n#{1,3} /);
+    return next === -1 ? rest : rest.slice(0, heading.length + next);
+}
+
+test('the trading-screen review notes do not claim developer custody or execution', () => {
+    const notes = tradingReviewSection(
+        readDoc('components/wallet/release/extension/chrome-web-store.md'));
+    assert.deepEqual(offendingLines(notes, TRADING_REVIEW_OVERCLAIM), []);
+});
+
+test('falsification: a custodial trading-screen explanation is caught', () => {
+    const page = readDoc('components/wallet/release/extension/chrome-web-store.md');
+    const stale = page.replace('never holds user funds', 'the extension holds user funds');
+    assert.notEqual(stale, page, 'the custody sentence moved; re-point this falsification');
+    assert.equal(offendingLines(tradingReviewSection(stale), TRADING_REVIEW_OVERCLAIM).length, 1);
 });
