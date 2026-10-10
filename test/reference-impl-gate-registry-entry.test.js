@@ -146,6 +146,18 @@ describe('reference registry ENTRY assembly', () => {
 });
 
 describe('reference registry ENTRY reads', () => {
+    test('publishes the relay-response deadline as a regtest-armed time gate', () => {
+        const key = 'attest_relay_response_deadline_activation.ATTEST_RELAY_RESPONSE_DEADLINE_ACTIVATION';
+        assert.equal(entry.has(key), true);
+        assert.deepEqual(entry.get(key), {
+            mainnet: entry.UNARMED,
+            testnet: entry.UNARMED,
+            regtest: 0,
+        });
+        assert.equal(entry.activeAt(key, 'regtest', null, 0, undefined), false);
+        assert.equal(entry.activeAt(key, 'regtest', null, undefined, 0), true);
+    });
+
     test('publishes the bridge row-fields terminal gate with only regtest armed', () => {
         const key = 'bridge_row_fields_terminal_activation.BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION';
         assert.equal(entry.has(key), true);
