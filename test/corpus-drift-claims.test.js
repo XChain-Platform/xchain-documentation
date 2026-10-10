@@ -220,6 +220,33 @@ test('falsification: the stale EXECUTE example is caught', { skip: noIndexerBtc 
     assert.throws(() => assertGasExample(stale, btcCoinFile()));
 });
 
+const TRADING_REVIEW_FACTS = [
+    /does not operate a custodial exchange or broker trades/i,
+    /wallet composes and signs the user's place-order and cancel-order protocol actions/i,
+    /matching happens in the XChain indexer/i,
+    /settlement happens on public blockchains/i,
+    /no publisher account, hosted balance, fiat on-ramp or card purchase/i,
+];
+
+function assertTradingReviewFacts(notes) {
+    for (const fact of TRADING_REVIEW_FACTS) {
+        assert.match(notes, fact, `trading review notes lost ${fact}`);
+    }
+}
+
+test('falsification: omitting any trading-screen defense fact is caught', () => {
+    const page = readDoc('components/wallet/release/desktop/mac-app-store.md');
+    const section = /^### Review notes: trading screens\n\n([\s\S]*?)(?=\n### |\n## |$)/m.exec(page);
+    assert.ok(section, 'the Mac App Store trading review notes moved');
+    const notes = section[1];
+    assertTradingReviewFacts(notes);
+    for (const fact of TRADING_REVIEW_FACTS) {
+        const stale = notes.replace(fact, 'This detail was omitted.');
+        assert.notEqual(stale, notes, `the fixture no longer matches ${fact}`);
+        assert.throws(() => assertTradingReviewFacts(stale));
+    }
+});
+
 /* ---------------------------------------- mobile store trading disclosure */
 
 const TRADING_NOTES_HEADING = '### Review notes: trading screens';

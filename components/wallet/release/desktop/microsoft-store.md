@@ -97,6 +97,10 @@ Unlike the Mac App Store, this container is **not** a sandbox: a packaged build 
 ⬜ Both architecture packages are uploaded to the same submission.  
 ⬜ Certification passed. If it did not, the reason is recorded on this page so the next submission does not rediscover it.
 
+### Review notes: trading screens
+
+XChain Wallet includes trading screens for the XChain protocol's on-chain decentralized exchange. The publisher does not operate a custodial exchange or broker trades: the wallet composes and signs the user's place-order and cancel-order protocol actions with keys held on the user's device, matching happens in the XChain indexer, and settlement happens on public blockchains. There is no publisher account, hosted balance, fiat on-ramp or card purchase. The complete trading surface ships in the Microsoft Store build. Put these facts in the certification notes whenever Microsoft asks about financial or exchange functionality; do not say the screens are hidden or compiled out.
+
 ### Phase 5: release
 
 ⬜ The listing is public, and the download page links the Store install alongside the hosted installer.  
