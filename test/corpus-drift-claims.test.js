@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Drift lint for seven more cross-page claims the corpus contradicted itself
+ * Drift lint for additional cross-page claims the corpus contradicted itself
  * about. Each block pins the corrected wording and carries a falsification
  * that feeds the stale wording back in, so a guard that matches nothing
  * fails rather than passing quietly.
@@ -45,6 +45,10 @@
  *      trading screens. Each runbook needs review text that states the custody,
  *      matching and fiat boundaries, and must not restore the older claim that
  *      the exchange was compiled out.
+ *
+ *   8. Wallet wipe security state. Panic freeze and duress state are enforced
+ *      before unlock, but removing a wallet clears both records. The glossary
+ *      and release checklist must state that boundary together.
  *
  * Claims that read a sibling checkout SKIP when it is absent, the same
  * convention corpus-consistency-claims.test.js uses.
@@ -244,4 +248,31 @@ test('falsification: missing notes and compiled-out mobile trading claims are ca
         'The store build compiles the exchange and trading surfaces out entirely.');
     assert.notEqual(compiledOut, page, 'Play declaration text moved; re-point this falsification');
     assert.throws(() => assertTradingDisclosure(compiledOut));
+});
+
+/* ---------------------------------------------------------------- claim 8 */
+
+const WIPE_GLOSSARY_CLAIM = /A wallet wipe erases the panic freeze record and the duress passphrase/;
+const WIPE_QA_CLAIM = /wipe erases the panic freeze and the duress passphrase/;
+
+function assertWalletWipeClaims(glossary, checklist) {
+    assert.match(glossary, WIPE_GLOSSARY_CLAIM);
+    assert.match(checklist, WIPE_QA_CLAIM);
+}
+
+test('wallet wipe claims cover panic and duress state', () => {
+    assertWalletWipeClaims(
+        readDoc('components/wallet/glossary.md'),
+        readDoc('components/wallet/release/qa-checklist.md'));
+});
+
+test('falsification: incomplete wallet wipe claims are caught', () => {
+    const glossary = readDoc('components/wallet/glossary.md');
+    const checklist = readDoc('components/wallet/release/qa-checklist.md');
+    const staleGlossary = glossary.replace(' and the duress passphrase so neither survives removal of the wallet', '');
+    const staleChecklist = checklist.replace(' and the duress passphrase', '');
+    assert.notEqual(staleGlossary, glossary, 'the glossary wipe claim moved; re-point this falsification');
+    assert.notEqual(staleChecklist, checklist, 'the release QA wipe claim moved; re-point this falsification');
+    assert.throws(() => assertWalletWipeClaims(staleGlossary, checklist));
+    assert.throws(() => assertWalletWipeClaims(glossary, staleChecklist));
 });

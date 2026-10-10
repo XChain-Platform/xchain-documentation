@@ -539,3 +539,20 @@ test('mobile store runbooks disclose and explain the shipped trading screens', (
         /\| Trading and funds \| Cryptocurrency exchange \| Yes\./,
         'the Play financial-features declaration does not disclose the exchange interface');
 });
+
+/* ---------------------------------------------- wallet wipe security state */
+
+function assertWalletWipeClaims(glossary, checklist) {
+    assert.match(glossary,
+        /A wallet wipe erases the panic freeze record and the duress passphrase/,
+        'wallet glossary no longer states that a wipe erases the panic freeze record and duress passphrase');
+    assert.match(checklist,
+        /wipe erases the panic freeze and the duress passphrase/,
+        'wallet release QA no longer verifies that a wipe erases the panic freeze and duress passphrase');
+}
+
+test('wallet docs state that a wipe erases panic and duress state', () => {
+    assertWalletWipeClaims(
+        readDoc('components/wallet/glossary.md'),
+        readDoc('components/wallet/release/qa-checklist.md'));
+});
