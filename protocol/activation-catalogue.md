@@ -69,6 +69,7 @@ same chain or field.
 | `dispenser_give_amount_activation` | `DISPENSER_GIVE_AMOUNT_ACTIVATION` | time |
 | `dispenser_oracle_price_activation` | `DISPENSER_ORACLE_PRICE_ACTIVATION` | time |
 | `dispenser_ownership_cancel_activation` | `DISPENSER_OWNERSHIP_CANCEL_ACTIVATION` | time |
+| `dispenser_refill_policy_activation` | `DISPENSER_REFILL_POLICY_ACTIVATION` | height |
 | `dispenser_send_amount_compare_activation` | `DISPENSER_SEND_AMOUNT_COMPARE_ACTIVATION` | height |
 | `dispenser_settlement_price_activation` | `DISPENSER_SETTLEMENT_PRICE_ACTIVATION` | time |
 | `empty_allow_list_denies_activation` | `EMPTY_ALLOW_LIST_DENIES` | height |
