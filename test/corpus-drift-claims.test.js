@@ -41,7 +41,12 @@
  *   6. Indexer GAS_SCHEDULE example. The example keys and values must be
  *      real coin-file keys, or a developer prices EXECUTE ten times too high.
  *
- *   7. Wallet wipe security state. Panic freeze and duress state are enforced
+ *   7. Mobile store trading disclosure. Both mobile store builds ship their
+ *      trading screens. Each runbook needs review text that states the custody,
+ *      matching and fiat boundaries, and must not restore the older claim that
+ *      the exchange was compiled out.
+ *
+ *   8. Wallet wipe security state. Panic freeze and duress state are enforced
  *      before unlock, but removing a wallet clears both records. The glossary
  *      and release checklist must state that boundary together.
  *
@@ -215,7 +220,37 @@ test('falsification: the stale EXECUTE example is caught', { skip: noIndexerBtc 
     assert.throws(() => assertGasExample(stale, btcCoinFile()));
 });
 
-/* ---------------------------------------------------------------- claim 7 */
+/* ---------------------------------------- mobile store trading disclosure */
+
+const TRADING_NOTES_HEADING = '### Review notes: trading screens';
+const COMPILED_OUT_EXCHANGE = /exchange[^.\n]{0,100}compil(?:e|es|ed)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}exchange[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,60}out[^.\n]{0,100}exchange/i;
+
+function assertTradingDisclosure(markdown) {
+    assert.match(markdown, /^### Review notes: trading screens$/m);
+    assert.doesNotMatch(markdown, COMPILED_OUT_EXCHANGE);
+    const start = markdown.indexOf(TRADING_NOTES_HEADING);
+    const end = markdown.indexOf('\n### ', start + TRADING_NOTES_HEADING.length);
+    const notes = markdown.slice(start, end === -1 ? markdown.length : end);
+    assert.match(notes, /non-custodial decentralized exchange/i);
+    assert.match(notes, /Order matching happens in `xchain-indexer`, not in the app/i);
+    assert.match(notes, /no fiat purchase, sale, deposit, or withdrawal path/i);
+}
+
+test('falsification: missing notes and compiled-out mobile trading claims are caught', () => {
+    const page = readDoc('components/wallet/release/mobile/android-play.md');
+    const withoutNotes = page.replace(/^### Review notes: trading screens\n[\s\S]*?(?=^### Graphics$)/m, '');
+    assert.notEqual(withoutNotes, page, 'Android trading notes moved; re-point this falsification');
+    assert.throws(() => assertTradingDisclosure(withoutNotes));
+
+    const compiledOut = page.replace(
+        'The Cryptocurrency exchange answer describes the uploaded artifact rather than\n' +
+            'a review-only profile.',
+        'The store build compiles the exchange and trading surfaces out entirely.');
+    assert.notEqual(compiledOut, page, 'Play declaration text moved; re-point this falsification');
+    assert.throws(() => assertTradingDisclosure(compiledOut));
+});
+
+/* ---------------------------------------------------------------- claim 8 */
 
 const WIPE_GLOSSARY_CLAIM = /A wallet wipe erases the panic freeze record and the duress passphrase/;
 const WIPE_QA_CLAIM = /wipe erases the panic freeze and the duress passphrase/;
