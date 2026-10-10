@@ -87,6 +87,12 @@ test('against the real indexer STAKE_SNAPSHOT_DECIMAL_STRINGS is unarmed on prod
         assert.ok(gen.collectTestnetUnarmed().some((g) => g.gate === 'STAKE_SNAPSHOT_DECIMAL_STRINGS'));
     });
 
+test('against the real indexer STAKE_DELEGATED_SIGNING_KEY is unarmed on production networks',
+    { skip: noIndexer }, () => {
+        assert.ok(gen.collectMainnetUnarmed().some((g) => g.gate === 'STAKE_DELEGATED_SIGNING_KEY'));
+        assert.ok(gen.collectTestnetUnarmed().some((g) => g.gate === 'STAKE_DELEGATED_SIGNING_KEY'));
+    });
+
 test('a part-file row with bare UNARMED slots is listed unarmed on both networks', () => {
     const dir = fixtureRegistry("const ROWS = [['FOO', '1.0.0', UNARMED, UNARMED, 0, 0, 0, 0]];\n");
     assert.deepStrictEqual(gen.collectGates(dir), []);
