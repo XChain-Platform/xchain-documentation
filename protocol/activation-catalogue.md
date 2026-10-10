@@ -40,6 +40,7 @@ same chain or field.
 | `attest_relay_activation` | `ATTEST_RELAY_ACTIVATION` | height |
 | `attest_relay_fee_activation` | `ATTEST_RELAY_FEE_ACTIVATION` | height |
 | `attest_relay_reject_slot_activation` | `ATTEST_RELAY_REJECT_SLOT_ACTIVATION` | time |
+| `attest_relay_response_deadline_activation` | `ATTEST_RELAY_RESPONSE_DEADLINE_ACTIVATION` | time |
 | `attest_request_cap_activation` | `ATTEST_REQUEST_CAP_ACTIVATION` | height |
 | `attest_response_mirror_activation` | `ATTEST_RESPONSE_MIRROR_ACTIVATION` | height |
 | `attest_responsible_widening_activation` | `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` | height |
