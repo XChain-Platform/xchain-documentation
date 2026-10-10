@@ -398,6 +398,11 @@ flowchart LR
 | `GET /hub-db/snapshot/capability_snapshots?since_id=N&limit=10000` | Rows from `capability_snapshots` after `since_id` |
 | `GET /hub-db/snapshot/cross_chain_calls?since_id=N&limit=10000` | Rows from `cross_chain_calls` after `since_id`; retracted rows excluded |
 | `GET /hub-db/snapshot/state_checkpoints?since_id=N&limit=10000` | Rows from `state_checkpoints` after `since_id` |
+| `GET /hub-db/snapshot/remote_token_snapshots?since_id=N&limit=10000` | Federation-finalized remote token facts after `since_id` |
+| `GET /hub-db/snapshot/bridge_transfers?since_id=N&limit=10000` | Signed transfer rows after `since_id`; retracted rows excluded |
+| `GET /hub-db/snapshot/policy_snapshots?since_id=N&limit=10000` | Append-only signed token-policy versions after `since_id` |
+| `GET /hub-db/snapshot/anchor_reward_attestations?since_id=N&limit=10000` | Quorum-attested ANCHOR publisher reward rows after `since_id` |
+| `GET /hub-db/snapshot/attestation_responses?since_id=N&limit=10000` | Finalized ATTEST response rows after `since_id` |
 
 ### WebSocket Channel
 

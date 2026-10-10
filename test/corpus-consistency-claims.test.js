@@ -72,6 +72,11 @@
  *      and leaves reviewers without the non-custodial architecture they need to
  *      evaluate the screens.
  *
+ *  10. Extension trading review notes. The default Chrome build includes the
+ *      wallet's DEX and dispenser screens. Review collateral must explain that
+ *      those screens prepare user-signed protocol transactions without turning
+ *      the extension into a custodian, counterparty or fiat exchange.
+ *
  * The capacity figure is read out of the sibling xchain-encoder checkout
  * rather than typed here, and SKIPS when that sibling is absent: the
  * convention fee-and-limit-claims.test.js and consensus-wall-clock-claims.js
@@ -585,4 +590,79 @@ test('wallet docs state that a wipe erases panic and duress state', () => {
     assertWalletWipeClaims(
         readDoc('components/wallet/glossary.md'),
         readDoc('components/wallet/release/qa-checklist.md'));
+});
+
+/* ------------------------------------------- extension trading review notes */
+
+function extensionTradingReviewNotes(markdown) {
+    const heading = '### Review notes: trading screens';
+    const start = markdown.indexOf(heading);
+    assert.notEqual(start, -1, 'Chrome Web Store runbook has no trading-screen review notes');
+    const rest = markdown.slice(start);
+    const next = rest.slice(heading.length).search(/\n#{1,3} /);
+    return next === -1 ? rest : rest.slice(0, heading.length + next);
+}
+
+function assertExtensionTradingReviewNotes(markdown) {
+    const notes = extensionTradingReviewNotes(markdown);
+    assert.match(notes, /non-custodial software wallet/i);
+    assert.match(notes, /not a cryptocurrency exchange, broker, dealer, or custodian/i);
+    assert.match(notes, /never holds user funds/i);
+    assert.match(notes, /never acts as the counterparty/i);
+    assert.match(notes, /`ORDER`, `SWAP`, `DISPENSER`, or `COINPAY`/);
+    assert.match(notes, /before signing with a key that remains on the device/i);
+    assert.match(notes, /no fiat on-ramp/i);
+    assert.match(notes, /no off-chain customer balance/i);
+}
+
+test('the Chrome submission collateral explains its trading screens without claiming custody', () => {
+    assertExtensionTradingReviewNotes(readDoc('components/wallet/release/extension/chrome-web-store.md'));
+});
+
+function assertContractPlanningSizeClaim(markdown) {
+    assert.doesNotMatch(markdown, /\*\*The gap:\*\*|planDeploy\(\) checks only the slice count/i);
+    assert.match(markdown,
+        /planDeploy\(\)[^.]*enforces the 64 KB UTF-8 source limit in every lint mode/i);
+    assert.match(markdown, /direct calls to `sdk\.planDeploy\(\)`/i);
+    assert.match(markdown, /Either limit is checked before any carrier transaction is submitted/i);
+}
+
+test('contracts planning docs enforce the 64 KB cap in every lint mode', () => {
+    assertContractPlanningSizeClaim(readDoc('components/sdk/contracts.md'));
+});
+
+test('falsification: the former lint-mode planning gap is caught', () => {
+    const page = readDoc('components/sdk/contracts.md');
+    const stale = page.replace(
+        /- \*\*Planning:\*\*[^\n]+/,
+        '- **Planning:** `chunkHelper.planDeploy()` checks only the slice count.\n'
+            + '- **The gap:** with `lint: \'warn\'` or `lint: \'off\'`, oversized source still plans.');
+    assert.notEqual(stale, page, 'the planning claim moved; re-point this falsification');
+    assert.throws(() => assertContractPlanningSizeClaim(stale));
+});
+
+const HUB_SNAPSHOT_ROUTES = [
+    'remote_token_snapshots',
+    'bridge_transfers',
+    'policy_snapshots',
+    'anchor_reward_attestations',
+    'attestation_responses',
+];
+
+function missingHubSnapshotRoutes(markdown) {
+    return HUB_SNAPSHOT_ROUTES.filter((route) => !markdown.includes(`/hub-db/snapshot/${route}`));
+}
+
+test('hub API and architecture pages document every newer snapshot route', () => {
+    for (const rel of ['components/hub/api.md', 'components/hub/architecture.md']) {
+        assert.deepEqual(missingHubSnapshotRoutes(readDoc(rel)), [], `${rel} omits hub snapshot routes`);
+    }
+    assert.doesNotMatch(readDoc('components/hub/api.md'), /six non-list snapshot endpoints/i);
+});
+
+test('falsification: an omitted newer hub snapshot route is caught', () => {
+    const page = readDoc('components/hub/api.md');
+    const stale = page.replace('/hub-db/snapshot/attestation_responses', '/hub-db/snapshot/response_archive');
+    assert.notEqual(stale, page, 'attestation response route moved; re-point this falsification');
+    assert.deepEqual(missingHubSnapshotRoutes(stale), ['attestation_responses']);
 });
