@@ -223,6 +223,8 @@ condition; both are worth fixing before the node is expected to price fees.
 
 `xchain-node` runs a pre-flight check before deploying a **mainnet** write surface (and before the hub and sync shared services, which deploy with no coin/network). It refuses the deploy if the configuration is not launch-ready.
 
+On mainnet, the installer grants a mainnet indexer account only its own HubMirror database, preventing one indexer from accessing another indexer's mirror.
+
 | Variable | Description |
 |---|---|
 | `XCHAIN_NODE_GO_LIVE` | Arm the go-live pre-flight. Until this is truthy, mainnet write surfaces are not treated as live. |

@@ -66,6 +66,12 @@
  *      validator trusting the whitepaper skips the DOGE read its BTC indexer
  *      needs. The notes are checked against protocol/constants.js.
  *
+ *   9. Mobile store trading disclosure. The wallet ships its DEX screens in
+ *      store builds, but the Play and App Store runbooks still said an exchange
+ *      was compiled out. That makes the listing contradict the submitted binary
+ *      and leaves reviewers without the non-custodial architecture they need to
+ *      evaluate the screens.
+ *
  * The capacity figure is read out of the sibling xchain-encoder checkout
  * rather than typed here, and SKIPS when that sibling is absent: the
  * convention fee-and-limit-claims.test.js and consensus-wall-clock-claims.js
@@ -496,7 +502,7 @@ const DESKTOP_TRADING_REVIEW_PAGES = {
     'components/wallet/release/desktop/snap-store.md': 'Snap Store',
 };
 
-function tradingReviewNotes(markdown) {
+function desktopTradingReviewNotes(markdown) {
     const section = /^### Review notes: trading screens\n\n([\s\S]*?)(?=\n### |\n## |$)/m.exec(markdown);
     assert.ok(section, 'the Review notes: trading screens section is missing');
     return section[1];
@@ -513,9 +519,70 @@ function assertTradingReviewDefense(notes) {
 
 test('desktop store review notes defend the trading screens that ship', () => {
     for (const [rel, channel] of Object.entries(DESKTOP_TRADING_REVIEW_PAGES)) {
-        const notes = tradingReviewNotes(readDoc(rel));
+        const notes = desktopTradingReviewNotes(readDoc(rel));
         assertTradingReviewDefense(notes);
         assert.match(notes, new RegExp(`complete trading surface ships in the ${channel} build`, 'i'));
         assert.doesNotMatch(notes, /trading screens? (?:are|is) (?:hidden|compiled out)/i);
     }
+});
+
+/* ---------------------------------------- mobile store trading disclosure */
+
+const MOBILE_STORE_RUNBOOKS = [
+    'components/wallet/release/mobile/android-play.md',
+    'components/wallet/release/mobile/ios-app-store.md',
+];
+const TRADING_NOTES_HEADING = '### Review notes: trading screens';
+const COMPILED_OUT_EXCHANGE = /exchange[^.\n]{0,100}compil(?:e|es|ed)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}exchange[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,60}out[^.\n]{0,100}exchange/i;
+
+function tradingReviewNotes(markdown, rel) {
+    const start = markdown.indexOf(TRADING_NOTES_HEADING);
+    assert.notEqual(start, -1, `${rel} has no ${TRADING_NOTES_HEADING} section`);
+    const end = markdown.indexOf('\n### ', start + TRADING_NOTES_HEADING.length);
+    return markdown.slice(start, end === -1 ? markdown.length : end);
+}
+
+function assertTradingReviewNotes(markdown, rel) {
+    assert.doesNotMatch(markdown, COMPILED_OUT_EXCHANGE,
+        `${rel} still says the submitted build compiles out trading`);
+    assert.doesNotMatch(markdown, /No\. No order book, no matching, no fiat on-ramp|It is not an exchange/i,
+        `${rel} still denies the trading screens that ship in the submitted build`);
+    assert.match(markdown, /Trade tokens through the XChain protocol's non-custodial decentralized exchange/i,
+        `${rel} listing collateral does not disclose trading`);
+
+    const notes = tradingReviewNotes(markdown, rel);
+    assert.match(notes, /submitted build includes a Markets list and Market view/i,
+        `${rel} does not say the trading screens ship in the submitted build`);
+    assert.match(notes, /non-custodial decentralized exchange/i,
+        `${rel} does not identify the trading screens as a non-custodial DEX interface`);
+    assert.match(notes, /private keys remain on the(?:\s*>\s*)?device/i,
+        `${rel} does not tell the reviewer where trading keys remain`);
+    assert.match(notes, /Order matching happens in `xchain-indexer`, not in the app/i,
+        `${rel} does not identify the order-matching boundary`);
+    assert.match(notes, /no fiat purchase, sale, deposit, or withdrawal path/i,
+        `${rel} does not state the fiat boundary`);
+}
+
+test('mobile store runbooks disclose and explain the shipped trading screens', () => {
+    for (const rel of MOBILE_STORE_RUNBOOKS) assertTradingReviewNotes(readDoc(rel), rel);
+    assert.match(readDoc(MOBILE_STORE_RUNBOOKS[0]),
+        /\| Trading and funds \| Cryptocurrency exchange \| Yes\./,
+        'the Play financial-features declaration does not disclose the exchange interface');
+});
+
+/* ---------------------------------------------- wallet wipe security state */
+
+function assertWalletWipeClaims(glossary, checklist) {
+    assert.match(glossary,
+        /A wallet wipe erases the panic freeze record and the duress passphrase/,
+        'wallet glossary no longer states that a wipe erases the panic freeze record and duress passphrase');
+    assert.match(checklist,
+        /wipe erases the panic freeze and the duress passphrase/,
+        'wallet release QA no longer verifies that a wipe erases the panic freeze and duress passphrase');
+}
+
+test('wallet docs state that a wipe erases panic and duress state', () => {
+    assertWalletWipeClaims(
+        readDoc('components/wallet/glossary.md'),
+        readDoc('components/wallet/release/qa-checklist.md'));
 });
