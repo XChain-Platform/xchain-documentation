@@ -618,3 +618,29 @@ function assertExtensionTradingReviewNotes(markdown) {
 test('the Chrome submission collateral explains its trading screens without claiming custody', () => {
     assertExtensionTradingReviewNotes(readDoc('components/wallet/release/extension/chrome-web-store.md'));
 });
+
+const HUB_SNAPSHOT_ROUTES = [
+    'remote_token_snapshots',
+    'bridge_transfers',
+    'policy_snapshots',
+    'anchor_reward_attestations',
+    'attestation_responses',
+];
+
+function missingHubSnapshotRoutes(markdown) {
+    return HUB_SNAPSHOT_ROUTES.filter((route) => !markdown.includes(`/hub-db/snapshot/${route}`));
+}
+
+test('hub API and architecture pages document every newer snapshot route', () => {
+    for (const rel of ['components/hub/api.md', 'components/hub/architecture.md']) {
+        assert.deepEqual(missingHubSnapshotRoutes(readDoc(rel)), [], `${rel} omits hub snapshot routes`);
+    }
+    assert.doesNotMatch(readDoc('components/hub/api.md'), /six non-list snapshot endpoints/i);
+});
+
+test('falsification: an omitted newer hub snapshot route is caught', () => {
+    const page = readDoc('components/hub/api.md');
+    const stale = page.replace('/hub-db/snapshot/attestation_responses', '/hub-db/snapshot/response_archive');
+    assert.notEqual(stale, page, 'attestation response route moved; re-point this falsification');
+    assert.deepEqual(missingHubSnapshotRoutes(stale), ['attestation_responses']);
+});

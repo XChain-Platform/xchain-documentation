@@ -492,8 +492,8 @@ Public bootstrap endpoint for wallets and SDK clients: the chain descriptors (di
 
 ## Hub DB Sync (REST + WebSocket)
 
-The hub exposes a separate channel for replicating cross-chain infrastructure tables, including
-`price_snapshots`, `oracle_prices`, and `list_snapshots`, to indexers' local hub DB copies. It is
+The hub exposes a separate channel for replicating price, cross-chain settlement, federation-state,
+attestation, bridge, token-policy, and shared-list tables to indexers' local hub DB copies. It is
 used in geographically distributed deployments where indexers run separately from the hub.
 
 ### `GET /hub-db/snapshot/price_snapshots`
@@ -512,14 +512,18 @@ Returns rows from the `price_snapshots` table after `since_id` (paginated for in
     {"id":1,"round_number":850010,"coin_pair":"BTC/USD","price":"100000.12345678","reference_block":850010,"reference_chain":"BTC","block_timestamp":1712500000,"validator_count":5,"consensus_round":1,"consensus_proof":"[...]","status":"finalized","source_chain":"DOGE","source_action_index":12345,"created_at":"2026-04-06T12:00:00.000Z"}
   ],
   "count": 1,
-  "watermark": 1712500000
+  "heights": {},
+  "landed": {},
+  "watermark": 1712500000,
+  "schema_version": 9
 }
 ```
 
-The six non-list snapshot endpoints return the same four-field envelope
-`{ table, rows, count, watermark }`. `watermark` is the Unix timestamp (seconds) at which the
-response was generated; indexers use it to detect a snapshot that predates a concurrent row they
-already saw via WebSocket. The `list_snapshots` route adds the fields documented below.
+Every snapshot route returns `table`, `rows`, `count`, `heights`, `landed`, `watermark`, and
+`schema_version`. `watermark` is the Unix timestamp (seconds) at which the response was generated;
+indexers use it to detect a snapshot that predates a concurrent row they already saw via WebSocket.
+Cross-chain and shared-list routes also return `btc_chain_id`. The `oracle_prices` route adds
+`mode`.
 
 ### `GET /hub-db/snapshot/oracle_prices`
 
@@ -541,9 +545,29 @@ Returns rows from the `cross_chain_calls` table after `since_id`. Same query par
 
 Returns rows from the `state_checkpoints` table after `since_id`. Same query parameters and response format as above.
 
+### `GET /hub-db/snapshot/remote_token_snapshots`
+
+Returns federation-finalized remote token facts from the `remote_token_snapshots` table after `since_id`. Same query parameters as above; the response also carries `btc_chain_id`.
+
+### `GET /hub-db/snapshot/bridge_transfers`
+
+Returns signed transfer rows from the `bridge_transfers` table after `since_id`, excluding retracted rows so a bootstrapping mirror matches the live WebSocket stream. Same query parameters as above; the response also carries `btc_chain_id`.
+
+### `GET /hub-db/snapshot/policy_snapshots`
+
+Returns append-only signed token-policy versions from the `policy_snapshots` table after `since_id`. A higher `policy_seq` supersedes an older version without retracting it. Same query parameters as above; the response also carries `btc_chain_id`.
+
+### `GET /hub-db/snapshot/anchor_reward_attestations`
+
+Returns append-only quorum-attested ANCHOR publisher reward rows from the `anchor_reward_attestations` table after `since_id`. Same query parameters and response format as above.
+
+### `GET /hub-db/snapshot/attestation_responses`
+
+Returns finalized, insert-only ATTEST response rows from the `attestation_responses` table after `since_id`. Same query parameters and response format as above.
+
 ### `GET /hub-db/snapshot/list_snapshots`
 
-Returns the append-only, quorum-signed shared-list versions from the `list_snapshots` table after `since_id`. A higher `seq` supersedes a list's membership, and no older row is retracted. Takes the same `since_id` and `limit` query parameters as above. The envelope carries `heights`, `schema_version` and `btc_chain_id` beside `table`, `rows`, `count` and `watermark`.
+Returns the append-only, quorum-signed shared-list versions from the `list_snapshots` table after `since_id`. A higher `seq` supersedes a list's membership, and no older row is retracted. Takes the same `since_id` and `limit` query parameters as above. The response also carries `btc_chain_id`.
 
 ### `GET /hub-db/subscribe` (WebSocket upgrade: requires `Authorization: Bearer <HUB_API_KEY>`)
 
