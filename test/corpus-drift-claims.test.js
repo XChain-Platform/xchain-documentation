@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Drift lint for seven more cross-page claims the corpus contradicted itself
+ * Drift lint for additional cross-page claims the corpus contradicted itself
  * about. Each block pins the corrected wording and carries a falsification
  * that feeds the stale wording back in, so a guard that matches nothing
  * fails rather than passing quietly.
@@ -41,7 +41,16 @@
  *   6. Indexer GAS_SCHEDULE example. The example keys and values must be
  *      real coin-file keys, or a developer prices EXECUTE ten times too high.
  *
- *   7. Extension trading review notes. A reviewer seeing DEX screens needs an
+ *   7. Mobile store trading disclosure. Both mobile store builds ship their
+ *      trading screens. Each runbook needs review text that states the custody,
+ *      matching and fiat boundaries, and must not restore the older claim that
+ *      the exchange was compiled out.
+ *
+ *   8. Wallet wipe security state. Panic freeze and duress state are enforced
+ *      before unlock, but removing a wallet clears both records. The glossary
+ *      and release checklist must state that boundary together.
+ *
+ *   9. Extension trading review notes. A reviewer seeing DEX screens needs an
  *      explicit boundary between user-signed protocol transactions and a
  *      custodial exchange. Reversing the custody or counterparty claims would
  *      make the runbook submit a materially false description.
@@ -216,7 +225,91 @@ test('falsification: the stale EXECUTE example is caught', { skip: noIndexerBtc 
     assert.throws(() => assertGasExample(stale, btcCoinFile()));
 });
 
-/* ---------------------------------------------------------------- claim 7 */
+const TRADING_REVIEW_FACTS = [
+    /does not operate a custodial exchange or broker trades/i,
+    /wallet composes and signs the user's place-order and cancel-order protocol actions/i,
+    /matching happens in the XChain indexer/i,
+    /settlement happens on public blockchains/i,
+    /no publisher account, hosted balance, fiat on-ramp or card purchase/i,
+];
+
+function assertTradingReviewFacts(notes) {
+    for (const fact of TRADING_REVIEW_FACTS) {
+        assert.match(notes, fact, `trading review notes lost ${fact}`);
+    }
+}
+
+test('falsification: omitting any trading-screen defense fact is caught', () => {
+    const page = readDoc('components/wallet/release/desktop/mac-app-store.md');
+    const section = /^### Review notes: trading screens\n\n([\s\S]*?)(?=\n### |\n## |$)/m.exec(page);
+    assert.ok(section, 'the Mac App Store trading review notes moved');
+    const notes = section[1];
+    assertTradingReviewFacts(notes);
+    for (const fact of TRADING_REVIEW_FACTS) {
+        const stale = notes.replace(fact, 'This detail was omitted.');
+        assert.notEqual(stale, notes, `the fixture no longer matches ${fact}`);
+        assert.throws(() => assertTradingReviewFacts(stale));
+    }
+});
+
+/* ---------------------------------------- mobile store trading disclosure */
+
+const TRADING_NOTES_HEADING = '### Review notes: trading screens';
+const COMPILED_OUT_EXCHANGE = /exchange[^.\n]{0,100}compil(?:e|es|ed)[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,100}exchange[^.\n]{0,60}out|compil(?:e|es|ed)[^.\n]{0,60}out[^.\n]{0,100}exchange/i;
+
+function assertTradingDisclosure(markdown) {
+    assert.match(markdown, /^### Review notes: trading screens$/m);
+    assert.doesNotMatch(markdown, COMPILED_OUT_EXCHANGE);
+    const start = markdown.indexOf(TRADING_NOTES_HEADING);
+    const end = markdown.indexOf('\n### ', start + TRADING_NOTES_HEADING.length);
+    const notes = markdown.slice(start, end === -1 ? markdown.length : end);
+    assert.match(notes, /non-custodial decentralized exchange/i);
+    assert.match(notes, /Order matching happens in `xchain-indexer`, not in the app/i);
+    assert.match(notes, /no fiat purchase, sale, deposit, or withdrawal path/i);
+}
+
+test('falsification: missing notes and compiled-out mobile trading claims are caught', () => {
+    const page = readDoc('components/wallet/release/mobile/android-play.md');
+    const withoutNotes = page.replace(/^### Review notes: trading screens\n[\s\S]*?(?=^### Graphics$)/m, '');
+    assert.notEqual(withoutNotes, page, 'Android trading notes moved; re-point this falsification');
+    assert.throws(() => assertTradingDisclosure(withoutNotes));
+
+    const compiledOut = page.replace(
+        'The Cryptocurrency exchange answer describes the uploaded artifact rather than\n' +
+            'a review-only profile.',
+        'The store build compiles the exchange and trading surfaces out entirely.');
+    assert.notEqual(compiledOut, page, 'Play declaration text moved; re-point this falsification');
+    assert.throws(() => assertTradingDisclosure(compiledOut));
+});
+
+/* ---------------------------------------------------------------- claim 8 */
+
+const WIPE_GLOSSARY_CLAIM = /A wallet wipe erases the panic freeze record and the duress passphrase/;
+const WIPE_QA_CLAIM = /wipe erases the panic freeze and the duress passphrase/;
+
+function assertWalletWipeClaims(glossary, checklist) {
+    assert.match(glossary, WIPE_GLOSSARY_CLAIM);
+    assert.match(checklist, WIPE_QA_CLAIM);
+}
+
+test('wallet wipe claims cover panic and duress state', () => {
+    assertWalletWipeClaims(
+        readDoc('components/wallet/glossary.md'),
+        readDoc('components/wallet/release/qa-checklist.md'));
+});
+
+test('falsification: incomplete wallet wipe claims are caught', () => {
+    const glossary = readDoc('components/wallet/glossary.md');
+    const checklist = readDoc('components/wallet/release/qa-checklist.md');
+    const staleGlossary = glossary.replace(' and the duress passphrase so neither survives removal of the wallet', '');
+    const staleChecklist = checklist.replace(' and the duress passphrase', '');
+    assert.notEqual(staleGlossary, glossary, 'the glossary wipe claim moved; re-point this falsification');
+    assert.notEqual(staleChecklist, checklist, 'the release QA wipe claim moved; re-point this falsification');
+    assert.throws(() => assertWalletWipeClaims(staleGlossary, checklist));
+    assert.throws(() => assertWalletWipeClaims(glossary, staleChecklist));
+});
+
+/* ---------------------------------------------------------------- claim 9 */
 
 const TRADING_REVIEW_OVERCLAIM = new RegExp([
     String.raw`(?:the )?(?:extension|wallet|Dankest, LLC) (?:holds|custodies) user funds`,
