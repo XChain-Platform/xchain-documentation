@@ -619,6 +619,28 @@ test('the Chrome submission collateral explains its trading screens without clai
     assertExtensionTradingReviewNotes(readDoc('components/wallet/release/extension/chrome-web-store.md'));
 });
 
+function assertContractPlanningSizeClaim(markdown) {
+    assert.doesNotMatch(markdown, /\*\*The gap:\*\*|planDeploy\(\) checks only the slice count/i);
+    assert.match(markdown,
+        /planDeploy\(\)[^.]*enforces the 64 KB UTF-8 source limit in every lint mode/i);
+    assert.match(markdown, /direct calls to `sdk\.planDeploy\(\)`/i);
+    assert.match(markdown, /Either limit is checked before any carrier transaction is submitted/i);
+}
+
+test('contracts planning docs enforce the 64 KB cap in every lint mode', () => {
+    assertContractPlanningSizeClaim(readDoc('components/sdk/contracts.md'));
+});
+
+test('falsification: the former lint-mode planning gap is caught', () => {
+    const page = readDoc('components/sdk/contracts.md');
+    const stale = page.replace(
+        /- \*\*Planning:\*\*[^\n]+/,
+        '- **Planning:** `chunkHelper.planDeploy()` checks only the slice count.\n'
+            + '- **The gap:** with `lint: \'warn\'` or `lint: \'off\'`, oversized source still plans.');
+    assert.notEqual(stale, page, 'the planning claim moved; re-point this falsification');
+    assert.throws(() => assertContractPlanningSizeClaim(stale));
+});
+
 const HUB_SNAPSHOT_ROUTES = [
     'remote_token_snapshots',
     'bridge_transfers',
