@@ -27,6 +27,12 @@ const EXPECTED = [
     ['archive_match_count_activation', 'ARCHIVE_MATCH_COUNT_ACTIVATION', 'A through E', 'height'],
     ['attest_relay_fee_activation', 'ATTEST_RELAY_FEE_ACTIVATION', 'A through E', 'height'],
     [
+        'attest_relay_response_deadline_activation',
+        'ATTEST_RELAY_RESPONSE_DEADLINE_ACTIVATION',
+        'A through E',
+        'time',
+    ],
+    [
         'archive_section_verdict_activation',
         'ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION',
         'A through E',
@@ -148,11 +154,11 @@ test('release activation prefixes have exact catalogue rows', () => {
 });
 
 test('a dropped release activation row fails catalogue parsing', () => {
-    const dropped = doc.replace(/^\| `bridge_row_fields_terminal_activation` .*\n/m, '');
+    const dropped = doc.replace(/^\| `attest_relay_response_deadline_activation` .*\n/m, '');
     assert.notEqual(dropped, doc, 'falsification fixture did not remove its row');
     assert.throws(
         () => parseReleasePrefixes(dropped),
-        /bridge_row_fields_terminal_activation must appear exactly once/,
+        /attest_relay_response_deadline_activation must appear exactly once/,
     );
 });
 
