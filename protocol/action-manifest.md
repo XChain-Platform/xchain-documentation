@@ -67,7 +67,7 @@ The per-repo sets legitimately differ by role: the SDK omits validator-only
 actions (`ANCHOR`/`ATTEST`/`NODEPROOF`/`ROLLCALL`/`SLASH`); the indexer adds mirror-injected
 (`XCALL`/`XEXEC`/`CROSS_SETTLE`) and lifecycle (`*_MATCH`/`*_EXPIRE`/`DISPENSE`)
 handlers that are never decoded wire bytes; the explorer is the render superset
-(including legacy order/dispenser cancel+edit views). The manifest encodes these
+(including legacy order/dispenser cancel+edit views and the `BET_EDIT` view). The manifest encodes these
 differences as flags rather than pretending all sets are equal.
 
 `XPOLICY` and `LIST_SHARE` form the `settlement-anchor` category: rows the indexer mints to anchor a bridge-policy or shared-list settlement record when the pass produced no action of its own. They carry only `explorerRender`, since they are never decoded from the wire, never dispatched to a handler and never authorable.
