@@ -45,7 +45,7 @@ test('the BET list-edit activation is discoverable and described', () => {
     );
     const activation = read('protocol/protocol-activation.md');
     assert.match(activation, /bet_feed_list_edit_activation\.BET_FEED_LIST_EDIT_ACTIVATION/);
-    assert.match(activation, /introduced unarmed on every network/);
+    assert.match(activation, /unarmed on mainnet and every testnet, active on regtest from genesis/);
 });
 
 test('the SDK and user guide describe the feed-list edit surface', () => {

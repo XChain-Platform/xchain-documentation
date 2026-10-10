@@ -57,8 +57,9 @@ already-live action, not to the arrival of an action.
 Format-specific behavior can have its own gate even when the ACTION name is already live. BET
 Version `4` uses the height-keyed `bet_feed_list_edit_activation.BET_FEED_LIST_EDIT_ACTIVATION` row:
 at or above the configured height, the creator of an open feed may edit its allow and block list
-references; below it, Version `4` is invalid. The row is introduced unarmed on every network and
-must be armed through the normal flag-day process before the format is accepted there.
+references; below it, Version `4` is invalid. The row is
+unarmed on mainnet and every testnet, active on regtest from genesis. It must be armed through the
+normal flag-day process before the format is accepted on a production network.
 
 ### Time-keyed vs height-keyed
 
