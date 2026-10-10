@@ -23,6 +23,12 @@ const EXPECTED = [
         'height',
     ],
     ['anchor_bundle_order_activation', 'ANCHOR_BUNDLE_ORDER_ACTIVATION', 'A through E', 'height'],
+    [
+        'anchor_empty_fold_reject_activation',
+        'ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION',
+        'A through E',
+        'height',
+    ],
     ['anchor_fold_activation', 'ANCHOR_FOLD_ACTIVATION', 'A through E', 'height'],
     ['archive_match_count_activation', 'ARCHIVE_MATCH_COUNT_ACTIVATION', 'A through E', 'height'],
     ['attest_relay_fee_activation', 'ATTEST_RELAY_FEE_ACTIVATION', 'A through E', 'height'],
