@@ -27,6 +27,7 @@ same chain or field.
 | `anchor_activation` | `ANCHOR_ACTIVATION` | height |
 | `anchor_archive_fold_term_activation` | `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` | height |
 | `anchor_bundle_order_activation` | `ANCHOR_BUNDLE_ORDER_ACTIVATION` | height |
+| `anchor_empty_fold_reject_activation` | `ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION` | height |
 | `anchor_fold_activation` | `ANCHOR_FOLD_ACTIVATION` | height |
 | `anchor_preactivation_status_activation` | `ANCHOR_PREACTIVATION_STATUS_ACTIVATION` | height |
 | `anchor_reward_activation` | `ANCHOR_REWARD_ACTIVATION` and related anchor/archive reward gates | height |
