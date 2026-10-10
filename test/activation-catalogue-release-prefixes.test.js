@@ -70,6 +70,12 @@ const EXPECTED = [
         'time',
     ],
     [
+        'dispenser_refill_policy_activation',
+        'DISPENSER_REFILL_POLICY_ACTIVATION',
+        'A through E',
+        'height',
+    ],
+    [
         'dispenser_settlement_price_activation',
         'DISPENSER_SETTLEMENT_PRICE_ACTIVATION',
         'A through E',
