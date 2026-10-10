@@ -385,7 +385,7 @@ test('the bridge availability source facts still hold', { skip: skipNoIndexer },
     // not active on mainnet, so both halves are pinned on the per-chain keys the resolver
     // reads first (the bare testnet key is only the fallback and stays the sentinel).
     const pages = 'cross-chain.md, what-is-xchain.md, concepts/metalayer.md and overview.md';
-    assert.match(tokenGate[0], /\bmainnet:\s*9999999999/,
+    assert.match(tokenGate[0], /\bmainnet:\s*UNARMED/,
         `TOKEN_BRIDGE_ACTIVATION mainnet is no longer the sentinel. ${pages} say it is not active on mainnet and must change in the same commit.`);
     for(const key of ['BTC:testnet', 'LTC:testnet', 'DOGE:testnet']){
         const height = tokenGate[0].match(new RegExp(`'${key}':\\s*(\\d+)`));
