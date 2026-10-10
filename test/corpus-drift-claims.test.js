@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Drift lint for six more cross-page claims the corpus contradicted itself
+ * Drift lint for additional cross-page claims the corpus contradicted itself
  * about. Each block pins the corrected wording and carries a falsification
  * that feeds the stale wording back in, so a guard that matches nothing
  * fails rather than passing quietly.
@@ -40,6 +40,10 @@
  *
  *   6. Indexer GAS_SCHEDULE example. The example keys and values must be
  *      real coin-file keys, or a developer prices EXECUTE ten times too high.
+ *
+ *   7. Wallet wipe security state. Panic freeze and duress state are enforced
+ *      before unlock, but removing a wallet clears both records. The glossary
+ *      and release checklist must state that boundary together.
  *
  * Claims that read a sibling checkout SKIP when it is absent, the same
  * convention corpus-consistency-claims.test.js uses.
@@ -209,4 +213,31 @@ test('the GAS_SCHEDULE example matches the BTC coin file', { skip: noIndexerBtc 
 test('falsification: the stale EXECUTE example is caught', { skip: noIndexerBtc }, () => {
     const stale = '| `GAS_SCHEDULE` | x | `{ DEPLOY: 100000, EXECUTE: 10000, STAKE: 5000, ... }` |';
     assert.throws(() => assertGasExample(stale, btcCoinFile()));
+});
+
+/* ---------------------------------------------------------------- claim 7 */
+
+const WIPE_GLOSSARY_CLAIM = /A wallet wipe erases the panic freeze record and the duress passphrase/;
+const WIPE_QA_CLAIM = /wipe erases the panic freeze and the duress passphrase/;
+
+function assertWalletWipeClaims(glossary, checklist) {
+    assert.match(glossary, WIPE_GLOSSARY_CLAIM);
+    assert.match(checklist, WIPE_QA_CLAIM);
+}
+
+test('wallet wipe claims cover panic and duress state', () => {
+    assertWalletWipeClaims(
+        readDoc('components/wallet/glossary.md'),
+        readDoc('components/wallet/release/qa-checklist.md'));
+});
+
+test('falsification: incomplete wallet wipe claims are caught', () => {
+    const glossary = readDoc('components/wallet/glossary.md');
+    const checklist = readDoc('components/wallet/release/qa-checklist.md');
+    const staleGlossary = glossary.replace(' and the duress passphrase so neither survives removal of the wallet', '');
+    const staleChecklist = checklist.replace(' and the duress passphrase', '');
+    assert.notEqual(staleGlossary, glossary, 'the glossary wipe claim moved; re-point this falsification');
+    assert.notEqual(staleChecklist, checklist, 'the release QA wipe claim moved; re-point this falsification');
+    assert.throws(() => assertWalletWipeClaims(staleGlossary, checklist));
+    assert.throws(() => assertWalletWipeClaims(glossary, staleChecklist));
 });

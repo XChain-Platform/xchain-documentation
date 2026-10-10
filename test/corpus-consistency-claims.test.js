@@ -489,3 +489,20 @@ test('falsification: the shared-network and signed-capability overclaims are cau
     for (const rel of Object.keys(stale)) assert.notEqual(stale[rel], pages[rel], `${rel} moved; re-point this falsification`);
     assert.deepEqual(overclaimsIn(stale), ['architecture/component-map.md', 'architecture/data-pipeline.md']);
 });
+
+/* ---------------------------------------------- wallet wipe security state */
+
+function assertWalletWipeClaims(glossary, checklist) {
+    assert.match(glossary,
+        /A wallet wipe erases the panic freeze record and the duress passphrase/,
+        'wallet glossary no longer states that a wipe erases the panic freeze record and duress passphrase');
+    assert.match(checklist,
+        /wipe erases the panic freeze and the duress passphrase/,
+        'wallet release QA no longer verifies that a wipe erases the panic freeze and duress passphrase');
+}
+
+test('wallet docs state that a wipe erases panic and duress state', () => {
+    assertWalletWipeClaims(
+        readDoc('components/wallet/glossary.md'),
+        readDoc('components/wallet/release/qa-checklist.md'));
+});
