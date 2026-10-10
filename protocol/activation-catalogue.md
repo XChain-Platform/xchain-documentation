@@ -19,6 +19,10 @@ per-network threshold. `mixed` means the module contains more than one kind of r
 Follow the linked protocol activation guide before assuming that two height-keyed modules read the
 same chain or field.
 
+For `attest_relay_response_deadline_activation`, `time` is the landing block's consensus timestamp
+that activates enforcement. The response deadline itself remains in the origin chain's block-height
+plane.
+
 ## A through E
 
 | Module prefix | Principal registry row | Unit |

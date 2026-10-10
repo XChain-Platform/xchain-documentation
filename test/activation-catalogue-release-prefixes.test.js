@@ -11,6 +11,11 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_PATH = path.resolve(__dirname, '../protocol/activation-catalogue.md');
 const doc = fs.readFileSync(DOC_PATH, 'utf8');
+const RELAY_DEADLINE_NOTE = [
+    "For `attest_relay_response_deadline_activation`, `time` is the landing block's consensus timestamp",
+    "that activates enforcement. The response deadline itself remains in the origin chain's block-height",
+    'plane.',
+].join('\n');
 const REGISTRY_FILE = 'src/protocol_changes.js';
 const REGISTRY_DIR = 'src/protocol_changes';
 const indexer = sibling('xchain-indexer', [REGISTRY_FILE, REGISTRY_DIR]);
@@ -151,6 +156,10 @@ function readRegistrySources(root) {
 
 test('release activation prefixes have exact catalogue rows', () => {
     assert.equal(parseReleasePrefixes(doc).size, 3);
+});
+
+test('relay-response deadline documents its activation and deadline planes', () => {
+    assert.ok(doc.includes(RELAY_DEADLINE_NOTE));
 });
 
 test('a dropped release activation row fails catalogue parsing', () => {
