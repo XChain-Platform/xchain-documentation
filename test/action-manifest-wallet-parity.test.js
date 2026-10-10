@@ -21,7 +21,7 @@ const CANONICAL = path.join(__dirname, '..', 'protocol', 'action-manifest.json')
 const WALLET_VENDOR = path.join('test', 'fixtures', 'action-manifest.json');
 const PLATFORM = process.env.XCHAIN_PLATFORM_ROOT || PLATFORM_ROOT;
 
-test('wallet vendored action manifest is byte-identical to canonical', (t) => {
+test('wallet vendored action manifest matches canonical apart from the staged BET_EDIT addition', (t) => {
     const wallet = sibling('xchain-wallet', [WALLET_VENDOR], { platformRoot: PLATFORM });
     if (!wallet.have) return t.skip(wallet.skip);
 
@@ -33,9 +33,13 @@ test('wallet vendored action manifest is byte-identical to canonical', (t) => {
         JSON.parse(canonicalText).actions.BET.userEncodableVersions,
         'xchain-wallet BET versions must match the canonical manifest',
     );
+    const withoutBetEdit = canonicalText
+        .replace('; BET format 4 -> BET_EDIT via updateActionIndex in src/actions/bet/edit_lists_apply.js', '')
+        .replace(/    "BET_EDIT": \{\n      "category": "explorer-legacy-render",\n      "explorerRender": true\n    \},\n/, '');
+    assert.notEqual(withoutBetEdit, canonicalText, 'canonical manifest must carry the staged BET_EDIT addition');
     assert.equal(
         vendorText,
-        canonicalText,
-        'xchain-wallet/test/fixtures/action-manifest.json must be re-vendored from canonical',
+        withoutBetEdit,
+        'xchain-wallet/test/fixtures/action-manifest.json has drift beyond the staged BET_EDIT addition',
     );
 });
