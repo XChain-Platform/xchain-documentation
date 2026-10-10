@@ -54,6 +54,7 @@ same chain or field.
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
 | `consolidation_leg_amount_activation` | `CONSOLIDATION_LEG_AMOUNT_ACTIVATION` | time |
+| `cooldown_maturity_escrow_reversal_activation` | `COOLDOWN_MATURITY_ESCROW_REVERSAL_ACTIVATION` | height |
 | `cross_chain_offer_list_export_activation` | `CROSS_CHAIN_OFFER_LIST_EXPORT` | height |
 | `cross_chain_remote_token_activation` | `CROSS_CHAIN_REMOTE_TOKEN_ACTIVATION` | height |
 | `cross_chain_royalty_activation` | `CROSS_CHAIN_ROYALTY_ACTIVATION` | height |

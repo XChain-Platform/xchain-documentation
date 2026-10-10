@@ -58,6 +58,12 @@ const EXPECTED = [
         'height',
     ],
     [
+        'cooldown_maturity_escrow_reversal_activation',
+        'COOLDOWN_MATURITY_ESCROW_REVERSAL_ACTIVATION',
+        'A through E',
+        'height',
+    ],
+    [
         'dispenser_freshness_proven_use_activation',
         'DISPENSER_FRESHNESS_PROVEN_USE_ACTIVATION',
         'A through E',
