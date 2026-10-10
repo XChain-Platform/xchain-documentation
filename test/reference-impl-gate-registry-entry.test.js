@@ -146,6 +146,19 @@ describe('reference registry ENTRY assembly', () => {
 });
 
 describe('reference registry ENTRY reads', () => {
+    test('publishes the bridge row-fields terminal gate with only regtest armed', () => {
+        const key = 'bridge_row_fields_terminal_activation.BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION';
+        assert.equal(entry.has(key), true);
+        assert.deepEqual(entry.get(key), {
+            mainnet: entry.UNARMED,
+            'BTC:testnet': entry.UNARMED,
+            'LTC:testnet': entry.UNARMED,
+            'DOGE:testnet': entry.UNARMED,
+            testnet: entry.UNARMED,
+            regtest: 0,
+        });
+    });
+
     test('a miss throws RegistryMissError naming the key, and has() says false', () => {
         const key = 'no_such_stem.NO_SUCH_KEY';
         assert.equal(entry.has(key), false);

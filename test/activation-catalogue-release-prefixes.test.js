@@ -34,6 +34,12 @@ const EXPECTED = [
     ],
     ['bridge_policy_detach_activation', 'BRIDGE_POLICY_DETACH', 'A through E', 'height'],
     [
+        'bridge_row_fields_terminal_activation',
+        'BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION',
+        'A through E',
+        'height',
+    ],
+    [
         'callback_compensation_activation',
         'CALLBACK_COMPENSATES_EVERY_DEBITED_HOLDER',
         'A through E',
@@ -142,11 +148,11 @@ test('release activation prefixes have exact catalogue rows', () => {
 });
 
 test('a dropped release activation row fails catalogue parsing', () => {
-    const dropped = doc.replace(/^\| `anchor_archive_fold_term_activation` .*\n/m, '');
+    const dropped = doc.replace(/^\| `bridge_row_fields_terminal_activation` .*\n/m, '');
     assert.notEqual(dropped, doc, 'falsification fixture did not remove its row');
     assert.throws(
         () => parseReleasePrefixes(dropped),
-        /anchor_archive_fold_term_activation must appear exactly once/,
+        /bridge_row_fields_terminal_activation must appear exactly once/,
     );
 });
 
