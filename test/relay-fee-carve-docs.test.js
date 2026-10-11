@@ -25,14 +25,9 @@ const indexer = sibling('xchain-indexer', ['src/protocol_changes.js', 'src/proto
 
 const MAP_NAME = 'ATTEST_RELAY_FEE_ACTIVATION';
 const REGISTRY_KEY = `attest_relay_fee_activation.${MAP_NAME}`;
-const EXPECTED = {
-    mainnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
-    testnet: 9999999999,
-    regtest: 0,
-};
+const SENTINEL = 9999999999;
+const SELECTORS = ['mainnet', 'BTC:testnet', 'LTC:testnet', 'DOGE:testnet', 'testnet', 'regtest'];
+const TESTNET_SELECTORS = ['BTC:testnet', 'LTC:testnet', 'DOGE:testnet', 'testnet'];
 
 function occurrences(text, line) {
     return text.split('\n').filter((candidate) => candidate === line).length;
@@ -47,8 +42,16 @@ function assertPublished(flagDayText, catalogueText) {
 }
 
 test('the relay fee activation map publishes the registry network selectors', () => {
-    assert.deepEqual(constants[MAP_NAME], EXPECTED);
-    assert.equal(Object.isFrozen(constants[MAP_NAME]), true);
+    // Mainnet stays on the sentinel and regtest is on from genesis; a release cut armed
+    // every testnet selector at a real height, so each is off at height 1.
+    const map = constants[MAP_NAME];
+    assert.deepEqual(Object.keys(map), SELECTORS);
+    assert.equal(map.mainnet, SENTINEL);
+    assert.equal(map.regtest, 0);
+    for (const key of TESTNET_SELECTORS) {
+        assert.ok(Number.isSafeInteger(map[key]) && map[key] > 1 && map[key] < SENTINEL, `${key}: ${map[key]}`);
+    }
+    assert.equal(Object.isFrozen(map), true);
 });
 
 test('the relay fee activation map is value-identical to the indexer registry',

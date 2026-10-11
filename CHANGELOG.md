@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-10-11
+
+### Added
+- Published registry status pages for the iterator and Set meter, stake snapshot decimal string, anchor archive fold termination and dispenser purge grace gates.
+- Documented the BET feed list edit format, the relay fee carve, resolved-tick gated totals and the per-chain admission margin canon.
+- Documented the encoder broadcast_tx NODE_REJECTED and TX_ALREADY_IN_CHAIN reasons.
+
+### Changed
+- Synchronized the shared gate registry copies and the cross-repository documentation guards with the indexer canonical files.
+- Regenerated the flag-day page so it lists the mirror admission chain margin activation.
+- Armed ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION on BTC:testnet at 156230.
+- Armed ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION on LTC:testnet at 4912984.
+- Armed ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION on DOGE:testnet at 67989993.
+- Armed COOLDOWN_MATURITY_ESCROW_REVERSAL_ACTIVATION on BTC:testnet at 156230.
+- Armed COOLDOWN_MATURITY_ESCROW_REVERSAL_ACTIVATION on LTC:testnet at 4912984.
+- Armed COOLDOWN_MATURITY_ESCROW_REVERSAL_ACTIVATION on DOGE:testnet at 67989993.
+- Armed DISPENSER_REFILL_POLICY_ACTIVATION on BTC:testnet at 156230.
+- Armed DISPENSER_REFILL_POLICY_ACTIVATION on LTC:testnet at 4912984.
+- Armed DISPENSER_REFILL_POLICY_ACTIVATION on DOGE:testnet at 67989993.
+- Armed ATTEST_RELAY_RESPONSE_DEADLINE_ACTIVATION on BTC:testnet at 1791804379.
+- Armed ATTEST_RELAY_RESPONSE_DEADLINE_ACTIVATION on LTC:testnet at 1791804379.
+- Armed ATTEST_RELAY_RESPONSE_DEADLINE_ACTIVATION on DOGE:testnet at 1791804379.
+- Armed BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION on BTC:testnet at 156230.
+- Armed BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION on LTC:testnet at 4912984.
+- Armed BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION on DOGE:testnet at 67989993.
+- Armed ADMIT_CHAIN_MARGIN_ACTIVATION on DOGE:testnet at 67989993.
+- Armed ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION on BTC:testnet at 156230.
+- Armed ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION on LTC:testnet at 4912984.
+- Armed ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION on DOGE:testnet at 67989993.
+
+### Fixed
+- Corrected documentation drift in the escrow ABI example, data-retention tables and activation arming text.
+
 ### Changed
 - Documented the explorer status fields that report hub-to-bundled coin consensus-hash drift.
 - Clarified that BET v4 list editing is unarmed on mainnet and every testnet, and active on regtest from genesis.

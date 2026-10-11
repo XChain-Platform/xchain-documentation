@@ -45,7 +45,7 @@ test('the BET list-edit activation is discoverable and described', () => {
     );
     const activation = read('protocol/protocol-activation.md');
     assert.match(activation, /bet_feed_list_edit_activation\.BET_FEED_LIST_EDIT_ACTIVATION/);
-    assert.match(activation, /unarmed on mainnet and every testnet, active on regtest from genesis/);
+    assert.match(activation, /armed on every testnet chain at that chain's own height, unarmed on mainnet, and active on regtest\s+from genesis/);
 });
 
 test('the SDK and user guide describe the feed-list edit surface', () => {
@@ -64,14 +64,18 @@ test('the user guide states where BET list editing is active, matching the index
     const row = gates.match(/addGate\('bet_feed_list_edit_activation\.BET_FEED_LIST_EDIT_ACTIVATION', 'height', \{([^}]*)\}\)/);
     assert.ok(row, 'indexer gates_4.js no longer registers the BET list-edit gate');
     const value = (key) => (row[1].match(new RegExp("(?:^|\\s)'?" + key.replace(':', '\\:') + "'?:\\s*([^,\\s]+)")) || [])[1];
-    const production = ['mainnet', 'BTC:testnet', 'LTC:testnet', 'DOGE:testnet', 'testnet'];
-    assert.deepEqual(production.map(value), production.map(() => 'UNARMED'),
-        'BET_FEED_LIST_EDIT_ACTIVATION was armed somewhere: update the status note in user-guide/betting.md, then this test');
+    // Mainnet (and the bare testnet fallback) stay UNARMED; each testnet chain is armed at a real height.
+    const drift = 'BET_FEED_LIST_EDIT_ACTIVATION moved: update the status note in user-guide/betting.md, then this test';
+    assert.equal(value('mainnet'), 'UNARMED', drift);
+    assert.equal(value('testnet'), 'UNARMED', drift);
+    for (const key of ['BTC:testnet', 'LTC:testnet', 'DOGE:testnet']) {
+        assert.ok(/^\d+$/.test(value(key) || '') && Number(value(key)) > 1, `${key}: ${value(key)}. ${drift}`);
+    }
     assert.equal(value('regtest'), '0');
     const guide = read('user-guide/betting.md');
     const section = guide.split('### Editing membership lists')[1].split('\n### ')[0];
-    assert.match(section, /List editing is active on regtest only/);
+    assert.match(section, /List editing is active on regtest and on every testnet chain, but not yet on mainnet/);
     assert.match(section, /`BET_FEED_LIST_EDIT_ACTIVATION`/);
-    assert.match(section, /not active on mainnet or on any testnet/);
+    assert.match(section, /each testnet chain activates at its own block height and which is not active on mainnet yet/);
     assert.match(section, /\(\.\.\/protocol\/protocol-activation\.md\)/);
 });

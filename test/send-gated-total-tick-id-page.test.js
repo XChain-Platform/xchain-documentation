@@ -40,18 +40,22 @@ function assertTickIdTotalClaims(markdown) {
     assert.match(section, /changes only whether the handoff is owed; it never changes which legs settle/);
 }
 
-test('the generated flag-day page lists the gated total gate as unarmed', () => {
-    for (const network of ['mainnet', 'testnet']) {
-        assert.ok(
-            unarmedRoster(FLAG_DAYS, network).includes(`\`${GATE}\``),
-            `${GATE} is missing from the ${network} unarmed roster`,
-        );
-    }
+test('the generated flag-day page lists the gated total gate as unarmed on mainnet only', () => {
+    assert.ok(unarmedRoster(FLAG_DAYS, 'mainnet').includes(`\`${GATE}\``),
+        `${GATE} is missing from the mainnet unarmed roster`);
+    assert.ok(!unarmedRoster(FLAG_DAYS, 'testnet').includes(`\`${GATE}\``),
+        `${GATE} is still in the testnet unarmed roster`);
 });
 
 test('the generated flag-day page is current with the indexer registry', { skip: noIndexer }, () => {
     assert.ok(gen.collectMainnetUnarmed().some(({ gate }) => gate === GATE));
-    assert.ok(gen.collectTestnetUnarmed().some(({ gate }) => gate === GATE));
+    assert.ok(!gen.collectTestnetUnarmed().some(({ gate }) => gate === GATE));
+    // The registry row arms testnet at a real instant: off before it, on from it.
+    const indexer = sibling('xchain-indexer', ['src/protocol_changes.js']);
+    const row = require(path.join(indexer.root, 'src/protocol_changes.js'))
+        .get(`send_gated_total_tick_id_activation.${GATE}`);
+    assert.ok(Number.isSafeInteger(row.testnet) && row.testnet > 1 && row.testnet < gen.SENTINEL_FLOOR,
+        `${GATE} testnet slot ${row.testnet}`);
     assert.equal(FLAG_DAYS, gen.generate());
 });
 
