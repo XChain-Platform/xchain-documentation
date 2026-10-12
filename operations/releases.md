@@ -9,6 +9,35 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.23.0
+
+Released 2026-10-11. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.23.0)
+
+A patch train: ten code components move to 0.23.0 (`xchain-documentation` is tagged v0.23.0
+too), `xchain-contracts` keeps 0.17.0, and `xchain-e2e-test` and `xchain-regtest-miner` keep 0.21.0. The manifest keeps the 0.21.0 rule
+set in force, so this train adds no ruleset row and `trainActivation` still arms at Bitcoin
+testnet height 154566. The per-gate testnet activation heights this train carries, and which of
+them moved since v0.22.4, are listed in the Release notes.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.23.0 |
+| xchain-hub | 0.23.0 |
+| xchain-indexer | 0.23.0 |
+| xchain-sync | 0.23.0 |
+| xchain-explorer | 0.23.0 |
+| xchain-decoder | 0.23.0 |
+| xchain-encoder | 0.23.0 |
+| xchain-utxo-tracker | 0.23.0 |
+| xchain-sdk | 0.23.0 |
+| xchain-vm | 0.23.0 |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
 ## v0.20.0
 
 Released 2026-09-18. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.20.0)
