@@ -132,7 +132,8 @@ test('the policy-inheritance section exists exactly where the doc pages link it'
   // resolve to that exact heading slug (mirrors what
   // internal-link-integrity.test.js checks repo-wide, scoped here to this
   // lane's own edits so a slug rename is caught even before that suite runs).
-  const referrers = ['protocol/actions/issue.md', 'protocol/actions/list.md', 'concepts/token-bridge.md'];
+  const referrers = ['protocol/actions/issue.md', 'protocol/actions/list.md', 'concepts/token-bridge.md',
+    'protocol/actions/xbridge.md'];
   for (const referrer of referrers) {
     const referrerText = read(referrer);
     if (referrerText.includes('#policy-inheritance')) {
@@ -143,6 +144,20 @@ test('the policy-inheritance section exists exactly where the doc pages link it'
       );
     }
   }
+});
+
+test('sleep and list reach on bridged copies is tied to the policy-inheritance flag', () => {
+  // Pin both pages to the two regimes so the milestone-1 wording cannot return unqualified.
+  const xbridge = read('protocol/actions/xbridge.md');
+  assert.ok(xbridge.includes('TOKEN_POLICY_INHERITANCE_ACTIVATION'),
+    'xbridge.md must tie source policy reach on bridged copies to TOKEN_POLICY_INHERITANCE_ACTIVATION');
+  assert.match(xbridge, /token-bridge\.md#policy-inheritance/,
+    'xbridge.md must link the Policy inheritance section');
+  const concept = read('concepts/token-bridge.md');
+  assert.ok(!concept.includes('today, it is only paused where it was issued'),
+    'concepts/token-bridge.md still states chain-local sleep as unconditional');
+  assert.match(concept, /token-bridge\.md#policy-inheritance/,
+    'concepts/token-bridge.md must link the Policy inheritance section');
 });
 
 test('gas.md no longer states XCHAIN is BTC-only without qualification', () => {

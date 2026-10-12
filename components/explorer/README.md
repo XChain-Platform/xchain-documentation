@@ -17,7 +17,7 @@ The explorer is the primary integration point for wallets, exchanges, dApps, and
 - **Read-only against indexed state**: the explorer issues no writes to the Indexer or Decoder databases, except the optional icon downloader, which writes the indexer-owned `icons` table and so needs INSERT and UPDATE grants there. It owns and writes its own hub-mirror schema: with `"self_sync": true` it creates that schema and its tables, bootstraps them from a hub snapshot, and follows the hub's live feed, so its mirror database user needs DDL and write privileges
 - **Config discovery**: fetches configuration from xchain-hub on startup and refreshes every 60 seconds
 - **SSL/TLS support**: serves both HTTP and HTTPS with configurable certificates
-- **Rate limiting**: configurable request rate limiting (default 500 requests per minute)
+- **Rate limiting**: configurable per-IP request rate limiting (default 1080 requests per minute, with tighter per-route limits; see [Rate Limiting](configuration.md#rate-limiting))
 - **CORS configuration**: allowed origins configurable per deployment
 - **SSRF-protected relay**: proxy endpoint for external resources with private IP blocking
 - **WebSocket API**: real-time event streaming via `/{COIN}/api/websocket` with channel subscriptions, action-type filtering, lifecycle events (ORDER_MATCH, COINPAY_REQUIRED, etc.), catch-up on reconnect, and snapshot-on-subscribe

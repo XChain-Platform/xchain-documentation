@@ -42,7 +42,8 @@
   },
   "chunk_rebalance": {
     "description": "A payload whose length ≡ 1 (mod 520) with a final byte in the minimal-opcode range (0x01-0x10, 0x81) MUST be rebalanced: the final two pushes become (n-1, 2) bytes so no push canonicalizes to a bare opcode. Reassembly stays byte-identical.",
-    "compiled_payload_sha256": "9f066f45dfee762d8e7a5ab94d9a7955fdafd88fcb751da96ba60178000a3aae",
+    "payload_generation": "action \"FILE|0|rebalance.bin|application/octet-stream|||||||\" + 985 rawData bytes where byte[i] = (i*7+13) & 0xff for i < 984 and byte[984] = 0x07",
+    "compiled_payload_sha256": "d207cfa21056bee94f9856ef9e6229c5372a48dd633d6dad7e0b937f01eaf26d",
     "compiled_payload_length": 1041,
     "final_byte": "0x07",
     "push_lengths": [
@@ -50,7 +51,7 @@
       519,
       2
     ],
-    "envelope_script_sha256": "3423b26a8463b081ef55f8ba4500ad46f3156e0dc79e82684098ef4d38aaa771"
+    "envelope_script_sha256": "72a69c5fac2761547e326f6b5c7f626a3bbdf051e223479cf642c0cae2f500c3"
   },
   "source_attribution": {
     "description": "Spec §3.4 (decision pinned by this vector once review lands): the reveal's ins[0] is the commit output, a payload-dependent one-time P2TR address, so naive ins[0]-prevout attribution breaks ownership/gating/fees.",
@@ -169,6 +170,18 @@
       "name": "nonminimal_one_byte_payload_push",
       "description": "The same base script with an explicit one-byte push 01 07 inserted as the last payload element before OP_ENDIF. A one-byte element valued 0x01-0x10 or 0x81 canonicalizes to OP_1-OP_16 / OP_1NEGATE and is not a data push however it is framed, so this reveal is not an envelope either. An implementation that walks raw push opcodes would read 01 07 as data and diverge here.",
       "envelope_script_hex": "0063045843484e0100291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c0107682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+      "expect": "not_recognized"
+    },
+    {
+      "name": "empty_payload_element",
+      "description": "The same base script with OP_0 (00), a zero-length element, inserted as the last payload element before OP_ENDIF. A zero-length element decompiles to the bare opcode OP_0, not to data, so the reveal is not an envelope. An implementation that treats an empty push as zero bytes of data would read the same payload and diverge here. The one-byte push 01 00 in the same position is ordinary data and IS recognized.",
+      "envelope_script_hex": "0063045843484e0100291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c00682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+      "expect": "not_recognized"
+    },
+    {
+      "name": "nonminimal_empty_payload_push",
+      "description": "The same base script with a non-minimal empty push 4c 00 (OP_PUSHDATA1, length 0) inserted as the last payload element before OP_ENDIF. Any empty push, however it is framed, canonicalizes to OP_0, so this reveal is not an envelope either.",
+      "envelope_script_hex": "0063045843484e0100291c46494c457c307c6164767c746578742f706c61696e7c7c7c7c7c7c7c0b616476657273617269616c4c00682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
       "expect": "not_recognized"
     }
   ]

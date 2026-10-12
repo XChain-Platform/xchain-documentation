@@ -32,7 +32,7 @@ These three services form the backbone of the platform. Data flows from coin nod
 | **Inputs** | Coin node JSON-RPC (`getblockcount`, `getblockhash`, `getblock`, `getrawtransaction`) |
 | **Outputs** | Decoder MariaDB (`XChain_{CHAIN}_{NETWORK}_Decoder`) |
 | **Storage** | MariaDB (relational; blocks, transactions, decoded ACTION strings) |
-| **Communication** | Outbound JSON-RPC to coin node; no inbound API |
+| **Communication** | Outbound JSON-RPC to coin node; inbound JSON-RPC API on `DECODER_API_PORT` (default 3002, no API key: `ping`, `health`, `getlatestblock`, `getmempool`) plus HTTP `GET /status` and `GET /live` probes |
 
 Key technical details:
 
@@ -51,10 +51,10 @@ See [`../components/decoder/`](../components/decoder/) for full documentation.
 | | |
 |---|---|
 | **Purpose** | Reads decoded ACTIONs from the Decoder DB, validates them, executes business logic, writes final state |
-| **Inputs** | Decoder MariaDB (SQL polling every 5 seconds); local Hub DB (cross-chain price data); inbound JSON-RPC `pushvalidatorrewards` from xchain-hub (retired for new anchor rewards, which each indexer now derives from the on-chain ANCHOR bytes) |
+| **Inputs** | Decoder MariaDB (SQL polling every 5 seconds); local Hub DB (cross-chain price data) |
 | **Outputs** | Indexer MariaDB (`XChain_{CHAIN}_{NETWORK}_Indexer`); outbound JSON-RPC pushes to xchain-hub (`pushchaintip`, `pushpriceround`, `pushoracleprice`) |
 | **Storage** | Three database connections: Decoder DB (read), Indexer DB (read/write, 100+ tables), local Hub DB (read, synced from xchain-hub) |
-| **Communication** | Outbound SQL reads from Decoder DB and local Hub DB; outbound HTTP/WebSocket to xchain-hub; inbound JSON-RPC API for hub pushes |
+| **Communication** | Outbound SQL reads from Decoder DB and local Hub DB; outbound HTTP/WebSocket to xchain-hub; inbound JSON-RPC API with no write method (xchain-hub polls read methods such as `getownstake`, `getcapabilityvalidators` and `getpendingattestation_requests`) |
 
 Key technical details:
 
@@ -94,7 +94,7 @@ Key technical details:
 - Reads configuration from xchain-hub every 60 seconds (fee schedules, supported parameters, fiat pricing).
 - Approximately 9,400 lines of SQL query logic. All queries are parameterized; no ORM.
 - Supports SSL/TLS termination.
-- Runs as one instance per chain/network combination.
+- Runs as a single shared instance across all chains and networks; each request is routed to its coin's databases by the `/{COIN}/` prefix in the URL path.
 
 See [`../components/explorer/`](../components/explorer/) for full documentation.
 
@@ -119,7 +119,9 @@ Key technical details:
 - Polls each indexer database for new blocks every 3 seconds (configurable). Builds a complete block payload from all affected tables and broadcasts to WebSocket subscribers.
 - Full snapshots are streamed as gzip-compressed JSON for bootstrapping new validators.
 - Incremental snapshots provide deltas since a given block height for catch-up after downtime.
-- Data integrity is verified using the indexer's existing per-block chained SHA256 hashes (ledger, actions, contracts). No additional Merkle tree implementation needed.
+- Indexer block payloads carry the indexer's three per-block chained SHA256 hashes (ledger, actions, contracts) plus a fourth, replication-only `state_hash` covering the in-place mutations and backdated refund credits those three cannot see; decoder payloads carry a single `block_hash`.
+- On apply, an indexer replica recomputes `state_hash` (`VERIFY_STATE_HASH`, default on) and the per-block SPV state-commitment roots (balances, block Merkle root) with sync's SHA-256 Merkle/SMT primitives (`VERIFY_STATE_COMMITMENT`, default on), and halts durably on a mismatch. Both checks still trust the source for the committed values, so they do not by themselves catch a single dishonest source.
+- Separately, server mode keeps a transparency log that groups indexer blocks into Merkle epochs (`MERKLE_EPOCH_SIZE`) and serves inclusion proofs and the latest root for external auditors.
 - Clients can sync from 2+ independent sources and cross-verify block hashes to detect tampered data.
 - Reorg detection mirrors the indexer's pattern: detects rollbacks in the source database and broadcasts reorg events. Clients roll back their local replicas using the same table lists as the indexer's `Rollback.js`.
 
@@ -136,17 +138,17 @@ These services support the construction and submission of XChain transactions.
 | | |
 |---|---|
 | **Purpose** | Converts an ACTION string + UTXOs + public key into an unsigned PSBT |
-| **Inputs** | JSON-RPC calls from SDK or callers (ACTION string, UTXOs, pubkey) |
+| **Inputs** | JSON-RPC calls from SDK or callers (ACTION string, pubkey, and optionally UTXOs, which are fetched from xchain-utxo-tracker when omitted) |
 | **Outputs** | Unsigned PSBT (one or two transactions depending on format) |
 | **Storage** | None (fully stateless) |
-| **Communication** | Inbound JSON-RPC; no outbound calls |
+| **Communication** | Inbound JSON-RPC from SDK/callers; outbound JSON-RPC to the coin node (`broadcast_tx`, `estimatesmartfee`-based fee estimation) and to xchain-utxo-tracker (UTXO lookups, sync-lag checks, `health` probes) |
 
 Key technical details:
 
 - With `encoding` omitted, selects between `OP_RETURN` (≤80 bytes/output, 76 bytes user data, 1 tx) and `P2SH` (476 bytes/chunk, 2 tx) by payload size. `MULTISIGN` (60 bytes/output, 1 tx), `P2WSH` (476 bytes/chunk up to the 8,192-byte compiled-payload ceiling, 2 tx) and `TAPROOT` (the envelope, up to 390,000 bytes in one tapscript witness, 2 tx, segwit chains only) are never reached by that size fallback; they are used only when explicitly requested, or when `encoding: AUTO` opts into smallest-footprint selection.
 - P2SH and P2WSH use a two-transaction pattern: fund tx commits funds to a script; reveal tx spends it, embedding the data in the unlocking script. TAPROOT uses a commit/reveal pair returned together from one call.
 - Obfuscates payloads with AES-128-CTR. Key and IV are derived from the first input's txid, deterministic and reversible by any party with the txid.
-- The encoder itself has no per-chain specialization; coin node interaction happens at the caller level.
+- Calls the coin node directly over JSON-RPC (configured by the `NODE_*` variables) to broadcast and to estimate fees, and calls xchain-utxo-tracker for UTXO lookups; `create_tx` refuses tracker data that lags by more than `UTXO_TRACKER_MAX_LAG_BLOCKS`.
 
 See [`../components/encoder/`](../components/encoder/) for full documentation.
 
@@ -166,7 +168,7 @@ Key technical details:
 
 - LevelDB key schema uses single-character prefixes: `B`=block, `T`=transaction, `I`=input, `O`=output, `H`/`J`=address hints.
 - Processes blocks in batches of up to 200 (flush may trigger earlier under heap pressure), writing each batch atomically to LevelDB.
-- Maintains a per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: 120 blocks for every coin; overridable via XCHAIN_UNDO_BLOCKS_<COIN>) to support chain reorganization rollback.
+- Maintains a per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: BTC 120 / LTC 5000 / DOGE 120 blocks; overridable via XCHAIN_UNDO_BLOCKS_<COIN>) to support chain reorganization rollback.
 - Tracks the mempool for real-time unconfirmed UTXO state.
 - Supports bootstrap from tar archives to avoid re-indexing from genesis.
 - Outputs are indexed by scriptPubKey hash, enabling efficient address lookups.
@@ -208,17 +210,17 @@ These services manage deployment, configuration, and testing.
 | | |
 |---|---|
 | **Purpose** | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, governance |
-| **Inputs** | JSON-RPC calls from all services; external price APIs (CoinGecko, Kraken; CoinMarketCap optional with API key); P2P gossip from other validators |
+| **Inputs** | JSON-RPC calls from all services; external price APIs (CoinGecko, Kraken, Coinbase; CoinMarketCap optional with API key); P2P gossip from other validators |
 | **Outputs** | Config values, service endpoints, oracle prices, fee quotes, cross-chain attestations, governance decisions |
 | **Storage** | MariaDB (configs, validators, consensus, price_snapshots, oracle_prices, oracle_submissions, attestations, swaps, reorgs, governance, validator_rewards, slashing) |
-| **Communication** | Inbound JSON-RPC from all services (incl. PRICE pushes from indexers); outbound HTTP for price fetching; WebSocket P2P gossip between validators; outbound WebSocket `/hub-db/subscribe` to indexers for hub DB sync |
+| **Communication** | Inbound JSON-RPC from all services (incl. PRICE pushes from indexers); outbound HTTP for price fetching; WebSocket P2P gossip between validators; inbound WebSocket `/hub-db/subscribe` from indexers (HubDbSync clients) for hub DB sync |
 
 Key technical details:
 
 - Operates in two modes: standalone (simple config oracle) and validator mode (full PBFT consensus, P2P gossip, oracle, cross-chain attestation, governance).
 - Supports multi-instance deployment, multiple hub instances against shared MariaDB, with consumer fallback via `HUB_VALIDATORS`.
 - Config writes go through PBFT consensus in validator mode (PRE_PREPARE → PREPARE → COMMIT, reaching a federation quorum that is stake-weighted and source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION` and the legacy `max(2f+1, ceil((N+1)/2))` signer count below it).
-- Decentralized price oracle: validators fetch from CoinGecko and Kraken (CoinMarketCap optional, requires API key), aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
+- Decentralized price oracle: validators fetch from CoinGecko, Kraken and Coinbase (CoinMarketCap optional, requires API key), aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT.
 - Cross-chain attestation engine with per-chain-pair validator subsets and confirmation thresholds (BTC: 6, LTC: 12, DOGE: 60; env-tunable via `XCHAIN_CONFIRMATIONS_<COIN>`).
 - SWAP lifecycle tracking: initiated → attested → executed → settled.
 - Off-chain governance: 7-day voting period, 2/3+ approval, 50% quorum, parameter change bounds enforcement.
@@ -243,8 +245,8 @@ See [`../components/hub/`](../components/hub/) for full documentation.
 Key technical details:
 
 - Downloads and configures coin nodes (bitcoind, litecoind, dogecoind) alongside all platform services.
-- Creates Docker containers with a consistent naming scheme: `xchain-node-{service}-{coin}-{network}`.
-- All containers share a Docker bridge network, enabling DNS-based service discovery.
+- Creates Docker containers with a consistent naming scheme: per-chain services are `xchain-node-{coin}-{network}-{service}` (e.g. `xchain-node-bitcoin-mainnet-xchain-encoder`); shared services (database, hub, explorer, sync) are `xchain-node-{service}` (e.g. `xchain-node-xchain-hub`).
+- Each coin/network combination gets its own Docker bridge network (`xchain-node-{coin}-{network}`), giving DNS-based service discovery between that chain's containers. The database, hub and explorer are also connected to every coin/network network; sync stays on the base `xchain-node` network only. Each indexer also joins the networks of the other installed coins on the same network tier, for its cross-chain sibling reads.
 - Blessed TUI provides a real-time status dashboard in the terminal.
 - Supports create, start, stop, update, and monitor operations per container.
 - A single xchain-node installation can manage multiple chains and networks simultaneously.
@@ -266,7 +268,7 @@ See [`../components/node/`](../components/node/) for full documentation.
 Key technical details:
 
 - On detecting mempool transactions, waits up to 30 seconds (resetting to 5 seconds on each new arrival) before mining.
-- Inbound JSON-RPC control API: `ping`, `send_funds`, `fill_mempool`, `continue_mining`, `set_mining_time`.
+- Inbound JSON-RPC control API: funding (`send_funds`, `fill_mempool`), on-demand mining (`generate_blocks`), auto-mine control (`pause_mining`, `continue_mining`, `set_mining_time`), and the rest listed in the [regtest-miner API reference](../components/regtest-miner/operations.md).
 - Only used in regtest; not deployed in testnet or mainnet environments.
 
 See [`../components/regtest-miner/`](../components/regtest-miner/) for full documentation.
@@ -386,7 +388,7 @@ flowchart TD
 
 ## Multi-Chain Deployment
 
-Each core pipeline service (decoder, indexer, explorer, utxo-tracker, encoder) runs as a separate instance per chain/network combination. xchain-hub runs as a single shared instance across all chains.
+Each core pipeline service (decoder, indexer, utxo-tracker, encoder) runs as a separate instance per chain/network combination. xchain-hub and xchain-explorer each run as a single shared instance across all chains.
 
 A full mainnet deployment across all three supported chains requires:
 
@@ -395,13 +397,13 @@ A full mainnet deployment across all three supported chains requires:
 | Coin nodes | 3 | One each for Bitcoin, Litecoin, Dogecoin |
 | xchain-decoder | 3 | One per coin |
 | xchain-indexer | 3 | One per coin |
-| xchain-explorer | 3 | One per coin |
+| xchain-explorer | 1 | Shared across all chains; routes by the coin prefix in the URL |
 | xchain-utxo-tracker | 3 | One per coin |
 | xchain-encoder | 3 | One per coin (or shared if stateless routing used) |
 | xchain-hub | 1+ | Shared across all chains; supports multi-instance for HA |
 | xchain-node | 1 | Manages all containers |
 
-Adding a new chain means adding one more set of pipeline instances (coin node + decoder + indexer + explorer + utxo-tracker + encoder) and registering them with the hub.
+Adding a new chain means adding one more set of pipeline instances (coin node + decoder + indexer + utxo-tracker + encoder) and registering them with the hub. The shared explorer serves the new coin without an extra instance.
 
 ---
 
@@ -415,7 +417,7 @@ Adding a new chain means adding one more set of pipeline instances (coin node + 
 - xchain-e2e-test (run on demand)
 
 **Full mainnet:**
-- 3 coin nodes + full pipeline set per coin + xchain-hub + xchain-node
+- 3 coin nodes + decoder, indexer, utxo-tracker and encoder per coin + one shared xchain-explorer + xchain-hub + xchain-node
 - No regtest-miner or e2e-test in production
 
 ---

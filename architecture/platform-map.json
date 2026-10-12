@@ -106,7 +106,7 @@
       "type": "database",
       "group": "hub",
       "tech": "MariaDB",
-      "description": "About 20 tables: configs, validators, consensus state, cross-chain calls, price_snapshots, oracle_prices, attestation stats."
+      "description": "Hub state tables, one per file in src/sql/: configs, validators, consensus state, cross-chain calls, price_snapshots, oracle_prices, attestation stats."
     },
     {
       "id": "explorer",

@@ -4,10 +4,11 @@
 # XChain Platform Action - ANCHOR
 
 On-chain commitment of federation-signed state, checkpoints and the cross-chain match
-archive, in a single action with two legs and four version-discriminated phases:
+archive, with two legs and four version-discriminated phases:
 
-- **v0: Checkpoint bundle.** Validator-broadcast. ONE anchor per network per publishing cycle,
-  carrying every checkpointed chain as its own **section**: the chain's hash triple, its SPV
+- **v0: Checkpoint bundle.** Validator-broadcast. One logical anchor cycle per network,
+  normally carried by one action but split into multiple actions when the byte budget requires
+  it, with every checkpointed chain carried as its own **section**: the chain's hash triple, its SPV
   light-client roots and its own quorum signature list, followed by a single `PUBLISHER`
   attestation tail covering the whole bundle. Below `ANCHOR_FOLD_ACTIVATION`, v0 is the only
   checkpoint wire the hub emits.
@@ -28,8 +29,9 @@ archive, in a single action with two legs and four version-discriminated phases:
 - **v3: Folded checkpoint + archive bundle.** Validator-broadcast, at/above
   `ANCHOR_FOLD_ACTIVATION`. Carries the same per-chain checkpoint sections as v0 plus, at most,
   one archive section bound to one of those sections by an explicit `WRAPPER_SECTION_INDEX`, so
-  a network emits **one** ANCHOR transaction per cycle instead of a separate v0 bundle and v1/v2
-  archive pair. See [Version 3](#version-3-folded-checkpoint-archive-bundle-validator-broadcast)
+  a network emits **one logical** ANCHOR cycle instead of a separate v0 bundle and v1/v2 archive
+  pair. The cycle can still span multiple transactions when the byte budget requires a split. See
+  [Version 3](#version-3-folded-checkpoint-archive-bundle-validator-broadcast)
   below. v0, v1 and v2 keep their shapes byte-for-byte and stay parseable forever; the fold only
   adds a new version, it narrows nothing below it.
 
@@ -40,12 +42,12 @@ on the anchor's own DOGE `BLOCK_INDEX`:
 
 | Network | `ANCHOR_ACTIVATION` | Why |
 | --- | --- | --- |
-| mainnet | 6360000 | above the chain tip: the restarted set has not activated on mainnet yet |
+| mainnet | 6360000 | activated: the restarted set is live on mainnet |
 | testnet | 67858600 | 24 blocks above the last pre-restart anchor at 67858576 |
 | regtest | 0 | stacks are rebuilt from genesis, so there is no pre-restart history |
 
-Mainnet's height is deliberately ahead of the tip. The restarted wire set is not live there, and the
-height is a flag day an operator arms on purpose rather than one that silently already passed.
+Mainnet's height has been reached. The restarted wire set is live there: the DOGE tip passed the
+height near 2026-09-03 with no arming ruling, and the 2026-10-09 ruling accepts it as live.
 Testnet's sits just above the last anchor it published under the old set and is already past, so
 that window is open and needs no publisher-side guard.
 
@@ -65,16 +67,48 @@ above it, versions 0, 1 and 2 are still valid: the fold adds a wire, it does not
 unfolded ones, so a publisher mid-rollout (or a network that never arms the fold) keeps
 publishing v0 bundles and v1/v2 archive batches exactly as before.
 
-`ANCHOR_FOLD_ACTIVATION` uses the house UNARMED sentinel on mainnet and testnet: it is ruled and
-unscheduled, and stays inert until the year 2286. Its regtest entry is `null` by default.
-`XC_ANCHOR_FOLD_REGTEST_ACTIVATION` can arm that entry at DOGE height zero or a selected height
-for a private venue without scheduling either public network.
+`ANCHOR_FOLD_ACTIVATION` uses the house UNARMED sentinel on mainnet: it is ruled and unscheduled
+there, and stays inert until the year 2286. Testnet is armed per chain through the map's
+`BTC:testnet`, `LTC:testnet` and `DOGE:testnet` heights in [`constants.js`](../constants.js); the
+bare `testnet` key is only the fallback for a chain with no key of its own. Its regtest entry is
+`null` by default. `XC_ANCHOR_FOLD_REGTEST_ACTIVATION` can arm that entry at DOGE height zero or a
+selected height for a private venue without scheduling either public network.
+
+`ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION` is the separate enforcement gate for the existing v3
+section-count rule. A v3 with `SECTION_COUNT` 0 is an empty fold and is never a legal v3 wire:
+at or above this gate it is `invalid: SECTION_COUNT (empty fold)`. Before activation, indexers
+retain the earlier acceptance behavior only for consensus replay compatibility; that behavior
+does not make a zero-section fold valid for publishers to emit. The reject gate is currently
+UNARMED on every network pending the historical empty-fold audit.
 
 `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` is the companion gate for the v3 archive
-section's verdict scope (see [Version 3 only](#version-3-only) below). It uses the same UNARMED
-sentinel on mainnet and testnet and is `null` on regtest by default. The same
+section's verdict scope (see [Version 3 only](#version-3-only) below). It carries the fold's values
+on every network, so testnet is armed per chain at the same heights. Mainnet holds the same
+UNARMED sentinel, and regtest is `null` by default. The same
 `XC_ANCHOR_FOLD_REGTEST_ACTIVATION` setting arms both regtest gates at the same height, because
 the section-scoped verdict is armed only with the fold.
+
+### Archive reward termination (`ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION`)
+
+The fold changes the publishing shape immediately, but an already attested v1
+`anchor_archive` reward can mature after that change. Its proof and mint therefore need a
+separate consensus boundary. `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` terminates that legacy
+reward family only when it **and** `ANCHOR_FOLD_ACTIVATION` are active. If either gate is
+inactive, v1 archive rewards retain their pre-fold behavior. The term never affects
+`anchor_bundle` rewards, and a v3 action never creates a separate `anchor_archive` reward.
+
+The conjunction is evaluated on both consensus planes that can admit the reward:
+
+- The BTC derive pass evaluates both gates at the reward's `SNAPSHOT_BLOCK`. Once both are
+  active there, a mirrored `anchor_archive` attestation cannot mint.
+- The DOGE proof binding evaluates both gates at the archive head's own DOGE
+  `BLOCK_INDEX`. Once both are active there, that head cannot prove an `anchor_archive`
+  reward tuple.
+
+Mainnet and every testnet chain slot use the house UNARMED sentinel for the term gate, so
+neither public network terminates legacy archive rewards until an operator arms it. Regtest
+is genesis-active at height 0, but the conjunction still requires the regtest fold gate to
+be armed. The current public-network state is listed on [Flag-Day Values](../flag-days.md).
 
 A network with pre-restart history must **not** pin 0. The retired wires reused the same version
 bytes under different meanings, so with the gate disabled they fall through to the table above and
@@ -122,7 +156,7 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 | `VERSION`             | Integer | all      | Format version (0=checkpoint bundle, 1=archive head + publisher, 2=continuation, 3=folded checkpoint + archive bundle) |
 | `NETWORK`             | String  | 0, 1, 3  | `mainnet` \| `testnet` \| `regtest`. On a v0/v3 it is carried once, in the header, and applies to every section |
 | `SNAPSHOT_BLOCK`      | Integer | 0, 1, 3  | BTC block selecting the `oracle_publish` validator set. On a v0/v3 it is the bundle's election and attestation block: the MAX of the sections' `SECTION_SNAPSHOT_BLOCK` |
-| `SECTION_COUNT`       | Integer | 0, 3     | Number of per-chain checkpoint sections that follow; at least 1        |
+| `SECTION_COUNT`       | Integer | 0, 3     | Number of per-chain checkpoint sections that follow; at least 1 in both versions, and 0 is never legal in v3 |
 | `CHAIN`               | String  | 0, 1, 3  | Chain being checkpointed: `BTC` \| `LTC` \| `DOGE`. One per v0/v3 section |
 | `BLOCK_INDEX`         | Integer | 0, 1, 3  | Checkpointed block height on `CHAIN`                                   |
 | `BLOCK_HASH`          | String  | 0, 1, 3  | 64-hex block hash of `CHAIN` at `BLOCK_INDEX`                          |
@@ -185,11 +219,13 @@ ANCHOR|0|NETWORK|SNAPSHOT_BLOCK|SECTION_COUNT
   absent from this cycle and rides the next one.
 - **Roots are required in every section.** The bundle is root-bearing by construction; a
   checkpoint row with null roots is skipped with a log line, never emitted rootless.
-- **One publisher tail per bundle**, whatever the section count.
+- **One publisher tail per physical bundle**, whatever the section count. Every bundle created
+  by splitting one cycle repeats the cycle's same `PUBLISHER`, `XANCPUB` canonical and attestation
+  signature set; those repeated wire tails represent one logical attestation.
 - **Byte budget: 8189 bytes** of wire text (`MAX_ACTION_DATA_LENGTH` 8192 minus the 3-byte
   push prefix). A cycle that would exceed it is split chain-ascending into as many bundles as
-  fit, each with its own election; a single section that cannot fit alongside the
-  attestation tail its bundle will carry is refused loudly and counted, never sent
+  fit, all sharing the election keyed by `(NETWORK, SNAPSHOT_BLOCK)`; a single section that
+  cannot fit alongside the attestation tail its bundle will carry is refused loudly and counted, never sent
   truncated. The assembled payload is measured once more before broadcast, so an
   under-estimated tail is refused here rather than dropped by the decoder.
 
@@ -225,8 +261,10 @@ ANCHOR|3|NETWORK|SNAPSHOT_BLOCK|SECTION_COUNT
   and every section field carry the identical meaning, ordering rules (`CHAIN`-ascending
   sections, `PUBKEY`-ascending pairs within a section) and signature-verification behavior as a
   v0 bundle; nothing about per-chain checkpoint verification changes when it travels folded.
-  There is still exactly **one** publisher tail per bundle, whatever the section count, and one
-  election covering the whole action (checkpoint sections plus the archive, when present).
+  There is still exactly **one** publisher tail per physical bundle, whatever the section count,
+  and one election covering the whole `(NETWORK, SNAPSHOT_BLOCK)` cycle (checkpoint sections plus
+  the archive, when present). Split actions repeat the same tail and do not create another
+  election or attestation.
 - **`ARCHIVE_COUNT` is 0 or 1, never more.** It is the field the fold adds right after the
   section list: 0 means this cycle's archive leg missed its sub-deadline (or the network has
   nothing pending to archive) and the bundle ships with checkpoints only; 1 means exactly one
@@ -245,7 +283,8 @@ ANCHOR|3|NETWORK|SNAPSHOT_BLOCK|SECTION_COUNT
   the bundle's existing sign round with its own sub-deadline; a miss drops `ARCHIVE_COUNT` to 0
   and the bundle still ships on time with every checkpoint section intact, rather than delaying
   the whole cycle for a slow archive quorum.
-- **One reward, whatever the section count and whatever `ARCHIVE_COUNT` is.** The publisher
+- **One reward per `(NETWORK, SNAPSHOT_BLOCK)` cycle, whatever the section count, split count or
+  `ARCHIVE_COUNT` is.** The publisher
   attestation tail signs the same `XANCPUB|anchor_bundle|...` reward tuple a v0 bundle signs (see
   [Publisher-attestation canonical](#publisher-attestation-canonical-xancpub-v0-v1) below); v3
   never mints a separate `anchor_archive` reward, folded or not. See
@@ -344,7 +383,10 @@ XANCPUB|anchor_bundle|SNAPSHOT_BLOCK|SNAPSHOT_BLOCK|PUBLISHER|ANCHOR_REWARD_AMOU
 The six positional fields are the shipped layout, kept so the slashing judge finds
 `snapshot_block` at the same index for every `XANCPUB` family. Field 2 is the round reference,
 which for a bundle IS the snapshot block, hence the repeat: a bundle spans several chains and
-several checkpoint sequences, so the block is the only round key all its sections share.
+several checkpoint sequences, so the block is the only round key all its sections share. When
+the byte budget splits a cycle, every physical bundle for the same
+`(NETWORK, SNAPSHOT_BLOCK)` repeats these same canonical bytes and the same signature set. The
+split therefore creates no additional `XANCPUB` attestation.
 
 `ANCHOR_REWARD_AMOUNT` is the **frozen consensus constant** `10.00000000` (read from the
 `ANCHOR_REWARD_ACTIVATION` twin module, NEVER taken from the wire; changing it is itself a
@@ -380,7 +422,7 @@ derived reward row. An `ASIG_n` counts only if its pubkey is in the SAME `oracle
 
 A v3's `PUBLISHER`/`ATTEST_SIG_COUNT` tail always signs the `anchor_bundle` tuple above, never
 the `anchor_archive` one, whether or not it carries an archive section: one election covers the
-whole folded action, so there is exactly one attestation family to sign, not two. See
+whole folded cycle, so there is exactly one attestation family to sign, not two. See
 [Version 3 only](#version-3-only) for the reward-type retirement this implies.
 
 ## Archive JSON (v1/v2 payload, after gunzip)
@@ -450,8 +492,9 @@ exact bytes):
   on-chain), so the chain remains the root of trust.
 - `rewards[]` carries the **anchor-publish reward rows** (`reward_type` `anchor_bundle` /
   `anchor_archive` only) that have not yet ridden an archive. These are the one
-  `validator_rewards` rail a chain parse cannot re-derive (`oracle_round` and `attest_fee`
-  rows are derived deterministically from PRICE/ATTEST actions and are **never archived**:
+  `validator_rewards` rail a chain parse cannot re-derive (`attest_fee` rows are derived
+  deterministically from ATTEST actions, no consensus rail mints `oracle_round` rows today
+  (see [COLLECT](collect.md#reward-population-path)), and neither type is ever **archived**:
   recovery rejects an archive that claims them). Reward rows carry no per-row signatures;
   every co-signing hub instead **re-derives** each field before signing: the pubkey must be in
   its own `oracle_publish` resolution at `block_index`, the amount must equal its configured
@@ -535,13 +578,15 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
   `SNAPSHOT_BLOCK`, reaching the same threshold as the section quorum above: stake-weighted and
   source-deduped at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise the legacy
   `max(2f+1, ceil((N+1)/2))` signer count.
-- **One reward per bundle**, not one per section: a COLLECT-spendable `validator_rewards` row
-  keyed `(SNAPSHOT_BLOCK, anchor_bundle)`, amount = the frozen `ANCHOR_REWARD_AMOUNT`, never the
+- **One reward per `(NETWORK, SNAPSHOT_BLOCK)` cycle**, not one per section or physical bundle: a
+  COLLECT-spendable `validator_rewards` row keyed by the network's
+  `(SNAPSHOT_BLOCK, anchor_bundle)`, amount = the frozen `ANCHOR_REWARD_AMOUNT`, never the
   wire, credited **only** when every section's quorum passed, the attestation quorum is met, and
   `PUBLISHER` is in the snapshot set. A failed, short, or forged attestation **never** invalidates
   the anchor: the checkpoints still record as `valid` and only the reward is skipped,
   deterministically across the fleet. A failover double-publish converges to the smallest-pubkey
-  winner, so the COLLECT rail stays single-winner.
+  winner, so the COLLECT rail stays single-winner. A byte-budget split repeats the same
+  attestation on each physical bundle and deduplicates to this one row.
 - The trusted, unauthenticated `pushvalidatorrewards` reward push is retired for `anchor_bundle`:
   every indexer DERIVES the reward from these bytes instead.
 
@@ -568,6 +613,7 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
   `valid` exactly as above it does, but never derives an `anchor_archive` reward even with a
   full attestation. A failed, short, forged, or below-flag-day attestation never invalidates the
   archive anchor; only the reward is skipped.
+
 - The `pushvalidatorrewards` push is retired for `anchor_archive`: every indexer DERIVES the
   archive reward from these bytes instead (closing the last insider-with-key forge surface).
 
@@ -598,10 +644,14 @@ invalidates every legitimate chunk, and its address becomes the only one whose c
 A publisher publishing one head per seq sees no difference between the two rules.
 
 ### Version 3 only
-- `SECTION_COUNT` chain sections follow the v0 rules verbatim (`CHAIN`-ascending order, no
-  duplicate chain, `PUBKEY`-ascending pairs within a section, roots required, `SNAPSHOT_BLOCK`
-  equal to the MAX of the sections' `SECTION_SNAPSHOT_BLOCK`). A bad checkpoint section still
-  invalidates the whole action (`invalid: SECTION n <reason>`), exactly as for a v0.
+- **`SECTION_COUNT` must be at least 1.** Zero is never legal in v3: it describes an unsigned
+  empty fold rather than a checkpoint bundle. At or above
+  `ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION`, an empty fold is
+  `invalid: SECTION_COUNT (empty fold)`. Nonempty chain sections follow the v0 rules verbatim
+  (`CHAIN`-ascending order, no duplicate chain, `PUBKEY`-ascending pairs within a section, roots
+  required, `SNAPSHOT_BLOCK` equal to the MAX of the sections' `SECTION_SNAPSHOT_BLOCK`). A bad
+  checkpoint section still invalidates the whole action (`invalid: SECTION n <reason>`), exactly
+  as for a v0.
 - **`ARCHIVE_COUNT` must be 0 or 1.** Any other value, or a value that disagrees with whether an
   archive section is actually present on the wire, is `invalid: ARCHIVE_COUNT`. A v3 with
   `ARCHIVE_COUNT` 0 carries no archive fields at all and is a plain folded checkpoint bundle;
@@ -635,17 +685,20 @@ A publisher publishing one head per seq sees no difference between the two rules
   invalidate a checkpoint a light client already consumed. A bad CHECKPOINT section always
   invalidates the whole action in both eras; only the archive's OWN failures are, or are not,
   section-scoped.
-- **One reward for the whole action, whatever `ARCHIVE_COUNT` is.** The `PUBLISHER` and
+- **One reward for the whole `(NETWORK, SNAPSHOT_BLOCK)` cycle, whatever the split count or
+  `ARCHIVE_COUNT` is.** The `PUBLISHER` and
   attestation tail sign the same `XANCPUB|anchor_bundle|...` tuple a v0 bundle signs (see
   [Publisher-attestation canonical](#publisher-attestation-canonical-xancpub-v0-v1)), reaching
   the same quorum threshold as the section quorum above; a credited row is keyed
   `(SNAPSHOT_BLOCK, anchor_bundle)`, exactly as for a v0, whether or not an archive section rode
-  along. **`anchor_archive` retires as a reward type at `ANCHOR_FOLD_ACTIVATION`**: no v3, folded
-  or not, ever mints an `anchor_archive` row, because one election now covers the whole action.
-  History below the fold height is unaffected and stays readable, and `ARCHIVE_REWARD_AMOUNT`
-  stays frozen for those pre-fold rows. A network that never arms the fold keeps minting
-  `anchor_archive` through v1 exactly as before; the retirement is per-network, keyed on that
-  network's own `ANCHOR_FOLD_ACTIVATION`.
+  along or the cycle required multiple physical bundles. **`anchor_archive` retires as a reward type at `ANCHOR_FOLD_ACTIVATION`** when
+  `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` is also active, but only where both gates are active on
+  the BTC snapshot and DOGE landing planes described in
+  [Archive reward termination](#archive-reward-termination-anchor_archive_fold_term_activation).
+  No v3, folded or not, ever mints an `anchor_archive` row, because one election now covers the
+  whole action. History below the active term boundary is unaffected and stays readable, and
+  `ARCHIVE_REWARD_AMOUNT` stays frozen for those legacy rows. A network that leaves either gate
+  unarmed keeps deriving and proving `anchor_archive` through v1 exactly as before.
 
 ## Effects
 - Persists into `anchor_actions`, keyed `(action_index, section_index)` and rolled back on
@@ -665,14 +718,16 @@ A publisher publishing one head per seq sees no difference between the two rules
   record.
 
 ## Publisher
-- Published by the hub's `StateAnchorPublisher`. **One election per bundle**: the cycle's
-  pending checkpoints for a network are grouped into ONE bundle, which elects a single
-  publisher from the `oracle_publish` capability snapshot at the bundle's `SNAPSHOT_BLOCK`,
+- Published by the hub's `StateAnchorPublisher`. **One election per `(NETWORK, SNAPSHOT_BLOCK)`
+  cycle**: the cycle's pending checkpoints for a network are grouped into one logical bundle,
+  split into multiple physical bundles only when required by the byte budget, and elect a single
+  publisher from the `oracle_publish` capability snapshot at the cycle's `SNAPSHOT_BLOCK`,
   ordered by `SHA256(XANCV7|NETWORK|SNAPSHOT_BLOCK ‖ pubkey)` ascending (the attestation
   responsible-set idiom; the internal round-id tag stays `XANCV7` even though the wire's
   checkpoint-bundle version byte is now `0`, because the tag is not on chain and permuting it
   would reorder every hub's failover rank mid-rollout). One validator therefore pays for the
-  whole cycle, instead of a different one winning each chain. Rank 0 publishes from its own
+  whole cycle, including every physical bundle in a split, instead of a different one winning
+  each chain. Rank 0 publishes from its own
   funded DOGE wallet; each further rank unlocks after `ANCHOR_ELECTION_TOLERANCE_BLOCKS` more
   BTC blocks elapse without a publish (deterministic failover ladder; a gossiped
   `XANC_BUNDLE_DONE` back-fill carries the txid and the section list, so peers stamp every
@@ -683,8 +738,8 @@ A publisher publishing one head per seq sees no difference between the two rules
 
 ```mermaid
 flowchart TD
-    A["Pending checkpoints for one network<br>(all chains, this cycle)"] --> B["Elect ONE publisher: oracle_publish snapshot at the bundle's snapshot_block,<br>ordered by SHA256(XANCV7 key ‖ pubkey) ascending"]
-    B --> C["Rank 0 publishes one v0 bundle<br>from its own funded DOGE wallet"]
+    A["Pending checkpoints for one network<br>(all chains, this cycle)"] --> B["Elect ONE publisher: oracle_publish snapshot at the cycle's snapshot_block,<br>ordered by SHA256(XANCV7 key ‖ pubkey) ascending"]
+    B --> C["Rank 0 publishes the cycle's v0 bundle or split bundles<br>from its own funded DOGE wallet"]
     B -.->|"same election, keyed per election block"| I["v1/v2 archive round<br>elects a single leader"]
     C --> D{"XANC_BUNDLE_DONE gossiped<br>before next rank unlocks?"}
     D -->|"yes"| E["Peers stand down and stamp<br>every section, no re-anchor"]
@@ -694,12 +749,12 @@ flowchart TD
     G -->|"no, after ANCHOR_ELECTION_TOLERANCE_BLOCKS<br>more BTC blocks"| H["Rank 2+ unlocks<br>(ladder continues)"]
 ```
 
-- Each successful publish records an `anchor_bundle` (round = the bundle's `snapshot_block`) or
+- Each successful cycle records an `anchor_bundle` (round = the cycle's `snapshot_block`) or
   `anchor_archive` (round = `batch_seq`) reward of `ANCHOR_REWARD_PER_PUBLISH` XCHAIN
   (default 10) on the `validator_rewards` rail, collectable on BTC via `COLLECT` like
-  oracle-round rewards. One bundle earns one reward however many chains it carries.
+  oracle-round rewards. A split cycle earns one anchor_bundle reward and one XANCPUB attestation per (network, SNAPSHOT_BLOCK), not one of each per physical bundle.
 - P2SH encoding via the standard encoder pipeline.
-- Default cadence: one v0 bundle per network plus pending v1/v2 archive batches per anchor
+- Default cadence: one v0 cycle per network plus pending v1/v2 archive batches per anchor
   interval (`ANCHOR_INTERVAL_MS`, default daily), or early when `ANCHOR_MATCH_BATCH_SIZE`
   matches are pending. Checkpoint *signing* happens more often (hourly, mirror-only, no chain
   writes); the anchor commits the latest signed checkpoint of every chain at publish time.
@@ -791,7 +846,8 @@ which is anti-spam only.
 3. Reindex BTC/LTC/DOGE from genesis against the recovered tables. The reindex derives
    `bridge_settlements` and `xbridges` from the rebuilt hub-mirror rows rather than recovery
    writing those derived tables directly. Cross-chain settlements, XCALL injections,
-   `oracle_round`/`attest_fee` rewards, and historical COLLECT claims all re-derive identically;
+   `attest_fee` rewards (no `oracle_round` rows are minted today), and historical COLLECT
+   claims all re-derive identically;
    final `blocks` hash triples must match the anchored checkpoints.
 
 ```mermaid
@@ -832,7 +888,10 @@ default-on) to confirm every archived validator set is backed by real on-chain s
   appended) and 2 (continuation, unchanged); a version-0 wire mined below activation is never
   confused with the new checkpoint-bundle format, because it fails on height before format
   dispatch ever runs. No publisher emits the retired wires and no indexer parses them as
-  anything but a pre-activation record; these version numbers are not reused for anything else.
+  anything but a pre-activation record. Beyond the restarted 0 and 1, the only retired number
+  reused is 3, by the v3 fold: `ANCHOR_FOLD_ACTIVATION` always sits at or above
+  `ANCHOR_ACTIVATION`, so a retired version-3 wire still fails on height before format dispatch.
+  Retired 4 to 7 are not reused.
 
 ---
 

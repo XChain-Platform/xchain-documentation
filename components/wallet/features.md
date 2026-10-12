@@ -92,15 +92,15 @@ xchain-vm runs JavaScript contracts in sandboxed V8 isolates with deterministic 
 
 ## BTC staking + delegation
 
-Bitcoin-only validator participation:
+Validator (capability) staking is Bitcoin-only and stakes XCHAIN, not BTC. Contract-targeted staking runs on every chain through `ContractStakeForm.jsx`.
 
-- **Stake**: `StakeForm.jsx`. Lock up BTC for a chosen epoch count.
-- **Unstake**: `StakingActionForm.jsx`. Withdraw stake after the unstake epoch passes.
-- **Delegate**: `DelegationActionForm.jsx`. Delegate stake to an operator without giving up custody.
-- **Revoke delegation**: same form. Reclaim direct control.
-- **Claim rewards**: `StakingActionForm.jsx`. Sweep accrued rewards.
-- **Staking dashboard**: `StakingDashboard.jsx`. Current stake, delegated stake, rewards, current epoch, next-unstake-eligible epoch.
-- **Operator dashboard**: `OperatorDashboard.jsx`. For users running a validator: total delegated stake, delegator count, uptime, pending rewards.
+- **Stake**: `StakeForm.jsx`. STAKE v1 (new stake) or v2 (top-up of a pubkey this address already staked): an XCHAIN amount plus a 64-hex Ed25519 signing pubkey. There is no lock period; the pubkey qualifies for each capability automatically once its total stake reaches that capability's minimum.
+- **Unstake**: `StakingActionForm.jsx`. UNSTAKE for one signing pubkey, in full or as a partial amount. The XCHAIN returns to the staking address after a cooldown measured in blocks (default 1000).
+- **Delegate signing key**: `DelegationActionForm.jsx`. DELEGATE v0 adds a signing key that may sign for this address's stake. Delegation is additive: it never moves stake and never changes staked amounts.
+- **Revoke delegation**: same form. DELEGATE v2 removes a delegated signing key, which stays valid for 6 blocks after the action confirms.
+- **Claim rewards**: `StakingActionForm.jsx`. COLLECT sweeps accrued XCHAIN validator rewards, in full or as a partial amount.
+- **Staking list**: `StakingList.jsx`. The wallet's validator stakes (Bitcoin) and contract stakes (every chain) in one list, with search and a network filter. `StakeDetail.jsx` drills into one stake: a validator stake has Rewards / Delegation / Details tabs, a contract stake has Positions / Slashes / Details.
+- **Operator dashboard**: `OperatorDashboard.jsx`, opened from a validator stake's detail page. A read-only view of the address's publishing activity, validator performance metrics, staking status, signing-key delegation chain and rewards, plus a quick-compose for PRICE-oracle broadcasts.
 
 ## Governance (VOTE)
 

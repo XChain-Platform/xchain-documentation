@@ -19,7 +19,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 - **P2P gossip**: WebSocket-based peer mesh with heartbeat, exponential backoff reconnection, and message deduplication
 - **Ed25519 validator identity**: cryptographic message signing and verification using Node.js built-in crypto
 - **Leader rotation**: deterministic per-sequence leader from sorted validator set with view change on timeout
-- **Decentralized price oracle**: validators fetch prices from CoinGecko and Kraken (both keyless and always active; CoinMarketCap is an optional third source, enabled only when `COINMARKETCAP_API_KEY` is set), aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT consensus
+- **Decentralized price oracle**: validators fetch prices from CoinGecko, Kraken and Coinbase (all keyless and always active; CoinMarketCap is an optional fourth source, enabled only when `COINMARKETCAP_API_KEY` is set), aggregate via trimmed median (discard top/bottom 15%), finalize via PBFT consensus
 - **Oracle rounds**: configurable round interval (default 10 minutes) with submission window (default 3 minutes)
 - **Fee quotes**: calculates native coin fee amounts by converting gas units → XCHAIN → native coin via oracle prices
 - **Cross-chain attestation**: PBFT-based consensus for cross-chain action verification with per-chain confirmation thresholds (BTC: 6, LTC: 12, DOGE: 60; configurable via `XCHAIN_CONFIRMATIONS_<COIN>`)
@@ -30,7 +30,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 - **Reward tracking**: per-round XCHAIN rewards distributed equally among participating oracle validators
 - **Offense detection** (`SlashDetector`): price deviation (>5%), repeated deviation (3+ in 24h), and non-participation (30+ missed rounds) monitoring. These are hub-local records; governance can suspend a validator, and on-chain stake is burned only by a SLASH proof of equivocation
 - **Multi-instance**: multiple hub instances against shared MariaDB with consumer fallback via `HUB_VALIDATORS`
-- **MariaDB storage**: 20 relational tables with connection pooling, circuit breaker, and exponential backoff
+- **MariaDB storage**: relational schema auto-created from `src/sql/` (see [Database](database.md)), with connection pooling, circuit breaker, and exponential backoff
 - **Single-node fallback**: all consensus-dependent operations fall back to direct execution when no peers are connected
 - **3,638 tests** (measured 2026-07-27): unit, integration, e2e, fuzz, chaos, boundary, smoke, regression, performance
 - **Docker-ready**: Dockerfile for containerized deployment via xchain-node
@@ -40,7 +40,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 | Document | Description |
 |---|---|
 | [Architecture](architecture.md) | Subsystem design, source files, P2P gossip, PBFT consensus, oracle pipeline, cross-chain engine |
-| [Configuration](configuration.md) | Environment variables, standalone vs validator mode, database schema, connection pool |
+| [Configuration](configuration.md) | Environment variables, standalone vs validator mode, connection pool |
 | [API](api.md) | JSON-RPC method reference: config, validators, oracle, attestations, swaps, reorgs, governance |
 | [Database](database.md) | Full schema reference: config, validators, oracle (price_snapshots, oracle_prices), attestations, governance |
 | [Operations](operations.md) | Running, Docker, validator key rotation, resilience, troubleshooting |
@@ -147,7 +147,7 @@ Consumers try each endpoint in order and fall back to the next if one is unreach
 
 | Package | Purpose |
 |---|---|
-| `axios` | HTTP client for external price API calls (CoinGecko, Kraken; CoinMarketCap optional) |
+| `axios` | HTTP client for external price API calls (CoinGecko, Kraken, Coinbase; CoinMarketCap optional) |
 | `express` | HTTP server for JSON-RPC API |
 | `express-json-rpc-router` | JSON-RPC 2.0 routing for the API server |
 | `geoip-lite` | Self-contained country/region lookup; derives coarse geo from connecting IPs at telemetry ingest (raw IP is never stored) |

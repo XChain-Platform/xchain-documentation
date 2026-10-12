@@ -308,7 +308,7 @@ The boot-time equivalent is the `IDLE_MINE_INTERVAL_MS` environment variable. Th
 
 ### `generate_blocks`
 
-Mine a specific number of empty blocks immediately, regardless of mempool state. Used by e2e tests to advance block height past time-locked states (such as `STAKE` activation delays).
+Mine a specific number of blocks immediately, regardless of mempool state; the blocks are mined through the node's `generatetoaddress`, so they pick up transactions waiting in the mempool and `{ "count": 1 }` confirms a pending transaction. Used by e2e tests to advance block height past time-locked states (such as `STAKE` activation delays).
 
 **Request:**
 
@@ -421,7 +421,7 @@ If the miner is running but not mining, check:
 ### Port already in use
 
 ```
-Error: listen EADDRINUSE :::3001
+Error: listen EADDRINUSE :::3005
 ```
 
 Another process is using `REGTEST_MINER_API_PORT`. Change the port in `.env` or stop the conflicting process.

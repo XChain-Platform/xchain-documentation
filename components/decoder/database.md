@@ -28,6 +28,7 @@ The database and all tables are auto-created on startup if they don't exist. Sch
 | `index_transactions` | Transaction/block hash to integer ID lookup | `id` (auto-increment) |
 | `events` | System events (reorgs, errors) | `id` (auto-increment) |
 | `pubkeys` | Source-address public keys captured during parsing | `address_id` |
+| `dispenser_extension_undo` | Local reorg bookkeeping, not replicated: each dispenser row's values before a block's first DISPENSE expiration extend | `(block_index, tx_index, address_id)` |
 
 ## Core Tables
 

@@ -56,7 +56,7 @@ test('rejects a page without the invocation points heading', () => {
 test('pins the live controller invocation table', () => {
     const page = readControllerBoundTokensPage();
     const invocations = parseInvocationTable(page);
-    assert.equal(Object.keys(invocations).length, 13);
+    assert.equal(Object.keys(invocations).length, 14);
     assert.deepEqual(invocations, {
         SEND: 'transfer',
         AIRDROP: 'transfer',
@@ -68,6 +68,7 @@ test('pins the live controller invocation table', () => {
         ORDER_CREATE: 'trade',
         SWAP_CREATE: 'trade',
         DISPENSER_CREATE: 'trade',
+        DISPENSER_REFILL: 'trade',
         DESTROY: 'burn',
         MINT: 'mint',
         STAKE: 'stake',

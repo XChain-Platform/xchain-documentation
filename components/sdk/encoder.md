@@ -158,7 +158,7 @@ let result = await sdk.encodeTx({
 
 ## Fee Estimation
 
-`sdk.estimateFees(actionData, encoderOpts?)` builds the action string, calls the encoder's estimate path (which runs `createTx` and then parses the resulting PSBT to compute real input/output totals), and returns the fee without signing or broadcasting. The returned PSBT can be signed and broadcast directly to avoid a second encode call.
+`sdk.estimateFees(actionData, encoderOpts?)` builds the action string, calls the encoder's estimate path (which runs `createTx` and then parses the resulting PSBT to compute real input/output totals), and returns the fee without signing or broadcasting. When `signable` is true, the returned PSBT can be signed and broadcast directly to avoid a second encode call; a TAPROOT envelope answer returns `psbt: null` with `signable: false` and is submitted through `submitAction`.
 
 ```js
 const estimate = await sdk.estimateFees(
@@ -170,7 +170,7 @@ console.log(estimate.fee);          // total miner fee in satoshis
 console.log(estimate.inputTotal);   // sum of input values in satoshis
 console.log(estimate.outputTotal);  // sum of output values in satoshis
 console.log(estimate.encoding);     // encoding type actually used
-console.log(estimate.psbt);         // unsigned PSBT hex; sign and broadcast directly
+console.log(estimate.psbt);         // unsigned PSBT hex when estimate.signable, else null
 console.log(estimate.actionString); // the serialized action string
 ```
 

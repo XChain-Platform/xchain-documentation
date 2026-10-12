@@ -98,17 +98,21 @@ Once services are running, the XChain explorer web UI is available at:
 http://localhost:18080
 ```
 
-The JSON-RPC API is at:
+The REST API lives under each coin's route code (`BTC` for Bitcoin mainnet, `RBTC` for Bitcoin regtest; the full table is in the [API reference](../components/explorer/api.md#coin-prefixes)):
 
-```
-http://localhost:18080/api
+```bash
+curl http://localhost:18080/BTC/api/status
 ```
 
-The REST API is at:
+The JSON-RPC 2.0 endpoint is the root path, called with a POST:
 
+```bash
+curl -X POST http://localhost:18080/ \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"ping","params":{}}'
 ```
-http://localhost:18080/rest
-```
+
+`http://localhost:18080/api` is the browsable API documentation page, not an endpoint. See the [explorer API reference](../components/explorer/api.md) for every route.
 
 ---
 
@@ -116,7 +120,7 @@ http://localhost:18080/rest
 
 ```mermaid
 flowchart TD
-    A["xchain-node install v0.12.3 all CHAIN NETWORK"] --> B["Verify Docker, create runtime directories"]
+    A["xchain-node install all CHAIN NETWORK"] --> B["Verify Docker, create runtime directories"]
     B --> C["Install xchain-hub first<br>(shared coordination layer)"]
     C --> D["Clone service repos into modules/,<br>build Docker images, start containers"]
     D --> E["Download and verify crypto node binary (SHA-256)"]
@@ -129,11 +133,11 @@ A single `xchain-node` installation can run Bitcoin, Litecoin, and Dogecoin simu
 
 ```bash
 # Add Litecoin mainnet to an existing installation
-xchain-node install v0.12.3 all litecoin mainnet
+xchain-node install all litecoin mainnet
 xchain-node start all litecoin mainnet
 
 # Add Dogecoin mainnet
-xchain-node install v0.12.3 all dogecoin mainnet
+xchain-node install all dogecoin mainnet
 xchain-node start all dogecoin mainnet
 ```
 
@@ -149,7 +153,7 @@ Regtest is a local blockchain mode where:
 
 ```bash
 # Install regtest stack
-xchain-node install v0.12.3 all bitcoin regtest
+xchain-node install all bitcoin regtest
 xchain-node start all bitcoin regtest
 ```
 

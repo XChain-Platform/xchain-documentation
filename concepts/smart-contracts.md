@@ -241,7 +241,7 @@ the exact `subtract`: `a >= b` is `isAtLeastExact(xchain, a, b)` and `a <= b` is
 |---|---|---|
 | `xchain.oracle.getPrice(coinPair)` | 100 | Price data or null |
 | `xchain.oracle.getPriceAtRound(coinPair, round)` | 100 | Historical price or null |
-| `xchain.oracle.getSnapshotAge()` | 0 | Blocks since last snapshot (number) |
+| `xchain.oracle.getSnapshotAge()` | 0 | Age of the latest finalized snapshot (number). Consensus seconds at and after the snapshot-age seconds flag day (not yet pinned); whole blocks before it. `Number.MAX_SAFE_INTEGER` when no snapshot exists |
 
 ### Cross-Chain (100 gas each)
 | Method | Returns |
@@ -280,7 +280,7 @@ block **after** the one where it was applied; the same one-block visibility rule
 The VM guarantees identical results on every indexer node replaying the same block. This is achieved by:
 
 - **Sandboxed V8 isolates**: contracts run in `isolated-vm` with a separate heap. No access to the host process, filesystem, or network.
-- **Non-deterministic APIs stripped**: `Date`, `Math.random`, `setTimeout`, `setInterval`, `process`, `require`, `eval`, `Function`, `fetch`, `WeakRef`, `FinalizationRegistry`, `Proxy`, `SharedArrayBuffer`, `Atomics`, `queueMicrotask` are all removed. A deterministic `Math` subset (floor, ceil, round, abs, min, max, sign, trunc, plus constants PI and E) is preserved and frozen. The transcendentals (`sqrt`, `pow`, `log`, `log2`, `log10`) are **also stripped** from the native `Math`; IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures. Contracts access deterministic bignumber equivalents via `xchain.math.sqrt/pow/log/log2/log10` instead; the native `Math.*` forms are rejected at deploy time.
+- **Non-deterministic and unmeterable APIs stripped**: `Date`, `Math.random`, the timers, `process`, `require`, `eval`, `Function`, `fetch`, `WeakRef`, `FinalizationRegistry`, `Proxy`, `Reflect`, `SharedArrayBuffer`, `Atomics`, `queueMicrotask`, `BigInt`, `RegExp`, `Intl`, `Temporal`, `structuredClone`, `performance`, `console`, `WebAssembly` and `Promise` are all removed. `Promise` and `WebAssembly` are consensus-gated: they are stripped at and after their activation heights and present on earlier blocks for replay. The complete list is in the [sandbox security reference](../components/vm/architecture.md#sandbox-security). A deterministic `Math` subset (floor, ceil, round, abs, min, max, sign, trunc, plus constants PI and E) is preserved and frozen. The transcendentals (`sqrt`, `pow`, `log`, `log2`, `log10`) are **also stripped** from the native `Math`; IEEE 754 transcendentals can differ by ≤1 ULP across CPU architectures. Contracts access deterministic bignumber equivalents via `xchain.math.sqrt/pow/log/log2/log10` instead; the native `Math.*` forms are rejected at deploy time.
 - **AST-based gas metering**: contract source is parsed with acorn, `__gas()` calls are injected at control flow points, and the source is regenerated. Gas charges are based on code structure, not wall-clock time.
 - **Bignumber math**: all token amounts pass through `xchain.math.*`, which wraps `mathjs` bignumber and takes string amounts in and returns string arithmetic results (the comparisons return a number or a boolean instead). No floating-point at the gateway boundary.
 - **Synchronous execution**: all isolated-vm APIs are synchronous. No event loop interleaving during contract execution.
@@ -345,7 +345,7 @@ sequenceDiagram
 
 The contract's first method (the one that called `request`) returns synchronously; its work in that block is done. The callback method runs in a separate EXECUTE later, when the answer is available. The callback runs as if the contract were calling itself: `xchain.getSourceAddress()` returns the contract's own derived address.
 
-The platform always invokes the callback exactly once per request: on success, on provider error, or on expiry. A contract never has to poll, never has to clean up stale requests, and never gets a "no answer" silently.
+Once the indexer admits a request, the platform invokes the callback exactly once: on success, on provider error, or on expiry. A contract never has to poll, never has to clean up stale requests, and never gets a "no answer" silently. A request that fails the indexer's validation (an unknown provider, a redundancy or deadline the provider does not allow, a payload over the provider's `max_request_bytes`) is never admitted: the emitting EXECUTE reverts with its state writes and sibling emissions, so no request exists and no callback fires.
 
 ### Providers
 
@@ -422,14 +422,14 @@ Each request may carry two distinct escrows:
 **(b) Optional paid-attestation fee (`feeTick` / `feeAmount`)**: an explicit fee a contract includes in the request (E1 feature, active now). Passing `feeAmount > 0` escrows that amount from the calling contract (`FEE_PAYER`) at request time. On `ok` the fee is split among the responsible validators. On expiry or provider error (service not rendered) the fee is **refunded in full to the caller**.
 
 Provider-level limits the contract should know about:
-- **`max_request_bytes`**: payload size cap (LLM: 8192, http_get: 2048). The VM enforces only a platform-wide 8192 ceiling; the indexer enforces the true per-provider cap, so an http_get payload between 2049 and 8192 bytes passes the VM but is rejected by the indexer and expires.
+- **`max_request_bytes`**: payload size cap (LLM: 8192, http_get: 2048). The VM enforces only a platform-wide 8192 ceiling; the indexer enforces the true per-provider cap, so an http_get payload between 2049 and 8192 bytes passes the VM but is rejected by the indexer as `invalid: REQUEST_PAYLOAD (exceeds provider max)`. It does not expire: the invalid request reverts the emitting EXECUTE, rolling back its state writes and sibling emissions, and no callback fires. Check the payload size against the provider's cap before calling `request`.
 - **`allowed_redundancy`**: which `[1, 3, 5]` values the provider supports.
 - **`deadline_window_blocks`**: how far in the future the deadline can be (per-provider cap; VM accepts [1, 100]).
 
 ### Limitations and Notes
 
 - **Asynchronous only.** A contract cannot block on a result; it must continue and react in the callback.
-- **One callback per request, eventually.** Either the response, or expiry. Never both, never silent.
+- **One callback per admitted request, eventually.** Either the response, or expiry. Never both, never silent. A request the indexer rejects at creation reverts the calling EXECUTE instead, so it has no callback.
 - **Body encoding on response.** `RESPONSE_PAYLOAD` travels **base64-encoded** on the wire in ATTEST v1. The indexer decodes it to UTF-8 for storage and delivers it to the callback as a UTF-8 string. Binary content round-trips correctly as long as it is valid UTF-8 after decoding; arbitrary binary is not a supported use case.
 - **`getResponse(requestId)` is read-only.** It returns the previously-stored response after the callback has already fired, useful for contracts that want to revisit a past answer from a different method.
 

@@ -912,11 +912,11 @@ let result = await sdk.execute({
 console.log(result.actionString);  // EXECUTE|0|12345|greet|Alice
 
 // After the transaction confirms, check execution results via explorer
-let exec = await sdk.getExecution(actionIndex);
-if (exec.success) {
-    console.log('Return value:', exec.returnValue);
-} else {
-    console.log('Execution failed:', exec.error);
+let exec = (await sdk.getExecution(actionIndex)).data[0];
+if (exec && exec.status === 'valid') {
+    console.log('Gas used:', exec.gas_used);
+} else if (exec) {
+    console.log('Execution failed:', exec.error_message);
 }
 ```
 
@@ -1386,8 +1386,8 @@ console.log(`Encoding: ${estimate.encoding}`);
 console.log(`Input total: ${estimate.inputTotal}`);
 console.log(`Output total: ${estimate.outputTotal}`);
 
-// The returned PSBT can be signed directly to skip re-encoding
-if (estimate.fee < 5000) {
+// A signable PSBT can be signed directly to skip re-encoding (envelope pairs go through submitAction)
+if (estimate.signable && estimate.fee < 5000) {
     const signed = sdk.signPsbt(estimate.psbt, wif);
     await sdk.broadcastTx(signed.txHex);
 }

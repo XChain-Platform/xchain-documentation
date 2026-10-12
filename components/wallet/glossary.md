@@ -32,7 +32,7 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 **SignerPool** - Per-wallet cache of unlocked signers. Software signers sit in the pool while the wallet is unlocked and are evicted on lock or removal. Hardware signers live there as connection metadata only; the device itself holds the key.
 
-**panic mode** - A 24-hour signing freeze the user activates from the locked screen. All sign methods reject with `PANIC_MODE` until the freeze elapses. A separate "duress passphrase" silently trips the same state when entered as the unlock password.
+**panic mode** - A 24-hour signing freeze the user activates from the locked screen. All sign methods reject with `PANIC_MODE` until the freeze elapses. A separate "duress passphrase" silently trips the same state when entered as the unlock password. A wallet wipe erases the panic freeze record and the duress passphrase so neither survives removal of the wallet.
 
 **clipboard auto-clear** - A configurable timer (0 to 600 seconds, default 60 seconds) that wipes the clipboard after the wallet copies a sensitive value like a private key.
 

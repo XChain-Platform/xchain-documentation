@@ -292,6 +292,8 @@ All three store forms answer "not collected", together, and a smoke fails if the
 
 **The support-email and trader-declaration fields on this form are the same declaration as Phase 2c.** Transcribe the same values; do not re-source them.
 
+If the reviewer asks about the marketplace, orderbook, swap, or dispenser UI, paste [Review notes: trading screens](#review-notes-trading-screens) rather than improvising a description of custody or settlement.
+
 ### Phase 6: First upload
 
 ⬜ Upload `xchain-wallet-extension-vX.Y.Z.zip` from `release-artifacts/vX.Y.Z/` (the file you hash-checked in Phase 4, not a re-download, not a re-build).  
@@ -426,6 +428,12 @@ The summary was measured at 124 characters at submission time, within the limit,
 > - Use the side panel to keep your wallet visible while you browse
 >
 > XChain Wallet stores nothing about you on a server because it doesn't have one: no accounts, no analytics, no tracking. See the privacy policy for the full detail on what stays on your device and what leaves it (and why).
+
+### Review notes: trading screens
+
+Paste this paragraph into the console's review-notes field if a reviewer asks why a wallet contains marketplace, orderbook, swap, or dispenser screens:
+
+> The trading screens are client interfaces to XChain's public decentralized protocols inside a non-custodial software wallet. The extension itself is not a cryptocurrency exchange, broker, dealer, or custodian: it has no account system, never holds user funds, maintains no off-chain customer balance, and never acts as the counterparty. It reads public market data and locally prepares the user's `ORDER`, `SWAP`, `DISPENSER`, or `COINPAY` transaction. The user sees the assets, amounts, destination, and network fee before signing with a key that remains on the device. Matching and settlement happen under public protocol rules in XChain indexers and on the relevant blockchains, including protocol escrow where the action requires it; the wallet neither controls the matching rules nor takes custody of settlement. There is no fiat on-ramp, fiat purchase or withdrawal, or proprietary order-matching service.
 
 ### Listing assets
 

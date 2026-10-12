@@ -76,10 +76,10 @@ const guide = fs.readFileSync(GUIDE, 'utf8');
 const useCases = fs.readFileSync(USECASES, 'utf8');
 
 // Slice a markdown section by its heading, up to the next heading of any depth.
-function section(md, heading){
+function section(md, heading, label = 'creating-tokens.md'){
     const lines = md.split('\n');
     const start = lines.findIndex((l) => l.trim() === heading);
-    assert.notStrictEqual(start, -1, `creating-tokens.md no longer has the "${heading}" heading`);
+    assert.notStrictEqual(start, -1, `${label} no longer has the "${heading}" heading`);
     let end = lines.length;
     for(let i = start + 1; i < lines.length; i++){
         if(/^#{1,6}\s/.test(lines[i])){ end = i; break; }
@@ -177,9 +177,12 @@ test('the source facts the zero-max-supply wording rests on still hold', { skip:
     const changes = readSrc('protocol_changes.js');
     const mint = readSrc('actions/mint.js');
 
-    assert.match(changes, /UNCAPPED_MAX_SUPPLY_ZERO_MAINNET_TIME\s*=\s*9999999999/,
+    assert.match(changes, /const UNARMED = 9999999999;/,
+        'the indexer no longer defines UNARMED as the 9999999999 sentinel');
+    assert.match(changes,
+        /UNCAPPED_MAX_SUPPLY_ZERO_MAINNET_TIME\s*=\s*(?:UNARMED|9999999999)/,
         'protocol_changes.js no longer parks UNCAPPED_MAX_SUPPLY_ZERO_MAINNET_TIME on the '
-        + 'unarmed 9999999999 sentinel. If the operator has named the mainnet launch instant, '
+        + 'unarmed sentinel. If the operator has named the mainnet launch instant, '
         + 'the "### Supply" wording in user-guide/creating-tokens.md must be updated in the '
         + 'same commit and this assertion retired: zero max supply then means uncapped on '
         + 'mainnet too, and the guide must stop telling mainnet issuers to avoid it.');
@@ -268,4 +271,15 @@ test('the guide does not promise a lock on the allow and block lists', () => {
     assert.match(lockSection, /allow and block lists/i,
         'creating-tokens.md "## Building Trust: Locking Parameters" no longer names the lists '
         + 'among what the lock flags do not cover, which is where a reader looks for it');
+});
+
+test('the FAQ lock answer does not promise a lifetime issuance ceiling', () => {
+    const faq = fs.readFileSync(path.join(DOC_ROOT, 'user-guide', 'faq.md'), 'utf8');
+    const answer = section(faq, '### What happens if I lock a parameter?', 'faq.md');
+    assert.ok(!answer.includes('impossible for more tokens to be created'),
+        'faq.md promises a locked max supply stops further creation. The cap bounds supply '
+        + 'OUTSTANDING at one time, and DESTROY frees headroom under it.');
+    assert.match(answer, /outstanding/i, 'faq.md does not scope the max-supply lock to outstanding supply');
+    assert.match(answer, /LOCK_MINT\b/, 'faq.md does not name LOCK_MINT, which closes public minting');
+    assert.match(answer, /LOCK_MINT_SUPPLY/, 'faq.md does not name LOCK_MINT_SUPPLY, which closes the issuer path');
 });

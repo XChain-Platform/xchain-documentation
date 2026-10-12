@@ -19,7 +19,7 @@ In addition to confirmed block data, the tracker maintains a separate in-memory 
 - **Active-UTXO-only storage**: only unspent outputs kept in the live index; spent outputs archived temporarily for reorg recovery
 - **Real-time mempool tracking**: unconfirmed transactions tracked in a separate in-memory LevelDB, updated every 60 seconds
 - **BigInt precision**: all balance calculations use BigInt arithmetic with `satoshiToDecimalString()` conversion, eliminating floating-point errors
-- **Reorg handling**: maintains a per-chain, per-network undo history (mainnet and regtest: BTC 12 blocks, LTC 120 blocks, DOGE 120 blocks; testnet: 120 blocks for every coin; overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`) using K/M archive records and rolls back correctly on chain reorganization
+- **Reorg handling**: maintains a per-chain, per-network undo history (mainnet and regtest: BTC 12 blocks, LTC 120 blocks, DOGE 120 blocks; testnet: BTC 120 blocks, LTC 5000 blocks, DOGE 120 blocks; overridable via `XCHAIN_UNDO_BLOCKS_<COIN>`) using K/M archive records and rolls back correctly on chain reorganization
 - **Concurrent block prefetch**: pre-fetches up to 10 blocks concurrently via JSON-RPC batch requests with HTTP keep-alive
 - **Batch writes**: LevelDB writes batched in groups of 200 blocks for throughput efficiency with atomic commit
 - **Two-pass transaction processing**: outputs inserted before inputs within each block, correctly handling intra-block spends
@@ -37,6 +37,7 @@ In addition to confirmed block data, the tracker maintains a separate in-memory 
 | [Architecture](architecture.md) | Data pipeline position, internal components, LevelDB key schema, block processing loop, reorg handling, mempool tracking |
 | [Configuration](configuration.md) | Environment variables, internal constants, database paths |
 | [Operations](operations.md) | Running, Docker, REST and JSON-RPC API reference, resilience, troubleshooting |
+| [Remote Tracker Profile](trackerless-profile.md) | Fail-closed encoder contract for a tracker on another host: endpoints, freshness fields, typed errors, and wallet scope |
 
 ## Installation
 

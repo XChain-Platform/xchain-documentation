@@ -35,6 +35,17 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 
 const noIndexer = sibling('xchain-indexer', [gen.REGISTRY]).skip;
 
+// A gate a release cut armed on testnet: still parked on mainnet, gone from the testnet
+// unarmed roster, and listed among the testnet arms at a real instant (never genesis,
+// never the sentinel), so it is off before that instant and on from it.
+function assertArmedOnTestnetOnly(gate) {
+    assert.ok(gen.collectMainnetUnarmed().some((g) => g.gate === gate), `${gate} missing from the mainnet unarmed list`);
+    assert.ok(!gen.collectTestnetUnarmed().some((g) => g.gate === gate), `${gate} is still listed unarmed on testnet`);
+    const arm = gen.collectTestnetArms().find((g) => g.gate === gate);
+    assert.ok(arm, `${gate} has no testnet arm`);
+    assert.ok(arm.time > 1 && arm.time < gen.SENTINEL_FLOOR, `${gate} testnet arm ${arm.time}`);
+}
+
 function fixtureRegistry(body, core = 'const UNARMED = 9999999999;\n') {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flagday-unarmed-'));
     fs.writeFileSync(path.join(dir, 'protocol_changes.js'), body);
@@ -75,3 +86,64 @@ test('UNARMED declared as a non-literal in core.js is refused', () => {
 test('against the real indexer BROADCAST_FEE_LENGTH is unarmed on mainnet', { skip: noIndexer }, () => {
     assert.ok(gen.collectMainnetUnarmed().some((g) => g.gate === 'BROADCAST_FEE_LENGTH'));
 });
+
+test('against the real indexer ITER_SET_METER is unarmed on mainnet and armed on testnet', { skip: noIndexer }, () => {
+    assertArmedOnTestnetOnly('ITER_SET_METER');
+});
+
+test('against the real indexer STAKE_SNAPSHOT_DECIMAL_STRINGS is unarmed on mainnet and armed on testnet',
+    { skip: noIndexer }, () => {
+        assertArmedOnTestnetOnly('STAKE_SNAPSHOT_DECIMAL_STRINGS');
+    });
+
+test('against the real indexer STAKE_DELEGATED_SIGNING_KEY is unarmed on mainnet and armed on testnet',
+    { skip: noIndexer }, () => {
+        assertArmedOnTestnetOnly('STAKE_DELEGATED_SIGNING_KEY');
+    });
+
+test('a part-file row with bare UNARMED slots is listed unarmed on both networks', () => {
+    const dir = fixtureRegistry("const ROWS = [['FOO', '1.0.0', UNARMED, UNARMED, 0, 0, 0, 0]];\n");
+    assert.deepStrictEqual(gen.collectGates(dir), []);
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => [g.gate, g.time]), [['FOO', 9999999999]]);
+    assert.deepStrictEqual(gen.collectTestnetUnarmed(dir).map((g) => [g.gate, g.time]), [['FOO', 9999999999]]);
+    assert.deepStrictEqual(gen.collectTestnetArms(dir), []);
+});
+
+test('an addChange call with a bare UNARMED mainnet slot is listed unarmed on mainnet only', () => {
+    const dir = fixtureRegistry("this.addChange('FOO', '1.0.0', UNARMED, 0, 0, 0, 0, 0);\n");
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['FOO']);
+    assert.deepStrictEqual(gen.collectTestnetUnarmed(dir), []);
+    assert.deepStrictEqual(gen.collectTestnetArms(dir), []);
+});
+
+test('an addGate time row parked on UNARMED is listed unarmed on both networks', () => {
+    const dir = fixtureRegistry(
+        "addGate('foo_activation.FOO_ACTIVATION', 'time', { mainnet: UNARMED, testnet: UNARMED, "
+        + "'BTC:testnet': UNARMED, 'LTC:testnet': UNARMED, 'DOGE:testnet': UNARMED, regtest: 0 });\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(dir), []);
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['FOO_ACTIVATION']);
+    assert.deepStrictEqual(gen.collectTestnetUnarmed(dir).map((g) => g.gate), ['FOO_ACTIVATION']);
+});
+
+test('an addGate time row with a genesis testnet slot or a height unit is listed unarmed on mainnet only', () => {
+    const dir = fixtureRegistry(
+        "addGate('foo_activation.FOO_ACTIVATION', 'time', { mainnet: UNARMED, testnet: 0, regtest: 0 });\n"
+        + "addGate('bar_activation.BAR_ACTIVATION', 'height', { mainnet: UNARMED, testnet: UNARMED, regtest: 0 });\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(dir), []);
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['FOO_ACTIVATION']);
+    assert.deepStrictEqual(gen.collectTestnetUnarmed(dir), []);
+});
+
+test('a bare UNARMED slot with no declaration in core.js is refused', () => {
+    const dir = fixtureRegistry("this.addChange('FOO', '1.0.0', UNARMED, 0, 0, 0, 0, 0);\n", null);
+    assert.throws(() => gen.collectMainnetUnarmed(dir), /FOO.*UNARMED/s);
+});
+
+test('against the real indexer every formerly bare-UNARMED registry row is unarmed on mainnet and armed on testnet',
+    { skip: noIndexer }, () => {
+        for (const gate of ['SLASH_XANCPUB_PUBLISHER_PAIR', 'STAKE_SNAPSHOT_SLASH_WINDOW', 'SLASH_ATTEST_MULTIROUND_EXEMPT']) {
+            assertArmedOnTestnetOnly(gate);
+        }
+    });

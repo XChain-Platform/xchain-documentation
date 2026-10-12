@@ -19,7 +19,10 @@ stays natively held and natively tradeable through the built-in DEX rails; the c
 only gates the actions that move, sell, mint, or burn it. For contract-custody legs, this
 claim applies from the [`CONTROLLER_CUSTODY_GUARD` flag day](./flag-days.md): before it,
 `DEPOSIT` and `WITHDRAW` do not run guards; from it, deposits into and withdrawals out of
-contract custody run the `transfer` guard.
+contract custody run the `transfer` guard. For dispenser refills, it applies from the
+[`DISPENSER_REFILL` flag day](./flag-days.md): before it, a Version 2 `DISPENSER` edit that
+tops up `GIVE_ESCROW` runs no guard, so a dispenser opened before a `trade` or `all` binding
+can be refilled and keep selling the bound token without the controller being consulted.
 
 The feature is **opt-in and isolated**. A token or account with no binding behaves exactly
 as it did before (one NULL check, zero VM work, zero added fee). Nothing about an
@@ -61,7 +64,11 @@ is committed:
 2. If the action's [class](#action-classes) is bound to a controller, the indexer calls the
    controller's `guard` method with the action's details.
 3. **Return normally** and the action settles; the guard's own state changes and emitted
-   actions commit atomically alongside it.
+   actions commit atomically alongside it. When the action runs several guards, a later
+   guard's denial undoes an earlier guard's committed effects only from the
+   `CONTROLLER_GUARD_LEG_SAVEPOINTS` flag day, or when the action was emitted inside an
+   `EXECUTE` that the denial reverts (see
+   [Reentrancy and determinism](#reentrancy-and-determinism)).
 4. **`revert`, error, or run out of gas** and the action is denied: it is recorded
    `invalid: controller (<reason>)`, and everything the guard did is rolled back.
 
@@ -73,7 +80,11 @@ account's outbound `transfer` guard, then the `DESTINATION` account's inbound on
 [Account controllers](#account-address-controllers)); bulk actions (`AIRDROP` / `DIVIDEND` /
 `SWEEP`) repeat the applicable guards per tick or leg. Each run is metered separately against
 `GAS_SCHEDULE.VM_GUARD_GAS_CEILING` and, on BTC, the reservations are cumulative (see
-[Gas](#gas)), so budget `GAS` for every guard an action can invoke, not for one.
+[Gas](#gas)), so budget `GAS` for every guard an action can invoke, not for one. Each guard
+commits its own effects when it allows, so until `CONTROLLER_GUARD_LEG_SAVEPOINTS` is active a
+guard must not assume the native action settled: a later guard on the same leg can still deny
+it, and the earlier guard's state writes and emitted actions stand (unless the action was
+emitted inside an `EXECUTE`, which the denial reverts as a whole).
 
 To layer several policies on the *same* subject and class, put them inside that controller's
 `guard`. Note that a controller does not re-enter its own guard for the moves that guard
@@ -191,7 +202,7 @@ running any guard; see [Actions refused outright](#actions-refused-outright-on-a
 | Class | Gates | Guard `action_type` |
 |---|---|---|
 | `transfer` | `SEND`, [`DEPOSIT`](./actions/deposit.md), [`WITHDRAW`](./actions/withdraw.md) (and the balance leg of bulk moves) | `SEND` / `DEPOSIT` / `WITHDRAW` |
-| `trade` | [`ORDER`](./actions/order.md) / [`SWAP`](./actions/swap.md) / [`DISPENSER`](./actions/dispenser.md) create | `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` |
+| `trade` | [`ORDER`](./actions/order.md) / [`SWAP`](./actions/swap.md) / [`DISPENSER`](./actions/dispenser.md) create, and a `DISPENSER` refill from the `DISPENSER_REFILL` flag day | `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` / `DISPENSER_REFILL` |
 | `burn` | [`DESTROY`](./actions/destroy.md) | `DESTROY` |
 | `mint` | [`MINT`](./actions/mint.md) supply creation | `MINT` |
 | `stake` | [`STAKE`](./actions/stake.md) v3 contract-targeted staking of the token | `STAKE` |
@@ -278,9 +289,15 @@ indexer actually passes:
 | `ORDER_CREATE` | `trade` | seller | `''` (no buyer yet) | `GIVE_AMOUNT`, `''` on an ownership give | `GET_AMOUNT` / `GET_TICK` |
 | `SWAP_CREATE` | `trade` | seller | `''` (no buyer yet) | `GIVE_AMOUNT`, `''` on an ownership give | `GET_AMOUNT` / `GET_TICK` |
 | `DISPENSER_CREATE` | `trade` | dispenser opener | `''` (no buyer yet) | `GIVE_ESCROW`, `''` on an ownership give | `GET_AMOUNT` / `GET_TICK` |
+| `DISPENSER_REFILL` | `trade` | refilling address (`SOURCE`) | `''` (no buyer) | `GIVE_ESCROW` this refill adds, not the dispenser's total | the stored dispenser's `GET_AMOUNT` / `GET_TICK` |
 | `DESTROY` | `burn` | burner | `''` | amount burned | `''` |
 | `MINT` | `mint` | **minter**, not a giver | `DESTINATION`, **falling back to the minter** when the `MINT` names none | amount minted | `''` |
 | `STAKE` | `stake` | staker | `''` **always**: the target contract taking custody is not passed | amount staked | `''` |
+
+`DISPENSER_REFILL` fires only from the [`DISPENSER_REFILL` flag day](./flag-days.md), on a
+Version 2 `DISPENSER` edit that adds `GIVE_ESCROW` to an existing dispenser; below it a refill
+runs no guard. A guard that reverts on an unknown `action_type`, or branches only on
+`DISPENSER_CREATE`, will see it once the gate is active.
 
 Two of these bite guards written against the generic wording:
 
@@ -293,10 +310,14 @@ Two of these bite guards written against the generic wording:
 Decision semantics:
 
 - **Return normally ⇒ ALLOW.** The guard's state changes and emitted actions are committed
-  atomically with the native action.
+  atomically with the native action when it is the only guard on its leg. When a later guard
+  on the same leg denies, the earlier guard's effects are rolled back only from the
+  `CONTROLLER_GUARD_LEG_SAVEPOINTS` flag day; before it they stand, unless the action was
+  emitted inside an `EXECUTE` that the denial reverts.
 - **An `ORDER_CREATE` / `SWAP_CREATE` guard may return `{ payoutLegs: [{ to, bps }, …] }`** to
   set a basis-point split of the sale's proceeds (see [Proceeds split](#proceeds-split-royalty-fee-payout_legs)).
-  Legs returned at any other invocation point, `DISPENSER_CREATE` included, are never applied,
+  Legs returned at any other invocation point, `DISPENSER_CREATE` and `DISPENSER_REFILL`
+  included, are never applied,
   but they are **validated first** by the same rules and effective cap: a malformed leg or an
   over-cap total **denies** the action (`invalid: controller (bad payout leg)` /
   `invalid: controller (payout exceeds cap)`), and only a valid set is discarded. A guard body
@@ -338,11 +359,24 @@ There is no royalty-specific mechanism; "royalty" is simply the most common use 
    validation, including the lenient shapes below, runs at every other guard invocation
    point, where a bad set denies the action and a valid set is discarded unapplied.
 
+   A valid address is a base58check (P2PKH or P2SH) or bech32 address for the token's own
+   chain and network (`Utility.isCryptoAddress`). A contract address (`C:<CHAIN>:<index>`)
+   never is one, so a contract-address leg denies as `invalid: controller (bad payout leg)`
+   at every invocation point, on a same-chain listing as well as a cross-chain one.
+
    Two shapes are read leniently rather than denied, and no activation gate changes that
    today (none is registered in [Flag-Day Values](./flag-days.md)): a supplied `payoutLegs`
    that is not an ARRAY is read as "no legs" and the listing is created with NULL legs, and
-   a fractional `bps` is accepted at its truncated integer value, which is also the value
-   the cap is measured against. An empty array means the same as an absent `payoutLegs`.
+   a fractional `bps` written with a decimal point is accepted at its truncated integer
+   value, which is also the value the cap is measured against. An empty array means the
+   same as an absent `payoutLegs`.
+
+   The truncation is `parseInt` of the value's string form, not numeric truncation, so a
+   `bps` whose string form is not plain decimal digits is read by its leading digits. That
+   covers exponent notation (a JSON number below `1e-6` or at or above `1e21`, or a string
+   such as `"1e5"`) and prefixed strings: `5e-7` reads as `5`, `1e21` and `"1e5"` as `1`,
+   `"0x10"` as `16`, `"0b11"` as `0`. The value read is the one checked against the cap,
+   stored and applied, so return `bps` as a plain integer.
 2. **At match**: `Utility.applyProceedsSplit(tick, proceeds, seller, legs, decimals, cap)`
    splits each filled order's proceeds, **seller-remainder first, then each leg**, crediting
    `floor(proceeds × bps / 10000)` (at token precision) to each `to` and the exact remainder
@@ -363,8 +397,11 @@ transfer ownership rather than a balance, so no proceeds split applies to that l
 > split is applied at dispense either: the dispense path credits the buyer the `GIVE_TICK` and
 > runs no guard and no `applyProceedsSplit`. So a royalty policy that only *returns legs* is
 > routed around by vending the token through a dispenser instead of listing it. A guard that
-> means to enforce a cut must `revert` on `action_type === 'DISPENSER_CREATE'` (or on the
-> dispenser price it will not be paid a share of). This is a known engine gap, not a design
+> means to enforce a cut must `revert` on `action_type === 'DISPENSER_CREATE'` and, from the
+> `DISPENSER_REFILL` flag day, on `'DISPENSER_REFILL'` (or on the dispenser price it will not
+> be paid a share of). `DISPENSER_REFILL` is veto-only in exactly the same way. Below that
+> flag day a refill runs no guard, so a dispenser opened before the binding cannot be stopped
+> from being refilled. This is a known engine gap, not a design
 > rule: it is recorded as a `KNOWN GAP` at the call site in
 > `xchain-indexer/src/actions/dispenser/controller_guard.js`.
 
@@ -385,9 +422,10 @@ cross-chain listing is decided by the `CROSS_CHAIN_ROYALTY` flag-day, layered on
 When the flag is on:
 
 1. **At create**, every leg `to` must re-encode to `GET_COIN`
-   (`Utility.canReencodeAddress`); any non-portable leg (a contract address, or a segwit
-   address when `GET_COIN` has no bech32, e.g. DOGE) denies the listing
-   (`invalid: royalty leg not payable on proceeds chain`, fail-closed). This makes the
+   (`Utility.canReencodeAddress`); any non-portable leg (a segwit address when `GET_COIN`
+   has no bech32, e.g. DOGE) denies the listing
+   (`invalid: royalty leg not payable on proceeds chain`, fail-closed). A contract-address
+   leg never reaches this check: the leg validation above already denied it. This makes the
    settlement-time re-encode total: a trade that delivered can never hit an unpayable leg.
 2. **In the match**, the hub copies each order's stored legs onto the `cross_chain_matches`
    row (`a_payout_legs` / `b_payout_legs`), and the legs are part of the **validator-signed
@@ -602,8 +640,11 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
   [XChain bridge](./xchain-bridge.md#the-xchain-token-off-btc) creates an `XCHAIN` row on
   that chain. Extending the reservation to every chain would be a separate, future flag-day
   change.
-- **v1 charges guard gas on ALLOW only.** A denied action records no ledger change (preserving
-  the ledger/balance invariant). The denial-spam vector is bounded by the real on-chain
+- **v1 charges guard gas on ALLOW only.** A denied action records no ledger change of its own
+  (preserving the ledger/balance invariant). Before the `CONTROLLER_GUARD_LEG_SAVEPOINTS` flag
+  day, an earlier guard on the same leg that allowed keeps its committed state writes and
+  emitted actions on a broadcast action, and those emissions can move balances (see
+  [Reentrancy and determinism](#reentrancy-and-determinism)). The denial-spam vector is bounded by the real on-chain
   transaction cost of each attempt; charge-on-deny is a possible later refinement.
 - Uncontrolled tokens pay nothing; there is no guard call.
 
@@ -636,6 +677,20 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
   would let an inner guard's release destroy an outer guard's rollback target. The name is
   local to the database transaction (never hashed, replicated, or persisted), so the ordinal
   carries no consensus weight and need not match across nodes.
+- **Sibling guards on one leg share an outer savepoint only from `CONTROLLER_GUARD_LEG_SAVEPOINTS`.**
+  An allowing guard releases its own savepoint at once, so on its own the per-guard savepoint
+  cannot undo that guard when a later sibling denies. From the
+  [`CONTROLLER_GUARD_LEG_SAVEPOINTS` flag day](./flag-days.md), the first guard on a leg (keyed
+  by the native action's index, the leg's `<seq>` and the call depth) opens an outer savepoint,
+  `controller_guard_leg_<actionIndex>_<seq>_<callDepth>_<ordinal>`, and a later denial on that
+  leg rolls back to it, undoing every earlier sibling's state writes and emissions. Before the
+  flag day, an earlier sibling's committed effects stand when a later guard denies: for example,
+  a token `transfer` guard that allows and emits a royalty `SEND` keeps that `SEND` even when
+  the `DESTINATION` account's guard then reverts a broadcast `SEND`. The exception is a native
+  action a contract emitted: its denial fails the enclosing [`EXECUTE`](./actions/execute.md),
+  whose own savepoint rolls back everything inside it, sibling guards included. Until the gate is active on
+  a chain, a guard that emits value-moving actions or writes state on the assumption that the
+  action settled must tolerate another guard on the same leg denying it afterwards.
 
 Every net ledger mutation a guard performs (a burn, or a mint) is reconciled into token supply
 in the same block, so the indexer's per-block ledger invariant (ledger == supply == balances)

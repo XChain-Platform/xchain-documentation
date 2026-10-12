@@ -469,13 +469,14 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 };
 
 // ANCHOR_REWARD_ACTIVATION (anchor-reward re-derivation): the flag-day at/above which the validator
-// anchor reward stops being TRUSTED from the hub's `pushvalidatorrewards` JSON-RPC and is instead
+// anchor reward stops being TRUSTED from the hub over a key-authenticated JSON-RPC (since retired)
+// and is instead
 // DERIVED by every indexer from the on-chain ANCHOR bytes. Post-flag-day the hub emits a publisher-
 // bearing ANCHOR checkpoint bundle (v0 of the restarted wire set, whose sections carry the SPV roots)
 // carrying the elected publisher pubkey plus a 2f+1 `oracle_publish` attestation (XANCPUB) over the
 // `anchor_bundle` reward tuple; the indexer verifies that quorum and credits the publisher with
-// ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire). Below the flag-day the old
-// push path stands and the PUBLISHER tail an anchor carries earns no derived credit.
+// ANCHOR_REWARD_AMOUNT (a frozen consensus constant, NEVER from the wire). Below the flag-day the
+// legacy anchor wire applies and the PUBLISHER tail an anchor carries earns no derived credit.
 // Consensus-relevant (the
 // credited reward becomes a COLLECT-spendable per-block ledger row), so it must deploy hub + ALL
 // indexers atomically. Like CHECKPOINT_COMMITMENT_ACTIVATION / STAKE_WEIGHTED_QUORUM_ACTIVATION it gates
@@ -494,12 +495,14 @@ const ANCHOR_REWARD_ACTIVATION = {
 const ANCHOR_REWARD_AMOUNT = '10.00000000';
 
 // ARCHIVE_REWARD_ACTIVATION (archive-reward re-derivation): the flag-day at/above which the
-// anchor_archive reward stops riding the key-authenticated `pushvalidatorrewards` rail and is instead
+// anchor_archive reward stops riding the key-authenticated hub JSON-RPC rail (since retired) and is
+// instead
 // DERIVED by every indexer from the on-chain ANCHOR archive-head bytes (v1 of the restarted wire set,
 // carrying the same PUBLISHER + 2f+1 XANCPUB attestation tail the v0 bundle carries, attested over an
 // 'anchor_archive' canonical keyed on MATCH_BATCH_SEQ). This retires the last insider-with-key
-// reward-forge surface the per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the push path
-// stands and an archive head's PUBLISHER tail earns no derived credit. Consensus-relevant, same
+// reward-forge surface the per-chain ANCHOR_REWARD flag-day left open. Below the flag-day the legacy
+// tail-less archive wire applies and an archive head's PUBLISHER tail earns no derived credit.
+// Consensus-relevant, same
 // deploy rules and snapshot_block gating as ANCHOR_REWARD_ACTIVATION; kept byte-identical to the
 // local copies in
 // xchain-{hub,indexer}/src/consensus/gates/anchor_reward_gate.js by the cross-service regression suite.
@@ -516,9 +519,9 @@ const ARCHIVE_REWARD_ACTIVATION = {
 // archive fold) parses only once ANCHOR_FOLD_ACTIVATION is also active, and every other version
 // byte is 'invalid: VERSION (unknown)'. Keyed on the action's OWN DOGE block_index
 // (data['BLOCK_INDEX'] at parse time, anchor_actions.block_index_doge), never on SNAPSHOT_BLOCK or
-// the checkpointed height: the row being judged is the anchor itself. Mainnet 6360000 sits ABOVE
-// the chain tip on purpose: the restarted wire set has NOT activated on mainnet yet, and the height
-// is a flag day the operator arms deliberately rather than one that silently already passed.
+// the checkpointed height: the row being judged is the anchor itself. Mainnet 6360000 has
+// activated: the DOGE tip passed it near 2026-09-03 (tip 6371762 on 2026-09-12) with no arming
+// ruling, and the 2026-10-09 ruling accepts it as live with the value unchanged.
 // Testnet 67858600 is 24 blocks above its last pre-restart anchor (67858576) and is already past.
 // Neither is 0, because both carry pre-restart history (mainnet 56 rows, testnet 11, measured
 // 2026-08-30): at 0 the gate can never fire, so the retired wires fall through to the restarted
@@ -534,7 +537,8 @@ const ANCHOR_ACTIVATION = {
 };
 
 // Gates validation that an archive head's MATCH_COUNT equals its archive member count.
-// Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
+// Mainnet stays inert until the operator arms the check; testnet is armed per chain by the
+// <COIN>:testnet keys (the bare testnet key is the fallback); regtest is genesis-active.
 const ARCHIVE_MATCH_COUNT_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 155001,
@@ -545,7 +549,8 @@ const ARCHIVE_MATCH_COUNT_ACTIVATION = {
 };
 
 // Gates validation of CHAIN sections and PUBKEY pairs in ascending byte order.
-// Mainnet and testnet stay inert until the operator arms the check; regtest is genesis-active.
+// Mainnet stays inert until the operator arms the check; testnet is armed per chain by the
+// <COIN>:testnet keys (the bare testnet key is the fallback); regtest is genesis-active.
 const ANCHOR_BUNDLE_ORDER_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 155001,
@@ -613,7 +618,8 @@ const ANCHOR_REWARD_MIRROR_MATURITY = 144;   // ~24h of BTC blocks
 // ALL indexers atomically, like every sibling ANCHOR gate. Keyed on the anchor's OWN DOGE
 // block_index, the ANCHOR_ACTIVATION convention, never on SNAPSHOT_BLOCK.
 //
-// Mainnet and testnet use the house UNARMED sentinel: ruled and unscheduled, inert until 2286.
+// Mainnet uses the house UNARMED sentinel: ruled and unscheduled, inert until 2286. Testnet is
+// armed per chain by the <COIN>:testnet keys; the bare testnet key is only the fallback.
 // Regtest stays null unless XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms both fold gates together.
 const ANCHOR_FOLD_ACTIVATION = {
     mainnet: 9999999999,
@@ -622,6 +628,17 @@ const ANCHOR_FOLD_ACTIVATION = {
     'DOGE:testnet': 67962387,
     testnet: 9999999999,
     regtest: null,
+};
+
+// Terminates legacy v1 anchor_archive rewards only where ANCHOR_FOLD_ACTIVATION is also active.
+// Public-network slots are unarmed; regtest exercises the term from genesis once the fold is armed.
+const ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION = {
+    mainnet: 9999999999,
+    'BTC:testnet': 156230,
+    'LTC:testnet': 4912984,
+    'DOGE:testnet': 67989993,
+    testnet: 9999999999,
+    regtest: 0,
 };
 
 // ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION: the flag-day at/above which a folded v3
@@ -636,7 +653,8 @@ const ANCHOR_FOLD_ACTIVATION = {
 // ARMED ONLY WITH THE FOLD in practice: a section-scoped verdict has no folded action to scope
 // before v3 exists, so its value must equal ANCHOR_FOLD_ACTIVATION on every network.
 //
-// Mainnet and testnet use the house UNARMED sentinel: ruled and unscheduled, inert until 2286.
+// Mainnet uses the house UNARMED sentinel: ruled and unscheduled, inert until 2286. Testnet is
+// armed per chain by the <COIN>:testnet keys; the bare testnet key is only the fallback.
 // XC_ANCHOR_FOLD_REGTEST_ACTIVATION arms this regtest entry with the fold, never ahead of it.
 const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
     mainnet: 9999999999,
@@ -766,10 +784,11 @@ const ROLLCALL_REWARD_AMOUNT = '10.00000000';
 
 // RETRACTION_SIGNING_ACTIVATION (quorum-class retraction co-signing): the BTC-anchored
 // snapshot_block era at/above which a mirror REFUSES an unsigned quorum-class retraction
-// broadcast. Vendored byte-equal into xchain-{indexer,hub,explorer}/src/
-// retraction_signing_activation.js; a one-sided edit lets the hub sign under one era rule
-// while a mirror enforces another, forking the fleet at the boundary. Canonical map of
-// record for those copies (armed 2026-07-16).
+// broadcast. Kept equal to the registry row
+// retraction_signing_activation.RETRACTION_SIGNING_ACTIVATION every repo's registry parts carry
+// by the indexer's flag-day placeholder guard suite; a one-sided edit lets the hub sign under
+// one era rule while a mirror enforces another, forking the fleet at the boundary (armed
+// 2026-07-16).
 const RETRACTION_SIGNING_ACTIVATION = {
     mainnet: 963000,      // ARMED 2026-07-16, RE-PINNED 2026-08-12 off 969500 onto the shared pre-freeze train boundary (tip 959,853 on 07-27 at ~144 blocks/day + 21d); deploy every consumer before this era
     testnet: 0,
@@ -898,6 +917,18 @@ const ATTEST_RELAY_ACTIVATION = {
     testnet: 0,
     regtest: 0,
 };
+
+// BTC snapshot height at which a relayed response reserves two flat broadcast
+// allowances from fee escrow before splitting the remainder. Public networks use
+// the sentinel until armed; regtest activates at genesis.
+const ATTEST_RELAY_FEE_ACTIVATION = Object.freeze({
+    mainnet: 9999999999,
+    'BTC:testnet': 156230,
+    'LTC:testnet': 4912984,
+    'DOGE:testnet': 67989993,
+    testnet: 156230,
+    regtest: 0,
+});
 
 // ATTEST_RESPONSIBLE_WIDENING_ACTIVATION (attestation Phase 4 liveness, spec §8.2): the flag-day
 // at/above which a request's responsible set WIDENS by one slot per window once the round has
@@ -1167,9 +1198,9 @@ const ORACLE_FEE_SET_CAPTURE_ACTIVATION = {
 // ledger's DECIMAL(60,18) capacity. Below it the legacy text-shape validator is
 // preserved so replay does not re-grade committed actions.
 //
-// Mainnet is held under the standing write hold. Testnet is also unarmed because
-// it has live history and needs a measured old-vs-on replay witness before this
-// stricter rule can be scheduled. Regtest is genesis-active so replay exercises it.
+// Mainnet is held under the standing write hold. Testnet has live history, so it is
+// armed per coin at the COIN:testnet instants below rather than from genesis, and the
+// bare testnet key keeps the sentinel. Regtest is genesis-active so replay exercises it.
 const AMOUNT_REPRESENTABILITY_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 1791061097,
@@ -1278,6 +1309,34 @@ const DISPENSER_CANCEL_GRACE_ACTIVATION = {
     // gives nothing back, so a public testnet WILL hit it. Safe at 0 because testnet
     // decoder/indexer state is REBUILT from the chain before launch.
     testnet: 0,
+    regtest: 0,
+};
+
+// DISPENSER_PURGE_GRACE_ACTIVATION: the block-time boundary at/above which the
+// decoder keeps a soft-expired dispenser until its cancellation grace period has
+// passed instead of hard-purging it at the raw expiration time. It is a separate
+// gate from DISPENSER_CANCEL_GRACE_ACTIVATION because capture eligibility and row
+// retention change independently.
+//
+// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
+// Regtest is genesis-active so the grace-aware purge path is exercised there.
+const DISPENSER_PURGE_GRACE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
+// DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION: the block-time boundary at/above
+// which decoder batch registration collapse keys each operating address on the
+// address id the dispensers table resolves, instead of its raw address spelling.
+// This keeps one registration for values that resolve to the same table key and
+// avoids a duplicate-key insert selecting a different dispenser by accident.
+//
+// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
+// Regtest is genesis-active so the address-id collapse path is exercised there.
+const DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
     regtest: 0,
 };
 
@@ -1580,12 +1639,12 @@ const PRICE_SIG_TALLY_ACTIVATION = {
 // chain against that chain's blocks. The bound is ADDED to the existing selection,
 // never swapped for it, so arming can only narrow which rounds are selectable.
 //
-// UNARMED on every network. It makes the freshest selectable round one batch window
-// old, which fits inside the pinned price staleness bound only while the batch cadence
-// ceiling holds, so each network arms at a coordinated future height once that is
-// proven against its own publisher; a regtest stack publishes no batch at all, so its
-// seeded rounds carry no landing clock and arming there would leave every USD-priced
-// action unpriceable. Kept value-identical to the registry row
+// Mainnet and regtest stay unarmed; testnet is armed per coin at the COIN:testnet heights
+// below. It makes the freshest selectable round one batch window old, which fits inside the
+// pinned price staleness bound only while the batch cadence ceiling holds, so each network
+// arms at a coordinated height once that is proven against its own publisher; a regtest
+// stack publishes no batch at all, so its seeded rounds carry no landing clock and arming
+// there would leave every USD-priced action unpriceable. Kept value-identical to the registry row
 // price_fee_batch_landed_activation.PRICE_FEE_BATCH_LANDED_ACTIVATION by the activation-constants
 // parity suite.
 const PRICE_FEE_BATCH_LANDED_ACTIVATION = {
@@ -1658,8 +1717,8 @@ const ORACLE_DEVIATION_THRESHOLD = 0.05;
 // above a chain's height, the indexer accepts a price snapshot up to
 // ORACLE_MAX_PRICE_AGE_HOURLY_SECONDS old instead of the legacy
 // ORACLE_MAX_PRICE_AGE_SECONDS limit for fee pricing, fee views, attest
-// settlement and VM oracle data. No live network is armed; regtest is
-// genesis-active so tests exercise the hourly-age rule.
+// settlement and VM oracle data. Mainnet is not armed, testnet is armed per coin at the
+// COIN:testnet heights below, and regtest is genesis-active so tests exercise the rule.
 const ORACLE_PRICE_AGE_HOURLY_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
@@ -1674,8 +1733,8 @@ const ORACLE_PRICE_AGE_HOURLY_ACTIVATION = {
 // first oracle round from which hubs group rounds into hourly windows. It is
 // keyed on the round number, not local time, so every hub switches at the same
 // round. Every armed value must be a multiple of ORACLE_HOURLY_WINDOW_ROUNDS.
-// No live network is armed; regtest starts at round zero so tests exercise the
-// hourly window from genesis.
+// Mainnet is not armed, testnet is armed at the round number below, and regtest starts
+// at round zero so tests exercise the hourly window from genesis.
 //
 // ORDERING INVARIANT, graded by OF-11: on each network, every COIN:network key
 // of ORACLE_PRICE_AGE_HOURLY_ACTIVATION crosses before the round named by
@@ -1689,8 +1748,8 @@ const ORACLE_HOURLY_WINDOW_FIRST_ROUND = {
 // ORACLE_ROUND_TIME_ACTIVATION: canonical authority for registry row
 // oracle_round_time_activation.ORACLE_ROUND_TIME_ACTIVATION. At and above a
 // chain's height, the signed PRICE v0 timestamp is the nominal round start and
-// followers refuse any other timestamp. No live network is armed; regtest is
-// genesis-active so tests exercise the rule.
+// followers refuse any other timestamp. Mainnet is not armed, testnet is armed per coin
+// at the COIN:testnet heights below, and regtest is genesis-active so tests exercise the rule.
 const ORACLE_ROUND_TIME_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 9999999999,
@@ -1723,10 +1782,11 @@ const ORACLE_HOURLY_WINDOW_ROUNDS = 6;
 // Regtest is 0 on every row. Regtest stacks are rebuilt from genesis, so a fresh
 // stack exercises the new rule set end to end rather than the migration.
 //
-// Mainnet is armed ABOVE the tip on purpose, by the same discipline the anchor gate
-// records. A MAJOR train may be cut and deployed with its mainnet height set to a
-// value the chain has not reached; the fleet then runs the new binary under the OLD
-// rules until that height, which is the whole point of the rolling-upgrade window.
+// Mainnet is armed ABOVE the tip on purpose: a height the operator arms deliberately,
+// never one that silently already passed. A MAJOR train may be cut and deployed with
+// its mainnet height set to a value the chain has not reached; the fleet then runs
+// the new binary under the OLD rules until that height, which is the whole point of
+// the rolling-upgrade window.
 // A height at or below the BTC tip it was computed from is a fork shipped as a
 // release, and the release-completeness gate refuses it.
 //
@@ -1930,8 +1990,8 @@ const TOKEN_BRIDGE_ACTIVATION = {
 //   walking the edit chain; below that gate the legacy create-index read runs, and the
 //   membership the federation signs would not be the membership the chain enforced.
 //
-// Both public networks hold at the house sentinel until the train that arms them sizes a
-// dated instant. Regtest is genesis-active.
+// Mainnet holds at the house sentinel until the train that arms it sizes a dated instant;
+// testnet is armed per coin at the COIN:testnet heights below. Regtest is genesis-active.
 const TOKEN_POLICY_INHERITANCE_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
@@ -1962,11 +2022,15 @@ const LIST_META_ACTIVATION = {
 // is judged exactly as it always has been.
 //
 // It is a flag day rather than an unconditional fix because the check RE-VERDICTS indexed
-// history: third-party edits are valid today and list_items is a hashed DERIVED table, so
-// refusing them on replay would move block hashes on a live chain. The replay corpus being
-// hash-identical below the height is the hard gate on this change.
+// history: third-party edits are valid below the flag day and list_items is a hashed DERIVED
+// table, so refusing them on replay would move block hashes on a live chain. The replay corpus
+// being hash-identical below the height is the hard gate on this change.
+//
+// Mainnet is armed at genesis (height 0; no mainnet history can disagree). Each testnet
+// chain's height is chosen at a cut, and a non-sentinel public-chain height is required for
+// the LIST owner security fix.
 const LIST_OWNER_ACTIVATION = {
-    mainnet: 9999999999,
+    mainnet: 0,
     testnet: 9999999999,
     'BTC:testnet': 155001,
     'LTC:testnet': 4906040,
@@ -2081,9 +2145,9 @@ const LIST_TICK_COIN_ACTIVATION = {
 // ahead of the fee and budget checks, so a mined ISSUE of a listed name that is refused
 // today on fee would flip its verdict string on replay.
 //
-// Both public networks hold at the house sentinel until the train that arms them sizes a
-// dated instant; mainnet additionally waits on a replica measurement of zero mined ISSUEs
-// of a short or listed name, valid or invalid. Regtest is genesis-active.
+// Mainnet holds at the house sentinel until the train that arms it sizes a dated instant
+// and a replica measures zero mined ISSUEs of a short or listed name, valid or invalid;
+// testnet is armed per coin at the COIN:testnet heights below. Regtest is genesis-active.
 const TICK_NAMESPACE_ACTIVATION = {
     mainnet: 9999999999,
     'BTC:testnet': 154567, // set by the v0.21.0 freeze height plan
@@ -2321,6 +2385,24 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
     'DOGE:regtest': resolveMirrorAdmissionRegtest(process.env),
 });
 
+const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
+    DOGE: Object.freeze({
+        bridge_transfers:    14,
+        cross_chain_calls:   14,
+        cross_chain_matches: 14,
+        list_snapshots:      14,
+        policy_snapshots:    14,
+        price_snapshots:     16,
+    }),
+});
+
+const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
+    mainnet:        null,
+    'DOGE:mainnet': null,
+    'DOGE:testnet': 67989993,
+    regtest:        0,
+});
+
 // ---------------------------------------------------------------------------
 // The anchor-attest barrier's maturity horizon (the family's parent item)
 // ---------------------------------------------------------------------------
@@ -2417,10 +2499,13 @@ module.exports = {
     ANCHOR_REWARD_DERIVE_ACTIVATION,
     ANCHOR_REWARD_MIRROR_MATURITY,
     ANCHOR_FOLD_ACTIVATION,
+    ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION,
     ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION,
     ADMIT_MARGIN_BLOCKS,
     ADMIT_MIN_FUTURE_BLOCKS,
     ADMIT_MAX_FUTURE_BLOCKS,
+    ADMIT_CHAIN_MARGIN_BLOCKS,
+    ADMIT_CHAIN_MARGIN_ACTIVATION,
     MIRROR_ADMISSION_ACTIVATION,
     MIRROR_ADMISSION_CONSUMER_ACTIVATION,
     MIRROR_ADMISSION_REGTEST_ENV,
@@ -2447,6 +2532,7 @@ module.exports = {
     ATTEST_REQUEST_CAP_ACTIVATION,
     ATTEST_REQUEST_CAPS,
     ATTEST_RELAY_ACTIVATION,
+    ATTEST_RELAY_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_CAP,
     ATTEST_RESPONSIBLE_WIDENING_ACTIVATION,
@@ -2459,6 +2545,8 @@ module.exports = {
     AMOUNT_REPRESENTABILITY_ACTIVATION,
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
     DISPENSER_CANCEL_GRACE_ACTIVATION,
+    DISPENSER_PURGE_GRACE_ACTIVATION,
+    DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION,
     DISPENSER_FRESHNESS_SHAPE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
     ENVELOPE_RECOGNITION_ACTIVATION,

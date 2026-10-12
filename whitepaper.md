@@ -15,7 +15,7 @@
 
 ## Abstract
 
-XChain is a token-and-settlement **metalayer** for UTXO blockchains. It embeds a complete digital-asset protocol (tokens, a native decentralized exchange, trustless cross-chain swaps, a cross-chain token bridge, on-chain data and messaging, and a deterministic smart-contract virtual machine) inside ordinary transactions on an unmodified base chain, so that every asset and every state transition is secured directly by the host chain's existing proof-of-work consensus. There is no sidechain and no new consensus layer to trust; cross-chain trading settles without a bridge, and the one bridge the platform runs moves only its own fee token between chains.
+XChain is a token-and-settlement **metalayer** for UTXO blockchains. It embeds a complete digital-asset protocol (tokens, a native decentralized exchange, trustless cross-chain swaps, a cross-chain token bridge, on-chain data and messaging, and a deterministic smart-contract virtual machine) inside ordinary transactions on an unmodified base chain, so that every asset and every state transition is secured directly by the host chain's existing proof-of-work consensus. There is no sidechain and no new consensus layer to trust; cross-chain trading settles without a bridge. The one bridge the platform runs, XBRIDGE (§6.2), is a hub-trusted lock-and-mint that carries XCHAIN, its own fee token, and by issuer opt-in other tokens; on the public networks it runs on testnet only (bridging other tokens is armed on testnet, switching on chain by chain) and is not active on mainnet.
 
 The protocol is chain-agnostic by construction. It is deployed and running on **Bitcoin, Litecoin, and Dogecoin**, on mainnet as well as testnet, with the XCHAIN distribution and the protocol freeze still ahead of it (§13.3, §16); adding any further UTXO chain is a configuration change rather than a protocol change, and the platform is designed to extend toward a broad set of blockchains over time. The same protocol, the same ACTION set, and the same tooling operate identically across every supported chain.
 
@@ -37,7 +37,7 @@ XChain takes the opposite path. It is a **metalayer**: a protocol layered *above
 
 Three commitments run through every layer of the system.
 
-**Inherited security.** XChain introduces no new chain and no new consensus for transaction ordering; finality, ordering, and double-spend resistance come entirely from the host chain, and no bridge sits in that path. The validator network described in §10 exists for configuration, price data, cross-chain coordination, attestation, and the lock-and-mint bridge that moves the platform's own fee token between chains; none of that authority extends to ordering or settling base-layer token state on any host chain.
+**Inherited security.** XChain introduces no new chain and no new consensus for transaction ordering; finality, ordering, and double-spend resistance come entirely from the host chain, and no bridge sits in that path. The validator network described in §10 exists for configuration, price data, cross-chain coordination, attestation, and the lock-and-mint bridge (XBRIDGE, §6.2) whose destination credit it authorizes as a hub-trusted mint, carrying XCHAIN and by issuer opt-in other tokens between chains (bridging other tokens is armed on testnet; the bridge is not active on mainnet); none of that authority extends to ordering or settling base-layer token state on any host chain.
 
 **Determinism.** Every node that processes the same base-chain data computes byte-identical state. There is no randomness, no wall-clock-dependent branching, and no un-replayable external input anywhere in state processing. This is the property that makes the system independently verifiable: anyone can run the software, replay the chain from genesis, and confirm every balance for themselves.
 
@@ -99,14 +99,14 @@ XChain is a pipeline of independent services, each runnable separately and most 
 | **encoder** | Stateless; turns an ACTION string plus UTXOs plus pubkey into an unsigned PSBT | none |
 | **decoder** | Polls a coin node, extracts and de-obfuscates XChain transactions from blocks, writes raw decoded data | MariaDB (decoder DB) |
 | **indexer** | Reads the decoder DB and a local read-only hub mirror, validates and applies ACTION logic, runs the VM, maintains the ledger | MariaDB (indexer DB, plus the local hub mirror) |
-| **explorer** | Stateless REST plus JSON-RPC plus WebSocket plus web UI over the indexer DB | none |
+| **explorer** | REST plus JSON-RPC plus WebSocket plus web UI over the indexer DB | MariaDB (its own hub-mirror schema, written under `self_sync`) |
 | **hub** | Decentralized config oracle, price oracle, cross-chain coordinator, attestation engine, governance | MariaDB (hub DB) |
-| **sync** | Replicates the decoder and indexer DBs to validators via REST snapshots and WebSocket streaming | none |
+| **sync** | Replicates the decoder and indexer DBs to validators via REST snapshots and WebSocket streaming | MariaDB (one replica DB per chain/network, plus the `sync_meta` transparency log) |
 | **node** | Docker-based installer/manager for the whole stack | none |
 | **vm** | The contract engine; a library embedded inside the indexer | none |
 | **sdk / wallet / regtest-miner / e2e-test** | Developer SDK, reference client, regtest automation, integration tests | none |
 
-The hub runs as a single shared instance across all chains; the core pipeline services run per chain/network. (Sync replicates the indexer DB and most of the decoder DB; the transparency-log and mempool tables are excluded by design.)
+The hub, explorer and sync each run as a single shared instance across all chains; the utxo-tracker, encoder, decoder and indexer run per chain/network. (Sync replicates the indexer DB and most of the decoder DB; the transparency-log and mempool tables are excluded by design.)
 
 ### 3.2 The data pipeline
 
@@ -157,7 +157,7 @@ ACTION|VERSION|PARAM1|PARAM2|...
 
 `VERSION` determines how the remaining fields are parsed, so a single ACTION name can serve multiple shapes over time. New versions add capability without invalidating old encodings. Multiple commands can be combined in one transaction with the `BATCH` action, which separates sub-commands by semicolons.
 
-Tickers (`TICK`) are 1-250 characters and case-sensitive; `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved. Memos are limited to 250 characters and may not contain `|` or `;`. The decoder canonicalizes a handful of legacy action aliases (`TRANSFER` to `SEND`, `ADDR` to `ADDRESS`, `DROP` to `AIRDROP`, `CAST` to `BROADCAST`, `MSG` to `MESSAGE`).
+Tickers (`TICK`) are 1-250 characters and case-sensitive; `BTC`, `LTC`, `DOGE`, and `XCHAIN` are reserved. At or above the [`TICK_NAMESPACE_ACTIVATION`](./protocol/constants.js) flag day, a brand-new top-level ticker must be at least four characters and the codes of chains XChain may integrate later (`RESERVED_FUTURE_ROOTS`: `ETH`, `SOL`, ...) are reserved too; see [ISSUE](./protocol/actions/issue.md). Memos are limited to 250 characters and may not contain `|` or `;`. The decoder canonicalizes a handful of legacy action aliases (`TRANSFER` to `SEND`, `ADDR` to `ADDRESS`, `DROP` to `AIRDROP`, `CAST` to `BROADCAST`, `MSG` to `MESSAGE`).
 
 > Pre-launch, not final: an ACTION's field layout for a given VERSION may be edited in place for additive changes without incrementing the version. After protocol freeze, any wire-format change requires a new VERSION.
 
@@ -230,7 +230,7 @@ Tokens are created and updated by `ISSUE`. The principal fields:
 
 | Field | Meaning |
 |---|---|
-| `TICK` | Ticker, 1-250 chars, one per chain; first valid ISSUE establishes ownership |
+| `TICK` | Ticker, 1-250 chars (a new top-level ticker at least 4 behind `TICK_NAMESPACE_ACTIVATION`), one per chain; first valid ISSUE establishes ownership |
 | `MAX_SUPPLY` | Hard cap on circulating supply (up to 10^21 base units) |
 | `DECIMALS` | Precision 0-18; immutable once any supply exists |
 | `MINT_SUPPLY` / `MAX_MINT` | Supply minted immediately to the issuer at `ISSUE`; cap on the amount any single `MINT` may issue |
@@ -279,7 +279,7 @@ All database writes for a block commit inside one MariaDB transaction: the whole
 token_supply == SUM(credits) - SUM(debits)
 ```
 
-A mismatch is a fatal violation: the transaction rolls back and the indexer halts rather than persist inconsistent state. On a host-chain reorganization, the decoder detects the divergent block hash, records the fork point, and the indexer rolls back all affected tables atomically (deleting rows at or above the fork's first action index), recomputes balances from the remaining ledger, and re-indexes the canonical fork. The utxo-tracker keeps a per-chain, per-network reorg undo window (mainnet/regtest default BTC 12, LTC 120, DOGE 120 blocks; testnet 120 for every coin; env-overridable) for the same purpose.
+A mismatch is a fatal violation: the transaction rolls back and the indexer halts rather than persist inconsistent state. On a host-chain reorganization, the decoder detects the divergent block hash, records the fork point, and the indexer rolls back all affected tables atomically (deleting rows at or above the fork's first action index), recomputes balances from the remaining ledger, and re-indexes the canonical fork. The utxo-tracker keeps a per-chain, per-network reorg undo window (mainnet/regtest default BTC 12, LTC 120, DOGE 120 blocks; testnet BTC 120, LTC 5000, DOGE 120 blocks; env-overridable) for the same purpose.
 
 ---
 
@@ -301,6 +301,7 @@ The protocol defines 38 named ACTIONs across ten categories. Of these, 32 are us
 - **SWEEP** moves all balances and/or ownerships from an address, optionally closing market positions. Five flags: `BALANCES`, `OWNERSHIPS` (default on), `ORDERS`, `SWAPS`, `DISPENSERS` (default off). Escrowed value is only reachable via the corresponding position flag.
 - **AIRDROP** distributes a token to every member of a `LIST` (of addresses, or of holders of listed tokens). v0-v3 scale from single to multi-token, multi-list, with memos. Fee scales with recipient count.
 - **DIVIDEND** pays a dividend token pro-rata to all holders of a token. The source is excluded; sub-unit rounding excludes zero-share holders. Fee scales with recipients.
+- **XBRIDGE** moves a token's balance between supported chains by lock-and-mint and burn-and-release against a keyless protocol escrow address, never by minting on two ledgers independently ([spec](./protocol/actions/xbridge.md)). v0 locks XCHAIN on BTC for a destination chain and v1 burns it there to release it back on BTC; v3 and v4 apply the same lock and burn to any token whose issuer opted in, naming the bridged copy under its origin chain's root (`BTC.PEPECASH`); v2 and v5 are the system-injected settle legs, never user-broadcast. The destination credit is authorized by the validator federation, a [hub-trusted mint](./protocol/xchain-bridge.md#trust-model) rather than a trustless one, and once applied it is final. Unlike a cross-chain ORDER or SWAP, which trades a token that already exists on both chains, XBRIDGE gives a token a balance on a chain it was never issued on. *(v0 to v2 gated per chain by `XCHAIN_BRIDGE_ACTIVATION`, v3 to v5 by `TOKEN_BRIDGE_ACTIVATION`: XCHAIN bridging runs on testnet and regtest, bridging other tokens is armed on testnet, and the bridge is not active on mainnet.)*
 
 ### 6.3 Trading (DEX)
 
@@ -320,7 +321,7 @@ The protocol defines 38 named ACTIONs across ten categories. Of these, 32 are us
 
 - **PRICE** publishes on-chain oracle prices. v0 is the validator COIN/FIAT snapshot (one round per BTC block, PBFT-signed); v1 is a permissionless user TOKEN/FIAT oracle with a 24-hour anti-front-running delay on updates.
 - **ATTEST** drives the attestation lifecycle (§8): v0 request (VM-emitted only), v1 validator response (multi-signed), v2 system-synthesized expiry, and v3/v4 the cross-chain relay pair that carries an LTC- or DOGE-emitted request to BTC, where all `attestation` stake lives, and its outcome back *(relay: gated at BTC height 963,000 on mainnet)*.
-- **ANCHOR** is a validator-broadcast, DOGE-only action that publishes quorum-signed state checkpoints and the cross-chain match archive used for full-parse recovery (§9), across three wire versions on two legs. The checkpoint leg is v0, the bundle: one anchor per network per cycle carrying every checkpointed chain as its own section, each section with the light-client roots of §14 and its own quorum signatures, followed by one attestation naming the elected publisher who earns the anchor reward. The archive leg is v1 (checkpoint plus archive batch, with that same publisher attestation always appended) and v2 (archive continuation), replacing the earlier trusted reward push with a derived, attested archive reward.
+- **ANCHOR** is a validator-broadcast, DOGE-only action that publishes quorum-signed state checkpoints and the cross-chain match archive used for full-parse recovery (§9), across four wire versions on two legs. The checkpoint leg is v0, the bundle: one anchor per network per cycle carrying every checkpointed chain as its own section, each section with the light-client roots of §14 and its own quorum signatures, followed by one attestation naming the elected publisher who earns the anchor reward. The archive leg is v1 (checkpoint plus archive batch, with that same publisher attestation always appended) and v2 (archive continuation), replacing the earlier trusted reward push with a derived, attested archive reward. v3, the fold, carries both legs in one action per cycle: the v0 checkpoint sections plus at most one archive section (whose overflow still rides v2 continuation chunks), under one publisher attestation, so a single `anchor_bundle` reward covers the whole action. v3 is valid only at or above `ANCHOR_FOLD_ACTIVATION`, and v0, v1 and v2 stay valid beside it *(fold: armed per chain on testnet; mainnet unscheduled)*.
 
 ### 6.6 Staking and validator proofs
 
@@ -330,7 +331,7 @@ The protocol defines 38 named ACTIONs across ten categories. Of these, 32 are us
 - **COLLECT** claims accrued validator rewards (BTC only); paid from the reward pool, never minted. An optional amount claims partially, leaving the remainder pending. *(partial form: same flag-day as partial UNSTAKE.)*
 - **SLASH** is a permissionless, BTC-only equivocation fraud proof: anyone may broadcast a self-contained proof of a validator double-signing, which the indexer verifies deterministically and which burns the offender's capability bond, paying a bounty to the submitter and routing the remainder to treasury. *(consensus-affecting: gated on the [validator-era batch](./protocol/protocol-activation.md#the-three-cohorts) at BTC height 961,000, whose armed height has passed; mainnet availability follows the network launch.)*
 - **NODEPROOF** is a validator-broadcast, BTC-only verdict over which validators answered the epoch's full-node possession challenge, gating the verified-node reward tier (§11.1).
-- **ROLLCALL** is a validator-broadcast, DOGE-only presence proof for one roll-call epoch: each present validator signs a canonical bound to the BTC epoch block's ledger hash, so a signature cannot be produced before that block exists and proves the key was live in that epoch. The BTC indexer closes each epoch by proving the DOGE action, records who was absent, and evicts a validator absent for enough consecutive epochs. Eviction is a deactivation, never a burn: the stake refunds after the ordinary cooldown and the validator may re-enter with a fresh STAKE (§11.1). *(pre-launch: armed on testnet; mainnet ships inert, its activation height operator-owned.)*
+- **ROLLCALL** is a validator-broadcast, DOGE-only presence proof for one roll-call epoch: each present validator signs a canonical bound to the BTC epoch block's ledger hash, so a signature cannot be produced before that block exists and proves the key was live in that epoch. The BTC indexer closes each epoch by proving the DOGE action, records who was absent, and evicts a validator absent for enough consecutive epochs. Eviction is a deactivation, never a burn: the stake refunds after the ordinary cooldown and the validator may re-enter with a fresh STAKE (§11.1). *(armed at genesis on mainnet since the 2026-09-09 genesis arm, and armed on testnet; a regtest venue arms it only by opting in. Every mainnet BTC indexer therefore needs its DOGE indexer read from genesis.)*
 
 ### 6.7 Data and communication
 
@@ -405,7 +406,7 @@ Emitted actions are queued during execution and applied **only after the VM retu
 
 ### 7.8 Controller-bound tokens: settlement-time guards *(contract-era flag day)*
 
-Sections 7.1-7.7 describe contracts that users call. The controller mechanism is the inverse: **the protocol calls a contract**. A token (via `ISSUE` v6) or an account (via `ADDRESS` v1, self-signed) may bind a deployed contract as its **controller** for one action class (`transfer`, `trade`, `mint`, `burn`, `stake`, `ownership`, or the `all` fallback; resolution is most-specific-wins, so exactly one guard runs per subject and action class, and a single action can still invoke several: the token's guard plus the sender's and the recipient's account guards, each metered separately). Once bound, the indexer invokes the controller's `guard` method after an action of that class passes normal validation and **before it settles**, inside the same atomic scope. The guard is an ordinary deterministic VM execution: it may read and write its own state, emit actions, return normally to allow, or `revert` to deny; a revert, error, missing method, or out-of-gas **fails closed**, rolling back everything the guard did and recording the action invalid. Because the indexer is the only settlement path, a bound rule is unavoidable wherever it applies: there is no marketplace or side venue where it can be sidestepped, which is the property goodwill-based royalty schemes on other platforms never achieved. From the `CONTROLLER_CUSTODY_GUARD` flag day, a token's DEPOSIT into and WITHDRAW out of contract custody also run its `transfer` guard and the depositor's or withdrawer's own address guard; before that flag day, those two custody legs are not guarded.
+Sections 7.1-7.7 describe contracts that users call. The controller mechanism is the inverse: **the protocol calls a contract**. A token (via `ISSUE` v6) or an account (via `ADDRESS` v1, self-signed) may bind a deployed contract as its **controller** for one action class (`transfer`, `trade`, `mint`, `burn`, `stake`, `ownership`, or the `all` fallback; resolution is most-specific-wins, so exactly one guard runs per subject and action class, and a single action can still invoke several: the token's guard plus the sender's and the recipient's account guards, each metered separately). Once bound, the indexer invokes the controller's `guard` method after an action of that class passes normal validation and **before it settles**, inside the same atomic scope. The guard is an ordinary deterministic VM execution: it may read and write its own state, emit actions, return normally to allow, or `revert` to deny; a revert, error, missing method, or out-of-gas **fails closed**, rolling back everything the guard did and recording the action invalid. When one action runs several guards on a leg, a later guard's denial also rolls back the earlier guards that allowed only from the `CONTROLLER_GUARD_LEG_SAVEPOINTS` flag day; before it, their committed effects stand unless the action was emitted inside an `EXECUTE`, which the denial reverts as a whole. Because the indexer is the only settlement path, a bound rule is unavoidable wherever it applies: there is no marketplace or side venue where it can be sidestepped, which is the property goodwill-based royalty schemes on other platforms never achieved. From the `CONTROLLER_CUSTODY_GUARD` flag day, a token's DEPOSIT into and WITHDRAW out of contract custody also run its `transfer` guard and the depositor's or withdrawer's own address guard; before that flag day, those two custody legs are not guarded.
 
 ```mermaid
 flowchart TD
@@ -466,7 +467,7 @@ The `llm` provider takes a JSON prompt envelope (`prompt`, optional `system`/`ma
 
 ### 8.4 Redundancy
 
-The `redundancy` option (1, 3, or 5) sets how many validators must agree. `1` is the cheap path: one validator's answer is final. `3`/`5` add independent verification (byte-equality for `http_get`; judge consensus for `llm`); if quorum cannot be reached the request expires. Redundancy changes the trust model and the escrowed fee, never the contract-visible callback signature. The request fee is escrowed at request time, split across the responsible signer set on fulfillment, and refunded to the payer on error or expiry. Because the leader that broadcasts the v1 response pays a real native-coin transaction fee to do so, a further gate lets that broadcast fee be reimbursed from the request's escrow up to a per-provider cap, so serving attestations is never a net cost to the leader *(pre-launch: armed on regtest, mainnet height operator-owned)*.
+The `redundancy` option (1, 3, or 5) sets how many validators must agree. `1` is the cheap path: one validator's answer is final. `3`/`5` add independent verification (byte-equality for `http_get`; judge consensus for `llm`); if quorum cannot be reached the request expires. Redundancy changes the trust model and the escrowed fee, never the contract-visible callback signature. The request fee is escrowed at request time, split across the responsible signer set on fulfillment, and refunded to the payer on error or expiry. Because the leader that broadcasts the v1 response pays a real native-coin transaction fee to do so, a further gate lets that broadcast fee be reimbursed from the request's escrow up to a per-provider cap, so serving attestations is never a net cost to the leader *(armed at genesis on every network, mainnet since the 2026-09-09 genesis arm)*.
 
 ### 8.5 The agent economy
 
@@ -513,9 +514,9 @@ sequenceDiagram
     end
 ```
 
-The mirror is a transport, not an authority: a corrupted mirror can delay but **cannot forge**, because the signed canonical match string includes the network identifier (preventing cross-network replay) and every signature must verify against the on-snapshot `cross_chain` set. When a listing carries a controller-set proceeds split (§7.8), its payout legs are folded into the same signed canonical and applied by the settling chain, so a corrupted mirror cannot strip a royalty either *(pre-launch, gated with the cross-chain royalty flag-days)*. Throughout, **no tokens leave their home chain** (only ownership changes) and **the hub never takes custody**. An optional Merkle-rooted audit anchor may be published to a chain for transparency without gating settlement.
+The mirror is a transport, not an authority: a corrupted mirror can delay but **cannot forge**, because the signed canonical match string includes the network identifier (preventing cross-network replay) and every signature must verify against the on-snapshot `cross_chain` set. When a listing carries a controller-set proceeds split (§7.8), its payout legs are folded into the same signed canonical and applied by the settling chain, so a corrupted mirror cannot strip a royalty either *(pre-launch, gated with the cross-chain royalty flag-days)*. Throughout, **no tokens leave their home chain** (only ownership changes) and **the hub never takes custody**. Because signed matches otherwise live only in the hub mirror, the federation also archives them on DOGE through the ANCHOR action: its match archives carry the full compressed match records together with their quorum signatures and the capability snapshots needed to re-verify them. The archive does not gate settlement, but it lets a full parse of the three chains rebuild the match set with no surviving hub database.
 
-Cross-chain settlement uses a per-chain source-confirmation depth that operators tune to the assurance each chain warrants, raising it on lower-hashpower chains; the deeper per-chain depths in §10.4 govern the cross-chain attestation path. The matching layer's default is a single source confirmation, so settlement finality tracks the chosen depth: a source-chain reorg deeper than that depth after settlement is the residual risk this knob exists to manage.
+Cross-chain settlement uses a per-chain source-confirmation depth: a validator will not co-sign a cross-chain DEX match until the give-side escrow has reached that chain's depth. The default is per chain, BTC 6 / LTC 12 / DOGE 60, the same defaults the cross-chain attestation path uses in §10.4, deeper on lower-hashpower chains. Operators can tune the depth per chain, but on mainnet and testnet an override may only raise it; only regtest accepts a lower value. Settlement finality tracks that per-chain depth: a source-chain reorg deeper than it after settlement is the residual risk this knob exists to manage.
 
 ### 9.3 Native-coin settlement (COINPAY)
 
@@ -575,7 +576,7 @@ For a cross-chain action, only validators supporting *both* chains in the pair p
 
 ### 10.5 Governance
 
-Parameters are changed by off-chain PBFT-style governance voting over the gossip layer. Proposals run for a **7-day** voting period, require a minimum 50% participation quorum and **two-thirds** approval (measured against the full validator count), are bounded in how far they may move a parameter per change, and observe a **14-day** cooldown before a rejected parameter may be re-proposed. Votes are signed and uniquely constrained to one per validator per proposal (a validator may change its vote within the window). Fee parameters, oracle cadence, the provider set, and slashing thresholds are governance-controlled. (Capability minimum stakes are governance-controlled by design but guarded off pre-launch, because the indexer re-derives them from frozen per-chain config.)
+Parameters are changed by off-chain PBFT-style governance voting over the gossip layer. Proposals run for a **7-day** voting period, require a minimum 50% participation quorum and **two-thirds** approval (measured against the full validator count), are bounded in how far they may move a parameter per change, and observe a **14-day** cooldown before a rejected parameter may be re-proposed. Votes are signed and uniquely constrained to one per validator per proposal (a validator may change its vote within the window). Oracle cadence, the provider set, and slashing thresholds are governance-controlled; fee parameters are consensus-critical and change only through a coordinated activation, not a live vote. (Capability minimum stakes are governance-controlled by design but guarded off pre-launch, because the indexer re-derives them from frozen per-chain config.)
 
 ### 10.6 Trust model
 
@@ -711,7 +712,7 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 
 | Parameter | Current value |
 |---|---|
-| `GAS_PRICE` | 0.00001 XCHAIN/gas (governance-adjustable) |
+| `GAS_PRICE` | 0.00001 XCHAIN/gas (pinned in the coin registry; changed only by a coordinated activation) |
 | ISSUE | 100,000 gas (anchor = 1.0 XCHAIN) |
 | Sub-token ISSUE | 50,000 gas |
 | EXECUTE base | 1,000 gas |
@@ -741,13 +742,13 @@ XChain demonstrates that a complete digital-asset platform, including tokens, an
 | Max contract code (chunked DEPLOY) | 64 KB (up to 16 carriers of 7,800 bytes) |
 | Magic prefix | `XCHN` |
 | Cross-chain attestation/XCALL confirmations (default) | BTC 6 / LTC 12 / DOGE 60 |
-| Cross-chain DEX matching source-confirmation depth (default) | 1, per-chain operator-tunable (§9.2) |
+| Cross-chain DEX matching source-confirmation depth (default) | BTC 6 / LTC 12 / DOGE 60, per-chain operator-tunable, raise-only on mainnet and testnet (§9.2) |
 | Controller action classes | transfer / trade / mint / burn / stake / ownership, plus `all` fallback (§7.8) |
 | PBFT count quorum (below `STAKE_WEIGHTED_QUORUM_ACTIVATION` only) | `max(2f+1, ceil((N+1)/2))`, `f = floor((N-1)/3)` |
 | Stake-weighted quorum (at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`; gated on the validator-era batch, §10.2) | combined signer stake, deduplicated by stake SOURCE, > 2/3 of total active stake |
 | Trimmed-median trim | top/bottom 15% |
 | Governance | 7-day vote, 50% quorum, two-thirds approval, 14-day re-proposal cooldown |
-| utxo-tracker reorg undo window | mainnet/regtest BTC 12 / LTC 120 / DOGE 120; testnet 120 for every coin (default, env-overridable) |
+| utxo-tracker reorg undo window | mainnet/regtest BTC 12 / LTC 120 / DOGE 120; testnet BTC 120 / LTC 5000 / DOGE 120 (default, env-overridable) |
 | Capability stake activation / cooldown | ~6 BTC blocks / 1,000 blocks (governance-set) |
 | XCHAIN supply | 100,000,000 (8 decimals), capped at genesis, zero pre-mint, BTC-chain only |
 | XCHAIN genesis distribution (§13.3; **pre-launch, not final**) | 30% holder airdrop / 25% open mint / 20% treasury / 10% liquidity / 9.7% validators / 5.3% reward pool / 0% team |

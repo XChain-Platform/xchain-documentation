@@ -46,7 +46,10 @@ Exit 0 means every service the demo touches is healthy AND answers the browser o
 ⬜ The release is built from a committed tree, not a local working copy: a submission built from an uncommitted tree has no durable record of what was actually submitted.  
 ⬜ The TestFlight posture is settled: an internal group for the first release, no external group yet (see Phase 5). What is NOT optional is that the app has been run on a real device, because the release pipeline's own build cannot demonstrate that.  
 
-The store build compiles out in-development surfaces that are not ready for review (for example, an in-app exchange) entirely, rather than feature-flagging them off, so a reviewer sees a build with no code path to the excluded surface, not a flag that could be flipped back on remotely.
+The store build ships the wallet's supported feature surfaces, including its
+trading screens. Review notes disclose behavior that may draw policy scrutiny;
+there is no review-only configuration, remote hide switch, or review-detection
+logic that changes what a reviewer sees.
 
 ### Phase 1: the developer portal
 
@@ -252,6 +255,7 @@ Two things worth knowing before anyone improvises a replacement at the console. 
 >
 > - Hold and send Bitcoin, Litecoin and Dogecoin.
 > - Hold and send tokens issued on the XChain protocol, and see their history.
+> - Trade tokens through the XChain protocol's non-custodial decentralized exchange.
 > - Scan a QR code to receive, to send, or to sign a transaction from a wallet kept offline.
 > - Unlock with Face ID or Touch ID instead of typing your password every time.
 >
@@ -264,7 +268,8 @@ Two things worth knowing before anyone improvises a replacement at the console. 
 >
 > - It does not hold your coins for you, and there is no account to sign into.
 > - It does not collect analytics, and there is no advertising.
-> - It is not an exchange, and it does not mine anything.
+> - It does not take custody, operate the order-matching service, provide a fiat
+>   on-ramp, or mine anything.
 >
 > Open source, AGPL-3.0-or-later. Built by Dankest, LLC.
 
@@ -355,7 +360,7 @@ control as an unanswered question.
 
 ### Screenshots
 
-Generated from the simulator at the store build profile, never a build carrying compiled-out surfaces, covering the same four scenes on both iPhone and iPad: balances, receive with a QR code, send confirmation, and the biometric-unlock setting. iPad is mandatory since the app ships as a universal app.
+Generated from the simulator at the submitted store build profile, covering the same four scenes on both iPhone and iPad: balances, receive with a QR code, send confirmation, and the biometric-unlock setting. iPad is mandatory since the app ships as a universal app.
 
 The images come from the app's own demo mode, which uses fixed example balances and example addresses. It holds no keys and touches no network, so no screenshot can show a real recovery phrase or an address holding real funds. Demo mode is put on the main networks before the first capture, because the listing must show the app as a normal user sees it and the test networks are behind a developer setting the store build hides.
 
@@ -388,7 +393,7 @@ Its `screenshots-pinned` check asks whether the images the console holds are the
 
 ### Review notes
 
-> XChain Wallet is a non-custodial cryptocurrency wallet from Dankest, LLC, an enrolled organization. Keys are generated on the device, encrypted with a user-chosen password, and stored in the iOS Keychain, marked so they never leave the device and never sync to iCloud. There is no account system, no server-side custody, no exchange, no mining, and nothing is sold in the app.
+> XChain Wallet is a non-custodial cryptocurrency wallet from Dankest, LLC, an enrolled organization. Keys are generated on the device, encrypted with a user-chosen password, and stored in the iOS Keychain, marked so they never leave the device and never sync to iCloud. There is no account system, no server-side custody, no hosted exchange, no fiat on-ramp, no mining, and nothing is sold in the app.
 >
 > This build is a wallet, not a wrapped website. Native integrations you can verify on device:
 >
@@ -409,6 +414,20 @@ Its `screenshots-pinned` check asks whether the images the console holds are the
 > The app is open source under AGPL-3.0-or-later.
 
 This text is written to keep two things true, and they must stay true on any future edit: it never mentions a private test environment or asks a reviewer to reach anything not publicly reachable, and there is no review-only configuration or review-detection logic anywhere in the build.
+
+### Review notes: trading screens
+
+Append this paragraph to the App Review notes above:
+
+> The submitted build includes a Markets list and Market view for XChain's
+> non-custodial decentralized exchange. They are an interface for composing and
+> signing orders, not a hosted exchange or brokerage: private keys remain on the
+> device, the wallet never takes custody, and each order or cancellation requires
+> the user to sign. Order matching happens in `xchain-indexer`, not in the app,
+> and settlement is recorded on the supported public blockchains. The app offers
+> no fiat purchase, sale, deposit, or withdrawal path. Review the screens as part
+> of the wallet's disclosed cryptocurrency functionality; they are present in
+> the same artifact users receive.
 
 ### Demo account
 

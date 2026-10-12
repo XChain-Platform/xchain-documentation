@@ -294,7 +294,7 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 | `ORACLE_STALENESS_THRESHOLD_S` | No | `2 x ORACLE_ROUND_INTERVAL` | Seconds since the last finalized price snapshot before the `GET /health` endpoint reports `oracle_stale: true` (and returns HTTP 503). Defaults to twice the round interval; override for slow-start or custom round cadences. |
 | `ORACLE_EARLY_MSG_MAX_ROUNDS` | No | `256` | Cap on the number of distinct future consensus rounds the oracle buffers early messages for. Bounds memory against a peer flooding fabricated round numbers; messages for rounds beyond the cap are dropped. |
 | `COINGECKO_API_KEY` | No | None | CoinGecko API key (optional, improves rate limits) |
-| `COINMARKETCAP_API_KEY` | No | None | CoinMarketCap API key (enables a third price source; CoinGecko and Kraken are both keyless and always active) |
+| `COINMARKETCAP_API_KEY` | No | None | CoinMarketCap API key (enables a fourth price source; CoinGecko, Kraken and Coinbase are all keyless and always active) |
 | `PRICE_FETCH_TIMEOUT` | No | `10000` | HTTP timeout for external price API calls (ms) |
 | `ORACLE_LEADER_TIMEOUT_MS` | No | `30000` | How long a round waits on its leader before failover. Kept below the finalization window. |
 | `ORACLE_FINALIZED_MAX` | No | `10000` | Cap on retained finalized-round records held in memory. |
@@ -343,17 +343,19 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 
 ### Rewards and Slashing
 
+`SLASH_DEVIATION_THRESHOLD` and `SLASH_MISSED_ROUNDS_THRESHOLD` are both
+env-owned controls. For either variable, the hub refuses a governance proposal
+that attempts to change its value.
+
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `ORACLE_REWARD_PER_ROUND` | No | `"10.00000000"` | XCHAIN distributed per finalized oracle round |
-| `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation (5%) at which the hub records a `price_deviation` offense. Hub-local: governance can suspend the validator, on-chain stake is untouched |
-| `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Missed rounds at which the hub records a `non_participation` offense. Hub-local: governance can set `validators.status='suspended'`, on-chain stake is untouched. Only a permissionless SLASH proof of equivocation burns stake (see [Decentralization](decentralization.md)) |
-| `REWARD_PUSH_MAX_ATTEMPTS` | No | `3` | Attempts `RewardTracker` makes when pushing a validator-reward record to the indexer before giving up and recording the failure. The push was previously fire-and-forget, so a dropped push lost the reward record silently. |
-| `REWARD_PUSH_RETRY_DELAY_MS` | No | `2000` | Delay (ms) between those attempts. |
+| `ORACLE_REWARD_PER_ROUND` | No | `"10.00000000"` | XCHAIN budget the hub splits equally among the validators that submitted a price in a finalized round, for its own local `validator_rewards` ledger only. It is not pushed to the indexer and does not change what the chain credits |
+| `SLASH_DEVIATION_THRESHOLD` | No | `"0.05"` | Price deviation (5%) at which the hub records a `price_deviation` offense. `SLASH_DEVIATION_THRESHOLD` is env-owned; the hub refuses any governance proposal that attempts to change it. Hub-local: governance can suspend the validator, on-chain stake is untouched |
+| `SLASH_MISSED_ROUNDS_THRESHOLD` | No | `"30"` | Missed rounds at which the hub records a `non_participation` offense. `SLASH_MISSED_ROUNDS_THRESHOLD` is env-owned; the hub refuses any governance proposal that attempts to change it. Hub-local: governance can set `validators.status='suspended'`, on-chain stake is untouched. Only a permissionless SLASH proof of equivocation burns stake (see [Decentralization](decentralization.md)) |
 
 ### ANCHOR Publishing
 
-Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match archive on-chain via the DOGE ANCHOR action) and `RewardTracker` (anchor-publish reward amount).
+Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match archive on-chain via the DOGE ANCHOR action) and `RewardTracker` (hub-local ledger of anchor-publish rewards; the chain credits the frozen amounts from the ANCHOR bytes, not this ledger).
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
@@ -662,6 +664,7 @@ ROLLCALL arming is a **venue-wide** setting: set `XC_ROLLCALL_REGTEST_ACTIVATION
 |---|---|---|---|
 | `GOV_VOTING_PERIOD` | No | `604800000` | Governance voting period in milliseconds (default: 7 days) |
 | `GOVERNANCE_TALLY_INTERVAL` | No | `60000` | Interval between governance tally sweeps |
+| `GOVERNANCE_OVERDUE_MS` | No | `7200000` (2 hours) | Time after voting ends before a still-voting proposal is considered overdue (ms). |
 
 ### Diagnostic Scripts (`bin/`)
 
@@ -677,74 +680,7 @@ Read-only operator tools; neither broadcasts nor writes anything and neither is 
 
 ## Database Schema
 
-The hub uses 20 MariaDB tables, auto-created on startup from `src/sql/`:
-
-### Config Storage
-
-| Table | Purpose |
-|---|---|
-| `configs` | Service config parameters: `(coin, network, module, param_name, param_value)` |
-
-Unique constraint on `(coin, network, module, param_name)` for upsert behavior.
-
-### Validator Management
-
-| Table | Purpose |
-|---|---|
-| `validators` | Active validators: `(signing_pubkey, addr, status, chains)`: capabilities are derived from each pubkey's aggregate stake, not stored here (the `tier` column was dropped in the capability-staking refactor) |
-| `consensus_state` | PBFT sequence number persistence |
-| `p2p_peers` | Known P2P peers and last-seen timestamps |
-
-### Oracle
-
-| Table | Purpose |
-|---|---|
-| `oracle_submissions` | Raw per-validator price submissions per round: `(round_number, coin_pair, validator_pubkey, price)` |
-| `price_snapshots` | Finalized/skipped/disputed price snapshots: `(round_number, coin_pair, price, status, consensus_proof)` |
-| `oracle_prices` | User-published PRICE v1 oracle prices: `(source_address, coin, tick, fiat, value, effective_at)` with 24-hour delay on updates |
-
-### Cross-Chain
-
-| Table | Purpose |
-|---|---|
-| `attestations` | Cross-chain attestation records: `(attestation_id, source_chain, source_action_index, dest_chain, status, consensus_proof)`: status: pending, attested, rejected, expired |
-| `swap_records` | SWAP lifecycle tracking: `(source_chain, source_action_index, dest_chain, dest_action_index, status)` |
-| `reorg_attestations` | Confirmed blockchain reorg events: `(chain, reorg_height, timestamp, consensus_proof)` |
-| `cross_chain_matches` | Cross-chain DEX match records mirrored across the federation and to indexers via hub DB sync |
-| `cross_chain_calls` | Cross-chain contract call relay rows (XCALL dispatch + result) mirrored to indexers via hub DB sync |
-
-### State Checkpoints and Capability Snapshots
-
-| Table | Purpose |
-|---|---|
-| `state_checkpoints` | Quorum-signed per-chain ledger/actions/contract hash checkpoints produced by `StateCheckpointEngine`; streamed to indexers via hub DB sync and committed on-chain via ANCHOR |
-| `capability_snapshots` | Block-boundary per-capability validator-set snapshots locked by `CapabilitySnapshot` for deterministic quorum; mirrored to indexers |
-
-### Governance
-
-| Table | Purpose |
-|---|---|
-| `governance_proposals` | Parameter change proposals: `(parameter, current_value, proposed_value, rationale, proposer, status)` |
-| `governance_votes` | Validator votes: `(proposal_id, signing_pubkey, vote, signature)` |
-
-### Rewards and Slashing
-
-| Table | Purpose |
-|---|---|
-| `validator_rewards` | Per-round validator rewards: `(validator_pubkey, round_number, reward_type, amount, block_index, batch_seq, claimed)`: `reward_type` distinguishes `oracle_round`, `attest_fee`, `anchor_bundle`, `anchor_archive` etc.; `batch_seq` links anchor-publish batch rows; `block_index` pins the earn block |
-| `slash_proposals` | Detected validator offenses: `(signing_pubkey, offense_type, evidence, round_number)` |
-
-### Telemetry
-
-| Table | Purpose |
-|---|---|
-| `telemetry_pings` | Anonymous node-operator usage pings: `(install_id, hub_version, services, os_info, country, region, ip_hash)`: raw IP is never stored |
-
-### Capability Registry
-
-| Table | Purpose |
-|---|---|
-| `validator_capabilities` | Per-pubkey capability activation/deactivation records written by `CapabilityRegistry` |
+The hub keeps all of its state in one MariaDB database. Tables are auto-created on startup from `src/sql/`, one file per table. For the table inventory and the column reference, see [Database](database.md).
 
 ## Config Table Detail
 

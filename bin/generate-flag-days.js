@@ -307,6 +307,22 @@ function collectGateRows(sources, add) {
     }
 }
 
+function collectUnarmedGateRows(sources, network, add) {
+    const slot = new RegExp(`(?:^|[,\\s])${network}\\s*:\\s*([^,}\\n]*)`);
+    for (const row of sources.scannable.matchAll(GATE_ROW)) {
+        if (row[3] !== 'time') continue;
+        const body = objectBody(sources.scannable, row.index + row[0].length - 1);
+        if (body === null) continue;
+        const match = slot.exec(body);
+        if (match === null) continue;
+        const text = match[1].trim();
+        const value = text === 'UNARMED'
+            ? unarmedValue(sources, sources.where(row.index), row[2])
+            : (TIME_LITERAL.test(text) ? Number(text.replace(/_/g, '')) : null);
+        if (value !== null) add(row[2], value);
+    }
+}
+
 /**
  * Refuses a registry that declares a gate in a style the two regexes above
  * cannot read.
@@ -491,7 +507,9 @@ function registryConstants(sources) {
  * is not a gate key `isEnabled` accepts, and the two differ for
  * `CROSS_SETTLE_CAP_MAINNET_TIME` (arms `CROSS_SETTLE_PER_BLOCK_CAP`) and
  * `BATCH_ROOT_SUB_INDEX_MAINNET_TIME` (arms `BATCH_SUBCOMMAND_ROOT_DISCRIMINATOR`).
- * Any other identifier resolves to null and stays quiet. `consumed` names the
+ * The bare house sentinel `UNARMED` reads as the value core.js declares, as it
+ * does in a `= UNARMED;` declaration, so a row that parks a slot on it is still
+ * listed unarmed. Any other identifier resolves to null and stays quiet. `consumed` names the
  * constants some call resolved, so the constant pass in each collector leaves
  * those to the call and publishes a prefix only for a constant no call reads.
  *
@@ -527,10 +545,12 @@ function registryCalls(sources) {
         if (/^\d(?:_?\d)*$/.test(text)) return Number(text.replace(/_/g, ''));
 
         // An identifier: the registry constant's value when the const pass saw
-        // it, and otherwise quiet by design, because no text scan can tell a
-        // parked sentinel from a live timestamp behind a name.
+        // it, the core.js sentinel for the house `UNARMED` name (the way the
+        // const pass reads `= UNARMED;`), and otherwise quiet by design, because
+        // no text scan can tell a parked sentinel from a live timestamp behind a name.
         if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(text)) {
             if (constants.has(text)) { consumed.add(text); return constants.get(text); }
+            if (text === 'UNARMED') return unarmedValue(sources, sources.where(index), gate);
             return null;
         }
 
@@ -539,7 +559,8 @@ function registryCalls(sources) {
             + `this generator cannot read (\`${text}\`), so protocol/flag-days.md would publish an `
             + 'inventory that calls itself complete and is not.\n\n'
             + 'A time slot reads as a decimal literal (`1786060800`, separators allowed) or as the name '
-            + 'of a `const NAME_MAINNET_TIME = <digits>;` the registry declares. Write the slot in one of '
+            + 'of a `const NAME_MAINNET_TIME = <digits>;` the registry declares, or as the bare `UNARMED` '
+            + 'sentinel. Write the slot in one of '
             + 'those shapes or widen the parse in bin/generate-flag-days.js deliberately.',
         );
     };
@@ -669,6 +690,7 @@ function collectTestnetUnarmed(indexerSrc = INDEXER_SRC) {
     for (const d of declaredTimeConstants(sources)) {
         if (d.network === 'TESTNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
+    collectUnarmedGateRows(sources, 'testnet', add);
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 
@@ -699,6 +721,7 @@ function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
     for (const d of declaredTimeConstants(sources)) {
         if (d.network === 'MAINNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
+    collectUnarmedGateRows(sources, 'mainnet', add);
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 

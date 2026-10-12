@@ -152,9 +152,12 @@ Contracts support **ES2020** syntax. This includes:
 - `async`/`await` syntax and `Promise` are **rejected at deploy** by the consensus-gated `banned-async` rule (enforced today by the `xchain-lint` CLI, the SDK, and testnet/regtest; on mainnet at/after the [`VM_BANNED_ASYNC` flag day](../protocol/flag-days.md#contract-era-flag-day)). Write contracts synchronously.
 
 **Not supported:**
-- ES2021+ features (class fields `#private`, `Object.hasOwn()`, top-level await)
+- ES2021+ syntax, which the ES2020 parser rejects at deploy: logical assignment (`??=`, `||=`, `&&=`), numeric separators (`1_000`), class fields (public and `#private`), and top-level `await`
 - `import`/`export` (use `module.exports`)
 - `require()`, `eval()`, `Function()` constructor
+- `Object.defineProperty()`, `Object.defineProperties()`, and `Object.create()` with a second (descriptor) argument: the sandbox removes them and no deploy check flags them, so the contract deploys but throws the first time the call runs. Assign properties directly instead; `Object.create(null)` and `Object.create(proto)` still work. See [Sandbox Security](../components/vm/architecture.md#sandbox-security).
+
+The ES2020 limit applies to syntax only. Built-in functions from later editions that the sandbox does not remove, such as `Object.hasOwn()`, parse and run normally.
 
 ## All Arithmetic Must Use xchain.math
 
@@ -277,8 +280,9 @@ The VM performs the following checks before deployment:
 7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): `function*`, generator methods, and any `yield` are rejected.
 8. **Banned rest-pattern check** (consensus-gated, its own `REST_PATTERN_METER` gate): a rest pattern is rejected in the four positions the gas-metering transform cannot charge, because it charges a rest destructure by wrapping the source expression and these positions have none. Rewrite each one: a **rest parameter** in a function parameter list (read `arguments.length` or index the parameters instead), a **nested rest** inside a destructuring pattern (destructure in two steps so the rest reads a named binding), a **catch-clause rest** (destructure the caught binding on a following line), and a **rest in a `for-of`/`for-in` loop head** (bind the iteration value and destructure it in the loop body). See the [`REST_PATTERN_METER` flag day](../protocol/flag-days.md).
 9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): any reference to the global `WebAssembly` is rejected.
+10. **Banned `with` statement check** (consensus-gated, its own `LINT_BANNED_WITH_ACTIVATION` gate): any `with` statement is rejected. A `with` block resolves free identifiers against an object at runtime, which would get past the name-based checks above and the gas-metering rewrite. Read the properties through the object instead (`obj.x`, not `with (obj) { x }`).
 
-Checks 7 and 9 are live today on testnet/regtest (the Pkg 3 sandbox gate is unconditionally active on those networks) even though their mainnet activation is a separate flag-day; a regtest deploy that trips either one is rejected now. Check 8 rides its own `REST_PATTERN_METER` gate rather than the Pkg 3 one, and is likewise unconditionally active on testnet/regtest, so the `xchain-lint` CLI, the SDK linter and a regtest deploy all reject an unmeterable rest pattern today. The `VM_LINT_HARDENING` widenings under checks 3, 4, and 6 activate at the same instant as `VM_BANNED_ASYNC` and are default-on for the SDK and CLI already. Checks 4, 6, and 9 also match the global-object spellings of `Math`, `Promise`, and `WebAssembly` (`globalThis.Math.pow(...)`, and under the genesis-armed `LINT_GLOBAL_ALIAS_ACTIVATION` gate `this.Math.pow(...)` and `globalThis.globalThis.Promise`), so qualifying the name does not get it past the check; see [Global-object spellings](../components/vm/operations.md#global-object-spellings).
+Checks 7 and 9 are live today on testnet/regtest (the Pkg 3 sandbox gate is unconditionally active on those networks) even though their mainnet activation is a separate flag-day; a regtest deploy that trips either one is rejected now. Check 8 rides its own `REST_PATTERN_METER` gate rather than the Pkg 3 one, and is likewise unconditionally active on testnet/regtest, so the `xchain-lint` CLI, the SDK linter and a regtest deploy all reject an unmeterable rest pattern today. Check 10 rides its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../protocol/protocol-activation.md#where-the-values-live) height gate: it is live from genesis on regtest and unarmed on mainnet and testnet until an operator arms a height, while the `xchain-lint` CLI and the SDK linter enforce it by default, so a local lint or a regtest deploy containing `with` is rejected today. The `VM_LINT_HARDENING` widenings under checks 3, 4, and 6 activate at the same instant as `VM_BANNED_ASYNC` and are default-on for the SDK and CLI already. Checks 4, 6, and 9 also match the global-object spellings of `Math`, `Promise`, and `WebAssembly` (`globalThis.Math.pow(...)`, and under the genesis-armed `LINT_GLOBAL_ALIAS_ACTIVATION` gate `this.Math.pow(...)` and `globalThis.globalThis.Promise`), so qualifying the name does not get it past the check; see [Global-object spellings](../components/vm/operations.md#global-object-spellings).
 
 A non-blocking **float warning** is also generated if decimal number literals are detected in the code. This warning appears in the execution record but does not prevent deployment.
 
@@ -315,8 +319,12 @@ Beyond the deploy-time rules above, the linter adds **logic-level** checks. None
 ```bash
 node xchain-vm/bin/lint.js path/to/contract.js   # or: npx xchain-lint contract.js
   --json                                          # machine-readable report
-# exit 0 = clean · 1 = errors · 2 = usage / no readable input files · warnings print to stderr (exit 0)
+# exit 0 = clean (warnings print to stderr)
+# exit 1 = lint errors, an unreadable input file, or a host fault (the V8 isolate could not start)
+# exit 2 = usage error (no arguments, unknown flag, --help) or a file pattern that matched nothing
 ```
+
+Exit 1 does not by itself mean the contract is defective: a missing or unreadable file and a machine that cannot run the syntax check also exit 1. A CI script that needs to tell them apart should run with `--json` and check each result for `readError` or `hostFault` before treating it as a lint failure.
 
 The CLI runs the **full** validator including the V8 syntax check, so a clean result is a conservative preflight: it is a SUPERSET of the deploy gate, never exact parity. Author-facing gates default on and future or mainnet-gated rules are enforced immediately (see below), and a malformed `crossCallable` is a CLI error the chain itself accepts, so the CLI can refuse code a given chain, network and block would deploy. The `code-size` rule that rejects source over the 64KiB deploy cap before it even reaches the syntax gate lives in shared `lint-core`, not the CLI alone, so `sdk.validateContract` carries it too; the only check the SDK pre-flight cannot run is the V8 syntax step, which needs the VM's isolated runtime. Use the CLI as a local pre-commit / CI gate for contract source.
 
@@ -379,7 +387,7 @@ xchain.attestation.request(
 ```
 
 - **`redundancy`** is the number of independent validators that must agree before the response is written to chain. `1` is the cheapest path (one validator's answer is final); `3` or `5` triggers a consensus round across multiple validators.
-- **`deadlineBlocks`** is how many blocks the request waits before it expires. If no agreed-upon answer arrives in time, the callback is still invoked (with `status='expired'` and an empty response) so your contract can react to silence.
+- **`deadlineBlocks`** is how many blocks the request waits before it expires. If no agreed-upon answer arrives in time, the callback is still invoked (with `status='expired'` and an empty response) so your contract can react to silence. That holds for a request the indexer admitted; a request that fails its validation (for example a payload over the provider's `max_request_bytes`) reverts the calling method instead, and no callback fires.
 
 `xchain.attestation.request` costs `VM_EMISSION` (500 gas, standard action-emission overhead) plus `VM_ATTEST_REQUEST` (5,000 gas, the attestation request charge): **5,500 gas total** per call, on top of the request's gas escrow.
 
@@ -501,12 +509,19 @@ Slash costs `VM_EMISSION` (500) gas.
 ### Worked example: simple bonded service
 
 ```javascript
-// Deploy with: COOLDOWN_BLOCKS=50, SLASH_DESTINATION=BURN
+// Deploy with: COOLDOWN_BLOCKS=50, SLASH_DESTINATION=BURN, CONSTRUCTOR_PARAMS=<owner address>
 module.exports = {
     meta: {
         name:        'Bonded Service',
         description: 'Qualifies a signing pubkey by its stake against this contract, and lets the owner slash it.',
         version:     '1.0.0'
+    },
+
+    // Constructor: store the owner address passed as the first constructor
+    // param. punish compares the caller against it, so without this the
+    // owner check can never pass.
+    initialize: function(xchain) {
+        xchain.state.set('owner', xchain.getInputParam(0));
     },
 
     // Anyone can check: does this pubkey hold at least 100 XCHAIN against this contract?

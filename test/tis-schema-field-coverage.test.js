@@ -32,13 +32,18 @@
  *   4. v1.0.0 and v1.1.0 stay frozen: each still stamped with its own version,
  *      v1.0.0 still without the gating fields and v1.1.0 still carrying the
  *      `["type", "data"]` media requirement v1.1.1 relaxed, so drift is never
- *      "fixed" by rewriting a published version.
+ *      "fixed" by rewriting a published version. v1.1.1 stays frozen the same
+ *      way, still carrying the `dns` conditional v1.1.2 restates.
  *   5. A media entry carrying only `data_ref` satisfies the CURRENT schema's
  *      media requirement, and an entry carrying neither `data` nor `data_ref`
  *      still fails it. The pair runs the requirement rather than asserting it:
  *      v1.1.0 required `data` outright and so rejected the fully on-chain form
  *      the prose recommends, and a one-sided check would have passed on the
  *      relaxed schema and on a schema that required nothing at all.
+ *   6. The CURRENT schema uses no keyword newer than the draft-04 it declares,
+ *      and its `dns` rule runs: v1.0.0 through v1.1.1 wrote that rule with
+ *      if/then/else and const, which a draft-04 validator skips, so no `dns`
+ *      entry was ever checked by a validator that honored the declaration.
  *
  * FLOORS, BECAUSE A PARSER THAT MATCHES NOTHING READS AS GREEN. A markdown
  * table lint that silently stops matching passes forever. The row floors below
@@ -57,7 +62,7 @@ const DOC_ROOT = path.join(__dirname, '..');
 const SPEC     = path.join(DOC_ROOT, 'protocol/token-information-standard.md');
 const JSON_DIR = path.join(DOC_ROOT, 'protocol/json');
 
-const CURRENT = '1.1.1';
+const CURRENT = '1.1.2';
 const MEDIA   = ['images', 'audio', 'video', 'files'];
 
 // A row is `| field | Type | Description`. The header and the `| :--- |`
@@ -95,6 +100,36 @@ function rowScope(row) {
 
 function readJson(name) {
     return JSON.parse(fs.readFileSync(path.join(JSON_DIR, name), 'utf8'));
+}
+
+// Keywords a draft-04 validator does not know and so skips without complaint.
+const POST_DRAFT_04 = new Set(['if', 'then', 'else', 'const', 'contains', 'propertyNames',
+    'examples', '$comment', '$id', '$defs', 'dependentRequired', 'dependentSchemas',
+    'unevaluatedProperties', 'unevaluatedItems', 'prefixItems', 'minContains', 'maxContains',
+    'readOnly', 'writeOnly', 'contentMediaType', 'contentEncoding']);
+
+// Collect every post-draft-04 keyword path; the keys of a name map are names, not keywords.
+function newerKeywords(node, at = '', found = []) {
+    if (!node || typeof node !== 'object') return found;
+    for (const [key, value] of Object.entries(node)) {
+        if (Array.isArray(node) || !POST_DRAFT_04.has(key)) {
+            const names = !Array.isArray(node) && (key === 'properties' || key === 'definitions');
+            const kids = names && value && typeof value === 'object' ? Object.entries(value) : [[key, value]];
+            for (const [k, v] of kids) newerKeywords(v, `${at}/${names ? key + '/' : ''}${k}`, found);
+        } else found.push(`${at}/${key}`);
+    }
+    return found;
+}
+
+// Run a `dns` definition the way a draft-04 validator does: `required`, then `anyOf`
+// branches of `required` plus an enum or not-enum on `type`. Anything else is skipped.
+function dnsAccepts(def, entry) {
+    const has = (names) => (names || []).every((n) => n in entry);
+    const typeOk = (rule) => !rule || (rule.enum ? rule.enum.includes(entry.type)
+        : !(rule.not && rule.not.enum && rule.not.enum.includes(entry.type)));
+    if (!has(def.required)) return false;
+    if (!Array.isArray(def.anyOf)) return true;
+    return def.anyOf.some((b) => has(b.required) && typeOk((b.properties || {}).type));
 }
 
 const SPEC_TEXT  = fs.readFileSync(SPEC, 'utf8');
@@ -336,6 +371,43 @@ describe('TIS field table / schema coverage', () => {
                 `v1.1.0 ${name} accepts a data_ref-only entry, so this checker cannot ` +
                 'tell the relaxed schema from the frozen one');
         }
+    });
+
+    test('v1.1.1 stays frozen at what it published', () => {
+        const published = readJson('token-information-standard-v1.1.1-schema.json');
+        assert.equal(published.version, '1.1.1');
+        for (const key of ['if', 'then', 'else'])
+            assert.ok(key in published.definitions.dns,
+                `v1.1.1 dns.${key} moved; a published version is superseded, never edited`);
+        for (const def of MEDIA)
+            assert.ok(Array.isArray(published.definitions[def].anyOf),
+                `v1.1.1 ${def}.anyOf moved; the data/data_ref relaxation is what it published`);
+    });
+
+    test('the current schema uses no keyword newer than its declared draft-04', () => {
+        assert.deepEqual(newerKeywords({ properties: { if: { if: {} } } }), ['/properties/if/if'],
+            'the walker must flag a keyword and pass over a property that merely shares its name');
+        assert.ok(newerKeywords(readJson('token-information-standard-v1.1.1-schema.json'))
+            .includes('/definitions/dns/if'), 'the walker no longer sees the frozen v1.1.1 conditional');
+        assert.match(schema.$schema, /draft-04/, `v${CURRENT} no longer declares draft-04`);
+        assert.deepEqual(newerKeywords(schema), [],
+            'a draft-04 validator skips these keywords, so the rules they carry are never enforced');
+    });
+
+    test('the current dns rule requires type, host and value, and priority on MX', () => {
+        const dns = schema.definitions.dns;
+        for (const entry of example.dns || [])
+            assert.equal(dnsAccepts(dns, entry), true, `the v${CURRENT} example dns entry ${entry.type} fails`);
+        assert.ok((example.dns || []).some((e) => e.type === 'MX'), 'the example no longer exercises MX');
+        const bad = [{ type: 'MX', host: '@', value: 'mx.example.com' }, { type: 'A', value: '1.2.3.4' },
+            { type: 'A', host: '@' }, { host: '@', value: 'x' }];
+        for (const entry of bad)
+            assert.equal(dnsAccepts(dns, entry), false, `v${CURRENT} dns accepts ${JSON.stringify(entry)}`);
+        assert.equal(dnsAccepts(dns, { type: 'A', host: '@', value: '1.2.3.4' }), true);
+        // Negative control: the frozen draft-07 conditional is invisible to this reading.
+        const frozen = readJson('token-information-standard-v1.1.1-schema.json').definitions.dns;
+        assert.equal(dnsAccepts(frozen, bad[0]), true,
+            'the checker cannot tell the frozen v1.1.1 dns rule from the current one');
     });
 
     test(`the current schema and example are stamped v${CURRENT}`, () => {
