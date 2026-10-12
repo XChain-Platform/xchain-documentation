@@ -230,8 +230,10 @@ only the mainnet slot of a registry row like this one, so it lists the gate once
 carries every checkpointed chain section plus at most one archive section in one transaction. It
 is keyed on the anchor's own DOGE mined height like `ANCHOR_ACTIVATION` and always sits at or above
 it. Below the gate, version 3 is `invalid: VERSION (unknown)`; at or above it, versions 0, 1 and 2
-stay valid. At the gate, `anchor_archive` stops being minted as a reward. The fold gate uses the
-house UNARMED sentinel on mainnet. Testnet is armed per chain through the map's `BTC:testnet`,
+stay valid. The fold changes the publishing shape, but `anchor_archive` minting stops only when
+`ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` and `ANCHOR_FOLD_ACTIVATION` are both active. If either gate
+is inactive, v1 archive rewards retain their pre-fold behavior. The fold gate uses the house
+UNARMED sentinel on mainnet. Testnet is armed per chain through the map's `BTC:testnet`,
 `LTC:testnet` and `DOGE:testnet` heights in [`constants.js`](./constants.js). Its regtest entry is
 null by default, and `XC_ANCHOR_FOLD_REGTEST_ACTIVATION` arms it for a private regtest venue.
 
