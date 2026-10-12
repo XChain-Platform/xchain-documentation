@@ -114,13 +114,13 @@ describe('platform-map scrub', () => {
 });
 
 describe('platform-map ANCHOR wire versions', () => {
-    // protocol/actions/anchor.md closes the version space at 0, 1 and 2; the
+    // protocol/actions/anchor.md closes the version space at 0 through 3; the
     // retired wires reused those bytes, so a higher number names a shape that no longer exists.
     for (const file of [HTML, JSON_FILE]) {
-        test(`${path.basename(file)} names only ANCHOR versions 0, 1 and 2`, () => {
+        test(`${path.basename(file)} names only ANCHOR versions 0 through 3`, () => {
             const text = fs.readFileSync(file, 'utf8');
             const bad = [...text.matchAll(/ANCHOR (v[\d/v]+)/g)]
-                .filter((m) => m[1].split('/').some((v) => Number(v.replace(/^v/, '')) > 2))
+                .filter((m) => m[1].split('/').some((v) => Number(v.replace(/^v/, '')) > 3))
                 .map((m) => m[0]);
             assert.deepEqual(bad, [], `${path.basename(file)}: retired ANCHOR versions ${bad.join(', ')}`);
         });
