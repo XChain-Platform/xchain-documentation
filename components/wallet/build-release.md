@@ -21,7 +21,7 @@ All packages in the repository ship at the **same version number**:
 
 The `test/e2e/package.json` (`@xchain-wallet/e2e`) is **excluded** from synchronized versioning. It tracks its own Playwright suite version independently and is not bumped in the release bump procedure.
 
-Rationale: users running the web app, the extension, and the desktop app need an obvious way to confirm they're on the same build. Every shell's About screen surfaces its own `package.json.version`, so synchronized versions let users diff `1.0.0-rc.6-extension` vs `1.0.0-rc.6-web` vs `1.0.0-rc.6-desktop` and immediately know they're on the same codebase.
+Rationale: users running the web app, the extension, and the desktop app need an obvious way to confirm they're on the same build. Every shell's About screen surfaces its own `package.json.version`, so synchronized versions let users check that the extension, the web app, and the desktop app all show the same `X.Y.Z` and immediately know they're on the same codebase.
 
 `CHANGELOG.md` at the repo root is authoritative; sub-packages don't maintain their own changelogs.
 
@@ -39,12 +39,13 @@ Chrome's `version` field rejects semver prerelease tags like `1.0.0-rc.6`. The w
 
 | Wallet semver | Chrome `version` | Chrome `version_name` |
 |---|---|---|
+| `0.341.2` | `0.341.2` | `0.341.2` |
 | `1.0.0` | `1.0.0` | `1.0.0` |
 | `1.0.0-rc.1` | `0.1.0.1` | `1.0.0-rc.1` |
 | `1.0.0-rc.6` | `0.1.0.6` | `1.0.0-rc.6` |
 | `1.2.3` | `1.2.3` | `1.2.3` |
 
-The leading `0` on prereleases pins them strictly below every stable tuple with M ≥ 1, so the CWS upgrade ordering stays monotonic across the RC → GA cut. Stable bumps are unchanged (`1.2.3` → `1.2.3`).
+The wallet releases on the stable `0.x` line, so every release takes the stable rule and its `version` equals its semver. The prerelease rows show what the script does with an `-rc.N` input; no release on the current line carries one. The leading `0` on prereleases pins them strictly below every stable tuple with M ≥ 1, which keeps CWS upgrade ordering monotonic from an RC to its GA. It does not keep an RC above the `0.x` versions already published: `1.0.0-rc.1` derives `0.1.0.1`, which Chrome sorts below `0.341.2`, so cutting an RC from the current line would break CWS upgrade ordering. Stable bumps are unchanged (`1.2.3` → `1.2.3`).
 
 ## Per-shell build
 
@@ -53,7 +54,7 @@ The leading `0` on prereleases pins them strictly below every stable tuple with 
 | Web | `pnpm --filter @xchain-wallet/web build` | `packages/web/dist/`: static SPA |
 | Extension | `pnpm --filter @xchain-wallet/extension build` | `packages/extension/dist/`: unpacked Chrome extension |
 | Desktop renderer | `pnpm --filter @xchain-wallet/desktop build:renderer` | `packages/desktop/build/`: bundled into the asar |
-| Desktop installers | `pnpm --filter @xchain-wallet/desktop dist` | `packages/desktop/dist/`: `.dmg` / `.exe` / `.AppImage` |
+| Desktop installers | `pnpm --filter @xchain-wallet/desktop dist` | `packages/desktop/dist/`: the host platform's installers, for x64 and arm64 (`.dmg` and `-mac.zip` on macOS, `.exe` and `-win.zip` on Windows, `.AppImage` and `.deb` on Linux) |
 | Desktop pre-signing (reproducible) | `pnpm --filter @xchain-wallet/desktop dist:unpacked` | `packages/desktop/dist/linux-unpacked/` + `RELEASE_HASHES.txt` |
 
 All builds run with the workspace's `pnpm install --frozen-lockfile` to lock dep versions to the shipped lockfile. Drift in transitive deps is the most common source of reproducibility failures; the frozen lockfile is the first line of defense.
@@ -77,7 +78,11 @@ Signing identities live with the publisher (Dankest, LLC). Independent verifiers
 |---|---|
 | Web | Static-hosted at the canonical XChain Wallet URL |
 | Extension | Chrome Web Store (and per-vendor stores for Edge / Brave once added) |
-| Desktop | GitHub Releases + a maintainer-controlled update feed consumed by `electron-updater` |
+| Desktop | `https://downloads.xchain.io/wallet/desktop/`, which is also the update feed `electron-updater` reads; macOS and Linux are live, Windows is pending (see [desktop/windows.md](release/desktop/windows.md)) |
+| Mobile | Android APK at `https://downloads.xchain.io/wallet/android/`; Google Play distribution is pending (see [mobile/android-play.md](release/mobile/android-play.md)), and iOS is pending App Store release (see [mobile/ios-app-store.md](release/mobile/ios-app-store.md)) |
+| Desktop stores | Mac App Store, Microsoft Store, and Snap Store lanes are pending; each has its page under [Release engineering](release/README.md) |
+
+Which lanes have shipped is declared in the wallet repo's `tools/release/shipped-lanes.txt`, and the release signing gate reads it.
 
 Auto-update for desktop:
 
@@ -125,20 +130,21 @@ CWS submission is one of the three remaining user-driven items before v1.0.0 GA.
 
 ## Release artifact list
 
-A v1.0.0 GA release publishes:
+The authoritative list is the wallet repo's `tools/release/expected-artifacts.txt`: the signing gate refuses a release missing a required artifact and refuses any staged file no row declares. For a release `vX.Y.Z`:
 
-| Artifact | Source |
-|---|---|
-| `xchain-wallet-1.0.0.dmg` | macOS desktop installer |
-| `xchain-wallet-1.0.0.exe` | Windows desktop installer |
-| `xchain-wallet-1.0.0.AppImage` | Linux desktop bundle |
-| `xchain-wallet-1.0.0-linux-unpacked.tar.gz` | Pre-signing Linux bundle (reproducible target) |
-| `RELEASE_HASHES.txt` | SHA-256 manifest of the pre-signing Linux bundle contents |
-| `xchain-wallet-extension-1.0.0.zip` | Unpacked Chrome extension (informational; CWS hosts the canonical) |
-| `xchain-wallet-web-1.0.0.tar.gz` | Static SPA bundle (informational) |
-| `RELEASE.md` | Release notes: pulled from the `[1.0.0]` section of `CHANGELOG.md` |
+| Artifact | Source | `expected-artifacts.txt` row |
+|---|---|---|
+| `xchain-wallet-web-vX.Y.Z.tar.gz` | Static SPA bundle | required |
+| `xchain-wallet-extension-vX.Y.Z.zip` | Chrome extension package (the Chrome Web Store hosts the canonical install) | required |
+| `xchain-wallet-X.Y.Z-<arch>.dmg` and `xchain-wallet-X.Y.Z-<arch>-mac.zip` | macOS installer and update archive, x64 and arm64 | required |
+| `xchain-wallet-setup-X.Y.Z-<arch>.exe` and `xchain-wallet-X.Y.Z-<arch>-win.zip` | Windows installer and portable zip, x64 and arm64 | required |
+| `xchain-wallet-X.Y.Z-<arch>.AppImage` and `xchain-wallet_X.Y.Z_<arch>.deb` | Linux bundle and Debian package, x64 and arm64 | required |
+| `xchain-wallet-vX.Y.Z.apk` and `xchain-wallet-android-vX.Y.Z.aab` | Android direct APK and the Play bundle (the `.aab` goes to Play and is never hosted) | optional |
+| `xchain-wallet-ios-vX.Y.Z.ipa` | iOS App Store package | optional |
+| `*-mas.pkg`, `*-appx.appx`, `*.snap` | Mac App Store, Microsoft Store, and Snap Store packages | optional |
+| `RELEASE_HASHES/vX.Y.Z.txt` and its `.asc` signature | The signed SHA-256 manifest of every artifact the release carries | none (written by the signing step, not declared) |
 
-Independent verifiers download the source tarball + the pre-signing Linux bundle + `RELEASE_HASHES.txt`, run the reproduce script in a Docker container, and verify the output bundle matches the manifest.
+Hosted artifacts are published under `https://downloads.xchain.io/wallet/` (`web/`, `extension/`, `desktop/`, `android/`, and `RELEASE_HASHES/`). Independent verifiers rebuild from the tag with the reproduce script and compare the packaged-artifact hashes against the published manifest, as [Reproducible Builds](reproducible-builds.md) describes.
 
 ## Pre-launch readiness gates
 
@@ -149,14 +155,16 @@ Before tagging `v1.0.0` GA:
 | All 4 implementation phases closed | ✅ Done at v0.95.0 |
 | Static a11y audit passes (5 rules over 64 routes + 9 primitives) | ✅ Done at v0.100.0 |
 | Reproducible-build scaffolding audit passes (18 rules) | ✅ Done at v0.101.0 |
-| §56.3 pre-launch autonomous track closed | ✅ Done at v1.0.0-rc.1 |
-| §56.3 pre-launch user-initiated track autonomous portion closed | ✅ Done at v1.0.0-rc.6 |
+| §56.3 pre-launch autonomous track closed | ✅ Done 2026-04-24, in the release then labelled `1.0.0-rc.1` |
+| §56.3 pre-launch user-initiated track autonomous portion closed | ✅ Done 2026-04-24, in the release then labelled `1.0.0-rc.6` |
 | External security audit complete | ⬜ Pending: readiness packet shipped |
 | External accessibility audit complete | ⬜ Pending: readiness packet shipped |
 | Chrome Web Store submission approved | ⬜ Pending: submission playbook shipped |
 | Byte-for-byte reproducible-build verification on a clean dev machine | ⬜ Pending: protocol documented |
 
 The first three pending items are user-driven and require external coordination; the fourth is a one-shot procedure run by the maintainer on a clean Docker host.
+
+The `1.0.0-rc.N` labels in the two completed rows were retired the next day: the wallet CHANGELOG's `0.103.0` entry renumbers `1.0.0-rc.6` to `0.102.0`, and every release since is on the `0.x` line.
 
 ## Release notes
 

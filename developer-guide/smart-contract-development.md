@@ -262,14 +262,14 @@ If any emitted action fails validation (e.g., insufficient balance), ALL state c
 2. Encode the UTF-8 source per the active `CODE_ENCODING`: base64
    (`Buffer.from(source, 'utf8').toString('base64')`) at or after the
    [`DEPLOY_BASE64_CODE` activation](../protocol/flag-days.md#contract-era-flag-day)
-   on mainnet, hex-encoded before it. See `protocol/actions/DEPLOY.md`.
+   on mainnet, hex-encoded before it. See [`protocol/actions/deploy.md`](../protocol/actions/deploy.md).
 3. Broadcast a DEPLOY action: `DEPLOY|0|<code>|<gas_limit>|<constructor_params>`
 
 The indexer validates the code syntax before charging gas. If syntax is invalid, the deployment is rejected without cost.
 
 ### Deploy-Time Validation
 
-The VM performs the following checks before deployment:
+The VM performs the following checks before deployment. Ahead of check 1, a **nesting-depth pre-check** (consensus-gated, its own per-coin `VM_LINT_NESTING_DEPTH_ACTIVATION` gate) rejects source whose `(`, `[`, `{` and `${` delimiters nest more than 64 deep, with `nesting depth exceeds limit (64) at line N`; delimiters inside comments, strings and template text do not count. Flatten deeply nested literals or expressions into named intermediate values.
 
 1. **V8 syntax check**; the code must parse as valid JavaScript
 2. **Acorn metering pass**; the code must be parseable by acorn (ES2020 maximum)
@@ -282,7 +282,7 @@ The VM performs the following checks before deployment:
 9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): any reference to the global `WebAssembly` is rejected.
 10. **Banned `with` statement check** (consensus-gated, its own `LINT_BANNED_WITH_ACTIVATION` gate): any `with` statement is rejected. A `with` block resolves free identifiers against an object at runtime, which would get past the name-based checks above and the gas-metering rewrite. Read the properties through the object instead (`obj.x`, not `with (obj) { x }`).
 
-Checks 7 and 9 are live today on testnet/regtest (the Pkg 3 sandbox gate is unconditionally active on those networks) even though their mainnet activation is a separate flag-day; a regtest deploy that trips either one is rejected now. Check 8 rides its own `REST_PATTERN_METER` gate rather than the Pkg 3 one, and is likewise unconditionally active on testnet/regtest, so the `xchain-lint` CLI, the SDK linter and a regtest deploy all reject an unmeterable rest pattern today. Check 10 rides its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../protocol/protocol-activation.md#where-the-values-live) height gate: it is live from genesis on regtest and unarmed on mainnet and testnet until an operator arms a height, while the `xchain-lint` CLI and the SDK linter enforce it by default, so a local lint or a regtest deploy containing `with` is rejected today. The `VM_LINT_HARDENING` widenings under checks 3, 4, and 6 activate at the same instant as `VM_BANNED_ASYNC` and are default-on for the SDK and CLI already. Checks 4, 6, and 9 also match the global-object spellings of `Math`, `Promise`, and `WebAssembly` (`globalThis.Math.pow(...)`, and under the genesis-armed `LINT_GLOBAL_ALIAS_ACTIVATION` gate `this.Math.pow(...)` and `globalThis.globalThis.Promise`), so qualifying the name does not get it past the check; see [Global-object spellings](../components/vm/operations.md#global-object-spellings).
+Checks 7 and 9 are live today on testnet/regtest (the Pkg 3 sandbox gate is unconditionally active on those networks) even though their mainnet activation is a separate flag-day; a regtest deploy that trips either one is rejected now. Check 8 rides its own `REST_PATTERN_METER` gate rather than the Pkg 3 one, and is likewise unconditionally active on testnet/regtest, so the `xchain-lint` CLI, the SDK linter and a regtest deploy all reject an unmeterable rest pattern today. Check 10 rides its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../protocol/protocol-activation.md#where-the-values-live) height gate: it is live from genesis on regtest, armed on testnet at each chain's own local block height (`BTC:testnet` 156230, `LTC:testnet` 4912984, `DOGE:testnet` 67989993), and unarmed on mainnet, while the `xchain-lint` CLI and the SDK linter enforce it by default, so a local lint, a regtest deploy or a testnet deploy above that height containing `with` is rejected today. The nesting-depth pre-check follows the same arming on its own `VM_LINT_NESTING_DEPTH_ACTIVATION` gate. The `VM_LINT_HARDENING` widenings under checks 3, 4, and 6 activate at the same instant as `VM_BANNED_ASYNC` and are default-on for the SDK and CLI already. Checks 4, 6, and 9 also match the global-object spellings of `Math`, `Promise`, and `WebAssembly` (`globalThis.Math.pow(...)`, and under the genesis-armed `LINT_GLOBAL_ALIAS_ACTIVATION` gate `this.Math.pow(...)` and `globalThis.globalThis.Promise`), so qualifying the name does not get it past the check. Under the `LINT_DESTRUCTURE_ACTIVATION` gate, which has the same arming as check 10, a destructured read such as `const { pow } = Math` or `const { Promise } = globalThis` is rejected too; see [Global-object spellings](../components/vm/operations.md#global-object-spellings).
 
 A non-blocking **float warning** is also generated if decimal number literals are detected in the code. This warning appears in the execution record but does not prevent deployment.
 
@@ -654,7 +654,7 @@ This allowlist is the security boundary: the federation's signed dispatch can on
 - **No value transfer:** params and a return payload only. Move tokens with the cross-chain DEX, not calls.
 - Not available from constructors.
 
-Protocol details: `protocol/Cross_Chain_Calls.md` and `protocol/actions/XCALL.md`.
+Protocol details: [`protocol/cross-chain-calls.md`](../protocol/cross-chain-calls.md) and [`protocol/actions/xcall.md`](../protocol/actions/xcall.md).
 
 ## Declaring the manifest
 

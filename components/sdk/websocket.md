@@ -325,6 +325,15 @@ ws.on('resync_required', (msg) => {
 });
 ```
 
+When the replay comes from an explorer whose indexed tip is behind the chain, its `CATCH_UP_COMPLETE` carries `stale: true` and the client emits `stale_replay`. Every row it replayed is real, and the cursor still moves to the last one, but the replay ends at that tip rather than at the chain's. Later rows arrive live once the explorer catches up, so treat the event as a "you are behind" signal, not a gap to backfill:
+
+```javascript
+ws.on('stale_replay', (msg) => {
+    // msg.data: { channels, since_action_index, latest_action_index }
+    showBehindBanner(msg.data.latest_action_index);
+});
+```
+
 ```mermaid
 sequenceDiagram
     participant Client

@@ -174,11 +174,12 @@ For users who keep keys on an offline device:
 
 ## Lock / unlock / auto-lock
 
-- Argon2id-derived session key cached in `chrome.storage.session` (extension), OS keychain (desktop, optional), or in-memory only (web)
-- Foreground auto-lock with configurable timeout (default 5 minutes)
+- Argon2id-derived session key cached in `chrome.storage.session` (extension), an OS-keychain-encrypted `session.bin` (desktop, when a keychain backend is available, else in memory), or in-memory only (web)
+- Foreground auto-lock with configurable timeout (default 15 minutes)
+- Background auto-lock on the extension (popup closed) and desktop (at launch, and with no window open), using the same timeout
 - Manual lock action accessible from the global menu and via keyboard shortcut
 - Browser-close drops the session-key namespace automatically
-- OS keychain auto-unlock on desktop is disabled by default; opt-in via Settings → Security
+- OS keychain auto-unlock on desktop is on by default wherever a keychain backend is available, bounded by the auto-lock window at launch; Lock clears it (see [Shell; Desktop](shell-desktop.md#os-keychain-auto-unlock))
 
 ## Internationalization & accessibility
 

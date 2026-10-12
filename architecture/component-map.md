@@ -327,17 +327,17 @@ See [`../components/vm/`](../components/vm/) for full documentation.
 
 | | |
 |---|---|
-| **Purpose** | Self-custodial multi-chain reference wallet; browser SPA, Chrome MV3 extension, Electron desktop app, and Capacitor mobile app (Android shipped, iOS later) |
+| **Purpose** | Self-custodial multi-chain reference wallet; browser SPA, Chrome MV3 extension, Electron desktop app, and Capacitor mobile app (Android shipped, iOS pending App Store release) |
 | **Inputs** | User interaction; xchain-sdk for action construction; xchain-explorer for balance and history queries; xchain-hub for config and fee data |
 | **Outputs** | Signed transactions broadcast to coin nodes via the encoder; read-only views of balances, tokens, actions, and markets |
-| **Storage** | Client-side only (browser localStorage / extension storage / Electron local store); no server-side state |
+| **Storage** | Client-side only; no server-side state. The AES-256-GCM-encrypted vault lives in IndexedDB (web), `chrome.storage.local` (extension), an encrypted file under Electron `userData` (desktop), or an app-private file via the native `XChainVault` plugin under an OS-keystore key (mobile). The vault never sits in `localStorage`. Browser-based shells do keep small side records there beside UI state, such as the web shell's KDF parameters and, with biometric unlock on, the authenticator-wrapped copy of the password. See [wallet architecture](../components/wallet/architecture.md) and [wallet security](../components/wallet/security.md) |
 | **Communication** | Outbound JSON-RPC and REST to xchain-encoder, xchain-explorer, and xchain-hub; no inbound API |
 
 Key technical details:
 
 - Built on xchain-sdk; all action construction goes through the SDK's 32 developer-invocable ACTION methods.
 - Supports every chain the platform runs on, today Bitcoin, Litecoin, and Dogecoin (mainnet, testnet, regtest), from the same codebase.
-- Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), an Electron desktop application, and a Capacitor mobile app wrapping the same web build (Android shipped, iOS later).
+- Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), an Electron desktop application, and a Capacitor mobile app wrapping the same web build (Android shipped, iOS pending App Store release).
 - Private keys never leave the client; signing happens locally before broadcast.
 - Targets non-technical end users; UI language is intentionally plain (e.g., "About" not "Token Spec").
 

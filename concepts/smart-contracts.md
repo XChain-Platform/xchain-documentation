@@ -259,7 +259,7 @@ block **after** the one where it was applied; the same one-block visibility rule
 ### Cross-Chain Contract Calls
 | Method | Gas | Description |
 |---|---|---|
-| `xchain.emit.crossExecute({targetChain, contractIndex, method, params?, gasLimit, callbackMethod, callbackParams?, deadlineBlocks?})` | 500 + 2,000 + gasLimit + 20,000 | Asynchronously invoke a `crossCallable` method on a contract on another chain; the outcome arrives via `callbackMethod(callId, targetChain, status, payload, ...callbackParams)`. Returns the deterministic 64-hex `callId`. No refunds; hop budget 2 (`xchain.getCrossHops()`). See `protocol/Cross_Chain_Calls.md`. |
+| `xchain.emit.crossExecute({targetChain, contractIndex, method, params?, gasLimit, callbackMethod, callbackParams?, deadlineBlocks?})` | 500 + 2,000 + gasLimit + 20,000 | Asynchronously invoke a `crossCallable` method on a contract on another chain; the outcome arrives via `callbackMethod(callId, targetChain, status, payload, ...callbackParams)`. Returns the deterministic 64-hex `callId`. No refunds; hop budget 2 (`xchain.getCrossHops()`). See [`protocol/cross-chain-calls.md`](../protocol/cross-chain-calls.md). |
 
 ### External Attestation: asking the outside world (see [framework section below](#asking-the-outside-world-the-attestation-framework))
 | Method | Gas | Description |
@@ -417,7 +417,7 @@ The `askIsTrue` method emits ATTEST v0 and returns. A handful of blocks later, t
 
 Each request may carry two distinct escrows:
 
-**(a) GAS_ESCROW / `per_call_base_fee_xchain`**: the provider's governance-configured base fee (LLM: 0.50 XCHAIN; http_get: 0.01 XCHAIN). Both providers currently default this to `'0'`, so this escrow is not yet collected in production. On `ok` it would be paid out to the responding validators; on expiry the redistribution mechanism is future economic work.
+**(a) GAS_ESCROW / `per_call_base_fee_xchain`**: the provider's governance-configured base fee (LLM: 0.50 XCHAIN; http_get: 0.01 XCHAIN). Those are the registry defaults, but the fee is not yet charged: the indexer records `GAS_ESCROW` as `'0'` on every request and nothing reads `per_call_base_fee_xchain` at request time, so this escrow is not collected in production (see [ATTEST](../protocol/actions/attest.md)). On `ok` it would be paid out to the responding validators; on expiry the redistribution mechanism is future economic work.
 
 **(b) Optional paid-attestation fee (`feeTick` / `feeAmount`)**: an explicit fee a contract includes in the request (E1 feature, active now). Passing `feeAmount > 0` escrows that amount from the calling contract (`FEE_PAYER`) at request time. On `ok` the fee is split among the responsible validators. On expiry or provider error (service not rendered) the fee is **refunded in full to the caller**.
 

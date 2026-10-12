@@ -153,7 +153,7 @@
       "type": "service",
       "group": "clients",
       "tech": "JS monorepo: web SPA, MV3 extension, Electron, Capacitor mobile",
-      "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, mobile (Capacitor; Android shipped, iOS later), plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device."
+      "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, mobile (Capacitor; Android shipped, iOS pending App Store release), plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device."
     },
     {
       "id": "node",
@@ -306,7 +306,7 @@
       "id": "r16",
       "source": "sync",
       "target": "decoderdb",
-      "label": "snapshots decoded txs (8 of 9 tables)",
+      "label": "snapshots decoded txs (8 of 10 tables)",
       "kind": "read"
     },
     {
@@ -776,7 +776,7 @@
           "n": 2,
           "node": "sync",
           "edge": "r16",
-          "action": "Decoder DB is snapshotted too (8 of 9 tables; transparency/mempool excluded by design)."
+          "action": "Decoder DB is snapshotted too (8 of 10 tables; mempool_transactions and dispenser_extension_undo excluded by design)."
         },
         {
           "n": 3,

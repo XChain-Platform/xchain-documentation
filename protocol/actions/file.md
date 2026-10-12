@@ -82,6 +82,10 @@ fee, are what bound that growth:
 - the serve-time decompression ratio cap, which bounds what a crafted payload can inflate to
   in a reader.
 
+The encoder applies the envelope ceiling to the uncompressed file, so `COMPRESSION` lowers
+the cost of a file that fits but does not raise the largest file the envelope accepts; see
+[Taproot envelope: Choosing it](../taproot-envelope.md#choosing-it).
+
 If FILE volume ever makes storage growth an operational problem, the ceiling is the lever to
 reach for. Anyone sizing indexer or explorer capacity should plan against the ceiling and
 expected FILE rate rather than assuming a fee throttles demand, because none does.

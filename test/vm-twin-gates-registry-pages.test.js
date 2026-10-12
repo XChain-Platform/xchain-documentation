@@ -108,6 +108,20 @@ function vmNetworkTables(sources) {
     }).filter(Boolean);
 }
 
+// Wording that calls a gate off on testnet, which a table armed on testnet contradicts.
+const STALE_TESTNET_NOTE = /(?:unarmed|inert) on mainnet and testnet|only regtest runs it|stays inert until/;
+
+// A testnet-armed table's note, from its name to its twin, must not call testnet off.
+function assertTestnetArmedNote(row, gate) {
+    const testnet = gate.thresholds.testnet;
+    if (testnet === null || testnet >= SENTINEL_FLOOR) return;
+    const start = row.indexOf(`\`${gate.marker}\``);
+    const end = row.indexOf(`indexer twin is \`${gate.registry}\``, start);
+    if (start < 0 || end < 0) return;
+    assert.doesNotMatch(row.slice(start, end), STALE_TESTNET_NOTE,
+        `xchain-vm row calls ${gate.vm} off on testnet, but its table arms testnet`);
+}
+
 function assertTwinRegistryPages(activation, flagDays, tables) {
     const row = vmServiceRow(activation);
     const rosters = {
@@ -122,6 +136,7 @@ function assertTwinRegistryPages(activation, flagDays, tables) {
             row.includes(`indexer twin is \`${gate.registry}\``),
             `xchain-vm row does not pair ${gate.vm} with ${gate.registry}`,
         );
+        assertTestnetArmedNote(row, gate);
         for (const network of ['mainnet', 'testnet']) {
             const threshold = gate.thresholds[network];
             const unarmed = threshold === null || threshold >= SENTINEL_FLOOR;
@@ -177,6 +192,21 @@ test('the registry-page guard fails when a VM gate, twin, or roster entry is rem
                 () => assertTwinRegistryPages(ACTIVATION, withoutGate, tables),
                 new RegExp(`${gate.registry} has the wrong ${network}`),
             );
+        }
+    }
+    const armed = tables.filter((gate) => gate.thresholds.testnet !== null
+        && gate.thresholds.testnet > 0 && gate.thresholds.testnet < SENTINEL_FLOOR);
+    assert.ok(armed.length > 0, 'no VM table arms testnet at an instant, so the stale-note guard has no subject');
+    for (const gate of armed) {
+        const start = ACTIVATION.indexOf(`\`${gate.marker}\``);
+        const twin = `indexer twin is \`${gate.registry}\``;
+        const end = ACTIVATION.indexOf(twin, start);
+        assert.ok(start >= 0 && end > start, `${gate.vm} has no note in the xchain-vm row`);
+        for (const stale of ['it is unarmed on mainnet and testnet, ', 'only regtest runs it, from genesis, and ',
+            'it stays inert until the operator arms it, ']) {
+            const page = ACTIVATION.slice(0, end) + stale + ACTIVATION.slice(end);
+            assert.throws(() => assertTwinRegistryPages(page, FLAG_DAYS, tables),
+                new RegExp(`calls ${gate.vm} off on testnet`));
         }
     }
     const future = sources.concat(

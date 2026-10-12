@@ -189,10 +189,19 @@ renamed, retyped, or restructured in a way an existing consumer could
 mis-parse (additive optional fields do not bump it). The official SDK warns
 when the server reports a newer schema than it was built against.
 
+**`stale: true`** sits at the top level of the envelope on `WELCOME`,
+replayed catch-up frames, `CATCH_UP_COMPLETE`, `SNAPSHOT` and live frames
+while the coin's indexed tip is older than its maximum age. The rows are
+still real, but they end at a tip that is behind the chain. `WELCOME` also
+repeats it as `data.stale`, beside the tip indices it qualifies. The field
+is absent, never `false`, while the tip is fresh, so one `if (msg.stale)`
+check covers every frame.
+
 **Wire types under schema v2:** BigInt-backed fields (`action_index`,
 `block_index`, `block_time`, `latest_block_index`, `latest_action_index`,
-the `NEW_BLOCK` counts `tx_count` and `action_count`, and other
-chain-index/amount fields) serialize as **decimal strings**, not
+the `NEW_BLOCK` counts `tx_count` and `action_count`, the `TOKEN_UPDATE`
+holder count `holders`, and other chain-index/amount fields) serialize as
+**decimal strings**, not
 JSON numbers, matching the REST API. Compare them as strings or parse with
 `BigInt(...)`; a numeric `===` against them will silently fail. `timestamp`
 and rate-limit metadata remain JSON numbers. The payload examples below show
@@ -291,7 +300,7 @@ Channel: `token`
   "data": {
     "tick": "PEPE",
     "supply": "100000000.00000000",
-    "holders": 1234,
+    "holders": "1234",
     "last_action_index": "45680"
   }
 }
@@ -425,7 +434,10 @@ the `BET_CLOSED` cursor is.
 
 ### Order Lifecycle Events
 
-These fire on both the `actions` channel and the `address` channel for involved addresses.
+These fire on the `actions` channel and on the `address` channel of each address the frame's
+`data` names: its `source`, or on `COINPAY_REQUIRED` its `payer_address` and `payee_address`.
+A lifecycle frame does not carry the `destinations` a `NEW_ACTION` lists, and it is not sent to
+their `address` channels.
 
 #### ORDER_MATCH
 

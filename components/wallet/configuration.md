@@ -33,7 +33,7 @@ Settings persist in the encrypted vault under the `settings` collection (`core/s
 
 | Section | Keys |
 |---|---|
-| Security | `autoLockTimeoutMs`, `osKeychainAutoUnlock`, `requirePasswordToViewKey`, `confirmEverySign` |
+| Security | `autolockMinutes` (minutes; default 15, `0` = Never), `requirePasswordToViewKey`, `confirmEverySign` |
 | Chains | per-chain `encoderUrl`, `explorerUrl`, `hubUrl`, `addressType`, `feeStrategy` |
 | Display | `locale`, `theme`, `reducedMotionOverride`, `chartTimeframe` |
 | Notifications | `desktopNotifications`, `webSocketNotifications`, `notificationLevel` |

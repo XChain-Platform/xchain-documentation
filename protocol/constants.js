@@ -888,7 +888,7 @@ const ATTEST_REQUEST_CAPS = {
 
 // ATTEST_RELAY_ACTIVATION (attestation Phase 5 cross-chain delivery): the flag-day
 // at/above which the two relay legs of the §12 CrossChainEngine model are accepted on chain:
-// ATTEST v3 (an LTC/DOGE-origin request materialized onto BTC, carrying 2f+1 cross_chain
+// ATTEST v3 (an LTC/DOGE-origin request materialized onto BTC, carrying a quorum of cross_chain
 // signatures) and ATTEST v4 (the BTC response relayed back to the origin chain, same signature
 // rail). Both are new VERSION values on an existing action, so an indexer that has NOT been
 // upgraded rejects them as an unknown VERSION while an upgraded one accepts: every indexer and

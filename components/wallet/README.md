@@ -5,13 +5,13 @@
 
 ## What is xchain-wallet
 
-xchain-wallet is the reference self-custodial wallet for the XChain Platform. It runs as a browser web app, a Chrome MV3 extension (popup + full-screen + side panel), a desktop application (Windows / macOS / Linux), and a Capacitor mobile app (Android now, iOS later), all from a single React codebase published as a pnpm workspace. The wallet supports Bitcoin, Litecoin, and Dogecoin at launch, with additional chains added as the platform adds them. It consumes [xchain-sdk](../sdk/) as its only data and signing layer and never duplicates SDK functionality.
+xchain-wallet is the reference self-custodial wallet for the XChain Platform. It runs as a browser web app, a Chrome MV3 extension (popup + full-screen + side panel), a desktop application (Windows / macOS / Linux), and a Capacitor mobile app (Android shipped, iOS pending App Store release), all from a single React codebase published as a pnpm workspace. The wallet supports Bitcoin, Litecoin, and Dogecoin at launch, with additional chains added as the platform adds them. It consumes [xchain-sdk](../sdk/) as its only data and signing layer and never duplicates SDK functionality.
 
 The wallet implements every XChain feature exposed by the platform: all 32 user-encodable ACTION types, a built-in DEX surface, encrypted messaging (ECIES / ECDH / AES), smart contracts, BTC staking + delegation, classical n-of-m + MuSig2 multisig, cross-chain flows, dispensers, parimutuel betting markets, on-chain governance voting, a `window.xchain` dApp bridge, and air-gapped PSBT signing via animated QR transport.
 
 ## Features
 
-- **Four shells, one codebase**: `@xchain-wallet/web` (Vite SPA, mobile-responsive), `@xchain-wallet/extension` (Chrome MV3 popup + full-screen + side panel + service worker), `@xchain-wallet/desktop` (Electron, main-process signing isolation), `@xchain-wallet/mobile` (Capacitor wrapper of the built web SPA; Android shipped, iOS later); all share `@xchain-wallet/core` for routes, components, flows, and signers
+- **Four shells, one codebase**: `@xchain-wallet/web` (Vite SPA, mobile-responsive), `@xchain-wallet/extension` (Chrome MV3 popup + full-screen + side panel + service worker), `@xchain-wallet/desktop` (Electron, main-process signing isolation), `@xchain-wallet/mobile` (Capacitor wrapper of the built web SPA; Android shipped, iOS pending App Store release); all share `@xchain-wallet/core` for routes, components, flows, and signers
 - **All 32 user-encodable ACTIONs** (every action has an authoring form; `PROTOCOL_ONLY_ACTIONS` is empty): ADDRESS, AIRDROP, BATCH, BET, BROADCAST, CALLBACK, COINPAY, COLLECT, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, PRICE, SEND, SLEEP, STAKE, SWAP, SWEEP, UNSTAKE, VOTE, WITHDRAW, XBRIDGE. COLLECT is BTC-only; the other 31 are offered on all three chains
 - **Self-custodial key management**: BIP39 mnemonic + optional 25th-word passphrase (captured once at setup and stored encrypted alongside the mnemonic), BIP32 HD derivation per chain, AES-256-GCM vault encrypted with an Argon2id-derived master key (calibrated per device), Counterwallet legacy mnemonic import
 - **Pluggable signer interface**: four concrete signers, `SoftwareSigner` (in-vault keys), `TrezorSigner` (Trezor Connect), `LedgerSigner` (WebHID), and `RemoteSigner` (cross-shell pairing). Multisig (classical n-of-m + MuSig2) is orchestrated by flows over these signers rather than by a signer of its own; a dedicated `MultisigSigner` is planned but not implemented
@@ -26,7 +26,7 @@ The wallet implements every XChain feature exposed by the platform: all 32 user-
 - **Air-gapped PSBT signing**: BIP21 / multisig PSBT envelope / chunked PSBT-QR; QR scanner + AnimatedQrFrames for offline cosigner round-trips; `prefers-reduced-motion` honored with manual frame stepping
 - **Sign-screen safety rails**: plain-English action decoder shows `to` / `amount` / `asset` as the user typed them, even if the encoder fabricates output; per-action expectation summaries; explicit user confirmation
 - **Onboarding and recovery**: create / import / Counterwallet-migrate / dry-run-restore / discover-used-addresses gap-limit scan; view-private-key + export-WIF gated by a "Before you continue" warning in an unlocked session (no password re-entry; a locked wallet must be unlocked first)
-- **Lock / unlock / auto-lock**: Argon2id-derived session key cached in `chrome.storage.session` (extension) or in-memory (web/desktop); foreground auto-lock; manual lock action; OS keychain auto-unlock on desktop
+- **Lock / unlock / auto-lock**: Argon2id-derived session key cached in `chrome.storage.session` (extension), an OS-keychain-encrypted file (desktop, when a keychain backend is available) or in-memory (web, and desktop without a keychain); foreground auto-lock, plus a background auto-lock on the extension and desktop; manual lock action; OS keychain auto-unlock on desktop
 - **i18n + a11y**: string registry under `core/src/i18n`; static a11y audit gate (button label / img alt / input label / textarea label / div-onclick role+tabIndex) blocks regressions in CI; WCAG 2.2 AA target for the external audit
 - **Reproducible builds**: Level-2 reproducibility of the pre-signing Linux desktop bundle: digest-pinned base image, frozen lockfile, `SOURCE_DATE_EPOCH` from `git log`, `RELEASE_HASHES.txt` SHA-256 manifest, 18-rule static repro-build audit
 - **URI scheme handling**: registered handlers for `bitcoin:`, `dogecoin:`, `litecoin:`, and `xchain:` URIs across all three shells
@@ -78,7 +78,7 @@ The repository depends on a sibling `xchain-sdk` checkout, both `packages/web/pa
 pnpm --filter @xchain-wallet/web dev
 ```
 
-Vite serves the wallet at `http://localhost:5173`. The web shell is mobile-responsive, open it on a phone for the mobile UX. A native Android app, the Capacitor wrapper of this web build, has shipped (`v0.336.0`); a native iOS app is still on the post-launch roadmap.
+Vite serves the wallet at `http://localhost:5173`. The web shell is mobile-responsive, open it on a phone for the mobile UX. A native Android app, the Capacitor wrapper of this web build, has shipped (`v0.336.0`); a native iOS app, the same Capacitor wrapper, is built and pending App Store release.
 
 ### Build the Chrome extension
 

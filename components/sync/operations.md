@@ -734,19 +734,20 @@ Decoder data is fully deterministic from the coin node (there are no synthetic c
 
 ### Tables replicated
 
-The decoder DB contains 9 tables. xchain-sync replicates 8 of them:
+The decoder DB contains 10 tables. xchain-sync replicates 8 of them:
 
 | Table | Replicated | Notes |
 |---|---|---|
 | `blocks` | Yes | Block-scoped |
 | `transactions` | Yes | Block-scoped |
 | `transaction_outputs` | Yes | TX-scoped |
-| `dispensers` | Yes (snapshot only) | Excluded from the per-block stream; the decoder prunes expired dispensers each block with a count-reducing DELETE that streaming inserts can't represent, so it converges via the full snapshot instead |
+| `dispensers` | Yes (snapshot only) | Excluded from the per-block stream; the decoder soft-expires dispensers inside the block transaction (an UPDATE that stamps `expired_block_index`) and, after the block commits, hard-purges rows soft-expired at a reorg-safe depth with a DELETE. Neither change is an insert the stream can carry, so the replica converges via the initial snapshot and then a periodic full-table reconcile (`DISPENSERS_RECONCILE_EVERY`, `DISPENSERS_RECONCILE_MAX_INTERVAL_MS`) |
 | `index_addresses` | Yes | Append-only index |
 | `index_transactions` | Yes | Append-only index |
 | `pubkeys` | Yes | Append-only index |
 | `events` | Yes | Operational/logging |
 | `mempool_transactions` | **No** | Excluded: non-deterministic across nodes |
+| `dispenser_extension_undo` | **No** | Excluded: decoder-local reorg bookkeeping (each dispenser row's values before a block's first expiration extend) |
 
 Additionally, the transparency log table (`sync_meta`) is **not** created for decoder replicas; it is indexer-only.
 

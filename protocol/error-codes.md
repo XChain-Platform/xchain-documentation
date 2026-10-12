@@ -33,7 +33,7 @@ Errors are JSON objects:
 | `CHECKPOINT_NOT_FOUND` | 404 | No quorum-signed checkpoint at that height | Maybe: checkpoints lag the tip |
 | `RATE_LIMITED` | 429 | Per-IP request budget exhausted (app-wide default 1080/min; some routes have tighter limits, see [explorer rate limiting](../components/explorer/configuration.md#rate-limiting)) | Yes: back off; honor `RateLimit-*` headers |
 | `SERVER_ERROR` | 500 | Unexpected internal failure | Yes: with backoff |
-| `UPSTREAM_ERROR` | 502 | The colocated indexer fee service failed | Yes: with backoff |
+| `UPSTREAM_ERROR` | 502 | The colocated indexer fee service failed. Four indexer proxy routes return it when their indexer call fails: native fee quote, oracle fee quote, fee schedule and action pre-flight (a validator-set proof reports the same failure as `INDEXER_UNAVAILABLE`) | Yes: with backoff |
 | `COIN_NOT_AVAILABLE` | 503 | Coin supported but not configured for data requests here | No: use another instance |
 | `INDEXER_NOT_CONFIGURED` | 501 | The route needs an indexer API this instance lacks for the coin/network: native and oracle fee quote, fee schedule, action pre-flight, and validator-set proof | No: use another instance |
 | `SERVICE_UNAVAILABLE` | 503 | The endpoint cannot serve this request | No |

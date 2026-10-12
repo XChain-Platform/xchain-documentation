@@ -202,7 +202,7 @@ XChain_{TICKER}_{Network}_{Component}
 
 In **server mode**, the service reads from the authoritative indexer and decoder databases; the same ones the indexer/decoder write to.
 
-In **client mode**, the service creates replica databases with the same names and schema. Indexer replicas contain an exact copy of the indexer data; decoder replicas contain 8 of the 9 decoder tables (`mempool_transactions` excluded).
+In **client mode**, the service creates replica databases with the same names and schema. Indexer replicas contain an exact copy of the indexer data; decoder replicas contain 8 of the 10 decoder tables (`mempool_transactions` and `dispenser_extension_undo` excluded).
 
 ## Database Schema
 
@@ -227,14 +227,14 @@ One additional table is used by the sync service itself for indexer replicas onl
 
 ### Decoder replicas
 
-Decoder replica databases use a smaller schema derived from the decoder DB. Of the 9 tables in the decoder DB, xchain-sync replicates 8 (`mempool_transactions` is excluded as it is non-deterministic across nodes):
+Decoder replica databases use a smaller schema derived from the decoder DB. Of the 10 tables in the decoder DB, xchain-sync replicates 8 (`mempool_transactions` is excluded as it is non-deterministic across nodes, and `dispenser_extension_undo` is decoder-local reorg bookkeeping that stays local):
 
 - `blocks`, `transactions`, `transaction_outputs`, `dispensers`
 - `index_addresses`, `index_transactions`, `pubkeys`, `events`
 
 The transparency log table (`sync_meta`) is not created for decoder replicas.
 
-**Note on `dispensers` replication:** `dispensers` is present in the replica but does NOT ride the per-block WebSocket stream. The decoder soft-expires dispenser rows each block (updating `expired_block_index`) and defers hard-purges to a separate job; neither mutation is block-bound. Streaming only inserted rows would cause a follower's count to grow monotonically above the source. Instead, `dispensers` converges to the current source state via full snapshot only. Do not use the per-block row count for `dispensers` as a completeness signal.
+**Note on `dispensers` replication:** `dispensers` is present in the replica but does NOT ride the per-block WebSocket stream. The decoder soft-expires dispenser rows each block (updating `expired_block_index`) and hard-purges them later, once that height is reorg-safe-deep, in a step that runs after the block commits; neither change is an insert, so the per-block stream cannot carry it. Streaming only inserted rows would cause a follower's count to grow monotonically above the source. Instead, `dispensers` converges to the current source state via full snapshot only. Do not use the per-block row count for `dispensers` as a completeness signal.
 
 ## Connection Pool Configuration
 

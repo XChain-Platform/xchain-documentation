@@ -297,7 +297,7 @@ The protocol defines 38 named ACTIONs across ten categories. Of these, 32 are us
 
 ### 6.2 Transfers
 
-- **SEND** transfers balances. v0 single; v1 multi (same tick); v2 multi (mixed ticks); v3 per-transfer memos. For a token with active gated content, a SEND must be batched with a `MESSAGE v2` carrying the re-encrypted content key to the recipient (§15).
+- **SEND** transfers balances. v0 single; v1 multi (same tick); v2 multi (mixed ticks); v3 per-transfer memos. For a token with active gated content, a SEND must be batched with a `MESSAGE v2` carrying the re-encrypted content key to the recipient, unless every pack gating that token sets a `GATE_MIN_AMOUNT` unlock threshold the recipient will still be below after the transfer (§15).
 - **SWEEP** moves all balances and/or ownerships from an address, optionally closing market positions. Five flags: `BALANCES`, `OWNERSHIPS` (default on), `ORDERS`, `SWAPS`, `DISPENSERS` (default off). Escrowed value is only reachable via the corresponding position flag.
 - **AIRDROP** distributes a token to every member of a `LIST` (of addresses, or of holders of listed tokens). v0-v3 scale from single to multi-token, multi-list, with memos. Fee scales with recipient count.
 - **DIVIDEND** pays a dividend token pro-rata to all holders of a token. The source is excluded; sub-unit rounding excludes zero-share holders. Fee scales with recipients.

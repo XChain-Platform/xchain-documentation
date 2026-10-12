@@ -83,7 +83,7 @@ The platform defines 38 named ACTIONs; 37 ACTION types are decoded from the wire
 | `ORDER` | Place a buy or sell order on the platform's order book. Orders are matched by the indexer automatically. Supports native coin pairs (BTC/LTC/DOGE) via the COINPay settlement model. |
 | `COINPAY` | Fulfills a native coin payment obligation created by an ORDER_MATCH. The transaction includes both the action data and a native coin output paying the seller. |
 | `DISPENSER` | Create a vending machine that sells tokens at a fixed rate in exchange for coin payments. Closes when it is depleted, cancelled, or reaches its `EXPIRATION` (90 days by default), returning any tokens still escrowed to the creating address. |
-| `SWAP` | Initiate or fulfill a cross-chain atomic token swap, coordinated by the hub. |
+| `SWAP` | Initiate or fulfill a cross-chain token swap: each chain escrows its own leg and settles it against a validator-signed match coordinated by the hub. |
 
 ### Cross-Chain Bridge
 
@@ -104,7 +104,7 @@ The platform defines 38 named ACTIONs; 37 ACTION types are decoded from the wire
 | ACTION | What it does |
 |---|---|
 | `ADDRESS` | Set per-address preferences, such as requiring a memo for all incoming transfers. |
-| `BATCH` | Combine multiple ACTIONs into a single transaction. All or none execute: if any ACTION in the batch is invalid, the entire batch fails. |
+| `BATCH` | Combine multiple ACTIONs into a single transaction. Not atomic: each ACTION is validated and settled on its own, in order, so an invalid ACTION is recorded invalid by itself while the others stand. Only a structural fault (an unrecognized action, a nested BATCH, an exceeded limit) rejects the whole batch. See [BATCH](#batch-composing-multiple-actions) below. |
 | `LINK` | Create a cross-reference to another ACTION by its `ACTION_INDEX`. Used for associating related operations across transactions or chains. |
 | `LIST` | Define a named list of addresses or tickers. Referenced by ISSUE (for allow/block lists) and AIRDROP (for recipient lists). |
 

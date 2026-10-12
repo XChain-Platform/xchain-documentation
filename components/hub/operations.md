@@ -364,12 +364,42 @@ These series are served on the metrics endpoint only when [`METRICS_ENABLED`](./
 | `xchain_oracle_current_round` | Gauge | None | Oracle round number the round timer last opened; flat means the round loop itself is wedged. |
 | `xchain_oracle_consecutive_skipped_rounds` | Gauge | None | Trailing streak of oracle rounds that did not finalize. |
 | `xchain_oracle_round_timeouts_total` | Counter | None | Oracle rounds evicted before reaching commit quorum, leader and follower seats alike. |
+| `xchain_oracle_abandoned_rounds_total` | Counter | None | Oracle rounds this hub watched open and then recorded as abandoned, counted apart from other finalize-phase losses. |
 | `xchain_oracle_single_source_rounds_total` | Counter | None | Oracle rounds finalized with one uncorrelated price source on a normally-multi-source pair. |
 | `xchain_oracle_price_source_live` | Gauge | `source` | `1` when that upstream returned at least one usable price on this hub's last fetch and `0` when it did not; absent before the first fetch. |
 | `xchain_oracle_price_source_fetch_attempts_total` | Counter | `source` | Cumulative fetch dispatches per upstream this hub attempted this round, live or dead; the dispatch evidence behind the liveness gauge. |
 | `xchain_oracle_price_source_bound_rejects_total` | Counter | `source` | Upstream values dropped on the ingest bound. |
+| `xchain_oracle_publisher_published_total` | Counter | None | Oracle price publishes this hub broadcast. |
+| `xchain_oracle_publisher_abandoned_total` | Counter | None | Oracle rounds this hub gave up publishing and moved to the dead-letter file. |
+| `xchain_oracle_publisher_takeover_attempts_total` | Counter | None | Windows this hub re-assembled to cover a publish leader that went silent. |
+| `xchain_oracle_publisher_takeover_published_total` | Counter | None | Takeover windows this hub went on to publish; flat while attempts climb means takeovers are not reaching chain. |
+| `xchain_oracle_publisher_batch_sign_timeouts_total` | Counter | None | PRICE batch signing rounds that timed out waiting for co-signatures. |
+| `xchain_oracle_publisher_last_published_round` | Gauge | None | Last oracle round this hub published; absent until it has published one. |
+| `xchain_oracle_publisher_unconfirmed_publishes` | Gauge | None | Publishes this hub broadcast that have not yet reached a block. |
 
 Single-source warning lines now name the live and dead upstreams (for example, `live: coingecko; dead: kraken, coinbase`) and the pairs that went single-source with their submitters, so an operator can tell which source dropped.
+
+## Attestation and Checkpoint Metrics
+
+These series are served under the same [`METRICS_ENABLED`](./configuration.md#metrics-and-log-shipping) switch. Each engine's series stay absent on a hub that does not run that engine.
+
+| Series | Type | Labels | What it tells you |
+|---|---|---|---|
+| `xchain_attestation_consensus_timeouts_total` | Counter | None | Attestation rounds torn down by the consensus timeout before reaching quorum. |
+| `xchain_attestation_poll_errors_total` | Counter | `kind` | Attestation request polls that failed, by cause: `rpc` rejection, `transport` failure or `auth` refusal. |
+| `xchain_attestation_last_successful_poll_timestamp_seconds` | Gauge | None | Unix time of the last usable attestation request poll; absent until one succeeds. |
+| `xchain_attestation_poll_unsuccessful_seconds` | Gauge | None | Seconds since the last usable attestation poll, or since the first attempt when none has succeeded. |
+| `xchain_attestation_failed_rounds` | Gauge | None | Attestation rounds this hub failed to fetch locally that are still inside the round retention window. |
+| `xchain_checkpoint_round_timeouts_total` | Counter | None | Checkpoint rounds this hub led that timed out below quorum. |
+| `xchain_checkpoint_sub_quorum_finalized_total` | Counter | None | FINALIZED checkpoint broadcasts this hub dropped as a follower for carrying too few signatures. |
+| `xchain_checkpoint_malformed_finalized_total` | Counter | None | FINALIZED checkpoint broadcasts this hub dropped as malformed. |
+| `xchain_checkpoint_seq_conflicts_total` | Counter | None | Quorum-signed checkpoints refused because a different payload already holds that sequence; any rise is an equivocation report. |
+| `xchain_checkpoint_seq_double_sign_refusals_total` | Counter | None | Signature requests refused because this hub already signed a different payload at that sequence. |
+| `xchain_checkpoint_cadence_stalls_total` | Counter | None | Checkpoint cadence ticks that were due but this hub could not lead. |
+| `xchain_checkpoint_cadence_stalled` | Gauge | None | `1` while the checkpoint cadence is stalled with a named reason, `0` once a round clears it. |
+| `xchain_checkpoint_observer_idle` | Gauge | None | `1` when this hub sits outside the checkpoint signer set and deliberately opens no round. |
+| `xchain_checkpoint_frozen_tip_ticks` | Gauge | None | Consecutive not-my-slot checkpoint ticks that saw the same BTC block. |
+| `xchain_checkpoint_frozen_tip_stall_ticks` | Gauge | None | The tick count at which a frozen tip is metered as a cadence stall; alert when `xchain_checkpoint_frozen_tip_ticks` reaches it. |
 
 ## Resilience and Recovery
 

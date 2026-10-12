@@ -497,15 +497,16 @@ On each finalized oracle round, `RewardTracker` splits `ORACLE_REWARD_PER_ROUND`
 
 ### Slash Detection
 
-Three offense types are monitored:
+Four offense types are monitored:
 
 | Offense | Trigger | Description |
 |---|---|---|
 | `price_deviation` | >5% from consensus | Submission deviates more than `SLASH_DEVIATION_THRESHOLD` from the finalized price |
 | `repeated_deviation` | 3+ in 24 hours | Three or more deviations within a rolling 24-hour window |
 | `non_participation` | 30+ missed rounds | `SLASH_MISSED_ROUNDS_THRESHOLD` consecutive rounds without a submission |
+| `attestation_divergence` | Diverged body on a `byte_equality` provider | A validator's `ok` PROPOSE body hash differs from the quorum-agreed winner; only `byte_equality` providers are checked, and a `provider_error` report never counts |
 
-Detection is recorded in the `slash_proposals` table for governance review. All three offenses are hub-local: the strongest outcome of a governance vote is `validators.status='suspended'`, which excludes the validator from PBFT rounds and leaves on-chain stake untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which no offense in this table produces. See [Decentralization](decentralization.md) for the three penalty lanes.
+Detection is recorded in the `slash_proposals` table for governance review. All four offenses are hub-local: the strongest outcome of a governance vote is `validators.status='suspended'`, which excludes the validator from PBFT rounds and leaves on-chain stake untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which no offense in this table produces. See [Decentralization](decentralization.md) for the three penalty lanes.
 
 ---
 

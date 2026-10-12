@@ -53,11 +53,7 @@ All services that communicate with a coin node (decoder, encoder, UTXO tracker) 
 | `NODE_USER` | RPC username | `rpc` |
 | `NODE_PASSWORD` | RPC password | (set per deployment) |
 
-For Dogecoin, also set:
-```
-AUX_POW=1
-```
-This enables AuxPoW header stripping in the block parser.
+No extra variable is needed for Dogecoin: AuxPoW header stripping is selected from `NETWORK` (on for `dogecoin-*`, never on for Bitcoin or Litecoin). `AUX_POW` is a legacy variable that the decoder and UTXO tracker still read but ignore.
 
 ### MariaDB Connection
 
@@ -111,7 +107,7 @@ This table is the canonical service port map. It matches what the xchain-node in
 | `NODE_URL` / `NODE_PORT` / `NODE_USER` / `NODE_PASSWORD` | Coin node connection | Required |
 | `DECODER_DB_*` | MariaDB connection | Required |
 | `DECODER_API_PORT` | JSON-RPC API port | `3002` |
-| `AUX_POW` | Set truthy for Dogecoin AuxPoW | unset |
+| `AUX_POW` | Legacy; read but ignored. AuxPoW stripping is chosen from `NETWORK` (Dogecoin only) | unset |
 
 The decoder polls for new blocks every ~1 second. It waits for the coin node to report `verificationprogress >= 0.99` before processing. Mempool is refreshed every 60 seconds once synced.
 
@@ -167,7 +163,7 @@ The hub uses MariaDB for all data storage. The database and tables are auto-crea
 | `NETWORK` | Chain + network string |
 | `NODE_URL` / `NODE_PORT` / `NODE_USER` / `NODE_PASSWORD` | Coin node connection |
 | `UTXO_TRACKER_API_PORT` | API port |
-| `AUX_POW` | Set truthy for Dogecoin |
+| `AUX_POW` | Legacy; read but ignored. AuxPoW stripping is chosen from `NETWORK` (Dogecoin only) |
 
 The tracker processes blocks in batches of up to 200 (`DB_TRANSACTION_BLOCKS_QUANTITY`; flush may trigger earlier under heap pressure). LevelDB data is stored at `/data/xchain-utxo-tracker/`. Bootstrap archives are stored at `/bootstrap/xchain-utxo-tracker/`.
 

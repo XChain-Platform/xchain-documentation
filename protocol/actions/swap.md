@@ -59,7 +59,7 @@ This example sells JDOG (BTC-chain) ownership for 5,000,000 WOWCOIN on LTC. `GET
 
 ```
 SWAP|0|BTC|JDOG||1|LTC|WOWPEPE||1|LJDogZS6tQcSxwfxhv6XKKjcyicYA4Feev||||Swap JDOG ownership for WOWPEPE ownership cross-chain
-This example atomically swaps ownership of JDOG (BTC chain) for ownership of WOWPEPE (LTC chain). `GET_ADDRESS` is the LTC address that will become the new owner of WOWPEPE for this order's SOURCE.
+This example swaps ownership of JDOG (BTC chain) for ownership of WOWPEPE (LTC chain); each chain transfers its own leg against the signed match (see [Residual reorg risk](../cross-chain-dex.md#residual-reorg-risk)). `GET_ADDRESS` is the LTC address that will become the new owner of WOWPEPE for this order's SOURCE.
 ```
 
 ## Rules
@@ -82,7 +82,7 @@ This example atomically swaps ownership of JDOG (BTC chain) for ownership of WOW
   - Additional `ORDER`/`SWAP`/`DISPENSER` ownership offers for this `TICK` from the original owner
 - Holder-side actions are unaffected: `SEND`, `MINT` (if mint window open), `DIVIDEND` payouts, `DEPOSIT`/`WITHDRAW`, `DESTROY` of held balance
 - Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold
-- On match: ownership transfers atomically to the counterparty's SOURCE
+- On match: ownership transfers to the counterparty's SOURCE. On a cross-chain swap each chain transfers its own leg against the signed match, so the two legs settle separately rather than in one step
 - On cancel (Version 1) or `EXPIRATION`: ownership returns to the original SOURCE
 
 ### Sweep Closure

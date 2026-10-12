@@ -1457,18 +1457,29 @@ await sdk.session(wif).stakeToContract({
 
 Begin unstaking cooldown for a previously staked pubkey. Two flavors with different chain reach:
 
-- **v0:** capability unstake.** BTC-only. Returns the full aggregate capability stake for the pubkey (v1 original + any v2 top-ups).
-- **v1:** contract-targeted unstake.** Works on any chain (BTC, LTC, DOGE). Releases the single `(targetContractIndex, signingPubkey, tick)` stake row.
+- **v0:** capability unstake.** BTC-only. Without `amount`, returns the full aggregate capability stake for the pubkey (v1 original + any v2 top-ups); with `amount`, only that much enters cooldown and the residual stays staked.
+- **v1:** contract-targeted unstake.** Works on any chain (BTC, LTC, DOGE). Releases the single `(targetContractIndex, signingPubkey, tick)` stake row, or only `amount` of it when `amount` is given.
 
 ```js
-// Capability unstake
+// Capability unstake (full sweep)
 await sdk.unstake({ signingPubkey: 'aabb...' });
+
+// Partial capability unstake: 250 enters cooldown, the rest stays staked
+await sdk.unstake({ signingPubkey: 'aabb...', amount: '250' });
 
 // Contract-targeted unstake (convenience wrapper forces version: 1)
 await sdk.session(wif).unstakeFromContract({
     signingPubkey: 'aabb...',
     targetContractIndex: 500,
     tick: 'MYTOKEN'
+});
+
+// Partial contract-targeted unstake
+await sdk.session(wif).unstakeFromContract({
+    signingPubkey: 'aabb...',
+    targetContractIndex: 500,
+    tick: 'MYTOKEN',
+    amount: '40'
 });
 ```
 
@@ -1478,13 +1489,16 @@ await sdk.session(wif).unstakeFromContract({
 | `signingPubkey` | Yes | Ed25519 pubkey of the stake to release |
 | `targetContractIndex` | v1 only | `action_index` of the stakeable contract |
 | `tick` | v1 only | Ticker of the stake row to release |
+| `amount` | Optional | Partial-unstake amount; omit for a full sweep. Must be greater than 0, no finer than the token's decimals, and no more than the active staked balance (an over-ask is rejected, never clamped). See [Partial Unstake](../../protocol/actions/unstake.md#partial-unstake-optional-amount) |
 
 ### Formats
 
 | Version | Format |
 |---|---|
-| 0 | `VERSION\|SIGNING_PUBKEY` (capability) |
-| 1 | `VERSION\|SIGNING_PUBKEY\|TARGET_CONTRACT_INDEX\|TICK` (contract-targeted) |
+| 0 | `VERSION\|SIGNING_PUBKEY[\|AMOUNT]` (capability) |
+| 1 | `VERSION\|SIGNING_PUBKEY\|TARGET_CONTRACT_INDEX\|TICK[\|AMOUNT]` (contract-targeted) |
+
+The trailing `AMOUNT` is gated by the `PARTIAL_UNSTAKE_COLLECT` protocol change; below it a present `AMOUNT` is ignored and the unstake is a full sweep.
 
 ---
 
@@ -1540,17 +1554,27 @@ await sdk.delegate({ version: 3, signingPubkey: 'aabb...', targetContractIndex: 
 
 ## COLLECT
 
-Collect all accrued validator rewards (BTC chain only). No additional parameters required.
+Collect accrued validator rewards (BTC chain only). With no parameters it claims the full unclaimed total; an optional `amount` claims only that much and leaves the remainder pending (see [Partial Claim](../../protocol/actions/collect.md#partial-claim-optional-amount)).
 
 ```js
+// Claim everything
 await sdk.collect({});
+
+// Claim 25 and leave the remainder pending
+await sdk.collect({ amount: '25' });
 ```
+
+| Field | Required | Description |
+|---|---|---|
+| `amount` | Optional | Partial-claim amount; omit to claim the full unclaimed total |
 
 ### Formats
 
 | Version | Format |
 |---|---|
-| 0 | `VERSION` |
+| 0 | `VERSION[\|AMOUNT]` |
+
+The trailing `AMOUNT` is gated by the `PARTIAL_UNSTAKE_COLLECT` protocol change; below it a present `AMOUNT` is ignored and the full total is claimed.
 
 ---
 

@@ -197,8 +197,10 @@ sdk.light.followForward({
 ```
 
 It returns the new rolling trust root (`trusted`), the chain of `adopted`
-checkpoints, and stops at the first step that fails (`VALIDATOR_SET_UNVERIFIED@h`
-or `QUORUM_FAILED@h`).
+checkpoints, and stops at the first step that fails (`ROOTS_NOT_SIGNED@h`,
+`VALIDATOR_SET_UNVERIFIED@h` or `QUORUM_FAILED@h`). `ROOTS_NOT_SIGNED@h` is a
+step below the checkpoint-commitment flag day, whose roots are outside the
+signed bytes and so cannot carry the trust root forward.
 
 ---
 

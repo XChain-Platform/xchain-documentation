@@ -533,7 +533,7 @@ Controls `FullNodeChallengeRound`, the periodic possession challenge proving a v
 | `FULLNODE_PROOF_WINDOW_BLOCKS` | No | per-coin | Blocks a challenged node has to submit a proof. |
 | `FULLNODE_REWARD_PASS_WINDOW_BLOCKS` | No | per-coin | Blocks in the reward-pass window. |
 | `FULLNODE_MIN_PASS_RATE_BPS` | No | per-coin | Minimum pass rate, in basis points, for a node to be treated as passing. |
-| `FULLNODE_REWARD_SHARE` | No | per-coin | Reward share for passing full nodes. |
+| `FULLNODE_REWARD_SHARE` | No | per-coin | Full-node fraction of the designed oracle-round reward split; a consensus parameter that must match the coin default. Nothing pays the full-node tranche today (see [COLLECT](../../protocol/actions/collect.md#reward-population-path)). |
 | `FULLNODE_GENESIS_VERIFIERS` | No | per-coin | Comma-separated genesis verifier pubkeys (lowercased). |
 | `XCHAIN_HUB_SKIP_FULLNODE_ASSERT` | No | _(unset, assertion active)_ | Set to `1` to skip the canonical-FULLNODE assertion at startup and warn instead. Intended as a loud one-off bypass for a venue running its own challenge cadence and verifier set: divergent `NODEPROOF` knobs fork the challenge schedule, so this is not a setting to leave on. |
 

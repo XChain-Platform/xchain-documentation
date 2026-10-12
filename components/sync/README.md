@@ -7,7 +7,7 @@
 
 xchain-sync is the database replication layer of the XChain Platform. It enables lightweight validators and other consumers to obtain and stay current with both the indexer database and the decoder database without running their own decoder+indexer stacks. The service runs as a single long-lived Node.js process with an embedded Express REST API and a WebSocket server, both served on the same port.
 
-All REST and WebSocket endpoints include a `/:dbType/` path segment. The `dbType` parameter is either `indexer` (full table set, with transparency log) or `decoder` (8 of the 9 decoder DB tables; `mempool_transactions` is excluded because it is non-deterministic across nodes, and the transparency log is not applicable to decoder data).
+All REST and WebSocket endpoints include a `/:dbType/` path segment. The `dbType` parameter is either `indexer` (full table set, with transparency log) or `decoder` (8 of the 10 decoder DB tables; `mempool_transactions` is excluded because it is non-deterministic across nodes, `dispenser_extension_undo` is excluded because it is decoder-local reorg bookkeeping, and the transparency log is not applicable to decoder data).
 
 The service operates in two modes. In **server mode**, it runs alongside authoritative indexers and decoders on an xchain-node, polls each database for new blocks, and serves the data to remote clients via REST snapshots and real-time WebSocket streaming. In **client mode**, it connects to one or more remote sync servers, downloads a full database snapshot for initial bootstrap, then subscribes to a WebSocket stream for ongoing block-by-block replication into a local MariaDB instance.
 

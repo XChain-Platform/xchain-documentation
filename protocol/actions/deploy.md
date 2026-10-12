@@ -70,7 +70,7 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
 - Available on all chains
 - `CODE_ENCODING` must be valid UTF-8 JavaScript source code (base64-encoded at/after the `DEPLOY_BASE64_CODE` activation, hex-encoded before it; see Encoding activation below) and must not exceed 64KB (65536 bytes decoded)
 - `GAS_LIMIT` must be a positive integer
-- The VM validates syntax before charging gas:
+- The VM validates syntax before charging gas. Ahead of step 1, a nesting-depth pre-check (consensus-gated on its own per-coin `VM_LINT_NESTING_DEPTH_ACTIVATION` height gate) rejects source whose `(`, `[`, `{` and `${` delimiters nest more than 64 deep; it is live from genesis on regtest, armed on testnet at each chain's own local block height (`BTC:testnet` 156230, `LTC:testnet` 4912984, `DOGE:testnet` 67989993), and unarmed on mainnet:
   1. V8 compilation check, rejects JavaScript syntax errors
   2. Acorn metering pass, rejects syntax beyond ES2020 (the supported syntax set)
   3. Reserved identifier check, rejects code containing `__gas` (reserved for gas metering), the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); all are harness-injected and a contract may not define or reference them
@@ -80,14 +80,16 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
   7. Banned generator check (consensus-gated), rejects `function*`, generator methods, and `yield`; live from genesis on testnet/regtest
   8. Banned rest-pattern check (consensus-gated on its own [`REST_PATTERN_METER`](../flag-days.md) gate), rejects a rest pattern the gas meter cannot charge: a rest parameter, a nested rest inside a destructuring pattern, a catch-clause rest, and a rest in a `for-of`/`for-in` loop head; live from genesis on testnet/regtest
   9. Banned WebAssembly check (consensus-gated), rejects any reference to the global `WebAssembly`; live from genesis on testnet/regtest
-  10. Banned `with` statement check (consensus-gated on its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../protocol-activation.md#where-the-values-live) height gate), rejects any `with` statement, whose runtime identifier rebinding would get past the name-based checks and the gas meter; live from genesis on regtest, unarmed on mainnet and testnet until an operator arms a height
-- Checks 4, 6 and 9 also reject the global-object-qualified spellings (`globalThis.Math.pow`, `this.Promise`, `globalThis.globalThis.WebAssembly`); see [Global-object spellings](../../components/vm/operations.md#global-object-spellings)
+  10. Banned `with` statement check (consensus-gated on its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../protocol-activation.md#where-the-values-live) height gate), rejects any `with` statement, whose runtime identifier rebinding would get past the name-based checks and the gas meter; live from genesis on regtest, armed on testnet at each chain's own local block height (`BTC:testnet` 156230, `LTC:testnet` 4912984, `DOGE:testnet` 67989993), and unarmed on mainnet
+- Checks 4, 6 and 9 also reject the global-object-qualified spellings (`globalThis.Math.pow`, `this.Promise`, `globalThis.globalThis.WebAssembly`) and, under the `LINT_DESTRUCTURE_ACTIVATION` gate (armed like check 10), destructured reads such as `const { pow } = Math` and `const { Promise } = globalThis`; see [Global-object spellings](../../components/vm/operations.md#global-object-spellings)
 - If syntax validation fails, the deployment is rejected with `invalid: CODE_ENCODING (<reason>)` and no gas is charged
 
 ```mermaid
 flowchart TD
-    Start["DEPLOY submitted"] --> V8{"1. V8 compilation check"}
-    V8 -->|"syntax error"| Reject["invalid: CODE_ENCODING (reason), no gas charged"]
+    Start["DEPLOY submitted"] --> Nest{"Nesting-depth pre-check, VM_LINT_NESTING_DEPTH_ACTIVATION gate"}
+    Nest -->|"fail"| Reject["invalid: CODE_ENCODING (reason), no gas charged"]
+    Nest -->|"pass"| V8{"1. V8 compilation check"}
+    V8 -->|"syntax error"| Reject
     V8 -->|"pass"| Acorn{"2. Acorn metering pass, ES2020 syntax set"}
     Acorn -->|"fail"| Reject
     Acorn -->|"pass"| Reserved{"3. Reserved identifier check, __gas and metering helpers"}

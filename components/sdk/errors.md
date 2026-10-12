@@ -272,7 +272,10 @@ Thrown by the `X402Gateway` and `X402Client` during HTTP 402 payment flows. See 
 | `X402_DEPOSIT_EXHAUSTED` | Deposit-scheme: payer's deposited balance is insufficient for one more call |
 | `X402_STATE_CORRUPT` | An invoice file or deposit ledger file is unreadable |
 | `X402_NO_USABLE_SCHEME` | Client-side: the gateway's challenge contains no `xchain-send` offer |
-| `X402_PRICE_TOO_HIGH` | Client-side: the gateway's offered amount exceeds the client's `maxAmount` |
+| `X402_PRICE_TOO_HIGH` | Client-side: the gateway's offered amount exceeds the client's `maxAmount` ceiling for the offered tick |
+| `X402_TICK_NOT_ALLOWED` | Client-side: the gateway's offer names a tick the client's `maxAmount` sets no ceiling for (every tick, when `maxAmount` is omitted) |
+| `X402_BAD_OFFER` | Client-side: the gateway's `xchain-send` offer has a malformed amount, or no tick or `payTo` |
+| `X402_CONFIG` | Construction-time: the gateway or client was built with a missing or malformed option (on the client, a missing session or fetch, or a malformed `maxAmount`) |
 | `X402_PAYMENT_NOT_ACCEPTED` | Client-side: payment was broadcast but the gateway did not accept it after all retries |
 
 ---

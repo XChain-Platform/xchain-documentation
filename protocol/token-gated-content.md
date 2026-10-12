@@ -116,6 +116,8 @@ Format rules for the field: a decimal amount strictly greater than zero (every z
 
 The rule enforces the **presence** of a key-handoff `MESSAGE`, not the correctness of what is inside it. Consensus cannot look inside the ciphertext, so an adversarial sender can satisfy the rule with garbage. Recipients verify the delivered key against the file's `KEY_HASH` client-side (step 5 of the unlock flow below) and ignore anything that does not match. The protocol guarantees a sender cannot *quietly omit* the handoff; it cannot guarantee the sender was honest. The omission guarantee covers a `SEND` whose `TICK` the pack lookup can match: below `SEND_CARET_PACK_KEY_ACTIVATION` (not yet armed on mainnet), a `SEND` that writes `TICK` as `^<tickid>` finds no pack and owes no handoff, as [Index ID References](./index-id-references.md) describes.
 
+The rule covers only gated `FILE`s on the token's own chain. A gated `FILE`'s `GATE_TICKER` is looked up in the token registry of the chain the `FILE` is published on, and a `SEND` weighs only the gated `FILE`s of the chain it is mined on. A `FILE` published on a sibling chain is therefore never gated by this chain's token: no `SEND` of the token owes a handoff for it, and its `GATE_MIN_AMOUNT` is never weighed against a holder's balance. A holder can decrypt it only with a key delivered some other way, such as a handoff owed for a same-chain pack that shares its `KEY_HASH`.
+
 ---
 
 ## How unlock works (no on-chain transaction required)
@@ -199,7 +201,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 
 ## Non-goals (initial release)
 
-- **Key rotation.** If a key is leaked, the only recourse is to republish the affected files under a new key.
+- **Key rotation.** If a key is leaked, the only recourse is to republish the affected files under a new key. Republishing does not retire the old files: a valid gated `FILE` stays active, so an old pack with no `GATE_MIN_AMOUNT` keeps requiring the key-handoff `MESSAGE` on every later `SEND` the pack lookup matches, whatever threshold the republished pack sets.
 - **Per-file granular gating.** All gated files for a token are unlocked atomically when the holder receives the keys. If a creator wants tiered access, they should mint multiple tokens.
 - **Revocation.** Knowledge can't be ungranted. A holder who unlocks and then transfers the token still has the bytes. The chain reflects who holds it now, not who has ever read it.
 - **DRM.** A holder can rehost plaintext anywhere.

@@ -23,7 +23,7 @@ Calibration: on first wallet creation the wallet runs Argon2id with the floor pa
 After derivation the master key:
 
 - Decrypts the vault blob via AES-256-GCM
-- Is cached for the session (`chrome.storage.session` on the extension, OS keychain on desktop if enabled, in-memory only on web and mobile)
+- Is cached for the session (`chrome.storage.session` on the extension, an OS-keychain-encrypted file on desktop when a keychain backend is available, in-memory only on web and mobile)
 - Is zeroed when the wallet locks
 
 The password itself is zeroed immediately after derivation.

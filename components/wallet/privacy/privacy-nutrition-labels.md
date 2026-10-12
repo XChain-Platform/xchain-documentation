@@ -4,7 +4,7 @@
 
 # App Store privacy nutrition labels (iOS)
 
-This page mirrors the App Store privacy nutrition label published for the iOS app. The label, the [privacy policy](privacy-policy.md) and the traffic the app actually generates all have to say the same thing, so these answers are derived from what the app calls, never from what it was meant to call. The Google Play equivalent is [Data safety](data-safety.md).
+This page mirrors the App Store privacy nutrition label entered in App Store Connect for the iOS app, which appears on the App Store listing once the app is published. The label, the [privacy policy](privacy-policy.md) and the traffic the app actually generates all have to say the same thing, so these answers are derived from what the app calls, never from what it was meant to call. The Google Play equivalent is [Data safety](data-safety.md).
 
 ## What the app contacts, in the terms Apple asks about
 

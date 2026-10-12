@@ -8,7 +8,7 @@
 ## When to use the web shell
 
 - **No-install access.** The web shell loads from a URL. No extension install, no desktop download. Lowest friction for first-time users.
-- **Mobile.** The native Android app, a Capacitor wrapper of this web build, has shipped (`v0.336.0`); a native iOS app is still on the post-launch roadmap. The web SPA remains the mobile path on iOS and anywhere the native app is not installed; the layout is responsive between phone and desktop viewports.
+- **Mobile.** The native Android app, a Capacitor wrapper of this web build, has shipped (`v0.336.0`); a native iOS app, the same Capacitor wrapper, is built and pending App Store release. Until it is published, the web SPA remains the mobile path on iOS and anywhere the native app is not installed; the layout is responsive between phone and desktop viewports.
 - **Power-user expansion.** Users who already have the extension installed sometimes prefer the web's full-screen working surface for big workflows (multi-step issue + airdrop + dispenser flows). The web app surfaces an extension-detect banner offering to relaunch in the extension.
 
 The web shell's key isolation is fundamentally weaker than the extension's, same-origin scripts on `wallet.xchain.io` could in principle access in-memory key material. Mitigations are below; users with extreme threat models should prefer the extension or desktop shells.
@@ -79,7 +79,7 @@ All sign screens collapse to a single-column form on mobile so the review pane i
 | `getUserMedia` | QR scanner only | Runtime prompt the first time; user can revoke per browser settings |
 | WebHID | Hardware signer pair / sign | Requires HTTPS; modern Chromium browsers; not available on iOS Safari |
 
-iOS Safari's lack of WebHID means hardware signers don't work on iPhone via the web shell; that user-flow waits for the native iOS app on the post-launch roadmap.
+iOS Safari's lack of WebHID means hardware signers don't work on iPhone via the web shell; that user-flow waits for the native iOS app, which is pending App Store release.
 
 ## Extension-detect banner
 
@@ -113,7 +113,7 @@ The policy is one of the few mitigations the web shell has against XSS; the wall
 
 - **Tab close**: session master key zeroed; vault re-encrypted-at-rest in IndexedDB
 - **Tab refresh**: same: in-memory state cleared, wallet returns to the locked state
-- **Foreground auto-lock**: same timeout as the extension and desktop (default 5 minutes idle)
+- **Foreground auto-lock**: same timeout as the extension and desktop (default 15 minutes idle)
 - **Multi-tab**: each tab has its own in-memory session; unlocking one tab doesn't unlock others. (Convention rather than a security guarantee; IndexedDB sharing means an unlocked tab and a different unlocked tab would race on writes.)
 
 Refresh-equals-relock is unusual for a web app and is a deliberate trade; the alternative (persisting the session key to IndexedDB) would mean a same-origin XSS could simply re-decrypt the vault. We hold the line at "your session is gone the moment your tab is gone".

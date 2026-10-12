@@ -23,7 +23,7 @@ Start with [Verify a release](verify-release.md) if you just want to check a dow
 | Extension: Chrome Web Store | [extension/chrome-web-store.md](extension/chrome-web-store.md) | Chrome Web Store submission and update lane |
 | Extension: test dApp runbook | [extension/test-dapp-runbook.md](extension/test-dapp-runbook.md) | Exercising the `window.xchain` bridge against the reference test dApp |
 | Mobile: Google Play | [mobile/android-play.md](mobile/android-play.md) | Android build and Play Store distribution |
-| Mobile: App Store | [mobile/ios-app-store.md](mobile/ios-app-store.md) | iOS build and App Store distribution |
+| Mobile: App Store | [mobile/ios-app-store.md](mobile/ios-app-store.md) | iOS build and App Store distribution, pending App Store release |
 
 ## Shared references
 

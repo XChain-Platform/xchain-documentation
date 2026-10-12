@@ -275,7 +275,7 @@ These env vars override where xchain-node stores its filesystem state on the hos
 > | LTC testnet | `testnet4/blocks/` |
 > | DOGE / LTC regtest | `regtest/blocks/` |
 >
-> The `testnet4/` path above is Litecoin's testnet directory. BTC testnet4 is a separate network, where contract deploys cannot be mined at current miner block sizes. Use LTC or DOGE testnet for contract deployment and testing.
+> The `testnet4/` path above is Litecoin's testnet directory. BTC testnet4 is a separate network.
 >
 > This matters if you ever try to free up disk by hand-mounting *only* the bare `blocks/` path, e.g. `-v /misc/dogecoin/testnet/blocks:/root/.dogecoin/blocks`. On testnet/regtest the daemon writes to `testnet3/blocks/` (etc.), which that bind does **not** cover, so the mount silently catches nothing and blocks keep accumulating on the default disk. No error is raised.
 >

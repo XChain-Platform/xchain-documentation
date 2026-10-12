@@ -47,6 +47,7 @@ same chain or field.
 | `attest_responsible_widening_activation` | `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` | height |
 | `attest_zero_conf_activation` | `ATTEST_ZERO_CONF_ACTIVATION` | height |
 | `bet_feed_list_edit_activation` | `BET_FEED_LIST_EDIT_ACTIVATION` | height |
+| `bigint_surface_strip_heights` | `BIGINT_SURFACE_STRIP_ACTIVATION` | height |
 | `bridge_policy_detach_activation` | `BRIDGE_POLICY_DETACH` | height |
 | `bridge_policy_refusal_record_activation` | `BRIDGE_POLICY_REFUSAL_RECORD_ACTIVATION` | height |
 | `bridge_row_fields_terminal_activation` | `BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION` | height |
@@ -138,6 +139,8 @@ same chain or field.
 | `train_activation` | `TRAIN_ACTIVATION` | ruleset |
 | `vm_deploy_lint_pkg3_activation` | `VM_DEPLOY_LINT_PKG3_ACTIVATION` | height |
 | `vm_exec_lint_activation` | `VM_EXEC_LINT_ACTIVATION` | height |
+| `vm_lint_banned_with_heights` | `VM_LINT_BANNED_WITH_ACTIVATION` | height |
+| `vm_lint_destructure_heights` | `VM_LINT_DESTRUCTURE_ACTIVATION` | height |
 | `vm_lint_global_alias_activation` | `VM_LINT_GLOBAL_ALIAS_ACTIVATION` | height |
 | `vm_lint_nesting_depth_activation` | `VM_LINT_NESTING_DEPTH_ACTIVATION` | height |
 | `vm_lint_optional_chain_heights` | `VM_LINT_OPTIONAL_CHAIN_ACTIVATION` | height |

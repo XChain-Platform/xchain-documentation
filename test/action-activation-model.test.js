@@ -13,7 +13,7 @@
  * ACTION activation-model gate.
  *
  * WHY. Three separate pages told readers that the non-genesis ACTIONs
- * "activate at later block heights". They do not. Every one of the 36 actions
+ * "activate at later block heights". They do not. Every one of the 38 actions
  * in protocol_changes.js is registered with an activation time AND height of 0
  * on all three networks; what gates them is condition 1 of isEnabled(), the
  * indexer's own protocol version. Non-zero thresholds in that registry all
@@ -27,11 +27,13 @@
  * WHAT IT CHECKS, against xchain-indexer/src/protocol_changes.js:
  *
  *   1. No ACTION carries a non-zero activation time or height.
- *   2. The version split the docs state (21 at 0.1.0, 15 at 0.2.0) is real.
+ *   2. The version split the docs state (21 at 0.1.0, 17 at 0.2.0) is real.
  *   3. BET specifically is a 0.1.0 action, since that is the one the audit
  *      got backwards.
  *   4. The docs do not reintroduce the "actions activate at block heights"
  *      phrasing.
+ *   5. Every page that states the version split states the same one, it sums
+ *      to the number of action pages, and any stated total matches too.
  *
  * The registry is REQUIRED, not parsed. Its rows live in the part files under
  * src/protocol_changes/ as array literals the entry assembles, and the entry
@@ -42,7 +44,7 @@
  * the row shape, and this file asserts values, not literals.
  *
  * xchain-indexer is a sibling repo, not a dependency. Source-derived
- * assertions skip when it is absent; the prose check always runs.
+ * assertions skip when it is absent; the prose checks always run.
  *
  ********************************************************************/
 
@@ -57,7 +59,7 @@ const REGISTRY = path.resolve(DOC_ROOT, '../xchain-indexer/src/protocol_changes.
 // Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the registry is unreadable.
 const indexer = sibling('xchain-indexer', [REGISTRY]);
 
-// The 36 documented ACTIONs: one page per action under protocol/actions/.
+// The 38 documented ACTIONs: one page per action under protocol/actions/.
 const ACTIONS = fs.readdirSync(path.join(DOC_ROOT, 'protocol/actions'))
     .filter((f) => f.endsWith('.md') && f !== 'README.md')
     // Filenames are lowercase-kebab (the naming standard); an ACTION name is the
@@ -128,6 +130,58 @@ describe('ACTION activation model', () => {
         walk(DOC_ROOT);
         assert.deepEqual(bad, [],
             'these pages say ACTIONs activate at block heights; they are gated by indexer version ' +
-            '(all 36 carry zero thresholds):\n  ' + bad.join('\n  '));
+            '(all 38 carry zero thresholds):\n  ' + bad.join('\n  '));
+    });
+
+    test('every page states the same version split and total as the action pages', () => {
+        const mismatches = splitClaimMismatches(
+            (rel) => fs.readFileSync(path.join(DOC_ROOT, rel), 'utf8'), ACTIONS.length);
+        assert.deepEqual(mismatches, [],
+            'these pages state an ACTION version split or total that disagrees with the ' +
+            ACTIONS.length + ' action pages or with each other:\n  ' + mismatches.join('\n  '));
+    });
+
+    test('the split check catches a stale count', () => {
+        const pages = Object.fromEntries(SPLIT_CLAIMS.map((c) => [c.page,
+            fs.readFileSync(path.join(DOC_ROOT, c.page), 'utf8')]));
+        pages['protocol/protocol-activation.md'] = pages['protocol/protocol-activation.md']
+            .replace(/all \d+ carry `0`/, 'all 36 carry `0`')
+            .replace(/and \d+ at `0\.2\.0`/, 'and 16 at `0.2.0`');
+        const mismatches = splitClaimMismatches((rel) => pages[rel], ACTIONS.length);
+        assert.ok(mismatches.some((m) => m.startsWith('protocol/protocol-activation.md')),
+            'a 36 total with a 16 split on protocol-activation.md went unflagged');
     });
 });
+
+// Pages that state the ACTION version split; `total` names the capture group of a stated total.
+const SPLIT_CLAIMS = [
+    { page: 'protocol/protocol-activation.md',
+        re: /all (\d+) carry `0` for every time and height, (\d+) at version `0\.1\.0`\s+and (\d+) at `0\.2\.0`/,
+        total: 1, v1: 2, v2: 3 },
+    { page: 'components/indexer/README.md',
+        re: /\((\d+) at `0\.1\.0`, (\d+) at `0\.2\.0`/, v1: 1, v2: 2 },
+    { page: 'concepts/actions.md',
+        re: /(\d+) are registered at version `0\.1\.0` and (\d+) at `0\.2\.0`, and all (\d+) carry/,
+        v1: 1, v2: 2, total: 3 },
+    { page: 'components/indexer/actions.md',
+        re: /(\d+) actions are registered at version `0\.1\.0` \([^)]*\) and the other (\d+) at `0\.2\.0`/,
+        v1: 1, v2: 2 },
+];
+
+/** Lists each split claim that is missing, disagrees with the others, or does not sum to `actionCount`. */
+function splitClaimMismatches(read, actionCount) {
+    const out = [];
+    const seen = [];
+    for (const c of SPLIT_CLAIMS) {
+        const m = read(c.page).match(c.re);
+        if (!m) { out.push(c.page + ': split sentence not found; update SPLIT_CLAIMS if it was reworded'); continue; }
+        const v1 = Number(m[c.v1]);
+        const v2 = Number(m[c.v2]);
+        if (v1 + v2 !== actionCount) out.push(`${c.page}: ${v1} + ${v2} is not ${actionCount}`);
+        if (c.total && Number(m[c.total]) !== actionCount) out.push(`${c.page}: total ${m[c.total]} is not ${actionCount}`);
+        seen.push({ page: c.page, split: v1 + '/' + v2 });
+    }
+    const splits = new Set(seen.map((s) => s.split));
+    if (splits.size > 1) out.push('pages disagree: ' + seen.map((s) => s.page + ' ' + s.split).join(', '));
+    return out;
+}

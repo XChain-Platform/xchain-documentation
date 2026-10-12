@@ -30,7 +30,7 @@ BULK_SYNC_RAM_BUDGET=768
 
 | Variable | Description | Default |
 |---|---|---|
-| `AUX_POW` | Enable AuxPoW block header stripping (required for Dogecoin and Litecoin HogEx blocks) | `undefined` (falsy) |
+| `AUX_POW` | Legacy; read but ignored. AuxPoW block header stripping is chosen from `NETWORK` (Dogecoin only); Litecoin MWEB/HogEx handling is a separate per-transaction flag strip that no variable controls | `undefined` (falsy) |
 | `UTXO_TRACKER_API_KEY` | Bearer token required on all admin JSON-RPC methods (`getbootstrap`, `getbootstrapstatus`, `restorebootstrap`, `getbootstraprestorestatus`, `get_input_from_key_pattern`). When unset these methods fail closed (HTTP 401). Read-only UTXO/balance queries are unaffected. | `""` (disabled) |
 | `UTXO_MAX_PAGE_LIMIT` | Maximum page size a caller may request via `?limit=`. Caps a single request so a caller cannot trigger an OOM by requesting one giant page. Independent of `UTXO_MAX_ADDRESS_OUTPUTS`. | `10000` |
 | `UTXO_MAX_ADDRESS_OUTPUTS` | Hard ceiling on outputs materialized for a single-address unbounded query; above this limit `/utxos` and `get_balance` return HTTP 413: callers must page via `?limit=&after=` | `500000` |

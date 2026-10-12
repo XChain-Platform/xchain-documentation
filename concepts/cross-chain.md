@@ -16,7 +16,7 @@ Each chain maintains:
 
 There is no shared state between chains at the protocol level. An address that holds 1000 MYTOKEN on Bitcoin has no claim on MYTOKEN on Litecoin; those are two separate tokens that happen to share a name, owned by whoever issued them on each chain.
 
-## SWAP: Cross-Chain Atomic Trades
+## SWAP: Cross-Chain Escrowed Trades
 
 The `SWAP` ACTION enables trustless exchange of tokens across chains. The mechanism is coordinated by the xchain-hub but does not require trusting the hub with custody of funds, tokens are held in escrow on each chain by the protocol, not by the hub.
 
@@ -28,7 +28,7 @@ The `SWAP` ACTION enables trustless exchange of tokens across chains. The mechan
 
 3. **Counterparty match**: A user on chain B who wants to accept the offer sends a corresponding `SWAP` ACTION on chain B with the mirrored token pair and amounts. The hub federation matches the two offers automatically. Their tokens are locked in escrow by the indexer on chain B.
 
-4. **Settlement**: The hub signals both indexers that a match exists. Each indexer releases the escrowed tokens to the counterparty address. The swap completes atomically, both sides settle, or neither does.
+4. **Settlement**: Once both escrows are buried under their chain's confirmation floor, the `cross_chain` validators reach consensus and sign one match record, which is streamed to every indexer. Each indexer verifies the signatures and releases its own leg's escrow to the counterparty address. The two legs settle separately, normally within a few blocks of each other. They are not one atomic step: a reorg on one chain deeper than its confirmation floor, after the other leg has settled, could undo one leg while the other stands. See [Residual risk](../user-guide/cross-chain.md#residual-risk) and [Residual reorg risk](../protocol/cross-chain-dex.md#residual-reorg-risk).
 
 5. **Timeout / cancellation**: If no counterparty matches within the offer's validity window, the originating user can cancel and recover their escrowed tokens.
 
@@ -48,11 +48,13 @@ sequenceDiagram
         UserB->>IndexerB: SWAP action (mirrored token pair, amounts)
         IndexerB->>IndexerB: Lock offered tokens in escrow
         Hub->>Hub: Federation matches the two offers
-        Hub->>IndexerA: Signal match exists
-        Hub->>IndexerB: Signal match exists
+        Hub->>IndexerA: Quorum-signed match record
+        Hub->>IndexerB: Quorum-signed match record
+        IndexerA->>IndexerA: Verify validator signatures
+        IndexerB->>IndexerB: Verify validator signatures
         IndexerA->>UserB: Release escrowed tokens
         IndexerB->>UserA: Release escrowed tokens
-        Note over IndexerA,IndexerB: Both sides settle, or neither does
+        Note over IndexerA,IndexerB: Each leg settles on its own chain. The residual risk is a reorg deeper than the confirmation floor
     else No counterparty matches in time
         UserA->>IndexerA: Cancel offer
         IndexerA->>UserA: Recover escrowed tokens

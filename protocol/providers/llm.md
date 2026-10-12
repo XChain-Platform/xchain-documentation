@@ -5,7 +5,7 @@
 
 The `llm` provider lets a contract delegate a prompt to a governance-approved large language model. It's a thin specialization of the External Attestation Framework: payloads are JSON envelopes, consensus uses a judge-model strategy, and the chosen model is recorded in the on-chain response's `META` field.
 
-For the framework itself see `actions/ATTEST.md` (covers v0=request, v1=response, v2=expire).
+For the framework itself see [`actions/attest.md`](../actions/attest.md) (its request, response and expire lifecycle is v0=request, v1=response, v2=expire).
 
 ## Request
 
@@ -122,11 +122,11 @@ No other state needed. The hub bills per token directly through the Anthropic AP
 
 | Component                  | Default        | Notes                                                                          |
 | -------------------------- | -------------- | ------------------------------------------------------------------------------ |
-| `per_call_base_fee_xchain` | `0.50`         | Higher than `http_get` (`0.01`); each call has a real upstream cost.          |
+| `per_call_base_fee_xchain` | `0.50`         | Higher than `http_get` (`0.01`); each call has a real upstream cost. Configured but not yet charged: requests currently escrow `0` (see `protocol/actions/attest.md`). |
 | `min_stake_xchain`         | `25000`        | Higher than `http_get` (`10000`): reflects larger trust + ongoing API spend. Enforced on the responsible set at/above `STAKE_WEIGHTED_QUORUM_ACTIVATION`: a staking source below the floor is dropped before ranking, so its keys never hold a responsible slot. See `protocol/actions/attest.md`. |
 | `min_fee_xchain`           | `0`            | Governance-configurable hub-local floor on the optional paid-attestation fee. Requests whose on-chain `FEE_AMOUNT` is below this value are skipped by validators and the request expires, refunding the caller. |
 
-Validators on `claude_spawn` amortize their subscription across requests they serve; validators on `anthropic_api` pay-as-they-go and rely on the base fee + escrow reimbursement to make the call profitable.
+Validators on `claude_spawn` amortize their subscription across requests they serve; validators on `anthropic_api` pay per token. Because the base fee is not yet collected, their only per-call compensation today is the optional paid-attestation fee (`feeTick` / `feeAmount`, above); whether a feeless request is served depends on the governance-synced `min_fee_xchain` floor.
 
 ## Recommendations
 

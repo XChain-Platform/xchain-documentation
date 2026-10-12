@@ -8,7 +8,7 @@ This document describes how the wallet is organized at the package level, how th
 
 ## Four shells, one core
 
-The wallet is a pnpm workspace with four product surfaces (a browser web app, a Chrome MV3 extension, an Electron desktop app, and a Capacitor mobile app for Android now, iOS later) and a shared `@xchain-wallet/core` that contains everything *except* the host-specific glue.
+The wallet is a pnpm workspace with four product surfaces (a browser web app, a Chrome MV3 extension, an Electron desktop app, and a Capacitor mobile app, shipped on Android and pending App Store release on iOS) and a shared `@xchain-wallet/core` that contains everything *except* the host-specific glue.
 
 ```
 @xchain-wallet/core
@@ -38,7 +38,7 @@ Each shell wraps the core in a small amount of host-specific glue:
 |---|---|---|---|
 | `@xchain-wallet/web` | Vite SPA + `hostBridge.js` | IndexedDB | in-memory only |
 | `@xchain-wallet/extension` | service worker + content script + injected provider + popup + approval window | `chrome.storage.local` | `chrome.storage.session` |
-| `@xchain-wallet/desktop` | Electron main / preload / renderer | encrypted file via main process | OS keychain (optional) |
+| `@xchain-wallet/desktop` | Electron main / preload / renderer | encrypted file via main process | OS-keychain-encrypted `session.bin` when a keychain backend is available, else in-memory |
 | `@xchain-wallet/mobile` | Capacitor WebView over the built `@xchain-wallet/web` SPA, plus native glue of its own: the `XChainVault` plugin and a biometric sidecar on both Android and iOS | app-private file written by the native vault plugin, encrypted under an OS-keystore key (Android Keystore / iOS Keychain, device-bound and excluded from backups) | in-memory only (same as web) |
 
 Every route renders the same React tree across shells; only the host bridge differs. Mobile packages the web shell's own build and inherits its bridge and its in-memory session behavior, but it does **not** inherit the web vault. WebView storage is evictable, and in an installed app whose backup posture is deliberately off it would hold the only copy of the vault in existence, so the web build detects the native shell at boot and swaps its IndexedDB and `localStorage` backends for the `XChainVault` plugin that ships in `@xchain-wallet/mobile` (`packages/web/src/storage/backends.js`, `CapacitorStorageBackend.js`). A native shell whose plugin failed to register is a blocking error, never a silent fallback to WebView storage.
@@ -156,7 +156,7 @@ Each shell maps this same logical schema onto a different physical store:
 | Logical store | Web | Extension | Desktop | Mobile |
 |---|---|---|---|---|
 | Vault (encrypted seed, accounts, addresses, contacts, settings, connected sites) | IndexedDB | `chrome.storage.local` | Electron `userData` (encrypted file) | app-private file via the native `XChainVault` plugin, under an OS-keystore key (Android Keystore / iOS Keychain) |
-| Session (master key after unlock) | in-memory only | `chrome.storage.session` (cleared on browser close) | OS keychain (with consent) or in-memory | in-memory only |
+| Session (master key after unlock) | in-memory only | `chrome.storage.session` (cleared on browser close) | OS-keychain-encrypted `session.bin` when a keychain backend is available, else in-memory | in-memory only |
 | Ephemeral metadata (toast state, demo flag, last-view) | `localStorage` | `localStorage` | `localStorage` | `localStorage` (WebView) |
 
 The mobile column is not the web column: the vault blob, the kdfParams record and the pre-unlock guard record all sit in native slots rather than in WebView storage. Only genuinely ephemeral UI state is left in the WebView's own `localStorage`, where losing it costs nothing.

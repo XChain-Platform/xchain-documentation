@@ -30,7 +30,7 @@ Keys never cross the IPC boundary into the renderer. Even if the renderer is com
 | `main/index.js` | Boots Electron, creates the `BrowserWindow`, and injects the OS notification adapter (`electron.Notification`) that delivers §46 transaction and price-alert notifications via native desktop toasts |
 | `main/runtime.js` | Lifecycle: app-ready, before-quit, second-instance handling |
 | `main/storage.js` | File-backed Vault adapter; encrypted at rest with the same AES-256-GCM scheme as the extension |
-| `main/keychain.js` | OS keychain integration for opt-in session-master-key persistence |
+| `main/keychain.js` | Session-master-key cache: an OS-keychain-encrypted `session.bin` when a keychain backend is available, in memory otherwise |
 | `main/messageHost.js` | `MessageHost` integration: same as the extension's service worker |
 | `main/protocol.js` | URI scheme registration (`bitcoin:` / `dogecoin:` / `litecoin:` / `xchain:`) via `app.setAsDefaultProtocolClient` |
 | `main/permissions.js` | Per-origin permission grants; same `connectedSites` schema as the extension |
@@ -52,17 +52,19 @@ The renderer process runs with `nodeIntegration: false`, `contextIsolation: true
 
 ## OS keychain auto-unlock
 
-Opt-in. When the user enables Settings → Security → "Auto-unlock with system keychain":
+On by default whenever a real OS keychain backend is available; there is no setting that turns it off. After an unlock, the main process encrypts the **session master key** (32 bytes, not the password) with Electron `safeStorage` and writes the ciphertext to `session.bin` in the app's user-data directory (mode `0600`). The key material that decrypts it stays in the OS keychain:
 
-| OS | Backend |
+| OS | `safeStorage` backend |
 |---|---|
-| macOS | Keychain Access |
-| Windows | Credential Manager |
-| Linux | Secret Service (GNOME Keyring / KWallet) |
+| macOS | Keychain |
+| Windows | DPAPI |
+| Linux | Secret Service (GNOME Keyring) or KWallet, via libsecret |
 
-The wallet stores the **session master key** (32 bytes) (not the password) under a wallet-specific keychain entry. On launch, the main process reads the entry, decrypts the vault, and the wallet boots already unlocked. The user can disable the auto-unlock in Settings; doing so deletes the keychain entry.
+When no keychain backend is available, or Electron reports the `basic_text` fallback, nothing is written to disk: the key is held in memory for the running process only, and every launch asks for the password.
 
-The keychain integration is gated behind explicit user opt-in because keychain compromise is a real attacker capability on shared machines. Default-on would be wrong.
+On a later launch, the main process decrypts `session.bin` and the wallet boots already unlocked, but only within the user's auto-lock window: a launch gate drops the cached key, and the user sees the lock screen, when the idle window has elapsed or the idle record is missing or unreadable. With auto-lock set to Never (and on a demo wallet) the gate keeps the cached key with no time limit. Lock, whether manual or by auto-lock, and wallet reset delete `session.bin`, which is how a user makes the next launch ask for the password. If the ciphertext cannot be decrypted (a different OS user, a reset keychain), the wallet asks for the password.
+
+The file is only as safe as the OS keychain: code running as the same OS user while the keychain is unlocked may be able to decrypt `session.bin`. On a shared machine, set an auto-lock timeout rather than Never, and lock before quitting.
 
 ## Hardware signer transports
 

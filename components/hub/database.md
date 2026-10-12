@@ -480,14 +480,14 @@ Tracks XCHAIN rewards earned by validators for participating in oracle rounds. R
 
 ### `slash_proposals`
 
-Records detected validator misbehavior for governance review. The offenses recorded here (`price_deviation`, `repeated_deviation`, `non_participation`, attestation divergence) are hub-local: a governance vote can suspend the validator, and on-chain stake is untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which is a separate on-chain path this table does not feed.
+Records detected validator misbehavior for governance review. The offenses recorded here (`price_deviation`, `repeated_deviation`, `non_participation`, `attestation_divergence`) are hub-local: a governance vote can suspend the validator, and on-chain stake is untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which is a separate on-chain path this table does not feed.
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | `BIGINT AUTO_INCREMENT` | Primary key |
 | `validator_pubkey` | `CHAR(64) NOT NULL` | Offending validator's pubkey |
-| `offense_type` | `VARCHAR(30) NOT NULL` | Type: `price_deviation`, `repeated_deviation`, `non_participation` |
-| `round_number` | `BIGINT` | Round where offense occurred |
+| `offense_type` | `VARCHAR(30) NOT NULL` | Type: `price_deviation`, `repeated_deviation`, `non_participation`, `attestation_divergence` |
+| `round_number` | `BIGINT` | Round where offense occurred (for `attestation_divergence`, a pseudo-round taken from the request id) |
 | `evidence` | `TEXT` | Serialized evidence details |
 | `status` | `ENUM('pending','approved','rejected','expired')` | Proposal status (default: `pending`) |
 | `created_at` | `DATETIME` | Detection time |

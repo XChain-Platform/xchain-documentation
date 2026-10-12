@@ -55,7 +55,7 @@ XChain has a native decentralized exchange built directly into the protocol. You
 
 ### Swap Across Chains
 
-The SWAP action enables atomic cross-chain exchanges, trading a token on Bitcoin for a token on Litecoin, for example. This happens without a bridge or a trusted intermediary.
+The SWAP action enables escrowed cross-chain exchanges, trading a token on Bitcoin for a token on Litecoin, for example. This happens without a bridge or a trusted intermediary. Each chain settles its own leg against a validator-signed match, so the exchange is not atomic in the single-chain sense (see [Residual risk](../user-guide/cross-chain.md#residual-risk)).
 
 ### Store Data and Messages
 

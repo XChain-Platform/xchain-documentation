@@ -76,14 +76,14 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | ACTION | Description |
 |---|---|
 | [`PRICE`](./price.md) | Publishes oracle price data on-chain (v0: validator COIN/FIAT snapshots, v1: user TOKEN/FIAT oracles) |
-| [`ATTEST`](./attest.md) | External-data attestation lifecycle: v0=request (VM-emitted), v1=response (validator-broadcast), v2=expire (system-synthesized) |
+| [`ATTEST`](./attest.md) | External-data attestation lifecycle: v0=request (VM-emitted), v1=response (validator-broadcast), v2=expire (system-synthesized), v3=relay request (cross-chain, BTC only), v4=relay response (origin chain only), v5=batch head and v6=batch continuation (system-published, Dogecoin only) |
 | [`ANCHOR`](./anchor.md) | Validator-broadcast, DOGE-only: the quorum-signed checkpoint bundle (v0, one anchor per network per cycle carrying every chain as a section, with SPV light-client roots and a publisher attestation), plus the cross-chain match archive (v1, publisher attestation always appended; v2 continuation chunks) for full-parse recoverability; at or above `ANCHOR_FOLD_ACTIVATION`, v3 folds the checkpoint sections and at most one archive section into a single ANCHOR action per cycle |
 
 ### Betting
 
 | ACTION | Description |
 |---|---|
-| [`BET`](./bet.md) | Parimutuel betting markets end to end: v0=create market, v1=cancel, v2=place bet, v3=resolve |
+| [`BET`](./bet.md) | Parimutuel betting markets end to end: v0=create market, v1=cancel, v2=place bet, v3=resolve, v4=edit feed lists (at or above `BET_FEED_LIST_EDIT_ACTIVATION`) |
 
 ### Governance
 

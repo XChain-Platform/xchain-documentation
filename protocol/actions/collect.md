@@ -106,7 +106,7 @@ flowchart TD
 - By default all pending rewards are collected in a single action; a partial claim is available via the optional trailing `AMOUNT` (see Partial Claim above)
 - Rewards may be collected at any time while a stake is active
 - Rewards can also be collected after initiating `UNSTAKE` during the cooldown period
-- A single pubkey can earn from multiple capabilities in the same round, e.g. a validator with both `price` and `oracle_publish` capabilities can earn the per-round consensus reward AND the per-publish broadcast reward in the same round
+- A single pubkey can accrue rewards from several capabilities, e.g. `attest_fee` from `attestation` and `anchor_bundle` from `oracle_publish`; the oracle round labels are not minted today (see Reward Population Path), so holding `price` alongside `oracle_publish` adds no per-round reward
 
 ---
 

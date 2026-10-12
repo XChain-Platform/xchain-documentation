@@ -103,9 +103,10 @@ Optional 25th-word passphrase is offered on both Create and Import, captured onc
 
 - **Manual lock**: accessible from the global menu and via keyboard shortcut. Zeroes the in-memory master key + session key.
 - **Unlock**: password entry; on success, master key is derived (Argon2id) and the vault decrypts.
-- **Foreground auto-lock**: configurable timeout in Settings. Default: 5 minutes idle. Lock fires on tab/window blur for the popup; on idle-detection for the desktop and full-screen views.
+- **Foreground auto-lock**: configurable timeout in Settings. Default: 15 minutes idle (choices from 1 minute to 4 hours, or Never). One idle timer serves the popup, web and desktop shells; mouse, keyboard, scroll, click and touch activity resets it. Switching tabs or windows does not lock the wallet.
+- **Background auto-lock**: on the extension, the background worker enforces the same idle timeout after the popup closes. On desktop, an expired cached session is dropped at launch, and the timeout is still checked while the app runs with no window open. The web shell has no background lock; closing the tab drops its keys.
 - **Browser-close lock**: extension session-key namespace clears automatically. Web shell drops in-memory keys when the tab unloads.
-- **OS keychain auto-unlock**: desktop only, opt-in. Stores the session master key in the OS keychain (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux). Disabled by default; enabled via Settings → Security.
+- **OS keychain auto-unlock**: desktop only, on by default wherever an OS keychain backend is available, with no setting to turn it off. The session master key is encrypted through the OS keychain (Keychain on macOS, DPAPI on Windows, Secret Service or KWallet on Linux) and kept in a `session.bin` file, so a relaunch inside the auto-lock window skips the password; with auto-lock set to Never it skips it until the user locks. Lock and wallet reset delete the file.
 - **Legacy passphrase capture**: a wallet created before passphrase storage shipped has no stored passphrase yet. On the first unlock after upgrading, the wallet asks for it once, explains that it will be stored, and checks it against the wallet's own addresses before saving it encrypted; it never asks again after that. Until this one-time step completes, the wallet is listed but cannot sign.
 
 ## Home
@@ -226,7 +227,7 @@ Power users get:
 
 Settings are organized under sections:
 
-- **Security**: auto-lock timeout, OS-keychain auto-unlock (desktop), view private key, change password, export backup
+- **Security**: auto-lock timeout, view private key, change password, export backup
 - **Chains**: per-chain endpoint URLs (encoder / explorer / hub), default fee strategy, address-type preference
 - **Accounts**: manage HD accounts under each wallet
 - **Signers**: registered hardware + remote signers, pair-new, remove, firmware version

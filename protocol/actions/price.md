@@ -206,7 +206,7 @@ PRICE v0 publishers are auto-qualified by the capability model. No special "Tier
 | Role             | Broadcasts finalized PRICE v0 rounds on-chain          |
 | Stake gate       | `SUM(amount)` across the pubkey's active stake rows ≥ `min_stake[oracle_publish]` (governance default; see hub `ProviderRegistry` / capability config) |
 | Chain            | STAKE happens on BTC; PRICE v0 can be published on any chain (DOGE recommended for fees) |
-| Overlap          | Allowed: same pubkey may hold both `price` and `oracle_publish` (and earn both rewards in the same round) |
+| Overlap          | Allowed: same pubkey may hold both `price` and `oracle_publish`. No oracle round reward is minted today (see [COLLECT → Reward Population Path](./collect.md#reward-population-path)); the claimable reward tied to `oracle_publish` is the ANCHOR publisher reward (`anchor_bundle`) |
 | Cooldown         | Configurable, default 1000 blocks                      |
 | Activation delay | 6 BTC blocks (~1 hour)                                 |
 

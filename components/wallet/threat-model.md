@@ -82,7 +82,6 @@ These are tracked but not release-blocking; each has a short pointer to where th
 |---|---|
 | PSBT byte-level simulator before sign | Planned, next iteration of the sign-screen safety rail |
 | Hardware-wallet transport coverage | Ongoing, expands with each hardware signer added |
-| Background-mediated auto-lock that survives popup close/reopen | Tracked in the changelog |
 | Reproducible-build pipeline | Live for desktop; extension and web tracked in [Reproducible Builds](reproducible-builds.md) |
 | External security review | Pending, required before a general-availability mainnet release |
 | Cross-tab reservation ledger for the web shell | Open; the extension shell is protected, the web shell is not (see the scenario above) |
