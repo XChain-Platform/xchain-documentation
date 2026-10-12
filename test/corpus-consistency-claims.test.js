@@ -340,6 +340,52 @@ test('falsification: the retired audit-anchor sentence is caught in §9', () => 
     assert.throws(() => assertMatchArchiveClaim(stale));
 });
 
+const ANCHOR_ARCHIVE_TERMINATION =
+    /(?:anchor_archive[^.\n]{0,120}(?:stop|retir|terminat)|(?:stop|retir|terminat)[^.\n]{0,120}anchor_archive)/i;
+
+function anchorActionBullet(markdown) {
+    const line = markdown.split('\n').find((candidate) => /^- \*\*ANCHOR\*\*/.test(candidate));
+    assert.ok(line, 'whitepaper.md no longer has its ANCHOR action bullet');
+    return line;
+}
+
+function anchorArchiveTerminationGate(markdown) {
+    const heading = /^### Archive reward termination \(`([^`]+)`\)$/m.exec(markdown);
+    assert.ok(heading, 'anchor.md no longer has its archive reward termination heading');
+    const section = markdown.slice(heading.index, markdown.indexOf('\n### ', heading.index + heading[0].length));
+    assert.match(section, /only when it \*\*and\*\* `ANCHOR_FOLD_ACTIVATION` are active/,
+        'anchor.md no longer states that archive reward termination requires both gates');
+    return heading[1];
+}
+
+function assertWhitepaperAnchorRewardTermination(whitepaper, anchor) {
+    const termGate = anchorArchiveTerminationGate(anchor);
+    const terminationClaims = anchorActionBullet(whitepaper)
+        .split(/(?<=[.!?])\s+/)
+        .filter((sentence) => ANCHOR_ARCHIVE_TERMINATION.test(sentence));
+    for (const sentence of terminationClaims) {
+        assert.match(sentence, new RegExp(`\\b${termGate}\\b`),
+            `whitepaper.md attributes anchor_archive reward termination without ${termGate}`);
+    }
+}
+
+test('the whitepaper ANCHOR bullet follows anchor.md on archive reward termination', () => {
+    assertWhitepaperAnchorRewardTermination(
+        readDoc('whitepaper.md'),
+        readDoc('protocol/actions/anchor.md'));
+});
+
+test('falsification: fold-only anchor_archive reward termination is caught', () => {
+    const page = readDoc('whitepaper.md');
+    const stale = page.replace(
+        'v0, v1 and v2 stay valid beside it',
+        'v0, v1 and v2 stay valid beside it. At `ANCHOR_FOLD_ACTIVATION`, `anchor_archive` minting stops');
+    assert.notEqual(stale, page, 'the ANCHOR bullet moved; re-point this falsification');
+    assert.throws(() => assertWhitepaperAnchorRewardTermination(
+        stale,
+        readDoc('protocol/actions/anchor.md')));
+});
+
 /* ---------------------------------------------------------------- claim 7 */
 
 const WS_DOC = 'components/explorer/websocket.md';
