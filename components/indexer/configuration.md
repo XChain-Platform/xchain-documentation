@@ -299,6 +299,14 @@ Native-coin fee validation and FIAT settlement read the oracle tables (`price_sn
 - **Single-host:** the indexer's own database already holds the synced hub copy, so no separate hub DB
   connection is needed and the oracle tables are read locally.
 
+That price-source choice does not cover the finalized ATTEST response mirror. A **BTC** indexer on a
+network where `ATTEST_RESPONSE_MIRROR_ACTIVATION` is armed must set `HUB_DB_HOST` and `HUB_DB_NAME`.
+The `attestation_responses` table is an off-chain consensus input that settles request fees, and
+AnchorRecovery cannot reconstruct it. The indexer therefore refuses to boot without a hub database
+source on BTC testnet and regtest, where the gate is currently armed. The gate remains unpinned on
+BTC mainnet. `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` acknowledges only the local oracle-price
+topology and cannot bypass this response-mirror requirement.
+
 The two are indistinguishable from config alone: a node with no hub DB looks the same whether that is
 intentional (single-host) or an operator forgot `HUB_DB_HOST` / `HUB_DB_NAME` on a distributed node. In
 the latter case the indexer would silently value native-coin fees against stale or empty local price
@@ -306,12 +314,12 @@ data, which on mainnet can diverge from the canonical fleet and fork the ledger.
 
 To make the intent explicit, a **mainnet** indexer fails closed at startup when no hub DB is configured,
 unless `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` is set to confirm an intentional single-host node. On
-testnet and regtest, single-host is the norm and there is no canonical fleet to diverge from, so the
-missing hub DB only logs a warning.
+testnet and regtest the local-price acknowledgement is ignored. A missing hub DB only logs a warning
+for a chain that is not subject to the armed BTC response-mirror refusal above.
 
 | Variable | Description | Default |
 |---|---|---|
-| `INDEXER_ALLOW_LOCAL_PRICE_SOURCE` | Acknowledge an intentional single-host setup (read oracle tables from the local indexer DB). Required to boot a **mainnet** node that has no `HUB_DB_HOST` / `HUB_DB_NAME`; ignored on testnet/regtest. | unset (mainnet fails closed) |
+| `INDEXER_ALLOW_LOCAL_PRICE_SOURCE` | Acknowledge an intentional single-host setup (read oracle tables from the local indexer DB). Required to boot a **mainnet** node that has no `HUB_DB_HOST` / `HUB_DB_NAME`; ignored on testnet/regtest. This does not bypass the armed BTC response-mirror hub database requirement above. | unset (mainnet fails closed) |
 
 ## Coin-Specific Configuration
 

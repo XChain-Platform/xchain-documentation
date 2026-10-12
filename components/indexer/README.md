@@ -70,7 +70,7 @@ INDEXER_COIN=BTC
 INDEXER_NETWORK=mainnet
 ```
 
-> **Optional: Hub database variables.** If `HUB_DB_HOST` and `HUB_DB_NAME` are not set, the indexer logs a `WARNING: HUB_DB_HOST / HUB_DB_NAME not set` message at startup and reads price/oracle tables from its own local database instead. This is correct for single-host deployments. On a distributed node where the hub runs on a separate host, set these variables (along with `HUB_DB_PORT`, `HUB_DB_USER`, `HUB_DB_PASS`) to avoid using stale or absent fee/price data. See [Configuration](configuration.md) for the full variable list.
+> **Hub database variables.** `HUB_DB_HOST` and `HUB_DB_NAME` are required for a BTC testnet or regtest indexer while `ATTEST_RESPONSE_MIRROR_ACTIVATION` is armed. Finalized responses in `attestation_responses` are off-chain consensus input, and AnchorRecovery cannot reconstruct it, so `INDEXER_ALLOW_LOCAL_PRICE_SOURCE` does not bypass this startup check. This requirement currently applies to BTC testnet and regtest. On currently unpinned BTC mainnet, a single-host indexer may still read price/oracle tables from its local database when `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true`; other testnet/regtest chains retain the local-database fallback. A distributed node should set the hub variables (along with `HUB_DB_PORT`, `HUB_DB_USER`, `HUB_DB_PASS`) in every case. See [Configuration](configuration.md) for the full topology and variable list.
 
 Start the indexer:
 
