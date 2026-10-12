@@ -146,29 +146,40 @@ describe('reference registry ENTRY assembly', () => {
 });
 
 describe('reference registry ENTRY reads', () => {
-    test('publishes the relay-response deadline as a regtest-armed time gate', () => {
+    test('publishes the relay-response deadline as a time gate armed on regtest and testnet', () => {
         const key = 'attest_relay_response_deadline_activation.ATTEST_RELAY_RESPONSE_DEADLINE_ACTIVATION';
         assert.equal(entry.has(key), true);
+        const armed = entry.get(key).testnet;
+        assert.ok(Number.isSafeInteger(armed) && armed > 1 && armed < entry.UNARMED, `testnet ${armed}`);
         assert.deepEqual(entry.get(key), {
             mainnet: entry.UNARMED,
-            testnet: entry.UNARMED,
+            'BTC:testnet': armed,
+            'LTC:testnet': armed,
+            'DOGE:testnet': armed,
+            testnet: armed,
             regtest: 0,
         });
         assert.equal(entry.activeAt(key, 'regtest', null, 0, undefined), false);
         assert.equal(entry.activeAt(key, 'regtest', null, undefined, 0), true);
+        assert.equal(entry.activeAt(key, 'testnet', null, undefined, 1), false);
+        assert.equal(entry.activeAt(key, 'testnet', null, undefined, armed), true);
+        assert.equal(entry.activeAt(key, 'mainnet', null, undefined, armed), false);
     });
 
-    test('publishes the bridge row-fields terminal gate with only regtest armed', () => {
+    test('publishes the bridge row-fields terminal gate armed per testnet coin and on regtest', () => {
         const key = 'bridge_row_fields_terminal_activation.BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION';
         assert.equal(entry.has(key), true);
-        assert.deepEqual(entry.get(key), {
-            mainnet: entry.UNARMED,
-            'BTC:testnet': entry.UNARMED,
-            'LTC:testnet': entry.UNARMED,
-            'DOGE:testnet': entry.UNARMED,
-            testnet: entry.UNARMED,
-            regtest: 0,
-        });
+        const row = entry.get(key);
+        assert.deepEqual(Object.keys(row), ['mainnet', 'BTC:testnet', 'LTC:testnet', 'DOGE:testnet', 'testnet', 'regtest']);
+        assert.equal(row.mainnet, entry.UNARMED);
+        assert.equal(row.testnet, entry.UNARMED);
+        assert.equal(row.regtest, 0);
+        for (const coin of ['BTC', 'LTC', 'DOGE']) {
+            const armed = row[`${coin}:testnet`];
+            assert.ok(Number.isSafeInteger(armed) && armed > 1 && armed < entry.UNARMED, `${coin}:testnet ${armed}`);
+            assert.equal(entry.activeAt(key, 'testnet', coin, 1, undefined), false, coin);
+            assert.equal(entry.activeAt(key, 'testnet', coin, armed, undefined), true, coin);
+        }
     });
 
     test('a miss throws RegistryMissError naming the key, and has() says false', () => {

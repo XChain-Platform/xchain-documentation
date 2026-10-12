@@ -13,15 +13,17 @@ const VENDORED = path.join(
 const GIT_COMMON_DIR = execFileSync(
     'git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { cwd: path.join(__dirname, '..') },
 ).toString().trim();
-const CANONICAL = path.resolve(
-    GIT_COMMON_DIR, '..', '..', 'xchain-indexer', 'src', 'protocol_changes', 'regtest_env.js',
-);
+// The canonical twin is the indexer checked out beside this repo, the same sibling every
+// other cross-repo guard reads, so a release worktree compares against its own release
+// indexer. A lane with no sibling beside it falls back to the main checkout's indexer.
+const ADJACENT_INDEXER = path.resolve(__dirname, '..', '..', 'xchain-indexer');
+const INDEXER_ROOT = fs.existsSync(path.join(ADJACENT_INDEXER, 'package.json'))
+    ? ADJACENT_INDEXER : path.resolve(GIT_COMMON_DIR, '..', '..', 'xchain-indexer');
+const CANONICAL = path.join(INDEXER_ROOT, 'src', 'protocol_changes', 'regtest_env.js');
 const VENDORED_SHARED_ROWS = path.join(
     __dirname, '..', 'protocol', 'reference-impl', 'consensus', 'gate_registry', 'shared_rows.js',
 );
-const CANONICAL_SHARED_ROWS = path.resolve(
-    GIT_COMMON_DIR, '..', '..', 'xchain-indexer', 'src', 'protocol_changes', 'shared_rows.js',
-);
+const CANONICAL_SHARED_ROWS = path.join(INDEXER_ROOT, 'src', 'protocol_changes', 'shared_rows.js');
 const SHARED_ROWS_PARTS = [
     'shared_rows.js',
     'shared_rows_1.js',

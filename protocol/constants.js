@@ -634,9 +634,9 @@ const ANCHOR_FOLD_ACTIVATION = {
 // Public-network slots are unarmed; regtest exercises the term from genesis once the fold is armed.
 const ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION = {
     mainnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
+    'BTC:testnet': 156230,
+    'LTC:testnet': 4912984,
+    'DOGE:testnet': 67989993,
     testnet: 9999999999,
     regtest: 0,
 };
@@ -923,10 +923,10 @@ const ATTEST_RELAY_ACTIVATION = {
 // the sentinel until armed; regtest activates at genesis.
 const ATTEST_RELAY_FEE_ACTIVATION = Object.freeze({
     mainnet: 9999999999,
-    'BTC:testnet': 9999999999,
-    'LTC:testnet': 9999999999,
-    'DOGE:testnet': 9999999999,
-    testnet: 9999999999,
+    'BTC:testnet': 156230,
+    'LTC:testnet': 4912984,
+    'DOGE:testnet': 67989993,
+    testnet: 156230,
     regtest: 0,
 });
 
@@ -2399,7 +2399,7 @@ const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
 const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
     mainnet:        null,
     'DOGE:mainnet': null,
-    'DOGE:testnet': 9999999999,
+    'DOGE:testnet': 67989993,
     regtest:        0,
 });
 

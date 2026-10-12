@@ -35,6 +35,17 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 
 const noIndexer = sibling('xchain-indexer', [gen.REGISTRY]).skip;
 
+// A gate a release cut armed on testnet: still parked on mainnet, gone from the testnet
+// unarmed roster, and listed among the testnet arms at a real instant (never genesis,
+// never the sentinel), so it is off before that instant and on from it.
+function assertArmedOnTestnetOnly(gate) {
+    assert.ok(gen.collectMainnetUnarmed().some((g) => g.gate === gate), `${gate} missing from the mainnet unarmed list`);
+    assert.ok(!gen.collectTestnetUnarmed().some((g) => g.gate === gate), `${gate} is still listed unarmed on testnet`);
+    const arm = gen.collectTestnetArms().find((g) => g.gate === gate);
+    assert.ok(arm, `${gate} has no testnet arm`);
+    assert.ok(arm.time > 1 && arm.time < gen.SENTINEL_FLOOR, `${gate} testnet arm ${arm.time}`);
+}
+
 function fixtureRegistry(body, core = 'const UNARMED = 9999999999;\n') {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flagday-unarmed-'));
     fs.writeFileSync(path.join(dir, 'protocol_changes.js'), body);
@@ -76,21 +87,18 @@ test('against the real indexer BROADCAST_FEE_LENGTH is unarmed on mainnet', { sk
     assert.ok(gen.collectMainnetUnarmed().some((g) => g.gate === 'BROADCAST_FEE_LENGTH'));
 });
 
-test('against the real indexer ITER_SET_METER is unarmed on production networks', { skip: noIndexer }, () => {
-    assert.ok(gen.collectMainnetUnarmed().some((g) => g.gate === 'ITER_SET_METER'));
-    assert.ok(gen.collectTestnetUnarmed().some((g) => g.gate === 'ITER_SET_METER'));
+test('against the real indexer ITER_SET_METER is unarmed on mainnet and armed on testnet', { skip: noIndexer }, () => {
+    assertArmedOnTestnetOnly('ITER_SET_METER');
 });
 
-test('against the real indexer STAKE_SNAPSHOT_DECIMAL_STRINGS is unarmed on production networks',
+test('against the real indexer STAKE_SNAPSHOT_DECIMAL_STRINGS is unarmed on mainnet and armed on testnet',
     { skip: noIndexer }, () => {
-        assert.ok(gen.collectMainnetUnarmed().some((g) => g.gate === 'STAKE_SNAPSHOT_DECIMAL_STRINGS'));
-        assert.ok(gen.collectTestnetUnarmed().some((g) => g.gate === 'STAKE_SNAPSHOT_DECIMAL_STRINGS'));
+        assertArmedOnTestnetOnly('STAKE_SNAPSHOT_DECIMAL_STRINGS');
     });
 
-test('against the real indexer STAKE_DELEGATED_SIGNING_KEY is unarmed on production networks',
+test('against the real indexer STAKE_DELEGATED_SIGNING_KEY is unarmed on mainnet and armed on testnet',
     { skip: noIndexer }, () => {
-        assert.ok(gen.collectMainnetUnarmed().some((g) => g.gate === 'STAKE_DELEGATED_SIGNING_KEY'));
-        assert.ok(gen.collectTestnetUnarmed().some((g) => g.gate === 'STAKE_DELEGATED_SIGNING_KEY'));
+        assertArmedOnTestnetOnly('STAKE_DELEGATED_SIGNING_KEY');
     });
 
 test('a part-file row with bare UNARMED slots is listed unarmed on both networks', () => {
@@ -133,12 +141,9 @@ test('a bare UNARMED slot with no declaration in core.js is refused', () => {
     assert.throws(() => gen.collectMainnetUnarmed(dir), /FOO.*UNARMED/s);
 });
 
-test('against the real indexer every bare-UNARMED registry row is unarmed on both networks', { skip: noIndexer }, () => {
-    const gates = ['SLASH_XANCPUB_PUBLISHER_PAIR', 'STAKE_SNAPSHOT_SLASH_WINDOW', 'SLASH_ATTEST_MULTIROUND_EXEMPT'];
-    const mainnet = gen.collectMainnetUnarmed().map((g) => g.gate);
-    const testnet = gen.collectTestnetUnarmed().map((g) => g.gate);
-    for (const gate of gates) {
-        assert.ok(mainnet.includes(gate), `${gate} missing from the mainnet unarmed list`);
-        assert.ok(testnet.includes(gate), `${gate} missing from the testnet unarmed list`);
-    }
-});
+test('against the real indexer every formerly bare-UNARMED registry row is unarmed on mainnet and armed on testnet',
+    { skip: noIndexer }, () => {
+        for (const gate of ['SLASH_XANCPUB_PUBLISHER_PAIR', 'STAKE_SNAPSHOT_SLASH_WINDOW', 'SLASH_ATTEST_MULTIROUND_EXEMPT']) {
+            assertArmedOnTestnetOnly(gate);
+        }
+    });

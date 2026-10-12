@@ -58,8 +58,9 @@ Format-specific behavior can have its own gate even when the ACTION name is alre
 Version `4` uses the height-keyed `bet_feed_list_edit_activation.BET_FEED_LIST_EDIT_ACTIVATION` row:
 at or above the configured height, the creator of an open feed may edit its allow and block list
 references; below it, Version `4` is invalid. The row is
-unarmed on mainnet and every testnet, active on regtest from genesis. It must be armed through the
-normal flag-day process before the format is accepted on a production network.
+armed on every testnet chain at that chain's own height, unarmed on mainnet, and active on regtest
+from genesis. It must be armed through the normal flag-day process before the format is accepted on
+mainnet.
 
 ### Time-keyed vs height-keyed
 
@@ -253,8 +254,9 @@ at each chain's own height (`BTC:testnet` 155001, `LTC:testnet` 4906040, `DOGE:t
 67962387), stays unarmed on mainnet until the operator arms it, and regtest is genesis-active.
 
 `BET_FEED_LIST_EDIT_ACTIVATION` is the per-chain height gate reserved for edits to an open BET
-feed's allow-list and block-list references. The production networks remain inert until a release
-arms them, while regtest exercises the gated path from genesis.
+feed's allow-list and block-list references. It is armed on testnet at each chain's own height and
+stays unarmed on mainnet until a release arms it there, while
+regtest exercises the gated path from genesis.
 
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
@@ -287,11 +289,22 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
     `CONTROLLER_CUSTODY_GUARD` (see [Flag-Day Values](./flag-days.md)).
   - `JSON_STRINGIFY_HOOK`, which gates hook-aware depth guarding for values transformed by
     `JSON.stringify`; it arms testnet at its own instant (see [Flag-Day Values](./flag-days.md)).
-- **`DISPENSER_REFILL` is not genesis-active on testnet either**: it is unarmed there, as on
-  mainnet, so a dispenser refill runs no controller guard on testnet until an operator arms it
-  (see [Flag-Day Values](./flag-days.md)).
-- **Five more time-keyed rules are unarmed on testnet, as on mainnet**, so a testnet stack runs
-  none of them until an operator arms it (status on [Flag-Day Values](./flag-days.md)):
+- **Eleven more time-keyed rules are not genesis-active on testnet either**: they were registered
+  after the public testnet launch, and the v0.23.0 release cut armed all of them on testnet together
+  at one shared instant of their own, while mainnet keeps them unarmed until an operator arms it
+  (the instant and status are on [Flag-Day Values](./flag-days.md)):
+  - `DISPENSER_REFILL`, which makes a dispenser refill that adds escrow consult the token's trade
+    controller.
+  - `EXACT_INTEGER_WIRE_FIELDS`, which rejects a non-integer value in the integer wire fields of
+    BET, dispenser, ORDER and SWAP actions.
+  - `ITER_SET_METER`, the indexer twin of the VM's `ITER_SET_METER_ACTIVATION`, which meters
+    iterator helpers, the `String` well-formedness methods and the `Set` algebra family by size.
+  - `STAKE_DELEGATED_SIGNING_KEY`, which refuses a contract STAKE whose signing key a contract
+    delegation already uses.
+  - `STAKE_SNAPSHOT_DECIMAL_STRINGS`, which changes how the VM stake snapshot carries amounts to a
+    contract.
+  - `DELEGATION_ROTATE_IN_WINDOW`, which lets a matured signing-key rotation also rewrite stake rows
+    still inside their deactivation delay.
   - `GAS_CEILING_SUCCESS`, the indexer twin of the VM's `GAS_CEILING_SUCCESS_ACTIVATION`, which
     fails a run that reached the host as a success although a charge crossed the gas ceiling inside
     the isolate.
