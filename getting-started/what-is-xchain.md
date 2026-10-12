@@ -94,7 +94,7 @@ XChain supports **staking** for hub validation. Validators stake XCHAIN tokens t
 
 - **STAKE** locks XCHAIN tokens against a signing pubkey. Aggregate active stake per pubkey auto-qualifies it for each of five independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`) per governance-configurable `min_stake[capability]`. Same action covers new stakes (VERSION 1) and top-ups of an existing pubkey (VERSION 2).
 - **UNSTAKE** marks a pubkey's stake for withdrawal after the unbonding period
-- **DELEGATE** assigns staking power to another validator
+- **DELEGATE** adds or rotates the signing key that signs for your stake, without moving or changing the staked amount
 - **COLLECT** gathers earned staking rewards
 
 (DELEGATE versions 2 and 3 also remove a delegation without replacing it.)
@@ -107,7 +107,7 @@ XChain supports **staking** for hub validation. Validators stake XCHAIN tokens t
 
 Five of the 38 ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not accessible through the SDK, but they appear on-chain and in the explorer, so it is worth knowing what they do.
 
-- **ANCHOR** is written by validators to commit a quorum-signed state checkpoint to the anchor chain (Dogecoin on all networks). It records the per-block ledger, action, and contract hash triple so light clients can verify indexer state against a threshold of validator signatures without trusting any single operator. Later versions of ANCHOR also archive cross-chain match records and SPV light-client roots, making the full platform state reconstructible from chain data alone.
+- **ANCHOR** is written by validators to commit a quorum-signed state checkpoint to the anchor chain (Dogecoin on all networks). It records the per-block ledger, action, and contract hash triple so light clients can verify indexer state against a threshold of validator signatures without trusting any single operator. The checkpoint bundle also carries each chain's SPV light-client roots, and the archive versions of ANCHOR record the signed cross-chain match records on-chain, making the full platform state reconstructible from chain data alone (see [ANCHOR](../protocol/actions/anchor.md) for the versions).
 - **ATTEST** is written by validators when they answer a smart contract's request for outside-world data (an HTTP call, an LLM query, etc.). Validators fetch the answer independently, reach quorum, and broadcast the signed response back on-chain; a system-synthesized expiry version is written by the indexer if the deadline passes before quorum is reached.
 - **NODEPROOF** is written by validators to record a quorum-signed verdict proving which validators correctly answered a periodic block-data possession challenge. It serves as on-chain evidence that those validators operate real coin full nodes rather than relying on mirrored databases.
 - **ROLLCALL** is a liveness roll call published on Dogecoin. Validators sign a message bound to a Bitcoin epoch block's ledger hash, which cannot be signed before that block is mined, so a signature proves the validator was actually running at the time. Any number of roll calls may land per epoch from anyone and the present set is their union, so no publisher can leave a rival out. The Bitcoin indexer closes each epoch and evicts a validator that has been absent for two consecutive epochs: its stake is deactivated and refunded after the normal cooldown, never burned, because being offline is not an offense.

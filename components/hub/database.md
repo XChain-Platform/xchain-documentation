@@ -210,6 +210,7 @@ The durable at-most-once marker for PRICE v0 round broadcasts, written by `Oracl
 | `bridge_transfers` | PBFT-finalized bridge transfer records: one signed row per confirmed lock or burn, carrying `tick`, `decimals` and `amount`, from which the destination indexer injects the XBRIDGE settle leg (mirror to indexers) |
 | `policy_snapshots` | PBFT-finalized per-token policy snapshots (allow list, block list, tick sleep) a destination chain materializes onto a bridged copy. Append-only, latest-wins by `policy_seq`, on the `state_checkpoints` terms (mirror to indexers) |
 | `list_snapshots` | PBFT-finalized shared-list snapshot records: one signed row per finalized list version, carrying the three per-chain admission columns (mirror to indexers once the shared-list consumer gate arms) |
+| `remote_token_snapshots` | PBFT-finalized remote token facts (tick, decimals, owner) pinned at a `snapshot_block`, one signed row per finalized fact; mirrored to indexers, which read the pinned remote token for cross-chain orders |
 
 ### `attestations`
 

@@ -26,6 +26,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `API_HOST` | No | `127.0.0.1` | Bind address for the API server |
 | `DEBUG` | No | None | Enable debug output when set to any truthy value |
 | `PROM_CI_BASE_SHA` | No | _(unset: falls back to the merge-base with `origin/develop`)_ | Diff base commit for `bin/ci_fast_select.js`'s fast CI test selection: the CI venue's gate exports the target ref's value before the push, and the selector diffs `HEAD` against it to pick which test groups to run. Falls back to `git merge-base HEAD origin/develop` when unset or when the value is not a resolvable commit. Never read by the running explorer process. |
+| `XCHAIN_SIBLING_ROOT` | No | _(unset: walks up from the explorer checkout to find `xchain-indexer`)_ | Directory that holds the sibling repositories. `src/action-detail/indexer_schema_contract.js` reads the indexer schema from `<root>/xchain-indexer` to check every field the summary projection selects; tests and tooling use it, the running server does not. |
 | `EXPLORER_FORCE_HTTPS` | No | None | Explicitly enable (`1`) or disable (`0`) the HTTPS-hardening headers (HSTS and `upgrade-insecure-requests`). By default they are active only when `NODE_ENV=production`, so plain-HTTP dev/regtest deploys are not broken. Set to `1` when running behind a TLS-terminating proxy without `NODE_ENV=production`. |
 | `EXPLORER_HOLDERS_CACHE_MS` | No | `15000` | TTL (ms) of the per-tick holders-query result cache. `getHolders` requires an unindexable full-table filesort, so results are cached briefly to bound repeated-query cost. |
 | `EXPLORER_HOLDERS_CACHE_MAX` | No | `500` | Maximum number of distinct holders-query results kept in the cache. |
@@ -57,7 +58,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `WS_IDLE_TIMEOUT` | No | `300000` | Idle timeout for zero-subscription clients (ms) |
 | `WS_MAX_CONNECTIONS_PER_IP` | No | `5` | Max concurrent WebSocket connections per IP |
 | `WS_MAX_SUBSCRIPTIONS` | No | `25` | Max subscriptions per WebSocket connection |
-| `WS_MAX_BACKPRESSURE` | No | `65536` | Max buffered bytes per client; a slow client above it is closed with code `4008` and catches up on reconnect |
+| `WS_MAX_BACKPRESSURE` | No | `65536` | Max buffered bytes per client. Backpressure admission is decided once per action row at its first wanted frame: at or below the limit the whole wanted row is sent, while above it no frame from that row is sent and the connection closes with code `4008` after the row ends. The client catches up from its last processed action index on reconnect. |
 
 See [WEBSOCKET.md](websocket.md) for the full WebSocket API reference.
 
@@ -183,6 +184,8 @@ The explorer carries a byte-identical copy of the shared activation rows the ind
 | `XC_ANCHOR_SLASH_REGTEST_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the `regtest` entries of `SLASH_GRID_ACTIVATION` and `SLASH_LEDGER_CONSOLIDATION_ACTIVATION` in the explorer's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves both gates inert; anything else is refused with a warning and leaves both gates inert. |
 | `XC_AMOUNTS_PRICE_REGTEST_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the `regtest` entries of `DISPENSER_SEND_AMOUNT_COMPARE_ACTIVATION` and `PRICE_FEE_BATCH_LANDED_ACTIVATION` in the explorer's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves both gates inert; anything else is refused with a warning and leaves both gates inert. |
 | `XC_AMOUNTS_PRICE_REGTEST_TIME` | No | unset (inert) | **Regtest only.** Arms the `regtest` entries of `AMOUNT_REPRESENTABILITY_ACTIVATION`, a time-keyed gate in the explorer's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that value (a unix time in seconds). Unset or `off` leaves the gate inert; anything else is refused with a warning and leaves the gate inert. |
+| `XC_LISTS_MARKET_REGTEST_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the `regtest` entries of the eleven height-keyed LISTS MARKET gates (the `XC_LISTS_MARKET` rows) in the explorer's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves the gates inert; anything else is refused with a warning and leaves them inert. |
+| `XC_LISTS_MARKET_REGTEST_TIME` | No | unset (inert) | **Regtest only.** Arms the `regtest` entries of the three time-keyed LISTS MARKET gates in the explorer's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that value (a unix time in seconds). Unset or `off` leaves the gates inert; anything else is refused with a warning and leaves them inert. |
 | `XC_CONTRACTS_REGTEST_ACTIVATION` | No | unset (inert) | **Regtest only.** Arms the `regtest` entries of `VOTE_CALLBACK_BINDING_REQUIRES_USABLE_METHOD` in the explorer's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves the gate inert; anything else is refused with a warning and leaves the gate inert. |
 | `OWNER_WITHDRAW_OPT_IN_REGTEST_TIME` | No | `0` (activate at genesis) | **Regtest only.** Not one of the four shared-grammar variables above: `src/contract/owner_withdraw.js` reads it directly with a plain `parseInt` (unset or unparseable falls back to `0`) to override the `OWNER_WITHDRAW_OPT_IN` activation time the explorer's owner-withdraw presentation judges against, mirroring the indexer's own regtest override of the same name. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. |
 
@@ -375,7 +378,7 @@ The explorer uses `express-rate-limit` middleware:
 | Setting | Value |
 |---|---|
 | Window | 60 seconds |
-| Max requests per window | 1080 (override via `EXPLORER_RATE_LIMIT_RPM`) |
+| Max requests per window | 180 (override via `EXPLORER_RATE_LIMIT_RPM`) |
 | Scope | Per IP address |
 | Response on limit | HTTP 429 Too Many Requests |
 

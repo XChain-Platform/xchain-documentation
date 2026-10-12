@@ -77,7 +77,7 @@ All API endpoints return:
 |---|---|
 | `400` | Bad request or database query error |
 | `404` | Invalid endpoint path |
-| `429` | Rate limit exceeded (500 requests per 60s window) |
+| `429` | Rate limit exceeded (1080 requests per IP per 60s window by default; proof, batch, preflight, fee-quote and checkpoint routes have tighter limits, see [Rate Limiting](configuration.md#rate-limiting)) |
 | `503` | Coin not configured or database unavailable |
 
 ---
@@ -135,7 +135,9 @@ GET /{COIN}/api/status
         "replica_halted": { "BTC": false, "RBTC": null },
         "chain_tip": { "BTC": 893000, "RBTC": 41 },
         "chain_lag_blocks": { "BTC": 0, "RBTC": 0 },
-        "decoder_health": { "BTC": "healthy", "RBTC": "healthy" }
+        "decoder_health": { "BTC": "healthy", "RBTC": "healthy" },
+        "hub_consensus_hash_mismatch": false,
+        "hub_consensus_hash_mismatch_details": []
     }
 }
 ```
@@ -158,12 +160,14 @@ The example above shows the gate in action: `RBTC` has a frozen tip, so it is
 | `indexer_state` | Per-coin reason the indexer trails the decoder: `live` when there is no lag, `future_block_wait` when the next block is dated ahead of this host's clock (no node anywhere could have committed it yet, so the pause is consensus rather than failure), `behind` when that next block is already admissible and still uncommitted (the state worth alerting on), or `null` when it cannot be determined. Read this rather than `tip_future_seconds` to tell a deliberate wait apart from a wedge: `tip_future_seconds` describes the block already committed, which is always past-dated, so it reads `0` for the whole `future_block_wait` duration. Only coins this instance measures appear here |
 | `next_block_time` | Per-coin unix timestamp the decoder recorded for the next block the indexer must commit (`last_block` + 1), read from the decoder DB since the indexer has not committed that block yet. `null` when the indexer is already at the decoder tip, the decoder DB is unreachable, or that block carries no usable timestamp. Only coins this instance measures appear here |
 | `next_block_future_seconds` | Per-coin seconds the next block to be committed is dated ahead of this host's clock; `0` when it is not ahead, `null` when unknown. This is the honest measure of a consensus wait that `tip_future_seconds` is often mistaken for. Only coins this instance measures appear here |
-| `indexer_wait_clears_at` | Per-coin ISO-8601 instant a `future_block_wait` ends: the moment this host's clock reaches the next block's timestamp and the block becomes committable. `null` in every other state. Lets a client show a countdown instead of leaving a confirmed but unindexed transaction looking lost |
+| `indexer_wait_clears_at` | Per-coin ISO-8601 instant the current indexer wait may first clear. For `future_block_wait` it is the moment this host's clock reaches the next block's timestamp and the block becomes committable. For `behind` on a time-bounded indexer barrier it is the indexer's own `stallClearsAt`, while the indexer still reports that instant as ahead. `null` otherwise, including an ordinary slow indexer, a barrier keyed to height rather than time, and a barrier whose clear time has already passed. Lets a client show a countdown instead of leaving a confirmed but unindexed transaction looking lost |
 | `stale` | Per-coin freshness verdict: `true` when `tip_age_seconds` has passed that coin's threshold, and also `true` when `tip_future_seconds` has passed that coin's future-skew tolerance. Fails closed, so a missing or unreadable `block_time` also reads `true`. Only coins this instance actually measures (those with a live connection pool) appear here |
 | `replica_halted` | Per-coin durable consensus-divergence halt verdict, read from the sync client's `sync_halt` table on the same replica this instance reads (`true` when an active, uncleared halt row exists). A halted replica keeps reporting a small lag until its source mints past it, so this catches what neither `stale` nor `tip_age_seconds` can see; it composes with `stale` rather than replacing it (this field flags the halt immediately, `stale`/`available` only drop the coin once its tip actually ages out). `true`/`false` only once the table was read successfully; `null` when the signal could not be determined (no live pool, the table doesn't exist on this replica, or the read failed), and `null` is never coerced to `false`. Only coins this instance measures appear here |
 | `chain_tip` | Per-coin chain tip as reported by the decoder's own health endpoint (what the coin node sees) |
 | `chain_lag_blocks` | `chain_tip − decoder_tip` (how far the decoder trails the chain) |
 | `decoder_health` | Per-coin decoder health string: `"healthy"`, `"unhealthy"` (decoder up but reporting problems), `"node-stale"` (the decoder's cached coin-node height is frozen, so `chain_tip` and `chain_lag_blocks` are nulled), `"unreachable"` (decoder not responding), or `"unconfigured"` (no decoder endpoint resolves for this coin, from either the explorer's configuration or `DECODER_API_URL[_<COIN>_<NETWORK>]`; see [Configuration](configuration.md)) |
+| `hub_consensus_hash_mismatch` | Explorer-to-hub coin-configuration integrity verdict: `true`, `false`, or `null`. `true` means at least one consensus hash served by the hub differs from the explorer's bundled coin registry, `false` means every hash served for a bundled coin matches, and `null` means no verdict is available because the explorer has not received the hash map or the hub is too old to send it |
+| `hub_consensus_hash_mismatch_details` | One string per mismatch in `TICK/network: hub HASH vs bundled HASH` form. Empty when hashes match or no verdict is available |
 
 **Freshness gate.** The threshold behind `stale` is `EXPLORER_TIP_MAX_AGE_S`
 (6 hours by default), overridable per coin with `EXPLORER_TIP_MAX_AGE_S_<COIN>`
@@ -175,6 +179,14 @@ way by `EXPLORER_TIP_MAX_FUTURE_SKEW_S` (2 hours by default, per coin with
 only current data should read `available` rather than `supported`, and treat a
 coin's disappearance from `available` as a transient outage of this instance,
 not as the coin being unknown.
+
+**Hub consensus-hash signal.** The two `hub_consensus_hash_mismatch` fields are
+an advisory transport-integrity signal across all bundled coins and networks.
+Hub-served consensus values are never applied by the explorer; it continues to
+use its locally bundled registry and continues serving requests when the verdict
+is `true`. Treat `true` as an upgrade or deployment-drift alert, then use the
+detail strings to identify which side is lagging. Treat `null` as unknown, not
+as a match.
 
 ---
 

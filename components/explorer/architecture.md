@@ -101,7 +101,7 @@ flowchart LR
     REQ["Request"] --> RL["Rate Limiter"] --> HELMET["Helmet"] --> CORS["CORS"] --> ROUTER["Express Router"]
 ```
 
-- **Rate limiter**: 500 requests per 60-second window per IP (configurable)
+- **Rate limiter**: 1080 requests per 60-second window per IP by default, with tighter per-route limits (configurable; see [Rate Limiting](configuration.md#rate-limiting))
 - **Helmet**: Sets security headers including Content Security Policy
 - **CORS**: Validates origin against configured allowed origins
 

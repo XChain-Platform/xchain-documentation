@@ -34,6 +34,11 @@
  *      registry is named in the page's testnet-exceptions list, and the page
  *      carries no "the only Cohort A rule not genesis-active on testnet"
  *      claim while more than one such arm exists.
+ *   3. Testnet inert claims. No bullet for a gate the registry arms on testnet
+ *      calls that gate inert, and the list claims gates "remain inert" only
+ *      while the registry really parks some testnet slot on the sentinel.
+ *   4. ANCHOR_ACTIVATION keys. The paragraph on that row spells its keys as
+ *      the bare network names the row carries, with matching heights.
  *
  * WHY THE COUNT ASSERTIONS ARE HERE. A prose parse that stops matching returns
  * an empty set, and an empty set satisfies every "each of these must" loop
@@ -192,6 +197,98 @@ test('every nonzero testnet arm is named in the page\'s exception list', {
             /only Cohort A rule not genesis-active on testnet/,
             `${PAGE_REL} still claims one gate is the only Cohort A rule not genesis-active on `
             + `testnet, but the registry declares ${arms.length} nonzero testnet arms.`,
+        );
+    }
+});
+
+/** One gate's bullet in the exceptions list: its own line plus its indented continuation lines. */
+function gateBullet(section, gate) {
+    const lines = section.split('\n');
+    const start = lines.findIndex((l) => new RegExp(`^(\\s*)- \`${gate}\``).test(l));
+    if (start === -1) return null;
+    const indent = lines[start].match(/^(\s*)/)[1].length;
+    const out = [lines[start]];
+    for (let i = start + 1; i < lines.length; i++) {
+        const lead = lines[i].match(/^(\s*)/)[1].length;
+        // A sibling or parent bullet ends this one; deeper-indented text continues it.
+        if (/^\s*- /.test(lines[i]) && lead <= indent) break;
+        if (lines[i].trim() === '') break;
+        out.push(lines[i]);
+    }
+    return out.join(' ');
+}
+
+test('no testnet-armed gate is called inert in the exception list', {
+    skip: noIndexer,
+}, () => {
+    const arms = gen.collectTestnetArms();
+    assert.ok(
+        arms.length >= 1,
+        'collectTestnetArms() returned nothing, so the registry parse in bin/generate-flag-days.js '
+        + 'stopped matching; an empty set would satisfy the loop below without reading the page.',
+    );
+    const section = exceptionsSection();
+    let checked = 0;
+    for (const { gate } of arms) {
+        const bullet = gateBullet(section, gate);
+        if (bullet === null) continue;   // naming is the sibling test's job
+        checked += 1;
+        assert.doesNotMatch(
+            bullet, INERT,
+            `${PAGE_REL} calls ${gate} inert on testnet, but the xchain-indexer protocol_changes `
+            + 'registry arms it there at an instant of its own. Say it arms testnet at its own '
+            + 'instant and link to Flag-Day Values instead (do not write the instant into the prose).',
+        );
+    }
+    assert.ok(
+        checked >= 1,
+        `no testnet-arm gate matched a bullet in the ${PAGE_REL} exception list, so the bullet `
+        + 'parse in this guard stopped matching; an unmatched list passes every assertion above.',
+    );
+    if (/\bremains? inert\b/i.test(section)) {
+        assert.ok(
+            gen.collectTestnetUnarmed().length > 0,
+            `${PAGE_REL} says some testnet exceptions remain inert, but the registry parks no testnet `
+            + 'slot on the sentinel: every listed gate arms testnet at an instant of its own.',
+        );
+    }
+});
+
+const ANCHOR_LEADIN = '`ANCHOR_ACTIVATION` is height-keyed';
+
+/** The ANCHOR_ACTIVATION paragraph, from its lead-in to the blank line that ends it. */
+function anchorParagraph() {
+    const start = PAGE.indexOf(ANCHOR_LEADIN);
+    assert.notStrictEqual(
+        start, -1,
+        `the ANCHOR_ACTIVATION paragraph ("${ANCHOR_LEADIN}") is gone from ${PAGE_REL}. If it was `
+        + 'reworded, retarget this guard; it cannot check a paragraph it cannot find.',
+    );
+    const rest = PAGE.slice(start);
+    const end = rest.indexOf('\n\n');
+    return (end === -1 ? rest : rest.slice(0, end)).replace(/\s+/g, ' ');
+}
+
+test('the ANCHOR_ACTIVATION paragraph spells the row\'s own network keys and heights', () => {
+    const para = anchorParagraph();
+    const row = CONSTANTS.ANCHOR_ACTIVATION;
+    // The row is keyed by bare network name; a coin prefix names a key the row does not have.
+    assert.doesNotMatch(
+        para, /`[A-Z]{3,4}:(mainnet|testnet|regtest)`/,
+        `${PAGE_REL} spells an ANCHOR_ACTIVATION key with a coin prefix, but protocol/constants.js `
+        + `keys the row by bare network name: ${JSON.stringify(row)}.`,
+    );
+    const pairs = [...para.matchAll(/`(mainnet|testnet|regtest)` (\d+)/g)];
+    assert.ok(
+        pairs.length >= 3,
+        `only ${pairs.length} network/height pairs matched in the ${PAGE_REL} ANCHOR_ACTIVATION `
+        + 'paragraph, so the pair parse in this guard stopped matching; an empty set passes the loop below.',
+    );
+    for (const [, net, height] of pairs) {
+        assert.strictEqual(
+            row[net], Number(height),
+            `${PAGE_REL} gives ANCHOR_ACTIVATION ${net} as ${height}, but protocol/constants.js ships `
+            + `${JSON.stringify(row[net])}. Correct the prose, never the constant.`,
         );
     }
 });

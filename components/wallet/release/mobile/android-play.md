@@ -711,6 +711,7 @@ XChain Wallet
 >
 > - Hold and send Bitcoin, Litecoin and Dogecoin.
 > - Hold and send tokens issued on the XChain protocol, and see their history.
+> - Trade tokens through the XChain protocol's non-custodial decentralized exchange.
 > - Scan a QR code to receive, to send, or to sign a transaction from a wallet kept offline.
 > - Unlock with your fingerprint instead of typing your password every time.
 >
@@ -723,7 +724,8 @@ XChain Wallet
 >
 > - It does not hold your coins for you, and there is no account to sign into.
 > - It does not collect analytics, and there is no advertising.
-> - It is not an exchange, and it does not mine anything.
+> - It does not take custody, operate the order-matching service, provide a fiat
+>   on-ramp, or mine anything.
 >
 > Open source, AGPL-3.0-or-later. Built by Dankest, LLC.
 
@@ -798,14 +800,13 @@ What is ticked, and nothing else:
 | Group | Box | Ticked |
 |---|---|---|
 | Trading and funds | Cryptocurrency wallet | Yes. This is what the app is. |
-| Trading and funds | Cryptocurrency exchange | No. No order book, no matching, no fiat on-ramp. |
+| Trading and funds | Cryptocurrency exchange | Yes. The app includes a non-custodial interface to XChain's decentralized exchange; it does not take custody or provide a fiat on-ramp. |
 | Trading and funds | NFT trading | No. Compiled out of the store build. |
 | Trading and funds | Prediction markets | No. Compiled out of the store build. |
 
-The three No answers are true of the uploaded artifact rather than true by
-policy: the store build compiles the exchange and trading surfaces out
-entirely, so the shipped app has no code behind them. The direct-download
-build is the same artifact in this respect, and the download page says so.
+The Cryptocurrency exchange answer describes the uploaded artifact rather than
+a review-only profile. The exchange screens ship in the Play build, so the
+declaration and reviewer instructions disclose them directly.
 
 **The obvious way to make the licensing requirement go away is to untick
 `Cryptocurrency wallet`, and it works, and it is a misdeclaration.** Step 2
@@ -903,13 +904,29 @@ reports it fundable, confirm the balance appears in the app, never use a funded
 mainnet wallet, and rotate the test wallet after review. The current submission
 needs no funded wallet.
 
+### Review notes: trading screens
+
+Play has no separate review-notes box, so keep this paragraph with the
+submission record and use it verbatim in reviewer correspondence or a policy
+follow-up:
+
+> The submitted build includes a Markets list and Market view for XChain's
+> non-custodial decentralized exchange. They are an interface for composing and
+> signing orders, not a hosted exchange or brokerage: private keys remain on the
+> device, the wallet never takes custody, and each order or cancellation requires
+> the user to sign. Order matching happens in `xchain-indexer`, not in the app,
+> and settlement is recorded on the supported public blockchains. The app offers
+> no fiat purchase, sale, deposit, or withdrawal path. Review the screens as part
+> of the wallet's disclosed cryptocurrency functionality; they are present in
+> the same artifact users receive.
+
 ### Graphics
 
 - App icon, 512x512, matching the shipped launcher icon's own composition.
 - Feature graphic, 1024x500.
 - At least two phone screenshots (this listing ships four: balances, receive, send confirmation, and biometric unlock).
 - Tablet screenshots are not provided, since tablet support is not claimed.
-- No screenshot shows a real mainnet address or real funds; every screenshot comes from a build on a test network with the exchange and trading surface compiled out entirely.
+- No screenshot shows a real mainnet address or real funds; every screenshot comes from the submitted store profile in demo mode on a test network.
 
 ### Content rating (IARC questionnaire)
 
@@ -962,9 +979,9 @@ governed by its own Play policy, one that generally expects per-territory
 licensing and a separate real-money-gambling application, so changing this
 answer is not a checkbox edit. The two honest ways to close it are to answer the
 gambling questions for what ships and accept the rating and policy that follow,
-or to compile the surface out of the store build the way the exchange surface
-already is. Leaving it as it stands is the third option, and it is a decision
-that has to be re-taken at every submission rather than inherited.
+or to compile the surface out of the store build. Leaving it as it stands is the
+third option, and it is a decision that has to be re-taken at every submission
+rather than inherited.
 
 ⬜ The questionnaire is answered from the build, every step of the wizard is
 walked, and the calculated rating is read before saving.

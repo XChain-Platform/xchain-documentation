@@ -77,14 +77,19 @@ let result = await sdk.deployContract(
 // result.contractActionIndex - the deployed contract's own action_index
 ```
 
-Contracts larger than 64 KB (base64-encoded source requiring more than 16 slices) are rejected at the planning stage with an error before any transaction is submitted.
+The 64 KB cap (65,536 bytes of UTF-8 source) and the 16-slice cap are separate checks:
+- **Lint pre-flight:** with the default `lint: 'block'`, `deployContract` refuses a source over 64 KB on its `code-size` error before planning, so no transaction is submitted.
+- **Planning:** `chunkHelper.planDeploy()` independently enforces the 64 KB UTF-8 source limit in every lint mode (`'block'`, `'warn'`, and `'off'`) and for direct calls to `sdk.planDeploy()`. It also enforces the 16-slice cap. Either limit is checked before any carrier transaction is submitted.
 
 ```mermaid
 flowchart TD
     START["sdk.deployContract(wif, deployParams, deposits, opts)"]
+    LINT{"Lint pre-flight (default lint: 'block')"}
+    LINT_BIG["Reject: source exceeds 64 KB, refused by the lint pre-flight before any transaction is submitted"]
     PLAN["chunkHelper.planDeploy()"]
+    PLAN_BIG["Reject: source exceeds 64 KB, refused by planning before any carrier transaction is submitted"]
     SIZE{"base64 source size?"}
-    TOO_BIG["Reject: exceeds 64 KB / 16 slices, rejected at planning, before any transaction is submitted"]
+    TOO_BIG["Reject: needs more than 16 slices, planDeploy throws before any carrier transaction is submitted"]
     SINGLE["Single-shot path: sdk.deploy()"]
     SINGLE_EMIT["Emit DEPLOY v0 (no constructor) or v1 (with constructor)"]
     CHUNK_SPLIT["Split base64 source into ordered slices of up to 7,800 bytes each (max 16 slices)"]
@@ -93,8 +98,11 @@ flowchart TD
     INDEXER["Indexer locates carriers by code hash, concatenates slices in order, verifies hash, runs normal deploy flow"]
     DONE["Deploy complete"]
 
-    START --> PLAN
-    PLAN --> SIZE
+    START --> LINT
+    LINT -->|"over 64 KB, lint: 'block'"| LINT_BIG
+    LINT -->|"passes, or lint: 'warn' or 'off'"| PLAN
+    PLAN -->|"over 64 KB in every lint mode"| PLAN_BIG
+    PLAN -->|"at or below 64 KB"| SIZE
     SIZE -->|"fits in one action, roughly 6 KB raw source"| SINGLE
     SINGLE --> SINGLE_EMIT
     SINGLE_EMIT --> DONE
@@ -103,7 +111,7 @@ flowchart TD
     CARRIER --> ASSEMBLE
     ASSEMBLE --> INDEXER
     INDEXER --> DONE
-    SIZE -->|"exceeds 64 KB, more than 16 slices"| TOO_BIG
+    SIZE -->|"more than 16 slices"| TOO_BIG
 ```
 
 See [ACTIONS.md; DEPLOY](actions.md#deploy) for full parameter reference.
@@ -304,11 +312,11 @@ The SDK provides these explorer methods for querying VM data:
 
 | Method | Description |
 |--------|-------------|
-| `sdk.getContract(actionIndex)` | Contract metadata (address, owner, status, deploy block, and the recorded identity: `meta_name`, `meta_description`, `meta_version`, plus `meta` as the parsed manifest object) |
+| `sdk.getContract(actionIndex)` | Contract record in snake_case (`action_index`, deployer `source`, `code_hash`, `status`, deploy `block_index`, and the recorded identity: `meta_name`, `meta_description`, `meta_version`, plus `meta` as the parsed manifest object) |
 | `sdk.getContracts(query?, type?, opts?)` | List contracts, optionally filtered; `type: 'name'` searches the recorded name and description |
-| `sdk.getContractState(actionIndex, key?)` | Contract state (all keys or one key) |
-| `sdk.getContractBalance(actionIndex, tick?)` | Contract token balances |
-| `sdk.getExecution(actionIndex)` | Single execution result |
+| `sdk.getContractState(actionIndex, key?)` | Contract state as `{ data, total }`; each row has `state_key` and `state_value` (JSON text) |
+| `sdk.getContractBalance(actionIndex, tick?)` | Contract token balances as `{ data, total }`; each row has `tick` and `amount` |
+| `sdk.getExecution(actionIndex)` | Single execution, inside `{ data, total }`: read `data[0]` |
 | `sdk.getExecutions(contractActionIndex?, opts?)` | Execution history |
 | `sdk.getDeposits(query, type, opts?)` | Deposit records |
 | `sdk.getWithdrawals(query, type, opts?)` | Withdrawal records |
@@ -327,13 +335,15 @@ These are **independent**. A transaction can confirm successfully but the contra
 To check whether a contract execution succeeded:
 
 ```js
-let exec = await sdk.getExecution(actionIndex);
-if (exec.success) {
-    console.log('Gas used:', exec.gasUsed);
-    console.log('Return value:', exec.returnValue);
+let res  = await sdk.getExecution(actionIndex);
+let exec = res.data[0];
+if (!exec) {
+    console.log('Not indexed yet');
+} else if (exec.status === 'valid') {
+    console.log('Gas used:', exec.gas_used);
 } else {
     // Possible errors: 'revert: ...', 'out_of_gas: ...', 'timeout: ...', 'error: ...'
-    console.log('Failed:', exec.error);
+    console.log('Failed:', exec.error_message);
 }
 ```
 

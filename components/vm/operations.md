@@ -40,8 +40,8 @@ The VM is instantiated once in the indexer's `src/actions/index.js` and shared a
 
 1. **Startup:** Indexer creates `new XChainVM({ gasSchedule, gasCeiling, limits })` from its configuration
 2. **Per block:** Indexer calls `vm.beginBlock()` before processing transactions, `vm.endBlock()` after
-3. **DEPLOY action:** `deploy/index.js` calls `vm.validateSyntax(code)` to validate contract source, then `vm.execute()` to run the constructor
-4. **EXECUTE action:** `execute/index.js` calls `vm.execute()` with the contract code, current state, method name, parameters, and block context
+3. **DEPLOY action:** `deploy/lint.js` resolves the block's consensus lint flags (`resolveLintFlags`) and calls `vm.validateSyntax(code, lintFlags)` to validate contract source, then `deploy/constructor_run.js` calls `vm.execute()` to run the constructor
+4. **EXECUTE action:** `execute/run_vm.js` calls `vm.execute()` with the contract code, current state, method name, parameters, and block context; `execute/controller_guard.js` also calls `vm.execute()` to run a controller guard
 5. **Result processing:** The indexer applies `stateChanges` and `stateDeletes` to the database, processes `emittedActions` through standard action handlers, and records `gasUsed` for fee charging
 
 ```mermaid
@@ -56,11 +56,11 @@ sequenceDiagram
     Indexer->>VM: vm.beginBlock()
     Indexer->>VM: vm.endBlock()
 
-    Note over Indexer: DEPLOY action (deploy/index.js)
-    Indexer->>VM: vm.validateSyntax(code)
+    Note over Indexer: DEPLOY action (deploy/lint.js, deploy/constructor_run.js)
+    Indexer->>VM: vm.validateSyntax(code, lintFlags)
     Indexer->>VM: vm.execute() (run constructor)
 
-    Note over Indexer: EXECUTE action (execute/index.js)
+    Note over Indexer: EXECUTE action (execute/run_vm.js)
     Indexer->>VM: vm.execute(code, state, method, params, block context)
 
     Note over Indexer: Result processing
@@ -71,7 +71,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    INDEXER["Indexer (execute/index.js)"]
+    INDEXER["Indexer (execute/run_vm.js)"]
     LOAD["Loads contract code + state from DB"]
     BUILD["Builds balances, tokenInfo,<br>oracleData, crossChainData"]
     EXEC["vm.execute({ code, state, method,<br>params, caller, ... })"]
@@ -144,7 +144,7 @@ The indexer uses database savepoints to ensure these guarantees extend to the pe
 
 ## Syntax Validation (Deploy-Time)
 
-Before a contract is deployed, `vm.validateSyntax(code)` runs the following checks in order. The V8 syntax check blocks a deploy via a separate early return and is not itself a `lint-core.CONSENSUS_RULES` member; checks 2-9 below are all deploy-blocking consensus rules (`invalid-type`, `unsupported-syntax`, `reserved-identifier`, `banned-math`, `banned-literal`, `banned-async`, `banned-generator`, `banned-rest`, `banned-wasm`), and all must pass or the DEPLOY action is rejected:
+Before a contract is deployed, `vm.validateSyntax(code, opts)` runs the following checks in order. The indexer passes the per-block activation flags that `resolveLintFlags` in `deploy/lint.js` resolves for the DEPLOY's block. Any flag omitted from `opts` defaults on, which is the author-facing preflight behavior rather than the replay-safe deploy verdict, so a consensus caller must pass each gate it resolves. The V8 syntax check blocks a deploy via a separate early return and is not itself a `lint-core.CONSENSUS_RULES` member; checks 2-10 below are all deploy-blocking consensus rules (`invalid-type`, `unsupported-syntax`, `reserved-identifier`, `banned-math`, `banned-literal`, `banned-async`, `banned-generator`, `banned-rest`, `banned-wasm`, `banned-with`), and all must pass or the DEPLOY action is rejected:
 
 1. **V8 syntax check**: compiles the code in a throwaway 8 MB isolate to catch syntax errors (the only step requiring `isolated-vm`)
 2. **Acorn metering pass**: runs `meterCode()` to ensure acorn can parse the source (effective ES2020 ceiling)
@@ -155,6 +155,7 @@ Before a contract is deployed, `vm.validateSyntax(code)` runs the following chec
 7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): rejects `function*`, generator methods, and any `yield`; live from genesis on testnet/regtest.
 8. **Banned rest-pattern check** (consensus-gated, its own [`REST_PATTERN_METER`](../../protocol/flag-days.md) gate, not the Pkg 3 one): rejects a rest pattern in the four positions the metering transform cannot charge, because it charges a rest destructure by wrapping the source expression and these have none: a rest parameter in a function parameter list, a nested rest inside a destructuring pattern, a catch-clause rest, and a rest in a `for-of`/`for-in` loop head. Live from genesis on testnet/regtest, and on mainnet at/after that gate's block time; the `xchain-lint` CLI and the SDK linter enforce it today by default.
 9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`, bare or [global-object-qualified](#global-object-spellings); live from genesis on testnet/regtest.
+10. **Banned `with` statement check** (consensus-gated, its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../../protocol/protocol-activation.md#where-the-values-live) height gate, `enforceBannedWith`, not the Pkg 3 one): rejects any `with` statement. A `with` block resolves free identifiers against an arbitrary object at runtime, which bypasses the identifier-based deploy bans and the metering rewrite; read the properties through the object instead. Live from genesis on regtest and unarmed on mainnet and testnet until an operator arms a height; the `xchain-lint` CLI and the SDK linter enforce it today by default.
 
 ```mermaid
 flowchart TD
@@ -168,6 +169,7 @@ flowchart TD
     S7{"7. Banned generator check (live from genesis, testnet/regtest)"}
     S8{"8. Banned rest-pattern check (REST_PATTERN_METER gate)"}
     S9{"9. Banned WebAssembly check (live from genesis, testnet/regtest)"}
+    S10{"10. Banned with statement check (LINT_BANNED_WITH_ACTIVATION gate)"}
     ACCEPT["DEPLOY accepted"]
     REJECT["DEPLOY rejected"]
 
@@ -189,7 +191,9 @@ flowchart TD
     S8 -->|"unmeterable rest pattern found, gate active"| REJECT
     S8 -->|"clean, or gate not active"| S9
     S9 -->|"WebAssembly reference found"| REJECT
-    S9 -->|"clean"| ACCEPT
+    S9 -->|"clean"| S10
+    S10 -->|"with statement found, gate active"| REJECT
+    S10 -->|"clean, or gate not active"| ACCEPT
 ```
 
 `vm.checkFloatWarnings(code)` additionally scans for non-integer number literals and returns warnings (non-blocking). `lintSource` also returns two advisory warning families that never affect the verdict above: `banned-proto-method` (a call to a prototype method the sandbox neuters, such as `.match()` or `.localeCompare()`, which throws `TypeError` at runtime) and `banned-stripped-global` (a read of a global the sandbox deletes, such as `Date` or `fetch`, which throws `ReferenceError` at runtime); see [Deploy-Time Validation](../../developer-guide/smart-contract-development.md#deploy-time-validation).
@@ -198,7 +202,7 @@ flowchart TD
 
 Checks 4, 6 and 9 match a banned global read through the global object as well as by its bare name: `globalThis.Math.pow(...)`, `globalThis['Promise']` and `` globalThis[`WebAssembly`] `` are rejected exactly like `Math.pow(...)`, `Promise` and `WebAssembly`. Under the [`LINT_GLOBAL_ALIAS_ACTIVATION`](../../protocol/protocol-activation.md#vm-gates-service-carried) gate (`enforceLintGlobalAlias`), two more spellings count as the global object: sloppy-mode `this` (`this.Math.pow(2, 3)`, `this.Promise`) and the self-reference chain at any depth (`globalThis.globalThis.Math.log(x)`). That gate is armed at genesis on BTC, LTC and DOGE mainnet and on testnet and regtest, so every such spelling is rejected at deploy on every network. The `this` match fails closed: a `this.Promise` inside a method of the contract's own object is rejected too, so give such a property a different name.
 
-Under the [`LINT_OPTIONAL_CHAIN_ACTIVATION`](../../protocol/protocol-activation.md#vm-gates-service-carried) gate (`enforceLintOptionalChain`), checks 4, 6 and 9 also see through a parenthesized optional chain, so `(globalThis?.globalThis).Promise`, `(this?.globalThis)?.WebAssembly` and `(globalThis?.Math).pow(2, 3)` are rejected exactly like their plain spellings. Below the gate, those three spellings lint clean as they always have. An unparenthesized `globalThis?.Promise` is already rejected on every network and does not depend on the gate. The gate is unarmed on mainnet and testnet and genesis-active on regtest, so the contract simulator's deploy gate and the execute-time lint read the same network arming and never enforce it early.
+Under the [`LINT_OPTIONAL_CHAIN_ACTIVATION`](../../protocol/protocol-activation.md#vm-gates-service-carried) gate (`enforceLintOptionalChain`), checks 4, 6 and 9 also see through a parenthesized optional chain, so `(globalThis?.globalThis).Promise`, `(this?.globalThis)?.WebAssembly` and `(globalThis?.Math).pow(2, 3)` are rejected exactly like their plain spellings. Below the gate, those three spellings lint clean as they always have: on mainnet, and on testnet below that chain's height. An unparenthesized `globalThis?.Promise` is already rejected on every network and does not depend on the gate. The gate is unarmed on BTC, LTC and DOGE mainnet, armed on testnet at each chain's own local block height (`BTC:testnet` 155001, `LTC:testnet` 4906040, `DOGE:testnet` 67962387), and genesis-active on regtest. The contract simulator's deploy gate and the execute-time lint read the same per-coin arming as the indexer's deploy verdict, so they agree with it and never enforce the rule below a chain's height.
 
 ## Troubleshooting
 

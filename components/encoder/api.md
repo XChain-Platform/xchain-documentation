@@ -226,7 +226,16 @@ Broadcast a signed raw transaction to the coin node.
 {"txid":"64-char hex string"}
 ```
 
-Returns `-32602` if `tx_hex` is missing or fails format validation (for example: not a hex string, empty, or exceeds the maximum transaction size). Returns `-32603` for node-side broadcast failures such as double-spend or dust.
+Returns `-32602` if `tx_hex` is missing or fails format validation (for example: not a hex string, empty, or exceeds the maximum transaction size).
+
+When the coin node refuses the transaction, the call returns a `-32010` operational error whose `error.data.reason` is one of:
+
+| Reason | Meaning | `data` fields | Retry? |
+|---|---|---|---|
+| `NODE_REJECTED` | The node refused the transaction (for example a double-spend, dust output, or fee below the relay floor) | `node_code`: the node's own RPC error code | No: rebuild and re-sign the transaction |
+| `TX_ALREADY_IN_CHAIN` | The node already knows this transaction, in its mempool or in a block | `node_code`: the node's own RPC error code | No: the transaction is already broadcast; track its txid |
+
+Branch on `reason`, never on `message`. A transport fault between the encoder and the node (unreachable, timeout, malformed reply) is not a node verdict and still returns `-32603`, which is safe to retry with backoff. See [Error Codes](../../protocol/error-codes.md#encoder-operational-reasons) for the full reason registry.
 
 ### `get_utxos`
 

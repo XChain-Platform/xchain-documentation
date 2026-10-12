@@ -25,6 +25,13 @@ Bitcoin-family blockchains:
   lists, permanent locks, force-recall, and pause (see [Tokens](./tokens.md)).
 - **A native DEX**: on-chain order book with native-coin settlement, fixed-price dispensers,
   and trustless cross-chain swaps (see [Cross-Chain](./cross-chain.md)).
+- **Moving a token between supported chains** with [XBRIDGE](../protocol/actions/xbridge.md):
+  the balance is locked in a protocol escrow address nobody holds a key for (or burned on the
+  way back) and the same amount is credited on the destination, with no wrapped asset. That
+  credit is authorized by the hub's validator federation, a
+  [hub-trusted mint](../protocol/xchain-bridge.md#trust-model), not a trustless one. On the
+  public networks the bridge runs on testnet only and is not active on mainnet (see
+  [Token Bridge](./token-bridge.md)).
 - **A smart-contract VM** that orchestrates the protocol's validated ACTIONs, can reach the
   outside world through validator-attested HTTPS/AI calls, and can be staked against (see
   [Smart Contracts](./smart-contracts.md)).
@@ -35,6 +42,8 @@ Bitcoin-family blockchains:
 
 Everything in scope shares one property: it can be expressed as deterministic rules applied to
 data embedded in standard coin transactions, secured by the host chain's existing consensus.
+The XBRIDGE destination credit is the one place a balance also rests on the hub federation's
+signature.
 
 ---
 
@@ -64,11 +73,15 @@ direct consequence: **XChain operates at block speed.** Confirmation, order matc
 cross-chain settlement all wait for blocks to be mined. XChain is not a low-latency or
 real-time system, has no payment channels or off-chain rollup, and is not suitable for
 point-of-sale, gaming, or high-frequency trading. The hub validator network exists only for
-configuration, price oracles, cross-chain coordination, and attestation. Never for ordering or
-settlement of token state.
+configuration, price oracles, cross-chain coordination (swap matching and XCALL relay),
+attestation, anchoring, and the XBRIDGE bridge. It never orders transactions and never
+custodies base-layer token balances. The one place its signature decides a balance is XBRIDGE,
+where it authorizes the destination credit and the release from escrow on the way back (a
+[hub-trusted mint](../protocol/xchain-bridge.md#trust-model)).
 
-*Why:* inheriting the host chain's proof-of-work is exactly what lets XChain avoid bridges and
-a new trust layer. Speed is the price of that security.
+*Why:* inheriting the host chain's proof-of-work is exactly what lets XChain avoid a
+third-party bridge and a new consensus layer for ordering and settling base-layer state, with
+XBRIDGE's hub-trusted mint as the one stated exception. Speed is the price of that security.
 
 ### A general-purpose "world computer"
 
@@ -91,8 +104,11 @@ XChain runs today on Bitcoin-compatible (UTXO) chains. Adding another such chain
 configuration change, not a protocol change. Support for account-model ecosystems
 (Ethereum/EVM, Solana) is **planned**: the roadmap is to extend the same metalayer model to
 those chains as first-class supported chains, not to bridge to them. Until that support
-ships, cross-chain functionality is limited to swaps and references **among the supported
-UTXO chains**, and is coordinated (not custodied) by the hub.
+ships, cross-chain functionality stays **among the supported UTXO chains**: swaps, references,
+cross-chain contract calls ([XCALL](../protocol/actions/xcall.md)), and token transfers
+([XBRIDGE](../protocol/actions/xbridge.md)). Swaps and XCALL are coordinated (not custodied) by
+the hub. An XBRIDGE credit is authorized by the hub federation, a hub-trusted mint that is not
+active on mainnet.
 
 What stays out of scope on every roadmap: custodial bridge contracts, wrapped external
 assets, and pooled cross-ecosystem liquidity.

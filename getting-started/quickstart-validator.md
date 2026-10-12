@@ -26,13 +26,18 @@ small:
 | Anchoring and price publishing | 500 | A little testnet DOGE (step 3 covers it) |
 | Price rounds | 1,000 | Nothing extra |
 | Attestations (verifying facts for contracts) | 1,000 | Nothing extra |
-| Full-node proof | 2,000 | The Bitcoin stack (step 5 installs it) |
+| Full-node proof (not active yet, see below) | 2,000 | The Bitcoin stack (step 5 installs it) |
 | Cross-chain matching | 5,000 | The Bitcoin stack (step 5 installs it) |
 | Web attestations (`http_get` provider) | 10,000 | Nothing extra |
 | AI attestations (`llm` provider, Claude) | 25,000 | The Claude CLI installed and signed in |
 
 There is no application and no registration: any stake that clears a bar
 qualifies for that level automatically.
+
+Full-node proof is the exception for now. That level ships inert (reward share
+zero, no initial verifier set) and cannot be earned on any network until it is
+activated, so clearing its 2,000 bar changes nothing today. See
+[Rewards, and what is not live yet](./running-a-validator.md#rewards-and-what-is-not-live-yet).
 
 ## Step 1: install the CLI
 

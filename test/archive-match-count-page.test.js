@@ -31,6 +31,7 @@ test('Version 1 documents the gated archive MATCH_COUNT rule', () => {
 });
 
 test('the page guard fails when any required rule marker is removed', () => {
+    const rules = versionOne(PAGE);
     for (const marker of [
         'ARCHIVE_MATCH_COUNT_ACTIVATION',
         '[Flag-Day Values](../flag-days.md)',
@@ -39,6 +40,8 @@ test('the page guard fails when any required rule marker is removed', () => {
         'invalid: MATCH_COUNT (archive mismatch)',
         'reassembled batch `invalid_archive`',
     ]) {
-        assert.throws(() => assertArchiveMatchCountRule(PAGE.replace(marker, 'removed')));
+        const changedRules = rules.replace(marker, 'removed');
+        assert.notEqual(changedRules, rules, `fixture did not remove ${marker} from the Version 1 rules`);
+        assert.throws(() => assertArchiveMatchCountRule(PAGE.replace(rules, changedRules)));
     }
 });

@@ -113,6 +113,7 @@ Run on a clean profile (extension: fresh install / cleared storage; web: incogni
 - ⬜ Legacy wallet passphrase capture: unlock a wallet created before passphrase storage shipped. It prompts for the passphrase once, states it will be stored, verifies it against the wallet's own addresses, then stores it and never prompts again. A wrong passphrase is rejected and the wallet stays unable to sign; until capture succeeds the wallet is listed but cannot sign.
 - ⬜ Panic mode arms: sign attempts reject and a 24-hour countdown is visible in Settings.
 - ⬜ Duress passphrase silently arms panic mode and shows a decoy wallet.
+- ⬜ Remove the wallet and confirm that the wipe erases the panic freeze and the duress passphrase; recreate or restore the wallet and confirm that neither state remains armed.
 
 ---
 

@@ -25,6 +25,7 @@ function assertReleaseHeightGates(markdown) {
     for (const marker of [
         'ANCHOR_FOLD_ACTIVATION',
         'ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION',
+        'BET_FEED_LIST_EDIT_ACTIVATION',
         'BRIDGE_POLICY_DETACH',
         'XC_ANCHOR_FOLD_REGTEST_ACTIVATION',
         './actions/anchor.md',
@@ -36,20 +37,82 @@ function assertReleaseHeightGates(markdown) {
     assert.doesNotMatch(inventory, /\b(?:20\d{2}-\d{2}-\d{2}|\d{10})\b/);
 }
 
+function assertBetFeedListEditGate(markdown) {
+    const paragraph = markdown.match(/^`BET_FEED_LIST_EDIT_ACTIVATION`[\s\S]*?(?=\n\n)/m);
+    assert.ok(paragraph, 'the BET_FEED_LIST_EDIT_ACTIVATION paragraph is missing');
+    const prose = paragraph[0].replace(/\s+/g, ' ');
+    for (const marker of ['per-chain height gate', 'allow-list', 'block-list', 'regtest']) {
+        assert.ok(prose.includes(marker), `BET feed-list edit gate paragraph is missing ${marker}`);
+    }
+    assert.doesNotMatch(prose, /\b(?:20\d{2}-\d{2}-\d{2}|\d+)\b/,
+        'BET feed-list edit gate paragraph quotes a date or height');
+}
+
 test('the release height-gate inventory names every gate and supporting page', () => {
     assertReleaseHeightGates(PAGE);
+});
+
+test('the BET feed-list edit paragraph names the gate without copying a threshold', () => {
+    assertBetFeedListEditGate(PAGE);
+});
+
+const { sibling } = require('./helpers/sibling_checkout.js');
+
+const GATES_4 = 'src/protocol_changes/gates_4.js';
+const indexer = sibling('xchain-indexer', [GATES_4]);
+
+// Read the per-coin testnet heights of the BRIDGE_POLICY_DETACH registry row.
+function bridgeDetachTestnetHeights(root) {
+    const source = fs.readFileSync(path.join(root, GATES_4), 'utf8');
+    const row = source.match(/addGate\('bridge_policy_detach_activation\.BRIDGE_POLICY_DETACH', 'height', \{([\s\S]*?)\}\);/);
+    assert.ok(row, 'xchain-indexer no longer registers the BRIDGE_POLICY_DETACH height row');
+    return [...row[1].matchAll(/'([A-Z]+):testnet':\s*(\d+)/g)].map((m) => ({ coin: m[1], height: m[2] }));
+}
+
+// Verify the BRIDGE_POLICY_DETACH paragraph quotes each armed testnet height and no unarmed-testnet claim.
+function assertBridgeDetachArming(markdown, heights) {
+    const paragraph = markdown.match(/^`BRIDGE_POLICY_DETACH` gates[\s\S]*?(?=\n\n)/m);
+    assert.ok(paragraph, 'the BRIDGE_POLICY_DETACH paragraph is missing');
+    const prose = paragraph[0].replace(/\s+/g, ' ');
+    for (const { coin, height } of heights) {
+        assert.ok(prose.includes(`\`${coin}:testnet\` ${height}`), `BRIDGE_POLICY_DETACH omits ${coin}:testnet ${height}`);
+    }
+    assert.doesNotMatch(prose, /unarmed on mainnet and testnet/);
+}
+
+test('the BRIDGE_POLICY_DETACH paragraph matches the registry\'s testnet arming', { skip: indexer.skip }, () => {
+    const heights = bridgeDetachTestnetHeights(indexer.root);
+    assert.ok(heights.length >= 3, `parsed ${heights.length} testnet heights; the registry parse broke`);
+    assertBridgeDetachArming(PAGE, heights);
+});
+
+test('the arming guard fails on a dropped height or the old unarmed wording', { skip: indexer.skip }, () => {
+    const heights = bridgeDetachTestnetHeights(indexer.root);
+    const paragraph = PAGE.match(/^`BRIDGE_POLICY_DETACH` gates[\s\S]*?(?=\n\n)/m)[0];
+    const dropped = PAGE.replace(paragraph, paragraph.replace(`\`${heights[0].coin}:testnet\` ${heights[0].height}`, 'removed'));
+    assert.throws(() => assertBridgeDetachArming(dropped, heights), /omits/);
+    const stale = PAGE.replace('It is armed on testnet', 'It stays unarmed on mainnet and testnet, armed on testnet');
+    assert.throws(() => assertBridgeDetachArming(stale, heights), /match/i);
 });
 
 test('the inventory guard fails when any required marker is removed', () => {
     for (const marker of [
         'ANCHOR_FOLD_ACTIVATION',
         'ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION',
+        'BET_FEED_LIST_EDIT_ACTIVATION',
         'BRIDGE_POLICY_DETACH',
         'XC_ANCHOR_FOLD_REGTEST_ACTIVATION',
         './actions/anchor.md',
         './token-bridge.md',
         'own block height',
     ]) {
-        assert.throws(() => assertReleaseHeightGates(PAGE.replace(marker, 'removed')));
+        assert.throws(() => assertReleaseHeightGates(PAGE.replaceAll(marker, 'removed')));
     }
+});
+
+test('the BET feed-list edit guard fails when a numeric height is added', () => {
+    const changed = PAGE.replace('regtest exercises the gated path from genesis',
+        'regtest exercises the gated path from height 123');
+    assert.notEqual(changed, PAGE, 'falsification fixture did not add its height');
+    assert.throws(() => assertBetFeedListEditGate(changed), /quotes a date or height/);
 });

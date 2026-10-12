@@ -46,13 +46,13 @@ The SDK calls the encoder's JSON-RPC API, passing the ACTION string, the sender'
 
 4. **Returns an unsigned PSBT** (Partially Signed Bitcoin Transaction). For two-transaction formats, the encoder returns both PSBTs in sequence: a funding transaction and a reveal transaction.
 
-The encoder is entirely stateless. It holds no database and takes no network calls to coin nodes. The same inputs always produce the same output.
+The encoder is stateless in the sense that it holds no database and keeps no state between calls, but it is not free of network I/O. It calls the coin node over JSON-RPC (configured by the `NODE_*` variables) for `estimatesmartfee`-based fee estimation and for the optional `broadcast_tx` method, and it calls xchain-utxo-tracker for UTXOs when the caller omits `utxos`. Its output therefore depends on more than the request: with the default node-sourced fee rate or tracker-sourced UTXOs, the same call can return a different PSBT as mempool conditions and the sender's UTXO set change.
 
 ---
 
 ### Step 3: User Signs and Broadcasts
 
-The caller (SDK, wallet, or custom client) signs the PSBT with the sender's private key and broadcasts the resulting transaction to the coin node's mempool via standard JSON-RPC (`sendrawtransaction`). For two-transaction formats, the funding transaction is broadcast first; the reveal transaction is broadcast only after the funding transaction confirms.
+The caller (SDK, wallet, or custom client) signs the PSBT with the sender's private key and broadcasts the resulting transaction to the coin node's mempool via standard JSON-RPC (`sendrawtransaction`). For two-transaction formats, the funding transaction is broadcast first and the reveal transaction follows it straight away. The reveal spends an output of the funding transaction, so the node must have the funding transaction before it accepts the reveal, but nothing waits for a confirmation in between. Both can confirm in the same block; for TAPROOT that is the expected, fee-optimal shape (see [Taproot envelope: Reorgs](../protocol/taproot-envelope.md#reorgs)).
 
 ---
 
@@ -124,7 +124,7 @@ In addition to the validation pipeline above, oracle price data flows separately
 
 ```mermaid
 flowchart TD
-    FETCH["Validators with price capability fetch from<br>CoinGecko / Kraken (CoinMarketCap optional)"]
+    FETCH["Validators with price capability fetch from<br>CoinGecko / Kraken / Coinbase (CoinMarketCap optional)"]
     PBFT["PBFT consensus on prices<br>(signs canonical PRICE v0 payload)"]
     PUBLISH["A validator with oracle_publish capability<br>writes PRICE v0 to a chain"]
     PROCESS["That chain's decoder + indexer<br>process the action"]
@@ -224,7 +224,7 @@ The indexer's output is fully determined by its inputs and its code. Those input
 - **Verification**: multiple independent indexer instances reading the same Decoder DB and the same hub-mirrored rows will converge to the same state.
 - **Auditability**: a disputed balance or token state can be traced back through ledger entries to the exact action and block that caused it.
 
-Both inputs are themselves chain-derived. The Decoder DB is rebuilt from the blockchain: destroy it, run the decoder from block 0, and it re-derives the same rows from on-chain data. The hub-mirrored rows are chain-derived too: prices arrive as PRICE v0 and v1 actions, and the validator infrastructure tables (`stakes`, `delegations`, `validator_rewards`) are synced from BTC indexer state, both aggregated across chains by the hub, with the mirror rebuilt from the hub's snapshot ([Database Design](database-design.md)). So the full indexer state is reproducible from the chains, though not from one chain's Decoder DB in isolation.
+Both inputs can themselves be rebuilt. The Decoder DB is rebuilt from the blockchain: destroy it, run the decoder from block 0, and it re-derives the same rows from on-chain data. The hub-mirrored rows are aggregated across chains by the hub: prices arrive as PRICE v0 and v1 actions, and the cross-chain settlement and federation-state rows (matches, calls, capability, policy and list snapshots, bridge transfers, state checkpoints, anchor reward attestations, attestation responses) are records the hub finalizes. Most of them carry validator quorum signatures, while capability snapshots are unsigned validator-set membership derived from on-chain BTC stake state. The mirror is rebuilt from the hub's snapshot ([Database Design](database-design.md)). The staking tables (`stakes`, `delegations`, `validator_rewards`) are not mirrored; they are indexer state derived from the Decoder DB. So the full indexer state is reproducible from the Decoder DB plus an equivalent hub mirror, though not from one chain's Decoder DB in isolation.
 
 ---
 

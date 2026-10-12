@@ -98,7 +98,8 @@ These values are defined in source code. Most are fixed; the rows that name an e
 
 | Constant | Value | Location | Description |
 |---|---|---|---|
-| `MAX_ACTION_DATA_LENGTH` | `8192` | XChainDecoder.js | Maximum **compiled** on-chain ACTION payload size in bytes (the script push measured before decompile strips the OP_PUSHDATA prefix; the decoded ACTION string is 1–3 bytes shorter). A tx is skipped when its compiled push exceeds 8192 bytes. |
+| `MAX_ACTION_DATA_LENGTH` | `8192` | protocol/constants/action_size.js | Maximum **compiled** on-chain ACTION payload size in bytes for the legacy lanes (OP_RETURN, multisig, P2SH, P2WSH): the script push measured before decompile strips the OP_PUSHDATA prefix, so the decoded ACTION string is 1–3 bytes shorter. When a payload exceeds its lane's ceiling the decoder logs an error, counts a parse error and drops the ACTION. The tx is still stored with an empty ACTION if it carries dispense or payment outputs, and is skipped only if it carries neither. |
+| `ENVELOPE_MAX_PAYLOAD` | `390000` | protocol/constants/action_size.js | The Taproot envelope's payload ceiling, which replaces `MAX_ACTION_DATA_LENGTH` for that lane only. Measured on the reassembled envelope payload before parse, excluding the envelope's own push framing; derived from the standard transaction weight limit (see [Encoding](../../concepts/encoding.md)). The same drop-the-ACTION, keep-the-tx-if-it-has-outputs rule applies. |
 | `SATOSHIS_DECIMALS` | `8` | db.js | Decimal places for satoshi-to-coin conversion |
 | `DB_TRANSACTION_BLOCKS_QUANTITY` | `1` | XChainDecoder.js | Blocks per database transaction |
 
@@ -108,12 +109,12 @@ These values are defined in source code. Most are fixed; the rows that name an e
 |---|---|---|---|
 | DB connection pool size | `10` | db.js | Maximum concurrent MariaDB connections |
 | `queryTimeout` default | `30000` | db.js | MariaDB query execution timeout in milliseconds (30 seconds); overridable via `DB_QUERY_TIMEOUT` env var |
-| RPC timeout (axios) | `30000` | BlockchainConnector.js | HTTP timeout for all JSON-RPC calls (30 seconds); overridable via `NODE_RPC_TIMEOUT` env var |
-| RPC max retries | `10` | BlockchainConnector.js | Maximum retry attempts for failed RPC calls |
-| RPC retry delay | `500` | BlockchainConnector.js | Delay between retries in `getRawTransaction`, and (via `backoffOnTimeout()`) between timeout retries in the block-path RPC methods. Overridable via `RPC_TIMEOUT_RETRY_DELAY_MS`. Non-timeout failures in the block-path methods still retry without a sleep. |
-| RPC concurrency | `50` | BlockchainConnector.js | Maximum concurrent outbound RPC calls; overridable via `DECODER_RPC_CONCURRENCY` |
-| Failover threshold | `3` | BlockchainConnector.js | Consecutive connection failures before rotating to the next `NODE_URL_FALLBACK` endpoint |
-| RPC 429 backoff | `5000` | BlockchainConnector.js | Delay on HTTP 429 rate limiting (5 seconds) |
+| RPC timeout (axios) | `30000` | blockchain_connector.js | HTTP timeout for all JSON-RPC calls (30 seconds); overridable via `NODE_RPC_TIMEOUT` env var |
+| RPC max retries | `10` | blockchain_connector.js | Maximum retry attempts for failed RPC calls |
+| RPC retry delay | `500` | blockchain_connector.js | Delay between retries in `getRawTransaction`, and (via `backoffOnTimeout()`) between timeout retries in the block-path RPC methods. Overridable via `RPC_TIMEOUT_RETRY_DELAY_MS`. Non-timeout failures in the block-path methods still retry without a sleep. |
+| RPC concurrency | `50` | blockchain_connector.js | Maximum concurrent outbound RPC calls; overridable via `DECODER_RPC_CONCURRENCY` |
+| Failover threshold | `3` | blockchain_connector.js | Consecutive connection failures before rotating to the next `NODE_URL_FALLBACK` endpoint |
+| RPC 429 backoff | `5000` | blockchain_connector.js | Delay on HTTP 429 rate limiting (5 seconds) |
 
 ### API Security
 

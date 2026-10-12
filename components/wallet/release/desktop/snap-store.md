@@ -124,6 +124,10 @@ snap connections xchain-wallet
 ⬜ A decision is recorded on auto-connection: requesting it from the Store is a review conversation, and leaving it manual means the listing must tell users to run the connect command.  
 ⬜ If hardware signers cannot be made to work under strict confinement, the channel is reconsidered rather than switched to `classic`. Classic confinement forfeits automatic review and the isolation story that is the reason to be in this store.
 
+### Review notes: trading screens
+
+XChain Wallet includes trading screens for the XChain protocol's on-chain decentralized exchange. The publisher does not operate a custodial exchange or broker trades: the wallet composes and signs the user's place-order and cancel-order protocol actions with keys held on the user's device, matching happens in the XChain indexer, and settlement happens on public blockchains. There is no publisher account, hosted balance, fiat on-ramp or card purchase. The complete trading surface ships in the Snap Store build. Put these facts in the review notes if confinement or financial functionality sends the snap to human review; do not say the screens are hidden or compiled out.
+
 ### Phase 6: promote to stable
 
 ```

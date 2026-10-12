@@ -14,7 +14,7 @@ This is the platform's first cryptographically secure publishing capability. It 
 - **Publish a single encrypted file** that anyone running an XChain node can see on-chain but only token holders can decrypt and read.
 - **Publish a multi-file pack** that unlocks atomically, owning the token decrypts every file in the pack with a single key.
 - **Set a minimum holding** with `GATE_MIN_AMOUNT`, so content unlocks at a balance rather than at the first satoshi of the token. Holders below the threshold receive no key until a transfer takes them over it.
-- **Sell the token freely** on the built-in DEX. The automatic key handoff is enforced on the direct `SEND` path only: `send.js` requires a `MESSAGE` v2 to the recipient in the same transaction when the post-send balance reaches a pack's threshold. DEX settlement (ORDER match, SWAP, DISPENSE) and every other credit path (`AIRDROP`, `DIVIDEND`, ownership transfer) run no such check, so a buyer acquires the token there without the key and needs it delivered afterwards in a direct send.
+- **Sell the token freely** on the built-in DEX. The automatic key handoff is enforced on the direct `SEND` path only (and, below `SEND_CARET_PACK_KEY_ACTIVATION`, only for a `SEND` that writes `TICK` as the ticker name): `send.js` requires a `MESSAGE` v2 to the recipient in the same transaction when the post-send balance reaches a pack's threshold. DEX settlement (ORDER match, SWAP, DISPENSE) and every other credit path (`AIRDROP`, `DIVIDEND`, ownership transfer) run no such check, so a buyer acquires the token there without the key and needs it delivered afterwards in a direct send.
 - **Walk away after publishing.** No server to keep running, no key escrow service to maintain. The encrypted content and the key handoff machinery live entirely on the blockchain.
 
 ---
@@ -22,7 +22,7 @@ This is the platform's first cryptographically secure publishing capability. It 
 ## Trust model
 
 - **What it guarantees.** Until a holder unlocks, no party (including miners, indexer operators, and explorer hosts) can read the plaintext. The encryption is AES-256-GCM with a 256-bit random key. The key is delivered only via ECIES envelopes encrypted to the receiver's address public key.
-- **What it does not guarantee.** Once a holder decrypts, they have the bytes. Token gating is a *first-access* lock, not DRM; a holder can rehost the plaintext anywhere. Loss of the address private key means loss of access (same custody model as the token itself). And a malicious sender could refuse to attach the key handoff at transfer time; the protocol prevents the OMISSION by rejecting any gated `SEND` that owes a handoff and is not paired with a `MESSAGE` to the recipient, but it cannot inspect the ciphertext, so a sender can still attach a wrong key. Recipients detect that themselves by checking the delivered key against `KEY_HASH`.
+- **What it does not guarantee.** Once a holder decrypts, they have the bytes. Token gating is a *first-access* lock, not DRM; a holder can rehost the plaintext anywhere. Loss of the address private key means loss of access (same custody model as the token itself). And a malicious sender could refuse to attach the key handoff at transfer time; the protocol prevents the OMISSION by rejecting any gated `SEND` that owes a handoff and is not paired with a `MESSAGE` to the recipient (below `SEND_CARET_PACK_KEY_ACTIVATION`, which is not yet armed on mainnet, only a `SEND` that writes `TICK` as the ticker name is checked; see [Index ID References](./index-id-references.md)), but it cannot inspect the ciphertext, so a sender can still attach a wrong key. Recipients detect that themselves by checking the delivered key against `KEY_HASH`.
 
 ---
 
@@ -91,7 +91,7 @@ Once a token has at least one active gated `FILE`, the indexer enforces a rule o
 
 The wallet sending the gated token composes `BATCH(SEND, MESSAGE)`. The MESSAGE carries the ECIES-encrypted key handoff payload re-encrypted to the recipient's address public key (resolved from on-chain transaction history per [`MESSAGE` v2 ECIES](./actions/message.md)).
 
-If the MESSAGE is required and missing, the indexer rejects the `SEND` only; the rest of the BATCH (if any) survives. This prevents a sender from delivering a gated token without the means to unlock it.
+The indexer applies this rule per leg of the `SEND`, after legs to the same `DESTINATION` and `TICK` are consolidated into one. Each `DESTINATION` that is owed the handoff needs its own `MESSAGE` v2, since one `MESSAGE` covers only the address it is addressed to. If the MESSAGE is required and missing for a leg, that leg is recorded `invalid: gated token transfer requires key handoff message` and moves nothing; the other legs of the same `SEND` (other recipients, other ticks) still settle, and the rest of the BATCH (if any) survives. This prevents a sender from delivering a gated token without the means to unlock it.
 
 The sending wallet must already hold the key, i.e. the sender must have previously unlocked the content. A wallet that has never decrypted the content has no key to re-encrypt to a new holder. The wallet should block the transfer at compose time with a clear message rather than producing an invalid transaction.
 
@@ -106,13 +106,15 @@ The rule the indexer applies, in order:
 3. **A pack requires the handoff** when its effective threshold is unconditional, or when the post-send balance reaches it.
 4. **The `MESSAGE` is required if at least one pack requires it.** If every pack sits above the recipient's post-send balance, a plain `SEND` with no `MESSAGE` is valid and the recipient deliberately receives no key. They can be sent one later, or acquire more of the token and be handed the key on the transfer that crosses the threshold.
 
+Before [`SEND_GATED_TOTAL_TICK_ID_ACTIVATION`](./flag-days.md) is active, the total in item 2 is summed per `DESTINATION` and literal `TICK` as written, so spelling variants are measured apart. Once the gate is active, it is summed per `DESTINATION` and resolved `TICK_ID`, so variants of one tick, for example a different letter case or the `^<tickid>` form, count together toward the threshold. The gate changes only whether the handoff is owed; it never changes which legs settle.
+
 Publishing a gated `FILE` against a token is restricted to that token's issuer, so an outsider cannot attach a pack (or a threshold) to someone else's token.
 
 Format rules for the field: a decimal amount strictly greater than zero (every zero form is rejected), at most 40 characters, digits and at most one `.`, no leading zeros unless the integer part is exactly `0`, a non-empty fractional part whenever a `.` is present, and no more decimal places than the gate token's own divisibility (capped at 18). A present-but-invalid value rejects the `FILE` rather than being ignored: a `FILE` is immutable, so silently dropping a malformed threshold would leave the publisher believing a threshold was in force while the chain recorded none.
 
 ### What the handoff rule does and does not guarantee
 
-The rule enforces the **presence** of a key-handoff `MESSAGE`, not the correctness of what is inside it. Consensus cannot look inside the ciphertext, so an adversarial sender can satisfy the rule with garbage. Recipients verify the delivered key against the file's `KEY_HASH` client-side (step 5 of the unlock flow below) and ignore anything that does not match. The protocol guarantees a sender cannot *quietly omit* the handoff; it cannot guarantee the sender was honest.
+The rule enforces the **presence** of a key-handoff `MESSAGE`, not the correctness of what is inside it. Consensus cannot look inside the ciphertext, so an adversarial sender can satisfy the rule with garbage. Recipients verify the delivered key against the file's `KEY_HASH` client-side (step 5 of the unlock flow below) and ignore anything that does not match. The protocol guarantees a sender cannot *quietly omit* the handoff; it cannot guarantee the sender was honest. The omission guarantee covers a `SEND` whose `TICK` the pack lookup can match: below `SEND_CARET_PACK_KEY_ACTIVATION` (not yet armed on mainnet), a `SEND` that writes `TICK` as `^<tickid>` finds no pack and owes no handoff, as [Index ID References](./index-id-references.md) describes.
 
 ---
 
@@ -181,7 +183,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 
 - **Gated `FILE` publishing.** When `GATE_TICKER` is non-empty, the SOURCE address must be the issuer of the gated token (i.e. the OWNER returned by the token's current `ISSUE`). Otherwise the FILE is rejected. This prevents third parties from gating arbitrary content to popular tickers as spam.
 - **Gated `FILE` while ownership is escrowed.** A gated `FILE` is also rejected while the gate token's ownership sits in escrow, which an issuer who has listed the token for sale will hit even though they are still the OWNER. `FILE` is one of the actions the escrow blocks; the full list is in [`ORDER`](./actions/order.md#token-ownership-sales), and [`FILE`](./actions/file.md) states it locally.
-- **`SEND` of a gated token.** Defined above. The indexer checks for a structurally valid sibling `MESSAGE`; it does not decrypt or validate the payload contents (it can't; the payload is encrypted to the recipient). The wallet at unlock time verifies key correctness via the `KEY_HASH` check.
+- **`SEND` of a gated token.** Defined above. The indexer checks only for the presence of a sibling command in the same `BATCH` that parses as `MESSAGE` with `VERSION` `2` and whose `DESTINATION` equals the leg's `DESTINATION`. At or above `GATED_HANDOFF_REF_ACTIVATION` a `^<id>` reference in that `DESTINATION` is resolved first, and one that does not resolve matches nothing; below it the `DESTINATION` is compared as written. This is a presence check, not validation: the sibling's `COIN` and `ENCRYPTED_MESSAGE` are not inspected and the `MESSAGE`'s own verdict is not consulted, so the `SEND` leg can be valid even when that `MESSAGE` is itself rejected. The indexer does not decrypt the payload (it can't; the payload is encrypted to the recipient). The wallet at unlock time verifies key correctness via the `KEY_HASH` check.
 
 ---
 

@@ -338,7 +338,7 @@ After the activation block, fees for VM and staking actions are calculated using
 | Parameter | Description | Example (BTC) |
 |---|---|---|
 | `GAS_PRICE` | Base XCHAIN cost per unit of gas | `0.00001` |
-| `GAS_SCHEDULE` | Object mapping action types to their gas cost in gas units | `{ DEPLOY: 100000, EXECUTE: 10000, STAKE: 5000, ... }` |
+| `GAS_SCHEDULE` | Object mapping fee keys to their gas cost in gas units. The full table is in `src/coins/<COIN>.js`; see [Gas](../../concepts/gas.md) for what each key prices | `{ ISSUE: 100000, SWEEP_BASE: 5000, VM_DEPLOY_BASE: 100000, VM_EXECUTE_BASE: 1000, VM_STATE_WRITE: 200, ... }` |
 | `UNIFIED_EXPIRATION_FEE_FREE_DAYS` | Free listing duration under the unified schedule (replaces `EXPIRATION_FEE_FREE_DAYS` post-activation) | `90` (3 months) |
 | `FEE_PAYMENT_MODE` | Reserved key indicating intended fee denomination per chain (`'xchain'` on BTC, `'native'` on LTC/DOGE). **Not currently read at runtime**: see note below. | `'xchain'` (BTC) |
 

@@ -31,7 +31,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **PSBT**: Partially Signed Bitcoin Transaction. The standard format for unsigned or partially signed transactions on Bitcoin-family chains. XChain's encoder produces PSBTs that the caller signs with their wallet and broadcasts.
 
-**TICK**: A token ticker symbol, up to 250 characters. May contain only letters `a-zA-Z`, digits `0-9`, and the punctuation `~!@#$%^&*()_+-={}[]:<>.?`; every other character, including spaces, `|`, `;`, `/` and `\`, is rejected. Cannot begin with `^`. A period (`.`) is allowed and is reserved as the parent/child sub-token separator (e.g. `MYTOKEN.SILVER`), but a TICK cannot begin or end with one. Used to identify tokens throughout the protocol. When referencing a token by its numeric ID instead of its ticker, prefix with `^` (e.g., `^1234`).
+**TICK**: A token ticker symbol, up to 250 characters. May contain only letters `a-zA-Z`, digits `0-9`, and the punctuation `~!@#$%^&*()_+-={}[]:<>.?`; every other character, including spaces, `|`, `;`, `/` and `\`, is rejected. Cannot begin with `^`. A period (`.`) is allowed and is reserved as the parent/child sub-token separator (e.g. `MYTOKEN.SILVER`), but a TICK cannot begin or end with one. At or above `TICK_NAMESPACE_ACTIVATION`, a brand-new top-level TICK must be at least four characters, and the codes of chains XChain may integrate later (`ETH`, `SOL`, ...) are reserved; see [ISSUE](../protocol/actions/issue.md). Used to identify tokens throughout the protocol. When referencing a token by its numeric ID instead of its ticker, prefix with `^` (e.g., `^1234`).
 
 **TICK_ID**: The numeric ACTION_INDEX of the ISSUE action that created a token. An alternative way to reference a token that is stable even if the ticker is changed.
 
@@ -151,7 +151,7 @@ A reference glossary of XChain terminology, organized by category.
 
 These five ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not exposed in the SDK.
 
-**ANCHOR**: A validator-broadcast ACTION that commits a quorum-signed state checkpoint (per-block ledger, actions, and contract hash triple) to the anchor chain (DOGE on all networks). Later versions also archive cross-chain match records and SPV light-client roots on-chain. ANCHOR is what allows light clients to verify indexer state against a threshold of validator signatures without trusting a single operator.
+**ANCHOR**: A validator-broadcast ACTION that commits a quorum-signed state checkpoint (per-block ledger, actions, and contract hash triple) to the anchor chain (DOGE on all networks). The checkpoint bundle also carries each chain's SPV light-client roots, and the archive versions record the signed cross-chain match records on-chain. ANCHOR is what allows light clients to verify indexer state against a threshold of validator signatures without trusting a single operator.
 
 **ATTEST**: A lifecycle ACTION with three phases. Version 0 is VM-emitted when a smart contract calls `xchain.attestation.request(...)`, requesting an external data fetch (an HTTPS URL or an AI model prompt). Version 1 is validator-broadcast and carries the quorum-verified response plus validator signatures. Version 2 is system-synthesized by the indexer when the request deadline expires without a quorum response.
 

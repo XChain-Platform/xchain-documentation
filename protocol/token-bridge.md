@@ -159,7 +159,8 @@ shape that matters to a reader of this page:
 - **Detaching a list.** When the origin issuer detaches its allow or block list (an
   [`ISSUE`](./actions/issue.md) format `5` carrying `0` in that field), the next signed snapshot
   carries that list as null. From the destination's `BRIDGE_POLICY_DETACH` activation, read at
-  the destination chain's own block height (values on [Flag-Day Values](./flag-days.md)), each
+  the destination chain's own block height (per-chain heights on
+  [Protocol Activation](./protocol-activation.md#cohort-a-riders-that-mint-no-constant)), each
   copy's matching list is detached the same way, by an injected `ISSUE` format `5` with `0`;
   below it, a null list leaves the copy's list attached as before.
   A null list is never materialized as an empty list, which would deny every address.

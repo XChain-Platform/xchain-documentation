@@ -30,6 +30,7 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 |---|---|
 | [API Reference](api.md) | Complete JSON-RPC reference: all six methods with parameters, request/response examples, and error codes |
 | [Format Selection](format-selection.md) | Decision guide and size limits for the five encoding formats |
+| [Remote Tracker Profile](../utxo-tracker/trackerless-profile.md) | Fail-closed contract for using an xchain-utxo-tracker on another host |
 
 ## Encoding Process
 
@@ -87,7 +88,7 @@ The encoder selects the most efficient format automatically based on obfuscated 
 
 ## UTXO Management
 
-The encoder accepts UTXOs from the caller (typically sourced from xchain-utxo-tracker). It selects the minimum set of inputs needed to cover the output value plus estimated fees, constructs a change output back to the source address if change exceeds the dust threshold, and includes all selected inputs in the PSBT.
+The encoder accepts UTXOs from the caller (typically sourced from xchain-utxo-tracker). It selects the minimum set of inputs needed to cover the output value plus estimated fees, constructs a change output back to the source address if change exceeds the dust threshold, and includes all selected inputs in the PSBT. For deployments where the tracker runs on another host, the [remote tracker profile](../utxo-tracker/trackerless-profile.md) makes that service mandatory and fails closed on missing or unsafe freshness evidence.
 
 Fee rates use the coin node's `estimatesmartfee` recommendation by default. The caller may pass an override fee rate.
 
@@ -132,6 +133,7 @@ npm run api
 | `DUST_AMOUNT` | No | Coin default | Floor in base units on every value output the encoder authors (funding legs, data outputs, change). It can only raise the floor: the coin's consensus dust threshold and its relay-policy soft-dust floor (Dogecoin: 0.01 DOGE, below which each output adds the whole limit to the required relay fee) apply regardless |
 | `UTXO_TRACKER_URL` | No | None | xchain-utxo-tracker service host |
 | `UTXO_TRACKER_API_PORT` | No | None | xchain-utxo-tracker service port |
+| `UTXO_TRACKER_PROFILE` | No | `default` | `default` keeps the historical behaviour, where a tracker that predates the freshness surface fails open; `remote` requires `UTXO_TRACKER_URL` and `UTXO_TRACKER_API_PORT` and fails closed with a typed error on every missing or negative freshness signal. Any other value refuses at startup. See the [remote tracker profile](../utxo-tracker/trackerless-profile.md) |
 | `MAX_FEE_RATE_KB` | No | Uncapped | Absolute maximum fee rate in sat/kB |
 | `MAX_FEE_RATE_MULTIPLIER` | No | `100` | Caps caller-supplied fee/feePerKb at this multiple of the node's fee estimate (`0` disables) |
 | `SUGGESTED_FEE_MAX_PER_VBYTE` | No | `20` on test chains, uncapped on mainnet | Ceiling on the fee rate the encoder picks for a caller that supplies none, in base units per vByte. A quiet test chain has no fee market, so `estimatesmartfee` returns a large fallback at every confirmation target, which prices an ordinary action above the balance funding it. Mainnet is unclamped by default, where the estimate is real and a ceiling would underpay a genuine spike. Set a number to override on any chain, or `0` to disable. Bounds only the rate chosen on the caller's behalf, never a caller-supplied rate and never the anchor the fee-drain caps derive from |

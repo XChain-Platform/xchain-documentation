@@ -67,6 +67,16 @@ const {
 const DOC_ROOT      = path.join(__dirname, '..');
 const PLATFORM_ROOT = path.join(DOC_ROOT, '..');
 
+test('node configuration documents mainnet HubMirror database isolation', () => {
+    const nodeConfiguration = fs.readFileSync(
+        path.join(DOC_ROOT, 'components', 'node', 'configuration.md'),
+        'utf8'
+    );
+    assert.ok(nodeConfiguration.includes(
+        'installer grants a mainnet indexer account only its own HubMirror database'
+    ));
+});
+
 /*  ------------------------------------------------------------------
  *  Harness self-tests: these run everywhere, siblings or not
  *  ------------------------------------------------------------------ */
@@ -1177,6 +1187,20 @@ describe('checkStaleKnownGaps (the waiver ratchet)', () => {
             assert.deepEqual(cov.checkStaleKnownGaps(new Map()), []);
         } finally {
             delete cov.KNOWN_GAPS.decoder;
+        }
+    });
+
+    test('a key that is not a gated component is reported, not skipped', () => {
+        const populated = new Map([['decoder', entryOf([['ANYTHING', [{ file: 'src/a.js', line: 1, default: null }]]], [])]]);
+        try {
+            cov.KNOWN_GAPS.decodr = ['ANYTHING'];
+            for (const survey of [new Map(), populated]) {
+                const out = cov.checkStaleKnownGaps(survey);
+                assert.equal(out.length, 1, `expected one report, got ${JSON.stringify(out)}`);
+                assert.match(out[0], /^decodr: .*not in COMPONENTS/);
+            }
+        } finally {
+            delete cov.KNOWN_GAPS.decodr;
         }
     });
 });

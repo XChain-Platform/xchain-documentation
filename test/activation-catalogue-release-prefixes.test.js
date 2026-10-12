@@ -16,9 +16,28 @@ const REGISTRY_DIR = 'src/protocol_changes';
 const indexer = sibling('xchain-indexer', [REGISTRY_FILE, REGISTRY_DIR]);
 const TABLE_HEADINGS = ['A through E', 'G through P', 'R through X'];
 const EXPECTED = [
+    [
+        'anchor_archive_fold_term_activation',
+        'ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION',
+        'A through E',
+        'height',
+    ],
     ['anchor_bundle_order_activation', 'ANCHOR_BUNDLE_ORDER_ACTIVATION', 'A through E', 'height'],
+    [
+        'anchor_empty_fold_reject_activation',
+        'ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION',
+        'A through E',
+        'height',
+    ],
     ['anchor_fold_activation', 'ANCHOR_FOLD_ACTIVATION', 'A through E', 'height'],
     ['archive_match_count_activation', 'ARCHIVE_MATCH_COUNT_ACTIVATION', 'A through E', 'height'],
+    ['attest_relay_fee_activation', 'ATTEST_RELAY_FEE_ACTIVATION', 'A through E', 'height'],
+    [
+        'attest_relay_response_deadline_activation',
+        'ATTEST_RELAY_RESPONSE_DEADLINE_ACTIVATION',
+        'A through E',
+        'time',
+    ],
     [
         'archive_section_verdict_activation',
         'ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION',
@@ -27,8 +46,20 @@ const EXPECTED = [
     ],
     ['bridge_policy_detach_activation', 'BRIDGE_POLICY_DETACH', 'A through E', 'height'],
     [
+        'bridge_row_fields_terminal_activation',
+        'BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION',
+        'A through E',
+        'height',
+    ],
+    [
         'callback_compensation_activation',
         'CALLBACK_COMPENSATES_EVERY_DEBITED_HOLDER',
+        'A through E',
+        'height',
+    ],
+    [
+        'cooldown_maturity_escrow_reversal_activation',
+        'COOLDOWN_MATURITY_ESCROW_REVERSAL_ACTIVATION',
         'A through E',
         'height',
     ],
@@ -37,6 +68,12 @@ const EXPECTED = [
         'DISPENSER_FRESHNESS_PROVEN_USE_ACTIVATION',
         'A through E',
         'time',
+    ],
+    [
+        'dispenser_refill_policy_activation',
+        'DISPENSER_REFILL_POLICY_ACTIVATION',
+        'A through E',
+        'height',
     ],
     [
         'dispenser_settlement_price_activation',
@@ -54,6 +91,7 @@ const EXPECTED = [
         'height',
     ],
     ['market_list_source_activation', 'MARKET_LIST_SOURCE_ACTIVATION', 'G through P', 'height'],
+    ['mirror_admission_margin_activation', 'ADMIT_CHAIN_MARGIN_ACTIVATION', 'G through P', 'height'],
     [
         'order_swap_payout_policy_activation',
         'ORDER_SWAP_PAYOUT_POLICY_PER_TOKEN',
@@ -134,9 +172,12 @@ test('release activation prefixes have exact catalogue rows', () => {
 });
 
 test('a dropped release activation row fails catalogue parsing', () => {
-    const dropped = doc.replace(/^\| `anchor_fold_activation` .*\n/m, '');
+    const dropped = doc.replace(/^\| `attest_relay_response_deadline_activation` .*\n/m, '');
     assert.notEqual(dropped, doc, 'falsification fixture did not remove its row');
-    assert.throws(() => parseReleasePrefixes(dropped), /anchor_fold_activation must appear exactly once/);
+    assert.throws(
+        () => parseReleasePrefixes(dropped),
+        /attest_relay_response_deadline_activation must appear exactly once/,
+    );
 });
 
 test('every registry *_activation stem has a catalogue row', { skip: indexer.skip }, () => {

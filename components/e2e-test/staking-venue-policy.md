@@ -53,6 +53,7 @@ declaration, not a default.
 | Venue | Seeded by | Why it keeps its stakes |
 |---|---|---|
 | ROLLCALL acceptance federation (BTC regtest) | `npm run venue:seed-rollcall` | The four-source federation IS the venue. The acceptance suites drive it across many runs, and the sources' weights are the quorum arithmetic those suites assert. |
+| XCALL relay federation (BTC regtest) | `XCALL_STAKE_PUBKEYS=<hex>,<hex> npx mocha --timeout 0 --exit --require ./test/initial_check.test.js test/sdk/helpers/xcallStakeValidators.js` | The `cross_chain` federation the XCALL suites relay through, and the quorum-drop drill plans against, has to outlive the run that seated it. The driver marks its stake site rather than registering it, so the run's teardown leaves the federation seated. The XCALL suites seat the relay hub's own fixed key (`XCALL_HUB_PUBKEY`) when it is free and mark that site rather than register it: one key seats once, and a release would block its re-stake for `COOLDOWN_BLOCKS` while the suites read "already in use" as seated. |
 | Attestation mirror roster (BTC regtest) | `npm run venue:seed-attestation` | `mirrorDrillFixture` ADOPTS the seated roster and stakes nothing, so the roster has to outlive the run that made it. It is seeded from `_knownSignerSeeds()`, which makes every seated key one the harness can sign for; a key it cannot sign for stalls any round that draws it. Seeds an EMPTY set only: staking into a set that already exists dilutes it rather than replacing it. |
 
 `npm run venue:seed-rollcall` sets `E2E_STAKE_TEARDOWN=off` itself. Note that
@@ -65,10 +66,12 @@ untouched.
 
 `npm run lint:stake-teardown` (`scripts/check-stake-teardown.js`, part of
 `npm run ci`) fails on any hand-built `STAKE` payload under `test/` that
-bypasses the ledger. Fix a site by staking through `stakeHelper`, by calling
-`stakeTeardown.registerStake()` for the stake you broadcast, or, when the stake
-can never become a capability member (an intentionally-rejected one), by saying
-why:
+bypasses the ledger. An SDK submission of `{ action: 'STAKE', params }` is a
+site too, while a comparison such as `tx.action === 'STAKE'` is not. Fix a site
+by staking through `stakeHelper`, by calling `stakeTeardown.registerStake()`
+for the stake you broadcast, or by saying why the run owes nothing back. That
+holds when the stake can never become a capability member (an
+intentionally-rejected one), or when it seats a fixed key that a declared venue above keeps seated:
 
 ```js
 // stake-teardown-ok: rejected on the AMOUNT format guard.
