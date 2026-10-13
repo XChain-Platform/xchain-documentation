@@ -29,6 +29,7 @@ same chain or field.
 | `anchor_bundle_order_activation` | `ANCHOR_BUNDLE_ORDER_ACTIVATION` | height |
 | `anchor_empty_fold_reject_activation` | `ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION` | height |
 | `anchor_fold_activation` | `ANCHOR_FOLD_ACTIVATION` | height |
+| `anchor_fold_reissue_source_author_activation` | `ANCHOR_FOLD_REISSUE_SOURCE_AUTHOR_ACTIVATION` | height |
 | `anchor_preactivation_status_activation` | `ANCHOR_PREACTIVATION_STATUS_ACTIVATION` | height |
 | `anchor_reward_activation` | `ANCHOR_REWARD_ACTIVATION` and related anchor/archive reward gates | height |
 | `archive_batch_author_activation` | `ARCHIVE_BATCH_AUTHOR_ACTIVATION` | height |
@@ -55,6 +56,7 @@ same chain or field.
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
 | `consolidation_leg_amount_activation` | `CONSOLIDATION_LEG_AMOUNT_ACTIVATION` | time |
+| `contract_slash_active_first_activation` | `CONTRACT_SLASH_ACTIVE_FIRST_ACTIVATION` | height |
 | `cooldown_maturity_escrow_reversal_activation` | `COOLDOWN_MATURITY_ESCROW_REVERSAL_ACTIVATION` | height |
 | `cross_chain_offer_list_export_activation` | `CROSS_CHAIN_OFFER_LIST_EXPORT` | height |
 | `cross_chain_remote_token_activation` | `CROSS_CHAIN_REMOTE_TOKEN_ACTIVATION` | height |
