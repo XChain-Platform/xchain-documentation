@@ -35,7 +35,7 @@
  * route forwards to the client as `code: e.code`; and a mirror-gate verdict
  * (`blocked: 'CODE'`), which the mirror gate sends by reference as
  * `code: blocked`. A new emit shape needs its own rule here, or its codes go
- * unchecked. Only the four REST-side sources are read for the registry
+ * unchecked. Only the five REST-side sources are read for the registry
  * (contract/vm_query.js is one because its throws reach the wire through the
  * state-proof routes):
  * src/ws/ carries the WebSocket channel codes, which are a separate surface
@@ -64,7 +64,7 @@ const EXPLORER_SRC  = path.join(EXPLORER, 'src');
 const REGISTRY_PAGE = path.join(ROOT, 'protocol/error-codes.md');
 
 // REST-side emit sites. src/ws/ is deliberately absent (separate surface).
-const SOURCES = ['XChainExplorer.js', 'api.js', 'http/concurrency_gate.js', 'contract/vm_query.js']
+const SOURCES = ['XChainExplorer.js', 'api.js', 'http/concurrency_gate.js', 'contract/vm_query.js', 'http/bridge_panel_routes.js']
     .map((file) => path.join(EXPLORER_SRC, file));
 
 // An entry file whose long methods were split keeps its path and gains a
