@@ -96,6 +96,7 @@ same chain or field.
 | `list_tick_coin_activation` | `LIST_TICK_COIN_ACTIVATION` for coin-qualified ticker LIST items and the ISSUE colon-root refusal | height |
 | `list_transfer_activation` | `LIST_TRANSFER_ACTIVATION` | height |
 | `list_union_activation` | `LIST_UNION_ACTIVATION` | height |
+| `mainnet_launch_activation` | `MAINNET_LAUNCH_ACTIVATION` | time |
 | `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
 | `mirror_admission_activation` | `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` | height |
 | `mirror_admission_margin_activation` | `ADMIT_CHAIN_MARGIN_ACTIVATION` | height |
