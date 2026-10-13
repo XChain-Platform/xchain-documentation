@@ -512,8 +512,9 @@ them and published on [Flag-Day Values](./flag-days.md).
 
 On mainnet a wire transaction whose block time is below the mainnet launch instant is skipped before any
 address, tx-hash, tx index or action row is written for it. Nothing from before launch enters the index,
-so the indexed mainnet history starts clean at the launch instant. The instant is published on
-[Flag-Day Values](./flag-days.md) and is not restated here.
+so the indexed mainnet history starts clean at the launch instant. The instant is the time-keyed
+`MAINNET_LAUNCH_ACTIVATION` map in `protocol/constants.js`, keyed by network and published on
+[Flag-Day Values](./flag-days.md); it is not restated here.
 
 **The two exemptions.** A pre-launch transaction is still indexed when either of these holds:
 
@@ -523,7 +524,8 @@ so the indexed mainnet history starts clean at the launch instant. The instant i
   whenever they appear.
 - **It comes from a pinned seed source.** Each chain has a list of seed source addresses whose
   pre-launch transactions are admitted. The per-chain seed source list is consensus data: it is
-  filled after the key ceremony and is not known to this document.
+  filled after the key ceremony and is not known to this document. The per-chain lists are
+  `PRELAUNCH_SEED_SOURCES` in `protocol/constants.js`, keyed `<COIN>:mainnet` and empty until the key ceremony.
 
 **User actions are gated.** PRICE format 1 and ATTEST formats 0 and 2 are user actions, not validator
 actions, so a pre-launch one is skipped like any other user action unless it comes from a seed source.
