@@ -2452,6 +2452,19 @@ const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
 
+// MAINNET_LAUNCH_ACTIVATION: the launch gate, keyed by network and measured in unix seconds
+// of block time, not height. Testnet and regtest carry 0 so the gate is open there from the
+// first block; only mainnet waits for its instant.
+const MAINNET_LAUNCH_ACTIVATION = Object.freeze({ mainnet: 1798761600, testnet: 0, regtest: 0 });
+
+// PRELAUNCH_SEED_SOURCES: the sources a node may seed a mainnet coin from before the launch
+// gate opens, keyed by "COIN:network". Every list is empty until the key ceremony fills it.
+const PRELAUNCH_SEED_SOURCES = Object.freeze({
+    'BTC:mainnet': Object.freeze([]),
+    'LTC:mainnet': Object.freeze([]),
+    'DOGE:mainnet': Object.freeze([]),
+});
+
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
     ENVELOPE_MAX_PAYLOAD,
@@ -2589,4 +2602,6 @@ module.exports = {
     LIST_TICK_COIN_ACTIVATION,
     TICK_NAMESPACE_ACTIVATION,
     RESERVED_FUTURE_ROOTS,
+    MAINNET_LAUNCH_ACTIVATION,
+    PRELAUNCH_SEED_SOURCES,
 };
