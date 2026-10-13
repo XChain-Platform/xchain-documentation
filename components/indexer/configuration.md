@@ -161,6 +161,7 @@ carries the credit. Arming the leg is an edit to that bundle plus a
 `xchain-hub/bin/sync-coins.sh` re-vendoring wave, never a per-node export.
 | `CROSS_CHAIN_ROYALTY_REGTEST_TIME` | **Regtest only.** Override the cross-chain royalty activation time so the OFF/deny path stays drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
 | `CONTROLLER_CUSTODY_GUARD_REGTEST_TIME` | **Regtest only.** Override the controller custody guard activation time so the pre-activation bypass and the guarded path stay drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
+| `EXACT_INTEGER_WIRE_FIELDS_REGTEST_TIME` | **Regtest only.** Arm the exact-integer wire fields activation at this time so a regtest venue can drive the strict wire parsing; a set non-negative integer arms it (0 means active from genesis). Deliberately regtest-scoped: testnet and mainnet read their pinned activation times. | unset (unarmed) |
 
 ### A7 replay-equivalence harness
 
