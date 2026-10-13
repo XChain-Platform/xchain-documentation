@@ -30,6 +30,10 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `EXPLORER_FORCE_HTTPS` | No | None | Explicitly enable (`1`) or disable (`0`) the HTTPS-hardening headers (HSTS and `upgrade-insecure-requests`). By default they are active only when `NODE_ENV=production`, so plain-HTTP dev/regtest deploys are not broken. Set to `1` when running behind a TLS-terminating proxy without `NODE_ENV=production`. |
 | `EXPLORER_HOLDERS_CACHE_MS` | No | `15000` | TTL (ms) of the per-tick holders-query result cache. `getHolders` requires an unindexable full-table filesort, so results are cached briefly to bound repeated-query cost. |
 | `EXPLORER_HOLDERS_CACHE_MAX` | No | `500` | Maximum number of distinct holders-query results kept in the cache. |
+| `EXPLORER_TWO_PARTY_DENSE_ROWS` | No | `10000` | Row count at or over which an address of a two-party action family is paged through the ordered-walk query instead of the id-set query. 10,000 balances a family of about 1.1M rows; a non-numeric or non-positive value falls back to the default. |
+| `EXPLORER_BIND_HOST` | No | `127.0.0.1` | Interface both API listeners bind. Loopback by default so the one trusted proxy hop is the only way in; the container image sets `0.0.0.0` so its published port reaches it. An empty value counts as unset. |
+| `EXPLORER_FEESCHEDULE_CACHE_MS` | No | `15000` | Lifetime (ms) of a cached per-indexer fee schedule before it is refetched. Read per call through the config env view. |
+| `EXPLORER_FEESCHEDULE_STALE_MAX_MS` | No | `120000` | Longest age (ms) at which a cached fee schedule is still served while the indexer is failing, bridging a short indexer outage. Read per call through the config env view. |
 | `EXPLORER_TOTALS_CACHE_MS` | No | `60000` | TTL (ms) of the platform-totals query cache. |
 | `MEMPOOL_COUNT_CACHE_MS` | No | `15000` | TTL (ms) of the mempool-count cache. |
 | `PRICE_CACHE_MS` | No | `60000` | TTL (ms) of the oracle-price cache. |
