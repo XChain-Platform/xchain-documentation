@@ -508,6 +508,34 @@ takes a future instant and the two archive gates (`ARCHIVE_INVALID_HEIGHT_KEY`,
 `ARCHIVE_ROLLBACK_AUTHOR_SCOPE`) take future per-chain heights, all sized to the release that carries
 them and published on [Flag-Day Values](./flag-days.md).
 
+## The mainnet launch gate
+
+On mainnet a wire transaction whose block time is below the mainnet launch instant is skipped before any
+address, tx-hash, tx index or action row is written for it. Nothing from before launch enters the index,
+so the indexed mainnet history starts clean at the launch instant. The instant is published on
+[Flag-Day Values](./flag-days.md) and is not restated here.
+
+**The two exemptions.** A pre-launch transaction is still indexed when either of these holds:
+
+- **It is a validator action.** The validator action set is: ANCHOR in every version, PRICE format 0,
+  NODEPROOF, ROLLCALL, and the quorum-signed ATTEST formats 1, 3 and 4 together with the batch head and
+  the batch continuation. These are written by the validator set, not by users, and the chain needs them
+  whenever they appear.
+- **It comes from a pinned seed source.** Each chain has a list of seed source addresses whose
+  pre-launch transactions are admitted. The per-chain seed source list is consensus data: it is
+  filled after the key ceremony and is not known to this document.
+
+**User actions are gated.** PRICE format 1 and ATTEST formats 0 and 2 are user actions, not validator
+actions, so a pre-launch one is skipped like any other user action unless it comes from a seed source.
+The test is the format of the action, not its type name alone.
+
+**The validator exemption applies at every height.** It is not limited to a window near launch.
+Dogecoin mainnet already holds ANCHOR actions (see [the genesis arm](#the-mainnet-genesis-arm)), and those
+must keep indexing exactly as before, so the exemption holds for any height below the launch instant.
+
+**Testnet and regtest are never gated.** The launch gate reads the mainnet network only. Testnet and
+regtest index every transaction from their own first block, as they did before the gate existed.
+
 ## Straggler behavior
 
 What happens to a node that crosses a flag day still running pre-activation code depends on whether
