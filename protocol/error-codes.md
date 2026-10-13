@@ -125,6 +125,7 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 |---|---|---|---|
 | `INSUFFICIENT_FUNDS` | The selected inputs cannot cover the outputs plus fee, or every candidate input is reserved by a transaction built inside the reservation window | `required`, `available`, `outputs`, `fee`; `reservedCandidates` when every candidate is reserved | No: fund the address, or broadcast the pending transaction and wait for its change |
 | `NO_UTXOS` | No UTXOs were provided and none were found for the address | none | No |
+| `MAINNET_PRELAUNCH` | A mainnet encoder refuses to build any action outside the validator set (ANCHOR, PRICE format 0, NODEPROOF, ROLLCALL, quorum ATTEST) before the mainnet launch instant, unless its operator sets `ENCODER_MAINNET_PRELAUNCH_OVERRIDE` | `opens_at` (Unix seconds of the launch instant) | Yes: after `opens_at` |
 | `NO_CONFIRMED_UTXO` | Input selection reached the maximum input count without enough value to fund the transaction | `selectedInputCount`, `maximum` | Yes: wait for a larger output to confirm, or consolidate the confirmed outputs |
 | `CHANGE_ADDRESS_REQUIRED` | The build would burn significant satoshis as fee; supply a change address | none | No: supply `change` |
 | `DUPLICATE_TRANSACTION` | A transaction with the same inputs and outputs (same txid) was built inside the reservation window | `txid` | No: broadcast the one already built, or change the inputs or outputs |
