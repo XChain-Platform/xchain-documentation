@@ -392,6 +392,7 @@ The explorer uses `express-rate-limit` middleware:
 | `EXPLORER_FEE_QUOTE_RATE_LIMIT_RPM` | No | `120` | Separate limit for the fee lookups `/{COIN}/api/feequote`, `/{COIN}/api/oraclefeequote` and `/{COIN}/api/feeschedule`. One tier looser than the proof routes because a quote is a lookup rather than a cryptographic recompute. |
 | `EXPLORER_CHECKPOINT_LIST_RATE_LIMIT_RPM` | No | `120` | Separate limit for `/{COIN}/api/checkpoints`, which lists stored checkpoints. |
 | `EXPLORER_CHECKPOINT_VERIFY_RATE_LIMIT_RPM` | No | `90` | Separate, tighter limit for `/{COIN}/api/checkpoint/{blockIndex}/verify`, which recomputes a checkpoint rather than reading one, derived from the measured wallet profile's one verify per proof job with retries and 3x headroom. |
+| `EXPLORER_STATIC_RATE_LIMIT_RPM` | No | `1200` | Separate limit for static files (scripts, stylesheets, components, themes and fonts). The default is ten cold page loads of about 110 files each; these are disk reads, so the bucket only has to stop a flood, and a warm visitor sends almost none. |
 | `WS_TRUST_PROXY_HOPS` | No | `1` | Proxy hop count used to resolve the real client address for the WebSocket per-IP cap. The upgrade is handled on the raw HTTP server, where Express's `trust proxy` does not apply, so the hop count must be passed explicitly or the cap keys on a spoofable `X-Forwarded-For`. Keep it aligned with the HTTP side. |
 
 Rate limiting applies to all non-image endpoints (API, Explorer, and HTML).
