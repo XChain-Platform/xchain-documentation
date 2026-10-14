@@ -3,90 +3,110 @@
 
 # Multisig
 
-The wallet supports two multisig schemes:
+The wallet supports three Bitcoin multisig schemes:
 
-- **Classical n-of-m**: every cosigner produces a partial PSBT; coordinator finalizes by combining partials. Address is a P2SH / P2WSH multisig address. Bitcoin only at launch (SPEC §10.3); the Create multisig form offers only Bitcoin networks.
-- **MuSig2**: two-round protocol per BIP327 (round 1 collects public nonces, round 2 collects partial signatures) producing a single Schnorr signature indistinguishable on-chain from a single-signer transaction. Bitcoin only (Taproot / Schnorr requirement). Software-signer-only today.
+- **Classic multi-signature** (`p2sh-multisig`): a threshold P2SH script with up to 15 cosigners.
+- **SegWit multi-signature** (`p2wsh-multisig`): a threshold P2WSH script with up to 20 cosigners. This is the default scheme in the create form.
+- **Taproot multi-signature** (`taproot-musig2`): BIP327 MuSig2 with up to 20 cosigners. It is n-of-n, so every configured cosigner must participate. The aggregate Schnorr signature looks like a single-key Taproot signature on-chain.
 
-Both schemes share the same coordinator UI and the same per-address multi-config schema.
+The create form lists Bitcoin mainnet, testnet, and regtest networks for which the wallet already has an address. Litecoin and Dogecoin are not offered. The shared create and signing routes are wired into the web, desktop, and browser-extension shells. The mobile shell does not expose these routes.
 
 ## Schema
 
-Each multisig configuration lives under a wallet's `multisigs[]` array (Wallet schema v2):
+Wallet schema v3 stores zero or more multisig configuration records in `wallet.multisigs`. Each configuration uses multisig-config schema v2 as defined by `packages/core/src/schemas/multisigConfig.js`:
 
 ```js
 {
+    schemaVersion: 2,
     id: 'cfg-uuid',
-    name: 'Treasury 2-of-3',
-    chain: 'bitcoin-mainnet',
-    addressType: 'p2wsh',                          // or 'p2tr-musig2'
+    scheme: 'p2wsh-multisig',
     threshold: 2,
     cosigners: [
-        { pubkey: '03aa...', label: 'Alice (this device)', source: 'local' },
-        { pubkey: '03bb...', label: 'Bob (HW)',            source: 'paired' },
-        { pubkey: '03cc...', label: 'Carol (offline)',     source: 'imported' },
+        {
+            name: 'Alice',
+            pubkey: '03aa...',
+            fingerprint: '73c5da0a',
+            origin: 'local',
+            localSignerId: 'wallet:wallet-id',
+            xpub: null,
+            derivationPath: "m/84'/0'/0'/0/0",
+            addedAt: '2026-04-24T...',
+        },
+        {
+            name: 'Bob',
+            pubkey: '03bb...',
+            fingerprint: 'a1b2c3d4',
+            origin: 'external-xpub',
+            localSignerId: null,
+            xpub: 'xpub...',
+            derivationPath: "m/84'/0'/0'/0/0",
+            addedAt: '2026-04-24T...',
+        },
     ],
-    address: 'bc1q...',                            // derived from threshold + cosigners
-    derivationPath: "m/48'/0'/0'/2'/0/0",          // BIP48 multisig
-    createdAt: '2026-04-24T...',
+    scriptTemplate: 'multi:2:03aa...:03bb...',
 }
 ```
 
-A single address can host more than one configuration (schema v2's per-address multi-config support, useful for rolling key rotation).
+The record does not store a configuration name, chain, address, or top-level derivation path. `packages/core/src/flows/multisigAddress.js` derives an address on demand from `scriptTemplate`, `scheme`, and the requested network's SDK. For MuSig2, `scriptTemplate` is `musig2:<aggregated-x-only-pubkey>`.
+
+A wallet can store multiple configurations. The create flow rejects a second configuration with the same `scriptTemplate`; this is per-wallet multi-config support, not multiple configurations attached to one address record.
 
 ## Create flow
 
-`MultisigCreate.jsx` walks the user through:
+`packages/core/src/shared/routes/MultisigCreate.jsx` uses a compose, review, and confirmation flow:
 
-1. **Pick network + address type**: classical n-of-m or MuSig2, Bitcoin only
-2. **Pick threshold**; the n in n-of-m (1 ≤ n ≤ m)
-3. **Add cosigners**; three origins:
-   - **Local**: one of this wallet's own addresses. Picking it fills in the pubkey, derivation path and master fingerprint from the unlocked session. At most one cosigner may be local, because local signing signs for exactly one key.
-   - **External xpub**: another wallet's key, pasted as its xpub, pubkey, master fingerprint and derivation path.
-   - **External hardware**: a hardware device that signs by file transfer; its fingerprint is typed from the device.
-4. **Confirm address**: wallet derives the multisig address from threshold + cosigners and shows it for verification
-5. **Persist**: config is saved to the vault's `multisigs[]` collection
+1. **Choose a Bitcoin network**: only networks on which the wallet already has an address are selectable.
+2. **Add at least two cosigners**: the form starts with one local cosigner and one external-xpub cosigner.
+   - **Local**: selects one of this wallet's addresses on the chosen network. The public key and derivation path come from the address record. The unlocked signer supplies the master fingerprint when it can; otherwise the user enters it. A configuration can contain at most one local cosigner.
+   - **External xpub**: requires an xpub, compressed public key, master fingerprint, and derivation path. The form checks that the xpub network and derived public key agree with the entered values.
+   - **External hardware**: records a compressed public key, master fingerprint, and derivation path for a device controlled outside this wallet. The UI describes its exchange path as file transfer, but the stored record contains no transport state.
+3. **Choose a scheme and threshold**: the default is 2-of-2 P2WSH. P2SH allows at most 15 cosigners; P2WSH and MuSig2 allow at most 20. MuSig2 requires the threshold to equal the cosigner count.
+4. **Review and persist**: the review screen shows the network, scheme, threshold, and every cosigner field. Confirmation appends the config to `wallet.multisigs`.
+
+The create screen does not derive or display the shared address before confirmation. After persistence, the Receive screen derives and displays one address and QR code per stored config.
 
 ### Sharing this wallet as a cosigner
 
-The other party needs this wallet's key to add it to their own config. The collapsed **Share this wallet as a cosigner** panel on the Create multisig screen shows, for an address you pick, the account xpub, the address's pubkey, the master fingerprint and the derivation path, each with a copy button. Its labels match the fields of an **External xpub** cosigner, so the other party pastes each value into the field of the same name. The values are public keys and never include the seed.
+The collapsed **Share this wallet as a cosigner** panel lets the user select an HD software-seed address. It displays a JSON payload as both QR and text, plus individually copyable xpub, public key, master fingerprint, and derivation path fields. The payload contains public key material, the network kind, and the selected address, but no seed or private key.
 
-Address derivation uses BIP48 paths (`m / 48' / coin' / account' / script-type'`) for classical multisig and the appropriate Taproot-MuSig2 derivation for MuSig2 configurations. `DerivationPathCrossCheck.jsx` shows the path next to each cosigner so users can verify across wallets.
+Watch-only and imported-WIF addresses cannot be shared from this panel. Hardware-backed addresses must be exported with the device or its companion wallet.
+
+The create flow does not assign BIP48 paths. A local cosigner keeps the selected address's existing path, such as a BIP84 or BIP86 path, and external cosigners supply their paths. There is no `DerivationPathCrossCheck.jsx` module; the review screen and cosigner-sharing panel are where users compare key details.
 
 ```mermaid
 flowchart TD
-    S1["1. Pick network and address type, classical n-of-m or MuSig2, Bitcoin only"]
-    S2["2. Pick threshold, the n in n-of-m"]
-    S3{"3. Add cosigners"}
-    LOCAL["Local, one of this wallet's addresses, keys filled in, at most one"]
-    PAIRED["External xpub, paste another wallet's shared keys"]
-    IMPORTED["External hardware, sign by file transfer"]
-    S4["4. Confirm address, derived from threshold and cosigners"]
-    S5["5. Persist, config saved to the vault's multisigs collection"]
+    S1["1. Choose an available Bitcoin network"]
+    S2["2. Add 2 to 20 cosigners"]
+    LOCAL["Local: select one wallet address"]
+    XPUB["External xpub: enter and validate public fields"]
+    HARDWARE["External hardware: enter public fields"]
+    S3["3. Choose scheme and threshold"]
+    REVIEW["4. Review network, policy, and keys"]
+    SAVE["Confirm: append config to wallet.multisigs"]
 
-    S1 --> S2 --> S3
-    S3 --> LOCAL --> S4
-    S3 --> PAIRED --> S4
-    S3 --> IMPORTED --> S4
-    S4 --> S5
+    S1 --> S2
+    S2 --> LOCAL --> S3
+    S2 --> XPUB --> S3
+    S2 --> HARDWARE --> S3
+    S3 --> REVIEW --> SAVE
 ```
 
 ## Signing session state machine
 
-A signing session is created when any cosigner originates a transaction from a multisig address. The session is persisted to `multisigSigningSessions` and replicated to other devices via the wallet's normal vault sync (where applicable).
+`packages/core/src/schemas/multisigSigningSession.js` defines the persisted session record, and `packages/core/src/flows/multisigSigning.js` implements its transitions. A caller starts a session by supplying a wallet id, chain id, 32-byte message hash, PSBT hex, and optionally a config id. The flow snapshots the selected config's scheme, threshold, and ordered cosigner keys into `vault.multisigSigningSessions`.
 
-`core/src/schemas/multisigSigningSession.js` defines the schema; `core/src/flows/multisigSigning.js` runs the state machine.
+The source does not automatically start this flow when a user spends from a multisig address, and it does not replicate sessions to other devices. The signing screen lists and operates on sessions already present in the local vault.
 
 ### Classical n-of-m
 
 ```mermaid
 stateDiagram-v2
     [*] --> collecting_sigs
-    collecting_sigs: collecting-sigs (waiting for n signatures from cosigners)
-    ready_to_finalize: ready-to-finalize (n sigs collected, coordinator can finalize)
-    finalized: finalized (combined PSBT ready for broadcast)
-    broadcast: broadcast (txid recorded)
-    cancelled: cancelled (terminal, archived, not retried)
+    collecting_sigs: collecting-sigs (waiting for threshold DER signatures)
+    ready_to_finalize: ready-to-finalize (threshold reached)
+    finalized: finalized (raw transaction stored)
+    broadcast: broadcast (txid stored)
+    cancelled: cancelled (terminal)
 
     collecting_sigs --> ready_to_finalize
     ready_to_finalize --> finalized
@@ -99,20 +119,18 @@ stateDiagram-v2
     cancelled --> [*]
 ```
 
-`cancelled` is a terminal status reachable from any non-terminal state. A coordinator or cosigner can cancel a session at any point before broadcast; cancelled sessions are archived and not retried.
-
-Each partial is a regular PSBT signed by one cosigner. The coordinator (any cosigner with all `n` partials) calls `xchain-sdk`'s `wallet.signMultisigPsbt` to combine and finalize.
+Each contribution stored by the session is a DER-encoded ECDSA signature associated with a configured compressed public key. It is not a partial PSBT. Reaching the threshold changes the status to `ready-to-finalize`; finalization calls `sdk.wallet.finalizeMultisigPsbt(session.psbtHex)` and stores the returned transaction hex. The session flow does not merge its stored DER signatures into `psbtHex` before that call. Broadcasting then calls the chain SDK's `encoder.broadcastTx`.
 
 ### MuSig2
 
-MuSig2 uses a two-round protocol per BIP327:
+MuSig2 uses a two-round BIP327 flow and is always n-of-n:
 
 ```mermaid
 stateDiagram-v2
     [*] --> collecting_nonces
-    collecting_nonces: collecting-nonces (round 1: each cosigner contributes a 66-byte publicNonce)
-    collecting_sigs: collecting-sigs (round 2: aggNonce computed, each cosigner contributes a 32-byte partial sig)
-    ready_to_finalize: ready-to-finalize (partial sigs aggregated into a single 64-byte Schnorr sig)
+    collecting_nonces: collecting-nonces (collect one 66-byte public nonce per cosigner)
+    collecting_sigs: collecting-sigs (aggregate nonce stored; collect 32-byte partial signatures)
+    ready_to_finalize: ready-to-finalize (64-byte Schnorr signature stored)
     finalized: finalized
     broadcast: broadcast (txid recorded)
     cancelled: cancelled (terminal)
@@ -130,50 +148,52 @@ stateDiagram-v2
     cancelled --> [*]
 ```
 
-As with classical sessions, `cancelled` is a terminal status reachable from any non-terminal state.
-
-The wallet persists round-state per cosigner so a session can resume after a tab close. MuSig2's nonce reuse must never happen; the wallet enforces this by tying nonces to the session id and refusing to re-emit a nonce for an already-committed session.
+The session persists public nonces, the aggregate nonce, partial signatures, and the aggregate Schnorr signature. Secret nonces are not persisted. `SoftwareSigner` deterministically regenerates its round-one nonce for round two using the private key, session fingerprint, derivation path, and the session's random UUID. Including that UUID keeps the derived nonce distinct across separate signing sessions for the same transaction. The flow also refuses a second contribution from the same cosigner in the same round. As with the classical path, the finalization flow does not insert the stored aggregate signature into `psbtHex`.
 
 ## Cosigner transport
 
-The coordinator collects partials (or round payloads) from cosigners over one of three transport modes:
+`packages/core/src/shared/routes/MultisigSigningSession.jsx` provides these exchange paths:
 
-- **Paste inbox**: paste the partial as text. `MultisigSigningSession.jsx` exposes a textarea + paste handler that runs through `detectQrContent` and routes the multisig-PSBT envelope to the session.
-- **QR scan**: `QrScanner.jsx` reads animated frames from a cosigner's screen; `core/src/uri/multisigPsbtEnvelope.js` decodes the envelope. Used for offline cosigners.
-- **Animated QR display**: when *this* device is the cosigner producing a partial, `AnimatedQrFrames.jsx` displays the chunked envelope for the next cosigner to scan. 3 fps default, manual stepping under `prefers-reduced-motion`.
+- **Export request**: encodes the current request as XCW chunks and displays them with `AnimatedQrFrames.jsx`. The same chunks are available as copyable plain text.
+- **Scan reply**: `QrScanner.jsx` sends each scanned XCW frame to the chunk collector.
+- **Paste reply**: accepts one XCW chunk per line and sends the same reassembled bytes through the reply handler.
 
-All three transports are available regardless of the extension surface used. In the Chrome extension you can open a multisig session from the popup, the full-screen view, or the side panel (registered as `sidepanel.html` in the extension manifest). The side panel is wider than the popup, which makes it convenient for paste-inbox workflows where you copy-paste between browser tabs side by side.
+The import paths accept XCW-framed reply envelopes, not arbitrary pasted partial PSBTs or raw JSON. `packages/core/src/uri/multisigPsbtEnvelope.js` validates the envelope shape, session fingerprint, expected reply kind, cosigner public key, and contribution length before adding it to the active session. The fingerprint detects a reply for a different session, but it is not an authentication signature.
 
-All three transports use the same envelope format (see [URI Schemes) Multisig PSBT envelope](uri-schemes.md#multisig-psbt-envelope).
+The route does not consume a signing-request envelope or generate a reply envelope for another coordinator. It only exports requests and imports replies for an existing local session, so an end-to-end XChain-to-XChain cosigner round trip is not wired into the current UI.
+
+Animated QR display defaults to 3 fps. **Settings > Appearance > Reduced motion** defaults to **Follow system** (`reducedMotion: 'auto'`). Effective reduced motion, whether selected in the app or reported by `prefers-reduced-motion`, disables auto-advance and exposes previous and next controls.
+
+The shared signing route is present in web, desktop, and the extension. The extension uses the same React tree in its popup and `sidepanel.html`. Camera scanning still depends on camera and scanner support in the host; pasted chunks remain available when scanning is unavailable.
+
+See [URI Schemes: Multisig PSBT envelope](uri-schemes.md#multisig-psbt-envelope).
 
 ## Hardware signer status
 
 | Signer | Classical n-of-m | MuSig2 |
 |---|---|---|
-| Software | Full support | Full support |
-| Trezor | Vendor-API-heavy stub; rejects with a plain `Error` (no stable code) whose message points at the software signer | Firmware-gated; not yet shipped (rejects with `HW_MUSIG2_UNSUPPORTED`) |
-| Ledger | Vendor-API-heavy stub; rejects with a plain `Error` (no stable code) whose message points at the software signer | Firmware-gated; not yet shipped (rejects with `HW_MUSIG2_UNSUPPORTED`) |
-| Remote | Defers to whichever signer is on the other end of the channel | Same |
+| Software | Implements raw ECDSA contributions and full-PSBT partial signing | Implements nonce generation and partial signing |
+| Trezor | `signMultisigClassical` and `signMultisigPsbt` are explicit unsupported stubs | Both rounds reject with `HW_MUSIG2_UNSUPPORTED` |
+| Ledger | `signMultisigClassical` and `signMultisigPsbt` are explicit unsupported stubs | Both rounds reject with `HW_MUSIG2_UNSUPPORTED` |
+| Remote | Does not override the base multisig methods, so they reject as abstract | Does not override the base MuSig2 methods, so they reject as abstract |
 
-The vendor deferrals are not refusals, they're a "this build doesn't speak this protocol on this device yet, fall back to the software signer". [Keys & Signing: Unsupported operations](keys-signing.md#unsupported-operations) defines the error contract. The hardware-signer multisig PSBT signing path is scaffolded for both Trezor and Ledger; finishing it is one of the queued post-GA items. MuSig2 on hardware is firmware-gated by the device vendors and lands when their firmware does.
+The current signing UI requires a wallet password and tells users that hardware-held keys cannot co-sign shared wallets yet. The Trezor and Ledger classes contain clear stubs describing the missing vendor-specific transaction or wallet-policy work; they do not provide a working firmware-gated path. [Keys & Signing: Unsupported operations](keys-signing.md#unsupported-operations) describes the signer error contract.
 
 ## Coordinator role
 
-Any cosigner can act as the coordinator for a session, there's no fixed coordinator. In practice:
+The schema has no coordinator field. The wallet that owns the local session record drives request export, reply import, aggregation, finalization, and broadcast. A session may be cancelled from any state except `broadcast` or an already cancelled state.
 
-- The originator (the cosigner who initiated the transaction) defaults to coordinator
-- Any cosigner with `n` partials can finalize
-- Cosigners see partials in their paste inbox once they're forwarded over the chosen transport, there's no centralized server
-
-For larger n-of-m groups, conventions emerge, typically a designated coordinator (treasurer, secretary) collects and finalizes; but the protocol doesn't require it.
+The implemented transport is direct QR or text exchange. There is no centralized multisig relay and no automatic forwarding to other cosigners. Coordinator handoff is not implemented as a wallet workflow.
 
 ## Address browsing
 
-`AddressList.jsx` includes a Multisig-only filter and a `MultisigBadge` chip on every multisig address. Power users who maintain many configs can scan the badged list to see at a glance which addresses belong to which configs. Schema v2's per-address multi-config support means one address may show multiple chips.
+`packages/core/src/shared/routes/AddressList.jsx` derives every configured multisig address for the active Bitcoin network. If a derived address is not already in the address table, the route adds a synthetic **Multisig receive** row. Each matching row shows one `MultisigBadge` with its threshold and Classic, SegWit, or Taproot tag; its detail view repeats the badge.
+
+There is no Multisig-only filter. Multisig rows appear under **All** and **Misc**, and can also be narrowed with the network filter or address search.
 
 ## Sweep flow
 
-When a multisig configuration is retired, the wallet supports a sweep flow that consolidates all funds at the multisig address to a destination chosen by the threshold of cosigners. The sweep is one final n-of-m signing session, once it lands the config can be archived from Settings → Multisig.
+The wallet has no multisig-specific retirement, sweep, configuration-removal, or archive flow. The generic `SweepForm.jsx` does not create a multisig signing session, and Settings has no Multisig archive action. Funds at a multisig address therefore require the signing-session path described above; the documentation does not treat the generic single-signer sweep as a multisig retirement mechanism.
 
 ---
 
