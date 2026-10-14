@@ -1694,9 +1694,10 @@ const GAS_TICK = 'XCHAIN';
 
 // ── Oracle federation (xchain-hub) ───────────────────────────────────────────
 // Canonical source: xchain-hub/src/constants.js. UNLIKE XCALL_MAX_HOPS above, these
-// two are NOT in the GOLDEN set of xcall-constants-cross-repo.test.js; the guard that
-// diffs this published copy against the canonical lives in xchain-hub/test/unit
-// (#3886), so a drift here reddens hub CI. No runtime code reads either one.
+// four are NOT in the GOLDEN set of xcall-constants-cross-repo.test.js; the guards that
+// diff this published copy against the canonical live in xchain-hub/test/unit (the
+// band-constants mirror test for the first two, the clamp-constants mirror test for
+// the last two), so a drift here reddens hub CI. No runtime code reads any of them.
 
 // Coarse global sanity ceiling on an ingested price_snapshots value (pre-scale,
 // covers pairs like BTC/KRW up to ~$7M BTC with headroom); rejects
@@ -1711,6 +1712,17 @@ const PRICE_MAX = 10_000_000_000;
 // could yield different accept/withhold decisions (a liveness divergence on
 // the ±band boundary). 0.05 = 5%.
 const ORACLE_DEVIATION_THRESHOLD = 0.05;
+
+// Per-round move clamp on the oracle aggregate: a round's median may move at most
+// this fraction from the pair's last finalized price, and a larger move publishes
+// at the bound, so a genuine move walks there over several rounds. A pair with no
+// finalized price yet is not clamped. MUST be federation-uniform. 0.25 = 25%.
+const ORACLE_MAX_CHANGE_PER_ROUND = 0.25;
+
+// The tighter clamp for XCHAIN/USD, which is derived from a thin on-platform market
+// rather than external feeds; every other pair uses ORACLE_MAX_CHANGE_PER_ROUND.
+// 0.10 = 10%.
+const XCHAIN_PRICE_MAX_CHANGE_PER_ROUND = 0.10;
 
 // ORACLE_PRICE_AGE_HOURLY_ACTIVATION: canonical authority for registry row
 // oracle_price_age_hourly_activation.ORACLE_PRICE_AGE_HOURLY_ACTIVATION. At and
@@ -2580,6 +2592,8 @@ module.exports = {
     GAS_TICK,
     PRICE_MAX,
     ORACLE_DEVIATION_THRESHOLD,
+    ORACLE_MAX_CHANGE_PER_ROUND,
+    XCHAIN_PRICE_MAX_CHANGE_PER_ROUND,
     ORACLE_PRICE_AGE_HOURLY_ACTIVATION,
     ORACLE_HOURLY_WINDOW_FIRST_ROUND,
     ORACLE_ROUND_TIME_ACTIVATION,
