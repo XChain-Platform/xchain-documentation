@@ -88,7 +88,7 @@ const params = sdk.nft.collectionItem({
 
 ### `sdk.nft.attachContentParams(params)` → LINK params
 
-Build LINK params that officially attach a FILE to a token (the NFT content-attachment pattern). The LINK source must own the token; the indexer validates ownership.
+Build LINK params that officially attach a FILE to a token (the NFT content-attachment pattern). The builder puts the FILE in `COIN1` and the token's ISSUE in `COIN2`, the only order the indexer owner-validates. The LINK source must own the token; the indexer validates ownership.
 
 ```js
 const params = sdk.nft.attachContentParams({

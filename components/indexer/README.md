@@ -7,11 +7,11 @@
 
 xchain-indexer is the state-processing engine of the XChain Platform. It reads decoded blockchain transactions from the Decoder database, validates and executes each ACTION according to protocol rules, maintains authoritative token state (balances, supplies, ownership, DEX orders, dispensers) in a separate MariaDB database, and makes that indexed data available for querying by xchain-explorer. The indexer runs as a long-lived Node.js process with an embedded Express JSON-RPC API server.
 
-Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, SLASH, BET, and 38 more, passes through the indexer. The indexer determines whether the action is valid (checking balances, permissions, token rules, allow/block lists, sleep states), records the action with its status, updates the ledger (credits, debits, escrows), recalculates balances, and runs a sanity check after every block to guarantee consistency between token supplies and ledger totals.
+Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, SLASH, BET, and 28 more (38 named ACTIONs in all), passes through the indexer. The indexer determines whether the action is valid (checking balances, permissions, token rules, allow/block lists, sleep states), records the action with its status, updates the ledger (credits, debits, escrows), recalculates balances, and runs a sanity check after every block to guarantee consistency between token supplies and ledger totals.
 
 ## Features
 
-- **48 record types processed by the indexer** (of which 35 are wire-decoded ACTIONs; the rest are derived/system rows such as ORDER_MATCH, DISPENSE, COLLECT, `*_EXPIRE`, UNKNOWN, XEXEC, and XCALL - see `concepts/ACTIONS.md` for the canonical wire-decoded count): ADDRESS, AIRDROP, ANCHOR, ATTEST, BATCH, BET, BET_EXPIRE, BROADCAST, CALLBACK, COINPAY, COINPAY_EXPIRE, COLLECT, CROSS_SETTLE, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSE, DISPENSER, DISPENSER_CLOSE, DISPENSER_EXPIRE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, NODEPROOF, ORDER, ORDER_EXPIRE, ORDER_MATCH, PRICE, SEND, SLASH, SLEEP, STAKE, SWAP, SWAP_EXPIRE, SWAP_MATCH, SWEEP, UNKNOWN, UNSTAKE, VOTE, WITHDRAW, XCALL, XEXEC
+- **50 record types processed by the indexer** (37 wire-decoded ACTIONs, plus XCALL, which is mirror-injected rather than decoded, and 12 derived/system rows such as ORDER_MATCH, DISPENSE, CROSS_SETTLE, `*_EXPIRE`, XEXEC and UNKNOWN; see [concepts/actions.md](../../concepts/actions.md) for the canonical counts): ADDRESS, AIRDROP, ANCHOR, ATTEST, BATCH, BET, BET_EXPIRE, BROADCAST, CALLBACK, COINPAY, COINPAY_EXPIRE, COLLECT, CROSS_SETTLE, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSE, DISPENSER, DISPENSER_CLOSE, DISPENSER_EXPIRE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, NODEPROOF, ORDER, ORDER_EXPIRE, ORDER_MATCH, PRICE, ROLLCALL, SEND, SLASH, SLEEP, STAKE, SWAP, SWAP_EXPIRE, SWAP_MATCH, SWEEP, UNKNOWN, UNSTAKE, VOTE, WITHDRAW, XBRIDGE, XCALL, XEXEC
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin today, on mainnet, testnet, and regtest
 - **Atomic block processing**: every block is wrapped in a database transaction; failures roll back cleanly
 - **Block reorganization handling**: detects reorgs from the Decoder DB, rolls back affected data, and re-indexes
@@ -33,7 +33,7 @@ Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, S
 |---|---|
 | [Architecture](architecture.md) | Data pipeline, internal components, action handlers, block processing pipeline |
 | [Configuration](configuration.md) | Environment variables, coin-specific config, indexer constants |
-| [Actions](actions.md) | All 48 record types, categories, format versions, protocol versioning |
+| [Actions](actions.md) | All 50 record types, categories, format versions, protocol versioning |
 | [Database](database.md) | Full schema reference: core, ledger, action, state, index, and mapping tables |
 | [Ledger](ledger.md) | Double-entry ledger, balance calculation, sanity checks, gas token fees |
 | [Operations](operations.md) | Running, Docker, API endpoints, resilience, troubleshooting |

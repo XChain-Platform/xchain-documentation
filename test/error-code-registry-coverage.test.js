@@ -25,19 +25,22 @@
  * and any row in that section that nothing emits unless the row is marked
  * historical.
  *
- * Collection is by emit shape rather than by a bare literal scan. Five shapes
+ * Collection is by emit shape rather than by a bare literal scan. Six shapes
  * are read: a `code:` line, so the ternary fallback form
  * (`code: cond ? x : 'READ_FAILED'`) is caught alongside the plain `code: 'X'`
  * form; a status-map row (`CODE: [409, 'message']`), which the proof routes
  * declare and then send by reference as `code: code`; a positional helper
  * call (`error(res, 503, 'message', 'CODE')`), which the bridge panel routes
  * use; a `VmQueryError('CODE', ...)` throw, which the contract simulation
- * route forwards to the client as `code: e.code`; and a mirror-gate verdict
+ * route forwards to the client as `code: e.code`; a mirror-gate verdict
  * (`blocked: 'CODE'`), which the mirror gate sends by reference as
- * `code: blocked`. A new emit shape needs its own rule here, or its codes go
- * unchecked. Only the five REST-side sources are read for the registry
- * (contract/vm_query.js is one because its throws reach the wire through the
- * state-proof routes):
+ * `code: blocked`; and a `new DbInputError(message, 'CODE')` throw under
+ * src/db/, which src/explorer/request/load_data.js answers as a 400 with
+ * `code: e.code`. A new emit shape needs its own rule here, or its codes go
+ * unchecked. Only the five REST-side sources are read for the first five
+ * shapes (contract/vm_query.js is one because its throws reach the wire
+ * through the state-proof routes), and src/db/ is read for the DbInputError
+ * shape alone, since its other text is SQL and reader logic, not responses:
  * src/ws/ carries the WebSocket channel codes, which are a separate surface
  * documented in components/explorer/websocket.md and explicitly excluded by the
  * registry page's own closing note. The second test below holds that page's
@@ -119,6 +122,65 @@ const VM_QUERY_THROW = /\bVmQueryError\(\s*'([A-Z][A-Z0-9_]{2,})'/g;
 // A mirror-gate verdict, `{ blocked: 'CODE', annotate }`, sent later as `code: blocked`.
 const MIRROR_BLOCKED = /\bblocked\s*:\s*'([A-Z][A-Z0-9_]{2,})'/g;
 
+// The reader layer, whose DbInputError throws load_data.js answers as 400 `code: e.code`.
+const EXPLORER_DB = path.join(EXPLORER_SRC, 'db');
+
+// Helpers that throw DbInputError with a code their caller passes as the last argument,
+// so the codes sit at the call sites. A throw forwarding a code from any other function
+// fails the gate rather than going unread.
+const DB_INPUT_FORWARDERS = ['queryInteger'];
+
+// The top-level arguments of the call whose `(` sits at `open`, quote-aware, so a comma,
+// semicolon or parenthesis inside a message string does not split it.
+function callArguments(text, open) {
+    const args = [];
+    let depth = 0, quote = null, start = open + 1;
+    for (let i = open; i < text.length; i++) {
+        const ch = text[i];
+        if (quote) {
+            if (ch === '\\') i++;
+            else if (ch === quote) quote = null;
+        } else if (ch === "'" || ch === '"' || ch === '`') quote = ch;
+        else if (ch === '(' || ch === '[' || ch === '{') depth++;
+        else if (ch === ')' || ch === ']' || ch === '}') {
+            if (--depth === 0) { args.push(text.slice(start, i).trim()); return args; }
+        } else if (ch === ',' && depth === 1) { args.push(text.slice(start, i).trim()); start = i + 1; }
+    }
+    return null;
+}
+
+// Every code a DbInputError reaches the client with, from the throws and forwarder calls in
+// `files` ([{ name, text }]). A throw with no code argument answers the class default,
+// INVALID_PARAMETER, which load_data.js's own `code:` line already contributes.
+function dbInputCodes(files) {
+    const found = new Map();
+    const callee = new RegExp(`\\b(?:new DbInputError|${DB_INPUT_FORWARDERS.join('|')})\\(`, 'g');
+    for (const { name, text } of files) {
+        for (const m of text.matchAll(callee)) {
+            const open  = m.index + m[0].length - 1;
+            const where = `${name}:${text.slice(0, m.index).split('\n').length}`;
+            const args  = callArguments(text, open);
+            assert.ok(args, `unbalanced call at ${where}`);
+            const last  = args.length > 1 ? args[args.length - 1] : '';
+            const code  = last.match(/^'([A-Z][A-Z0-9_]{2,})'$/);
+            if (code) { if (!found.has(code[1])) found.set(code[1], where); continue; }
+            if (!m[0].startsWith('new ') || args.length < 2) continue;
+            const owner = [...text.slice(0, m.index).matchAll(/\bfunction\s+(\w+)\s*\(/g)].pop();
+            assert.ok(owner && DB_INPUT_FORWARDERS.includes(owner[1]) && /^[A-Za-z_]\w*$/.test(last),
+                `DbInputError at ${where} sends a code this gate cannot read (${last}); give it a `
+                + 'literal code or add its helper to DB_INPUT_FORWARDERS');
+        }
+    }
+    return found;
+}
+
+// The src/db/ files dbInputCodes reads; a present explorer without src/db/ fails by name.
+function dbInputSources() {
+    assert.ok(fs.existsSync(EXPLORER_DB),
+        'src/db is gone from xchain-explorer; repoint EXPLORER_DB at the DbInputError throw sites');
+    return jsFilesUnder(EXPLORER_DB).map((file) => ({ name: path.basename(file), text: fs.readFileSync(file, 'utf8') }));
+}
+
 // Every SCREAMING_SNAKE string literal on a line that carries `code:` or a
 // positional helper call, plus every status-map key, simulation throw and
 // mirror-gate verdict, minus a logger event name leading that line's log call.
@@ -147,6 +209,8 @@ function emittedCodes() {
                 record(quoted.slice(1, -1));
         });
     }
+    for (const [code, where] of dbInputCodes(dbInputSources()))
+        if (!found.has(code)) found.set(code, where);
     return found;
 }
 
@@ -196,7 +260,7 @@ test('every explorer REST error code has a registry row', { skip: noExplorer }, 
 test('the REST registry check fails on a dropped row or an unemitted row', { skip: noExplorer }, () => {
     const page    = fs.readFileSync(REGISTRY_PAGE, 'utf8');
     const emitted = emittedCodes();
-    for (const code of ['VM_BUSY', 'MIRROR_STALE']) {
+    for (const code of ['VM_BUSY', 'MIRROR_STALE', 'INVALID_CURSOR']) {
         assert.ok(emitted.has(code), `${code} is no longer collected from the explorer source`);
         const dropped = page.replace(new RegExp('^\\| `' + code + '` \\|.*\\n', 'm'), '');
         assert.notEqual(dropped, page, `falsification fixture did not drop the ${code} row`);
@@ -213,6 +277,24 @@ test('the REST registry check fails on a dropped row or an unemitted row', { ski
     const inRpc   = page.slice(0, rpcRow + 1) + fake + page.slice(rpcRow + 1);
     assert.ok(inRpc.includes(fake), 'falsification fixture did not add the JSON-RPC row');
     assert.equal(restRows(restSection(inRpc)).has('FAKE_GONE_CODE'), false);
+});
+
+test('the DbInputError rule reads every code shape and refuses one it cannot read', () => {
+    const codes = (text) => [...dbInputCodes([{ name: 'fixture.js', text }]).keys()];
+    // A comma or a semicolon inside the message, and a call split across lines.
+    assert.deepEqual(codes("throw new DbInputError('Use before or after, not both', 'COMMA_CODE');"), ['COMMA_CODE']);
+    assert.deepEqual(codes("throw new DbInputError('too deep (' + CAP\n    + ' rows); page by cursor', 'SPLIT_CODE');"),
+        ['SPLIT_CODE']);
+    // No code argument answers the class default, which is not this rule's to collect.
+    assert.deepEqual(codes("throw new DbInputError('Invalid ' + name + ' cursor');"), []);
+    // A forwarder's own throw is read through its callers' literal codes.
+    const forwarded = "function queryInteger(db, q, name, fallback, min, code){\n"
+        + "    throw new DbInputError('Invalid ' + name, code);\n}\n"
+        + "let n = queryInteger(db, q, 'page', 1, 1, 'FORWARDED_CODE');";
+    assert.deepEqual(codes(forwarded), ['FORWARDED_CODE']);
+    // A code forwarded from a helper the gate does not know fails instead of going unread.
+    assert.throws(() => codes("function other(code){ throw new DbInputError('x', code); }"),
+        /sends a code this gate cannot read/);
 });
 
 // The WebSocket error codes: a `sendError(client, 'CODE'` call or a `code: 'CODE'`

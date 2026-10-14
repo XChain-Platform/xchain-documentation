@@ -18,7 +18,7 @@
  * byte for byte, so a change is made in the canonical repo, never in this copy.
  * stake_weighted_quorum.js and equivocation_header.js also ride into xchain-hub,
  * xchain-sync, xchain-explorer and xchain-sdk; snapshot_reorg_buffer.js only
- * into xchain-hub and xchain-sdk. protocol/test-vectors/*.json IS canonical
+ * into xchain-hub, xchain-sync and xchain-sdk. protocol/test-vectors/*.json IS canonical
  * here: the shared corpus each consumer's conformance suite runs against its
  * local copy while byte-comparing that copy with this one. This test runs the
  * vectors against this repo's copy and asserts constants.js agrees with it on

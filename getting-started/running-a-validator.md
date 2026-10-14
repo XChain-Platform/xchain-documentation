@@ -104,7 +104,7 @@ Failing a possession challenge is not an offence. A validator that does not run 
 
 This was a deliberate design decision, and the reason is worth knowing. Capabilities qualify by stake threshold with no on-chain opt-in, so a validator staked for `cross_chain` automatically clears the `full_node` floor as well. Slashing failed challenges would have burned the bond of a validator who never claimed to run a node in the first place.
 
-Be careful not to over-read this. **It means lightweight validators are not punished for being lightweight. It does not mean validators are never slashed.** Misbehaviour in the capabilities you actually exercise, such as signing contradictory messages or publishing prices that diverge from the network, carries its own penalties in both tiers.
+Be careful not to over-read this. **It means lightweight validators are not punished for being lightweight. It does not mean validators are never slashed.** Equivocating in a capability you serve, by signing two conflicting values for the same consensus slot, is slashable in both tiers: a permissionless SLASH proof burns that bond (see [SLASH](../protocol/actions/slash.md) for which engines it covers and when it activates). Publishing prices that deviate from the network is a different, hub-local offence: a governance vote can mark the validator `suspended` in a hub's own table, and its on-chain stake is untouched. See [Hub decentralization](../components/hub/decentralization.md#staking-and-governance) for all three penalty lanes.
 
 ## Which should you run?
 

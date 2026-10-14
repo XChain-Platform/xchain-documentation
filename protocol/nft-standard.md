@@ -170,28 +170,37 @@ erDiagram
 Content attachment uses the existing **`FILE` + `LINK`** flow. Files are uploaded
 on-chain with [`FILE`](./actions/file.md), then officially associated with a token by
 [`LINK`](./actions/link.md)ing the FILE's `ACTION_INDEX` to the token's `ISSUE`
-`ACTION_INDEX`:
+`ACTION_INDEX`. The FILE goes in `COIN1` / `COIN1_ACTION_INDEX` and the token's `ISSUE`
+in `COIN2` / `COIN2_ACTION_INDEX`:
 
 1. `ISSUE` the token.
 2. `FILE`: upload the content (any MIME type; raw bytes ride as `rawData`).
-3. `LINK`: associate the FILE with the token's `ISSUE`.
+3. `LINK`: associate the FILE with the token's `ISSUE`, with `COIN1` = the FILE and
+   `COIN2` = the token's `ISSUE`.
 
-`LINK` validation already enforces ownership: when the link target resolves to a local
-`ISSUE`, the LINK is valid **only if its SOURCE is the current owner of that `TICK`**
-(and the TICK's ownership is not escrowed). Anyone can upload files; only the token's
-owner can officially associate one with the token.
+`LINK` validation already enforces ownership on the `COIN2` side: when
+`COIN2_ACTION_INDEX` resolves to an `ISSUE` on the chain where the LINK is indexed, the
+LINK is valid **only if its SOURCE is the current owner of that `TICK`** (and the TICK's
+ownership is not escrowed). Anyone can upload files; only the token's owner can
+officially associate one with the token through a correctly ordered, same-chain LINK.
+
+**Orientation matters.** Only the `COIN2` side of a `LINK` is owner-validated. A LINK
+with the token's `ISSUE` in `COIN1` is accepted from any address, so it is not an
+attachment, and clients MUST ignore it when listing a token's attached content.
 
 Properties of the association:
 
 - **Unlimited.** An owner may link any number of files over the token's lifetime:
   artwork, alternate formats, PDFs, audio stems, terms, anything.
 - **No display semantics.** The protocol does not rank, select, or interpret linked
-  files. A linked file means exactly one thing: *the token's owner attached this*.
+  files. A correctly ordered link (FILE in `COIN1`, `ISSUE` in `COIN2`) means exactly
+  one thing: *the token's owner attached this*.
   Which file renders as "the art" is decided by the token's
   [TIS metadata](./token-information-standard.md#nft-usage), not by the chain.
 - **Cross-chain capable.** `LINK` carries coin fields on both sides, so a token on DOGE
-  can attach a file stored on BTC. (Cross-chain owner checks cannot be validated
-  locally; clients should verify the remote side when it matters.)
+  can attach a file stored on BTC. (The owner check runs only when the `COIN2` `ISSUE`
+  is on the chain where the LINK is indexed; when `COIN2` names a remote chain it is
+  skipped, so clients should verify the remote side when it matters.)
 - **Composes with token gating.** A [token-gated `FILE`](./token-gated-content.md)
   (`GATE_TICKER` = the NFT's tick) makes the content decryptable only by holders,
   an NFT whose art or bonus content unlocks on ownership. The gated-transfer rules
@@ -230,7 +239,7 @@ answerable from chain state:
 - ✅ Current `MAX_SUPPLY` and issued supply match the seller's claim (1-of-1 vs edition size)
 - ✅ Issued supply is at or below `MAX_SUPPLY`; for a token whose history predates the `ISSUE_MINT_SUPPLY_CUMULATIVE_CAP` flag-day, `LOCK_MINT_SUPPLY` is `1` or the supply history shows no owner re-mint past the cap
 - ✅ For a collection item: the child was issued while the parent was held by the expected creator (parent ownership history)
-- ✅ Linked content: the `LINK` SOURCE is the token's owner at link time; for on-chain art, the `FILE` bytes hash-match what's displayed
+- ✅ Linked content: the `LINK` carries the `FILE` in `COIN1` and the token's `ISSUE` in `COIN2`, with `COIN2` on the token's own chain; its SOURCE is the token's owner at link time; for on-chain art, the `FILE` bytes hash-match what's displayed
 - ✅ If immutable metadata matters: `LOCK_DESCRIPTION` is set and the TIS pointer is content-addressed
 - ✅ For gated content: the `KEY_HASH` matches the key received (see [Token-Gated Content](./token-gated-content.md))
 

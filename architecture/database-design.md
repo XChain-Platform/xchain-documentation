@@ -145,15 +145,7 @@ LevelDB is used by the UTXO tracker for fast key-value access without relational
 
 ### xchain-utxo-tracker
 
-Stores the full UTXO set of the monitored coin node. Key schema uses single-character prefixes:
-
-| Prefix | Contents |
-|---|---|
-| `B` | Block records (height → hash) |
-| `T` | Transaction records (txid → metadata) |
-| `I` | Input records (txid:vout → spending txid) |
-| `O` | Output records (txid:vout → value, scriptPubKey) |
-| `H` / `J` | Address hints (scriptPubKey hash → txids) |
+Stores the full UTXO set of the monitored coin node in a single LevelDB instance, using single-byte key prefixes. Unspent outputs (`O`) are keyed by scriptHash first, so one range scan answers "what UTXOs does this address have?". `B`, `T` and `I` hold block metadata keyed by block hash, the transaction-to-block mapping and spent inputs. The hint keys `H` (outpoint to scriptHash) and `J` (input hint) let a spend find and delete its output without a scan, `S` records each script's first appearance, and `Z`, `K`, `M`, `N` and `W` hold the indexes and deleted-record archives that reorg rollback uses. The [utxo-tracker key schema](../components/utxo-tracker/architecture.md#leveldb-key-schema) is the single reference for every key and value layout.
 
 Writes are batched in groups of up to 200 blocks (flush may trigger earlier under heap pressure). A per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: BTC 120 / LTC 5000 / DOGE 120 blocks) is retained to support reorg rollback.
 

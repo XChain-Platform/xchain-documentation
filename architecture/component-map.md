@@ -166,7 +166,7 @@ See [`../components/encoder/`](../components/encoder/) for full documentation.
 
 Key technical details:
 
-- LevelDB key schema uses single-character prefixes: `B`=block, `T`=transaction, `I`=input, `O`=output, `H`/`J`=address hints.
+- LevelDB key schema uses single-character prefixes: `B`=block, `T`=transaction, `I`=spent input, `O`=unspent output keyed by scriptHash, `H`=outpoint-to-scriptHash hint, `J`=input hint, and `S`/`Z`/`K`/`M`/`N`/`W` for script tracking and reorg undo (full layouts in the [utxo-tracker key schema](../components/utxo-tracker/architecture.md#leveldb-key-schema)).
 - Processes blocks in batches of up to 200 (flush may trigger earlier under heap pressure), writing each batch atomically to LevelDB.
 - Maintains a per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: BTC 120 / LTC 5000 / DOGE 120 blocks; overridable via XCHAIN_UNDO_BLOCKS_<COIN>) to support chain reorganization rollback.
 - Tracks the mempool for real-time unconfirmed UTXO state.

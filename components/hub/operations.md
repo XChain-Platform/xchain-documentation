@@ -373,6 +373,11 @@ These series are served on the metrics endpoint only when [`METRICS_ENABLED`](./
 | `xchain_oracle_publisher_abandoned_total` | Counter | None | Oracle rounds this hub gave up publishing and moved to the dead-letter file. |
 | `xchain_oracle_publisher_takeover_attempts_total` | Counter | None | Windows this hub re-assembled to cover a publish leader that went silent. |
 | `xchain_oracle_publisher_takeover_published_total` | Counter | None | Takeover windows this hub went on to publish; flat while attempts climb means takeovers are not reaching chain. |
+| `xchain_oracle_publisher_takeover_declined_unproven_total` | Counter | None | Takeovers this hub declined because it has never observed an on-chain PRICE batch (a deaf feed, not a healthy leader). |
+| `xchain_oracle_publisher_takeover_declined_read_error_total` | Counter | None | Takeovers this hub declined because its own DB could not say whether the window was already on chain. |
+| `xchain_oracle_publisher_takeover_deferred_total` | Counter | None | Takeover attempts deferred because the leader may already have a batch in flight. |
+| `xchain_oracle_publisher_takeover_unlanded_windows` | Gauge | None | Takeover windows past the election that have not yet reached the send queue. |
+| `xchain_oracle_publisher_takeover_armed` | Gauge | None | 1 when a failover window is configured and this hub has proven it would see a leader batch land; 0 means takeover cannot fire. |
 | `xchain_oracle_publisher_batch_sign_timeouts_total` | Counter | None | PRICE batch signing rounds that timed out waiting for co-signatures. |
 | `xchain_oracle_publisher_last_published_round` | Gauge | None | Last oracle round this hub published; absent until it has published one. |
 | `xchain_oracle_publisher_unconfirmed_publishes` | Gauge | None | Publishes this hub broadcast that have not yet reached a block. |

@@ -61,7 +61,7 @@ The wallet exposes all 32 current user-encodable ACTION types, a built-in DEX su
 
 ## Installation
 
-The wallet is a pnpm 11 workspace and requires Node.js 22 or later. Clone the repo and install workspace dependencies:
+The wallet is a pnpm 11 workspace and requires Node.js 22, the version the repo's `.nvmrc` pins. Clone the repo and install workspace dependencies:
 
 ```bash
 git clone https://github.com/XChain-Platform/xchain-wallet.git

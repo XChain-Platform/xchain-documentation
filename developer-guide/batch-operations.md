@@ -168,7 +168,7 @@ const action = sdk.batch()
 | Max one top-level ISSUE per batch | One undotted ticker can be created or updated per batch |
 | Child ISSUEs are unlimited | An ISSUE whose ticker contains a dot (`JDOG.1`) does not use the top-level slot |
 | Max 250 commands per batch | Counted over the whole semicolon-separated list, empty entries included, so a trailing `;` costs a slot |
-| Weighted cost budget | Once cost weighting activates, command weights must sum to at most the budget; see [Command Weights](#command-weights) |
+| Weighted cost budget | Command weights must sum to at most the budget; see [Command Weights](#command-weights) |
 | Max one MINT per distinct token | Several MINTs in one batch are fine as long as they name different tokens; two MINTs of the same token are not |
 | No nested BATCH | BATCH cannot contain another BATCH |
 | Max one FILE per batch | A BATCH can include at most one FILE action (one raw data payload per transaction) |
@@ -197,7 +197,7 @@ Most failures affect one command. These reject the batch as a single record, bef
 - a command naming an action the protocol does not recognize, which includes an empty command from a stray `;`
 - more than one MINT of the same token, or more than one top-level ISSUE
 - a nested BATCH
-- more than 250 commands
+- more than 250 commands, or command weights that add up to more than the weight budget (see [Command Weights](#command-weights))
 - a sending address that is asleep
 - a sending address that provably cannot afford even the cheapest command in the list
 
@@ -207,7 +207,7 @@ That last one is a lower bound, not a budget check. Fees are charged in list ord
 
 ## Command Weights
 
-Today a batch is bounded by a flat count: at most 250 commands, each counting as one. At/after the cost-weighting activation the bound becomes a **weight budget of 250**: each command carries a cost weight, and the whole batch is rejected (same `invalid: COMMAND (limit)` error as the count cap) when the weights add up to more than the budget. There are three cost regimes:
+A batch is bounded by a **weight budget of 250**: each command carries a cost weight, and the whole batch is rejected (same `invalid: COMMAND (limit)` error as the count cap) when the weights add up to more than the budget. There are three cost regimes:
 
 | Class | Actions | Weight |
 |---|---|---|
@@ -224,7 +224,7 @@ What that means in practice:
 - The per-action caps above do not move: one `MINT` per distinct token, one top-level `ISSUE` and at most one `DEPLOY` per batch at the protocol level (the SDK builder does not compose a `DEPLOY` at all), weighted or not.
 - The count cap is still checked first, and every weight is at least 1, so more than 250 commands always busts the budget too.
 
-*Unlike the batch limits above, which armed on mainnet at the `2026-08-16T00:00:00Z` activation, the weighted budget is live on testnet and regtest only; it is not yet switched on for mainnet.*
+*The weighted budget is in force on every network. Its gate is armed at genesis, but the budget is only consulted where the batch limits above are active, so on mainnet it took effect at the same instant they did (the `BATCH_ISSUANCE_LIMITS` row in [Flag-Day Values](../protocol/flag-days.md#mainnet-time-keyed-gates)). Mainnet blocks before that instant have neither the command cap nor the budget. The canonical rule is in the [BATCH spec](../protocol/actions/batch.md).*
 
 ---
 

@@ -41,7 +41,10 @@ This example airdops 1 GAS to every holder on a list with ACTION_INDEX 1234 and 
 ## Rules
 
 ## Notes
-- `AIRDROP` requires an `XCHAIN` fee based on number of database hits
+- `AIRDROP` requires a fee. The fee may be paid in `XCHAIN` (deducted from the sender's balance) or in native coin via a qualified coin output in the same transaction; on Litecoin and Dogecoin the native-coin output is the only accepted form.
+- The fee is priced on the unified gas schedule as `AIRDROP_PER_RECIPIENT` for each address the airdrop actually reaches, after the token's `ALLOW_LIST` and `BLOCK_LIST` are applied. `UNIFIED_FEES` is active from genesis on every network; the indexer still carries the earlier per-database-hit model behind that gate, but no current network runs it. See the hub's [gas schedule](../../components/hub/api.md) for the values.
+- Format versions `1`, `2` and `3` carry several legs, and each leg is priced on its own recipient count. A leg paid from the `XCHAIN` balance is debited its own fee. When paying in native coin, size the fee output to cover the sum of every leg's fee; inside a `BATCH` the same output also pays for the batch's other commands.
+- An `AIRDROP` emitted by a contract pays no separate fee; the `AMOUNT` sent to each recipient is still debited from the source.
 - `DROP` `ACTION` can be used for shorter reference to `AIRDROP` `ACTION`
 - `AIRDROP` to `ADDRESS` `LIST` sends `AMOUNT` of `TICK` to each address on the list
 - `AIRDROP` to `TICK` `LIST` sends `AMOUNT` of `TICK` to holders of each `TICK` on the list

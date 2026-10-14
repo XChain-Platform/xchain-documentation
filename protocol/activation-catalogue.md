@@ -81,7 +81,10 @@ same chain or field.
 
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
+| `gas_ceiling_exhausted_heights` | `GAS_CEILING_EXHAUSTED_ACTIVATION` | height |
 | `gated_handoff_ref_activation` | `GATED_HANDOFF_REF_ACTIVATION` | time |
+| `host_error_stack_strip_heights` | `HOST_ERROR_STACK_STRIP_ACTIVATION` | height |
+| `json_stringify_reentry_heights` | `JSON_STRINGIFY_REENTRY_ACTIVATION` | height |
 | `ledger_amount_precision_activation` | `LEDGER_AMOUNT_PRECISION_ACTIVATION` | height |
 | `list_address_ref_activation` | `LIST_ADDRESS_REF_ACTIVATION` | height |
 | `list_change_rematch_activation` | `LIST_CHANGE_REMATCH_ACTIVATION` | height |
@@ -100,6 +103,7 @@ same chain or field.
 | `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
 | `mirror_admission_activation` | `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` | height |
 | `mirror_admission_margin_activation` | `ADMIT_CHAIN_MARGIN_ACTIVATION` | height |
+| `native_stack_terminal_heights` | `NATIVE_STACK_TERMINAL_ACTIVATION` | height |
 | `nested_execute_gas_sum_activation` | `NESTED_EXECUTE_GAS_SUM_ACTIVATION` | height |
 | `oracle_hourly_window_activation` | `ORACLE_HOURLY_WINDOW_FIRST_ROUND` | constant |
 | `oracle_preload_causality_activation` | `ORACLE_PRELOAD_CAUSALITY_ACTIVATION` | height |
@@ -123,6 +127,7 @@ same chain or field.
 
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
+| `resource_fault_signal_heights` | `RESOURCE_FAULT_SIGNAL_ACTIVATION` | height |
 | `retraction_signing_activation` | `RETRACTION_SIGNING_ACTIVATION` | height |
 | `rollcall_activation` | `ROLLCALL_ACTIVATION` | epoch |
 | `rollcall_gates_activation` | `ROLLCALL_GATES_ACTIVATION` | epoch |
@@ -149,13 +154,14 @@ same chain or field.
 | `vm_lint_global_alias_activation` | `VM_LINT_GLOBAL_ALIAS_ACTIVATION` | height |
 | `vm_lint_nesting_depth_activation` | `VM_LINT_NESTING_DEPTH_ACTIVATION` | height |
 | `vm_lint_optional_chain_heights` | `VM_LINT_OPTIONAL_CHAIN_ACTIVATION` | height |
+| `vm_lint_syntax_depth_heights` | `VM_LINT_SYNTAX_DEPTH_ACTIVATION` | height |
 | `vote_callback_binding_activation` | `VOTE_CALLBACK_BINDING_REQUIRES_USABLE_METHOD` | height |
 | `vote_settlement_exact_activation` | `VOTE_SETTLEMENT_EXACT_ACTIVATION` | height |
 | `xchain_bridge_activation` | `XCHAIN_BRIDGE_ACTIVATION` | height |
 
 ## Maintenance rule
 
-When an indexer change introduces a new `*_activation` module prefix under
+When an indexer change introduces a new `*_activation` or `*_heights` module prefix under
 `src/protocol_changes`, add it here in the same change train. Keep the exact lowercase prefix so
 repository-wide documentation coverage checks can match the registry reference. Document mutable
 thresholds on the generated flag-day page instead of copying them into this catalogue.

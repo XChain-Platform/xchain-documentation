@@ -405,7 +405,7 @@ const EQUIV_HEADER_ACTIVATION = {
 // indexed mainnet history is ISSUE and ANCHOR only (0 validators, 0 stakes, 0 quorum-signed
 // artifacts measured), so burying reinterprets nothing there and a from-genesis replay is the
 // witness. Kept byte-identical to the local copies in
-// xchain-{hub,indexer,sdk}/src/consensus/snapshot_reorg_buffer.js by the cross-service regression suite.
+// xchain-{hub,indexer,sync,sdk}/src/consensus/snapshot_reorg_buffer.js by the cross-service regression suite.
 const CANONICAL_REORG_BUFFER = 6;
 const SNAPSHOT_BURIAL_ACTIVATION = {
     mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (ISSUE and ANCHOR only, measured 2026-09-09)
@@ -2465,17 +2465,15 @@ const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
 });
 
 // MAINNET_LAUNCH_ACTIVATION: the launch gate, keyed by network and measured in unix seconds
-// of block time, not height. Testnet and regtest carry 0 so the gate is open there from the
-// first block; only mainnet waits for its instant.
-const MAINNET_LAUNCH_ACTIVATION = Object.freeze({ mainnet: 1798761600, testnet: 0, regtest: 0 });
+// of block time, not height. Only mainnet consults it. Testnet and regtest are open networks
+// that the admission check lets through before reading this map, so testnet carries the house
+// UNARMED sentinel and regtest 0, value for value the indexer registry row.
+const MAINNET_LAUNCH_ACTIVATION = Object.freeze({ mainnet: 1798761600, testnet: 9999999999, regtest: 0 });
 
-// PRELAUNCH_SEED_SOURCES: the sources a node may seed a mainnet coin from before the launch
-// gate opens, keyed by "COIN:network". Every list is empty until the key ceremony fills it.
-const PRELAUNCH_SEED_SOURCES = Object.freeze({
-    'BTC:mainnet': Object.freeze([]),
-    'LTC:mainnet': Object.freeze([]),
-    'DOGE:mainnet': Object.freeze([]),
-});
+// PRELAUNCH_SEED_SOURCES: the source addresses admitted on a mainnet coin before the launch gate
+// opens, keyed "<COIN>:mainnet". Empty, as the indexer registry row is, until a release pins the
+// seed sources after the key ceremony and adds a key per coin.
+const PRELAUNCH_SEED_SOURCES = Object.freeze({});
 
 module.exports = {
     MAX_ACTION_DATA_LENGTH,

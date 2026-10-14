@@ -619,7 +619,7 @@ Emitted when the mempool row is promoted to a confirmed transaction or evicted.
 
 Channel: `attestation`
 
-Emitted when an ATTEST action lands in a confirmed block.
+Emitted when an ATTEST request, response or expiry lands in a confirmed block. Relay legs (ATTEST v3/v4) arrive as the request or response they record. Response-batch actions (ATTEST v5 head, v6 continuation) send no event on this channel; they still arrive as `NEW_ACTION` on `actions`.
 
 #### ATTESTATION_REQUEST
 
@@ -636,7 +636,7 @@ Emitted for ATTEST v0 (request) rows.
 
 #### ATTESTATION_RESPONSE
 
-Emitted for ATTEST v1 (response) and ATTEST v2 (system expiry) rows.
+Emitted for ATTEST v1 (response) rows and for ATTEST v2 (system expiry) actions.
 
 ```json
 {
@@ -646,6 +646,14 @@ Emitted for ATTEST v1 (response) and ATTEST v2 (system expiry) rows.
   "data": { ... }
 }
 ```
+
+An expiry writes no attestation row of its own; it marks its request expired. Its frame therefore names the expiry action:
+
+- `action_index` is the expiry action, and `version` is `2`.
+- `request_id`, `provider_id` and `contract_index` come from the request it retired.
+- `request_status` is `expired` and `response_status` is `null`.
+
+When the explorer cannot tell which request an expiry retired, it sends no frame for that expiry; the request's `expired` status is still readable over REST.
 
 ---
 

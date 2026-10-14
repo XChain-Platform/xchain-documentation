@@ -120,6 +120,85 @@ test('the activation page records the testnet arming of the with, destructure an
     assertActivationRow(read('protocol/protocol-activation.md'));
 });
 
+// The gated BigInt-surface strip: the names the VM removes and the Package 3 coupling the page states.
+const VM_STRIP_SOURCES = ['src/stripped-globals.js', 'src/sandbox.js'];
+const vmStrip = sibling('xchain-vm', VM_STRIP_SOURCES);
+
+function bigIntSurfaceNames(root) {
+    const globals = fs.readFileSync(path.join(root, VM_STRIP_SOURCES[0]), 'utf8')
+        .match(/const BIGINT_SURFACE_STRIPPED_GLOBAL_NAMES = Object\.freeze\(\[([\s\S]*?)\]\);/);
+    const methods = fs.readFileSync(path.join(root, VM_STRIP_SOURCES[1]), 'utf8')
+        .match(/const BIGINT_SURFACE_STRIPPED_PROTO_METHODS = Object\.freeze\(\[([\s\S]*?)\]\);/);
+    assert.ok(globals && methods, 'xchain-vm no longer declares the BigInt-surface strip lists as frozen arrays');
+    const names = [...globals[1].matchAll(/'(\w+)'/g), ...methods[1].matchAll(/method:\s*'(\w+)'/g)].map((m) => m[1]);
+    assert.equal(names.length, 6, `parsed ${names.length} BigInt-surface names from xchain-vm`);
+    return names;
+}
+
+// The architecture page names every stripped BigInt-surface entry and ties it to the Package 3 gate.
+function assertBigIntSurface(architecture, names) {
+    for (const name of names) assert.ok(architecture.includes(`\`${name}\``), `architecture.md omits ${name}`);
+    const bullet = architecture.split('\n').find((l) => l.includes('`BigInt64Array`'));
+    assert.match(bullet || '', /Package 3/, 'architecture.md no longer ties the BigInt-surface strip to Package 3');
+    assert.match(bullet || '', /BIGINT_SURFACE_STRIP_ACTIVATION/, 'architecture.md omits BIGINT_SURFACE_STRIP_ACTIVATION');
+}
+
+test('the sandbox page lists the gated BigInt-surface strip the VM ships', { skip: vmStrip.skip }, () => {
+    const sandbox = fs.readFileSync(path.join(vmStrip.root, VM_STRIP_SOURCES[1]), 'utf8');
+    assert.match(sandbox, /buildStripScript\(\s*names,\s*stripWasm \|\| stripBigIntSurface\)/,
+        'sandbox.js no longer runs the BigInt-surface strip under the Package 3 flag; '
+        + 'architecture.md says it does, so reword the bullet and re-point this check');
+    assertBigIntSurface(PAGES.architecture, bigIntSurfaceNames(vmStrip.root));
+});
+
+test('the BigInt-surface page guard fails on a dropped name or a lost gate', { skip: vmStrip.skip }, () => {
+    const names = bigIntSurfaceNames(vmStrip.root);
+    assert.throws(() => assertBigIntSurface(PAGES.architecture.replaceAll('`BigUint64Array`', 'x'), names),
+        /omits BigUint64Array/);
+    assert.throws(() => assertBigIntSurface(PAGES.architecture.replaceAll('Package 3', 'x'), names),
+        /Package 3/);
+});
+
+// The 200-unit syntax-depth bound: its value, message, option and still-unset gate map.
+const SYNTAX_DEPTH_MAP = 'src/index/lint_syntax_depth_heights.js';
+const vmDepth = sibling('xchain-vm', [VM_CONSTANTS, SYNTAX_DEPTH_MAP]);
+
+function syntaxDepthFacts(root) {
+    const bound = fs.readFileSync(path.join(root, VM_CONSTANTS), 'utf8').match(/const MAX_SYNTAX_DEPTH = (\d+);/);
+    const map = fs.readFileSync(path.join(root, SYNTAX_DEPTH_MAP), 'utf8')
+        .match(/const LINT_SYNTAX_DEPTH_ACTIVATION = Object\.freeze\(\{([\s\S]*?)\}\);/);
+    assert.ok(bound && map, 'xchain-vm no longer declares MAX_SYNTAX_DEPTH or LINT_SYNTAX_DEPTH_ACTIVATION in its known shape');
+    const slots = [...map[1].matchAll(/'([A-Z]+:(?:mainnet|testnet))':\s*([^,\n]+)/g)].map((m) => [m[1], m[2].trim()]);
+    assert.equal(slots.length, 6, `parsed ${slots.length} LINT_SYNTAX_DEPTH_ACTIVATION slots`);
+    return { bound: bound[1], armed: slots.filter(([, v]) => v !== 'null').map(([k]) => k) };
+}
+
+// The guide and VM pages quote the bound and message; the VM pages name the option and gate map.
+function assertSyntaxDepth(pages, facts) {
+    const message = `syntax depth exceeds limit (${facts.bound})`;
+    for (const name of ['operations', 'guide']) assert.ok(pages[name].includes(message), `${name} omits "${message}"`);
+    for (const name of ['operations', 'architecture']) {
+        for (const marker of ['enforceLintSyntaxDepth', 'LINT_SYNTAX_DEPTH_ACTIVATION']) {
+            assert.ok(pages[name].includes(marker), `${name} omits ${marker}`);
+        }
+    }
+    assert.deepEqual(facts.armed, [], 'LINT_SYNTAX_DEPTH_ACTIVATION now sets a height for '
+        + facts.armed.join(', ') + '; the pages say no mainnet or testnet height is set, so update them');
+}
+
+test('the deploy-lint pages document the syntax-depth bound the VM ships', { skip: vmDepth.skip }, () => {
+    assertSyntaxDepth(PAGES, syntaxDepthFacts(vmDepth.root));
+});
+
+test('the syntax-depth page guard fails on a dropped message, option or a newly armed height', { skip: vmDepth.skip }, () => {
+    const facts = syntaxDepthFacts(vmDepth.root);
+    const message = `syntax depth exceeds limit (${facts.bound})`;
+    assert.throws(() => assertSyntaxDepth({ ...PAGES, guide: PAGES.guide.replaceAll(message, 'x') }, facts), /guide omits/);
+    assert.throws(() => assertSyntaxDepth({ ...PAGES, architecture: PAGES.architecture.replaceAll('enforceLintSyntaxDepth', 'x') }, facts),
+        /architecture omits enforceLintSyntaxDepth/);
+    assert.throws(() => assertSyntaxDepth(PAGES, { ...facts, armed: ['BTC:testnet'] }), /now sets a height/);
+});
+
 test('the deploy-lint guards fail on a stale claim, a dropped height or a miscounted rule set',
     { skip: vm.skip || indexer.skip }, () => {
         const heights = vmMapHeights(vm.root, 'LINT_BANNED_WITH_ACTIVATION');

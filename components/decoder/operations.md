@@ -290,7 +290,7 @@ SELECT id, time, code, data FROM events
  ORDER BY id DESC LIMIT 5;
 ```
 
-The newest row decides: a `REORG_HALT` newer than every `REORG_HALT_CLEARED` is live.
+The newest row decides: a `REORG_HALT` newer than every `REORG_HALT_CLEARED` is live. A newest `REORG_HALT_CLEARED` row lifts the halt only when its `data` parses to an object whose `reason` is at least 8 characters, which every audited clear writes; any other clear row (unparseable, empty, or with no or a short reason) reads as a live halt under its own id, and the audited clear below supersedes it.
 
 Two recoveries:
 

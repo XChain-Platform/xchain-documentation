@@ -113,6 +113,8 @@ const WIRE_SCOPED = [
     why: 'explains XCALL sitting outside that set' },
   { file: 'getting-started/what-is-xchain.md', claim: '37 wire-decoded ACTIONs', count: 1,
     why: 'names the scope explicitly where XCALL is introduced' },
+  { file: 'components/indexer/README.md', claim: '37 wire-decoded ACTIONs', count: 1,
+    why: 'splits the indexer record-type total into wire-decoded ACTIONs, XCALL and derived/system rows' },
 ];
 
 const SCOPED = [
@@ -121,9 +123,9 @@ const SCOPED = [
        + 'Count the COMMITTED tree: an untracked suite from another lane inflates a filesystem '
        + 'scan, and the gate gates the commit. count-action-suites.js scans the working tree, so '
        + 'its file tally runs ahead of this number whenever a lane holds unlanded suites' },
-  { file: 'components/indexer/architecture.md', claim: '48 action', count: 1,
-    why: 'handler classes in xchain-indexer src/actions/index.js, not the ACTION set; '
-       + 'requires, instantiations and dispatch cases all counted 48 on 2026-08-06' },
+  { file: 'components/indexer/architecture.md', claim: '50 action', count: 1,
+    why: 'handler classes, not the ACTION set: xchain-indexer src/actions/actions_class/handler_wiring.js '
+       + 'builds 50 (`new <handler>(...)`), counted on 2026-10-14 after ROLLCALL and XBRIDGE landed' },
   { file: 'components/indexer/actions.md', claim: '21 actions', count: 1,
     why: 'the subset registered at protocol version 0.1.0; 21 + 17 = 38 on the same page' },
   { file: 'components/vm/architecture.md', claim: '19 action types', count: 1,

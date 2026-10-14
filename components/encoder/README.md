@@ -56,7 +56,7 @@ The obfuscated payload is embedded in an `OP_RETURN` output. This is a single tr
 
 Maximum payload: **8,192 bytes** (decoder-enforced ceiling), packed in 476-byte chunks across as many outputs as needed
 
-The payload is embedded in a redeem script, which is hashed and locked to a P2SH output in a funding transaction. Payloads larger than a single 476-byte chunk are split across multiple P2SH outputs (one fund-then-spend pair per chunk), up to the shared 8,192-byte compiled-ACTION ceiling. A second spending transaction then reveals the full redeem script in the scriptSig, making the payload visible on-chain. Two transactions must be signed and broadcast in order:
+The payload is embedded in a redeem script, which is hashed and locked to a P2SH output in a funding transaction. Payloads larger than a single 476-byte chunk are split across multiple P2SH outputs (one fund tx creates them all, one spend tx reveals them all), up to the shared 8,192-byte compiled-ACTION ceiling. A second spending transaction then reveals the full redeem script in the scriptSig, making the payload visible on-chain. Two transactions must be signed and broadcast in order:
 
 1. **Fund**: locks coin to the P2SH output containing the hashed script
 2. **Spend**: spends from the P2SH output, revealing the full script (and therefore the payload) in the scriptSig

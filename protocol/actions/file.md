@@ -104,7 +104,7 @@ Two or more gated `FILE` actions by the same **publisher** with the same `GATE_T
   - `image/png` = PNG File
   - `image/gif` = GIF File
 - A `FILE` may appear inside a `BATCH`, typically paired with a `MESSAGE` v2 (ECIES) so that an issuer publishing a gated file commits the recoverable key in the same transaction as the encrypted file. See [`BATCH`](./batch.md) and [Token-Gated Content](../token-gated-content.md).
-- To officially associate an uploaded `FILE` with a `TICK` (e.g. NFT artwork or related content), the token's owner broadcasts a [`LINK`](./link.md) between the `FILE` and the token's `ISSUE`, see the [NFT Standard](../nft-standard.md).
+- To officially associate an uploaded `FILE` with a `TICK` (e.g. NFT artwork or related content), the token's owner broadcasts a [`LINK`](./link.md) with the `FILE` in `COIN1` and the token's `ISSUE` in `COIN2` (only the `COIN2` side is owner-validated), see the [NFT Standard](../nft-standard.md).
 
 ---
 

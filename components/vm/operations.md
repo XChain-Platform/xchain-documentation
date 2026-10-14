@@ -148,6 +148,8 @@ Before a contract is deployed, `vm.validateSyntax(code, opts)` runs the followin
 
 Before check 1, a **nesting-depth pre-check** (consensus-gated, its own per-coin `VM_LINT_NESTING_DEPTH_ACTIVATION` height gate, `enforceLintNestingDepth`) tokenizes the source and rejects it once its `(`, `[`, `{` and `${` delimiters nest more than 64 deep (`MAX_NESTING_DEPTH`), with `nesting depth exceeds limit (64) at line N`. Delimiters inside comments, strings, regular expressions and template text do not count. The gate is unarmed on BTC, LTC and DOGE mainnet, armed on testnet at a per-chain local block height (`BTC:testnet` 156230, `LTC:testnet` 4912984, `DOGE:testnet` 67989993), and genesis-active on regtest; the `xchain-lint` CLI and the SDK linter enforce it by default.
 
+After it, a **syntax-depth pre-check** (`enforceLintSyntaxDepth`) rejects source whose syntactic depth exceeds 200 (`MAX_SYNTAX_DEPTH`), with `syntax depth exceeds limit (200) at line N`, reported under the same `nesting-depth` rule, so the deploy-blocking rule count does not change. The depth counts every construct the acorn parsers and the metering pass recurse on, including delimiter-free shapes (unary and binary operator chains, ternary and `else if` chains, chained assignment) that would otherwise drive those passes into a host stack overflow. When `enforceLintSyntaxDepth` is on, the delimiter pre-check above also runs whatever `enforceLintNestingDepth` says. The VM's per-coin gate map for this bound is `LINT_SYNTAX_DEPTH_ACTIVATION` (resolver `isLintSyntaxDepthActive`), which also gates the execute-time lint: no BTC, LTC or DOGE mainnet or testnet height is set yet (every key is null), and it is always active on regtest. Like every option here, `enforceLintSyntaxDepth` defaults on when omitted, and the `xchain-lint` CLI and the SDK linter enforce it by default.
+
 1. **V8 syntax check**: compiles the code in a throwaway 8 MB isolate to catch syntax errors (the only step requiring `isolated-vm`)
 2. **Acorn metering pass**: runs `meterCode()` to ensure acorn can parse the source (effective ES2020 ceiling)
 3. **Reserved identifier check**: rejects code containing `__gas`, the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); referencing these could bypass or forge size/depth metering. Under `VM_LINT_HARDENING` this also covers the `CONTRACT_WRAPPER`'s injected control bindings (`__contractCode`, `__methodName`, `__isCrossCall`, `__readManifest`).
@@ -162,7 +164,7 @@ Before check 1, a **nesting-depth pre-check** (consensus-gated, its own per-coin
 ```mermaid
 flowchart TD
     START["DEPLOY action: code"]
-    S0{"Nesting-depth pre-check (VM_LINT_NESTING_DEPTH_ACTIVATION gate)"}
+    S0{"Nesting-depth and syntax-depth pre-checks (VM_LINT_NESTING_DEPTH_ACTIVATION, LINT_SYNTAX_DEPTH_ACTIVATION)"}
     S1{"1. V8 syntax check (throwaway isolate)"}
     S2{"2. Acorn metering pass"}
     S3{"3. Reserved identifier check"}
