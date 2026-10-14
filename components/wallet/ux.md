@@ -103,7 +103,8 @@ Optional 25th-word passphrase is offered on both Create and Import, captured onc
 
 - **Manual lock**: accessible from the global menu and via keyboard shortcut. Zeroes the in-memory master key + session key.
 - **Unlock**: password entry; on success, master key is derived (Argon2id) and the vault decrypts.
-- **Foreground auto-lock**: configurable timeout in Settings. Default: 15 minutes idle (choices from 1 minute to 4 hours, or Never). One idle timer serves the popup, web and desktop shells; mouse, keyboard, scroll, click and touch activity resets it. Switching tabs or windows does not lock the wallet.
+- **Unlock feedback**: a wrong password shows **Incorrect password**. Repeated failures temporarily disable unlock and show a countdown until another attempt is allowed. If biometric unlock fails, the password field remains available as the fallback.
+- **Foreground auto-lock**: configurable timeout in Settings. Default: 15 minutes idle (choices from 1 minute to 4 hours, or Never). One idle timer serves the popup, web and desktop shells; mouse, keyboard, scroll, click and touch activity resets it. Switching tabs or windows does not lock the wallet. Time spent while the computer sleeps counts toward the idle timeout.
 - **Background auto-lock**: on the extension, the background worker enforces the same idle timeout after the popup closes. On desktop, an expired cached session is dropped at launch, and the timeout is still checked while the app runs with no window open. The web shell has no background lock; closing the tab drops its keys.
 - **Browser-close lock**: extension session-key namespace clears automatically. Web shell drops in-memory keys when the tab unloads.
 - **OS keychain auto-unlock**: desktop only, on by default wherever an OS keychain backend is available, with no setting to turn it off. The session master key is encrypted through the OS keychain (Keychain on macOS, DPAPI on Windows, Secret Service or KWallet on Linux) and kept in a `session.bin` file, so a relaunch inside the auto-lock window skips the password; with auto-lock set to Never it skips it until the user locks. Lock and wallet reset delete the file.
@@ -120,6 +121,8 @@ The home dashboard renders:
 - A messaging-inbox unread-count badge linking to the inbox
 
 The same Home renders in the popup (compact), the full-screen / desktop (expanded with charts), and the web app (responsive between popup-like and full-screen-like layouts).
+
+When the wallet is offline, it keeps the last saved balances visible and shows one offline message. Actions that need a network connection are disabled and explain why. Balances refresh automatically when the connection returns.
 
 ## Send
 
@@ -176,6 +179,8 @@ Per-address history view. Each row renders the decoded action plus its on-chain 
 
 History reads from `xchain-explorer` via the SDK. The wallet never re-derives state from raw blockchain data.
 
+History can be exported as CSV or JSON. CSV exports escape formula-like values so spreadsheet software treats them as text instead of running them as formulas.
+
 ## Sign screens
 
 Every action's sign screen renders three parallel views:
@@ -187,6 +192,8 @@ Every action's sign screen renders three parallel views:
 | Encoder PSBT | Returned from the encoder | Untrusted (encoder is a remote service) |
 
 A discrepancy between the form pane and the decoded pane never happens unless the action descriptor or the decoder is buggy, both are tested by the same smoke suite. A discrepancy between either of those and the PSBT pane is what the user is being asked to catch by eye, and what the next-iteration byte-level cross-check will catch automatically.
+
+Watch-only wallets cannot sign transactions or messages. Their signing screens say that the wallet is watch-only and direct the user to a wallet with the required keys instead of showing a password prompt.
 
 ## Multisig session view
 
