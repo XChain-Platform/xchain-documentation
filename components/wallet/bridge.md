@@ -386,8 +386,8 @@ The provider resolves failures as `{ ok: false, error, message? }` for `connect`
 | `CHALLENGE_EXPIRED` | Reserved by the public result union. The current `signIn` handler does not emit it; `validateSignInChallenge` reports an expired challenge through its returned validation message. |
 | `BROADCAST_FAILED` | An action was signed but its network broadcast failed. `signPsbt` does not broadcast. |
 | `PANIC_MODE` | A signing flow is blocked by an active panic freeze. The default duration is 24 hours, but wallet settings allow other supported durations. A co-sign policy refusal can instead return `{ ok: true, approved: false, reason: 'PANIC_MODE' }`. |
-| `THROTTLED` | The origin exceeded the configured signing-request limit. The result can include `retryAfterMs`, `burst`, and `windowMs`. |
-| `BLOCKED_BY_USER` | The origin matches the user's blocked-origin list. The user must unblock it in **Connected sites**. |
+| `THROTTLED` | The origin exceeded the per-origin sign-request rate limit. The result can include `retryAfterMs`, `burst`, and `windowMs`. |
+| `BLOCKED_BY_USER` | The user explicitly blocked this origin, so it matches the blocked-origin list. The user must unblock it in **Connected sites**. |
 | `BRIDGE_VERSION_MISMATCH` | `requiredBridgeVersion` does not match any supported bridge protocol version. |
 | `INTERNAL_ERROR` | An unexpected wallet, signer, or transport failure that has no more specific public code. |
 
