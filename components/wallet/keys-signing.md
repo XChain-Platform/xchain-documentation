@@ -205,7 +205,7 @@ The injected transport forwards `status`, `getAddresses`, `getPublicKey`, `signP
 
 ### Multisig orchestration (Phase 4+)
 
-There is no concrete `MultisigSigner` class. Multisig is implemented by `packages/core/src/flows/multisigSigning.js`, `multisigSignLocally.js`, the persisted `multisigSigningSessions` collection, and the signing-session UI. The creation UI currently offers multisig on Bitcoin networks.
+A concrete `MultisigSigner` class is not implemented. Multisig is implemented by `packages/core/src/flows/multisigSigning.js`, `multisigSignLocally.js`, the persisted `multisigSigningSessions` collection, and the signing-session UI. The creation UI currently offers multisig on Bitcoin networks.
 
 - **Classical P2SH/P2WSH**: each software cosigner contributes one DER-encoded ECDSA signature for the session sighash. The coordinator collects threshold contributions and then passes the session PSBT to the SDK finalizer; it does not merge the stored signatures into that PSBT first (see [Multisig](multisig.md)).
 - **Taproot MuSig2**: round 1 collects 66-byte public nonces. After nonce aggregation, round 2 collects 32-byte partial signatures. The coordinator aggregates and stores the final Schnorr signature; as with the classical path, finalization does not insert it into the session PSBT.

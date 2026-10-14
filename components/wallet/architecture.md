@@ -141,7 +141,7 @@ flowchart TD
     CLICK --> COMPOSE --> CHECK --> REVIEW --> SUBMIT --> SIGN --> BROADCAST --> WAIT
 ```
 
-`submitWithSigner` skips action creation and encoding when it receives the reviewed `prebuiltPsbt`, so the signer sees the same PSBT that passed the confirmation checks. Two-phase P2SH, P2WSH, and Taproot envelope paths add capability and completeness checks before an irreversible commit is broadcast.
+`submitWithSigner()` skips action creation and encoding when it receives the reviewed `prebuiltPsbt`, so the signer sees the same PSBT that passed the confirmation checks. Two-phase P2SH, P2WSH, and Taproot envelope paths add capability and completeness checks before an irreversible commit is broadcast.
 
 ## Vault and state model
 
@@ -201,7 +201,7 @@ The codec document version remains 1. When a newer collection is absent from an 
 - `signMessage(params)` and `signPsbt(params)`
 - `signMultisigPsbt(params)` and `signMultisigClassical(params)`
 - `signMusig2Round1(params)` and `signMusig2Round2(params)`
-- identity getters, `requiresPhysicalConfirmation`, and status subscriptions
+- identity getters, `requiresPhysicalConfirmation`, and status subscriptions through `subscribe(listener)`
 
 The implemented signer classes are:
 
@@ -212,7 +212,7 @@ The implemented signer classes are:
 
 Both hardware implementations support the bundled Bitcoin, Litecoin, and Dogecoin mainnets today. They reject testnet and regtest because the available device apps or derivation slots do not match the wallet's descriptor paths. They support P2PKH, nested SegWit, and native SegWit derivation, but reject Taproot address derivation. Hardware MuSig2 and classical multisig contribution methods return explicit unsupported errors; they do not silently fall back to software keys. Mobile has no hardware-signer factory.
 
-There is no `MultisigSigner` class. Interactive coordination lives in `core/src/flows/multisigSigning.js` and related flows, persisted by `multisigSigningSessions`, with software signers supplying the implemented contribution methods. Passive policy co-signing uses `coSignerAccounts` and the `core/src/cosigner/` adapters.
+A dedicated `MultisigSigner` class is not implemented. Interactive coordination lives in `core/src/flows/multisigSigning.js` and related flows, persisted by `multisigSigningSessions`, with software signers supplying the implemented contribution methods. Passive policy co-signing uses `coSignerAccounts` and the `core/src/cosigner/` adapters.
 
 ## Action decoder + sign-screen safety rails
 
@@ -226,7 +226,7 @@ The confirmation surface instead asks `xchain-sdk` to describe the composed acti
 - P2SH and P2WSH carrier scripts must commit to the intended payload; and
 - Taproot envelope commits must carry a matching reveal and recovery record.
 
-The checked PSBT is passed unchanged to `submitWithSigner`. See [Security & Threat Model](security.md) for the overall posture and [Threat Model Detail](threat-model.md) for attacker-scenario walkthroughs.
+The checked PSBT is passed unchanged to `submitWithSigner()`. See [Security & Threat Model](security.md) for the overall posture and [Threat Model Detail](threat-model.md) for attacker-scenario walkthroughs.
 
 ## dApp bridge architecture
 
