@@ -8,85 +8,85 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 ## Wallet architecture
 
-**core** - The shared package housing every shell-agnostic module: schemas, validators, flows, signers, the bridge spec, the shared route components, the i18n primitives, and the build-info constants. The shells (extension, web, desktop, mobile) consume core through workspace packages; nothing in core imports from a shell. See [Wallet Architecture](architecture.md).
+**core** - The shared `@xchain-wallet/core` package. It contains schemas, validators, flows, storage, software and remote signer support, shared routes and components, i18n, and build metadata. The bridge contract is a separate `@xchain-wallet/bridge-spec` package, while Ledger and Trezor implementations live in their own signer packages. See [Wallet Architecture](architecture.md).
 
-**shell** - One of the wallet's end-user packages: extension (Chrome/Firefox/Edge MV3), web (browser SPA), desktop (Electron), or mobile (Capacitor wrapper around the web build). Each shell wires core's flows to its platform's storage substrate, messaging transport, and signer surface.
+**shell** - One of the wallet's end-user packages: a Chromium MV3 extension, a browser SPA, an Electron desktop app for Windows, macOS, and Linux, or a Capacitor wrapper around the web build. Android is shipped; the iOS package exists but its App Store release is pending. Each shell wires shared flows to its storage, messaging, and signer boundaries.
 
-**vault** - The persistent store wrapping every collection the wallet maintains: wallets, accounts, addresses, settings, contacts, signers, connected sites. Each shell provides its own concrete implementation; flows accept a vault dependency and never know which shell they are running on.
+**vault** - The shared encrypted persistent-state facade. It exposes typed collections for wallets, accounts, addresses, contacts, connected sites, signers, pending work, watchlists, alerts, multisig and co-signer state, gated keys, autopay state, and one settings record. Shells supply storage backends such as IndexedDB, `chrome.storage.local`, an Electron file store, or a native mobile vault.
 
-**flow** - A function in core's flows layer that runs an end-to-end operation: create a wallet, send an action, sign a message, import a backup. Flows accept dependency injection (vault, chain registry, SDK registry, signer pool) so they can be tested without a live shell.
+**flow** - A function in core's flows layer that performs a wallet operation such as creating a wallet, submitting an action, signing a message, or importing a backup. A flow receives the dependencies it needs, such as the vault, chain registry, SDK registry, or signer, which keeps it independent of a particular shell.
 
-**MessageHost** - The background-process router that registers handlers by name and dispatches incoming messages to them. Each shell instantiates one host at startup and shares it across its popup, tab, or renderer surfaces.
+**MessageHost** - The named-message router shared by the shells. The extension runs it in the background service worker, the desktop app runs it in the Electron main process, and the web and mobile bundle run it in-page. It returns a common success or error envelope to the calling UI.
 
 **messaging shim** - A per-shell module that exposes typed wrappers around sending a named message with a payload. Shells expose the same shim shape so shared routes render unchanged across shells.
 
 ## Signing and key management
 
-**HD wallet** - A wallet whose private keys are derived deterministically from a single seed via BIP-32 / BIP-39 / BIP-44 / BIP-84. The wallet's default model. Allows recovery from a 12 or 24-word mnemonic.
+**HD wallet** - A wallet whose keys are derived deterministically from a seed using BIP-32 and chain-specific BIP-44-style paths, including BIP-84 paths where applicable. New wallets generate a 12-word BIP-39 phrase by default and offer a 24-word option; import accepts valid 12, 15, 18, 21, or 24-word BIP-39 phrases.
 
-**imported WIF** - A single private key imported into an existing HD wallet. The key sits alongside derived keys but is not recoverable from the mnemonic; it must be backed up separately.
+**imported WIF** - A single private key imported either into an existing HD wallet or as a WIF-only wallet. The encrypted key is stored in the wallet record and linked to an address record. It is not recoverable from an HD wallet's mnemonic and needs its own backup.
 
-**BIP39 passphrase** - An optional "25th word" added to the mnemonic when deriving the seed. Different passphrases produce different wallets from the same mnemonic. Captured once, at wallet creation or import, and stored encrypted alongside the mnemonic under the wallet's own password, so it is not re-entered at each unlock; restoring the wallet on a different device still requires it, together with the recovery phrase. Permanent: forgetting the passphrase permanently locks the wallet.
+**BIP39 passphrase** - An optional extra secret, often called a "25th word," combined with a BIP-39 mnemonic when deriving the seed. Different passphrases produce different wallets from the same mnemonic. The wallet captures it at creation or import and encrypts it under that wallet's master key, so normal unlock needs only the wallet password. Restoring from the recovery phrase on another device still requires the exact passphrase; a missing or mistyped value derives a different wallet.
 
-**signer** - An object that produces a signature for a transaction or message. Concrete kinds: software (mnemonic + password unlock), Trezor (over Trezor Connect), Ledger (over WebHID), and remote/multisig composites. Selected per address.
+**signer** - An object implementing the wallet's signing contract for transactions, messages, public-key derivation, status, and multisig contributions. Shipping implementations include the seed-backed software signer and the Trezor and Ledger device signers. A `RemoteSigner` proxies Trezor or Ledger operations across a shell transport. Address source and `signerId` determine which signing path is used; watch-only addresses have no signer.
 
-**SignerPool** - Per-wallet cache of unlocked signers. Software signers sit in the pool while the wallet is unlocked and are evicted on lock or removal. Hardware signers live there as connection metadata only; the device itself holds the key.
+**SignerPool** - An in-memory map of unlocked software signers keyed by wallet id. It is populated for an unlocked session, evicts one entry when that wallet is removed, and locks and clears every entry when the session locks. Hardware signer metadata is stored in the vault and is not held in this pool.
 
-**panic mode** - A 24-hour signing freeze the user activates from the locked screen. All sign methods reject with `PANIC_MODE` until the freeze elapses. A separate "duress passphrase" silently trips the same state when entered as the unlock password. A wallet wipe erases the panic freeze record and the duress passphrase so neither survives removal of the wallet.
+**panic mode** - A 24-hour signing freeze the user activates from Settings while the wallet is open. Signing remains blocked until the timer expires or the user explicitly deactivates the freeze from Settings. A separate duress passphrase silently activates the same freeze when it is entered on the locked screen after a real-password unlock fails. Bridge signing failures are surfaced as `PANIC_MODE`. A wallet wipe erases the panic freeze record and the duress passphrase so neither survives removal of the wallet.
 
-**clipboard auto-clear** - A configurable timer (0 to 600 seconds, default 60 seconds) that wipes the clipboard after the wallet copies a sensitive value like a private key.
+**clipboard auto-clear** - A sensitive-copy retention setting from 0 to 600 seconds, with a 60-second default and 0 disabling expiry. Browser-based shells clear only if the wallet's copied value is still current; native mobile shells delegate sensitive marking and expiry to the native clipboard plugin.
 
 ## dApp bridge
 
-**bridge** - The `window.xchain` provider injected by the extension's content script (or attached directly in desktop / web). dApps call `connect()`, `signMessage()`, `signAction()`, `signPsbt()`, `signIn()`, `parallel()`, plus the read methods. The full surface is documented in [dApp Bridge](bridge.md).
+**bridge** - The `window.xchain` provider injected into web pages by the Chromium extension's content script. Its public surface includes connection and read methods, `signMessage()`, `signAction()`, `signPsbt()`, `coSign()`, `signIn()`, `parallel()`, and event subscriptions. The desktop and web shells use separate internal messaging objects rather than attaching this dApp provider themselves. The full surface is documented in [dApp Bridge](bridge.md).
 
-**ConnectedSite** - A vault record created when a user approves a connect request. Stores the origin, app name, granted chains, granted accounts, and per-action permissions.
+**ConnectedSite** - A vault record created when the bridge grants a connect request, either through user approval or the Developer Mode localhost auto-approve path. It stores the origin, app identity, timestamps, chain and account scopes, message-signing permission, per-action permissions, session history, and whether the grant was auto-approved.
 
-**approval** - A user prompt that the bridge raises before performing a sign request that needs interactive consent. Implemented by an approval broker in each shell (popup window, modal dialog, or desktop toast, depending on shell). The broker returns a decision object.
+**approval** - A user decision requested by the extension bridge before connecting or signing when policy requires consent. The extension's approval broker opens an `approval.html` popup, parks the request until the user decides, and treats a closed or timed-out popup as rejection.
 
 **bridge error code** - A stable string identifier returned in a failure response. `USER_REJECTED`, `NOT_CONNECTED`, `WALLET_LOCKED`, `BLOCKED_BY_USER`, `THROTTLED`, and so on. The full table lives in [dApp Bridge](bridge.md).
 
-**throttle** - Per-origin rate limiter on the four sign methods. When an origin exceeds its burst allowance inside the rate window, the bridge rejects with `THROTTLED` plus a retry hint. Connect, disconnect, and read methods are not throttled.
+**throttle** - A per-origin sliding-window limiter applied to `signMessage`, `signAction`, `signPsbt`, `coSign`, `parallel`, and `signIn`. The default allowance is five signing requests per 60 seconds, and settings may override both values. A rejected call returns `THROTTLED` with `retryAfterMs`, `burst`, and `windowMs` hints. Connect, disconnect, and read methods are not throttled.
 
-**blocklist** - A user-managed list of origins that the bridge hard-rejects with `BLOCKED_BY_USER`. Adding to the blocklist also evicts the matching ConnectedSite record so an in-flight session stops signing.
+**blocklist** - A user-managed list of exact origins or `*.example.com` wildcard patterns. Matching connect and signing requests are rejected with `BLOCKED_BY_USER`. Adding an entry also evicts matching ConnectedSite records so existing grants cannot keep signing.
 
-**SIWX** - Sign-In with XChain. The bridge's `signIn` flow's wire format: a deterministic challenge string produced from the app id, address, nonce, issued-at, and expires-at fields, signed by the wallet address.
+**SIWX** - Sign-In with XChain. The bridge's `signIn` method signs a versioned challenge containing the app id, wallet-stamped requesting origin, address, nonce, timestamp, and expiry time. A relying service must verify the origin as well as the signature and other fields.
 
 ## Storage and state
 
-**Wallet record** - The vault's representation of one HD wallet. Holds a name, creation timestamp, encrypted seed, key-derivation parameters, plus optional imported keys for imported WIFs.
+**Wallet record** - The vault representation of one seed-backed or WIF-only wallet. It stores identity and origin metadata, format, encryption and KDF parameters, encrypted seed material where applicable, an optional encrypted BIP-39 passphrase, imported WIF entries, and multisig configurations.
 
-**Account** - A wallet-to-account partition. Each account is a BIP-44 derivation index off the wallet seed. A default account sits at index 0, with user-named accounts at higher indices. Addresses derive under their account's derivation path.
+**Account** - A BIP-44-style partition under a wallet seed. Its record stores the wallet id, user-facing name, non-negative derivation index, creation time, and sparse per-chain active-address overrides. The default account uses index 0; additional accounts use higher indices.
 
-**Address record** - A persisted entry of chain, account, derivation path, address type, and address. Created the first time an address is needed (Receive, Send-from selector, sign request).
+**Address record** - A persisted address entry containing chain and network, source, account link, address type, derivation path where applicable, public key, signer link, label, visibility flags, and receive/change/dispenser role. HD records are created during wallet creation, account or chain activation, and later address derivation; imported-WIF and watch-only records may have no account or derivation path.
 
-**Settings record** - One per wallet. Stores theme, fees, donation state, notifications, panic mode, auto-lock, blocklist, pinned coins, hidden coins, and other per-wallet preferences.
+**Settings record** - The vault's single global settings slot, stored sparsely as differences from current defaults. It includes appearance, auto-lock, active network, endpoints, fees, donation state, notifications, privacy controls, bridge blocklist and throttle settings, wallet-scoped token preference maps, developer controls, and other preferences. Active panic and duress state is persisted separately from this record.
 
-**v2-tolerant** - A schema convention: a new field added inside a schema's current version is declared optional and defaults sensibly when missing. Avoids forcing a version bump for additive changes.
+**v2-tolerant** - The wallet's label for an additive schema field that remains optional within an existing record version. Readers supply a default when the field is absent, so older records remain valid without a schema-version migration.
 
 **ConnectedSites collection** - Vault store of approved dApp origins.
 
-**ADS** - Automatic Donation System. A per-chain accumulator that adds a configurable per-transaction donation to user transactions until a trigger threshold is reached, then bundles the accumulated donation into a single ACTION.
+**ADS** - Automatic Donation System. Each successfully broadcast transaction advances a per-chain accumulator by a configurable contribution. Once the accumulator has already reached its trigger, the next transaction includes one donation output for the accumulated amount, then resets the accumulator to that transaction's contribution toward the next cycle.
 
 ## Onboarding and recovery
 
-**onboarding** - The first-launch flow: license acceptance, then a choice between create, import, or try-demo, then password setup, BIP39 passphrase opt-in, mnemonic display with a word-quiz, and donation-system consent.
+**onboarding** - The first-launch sequence: accept the current license, view or skip a one-time explainer, then choose create, import, FreeWallet migration, partner pairing, or demo mode. Wallet creation collects a name and password, offers 12 or 24 words and an optional BIP-39 passphrase, displays the mnemonic, verifies selected words, persists the wallet, and ends with an ADS notice. The ADS screen informs rather than asks for consent; its controls live in Settings.
 
-**dry-run restore** - A non-destructive reverse of importing a mnemonic. Computes the addresses and balances a mnemonic would restore without writing anything to the vault. Used by the Backup panel to let a user verify their backup before relying on it.
+**dry-run restore** - A non-destructive backup check. It derives a configurable number of addresses per selected chain from a BIP-39 or Counterwallet mnemonic and compares them with the current wallet's persisted addresses, without writing to the vault. It does not fetch or calculate balances.
 
-**word-quiz** - The verification stage during wallet creation where the user re-types a few random non-adjacent mnemonic words to prove they wrote the phrase down correctly.
+**word-quiz** - The wallet-creation verification stage where the user re-types random, non-adjacent mnemonic words. It asks for three positions from a 12-word phrase and four from a 24-word phrase, and skips the first word.
 
-**backup reminder** - A progressive Home banner that escalates from gentle to firm copy if the user has not yet passed the word-quiz or written the mnemonic down somewhere durable.
+**backup reminder** - A Home card for a funded wallet with no recorded backup verification. Passing the creation word-quiz or successfully exporting an encrypted backup marks the wallet verified. Before verification, the gentle reminder can be snoozed for 24 hours; after the wallet has remained funded for seven days, it becomes firm and cannot be dismissed.
 
-**demo mode** - A try-before-commit lane that creates a throwaway HD wallet without prompting for a name. The wallet is flagged locally so the Home banner offers an "exit demo and wipe" affordance.
+**demo mode** - A try-before-commit lane that creates a persistent throwaway BIP-39 wallet named `Demo Wallet` with an auto-generated password, synthetic balances and history, and seeded demo contacts. Local metadata lets the shell silently unlock it after reload, display an "Exit demo & wipe" banner, and auto-expire it after 24 hours.
 
 ## Build and release
 
 **reproducible build** - A build that produces the same bytes given the same source tree, locked toolchain, and pinned environment. The wallet's desktop pipeline targets Level-2 reproducibility (the pre-signing artifact). See [Reproducible Builds](reproducible-builds.md).
 
-**synchronized versioning** - The wallet's release rule: every package bumps to the same version on every release, together with the in-app build-info version constant. The root package manifest is the source of truth.
+**synchronized versioning** - The wallet's release rule: the root package version is the source of truth for every `packages/*/package.json`, the extension manifest and visible version name, the in-app `WALLET_VERSION`, the README version copies, the changelog section, and the release tag.
 
-**RELEASE_HASHES.txt** - The per-release manifest of SHA-256 hashes for every artifact (`.dmg`, `.exe`, `.AppImage`, `.deb`, `.zip`). Published alongside each release tag, and verified against a signature pinned inside the app before an update installs.
+**RELEASE_HASHES.txt** - A release manifest containing a signed header and SHA-256 entries for the files covered by that release lane. It is published as `RELEASE_HASHES/vX.Y.Z.txt` with a detached `.asc` OpenPGP signature. The desktop updater verifies the signature with the release public key compiled into the app and refuses an update whose downloaded artifact is not listed with the expected hash.
 
 **smoke** - A standalone script that exercises a thin slice of wiring without a browser test environment. Smokes pin source assertions plus runtime exercises of small modules, and run alongside the wallet's broader test suite.
 
@@ -94,15 +94,15 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 **chain registry** - The runtime catalog of supported chains. Each chain descriptor carries an id, coin, network kind, display name, address types, default address type, supported actions, and URI scheme. Bridge handlers consult it to validate a request's chain id against permitted chains.
 
-**SDK registry** - Per-chain bundle of SDK modules keyed by chain id. Provides the encoder, broadcast, and explorer client. Flows accept an SDK registry dependency and resolve it per chain.
+**SDK registry** - A lazy cache of one XChain SDK instance per chain id. It constructs each instance from the chain registry's explorer, encoder, and hub endpoints plus any user overrides, applies bounded network timeouts and explorer rate limiting, and invalidates instances when endpoint or routing settings change.
 
-**reachability** - The wallet's offline-detection layer. A periodic background ping against the configured RPC and indexer endpoints feeds an offline / degraded banner mounted in every shell.
+**reachability** - The wallet's network-health layer. It probes the active chains' explorer, encoder, and hub services, classifies each chain and the overall wallet as normal, degraded, or offline, and records explorer freshness where available. Shared UI polls every 30 seconds by default and shows a reachability banner in the extension, web/mobile, and desktop shells after corroborating non-normal results.
 
-**learn mode** - A Settings toggle that surfaces extra explanatory copy throughout the UI for users still learning the protocol. Off by default.
+**learn mode** - A Settings toggle that adds plain-language explanatory notes to the standard confirmation surfaces. It is off by default.
 
-**developer mode** - A Settings toggle that surfaces low-level features: regtest chain activation, a log console, auto-approve for localhost dApps, and custom endpoint editing. Off by default; gated as a single switch in the Developer Mode panel.
+**developer mode** - A Settings toggle that gates bundled regtest activation and faucet controls, custom chain management, web layout previews, localhost dApp auto-connect and optional timed auto-sign, and the logs and diagnostics console. It is off by default. Network endpoint editing is a separate Settings section.
 
-**i18n** - Internationalization. The wallet's i18n module supports ICU MessageFormat-subset templates with plural and select forms. A translation hook reads the active locale from context. CSS uses logical properties (`margin-inline-start`, `padding-inline-end`) so a future right-to-left locale lays out correctly without per-file edits.
+**i18n** - Internationalization. The shared runtime uses `intl-messageformat` for full ICU MessageFormat, lazy-loads registered locale dictionaries, falls back to English for missing keys, and synchronizes the document's language and text direction with the stored setting. A developer-only pseudo-RTL locale exercises right-to-left layout, and shared styles use logical properties such as `margin-inline-start` and `padding-inline-end` where direction matters.
 
 <!-- BEGIN auto-generated glossary appendix -->
 
