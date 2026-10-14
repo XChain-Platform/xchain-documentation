@@ -112,6 +112,7 @@ Clear a standing GOVTOKEN delegation
 - `DEPOSIT` defaults to 0. When present it must be a non-negative amount and at least `POLL_DEPOSIT_MIN` (a deployment-level floor, 0 by default).
 - `DEPOSIT > 0` requires `SOURCE` to hold that amount of the GAS tick (XCHAIN), read at the create action's `(block, action)` for cross-validator determinism; insufficient balance produces `invalid: insufficient funds (DEPOSIT)`.
 - A valid `DEPOSIT > 0` debits `SOURCE` and writes an escrow row at the v0 `action_index`, released at finalization (see Deposit flow).
+- At or above the `VOTE_SETTLEMENT_EXACT_ACTIVATION` height a `DEPOSIT` with a nonzero digit past the 8th decimal place is `invalid: DEPOSIT (more than 8 decimal places)`, in any spelling (`1e-9` included; trailing zeros are fine). The escrow locks and releases at 8 decimal places, so a finer amount would credit more or less than it locked. Below the height such a value is accepted and locked rounded to 8 places. The height is unarmed on mainnet and testnet and active from genesis on regtest.
 
 #### Callback fields (v0, optional; make the poll binding)
 - Leaving `CALLBACK_CONTRACT` empty makes the poll advisory; the other four callback fields are then ignored.
@@ -120,12 +121,13 @@ Clear a standing GOVTOKEN delegation
 - At/after the `VOTE_BINDING_MINIMUMS` flag-day a binding poll must also set `QUORUM` and `MIN_VOTERS >= 1`; a v0 that omits either is invalid. Advisory polls are unaffected. The magnitudes remain the creator's policy call, but a callback that can move contract-held value can no longer finalize with no turnout floor at all (see Parameterizing binding polls).
 - `CALLBACK_ON` must be `pass` or `always` (default `pass`). `pass` fires only when the poll reaches `finalized` with a winner; `always` fires on `finalized` and `failed_quorum` alike.
 - `CALLBACK_PARAMS`, when set, must parse as a JSON array; its elements are appended as extra positional arguments after the standard poll-result arguments.
-- `GAS_ESCROW` defaults to 0 and must be a non-negative amount. It and `DEPOSIT` are escrowed together (`DEPOSIT + GAS_ESCROW`), and the combined funding check requires `SOURCE` to hold the sum of the GAS tick at creation.
+- `GAS_ESCROW` defaults to 0 and must be a non-negative amount. It and `DEPOSIT` are escrowed together (`DEPOSIT + GAS_ESCROW`), and the combined funding check requires `SOURCE` to hold the sum of the GAS tick at creation. At or above the `VOTE_SETTLEMENT_EXACT_ACTIVATION` height it follows the `DEPOSIT` precision rule: more than 8 decimal places is `invalid: GAS_ESCROW (more than 8 decimal places)`.
 - `CALLBACK_DELAY_BLOCKS` (from the `VOTE_CALLBACK_TIMELOCK` flag-day) must be a non-negative integer when set. A value above 0 timelocks the callback: finalization freezes the tally and settles the deposit as always, but the callback EXECUTE fires `CALLBACK_DELAY_BLOCKS` blocks later (see Binding polls). Before the flag-day the field is ignored, matching nodes that predate it.
 
 ### Version 1 (cast ballot)
 - `POLL_REF` must reference an existing poll.
 - The ballot must arrive while `cast_block <= END_BLOCK`; a later ballot is `invalid: poll closed`.
+- At or above the `VOTE_SETTLEMENT_EXACT_ACTIVATION` height the poll must also still be `open`: a ballot on a poll already finalized early is `invalid: poll closed`, even before `END_BLOCK`. Below the height such a ballot is accepted and stored but never counted, since the tally is frozen.
 - Hold-to-vote gate (cast time): the voter must hold `TICK` now, or the ballot is invalid.
 - `BALLOT` must list between one and `MAX_SELECTIONS` entries, every option index in range and distinct.
 - In `split` mode each entry needs a positive `SHARE`; in `approval` mode the share is ignored (stored as `1`).
@@ -144,7 +146,7 @@ Clear a standing GOVTOKEN delegation
 
 ## Tally modes
 - **approval:** each listed option receives the voter's full weight.
-- **split:** the voter's weight is divided across listed options in proportion to their `SHARE` values (relative, not absolute; `60,40` and `3,2` are identical).
+- **split:** the voter's weight is divided across listed options in proportion to their `SHARE` values (relative, not absolute; `60,40` and `3,2` are identical). Rounding: for a tally measured at or above the `VOTE_SETTLEMENT_EXACT_ACTIVATION` height, each option's portion is `floor(weight * SHARE / sum of SHAREs)` at 18 decimal places, and the remainder the floors leave goes to the option with the largest `SHARE`, the lowest option index on a tie, so a ballot's portions sum exactly to the voter's weight (1:1:4 of 100 gives 16.666666666666666666, 16.666666666666666666 and 66.666666666666666668). Below the height each portion is rounded half-up at 18 places on its own, so a ballot's portions can sum to slightly more or less than its weight.
 
 ## Weight modes
 - **balance:** weight = the voter's `TICK` balance at the effective close block.

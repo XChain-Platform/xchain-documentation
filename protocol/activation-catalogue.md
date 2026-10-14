@@ -150,6 +150,7 @@ same chain or field.
 | `vm_lint_nesting_depth_activation` | `VM_LINT_NESTING_DEPTH_ACTIVATION` | height |
 | `vm_lint_optional_chain_heights` | `VM_LINT_OPTIONAL_CHAIN_ACTIVATION` | height |
 | `vote_callback_binding_activation` | `VOTE_CALLBACK_BINDING_REQUIRES_USABLE_METHOD` | height |
+| `vote_settlement_exact_activation` | `VOTE_SETTLEMENT_EXACT_ACTIVATION` | height |
 | `xchain_bridge_activation` | `XCHAIN_BRIDGE_ACTIVATION` | height |
 
 ## Maintenance rule
