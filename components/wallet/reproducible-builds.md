@@ -38,6 +38,7 @@ The audit catches regressions automatically on every commit. The run-twice verif
 - **Pinned Node version**, declared in the toolchain configuration and honored by every reproduction container. Tooling outside the container (a verifier's own local Node or pnpm) does not affect the build.
 - **`SOURCE_DATE_EPOCH`**, derived from the release commit's author date, is injected by each shell's reproduce script and honored by Vite, electron-builder's asar packing, and the archive tools used for Linux packaging. Web bundles sidestep embedded timestamps entirely.
 - **`LC_ALL=C.UTF-8` and `TZ=UTC`**, pinned in both the container image and the in-container environment, so locale-sensitive tools (`sort`, `date`) emit deterministic output.
+- **Canonical Linux file modes**, applied before the desktop AppImage and `.deb` are packed, so permissions inherited from a verifier's checkout umask cannot change either artifact.
 - **Vite**, with source maps off in production, deterministic chunk and asset filenames, and no plugin that captures wall-clock time or generates random IDs.
 - **A digest-pinned base image**, so the toolchain a verifier's container installs is byte-identical to the one the release lane used, not just "the same major version" resolved on different days.
 - **The release lane builds inside that same container**, running the same reproduce script a verifier runs rather than building on the bare CI runner. This is what extends the guarantee to compiled files. The desktop bundle carries a native addon for elliptic-curve maths, compiled from source by the dependency install, so a release built outside the container would compile it against the runner's C compiler and system libraries while the verifier compiled it against the image's. Every other file would still match, and that one, plus the archive header that records its hash, would not.
@@ -123,7 +124,7 @@ diff <(grep -v '^#' official.txt | grep -E '\.(AppImage|deb)$' | sort) \
      <(grep -v '^#' RELEASE_HASHES.txt | sort)
 ```
 
-A zero-byte diff means the verifier's bytes are the maintainer's bytes. Two independently run builds of the same commit in the pinned container produce byte-identical `.AppImage` and `.deb` output on both architectures; getting there required two fixes to the archive-packing step described below, so a nonzero diff on a current release should be reported.
+A zero-byte diff means the verifier's bytes are the maintainer's bytes. The verifier does not need to match the maintainer's checkout umask: two clean checkouts created under umasks `022` and `002` produce byte-identical `.AppImage` and `.deb` output on both architectures. A nonzero diff on a current release should be reported.
 
 Any difference between two runs is diagnostic:
 
@@ -131,9 +132,13 @@ Any difference between two runs is diagnostic:
 - **Timestamp leakage.** A path that missed `SOURCE_DATE_EPOCH` propagation; this is a bug on the maintainer's side, worth reporting.
 - **Supply-chain tampering.** The maintainer's build environment produced something different from what source alone produces; worth investigating.
 
-### Archive-packing determinism
+### Linux packaging determinism
 
-Two extra fixes were needed beyond `SOURCE_DATE_EPOCH` to get a byte-identical AppImage, because the squashfs tool used to build it predates that variable's adoption and does not honor it. A wrapper installed ahead of the pinned squashfs binary normalizes both the archive's internal creation time and its per-file modification times to the commit's author date, which the underlying tool otherwise reads from the wall clock and from the build's staging directory respectively. The `.deb` packaging path was unaffected; only the AppImage needed this. A dedicated smoke test guards this behavior.
+`SOURCE_DATE_EPOCH` is not sufficient for a byte-identical AppImage because the pinned squashfs tool predates support for it. A wrapper installed ahead of the squashfs binary normalizes both the archive's internal creation time and its per-file modification times to the commit's author date. Without the wrapper, the tool reads those values from the wall clock and the build staging directory.
+
+File modes need separate normalization for both the AppImage and `.deb`. Git tracks whether a file is executable, but a checkout's umask affects the permissions with which Git creates it. For example, the same non-executable file can be `0644` in a checkout created under umask `022` and `0664` under umask `002`. Packaging preserves those modes, so equal file contents alone do not guarantee equal package hashes.
+
+`packages/desktop/scripts/deterministic-modes.cjs` derives each packaged entry's mode from its owner bits. The owner permissions stay unchanged; group and other receive the owner's read and execute permissions but never write permission. Special bits, including the setuid bit required by `chrome-sandbox`, are preserved, and symlinks are skipped. In `packages/desktop/electron-builder.config.cjs`, the Linux `beforePack` hook applies this rule to build resources and the `afterPack` hook applies it to the packed application tree. `packages/desktop/scripts/mksquashfs-deterministic.cjs` applies the same rule once more to the complete AppImage staging tree. Together these steps give the `.AppImage` and `.deb` identical hashes across `022` and `002` checkouts. A dedicated smoke test guards the timestamp and mode rules.
 
 The timestamp used throughout is the commit's author date, not its committer date, the two differ whenever a commit is rebased or amended after the fact, and using the wrong one silently changes the reproduced bytes for any tag where that happened.
 
