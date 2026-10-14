@@ -50,6 +50,22 @@ The renderer renders the same React tree as the web SPA from `@xchain-wallet/cor
 
 The renderer process runs with `nodeIntegration: false`, `contextIsolation: true`, and `sandbox: true`; the standard hardened Electron configuration.
 
+## Window sizing and responsive layout
+
+The first window opens at 1024 by 768 px, reduced as needed to fit the primary display's work area. Electron enforces a 640 by 600 px minimum window size. Moves and resizes save the normal window bounds to `window-bounds.json`; closing or quitting flushes the latest bounds synchronously.
+
+On launch, the main process validates the saved dimensions and compares the rectangle with every current display work area. It preserves an origin that still belongs to a display while fitting the dimensions to that work area. For other saved rectangles with useful overlap, it chooses the display with the greatest overlap and clamps the window onto it; it discards an unusable saved position so Electron can choose a visible one. This recovers the window after a monitor is disconnected or its resolution changes. Additional windows reuse the saved size and request a 24 px cascade offset when that remains visible.
+
+The View menu exposes Electron's Zoom In, Zoom Out, and Reset Zoom actions. The wallet does not set application-specific numeric zoom limits, so Electron's built-in limits apply; Reset Zoom restores the default scale. Layout tiers use the renderer container's width in CSS pixels, so zoom can move the UI between tiers even though the native window cannot be resized below 640 px.
+
+| Effective container width | Header and navigation |
+|---|---|
+| Compact, under 640 px | The persistent header wraps its action group onto a second row. Navigation moves to the bottom bar with Home, History, Send, Scan, and More; More contains the remaining destinations, wallet switcher, Settings, and Lock. At the default zoom this tier is below the native window minimum. |
+| Rail, 640 to 899 px | A 64 px left icon rail replaces the bottom bar. Navigation labels remain available to assistive technology but are visually hidden; the brand and wallet-switcher rows are hidden because those actions remain reachable elsewhere. The persistent header stays above route content. |
+| Full, 900 px and wider | A 220 px labelled left sidebar replaces the icon rail. The persistent header stays above route content and the bottom bar remains absent. |
+
+In every tier the desktop header remains mounted across unlocked route changes. It keeps the wallet logo, watch-only status when applicable, network status, command-palette button, and lock action available while the active route scrolls independently.
+
 ## OS keychain auto-unlock
 
 On by default whenever a real OS keychain backend is available; there is no setting that turns it off. After an unlock, the main process encrypts the **session master key** (32 bytes, not the password) with Electron `safeStorage` and writes the ciphertext to `session.bin` in the app's user-data directory (mode `0600`). The key material that decrypts it stays in the OS keychain:
