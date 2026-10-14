@@ -4,115 +4,175 @@
 
 # Dependencies
 
-Every third-party runtime dependency in XChain Wallet is enumerated here with:
+This page inventories the wallet's direct runtime dependencies: external packages declared by a shipped workspace, internal workspace links, and native libraries compiled into a user-installable application. Transitive packages are recorded in `pnpm-lock.yaml` and the native lock and verification files, but are not enumerated here. Dev-only build, lint, and test tools are excluded, except for Electron because the packaged desktop application embeds the Electron runtime.
 
-- **Why we depend on it**: the specific feature it provides that the wallet would otherwise have to implement and review itself.
-- **License**: must be permissive (MIT, Apache-2.0, BSD, ISC, CC0).
-- **Maintainer context**: a trust signal; the wallet prefers dependencies from authors who also maintain widely-used adjacent packages.
+For each external JavaScript package, the [floor versions](#floor-versions) table gives both the manifest range and the version selected by the committed lockfile. A frozen install and the wallet's [reproducible builds](reproducible-builds.md) use the lockfile selection.
 
-Any new runtime dependency requires an addition to this page. CI runs a production-only audit on every change; known advisories are surfaced as review comments before merge.
-
-This page tracks *runtime* dependencies, anything that ships in a user-installable artifact. Dev-only tooling (build, lint, test runners) is reviewed at bump time but not enumerated here.
+CI installs with `pnpm install --frozen-lockfile` and runs `pnpm audit --prod --audit-level=high` on pushes and pull requests to `develop` and `master`. The audit job fails on high or critical production-dependency advisories.
 
 ## Core
 
+`@xchain-wallet/core` contains the shared crypto, storage, flows, UI, URI handling, and signer abstractions used by the shipped shells.
+
+### `@noble/ciphers`
+
+Provides AES-GCM for authenticated encryption in the wallet crypto layer.
+
+### `@noble/curves`
+
+Provides secp256k1 operations used when validating multisig extended public keys and Ed25519 verification for signed remote chain-registry documents.
+
 ### `@noble/hashes`
 
-**Why.** SHA-256, SHA-512, HMAC, Argon2id, PBKDF2, all the primitives behind the wallet's crypto layer (key derivation, seed derivation, commitment keys, label-sync, PSBT-QR integrity). Constant-time implementations, audited, no native bindings.
-
-**License.** MIT.
-
-**Maintainer.** Paul Miller (@paulmillr). Author of the adjacent `@noble/curves` (secp256k1) and `@noble/ciphers` packages, and a Bitcoin Core contributor.
+Provides Argon2id, SHA-256, and byte conversion helpers used by key derivation, integrity checks, registry verification, signer fingerprints, and other wallet flows. The Ledger signer workspace also uses its SHA-256 implementation.
 
 ### `@scure/base`
 
-**Why.** base58check encoding and decoding for WIF and address parsing. Avoids pulling in a much larger Bitcoin library for a handful of functions.
-
-**License.** MIT.
-
-**Maintainer.** Paul Miller (@paulmillr), with a Trail of Bits audit.
+Provides Base58Check for WIF and address handling, Bech32 and Bech32m for address validation, and Base32 for BBQR PSBT encoding.
 
 ### `@scure/bip32`
 
-**Why.** BIP32 HD derivation. Used everywhere the wallet derives a key from the seed: receive addresses, signing, WIF export, dry-run restore, gap-limit scan.
-
-**License.** MIT.
-
-**Maintainer.** Paul Miller (@paulmillr), with a Trail of Bits audit.
+Provides BIP32 hierarchical deterministic key derivation and extended-public-key parsing. The wallet uses it for account and address derivation and multisig xpub handling.
 
 ### `@scure/bip39`
 
-**Why.** BIP39 mnemonic generation, validation, and seed derivation. A legacy Counterwallet-style import path lives in the wallet's own codebase because that wordlist isn't standardized anywhere; BIP39 is the ubiquitous case and this package is the audited implementation.
+Provides BIP39 mnemonic generation, validation, the English word list, and seed derivation. The separate Counterwallet-compatible mnemonic path and word list live in the wallet source.
 
-**License.** MIT.
+### `intl-messageformat`
 
-**Maintainer.** Paul Miller (@paulmillr), with a Trail of Bits audit.
+Formats the wallet's ICU-style localized messages, including plural and select expressions.
+
+### `lightweight-charts`
+
+Renders market price charts in the shared UI. It is declared by core and by each browser or desktop shell that bundles that UI.
+
+### `lucide-react`
+
+Supplies the icon components exported through the core UI icon module.
+
+### `pako`
+
+Inflates zlib-wrapped or raw DEFLATE data when decoding compressed BBQR PSBT payloads.
+
+### `qrcode`
+
+Renders receive addresses, private-key exports, and animated QR frames. It is declared by core, extension, and web.
+
+### `react`, `react-dom`
+
+Provide the shared component and DOM rendering runtime. Core declares them as optional peers, while the extension, web, and desktop shells declare them as direct runtime dependencies.
 
 ## Extension shell
 
-The extension shell is a workspace dependent on core. It pulls in all of core's transitive dependencies listed above; the extension shell itself introduces no new third-party runtime dependencies.
+The extension is a Chrome MV3 shell. It consumes `@xchain-wallet/core`, renders the shared React UI, and hosts the background wallet and dApp bridge flows.
+
+Its direct external runtime dependencies are `@ledgerhq/hw-app-btc`, `@ledgerhq/hw-transport-webhid`, `lightweight-charts`, `qrcode`, `react`, `react-dom`, and the published `xchain-sdk` package. The two Ledger packages provide the Bitcoin-family application client and browser WebHID transport. The SDK provides the chain data, composition, signing-support, and broadcast APIs used by the background host.
 
 ## Web shell
 
-The web shell is a workspace dependent on core. It pulls in core's transitive dependencies; the web shell adds no new third-party runtime dependencies.
+The web shell is the browser SPA and the web bundle wrapped by the mobile shell. It consumes `@xchain-wallet/core` and reuses `@xchain-wallet/extension` background-host code so the browser shells share wallet flows.
+
+Its direct external runtime dependencies match the extension's: `@ledgerhq/hw-app-btc`, `@ledgerhq/hw-transport-webhid`, `lightweight-charts`, `qrcode`, `react`, `react-dom`, and `xchain-sdk`.
 
 ## Desktop shell
 
-The Electron shell.
+The Electron shell ships for Windows, macOS, and Linux. The packaged application embeds Electron, uses the shared React renderer, and reuses the extension background host in its main process.
 
 ### `electron-updater`
 
-Auto-update against the wallet's self-hosted release feed. It downloads and installs; it does not decide whether an update is trustworthy on its own. See `openpgp` below.
+Checks and downloads updates for packaged, direct-download builds. Store-managed Mac App Store, Microsoft Store, and Snap installations bypass the self-updater. Automatic download and install-on-quit are disabled: the user starts the download, the wallet verifies it, and a separate restart action calls the installer.
 
 ### `openpgp`
 
-Verifies the maintainer's signature over the release manifest before an update is installed.
+Verifies the detached maintainer signature over `RELEASE_HASHES.txt` against the public key pinned in the application. The update gate also checks that the signed manifest describes the expected release and lane, covers every file named by the channel pointer, and contains the downloaded artifact's hash. A rejected download is not prepared for installation and is deleted on a best-effort basis.
 
-This is a real dependency in a wallet, so the reason has to be worth it. The built-in updater checks a checksum from the channel pointer file, which is served by the same host as the binary, so it is a checksum from the party that served the file rather than an independent signature. On Windows and macOS, the operating system's own code-signature check is a genuine second factor; on Linux there is none, so whoever controls the download host (or the CDN in front of it) could silently push attacker-controlled code to every Linux desktop user. Verifying a signature against a key pinned inside the app closes that gap, and doing so needs an OpenPGP implementation.
-
-The alternative considered was a second signing scheme using primitives already present in the Node runtime, which needs no dependency but adds a second key, a second ceremony step, and a second thing to rotate. The wallet chose one key and one signature instead.
-
-This dependency runs in the main process only. It is not in the renderer bundle and is not on any path that touches user keys.
+This dependency runs in the main process. It is not part of the renderer's key-handling path.
 
 ### `undici`
 
-Routes Node's global `fetch` through a SOCKS5 proxy when the user turns on Tor routing.
+Supplies the global dispatcher used to route Node `fetch` traffic through the configured SOCKS5 proxy when desktop Tor routing is enabled. The desktop applies the same proxy setting separately to the SDK's HTTP agents and Chromium's session, so SDK requests, main-process fetches, renderer traffic, and updater traffic move together.
 
-Node already runs `undici` internally for every `fetch` call, so this is not new code in the process; what the direct dependency buys is a dispatcher-configuration entry point that Node does not otherwise expose. Without it, the SDK's HTTP traffic would be proxied while price lookups, coin metadata, and registry sync kept going direct: a privacy feature that covers some egress paths but not others is worse than none, because the user believes all of them are covered.
+### Hardware signer packages
 
-The alternative was a hand-written wrapper over Node's own HTTPS module, which needs no dependency but only covers the call sites known today; the next `fetch` call added in the main process would silently leak outside the proxy. A global dispatcher covers every current and future call site.
+`@ledgerhq/hw-app-btc` and `@ledgerhq/hw-transport-webhid` provide the Ledger Bitcoin-family client and WebHID transport. Ledger transport is used in the renderer and does not require a native USB binding.
 
-This dependency runs in the main process only.
+Desktop also links `@xchain-wallet/signers-ledger` and `@xchain-wallet/signers-trezor`. The Trezor signer package has no external package dependency: shell factories inject a Connect-compatible transport, and desktop loads Trezor's hosted Connect build inside an isolated bridge window.
 
-### `@ledgerhq/hw-app-btc`, `@ledgerhq/hw-transport-webhid`
+### Renderer and protocol packages
 
-Ledger hardware-signer support over WebHID. Local USB transport, no network service.
+`react`, `react-dom`, and `lightweight-charts` provide the renderer. `xchain-sdk` provides protocol access. Desktop also links `@xchain-wallet/core`, `@xchain-wallet/extension`, and `@xchain-wallet/bridge-spec` for shared flows, the background host, and dApp bridge helpers.
 
-### `react`, `react-dom`, `lightweight-charts`
+## Mobile shell
 
-The renderer, shared with the other shells.
+`@xchain-wallet/mobile` is a Capacitor wrapper around the web SPA. Android is shipped with a minimum API level of 26. The iOS application targets iOS 16 or later and is built but pending App Store release.
 
-### Workspace and linked dependencies
+The JavaScript workspace declares `@capacitor/core`, `@capacitor/android`, `@capacitor/ios`, and the internal `@xchain-wallet/web` workspace. Android directly compiles AndroidX AppCompat, CoordinatorLayout, Core Splashscreen, and Biometric, plus Bouncy Castle for native Argon2id derivation. iOS uses the Capacitor and Cordova Swift packages and compiles the vendored Argon2 reference implementation for native Argon2id derivation.
 
-Core, the extension's shared handlers, and the protocol SDK are consumed as workspace or linked dependencies: shared flows, the background host, and the SDK client.
+## Signer workspaces
+
+`@xchain-wallet/signers-ledger` declares only `@noble/hashes` externally. Shell-specific factories inject the Ledger application client and transport.
+
+`@xchain-wallet/signers-trezor` declares no external runtime dependencies. Shell-specific factories inject the Trezor Connect surface, while the signer package contains the device-independent transaction and message conversion logic.
 
 ## `@xchain-wallet/bridge-spec`
 
-Zero runtime dependencies. Ships TypeScript types plus a handful of pure helper functions. Consumers are third-party dApp authors who install this package directly, so keeping it dependency-free keeps their install light.
+This private workspace has zero declared runtime dependencies. It exports TypeScript bridge types, runtime guards, and a reference client used by the wallet's dApp bridge and test dApp.
 
 ## `@xchain-wallet/test-dapp`
 
-Depends only on `@xchain-wallet/bridge-spec` as a workspace dependency. The test dApp exercises the bridge surface via the type definitions; no third-party runtime dependencies.
+This private reference dApp depends only on `@xchain-wallet/bridge-spec` through a workspace link. It exercises the `window.xchain` bridge surface with the shared types and runtime helpers.
 
 ## Review cadence
 
-- **Every change that touches a package manifest**: the reviewer confirms this page is updated for any new, removed, or version-bumped runtime dependency.
-- **Weekly**: an outdated-dependency check runs against the lockfile, with bumps scheduled for the next weekly release window.
-- **On advisory**: if a security audit tool surfaces a CVE mid-cycle, it goes to the top of the queue regardless of cadence.
+- **On pushes and pull requests to `develop` and `master`**: CI performs a frozen install and audits production dependencies at high severity.
+- **Weekly**: a separate scheduled job checks the Electron lockfile version against the wallet's Electron patch and major-version cadence. It is an alerting job, not a release gate.
+- **When a manifest changes**: review the direct runtime inventory and declared ranges on this page together with the lockfile change.
 
 ## Floor versions
 
-Every dependency above uses a caret range. The floor is what has actually been tested against; the committed lockfile pins the exact installed versions. Reproducible builds (see [Reproducible Builds](reproducible-builds.md)) work from the lockfile, not the ranges.
+The manifest range is the compatibility declaration. The locked version is the exact selection in `pnpm-lock.yaml` on the wallet's `origin/develop` branch. Repeated shell dependencies are listed once when every declaring workspace uses the same range.
+
+| Package | Declared range | Locked version |
+|---|---:|---:|
+| `@noble/ciphers` | `^1.0.0` | `1.3.0` |
+| `@noble/curves` | `^1.9.0` | `1.9.7` |
+| `@noble/hashes` | `^1.8.0` | `1.8.0` |
+| `@scure/base` | `^1.1.9` | `1.2.6` |
+| `@scure/bip32` | `^1.5.0` | `1.7.0` |
+| `@scure/bip39` | `^1.4.0` | `1.6.0` |
+| `intl-messageformat` | `^11.2.12` | `11.2.12` |
+| `lightweight-charts` | `^4.2.0` | `4.2.3` |
+| `lucide-react` | `^1.16.0` | `1.16.0` |
+| `pako` | `^1.0.11` | `1.0.11` |
+| `qrcode` | `^1.5.4` | `1.5.4` |
+| `react` | `^18.3.0` | `18.3.1` |
+| `react-dom` | `^18.3.0` | `18.3.1` |
+| `@ledgerhq/hw-app-btc` | `^10.21.0` | `10.21.1` |
+| `@ledgerhq/hw-transport-webhid` | `^6.35.0` | `6.35.1` |
+| `electron-updater` | `^6.8.9` | `6.8.9` |
+| `openpgp` | `^6.3.1` | `6.3.1` |
+| `undici` | `^8.10.2` | `8.11.2` |
+| `xchain-sdk` | `npm:@dankest-llc/xchain-sdk@0.22.4` | `0.22.4` |
+| `@capacitor/android` | `^8.5.1` | `8.5.2` |
+| `@capacitor/core` | `^8.5.1` | `8.5.2` |
+| `@capacitor/ios` | `^8.5.1` | `8.5.2` |
+| `electron` | `^44.7.0` | `44.7.0` |
+
+Native mobile declarations use their platform lock and build files rather than `pnpm-lock.yaml`:
+
+| Platform dependency | Declaration |
+|---|---:|
+| Android minimum, compile, and target SDK | `26`, `36`, `36` |
+| AndroidX AppCompat | `1.7.1` |
+| AndroidX CoordinatorLayout | `1.3.0` |
+| AndroidX Core Splashscreen | `1.2.0` |
+| AndroidX Biometric | `1.1.0` |
+| Bouncy Castle `bcprov-jdk18on` | `1.86` |
+| Capacitor Swift package | exact `8.5.0` |
+| iOS deployment target | `16` |
+| Vendored Argon2 reference implementation | tag `20190702`, commit `62358ba2123abd17fccf2a108a301d4b52c01a7c` |
+
+Internal workspace links use `workspace:*`; the shipped private workspaces are versioned `0.341.3`. The committed lockfile resolves those links to their sibling workspace directories.
 
 ---
 
