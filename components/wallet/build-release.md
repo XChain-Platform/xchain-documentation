@@ -65,13 +65,13 @@ The automated bump path is currently stable-only: `bump-version.mjs` writes its 
 | Android release | `bash tools/release/android-ceremony.sh --tag vX.Y.Z --output release-artifacts/vX.Y.Z` | Play `.aab` and store-profile direct `.apk`; setting `XCHAIN_BUILD_ANDROID_FULL=1` also produces the full-profile direct `.apk` |
 | iOS release | `pnpm --filter @xchain-wallet/mobile sync:ios`, then `tools/release/ios-archive.sh` and `tools/release/ios-export.sh` | `packages/mobile/ios/build/xchain-wallet-ios-vX.Y.Z.ipa` |
 
-The release toolchain pins Node 22.23.2 and pnpm 11.8.0. Release lanes install with `pnpm install --frozen-lockfile`; the reproducible Linux lane performs that install inside its digest-pinned container. Release-relevant package versions include Electron 44.7.0, electron-builder 26.15.7, electron-updater 6.8.9, and Capacitor 8.5.1.
+The release toolchain pins Node 22.23.2 and pnpm 11.8.0. Release lanes install with `pnpm install --frozen-lockfile`; the reproducible Linux lane performs that install inside its digest-pinned container. Release-relevant package versions include Electron 44.7.0, electron-builder 26.15.7, electron-updater 6.8.9, and Capacitor 8.5.2.
 
 ## Signing
 
 | Shell | Signing and verification |
 |---|---|
-| Web | No OS signature. Deployment verifies the tarball against the signed release manifest before switching the served version. |
+| Web | No OS signature. Deployment checks the tarball's SHA-256 against the release manifest row for that tag before switching the served version, and also verifies the manifest's GPG signature when the web host has GPG and the release keyring. |
 | Extension | The staged zip has no maintainer-side platform signature. The Chrome Web Store repackages and signs the delivered CRX; the submitted zip is covered by the signed release manifest. |
 | Desktop macOS | The app and disk image use the Developer ID identity. Release builds enable the hardened runtime, sign the `.dmg`, notarize with Apple, and staple the result. |
 | Desktop Windows | The NSIS installer and executable payload use the Dankest, LLC Authenticode certificate through the configured eSigner adapter. |

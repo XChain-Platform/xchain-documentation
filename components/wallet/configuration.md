@@ -166,7 +166,7 @@ The settings fields are `ads.enabled` and `ads.perChain[chainId]`. Each chain en
 
 After a successful broadcast, `packages/core/src/flows/ads.js` advances that chain's accumulator. When an earlier action has brought the accumulator to its threshold, the next action can receive one custom output for the accumulated amount. The output is added before the PSBT is composed and confirmed. After a successful donation broadcast, the accumulated amount resets to that action's per-transaction contribution.
 
-Users cannot edit the destination. It comes from `ChainDescriptor.adsDonationAddress`. All nine bundled descriptors on `origin/develop` carry the explicit `PLACEHOLDER_REPLACE_BEFORE_MAINNET` sentinel, so `resolveAdsPlanForNextTx` refuses to inject a donation output for them. Counters still advance while ADS is enabled, and the Settings panel plainly reports that nothing is sent until a release supplies a real address. This is implemented configuration gating, not an active donation destination.
+Users cannot edit the destination. It comes from `ChainDescriptor.adsDonationAddress`. All nine bundled descriptors currently carry the explicit `PLACEHOLDER_REPLACE_BEFORE_MAINNET` sentinel, so `resolveAdsPlanForNextTx` refuses to inject a donation output for them. Counters still advance while ADS is enabled, and the Settings panel plainly reports that nothing is sent until a release supplies a real address. This is implemented configuration gating, not an active donation destination.
 
 ## Schema migrations
 
