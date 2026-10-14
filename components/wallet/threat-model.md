@@ -87,7 +87,7 @@ These are the remaining limits visible in the current implementation.
 | Item | Status |
 |---|---|
 | Bridge approval fee display | Open; the bridge approval does not yet show the miner fee |
-| Two-step data transactions on the bridge | Open; the outputs of the second transaction are not yet checked against the approval. The first transaction, and `SEND` and `SWEEP` builds, are checked before signing |
+| Two-step data transactions on the bridge | Open; the outputs of the second transaction are not yet checked against the approval. `SEND` and `SWEEP` builds are checked before signing |
 | Hardware-wallet transport coverage | Web and desktop support Ledger and Trezor; the MV3 extension supports Ledger only; mobile WebViews support neither transport |
 | Reproducible-build publication | Deterministic build procedures cover Linux desktop, extension, and web; per-release extension and web manifests, other desktop operating systems, and iOS archive reproducibility remain limited as described in [Reproducible Builds](reproducible-builds.md) |
 | External security review | Pending, required before a general-availability mainnet release |
