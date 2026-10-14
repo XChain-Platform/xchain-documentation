@@ -65,6 +65,7 @@ Sent automatically on connection. Provides server info, current state, limits, a
     "limits": {
       "max_subscriptions": 25,
       "max_message_rate": 10,
+      "max_message_burst": 27,
       "max_message_size": 1024,
       "max_connections_per_ip": 5
     },
@@ -75,13 +76,17 @@ Sent automatically on connection. Provides server info, current state, limits, a
 }
 ```
 
-Use `latest_block_index` and `latest_action_index` to seed your local state for catch-up on reconnect when you hold no cursor yet; on a reconnect they report the current tip, so they must not move a cursor you already have (see [Reconnection and Catch-Up](#reconnection-and-catch-up)).
+Use `latest_action_index` to seed your catch-up cursor when you hold no cursor yet; on a reconnect it reports the current live position, so it must not move a cursor you already have (see [Reconnection and Catch-Up](#reconnection-and-catch-up)).
+
+`latest_action_index` is the live feed's position for the coin: the highest `action_index` the live poll has already sent, at or above which every later row reaches a subscriber live. It is not the database tip, which can sit a poll ahead of it; a cursor seeded from the tip would skip the rows between the two if the connection dropped before the next poll. When the coin's first poll has not run yet (the server polls coins in turn), the server seeds that coin before it answers, so `WELCOME` can arrive a database read later than usual. A server running without a live detector for the coin reports the database tip. `latest_block_index` is the database's highest block.
 
 ---
 
 ## Client-to-Server Messages
 
 All client messages are JSON with an `action` field. An optional `id` field enables request-response correlation; the server echoes it back in the corresponding response.
+
+Each connection's messages are measured as a leaky bucket that holds `limits.max_message_burst` messages and drains at `limits.max_message_rate` per second (`WELCOME`). The burst is the larger of the rate and `max_subscriptions + 2` (27 with the defaults of 10 per second and 25 subscriptions), so a client can resubscribe every subscription it may hold, plus one catch-up and a ping, in one tick after a reconnect; past the burst, one more message is accepted per `1000 / max_message_rate` ms. A message over the bucket is dropped and answered with a `RATE_LIMITED` error that carries the dropped message's `id` (no `id` when the message had none or was not JSON). Send a dropped request again once the bucket has drained. Both bundled clients pace every send one slot under the advertised rate and retry a subscribe or catch-up dropped with `RATE_LIMITED`; a client written before the `id` was carried reads that refusal as final, which the burst keeps it from meeting on a reconnect.
 
 ### subscribe
 
@@ -132,6 +137,8 @@ All client messages are JSON with an `action` field. An optional `id` field enab
 
 An `xcall` call id must be 64 hex characters; it is lower-cased at subscribe time, and a missing or malformed id is refused with `INVALID_CHANNEL`.
 
+An `address` (and every entry of `addresses`) must be a non-empty string; any other value is refused with `INVALID_CHANNEL` and nothing in the request is subscribed.
+
 ### unsubscribe
 
 ```json
@@ -144,6 +151,8 @@ An `xcall` call id must be 64 hex characters; it is lower-cased at subscribe tim
 ```
 
 The server confirms with one `UNSUBSCRIBED` frame (`reason: "client_request"`) per targeted entity; see [UNSUBSCRIBED](#unsubscribed).
+
+A channel name the server does not know, or an entity channel whose params name no entity (or name one that is not a valid key, such as a non-string `address`), is answered with an `INVALID_CHANNEL` error echoing the request's `id`, one per such channel. The other channels in the same request are still unsubscribed and confirmed.
 
 ### list_subscriptions
 
@@ -717,6 +726,35 @@ Sent when subscribing with `snapshot: true`. Contains current state of the subsc
 An `xcall` snapshot is `{ "channel": "xcall", "call_id": "...", ...the call's current lifecycle fields }`;
 for a `call_id` this chain has no row for, it carries only the two identity fields.
 
+#### REORG
+
+Sent to every connection on the coin that holds at least one subscription when the live feed detects that the chain was rolled back below rows or blocks it already announced. It arrives before any replacement frame.
+
+```json
+{
+  "type": "REORG",
+  "chain": "BTC",
+  "network": "mainnet",
+  "timestamp": 1743638400000,
+  "schema_version": 2,
+  "data": {
+    "fork_block_index": "890120",
+    "first_invalid_action_index": "45601"
+  }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `fork_block_index` | The lowest height whose announced block is no longer on the chain. Every `NEW_BLOCK` you hold at or above it is void. |
+| `first_invalid_action_index` | The lowest `action_index` whose announced row may be gone or replaced. Every `NEW_ACTION` (and frame derived from it) you hold at or above it is void. |
+
+After the frame, the server sends the new chain's blocks from `fork_block_index` and its rows from `first_invalid_action_index` as ordinary live frames. The indexer reassigns `action_index` on a reorg, so a replacement row can carry the same index as the void row it replaces with different contents: drop what you hold at or above `first_invalid_action_index` first, then apply the frames that follow. A rollback whose replacement chain is shorter leaves the void indexes above its tip empty until new rows are committed there.
+
+Move your catch-up cursor to `first_invalid_action_index - 1` when it is higher, so a reconnect before the replacements arrive replays them. Both bundled clients do this. `REORG` is an additive frame type under schema v2; a client that ignores unknown types keeps working but goes on holding the void rows. A connection too backed up to take the frame is closed with `4008` instead of skipping it, and its reconnect catch-up is refused with `CATCH_UP_REORGED` (see [Reconnection and Catch-Up](#reconnection-and-catch-up)).
+
+A rollback is detected either by the database layer's tip check or by a poll whose fetch comes back short of the tip it read (rows were rolled back between the two reads); in the second case the next poll compares the blocks it announced against the chain and sends `REORG` only if one of them was replaced. Rows the server never announced need no `REORG`: the live cursor stops at the last row it fetched, so their replacements arrive as ordinary new rows.
+
 #### CATCH_UP_COMPLETE
 
 Sent after all catch-up events have been replayed.
@@ -728,10 +766,12 @@ Sent after all catch-up events have been replayed.
     "events_replayed": 5,
     "latest_action_index": "45690",
     "truncated": false,
-    "not_replayed": ["BET_CLOSED", "XCALL_COMPLETED", "XCALL_EXPIRED"]
+    "not_replayed": ["BET_CLOSED", "XCALL_COMPLETED", "XCALL_EXPIRED", "NEW_BLOCK"]
   }
 }
 ```
+
+`not_replayed` names `NEW_BLOCK` when the request names the `blocks` channel, as above; without `blocks` it lists only the three lifecycle types.
 
 Catch-up events have `"catch_up": true` in the envelope to distinguish them from live events.
 `events_replayed` counts every frame sent; `truncated` and `latest_action_index` count action rows.
@@ -745,6 +785,20 @@ and replays the row at or below its ceiling. The catch-up query never reads rows
 even when they are committed before the query runs. As a result, a reconnecting client receives
 each matching `NEW_ACTION` exactly once per subscription key rather than once from replay and again
 from the live poll.
+
+Every ceiling is also bounded by the coin's current live mark, the position `WELCOME` reports, so a
+replay never reads a row the live poll has yet to send. A catch-up on a coin whose first poll has not
+run yet seeds that coin first and replays up to the seed; when the coin cannot be seeded (its
+database read fails), the catch-up is refused with the retryable `CATCH_UP_NOT_READY`.
+
+The replay honours `WS_MAX_BACKPRESSURE` at each row boundary: before each replayed row the server
+checks the connection's buffered bytes, and above the limit it waits for the socket to drain below
+it before sending the row, so the server never buffers more than about one row past the limit and a
+slow link still receives the whole replay. A connection that does not drain within 30 seconds is
+closed with code `4008` (`backpressure`) at that row boundary, with no `CATCH_UP_COMPLETE`. Its
+cursor still sits before the first row it did not receive, so its reconnect replays from there. While
+a replay waits, the connection's catch-up latch stays held, so another `since_action_index`
+subscribe on it is refused with `CATCH_UP_IN_PROGRESS`.
 
 The boundary does not make the entire row atomic. Lifecycle frames are derived after `NEW_ACTION`
 and that work can yield. A subscription that starts while the live detector is still deriving the
@@ -760,6 +814,8 @@ lifecycle event the live feed derives from that row (`ORDER_MATCH`, `COINPAY_REQ
 | Not replayed | Why | Recover with |
 |---|---|---|
 | The types in `not_replayed` | Emitted by a status cursor of their own, not derived from an action row | `GET /{COIN}/api/bet_feed/{action_index}` and `GET /{COIN}/api/xcall/{callId}` ([REST API](api.md)) |
+| `NEW_BLOCK` | A replay is keyed on `action_index`, and a block has none; `not_replayed` names it when the request names `blocks` | The [REST blocks list](api.md) from your last seen `block_index` |
+| `REORG` | A live notice; a catch-up across a logged rollback is refused with `CATCH_UP_REORGED` instead | Resync over REST from the refusal's `fork_block_index` |
 | `ADDRESS_UPDATE` and the other entity-update frames | State, not events | Subscribe with `snapshot: true` |
 | `MEMPOOL_ACTION` / `MEMPOOL_REMOVED` | Unconfirmed and transient | The [REST mempool read](api.md#mempool) |
 
@@ -830,14 +886,16 @@ Response to client `ping`.
 | Code | Meaning |
 |---|---|
 | `INVALID_ACTION` | Unrecognized client action or malformed JSON |
-| `INVALID_CHANNEL` | Unknown channel name or missing entity params |
+| `INVALID_CHANNEL` | Unknown channel name, missing entity params, or an invalid entity key (such as a non-string `address`), on `subscribe` and on `unsubscribe` |
 | `INVALID_PARAMS` | A malformed param: `fields` is not an array of strings, or `since_action_index` is not a non-negative integer |
 | `INVALID_TYPE` | Unknown action type in `types` filter |
 | `SUBSCRIPTION_LIMIT` | Exceeded max 25 subscriptions per connection |
-| `RATE_LIMITED` | Client sending more than 10 messages/sec |
+| `RATE_LIMITED` | Client sent more than `max_message_burst` messages at once (27 by default) or more than `max_message_rate` (10 by default) per second after it; the dropped message was not processed, and the frame echoes its `id` so the client can send it again |
 | `CATCH_UP_TOO_OLD` | `since_action_index` is more than 1,000 actions behind current |
 | `CATCH_UP_AHEAD_OF_TIP` | `since_action_index` is above the server's latest `action_index` (a reorg lowered the tip, or this server is behind the one that issued your cursor), so nothing can be replayed from it; resync over REST |
 | `CATCH_UP_IN_PROGRESS` | A catch-up request is already running for this client |
+| `CATCH_UP_REORGED` | A rollback this server logged replaced rows at or below `since_action_index`, so a replay from it would skip their replacements. The frame adds `fork_block_index` and `first_invalid_action_index`; resync over REST from the fork. See [Reconnection and Catch-Up](#reconnection-and-catch-up) |
+| `CATCH_UP_NOT_READY` | The coin's live feed has not recorded its first position and could not be seeded now; retry the catch-up shortly |
 | `COIN_DATA_STALE` | The coin's indexed tip is older than its maximum age and the server is set to fail closed, so the snapshot or catch-up is refused rather than served as current |
 | `SNAPSHOT_QUEUE_FULL` | A snapshot fan-out is already running and this client's pending-snapshot queue (capped at its subscription limit) is full; retry the subscribe with `snapshot: true` once it completes |
 | `INTERNAL_ERROR` | The server threw while handling the message; the request `id` is echoed |
@@ -896,9 +954,9 @@ with `tx_hash` and `source` null and `destinations: []`.
 
 ## Reconnection and Catch-Up
 
-1. Track the highest `action_index` you have processed. Seed it from `WELCOME`'s `latest_action_index` only when you hold no cursor yet: on a reconnect, `WELCOME` reports the current tip, which is past the actions you missed, so letting it move your cursor skips them.
-2. On disconnect, reconnect with exponential backoff. For action-derived frames, backpressure admission is decided once per action row, when the first frame that passes this client's subscriptions and filters is ready: at or below `WS_MAX_BACKPRESSURE` the server sends every wanted frame from that row, even if those sends take the buffer above the limit; above the limit it sends no frame from that row and closes with code `4008` (`backpressure`) after the row ends. Handle that close like any other disconnect: your cursor still sits before the rejected row, so catch-up replays the whole row rather than repairing a partial one.
-3. Resubscribe with `since_action_index` set to your last known value, on the `actions` and `address` subscriptions. Their replay carries each missed action's `NEW_ACTION` and its lifecycle events. A `since_action_index` subscribe on any other channel alone closes at once with nothing replayed: the `actions` channel already carries every lifecycle frame the `dispenser`, `bet_feed`, `xcall` and `attestation` channels do, and entity state comes back with `snapshot: true`. Backfill the `not_replayed` types over REST (see [CATCH_UP_COMPLETE](#catch_up_complete)).
+1. Track the highest `action_index` you have processed. Seed it from `WELCOME`'s `latest_action_index` only when you hold no cursor yet: on a reconnect, `WELCOME` reports the current live position, which is past the actions you missed, so letting it move your cursor skips them. On a `REORG` frame, lower the cursor to `first_invalid_action_index - 1` when it is higher (see [REORG](#reorg)).
+2. On disconnect, reconnect with exponential backoff. For action-derived frames, backpressure admission is decided once per action row, when the first frame that passes this client's subscriptions and filters is ready: at or below `WS_MAX_BACKPRESSURE` the server sends every wanted frame from that row, even if those sends take the buffer above the limit; above the limit it sends no frame from that row and closes with code `4008` (`backpressure`) after the row ends. Handle that close like any other disconnect: your cursor still sits before the rejected row, so catch-up replays the whole row rather than repairing a partial one. The replay itself checks the same limit at each row boundary and waits for the socket to drain rather than closing it (see [CATCH_UP_COMPLETE](#catch_up_complete)).
+3. Resubscribe with `since_action_index` set to your last known value, on the `actions` and `address` subscriptions. Their replay carries each missed action's `NEW_ACTION` and its lifecycle events. A `since_action_index` subscribe on any other channel alone closes at once with nothing replayed: the `actions` channel already carries every lifecycle frame the `dispenser`, `bet_feed`, `xcall` and `attestation` channels do, and entity state comes back with `snapshot: true`. Backfill the `not_replayed` types over REST (see [CATCH_UP_COMPLETE](#catch_up_complete)). `NEW_BLOCK` is never replayed: send `since_action_index` on your `blocks` subscription too and its `CATCH_UP_COMPLETE` names `NEW_BLOCK` in `not_replayed`, then backfill blocks over REST. Send all of these subscribes under the message rate (see [Client-to-Server Messages](#client-to-server-messages)), and send again any that a `RATE_LIMITED` frame names by `id`.
 4. Send one `since_action_index` subscribe at a time, each with its own `id`, and wait for the `CATCH_UP_COMPLETE` or `error` frame that echoes that `id` before sending the next. The server runs one catch-up per connection and refuses an overlapping one with `CATCH_UP_IN_PROGRESS`; the subscription is still registered, but its missed actions are not replayed.
 5. Process events with `catch_up: true` as replayed frames. The server uses ordering option B: it
    does not gate live delivery while replay is running. Replay preserves action-index order within
@@ -908,9 +966,11 @@ with `tx_hash` and `source` null and `destinations: []`.
    from them until every catch-up has closed. Also de-duplicate lifecycle frames for the replay's
    boundary row as described under [CATCH_UP_COMPLETE](#catch_up_complete).
 6. If `CATCH_UP_COMPLETE` has `truncated: true`, the replay stopped at its row cap: send the same subscribe again with `since_action_index` set to that frame's `latest_action_index`, and repeat until a frame arrives with `truncated: false`
-7. If the catch-up is refused (`CATCH_UP_TOO_OLD`, `CATCH_UP_AHEAD_OF_TIP`, or any other `error` carrying its `id`), use the REST API to backfill
+7. If the catch-up is refused (`CATCH_UP_TOO_OLD`, `CATCH_UP_AHEAD_OF_TIP`, `CATCH_UP_REORGED`, or any other `error` carrying its `id` except `RATE_LIMITED` and `CATCH_UP_NOT_READY`, which you retry), use the REST API to backfill. `CATCH_UP_REORGED` means a rollback while you were away replaced rows at or below your cursor: drop what you hold at or above its `first_invalid_action_index` and reload from its `fork_block_index`.
 
-The SDK's WebSocket client and the explorer's bundled browser client both follow these steps, and each reports a refused or unanswered catch-up as a `resync_required` event.
+The server keeps the last 64 rollbacks per coin, in memory, for the `CATCH_UP_REORGED` check. A rollback logs the range from its `first_invalid_action_index` to the highest index the live feed had sent before it; a cursor inside that range is refused, because a client that saw the old row and one that saw its replacement hold the same number. A cursor below the range, or above it (only the new chain reached it), replays normally. A client that applied the `REORG` live and then dropped with its cursor still inside the range is refused too, and reloads over REST. Rollbacks older than the last 64, or from before a server restart, are not in the log.
+
+The SDK's WebSocket client and the explorer's bundled browser client both follow these steps, and each reports a refused or unanswered catch-up as a `resync_required` event; for `CATCH_UP_REORGED` the event carries `fork_block_index` and `first_invalid_action_index`. Each sends its `blocks` subscription through the same one-at-a-time catch-up queue, so it reports the `NEW_BLOCK` note as a `not_replayed` event.
 
 ```mermaid
 sequenceDiagram
@@ -925,7 +985,7 @@ sequenceDiagram
 
     Note over C,S: disconnect
     C->>S: reconnect
-    S-->>C: WELCOME (tip, does not move the cursor)
+    S-->>C: WELCOME (live position, does not move the cursor)
     C->>S: subscribe actions, since_action_index, id c1
     S-->>C: replayed events
     S-->>C: higher live event may interleave
@@ -951,4 +1011,4 @@ See [CONFIGURATION.md](configuration.md) for the `WS_*` environment variables th
 | `WS_IDLE_TIMEOUT` | `300000` | Idle timeout for zero-subscription clients (ms) |
 | `WS_MAX_CONNECTIONS_PER_IP` | `5` | Max concurrent connections per IP |
 | `WS_MAX_SUBSCRIPTIONS` | `25` | Max subscriptions per connection |
-| `WS_MAX_BACKPRESSURE` | `65536` | Max buffered bytes per client. Backpressure admission is decided once per action row at its first wanted frame: at or below the limit the whole wanted row is sent, while above it no frame from that row is sent and the connection closes with code `4008` (`backpressure`) after the row ends. Reconnect and catch up from the last processed action index. |
+| `WS_MAX_BACKPRESSURE` | `65536` | Max buffered bytes per client. Backpressure admission is decided once per action row at its first wanted frame: at or below the limit the whole wanted row is sent, while above it no frame from that row is sent and the connection closes with code `4008` (`backpressure`) after the row ends. A catch-up replay checks the same limit before each replayed row and waits up to 30 seconds for the socket to drain below it before closing, and a `REORG` frame that finds a client above it closes that client instead of skipping the frame. Reconnect and catch up from the last processed action index. |
