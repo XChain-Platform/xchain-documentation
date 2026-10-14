@@ -41,6 +41,7 @@ The wallet implements every XChain feature exposed by the platform: all 32 user-
 | [Keys & Signing](keys-signing.md) | BIP39 + passphrase, HD derivation, vault encryption, signer interface, software / Trezor / Ledger / Remote / Multisig |
 | [Security & Threat Model](security.md) | Protected assets, in-scope and out-of-scope threats, sign-screen safety rails, audit posture |
 | [UX Surfaces](ux.md) | Onboarding, lock/unlock, balances, history, send/receive, sign screens, contacts, QR scanner, command palette, settings |
+| [UI Style Guide](ui-style-guide.md) | Contributor rules for page layout, responsive control sizing, vertical rhythm, templates, and shared UI components |
 | [Features](features.md) | Token issuance, DEX, messaging, dispensers, contracts, staking, multisig, cross-chain: surface-by-surface |
 | [Bridge](bridge.md) | `window.xchain` dApp bridge: connect, signMessage, signPsbt, signAction, signIn, events, error codes |
 | [URI Schemes](uri-schemes.md) | BIP21 + chain URIs + multisig PSBT envelope + chunked PSBT-QR transport |
