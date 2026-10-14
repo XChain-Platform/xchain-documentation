@@ -108,6 +108,7 @@ same chain or field.
 | `oracle_snapshot_age_causality_activation` | `ORACLE_SNAPSHOT_AGE_CAUSALITY_ACTIVATION` | height |
 | `oracle_snapshot_age_seconds_activation` | `ORACLE_SNAPSHOT_AGE_SECONDS_ACTIVATION` | height |
 | `oracle_stale_round_visibility_activation` | `ORACLE_STALE_ROUND_VISIBILITY_ACTIVATION` | height |
+| `order_match_price_cross_activation` | `ORDER_MATCH_PRICE_CROSS_ACTIVATION` | height |
 | `order_swap_payout_policy_activation` | `ORDER_SWAP_PAYOUT_POLICY_PER_TOKEN` | height |
 | `price_batching_floor_activation` | `PRICE_BATCHING_FLOOR_ACTIVATION` | time |
 | `price_fee_batch_landed_activation` | `PRICE_FEE_BATCH_LANDED_ACTIVATION` | height |
