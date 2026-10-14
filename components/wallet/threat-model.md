@@ -47,11 +47,13 @@ Nothing here is secret. The goal, on both pages, is a posture that's reviewable 
 
 **Attack.** The encoder service returns a PSBT with a swapped destination or amount.
 
-**Mitigations, with one bridge limit.**
+**Mitigations, with two bridge limits.**
 
 - The shared `composeActionForConfirm` path composes one PSBT in the host, decomposes it, and refuses an unexpected, missing, or wrong-value output. It also compares the action bytes carried by the PSBT with the action string that was composed. Taproot envelope flows check the reveal transaction too.
 - A confirmation screen using that path receives the verified PSBT, a decoded intent, projected balance changes, and exact fees when they can be derived. Approval signs the same prebuilt PSBT byte-for-byte instead of asking the encoder to rebuild it.
-- **Known limit.** Extension bridge `signAction` supports `SEND` and `SWEEP`, shows their normalized intent first, then builds and signs after approval through the atomic submission path. That path does not run the in-wallet confirmation pipeline's output-set and action-byte checks against the encoder result.
+- Extension bridge `signAction` supports `SEND` and `SWEEP`, shows their normalized intent first, then builds the transaction through the atomic submission path. Before any signer is called, that path runs the same output-set, action-byte, carrier-script and envelope checks on the built transaction against what the user approved. A mismatch is refused with nothing signed or broadcast.
+- **Known limit.** The bridge approval does not yet show the miner fee.
+- **Known limit.** On two-step data transactions, the outputs of the second transaction are not yet checked against the approval.
 
 ### Development-mode addresses reaching mainnet
 
@@ -84,7 +86,8 @@ These are the remaining limits visible in the current implementation.
 
 | Item | Status |
 |---|---|
-| Bridge `signAction` encoder-result verification | Open; `SEND` and `SWEEP` use the post-approval atomic submission path rather than the tamper-checked in-wallet confirmation pipeline |
+| Bridge approval fee display | Open; the bridge approval does not yet show the miner fee |
+| Two-step data transactions on the bridge | Open; the outputs of the second transaction are not yet checked against the approval. The first transaction, and `SEND` and `SWEEP` builds, are checked before signing |
 | Hardware-wallet transport coverage | Web and desktop support Ledger and Trezor; the MV3 extension supports Ledger only; mobile WebViews support neither transport |
 | Reproducible-build publication | Deterministic build procedures cover Linux desktop, extension, and web; per-release extension and web manifests, other desktop operating systems, and iOS archive reproducibility remain limited as described in [Reproducible Builds](reproducible-builds.md) |
 | External security review | Pending, required before a general-availability mainnet release |

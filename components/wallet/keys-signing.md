@@ -25,7 +25,14 @@ Web, extension, and desktop use the `@noble/hashes` implementation. The mobile s
 The same primitive protects two layers of data:
 
 - The vault document is encrypted under the key derived from the device password and the vault metadata's KDF parameters.
-- Each software-wallet record encrypts its mnemonic, imported WIFs, and optional BIP39 passphrase under that wallet record's own password-derived key and KDF parameters. The wallet created or imported during onboarding stores the same password and KDF parameters as the vault, so its key is identical to the vault master key and the wallet reuses it. A wallet restored from an encrypted backup gets a fresh salt, and a wallet password change re-keys the record, so those keys differ from the vault key.
+- Each software-wallet record encrypts its mnemonic, imported WIFs, and optional BIP39 passphrase under that wallet record's own password-derived key and KDF parameters. The wallet created or imported during onboarding stores the same password and KDF parameters as the vault, so its key is identical to the vault master key and the wallet reuses it. A wallet restored from an encrypted backup gets a fresh salt, and a change to a wallet's own password re-keys only that record, so those keys differ from the vault key.
+
+Changing the unlock password re-seals the vault key together with every wallet the old password opens, in one vault write that keeps the KDF parameters. The new password then unlocks and the old one is refused. The write is atomic, so a failure leaves the old password in force. Two guards protect it:
+
+- The change is refused, with nothing written and a retryable conflict reported, if a wallet record changes (a rename, an imported key, a second change from another window) between the time the replacements are prepared and the write.
+- A lock that lands during the change, from `wallet.lock` or the idle auto-lock, keeps the wallet locked. The change does not write the new session key or signing password back or re-pool signers.
+
+A shell that cannot supply a keyring refuses the change before any write.
 
 `Vault` keeps a private copy of the vault key while it is open and zeroes that byte buffer on close. Shell session behavior differs:
 
@@ -48,7 +55,7 @@ Core owns the provider seam in `packages/core/src/flows/biometricUnlock.js`. The
 | Android | `BiometricPrompt` and an `AndroidKeyStore` AES-GCM key | App-private `biometric.wrap` sidecar | Class 3 biometrics, authentication for each use, no device-PIN fallback, and key invalidation after biometric enrollment changes. |
 | iOS | Face ID or Touch ID protecting a Keychain item | iOS Keychain generic-password item | `biometryCurrentSet`, `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`, and non-synchronizable storage. |
 
-The wrap has to live outside the vault because it is read before the vault opens. Disabling biometric unlock or wiping the wallet clears the provider's record. If the credential or platform key is lost or invalidated, the wallet returns to password unlock.
+The wrap has to live outside the vault because it is read before the vault opens. Disabling biometric unlock or wiping the wallet clears the provider's record. Changing the unlock password also turns biometric unlock off, because the wrap holds the old password; the screen says so, including when the clear fails, and the user re-enrols afterward. Changing only a wallet's own password leaves the enrolment alone. If the credential or platform key is lost or invalidated, the wallet returns to password unlock.
 
 ## Vault encryption
 
