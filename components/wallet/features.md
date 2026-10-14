@@ -163,6 +163,7 @@ For users who keep keys on an offline device:
 
 ## Onboarding & recovery
 
+- **License gate**: first launch, and any change to the license version, requires reviewing the license terms before wallet setup. The agreement checkbox remains disabled until the full text fits in the visible panel or the user scrolls to the end; the user must then check it before **Accept and continue** is enabled.
 - **Create**: fresh BIP39 12-word mnemonic by default (24 words selectable), optional 25th-word passphrase captured once and stored encrypted alongside the mnemonic, password-derived vault encryption
 - **Import**: BIP39 (12 / 15 / 18 / 21 / 24 words) with an optional passphrase, Counterwallet legacy, or single WIF. A recovery phrase carries no record of whether a passphrase was used, so importing without the original passphrase opens a different, empty wallet with no warning
 - **Migrate to BIP39**: one-way migration from Counterwallet legacy mnemonic; fresh BIP39 phrase, opt-in sweep flow to move balances
