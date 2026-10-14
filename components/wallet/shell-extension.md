@@ -17,6 +17,20 @@ The extension exposes five user-facing surfaces, all rendering the same React co
 | Onboarding | `popup.html?onboarding=1` | First install |
 | Side panel | `sidepanel.html` → `src/popup/main.jsx` | Browser side panel (Chrome 114+); reuses the popup React tree; viewport is wider and taller than the popup |
 
+## Window sizing and responsive layout
+
+The toolbar popup is a 360 by 600 px surface. Its root width is capped with `min(360px, 100vw)`, so the wallet can still shrink when the browser gives it less space. The side panel and a `popup.html` page opened in a full browser tab do not inherit that cap: both use the full available window width and let the shared responsive layout measure its own container.
+
+The shared layout has three width tiers:
+
+| Container width | Header and navigation |
+|---|---|
+| Compact, under 640 px | The persistent app header wraps its actions onto a second row. A bottom bar provides Home, History, Send, Scan, and More; More opens the remaining destinations, wallet switcher, Settings, and Lock. The 360 px toolbar popup and ordinary side-panel widths land here. |
+| Rail, 640 to 899 px | The header returns to one row and the bottom bar is withheld. The shared layout reserves this tier for a 64 px icon rail. The extension currently supplies no left-navigation slot, so no persistent navigation is rendered at this width. |
+| Full, 900 px and wider | The header remains persistent and the bottom bar is withheld. The shared layout reserves this tier for the 220 px labelled sidebar, but the extension currently supplies no left-navigation slot, so no persistent navigation is rendered in a wide full-tab view. |
+
+Tier selection follows container width rather than the outer browser viewport. This keeps an embedded or side-panel surface on the correct layout even when the surrounding browser window is much wider.
+
 Background processes:
 
 | Process | Entry point | Role |
