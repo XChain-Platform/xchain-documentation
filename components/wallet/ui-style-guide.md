@@ -24,6 +24,17 @@ Do not add another outer horizontal inset in a page template or route. Headers a
 
 In a short landscape viewport, `--xc-page-top` becomes 8px while the gutter continues to follow the viewport-width tier.
 
+## Layout rules
+
+- Give every form field a visible border in its default state, not only on hover, focus, or error.
+- Put Paste, Max, and similar field actions inside the field at its end edge.
+- Wrap action rows between whole buttons, never within a button label. Keep every button label on one line.
+- Use the shared route-to-section map for both the bottom navigation and desktop sidebar so exactly one section is highlighted for every route.
+- Keep the Settings page and all Settings sub-pages at the same content width.
+- Fix the extension toolbar popup at exactly 360 by 600 pixels. Keep its chrome fixed and let only the content pane scroll.
+- Render sentences in the balance hero as body text. Reserve the amount style for amounts.
+- Keep the start and end content insets equal on every surface.
+
 ## Network and demo labels
 
 Keep the app header to one row at every width, with the logo on the start edge and action buttons on the end edge.

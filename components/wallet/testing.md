@@ -66,6 +66,10 @@ pnpm --filter @xchain-wallet/desktop build:renderer
 pnpm --dir test/e2e exec playwright test --config playwright.layout-desktop.config.js
 ```
 
+### Visual checks
+
+Before a layout batch lands, compare every affected screen against `develop` at phone, landscape, side panel, extension popup, and desktop sizes. Review the comparisons screen by screen, then delete the comparison screenshots.
+
 Two automated guards complement the sweep:
 
 - `test/unit/ui/pageTemplates.test.jsx` keeps page-gutter ownership in `Screen`, verifies the compact, rail, full, and short-landscape token values, keeps scrolling and stable scrollbar space on the screen body, and rejects route template roots that add their own page geometry.
