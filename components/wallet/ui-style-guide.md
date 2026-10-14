@@ -24,6 +24,14 @@ Do not add another outer horizontal inset in a page template or route. Headers a
 
 In a short landscape viewport, `--xc-page-top` becomes 8px while the gutter continues to follow the viewport-width tier.
 
+## Network and demo labels
+
+Keep the app header to one row at every width, with the logo on the start edge and action buttons on the end edge.
+
+Do not repeat the active network or coin as text, a chip, a page-top strip, or a toolbar pill. The asset icon and its chain overlay identify the coin and chain. Choose the network in Settings; mainnet is the default. Approval windows may name the chain, but do not name the network kind.
+
+Do not add a page-top demo banner: the header already names the wallet. Explain demo limits inline where an action cannot run. Keep the reachability notice to one line directly below the header.
+
 ### Form pages
 
 Use `FormPage` when the page asks the user to enter and submit data. Its presentation depends on viewport width, not the host shell:
