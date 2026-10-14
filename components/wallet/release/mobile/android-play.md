@@ -7,6 +7,41 @@
 
 This page covers submitting the XChain Wallet Android app to Google Play: the operational sequence, and the listing collateral that goes into the store's console forms.
 
+## Runtime shell behavior
+
+The Android app is a native shell around the wallet web app. Its system Back
+gesture is sent to the wallet's own back-handler stack, where the top overlay
+closes before an in-app route changes. If that stack is empty, Back moves the
+app to the background without destroying the current flow.
+
+The shell also keeps Android accessibility and keyboard changes inside the
+current activity:
+
+- A system font-scale change adjusts the WebView text zoom by the same ratio.
+  The activity is not recreated, so changing the font size does not reload and
+  lock the wallet in the middle of a task.
+- The soft keyboard resizes the WebView. The web app follows the resized
+  `innerHeight`, marks the keyboard as open, keeps the focused field visible in
+  its route scroller, and restores the full layout when the keyboard closes.
+- Receive-screen sharing calls the Web Share API with the payment link and,
+  when supported, the QR image as a file. If sharing is unavailable, the app
+  copies the payment link instead.
+
+The direct APK has no store-managed updater. The native vault plugin reports
+the package installer, and only an install without a recognized store enables
+the direct-update provider. That provider checks the static Android version
+feed at most once per day, validates a plain semantic version, and displays a
+notice when a newer version exists. It neither downloads nor installs the
+update. The feed request uses the WebView's `fetch`; the general-purpose
+Capacitor native HTTP bridge is removed and blocked.
+
+For password-based unlock and wallet creation, the shell provides Argon2id in
+native Java and performs it off the UI thread. The web app accepts that
+provider only after it reproduces a known answer byte for byte, then uses the
+same stored KDF parameters as the JavaScript implementation. If the native
+method is missing, rejects a request, returns an invalid key, or fails its
+known-answer check, the wallet derives the key in JavaScript instead.
+
 ## Submission runbook
 
 ### Ground rules

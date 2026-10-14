@@ -7,6 +7,34 @@
 
 This page covers submitting the XChain Wallet iOS app to the Apple App Store: the operational sequence, and the listing collateral that goes into App Store Connect's forms.
 
+## Runtime shell behavior
+
+The iOS app is a native shell around the wallet web app. A completed swipe from
+the left edge dispatches to the wallet's own back-handler stack, so it closes
+the top overlay or returns within the current flow instead of invoking WebKit
+history. Receive-screen sharing uses the Web Share API for the payment link
+and, when supported, the QR image as a file; if sharing is unavailable, the
+app copies the payment link.
+
+The WebView uses `contentInset: never`, while the wallet layout consumes CSS
+safe-area insets itself. On iPadOS 26 and later, a resizable window adds any
+extra corner-adapted top inset needed to keep content below the window
+controls. This adjustment does not change the ordinary full-screen or iPhone
+safe area.
+
+iOS overlays the keyboard rather than resizing the WebView. While the keyboard
+is present, the web app measures `visualViewport`, fits the shell to its visible
+height, clears WebKit's page pan, keeps the focused field visible in its route
+scroller, and marks the keyboard as open so keyboard-sensitive controls can
+move. It removes those overrides when the keyboard closes.
+
+For password-based unlock and wallet creation, the shell provides Argon2id in
+native Swift and C and performs it on a dedicated queue. The web app accepts
+that provider only after it reproduces a known answer byte for byte, then uses
+the same stored KDF parameters as the JavaScript implementation. If the native
+method is missing, rejects a request, returns an invalid key, or fails its
+known-answer check, the wallet derives the key in JavaScript instead.
+
 ## Submission runbook
 
 ### Ground rules
