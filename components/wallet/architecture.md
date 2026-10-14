@@ -167,7 +167,7 @@ flowchart TD
 | `autopayLeases` | `core/src/schemas/autopayLease.js` | Single-active-payer arbitration within one vault |
 | `settings` | `core/src/schemas/settings.js` | Sparse user preferences, active network, custom chains, fees, endpoints, safety, privacy, notifications, and display options |
 
-Vault unlock derives a 32-byte master key from the password and the external `kdfParams` record, then authenticates and decrypts the document. Fresh vault metadata uses Argon2id with a new salt and defaults of 64 MiB, 3 iterations, and parallelism 1. Load-time validation also imposes maximum costs so imported parameters cannot request unbounded CPU or memory. Wallet seed records have their own KDF parameters and encrypted payloads inside the vault. Mobile can use a native Argon2id implementation only after it passes a known-answer check; failure falls back to the JavaScript implementation.
+Vault unlock derives a 32-byte master key from the password and the external `kdfParams` record, then authenticates and decrypts the document. Fresh vault metadata uses Argon2id with a new salt and defaults of 64 MiB, 3 iterations, and parallelism 1. Load-time validation also imposes maximum costs so imported parameters cannot request unbounded CPU or memory. Wallet seed records have their own KDF parameters and encrypted payloads inside the vault; the wallet created or imported during onboarding uses the same password and parameters as the vault, so its seed key equals the vault master key. Mobile can use a native Argon2id implementation only after it passes a known-answer check; failure falls back to the JavaScript implementation.
 
 | Logical material | Web | Extension | Desktop | Mobile |
 |---|---|---|---|---|

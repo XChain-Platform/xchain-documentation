@@ -7,25 +7,25 @@ This document covers the path from a wallet password to an encrypted vault and a
 
 ## Master key derivation
 
-The wallet derives a 32-byte master key from the user's password with **Argon2id**. New wallets use these minimum parameters:
+The wallet derives a 32-byte master key from the user's password with **Argon2id**. Vaults and wallets created through the shells use these floor parameters:
 
 | Parameter | Value |
 |---|---|
 | Algorithm | Argon2id (`@noble/hashes`) |
 | Memory | 64 MiB |
-| Iterations | At least 3 |
+| Iterations | 3 |
 | Parallelism | 1 |
 | Salt | 16 random bytes, stored with the KDF parameters |
 | Output | 32 bytes for AES-256-GCM |
 
-`packages/core/src/crypto/kdf.js` calibrates the iteration count at wallet creation against a 1,000 ms target while keeping memory and parallelism fixed. The JavaScript calibration allows up to 32 iterations. Native mobile calibration is capped at 4 iterations so a wallet remains practical to open with the JavaScript fallback. Persisted parameters are validated before use, including upper bounds of 1 GiB of memory, 64 iterations, and 8 lanes to limit denial-of-service input from a crafted wallet or backup.
+`packages/core/src/crypto/kdf.js` also provides a calibration helper that raises the iteration count toward a 1,000 ms target while keeping memory and parallelism fixed, up to 32 iterations in JavaScript and 4 when timed against a native mobile implementation. Core flows use it only when a caller supplies no parameters; the current web, extension, desktop, and mobile onboarding paths pass the floor parameters above directly. Persisted parameters are validated before use, including upper bounds of 1 GiB of memory, 64 iterations, and 8 lanes to limit denial-of-service input from a crafted wallet or backup.
 
 Web, extension, and desktop use the `@noble/hashes` implementation. The mobile shells register native Argon2id providers. Core first checks a native provider against a known-answer vector and falls back to JavaScript if the provider is unavailable, fails, or returns the wrong shape.
 
 The same primitive protects two layers of data:
 
 - The vault document is encrypted under the key derived from the device password and the vault metadata's KDF parameters.
-- Each software-wallet record encrypts its mnemonic, imported WIFs, and optional BIP39 passphrase under that wallet record's own password-derived key and KDF parameters.
+- Each software-wallet record encrypts its mnemonic, imported WIFs, and optional BIP39 passphrase under that wallet record's own password-derived key and KDF parameters. The wallet created or imported during onboarding stores the same password and KDF parameters as the vault, so its key is identical to the vault master key and the wallet reuses it. A wallet restored from an encrypted backup gets a fresh salt, and a wallet password change re-keys the record, so those keys differ from the vault key.
 
 `Vault` keeps a private copy of the vault key while it is open and zeroes that byte buffer on close. Shell session behavior differs:
 
@@ -38,7 +38,7 @@ Sensitive byte arrays are cleared where the runtime permits it. JavaScript strin
 
 ## Biometric unlock (password wrap)
 
-Biometric unlock is an opt-in shortcut that wraps the wallet password, not the vault master key. This is required because each wallet record's mnemonic and imported keys are opened with that wallet's password-derived key. Releasing only the vault key could display the vault but could not rebuild its software signers.
+Biometric unlock is an opt-in shortcut that wraps the wallet password, not the vault master key. The unlock flow rebuilds software signers from the password, and a wallet whose KDF parameters differ from the vault's cannot be opened with the vault key alone.
 
 Core owns the provider seam in `packages/core/src/flows/biometricUnlock.js`. The shared unlock and settings UI delegates to the provider installed by the shell:
 
@@ -97,7 +97,7 @@ Despite the wallet field name `encryptedSeed`, an HD wallet record stores the UT
 
 The create flow displays a new mnemonic for backup and verifies selected words before saving it. Settings can reveal the recovery phrase again, but only after the user enters the wallet password. `packages/core/src/shared/routes/ViewPrivateKey.jsx` is a separate WIF-export screen and does not display the mnemonic.
 
-For a new passphrase-enabled BIP39 wallet, the passphrase is encrypted under the wallet's master key with passphrase-specific authenticated data. A wallet record from an older schema can have `passphraseEnabled: true` and no stored encrypted passphrase. At the next unlock, `SignerPool.captureOne` requires the passphrase, verifies that it derives one of the wallet's stored addresses, encrypts it, and then adds the signer to the session. Until that capture succeeds, the wallet remains listed but its software signer is not pooled.
+For a new passphrase-enabled BIP39 wallet, the passphrase is encrypted under the same password-derived key that seals the wallet's mnemonic, with passphrase-specific authenticated data. A wallet record from an older schema can have `passphraseEnabled: true` and no stored encrypted passphrase. At the next unlock, `SignerPool.captureOne` requires the passphrase, verifies that it derives one of the wallet's stored addresses, encrypts it, and then adds the signer to the session. Until that capture succeeds, the wallet remains listed but its software signer is not pooled.
 
 Counterwallet migration is implemented by `packages/core/src/shared/routes/MigrateToBip39.jsx`. It creates a separate 12-word BIP39 wallet, verifies the new backup, and presents per-chain sweep links from legacy addresses to the corresponding new-wallet addresses. The legacy wallet remains present and continues to control its old addresses; migration does not transform its derivation tree in place.
 
@@ -207,8 +207,8 @@ The injected transport forwards `status`, `getAddresses`, `getPublicKey`, `signP
 
 There is no concrete `MultisigSigner` class. Multisig is implemented by `packages/core/src/flows/multisigSigning.js`, `multisigSignLocally.js`, the persisted `multisigSigningSessions` collection, and the signing-session UI. The creation UI currently offers multisig on Bitcoin networks.
 
-- **Classical P2SH/P2WSH**: each software cosigner contributes one DER-encoded ECDSA signature for the session sighash. The coordinator collects threshold contributions, then finalizes the PSBT.
-- **Taproot MuSig2**: round 1 collects 66-byte public nonces. After nonce aggregation, round 2 collects 32-byte partial signatures. The coordinator aggregates the final Schnorr signature and advances the persisted session to finalization.
+- **Classical P2SH/P2WSH**: each software cosigner contributes one DER-encoded ECDSA signature for the session sighash. The coordinator collects threshold contributions and then passes the session PSBT to the SDK finalizer; it does not merge the stored signatures into that PSBT first (see [Multisig](multisig.md)).
+- **Taproot MuSig2**: round 1 collects 66-byte public nonces. After nonce aggregation, round 2 collects 32-byte partial signatures. The coordinator aggregates and stores the final Schnorr signature; as with the classical path, finalization does not insert it into the session PSBT.
 - **Hardware status**: local contribution currently requires the wallet password and the built-in software signer. Trezor and Ledger classical multisig and MuSig2 methods explicitly defer.
 - **Transport**: `packages/core/src/uri/multisigPsbtEnvelope.js` wraps request and reply JSON in `XCW-MS:` envelopes. The UI transfers chunked frames as animated QR codes or one plain-text chunk per line. This is not a BIP21 envelope.
 

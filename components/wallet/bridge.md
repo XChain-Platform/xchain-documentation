@@ -23,7 +23,7 @@ It does **not** let a dApp:
 - Call the extension's privileged `wallet.*`, `action.*`, `settings.*`, or other internal handlers.
 - Write arbitrary wallet data. `connect` stores a per-origin grant, remembered signing choices update that grant, and a successful bridge action creates the wallet's normal pending-transaction audit record.
 
-The extension opens approvals as 400 by 620 pixel windows at its own `chrome-extension://<id>/approval.html` URL. Closing the window, closing the requesting tab, allowing the five-minute approval timeout to expire, or suspending the service worker rejects the request.
+The extension opens approvals as 400 by 620 pixel windows at its own `chrome-extension://<id>/approval.html` URL. Closing the window, closing the requesting tab, allowing the five-minute approval timeout to expire, locking the wallet, or suspending the service worker rejects the request.
 
 ## Provider lifecycle
 
