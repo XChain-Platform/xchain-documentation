@@ -3,7 +3,7 @@
 
 # XChain Platform SDK: Wallet & Auth Reference
 
-This document covers the SDK's wallet and authentication modules: key management, address validation, message signing, challenge-response wallet verification, PSBT signing, transaction broadcasting, and UTXO queries.
+This document covers the core SDK wallet and authentication APIs: key management, address validation, message signing, challenge-response wallet verification, PSBT signing, transaction broadcasting, and UTXO queries.
 
 ---
 
@@ -14,7 +14,7 @@ The SDK provides two modules for wallet integration:
 - **`sdk.wallet`** (`WalletUtils`): Key management, address derivation and validation, PSBT signing, transaction broadcasting, and UTXO queries.
 - **`sdk.auth`** (`AuthUtils`): Challenge-response wallet ownership verification and message signing.
 
-Both modules are available on the SDK instance and as top-level convenience methods:
+Common methods are available through the module namespaces and as top-level convenience methods:
 
 ```js
 // Zero-config: for mainnet/testnet, encoderUrl resolves automatically to the
@@ -25,7 +25,7 @@ const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
 sdk.wallet.generateKeyPair();
 sdk.auth.generateChallenge('bc1q...');
 
-// Convenience access (same thing)
+// Top-level convenience access for the same calls
 sdk.generateKeyPair();
 sdk.generateChallenge('bc1q...');
 ```
@@ -108,7 +108,7 @@ Validate any coin address against the configured network (or a specific override
 ```js
 const result = sdk.validateAddress('bc1qexample...');
 // result.valid:   boolean
-// result.type:    'p2pkh', 'p2wpkh', 'p2sh', 'p2wsh', or null
+// result.type:    'p2pkh', 'p2wpkh', 'p2sh', 'p2wsh', 'p2tr', or null
 // result.network: 'bitcoin-mainnet', etc., or null
 // result.error:   error message string, or null
 
@@ -144,7 +144,9 @@ const challenge = sdk.generateChallenge('bc1q...', {
 // challenge.challenge === the custom message, used as-is
 ```
 
-When `opts.message` is provided, the SDK uses it verbatim. The nonce and timestamp metadata are still returned for the caller's bookkeeping but are not embedded in the message. This means sites can generate their own messages and verify independently of the SDK.
+When `opts.message` is truthy, the SDK uses it verbatim. The nonce and timestamp metadata are still returned for the caller's bookkeeping but are not embedded in the message. This means sites can generate their own messages and verify independently of the SDK.
+
+Challenge state is caller-managed. Store the nonce and enforce expiry and single use on the server; `verifyOwnership` verifies only the address, message, and signature supplied to it.
 
 ### Step 2: Sign the Challenge (Wallet/Client)
 
@@ -164,22 +166,26 @@ sdk.signMessage(message, wif, { segwitNative: true });
 sdk.signMessage(message, wif, { segwitRedeemScript: true });
 ```
 
+`signMessage` supports P2PKH, P2WPKH, and P2SH-P2WPKH addresses. It does not provide a Taproot message-signing mode.
+
 ### Step 3: Verify Ownership (Server)
 
 ```js
 const result = sdk.verifyOwnership('bc1quseraddress...', challenge.challenge, signed.signature);
 // result.valid:   boolean
 // result.address: the address that was verified
-// result.error:   null on success, error message on failure
+// result.error:   input/verification error message, or null
 ```
 
-`verifyOwnership` never throws; it returns `{ valid: false, error: '...' }` on failure. This makes it safe to use in request handlers without try/catch:
+`verifyOwnership` never throws. Invalid input or a verification exception returns `{ valid: false, error: '...' }`. A well-formed signature that does not match returns `valid: false` and can still have `error: null`, so always make the authorization decision from `valid`:
 
 ```js
 app.post('/auth/verify', (req, res) => {
     const { address, message, signature } = req.body;
     const result = sdk.verifyOwnership(address, message, signature);
-    if (!result.valid) return res.status(401).json({ error: result.error });
+    if (!result.valid) {
+        return res.status(401).json({ error: result.error || 'Signature does not match.' });
+    }
     // Grant access...
 });
 ```
@@ -206,7 +212,7 @@ sequenceDiagram
 
 ### Verify Any Message
 
-`verifyMessage` is a simpler alias that doesn't return the address:
+`verifyMessage` is a simpler wrapper that doesn't return the address:
 
 ```js
 const result = sdk.verifyMessage(address, message, signature);
@@ -220,10 +226,20 @@ Sites that don't want to depend on the SDK for server-side verification can use 
 
 ```js
 const bitcoinMessage = require('bitcoinjs-message');
-const valid = bitcoinMessage.verify(message, address, signature);
+const messagePrefixes = {
+    bitcoin: '\x18Bitcoin Signed Message:\n',
+    litecoin: '\x19Litecoin Signed Message:\n',
+    dogecoin: '\x19Dogecoin Signed Message:\n'
+};
+const valid = bitcoinMessage.verify(
+    message,
+    address,
+    signature,
+    messagePrefixes.bitcoin
+);
 ```
 
-Or use the coin node's `verifymessage` JSON-RPC method. The signatures produced by `sdk.signMessage` are standard Bitcoin message signatures compatible with all of these.
+The message prefix is chain-specific: Bitcoin, Litecoin, and Dogecoin use different prefixes. Signatures from `sdk.signMessage` can be verified with `bitcoinjs-message` when the verifier uses the same network prefix and address type.
 
 ---
 
@@ -238,7 +254,17 @@ const result = sdk.signPsbt(unsignedPsbtHex, wif);
 // result.psbtHex: signed PSBT hex
 ```
 
-This method finalizes all inputs after signing and extracts the raw transaction. The `txHex` is what you pass to `broadcastTx`.
+By default, this method attempts to sign and finalize every input, then extracts the raw transaction. The `txHex` is what you pass to `broadcastTx`.
+
+For an input-scoped signature, use the namespaced method and pass the exact approved input indices:
+
+```js
+const partial = sdk.wallet.signPsbt(unsignedPsbtHex, wif, {
+    inputIndices: [0, 2]
+});
+// partial.psbtHex contains the signed and finalized selected inputs.
+// partial.txHex and partial.txid are null if any other input remains unfinalized.
+```
 
 ### Full Workflow: Create → Sign → Broadcast
 
@@ -287,16 +313,18 @@ Requires the encoder to be configured. The encoder proxies the request to the xc
 
 ## Error Handling
 
-The wallet and auth modules throw two error classes:
+The wallet and auth modules use two domain error classes:
 
 | Class | When |
 |---|---|
-| `SDKWalletError` | Key management, address derivation, PSBT signing, broadcasting, UTXO queries |
-| `SDKAuthError` | Challenge generation, message signing, signature verification failures |
+| `SDKWalletError` | Local wallet validation, address derivation, PSBT signing, and wrapped broadcasting or UTXO failures |
+| `SDKAuthError` | Challenge generation and message signing |
 
 See [Errors](errors.md) for the complete list of error codes.
 
-Exception: `verifyOwnership` and `verifyMessage` **do not throw**; they return `{ valid: false, error: '...' }` on failure. This is intentional so that verification can be used in request handlers without try/catch boilerplate.
+The top-level `sdk.broadcastTx` and `sdk.getUTXOs` methods throw `SDKConfigError` when no encoder is configured. Encoder errors that already use an SDK error class are rethrown unchanged.
+
+Exception: `verifyOwnership` and `verifyMessage` **do not throw**. They return `valid: false`; `error` is populated for invalid input or a verification exception and may be `null` for a non-matching signature.
 
 ---
 
