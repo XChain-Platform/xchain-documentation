@@ -172,6 +172,22 @@ Use the reference test dApp against the extension under test.
 
 ---
 
+## Device layout
+
+Run the full pass before every release on an Android LG K51-class phone, an iOS simulator, desktop, and the extension.
+
+- ⬜ Every screen has equal left and right page gutters; phone gutters are 12 px.
+- ⬜ No screen or control overflows horizontally.
+- ⬜ Controls that share a row match in height, corner radius, and font size within 2 px.
+- ⬜ Icons in icon-only buttons are centered within 1 px horizontally and vertically.
+- ⬜ The header shows no more than three controls on the right.
+- ⬜ The license gate fills the screen, keeps **Accept and continue** at the bottom, and remains locked until the terms are scrolled to the end.
+- ⬜ Android Back closes the top sheet, dropdown, or popover before leaving the screen.
+- ⬜ Test networks show no dollar values.
+- ⬜ Every confirm screen opens scrolled to the top.
+
+---
+
 ## Accessibility
 
 - ⬜ Tab from the unlocked Home reveals the skip-to-main-content link as the first focusable element.
