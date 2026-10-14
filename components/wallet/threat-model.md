@@ -28,7 +28,7 @@ Nothing here is secret. The goal, on both pages, is a posture that's reviewable 
 
 **Mitigations.**
 
-- New shell vaults use Argon2id with a fresh 16-byte salt, 64 MiB of memory, 3 iterations, and one lane. The core also has a per-device calibration helper, but the current shell onboarding handlers pass the floor parameters directly. The wallet created or imported during onboarding is sealed with the same password and parameters, so one correct guess opens both the vault and that wallet's seed.
+- New shell vaults use Argon2id with a fresh 16-byte salt, 64 MiB of memory, 3 iterations, and one lane. The core also has a per-device calibration helper, but the current shell onboarding handlers pass the floor parameters directly. The wallet created or imported during onboarding is sealed with the same password and parameters, so a stolen vault master key also opens that wallet's seed without the password; see [Security & Threat Model](security.md#protected-assets).
 - No password hint is ever stored on-device.
 - Repeated bad passwords trigger an escalating delay: the third failure waits 5 seconds, then 15 seconds, 60 seconds, 5 minutes, and a 15-minute cap from the seventh failure onward. Extension and desktop enforce a persisted throttle before running Argon2id; web and mobile enforce the same ladder in the lock screen, so a caller that bypasses that UI can still attempt a full-cost derivation.
 - These delays slow attempts through the wallet but cannot rate-limit an attacker working on a stolen blob. The Argon2id cost remains the offline defense.
