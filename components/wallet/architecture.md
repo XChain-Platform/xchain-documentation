@@ -1,6 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2026 Dankest, LLC -->
-<!-- ported 2026-08-02 from xchain-wallet/docs/ARCHITECTURE.md @ 34639117 (worktree dirty) -->
 
 # Wallet Architecture
 
@@ -8,226 +7,265 @@ This document describes how the wallet is organized at the package level, how th
 
 ## Four shells, one core
 
-The wallet is a pnpm workspace with four product surfaces (a browser web app, a Chrome MV3 extension, an Electron desktop app, and a Capacitor mobile app, shipped on Android and pending App Store release on iOS) and a shared `@xchain-wallet/core` that contains everything *except* the host-specific glue.
+The wallet is a pnpm workspace with four product targets and a shared `@xchain-wallet/core` package:
 
-```
+- `@xchain-wallet/web`: a Vite browser application
+- `@xchain-wallet/extension`: a Chromium Manifest V3 extension
+- `@xchain-wallet/desktop`: an Electron application for macOS, Windows, and Linux
+- `@xchain-wallet/mobile`: Capacitor projects for Android and iOS that package the web build
+
+The bundled chain registry contains Bitcoin, Litecoin, and Dogecoin descriptors for mainnet, testnet, and regtest. New wallets enable the three mainnet descriptors by default. Developer Mode can add validated custom descriptors, and the shells also attempt to apply a signed remote registry snapshot without replacing user-added descriptors.
+
+```text
 @xchain-wallet/core
-├── src/ui/             primitives (Button, Input, Screen, ChainBadge, AddressText, …)
-├── src/shared/         shared routes (Home, Send, Receive, Issue, …) + components + hooks
-├── src/flows/          imperative flows (createWallet, unlockWallet, sendAsset, …)
-├── src/signers/        Signer interface + Software / Trezor / Ledger / Remote / Multisig
-├── src/signerFactories/ per-shell signer construction wiring
-├── src/sdk/            SDKRegistry, defaultFactory, submitWithSigner
-├── src/storage/        Vault, codec, backend abstractions
-├── src/schemas/        wallet, address, account, multisigConfig, multisigSigningSession, …
-├── src/registry/       action descriptors + registry validators + chain registry
-├── src/decoder/        plain-English action decoder for sign-screen safety rails
-├── src/uri/            BIP21, multisig PSBT envelope, chunked PSBT-QR, QR detect
-├── src/crypto/         kdf, mnemonic, hd, walletBlob, aead, backup, label-sync, wif
-├── src/airdrop/        airdrop recipient parsing
-├── src/market/         orderbook bucketization
-├── src/i18n/           string registry (en + future locales)
-├── src/branding/       logo + colors + asset registry
-├── src/templates/      cross-chain templates (parallel composer presets)
-└── index.js + buildInfo.js  public entry; versioning lives in buildInfo.WALLET_VERSION
+├── src/ui/              reusable UI primitives
+├── src/shared/          shared routes, components, hooks, and shell capability helpers
+├── src/flows/           wallet, transaction, safety, market, and protocol workflows
+├── src/signers/         Signer contract, pool, SoftwareSigner, and RemoteSigner
+├── src/signerFactories/ shell-independent hardware pairing factories
+├── src/sdk/             SDKRegistry, factory adapter, and signing submission pipeline
+├── src/storage/         encrypted Vault, codec, and backend contract
+├── src/schemas/         persisted record schemas and migrations
+├── src/registry/        bundled, custom, and signed remote chain descriptors
+├── src/decoder/         draft action descriptions and transaction simulation
+├── src/uri/             BIP21, XChain URIs, and PSBT QR formats
+├── src/crypto/          KDF, AEAD, seed, key, backup, and label-sync primitives
+├── src/cosigner/        passive co-signer persistence adapters
+├── src/notifications/   notification services and watchers
+├── src/airdrop/         airdrop recipient parsing
+├── src/market/          market and orderbook utilities
+├── src/i18n/            English and pseudo-RTL message registries
+├── src/branding/        product, chain, and hardware branding data
+├── src/templates/       cross-chain composer templates
+└── src/index.js         public package entry point
 ```
 
-Each shell wraps the core in a small amount of host-specific glue:
+Each shell supplies its own storage, process, and device integration:
 
-| Shell | Glue layer | Vault location | Session key location |
+| Shell | Host and UI arrangement | Vault location | Unlock-session material |
 |---|---|---|---|
-| `@xchain-wallet/web` | Vite SPA + `hostBridge.js` | IndexedDB | in-memory only |
-| `@xchain-wallet/extension` | service worker + content script + injected provider + popup + approval window | `chrome.storage.local` | `chrome.storage.session` |
-| `@xchain-wallet/desktop` | Electron main / preload / renderer | encrypted file via main process | OS-keychain-encrypted `session.bin` when a keychain backend is available, else in-memory |
-| `@xchain-wallet/mobile` | Capacitor WebView over the built `@xchain-wallet/web` SPA, plus native glue of its own: the `XChainVault` plugin and a biometric sidecar on both Android and iOS | app-private file written by the native vault plugin, encrypted under an OS-keystore key (Android Keystore / iOS Keychain, device-bound and excluded from backups) | in-memory only (same as web) |
+| `@xchain-wallet/web` | Vite SPA with an in-page `hostBridge.js` and `MessageHost` | IndexedDB | Module memory only |
+| `@xchain-wallet/extension` | Service-worker host, injected provider, content script, popup, side panel, and approval window | `chrome.storage.local` | Master key and signing password in separate `chrome.storage.session` slots, cleared by lock and browser-session teardown |
+| `@xchain-wallet/desktop` | Electron main-process host, restricted preload bridge, and renderer | `vault.bin` under Electron `userData` | `session.bin`, encrypted with Electron `safeStorage` when a real OS keychain backend is available; otherwise process memory only |
+| `@xchain-wallet/mobile` | Capacitor WebView running the web build, with native vault, biometric, clipboard, link, splash, and QR integrations | App-private native files, additionally encrypted under Android Keystore or iOS Keychain keys | Master key in WebView memory; an optional biometric sidecar stores a device-bound wrapped unlock secret |
 
-Every route renders the same React tree across shells; only the host bridge differs. Mobile packages the web shell's own build and inherits its bridge and its in-memory session behavior, but it does **not** inherit the web vault. WebView storage is evictable, and in an installed app whose backup posture is deliberately off it would hold the only copy of the vault in existence, so the web build detects the native shell at boot and swaps its IndexedDB and `localStorage` backends for the `XChainVault` plugin that ships in `@xchain-wallet/mobile` (`packages/web/src/storage/backends.js`, `CapacitorStorageBackend.js`). A native shell whose plugin failed to register is a blocking error, never a silent fallback to WebView storage.
+The shells compose shared routes and components into separate shell-specific application roots. Web runs the host in the same JavaScript realm as the UI. The extension places the software-key host in its service worker, and desktop places it in Electron's main process. Mobile inherits the web host and SDK wiring, but replaces browser vault storage at boot.
+
+`packages/web/src/storage/backends.js` selects `CapacitorStorageBackend` and `CapacitorMetaBackend` when the native `XChainVault` plugin is present. A native shell in which that plugin fails to register stops at a blocking vault-unavailable screen instead of falling back to IndexedDB. The native plugin stores the already encrypted core vault blob, KDF metadata, and pre-unlock guard state in separate native slots. Android disables application backup, and iOS excludes the vault directory from backup.
 
 ## Package boundaries
 
 ```mermaid
 flowchart TD
-    CORE["@xchain-wallet/core<br>React routes + components + flows + signers<br>+ storage + schemas + decoder + uri + crypto"]
-    WEB["@xchain-wallet/web<br>Vite SPA<br>hostBridge.js<br>sdkFactory.js"]
-    EXT["@xchain-wallet/extension<br>background + content + popup +<br>approval + inject"]
-    DESKTOP["@xchain-wallet/desktop<br>Electron main +<br>preload + renderer"]
-    MOBILE["@xchain-wallet/mobile<br>Capacitor (Android/iOS)<br>hosts the web shell's build +<br>native XChainVault plugin"]
-    SDK["xchain-sdk (sibling repo)<br>actions + encoder +<br>explorer + hub + ws"]
+    CORE["@xchain-wallet/core<br>shared UI + flows + signers<br>storage + schemas + registry"]
+    WEB["@xchain-wallet/web<br>Vite SPA + in-page host"]
+    EXT["@xchain-wallet/extension<br>MV3 worker + extension surfaces"]
+    DESKTOP["@xchain-wallet/desktop<br>Electron main + preload + renderer"]
+    MOBILE["@xchain-wallet/mobile<br>Android/iOS native wrapper"]
+    TREZOR["@xchain-wallet/signers-trezor"]
+    LEDGER["@xchain-wallet/signers-ledger"]
+    SDK["xchain-sdk<br>actions + wallet + encoder<br>explorer + hub"]
 
     CORE --> WEB
     CORE --> EXT
     CORE --> DESKTOP
+    WEB --> MOBILE
+    TREZOR --> WEB
+    TREZOR --> DESKTOP
+    LEDGER --> WEB
+    LEDGER --> EXT
+    LEDGER --> DESKTOP
     WEB --> SDK
     EXT --> SDK
     DESKTOP --> SDK
-    WEB --> MOBILE
 ```
 
-Sibling packages alongside the four shells:
+Sibling packages alongside the four product targets are:
 
-- `@xchain-wallet/signers-trezor`: TrezorSigner + `trezorFormat.js` (`packages/signers-trezor/`)
-- `@xchain-wallet/signers-ledger`: LedgerSigner + `ledgerFormat.js` (`packages/signers-ledger/`)
-- `@xchain-wallet/bridge-spec`: typed `window.xchain` definitions (consumed by dApps). Method names and payload shapes are normative; a dApp integrator should treat the type definitions as ground truth over any prose.
-- `@xchain-wallet/test-dapp`: reference dApp exercising the bridge
-- Cross-package tests and reproducible-build helpers live alongside the workspace root, outside any single shell.
+- `@xchain-wallet/signers-trezor`: `TrezorSigner` and `trezorFormat.js`
+- `@xchain-wallet/signers-ledger`: `LedgerSigner`, `ledgerFormat.js`, and Ledger app inspection
+- `@xchain-wallet/bridge-spec`: TypeScript definitions, runtime validation, and client helpers for `window.xchain`
+- `@xchain-wallet/test-dapp`: a reference bridge client
 
-`xchain-sdk` is the only data + signing dependency. The wallet never talks directly to the encoder, explorer, hub, or coin nodes; every blockchain-facing call routes through the SDK. This single boundary means the SDK can swap out endpoints, add chains, or change protocols and the wallet inherits the change without modification.
+The core package does not construct `xchain-sdk` itself. Each directly hosted shell injects an SDK factory into `SDKRegistry`, which lazily creates and initializes a client per chain. Transaction construction, wallet utilities, explorer queries, hub calls, and node broadcasts use those SDK instances. Separately scoped wallet code performs such tasks as signed chain-registry refresh, price and metadata retrieval, and application update checks.
 
 ## Shell-to-core seams
 
-Each of the three shells that build against core directly (web, extension, desktop) registers *two* host functions with it:
+The three directly hosted shells use the same main seams:
 
-1. **SDK factory**: `core/src/sdk/SDKRegistry` calls a host-supplied factory to mint per-chain SDK instances. Web/desktop instantiate `xchain-sdk` directly; the extension instantiates the SDK in the service worker and routes calls from popup / approval / full-screen via `MessageHost`.
-2. **Storage backend**: the host selects between IndexedDB (web), `chrome.storage.local` (extension), a file-backed adapter (desktop main process), and the native `XChainVault` plugin (mobile). Vault encryption / decryption is identical across all of them: what changes is where the ciphertext lands.
+1. **SDK registry**: `core/src/sdk/SDKRegistry.js` receives a shell-supplied factory for per-chain `xchain-sdk` instances. Web and the extension resolve a bundled SDK factory during startup; desktop imports and adapts the SDK in the main process.
+2. **Storage and bootstrap metadata**: the shell supplies a `StorageBackend` for the encrypted document and a separate store for the plaintext Argon2id parameters needed before the vault can open.
+3. **Messaging host**: the shared handler surface is registered on a `MessageHost`. Web calls it in process, the extension sends messages to the service worker, and desktop invokes the main process through the preload bridge.
+4. **Hardware transport**: WebHID and hosted Trezor Connect require a visible, user-gesture-capable renderer. Shell factories create the live device signer there, while background flows can reach it through the signer bridge and `RemoteSigner`.
 
-Mobile registers one of the two. It reuses the web shell's already-built SDK factory unchanged, so it has no SDK seam of its own; but it does register a storage backend, because the web build resolves that seam at boot (`packages/web/src/storage/backends.js`) and picks the Capacitor backends over IndexedDB whenever the native vault plugin is present. The kdfParams record and the pre-unlock guard record (lockout ladder, duress hash, panic freeze) move into native slots with it, for the same reason the blob does.
+Mobile does not define another JavaScript host. Its build script stages `@xchain-wallet/web` into the Capacitor project, and the web startup code installs native storage, KDF, biometric, lifecycle, screen-protection, clipboard, link, and QR adapters when the plugin is present.
 
 ## Signal flow
 
-A user action moves through the same layers regardless of which shell it runs in:
+A shared route does not receive a `Vault`, `SDKRegistry`, or private seed. It calls a messaging-shaped API, and the shell host injects those dependencies into the selected core flow:
 
+```text
+shared React route, for example core/src/shared/routes/Send.jsx
+        │
+        ▼  messaging.composeForConfirm(...) / messaging.sendToken(...)
+shell messaging adapter
+        │
+        ├── web: direct call to the in-page host
+        ├── extension: chrome.runtime messaging to the service worker
+        └── desktop: preload IPC to the Electron main process
+        │
+        ▼
+MessageHost route in extension/src/background/createBackgroundHost.js
+        │
+        ▼  injects Vault + ChainRegistry + SDKRegistry + SignerPool
+core flow and per-chain xchain-sdk instance
 ```
-React component (core/src/shared/routes/Send.jsx)
-        │
-        ▼   uses hooks like useMessaging() / useVault()
-flow function (core/src/flows/sendAction.js)
-        │
-        ▼   calls messaging.<method>(args)
-host bridge (per-shell):
-  • web       → in-process module
-  • extension → service worker, over chrome.runtime.sendMessage
-  • desktop   → main process, over ipcRenderer.invoke
-        │
-        ▼   reads/writes vault, calls SDK, drives signer pool
-xchain-sdk → coin node / hub / explorer / encoder / decoder
-```
 
-Three rules govern this flow:
+This is an architectural boundary in web, where the UI and host share one realm. It is also a process boundary in the extension and desktop shells. The extension transport permits untrusted web pages to call only the public `bridge.*` namespace; privileged wallet routes require a sender from the extension's own Chromium origin. Desktop exposes an allowlisted preload API rather than Electron primitives to the renderer.
 
-1. **Components never read the vault directly.** They go through `messaging.*` (a thin async API) which is implemented by the shell's host bridge.
-2. **Flows never import from a shell.** They take a messaging-shaped argument and remain shell-agnostic, which is what makes the same React tree renderable in every host process.
-3. **The host bridge is the only thing that touches private keys.** In the extension, that's the service worker; in desktop, that's the main process; in web, it's an in-process module that's still firewalled from the React tree by the messaging interface.
+Software signing runs inside the host context: the web page, extension service worker, or desktop main process. Hardware transports run in the web page, extension popup, or desktop renderer because WebHID and Trezor Connect need a visible browser context. The host passes PSBT signing requests through the signer bridge; it does not send software private keys to those renderers.
 
-The rules give the wallet two properties that matter for security:
-
-- The extension service worker can be hardened against the popup (key material never crosses the message boundary in plaintext).
-- The desktop main process can hold hardware-signer transports and the OS keychain without the renderer ever seeing them.
-
-The hot path for a signed action, expressed the same way, looks like this:
+The signed-action path is a single-encode confirmation pipeline:
 
 ```mermaid
 flowchart TD
-    CLICK["User clicks Send in a route from<br>core/src/shared/routes/"]
-    FLOW["Flow function from<br>core/src/flows/sendAsset.js"]
-    SEND["sdk.send(actionParams) → action string"]
-    CREATE["sdk.encoder.createTransaction(...) → unsigned PSBT"]
-    SIGN["signer.signPsbt(psbt) → signed PSBT<br>Signer chosen via core/src/flows/resolveSigner<br>(Software / Trezor / Ledger / Remote / Multisig)"]
-    BROADCAST["sdk.broadcast(rawTx) → txid"]
-    WAIT["sdk.waitForAction(txid) → indexed"]
+    CLICK["Shared route requests<br>action.composeForConfirm"]
+    COMPOSE["composeActionForConfirm<br>creates the action and one PSBT"]
+    CHECK["SDK description + output-set check<br>+ action/carrier byte verification"]
+    REVIEW["User reviews that exact PSBT"]
+    SUBMIT["sendToken / submitAction passes<br>the prebuilt PSBT"]
+    SIGN["resolveSigner then signer.signPsbt"]
+    BROADCAST["sdk.encoder.broadcastTx"]
+    WAIT["optional explorer indexing wait"]
 
-    CLICK --> FLOW --> SEND --> CREATE --> SIGN --> BROADCAST --> WAIT
+    CLICK --> COMPOSE --> CHECK --> REVIEW --> SUBMIT --> SIGN --> BROADCAST --> WAIT
 ```
 
-The path is the same in the web shell (signer runs in the page), the extension (signer runs in the service worker), and the desktop app (signer runs in the main process). Mobile runs the web shell's build in a Capacitor WebView, so the signing path is the web shell's; its storage reads and writes go out through the native vault plugin instead of IndexedDB. Differences live entirely behind the SDK factory + storage backend seams.
+`submitWithSigner` skips action creation and encoding when it receives the reviewed `prebuiltPsbt`, so the signer sees the same PSBT that passed the confirmation checks. Two-phase P2SH, P2WSH, and Taproot envelope paths add capability and completeness checks before an irreversible commit is broadcast.
 
 ## Vault and state model
 
-The wallet's persisted state is a single AES-256-GCM-encrypted blob containing:
+`core/src/storage/codec.js` serializes one vault document and encrypts it with AES-256-GCM. The current document contains these collections:
 
 | Collection | Schema | Purpose |
 |---|---|---|
-| `wallets` | `core/src/schemas/wallet.js` | Encrypted seed, derivation roots, settings; schema v2 embeds a `multisigs[]` array per wallet for per-address n-of-m configs |
-| `accounts` | `core/src/schemas/account.js` | BIP44 account groupings under a wallet |
-| `addresses` | `core/src/schemas/address.js` | Derived addresses with chain + script type + label |
-| `contacts` | `core/src/schemas/contact.js` | Saved address book |
-| `connectedSites` | `core/src/schemas/connectedSite.js` | Per-origin dApp permission grants |
-| `multisigSigningSessions` | `core/src/schemas/multisigSigningSession.js` | In-flight cosigner state |
-| `pendingTxs` | `core/src/schemas/pendingTx.js` | Queued broadcasts |
-| `pendingAirdrops` | `core/src/schemas/pendingAirdrop.js` | Multi-output airdrop progress |
-| `signers` | `core/src/schemas/signer.js` | Registered hardware signers (Trezor and Ledger) |
-| `settings` | `core/src/schemas/settings.js` | Per-chain endpoints, auto-lock, locale, theme |
-| `watchlistEntries` | `core/src/schemas/watchlistEntry.js` | Followed addresses |
-| `priceAlerts` | `core/src/schemas/priceAlert.js` | User-configured price-alert rules |
+| `wallets` | `core/src/schemas/wallet.js` | Encrypted seeds, BIP39 passphrases, imported WIFs, KDF parameters, and embedded multisig configurations |
+| `accounts` | `core/src/schemas/account.js` | BIP44 account groups and per-chain active-address overrides |
+| `addresses` | `core/src/schemas/address.js` | Derived, imported, hardware, or watch-only addresses and signer linkage |
+| `contacts` | `core/src/schemas/contact.js` | Multi-chain address-book entries |
+| `connectedSites` | `core/src/schemas/connectedSite.js` | Per-origin dApp permissions and approval history |
+| `pendingTxs` | `core/src/schemas/pendingTx.js` | Transaction lifecycle, replacement, and queued-broadcast state |
+| `signers` | `core/src/schemas/signer.js` | Non-secret Trezor and Ledger pairing metadata |
+| `pendingAirdrops` | `core/src/schemas/pendingAirdrop.js` | Resumable two-stage airdrops |
+| `pendingDeploys` | `core/src/schemas/pendingDeploy.js` | Resumable multi-transaction contract deployments |
+| `watchlistEntries` | `core/src/schemas/watchlistEntry.js` | Per-wallet market watchlists |
+| `priceAlerts` | `core/src/schemas/priceAlert.js` | One-shot native-coin price alerts |
+| `multisigSigningSessions` | `core/src/schemas/multisigSigningSession.js` | Interactive classical multisig and MuSig2 contribution state |
+| `coSignerAccounts` | `core/src/schemas/coSignerAccount.js` | Passive MuSig2 co-signer policies and spending-window state |
+| `gatedKeys` | `core/src/schemas/gatedKey.js` | Secret keys for token-gated content packs |
+| `autopayOrders` | `core/src/schemas/autopayOrder.js` | CoinPay consent, caps, and completed-payment ledgers |
+| `autopayLeases` | `core/src/schemas/autopayLease.js` | Single-active-payer arbitration within one vault |
+| `settings` | `core/src/schemas/settings.js` | Sparse user preferences, active network, custom chains, fees, endpoints, safety, privacy, notifications, and display options |
 
-Master key derivation: password → Argon2id (calibrated per device, floor 64 MiB × 3 iterations × 1 parallelism) → 32-byte master key → AES-256-GCM-decrypts the vault blob.
+Vault unlock derives a 32-byte master key from the password and the external `kdfParams` record, then authenticates and decrypts the document. Fresh vault metadata uses Argon2id with a new salt and defaults of 64 MiB, 3 iterations, and parallelism 1. Load-time validation also imposes maximum costs so imported parameters cannot request unbounded CPU or memory. Wallet seed records have their own KDF parameters and encrypted payloads inside the vault. Mobile can use a native Argon2id implementation only after it passes a known-answer check; failure falls back to the JavaScript implementation.
 
-Each shell maps this same logical schema onto a different physical store:
-
-| Logical store | Web | Extension | Desktop | Mobile |
+| Logical material | Web | Extension | Desktop | Mobile |
 |---|---|---|---|---|
-| Vault (encrypted seed, accounts, addresses, contacts, settings, connected sites) | IndexedDB | `chrome.storage.local` | Electron `userData` (encrypted file) | app-private file via the native `XChainVault` plugin, under an OS-keystore key (Android Keystore / iOS Keychain) |
-| Session (master key after unlock) | in-memory only | `chrome.storage.session` (cleared on browser close) | OS-keychain-encrypted `session.bin` when a keychain backend is available, else in-memory | in-memory only |
-| Ephemeral metadata (toast state, demo flag, last-view) | `localStorage` | `localStorage` | `localStorage` | `localStorage` (WebView) |
+| Encrypted vault document | IndexedDB | `chrome.storage.local` | `userData/vault.bin` | Native app-private file, wrapped by an OS-keystore key |
+| Plaintext vault KDF metadata | `localStorage` | Separate `chrome.storage.local` key | `userData/meta.json` | Separate native encrypted slot |
+| Active unlock session | Memory | `chrome.storage.session` | Keychain-encrypted `session.bin`, or memory fallback | WebView memory |
+| Pre-unlock throttles and guards | Browser storage used by the shared guard flows | Background-owned Chrome storage | Files under `userData` | Separate native guard slot |
 
-The mobile column is not the web column: the vault blob, the kdfParams record and the pre-unlock guard record all sit in native slots rather than in WebView storage. Only genuinely ephemeral UI state is left in the WebView's own `localStorage`, where losing it costs nothing.
+The native layer never receives the decrypted vault document. It receives the opaque ciphertext produced by the core codec and adds device-bound at-rest encryption around that payload.
 
 ## Schema migrations
 
-Schemas declare a `version` and a forward migration. `core/src/schemas/migrations.js` runs on every vault load and walks legacy records up to the current version transparently. The active migration is **v1 → v2** for `Wallet.multisig` (single config) → `Wallet.multisigs[]` (per-address multi-config). The Account schema also runs its own **v1 → v2** migration that seeds `activeAddressByChainId` (the per-chain active-address override map) as an empty object. Legacy v1 wallets continue to load without user intervention.
+Schemas declare a `CURRENT_VERSION`, and `core/src/schemas/migrations.js` applies forward-only record migrations when a collection is read through `Vault`. The migrated in-memory record is persisted on a later write. A record newer than the running code is rejected rather than downgraded.
+
+The current nontrivial migrations are:
+
+- Wallet v1 to v2 converts the single `multisig` slot to `multisigs[]`; v2 to v3 adds `encryptedPassphrase`.
+- Account v1 to v2 adds `activeAddressByChainId`.
+- Address v1 through v4 adds signer linkage, address roles, and chain-prefixed default labels.
+- Settings v1 through v3 adds the expanded settings groups and then converts release defaults to sparse, read-time defaults.
+- Pending transaction v1 through v3 adds structured amount data and `mempoolSeenAt`.
+- Embedded multisig configuration v1 to v2 adds a stable configuration id.
+
+The codec document version remains 1. When a newer collection is absent from an older document, `decodeDocument` fills it from `emptyDocument()` so the vault remains readable.
 
 ## Signer interface
 
-`core/src/signers/Signer.js` declares the abstract surface every signer implements:
+`core/src/signers/Signer.js` defines the common surface:
 
-- `getPublicKey(params)`: derive a public key at a given BIP32 path for a chain
-- `signMessage(params)`: sign an arbitrary message
-- `signPsbt(params)`: sign a PSBT for single-key inputs
-- `signMultisigPsbt(params)`: classical n-of-m full-PSBT variant; returns PSBT with partial sigs added, not finalized
-- `signMultisigClassical(params)`: classical n-of-m single-input sighash variant
-- `signMusig2Round1(params)` / `signMusig2Round2(params)`: MuSig2 two-round protocol
-- `getAddresses(params)`: derive a range of addresses
-- `getStatus()`: check signer readiness (available / locked / disconnected / wrong-app / error)
-- `subscribe(listener)`: register a status-change listener; returns an unsubscribe function
-- `id` / `displayName` / `kind` / `requiresPhysicalConfirmation`, identity and gating
+- `getStatus({ chainId })`, `getAddresses(params)`, and `getPublicKey(params)`
+- `signMessage(params)` and `signPsbt(params)`
+- `signMultisigPsbt(params)` and `signMultisigClassical(params)`
+- `signMusig2Round1(params)` and `signMusig2Round2(params)`
+- identity getters, `requiresPhysicalConfirmation`, and status subscriptions
 
-Four concrete implementations:
+The implemented signer classes are:
 
-- **`SoftwareSigner`**: derives keys from the unlocked vault, signs in the host process
-- **`TrezorSigner`** (in `@xchain-wallet/signers-trezor`): Trezor's hosted Connect build, all current models, in the web and desktop shells only (the extension ships no Trezor support); `trezorFormat.js` adapts XChain PSBTs to Trezor's expected schema
-- **`LedgerSigner`** (in `@xchain-wallet/signers-ledger`): `@ledgerhq/hw-app-btc` with a shell-supplied transport (WebHID on web/extension, node-HID on desktop); `ledgerFormat.js` adapts XChain PSBTs
-- **`RemoteSigner`**: proxies signing calls over an injected transport to wherever the live hardware signer lives (for example, service worker to popup in the extension); `signerPortProtocol.js` defines the message envelope
+- **`SoftwareSigner`** in core. It derives and signs from unlocked wallet material and implements the classical multisig and MuSig2 contribution methods.
+- **`TrezorSigner`** in `@xchain-wallet/signers-trezor`. Web loads Trezor's hosted Connect build when pairing, while desktop runs Connect through an isolated bridge window. The MV3 extension does not offer Trezor because it cannot load that remote code.
+- **`LedgerSigner`** in `@xchain-wallet/signers-ledger`. Web, extension, and desktop use `@ledgerhq/hw-app-btc` over WebHID. Desktop does not use node-HID or node-usb.
+- **`RemoteSigner`** in core. It forwards status, address, public-key, PSBT, and message operations to a renderer-hosted Trezor or Ledger signer. It does not implement the multisig contribution methods.
 
-A dedicated `MultisigSigner` is planned but not yet implemented; the design is composite: it orchestrates n-of-m round-trips via PSBT-QR or paste-inbox transport, ultimately delegating to per-cosigner signers underneath, and today that orchestration lives in flows over the existing signers. Construction of hardware-backed signers differs per shell because transports are shell-specific (hosted Trezor Connect in an iframe popup on web and in an isolated bridge window on desktop, WebHID in desktop, and so on); `signerFactories/` holds that per-shell wiring.
+Both hardware implementations support the bundled Bitcoin, Litecoin, and Dogecoin mainnets today. They reject testnet and regtest because the available device apps or derivation slots do not match the wallet's descriptor paths. They support P2PKH, nested SegWit, and native SegWit derivation, but reject Taproot address derivation. Hardware MuSig2 and classical multisig contribution methods return explicit unsupported errors; they do not silently fall back to software keys. Mobile has no hardware-signer factory.
 
-Hardware signers expose vendor-specific deferral errors when a feature isn't yet supported in firmware (for example, MuSig2 nonce wiring on Trezor / Ledger), with a documented path to fall back to the software signer.
-
-The sign path always routes through the host bridge so the signer pool can authenticate the calling context (popup vs. dApp vs. user-initiated).
+There is no `MultisigSigner` class. Interactive coordination lives in `core/src/flows/multisigSigning.js` and related flows, persisted by `multisigSigningSessions`, with software signers supplying the implemented contribution methods. Passive policy co-signing uses `coSignerAccounts` and the `core/src/cosigner/` adapters.
 
 ## Action decoder + sign-screen safety rails
 
-`core/src/decoder/actionDecoder.js` reverses every supported action string into a plain-English summary that's rendered alongside the encoder's PSBT on the sign screen. Even if a malicious encoder fabricates output bytes, the user sees `to`, `amount`, and `asset` reflected back from their own form input, not from the encoder's response.
+`core/src/decoder/actionDecoder.js` is the synchronous, pure decoder used for an in-form draft preview. It describes the route's current parameters before a transaction exists, so signing code does not treat its output as proof of the bytes to be signed.
 
-Future work adds a byte-level cross-check that re-decodes the encoder's PSBT and compares it to the user's form intent. That's the next iteration of the safety rail. See [Security & Threat Model](security.md) for the full posture and [Threat Model Detail](threat-model.md) for attacker-scenario walkthroughs.
+The confirmation surface instead asks `xchain-sdk` to describe the composed action string. `composeActionForConfirm` builds one PSBT and checks that exact result before opening the modal:
+
+- every transaction output must be an expected custom, fee, or donation output, an allowed action carrier, or change to a wallet-owned address;
+- every required addressed output must be present;
+- an inline OP_RETURN action string must match the intended string;
+- P2SH and P2WSH carrier scripts must commit to the intended payload; and
+- Taproot envelope commits must carry a matching reveal and recovery record.
+
+The checked PSBT is passed unchanged to `submitWithSigner`. See [Security & Threat Model](security.md) for the overall posture and [Threat Model Detail](threat-model.md) for attacker-scenario walkthroughs.
 
 ## dApp bridge architecture
 
-A dApp interacts with the wallet through `window.xchain`. On the extension, the content script relays a request from the page to the service worker, which decodes it, routes it to the approval broker if user consent is needed, and returns the result the same way in reverse. The web shell can serve a limited fallback provider (no service-worker isolation, but read-only methods and in-wallet sign requests still work). The full method list, error codes, and event types are documented in [dApp Bridge](bridge.md).
+The MV3 extension injects `window.xchain`. Its page-world provider sends requests through the content script to the service worker. The content script admits only `bridge.*` messages, and the background independently checks the browser-reported sender origin before applying the stored `ConnectedSite` grant. Extension UI pages can use the separate privileged host surface.
+
+The web application does not install a fallback `window.xchain` provider. It can detect and use the provider injected by an installed extension. The normative method, result, event, and error shapes live in `@xchain-wallet/bridge-spec` and are documented in [dApp Bridge](bridge.md).
 
 ### Approval broker
 
-User-facing approval popups are mediated by the approval broker in the extension's approval window. Every privileged request (signMessage, signPsbt, signAction, connect, disconnect) parks itself in the broker; the broker opens a real popup window with its own origin; the popup fetches the parked request and renders the appropriate review screen; user accept resolves the request, user reject (or window close) rejects it.
+The extension's `ApprovalBroker` handles `connect`, `signAction`, `signMessage`, `signPsbt`, `coSign`, and `signIn` decisions. It keeps each request in a service-worker memory map and opens `approval.html` with an opaque request id. The approval window fetches the parked payload, renders the review, and resolves the request with the user's decision.
 
-Window close counts as user-rejected. A closed approval window can never consent.
+Closing the approval window, closing the requester tab, timing out after five minutes, locking the wallet, or suspending the service worker resolves the request as rejected. `disconnect` removes an existing grant directly and does not open an approval window.
 
 ## Reachability and offline mode
 
-The host bridge polls the configured RPC endpoints periodically. Each chain falls into one of three states: `normal`, `degraded` (intermittent), `offline`. The React tree subscribes to reachability status; surfaces that depend on live data render staleness labels and, for offline-class events, fall back to a queued-broadcast lane.
+`useReachability` polls the host every 30 seconds for chains on the active network. The host probes each chain's encoder, hub, and explorer through its SDK instance with a three-second service timeout. Results classify a configured chain as `normal`, `degraded`, or `offline`; a chain with no configured probes is `not-configured`. Explorer freshness can make an otherwise reachable chain degraded.
+
+To reduce false outage banners, the hook gives startup an eight-second grace period and requires a second matching probe before publishing a degraded or offline result. Browser offline state is reported immediately.
+
+If signing succeeds but broadcast fails with a network-class failure, the host can persist the signed transaction as a queued `pendingTx`. Reconnection does not broadcast it automatically. The user explicitly retries a queued item, and the drain classifies failures as transient or permanent before updating the record.
 
 ## Versioning and synchronized release
 
-All workspace packages (root, core, web, extension, desktop, bridge-spec, test-dapp) ship at the same version. The root `package.json` is the source of truth; sub-packages track in lockstep. `core/src/buildInfo.js` exports `WALLET_VERSION`, bumped alongside every release so the About panel and diagnostic dump can both surface a build tag without reaching back through the import graph.
+The root and every workspace package, including mobile and both hardware-signer packages, carry the same release version. `tools/release/bump-version.mjs` updates those package declarations, the extension manifest fields, `core/src/buildInfo.js`, and release-facing documentation. A smoke test enforces the lockstep rule.
+
+`core/src/buildInfo.js` exports `WALLET_VERSION` for the About panel, diagnostics, firmware manifest, and release links. The extension derives a Chrome-compatible numeric manifest version, while mobile derives Android and iOS build numbers from the release tag.
 
 ## Build pipelines
 
-| Shell | Bundler | Output |
+| Target | Build path | Primary output |
 |---|---|---|
-| Web | Vite (with `vite-plugin-node-polyfills` and optional `@vitejs/plugin-basic-ssl`) | `packages/web/dist/`: static SPA |
-| Extension | Vite (multi-entry: popup, approval, background service worker, content script, injected provider) | `packages/extension/dist/`: unpacked Chrome extension |
-| Desktop renderer | Vite | `packages/desktop/build/`: bundled into the Electron asar |
-| Desktop installers | electron-builder | `packages/desktop/dist/`: `.dmg` / `.exe` / `.AppImage` |
-| Desktop pre-signing (reproducible) | `electron-builder --dir` | `packages/desktop/dist/linux-unpacked/` + `RELEASE_HASHES.txt` |
+| Web | Vite with Node polyfills and optional local HTTPS | `packages/web/dist/` static application |
+| Extension | Vite multi-entry build for background, content, injected provider, popup, approval, and side panel | `packages/extension/dist/` unpacked MV3 extension |
+| Desktop renderer | Vite rooted at `packages/desktop/renderer/` | `packages/desktop/renderer/dist/` |
+| Desktop packages | `electron-builder` | `packages/desktop/dist/` with platform targets such as DMG/ZIP, NSIS/ZIP, AppImage, and DEB; store targets are opt-in |
+| Desktop reproducible pre-signing | Containerized `electron-builder --dir` flow | unpacked architecture directories plus `RELEASE_HASHES.txt` under `packages/desktop/dist/` |
+| Mobile | Build web, stage it into Capacitor `www`, then use Gradle or Xcode | Android and iOS native application artifacts |
 
-See [Build & Release](build-release.md) for per-shell signing, packaging, and distribution detail, and [Reproducible Builds](reproducible-builds.md) for the Level-2 verification protocol.
+See [Build & Release](build-release.md) for signing, packaging, and distribution details, and [Reproducible Builds](reproducible-builds.md) for the verification protocol.
 
 ---
 
