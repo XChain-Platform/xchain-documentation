@@ -138,6 +138,7 @@ same chain or field.
 | `rollcall_gates_activation` | `ROLLCALL_GATES_ACTIVATION` | epoch |
 | `send_caret_pack_key_activation` | `SEND_CARET_PACK_KEY_ACTIVATION` | time |
 | `send_gated_total_tick_id_activation` | `SEND_GATED_TOTAL_TICK_ID_ACTIVATION` | time |
+| `settlement_bounds_activation` | `SETTLEMENT_BOUNDS_ACTIVATION` | height |
 | `slash_grid_activation` | `SLASH_GRID_ACTIVATION` | height |
 | `slash_historical_set_activation` | `SLASH_HISTORICAL_SET_ACTIVATION` | height |
 | `slash_ledger_consolidation_activation` | `SLASH_LEDGER_CONSOLIDATION_ACTIVATION` | height |
