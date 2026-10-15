@@ -67,6 +67,7 @@ same chain or field.
 | `dispenser_amount_positivity_activation` | `DISPENSER_AMOUNT_POSITIVITY_ACTIVATION` | time |
 | `dispenser_caps_activation` | `DISPENSER_CAPS_ACTIVATION` | time |
 | `dispenser_delay_protocol_time_activation` | `DISPENSER_DELAY_PROTOCOL_TIME_ACTIVATION` | height |
+| `dispenser_fiat_pricing_activation` | `DISPENSER_FIAT_PRICING_ACTIVATION` | height |
 | `dispenser_freshness_activation` | `DISPENSER_FRESHNESS_ACTIVATION` | height |
 | `dispenser_freshness_proven_use_activation` | `DISPENSER_FRESHNESS_PROVEN_USE_ACTIVATION` | time |
 | `dispenser_freshness_shape_activation` | `DISPENSER_FRESHNESS_SHAPE_ACTIVATION` | height |
