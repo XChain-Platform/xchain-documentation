@@ -373,6 +373,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_RATELIMIT_MAX_WAITS` | No | `3` | Caps how many rate-limit waits one broadcast may take before the anchor defers to a later flush instead of stalling the current one. |
 | `ANCHOR_AMBIGUOUS_POLL_ATTEMPTS` | No | `3` | Re-polls before an ambiguous publish result (broadcast may or may not have landed) is resolved. |
 | `ANCHOR_AMBIGUOUS_POLL_MS` | No | `5000` | Delay between those re-polls. |
+| `ANCHOR_DEADLETTER_PATH` | No | `./data/anchor-publish.deadletter.jsonl` | Append-only JSONL record of an ANCHOR send that failed after the signer hook committed funds, holding the signed reveal an operator rebroadcasts instead of paying for the payload again; an unset or empty value uses the default. |
 | `ANCHOR_ANNOUNCE_RETRY_MS` | No | `300000` | Delay between retries of the anchor announcement (5 minutes). |
 | `ANCHOR_ANNOUNCE_RETRY_TTL_MS` | No | `21600000` | How long announcement retries continue before the entry is dropped (6 hours, roughly six times the 60-confirmation DOGE window). |
 | `ANCHOR_ANNOUNCE_QUEUE_MAX` | No | `500` | Maximum queued anchor announcements, bounding memory. |
