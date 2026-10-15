@@ -105,6 +105,7 @@ same chain or field.
 | `list_union_activation` | `LIST_UNION_ACTIVATION` | height |
 | `mainnet_launch_activation` | `MAINNET_LAUNCH_ACTIVATION` | time |
 | `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
+| `match_origin_open_activation` | `MATCH_ORIGIN_OPEN_ACTIVATION` | height |
 | `mirror_admission_activation` | `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` | height |
 | `mirror_admission_margin_activation` | `ADMIT_CHAIN_MARGIN_ACTIVATION` | height |
 | `native_stack_terminal_heights` | `NATIVE_STACK_TERMINAL_ACTIVATION` | height |
