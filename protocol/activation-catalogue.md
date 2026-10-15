@@ -50,6 +50,7 @@ same chain or field.
 | `attest_zero_conf_activation` | `ATTEST_ZERO_CONF_ACTIVATION` | height |
 | `bet_feed_list_edit_activation` | `BET_FEED_LIST_EDIT_ACTIVATION` | height |
 | `bigint_surface_strip_heights` | `BIGINT_SURFACE_STRIP_ACTIVATION` | height |
+| `bridge_policy_apply_order_activation` | `BRIDGE_POLICY_APPLY_ORDER_ACTIVATION` | height |
 | `bridge_policy_detach_activation` | `BRIDGE_POLICY_DETACH` | height |
 | `bridge_policy_refusal_record_activation` | `BRIDGE_POLICY_REFUSAL_RECORD_ACTIVATION` | height |
 | `bridge_row_fields_terminal_activation` | `BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION` | height |
