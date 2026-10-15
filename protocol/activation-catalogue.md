@@ -79,6 +79,7 @@ same chain or field.
 | `dispenser_send_amount_compare_activation` | `DISPENSER_SEND_AMOUNT_COMPARE_ACTIVATION` | height |
 | `dispenser_settlement_price_activation` | `DISPENSER_SETTLEMENT_PRICE_ACTIVATION` | time |
 | `empty_allow_list_denies_activation` | `EMPTY_ALLOW_LIST_DENIES` | height |
+| `execute_fee_cap_activation` | `EXECUTE_FEE_CAP_ACTIVATION` | height |
 
 ## G through P
 
@@ -156,6 +157,7 @@ same chain or field.
 | `token_supply_representation_activation` | `TOKEN_SUPPLY_REPRESENTATION_ACTIVATION` | height |
 | `train_activation` | `TRAIN_ACTIVATION` | ruleset |
 | `vm_deploy_lint_pkg3_activation` | `VM_DEPLOY_LINT_PKG3_ACTIVATION` | height |
+| `vm_emission_amount_format_activation` | `VM_EMISSION_AMOUNT_FORMAT_ACTIVATION` | height |
 | `vm_exec_lint_activation` | `VM_EXEC_LINT_ACTIVATION` | height |
 | `vm_lint_banned_with_heights` | `VM_LINT_BANNED_WITH_ACTIVATION` | height |
 | `vm_lint_destructure_heights` | `VM_LINT_DESTRUCTURE_ACTIVATION` | height |
