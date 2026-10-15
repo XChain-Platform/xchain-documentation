@@ -32,6 +32,7 @@ same chain or field.
 | `anchor_fold_reissue_source_author_activation` | `ANCHOR_FOLD_REISSUE_SOURCE_AUTHOR_ACTIVATION` | height |
 | `anchor_preactivation_status_activation` | `ANCHOR_PREACTIVATION_STATUS_ACTIVATION` | height |
 | `anchor_reward_activation` | `ANCHOR_REWARD_ACTIVATION` and related anchor/archive reward gates | height |
+| `anchor_reward_copy_selection_activation` | `ANCHOR_REWARD_COPY_SELECTION_ACTIVATION` | height |
 | `archive_batch_author_activation` | `ARCHIVE_BATCH_AUTHOR_ACTIVATION` | height |
 | `archive_head_unverified_gate_activation` | `ARCHIVE_HEAD_UNVERIFIED_GATE_ACTIVATION` | height |
 | `archive_match_count_activation` | `ARCHIVE_MATCH_COUNT_ACTIVATION` | height |
@@ -136,6 +137,7 @@ same chain or field.
 | `send_caret_pack_key_activation` | `SEND_CARET_PACK_KEY_ACTIVATION` | time |
 | `send_gated_total_tick_id_activation` | `SEND_GATED_TOTAL_TICK_ID_ACTIVATION` | time |
 | `slash_grid_activation` | `SLASH_GRID_ACTIVATION` | height |
+| `slash_historical_set_activation` | `SLASH_HISTORICAL_SET_ACTIVATION` | height |
 | `slash_ledger_consolidation_activation` | `SLASH_LEDGER_CONSOLIDATION_ACTIVATION` | height |
 | `stake_key_reuse_activation` | `STAKE_KEY_REUSE_ACTIVATION` | height |
 | `stake_weight_collation_activation` | `STAKE_WEIGHT_COLLATION_ACTIVATION` | height |
