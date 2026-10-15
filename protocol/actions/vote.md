@@ -139,7 +139,7 @@ Clear a standing GOVTOKEN delegation
 - A synthesized v2 is allocated a real `action_index` so its `poll_results` rows and mappings have a deterministic, rollback-correct source.
 
 ### Version 3 (set or clear delegation)
-- `TICK` must be a real, issued token.
+- `TICK` must be a real, issued token. At or above the `VOTE_V3_TICK_EXISTENCE_ACTIVATION` height a `TICK` with no valid ISSUE row is `invalid: TICK (unknown)` and no delegation row is stored. Below the height the check refuses only a lookup that returns nothing at all, so an unknown `TICK` is accepted and its delegation row stored. The height is unarmed on mainnet and testnet, and a regtest venue arms it with `XC_VOTE_V3_TICK_EXISTENCE_REGTEST_ACTIVATION`.
 - `DELEGATE_TO` blank clears a standing delegation; when set it cannot equal `SOURCE`.
 - `MEMO`, when present, is bounded by `MAX_MESSAGE_LENGTH`.
 - The latest valid v3 per `(TICK, delegator)` wins (last-write-wins); rows are an append-only event log.

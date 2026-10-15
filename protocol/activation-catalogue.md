@@ -167,6 +167,7 @@ same chain or field.
 | `vm_lint_syntax_depth_heights` | `VM_LINT_SYNTAX_DEPTH_ACTIVATION` | height |
 | `vote_callback_binding_activation` | `VOTE_CALLBACK_BINDING_REQUIRES_USABLE_METHOD` | height |
 | `vote_settlement_exact_activation` | `VOTE_SETTLEMENT_EXACT_ACTIVATION` | height |
+| `vote_v3_tick_existence_activation` | `VOTE_V3_TICK_EXISTENCE_ACTIVATION` | height |
 | `xchain_bridge_activation` | `XCHAIN_BRIDGE_ACTIVATION` | height |
 
 ## Maintenance rule
