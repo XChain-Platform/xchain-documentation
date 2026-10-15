@@ -127,6 +127,7 @@ same chain or field.
 
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
+| `remote_token_admission_activation` | `REMOTE_TOKEN_ADMISSION_ACTIVATION` | height |
 | `resource_fault_signal_heights` | `RESOURCE_FAULT_SIGNAL_ACTIVATION` | height |
 | `retraction_signing_activation` | `RETRACTION_SIGNING_ACTIVATION` | height |
 | `rollcall_activation` | `ROLLCALL_ACTIVATION` | epoch |

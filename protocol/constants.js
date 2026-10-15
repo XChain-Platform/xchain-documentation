@@ -2399,12 +2399,13 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
 
 const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
     DOGE: Object.freeze({
-        bridge_transfers:    14,
-        cross_chain_calls:   14,
-        cross_chain_matches: 14,
-        list_snapshots:      14,
-        policy_snapshots:    14,
-        price_snapshots:     16,
+        bridge_transfers:       14,
+        cross_chain_calls:      14,
+        cross_chain_matches:    14,
+        list_snapshots:         14,
+        policy_snapshots:       14,
+        price_snapshots:        16,
+        remote_token_snapshots: 14,
     }),
 });
 
