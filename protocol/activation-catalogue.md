@@ -150,6 +150,7 @@ same chain or field.
 | `tick_namespace_activation` | `TICK_NAMESPACE_ACTIVATION` | height |
 | `token_bridge_activation` | `TOKEN_BRIDGE_ACTIVATION` | height |
 | `token_policy_activation` | `TOKEN_POLICY_INHERITANCE_ACTIVATION` | height |
+| `token_supply_representation_activation` | `TOKEN_SUPPLY_REPRESENTATION_ACTIVATION` | height |
 | `train_activation` | `TRAIN_ACTIVATION` | ruleset |
 | `vm_deploy_lint_pkg3_activation` | `VM_DEPLOY_LINT_PKG3_ACTIVATION` | height |
 | `vm_exec_lint_activation` | `VM_EXEC_LINT_ACTIVATION` | height |
