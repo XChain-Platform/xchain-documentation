@@ -436,7 +436,7 @@ Its `screenshots-pinned` check asks whether the images the console holds are the
 > 1. Open the app and choose "Import wallet". Enter the recovery phrase below and any password. The wallet opens on the balances screen.
 > 2. Open Settings and set Network to "Testnet". The app reloads onto a public test network, so no real funds are involved at any point in this demo. Balances are read from a public blockchain indexer; no account is involved.
 > 3. Tap Receive. The app shows an address and a QR code. Tap the camera icon to scan one; this uses the device camera directly.
-> 4. Tap Send, enter the address shown below and any small amount, and continue to the confirmation screen. **Now turn on Airplane Mode**, and confirm. With no network at all, the app signs the transaction on the device and shows "Signed. Not broadcast yet." Turn Airplane Mode off and the app prompts you about the queued transaction; tap "Broadcast now" in the queued-transactions banner and that same signed transaction goes out. Signing needed no server, no account and no connection.
+> 4. **Route A: compose first, then Airplane Mode.** Tap Send, enter the address shown below and any small amount, and continue to the confirmation screen. **Now turn on Airplane Mode**, and confirm. With no network at all, the app signs the transaction on the device and shows "Signed. Not broadcast yet." Turn Airplane Mode off and the app prompts you about the queued transaction; tap "Broadcast now" in the queued-transactions banner and that same signed transaction goes out. Signing needed no server, no account and no connection.
 > 5. Settings also holds the privacy toggles that turn off the only third-party requests the app makes.
 >
 > The app is open source under AGPL-3.0-or-later.
