@@ -133,6 +133,7 @@ same chain or field.
 
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
+| `reassemble_chunk_parent_status_activation` | `REASSEMBLE_CHUNK_PARENT_STATUS_ACTIVATION` | height |
 | `remote_token_admission_activation` | `REMOTE_TOKEN_ADMISSION_ACTIVATION` | height |
 | `resource_fault_signal_heights` | `RESOURCE_FAULT_SIGNAL_ACTIVATION` | height |
 | `retraction_signing_activation` | `RETRACTION_SIGNING_ACTIVATION` | height |
