@@ -2180,9 +2180,10 @@ const TICK_NAMESPACE_ACTIVATION = {
 // here to the coin registry; both refuse identically, so nothing re-verdicts on the move.
 //
 // The first 47 were measured free on every live chain and in both genesis manifests on
-// 2026-09-11 (120 names, 720 explorer probes); the last 6 are squatted in the mainnet
-// genesis manifests and leave through a separate manifest edit, so for those this guard
-// blocks only NEW issuance.
+// 2026-09-11 (120 names, 720 explorer probes). The last 6 were squatted in the mainnet
+// genesis manifests and were taken away from those holders by the 2026-10-17 manifest edit
+// (operator ruling 2026-10-17), so the bridges can own them; with no row left, all 53 are
+// refused outright on a new ISSUE.
 const RESERVED_FUTURE_ROOTS = Object.freeze([
     'ADA', 'ALGO', 'APT', 'ARB', 'ATOM', 'AVAX', 'BCH', 'BNB', 'BSV', 'BTG',
     'CRO', 'DGB', 'DOT', 'EOS', 'ETC', 'ETH', 'FIL', 'FIRO', 'GRS', 'ICP',
