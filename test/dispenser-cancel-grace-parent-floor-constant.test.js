@@ -9,28 +9,23 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const CONSTANTS = require('../protocol/constants.js');
+const { assertMainnetUnarmedTestnetArmable } = require('./helpers/block_time_gate_map.js');
 const FLAG_DAYS = fs.readFileSync(path.resolve(__dirname, '../protocol/flag-days.md'), 'utf8');
-const UNARMED = 9999999999;
 
 function assertCanonicalMap(map) {
-    assert.deepStrictEqual(map, {
-        mainnet: UNARMED,
-        testnet: UNARMED,
-        regtest: 0,
-    });
+    assertMainnetUnarmedTestnetArmable(map);
 }
 
-test('the cancellation parent-floor gate is the canonical unarmed block-time map', () => {
+test('the cancellation parent-floor gate is the canonical testnet-armable block-time map', () => {
     assertCanonicalMap(CONSTANTS.DISPENSER_CANCEL_GRACE_PARENT_FLOOR_ACTIVATION);
 });
 
-test('the map guard rejects an armed production or test network', () => {
-    for (const network of ['mainnet', 'testnet']) {
-        assert.throws(() => assertCanonicalMap({
-            ...CONSTANTS.DISPENSER_CANCEL_GRACE_PARENT_FLOOR_ACTIVATION,
-            [network]: 0,
-        }));
-    }
+test('the map guard permits only a testnet block-time activation', () => {
+    const map = CONSTANTS.DISPENSER_CANCEL_GRACE_PARENT_FLOOR_ACTIVATION;
+    assert.throws(() => assertCanonicalMap({ ...map, mainnet: 1700000000 }));
+    assert.throws(() => assertCanonicalMap({ ...map, regtest: 1 }));
+    assert.throws(() => assertCanonicalMap({ ...map, testnet: 800000 }));
+    assert.doesNotThrow(() => assertCanonicalMap({ ...map, testnet: 1700000000 }));
 });
 
 test('the canonical activation-map index publishes the cancellation parent-floor gate', () => {
