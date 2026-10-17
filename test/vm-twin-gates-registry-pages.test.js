@@ -122,6 +122,10 @@ function assertTestnetArmedNote(row, gate) {
         `xchain-vm row calls ${gate.vm} off on testnet, but its table arms testnet`);
 }
 
+// VM tables whose indexer twin has not landed yet. Each must still be named in the xchain-vm
+// row and stay at the unarmed sentinel on mainnet and testnet; drop the entry when the twin lands.
+const PENDING_INDEXER_TWINS = new Set(['TOSTRING_SIZE_METER_ACTIVATION']);
+
 function assertTwinRegistryPages(activation, flagDays, tables) {
     const row = vmServiceRow(activation);
     const rosters = {
@@ -132,6 +136,14 @@ function assertTwinRegistryPages(activation, flagDays, tables) {
     assert.ok(tables.length > 0, 'xchain-vm has no sealed per-network activation tables');
     for (const gate of tables) {
         assert.ok(row.includes(`\`${gate.marker}\``), `xchain-vm row omits ${gate.vm}`);
+        if (PENDING_INDEXER_TWINS.has(gate.vm)) {
+            for (const network of ['mainnet', 'testnet']) {
+                const threshold = gate.thresholds[network];
+                assert.ok(threshold === null || threshold >= SENTINEL_FLOOR,
+                    `${gate.vm} arms ${network} before its indexer twin has landed`);
+            }
+            continue;
+        }
         assert.ok(
             row.includes(`indexer twin is \`${gate.registry}\``),
             `xchain-vm row does not pair ${gate.vm} with ${gate.registry}`,
@@ -171,6 +183,7 @@ test('the registry-page guard fails when a VM gate, twin, or roster entry is rem
     const sources = readVmSources(vm.root);
     const tables = vmNetworkTables(sources);
     for (const gate of tables) {
+        if (PENDING_INDEXER_TWINS.has(gate.vm)) continue;
         assert.throws(
             () => assertTwinRegistryPages(
                 ACTIVATION.replace(`\`${gate.marker}\``, '`removed`'), FLAG_DAYS, tables,

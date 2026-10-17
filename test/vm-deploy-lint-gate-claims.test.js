@@ -182,8 +182,9 @@ function assertSyntaxDepth(pages, facts) {
             assert.ok(pages[name].includes(marker), `${name} omits ${marker}`);
         }
     }
-    assert.deepEqual(facts.armed, [], 'LINT_SYNTAX_DEPTH_ACTIVATION now sets a height for '
-        + facts.armed.join(', ') + '; the pages say no mainnet or testnet height is set, so update them');
+    // The v0.24.0 cut armed the three testnet keys; mainnet stays unset, as the pages say.
+    assert.deepEqual(facts.armed, ['BTC:testnet', 'LTC:testnet', 'DOGE:testnet'], 'LINT_SYNTAX_DEPTH_ACTIVATION now sets a height for '
+        + facts.armed.join(', ') + '; the pages say only the three testnet keys are set, so update them');
 }
 
 test('the deploy-lint pages document the syntax-depth bound the VM ships', { skip: vmDepth.skip }, () => {
