@@ -108,7 +108,7 @@ Probes the encoder's hard dependencies (the UTXO tracker) and reports their stat
 
 ### `estimate_fee`
 
-Suggested fee tiers in base units per vByte (satoshis on Bitcoin, litoshis on Litecoin, koinu on Dogecoin), sourced from the coin node's `estimatesmartfee`. Takes no parameters.
+Suggested fee tiers in base units per vByte (satoshis on Bitcoin, litoshis on Litecoin, koinu on Dogecoin), sourced from the coin node's `estimatesmartfee`. Tiers are normalized so a faster tier is never quoted below a slower tier: `medium` is at least `low`, and `high` is at least `medium`. Takes no parameters.
 
 **Request:**
 ```json
