@@ -125,7 +125,7 @@ VERSION|TICK|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO
 | `CONTROLLER` | `ACTION_INDEX` of a deployed, active contract on the same chain (its `contracts.action_index`; derived address `C:<CHAIN>:<CONTROLLER>`). |
 | `ACTION_CLASS` | Which [class](#action-classes) of action this binding gates. |
 | `COOLDOWN_BLOCKS` | Drop-cooldown committed at bind time: the friction (in blocks) before a later `UNBIND` of this class takes effect. |
-| `UNBIND` | `1` drops the live binding for `ACTION_CLASS` (gated by its cooldown); `0` binds. |
+| `UNBIND` | Only `1` drops the live binding for `ACTION_CLASS` (gated by its cooldown); any other value binds. |
 
 Rules:
 
