@@ -45,7 +45,9 @@
  *      ROLLCALL eviction burns nothing. Calling the missed-rounds knob a
  *      "non-participation slash" tells a validator operator their stake is at
  *      risk when it is not. This claim has drifted back once already after a
- *      partial correction, which is why it is pinned here.
+ *      partial correction, which is why it is pinned here. The getting-started
+ *      validator guide drifted the same way ("publishing prices that diverge
+ *      from the network ... carries its own penalties") and is scanned too.
  *
  *   5. Cross-chain DEX confirmation depth. A validator co-signs a DEX match
  *      only once the give-side escrow is buried to that chain's depth, which
@@ -231,9 +233,10 @@ const PENALTY_PAGES = [
     'components/hub/architecture.md',
     'components/hub/database.md',
     'components/hub/README.md',
+    'getting-started/running-a-validator.md',
 ];
 
-// A non-equivocation offense tied to a burn. The identifiers SLASH_*,
+// A non-equivocation offense tied to a burn or a penalty. The identifiers SLASH_*,
 // SlashDetector and slash_proposals are legitimate names and must survive, so
 // the penalty alternation ends at a word boundary that a following `_` or
 // letter defeats: SLASH_MISSED_ROUNDS_THRESHOLD, SlashDetector and
@@ -242,25 +245,41 @@ const PENALTY_PAGES = [
 // leaving it out made this guard green against the very drift it names.
 // Neither pattern crosses a sentence end or a table-cell boundary, which is
 // what keeps the corrected rows (offense recorded in one sentence, equivocation
-// SLASH named in the next) from tripping it.
-const PENALTY = String.raw`(?:\bslash(?:es|ed|ing)?\b|\bburn(?:s|ed|ing)?\b)`;
-const OFFENSE = String.raw`(?:missed[\s-]?round|non[\s-]?participation|price deviation)`;
+// SLASH named in the next) from tripping it. Deviation and divergence wording
+// and the word "penalties" are covered too, because the validator guide drifted
+// as "prices that diverge from the network ... carries its own penalties".
+const PENALTY = String.raw`(?:\bslash(?:es|ed|ing)?\b|\bburn(?:s|ed|ing)?\b|\bpenalt(?:y|ies)\b|\bpenali[sz](?:e|es|ed|ing)\b)`;
+const OFFENSE = String.raw`(?:missed[\s-]?round|non[\s-]?participation|price deviation|\bdeviat\w*|\bdiverg\w*)`;
 const FALSE_BURN = new RegExp(`${OFFENSE}[^.\\n|]{0,90}${PENALTY}`, 'i');
 const FALSE_BURN_REVERSED = new RegExp(`${PENALTY}[^.\\n|]{0,90}${OFFENSE}`, 'i');
 
-test('no hub page ties a non-equivocation offense to a stake burn', () => {
+// List each line of one page that ties a non-equivocation offense to a penalty.
+function penaltyOffenders(rel, text) {
     const offenders = [];
-    for (const rel of PENALTY_PAGES) {
-        readDoc(rel).split('\n').forEach((line, i) => {
-            if (FALSE_BURN.test(line) || FALSE_BURN_REVERSED.test(line)) {
-                offenders.push(`${rel}:${i + 1}  ${line.trim()}`);
-            }
-        });
-    }
+    text.split('\n').forEach((line, i) => {
+        if (FALSE_BURN.test(line) || FALSE_BURN_REVERSED.test(line)) {
+            offenders.push(`${rel}:${i + 1}  ${line.trim()}`);
+        }
+    });
+    return offenders;
+}
+
+test('no hub or validator-guide page ties a non-equivocation offense to a stake penalty', () => {
+    const offenders = PENALTY_PAGES.flatMap((rel) => penaltyOffenders(rel, readDoc(rel)));
     assert.deepEqual(offenders, [],
         'stake burns only on a permissionless SLASH proof of equivocation; deviation '
         + 'and missed rounds are hub-local offenses that leave on-chain stake untouched '
         + '(components/hub/decentralization.md). Offending lines:\n' + offenders.join('\n'));
+});
+
+test('falsification: the validator guide\'s price-divergence penalty wording is caught', () => {
+    const rel = 'getting-started/running-a-validator.md';
+    const page = readDoc(rel);
+    const stale = page.replace(/Equivocating in a capability you serve[^\n]*/,
+        'Misbehaviour in the capabilities you actually exercise, such as signing contradictory '
+        + 'messages or publishing prices that diverge from the network, carries its own penalties in both tiers.');
+    assert.notEqual(stale, page, 'the validator guide penalty paragraph moved; re-point this falsification');
+    assert.notDeepEqual(penaltyOffenders(rel, stale), []);
 });
 
 test('decentralization.md still carries all three penalty lanes', () => {
@@ -338,6 +357,52 @@ test('falsification: the retired audit-anchor sentence is caught in §9', () => 
     const stale = page.replace(/^## 10\. /m,
         'An optional Merkle-rooted audit anchor may be published to a chain for transparency.\n\n## 10. ');
     assert.throws(() => assertMatchArchiveClaim(stale));
+});
+
+const ANCHOR_ARCHIVE_TERMINATION =
+    /(?:anchor_archive[^.\n]{0,120}(?:stop|retir|terminat)|(?:stop|retir|terminat)[^.\n]{0,120}anchor_archive)/i;
+
+function anchorActionBullet(markdown) {
+    const line = markdown.split('\n').find((candidate) => /^- \*\*ANCHOR\*\*/.test(candidate));
+    assert.ok(line, 'whitepaper.md no longer has its ANCHOR action bullet');
+    return line;
+}
+
+function anchorArchiveTerminationGate(markdown) {
+    const heading = /^### Archive reward termination \(`([^`]+)`\)$/m.exec(markdown);
+    assert.ok(heading, 'anchor.md no longer has its archive reward termination heading');
+    const section = markdown.slice(heading.index, markdown.indexOf('\n### ', heading.index + heading[0].length));
+    assert.match(section, /only when it \*\*and\*\* `ANCHOR_FOLD_ACTIVATION` are active/,
+        'anchor.md no longer states that archive reward termination requires both gates');
+    return heading[1];
+}
+
+function assertWhitepaperAnchorRewardTermination(whitepaper, anchor) {
+    const termGate = anchorArchiveTerminationGate(anchor);
+    const terminationClaims = anchorActionBullet(whitepaper)
+        .split(/(?<=[.!?])\s+/)
+        .filter((sentence) => ANCHOR_ARCHIVE_TERMINATION.test(sentence));
+    for (const sentence of terminationClaims) {
+        assert.match(sentence, new RegExp(`\\b${termGate}\\b`),
+            `whitepaper.md attributes anchor_archive reward termination without ${termGate}`);
+    }
+}
+
+test('the whitepaper ANCHOR bullet follows anchor.md on archive reward termination', () => {
+    assertWhitepaperAnchorRewardTermination(
+        readDoc('whitepaper.md'),
+        readDoc('protocol/actions/anchor.md'));
+});
+
+test('falsification: fold-only anchor_archive reward termination is caught', () => {
+    const page = readDoc('whitepaper.md');
+    const stale = page.replace(
+        'v0, v1 and v2 stay valid beside it',
+        'v0, v1 and v2 stay valid beside it. At `ANCHOR_FOLD_ACTIVATION`, `anchor_archive` minting stops');
+    assert.notEqual(stale, page, 'the ANCHOR bullet moved; re-point this falsification');
+    assert.throws(() => assertWhitepaperAnchorRewardTermination(
+        stale,
+        readDoc('protocol/actions/anchor.md')));
 });
 
 /* ---------------------------------------------------------------- claim 7 */

@@ -75,7 +75,46 @@ test('pins the live controller invocation table', () => {
     });
 
     const classes = parseActionClassesTable(page);
-    assert.deepEqual(classes.transfer, ['SEND', 'DEPOSIT', 'WITHDRAW']);
+    assert.deepEqual(classes.transfer,
+        ['SEND', 'AIRDROP', 'DIVIDEND', 'SWEEP', 'DEPOSIT', 'WITHDRAW']);
+});
+
+// Compare each Action classes row with the action_types the Invocation points table routes to it.
+function assertClassRowsMatchInvocations(markdown) {
+    const routed = {};
+    for (const [actionType, actionClass] of Object.entries(parseInvocationTable(markdown))) {
+        (routed[actionClass] ??= []).push(actionType);
+    }
+    const listed = parseActionClassesTable(markdown);
+    assert.deepEqual(Object.keys(listed).sort(), Object.keys(routed).sort(),
+        'the Action classes and Invocation points tables name different classes');
+    for (const [actionClass, actionTypes] of Object.entries(routed)) {
+        assert.deepEqual([...listed[actionClass]].sort(), [...actionTypes].sort(),
+            `the ${actionClass} row lists different guard action_types than the invocation table`);
+    }
+}
+
+test('every action class row lists exactly the action_types the invocation table routes to it', () => {
+    assertClassRowsMatchInvocations(readControllerBoundTokensPage());
+});
+
+test('the class row cross-check rejects a transfer row missing AIRDROP', () => {
+    const missingAirdrop = `
+### Invocation points
+
+| \`action_type\` | Class |
+|---|---|
+| \`SEND\` | \`transfer\` |
+| \`AIRDROP\` | \`transfer\` |
+
+### Action classes
+
+| Class | Gates | Guard \`action_type\` |
+|---|---|---|
+| \`transfer\` | sends | \`SEND\` |
+`;
+    assert.throws(() => assertClassRowsMatchInvocations(missingAirdrop),
+        /the transfer row lists different guard action_types/);
 });
 
 /* Bind/unbind verdicts and the guard savepoint name. Clients match the
@@ -91,8 +130,14 @@ const BINDING_SRC = 'src/actions/issue/controller_binding.js';
 const ADDRESS_SRC = 'src/actions/address.js';
 const COOLDOWN_SRC = 'src/db/database/controllers_vm.js';
 const GUARD_EFFECTS_SRC = 'src/actions/execute/guard_effects.js';
+const OWNERSHIP_SRC = 'src/actions/issue/token_state.js';
 const indexerSrc = sibling('xchain-indexer',
-    [BINDING_SRC, ADDRESS_SRC, COOLDOWN_SRC, GUARD_EFFECTS_SRC]);
+    [BINDING_SRC, ADDRESS_SRC, COOLDOWN_SRC, GUARD_EFFECTS_SRC, OWNERSHIP_SRC]);
+
+// Verdicts a bind or unbind meets before the binding handlers: the ISSUE owner gate and the
+// sleeping-SOURCE check both formats run.
+const GATE_VERDICTS = ['invalid: SOURCE (sleeping)', 'invalid: issued by another address',
+    'invalid: TICK (ownership escrowed)'];
 const readIndexer = (rel) => fs.readFileSync(path.join(indexerSrc.root, rel), 'utf8');
 
 // Slice a `###` section up to the next heading of depth three or less.
@@ -145,9 +190,37 @@ test('the binding handlers emit exactly the verdicts the table lists',
         }
         const bridged = 'invalid: TICK (bridged tokens cannot be policy-bound yet)';
         for (const verdict of documented) {
-            assert.ok(tokenVerdicts.has(verdict) || verdict === bridged,
+            assert.ok(tokenVerdicts.has(verdict) || verdict === bridged
+                || GATE_VERDICTS.includes(verdict),
                 `the rejection table lists ${verdict}, which no binding handler emits`);
         }
+    });
+
+test('the rejection table names the owner, escrow and sleeping gates', () => {
+    const rejections = headedSection(readControllerBoundTokensPage(), '### Bind and unbind rejections');
+    for (const verdict of GATE_VERDICTS) {
+        assert.ok(rejections.includes(`| \`${verdict}\` |`),
+            `the rejection table no longer names ${verdict}`);
+    }
+});
+
+test('the ISSUE ownership gate and ADDRESS fields emit the gate verdicts the table lists',
+    { skip: indexerSrc.skip }, () => {
+        const tokenState = readIndexer(OWNERSHIP_SRC);
+        const start = tokenState.indexOf('async function validateOwnership(');
+        const end = tokenState.indexOf('module.exports', start);
+        assert.ok(start !== -1 && end > start, 'token_state.js validateOwnership not found');
+        const ownership = verdictsIn(tokenState.slice(start, end));
+        for (const verdict of GATE_VERDICTS) {
+            assert.ok(ownership.has(verdict),
+                `validateOwnership no longer emits ${verdict}, so its rejection row is stale`);
+        }
+        const address = readIndexer(ADDRESS_SRC);
+        const fieldsStart = address.indexOf('async validateFields(');
+        const fieldsEnd = address.indexOf('async validateControllerBinding(', fieldsStart);
+        assert.ok(fieldsStart !== -1 && fieldsEnd > fieldsStart, 'address.js validateFields not found');
+        assert.ok(verdictsIn(address.slice(fieldsStart, fieldsEnd)).has('invalid: SOURCE (sleeping)'),
+            'ADDRESS no longer refuses a sleeping SOURCE, so the "both" format cell is stale');
     });
 
 test('the cooldown lockout source facts still hold', { skip: indexerSrc.skip }, () => {

@@ -98,7 +98,7 @@
       "type": "service",
       "group": "hub",
       "tech": "Node.js, MariaDB",
-      "description": "Config oracle and cross-chain coordinator. PBFT federation (stake-weighted source-deduped quorum at/above STAKE_WEIGHTED_QUORUM_ACTIVATION, majority-floored count max(2f+1, ceil((N+1)/2)) below it), five stake-qualified capabilities, price-oracle rounds, attestation engine (http_get / llm providers), reorg-retraction co-signing, governance/slash, and StateAnchorPublisher (ANCHOR v0 bundle on DOGE)."
+      "description": "Config oracle and cross-chain coordinator. PBFT federation (stake-weighted source-deduped quorum at/above STAKE_WEIGHTED_QUORUM_ACTIVATION, majority-floored count max(2f+1, ceil((N+1)/2)) below it), five stake-qualified capabilities, price-oracle rounds, attestation engine (http_get / llm providers), reorg-retraction co-signing, governance/slash, and StateAnchorPublisher (ANCHOR v0/v3 bundles on DOGE)."
     },
     {
       "id": "hubdb",
@@ -153,7 +153,7 @@
       "type": "service",
       "group": "clients",
       "tech": "JS monorepo: web SPA, MV3 extension, Electron, Capacitor mobile",
-      "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, mobile (Capacitor; Android shipped, iOS later), plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device."
+      "description": "Self-custodial multi-chain wallet built on the SDK. Packages: core (shell-free, enforced by CI), web, extension, desktop, mobile (Capacitor; Android shipped, iOS pending App Store release), plus Trezor/Ledger signer packages. Signs PSBTs locally; keys never leave the device."
     },
     {
       "id": "node",
@@ -306,7 +306,7 @@
       "id": "r16",
       "source": "sync",
       "target": "decoderdb",
-      "label": "snapshots decoded txs (8 of 9 tables)",
+      "label": "snapshots decoded txs (8 of 10 tables)",
       "kind": "read"
     },
     {
@@ -776,7 +776,7 @@
           "n": 2,
           "node": "sync",
           "edge": "r16",
-          "action": "Decoder DB is snapshotted too (8 of 9 tables; transparency/mempool excluded by design)."
+          "action": "Decoder DB is snapshotted too (8 of 10 tables; mempool_transactions and dispenser_extension_undo excluded by design)."
         },
         {
           "n": 3,
@@ -794,7 +794,7 @@
     {
       "id": "f8",
       "name": "State anchoring (ANCHOR on DOGE)",
-      "description": "Quorum-signed per-chain state checkpoints are anchored on Dogecoin as one ANCHOR v0 bundle per network, for chain-parse recoverability.",
+      "description": "Quorum-signed per-chain state checkpoints are anchored on Dogecoin in ANCHOR v0 checkpoint bundles or activation-gated v3 folded bundles, for chain-parse recoverability.",
       "steps": [
         {
           "n": 1,
@@ -806,7 +806,7 @@
           "n": 2,
           "node": "hub",
           "edge": "r14",
-          "action": "ONE ANCHOR v0 checkpoint bundle per network per publishing cycle is built and submitted through the DOGE encoder from the elected publisher's own DOGE wallet."
+          "action": "The elected publisher builds and submits ANCHOR v0 checkpoint bundles, or v3 folded bundles at or above ANCHOR_FOLD_ACTIVATION, through the DOGE encoder from its own DOGE wallet."
         },
         {
           "n": 3,

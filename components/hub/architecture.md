@@ -414,12 +414,14 @@ Indexers bootstrap by fetching the REST snapshots (paginated by `since_id`) then
 
 ### Trimmed Median
 
-Given N validator submissions for a coin pair:
-1. Sort all submissions by price.
-2. Discard the top 15% and bottom 15%.
-3. Compute the median of the remaining values.
+Given the price-snapshot members' submissions for a coin pair (one value per submitter, each strictly between 0 and `PRICE_MAX`):
+1. Sort the values by exact decimal value.
+2. Remove `ceil(15% of N)` values from each end, when at least one value remains. The trim is symmetric, so it never moves the middle value or values: the result is the plain median of all the submissions.
+3. Take the median. An odd count publishes the middle value; an even count publishes the mean of the two middle values, rounded once to 8 decimals.
+4. Even-split gate: for an even count, if either middle value lies more than `ORACLE_DEVIATION_THRESHOLD` (5%) from that mean, the pair is omitted from the round and consumers keep its last finalized price. A median that rounds to zero is omitted the same way.
+5. Per-round clamp: the result is bounded to `ORACLE_MAX_CHANGE_PER_ROUND` (25%) either side of the pair's last finalized price, or `XCHAIN_PRICE_MAX_CHANGE_PER_ROUND` (10%) for XCHAIN/USD, and a larger move publishes at the bound. A pair with no finalized price yet is not clamped.
 
-This resists manipulation: an attacker would need to control >30% of validators to significantly shift the price.
+Moving the median outside the range of the honest submissions requires controlling at least half of a pair's submissions, and even a controlling majority moves the published price at most 25% per round (10% for XCHAIN/USD). A follower that priced the pair itself co-signs the leader's value only when it lies within 5% of the follower's own aggregate over the other validators' submissions; when that set has an even count and the leader itself submitted the pair, within 5% of either of its two middle values, since the leader's median of the full set is one of them or a value between them.
 
 ## Cross-Chain Attestation
 
@@ -497,15 +499,16 @@ On each finalized oracle round, `RewardTracker` splits `ORACLE_REWARD_PER_ROUND`
 
 ### Slash Detection
 
-Three offense types are monitored:
+Four offense types are monitored:
 
 | Offense | Trigger | Description |
 |---|---|---|
 | `price_deviation` | >5% from consensus | Submission deviates more than `SLASH_DEVIATION_THRESHOLD` from the finalized price |
 | `repeated_deviation` | 3+ in 24 hours | Three or more deviations within a rolling 24-hour window |
 | `non_participation` | 30+ missed rounds | `SLASH_MISSED_ROUNDS_THRESHOLD` consecutive rounds without a submission |
+| `attestation_divergence` | Diverged body on a `byte_equality` provider | A validator's `ok` PROPOSE body hash differs from the quorum-agreed winner; only `byte_equality` providers are checked, and a `provider_error` report never counts |
 
-Detection is recorded in the `slash_proposals` table for governance review. All three offenses are hub-local: the strongest outcome of a governance vote is `validators.status='suspended'`, which excludes the validator from PBFT rounds and leaves on-chain stake untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which no offense in this table produces. See [Decentralization](decentralization.md) for the three penalty lanes.
+Detection is recorded in the `slash_proposals` table for governance review. All four offenses are hub-local: the strongest outcome of a governance vote is `validators.status='suspended'`, which excludes the validator from PBFT rounds and leaves on-chain stake untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which no offense in this table produces. See [Decentralization](decentralization.md) for the three penalty lanes.
 
 ---
 

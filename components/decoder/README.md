@@ -30,7 +30,7 @@ The decoder's job is extraction only; it does not interpret action semantics. It
 |---|---|
 | [Architecture](architecture.md) | Data pipeline, internal components, polling loop, transaction parsing, deobfuscation |
 | [Configuration](configuration.md) | Environment variables, internal constants, network-specific settings |
-| [Database](database.md) | Full schema reference: 9 tables covering blocks, transactions, dispensers, pubkeys, indexes, and events |
+| [Database](database.md) | Full schema reference: 10 tables covering blocks, transactions, mempool, dispensers, pubkeys, indexes, events, and reorg bookkeeping |
 | [Operations](operations.md) | Running, Docker, API endpoints, reorg handling, mempool, troubleshooting |
 
 ## Installation

@@ -27,7 +27,7 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 
 | Variable | Description | Default |
 |---|---|---|
-| `AUX_POW` | Enable AuxPoW header stripping (Dogecoin) | _(unset)_ |
+| `AUX_POW` | Legacy; read but ignored. AuxPoW header stripping is chosen from `NETWORK` (Dogecoin only) | _(unset)_ |
 | `DECODER_RATE_LIMIT_RPM` | API requests per minute per IP | `100` |
 | `GETMEMPOOL_CACHE_MS` | How long the `getmempool` JSON-RPC response is cached, in milliseconds. That method reads the database, so without a cache a burst of unauthenticated requests contends with the block loop; the window is read once and sliced per request, and the underlying snapshot only changes every 60 seconds. | `5000` |
 | `FEE_DESTINATION` | Native-coin protocol fee destination override for this coin+network. The decoder persists outputs paying the resolved address to `transaction_outputs` so the indexer can validate native-coin fee payments. By default the address comes from the bundled coin registry (`src/coins`, pinned per coin/network), so capture is on for a stock install. This variable overrides the default on testnet/regtest only; on mainnet it is ignored with a warning, because fee acceptance is consensus and must not depend on operator environment. | _(coin registry)_ |
@@ -45,7 +45,7 @@ Configuration is loaded from a `.env` file via `dotenv`. All variables are read 
 | `DECODER_POLL_SILENT_MS` | How long the block loop may go without completing a single iteration before `/live` reports unhealthy (503) and the container restart policy recycles the process. Measures the loop, not the chain: the stall window `DECODER_STALL_ALERT_MS` (default `900000` ms, documented under Operations) asks whether the chain is advancing, and a caught-up decoder advances nothing for hours while being perfectly healthy, so only an iteration count separates "idle" from "the loop is gone". Defaults to twice the stall window, because every normal path through the loop, the node-outage retry included, returns to the loop top far inside it. | `1800000` (30 minutes) |
 | `XCHAIN_INDEXER_DIR` | Path override for the sibling `xchain-indexer` checkout that `bin/sync-batch-limits.js` reads to regenerate the vendored BATCH limit tables (`src/protocol/indexer_batch_limits.js`) from the indexer's own `src/actions/batch.js` and `src/protocol_changes.js`. A maintenance-tool setting only; the decoder service itself never reads it. | `../../xchain-indexer` relative to `bin/` (the sibling checkout layout) |
 
-The `AUX_POW` variable should be set to any truthy value when running against Dogecoin nodes. It enables the `getBlockWithoutAuxPow()` code path that strips merge-mining headers before parsing.
+The `AUX_POW` variable is legacy: the decoder still parses it but no longer consults it. The `getBlockWithoutAuxPow()` code path that strips merge-mining headers before parsing is selected from the coin's wire format, so it is always on for a `dogecoin-*` `NETWORK` and never on for Bitcoin or Litecoin, whatever `AUX_POW` says.
 
 ## Network Identifier Format
 

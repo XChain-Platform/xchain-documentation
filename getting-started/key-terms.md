@@ -107,7 +107,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **ORDER**: An ACTION that places a sell order on the built-in DEX. Specifies the token being sold, the price, and the quantity. Buyers fill orders by sending payment.
 
-**SWAP**: An ACTION that enables atomic cross-chain token exchanges, trading a token on one blockchain for a token on another, without a bridge or custodian.
+**SWAP**: An ACTION that enables escrowed cross-chain token exchanges, trading a token on one blockchain for a token on another, without a bridge or custodian. Each chain settles its own leg against a validator-signed match, so a cross-chain swap is not atomic in the single-chain sense (see [Residual risk](../user-guide/cross-chain.md#residual-risk)).
 
 ---
 
@@ -135,13 +135,13 @@ A reference glossary of XChain terminology, organized by category.
 
 **gated FILE**: A `FILE` action whose `GATE_TICKER` field is non-empty. The raw file data is ciphertext (AES-256-GCM); only holders of `GATE_TICKER` receive the symmetric key (via ECIES `MESSAGE`) and can decrypt. Published only by the token's issuer. See [Token-Gated Content](../protocol/token-gated-content.md).
 
-**KEY_HASH**: The hex `sha256` of a gated file's symmetric key. Stored on the `FILE` action so holders can verify the key they receive in a `MESSAGE` handoff matches the file they're decrypting. Also serves as the implicit pack identifier: two or more gated FILEs sharing the same `KEY_HASH` are pack members and unlock together.
+**KEY_HASH**: The hex `sha256` of a gated file's symmetric key. Stored on the `FILE` action so holders can verify the key they receive in a `MESSAGE` handoff matches the file they're decrypting. Together with the publisher and `GATE_TICKER`, it implicitly identifies a pack: two or more gated FILEs by the same publisher with the same `GATE_TICKER` and `KEY_HASH` are pack members and unlock together.
 
 **Key Handoff**: The act of delivering a gated file's symmetric key to a token holder via an ECIES-encrypted `MESSAGE`. Sent by the issuer at publish time (to themselves, for recoverability) and by the current holder to a new holder as part of a direct transfer (`BATCH(SEND, MESSAGE)`), which is the only path the protocol requires it on. A buyer credited by DEX settlement, a dispense, an airdrop or a dividend receives the tokens without a key.
 
 **MESSAGE**: An ACTION that stores a short arbitrary message permanently on the blockchain. Supports plaintext, ECDH session, AES pre-shared, and ECIES (encrypted to a recipient address's pubkey). ECIES MESSAGEs carry [token-gated content](../protocol/token-gated-content.md) key handoffs.
 
-**Pack**: A group of token-gated files sharing the same `KEY_HASH` and `GATE_TICKER`. Pack membership is implicit in the shared key hash; the protocol does not have a separate "pack" ACTION or table. Holders unlock the entire pack atomically with one key. Optionally surfaced in TIS via `pack_id` on file entries and a top-level `packs` display map.
+**Pack**: A group of token-gated files by the same publisher sharing the same `GATE_TICKER` and `KEY_HASH`. Pack membership is implicit in that triple, so a former issuer's files never merge into the current issuer's pack (see [FILE pack semantics](../protocol/actions/file.md#pack-semantics)); the protocol does not have a separate "pack" ACTION or table. Holders unlock the entire pack atomically with one key. Optionally surfaced in TIS via `pack_id` on file entries and a top-level `packs` display map.
 
 **Token Gating**: Restricting access to content or capability based on whether an address holds a specific token. XChain supports cryptographic token gating for files (see **gated FILE**) and access-control patterns for off-chain systems via signed-challenge verification.
 

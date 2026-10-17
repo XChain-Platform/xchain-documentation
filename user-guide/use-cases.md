@@ -191,7 +191,7 @@ The protocol charges you to create the market, priced by how long it lives; the 
 
 You cannot bet on your own market from the market's own address, because you decide the result. There is no bonding or slashing of oracles either: your published history of markets resolved, cancelled and left to expire is the entire accountability mechanism, and it is per-address.
 
-XChain actions involved: BET v0 (create the market), BET v3 (publish the result), BET v1 (cancel it, refunding everyone in full). If you never resolve, the protocol emits BET_EXPIRE at the end of the resolve window and refunds every wager automatically.
+XChain actions involved: BET v0 (create the market), BET v4 (replace or remove its allow and block lists while it is open; active on regtest and on each testnet chain from its own activation height, not yet on mainnet, see [Editing membership lists](./betting.md#editing-membership-lists)), BET v3 (publish the result), BET v1 (cancel it, refunding everyone in full). If you never resolve, the protocol emits BET_EXPIRE at the end of the resolve window and refunds every wager automatically.
 
 ### Betting into a Market
 

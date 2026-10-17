@@ -210,7 +210,7 @@ The durable at-most-once marker for PRICE v0 round broadcasts, written by `Oracl
 | `bridge_transfers` | PBFT-finalized bridge transfer records: one signed row per confirmed lock or burn, carrying `tick`, `decimals` and `amount`, from which the destination indexer injects the XBRIDGE settle leg (mirror to indexers) |
 | `policy_snapshots` | PBFT-finalized per-token policy snapshots (allow list, block list, tick sleep) a destination chain materializes onto a bridged copy. Append-only, latest-wins by `policy_seq`, on the `state_checkpoints` terms (mirror to indexers) |
 | `list_snapshots` | PBFT-finalized shared-list snapshot records: one signed row per finalized list version, carrying the three per-chain admission columns (mirror to indexers once the shared-list consumer gate arms) |
-| `remote_token_snapshots` | PBFT-finalized remote token facts (tick, decimals, owner) pinned at a `snapshot_block`, one signed row per finalized fact; mirrored to indexers, which read the pinned remote token for cross-chain orders |
+| `remote_token_snapshots` | PBFT-finalized remote token facts (tick, decimals, owner) pinned at a `snapshot_block`, one signed row per finalized fact; mirrored to indexers, which read the pinned remote token for cross-chain orders. From `remote_token_admission_activation` (keyed on the row's BTC `snapshot_block`) a row also carries a signed `admit_block_btc` / `admit_block_ltc` / `admit_block_doge` admission map stamped from the hub's admission tips |
 
 ### `attestations`
 
@@ -480,14 +480,14 @@ Tracks XCHAIN rewards earned by validators for participating in oracle rounds. R
 
 ### `slash_proposals`
 
-Records detected validator misbehavior for governance review. The offenses recorded here (`price_deviation`, `repeated_deviation`, `non_participation`, attestation divergence) are hub-local: a governance vote can suspend the validator, and on-chain stake is untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which is a separate on-chain path this table does not feed.
+Records detected validator misbehavior for governance review. The offenses recorded here (`price_deviation`, `repeated_deviation`, `non_participation`, `attestation_divergence`) are hub-local: a governance vote can suspend the validator, and on-chain stake is untouched. Stake is burned only when the indexer processes a permissionless SLASH proof of equivocation, which is a separate on-chain path this table does not feed.
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | `BIGINT AUTO_INCREMENT` | Primary key |
 | `validator_pubkey` | `CHAR(64) NOT NULL` | Offending validator's pubkey |
-| `offense_type` | `VARCHAR(30) NOT NULL` | Type: `price_deviation`, `repeated_deviation`, `non_participation` |
-| `round_number` | `BIGINT` | Round where offense occurred |
+| `offense_type` | `VARCHAR(30) NOT NULL` | Type: `price_deviation`, `repeated_deviation`, `non_participation`, `attestation_divergence` |
+| `round_number` | `BIGINT` | Round where offense occurred (for `attestation_divergence`, a pseudo-round taken from the request id) |
 | `evidence` | `TEXT` | Serialized evidence details |
 | `status` | `ENUM('pending','approved','rejected','expired')` | Proposal status (default: `pending`) |
 | `created_at` | `DATETIME` | Detection time |

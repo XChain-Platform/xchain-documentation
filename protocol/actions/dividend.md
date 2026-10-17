@@ -32,7 +32,8 @@ This example pays a dividend of 0.5 BACON token to every holder of 1 TEST token
 ## Rules
 
 ## Notes
-- `DIVIDEND` requires an `XCHAIN` fee based on number of database hits
+- `DIVIDEND` requires a fee. The fee may be paid in `XCHAIN` (deducted from the sender's balance) or in native coin via a qualified coin output in the same transaction; on Litecoin and Dogecoin the native-coin output is the only accepted form.
+- The fee is priced on the unified gas schedule as `DIVIDEND_PER_RECIPIENT` for each holder actually paid (see the exclusions below). `UNIFIED_FEES` is active from genesis on every network; the indexer still carries the earlier per-database-hit model behind that gate, but no current network runs it. See the hub's [gas schedule](../../components/hub/api.md) for the values. A `DIVIDEND` emitted by a contract pays no separate fee; the dividend paid to holders is still debited.
 - `UNIT` - A specific unit of measure (1 or 1.0)
 - To send `TICK` to a large number of users, see the `AIRDROP` or `SEND` commands
 - If `TICK` is divisible and `DIVIDEND_TICK` is non-divisble, quantities whose calculated share rounds to 0 will receive no `DIVIDEND_TICK`. Such holders are excluded from the recipient list entirely, so they do **not** count toward the per-recipient fee charged to `SOURCE`

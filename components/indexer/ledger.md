@@ -77,7 +77,14 @@ The GAS address (defined per-chain, per-network in `src/coins/<COIN>.js`) is the
 
 ## Fee Distribution
 
-Fee payments are recorded in the `fees` table as debits from the source address with credits split between the `DONATE1` (protocol development) and `DONATE2` (community development) addresses.
+Per-action protocol fees, such as the issuance and listing fees above, are recorded in the `fees` table. A native-coin fee (BTC/LTC/DOGE) is paid by an on-chain output to the fee destination address, so the ledger records no XCHAIN debit or credit for it. An XCHAIN-balance fee is debited from the paying source address and then routed by the payer's `FEE_PREFERENCE`, set with the [ADDRESS](../../protocol/actions/address.md) action:
+
+- `1` (burn): nothing is credited, so the fee leaves supply permanently.
+- `2`, `0`, or no preference set (protocol development, the default): the full fee is credited to the per-chain `DONATE1` address.
+
+Fees are never split between addresses. The accepted preference set is `{0, 1, 2}`, so no community-development bucket exists in consensus; `DONATE2` is a configured per-chain address role that receives no fee credits. See [Gas](../../concepts/gas.md#fee-collection-and-distribution) for the full routing rules.
+
+VM gas billed from an XCHAIN balance for DEPLOY and EXECUTE takes a different path: it is debited from the source with no matching credit, so it leaves supply whatever the payer's preference.
 
 ---
 

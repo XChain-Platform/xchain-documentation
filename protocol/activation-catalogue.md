@@ -29,8 +29,10 @@ same chain or field.
 | `anchor_bundle_order_activation` | `ANCHOR_BUNDLE_ORDER_ACTIVATION` | height |
 | `anchor_empty_fold_reject_activation` | `ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION` | height |
 | `anchor_fold_activation` | `ANCHOR_FOLD_ACTIVATION` | height |
+| `anchor_fold_reissue_source_author_activation` | `ANCHOR_FOLD_REISSUE_SOURCE_AUTHOR_ACTIVATION` | height |
 | `anchor_preactivation_status_activation` | `ANCHOR_PREACTIVATION_STATUS_ACTIVATION` | height |
 | `anchor_reward_activation` | `ANCHOR_REWARD_ACTIVATION` and related anchor/archive reward gates | height |
+| `anchor_reward_copy_selection_activation` | `ANCHOR_REWARD_COPY_SELECTION_ACTIVATION` | height |
 | `archive_batch_author_activation` | `ARCHIVE_BATCH_AUTHOR_ACTIVATION` | height |
 | `archive_head_unverified_gate_activation` | `ARCHIVE_HEAD_UNVERIFIED_GATE_ACTIVATION` | height |
 | `archive_match_count_activation` | `ARCHIVE_MATCH_COUNT_ACTIVATION` | height |
@@ -47,6 +49,8 @@ same chain or field.
 | `attest_responsible_widening_activation` | `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` | height |
 | `attest_zero_conf_activation` | `ATTEST_ZERO_CONF_ACTIVATION` | height |
 | `bet_feed_list_edit_activation` | `BET_FEED_LIST_EDIT_ACTIVATION` | height |
+| `bigint_surface_strip_heights` | `BIGINT_SURFACE_STRIP_ACTIVATION` | height |
+| `bridge_policy_apply_order_activation` | `BRIDGE_POLICY_APPLY_ORDER_ACTIVATION` | height |
 | `bridge_policy_detach_activation` | `BRIDGE_POLICY_DETACH` | height |
 | `bridge_policy_refusal_record_activation` | `BRIDGE_POLICY_REFUSAL_RECORD_ACTIVATION` | height |
 | `bridge_row_fields_terminal_activation` | `BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION` | height |
@@ -54,6 +58,7 @@ same chain or field.
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
 | `consolidation_leg_amount_activation` | `CONSOLIDATION_LEG_AMOUNT_ACTIVATION` | time |
+| `contract_slash_active_first_activation` | `CONTRACT_SLASH_ACTIVE_FIRST_ACTIVATION` | height |
 | `cooldown_maturity_escrow_reversal_activation` | `COOLDOWN_MATURITY_ESCROW_REVERSAL_ACTIVATION` | height |
 | `cross_chain_offer_list_export_activation` | `CROSS_CHAIN_OFFER_LIST_EXPORT` | height |
 | `cross_chain_remote_token_activation` | `CROSS_CHAIN_REMOTE_TOKEN_ACTIVATION` | height |
@@ -63,6 +68,7 @@ same chain or field.
 | `dispenser_amount_positivity_activation` | `DISPENSER_AMOUNT_POSITIVITY_ACTIVATION` | time |
 | `dispenser_caps_activation` | `DISPENSER_CAPS_ACTIVATION` | time |
 | `dispenser_delay_protocol_time_activation` | `DISPENSER_DELAY_PROTOCOL_TIME_ACTIVATION` | height |
+| `dispenser_fiat_pricing_activation` | `DISPENSER_FIAT_PRICING_ACTIVATION` | height |
 | `dispenser_freshness_activation` | `DISPENSER_FRESHNESS_ACTIVATION` | height |
 | `dispenser_freshness_proven_use_activation` | `DISPENSER_FRESHNESS_PROVEN_USE_ACTIVATION` | time |
 | `dispenser_freshness_shape_activation` | `DISPENSER_FRESHNESS_SHAPE_ACTIVATION` | height |
@@ -73,12 +79,16 @@ same chain or field.
 | `dispenser_send_amount_compare_activation` | `DISPENSER_SEND_AMOUNT_COMPARE_ACTIVATION` | height |
 | `dispenser_settlement_price_activation` | `DISPENSER_SETTLEMENT_PRICE_ACTIVATION` | time |
 | `empty_allow_list_denies_activation` | `EMPTY_ALLOW_LIST_DENIES` | height |
+| `execute_fee_cap_activation` | `EXECUTE_FEE_CAP_ACTIVATION` | height |
 
 ## G through P
 
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
+| `gas_ceiling_exhausted_heights` | `GAS_CEILING_EXHAUSTED_ACTIVATION` | height |
 | `gated_handoff_ref_activation` | `GATED_HANDOFF_REF_ACTIVATION` | time |
+| `host_error_stack_strip_heights` | `HOST_ERROR_STACK_STRIP_ACTIVATION` | height |
+| `json_stringify_reentry_heights` | `JSON_STRINGIFY_REENTRY_ACTIVATION` | height |
 | `ledger_amount_precision_activation` | `LEDGER_AMOUNT_PRECISION_ACTIVATION` | height |
 | `list_address_ref_activation` | `LIST_ADDRESS_REF_ACTIVATION` | height |
 | `list_change_rematch_activation` | `LIST_CHANGE_REMATCH_ACTIVATION` | height |
@@ -93,9 +103,13 @@ same chain or field.
 | `list_tick_coin_activation` | `LIST_TICK_COIN_ACTIVATION` for coin-qualified ticker LIST items and the ISSUE colon-root refusal | height |
 | `list_transfer_activation` | `LIST_TRANSFER_ACTIVATION` | height |
 | `list_union_activation` | `LIST_UNION_ACTIVATION` | height |
+| `mainnet_launch_activation` | `MAINNET_LAUNCH_ACTIVATION` | time |
 | `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
+| `match_origin_open_activation` | `MATCH_ORIGIN_OPEN_ACTIVATION` | height |
 | `mirror_admission_activation` | `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` | height |
 | `mirror_admission_margin_activation` | `ADMIT_CHAIN_MARGIN_ACTIVATION` | height |
+| `native_stack_terminal_heights` | `NATIVE_STACK_TERMINAL_ACTIVATION` | height |
+| `nested_execute_gas_sum_activation` | `NESTED_EXECUTE_GAS_SUM_ACTIVATION` | height |
 | `oracle_hourly_window_activation` | `ORACLE_HOURLY_WINDOW_FIRST_ROUND` | constant |
 | `oracle_preload_causality_activation` | `ORACLE_PRELOAD_CAUSALITY_ACTIVATION` | height |
 | `oracle_price_age_hourly_activation` | `ORACLE_PRICE_AGE_HOURLY_ACTIVATION` | height |
@@ -103,7 +117,9 @@ same chain or field.
 | `oracle_snapshot_age_causality_activation` | `ORACLE_SNAPSHOT_AGE_CAUSALITY_ACTIVATION` | height |
 | `oracle_snapshot_age_seconds_activation` | `ORACLE_SNAPSHOT_AGE_SECONDS_ACTIVATION` | height |
 | `oracle_stale_round_visibility_activation` | `ORACLE_STALE_ROUND_VISIBILITY_ACTIVATION` | height |
+| `order_match_price_cross_activation` | `ORDER_MATCH_PRICE_CROSS_ACTIVATION` | height |
 | `order_swap_payout_policy_activation` | `ORDER_SWAP_PAYOUT_POLICY_PER_TOKEN` | height |
+| `pass_progress_retirement_activation` | `PASS_PROGRESS_RETIREMENT_ACTIVATION` | height |
 | `price_batching_floor_activation` | `PRICE_BATCHING_FLOOR_ACTIVATION` | time |
 | `price_fee_batch_landed_activation` | `PRICE_FEE_BATCH_LANDED_ACTIVATION` | height |
 | `price_landed_strict_activation` | `PRICE_LANDED_STRICT_ACTIVATION` | height |
@@ -117,12 +133,16 @@ same chain or field.
 
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
+| `remote_token_admission_activation` | `REMOTE_TOKEN_ADMISSION_ACTIVATION` | height |
+| `resource_fault_signal_heights` | `RESOURCE_FAULT_SIGNAL_ACTIVATION` | height |
 | `retraction_signing_activation` | `RETRACTION_SIGNING_ACTIVATION` | height |
 | `rollcall_activation` | `ROLLCALL_ACTIVATION` | epoch |
 | `rollcall_gates_activation` | `ROLLCALL_GATES_ACTIVATION` | epoch |
 | `send_caret_pack_key_activation` | `SEND_CARET_PACK_KEY_ACTIVATION` | time |
 | `send_gated_total_tick_id_activation` | `SEND_GATED_TOTAL_TICK_ID_ACTIVATION` | time |
+| `settlement_bounds_activation` | `SETTLEMENT_BOUNDS_ACTIVATION` | height |
 | `slash_grid_activation` | `SLASH_GRID_ACTIVATION` | height |
+| `slash_historical_set_activation` | `SLASH_HISTORICAL_SET_ACTIVATION` | height |
 | `slash_ledger_consolidation_activation` | `SLASH_LEDGER_CONSOLIDATION_ACTIVATION` | height |
 | `stake_key_reuse_activation` | `STAKE_KEY_REUSE_ACTIVATION` | height |
 | `stake_weight_collation_activation` | `STAKE_WEIGHT_COLLATION_ACTIVATION` | height |
@@ -135,18 +155,25 @@ same chain or field.
 | `tick_namespace_activation` | `TICK_NAMESPACE_ACTIVATION` | height |
 | `token_bridge_activation` | `TOKEN_BRIDGE_ACTIVATION` | height |
 | `token_policy_activation` | `TOKEN_POLICY_INHERITANCE_ACTIVATION` | height |
+| `token_supply_representation_activation` | `TOKEN_SUPPLY_REPRESENTATION_ACTIVATION` | height |
 | `train_activation` | `TRAIN_ACTIVATION` | ruleset |
 | `vm_deploy_lint_pkg3_activation` | `VM_DEPLOY_LINT_PKG3_ACTIVATION` | height |
+| `vm_emission_amount_format_activation` | `VM_EMISSION_AMOUNT_FORMAT_ACTIVATION` | height |
 | `vm_exec_lint_activation` | `VM_EXEC_LINT_ACTIVATION` | height |
+| `vm_lint_banned_with_heights` | `VM_LINT_BANNED_WITH_ACTIVATION` | height |
+| `vm_lint_destructure_heights` | `VM_LINT_DESTRUCTURE_ACTIVATION` | height |
 | `vm_lint_global_alias_activation` | `VM_LINT_GLOBAL_ALIAS_ACTIVATION` | height |
 | `vm_lint_nesting_depth_activation` | `VM_LINT_NESTING_DEPTH_ACTIVATION` | height |
 | `vm_lint_optional_chain_heights` | `VM_LINT_OPTIONAL_CHAIN_ACTIVATION` | height |
+| `vm_lint_syntax_depth_heights` | `VM_LINT_SYNTAX_DEPTH_ACTIVATION` | height |
 | `vote_callback_binding_activation` | `VOTE_CALLBACK_BINDING_REQUIRES_USABLE_METHOD` | height |
+| `vote_settlement_exact_activation` | `VOTE_SETTLEMENT_EXACT_ACTIVATION` | height |
+| `vote_v3_tick_existence_activation` | `VOTE_V3_TICK_EXISTENCE_ACTIVATION` | height |
 | `xchain_bridge_activation` | `XCHAIN_BRIDGE_ACTIVATION` | height |
 
 ## Maintenance rule
 
-When an indexer change introduces a new `*_activation` module prefix under
+When an indexer change introduces a new `*_activation` or `*_heights` module prefix under
 `src/protocol_changes`, add it here in the same change train. Keep the exact lowercase prefix so
 repository-wide documentation coverage checks can match the registry reference. Document mutable
 thresholds on the generated flag-day page instead of copying them into this catalogue.

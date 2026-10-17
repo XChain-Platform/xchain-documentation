@@ -53,7 +53,7 @@ flowchart TD
 | `src/store/level_up_db.js` | `LevelUpStore` | LevelDB abstraction: binary key encoding/decoding, batch transactions, range scans, all 12 prefix type operations |
 | `src/chain/blockchain_connector.js` | `BlockchainConnector` | HTTP JSON-RPC facade: wires transport, batch fetching, block queries, mempool tracking, AuxPoW codec, RPC helpers, and connection pooling |
 | `src/chain/blockchain_connector/` | (multiple) | Part modules: auxpow_codec (AuxPoW header encoding and decoding), batch_fetch (parallel block and hash fetching), block_queries (blockchain info and block data retrieval), rpc_helpers (RPC error handling and node health tracking), transport_and_mempool (HTTP client and mempool synchronization), constants (logging configuration) |
-| `src/chain/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parser: standard Bitcoin blocks, AuxPoW header stripping for Dogecoin/Litecoin HogEx |
+| `src/chain/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parser: standard Bitcoin blocks, AuxPoW header stripping for Dogecoin, per-transaction MWEB/HogEx flag stripping for Litecoin |
 | `src/chain/crypto_networks.js` | `CryptoNetworks` | Network parameter lookup: maps network names to bitcoinjs-lib network objects for 9 network variants |
 | `src/common/util.js` | None | Utility functions: timing, hex/uint8 conversion, formatting |
 | `src/chain/bufferutils.js` | `BufferReader`, `BufferWriter` | Binary buffer reading/writing: UInt8/16/32/64LE, VarInt, slices |
@@ -139,11 +139,11 @@ Within each block, transactions are processed in two passes:
 
 ### Concurrent Block Prefetch
 
-To minimize RPC idle time, the tracker maintains a prefetch queue of up to `PREFETCH_SIZE` (10) blocks. For non-AuxPoW chains, block hashes and hex data are fetched in two batch HTTP requests. For AuxPoW chains (Dogecoin/Litecoin with HogEx), blocks are fetched individually because AuxPoW headers must be stripped before parsing.
+To minimize RPC idle time, the tracker maintains a prefetch queue of up to `PREFETCH_SIZE` (10) blocks. For non-AuxPoW chains (Bitcoin, Litecoin), block hashes and hex data are fetched in two batch HTTP requests. For the AuxPoW chain (Dogecoin), the batch also fetches each block header, and the AuxPoW section is stripped from each block before parsing.
 
 ### Batch Writes
 
-LevelDB writes are accumulated in an in-memory transaction (Map of put/del operations) and flushed atomically via `db.batch()` every 200 blocks or when the tracker reaches the chain tip (or when heap usage exceeds 2 GB). This minimizes write amplification and ensures all-or-nothing semantics; a crash mid-batch loses at most 200 blocks of progress, which are re-indexed on restart.
+LevelDB writes are accumulated in an in-memory transaction (Map of put/del operations) and flushed atomically via `db.batch()` every 200 blocks or when the tracker reaches the chain tip (or earlier, when the V8 heap exceeds `HEAP_FLUSH_THRESHOLD_MB`: by default an eighth of the tracker's memory budget, kept between 256 MB and 2048 MB; see [Memory Budget](configuration.md#memory-budget)). This minimizes write amplification and ensures all-or-nothing semantics; a crash mid-batch loses at most 200 blocks of progress, which are re-indexed on restart.
 
 ## Reorg Handling
 

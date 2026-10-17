@@ -40,7 +40,7 @@ After processing each block, the indexer pushes its chain tip to xchain-hub (so 
 flowchart TD
     API["api.js<br>Express + JSON-RPC server<br>Validates env vars, starts indexer"]
     XI["XChainIndexer<br>Main orchestrator class<br>Block polling loop (5s interval)<br>Reorg detection → block processing → sanity check"]
-    ACTIONS["Actions<br>48 handlers + aliases<br>inc. PRICE"]
+    ACTIONS["Actions<br>50 handlers + aliases<br>inc. PRICE"]
     DB["Database<br>3 pool conns<br>(decoder/idx/hub)"]
     ROLLBACK["Rollback<br>Atomic undo by block"]
     UTIL["Utility<br>Math, timer<br>Expirations<br>Ledger ops"]
@@ -133,7 +133,7 @@ The source-layout consolidation replaced the removed top-level `stateHash.js` mo
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server + JSON-RPC, env var validation, indexer startup |
 | `src/XChainIndexer.js` | `XChainIndexer` | Main orchestrator: block polling loop, reorg detection, block processing pipeline |
-| `src/actions/index.js` | `Actions` | Loads all 48 action handler classes (one per routable ACTION string, including the `UNKNOWN` fallback), routes transactions to the correct handler. The internal `deploy_chunk` sub-handler is loaded by `deploy/index.js`, not here |
+| `src/actions/index.js` | `Actions` | Loads all 50 action handler classes (one per routable ACTION string, including the `UNKNOWN` fallback; built by `wireCoreHandlers` / `wireProtocolHandlers` in `src/actions/actions_class/handler_wiring.js`), routes transactions to the correct handler. The internal `deploy_chunk` sub-handler is loaded by `deploy/index.js`, not here |
 | `src/db/index.js` | `Database` | MariaDB connection pool management, table creation, sanity checks; the SQL queries live in the per-table modules under `src/db/` |
 | `src/config.js` | None | Merges environment variables with coin-specific config into a single config object |
 | `src/coins/BTC.js` | None | Bitcoin-specific: fee schedules, BURN/GAS/DONATE addresses per network |

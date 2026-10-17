@@ -7,11 +7,11 @@
 
 xchain-indexer is the state-processing engine of the XChain Platform. It reads decoded blockchain transactions from the Decoder database, validates and executes each ACTION according to protocol rules, maintains authoritative token state (balances, supplies, ownership, DEX orders, dispensers) in a separate MariaDB database, and makes that indexed data available for querying by xchain-explorer. The indexer runs as a long-lived Node.js process with an embedded Express JSON-RPC API server.
 
-Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, SLASH, BET, and 38 more, passes through the indexer. The indexer determines whether the action is valid (checking balances, permissions, token rules, allow/block lists, sleep states), records the action with its status, updates the ledger (credits, debits, escrows), recalculates balances, and runs a sanity check after every block to guarantee consistency between token supplies and ledger totals.
+Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, SLASH, BET, and 28 more (38 named ACTIONs in all), passes through the indexer. The indexer determines whether the action is valid (checking balances, permissions, token rules, allow/block lists, sleep states), records the action with its status, updates the ledger (credits, debits, escrows), recalculates balances, and runs a sanity check after every block to guarantee consistency between token supplies and ledger totals.
 
 ## Features
 
-- **48 record types processed by the indexer** (of which 35 are wire-decoded ACTIONs; the rest are derived/system rows such as ORDER_MATCH, DISPENSE, COLLECT, `*_EXPIRE`, UNKNOWN, XEXEC, and XCALL - see `concepts/ACTIONS.md` for the canonical wire-decoded count): ADDRESS, AIRDROP, ANCHOR, ATTEST, BATCH, BET, BET_EXPIRE, BROADCAST, CALLBACK, COINPAY, COINPAY_EXPIRE, COLLECT, CROSS_SETTLE, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSE, DISPENSER, DISPENSER_CLOSE, DISPENSER_EXPIRE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, NODEPROOF, ORDER, ORDER_EXPIRE, ORDER_MATCH, PRICE, SEND, SLASH, SLEEP, STAKE, SWAP, SWAP_EXPIRE, SWAP_MATCH, SWEEP, UNKNOWN, UNSTAKE, VOTE, WITHDRAW, XCALL, XEXEC
+- **50 record types processed by the indexer** (37 wire-decoded ACTIONs, plus XCALL, which is mirror-injected rather than decoded, and 12 derived/system rows such as ORDER_MATCH, DISPENSE, CROSS_SETTLE, `*_EXPIRE`, XEXEC and UNKNOWN; see [concepts/actions.md](../../concepts/actions.md) for the canonical counts): ADDRESS, AIRDROP, ANCHOR, ATTEST, BATCH, BET, BET_EXPIRE, BROADCAST, CALLBACK, COINPAY, COINPAY_EXPIRE, COLLECT, CROSS_SETTLE, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSE, DISPENSER, DISPENSER_CLOSE, DISPENSER_EXPIRE, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, NODEPROOF, ORDER, ORDER_EXPIRE, ORDER_MATCH, PRICE, ROLLCALL, SEND, SLASH, SLEEP, STAKE, SWAP, SWAP_EXPIRE, SWAP_MATCH, SWEEP, UNKNOWN, UNSTAKE, VOTE, WITHDRAW, XBRIDGE, XCALL, XEXEC
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin today, on mainnet, testnet, and regtest
 - **Atomic block processing**: every block is wrapped in a database transaction; failures roll back cleanly
 - **Block reorganization handling**: detects reorgs from the Decoder DB, rolls back affected data, and re-indexes
@@ -21,7 +21,7 @@ Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, S
 - **Staking**: capability staking (STAKE v1/v2, UNSTAKE v0, DELEGATE v0/v2, COLLECT) is BTC-only; contract-targeted staking (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) works on any chain
 - **Virtual Machine**: DEPLOY, EXECUTE, DEPOSIT, WITHDRAW with isolated-vm sandbox and gas metering
 - **Unified Gas Fee Schedule**: gas-based fee system for VM and staking actions, replaces per-action flat fees post-activation
-- **Protocol versioning**: actions are gated by the indexer's own protocol version (21 at `0.1.0`, 16 at `0.2.0`, all with zero activation heights); block-height and timestamp flag-days gate behaviour changes to already-live actions, per network
+- **Protocol versioning**: actions are gated by the indexer's own protocol version (21 at `0.1.0`, 17 at `0.2.0`, all with zero activation heights); block-height and timestamp flag-days gate behaviour changes to already-live actions, per network
 - **Action mapping**: creates address↔ticker↔action_index cross-references for fast lookups
 - **Circuit-breaker DB connections**: automatic failure detection and recovery for database connectivity
 - **Watchdog timeout**: configurable per-block processing timeout detects deadlocks
@@ -33,7 +33,7 @@ Every XChain ACTION; SEND, ISSUE, MINT, ORDER, DISPENSER, SWAP, ANCHOR, XCALL, S
 |---|---|
 | [Architecture](architecture.md) | Data pipeline, internal components, action handlers, block processing pipeline |
 | [Configuration](configuration.md) | Environment variables, coin-specific config, indexer constants |
-| [Actions](actions.md) | All 48 record types, categories, format versions, protocol versioning |
+| [Actions](actions.md) | All 50 record types, categories, format versions, protocol versioning |
 | [Database](database.md) | Full schema reference: core, ledger, action, state, index, and mapping tables |
 | [Ledger](ledger.md) | Double-entry ledger, balance calculation, sanity checks, gas token fees |
 | [Operations](operations.md) | Running, Docker, API endpoints, resilience, troubleshooting |
@@ -70,7 +70,7 @@ INDEXER_COIN=BTC
 INDEXER_NETWORK=mainnet
 ```
 
-> **Optional: Hub database variables.** If `HUB_DB_HOST` and `HUB_DB_NAME` are not set, the indexer logs a `WARNING: HUB_DB_HOST / HUB_DB_NAME not set` message at startup and reads price/oracle tables from its own local database instead. This is correct for single-host deployments. On a distributed node where the hub runs on a separate host, set these variables (along with `HUB_DB_PORT`, `HUB_DB_USER`, `HUB_DB_PASS`) to avoid using stale or absent fee/price data. See [Configuration](configuration.md) for the full variable list.
+> **Hub database variables.** `HUB_DB_HOST` and `HUB_DB_NAME` are required for a BTC testnet or regtest indexer while `ATTEST_RESPONSE_MIRROR_ACTIVATION` is armed. Finalized responses in `attestation_responses` are off-chain consensus input, and AnchorRecovery cannot reconstruct it, so `INDEXER_ALLOW_LOCAL_PRICE_SOURCE` does not bypass this startup check. This requirement currently applies to BTC testnet and regtest. On currently unpinned BTC mainnet, a single-host indexer may still read price/oracle tables from its local database when `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true`; other testnet/regtest chains retain the local-database fallback. A distributed node should set the hub variables (along with `HUB_DB_PORT`, `HUB_DB_USER`, `HUB_DB_PASS`) in every case. See [Configuration](configuration.md) for the full topology and variable list.
 
 Start the indexer:
 

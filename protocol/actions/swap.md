@@ -59,13 +59,14 @@ This example sells JDOG (BTC-chain) ownership for 5,000,000 WOWCOIN on LTC. `GET
 
 ```
 SWAP|0|BTC|JDOG||1|LTC|WOWPEPE||1|LJDogZS6tQcSxwfxhv6XKKjcyicYA4Feev||||Swap JDOG ownership for WOWPEPE ownership cross-chain
-This example atomically swaps ownership of JDOG (BTC chain) for ownership of WOWPEPE (LTC chain). `GET_ADDRESS` is the LTC address that will become the new owner of WOWPEPE for this order's SOURCE.
+This example swaps ownership of JDOG (BTC chain) for ownership of WOWPEPE (LTC chain); each chain transfers its own leg against the signed match (see [Residual reorg risk](../cross-chain-dex.md#residual-reorg-risk)). `GET_ADDRESS` is the LTC address that will become the new owner of WOWPEPE for this order's SOURCE.
 ```
 
 ## Rules
 - `GET_COIN` value must be a valid coin network (BTC, LTC, DOGE, etc)
 - `GET_ADDRESS` value must be a valid address on the given `GET_COIN` coin network (BTC, LTC, DOGE, etc.)
 - `SWAP_ACTION_INDEX` must point to a valid `ACTION_INDEX` on the current `COIN` network
+- At or above the `MATCH_ORIGIN_OPEN_ACTIVATION` height, SWAP matching starts only from a swap whose latest status is `open`. A match dispatched from a swap that is already `complete`, `cancelled` or `expired` (a LIST rematch plan that reaches a swap its earlier step completed, or the match a SWAP cancel dispatches from the swap it has just cancelled) stops at the gate before any candidate is looked up, so escrow already settled or refunded is not settled again. Below the height the match runs as before. The height is unarmed on mainnet and testnet, and a regtest venue arms it with `XC_MATCH_ORIGIN_OPEN_REGTEST_ACTIVATION`.
 
 ### Token Ownership Sales
 - `GIVE_OWNERSHIP=1` requires SOURCE to be the current owner of `GIVE_TICK`; `GIVE_AMOUNT` must be empty; the ownership record moves into a protocol-held escrow state
@@ -82,7 +83,7 @@ This example atomically swaps ownership of JDOG (BTC chain) for ownership of WOW
   - Additional `ORDER`/`SWAP`/`DISPENSER` ownership offers for this `TICK` from the original owner
 - Holder-side actions are unaffected: `SEND`, `MINT` (if mint window open), `DIVIDEND` payouts, `DEPOSIT`/`WITHDRAW`, `DESTROY` of held balance
 - Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold
-- On match: ownership transfers atomically to the counterparty's SOURCE
+- On match: ownership transfers to the counterparty's SOURCE. On a cross-chain swap each chain transfers its own leg against the signed match, so the two legs settle separately rather than in one step
 - On cancel (Version 1) or `EXPIRATION`: ownership returns to the original SOURCE
 
 ### Sweep Closure

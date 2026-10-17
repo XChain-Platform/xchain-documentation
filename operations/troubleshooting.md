@@ -45,7 +45,7 @@ This document covers common problems, their symptoms, and how to diagnose and re
 
 **Litecoin-specific:** The decoder includes special handling for Litecoin HogEx transactions (stripping the `0x08` flag). If a new type of malformed block appears, the decoder may fail to parse it. Check logs for `bitcoinjs-lib` parse exceptions.
 
-**Dogecoin-specific:** AuxPoW stripping must be enabled (`AUX_POW=1`). If this variable is missing, block parsing will fail on every Dogecoin block.
+**Dogecoin-specific:** AuxPoW stripping is selected automatically from `NETWORK`; the legacy `AUX_POW` variable has no effect. If every Dogecoin block fails to parse, first check that `NETWORK` names a dogecoin network (for example `dogecoin-mainnet`).
 
 **Fix:** For transient failures, restarting the decoder usually resolves the issue. If the error recurs on the same block, file a bug report with the block hash and error message.
 

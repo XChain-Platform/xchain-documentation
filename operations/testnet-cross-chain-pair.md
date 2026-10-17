@@ -5,7 +5,7 @@
 
 A recipe for an operator who already runs a testnet validator per [Run a Validator](./run-a-validator.md). It adds a Litecoin testnet indexer beside your Bitcoin testnet one, places a crossing pair of cross-chain `ORDER` actions, and reads the settlement from the public explorer.
 
-> **Settlement needs the live federation.** Your indexers never match or settle a cross-chain trade on their own. The validator federation matches the two offers, signs one match record with a `cross_chain`-capability quorum (2f+1), and each chain's indexer then releases its escrow from that record. If the live testnet federation has fewer than 2f+1 validators serving `cross_chain`, the orders in this recipe stay open and nothing settles. A stack of your own does not substitute for the federation. See [Cross-Chain DEX](../protocol/cross-chain-dex.md) for the model.
+> **Settlement needs the live federation.** Your indexers never match or settle a cross-chain trade on their own. The validator federation matches the two offers, signs one match record with a `cross_chain`-capability quorum (stake-weighted and source-deduped at or above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, otherwise `max(2f+1, ceil((N+1)/2))` signers by count), and each chain's indexer then releases its escrow from that record. If the live testnet federation's `cross_chain` validators cannot reach that quorum, the orders in this recipe stay open and nothing settles. A stack of your own does not substitute for the federation. See [Cross-Chain DEX](../protocol/cross-chain-dex.md#trust-model) for the model.
 
 ## Prerequisites
 
@@ -108,7 +108,7 @@ Settled looks like this:
 ⬜ A `cross_chain_settlements` row exists on each chain  
 ⬜ Each maker's `GET_ADDRESS` holds the counter-token in `balances`  
 
-If the orders stay `open` and no match row appears, the usual causes are, in order: the federation has no 2f+1 `cross_chain` quorum on testnet right now, an indexer is behind its chain tip, or the hub mirror from Step 2 is not delivering.
+If the orders stay `open` and no match row appears, the usual causes are, in order: the testnet federation cannot reach its `cross_chain` quorum right now (see the note at the top of this page), an indexer is behind its chain tip, or the hub mirror from Step 2 is not delivering.
 
 ---
 

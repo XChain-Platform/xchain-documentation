@@ -167,13 +167,13 @@ grep '^#' RELEASE_HASHES.txt
 ```
 # XChain Wallet release manifest
 # manifest-version: 2
-# tag: v0.333.1
+# tag: vX.Y.Z
 # tag-commit: 9f3c...
 # built: 2026-07-31T18:02:11Z
 # dev-mock-gate: enforced
 # artifacts: 8
-# profile default: ./xchain-wallet-web-v0.333.1.tar.gz
-# profile store: ./xchain-wallet-ios-v0.333.1.ipa
+# profile default: ./xchain-wallet-web-vX.Y.Z.tar.gz
+# profile store: ./xchain-wallet-vX.Y.Z.apk
 ```
 
 These lines are inside the signed bytes, so a good signature vouches for them too. Five things to read:

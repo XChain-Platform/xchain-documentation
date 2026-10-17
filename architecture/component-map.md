@@ -85,8 +85,8 @@ See [`../components/indexer/`](../components/indexer/) for full documentation.
 
 Key technical details:
 
-- 305 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, holders, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, contract emissions, vote delegations, validator capabilities and slashing, chain reorgs, anchor reward attestations, per-block commitments, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-08-28:
-  - 175 `/{COIN}/api/...` and 112 `/{COIN}/explorer/...` patterns in the dispatch table built by `setupUrls()`, matched by the catch-all handler rather than registered with Express individually.
+- 320 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, holders, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, contract emissions, vote delegations, validator capabilities and slashing, chain reorgs, anchor reward attestations, per-block commitments, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-08-28:
+  - 190 `/{COIN}/api/...` and 112 `/{COIN}/explorer/...` patterns in the dispatch table built by `setupUrls()`, matched by the catch-all handler rather than registered with Express individually.
   - 18 hand-registered `/{COIN}/api/...` routes that bypass the dispatch table: raw file download, fee quote, oracle fee quote, preflight (registered twice, GET and POST, because the largest legal action does not fit a query string), the two POST batch reads (balances, COINPay obligations), fee schedule, checkpoint list, checkpoint range, checkpoint verify, hub-mirror status, the five Merkle proof endpoints (balance, locked balance, action, validator set, contract state), and the POST contract-call query endpoint.
   - Outside those two namespaces the same server also registers 117 HTML page routes plus `/openapi.json`, `/icon`, `/relay`, and the static asset mounts.
 - JSON-RPC 2.0 interface compatible with Counterparty-style tooling.
@@ -166,7 +166,7 @@ See [`../components/encoder/`](../components/encoder/) for full documentation.
 
 Key technical details:
 
-- LevelDB key schema uses single-character prefixes: `B`=block, `T`=transaction, `I`=input, `O`=output, `H`/`J`=address hints.
+- LevelDB key schema uses single-character prefixes: `B`=block, `T`=transaction, `I`=spent input, `O`=unspent output keyed by scriptHash, `H`=outpoint-to-scriptHash hint, `J`=input hint, and `S`/`Z`/`K`/`M`/`N`/`W` for script tracking and reorg undo (full layouts in the [utxo-tracker key schema](../components/utxo-tracker/architecture.md#leveldb-key-schema)).
 - Processes blocks in batches of up to 200 (flush may trigger earlier under heap pressure), writing each batch atomically to LevelDB.
 - Maintains a per-chain, per-network undo window (mainnet and regtest: BTC 12 / LTC 120 / DOGE 120 blocks; testnet: BTC 120 / LTC 5000 / DOGE 120 blocks; overridable via XCHAIN_UNDO_BLOCKS_<COIN>) to support chain reorganization rollback.
 - Tracks the mempool for real-time unconfirmed UTXO state.
@@ -327,17 +327,17 @@ See [`../components/vm/`](../components/vm/) for full documentation.
 
 | | |
 |---|---|
-| **Purpose** | Self-custodial multi-chain reference wallet; browser SPA, Chrome MV3 extension, Electron desktop app, and Capacitor mobile app (Android shipped, iOS later) |
+| **Purpose** | Self-custodial multi-chain reference wallet; browser SPA, Chrome MV3 extension, Electron desktop app, and Capacitor mobile app (Android shipped, iOS pending App Store release) |
 | **Inputs** | User interaction; xchain-sdk for action construction; xchain-explorer for balance and history queries; xchain-hub for config and fee data |
 | **Outputs** | Signed transactions broadcast to coin nodes via the encoder; read-only views of balances, tokens, actions, and markets |
-| **Storage** | Client-side only (browser localStorage / extension storage / Electron local store); no server-side state |
+| **Storage** | Client-side only; no server-side state. The AES-256-GCM-encrypted vault lives in IndexedDB (web), `chrome.storage.local` (extension), an encrypted file under Electron `userData` (desktop), or an app-private file via the native `XChainVault` plugin under an OS-keystore key (mobile). The vault never sits in `localStorage`. Browser-based shells do keep small side records there beside UI state, such as the web shell's KDF parameters and, with biometric unlock on, the authenticator-wrapped copy of the password. See [wallet architecture](../components/wallet/architecture.md) and [wallet security](../components/wallet/security.md) |
 | **Communication** | Outbound JSON-RPC and REST to xchain-encoder, xchain-explorer, and xchain-hub; no inbound API |
 
 Key technical details:
 
 - Built on xchain-sdk; all action construction goes through the SDK's 32 developer-invocable ACTION methods.
 - Supports every chain the platform runs on, today Bitcoin, Litecoin, and Dogecoin (mainnet, testnet, regtest), from the same codebase.
-- Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), an Electron desktop application, and a Capacitor mobile app wrapping the same web build (Android shipped, iOS later).
+- Deployed as a web SPA (served from a static docroot), a Chrome MV3 extension (packaged from the same source), an Electron desktop application, and a Capacitor mobile app wrapping the same web build (Android shipped, iOS pending App Store release).
 - Private keys never leave the client; signing happens locally before broadcast.
 - Targets non-technical end users; UI language is intentionally plain (e.g., "About" not "Token Spec").
 

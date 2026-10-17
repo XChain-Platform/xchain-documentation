@@ -24,7 +24,7 @@ In addition to confirmed block data, the tracker maintains a separate in-memory 
 - **Batch writes**: LevelDB writes batched in groups of 200 blocks for throughput efficiency with atomic commit
 - **Two-pass transaction processing**: outputs inserted before inputs within each block, correctly handling intra-block spends
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin today, on mainnet, testnet, and regtest
-- **AuxPoW block parsing**: Dogecoin and Litecoin HogEx block header stripping for correct decoding
+- **AuxPoW block parsing**: Dogecoin AuxPoW block header stripping for correct decoding; Litecoin MWEB/HogEx transactions are handled separately by a per-transaction flag strip
 - **Bootstrap support**: compressed tar archive backup and restore for fast initial sync without re-scanning the full chain
 - **REST + JSON-RPC API**: dual interface for UTXO queries, balance lookups, address info, and bootstrap operations
 - **Rolling ETA**: 1000-block rolling window with day/hour/minute display for sync progress estimation

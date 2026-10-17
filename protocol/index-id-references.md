@@ -153,13 +153,18 @@ from chain data alone, so the same `^<id>` resolves to the same entity on every 
 
 1. Across actions, assignment follows `action_index`, which is total and reorg-handled.
    A `BATCH` sub-action has its own `action_index`, so one action is the assignment unit.
-2. Within one action, the `SOURCE` address is registered first, then the new addresses
-   the action introduces in its single-value fields are registered in byte-sorted (binary)
-   order of their VALUE. Ordering by value, not by field position, keeps the assignment
-   stable across client and indexer code changes. The multi-value fields
-   (`SEND.DESTINATION` recipients and `LIST.ITEM` entries) sit outside that pre-pass:
-   their handler interns them in a fixed order that is identical on every node, so they
-   receive deterministic ids as well.
+2. Within one action, the `SOURCE` address is registered first. For the actions with a
+   fixed positional wire layout (`MINT`, `MESSAGE`, `DISPENSER`, `ORDER` and `SWAP`), a
+   pre-pass then registers the new addresses in their single-value fields in byte-sorted
+   (binary) order of their VALUE, before the action's handler runs. Ordering by value, not
+   by field position, keeps that assignment stable across client and indexer code changes.
+   Every other id-receiving field sits outside that pre-pass: the single-value fields of
+   `ISSUE` (`TRANSFER`, `TRANSFER_SUPPLY`), `SWEEP` (`DESTINATION`) and `DEPLOY`
+   (`SLASH_DESTINATION`), and the multi-value fields (`SEND.DESTINATION` recipients and
+   `LIST.ITEM` entries). Their handler interns them in a fixed order that is identical on
+   every node, so they receive deterministic ids as well. That order is the handler's, not
+   the byte order of the values, so two new addresses introduced by one `ISSUE` are not
+   assigned by the byte-sorted rule above.
 3. Ids are assigned by an explicit dense counter (the surviving `MAX(id) + 1`), never by
    a database auto-increment (which does not rewind on delete).
 
@@ -169,9 +174,11 @@ reproduces the exact same ids. This is what makes `^<id>` safe to put on the wir
 id can never name two different entities across two honest nodes that reach the same tip
 by different reorg paths.
 
-This assignment rule is a frozen wire rule. The set of id-receiving fields above, the
-value-sorted order for the single-value fields and the handler order for the multi-value
-fields are part of consensus; changing any of them is a wire-format change.
+This assignment rule is a frozen wire rule. The set of id-receiving fields above, the set
+of actions the value-sorted pre-pass covers, the value-sorted order for those actions'
+single-value fields and the handler order for every other id-receiving field are part of
+consensus; changing any of them, including moving an action into or out of the pre-pass,
+is a wire-format change.
 
 ## SDK behavior
 

@@ -146,7 +146,7 @@ Bob's `LTCTOKEN` is now escrowed on Litecoin.
 
 ## Step 4: Settlement
 
-The hub detects that both sides of the swap are in their respective confirmed blocks. It signals both indexers to settle:
+Once both escrows are confirmed to each chain's required depth, the `cross_chain` validators sign a match record, which the hub mirror streams to every indexer. Each indexer verifies the signed match and settles its own leg:
 
 - The Bitcoin indexer credits `bc1qbobsbtcaddress...` with 1 `RAREPEPE`.
 - The Litecoin indexer credits `ltc1qalicesltcaddress...` with 1000 `LTCTOKEN`.

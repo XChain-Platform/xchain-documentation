@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-10-17
+
+### Added
+- Added the mainnet launch gate section, its catalogue row and the prelaunch seed sources, with the flag-day page regenerated.
+- Added the order-match price-cross, nested execute gas sum, settlement bounds and slash gates to the reference registry and catalogue.
+- Added the wallet UI style guide, device layout checklist and layout, network label and shell sizing rules.
+
+### Changed
+- Corrected the wallet README, architecture, keys, signing, security and threat model pages against current source.
+- Documented the new indexer, explorer, encoder, hub and sync settings, including the indexer balance delta mode.
+- Described the oracle aggregation rule the hub applies and the websocket feed reorg, replay and resubscribe pacing.
+- Armed ORDER_MATCH_PRICE_CROSS_ACTIVATION on BTC:testnet at 156908.
+- Armed ORDER_MATCH_PRICE_CROSS_ACTIVATION on LTC:testnet at 4927400.
+- Armed ORDER_MATCH_PRICE_CROSS_ACTIVATION on DOGE:testnet at 68005165.
+- Armed REMOTE_TOKEN_ADMISSION_ACTIVATION on BTC:testnet at 156908.
+- Armed REMOTE_TOKEN_ADMISSION_ACTIVATION on LTC:testnet at 4927400.
+- Armed REMOTE_TOKEN_ADMISSION_ACTIVATION on DOGE:testnet at 68005165.
+
+### Fixed
+- Recorded the six reclaimed chain codes as reserved outright and registered the new encoder refusal reasons.
+
 ## [0.23.0] - 2026-10-11
 
 ### Added

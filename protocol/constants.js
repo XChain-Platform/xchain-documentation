@@ -405,7 +405,7 @@ const EQUIV_HEADER_ACTIVATION = {
 // indexed mainnet history is ISSUE and ANCHOR only (0 validators, 0 stakes, 0 quorum-signed
 // artifacts measured), so burying reinterprets nothing there and a from-genesis replay is the
 // witness. Kept byte-identical to the local copies in
-// xchain-{hub,indexer,sdk}/src/consensus/snapshot_reorg_buffer.js by the cross-service regression suite.
+// xchain-{hub,indexer,sync,sdk}/src/consensus/snapshot_reorg_buffer.js by the cross-service regression suite.
 const CANONICAL_REORG_BUFFER = 6;
 const SNAPSHOT_BURIAL_ACTIVATION = {
     mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (ISSUE and ANCHOR only, measured 2026-09-09)
@@ -888,7 +888,7 @@ const ATTEST_REQUEST_CAPS = {
 
 // ATTEST_RELAY_ACTIVATION (attestation Phase 5 cross-chain delivery): the flag-day
 // at/above which the two relay legs of the §12 CrossChainEngine model are accepted on chain:
-// ATTEST v3 (an LTC/DOGE-origin request materialized onto BTC, carrying 2f+1 cross_chain
+// ATTEST v3 (an LTC/DOGE-origin request materialized onto BTC, carrying a quorum of cross_chain
 // signatures) and ATTEST v4 (the BTC response relayed back to the origin chain, same signature
 // rail). Both are new VERSION values on an existing action, so an indexer that has NOT been
 // upgraded rejects them as an unknown VERSION while an upgraded one accepts: every indexer and
@@ -1694,9 +1694,10 @@ const GAS_TICK = 'XCHAIN';
 
 // ── Oracle federation (xchain-hub) ───────────────────────────────────────────
 // Canonical source: xchain-hub/src/constants.js. UNLIKE XCALL_MAX_HOPS above, these
-// two are NOT in the GOLDEN set of xcall-constants-cross-repo.test.js; the guard that
-// diffs this published copy against the canonical lives in xchain-hub/test/unit
-// (#3886), so a drift here reddens hub CI. No runtime code reads either one.
+// four are NOT in the GOLDEN set of xcall-constants-cross-repo.test.js; the guards that
+// diff this published copy against the canonical live in xchain-hub/test/unit (the
+// band-constants mirror test for the first two, the clamp-constants mirror test for
+// the last two), so a drift here reddens hub CI. No runtime code reads any of them.
 
 // Coarse global sanity ceiling on an ingested price_snapshots value (pre-scale,
 // covers pairs like BTC/KRW up to ~$7M BTC with headroom); rejects
@@ -1711,6 +1712,17 @@ const PRICE_MAX = 10_000_000_000;
 // could yield different accept/withhold decisions (a liveness divergence on
 // the ±band boundary). 0.05 = 5%.
 const ORACLE_DEVIATION_THRESHOLD = 0.05;
+
+// Per-round move clamp on the oracle aggregate: a round's median may move at most
+// this fraction from the pair's last finalized price, and a larger move publishes
+// at the bound, so a genuine move walks there over several rounds. A pair with no
+// finalized price yet is not clamped. MUST be federation-uniform. 0.25 = 25%.
+const ORACLE_MAX_CHANGE_PER_ROUND = 0.25;
+
+// The tighter clamp for XCHAIN/USD, which is derived from a thin on-platform market
+// rather than external feeds; every other pair uses ORACLE_MAX_CHANGE_PER_ROUND.
+// 0.10 = 10%.
+const XCHAIN_PRICE_MAX_CHANGE_PER_ROUND = 0.10;
 
 // ORACLE_PRICE_AGE_HOURLY_ACTIVATION: canonical authority for registry row
 // oracle_price_age_hourly_activation.ORACLE_PRICE_AGE_HOURLY_ACTIVATION. At and
@@ -2168,9 +2180,10 @@ const TICK_NAMESPACE_ACTIVATION = {
 // here to the coin registry; both refuse identically, so nothing re-verdicts on the move.
 //
 // The first 47 were measured free on every live chain and in both genesis manifests on
-// 2026-09-11 (120 names, 720 explorer probes); the last 6 are squatted in the mainnet
-// genesis manifests and leave through a separate manifest edit, so for those this guard
-// blocks only NEW issuance.
+// 2026-09-11 (120 names, 720 explorer probes). The last 6 were squatted in the mainnet
+// genesis manifests and were taken away from those holders by the 2026-10-17 manifest edit
+// (operator ruling 2026-10-17), so the bridges can own them; with no row left, all 53 are
+// refused outright on a new ISSUE.
 const RESERVED_FUTURE_ROOTS = Object.freeze([
     'ADA', 'ALGO', 'APT', 'ARB', 'ATOM', 'AVAX', 'BCH', 'BNB', 'BSV', 'BTG',
     'CRO', 'DGB', 'DOT', 'EOS', 'ETC', 'ETH', 'FIL', 'FIRO', 'GRS', 'ICP',
@@ -2387,12 +2400,13 @@ const MIRROR_ADMISSION_CONSUMER_ACTIVATION = Object.freeze({
 
 const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
     DOGE: Object.freeze({
-        bridge_transfers:    14,
-        cross_chain_calls:   14,
-        cross_chain_matches: 14,
-        list_snapshots:      14,
-        policy_snapshots:    14,
-        price_snapshots:     16,
+        bridge_transfers:       14,
+        cross_chain_calls:      14,
+        cross_chain_matches:    14,
+        list_snapshots:         14,
+        policy_snapshots:       14,
+        price_snapshots:        16,
+        remote_token_snapshots: 14,
     }),
 });
 
@@ -2451,6 +2465,17 @@ const ANCHOR_ATTEST_BARRIER_ACTIVATION = Object.freeze({
     testnet: 154291, // set by the v0.21.0 freeze height plan
     regtest: resolveMirrorAdmissionRegtest(process.env),   // shares the family's arming seam so one venue lever arms both
 });
+
+// MAINNET_LAUNCH_ACTIVATION: the launch gate, keyed by network and measured in unix seconds
+// of block time, not height. Only mainnet consults it. Testnet and regtest are open networks
+// that the admission check lets through before reading this map, so testnet carries the house
+// UNARMED sentinel and regtest 0, value for value the indexer registry row.
+const MAINNET_LAUNCH_ACTIVATION = Object.freeze({ mainnet: 1798761600, testnet: 9999999999, regtest: 0 });
+
+// PRELAUNCH_SEED_SOURCES: the source addresses admitted on a mainnet coin before the launch gate
+// opens, keyed "<COIN>:mainnet". Empty, as the indexer registry row is, until a release pins the
+// seed sources after the key ceremony and adds a key per coin.
+const PRELAUNCH_SEED_SOURCES = Object.freeze({});
 
 module.exports = {
     MAX_ACTION_DATA_LENGTH,
@@ -2567,6 +2592,8 @@ module.exports = {
     GAS_TICK,
     PRICE_MAX,
     ORACLE_DEVIATION_THRESHOLD,
+    ORACLE_MAX_CHANGE_PER_ROUND,
+    XCHAIN_PRICE_MAX_CHANGE_PER_ROUND,
     ORACLE_PRICE_AGE_HOURLY_ACTIVATION,
     ORACLE_HOURLY_WINDOW_FIRST_ROUND,
     ORACLE_ROUND_TIME_ACTIVATION,
@@ -2589,4 +2616,6 @@ module.exports = {
     LIST_TICK_COIN_ACTIVATION,
     TICK_NAMESPACE_ACTIVATION,
     RESERVED_FUTURE_ROOTS,
+    MAINNET_LAUNCH_ACTIVATION,
+    PRELAUNCH_SEED_SOURCES,
 };

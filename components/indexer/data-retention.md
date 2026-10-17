@@ -95,7 +95,14 @@ reference.
 | `STATE_ROOT_RETENTION_BLOCKS` | unset | A positive integer turns retention on and sets the phase-1 window. Unset or `0` means off (keep everything, the historical default behavior). |
 | `STATE_NODE_RECLAIM` | off | `1` or `true` additionally enables phase-2 orphan-node reclaim. Ignored unless retention is on. |
 | `STATE_RETENTION_INTERVAL_MS` | `21600000` (6h) | Sweep cadence. |
-| `STATE_TREE_METRIC_MAX_NODES` | `2000000` | Shared with the orphan-growth metric: above this node count, the in-memory mark (and thus phase-2 reclaim) is skipped to bound memory. Phase-1 root prune still runs. |
+| `STATE_TREE_METRIC_MAX_NODES` | `2000000` | Shared with the orphan-growth metric: above this node count, the in-memory mark (and thus phase-2 reclaim) is skipped to bound memory. Phase-1 root prune still runs. The table only grows, so once a chain passes the cap, reclaim stays off until the cap is raised. |
+
+With `STATE_NODE_RECLAIM` on, the indexer logs a warning the first time a sweep
+skips reclaim at the cap, naming the node count and the cap, and one info line
+when reclaim runs again. Every such sweep also emits a
+`state_retention_node_reclaim` `[METRIC]` line carrying `skipped`, `reason`,
+`total_nodes`, `reachable_nodes`, `max_nodes`, `deleted`, `sweep_duration_ms`
+and `consecutive_skips`.
 
 Operational guidance: a retention window must be wider than the deepest reorg
 a chain will ever serve, and wide enough for the SPV proof horizon the

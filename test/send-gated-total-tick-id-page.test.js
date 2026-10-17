@@ -14,6 +14,7 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 const ROOT = path.resolve(__dirname, '..');
 const FLAG_DAYS = fs.readFileSync(path.join(ROOT, 'protocol', 'flag-days.md'), 'utf8');
 const CONTENT = fs.readFileSync(path.join(ROOT, 'protocol', 'token-gated-content.md'), 'utf8');
+const SEND = fs.readFileSync(path.join(ROOT, 'protocol', 'actions', 'send.md'), 'utf8');
 const GATE = 'SEND_GATED_TOTAL_TICK_ID_ACTIVATION';
 const noIndexer = sibling('xchain-indexer', [gen.REGISTRY]).skip;
 
@@ -72,5 +73,35 @@ test('the page guard fails when a required total claim is removed', () => {
         'it never changes which legs settle',
     ]) {
         assert.throws(() => assertTickIdTotalClaims(CONTENT.replace(marker, 'removed')));
+    }
+});
+
+// Check that the SEND spec's threshold rule names the gate and both ways of summing the total.
+function assertSendPageTotalClaims(markdown) {
+    const start = markdown.indexOf('The requirement is CONDITIONAL');
+    assert.ok(start >= 0, 'send.md is missing its conditional handoff paragraph');
+    const end = markdown.indexOf('```mermaid', start);
+    assert.ok(end > start, 'send.md is missing the flowchart after its handoff rule');
+    const rule = markdown.slice(start, end);
+    assert.match(rule, /\[`SEND_GATED_TOTAL_TICK_ID_ACTIVATION`\]\(\.\.\/flag-days\.md\)/);
+    assert.match(rule, /Before the gate is active[\s\S]*summed per `DESTINATION` and literal `TICK` as written/);
+    assert.match(rule, /Once the gate is active[\s\S]*summed per `DESTINATION` and resolved `TICK_ID`/);
+    assert.match(rule, /different letter case or the `\^<tickid>` form[\s\S]*count together toward the threshold/);
+    assert.match(rule, /changes only whether the handoff is owed; it never changes which legs settle/);
+}
+
+test('the SEND spec qualifies its gated total by the gate, like the token-gated content page', () => {
+    assertSendPageTotalClaims(SEND);
+});
+
+test('the SEND spec guard fails when a required total claim is removed', () => {
+    for (const marker of [
+        'SEND_GATED_TOTAL_TICK_ID_ACTIVATION',
+        'literal `TICK` as written',
+        'resolved `TICK_ID`',
+        'different letter case or the `^<tickid>` form',
+        'it never changes which legs settle',
+    ]) {
+        assert.throws(() => assertSendPageTotalClaims(SEND.replace(marker, 'removed')));
     }
 });

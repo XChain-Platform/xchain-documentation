@@ -125,11 +125,17 @@ VERSION|TICK|CONTROLLER|ACTION_CLASS|COOLDOWN_BLOCKS|UNBIND|MEMO
 | `CONTROLLER` | `ACTION_INDEX` of a deployed, active contract on the same chain (its `contracts.action_index`; derived address `C:<CHAIN>:<CONTROLLER>`). |
 | `ACTION_CLASS` | Which [class](#action-classes) of action this binding gates. |
 | `COOLDOWN_BLOCKS` | Drop-cooldown committed at bind time: the friction (in blocks) before a later `UNBIND` of this class takes effect. |
-| `UNBIND` | `1` drops the live binding for `ACTION_CLASS` (gated by its cooldown); `0` binds. |
+| `UNBIND` | Only `1` drops the live binding for `ACTION_CLASS` (gated by its cooldown); any other value binds. |
 
 Rules:
 
-- Only the token owner can bind or unbind (the standard `ISSUE` owner gate).
+- Only the token owner can bind or unbind (the standard `ISSUE` owner gate,
+  `invalid: issued by another address`).
+- While the token's ownership record is escrowed in an open ownership offer (`ORDER`, `SWAP` or
+  `DISPENSER` with `GIVE_OWNERSHIP=1`), the owner can neither bind nor unbind any class,
+  including starting an unbind: `invalid: TICK (ownership escrowed)`. The block lifts when the
+  offer is cancelled, expires, matches or is swept; see
+  [Token Ownership Sales](./actions/order.md#token-ownership-sales).
 - At bind time the indexer verifies `CONTROLLER` resolves to an existing contract in `valid`
   (active) state, mirroring the contract check in [`EXECUTE`](./actions/execute.md).
 - Bindings are **append-only** events in `token_controllers`. The effective controller for a
@@ -161,12 +167,19 @@ stateDiagram-v2
 
 ### Bind and unbind rejections
 
-Every bind/unbind refusal below is the `STATUS` of the `ISSUE` v6 or [`ADDRESS`](./actions/address.md)
-v1 row, byte for byte. `ADDRESS` v1 emits the same strings for an account binding, except the
-`TICK` ones, which only a token binding can hit.
+The table lists every refusal specific to a bind or unbind, and each verdict is the `STATUS` of
+the `ISSUE` v6 or [`ADDRESS`](./actions/address.md) v1 row, byte for byte. `ADDRESS` v1 emits
+the same strings for an account binding, except the `TICK` ones and the owner gate, which only
+a token binding can hit. A bind or unbind also runs the general checks its action applies to
+every format (for `ISSUE`, the `TICK` name rules, the issuance fee and `MEMO`; see
+[`ISSUE` Rules](./actions/issue.md#rules)); those verdicts are not repeated here. The `SOURCE`
+and owner rows are checked before any `CONTROLLER` or `ACTION_CLASS` row.
 
 | Verdict | Bind / unbind | Format | When |
 |---|---|---|---|
+| `invalid: SOURCE (sleeping)` | both | both | `SOURCE` is asleep at this block (see [`SLEEP`](./actions/sleep.md)). |
+| `invalid: issued by another address` | both | `ISSUE` v6 | `SOURCE` is not the token's current owner (the standard `ISSUE` owner gate). |
+| `invalid: TICK (ownership escrowed)` | both | `ISSUE` v6 | The token's ownership record is escrowed in an open `ORDER`, `SWAP` or `DISPENSER` offer (`GIVE_OWNERSHIP=1`). This also refuses starting an unbind; close the offer first. |
 | `invalid: TICK (unknown)` | both | `ISSUE` v6 | `TICK` names no existing token. |
 | `invalid: CONTROLLER (unknown)` | both | both | `CONTROLLER` is set but no contract has that `ACTION_INDEX`. |
 | `invalid: CONTROLLER (not active)` | both | both | The `CONTROLLER` contract exists but its status is not `valid`. |
@@ -201,7 +214,7 @@ running any guard; see [Actions refused outright](#actions-refused-outright-on-a
 
 | Class | Gates | Guard `action_type` |
 |---|---|---|
-| `transfer` | `SEND`, [`DEPOSIT`](./actions/deposit.md), [`WITHDRAW`](./actions/withdraw.md) (and the balance leg of bulk moves) | `SEND` / `DEPOSIT` / `WITHDRAW` |
+| `transfer` | `SEND`, [`DEPOSIT`](./actions/deposit.md), [`WITHDRAW`](./actions/withdraw.md) (and the balance leg of bulk moves) | `SEND` / `AIRDROP` / `DIVIDEND` / `SWEEP` / `DEPOSIT` / `WITHDRAW` |
 | `trade` | [`ORDER`](./actions/order.md) / [`SWAP`](./actions/swap.md) / [`DISPENSER`](./actions/dispenser.md) create, and a `DISPENSER` refill from the `DISPENSER_REFILL` flag day | `ORDER_CREATE` / `SWAP_CREATE` / `DISPENSER_CREATE` / `DISPENSER_REFILL` |
 | `burn` | [`DESTROY`](./actions/destroy.md) | `DESTROY` |
 | `mint` | [`MINT`](./actions/mint.md) supply creation | `MINT` |

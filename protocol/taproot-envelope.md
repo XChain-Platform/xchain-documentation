@@ -118,7 +118,9 @@ Callers can ask the encoder to choose: `encoding: "AUTO"` selects the smallest-f
 
 Auto-selection also consults the **signer**. An account whose signer cannot produce a tapscript script-path signature never gets the envelope, and this fails closed - a signer capability must be affirmed, not assumed. The reason is not tidiness: the reveal has to be signable before the commit is broadcast, so choosing the envelope for a signer that cannot spend it does not produce an error message, it produces stranded funds.
 
-A payload that still exceeds the envelope ceiling after compression is refused with an error naming the cap. It is never silently split across multiple envelopes, and never falls back to a spray of chunk outputs.
+The encoder checks the envelope ceiling against the caller's bytes **before** compression. When `encoding` is `TAPROOT` or `AUTO`, it measures the request as submitted (the `data` push plus the `rawData` push, each with its own push framing) against `ENVELOPE_MAX_PAYLOAD`, and refuses anything over the cap, including a payload that compression would have brought under it. After compressing, it checks the compiled bytes it is about to write a second time; that check can still refuse a payload within a few bytes of the cap, because the `COMPRESSION` field lengthens the action string. So compression lowers the cost of a payload that fits, but never admits one whose uncompressed size is over the cap. Both refusals are invalid-params errors (`-32602`) that name the cap. This is the encoder's admission rule; the consensus ceiling under [Rules](#rules-that-decide-whether-an-envelope-is-an-action) measures the reassembled on-chain payload.
+
+An oversize payload is never silently split across multiple envelopes, and never falls back to a spray of chunk outputs.
 
 ## Relay
 

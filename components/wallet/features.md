@@ -163,6 +163,7 @@ For users who keep keys on an offline device:
 
 ## Onboarding & recovery
 
+- **License gate**: first launch, and any change to the license version, requires reviewing the license terms before wallet setup. The agreement checkbox remains disabled until the full text fits in the visible panel or the user scrolls to the end; the user must then check it before **Accept and continue** is enabled.
 - **Create**: fresh BIP39 12-word mnemonic by default (24 words selectable), optional 25th-word passphrase captured once and stored encrypted alongside the mnemonic, password-derived vault encryption
 - **Import**: BIP39 (12 / 15 / 18 / 21 / 24 words) with an optional passphrase, Counterwallet legacy, or single WIF. A recovery phrase carries no record of whether a passphrase was used, so importing without the original passphrase opens a different, empty wallet with no warning
 - **Migrate to BIP39**: one-way migration from Counterwallet legacy mnemonic; fresh BIP39 phrase, opt-in sweep flow to move balances
@@ -174,11 +175,12 @@ For users who keep keys on an offline device:
 
 ## Lock / unlock / auto-lock
 
-- Argon2id-derived session key cached in `chrome.storage.session` (extension), OS keychain (desktop, optional), or in-memory only (web)
-- Foreground auto-lock with configurable timeout (default 5 minutes)
+- Argon2id-derived session key cached in `chrome.storage.session` (extension), an OS-keychain-encrypted `session.bin` (desktop, when a keychain backend is available, else in memory), or in-memory only (web)
+- Foreground auto-lock with configurable timeout (default 15 minutes)
+- Background auto-lock on the extension (popup closed) and desktop (at launch, and with no window open), using the same timeout
 - Manual lock action accessible from the global menu and via keyboard shortcut
 - Browser-close drops the session-key namespace automatically
-- OS keychain auto-unlock on desktop is disabled by default; opt-in via Settings → Security
+- OS keychain auto-unlock on desktop is on by default wherever a keychain backend is available, bounded by the auto-lock window at launch; Lock clears it (see [Shell; Desktop](shell-desktop.md#os-keychain-auto-unlock))
 
 ## Internationalization & accessibility
 
@@ -194,7 +196,7 @@ The pre-signing Linux desktop bundle is **Level-2 reproducible**:
 - Digest-pinned base image (`Dockerfile`)
 - Frozen lockfile (`pnpm install --frozen-lockfile`)
 - `SOURCE_DATE_EPOCH` derived from `git log -1 --pretty=%ct`
-- `RELEASE_HASHES.txt` SHA-256 manifest emitted by `scripts/build.sh`
+- `RELEASE_HASHES.txt` SHA-256 manifest emitted by `packages/desktop/scripts/build.sh`
 - 18-rule static scaffolding audit (`packages/core/scripts/repro-build-audit.js`) gated on every commit
 
 See [Reproducible Builds](reproducible-builds.md) for the run-twice-and-compare verification protocol.

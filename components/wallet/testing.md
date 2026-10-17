@@ -3,180 +3,100 @@
 
 # Testing
 
-The wallet's test strategy combines headless unit tests (vitest), headless smokes (plain Node), browser-driven E2E (Playwright), static audit gates (a11y, manifest, repro-build), and a reference test-dapp for manual bridge runbooks.
+The wallet uses Vitest for unit and focused test tiers, standalone Node scripts for smoke coverage, Node's built-in test runner for developer tools, and Playwright for browser and live-chain end-to-end coverage. Run commands from the wallet workspace root unless a command says otherwise.
 
-## Smoke suite
+## Test suites
 
-`pnpm test:smoke` (run from the workspace root) runs the full smoke suite via Node. **365 smoke files** run; CI fails on any regression.
-
-The smokes are deliberately *static*; they exercise component imports, render trees, registry validation, schema migrations, and audit scripts without spinning up real backends. They run in seconds and gate every commit.
-
-Counts below are file counts per `test/smoke/` subdirectory, measured 2026-07-27.
-
-| Group | Files | Coverage |
+| Suite | Command | Discovered tests |
 |---|---|---|
-| `ui/` | 170 | Screens, layouts, and UI primitives: render trees, empty and error states, QR transport, capslock and paste handling, confirm-screen composition, reduced-motion behaviour |
-| `actions/` | 37 | Per-action authoring forms and their validation, one file per action surface (`airdrop-form`, `batch-composer`, `broadcast-form`, `address-preferences`, …) |
-| `audits/` | 28 | a11y-audit, repro-build-audit, extension-manifest-audit, release-gates, and the other static gates |
-| `core/` | 26 | Registry validation, schema migrations, shared helpers |
-| `markets/` | 14 | DEX surfaces |
-| `bridge/` | 12 | `window.xchain` dApp bridge and the approval broker |
-| `signers/` | 12 | Software, Trezor, Ledger, Remote, Multisig, hw-factories, hw-sign-e2e, signer-port-protocol |
-| `shells/` | 11 | Web SPA, extension popup/full-screen/side-panel, desktop |
-| `multisig/`, `onboarding/`, `staking/` | 8 each | Classical n-of-m + MuSig2, vault creation and import, staking and delegation |
-| `dispensers/`, `contracts/` | 7, 6 | Dispenser lifecycle; contract deploy/execute surfaces |
-| `addresses/`, `security/`, `governance/`, `messaging/` | 5, 4, 3, 3 | Address list, security gates, governance polls, encrypted messaging |
-| `wallet/`, `desktop/`, `docs/` | 1 each | Vault, Electron shell, docs conformance |
-| **Total** | **365** | All run on every commit |
+| Unit | `pnpm test:unit` | `test/unit/**/*.test.{js,jsx}` |
+| Smoke | `pnpm test:smoke` | `test/smoke/**/*.smoke.js` |
+| Integration | `pnpm test:integration` | `test/integration/**/*.test.{js,jsx}` |
+| Security | `pnpm test:security` | `test/security/**/*.security.test.{js,jsx}` |
+| Fuzz | `pnpm test:fuzz` | `test/fuzz/harness/**/*.fuzz.js` |
+| Regression | `pnpm test:regression` | `test/regression/**/*.regression.test.{js,jsx}` |
+| Boundary | `pnpm test:boundary` | `test/boundary/**/*.test.{js,jsx}` |
+| Chaos | `pnpm test:chaos` | `test/chaos/**/*.test.{js,jsx}` |
+| Accessibility | `pnpm test:a11y` | `test/a11y/**/*.a11y.test.{js,jsx}` |
+| Tools | `pnpm test:tools` | `tools/**/*.test.mjs` |
 
-The test files live under `test/smoke/` (workspace root), organised into subdirectories by surface area. Each smoke is named for the surface it covers (`send-form.smoke.js`, `multisig-signing.smoke.js`, etc.); the convention makes it easy to find the right file when extending coverage.
+Each Vitest tier has its own config under `test/vitest/`, so adding a test category does not silently expand another suite. The configs use a fork pool capped at the smaller of eight workers or one fewer than the available processors, with a minimum of one. The unit command on `origin/develop` does not pass Vitest's `--shard` option and CI does not define a unit shard matrix, so the current unit suite is worker-bounded rather than sharded.
 
-## Vitest suites
+The smoke runner discovers files recursively and runs them sequentially, stopping on the first failure. Smokes are static wiring, source, artifact, and audit checks rather than browser tests. Some smokes inspect the published documentation sibling; CI checks that repository out and points `XCHAIN_DOCS_ROOT` at it so those checks cannot silently disappear.
 
-Beyond the smokes, the wallet runs eight vitest suites. Measured 2026-07-27:
-
-| Suite | Command | Tests |
-|---|---|---|
-| Unit | `pnpm test:unit` | 4,264 across 291 files |
-| Integration | `pnpm test:integration` | 80 |
-| Boundary | `pnpm test:boundary` | 49 |
-| Security | `pnpm test:security` | 30 |
-| Chaos | `pnpm test:chaos` | 16 |
-| Fuzz | `pnpm test:fuzz` | 10 |
-| Accessibility | `pnpm test:a11y` | 8 |
-| Regression | `pnpm test:regression` | 4 |
-
-`pnpm test:all` chains all of them plus the smoke suite, for a wallet total of 4,825 tests.
-
-## Audit gates
-
-Three static audits run as part of the smoke suite. CI fails if any audit surfaces violations.
-
-### A11y audit (`a11y-audit.js`)
-
-Five rules over every JSX file under `packages/core/src/shared/` + `packages/core/src/ui/`:
-
-| Rule | What it requires |
-|---|---|
-| `button-needs-text-or-aria-label` | Every `<button>` has visible text, an aria-label, or a presumed-text expression child |
-| `img-needs-alt` | Every `<img>` has an `alt` attribute |
-| `input-needs-label` | Every `<input>` has a `label` / `aria-label` / `aria-labelledby` / `placeholder` / matching `<label htmlFor>` |
-| `textarea-needs-label` | Same for `<textarea>` |
-| `div-onclick-needs-role` | Every `<div onClick>` has `role` + `tabIndex` |
-
-The audit walks JSX tags with a brace-balancing reader so `onClick={(e) => ...}` doesn't trip the parser. The button rule accepts both static text content AND any bare-identifier or string-literal expression child: `{p.label}`, `{busy ? 'Loading…' : 'Save'}`, or `Send` all count.
-
-What this audit covers: structural a11y over all JSX files under `packages/core/src/shared/` and `packages/core/src/ui/`; 0 violations at v0.333.0.
-
-What this audit does **not** cover (queued for the external a11y audit): color contrast, focus-visible styling, live-region timing, keyboard traps, screen-reader walkthroughs.
-
-### Extension manifest audit (`extension-manifest-audit.js`)
-
-11 rules covering MV3 compliance + version-derivation + privacy-friendly permissions. See [Build & Release; Extension version derivation](build-release.md#extension-version-derivation) and [Shell (Extension) Manifest](shell-extension.md#manifest).
-
-### Repro-build audit (`repro-build-audit.js`)
-
-18 rules covering Dockerfile / build.sh / reproduce.sh / electron-builder.config.cjs / Reproducible_Builds.md. See [Reproducible Builds; Two halves of the property](reproducible-builds.md#two-halves-of-the-property).
-
-### Release gates smoke
-
-`release-gates.smoke.js` rolls up all of the above into a single "is this commit GA-shippable" check. Used by the maintainer at release-tag time as a final pre-flight.
+`pnpm test:all` runs unit, smoke, integration, boundary, chaos, fuzz, regression, security, accessibility, and tools in sequence. The shorter `pnpm run ci` gate runs unit, integration, security, fuzz, smoke, and tools. `pnpm run ci:full` mirrors the broader GitHub workflow, including regression, build checks, coverage, boundary, chaos, accessibility, and Playwright.
 
 ## Playwright E2E
 
-`pnpm --filter @xchain-wallet/e2e test` runs the Playwright suite against the web SPA. Three specs:
-
-- `tests/onboarding.spec.js`: create + lock + unlock round-trip; wrong-password error; import (BIP39 test vector); import word-count validation
-- `tests/send-form.spec.js`: review stage round-trip; protocol-memo char rejection; zero-amount rejection; broadcast surfaces the SDK-stub error (proves no hang)
-- `tests/a11y.spec.js`: `@axe-core/playwright` scans every rendered Phase-1 screen for WCAG 2.1 A/AA violations
-
-The Playwright config spawns Vite's dev server at `http://localhost:5173` via `pnpm -C ../../packages/web dev`. If the dev server is already running, `reuseExistingServer: !CI` picks it up so the suite doesn't fight for the port.
+The root command is:
 
 ```bash
-pnpm --filter @xchain-wallet/e2e install:browsers   # one-time browser download
-pnpm --filter @xchain-wallet/e2e test
+pnpm exec playwright install --with-deps chromium  # first run
+pnpm test:e2e
 ```
 
-What's not in Playwright today: real signing + broadcast (the web shell ships a dev-only SDK stub for browsing without a regtest stack); dApp-bridge flows (covered by the headless `bridge-e2e.smoke.js` and the manual test-dapp runbook). Both are tracked for post-GA iteration.
+`pnpm test:e2e` uses `test/e2e/playwright.config.js`. It drives the web SPA through Vite at `http://localhost:5173`, selects the dev-mock SDK explicitly, and runs one worker so tests do not share vault state accidentally. CI starts a fresh server; a local run can reuse a server already listening on the configured port.
 
-## Bridge E2E
+The default config runs ordinary specs under `test/e2e/tests/` in one project named `chromium`, using Playwright's `Desktop Chrome` device descriptor. It excludes `*.regtest.spec.js`, `*.testnet.spec.js`, and `*.extension.spec.js`, which have their own configurations. On a macOS host the desktop browser runs with the host platform, so Playwright's `ControlOrMeta` shortcut resolves to Command and the keyboard-shortcut specs exercise the macOS binding.
 
-`bridge-e2e.smoke.js` exercises the full `window.xchain` bridge against the test-dapp's mock provider in node. Coverage:
+Additional root commands select the live-chain configurations:
 
-- `connect` with origin grant
-- `getAccounts` / `getBalances` / `getSupportedChains`
-- `signMessage` round-trip
-- `signPsbt` with input ownership resolution
-- `signAction` happy path + `UNSUPPORTED_ACTION` deferral
-- `sendAction` happy path
-- `signIn` with challenge format + expiry validation
-- Per-origin permission policy enforcement (`always` / `ask` / `never`)
-- Approval popup routing for every privileged op
+```bash
+pnpm test:e2e:regtest
+pnpm test:e2e:testnet
+```
 
-The headless suite catches regressions on every commit. The manual [test-dApp runbook](release/extension/test-dapp-runbook.md) complements it by exercising real Chrome runtime behaviors (extension message ports, content-script origin stamping, popup window lifecycle).
+The E2E package also exposes `pnpm --dir test/e2e test:extension` for the extension configuration. The regtest suite signs and broadcasts against its configured venue. The testnet suite uses public testnet services and accepts treasury input through standard input; see `test/e2e/README.md` in the wallet repository before running either live suite.
 
-## Hardware signer E2E
+### Android smoke project status
 
-`hw-sign-e2e.smoke.js` and `hw-factories.smoke.js` cover the Trezor + Ledger signer factories without a connected device. They:
+The default Playwright config on `origin/develop` does not define an `android-lg-k51-smoke` project. It also does not define a 412 by 869 viewport, a Chrome 102 user agent, or `@smoke` and `@lg-k51` tag selection. Those names and values must not be treated as an active gate until they exist in the wallet configuration and tagged specs.
 
-- Validate the factory's `displayName()` / `id()` / `firmwareVersion()` interface
-- Verify `trezorFormat.js` / `ledgerFormat.js` produce vendor-shaped PSBT inputs from XChain PSBTs
+The current optional LG K51 venues are named `android-lg-k51`. The layout, axe, and click-crawl configurations use a 411 by 814 CSS viewport at a 1.75 device scale factor. These are audit venues and are not part of `pnpm test:e2e`.
 
-The deferral errors for unsupported hardware operations ([Unsupported operations](keys-signing.md#unsupported-operations)) are asserted in the per-signer unit tests, `test/unit/signers-trezor/TrezorSigner.test.js` and `test/unit/signers-ledger/LedgerSigner.test.js` (the `HW_MUSIG2_UNSUPPORTED` code and the classical-multisig messages), and in `multisig-signer.smoke.js` below.
+## Layout and style-guide guards
 
-Real-device coverage is manual and runs against the maintainer's test fleet before each release.
+The layout sweep walks reachable wallet screens at Android, iPhone, iPad, and optional Electron desktop sizes. It records measurements and a screenshot for each screen, including horizontal page scroll, off-screen or clipped controls, unreachable content, nested scrollers, and lists or cards that fail to fill the usable content width. Findings go into JSON Lines output for a person to review; the sweep deliberately does not turn every finding into a test failure.
 
-## Multisig coverage
+Run the web and desktop sweeps separately:
 
-| Smoke | Covers |
-|---|---|
-| `multisig-create.smoke.js` | Create flow: chain pick, threshold, cosigner addition, address derivation, persistence |
-| `multisig-multi-config.smoke.js` | Schema v2 per-address multi-config support |
-| `multisig-signing.smoke.js` | Session state machine: `collecting-nonces` → `collecting-sigs` → `ready-to-finalize` → `finalized` → `broadcast`, plus `cancelled` from any non-terminal state |
-| `multisig-signer.smoke.js` | The abstract multisig surface on the `Signer` base class (`signMusig2Round1`, `signMusig2Round2`, `signMultisigClassical` all reject when not overridden), and the Trezor deferral error for classical multisig |
-| `multisig-psbt-signing.smoke.js` | Classical n-of-m PSBT combine + finalize via `xchain-sdk` `wallet.signMultisigPsbt` |
-| `multisig-psbt-qr.smoke.js` | Chunked PSBT-QR encode / decode round-trip |
-| `multisig-address.smoke.js` | BIP48 address derivation from threshold + cosigners |
-| `multisig-badge.smoke.js` | UI badge rendering on multisig addresses |
+```bash
+pnpm --dir test/e2e exec playwright test --config playwright.layout.config.js
+pnpm --filter @xchain-wallet/desktop build:renderer
+pnpm --dir test/e2e exec playwright test --config playwright.layout-desktop.config.js
+```
 
-The coverage runs end-to-end against software signers; hardware-signer multisig coverage is the next iteration once vendor-API surfaces stabilize.
+### Visual checks
 
-## Repro-build verification
+Before a layout batch lands, compare every affected screen against `develop` at phone, landscape, side panel, extension popup, and desktop sizes. Review the comparisons screen by screen, then delete the comparison screenshots.
 
-The byte-for-byte verification is **manual** and run on a clean dev machine. See [Reproducible Builds; Two halves of the property](reproducible-builds.md#two-halves-of-the-property). It's not part of the per-commit smoke suite because it requires a clean Docker host that the development environment doesn't always have. The scaffolding audit catches regressions in the inputs to reproducibility automatically; the full verification runs at release-tag time on at least two independent dev machines.
+Two automated guards complement the sweep:
 
-## What the smokes do not cover
+- `test/unit/ui/pageTemplates.test.jsx` keeps page-gutter ownership in `Screen`, verifies the compact, rail, full, and short-landscape token values, keeps scrolling and stable scrollbar space on the screen body, and rejects route template roots that add their own page geometry.
+- `test/smoke/ui/settings-mobile-layout.smoke.js` requires Settings control rows, labels, and fixed-width text or number inputs to become fluid and wrap below 480 CSS pixels without stretching checkbox, radio, or range controls.
 
-- **Live regtest signing + broadcast.** The web shell's Playwright suite uses an SDK stub. Real signing + broadcast coverage moves to a sibling spec once `xchain-sdk` is bundled into the shell.
-- **Hardware-signer device interaction.** Mocked at the format-adapter layer; real-device coverage is manual.
-- **Cross-shell remote-signer round-trip.** Pair + sign over a real channel is exercised manually; the unit-level `signer-port-protocol.smoke.js` covers the envelope.
-- **OS keychain integration.** Mocked in `desktop-keychain.smoke.js`; real Keychain Access / Credential Manager / Secret Service interaction is verified manually per platform.
-- **Chrome runtime APIs.** `chrome.storage.local` / `chrome.storage.session` / `chrome.runtime.sendMessage` are mocked by the smoke harness. Real extension behavior is verified by loading the unpacked extension and walking the [test-dApp runbook](release/extension/test-dapp-runbook.md).
-- **Real device cameras.** `getUserMedia` is mocked; actual scanner behavior is verified manually with a real device camera.
+The development style guide lives at `/style-guide/` on the web dev server. Unit tests keep its sections, exported UI primitives, state matrix, tokens, terminology, and Chrome 102 browser-floor guidance synchronized with implementation. `origin/develop` does not contain Playwright `toHaveScreenshot` assertions or committed style-guide screenshot baseline assets, so visual baseline comparison is not a current gate.
 
-These gaps live with the maintainer's manual QA checklist and are exercised before each release-tag.
+## Build size budget
 
-## Adding a smoke
+The web Vite build enforces a 1,000,000-byte ceiling on the emitted main `index` entry chunk. The build fails if that chunk is missing or exceeds the ceiling. `test/smoke/audits/web-entry-chunk-size.smoke.js` pins the limit, checks that the plugin measures emitted bytes, and verifies that QR encoding remains in a route-loaded chunk. The root build command runs the package build, so this budget is enforced by the build job as well as checked structurally by the smoke suite.
 
-When adding a new route, primitive, signer, flow, or audit:
+This is the only explicit bundle-size ceiling on `origin/develop`; the extension and desktop Vite configs do not declare additional byte budgets.
 
-1. Create `test/smoke/<group>/<surface>.smoke.js`
-2. Import the surface and exercise its public API + render path
-3. Use the existing harnesses (`a11y-harness.smoke.js`, `e2e-harness.smoke.js`, `setup.js`) where they apply
-4. The runner (`test/smoke/_run-smokes.js`) discovers all `*.smoke.js` files recursively; no manifest to update
-5. Verify locally with `pnpm test:smoke` from the workspace root
-6. The smoke count in the next CHANGELOG entry should reflect the new total
+## CSS and WebView compatibility
 
-## Continuous integration
+Chrome 102 is the oldest supported Android WebView engine described by the style guide. Compatibility is guarded at several levels:
 
-Pre-GA, CI runs:
+- `test/unit/web/cssCompatibilityAudit.test.js` checks the Chrome 102 CSS auditor against unsupported feature families and verifies that Settings CSS supplies fallbacks or matching `@supports` guards.
+- `test/unit/ui/pageTemplates.test.jsx` rejects unguarded `:has()` selectors across core CSS modules.
+- The web build's `colorMixFallback` PostCSS plugin generates fallback declarations for engines that do not support `color-mix()`.
+- `test/smoke/audits/webview-compat.smoke.js` scans production CSS and JavaScript for guarded dynamic viewport units, `:has()`, container queries, and `structuredClone()`. It also pins the ES2022 build target, the pre-bundle check for `Object.hasOwn` and `Array.prototype.at`, and an iOS deployment target of 16 or newer.
 
-- `pnpm install --frozen-lockfile` at the workspace root
-- `pnpm typecheck` across all packages with declared typecheck scripts
-- `pnpm test:smoke`: 250+ smokes
-- `pnpm --filter @xchain-wallet/e2e test` (in a Playwright-capable runner)
+The wallet therefore has a concrete Chrome 102 CSS audit and an iOS 16 WebView floor. It does not have a separately named Safari 16 CSS-audit helper on `origin/develop`; Safari-specific semantic list-role behavior is covered by `test/unit/ui/nativeRoleAudit.test.js`.
 
-CI is intentionally minimal pre-GA per the wallet's "no GitHub Actions during build phase" convention. The smoke suite + Playwright + the audit gates are the verification mechanism; the maintainer runs them locally on every commit and the smokes block tag-time. A full CI lift lands alongside v1.0.0 GA.
+## Adding coverage
+
+Add a test under the directory and filename pattern owned by its suite. Smoke files need no manifest entry because `_run-smokes.js` discovers every `*.smoke.js` below `test/smoke/`. Add browser flows to the default Playwright suite only when they can run against the dev-mock SPA; signing, broadcast, extension-runtime, and public-testnet behavior belongs in the matching dedicated configuration.
 
 ---
 

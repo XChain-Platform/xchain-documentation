@@ -142,13 +142,13 @@ function parseReleasePrefixes(markdown) {
     return tables;
 }
 
-// Collect every *_activation stem an uncommented registry addGate row names.
+// Collect every *_activation or *_heights stem an uncommented registry addGate row names.
 function registryActivationStems(sources) {
     const stems = new Set();
     for (const line of sources.join('\n').split('\n')) {
         if (/^\s*(\/\/|\/\*|\*)/.test(line)) continue;
         for (const m of line.matchAll(/addGate\(\s*'([^'.]+)\./g)) {
-            if (m[1].endsWith('_activation')) stems.add(m[1]);
+            if (/_(?:activation|heights)$/.test(m[1])) stems.add(m[1]);
         }
     }
     return stems;
@@ -180,9 +180,9 @@ test('a dropped release activation row fails catalogue parsing', () => {
     );
 });
 
-test('every registry *_activation stem has a catalogue row', { skip: indexer.skip }, () => {
+test('every registry *_activation / *_heights stem has a catalogue row', { skip: indexer.skip }, () => {
     const sources = readRegistrySources(indexer.root);
-    assert.ok(registryActivationStems(sources).size > 0, 'registry scan found no *_activation stems');
+    assert.ok(registryActivationStems(sources).size > 0, 'registry scan found no *_activation / *_heights stems');
     assert.deepEqual(missingFromCatalogue(doc, sources), [], 'catalogue is missing registry prefixes');
 });
 
@@ -192,6 +192,10 @@ test('an uncatalogued registry stem is reported by name and a commented one is n
         "// addGate('yyy_commented_activation.YYY', 'height', {});",
         " * addGate('xxx_block_comment_activation.XXX', 'height', {});",
         "addGate('market_list_source_activation.MARKET_LIST_SOURCE_ACTIVATION', 'height', {});",
+        "addGate('zzz_fixture_heights.ZZZ_FIXTURE_ACTIVATION', 'height', {});",
+        "// addGate('yyy_commented_heights.YYY', 'height', {});",
+        "addGate('bigint_surface_strip_heights.BIGINT_SURFACE_STRIP_ACTIVATION', 'height', {});",
+        "addGate('stateHash.STATE_HASH', 'height', {});",
     ];
-    assert.deepEqual(missingFromCatalogue(doc, fixture), ['zzz_fixture_activation']);
+    assert.deepEqual(missingFromCatalogue(doc, fixture), ['zzz_fixture_activation', 'zzz_fixture_heights']);
 });

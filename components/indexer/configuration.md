@@ -31,6 +31,7 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `INDEXER_API_PORT` | API server listening port | `3004` |
 | `CORS_ORIGIN` | Allowed CORS origin for API requests | `http://localhost` |
 | `INDEXER_RATE_LIMIT_RPM` | API requests per minute per IP | `600` |
+| `BALANCE_DELTA_MODE` | How address balances are maintained after each block. `off` re-sums each touched address's credit and debit history; `verify` re-sums too while comparing the collected per-block delta and logging any difference; `on` applies the collected delta instead of re-summing. A rollback always re-sums. Read case-insensitively; any other value reads as `off`. | `off` |
 | `HUB_API_URL` | Hub JSON-RPC base URL used by the indexer's hub client. Falls back to the URL passed in code when unset. | _(unset)_ |
 | `HUB_API_KEY` | API key sent with hub calls. Required whenever the hub runs keyed, which is always in validator mode. Treat as a credential. | _(unset)_ |
 | `HUB_CONFIG_URL` | Hub API base URL for the config-oracle poll (`getallconfigs`). The hub keeps that method off its public feed port because the answer carries every service's DB credentials, so an indexer pointed at a validator's feed port pushes and mirrors correctly but fails its config poll once a minute forever, silently freezing the hub-supplied params at their startup values. Point this at a private hub API port to separate the two roles. Unset falls back to `HUB_API_URL`, so a single-hub deployment is unchanged. | _(unset)_ |
@@ -69,6 +70,9 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `HUB_PRICE_SYNC_TIMEOUT_MS` | Price-sync barrier timeout. Before processing a block the indexer waits for its local price mirror to reach that block height, so native-coin fee validation is deterministic across operators. On timeout the block is deferred and retried rather than validated against a stale price copy. | `60000` |
 | `INDEXER_HEALTH_STALL_GRACE_MS` | How long with no committed block before the container reports unhealthy (`503`). Defaults to comfortably more than one barrier cycle so a single legitimate defer never flaps the healthcheck. Operational only, **not** a consensus parameter. | `max(2 × HUB_PRICE_SYNC_TIMEOUT_MS, 120000)` |
 | `INDEXER_POLL_SILENT_MS` | How long the block-poll loop may go without completing an iteration before the health payload reports it silent and the monitor crits. Deliberately **not** part of the `/status` 503 gate: one block can hold a single iteration across several sequential barrier waits, and restarting the container is the wrong answer to a slow block, so the default doubles the stall grace again. Measures loop **liveness**, never chain progress, so unlike the stall signal it has nothing to do with commits. Operational only, **not** a consensus parameter. | `2 × INDEXER_HEALTH_STALL_GRACE_MS` |
+| `INDEXER_READY_NO_COMMIT_MS` | How long the indexer may sit behind a known tip without committing a block before `GET /ready`, and the `ready` / `notReadyReasons` fields on `/status`, report it not ready (`behind_tip_no_commit`). Readiness only: the `/status` 503 liveness gate never reads it. A value that is not a positive integer keeps the default. Operational only, **not** a consensus parameter. | `600000` (10 min) |
+| `INDEXER_CHAIN_TIP_TTL_MS` | How long the coin node tip read from the utxo tracker is cached for the `chainLag` field on `/status`. Health reporting only. | `15000` |
+| `INDEXER_CHAIN_TIP_TIMEOUT_MS` | Timeout for one coin node tip read from the utxo tracker. A failed or slow refresh keeps the last known tip, and `chainTipAt` says how old it is. Health reporting only. | `1500` |
 | `XCALL_DIRECT_PRESENCE_TIMEOUT_MS` | Call-presence barrier timeout in direct-hub-DB mode. With no HubDbSync mirror the cross-chain-call sync barrier is skipped, but reading the hub's MariaDB directly does not guarantee an in-flight relay row has landed, so the indexer waits this long for it before the cross-chain-call pass. | `10000` |
 | `CHAIN_TIP_PUSH_MAX_LAG` | Skip pushing the chain tip to the hub while the indexer is more than this many blocks behind the decoder tip. During a bulk re-index, pushing a tip per historical block floods the hub's rate limiter with `429`s for no value: the hub only cares about the live tip. | `100` |
 | `HUB_SYNC_ANCHOR_ATTEST_GRACE_S` | Grace margin on the anchor-reward attestation mirror barrier. The BTC indexer only derives an anchor/archive reward once the hub mirror is certified to hold everything produced up to the block being processed; a node that cannot certify that defers the block rather than deriving a partial reward set. Honoured on regtest only: elsewhere it is a consensus input and the frozen value wins. **A fast chain must lower this or it cannot make progress.** The barrier waits for the mirror watermark to reach `block_time + this value`, which costs nothing where blocks are minutes apart, because the watermark is long past by the time a block is processed. Where blocks are stamped at about wall clock, and the watermark tracks wall clock too, a freshly mined block can never be this far behind it: the wait cannot be satisfied and every affected block burns the full barrier timeout before proceeding anyway. Measured on a regtest e2e venue at the default: 367 blocks in six hours against 2013 in under two once lowered, with 160 deferrals that were waiting on a condition that could not arrive. Set it to a small fraction of the block interval on any venue that mines quickly. | `120` |
@@ -161,6 +165,7 @@ carries the credit. Arming the leg is an edit to that bundle plus a
 `xchain-hub/bin/sync-coins.sh` re-vendoring wave, never a per-node export.
 | `CROSS_CHAIN_ROYALTY_REGTEST_TIME` | **Regtest only.** Override the cross-chain royalty activation time so the OFF/deny path stays drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
 | `CONTROLLER_CUSTODY_GUARD_REGTEST_TIME` | **Regtest only.** Override the controller custody guard activation time so the pre-activation bypass and the guarded path stay drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
+| `EXACT_INTEGER_WIRE_FIELDS_REGTEST_TIME` | **Regtest only.** Arm the exact-integer wire fields activation at this time so a regtest venue can drive the strict wire parsing; a set non-negative integer arms it (0 means active from genesis). Deliberately regtest-scoped: testnet and mainnet read their pinned activation times. | unset (unarmed) |
 
 ### A7 replay-equivalence harness
 
@@ -299,6 +304,14 @@ Native-coin fee validation and FIAT settlement read the oracle tables (`price_sn
 - **Single-host:** the indexer's own database already holds the synced hub copy, so no separate hub DB
   connection is needed and the oracle tables are read locally.
 
+That price-source choice does not cover the finalized ATTEST response mirror. A **BTC** indexer on a
+network where `ATTEST_RESPONSE_MIRROR_ACTIVATION` is armed must set `HUB_DB_HOST` and `HUB_DB_NAME`.
+The `attestation_responses` table is an off-chain consensus input that settles request fees, and
+AnchorRecovery cannot reconstruct it. The indexer therefore refuses to boot without a hub database
+source on BTC testnet and regtest, where the gate is currently armed. The gate remains unpinned on
+BTC mainnet. `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` acknowledges only the local oracle-price
+topology and cannot bypass this response-mirror requirement.
+
 The two are indistinguishable from config alone: a node with no hub DB looks the same whether that is
 intentional (single-host) or an operator forgot `HUB_DB_HOST` / `HUB_DB_NAME` on a distributed node. In
 the latter case the indexer would silently value native-coin fees against stale or empty local price
@@ -306,12 +319,12 @@ data, which on mainnet can diverge from the canonical fleet and fork the ledger.
 
 To make the intent explicit, a **mainnet** indexer fails closed at startup when no hub DB is configured,
 unless `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` is set to confirm an intentional single-host node. On
-testnet and regtest, single-host is the norm and there is no canonical fleet to diverge from, so the
-missing hub DB only logs a warning.
+testnet and regtest the local-price acknowledgement is ignored. A missing hub DB only logs a warning
+for a chain that is not subject to the armed BTC response-mirror refusal above.
 
 | Variable | Description | Default |
 |---|---|---|
-| `INDEXER_ALLOW_LOCAL_PRICE_SOURCE` | Acknowledge an intentional single-host setup (read oracle tables from the local indexer DB). Required to boot a **mainnet** node that has no `HUB_DB_HOST` / `HUB_DB_NAME`; ignored on testnet/regtest. | unset (mainnet fails closed) |
+| `INDEXER_ALLOW_LOCAL_PRICE_SOURCE` | Acknowledge an intentional single-host setup (read oracle tables from the local indexer DB). Required to boot a **mainnet** node that has no `HUB_DB_HOST` / `HUB_DB_NAME`; ignored on testnet/regtest. This does not bypass the armed BTC response-mirror hub database requirement above. | unset (mainnet fails closed) |
 
 ## Coin-Specific Configuration
 

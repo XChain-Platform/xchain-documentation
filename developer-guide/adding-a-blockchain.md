@@ -91,8 +91,6 @@ confirmations: 6,            // default cross-chain attestation depth
 
 Each network block carries:
 
-> **BTC testnet4 contract limitation:** Contract deploys on BTC testnet4 cannot be mined at current miner block sizes. Use LTC or DOGE testnet when validating contract support.
-
 - **`net`**: the bitcoinjs-lib network object (`messagePrefix`, `bech32`,
   `bip32`, `pubKeyHash`, `scriptHash`, `wif`, `dustThreshold`,
   `minStandardTxNonWitnessSize`, `singleOpReturnPolicy`). The decoder, encoder,

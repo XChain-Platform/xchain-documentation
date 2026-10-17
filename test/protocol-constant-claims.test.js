@@ -459,6 +459,51 @@ test('the batch pages teach every weight class at its current value', () => {
   }
 });
 
+/*
+ * ── The weighted budget's mainnet status in prose ──────────────────────────
+ *
+ * The indexer arms BATCH_COST_WEIGHTING at genesis (0) on mainnet, and the
+ * budget binds wherever BATCH_ISSUANCE_LIMITS is active, so the batch pages
+ * must not call it testnet-only, not yet on mainnet, or still to come. Keyed on
+ * the indexer's own mainnet value: if that ever moves back to a future
+ * instant, the prose may legitimately change and this asserts nothing.
+ */
+const STALE_WEIGHT_STATUS = /testnet and regtest only|not yet\b[^.]*\bmainnet|once cost weighting activates|at\/after the cost-weighting activation|today a batch is bounded by a flat count/i;
+
+/** Lines of the batch pages that describe the weighted budget as not live on mainnet. */
+function staleWeightStatusLines(pages) {
+  const bad = [];
+  for (const [rel, src] of pages) {
+    src.split('\n').forEach((line, i) => {
+      if (/weight|budget/i.test(line) && STALE_WEIGHT_STATUS.test(line)) bad.push(`${rel}:${i + 1}`);
+    });
+  }
+  return bad;
+}
+
+test('the batch pages do not call the weighted budget off on mainnet while the indexer arms it at genesis',
+  { skip: noIndexerBatch }, () => {
+    const src = readModuleSource(moduleEntry(path.resolve(ROOT,
+      '../xchain-indexer/src/protocol_changes/flag_times_batch_fees.js')));
+    const m = /const\s+BATCH_COST_WEIGHTING_MAINNET_TIME\s*=\s*(\d+)\s*;/.exec(src);
+    assert.ok(m, 'BATCH_COST_WEIGHTING_MAINNET_TIME declaration not found in xchain-indexer/src/'
+      + 'protocol_changes/flag_times_batch_fees.js; the declaration shape changed, re-point this regex');
+    if (Number(m[1]) !== 0) return;
+    const pages = WEIGHT_PAGES.map((rel) => [rel, fs.readFileSync(path.join(ROOT, ...rel.split('/')), 'utf8')]);
+    const bad = staleWeightStatusLines(pages);
+    assert.deepStrictEqual(bad, [],
+      'these lines say the weighted BATCH budget is not live on mainnet, but BATCH_COST_WEIGHTING is '
+      + 'armed at genesis there (effective with BATCH_ISSUANCE_LIMITS):\n' + bad.join('\n'));
+  });
+
+test('the weighted-budget status guard fires on the stale mainnet wording it exists to catch', () => {
+  const stale = '*Unlike the batch limits above, the weighted budget is live on testnet and regtest only; '
+    + 'it is not yet switched on for mainnet.*';
+  assert.deepStrictEqual(staleWeightStatusLines([['x.md', stale]]), ['x.md:1']);
+  const live = '*The weighted budget is in force on every network; on mainnet it took effect with the batch limits.*';
+  assert.deepStrictEqual(staleWeightStatusLines([['x.md', live]]), []);
+});
+
 test('no superseded byte value survives anywhere in the prose', () => {
   const stale = new Map();
   for (const g of GUARDED) {

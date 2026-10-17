@@ -10,7 +10,8 @@ const { test } = require('node:test');
 const { sibling } = require('./helpers/sibling_checkout.js');
 
 const vm = sibling('xchain-vm', ['src/index.js', 'src/index']);
-const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+    'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
 const PAGE =fs.readFileSync(path.resolve(__dirname, '../protocol/protocol-activation.md'), 'utf8');
 const MARKERS = [
     'xchain-vm/src/index/lint_optional_chain_heights.js',
@@ -76,8 +77,18 @@ function assertVmServiceRow(markdown, sources) {
     for (const name of [...perCoin, ...network, ...own]) {
         assert.ok(row.includes(`\`${name}\``), `xchain-vm row omits ${name}`);
     }
+    for (const count of [perCoin.length, network.length]) {
+        assert.ok(NUMBER_WORDS[count], `${count} VM maps is past NUMBER_WORDS; extend it`);
+    }
     assert.match(row, new RegExp(`\\b${NUMBER_WORDS[perCoin.length]} per-coin height-keyed maps`));
     assert.match(row, new RegExp(`\\b${NUMBER_WORDS[network.length]} network-keyed block-time maps`));
+}
+
+// The page with the count phrase for `kind` restated one lower, refusing a mutation that changed nothing.
+function miscount(page, count, kind) {
+    const mutated = page.replace(`${NUMBER_WORDS[count]} ${kind}`, `${NUMBER_WORDS[count - 1]} ${kind}`);
+    assert.notEqual(mutated, page, `miscount fixture found no "${NUMBER_WORDS[count]} ${kind}" to change`);
+    return mutated;
 }
 
 // Read every VM source except the vendored protocol constants and the simulator toolkit.
@@ -150,13 +161,15 @@ test('the service-row guard fails when a gate name or the map count drifts', { s
     const sources = readVmSources(vm.root);
     const dropped = PAGE.replaceAll('`JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME`', 'removed');
     assert.throws(() => assertVmServiceRow(dropped, sources), /omits JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME/);
-    const miscounted = PAGE.replace('seven per-coin height-keyed maps', 'six per-coin height-keyed maps');
+    const { perCoin, network } = vmGateNames(sources);
+    const miscounted = miscount(PAGE, perCoin.length, 'per-coin height-keyed maps');
     assert.throws(() => assertVmServiceRow(miscounted, sources), /per-coin height-keyed maps/);
-    for (const name of vmGateNames(sources).network) {
+    for (const name of [...perCoin, ...network]) {
         const omitted = PAGE.replaceAll(`\`${name}\``, 'removed');
+        assert.notEqual(omitted, PAGE, `omission fixture found no ${name} to remove`);
         assert.throws(() => assertVmServiceRow(omitted, sources), new RegExp(`omits ${name}`));
     }
-    const netMiscounted = PAGE.replace('four network-keyed block-time maps', 'three network-keyed block-time maps');
+    const netMiscounted = miscount(PAGE, network.length, 'network-keyed block-time maps');
     assert.throws(() => assertVmServiceRow(netMiscounted, sources), /network-keyed block-time maps/);
     const widened = sources.concat({
         text: 'const FUTURE_METER_ACTIVATION = Object.seal({\nmainnet: null,\ntestnet: null,\nregtest: 0,\n});',

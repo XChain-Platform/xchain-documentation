@@ -58,7 +58,7 @@ flowchart TD
 | `src/chain/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parsing via bitcoinjs-lib with coin-specific fixes (Litecoin MWEB, Dogecoin AuxPoW) |
 | `src/chain/crypto_networks.js` | `CryptoNetworks` | Network configuration: bitcoinjs-lib network objects and start block indexes for all 9 chain/network combinations |
 | `src/util.js` | None | Utility functions: sleep, SHA256, hex conversion, timer |
-| `src/sql/*.sql` | None | Table creation SQL for all 9 database tables |
+| `src/sql/*.sql` | None | Table creation SQL for all 10 database tables |
 
 ## Block Polling Loop
 
@@ -71,7 +71,7 @@ flowchart TD
     S3["3. Fetch and parse next block<br>- getBlockHash → getBlock (hex)<br>- For Dogecoin: strip AuxPoW first<br>- Parse block with bitcoinjs-lib"]
     S4["4. Reorg detection<br>- Compare previous_block_hash<br>- If mismatch: delete bad block, log reorg event, retry"]
     S5["5. Process each transaction<br>- Parse outputs for XChain data<br>- Deobfuscate (AES-128-CTR)<br>- Validate XCHN prefix<br>- Resolve source address<br>- Check for dispenser payments"]
-    S6["6. Write to database<br>- Begin transaction<br>- Insert block, transactions, dispensers, outputs<br>- Delete expired dispensers<br>- Commit transaction"]
+    S6["6. Write to database<br>- Begin transaction<br>- Insert block, transactions, dispensers, outputs<br>- Soft-expire expired dispensers (stamp expired_block_index)<br>- Commit transaction<br>- After commit: hard-purge rows soft-expired at reorg-safe depth"]
     S7["7. Mempool updates (when synced)<br>- Every 60 seconds<br>- Fetch mempool txids<br>- Diff against DB, add new, remove stale<br>- Batch fetch in 1000-tx chunks"]
 
     S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7

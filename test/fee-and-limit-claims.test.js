@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Cross-repo drift lint for four consensus numbers the guides restate in prose.
+ * Cross-repo drift lint for consensus numbers the guides restate in prose.
  *
  * Each of these was found stated wrongly or not at all, and each is a number a
  * user pays or hits:
@@ -26,6 +26,7 @@
  *     absent from the betting guide.
  *   - XBRIDGE_BASE, the flat bridge lock/burn fee, absent from the page that
  *     calls itself the complete fee schedule.
+ *   - LIST_SHARE and the two LIST_SHARED_EDIT keys, absent from that same page.
  *
  * The values live in sibling repos, not in this one, so they are read as source
  * and parsed with a regex, the same convention protocol-constant-claims.test.js
@@ -130,6 +131,44 @@ test('the complete fee schedule prices XBRIDGE_BASE at the gas schedule value',
         assert.equal(cells[2], gas.toLocaleString('en-US'), `XBRIDGE_BASE row gas: ${row}`);
         assert.equal(cells[3], String(Number((gas * price).toFixed(8))), `XBRIDGE_BASE row XCHAIN: ${row}`);
     });
+
+const LIST_FEE_KEYS = ['LIST_SHARE', 'LIST_SHARED_EDIT_BASE', 'LIST_SHARED_EDIT_PER_ITEM'];
+
+// Read one fee key and GAS_PRICE from every chain's schedule, asserting the chains agree.
+function agreedSchedule(key) {
+    const vals = COIN_JS.map(([coin, file]) => {
+        const src = fs.readFileSync(file, 'utf8');
+        const where = `xchain-indexer/src/coins/${coin}.js`;
+        return `${scheduleValue(src, key, where)}@${scheduleValue(src, 'GAS_PRICE', where)}`;
+    });
+    assert.equal(new Set(vals).size, 1, `${key} or GAS_PRICE differs per chain: ${vals}`);
+    return vals[0].split('@').map(Number);
+}
+
+// Compare a fee row's gas and XCHAIN cells numerically ("1.0" and "1" are the same price).
+function assertFeeRow(doc, key, gas, price) {
+    const row = doc.split('\n').find((l) => l.includes(`\`${key}\``));
+    assert.ok(row, `concepts/gas.md Complete Fee Schedule has no ${key} row`);
+    const cells = row.split('|').map((c) => c.trim());
+    const num = (cell) => Number(cell.replace(/,/g, '').replace(/\/item$/, ''));
+    assert.equal(num(cells[2]), gas, `${key} row gas: ${row}`);
+    assert.equal(num(cells[3]), Number((gas * price).toFixed(8)), `${key} row XCHAIN: ${row}`);
+}
+
+test('the complete fee schedule prices the LIST share and shared-edit keys at the gas schedule values',
+    { skip: noCoins }, () => {
+        const doc = readDoc('concepts/gas.md');
+        for (const key of LIST_FEE_KEYS) assertFeeRow(doc, key, ...agreedSchedule(key));
+    });
+
+test('the LIST fee-row check fails on a missing row or a drifted price', { skip: noCoins }, () => {
+    const doc = readDoc('concepts/gas.md');
+    const [gas, price] = agreedSchedule('LIST_SHARE');
+    assert.throws(() => assertFeeRow(doc.replaceAll('`LIST_SHARE`', 'removed'), 'LIST_SHARE', gas, price),
+        /no LIST_SHARE row/);
+    assert.throws(() => assertFeeRow(doc, 'LIST_SHARE', gas + 1, price), /LIST_SHARE row gas/);
+    assert.throws(() => assertFeeRow(doc, 'LIST_SHARED_EDIT_BASE', 5000, price * 2), /XCHAIN/);
+});
 
 // Every page that restates the ticker character set, and must therefore restate
 // it exactly. protocol/actions/issue.md and components/indexer/configuration.md

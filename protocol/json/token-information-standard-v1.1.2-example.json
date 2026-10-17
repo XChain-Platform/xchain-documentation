@@ -77,7 +77,7 @@
     },{
         "type": "standard",
         "name": "On-chain artwork",
-        "data_ref": "action:12345"
+        "data_ref": "action:DOGE:67890"
     }],
 
     "audio": [{
@@ -140,7 +140,7 @@
         "name": "stems.zip",
         "title": "Stem Pack",
         "data": "https://domain.com/stems-preview.zip",
-        "data_ref": "action:DOGE:67890",
+        "data_ref": "action:12346",
         "locked": true,
         "pack_id": "deluxe"
     }],

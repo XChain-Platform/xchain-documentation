@@ -67,7 +67,7 @@ From this point, the transaction is a normal blockchain transaction. Miners pick
 The decoder polls the coin node every few seconds via JSON-RPC (`getblockcount`, `getblockhash`, `getblock`, `getrawtransaction`). When it finds a new block:
 
 1. **Parses each transaction** using bitcoinjs-lib. Coin-specific pre-processing is applied first:
-   - Litecoin: strip the HogEx flag from the block header before parsing
+   - Litecoin: strip the MWEB/HogEx marker and flag from each raw transaction before parsing
    - Dogecoin: strip AuxPoW merge-mining headers before parsing
 
 2. **Scans outputs** for the `XCHN` magic prefix after deobfuscation. Deobfuscation uses the first input's txid, so the decoder must retrieve the full transaction (including inputs) to reconstruct the key and IV.

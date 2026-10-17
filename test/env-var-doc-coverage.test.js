@@ -408,6 +408,29 @@ describe('scanComputedReads (the blind spot the gate cannot see into)', () => {
     test('a computed read after a //-bearing string on the same line still counts', () => {
         assert.deepEqual(cov.scanComputedReads("const a = 'http://x'; const b = process.env[k];"), [1]);
     });
+
+    // A quoted prefix that concatenates is neither a named read nor, before the
+    // lookahead became ENV_READ's complement, a computed one, so it widened the
+    // blind spot with every check green.
+    test('a quoted prefix that concatenates is computed, a whole quoted key is not', () => {
+        const source = [
+            "const a = process.env['FOO_' + coin];",
+            'const b = process.env["FOO_" + coin];',
+            "const c = process.env['FOO'];",
+            'const d = process.env[ "FOO" ];',
+        ].join('\n');
+        assert.deepEqual(cov.scanComputedReads(source), [1, 2]);
+        assert.equal(scanSource(source).size, 1);
+    });
+
+    test('through the config view, a quoted prefix counts and a whole uppercase key does not', () => {
+        const source = [
+            "const a = this.configInfo.env['UTXO_TRACKER_URL_' + code];",
+            "const b = this.configInfo.env['UTXO_TRACKER_URL'];",
+            "const c = env['lowercase'];",
+        ].join('\n');
+        assert.deepEqual(cov.scanComputedReads(source, { configView: true }), [1, 3]);
+    });
 });
 
 // The explorer reads configuration through config.js's `env` view, a live

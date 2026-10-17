@@ -274,6 +274,95 @@ function collectMapSlots(body, gate, source, label, add, unreadable) {
 /** An `addGate('<stem>.<NAME>', '<unit>', {` row with an object-literal table. */
 const GATE_ROW = /addGate\(\s*'([A-Za-z0-9_/]+)\.([A-Z][A-Z0-9_]*)'\s*,\s*'([a-z]+)'\s*,\s*\{/g;
 
+/** A whole string literal in any quoting, with no escapes or nested quotes. */
+const STRING_LITERAL = /^(['"`])([^'"`\\]*)\1$/;
+
+/** A bare `mainnet:` slot inside a table body. */
+const BARE_MAINNET_SLOT = /(?:^|[{,\s])mainnet\s*:\s*([^,}\n]*)/;
+
+/**
+ * The first `count` top-level arguments of the call whose `(` sits at `open`, as
+ * `{ text, index }` with `index` the offset of the argument's first character.
+ * String-aware, so a comma or bracket inside a quoted key or regex body ends
+ * nothing.
+ */
+function callArgs(text, open, count) {
+    const args = [];
+    let depth = 0;
+    let start = open + 1;
+    let quote = null;
+    const push = (end) => {
+        const raw = text.slice(start, end);
+        const lead = raw.length - raw.trimStart().length;
+        args.push({ text: raw.trim(), index: start + lead });
+    };
+    for (let i = start; i < text.length && args.length < count; i++) {
+        const ch = text[i];
+        if (quote !== null) {
+            if (ch === '\\') i++;
+            else if (ch === quote) quote = null;
+            continue;
+        }
+        if (ch === "'" || ch === '"' || ch === '`') quote = ch;
+        else if (ch === '(' || ch === '[' || ch === '{') depth++;
+        else if (ch === ')' || ch === ']' || ch === '}') {
+            if (depth === 0) { push(i); break; }
+            depth--;
+        } else if (ch === ',' && depth === 0) { push(i); start = i + 1; }
+    }
+    return args;
+}
+
+/**
+ * Refuses a registry `addGate` call that could carry a time-keyed gate but that
+ * GATE_ROW cannot read.
+ *
+ * WHY THIS IS LOUD. GATE_ROW is the only way the mainnet table, both UNARMED lists
+ * and the testnet arms find an addGate row, and it demands a single-quoted key, a
+ * single-quoted unit and an inline table. A row written any other way (a
+ * double-quoted key, a key or table bound to a const first) left every list in
+ * silence, the anchor count fell by one, and the currency test stayed green
+ * because it compares the page with the same parse.
+ *
+ * WHY THE UNIT LITERAL FIRES ON SYNTAX while the addChange arm fires on value.
+ * An addGate call states its unit, so `'time'` in any quoting already says the
+ * row is this page's subject, and a mainnet-only value test would miss the rows
+ * that park mainnet on UNARMED, which the UNARMED lists publish. Only a call whose
+ * unit is not a literal falls back to the value: loud when its inline table holds
+ * a mainnet time literal or UNARMED. A literal non-time unit and the registry's
+ * own plumbing (`addGate(key, unit, table)`) stay quiet.
+ */
+function assertEveryGateRowParsed(sources) {
+    const text = sources.scannable;
+    const matched = new Set([...text.matchAll(GATE_ROW)].map((m) => m.index));
+    const unread = [];
+    for (const call of text.matchAll(/\baddGate\s*\(/g)) {
+        if (matched.has(call.index)) continue;
+        const args = callArgs(text, call.index + call[0].length - 1, 3);
+        if (args.length < 2) continue;
+        const unit = STRING_LITERAL.exec(args[1].text);
+        let loud = unit !== null && unit[2] === 'time';
+        if (unit === null && args[2] && args[2].text.startsWith('{')) {
+            const body = objectBody(text, args[2].index);
+            const slot = body === null ? null : BARE_MAINNET_SLOT.exec(body);
+            const value = slot === null ? '' : slot[1].trim();
+            loud = value === 'UNARMED'
+                || (TIME_LITERAL.test(value) && Number(value.replace(/_/g, '')) >= TIMESTAMP_FLOOR);
+        }
+        if (loud) unread.push(`${sources.where(call.index)}: ${text.slice(call.index, call.index + 80).replace(/\s+/g, ' ')}`);
+    }
+    if (unread.length > 0) {
+        throw new Error(
+            'the protocol_changes registry declares a time-keyed addGate row this generator cannot read, so '
+            + 'protocol/flag-days.md would publish an inventory that calls itself complete and is not:\n  '
+            + unread.join('\n  ')
+            + "\n\nThe gate-row pass reads addGate('<stem>.<NAME>', 'time', { ... }) with single quotes and an "
+            + 'inline table. Either write the row in that shape or widen GATE_ROW in '
+            + 'bin/generate-flag-days.js deliberately.',
+        );
+    }
+}
+
 /**
  * Every time-keyed gate the registry's `addGate(key, unit, table)` rows declare.
  *
@@ -288,6 +377,7 @@ const GATE_ROW = /addGate\(\s*'([A-Za-z0-9_/]+)\.([A-Z][A-Z0-9_]*)'\s*,\s*'([a-z
  * sibling scan's reader, so the same shapes are quiet and the same are loud.
  */
 function collectGateRows(sources, add) {
+    assertEveryGateRowParsed(sources);
     const unreadable = [];
     for (const row of sources.scannable.matchAll(GATE_ROW)) {
         if (row[3] !== 'time') continue;
@@ -307,7 +397,14 @@ function collectGateRows(sources, add) {
     }
 }
 
-function collectUnarmedGateRows(sources, network, add) {
+/**
+ * One network's slot of every registry `addGate(..., 'time', { ... })` row, into
+ * `add` as `(gate, value)`: a decimal literal, or `UNARMED` resolved through
+ * core.js. The caller's `add` decides the range, so the one reader serves the
+ * testnet arms (a real instant) and both UNARMED lists (the sentinel).
+ */
+function collectGateRowSlots(sources, network, add) {
+    assertEveryGateRowParsed(sources);
     const slot = new RegExp(`(?:^|[,\\s])${network}\\s*:\\s*([^,}\\n]*)`);
     for (const row of sources.scannable.matchAll(GATE_ROW)) {
         if (row[3] !== 'time') continue;
@@ -646,9 +743,12 @@ function collectGates(indexerSrc = INDEXER_SRC) {
  * every time-keyed gate is genesis-active off mainnet, and the page states
  * that as an invariant, so a gate that arms testnet at an instant of its own
  * must be surfaced as the exception rather than left silently contradicting
- * the prose. Read from the same two declaration shapes as the mainnet parse:
- * a `const NAME_TESTNET_TIME = <digits>;` line, or a literal nonzero
- * testnet_time slot (the fourth argument) in an addChange call.
+ * the prose. Read from the same three declaration shapes as the mainnet parse:
+ * a `const NAME_TESTNET_TIME = <digits>;` line, a literal nonzero testnet_time
+ * slot (the fourth argument) in an addChange call or part-file row, and the bare
+ * `testnet:` slot of an `addGate('<stem>.<NAME>', 'time', { ... })` row. The
+ * gate-row pass was once missing, so three gates that arm testnet on an instant
+ * of their own were published as genesis-active there.
  */
 function collectTestnetArms(indexerSrc = INDEXER_SRC) {
     const sources = registrySources(indexerSrc);
@@ -662,6 +762,7 @@ function collectTestnetArms(indexerSrc = INDEXER_SRC) {
     for (const d of declaredTimeConstants(sources)) {
         if (d.network === 'TESTNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
+    collectGateRowSlots(sources, 'testnet', add);
     return [...found.values()].sort((a, b) => (a.time - b.time) || a.gate.localeCompare(b.gate));
 }
 
@@ -690,7 +791,7 @@ function collectTestnetUnarmed(indexerSrc = INDEXER_SRC) {
     for (const d of declaredTimeConstants(sources)) {
         if (d.network === 'TESTNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
-    collectUnarmedGateRows(sources, 'testnet', add);
+    collectGateRowSlots(sources, 'testnet', add);
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 
@@ -721,7 +822,7 @@ function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
     for (const d of declaredTimeConstants(sources)) {
         if (d.network === 'MAINNET' && !consumed.has(d.name)) add(d.prefix, d.value);
     }
-    collectUnarmedGateRows(sources, 'mainnet', add);
+    collectGateRowSlots(sources, 'mainnet', add);
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 

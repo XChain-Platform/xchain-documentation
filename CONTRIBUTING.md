@@ -137,7 +137,7 @@ All byte-level encoding examples and on-chain data samples in the spec must matc
 
 Match the existing log style: a concise subject line, then a short body explaining what changed and why.
 
-- Branch off `develop` and keep history linear (rebase, don't merge). `develop` is where work lands; `master` only ever receives release merges (see [`operations/release-process.md`](./operations/release-process.md)).
+- Branch off `develop` and keep history linear (rebase, don't merge). `develop` is where work lands; `master` only ever receives release merges, and a pull request into `master` from a fork or any other branch fails the `base-branch guard` check (see [`operations/release-process.md`](./operations/release-process.md)).
 - One logical change per commit; don't batch unrelated edits.
 - **No `Co-Authored-By` trailers.** This is a project policy.
 - **Never `--no-verify`.** If a hook fails, fix the cause; don't bypass it.

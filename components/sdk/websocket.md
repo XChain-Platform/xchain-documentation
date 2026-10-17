@@ -306,7 +306,11 @@ market receives stakes placed by strangers on it and nothing from any other.
 
 ## Reconnection and Catch-Up
 
-The client automatically reconnects on disconnect with exponential backoff. On reconnect, it replays every subscription. Those that carry actions (`actions` and `address`) carry `since_action_index` set to the last action index received before the disconnect; the `WELCOME` of the new connection does not move that cursor. The explorer runs one catch-up per connection, so the client sends these one at a time, each after the previous one's `CATCH_UP_COMPLETE`, and continues a replay the server truncated at its row cap from where it stopped.
+The client automatically reconnects on disconnect with exponential backoff. On reconnect, it replays every subscription. Those that carry actions (`actions` and `address`), and those naming `blocks`, carry `since_action_index` set to the last action index received before the disconnect; the `WELCOME` of the new connection does not move that cursor. The explorer runs one catch-up per connection, so the client sends these one at a time, each after the previous one's `CATCH_UP_COMPLETE`, and continues a replay the server truncated at its row cap from where it stopped. A `blocks` subscription replays nothing (the explorer never replays `NEW_BLOCK`); its `CATCH_UP_COMPLETE` names `NEW_BLOCK` in `not_replayed`, which the client emits as a `not_replayed` event.
+
+Every frame the client sends is paced under the explorer's per-connection message rate (`limits.max_message_rate` from `WELCOME`, 10 per second before it arrives), so a reconnect with many subscriptions goes out over a few hundred milliseconds instead of in one burst. A subscribe or catch-up the explorer still drops with `RATE_LIMITED` is sent again after one drain interval, up to five times. The `messageRate` constructor option sets the rate assumed before `WELCOME`.
+
+A `REORG` frame (the chain was rolled back below rows already delivered) lowers the cursor to just below its `first_invalid_action_index`, and is dispatched to `ws.on('REORG', ...)` handlers like any frame: drop what you hold at or above that index, then apply the replacement frames that follow. See [REORG](../explorer/websocket.md#reorg).
 
 Catch-up events have `catch_up: true` in the envelope. After each replay, a `CATCH_UP_COMPLETE` event is emitted.
 
@@ -316,12 +320,22 @@ ws.on('CATCH_UP_COMPLETE', (msg) => {
 });
 ```
 
-When a catch-up is refused (for example `CATCH_UP_TOO_OLD`, when the cursor is further behind than the explorer's catch-up depth limit) or goes unanswered for 30 seconds, the client emits `resync_required` and moves on to the next subscription. The missed actions were not replayed, so backfill them over REST:
+When a catch-up is refused (for example `CATCH_UP_TOO_OLD`, when the cursor is further behind than the explorer's catch-up depth limit, or `CATCH_UP_REORGED`, when a rollback while the client was away replaced rows at or below its cursor) or goes unanswered for 30 seconds, the client emits `resync_required` and moves on to the next subscription. The missed actions were not replayed, so backfill them over REST:
 
 ```javascript
 ws.on('resync_required', (msg) => {
-    // msg.data: { code, message, channels, since_action_index }
+    // msg.data: { code, message, channels, since_action_index }, plus
+    // fork_block_index and first_invalid_action_index for CATCH_UP_REORGED
     reloadFromRest(msg.data.channels, msg.data.since_action_index);
+});
+```
+
+When the replay comes from an explorer whose indexed tip is behind the chain, its `CATCH_UP_COMPLETE` carries `stale: true` and the client emits `stale_replay`. Every row it replayed is real, and the cursor still moves to the last one, but the replay ends at that tip rather than at the chain's. Later rows arrive live once the explorer catches up, so treat the event as a "you are behind" signal, not a gap to backfill:
+
+```javascript
+ws.on('stale_replay', (msg) => {
+    // msg.data: { channels, since_action_index, latest_action_index }
+    showBehindBanner(msg.data.latest_action_index);
 });
 ```
 
@@ -409,7 +423,7 @@ try {
 | `WS_TIMEOUT` | No response for a request within timeout |
 | `WEBSOCKET_NOT_CONFIGURED` | Called a WS method without configuring WebSocket URL |
 
-Server-side errors (e.g., `SUBSCRIPTION_LIMIT`, `RATE_LIMITED`) are returned as rejected Promises from `subscribe()`.
+Server-side errors (e.g., `SUBSCRIPTION_LIMIT`) are returned as rejected Promises from `subscribe()`. A `RATE_LIMITED` refusal is sent again under the same id up to five times first, and rejects the Promise only after that.
 
 ## Related
 

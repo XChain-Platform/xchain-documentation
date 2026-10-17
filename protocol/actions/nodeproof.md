@@ -42,7 +42,7 @@ A verdict for epoch height 2016 with 1 passing validator, signed by 2 verifiers 
 - Each signature must come from a member of the eligible set, must be a valid Ed25519 signature over the canonical message, and must not be duplicated; the total count of valid, deduplicated signers must meet quorum
 - For each `PASS_PK` that holds `full_node` capability stake at `EPOCH_HEIGHT`, the indexer writes a `full_node_verifications` row; the insert is idempotent on `(epoch_height, signing_pubkey)`
 - This action is validator-broadcast; it is not VM-emitted and not meaningful for end users
-- This action writes no ledger rows; reward eligibility is derived later during `PRICE` finalization
+- This action writes no ledger rows; its `full_node_verifications` rows are the input a full-node reward derivation would read, and no consensus rail reads them for rewards today (see [COLLECT → Reward Population Path](./collect.md#reward-population-path))
 
 ### Canonical signed message
 
@@ -56,13 +56,13 @@ At and above the EQUIV flag-day, this canonical string is wrapped with the unifo
 
 ### Reward eligibility
 
-A staking source earns the full-node reward tranche at block `B` only if:
+This is the designed eligibility rule. It is not applied today, because no consensus rail mints an oracle-round reward (see [COLLECT → Reward Population Path](./collect.md#reward-population-path)). Once one does, a staking source earns the full-node reward tranche at block `B` only if:
 - It has a `passed` `full_node_verifications` row with `block_index` in `(B - PROOF_WINDOW_BLOCKS, B]` and still holds `full_node` capability stake at `B` (this makes the node verifier-eligible: able to vouch in later verdicts)
 - Over the trailing `REWARD_PASS_WINDOW_BLOCKS`, the source answered at least `MIN_PASS_RATE_BPS` basis points of the challenge epochs that actually produced a verdict (the denominator counts only epochs the federation ran, so an outage never costs anyone)
 
 The gate uses integer math: `passed_epochs * 10000 >= MIN_PASS_RATE_BPS * total_epochs`. The verified set is deduplicated by staking source (one operator, one full node, one share). A validator that does not run a full node simply fails the challenges, earns nothing from the full-node tranche, and is never penalised: its `full_node` bond is untouched and there is no failed-challenge slash.
 
-See `db.getFullNodeParticipation` and `PRICE` for the reward derivation.
+`db.getFullNodeParticipation` implements this participation gate, but no production path calls it today: the indexer's PRICE v0 parse derives no reward rows, so the tranche is neither computed nor paid (see [COLLECT → Reward Population Path](./collect.md#reward-population-path)).
 
 ## The Derived Challenge
 
@@ -106,7 +106,7 @@ sequenceDiagram
 | `FULLNODE.CONFIRM_DEPTH` | `100` | Target-block burial depth (reorg safety) |
 | `FULLNODE.PROOF_WINDOW_BLOCKS` | `300` | How long a passed proof keeps a node verifier-eligible (able to vouch in later verdicts) |
 | `FULLNODE.VERDICT_ACCEPT_WINDOW_BLOCKS` | `24` | Max lag from epoch to accepted verdict |
-| `FULLNODE.REWARD_SHARE` | `'0'` | Fraction of the oracle-round budget routed to full nodes (raise to `'0.25'` to enable; see `PRICE`) |
+| `FULLNODE.REWARD_SHARE` | `'0'` | Fraction of the oracle-round budget the designed split routes to full nodes; a consensus parameter pinned in the coin bundle. Raising it alone pays nothing: the tranche also needs a consensus rail that mints oracle-round rewards (none does today; see [COLLECT → Reward Population Path](./collect.md#reward-population-path)) and a seeded `GENESIS_VERIFIERS` |
 | `FULLNODE.REWARD_PASS_WINDOW_BLOCKS` | `1008` | Trailing window the reward pass-rate is measured over (= 7 daily challenge epochs) |
 | `FULLNODE.MIN_PASS_RATE_BPS` | `7000` | Min pass rate to earn the tranche, in basis points (`7000` = 70%, i.e. pass at least 5 of 7, miss up to 2) |
 | `FULLNODE.GENESIS_VERIFIERS` | `[]` | Bootstrap verifier pubkeys (operator-seeded) |
@@ -124,7 +124,7 @@ With no seeded `GENESIS_VERIFIERS` and no verified nodes, no verdict can reach q
 - The only thing that reaches the wire is the federation's signed verdict over who answered correctly, exactly the trust model of `ATTEST v1` (the indexer verifies signatures and schedule; the federation verifies the off-chain fact)
 - `PUBKEY` is the consensus token name for verifier public keys (consistent with ANCHOR, ATTEST, and PRICE)
 - See [`ATTEST`](./attest.md) for the signature-verification and responsible-set template this models on
-- See [`PRICE`](./price.md) for oracle-round reward derivation (two-tranche split) and `validator_rewards` / `COLLECT` for the reward ledger and claim flow
+- See [COLLECT → Reward Sources](./collect.md#reward-sources) for the designed two-tranche split (`oracle_base` / `oracle_full_node`), [Reward Population Path](./collect.md#reward-population-path) for why nothing mints it today, and `validator_rewards` / `COLLECT` for the reward ledger and claim flow
 
 ---
 

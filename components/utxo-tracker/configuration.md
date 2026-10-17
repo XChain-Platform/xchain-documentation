@@ -30,7 +30,7 @@ BULK_SYNC_RAM_BUDGET=768
 
 | Variable | Description | Default |
 |---|---|---|
-| `AUX_POW` | Enable AuxPoW block header stripping (required for Dogecoin and Litecoin HogEx blocks) | `undefined` (falsy) |
+| `AUX_POW` | Legacy; read but ignored. AuxPoW block header stripping is chosen from `NETWORK` (Dogecoin only); Litecoin MWEB/HogEx handling is a separate per-transaction flag strip that no variable controls | `undefined` (falsy) |
 | `UTXO_TRACKER_API_KEY` | Bearer token required on all admin JSON-RPC methods (`getbootstrap`, `getbootstrapstatus`, `restorebootstrap`, `getbootstraprestorestatus`, `get_input_from_key_pattern`). When unset these methods fail closed (HTTP 401). Read-only UTXO/balance queries are unaffected. | `""` (disabled) |
 | `UTXO_MAX_PAGE_LIMIT` | Maximum page size a caller may request via `?limit=`. Caps a single request so a caller cannot trigger an OOM by requesting one giant page. Independent of `UTXO_MAX_ADDRESS_OUTPUTS`. | `10000` |
 | `UTXO_MAX_ADDRESS_OUTPUTS` | Hard ceiling on outputs materialized for a single-address unbounded query; above this limit `/utxos` and `get_balance` return HTTP 413: callers must page via `?limit=&after=` | `500000` |
@@ -39,6 +39,7 @@ BULK_SYNC_RAM_BUDGET=768
 | `XCHAIN_UNDO_BLOCKS_LTC` | Override the LTC reorg recovery window (blocks). The default is per network: 120 on mainnet and regtest, 5000 on testnet (litecoin testnet outran the previous 48 on 2026-09-01, and its deep public-testnet forks need the 5000-block class). | `120` (testnet `5000`) |
 | `XCHAIN_UNDO_BLOCKS_DOGE` | Override the DOGE reorg recovery window (blocks). 120 on every network. | `120` |
 | `UTXO_TRACKER_RATE_LIMIT_RPM` | API requests per minute per IP | `500` |
+| `UTXO_TRACKER_TRUST_PROXY_HOPS` | Number of reverse proxies in front of the tracker, handed to Express `trust proxy` so the per-IP limiter keys on the right `X-Forwarded-For` entry. Above 10 logs an error and falls back to `0`. | `0` (trust no `X-Forwarded-For`) |
 | `UTXO_TRACKER_NODE_RPC_STALE_MS` | Staleness window for the tracker`s last usable node-tip read, after which `health` reports the node RPC stale. Five times the loop`s `BLOCKCHAIN_INFO_REFRESH_MS` (30s), so a slow or skipped poll never trips it and only a sustained outage does. | `150000` |
 | `UTXO_MAX_RPC_BATCH` | Maximum calls accepted in one inbound JSON-RPC batch (array body). The router runs `Promise.all` over every element, so without this cap a single unauthenticated ~100kb POST fans out into thousands of concurrent read scans and node RPCs. Mirrors the decoder and encoder batch guards. | `20` |
 | `XCHAIN_COINBASE_MATURITY` | Confirmations a coinbase output needs before `getUtxosAddress` will serve it as spendable. The consensus rule is **per chain**, and the tracker resolves it per network rather than assuming one number: 100 on BTC and LTC on every net; 240 on DOGE mainnet and testnet (Dogecoin Core sets `nCoinbaseMaturity` to 240 from the Digishield fork at height 145000, which every live DOGE chain is long past); 60 on DOGE regtest. Serving an immature coinbase hands the caller an input every node rejects. Set this only to override the resolved value for a test harness that mines short chains. | _(resolved per chain, see left)_ |

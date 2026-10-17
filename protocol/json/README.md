@@ -20,6 +20,8 @@ v1.1.2 changes no field. It states the `dns` entry requirement in draft-04 keywo
 - v1.1.0: [schema](./token-information-standard-v1.1.0-schema.json), [example](./token-information-standard-v1.1.0-example.json). Frozen as published; its four media definitions require `["type", "data"]`, so a `data_ref`-only entry fails validation against it. Its `dns` rule has the same draft-04 gap as v1.1.1.
 - v1.0.0: [schema](./token-information-standard-v1.0.0-schema.json), [example](./token-information-standard-v1.0.0-example.json). Frozen as published; it predates the token-gating fields (`packs`, `title`, `data_ref`, `locked`, `pack_id`). v1.1.0 is additive over it (no new required field), so a v1.0.0 document is a valid v1.1.0 document unless it already used one of those five names as an extra with a type or length v1.1.0 now declares (`locked` must be a boolean; `title`, `data_ref` and `pack_id` strings of at most 255 characters; `packs` an object of pack entries). Its `dns` rule has the same draft-04 gap as v1.1.1.
 
+The frozen v1.1.0 and v1.1.1 examples show a `locked` entry (`stems.zip`) whose `data_ref` points at a sibling-chain `FILE`, which the token cannot gate, and the v1.1.1 example also points its public artwork at the same `FILE` as a `locked` entry. Follow the current example: a `locked` entry references a same-chain `FILE`, and no public entry shares a `data_ref` with a `locked` one.
+
 See the [Token Information Standard](../token-information-standard.md) for the field-by-field reference.
 
 ---

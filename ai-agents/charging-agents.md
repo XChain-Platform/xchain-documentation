@@ -7,7 +7,7 @@ A commercial license is available, contact legal@dankest.llc.
 
 # Charging Agents for Data and APIs
 
-You have something an AI agent wants; a data feed, an API, a file. XChain lets the agent pay for it in your token, inside the request itself: the agent asks, your server answers "402, here's the price," the agent pays on-chain, retries, and gets the goods. No accounts, no API keys, no card forms. This guide is for the **seller** side; agents paying are covered by the SDK's `X402Client` (one call: `client.fetchUrl(url)`).
+You have something an AI agent wants; a data feed, an API, a file. XChain lets the agent pay for it in your token, inside the request itself: the agent asks, your server answers "402, here's the price," the agent pays on-chain, retries, and gets the goods. No accounts, no API keys, no card forms. This guide is for the **seller** side; agents paying are covered by the SDK's `X402Client` (one call: `client.fetchUrl(url)`, on a client built with a per-tick ceiling such as `maxAmount: { YOURTICK: '5' }`; without one it refuses to pay).
 
 ```mermaid
 sequenceDiagram

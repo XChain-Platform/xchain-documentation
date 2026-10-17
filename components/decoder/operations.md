@@ -22,7 +22,7 @@ On startup, the decoder:
 2. Starts the Express JSON-RPC API server on `DECODER_API_PORT`
 3. Validates the database name (alphanumeric + underscores only)
 4. Creates the database if it doesn't exist
-5. Creates all 9 tables if they don't exist
+5. Creates all 10 tables if they don't exist
 6. Waits for the coin node to reach 99% verification progress
 7. Begins parsing from the configured start block (or last parsed block + 1)
 
@@ -103,6 +103,9 @@ Detailed health status including decoder state.
         "lag_blocks": 1,
         "rpc_errors": 0,
         "parse_errors": 0,
+        "quarantined_txs": 0,
+        "last_quarantined_block": null,
+        "last_quarantined_tx_hash": null,
         "dispenser_purge_failures": 0,
         "error": null
     },
@@ -132,7 +135,10 @@ Detailed health status including decoder state.
 | `reorg_halt_parked` | `boolean` | `true` once the parse loop has stopped on the halt and is waiting for the clear. `false` on a decoder that carries the marker but is still parsing forward, which is the only thing that separates the two |
 | `reorg_halt_parked_at` | `string\|null` | When the parse loop parked (ISO 8601); `null` when it is not parked |
 | `rpc_errors` | `integer` | Combined RPC error count from the decoder and its `BlockchainConnector` |
-| `parse_errors` | `integer` | Number of transactions quarantined due to parse failures |
+| `parse_errors` | `integer` | Transactions the decoder rejected or failed to parse since process start. It includes routine rejections such as other protocols' data on the chain, so it rises on a healthy decoder; `quarantined_txs` is the permanent-skip count |
+| `quarantined_txs` | `integer` | Transactions this decoder skipped for good since process start, after `TX_PARSE_MAX_RETRIES` whole-block retries, each recorded as a `PARSE_ERROR` event. Also exported as `xchain_decoder_quarantined_tx_total`. Reported only: it never changes `status` or the HTTP code, since a restart cannot undo a skip. A rise means a transaction may be missing from this instance's ledger and from everything downstream |
+| `last_quarantined_block` | `integer\|null` | Block height of the most recent quarantine; `null` until the first one |
+| `last_quarantined_tx_hash` | `string\|null` | Hash of the most recently quarantined transaction; `null` until the first one or when the id itself could not be read |
 | `dispenser_purge_failures` | `integer` | Post-commit expired-dispenser purges that failed since process start, also exported as `xchain_decoder_dispenser_purge_failures_total`. A failed purge keeps soft-expired rows longer and retries at the next commit; a count that keeps rising means the dispensers table is no longer being trimmed |
 | `error` | `string\|null` | Error message if the decoder crashed, otherwise `null` |
 
@@ -142,7 +148,7 @@ Returns HTTP 200 with `{status: "healthy", db, running}` when the decoder is run
 
 ### `GET /live` (REST)
 
-The liveness probe, and the route the Docker HEALTHCHECK runs. Everything `/status` reports, plus `stalled`, `poll_silent`, `last_poll_at`, `last_processed_block`, `node_height`, `lag`, `parse_errors`, and `rpc_errors`. Returns HTTP 503 when the decoder is not running, MariaDB is unreachable, the block loop is stalled, **or** the block loop has stopped iterating.
+The liveness probe, and the route the Docker HEALTHCHECK runs. Everything `/status` reports, plus `stalled`, `poll_silent`, `last_poll_at`, `last_processed_block`, `node_height`, `lag`, `parse_errors`, `quarantined_txs`, `last_quarantined_block`, `last_quarantined_tx_hash`, `last_quarantined_at`, and `rpc_errors`. Returns HTTP 503 when the decoder is not running, MariaDB is unreachable, the block loop is stalled, **or** the block loop has stopped iterating.
 
 Stalled means the loop is alive and retrying but no longer making progress the chain is waiting on: either one height has failed to fetch on many consecutive attempts, or nothing advanced for `DECODER_STALL_ALERT_MS` (default `900000` ms, 15 minutes) while the node tip was fresh and visibly ahead. The block loop never skips a block on a fetch or parse fault, because skipping would corrupt the index, so a deterministic fault at one height retries forever with the process alive and the DB answering. That case is invisible to `/status`, which is why autoheal probes `/live` instead.
 
@@ -262,7 +268,7 @@ Mempool tracking pauses if the decoder falls more than 3 blocks behind the tip, 
 
 - Verify the coin node is accessible at `NODE_URL:NODE_PORT`
 - Check that `verificationprogress` is >= 0.99 (run `bitcoin-cli getblockchaininfo`)
-- If using Dogecoin, ensure `AUX_POW` is set in the environment
+- If using Dogecoin, ensure `NETWORK` names the dogecoin chain (for example `dogecoin-mainnet`); AuxPoW stripping follows it, and `AUX_POW` has no effect
 
 ### Decoder is stuck / not advancing
 
@@ -284,7 +290,7 @@ SELECT id, time, code, data FROM events
  ORDER BY id DESC LIMIT 5;
 ```
 
-The newest row decides: a `REORG_HALT` newer than every `REORG_HALT_CLEARED` is live.
+The newest row decides: a `REORG_HALT` newer than every `REORG_HALT_CLEARED` is live. A newest `REORG_HALT_CLEARED` row lifts the halt only when its `data` parses to an object whose `reason` is at least 8 characters, which every audited clear writes; any other clear row (unparseable, empty, or with no or a short reason) reads as a live halt under its own id, and the audited clear below supersedes it.
 
 Two recoveries:
 

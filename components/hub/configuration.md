@@ -373,6 +373,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_RATELIMIT_MAX_WAITS` | No | `3` | Caps how many rate-limit waits one broadcast may take before the anchor defers to a later flush instead of stalling the current one. |
 | `ANCHOR_AMBIGUOUS_POLL_ATTEMPTS` | No | `3` | Re-polls before an ambiguous publish result (broadcast may or may not have landed) is resolved. |
 | `ANCHOR_AMBIGUOUS_POLL_MS` | No | `5000` | Delay between those re-polls. |
+| `ANCHOR_DEADLETTER_PATH` | No | `./data/anchor-publish.deadletter.jsonl` | Append-only JSONL record of an ANCHOR send that failed after the signer hook committed funds, holding the signed reveal an operator rebroadcasts instead of paying for the payload again; an unset or empty value uses the default. |
 | `ANCHOR_ANNOUNCE_RETRY_MS` | No | `300000` | Delay between retries of the anchor announcement (5 minutes). |
 | `ANCHOR_ANNOUNCE_RETRY_TTL_MS` | No | `21600000` | How long announcement retries continue before the entry is dropped (6 hours, roughly six times the 60-confirmation DOGE window). |
 | `ANCHOR_ANNOUNCE_QUEUE_MAX` | No | `500` | Maximum queued anchor announcements, bounding memory. |
@@ -533,7 +534,7 @@ Controls `FullNodeChallengeRound`, the periodic possession challenge proving a v
 | `FULLNODE_PROOF_WINDOW_BLOCKS` | No | per-coin | Blocks a challenged node has to submit a proof. |
 | `FULLNODE_REWARD_PASS_WINDOW_BLOCKS` | No | per-coin | Blocks in the reward-pass window. |
 | `FULLNODE_MIN_PASS_RATE_BPS` | No | per-coin | Minimum pass rate, in basis points, for a node to be treated as passing. |
-| `FULLNODE_REWARD_SHARE` | No | per-coin | Reward share for passing full nodes. |
+| `FULLNODE_REWARD_SHARE` | No | per-coin | Full-node fraction of the designed oracle-round reward split; a consensus parameter that must match the coin default. Nothing pays the full-node tranche today (see [COLLECT](../../protocol/actions/collect.md#reward-population-path)). |
 | `FULLNODE_GENESIS_VERIFIERS` | No | per-coin | Comma-separated genesis verifier pubkeys (lowercased). |
 | `XCHAIN_HUB_SKIP_FULLNODE_ASSERT` | No | _(unset, assertion active)_ | Set to `1` to skip the canonical-FULLNODE assertion at startup and warn instead. Intended as a loud one-off bypass for a venue running its own challenge cadence and verifier set: divergent `NODEPROOF` knobs fork the challenge schedule, so this is not a setting to leave on. |
 
@@ -676,6 +677,9 @@ Read-only operator tools; neither broadcasts nor writes anything and neither is 
 | `HUB_RPC_URLS` | No | _(empty; `--hubs` required instead)_ | Comma-separated hub JSON-RPC URLs `bin/oracle-round-presence.js` polls (`getoracleroundpresence`) when no `--hubs` flag is given. Asks every named hub about the same round range and reports whether the federation agrees on which rounds happened, so a round that finalized on some validators and not others shows up as a named divergence instead of looking like ordinary absence. At least two URLs are required; comparing one hub to itself is refused. |
 | `XCHAIN_HUB_DIR` | No | `../xchain-hub` | Sibling-checkout override `bin/lib/carrier_logic_pin.js`'s `siblingDir()` resolves for cross-repo carrier-logic comparison; the `repo_guards` twin test points it at a second checkout with `XCHAIN_REQUIRE_SIBLINGS=1`. Never read by the running hub process. |
 | `XCHAIN_INDEXER_DIR` | No | `../xchain-indexer` | Sibling-checkout override for the `xchain-indexer` tree the same `siblingDir()` resolves when the pin tool compares against the indexer's canonical copy; read by literal name so the coverage gate can see it. Never read by the running hub process. |
+| `NODE_OPTIONS` | No | _(unset)_ | Node's own option string. `bin/suite-title-map.js` appends `--require=<its own path>` to the caller's value while it collects suite titles, so every mocha child it spawns loads the sibling mask, and restores the caller's value afterwards. Never read by the running hub process. |
+| `XCHAIN_SUITE_TITLE_REPO_ROOT` | No | _(unset)_ | Set only by `bin/suite-title-map.js` for the mocha children it spawns: the checkout being collected. When present, the child hides every adjacent `xchain-*` checkout from file and module reads, so a pin collected beside a platform checkout matches one collected in standalone CI. Not an operator setting; never read by the running hub process. |
+| `XCHAIN_DOCS_DIR` | No | `../xchain-documentation` | Sibling-checkout override for the documentation tree the hub's conformance tests read their vectors from. `bin/suite-title-map.js` unsets it, together with `XCHAIN_INDEXER_DIR`, for the mocha children it spawns and restores both afterwards, so an override cannot point a child back at a sibling the mask hides. Never read by the running hub process. |
 | `XCHAIN_SYNC_DIR` | No | `../xchain-sync` | Sibling-checkout override for the `xchain-sync` tree the same `siblingDir()` resolves when the pin tool compares against sync's copy; read by literal name so the coverage gate can see it. Never read by the running hub process. |
 
 ## Database Schema
