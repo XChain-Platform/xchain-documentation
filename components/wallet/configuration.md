@@ -96,7 +96,7 @@ The repository builds four shell families:
 | Desktop | `@xchain-wallet/desktop`, Electron packages for Windows, macOS, and Linux |
 | Mobile | `@xchain-wallet/mobile`, Capacitor Android and iOS projects containing the built web SPA |
 
-Reproducible web, extension, and desktop builds use the shell Dockerfiles and `scripts/reproduce.sh` entry points. Their principal inputs are:
+Reproducible web, extension, and desktop builds use the shell Dockerfiles and the `packages/web/scripts/reproduce.sh`, `packages/extension/scripts/reproduce.sh`, and `packages/desktop/scripts/reproduce.sh` entry points. Their principal inputs are:
 
 | Input | Source or use |
 |---|---|

@@ -123,8 +123,8 @@ The pre-signing artifact (Linux only at v1.0.0) is **Level-2 reproducible** (see
 |---|---|
 | `electron-builder.config.cjs` | Build targets, signing configuration, asar settings, AppImage compression |
 | `Dockerfile` | Reproducible-build container: digest-pinned base, NODE_VERSION pinned, locale + TZ pinned |
-| `scripts/build.sh` | Build script: asserts SOURCE_DATE_EPOCH, uses `--frozen-lockfile`, emits `RELEASE_HASHES.txt` |
-| `scripts/reproduce.sh` | Verification script: derives SOURCE_DATE_EPOCH from `git log`, builds from a fresh worktree |
+| `packages/desktop/scripts/build.sh` | Build script: asserts SOURCE_DATE_EPOCH, uses `--frozen-lockfile`, emits `RELEASE_HASHES.txt` |
+| `packages/desktop/scripts/reproduce.sh` | Verification script: derives SOURCE_DATE_EPOCH from `git log`, builds from a fresh worktree |
 | `Reproducible_Builds.md` | The desktop-package-level companion to the platform-wide protocol |
 
 ## Run locally
