@@ -22,6 +22,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 |---|---|---|---|
 | `EXPLORER_API_PORT_HTTP` | No | `8080` | HTTP server port |
 | `EXPLORER_API_PORT_HTTPS` | No | `8081` | HTTPS server port |
+| `EXPLORER_CONTENT_VIEWER_ORIGIN` | No | None | HTTPS origin (scheme, host and optional port only) that serves the custom token content viewer page; token pages frame custom content from it. Anything else, or unset, leaves the viewer off. |
 | `EXPLORER_DEFAULT_THEME` | No | `classic` | Theme served to a visitor who has not picked one: a directory name under `src/content/themes` (`classic`, `skin-demo`). An unknown name falls back to `classic`. |
 | `API_HOST` | No | `127.0.0.1` | Bind address for the API server |
 | `DEBUG` | No | None | Enable debug output when set to any truthy value |
