@@ -36,7 +36,7 @@ This action creates or updates a `TICK`.
 | `CONTROLLER`       | String | `ACTION_INDEX` of a deployed contract whose `guard` gates one `ACTION_CLASS` of this token (see [Controller-Bound Tokens](../controller-bound-tokens.md)) |
 | `ACTION_CLASS`     | String | Which class the binding gates: `transfer`, `trade`, `burn`, `mint`, `stake`, `ownership`, or the catch-all `all` (fallback for any class with no specific binding; most-specific-wins) |
 | `COOLDOWN_BLOCKS`  | String | Drop-cooldown committed at bind time: blocks of friction before a later `UNBIND` takes effect |
-| `UNBIND`           | String | `1` drops the live binding for `ACTION_CLASS`; `0` binds                                    |
+| `UNBIND`           | String | Only `1` drops the live binding for `ACTION_CLASS`; any other value binds                    |
 | `BRIDGE_CHAINS`    | String | Comma list of destination coins this `TICK` may bridge to via [`XBRIDGE`](./xbridge.md), or `-` for none; empty means unchanged |
 | `MIN_DEPTH`        | String | Confirmation depth the federation must honour for this `TICK`'s bridge locks, raise-only over the platform default; empty means unchanged |
 | `LOCK_BRIDGE`      | String | `1` permanently locks `BRIDGE_CHAINS` and `MIN_DEPTH`                                       |
