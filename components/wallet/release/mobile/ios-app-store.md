@@ -434,7 +434,7 @@ Its `screenshots-pinned` check asks whether the images the console holds are the
 > Demo steps (about three minutes):
 >
 > 1. Open the app and choose "Import wallet". Enter the recovery phrase below and any password. The wallet opens on the balances screen.
-> 2. Open Settings and set Network to "Testnet". The app reloads onto a public test network, so no real funds are involved at any point in this demo. Balances are read from a public blockchain indexer; no account is involved.
+> 2. Turn on Developer mode. Open Settings and set Network to "Testnet". The app reloads onto a public test network, so no real funds are involved at any point in this demo. Balances are read from a public blockchain indexer; no account is involved.
 > 3. Tap Receive. The app shows an address and a QR code. Tap the camera icon to scan one; this uses the device camera directly.
 > 4. **Route A: compose first, then Airplane Mode.** Tap Send, enter the address shown below and any small amount, and continue to the confirmation screen. **Now turn on Airplane Mode**, and confirm. With no network at all, the app signs the transaction on the device and shows "Signed. Not broadcast yet." Turn Airplane Mode off and the app prompts you about the queued transaction; tap "Broadcast now" in the queued-transactions banner and that same signed transaction goes out. Signing needed no server, no account and no connection.
 > 5. Settings also holds the privacy toggles that turn off the only third-party requests the app makes.
@@ -467,7 +467,7 @@ There is no sign-in, so the account fields stay empty and the demo wallet goes i
 
 Preparing the wallet is four steps, and none of them can be left until the console is open:
 
-⬜ Install the build being submitted, create or import a throwaway wallet, and set Network to "Testnet" in Settings.  
+⬜ Install the build being submitted, create or import a throwaway wallet, turn on Developer mode, and set Network to "Testnet" in Settings.
 ⬜ Fund it on **BTC testnet (TBTC)**, from a public faucet or the project's own test-network funding wallet. A few thousand of the smallest unit is enough; the demo spends almost nothing, and a large test balance on a phrase published to a reviewer is a balance somebody else will move. **Fund that chain and no other, and this is not a preference.** The wallet reaches three test networks and they are not equally usable: a balance only appears once the chain's indexer has processed the block the funding transaction landed in, and on 2026-08-06 the DOGE test network's indexer was 32 days and 756,703 blocks behind, while the LTC test network's newest indexed block was 38 hours old. Money sent to either would have been real, confirmed, visible on a block explorer, and absent from the app. The endpoint check named in the pre-submission gate now measures this and prints `NOT FUNDABLE` beside any test network that cannot show a fresh balance, so run it first and fund whichever chain it reports as the current one rather than trusting this paragraph's date.  
 ⬜ Confirm the balance is visible **in the app**, not only on a block explorer. This is the whole point of the check: it exercises the same indexer path the reviewer's device will use, from a network that is on no allowlist.  
 ⬜ Walk the demo steps above end to end on a device, including the airplane-mode step in the order written, and only then paste the phrase, the password and the send-to address into the review notes.
