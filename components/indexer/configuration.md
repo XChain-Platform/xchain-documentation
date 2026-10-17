@@ -31,6 +31,7 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `INDEXER_API_PORT` | API server listening port | `3004` |
 | `CORS_ORIGIN` | Allowed CORS origin for API requests | `http://localhost` |
 | `INDEXER_RATE_LIMIT_RPM` | API requests per minute per IP | `600` |
+| `BALANCE_DELTA_MODE` | How address balances are maintained after each block. `off` re-sums each touched address's credit and debit history; `verify` re-sums too while comparing the collected per-block delta and logging any difference; `on` applies the collected delta instead of re-summing. A rollback always re-sums. Read case-insensitively; any other value reads as `off`. | `off` |
 | `HUB_API_URL` | Hub JSON-RPC base URL used by the indexer's hub client. Falls back to the URL passed in code when unset. | _(unset)_ |
 | `HUB_API_KEY` | API key sent with hub calls. Required whenever the hub runs keyed, which is always in validator mode. Treat as a credential. | _(unset)_ |
 | `HUB_CONFIG_URL` | Hub API base URL for the config-oracle poll (`getallconfigs`). The hub keeps that method off its public feed port because the answer carries every service's DB credentials, so an indexer pointed at a validator's feed port pushes and mirrors correctly but fails its config poll once a minute forever, silently freezing the hub-supplied params at their startup values. Point this at a private hub API port to separate the two roles. Unset falls back to `HUB_API_URL`, so a single-hub deployment is unchanged. | _(unset)_ |
