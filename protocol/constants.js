@@ -1326,6 +1326,21 @@ const DISPENSER_PURGE_GRACE_ACTIVATION = {
     regtest: 0,
 };
 
+// DISPENSER_CANCEL_GRACE_PARENT_FLOOR_ACTIVATION: the block-time boundary
+// at/above which the decoder's cancellation capture floor becomes
+// min(block time, parent protocol time) - 3600 instead of block time - 3600.
+// The earlier parent clock keeps the capture set open across the first block
+// past the indexer's close-delay boundary.
+//
+// Mainnet waits on the dispenser history re-measure ruled 2026-10-17, and
+// testnet remains unarmed so existing history is not reinterpreted. Regtest is
+// genesis-active so the parent-anchored floor is exercised there.
+const DISPENSER_CANCEL_GRACE_PARENT_FLOOR_ACTIVATION = {
+    mainnet: 9999999999,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION: the block-time boundary at/above
 // which decoder batch registration collapse keys each operating address on the
 // address id the dispensers table resolves, instead of its raw address spelling.
@@ -2571,6 +2586,7 @@ module.exports = {
     DISPENSER_EXPIRY_REALIGN_ACTIVATION,
     DISPENSER_CANCEL_GRACE_ACTIVATION,
     DISPENSER_PURGE_GRACE_ACTIVATION,
+    DISPENSER_CANCEL_GRACE_PARENT_FLOOR_ACTIVATION,
     DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION,
     DISPENSER_FRESHNESS_SHAPE_ACTIVATION,
     BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION,
