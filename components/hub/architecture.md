@@ -343,10 +343,10 @@ After consensus finalizes a round, the OraclePublisher takes over:
 ```mermaid
 flowchart TD
     S1["1. ROTATION<br>Leader = SHA256(round_number || pubkey) ordering<br>oracle_publish validators sorted deterministically"]
-    S2["2. ENQUEUE<br>If local node is the leader, append to JSONL queue (fsync)"]
+    S2["2. BATCH BUFFER<br>Every hub, leader or not, appends each finalized round to its durable batch buffer<br>→ window leader assembles the hourly batch<br>→ quorum of the price-capable set co-signs it<br>→ window leader only then queues it for broadcast; a round is never broadcast on its own"]
     S3["3. BROADCAST<br>EncoderClient.getUtxos(DOGE_ADDRESS)<br>→ EncoderClient.createTx(payload, P2SH encoding)<br>→ walletSignFn(psbtHex) [operator-provided signer]<br>→ EncoderClient.broadcastTx(signedHex)"]
     S4["4. CONFIRM<br>Remove from queue on successful broadcast"]
-    S5["5. FAILOVER<br>If leader misses by 1 BTC block, next oracle_publish validator in rotation takes over and batches all missed rounds in a single tx"]
+    S5["5. FAILOVER<br>Opt-in and off unless ORACLE_PUBLISH_FAILOVER_WINDOW_BLOCKS is set<br>→ follower's staggered timer fires while the window is still not on chain: re-assemble the identical batch<br>→ a hub that has never observed a landed PRICE action declines every takeover"]
 
     S1 --> S2 --> S3 --> S4 --> S5
 ```

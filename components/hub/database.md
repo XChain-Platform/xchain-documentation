@@ -191,7 +191,7 @@ The durable at-most-once marker for PRICE v0 round broadcasts, written by `Oracl
 
 | Column | Type | Description |
 |---|---|---|
-| `round` | `BIGINT NOT NULL` | Primary key: PRICE v0 round id (one broadcast per round) |
+| `round` | `BIGINT NOT NULL` | Primary key: PRICE v0 round id; each round keeps its own row, while every round in one batch carries that batch broadcast's txid, so one broadcast covers many rounds |
 | `txid` | `VARCHAR(80)` | DOGE txid of the PRICE tx (NULL until confirmed, and may stay NULL if the broadcaster returns none) |
 | `intent_at` | `DATETIME DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
 | `sent_at` | `DATETIME NULL` | When the broadcast completed; NULL means intent only |
