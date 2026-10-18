@@ -29,6 +29,7 @@ same chain or field.
 | `anchor_activation` | `ANCHOR_ACTIVATION` | height |
 | `anchor_archive_fold_term_activation` | `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` | height |
 | `anchor_bundle_order_activation` | `ANCHOR_BUNDLE_ORDER_ACTIVATION` | height |
+| `anchor_checkpoint_seq_bind_activation` | `ANCHOR_CHECKPOINT_SEQ_BIND_ACTIVATION` | height |
 | `anchor_empty_fold_reject_activation` | `ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION` | height |
 | `anchor_fold_activation` | `ANCHOR_FOLD_ACTIVATION` | height |
 | `anchor_fold_reissue_source_author_activation` | `ANCHOR_FOLD_REISSUE_SOURCE_AUTHOR_ACTIVATION` | height |
