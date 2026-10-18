@@ -105,6 +105,16 @@ Regtest ships inert on purpose: arming a network commits every BTC indexer on it
 
 A BTC indexer with no DOGE wiring **defers every block** from the first epoch close onward (epoch height + 144 + 36), with `stallReason = 'rollcall_proof_unavailable'`, rather than judging absences it cannot prove. The same deferral covers an unreachable or malformed answer, a DOGE tip that has not yet buried the window cut by `ROLLCALL_DOGE_MATURITY`, and a DOGE indexer whose vendored action-manifest hash differs from this indexer's own. That last case is what turns a DOGE indexer running a decoder too old to know `ROLLCALL` from a silent evict-the-federation bug into a loud, safe stall: wire the DOGE indexers and deploy their decoder **before** `ROLLCALL_ACTIVATION` is reached. A validator with no Dogecoin indexer of its own points `DOGE_INDEXER_API_URL` at the public explorer instead: `https://explorer.xchain.io/TDOGE/api/` on testnet, `https://explorer.xchain.io/DOGE/api/` on mainnet, with no `DOGE_INDEXER_API_KEY` (the explorer answers these reads to anyone, like the rest of its API). That answer comes from the explorer's own replicated indexer database, so a replica that has fallen behind makes the epoch close wait longer rather than judge the roll call on stale data.
 
+### Capability snapshot proof trust pin
+
+The capability snapshot proof is unarmed until the train cut; when armed, these variables pin its validator trust set.
+
+| Variable | Description | Default |
+|---|---|---|
+| `CHECKPOINT_VALIDATORS_BTC_<NETWORK>` | Static trust pin used by an LTC or DOGE indexer to judge hub-mirrored `capability_snapshots` rows, never derived from those mirrored rows. Replace `<NETWORK>` with the upper-cased network name, as in `CHECKPOINT_VALIDATORS_BTC_REGTEST`. The value is a non-empty JSON array of `{pubkey, weight, source}` entries: `pubkey` is a 64-hex Ed25519 public key, `weight` and `source` are strings, and the array must have positive total stake. With no pin, testnet and mainnet hold the row while regtest takes first use. | _(unset)_ |
+| `CHECKPOINT_VALIDATORS_BTC_<NETWORK>_NEXT` | Second trust pin in the same format, used for rows whose `snapshot_block` is at or above `_FROM`. This lets an operator re-pin after validator rotation without re-judging rows already applied. If `_NEXT` is set while `_FROM` is unset or malformed, every row is held instead of being judged under the old pin. | _(unset)_ |
+| `CHECKPOINT_VALIDATORS_BTC_<NETWORK>_FROM` | Rotation cutoff, written as decimal digits that give a safe integer. `_FROM` alone is ignored. | _(unset)_ |
+
 ### Hub push queue and mirror
 
 | Variable | Description | Default |
