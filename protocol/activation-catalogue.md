@@ -41,6 +41,7 @@ same chain or field.
 | `archive_section_verdict_activation` | `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` | height |
 | `attest_admission_activation` | `ATTEST_ADMISSION_ACTIVATION` | height |
 | `attest_broadcast_fee_activation` | `ATTEST_BROADCAST_FEE_ACTIVATION` | height |
+| `attest_callback_batch_position_activation` | `ATTEST_CALLBACK_BATCH_POSITION_ACTIVATION` | height |
 | `attest_relay_activation` | `ATTEST_RELAY_ACTIVATION` | height |
 | `attest_relay_fee_activation` | `ATTEST_RELAY_FEE_ACTIVATION` | height |
 | `attest_relay_reject_slot_activation` | `ATTEST_RELAY_REJECT_SLOT_ACTIVATION` | time |
