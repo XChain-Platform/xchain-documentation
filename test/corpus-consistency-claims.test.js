@@ -712,6 +712,7 @@ const HUB_SNAPSHOT_ROUTES = [
     'policy_snapshots',
     'anchor_reward_attestations',
     'attestation_responses',
+    'capability_snapshot_proof',
 ];
 
 function missingHubSnapshotRoutes(markdown) {
