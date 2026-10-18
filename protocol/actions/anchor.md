@@ -550,6 +550,16 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
   accepted: an exact replay is signature-bound to identical content (harmless duplicate). The
   same ≥ rule applies to `MATCH_BATCH_SEQ` on v1 and on a v3 that carries an archive section. The
   checkpoint replay watermark counts v0/v1/v3 together, per chain.
+- From `ANCHOR_CHECKPOINT_SEQ_BIND_ACTIVATION`, evaluated against the ANCHOR's own DOGE block
+  height, with its status on [Flag-Day Values](../flag-days.md), every v0 section, every v3 fold
+  section, and every v1 head must carry a `CHECKPOINT_SEQ` equal to its own snapshot block
+  (`SECTION_SNAPSHOT_BLOCK` on a section, `SNAPSHOT_BLOCK` on a v1 head). Both must be canonical safe
+  integers: decimal digits, no leading zero, and at most `Number.MAX_SAFE_INTEGER`.
+  A failing record is invalid with `CHECKPOINT_SEQ (not a canonical safe integer)`,
+  `SNAPSHOT_BLOCK (not a canonical safe integer)`, or
+  `CHECKPOINT_SEQ (does not match SNAPSHOT_BLOCK)`. At or above the gate, the `CHECKPOINT_SEQ` and
+  `MATCH_BATCH_SEQ` replay watermarks count only records stored valid, so a refused or stale record
+  never raises them. Anchors mined before the activation keep the earlier acceptance.
 
 ### Version 0 only
 - `SECTION_COUNT` must be at least 1 and must equal the number of sections actually present.
