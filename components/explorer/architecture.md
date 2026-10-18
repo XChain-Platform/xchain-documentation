@@ -59,7 +59,7 @@ flowchart TD
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server, SSL, Helmet, CORS, rate limiting, JSON-RPC router |
 | `src/XChainExplorer.js` | `XChainExplorer` | Main orchestrator: URL routing (130+ routes), request processing, response formatting, icon/relay handlers, SPV proof endpoint dispatch |
-| `src/db.js` | `Database` | All SQL queries (~9,400 lines), connection pool management, pagination, caching |
+| `src/db/index.js` | `Database` | All SQL queries (~9,400 lines), connection pool management, pagination, caching |
 | `src/config.js` | None | Configuration loading from hub or local config.json, 60-second auto-sync, coin/network discovery |
 | `src/lib/utility.js` | `Utility` | BigNumber math, timer functions, sanitization (escapeLike, sanitizeInt), type checking |
 | `src/connectors/hub.js` | `XChainHubConnector` | JSON-RPC client for xchain-hub (ping, getAllConfig) |
@@ -75,7 +75,7 @@ flowchart TD
 | `src/coin-config/BTC.js` | None | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |
 | `src/coin-config/LTC.js` | None | Litecoin-specific configuration |
 | `src/coin-config/DOGE.js` | None | Dogecoin-specific configuration |
-| `src/config.json` | None | Local database connection configuration (fallback when hub is unavailable) |
+| `src/config.json.example` | None | Local database connection configuration example (fallback when hub is unavailable) |
 
 ### Static Content (`src/content/`)
 
