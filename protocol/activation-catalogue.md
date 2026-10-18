@@ -89,6 +89,7 @@ same chain or field.
 | `gas_ceiling_exhausted_heights` | `GAS_CEILING_EXHAUSTED_ACTIVATION` | height |
 | `gated_handoff_ref_activation` | `GATED_HANDOFF_REF_ACTIVATION` | time |
 | `host_error_stack_strip_heights` | `HOST_ERROR_STACK_STRIP_ACTIVATION` | height |
+| `host_fault_halt_heights` | `HOST_FAULT_HALT_ACTIVATION` | height |
 | `json_stringify_reentry_heights` | `JSON_STRINGIFY_REENTRY_ACTIVATION` | height |
 | `ledger_amount_precision_activation` | `LEDGER_AMOUNT_PRECISION_ACTIVATION` | height |
 | `list_address_ref_activation` | `LIST_ADDRESS_REF_ACTIVATION` | height |
