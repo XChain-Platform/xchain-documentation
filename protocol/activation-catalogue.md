@@ -24,6 +24,7 @@ same chain or field.
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
 | `active_stake_collation_activation` | `ACTIVE_STAKE_COLLATION_ACTIVATION` | height |
+| `airdrop_native_fee_tally_activation` | `AIRDROP_NATIVE_FEE_TALLY_ACTIVATION` | height |
 | `amount_representability_activation` | `AMOUNT_REPRESENTABILITY_ACTIVATION` | time |
 | `anchor_activation` | `ANCHOR_ACTIVATION` | height |
 | `anchor_archive_fold_term_activation` | `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` | height |
