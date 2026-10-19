@@ -95,6 +95,8 @@ A reference glossary of XChain terminology, organized by category.
 
 **SWEEP**: An ACTION that transfers the entire token balance of the broadcasting address to a destination address in a single operation.
 
+**XBRIDGE**: An ACTION, also called X-Bridge, that moves a token between supported chains. The token is locked in a keyless protocol escrow on its home chain (or, on the way back, a bridged copy is burned), and once the validator federation signs the transfer the same amount is credited on the destination as a copy named after its home chain, such as `BTC.PEPECASH`. XCHAIN can always be bridged; any other token only after its owner opts it in. On the public networks it runs on testnet only (see [Token Bridge](../concepts/token-bridge.md)).
+
 ---
 
 ## Trading
@@ -107,7 +109,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **ORDER**: An ACTION that places a sell order on the built-in DEX. Specifies the token being sold, the price, and the quantity. Buyers fill orders by sending payment.
 
-**SWAP**: An ACTION that enables escrowed cross-chain token exchanges, trading a token on one blockchain for a token on another, without a bridge or custodian. Each chain settles its own leg against a validator-signed match, so a cross-chain swap is not atomic in the single-chain sense (see [Residual risk](../user-guide/cross-chain.md#residual-risk)).
+**SWAP**: An ACTION that enables escrowed cross-chain token exchanges, trading a token on one blockchain for a token on another, with each side escrowed on its own chain and no custodian. Each chain settles its own leg against a validator-signed match, so a cross-chain swap is not atomic in the single-chain sense (see [Residual risk](../user-guide/cross-chain.md#residual-risk)).
 
 ---
 

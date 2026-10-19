@@ -406,7 +406,7 @@ test('the cross-chain guide covers the bridge with its scope and trust stated', 
 
 test('the intro pages state the bridge trust model instead of denying it', () => {
     const intro = readDoc('getting-started/what-is-xchain.md');
-    const noBridge = section(intro, '### No Sidechains, No Third-Party Bridge', 'what-is-xchain.md');
+    const noBridge = section(intro, '### No Sidechains, Cross-Chain Built In', 'what-is-xchain.md');
     const noConsensus = section(intro, '### No New Consensus', 'what-is-xchain.md');
     assert.ok(!/no wrapped asset and no custodian|chains you already trust/.test(noBridge),
         'what-is-xchain.md again says XBRIDGE has no custodian and trusts only the base chains; '
@@ -420,17 +420,17 @@ test('the intro pages state the bridge trust model instead of denying it', () =>
     assert.ok(!/never custodies or gates/.test(noConsensus),
         'what-is-xchain.md again says the federation never gates a balance; it authorizes every XBRIDGE credit');
     const overview = readDoc('overview.md');
-    const bullet = overview.split('\n').find((l) => l.startsWith('**No third-party bridge.**')) || '';
+    const bullet = overview.split('\n').find((l) => l.startsWith('**Cross-chain, inside the protocol.**')) || '';
     assert.match(bullet, /hub-trusted mint/,
-        'overview.md "No third-party bridge" bullet no longer says the XBRIDGE credit is a hub-trusted mint');
+        'overview.md "Cross-chain, inside the protocol" bullet no longer says the XBRIDGE credit is a hub-trusted mint');
 });
 
 test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XBRIDGE', () => {
     const pages = [
         ['concepts/metalayer.md', /^\*\*Sidechains\*\*/],
-        ['overview.md', /^\*\*No third-party bridge\.\*\*/],
+        ['overview.md', /^\*\*Cross-chain, inside the protocol\.\*\*/],
         ['user-guide/cross-chain.md', /^\*\*What is live today\.\*\*/],
-        ['getting-started/what-is-xchain.md', /^XChain has no third-party bridge\./],
+        ['getting-started/what-is-xchain.md', /^XChain moves tokens between its chains in the protocol itself\./],
         ['whitepaper.md', /^XChain is a token-and-settlement \*\*metalayer\*\*/],
         ['whitepaper.md', /^\*\*Inherited security\.\*\*/],
     ];
@@ -455,9 +455,9 @@ test('the overview keeps XBRIDGE off mainnet while its mainnet gate is the senti
     const intro = section(overview, '## In one paragraph', 'overview.md');
     assert.match(intro, /token bridge that runs on testnet and regtest and awaits mainnet activation/,
         'overview.md "In one paragraph" lists the token bridge among live-in-production features without its mainnet caveat');
-    const bullet = overview.split('\n').find((l) => l.startsWith('**No third-party bridge.**')) || '';
+    const bullet = overview.split('\n').find((l) => l.startsWith('**Cross-chain, inside the protocol.**')) || '';
     assert.match(bullet, pending,
-        'overview.md "No third-party bridge" bullet no longer says XBRIDGE is off on mainnet');
+        'overview.md "Cross-chain, inside the protocol" bullet no longer says XBRIDGE is off on mainnet');
     assert.ok(!/not active on mainnet\.\s*Cross-chain settlement already works in production/.test(bullet),
         'overview.md again ends the XBRIDGE sentence with the production claim, which belongs to swap settlement');
     const going = section(overview, '## Where it\'s going', 'overview.md');
