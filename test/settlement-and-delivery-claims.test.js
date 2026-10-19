@@ -384,7 +384,7 @@ test('the bridge availability source facts still hold', { skip: skipNoIndexer },
     // The four bridge pages say general-token bridging is armed on testnet per chain and
     // not active on mainnet, so both halves are pinned on the per-chain keys the resolver
     // reads first (the bare testnet key is only the fallback and stays the sentinel).
-    const pages = 'cross-chain.md, what-is-xchain.md, concepts/metalayer.md and overview.md';
+    const pages = 'cross-chain.md, what-is-xchain.md, concepts/metalayer.md and getting-started/overview.md';
     assert.match(tokenGate[0], /\bmainnet:\s*UNARMED/,
         `TOKEN_BRIDGE_ACTIVATION mainnet is no longer the sentinel. ${pages} say it is not active on mainnet and must change in the same commit.`);
     for(const key of ['BTC:testnet', 'LTC:testnet', 'DOGE:testnet']){
@@ -419,7 +419,7 @@ test('the intro pages state the bridge trust model instead of denying it', () =>
         'what-is-xchain.md bridge paragraph no longer says the bridge is off on mainnet');
     assert.ok(!/never custodies or gates/.test(noConsensus),
         'what-is-xchain.md again says the federation never gates a balance; it authorizes every XBRIDGE credit');
-    const overview = readDoc('overview.md');
+    const overview = readDoc('getting-started/overview.md');
     const bullet = overview.split('\n').find((l) => l.startsWith('**Cross-chain, inside the protocol.**')) || '';
     assert.match(bullet, /hub-trusted mint/,
         'overview.md "Cross-chain, inside the protocol" bullet no longer says the XBRIDGE credit is a hub-trusted mint');
@@ -428,7 +428,7 @@ test('the intro pages state the bridge trust model instead of denying it', () =>
 test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XBRIDGE', () => {
     const pages = [
         ['concepts/metalayer.md', /^\*\*Sidechains\*\*/],
-        ['overview.md', /^\*\*Cross-chain, inside the protocol\.\*\*/],
+        ['getting-started/overview.md', /^\*\*Cross-chain, inside the protocol\.\*\*/],
         ['user-guide/cross-chain.md', /^\*\*What is live today\.\*\*/],
         ['getting-started/what-is-xchain.md', /^XChain moves tokens between its chains in the protocol itself\./],
         ['whitepaper.md', /^XChain is a token-and-settlement \*\*metalayer\*\*/],
@@ -450,7 +450,7 @@ test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XB
 });
 
 test('the overview keeps XBRIDGE off mainnet while its mainnet gate is the sentinel', () => {
-    const overview = readDoc('overview.md');
+    const overview = readDoc('getting-started/overview.md');
     const pending = /not active on mainnet|awaits mainnet activation/;
     const intro = section(overview, '## In one paragraph', 'overview.md');
     assert.match(intro, /token bridge that runs on testnet and regtest and awaits mainnet activation/,

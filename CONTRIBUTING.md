@@ -10,7 +10,7 @@ If you're reporting a security issue, **stop here** and read [`SECURITY.md`](./S
 
 - Project overview: [`README.md`](./README.md)
 - Disclosure policy: [`SECURITY.md`](./SECURITY.md)
-- Code of Conduct: [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md)
+- Code of Conduct: [Code of Conduct](https://github.com/XChain-Platform/.github/blob/master/CODE_OF_CONDUCT.md)
 - License: [`LICENSE.md`](./LICENSE.md) + [`NOTICE.md`](./NOTICE.md) (GNU Affero General Public License v3.0, dual-licensed)
 - Version history: [`CHANGELOG.md`](./CHANGELOG.md)
 
@@ -30,8 +30,6 @@ xchain-documentation/
 ├── protocol/             38 ACTION definitions, Token Information Standard, schemas
 ├── operations/           deployment, Docker, monitoring, upgrades, troubleshooting
 ├── legal/                licensing, commercial license, trademark, contributor agreement
-├── blockchains.md        supported chains, adding new blockchains
-├── overview.md           platform overview
 ├── whitepaper.md         technical whitepaper
 ├── CHANGELOG.md          authoritative version history
 └── README.md             entry point and section map
@@ -119,7 +117,7 @@ Spell acronyms out in lowercase like any other word: `nft-standard.md`, `api-ref
 **Exempt, and deliberately so**, because GitHub and other tooling look these up by exact name:
 
 - **`README.md`, at any depth.** It is the folder-index convention: GitHub renders it when you browse into a directory, and the docs build publishes it as that directory's index, so it never appears in a URL to be inconsistent with.
-- **At the repository root only:** `LICENSE.md`, `NOTICE.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `MAINTAINERS.md`, `AUTHORS.md`.
+- **At the repository root only:** `LICENSE.md`, `NOTICE.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `MAINTAINERS.md`, `AUTHORS.md`.
 
 Nested copies of those names get no special treatment from any tool, so they are ordinary pages and follow the rule: `legal/CLA.md` is `legal/cla.md`.
 
@@ -160,7 +158,7 @@ For non-security bugs or editorial issues, open an issue at <https://github.com/
 
 ## Code of Conduct
 
-We follow our [Code of Conduct](./CODE_OF_CONDUCT.md), adapted from the Contributor Covenant 2.1. Be kind, assume good faith, and disagree without being a jerk.
+We follow our [Code of Conduct](https://github.com/XChain-Platform/.github/blob/master/CODE_OF_CONDUCT.md), adapted from the Contributor Covenant 2.1. Be kind, assume good faith, and disagree without being a jerk.
 
 ---
 

@@ -165,7 +165,7 @@ Adjust the coin-level consensus params if the chain's economics differ.
 
 Chain-specific parsing quirks (for example Litecoin's HogEx flag, Dogecoin's
 AuxPoW header) are handled in the decoder/encoder, not in the coin file; see
-`blockchains.md` and the decoder component docs if your chain needs
+`concepts/blockchains.md` and the decoder component docs if your chain needs
 pre-processing before bitcoinjs-lib can parse its transactions.
 
 ### 2. Register it
@@ -245,7 +245,7 @@ launch. The change is safe by construction.
 
 ## See also
 
-- [Supported Blockchains](../blockchains.md): chain requirements and current support matrix
+- [Supported Blockchains](../concepts/blockchains.md): chain requirements and current support matrix
 - [XChain Genesis](../operations/xchain-genesis.md): the genesis ledger pin mechanism this generalizes
 - [Configuration](../operations/configuration.md): operator-facing configuration and environment variables
 

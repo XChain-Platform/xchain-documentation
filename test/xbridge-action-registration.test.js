@@ -54,7 +54,7 @@ describe('XBRIDGE action registration (L9b follow-on)', () => {
     });
 
     test('the ACTION count claims were bumped from 37/31 to 38/32', () => {
-        const overview = fs.readFileSync(path.join(DOC_ROOT, 'overview.md'), 'utf8');
+        const overview = fs.readFileSync(path.join(DOC_ROOT, 'getting-started/overview.md'), 'utf8');
         assert.match(overview, /38 standard ACTIONs/, 'overview.md count claim is stale');
         const sdkActions = fs.readFileSync(path.join(DOC_ROOT, 'components/sdk/actions.md'), 'utf8');
         assert.match(sdkActions, /32 ACTION types/, 'components/sdk/actions.md count claim is stale');
