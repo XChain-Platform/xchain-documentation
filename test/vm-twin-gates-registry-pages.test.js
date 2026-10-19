@@ -124,7 +124,7 @@ function assertTestnetArmedNote(row, gate) {
 
 // VM tables whose indexer twin has not landed yet. Each must still be named in the xchain-vm
 // row and stay at the unarmed sentinel on mainnet and testnet; drop the entry when the twin lands.
-const PENDING_INDEXER_TWINS = new Set(['TOSTRING_SIZE_METER_ACTIVATION']);
+const PENDING_INDEXER_TWINS = new Set();
 
 function assertTwinRegistryPages(activation, flagDays, tables) {
     const row = vmServiceRow(activation);
