@@ -480,3 +480,13 @@ test('the scope page states the XBRIDGE exception to the hub\'s role', () => {
         assert.match(scope, needle, `scope-and-non-goals.md no longer does ${what}`);
     }
 });
+
+test('the bridge page describes credits as quorum-signed and proven against the home chain checkpoint', () => {
+    const bridge = section(readDoc('protocol/xchain-bridge.md'), '## Trust model', 'xchain-bridge.md');
+    assert.match(bridge, /quorum-signed and proven against the home chain's signed checkpoint/,
+        'xchain-bridge.md trust model no longer says credits are quorum-signed and proven against the home chain checkpoint');
+    assert.match(bridge, /bridge_checkpoint_check\.js/,
+        'xchain-bridge.md trust model no longer names bridge_checkpoint_check.js');
+    assert.doesNotMatch(bridge, /Closing that trust boundary is a stated follow-on/,
+        'xchain-bridge.md again presents the checkpoint cross-check as a future follow-on');
+});

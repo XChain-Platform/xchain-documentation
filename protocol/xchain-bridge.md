@@ -98,20 +98,26 @@ unconditionally, and so is a `DESTROY` of it, both closures explained under
 
 Today the cross-chain DEX's mirror can delay a settlement but cannot forge one, because both
 legs of a match are pre-escrowed on chain before the mirror ever gets involved. A bridge is
-different: a forged transfer record mints on the destination with nothing held on the source.
-Off BTC, the validator set itself is pulled from the hub's own mirror
-(`capability_snapshots`, applied with `INSERT IGNORE`), which is the same authority that verifies
-the transfer record. So in **milestone 1** a compromised hub can supply both the record and the
-roster that verifies it, and every destination indexer mints: milestone 1 is a **hub-trusted
-mint**. That is defensible on testnet if stated, and it is stated here and in the testnet
-announcement.
+different: a forged transfer record would mint on the destination with nothing held on the
+source, so a credit is never accepted on the hub's word alone.
 
-Closing that trust boundary is a stated follow-on, gating mainnet: the destination indexer checks
-the lock against the quorum-signed BTC state checkpoint that [`ANCHOR`](./actions/anchor.md)
-version `0` carries, so a mint needs a signed transfer record **and** a BTC ledger that agrees.
-That reduces the assumption to "the `cross_chain` quorum and the checkpoint quorum both lied,"
-the same assumption every validator action on the platform already rests on. Nothing arms on
-mainnet before that check lands and is proven.
+Every bridge credit is **quorum-signed and proven against the home chain's signed checkpoint**:
+
+1. **Quorum-signed.** The hub federation's `cross_chain` quorum signs the transfer record, and the
+   destination indexer verifies that quorum against the mirrored capability snapshot at the
+   record's `snapshot_block`.
+2. **Proven against the checkpoint.** Before any effect, the indexer proves the lock or burn
+   against the origin chain's quorum-signed state checkpoint that
+   [`ANCHOR`](./actions/anchor.md) version `0` carries
+   (`bridge_checkpoint_check.js`). A mint needs a signed transfer record **and** a home chain
+   ledger that agrees; a record the checkpoint does not support is refused.
+
+The assumption is therefore "the `cross_chain` quorum and the checkpoint quorum both lied," the
+same assumption every validator action on the platform already rests on. A compromised hub that
+supplies both the record and the roster that verifies it can no longer mint on its own. This
+replaces the earlier **hub-trusted mint** (milestone 1), where the record and its verifying roster
+came from the same mirror and no checkpoint cross-check existed. Other guide pages still
+describe that earlier model and are tracked for a follow-up edit.
 
 ## Reorgs and finality
 
@@ -122,7 +128,7 @@ it stays applied**: the destination chain did not itself reorg, so there is noth
 back, and there is no forward "un-mint" path on the platform. Milestone 1 ships no destination-
 side unwind: an applied mint is final, the confirmation depth (BTC 6 / LTC 12 / DOGE 60 by
 default, raise-only per token) is the attacker's price for forcing that outcome, and the checkpoint
-cross-check above (before mainnet) is the defence beyond it.
+cross-check above is the defence beyond it.
 
 ## The XCHAIN token off BTC
 
