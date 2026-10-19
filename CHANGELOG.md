@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-10-18
+
+### Added
+- Documented the new activations: checkpoint sequence binding, capability snapshot proof, active stake collation and the delegated unstake row journal.
+- Documented the attest callback batch position, native airdrop fee tally, host fault halt, string meter and reorg digest binding rules.
+- Published the dispenser parent-floor activation and the hub snapshot checkpoints table.
+
+### Changed
+- Regenerated the protocol flag-day page and the unarmed gate inventory, and allowed testnet dispenser gates to arm.
+- Dropped the copies of the retired price, archive, index map and relay gates from the reference registry.
+- Updated the e2e architecture notes for the 81 action test files.
+
 ## [0.24.0] - 2026-10-17
 
 ### Added

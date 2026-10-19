@@ -261,6 +261,7 @@ All types below ride the envelope above; only the `data` payload differs. Every 
 | `XCHAIN_ATTEST_PROPOSE` / `XCHAIN_ATTEST_PREPARE` / `XCHAIN_ATTEST_COMMIT` | `CrossChainEngine` | Consensus over cross-chain action confirmations. |
 | `XCALL_RELAY_PROPOSE` / `XCALL_RELAY_PREPARE` / `XCALL_RELAY_COMMIT` / `XCALL_RELAY_VIEW_CHANGE` / `XCALL_RELAY_NEW_VIEW` / `XCALL_RELAY_FINAL_SYNC` | `CrossChainCallEngine` | PBFT consensus to quorum-sign cross-chain contract call relay rows (`cross_chain_calls`). Reuses the DEX consensus engine with parameterized message types. |
 | `XCHK_SIGN_REQ` / `XCHK_SIGN` / `XCHK_FINALIZED` | `StateCheckpointEngine` | Collect a quorum of validator signatures over per-chain ledger/actions/contract hash checkpoints (see [Quorum](#quorum)). |
+| `XSNP_SIGN_REQ` / `XSNP_SIGN` / `XSNP_FINALIZED` | Snapshot checkpoint engine in `src/anchor/snapshot_checkpoint/` | Hubs co-sign a BTC snapshot checkpoint (the block hash and state root at the reorg-buried block `snapshotCheckpointBlock(S)`) over the `oracle_publish` set at capability snapshot block S so an LTC or DOGE indexer can prove the hub-mirrored `capability_snapshots` rows at S; this family is separate from XCHK, never writes `state_checkpoints`, and remains unarmed until the train cut. |
 | `XANC_SIGN_REQ` / `XANC_SIGN` / `XANC_FINALIZED` / `XANC_BUNDLE_DONE` | `StateAnchorPublisher` | Co-sign the on-chain ANCHOR payload (checkpoint bundle + archive). `XANC_BUNDLE_DONE` carries the txid and the bundle's section list, back-filling `anchor_txid` on every peer's checkpoint rows to prevent duplicate anchoring. |
 | `XNODE_ANSWER` / `XNODE_SIGN_REQ` / `XNODE_SIGN` / `XNODE_DONE` | `FullNodeChallengeRound` | Full-node challenge-response protocol. Claimants broadcast a pubkey-bound digest of their computed answer (`XNODE_ANSWER`); the elected leader proposes the pass list (`XNODE_SIGN_REQ`); eligible verifiers co-sign after recomputing independently (`XNODE_SIGN`); on quorum the leader broadcasts the on-chain NODEPROOF v0 verdict and sends `XNODE_DONE` so peers stop. |
 
@@ -343,10 +344,10 @@ After consensus finalizes a round, the OraclePublisher takes over:
 ```mermaid
 flowchart TD
     S1["1. ROTATION<br>Leader = SHA256(round_number || pubkey) ordering<br>oracle_publish validators sorted deterministically"]
-    S2["2. ENQUEUE<br>If local node is the leader, append to JSONL queue (fsync)"]
+    S2["2. BATCH BUFFER<br>Every hub, leader or not, appends each finalized round to its durable batch buffer<br>→ window leader assembles the hourly batch<br>→ quorum of the price-capable set co-signs it<br>→ window leader only then queues it for broadcast; a round is never broadcast on its own"]
     S3["3. BROADCAST<br>EncoderClient.getUtxos(DOGE_ADDRESS)<br>→ EncoderClient.createTx(payload, P2SH encoding)<br>→ walletSignFn(psbtHex) [operator-provided signer]<br>→ EncoderClient.broadcastTx(signedHex)"]
     S4["4. CONFIRM<br>Remove from queue on successful broadcast"]
-    S5["5. FAILOVER<br>If leader misses by 1 BTC block, next oracle_publish validator in rotation takes over and batches all missed rounds in a single tx"]
+    S5["5. FAILOVER<br>Opt-in and off unless ORACLE_PUBLISH_FAILOVER_WINDOW_BLOCKS is set<br>→ follower's staggered timer fires while the window is still not on chain: re-assemble the identical batch<br>→ a hub that has never observed a landed PRICE action declines every takeover"]
 
     S1 --> S2 --> S3 --> S4 --> S5
 ```
@@ -403,6 +404,7 @@ flowchart LR
 | `GET /hub-db/snapshot/policy_snapshots?since_id=N&limit=10000` | Append-only signed token-policy versions after `since_id` |
 | `GET /hub-db/snapshot/anchor_reward_attestations?since_id=N&limit=10000` | Quorum-attested ANCHOR publisher reward rows after `since_id` |
 | `GET /hub-db/snapshot/attestation_responses?since_id=N&limit=10000` | Finalized ATTEST response rows after `since_id` |
+| `GET /hub-db/snapshot/capability_snapshot_proof?snapshot_block=S&capability=C&pubkeys=k1,k2` | The BTC snapshot checkpoint and `stakes_root` proof for the `capability_snapshots` rows at S; not paginated |
 
 ### WebSocket Channel
 
@@ -460,7 +462,7 @@ Validators declare which chains they support via the `chains` column. Only valid
 flowchart TD
     S1["1. REPORT<br>reportreorg(chain, reorg_height, timestamp, old_hash, new_hash)<br>→ old_hash/new_hash = the reporter's observed block hash at reorg_height before and after the reorg<br>→ receiving hub verifies new_hash against its OWN indexer (getblockhashes) before broadcasting"]
     S2["2. ALERT<br>Broadcast REORG_ALERT via gossip (carries the hash pair)"]
-    S3["3. CONSENSUS<br>PBFT round: XCHAIN_REORG_PREPARE / XCHAIN_REORG_COMMIT<br>→ the digest binds reorgId, chain, height, timestamp AND the hash pair, so a Byzantine leader cannot swap hashes per-follower<br>→ each hub co-signs ONLY after its own indexer serves new_hash at reorg_height, within height bounds (&le; own tip, &ge; tip - REORG_MAX_DEPTH) and on the federation network; otherwise it abstains<br>→ quorum agreement = that many independent observations"]
+    S3["3. CONSENSUS<br>PBFT round: XCHAIN_REORG_PREPARE / XCHAIN_REORG_COMMIT<br>→ from REORG_DIGEST_V2_ACTIVATION, the digest binds reorgId, chain, height, timestamp, and newHash only; oldHash remains on the wire as a well-formedness field, so a Byzantine reporter cannot fragment the round by sending each hub a different oldHash; before the gate, the hash pair stays bound<br>→ each hub co-signs ONLY after its own indexer serves new_hash at reorg_height, within height bounds (&le; own tip, &ge; tip - REORG_MAX_DEPTH) and on the federation network; otherwise it abstains<br>→ quorum agreement = that many independent observations"]
     S4["4. ROLLBACK<br>Hub state cleanup:<br>→ DELETE attestations after reorg timestamp for affected chain<br>→ Mark price_snapshots as 'disputed'"]
     S5["5. NOTIFY<br>Store in reorg_attestations table<br>→ emit reorg:confirmed event"]
 

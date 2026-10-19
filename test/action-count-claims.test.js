@@ -118,8 +118,8 @@ const WIRE_SCOPED = [
 ];
 
 const SCOPED = [
-  { file: 'components/e2e-test/architecture.md', claim: '80 action', count: 1,
-    why: 'test files, several per action; git ls-files xchain-e2e-test/test/actions on 2026-09-07. '
+  { file: 'components/e2e-test/architecture.md', claim: '81 action', count: 1,
+    why: 'test files, several per action; git ls-files xchain-e2e-test/test/actions on 2026-10-18. '
        + 'Count the COMMITTED tree: an untracked suite from another lane inflates a filesystem '
        + 'scan, and the gate gates the commit. count-action-suites.js scans the working tree, so '
        + 'its file tally runs ahead of this number whenever a lane holds unlanded suites' },

@@ -143,8 +143,6 @@ test('every newly published activation map is value-identical to its source regi
             'dispenser_freshness_shape_activation.DISPENSER_FRESHNESS_SHAPE_ACTIVATION',
         PRICE_ZERO_VALIDITY_ACTIVATION:
             'price_zero_validity_activation.PRICE_ZERO_VALIDITY_ACTIVATION',
-        PRICE_BATCHING_FLOOR_ACTIVATION:
-            'price_batching_floor_activation.PRICE_BATCHING_FLOOR_ACTIVATION',
         ARCHIVE_MATCH_COUNT_ACTIVATION:
             'archive_match_count_activation.ARCHIVE_MATCH_COUNT_ACTIVATION',
         ANCHOR_BUNDLE_ORDER_ACTIVATION:

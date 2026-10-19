@@ -569,6 +569,21 @@ Returns finalized, insert-only ATTEST response rows from the `attestation_respon
 
 Returns the append-only, quorum-signed shared-list versions from the `list_snapshots` table after `since_id`. A higher `seq` supersedes a list's membership, and no older row is retracted. Takes the same `since_id` and `limit` query parameters as above. The response also carries `btc_chain_id`.
 
+### `GET /hub-db/snapshot/capability_snapshot_proof`
+
+Returns the stored BTC snapshot checkpoint and the corresponding capability stake proof. This endpoint sits behind the same snapshot authentication hook as the other `/hub-db/snapshot` routes.
+
+**Query parameters:**
+- `snapshot_block` (required), decimal digits giving a safe integer
+- `capability` (required), one of this hub's configured capabilities, at most 64 characters
+- `pubkeys` (optional), 1 to 256 comma-separated 64-hex public keys; when omitted, the hub uses the distinct `signing_pubkey` values from `capability_snapshots` rows at the requested `snapshot_block` and `capability`
+
+The hub reads its stored BTC snapshot checkpoint at `snapshotCheckpointBlock(snapshot_block)` and asks its BTC indexer for `getcapabilitystakeproof` with `{capability, block_index, pubkeys}`.
+
+A successful response has the form `{snapshot_block, capability, checkpoint: {chain, network, block_index, block_hash, state_root, state_root_version, validator_signatures}, proof}`. Invalid query parameters or an omitted `pubkeys` parameter that yields no usable default key set return `400 BAD_PARAMS`. A missing checkpoint at the derived block returns `404 SNAPSHOT_NOT_YET_CHECKPOINTED`. An unavailable or unsuccessful BTC indexer response returns `503 PROOF_UNAVAILABLE`.
+
+This route is the exception to the snapshot response format described above: it is a proof transport, not a `since_id`-paginated table, and does not return `table`, `rows`, `count`, `heights`, `landed`, `watermark`, or `schema_version`.
+
 ### `GET /hub-db/subscribe` (WebSocket upgrade: requires `Authorization: Bearer <HUB_API_KEY>`)
 
 WebSocket channel for live updates to the hub DB tables indexers mirror: the price, cross-chain settlement and federation-state tables listed in [Database Design](../../architecture/database-design.md#hub-db-local-copy). The hub also broadcasts `remote_token_snapshots` rows on this channel; indexers do not mirror that table.

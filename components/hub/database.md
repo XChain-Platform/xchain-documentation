@@ -191,7 +191,7 @@ The durable at-most-once marker for PRICE v0 round broadcasts, written by `Oracl
 
 | Column | Type | Description |
 |---|---|---|
-| `round` | `BIGINT NOT NULL` | Primary key: PRICE v0 round id (one broadcast per round) |
+| `round` | `BIGINT NOT NULL` | Primary key: PRICE v0 round id; each round keeps its own row, while every round in one batch carries that batch broadcast's txid, so one broadcast covers many rounds |
 | `txid` | `VARCHAR(80)` | DOGE txid of the PRICE tx (NULL until confirmed, and may stay NULL if the broadcaster returns none) |
 | `intent_at` | `DATETIME DEFAULT CURRENT_TIMESTAMP` | When broadcast intent was durably recorded, before the send |
 | `sent_at` | `DATETIME NULL` | When the broadcast completed; NULL means intent only |
@@ -501,6 +501,7 @@ Records detected validator misbehavior for governance review. The offenses recor
 | `state_checkpoints` | Quorum-signed per-chain ledger/actions/contract hash snapshots; mirrored to indexers |
 | `anchor_published_checkpoints` | Durable at-most-once broadcast marker for the ANCHOR checkpoint publish (hub-local, not mirrored) |
 | `anchor_published_archives` | The same at-most-once marker for the ANCHOR archive publish, held per network rather than per batch because a crashed round always rebuilds under a fresh `batch_seq` (hub-local, not mirrored) |
+| `snapshot_checkpoints` | Record of which BTC capability snapshot heights have been committed, kept apart from `state_checkpoints` (hub-local, not anchored or mirrored) |
 | `capability_snapshots` | Per-block capability validator sets locked at BTC-anchored block boundaries |
 | `anchor_reward_attestations` | Quorum-attested ANCHOR publisher rewards; mirrored to indexers |
 | `attestation_responses` | Finalized ATTEST responses, written once a round reaches quorum and mirrored to indexers, so a response no longer costs a validator an on-chain transaction. Insert-only; every hub holding the artifact writes its own row, so the id is hub-local |
@@ -552,6 +553,24 @@ Quorum-signed block-level hash checkpoints for each chain. Rows are append-only;
 | `created_at` | `DATETIME NOT NULL` | Record creation time |
 
 **Unique key:** `(chain, network, block_index, checkpoint_seq)`. **Keys:** `(chain, network, checkpoint_seq)`
+
+### `snapshot_checkpoints`
+
+Tracks which capability snapshot heights have been committed. It is deliberately separate from `state_checkpoints`: rows here do not enter the state checkpoint cadence, anchoring, mirroring, or follower read paths. Rows are inserted with `INSERT IGNORE`, so a repeated height is a no-op. Hub-local; not mirrored to indexers.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `BIGINT AUTO_INCREMENT` | Primary key |
+| `chain` | `VARCHAR(10) NOT NULL` | Chain of the snapshot height |
+| `network` | `VARCHAR(16) NOT NULL` | mainnet / testnet / regtest |
+| `block_index` | `BIGINT UNSIGNED NOT NULL` | Snapshot block height |
+| `block_hash` | `CHAR(64) NOT NULL` | Block hash at `block_index` |
+| `state_root` | `CHAR(64) NOT NULL` | State root committed at the snapshot |
+| `state_root_version` | `INT NOT NULL` | Version the state root was computed under |
+| `validator_signatures` | `MEDIUMTEXT NOT NULL` | Serialized validator signatures over the snapshot |
+| `created_at` | `DATETIME NOT NULL` | Record creation time (default: current time) |
+
+**Unique key:** `uq_snap_ckpt (chain, network, block_index)`
 
 ### `anchor_published_checkpoints`
 

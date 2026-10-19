@@ -23,10 +23,13 @@ same chain or field.
 
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
+| `active_stake_collation_activation` | `ACTIVE_STAKE_COLLATION_ACTIVATION` | height |
+| `airdrop_native_fee_tally_activation` | `AIRDROP_NATIVE_FEE_TALLY_ACTIVATION` | height |
 | `amount_representability_activation` | `AMOUNT_REPRESENTABILITY_ACTIVATION` | time |
 | `anchor_activation` | `ANCHOR_ACTIVATION` | height |
 | `anchor_archive_fold_term_activation` | `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` | height |
 | `anchor_bundle_order_activation` | `ANCHOR_BUNDLE_ORDER_ACTIVATION` | height |
+| `anchor_checkpoint_seq_bind_activation` | `ANCHOR_CHECKPOINT_SEQ_BIND_ACTIVATION` | height |
 | `anchor_empty_fold_reject_activation` | `ANCHOR_EMPTY_FOLD_REJECT_ACTIVATION` | height |
 | `anchor_fold_activation` | `ANCHOR_FOLD_ACTIVATION` | height |
 | `anchor_fold_reissue_source_author_activation` | `ANCHOR_FOLD_REISSUE_SOURCE_AUTHOR_ACTIVATION` | height |
@@ -40,6 +43,7 @@ same chain or field.
 | `archive_section_verdict_activation` | `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` | height |
 | `attest_admission_activation` | `ATTEST_ADMISSION_ACTIVATION` | height |
 | `attest_broadcast_fee_activation` | `ATTEST_BROADCAST_FEE_ACTIVATION` | height |
+| `attest_callback_batch_position_activation` | `ATTEST_CALLBACK_BATCH_POSITION_ACTIVATION` | height |
 | `attest_relay_activation` | `ATTEST_RELAY_ACTIVATION` | height |
 | `attest_relay_fee_activation` | `ATTEST_RELAY_FEE_ACTIVATION` | height |
 | `attest_relay_reject_slot_activation` | `ATTEST_RELAY_REJECT_SLOT_ACTIVATION` | time |
@@ -55,6 +59,7 @@ same chain or field.
 | `bridge_policy_refusal_record_activation` | `BRIDGE_POLICY_REFUSAL_RECORD_ACTIVATION` | height |
 | `bridge_row_fields_terminal_activation` | `BRIDGE_ROW_FIELDS_TERMINAL_ACTIVATION` | height |
 | `callback_compensation_activation` | `CALLBACK_COMPENSATES_EVERY_DEBITED_HOLDER` | height |
+| `capability_snapshot_proof_activation` | `CAPABILITY_SNAPSHOT_PROOF_ACTIVATION` | height |
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
 | `consolidation_leg_amount_activation` | `CONSOLIDATION_LEG_AMOUNT_ACTIVATION` | time |
@@ -88,6 +93,7 @@ same chain or field.
 | `gas_ceiling_exhausted_heights` | `GAS_CEILING_EXHAUSTED_ACTIVATION` | height |
 | `gated_handoff_ref_activation` | `GATED_HANDOFF_REF_ACTIVATION` | time |
 | `host_error_stack_strip_heights` | `HOST_ERROR_STACK_STRIP_ACTIVATION` | height |
+| `host_fault_halt_heights` | `HOST_FAULT_HALT_ACTIVATION` | height |
 | `json_stringify_reentry_heights` | `JSON_STRINGIFY_REENTRY_ACTIVATION` | height |
 | `ledger_amount_precision_activation` | `LEDGER_AMOUNT_PRECISION_ACTIVATION` | height |
 | `list_address_ref_activation` | `LIST_ADDRESS_REF_ACTIVATION` | height |
@@ -133,6 +139,7 @@ same chain or field.
 
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
+| `reassemble_chunk_parent_status_activation` | `REASSEMBLE_CHUNK_PARENT_STATUS_ACTIVATION` | height |
 | `remote_token_admission_activation` | `REMOTE_TOKEN_ADMISSION_ACTIVATION` | height |
 | `resource_fault_signal_heights` | `RESOURCE_FAULT_SIGNAL_ACTIVATION` | height |
 | `retraction_signing_activation` | `RETRACTION_SIGNING_ACTIVATION` | height |
@@ -157,6 +164,7 @@ same chain or field.
 | `token_policy_activation` | `TOKEN_POLICY_INHERITANCE_ACTIVATION` | height |
 | `token_supply_representation_activation` | `TOKEN_SUPPLY_REPRESENTATION_ACTIVATION` | height |
 | `train_activation` | `TRAIN_ACTIVATION` | ruleset |
+| `unstake_delegated_row_journal_activation` | `UNSTAKE_DELEGATED_ROW_JOURNAL_ACTIVATION` | height |
 | `vm_deploy_lint_pkg3_activation` | `VM_DEPLOY_LINT_PKG3_ACTIVATION` | height |
 | `vm_emission_amount_format_activation` | `VM_EMISSION_AMOUNT_FORMAT_ACTIVATION` | height |
 | `vm_exec_lint_activation` | `VM_EXEC_LINT_ACTIVATION` | height |
