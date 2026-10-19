@@ -174,15 +174,13 @@ shorthand for "a BTC height per rule, in two batches" rather than a single share
 whole cohort.
 
 The cohort is its **armed** rules. `constants.js` also carries validator-era maps that sit outside
-it. Six of them are **armed at genesis** (`0`) on mainnet under the
+it. Four of them are **armed at genesis** (`0`) on mainnet under the
 [mainnet genesis arm](#the-mainnet-genesis-arm): `SNAPSHOT_BURIAL_ACTIVATION`,
-`ANCHOR_REWARD_DERIVE_ACTIVATION`, `ATTEST_BROADCAST_FEE_ACTIVATION`,
-`ATTEST_REQUEST_CAP_ACTIVATION` (the per-block attestation admission ceiling, a sibling of the
-attestation-admission gate in the cohort table above), `ROLLCALL_ACTIVATION` (keyed on the BTC
+`ANCHOR_REWARD_DERIVE_ACTIVATION`, `ROLLCALL_ACTIVATION` (keyed on the BTC
 `EPOCH_HEIGHT` a ROLLCALL carries) and `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION`. Arming them at `0`
 was state-neutral on the indexed mainnet history, which holds no validator, roll call or
 attestation, so none of them needed a mainnet flag day; they are still not counted in the cohort
-table above. `ATTEST_RESPONSE_MIRROR_ACTIVATION` is the one of the seven that still holds `null` on
+table above. `ATTEST_RESPONSE_MIRROR_ACTIVATION` is the one of the five that still holds `null` on
 mainnet, which is the encoding of "never" and the fail-closed default until an operator ratifies a
 height; the 2026-09-09 ruling holds it back until its quorum defect is closed. It was also the one
 of them unarmed on **testnet**; it was ratified there at block 151324 in the v0.15.0 train, so

@@ -145,9 +145,9 @@ test('mainnet inert/armed claims on the activation page match constants.js', () 
         }
     }
     assert.ok(
-        checked >= 7,
+        checked >= 5,
         `only ${checked} mainnet activation claims matched on ${PAGE_REL}, which is fewer than the `
-        + 'seven this page has carried since the 2026-09-09 genesis arm. Either the roster was '
+        + 'five this page has carried since the retired gates left the roster. Either the roster was '
         + 'deleted or the sentence parse in this guard stopped matching it; an unmatched roster '
         + 'passes every assertion above, so this floor is the only thing that reports it.',
     );
