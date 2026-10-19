@@ -47,7 +47,7 @@ xchain-node install all dogecoin testnet
 xchain-node install all bitcoin regtest
 ```
 
-With no version named, `install` resolves the latest published release and pins every service to the exact commits that release recorded. Name one (`xchain-node install v0.15.2 all bitcoin mainnet`) to install that release instead.
+With no version named, `install` resolves the latest published release and pins every service to the exact commits that release recorded. Name one (`xchain-node install v0.25.0 all bitcoin mainnet`) to install that release instead.
 
 The installer:
 - Verifies Docker is accessible and creates runtime directories
