@@ -105,6 +105,7 @@ These variables are required regardless of operating mode.
 | `HUB_DB_USER` | Yes | None | MariaDB username |
 | `HUB_DB_SECRET` | Yes | None | MariaDB password. Deprecated name `HUB_DB_PASS` is still read; see Secret variable naming above. |
 | `HUB_DB_KEEPALIVE_INTERVAL` | No | `30000` | Interval (ms) between no-op keepalive queries sent to the MariaDB pool to prevent idle-connection drops |
+| `CORS_ORIGIN` | No | `false` | Allowed CORS origin(s); unset disables cross-origin requests. `*` allows any origin, or give one origin or a comma-separated allowlist matched per origin (browser wallet shells each send a different origin). A stray `*` inside a list is not a wildcard, so the grant fails closed. |
 | `HUB_RATE_LIMIT_RPM` | No | `100` | Requests allowed per IP per 60-second window on every route except the mirror-bootstrap family `/hub-db/snapshot/*`, which `HUB_SNAPSHOT_RATE_LIMIT_RPM` below meters in its own bucket. Over the limit the request returns HTTP 429 with a JSON-RPC error body (code `-32029`) naming the limit, the window and the seconds to wait, plus `Retry-After` and `RateLimit-*` headers. Behind a reverse proxy the limiter keys on `X-Forwarded-For`, which is what `HUB_TRUST_PROXY` below governs. |
 | `HUB_AUTH_RATE_LIMIT_RPM` | No | `60000` | Requests allowed per IP per 60-second window on the JSON-RPC surface for callers whose `x-api-key` header matches a key this hub has configured, metered in their own bucket so the fleet's own indexers and replay traffic keep a high budget while keyless callers stay at `HUB_RATE_LIMIT_RPM`. A wrong key lands in the public bucket, and a keyless hub has no authenticated bucket, so every caller is public there. A request is charged to one bucket only, and a batch is charged one token per call. The mirror-bootstrap routes `/hub-db/snapshot/*` stay in the `HUB_SNAPSHOT_RATE_LIMIT_RPM` bucket, and the `HUB_RATE_LIMIT_EXEMPT_LOCAL` exemption applies here too. An unset, unparseable or non-positive value keeps the default, raised to `HUB_RATE_LIMIT_RPM` if that is higher. |
 | `HUB_RATE_LIMIT_EXEMPT_LOCAL` | No | `true` | Exempts callers whose resolved client IP is loopback or private-range (RFC1918, IPv6 unique-local and link-local) from the per-IP limit above. This is what lets a node's own indexer rebuild price history from the chain at the shipped default: it replays one `pushpricebatch` per batch-bearing block, far faster than 100/min, and reaches the hub over the container bridge. The check runs on the post-`trust proxy` client IP, so a public caller arriving through a private-IP reverse proxy is still limited. Set to `false` to enforce the cap on every caller. |
@@ -287,6 +288,7 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `ORACLE_ROUND_INTERVAL` | No | `600000` | Milliseconds between oracle rounds (default: 10 minutes) |
+| `ORACLE_EPOCH_START` | If P2P | None | Unix-ms timestamp anchoring oracle round numbering. It must be identical across all hubs in the federation. The hub exits at startup if P2P is enabled and this is unset. |
 | `ORACLE_SUBMISSION_WINDOW` | No | `180000` | Milliseconds to collect validator price submissions (default: 3 minutes) |
 | `ORACLE_FINALIZATION_TIMEOUT` | No | `120000` | Timeout for oracle PBFT finalization round (default: 2 minutes) |
 | `ORACLE_CLAMP_RESEED_MS` | No | `60000` | Milliseconds between re-seeds of the last-finalized clamp reference (default: 1 minute). Cadence only, and deliberately NOT federation-uniform: it decides how promptly a hub catches up to finalized rows it already holds, never what any hub clamps to, so it needs no flag day. A longer interval degrades toward clamping against a stale reference; a shorter one costs one indexed query per pass. |
@@ -304,6 +306,8 @@ The hub reads the BTC chain tip to anchor consensus rounds. These gates stop a s
 | `ATTESTATION_ROUND_TIMEOUT_MS` | No | `120000` | How long an attestation round may run before it is abandoned, in milliseconds. A round that times out leaves the request for a later round rather than failing it. **Coupled, so retune it deliberately:** the request-seen window is sized to stay outside a live round, and both the round and the consensus engine read this one value. Raising it without that in mind lets a second window re-open a request whose round is still pending, which pays a provider a second time for the same fetch. |
 | `ATTESTATION_FETCH_TIMEOUT` | No | `20000` | Budget in milliseconds for one external provider fetch, and the same budget the `judge_model` strategy gives its judge call, so both legs of a round agree on how long a slow vendor is allowed to be. Raised from `10000` by operator ruling: a healthy-but-slow provider that crossed 10 s was aborted, leaving the round with fewer independent bodies than its redundancy asked for, which `byte_equality` scores as a `no_quorum` rather than as a slow vendor. Keep it well under `ATTESTATION_ROUND_TIMEOUT_MS`, which stays the terminal backstop. A zero, a negative or a non-numeric value warns and falls back to the default. |
 | `ATTESTATION_PROPOSER_SEEN_MAX` | No | `10000` | Cap on the in-memory record of which validators have proposed for a given attestation request. This outlives a single round's own state, since a round that times out is torn down while the request itself lives on across retries, so leader rotation still needs to know who already spoke for it. Ring-bounded FIFO eviction, so a flood of distinct request ids cannot grow it without bound. |
+| `ATTESTATION_ROUND_TTL_MS` | No | `3600000` (1 h) | Time-to-live for in-memory attestation round entries before lazy eviction. |
+| `ATTESTATION_TORNDOWN_MAX` | No | `10000` | Cap on the ring of request ids whose round was torn down, whose late envelopes are dropped instead of buffered. FIFO eviction, so request id flooding cannot grow it without bound. |
 | `ORACLE_PUBLISHED_ROUNDS_RETENTION_ROUNDS` | No | `12960` | Number of recent rounds of published-round markers to keep, roughly 90 days at the default round interval. Set to `0` to disable pruning and keep every marker. Only confirmed markers are ever pruned: a marker for a round whose on-chain state is still unknown is a quarantine record an operator reconciles by hand, so those are always retained. |
 | `ORACLE_ALLOW_UNVERIFIED_PAIRS` | Regtest only | `false` | Set to `true` to co-sign a proposed pair this hub can verify against nothing (no live local aggregate and no finalized history). It stands down a Byzantine-leader defense, so it is honored **only on regtest**: on mainnet, testnet, and a standalone hub with no `HUB_NETWORK`, it is ignored (and logged) and unverifiable-pair co-sign stays fail-closed. A real federation always has a second fetcher, so the hatch has no legitimate use there. |
 | `ORACLE_MAX_PRICE_AGE_SECONDS` | Regtest only | _(coin registry, per pair)_ | Maximum age of an oracle price before it is treated as stale. Resolution order is `p2pConfig` → this variable → the per-pair value pinned in the coin registry. The bound is consensus-pinned: it is content-hashed into `CONSENSUS_CONFIG_PIN`, and the indexer reads only the pinned bundle with no override path of its own. So the override is honored **only on regtest**; on mainnet, testnet, and standalone it is ignored (and logged) in favour of the pinned bound. Honoring it elsewhere would detach this hub's fee quotes, and the `oracleMaxPriceAgeSeconds` it reports over `getoraclesubmissions`, from the bound they claim to mirror: quoting rounds the fleet's fee gate rejects, or refusing rounds it accepts. To change the staleness gate for real, change the pinned coin bundle. |
@@ -333,7 +337,9 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 | `HUB_PRICE_CAPABILITY_DERIVE_INTERVAL_S` | No | `60` | Seconds between derivation passes. With the default per-pass budget, each pass covers at most 64 uncovered capability-and-height pairs, finishing all required capabilities at a newer height before moving backward, and skips pairs already written. |
 | `PUBLISHER_QUEUE_PATH` | No | `./data/publisher-queue.jsonl` | Durable queue file for pending publishes. Point at persistent storage so a restart does not lose queued rows. |
 | `PUBLISHER_MAX_ATTEMPTS` | No | `5` | Attempts before a queued publish is abandoned. |
+| `DOGE_ADDRESS` | No | _(from config table)_ | Dogecoin address the hub publishes from. |
 | `DOGE_PUBKEY_HEX` | No | _(from config table)_ | Public key, hex, of the DOGE publishing wallet. |
+
 | `DOGE_ENCODER_URL` | No | _(from config table)_ | Encoder URL used to build DOGE publish transactions. |
 | `DOGE_ENCODER_API_KEY` | No | _(from config table)_ | API key presented to that encoder when it runs keyed. Treat as a credential. |
 | `DOGE_LOW_BALANCE_THRESHOLD` | No | `10` | DOGE balance below which the publisher warns that it is running out of funds. |
@@ -341,6 +347,8 @@ Controls `OraclePublisher`, which broadcasts finalized price rounds on-chain as 
 | `ORACLE_BATCH_CATCHUP_BACKLOG_INTERVAL_MS` | No | `60000` (1 minute) | The catch-up sweep cadence while a backlog exists, used instead of `ORACLE_BATCH_CATCHUP_INTERVAL_MS` whenever more than four closed windows are still buffered. A sweep proposes at most four windows, so at the hourly idle cadence a backlog of several hundred windows could never drain; at a minute the same backlog is walked in a few hours. Capped at `ORACLE_BATCH_CATCHUP_INTERVAL_MS`, so it can only make the sweep faster, never slower. |
 | `ORACLE_BATCH_CATCHUP_MAX_ATTEMPTS` | No | `6` | Failed catch-up proposals after which a window is retired from the sweep, provided it is also old enough (see `ORACLE_BATCH_CATCHUP_RETIRE_AFTER_MS`). Retirement is a memo entry, not a deletion: the buffered rounds stay where they are and every other bound behaves as before; the window simply stops consuming a re-proposal slot that the windows behind it need. `0` disables retirement, so every window is re-proposed forever, for an operator who would rather a stuck backlog stay visible than be retired quietly. |
 | `ORACLE_BATCH_CATCHUP_RETIRE_AFTER_MS` | No | `21600000` (6 hours) | Minimum age of a window's FIRST failed catch-up attempt before the attempt count may retire it. Both bounds are needed: a count alone would retire a window that lost six attempts in six minutes to one peer rebooting, and an age alone would retire a window that has only been waiting its turn behind a long backlog. Together they describe the one hopeless shape, a window this hub has proposed repeatedly over hours that the federation will not co-sign because its contents diverge. |
+
+> **Encoder HTTP budget.** The hub's per-call budget to the encoder is fixed at 120000 ms (`EncoderClient`) and is not an env knob. It must stay strictly greater than the encoder's own `NODE_RPC_TIMEOUT` (default 30000 ms) times the longest sequential node-RPC chain one `broadcast_tx` can run, which is three hops. Raising `NODE_RPC_TIMEOUT` above 40000 ms on the encoder re-inverts that relationship, and the hub then aborts calls the encoder would have answered. A client-side abort is indistinguishable from a broadcast that may already have reached the coin node, so those rounds are dead-lettered for manual on-chain verification rather than retried.
 
 ### Rewards and Slashing
 
@@ -366,6 +374,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_ELECTION_TOLERANCE_BLOCKS` | No | `36` | BTC blocks a non-leader hub waits before the next eligible rank may take over |
 | `ANCHOR_REWARD_PER_PUBLISH` | No | `"10.00000000"` | XCHAIN distributed to the elected ANCHOR publisher per successful publish cycle |
 | `ANCHOR_CHECKPOINT_EVERY_N` | No | `1` | Anchor only every Nth checkpoint **ordinal** on-chain, gating the whole round (one bundle covers every chain). Eligibility is `FLOOR(checkpoint_seq / CHECKPOINT_INTERVAL_BLOCKS) % N`, not `checkpoint_seq % N`: the cadence latch advances the seq by exactly one interval per round, so a raw-seq test is a residue class pinned by the seed rather than a 1-in-N sample, and for any N sharing a factor with the interval the federation would anchor every round or never anchor at all. Both this and `CHECKPOINT_INTERVAL_BLOCKS` must be fleet-uniform; `checkpoint_seq` is consensus data, so the predicate is deterministic across every hub. It decouples on-chain ANCHOR spend from checkpoint production cadence, it is not a cadence control (`ANCHOR_INTERVAL_MS` is): skipped (off-multiple) ordinals remain in the off-chain hub-DB mirror and are still verifiable via the explorer. `1` anchors every checkpoint (original behaviour). |
+| `XCHAIN_HUB_SKIP_ANCHOR_CADENCE_ASSERT` | No | _(unset)_ | Set to `1` to silence the startup warning logged when `CHECKPOINT_INTERVAL_BLOCKS` or `ANCHOR_CHECKPOINT_EVERY_N` differs from the fleet-canonical values (`6` and `1`). Both are fleet-uniform and feed a deterministic anchor-eligibility predicate, so a hub on other values anchors different checkpoints than its peers; use only for a deliberate non-default fleet. Log-only, never fatal. |
 | `ANCHOR_ENABLED` | No | `true` | Set to `false` to stop this hub publishing ANCHORs. |
 | `ANCHOR_MAX_BATCH` | No | `1000` | Maximum `cross_chain_matches` rows drained into one publish cycle. |
 | `ANCHOR_CHUNK_MAX_BYTES` | No | `6000` | Maximum payload bytes per ANCHOR archive chunk. |
@@ -375,7 +384,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_AMBIGUOUS_POLL_ATTEMPTS` | No | `3` | Re-polls before an ambiguous publish result (broadcast may or may not have landed) is resolved. |
 | `ANCHOR_AMBIGUOUS_POLL_MS` | No | `5000` | Delay between those re-polls. |
 | `ANCHOR_DEADLETTER_PATH` | No | `./data/anchor-publish.deadletter.jsonl` | Append-only JSONL record of an ANCHOR send that failed after the signer hook committed funds, holding the signed reveal an operator rebroadcasts instead of paying for the payload again; an unset or empty value uses the default. |
-| `ANCHOR_ANNOUNCE_RETRY_MS` | No | `300000` | Delay between retries of the anchor announcement (5 minutes). |
+| `ANCHOR_ANNOUNCE_RETRY_MS` | No | `300000` | Delay between retries of the anchor announcement (5 minutes). Peers stamp `anchor_txid` once the anchor is buried `XCHAIN_CONFIRMATIONS_DOGE` deep; that knob governs only the hub's stamp and attest gate. The BTC indexer's anchor-reward mint gate applies a frozen ledger depth (`ANCHOR_REWARD_DOGE_MIN_CONFIRMATIONS`, equal to the per-coin DOGE default) that no environment variable moves, so on regtest, where a lowered override is honoured, the hub attests before the indexer will mint and BTC block processing defers until the anchor reaches the frozen depth. |
 | `ANCHOR_ANNOUNCE_RETRY_TTL_MS` | No | `21600000` | How long announcement retries continue before the entry is dropped (6 hours, roughly six times the 60-confirmation DOGE window). |
 | `ANCHOR_ANNOUNCE_QUEUE_MAX` | No | `500` | Maximum queued anchor announcements, bounding memory. |
 | `ANCHOR_RANK_WAKE_MS` | No | `900000` | How often a non-rank-0 publisher wakes to check whether the anchor it is ranked behind was published (15 minutes). Only rank-0 keeps the interval and size triggers, so this is the takeover cadence, not the publish cadence. |
@@ -499,6 +508,47 @@ Controls `StateCheckpointEngine`, which produces the quorum-signed per-block sta
 | `CHECKPOINT_STALL_LOG_MS` | No | `3600000` (1 h) | Throttle for the "cadence stalled" log line. The eligibility poll runs far more often than the checkpoint cadence, so the reason is logged at most this often and the counter carries the true rate. |
 | `CHECKPOINT_FROZEN_TIP_TICKS` | No | `60` | Consecutive not-my-slot eligibility ticks that see the same BTC tip before the tick is metered as a cadence stall naming the frozen block. A frozen tip pins the rotation slot to one constant, so every hub whose rank is not that constant returns forever with no stall counted; at the default 60 s poll this is about an hour, longer than any normal inter-block gap. Non-positive values fall back to `60`. |
 
+### Stake-share monitor (`StakeShareWatcher`)
+
+Watches this operator's own share of active stake against the `STAKE_WEIGHTED_QUORUM`
+commit gate (`3*tally > 2*S`) and warns while rounds are still finalizing.
+
+The gate counts community stake in its denominator whether or not that stake ever
+signs, so a federation whose share has drifted to two thirds halts the moment one more
+staker appears, and the round before gives no warning at all. On 2026-09-01 that cost
+testnet 18 hours of dead price rounds, found by a tester rather than by a monitor.
+
+Without `HUB_OPERATOR_STAKE_SOURCES` (or its per-chain form) the hub cannot tell its own
+stake from anyone else's and the monitor **stays off**, saying so loudly at boot. Read
+the result on `/health` (`stake_share`), from the `getstakeshare` RPC, or from the
+`xchain_stake_share_*` gauges. Alert on `xchain_stake_share_stakes_to_halt <= 1` or
+`xchain_stake_share_meets_gate == 0`; it never flips `/health` to 503, because it is a
+forecast about the federation rather than a sickness of this process. These gauges are
+rebuilt from scratch on every scrape, so an unreadable snapshot renders the affected
+chain/capability series **absent** rather than repeating the last healthy number. Both
+rules above therefore go quiet on a gap: pair them with an
+`absent(xchain_stake_share_meets_gate{...})` clause if a missing measurement should also
+be visible, and note that the underlying indexer outage is `ConsensusInputMonitor`'s
+alarm, deliberately not paged twice here. An unreadable snapshot never raises an alert,
+but it does not clear one either: a standing CRITICAL, HALTED or BLOCKED reading holds
+(`xchain_stake_share_alerting` stays 1, the log says `UNCONFIRMED`, and `/health` shows
+`held_level` and `held_age_s`) until a real reading replaces it.
+
+The monitor reads stake through the gate's own snapshot code, so a read the gate would
+refuse (a BTC indexer that reports another coin, a capability with no `MIN_STAKE` and no
+feed floor, an answer for the wrong block or capability) shows as `unavailable` with the
+gate's reason rather than as a margin.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `HUB_OPERATOR_STAKE_SOURCES_<COIN>` | No | `` | Comma-separated staking addresses this operator controls **on that chain**. Only `_BTC` is read, because capability staking is BTC-only; `_LTC` and `_DOGE` are ignored with one log line at boot. |
+| `HUB_OPERATOR_STAKE_SOURCES` | No | `` | Fallback list, merged with `HUB_OPERATOR_STAKE_SOURCES_BTC`. |
+| `HUB_STAKE_SHARE_CHAINS` | No | `BTC` | Only `BTC` is watched, the one chain the stake-weighted gate reads; any other tick is ignored with one log line at boot. |
+| `HUB_STAKE_SHARE_CAPABILITIES` | No | `price,oracle_publish,attestation,cross_chain,*` | Stake sets to watch: every one whose rounds pass the same two-thirds weighted gate. `price` is the price round's commit quorum, `oracle_publish` the publisher election that puts the result on chain, `attestation` the attestation rounds and their publisher, `cross_chain` DEX, call and bridge settlement, retraction and the state-anchor archive, and `*` the whole-federation set (every staker, no capability filter) that config-change consensus tallies. A capability this operator has not staked for reads as `unconfigured` (not alerting); one nobody has staked for reads as `blocked` (alerting), because its weighted gate fails closed on an empty set. Narrow the list here for a rail this federation does not run. |
+| `HUB_STAKE_SHARE_POLL_MS` | No | `300000` | Poll cadence. Stake moves at block cadence and the warning has hours of lead time. |
+| `HUB_STAKE_SHARE_CRITICAL_STAKES` | No | `1` | Margin, in new stakes, that counts as CRITICAL (alerting). `1` means "the next community staker halts rounds". One stake is sized as the largest third-party stake already on that chain, floored at the capability MIN_STAKE. |
+| `HUB_STAKE_SHARE_WARN_STAKES` | No | `2` | Margin, in new stakes, that counts as WARNING (logged, not alerting). |
+
 ### Roll Call
 
 Controls `RollcallRound`, which signs the per-epoch ledger-hash roll call and elects the hub that publishes it on DOGE. Epoch cadence and the accept window are consensus constants and are not configurable; these knobs cover only this hub's own timing, participation and rails.
@@ -587,6 +637,7 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `LLM_PROVIDER_ENABLED` | No | `true` | Set to `false` to disable the LLM attestation provider on this hub. |
+| `LLM_DEFAULT_MODEL` | No | `claude-sonnet-4-6` | Default judge model. It must be in the approved-models list. |
 | `LLM_MAX_BUDGET_USD` | No | _(built-in cap)_ | Spend ceiling in USD for LLM attestation calls. A kill-switch against runaway cost. |
 | `CLAUDE_BIN` | No | `claude` | Path to the Claude CLI binary the provider spawns. Override when it is not on `PATH`. |
 | `LLM_SPEND_LOG_PATH` | No | `./data/llm-spend.jsonl` | File the provider appends each spend record to, written before the call so the audit trail cannot be lost to a crash mid-request. |
