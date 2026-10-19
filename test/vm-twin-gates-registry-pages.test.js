@@ -8,11 +8,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { test } = require('node:test');
 const { SENTINEL_FLOOR } = require('../bin/generate-flag-days.js');
-const { sibling } = require('./helpers/sibling_checkout.js');
+const { sibling, pinnedCommit } = require('./helpers/sibling_checkout.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const ACTIVATION = fs.readFileSync(path.join(ROOT, 'protocol', 'protocol-activation.md'), 'utf8');
 const FLAG_DAYS = fs.readFileSync(path.join(ROOT, 'protocol', 'flag-days.md'), 'utf8');
+// Full sha of the xchain-vm commit these registry pages were checked against.
+const XCHAIN_TWIN_COMMIT = 'a415f304c02207763d4bd4565a4be9e749846331';
 const vm = sibling('xchain-vm', ['src/index.js', 'src/index']);
 const REQUIRED_VM_TWINS = Object.freeze([
     ['GAS_CEILING_SUCCESS_ACTIVATION', 'GAS_CEILING_SUCCESS'],
@@ -60,18 +62,12 @@ function replaceUnarmedEntry(markdown, network, gate) {
 }
 
 function readVmSources(root) {
-    const src = path.join(root, 'src');
-    const skip = new Set([path.join(src, 'protocol'), path.join(src, 'toolkit')]);
-    const files = [];
-    const walk = (dir) => {
-        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-            const full = path.join(dir, entry.name);
-            if (entry.isDirectory()) { if (!skip.has(full)) walk(full); }
-            else if (entry.name.endsWith('.js')) files.push(full);
-        }
-    };
-    walk(src);
-    return files.sort().map((file) => fs.readFileSync(file, 'utf8'));
+    const pinned = pinnedCommit(root, XCHAIN_TWIN_COMMIT);
+    const skipDirs = ['src/protocol/', 'src/toolkit/'];
+    return pinned.list('src')
+        .filter((file) => file.endsWith('.js') && !skipDirs.some((dir) => file.startsWith(dir)))
+        .sort()
+        .map((file) => pinned.show(file).toString('utf8'));
 }
 
 function vmNetworkTables(sources) {

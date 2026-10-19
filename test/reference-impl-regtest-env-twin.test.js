@@ -6,6 +6,7 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { test } = require('node:test');
+const { sibling, pinnedCommit } = require('./helpers/sibling_checkout.js');
 
 const VENDORED = path.join(
     __dirname, '..', 'protocol', 'reference-impl', 'consensus', 'gate_registry', 'regtest_env.js',
@@ -19,11 +20,13 @@ const GIT_COMMON_DIR = execFileSync(
 const ADJACENT_INDEXER = path.resolve(__dirname, '..', '..', 'xchain-indexer');
 const INDEXER_ROOT = fs.existsSync(path.join(ADJACENT_INDEXER, 'package.json'))
     ? ADJACENT_INDEXER : path.resolve(GIT_COMMON_DIR, '..', '..', 'xchain-indexer');
-const CANONICAL = path.join(INDEXER_ROOT, 'src', 'protocol_changes', 'regtest_env.js');
+// Full sha of the indexer commit the vendored copies are compared against.
+const XCHAIN_TWIN_COMMIT = '64a281981203572c3e1f85f43150b9dcf224f2f5';
+const indexer = sibling('xchain-indexer', [], { platformRoot: path.dirname(INDEXER_ROOT) });
+const CANONICAL = 'src/protocol_changes/regtest_env.js';
 const VENDORED_SHARED_ROWS = path.join(
     __dirname, '..', 'protocol', 'reference-impl', 'consensus', 'gate_registry', 'shared_rows.js',
 );
-const CANONICAL_SHARED_ROWS = path.join(INDEXER_ROOT, 'src', 'protocol_changes', 'shared_rows.js');
 const SHARED_ROWS_PARTS = [
     'shared_rows.js',
     'shared_rows_1.js',
@@ -33,19 +36,22 @@ const SHARED_ROWS_PARTS = [
     'shared_rows_5.js',
 ];
 
-function sha256(file) {
-    return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+function sha256(content) {
+    return crypto.createHash('sha256').update(content).digest('hex');
 }
 
-test('the vendored regtest environment helper matches the indexer canonical file', () => {
-    assert.equal(sha256(VENDORED), sha256(CANONICAL));
+function canonicalAt(rel) {
+    return pinnedCommit(INDEXER_ROOT, XCHAIN_TWIN_COMMIT).show(rel);
+}
+
+test('the vendored regtest environment helper matches the indexer canonical file', { skip: indexer.skip }, () => {
+    assert.equal(sha256(fs.readFileSync(VENDORED)), sha256(canonicalAt(CANONICAL)));
 });
 
 for (const name of SHARED_ROWS_PARTS) {
-    test(`the vendored ${name} matches the indexer canonical file`, () => {
+    test(`the vendored ${name} matches the indexer canonical file`, { skip: indexer.skip }, () => {
         const vendored = path.join(path.dirname(VENDORED_SHARED_ROWS), name);
-        const canonical = path.join(path.dirname(CANONICAL_SHARED_ROWS), name);
-        assert.equal(sha256(vendored), sha256(canonical));
+        assert.equal(sha256(fs.readFileSync(vendored)), sha256(canonicalAt(`src/protocol_changes/${name}`)));
     });
 }
 
