@@ -95,7 +95,7 @@ flowchart TD
 | `util/index.js` | `Utility` | `sleep()`, `getDataHash()` (SHA256), `isNull()`, timer helpers |
 | `db/sql_util.js` | `splitSqlStatements` | Splits `.sql` files on `;`, stripping line comments to avoid false splits |
 | `hub/client.js` | `HubClient` | JSON-RPC client for xchain-hub; `getallconfigs()` to discover indexer and decoder DB connections |
-| `SyncService.js` | `SyncService` | Orchestrator: hub discovery, DB pool creation, server/client mode branching |
+| `sync_service.js` | `SyncService` | Orchestrator: hub discovery, DB pool creation, server/client mode branching |
 | `server/poller.js` | `ServerPoller` | Polls one indexer DB for new blocks; builds block payloads; emits events |
 | `server/block_broadcaster.js` | `BlockBroadcaster` | Manages WebSocket subscriptions per chain/network; broadcasts block/reorg events |
 | `server/snapshot_builder.js` | `SnapshotBuilder` | Builds full and incremental JSON snapshots with gzip streaming |
@@ -106,7 +106,7 @@ flowchart TD
 | `util/wire_codec.js` | `encodeRow`, `decodeValue` | Binary-safe row serialization: tags BLOB/Buffer column values with a `__xbin__` sentinel so they survive JSON round-trip intact |
 | `client/block_hasher.js` | `BlockHasher` | Independently recomputes a block's consensus hashes (ledger/actions/contract) from the replicated rows; the source of VERIFY_RECOMPUTE |
 | `consensus/state_hash.js` | `buildStateHashData` | Builds the canonical preimage for the fourth per-block replication-integrity hash (`state_hash`), covering in-place mutations and backdated credits not captured by the three consensus hashes |
-| `stateCommitment.js` | `computeFollowerRoots` | Follower twin of the indexer's SPV state-commitment engine; recomputes per-block SMT roots (balances, stakes, state) for VERIFY_STATE_COMMITMENT |
+| `state_commitment/index.js` | `computeFollowerRoots` | Follower twin of the indexer's SPV state-commitment engine; recomputes per-block SMT roots (balances, stakes, state) for VERIFY_STATE_COMMITMENT |
 | `merkle.js` | None | Consensus-critical SPV Merkle primitives (SHA-256 SMT, block Merkle root, state root); byte-aligned with the indexer twin |
 | `server/merkle_tree.js` | `MerkleTree` | Binary SHA-256 Merkle tree used by TransparencyLog for epoch proof construction |
 | `db/balance_helpers.js` | None | Shared SQL helpers for rebuilding the `balances` aggregate after a block apply or rollback |
