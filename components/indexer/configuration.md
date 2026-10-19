@@ -161,6 +161,7 @@ Genesis is pinned per network in the coin registry and the bundled dumps ship in
 | `GENESIS_DUMP_PATH` | Path to the pre-derived genesis state dump. When present, the dump-import path runs and is verified against `XCHAIN_GENESIS_DUMP_HASH` (sha256 of the *uncompressed* content) plus a recheck of the genesis block hashes; absent, the canonical CSV derivation runs instead. | `data/genesis/<coin>-<network>-genesis-dump.ndjson.gz` |
 | `GENESIS_BLOCK_TIMEOUT_MS` | Watchdog for the genesis block on the CSV-derivation path, which is the slow one | `14400000` (4 h) |
 | `GENESIS_DUMP_TIMEOUT_MS` | Watchdog for the genesis block on the dump-import path. Kept tight (BTC measures around 15 s) so a wedged import is caught fast. | `600000` (10 min) |
+| `XCHAIN_GENESIS_BLOCK` | Genesis height `bin/generate-genesis-dump.js` seeds its scratch decoder and indexer at when it regenerates a dump. Read only by that tool, never by the service. | `100` |
 | `GENESIS_AIRDROP_PATHS` | **Regtest only.** Comma-separated airdrop snapshot files to replay at genesis | _(none)_ |
 | `GENESIS_AIRDROP_HASHES` | **Regtest only.** Comma-separated sha256 digests pinning each `GENESIS_AIRDROP_PATHS` entry, index-aligned (an empty entry leaves that bucket unpinned) | _(none)_ |
 | `GENESIS_AIRDROP_AMOUNTS` | **Regtest only.** Comma-separated per-file airdrop amounts, index-aligned with `GENESIS_AIRDROP_PATHS` | _(none)_ |

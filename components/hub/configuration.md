@@ -591,6 +591,11 @@ Backs the `ATTEST` path where a contract asks an approved model a question. See 
 | `CLAUDE_BIN` | No | `claude` | Path to the Claude CLI binary the provider spawns. Override when it is not on `PATH`. |
 | `LLM_SPEND_LOG_PATH` | No | `./data/llm-spend.jsonl` | File the provider appends each spend record to, written before the call so the audit trail cannot be lost to a crash mid-request. |
 | `LLM_SPEND_LOG_FALLBACK_PATH` | No | `llm-spend.jsonl` inside the OS temp directory | Where a per-dispatch LLM spend audit line is written when the primary sink (`LLM_SPEND_LOG_PATH`) cannot be written. The aggregate spend-state file cannot stand in for it: that file carries a rolling window of costs and no per-dispatch identity, so an operator reconciling a vendor invoice against it cannot tell which call was which. |
+| `LLM_MAX_SPEND_USD_CENTS_PER_WINDOW` | No | `1000` ($10) | Rolling-window USD budget, in cents, for LLM dispatch. A call that would exceed it is refused before the vendor is called. Clamped to at most `200000`; env wins over hub config. |
+| `LLM_EST_SPEND_USD_CENTS` | No | `5` ($0.05) | Cents reserved against the window before each call; the reservation settles to the invoiced cost afterwards. |
+| `LLM_SPEND_WINDOW_MS` | No | `3600000` (1 h) | Length of the rolling spend window in milliseconds. |
+| `LLM_SPEND_STATE_PATH` | No | `./data/spend-state/llm.json` | File the spend window persists to on a live validator hub, so a restart does not hand back a spent budget. |
+| `HUB_CLAUDE_CONFIG_DIR` | No | `~/.claude-xchain` | Hub-scoped Claude CLI config directory holding the credentials the `claude_spawn` transport uses. Preferred over a shared `CLAUDE_CONFIG_DIR`. |
 
 > **Cost note.** Each on-chain checkpoint anchor spends real DOGE on **one bundle per network**, not one transaction per chain: a single ANCHOR v0 carries BTC, LTC and DOGE as sections of the same payload, broadcast on the DOGE chain over the P2SH lane's funding plus reveal pair. The cost therefore scales with encoded payload bytes at the venue's fee rate rather than with the number of chains checkpointed. State recovery (`recovery.js`) only needs the **latest** anchored checkpoint per chain, so anchoring every intermediate `checkpoint_seq` is optional. With daily checkpoints (`CHECKPOINT_INTERVAL_BLOCKS=144`), `ANCHOR_CHECKPOINT_EVERY_N=2` halves anchor spend (on-chain recovery point then trails the tip by up to ~2 checkpoint intervals). `checkpoint_seq` is consensus data, so the gate is deterministic across every hub.
 
@@ -682,6 +687,8 @@ Read-only operator tools; neither broadcasts nor writes anything and neither is 
 | `XCHAIN_SUITE_TITLE_REPO_ROOT` | No | _(unset)_ | Set only by `bin/suite-title-map.js` for the mocha children it spawns: the checkout being collected. When present, the child hides every adjacent `xchain-*` checkout from file and module reads, so a pin collected beside a platform checkout matches one collected in standalone CI. Not an operator setting; never read by the running hub process. |
 | `XCHAIN_DOCS_DIR` | No | `../xchain-documentation` | Sibling-checkout override for the documentation tree the hub's conformance tests read their vectors from. `bin/suite-title-map.js` unsets it, together with `XCHAIN_INDEXER_DIR`, for the mocha children it spawns and restores both afterwards, so an override cannot point a child back at a sibling the mask hides. Never read by the running hub process. |
 | `XCHAIN_SYNC_DIR` | No | `../xchain-sync` | Sibling-checkout override for the `xchain-sync` tree the same `siblingDir()` resolves when the pin tool compares against sync's copy; read by literal name so the coverage gate can see it. Never read by the running hub process. |
+| `DRILL_HUB_ROOT` | No | the checkout holding the drill | Hub tree `bin/drill-llm-spend-guard.js` loads the LLM provider from, for running the spend-guard drill inside a deployed hub container. The drill stubs the vendor CLI, so no money moves. |
+| `DRILL_WINDOW_MS` | No | `8000` | Spend window the same drill sets for its run, short so the window-roll step finishes quickly. |
 
 ## Database Schema
 
