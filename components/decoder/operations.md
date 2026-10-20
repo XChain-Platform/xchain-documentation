@@ -210,7 +210,7 @@ node src/db/migrate.js
 # or: npm run migrate
 ```
 
-The run holds a database-scoped advisory lock so concurrent processes cannot apply the same migration twice. Each applied migration is recorded in the `schema_migrations` table with its filename, SHA-256 checksum, mode, and timestamp. Re-running the command is safe; only pending migrations are applied.
+The run holds a database-scoped advisory lock so concurrent processes cannot apply the same migration twice. Each applied migration is recorded in the `schema_migrations` table with its filename, SHA-256 checksum, mode, and timestamp. Re-running the command is safe; only pending migrations are applied. A decoder that builds its database from empty records every committed migration as applied before it creates the tables, so a fresh install has nothing pending.
 
 Take a backup and stop the decoder before running manual migrations, since some involve full table rebuilds.
 

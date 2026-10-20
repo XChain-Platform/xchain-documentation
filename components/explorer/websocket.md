@@ -926,6 +926,7 @@ fails the entire subscribe request with `INVALID_TYPE`, so no channel in that re
 | Federation / oracle | `PRICE`, `ANCHOR`, `XCALL`, `NODEPROOF`, `ROLLCALL` |
 | Address, batching, bridge, governance | `ADDRESS`, `BATCH`, `CROSS_SETTLE`, `XBRIDGE`, `XEXEC`, `VOTE`, `SLASH` |
 | Settlement anchors | `XPOLICY`, `LIST_SHARE` |
+| Cancels and edits | `ORDER_CANCEL`, `ORDER_EDIT`, `SWAP_CANCEL`, `SWAP_EDIT`, `DISPENSER_CANCEL`, `DISPENSER_EDIT`, `BET_EDIT` |
 | Order lifecycle | `ORDER_EXPIRED` |
 | COINPay lifecycle | `COINPAY_REQUIRED`, `COINPAY_FULFILLED`, `COINPAY_EXPIRED` |
 | Swap lifecycle | `SWAP_EXPIRED` |
@@ -937,6 +938,10 @@ fails the entire subscribe request with `INVALID_TYPE`, so no channel in that re
 Settlement anchors are rows the indexer mints to anchor a bridge-policy or shared-list settlement
 record when the pass produced no action of its own. Their `NEW_ACTION` carries the ordinary `data`
 with `tx_hash` and `source` null and `destinations: []`.
+
+A cancel or edit renames the parent's own action to its cancel or edit name, and the `types` filter
+matches names exactly. A client that wants all order activity lists `ORDER_CANCEL` and `ORDER_EDIT`
+beside `ORDER`, and the same holds for swaps, dispensers and `BET_EDIT` beside `BET`.
 
 ---
 

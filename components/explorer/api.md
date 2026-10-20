@@ -77,7 +77,7 @@ All API endpoints return:
 |---|---|
 | `400` | Bad request or database query error |
 | `404` | Invalid endpoint path |
-| `429` | Rate limit exceeded (1080 requests per IP per 60s window by default; proof, batch, preflight, fee-quote and checkpoint routes have tighter limits, see [Rate Limiting](configuration.md#rate-limiting)) |
+| `429` | Rate limit exceeded (180 requests per IP per 60s window by default; proof, batch, preflight, fee-quote and checkpoint routes have tighter limits, see [Rate Limiting](configuration.md#rate-limiting)) |
 | `503` | Coin not configured or database unavailable |
 
 ---
@@ -1968,9 +1968,18 @@ GET /{COIN}/api/contract_stakes[/{query}/{type}]
 GET /{COIN}/api/contract_unstakes[/{query}/{type}]
 GET /{COIN}/api/contract_delegations[/{query}/{type}]
 GET /{COIN}/api/slash_events[/{query}/{type}]
+GET /{COIN}/api/rollcalls[/{query}/{type}]
+GET /{COIN}/api/rollcall_closes[/{query}/{type}]
 ```
 
 Validator federation data. `validators` rows are the on-chain active set, and each one also carries the hub's view of the same signing pubkey: `hub_addr` (the validator's network address), `hub_chains` (the chains it serves) and `hub_status`. The status merges two hub sources. The hub's manual registry (`registervalidator`) supplies `active`, `suspended` or `removed` plus the address and chains when it has a row; on a live federation that registry is normally empty, because membership is the on-chain stake set. The gossiped `validator_capabilities` rows supply the rest: `active` when at least one capability is qualified, self-tested and enabled, `peered` when the hub has heard the pubkey over P2P but no capability is active yet (typically a hub that cannot read its own stake: no BTC indexer). `unregistered` means the hub answered and has never heard from the pubkey. The address and chains are `null` for gossip-derived entries. All three are `null` when neither hub source is reachable, which means unknown rather than unregistered. `stakes` and `delegations` `type` values: `block`, `address`, `source`. `rewards` `type` values: `address`, `source`. `delegation_revocations` (DELEGATE v2/v3 signing-key revocations) and `collects` (COLLECT validator reward claims) `type` values: `block`, `address`, `source`. `full_node_verifications` `type` values: `block`, `epoch`, `pubkey`, `address`. Contract-targeted staking (`contract_stakes`, `contract_unstakes`, `contract_delegations`) and `slash_events` support types: `block`, `address`, `contract`.
+
+ROLLCALL data is split by chain, because each half is written on a different chain:
+
+- `rollcalls` lists ROLLCALL publications and is served on DOGE coins only (`DOGE`, `TDOGE`, `RDOGE`). Each row is one ROLLCALL action with its `epoch_height`, `ledger_hash`, `publisher` and `signer_count`. `type` values: `block`, `address`.
+- `rollcall_closes` lists epoch closes and is served on BTC coins only (`BTC`, `TBTC`, `RBTC`). Each row is one epoch with `snapshot_block`, `close_block`, `rolled`, `absence_count`, `evicted_count` and `gate_signer_count`. `type` value: `block` (the close block).
+
+Asking either route on another coin answers `400` rather than an empty page: `ROLLCALLS_DOGE_ONLY` from `rollcalls`, `ROLLCALL_CLOSES_BTC_ONLY` from `rollcall_closes`.
 
 ---
 
@@ -2341,6 +2350,8 @@ Content-Type: application/json
 | `GET /{COIN}/api/contract_unstakes/...` | `block`, `address`, `contract` |
 | `GET /{COIN}/api/contract_delegations/...` | `block`, `address`, `contract` |
 | `GET /{COIN}/api/slash_events/...` | `block`, `address`, `contract` |
+| `GET /{COIN}/api/rollcalls/...` (DOGE only) | `block`, `address` |
+| `GET /{COIN}/api/rollcall_closes/...` (BTC only) | `block` |
 
 ### ANCHOR and Attestation and Cross-Chain Call List Endpoints
 

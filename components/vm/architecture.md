@@ -151,7 +151,7 @@ The V8 isolate provides hardware-level isolation (separate heap, no shared objec
 
 **Stripped:**
 - Timers: `Date`, `setTimeout`, `setInterval`, `setImmediate`, `clearTimeout`, `clearInterval`, `clearImmediate`
-- Async: `queueMicrotask`, `Promise` (consensus-gated: stripped at/after the `VM_BANNED_ASYNC` flag-day block time; present on earlier blocks for replay fidelity)
+- Async: `queueMicrotask` (stripped on every block, never gated); `Promise` (consensus-gated: stripped at/after the `VM_BANNED_ASYNC` flag-day block time; present on earlier blocks for replay fidelity)
 - Memory: `WeakRef`, `FinalizationRegistry`
 - Proxies: `Proxy`, `Reflect`
 - Network: `fetch`, `XMLHttpRequest`, `WebSocket`

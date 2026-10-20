@@ -428,9 +428,9 @@ cross-chain listing is decided by the `CROSS_CHAIN_ROYALTY` flag-day, layered on
 | `CONTROLLER_GUARD` | `CROSS_CHAIN_ROYALTY` | Cross-chain listing whose guard returns legs |
 |---|---|---|
 | off | (n/a) | no legs produced (unchanged) |
-| on | **off** | **denied at create** (`royalty not enforceable cross-chain`, fail-closed) |
+| on | **off** | **denied at create** (`invalid: royalty not enforceable cross-chain`, fail-closed) |
 | on | **on** | accepted when every leg re-encodes to `GET_COIN`; legs travel in the validator-signed match and are applied at settlement |
-| on | **on** | **denied at create** when any leg does not re-encode (`royalty leg not payable on proceeds chain`, fail-closed) |
+| on | **on** | **denied at create** when any leg does not re-encode (`invalid: royalty leg not payable on proceeds chain`, fail-closed) |
 
 When the flag is on:
 

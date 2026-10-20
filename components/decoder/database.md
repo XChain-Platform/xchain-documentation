@@ -183,7 +183,7 @@ The decoder applies schema changes via a tracked migration system. Two paths exi
   # or: npm run migrate
   ```
 
-Each migration is recorded in the `schema_migrations` table (created automatically) and is applied at most once regardless of how many times the command is run. An advisory lock prevents concurrent migration runs. Migration files live in `src/sql/migrations/` and are applied in filename sort order. The decoder's connection pool pins the session time zone to UTC, and the ledger's own `schema_migrations.applied_at` column is `DATETIME`, retyped at startup with no operator step.
+Each migration is recorded in the `schema_migrations` table (created automatically) and is applied at most once regardless of how many times the command is run. On a database the decoder builds from empty (no table that `src/sql` declares exists yet), startup records every committed migration in that table before it creates any table, because the tables it then creates already have each migration's end state. Nothing is replayed at that first startup and no manual migration is left pending. An advisory lock prevents concurrent migration runs. Migration files live in `src/sql/migrations/` and are applied in filename sort order. The decoder's connection pool pins the session time zone to UTC, and the ledger's own `schema_migrations.applied_at` column is `DATETIME`, retyped at startup with no operator step.
 
 Notable applied migrations:
 

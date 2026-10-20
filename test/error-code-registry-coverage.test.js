@@ -25,7 +25,7 @@
  * and any row in that section that nothing emits unless the row is marked
  * historical.
  *
- * Collection is by emit shape rather than by a bare literal scan. Six shapes
+ * Collection is by emit shape rather than by a bare literal scan. Seven shapes
  * are read: a `code:` line, so the ternary fallback form
  * (`code: cond ? x : 'READ_FAILED'`) is caught alongside the plain `code: 'X'`
  * form; a status-map row (`CODE: [409, 'message']`), which the proof routes
@@ -34,10 +34,13 @@
  * use; a `VmQueryError('CODE', ...)` throw, which the contract simulation
  * route forwards to the client as `code: e.code`; a mirror-gate verdict
  * (`blocked: 'CODE'`), which the mirror gate sends by reference as
- * `code: blocked`; and a `new DbInputError(message, 'CODE')` throw under
+ * `code: blocked`; a message/code pair row (`key: ['message', 'CODE']`),
+ * which src/explorer/request/validate_params.js keeps in INTEGER_PATH_TYPES
+ * and sends destructured as `{ error, code }`; and a
+ * `new DbInputError(message, 'CODE')` throw under
  * src/db/, which src/explorer/request/load_data.js answers as a 400 with
  * `code: e.code`. A new emit shape needs its own rule here, or its codes go
- * unchecked. Only the five REST-side sources are read for the first five
+ * unchecked. Only the five REST-side sources are read for the first six
  * shapes (contract/vm_query.js is one because its throws reach the wire
  * through the state-proof routes), and src/db/ is read for the DbInputError
  * shape alone, since its other text is SQL and reader logic, not responses:
@@ -122,6 +125,11 @@ const VM_QUERY_THROW = /\bVmQueryError\(\s*'([A-Z][A-Z0-9_]{2,})'/g;
 // A mirror-gate verdict, `{ blocked: 'CODE', annotate }`, sent later as `code: blocked`.
 const MIRROR_BLOCKED = /\bblocked\s*:\s*'([A-Z][A-Z0-9_]{2,})'/g;
 
+// A message/code pair row, `key: ['Human message', 'CODE']`, destructured and sent later
+// as `{ error, code }`. The message must hold a space, so a list such as
+// `methods: ['GET', 'POST']` never reads as a code.
+const MESSAGE_CODE_PAIR = /\b[A-Za-z_]\w*\s*:\s*\[\s*'[^'\n]*\s[^'\n]*'\s*,\s*'([A-Z][A-Z0-9_]{2,})'\s*\]/g;
+
 // The reader layer, whose DbInputError throws load_data.js answers as 400 `code: e.code`.
 const EXPLORER_DB = path.join(EXPLORER_SRC, 'db');
 
@@ -204,6 +212,7 @@ function emittedCodes() {
             for (const m of emitted.matchAll(STATUS_MAP_KEY)) record(m[1]);
             for (const m of emitted.matchAll(VM_QUERY_THROW)) record(m[1]);
             for (const m of emitted.matchAll(MIRROR_BLOCKED)) record(m[1]);
+            for (const m of emitted.matchAll(MESSAGE_CODE_PAIR)) record(m[1]);
             if (!line.includes('code:') && !STATUS_HELPER_CALL.test(line)) return;
             for (const quoted of emitted.match(/'([A-Z][A-Z0-9_]{2,})'/g) || [])
                 record(quoted.slice(1, -1));
@@ -260,7 +269,9 @@ test('every explorer REST error code has a registry row', { skip: noExplorer }, 
 test('the REST registry check fails on a dropped row or an unemitted row', { skip: noExplorer }, () => {
     const page    = fs.readFileSync(REGISTRY_PAGE, 'utf8');
     const emitted = emittedCodes();
-    for (const code of ['VM_BUSY', 'MIRROR_STALE', 'INVALID_CURSOR']) {
+    // The message/code pair rule reads a map row, never an HTTP method list.
+    assert.equal(emitted.has('POST'), false, 'the message/code pair rule read a method list as a code');
+    for (const code of ['VM_BUSY', 'MIRROR_STALE', 'INVALID_CURSOR', 'INVALID_TX_INDEX']) {
         assert.ok(emitted.has(code), `${code} is no longer collected from the explorer source`);
         const dropped = page.replace(new RegExp('^\\| `' + code + '` \\|.*\\n', 'm'), '');
         assert.notEqual(dropped, page, `falsification fixture did not drop the ${code} row`);

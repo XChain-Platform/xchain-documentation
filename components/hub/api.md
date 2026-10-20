@@ -818,7 +818,7 @@ Pass any action name from the table as the `action` parameter. Passing an unknow
 
 ### `requestattestation`
 
-Initiates a PBFT attestation consensus round for a cross-chain action.
+Initiates a PBFT attestation consensus round for a cross-chain action. Any hub serves the request, and a request for an attestation already in flight on that hub joins that round and returns its result.
 
 **Request:**
 ```json

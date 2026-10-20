@@ -203,12 +203,12 @@ See [Reproducible Builds](reproducible-builds.md) for the run-twice-and-compare 
 
 ## URI scheme handling
 
-Registered handlers across all three shells for:
+The wallet understands two families of URI:
 
 - `bitcoin:` / `dogecoin:` / `litecoin:`; BIP21 payment URIs
 - `xchain:`: XChain-specific URIs (e.g. action-share links)
 
-The Chrome extension registers via the manifest; the desktop app via electron's `setAsDefaultProtocolClient`; the web app via the modern Web `registerProtocolHandler` API.
+Which of these each shell claims from the operating system or browser differs by shell: the mobile app claims all four schemes, the desktop app declares all four and makes itself the default handler for `xchain:` (for the coin schemes only after an opt-in), the web app registers `web+xchain:` (and bare `xchain:` where the browser allows it), and the extension declares `web+xchain:` in its manifest. [URI Registration](uri-schemes.md#uri-registration) has the per-shell table.
 
 ## Connected sites + permissions
 

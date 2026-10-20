@@ -38,7 +38,9 @@
  * date seven unrelated measurements ("Re-measured 2026-08-07: both domains now
  * publish SPF"). Banning the string outright would demand those be falsified.
  * So a live date is a finding only next to flag-day language. A RETIRED date
- * has no such legitimate use: it was never anything but this constant.
+ * has one legitimate use only: the `Released YYYY-MM-DD.` header line of a
+ * train on operations/releases.md, a calendar fact (v0.21.1 shipped
+ * 2026-10-01). Check 3 skips exactly that line shape on that page.
  *
  * CHANGELOG.md is history, exempt from all three: its entries were true when
  * written, and rewriting them would be the actual lie.
@@ -95,6 +97,12 @@ function markdownFiles(dir = DOC_ROOT, out = []) {
         else if (e.name.endsWith('.md') && e.name !== 'CHANGELOG.md' && p !== GENERATED) out.push(p);
     }
     return out;
+}
+
+// Match only a train's release-date header on the mirror page (a calendar date, never a flag day).
+function isTrainReleaseDateLine(rel, line) {
+    return rel === path.join('operations', 'releases.md')
+        && /^Released \d{4}-\d{2}-\d{2}\. \[Release notes and artifacts\]\(https:\/\/github\.com\/XChain-Platform\/xchain-node\/releases\/tag\/v\d+\.\d+\.\d+\)$/.test(line);
 }
 
 function proseLines() {
@@ -586,6 +594,20 @@ test('a per-coin sibling slot holding a block TIME is refused, not skipped', () 
     assert.throws(() => gen.collectGates(dir), /PERCOIN_ACTIVATION/);
 });
 
+test('a sibling mainnet slot reads separators the way the registry arm does', () => {
+    // A valid separator literal publishes; a leading-underscore name stays quiet,
+    // including in a per-coin slot; a trailing or doubled separator is refused.
+    const dir = fixtureTree(LIVE_REGISTRY, {
+        'sep_activation.js': 'const SEP_ACTIVATION = {\n    mainnet: 1_786_060_800,\n};\n',
+        'named_activation.js': "const NAMED_ACTIVATION = {\n    mainnet: _1786060800,\n    'BTC:mainnet': _1786060800,\n};\n",
+    });
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => [g.gate, g.time]), [['REAL', 1786060800], ['SEP_ACTIVATION', 1786060800]]);
+    for (const bad of ['1786060800_', '1__786060800']) {
+        const refused = fixtureTree(LIVE_REGISTRY, { 'bad_activation.js': `const BAD_ACTIVATION = {\n    mainnet: ${bad},\n};\n` });
+        assert.throws(() => gen.collectGates(refused), /BAD_ACTIVATION/, `${bad} was read as a number`);
+    }
+});
+
 test('the legitimately quiet sibling shapes do not throw', () => {
     // Every one of these ships in xchain-indexer/src today: per-coin heights, a
     // per-coin null, an inert bare null, a named constant no text scan can
@@ -635,6 +657,7 @@ test('the generated page is the only place a live flag-day value appears', { ski
 test('no retired flag-day value survives anywhere in the prose', () => {
     const bad = [];
     for (const { rel, no, line } of proseLines()) {
+        if (isTrainReleaseDateLine(rel, line)) continue;
         for (const date of RETIRED_DATES) {
             if (line.includes(date)) bad.push(`${rel}:${no} states ${date}, a retired flag-day date`);
         }

@@ -31,7 +31,7 @@ Errors are JSON objects:
 | `NOT_FOUND` | 404 | No row for that lookup | No |
 | `ACTION_NOT_YET_INDEXED` | 404 | The action index lies above what this explorer's indexer has committed so far; the body carries `indexed_through` and the response a `Retry-After` header | Yes: the indexer is catching up; honor `Retry-After` |
 | `CHECKPOINT_NOT_FOUND` | 404 | No quorum-signed checkpoint at that height | Maybe: checkpoints lag the tip |
-| `RATE_LIMITED` | 429 | Per-IP request budget exhausted (app-wide default 1080/min; some routes have tighter limits, see [explorer rate limiting](../components/explorer/configuration.md#rate-limiting)) | Yes: back off; honor `RateLimit-*` headers |
+| `RATE_LIMITED` | 429 | Per-IP request budget exhausted (app-wide default 180/min; some routes have tighter limits, see [explorer rate limiting](../components/explorer/configuration.md#rate-limiting)) | Yes: back off; honor `RateLimit-*` headers |
 | `SERVER_ERROR` | 500 | Unexpected internal failure | Yes: with backoff |
 | `UPSTREAM_ERROR` | 502 | The colocated indexer fee service failed. Four indexer proxy routes return it when their indexer call fails: native fee quote, oracle fee quote, fee schedule and action pre-flight (a validator-set proof reports the same failure as `INDEXER_UNAVAILABLE`) | Yes: with backoff |
 | `COIN_NOT_AVAILABLE` | 503 | Coin supported but not configured for data requests here | No: use another instance |
@@ -40,12 +40,21 @@ Errors are JSON objects:
 | `INVALID_PARAMETER` | 400 | A query or body parameter is malformed, repeated, over-long, or outside its allowed values; the generic 400 when no narrower code below applies | No: fix the request |
 | `INVALID_ACTION` | 400 | The `action` parameter names no known action (fee quote and preflight routes) | No |
 | `INVALID_HEIGHT` | 400 | The `height` parameter is not a non-negative integer (proof routes) | No |
-| `INVALID_LIMIT` | 400 | The `limit` parameter is not a non-negative integer (checkpoint list) | No |
+| `INVALID_LIMIT` | 400 | The `limit` parameter is malformed. API list routes: `limit` is not a whole number of at least 1 (a larger value is clamped to the route's maximum, not refused). Checkpoint list: `limit` is not a non-negative integer (`0` reads as 1 and a value above 100 reads as 100) | No |
 | `INVALID_RANGE` | 400 | `from` and `to` are not both integers, or `to` is below `from` (block-range proof) | No |
 | `INVALID_CONTRACT_INDEX` | 400 | The contract index is not a non-negative integer | No |
+| `INVALID_TX_INDEX` | 400 | API and explorer data routes: the `tx_index` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_POLL_INDEX` | 400 | API and explorer data routes: the `poll_index` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_FEED_INDEX` | 400 | API and explorer data routes: the `feed_action_index` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_ROUND_NUMBER` | 400 | API and explorer data routes: the `round_number` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_EPOCH_HEIGHT` | 400 | API and explorer data routes: the `epoch_height` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_EXECUTION_INDEX` | 400 | API and explorer data routes: the `execution_index` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_DISPENSER_INDEX` | 400 | API and explorer data routes: the `dispenser_action_index` path segment is not a non-negative integer | No: fix the request |
 | `INVALID_KEY_NUL` | 400 | A contract state key contains a NUL byte | No |
 | `KEY_TOO_LONG` | 400 | A contract state key exceeds the VM's maximum state-key size | No |
 | `STAKES_BTC_ONLY` | 400 | Validator-set proofs are served for BTC only (`stakes_root` is BTC-only) | No |
+| `ROLLCALLS_DOGE_ONLY` | 400 | `GET /{COIN}/api/rollcalls`: ROLLCALL publications are served for DOGE coins only, because only the DOGE indexer records them; BTC epoch closes are at `/{COIN}/api/rollcall_closes` | No: ask a DOGE coin |
+| `ROLLCALL_CLOSES_BTC_ONLY` | 400 | `GET /{COIN}/api/rollcall_closes`: ROLLCALL epoch closes are served for BTC coins only, because only the BTC indexer closes epochs; DOGE publications are at `/{COIN}/api/rollcalls` | No: ask a BTC coin |
 | `BAD_METHOD` | 400 | Contract simulation: `method` is missing, too long, or contains wire delimiters | No |
 | `BAD_PARAMS` | 400 | Contract simulation: `params` is not an array, has too many entries, an over-long entry, or a wire delimiter | No |
 | `BAD_CALLER` | 400 | Contract simulation: `caller` is not an address string | No |

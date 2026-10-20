@@ -430,9 +430,9 @@ Moving the median outside the range of the honest submissions requires controlli
 ```mermaid
 flowchart TD
     S1["1. REQUEST<br>requestattestation(source_chain, source_action_index, dest_chain)"]
-    S2["2. PROPOSE<br>Leader broadcasts XCHAIN_ATTEST_PROPOSE<br>→ includes attestation_id: '{source_chain}:{action_index}:{dest_chain}'"]
+    S2["2. PROPOSE<br>The hub that received the request broadcasts XCHAIN_ATTEST_PROPOSE<br>→ includes attestation_id: '{source_chain}:{action_index}:{dest_chain}'<br>→ any hub may propose, and a request for an id already in flight joins that round"]
     S3["3. PREPARE<br>Validators send XCHAIN_ATTEST_PREPARE<br>→ only validators supporting BOTH chains participate<br>→ collect the majority-floored quorum from the eligible validator subset"]
-    S4["4. COMMIT<br>Leader broadcasts XCHAIN_ATTEST_COMMIT<br>→ collect the majority-floored quorum of commits"]
+    S4["4. COMMIT<br>Each hub broadcasts XCHAIN_ATTEST_COMMIT once it holds the PREPARE quorum<br>→ collect the majority-floored quorum of commits"]
     S5["5. FINALIZE<br>Store in attestations table (status='attested')<br>→ emit attestation:finalized event<br>→ SwapTracker auto-progresses matching swaps"]
 
     S1 --> S2 --> S3 --> S4 --> S5

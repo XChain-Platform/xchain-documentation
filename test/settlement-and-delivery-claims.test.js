@@ -281,7 +281,7 @@ test('the cross-chain royalty source facts still hold', { skip: skipNoIndexer },
 
 test('the cross-chain guide carries the royalty availability caveat', () => {
     const pairs = section(crossChain, '## Available Pairs', 'cross-chain.md');
-    assert.match(pairs, /royalty not enforceable cross-chain/,
+    assert.match(pairs, /invalid: royalty not enforceable cross-chain/,
         'cross-chain.md "Available Pairs" no longer names the rejection a royalty-bearing '
         + 'cross-chain listing gets at create');
     assert.match(pairs, /CROSS_CHAIN_ROYALTY/,
@@ -293,23 +293,40 @@ test('the cross-chain guide carries the royalty availability caveat', () => {
         + 'the activation date is allowed to live');
 });
 
+// Refuse a backtick quote of either royalty denial without the stored `invalid: ` prefix.
+function assertPrefixedRoyaltyQuotes(text, name) {
+    assert.ok(!/`royalty (?:not enforceable cross-chain|leg not payable on proceeds chain)`/.test(text),
+        `${name} quotes a cross-chain royalty denial without the stored \`invalid: \` prefix, `
+        + 'so a wallet matching the documented text never matches the stored status');
+}
+
 test('the NFT standard does not claim the rails have no special cases', () => {
     assert.ok(!/All existing rails apply to NFT-pattern tokens with no special cases/.test(nft),
         'nft-standard.md again claims the rails apply with no special cases, while a '
         + 'royalty-bearing cross-chain listing is denied at create');
     assert.match(nft, /CROSS_CHAIN_ROYALTY/,
         'nft-standard.md no longer names the cross-chain royalty exception anywhere');
-    assert.match(nft, /royalty leg not payable on proceeds chain/,
-        'nft-standard.md no longer names the verdict a non-portable leg gets above the flag day');
+    assert.match(nft, /invalid: royalty leg not payable on proceeds chain/,
+        'nft-standard.md no longer quotes the full stored status a non-portable leg gets above the flag day');
+    assert.match(nft, /invalid: royalty not enforceable cross-chain/,
+        'nft-standard.md no longer quotes the full stored status of the below-flag-day denial');
+    assertPrefixedRoyaltyQuotes(nft, 'nft-standard.md');
 });
 
 test('the controller spec names both cross-chain royalty denials', () => {
     const sales = section(readDoc('protocol/controller-bound-tokens.md'),
         '### Cross-chain sales (`CROSS_CHAIN_ROYALTY`)', 'controller-bound-tokens.md');
-    assert.match(sales, /royalty not enforceable cross-chain/,
-        'the cross-chain sales section no longer names the below-flag-day denial');
-    assert.match(sales, /royalty leg not payable on proceeds chain/,
-        'the cross-chain sales section no longer names the non-portable-leg denial');
+    assert.match(sales, /invalid: royalty not enforceable cross-chain/,
+        'the cross-chain sales section no longer quotes the full stored status of the below-flag-day denial');
+    assert.match(sales, /invalid: royalty leg not payable on proceeds chain/,
+        'the cross-chain sales section no longer quotes the full stored status of the non-portable-leg denial');
+    assertPrefixedRoyaltyQuotes(sales, 'controller-bound-tokens.md');
+});
+
+test('the royalty quote guard fails on a quote that drops the stored prefix', () => {
+    assert.throws(() => assertPrefixedRoyaltyQuotes('(`royalty not enforceable cross-chain`)', 'fixture'), /fixture quotes/);
+    assert.throws(() => assertPrefixedRoyaltyQuotes('(`royalty leg not payable on proceeds chain`)', 'fixture'), /fixture quotes/);
+    assert.doesNotThrow(() => assertPrefixedRoyaltyQuotes('(`invalid: royalty not enforceable cross-chain`)', 'fixture'));
 });
 
 /* 6. A fee output is required only when a fee is actually owed. */

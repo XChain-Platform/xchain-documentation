@@ -375,11 +375,13 @@ Cohort B batch, the later per-chain gates under
 [Additional armed gates](#additional-armed-gates-service-carried) below, and the four time-keyed
 gates that carry a date of their own (`BATCH_ISSUANCE_LIMITS`, `CONTRACT_DELEGATION_MATERIALIZE`,
 `DISPENSER_ORACLE_PER_TOKEN_PRICE`, `CROSS_CHAIN_ROYALTY`), whose instants are on
-[Flag-Day Values](./flag-days.md). Five time-keyed gates now carry a date of their own rather than
-the shared contract-era instant: those four plus `REST_PATTERN_METER` (the `xchain-vm`
-`REST_PATTERN_METER_GATE_BLOCK_TIME` destructuring rest-pattern meter and its indexer twin), which
-landed after that snapshot. [Flag-Day Values](./flag-days.md) lists each instant and is the source for
-which of the five have passed.
+[Flag-Day Values](./flag-days.md). More time-keyed gates with a date of their own landed after that
+snapshot, among them `REST_PATTERN_METER` (the `xchain-vm` `REST_PATTERN_METER_GATE_BLOCK_TIME`
+destructuring rest-pattern meter and its indexer twin) and
+[the mainnet launch gate](#the-mainnet-launch-gate) (`MAINNET_LAUNCH_ACTIVATION`). This page keeps no
+count of them: [Flag-Day Values](./flag-days.md) is generated from the gate registry, lists every
+gate that does not ride the shared contract-era instant together with its own date, and is the
+source for which of them have passed.
 
 ## Additional armed gates (service-carried)
 

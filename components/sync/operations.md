@@ -254,6 +254,17 @@ Alert on `missing_tables` being anything other than `[]`. A replica also writes 
 
 This matters most right after a new feature ships. If an indexer starts writing a new family of tables before its replicas are migrated, those replicas hold none of that data while every other health figure stays perfect.
 
+#### `table_counts` and `table_counts_height`
+
+Every status row carries `table_counts`, the row count of each replicated table, and `table_counts_height`, the block height those counts describe.
+
+On a source, `block_height` is the height the server has broadcast, while the counts are read from the live database, which can already hold later blocks. So the counts carry their own height rather than borrowing `block_height`:
+
+- A number is the database tip, read before and after the counts and found unchanged. The counts describe exactly that block.
+- `null` means a block was committed or rolled back while the counts were being read, or the tip could not be read. The counts describe no single height.
+
+A follower compares its own counts against a source's only when `table_counts_height` equals its own applied height. Any other value skips that completeness check and leaves the follower's tracked gaps unchanged. A source that does not publish `table_counts_height` is compared at `block_height`, and only while its `source_height` equals its `block_height`.
+
 ### `POST /validator-heartbeat/:dbType/:chain/:network`
 
 REST fallback to the WebSocket `heartbeat` message, for replicating clients that cannot hold a persistent WebSocket connection. A named validator POSTs its applied height so operators can observe its replication lag without an active subscription. **Server mode only.** Rate-limited per IP. `:dbType` must be `indexer` or `decoder`.
