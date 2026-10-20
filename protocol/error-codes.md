@@ -152,6 +152,7 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `DUPLICATE_TRANSACTION` | A transaction with the same inputs and outputs (same txid) was built inside the reservation window | `txid` | No: broadcast the one already built, or change the inputs or outputs |
 | `INPUT_RESERVED` | `options.exactInputs` names outpoints reserved by a transaction built inside the reservation window | `reserved` (outpoints) | No: broadcast that transaction and rebuild, or wait for the reservation to lapse |
 | `INPUT_SELECTION_RACE` | Input selection raced a concurrent reservation, so the obfuscation key is bound to an outpoint that is not the first input | `expectedFirstInput`, `actualFirstInput` | Caller may retry the request |
+| `UTXO_SET_TOO_LARGE` | The address holds more UTXOs than the encoder will return in one set, so it refuses rather than build from a partial set | `limit` | No: consolidate the address or pass `utxos` explicitly |
 | `UTXO_TRACKER_ERROR` | The UTXO tracker is unreachable or returned a malformed response | none | Caller may retry with backoff |
 | `UTXO_TRACKER_STALE` | The tracker's view lags the node past the configured threshold, or is ahead of the node (an orphaned view), or the tracker reports `synced: false` (the remote tracker profile also refuses an absent `synced`) | `lag`, `tracker_height`, `node_height` | Caller may retry with backoff |
 | `UTXO_TRACKER_HALTED` | The tracker is halted (for example after an unrecoverable reorg) | `lag`, `tracker_height`, `node_height`, `halt_reason` | No: operator action |
