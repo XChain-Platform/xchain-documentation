@@ -43,6 +43,8 @@ All tracker JSON-RPC requests are HTTP POST requests to `/` with a JSON-RPC 2.0 
 | Encoder JSON-RPC `health` | Reports `tracker_reachable`, `tracker_synced`, `tracker_lag`, `tracker_halted`, and `tracker_mempool_ready`. |
 | Encoder `GET /status` | Uses the same readiness verdict as `health`; returns HTTP 200 when serveable and HTTP 503 otherwise. It also reports `tracker_max_lag_blocks`. |
 
+The same batch rule applies to every call the encoder receives, whatever the profile: a JSON-RPC batch entry without an `id` is refused, so a hosted application that groups `create_tx`, `get_utxos` or `health` calls must give each entry an `id`. `GET /status` also publishes `node_tier_checked` and `node_tier_mismatch`, which describe the encoder's own coin node rather than the remote tracker. Gate traffic on `node_tier_checked: true` and `node_tier_mismatch: false` as well as on the HTTP status. See the [encoder README](../encoder/README.md) for both fields.
+
 `ping` only proves that the encoder process can answer. It does not probe the tracker and is not a readiness check. Use `health` or `GET /status` for traffic admission.
 
 ### UTXO response
