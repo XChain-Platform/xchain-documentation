@@ -81,6 +81,7 @@ The SDK reads these environment variables at construction time. A `.env` file in
 | `SDK_API_PORT` | Port for the JSON-RPC microservice API server. Default: `3005`. | API server (`npm run api`) |
 | `SDK_API_KEY` | Bearer token required for all API server methods except `ping`. No default; the server warns and rejects all non-ping calls when unset. | API server (`npm run api`) |
 | `SDK_API_MAX_BATCH` | Maximum calls accepted in one batch request. A non-numeric or non-positive value falls back to the default rather than disabling the cap. Default: `20`. | API server (`npm run api`) |
+| `XCHAIN_CONTRACTS_DIR` | Path to the xchain-contracts checkout that `bin/sync-templates.js` reads the contract templates from when it regenerates `src/contract/templates.js`. Default: the `xchain-contracts` directory beside the SDK checkout. | Template sync (`bin/sync-templates.js`) |
 | `SDK_API_RATE_LIMIT` | Requests allowed per window, per credential (per source address when unauthenticated). A junk value falls back to the default; an explicit `0` disables the limiter, which is the only way to turn it off. Default: `300`. | API server (`npm run api`) |
 | `SDK_API_RATE_WINDOW_MS` | Length of the rate-limit window. Default: `60000` (1 minute). | API server (`npm run api`) |
 | `EXPLORER_URL` | Hostname or IP of the xchain-explorer server. | Explorer client |
